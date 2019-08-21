@@ -64,6 +64,8 @@ h) OUT_*.vtk, SURF_*.vtk: Paraview binary or aschii files for the both the geome
 i) VOL_AVER_*.plt SURF_AV*.plt: Tecplot binary or ascii files for the volume and surface mesh AVERAGE solution respectively. This way only the solution files are written rather the entire geometry in order to save resources.(exported only tecplot binary output is selected)
 j) OUT_AV*.vtk, SURF_AV*.vtk: Paraview binary or aschii files for the both the geometry and average solution for the volume and surface mesh respectively.
 k) PROBE.* : file outlining the primitive variables variation with time (column 1 time, column 2 density, column 3 u velocity etc) for the specified probe locations.
+l) residual.dat : file containing the residuals of the conserved flow variables and turbulence flow variables at every 10 iterations for steady state flow problems
+m) ENERGY.dat: file containing the time and the normalised total kinetic energy, and kinetic energy dissipation rate for the Taylor Green vortex test problem.
 
 All the solution files carry timestamps and description of the flow variable names, for both tecplot and paraview outputs.
 
