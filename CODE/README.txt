@@ -38,6 +38,17 @@ d) For interactively running the code specify the number of threads to be used b
     "mpirun -np M ./ucns3d_p",  M being the number of MPI processes (at least 2 are required)
 e) For running at different HPC systems sample scripts are provided
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!NOTE!!!!!!!!!!!!!!!!!!!!!!!!!!!
+The structure of the mesh files, solution files, restart files etc, are 
+independent of the number of cpus selected, since parmetis is invoked 
+within the code to partition the mesh, and MPI-IO to put the files together
+when reading and writing.
+Therefore the user can submit to any number of cpus a simulation, and 
+restart/resume it to a different number of cpus. There is only one file 
+written from all the cpus for the output, restart files and forces etc,
+therefore minimising the number of files generated.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 5.Output Files
 The ucns3d code generates numerous files while running depending on the setup chosen. The most common ones are:
@@ -51,7 +62,13 @@ f) GRID.plt, SURF.plt : Tecplot binary or ascii files with the geometry of the v
 g) OUT_*.plt SURF_*.plt: Tecplot binary or ascii files for the volume and surface mesh instantaneous solution respectively. This way only the solution files are written rather the entire geometry in order to save resources.(exported only tecplot binary output is selected)
 h) OUT_*.vtk, SURF_*.vtk: Paraview binary or aschii files for the both the geometry and instantaneous solution for the volume and surface mesh respectively.
 i) VOL_AVER_*.plt SURF_AV*.plt: Tecplot binary or ascii files for the volume and surface mesh AVERAGE solution respectively. This way only the solution files are written rather the entire geometry in order to save resources.(exported only tecplot binary output is selected)
-k) OUT_AV*.vtk, SURF_AV*.vtk: Paraview binary or aschii files for the both the geometry and average solution for the volume and surface mesh respectively.
+j) OUT_AV*.vtk, SURF_AV*.vtk: Paraview binary or aschii files for the both the geometry and average solution for the volume and surface mesh respectively.
+k) PROBE.* : file outlining the primitive variables variation with time (column 1 time, column 2 density, column 3 u velocity etc) for the specified probe locations.
+
+All the solution files carry timestamps and description of the flow variable names, for both tecplot and paraview outputs.
+
+
+
 
 
 
