@@ -1,0 +1,26 @@
+#!/bin/bash --login
+#PBS -N SD
+#PBS -q low
+#PBS -l select=200
+#PBS -l walltime=03:00:00
+#PBS -A ACCOUNT_NAME
+
+# Make sure any symbolic links are resolved to absolute path
+#export PBS_O_WORKDIR=$(readlink -f $PBS_O_WORKDIR)               
+# export PBS_O_WORKDIR=/.../  
+# Change to the direcotry that the job was submitted from
+cd $PBS_O_WORKDIR
+
+# Set the number of threads to 1
+#   This prevents any system libraries from automatically 
+#   using threading.
+export OMP_NUM_THREADS=12
+export KMP_AFFINITY=disabled
+export MPICH_MAX_THREAD_SAFETY=MPI_THREAD_FUNNELED
+# 2 MPI PROCESSES PER NODE
+# 1 MPI_PROCESS PER NUMA REGION
+# 12 OMP THREADS PER MPI PROCESS
+
+
+# Launch the parallel job
+aprun -n 400 -N 2 -S 1 -d 12 -cc numa_node  ./ucns3d_p 
