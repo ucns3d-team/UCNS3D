@@ -1,5 +1,8 @@
  A series of test problems are provided for the user to test.
  
+ Representative tests can be downloaded from 
+https://doi.org/10.5281/zenodo.3375432
+ 
 These include 2D, and 3D test problems using Linear Advection, Euler, Navier-Stokes and RANS equations.
 
 All the directores include the grid files (MESHES), the pointwise files for generating the meshes, 
@@ -15,7 +18,7 @@ to ensure that the code runs as intended.
 References for the tests included.
 
 
-https://doi.org/10.1016/j.jcp.2019.07.039
+
 
 
 2D/EULER/DMR/   test 3.5 from  (https://doi.org/10.1016/j.jcp.2019.07.039)
