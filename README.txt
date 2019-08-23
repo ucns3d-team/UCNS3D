@@ -95,8 +95,6 @@ the Taylor Green vortex test problem.
 All the solution files carry timestamps and description of the flow variable names, for both tecplot and paraview outputs.
 
 
-Hiya
-
 
 
 
