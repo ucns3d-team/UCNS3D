@@ -1198,7 +1198,9 @@ end if
 
 
 			    END IF
+			    IF (ITESTCASE.LE.3)THEN
 			     ALLOCATE (U_E(I)%VAL(1,1));U_E(I)%VAL=ZERO
+			     end if
 		      END IF
 		      if (rungekutta.eq.4)then
 		      IF (AVERAGING.EQ.1)THEN
