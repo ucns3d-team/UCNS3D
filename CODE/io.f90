@@ -1196,7 +1196,7 @@ Valuelocation(:)=0
 		
 		
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%STENCIL_DIST
+                VALUESS(i)=IELEM(N,I)%ISHAPE!IELEM(N,I)%STENCIL_DIST
                 END DO
                 
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1212,7 +1212,7 @@ Valuelocation(:)=0
                 
                 
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%ADMIS
+                VALUESS(i)=IELEM(N,I)%MINEDGE!IELEM(N,I)%ADMIS
                 END DO
                 
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1245,7 +1245,7 @@ Valuelocation(:)=0
     
 		  if (itestcase.eq.4)then
 		  DO I=1,KMAXE
-		      VALUESS(i)=ielem(n,i)%inumneighbours!(n,i)%vortex(1)
+		      VALUESS(i)=ielem(n,i)%vortex(1)!%inumneighbours
 		  END DO
 		  
 		  
@@ -2594,7 +2594,7 @@ Valuelocation(:)=0
 		  
 		   if (itestcase.eq.3)then
 		    DO I=1,KMAXE
-                                VALUESS(i)=ielem(n,i)%FULL!ielem(n,i)%vortex(1)
+                                VALUESS(i)=ielem(n,i)%vortex(1)
                             END DO
                             
                             
@@ -2698,7 +2698,6 @@ INTEGER::I,J,K,L,ITER,DIP
 	else
 	  READ(1083+N,pos=dip)ITER
 	end if
-	
 	RESTART=ITER
 	CLOSE(1083+N)
 	ELSE
@@ -2956,7 +2955,7 @@ SUBROUTINE READ_UCNS3D
 	READ(15,*)governingequations,INITCOND
 	READ(15,*)
 	READ(15,*)
-	READ(15,*)turbulence,icoupleturb,swirl
+	READ(15,*)turbulence,icoupleturb,PASSIVESCALAR
 	READ(15,*)
 	READ(15,*)
 	READ(15,*)
@@ -3042,8 +3041,8 @@ SUBROUTINE READ_UCNS3D
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
 	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=5.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=7.0	! LIMIT VOLUME CELLS
+	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=30.0	! LIMIT VOLUME CELLS
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
@@ -3099,7 +3098,44 @@ SUBROUTINE READ_UCNS3D
 	 DES_model=2
 	 
 	 
+	 CASE (3)
+	
+	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+	binio=1	    	!I/O (ASCII=0, BINARY=1) 
+	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+	HYBRIDIST=0.0D0 !HYBRID DISTANCE
+	swirl=0		!swirling flow:0 deactivated, 1 activated
+	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+	extf=2.5	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+	itold=10000	!TOLERANCE=n_iterations
+	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=30.0	! LIMIT VOLUME CELLS
+	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+	if (dimensiona.eq.2)then
+	if (tecplot.eq.2)then
+	tecplot=1
+	end if
+	end if
+	if (iboundary.eq.1)then
+	 LOWMEM=1
+	 end if
 	 
+	 
+	 DES_model=0
 	
 	CASE DEFAULT
 	
@@ -12355,21 +12391,14 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	
 	
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
-	
 	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,datatype, 'native',MPI_INFO_NULL, ierror)
-	
-	call MPI_FILE_WRITE_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)  
-	
-	call MPI_Barrier(MPI_COMM_WORLD, ierror)
-	
+	call MPI_FILE_WRITE_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)        
         call MPI_FILE_CLOSE(fh, ierror)
-        
-        
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
           
           
           
-	
+	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	
 	
 	
@@ -12888,8 +12917,8 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
     
     
     
-	
-	   if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
+	    if (IRES_UNSTEADY.eq.0)then
+! 	   if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
 	          call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 		  call MPI_file_READ(fh, it, 1, MPI_INTEGER, MPI_STATUS_IGNORE,ierror)
 		    disp_in_file = disp_in_file + size_of_int	!1

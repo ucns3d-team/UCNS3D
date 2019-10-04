@@ -439,8 +439,8 @@ IF (INITCOND.EQ.65)THEN	!TAYLOR GREEN INITIAL PROFILE
 
 
 R1=1.0D0
-u1=UVEL
-v1=UVEL
+u1=1.0d0
+v1=1.0d0
 p1=1.0d0
 !rgg=((pox(1)**2)+(poy(1)**2))
 rgg=(((pox(1)-5.0d0)**2)+((poy(1)-5.0d0)**2))

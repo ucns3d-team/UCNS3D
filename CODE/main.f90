@@ -643,10 +643,10 @@ end if
    CALL INITIALISE2d(N)
    end if
  
-  IF (RESTART.GT.0)THEN
+ IF (RESTART.GT.0)THEN
    CALL REST_READ(N)
    
-   END IF
+ END IF
  
  
 
