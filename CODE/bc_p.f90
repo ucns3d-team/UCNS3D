@@ -145,6 +145,7 @@ DO JI=1,n_boundaries
   end if
 end do
 
+
 DO I=1,KMAXE
   IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
   ALLOCATE(IELEM(N,I)%iBOUNDs(IELEM(N,I)%IFCA))
@@ -464,6 +465,7 @@ DO I=1,KMAXE			!ALL ELEMENTS
 				      NODES_LIST(kk,1:3)=inoder(IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ibl(kk))%CORD(1:3)
 				    END DO
 				    vext(1,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+				    
 			   do ii=1,n_boundaries				!loop all the boundaries
 				if (((ii.ne.IELEM(N,I)%IBOUNDS(J)).and.(IBOUND(n,ii)%icode.eq.5).and.&
 (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ishape.eq.IBOUND(n,ii)%ishape)))then
@@ -474,6 +476,7 @@ DO I=1,KMAXE			!ALL ELEMENTS
 				      NODES_LIST(kk,1:3)=inoder(ibound(N,ii)%ibl(kk))%CORD(1:3)
 				    END DO
 				    vext(2,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+				    
 				    dist=distance3(n)
 				      
 				      
@@ -529,6 +532,8 @@ DO I=1,KMAXE			!ALL ELEMENTS
     end if
 end do
 !$OMP END DO
+
+
 	 	
 		    
 	else

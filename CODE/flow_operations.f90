@@ -1902,10 +1902,15 @@ SELECT CASE(B_CODE)
                             !TOTAL ENERGY
                             E1=(P1/(GAMMA-1))+(R1*SKIN1)
                             !VECTOR OF CONSERVED VARIABLES NOW
-                            rightv(1)=leftv(1)
-                            rightv(2)=0.0
-                            rightv(3)=0.0
-                            rightv(4)=leftv(4)
+                           ! rightv(1)=leftv(1)
+                            !rightv(2)=0.0
+                            !rightv(3)=0.0
+                            !rightv(4)=leftv(4)
+                            
+                             rightv(1)=R1
+                            rightv(2)=R1*U1
+                            rightv(3)=R1*V1
+                            rightv(4)=E1
 			      
 			      end if
 			      

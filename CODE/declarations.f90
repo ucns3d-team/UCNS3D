@@ -295,7 +295,7 @@ REAL,ALLOCATABLE,DIMENSION(:,:)::ILOCALALLELGD,b_char,x_Char
 REAL,ALLOCATABLE,DIMENSION(:,:,:)::ba_char,a_char
 real::a_rot,c_rot,b_rot,root_rot,sheartemp
 REAL,ALLOCATABLE,DIMENSION(:)::WEIGHT_T2
-!$OMP THREADPRIVATE(b_char,x_Char,INSTEN,llx,ba_char,a_char,ICONS_S,ICONS_E,compwrt,ILOCALALLELGD,ILOCALALLELG3,STCON,STCONC,STCONS,STCONG,ISOSA,IX,IFSAT,IISTART,SHEARTEMP,IMAX,NUMBER_OF_NEI,b_code,INUM,angle1,angle2,IDEG,n_node,inump,INUMO,inumo2,ideg2,m2,idegfree2,inump2,imax2,A_ROT,C_ROT,B_ROT,ROOT_ROT,ANGLEFACEX,ANGLEFACEY,voltemp)
+!$OMP THREADPRIVATE(b_char,x_Char,INSTEN,llx,varcons,pointx,ba_char,a_char,ICONS_S,ICONS_E,compwrt,ILOCALALLELGD,ILOCALALLELG3,STCON,STCONC,STCONS,STCONG,ISOSA,IX,IFSAT,IISTART,SHEARTEMP,IMAX,NUMBER_OF_NEI,b_code,INUM,angle1,angle2,IDEG,n_node,inump,INUMO,inumo2,ideg2,m2,inump2,imax2,A_ROT,C_ROT,B_ROT,ROOT_ROT,ANGLEFACEX,ANGLEFACEY,voltemp)
 REAL,ALLOCATABLE,DIMENSION(:,:)::VVA,VVA1,lscqm1,xxder,yyder,zzder
 REAL,ALLOCATABLE,DIMENSION(:)::B1_imp,DU1,DU2,DUMMY12,C1_imp,DUR,DUL,DURR,DULR,DUT1,B1T,DUMMY12T,SOURCE_T,sb,DETA,UTMIN,UTMAX,VVr1,VVr2,VVr3,VVR4,VVwg,VVnpox,VVnpoy,VVnpoz,VVwpox,VVwpoy,VVwpoz,VVnxi,VVneta,VVnzeta,VVxi,VVeta,VVzeta,VVnallx,VVnally,VVnallz,VVB,VVC,VVD,VVE,VVF,vvjacobsurf,vvjacobvolume
 !$OMP THREADPRIVATE(sb,IBFC,lamx,lamy,lamz,number_of_dog,WEIGHT_T2,lscqm1,B1_imp,DU1,DU2,DUMMY12,xxder,yyder,zzder,C1_imp,DUR,DUL,DURR,DULR,DUT1,B1T,DUMMY12T,SOURCE_T,UTMIN,UTMAX,ax,ay,az,nx,ny,nz,nnx,nny,nnz,VVA,DETA,VVA1,VVr1,VVr2,VVr3,VVR4,VVwg,VVnpox,VVnpoy,VVnpoz,VVwpox,VVwpoy,VVwpoz,VVnxi,VVneta,VVnzeta,VVxi,VVeta,VVzeta,VVnallx,VVnally,VVnallz,VVB,VVC,VVD,VVE,VVF,vvjacobsurf,vvjacobvolume)

@@ -443,7 +443,7 @@ REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 
 
 KMAXE=XMPIELRANK(N)
-DIVBYZERO=1.0e-12
+DIVBYZERO=1.0e-13
 
 POWER=4
 
@@ -693,10 +693,9 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 			     
 			      DO LL=1,IELEM(N,I)%ADMIS
 			      WENO(IEX,LL)=OMEGAAL(LL)
-
+			      
 			      END DO
-			      
-			      
+			    
 
 			      
 			      
@@ -2732,7 +2731,7 @@ REAL::SUMOMEGAATILDEL,tau_Weno
 REAL::DIVBYZERO,COMPF,checkf
 
 KMAXE=XMPIELRANK(N)
-DIVBYZERO=1.0e-14
+DIVBYZERO=1.0e-13
 ! if (ees.eq.5)then
 !     POWER=1
 ! ELSE
@@ -7200,7 +7199,7 @@ IF (ITESTCASE.GE.3)THEN
 						
 						
 				
-					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.6*RIGHTV(1))).OR.((ABS(LEFTV(5)-RIGHTV(5))).GE.(0.6*RIGHTV(5)))) THEN
+					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.9*RIGHTV(1))).OR.((ABS(LEFTV(5)-RIGHTV(5))).GE.(0.9*RIGHTV(5)))) THEN
 						    REDUCE1=1
 					    END IF
 				
@@ -7345,8 +7344,19 @@ IF (ITESTCASE.GE.3)THEN
 		if (ielem(n,i)%hybrid.eq.1)then
 		reduce1=1
 		end if
-		
-		
+		IF (INITCOND.EQ.30)THEN
+		 IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
+                    DO L=1,IELEM(N,I)%IFCA
+                                    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+                                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.NE.5)then	!PERIODIC IN MY CPU
+                                            REDUCE1=1
+                                        END IF
+                                        end if
+                                    END IF
+                    END DO
+                 END IF
+                 END IF
 		IF (REDUCE1.EQ.1)THEN
 
 		do iex=1,NOF_VARIABLES

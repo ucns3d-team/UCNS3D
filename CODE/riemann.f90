@@ -168,7 +168,7 @@ SUBROUTINE ROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm
 	REAL::MUL,MUR,LASTL,LASTR
 	Real :: sqrtrhoL,sqrtrhoR,HL,HR,utilde,vtilde,wtilde,htilde,atilde,VelTilde
 	
-
+!ORIGINALLY OBTAINED FROM Katate Masatsuka, February 2009. http://www.cfdbooks.com
 
 !Input
  real:: primL(5), primR(5) ! Input: primitive variables
@@ -351,6 +351,7 @@ SUBROUTINE tROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,s
 	REAL::MUL,MUR,LASTL,LASTR
 	Real :: sqrtrhoL,sqrtrhoR,HL,HR,utilde,vtilde,wtilde,htilde,atilde,VelTilde
 	
+!ORIGINALLY OBTAINED FROM Katate Masatsuka, February 2009. http://www.cfdbooks.com
 
 !Input
  real:: primL(5), primR(5) ! Input: primitive variables
@@ -597,7 +598,7 @@ SUBROUTINE rROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,s
 	REAL::MUL,MUR,LASTL,LASTR
 	Real :: sqrtrhoL,sqrtrhoR,HL,HR,utilde,vtilde,wtilde,htilde,atilde,VelTilde
 	
-
+!ORIGINALLY OBTAINED FROM Katate Masatsuka, February 2009. http://www.cfdbooks.com
 !Input
  real:: primL(5), primR(5) ! Input: primitive variables
  real:: njk(3)             ! Input: face normal vector
@@ -999,9 +1000,7 @@ Subroutine RUSANOV_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GA
 			
 			
 			
-! 			
-! 			FLSTAR(:)=FL(:)+SL(1)*(ULSTAR(:)-CLEFT_ROT(:))
-! 			FRSTAR(:)=FR(:)+SR(1)*(URSTAR(:)-CRIGHT_ROT(:))
+
 			
 			
 			
@@ -1091,7 +1090,7 @@ SUBROUTINE ESTIMATE_WAVES(N,ROTVL,ROTVR,SL,SM,SR,GAMMA)
 
 !           Use Two-Shock Riemann solver with PVRS as estimate
  
-!           Change 20/11/2003 - introduce iterations with PVRS as initial guess
+!           introduce iterations with PVRS as initial guess
  
             DO K=1,4
              GEL = SQRT((G5*BL/RL)/(G6*PL + PPV))
@@ -1326,7 +1325,7 @@ SUBROUTINE ROE_RIEMANN_SOLVER2d(N,Cleft,Cright,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,
  real :: ws(4),dws(4), Rv(4,4)          ! Wave speeds and right-eigevectors
  real :: fL(4), fR(4), diss(4)          ! Fluxes ad dissipation term
  integer ::  j
-
+!ORIGINALLY OBTAINED FROM Katate Masatsuka, February 2009. http://www.cfdbooks.com
 !Constants.
 
       
@@ -1482,6 +1481,7 @@ real :: uL(4), uR(4)    !  Input: conservative variables rho*[1, u, v, E]
  integer ::  j
 
 !Constants.
+!ORIGINALLY OBTAINED FROM Katate Masatsuka, February 2009. http://www.cfdbooks.com
     
      fifth = 0.2
       half = 0.5
@@ -1844,7 +1844,7 @@ SUBROUTINE ESTIMATE_WAVES2d(N,ROTVL,ROTVR,SL,SM,SR,GAMMA)
 
 !           Use Two-Shock Riemann solver with PVRS as estimate
  
-!           Change 20/11/2003 - introduce iterations with PVRS as initial guess
+!          introduce iterations with PVRS as initial guess
  
             DO K=1,20
              GEL = SQRT((G5*BL/RL)/(G6*PL + PPV))

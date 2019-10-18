@@ -78,7 +78,11 @@ KMAXE=XMPIELRANK(N)
 		END IF
 		END IF
 		
-		DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
+		
+		
+		
+		
+         DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
                              
 	END DO
 	!$END OMP DO

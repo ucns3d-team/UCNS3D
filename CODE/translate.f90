@@ -1163,7 +1163,7 @@ do i=1,imaxfglobal
 	  case(7) !symmetry
 	  ibtr=3
 	
-	  case(8)	!periodicity
+	  case(8)!periodicity
 	  ibtr=5
 
 	  case(3)  !wall
