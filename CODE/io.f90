@@ -2686,8 +2686,7 @@ INTEGER::I,J,K,L,ITER,DIP
 	IF (HERE) THEN
 	OPEN(1083+N,FILE=RESTFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',access='stream')
 	DIP=1
-	if (rungekutta.ne.5)then
-	
+	if (IRES_UNSTEADY.eq.1)then
 	READ(1083+N,pos=dip)ITER
 	dip=dip+4
 	READ(1083+N,pos=dip)RES_TIME
@@ -12284,21 +12283,24 @@ END SUBROUTINE CHECKPOINTING_av
 SUBROUTINE CHECKPOINT(N)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA,dispt
-REAL,ALLOCATABLE,DIMENSION(:)::VALUESA,VALUESS,array2
-REAL,ALLOCATABLE,DIMENSION(:,:)::xbin
-INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,size_of_real,size_of_int,dip,N_END,datatype
+INTEGER,ALLOCATABLE,DIMENSION(:)::dispt
+REAL,ALLOCATABLE,DIMENSION(:)::array2
+INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,size_of_real,size_of_int,dip,N_END,datatype,ifg
 CHARACTER(LEN=20)::PROC,RESTFILE,PROC3
-REAL,ALLOCATABLE,DIMENSION(:)::IGINT,TGINT,ARRAY
-LOGICAL::HEREss
+REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
+LOGICAL::HERE1
 REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
-integer(kind=MPI_OFFSET_KIND) :: disp_in_file = 0, tmp = 0,disp_init=0
+integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init
+disp_in_file=0
+tmp=0
+disp_init=0
+
 KMAXE=XMPIELRANK(N)
 
 size_of_int=4
 size_of_real=8
 ICPUID=N
-
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 !  ioCPt1=MPI_WTIME()
 
 ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)))	!I ALLOCATE IN MEMORY THE PATTERN OF ACCESS OF DATA IN TERMS OF DISPLACEMENT, AND IN TERMS OF BLOCKLENGTH, AND FINALY AN ARRAY WITH THIS PROCESSOR DATA
@@ -12324,27 +12326,33 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	      K=K+NOF_VARIABLES
 	  END DO
       END IF
+      
+      
+	RESTFILE='RESTART.dat'
 
+       IF (N.EQ.0)THEN
+	 INQUIRE (FILE=RESTFILE,EXIST=HERE1)
+	  CALL MPI_FILE_DELETE(RESTFILE,MPI_INFO_NULL,IERROR)
+	END IF
+     
+    CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
     !CREATE TYPE FIRST OF INDEXED BLOCK
+    
     CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXE,n_end,DISPT,MPI_DOUBLE_PRECISION,DATATYPE,IERROR)
     CALL MPI_TYPE_COMMIT(DATATYPE,IERROR)
-    
+   
 
     ALLOCATE(ARRAY(1:nof_Variables+turbulenceequations+passivescalar))
-    CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	RESTFILE='RESTART.dat'
+    
+    
 	
-	IF (N.EQ.0)THEN
-	  INQUIRE (FILE=RESTFILE,EXIST=HEREss)
-	  IF (HEREss) THEN
-	  CALL MPI_FILE_DELETE(RESTFILE,MPI_INFO_NULL,IERROR)
-	  END IF
-	END IF
+   
 	
 	
 	
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	!CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
 	call MPI_file_open(MPI_COMM_WORLD, RESTFILE,MPI_MODE_WRONLY + MPI_MODE_CREATE,MPI_INFO_NULL, fh, ierror)
 	
 	
@@ -12362,10 +12370,12 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 		    disp_in_file = disp_in_file + size_of_real*(nof_Variables+turbulenceequations)	!3
 	    ELSE
 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
+		  
 		  call MPI_file_write(fh, it, 1, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
 		    disp_in_file = disp_in_file + size_of_int 	!4
 		    
 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
+		  
 		  call MPI_file_write(fh, T, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
 		    disp_in_file = disp_in_file + size_of_real    !5
 		      if (initcond.eq.95)then
@@ -12393,29 +12403,25 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,datatype, 'native',MPI_INFO_NULL, ierror)
 	call MPI_FILE_WRITE_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)        
+        
         call MPI_FILE_CLOSE(fh, ierror)
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
           
           
           
-	call MPI_Barrier(MPI_COMM_WORLD, ierror)
+	
 	
 	
 	
 	
 	DEALLOCATE(ARRAY,DISPT,ARRAY2)
-!  ioCPt2=MPI_WTIME()
- 
- 
- 
-!  call CHECKPOINTv2(N)
-! 
-!   ioCPt3=MPI_WTIME()
-!   
-!   if (n.eq.0)then
-!   write(300+n,*)"new STYLE,","old STYLE"
-!   write(300+n,*)iocpt2-iocpt1,iocpt3-iocpt2
-!   end if
+	call MPI_Barrier(MPI_COMM_WORLD, ierror)
+	
+	
+
+	
+	
+
 
 END SUBROUTINE CHECKPOINT
 
@@ -12650,14 +12656,18 @@ INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,size_of_real,size_of_i
 CHARACTER(LEN=20)::PROC,RESTFILE,PROC3
 REAL,ALLOCATABLE,DIMENSION(:)::IGINT,TGINT,ARRAY
 REAL::IN1
-integer(kind=MPI_OFFSET_KIND) :: disp_in_file = 0, tmp = 0
-logical::heress
+logical::here1
+integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init
+disp_in_file=0
+tmp=0
+disp_init=0
  KMAXE=XMPIELRANK(N)
+
 
 size_of_int=4
 size_of_real=8
 ICPUID=N
-
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)))	!I ALLOCATE IN MEMORY THE PATTERN OF ACCESS OF DATA IN TERMS OF DISPLACEMENT, AND IN TERMS OF BLOCKLENGTH, AND FINALY AN ARRAY WITH THIS PROCESSOR DATA
 
@@ -12682,27 +12692,33 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	      K=K+NOF_VARIABLES
 	  END DO
       END IF
+      RESTFILE='RESTART.dat'
+       IF (N.EQ.0)THEN
+	  !INQUIRE (FILE=RESTFILE,EXIST=HERE1)
+	  !IF (HEREss) THEN
+	 INQUIRE (FILE=RESTFILE,EXIST=HERE1)
+	 
+	  
+	  CALL MPI_FILE_DELETE(RESTFILE,MPI_INFO_NULL,IERROR)
+	  
+	 
 
+	  !END IF
 
+   END IF
+
+      CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+      
     !CREATE TYPE FIRST OF INDEXED BLOCK
     CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXE,n_end,DISPT,MPI_DOUBLE_PRECISION,DATATYPE,IERROR)
     CALL MPI_TYPE_COMMIT(DATATYPE,IERROR)
     
 
     ALLOCATE(ARRAY(1:nof_Variables+turbulenceequations+passivescalar))
-    CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	RESTFILE='RESTART.dat'
-	
-	IF (N.EQ.0)THEN
-	  INQUIRE (FILE=RESTFILE,EXIST=HEREss)
-	  IF (HEREss) THEN
-	  CALL MPI_FILE_DELETE(RESTFILE,MPI_INFO_NULL,IERROR)
-	  END IF
-	END IF
+    
 	
 	
 	
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	call MPI_file_open(MPI_COMM_WORLD, RESTFILE,MPI_MODE_WRONLY + MPI_MODE_CREATE,MPI_INFO_NULL, fh, ierror)
 	
 	
@@ -12753,7 +12769,7 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	call MPI_FILE_WRITE_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)        
         call MPI_FILE_CLOSE(fh, ierror)
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
-          
+          DEALLOCATE(ARRAY,DISPT,ARRAY2)
           
           
 	
@@ -12761,7 +12777,7 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	
 	
-	DEALLOCATE(ARRAY,DISPT,ARRAY2)
+	
 
 
 
@@ -12779,10 +12795,12 @@ REAL,ALLOCATABLE,DIMENSION(:,:)::xbin
 INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,IND1,fh,size_of_real,size_of_int,dip,ISTA,IEND,N_END,datatype
  CHARACTER(LEN=20)::PROC,RESTFILE,PROC3
  REAL,ALLOCATABLE,DIMENSION(:)::IGINT,TGINT,array
- integer(kind=MPI_OFFSET_KIND) :: disp_in_file = 0, tmp = 0
- logical::here
+ integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init
+ logical::here1
  KMAXE=XMPIELRANK(N)
-
+disp_in_file=0
+tmp=0
+disp_init=0
  
  
  
@@ -12791,6 +12809,8 @@ INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,IND1,fh,size_of_real,size
  
  size_of_int=4
 size_of_real=8
+ICPUID=N
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
  
 IF (RUNGEKUTTA.EQ.4)THEN
 IND1=7
@@ -12798,7 +12818,7 @@ ELSE
 IND1=5
 END IF
 
-ICPUID=N
+
 	
 	
  ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar+6+passivescalar)))
@@ -12832,6 +12852,12 @@ ICPUID=N
 	      K=K+6+PASSIVESCALAR
 	  END DO
       END IF
+  IF (N.EQ.0)THEN
+	 INQUIRE (FILE=RESTFILE,EXIST=HERE1)
+	  CALL MPI_FILE_DELETE(RESTFILE,MPI_INFO_NULL,IERROR)
+	END IF
+ 
+ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
  
  
  CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXE,n_end,DISPT,MPI_DOUBLE_PRECISION,DATATYPE,IERROR)
@@ -12839,12 +12865,6 @@ ICPUID=N
  
  
  
-    IF (N.EQ.0)THEN
-	  INQUIRE (FILE=RESTFILE,EXIST=HERE)
-	  IF (HERE) THEN
-	  CALL MPI_FILE_DELETE(RESTFILE,MPI_INFO_NULL,IERROR)
-	  END IF
-	END IF
 	
 	
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -12856,12 +12876,12 @@ ICPUID=N
           
           
           
-	
+	DEALLOCATE(DISPT,ARRAY2)
 	
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	
 	
-	DEALLOCATE(DISPT,ARRAY2)
+	
 	
  
 	
@@ -12898,6 +12918,7 @@ end if
 
  size_of_int=4
 size_of_real=8
+
 !$OMP MASTER
 
 ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)))
@@ -12928,10 +12949,12 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	    ELSE
 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 		  call MPI_file_READ(fh, it, 1, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
+		  
 		    disp_in_file = disp_in_file + size_of_int 	!4
 		    
 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 		  call MPI_file_READ(fh, T, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
+		 
 		    disp_in_file = disp_in_file + size_of_real    !5
 		      if (initcond.eq.95)then
 		      call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
@@ -13017,7 +13040,7 @@ DO I=1,KMAXE
       ELSE
 	  K=1
 	  DO I=1,KMAXE
-	      U_C(I)%VAL(1,1:NOF_VARIABLES)=ARRAY2(K:K+NOF_VARIABLES-1)
+	      U_C(I)%VAL(ind1,1:NOF_VARIABLES)=ARRAY2(K:K+NOF_VARIABLES-1)
 	      K=K+NOF_VARIABLES
 	      U_C(i)%RMS(1:6+passivescalar)=ARRAY2(K:K+6+PASSIVESCALAR-1)
 	      K=K+6+PASSIVESCALAR
