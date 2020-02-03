@@ -1150,7 +1150,7 @@ SUBROUTINE  LOCALISE_STEN2(N,ICONSI)
 IMPLICIT NONE
 INTEGER::I,J,K,L,KK,PRK,JJ,kmaxe,ineedt,jx2,jx,iivd,iivd3,facexx,IXXFFf,in1,itarget,idum
 real,dimension(3)::tempcentres,TEMP_cG
-real::dumv1,dumv2,detjc,dist1,MA,MB,MC,MD,ME,MF,MG,MH,MI,MDD
+real::dumv1,dumv2,detjc,dist1,MA,MB,MC,MD,ME,MF,MG,MH,MI,MDD,tempxx
 INTEGER,INTENT(IN)::ICONSI,N
 INEEDT=IRECEXR(1)%TOT
 i=iconsi
@@ -1172,6 +1172,7 @@ i=iconsi
 	  
 	  
 	    DO J=2,itarget
+	    IF(PER_ROT.EQ.0)THEN
 	    IF(ABS(ilocal_elem(1)%XXC(JJ,J)-ilocal_elem(1)%XXC(JJ,1)).GT.XPER*oo2)THEN
 		    ilocal_elem(1)%XXC(JJ,J)=ilocal_elem(1)%XXC(JJ,J)+(XPER*SIGN(1.0,ilocal_elem(1)%XXC(JJ,1)-XPER*oo2))
 		    DO KK=1,8
@@ -1192,6 +1193,30 @@ i=iconsi
 		    ILOCAL_NODE(1)%Z(JJ,J,KK)=ILOCAL_NODE(1)%Z(JJ,J,KK)+(ZPER*SIGN(1.0,ilocal_elem(1)%ZZC(JJ,1)-ZPER*oo2))
 		    END DO
 		   
+	    END IF
+	    ELSE
+            if (ILOCAL_ELEM(1)%PERIODICFLAG(jj,J).EQ.2) THEN
+                    tempxx=ilocal_elem(1)%XXC(JJ,J)
+                    ilocal_elem(1)%XXC(JJ,J)=tempxx*cosd(angle_per)-ilocal_elem(1)%YYC(JJ,J)*sind(angle_per)
+                    ilocal_elem(1)%YYC(JJ,J)=tempxx*sind(angle_per)+ilocal_elem(1)%YYC(JJ,J)*cosd(angle_per)
+                    write(3300+n,'(6es14.6,I5)'),ilocal_elem(1)%XXC(JJ,1),ilocal_elem(1)%YYC(JJ,1),ilocal_elem(1)%ZZC(JJ,1),ilocal_elem(1)%XXC(JJ,J),ilocal_elem(1)%YYC(JJ,J),ilocal_elem(1)%ZZC(JJ,j),ILOCAL_ELEM(1)%PERIODICFLAG(jj,J)
+                    DO KK=1,8
+                    tempxx=ILOCAL_NODE(1)%X(JJ,J,KK)
+                            ILOCAL_NODE(1)%X(JJ,J,KK)=tempxx*cosd(angle_per)-ILOCAL_NODE(1)%Y(JJ,J,KK)*sind(angle_per)
+                            ILOCAL_NODE(1)%Y(JJ,J,KK)=tempxx*sind(angle_per)+ILOCAL_NODE(1)%Y(JJ,J,KK)*cosd(angle_per)
+                    END DO
+            end if
+            if (ILOCAL_ELEM(1)%PERIODICFLAG(jj,J).EQ.1) THEN
+                        tempxx=ilocal_elem(1)%XXC(JJ,J)
+                        ilocal_elem(1)%XXC(JJ,J)=tempxx*cosd(-angle_per)-ilocal_elem(1)%YYC(JJ,J)*sind(-angle_per)
+                        ilocal_elem(1)%YYC(JJ,J)=tempxx*sind(-angle_per)+ilocal_elem(1)%YYC(JJ,J)*cosd(-angle_per)
+                        write(3300+n,'(6es14.6,I5)'),ilocal_elem(1)%XXC(JJ,1),ilocal_elem(1)%YYC(JJ,1),ilocal_elem(1)%ZZC(JJ,1),ilocal_elem(1)%XXC(JJ,J),ilocal_elem(1)%YYC(JJ,J),ilocal_elem(1)%ZZC(JJ,j),ILOCAL_ELEM(1)%PERIODICFLAG(jj,J)
+                DO KK=1,8
+                        tempxx=ILOCAL_NODE(1)%X(JJ,J,KK)
+                        ILOCAL_NODE(1)%X(JJ,J,KK)=tempxx*cosd(-angle_per)-ILOCAL_NODE(1)%Y(JJ,J,KK)*sind(-angle_per)
+                        ILOCAL_NODE(1)%Y(JJ,J,KK)=tempxx*sind(-angle_per)+ILOCAL_NODE(1)%Y(JJ,J,KK)*cosd(-angle_per)
+                END DO
+            end if
 	    END IF
 	    END DO
 		
@@ -1325,6 +1350,7 @@ i=iconsi
 				
 				ILOCAL_RECON3(I)%IHEXG(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXL(JJ,L)=ilocal_elem(1)%IHEXL(JJ,L)
+				ILOCAL_RECON3(I)%PERIODICFLAG(JJ,L)=ilocal_elem(1)%PERIODICFLAG(JJ,L) 
 				else
 				
 				ILOCAL_RECON3(I)%IHEXGc(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
@@ -1347,6 +1373,7 @@ i=iconsi
 	
 				ILOCAL_RECON3(I)%IHEXG(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXL(JJ,L)=ilocal_elem(1)%IHEXL(JJ,L)
+				ILOCAL_RECON3(I)%PERIODICFLAG(JJ,L)=ilocal_elem(1)%PERIODICFLAG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXB(JJ,L)=ilocal_elem(1)%IHEXB(JJ,L)
  				else
                                 ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)
@@ -1361,6 +1388,7 @@ i=iconsi
 				if ((EES.ne.5).or.(jj.eq.1))then
 				ILOCAL_RECON3(I)%IHEXG(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXL(JJ,L)=ilocal_elem(1)%IHEXL(JJ,L)
+				ILOCAL_RECON3(I)%PERIODICFLAG(JJ,L)=ilocal_elem(1)%PERIODICFLAG(JJ,L) 
 				ILOCAL_RECON3(I)%IHEXB(JJ,L)=ilocal_elem(1)%IHEXB(JJ,L)
 				ILOCAL_RECON3(I)%IHEXN(JJ,L)=ilocal_elem(1)%IHEXN(JJ,L)
 				else
@@ -1499,6 +1527,7 @@ i=iconsi
 		     j=IELEM(N,i)%INEIGH(K)
 		  CALL COMPUTE_CENTRE3d(N,j)
 		    vext(2,1:dims)=cords(1:dims)  
+		    IF(PER_ROT.EQ.0)THEN
 		    IF(ABS(vext(2,1)-vext(1,1)).GT.XPER*oo2)THEN
 		    vext(2,1)=vext(2,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
 		    end if
@@ -1508,6 +1537,17 @@ i=iconsi
 		    IF(ABS(vext(2,3)-vext(1,3)).GT.zPER*oo2)THEN
 		    vext(2,3)=vext(2,3)+(zPER*SIGN(1.0,vext(1,3)-zPER*oo2))
 		    end if
+		    ELSE
+                if (ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5) then
+                    tempxx=vext(kk,1)
+                    vext(kk,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*vext(kk,2)
+                    vext(kk,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*vext(kk,2)
+                else
+                    tempxx=vext(kk,1)
+                    vext(kk,1)=tempxx*cosd(angle_per)-sind(angle_per)*vext(kk,2)
+                    vext(kk,2)=tempxx*sind(angle_per)+cosd(angle_per)*vext(kk,2)
+                end if
+		    END IF
 		    dist1=distance3(n)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
@@ -1519,7 +1559,7 @@ i=iconsi
 				  IELEM(N,i)%INDEXI(K)=In1
 				      IF (RUNGEKUTTA.ge.2)THEN
 		    vext(2,1)=ilocal_elem(1)%XXC(1,In1);vext(2,2)=ilocal_elem(1)%yyC(1,In1); vext(2,3)=ilocal_elem(1)%zzC(1,In1)	      
-		     
+		    IF(PER_ROT.EQ.0)THEN 
 		    IF(ABS(vext(2,1)-vext(1,1)).GT.XPER*oo2)THEN
 		    vext(2,1)=vext(2,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
 		    end if
@@ -1529,6 +1569,17 @@ i=iconsi
 		    IF(ABS(vext(2,3)-vext(1,3)).GT.zPER*oo2)THEN
 		    vext(2,3)=vext(2,3)+(zPER*SIGN(1.0,vext(1,3)-zPER*oo2))
 		    end if
+		    ELSE
+                if (ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5) then
+                      tempxx=vext(kk,1)
+				      vext(kk,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*vext(kk,2)
+				      vext(kk,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*vext(kk,2)
+                else
+				      tempxx=vext(kk,1)
+				      vext(kk,1)=tempxx*cosd(angle_per)-sind(angle_per)*vext(kk,2)
+				      vext(kk,2)=tempxx*sind(angle_per)+cosd(angle_per)*vext(kk,2)
+                end if
+		    END IF
 		    dist1=distance3(n)
 		    IELEM(N,i)%DIH(K)=dist1
 ! 		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(1,1:DIMS)-VEXT(2,1:DIMS)
