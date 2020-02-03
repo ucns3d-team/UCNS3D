@@ -412,7 +412,7 @@ do i=1,kmaxe
 ! 		ielem(n,i)%NODES_FACES(k,1:ixf4)=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),1:ixf4)
 ! 		ielem(n,i)%REORIENT(K)=1
 	    if (ielem(n,i)%ibounds(k).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5)then
+	      if ((ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(k))%icode.eq.50))then
 		do ixfv=1,ixf4
 		inoder(IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv))%itor=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv)
 		end do
@@ -505,7 +505,7 @@ do i=1,kmaxe
 ! 		ielem(n,i)%NODES_FACES(k,1:ixf4)=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),1:ixf4)
 ! 		ielem(n,i)%REORIENT(K)=1
 	    if (ielem(n,i)%ibounds(k).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5)then
+	      if ((ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(k))%icode.eq.50))then
 		do ixfv=1,ixf4
  		inoder(IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv))%itor=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv)
 		end do
