@@ -129,7 +129,7 @@ I=xmpil(IEXCHANGER1(K)%sideineedn(E))
 	  if (ielem(n,i)%ineighb(j).ne.n)then
 	  
 	    if (ielem(n,i)%ibounds(J).gt.0)then
-		if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then
+		if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then
 		    if (dimensiona.eq.3)then
 			IF ( IELEM(N,i)%TYPEs_FACES(J).EQ.5)THEN
 			    INUM_POINTS=QP_QUAD_n
@@ -815,7 +815,7 @@ IEXCHANGER(I)%MUCHINEED(1),MPI_INTEGER,IEXCHANGER(I)%PROCID,&
 		IRECEXR(ICX)%MUCHINEED(:)=0
 		IRECEXR(ICX)%MUCHINEED(1)=IHMSTE(I)
 		ALLOCATE(IRECEXR1(ICX)%WHATINEED(IRECEXR(ICX)%MUCHINEED(1)))
-		ALLOCATE(IRECEXR1(ICX)%LOCALREF(IRECEXR(ICX)%MUCHINEED(1)))
+		ALLOCATE(IRECEXR1(ICX)%LOCALREF(IRECEXR(ICX)%MUCHINEEDESTABEXHANGEBOURS(N,(1)))
 		ALLOCATE(IRECEXR1(ICX)%ISHAPE(IRECEXR(ICX)%MUCHINEED(1)))
 		IRECEXR1(ICX)%WHATINEED(:)=0
 		IRECEXR1(ICX)%LOCALREF(:)=0
