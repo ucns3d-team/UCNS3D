@@ -78,7 +78,7 @@ KMAXE=XMPIELRANK(N)
 		IDUMMY=0
 			    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
 				    IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					    if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					    if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					    IDUMMY=1
 					    END IF
 				    END IF	
@@ -145,7 +145,7 @@ KMAXE=XMPIELRANK(N)
 		IDUMMY=0
 		    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
 				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					      IDUMMY=1
 					  END IF
 				  END IF
