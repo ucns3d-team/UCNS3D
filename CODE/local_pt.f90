@@ -602,7 +602,7 @@ SUBROUTINE FIND_ROT_ANGLES(N,ICONSI)
 IMPLICIT NONE
 real::X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz
 REAL::X5,X6,X7,X8,Y5,Y6,Y7,Y8,Z5,Z6,Z7,Z8,XX,YY,ZZ
-REAL::DELXA,DELXB,DELYA,DELYB,DELZA,DELZB
+REAL::DELXA,DELXB,DELYA,DELYB,DELZA,DELZB,tempxx
 INTEGER::K,KMAXE,I,J,kk,kk2,ixf4,IXFV
 INTEGER,INTENT(IN)::N,ICONSI
 KMAXE=XMPIELRANK(N)
@@ -630,6 +630,7 @@ i=iconsi
 					vext(kk,1:3)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:3)
 !  					
 				       END IF
+                    IF(PER_ROT.EQ.0)THEN
 				      IF(ABS(vext(kk,1)-xx).GT.XPER*oo2)THEN
 				      vext(kk,1)=vext(kk,1)+(XPER*SIGN(1.0,xx-XPER*oo2))
 				      end if
@@ -640,9 +641,20 @@ i=iconsi
 				      vext(kk,3)=vext(kk,3)+(zPER*SIGN(1.0,zz-zPER*oo2))
 				      end if
 				      
-! 				    
-				      
-				      
+                    ELSE
+                        if (IELEM(N,I)%REORIENT(K).EQ.1) then
+                            if (ibound(n,ielem(n,i)%ibounds(K))%icode.eq.5) then
+                                tempxx=vext(kk,1)
+                                vext(kk,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*vext(kk,2)
+                                vext(kk,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*vext(kk,2)
+				      				      
+                            else
+                                tempxx=vext(kk,1)
+                                vext(kk,1)=tempxx*cosd(angle_per)-sind(angle_per)*vext(kk,2)
+                                vext(kk,2)=tempxx*sind(angle_per)+cosd(angle_per)*vext(kk,2)
+                            end if
+				      end if
+				    END IF  
 				      
 			      end do
 
