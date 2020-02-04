@@ -472,12 +472,16 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	END DO
 	!$OMP END DO
 
-    !ADD THE CONTRIBUTION OF THE SOURCE TERM TO THE JACOBIAN OF THE DIAGONAL MATRIX(JUST WHEN ONLY OMEGA_Z IS NOT EQUAL TO 0)
+    !ADD THE CONTRIBUTION OF THE SOURCE TERM TO THE JACOBIAN OF THE DIAGONAL MATRIX
         IF (SRF.EQ.1) THEN
         !$OMP DO SCHEDULE(GUIDED)
             DO I=1,KMAXE
                 IMPDIAG(i,2,3)=-SRF_VELOCITY(3)*ielem(n,I)%totvolume
+                IMPDIAG(i,2,4)=SRF_VELOCITY(2)*ielem(n,I)%totvolume
                 IMPDIAG(i,3,2)=SRF_VELOCITY(3)*ielem(n,I)%totvolume
+                IMPDIAG(i,3,4)=-SRF_VELOCITY(1)*ielem(n,I)%totvolume
+                IMPDIAG(i,4,2)=-SRF_VELOCITY(2)*ielem(n,I)%totvolume
+                IMPDIAG(i,4,3)=SRF_VELOCITY(1)*ielem(n,I)%totvolume
             END DO
         !$OMP END DO
         END IF	
