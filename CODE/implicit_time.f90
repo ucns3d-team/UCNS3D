@@ -17,7 +17,7 @@ subroutine RELAXATION(N)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb
-real::impres1,impres2,impres3
+real::impres1,impres2,impres3,TEMPXX
 real:: w1,w2,w3,denx
 
 SWEEPS=4
@@ -137,8 +137,11 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	
 					IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 						IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+								if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
+								    IF(PER_ROT.EQ.1)THEN
+                                        DU1(2:4)=ROTATE_PER_1(DU1(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+								    END IF
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
 								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
@@ -232,10 +235,12 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 					    
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+								if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 								
 								DU1(1:nof_variables)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
-	      	      
+                                IF(PER_ROT.EQ.1)THEN
+                                    DU1(2:4)=ROTATE_PER_1(DU1(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                END IF
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
 								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
