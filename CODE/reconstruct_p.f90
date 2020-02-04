@@ -689,7 +689,7 @@ REAL::DIVISIONBYZERO
 INTEGER::I,J,K,L,M,O,LL,IEX,IEUL,FACX,IELEME,KKD,KMAXE,JF,NGP,IQP,nnd,II,icd
 INTEGER::IDUMMY,POWER,ITARGET
 REAL::SUMOMEGAATILDEL
-REAL::DIVBYZERO,COMPF,checkf,tau_Weno
+REAL::DIVBYZERO,COMPF,checkf,tau_Weno,tempxx
 REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 REAL,EXTERNAL::DDOT
 
@@ -1468,9 +1468,12 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
                 END IF
 				IF (IELEM(N,I)%INEIGHB(l).EQ.N)THEN	!MY CPU ONLY
 				      IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES	
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN MY CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
 					  VEIGR(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(l))%VAL(1,1:nof_variables)
 					  IDUMMY=1
+					  IF(PER_ROT.EQ.1)THEN
+                        VEIGR(2:4)=ROTATE_PER_1(VEIGR(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+					  END IF
 					  else
 					  !NOT PERIODIC ONES IN MY CPU
 					  facex=l;iconsidered=i
@@ -1495,10 +1498,13 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				else
 			      !other my cpu
 				    IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					  VEIGR(1:nof_variables)=(IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
 					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_variables))
 					  IDUMMY=1
+					  IF(PER_ROT.EQ.1)THEN
+                        VEIGR(2:4)=ROTATE_PER_1(VEIGR(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+					  END IF
 					  end if
 				    else
 				  
@@ -1862,7 +1868,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				  IDUMMY=0
 		
 				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					      IDUMMY=1
 					  END IF
 				  END IF
@@ -2189,7 +2195,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 			
 		
 				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					      IDUMMY=1
 					  END IF
 				  END IF
