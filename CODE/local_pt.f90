@@ -1199,7 +1199,7 @@ i=iconsi
                     tempxx=ilocal_elem(1)%XXC(JJ,J)
                     ilocal_elem(1)%XXC(JJ,J)=tempxx*cosd(angle_per)-ilocal_elem(1)%YYC(JJ,J)*sind(angle_per)
                     ilocal_elem(1)%YYC(JJ,J)=tempxx*sind(angle_per)+ilocal_elem(1)%YYC(JJ,J)*cosd(angle_per)
-                    write(3300+n,'(6es14.6,I5)'),ilocal_elem(1)%XXC(JJ,1),ilocal_elem(1)%YYC(JJ,1),ilocal_elem(1)%ZZC(JJ,1),ilocal_elem(1)%XXC(JJ,J),ilocal_elem(1)%YYC(JJ,J),ilocal_elem(1)%ZZC(JJ,j),ILOCAL_ELEM(1)%PERIODICFLAG(jj,J)
+                    !write(3300+n,'(6es14.6,I5)'),ilocal_elem(1)%XXC(JJ,1),ilocal_elem(1)%YYC(JJ,1),ilocal_elem(1)%ZZC(JJ,1),ilocal_elem(1)%XXC(JJ,J),ilocal_elem(1)%YYC(JJ,J),ilocal_elem(1)%ZZC(JJ,j),ILOCAL_ELEM(1)%PERIODICFLAG(jj,J)
                     DO KK=1,8
                     tempxx=ILOCAL_NODE(1)%X(JJ,J,KK)
                             ILOCAL_NODE(1)%X(JJ,J,KK)=tempxx*cosd(angle_per)-ILOCAL_NODE(1)%Y(JJ,J,KK)*sind(angle_per)
@@ -1210,7 +1210,7 @@ i=iconsi
                         tempxx=ilocal_elem(1)%XXC(JJ,J)
                         ilocal_elem(1)%XXC(JJ,J)=tempxx*cosd(-angle_per)-ilocal_elem(1)%YYC(JJ,J)*sind(-angle_per)
                         ilocal_elem(1)%YYC(JJ,J)=tempxx*sind(-angle_per)+ilocal_elem(1)%YYC(JJ,J)*cosd(-angle_per)
-                        write(3300+n,'(6es14.6,I5)'),ilocal_elem(1)%XXC(JJ,1),ilocal_elem(1)%YYC(JJ,1),ilocal_elem(1)%ZZC(JJ,1),ilocal_elem(1)%XXC(JJ,J),ilocal_elem(1)%YYC(JJ,J),ilocal_elem(1)%ZZC(JJ,j),ILOCAL_ELEM(1)%PERIODICFLAG(jj,J)
+                        !write(3300+n,'(6es14.6,I5)'),ilocal_elem(1)%XXC(JJ,1),ilocal_elem(1)%YYC(JJ,1),ilocal_elem(1)%ZZC(JJ,1),ilocal_elem(1)%XXC(JJ,J),ilocal_elem(1)%YYC(JJ,J),ilocal_elem(1)%ZZC(JJ,j),ILOCAL_ELEM(1)%PERIODICFLAG(jj,J)
                 DO KK=1,8
                         tempxx=ILOCAL_NODE(1)%X(JJ,J,KK)
                         ILOCAL_NODE(1)%X(JJ,J,KK)=tempxx*cosd(-angle_per)-ILOCAL_NODE(1)%Y(JJ,J,KK)*sind(-angle_per)
