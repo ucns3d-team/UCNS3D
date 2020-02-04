@@ -3753,7 +3753,14 @@ SUBROUTINE READ_UCNS3D
 	ELSE
         SOURCE_ACTIVE=0
     END IF
-	  
+	IF(PER_ROT.EQ.1)THEN
+	TOL_PER=1.0E-8
+        IF (N.EQ.0)THEN
+                OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+                write(63,*)'Rotational  periodicity engaged'
+                CLOSE(63)
+        END IF
+	END IF
 	  !TURBULENCE DEFAULT VALUES
 	
 	
