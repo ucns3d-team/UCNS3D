@@ -341,7 +341,7 @@ n_boundaries=itl
 
 
 DO JI=1,n_boundaries
-  IF (IBOUND(N,JI)%ICODE.EQ.5)THEN
+  IF ((IBOUND(N,JI)%ICODE.EQ.5).or.(IBOUND(N,JI)%ICODE.EQ.50))THEN
     ALLOCATE(IBOUND(N,JI)%LOCALN(2))
     allocate(ibound(n,ji)%CPUN(2))
     ibound(n,ji)%localn=0
@@ -378,7 +378,7 @@ itl=0
 				 IBOUND(N,Ji)%which=j
 				 IBOUND(N,Ji)%face=jj
 				    ielem(n,J)%nofbc=ielem(n,J)%nofbc+1
-				    if (IBOUND(N,Ji)%icode.eq.5)then
+				    if ((IBOUND(N,JI)%ICODE.EQ.5).or.(IBOUND(N,JI)%ICODE.EQ.50))then
 				    IBOUND(N,Ji)%localn(1)=J;IBOUND(N,Ji)%cpun(1)=n
 				   
 				    itl=itl+1
