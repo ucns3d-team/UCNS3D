@@ -18,7 +18,7 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb
 real::impres1,impres2,impres3
-
+real:: w1,w2,w3,denx
 
 SWEEPS=4
 kmaxe=xmpielrank(n)
@@ -51,14 +51,22 @@ if (SRF.EQ.1)then
 !$OMP DO
 do i=1,kmaxe
   lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
-  !INVERSE OF THE MATRIX IN CASE OF SOURCE TERM(JUST WHEN ONLY OMEGA_Z IS NOT EQUAL TO 0)
-impdiag(i,1,1)=1.0d0/lscqm1(1,1)
-impdiag(i,2,2)=lscqm1(2,2)/(lscqm1(2,2)**2+lscqm1(3,2)**2)
-impdiag(i,2,3)=lscqm1(3,2)/(lscqm1(2,2)**2+lscqm1(3,2)**2)
-impdiag(i,3,3)=lscqm1(3,3)/(lscqm1(2,2)**2+lscqm1(3,2)**2)
-impdiag(i,3,2)=-lscqm1(3,2)/(lscqm1(2,2)**2+lscqm1(3,2)**2)
-impdiag(i,4,4)=1.0d0/lscqm1(4,4)
-impdiag(i,5,5)=1.0d0/lscqm1(5,5)
+    w1=LSCQM1(4,3)
+    w2=LSCQM1(2,4)
+    w3=LSCQM1(3,2)
+    !INVERSE OF THE MATRIX IN CASE OF SOURCE TERM
+    DENX=(LSCQM1(2,2)*LSCQM1(3,3)*LSCQM1(4,4)+LSCQM1(2,2)*w1**2+LSCQM1(3,3)*w2**2+LSCQM1(4,4)*w3**2)
+    IMPDIAG(I,1,1)=1.0D0/LSCQM1(1,1)
+    IMPDIAG(I,2,2)=(LSCQM1(3,3)*LSCQM1(4,4)+w1**2)/DENX            
+    IMPDIAG(I,2,3)=(LSCQM1(4,4)*w3+w1*w2)/DENX
+    IMPDIAG(I,2,4)=(-LSCQM1(3,3)*w2+w1*w3)/DENX            
+    IMPDIAG(I,3,2)=(-LSCQM1(4,4)*w3+w1*w2)/DENX
+    IMPDIAG(I,3,3)=(LSCQM1(2,2)*LSCQM1(4,4)+w2**2)/DENX
+    IMPDIAG(I,3,4)=(LSCQM1(2,2)*w1+w2*w3)/DENX
+    IMPDIAG(I,4,2)=(LSCQM1(3,3)*w2+w1*w3)/DENX            
+    IMPDIAG(I,4,3)=(-LSCQM1(2,2)*w1+w2*w3)/DENX
+    IMPDIAG(I,4,4)=(LSCQM1(2,2)*LSCQM1(3,3)+w3**2)/DENX
+    IMPDIAG(I,5,5)=1.0D0/LSCQM1(5,5)
 end do
 !$OMP END DO
 END IF
