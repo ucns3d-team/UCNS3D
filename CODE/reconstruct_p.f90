@@ -66,11 +66,23 @@ KMAXE=XMPIELRANK(N)
             ALLOCATE(ILOCAL_RECON3(I)%RPOINTS(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
             ALLOCATE(ILOCAL_RECON3(I)%ROTVEL(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
 		END IF
+		IF (MRF.EQ.1)THEN
+            ALLOCATE(ILOCAL_RECON3(I)%RPOINTS(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+            ALLOCATE(ILOCAL_RECON3(I)%ROTVEL(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+            ALLOCATE (ILOCAL_RECON3(I)%MRF_ORIGIN(1:3))
+            ALLOCATE (ILOCAL_RECON3(I)%MRF_VELOCITY(1:3))
+		END IF
 		ELSE
             ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,QP_QUAD,3))
 		IF (SRF.EQ.1)THEN
             ALLOCATE(ILOCAL_RECON3(I)%RPOINTS(IELEM(N,I)%IFCA,QP_QUAD,3))
             ALLOCATE(ILOCAL_RECON3(I)%ROTVEL(IELEM(N,I)%IFCA,QP_QUAD,3))
+		END IF
+		IF (MRF.EQ.1)THEN
+            ALLOCATE(ILOCAL_RECON3(I)%RPOINTS(IELEM(N,I)%IFCA,QP_QUAD,3))
+            ALLOCATE(ILOCAL_RECON3(I)%ROTVEL(IELEM(N,I)%IFCA,QP_QUAD,3))
+            ALLOCATE (ILOCAL_RECON3(I)%MRF_ORIGIN(1:3))
+            ALLOCATE (ILOCAL_RECON3(I)%MRF_VELOCITY(1:3))
 		END IF
 		END IF
 		ICONSIDERED=I
@@ -243,6 +255,97 @@ KMAXE=XMPIELRANK(N)
 	  END DO
 	  
 	  end if
+        if (MRF.eq.1) then
+            DO L=1,IELEM(N,I)%IFCA
+                IDUMMY=0
+                if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
+                    IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+                        if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+                            IDUMMY=1
+                        END IF
+                    END IF
+
+                        if (ielem(n,i)%types_faces(L).eq.5)then
+                            iqp=qp_quad
+                            NND=4
+                            IF (IDUMMY.EQ.0)THEN
+                            do K=1,nnd
+                                VEXT(k,1:3)=INODER(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+        ! 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                            END DO
+                            ELSE
+                            facex=l;
+                            CALL coordinates_face_PERIOD(n,iconsidered,facex)
+        ! 					  do K=1,nnd
+        ! 					  VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+        ! 					  END DO
+                            END IF
+                            
+                            call  QUADRATUREQUAD3D(N,IGQRULES)
+                            
+                            
+                            
+                        else
+                            iqp=QP_TRIANGLE
+                            NND=3
+                            IF (IDUMMY.EQ.0)THEN
+                            do K=1,nnd
+                                VEXT(k,1:3)=INODER(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+        ! 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                            END DO
+                            ELSE
+                            facex=l;
+                            CALL coordinates_face_PERIOD(n,iconsidered,facex)
+        ! 					  do K=1,nnd
+        ! 					  VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+        ! 					  END DO
+                            END IF
+                            
+                            call QUADRATURETRIANG(N,IGQRULES)
+                            
+                            
+                        end if
+                else
+                        if (ielem(n,i)%types_faces(L).eq.5)then
+                            iqp=qp_quad
+                            NND=4
+                            
+                            do K=1,nnd
+                                VEXT(k,1:3)=INODER(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+        ! 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                            END DO
+                            
+                            
+                            call  QUADRATUREQUAD3D(N,IGQRULES)
+                            
+                            
+                            
+                        else
+                            iqp=QP_TRIANGLE
+                            NND=3
+                            
+                            do K=1,nnd
+                                VEXT(k,1:3)=INODER(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+        ! 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                            END DO
+                            
+                            
+                            call QUADRATURETRIANG(N,IGQRULES)
+                            
+                            
+                        end if
+            
+            
+                end if          
+
+                    do NGP=1,iqp			!for gqp
+                            ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
+                            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                            POY(1:3)=ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)
+                            CALL MRFSwitch(point1,point2,Radius,POX(1:3),POY(1:3),ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3), MRF_ROT,ILOCAL_RECON3(I)%MRF_ORIGIN,ILOCAL_RECON3(I)%MRF_VELOCITY,ILOCAL_RECON3(I)%MRF)
+                        END DO	!NGP
+            END DO
+            end if
 		END DO
 	  
 	  
