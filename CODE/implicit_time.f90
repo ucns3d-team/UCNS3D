@@ -116,7 +116,9 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		
 		B1_imp(1:nof_variables)=B1_imp(1:nof_variables)-MATMUL(IMPoff(i,L,1:nof_variables,1:nof_variables),DU1(1:nof_variables))
 		IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+		IF(SRF.EQ.0)THEN
 		b1T(:)=b1T(:)-(IMPofft(i,L,:)*DUt1(:))
+		END IF
 		end if
 END DO	!loop f
 
@@ -266,7 +268,9 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 
 B1_imp(1:nof_variables)=B1_imp(1:nof_variables)-MATMUL(IMPoff(i,L,1:nof_variables,1:nof_variables),DU1(1:nof_variables))
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+IF(SRF.EQ.0)THEN
 b1T(:)=b1T(:)-(IMPofft(i,L,:)*DUt1(:))
+END IF
 end if
 END DO	!loop f
 end if
