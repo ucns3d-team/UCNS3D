@@ -505,8 +505,11 @@ DO J=1,IELEM(N,I)%IFCA
 			
 			IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
 			    IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN MY CPU
+				  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN MY CPU
 				  SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
+				  IF(PER_ROT.EQ.1)THEN
+                    Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
+				  END IF
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
@@ -537,9 +540,12 @@ DO J=1,IELEM(N,I)%IFCA
 			ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
 			    
 			      IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+				  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 				      IF (FASTEST.EQ.1)THEN
 					SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
+					IF(PER_ROT.EQ.1)THEN
+                    Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
+				  END IF
 				      ELSE
 					SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
 					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
@@ -977,8 +983,11 @@ DO J=1,IELEM(N,I)%IFCA
 			
 			IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
 			    IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN MY CPU
+				  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN MY CPU
 				  SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1)
+				  IF(PER_ROT.EQ.1)THEN
+                    Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
+				  END IF
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
@@ -1008,7 +1017,7 @@ DO J=1,IELEM(N,I)%IFCA
 			ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
 			    
 			      IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+				  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 				      IF (FASTEST.EQ.1)THEN
 					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)&
 					/SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
@@ -1018,6 +1027,9 @@ DO J=1,IELEM(N,I)%IFCA
 					IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
 					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
 				      END IF
+				      IF(PER_ROT.EQ.1)THEN
+                            Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
+                      END IF
 				  END IF
 			      ELSE
 			      
@@ -1092,9 +1104,12 @@ DO J=1,IELEM(N,I)%IFCA
 			
 			IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
 			    IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN MY CPU
+				  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN MY CPU
 				  SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/&
 				  U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1)
+				  IF(PER_ROT.EQ.1)THEN
+                    Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
+				  END IF
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
@@ -1125,7 +1140,7 @@ DO J=1,IELEM(N,I)%IFCA
 			ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
 			    
 			      IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+				  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).OR.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 				      IF (FASTEST.EQ.1)THEN
 					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
 					SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
@@ -1135,6 +1150,9 @@ DO J=1,IELEM(N,I)%IFCA
 					IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
 					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
 				      END IF
+				      IF(PER_ROT.EQ.1)THEN
+                        Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
+                      END IF
 				  END IF
 			      ELSE
 			      
