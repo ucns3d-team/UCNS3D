@@ -3755,6 +3755,8 @@ SUBROUTINE READ_UCNS3D
     END IF
 	IF(PER_ROT.EQ.1)THEN
 	TOL_PER=1.0E-8
+	LOWMEM=1
+    IPERIODICITY = 1 
         IF (N.EQ.0)THEN
                 OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
                 write(63,*)'Rotational  periodicity engaged'
