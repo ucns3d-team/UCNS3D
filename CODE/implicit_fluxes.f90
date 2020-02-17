@@ -41,7 +41,9 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	
 		    
 		    
-		    
+        IF (MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+        END IF 
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
 				  GODFLUX2=ZERO!                                                                   WRITE(500+N,'(3ES14.6)'),SRF_SPEED(2:4)
 
@@ -207,7 +209,9 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 		IMPOFFt(i,:,:)=0.0!                                                                   WRITE(500+N,'(3ES14.6)'),SRF_SPEED(2:4)
 
 		end if
-		    
+		IF (MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+        END IF     
 		    DO L=1,IELEM(N,I)%IFCA
 				      B_CODE=0
 				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
@@ -473,7 +477,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	!$OMP END DO
 
     !ADD THE CONTRIBUTION OF THE SOURCE TERM TO THE JACOBIAN OF THE DIAGONAL MATRIX
-        IF (SRF.EQ.1) THEN
+        IF (SRF.EQ.1.AND.MRF.EQ.0) THEN
         !$OMP DO SCHEDULE(GUIDED)
             DO I=1,KMAXE
                 IMPDIAG(i,2,3)=-SRF_VELOCITY(3)*ielem(n,I)%totvolume
@@ -485,7 +489,21 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
             END DO
         !$OMP END DO
         END IF	
-	
+        IF (MRF.EQ.1) THEN
+        SRF=0
+        !$OMP DO SCHEDULE(GUIDED)
+            DO I=1,KMAXE
+                IF(ILOCAL_RECON3(I)%MRF.EQ.1)THEN
+                    IMPDIAG(i,2,3)=-ILOCAL_RECON3(I)%MRF_VELOCITY(3)*ielem(n,I)%totvolume
+                    IMPDIAG(i,2,4)=ILOCAL_RECON3(I)%MRF_VELOCITY(2)*ielem(n,I)%totvolume
+                    IMPDIAG(i,3,2)=ILOCAL_RECON3(I)%MRF_VELOCITY(3)*ielem(n,I)%totvolume
+                    IMPDIAG(i,3,4)=-ILOCAL_RECON3(I)%MRF_VELOCITY(1)*ielem(n,I)%totvolume
+                    IMPDIAG(i,4,2)=-ILOCAL_RECON3(I)%MRF_VELOCITY(2)*ielem(n,I)%totvolume
+                    IMPDIAG(i,4,3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1)*ielem(n,I)%totvolume
+                END IF
+            END DO
+        !$OMP END DO
+        END IF
 	
 	
 	

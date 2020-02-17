@@ -35,7 +35,7 @@ DURR=zero; DULR=zero
 
 
 call CALCULATE_JACOBIAN(N)
-IF (SRF.EQ.0) THEN
+IF (SRF.EQ.0.AND.MRF.EQ.0) THEN
 !$OMP DO
 do i=1,kmaxe
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(i,1:nof_Variables,1:nof_Variables)
@@ -47,7 +47,7 @@ impdiag(i,5,5)=1.0d0/lscqm1(5,5)
 end do
 !$OMP END DO
 end if
-if (SRF.EQ.1)then
+if (SRF.EQ.1.AND.MRF.EQ.0)then
 !$OMP DO
 do i=1,kmaxe
   lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
@@ -70,7 +70,39 @@ do i=1,kmaxe
 end do
 !$OMP END DO
 END IF
-
+IF(MRF.EQ.1)THEN
+ SRF=0
+!$OMP DO
+do i=1,kmaxe
+    IF(ILOCAL_RECON3(I)%MRF.EQ.0)THEN
+        lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
+        impdiag(i,1,1)=1.0d0/lscqm1(1,1)
+        impdiag(i,2,2)=1.0d0/lscqm1(2,2)
+        impdiag(i,3,3)=1.0d0/lscqm1(3,3)
+        impdiag(i,4,4)=1.0d0/lscqm1(4,4)
+        impdiag(i,5,5)=1.0d0/lscqm1(5,5)
+    ELSE
+        lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
+        w1=LSCQM1(4,3)
+        w2=LSCQM1(2,4)
+        w3=LSCQM1(3,2)
+        !INVERSE OF THE MATRIX IN CASE OF SOURCE TERM
+        DENX=(LSCQM1(2,2)*LSCQM1(3,3)*LSCQM1(4,4)+LSCQM1(2,2)*w1**2+LSCQM1(3,3)*w2**2+LSCQM1(4,4)*w3**2)
+        IMPDIAG(I,1,1)=1.0D0/LSCQM1(1,1)
+        IMPDIAG(I,2,2)=(LSCQM1(3,3)*LSCQM1(4,4)+w1**2)/DENX            
+        IMPDIAG(I,2,3)=(LSCQM1(4,4)*w3+w1*w2)/DENX
+        IMPDIAG(I,2,4)=(-LSCQM1(3,3)*w2+w1*w3)/DENX            
+        IMPDIAG(I,3,2)=(-LSCQM1(4,4)*w3+w1*w2)/DENX
+        IMPDIAG(I,3,3)=(LSCQM1(2,2)*LSCQM1(4,4)+w2**2)/DENX
+        IMPDIAG(I,3,4)=(LSCQM1(2,2)*w1+w2*w3)/DENX
+        IMPDIAG(I,4,2)=(LSCQM1(3,3)*w2+w1*w3)/DENX            
+        IMPDIAG(I,4,3)=(-LSCQM1(2,2)*w1+w2*w3)/DENX
+        IMPDIAG(I,4,4)=(LSCQM1(2,2)*LSCQM1(3,3)+w3**2)/DENX
+        IMPDIAG(I,5,5)=1.0D0/LSCQM1(5,5)
+    END IF
+end do
+!$OMP END DO
+END IF
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 !$OMP DO
@@ -85,7 +117,9 @@ IF (RELAX.EQ.1)THEN
 DO II=1,SWEEPS	!loop1
 !$OMP DO
 do i=1,kmaxe	!loop2
-
+    IF(MRF.EQ.1)THEN
+        SRF=ILOCAL_RECON3(I)%MRF
+    END IF
 if (iscoun.ne.1)then
 B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof_Variables))-(2.0d0*U_C(I)%VAL(2,1:nof_Variables))+(0.5d0*U_C(I)%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,I)%TOTVOLUME))
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
