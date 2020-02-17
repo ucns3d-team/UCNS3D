@@ -3176,7 +3176,12 @@ SUBROUTINE READ_UCNS3D
 	READ(15,*)
 	    
 	    
-	    
+	 IF(SRF.EQ.2)THEN
+        MRF=1
+        SRF=0
+     ELSE
+        MRF=0
+	 END IF
 	    
 	    SELECT CASE(CODE_PROFILE)
 	
@@ -3589,7 +3594,7 @@ SUBROUTINE READ_UCNS3D
 	   ! Set pressure
 	  if ( PRES .lt. 0 ) PRES = RRES/GAMMA	
 	  ! Set dynamic free-stream viscosity
-    IF (SRF.EQ.0) THEN
+    IF ((SRF.EQ.0).OR.(MRF.EQ.0)) THEN
         VISC = (RRES*ufreestream*CharLength)/Reynolds
     ELSE
         VISC = (RRES*V_ref*CharLength)/Reynolds
@@ -3607,7 +3612,10 @@ SUBROUTINE READ_UCNS3D
 	  IF (N.EQ.0)THEN
 	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	      if (ITESTCASE .eq. 4) Then
+	      IF((SRF.EQ.0).OR.(MRF.EQ.0)THEN
 		write(63,*)'----Reynolds Number:',(RRES*ufreestream*CharLength)/VISC
+		END IF 
+				write(63,*)'----Tip blade Reynolds Number:',(RRES*V_REF*CharLength)/VISC
 		end if
 	      CLOSE(63)
 	   END IF
@@ -3755,6 +3763,17 @@ SUBROUTINE READ_UCNS3D
         END IF
 	ELSE
         SOURCE_ACTIVE=0
+    END IF
+    IF (MRF.eq.1)THEN
+            SOURCE_ACTIVE=1
+            KINIT_SRF=0.00001
+            ROT_CORR=1
+            D_CORR=1
+        IF (N.EQ.0)THEN
+                OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+                write(63,*)'Multiple Reference Frame Engaged'
+                CLOSE(63)
+        END IF
     END IF
 	IF(PER_ROT.EQ.1)THEN
 	TOL_PER=1.0E-8
