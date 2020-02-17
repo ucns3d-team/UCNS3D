@@ -585,13 +585,15 @@ GLNEIGHTSPER(:,:)=0
 	  DO J=1,IELEM(N,K)%IFCA
 	  GLNEIGHTS(K,1+J)=GLNEIGH(IELEM(N,K)%IHEXGL,J)
 	  if (IELEM(N,k)%INTERIOR.EQ.1) then
-        if  ((IELEM(N,K)%IBOUNDS(J).GT.0).and.((ibound(n,ielem(n,K)%ibounds(J))%icode.eq.5).or.(ibound(n,ielem(n,K)%ibounds(J))%icode.eq.50))) THEN
+        if  (IELEM(N,K)%IBOUNDS(J).GT.0)then
+            if((ibound(n,ielem(n,K)%ibounds(J))%icode.eq.5).or.(ibound(n,ielem(n,K)%ibounds(J))%icode.eq.50)) THEN
             if (ibound(n,ielem(n,K)%ibounds(J))%icode.eq.5) then
             GLNEIGHTSPER(K,1+J)=1
             else if (ibound(n,ielem(n,K)%ibounds(J))%icode.eq.50) then
             GLNEIGHTSPER(K,1+J)=2
             end if
         end if
+	  end if
 	  end if
 	  END DO
 	  if ((typesten.gt.1).or.(icompact.ge.1))then
@@ -4370,8 +4372,10 @@ KMAXE=XMPIELRANK(N)
 			ISOSA(N)=ISOSA(N)+1
 			ILOCALALLELG(N,STCON(N),1,ISOSA(N))=IELEM(N,STCONC(N))%INEIGHG(J)
 			IF (FLAG_PER.eq.0) then
-                if ((IELEM(N,STCONC(N))%INTERIOR.eq.1).and.(IELEM(N,STCONC(N))%IBOUNDS(J).GT.0).and.((ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5)&
-                            .or.(ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.50))) then
+                if (IELEM(N,STCONC(N))%INTERIOR.eq.1)then
+                if(IELEM(N,STCONC(N))%IBOUNDS(J).GT.0)then
+                if((ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5)&
+                            .or.(ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.50)) then
                     if (ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5) then
                         ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=1
                     else
@@ -4380,9 +4384,13 @@ KMAXE=XMPIELRANK(N)
                 else
                     ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=0
                 end if
+            end if
+            end if
 			else if (FLAG_PER.eq.1) then
-                if ((IELEM(N,STCONC(N))%INTERIOR.eq.1).and.(IELEM(N,STCONC(N))%IBOUNDS(J).GT.0).and.((ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5)&
-                            .or.(ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.50))) then
+                if (IELEM(N,STCONC(N))%INTERIOR.eq.1)then
+                if (IELEM(N,STCONC(N))%IBOUNDS(J).GT.0)then
+                if((ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5)&
+                            .or.(ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.50)) then
                     if (ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5) then
                         ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=1
                     else
@@ -4391,9 +4399,13 @@ KMAXE=XMPIELRANK(N)
                 else
                     ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=1
                 end if
+                end if
+                end if
             else
-                if ((IELEM(N,STCONC(N))%INTERIOR.eq.1).and.(IELEM(N,STCONC(N))%IBOUNDS(J).GT.0).and.((ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5)&
-                                .or.(ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.50))) then
+                if (IELEM(N,STCONC(N))%INTERIOR.eq.1)then
+                if(IELEM(N,STCONC(N))%IBOUNDS(J).GT.0)then
+                if((ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5)&
+                                .or.(ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.50)) then
                     if (ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5) then
                         ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=0
                     else
@@ -4402,6 +4414,8 @@ KMAXE=XMPIELRANK(N)
                 else
                     ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=2
                 end if
+			end if
+			end if
 			end if
 			END IF
 			end if

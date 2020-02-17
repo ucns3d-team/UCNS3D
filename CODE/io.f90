@@ -3743,7 +3743,7 @@ SUBROUTINE READ_UCNS3D
 	  IF (srf.eq.1)THEN
             SOURCE_ACTIVE=1
             KINIT_SRF=0.00001
-            ROT_CORR=1
+            ROT_CORR=0
             D_CORR=1
         IF (N.EQ.0)THEN
                 OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')

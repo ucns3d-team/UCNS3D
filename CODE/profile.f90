@@ -160,7 +160,7 @@ IF (TURBULENCE.EQ.1)THEN
         VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
    ELSE
         VECCOS(6)=(1.5D0*I_turb_inlet*(KINIT_SRF**2))*R1
-        VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+        VECCOS(7)=R1*KINIT_SRF/(10.0e-5*visc)
    END IF	
   end if
   

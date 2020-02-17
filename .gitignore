@@ -5,6 +5,7 @@
 *.slo
 *.lo
 *.o
+**.o
 *.obj
 
 # Precompiled Headers
@@ -19,6 +20,8 @@
 # Fortran module files
 *.mod
 *.smod
+**.mod
+
 
 # Compiled Static libraries
 *.lai
