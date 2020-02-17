@@ -3591,7 +3591,6 @@ SUBROUTINE READ_UCNS3D
     ELSE
         VISC = (RRES*V_ref*CharLength)/Reynolds
     END IF
-	  VISC = (RRES*ufreestream*CharLength)/Reynolds
 	  if (swirl.eq.1)then
 	  uvel=ZERO
 	  end if
