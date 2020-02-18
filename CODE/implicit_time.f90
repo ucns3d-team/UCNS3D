@@ -21,6 +21,9 @@ real::impres1,impres2,impres3,TEMPXX
 real:: w1,w2,w3,denx
 
 SWEEPS=4
+IF(MRF.EQ.1)THEN
+    SWEEPS=6
+END IF  
 kmaxe=xmpielrank(n)
 
 impdu(:,:)=zero
