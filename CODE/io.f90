@@ -941,6 +941,9 @@ call mpi_barrier(mpi_comm_world,IERROR)
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=8+PASSIVESCALAR
+ IF(MRF.EQ.1)THEN
+     NVAR1=NVAR1+1
+ END IF
   if (passivescalar.gt.0)then
  if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,W,energy,Pressure,STEN1,STEN2,passivescalar'//NULCHAR, &
@@ -962,7 +965,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
      
      else
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                    'Density,U,V,W,energy,Pressure,STEN1,STEN2'//NULCHAR, &
+                    'Density,U,V,W,energy,MRF,Pressure,STEN1,STEN2'//NULCHAR, &
                     out1//NULCHAR, &
                     '.'//NULCHAR, &
                     FileType, &
@@ -975,6 +978,9 @@ call mpi_barrier(mpi_comm_world,IERROR)
  END IF
  IF (ITESTCASE.EQ.4)THEN
  NVAR1=9+PASSIVESCALAR+turbulenceequations
+ IF(MRF.EQ.1)THEN
+     NVAR1=NVAR1+1
+ END IF
 	    if (passivescalar.gt.0)then
 	      if (turbulenceequations.eq.2)then
 	      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
@@ -1016,7 +1022,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
               end if
               if (turbulenceequations.eq.1)then
               if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                    'Density,U,V,W,energy,Pressure,STEN1,STEN2,vortex,mu'//NULCHAR, &
+                    'Density,U,V,W,energy,MRF,Pressure,STEN1,STEN2,vortex,mu'//NULCHAR, &
                     out1//NULCHAR, &
                     '.'//NULCHAR, &
                     FileType, &
@@ -1183,9 +1189,20 @@ Valuelocation(:)=0
 			END IF
 		end do
 		
+		IF(MRF.EQ.1)THEN
+            DO I=1,KMAXE
+            VALUESS(i)=REAL(ILOCAL_RECON3(I)%MRF)
+            END DO
 		
 		
-    
+		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+			IF (N.EQ.0)THEN
+			do i=1,imaxe
+		xbin(XMPI_RE(I))=xbin2(I)
+		end do
+			ierr = TECDAT112(imaxe,xbin,1)
+			END IF
+        END IF
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 		  CALL CONS2PRIM(N)
