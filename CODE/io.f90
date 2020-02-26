@@ -3788,7 +3788,7 @@ SUBROUTINE READ_UCNS3D
             SOURCE_ACTIVE=1
             KINIT_SRF=0.00001
             ROT_CORR=1
-            D_CORR=1
+            D_CORR=0
             LOWMEM=1
 
         IF (N.EQ.0)THEN
