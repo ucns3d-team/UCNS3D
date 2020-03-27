@@ -1359,7 +1359,7 @@ i=iconsi
 		  CALL COMPUTE_CENTRE3d(N,j)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance3(n)
-		    IF (RUNGEKUTTA.ge.3)THEN
+		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
 ! 		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(1,1:DIMS)-VEXT(2,1:DIMS)
 		    end if
@@ -1381,7 +1381,7 @@ i=iconsi
 	
 		  
 		      dist1=distance3(n)
-		    IF (RUNGEKUTTA.ge.3)THEN
+		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1*2.0d0
 ! 		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(1,1:DIMS)-VEXT(2,1:DIMS)
 		    end if
@@ -1392,7 +1392,7 @@ i=iconsi
 		  CALL COMPUTE_CENTRE3d(N,j)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance3(n)
-		    IF (RUNGEKUTTA.ge.3)THEN
+		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
 ! 		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(1,1:DIMS)-VEXT(2,1:DIMS)
 		    end if
@@ -1400,7 +1400,7 @@ i=iconsi
 		    DO In1=1,ielem(n,i)%iNUMNEIGHBOURS
 			  IF (IELEM(N,i)%INEIGHG(K).EQ.ILOCAL_RECON3(i)%IHEXG(1,In1))THEN
 				  IELEM(N,i)%INDEXI(K)=In1
-				      IF (RUNGEKUTTA.ge.3)THEN
+				      IF (RUNGEKUTTA.ge.2)THEN
 		    vext(2,1)=ilocal_elem(1)%XXC(1,In1);vext(2,2)=ilocal_elem(1)%yyC(1,In1); vext(2,3)=ilocal_elem(1)%zzC(1,In1)	      
 		     dist1=distance3(n)
 		    IELEM(N,i)%DIH(K)=dist1
@@ -1425,7 +1425,7 @@ i=iconsi
 		    vext(2,3)=vext(2,3)+(zPER*SIGN(1.0,vext(1,3)-zPER*oo2))
 		    end if
 		    dist1=distance3(n)
-		    IF (RUNGEKUTTA.ge.3)THEN
+		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
 ! 		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(1,1:DIMS)-VEXT(2,1:DIMS)
 		    end if
@@ -1433,7 +1433,7 @@ i=iconsi
 		     DO In1=1,ielem(n,i)%iNUMNEIGHBOURS
 			  IF (IELEM(N,i)%INEIGHG(K).EQ.ILOCAL_RECON3(i)%IHEXG(1,In1))THEN
 				  IELEM(N,i)%INDEXI(K)=In1
-				      IF (RUNGEKUTTA.ge.3)THEN
+				      IF (RUNGEKUTTA.ge.2)THEN
 		    vext(2,1)=ilocal_elem(1)%XXC(1,In1);vext(2,2)=ilocal_elem(1)%yyC(1,In1); vext(2,3)=ilocal_elem(1)%zzC(1,In1)	      
 		     
 		    IF(ABS(vext(2,1)-vext(1,1)).GT.XPER*oo2)THEN
@@ -1737,7 +1737,7 @@ i=iconsi
 		  CALL COMPUTE_CENTRE2d(N,j)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance2(n)
-		    IF (RUNGEKUTTA.ge.3)THEN
+		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
 		    end if
 	  end do
@@ -1755,7 +1755,7 @@ i=iconsi
 		  VEXT(2,1:dims)=cords(1:dims)
 		  
 		      dist1=distance2(n)
-		    IF (RUNGEKUTTA.ge.3)THEN
+		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1*2.0d0
 		    end if
 		 end if
@@ -1765,14 +1765,14 @@ i=iconsi
 		  CALL COMPUTE_CENTRE2d(N,j)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance2(n)
-		    IF (RUNGEKUTTA.ge.3)THEN
+		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
 		    end if
 		else						!from another cpu 
 		    DO In1=1,IELEM(N,I)%iNUMNEIGHBOURS
 			  IF (IELEM(N,i)%INEIGHG(K).EQ.ILOCAL_RECON3(i)%IHEXG(1,In1))THEN
 				  IELEM(N,i)%INDEXI(K)=In1
-				      IF (RUNGEKUTTA.ge.3)THEN
+				      IF (RUNGEKUTTA.ge.2)THEN
 		    vext(2,1)=ilocal_elem(1)%XXC(1,In1);vext(2,2)=ilocal_elem(1)%yyC(1,In1)    
 		     dist1=distance2(n)
 		    IELEM(N,i)%DIH(K)=dist1
@@ -1794,14 +1794,14 @@ i=iconsi
 		    end if
 		    
 		    dist1=distance2(n)
-		    IF (RUNGEKUTTA.ge.3)THEN
+		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
 		    end if
 		else	!periodic boundaries from another cpu
 		     DO In1=1,IELEM(N,I)%iNUMNEIGHBOURS
 			  IF (IELEM(N,i)%INEIGHG(K).EQ.ILOCAL_RECON3(i)%IHEXG(1,In1))THEN
 				  IELEM(N,i)%INDEXI(K)=In1
-				      IF (RUNGEKUTTA.ge.3)THEN
+				      IF (RUNGEKUTTA.ge.2)THEN
 		    vext(2,1)=ilocal_elem(1)%XXC(1,In1);vext(2,2)=ilocal_elem(1)%yyC(1,In1);     
 		     
 		    IF(ABS(vext(2,1)-vext(1,1)).GT.XPER*oo2)THEN

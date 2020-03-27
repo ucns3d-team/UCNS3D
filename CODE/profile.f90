@@ -239,6 +239,7 @@ INTEGER,INTENT(IN)::N
 !INITCOND= PROFILE CHOICE FROM DATA FILE
 real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1
 REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
+real::pr_Radius,pr_beta,pr_machnumberfree,pr_pressurefree,pr_temperaturefree,pr_gammafree,pr_Rgasfree,pr_xcenter,pr_ylength,pr_xlength,pr_ycenter,pr_densityfree,pr_cpconstant,pr_radiusvar,pr_velocityfree,pr_TemperatureVar
 VECCOS(:)=ZERO
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -631,32 +632,32 @@ end if
 
 
 IF (INITCOND.EQ.30)THEN	!shock density interaction
-if (pox(1).le.zero)then
-if (poy(1).le.zero)then
-r1=0.138
-u1=1.206
-v1=1.206
-p1=0.029
+if (pox(1).le.1.0d0)then
+if (poy(1).le.1.0d0)then
+r1=77.0d0/558.0d0
+u1=4.0d0/sqrt(11.0d0)
+v1=4.0d0/sqrt(11.0d0)
+p1=9.0d0/310.0d0
 end if
-if (poy(1).gt.zero)then
-r1=0.5323
-u1=1.206
-v1=0.0
-p1=0.3
+if (poy(1).gt.1.0d0)then
+r1=33.0d0/62.0d0
+u1=4.0d0/sqrt(11.0d0)
+v1=0.0d0
+p1=0.3d0
 end if
 end if
-if (pox(1).gt.zero)then
-if (poy(1).le.zero)then
-r1=0.5323
-u1=0.0
-v1=1.206
-p1=0.3
+if (pox(1).gt.1.0d0)then
+if (poy(1).le.1.0d0)then
+r1=33.0d0/62.0d0
+u1=0.0d0
+v1=4.0d0/sqrt(11.0d0)
+p1=0.3d0
 end if
-if (poy(1).gt.zero)then
-r1=1.5
-u1=0.0
-v1=0.0
-p1=1.5
+if (poy(1).gt.1.0d0)then
+r1=1.5d0
+u1=0.0d0
+v1=0.0d0
+p1=1.5d0
 end if
 end if
 SKIN1=(OO2)*((U1**2)+(V1**2))
@@ -704,6 +705,132 @@ VECCOS(4)=E1
 
 
 end if
+
+
+
+
+
+IF (INITCOND.EQ.123)THEN	!fast inviscid vortex evolution
+
+
+
+pr_Radius = 0.005
+pr_beta = 0.2
+pr_machnumberfree = 0.05
+pr_pressurefree = 100000.0
+pr_temperaturefree = 300.0
+pr_gammafree = 1.4
+pr_Rgasfree = 287.15
+pr_xcenter = 0.05 ; pr_ycenter = 0.05
+pr_xlength = 0.1 ;  pr_ylength = 0.1
+
+pr_densityfree = pr_pressurefree/ (pr_Rgasfree*pr_temperaturefree)
+ pr_cpconstant = pr_Rgasfree*(pr_gammafree/(pr_gammafree-1.0))
+
+pr_radiusvar = sqrt( (POX(1)-pr_xcenter)**2 + (POY(1)-pr_ycenter)**2 )/ pr_Radius
+
+pr_velocityfree = pr_machnumberfree * sqrt(pr_gammafree*pr_Rgasfree*pr_temperaturefree)
+
+
+u1 = pr_velocityfree * (1.0 - (pr_beta* ((POY(1)-pr_ycenter)/pr_Radius )*exp((-pr_radiusvar**2)/2)  ) )
+v1 = pr_velocityfree * ((pr_beta* ((POY(1)-pr_ycenter)/pr_Radius )*exp((-pr_radiusvar**2)/2)  ) )
+pr_TemperatureVar = pr_temperaturefree - ( ((pr_velocityfree**2 *pr_beta**2.0)/(2.0 * pr_cpconstant))*exp(-pr_radiusvar**2) )
+
+r1 = pr_densityfree * (pr_TemperatureVar/pr_temperaturefree)**(1.0/(pr_gammafree-1.0))
+
+ p1 = r1*pr_Rgasfree*pr_TemperatureVar
+! 
+! W1=0.0D0
+! P1=100.0D0+((R1/16.0D0)*((2.0D0*(COS(2.0D0*POX(1))))+(COS(2.0D0*POY(1)))-2.0D0))
+! !UU=(SQRT((GAMMA*P1)/(R1)))*0.28
+! !P1=1.0
+! u1=sin(POX(1))*COS(POY(1))
+! v1=-COS(POX(1))*SIN(POY(1))
+! !KINETIC ENERGY FIRST!
+ SKIN1=(OO2)*((U1**2)+(V1**2))
+! !INTERNAL ENERGY 
+ IE1=((P1)/((pr_gammafree-1.0D0)*R1))
+! !TOTAL ENERGY
+ E1=(P1/(pr_gammafree-1))+(R1*SKIN1)
+!VECTOR OF CONSERVED VARIABLES NOW
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+
+
+
+
+END IF
+
+
+
+IF (INITCOND.EQ.124)THEN	!fast inviscid vortex evolution
+pr_Radius = 0.005
+pr_beta = 0.2
+pr_machnumberfree = 0.2
+pr_pressurefree = 100000.0
+pr_temperaturefree = 300.0
+pr_gammafree = 1.4
+pr_Rgasfree = 287.15
+pr_xcenter = 0.05 ; pr_ycenter = 0.05
+pr_xlength = 0.1 ;  pr_ylength = 0.1
+
+pr_densityfree = pr_pressurefree/ (pr_Rgasfree*pr_temperaturefree)
+ pr_cpconstant = pr_Rgasfree*(pr_gammafree/(pr_gammafree-1.0))
+
+pr_radiusvar = sqrt( (POX(1)-pr_xcenter)**2 + (POY(1)-pr_ycenter)**2 )/ pr_Radius
+
+pr_velocityfree = pr_machnumberfree * sqrt(pr_gammafree*pr_Rgasfree*pr_temperaturefree)
+
+
+u1 = pr_velocityfree * (1.0 - (pr_beta* ((POY(1)-pr_ycenter)/pr_Radius )*exp((-pr_radiusvar**2)/2)  ) )
+v1 = pr_velocityfree * ((pr_beta* ((POY(1)-pr_ycenter)/pr_Radius )*exp((-pr_radiusvar**2)/2)  ) )
+pr_TemperatureVar = pr_temperaturefree - ( ((pr_velocityfree**2 *pr_beta**2.0)/(2.0 * pr_cpconstant))*exp(-pr_radiusvar**2) )
+
+r1 = pr_densityfree * (pr_TemperatureVar/pr_temperaturefree)**(1.0/(pr_gammafree-1.0))
+
+ p1 = r1*pr_Rgasfree*pr_TemperatureVar
+! 
+! W1=0.0D0
+! P1=100.0D0+((R1/16.0D0)*((2.0D0*(COS(2.0D0*POX(1))))+(COS(2.0D0*POY(1)))-2.0D0))
+! !UU=(SQRT((GAMMA*P1)/(R1)))*0.28
+! !P1=1.0
+! u1=sin(POX(1))*COS(POY(1))
+! v1=-COS(POX(1))*SIN(POY(1))
+! !KINETIC ENERGY FIRST!
+ SKIN1=(OO2)*((U1**2)+(V1**2))
+! !INTERNAL ENERGY 
+ IE1=((P1)/((pr_gammafree-1.0D0)*R1))
+! !TOTAL ENERGY
+ E1=(P1/(pr_gammafree-1))+(R1*SKIN1)
+!VECTOR OF CONSERVED VARIABLES NOW
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+
+
+
+
+END IF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

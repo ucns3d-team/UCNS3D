@@ -1782,7 +1782,7 @@ REAL::DELTA,CPUER
 	if (fastest.eq.0)then
 	allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
 	end if
-	if (rungekutta.ge.3)then
+	if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
 ! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 	  
@@ -1846,7 +1846,7 @@ REAL::DELTA,CPUER
 	if (fastest.eq.0)then
 	allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
 	end if
-	if (rungekutta.ge.3)then
+	if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
 ! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 ! 	  
@@ -1889,7 +1889,7 @@ REAL::DELTA,CPUER
 	if (fastest.eq.0)then
 	allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
 	end if
-	if (rungekutta.ge.3)then
+	if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
 ! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 	  
@@ -1938,7 +1938,7 @@ REAL::DELTA,CPUER
 ! 	IELEM(N,I)%DEC_FACES(5,1:3)=IELEM(N,I)%NODES_FACES(4,1:3)
 ! 	IELEM(N,I)%DEC_FACES(6,1:3)=IELEM(N,I)%NODES_FACES(5,1:3)
 
-	  if (rungekutta.ge.3)then
+	  if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
 ! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 	  
@@ -1987,7 +1987,7 @@ REAL::DELTA,CPUER
 	if (fastest.eq.0)then
 	allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
 	end if
-	if (rungekutta.ge.3)then
+	if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
 ! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 	  
@@ -2023,7 +2023,7 @@ REAL::DELTA,CPUER
 
 
 
-	 if (rungekutta.ge.3)then
+	 if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
 ! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 	  

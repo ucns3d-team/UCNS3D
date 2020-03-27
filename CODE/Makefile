@@ -18,8 +18,9 @@ else
 endif
 
 OFLAGS=  
-#FFLAGS=-i4 -r8 -O0  -g  -debug all -traceback -qopenmp -qopenmp-link=static $(BLASFLAGS) -check bounds -fp-model strict -debug inline-debug-info -zero 
-FFLAGS=-i4 -r8 $(DBGFLAGS) -O2 -ipo -xHost -fp-model fast=2 -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)   #NEW WAY 30% FASTER
+FFLAGS=-i4 -r8 -O0  -g  -debug all -xHost -traceback -qopenmp -qopenmp-link=static $(BLASFLAGS) -check bounds -fp-model strict -debug inline-debug-info -zero 
+#FFLAGS=-i4 -r8 $(DBGFLAGS) -O2 -ipo -xHost -fp-model fast=2 -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)   #NEW WAY 30% FASTER
+#FFLAGS=-i4 -r8 $(DBGFLAGS) -Ofast -ipo -xHost -fp-model fast=2 -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)   #NEW WAY 30% FASTER
 LIBS =$(BLASLIBS) -lstdc++ 
 
 include Makefile.common

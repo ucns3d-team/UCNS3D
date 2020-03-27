@@ -40,7 +40,7 @@ KMAXE=XMPIELRANK(N)
 		VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
 		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	IF (ITESTCASE.EQ.3)THEN
@@ -53,7 +53,7 @@ KMAXE=XMPIELRANK(N)
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
 		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	
@@ -85,7 +85,7 @@ KMAXE=XMPIELRANK(N)
          DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
                              
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	
@@ -110,7 +110,7 @@ KMAXE=XMPIELRANK(N)
 		VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
 		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	IF (ITESTCASE.EQ.3)THEN
@@ -123,7 +123,7 @@ KMAXE=XMPIELRANK(N)
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
 		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	
@@ -153,7 +153,7 @@ KMAXE=XMPIELRANK(N)
 		IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
 		
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	
@@ -192,7 +192,7 @@ KMAXE=XMPIELRANK(N)
 		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
 		
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	IF (ITESTCASE.EQ.3)THEN
@@ -212,7 +212,7 @@ KMAXE=XMPIELRANK(N)
 		
 		DT=MIN(DT,CCFL*(ielem(n,i)%totvolume/veln))
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	
@@ -238,7 +238,7 @@ KMAXE=XMPIELRANK(N)
 		
 		DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	
@@ -264,7 +264,7 @@ KMAXE=XMPIELRANK(N)
 		VELN=MAX(ABS(LAMx),ABS(LAMy))
 		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	IF (ITESTCASE.EQ.3)THEN
@@ -277,7 +277,7 @@ KMAXE=XMPIELRANK(N)
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
 		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	
@@ -303,7 +303,7 @@ KMAXE=XMPIELRANK(N)
 		
 		IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
 	END DO
-	!$END OMP DO
+	!$OMP END DO
 	END IF
 	
 	
@@ -648,7 +648,7 @@ END IF
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(DT*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
   
 END DO
 !$OMP END DO
@@ -657,7 +657,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(DT*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
 END DO
 !$OMP END DO
  end if
@@ -702,7 +702,7 @@ END IF
 !$OMP DO
 DO I=1,KMAXE
  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(U_C(I)%VAL(2,1:NOF_VARIABLES))-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
 END DO
 !$OMP END DO
 
@@ -710,7 +710,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 !$OMP DO
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(oo2*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(oo2*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(dt*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
   END DO
 !$OMP END DO
  end if
@@ -781,7 +781,8 @@ END IF
 !$OMP DO
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(ielem(n,i)%dtl*OO2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(ielem(n,i)%dtl*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
   
 END DO
 !$OMP END DO
@@ -790,7 +791,8 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 !$OMP DO
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(ielem(n,i)%dtl*OO2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(ielem(n,i)%dtl*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
   END DO
 !$OMP END DO
  end if
@@ -834,7 +836,8 @@ END IF
 !$OMP DO
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(ielem(n,i)%dtl*OO2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  
+  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(ielem(n,i)%dtl*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
 END DO
 !$OMP END DO
 
@@ -842,7 +845,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 !$OMP DO
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(ielem(n,i)%dtl*OO2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(oo2*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(oo2*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(ielem(n,i)%dtl*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
   END DO
 !$OMP END DO
  end if
@@ -907,7 +910,8 @@ END IF
 !$OMP DO
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(ielem(n,i)%dtl*OO2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(ielem(n,i)%dtl*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
   
 END DO
 !$OMP END DO
@@ -916,7 +920,8 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 !$OMP DO
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(ielem(n,i)%dtl*OO2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(ielem(n,i)%dtl*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
   END DO
 !$OMP END DO
  end if
@@ -962,7 +967,7 @@ END IF
 !$OMP DO
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(ielem(n,i)%dtl*OO2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(ielem(n,i)%dtl*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
 END DO
 !$OMP END DO
 
@@ -970,7 +975,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 !$OMP DO
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(ielem(n,i)%dtl*OO2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(oo2*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(oo2*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(ielem(n,i)%dtl*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
   END DO
 !$OMP END DO
  end if
@@ -1038,7 +1043,7 @@ END IF
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
   
 END DO
 !$OMP END DO
@@ -1049,7 +1054,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(dt*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
   END DO
 !$OMP END DO
  end if
@@ -1093,7 +1098,7 @@ END IF
 !$OMP DO
 DO I=1,KMAXE
  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
 END DO
 !$OMP END DO
 
@@ -3016,7 +3021,8 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 					
 					
 					
-					
+			!$OMP END MASTER 
+			!$OMP BARRIER		
 			
 			
 			if (rungekutta.eq.11)then
@@ -3026,8 +3032,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			DT=MIN(DT,OUT_TIME-T)
 			end if
 			
-			!$OMP END MASTER 
-			!$OMP BARRIER
+			
 			
 			SELECT CASE(RUNGEKUTTA)
 			
