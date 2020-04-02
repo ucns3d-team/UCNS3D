@@ -66,7 +66,7 @@ SUBROUTINE SOURCES_COMPUTATION_ROT(N)
                 SOURCE_T2(5)=ZERO
         
                 POX(1:3)= SOURCE_T2(2:4)  
-                POY(1:3)=SRF_VELOCITY(1:3)
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
                 SOURCE_T2(2:4)=U_C(I)%VAL(1,1)*VECT_FUNCTION(POX,POY)
 		RHS(I)%VAL(1:NOF_VARIABLES)=RHS(I)%VAL(1:NOF_VARIABLES)+(SOURCE_T2(1:NOF_VARIABLES)*ielem(n,I)%totvolume)
 		END IF
