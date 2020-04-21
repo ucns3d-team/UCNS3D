@@ -10,6 +10,7 @@ MODULE DECLARATION
 
 IMPLICIT NONE
 
+
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.1.   INTEGER  VARIABLES HERE                  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
