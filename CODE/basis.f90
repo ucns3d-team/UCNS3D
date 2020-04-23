@@ -1,13 +1,16 @@
 MODULE BASIS
+!> @brief
+!> This module includes all the basis functions for the polynomials used in 2D and 3D
 USE DECLARATION
 USE LIBRARY
 IMPLICIT NONE
-
 
  CONTAINS
  
  
  FUNCTION BASIS_REC(N,X1,Y1,Z1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
+ !> @brief
+!> This function returns the value of the basis function for a specific polynomial order and coordinates
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(IN)::NUMBER,ICONSIDERED,NUMBER_OF_DOG
@@ -1508,6 +1511,8 @@ END FUNCTION BASIS_REC
 
 
 FUNCTION BASIS_REC2d(N,X1,Y1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
+ !> @brief
+!> This function returns the value of the basis function for a specific polynomial order and coordinates in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(IN)::NUMBER,ICONSIDERED,NUMBER_OF_DOG

@@ -6,6 +6,8 @@ USE DECLARATION
 CONTAINS
 
 SUBROUTINE ALLOCATE1(N)
+!> @brief
+!> This subroutine allocates memory 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::ALLS
@@ -33,11 +35,15 @@ end if
 END SUBROUTINE
 
 subroutine allocate2
+!> @brief
+!> This subroutine allocates memory
 implicit none
 ALLOCATE(LIST(2000),INEB(6),IPERB(6),NODELIST(8))
 END SUBROUTINE
 
 subroutine allocate5
+!> @brief
+!> This subroutine allocates memory for the stencils
 implicit none
 ALLOCATE(ILOCALALLELG(N:N,xmpielrank(n),1,ISELEMT(N)))
 ILOCALALLELG(:,:,:,:)=0
@@ -45,6 +51,8 @@ end subroutine
 
 
 subroutine allocate6_1
+!> @brief
+!> This subroutine allocates memory for the stencils
 implicit none
 ALLOCATE (ILOCALALLELG3(1,1:ISELEM),ILOCALALLELGD(1,1:ISELEM))
 ALLOCATE(STCON(N:N))
@@ -58,6 +66,8 @@ ALLOCATE(IX(N:N))
 end subroutine
 
 subroutine allocate6_2
+!> @brief
+!> This subroutine deallocates memory
 implicit none
 deALLOCATE(STCON)
 deALLOCATE(STCONC)
@@ -72,6 +82,8 @@ deALLOCATE (ILOCALALLELG3,ILOCALALLELGD)
 end subroutine
 
 subroutine allocate7_1
+!> @brief
+!> This subroutine allocates memory
 implicit none
 ALLOCATE(BC(N:N,3))
 ALLOCATE(VC(N:N,8,3))
@@ -84,6 +96,8 @@ ALLOCATE(XCC(3),vgg(3))
 end subroutine
 
 subroutine allocate7_2
+!> @brief
+!> This subroutine deallocates memory
 implicit none
 deALLOCATE(BC)
 deALLOCATE(VC)
@@ -96,10 +110,14 @@ end subroutine
 
 
 SUBROUTINE ALLOCATE3
+!> @brief
+!> This subroutine deallocates memory
 DEALLOCATE(LIST,INEB,IPERB)
 END SUBROUTINE
 
 SUBROUTINE GLOBALDEA2(XMPIL,XMPIE)
+!> @brief
+!> This subroutine deallocates global lists
 IMPLICIT NONE
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIL,XMPIE
  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -109,6 +127,8 @@ INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIL,XMPIE
  END SUBROUTINE GLOBALDEA2
 
 SUBROUTINE QUADALLOC(QPOINTS,QPOINTS2D,WEQUA2D,WEQUA3D,NUMBEROFPOINTS,NUMBEROFPOINTS2)
+!> @brief
+!> This subroutine allocates memory for the quadrature points
 implicit none
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::WEQUA3D
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::WEQUA2D
@@ -148,6 +168,8 @@ END SUBROUTINE QUADALLOC
 
 
 SUBROUTINE DEQUADALLOC(QPOINTS,QPOINTS2D,WEQUA2D,WEQUA3D,NUMBEROFPOINTS,NUMBEROFPOINTS2)
+!> @brief
+!> This subroutine deallocates memory for the quadrature points
 implicit none
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::WEQUA3D
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::WEQUA2D
@@ -164,6 +186,8 @@ END SUBROUTINE DEQUADALLOC
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	SUBROUTINE SUMFLUX_ALLOCATION(N)
+	!> @brief
+!> This subroutine allocates memory for the fluxes
 	IMPLICIT NONE
 	INTEGER,INTENT(INOUT)::N
 	INTEGER::I,KMAXE
@@ -250,6 +274,8 @@ END SUBROUTINE DEQUADALLOC
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE IMPALLOCATE(N)
+!> @brief
+!> This subroutine allocates memory for implicit time stepping
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::KMAXE
@@ -326,6 +352,8 @@ end if
 END  SUBROUTINE IMPALLOCATE
 
 SUBROUTINE VERTALLOCATION(N,vext,LEFTV,RIGHTV,VISCL,LAML)
+!> @brief
+!> This subroutine allocates memory for vertices
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::VeXt
@@ -338,8 +366,8 @@ SUBROUTINE VERTALLOCATION(N,vext,LEFTV,RIGHTV,VISCL,LAML)
 	ALLOCATE (DETERJACS(1))
 	ALLOCATE (JACS(3,3))
 	ALLOCATE (INVERSEJACS(3,3))
-	ALLOCATE(LEFTV(1:5))
-	ALLOCATE(RIGHTV(1:5))
+	ALLOCATE(LEFTV(NOF_VARIABLES))
+	ALLOCATE(RIGHTV(NOF_VARIABLES))
 	ALLOCATe(CORDS(3))
 	Allocate(NODES_LIST(8,3))
 	Allocate(ELEM_LISTD(6,4,3))
@@ -349,8 +377,8 @@ SUBROUTINE VERTALLOCATION(N,vext,LEFTV,RIGHTV,VISCL,LAML)
 	ALLOCATE (DETERJACS(1))
 	ALLOCATE (JACS(2,2))
 	ALLOCATE (INVERSEJACS(2,2))
-	ALLOCATE(LEFTV(1:4))
-	ALLOCATE(RIGHTV(1:4))
+	ALLOCATE(LEFTV(NOF_VARIABLES))
+	ALLOCATE(RIGHTV(NOF_VARIABLES))
 
 	ALLOCATe(CORDS(2))
 	Allocate(NODES_LIST(4,2))
@@ -383,6 +411,8 @@ SUBROUTINE VERTALLOCATION(N,vext,LEFTV,RIGHTV,VISCL,LAML)
 
 
 SUBROUTINE TIMING(N,CPUX1,CPUX2,CPUX3,CPUX4,CPUX5,CPUX6,TIMEX1,TIMEX2,TIMEX3,TIMEX4,TIMEX5,TIMEX6)
+!> @brief
+!> This subroutine allocates memory for the timers
 IMPLICIT NONE
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::CPUX1,CPUX2,CPUX3,CPUX4,CPUX5,CPUX6,TIMEX1,TIMEX2,TIMEX3,TIMEX4,TIMEX5,TIMEX6
 INTEGER,INTENT(IN)::N
@@ -413,6 +443,8 @@ END  SUBROUTINE TIMING
 !!!!!!!!!!!!!!!!!!SUBROUTINE CALLED INITIALLY TO ALLOCATE MEMORY FOR ELEMENTS!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	SUBROUTINE SHALLOCATION(IESHAPE,IMAXE)
+	!> @brief
+!> This subroutine allocates memory for the shapes
 	IMPLICIT NONE
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IESHAPE
 	INTEGER,INTENT(INOUT)::IMAXE
@@ -430,6 +462,8 @@ END  SUBROUTINE TIMING
 !!!!!!!!!!!!!!!!!!SUBROUTINE CALLED INITIALLY TO ALLOCATE MEMORY FOR ELEMENTS!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	SUBROUTINE SHDEALLOCATION(IESHAPE,IMAXE)
+	!> @brief
+!> This subroutine deallocates memory for the shapes
 	IMPLICIT NONE
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IESHAPE
 	INTEGER,INTENT(INOUT)::IMAXE
@@ -444,6 +478,8 @@ END  SUBROUTINE TIMING
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	SUBROUTINE ELALLOCATION(N,XMPIE,XMPIELRANK,IELEM,IMAXE,IESHAPE,ITESTCASE,IMAXB,IBOUND,XMIN,XMAX,YMIN,YMAX,ZMIN,ZMAX)
 	IMPLICIT NONE
+	!> @brief
+!> This subroutine allocates memory for the elements
 	TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::IESHAPE
 	INTEGER,INTENT(IN)::N
@@ -489,6 +525,8 @@ END  SUBROUTINE TIMING
 !!!!!!!!!!!!!!!!!!SUBROUTINE CALLED INITIALLY TO ALLOCATE MEMORY FOR NODES!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	SUBROUTINE NODEALLOCATION(N,INODE,IMAXN,XMPIN,XMPINRANK,INODEN)
+	!> @brief
+!> This subroutine allocates memory for the nodes
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIN
@@ -505,6 +543,8 @@ END  SUBROUTINE TIMING
 	END SUBROUTINE NODEALLOCATION
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         SUBROUTINE NODEDEALLOCATION(N,INODE,IMAXN,XMPIN,XMPINRANK,INODEN)
+        !> @brief
+!> This subroutine deallocates memory from the nodes
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIN
@@ -525,6 +565,8 @@ END  SUBROUTINE TIMING
 
 
 SUBROUTINE ALLOCATETURB(N,EDDYFL,EDDYFR)
+!> @brief
+!> This subroutine allocates memory for the turbulence equations
 IMPLICIT NONE
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::EDDYFL,EDDYFR
 INTEGER,INTENT(IN)::N
@@ -549,6 +591,8 @@ END SUBROUTINE
 
 
 SUBROUTINE XMPIALLOCATE(XMPIE,XMPIL,XMPIN,XMPIELRANK,XMPINRANK,IMAXE,IMAXN,NPROC)
+!> @brief
+!> This subroutine allocates memory for the global lists
 IMPLICIT NONE
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIE,XMPIL
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIN
@@ -570,6 +614,8 @@ END  SUBROUTINE XMPIALLOCATE
 
 
 SUBROUTINE DEALLOCATEMPI1(N)
+!> @brief
+!> This subroutine deallocates memory for boundary exchange
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 
@@ -582,6 +628,8 @@ DEALLOCATE (IEXCHANGES1,IEXCHANGER1)
 END SUBROUTINE DEALLOCATEMPI1
 
 SUBROUTINE DEALLOCATEMPI2(N)
+!> @brief
+!> This subroutine deallocates memory for the stencil exchange
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 
@@ -595,6 +643,8 @@ END SUBROUTINE DEALLOCATEMPI2
 
 
 SUBROUTINE LOCAL_DELALLOCATION(ILOCAL_ELEM)
+!> @brief
+!> This subroutine deallocates memory for reconstruction prestoring
 IMPLICIT NONE
 TYPE(LOCAL_ELEMENT),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_ELEM
 DEALLOCATE (ILOCAL_ELEM)
@@ -606,6 +656,8 @@ END SUBROUTINE LOCAL_DELALLOCATION
 !!!!!!!!!!!!!STENCIL ELEMENTS!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 SUBROUTINE LOCAL_DNALLOCATION(ILOCAL_NODE)
+!> @brief
+!> This subroutine deallocates memory for reconstruction prestoring
 IMPLICIT NONE
 TYPE(LOCAL_NODE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_NODE
 DEALLOCATE (ILOCAL_NODE)
@@ -614,6 +666,8 @@ END SUBROUTINE LOCAL_DNALLOCATION
 
 
 SUBROUTINE LOCAL_ELALLOCATION(N,ILOCAL_ELEM)
+!> @brief
+!> This subroutine allocates memory for reconstruction prestoring
 IMPLICIT NONE
 TYPE(LOCAL_ELEMENT),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_ELEM
 INTEGER,INTENT(IN)::N
@@ -660,6 +714,8 @@ I=1
 END SUBROUTINE LOCAL_ELALLOCATION
 
 SUBROUTINE LOCAL_NALLOCATION(N,ILOCAL_NODE)
+!> @brief
+!> This subroutine allocates memory for reconstruction prestoring
 IMPLICIT NONE
 TYPE(LOCAL_NODE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_NODE
 INTEGER,INTENT(IN)::N
@@ -707,6 +763,8 @@ END SUBROUTINE LOCAL_NALLOCATION
 
 
 SUBROUTINE LOCAL_RECONALLOCATION3(N,ILOCAL_RECON3)
+!> @brief
+!> This subroutine allocates memory for reconstruction prestoring
 IMPLICIT NONE
 TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON3
 INTEGER,INTENT(IN)::N
@@ -738,11 +796,29 @@ DO I=1,KMAXE	!for all elements
 	END IF
 	if (fastest.ne.1)then
 	    ALLOCATE (ILOCAL_RECON3(I)%INVCCJAC(3,3));ILOCAL_RECON3(I)%INVCCJAC(:,:)=0.0D0
+		IDUM=0
+		if (ielem(n,i)%interior.eq.1)then
+                        DO j=1,IELEM(N,I)%IFCA
+                        if (ielem(n,i)%ibounds(J).gt.0)then
+                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+                                IDUM=1
+                            end if
+                        END IF
+                        END DO
+                end if
+		
+		if (idum.eq.1)then
+	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
+	   else
+	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,1));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
+	   end if
+		
+		
 !   	    ALLOCATE (ILOCAL_RECON3(I)%INVCTJAC(3,3));ILOCAL_RECON3(I)%INVCTJAC(:,:)=0.0D0
-	    ALLOCATE (ILOCAL_RECON3(I)%VOLUME(M,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	    IF (EES.EQ.5)THEN
-	     ALLOCATE (ILOCAL_RECON3(I)%VOLUMEC(M2,INUM2));ILOCAL_RECON3(I)%VOLUMEC(:,:)=0.0D0
-	    END IF
+	    
+	    ! IF (EES.EQ.5)THEN
+	     ! ALLOCATE (ILOCAL_RECON3(I)%VOLUMEC(M2,INUM2));ILOCAL_RECON3(I)%VOLUMEC(:,:)=0.0D0
+	    ! END IF
 	    
 	    ALLOCATE(ILOCAL_RECON3(I)%VEXT_REF(3));ILOCAL_RECON3(I)%VEXT_REF=0.0D0
 	end if
@@ -761,13 +837,16 @@ DO I=1,KMAXE	!for all elements
                 end if
                 if (idum.eq.1)then
 	      
-	   ALLOCATE (ILOCAL_RECON3(I)%STENCILS(M,IMAX,IDEG));ILOCAL_RECON3(I)%STENCILS(:,:,:)=0.0d0
-	   IF (EES.EQ.5)THEN
-	   ALLOCATE (ILOCAL_RECON3(I)%STENCILSC(M2,IMAX2,IDEG2));ILOCAL_RECON3(I)%STENCILSC(:,:,:)=0.0d0
-	   END IF
+				   ALLOCATE (ILOCAL_RECON3(I)%STENCILS(M,IMAX,IDEG));ILOCAL_RECON3(I)%STENCILS(:,:,:)=0.0d0
+				   IF (EES.EQ.5)THEN
+				   ALLOCATE (ILOCAL_RECON3(I)%STENCILSC(M2,IMAX2,IDEG2));ILOCAL_RECON3(I)%STENCILSC(:,:,:)=0.0d0
+				   END IF
 	   
+				end if
 	   end if
-	   end if
+	   
+	   
+	   
 ! 	    ALLOCATE (ILOCAL_RECON3(I)%INVMAT(M,IDEG,IDEG));ILOCAL_RECON3(I)%INVMAT(:,:,:)=0.0D0
 	    allocate (ILOCAL_RECON3(I)%invmat_stencilt(ideg,imax,M));ILOCAL_RECON3(I)%invmat_stencilt(:,:,:)=0.0d0
 	    IF (EES.EQ.5)THEN
@@ -852,12 +931,32 @@ DO I=1,KMAXE	!for all elements
 	if (fastest.ne.1)then
 	    ALLOCATE (ILOCAL_RECON3(I)%INVCCJAC(2,2));ILOCAL_RECON3(I)%INVCCJAC(:,:)=0.0D0
 !   	    ALLOCATE (ILOCAL_RECON3(I)%INVCTJAC(2,2));ILOCAL_RECON3(I)%INVCTJAC(:,:)=0.0D0
-	    ALLOCATE (ILOCAL_RECON3(I)%VOLUME(M,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	     IF (EES.EQ.5)THEN
-	     ALLOCATE (ILOCAL_RECON3(I)%VOLUMEC(M2,INUM2));ILOCAL_RECON3(I)%VOLUMEC(:,:)=0.0D0
-	    END IF
+	    !ALLOCATE (ILOCAL_RECON3(I)%VOLUME(M,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
+	     !IF (EES.EQ.5)THEN
+	     !ALLOCATE (ILOCAL_RECON3(I)%VOLUMEC(M2,INUM2));ILOCAL_RECON3(I)%VOLUMEC(:,:)=0.0D0
+	    !END IF
 	    ALLOCATE(ILOCAL_RECON3(I)%VEXT_REF(2));ILOCAL_RECON3(I)%VEXT_REF=0.0D0
 	end if
+	
+	IDUM=0
+		if (ielem(n,i)%interior.eq.1)then
+                        DO j=1,IELEM(N,I)%IFCA
+                        if (ielem(n,i)%ibounds(J).gt.0)then
+                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+                                IDUM=1
+                            end if
+                        END IF
+                        END DO
+                end if
+		
+		if (idum.eq.1)then
+	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
+	   else
+	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,1));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
+	   end if
+	
+	
+	
 	IF (FIRSTORDER.NE.1)THEN
 	   IF (GREENGO.EQ.0)then
 	  
@@ -879,6 +978,10 @@ DO I=1,KMAXE	!for all elements
 	   END IF
 	   end if
 	   end if
+	   
+	   
+	   
+	   
 ! 	    ALLOCATE (ILOCAL_RECON3(I)%INVMAT(M,IDEG,IDEG));ILOCAL_RECON3(I)%INVMAT(:,:,:)=0.0D0
 	    allocate (ILOCAL_RECON3(I)%invmat_stencilt(ideg,imax,ielem(n,i)%admis));ILOCAL_RECON3(I)%invmat_stencilt(:,:,:)=0.0d0
 	    IF (EES.EQ.5)THEN
@@ -1001,6 +1104,8 @@ END IF
 END SUBROUTINE LOCAL_RECONALLOCATION3
 
 SUBROUTINE ALLWEFF(WEFF,IDEGFREE)
+!> @brief
+!> This subroutine allocates memory for weno weights 
 IMPLICIT NONE
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
 INTEGER,INTENT(IN)::IDEGFREE
@@ -1011,6 +1116,8 @@ END SUBROUTINE ALLWEFF
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 SUBROUTINE DEALCORDINATES1(N,IEXCORDR,IEXCORDS)
+!> @brief
+!> This subroutine deallocates memory for exchange of info between processes
 IMPLICIT NONE
 TYPE(EXCHANGE_CORD),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXCORDR
 TYPE(EXCHANGE_CORD),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXCORDS
@@ -1022,6 +1129,8 @@ END SUBROUTINE DEALCORDINATES1
 
 
 SUBROUTINE DEALCORDINATES2
+!> @brief
+!> This subroutine deallocates memory for exchange of info between processes
  if (allocated(iexcords))DEALLOCATE(IEXCORDS)
 
 END SUBROUTINE DEALCORDINATES2
@@ -1033,6 +1142,8 @@ END SUBROUTINE DEALCORDINATES2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE ALLOCATE_BASIS_FUNCTION(N,INTEG_BASIS,XMPIELRANK,IDEGFREE)
+!> @brief
+!> This subroutine allocates memory for basis function integrals
 IMPLICIT NONE
 TYPE(INTEGRALBASIS),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::INTEG_BASIS
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
@@ -1051,6 +1162,8 @@ end do
 END SUBROUTINE ALLOCATE_BASIS_FUNCTION
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 SUBROUTINE DEALLOCATE_BASIS_FUNCTION(N,INTEG_BASIS)
+!> @brief
+!> This subroutine deallocates memory for basis function integrals
 IMPLICIT NONE
 TYPE(INTEGRALBASIS),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::INTEG_BASIS
 INTEGER,INTENT(IN)::N
@@ -1060,6 +1173,8 @@ END SUBROUTINE DEALLOCATE_BASIS_FUNCTION
 
 
 SUBROUTINE MEMORY1
+!> @brief
+!> This subroutine allocates memory for reconstruction matrices
 
 ALLOCATE(MATRIX_A(1:IMAXDEGFREE,1:IDEGFREE),SOURCE_T(TURBULENCEEQUATIONS),LSQM(1:IMAXDEGFREE,1:IDEGFREE-1),VELLSQMAT(1:IDEGFREE-1,1:IDEGFREE-1),MATRIX_SOLUTION(1:IDEGFREE,1:1)&
 ,MATRIXFACE(1:1,1:IDEGFREE),JUSTCHECK(1:1,1:1),Q(1:IDEGFREE-1,1:IDEGFREE-1),R(1:IDEGFREE-1,1:IDEGFREE-1),QT(1:IDEGFREE-1,1:IDEGFREE-1)&
@@ -1072,6 +1187,8 @@ PERMUTATIONG(1:IDEGFREE),XDER(1:IDEGFREE),YDER(1:IDEGFREE),ZDER(1:IDEGFREE),XXDE
 END SUBROUTINE MEMORY1
 
 SUBROUTINE MEMORY11
+!> @brief
+!> This subroutine deallocates memory used for reconstruction matrices
 
 DEALLOCATE(MATRIX_A,LSQM,VELLSQMAT,MATRIX_SOLUTION,MATRIXFACE,JUSTCHECK,Q,R,QT&
 ,INVR,LSCQM,QFF,RFF,QTFF,INVRFF,MATRIX_B,MATRIX_X,BASEFACEVAL&
@@ -1083,6 +1200,8 @@ PERMUTATIONG)
 END SUBROUTINE MEMORY11
 
    SUBROUTINE LOCALSDEALLOCATION(N,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEIGHBOURS)
+   !> @brief
+!> This subroutine allocates memory for stencils
 	IMPLICIT NONE
 	INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),intent(inout)::ILOCALSTENCIL
 	INTEGER,INTENT(IN)::NUMNEIGHBOURS
@@ -1101,6 +1220,8 @@ END SUBROUTINE MEMORY11
 	kkd=nof_variables+turbulenceequations+passivescalar
 	kkd1=nof_variables
 	kkd2=turbulenceequations+passivescalar
+    !> @brief
+    !> This subroutine allocates memory for solution vectors
 	
 	
 	
@@ -1125,6 +1246,8 @@ end if
 	END SUBROUTINE share_ALLOCATION	
 	
 	SUBROUTINE U_C_ALLOCATION(N,XMPIELRANK,U_C,U_E,ITESTCASE,U_CT)
+	   !> @brief
+!> This subroutine allocates memory for solution vector
 	IMPLICIT NONE
 	TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_C,U_CT	
 	TYPE(U_EXACT),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_E
@@ -1368,6 +1491,8 @@ end if
 
 	
 subroutine local_reconallocation5(n)
+   !> @brief
+!> This subroutine allocates memory for reconstruction (one per process since these are destroyed after each element)
 implicit none
 INTEGER,INTENT(IN)::N
 
@@ -1430,6 +1555,8 @@ end if
 end subroutine 
 
 SUBROUTINE LOCAL_RECONALLOCATION4(N)
+   !> @brief
+!> This subroutine allocates memory for reconstruction 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::K,I,J,L,M,IT,KMAXE,IDUM,ICCF,decomf,SVG,points,ii
@@ -1590,6 +1717,8 @@ END SUBROUTINE LOCAL_RECONALLOCATION4
 
 
 SUBROUTINE LOCAL_RECONALLOCATION42d(N)
+   !> @brief
+!> This subroutine allocates memory for reconstruction in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::K,I,J,L,M,IT,KMAXE,IDUM,ICCF,decomf,SVG,points
@@ -1673,6 +1802,9 @@ END SUBROUTINE LOCAL_RECONALLOCATION42d
 	
 
 SUBROUTINE MEMORY2
+implicit none
+   !> @brief
+!> This subroutine allocates memory for all the matrices
 INTEGER::KKD
 
 KKD=nof_variables

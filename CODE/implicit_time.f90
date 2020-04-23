@@ -11,6 +11,8 @@ IMPLICIT NONE
 
 
 subroutine RELAXATION(N)
+ !> @brief
+!> This subroutine solves the linear system for implicit time stepping either through jacobian or LU-SGS in 3D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb
@@ -673,6 +675,8 @@ END SUBROUTINE RELAXATION
 
 
 subroutine RELAXATION_lm(N)
+ !> @brief
+!> This subroutine solves the linear system for implicit time stepping either through jacobian or LU-SGS in 3D with low memory footprint
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar
@@ -1277,6 +1281,8 @@ END SUBROUTINE RELAXATION_lm
 
 
 subroutine RELAXATION2d(N)
+ !> @brief
+!> This subroutine solves the linear system for implicit time stepping either through jacobian or LU-SGS in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb
@@ -1945,6 +1951,8 @@ END SUBROUTINE RELAXATION2d
 
 
 subroutine RELAXATION_lm2d(N)
+ !> @brief
+!> This subroutine solves the linear system for implicit time stepping either through jacobian or LU-SGS in 2D with low memory footprint
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar

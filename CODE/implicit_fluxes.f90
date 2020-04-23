@@ -10,6 +10,8 @@ IMPLICIT NONE
 
 contains
 SUBROUTINE CALCULATE_JACOBIAN(N)
+ !> @brief
+!> This subroutine computes the approximate jacobian for implicit time stepping in 3D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
@@ -530,6 +532,8 @@ END SUBROUTINE CALCULATE_JACOBIAN
 	
 
 SUBROUTINE CALCULATE_JACOBIAN_2D(N)
+ !> @brief
+!> This subroutine computes the approximate jacobian for implicit time stepping in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
@@ -1052,6 +1056,8 @@ END SUBROUTINE CALCULATE_JACOBIAN_2D
 	
 	
 SUBROUTINE CALCULATE_JACOBIANLM(N)
+ !> @brief
+!> This subroutine computes the approximate jacobian for implicit time stepping in 3D with low-memory footprint
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
@@ -1544,6 +1550,8 @@ END SUBROUTINE CALCULATE_JACOBIANLM
 	
 
 SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
+ !> @brief
+!> This subroutine computes the approximate jacobian for implicit time stepping in 2D with low-memory footprint
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2

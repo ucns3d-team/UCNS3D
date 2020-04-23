@@ -7,6 +7,8 @@ integer,allocatable,dimension(:):: interray
 contains
 
 SUBROUTINE TRANSLATE_mesh
+!> @brief
+!> subroutine for transforming fluent style msh file to native format
 implicit none
 LOGICAL::HEREs
  CHARACTER(LEN=20)::PROC,starFILE

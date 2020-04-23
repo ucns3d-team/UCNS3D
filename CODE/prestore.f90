@@ -14,6 +14,8 @@ IMPLICIT NONE
  
  
  SUBROUTINE PRESTORE_1(N)
+!> @brief
+!> This subroutine calls other subroutines to prestore the pseudoinverse reconstruction least square matrices
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::KMAXE,i
@@ -80,6 +82,8 @@ END SUBROUTINE PRESTORE_1
 
 
 SUBROUTINE PRESTORE_RECONSTRUCTION3(N,iconsi)
+!> @brief
+!> This subroutine prestores the pseudoinverse reconstruction least square matrices
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,iconsi
 INTEGER::I,J,K,llco,ll,ii,igf,IGF2,IFD2,idum,idum2,iq,jq,lq,IHGT,IHGJ,iqp,iqp2,NND,k0,g0,lcou,lcc,iqqq,ICOND1,ICOND2
@@ -165,6 +169,20 @@ IDUM=0;
 	 inumo2=iorder2
 
                 DIST_STEN=ZERO
+				
+				DIST_STEN=-tolbig; DIST_STEN2=tolbig
+	       DO LL=1,ielem(n,i)%iNUMNEIGHBOURS
+if (ilocal_elem(1)%VOLUME(1,LL).lt.DIST_STEN2)then
+DIST_STEN2=ilocal_elem(1)%VOLUME(1,LL)
+end if
+if (ilocal_elem(1)%VOLUME(1,LL).gt.DIST_STEN)then
+DIST_STEN=ilocal_elem(1)%VOLUME(1,LL)
+end if
+			end do
+			
+IELEM(N,I)%STENCIL_DIST=MAX((DIST_STEN/DIST_STEN2),(DIST_STEN2/DIST_STEN))
+				
+				
 		DO LL=1,LLCO	!ADMIS
 
 			
@@ -198,12 +216,17 @@ X_STENCIL=(ilocal_elem(1)%XXC(ll,k+1)-ilocal_elem(1)%XXC(ll,1))**2
 Y_STENCIL=(ilocal_elem(1)%YYC(ll,k+1)-ilocal_elem(1)%YYC(ll,1))**2
 Z_STENCIL=(ilocal_elem(1)%ZZC(ll,k+1)-ilocal_elem(1)%ZZC(ll,1))**2
 
-DIST_STEN2=SQRT(X_STENCIL+Y_STENCIL+Z_STENCIL)
+!DIST_STEN2=SQRT(X_STENCIL+Y_STENCIL+Z_STENCIL)
 
 
-DIST_STEN=MAX(DIST_STEN,DIST_STEN2)
+!DIST_STEN=MAX(DIST_STEN,DIST_STEN2)
 
-IELEM(N,I)%STENCIL_DIST=DIST_STEN/(ilocal_elem(1)%VOLUME(1,1)**(1/3))
+!IELEM(N,I)%STENCIL_DIST=DIST_STEN/(ilocal_elem(1)%VOLUME(1,1)**(1/3))
+
+			
+			
+
+
 
 
 if (fastest.eq.1)then
@@ -252,14 +275,14 @@ IXX=i;jxx=k+1;lxx1=ll
 ELTYPE=ilocal_elem(1)%ishape(ll,k+1)
 IF (GREENGO.EQ.0)THEN
 if (idum.eq.1)then
-if((ees.ne.5).or.(ll.eq.1))then
- compwrt=0
-ILOCAL_RECON3(I)%STENCILS(LL,K,1:IDEG)=COMPBASEL(N,ELTYPE,IDEG)
-else
- compwrt=1
-ILOCAL_RECON3(I)%STENCILSc(LL,K,1:IDEG)=COMPBASEL(N,ELTYPE,IDEG)
- compwrt=0
-end if
+		if((ees.ne.5).or.(ll.eq.1))then
+		 compwrt=0
+		ILOCAL_RECON3(I)%STENCILS(LL,K,1:IDEG)=COMPBASEL(N,ELTYPE,IDEG)
+		else
+		 compwrt=1
+		ILOCAL_RECON3(I)%STENCILSc(LL,K,1:IDEG)=COMPBASEL(N,ELTYPE,IDEG)
+		 compwrt=0
+		end if
 else
     if((ees.ne.5).or.(ll.eq.1))then
    compwrt=0
@@ -418,6 +441,13 @@ call gemm(                                               &
                'N',                                                  & ! transposition flag for invmat
                'T'                                                   & ! transposition flag for stencil
             )
+			
+			do iq=1,imax
+			ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)&
+			*ilocal_elem(1)%VOLUME(ll,iq+1)
+			end do
+			
+			
 else
 call gemm(                                               &
                invmat(1:ideg,1:ideg),                                               &
@@ -426,7 +456,10 @@ call gemm(                                               &
                'N',                                                  & ! transposition flag for invmat
                'T'                                                   & ! transposition flag for stencil
             )
-
+do iq=1,imax
+			ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)&
+			*ilocal_elem(1)%VOLUME(ll,iq+1)
+			end do
 
 end if
 
@@ -583,6 +616,11 @@ LSQM(LQ,LCOU)=ILOCAL_RECON3(I)%STENCILS(LL,LQ,IQ)&
     END DO
 END DO
 ILOCAL_RECON3(I)%TEMPSQ(1:IMAX,1:IDEG-1)=LSQM(1:IMAX,1:IDEG-1)
+
+
+
+
+
 VELLSQMAT=ZERO
 DO IQ=1,IDEG-1; DO JQ=1,IDEG-1;	DO LCC=1,IMAX
 !now store the least square matrix
@@ -614,6 +652,11 @@ LCOU=0
     END DO
 END DO
 ILOCAL_RECON3(I)%VELLSQ(1:IMAX,1:IDEG-1)=LSQM(1:IMAX,1:IDEG-1)
+
+
+
+
+
 VELLSQMAT=ZERO
 DO IQ=1,IDEG-1; DO JQ=1,IDEG-1;	DO LCC=1,IMAX
 !now store the least square matrix
@@ -653,6 +696,8 @@ END SUBROUTINE PRESTORE_RECONSTRUCTION3
 
 
 subroutine walls_higher(n)
+!> @brief
+!> This subroutine allocates the memory for wall bounded cells for their constrained least squares reconstruction
 implicit none
 integer,intent(in)::n
 integer::i,j,k,imax,ideg,inumo,inum,kmaxe,idum,idum2
@@ -719,6 +764,8 @@ end subroutine walls_higher
 
 
 SUBROUTINE PRESTORE_RECONSTRUCTION2(N,iconsi)
+!> @brief
+!> This subroutine prestores the pseudoinverse reconstruction least square matrices in 2d
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,iconsi
 INTEGER::I,J,K,llco,ll,ii,igf,IGF2,IFD2,idum,idum2,iq,jq,lq,IHGT,IHGJ,iqp,iqp2,NND,k0,g0,lcou,lcc,ICOND1,ICOND2,ai,aj
@@ -982,7 +1029,10 @@ call gemm(                                               &
                'T'                                                   & ! transposition flag for stencil
             )
             
-           
+           do iq=1,imax
+			ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)&
+			*ilocal_elem(1)%VOLUME(ll,iq+1)
+			end do
 
 else
 call gemm(                                               &
@@ -992,6 +1042,12 @@ call gemm(                                               &
                'N',                                                  & ! transposition flag for invmat
                'T'                                                   & ! transposition flag for stencil
             )
+
+do iq=1,imax
+			ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)&
+			*ilocal_elem(1)%VOLUME(ll,iq+1)
+			end do
+
 
 end if
 
@@ -1234,6 +1290,8 @@ END SUBROUTINE PRESTORE_RECONSTRUCTION2
 
 
 SUBROUTINE INDICATORMATRIX(N,Iconsi)
+!> @brief
+!> This subroutine computes the indicator matrices for weno reconstructions
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,iconsi
 INTEGER::I,J,K,L,M,jx,jx2
@@ -1353,6 +1411,8 @@ END SUBROUTINE INDICATORMATRIX
 
 
 SUBROUTINE INDICATORMATRIX2(N,Iconsi)
+!> @brief
+!> This subroutine computes the indicator matrices for cweno reconstructions of the lower-order polynomials
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,iconsi
 INTEGER::I,J,K,L,M,jx,jx2
@@ -1474,6 +1534,8 @@ END SUBROUTINE INDICATORMATRIX2
 
 
 SUBROUTINE WENOTET(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -1528,6 +1590,8 @@ WEFF=zero
 END SUBROUTINE WENOTET
 
 SUBROUTINE PH1(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -1552,6 +1616,8 @@ WEFF=ZERO
 
 END SUBROUTINE PH1
 SUBROUTINE PH2(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -1581,6 +1647,8 @@ WEFF=ZERO
 
 END SUBROUTINE PH2
 SUBROUTINE PH3(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -1621,6 +1689,8 @@ WEFF=zero
 
 END SUBROUTINE PH3
 SUBROUTINE PH4(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -1675,6 +1745,8 @@ ENDDO
 
 END SUBROUTINE PH4
 SUBROUTINE PH5(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -1750,6 +1822,8 @@ ENDDO
 
 END SUBROUTINE PH5
 SUBROUTINE PH6(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -1856,6 +1930,8 @@ WEFF=zero
 END SUBROUTINE PH6
 
 SUBROUTINE PL1(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -1880,6 +1956,8 @@ WEFF=zero
 
 END SUBROUTINE PL1
 SUBROUTINE PL2(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -1909,6 +1987,8 @@ WEFF=zero
 
 END SUBROUTINE PL2
 SUBROUTINE PL3(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -1949,6 +2029,8 @@ WEFF=zero
 
 END SUBROUTINE PL3
 SUBROUTINE PL4(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -2003,6 +2085,8 @@ WEFF=zero
 
 END SUBROUTINE PL4
 SUBROUTINE PL5(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -2078,6 +2162,8 @@ WEFF=zero
 
 END SUBROUTINE PL5
 SUBROUTINE PL6(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -2187,6 +2273,8 @@ END SUBROUTINE PL6
 
 
 SUBROUTINE WENOTET2D(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -2220,6 +2308,8 @@ WEFF=zero
 END SUBROUTINE WENOTET2D
 ! 
 SUBROUTINE P2DH1(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -2245,6 +2335,8 @@ WEFF=zero
 
 END SUBROUTINE P2DH1
 SUBROUTINE P2DH2(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -2270,6 +2362,8 @@ WEFF=zero
 
 END SUBROUTINE P2DH2
 SUBROUTINE P2DH3(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -2300,6 +2394,8 @@ WEFF=zero
 
 END SUBROUTINE P2DH3
 SUBROUTINE P2DH4(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -2334,6 +2430,8 @@ WEFF=zero
 
 END SUBROUTINE P2DH4
 SUBROUTINE P2DH5(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -2375,6 +2473,8 @@ WEFF=zero
 
 END SUBROUTINE P2DH5
 SUBROUTINE P2DH6(N,WEFF)
+!> @brief
+!> This subroutine computes derivative operator for the smoothness indicator
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
@@ -2445,6 +2545,8 @@ END SUBROUTINE P2DH6
 
 
 FUNCTION CALINTBASIS(N,IXX,JXX,KXX,LXX1)
+!> @brief
+!> This subroutine computes basis functions for each element
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(INOUT):: IXX,JXX,KXX,LXX1
@@ -2464,6 +2566,8 @@ REAL,DIMENSION(1:number_of_dog)::CALINTBASIS
 
 
 FUNCTION COMPBASEL(N,ELTYPE,number_of_dog)
+!> @brief
+!> This subroutine computes basis functions for each element
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(INout)::ELTYPE,number_of_dog
@@ -2711,6 +2815,8 @@ S1=ZERO
 END FUNCTION
 
 FUNCTION COMPBASTR(N,number_of_dog)
+!> @brief
+!> This subroutine computes basis functions for each triangle
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,number_of_dog
 integer::lc
@@ -2737,6 +2843,8 @@ END FUNCTION
 
 
 FUNCTION COMPBASHEX(N,number_of_dog)
+!> @brief
+!> This subroutine computes basis functions for hexahedral
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,number_of_dog
 REAL::VOL
@@ -2761,6 +2869,8 @@ END DO
 END FUNCTION
 
 FUNCTION COMPBASPR(N,number_of_dog)
+!> @brief
+!> This subroutine computes basis functions for prisms
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,number_of_dog
 REAL::VOL
@@ -2785,6 +2895,8 @@ END DO
 END FUNCTION
 
 FUNCTION COMPBASQUAD(N,number_of_dog)
+!> @brief
+!> This subroutine computes basis functions for quadrilateral
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,number_of_dog
 REAL::VOL
@@ -2809,6 +2921,8 @@ END DO
 END FUNCTION
 
 FUNCTION COMPBASTRI(N,number_of_dog)
+!> @brief
+!> This subroutine computes basis functions for each triangle
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,number_of_dog
 REAL::VOL
@@ -2834,6 +2948,8 @@ END FUNCTION
 
 
 SUBROUTINE INVERT(RFF,INVRFF,IVGT)
+!> @brief
+!> This subroutine inverts a special matrix
   IMPLICIT NONE
   INTEGER,INTENT(IN)::IVGT
   REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(IN) ::RFF

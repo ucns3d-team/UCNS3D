@@ -10,6 +10,8 @@ implicit none
 
 
 subroutine Partitioner5(n,imaxe,imaxn,xmpie,ieshape)
+   !> @brief
+!> This subroutine partitions the mesh using Metis
 
 	integer,intent(in)::n,imaxe,imaxn
 	integer,ALLOCATABLE,DIMENSION(:),intent(in)::IESHAPE
@@ -33,7 +35,7 @@ character (len=10) :: t,f,ss
 
 	if (dimensiona.eq.3)then
 	DO J=1,IMAXE
-		READ(8,*),k,I1,I2,I3,I4,i5,i6,i7,i8
+		READ(8,*)k,I1,I2,I3,I4,i5,i6,i7,i8
  	      
 		
 		
@@ -44,7 +46,7 @@ character (len=10) :: t,f,ss
 	END DO
 	else
 	DO J=1,IMAXE
-		READ(8,*),k,I1,I2,I3,I4
+		READ(8,*)k,I1,I2,I3,I4
  	      
 		
 		IF ((I3.NE.I4))THEN
@@ -148,6 +150,8 @@ end subroutine Partitioner5
 
 
 Subroutine Partitioner1(n,IMAXE,imaxn,xmpie,ieshape)
+   !> @brief
+!> This subroutine partitions the mesh using Metis
 use ISO_C_BINDING
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Implicit None
@@ -388,6 +392,8 @@ end subroutine Partitioner1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! Partioner with variable weights
 Subroutine Partitioner2(n,IMAXE,imaxn,xmpie,ieshape)
+   !> @brief
+!> This subroutine partitions the mesh using Metis
 use ISO_C_BINDING
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Implicit None
@@ -688,6 +694,8 @@ end subroutine
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! Partioner with variable weights
 Subroutine Partitioner4(n,IMAXE,imaxn,xmpie,ieshape)
+   !> @brief
+!> This subroutine partitions the mesh using Metis
 use ISO_C_BINDING
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Implicit None
@@ -944,6 +952,8 @@ end subroutine
 
 
 Subroutine Partitioner3(n,IMAXE,imaxn,xmpie,ieshape)
+   !> @brief
+!> This subroutine partitions the mesh using Metis
 use ISO_C_BINDING
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Implicit None
@@ -1183,6 +1193,8 @@ end subroutine
 
 
 Subroutine Partitioner6(n,IMAXE,imaxn,xmpie,ieshape)
+   !> @brief
+!> This subroutine partitions the mesh using ParMetis (preferred option large meshes can be partitioned)
 use ISO_C_BINDING
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Implicit None

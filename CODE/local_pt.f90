@@ -7,6 +7,8 @@ IMPLICIT NONE
 CONTAINS
 
 SUBROUTINE EXCH_CORDS(N)
+!> @brief
+!> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,INEEDT,TNEEDT,INDL,TNDL,ICPUID,IXFLAG,ITEE,ITEEDUM,IAVC,IAVT,I_CNT,i_cnt2,i_cnt3,i_cnt4,ixf4,kmaxe,ixfv,i_cnt5
@@ -213,6 +215,8 @@ END SUBROUTINE EXCH_CORDS
 
 
 sUBROUTINE EXCH_CORDS_opt(N)
+!> @brief
+!> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,INEEDT,TNEEDT,INDL,TNDL,ICPUID,IXFLAG,ITEE,ITEEDUM,IAVC,IAVT,I_CNT,i_cnt2,i_cnt3,i_cnt4,ixf4,kmaxe,ixfv,i_cnt5
@@ -307,6 +311,8 @@ END SUBROUTINE EXCH_CORDS_opt
 
 
 SUBROUTINE EXCH_CORD3(N)
+!> @brief
+!> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values and mapping of gaussian quadrature points
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,INEEDT,TNEEDT,INDL,TNDL,ICPUID,IXFLAG,ITEE,ITEEDUM,IAVC,IAVT,I_CNT,i_cnt2,i_cnt3,i_cnt4,ixf4,kmaxe,ixfv,i_cnt5
@@ -531,6 +537,8 @@ END SUBROUTINE EXCH_CORD3
 
 SUBROUTINE EXCH_CORDS2(N,ISIZE,IEXBOUNDHIRi,IEXBOUNDHISi,&
 ITESTCASE,NUMBEROFPOINTS2,IEXCHANGER,IEXCHANGES)
+!> @brief
+!> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values in 2D
 IMPLICIT NONE
 TYPE(EXCHANGE_BOUNDHI),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXBOUNDHIRi
 TYPE(EXCHANGE_BOUNDHI),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXBOUNDHISi
@@ -578,6 +586,8 @@ END SUBROUTINE EXCH_CORDS2
 
 
 SUBROUTINE FIND_ROT_ANGLES(N,ICONSI)
+!> @brief
+!> This subroutine determines the normal vectors for each face
 IMPLICIT NONE
 real::X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz
 REAL::X5,X6,X7,X8,Y5,Y6,Y7,Y8,Z5,Z6,Z7,Z8,XX,YY,ZZ
@@ -737,6 +747,8 @@ END SUBROUTINE FIND_ROT_ANGLES
 
 
 SUBROUTINE FIND_ROT_ANGLES2d(N,ICONSI)
+!> @brief
+!> This subroutine determines the normal vectors for each edge
 IMPLICIT NONE
 real::X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz
 REAL::X5,X6,X7,X8,Y5,Y6,Y7,Y8,Z5,Z6,Z7,Z8,XX,YY,ZZ
@@ -777,10 +789,10 @@ i=iconsi
 				       
 				       
 				      IF(ABS(vext(kk,1)-xx).GT.XPER*oo2)THEN
-				      vext(kk,1)=vext(kk,1)+(XPER*SIGN(1.0d0,xx-XPER*oo2))
+				      vext(kk,1)=vext(kk,1)+(XPER*SIGN(1.0d0,xx-XPER/2.0D0))
 				      end if
 				      IF(ABS(vext(kk,2)-yy).GT.yPER*oo2)THEN
-				      vext(kk,2)=vext(kk,2)+(yPER*SIGN(1.0d0,yy-yPER*oo2))
+				      vext(kk,2)=vext(kk,2)+(yPER*SIGN(1.0d0,yy-yPER/2.0D0))
 				      end if
 				      
 				      
@@ -860,6 +872,8 @@ END SUBROUTINE FIND_ROT_ANGLES2d
 
 
 SUBROUTINE LOCALISE_STENCIL(N,Iconsi)
+!> @brief
+!> This subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell
 IMPLICIT NONE
 INTEGER,INTENT(IN)::n,iconsi
 INTEGER::I,J,l,IXFF,IXSST,ikg,ismp,inv,ineedt,ikg2,IN_STEN,K,itarget
@@ -997,6 +1011,8 @@ END SUBROUTINE LOCALISE_STENCIL
 
 
 SUBROUTINE LOCALISE_STENCIL2d(N,Iconsi)
+!> @brief
+!> This subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::n,iconsi
 INTEGER::I,J,l,IXFF,IXSST,ikg,ismp,inv,ineedt,ikg2,IN_STEN,K,itarget
@@ -1102,8 +1118,10 @@ END SUBROUTINE LOCALISE_STENCIL2d
 
 
 SUBROUTINE  LOCALISE_STEN2(N,ICONSI)
+!> @brief
+!> This subroutine continues expressing all the stencil elements coordinates and volumes with respect to the considered cell
 IMPLICIT NONE
-INTEGER::I,J,K,L,KK,PRK,JJ,kmaxe,ineedt,jx2,jx,iivd,iivd3,facexx,IXXFFf,in1,itarget
+INTEGER::I,J,K,L,KK,PRK,JJ,kmaxe,ineedt,jx2,jx,iivd,iivd3,facexx,IXXFFf,in1,itarget,idum
 real,dimension(3)::tempcentres,TEMP_cG
 real::dumv1,dumv2,detjc,dist1,MA,MB,MC,MD,ME,MF,MG,MH,MI,MDD
 INTEGER,INTENT(IN)::ICONSI,N
@@ -1237,7 +1255,24 @@ i=iconsi
 				END DO
 				end if
 			END DO	
-		END DO					
+		END DO	
+		IDUM=0
+		if (ielem(n,i)%interior.eq.1)then
+                        DO j=1,IELEM(N,I)%IFCA
+                        if (ielem(n,i)%ibounds(J).gt.0)then
+                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+                                IDUM=1
+                            end if
+                        END IF
+                        END DO
+                end if
+		
+		
+
+
+		
+
+		
 		DO JJ=1,IELEM(N,I)%ADMIS
 			if ((ees.ne.5).or.(jj.eq.1))then
                         itarget=ielem(n,i)%iNUMNEIGHBOURS
@@ -1251,12 +1286,20 @@ i=iconsi
 				if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
 				ilocal_elem(1)%VOLUME(JJ,L)=(IELEM(N,ilocal_elem(1)%IHEXL(JJ,L))%TOTVOLUME)/ABS(detjc)
 				
+				
+				
+				
 				if ((EES.ne.5).or.(jj.eq.1))then
-				ILOCAL_RECON3(I)%VOLUME(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
+				if (idum.eq.1)then
+				ILOCAL_RECON3(I)%VOLUME(1,L)=ilocal_elem(1)%VOLUME(1,L)
+				else
+				ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)
+				end if
+				
 				ILOCAL_RECON3(I)%IHEXG(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXL(JJ,L)=ilocal_elem(1)%IHEXL(JJ,L)
 				else
-				ILOCAL_RECON3(I)%VOLUMEc(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
+				
 				ILOCAL_RECON3(I)%IHEXGc(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXLc(JJ,L)=ilocal_elem(1)%IHEXL(JJ,L)
 				
@@ -1267,12 +1310,19 @@ i=iconsi
 				IF (ilocal_elem(1)%IHEXB(JJ,L).eq.N)THEN
 				ilocal_elem(1)%VOLUME(JJ,L)=(IELEM(N,ilocal_elem(1)%IHEXL(JJ,L))%TOTVOLUME)/ABS(detjc)
 				if ((EES.ne.5).or.(jj.eq.1))then
-				ILOCAL_RECON3(I)%VOLUME(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
+				if (idum.eq.1)then
+				ILOCAL_RECON3(I)%VOLUME(1,L)=ilocal_elem(1)%VOLUME(1,L)
+				else
+				ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)
+				end if
+				
+				
+	
 				ILOCAL_RECON3(I)%IHEXG(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXL(JJ,L)=ilocal_elem(1)%IHEXL(JJ,L)
 				ILOCAL_RECON3(I)%IHEXB(JJ,L)=ilocal_elem(1)%IHEXB(JJ,L)
  				else
-                                ILOCAL_RECON3(I)%VOLUMEc(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
+                                ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)
 				ILOCAL_RECON3(I)%IHEXGc(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXLc(JJ,L)=ilocal_elem(1)%IHEXL(JJ,L)
 				ILOCAL_RECON3(I)%IHEXBc(JJ,L)=ilocal_elem(1)%IHEXB(JJ,L)
@@ -1337,10 +1387,17 @@ i=iconsi
 				
 
 				if ((EES.ne.5).or.(jj.eq.1))then
-				ILOCAL_RECON3(I)%VOLUME(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
+				if (idum.eq.1)then
+				ILOCAL_RECON3(I)%VOLUME(1,L)=ilocal_elem(1)%VOLUME(1,L)
+				else
+				ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)
+				end if
+				
+				!ILOCAL_RECON3(I)%VOLUME(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
 				
 				else
-				ILOCAL_RECON3(I)%VOLUMEc(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
+				ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)
+				!ILOCAL_RECON3(I)%VOLUMEc(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
 				end if
 				
 				
@@ -1502,8 +1559,10 @@ END SUBROUTINE LOCALISE_STEN2
 
 
 SUBROUTINE  LOCALISE_STEN2d(N,ICONSI)
+!> @brief
+!> This subroutine continues expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2d
 IMPLICIT NONE
-INTEGER::I,J,K,L,KK,PRK,JJ,kmaxe,ineedt,jx2,jx,in1,facexx,ixxfff,IHGT,IHGJ,ITARGET
+INTEGER::I,J,K,L,KK,PRK,JJ,kmaxe,ineedt,jx2,jx,in1,facexx,ixxfff,IHGT,IHGJ,ITARGET,IDUM
 real,dimension(2)::tempcentres,rel2
 real::dumv1,dumv2,detjc,dist1
 INTEGER,INTENT(IN)::ICONSI,N
@@ -1589,7 +1648,16 @@ i=iconsi
 		  
 		 
 		    
-! 		
+ 		IDUM=0
+		if (ielem(n,i)%interior.eq.1)then
+                        DO j=1,IELEM(N,I)%IFCA
+                        if (ielem(n,i)%ibounds(J).gt.0)then
+                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+                                IDUM=1
+                            end if
+                        END IF
+                        END DO
+                end if
 		   
 		   
 		   
@@ -1654,11 +1722,16 @@ i=iconsi
 				if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
 				ilocal_elem(1)%VOLUME(JJ,L)=(IELEM(N,ilocal_elem(1)%IHEXL(JJ,L))%TOTVOLUME)/ABS(detjc)
 				 if ((EES.ne.5).or.(jj.eq.1))then
-				ILOCAL_RECON3(I)%VOLUME(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
+				 if (idum.eq.1)then
+				ILOCAL_RECON3(I)%VOLUME(1,L)=ilocal_elem(1)%VOLUME(1,L)
+				else
+				ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)
+				end if
+				
 				ILOCAL_RECON3(I)%IHEXG(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXL(JJ,L)=ilocal_elem(1)%IHEXL(JJ,L)
 				else
-				ILOCAL_RECON3(I)%VOLUMEc(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
+				ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)
 				ILOCAL_RECON3(I)%IHEXGc(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXLc(JJ,L)=ilocal_elem(1)%IHEXL(JJ,L)
 				
@@ -1668,12 +1741,16 @@ i=iconsi
 				IF (ilocal_elem(1)%IHEXB(JJ,L).eq.N)THEN
 				ilocal_elem(1)%VOLUME(JJ,L)=(IELEM(N,ilocal_elem(1)%IHEXL(JJ,L))%TOTVOLUME)/ABS(detjc)
 				 if ((EES.ne.5).or.(jj.eq.1))then
-				ILOCAL_RECON3(I)%VOLUME(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
+				if (idum.eq.1)then
+				ILOCAL_RECON3(I)%VOLUME(1,L)=ilocal_elem(1)%VOLUME(1,L)
+				else
+				ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)
+				end if
 				ILOCAL_RECON3(I)%IHEXG(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXL(JJ,L)=ilocal_elem(1)%IHEXL(JJ,L)
 				ILOCAL_RECON3(I)%IHEXB(JJ,L)=ilocal_elem(1)%IHEXB(JJ,L)
 				else
-				ILOCAL_RECON3(I)%VOLUMEc(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
+				ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)
 				ILOCAL_RECON3(I)%IHEXGc(JJ,L)=ilocal_elem(1)%IHEXG(JJ,L)
 				ILOCAL_RECON3(I)%IHEXLc(JJ,L)=ilocal_elem(1)%IHEXL(JJ,L)
 				ILOCAL_RECON3(I)%IHEXBc(JJ,L)=ilocal_elem(1)%IHEXB(JJ,L)
@@ -1718,9 +1795,14 @@ i=iconsi
 					    end do
 					    ilocal_elem(1)%VOLUME(JJ,L)=dumv2
 					     if ((EES.ne.5).or.(jj.eq.1))then
-				ILOCAL_RECON3(I)%VOLUME(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)
+						 if (idum.eq.1)then
+				ILOCAL_RECON3(I)%VOLUME(1,L)=ilocal_elem(1)%VOLUME(1,L)
+				else
+				ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)
+				end if
+				
                                             else
-                                  ILOCAL_RECON3(I)%VOLUMEc(JJ,L)=ilocal_elem(1)%VOLUME(JJ,L)          
+                                  ILOCAL_RECON3(I)%VOLUME(1,1)=ilocal_elem(1)%VOLUME(1,1)         
                                             
                                             end if
 ! 				
@@ -1864,6 +1946,8 @@ END SUBROUTINE LOCALISE_STEN2d
 
 
 subroutine direct_side(n)
+!> @brief
+!> This subroutine establishes the distance betwen cell centres for each face
 implicit none
 integer,intent(in)::n
 integer::i,j,k,kmaxe,facexx,ixxfff
@@ -1965,6 +2049,8 @@ end subroutine direct_side
 
 
 subroutine direct_side2d(n)
+!> @brief
+!> This subroutine establishes the distance betwen cell centres for each edge
 implicit none
 integer,intent(in)::n
 integer::i,j,k,kmaxe,facexx,ixxfff
@@ -2021,10 +2107,10 @@ do i=1,kmaxe
 		  CALL COMPUTE_CENTRE2d(N,j)
 		    vext(2,1:dims)=cords(1:dims)  
 		    IF(ABS(vext(2,1)-vext(1,1)).GT.XPER/2.d0)THEN
-		    vext(2,1)=vext(2,1)+(XPER*SIGN(1.0,vext(1,1)-XPER/2.d0))
+		    vext(2,1)=vext(2,1)+(XPER*SIGN(1.0D0,vext(1,1)-XPER/2.D0))
 		    end if
 		    IF(ABS(vext(2,2)-vext(1,2)).GT.yPER/2.d0)THEN
-		    vext(2,2)=vext(2,2)+(yPER*SIGN(1.0,vext(1,2)-yPER/2.d0))
+		    vext(2,2)=vext(2,2)+(yPER*SIGN(1.0D0,vext(1,2)-yPER/2.D0))
 		    end if
 		    
 		    dist1=distance2(n)
@@ -2034,10 +2120,10 @@ do i=1,kmaxe
 
 		     vext(2,1:dims)=SOLCHANGER(IELEM(N,I)%INEIGHN(k))%CENTRES(IELEM(N,i)%Q_FACE(k)%Q_MAPL(1),1:dims) 
 		    IF(ABS(vext(2,1)-vext(1,1)).GT.XPER*oo2)THEN
-		    vext(2,1)=vext(2,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
+		    vext(2,1)=vext(2,1)+(XPER*SIGN(1.0D0,vext(1,1)-XPER/2.0D0))
 		    end if
 		    IF(ABS(vext(2,2)-vext(1,2)).GT.yPER*oo2)THEN
-		    vext(2,2)=vext(2,2)+(yPER*SIGN(1.0,vext(1,2)-yPER*oo2))
+		    vext(2,2)=vext(2,2)+(yPER*SIGN(1.0D0,vext(1,2)-yPER/2.0D0))
 		    end if
 		    
 		    dist1=distance2(n)
@@ -2055,10 +2141,12 @@ end do
 end subroutine direct_side2d
 
 SUBROUTINE CHECKGRADS(N,ICONSI)
+!> @brief
+!> This subroutine assigns the correct viscous gradient approximation flag for each cell based on some additional geometrical characteristics
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSI
 REAL::DXX1,dxx2,TEMPG1,dist1,dist2,oo2
-INTEGER::I,J,K,L,jj,icount3,nnd,ixf4,IDC
+INTEGER::I,J,K,L,jj,icount3,nnd,ixf4,IDC,IDC2
 
 i=iconsi
     IELEM(N,I)%GGS=greengo
@@ -2192,39 +2280,43 @@ end do
 	      IF (TEMPG1.GT.GRIDAR1)THEN
 	      IELEM(N,I)%GGS=1
 	      end if 
-  if (fastest.eq.0)then
-	      dxx1=-tolbig; dxx2=tolbig
-	      JJ=1
-	      DO L=1,ielem(n,i)%iNUMNEIGHBOURS
-		      if (ILOCAL_RECON3(I)%VOLUME(JJ,L).lt.dxx2)then
+   if (fastest.eq.0)then
+	       dxx1=-tolbig; dxx2=tolbig
+	       JJ=1
+	       DO L=1,ielem(n,i)%iNUMNEIGHBOURS
+		       if (ilocal_elem(1)%VOLUME(JJ,L).lt.dxx2)then
 		      
-		      dxx2=ILOCAL_RECON3(I)%VOLUME(JJ,L)
-		      end if
-		      if (ILOCAL_RECON3(I)%VOLUME(JJ,L).gt.dxx1)then
+		       dxx2=ilocal_elem(1)%VOLUME(JJ,L)
+		       end if
+		       if (ilocal_elem(1)%VOLUME(JJ,L).gt.dxx1)then
 		      
-		      dxx1=ILOCAL_RECON3(I)%VOLUME(JJ,L)
-		      end if
-	      end do
-	TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
+		       dxx1=ilocal_elem(1)%VOLUME(JJ,L)
+		       end if
+	       end do
+	 TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
 	     IF (TEMPG1.GT.GRIDAR2)THEN
-	      IELEM(N,I)%GGS=1
-	      end if  
+	       IELEM(N,I)%GGS=1
+	       end if  
 	      
-! 	      
-end if
+! ! 	      
+ end if
 
 IDC=0
+idc2=0
 if (ielem(n,i)%interior.eq.1)then
 	DO j=1,IELEM(N,I)%IFCA
 	  if (ielem(n,i)%ibounds(J).gt.0)then
 	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
 	        IDC=IDC+1
-	      END IF
+	      Else
+idc2=idc2+1
+
+		end if
 	  END IF
         END DO
 END IF
 
-IF ((IDC.Gt.1))THEN
+IF ((IDC.Gt.1))THEN     !until GE is fully adaptive
 IELEM(N,I)%GGS=1
 
 END IF
@@ -2243,6 +2335,8 @@ END SUBROUTINE CHECKGRADS
 
 
 SUBROUTINE CHECK3(N,ICONSI)
+!> @brief
+!> This subroutine assigns the ordering for the faces
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(INout)::ICONSI
@@ -2312,6 +2406,8 @@ end subroutine check3
 
 
 SUBROUTINE CHECKGRADS2d(N,ICONSI)
+!> @brief
+!> This subroutine assigns the correct viscous gradient approximation flag for each cell based on some additional geometrical characteristics
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSI
 REAL::DXX1,dxx2,TEMPG1,dist1,dist2,oo2
@@ -2415,27 +2511,26 @@ i=iconsi
 		  dxx1=dist1
 		end if
 end do
-	    TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
-	      IF (TEMPG1.GT.GRIDAR1)THEN
+	    IF (TEMPG1.GT.GRIDAR1)THEN
 	      IELEM(N,I)%GGS=1
 	      end if 
-  if (fastest.eq.0)then
-	      dxx1=-tolbig; dxx2=tolbig
-	      JJ=1
-	      DO L=1,ielem(n,i)%iNUMNEIGHBOURS
-		      if (ILOCAL_RECON3(I)%VOLUME(JJ,L).lt.dxx2)then
+   if (fastest.eq.0)then
+	       dxx1=-tolbig; dxx2=tolbig
+	       JJ=1
+	       DO L=1,ielem(n,i)%iNUMNEIGHBOURS
+		       if (ilocal_elem(1)%VOLUME(JJ,L).lt.dxx2)then
 		      
-		      dxx2=ILOCAL_RECON3(I)%VOLUME(JJ,L)
-		      end if
-		      if (ILOCAL_RECON3(I)%VOLUME(JJ,L).gt.dxx1)then
+		       dxx2=ilocal_elem(1)%VOLUME(JJ,L)
+		       end if
+		       if (ilocal_elem(1)%VOLUME(JJ,L).gt.dxx1)then
 		      
-		      dxx1=ILOCAL_RECON3(I)%VOLUME(JJ,L)
-		      end if
-	      end do
-	TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
+		       dxx1=ilocal_elem(1)%VOLUME(JJ,L)
+		       end if
+	       end do
+	 TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
 	     IF (TEMPG1.GT.GRIDAR2)THEN
-	      IELEM(N,I)%GGS=1
-	      end if  
+	       IELEM(N,I)%GGS=1
+	       end if 
 end if
 
 

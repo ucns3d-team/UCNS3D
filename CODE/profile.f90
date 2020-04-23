@@ -11,6 +11,9 @@ IMPLICIT NONE
  
  
  REAL FUNCTION LINEAR_INIT3D(n)
+ !> @brief
+!> This function initialises the solution for linear advection in 3D,
+!> various customisable profiles can be generated and assigned to each initcond code
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 !COORDINATES=POX(1),POY(1),POZ(1)
@@ -32,6 +35,9 @@ END FUNCTION LINEAR_INIT3D
 
 
  REAL FUNCTION LINEAR_INIT2D(n)
+  !> @brief
+!> This function initialises the solution for linear advection in 2D,
+!> various customisable profiles can be generated and assigned to each initcond code
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 real,dimension(90)::polyfun
@@ -102,6 +108,9 @@ END FUNCTION LINEAR_INIT2D
  
  
  SUBROUTINE INITIALISE_EULER3D(N)
+  !> @brief
+!> This function initialises the solution for EULER and NAVIER-STOKES equations in 3D,
+!> various customisable profiles can be generated and assigned to each initcond code
 INTEGER,INTENT(IN)::N
 !COORDINATES=POX,POY,POZ
 !SOLUTION=VECCOS
@@ -232,6 +241,9 @@ END SUBROUTINE INITIALISE_EULER3D
 
 
  SUBROUTINE INITIALISE_EULER2D(N)
+   !> @brief
+!> This function initialises the solution for EULER and NAVIER-STOKES equations in 2D,
+!> various customisable profiles can be generated and assigned to each initcond code
 INTEGER,INTENT(IN)::N
 !COORDINATES=POX,POY
 !SOLUTION=VECCOS

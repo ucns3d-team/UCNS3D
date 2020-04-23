@@ -1,4 +1,7 @@
 MODULE BOUNDARY
+!> @brief
+!> This module includes the subroutines for reading and establishing the boundary conditions
+!> for all the cells that need to be bounded including the periodic ones
 USE LIBRARY
 USE TRANSFORM
 IMPLICIT NONE
@@ -7,6 +10,9 @@ CONTAINS
 
 
 SUBROUTINE READ_BOUND(N,IMAXB,IBOUND,XMPIELRANK)
+!> @brief
+!> This subroutine reads the boundary conditions for all the bounded elements
+
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,IMAXB
 TYPE(BOUND_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IBOUND
@@ -420,6 +426,8 @@ END SUBROUTINE READ_BOUND
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE APPLY_BOUNDARY(N,XPER,YPER,ZPER,IPERIODICITY,XMPIELRANK)
+!> @brief
+!> This subroutine assigns the correct boundary condition code for all the bounded elements
 IMPLICIT NONE
 REAL,INTENT(IN)::XPER,YPER,ZPER
 INTEGER,INTENT(IN)::IPERIODICITY,N
@@ -431,7 +439,7 @@ integer::dum1,dum2
 	KMAXE=XMPIELRANK(N)
  
 
-TOLERANCE=TOLSMALL
+TOLERANCE=TOLSMALL !> The tolerance can have a significant impact on the periodic boundary conditions matching rules
 
 
 
@@ -450,12 +458,12 @@ end if
 end do
 
 !$OMP DO SCHEDULE (STATIC)
-DO I=1,KMAXE			!ALL ELEMENTS
-    if (ielem(n,i)%interior.eq.1)then		!THAT HAVE AT LEAST ONE UNKNWON NEIGHBOUR
-	    IF (ielem(n,i)%nofbc.GT.0)THEN		!THAT HAVE AT LEAST ESTABLISHED A BOUNDARY CONDITION CODE
-		  DO J=1,ielem(n,i)%IFCA			!LOOP ALL THEIR FACES
+DO I=1,KMAXE			! For ALL ELEMENTS
+    if (ielem(n,i)%interior.eq.1)then		! THAT HAVE AT LEAST ONE UNKNWON NEIGHBOUR
+	    IF (ielem(n,i)%nofbc.GT.0)THEN		! THAT HAVE AT LEAST ESTABLISHED A BOUNDARY CONDITION CODE
+		  DO J=1,ielem(n,i)%IFCA			! LOOP ALL THEIR FACES
 		      if (IELEM(N,I)%IBOUNDS(J).gt.0)then
-		     IF (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ICODE.EQ.5)THEN	!IF ANY OF THEM HAS A PERIODIC BOUNDARY CONDITION THEN
+		     IF (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ICODE.EQ.5)THEN	! IF ANY OF THEM HAS A PERIODIC BOUNDARY CONDITION THEN
 				    if (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ISHAPE.EQ.5)then
 				    N_NODE=4
 				    else
@@ -466,10 +474,10 @@ DO I=1,KMAXE			!ALL ELEMENTS
 				    END DO
 				    vext(1,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 				    
-			   do ii=1,n_boundaries				!loop all the boundaries
+			   do ii=1,n_boundaries				! loop all the boundaries
 				if (((ii.ne.IELEM(N,I)%IBOUNDS(J)).and.(IBOUND(n,ii)%icode.eq.5).and.&
 (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ishape.eq.IBOUND(n,ii)%ishape)))then
-				      if ((IBOUND(n,ii)%localn(1).gt.0)) then	!excluding itself, and of same shape type
+				      if ((IBOUND(n,ii)%localn(1).gt.0)) then	! excluding itself, and of same shape type
  				   if (ielem(n,IBOUND(N,ii)%localn(1))%ihexgl.ne.ielem(n,i)%ihexgl)then
 ! 				    
 				    DO Kk=1,n_node
@@ -545,21 +553,21 @@ end if
 end do
 jj1=0
 !$OMP DO SCHEDULE (STATIC)
-DO I=1,KMAXE			!ALL ELEMENTS
-    if (ielem(n,i)%interior.eq.1)then		!THAT HAVE AT LEAST ONE UNKNWON NEIGHBOUR
-	    IF (ielem(n,i)%nofbc.GT.0)THEN		!THAT HAVE AT LEAST ESTABLISHED A BOUNDARY CONDITION CODE
-		  DO J=1,ielem(n,i)%IFCA			!LOOP ALL THEIR BOUNDARY FACES
+DO I=1,KMAXE			!> ALL ELEMENTS
+    if (ielem(n,i)%interior.eq.1)then		! THAT HAVE AT LEAST ONE UNKNWON NEIGHBOUR
+	    IF (ielem(n,i)%nofbc.GT.0)THEN		! THAT HAVE AT LEAST ESTABLISHED A BOUNDARY CONDITION CODE
+		  DO J=1,ielem(n,i)%IFCA			! LOOP ALL THEIR BOUNDARY FACES
 		      if (IELEM(N,I)%IBOUNDS(J).gt.0)then
-		     IF (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ICODE.EQ.5)THEN	!IF ANY OF THEM HAS A PERIODIC BOUNDARY CONDITION THEN
+		     IF (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ICODE.EQ.5)THEN	! IF ANY OF THEM HAS A PERIODIC BOUNDARY CONDITION THEN
 		     
 				    N_NODE=2
 				    DO Kk=1,n_node
 				      NODES_LIST(kk,1:2)=inoder(IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ibl(kk))%CORD(1:2)
 				    END DO
 				    vext(1,:)=CORDINATES2(N,NODES_LIST,N_NODE)
-			   do ii=1,n_boundaries				!loop all the boundaries
+			   do ii=1,n_boundaries				! loop all the boundaries
 				if (((ii.ne.IELEM(N,I)%IBOUNDS(J)).and.(IBOUND(n,ii)%icode.eq.5)))then
-				      if(IBOUND(n,ii)%localn(1).gt.0)then	!excluding itself, and of same shape type
+				      if(IBOUND(n,ii)%localn(1).gt.0)then	! excluding itself, and of same shape type
 				    if (ielem(n,IBOUND(N,ii)%localn(1))%ihexgl.ne.ielem(n,i)%ihexgl)then
 				    DO Kk=1,n_node
 				      NODES_LIST(kk,1:2)=inoder(ibound(N,ii)%ibl(kk))%CORD(1:2)

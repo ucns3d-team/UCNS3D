@@ -14,6 +14,8 @@ IMPLICIT NONE
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 SUBROUTINE INITIALISE(N)
+ !> @brief
+!> This subroutine calls the initialisation of the computational domain
 IMPLICIT NONE
 integer,INTENT(IN)::N
 REAL,allocatable,DIMENSION(:)::RG,ARG
@@ -781,6 +783,8 @@ END SUBROUTINE INITIALISE
 
 
 SUBROUTINE INITIALISE2d(N)
+ !> @brief
+!> This subroutine calls the initialisation of the computational domain in 2D
 IMPLICIT NONE
 integer,INTENT(IN)::N
 REAL,allocatable,DIMENSION(:)::RG,ARG
