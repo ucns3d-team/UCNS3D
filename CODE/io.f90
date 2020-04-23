@@ -9,16 +9,10 @@ contains
 
 
 SUBROUTINE OUTWRITEGRIDB
+ !> @brief
+!> This subroutine writes the grid file in tecplot binary format
 use ISO_C_BINDING
 IMPLICIT NONE
-
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
-
-! 
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 INTEGER,DIMENSION(70)::IVALID
@@ -209,6 +203,8 @@ END SUBROUTINE OUTWRITEGRIDB
 
 
 SUBROUTINE OUTWRITEGRIDB2D
+ !> @brief
+!> This subroutine writes the grid file in tecplot binary format in 2D
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -404,6 +400,8 @@ end if
 
 END SUBROUTINE OUTWRITEGRIDB2D
 SUBROUTINE OUTWRITE3N
+ !> @brief
+!> This subroutine is solely for debugging
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -854,6 +852,8 @@ END SUBROUTINE OUTWRITE3N
 
 
 SUBROUTINE OUTWRITE3vb
+ !> @brief
+!> This subroutine writes only the 3D solution without the grid in tecplot binary format
 use ISO_C_BINDING
 IMPLICIT NONE
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
@@ -1196,7 +1196,7 @@ Valuelocation(:)=0
 		
 		
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%ISHAPE!IELEM(N,I)%STENCIL_DIST
+                VALUESS(i)=IELEM(N,I)%GGS!%ISHAPE!IELEM(N,I)%STENCIL_DIST
                 END DO
                 
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1212,7 +1212,7 @@ Valuelocation(:)=0
                 
                 
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%ADMIS
+                VALUESS(i)=IELEM(N,I)%STENCIL_DIST!ADMIS
                 END DO
                 
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1313,6 +1313,8 @@ END SUBROUTINE OUTWRITE3vb
 
 
 SUBROUTINE OUTWRITE3v
+!> @brief
+!> This subroutine writes only the 3D solution without the grid in tecplot ascii format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -1741,6 +1743,8 @@ END SUBROUTINE OUTWRITE3v
 
 
 SUBROUTINE OUTWRITE3v2d
+!> @brief
+!> This subroutine writes only the 2D solution without the grid in tecplot ascii format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -2167,6 +2171,8 @@ Valuelocation(:)=0
 END SUBROUTINE OUTWRITE3v2d
 
 SUBROUTINE OUTWRITE3vb2d
+!> @brief
+!> This subroutine writes only the 2D solution without the grid in tecplot binary format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -2675,6 +2681,8 @@ END SUBROUTINE OUTWRITE3vb2d
 
 
 SUBROUTINE CHECKRES
+!> @brief
+!> This subroutine checks the presence of restart file
 IMPLICIT NONE
 LOGICAL::HERE
 INTEGER::I,J,K,L,ITER,DIP
@@ -2711,6 +2719,8 @@ INTEGER::I,J,K,L,ITER,DIP
 END SUBROUTINE CHECKRES
 
 SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
+!> @brief
+!> This subroutine opens the grid files and establishes the number of cells, nodes, boundary conditions
 	IMPLICIT NONE
 	INTEGER,INTENT(INOUT)::IMAXE,IMAXN,IMAXB
 	INTEGER::I,J,K,IOS,IOX,IOZ,I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11,IOY
@@ -2861,6 +2871,8 @@ SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 
 
 SUBROUTINE OPEN_INPUT1(N,ITT)
+!> @brief
+!> This subroutine opens the parameter file
 	IMPLICIT NONE
 	INTEGER,INTENT(INOUT)::ITT
 	INTEGER,INTENT(IN)::N
@@ -2875,6 +2887,8 @@ SUBROUTINE OPEN_INPUT1(N,ITT)
 	END SUBROUTINE OPEN_INPUT1
 
 SUBROUTINE CLOSE_INPUT1(N,ITT)
+!> @brief
+!> This subroutine closes the parameter file
  IMPLICIT NONE
  	INTEGER,INTENT(INOUT)::ITT
  	INTEGER,INTENT(IN)::N	
@@ -2884,6 +2898,8 @@ SUBROUTINE CLOSE_INPUT1(N,ITT)
  END SUBROUTINE CLOSE_INPUT1
 
 SUBROUTINE OPEN_INPUT(N,ITT)
+!> @brief
+!> This subroutine opens the grid files
 	IMPLICIT NONE
 	INTEGER,INTENT(INOUT)::ITT
 	INTEGER,INTENT(IN)::N
@@ -2900,6 +2916,8 @@ SUBROUTINE OPEN_INPUT(N,ITT)
 	END SUBROUTINE OPEN_INPUT
 
 SUBROUTINE CLOSE_INPUT(N,ITT)
+!> @brief
+!> This subroutine closes the grid files
  IMPLICIT NONE
  	INTEGER,INTENT(INOUT)::ITT
  	INTEGER,INTENT(IN)::N	
@@ -2909,6 +2927,8 @@ SUBROUTINE CLOSE_INPUT(N,ITT)
  END SUBROUTINE CLOSE_INPUT
 
 SUBROUTINE READ_UCNS3D
+!> @brief
+!> This subroutine reads the parameter file
 
 	IMPLICIT NONE
 
@@ -3032,7 +3052,7 @@ SUBROUTINE READ_UCNS3D
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
 	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+	extf=2.2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
 	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
 	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
@@ -3041,8 +3061,8 @@ SUBROUTINE READ_UCNS3D
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
 	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=30.0	! LIMIT VOLUME CELLS
+	GRIDAR1=5.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=7.0	! LIMIT VOLUME CELLS
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
@@ -3598,6 +3618,8 @@ SUBROUTINE READ_UCNS3D
 
 
 SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE,IBOUND,IMAXB,XMPINNUMBER,SCALER,inoder)
+!> @brief
+!> This subroutine reads all the data from the grid files
 	IMPLICIT NONE
 	TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
 	TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::inoder
@@ -4237,6 +4259,8 @@ ZPER = (ZMAX(N)) - ZMIN(N)
 
 
 SUBROUTINE READ_INPUT_PERIOD(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE,IBOUND,IMAXB,XMPINNUMBER,SCALER)
+!> @brief
+!> This subroutine reads all the periodic data from the grid files
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
 	TYPE(NODE_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::INODE
 	INTEGER,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::XMPINNUMBER
@@ -4384,6 +4408,8 @@ END SUBROUTINE READ_INPUT_PERIOD
 
 
 SUBROUTINE stenprint(n)
+!> @brief
+!> This subroutine prints the stencils at a selected position
 integer,intent(in)::n
 integer::i,j,k,inv,ismp,l,i1,i2,i3,i4,i5,i6,i7,i8,ixx
 INTEGER::KMAXE,KK,KFK,ICPUID,IHGT,IHGJ,kkd
@@ -4818,6 +4844,8 @@ end subroutine stenprint
 
 
 Subroutine WallDistance(N,ielem,imaxe,XMPIELRANK)
+!> @brief
+!> This subroutine establishes the wall distance for every cell in 3D
 
 Implicit None
 
@@ -4957,6 +4985,8 @@ End Subroutine
 
 
 Subroutine WallDistance2d(N,ielem,imaxe,XMPIELRANK)
+!> @brief
+!> This subroutine establishes the wall distance for every cell in 2D
 
 Implicit None
 
@@ -5088,6 +5118,8 @@ End Subroutine
 
 
 SUBROUTINE OUTWRITEGRIDBs
+!> @brief
+!> This subroutine writes the wall surface grid in tecplotm binary format for 3D meshes
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -5391,6 +5423,8 @@ END SUBROUTINE OUTWRITEGRIDBs
 
 
 SUBROUTINE OUTWRITEGRIDs
+!> @brief
+!> This subroutine writes the wall surface grid in tecplotm ascii format for 3D meshes
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -5660,6 +5694,8 @@ END SUBROUTINE OUTWRITEGRIDs
 
 
 SUBROUTINE OUTWRITEGRIDs2D
+!> @brief
+!> This subroutine writes the wall surface grid in tecplot ascii format for 2D meshes
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -5912,6 +5948,8 @@ END SUBROUTINE OUTWRITEGRIDs2D
 
 
 SUBROUTINE OUTWRITEGRIDBs2d
+!> @brief
+!> This subroutine writes the wall surface grid in tecplot binary format for 2D meshes
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -6210,6 +6248,8 @@ END SUBROUTINE OUTWRITEGRIDBs2d
 
 
 SUBROUTINE OUTWRITEGRID(N)
+!> @brief
+!> This subroutine writes the 3D grid file in tecplot ASCII format
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
@@ -6327,6 +6367,8 @@ END SUBROUTINE OUTWRITEGRID
 
 
 SUBROUTINE OUTWRITEGRID2d(N)
+!> @brief
+!> This subroutine writes the 2D grid file in tecplot ASCII format
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
@@ -6432,6 +6474,8 @@ END SUBROUTINE OUTWRITEGRID2d
 
 
 SUBROUTINE OUTWRITE3vSb
+!> @brief
+!> This subroutine writes the 3D surface solution file in tecplot binary format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -6995,6 +7039,8 @@ END SUBROUTINE OUTWRITE3vSb
 
 
 SUBROUTINE OUTWRITE3vSb2d
+!> @brief
+!> This subroutine writes the 2D surface solution file in tecplot binary format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -7537,6 +7583,8 @@ END SUBROUTINE OUTWRITE3vSb2d
 
 
 SUBROUTINE OUTWRITE3vS
+!> @brief
+!> This subroutine writes the 3D surface solution file in tecplot ascii format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -8124,6 +8172,8 @@ END SUBROUTINE OUTWRITE3vS
 
 
 SUBROUTINE OUTWRITE3vS2d
+!> @brief
+!> This subroutine writes the 2D surface solution file in tecplot ascii format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -8747,6 +8797,8 @@ END SUBROUTINE OUTWRITE3vS2d
 
 
 SUBROUTINE OUTWRITE3vbav
+!> @brief
+!> This subroutine writes the 3D averaged solution file in tecplot binary format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -8992,6 +9044,8 @@ Valuelocation(:)=0
 END SUBROUTINE OUTWRITE3vbav
 
 SUBROUTINE OUTWRITE3vb2Dav
+!> @brief
+!> This subroutine writes the 2D averaged solution file in tecplot binary format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -9280,6 +9334,8 @@ END SUBROUTINE OUTWRITE3vb2Dav
 
 
 SUBROUTINE OUTWRITE3vav
+!> @brief
+!> This subroutine writes the 3D averaged solution file in tecplot ascii format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -9515,6 +9571,8 @@ allocate (Valuelocation(nvar1))
 END SUBROUTINE OUTWRITE3vav
 
 SUBROUTINE OUTWRITE3v2Dav
+!> @brief
+!> This subroutine writes the 2D averaged solution file in tecplot ascii format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -9782,6 +9840,8 @@ END SUBROUTINE OUTWRITE3v2Dav
 
 
 SUBROUTINE OUTWRITE3vSbav
+!> @brief
+!> This subroutine writes the 3D surface averaged solution file in tecplot binary format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -10313,6 +10373,8 @@ END SUBROUTINE OUTWRITE3vSbav
 
 
 SUBROUTINE OUTWRITE3vSb2dav
+!> @brief
+!> This subroutine writes the 2D surface averaged solution file in tecplot binary format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -10814,6 +10876,8 @@ END SUBROUTINE OUTWRITE3vSb2dav
 
 
 SUBROUTINE OUTWRITE3vSav
+!> @brief
+!> This subroutine writes the 3D surface averaged solution file in tecplot ascii format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -11401,6 +11465,8 @@ END SUBROUTINE OUTWRITE3vSav
 
 
 SUBROUTINE OUTWRITE3vS2dav
+!> @brief
+!> This subroutine writes the 2D surface averaged solution file in tecplot ascii format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -12026,6 +12092,8 @@ END SUBROUTINE OUTWRITE3vS2dav
 
 
 SUBROUTINE GRID_WRITE
+!> @brief
+!> This subroutine calls the appropriate grid writing subroutine based on the settings
 IMPLICIT NONE
 IF (TECPLOT.EQ.1)THEN		!BINARY TECPLOT
   if (dimensiona.eq.3)then
@@ -12056,6 +12124,8 @@ END SUBROUTINE GRID_WRITE
 
 
 SUBROUTINE SURF_WRITE
+!> @brief
+!> This subroutine calls the appropriate surface writing subroutine based on the settings
 IMPLICIT NONE
 IF (TECPLOT.EQ.1)THEN
    if (dimensiona.eq.3)then
@@ -12086,6 +12156,8 @@ END SUBROUTINE SURF_WRITE
 
 
 SUBROUTINE VOLUME_SOLUTION_WRITE
+!> @brief
+!> This subroutine calls the appropriate volume writing subroutine based on the settings
 IMPLICIT NONE
 				  
 
@@ -12161,6 +12233,8 @@ END SUBROUTINE VOLUME_SOLUTION_WRITE
 
 
 SUBROUTINE surface_SOLUTION_WRITE
+!> @brief
+!> This subroutine calls the appropriate surface solution writing subroutine based on the settings
 IMPLICIT NONE
 
 IF (TECPLOT.EQ.1)THEN
@@ -12193,6 +12267,8 @@ END IF
 END SUBROUTINE surface_SOLUTION_WRITE
 
 SUBROUTINE VOLUME_SOLUTION_WRITE_av
+!> @brief
+!> This subroutine calls the appropriate average volume writing subroutine based on the settings
 IMPLICIT NONE
 
 IF (TECPLOT.EQ.1)THEN
@@ -12229,6 +12305,8 @@ END SUBROUTINE VOLUME_SOLUTION_WRITE_av
 
 
 SUBROUTINE surface_SOLUTION_WRITE_av
+!> @brief
+!> This subroutine calls the appropriate surface writing subroutine based on the settings
 IMPLICIT NONE
 
 IF (TECPLOT.EQ.1)THEN
@@ -12260,6 +12338,8 @@ END IF
 END SUBROUTINE surface_SOLUTION_WRITE_av
 
 SUBROUTINE forces
+!> @brief
+!> This subroutine calls the appropriate force computation subroutine based on the dimensionality of the problem
 IMPLICIT NONE
 
 
@@ -12278,6 +12358,8 @@ END SUBROUTINE forces
 
 
 SUBROUTINE RESIDUAL_COMPUTE
+!> @brief
+!> This subroutine calls the appropriate residual computation subroutine based on the dimensionality of the problem
 IMPLICIT NONE
 
 
@@ -12295,6 +12377,8 @@ END SUBROUTINE RESIDUAL_COMPUTE
 
 
 SUBROUTINE CHECKPOINTING
+!> @brief
+!> This subroutine calls the appropriate checkpointing subroutine based on the dimensionality of the problem
 IMPLICIT NONE
 
 
@@ -12310,6 +12394,8 @@ END SUBROUTINE CHECKPOINTING
 
 
 SUBROUTINE CHECKPOINTING_av
+!> @brief
+!> This subroutine calls the appropriate averaged checkpointing subroutine based on the dimensionality of the problem
 IMPLICIT NONE
 
 
@@ -12325,6 +12411,8 @@ END SUBROUTINE CHECKPOINTING_av
 
 
 SUBROUTINE CHECKPOINT(N)
+!> @brief
+!> This subroutine uses MPI-IO for writing the checkpointing files
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,ALLOCATABLE,DIMENSION(:)::dispt
@@ -12473,6 +12561,8 @@ END SUBROUTINE CHECKPOINT
 
 
 SUBROUTINE CHECKPOINTv2(N)
+!> @brief
+!> This subroutine is writing the checkpointing files
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA
@@ -12691,6 +12781,8 @@ END SUBROUTINE CHECKPOINTv2
 
 
 SUBROUTINE CHECKPOINT2D(N)
+!> @brief
+!> This subroutine uses MPI-IO for writing the checkpointing files for 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA,dispt
@@ -12830,7 +12922,9 @@ END SUBROUTINE CHECKPOINT2D
 
 
 
-SUBROUTINE CHECKPOINTAV(N)  
+SUBROUTINE CHECKPOINTAV(N) 
+!> @brief
+!> This subroutine uses MPI-IO for writing the averaged checkpointing files
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA,dispt
@@ -12934,6 +13028,8 @@ END SUBROUTINE CHECKPOINTAV
 
 
 SUBROUTINE REST_READ(N)
+!> @brief
+!> This subroutine uses MPI-IO for reading the checkpointing files
 IMPLICIT NONE
 integer,INTENT(IN)::N
 INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA,dispt
@@ -13306,7 +13402,9 @@ END SUBROUTINE REST_READ
 
 
 
-SUBROUTINE CHECKPOINTAV2d(N)  !Modified on 22/6/2013
+SUBROUTINE CHECKPOINTAV2d(N)  
+!> @brief
+!> This subroutine writes the average checkpointing files in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA
@@ -13421,6 +13519,8 @@ END SUBROUTINE CHECKPOINTAV2d
 
 
 SUBROUTINE PROBING
+!> @brief
+!> This subroutine writes the primitve variables at the probe positions
 IMPLICIT NONE
 INTEGER::INV
 CHARACTER(LEN=120)::PROB,PROBFILE,PROC3
@@ -13435,7 +13535,7 @@ LOGICAL::HERES
 			      PROBFILE='PROBE.'//TRIM(ADJUSTL(PROB))
 
 			      INQUIRE (FILE=PROBFILE,EXIST=HEREs)
-			    IF (HEREs==.TRUE.) THEN
+			    IF (HEREs.EQV..TRUE.) THEN
 				OPEN(3000+N,FILE=PROBFILE,FORM='FORMATTED',STATUS='OLD',ACTION='WRITE',POSITION='APPEND')
 				
 				
@@ -13467,6 +13567,8 @@ END SUBROUTINE PROBING
 
 
 SUBROUTINE PROBING2D
+!> @brief
+!> This subroutine writes the primitve variables at the probe positions in 2D
 IMPLICIT NONE
 INTEGER::INV
 CHARACTER(LEN=120)::PROB,PROBFILE,PROC3
@@ -13481,7 +13583,7 @@ LOGICAL::HERES
 			      PROBFILE='PROBE.'//TRIM(ADJUSTL(PROB))
 
 			      INQUIRE (FILE=PROBFILE,EXIST=HEREs)
-			    IF (HEREs==.TRUE.) THEN
+			    IF (HEREs.eqv..TRUE.) THEN
 				OPEN(3000+N,FILE=PROBFILE,FORM='FORMATTED',STATUS='OLD',ACTION='WRITE',POSITION='APPEND')
 				
 				
@@ -13514,6 +13616,8 @@ END SUBROUTINE PROBING2D
 
 
 SUBROUTINE COMPUTEFORCE(N)
+!> @brief
+!> This subroutine computes the forces on the wall
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,K,J,KMAXE,gqi_points,nnd
@@ -13701,6 +13805,8 @@ END SUBROUTINE COMPUTEFORCE
 
 
 SUBROUTINE COMPUTEFORCE2d(N)
+!> @brief
+!> This subroutine computes the forces on the wall in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,K,J,KMAXE,gqi_points,nnd
@@ -13860,6 +13966,8 @@ END SUBROUTINE COMPUTEFORCE2d
 
 
 SUBROUTINE CALCULATE_RESIDUAL(N)
+!> @brief
+!> This subroutine computes and writes the residual for 3D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,KMAXE
@@ -13980,6 +14088,8 @@ End Subroutine
 
 
 SUBROUTINE CALCULATE_RESIDUAL2D(N)
+!> @brief
+!> This subroutine computes and writes the residual for 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,KMAXE
@@ -14090,6 +14200,8 @@ END IF
 End Subroutine
 
 SUBROUTINE CALCULATE_ERROR(N)
+!> @brief
+!> This subroutine computes and writes the l2,linfinity or l1 norm
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,K,KMAXE
@@ -14251,6 +14363,8 @@ END SUBROUTINE CALCULATE_ERROR
 
 
 SUBROUTINE OUTWRITEPARA3D
+!> @brief
+!> This subroutine writes the solution and the grid file in Ascii vtk format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -14487,6 +14601,8 @@ end do
 END SUBROUTINE OUTWRITEPARA3D
 
 SUBROUTINE OUTWRITEPARA3Db
+!> @brief
+!> This subroutine writes the solution and the grid file in binary vtk format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -14740,6 +14856,8 @@ end do
 END SUBROUTINE OUTWRITEPARA3Db
 
 SUBROUTINE OUTWRITEPARA3Dsb
+!> @brief
+!> This subroutine writes the solution and the surface file in binary vtk format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -15107,6 +15225,8 @@ END SUBROUTINE OUTWRITEPARA3Dsb
 
 
 SUBROUTINE OUTWRITEPARA3Dbav
+!> @brief
+!> This subroutine writes the averaged solution and the grid file in binary vtk format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -15392,6 +15512,8 @@ end do
 END SUBROUTINE OUTWRITEPARA3Dbav
 
 SUBROUTINE OUTWRITEPARA3Dsbav
+!> @brief
+!> This subroutine writes the averaged solution and the surface file in Ascii vtk format
 use ISO_C_BINDING
 IMPLICIT NONE
 

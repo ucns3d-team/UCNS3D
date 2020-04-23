@@ -11,6 +11,8 @@ IMPLICIT NONE
  
  
 SUBROUTINE CONS2PRIM(N)
+!> @brief
+!> This subroutine transforms one vector of conservative variables to primitive variables
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(5)::TEMPS
@@ -33,6 +35,8 @@ END SUBROUTINE CONS2PRIM
 
 
 SUBROUTINE CONS2PRIM2(N)
+!> @brief
+!> This subroutine transforms two vector of conservative variables to primitive variables
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(5)::TEMPS
@@ -66,6 +70,8 @@ END SUBROUTINE CONS2PRIM2
 
 
 SUBROUTINE LMACHT(N)
+!> @brief
+!> This subroutine applies the low-Mach number correction to two vectors of conserved variables
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL::Q2L,Q2R,UUL,UUR,VVL,VVR,WWR,WWL,RHOL,RHOR,ETAL,ETAR,DUU,DVV,DWW
@@ -161,6 +167,8 @@ END SUBROUTINE LMACHT
 
 
 SUBROUTINE LMACHT2D(N)
+!> @brief
+!> This subroutine applies the low-Mach number correction to two vectors of conserved variables 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL::Q2L,Q2R,UUL,UUR,VVL,VVR,WWR,WWL,RHOL,RHOR,ETAL,ETAR,DUU,DVV,DWW
@@ -282,6 +290,8 @@ END SUBROUTINE LMACHT2D
 
 
 SUBROUTINE PRIM2CONS(N)
+!> @brief
+! !> This subroutine transforms one vector of primitive variables to conservative variables
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(5)::TEMPS
@@ -307,6 +317,8 @@ LEFTV(1:5)=TEMPS(1:5)
 END SUBROUTINE PRIM2CONS
 
 SUBROUTINE PRIM2CONS2(N)
+!> @brief
+!> This subroutine transforms two vectors of primitive variables to conservative variables
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(5)::TEMPS
@@ -345,6 +357,8 @@ END SUBROUTINE PRIM2CONS2
 
 
 SUBROUTINE CONS2PRIM2d2(N)
+!> @brief
+!> This subroutine transforms two vectors of conservative variables to primitive variables 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(4)::TEMPS
@@ -373,6 +387,8 @@ rightv(1:4)=TEMPS(1:4)
 END SUBROUTINE CONS2PRIM2d2
 
 SUBROUTINE CONS2PRIM2d(N)
+!> @brief
+!> This subroutine transforms one vectors of conservative variables to primitive variables 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(4)::TEMPS
@@ -392,6 +408,8 @@ END SUBROUTINE CONS2PRIM2d
 
 
 SUBROUTINE PRIM2CONS2d(N)
+!> @brief
+!> This subroutine transforms one vector of primitive variables to  conservative variables 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(4)::TEMPS
@@ -415,6 +433,8 @@ LEFTV(1:4)=TEMPS(1:4)
 END SUBROUTINE PRIM2CONS2d
 
 SUBROUTINE PRIM2CONS2d2(N)
+!> @brief
+!> This subroutine transforms one vector of primitive variables to  conservative variables 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(4)::TEMPS
@@ -451,6 +471,8 @@ END SUBROUTINE PRIM2CONS2d2
 
 
 FUNCTION INFLOW(INITCOND,POX,POY,POZ)
+!> @brief
+!> This function applies a prescribed boundary condition to  the inflow in 3D
 IMPLICIT NONE
 REAL,DIMENSION(5)::INFLOW
 INTEGER,INTENT(IN)::INITCOND
@@ -543,6 +565,8 @@ END FUNCTION INFLOW
 
 
 FUNCTION INFLOW2d(INITCOND,POX,POY)
+!> @brief
+!> This function applies a prescribed boundary condition to  the inflow in 2D
 IMPLICIT NONE
 REAL,DIMENSION(4)::INFLOW2d
 INTEGER,INTENT(IN)::INITCOND
@@ -575,6 +599,8 @@ END FUNCTION INFLOW2d
 
 
 FUNCTION OUTFLOW2d(INITCOND,POX,POY)
+!> @brief
+!> This function applies a prescribed boundary condition to  the outflow in 2D
 IMPLICIT NONE
 REAL,DIMENSION(4)::OUTFLOW2d
 INTEGER,INTENT(IN)::INITCOND
@@ -605,6 +631,8 @@ OUTFLOW2d(4)=E
 END FUNCTION OUTFLOW2d
 
 FUNCTION OUTFLOW(INITCOND,POX,POY,POZ)
+!> @brief
+!> This function applies a prescribed boundary condition to  the outflow in 3D
 IMPLICIT NONE
 REAL,DIMENSION(5)::OUTFLOW
 INTEGER,INTENT(IN)::INITCOND
@@ -639,6 +667,8 @@ END FUNCTION OUTFLOW
 
 
 FUNCTION PASS_INLET(INITCOND,POX,POY,POZ)
+!> @brief
+!> This function applies a prescribed boundary condition to  the inlet for a passive scalar
 IMPLICIT NONE
 REAL,DIMENSION(1:PASSIVESCALAR)::PASS_INLET
 INTEGER,INTENT(IN)::INITCOND
@@ -651,6 +681,8 @@ END FUNCTION PASS_INLET
 
 
 FUNCTION PASS_INLET2d(INITCOND,POX,POY)
+!> @brief
+!> This function applies a prescribed boundary condition to  the inlet for a passive scalar in 2d
 IMPLICIT NONE
 REAL,DIMENSION(1:PASSIVESCALAR)::PASS_INLET2d
 INTEGER,INTENT(IN)::INITCOND
@@ -671,6 +703,8 @@ END FUNCTION PASS_INLET2d
 
 
 SUBROUTINE SHEAR_X(ICONSI,ICONSIDERED)
+!> @brief
+!> This subroutine computes the shear stresses in x-axis
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSI,ICONSIDERED
 REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,TAUXX,TAUYY,TAUZZ,TAUYX,TAUZX,TAUZY
@@ -721,6 +755,8 @@ END SUBROUTINE SHEAR_X
 
 
 SUBROUTINE SHEAR_Y(ICONSI,ICONSIDERED)
+!> @brief
+!> This subroutine computes the shear stresses in y-axis
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSI,ICONSIDERED
 REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,TAUXX,TAUYY,TAUZZ,TAUYX,TAUZX,TAUZY
@@ -764,6 +800,8 @@ END SUBROUTINE SHEAR_Y
 
 
 SUBROUTINE SHEAR_Z(ICONSI,ICONSIDERED)
+!> @brief
+!> This subroutine computes the shear stresses in z-axis
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSI,ICONSIDERED
 REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,TAUXX,TAUYY,TAUZZ,TAUYX,TAUZX,TAUZY
@@ -806,6 +844,8 @@ SHEAR_TEMP=-SSZ/(0.5*rres*ufreestream*ufreestream)
 END SUBROUTINE SHEAR_Z
 
 SUBROUTINE SHEAR_X_av(ICONSI,ICONSIDERED)
+!> @brief
+!> This subroutine computes the average shear stresses in x-axis
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSI,ICONSIDERED
 REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,TAUXX,TAUYY,TAUZZ,TAUYX,TAUZX,TAUZY
@@ -859,6 +899,8 @@ END SUBROUTINE SHEAR_X_av
 
 
 SUBROUTINE SHEAR_Y_av(ICONSI,ICONSIDERED)
+!> @brief
+!> This subroutine computes the average shear stresses in y-axis
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSI,ICONSIDERED
 REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,TAUXX,TAUYY,TAUZZ,TAUYX,TAUZX,TAUZY
@@ -911,6 +953,8 @@ END SUBROUTINE SHEAR_Y_av
 
 
 SUBROUTINE SHEAR_Z_av(ICONSI,ICONSIDERED)
+!> @brief
+!> This subroutine computes the average shear stresses in z-axis
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSI,ICONSIDERED
 REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,TAUXX,TAUYY,TAUZZ,TAUYX,TAUZX,TAUZY
@@ -961,6 +1005,8 @@ SHEAR_TEMP=-SSZ/(0.5*rres*ufreestream*ufreestream)
 END SUBROUTINE SHEAR_Z_av
 
 SUBROUTINE SHEAR_X2d(ICONSI,ICONSIDERED)
+!> @brief
+!> This subroutine computes the shear stresses in x-axis in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSI,ICONSIDERED
 REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,TAUXX,TAUYY,TAUZZ,TAUYX,TAUZX,TAUZY
@@ -1016,6 +1062,8 @@ END SUBROUTINE SHEAR_X2d
 
 
 SUBROUTINE SHEAR_Y2d(ICONSI,ICONSIDERED)
+!> @brief
+!> This subroutine computes the shear stresses in y-axis in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSI,ICONSIDERED
 REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,TAUXX,TAUYY,TAUZZ,TAUYX,TAUZX,TAUZY
@@ -1070,6 +1118,8 @@ END SUBROUTINE SHEAR_Y2d
 
 
 SUBROUTINE SHEAR_X2d_av(ICONSI,ICONSIDERED)
+!> @brief
+!> This subroutine computes the average shear stresses in x-axis in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSI,ICONSIDERED
 
@@ -1133,6 +1183,8 @@ END SUBROUTINE SHEAR_X2d_av
 
 
 SUBROUTINE SHEAR_Y2d_av(ICONSI,ICONSIDERED)
+!> @brief
+!> This subroutine computes the average shear stresses in y-axis in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSI,ICONSIDERED
 
@@ -1144,6 +1196,8 @@ END SUBROUTINE SHEAR_Y2d_av
 
 
 SUBROUTINE SUTHERLAND(N,leftv,rightv)
+!> @brief
+!> This subroutine computes the viscosity according to sutherland's law
 	IMPLICIT NONE
         REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::LEFTV,RIGHTV
 	INTEGER,INTENT(IN)::N
@@ -1173,6 +1227,8 @@ SUBROUTINE SUTHERLAND(N,leftv,rightv)
   END SUBROUTINE SUTHERLAND
   
   SUBROUTINE SUTHERLAND2d(N,leftv,rightv)
+  !> @brief
+!> This subroutine computes the viscosity according to sutherland's law in 2D
 	IMPLICIT NONE
         REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::LEFTV,RIGHTV
 	INTEGER,INTENT(IN)::N
@@ -1203,6 +1259,8 @@ SUBROUTINE SUTHERLAND(N,leftv,rightv)
 
   
 SUBROUTINE VORTEXCALC(N)
+!> @brief
+!> This subroutine computes the q-criterion
   
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
@@ -1238,6 +1296,8 @@ END DO
 END SUBROUTINE VORTEXCALC
 
 SUBROUTINE VORTEXCALC2D(N)
+!> @brief
+!> This subroutine computes the q criterion for 2D
   
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
@@ -1277,6 +1337,8 @@ END SUBROUTINE VORTEXCALC2D
 
 
 SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED)
+!> @brief
+!> This subroutine applies the boundary condition to each bounded cell
 implicit none
 integer,intent(in)::n,b_code,ICONSIDERED
 REAL::SPS,SKINS,IKINS,VEL,vnb
@@ -1674,6 +1736,8 @@ END SUBROUTINE BOUNDARYS
 
 
 SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+!> @brief
+!> This subroutine applies the boundary condition to each bounded cell in 2D
 implicit none
 integer,intent(in)::n,b_code,ICONSIDERED
 REAL::SPS,SKINS,IKINS,VEL,vnb
@@ -2165,6 +2229,8 @@ END SUBROUTINE BOUNDARYS2d
 
 
 SUBROUTINE COMPUTE_EIGENVECTORS(N,RVEIGL,RVEIGR,EIGVL,EIGVR,GAMMA)
+!> @brief
+!> This subroutine computes the left and right eigenvectors 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::RVEIGL,RVEIGR
@@ -2229,6 +2295,8 @@ END SUBROUTINE COMPUTE_EIGENVECTORS
 
 
 SUBROUTINE COMPUTE_EIGENVECTORS1(N,RVEIGL,EIGVR,GAMMA,eigvl)
+!> @brief
+!> This subroutine computes the left and right eigenvectors 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::RVEIGL
@@ -2290,6 +2358,8 @@ END SUBROUTINE COMPUTE_EIGENVECTORS1
 
 
 SUBROUTINE COMPUTE_JACOBIANSE(N,EIGVL,RVEIGL,GAMMA,ANGLE1,ANGLE2)
+!> @brief
+!> This subroutine computes the Jacobians for the implicit time stepping
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,INTENT(IN)::ANGLE1,ANGLE2
@@ -2329,6 +2399,8 @@ EIGVL(5,1)=VVS*(PHI-A1)	;		 EIGVL(5,2)=NX*A1-A2*US*VVS	; EIGVL(5,3)=NY*A1-A3*VS*
 END SUBROUTINE COMPUTE_JACOBIANSE
 
 SUBROUTINE COMPUTE_JACOBIANSn(N,EIGVL,RVEIGL,GAMMA,ANGLE1,ANGLE2,ICONSIDERED,viscots)
+!> @brief
+!> This subroutine computes the Jacobians for the implicit time stepping
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,iconSIDERED
 REAL,INTENT(IN)::ANGLE1,ANGLE2,viscots
@@ -2368,6 +2440,8 @@ END SUBROUTINE COMPUTE_JACOBIANSn
 
 
 SUBROUTINE COMPUTE_EIGENVECTORS2D(N,RVEIGL,RVEIGR,EIGVL,EIGVR,GAMMA)
+!> @brief
+!> This subroutine computes the left and right eigenvectors  in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::RVEIGL,RVEIGR
@@ -2422,6 +2496,8 @@ END SUBROUTINE COMPUTE_EIGENVECTORS2D
 
 
  subroutine COMPUTE_JACOBIANSE2D(N,EIGVL,rveigl,GAMMA,ANGLE1,ANGLE2)
+ !> @brief
+!> This subroutine computes the Jacobians for the implicit time stepping in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,INTENT(IN)::ANGLE1,ANGLE2
@@ -2462,6 +2538,8 @@ END SUBROUTINE COMPUTE_JACOBIANSE2D
 
 
  subroutine COMPUTE_JACOBIANSn2D(N,EIGVL,rveigl,GAMMA,ANGLE1,ANGLE2,iconSIDERED,viscots)
+ !> @brief
+!> This subroutine computes the Jacobians for the implicit time stepping in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,iconSIDERED
 REAL,INTENT(IN)::ANGLE1,ANGLE2,viscots
@@ -2505,6 +2583,8 @@ END SUBROUTINE COMPUTE_JACOBIANSn2D
 
 
 SUBROUTINE EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+!> @brief
+!> This subroutine computes the tubulent eddy viscosity for turbulence models
 	IMPLICIT NONE
     REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR
 	INTEGER,INTENT(IN)::N
@@ -2708,6 +2788,8 @@ END IF
 
 
 SUBROUTINE EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+!> @brief
+!> This subroutine computes the tubulent eddy viscosity for turbulence models in 2d
 	IMPLICIT NONE
     REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR
 	INTEGER,INTENT(IN)::N

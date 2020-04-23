@@ -22,6 +22,8 @@ IMPLICIT NONE
  CONTAINS
 
 SUBROUTINE CALCULATE_FLUXESHI(N)
+!> @brief
+!> This subroutine computes the fluxes for linear-advection equation
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL::GODFLUX2,sum_detect
@@ -129,6 +131,8 @@ END SUBROUTINE CALCULATE_FLUXESHI
 	
 	
 SUBROUTINE CALCULATE_FLUXESHI2D(N)
+!> @brief
+!> This subroutine computes the fluxes for linear-advection equation in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL::GODFLUX2,sum_detect
@@ -236,6 +240,8 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 	
 	
 SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
+!> @brief
+!> This subroutine computes the convective fluxes for hyperbolic conservation laws
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
@@ -740,6 +746,8 @@ END SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE
 	
 	
 SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
+!> @brief
+!> This subroutine computes the convective fluxes for hyperbolic conservation laws in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
@@ -1210,6 +1218,8 @@ END SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d
 	
 
 SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
+!> @brief
+!> This subroutine computes the diffusive fluxes for Euler-Navier-Stokes Equations
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
@@ -2094,6 +2104,8 @@ END SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE
 
 
 SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
+!> @brief
+!> This subroutine computes the diffusive fluxes for Euler-Navier-Stokes Equations in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2

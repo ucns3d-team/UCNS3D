@@ -1,4 +1,9 @@
 MODULE COMMUNICATIONS
+!> @brief
+!> This module includes all the subroutines related to the MPI communications for various procedures
+!> including exchange of halo cells from stencils, direct-side neighbours, and the boundary extrapolated
+!> values for the conserved variables and their gradients at each surface/edge Gaussian quadrature point
+
 USE MPIINFO
 USE DECLARATION
 USE TRANSFORM
@@ -6,6 +11,10 @@ USE TRANSFORM
 contains
 
 SUBROUTINE RENUMBER_NEIGHBOURS(N,IELEM,XMPIE,XMPIELRANK,IEXCHANGER,IEXCHANGES)
+!> @brief
+!> This subroutine renumbers the neighbours indexing for cross referencing between different cpus
+!> It is a process that is performed once the beginning of each run
+
 IMPLICIT NONE
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
 INTEGER,INTENT(IN)::N
@@ -211,6 +220,9 @@ END SUBROUTINE RENUMBER_NEIGHBOURS
 
 
 SUBROUTINE SOLEX_ALLOC(N)
+!> @brief
+!> This subroutine allocates the memory for the halo cells of the direct side neighbours only
+!> and is therefore used for lower-order schemes 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,M,E,KMAXE,INEEDT,TNEEDT,ICPUID
@@ -274,6 +286,11 @@ END SUBROUTINE SOLEX_ALLOC
 
 SUBROUTINE ESTABEXHANGE(N,IELEM,IMAXE,XMPIE,XMPIN,XMPIELRANK,ILOCALSTENCIL,IEXCHANGER,&
 IEXCHANGES,IRECEXR,IRECEXS,NUMNEIGHBOURS,ISCHEME,ISIZE,IPERIODICITY,TYPESTEN,XMPIL)
+!> @brief
+!> This subroutine is establishing the communication patterns for all the MPI processes and in particular for
+!> the halo cells of the reconstruction stencils and it must be noted that each cell can have a different number of stencils
+!> of different size
+
 	IMPLICIT NONE
 	TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
 	INTEGER,INTENT(IN)::N,IMAXE,ISIZE,IPERIODICITY,TYPESTEN
@@ -1007,6 +1024,10 @@ IRECEXR(IAVC)%MUCHINEED(1),MPI_INTEGER,IRECEXR(IAVC)%PROCID,IRECEXR(IAVC)%PROCID
 END SUBROUTINE ESTABEXHANGE
 
 SUBROUTINE EXCHANGE_LOWER(N)
+!> @brief
+!> This subroutine is exchanging the variables of all the halo cells for direct side neighbours only
+!> and is primarily used by lower order schemes
+
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,K,INEEDT,TNEEDT,ICPUID,ITEST
@@ -1056,6 +1077,8 @@ END DO
 END SUBROUTINE EXCHANGE_LOWER
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 SUBROUTINE EXCHANGE_HIGHER(N)
+!> @brief
+!> This subroutine is exchanging the variables of all the halo cells for all the reconstruction stencils
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITEST,ITEE,ITEEDUM,ITEMP1,ITEMP2,IAVC,IAVT
@@ -1206,6 +1229,8 @@ END SUBROUTINE EXCHANGE_HIGHER
 
 
 SUBROUTINE EXCHANGE_HIGHER_av(N)
+!> @brief
+!> This subroutine is exchanging the averaged variables of all the halo cells for all the reconstruction stencils
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITEST,ITEE,ITEEDUM,ITEMP1,ITEMP2,IAVC,IAVT
@@ -1363,6 +1388,9 @@ END SUBROUTINE EXCHANGE_HIGHER_Av
 
 
 SUBROUTINE EXCHANGE_HIGHER_pre(N)
+!> @brief
+!> This subroutine is establishing the communication pattern and allocating the appropriate memory for 
+!> exchanging the variables of all the halo cells for all the reconstruction stencils
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITEST,ITEE,ITEEDUM,ITEMP1,ITEMP2,IAVC,IAVT
@@ -1545,11 +1573,14 @@ END SUBROUTINE EXCHANGE_HIGHER_pre
 
 
 SUBROUTINE EXHBOUNDHIGHER(N)
+!> @brief
+!> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
+!> for the Gaussian quadrature points of direct-side neighbours between MPI processes 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
 INTEGER::ITEE,ITEEDUM,JK,JJK,JJK4,JJK12,IMULTI2,ICPE,JMNB,J76,J78,J79,J80,IMULTI3,I_CNT,cinout2
-integer:: n_requests
+integer:: n_requests 
 integer, dimension(:), allocatable:: requests
 real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
  cinout2=0
@@ -1752,6 +1783,10 @@ END SUBROUTINE EXHBOUNDHIGHER
 
 
 SUBROUTINE EXHBOUNDHIGHER2(N)
+!> @brief
+!> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
+!> for the Gaussian quadrature points of direct-side neighbours between MPI processes for the Implicit Time stepping
+
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
