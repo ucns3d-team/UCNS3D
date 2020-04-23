@@ -7376,7 +7376,7 @@ psi2=zero
 					      
 					      CASE(4)                  !VKM
 					      DMIN=USOL(iex,L,ngp)-UTEMP(1,IEX)
-					      dmin=sign(1.0,dmin)*(abs(dmin)+tolsmall)
+					      dmin=sign(1.0d0,dmin)*(abs(dmin)+tolsmall)
 					      DPLUS=UTMAX(IEX)-UTEMP(1,IEX)
 					      EPSI2=(KAPPA_VEN*IELEM(N,I)%MINEDGE)**3
 					      PSI(iex,L,ngp)=(1.0D0/(DMIN))*(((((DPLUS**2)+EPSI2)*DMIN)+(2.0D0*(DMIN**2)*DPLUS))/((DPLUS**2)+(2.0D0*DMIN**2)+(DMIN*DPLUS)+EPSI2))
@@ -7421,7 +7421,7 @@ psi2=zero
 					      PSI(iex,L,ngp)= 2.0d0*SFD / (SFD + 1.0d0) 				! VAN LEER
 					      CASE(7)								!VENKATAKRISHNAN
 					      DMIN=USOL(iex,L,ngp)-UTEMP(1,IEX)
-					      dmin=sign(1.0,dmin)*(abs(dmin)+tolsmall)
+					      dmin=sign(1.0d0,dmin)*(abs(dmin)+tolsmall)
 					      DPLUS=UTMAX(IEX)-UTEMP(1,IEX)
 					      EPSI2=(KAPPA_VEN*IELEM(N,I)%MINEDGE)**3
 					      PSI(iex,L,ngp)=(1.0D0/(DMIN))*(((((DPLUS**2)+EPSI2)*DMIN)+(2.0D0*(DMIN**2)*DPLUS))/((DPLUS**2)+(2.0D0*DMIN**2)+(DMIN*DPLUS)+EPSI2))
@@ -7429,7 +7429,7 @@ psi2=zero
 					      
 					       CASE(8)								!VENKATAKRISHNAN
 					      DMIN=USOL(iex,L,ngp)-UTEMP(1,IEX)
-					      dmin=sign(1.0,dmin)*(abs(dmin)+tolsmall)
+					      dmin=sign(1.0d0,dmin)*(abs(dmin)+tolsmall)
 					      DPLUS=UTMAX(IEX)-UTEMP(1,IEX)
 					      EPSI2=(KAPPA_VEN*IELEM(N,I)%MINEDGE)**3
 					      PSI(iex,L,ngp)=(1.0D0/(DMIN))*(((((DPLUS**2)+EPSI2)*DMIN)+(2.0D0*(DMIN**2)*DPLUS))/((DPLUS**2)+(2.0D0*DMIN**2)+(DMIN*DPLUS)+EPSI2))
@@ -7621,7 +7621,7 @@ psi2=zero
 					      
 					      CASE(4)
 					      DMIN=USOL(iex,L,ngp)-UTEMP(1,IEX)
-					       dmin=sign(1.0,dmin)*(abs(dmin)+tolsmall)
+					       dmin=sign(1.0d0,dmin)*(abs(dmin)+tolsmall)
 					      DPLUS=UTMIN(IEX)-UTEMP(1,IEX)
 					      EPSI2=(KAPPA_VEN*IELEM(N,I)%MINEDGE)**3
 					      PSI(iex,L,ngp)=(1.0D0/(DMIN))*(((((DPLUS**2)+EPSI2)*DMIN)+(2.0D0*(DMIN**2)*DPLUS))/((DPLUS**2)+(2.0D0*DMIN**2)+(DMIN*DPLUS)+EPSI2)) 
@@ -7666,13 +7666,13 @@ psi2=zero
 					      PSI(iex,L,ngp)= 2.0d0*SFD / (SFD + 1.0d0) 					! VAN LEER
 					      CASE(7)								!VENKATAKRISHNAN
 					      DMIN=USOL(iex,L,ngp)-UTEMP(1,IEX)
-					       dmin=sign(1.0,dmin)*(abs(dmin)+tolsmall)
+					       dmin=sign(1.0d0,dmin)*(abs(dmin)+tolsmall)
 					      DPLUS=UTMIN(IEX)-UTEMP(1,IEX)
 					      EPSI2=(KAPPA_VEN*IELEM(N,I)%MINEDGE)**3
 					      PSI(iex,L,ngp)=(1.0D0/(DMIN))*(((((DPLUS**2)+EPSI2)*DMIN)+(2.0D0*(DMIN**2)*DPLUS))/((DPLUS**2)+(2.0D0*DMIN**2)+(DMIN*DPLUS)+EPSI2)) 
 					      CASE(8)								!VENKATAKRISHNAN
 					      DMIN=USOL(iex,L,ngp)-UTEMP(1,IEX)
-					       dmin=sign(1.0,dmin)*(abs(dmin)+tolsmall)
+					       dmin=sign(1.0d0,dmin)*(abs(dmin)+tolsmall)
 					      DPLUS=UTMIN(IEX)-UTEMP(1,IEX)
 					      EPSI2=(KAPPA_VEN*IELEM(N,I)%MINEDGE)**3
 					      PSI(iex,L,ngp)=(1.0D0/(DMIN))*(((((DPLUS**2)+EPSI2)*DMIN)+(2.0D0*(DMIN**2)*DPLUS))/((DPLUS**2)+(2.0D0*DMIN**2)+(DMIN*DPLUS)+EPSI2)) 

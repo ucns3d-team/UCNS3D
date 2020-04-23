@@ -205,18 +205,15 @@ KMAXE=XMPIELRANK(N)
 	!$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		sum_dt1=zero
-		sum_dt2=zero
-		do j=1,ielem(n,i)%ifca
-		sum_dt1=sum_dt1+0.5d0*abs(IELEM(N,I)%FACEANGLEX(j))*IELEM(N,I)%SURF(j)
-		sum_dt2=sum_dt2+0.5d0*abs(IELEM(N,I)%FACEANGLEy(j))*IELEM(N,I)%SURF(j)
-		end do
 		CALL CONS2PRIM2D(N)
+		if (multispecies.eq.1)then
+		AGRT=SQRT(LEFTV(4)*GAMMAl/LEFTV(1))
+		else
 		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		veln=((abs(leftv(2))+agrt)*sum_dt1)+((abs(leftv(3))+agrt)*sum_dt2)
+		end if
+		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
+		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
 		
-		
-		DT=MIN(DT,CCFL*(ielem(n,i)%totvolume/veln))
 	END DO
 	!$OMP END DO
 	END IF
@@ -1595,7 +1592,7 @@ DO I=1,KMAXE
    PRACE_T8=PRACE_T7+PRACE_T6
 
    FLOPS_COUNT=(((2*idegfree*nof_Variables*(imaxdegfree+1)*5)+(2*nof_Variables*nof_variables*idegfree*4)+(2*idegfree*nof_Variables*nof_variables*5)+(2*idegfree*nof_Variables*idegfree*5)+&
-                (QP_QUAD*2*6*3*3*3)+(QP_QUAD*3*2*5*6*5*5)+(5*5*5*2*QP_QUAD*6)+(QP_QUAD*nof_Variables*6*2)+(QP_QUAD*2*6)+(idegfree*QP_QUAD*6*iorder)+(20+300*IORDER*QP_QUAD*6+200+12000*QP_QUAD*6*2))/prace_t8)*1e-9*imaxe
+                (QP_QUAD*2*6*3*3*3)+(QP_QUAD*3*2*5*6*5*5)+(5*5*5*2*QP_QUAD*6)+(QP_QUAD*nof_Variables*6*2)+(QP_QUAD*2*6)+(idegfree*QP_QUAD*6*iorder)+(20++300*IORDER*QP_QUAD*6+200+12000*QP_QUAD*6*2))/prace_t8)*1e-9*imaxe
 
 
    
@@ -2229,7 +2226,7 @@ DO I=1,KMAXE
         write(600+n,*)ielem(n,i)%dih(:)
         kill_nan=1
     end if
-  U_C(I)%VAL(1,1:5)=U_C(I)%VAL(1,1:5)+IMPDU(I,1:5)
+  U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
 END DO
 !$OMP END DO
     if (kill_nan.eq.1)then
@@ -2337,7 +2334,7 @@ DO I=1,KMAXE
     
     
 
-  U_C(I)%VAL(1,1:4)=U_C(I)%VAL(1,1:4)+IMPDU(I,1:4)
+  U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
 END DO
 !$OMP END DO
 

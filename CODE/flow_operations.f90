@@ -26,7 +26,7 @@ TEMPS(3)=LEFTV(3)*OODENSITY
 TEMPS(4)=LEFTV(4)*OODENSITY
 TEMPS(5)=((GAMMA-1.0D0))*((LEFTV(5))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
 
-LEFTV(1:5)=TEMPS(1:5)
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 
 
@@ -50,7 +50,7 @@ TEMPS(3)=LEFTV(3)*OODENSITY
 TEMPS(4)=LEFTV(4)*OODENSITY
 TEMPS(5)=((GAMMA-1.0D0))*((LEFTV(5))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
 
-LEFTV(1:5)=TEMPS(1:5)
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 
 
@@ -62,7 +62,7 @@ TEMPS(3)=rightv(3)*OODENSITY
 TEMPS(4)=rightv(4)*OODENSITY
 TEMPS(5)=((GAMMA-1.0D0))*((rightv(5))-OO2*rightv(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
 
-rightv(1:5)=TEMPS(1:5)
+rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 
 
@@ -309,7 +309,7 @@ TEMPS(3)=LEFTV(3)*LEFTV(1)
 TEMPS(4)=LEFTV(4)*LEFTV(1)
 TEMPS(5)=leftv(1)*(ie1+skin1)
 
-LEFTV(1:5)=TEMPS(1:5)
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 
 
@@ -336,7 +336,7 @@ TEMPS(3)=LEFTV(3)*LEFTV(1)
 TEMPS(4)=LEFTV(4)*LEFTV(1)
 TEMPS(5)=leftv(1)*(ie1+skin1)
 
-LEFTV(1:5)=TEMPS(1:5)
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 
 skin1=(oo2)*((rightv(2)**2)+(rightv(3)**2)+(rightv(4)**2))
@@ -350,7 +350,7 @@ TEMPS(3)=rightv(3)*rightv(1)
 TEMPS(4)=rightv(4)*rightv(1)
 TEMPS(5)=rightv(1)*(ie1+skin1)
 
-rightv(1:5)=TEMPS(1:5)
+rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 
 END SUBROUTINE PRIM2CONS2
@@ -361,8 +361,51 @@ SUBROUTINE CONS2PRIM2d2(N)
 !> This subroutine transforms two vectors of conservative variables to primitive variables 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,DIMENSION(4)::TEMPS
-REAL::OODENSITY
+REAL,DIMENSION(1:nof_Variables)::TEMPS
+REAL::OODENSITY,MP_DENSITY
+
+ IF (governingequations.EQ.-1) then
+ 
+ MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+ GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ OODENSITY=1.0D0/MP_DENSITY
+ 
+ 
+ TEMPS(1)=MP_DENSITY
+TEMPS(2)=LEFTV(2)*OODENSITY
+TEMPS(3)=LEFTV(3)*OODENSITY
+TEMPS(4)=((GAMMAL-1.0D0))*((LEFTV(4))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
+TEMPS(5)=LEFTV(5)
+TEMPS(6)=LEFTV(6)
+TEMPS(7)=LEFTV(7)
+ 
+ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ 
+ 
+ 
+ MP_DENSITY=(RIGHTV(5)+RIGHTV(6)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=RIGHTV(7)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-RIGHTV(7))/(GAMMA_IN(2)-1.0D0)
+ GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ OODENSITY=1.0D0/MP_DENSITY
+ 
+ 
+ TEMPS(1)=MP_DENSITY
+TEMPS(2)=RIGHTV(2)*OODENSITY
+TEMPS(3)=RIGHTV(3)*OODENSITY
+TEMPS(4)=((GAMMAR-1.0D0))*((RIGHTV(4))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
+TEMPS(5)=RIGHTV(5)
+TEMPS(6)=RIGHTV(6)
+TEMPS(7)=RIGHTV(7)
+ 
+ 
+ RIGHTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ 
+else
+
+
 
 OODENSITY=1.0D0/LEFTV(1)
 
@@ -371,7 +414,7 @@ TEMPS(2)=LEFTV(2)*OODENSITY
 TEMPS(3)=LEFTV(3)*OODENSITY
 TEMPS(4)=((GAMMA-1.0D0))*((LEFTV(4))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
 
-LEFTV(1:4)=TEMPS(1:4)
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 
 OODENSITY=1.0D0/rightv(1)
@@ -381,8 +424,8 @@ TEMPS(2)=rightv(2)*OODENSITY
 TEMPS(3)=rightv(3)*OODENSITY
 TEMPS(4)=((GAMMA-1.0D0))*((rightv(4))-OO2*rightv(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
 
-rightv(1:4)=TEMPS(1:4)
-
+rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
+end if
 
 END SUBROUTINE CONS2PRIM2d2
 
@@ -391,8 +434,29 @@ SUBROUTINE CONS2PRIM2d(N)
 !> This subroutine transforms one vectors of conservative variables to primitive variables 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,DIMENSION(4)::TEMPS
-REAL::OODENSITY
+REAL,DIMENSION(1:nof_Variables)::TEMPS
+REAL::OODENSITY,MP_DENSITY
+
+IF (governingequations.EQ.-1) then
+ 
+ MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+ GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ OODENSITY=1.0D0/MP_DENSITY
+ 
+ 
+ TEMPS(1)=MP_DENSITY
+TEMPS(2)=LEFTV(2)*OODENSITY
+TEMPS(3)=LEFTV(3)*OODENSITY
+TEMPS(4)=((GAMMAL-1.0D0))*((LEFTV(4))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
+TEMPS(5)=LEFTV(5)
+TEMPS(6)=LEFTV(6)
+TEMPS(7)=LEFTV(7)
+ 
+ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ 
+ELSE
 
 OODENSITY=1.0D0/LEFTV(1)
 
@@ -401,9 +465,9 @@ TEMPS(2)=LEFTV(2)*OODENSITY
 TEMPS(3)=LEFTV(3)*OODENSITY
 TEMPS(4)=((GAMMA-1.0D0))*((LEFTV(4))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
 
-LEFTV(1:4)=TEMPS(1:4)
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
-
+END IF
 END SUBROUTINE CONS2PRIM2d
 
 
@@ -412,8 +476,28 @@ SUBROUTINE PRIM2CONS2d(N)
 !> This subroutine transforms one vector of primitive variables to  conservative variables 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,DIMENSION(4)::TEMPS
-REAL::OODENSITY,skin1,ie1
+REAL,DIMENSION(1:nof_Variables)::TEMPS
+REAL::OODENSITY,skin1,ie1,MP_DENSITY
+
+IF (governingequations.EQ.-1) then
+
+ 
+ MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+ GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ 
+TEMPS(1)=MP_DENSITY
+TEMPS(2)=LEFTV(2)*TEMPS(1)
+TEMPS(3)=LEFTV(3)*TEMPS(1)
+skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
+ie1=((leftv(4))/((GAMMAL-1.0D0)*TEMPS(1)))
+TEMPS(4)=TEMPS(1)*(ie1+skin1)
+TEMPS(5:7)=LEFTV(5:7)
+ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ 
+ else
+
 
 
 skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
@@ -426,9 +510,9 @@ TEMPS(2)=LEFTV(2)*LEFTV(1)
 TEMPS(3)=LEFTV(3)*LEFTV(1)
 TEMPS(4)=leftv(1)*(ie1+skin1)
 
-LEFTV(1:4)=TEMPS(1:4)
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
-
+end if
 
 END SUBROUTINE PRIM2CONS2d
 
@@ -437,8 +521,46 @@ SUBROUTINE PRIM2CONS2d2(N)
 !> This subroutine transforms one vector of primitive variables to  conservative variables 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,DIMENSION(4)::TEMPS
-REAL::OODENSITY,skin1,ie1
+REAL,DIMENSION(1:nof_Variables)::TEMPS
+REAL::OODENSITY,skin1,ie1,MP_DENSITY
+
+IF (governingequations.EQ.-1) then
+
+ 
+ MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+ GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ 
+TEMPS(1)=MP_DENSITY
+TEMPS(2)=LEFTV(2)*TEMPS(1)
+TEMPS(3)=LEFTV(3)*TEMPS(1)
+skin1=(oo2)*((leftv(4)**2)+(leftv(5)**2))
+ie1=((leftv(4))/((GAMMAL-1.0D0)*TEMPS(1)))
+TEMPS(4)=TEMPS(1)*(ie1+skin1)
+TEMPS(5:7)=LEFTV(5:7)
+ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ 
+ 
+ 
+ MP_DENSITY=(RIGHTV(5)+RIGHTV(6)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=RIGHTV(7)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-RIGHTV(7))/(GAMMA_IN(2)-1.0D0)
+ GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ 
+TEMPS(1)=MP_DENSITY
+TEMPS(2)=RIGHTV(2)*TEMPS(1)
+TEMPS(3)=RIGHTV(3)*TEMPS(1)
+skin1=(oo2)*((RIGHTv(2)**2)+(RIGHTv(3)**2))
+ie1=((RIGHTv(4))/((GAMMAR-1.0D0)*TEMPS(1)))
+TEMPS(4)=TEMPS(1)*(ie1+skin1)
+TEMPS(5:7)=RIGHTV(5:7)
+ RIGHTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ 
+ 
+ 
+ 
+ else
 
 
 skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
@@ -451,7 +573,7 @@ TEMPS(2)=LEFTV(2)*LEFTV(1)
 TEMPS(3)=LEFTV(3)*LEFTV(1)
 TEMPS(4)=leftv(1)*(ie1+skin1)
 
-LEFTV(1:4)=TEMPS(1:4)
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 skin1=(oo2)*((rightv(2)**2)+(rightv(3)**2))
 ie1=((rightv(4))/((GAMMA-1.0D0)*rightv(1)))
@@ -463,9 +585,9 @@ TEMPS(2)=rightv(2)*rightv(1)
 TEMPS(3)=rightv(3)*rightv(1)
 TEMPS(4)=rightv(1)*(ie1+skin1)
 
-rightv(1:4)=TEMPS(1:4)
+rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
 
-
+end if
 END SUBROUTINE PRIM2CONS2d2
 
 
@@ -568,12 +690,49 @@ FUNCTION INFLOW2d(INITCOND,POX,POY)
 !> @brief
 !> This function applies a prescribed boundary condition to  the inflow in 2D
 IMPLICIT NONE
-REAL,DIMENSION(4)::INFLOW2d
+REAL,DIMENSION(1:nof_Variables)::INFLOW2d
 INTEGER,INTENT(IN)::INITCOND
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::POX,POY
 REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
 REAL::XF,YF,ZF
 REAL:: Theta_0,vtang, vradial
+REAL::MP_DENSITY
+
+
+IF (governingequations.EQ.-1) then
+
+
+
+P=PRES
+U=uvel
+V=vvel
+MP_AR(1)=MP_A_IN(1)/(GAMMA_IN(1)-1.0D0)  
+MP_AR(2)=MP_A_IN(2)/(GAMMA_IN(2)-1.0D0)
+GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+
+GM=GAMMAR
+
+R=(MP_R_IN(1)*MP_A_IN(1))+(MP_R_IN(2)*MP_A_IN(2))
+MP_IE(1)=((P)/((GAMMA_IN(1)-1.0D0)*MP_R_IN(1)))
+MP_IE(2)=((P)/((GAMMA_IN(2)-1.0D0)*MP_R_IN(2)))
+IEn=(MP_IE(1)*MP_A_IN(1))+(MP_IE(2)*MP_A_IN(2))
+! !KINETIC ENERGY FIRST!
+SKIN=(OO2)*((U**2)+(V**2))
+! !TOTAL ENERGY
+E=R*(SKIN+IEN)
+
+!VECTOR OF CONSERVED VARIABLES NOW
+INFLOW2d(1)=R
+INFLOW2d(2)=R*U
+INFLOW2d(3)=R*V
+INFLOW2d(4)=E
+INFLOW2d(5)=MP_R_IN(1)*MP_A_IN(1)
+INFLOW2d(6)=MP_R_IN(2)*MP_A_IN(2)
+INFLOW2d(7)=MP_A_IN(1)
+
+
+
+ELSE
 
 
 R=RRES
@@ -595,6 +754,9 @@ INFLOW2d(2)=R*U
 INFLOW2d(3)=R*V
 INFLOW2d(4)=E
 
+
+ENDIF
+
 END FUNCTION INFLOW2d
 
 
@@ -602,12 +764,45 @@ FUNCTION OUTFLOW2d(INITCOND,POX,POY)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 2D
 IMPLICIT NONE
-REAL,DIMENSION(4)::OUTFLOW2d
+REAL,DIMENSION(1:nof_Variables)::OUTFLOW2d
 INTEGER,INTENT(IN)::INITCOND
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::POX,POY
 REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
 REAL::XF,YF,ZF
 
+
+IF (governingequations.EQ.-1) then
+
+
+
+P=PRES
+U=uvel
+V=vvel
+MP_AR(1)=MP_A_IN(1)/(GAMMA_IN(1)-1.0D0)  
+MP_AR(2)=MP_A_IN(2)/(GAMMA_IN(2)-1.0D0)
+GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+
+GM=GAMMAR
+
+R=(MP_R_IN(1)*MP_A_IN(1))+(MP_R_IN(2)*MP_A_IN(2))
+MP_IE(1)=((P)/((GAMMA_IN(1)-1.0D0)*MP_R_IN(1)))
+MP_IE(2)=((P)/((GAMMA_IN(2)-1.0D0)*MP_R_IN(2)))
+IEn=(MP_IE(1)*MP_A_IN(1))+(MP_IE(2)*MP_A_IN(2))
+! !KINETIC ENERGY FIRST!
+SKIN=(OO2)*((U**2)+(V**2))
+! !TOTAL ENERGY
+E=R*(SKIN+IEn)
+
+!VECTOR OF CONSERVED VARIABLES NOW
+OUTFLOW2d(1)=R
+OUTFLOW2d(2)=R*U
+OUTFLOW2d(3)=R*V
+OUTFLOW2d(4)=E
+OUTFLOW2d(5)=MP_R_IN(1)*MP_A_IN(1)
+OUTFLOW2d(6)=MP_R_IN(2)*MP_A_IN(2)
+OUTFLOW2d(7)=MP_A_IN(1)
+
+ELSE
 
 R=RRES
 GM=GAMMA
@@ -627,6 +822,7 @@ OUTFLOW2d(1)=R
 OUTFLOW2d(2)=R*U
 OUTFLOW2d(3)=R*V
 OUTFLOW2d(4)=E
+END IF
 
 END FUNCTION OUTFLOW2d
 
@@ -726,8 +922,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSI)%GRADS(1:3,1:3)
  NX=(COS(ANGLE1)*SIN(ANGLE2))
  NY=(SIN(ANGLE1)*SIN(ANGLE2))
  NZ=(COS(ANGLE2))
- LEFTV(1:5)=U_C(ICONSI)%VAL(1,1:5)
- RIGHTV(1:5)=U_C(ICONSI)%VAL(1,1:5)
+ LEFTV(1:nof_Variables)=U_C(ICONSI)%VAL(1,1:nof_Variables)
+ RIGHTV(1:nof_Variables)=U_C(ICONSI)%VAL(1,1:nof_Variables)
  CALL CONS2PRIM2(n)
  CALL SUTHERLAND(N,LEFTV,RIGHTV)
 
@@ -775,8 +971,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSI)%GRADS(1:3,1:3)
  NX=(COS(ANGLE1)*SIN(ANGLE2))
  NY=(SIN(ANGLE1)*SIN(ANGLE2))
  NZ=(COS(ANGLE2))
- LEFTV(1:5)=U_C(ICONSI)%VAL(1,1:5)
- RIGHTV(1:5)=U_C(ICONSI)%VAL(1,1:5)
+ LEFTV(1:nof_Variables)=U_C(ICONSI)%VAL(1,1:nof_Variables)
+ RIGHTV(1:nof_Variables)=U_C(ICONSI)%VAL(1,1:nof_Variables)
  CALL CONS2PRIM2(n)
  CALL SUTHERLAND(N,LEFTV,RIGHTV)
 
@@ -820,8 +1016,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSI)%GRADS(1:3,1:3)
  NX=(COS(ANGLE1)*SIN(ANGLE2))
  NY=(SIN(ANGLE1)*SIN(ANGLE2))
  NZ=(COS(ANGLE2))
- LEFTV(1:5)=U_C(ICONSI)%VAL(1,1:5)
- RIGHTV(1:5)=U_C(ICONSI)%VAL(1,1:5)
+ LEFTV(1:nof_Variables)=U_C(ICONSI)%VAL(1,1:nof_Variables)
+ RIGHTV(1:nof_Variables)=U_C(ICONSI)%VAL(1,1:nof_Variables)
  CALL CONS2PRIM2(n)
  CALL SUTHERLAND(N,LEFTV,RIGHTV)
 
@@ -872,8 +1068,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSI)%GRADSAV(1:3,1:3)
  NX=(COS(ANGLE1)*SIN(ANGLE2))
  NY=(SIN(ANGLE1)*SIN(ANGLE2))
  NZ=(COS(ANGLE2))
- LEFTV(1:5)=U_C(ICONSI)%VAL(IND1,1:5)
- RIGHTV(1:5)=U_C(ICONSI)%VAL(IND1,1:5)
+ LEFTV(1:nof_Variables)=U_C(ICONSI)%VAL(IND1,1:nof_Variables)
+ RIGHTV(1:nof_Variables)=U_C(ICONSI)%VAL(IND1,1:nof_Variables)
  CALL CONS2PRIM2(n)
  CALL SUTHERLAND(N,LEFTV,RIGHTV)
 
@@ -927,8 +1123,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSI)%GRADSAV(1:3,1:3)
  NX=(COS(ANGLE1)*SIN(ANGLE2))
  NY=(SIN(ANGLE1)*SIN(ANGLE2))
  NZ=(COS(ANGLE2))
- LEFTV(1:5)=U_C(ICONSI)%VAL(IND1,1:5)
- RIGHTV(1:5)=U_C(ICONSI)%VAL(IND1,1:5)
+ LEFTV(1:nof_Variables)=U_C(ICONSI)%VAL(IND1,1:nof_Variables)
+ RIGHTV(1:nof_Variables)=U_C(ICONSI)%VAL(IND1,1:nof_Variables)
  CALL CONS2PRIM2(n)
  CALL SUTHERLAND(N,LEFTV,RIGHTV)
 
@@ -981,8 +1177,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSI)%GRADSAV(1:3,1:3)
  NX=(COS(ANGLE1)*SIN(ANGLE2))
  NY=(SIN(ANGLE1)*SIN(ANGLE2))
  NZ=(COS(ANGLE2))
- LEFTV(1:5)=U_C(ICONSI)%VAL(IND1,1:5)
- RIGHTV(1:5)=U_C(ICONSI)%VAL(IND1,1:5)
+ LEFTV(1:nof_Variables)=U_C(ICONSI)%VAL(IND1,1:nof_Variables)
+ RIGHTV(1:nof_Variables)=U_C(ICONSI)%VAL(IND1,1:nof_Variables)
  CALL CONS2PRIM2(n)
  CALL SUTHERLAND(N,LEFTV,RIGHTV)
 
@@ -1036,8 +1232,8 @@ end if
  NX=ANGLE1
  NY=ANGLE2
  
- LEFTV(1:4)=U_C(ICONSI)%VAL(1,1:4)
- RIGHTV(1:4)=U_C(ICONSI)%VAL(1,1:4)
+ LEFTV(1:nof_Variables)=U_C(ICONSI)%VAL(1,1:nof_Variables)
+ RIGHTV(1:nof_Variables)=U_C(ICONSI)%VAL(1,1:nof_Variables)
  CALL CONS2PRIM2D2(n)
  CALL SUTHERLAND2D(N,LEFTV,RIGHTV)
 
@@ -1093,8 +1289,8 @@ end if
  NX=ANGLE1
  NY=ANGLE2
  
- LEFTV(1:4)=U_C(ICONSI)%VAL(1,1:4)
- RIGHTV(1:4)=U_C(ICONSI)%VAL(1,1:4)
+ LEFTV(1:nof_Variables)=U_C(ICONSI)%VAL(1,1:nof_Variables)
+ RIGHTV(1:nof_Variables)=U_C(ICONSI)%VAL(1,1:nof_Variables)
  CALL CONS2PRIM2D2(n)
  CALL SUTHERLAND2D(N,LEFTV,RIGHTV)
 
@@ -1153,8 +1349,8 @@ INTEGER,INTENT(IN)::ICONSI,ICONSIDERED
 ! NX=(COS(ANGLE1)*SIN(ANGLE2))
 ! NY=(SIN(ANGLE1)*SIN(ANGLE2))
 ! NZ=(COS(ANGLE2))
-! LEFTV(1:5)=U_C(IBOUND_T(I))%VAL(1,1:5)
-! RIGHTV(1:5)=U_C(IBOUND_T(I))%VAL(1,1:5)
+! LEFTV(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(1,1:nof_Variables)
+! RIGHTV(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(1,1:nof_Variables)
 ! CALL SUTHERLANDIi(N,LEFTV,RIGHTV,VISCL,LAML,PRES,RRES,GAMMA,VISC,BETAAS,SUTHER,PRANDTL)
 ! SSX=0.0; SSP=0.0; SSY=0.0; SSZ=0.0
 ! DO IM=1,NUMBEROFPOINTS2
@@ -1352,7 +1548,7 @@ SELECT CASE(B_CODE)
     CASE(1)!INFLOW SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
     if (boundtype.eq.0)then	!SUPERSONIC
     
-    RIGHTV(1:5)=INFLOW(INITCOND,POX,POY,POZ)
+    RIGHTV(1:nof_Variables)=INFLOW(INITCOND,POX,POY,POZ)
     
     
     
@@ -1360,12 +1556,12 @@ SELECT CASE(B_CODE)
     
     
     ELSE		!SUBSONIC
-    RIGHTV(1:5)=INFLOW(INITCOND,POX,POY,POZ)
+    RIGHTV(1:nof_Variables)=INFLOW(INITCOND,POX,POY,POZ)
     
     CALL cons2prim2(N)
     
-    SUBSON1(1:5)=RIGHTV(1:5)
-    SUBSON2(1:5)=LEFTV(1:5)
+    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
     SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
     VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
     CALL PRIM2CONS2(N)
@@ -1373,7 +1569,7 @@ SELECT CASE(B_CODE)
       IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
       
       
-      RIGHTV(1:5)=INFLOW(INITCOND,POX,POY,POZ)
+      RIGHTV(1:nof_Variables)=INFLOW(INITCOND,POX,POY,POZ)
       
       
       
@@ -1436,15 +1632,15 @@ SELECT CASE(B_CODE)
     
     CASE(2)!OUTFLOW SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
      if (boundtype.eq.0)then
-      rightv(1:5)=leftv(1:5)
+      rightv(1:nof_Variables)=leftv(1:nof_Variables)
       
      else
      
-     rightv(1:5)=OUTFLOW(INITCOND,pox,poy,poz)
+     rightv(1:nof_Variables)=OUTFLOW(INITCOND,pox,poy,poz)
      CALL cons2prim2(N)
     
-    SUBSON1(1:5)=RIGHTV(1:5)
-    SUBSON2(1:5)=LEFTV(1:5)
+    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
      
      SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
     VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
@@ -1455,7 +1651,7 @@ SELECT CASE(B_CODE)
     
     IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
     CALL PRIM2CONS2(N)
-    rightv(1:5)=leftv(1:5)
+    rightv(1:nof_Variables)=leftv(1:nof_Variables)
     
     
       Else
@@ -1600,8 +1796,8 @@ SELECT CASE(B_CODE)
 	  
 	    CALL cons2prim2(N)
     
-	    SUBSON1(1:5)=RIGHTV(1:5)
-	    SUBSON2(1:5)=LEFTV(1:5)
+	    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+	    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
 	    SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
 	    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
 	  
@@ -1623,8 +1819,8 @@ SELECT CASE(B_CODE)
 			  call cons2prim2(n)
 			  
 			
-			SUBSON1(1:5)=RIGHTV(1:5)
-			SUBSON2(1:5)=LEFTV(1:5)
+			SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+			SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
 			SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
 			VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
 	             CALL PRIM2CONS2(N)
@@ -1675,19 +1871,19 @@ SELECT CASE(B_CODE)
 	    ibfc=-2
 		if ((abs(vnb)).ge.sps)then
 		      
-		      rightv(1:5)=leftv(1:5)
+		      rightv(1:nof_Variables)=leftv(1:nof_Variables)
 		
 		else
 		
 		
 		
-		rightv(1:5)=OUTFLOW(INITCOND,pox,poy,poz)
+		rightv(1:nof_Variables)=OUTFLOW(INITCOND,pox,poy,poz)
 		
 		call cons2prim2(n)
 		
     
-    SUBSON1(1:5)=RIGHTV(1:5)
-    SUBSON2(1:5)=LEFTV(1:5)
+    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
      
      
      CALL PRIM2CONS2(N)
@@ -1751,7 +1947,7 @@ SELECT CASE(B_CODE)
     CASE(1)!INFLOW SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
     if (boundtype.eq.0)then	!SUPERSONIC
     
-    RIGHTV(1:4)=INFLOW2d(INITCOND,POX,POY)
+    RIGHTV(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
     
     
     
@@ -1759,12 +1955,12 @@ SELECT CASE(B_CODE)
     
     
     ELSE		!SUBSONIC
-    RIGHTV(1:4)=INFLOW2d(INITCOND,POX,POY)
+    RIGHTV(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
 
     CALL cons2prim2d2(N)
     
-    SUBSON1(1:4)=RIGHTV(1:4)
-    SUBSON2(1:4)=LEFTV(1:4)
+    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
     SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
     VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
     
@@ -1775,7 +1971,7 @@ SELECT CASE(B_CODE)
       IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
       
       
-      RIGHTV(1:4)=INFLOW2d(INITCOND,POX,POY)
+      RIGHTV(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
       
       
       
@@ -1843,15 +2039,15 @@ SELECT CASE(B_CODE)
     
     CASE(2)!OUTFLOW SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
      if (boundtype.eq.0)then
-      rightv(1:4)=leftv(1:4)
+      rightv(1:nof_Variables)=leftv(1:nof_Variables)
       
      else
      
-     rightv(1:4)=OUTFLOW2d(INITCOND,pox,poy)
+     rightv(1:nof_Variables)=OUTFLOW2d(INITCOND,pox,poy)
      CALL cons2prim2d2(N)
     
-    SUBSON1(1:4)=RIGHTV(1:4)
-    SUBSON2(1:4)=LEFTV(1:4)
+    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
      
      SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
     VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
@@ -1861,7 +2057,7 @@ SELECT CASE(B_CODE)
     CALL PRIM2CONS2d2(N)
     
     IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
-    rightv(1:4)=leftv(1:4)
+    rightv(1:nof_Variables)=leftv(1:nof_Variables)
     
     
       Else
@@ -1989,7 +2185,7 @@ SELECT CASE(B_CODE)
 			      
 			       CALL ROTATEF2d(N,TRI,Cleft_ROT,leftV,ANGLE1,ANGLE2)
 			      
-         		      CRIGHT_ROT(1)=CLEFT_ROT(1)
+                  CRIGHT_ROT(1)=CLEFT_ROT(1)
 			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
 			      CRIGHT_ROT(3)=CLEFT_ROT(3)
 			      CRIGHT_ROT(4)=CLEFT_ROT(4)
@@ -2017,11 +2213,18 @@ SELECT CASE(B_CODE)
 			      
 			       CALL ROTATEF2D(N,TRI,Cleft_ROT,leftV,ANGLE1,ANGLE2)
 			      
+			      
+			      IF (governingequations.EQ.-1)then
+			          CRIGHT_ROT(:)=CLEFT_ROT(:)
+			      CRIGHT_ROT(4)=-CLEFT_ROT(4)
+			      
+			      
+			      else
          		      CRIGHT_ROT(1)=CLEFT_ROT(1)
 			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
 			      CRIGHT_ROT(3)=CLEFT_ROT(3)
 			      CRIGHT_ROT(4)=CLEFT_ROT(4)
-			      
+			      end if
 			     
 			      
 					 
@@ -2098,8 +2301,8 @@ SELECT CASE(B_CODE)
 	    
 	    CALL cons2prim2d2(N)
     
-	    SUBSON1(1:4)=RIGHTV(1:4)
-	    SUBSON2(1:4)=LEFTV(1:4)
+	    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+	    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
 	    SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
 	    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
 	  
@@ -2110,18 +2313,18 @@ SELECT CASE(B_CODE)
 	
 		  if ((abs(vnb)).ge.sps)then
 				!supersonic
-				rightv(1:4)=INFLOW2d(INITCOND,POX,POY)
+				rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
 					
 		  else
 				!subsonic
 				
-			rightv(1:4)=INFLOW2d(INITCOND,POX,POY)
+			rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
 	  	  
 			  
 			  CALL cons2prim2d2(N)
 			
-			SUBSON1(1:4)=RIGHTV(1:4)
-			SUBSON2(1:4)=LEFTV(1:4)
+			SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+			SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
 			SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
 			VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
 			  CALL PRIM2CONS2d2(N)
@@ -2171,16 +2374,16 @@ SELECT CASE(B_CODE)
 	    ibfc=-2
 		if ((abs(vnb)).ge.sps)then
 		
-		      rightv(1:4)=leftv(1:4)
+		      rightv(1:nof_Variables)=leftv(1:nof_Variables)
 		
 		else
 		
 		
-		rightv(1:4)=OUTFLOW2d(INITCOND,pox,poy)
+		rightv(1:nof_Variables)=OUTFLOW2d(INITCOND,pox,poy)
 		 CALL cons2prim2d2(N)
     
-    SUBSON1(1:4)=RIGHTV(1:4)
-    SUBSON2(1:4)=LEFTV(1:4)
+    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
      
      CALL PRIM2CONS2d2(N)
      

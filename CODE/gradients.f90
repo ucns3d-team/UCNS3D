@@ -1339,18 +1339,18 @@ SOLS2=ZERO
 		
 		if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
 		MATRIX_1=ZERO;MATRIX_2=ZERO
-		LEFTV(1:5)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:5)
+		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
 		CALL CONS2PRIM(N)
 		
 	       SOLS1(2:4)=LEFTV(2:4)
 	       SOLS1(1)=LEFTV(5)/LEFTV(1)
 	       
                DO IQ=1,imax
-                LEFTV(1:5)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:5)
+                LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
 		CALL CONS2PRIM(N)
 	       SOLS2(2:4)=LEFTV(2:4)
 	       SOLS2(1)=LEFTV(5)/LEFTV(1)
-  	        MATRIX_1(iq,1:4)=((SOLS2(1:4)-SOLS1(1:4)))
+  	        MATRIX_1(iq,1:nof_Variables)=((SOLS2(1:nof_Variables)-SOLS1(1:nof_Variables)))
   	        
 		END DO
 		
@@ -1381,7 +1381,7 @@ SOLS2=ZERO
 		ELSE
 		
 		MATRIX_1=ZERO;MATRIX_2=ZERO
-		LEFTV(1:5)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:5)
+		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
 		CALL CONS2PRIM(N)
 		
 	       SOLS1(2:4)=LEFTV(2:4)
@@ -1389,15 +1389,15 @@ SOLS2=ZERO
 	       
                DO IQ=1,imax
 		  IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-		  LEFTV(1:5)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:5)
+		  LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
 		  
 		  else
-		  LEFTV(1:5)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:5)
+		  LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
 		  end if
 		  CALL CONS2PRIM(N)
 	       SOLS2(2:4)=LEFTV(2:4)
 	       SOLS2(1)=LEFTV(5)/LEFTV(1)
-  	        MATRIX_1(iq,1:4)=((SOLS2(1:4)-SOLS1(1:4)))
+  	        MATRIX_1(iq,1:nof_Variables)=((SOLS2(1:nof_Variables)-SOLS1(1:nof_Variables)))
 		END DO
 		
 		
@@ -1453,7 +1453,7 @@ SOLS2=ZERO
 	    G0=ILOCAL_RECON3(I)%G0
 	    
 	     MATRIX_1=ZERO;MATRIX_2=ZERO;sol_m=zero;
-		LEFTV(1:5)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:5)
+		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
 		CALL CONS2PRIM(N)
 		
 	       SOLS1(2:4)=LEFTV(2:4)
@@ -1465,25 +1465,25 @@ SOLS2=ZERO
 	   
 	      DO IQ=1,imax
 	      if (ilocal_Recon3(i)%local.eq.1)then
-	       LEFTV(1:5)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:5)
+	       LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
 	      else
 		IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-		LEFTV(1:5)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:5)
+		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
 	    else
-		LEFTV(1:5)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:5)
+		LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
 	    END IF
 	      end if
    
 		CALL CONS2PRIM(N)
 	       SOLS2(2:4)=LEFTV(2:4)
 	       SOLS2(1)=LEFTV(5)/LEFTV(1)
-  	        MATRIX_1(1:4,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*(SOLS2(1:4)-SOLS1(1:4)))
+  	        MATRIX_1(1:nof_Variables,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*(SOLS2(1:nof_Variables)-SOLS1(1:nof_Variables)))
   	        
   	        MATRIX_1(2:4,IQ)=MATRIX_1(2:4,IQ)+((SOLS1(2:4)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
   	        
   	        
 		END DO
-		matrix_3(1:4)=-sols1(1:4)
+		matrix_3(1:nof_Variables)=-sols1(1:nof_Variables)
 		matrix_3(1)=zero
 		
 		DO VAR2=1,nof_variables-1
@@ -1959,6 +1959,7 @@ SELECT CASE(IELEM(N,I)%GGS)
     CASE(1,2,3)
       
     CALL COMPUTE_GRADIENTS_MEAN_LSQ2d(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+    
       
       
     CASE(4)
@@ -1985,7 +1986,7 @@ SELECT CASE(IELEM(N,I)%GGS)
        CASE(1,2,3)
       
       CALL COMPUTE_GRADIENTS_MEAN_LSQ2d(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-      
+    
       
       CASE(4)
       CALL COMPUTE_GRADIENTS_MEAN_LSQ2d(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
@@ -1999,6 +2000,7 @@ SELECT CASE(IELEM(N,I)%GGS)
       
       END SELECT
       
+      
  CASE(2)
  
  
@@ -2011,7 +2013,7 @@ SELECT CASE(IELEM(N,I)%GGS)
        CASE(1,2,3)
       
       CALL COMPUTE_GRADIENTS_MEAN_LSQ2d(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-      
+    
       
       CASE(4)
       CALL COMPUTE_GRADIENTS_MEAN_LSQ2d(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
@@ -2088,6 +2090,7 @@ SELECT CASE(IELEM(N,I)%GGS)
       
     CALL COMPUTE_GRADIENTS_MEAN_LSQ2d(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
       
+    
       
     CASE(4)
       CALL COMPUTE_GRADIENTS_MEAN_LSQ2d(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
@@ -2128,7 +2131,7 @@ SELECT CASE(IELEM(N,I)%GGS)
        CASE(1,2,3)
       
       CALL COMPUTE_GRADIENTS_MEAN_LSQ2d(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-      
+     
       
       CASE(4)
       CALL COMPUTE_GRADIENTS_MEAN_LSQ2d(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
@@ -2984,14 +2987,14 @@ SOLS2=ZERO
 		
 		if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
 		MATRIX_1=ZERO;MATRIX_2=ZERO
-		LEFTV(1:4)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:4)
+		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
 		CALL CONS2PRIM2d(N)
 		
 	       SOLS1(2:3)=LEFTV(2:3)
 	       SOLS1(1)=LEFTV(4)/LEFTV(1)
 	       
                DO IQ=1,imax
-                LEFTV(1:4)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:4)
+                LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
 		CALL CONS2PRIM2d(N)
 	       SOLS2(2:3)=LEFTV(2:3)
 	       SOLS2(1)=LEFTV(4)/LEFTV(1)
@@ -3015,7 +3018,7 @@ SOLS2=ZERO
 		ELSE
 		
 		MATRIX_1=ZERO;MATRIX_2=ZERO
-		LEFTV(1:4)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:4)
+		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
 		CALL CONS2PRIM2d(N)
 		
 	       SOLS1(2:3)=LEFTV(2:3)
@@ -3023,10 +3026,10 @@ SOLS2=ZERO
 	       
                DO IQ=1,imax
 		  IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-		  LEFTV(1:4)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:4)
+		  LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
 		  
 		  else
-		  LEFTV(1:4)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:4)
+		  LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
 		  end if
 		  CALL CONS2PRIM2d(N)
 	       SOLS2(2:3)=LEFTV(2:3)
@@ -3087,7 +3090,7 @@ ll=1
 	    
 	    
 	     MATRIX_1=ZERO;MATRIX_2=ZERO;sol_m=zero;
-		LEFTV(1:4)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:4)
+		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
 		CALL CONS2PRIM2d(N)
 		
 	       SOLS1(2:4)=LEFTV(2:4)
@@ -3099,12 +3102,12 @@ ll=1
 	   
 	      DO IQ=1,imax
 	      if (ilocal_Recon3(i)%local.eq.1)then
-	       LEFTV(1:4)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:4)
+	       LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
 	      else
 		IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-		LEFTV(1:4)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:4)
+		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
 	    else
-		LEFTV(1:4)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:4)
+		LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
 	    END IF
 	      end if
    

@@ -66,9 +66,9 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:5)=CLEFT_ROT(1:5); RIGHTV(1:5)=CRIGHT_ROT(1:5)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT(N)
-						  CLEFT_ROT(1:5)=LEFTV(1:5);CRIGHT_ROT(1:5)=RIGHTV(1:5);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  
 						  CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 						   CALL ROTATEB(N,INVTRI,ClefT,Cleft_ROT,ANGLE1,ANGLE2)
@@ -79,7 +79,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  
 						  				  
 						  
-						  LEFTV(1:5)=CLEFT(1:5);RIGHTV(1:5)=CRIGHT(1:5)						  
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N)
 						  
 						  ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
@@ -131,10 +131,10 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  END IF
 						  
 						  
-						  IMPDIAG(i,1:5,1:5)=IMPDIAG(i,1:5,1:5)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(i,l,1:5,1:5)=IMPOFF(i,l,1:5,1:5)+(((OO2*CONVJ(1:5,1:5))&
+						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						  
@@ -169,10 +169,10 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  END IF
 						  ELSE
 						  
-						  IMPDIAG(i,1:5,1:5)=IMPDIAG(i,1:5,1:5)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(i,l,1:5,1:5)=IMPOFF(i,l,1:5,1:5)+(((OO2*CONVJ(1:5,1:5))&
+						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
                                                 
@@ -207,7 +207,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 				NZ=(COS(ANGLE2))
  				  mul1=IELEM(N,I)%SURF(L)
 				      B_CODE=0
-				      CLEFT(1:5)=U_C(I)%VAL(1,1:5)
+				      CLEFT(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
@@ -218,7 +218,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:5)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:5)
+								  CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
 								  
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									
@@ -247,13 +247,13 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 								    
 								    
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
-								    cright(1:5)=rightv(1:5)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				   
 				  				  				  				  
 								    
 								  END IF
 							ELSE
-							      CRIGHT(1:5)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:5)
+							      CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
 							      
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									
@@ -276,11 +276,11 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
 								
 								IF (FASTEST.EQ.1)THEN
-							      CRIGHT(1:5)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:5)
+							      CRIGHT(1:nof_Variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_Variables)
 							    ELSE
 							     
-							      CRIGHT(1:5)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:5)
+							      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)
 							    END IF
 								
 								 
@@ -301,11 +301,11 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 							ELSE 			
 							
 								  IF (FASTEST.EQ.1)THEN
-							      CRIGHT(1:5)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:5)
+							      CRIGHT(1:nof_Variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_Variables)
 							    ELSE
 							     
-							      CRIGHT(1:5)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:5)
+							      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)
 							    END IF
 								
 								 
@@ -329,9 +329,9 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 				      
 				      
 				      IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:5)=CLEFT_ROT(1:5); RIGHTV(1:5)=CRIGHT_ROT(1:5)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT(N)
-						  CLEFT_ROT(1:5)=LEFTV(1:5);CRIGHT_ROT(1:5)=RIGHTV(1:5);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 						   CALL ROTATEB(N,INVTRI,ClefT,Cleft_ROT,ANGLE1,ANGLE2)
 						  
@@ -340,7 +340,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  
 						  				  
 						  
-						  LEFTV(1:5)=CLEFT(1:5);RIGHTV(1:5)=CRIGHT(1:5)						  
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N)
 						  
 						 ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
@@ -391,10 +391,10 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  END IF
 						  
 						  
-						  IMPDIAG(i,1:5,1:5)=IMPDIAG(i,1:5,1:5)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(i,l,1:5,1:5)=IMPOFF(i,l,1:5,1:5)+(((OO2*CONVJ(1:5,1:5))&
+						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						  
@@ -433,10 +433,10 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  END IF
 						  ELSE
 						  
-						  IMPDIAG(i,1:5,1:5)=IMPDIAG(i,1:5,1:5)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(i,l,1:5,1:5)=IMPOFF(i,l,1:5,1:5)+(((OO2*CONVJ(1:5,1:5))&
+						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						 
@@ -588,9 +588,9 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:4)=CLEFT_ROT(1:4); RIGHTV(1:4)=CRIGHT_ROT(1:4)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT2d(N)
-						  CLEFT_ROT(1:4)=LEFTV(1:4);CRIGHT_ROT(1:4)=RIGHTV(1:4);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  CALL ROTATEb2D(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  CALL ROTATEb2D(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
 						  
@@ -601,7 +601,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  
 						  				  
 						  
-						  LEFTV(1:4)=CLEFT(1:4);RIGHTV(1:4)=CRIGHT(1:4)						  
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2D2(N)
 						  
 						 ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
@@ -651,10 +651,10 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  END IF
 						  
 						  
-						  IMPDIAG(i,1:4,1:4)=IMPDIAG(i,1:4,1:4)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE2D(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(i,l,1:4,1:4)=IMPOFF(i,l,1:4,1:4)+(((OO2*CONVJ(1:4,1:4))&
+						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						  
@@ -697,10 +697,10 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  END IF
 						  ELSE
 						  
-						  IMPDIAG(i,1:4,1:4)=IMPDIAG(i,1:4,1:4)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(i,l,1:4,1:4)=IMPOFF(i,l,1:4,1:4)+(((OO2*CONVJ(1:4,1:4))&
+						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						 
@@ -733,7 +733,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 				
  				  
 				      B_CODE=0
-				      CLEFT(1:4)=U_C(I)%VAL(1,1:4)
+				      CLEFT(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
@@ -744,7 +744,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:4)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:4)
+								  CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
 								  
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									
@@ -773,13 +773,13 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 								    
 								    
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
-								    cright(1:4)=rightv(1:4)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				    
 				  				  	KAS=2			  				  
 								    
 								  END IF
 							ELSE
-							      CRIGHT(1:4)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:4)
+							      CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
 							      
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									
@@ -802,11 +802,11 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
 								
 								IF (FASTEST.EQ.1)THEN
-							      CRIGHT(1:4)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:4)
+							      CRIGHT(1:nof_Variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_Variables)
 							    ELSE
 							     
-							      CRIGHT(1:4)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:4)
+							      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)
 							    END IF
 								KAS=4
 								 
@@ -827,11 +827,11 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 							ELSE 			
 							KAS=5
 								  IF (FASTEST.EQ.1)THEN
-							      CRIGHT(1:4)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:4)
+							      CRIGHT(1:nof_Variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_Variables)
 							    ELSE
 							     
-							      CRIGHT(1:4)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:4)
+							      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)
 							    END IF
 								
 								 
@@ -858,9 +858,9 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:4)=CLEFT_ROT(1:4); RIGHTV(1:4)=CRIGHT_ROT(1:4)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT2d(N)
-						  CLEFT_ROT(1:4)=LEFTV(1:4);CRIGHT_ROT(1:4)=RIGHTV(1:4);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  CALL ROTATEb2D(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  CALL ROTATEb2D(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
 						  
@@ -871,7 +871,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  
 						  				  
 						  
-						  LEFTV(1:4)=CLEFT(1:4);RIGHTV(1:4)=CRIGHT(1:4)						  
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2D2(N)
 						  
 						ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
@@ -920,10 +920,10 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  END IF
 						  
 						  
-						  IMPDIAG(i,1:4,1:4)=IMPDIAG(i,1:4,1:4)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE2D(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(i,l,1:4,1:4)=IMPOFF(i,l,1:4,1:4)+(((OO2*CONVJ(1:4,1:4))&
+						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						  
@@ -960,10 +960,10 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  END IF
 						  ELSE
 						  
-						  IMPDIAG(i,1:4,1:4)=IMPDIAG(i,1:4,1:4)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(i,l,1:4,1:4)=IMPOFF(i,l,1:4,1:4)+(((OO2*CONVJ(1:4,1:4))&
+						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						 
@@ -1110,9 +1110,9 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:5)=CLEFT_ROT(1:5); RIGHTV(1:5)=CRIGHT_ROT(1:5)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT(N)
-						  CLEFT_ROT(1:5)=LEFTV(1:5);CRIGHT_ROT(1:5)=RIGHTV(1:5);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  CALL ROTATEF(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  CALL ROTATEF(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
 						  
@@ -1122,7 +1122,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  
 						  				  
 						  
-						  LEFTV(1:5)=CLEFT(1:5);RIGHTV(1:5)=CRIGHT(1:5)						  
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N)
 						  
 						ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
@@ -1175,10 +1175,10 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  END IF
 						  
 						  
-						  IMPDIAG(1,1:5,1:5)=IMPDIAG(1,1:5,1:5)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(1,l,1:5,1:5)=IMPOFF(1,l,1:5,1:5)+(((OO2*CONVJ(1:5,1:5))&
+						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						  
@@ -1208,10 +1208,10 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  END IF
 						  ELSE
 						  
-						  IMPDIAG(1,1:5,1:5)=IMPDIAG(1,1:5,1:5)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(1,l,1:5,1:5)=IMPOFF(1,l,1:5,1:5)+(((OO2*CONVJ(1:5,1:5))&
+						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						 
@@ -1238,7 +1238,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 				NZ=(COS(ANGLE2))
  				  
 				      B_CODE=0
-				      CLEFT(1:5)=U_C(I)%VAL(1,1:5)
+				      CLEFT(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
@@ -1249,7 +1249,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:5)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:5)
+								  CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
 								  
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									
@@ -1278,13 +1278,13 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 								    
 								    
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
-								    cright(1:5)=rightv(1:5)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				   
 				  				  				  				  
 								    
 								  END IF
 							ELSE
-							      CRIGHT(1:5)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:5)
+							      CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
 							      
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									
@@ -1307,11 +1307,11 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
 								
 								IF (FASTEST.EQ.1)THEN
-							      CRIGHT(1:5)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:5)
+							      CRIGHT(1:nof_Variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_Variables)
 							    ELSE
 							     
-							      CRIGHT(1:5)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:5)
+							      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)
 							    END IF
 								
 								 
@@ -1332,11 +1332,11 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 							ELSE 			
 							
 								  IF (FASTEST.EQ.1)THEN
-							      CRIGHT(1:5)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:5)
+							      CRIGHT(1:nof_Variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_Variables)
 							    ELSE
 							     
-							      CRIGHT(1:5)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:5)
+							      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)
 							    END IF
 								
 								 
@@ -1360,9 +1360,9 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:5)=CLEFT_ROT(1:5); RIGHTV(1:5)=CRIGHT_ROT(1:5)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT(N)
-						  CLEFT_ROT(1:5)=LEFTV(1:5);CRIGHT_ROT(1:5)=RIGHTV(1:5);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  CALL ROTATEF(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  CALL ROTATEF(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
 						  
@@ -1372,7 +1372,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  
 						  				  
 						  
-						  LEFTV(1:5)=CLEFT(1:5);RIGHTV(1:5)=CRIGHT(1:5)						  
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N)
 						  
 						  ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
@@ -1424,10 +1424,10 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  END IF
 						  
 						  
-						  IMPDIAG(1,1:5,1:5)=IMPDIAG(1,1:5,1:5)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(1,l,1:5,1:5)=IMPOFF(1,l,1:5,1:5)+(((OO2*CONVJ(1:5,1:5))&
+						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						  
@@ -1457,10 +1457,10 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  END IF
 						  ELSE
 						  
-						  IMPDIAG(1,1:5,1:5)=IMPDIAG(1,1:5,1:5)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(1,l,1:5,1:5)=IMPOFF(1,l,1:5,1:5)+(((OO2*CONVJ(1:5,1:5))&
+						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						 
@@ -1605,16 +1605,16 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:4)=CLEFT_ROT(1:4); RIGHTV(1:4)=CRIGHT_ROT(1:4)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT2d(N)
-						  CLEFT_ROT(1:4)=LEFTV(1:4);CRIGHT_ROT(1:4)=RIGHTV(1:4);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						   CALL ROTATEb2D(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  CALL ROTATEb2D(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and so
 						  END IF
 						  
 						  				  
 						  
-						  LEFTV(1:4)=CLEFT(1:4);RIGHTV(1:4)=CRIGHT(1:4)						  
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2D2(N)
 						  
 						ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
@@ -1663,10 +1663,10 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  END IF
 						  
 						  
-						  IMPDIAG(1,1:4,1:4)=IMPDIAG(1,1:4,1:4)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE2D(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(1,l,1:4,1:4)=IMPOFF(1,l,1:4,1:4)+(((OO2*CONVJ(1:4,1:4))&
+						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						  
@@ -1696,10 +1696,10 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  END IF
 						  ELSE
 						  
-						  IMPDIAG(1,1:4,1:4)=IMPDIAG(1,1:4,1:4)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(1,l,1:4,1:4)=IMPOFF(1,l,1:4,1:4)+(((OO2*CONVJ(1:4,1:4))&
+						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						 
@@ -1727,7 +1727,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 				
  				  
 				      B_CODE=0
-				      CLEFT(1:4)=U_C(I)%VAL(1,1:4)
+				      CLEFT(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
@@ -1738,7 +1738,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:4)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:4)
+								  CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
 								  
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									
@@ -1767,13 +1767,13 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 								    
 								    
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
-								    cright(1:4)=rightv(1:4)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				   
 				  				  				  				  
 								    
 								  END IF
 							ELSE
-							      CRIGHT(1:4)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:4)
+							      CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
 							      
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									
@@ -1796,11 +1796,11 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
 								
 								IF (FASTEST.EQ.1)THEN
-							      CRIGHT(1:4)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:4)
+							      CRIGHT(1:nof_Variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_Variables)
 							    ELSE
 							     
-							      CRIGHT(1:4)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:4)
+							      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)
 							    END IF
 								
 								 
@@ -1821,11 +1821,11 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 							ELSE 			
 							
 								  IF (FASTEST.EQ.1)THEN
-							      CRIGHT(1:4)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:4)
+							      CRIGHT(1:nof_Variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_Variables)
 							    ELSE
 							     
-							      CRIGHT(1:4)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:4)
+							      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)
 							    END IF
 								
 								 
@@ -1849,16 +1849,16 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:4)=CLEFT_ROT(1:4); RIGHTV(1:4)=CRIGHT_ROT(1:4)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT2d(N)
-						  CLEFT_ROT(1:4)=LEFTV(1:4);CRIGHT_ROT(1:4)=RIGHTV(1:4);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						   CALL ROTATEb2D(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  CALL ROTATEb2D(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and so
 						  END IF
 						  
 						  				  
 						  
-						  LEFTV(1:4)=CLEFT(1:4);RIGHTV(1:4)=CRIGHT(1:4)						  
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2D2(N)
 						  
 						 ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
@@ -1907,10 +1907,10 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  END IF
 						  
 						  
-						  IMPDIAG(1,1:4,1:4)=IMPDIAG(1,1:4,1:4)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE2D(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(1,l,1:4,1:4)=IMPOFF(1,l,1:4,1:4)+(((OO2*CONVJ(1:4,1:4))&
+						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						  
@@ -1940,10 +1940,10 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  END IF
 						  ELSE
 						  
-						  IMPDIAG(1,1:4,1:4)=IMPDIAG(1,1:4,1:4)+(OO2*((vpp*identity1))*MUL1)
+						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
 						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
 						  convj=eigvl
-						  IMPOFF(1,l,1:4,1:4)=IMPOFF(1,l,1:4,1:4)+(((OO2*CONVJ(1:4,1:4))&
+						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
 						 

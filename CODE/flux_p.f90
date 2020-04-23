@@ -271,13 +271,14 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 	DO II=1,NOF_INTERIOR	!for all the interior elements
 	I=EL_INT(II)
 	ICONSIDERED=I
-                    
+            MP_SOURCE3=ZERO        
 		    B_CODE=0
 		    
 		    
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
 !                                      IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
 				  GODFLUX2=ZERO
+				  MP_SOURCE2=ZERO
  				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
  				  ANGLE2=IELEM(N,I)%FACEANGLEY(L)
  				  NX=(COS(ANGLE1)*SIN(ANGLE2))
@@ -291,8 +292,8 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
 				  end if
 				  do NGP=1,iqp	!for all the gaussian quadrature points
-				      CLEFT(1:5)=ILOCAL_RECON3(I)%ULEFT(1:5,L,NGP)	!left mean flow state
-				      CRIGHT(1:5)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:5,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
 				      
 					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  if (icoupleturb.eq.1)then
@@ -314,9 +315,9 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:5)=CLEFT_ROT(1:5); RIGHTV(1:5)=CRIGHT_ROT(1:5)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT(N)
-						  CLEFT_ROT(1:5)=LEFTV(1:5);CRIGHT_ROT(1:5)=RIGHTV(1:5);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  END IF
 						  
 				      
@@ -375,7 +376,12 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				       
 				       
 				      
-				      GODFLUX2(1:5)=GODFLUX2(1:5)+(RHLLCFLUX(1:5)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
+                        END IF
+				     
+				     
 				     
 				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  if (icoupleturb.eq.0)then	!first order upwind flux
@@ -403,8 +409,12 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				      
 				  END DO
 				    
-				    RHS(I)%VAL(1:5)=RHS(I)%VAL(1:5)+GODFLUX2(1:5)
-!  				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:5)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:5)-godflux2(1:5)
+				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
+				    IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE3=MP_SOURCE3+MP_SOURCE2
+                        END IF
+				    
+!  				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)-godflux2(1:nof_Variables)
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
 				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+&
 				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
@@ -413,6 +423,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				    end if
 !  				    end if
 		    END DO
+                 IF (MULTISPECIES.EQ.1)THEN
+                 RHS(I)%VAL(8)=RHS(I)%VAL(8)-(U_C(I)%VAL(1,8)*MP_SOURCE3)
+                 
+                 END IF
 	END DO
 	!$OMP END DO
 	
@@ -421,7 +435,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 	DO II=1,NOF_BOUNDED
 	I=EL_BND(II)
 	ICONSIDERED=I	
-				
+		 MP_SOURCE3=ZERO		
 		   
 		    
 		    DO L=1,IELEM(N,I)%IFCA
@@ -480,12 +494,12 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				  end if
 				  GODFLUX2=ZERO
 				  
-				  
+				   MP_SOURCE2=ZERO
 								  
 				  
 				  do NGP=1,iqp
 				      B_CODE=0
-				      CLEFT(1:5)=ILOCAL_RECON3(I)%ULEFT(1:5,L,NGP)
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						if (icoupleturb.eq.1)then
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)
@@ -498,7 +512,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:5)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:5,IELEM(N,I)%INEIGHN(L),NGP)
+								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
 								  
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
@@ -530,12 +544,12 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 								    
 								    
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
-								    cright(1:5)=rightv(1:5)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 								    			  				  
 								    
 								  END IF
 							ELSE
-							      CRIGHT(1:5)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:5,IELEM(N,I)%INEIGHN(L),NGP)
+							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
 							      
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
@@ -605,9 +619,9 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:5)=CLEFT_ROT(1:5); RIGHTV(1:5)=CRIGHT_ROT(1:5)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT(N)
-						  CLEFT_ROT(1:5)=LEFTV(1:5);CRIGHT_ROT(1:5)=RIGHTV(1:5);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  END IF
 						  
 				      
@@ -695,8 +709,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				       
 				     
 				      
-				      GODFLUX2(1:5)=GODFLUX2(1:5)+(RHLLCFLUX(1:5)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
-				      
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
+                        END IF
 				       
 				      
 				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -724,9 +740,12 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				      
 				  END DO
 				   
-				    RHS(I)%VAL(1:5)=RHS(I)%VAL(1:5)+GODFLUX2(1:5)
+				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
+				    IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE3=MP_SOURCE3+MP_SOURCE2
+                        END IF
 ! 				    if ((igoflux.eq.1))then
-! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:5)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:5)-GODFLUX2(1:5)
+! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
 ! 				    end if
 				    
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
@@ -739,6 +758,11 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				    end if
 ! 				    end if
 		    END DO
+		     IF (MULTISPECIES.EQ.1)THEN
+                 RHS(I)%VAL(8)=RHS(I)%VAL(8)-(U_C(I)%VAL(1,8)*MP_SOURCE3)
+                 
+                 END IF
+                
 	END DO
 	!$OMP END DO
 
@@ -775,7 +799,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 	ICONSIDERED=I
 ! 		    RHS(I)%VAL(:)=ZERO;IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) RHST(I)%VAL(:)=ZERO 
 !                     
-                     
+                MP_SOURCE3=ZERO     
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
 		    if (IELEM(N,I)%REORIENT(l).eq.IELEM(N,IELEM(N,I)%INEIGH(L))%REORIENT(IELEM(N,I)%INEIGHN(L)))then
 		    
@@ -785,6 +809,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
                                 
                                 
 				  GODFLUX2=ZERO
+				  MP_SOURCE2=ZERO
  				  nx=IELEM(N,I)%FACEANGLEX(L)
  				  NY=IELEM(N,I)%FACEANGLEY(L)
  				  angle1=nx
@@ -793,8 +818,8 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 					iqp=qp_line_n
 				
 				  do NGP=1,iqp	!for all the gaussian quadrature points
-				      CLEFT(1:4)=ILOCAL_RECON3(I)%ULEFT(1:4,L,NGP)	!left mean flow state
-				      CRIGHT(1:4)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:4,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
 ! 				      
 					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  if (icoupleturb.eq.1)then
@@ -816,9 +841,9 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:4)=CLEFT_ROT(1:4); RIGHTV(1:4)=CRIGHT_ROT(1:4)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT2d(N)
-						  CLEFT_ROT(1:4)=LEFTV(1:4);CRIGHT_ROT(1:4)=RIGHTV(1:4);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  END IF
 						  
 				      
@@ -849,7 +874,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				      CALL ROTATEB2d(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)   
 				      CALL ROE_RIEMANN_SOLVER2d(N,Cleft,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
 				      
-				      RHLLCFLUX(1:4)=HLLCFLUX(1:4)
+				      RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
                                         
                                         
                                          CASE(4)			!roe
@@ -869,8 +894,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				       
 				       
 				      
-				      GODFLUX2(1:4)=GODFLUX2(1:4)+(RHLLCFLUX(1:4)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
-				     
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				       IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
+                        END IF
 				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  if (icoupleturb.eq.0)then	!first order upwind flux
 					    
@@ -896,8 +923,13 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				      
 				      
 				  END DO
-				    RHS(I)%VAL(1:4)=RHS(I)%VAL(1:4)+GODFLUX2(1:4)
-! 				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:4)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:4)-GODFLUX2(1:4)
+				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
+				    IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE3=MP_SOURCE3+MP_SOURCE2
+                        END IF
+				    
+				    
+! 				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+&
 				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
@@ -907,6 +939,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				    END IF
 ! 				    end if
 		    END DO
+		    IF (MULTISPECIES.EQ.1)THEN
+                 RHS(I)%VAL(7)=RHS(I)%VAL(7)-(U_C(I)%VAL(1,7)*MP_SOURCE3*ielem(n,I)%totvolume)
+                 
+                 END IF
 	END DO
 	!$OMP END DO
 	
@@ -915,6 +951,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 	DO II=1,NOF_BOUNDED
 	I=EL_BND(II)
 	ICONSIDERED=I	
+	MP_SOURCE3=ZERO  
 				
 ! 		    RHS(I)%VAL(:)=ZERO;IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) RHST(I)%VAL(:)=ZERO 
 		    
@@ -956,8 +993,9 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				 
 					iqp=qp_line_n
 				  GODFLUX2=ZERO
+				  MP_SOURCE2=ZERO
 				  do NGP=1,iqp
-				      CLEFT(1:4)=ILOCAL_RECON3(I)%ULEFT(1:4,L,NGP)
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)
 				      
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						if (icoupleturb.eq.1)then
@@ -971,7 +1009,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:4)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:4,IELEM(N,I)%INEIGHN(L),NGP)
+								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
 									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
@@ -1000,13 +1038,13 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 ! 								    
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
-								    cright(1:4)=rightv(1:4)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 ! 				  				   
 				  				  	 IKAS=2			  				  
 								    
 								  END IF
 							ELSE
-							      CRIGHT(1:4)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:4,IELEM(N,I)%INEIGHN(L),NGP)
+							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
  							     
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
@@ -1077,10 +1115,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  LEFTV(1:4)=CLEFT_ROT(1:4); RIGHTV(1:4)=CRIGHT_ROT(1:4)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  
 						  CALL LMACHT2d(N)
-						  CLEFT_ROT(1:4)=LEFTV(1:4);CRIGHT_ROT(1:4)=RIGHTV(1:4);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  
 						  
 						  END IF
@@ -1159,8 +1197,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				       
 				     
 				      
-				      GODFLUX2(1:4)=GODFLUX2(1:4)+(RHLLCFLUX(1:4)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
-				      
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
+                        END IF
 				       
 				      
 				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -1194,9 +1234,12 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				      
 				  END DO
 				   
-				    RHS(I)%VAL(1:4)=RHS(I)%VAL(1:4)+GODFLUX2(1:4)
+				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
+				    IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE3=MP_SOURCE3+MP_SOURCE2
+                        END IF
 ! 				    if ((igoflux.eq.1))then
-! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:4)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:4)-GODFLUX2(1:4)
+! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
 ! 				    end if
 				    
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
@@ -1209,6 +1252,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 ! 				    end if
 				    end if
 		    END DO
+		     IF (MULTISPECIES.EQ.1)THEN
+                 RHS(I)%VAL(7)=RHS(I)%VAL(7)-(U_C(I)%VAL(1,7)*MP_SOURCE3*ielem(n,I)%totvolume)
+                 
+                 END IF
 	END DO
 	!$OMP END DO
 
@@ -1279,10 +1326,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
 				  end if
 				  do NGP=1,iqp	!for all the gaussian quadrature points
-				      CLEFT(1:5)=ILOCAL_RECON3(I)%ULEFT(1:5,L,NGP)	!left mean flow state
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
 				      LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
 				      LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
-				      CRIGHT(1:5)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:5,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
 				      RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
 				      RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP);
 			
@@ -1312,9 +1359,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  LEFTV(1:5)=CLEFT_ROT(1:5); RIGHTV(1:5)=CRIGHT_ROT(1:5)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT(N)
-						  CLEFT_ROT(1:5)=LEFTV(1:5);CRIGHT_ROT(1:5)=RIGHTV(1:5);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2) 
 						  END IF
@@ -1440,7 +1487,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 ! !  					  end if
 !                                             
 !                                              vdamp=((2*iorder+1)/(ielem(n,i)%dih(L)*1.25))*((4.0/3.0)*OO2*(( (VISCL(1))+(VISCL(2)))))
-! 					  HLLCFLUX(1:5)=(NX*FXV+NY*FYV+NZ*FZV)+damp*vdamp*(cright_rot(1:5)-cleft_rot(1:5)) 
+! 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)+damp*vdamp*(cright_rot(1:nof_Variables)-cleft_rot(1:nof_Variables)) 
 
                                      TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
 					    FXV=ZERO;FYV=ZERO;FZV=ZERO;RHO12 =ZERO;
@@ -1526,10 +1573,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					  FZV(5) = FZV(5) + U12*TAU(3,1) + V12*TAU(3,2) + W12*TAU(3,3)
 		
 		
-					  HLLCFLUX(1:5)=(NX*FXV+NY*FYV+NZ*FZV)	
+					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)	
 
 					  
-				      GODFLUX2(1:5)=GODFLUX2(1:5)+(HLLCFLUX(1:5)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
 				      
 				     
 				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -1557,8 +1604,8 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				      
 				  END DO
 				  
-				    RHS(I)%VAL(1:5)=RHS(I)%VAL(1:5)-GODFLUX2(1:5)
-!  				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:5)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:5)+GODFLUX2(1:5)
+				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
+!  				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
 				    
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
 				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
@@ -1637,7 +1684,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 								  
 				  
 				  do NGP=1,iqp
-				      CLEFT(1:5)=ILOCAL_RECON3(I)%ULEFT(1:5,L,NGP)	!left mean flow state
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
 				      LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
 				      LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -1655,7 +1702,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:5)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:5,IELEM(N,I)%INEIGHN(L),NGP)
+								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
 								  RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,L,NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,L,NGP);
 								  RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,L,NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,L,NGP);
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -1691,7 +1738,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
-								    cright(1:5)=rightv(1:5)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 								    
 								    
 								    RCVGRAD(:,:)=LCVGRAD(:,:)
@@ -1710,7 +1757,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 ! 				  				  
 								  END IF
 							ELSE
-							      CRIGHT(1:5)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:5,IELEM(N,I)%INEIGHN(L),NGP)
+							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
 							      RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
 							      RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP);
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -1827,9 +1874,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  LEFTV(1:5)=CLEFT_ROT(1:5); RIGHTV(1:5)=CRIGHT_ROT(1:5)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT(N)
-						  CLEFT_ROT(1:5)=LEFTV(1:5);CRIGHT_ROT(1:5)=RIGHTV(1:5);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2) 
 						  END IF
@@ -1958,7 +2005,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 !  					  end if
 !                                             
 !                                              vdamp=((2*iorder+1)/(ielem(n,i)%dih(L)*1.25))*((4.0/3.0)*OO2*(( (VISCL(1))+(VISCL(2)))))
-! 					  HLLCFLUX(1:5)=(NX*FXV+NY*FYV+NZ*FZV)+damp*vdamp*(cright_rot(1:5)-cleft_rot(1:5))		
+! 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)+damp*vdamp*(cright_rot(1:nof_Variables)-cleft_rot(1:nof_Variables))		
 
                                             
 					  TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
@@ -2045,10 +2092,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					  FZV(5) = FZV(5) + U12*TAU(3,1) + V12*TAU(3,2) + W12*TAU(3,3)
 		
 		
-					  HLLCFLUX(1:5)=(NX*FXV+NY*FYV+NZ*FZV)	
+					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)	
 
 
-				      GODFLUX2(1:5)=GODFLUX2(1:5)+(HLLCFLUX(1:5)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
 				      
 				      
 				      
@@ -2079,9 +2126,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				  END DO
 				  
 				    
-				    RHS(I)%VAL(1:5)=RHS(I)%VAL(1:5)-GODFLUX2(1:5)
+				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
 ! 				    if ((igoflux.eq.1))then
-! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:5)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:5)+GODFLUX2(1:5)
+! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
 ! 				    end if
 				    
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
@@ -2156,10 +2203,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				
 				  
 				  do NGP=1,iqp	!for all the gaussian quadrature points
-				      CLEFT(1:4)=ILOCAL_RECON3(I)%ULEFT(1:4,L,NGP)	!left mean flow state
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
 				      LCVGRAD(1,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,2,L,NGP);LCVGRAD(2,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,3,L,NGP);
 				      LCVGRAD(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,L,NGP)
-				      CRIGHT(1:4)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:4,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
 				      RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,IELEM(N,I)%INEIGHN(L),NGP);
 				      RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,IELEM(N,I)%INEIGHN(L),NGP)
 			
@@ -2189,9 +2236,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  CALL ROTATEF2d(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  CALL ROTATEF2d(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  LEFTV(1:4)=CLEFT_ROT(1:4); RIGHTV(1:4)=CRIGHT_ROT(1:4)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT2d(N)
-						  CLEFT_ROT(1:4)=LEFTV(1:4);CRIGHT_ROT(1:4)=RIGHTV(1:4);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  CALL ROTATEB2d(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  CALL ROTATEB2d(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2) 
 						  END IF
@@ -2310,8 +2357,8 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 ! !  					  end if
 !                                             
 !                                              vdamp=((2*iorder+1)/(ielem(n,i)%dih(L)*1.25))*((4.0/3.0)*OO2*(( (VISCL(1))+(VISCL(2)))))
-! ! 					  HLLCFLUX(1:5)=(NX*FXV+NY*FYV+NZ*FZV)+damp*vdamp*(cright_rot(1:5)-cleft_rot(1:5)) 
-! 					  HLLCFLUX(1:4)=(NX*FXV+NY*FYV)+damp*vdamp*(cright_rot(1:4)-cleft_rot(1:4))	
+! ! 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)+damp*vdamp*(cright_rot(1:5)-cleft_rot(1:5)) 
+! 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)+damp*vdamp*(cright_rot(1:nof_Variables)-cleft_rot(1:nof_Variables))	
 
 
                                      TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
@@ -2382,10 +2429,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					  FXV(4) = FXV(4) + U12*TAU(1,1) + V12*TAU(1,2) 
 					  FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2) 
 ! 					 
-					  HLLCFLUX(1:4)=(NX*FXV+NY*FYV)	
+					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)	
 		
 					  			      
-				      GODFLUX2(1:4)=GODFLUX2(1:4)+(HLLCFLUX(1:4)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
 				      
 				     
 				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -2411,8 +2458,8 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				      
 				  END DO
 				  
-				    RHS(I)%VAL(1:4)=RHS(I)%VAL(1:4)-GODFLUX2(1:4)
-!  				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:4)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:4)+GODFLUX2(1:4)
+				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
+!  				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
 				    
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
 				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
@@ -2488,7 +2535,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				  
 				  do NGP=1,iqp
 				   damp=lamx
-				      CLEFT(1:4)=ILOCAL_RECON3(I)%ULEFT(1:4,L,NGP)	!left mean flow state
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
 				      LCVGRAD(1,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,2,L,NGP);LCVGRAD(2,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,3,L,NGP);
 				      LCVGRAD(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,L,NGP)
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -2506,7 +2553,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:4)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:4,IELEM(N,I)%INEIGHN(L),NGP)
+								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
 								  RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,L,NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,L,NGP);
 								  RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,L,NGP);
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -2542,7 +2589,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
-								    cright(1:4)=rightv(1:4)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 								    
 								    RCVGRAD(:,:)=LCVGRAD(:,:)
 				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
@@ -2560,7 +2607,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 ! 				  				  
 								  END IF
 							ELSE
-							      CRIGHT(1:4)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:4,IELEM(N,I)%INEIGHN(L),NGP)
+							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
 							      RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,IELEM(N,I)%INEIGHN(L),NGP);
 							      RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,IELEM(N,I)%INEIGHN(L),NGP);
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -2677,9 +2724,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  CALL ROTATEF2d(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  CALL ROTATEF2d(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  LEFTV(1:4)=CLEFT_ROT(1:4); RIGHTV(1:4)=CRIGHT_ROT(1:4)
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 						  CALL LMACHT2d(N)
-						  CLEFT_ROT(1:4)=LEFTV(1:4);CRIGHT_ROT(1:4)=RIGHTV(1:4);
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  CALL ROTATEB2d(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  CALL ROTATEB2d(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2) 
 						  END IF
@@ -2871,12 +2918,12 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					  FXV(4) = FXV(4) + U12*TAU(1,1) + V12*TAU(1,2) 
 					  FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2) 
 ! 					 
-					  HLLCFLUX(1:4)=(NX*FXV+NY*FYV)			
+					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)			
 					  
 		
 		
 			      
-				      GODFLUX2(1:4)=GODFLUX2(1:4)+(HLLCFLUX(1:4)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
 				      
 				     
 				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -2903,9 +2950,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				  END DO
 				  
 				    
-				     RHS(I)%VAL(1:4)=RHS(I)%VAL(1:4)-GODFLUX2(1:4)
+				     RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
 ! 				    if ((igoflux.eq.1))then
-! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:4)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:4)+GODFLUX2(1:4)
+! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
 ! 				    end if
 				    
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
