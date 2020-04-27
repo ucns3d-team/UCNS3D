@@ -1529,7 +1529,7 @@ ubvec(1)=1.050000
 allocate(options(3))
 options=[0, 0, 0]
 
-allocate(parts_el(xmpiee(n+1)))
+allocate(parts_el(xmpiee(n+1)));parts_el=0
 
    if (n.eq.0) then
       write(*,*) '------------------------------------------------------------------------'
@@ -1586,7 +1586,8 @@ deallocate(options)
  CALL MPI_GATHER(PARTS_EL,XMPIEE(1),MPI_INTEGER,XMPIE,XMPIEE(1),MPI_INTEGER,ISIZE-1,MPI_COMM_WORLD,IERROR)
  
   IF (N.EQ.ISIZE-1)THEN
-  XMPIE(elmdist(n+1):elmdist(n+2)-1)=PARTS_EL(1:XMPIEE(N))
+  
+  XMPIE(elmdist(n+1):elmdist(n+2)-1)=PARTS_EL(1:XMPIEE(N+1))
   END IF
  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
  

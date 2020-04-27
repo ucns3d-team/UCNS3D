@@ -1817,12 +1817,11 @@ Subroutine RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,
 			if (MULTISPECIES.EQ.1)THEN
 			sl(1)=abs(ul)+sqrt(gammaL*pl/rl)
 			sr(1)=abs(ur)+sqrt(gammaR*pr/rr)
-			MP_SOURCE1=MAX(ABS(SL(1)),ABS(SR(1)))
+			MP_SOURCE1=0.5D0*(ul+ur)-0.5D0*(MAX(ABS(SL(1)),ABS(SR(1))))*(UR-UL)
 			ELSE
 			sl(1)=abs(ul)+sqrt(gamma*pl/rl)
 			sr(1)=abs(ur)+sqrt(gamma*pr/rr)
 			ENDIF
-			
 			
 			
 			HLLCFLUX(:)=0.5d0*(FL(:)+FR(:))-0.5d0*MAX(ABS(SL(1)),ABS(SR(1)))*(Cright_ROT(:)-Cleft_ROT(:))

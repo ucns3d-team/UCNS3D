@@ -1592,7 +1592,7 @@ DO I=1,KMAXE
    PRACE_T8=PRACE_T7+PRACE_T6
 
    FLOPS_COUNT=(((2*idegfree*nof_Variables*(imaxdegfree+1)*5)+(2*nof_Variables*nof_variables*idegfree*4)+(2*idegfree*nof_Variables*nof_variables*5)+(2*idegfree*nof_Variables*idegfree*5)+&
-                (QP_QUAD*2*6*3*3*3)+(QP_QUAD*3*2*5*6*5*5)+(5*5*5*2*QP_QUAD*6)+(QP_QUAD*nof_Variables*6*2)+(QP_QUAD*2*6)+(idegfree*QP_QUAD*6*iorder)+(20++300*IORDER*QP_QUAD*6+200+12000*QP_QUAD*6*2))/prace_t8)*1e-9*imaxe
+                (QP_QUAD*2*6*3*3*3)+(QP_QUAD*3*2*5*6*5*5)+(5*5*5*2*QP_QUAD*6)+(QP_QUAD*nof_Variables*6*2)+(QP_QUAD*2*6)+(idegfree*QP_QUAD*6*iorder)+(20+300*IORDER*QP_QUAD*6+200+12000*QP_QUAD*6*2))/prace_t8)*1e-9*imaxe
 
 
    

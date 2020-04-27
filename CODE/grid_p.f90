@@ -21,6 +21,8 @@ oo2=1.0d0/2.0d0
 zero=0.0d0
 ! PI=(ACOS(zero))*2
 PI=4.0D0*ATAN(1.0D0)
+alpha=1.0D0
+BETA=ZERO
 
 end subroutine tolerances
 
@@ -1690,20 +1692,20 @@ IF (N.EQ.0)THEN
 OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	
 !-------------------FOR DEBUGGING ONLY -----------------------------------------!
-	WRITE(63,*),"------------UNSTRUCTURED FLUID DYNAMICS SOLVER ------------"
-	WRITE(63,*),"-----------------------GRID  TYPE--------------------------"
+	WRITE(63,*)"------------UNSTRUCTURED FLUID DYNAMICS SOLVER ------------"
+	WRITE(63,*)"-----------------------GRID  TYPE--------------------------"
 	IF (DIMENSIONA.EQ.3 )THEN
-	WRITE(63,*),"-----------------------3D MODE--------------------------"
+	WRITE(63,*)"-----------------------3D MODE--------------------------"
 	ELSE
-	WRITE(63,*),"-----------------------2D MODE--------------------------"
+	WRITE(63,*)"-----------------------2D MODE--------------------------"
 	END IF
 	!IF ((L.GT.0).AND.((K.GT.0).OR.(M.GT.0).OR.(N.GT.0)))THEN
-	WRITE(63,*),K,"HEXAHEDRAL ELEMENTS"
-	WRITE(63,*),L,"TETRAHEDRAL ELEMENTS"
-	WRITE(63,*),M,"PYRAMIDAL ELEMENTS"
-	WRITE(63,*),KK,"PRISMATIC ELEMENTS"
-	WRITE(63,*),ll,"QUADRILATERAL ELEMENTS"
-	WRITE(63,*),mm,"TRIANGULAR ELEMENTS"
+	WRITE(63,*)K,"HEXAHEDRAL ELEMENTS"
+	WRITE(63,*)L,"TETRAHEDRAL ELEMENTS"
+	WRITE(63,*)M,"PYRAMIDAL ELEMENTS"
+	WRITE(63,*)KK,"PRISMATIC ELEMENTS"
+	WRITE(63,*)ll,"QUADRILATERAL ELEMENTS"
+	WRITE(63,*)mm,"TRIANGULAR ELEMENTS"
 	!END IF
 	
 	

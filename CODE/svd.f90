@@ -184,7 +184,7 @@ enddo
 endif
 goto 3
 endif
-if(its.eq.30) pause 'no convergence in svdcmp'
+if(its.eq.30) stop! 'no convergence in svdcmp'
 x=w(l) !Shift from bottom 2-by-2 minor.
 nm=k-1
 y=w(nm)

@@ -2500,10 +2500,10 @@ Valuelocation(:)=0
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,4
 		DO I=1,KMAXE
-		  VALUESS(i)=U_C(I)%VAL(1,kkd)
-		  if (kkd.ge.2.and.kkd.le.3)then
-		  VALUESS(i)=U_C(I)%VAL(1,kkd)/U_C(I)%VAL(1,1)
-		  end if
+          leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+		  CALL CONS2PRIM2D(N)
+		  VALUESS(i)=leftv(kkd)
+		 
 		END DO
 		
 		

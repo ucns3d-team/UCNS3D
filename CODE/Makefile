@@ -1,4 +1,7 @@
-F90=mpiifort
+##intel
+#F90=mpiifort
+#GFORTRAN
+F90=mpif90
 LD=$(F90)
 ifdef HPCTOOLKIT
    $(info HPCToolkit is loaded - building version for profiling)
@@ -8,18 +11,37 @@ else
    DBGFLAGS=
 endif
 
+#intel MKL
+
 ifdef MKLROOT
 
-BLASFLAGS=-I$(MKLROOT)/include/intel64/lp64 -I$(MKLROOT)/include
-BLASLIBS= ${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm -ldl
+#BLASFLAGS=  -I${MKLROOT}/include
+#BLASLIBS=  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+#else
+#   $(error MKLROOT not set. Typing 'module load mkl' may help)
+#endif
 
-else
-   $(error MKLROOT not set. Typing 'module load mkl' may help)
-endif
+#open blas
 
-OFLAGS=  
-FFLAGS=-i4 -r8 -O0  -g  -debug all -xHost -traceback -qopenmp -qopenmp-link=static $(BLASFLAGS) -check bounds -fp-model strict -debug inline-debug-info -zero 
-FFLAGS=-i4 -r8 $(DBGFLAGS) -O2 -ipo -xHost -fp-model fast=2 -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)   #NEW WAY 30% FASTER
+ BLASFLAGS=  -I /usr/local/include
+ BLASLIBS=  -L/usr/local/lib -lopenblas
+
+OFLAGS= 
+
+#intel compilers
+# debug run
+#=-i4 -r8 -O0  -g  -debug all -xHost -traceback -qopenmp -qopenmp-link=static $(BLASFLAGS) -check bounds -fp-model strict -debug inline-debug-info -zero 
+# production run
+#FFLAGS=-i4 -r8 $(DBGFLAGS) -O3 -ipo -xHost -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)  
+
+##
+#gfortran
+#debug run
+#FFLAGS=-ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fbacktrace -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -Wno-lto-type-mismatch -static $(BLASFLAGS)
+#production run
+ FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -fcray-pointer -Ofast  -Wno-lto-type-mismatch -static $(BLASFLAGS)
+
+
 LIBS =$(BLASLIBS) -lstdc++ 
 
 include Makefile.common
