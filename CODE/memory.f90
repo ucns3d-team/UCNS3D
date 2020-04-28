@@ -192,84 +192,22 @@ END SUBROUTINE DEQUADALLOC
 	INTEGER,INTENT(INOUT)::N
 	INTEGER::I,KMAXE
 	KMAXE=XMPIELRANK(N)
+	
 	ALLOCATE (RHS(KMAXE))
 	
-	if (dimensiona.eq.3)then
-	IF (ITESTCASE.EQ.4)THEN
-
-	  IF (TURBULENCE.EQ.1)THEN
-	    ALLOCATE (RHST(KMAXE))
-	  
-	  END IF
-	  IF ((TURBULENCE.EQ.0).AND.(PASSIVESCALAR.GT.0))THEN
-	  ALLOCATE (RHST(KMAXE))
-      	  END IF
+	
+	IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+	ALLOCATE (RHST(KMAXE))
 	END IF
 	
 	DO I=1,KMAXE
-		IF (ITESTCASE.LT.3)THEN
-			ALLOCATE (RHS(I)%VAL(1))
-		END IF
-		IF (ITESTCASE.EQ.3)THEN
-			ALLOCATE (RHS(I)%VAL(5))
-		END IF
-		IF (ITESTCASE.EQ.4)THEN
-			ALLOCATE (RHS(I)%VAL(5))
-			IF (TURBULENCE.EQ.1) THEN
+            ALLOCATE (RHS(I)%VAL(nof_Variables))
+            IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)) THEN
 			       ALLOCATE (RHST(I)%VAL(TURBULENCEEQUATIONS+PASSIVESCALAR))
-			  
-
 			END IF
-			IF ((TURBULENCE.EQ.0).AND.(PASSIVESCALAR.GT.0)) THEN
-			       ALLOCATE (RHST(I)%VAL(PASSIVESCALAR))
-			END IF
-			
-		END IF
-	END DO
-	else
-	IF (ITESTCASE.EQ.4)THEN
-
-	  IF (TURBULENCE.EQ.1)THEN
-	    ALLOCATE (RHST(KMAXE))
-	  
-	  END IF
-	  IF ((TURBULENCE.EQ.0).AND.(PASSIVESCALAR.GT.0))THEN
-	  ALLOCATE (RHST(KMAXE))
-      	  END IF
-	END IF
-	
-	DO I=1,KMAXE
-		IF (ITESTCASE.LT.3)THEN
-			ALLOCATE (RHS(I)%VAL(1))
-		END IF
-		IF (ITESTCASE.EQ.3)THEN
-			ALLOCATE (RHS(I)%VAL(4))
-		END IF
-		IF (ITESTCASE.EQ.4)THEN
-			ALLOCATE (RHS(I)%VAL(4))
-			IF (TURBULENCE.EQ.1) THEN
-			       ALLOCATE (RHST(I)%VAL(TURBULENCEEQUATIONS+PASSIVESCALAR))
-			  
-
-			END IF
-			IF ((TURBULENCE.EQ.0).AND.(PASSIVESCALAR.GT.0)) THEN
-			       ALLOCATE (RHST(I)%VAL(PASSIVESCALAR))
-			END IF
-			
-		END IF
-	END DO
+    END DO
 	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	end if
 	END SUBROUTINE SUMFLUX_ALLOCATION
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -283,9 +221,9 @@ KMAXE=XMPIELRANK(N)
 if (dimensiona.eq.3)then
 if (lowmemory.eq.0)then
 
-ALLOCATE (IMPDIAG(KMAXE,1:5,1:5))
-ALLOCATE (IMPOFF(KMAXE,6,1:5,1:5))
-ALLOCATE (IMPdu(KMAXE,1:5+TURBULENCEEQUATIONS+PASSIVESCALAR))
+ALLOCATE (IMPDIAG(KMAXE,1:nof_Variables,1:nof_Variables))
+ALLOCATE (IMPOFF(KMAXE,6,1:nof_Variables,1:nof_Variables))
+ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
 
 IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
 ALLOCATE(IMPOFFt(KMAXE,6,TURBULENCEEQUATIONS+PASSIVESCALAR))
@@ -300,9 +238,9 @@ impdu(:,:)=zero
 
 else
 
-ALLOCATE (IMPDIAG(1,1:5,1:5))
-ALLOCATE (IMPOFF(1,6,1:5,1:5))
-ALLOCATE (IMPdu(KMAXE,1:5+TURBULENCEEQUATIONS+PASSIVESCALAR))
+ALLOCATE (IMPDIAG(1,1:nof_Variables,1:nof_Variables))
+ALLOCATE (IMPOFF(1,6,1:nof_Variables,1:nof_Variables))
+ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
 IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
 ALLOCATE(IMPOFFt(1,6,TURBULENCEEQUATIONS+PASSIVESCALAR))
 ALLOCATE(IMPDIAGT(1,TURBULENCEEQUATIONS+PASSIVESCALAR))
@@ -317,9 +255,9 @@ else
 
 if (lowmemory.eq.0)then
 
-ALLOCATE (IMPDIAG(KMAXE,1:4,1:4))
-ALLOCATE (IMPOFF(KMAXE,4,1:4,1:4))
-ALLOCATE (IMPdu(KMAXE,1:4+TURBULENCEEQUATIONS+PASSIVESCALAR))
+ALLOCATE (IMPDIAG(KMAXE,1:nof_Variables,1:nof_Variables))
+ALLOCATE (IMPOFF(KMAXE,4,1:nof_Variables,1:nof_Variables))
+ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
 
 IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
 ALLOCATE(IMPOFFt(KMAXE,4,TURBULENCEEQUATIONS+PASSIVESCALAR))
@@ -334,9 +272,9 @@ impdu(:,:)=zero
 
 else
 
-ALLOCATE (IMPDIAG(1,1:4,1:4))
-ALLOCATE (IMPOFF(1,4,1:4,1:4))
-ALLOCATE (IMPdu(KMAXE,1:4+TURBULENCEEQUATIONS+PASSIVESCALAR))
+ALLOCATE (IMPDIAG(1,1:nof_Variables,1:nof_Variables))
+ALLOCATE (IMPOFF(1,4,1:nof_Variables,1:nof_Variables))
+ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
 IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
 ALLOCATE(IMPOFFt(1,4,TURBULENCEEQUATIONS+PASSIVESCALAR))
 ALLOCATE(IMPDIAGT(1,TURBULENCEEQUATIONS+PASSIVESCALAR))
@@ -1228,6 +1166,9 @@ END SUBROUTINE MEMORY11
 	ALLOCATE (CLEFT(kkd),cleft_rot(kkd),cright(kkd),cright_rot(kkd),sl(1),sr(1),sm(1),HLLCFLUX(kkd),&
 	RHLLCFLUX(kkd),ROTVL(kkd),ROTVR(kkd),SUBSON1(kkd1),SUBSON2(kkd1),SUBSON3(kkd1),CTURBL(kkd2),CTURBr(kkd2),&
 	turbc1(kkd2),turbc2(kkd2),tempflux2(kkd1))
+	IF (MULTISPECIES.EQ.1)THEN
+	allocate(MP_IE(NOF_SPECIES),MP_AR(NOF_SPECIES),MP_A(NOF_SPECIES),MP_R(NOF_SPECIES))
+	ENDIF
 	ALLOCATE (TEMPFL(KKD),TEMPFR(KKD),FLSTAR(KKD),FRSTAR(KKD),ULSTAR(KKD),UrSTAR(KKD),TEMPUL(KKD),TEMPUR(KKD),FL(KKD),FR(KKD),RML(KKD2),RMR(KKD2))
 
 if (dimensiona.eq.3)then
@@ -1253,236 +1194,71 @@ end if
 	TYPE(U_EXACT),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_E
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 	INTEGER,INTENT(IN)::ITESTCASE,N
-	INTEGER::I,KMAXE
+	INTEGER::I,KMAXE,ISTAGE
 	KMAXE=XMPIELRANK(N)
 	ALLOCATE (U_C(KMAXE))
 	
 	IF (ITESTCASE.LE.3)THEN
 	ALLOCATE (U_E(KMAXE))
 	end if
-	if (( turbulence .eq. 1).OR.(PASSIVESCALAR.GT.0))THEN
+	
+	if (( turbulence .GT. 0).OR.(PASSIVESCALAR.GT.0))THEN
 	  Allocate(U_CT(kmaxe))
 	END IF
 
+	SELECT CASE(RUNGEKUTTA)
 	
-	IF (DIMENSIONA.EQ.3)THEN
+	CASE(1)
+	ISTAGE=1
+	
+	CASE(2)
+	ISTAGE=2
+	
+	CASE(3)
+	IF (AVERAGING.EQ.1)THEN
+	ISTAGE=5
+	ELSE
+	ISTAGE=3
+	END IF
+	
+	CASE(4)
+	IF (AVERAGING.EQ.1)THEN
+	ISTAGE=7
+	ELSE
+	ISTAGE=6
+	END IF
+	
+	CASE(5)
+	ISTAGE=2
+	
+	CASE(10)
+	ISTAGE=1
+	
+	CASE(11)
+	
+	IF (AVERAGING.EQ.1)THEN
+	ISTAGE=5
+	ELSE
+	ISTAGE=3
+	END IF
+	
+	END SELECT
+	
 	DO I=1,KMAXE
-		IF (ITESTCASE.Lt.3)THEN
-			if (rungekutta.eq.3)then
-			ALLOCATE (U_C(I)%VAL(3,1));U_C(I)%VAL=ZERO
-			end if
-			if (rungekutta.eq.4)then
-			ALLOCATE (U_C(I)%VAL(6,1));U_C(I)%VAL=ZERO
-			end if
-			ALLOCATE (U_E(I)%VAL(1,1));U_E(I)%VAL=ZERO
-		END IF
-		
-		
-		
-		
-		IF (ITESTCASE.GE.3)THEN
-                    IF((RUNGEKUTTA.EQ.10))THEN
-                    ALLOCATE (U_C(I)%VAL(1,5));U_C(I)%VAL=ZERO
+        ALLOCATE (U_C(I)%VAL(ISTAGE,NOF_VARIABLES));U_C(I)%VAL=ZERO
                     if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-                        Allocate(U_CT(I)%VAL(1,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
+                        Allocate(U_CT(I)%VAL(ISTAGE,turbulenceequations+PASSIVESCALAR));U_CT(I)%VAL=ZERO   
                     Endif
-                    END IF
-                        IF (RUNGEKUTTA.EQ.8)THEN
-                        ALLOCATE (U_C(I)%VAL(5,5));U_C(I)%VAL=ZERO
-                        if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-                            Allocate(U_CT(I)%VAL(5,turbulenceequations+PASSIVESCALAR))  ;U_CT(I)%VAL=ZERO    
-                        Endif
-                        END IF
-                        IF( (RUNGEKUTTA.EQ.11))THEN
-                            IF (AVERAGING.EQ.1)THEN
-                        ALLOCATE (U_C(I)%VAL(5,5));U_C(I)%VAL=ZERO
-                        if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-                            Allocate(U_CT(I)%VAL(5,turbulenceequations+PASSIVESCALAR))    ;U_CT(I)%VAL=ZERO  
-                        Endif
-                            ELSE
-                            ALLOCATE (U_C(I)%VAL(3,5));U_C(I)%VAL=ZERO
-                            if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-                                Allocate(U_CT(I)%VAL(3,turbulenceequations+PASSIVESCALAR))  ;U_CT(I)%VAL=ZERO    
-                            Endif
-                            end if
-                        END IF
-                        IF (RUNGEKUTTA.EQ.3)THEN
-                            IF (AVERAGING.EQ.1)THEN
-                            ALLOCATE (U_C(I)%VAL(5,5));U_C(I)%VAL=ZERO
-                            if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-                            Allocate(U_CT(I)%VAL(5,turbulenceequations+PASSIVESCALAR))  ;U_CT(I)%VAL=ZERO    
-                            Endif
-                            ELSE
-                            ALLOCATE (U_C(I)%VAL(3,5));U_C(I)%VAL=ZERO
-                            if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-                            Allocate(U_CT(I)%VAL(3,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-                            Endif
-
-			    END IF
-                            IF (ITESTCASE.LE.3)THEN
-                            ALLOCATE (U_E(I)%VAL(1,1));U_E(I)%VAL=ZERO
-                            end if
-                        END IF
-                    if (rungekutta.eq.4)then
-                    IF (AVERAGING.EQ.1)THEN
-                    ALLOCATE (U_C(I)%VAL(7,5));U_C(I)%VAL=ZERO
-                    if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-                        Allocate(U_CT(I)%VAL(7,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-                    Endif
-                    else
-                    ALLOCATE (U_C(I)%VAL(6,5));U_C(I)%VAL=ZERO
-                    if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-                        Allocate(U_CT(I)%VAL(6,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-                    Endif
-                        IF (ITESTCASE.LE.3)THEN
-                        ALLOCATE (U_E(I)%VAL(1,1));U_E(I)%VAL=ZERO
-                        end if
-		      end if
-		      
-		      
-		      
-			end if
-		      
-			
-		      
-		      
-		      
-		      IF (RUNGEKUTTA.EQ.1)THEN
-			ALLOCATE (U_C(I)%VAL(1,5));U_C(I)%VAL=ZERO
-			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-			    Allocate(U_CT(I)%VAL(1,turbulenceequations+PASSIVESCALAR))  ;U_CT(I)%VAL=ZERO    
-			Endif
-		      END IF
-! 		      IF (RUNGEKUTTA.EQ.4)THEN
-! 			ALLOCATE (U_C(I)%VAL(6,5));U_C(I)%VAL=ZERO
-! 			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-! 			    Allocate(U_CT(I)%VAL(5,turbulenceequations+PASSIVESCALAR)) ;U_CT(I)%VAL=ZERO     
-! 			Endif
-! 		      END IF
-		      IF ((RUNGEKUTTA.EQ.2).or.(rungekutta.eq.5))THEN
-			ALLOCATE (U_C(I)%VAL(2,nof_Variables));U_C(I)%VAL=ZERO
-			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-			    Allocate(U_CT(I)%VAL(2,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-			Endif
-		      END IF
-
-
-		IF (AVERAGING.EQ.1)THEN
+        IF (AVERAGING.EQ.1)THEN
 		ALLOCATE(U_C(I)%RMS(7))
 		U_C(I)%RMS(:)=ZERO
 		END IF
-
+		IF (ITESTCASE.LE.3)THEN
+		ALLOCATE (U_E(I)%VAL(1,NOF_VARIABLES));U_E(I)%VAL=ZERO
 		END IF
-		
-	END DO
-	ELSE
-	
-	DO I=1,KMAXE
-		IF (ITESTCASE.LT.3)THEN
-			
-			if (rungekutta.eq.3)then
-			ALLOCATE (U_C(I)%VAL(3,1));U_C(I)%VAL=ZERO
-			end if
-			if (rungekutta.eq.1)then
-			ALLOCATE (U_C(I)%VAL(1,1));U_C(I)%VAL=ZERO
-			end if
-			if (rungekutta.eq.4)then
-			ALLOCATE (U_C(I)%VAL(6,1));U_C(I)%VAL=ZERO
-			end if
-! 			ALLOCATE (U_E(I)%VAL(1,1));U_E(I)%VAL=ZERO
-
-			
-		END IF
-		
-		IF (ITESTCASE.le.3)then
-		ALLOCATE (U_E(I)%VAL(1,nof_Variables));U_E(I)%VAL=ZERO
-		end if
-		
-		
-		IF (ITESTCASE.GE.3)THEN
-		
-		
-		
-		
-		      IF( (RUNGEKUTTA.EQ.10))THEN
-			ALLOCATE (U_C(I)%VAL(1,4));U_C(I)%VAL=ZERO
-			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-			    Allocate(U_CT(I)%VAL(1,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-			Endif
-		      END IF
-		      IF (RUNGEKUTTA.EQ.8)THEN
-			ALLOCATE (U_C(I)%VAL(5,4));U_C(I)%VAL=ZERO
-			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-			    Allocate(U_CT(I)%VAL(5,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-			Endif
-		      END IF
-		      IF( (RUNGEKUTTA.EQ.11))THEN
-				IF (AVERAGING.EQ.1)THEN
-			ALLOCATE (U_C(I)%VAL(5,4));U_C(I)%VAL=ZERO
-			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-			    Allocate(U_CT(I)%VAL(5,turbulenceequations+PASSIVESCALAR))  ;U_CT(I)%VAL=ZERO    
-			Endif
-			ELSE
-				ALLOCATE (U_C(I)%VAL(3,4));U_C(I)%VAL=ZERO
-				if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-				    Allocate(U_CT(I)%VAL(3,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-				Endif
-			      end if
-		      END IF
-		      IF (RUNGEKUTTA.EQ.3)THEN
-			IF (AVERAGING.EQ.1)THEN
-			ALLOCATE (U_C(I)%VAL(5,4));U_C(I)%VAL=ZERO
-			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-			    Allocate(U_CT(I)%VAL(5,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-			Endif
-			ELSE
-			ALLOCATE (U_C(I)%VAL(3,4));U_C(I)%VAL=ZERO
-			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-			    Allocate(U_CT(I)%VAL(3,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-			Endif
-			
-
-
-			END IF
-		      END IF
-		      IF (RUNGEKUTTA.EQ.1)THEN
-			ALLOCATE (U_C(I)%VAL(1,4));U_C(I)%VAL=ZERO
-			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-			    Allocate(U_CT(I)%VAL(1,turbulenceequations+PASSIVESCALAR))    ;U_CT(I)%VAL=ZERO  
-			Endif
-		      END IF
-! 		      IF (RUNGEKUTTA.EQ.4)THEN
-! 			ALLOCATE (U_C(I)%VAL(5,4));U_C(I)%VAL=ZERO
-! 			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-! 			    Allocate(U_CT(I)%VAL(5,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-! 			Endif
-! 		      END IF
-		       IF ((RUNGEKUTTA.EQ.2).or.(rungekutta.eq.5))THEN
-			ALLOCATE (U_C(I)%VAL(2,nof_Variables));U_C(I)%VAL=ZERO
-			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-			    Allocate(U_CT(I)%VAL(2,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-			Endif
-		      END IF
-
-		      if (rungekutta.eq.4)then
-			ALLOCATE (U_C(I)%VAL(6,4));U_C(I)%VAL=ZERO
-			if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-			    Allocate(U_CT(I)%VAL(6,turbulenceequations+PASSIVESCALAR))   ;U_CT(I)%VAL=ZERO   
-			Endif
-			end if
-			
-		IF (AVERAGING.EQ.1)THEN
-		ALLOCATE(U_C(I)%RMS(4))
-		U_C(I)%RMS(:)=ZERO
-		END IF
-
-		END IF
-		
 	END DO
 	
 	
-	
-	END IF
 	
 	
 	END SUBROUTINE U_C_ALLOCATION
@@ -1564,7 +1340,7 @@ INTEGER::Q5,Q4,Q3,Q2,Q1,Q0,q01,icnn
 REAL::PERC,PERDE,PERDI,PER1,PER2,PER3,PER4,PER5,PER0,PEF0,PEF1,PEF2,PEF3,PEF4,PEF5,PERV,per01,pef01
 KMAXE=XMPIELRANK(N)
 IF (ITESTCASE.GE.3) THEN
-	IT=5
+	IT=nof_variables
 END IF
 IF (ITESTCASE.LT.3) THEN
 	IT=1
@@ -1588,36 +1364,36 @@ DO II=1,NOF_INTERIOR	!for all the interior elements
 		
 	IF (ITESTCASE.EQ.4)THEN
 		
-	if (fastest.ne.1)then
-	ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
-	
-	
-	
-	else
-	ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
+                if (fastest.ne.1)then
+                ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
+                
+                
+                
+                else
+                ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
 
-	end if
-	ILOCAL_RECON3(I)%ULEFTV=zero
-	
-	if ((turbulence.eq.1).or.(passivescalar.gt.0)) then
-	  
-	  SVG=(TURBULENCEEQUATIONS+PASSIVESCALAR)
-	  if (fastest.ne.1)then
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-	 
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
+                end if
+                ILOCAL_RECON3(I)%ULEFTV=zero
+                
+                if ((turbulence.eq.1).or.(passivescalar.gt.0)) then
+                
+                SVG=(TURBULENCEEQUATIONS+PASSIVESCALAR)
+                        if (fastest.ne.1)then
+                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
+                        
+                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
 
-	  else
-	   ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-	 
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
+                        else
+                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
+                        
+                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
 
 
 
-	  end if
-	  ILOCAL_RECON3(I)%ULEFTTURB=zero;ILOCAL_RECON3(I)%ULEFTTURBv=zero
-	  
-	END IF
+                        end if
+                ILOCAL_RECON3(I)%ULEFTTURB=zero;ILOCAL_RECON3(I)%ULEFTTURBv=zero
+                
+                END IF
 	
 	
 	
@@ -1726,7 +1502,7 @@ INTEGER::Q5,Q4,Q3,Q2,Q1,Q0,q01,icnn
 REAL::PERC,PERDE,PERDI,PER1,PER2,PER3,PER4,PER5,PER0,PEF0,PEF1,PEF2,PEF3,PEF4,PEF5,PERV,per01,pef01
 KMAXE=XMPIELRANK(N)
 IF (ITESTCASE.GE.3) THEN
-	IT=5
+	IT=nof_variables
 END IF
 IF (ITESTCASE.LT.3) THEN
 	IT=1

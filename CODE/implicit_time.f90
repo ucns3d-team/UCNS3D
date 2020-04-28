@@ -36,7 +36,7 @@ DURR=zero; DULR=zero
 call CALCULATE_JACOBIAN(N)
 !$OMP DO
 do i=1,kmaxe
-  lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
+  lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(i,1:nof_Variables,1:nof_Variables)
 impdiag(i,1,1)=1.0d0/lscqm1(1,1)
 impdiag(i,2,2)=1.0d0/lscqm1(2,2)
 impdiag(i,3,3)=1.0d0/lscqm1(3,3)
@@ -61,7 +61,7 @@ DO II=1,SWEEPS	!loop1
 do i=1,kmaxe	!loop2
 
 if (iscoun.ne.1)then
-B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:5))-(2.0d0*U_C(I)%VAL(2,1:5))+(0.5d0*U_C(I)%VAL(3,1:5)))/(dt))*IELEM(N,I)%TOTVOLUME))
+B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof_Variables))-(2.0d0*U_C(I)%VAL(2,1:nof_Variables))+(0.5d0*U_C(I)%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,I)%TOTVOLUME))
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
 B1T(NVAR)=-(RHST(I)%VAL(NVAR)+((((1.5d0*U_CT(I)%VAL(1,NVAR))-(2.0d0*U_CT(I)%VAL(2,NVAR))+(0.5d0*U_CT(I)%VAL(3,NVAR)))/(dt))*IELEM(N,I)%TOTVOLUME))
@@ -75,7 +75,7 @@ end if
 end if
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
-			    DU1(1:5)=zero
+			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if
@@ -260,7 +260,7 @@ DUMMY12T(:)=zero
 end if
 
 if (iscoun.ne.1)then
-B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:5))-(2.0d0*U_C(I)%VAL(2,1:5))+(0.5d0*U_C(I)%VAL(3,1:5)))/(dt))*IELEM(N,I)%TOTVOLUME))
+B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof_Variables))-(2.0d0*U_C(I)%VAL(2,1:nof_Variables))+(0.5d0*U_C(I)%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,I)%TOTVOLUME))
 ! dummy12(:)=zero
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
@@ -282,7 +282,7 @@ end if
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
 	      if (ielem(n,i)%reorient(l).eq.0)then
-			    DU1(1:5)=zero
+			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if
@@ -507,7 +507,7 @@ end if
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
 	      if (ielem(n,i)%reorient(l).eq.1)then
-			    DU1(1:5)=zero
+			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if
@@ -707,7 +707,7 @@ DO II=1,SWEEPS	!loop1
 do i=1,kmaxe	!loop2
 iconsidered=i
 call CALCULATE_JACOBIANlm(N)
-  lscqm1(1:5,1:5)=impdiag(1,1:5,1:5)
+  lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -721,7 +721,7 @@ impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=1.0d0/IMPDIAGT(1,1:TURBULENCEEQU
 END IF
 
 if (iscoun.ne.1)then
-B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:5))-(2.0d0*U_C(I)%VAL(2,1:5))+(0.5d0*U_C(I)%VAL(3,1:5)))/(dt))*IELEM(N,I)%TOTVOLUME))
+B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof_Variables))-(2.0d0*U_C(I)%VAL(2,1:nof_Variables))+(0.5d0*U_C(I)%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,I)%TOTVOLUME))
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
@@ -740,7 +740,7 @@ end if
 
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
-			    DU1(1:5)=zero
+			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if
@@ -902,7 +902,7 @@ DO II=1,SWEEPS	!loop1
 do i=1,kmaxe	!loop2
 iconsidered=i
 call CALCULATE_JACOBIANlm(N)
-  lscqm1(1:5,1:5)=impdiag(1,1:5,1:5)
+  lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -919,7 +919,7 @@ END IF
 
 
 if (iscoun.ne.1)then
-B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:5))-(2.0d0*U_C(I)%VAL(2,1:5))+(0.5d0*U_C(I)%VAL(3,1:5)))/(dt))*IELEM(N,I)%TOTVOLUME))
+B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof_Variables))-(2.0d0*U_C(I)%VAL(2,1:nof_Variables))+(0.5d0*U_C(I)%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,I)%TOTVOLUME))
 dummy12(:)=zero
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
@@ -939,7 +939,7 @@ end if
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
 	      if (ielem(n,i)%reorient(l).eq.0)then
-			    DU1(1:5)=zero
+			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if
@@ -1124,7 +1124,7 @@ do i=1,kmaxe,-1	!loop2
 
 iconsidered=i
 call CALCULATE_JACOBIANlm(N)
-  lscqm1(1:5,1:5)=impdiag(1,1:5,1:5)
+  lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -1151,7 +1151,7 @@ end if
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
 	      if (ielem(n,i)%reorient(l).eq.1)then
-			    DU1(1:5)=zero
+			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if
@@ -1306,7 +1306,7 @@ DURR=zero; DULR=zero
 call CALCULATE_JACOBIAN_2d(N)
 !$OMP DO SCHEDULE (STATIC)
 do i=1,kmaxe
-  lscqm1(1:4,1:4)=impdiag(i,1:4,1:4)
+  lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(i,1:nof_Variables,1:nof_Variables)
 impdiag(i,1,1)=1.0d0/lscqm1(1,1)
 impdiag(i,2,2)=1.0d0/lscqm1(2,2)
 impdiag(i,3,3)=1.0d0/lscqm1(3,3)
@@ -1330,7 +1330,7 @@ DO II=1,SWEEPS	!loop1
 do i=1,kmaxe	!loop2
 
 if (iscoun.ne.1)then
-B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:4))-(2.0d0*U_C(I)%VAL(2,1:4))+(0.5d0*U_C(I)%VAL(3,1:4)))/(dt))*IELEM(N,I)%TOTVOLUME))
+B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof_Variables))-(2.0d0*U_C(I)%VAL(2,1:nof_Variables))+(0.5d0*U_C(I)%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,I)%TOTVOLUME))
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
 B1T(NVAR)=-(RHST(I)%VAL(NVAR)+((((1.5d0*U_CT(I)%VAL(1,NVAR))-(2.0d0*U_CT(I)%VAL(2,NVAR))+(0.5d0*U_CT(I)%VAL(3,NVAR)))/(dt))*IELEM(N,I)%TOTVOLUME))
@@ -1344,7 +1344,7 @@ end if
 end if
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
-			    DU1(1:4)=zero
+			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if
@@ -1532,7 +1532,7 @@ DUMMY12T(:)=zero
 end if
 
 if (iscoun.ne.1)then
-B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:4))-(2.0d0*U_C(I)%VAL(2,1:4))+(0.5d0*U_C(I)%VAL(3,1:4)))/(dt))*IELEM(N,I)%TOTVOLUME))
+B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof_Variables))-(2.0d0*U_C(I)%VAL(2,1:nof_Variables))+(0.5d0*U_C(I)%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,I)%TOTVOLUME))
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
@@ -1554,7 +1554,7 @@ end if
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
 	      if (ielem(n,i)%reorient(l).eq.0)then
-			    DU1(1:4)=zero
+			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if
@@ -1779,7 +1779,7 @@ end if
 if (ielem(n,i)%interior.eq.0)then
                         DO L=1,IELEM(N,I)%IFCA	!loop3
                                     if (ielem(n,i)%reorient(l).eq.1)then
-                                                    DU1(1:4)=zero
+                                                    DU1(1:nof_Variables)=zero
                                                     IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
                                                     DUT1(:)=zero
                                                     end if
@@ -1983,7 +1983,7 @@ DO II=1,SWEEPS	!loop1
 do i=1,kmaxe	!loop2
 iconsidered=i
 call CALCULATE_JACOBIAN_2dlm(N)
-  lscqm1(1:4,1:4)=impdiag(1,1:4,1:4)
+  lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -1996,7 +1996,7 @@ impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=1.0d0/IMPDIAGT(1,1:TURBULENCEEQU
 END IF
 
 if (iscoun.ne.1)then
-B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:4))-(2.0d0*U_C(I)%VAL(2,1:4))+(0.5d0*U_C(I)%VAL(3,1:4)))/(dt))*IELEM(N,I)%TOTVOLUME))
+B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof_Variables))-(2.0d0*U_C(I)%VAL(2,1:nof_Variables))+(0.5d0*U_C(I)%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,I)%TOTVOLUME))
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
@@ -2015,7 +2015,7 @@ end if
 
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
-			    DU1(1:4)=zero
+			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if
@@ -2197,7 +2197,7 @@ DO II=1,SWEEPS	!loop1
 do i=1,kmaxe	!loop2
 iconsidered=i
 call CALCULATE_JACOBIAN_2dlm(N)
-  lscqm1(1:4,1:4)=impdiag(1,1:4,1:4)
+  lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -2214,7 +2214,7 @@ END IF
 
 
 if (iscoun.ne.1)then
-B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:4))-(2.0d0*U_C(I)%VAL(2,1:4))+(0.5d0*U_C(I)%VAL(3,1:4)))/(dt))*IELEM(N,I)%TOTVOLUME))
+B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof_Variables))-(2.0d0*U_C(I)%VAL(2,1:nof_Variables))+(0.5d0*U_C(I)%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,I)%TOTVOLUME))
 dummy12(:)=zero
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
@@ -2234,7 +2234,7 @@ end if
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
 	      if (ielem(n,i)%reorient(l).eq.0)then
-			    DU1(1:4)=zero
+			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if
@@ -2419,7 +2419,7 @@ do i=1,kmaxe,-1	!loop2
 
 iconsidered=i
 call CALCULATE_JACOBIAN_2dlm(N)
-  lscqm1(1:4,1:4)=impdiag(1,1:4,1:4)
+  lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -2446,7 +2446,7 @@ end if
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
 	      if (ielem(n,i)%reorient(l).eq.1)then
-			    DU1(1:5)=zero
+			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if

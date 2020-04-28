@@ -2223,9 +2223,9 @@ END SELECT
 		QPOINTS(:,:)=0.0d0
 		
 		  vvwg(:)=vvwg(:)*0.25d0
-		  WEQUA3D(:)=vvwg(:)
+! 		  WEQUA3D(:)=vvwg(:)
 		do kk=1,qp_quad
-			
+			 WEQUA3D(kk)=vvwg(kk)
 			R=VVR1(kk); S=VVR2(kk);
 			VVnxi(1)=(0.25d0)*(1.0d0-R)*(1.0d0-s)
 			VVnxi(2)=(0.25d0)*(1.0d0+R)*(1.0d0-s)
@@ -2419,9 +2419,9 @@ END SELECT
 		QPOINTS2D(:,:)=0.0d0
 		
 		  vvwg(:)=vvwg(:)*0.25d0
-		  WEQUA2D(:)=vvwg(:)
+! 		  WEQUA2D(:)=vvwg(:)
 		do kk=1,qp_quad
-			
+			WEQUA2D(kk)=vvwg(kk)
 			R=VVR1(kk); S=VVR2(kk);
 			VVnxi(1)=(0.25d0)*(1.0d0-R)*(1.0d0-s)
 			VVnxi(2)=(0.25d0)*(1.0d0+R)*(1.0d0-s)
@@ -2639,9 +2639,9 @@ END SELECT
 		QPOINTS2D(:,:)=0.0d0
 		
 		  vvwg(:)=vvwg(:)*0.5d0
-		  WEQUA2D(:)=vvwg(:)
+! 		  WEQUA2D(:)=vvwg(:)
 		do kk=1,qp_LINE
-			
+			WEQUA2D(kk)=vvwg(kk)
 			R=VVR1(kk); 
 				
 			
@@ -3049,9 +3049,9 @@ CASE(6,7,8,9)
 END SELECT
 		QPOINTS(:,:)=0.0d0
 ! 		
-		  WEQUA3D(:)=vvwg(:)*0.5d0
+! 		  WEQUA3D(:)=vvwg(:)*0.5d0
 		do kk=1,qp_prism
-			
+			WEQUA3D(kk)=vvwg(kk)*0.5d0
 			
 			R=VVR1(kk); S=VVR2(kk); T=VVR3(kk)
 			VVnxi(1)=(0.5d0)*r*(1.0d0-t)
@@ -3262,9 +3262,9 @@ CASE(6,7,8,9)
 END SELECT
 		QPOINTS(:,:)=0.0d0
 
-		  WEQUA3D(:)=vvwg(:)*0.1250000000000
+! 		  WEQUA3D(:)=vvwg(:)*0.1250000000000
 		do kk=1,qp_pyra
-			
+			WEQUA3D(kk)=vvwg(kk)*0.1250000000000
 			
 			R=VVR1(kk); S=VVR2(kk); T=VVR3(kk)
 			VVnxi(1)=(0.1250000000000)*(1.0-R)*(1.0d0-s)*(1.0d0-t)
@@ -3458,9 +3458,9 @@ END SELECT
 		QPOINTS(:,:)=0.0d0
 		
 		  vvwg(:)=vvwg(:)*0.125d0
-		  WEQUA3D(:)=vvwg(:)
+! 		  WEQUA3D(:)=vvwg(:)
 		do kk=1,qp_hexa
-			
+			WEQUA3D(kk)=vvwg(kk)
 			R=VVR1(kk); S=VVR2(kk); T=VVR3(kk)
 			VVnxi(1)=(0.125d0)*(1.0d0-R)*(1.0d0-s)*(1.0d0-t)
 			VVnxi(2)=(0.125d0)*(1.0d0+R)*(1.0d0-s)*(1.0d0-t)
@@ -3524,7 +3524,7 @@ TRI(5,5)=1.0d0
 
 
 
-ROTVECT(1:5)=MATMUL(TRI(1:5,1:5),VECTCO(1:5))
+ROTVECT(1:nof_Variables)=MATMUL(TRI(1:nof_Variables,1:nof_Variables),VECTCO(1:nof_Variables))
 
 
 
@@ -3569,7 +3569,7 @@ INVTRI(4,2)=coa2!COS(ANGLE2)
 INVTRI(4,3)=-sia2!-SIN(ANGLE2)
 INVTRI(5,5)=1.0d0
 
-ROTVECT(1:5)=MATMUL(INVTRI(1:5,1:5),VECTCO(1:5))
+ROTVECT(1:nof_Variables)=MATMUL(INVTRI(1:nof_Variables,1:nof_Variables),VECTCO(1:nof_Variables))
 
 END SUBROUTINE ROTATEB
 
@@ -3588,6 +3588,10 @@ ROTVECT(1)=VECTCO(1)
 ROTVECT(2)=(ANGLE1*VECTCO(2))+(ANGLE2*VECTCO(3))
 ROTVECT(3)=-(ANGLE2*VECTCO(2))+(ANGLE1*VECTCO(3))
 ROTVECT(4)=VECTCO(4)
+
+IF (MULTISPECIES.EQ.1)THEN
+ROTVECT(5:nof_Variables)=VECTCO(5:nof_Variables)
+END IF
 
 END SUBROUTINE ROTATEF2d
 
@@ -3611,6 +3615,10 @@ ROTVECT(1)=VECTCO(1)
 ROTVECT(2)=(ANGLE1*VECTCO(2))-(ANGLE2*VECTCO(3))
 ROTVECT(3)=(ANGLE2*VECTCO(2))+(ANGLE1*VECTCO(3))
 ROTVECT(4)=VECTCO(4)
+
+IF (MULTISPECIES.EQ.1)THEN
+ROTVECT(5:nof_Variables)=VECTCO(5:nof_Variables)
+END IF
 
 END SUBROUTINE ROTATEB2d
 

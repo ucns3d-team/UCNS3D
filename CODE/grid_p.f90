@@ -17,10 +17,12 @@ implicit none
 
 tolsmall=1.0e-8
 TOLBIG=1.0E+13
-oo2=1.0D0/2.0D0
-zero=0.0D0
+oo2=1.0d0/2.0d0
+zero=0.0d0
 ! PI=(ACOS(zero))*2
 PI=4.0D0*ATAN(1.0D0)
+alpha=1.0D0
+BETA=ZERO
 
 end subroutine tolerances
 
@@ -1440,6 +1442,10 @@ END SUBROUTINE COUNT_WALLS
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+
 
 
 

@@ -6,7 +6,6 @@ USE BASIS
 USE TRANSFORM
 USE LOCAL
 USE LAPCK
-USE BLAS95
 IMPLICIT NONE
 
 
@@ -434,13 +433,17 @@ ELSE
 END IF
 
 if((ees.ne.5).or.(ll.eq.1))then
-call gemm(                                               &
-               invmat,                                               &
-               stencil,                                              &
-               ILOCAL_RECON3(I)%invmat_stencilt(:,:,LL),             &
-               'N',                                                  & ! transposition flag for invmat
-               'T'                                                   & ! transposition flag for stencil
-            )
+! call gemm(                                               &
+!                invmat,                                               &
+!                stencil,                                              &
+!                ILOCAL_RECON3(I)%invmat_stencilt(:,:,LL),             &
+!                'N',                                                  & ! transposition flag for invmat
+!                'T'                                                   & ! transposition flag for stencil
+!             )
+            
+            
+call DGEMM ('N','T',IDEG,IMAX,IDEG,ALPHA,invmat(1:ideg,1:ideg),IDEG,&
+stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stencilt(1:IDEG,1:IMAX,LL),IDEG)
 			
 			do iq=1,imax
 			ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)&
@@ -449,13 +452,18 @@ call gemm(                                               &
 			
 			
 else
-call gemm(                                               &
-               invmat(1:ideg,1:ideg),                                               &
-               stencil(1:imax,1:ideg),                                              &
-               ILOCAL_RECON3(I)%invmat_stenciltc(1:IDEG,1:IMAX,LL),             &
-               'N',                                                  & ! transposition flag for invmat
-               'T'                                                   & ! transposition flag for stencil
-            )
+! call gemm(                                               &
+!                invmat(1:ideg,1:ideg),                                               &
+!                stencil(1:imax,1:ideg),                                              &
+!                ILOCAL_RECON3(I)%invmat_stenciltc(1:IDEG,1:IMAX,LL),             &
+!                'N',                                                  & ! transposition flag for invmat
+!                'T'                                                   & ! transposition flag for stencil
+!             )
+
+            call DGEMM ('N','T',IDEG,IMAX,IDEG,ALPHA,invmat(1:ideg,1:ideg),IDEG,&
+stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stenciltc(1:IDEG,1:IMAX,LL),IDEG)
+
+
 do iq=1,imax
 			ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)&
 			*ilocal_elem(1)%VOLUME(ll,iq+1)
@@ -1021,13 +1029,18 @@ stencil(1:imax,1:ideg)=STENCILS(LL,1:imax,1:ideg)
 END IF
 
 if((ees.ne.5).OR.(ll.eq.1))then
-call gemm(                                               &
-               invmat,                                               &
-               stencil,                                              &
-               ILOCAL_RECON3(I)%invmat_stencilt(:,:,LL),             &
-               'N',                                                  & ! transposition flag for invmat
-               'T'                                                   & ! transposition flag for stencil
-            )
+! call gemm(                                               &
+!                invmat,                                               &
+!                stencil,                                              &
+!                ILOCAL_RECON3(I)%invmat_stencilt(:,:,LL),             &
+!                'N',                                                  & ! transposition flag for invmat
+!                'T'                                                   & ! transposition flag for stencil
+!             )
+            
+            
+call DGEMM ('N','T',IDEG,IMAX,IDEG,ALPHA,invmat(1:ideg,1:ideg),IDEG,&
+stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stencilt(1:IDEG,1:IMAX,LL),IDEG)
+
             
            do iq=1,imax
 			ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)&
@@ -1035,13 +1048,16 @@ call gemm(                                               &
 			end do
 
 else
-call gemm(                                               &
-               invmat(1:IDEG,1:IDEG),                                               &
-               stencil(1:imax,1:ideg),                                              &
-               ILOCAL_RECON3(I)%invmat_stenciltc(1:ideg,1:imax,LL),             &
-               'N',                                                  & ! transposition flag for invmat
-               'T'                                                   & ! transposition flag for stencil
-            )
+! call gemm(                                               &
+!                invmat(1:IDEG,1:IDEG),                                               &
+!                stencil(1:imax,1:ideg),                                              &
+!                ILOCAL_RECON3(I)%invmat_stenciltc(1:ideg,1:imax,LL),             &
+!                'N',                                                  & ! transposition flag for invmat
+!                'T'                                                   & ! transposition flag for stencil
+!             )
+            
+call DGEMM ('N','T',IDEG,IMAX,IDEG,ALPHA,invmat(1:ideg,1:ideg),IDEG,&
+stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stenciltc(1:IDEG,1:IMAX,LL),IDEG)
 
 do iq=1,imax
 			ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)&

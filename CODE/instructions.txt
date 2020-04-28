@@ -1,2 +1,0 @@
-make -f Makefile.supermuc 
-fix lsq and test again!
