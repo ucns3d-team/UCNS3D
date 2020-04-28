@@ -207,7 +207,7 @@ KMAXE=XMPIELRANK(N)
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
 		CALL CONS2PRIM2D(N)
 		if (multispecies.eq.1)then
-		AGRT=SQRT(LEFTV(4)*GAMMAl/LEFTV(1))
+		AGRT=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
 		else
 		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
 		end if
@@ -3315,6 +3315,7 @@ kmaxe=XMPIELRANK(n)
        if (outsurf.eq.1)then
       call SURF_WRITE
       end if
+      
       if ((Average_restart.eq.0).and.(averaging.eq.1)) then
 				Tz1=0.0
 				else

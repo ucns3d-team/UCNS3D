@@ -940,7 +940,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 ! 				    end if
 		    END DO
 		    IF (MULTISPECIES.EQ.1)THEN
-                 RHS(I)%VAL(7)=RHS(I)%VAL(7)-(U_C(I)%VAL(1,7)*MP_SOURCE3*ielem(n,I)%totvolume)
+                 RHS(I)%VAL(7)=RHS(I)%VAL(7)-(U_C(I)%VAL(1,7)*MP_SOURCE3)!*ielem(n,I)%totvolume)
                  
                  END IF
 	END DO
@@ -1253,7 +1253,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				    end if
 		    END DO
 		     IF (MULTISPECIES.EQ.1)THEN
-                 RHS(I)%VAL(7)=RHS(I)%VAL(7)-(U_C(I)%VAL(1,7)*MP_SOURCE3*ielem(n,I)%totvolume)
+                 RHS(I)%VAL(7)=RHS(I)%VAL(7)-(U_C(I)%VAL(1,7)*MP_SOURCE3)!*ielem(n,I)%totvolume)
                  
                  END IF
 	END DO
