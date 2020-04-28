@@ -23,8 +23,8 @@ ifdef MKLROOT
 
 #open blas
 
- BLASFLAGS=  -I /usr/local/include
- BLASLIBS=  -L/usr/local/lib -lopenblas
+ BLASFLAGS=  -I /usr/local/include	###Ensure that you include your BLAS library path here
+ BLASLIBS=  -L/usr/local/lib -lopenblas ###Ensure that you include your BLAS library path here
 
 OFLAGS= 
 
