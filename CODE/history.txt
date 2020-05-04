@@ -1,5 +1,0 @@
- UCNS3D Parallel Computation Start20200427                                        
- Linear Solver Engaged Sinewave
- ----1st Order in Space|LINEAR Scheme
- Order of Accuracy in space:           2
- Total Number of Processes:           1
