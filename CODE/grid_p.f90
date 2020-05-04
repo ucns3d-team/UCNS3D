@@ -6608,26 +6608,18 @@ SUBROUTINE ADAPT_CRITERION
 	  KMAXE=XMPIELRANK(N)
 	  DO I=1,KMAXE
 	      FC=0
-	      IF (IELEM(N,I)%XXC.LT.-0.025)THEN
+	      IF (IELEM(N,I)%XXC.LT.-0.20)THEN
 	      FC=1
 
 	      END IF
-	       IF (IELEM(N,I)%XXC.GT.1.34)THEN
+	       IF (IELEM(N,I)%XXC.GT.0.20)THEN
 
 		FC=1
 	      END IF
-	       IF (IELEM(N,I)%YYC.GT.0.17)THEN
-		FC=1
-
-	      END IF
-
-	       IF (IELEM(N,I)%YYC.LT.-0.05)THEN
-
-		FC=1
-	      END IF
+	     
 
 	IF (FC.EQ.1)THEN
-		IELEM(N,I)%ADMIS=1
+		IELEM(N,I)%FULL=0
 
 	END IF
 

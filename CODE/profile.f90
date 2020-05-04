@@ -252,6 +252,7 @@ INTEGER,INTENT(IN)::N
 real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1
 REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
 real::pr_Radius,pr_beta,pr_machnumberfree,pr_pressurefree,pr_temperaturefree,pr_gammafree,pr_Rgasfree,pr_xcenter,pr_ylength,pr_xlength,pr_ycenter,pr_densityfree,pr_cpconstant,pr_radiusvar,pr_velocityfree,pr_TemperatureVar
+integer::u_cond1,u_cond2,u_cond3,u_cond4
 VECCOS(:)=ZERO
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1094,6 +1095,140 @@ VECCOS(7)=MP_A(1)
 
 
 END IF
+
+
+
+
+
+
+
+IF (INITCOND.EQ.406)THEN
+!TEST CASE 4.5 OF CORALIC & COLONIUS
+
+IF (POX(1).GT.0.1D0)THEN
+MP_R(1)=0.166315789d0
+MP_R(2)=1.658d0
+MP_A(1)=0.0D0
+MP_A(2)=1.0D0
+U1=-114.49D0
+V1= 0.0D0
+P1=159060.0d0
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+! !KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+! !TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+!VECTOR OF CONSERVED VARIABLES NOW
+
+ELSE
+
+!FIRST WITHIN BUBBLE REGION
+u_cond1=0;u_cond2=0;u_cond3=0; u_cond4=0
+
+ if (((pox(1).ge.0.01d0).and.(pox(1).le.0.02)).or.((pox(1).ge.0.03d0).and.(pox(1).le.0.04)))then
+    u_cond1=1
+ end if
+ if ((poy(1).ge.0.05d0).and.(poy(1).le.0.075))then
+    u_cond2=1
+ end if
+ 
+ 
+ if ((poy(1).le.0.05d0).and.(poy(1).gt.0.02))then
+    u_cond3=1
+ end if
+ if (u_cond3.eq.1)then
+ if ((sqrt(((pox(1)-0.025d0)**2)+((poy(1)-0.05d0)**2)).LE.0.015d0).and.(sqrt(((pox(1)-0.025d0)**2)+((poy(1)-0.05d0)**2)).gE.0.005d0)) then
+    u_cond4=1
+ end if
+ end if
+ 
+ 
+ if (((u_cond1.eq.1).and.(u_cond2.eq.1)).or.(u_cond4.eq.1))then
+ 
+MP_R(1)=0.166315789d0
+MP_R(2)=1.204D0
+MP_A(1)=0.95d0
+MP_A(2)=0.05D0
+U1=0.0D0
+V1=0.0D0
+P1=101325
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+! !KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+! !TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+!VECTOR OF CONSERVED VARIABLES NOW
+else
+
+
+
+MP_R(1)=0.166315789d0
+MP_R(2)=1.204D0
+MP_A(1)=0.0D0
+MP_A(2)=1.0D0
+U1=0.0D0
+V1=0.0D0
+P1=101325
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+
+
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+
+! !KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+! !TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+
+!VECTOR OF CONSERVED VARIABLES NOW
+end if
+
+
+
+
+
+
+END IF
+
+
+
+
+
+
+
+
+
+
+
+
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+VECCOS(5)=MP_R(1)*MP_A(1)
+VECCOS(6)=MP_R(2)*MP_A(2)
+VECCOS(7)=MP_A(1)
+
+
+
+
+END IF
+
 
 
 
