@@ -13700,7 +13700,7 @@ DO I=1,kmaxe
 		if (ielem(n,i)%interior.eq.1)then	
 		    do j=1,ielem(n,i)%ifca
 		      if (ielem(n,i)%ibounds(j).gt.0)then
-			  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).AND.(inoder(IELEM(N,I)%NODES_FACES(J,1))%CORD(3).GT.0.001))then
+			  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4))then
 			      ANGLE1=IELEM(N,I)%FACEANGLEX(j)
 			      ANGLE2=IELEM(N,I)%FACEANGLEY(j)
 			      NX=(COS(ANGLE1)*SIN(ANGLE2))
