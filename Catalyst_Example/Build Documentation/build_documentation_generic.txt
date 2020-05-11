@@ -1,0 +1,83 @@
+1. BUILD STEPS FOR PARAVIEW AND CATALYST (WORK IN PROGRESS)
+----------------------------------------------------------------------------------------------------
+Get CMake versions 3.12 - 3.16 for Master Build. Website: https://cmake.org/files/
+
+// Load Intel compilers (for Fortran compilation), change the respective variables with your local 
+// file directory.
+// NOTE: This part should also be doable with gfortran (NOT TESTED), one just needs to search for 
+// correct location of Fortran libraries
+
+export intelMPI=$HOME/intel/compilers_and_libraries_2019.5.281/linux/mpi/intel64
+export intelFort=$HOME/intel/compilers_and_libraries_2019.5.281/linux/bin/intel64
+------------------------------------------------------------------
+
+// Set build directory to be different from the source directory.
+cd <your build directory>
+
+// For MPI_Fortran_INCLUDE_PATH and MPI_Fortran_LIBRARIES, set them to your respective Fortran include 
+// path and libraries. Compile using cmake followed by make, check CMakeCache.txt to ensure locations 
+// of Fortran libraries and compiler are stated correctly. Replace the source directory in the last line 
+// with the source directory in your own local machine.
+
+cmake -DPARAVIEW_USE_PYTHON=ON \
+	-DPARAVIEW_USE_MPI=ON \
+	-DPARAVIEW_USE_FORTRAN=ON \
+	-DPARAVIEW_BUILD_CATALYST_ADAPTORS=ON \
+	-DCMAKE_Fortran_COMPILER="$intelFort/ifort" \
+	-DMPI_Fortran_INCLUDE_PATH="$intelMPI/include" \
+	-DMPI_Fortran_LIBRARIES="$intelMPI/lib/libmpifort.so" <Paraview source directory>
+
+make -j 4
+
+----------------------------------------------------------------------------------------------------
+2. CATALYST EXAMPLE COMPILATION
+
+// Slight bug: Add VTK:CommonModel to the list of libraries required for the Fortran examples 
+// (required for vtkImageData.h) in the .CXX files. Obtain examples from source directory, then compile 
+// them using cmake. Within examples directory, compile the build in a separate directory as follows:
+
+cd <Example directory>
+
+mkdir build
+cd build
+
+// Set the following env. vars if using a new terminal. Again, use a different Fortran compiler if 
+// the Intel compiler is not used for building Paraview from source.
+export intelMPI=$HOME/intel/compilers_and_libraries_2019.5.281/linux/mpi/intel64
+export intelFort=$HOME/intel/compilers_and_libraries_2019.5.281/linux/bin/intel64
+
+// In the python script in the SampleScripts folder for each example, enable live-visualization with 
+// Paraview by setting:
+EDIT IN NOTEPAD/CODE EDITOR: coprocessor.EnableLiveVisualization(true)
+
+// Within the FEDriver.f90 file, before the line where the subroutine TESTCOPROCESSOR is called, set 
+// sleep timer of minimum 1s for changes to be seen in Paraview: 
+EDIT IN NOTEPAD/CODE EDITOR: call sleep(1)
+
+// Compile using a CMAKE_PREFIX_PATH that points to your local Paraview build. Ensure that Fortran
+// libraries are consistent with those being used to compile the Paraview build.
+
+cmake -DCMAKE_PREFIX_PATH="<your Paraview build directory>" \
+	-DUSE_CATALYST=ON -DBUILD_FORTRAN_EXAMPLES:BOOL=ON \
+	-DCMAKE_Fortran_COMPILER="$intelFort/ifort" \
+	-DMPI_Fortran_INCLUDE_PATH="$intelMPI/include" \
+	-DMPI_Fortran_LIBRARIES="$intelMPI/lib/libmpifort.so" ../
+
+make
+
+// Alternatively, use the one provided in the Dropbox folder.
+
+----------------------------------------------------------------------------------------------------
+3. RUN CATALYST EXAMPLES
+
+cd Fortran90FullExample
+
+// Copy the python script from the SampleScripts folder into the <build/example> folder. 
+
+cp ../../Fortran90FullExample/SampleScripts/coproc.py .
+
+// Run Fortran90FullExample.
+
+mpirun -np 4 ./Fortran90FullExample
+
+
