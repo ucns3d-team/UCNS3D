@@ -3524,8 +3524,10 @@ TRI(5,5)=1.0d0
 
 
 
-ROTVECT(1:nof_Variables)=MATMUL(TRI(1:nof_Variables,1:nof_Variables),VECTCO(1:nof_Variables))
-
+ROTVECT(1:5)=MATMUL(TRI(1:5,1:5),VECTCO(1:5))
+IF (MULTISPECIES.EQ.1)THEN
+ROTVECT(6:nof_Variables)=VECTCO(6:nof_Variables)
+END IF
 
 
 END SUBROUTINE ROTATEF
@@ -3569,7 +3571,11 @@ INVTRI(4,2)=coa2!COS(ANGLE2)
 INVTRI(4,3)=-sia2!-SIN(ANGLE2)
 INVTRI(5,5)=1.0d0
 
-ROTVECT(1:nof_Variables)=MATMUL(INVTRI(1:nof_Variables,1:nof_Variables),VECTCO(1:nof_Variables))
+ROTVECT(1:5)=MATMUL(INVTRI(1:5,1:5),VECTCO(1:5))
+IF (MULTISPECIES.EQ.1)THEN
+ROTVECT(6:nof_Variables)=VECTCO(6:nof_Variables)
+END IF
+
 
 END SUBROUTINE ROTATEB
 
