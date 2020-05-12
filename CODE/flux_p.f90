@@ -410,7 +410,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				  END DO
 				    
 				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
-				    IF (MULTISPECIES.EQ.1)THEN
+				      IF (MULTISPECIES.EQ.1)THEN
                         MP_SOURCE3=MP_SOURCE3+MP_SOURCE2
                         END IF
 				    

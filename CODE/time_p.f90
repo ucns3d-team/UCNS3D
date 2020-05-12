@@ -51,7 +51,12 @@ KMAXE=XMPIELRANK(N)
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
 		
 		CALL CONS2PRIM(N)
+		if (multispecies.eq.1)then
+		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
+		else
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+		end if
+		
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
 		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
 	END DO
@@ -3159,7 +3164,11 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 
 ! 				end if
 			    end if
-			
+                IF ((MULTISPECIES.EQ.1).and.(initcond.eq.405))THEN
+			    if ( mod(it, 20) .eq. 0)then
+                    call TRAJECTORIES
+			    end if
+			    END IF
 			
 			
 			

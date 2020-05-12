@@ -3,17 +3,17 @@
 #GFORTRAN
 F90=mpif90
 LD=$(F90)
-ifdef HPCTOOLKIT
-   $(info HPCToolkit is loaded - building version for profiling)
-   DBGFLAGS=-g -debug inline-debug-info
-else
-   $(info HPCToolkit is not loaded - building release version)
-   DBGFLAGS=
-endif
+# ifdef HPCTOOLKIT
+#    $(info HPCToolkit is loaded - building version for profiling)
+#    DBGFLAGS=-g -debug inline-debug-info
+# else
+#    $(info HPCToolkit is not loaded - building release version)
+#    DBGFLAGS=
+# endif
 
 #intel MKL
 
-ifdef MKLROOT
+#ifdef MKLROOT
 
 #BLASFLAGS=  -I${MKLROOT}/include
 #BLASLIBS=  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
@@ -30,9 +30,9 @@ OFLAGS=
 
 #intel compilers
 # debug run
-#=-i4 -r8 -O0  -g  -debug all -xHost -traceback -qopenmp -qopenmp-link=static $(BLASFLAGS) -check bounds -fp-model strict -debug inline-debug-info -zero 
+#FFLAGS=-i4 -r8 -O0  -g  -debug all -xHost -traceback -qopenmp -qopenmp-link=static $(BLASFLAGS) -check bounds -fp-model strict -debug inline-debug-info -zero 
 # production run
-#FFLAGS=-i4 -r8 $(DBGFLAGS) -O3 -ipo -xHost -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)  
+#FFLAGS=-i4 -r8 -O3 -ipo -xHost -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)  
 
 ##
 #gfortran

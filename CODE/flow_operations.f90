@@ -15,8 +15,34 @@ SUBROUTINE CONS2PRIM(N)
 !> This subroutine transforms one vector of conservative variables to primitive variables
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,DIMENSION(5)::TEMPS
-REAL::OODENSITY
+REAL,DIMENSION(1:NOF_VARIABLES)::TEMPS
+REAL::OODENSITY,MP_DENSITY,MP_STIFF
+
+IF (governingequations.EQ.-1) then
+ 
+ MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
+ GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ OODENSITY=1.0D0/MP_DENSITY
+ 
+ 
+ TEMPS(1)=MP_DENSITY
+TEMPS(2)=LEFTV(2)*OODENSITY
+TEMPS(3)=LEFTV(3)*OODENSITY
+TEMPS(4)=LEFTV(4)*OODENSITY
+MP_STIFF=(LEFTV(8)*GAMMA_IN(1)*MP_PINF(1))+((LEFTV(8)-1.0D0)*GAMMA_IN(2)*MP_PINF(2))
+MP_PINFL=(LEFTV(8)*MP_PINF(1))+((LEFTV(8)-1.0D0)*MP_PINF(2))
+TEMPS(5)=(((GAMMAL-1.0D0))*((LEFTV(5))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2))))-MP_STIFF
+TEMPS(6)=LEFTV(6)
+TEMPS(7)=LEFTV(7)
+TEMPS(8)=LEFTV(8)
+ 
+ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ ELSE
+ 
+
+
 
 OODENSITY=1.0D0/LEFTV(1)
 
@@ -28,7 +54,7 @@ TEMPS(5)=((GAMMA-1.0D0))*((LEFTV(5))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**
 
 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
-
+END IF
 
 
 END SUBROUTINE CONS2PRIM
@@ -39,8 +65,56 @@ SUBROUTINE CONS2PRIM2(N)
 !> This subroutine transforms two vector of conservative variables to primitive variables
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,DIMENSION(5)::TEMPS
-REAL::OODENSITY
+REAL,DIMENSION(1:nof_variables)::TEMPS
+REAL::OODENSITY,MP_DENSITY,MP_STIFF
+
+IF (governingequations.EQ.-1) then
+ 
+ MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
+ GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ OODENSITY=1.0D0/MP_DENSITY
+ 
+ 
+ TEMPS(1)=MP_DENSITY
+TEMPS(2)=LEFTV(2)*OODENSITY
+TEMPS(3)=LEFTV(3)*OODENSITY
+TEMPS(4)=LEFTV(4)*OODENSITY
+MP_STIFF=(LEFTV(8)*GAMMA_IN(1)*MP_PINF(1))+((LEFTV(8)-1.0D0)*GAMMA_IN(2)*MP_PINF(2))
+MP_PINFL=(LEFTV(8)*MP_PINF(1))+((LEFTV(8)-1.0D0)*MP_PINF(2))
+TEMPS(5)=(((GAMMAL-1.0D0))*((LEFTV(5))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2))))-MP_STIFF
+TEMPS(6)=LEFTV(6)
+TEMPS(7)=LEFTV(7)
+TEMPS(8)=LEFTV(8)
+ 
+ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ 
+ 
+ 
+  MP_DENSITY=(rightV(6)+rightV(7)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=rightV(8)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-rightV(8))/(GAMMA_IN(2)-1.0D0)
+ GAMMAr=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ OODENSITY=1.0D0/MP_DENSITY
+ 
+ 
+ TEMPS(1)=MP_DENSITY
+TEMPS(2)=rightV(2)*OODENSITY
+TEMPS(3)=rightV(3)*OODENSITY
+TEMPS(4)=rightV(4)*OODENSITY
+MP_STIFF=(rightV(8)*GAMMA_IN(1)*MP_PINF(1))+((rightV(8)-1.0D0)*GAMMA_IN(2)*MP_PINF(2))
+MP_PINFL=(rightV(8)*MP_PINF(1))+((rightV(8)-1.0D0)*MP_PINF(2))
+TEMPS(5)=(((GAMMAr-1.0D0))*((rightV(5))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2))))-MP_STIFF
+TEMPS(6)=rightV(6)
+TEMPS(7)=rightV(7)
+TEMPS(8)=rightV(8)
+ 
+ rightV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ 
+ 
+ 
+ ELSE
 
 OODENSITY=1.0D0/LEFTV(1)
 
@@ -64,7 +138,7 @@ TEMPS(5)=((GAMMA-1.0D0))*((rightv(5))-OO2*rightv(1)*(((TEMPS(2))**2)+((TEMPS(3))
 
 rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
 
-
+end if
 
 END SUBROUTINE CONS2PRIM2
 
@@ -294,10 +368,31 @@ SUBROUTINE PRIM2CONS(N)
 ! !> This subroutine transforms one vector of primitive variables to conservative variables
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,DIMENSION(5)::TEMPS
-REAL::OODENSITY,skin1,ie1
+REAL,DIMENSION(1:nof_Variables)::TEMPS
+REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
 
+IF (governingequations.EQ.-1) then
 
+ 
+ MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
+ GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ 
+TEMPS(1)=MP_DENSITY
+TEMPS(2)=LEFTV(2)*TEMPS(1)
+TEMPS(3)=LEFTV(3)*TEMPS(1)
+TEMPS(4)=LEFTV(4)*TEMPS(1)
+skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
+MP_STIFF=(LEFTV(8)*GAMMA_IN(1)*MP_PINF(1))+((LEFTV(8)-1.0D0)*GAMMA_IN(2)*MP_PINF(2))
+ie1=((leftv(5)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
+TEMPS(5)=TEMPS(1)*(ie1+skin1)
+TEMPS(6:8)=LEFTV(6:8)
+ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ 
+ 
+ 
+ else
 skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
 ie1=((leftv(5))/((GAMMA-1.0D0)*leftv(1)))
 
@@ -311,7 +406,7 @@ TEMPS(5)=leftv(1)*(ie1+skin1)
 
 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
-
+end if
 
 
 END SUBROUTINE PRIM2CONS
@@ -321,8 +416,49 @@ SUBROUTINE PRIM2CONS2(N)
 !> This subroutine transforms two vectors of primitive variables to conservative variables
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,DIMENSION(5)::TEMPS
-REAL::OODENSITY,skin1,ie1
+REAL,DIMENSION(1:nof_Variables)::TEMPS
+REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
+
+IF (governingequations.EQ.-1) then
+
+ 
+ MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
+ GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ 
+TEMPS(1)=MP_DENSITY
+TEMPS(2)=LEFTV(2)*TEMPS(1)
+TEMPS(3)=LEFTV(3)*TEMPS(1)
+TEMPS(4)=LEFTV(4)*TEMPS(1)
+skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
+MP_STIFF=(LEFTV(8)*GAMMA_IN(1)*MP_PINF(1))+((LEFTV(8)-1.0D0)*GAMMA_IN(2)*MP_PINF(2))
+ie1=((leftv(5)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
+TEMPS(5)=TEMPS(1)*(ie1+skin1)
+TEMPS(6:8)=LEFTV(6:8)
+ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ 
+ 
+ 
+ 
+  MP_DENSITY=(rightV(6)+rightV(7)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=rightV(8)/(GAMMA_IN(1)-1.0D0)  
+ MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
+ GAMMAr=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+ 
+TEMPS(1)=MP_DENSITY
+TEMPS(2)=rightV(2)*TEMPS(1)
+TEMPS(3)=rightV(3)*TEMPS(1)
+TEMPS(4)=rightV(4)*TEMPS(1)
+skin1=(oo2)*((rightv(2)**2)+(rightv(3)**2)+(rightv(4)**2))
+MP_STIFF=(rightV(8)*GAMMA_IN(1)*MP_PINF(1))+((rightV(8)-1.0D0)*GAMMA_IN(2)*MP_PINF(2))
+ie1=((rightv(5)+mp_stiff)/((GAMMAr-1.0D0)*TEMPS(1)))
+TEMPS(5)=TEMPS(1)*(ie1+skin1)
+TEMPS(6:8)=rightV(6:8)
+ rightV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ 
+ 
+ else
 
 
 skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
@@ -351,7 +487,7 @@ TEMPS(4)=rightv(4)*rightv(1)
 TEMPS(5)=rightv(1)*(ie1+skin1)
 
 rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
-
+end if
 
 END SUBROUTINE PRIM2CONS2
 
@@ -605,13 +741,51 @@ FUNCTION INFLOW(INITCOND,POX,POY,POZ)
 !> @brief
 !> This function applies a prescribed boundary condition to  the inflow in 3D
 IMPLICIT NONE
-REAL,DIMENSION(5)::INFLOW
+REAL,DIMENSION(1:nof_Variables)::INFLOW
 INTEGER,INTENT(IN)::INITCOND
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::POX,POY,POZ
 REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
 REAL::XF,YF,ZF
 REAL:: Theta_0,vtang, vradial
+REAL::MP_DENSITY,MP_STIFF
 
+IF (governingequations.EQ.-1) then
+
+
+
+P=PRES
+U=uvel
+V=vvel
+w=wvel
+MP_AR(1)=MP_A_IN(1)/(GAMMA_IN(1)-1.0D0)  
+MP_AR(2)=MP_A_IN(2)/(GAMMA_IN(2)-1.0D0)
+GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+
+GM=GAMMAR
+
+R=(MP_R_IN(1)*MP_A_IN(1))+(MP_R_IN(2)*MP_A_IN(2))
+MP_IE(1)=((P+GAMMA_IN(1)*MP_PINF(1))/((GAMMA_IN(1)-1.0D0)*MP_R_IN(1)))
+MP_IE(2)=((P+GAMMA_IN(2)*MP_PINF(2))/((GAMMA_IN(2)-1.0D0)*MP_R_IN(2)))
+
+IEn=(MP_IE(1)*MP_A_IN(1))+(MP_IE(2)*MP_A_IN(2))
+! !KINETIC ENERGY FIRST!
+SKIN=(OO2)*((U**2)+(V**2)+(w**2))
+! !TOTAL ENERGY
+E=R*(SKIN+IEN)
+
+!VECTOR OF CONSERVED VARIABLES NOW
+INFLOW(1)=R
+INFLOW(2)=R*U
+INFLOW(3)=R*V
+INFLOW(4)=R*w
+INFLOW(5)=E
+INFLOW(6)=MP_R_IN(1)*MP_A_IN(1)
+INFLOW(7)=MP_R_IN(2)*MP_A_IN(2)
+INFLOW(8)=MP_A_IN(1)
+
+
+
+ELSE
 
 R=RRES
 GM=GAMMA
@@ -632,6 +806,8 @@ INFLOW(2)=R*U
 INFLOW(3)=R*V
 INFLOW(4)=R*W
 INFLOW(5)=E
+
+end if
 
 
 IF (SWIRL.EQ.1)THEN
@@ -840,12 +1016,46 @@ FUNCTION OUTFLOW(INITCOND,POX,POY,POZ)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 3D
 IMPLICIT NONE
-REAL,DIMENSION(5)::OUTFLOW
+REAL,DIMENSION(1:nof_Variables)::OUTFLOW
 INTEGER,INTENT(IN)::INITCOND
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::POX,POY,POZ
 REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
 REAL::XF,YF,ZF
 
+IF (governingequations.EQ.-1) then
+
+
+
+P=PRES
+U=uvel
+V=vvel
+w=vvel
+MP_AR(1)=MP_A_IN(1)/(GAMMA_IN(1)-1.0D0)  
+MP_AR(2)=MP_A_IN(2)/(GAMMA_IN(2)-1.0D0)
+GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+
+GM=GAMMAR
+
+R=(MP_R_IN(1)*MP_A_IN(1))+(MP_R_IN(2)*MP_A_IN(2))
+MP_IE(1)=((P+GAMMA_IN(1)*MP_PINF(1))/((GAMMA_IN(1)-1.0D0)*MP_R_IN(1)))
+MP_IE(2)=((P+GAMMA_IN(2)*MP_PINF(2))/((GAMMA_IN(2)-1.0D0)*MP_R_IN(2)))
+IEn=(MP_IE(1)*MP_A_IN(1))+(MP_IE(2)*MP_A_IN(2))
+! !KINETIC ENERGY FIRST!
+SKIN=(OO2)*((U**2)+(V**2)+(w**2))
+! !TOTAL ENERGY
+E=R*(SKIN+IEn)
+
+!VECTOR OF CONSERVED VARIABLES NOW
+OUTFLOW(1)=R
+OUTFLOW(2)=R*U
+OUTFLOW(3)=R*V
+OUTFLOW(4)=R*w
+OUTFLOW(5)=E
+OUTFLOW(6)=MP_R_IN(1)*MP_A_IN(1)
+OUTFLOW(7)=MP_R_IN(2)*MP_A_IN(2)
+OUTFLOW(8)=MP_A_IN(1)
+
+ELSE
 
 R=RRES
 GM=GAMMA
@@ -866,6 +1076,8 @@ OUTFLOW(2)=R*U
 OUTFLOW(3)=R*V
 OUTFLOW(4)=R*W
 OUTFLOW(5)=E
+
+end if
 
 END FUNCTION OUTFLOW
 
@@ -1734,11 +1946,8 @@ SELECT CASE(B_CODE)
 			      
 			       CALL ROTATEF(N,TRI,Cleft_ROT,leftV,ANGLE1,ANGLE2)
 			      
-         		      CRIGHT_ROT(1)=CLEFT_ROT(1)
+         		      CRIGHT_ROT(:)=CLEFT_ROT(:)
 			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
-			      CRIGHT_ROT(3)=CLEFT_ROT(3)
-			      CRIGHT_ROT(4)=CLEFT_ROT(4)
-			      CRIGHT_ROT(5)=CLEFT_ROT(5)
 					 
 				     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 					    CTURBR(:)=CTURBL(:)
@@ -3236,7 +3445,7 @@ DO I=1,KMAXE
             POST1=IELEM(N,I)%XXC
             TRAJ1=I
         END IF
-        IF ((IELEM(N,I)%YYC.LE.0.0502).AND.(IELEM(N,I)%YYC.GT.0.0498))THEN
+        IF ((IELEM(N,I)%YYC.LE.0.0515).AND.(IELEM(N,I)%YYC.GT.0.0485))THEN
             IF(IELEM(N,I)%XXC.GE.POST2)THEN
                 POST2=IELEM(N,I)%XXC
                 TRAJ2=i

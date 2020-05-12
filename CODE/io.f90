@@ -950,7 +950,17 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     Debug, &
                     VIsDouble)
      ELSE
+     if (multispecies.eq.1)then
+     NVAR1=9
+      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                    'Density,U,V,W,energy,Pressure,species1,species2,vfraction'//NULCHAR, &
+                    out1//NULCHAR, &
+                    '.'//NULCHAR, &
+                    FileType, &
+                    Debug, &
+                    VIsDouble)
      
+     else
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,W,energy,Pressure,STEN1,STEN2'//NULCHAR, &
                     out1//NULCHAR, &
@@ -960,7 +970,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     VIsDouble)
      
      
-     
+     end if
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -1154,11 +1164,13 @@ Valuelocation(:)=0
     END IF
     
     IF (ITESTCASE.ge.3)THEN
-		do kkd=1,nof_variables
+		do kkd=1,5
 		    DO I=1,KMAXE
-		      VALUESS(i)=U_C(I)%VAL(1,kkd)
-			if ((kkd.ge.2).and.(kkd.le.nof_variables-1))then
-			VALUESS(i)=U_C(I)%VAL(1,kkd)/U_C(I)%VAL(1,1)
+		    leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+		    CALL CONS2PRIM2(N)
+		      VALUESS(i)=leftv(kkd)
+			if (kkd.eq.5)then
+			VALUESS(i)=U_C(I)%VAL(1,kkd)!/U_C(I)%VAL(1,1)
 			end if
 		    END DO
 		    
@@ -1194,9 +1206,34 @@ Valuelocation(:)=0
 		
 		
 		
-		
+                if (multispecies.eq.1)then
+                
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%GGS!%ISHAPE!IELEM(N,I)%STENCIL_DIST
+                VALUESS(i)=U_C(I)%VAL(1,6)
+                END DO
+                call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+                    IF (N.EQ.0)THEN
+                    do i=1,imaxe
+                xbin(XMPI_RE(I))=xbin2(I)
+                end do
+                    ierr = TECDAT112(imaxe,xbin,1)
+                    END IF
+			
+			
+                    DO I=1,KMAXE
+                        VALUESS(i)=U_C(I)%VAL(1,7)
+                        END DO
+                    call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+                    IF (N.EQ.0)THEN
+                    do i=1,imaxe
+                xbin(XMPI_RE(I))=xbin2(I)
+                end do
+                    ierr = TECDAT112(imaxe,xbin,1)
+                    END IF
+                    
+                    
+                       DO I=1,KMAXE
+                VALUESS(i)=U_C(I)%VAL(1,8)
                 END DO
                 
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1206,7 +1243,27 @@ Valuelocation(:)=0
 		end do
 			ierr = TECDAT112(imaxe,xbin,1)
 			END IF
-
+                    
+                    
+                    
+			else
+			
+			
+                
+                
+                DO I=1,KMAXE
+                VALUESS(i)=IELEM(N,I)%GGS!%ISHAPE!IELEM(N,I)%STENCIL_DIST
+                END DO
+                
+                
+                call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+			IF (N.EQ.0)THEN
+			do i=1,imaxe
+		xbin(XMPI_RE(I))=xbin2(I)
+		end do
+			ierr = TECDAT112(imaxe,xbin,1)
+			END IF
+            
                 
                
                 
@@ -1223,7 +1280,7 @@ Valuelocation(:)=0
 			ierr = TECDAT112(imaxe,xbin,1)
 			END IF
 
-                
+              end if  
 		
     
 		  if (passivescalar.gt.0)then
@@ -2269,7 +2326,16 @@ end if
                     Debug, &
                     VIsDouble)
      ELSE
+     if (multispecies.eq.1)then
+     if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                     'Density,U,V,energy,Pressure,species1,species2,vf'//NULCHAR, &
+                    out1//NULCHAR, &
+                    '.'//NULCHAR, &
+                    FileType, &
+                    Debug, &
+                    VIsDouble)
      
+     else
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                      'Density,U,V,energy,Pressure,STEN1,STEN2,SLOPE'//NULCHAR, &
                     out1//NULCHAR, &
@@ -2279,7 +2345,7 @@ end if
                     VIsDouble)
      
      
-     
+     end if
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
