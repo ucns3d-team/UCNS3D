@@ -35,6 +35,19 @@ cmake -DBUILD_FORTRAN_EXAMPLES:BOOL=ON \
 	-DMPI_Fortran_INCLUDE_PATH="$intelMPI/include" \
 	--debug-output ../
 
------------------------------------------------------------------------------------------
+make
 
+-----------------------------------------------------------------------------------------
 2. Catalyst integration (WIP)
+
+// Compile UCNS3D
+
+cmake -DCMAKE_PREFIX_PATH="/home/jason/Desktop/paraview_build" \
+	-DUSE_CATALYST=ON -DBUILD_FORTRAN_EXAMPLES:BOOL=ON \
+	-DCMAKE_BUILD_TYPE:STRING=Debug \
+	-DCMAKE_Fortran_COMPILER="$intelMPI/bin/mpiifort" \
+	-DMPI_Fortran_INCLUDE_PATH="$intelMPI/include" \
+	--debug-output ../
+
+make
+

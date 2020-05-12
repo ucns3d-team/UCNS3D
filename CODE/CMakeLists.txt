@@ -1,39 +1,38 @@
 add_executable(ucns3d_p
-  declarations.o
-  translate.o
-  grid_t.o
-  flow_operations.o
-  memory.o
-  io.o
-  mpi_p.o
-  communications.o
-  riemann.o
-  flux_p.o
-  profile.o
-  init_p.o
-  parts.o
-  bc_p.o
-  matrix.o
-  grid_p.o
-  basis.o
-  gradients.o
-  prestore.o
-  reconstruct_p.o
-  source.o
-  implicit_fluxes.o
-  implicit_time.o
-  flux_pv.o
-  time_p.o
-  der_r.o
-  svd.o
-  local_pt.o
-  main.o
+  FECxxAdaptor.cxx
+  declarations.f90
+  translate.f90
+  grid_t.f90
+  flow_operations.f90
+  memory.f90
+  io.f90
+  mpi_p.f90
+  communications.f90
+  riemann.f90
+  flux_p.f90
+  profile.f90
+  init_p.f90
+  parts.f90
+  bc_p.f90
+  matrix.f90
+  grid_p.f90
+  basis.f90
+  gradients.f90
+  prestore.f90
+  reconstruct_p.f90
+  source.f90
+  implicit_fluxes.f90
+  implicit_time.f90
+  flux_pv.f90
+  time_p.f90
+  der_r.f90
+  svd.f90
+  local_pt.f90
+  FEFortranAdaptor.f90
+  main.f90
   libparmetis.a
   libmetis.a
   libtecio.a
-  ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a
-  ${MKLROOT}/lib/intel64/libmkl_sequential.a
-  ${MKLROOT}/lib/intel64/libmkl_core.a
 )
 
 add_library(ParMetis STATIC IMPORTED)
@@ -44,9 +43,12 @@ add_library(Mkl_Intel_Lp64 SHARED IMPORTED)
 add_library(Mkl_Sequential SHARED IMPORTED)
 add_library(Mkl_Core SHARED IMPORTED)
 
-target_link_libraries(ucns3d_p 
+target_link_libraries(ucns3d_p
   PRIVATE
-    MPI::MPI_Fortran ParMetis Metis TecIo -Wl,--start-group Mkl_Intel_Lp64 Mkl_Sequential Mkl_Core -Wl,--end-group pthread m dl stdc++
+    MPI::MPI_Fortran ParMetis Metis TecIo -Wl,--start-group Mkl_Intel_Lp64 Mkl_Sequential Mkl_Core -Wl,--end-group
+    ParaView::PythonCatalyst
+    VTK::CommonDataModel
+    VTK::IOLegacy
 )
 
 set_target_properties(Metis PROPERTIES
