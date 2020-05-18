@@ -38,16 +38,6 @@ add_executable(ucns3d_p
 add_library(ParMetis STATIC IMPORTED)
 add_library(Metis STATIC IMPORTED)
 add_library(TecIo STATIC IMPORTED)
-add_library(PVPythonCatalyst SHARED IMPORTED)
-
-target_link_libraries(ucns3d_p
-  PRIVATE
-    MPI::MPI_Fortran ParMetis Metis TecIo -no-pie
-    ParaView::PythonCatalyst
-    VTK::CommonDataModel
-    VTK::IOLegacy
-    ${BLASLIBS} openblas
-)
 
 set_target_properties(Metis PROPERTIES
   IMPORTED_LOCATION ${UCNS3D_ROOT}/libmetis.a
@@ -61,9 +51,40 @@ set_target_properties(TecIo PROPERTIES
   IMPORTED_LOCATION ${UCNS3D_ROOT}/libtecio.a
 )
 
-set_target_properties(PVPythonCatalyst PROPERTIES
-  IMPORTED_LOCATION ${PARAVIEW_BUILD}/lib/libvtkPVPythonCatalyst-pv5.8.so.5.8
-)
+# Link libraries based on whether compilation is by GCC or Intel compiler
+if (NOT DEFINED MKLROOT)
+  target_link_libraries(ucns3d_p
+  PRIVATE
+    MPI::MPI_Fortran ParMetis Metis TecIo -no-pie
+    ParaView::PythonCatalyst
+    VTK::CommonDataModel
+    VTK::IOLegacy
+    ${BLASLIBS} openblas
+  )
+else ()
+  add_library(Mkl_Intel_Lp64 SHARED IMPORTED)
+  add_library(Mkl_Sequential SHARED IMPORTED)
+  add_library(Mkl_Core SHARED IMPORTED)
+
+  set_target_properties(Mkl_Intel_Lp64 PROPERTIES
+    IMPORTED_LOCATION ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a
+  )
+  set_target_properties(Mkl_Sequential PROPERTIES
+    IMPORTED_LOCATION ${MKLROOT}/lib/intel64/libmkl_sequential.a
+  )
+  set_target_properties(Mkl_Core PROPERTIES
+    IMPORTED_LOCATION ${MKLROOT}/lib/intel64/libmkl_core.a
+  )
+
+  target_link_libraries(ucns3d_p
+  PRIVATE
+    MPI::MPI_Fortran ParMetis Metis TecIo 
+    -Wl,--start-group Mkl_Intel_Lp64 Mkl_Sequential Mkl_Core -Wl,--end-group pthread
+    ParaView::PythonCatalyst
+    VTK::CommonDataModel
+    VTK::IOLegacy
+  )
+endif ()
 
 set_property(TARGET ucns3d_p
   PROPERTY
