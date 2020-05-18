@@ -9,8 +9,6 @@
 #include "vtkImageData.h"
 #include "vtkPointData.h"
 #include "vtkSmartPointer.h"
-#include <vtkUnstructuredGridReader.h>
-#include <vtkUnstructuredGrid.h>
 
 // Fortran specific header
 #include "vtkCPPythonAdaptorAPI.h"
@@ -22,35 +20,22 @@
 // Creates the data container for the CoProcessor.
 extern "C" void createcpimagedata_(int* nxstart, int* nxend, int* nx, int* ny, int* nz)
 {
-
-  vtkSmartPointer<vtkUnstructuredGrid> unstructuredGrid;
-
   if (!vtkCPPythonAdaptorAPI::GetCoProcessorData())
   {
     vtkGenericWarningMacro("Unable to access CoProcessorData.");
     return;
   }
 
-  auto reader = vtkSmartPointer<vtkUnstructuredGridReader>::New();
-  reader->SetFileName("OUT_0.vtk");
-  reader->Update();
-
-  unstructuredGrid = reader->GetOutput();
-  
   // The simulation grid is a 3-dimensional topologically and geometrically
   // regular grid. In VTK/ParaView, this is considered an image data set.
+  vtkSmartPointer<vtkImageData> grid = vtkSmartPointer<vtkImageData>::New();
 
-
-  // vtkSmartPointer<vtkImageData> grid = vtkSmartPointer<vtkImageData>::New();
-
-  // grid->SetExtent(*nxstart - 1, *nxend - 1, 0, *ny - 1, 0, *nz - 1);
-
-  
+  grid->SetExtent(*nxstart - 1, *nxend - 1, 0, *ny - 1, 0, *nz - 1);
 
   // Name should be consistent between here, Fortran and Python client script.
-  vtkCPPythonAdaptorAPI::GetCoProcessorData()->GetInputDescriptionByName("input")->SetGrid(unstructuredGrid);
- // vtkCPPythonAdaptorAPI::GetCoProcessorData()->GetInputDescriptionByName("input")->SetWholeExtent(
- //   0, *nx - 1, 0, *ny - 1, 0, *nz - 1);
+  vtkCPPythonAdaptorAPI::GetCoProcessorData()->GetInputDescriptionByName("input")->SetGrid(grid);
+  vtkCPPythonAdaptorAPI::GetCoProcessorData()->GetInputDescriptionByName("input")->SetWholeExtent(
+    0, *nx - 1, 0, *ny - 1, 0, *nz - 1);
 }
 
 // Add field(s) to the data container.

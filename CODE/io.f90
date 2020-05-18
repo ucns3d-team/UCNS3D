@@ -31,17 +31,17 @@ real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
 INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-     
+
 if (n.eq.0)then
 
 		INQUIRE (FILE='GRID.plt',EXIST=HEREV)
@@ -72,7 +72,6 @@ NullPtr = 0
       ShrConn = 0
 NULCHAR = CHAR(0)
 
-
 ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     'X Y Z'//NULCHAR, &
                     'GRID.plt'//NULCHAR, &
@@ -80,7 +79,6 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     FileType, &
                     Debug, &
                     VIsDouble)
-
 
  ierr= TecZne112('GRID1'//NULCHAR, &
                     ZoneType, &
@@ -107,7 +105,7 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 
 
 
-	
+
     allocate(xbin(imaxn))
     allocate(ybin(imaxn))
     allocate(zbin(imaxn))
@@ -132,54 +130,54 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 	end if
 
 
-    ierr = TECDAT112(imaxn,xbin,1) 
-   
+    ierr = TECDAT112(imaxn,xbin,1)
+
     ierr = TECDAT112(imaxn,ybin,1)
 
      ierr = TECDAT112(imaxn,zbin,1)
-   
+
     deallocate(xbin,YBIN,zbin)
-    
-    
+
+
     IF (BINIO.EQ.0)THEN
     OPEN(98,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
 	  allocate(icon(8,1))
     icon=0
      cv=0
 		DO K=1,iMAXE
-               
+
  		read(98,*)i,Icon(1,1),icon(2,1),icon(3,1),icon(4,1),Icon(5,1),icon(6,1),icon(7,1),icon(8,1)
-    
+
 		ierr = TECNODE112(8,icon)
     !cv=cv+4
-        	
+
 		END DO
  		close(98)
 		!ierr = TECNOD112(icon)
-		deallocate(icon)	
+		deallocate(icon)
     ELSE
      OPEN(98,FILE='GRID.cel',FORM='UNFORMATTED',STATUS='old',ACTION='read')
 	  allocate(icon(8,1))
     icon=0
      cv=0
 		DO K=1,iMAXE
-               
+
  		read(98)i,Icon(1:8,1)
-    
+
 		ierr = TECNODE112(8,icon)
     !cv=cv+4
-        	
+
 		END DO
  		close(98)
 		!ierr = TECNOD112(icon)
-		deallocate(icon)	
-    
-    
-    
+		deallocate(icon)
+
+
+
     END IF
-    
-    
-    
+
+
+
   ierr = TECEND112()
 
 
@@ -190,13 +188,13 @@ end if
 
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
-	
-	
-	
 
-	
-	
+
+
+
+
+
+
 
 END SUBROUTINE OUTWRITEGRIDB
 
@@ -214,7 +212,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 INTEGER,DIMENSION(70)::IVALID
@@ -233,26 +231,24 @@ real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
 INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-     
+
 if (n.eq.0)then
 INQUIRE (FILE='GRID.plt',EXIST=HEREV)
 
 if (herev)then
 
 
-
 else
-
 
 NullPtr = 0
       Debug   = 0
@@ -274,7 +270,6 @@ NullPtr = 0
       ShrConn = 0
 NULCHAR = CHAR(0)
 
-
 ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     'X Y'//NULCHAR, &
                     'GRID.plt'//NULCHAR, &
@@ -282,7 +277,6 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     FileType, &
                     Debug, &
                     VIsDouble)
-
 
  ierr= TecZne112('GRID1'//NULCHAR, &
                     ZoneType, &
@@ -306,10 +300,6 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     Null, &
                     ShrConn)
 
-
-
-
-	
     allocate(xbin(imaxn))
     allocate(ybin(imaxn))
 	IF (BINIO.EQ.0)THEN
@@ -332,73 +322,65 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 
 
     ierr = TECDAT112(imaxn,xbin,1)  !!! why not xbin instead of xbin(1) ??
-   
+
     ierr = TECDAT112(imaxn,ybin,1)
 
-    
-   
+
+
     deallocate(xbin,YBIN)
-    
+
     IF (BINIO.EQ.0)THEN
-    
+
     OPEN(98,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
 	  allocate(icon(4,1))
     icon=0
      cv=0
 		DO K=1,iMAXE
-               
+
  		read(98,*)i,Icon(1,1),icon(2,1),icon(3,1),icon(4,1)
-    
+
 		ierr = TECNODE112(4,icon)
     !cv=cv+4
-        	
+
 		END DO
  		close(98)
 		!ierr = TECNOD112(icon)
 		deallocate(icon)
-		
-		
+
+
     ELSE
 	   OPEN(98,FILE='GRID.cel',FORM='UNFORMATTED',STATUS='old',ACTION='read')
 	  allocate(icon(4,1))
     icon=0
      cv=0
 		DO K=1,iMAXE
-               
+
  		read(98)i,Icon(1:4,1)
-    
+
 		ierr = TECNODE112(4,icon)
     !cv=cv+4
-        	
+
 		END DO
  		close(98)
 		!ierr = TECNOD112(icon)
 		deallocate(icon)
-    
-    
-    
+
+
+
     END IF
-         
-        
+
+
   ierr = TECEND112()
 
 
 END IF
 
-end if	
-
-
+end if
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
-	
-
-	
-
-	
-	
 
 END SUBROUTINE OUTWRITEGRIDB2D
+
 SUBROUTINE OUTWRITE3N
  !> @brief
 !> This subroutine is solely for debugging
@@ -411,7 +393,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -431,10 +413,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -449,7 +431,7 @@ KMAXE=XMPIELRANK(N)
 
 ! DUMG=KMAXE
 ! call mpi_barrier(mpi_comm_world,IERROR)
-! 
+!
 ! CALL MPI_ALLREDUCE(DUMG,DUML,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
 ! IMAXP=DUML
 
@@ -464,17 +446,17 @@ KMAXE=XMPIELRANK(N)
 ! IF (N.EQ.0)THEN
 ! 	ALLOCATE(ICELLA(IMAXP*ISIZE))
 ! 	 ICELLA=0
-! 
+!
 ! END IF
-! 
+!
 ! call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORLD,IERROR)
-! 
+!
 ! ! if (n.eq.0)then
 
-! ! 
-! ! 
+! !
+! !
 ! ! end if
-! 
+!
 ! call mpi_barrier(mpi_comm_world,IERROR)
 ! deallocate (icell)
 
@@ -501,7 +483,7 @@ WRITE(PROC3,FMT='(I10)') IT
 	allocate(character(LEN=itgfd) ::out1)
 	out1=OUTFILE(1:itgfd)
 ! 	out1=out1//CHAR(0)
-	
+
 
 end if
 
@@ -519,8 +501,8 @@ if (n.eq.0)ierr =  TecIni112('sols1'//NULCHAR, &
 END IF
 
 
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -539,7 +521,7 @@ allocate (Valuelocation(nvar1))
       SolTime = 0.0
 !       else
 !       SolTime = IT
-! 
+!
 !       end if
       StrandID = 1
       ParentZn = 0
@@ -583,23 +565,23 @@ Valuelocation(:)=0
 !  ALLOCATE(VALUESA(IMAXP*ISIZE))
 !   allocate(xbin(imaxe))
 ! 	VALUESA=0.0
-! 
+!
 !  END IF
-! 
+!
 !   call mpi_barrier(MPI_COMM_WORLD,IERROR)
 !   ALLOCATE(VALUESS(imaxp))
 !   VALUESS=0.0
-    
-   
+
+
 
 
 !   IF (ITESTCASE.LT.3)THEN
 !     DO I=1,KMAXE
 !       VALUESS(I)=U_C(I)%VAL(1,1)
 !     END DO
-! 
+!
 !     call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-! 
+!
 !     IF (N.EQ.0)THEN
 !     do i=1,imaxp*isize
 ! 	if (icella(i).gt.0)then
@@ -607,7 +589,7 @@ Valuelocation(:)=0
 ! 	end if
 !     end do
     xbin(1:imaxe)=xmpie(1:imaxe)
-	  
+
 
     ierr = TECDAT112(imaxe,XBIN,1)
 
@@ -619,29 +601,29 @@ Valuelocation(:)=0
     END IF
 
      CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-! 
+!
 !   END IF
-! 
-! 
-! 
-! 
-!     
-! 
-! 
-! 
-! 
-! 
-!   
-! 
-! 
-! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
 !   IF (ITESTCASE.ge.3)THEN
 ! 			  do j=1,nvar1
-! 				  
+!
 ! 				    if (j.eq.1)then
-! 				    
+!
 ! 				    DO I=1,KMAXE
-! 				      
+!
 ! 				      VALUESS(I)=U_C(I)%VAL(1,1)
 ! 				    END DO
 ! 				    else
@@ -652,7 +634,7 @@ Valuelocation(:)=0
 ! 				    end if
 ! 				    end if
 ! 				    if (j.eq.6)then
-! 
+!
 ! 				      DO I=1,KMAXE
 ! 											VARIABLES(1)=U_C(I)%VAL(1,1)
 ! 											VARIABLES(2)=(U_C(I)%VAL(1,2)/VARIABLES(1))
@@ -661,12 +643,12 @@ Valuelocation(:)=0
 ! 											VARIABLES(5)=U_C(I)%VAL(1,5)
 ! 									    VARIABLES(6)=((GAMMA-1.0))*((VARIABLES(5))-0.5*VARIABLES(1)*(((VARIABLES(2)**2.0)+(VARIABLES(3)**2.0)+(VARIABLES(4)**2.0))))
 ! 									    VALUESS(I)=VARIABLES(6)
-! 
+!
 ! 				    END DO
-! 
-! 				    
-! 				    end if 
-! 
+!
+!
+! 				    end if
+!
 ! 				    IF (TURBULENCE.NE.1)THEN
 ! 					      IF (PASSIVESCALAR.GT.0)THEN
 ! 						      IF (J.EQ.7)THEN
@@ -676,8 +658,8 @@ Valuelocation(:)=0
 ! 						      end if
 ! 					      END IF
 ! 				    END IF
-!     
-! 
+!
+!
 ! 					  if (turbulence.eq.1)then
 ! 								if (j.eq.7)then
 ! 										do i=1,kmaxe
@@ -697,12 +679,12 @@ Valuelocation(:)=0
 ! 							  IF (TURBULENCEMODEL.EQ.1)THEN
 ! 							 EDDYFL(2)=U_CT(i)%VAL(1,1)*U_C(i)%VAL(1,1)
 ! 							 EDDYFL(3)=0
-! 							  
+!
 ! 							  END IF
 ! 							  IF (TURBULENCEMODEL.EQ.2)THEN
 ! 							 EDDYFL(2)=U_CT(i)%VAL(1,1)
 ! 							 EDDYFL(3)=U_CT(i)%VAL(1,2)
-! 							  
+!
 ! 							  END IF
 ! 							EDDYFL(4:6)=ILOCAL_RECON3(i)%GRADS(1,1:3)
 ! 							EDDYFL(7:9)=ILOCAL_RECON3(i)%GRADS(2,1:3)
@@ -712,29 +694,29 @@ Valuelocation(:)=0
 ! 							EDDYFL(16:18)=ILOCAL_RECON3(i)%GRADS(5,1:3)
 ! 							END IF
 ! 							EDDYFR=EDDYFL
-! 							
+!
 ! 							call EDDYVISCOo(N,VISCL,LAML,TURBMV,ETVM,LEFTV,RIGHTV,EDDYFL,EDDYFR)
-! 							Variables(8) =  (VISCL(3))/VISC	
+! 							Variables(8) =  (VISCL(3))/VISC
 ! 			VALUESS(I)=VARIABLES(8)
-! 
+!
 ! 								  end do
 ! 								end if
-!    
+!
 ! 							if (turbulencemodel.eq.2)then
 ! 							    if ((j.eq.9))then
 ! 							      DO I=1,KMAXE
 ! 								VALUESS(I)=U_CT(I)%VAL(1,1)
 ! 							      END DO
-! 
+!
 ! 							    end if
 ! 							    if ((j.eq.10))then
 ! 							      DO I=1,KMAXE
 ! 								VALUESS(I)=U_CT(I)%VAL(1,2)
 ! 							      END DO
-! 
+!
 ! 							    end if
 ! 							end if
-! 
+!
 ! 							IF (passivescalar.gt.0)THEN
 ! 								      IF (J.EQ.NVAR1-1)THEN
 ! 								    DO I=1,KMAXE
@@ -742,11 +724,11 @@ Valuelocation(:)=0
 ! 								    END DO
 ! 								      END IF
 ! 							 END IF
-! 
-! 
+!
+!
 ! 					  end if !turbulence
-! 
-! 
+!
+!
 ! 				    IF (IVORTEX.EQ.1)THEN
 ! 					      IF (J.EQ.NVAR1)THEN
 ! 						    DO I=1,KMAXE
@@ -754,37 +736,37 @@ Valuelocation(:)=0
 ! 						    END DO
 ! 					    END IF
 ! 				    END IF
-! 
-! 
-! 
-! 
-!       
+!
+!
+!
+!
+!
 !       CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-! 
-!     
+!
+!
 !     call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-! 
-!      
+!
+!
 ! !       print*,"writing output var",j,nvar1,n
-! 
-!     
+!
+!
 !     IF (N.EQ.0)THEN
 !     do i=1,imaxp*isize
 ! 	if (icella(i).gt.0)then
 ! 	xbin(icella(i))=valuesa(i)
 ! 	end if
 !     end do
-!     
+!
 !     ierr = TECDAT112(imaxe,xbin,1)
 !     END IF
-!     
-!       
+!
+!
 ! !       print*,"writing 1r",n
-!       
+!
 !   end do
-! 
-! 
-! 
+!
+!
+!
 !   END IF
 !   IF (N.EQ.0)THEN
 !   ierr = TECEND112()
@@ -792,43 +774,43 @@ Valuelocation(:)=0
 !   deallocate(out1)
 !   END IF
 !   DEALLOCATE (VALUESS)
-!   
-! 
-! 
-! 
-! 
-! 
-! 
-! 
-! 
-! 
-! 
-! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
 !   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-! 
-! 
-! 
-! 
-! 
-! 
-! ! 
+!
+!
+!
+!
+!
+!
+! !
 ! !     allocate(xbin(imaxe))
 ! !     ALLOCATE(FBIN(1,IMAXE))
-! ! 
-! !  
+! !
+! !
 ! !     do i=1,1
 ! !     fbin(i,:)=10.0
 ! !     end do
-! !     
+! !
 ! !     do i=1,1
 ! !     xbin(:)=fbin(i,:)
-! ! 
+! !
 ! !     ierr = TECDAT112(imaxe,xbin,1)  !!! why not xbin instead of xbin(1) ??
 ! !    end do
-! 
-! 		
-!          
-!         
+!
+!
+!
+!
 !  deallocate(variables)
 
 
@@ -839,14 +821,14 @@ Valuelocation(:)=0
 
 
 
-	
-	
-	
-	
-	
 
-	
-	
+
+
+
+
+
+
+
 
 END SUBROUTINE OUTWRITE3N
 
@@ -874,10 +856,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
  character(LEN=:),allocatable::out1
  character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -886,7 +868,7 @@ real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
       Integer:: Null(*)
 
 
- 
+
 
 
 
@@ -922,7 +904,7 @@ WRITE(PROC3,FMT='(I10)') IT
 	allocate(character(LEN=itgfd) ::out1)
 	out1=OUTFILE(1:itgfd)
 ! 	out1=out1//CHAR(0)
-	
+
 
 end if
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -935,9 +917,9 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     FileType, &
                     Debug, &
                     VIsDouble)
-  
-  
-  
+
+
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=8+PASSIVESCALAR
@@ -950,7 +932,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     Debug, &
                     VIsDouble)
      ELSE
-     
+
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,W,energy,Pressure,STEN1,STEN2'//NULCHAR, &
                     out1//NULCHAR, &
@@ -958,9 +940,9 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     FileType, &
                     Debug, &
                     VIsDouble)
-     
-     
-     
+
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -992,7 +974,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -1021,21 +1003,21 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  END IF
 
-	
 
-	
-	
+
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -1045,9 +1027,9 @@ allocate (Valuelocation(nvar1))
       JMax    = IMAXe
       KMax    = 0
       ZoneType = 5
-      
+
       SolTime = T
-      
+
       StrandID = 1
       ParentZn = 0
       IsBlock = 1
@@ -1060,7 +1042,7 @@ allocate (Valuelocation(nvar1))
 
 Valuelocation(:)=0
 
- 
+
 
 
 
@@ -1087,24 +1069,24 @@ Valuelocation(:)=0
                     ShrConn)
 
 
- 
+
   allocate(xbin(imaxe),xbin2(imaxe))
-	
+
 
  END IF
   allocate(valuess(kmaxe))
 
 !   call mpi_barrier(MPI_COMM_WORLD,IERROR)
- 
-    
-   
+
+
+
 
 
     IF (ITESTCASE.LE.2)THEN
 		DO I=1,KMAXE
 		  VALUESS(i)=U_C(I)%VAL(1,1)!0.0
 		END DO
-		
+
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -1114,23 +1096,11 @@ Valuelocation(:)=0
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
 
-    
+
 		DO I=1,KMAXE
 		  VALUESS(i)=n
 		END DO
-		
-		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-		IF (N.EQ.0)THEN
-		do i=1,imaxe
-		xbin(XMPI_RE(I))=xbin2(I)
-		end do
-		ierr = TECDAT112(imaxe,xbin,1)
-		END IF
-    
-		DO I=1,KMAXE
-		  VALUESS(i)=IELEM(N,I)%iNUMNEIGHBOURS!%STENCIL_DIST
-		END DO
-		
+
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 		IF (N.EQ.0)THEN
 		do i=1,imaxe
@@ -1139,11 +1109,23 @@ Valuelocation(:)=0
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
 
-    
+		DO I=1,KMAXE
+		  VALUESS(i)=IELEM(N,I)%iNUMNEIGHBOURS!%STENCIL_DIST
+		END DO
+
+		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+		IF (N.EQ.0)THEN
+		do i=1,imaxe
+		xbin(XMPI_RE(I))=xbin2(I)
+		end do
+		ierr = TECDAT112(imaxe,xbin,1)
+		END IF
+
+
 		DO I=1,KMAXE
 		  VALUESS(i)=IELEM(N,I)%ADMIS
 		END DO
-		
+
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 		 IF (N.EQ.0)THEN
 		 do i=1,imaxe
@@ -1152,7 +1134,7 @@ Valuelocation(:)=0
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,nof_variables
 		    DO I=1,KMAXE
@@ -1161,7 +1143,7 @@ Valuelocation(:)=0
 			VALUESS(i)=U_C(I)%VAL(1,kkd)/U_C(I)%VAL(1,1)
 			end if
 		    END DO
-		    
+
 		    call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 			IF (N.EQ.0)THEN
 			do i=1,imaxe
@@ -1170,17 +1152,17 @@ Valuelocation(:)=0
 			ierr = TECDAT112(imaxe,xbin,1)
 			END IF
 		end do
-		
-		
-		
-    
+
+
+
+
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 		  CALL CONS2PRIM(N)
 		  VALUESS(i)=leftv(5)
 		END DO
-		
-		
+
+
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 			IF (N.EQ.0)THEN
 			do i=1,imaxe
@@ -1189,16 +1171,16 @@ Valuelocation(:)=0
 			ierr = TECDAT112(imaxe,xbin,1)
 			END IF
 
-		
-		
-		
-		
-		
-		
+
+
+
+
+
+
                 DO I=1,KMAXE
                 VALUESS(i)=IELEM(N,I)%GGS!%ISHAPE!IELEM(N,I)%STENCIL_DIST
                 END DO
-                
+
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 			IF (N.EQ.0)THEN
 			do i=1,imaxe
@@ -1207,14 +1189,14 @@ Valuelocation(:)=0
 			ierr = TECDAT112(imaxe,xbin,1)
 			END IF
 
-                
-               
-                
-                
+
+
+
+
                 DO I=1,KMAXE
                 VALUESS(i)=IELEM(N,I)%STENCIL_DIST!ADMIS
                 END DO
-                
+
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 			IF (N.EQ.0)THEN
 			do i=1,imaxe
@@ -1223,15 +1205,15 @@ Valuelocation(:)=0
 			ierr = TECDAT112(imaxe,xbin,1)
 			END IF
 
-                
-		
-    
+
+
+
 		  if (passivescalar.gt.0)then
 		  DO I=1,KMAXE
 		      VALUESS(i)=U_CT(I)%VAL(1,turbulenceequations+passivescalar)
 		  END DO
-		  
-		  
+
+
 		  call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 			IF (N.EQ.0)THEN
 			do i=1,imaxe
@@ -1239,16 +1221,16 @@ Valuelocation(:)=0
 		end do
 			ierr = TECDAT112(imaxe,xbin,1)
 			END IF
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
 		  DO I=1,KMAXE
 		      VALUESS(i)=ielem(n,i)%vortex(1)!%inumneighbours
 		  END DO
-		  
-		  
+
+
 		 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 			IF (N.EQ.0)THEN
 			do i=1,imaxe
@@ -1256,14 +1238,14 @@ Valuelocation(:)=0
 		end do
 			ierr = TECDAT112(imaxe,xbin,1)
 			END IF
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 			DO I=1,KMAXE
 			    VALUESS(i)=U_CT(I)%VAL(1,kkd)
 			END DO
-		      
-			
+
+
 		      call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 			      IF (N.EQ.0)THEN
 			      do i=1,imaxe
@@ -1275,39 +1257,39 @@ Valuelocation(:)=0
 
 		 end do
 		  end if
-		  
-		  
-		  
-		  
-		  end if
-    
-    
-    end if
-    
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+		  end if
+
+
+    end if
+
+
+
+
+
+
+
+
+
   IF (N.EQ.0)THEN
   ierr = TECEND112()
   DEALLOCATE(XBIN,valuelocation,out1,XBIN2)
   END IF
-  
+
   DEALLOCATE (VALUESS,VARIABLES)
-  
-
-  
 
 
 
 
 
-	
-	
+
+
+
+
+
 
 END SUBROUTINE OUTWRITE3vb
 
@@ -1324,7 +1306,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -1344,10 +1326,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -1382,8 +1364,8 @@ call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORL
 
 ! if (n.eq.0)then
 ! write(1000+n,*)icella(:)
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -1424,13 +1406,13 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) 'Zone N=',IMAXN,',E=',IMAXE,',ZONETYPE = FEBRICK,','DATAPACKING = BLOCK'
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
-  
-  
+
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=6+PASSIVESCALAR
   if (passivescalar.gt.0)then
-  
+
   if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
@@ -1438,9 +1420,9 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
   end if
-  
+
       ELSE
-     
+
      if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure"'
@@ -1448,9 +1430,9 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED)'
    end if
-     
-     
-     
+
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -1464,7 +1446,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED, [9] = CELLCENTERED,[10] = CELLCENTERED)'
 	  end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                     if (n.eq.0)then
@@ -1474,7 +1456,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED, [9] = CELLCENTERED)'
 	  end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                     if (n.eq.0)then
@@ -1484,8 +1466,8 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED)'
 	  end if
-              
-              
+
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -1496,7 +1478,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED,[9] = CELLCENTERED)'
 	  end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                               if (n.eq.0)then
@@ -1506,7 +1488,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED)'
 	  end if
-             
+
               end if
               if (turbulenceequations.eq.0)then
                               if (n.eq.0)then
@@ -1516,22 +1498,22 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
 	  end if
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
-	   
+
  END IF
 
 	IF (N.EQ.0)THEN
 	    WRITE(97,*) ', SOLUTIONTIME=',T
 	    END IF
 
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -1544,7 +1526,7 @@ allocate (Valuelocation(nvar1))
 
 Valuelocation(:)=0
 
- 
+
 
 
 
@@ -1559,15 +1541,15 @@ Valuelocation(:)=0
   call mpi_barrier(MPI_COMM_WORLD,IERROR)
   ALLOCATE(VALUESS(imaxp))
   VALUESS=ZERO
-    
-   
+
+
 
 
     IF (ITESTCASE.LE.2)THEN
     DO I=1,KMAXE
       VALUESS(i)=U_C(I)%VAL(1,1)!0.0
     END DO
-    
+
     call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
     IF (N.EQ.0)THEN
@@ -1576,16 +1558,16 @@ Valuelocation(:)=0
 	xbin(icella(i))=valuesa(i)
 	end if
     end do
-    
+
 			WRITE(97,*)XBIN(1:IMAXE)
-			
-    
+
+
     END IF
 
-     
+
     CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,5
 		DO I=1,KMAXE
@@ -1594,10 +1576,10 @@ Valuelocation(:)=0
 		  VALUESS(i)=U_C(I)%VAL(1,kkd)/U_C(I)%VAL(1,1)
 		  end if
 		END DO
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-		 
+
 		IF (N.EQ.0)THEN
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -1607,17 +1589,17 @@ Valuelocation(:)=0
 		WRITE(97,*)XBIN(1:IMAXE)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		end do
-    
+
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 		  CALL CONS2PRIM(N)
 		  VALUESS(i)=leftv(5)
 		END DO
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -1629,15 +1611,15 @@ Valuelocation(:)=0
 		WRITE(97,*)XBIN(1:IMAXE)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    
+
 		  if (passivescalar.gt.0)then
 		  DO I=1,KMAXE
 		      VALUESS(i)=U_CT(I)%VAL(1,turbulenceequations+passivescalar)
 		  END DO
-		  
-		  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -1649,18 +1631,18 @@ Valuelocation(:)=0
 		  WRITE(97,*)XBIN(1:IMAXE)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
 		  DO I=1,KMAXE
 		      VALUESS(i)=ielem(n,i)%vortex(1)
 		  END DO
-		  
-		  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -1672,16 +1654,16 @@ Valuelocation(:)=0
 		  WRITE(97,*)XBIN(1:IMAXE)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 		  DO I=1,KMAXE
 		      VALUESS(i)=U_CT(I)%VAL(1,kkd)
 		  END DO
-		
-		  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -1693,34 +1675,34 @@ Valuelocation(:)=0
 		  WRITE(97,*)XBIN(1:IMAXE)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  end if
-    
-    
-    end if
-    
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+		  end if
+
+
+    end if
+
+
+
+
+
+
+
+
+
   IF (N.EQ.0)THEN
   CLOSE(97)
   DEALLOCATE(XBIN,VALUESA,VALUELOCATION,ICELLA)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -1730,13 +1712,13 @@ Valuelocation(:)=0
 
 
 
-         
-        
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITE3v
 
@@ -1754,7 +1736,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -1765,7 +1747,7 @@ REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
 INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
- CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
+CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
 integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
@@ -1774,10 +1756,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -1812,8 +1794,8 @@ call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORL
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -1854,13 +1836,13 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) 'Zone N=',IMAXN,',E=',IMAXE,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
-  
-  
+
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=5+PASSIVESCALAR
   if (passivescalar.gt.0)then
-  
+
   if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","energy","Pressure","passivescalar"'
@@ -1868,9 +1850,9 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED)'
   end if
-  
+
       ELSE
-     
+
      if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","energy","Pressure"'
@@ -1878,9 +1860,9 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED)'
    end if
-     
-     
-     
+
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -1894,7 +1876,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED, [9] = CELLCENTERED)'
 	  end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                     if (n.eq.0)then
@@ -1904,7 +1886,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED)'
 	  end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                     if (n.eq.0)then
@@ -1914,8 +1896,8 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
 	  end if
-              
-              
+
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -1926,7 +1908,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED)'
 	  end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                               if (n.eq.0)then
@@ -1936,7 +1918,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
 	  end if
-             
+
               end if
               if (turbulenceequations.eq.0)then
                               if (n.eq.0)then
@@ -1946,22 +1928,22 @@ call mpi_barrier(mpi_comm_world,IERROR)
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED)'
 	  end if
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
-	   
+
  END IF
 
 	IF (N.EQ.0)THEN
 	    WRITE(97,*) ', SOLUTIONTIME=',T
 	    END IF
 
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -1974,7 +1956,7 @@ allocate (Valuelocation(nvar1))
 
 Valuelocation(:)=0
 
- 
+
 
 
 
@@ -1989,15 +1971,15 @@ Valuelocation(:)=0
   call mpi_barrier(MPI_COMM_WORLD,IERROR)
   ALLOCATE(VALUESS(imaxp))
   VALUESS=ZERO
-    
-   
+
+
 
 
     IF (ITESTCASE.LE.2)THEN
     DO I=1,KMAXE
       VALUESS(i)=U_C(I)%VAL(1,1)!0.0
     END DO
-    
+
     call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
     IF (N.EQ.0)THEN
@@ -2006,16 +1988,16 @@ Valuelocation(:)=0
 	xbin(icella(i))=valuesa(i)
 	end if
     end do
-    
+
 			WRITE(97,*)XBIN(1:IMAXE)
-			
-    
+
+
     END IF
 
-     
+
     CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,4
 		DO I=1,KMAXE
@@ -2024,10 +2006,10 @@ Valuelocation(:)=0
 		  VALUESS(i)=U_C(I)%VAL(1,kkd)/U_C(I)%VAL(1,1)
 		  end if
 		END DO
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-		 
+
 		IF (N.EQ.0)THEN
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -2037,17 +2019,17 @@ Valuelocation(:)=0
 		WRITE(97,*)XBIN(1:IMAXE)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		end do
-    
+
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 		  CALL CONS2PRIM2d(N)
 		  VALUESS(i)=ielem(n,i)%condition!leftv(4)
 		END DO
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -2059,15 +2041,15 @@ Valuelocation(:)=0
 		WRITE(97,*)XBIN(1:IMAXE)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    
+
 		  if (passivescalar.gt.0)then
 		  DO I=1,KMAXE
 		      VALUESS(i)=U_CT(I)%VAL(1,turbulenceequations+passivescalar)
 		  END DO
-		  
-		  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -2079,18 +2061,18 @@ Valuelocation(:)=0
 		  WRITE(97,*)XBIN(1:IMAXE)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
 		  DO I=1,KMAXE
 		      VALUESS(i)=ielem(n,i)%vortex(1)
 		  END DO
-		  
-		  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -2102,16 +2084,16 @@ Valuelocation(:)=0
 		  WRITE(97,*)XBIN(1:IMAXE)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 		  DO I=1,KMAXE
 		      VALUESS(i)=U_CT(I)%VAL(1,kkd)
 		  END DO
-		
-		  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -2123,34 +2105,34 @@ Valuelocation(:)=0
 		  WRITE(97,*)XBIN(1:IMAXE)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  end if
-    
-    
-    end if
-    
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+		  end if
+
+
+    end if
+
+
+
+
+
+
+
+
+
   IF (N.EQ.0)THEN
   CLOSE(97)
   DEALLOCATE(XBIN,VALUESA,VALUELOCATION,ICELLA)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -2160,13 +2142,13 @@ Valuelocation(:)=0
 
 
 
-         
-        
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITE3v2d
 
@@ -2182,7 +2164,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -2202,10 +2184,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -2241,7 +2223,7 @@ WRITE(PROC3,FMT='(I10)') IT
 	allocate(character(LEN=itgfd) ::out1)
 	out1=OUTFILE(1:itgfd)
 ! 	out1=out1//CHAR(0)
-	
+
 
 end if
 
@@ -2254,9 +2236,9 @@ end if
                     FileType, &
                     Debug, &
                     VIsDouble)
-  
-  
-  
+
+
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=8+PASSIVESCALAR
@@ -2269,7 +2251,7 @@ end if
                     Debug, &
                     VIsDouble)
      ELSE
-     
+
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                      'Density,U,V,energy,Pressure,STEN1,STEN2,SLOPE'//NULCHAR, &
                     out1//NULCHAR, &
@@ -2277,9 +2259,9 @@ end if
                     FileType, &
                     Debug, &
                     VIsDouble)
-     
-     
-     
+
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -2311,7 +2293,7 @@ end if
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -2340,21 +2322,21 @@ end if
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  END IF
 
-	
-	
-	
-	
+
+
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -2369,9 +2351,9 @@ allocate (Valuelocation(nvar1))
       JMax    = IMAXe
       KMax    = 0
       ZoneType = 3
-      
+
       SolTime = T
-      
+
       StrandID = 1
       ParentZn = 0
       IsBlock = 1
@@ -2416,42 +2398,42 @@ Valuelocation(:)=0
 
 
  END IF
- 
+
   allocate(valuess(1:kmaxe))
-  
-    
-   
+
+
+
 
 
     IF (ITESTCASE.LE.2)THEN
     DO I=1,KMAXE
       VALUESS(i)=U_C(I)%VAL(1,1)!0.0
-     
+
     END DO
-    
+
     call MPI_GATHERv(valuess(1:kmaxe),kmaxe,MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
-    
-    
-    
-	      
-    
-    
+
+
+
+
+
+
 		IF (N.EQ.0)THEN
 		do i=1,imaxe
 		xbin(XMPI_RE(I))=xbin2(I)
 		end do
-		
+
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
-    
 
-    
-    
+
+
+
     DO I=1,KMAXE
       VALUESS(i)=ielem(n,i)%inumneighbours
     END DO
-    
+
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -2460,12 +2442,12 @@ Valuelocation(:)=0
 		end do
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
-    
-    
+
+
     DO I=1,KMAXE
       VALUESS(i)=IELEM(N,I)%ADMIS
     END DO
-    
+
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -2474,7 +2456,7 @@ Valuelocation(:)=0
 		end do
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
-    
+
     if (initcond.eq.0)then
      DO I=1,KMAXE
       VALUESS(i)=ilocal_recon3(i)%cond(1)
@@ -2484,7 +2466,7 @@ Valuelocation(:)=0
       VALUESS(i)=IELEM(N,I)%STENCIL_DIST
     END DO
     end if
-    
+
    call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -2493,10 +2475,10 @@ Valuelocation(:)=0
 		end do
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
-    
-    
+
+
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,4
 		DO I=1,KMAXE
@@ -2507,8 +2489,8 @@ Valuelocation(:)=0
           VALUESS(i)=U_C(I)%VAL(1,KKD)
           END IF
 		END DO
-		
-		
+
+
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -2518,14 +2500,14 @@ Valuelocation(:)=0
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
 		end do
-    
+
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 		  CALL CONS2PRIM2D(N)
 		  VALUESS(i)=leftv(4)
 		END DO
-		
-		
+
+
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -2534,7 +2516,7 @@ Valuelocation(:)=0
 		end do
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
-    
+
                 if (multispecies.eq.1)then
                 DO I=1,KMAXE
                 VALUESS(i)=U_C(I)%VAL(1,5)
@@ -2561,8 +2543,8 @@ Valuelocation(:)=0
                 VALUESS(i)=IELEM(N,I)%STENCIL_DIST
                 END DO
                 end if
-                
-                
+
+
                call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -2572,17 +2554,17 @@ Valuelocation(:)=0
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
 
-                
-                	
-		
-		
-    
+
+
+
+
+
 		  if (passivescalar.gt.0)then
 		  DO I=1,KMAXE
 		      VALUESS(i)=U_CT(I)%VAL(1,turbulenceequations+passivescalar)
 		  END DO
-		  
-		  
+
+
 		 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -2591,25 +2573,25 @@ Valuelocation(:)=0
 		end do
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		  end if
-		  
-		  
+
+
 		   if (itestcase.eq.3)then
                             if (multispecies.eq.1)then
                 DO I=1,KMAXE
@@ -2620,9 +2602,9 @@ Valuelocation(:)=0
                 VALUESS(i)=ielem(n,i)%vortex(1)
                 END DO
                 end if
-                            
-                            
-                            
+
+
+
                             call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -2631,15 +2613,15 @@ Valuelocation(:)=0
 		end do
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
-		  
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
                             DO I=1,KMAXE
                                 VALUESS(i)=ielem(n,i)%vortex(1)
                             END DO
-                            
-                            
+
+
                             call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -2648,14 +2630,14 @@ Valuelocation(:)=0
 		end do
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 		  DO I=1,KMAXE
 		      VALUESS(i)=U_CT(I)%VAL(1,kkd)
 		  END DO
-		
-		  
+
+
 		  call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -2666,33 +2648,33 @@ Valuelocation(:)=0
 		END IF
 		  end do
 		  end if
-		  
-		  
-		  
-		  
+
+
+
+
 		  end if
-    
-    
+
+
     end if
-    
-    
-    
+
+
+
 !     read_ucns
 
-     
-    
-    
-    
+
+
+
+
   IF (N.EQ.0)THEN
   ierr = TECEND112()
   DEALLOCATE(XBIN,xbin2,valuelocation,out1)
   END IF
-  
+
   DEALLOCATE (VALUESS,variables)
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITE3vb2d
 
@@ -2731,7 +2713,7 @@ INTEGER::I,J,K,L,ITER,DIP
         average_restart=0
 	RES_TIME=0.0
 	END IF
-	
+
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -2753,11 +2735,11 @@ SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 		BNDFILE='GRID.bnd'
 
 	ALLOCATE(ISENT(3))
-	
+
 	IF (N.EQ.0)THEN
-	
+
 	if(binio.eq.0)then
-	
+
 		OPEN(8,FILE=CELFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOS)
 		OPEN(9,FILE=VRTFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOX)
 		OPEN(10,FILE=BNDFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOY)
@@ -2765,34 +2747,34 @@ SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 	J=0
 	K=0
 
-	
-	DO 
+
+	DO
 		READ(8,*,IOSTAT=IOS)I
 		IF (IOS.NE.0) THEN
 			EXIT
 		END IF
-		
+
 	END DO
 		IMAXE=i
-	DO 
+	DO
 		READ(9,*,IOSTAT=IOX)J
 		IF (IOX.NE.0) THEN
 			EXIT
 		END IF
-		
+
 	END DO
 		IMAXN=J
-	DO 
+	DO
 		READ(10,*,IOSTAT=IOY)K
 		IF (IOY.NE.0) THEN
 			EXIT
 		END IF
- 		
+
 	END DO
 	 		IMAXB=K
 	else
-	
-	
+
+
 		OPEN(8,FILE=CELFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOS)
 		OPEN(9,FILE=VRTFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOX)
 		OPEN(10,FILE=BNDFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOY)
@@ -2801,64 +2783,64 @@ SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 	K=0
 
 	IF (DIMENSIONA.EQ.3)THEN
-	DO 
+	DO
 		READ(8,IOSTAT=IOS)I,I1,I2,I3,I4,I5,I6,I7,I8
 		IF (IOS.NE.0) THEN
 			EXIT
 		END IF
-		
+
 	END DO
-	
+
 		IMAXE=i
-		
-	DO 
+
+	DO
 		READ(9,IOSTAT=IOX)J,IX1,IX2,IX3
 		IF (IOX.NE.0) THEN
 			EXIT
 		END IF
-		
+
 	END DO
 		IMAXN=J
-	DO 
+	DO
 		READ(10,IOSTAT=IOY)K,I1,I2,I3,I4,I5
 		IF (IOY.NE.0) THEN
 			EXIT
 		END IF
- 		
+
 	END DO
 	 		IMAXB=K
 	END IF
-	
+
 	IF (DIMENSIONA.EQ.2)THEN
-	DO 
+	DO
 		READ(8,IOSTAT=IOS)I,I1,I2,I3,I4
 		IF (IOS.NE.0) THEN
 			EXIT
 		END IF
-		
+
 	END DO
-	
+
 		IMAXE=i
-		
-	DO 
+
+	DO
 		READ(9,IOSTAT=IOX)J,IX1,IX2
 		IF (IOX.NE.0) THEN
 			EXIT
 		END IF
-		
+
 	END DO
 		IMAXN=J
-	DO 
+	DO
 		READ(10,IOSTAT=IOY)K,I1,I2,I3,I4,I5
 		IF (IOY.NE.0) THEN
 			EXIT
 		END IF
- 		
+
 	END DO
 	 		IMAXB=K
 	END IF
-	
-	
+
+
 	end if
 
 	CLOSE(8)
@@ -2869,7 +2851,7 @@ SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 	ISENT(2)=IMAXN
 	ISENT(3)=IMAXB
 
-	
+
 
 	END IF
 	call MPI_Bcast( isent, 3, MPI_integer, 0 ,MPI_COMM_WORLD,IERROR )
@@ -2879,8 +2861,8 @@ SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 	IMAXN=ISENT(2)
 	IMAXB=ISENT(3)
 	DEALLOCATE(ISENT)
-	
-	
+
+
 	END SUBROUTINE OPEN_ARBITRARY
 
 
@@ -2910,7 +2892,7 @@ SUBROUTINE CLOSE_INPUT1(N,ITT)
 !> This subroutine closes the parameter file
  IMPLICIT NONE
  	INTEGER,INTENT(INOUT)::ITT
- 	INTEGER,INTENT(IN)::N	
+ 	INTEGER,INTENT(IN)::N
 !  	CLOSE(8)
 !  	CLOSE(9)
  	CLOSE(15)
@@ -2939,7 +2921,7 @@ SUBROUTINE CLOSE_INPUT(N,ITT)
 !> This subroutine closes the grid files
  IMPLICIT NONE
  	INTEGER,INTENT(INOUT)::ITT
- 	INTEGER,INTENT(IN)::N	
+ 	INTEGER,INTENT(IN)::N
   	CLOSE(8)
   	CLOSE(9)
 
@@ -2957,7 +2939,7 @@ SUBROUTINE READ_UCNS3D
 	LOGICAL::HERE1,HERE2
 
 
- 	
+
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	INQUIRE (FILE='RESTARTav.dat',EXIST=HERE1)
 	IF (HERE1) THEN
@@ -2965,11 +2947,11 @@ SUBROUTINE READ_UCNS3D
 	Else
 	Average_restart=0
 	end if
-	
-	
-	
-	
-	
+
+
+
+
+
 	INQUIRE (FILE='MULTISPECIES.DAT',EXIST=HERE2)
 	IF (HERE2) THEN
 	MULTISPECIES=1
@@ -2987,21 +2969,21 @@ SUBROUTINE READ_UCNS3D
 	END IF
 
 
-	
-	
-	
-	
-	
-			
-	
-	
-	
+
+
+
+
+
+
+
+
+
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
-	
-	
-	
-	
+
+
+
+
+
 	READ(15,*)
 	READ(15,*)
 	READ(15,*)
@@ -3061,7 +3043,7 @@ SUBROUTINE READ_UCNS3D
 	READ(15,*)OUTSURF,IFORCE,surfshear
 	READ(15,*)
 	READ(15,*)
-	READ(15,*)IRES_TURB,IRES_UNSTEADY,LAMPS,Prev_turbmodel  
+	READ(15,*)IRES_TURB,IRES_UNSTEADY,LAMPS,Prev_turbmodel
 	READ(15,*)
 	READ(15,*)
 	READ(15,*)
@@ -3069,20 +3051,20 @@ SUBROUTINE READ_UCNS3D
 	READ(15,*)
 	READ(15,*)NPROBES
 	READ(15,*)
-	    
-	    
-	    
-	    
+
+
+
+
 	    SELECT CASE(CODE_PROFILE)
-	
-	
+
+
 	CASE (0)
-	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	!I/O (ASCII=0, BINARY=1) 
+
+	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+	binio=1	    	!I/O (ASCII=0, BINARY=1)
 	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
 	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
 	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
 	HYBRIDIST=0.0D0 !HYBRID DISTANCE
@@ -3097,7 +3079,7 @@ SUBROUTINE READ_UCNS3D
         relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
 	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
 	itold=10000	!TOLERANCE=n_iterations
 	GRIDAR1=5.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
 	GRIDAR2=7.0	! LIMIT VOLUME CELLS
@@ -3112,19 +3094,19 @@ SUBROUTINE READ_UCNS3D
 	if (iboundary.eq.1)then
 	 LOWMEM=1
 	 end if
-	 
-	 
+
+
 	 DES_model=0
-	 
-	 
-	 
+
+
+
 	CASE (1)
-	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	!I/O (ASCII=0, BINARY=1) 
+
+	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+	binio=1	    	!I/O (ASCII=0, BINARY=1)
 	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
 	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
 	icoupleturb=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
 	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
 	HYBRIDIST=0.0D0 !HYBRID DISTANCE
@@ -3138,7 +3120,7 @@ SUBROUTINE READ_UCNS3D
         relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
 	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
 	itold=10000	!TOLERANCE=n_iterations
 	GRIDAR1=5.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
 	GRIDAR2=7.0	! LIMIT VOLUME CELLS
@@ -3154,15 +3136,15 @@ SUBROUTINE READ_UCNS3D
 	 LOWMEM=1
 	 end if
 	 DES_model=2
-	 
-	 
+
+
 	 CASE (3)
-	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	!I/O (ASCII=0, BINARY=1) 
+
+	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+	binio=1	    	!I/O (ASCII=0, BINARY=1)
 	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
 	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
 	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
 	HYBRIDIST=0.0D0 !HYBRID DISTANCE
@@ -3176,7 +3158,7 @@ SUBROUTINE READ_UCNS3D
         relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
 	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
 	itold=10000	!TOLERANCE=n_iterations
 	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
 	GRIDAR2=30.0	! LIMIT VOLUME CELLS
@@ -3191,18 +3173,18 @@ SUBROUTINE READ_UCNS3D
 	if (iboundary.eq.1)then
 	 LOWMEM=1
 	 end if
-	 
-	 
+
+
 	 DES_model=2
-	 
-	 
+
+
 	  CASE (4)
-	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	!I/O (ASCII=0, BINARY=1) 
+
+	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+	binio=1	    	!I/O (ASCII=0, BINARY=1)
 	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
 	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
 	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
 	HYBRIDIST=0.0D0 !HYBRID DISTANCE
@@ -3216,7 +3198,7 @@ SUBROUTINE READ_UCNS3D
         relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
 	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
 	itold=10000	!TOLERANCE=n_iterations
 	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
 	GRIDAR2=30.0	! LIMIT VOLUME CELLS
@@ -3231,20 +3213,20 @@ SUBROUTINE READ_UCNS3D
 	if (iboundary.eq.1)then
 	 LOWMEM=1
 	 end if
-	 
-	 
+
+
 	 DES_model=0
-	 
-	 
-	 
-	
+
+
+
+
 	CASE DEFAULT
-	
-	LOWMEMORY=0 	 !MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	 !I/O (ASCII=0, BINARY=1) 
+
+	LOWMEMORY=0 	 !MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+	binio=1	    	 !I/O (ASCII=0, BINARY=1)
 	LOWMEM=0    	 !GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
 	reduce_comp=0	 !QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
 	icoupleturb=0	 !COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
 	ihybrid=0	 !HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
 	HYBRIDIST=0.0D0  !HYBRID DISTANCE
@@ -3258,7 +3240,7 @@ SUBROUTINE READ_UCNS3D
         relax=1		 !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
 	CFLMAX=30	 !CFLMAX:TO BE USED WITH RAMPING
 	CFLRAMP=0	 !CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	 !Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+	emetis=6    	 !Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
 	itold=10000	 !TOLERANCE=n_iterations
 	GRIDAR1=5.0	 ! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
 	GRIDAR2=7.0	 ! LIMIT VOLUME CELLS
@@ -3278,42 +3260,42 @@ SUBROUTINE READ_UCNS3D
 	tecplot=1
 	end if
 	end if
-	
+
 	if (iboundary.eq.1)then
 	 LOWMEM=1
 	 end if
-	
-	
+
+
 	DES_model=0
-	
-	
-	
-	
+
+
+
+
 	END SELECT
-	    
-	    
-	    
-	    
-	   
-	    
-	    
-	    
-	    
-	    
-	    
-	    
-	    
-	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	 IF (N.EQ.0)THEN
       OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
       CALL DATE_and_time(STAMP1)
       WRITE(63,*)"UCNS3D Parallel Computation Start",STAMP1
       END IF
 
-      
-      
+
+
 	    NPROC=isize-1;vorder=iorder
-      
+
 	    !--------------------------1------------------------------!
 	    !PROBE POSITION ALLOCATION AND READING OF COORDINATES
 	    !$OMP MASTER
@@ -3325,7 +3307,7 @@ SUBROUTINE READ_UCNS3D
 		    END DO
 	    ELSE
 		  ALLOCATE(PROBEC(1:NPROBES,1:2))
-	    
+
 		    DO INV=1,NPROBES
 		      READ(15,*)PROBEC(INV,1),PROBEC(INV,2)
 		    END DO
@@ -3333,11 +3315,11 @@ SUBROUTINE READ_UCNS3D
 	    END IF
 	    !$OMP END MASTER
 	     !--------------------------END 1-------------------------!
-	     
-	     
+
+
 	     CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	     
-	     
+
+
 	     !-------------------------2---------------------------------!
 	     !NUMBER OF VARIABLES SETUP
 	     if (governingequations.le.2)then
@@ -3346,8 +3328,8 @@ SUBROUTINE READ_UCNS3D
 		  else
 		      nof_variables=4;dims=2
 		  end if
-		  
-		  
+
+
 	      else
 		  nof_variables=1
 		    if (dimensiona.eq.3)then
@@ -3356,7 +3338,7 @@ SUBROUTINE READ_UCNS3D
 		    dims=2
 		    end if
 	      end if
-	      
+
 	      !multiphase modification starts
 	      IF (governingequations.EQ.-1)THEN
 	      if (dimensiona.eq.3)then
@@ -3366,7 +3348,7 @@ SUBROUTINE READ_UCNS3D
 		  end if
 		  END IF
 		  !multiphase modification ends
-		  
+
 	    !--------------------------END 2-------------------------!
 
 
@@ -3377,17 +3359,17 @@ SUBROUTINE READ_UCNS3D
 			      turbulenceequations=1
 		      else if (turbulencemodel .eq. 2) then
 			      turbulenceequations=2
-		      end if 
+		      end if
 	      eLSE
 		      turbulenceequations=0
 		      turbulencemodel=0
 	      END IF
 	    !------------------------- END 3---------------------------------!
-	   
-	   
+
+
 ! 	   !-------------------------4---------------------------------!
 	   !EQUATIONS TYPE
-	   
+
 	   SELECT CASE(governingequations)
 	   CASE(-1)
 	   !MULTI-PHASE INVISCID EULER EQUATIONS
@@ -3397,7 +3379,7 @@ SUBROUTINE READ_UCNS3D
 	      CLOSE(63)
 	    END IF
 	    ITESTCASE = 3;IVORTEX = 0
-	   
+
 	   CASE(1)
 	   !NAVIER STOKES EQUATIONS
 	    IF (N.EQ.0)THEN
@@ -3406,7 +3388,7 @@ SUBROUTINE READ_UCNS3D
 	      CLOSE(63)
 	    END IF
 	    ITESTCASE = 4;IVORTEX = 1
-	    
+
 	  CASE(2)
 	   !EULER EQUATIONS
 	    IF (N.EQ.0)THEN
@@ -3415,9 +3397,9 @@ SUBROUTINE READ_UCNS3D
 	      CLOSE(63)
 	    END IF
 	    ITESTCASE = 3;IVORTEX = 0
-	    
-	    
-	    
+
+
+
 	  CASE(3)
 	   !LINEAR ADVECTION EQUATION
 	    IF (N.EQ.0)THEN
@@ -3426,7 +3408,7 @@ SUBROUTINE READ_UCNS3D
 	      CLOSE(63)
 	    END IF
 	    ITESTCASE = 1;IVORTEX = 0
-	    
+
 	 CASE(4)
 	   !LINEAR ADVECTION EQUATION
 	    IF (N.EQ.0)THEN
@@ -3435,13 +3417,13 @@ SUBROUTINE READ_UCNS3D
 	      CLOSE(63)
 	    END IF
 	    ITESTCASE = 2;IVORTEX = 0
-	    
+
 	  END SELECT
-	  
-	  
-	  
+
+
+
 	  !-------------------------END EQUATIONS 4---------------------------------!
-	  
+
 	  !-------------------------5---------------------------------!
 	  !FLOW PARAMETERS
 	  UNWOU = 3
@@ -3449,7 +3431,7 @@ SUBROUTINE READ_UCNS3D
 	  SUTHER=0.412158681d0
 	  uvel=ufreestream
 	   ! Set pressure
-	  if ( PRES .lt. 0 ) PRES = RRES/GAMMA	
+	  if ( PRES .lt. 0 ) PRES = RRES/GAMMA
 	  ! Set dynamic free-stream viscosity
 	  VISC = (RRES*ufreestream*CharLength)/Reynolds
 	  if (swirl.eq.1)then
@@ -3461,7 +3443,7 @@ SUBROUTINE READ_UCNS3D
 	  WVEL = SIN(angledum)*ufreestream*VECTORZ
 	  VVEL = SIN(angledum)*ufreestream*VECTORY
 	  end if
-	  
+
 	  IF (N.EQ.0)THEN
 	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	      if (ITESTCASE .eq. 4) Then
@@ -3469,14 +3451,14 @@ SUBROUTINE READ_UCNS3D
 		end if
 	      CLOSE(63)
 	   END IF
-	  
-	  
-	  
+
+
+
 	  !-------------------------END FLOW PARAMETERS 5---------------------------------!
-	  
+
 	  !-------------------------6---------------------------------!
 	   !SPATIAL & TEMPORAL DISCRETISATION
-	   
+
 	   IORDER = max(1,spatialorder-1)
 	   firstorder = 0
 ! 	   if (ees.eq.5)then
@@ -3489,61 +3471,61 @@ SUBROUTINE READ_UCNS3D
 	   TYPESTEN=1
 	   LWCI1=wenocentralweight
 	  if (fastest.eq.1)ischeme=1
-	    
-	   
+
+
 	   SELECT CASE(spatiladiscret)
-	   
+
 	   CASE(1)	!NO LIMITER
-	      
+
 	   IF (N.EQ.0)THEN
 	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	      write(63,*)'----1st Order in Space|LINEAR Scheme'
 	      CLOSE(63)
 	   END IF
-	   
-	      if (spatialorder.eq.1) then 
+
+	      if (spatialorder.eq.1) then
 	      firstorder = 1;iorder=1
 	      else
 	      firstorder = 0
 	      end if
 
 	     CASE(2)	!MUSCL TYPE
-	      
+
 	   IF (N.EQ.0)THEN
 	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	      write(63,*)'----MUSCL Scheme Engaged----'
 	      CLOSE(63)
 	   END IF
-	  
+
 	  IWENO = -1
-	  
-	  
+
+
 	   CASE(3)	!WENO TYPE
-	      
+
 	   IF (N.EQ.0)THEN
 	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	      write(63,*)'----WENO Scheme Engaged----'
 	      CLOSE(63)
 	   END IF
-	  
+
 	  IWENO = 1
 	  IWENO = 1
 	  IEXTEND = 12	;
-	  
-	  
+
+
 	  if (EES.EQ.5)THEN
 	   IF (ICOMPACT.EQ.1)THEN
 	  IEXTEND = 8
-	  
-	  
-	  
+
+
+
 	  ELSE
 	  IEXTEND = 5
-	  
+
 	  END IF
 	  END IF
 	  WENWRT=wenocnschar
-	  
+
 	  IF (DIMENSIONA.EQ.2)THEN
 	    if ((EES.EQ.0).OR.(EES.GE.4))THEN;TYPESTEN = 5;End if
 	    if (EES.EQ.1)THEN;TYPESTEN = 9;end if
@@ -3555,25 +3537,25 @@ SUBROUTINE READ_UCNS3D
 	    if (EES.EQ.2)THEN;TYPESTEN = 15;End if
 	    if (EES.EQ.3)THEN;TYPESTEN = 7;End if
 	  END IF
-	  
-	  
-	  
+
+
+
 	  END SELECT
-	  
+
 	  IF (N.EQ.0)THEN
 	    OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	    write(63,*)'Order of Accuracy in space:',spatialorder
 	    CLOSE(63)
 	END IF
-	   
+
 	  ! Temporal order
-	  RUNGEKUTTA = temporder 
-	  
-	if ( iboundary .eq. 0 ) then 
-	    IPERIODICITY = -3 
+	  RUNGEKUTTA = temporder
+
+	if ( iboundary .eq. 0 ) then
+	    IPERIODICITY = -3
 	    end if
-	    if ( iboundary .eq. 1 ) then 
-	    IPERIODICITY = 1 
+	    if ( iboundary .eq. 1 ) then
+	    IPERIODICITY = 1
 	    end if
 
 	    if (guassianquadra.eq.0)then
@@ -3586,8 +3568,8 @@ SUBROUTINE READ_UCNS3D
 	IGQRULES =guassianquadra
 	end if
 	End if
-	    
-	    
+
+
 	  !-------------------------END DISCRETISATION 6---------------------------------!
 
 
@@ -3601,18 +3583,18 @@ SUBROUTINE READ_UCNS3D
 	      CLOSE(63)
 	  END IF
 
-	  
-	   
-	  
+
+
+
 	  !TURBULENCE DEFAULT VALUES
-	
-	
+
+
 			! 	TURBULENCE MODEL PARAMETERS:
 			! ---OPTIONS Spalart Almaras---
 			ISPAL=1! 1				||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
 			!DES_model=0! 0              			|| 1-Detached Eddy Simulation 2-Delayed DES
 			! ---CONSTANTS-------
-			CB1=0.1355	! 0.1355				|| Cb1 
+			CB1=0.1355	! 0.1355				|| Cb1
 			CB2=0.622! 0.622   			|| Cb2
 			SIGMA=0.666666667! 0.666666667      		|| sigma
 			KAPPA=0.41  ! 0.41     			|| kappa
@@ -3632,10 +3614,10 @@ SUBROUTINE READ_UCNS3D
 			IRS=0! 0				||IMPLICIT RESIDUAL SMOOTHING (DOUBLES CFL)
 			C_DES_SA=0.61	! 0.61				||C_DES_SA
 			! =============================================================================
-			! K-OMEGA SST: 
+			! K-OMEGA SST:
 			! ---OPTIONS---
 			VORT_MODEL=0! 0					||0:Default strain-production for k, 1:Vorticity-production for k
-			QSAS_MODEL=0! 0					||Hybrid models: 1-SAS-SST  //  2-DES-SST 
+			QSAS_MODEL=0! 0					||Hybrid models: 1-SAS-SST  //  2-DES-SST
 			ZERO_TURB_INIT=0! 0					||Zero turbulence option (if 1, initialization for k/w is done with zero turbulence)
 			! --------------K-OMEGA CONSTANTS--------------------------
 			SIGMA_K1=1.176470588! 1.176470588				||sigma_k1
@@ -3669,8 +3651,8 @@ SUBROUTINE READ_UCNS3D
 			SCHMIDT_LAM=10.0! 10.0					||Laminar Schmidt number
 			SCHMIDT_TURB=0.7! 0.7					||Turbulent Schmidt number
 
-		
-	
+
+
 
 	END SUBROUTINE READ_UCNS3D
 
@@ -3695,7 +3677,7 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 	INTEGER::IT1,IT2,IT3,IT4,IT5,IT6,IT7,IT8,ITX,INX,IT55,in,out
 	REAL::X,Y,Z
 
-	
+
 
 	KK=0; I=0; J=0; LM=0 ;kk2=1
 	XMIN(N)=tolbig; YMIN(N)=tolbig; ZMIN(N)=tolbig
@@ -3703,8 +3685,8 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 	CALL OPEN_INPUT(N,ITT)
         !OPEN(82,FILE="GRID.epart",FORM='FORMATTED',STATUS='OLD',ACTION='READ')
 	KMAXE=XMPIELRANK(N)
-	
-	
+
+
  	if (dimensiona.eq.3)then
 	!WRITE(400+N,*)KMAXE,IMAXE,IMAXN
 ! 	ALLOCATE(XSIZE(0:ISIZE-1))
@@ -3713,32 +3695,32 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 	ALLOCATE(iNODEr2(imaxn))
 	INODER2(1:imaxn)%NUMBEROFNEIB=0
 	INODER(1:imaxn)%ITOR=0
-	
-	
+
+
 	IF (BINIO.EQ.0)then
-	
+
 	DO J=1,IMAXE
-	
+
 	if (xmpie(j).eq.n)then
 
 	KK=KK+1
-	
-	
+
+
 
 	rEAD(8,*) ITX,IDV(1),IDV(2),IDV(3),IDV(4),IDV(5),IDV(6),IDV(7),IDV(8)
 
-	    
-		
-				
-	
+
+
+
+
 	  do kxk2=1,8
 	  inoder(idv(kxk2))%itor=idv(kxk2)
-	 
+
 	  end do
-	  
-	  
-	  
-	  
+
+
+
+
 	  ielem(n,kk)%IHEXGL=itx
 		IF ((IDV(5).NE.IDV(6)).AND.(IDV(6).NE.IDV(7)).AND.(IDV(7).NE.IDV(8)).AND.(IDV(3).NE.IDV(4)))THEN
 		shap=1	;nodal=8
@@ -3748,8 +3730,8 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		allocate(ielem(n,kk)%nodes(nodal))
 		ielem(n,kk)%nodes(1:nodal)=idv(1:nodal)
 		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
-		
-		
+
+
 		END IF
 		IF ((IDV(3).EQ.IDV(4)).AND.(IDV(5).EQ.IDV(6)).AND.(IDV(6).EQ.IDV(7)).AND.(IDV(7).EQ.IDV(8)))THEN
 		shap=2	;nodal=4!TETRAHEDRAL ELEMENT
@@ -3780,35 +3762,35 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		ielem(n,kk)%nodes(4:6)=idv(5:7)
 		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
 		END IF
-		  
-		
-			
-	
-	
+
+
+
+
+
 	else
 	rEAD(8,*)
 
 
-	end if 
+	end if
 	end do
 	ELSE
 	DO J=1,IMAXE
-	
+
 	if (xmpie(j).eq.n)then
 
 	KK=KK+1
-	
-	
+
+
 
 	rEAD(8) ITX,IDV(1),IDV(2),IDV(3),IDV(4),IDV(5),IDV(6),IDV(7),IDV(8)
 
-	    
-		
-				
-	
+
+
+
+
 	  do kxk2=1,8
 	  inoder(idv(kxk2))%itor=idv(kxk2)
-	 
+
 	  end do
 	  ielem(n,kk)%IHEXGL=itx
 		IF ((IDV(5).NE.IDV(6)).AND.(IDV(6).NE.IDV(7)).AND.(IDV(7).NE.IDV(8)).AND.(IDV(3).NE.IDV(4)))THEN
@@ -3819,8 +3801,8 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		allocate(ielem(n,kk)%nodes(nodal))
 		ielem(n,kk)%nodes(1:nodal)=idv(1:nodal)
 		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
-		
-		
+
+
 		END IF
 		IF ((IDV(3).EQ.IDV(4)).AND.(IDV(5).EQ.IDV(6)).AND.(IDV(6).EQ.IDV(7)).AND.(IDV(7).EQ.IDV(8)))THEN
 		shap=2	;nodal=4!TETRAHEDRAL ELEMENT
@@ -3851,27 +3833,27 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		ielem(n,kk)%nodes(4:6)=idv(5:7)
 		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
 		END IF
-		  
-		
-			
-	
-	
+
+
+
+
+
 	else
 	rEAD(8)ITX,IDV(1),IDV(2),IDV(3),IDV(4),IDV(5),IDV(6),IDV(7),IDV(8)
 
 
-	end if 
+	end if
 	end do
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
+
+
+
 	END IF
 
 
@@ -3880,39 +3862,39 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 
 
 
-	
-	
 
-	
-	
-	
-	
+
+
+
+
+
+
  	else
- 	
- 	
- 	
- 	
+
+
+
+
 	ALLOCATE(iNODEr(imaxn))
 	ALLOCATE(iNODEr2(imaxn))
 	INODER2(:)%NUMBEROFNEIB=0
 	INODER(:)%ITOR=0
-	
+
 	if (binio.eq.0)then
-	
-	
-	
+
+
+
 	DO J=1,IMAXE
-	
+
 	if (xmpie(j).eq.n)then
 
 	KK=KK+1
-	
-	
+
+
 
 	rEAD(8,*) ITX,IDV(1),IDV(2),IDV(3),IDV(4)
 	do kxk2=1,4
 	  inoder(idv(kxk2))%itor=idv(kxk2)
-	  
+
 	  end do
 	ielem(n,kk)%IHEXGL=itx
 		IF ((IDV(3).NE.IDV(4)))THEN
@@ -3924,7 +3906,7 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		ielem(n,kk)%nodes(1:nodal)=idv(1:nodal)
 		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
 		Else
-		
+
 		shap=6	;nodal=3!TRIANGULAR
 		IELEM(N,KK)%ISHAPE=shap
 		allocate(ielem(n,kk)%nodes(nodal))
@@ -3932,34 +3914,34 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		ielem(n,kk)%ifca=3
 		ielem(n,kk)%nodes(1:NODAL)=idv(1:nodal)
 		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
-		
+
 		END IF
-		
 
 
-	 
+
+
 
 	  else
 	rEAD(8,*)
 
 
 
-	end if 
+	end if
 	end do
 	else
-	
+
 	DO J=1,IMAXE
-	
+
 	if (xmpie(j).eq.n)then
 
 	KK=KK+1
-	
-	
+
+
 
 	rEAD(8) ITX,IDV(1),IDV(2),IDV(3),IDV(4)
 	do kxk2=1,4
 	  inoder(idv(kxk2))%itor=idv(kxk2)
-	  
+
 	  end do
 	ielem(n,kk)%IHEXGL=itx
 		IF ((IDV(3).NE.IDV(4)))THEN
@@ -3971,7 +3953,7 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		ielem(n,kk)%nodes(1:nodal)=idv(1:nodal)
 		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
 		Else
-		
+
 		shap=6	;nodal=3!TRIANGULAR
 		IELEM(N,KK)%ISHAPE=shap
 		allocate(ielem(n,kk)%nodes(nodal))
@@ -3979,39 +3961,39 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		ielem(n,kk)%ifca=3
 		ielem(n,kk)%nodes(1:NODAL)=idv(1:nodal)
 		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
-		
+
 		END IF
-		
 
 
-	 
+
+
 
 	  else
 	rEAD(8)ITX,IDV(1),IDV(2),IDV(3),IDV(4)
 
 
 
-	end if 
+	end if
 	end do
-	
-	
-	
-	
+
+
+
+
 	end if
 	end if
 
-	
-	
-	
 
-	
-	  
-      
+
+
+
+
+
+
 
 
 	      if (dimensiona.eq.3)then
-	      
-	      
+
+
 	      if (binio.eq.0)then
 	      DO j=1,IMAXN
 
@@ -4026,21 +4008,21 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		XMAX(N)=MAX(XMAX(N),X)
 		YMAX(N)=MAX(YMAX(N),Y)
 		ZMAX(N)=MAX(ZMAX(N),Z)
-		
-		
+
+
 		  ALLOCATE(inoder(J)%CORD(1:3))
 		  inoder(J)%CORD(1)=X
 		  inoder(J)%CORD(2)=Y
 		  inoder(J)%CORD(3)=Z
-		  
-		
-		
-		
+
+
+
+
 		else
 		read(9,*)
 		end if
-		
-		
+
+
 		!print_out = KMaxE/5
 
 
@@ -4059,43 +4041,43 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		XMAX(N)=MAX(XMAX(N),X)
 		YMAX(N)=MAX(YMAX(N),Y)
 		ZMAX(N)=MAX(ZMAX(N),Z)
-		
-		
+
+
 		  ALLOCATE(inoder(J)%CORD(1:3))
 		  inoder(J)%CORD(1)=X
 		  inoder(J)%CORD(2)=Y
 		  inoder(J)%CORD(3)=Z
-		  
-		
-		
-		
+
+
+
+
 		else
 		read(9)INX,X,Y,Z
 		end if
-		
-		
+
+
 		!print_out = KMaxE/5
 
 
 		END DO
-		
-		
-		
-		
-		
-		
-		
+
+
+
+
+
+
+
 		end if
 		else
-		
+
 		if (binio.eq.0)then
 		 DO j=1,IMAXN
 
 
 		  IF (inoder(J)%ITOR.gt.0)THEN
-		  
 
-		    
+
+
 ! -------------------FOR DEBUGGING ONLY -----------------------------------------!
 ! 		READ(9,'(I14,1X,3ES16.9)')INX,X,Y,Z
 ! -------------------FOR DEBUGGING ONLY -----------------------------------------!
@@ -4103,12 +4085,12 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		x=x/scaler; y=y/scaler
 		XMIN(N)=MIN(XMIN(N),X)
 		YMIN(N)=MIN(YMIN(N),Y)
-		
+
 		XMAX(N)=MAX(XMAX(N),X)
 		YMAX(N)=MAX(YMAX(N),Y)
-		
-		
-		
+
+
+
 		  ALLOCATE(inoder(J)%CORD(1:2))
 		  inoder(J)%CORD(1)=X
 		  inoder(J)%CORD(2)=Y
@@ -4116,12 +4098,12 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 
 		  read(9,*)
 		  end if
-		
-		
-		
-		
-		
-		
+
+
+
+
+
+
 		!print_out = KMaxE/5
 
 
@@ -4131,9 +4113,9 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 
 
 		  IF (inoder(J)%ITOR.gt.0)THEN
-		  
 
-		    
+
+
 ! -------------------FOR DEBUGGING ONLY -----------------------------------------!
 ! 		READ(9,'(I14,1X,3ES16.9)')INX,X,Y,Z
 ! -------------------FOR DEBUGGING ONLY -----------------------------------------!
@@ -4141,12 +4123,12 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		x=x/scaler; y=y/scaler
 		XMIN(N)=MIN(XMIN(N),X)
 		YMIN(N)=MIN(YMIN(N),Y)
-		
+
 		XMAX(N)=MAX(XMAX(N),X)
 		YMAX(N)=MAX(YMAX(N),Y)
-		
-		
-		
+
+
+
 		  ALLOCATE(inoder(J)%CORD(1:2))
 		  inoder(J)%CORD(1)=X
 		  inoder(J)%CORD(2)=Y
@@ -4154,26 +4136,26 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 
 		  read(9)INX,X,Y
 		  end if
-		
-		
-		
-		
-		
-		
+
+
+
+
+
+
 		!print_out = KMaxE/5
 
 
 		END DO
-		
-		
-		
-		
-		
+
+
+
+
+
 
 
 		end if
 		end if
-	
+
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	 CALL CLOSE_INPUT(N,ITT)
 
@@ -4188,33 +4170,33 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 	x=xmin(n);CALL MPI_ALLREDUCE(x,XMIN,1,MPI_DOUBLE_PRECISION,MPI_Min,MPI_COMM_WORLD,IERROR)
 	x=ymin(n);CALL MPI_ALLREDUCE(x,yMIN,1,MPI_DOUBLE_PRECISION,MPI_Min,MPI_COMM_WORLD,IERROR)
 	x=zmin(n);CALL MPI_ALLREDUCE(x,zMIN,1,MPI_DOUBLE_PRECISION,MPI_Min,MPI_COMM_WORLD,IERROR)
-		
-		
+
+
 	  IF (DIMENSIONA.EQ.3)THEN
-		
-	  
-	  
-	  
+
+
+
+
 	  CALL OPEN_INPUT(N,ITT)
 	  DO j=1,IMAXN
 
 
 		  IF (inoder(J)%ITOR.gt.0)THEN
-		  ALLOCATE(INODER2(J)%XNE(1));INODER2(J)%XNE(1)=0 
+		  ALLOCATE(INODER2(J)%XNE(1));INODER2(J)%XNE(1)=0
 		  end if
-		  
+
 	   END DO
-	  
-	  
+
+
 	  DO J=1,IMAXE
-	
-	
-	  
+
+
+
 	  rEAD(8) ITX,IDV(1),IDV(2),IDV(3),IDV(4),IDV(5),IDV(6),IDV(7),IDV(8)
 
-	  
-	  
-	    
+
+
+
 		  if ((xmpie(j).NE.n))then
 		      do kxk2=1,8
 			  if (inoder(idv(kxk2))%itor.gt.0)then
@@ -4224,38 +4206,38 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		      end do
 		  end if
 	 END DO
-	  
+
 	  CALL CLOSE_INPUT(N,ITT)
-	  
-	  
-	  
-	  
-	  
-	  
-	  
-	  
+
+
+
+
+
+
+
+
 	  CALL OPEN_INPUT(N,ITT)
 	  DO j=1,IMAXN
 
 
 		  IF (inoder(J)%ITOR.gt.0)THEN
 		  IF (inoder2(J)%XNE(1).GT.0)THEN
-		  ALLOCATE(INODER2(J)%XNEIB(inoder2(J)%XNE(1)));INODER2(J)%XNEIB=0 
+		  ALLOCATE(INODER2(J)%XNEIB(inoder2(J)%XNE(1)));INODER2(J)%XNEIB=0
 		  inoder2(J)%XNE(1)=0
 		  end if
 		  END IF
 	   END DO
-	  
-	  
+
+
 	  DO J=1,IMAXE
-	
-	
-	  
+
+
+
 	  rEAD(8) ITX,IDV(1),IDV(2),IDV(3),IDV(4),IDV(5),IDV(6),IDV(7),IDV(8)
 
-	  
-	  
-	    
+
+
+
 		  if ((xmpie(j).NE.n))then
 		      do kxk2=1,8
 			  if (inoder(idv(kxk2))%itor.gt.0)then
@@ -4266,18 +4248,18 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		      end do
 		  end if
 	 END DO
-	  
+
 	  CALL CLOSE_INPUT(N,ITT)
-	  
-	  
-	  
+
+
+
 	  END IF
-	  
-	  
-	  
-	  
-	  
-	  
+
+
+
+
+
+
 
 ! DUMMYOUT=TIMEC5
 ! DUMMYIN=0.0
@@ -4292,8 +4274,8 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 XPER = (XMAX(N))- XMIN(N)
 YPER = (YMAX(N)) - YMIN(N)
 ZPER = (ZMAX(N)) - ZMIN(N)
-! 
-! 
+!
+!
 ! XPER = abs(XMAX(N))! - XMIN(N)
 ! YPER = abs(YMAX(N))! - YMIN(N)
 ! ZPER = abs(ZMAX(N))! - ZMIN(N)
@@ -4307,9 +4289,9 @@ ZPER = (ZMAX(N)) - ZMIN(N)
     	write(63,*)"MAX",XMAX(N),YMAX(N),ZMAX(N)
 	CLOSE(63)
 	END IF
-	
 
-	  
+
+
 	END SUBROUTINE READ_INPUT
 
 
@@ -4345,9 +4327,9 @@ DO j=1,IMAXN
 		  IF (inoder(J)%ITOR.gt.0)THEN
 		READ(9,*)INX,X,Y,Z
 		x=x/scaler; y=y/scaler ; Z=Z/scaler
-		      IF (inoder2(J)%NUMBEROFNEIB.EQ.0)THEN		
-		      
-		      
+		      IF (inoder2(J)%NUMBEROFNEIB.EQ.0)THEN
+
+
 			ALLOCATE(inoder(J)%CORD(1:3))
 ! 			  if ((j.eq.709).or.(j.eq.710).or.(j.eq.693).or.(j.eq.692))then
 
@@ -4356,9 +4338,9 @@ DO j=1,IMAXN
 			inoder(J)%CORD(2)=Y
 			inoder(J)%CORD(3)=Z
 		      END IF
-		  
+
 		  else
-		  
+
 		  READ(9,*)
 		  end if
 END DO
@@ -4370,9 +4352,9 @@ DO j=1,IMAXN
 		  IF (inoder(J)%ITOR.gt.0)THEN
 		READ(9,*)INX,X,Y
 		x=x/scaler; y=y/scaler
-		      IF (inoder2(J)%NUMBEROFNEIB.EQ.0)THEN		
-		      
-		      
+		      IF (inoder2(J)%NUMBEROFNEIB.EQ.0)THEN
+
+
 			ALLOCATE(inoder(J)%CORD(1:2))
 			inoder(J)%CORD(1)=X
 			inoder(J)%CORD(2)=Y
@@ -4395,9 +4377,9 @@ DO j=1,IMAXN
 		  IF (inoder(J)%ITOR.gt.0)THEN
 		READ(9)INX,X,Y,Z
 		x=x/scaler; y=y/scaler ; Z=Z/scaler
-		      IF (inoder2(J)%NUMBEROFNEIB.EQ.0)THEN		
-		      
-		      
+		      IF (inoder2(J)%NUMBEROFNEIB.EQ.0)THEN
+
+
 			ALLOCATE(inoder(J)%CORD(1:3))
 ! 			  if ((j.eq.709).or.(j.eq.710).or.(j.eq.693).or.(j.eq.692))then
 
@@ -4406,9 +4388,9 @@ DO j=1,IMAXN
 			inoder(J)%CORD(2)=Y
 			inoder(J)%CORD(3)=Z
 		      END IF
-		  
+
 		  else
-		  
+
 		  READ(9)INX,X,Y,Z
 		  end if
 END DO
@@ -4420,9 +4402,9 @@ DO j=1,IMAXN
 		  IF (inoder(J)%ITOR.gt.0)THEN
 		READ(9)INX,X,Y
 		x=x/scaler; y=y/scaler
-		      IF (inoder2(J)%NUMBEROFNEIB.EQ.0)THEN		
-		      
-		      
+		      IF (inoder2(J)%NUMBEROFNEIB.EQ.0)THEN
+
+
 			ALLOCATE(inoder(J)%CORD(1:2))
 			inoder(J)%CORD(1)=X
 			inoder(J)%CORD(2)=Y
@@ -4478,15 +4460,15 @@ INTEGER::INX,M,O,P,Q,JK,ELEMENTSS
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
 CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE
- 
+
 
 
 
 
 
 ICPUID=N
-	
-	
+
+
 
 
 
@@ -4508,29 +4490,29 @@ ICPUID=N
 
 if (nprobes.gt.0)then
 DO INV=1,NPROBES
-				  
+
 				IF (PROBEI(N,inv).NE.0) THEN
 			WRITE(PROC3,FMT='(I10)') INV
 	!proc4=".plt"
-	OUTFILE="STENCILS_"//TRIM(ADJUSTL(PROC3))//".dat"!//TRIM(ADJUSTL(PROC4))	
-				
-				
+	OUTFILE="STENCILS_"//TRIM(ADJUSTL(PROC3))//".dat"!//TRIM(ADJUSTL(PROC4))
+
+
 	OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
 	IF (BINIO.EQ.0)OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
 	IF (BINIO.EQ.1)OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
-	
+
 	WRITE(97,*)'TITLE="GRID"'
 	WRITE(97,*)'FILETYPE=GRID'
-	
+
 	IF (DIMENSIONA.EQ.3)THEN
 	WRITE(97,*)'VARIABLES="X","Y","Z"'
 	WRITE(97,*)'Zone N=',IMAXN,',E=',IMAXE,',ZONETYPE = FEBRICK,','DATAPACKING = BLOCK'
 	ELSE
 	WRITE(97,*)'VARIABLES="X","Y"'
 	WRITE(97,*)'Zone N=',IMAXN,',E=',IMAXE,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
-	
+
 	END IF
-	
+
 	IF (BINIO.EQ.0)THEN
 	DO I=1,IMAXN
 		READ(96,*)j,X
@@ -4544,7 +4526,7 @@ DO INV=1,NPROBES
 		WRITE(97,*)Y/SCALER
 	END DO
 	CLOSE(96)
-	
+
 	IF (DIMENSIONA.EQ.3)THEN
 	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
 	DO I=1,IMAXN
@@ -4554,8 +4536,8 @@ DO INV=1,NPROBES
 	CLOSE (97)
 	CLOSE(96)
         END IF
-        
-        
+
+
 	ELSE
 	DO I=1,IMAXN
 		READ(96)j,X
@@ -4569,7 +4551,7 @@ DO INV=1,NPROBES
 		WRITE(97,*)Y/SCALER
 	END DO
 	CLOSE(96)
-	
+
 	IF (DIMENSIONA.EQ.3)THEN
 	OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
 	DO I=1,IMAXN
@@ -4579,13 +4561,13 @@ DO INV=1,NPROBES
 	CLOSE (97)
 	CLOSE(96)
         END IF
-	
-	
+
+
 	END IF
-	
-	
+
+
 	IF (BINIO.EQ.0)THEN
-	
+
 	OPEN(96,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
 	OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
 	IF (DIMENSIONA.EQ.3)THEN
@@ -4617,20 +4599,20 @@ DO INV=1,NPROBES
 	END IF
 	close(96)
 	close(97)
-	
+
 	END IF
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
+
+
+
+
+
+
+
+
+
+
                                     OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-                                    
+
                                     if (binio.eq.0)OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
                                     if (binio.eq.1)OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
                                     WRITE(97,*)'TITLE="GRID"'
@@ -4641,9 +4623,9 @@ DO INV=1,NPROBES
                                     ELSE
                                     WRITE(97,*)'VARIABLES="X","Y"'
                                     WRITE(97,*)'Zone N=',IMAXN,',E=',1,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
-                                    
+
                                     END IF
-                                    
+
 					    IF (BINIO.EQ.0)THEN
                                             DO I=1,IMAXN
                                                     READ(96,*)j,X
@@ -4657,7 +4639,7 @@ DO INV=1,NPROBES
                                                     WRITE(97,*)Y/SCALER
                                             END DO
                                             CLOSE(96)
-                                            
+
                                             IF (DIMENSIONA.EQ.3)THEN
                                             OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
                                             DO I=1,IMAXN
@@ -4680,7 +4662,7 @@ DO INV=1,NPROBES
                                                     WRITE(97,*)Y/SCALER
                                             END DO
                                             CLOSE(96)
-                                            
+
                                             IF (DIMENSIONA.EQ.3)THEN
                                             OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
                                             DO I=1,IMAXN
@@ -4690,10 +4672,10 @@ DO INV=1,NPROBES
                                             CLOSE (97)
                                             CLOSE(96)
                                             END IF
-                                            
+
                                             END IF
-                                            
-                                            
+
+
                                             IF (BINIO.EQ.0)THEN
                                             OPEN(96,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
                                             OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
@@ -4734,35 +4716,35 @@ DO INV=1,NPROBES
                                             END IF
                                             close(96)
                                             close(97)
-					     
-					     
+
+
 					     END IF
-                                    
-                                    
-                                    
-                                    
-                                    
-				
+
+
+
+
+
+
 				      DO ISMP=1,typesten
 					ELEMENTSS=0
-					
+
 					if ((ismp.eq.1).or.(ees.ne.5))then
 					itarget=ielem(n,PROBEI(N,inv))%inumneighbours
 					else
 					itarget=numneighbours2
 					end if
-        
-					
-					
-					
+
+
+
+
 					DO  L=2,itarget
                                             IF (ILOCALSTENCIL(N,PROBEI(N,inv),ISMP,L).GT.0)THEN
-                                                     ELEMENTSS= ELEMENTSS+1 
+                                                     ELEMENTSS= ELEMENTSS+1
                                             END IF
                                         END DO
-                                        
+
                                             IF (ELEMENTSS+1.EQ.itarget)THEN
-                                                                                     
+
                                             OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
                                     IF (BINIO.EQ.0)OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
                                     IF (BINIO.EQ.1)OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
@@ -4774,9 +4756,9 @@ DO INV=1,NPROBES
                                     ELSE
                                     WRITE(97,*)'VARIABLES="X","Y"'
                                     WRITE(97,*)'Zone N=',IMAXN,',E=',ELEMENTSS,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
-                                    
+
                                     END IF
-                                    
+
 					    IF (BINIO.EQ.0)THEN
                                             DO I=1,IMAXN
                                                     READ(96,*)j,X
@@ -4790,7 +4772,7 @@ DO INV=1,NPROBES
                                                     WRITE(97,*)Y/SCALER
                                             END DO
                                             CLOSE(96)
-                                            
+
                                             IF (DIMENSIONA.EQ.3)THEN
                                             OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
                                             DO I=1,IMAXN
@@ -4813,7 +4795,7 @@ DO INV=1,NPROBES
                                                     WRITE(97,*)Y/SCALER
                                             END DO
                                             CLOSE(96)
-                                            
+
                                             IF (DIMENSIONA.EQ.3)THEN
                                             OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
                                             DO I=1,IMAXN
@@ -4823,17 +4805,17 @@ DO INV=1,NPROBES
                                             CLOSE (97)
                                             CLOSE(96)
                                             END IF
-                                            
-                                            
+
+
                                             END IF
-                                            
-                                                                                        
+
+
                                             DO  L=2,itarget
                                             	IF (ILOCALSTENCIL(N,PROBEI(N,inv),ISMP,L).GT.0)THEN
                                             	IF (BINIO.EQ.0)THEN
                                             	 OPEN(96,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
                                             OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-                                            
+
                                                     IF (DIMENSIONA.EQ.3)THEN
                                                         do i=1,imaxe
                                                             read(96,*)ix,I5,I6,I8,I7,I1,I2,I4,I3
@@ -4854,7 +4836,7 @@ DO INV=1,NPROBES
 						ELSE
 						 OPEN(96,FILE='GRID.cel',FORM='UNFORMATTED',STATUS='old',ACTION='read')
                                             OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-                                            
+
                                                     IF (DIMENSIONA.EQ.3)THEN
                                                         do i=1,imaxe
                                                             read(96)ix,I5,I6,I8,I7,I1,I2,I4,I3
@@ -4872,21 +4854,21 @@ DO INV=1,NPROBES
                                                     END IF
                                             close(96)
                                             close(97)
-						
-						
+
+
 						END IF
                                                 END IF
                                             END DO
-					   
+
 					  end if
 					END DO
-				      
+
 				   END IF
-				  
-				  
-				  
+
+
+
 			    END DO
- 			  
+
 
 end if
 
@@ -4937,7 +4919,7 @@ KMAXE=XMPIELRANK(N)
 	      if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.4)then
 	  countwall = countwall + 1
 	      end if
-	      
+
 	End If
     End Do
     end if
@@ -4960,8 +4942,8 @@ DO I=1,IMAXB
 	READ(10,*)wall1,wall2,wall3,wall4,wall5,wall6
 	    If (wall6 .eq. 4) then	! wall face
 		countwall = countwall + 1
-		Wallbnd(countwall)%wbid = wall1 ; Wallbnd(countwall)%wb1 = wall2 ; Wallbnd(countwall)%wb2 = wall3 
-		Wallbnd(countwall)%wb3 = wall4  ;Wallbnd(countwall)%wb4 = wall5  
+		Wallbnd(countwall)%wbid = wall1 ; Wallbnd(countwall)%wb1 = wall2 ; Wallbnd(countwall)%wb2 = wall3
+		Wallbnd(countwall)%wb3 = wall4  ;Wallbnd(countwall)%wb4 = wall5
 	    End If
 END DO
 ELSE
@@ -4969,8 +4951,8 @@ DO I=1,IMAXB
 	READ(10)wall1,wall2,wall3,wall4,wall5,wall6
 	    If (wall6 .eq. 4) then	! wall face
 		countwall = countwall + 1
-		Wallbnd(countwall)%wbid = wall1 ; Wallbnd(countwall)%wb1 = wall2 ; Wallbnd(countwall)%wb2 = wall3 
-		Wallbnd(countwall)%wb3 = wall4  ;Wallbnd(countwall)%wb4 = wall5  
+		Wallbnd(countwall)%wbid = wall1 ; Wallbnd(countwall)%wb1 = wall2 ; Wallbnd(countwall)%wb2 = wall3
+		Wallbnd(countwall)%wb3 = wall4  ;Wallbnd(countwall)%wb4 = wall5
 	    End If
 END DO
 
@@ -5019,7 +5001,7 @@ End Do
 ! Find distance from element barycenter to the nearest wall for this block.
 KMAXE=XMPIELRANK(N)
 Do i=1,KmaxE
-    Distance=TOLBIG 
+    Distance=TOLBIG
 	Do k = 1,Countwallglobal
 	      If ( Distance .gt. (sqrt(((Wallbnd(k)%Wallx-Ielem(N,i)%xxc)**2) &
 				     + ((Wallbnd(k)%Wally-Ielem(N,i)%yyc)**2)&
@@ -5031,7 +5013,7 @@ Do i=1,KmaxE
 		 IF (IELEM(N,I)%WALLDIST.LT.HYBRIDIST)THEN
 		    IELEM(N,I)%HYBRID=1
 		 END IF
-		
+
 	      End If
 	End Do
 End Do
@@ -5078,7 +5060,7 @@ KMAXE=XMPIELRANK(N)
 	      if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.4)then
 	  countwall = countwall + 1
 	      end if
-	       
+
 	End If
     End Do
     end if
@@ -5102,8 +5084,8 @@ DO I=1,IMAXB
 	READ(10,*)wall1,wall2,wall3,wall4,wall5,wall6
 	    If (wall6 .eq. 4) then	! wall face
 		countwall = countwall + 1
-		Wallbnd(countwall)%wbid = wall1 ; Wallbnd(countwall)%wb1 = wall2 ; Wallbnd(countwall)%wb2 = wall3 
-		Wallbnd(countwall)%wb3 = wall4  ;Wallbnd(countwall)%wb4 = wall5  
+		Wallbnd(countwall)%wbid = wall1 ; Wallbnd(countwall)%wb1 = wall2 ; Wallbnd(countwall)%wb2 = wall3
+		Wallbnd(countwall)%wb3 = wall4  ;Wallbnd(countwall)%wb4 = wall5
 	    End If
 END DO
 ELSE
@@ -5111,15 +5093,15 @@ DO I=1,IMAXB
 	READ(10)wall1,wall2,wall3,wall4,wall5,wall6
 	    If (wall6 .eq. 4) then	! wall face
 		countwall = countwall + 1
-		Wallbnd(countwall)%wbid = wall1 ; Wallbnd(countwall)%wb1 = wall2 ; Wallbnd(countwall)%wb2 = wall3 
-		Wallbnd(countwall)%wb3 = wall4  ;Wallbnd(countwall)%wb4 = wall5  
+		Wallbnd(countwall)%wbid = wall1 ; Wallbnd(countwall)%wb1 = wall2 ; Wallbnd(countwall)%wb2 = wall3
+		Wallbnd(countwall)%wb3 = wall4  ;Wallbnd(countwall)%wb4 = wall5
 	    End If
 END DO
 
 END IF
  CLOSE(10)
 
- 
+
 Allocate(Wallvrt(IMAXN))
 IF (BINIO.EQ.0)OPEN(11,FILE=VRTFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ')
 IF (BINIO.EQ.1)OPEN(11,FILE=VRTFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ')
@@ -5139,31 +5121,31 @@ END IF
 Do i = 1,Countwallglobal
 
 	wl1 = Wallbnd(i)%wb1 ;wl2 = Wallbnd(i)%wb2 ;wl3 = Wallbnd(i)%wb3 ;wl4 = Wallbnd(i)%wb4 ;
-	
+
 	WALLBND(I)%WALLX=(wallvrt(wl1)%wnx+Wallvrt(wl2)%wnx)/2.0
 	wallbnd(i)%wally=(wallvrt(wl1)%wny+wallvrt(wl2)%wny)/2.0
-	
 
 
-	
+
+
 End Do
 
 
 ! Find distance from element barycenter to the nearest wall for this block.
 KMAXE=XMPIELRANK(N)
 Do i=1,KmaxE
-    Distance=TOLBIG 
+    Distance=TOLBIG
 	Do k = 1,Countwallglobal
 	      If ( Distance .gt. (sqrt(((Wallbnd(k)%Wallx-Ielem(N,i)%xxc)**2) &
 				     + ((Wallbnd(k)%Wally-Ielem(N,i)%yyc)**2)))) Then
 		Distance = sqrt(((Wallbnd(k)%Wallx-Ielem(N,i)%xxc)**2)&
 			       +((Wallbnd(k)%Wally-Ielem(N,i)%yyc)**2))
 		Ielem(N,i)%WallDist = Distance
-		
+
 		 IF (IELEM(N,I)%WALLDIST.LT.HYBRIDIST)THEN
 		    IELEM(N,I)%HYBRID=1
 		 END IF
-		
+
 	      End If
 	End Do
 
@@ -5187,7 +5169,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 INTEGER,DIMENSION(70)::IVALID
@@ -5206,17 +5188,17 @@ real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
 INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-     
+
 
 INQUIRE (FILE='SURF.plt',EXIST=HEREv)
 
@@ -5258,7 +5240,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 deallocate(inog)
 end if
@@ -5307,7 +5289,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 
 NullPtr = 0
@@ -5365,7 +5347,7 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 
 
 
-	
+
     allocate(xbin(igf2))
     allocate(ybin(igf2))
     allocate(zbin(igf2))
@@ -5375,11 +5357,11 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 	IF (BINIO.EQ.0)THEN
         DO I=1,IMAXN
 	READ(96,*)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
  	Zbin(igf2)=Z/scaler
@@ -5388,30 +5370,30 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 	ELSE
 	 DO I=1,IMAXN
 	READ(96)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
  	Zbin(igf2)=Z/scaler
 	end if
 	END DO
-	
+
 	END IF
 
     CLOSE(96)
 
 
     ierr = TECDAT112(igf2,xbin,1)  !!! why not xbin instead of xbin(1) ??
-   
+
     ierr = TECDAT112(igf2,ybin,1)
 
      ierr = TECDAT112(igf2,zbin,1)
-   
+
     deallocate(xbin,YBIN,zbin)
-    
+
     IF (BINIO.EQ.0)OPEN(98,FILE='GRID.bnd',FORM='FORMATTED',STATUS='old',ACTION='read')
     IF (BINIO.EQ.1)OPEN(98,FILE='GRID.bnd',FORM='UNFORMATTED',STATUS='old',ACTION='read')
 	  allocate(icon(4,totwalls))
@@ -5420,7 +5402,7 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 		igf2=0
 		IF (BINIO.EQ.0)THEN
 		DO K=1,iMAXB
-               
+
  		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
@@ -5428,14 +5410,14 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		END DO
 		ELSE
 		DO K=1,iMAXB
-               
+
  		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
@@ -5443,21 +5425,21 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		END DO
-		
+
 		END IF
-	    
+
  		close(98)
 		ierr = TECNOD112(icon)
 		!ierr = TECNOD112(icon)
-		deallocate(icon)	
+		deallocate(icon)
 		deallocate(inog)
-         
-        
+
+
   ierr = TECEND112()
 
 
@@ -5468,13 +5450,13 @@ END IF
 
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
-	
-	end if
-	
 
-	
-	
+
+	end if
+
+
+
+
 
 END SUBROUTINE OUTWRITEGRIDBs
 
@@ -5492,7 +5474,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 INTEGER,DIMENSION(70)::IVALID
@@ -5511,17 +5493,17 @@ real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
 INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-     
+
 
 INQUIRE (FILE='SURF.plt',EXIST=HEREv)
 
@@ -5567,7 +5549,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 deallocate(inog)
 end if
@@ -5617,7 +5599,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 	OPEN(97,FILE='SURF.plt',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
 	WRITE(97,*)'TITLE="GRID"'
@@ -5631,7 +5613,7 @@ itotalb=igf2
 
 
 
-	
+
     allocate(xbin(igf2))
     allocate(ybin(igf2))
     allocate(zbin(igf2))
@@ -5640,11 +5622,11 @@ itotalb=igf2
 	igf2=0
         DO I=1,IMAXN
 	READ(96,*)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
  	Zbin(igf2)=Z/scaler
@@ -5657,11 +5639,11 @@ itotalb=igf2
 	igf2=0
         DO I=1,IMAXN
 	READ(96)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
  	Zbin(igf2)=Z/scaler
@@ -5669,17 +5651,17 @@ itotalb=igf2
 	END DO
 
     CLOSE(96)
-      
-      
+
+
       END IF
 
-    
+
 	WRITE(97,*)XBIN(1:IGF2)
 	WRITE(97,*)YBIN(1:IGF2)
 	WRITE(97,*)ZBIN(1:IGF2)
-    
-   
-   
+
+
+
     deallocate(xbin,YBIN,zbin)
     IF (BINIO.EQ.0)OPEN(98,FILE='GRID.bnd',FORM='FORMATTED',STATUS='old',ACTION='read')
     IF (BINIO.EQ.1)OPEN(98,FILE='GRID.bnd',FORM='UNFORMATTED',STATUS='old',ACTION='read')
@@ -5689,7 +5671,7 @@ itotalb=igf2
 		igf2=0
 		IF (BINIO.EQ.0)THEN
 		DO K=1,iMAXB
-               
+
  		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
@@ -5697,14 +5679,14 @@ itotalb=igf2
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		END DO
 		ELSE
 		DO K=1,iMAXB
-               
+
  		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
@@ -5712,26 +5694,26 @@ itotalb=igf2
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		END DO
-		
+
 		END IF
-	    
+
  		close(98)
- 		
+
  		DO I=1,IGF2
  		WRITE(97,*)ICON(1:4,I)
  		END DO
- 		
-	
-		deallocate(icon)	
+
+
+		deallocate(icon)
 		deallocate(inog)
-         
+
         CLOSE(97)
-  
+
 END IF
 
 
@@ -5739,13 +5721,13 @@ END IF
 
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
-	
-	end if
-	
 
-	
-	
+
+	end if
+
+
+
+
 
 END SUBROUTINE OUTWRITEGRIDs
 
@@ -5763,7 +5745,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 INTEGER,DIMENSION(70)::IVALID
@@ -5782,17 +5764,17 @@ real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
 INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-     
+
 
 INQUIRE (FILE='SURF.plt',EXIST=HEREv)
 
@@ -5810,7 +5792,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 ELSE
@@ -5819,7 +5801,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 END IF
@@ -5831,7 +5813,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 deallocate(inog)
 end if
@@ -5857,7 +5839,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 ELSE
@@ -5866,7 +5848,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 
@@ -5879,7 +5861,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 OPEN(97,FILE='SURF.plt',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
 WRITE(97,*)'TITLE="GRID"'
@@ -5893,7 +5875,7 @@ WRITE(97,*)'TITLE="GRID"'
 
 
 
-	
+
     allocate(xbin(igf2))
     allocate(ybin(igf2))
 	IF (BINIO.EQ.0)THEN
@@ -5901,14 +5883,14 @@ WRITE(97,*)'TITLE="GRID"'
 	igf2=0
         DO I=1,IMAXN
 	READ(96,*)j,x,y
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	
+
 	end if
 	END DO
 
@@ -5918,28 +5900,28 @@ WRITE(97,*)'TITLE="GRID"'
 	igf2=0
         DO I=1,IMAXN
 	READ(96,*)j,x,y
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	
+
 	end if
 	END DO
 
     CLOSE(96)
-      
+
       END IF
 
-    
+
 	WRITE(97,*)XBIN(1:IGF2)
 	WRITE(97,*)YBIN(1:IGF2)
-	
-    
-   
-   
+
+
+
+
     deallocate(xbin,YBIN)
     IF (BINIO.EQ.0)OPEN(98,FILE='GRID.bnd',FORM='FORMATTED',STATUS='old',ACTION='read')
     IF (BINIO.EQ.1)OPEN(98,FILE='GRID.bnd',FORM='UNFORMATTED',STATUS='old',ACTION='read')
@@ -5949,43 +5931,43 @@ WRITE(97,*)'TITLE="GRID"'
 		igf2=0
 		IF (BINIO.EQ.0)THEN
 		DO K=1,iMAXB
-               
+
  		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
-		  
-    
+
+
 		end if
 		END DO
 		ELSE
 		DO K=1,iMAXB
-               
+
  		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
-		  
-    
+
+
 		end if
 		END DO
-		
+
 		END IF
-	    
+
  		close(98)
- 		
+
  		DO I=1,IGF2
  		WRITE(97,*)ICON(1:2,I)
  		END DO
- 		
-	
-		deallocate(icon)	
+
+
+		deallocate(icon)
 		deallocate(inog)
-         
+
         CLOSE(97)
-  
+
 END IF
 
 
@@ -5993,13 +5975,13 @@ END IF
 
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
-	
-	end if
-	
 
-	
-	
+
+	end if
+
+
+
+
 
 END SUBROUTINE OUTWRITEGRIDs2D
 
@@ -6017,7 +5999,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 INTEGER,DIMENSION(70)::IVALID
@@ -6036,17 +6018,17 @@ real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
 INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-     
+
 
 INQUIRE (FILE='SURF.plt',EXIST=HEREv)
 
@@ -6064,7 +6046,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 ELSE
@@ -6073,7 +6055,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 
@@ -6086,7 +6068,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 deallocate(inog)
 end if
@@ -6112,7 +6094,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 ELSE
@@ -6121,7 +6103,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 
@@ -6134,7 +6116,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 
 NullPtr = 0
@@ -6192,23 +6174,23 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 
 
 
-	
+
     allocate(xbin(igf2))
     allocate(ybin(igf2))
-   
+
 	IF (BINIO.EQ.0)THEN
 	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
 	igf2=0
         DO I=1,IMAXN
 	READ(96,*)j,x,y
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	
+
 	end if
 	END DO
 
@@ -6218,27 +6200,27 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 	igf2=0
         DO I=1,IMAXN
 	READ(96)j,x,y
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	
+
 	end if
 	END DO
 
     CLOSE(96)
-      
+
       END IF
 
     ierr = TECDAT112(igf2,xbin,1)  !!! why not xbin instead of xbin(1) ??
-   
+
     ierr = TECDAT112(igf2,ybin,1)
 
-    
-   
+
+
     deallocate(xbin,YBIN)
     IF (BINIO.EQ.0)OPEN(98,FILE='GRID.bnd',FORM='FORMATTED',STATUS='old',ACTION='read')
     IF (BINIO.EQ.1)OPEN(98,FILE='GRID.bnd',FORM='UNFORMATTED',STATUS='old',ACTION='read')
@@ -6248,42 +6230,42 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
 		igf2=0
 		IF (BINIO.EQ.0)THEN
 		DO K=1,iMAXB
-               
+
  		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
-		 
-    
+
+
 		end if
     !cv=cv+4
-        	
+
 		END DO
 		ELSE
 		DO K=1,iMAXB
-               
+
  		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
-		 
-    
+
+
 		end if
     !cv=cv+4
-        	
+
 		END DO
-		
+
 		END IF
-	    
+
  		close(98)
 		ierr = TECNOD112(icon)
 		!ierr = TECNOD112(icon)
-		deallocate(icon)	
+		deallocate(icon)
 		deallocate(inog)
-         
-        
+
+
   ierr = TECEND112()
 
 
@@ -6294,13 +6276,13 @@ END IF
 
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
-	
-	end if
-	
 
-	
-	
+
+	end if
+
+
+
+
 
 END SUBROUTINE OUTWRITEGRIDBs2d
 
@@ -6318,34 +6300,34 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE
- 
 
 
 
 
-if (n.eq.0)then 
+
+if (n.eq.0)then
 
 ICPUID=N
 	KK=0
 	WRITE(PROC3,FMT='(I10)') IXXFF
 	OUTFILE='GRID.dat'
 ! 	OUTFILE='OUT.'//TRIM(ADJUSTL(PROC3))
-	
-	
+
+
 	IF (BINIO.EQ.0)THEN
-	
-	
+
+
 	OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
 	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
-	
-	
+
+
 	WRITE(97,*)'TITLE="GRID"'
 	WRITE(97,*)'FILETYPE=GRID'
 	WRITE(97,*)'VARIABLES="X","Y","Z"'
 	WRITE(97,*)'Zone N=',IMAXN,',E=',IMAXE,',ZONETYPE = FEBRICK,','DATAPACKING = BLOCK'
-	
-	
-	
+
+
+
 	DO I=1,IMAXN
 		READ(96,*)j,X
 		WRITE(97,*)X/SCALER
@@ -6369,15 +6351,15 @@ ICPUID=N
 	ELSE
 	OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
 	OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
-	
-	
+
+
 	WRITE(97,*)'TITLE="GRID"'
 	WRITE(97,*)'FILETYPE=GRID'
 	WRITE(97,*)'VARIABLES="X","Y","Z"'
 	WRITE(97,*)'Zone N=',IMAXN,',E=',IMAXE,',ZONETYPE = FEBRICK,','DATAPACKING = BLOCK'
-	
-	
-	
+
+
+
 	DO I=1,IMAXN
 		READ(96)j,X
 		WRITE(97,*)X/SCALER
@@ -6397,8 +6379,8 @@ ICPUID=N
 	END DO
 	CLOSE (97)
 	CLOSE(96)
-	
-	
+
+
 	END IF
 	IF (BINIO.EQ.0)THEN
 	OPEN(96,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
@@ -6418,7 +6400,7 @@ ICPUID=N
 	end do
 	close(96)
 	close(97)
-	
+
 	END IF
 END IF
 END SUBROUTINE OUTWRITEGRID
@@ -6437,32 +6419,32 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE
- 
 
 
 
 
-if (n.eq.0)then 
+
+if (n.eq.0)then
 
 ICPUID=N
 	KK=0
 	WRITE(PROC3,FMT='(I10)') IXXFF
 	OUTFILE='GRID.dat'
 ! 	OUTFILE='OUT.'//TRIM(ADJUSTL(PROC3))
-	
-	
+
+
 	IF (BINIO.EQ.0)THEN
 	OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
 	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
-	
-	
+
+
 	WRITE(97,*)'TITLE="GRID"'
 	WRITE(97,*)'FILETYPE=GRID'
 	WRITE(97,*)'VARIABLES="X","Y"'
 	WRITE(97,*)'Zone N=',IMAXN,',E=',IMAXE,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
-	
-	
-	
+
+
+
 	DO I=1,IMAXN
 		READ(96,*)j,X
 		WRITE(97,*)X/SCALER
@@ -6475,21 +6457,21 @@ ICPUID=N
 		WRITE(97,*)Y/SCALER
 	END DO
 	CLOSE(96)
-	
+
 	CLOSE (97)
 	ELSE
-	
+
 	OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
 	OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
-	
-	
+
+
 	WRITE(97,*)'TITLE="GRID"'
 	WRITE(97,*)'FILETYPE=GRID'
 	WRITE(97,*)'VARIABLES="X","Y"'
 	WRITE(97,*)'Zone N=',IMAXN,',E=',IMAXE,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
-	
-	
-	
+
+
+
 	DO I=1,IMAXN
 		READ(96)j,X
 		WRITE(97,*)X/SCALER
@@ -6502,10 +6484,10 @@ ICPUID=N
 		WRITE(97,*)Y/SCALER
 	END DO
 	CLOSE(96)
-	
+
 	CLOSE (97)
 
-	END IF	
+	END IF
 	IF (BINIO.EQ.0)THEN
 	OPEN(96,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
 	OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
@@ -6524,9 +6506,9 @@ ICPUID=N
 	end do
 	close(96)
 	close(97)
-	
+
 	END IF
-	
+
 END IF
 END SUBROUTINE OUTWRITEGRID2d
 
@@ -6543,7 +6525,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
@@ -6563,10 +6545,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType,ILOOP
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -6576,20 +6558,20 @@ character*1 NULCHAR
 
 
  KMAXE=XMPIELRANK(N)
-! ! 
+! !
 ! DUMG=TOTIW
 ! call mpi_barrier(mpi_comm_world,IERROR)
-! 
+!
 ! CALL MPI_ALLREDUCE(DUMG,DUML,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
 ! IMAXP=DUML
-! 
+!
 ! ALLOCATE(ICELL(IMAXP))
 ! ICELL=0
-! 
+!
 ! ILOOP=0
-! 
+!
 ! ! IF (TOTIW.GT.0)THEN
-! !     
+! !
 ! !    DO I=1,TOTIW
 ! ! 	k=IBOUND_T(I)
 ! ! 	do i1=k,k
@@ -6618,21 +6600,21 @@ character*1 NULCHAR
 !    end if
 ! END DO
 ! end if
-! 
+!
 ! IF (N.EQ.0)THEN
 ! 	ALLOCATE(ICELLA(IMAXP*ISIZE))
 ! 	 ICELLA=0
-! 
+!
 ! END IF
-! 
+!
 ! call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORLD,IERROR)
-! 
+!
 ! ! if (n.eq.0)then
 ! ! write(1000+n,*)icella(:)
-! ! 
-! ! 
+! !
+! !
 ! ! end if
-! 
+!
 ! call mpi_barrier(mpi_comm_world,IERROR)
 ! deallocate (icell)
 
@@ -6672,9 +6654,9 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-  
-  
-  
+
+
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=6+PASSIVESCALAR
@@ -6687,7 +6669,7 @@ IF (ITESTCASE.LE.2)THEN
                     Debug, &
                     VIsDouble)
      ELSE
-     
+
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,W,energy,Pressure'//NULCHAR, &
                     out1//NULCHAR, &
@@ -6695,9 +6677,9 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-     
-     
-     
+
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -6729,7 +6711,7 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -6758,18 +6740,18 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  END IF
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -6829,18 +6811,18 @@ Valuelocation(:)=0
                     ShrConn)
 
 
- 
+
   allocate(xbin(totwalls),xbin2(totwalls))
-	
+
 
  END IF
- 
+
   totiw=xmpiwall(n)
 !   if (xmpiwall(n).gt.0)then
   ALLOCATE(VALUESS(xmpiwall(n)))
 !   end if
     call mpi_barrier(MPI_COMM_WORLD,IERROR)
-   
+
 IF (ITESTCASE.LE.2)THEN
 					  IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
@@ -6849,8 +6831,8 @@ IF (ITESTCASE.LE.2)THEN
 					  END IF
 
 
-		      
-    
+
+
     call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -6860,7 +6842,7 @@ IF (ITESTCASE.LE.2)THEN
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,5
 					  IF (TOTIW.GT.0)THEN
@@ -6874,17 +6856,17 @@ IF (ITESTCASE.LE.2)THEN
 !                                                 else
 !                                                 VALUESS(i)=IELEM(N,IBOUND_T(I))%dih(kkd)
 !                                                 end if
-                                                
+
 						VALUESS(I)=U_C(IBOUND_T(I))%VAL(1,KKD)
 						if ((kkd.ge.2).and.(kkd.le.4))then
 						valuess(i)=U_C(IBOUND_T(I))%VAL(1,kkd)/U_C(IBOUND_T(I))%VAL(1,1)
-						end if	
+						end if
 					  ENDDO
 					  END IF
-		
-		     
-		
-		
+
+
+
+
 		call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -6894,26 +6876,26 @@ IF (ITESTCASE.LE.2)THEN
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
 		end do
-    
+
 					IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
-                                                
-                                                
-                                                
-                                                
-                                               
-					  
-                                            
+
+
+
+
+
+
+
 						leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(1,1:nof_Variables)
 						CALL CONS2PRIM(N)
 						VALUESS(i)=leftv(5)
-						
+
 					  ENDDO
 					  END IF
-		     
-    
-    
-    
+
+
+
+
 		call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -6922,20 +6904,20 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-    
+
 		  if (passivescalar.gt.0)then
 					  IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 						VALUESS(i)=U_CT(IBOUND_T(I))%VAL(1,turbulenceequations+passivescalar)
-												
+
 					  ENDDO
 					  END IF
-		  
-		  
-		  
-		  
-		  	  
-		  
+
+
+
+
+
+
 		 call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -6944,29 +6926,29 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
-		  
+
+
 		  IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 						VALUESS(i)=ielem(n,IBOUND_T(I))%vortex(1)
-												
+
 					  ENDDO
 					  END IF
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
 ! 		  DO I=1,KMAXE
 ! 		      VALUESS(i)=ielem(n,i)%vortex(1)
 ! 		  END DO
-		  
-		  
+
+
 		 call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -6975,21 +6957,21 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
-		  
+
+
 		   IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 						VALUESS(i)=u_ct(IBOUND_T(I))%val(1,kkd)
-												
+
 					  ENDDO
 					  END IF
-		  
-		  
-		  
-				  
+
+
+
+
 		   call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -6998,37 +6980,37 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		
+
 		  end do
 		  end if
-		  
-		  
-		  
+
+
+
 		  do kkd=1,3
-		  
+
 				      IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
-						
+
 					 ICONSI=IBOUND_T(I)
 					 ICONSIDERED=IBOUND_T2(I)
 					select case(kkd)
 					 case(1)
-					 
+
 					 call SHEAR_X(ICONSI,ICONSIDERED)
 					 CASE (2)
 					 call SHEAR_Y(ICONSI,ICONSIDERED)
 					 CASE(3)
 					 call SHEAR_Z(ICONSI,ICONSIDERED)
 					 END SELECT
-				       		VALUESS(i)=SHEAR_TEMP					
+				       		VALUESS(i)=SHEAR_TEMP
 					  ENDDO
 					  END IF
-		  
-		  
-		  
-		  
-		  
-				  
+
+
+
+
+
+
 		  call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -7037,20 +7019,20 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		
+
 		  end do
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -7078,7 +7060,6 @@ IF (ITESTCASE.LE.2)THEN
 
 
 
-  
 
 
 
@@ -7086,12 +7067,13 @@ IF (ITESTCASE.LE.2)THEN
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
+
 
 END SUBROUTINE OUTWRITE3vSb
 
@@ -7108,7 +7090,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
@@ -7128,10 +7110,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType,ILOOP
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -7141,20 +7123,20 @@ character*1 NULCHAR
 
 
  KMAXE=XMPIELRANK(N)
-! 
+!
 totiw=xmpiwall(n)
 ! call mpi_barrier(mpi_comm_world,IERROR)
-! 
+!
 ! CALL MPI_ALLREDUCE(DUMG,DUML,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
 ! IMAXP=DUML
-! 
+!
 ! ALLOCATE(ICELL(IMAXP))
 ! ICELL=0
-! 
+!
 ! ILOOP=0
 
 ! IF (TOTIW.GT.0)THEN
-!     
+!
 !    DO I=1,TOTIW
 ! 	k=IBOUND_T(I)
 ! 	do i1=k,k
@@ -7170,7 +7152,7 @@ totiw=xmpiwall(n)
 !   ENDDO
 ! END IF
 ! IF (TOTIW.GT.0)THEN
-! 
+!
 ! DO I=1,KMAXE
 !   if (ielem(n,i)%interior.eq.1)then
 ! 	DO j=1,IELEM(N,I)%IFCA
@@ -7184,19 +7166,19 @@ totiw=xmpiwall(n)
 !    end if
 ! END DO
 ! end if
-! 
+!
 ! IF (N.EQ.0)THEN
 ! 	ALLOCATE(ICELLA(IMAXP*ISIZE))
 ! 	 ICELLA=0
-! 
+!
 ! END IF
-! 
+!
 ! call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORLD,IERROR)
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 ! call mpi_barrier(mpi_comm_world,IERROR)
@@ -7238,9 +7220,9 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-  
-  
-  
+
+
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=6+PASSIVESCALAR
@@ -7253,7 +7235,7 @@ IF (ITESTCASE.LE.2)THEN
                     Debug, &
                     VIsDouble)
      ELSE
-     
+
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,energy,Pressure'//NULCHAR, &
                     out1//NULCHAR, &
@@ -7261,9 +7243,9 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-     
-     
-     
+
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -7295,7 +7277,7 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -7324,18 +7306,18 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  END IF
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -7395,9 +7377,9 @@ Valuelocation(:)=0
                     ShrConn)
 
 
- 
+
   allocate(xbin(totwalls),xbin2(totwalls))
-	
+
 
  END IF
 
@@ -7405,21 +7387,21 @@ Valuelocation(:)=0
 !   if (xmpiwall(n).gt.0)then
   ALLOCATE(VALUESS(xmpiwall(n)))
 !   end if
-    
-   
+
+
 IF (ITESTCASE.LE.2)THEN
-		     
+
 					  IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 						VALUESS(I)=U_C(IBOUND_T(I))%VAL(1,1)
 					  ENDDO
 					  END IF
-    
-    
-     
-    
-    
-    
+
+
+
+
+
+
      call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -7429,7 +7411,7 @@ IF (ITESTCASE.LE.2)THEN
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,4
 		     IF (TOTIW.GT.0)THEN
@@ -7437,16 +7419,16 @@ IF (ITESTCASE.LE.2)THEN
 						VALUESS(I)=U_C(IBOUND_T(I))%VAL(1,kkd)
 							    if ((kkd.ge.2).and.(kkd.le.3))then
 			      valuess(i)=U_C(IBOUND_T(I))%VAL(1,kkd)/U_C(IBOUND_T(I))%VAL(1,1)
-			      end if	
-						
-						
+			      end if
+
+
 					  ENDDO
 		  END IF
-		
-		
-		      
-		
-		
+
+
+
+
+
 		 call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -7455,20 +7437,20 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		
+
 		end do
-    
+
 		      IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 					  leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(1,1:nof_Variables)
 				    CALL CONS2PRIM2d(N)
 				    VALUESS(i)=leftv(4)
-					end do	
-			      end if	
-			
-    
-    
-    
+					end do
+			      end if
+
+
+
+
 		 call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -7477,22 +7459,22 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		
-    
+
+
 		  if (passivescalar.gt.0)then
-		  
+
 		  IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 					VALUESS(i)=U_Ct(IBOUND_T(I))%VAL(1,turbulenceequations+passivescalar)
-					end do	
-			      end if	
-		  
-		  
-		   
-		  
-		  
-		  	  
-		  
+					end do
+			      end if
+
+
+
+
+
+
+
 		  call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -7501,26 +7483,26 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 					VALUESS(i)=ielem(n,IBOUND_T(I))%vortex(1)
-					end do	
-			      end if	
-		 
-		  
-		  
-		  
+					end do
+			      end if
+
+
+
+
 ! 		  DO I=1,KMAXE
 ! 		      VALUESS(i)=ielem(n,i)%vortex(1)
 ! 		  END DO
-		  
-		  
+
+
 		   call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -7529,17 +7511,17 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 		   IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 					VALUESS(i)=u_ct(IBOUND_T(I))%val(1,kkd)
-					end do	
+					end do
 			      end if
-		  
-		  
-				  
+
+
+
 		   call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -7550,9 +7532,9 @@ IF (ITESTCASE.LE.2)THEN
 		END IF
 		end do
 		  end if
-		  
-		  
-		  
+
+
+
 		  do kkd=1,2
 			    IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
@@ -7560,18 +7542,18 @@ IF (ITESTCASE.LE.2)THEN
 					  ICONSIDERED=IBOUND_t2(i)
 					  select case(kkd)
 					 case(1)
-					 
+
 					 call SHEAR_X2d(ICONSI,ICONSIDERED)
 					 CASE (2)
 					 call SHEAR_Y2d(ICONSI,ICONSIDERED)
-					 
+
 					 END SELECT
 					VALUESS(i)=SHEAR_TEMP
-					end do	
+					end do
 			      end if
-		 
-		  
-				  
+
+
+
 		  call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -7580,18 +7562,18 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
 		  end do
-		  
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -7605,11 +7587,10 @@ IF (ITESTCASE.LE.2)THEN
   ierr = TECEND112()
   DEALLOCATE(XBIN,valuelocation,out1,XBIN2)
   END IF
-  
+
 !   IF (TOTIW.GT.0)THEN
   DEALLOCATE (VALUESS)
 !   end if
-  
 
 
 
@@ -7621,7 +7602,6 @@ IF (ITESTCASE.LE.2)THEN
 
 
 
-  
 
 
 
@@ -7629,12 +7609,14 @@ IF (ITESTCASE.LE.2)THEN
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
+
+
 
 END SUBROUTINE OUTWRITE3vSb2d
 
@@ -7652,7 +7634,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
@@ -7672,10 +7654,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType,ILOOP
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -7685,7 +7667,7 @@ character*1 NULCHAR
 
 
  KMAXE=XMPIELRANK(N)
-! 
+!
 DUMG=TOTIW
 call mpi_barrier(mpi_comm_world,IERROR)
 
@@ -7698,7 +7680,7 @@ ICELL=0
 ILOOP=0
 
 ! IF (TOTIW.GT.0)THEN
-!     
+!
 !    DO I=1,TOTIW
 ! 	k=IBOUND_T(I)
 ! 	do i1=k,k
@@ -7738,8 +7720,8 @@ call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORL
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -7777,7 +7759,7 @@ end if
 
 
 
-		
+
    if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
@@ -7792,22 +7774,22 @@ end if
 
 IF (ITESTCASE.LE.2)THEN
   NVAR1=1
-  
-  
+
+
    if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="solution"'
 	WRITE(97,*) 'Zone N=',Itotalb,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
-  
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=6+PASSIVESCALAR
   if (passivescalar.gt.0)then
- 
-                    
-                    
+
+
+
                     if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
@@ -7816,8 +7798,8 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
   end if
      ELSE
-     
-     
+
+
      if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure"'
@@ -7825,16 +7807,16 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED)'
   end if
-     
-     
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
  NVAR1=10+PASSIVESCALAR+turbulenceequations
 	    if (passivescalar.gt.0)then
 	      if (turbulenceequations.eq.2)then
-	      
-                    
+
+
                     if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","k","omega","VORTEX","ssx","ssy","ssz"'
@@ -7843,12 +7825,12 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED,[9] = CELLCENTERED,'
 	WRITE(97,*) '[10] = CELLCENTERED, [11] = CELLCENTERED,[12] = CELLCENTERED,[13] = CELLCENTERED)'
   end if
-                    
-                    
-                    
+
+
+
               end if
               if (turbulenceequations.eq.1)then
-              
+
                       if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","MU","VORTEX","ssx","ssy","ssz"'
@@ -7859,7 +7841,7 @@ IF (ITESTCASE.LE.2)THEN
   end if
               end if
               if (turbulenceequations.eq.0)then
-              
+
                 if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","VORTEX","ssx","ssy","ssz"'
@@ -7871,7 +7853,7 @@ IF (ITESTCASE.LE.2)THEN
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
-	      
+
                       if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","k","omega","VORTEX","ssx","ssy","ssz"'
@@ -7882,7 +7864,7 @@ IF (ITESTCASE.LE.2)THEN
   end if
               end if
               if (turbulenceequations.eq.1)then
-              
+
                       if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","M","VORTEX","ssx","ssy","ssz"'
@@ -7893,7 +7875,7 @@ IF (ITESTCASE.LE.2)THEN
   end if
               end if
               if (turbulenceequations.eq.0)then
-         
+
                if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","VORTEX","ssx","ssy","ssz"'
@@ -7903,16 +7885,16 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[10] = CELLCENTERED)'
   end if
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  END IF
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -7923,7 +7905,7 @@ allocate (Valuelocation(nvar1))
 
 
 
-     
+
 
 Valuelocation(:)=0
 
@@ -7931,7 +7913,7 @@ Valuelocation(:)=0
 
 
 
- 
+
 
 
  ALLOCATE(VALUESA(IMAXP*ISIZE))
@@ -7943,11 +7925,11 @@ Valuelocation(:)=0
   call mpi_barrier(MPI_COMM_WORLD,IERROR)
   ALLOCATE(VALUESS(imaxp))
   VALUESS=0.0
-    
-   
+
+
 IF (ITESTCASE.LE.2)THEN
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
@@ -7955,7 +7937,7 @@ IF (ITESTCASE.LE.2)THEN
 				END IF
 		      end do
 		      end if
-    
+
     call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
     IF (N.EQ.0)THEN
@@ -7965,31 +7947,31 @@ IF (ITESTCASE.LE.2)THEN
 	end if
     end do
     WRITE(97,*)XBIN(1:TOTWALLS)
-    
+
     END IF
 
-     
+
     CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,5
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    valuess(icount_wall)=u_c(IBOUND(N,i)%which)%val(1,kkd)
 				if ((kkd.ge.2).and.(kkd.le.4))then
 		  valuess(icount_wall)=U_C(IBOUND(N,i)%which)%VAL(1,kkd)/U_C(IBOUND(N,i)%which)%VAL(1,1)
-		  end if	
+		  end if
 				END IF
 		      end do
 		      end if
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-		 
+
 		IF (N.EQ.0)THEN
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -7999,26 +7981,26 @@ IF (ITESTCASE.LE.2)THEN
 		 WRITE(97,*)XBIN(1:TOTWALLS)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		end do
-    
-    
+
+
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_Variables)=U_C(IBOUND(N,i)%which)%VAL(1,1:nof_Variables)
 				    CALL CONS2PRIM(N)
 				    VALUESS(icount_wall)=leftv(5)
-				  
+
 				END IF
 		      end do
 		      end if
-    
-    
-    
+
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -8030,24 +8012,24 @@ IF (ITESTCASE.LE.2)THEN
 		 WRITE(97,*)XBIN(1:TOTWALLS)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    
+
 		  if (passivescalar.gt.0)then
 		   IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=U_Ct(IBOUND(N,i)%which)%VAL(1,turbulenceequations+passivescalar)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-		  
-		  	  
-		  
+
+
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -8059,32 +8041,32 @@ IF (ITESTCASE.LE.2)THEN
 		   WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=ielem(n,IBOUND(N,i)%which)%vortex(1)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-		  
-		  
+
+
+
 ! 		  DO I=1,KMAXE
 ! 		      VALUESS(i)=ielem(n,i)%vortex(1)
 ! 		  END DO
-		  
-		  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -8096,24 +8078,24 @@ IF (ITESTCASE.LE.2)THEN
 		   WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=u_ct(IBOUND(N,i)%which)%val(1,kkd)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-				  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -8125,17 +8107,17 @@ IF (ITESTCASE.LE.2)THEN
 		   WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,3
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
@@ -8143,21 +8125,21 @@ IF (ITESTCASE.LE.2)THEN
 					 ICONSIDERED=IBOUND(N,i)%FACE
 					select case(kkd)
 					 case(1)
-					 
+
 					 call SHEAR_X(ICONSI,ICONSIDERED)
 					 CASE (2)
 					 call SHEAR_Y(ICONSI,ICONSIDERED)
 					 CASE(3)
 					 call SHEAR_Z(ICONSI,ICONSIDERED)
 					 END SELECT
-				       		VALUESS(icount_wall)=SHEAR_TEMP		
-				       
-				  
+				       		VALUESS(icount_wall)=SHEAR_TEMP
+
+
 				END IF
 		      end do
 		      end if
-		  
-				  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -8169,21 +8151,21 @@ IF (ITESTCASE.LE.2)THEN
 		   WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -8194,12 +8176,12 @@ IF (ITESTCASE.LE.2)THEN
 !    end if
 
   IF (N.EQ.0)THEN
-  
+
   DEALLOCATE(XBIN,VALUESA,VALUELOCATION,ICELLA)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
 
 
@@ -8219,12 +8201,12 @@ IF (ITESTCASE.LE.2)THEN
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
 
 END SUBROUTINE OUTWRITE3vS
 
@@ -8241,7 +8223,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
@@ -8261,10 +8243,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType,ILOOP
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -8274,7 +8256,7 @@ character*1 NULCHAR
 
 
  KMAXE=XMPIELRANK(N)
-! 
+!
 DUMG=TOTIW
 call mpi_barrier(mpi_comm_world,IERROR)
 
@@ -8287,7 +8269,7 @@ ICELL=0
 ILOOP=0
 
 ! IF (TOTIW.GT.0)THEN
-!     
+!
 !    DO I=1,TOTIW
 ! 	k=IBOUND_T(I)
 ! 	do i1=k,k
@@ -8327,8 +8309,8 @@ call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORL
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -8357,7 +8339,7 @@ WRITE(PROC3,FMT='(I10)') IT
 ! 	out1=out1//CHAR(0)
 
 	OPEN(97,FILE=outfile,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
-	
+
 
 
 
@@ -8368,22 +8350,22 @@ end if
 
 IF (ITESTCASE.LE.2)THEN
   NVAR1=1
-  
+
                     if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="SOLUTION"'
 	WRITE(97,*) 'Zone N=',ITOTALB,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
- 
-  
-  
+
+
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=6+PASSIVESCALAR
   if (passivescalar.gt.0)then
- 
-                    
+
+
                      if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","energy","Pressure","passivescalar"'
@@ -8406,9 +8388,9 @@ IF (ITESTCASE.LE.2)THEN
 !                     FileType, &
 !                     Debug, &
 !                     VIsDouble)
-     
-     
-     
+
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -8423,7 +8405,7 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	WRITE(97,*) '[9] = CELLCENTERED, [10] = CELLCENTERED, [11] = CELLCENTERED)'
   end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                    if (n.eq.0)then
@@ -8434,7 +8416,7 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	WRITE(97,*) '[9] = CELLCENTERED, [10] = CELLCENTERED)'
   end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                if (n.eq.0)then
@@ -8445,8 +8427,8 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	WRITE(97,*) '[9] = CELLCENTERED)'
   end if
-              
-              
+
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -8475,7 +8457,7 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	WRITE(97,*) '[9] = CELLCENTERED)'
   end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                       if (n.eq.0)then
@@ -8484,21 +8466,21 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) 'Zone N=',ITOTALB,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED)'
-	
+
   end if
-              
-              
+
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  END IF
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -8567,11 +8549,11 @@ Valuelocation(:)=0
   call mpi_barrier(MPI_COMM_WORLD,IERROR)
   ALLOCATE(VALUESS(imaxp))
   VALUESS=0.0
-    
-   
+
+
 IF (ITESTCASE.LE.2)THEN
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
@@ -8579,7 +8561,7 @@ IF (ITESTCASE.LE.2)THEN
 				END IF
 		      end do
 		      end if
-    
+
     call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
     IF (N.EQ.0)THEN
@@ -8592,28 +8574,28 @@ IF (ITESTCASE.LE.2)THEN
 !     ierr = TECDAT112(totwalls,xbin,1)
     END IF
 
-     
+
     CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,4
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    valuess(icount_wall)=u_c(IBOUND(N,i)%which)%val(1,kkd)
 				if ((kkd.ge.2).and.(kkd.le.3))then
 		  valuess(icount_wall)=U_C(IBOUND(N,i)%which)%VAL(1,kkd)/U_C(IBOUND(N,i)%which)%VAL(1,1)
-		  end if	
+		  end if
 				END IF
 		      end do
 		      end if
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-		 
+
 		IF (N.EQ.0)THEN
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -8623,26 +8605,26 @@ IF (ITESTCASE.LE.2)THEN
 		WRITE(97,*)XBIN(1:TOTWALLS)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		end do
-    
-    
+
+
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_Variables)=U_C(IBOUND(N,i)%which)%VAL(1,1:nof_Variables)
 				    CALL CONS2PRIM2d(N)
 				    VALUESS(icount_wall)=leftv(4)
-				  
+
 				END IF
 		      end do
 		      end if
-    
-    
-    
+
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -8654,24 +8636,24 @@ IF (ITESTCASE.LE.2)THEN
 		WRITE(97,*)XBIN(1:TOTWALLS)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    
+
 		  if (passivescalar.gt.0)then
 		   IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=U_Ct(IBOUND(N,i)%which)%VAL(1,turbulenceequations+passivescalar)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-		  
-		  	  
-		  
+
+
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -8683,32 +8665,32 @@ IF (ITESTCASE.LE.2)THEN
 		  WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=ielem(n,IBOUND(N,i)%which)%vortex(1)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-		  
-		  
+
+
+
 ! 		  DO I=1,KMAXE
 ! 		      VALUESS(i)=ielem(n,i)%vortex(1)
 ! 		  END DO
-		  
-		  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -8720,24 +8702,24 @@ IF (ITESTCASE.LE.2)THEN
 		  WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=u_ct(IBOUND(N,i)%which)%val(1,kkd)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-				  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -8749,17 +8731,17 @@ IF (ITESTCASE.LE.2)THEN
 		  WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,2
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
@@ -8767,20 +8749,20 @@ IF (ITESTCASE.LE.2)THEN
 					 ICONSIDERED=IBOUND(N,i)%FACE
 					select case(kkd)
 					 case(1)
-					 
+
 					 call SHEAR_X2d(ICONSI,ICONSIDERED)
 					 CASE (2)
 					 call SHEAR_Y2d(ICONSI,ICONSIDERED)
-					 
+
 					 END SELECT
-				       		VALUESS(icount_wall)=SHEAR_TEMP		
-				       
-				  
+				       		VALUESS(icount_wall)=SHEAR_TEMP
+
+
 				END IF
 		      end do
 		      end if
-		  
-				  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -8792,21 +8774,21 @@ IF (ITESTCASE.LE.2)THEN
 		  WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -8817,12 +8799,12 @@ IF (ITESTCASE.LE.2)THEN
 !    end if
 
   IF (N.EQ.0)THEN
- 
+
   DEALLOCATE(XBIN,VALUESA,VALUELOCATION,ICELLA)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
 
 
@@ -8842,12 +8824,12 @@ IF (ITESTCASE.LE.2)THEN
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
 
 END SUBROUTINE OUTWRITE3vS2d
 
@@ -8866,7 +8848,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -8886,10 +8868,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -8924,7 +8906,7 @@ WRITE(PROC3,FMT='(I10)') IT
 	allocate(character(LEN=itgfd) ::out1)
 	out1=OUTFILE(1:itgfd)
 ! 	out1=out1//CHAR(0)
-	
+
 
 end if
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -8937,15 +8919,15 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     FileType, &
                     Debug, &
                     VIsDouble)
-  
-  
-  
- 
 
-	
 
-	
-	
+
+
+
+
+
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -8960,9 +8942,9 @@ allocate (Valuelocation(nvar1))
       JMax    = IMAXe
       KMax    = 0
       ZoneType = 5
-      
+
       SolTime = T
-      
+
       StrandID = 1
       ParentZn = 0
       IsBlock = 1
@@ -8975,7 +8957,7 @@ allocate (Valuelocation(nvar1))
 
 Valuelocation(:)=0
 
- 
+
 
 
 
@@ -9002,27 +8984,27 @@ Valuelocation(:)=0
                     ShrConn)
 
 
- 
+
   allocate(xbin(imaxe),xbin2(imaxe))
-	
+
 
  END IF
 
-  
+
   ALLOCATE(VALUESS(KMAXE))
   VALUESS=ZERO
-    
-   
+
+
 	      if (rungekutta.eq.4)then
 	      ind1=7
 	      else
 	      ind1=5
 	      end if
-	      
-	      
 
-    
-    
+
+
+
+
     		do kkd=1,5
 		DO I=1,KMAXE
 		  VALUESS(i)=U_C(I)%VAL(ind1,kkd)
@@ -9033,12 +9015,12 @@ Valuelocation(:)=0
 		   leftv(1:nof_Variables)=U_C(I)%VAL(ind1,1:nof_Variables)
 		  CALL CONS2PRIM(N)
 		  VALUESS(i)=leftv(5)
-		  
+
 		  end if
-		  
+
 		END DO
-		
-		
+
+
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -9047,16 +9029,16 @@ Valuelocation(:)=0
 		end do
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
-		
+
 		end do
 		do kkd=1,6
-		
+
     		DO I=1,KMAXE
-		  
+
 		  VALUESS(i)=U_C(I)%RMS(kkd)
 		END DO
-		
-		
+
+
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -9066,24 +9048,24 @@ Valuelocation(:)=0
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
 		END DO
-    
-		  
-    
-    
-      
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
   IF (N.EQ.0)THEN
   ierr = TECEND112()
   DEALLOCATE(XBIN,valuelocation,out1,xbin2)
   END IF
-  
+
   DEALLOCATE (VALUESS,VARIABLES)
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -9096,8 +9078,8 @@ Valuelocation(:)=0
 
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITE3vbav
 
@@ -9113,7 +9095,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -9133,10 +9115,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -9171,8 +9153,8 @@ call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORL
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -9201,7 +9183,7 @@ WRITE(PROC3,FMT='(I10)') IT
 	allocate(character(LEN=itgfd) ::out1)
 	out1=OUTFILE(1:itgfd)
 ! 	out1=out1//CHAR(0)
-	
+
 
 end if
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -9214,15 +9196,15 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     FileType, &
                     Debug, &
                     VIsDouble)
-  
-  
-  
- 
 
-	
 
-	
-	
+
+
+
+
+
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -9237,9 +9219,9 @@ allocate (Valuelocation(nvar1))
       JMax    = IMAXe
       KMax    = 0
       ZoneType = 3
-      
+
       SolTime = T
-      
+
       StrandID = 1
       ParentZn = 0
       IsBlock = 1
@@ -9252,7 +9234,7 @@ allocate (Valuelocation(nvar1))
 
 Valuelocation(:)=0
 
- 
+
 
 
 
@@ -9288,17 +9270,17 @@ Valuelocation(:)=0
   call mpi_barrier(MPI_COMM_WORLD,IERROR)
   ALLOCATE(VALUESS(imaxp))
   VALUESS=ZERO
-    
+
 	      if (rungekutta.eq.4)then
 	      ind1=7
 	      else
 	      ind1=5
 	      end if
-	      
 
 
-    
-    
+
+
+
     		do kkd=1,4
 		DO I=1,KMAXE
 		  VALUESS(i)=U_C(I)%VAL(ind1,kkd)
@@ -9309,14 +9291,14 @@ Valuelocation(:)=0
 		   leftv(1:nof_Variables)=U_C(I)%VAL(ind1,1:nof_Variables)
 		  CALL CONS2PRIM(N)
 		  VALUESS(i)=leftv(4)
-		  
+
 		  end if
-		  
+
 		END DO
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-		 
+
 		IF (N.EQ.0)THEN
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -9326,16 +9308,16 @@ Valuelocation(:)=0
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		end do
 		do kkd=1,3
     		DO I=1,KMAXE
-		  
+
 		  VALUESS(i)=U_C(I)%RMS(kkd)
 		END DO
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -9347,29 +9329,29 @@ Valuelocation(:)=0
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		END DO
-    
-		  
-    
-    
-      
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
   IF (N.EQ.0)THEN
   ierr = TECEND112()
   DEALLOCATE(XBIN,VALUESA,VALUELOCATION,ICELLA)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -9379,13 +9361,13 @@ Valuelocation(:)=0
 
 
 
-         
-        
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITE3vb2Dav
 
@@ -9403,7 +9385,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -9423,10 +9405,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -9461,8 +9443,8 @@ call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORL
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -9501,17 +9483,17 @@ WRITE(PROC3,FMT='(I10)') IT
 end if
 call mpi_barrier(mpi_comm_world,IERROR)
 
-  
-  
-      
-  
-  
- 
 
-	
 
-	
-	
+
+
+
+
+
+
+
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -9533,12 +9515,12 @@ allocate (Valuelocation(nvar1))
   call mpi_barrier(MPI_COMM_WORLD,IERROR)
   ALLOCATE(VALUESS(imaxp))
   VALUESS=ZERO
-    
-   
 
 
-    
-    
+
+
+
+
     		do kkd=1,5
 		DO I=1,KMAXE
 		  VALUESS(i)=U_C(I)%VAL(5,kkd)
@@ -9549,14 +9531,14 @@ allocate (Valuelocation(nvar1))
 		   leftv(1:nof_Variables)=U_C(I)%VAL(5,1:nof_Variables)
 		  CALL CONS2PRIM(N)
 		  VALUESS(i)=leftv(5)
-		  
+
 		  end if
-		  
+
 		END DO
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-		 
+
 		IF (N.EQ.0)THEN
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -9566,16 +9548,16 @@ allocate (Valuelocation(nvar1))
 		WRITE(97,*)XBIN(1:IMAXE)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		end do
 		do kkd=1,6
     		DO I=1,KMAXE
-		  
+
 		  VALUESS(i)=U_C(I)%RMS(kkd)
 		END DO
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -9587,28 +9569,28 @@ allocate (Valuelocation(nvar1))
 		WRITE(97,*)XBIN(1:IMAXE)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		END DO
-    
-		  
-    
-    
-      
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
   IF (N.EQ.0)THEN
   DEALLOCATE(XBIN,VALUESA,VALUELOCATION,ICELLA)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -9618,13 +9600,13 @@ allocate (Valuelocation(nvar1))
 
 
 
-         
-        
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITE3vav
 
@@ -9640,7 +9622,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -9660,10 +9642,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -9698,8 +9680,8 @@ call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORL
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -9734,7 +9716,7 @@ end if
 call mpi_barrier(mpi_comm_world,IERROR)
 
 
-  
+
   IF (N.EQ.0)THEN
         WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="R_mean","U_mean","V_mean","P_mean","U_rms","V_rms","UV"'
@@ -9745,16 +9727,16 @@ call mpi_barrier(mpi_comm_world,IERROR)
 
 
   NVAR1=7
-  
-  
-  
-  
- 
 
-	
 
-	
-	
+
+
+
+
+
+
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -9769,9 +9751,9 @@ allocate (Valuelocation(nvar1))
       JMax    = IMAXe
       KMax    = 0
       ZoneType = 3
-      
+
       SolTime = T
-      
+
       StrandID = 1
       ParentZn = 0
       IsBlock = 1
@@ -9784,7 +9766,7 @@ allocate (Valuelocation(nvar1))
 
 Valuelocation(:)=0
 
- 
+
 
 
 
@@ -9800,12 +9782,12 @@ Valuelocation(:)=0
   call mpi_barrier(MPI_COMM_WORLD,IERROR)
   ALLOCATE(VALUESS(imaxp))
   VALUESS=ZERO
-    
-   
 
 
-    
-    
+
+
+
+
     		do kkd=1,4
 		DO I=1,KMAXE
 		  VALUESS(i)=U_C(I)%VAL(5,kkd)
@@ -9816,14 +9798,14 @@ Valuelocation(:)=0
 		   leftv(1:nof_Variables)=U_C(I)%VAL(5,1:nof_Variables)
 		  CALL CONS2PRIM(N)
 		  VALUESS(i)=leftv(4)
-		  
+
 		  end if
-		  
+
 		END DO
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-		 
+
 		IF (N.EQ.0)THEN
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -9833,16 +9815,16 @@ Valuelocation(:)=0
 		WRITE(97,*) XBIN(1:IMAXE)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		end do
 		do kkd=1,3
     		DO I=1,KMAXE
-		  
+
 		  VALUESS(i)=U_C(I)%RMS(kkd)
 		END DO
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -9854,28 +9836,28 @@ Valuelocation(:)=0
 		WRITE(97,*) XBIN(1:IMAXE)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		END DO
-    
-		  
-    
-    
-      
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
   IF (N.EQ.0)THEN
   DEALLOCATE(XBIN,VALUESA,VALUELOCATION,ICELLA)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -9885,13 +9867,13 @@ Valuelocation(:)=0
 
 
 
-         
-        
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITE3v2Dav
 
@@ -9909,7 +9891,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
@@ -9929,10 +9911,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType,ILOOP
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -9942,10 +9924,10 @@ character*1 NULCHAR
 
 
  KMAXE=XMPIELRANK(N)
-! 
+!
 
 ! IF (TOTIW.GT.0)THEN
-!     
+!
 !    DO I=1,TOTIW
 ! 	k=IBOUND_T(I)
 ! 	do i1=k,k
@@ -9997,9 +9979,9 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-  
-  
-  
+
+
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=6+PASSIVESCALAR
@@ -10012,7 +9994,7 @@ IF (ITESTCASE.LE.2)THEN
                     Debug, &
                     VIsDouble)
      ELSE
-     
+
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,W,energy,Pressure'//NULCHAR, &
                     out1//NULCHAR, &
@@ -10020,9 +10002,9 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-     
-     
-     
+
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -10054,7 +10036,7 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -10083,18 +10065,18 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  END IF
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -10154,9 +10136,9 @@ Valuelocation(:)=0
                     ShrConn)
 
 
- 
+
   allocate(xbin(totwalls),xbin2(totwalls))
-	
+
 
  END IF
 
@@ -10166,22 +10148,22 @@ Valuelocation(:)=0
 !   end if
     if (rungekutta.eq.4)then
     ind1=7
-    
-    
+
+
     else
     ind1=5
-    
+
     end if
-   
+
 IF (ITESTCASE.LE.2)THEN
 
-		      
+
 					  IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 						VALUESS(I)=U_C(IBOUND_T(I))%VAL(ind1,1)
 					  ENDDO
 					  END IF
-    
+
    call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -10191,7 +10173,7 @@ IF (ITESTCASE.LE.2)THEN
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,5
 					  IF (TOTIW.GT.0)THEN
@@ -10199,15 +10181,15 @@ IF (ITESTCASE.LE.2)THEN
 						VALUESS(I)=U_C(IBOUND_T(I))%VAL(ind1,KKD)
 						if ((kkd.ge.2).and.(kkd.le.4))then
 					      valuess(i)=U_C(IBOUND_T(I))%VAL(ind1,kkd)/U_C(IBOUND_T(I))%VAL(ind1,1)
-					      end if	
-						
-						
+					      end if
+
+
 					  ENDDO
 					  END IF
-		
-		
-		
-		
+
+
+
+
 		call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -10217,22 +10199,22 @@ IF (ITESTCASE.LE.2)THEN
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
 		end do
-    
+
 					  IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 					        leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(ind1,1:nof_Variables)
-						
+
 						CALL CONS2PRIM(N)
 				    VALUESS(i)=leftv(5)
-						
-						
-						
+
+
+
 					  ENDDO
 					  END IF
-		     
-    
-    
-    
+
+
+
+
 		call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -10241,25 +10223,25 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-    
+
 		  if (passivescalar.gt.0)then
-		  
+
 					IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
-					        
+
 				    VALUESS(i)=U_Ct(IBOUND_T(I))%VAL(ind1,turbulenceequations+passivescalar)
-						
-						
-						
+
+
+
 					  ENDDO
 					  END IF
-		  
-		  
-		   
-		  
-		  
-		  	  
-		  
+
+
+
+
+
+
+
 		 call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -10268,33 +10250,33 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
-					        
+
 				    VALUESS(i)=ielem(n,IBOUND_T(I))%vortex(1)
-						
-						
-						
+
+
+
 					  ENDDO
 					  END IF
-		  
-		  
-		  
-		 
-		  
-		  
-		  
+
+
+
+
+
+
+
 ! 		  DO I=1,KMAXE
 ! 		      VALUESS(i)=ielem(n,i)%vortex(1)
 ! 		  END DO
-		  
-		  
+
+
 		 call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -10303,24 +10285,24 @@ IF (ITESTCASE.LE.2)THEN
 		end do
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
+
 					  IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
-					        
+
 				    VALUESS(i)=u_ct(IBOUND_T(I))%val(ind1,kkd)
-						
-						
-						
+
+
+
 					  ENDDO
 					  END IF
-		  
-		  
-		
-		  
-				  
+
+
+
+
+
 		  call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -10331,37 +10313,37 @@ IF (ITESTCASE.LE.2)THEN
 		END IF
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (ITESTCASE.eq.4)then
 		  do kkd=1,3
-		  
+
 				      IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
-					        
-				    
-						
+
+
+
 						ICONSI=IBOUND_T(I)
 					 ICONSIDERED=IBOUND_T2(I)
 					select case(kkd)
 					 case(1)
-					 
+
 					 call SHEAR_X_av(ICONSI,ICONSIDERED)
 					 CASE (2)
 					 call SHEAR_Y_av(ICONSI,ICONSIDERED)
 					 CASE(3)
 					 call SHEAR_Z_av(ICONSI,ICONSIDERED)
 					 END SELECT
-				       		VALUESS(i)=SHEAR_TEMP		
-						
+				       		VALUESS(i)=SHEAR_TEMP
+
 					  ENDDO
 					  END IF
-		  
-		  
-		  
-		  
-		  
-				  
+
+
+
+
+
+
 		  call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -10372,17 +10354,17 @@ IF (ITESTCASE.LE.2)THEN
 		END IF
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -10396,11 +10378,10 @@ IF (ITESTCASE.LE.2)THEN
   ierr = TECEND112()
   DEALLOCATE(XBIN,valuelocation,out1,XBIN2)
   END IF
-  
+
 !  IF (TOTIW.GT.0)THEN
   DEALLOCATE (VALUESS)
 !   end if
-  
 
 
 
@@ -10412,7 +10393,6 @@ IF (ITESTCASE.LE.2)THEN
 
 
 
- 
 
 
 
@@ -10420,12 +10400,14 @@ IF (ITESTCASE.LE.2)THEN
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
+
+
 
 END SUBROUTINE OUTWRITE3vSbav
 
@@ -10442,7 +10424,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
@@ -10462,10 +10444,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType,ILOOP
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -10475,21 +10457,21 @@ character*1 NULCHAR
 
 
  KMAXE=XMPIELRANK(N)
- 
-! 
+
+!
 ! DUMG=TOTIW
 ! call mpi_barrier(mpi_comm_world,IERROR)
-! 
+!
 ! CALL MPI_ALLREDUCE(DUMG,DUML,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
 ! IMAXP=DUML
-! 
+!
 ! ALLOCATE(ICELL(IMAXP))
 ! ICELL=0
-! 
+!
 ! ILOOP=0
-! 
+!
 ! ! IF (TOTIW.GT.0)THEN
-! !     
+! !
 ! !    DO I=1,TOTIW
 ! ! 	k=IBOUND_T(I)
 ! ! 	do i1=k,k
@@ -10518,21 +10500,21 @@ character*1 NULCHAR
 !    end if
 ! END DO
 ! end if
-! 
+!
 ! IF (N.EQ.0)THEN
 ! 	ALLOCATE(ICELLA(IMAXP*ISIZE))
 ! 	 ICELLA=0
-! 
+!
 ! END IF
-! 
+!
 ! call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORLD,IERROR)
-! 
+!
 ! ! if (n.eq.0)then
-! 
-! ! 
-! ! 
+!
+! !
+! !
 ! ! end if
-! 
+!
 ! call mpi_barrier(mpi_comm_world,IERROR)
 ! deallocate (icell)
 
@@ -10572,9 +10554,9 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-  
-  
-  
+
+
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=6+PASSIVESCALAR
@@ -10587,7 +10569,7 @@ IF (ITESTCASE.LE.2)THEN
                     Debug, &
                     VIsDouble)
      ELSE
-     
+
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,energy,Pressure'//NULCHAR, &
                     out1//NULCHAR, &
@@ -10595,9 +10577,9 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-     
-     
-     
+
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -10629,7 +10611,7 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -10658,18 +10640,18 @@ IF (ITESTCASE.LE.2)THEN
                     FileType, &
                     Debug, &
                     VIsDouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  END IF
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -10730,7 +10712,7 @@ Valuelocation(:)=0
 
 
  allocate(xbin(totwalls),xbin2(totwalls))
-	
+
 
  END IF
 
@@ -10738,8 +10720,8 @@ Valuelocation(:)=0
 !   if (xmpiwall(n).gt.0)then
   ALLOCATE(VALUESS(xmpiwall(n)))
 !   end if
-    
-   
+
+
 IF (ITESTCASE.LE.2)THEN
 
 		      IF (TOTIW.GT.0)THEN
@@ -10747,15 +10729,15 @@ IF (ITESTCASE.LE.2)THEN
 						VALUESS(I)=U_C(IBOUND_T(I))%VAL(5,1)
 					  ENDDO
 					  END IF
-		     
-    
+
+
    call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,4
 		      IF (TOTIW.GT.0)THEN
@@ -10763,19 +10745,19 @@ IF (ITESTCASE.LE.2)THEN
 						VALUESS(I)=U_C(IBOUND_T(I))%VAL(5,KKD)
 						if ((kkd.ge.2).and.(kkd.le.3))then
 						valuess(i)=U_C(IBOUND_T(I))%VAL(5,kkd)/U_C(IBOUND_T(I))%VAL(5,1)
-						end if	
+						end if
 					  ENDDO
 					  END IF
-		     
-		
-		
+
+
+
 		call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
 		end do
-    
+
 		      IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 						leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(5,1:nof_Variables)
@@ -10783,74 +10765,74 @@ IF (ITESTCASE.LE.2)THEN
 					  VALUESS(i)=leftv(4)
 					  ENDDO
 					  END IF
-		      
-    
-    
-    
+
+
+
+
 		call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-    
+
 		  if (passivescalar.gt.0)then
 		    IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
-						
-						
+
+
 					  VALUESS(i)=U_CT(IBOUND_T(I))%VAL(5,turbulenceequations+passivescalar)
 					  ENDDO
 					  END IF
-		  
-		  
-		  
-		  
-		  	  
-		  
+
+
+
+
+
+
 		 call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
 		   IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
-						
-						
+
+
 					  VALUESS(i)=ielem(n,IBOUND_T(I))%vortex(1)
 					  ENDDO
 					  END IF
-		
-		  
-		  
-		  
+
+
+
+
 ! 		  DO I=1,KMAXE
 ! 		      VALUESS(i)=ielem(n,i)%vortex(1)
 ! 		  END DO
-		  
-		  
+
+
 		  call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
 		ierr = TECDAT112(totwalls,xbin,1)
 		END IF
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 					  IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
-						
-						
+
+
 					  VALUESS(i)=u_ct(IBOUND_T(I))%val(5,kkd)
 					  ENDDO
 					  END IF
-		  
-		  
-				  
+
+
+
 		 call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -10858,8 +10840,8 @@ IF (ITESTCASE.LE.2)THEN
 		END IF
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,2
 				      IF (TOTIW.GT.0)THEN
@@ -10868,20 +10850,20 @@ IF (ITESTCASE.LE.2)THEN
 					 ICONSIDERED=IBOUND_T2(I)
 					select case(kkd)
 					 case(1)
-					 
+
 					 call SHEAR_X2d_av(ICONSI,ICONSIDERED)
 					 CASE (2)
 					 call SHEAR_Y2d_av(ICONSI,ICONSIDERED)
-					 
+
 					 END SELECT
-				       		VALUESS(i)=SHEAR_TEMP		
-						
-					  
+				       		VALUESS(i)=SHEAR_TEMP
+
+
 					  ENDDO
 					  END IF
-		 
-		  
-				  
+
+
+
 		  call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -10889,17 +10871,17 @@ IF (ITESTCASE.LE.2)THEN
 		END IF
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -10913,7 +10895,7 @@ IF (ITESTCASE.LE.2)THEN
   ierr = TECEND112()
   DEALLOCATE(XBIN,valuelocation,out1,XBIN2)
   END IF
-  
+
 !   IF (TOTIW.GT.0)THEN
   DEALLOCATE (VALUESS)
 !   end if
@@ -10923,12 +10905,12 @@ IF (ITESTCASE.LE.2)THEN
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
 
 END SUBROUTINE OUTWRITE3vSb2dav
 
@@ -10945,7 +10927,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
@@ -10965,10 +10947,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType,ILOOP
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -10978,7 +10960,7 @@ character*1 NULCHAR
 
 
  KMAXE=XMPIELRANK(N)
-! 
+!
 DUMG=TOTIW
 call mpi_barrier(mpi_comm_world,IERROR)
 
@@ -10991,7 +10973,7 @@ ICELL=0
 ILOOP=0
 
 ! IF (TOTIW.GT.0)THEN
-!     
+!
 !    DO I=1,TOTIW
 ! 	k=IBOUND_T(I)
 ! 	do i1=k,k
@@ -11031,8 +11013,8 @@ call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORL
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -11070,7 +11052,7 @@ end if
 
 
 
-		
+
    if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
@@ -11085,22 +11067,22 @@ end if
 
 IF (ITESTCASE.LE.2)THEN
   NVAR1=1
-  
-  
+
+
    if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="solution"'
 	WRITE(97,*) 'Zone N=',Itotalb,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
-  
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=6+PASSIVESCALAR
   if (passivescalar.gt.0)then
- 
-                    
-                    
+
+
+
                     if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
@@ -11109,8 +11091,8 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
   end if
      ELSE
-     
-     
+
+
      if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure"'
@@ -11118,16 +11100,16 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED)'
   end if
-     
-     
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
  NVAR1=10+PASSIVESCALAR+turbulenceequations
 	    if (passivescalar.gt.0)then
 	      if (turbulenceequations.eq.2)then
-	      
-                    
+
+
                     if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","k","omega","VORTEX","ssx","ssy","ssz"'
@@ -11136,12 +11118,12 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED,[9] = CELLCENTERED,'
 	WRITE(97,*) '[10] = CELLCENTERED, [11] = CELLCENTERED,[12] = CELLCENTERED,[13] = CELLCENTERED)'
   end if
-                    
-                    
-                    
+
+
+
               end if
               if (turbulenceequations.eq.1)then
-              
+
                       if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","MU","VORTEX","ssx","ssy","ssz"'
@@ -11152,7 +11134,7 @@ IF (ITESTCASE.LE.2)THEN
   end if
               end if
               if (turbulenceequations.eq.0)then
-              
+
                 if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","VORTEX","ssx","ssy","ssz"'
@@ -11164,7 +11146,7 @@ IF (ITESTCASE.LE.2)THEN
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
-	      
+
                       if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","k","omega","VORTEX","ssx","ssy","ssz"'
@@ -11175,7 +11157,7 @@ IF (ITESTCASE.LE.2)THEN
   end if
               end if
               if (turbulenceequations.eq.1)then
-              
+
                       if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","M","VORTEX","ssx","ssy","ssz"'
@@ -11186,7 +11168,7 @@ IF (ITESTCASE.LE.2)THEN
   end if
               end if
               if (turbulenceequations.eq.0)then
-         
+
                if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","VORTEX","ssx","ssy","ssz"'
@@ -11196,16 +11178,16 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[10] = CELLCENTERED)'
   end if
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  END IF
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -11216,7 +11198,7 @@ allocate (Valuelocation(nvar1))
 
 
 
-     
+
 
 Valuelocation(:)=0
 
@@ -11224,7 +11206,7 @@ Valuelocation(:)=0
 
 
 
- 
+
 
 
  ALLOCATE(VALUESA(IMAXP*ISIZE))
@@ -11236,11 +11218,11 @@ Valuelocation(:)=0
   call mpi_barrier(MPI_COMM_WORLD,IERROR)
   ALLOCATE(VALUESS(imaxp))
   VALUESS=0.0
-    
-   
+
+
 IF (ITESTCASE.LE.2)THEN
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
@@ -11248,7 +11230,7 @@ IF (ITESTCASE.LE.2)THEN
 				END IF
 		      end do
 		      end if
-    
+
     call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
     IF (N.EQ.0)THEN
@@ -11258,31 +11240,31 @@ IF (ITESTCASE.LE.2)THEN
 	end if
     end do
     WRITE(97,*)XBIN(1:TOTWALLS)
-    
+
     END IF
 
-     
+
     CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,5
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    valuess(icount_wall)=u_c(IBOUND(N,i)%which)%val(5,kkd)
 				if ((kkd.ge.2).and.(kkd.le.4))then
 		  valuess(icount_wall)=U_C(IBOUND(N,i)%which)%VAL(5,kkd)/U_C(IBOUND(N,i)%which)%VAL(5,1)
-		  end if	
+		  end if
 				END IF
 		      end do
 		      end if
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-		 
+
 		IF (N.EQ.0)THEN
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -11292,26 +11274,26 @@ IF (ITESTCASE.LE.2)THEN
 		 WRITE(97,*)XBIN(1:TOTWALLS)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		end do
-    
-    
+
+
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_Variables)=U_C(IBOUND(N,i)%which)%VAL(5,1:nof_Variables)
 				    CALL CONS2PRIM(N)
 				    VALUESS(icount_wall)=leftv(5)
-				  
+
 				END IF
 		      end do
 		      end if
-    
-    
-    
+
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -11323,24 +11305,24 @@ IF (ITESTCASE.LE.2)THEN
 		 WRITE(97,*)XBIN(1:TOTWALLS)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    
+
 		  if (passivescalar.gt.0)then
 		   IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=U_Ct(IBOUND(N,i)%which)%VAL(5,turbulenceequations+passivescalar)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-		  
-		  	  
-		  
+
+
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -11352,32 +11334,32 @@ IF (ITESTCASE.LE.2)THEN
 		   WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=ielem(n,IBOUND(N,i)%which)%vortex(1)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-		  
-		  
+
+
+
 ! 		  DO I=1,KMAXE
 ! 		      VALUESS(i)=ielem(n,i)%vortex(1)
 ! 		  END DO
-		  
-		  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -11389,24 +11371,24 @@ IF (ITESTCASE.LE.2)THEN
 		   WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=u_ct(IBOUND(N,i)%which)%val(5,kkd)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-				  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -11418,17 +11400,17 @@ IF (ITESTCASE.LE.2)THEN
 		   WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,3
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
@@ -11436,21 +11418,21 @@ IF (ITESTCASE.LE.2)THEN
 					 ICONSIDERED=IBOUND(N,i)%FACE
 					select case(kkd)
 					 case(1)
-					 
+
 					 call SHEAR_X_av(ICONSI,ICONSIDERED)
 					 CASE (2)
 					 call SHEAR_Y_av(ICONSI,ICONSIDERED)
 					 CASE(3)
 					 call SHEAR_Z_av(ICONSI,ICONSIDERED)
 					 END SELECT
-				       		VALUESS(icount_wall)=SHEAR_TEMP		
-				       
-				  
+				       		VALUESS(icount_wall)=SHEAR_TEMP
+
+
 				END IF
 		      end do
 		      end if
-		  
-				  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -11462,21 +11444,21 @@ IF (ITESTCASE.LE.2)THEN
 		   WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -11487,12 +11469,12 @@ IF (ITESTCASE.LE.2)THEN
 !    end if
 
   IF (N.EQ.0)THEN
-  
+
   DEALLOCATE(XBIN,VALUESA,VALUELOCATION,ICELLA)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
 
 
@@ -11512,12 +11494,12 @@ IF (ITESTCASE.LE.2)THEN
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
 
 END SUBROUTINE OUTWRITE3vSav
 
@@ -11534,7 +11516,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
@@ -11554,10 +11536,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType,ILOOP
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -11567,7 +11549,7 @@ character*1 NULCHAR
 
 
  KMAXE=XMPIELRANK(N)
-! 
+!
 DUMG=TOTIW
 call mpi_barrier(mpi_comm_world,IERROR)
 
@@ -11580,7 +11562,7 @@ ICELL=0
 ILOOP=0
 
 ! IF (TOTIW.GT.0)THEN
-!     
+!
 !    DO I=1,TOTIW
 ! 	k=IBOUND_T(I)
 ! 	do i1=k,k
@@ -11620,8 +11602,8 @@ call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORL
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,IERROR)
@@ -11650,7 +11632,7 @@ WRITE(PROC3,FMT='(I10)') IT
 ! 	out1=out1//CHAR(0)
 
 	OPEN(97,FILE=outfile,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
-	
+
 
 
 
@@ -11661,22 +11643,22 @@ end if
 
 IF (ITESTCASE.LE.2)THEN
   NVAR1=1
-  
+
                     if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="SOLUTION"'
 	WRITE(97,*) 'Zone N=',ITOTALB,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
- 
-  
-  
+
+
+
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=6+PASSIVESCALAR
   if (passivescalar.gt.0)then
- 
-                    
+
+
                      if (n.eq.0)then
 	WRITE(97,*) 'FILETYPE=SOLUTION'
 	WRITE(97,*)'VARIABLES="Density","U","V","energy","Pressure","passivescalar"'
@@ -11699,9 +11681,9 @@ IF (ITESTCASE.LE.2)THEN
 !                     FileType, &
 !                     Debug, &
 !                     VIsDouble)
-     
-     
-     
+
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -11716,7 +11698,7 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	WRITE(97,*) '[9] = CELLCENTERED, [10] = CELLCENTERED, [11] = CELLCENTERED)'
   end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                    if (n.eq.0)then
@@ -11727,7 +11709,7 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	WRITE(97,*) '[9] = CELLCENTERED, [10] = CELLCENTERED)'
   end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                if (n.eq.0)then
@@ -11738,8 +11720,8 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	WRITE(97,*) '[9] = CELLCENTERED)'
   end if
-              
-              
+
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -11768,7 +11750,7 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	WRITE(97,*) '[9] = CELLCENTERED)'
   end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                       if (n.eq.0)then
@@ -11777,21 +11759,21 @@ IF (ITESTCASE.LE.2)THEN
 	WRITE(97,*) 'Zone N=',ITOTALB,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED)'
-	
+
   end if
-              
-              
+
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  END IF
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (Valuelocation(nvar1))
@@ -11860,11 +11842,11 @@ Valuelocation(:)=0
   call mpi_barrier(MPI_COMM_WORLD,IERROR)
   ALLOCATE(VALUESS(imaxp))
   VALUESS=0.0
-    
-   
+
+
 IF (ITESTCASE.LE.2)THEN
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
@@ -11872,7 +11854,7 @@ IF (ITESTCASE.LE.2)THEN
 				END IF
 		      end do
 		      end if
-    
+
     call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
     IF (N.EQ.0)THEN
@@ -11885,28 +11867,28 @@ IF (ITESTCASE.LE.2)THEN
 !     ierr = TECDAT112(totwalls,xbin,1)
     END IF
 
-     
+
     CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
     END IF
-    
+
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,4
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    valuess(icount_wall)=u_c(IBOUND(N,i)%which)%val(5,kkd)
 				if ((kkd.ge.2).and.(kkd.le.3))then
 		  valuess(icount_wall)=U_C(IBOUND(N,i)%which)%VAL(5,kkd)/U_C(IBOUND(N,i)%which)%VAL(5,1)
-		  end if	
+		  end if
 				END IF
 		      end do
 		      end if
-		
-		
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-		 
+
 		IF (N.EQ.0)THEN
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -11916,26 +11898,26 @@ IF (ITESTCASE.LE.2)THEN
 		WRITE(97,*)XBIN(1:TOTWALLS)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		end do
-    
-    
+
+
 		      IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_Variables)=U_C(IBOUND(N,i)%which)%VAL(5,1:nof_Variables)
 				    CALL CONS2PRIM(N)
 				    VALUESS(icount_wall)=leftv(4)
-				  
+
 				END IF
 		      end do
 		      end if
-    
-    
-    
+
+
+
 		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		IF (N.EQ.0)THEN
@@ -11947,24 +11929,24 @@ IF (ITESTCASE.LE.2)THEN
 		WRITE(97,*)XBIN(1:TOTWALLS)
 		END IF
 
-		
+
 		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    
+
 		  if (passivescalar.gt.0)then
 		   IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=U_Ct(IBOUND(N,i)%which)%VAL(5,turbulenceequations+passivescalar)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-		  
-		  	  
-		  
+
+
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -11976,32 +11958,32 @@ IF (ITESTCASE.LE.2)THEN
 		  WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=ielem(n,IBOUND(N,i)%which)%vortex(1)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-		  
-		  
+
+
+
 ! 		  DO I=1,KMAXE
 ! 		      VALUESS(i)=ielem(n,i)%vortex(1)
 ! 		  END DO
-		  
-		  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -12013,24 +11995,24 @@ IF (ITESTCASE.LE.2)THEN
 		  WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				       VALUESS(icount_wall)=u_ct(IBOUND(N,i)%which)%val(5,kkd)
-				  
+
 				END IF
 		      end do
 		      end if
-		  
-				  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -12042,17 +12024,17 @@ IF (ITESTCASE.LE.2)THEN
 		  WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,2
-		  
+
 		  IF (TOTIW.GT.0)THEN
-		      icount_wall=0	
+		      icount_wall=0
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
@@ -12060,20 +12042,20 @@ IF (ITESTCASE.LE.2)THEN
 					 ICONSIDERED=IBOUND(N,i)%FACE
 					select case(kkd)
 					 case(1)
-					 
+
 					 call SHEAR_X2d_av(ICONSI,ICONSIDERED)
 					 CASE (2)
 					 call SHEAR_Y2d_av(ICONSI,ICONSIDERED)
-					 
+
 					 END SELECT
-				       		VALUESS(icount_wall)=SHEAR_TEMP		
-				       
-				  
+				       		VALUESS(icount_wall)=SHEAR_TEMP
+
+
 				END IF
 		      end do
 		      end if
-		  
-				  
+
+
 		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 		  IF (N.EQ.0)THEN
@@ -12085,21 +12067,21 @@ IF (ITESTCASE.LE.2)THEN
 		  WRITE(97,*)XBIN(1:TOTWALLS)
 		  END IF
 
-		  
+
 		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -12110,12 +12092,12 @@ IF (ITESTCASE.LE.2)THEN
 !    end if
 
   IF (N.EQ.0)THEN
- 
+
   DEALLOCATE(XBIN,VALUESA,VALUELOCATION,ICELLA)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
 
 
@@ -12135,12 +12117,12 @@ IF (ITESTCASE.LE.2)THEN
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
 
 END SUBROUTINE OUTWRITE3vS2dav
 
@@ -12164,12 +12146,12 @@ END IF
 IF (TECPLOT.EQ.0)THEN		!ASCII TECPLOT
     if (dimensiona.eq.3)then
       call outwritegrid(n)
-  
+
     eLSE
       call outwritegrid2D(n)
 
     END IF
-  
+
 END IF
 
 IF (TECPLOT.EQ.2)THEN		!BINARY PARAVIEW 3D ONLY
@@ -12217,7 +12199,7 @@ SUBROUTINE VOLUME_SOLUTION_WRITE
 !> @brief
 !> This subroutine calls the appropriate volume writing subroutine based on the settings
 IMPLICIT NONE
-				  
+
 
 				  IF (N.EQ.0)THEN
 				  OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
@@ -12226,15 +12208,15 @@ IMPLICIT NONE
 				  END IF
 	  IF (TECPLOT.EQ.1)THEN
 				if (dimensiona.eq.3)then
-		
+
 					IF (N.EQ.0)THEN
 					  OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
 					  WRITE(63,*)"output2",T
 					  CLOSE(63)
 					  END IF
 					call OUTWRITE3vb
-					
-					
+
+
 						IF (N.EQ.0)THEN
 					  OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
 					  WRITE(63,*)"output3",T
@@ -12249,7 +12231,7 @@ IMPLICIT NONE
 
 
 				call OUTWRITE3vb2D
-				
+
 					IF (N.EQ.0)THEN
 					  OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
 					  WRITE(63,*)"output3",T
@@ -12267,7 +12249,7 @@ IMPLICIT NONE
 		      END IF
 
 	END IF
-	
+
 	IF (TECPLOT.EQ.2)THEN		!BINARY PARAVIEW 3D ONLY
 
   call OUTWRITEPARA3Db
@@ -12516,41 +12498,41 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	      K=K+NOF_VARIABLES
 	  END DO
       END IF
-      
-      
+
+
 	RESTFILE='RESTART.dat'
 
        IF (N.EQ.0)THEN
 	 INQUIRE (FILE=RESTFILE,EXIST=HERE1)
 	  CALL MPI_FILE_DELETE(RESTFILE,MPI_INFO_NULL,IERROR)
 	END IF
-     
+
     CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
     !CREATE TYPE FIRST OF INDEXED BLOCK
-    
+
     CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXE,n_end,DISPT,MPI_DOUBLE_PRECISION,DATATYPE,IERROR)
     CALL MPI_TYPE_COMMIT(DATATYPE,IERROR)
-   
+
 
     ALLOCATE(ARRAY(1:nof_Variables+turbulenceequations+passivescalar))
-    
-    
-	
-   
-	
-	
-	
+
+
+
+
+
+
+
 	!CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 	call MPI_file_open(MPI_COMM_WORLD, RESTFILE,MPI_MODE_WRONLY + MPI_MODE_CREATE,MPI_INFO_NULL, fh, ierror)
-	
-	
-	 
-	  
-	
+
+
+
+
+
 	if (n.eq.0)then
-	
+
 	    if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
 	          call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 		  call MPI_file_write(fh, it, 1, MPI_INTEGER, MPI_STATUS_IGNORE,ierror)
@@ -12560,57 +12542,57 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 		    disp_in_file = disp_in_file + size_of_real*(nof_Variables+turbulenceequations)	!3
 	    ELSE
 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
-		  
+
 		  call MPI_file_write(fh, it, 1, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
 		    disp_in_file = disp_in_file + size_of_int 	!4
-		    
+
 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
-		  
+
 		  call MPI_file_write(fh, T, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
 		    disp_in_file = disp_in_file + size_of_real    !5
 		      if (initcond.eq.95)then
 		      call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
 		      call MPI_file_write(fh, TAYLOR, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierror)
 			    disp_in_file = disp_in_file + size_of_real !6
-		      end if  
+		      end if
 	    end if
 	ELSE
 	      if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
-		disp_in_file = disp_in_file + size_of_int 
+		disp_in_file = disp_in_file + size_of_int
 		disp_in_file = disp_in_file + size_of_real*(nof_Variables+turbulenceequations)
 	      ELSE
-		  disp_in_file = disp_in_file + size_of_int 
+		  disp_in_file = disp_in_file + size_of_int
 		  disp_in_file = disp_in_file + size_of_real
 		  if (initcond.eq.95)then
-		  disp_in_file = disp_in_file + size_of_real 
+		  disp_in_file = disp_in_file + size_of_real
 		  END IF
 	      END IF
-	      
-	      
+
+
 	END IF
-	
-	
+
+
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,datatype, 'native',MPI_INFO_NULL, ierror)
-	call MPI_FILE_WRITE_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)        
-        
+	call MPI_FILE_WRITE_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
+
         call MPI_FILE_CLOSE(fh, ierror)
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
-          
-          
-          
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
+
 	DEALLOCATE(ARRAY,DISPT,ARRAY2)
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
-	
-	
 
-	
-	
+
+
+
+
 
 
 END SUBROUTINE CHECKPOINT
@@ -12644,28 +12626,28 @@ ICPUID=N
 	      write(1086)INITIALRES(4)
 	      write(1086)INITIALRES(5)
 	      if ( turbulence .eq. 1) then
-	      if (turbulencemodel.eq.1)then
-	      write(1086)INITIALRES(6)
+  	      if (turbulencemodel.eq.1)then
+  	         write(1086)INITIALRES(6)
+  	      end if
+  	      if (turbulencemodel.eq.2)then
+    	       write(1086)INITIALRES(6)
+    	        write(1086)INITIALRES(7)
+  	      end if
 	      end if
-	      if (turbulencemodel.eq.2)then
-	      write(1086)INITIALRES(6)
-	      write(1086)INITIALRES(7)
-	      end if
-	      end if
-	      
-	      
+
+
 	ELSE
 	WRITE (1086)IT,T
-	
+
 	if (initcond.eq.95)then
-	write(1086)taylor
+  	write(1086)taylor
+  	end if
+
+  	end if
 	end if
-	      
-	end if
-	end if
-	
+
 	KMAXE=XMPIELRANK(N)
-    
+
 DUMG=KMAXE
 
 
@@ -12698,12 +12680,12 @@ END DO
     allocate(xbin(imaxe,5+turbulenceequations+passivescalar))
     VALUESA=ZERO
     END IF
-    
-    
+
+
     ALLOCATE(VALUESS(imaxp));VALUESS=ZERO
 
-  
-  
+
+
 IF (TURBULENCE.EQ.1)THEN
 do jj=1,5+turbulenceequations+passivescalar
  DO I=1,KMAXE
@@ -12722,7 +12704,7 @@ do jj=1,5+turbulenceequations+passivescalar
 	end if
     end do
     end if
-    
+
 end do
 ELSE
   do jj=1,5
@@ -12730,7 +12712,7 @@ ELSE
 		VALUESS(I)=U_C(I)%VAL(1,jj)
 	END DO
 	call MPI_GATHER(VALUESS,imaxp,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-	
+
 	    IF (N.EQ.0)THEN
 	    do i=1,imaxp*isize
 		if (icella(i).gt.0)then
@@ -12738,7 +12720,7 @@ ELSE
 		end if
 	    end do
 	    end if
-    
+
   end do
 
 END IF
@@ -12754,7 +12736,7 @@ END IF
     DEALLOCATE(XBIN,ICELLA,VALUESA)
     close(1086)
     END IF
-    
+
 DEALLOCATE(VALUESS)
 
 
@@ -12763,16 +12745,16 @@ DEALLOCATE(VALUESS)
 !     ALLOCATE(VALUESA(ImaxE));VALUESA=ZERO
 !     allocate(xbin(imaxe,5+turbulenceequations+passivescalar))
 !     END IF
-!     
-!     
+!
+!
 !     ALLOCATE(VALUESS(KmaxE));VALUESS=ZERO
-! 
-! 
-! 
-! 
+!
+!
+!
+!
 ! IF (TURBULENCE.EQ.1)THEN
 ! do jj=1,5+turbulenceequations+passivescalar
-!  
+!
 !       IF (jj.gt.5) THEN
 !       DO I=1,KMAXE
 ! 		      VALUESS(I)=U_CT(I)%VAL(1,jj-5)
@@ -12782,10 +12764,10 @@ DEALLOCATE(VALUESS)
 ! 	VALUESS(I)=U_C(I)%VAL(1,jj)
 !       END DO
 !       end if
-! 
+!
 ! !       CALL MPI_GATHERV(SENDBUF, SENDCOUNT, SENDTYPE, RECVBUF, RECVCOUNTS,DISPLS, RECVTYPE, ROOT, COMM, IERROR)
-!       
-!       
+!
+!
 !     call MPI_GATHERV(VALUESS,KMAXE,MPI_DOUBLE_PRECISION,VALUESA,imaxE,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 !     IF (N.EQ.0)THEN
 !     do i=1,imaxp*isize
@@ -12794,7 +12776,7 @@ DEALLOCATE(VALUESS)
 ! 	end if
 !     end do
 !     end if
-!     
+!
 ! end do
 ! ELSE
 !   do jj=1,5
@@ -12802,7 +12784,7 @@ DEALLOCATE(VALUESS)
 ! 		VALUESS(I)=U_C(I)%VAL(1,jj)
 ! 	END DO
 ! 	call MPI_GATHER(VALUESS,imaxp,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-! 	
+!
 ! 	    IF (N.EQ.0)THEN
 ! 	    do i=1,imaxp*isize
 ! 		if (icella(i).gt.0)then
@@ -12810,23 +12792,23 @@ DEALLOCATE(VALUESS)
 ! 		end if
 ! 	    end do
 ! 	    end if
-!     
+!
 !   end do
-! 
+!
 ! END IF
-! 
+!
 ! !   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-! 
+!
 !     IF (N.EQ.0)THEN
-! 
+!
 !     DO I=1,IMAXE
 !     WRITE(1086)XBIN(i,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 !     END DO
-! 
+!
 !     DEALLOCATE(XBIN,ICELLA,VALUESA)
 !     close(1086)
 !     END IF
-!     
+!
 ! DEALLOCATE(VALUESS)
 
 
@@ -12891,36 +12873,36 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	  !INQUIRE (FILE=RESTFILE,EXIST=HERE1)
 	  !IF (HEREss) THEN
 	 INQUIRE (FILE=RESTFILE,EXIST=HERE1)
-	 
-	  
+
+
 	  CALL MPI_FILE_DELETE(RESTFILE,MPI_INFO_NULL,IERROR)
-	  
-	 
+
+
 
 	  !END IF
 
    END IF
 
       CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-      
+
     !CREATE TYPE FIRST OF INDEXED BLOCK
     CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXE,n_end,DISPT,MPI_DOUBLE_PRECISION,DATATYPE,IERROR)
     CALL MPI_TYPE_COMMIT(DATATYPE,IERROR)
-    
+
 
     ALLOCATE(ARRAY(1:nof_Variables+turbulenceequations+passivescalar))
-    
-	
-	
-	
+
+
+
+
 	call MPI_file_open(MPI_COMM_WORLD, RESTFILE,MPI_MODE_WRONLY + MPI_MODE_CREATE,MPI_INFO_NULL, fh, ierror)
-	
-	
-	 
-	  
-	
+
+
+
+
+
 	if (n.eq.0)then
-	
+
 	    if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
 	          call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 		  call MPI_file_write(fh, it, 1, MPI_INTEGER, MPI_STATUS_IGNORE,ierror)
@@ -12932,7 +12914,7 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 		  call MPI_file_write(fh, it, 1, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
 		    disp_in_file = disp_in_file + size_of_int 	!4
-		    
+
 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 		  call MPI_file_write(fh, T, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
 		    disp_in_file = disp_in_file + size_of_real    !5
@@ -12940,38 +12922,38 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 		      call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
 		      call MPI_file_write(fh, TAYLOR, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierror)
 			    disp_in_file = disp_in_file + size_of_real !6
-		      end if  
+		      end if
 	    end if
 	ELSE
 	      if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
-		disp_in_file = disp_in_file + size_of_int 
+		disp_in_file = disp_in_file + size_of_int
 		disp_in_file = disp_in_file + size_of_real*(nof_Variables+turbulenceequations)
 	      ELSE
-		  disp_in_file = disp_in_file + size_of_int 
+		  disp_in_file = disp_in_file + size_of_int
 		  disp_in_file = disp_in_file + size_of_real
 		  if (initcond.eq.95)then
-		  disp_in_file = disp_in_file + size_of_real 
+		  disp_in_file = disp_in_file + size_of_real
 		  END IF
 	      END IF
-	      
-	      
+
+
 	END IF
-	
-	
+
+
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,datatype, 'native',MPI_INFO_NULL, ierror)
-	call MPI_FILE_WRITE_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)        
+	call MPI_FILE_WRITE_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
         call MPI_FILE_CLOSE(fh, ierror)
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
           DEALLOCATE(ARRAY,DISPT,ARRAY2)
-          
-          
-	
-	
+
+
+
+
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
-	
-	
-	
+
+
+
 
 
 
@@ -12980,7 +12962,7 @@ END SUBROUTINE CHECKPOINT2D
 
 
 
-SUBROUTINE CHECKPOINTAV(N) 
+SUBROUTINE CHECKPOINTAV(N)
 !> @brief
 !> This subroutine uses MPI-IO for writing the averaged checkpointing files
 IMPLICIT NONE
@@ -12997,17 +12979,17 @@ INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,IND1,fh,size_of_real,size
 disp_in_file=0
 tmp=0
 disp_init=0
- 
- 
- 
- 
- 
- 
+
+
+
+
+
+
  size_of_int=4
 size_of_real=8
 ICPUID=N
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 
+
 IF (RUNGEKUTTA.EQ.4)THEN
 IND1=7
 ELSE
@@ -13015,20 +12997,20 @@ IND1=5
 END IF
 
 
-	
-	
+
+
  ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar+6+passivescalar)))
     DO I=1,KMAXE
 	DISPT(I)=(XGO(I)-1)*(NOF_VARIABLES+turbulenceequations+passivescalar+6+passivescalar)
       END DO
 
  RESTFILE='RESTARTav.dat'
- 
+
   n_end=NOF_VARIABLES+turbulenceequations+passivescalar+6+passivescalar
-  
-  
- 
- 
+
+
+
+
   IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 	    K=1
 	  DO I=1,KMAXE
@@ -13052,35 +13034,35 @@ END IF
 	 INQUIRE (FILE=RESTFILE,EXIST=HERE1)
 	  CALL MPI_FILE_DELETE(RESTFILE,MPI_INFO_NULL,IERROR)
 	END IF
- 
+
  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 
- 
+
+
  CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXE,n_end,DISPT,MPI_DOUBLE_PRECISION,DATATYPE,IERROR)
     CALL MPI_TYPE_COMMIT(DATATYPE,IERROR)
- 
- 
- 
-	
-	
+
+
+
+
+
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	call MPI_file_open(MPI_COMM_WORLD, RESTFILE,MPI_MODE_WRONLY + MPI_MODE_CREATE,MPI_INFO_NULL, fh, ierror)
 	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,datatype, 'native',MPI_INFO_NULL, ierror)
-	call MPI_FILE_WRITE_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)        
+	call MPI_FILE_WRITE_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
         call MPI_FILE_CLOSE(fh, ierror)
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
-          
-          
-          
+
+
+
 	DEALLOCATE(DISPT,ARRAY2)
-	
+
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
-	
-	
-	
-	
- 
-	
+
+
+
+
+
+
 
 END SUBROUTINE CHECKPOINTAV
 
@@ -13111,10 +13093,10 @@ end if
 prev_turbequation=0
 if (prev_turbmodel.eq.1) then
 prev_turbequation=1
-end if 
+end if
 if (prev_turbmodel.eq.2) then
 prev_turbequation=2
-end if 
+end if
 
  size_of_int=4
 size_of_real=8
@@ -13125,19 +13107,19 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
     DO I=1,KMAXE
 	DISPT(I)=(XGO(I)-1)*(NOF_VARIABLES+turbulenceequations+passivescalar)
       END DO
-      
-      
+
+
       n_end=NOF_VARIABLES+prev_turbequation+LAMPS
-      
+
       CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXE,n_end,DISPT,MPI_DOUBLE_PRECISION,DATATYPE,IERROR)
     CALL MPI_TYPE_COMMIT(DATATYPE,IERROR)
-    
+
     RESTFILE='RESTART.dat'
-    
+
     call MPI_file_open(MPI_COMM_WORLD, RESTFILE,MPI_MODE_RDONLY,MPI_INFO_NULL, fh, ierror)
-    
-    
-    
+
+
+
 	    if (IRES_UNSTEADY.eq.0)then
 ! 	   if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
 	          call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
@@ -13149,30 +13131,30 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	    ELSE
 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 		  call MPI_file_READ(fh, it, 1, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
-		  
+
 		    disp_in_file = disp_in_file + size_of_int 	!4
-		    
+
 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 		  call MPI_file_READ(fh, T, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
-		 
+
 		    disp_in_file = disp_in_file + size_of_real    !5
 		      if (initcond.eq.95)then
 		      call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
 		      call MPI_file_READ(fh, TAYLOR, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierror)
 			    disp_in_file = disp_in_file + size_of_real !6
-		      end if  
+		      end if
 	    end if
-      
-      
+
+
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,datatype, 'native',MPI_INFO_NULL, ierror)
-	call MPI_FILE_READ_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)        
+	call MPI_FILE_READ_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
         call MPI_FILE_CLOSE(fh, ierror)
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
-	
-	
+
+
 	IF ((prev_turbmodel.GT.0).OR.(LAMPS.GT.0))THEN
-	
+
 	    K=1
 	    DO I=1,KMAXE
 		U_C(I)%VAL(1,1:NOF_VARIABLES)=ARRAY2(K:K+NOF_VARIABLES-1)
@@ -13181,7 +13163,7 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 		    U_CT(I)%VAL(1,1:turbulenceequations+passivescalar)=ARRAY2(K:K+prev_turbequation+LAMPS-1)
 		    END IF
 		K=K+prev_turbmodel+LAMPS
-		
+
 	    END DO
 	ELSE
 	    K=1
@@ -13198,16 +13180,16 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 			    END IF
 			ENDIF
 		K=K+prev_turbmodel+LAMPS
-		
+
 	    END DO
 	END IF
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	DEALLOCATE(DISPT,ARRAY2)
-	
-	
-      
+
+
+
 if (Averaging .EQ. 1) then
- 
+
 IF (Average_restart.EQ.1)THEN
 
 disp_in_file=0
@@ -13218,15 +13200,15 @@ DO I=1,KMAXE
 
       RESTFILE='RESTARTav.dat'
       n_end=NOF_VARIABLES+turbulenceequations+passivescalar+6+passivescalar
-      
+
        CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXE,n_end,DISPT,MPI_DOUBLE_PRECISION,DATATYPE,IERROR)
     CALL MPI_TYPE_COMMIT(DATATYPE,IERROR)
     call MPI_file_open(MPI_COMM_WORLD, RESTFILE,MPI_MODE_RDONLY,MPI_INFO_NULL, fh, ierror)
 	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,datatype, 'native',MPI_INFO_NULL, ierror)
-	call MPI_FILE_READ_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)        
+	call MPI_FILE_READ_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
         call MPI_FILE_CLOSE(fh, ierror)
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
-	
+
 	IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 	    K=1
 	  DO I=1,KMAXE
@@ -13241,25 +13223,25 @@ DO I=1,KMAXE
 	  K=1
 	  DO I=1,KMAXE
 	      U_C(I)%VAL(ind1,1:NOF_VARIABLES)=ARRAY2(K:K+NOF_VARIABLES-1)
-	      
+
 	      K=K+NOF_VARIABLES
 	      U_C(i)%RMS(1:6+passivescalar)=ARRAY2(K:K+6+PASSIVESCALAR-1)
-	      
+
 	      K=K+6+PASSIVESCALAR
 	  END DO
       END IF
-	
+
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	DEALLOCATE(DISPT,ARRAY2)
-	
-    
+
+
 ELSE
 DO I=1,kmaxe
       U_C(i)%VAL(ind1,:)=ZERO
       U_C(i)%RMS(:)=ZERO
 	if ((passivescalar.gt.0).or.(turbulence.eq.1))then
 	U_CT(i)%VAL(ind1,:)=ZERO
-	end if   
+	end if
 END DO
 
 
@@ -13270,16 +13252,16 @@ END IF
 
 
 !INFO_NULL, fh, ierror)
-! 
-! 
-! 	  
+!
+!
+!
 ! 	 if (IRES_UNSTEADY .lt.1) then
 ! 	    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 ! 	    call MPI_file_write(fh, RESCOUNTER, 1, MPI_INTEGER, MPI_STATUS_IGNORE,ierror)
 ! 			disp_in_file = disp_in_file + size_of_int	!1
 ! 	    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 ! 	    call MPI_file_write(fh, INITIALRES(nof_variables+prev_turbmodel+PASSIVESCALAR), nof_variables+prev_turbmodel+PASSIVESCALAR, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
-! 			disp_in_file = disp_in_file + size_of_real*(Nof_variables+prev_turbmodel+PASSIVESCALAR)	!1	    
+! 			disp_in_file = disp_in_file + size_of_real*(Nof_variables+prev_turbmodel+PASSIVESCALAR)	!1
 ! 	 else
 ! 	    if (initcond.eq.95)then
 ! 		    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
@@ -13287,25 +13269,25 @@ END IF
 ! 		      disp_in_file = disp_in_file + size_of_int	!1
 ! 		    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 ! 		    call MPI_file_write(fh, RES_TIME, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
-! 		      disp_in_file = disp_in_file + size_of_real   
+! 		      disp_in_file = disp_in_file + size_of_real
 ! 		    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 ! 		    call MPI_file_write(fh, taylor, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
-! 		      disp_in_file = disp_in_file + size_of_real   
-! 		
+! 		      disp_in_file = disp_in_file + size_of_real
+!
 ! 	      eLSE
 ! 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 ! 		    call MPI_file_write(fh, iterr, 1, MPI_INTEGER, MPI_STATUS_IGNORE,ierror)
 ! 		      disp_in_file = disp_in_file + size_of_int	!1
 ! 		    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 ! 		    call MPI_file_write(fh, RES_TIME, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
-! 		      disp_in_file = disp_in_file + size_of_real   
+! 		      disp_in_file = disp_in_file + size_of_real
 ! 	      END IF
 ! 	 end if
-!       
-!       
+!
+!
 !       call MPI_Barrier(MPI_COMM_WORLD, ierror)
-! 	  
-! 	  
+!
+!
 ! 	  if (n.ne.0) then
 ! 	    do i=0, n-1
 ! 	      tmp = tmp + (xmpiall(i)*size_of_int) + (xmpiall(i)*(size_of_real*(nof_Variables+prev_turbequation+lamps)))
@@ -13313,18 +13295,18 @@ END IF
 ! 	    disp_in_file = disp_in_file + tmp
 ! 	  end if
 ! 	  write(100+n,*)disp_in_file,xmpiall(n)
-! 
-! 
-! 
+!
+!
+!
 !   DO I=1,IMAXE
-!   
+!
 ! 	READ(1083)KI,RG(1:NOF_VARIABLES+prev_turbmodel+LAMPS)
-! 	
+!
 ! 	IF (XMPIE(I).EQ.N)THEN
 ! 	    KI=XMPIL(I)
 ! 	    U_C(KI)%VAL(1,1:NOF_VARIABLES)=RG(1:NOF_VARIABLES)
-! 	 
-! 		  IF (IRES_TURB.LT.1)THEN	!FROM NON TURBULENT RESTART	
+!
+! 		  IF (IRES_TURB.LT.1)THEN	!FROM NON TURBULENT RESTART
 ! 		      IF (TURBULENCE.EQ.1)THEN
 ! 			  IF (TURBULENCEMODEL.EQ.1)THEN
 ! 			      U_CT(KI)%VAL(1,1)=VISC*TURBINIT
@@ -13334,15 +13316,15 @@ END IF
 ! 				      /L_TURB_INLET*RG(1)
 ! 			  END IF
 ! 		      ENDIF
-! 		  
+!
 ! 		  ELSE			!FROM TURBULENT RESTART
-! 		  
+!
 ! 		      if (turbulencemodel .eq.prev_turbmodel)then
 ! 			      U_CT(KI)%VAL(1,1:Turbulenceequations)=RG(nof_Variables+1:nof_variables+Turbulenceequations)
 ! 		      end if
 ! 		  END IF
-! 		  
-! 		  
+!
+!
 ! 		  IF (LAMPS.LT.1)THEN
 ! 			  IF (PASSIVESCALAR.GT.0)THEN
 ! 				  U_CT(KI)%VAL(1,TURBULENCEEQUATIONS+1)=ZERO
@@ -13352,32 +13334,32 @@ END IF
 ! 				  U_CT(KI)%VAL(1,TURBULENCEEQUATIONS+1)=RG(NOF_VARIABLES+prev_turbmodel+LAMPS)
 ! 			  END IF
 ! 		  END IF
-! 		  
-! 		  
+!
+!
 ! 	  END IF
 !   END DO
-! 
+!
 !   CLOSE(1083)
-! 
+!
 ! if (Averaging .EQ. 1) then
-! 
+!
 ! IF (Average_restart.EQ.1)THEN
-! 
+!
 ! allocate(Arg(nof_variables+prev_turbmodel+lamps+6))
-! 
+!
 ! RESTFILE='RESTARTav.dat'
-! 
+!
 ! OPEN(1084,FILE=RESTFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ')
-! 	  
+!
 ! 	    DO I=1,IMAXE
-!   
+!
 ! 		  READ(1084)KI,aRG(1:NOF_VARIABLES+prev_turbmodel+LAMPS)
-! 	
+!
 ! 		  IF (XMPIE(I).EQ.N)THEN
 ! 		      KI=XMPIL(I)
 ! 			U_C(KI)%VAL(ind1,1:NOF_VARIABLES)=aRG(1:NOF_VARIABLES)
-! 	    
-! 			IF (IRES_TURB.LT.1)THEN	!FROM NON TURBULENT RESTART	
+!
+! 			IF (IRES_TURB.LT.1)THEN	!FROM NON TURBULENT RESTART
 ! 			  IF (TURBULENCE.EQ.1)THEN
 ! 			      IF (TURBULENCEMODEL.EQ.1)THEN
 ! 				  U_CT(KI)%VAL(ind1,1)=VISC*TURBINIT
@@ -13387,15 +13369,15 @@ END IF
 ! 					  /L_TURB_INLET*aRG(1)
 ! 			      END IF
 ! 			  ENDIF
-! 		      
+!
 ! 			ELSE			!FROM TURBULENT RESTART
-! 		      
+!
 ! 			  if (turbulencemodel .eq.prev_turbmodel)then
 ! 				  U_CT(KI)%VAL(ind1,1:Turbulenceequations)=aRG(nof_Variables+1:nof_variables+Turbulenceequations)
 ! 			  end if
 ! 		      END IF
-! 		  
-! 		  
+!
+!
 ! 			IF (LAMPS.LT.1)THEN
 ! 				IF (PASSIVESCALAR.GT.0)THEN
 ! 					U_CT(KI)%VAL(ind1,TURBULENCEEQUATIONS+1)=ZERO
@@ -13405,43 +13387,43 @@ END IF
 ! 					U_CT(KI)%VAL(ind1,TURBULENCEEQUATIONS+1)=aRG(NOF_VARIABLES+prev_turbmodel+LAMPS)
 ! 				END IF
 ! 			END IF
-! 		  
+!
 ! 		  U_C(KI)%RMS(1:6+lamps)=ARG(5+prev_turbmodel+lamps+1:11+prev_turbmodel+lamps+lamps)
-! 		  
+!
 ! 		END IF
-! 		
-! 		
-! 		
+!
+!
+!
 ! 	   END DO
-! 
+!
 ! 	   CLOSE(1084)
-! 	   
+!
 !   DEALLOCATE(ARG)
-!   
-!   
-!   
+!
+!
+!
 !   ELSE
-! 	    
+!
 !   DO I=1,kmaxe
 !       U_C(i)%VAL(ind1,:)=ZERO
 !       U_C(i)%RMS(:)=ZERO
 ! 	if ((passivescalar.gt.0).or.(turbulence.eq.1))then
 ! 	U_CT(i)%VAL(ind1,:)=ZERO
-! 	end if   
+! 	end if
 !   END DO
-!   
-! 
-! 
+!
+!
+!
 !   END IF
-! 
-! 
-! 
-! 
+!
+!
+!
+!
 !  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-! 
+!
 ! deallocate(rg)
-! 
-! 
+!
+!
 
 
 
@@ -13460,7 +13442,7 @@ END SUBROUTINE REST_READ
 
 
 
-SUBROUTINE CHECKPOINTAV2d(N)  
+SUBROUTINE CHECKPOINTAV2d(N)
 !> @brief
 !> This subroutine writes the average checkpointing files in 2D
 IMPLICIT NONE
@@ -13479,12 +13461,12 @@ ICPUID=N
 	RESTFILE='RESTARTav.dat'
 	IF (N.EQ.0)THEN
 	OPEN(1086,FILE=RESTFILE,FORM='UNFORMATTED',STATUS='REPLACE',ACTION='WRITE')
-	
-	
+
+
 	end if
-	
+
 	KMAXE=XMPIELRANK(N)
-    
+
 DUMG=KMAXE
 call mpi_barrier(mpi_comm_world,IERROR)
 
@@ -13522,11 +13504,11 @@ ALLOCATE(VALUESS(imaxp))
 
 do jj=1,4+turbulenceequations+passivescalar+3+passivescalar
  DO I=1,KMAXE
-      
+
       if (jj.le.4+turbulenceequations+passivescalar)then
       IF (jj.le.4) THEN
 	  VALUESS(I)=U_C(I)%VAL(5,jj)
-		      
+
       Else
 
 	VALUESS(I)=U_CT(I)%VAL(5,jj-4)
@@ -13538,7 +13520,7 @@ do jj=1,4+turbulenceequations+passivescalar+3+passivescalar
        VALUESS(I)=U_C(i)%RMS(jj-(4+turbulenceequations+passivescalar))
 
       end if
-      
+
  END DO
 
     call MPI_GATHER(VALUESS,imaxp,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -13550,8 +13532,8 @@ do jj=1,4+turbulenceequations+passivescalar+3+passivescalar
 	end if
     end do
     end if
-    
-    
+
+
  end do
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -13563,15 +13545,15 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
     WRITE(1086)XBIN(xmpi_re(i),1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR+3+PASSIVESCALAR)
 !     END DO
     END DO
-      
+
     DEALLOCATE(XBIN,ICELLA,VALUESA)
 
       close(1086)
     END IF
-    
+
 
 DEALLOCATE(VALUESS)
-	
+
 
 END SUBROUTINE CHECKPOINTAV2d
 
@@ -13586,7 +13568,7 @@ LOGICAL::HERES
                     IF (nof_variables.GT.1)THEN
 
 			IF (NPROBES.GT.0)THEN
-			    
+
 			    DO INV=1,NPROBES
 			    IF (PROBEI(N,INV).NE.0) THEN
 			      WRITE(PROB,FMT='(I10)') INV
@@ -13595,11 +13577,11 @@ LOGICAL::HERES
 			      INQUIRE (FILE=PROBFILE,EXIST=HEREs)
 			    IF (HEREs.EQV..TRUE.) THEN
 				OPEN(3000+N,FILE=PROBFILE,FORM='FORMATTED',STATUS='OLD',ACTION='WRITE',POSITION='APPEND')
-				
-				
+
+
 				ELSE
 				OPEN(3000+N,FILE=PROBFILE,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
-				
+
 				END IF
 				IF (PASSIVESCALAR.EQ.0)THEN
 				LEFTV(1:NOF_vARIABLES)=U_C(PROBEI(N,INV))%VAL(1,1:NOF_vARIABLES)
@@ -13614,9 +13596,9 @@ LOGICAL::HERES
 
 				END IF
 				CLOSE(3000+N)
-				
-		    
-			      END IF     
+
+
+			      END IF
 			    END DO
 			  END IF
 			  END IF
@@ -13634,7 +13616,7 @@ LOGICAL::HERES
                         IF(nof_variables.GT.1)THEN
 
 			IF (NPROBES.GT.0)THEN
-			    
+
 			    DO INV=1,NPROBES
 			    IF (PROBEI(N,INV).NE.0) THEN
 			      WRITE(PROB,FMT='(I10)') INV
@@ -13643,11 +13625,11 @@ LOGICAL::HERES
 			      INQUIRE (FILE=PROBFILE,EXIST=HEREs)
 			    IF (HEREs.eqv..TRUE.) THEN
 				OPEN(3000+N,FILE=PROBFILE,FORM='FORMATTED',STATUS='OLD',ACTION='WRITE',POSITION='APPEND')
-				
-				
+
+
 				ELSE
 				OPEN(3000+N,FILE=PROBFILE,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
-				
+
 				END IF
 				IF (PASSIVESCALAR.EQ.0)THEN
 	WRITE(3000+N,'(1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,U_C(PROBEI(N,INV))%VAL(1,1),&
@@ -13662,9 +13644,9 @@ LOGICAL::HERES
 
 				END IF
 				CLOSE(3000+N)
-				
-		    
-			      END IF     
+
+
+			      END IF
 			    END DO
 			  END IF
 			  END IF
@@ -13693,11 +13675,11 @@ FORCEX=zero; FORCEY=zero; FORCEZ=zero;  FORCEXFR=zero
  CI(:)=zero
  CO(:)=zero
  KMAXE=XMPIELRANK(N)
- 
-!$OMP BARRIER 
+
+!$OMP BARRIER
 !$OMP DO SCHEDULE(GUIDED) REDUCTION(+:FORCEX,FORCEY,FORCEZ)
 DO I=1,kmaxe
-		if (ielem(n,i)%interior.eq.1)then	
+		if (ielem(n,i)%interior.eq.1)then
 		    do j=1,ielem(n,i)%ifca
 		      if (ielem(n,i)%ibounds(j).gt.0)then
 			  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).AND.(inoder(IELEM(N,I)%NODES_FACES(J,1))%CORD(3).GT.0.001))then
@@ -13706,15 +13688,15 @@ DO I=1,kmaxe
 			      NX=(COS(ANGLE1)*SIN(ANGLE2))
 			      NY=(SIN(ANGLE1)*SIN(ANGLE2))
 			      NZ=(COS(ANGLE2))
-			      
+
 			  SSX=zero; SSP=zero; SSY=zero; SSZ=zero
-			  
+
 				select case(ielem(n,i)%types_faces(j))
 				case (5)
 					  gqi_points=qp_quad_n
-					
-					  
-					  
+
+
+
 					  if(reduce_comp.eq.1)then
 					  WEqua2d=1.0d0;
 					  else
@@ -13725,12 +13707,12 @@ DO I=1,kmaxe
 					  call  QUADRATUREQUAD3D(N,IGQRULES)
 					  end if
 					  surface_temp=IELEM(N,I)%SURF(J)
-					  
-				  
+
+
 				case(6)
 					gqi_points=qp_triangle_n
-					
-					    
+
+
 					if(reduce_comp.eq.1)then
 					  WEqua2d=1.0d0;
 					  else
@@ -13741,48 +13723,48 @@ DO I=1,kmaxe
 					call QUADRATURETRIANG(N,IGQRULES)
 					end if
  					    surface_temp=IELEM(N,I)%SURF(J)
- 					    
- 					    
-					  
+
+
+
 				end select
-				  
-				  
+
+
 				  do im=1,gqi_points
-				  
+
 				  if (itestcase.eq.4)then
 				  if (ielem(n,i)%ggs.eq.1)then
-				  
+
 				  VORTET1(1:3,1:3) = ILOCAL_RECON3(I)%GRADS(1:3,1:3)
 				  ux = Vortet1(1,1);uy = Vortet1(1,2);uz = Vortet1(1,3)
 				  vx = Vortet1(2,1);vy = Vortet1(2,2);vz = Vortet1(2,3)
 				  wx = Vortet1(3,1);wy = Vortet1(3,2);wz = Vortet1(3,3)
-				  
+
 				  else
-				  
+
 				  vortet1(1,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,2,J,IM)
 				  vortet1(2,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,3,J,IM)
 				  vortet1(3,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,4,J,IM)
 				  ux = Vortet1(1,1);uy = Vortet1(1,2);uz = Vortet1(1,3)
 				  vx = Vortet1(2,1);vy = Vortet1(2,2);vz = Vortet1(2,3)
 				  wx = Vortet1(3,1);wy = Vortet1(3,2);wz = Vortet1(3,3)
-				  
-				  
+
+
 				  end if
 				 end if
-				  
-				  
+
+
 				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
 				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
-				  
-				  
-				  
+
+
+
 				    call cons2prim2(n)
 				    px=leftv(5)
 				    ssp=ssp+(px*WEQUA2D(im))
 				    if (itestcase.eq.4)then
 				    CALL SUTHERLAND(N,LEFTV,RIGHTV)
-				  
-				  
+
+
 				  TAUXX=(4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY - (2.0D0/3.0D0)*WZ
 				  TAUYY=(4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*WZ
 				  TAUZZ=(4.0D0/3.0D0)*WZ - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY
@@ -13794,32 +13776,32 @@ DO I=1,kmaxe
 				  SSZ=SSZ-((VISCL(1)*((NX*TAUZX)+(NY*TAUZY)+(NZ*TAUZZ)))*WEQUA2D(im))
 				 end if
 				   end do
-				   
-				   
-				  SSP=ssp-PRES	
-				  
+
+
+				  SSP=ssp-PRES
+
 				  FORCEX=FORCEX+(((SSP)*(surface_temp)*NX))+((SSX)*surface_temp)
 				  FORCEY=FORCEY+(((SSP)*(surface_temp)*NY))+((SSY)*surface_temp)
 				  FORCEZ=FORCEZ+(((SSP)*(surface_temp)*NZ))+((SSZ)*surface_temp)
 
-					    
-					    
+
+
 			END IF
 		      end if
 		    end do
 		end if
 
-			
-		
-END DO					 
-!$OMP END DO
-	
 
-		
-	
-	
-!$OMP BARRIER 
-!$OMP MASTER 
+
+END DO
+!$OMP END DO
+
+
+
+
+
+!$OMP BARRIER
+!$OMP MASTER
 	FORCEX=FORCEX*VECTORX
 	FORCEY=FORCEY*VECTORY
 	FORCEZ=FORCEZ*VECTORZ
@@ -13835,7 +13817,7 @@ END DO
 	CALL MPI_ALLREDUCE(CO(1:2),CI(1:2),2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
 	CL=CI(1)
 	CD=CI(2)
-	
+
 	IF (N.EQ.0) THEN
 	INQUIRE (FILE='FORCE.dat',EXIST=HEREf)
 		IF (HEREf) THEN
@@ -13844,20 +13826,20 @@ END DO
 	OPEN(50+N,FILE='FORCE.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
 		END IF
 	WRITE(50+N,'(I14,1X,E14.7,1X,E14.7,1X,E14.7)')it,T,CL,CD
-	
+
 	CLOSE(50+N)
-	END IF		
+	END IF
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
-	
-!$OMP END MASTER 
-!$OMP BARRIER 
-	
-	
-	
-	
-	
-	
+
+
+!$OMP END MASTER
+!$OMP BARRIER
+
+
+
+
+
+
 
 END SUBROUTINE COMPUTEFORCE
 
@@ -13882,21 +13864,21 @@ FORCEX=zero; FORCEY=zero; FORCEZ=zero;  FORCEXFR=zero
  CI(:)=zero
  CO(:)=zero
  KMAXE=XMPIELRANK(N)
- 
-!$OMP BARRIER 
+
+!$OMP BARRIER
 !$OMP DO SCHEDULE(GUIDED) REDUCTION(+:FORCEX,FORCEY,FORCEZ)
 DO I=1,kmaxe
-		if (ielem(n,i)%interior.eq.1)then	
+		if (ielem(n,i)%interior.eq.1)then
 		    do j=1,ielem(n,i)%ifca
 		      if (ielem(n,i)%ibounds(j).gt.0)then
 			  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
 			      nx=IELEM(N,I)%FACEANGLEX(j)
 			      ny=IELEM(N,I)%FACEANGLEY(j)
-			      
-			      
-			  SSX=zero; SSP=zero; SSY=zero; 
-			  
-				
+
+
+			  SSX=zero; SSP=zero; SSY=zero;
+
+
 					  gqi_points=qp_line_n
 					   if(reduce_comp.eq.1)then
 					  WEqua2d=1.0d0;
@@ -13905,85 +13887,85 @@ DO I=1,kmaxe
 				      do K=1,nnd
 					VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
 				      END DO
-					  
+
 					  call  QUADRATURELINE(N,IGQRULES)
 					  end if
 					  surface_temp=IELEM(N,I)%SURF(J)
-					  
-				  
-							  
-				  
+
+
+
+
 				  do im=1,gqi_points
-				  
+
 				  if (itestcase.eq.4)then
 				  if (ielem(n,i)%ggs.eq.1)then
-				  
+
 				  VORTET1(1:2,1:2) = ILOCAL_RECON3(I)%GRADS(1:2,1:2)
 				  ux = Vortet1(1,1);uy = Vortet1(1,2)
 				  vx = Vortet1(2,1);vy = Vortet1(2,2)
-				
-				  
+
+
 				  else
-				  
+
 				  vortet1(1,1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,2,J,IM)
 				  vortet1(2,1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,3,J,IM)
-				  
+
 				 ux = Vortet1(1,1);uy = Vortet1(1,2)
 				  vx = Vortet1(2,1);vy = Vortet1(2,2)
-				
-				  
-				  
+
+
+
 				  end if
 				  end if
-				  
+
 				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
 				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
 				    call cons2prim2d2(n)
 				    px=leftv(4)
-				    
-				    
+
+
 				    if (itestcase.eq.4)then
 				    CALL SUTHERLAND2d(N,LEFTV,RIGHTV)
-				  
-				  
+
+
 				  TAUXX=2.0d0*ux
 				  TAUYY=2.0d0*vy
 				  TAUYX=(UY + VX)
-				  
+
 				  SSX=SSX-((VISCL(1)*((NY*TAUYX)))*WEQUA2D(im))
 				  SSY=SSY-((VISCL(1)*((NX*TAUYX)))*WEQUA2D(im))
 				  end if
 				  ssp=ssp+(px*WEQUA2D(im))
 				   end do
-				   
-				   
-				  SSP=ssp-PRES	
-				  
+
+
+				  SSP=ssp-PRES
+
 				  FORCEX=FORCEX+(((SSP)*(surface_temp)*NX))+((SSX)*surface_temp)
 				  FORCEY=FORCEY+(((SSP)*(surface_temp)*NY))+((SSY)*surface_temp)
-				  
 
-					    
-					    
+
+
+
 			END IF
 		      end if
 		    end do
 		end if
 
-			
-		
-END DO					 
-!$OMP END DO
-	
 
-		
-	
-	
-!$OMP BARRIER 
-!$OMP MASTER 
+
+END DO
+!$OMP END DO
+
+
+
+
+
+!$OMP BARRIER
+!$OMP MASTER
 	FORCEX=FORCEX*VECTORX
 	FORCEY=FORCEY*VECTORY
-	
+
         RTEMP=((AOA/180.0d0)*PI)
 	LIFTF=(FORCEy*COS(RTEMP))-(FORCEX*SIN(RTEMP))
 	DRAGF=(FORCEX*COS(RTEMP))+(FORCEy*SIN(RTEMP))
@@ -13996,7 +13978,7 @@ END DO
 	CALL MPI_ALLREDUCE(CO(1:2),CI(1:2),2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
 	CL=CI(1)
 	CD=CI(2)
-	
+
 	IF (N.EQ.0) THEN
 	INQUIRE (FILE='FORCE.dat',EXIST=HEREf)
 		IF (HEREf) THEN
@@ -14005,20 +13987,20 @@ END DO
 	OPEN(50+N,FILE='FORCE.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
 		END IF
 	WRITE(50+N,'(I14,1X,E14.7,1X,E14.7,1X,E14.7)')it,T,CL,CD
-	
+
 	CLOSE(50+N)
-	END IF		
+	END IF
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
-	
-!$OMP END MASTER 
-!$OMP BARRIER 
-	
-	
-	
-	
-	
-	
+
+
+!$OMP END MASTER
+!$OMP BARRIER
+
+
+
+
+
+
 
 END SUBROUTINE COMPUTEFORCE2d
 
@@ -14037,7 +14019,7 @@ ALLRES(:)=ZERO
 
 
 IF ((ITESTCASE.LE.4).AND.(TURBULENCE.NE.1))THEN
-!$OMP BARRIER 
+!$OMP BARRIER
 !$OMP DO SCHEDULE(GUIDED) REDUCTION(+:ALLRES)
 DO I=1,KMAXE
     ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VAL(1:nof_Variables)**2)
@@ -14069,7 +14051,7 @@ END DO
 END IF
 
 IF (TURBULENCE.EQ.1)THEN
-!$OMP BARRIER 
+!$OMP BARRIER
 !$OMP DO SCHEDULE(GUIDED) REDUCTION(+:ALLRES)
 DO I=1,KMAXE
     ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VAL(1:nof_Variables)**2)
@@ -14121,7 +14103,7 @@ ELSE
 
 END IF
 
-END IF 
+END IF
 
 
 if ((ALLRES(1).lt.reslimit).AND.(ALLRES(2).lt.reslimit).AND.(ALLRES(3).lt.reslimit).AND.(ALLRES(4).lt.reslimit).AND.(ALLRES(5).lt.reslimit))then
@@ -14132,7 +14114,7 @@ if ((ALLRES(1).lt.reslimit).AND.(ALLRES(2).lt.reslimit).AND.(ALLRES(3).lt.reslim
 
 !$OMP END MASTER
 
- 
+
 
 
 
@@ -14158,7 +14140,7 @@ ALLRES(:)=ZERO
 
 
 IF ((ITESTCASE.LE.4).AND.(TURBULENCE.NE.1))THEN
-!$OMP BARRIER 
+!$OMP BARRIER
 !$OMP DO SCHEDULE(GUIDED) REDUCTION(+:ALLRES)
 DO I=1,KMAXE
     ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VAL(1:nof_Variables)**2)
@@ -14190,7 +14172,7 @@ END DO
 END IF
 
 IF (TURBULENCE.EQ.1)THEN
-!$OMP BARRIER 
+!$OMP BARRIER
 !$OMP DO SCHEDULE(GUIDED) REDUCTION(+:ALLRES)
 DO I=1,KMAXE
     ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VAL(1:nof_Variables)**2)
@@ -14240,7 +14222,7 @@ ELSE
 
 END IF
 
-END IF 
+END IF
 
 
  if ((ALLRES(1).lt.reslimit).AND.(ALLRES(2).lt.reslimit).AND.(ALLRES(3).lt.reslimit).AND.(ALLRES(4).lt.reslimit))then
@@ -14276,7 +14258,7 @@ SUBROUTINE CALCULATE_ERROR(N)
 	  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	  !$OMP END MASTER
 	  !$OMP BARRIER
-	  
+
 			!$OMP DO REDUCTION (+:L1NORM)
 			DO I=1,KMAXE
 				IF (ITESTCASE.Le.3)THEN
@@ -14288,8 +14270,8 @@ SUBROUTINE CALCULATE_ERROR(N)
 					L1NORM=L1NORM+((APROXIMATE-EXACT)**2)*ielem(n,i)%TOTVOLUME
 				END IF
  			END DO
- 			!$OMP END DO 
- 			
+ 			!$OMP END DO
+
  			if (initcond.eq.0)then
  			!$OMP DO REDUCTION (+:L0NORM)
 			DO I=1,KMAXE
@@ -14302,7 +14284,7 @@ SUBROUTINE CALCULATE_ERROR(N)
 ! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATE-EXACT)))
 				END IF
  			END DO
- 			!$OMP END DO 
+ 			!$OMP END DO
  			ELSE
  			!$OMP DO REDUCTION (MAX:L0NORM)
 			DO I=1,KMAXE
@@ -14315,58 +14297,58 @@ SUBROUTINE CALCULATE_ERROR(N)
 ! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATE-EXACT)))
 				END IF
  			END DO
- 			!$OMP END DO 
- 			
- 			
- 			
+ 			!$OMP END DO
+
+
+
  			END IF
  			IF (INITCOND.EQ.3)THEN
  			L0NORM=ZERO;L1NORM=TOLBIG
- 			
+
  			!$OMP DO REDUCTION (MAX:L0NORM)
 			DO I=1,KMAXE
-					
+
 					IF (U_C(I)%VAL(1,ind_er).GT.L0NORM)THEN
 					L0NORM=U_C(I)%VAL(1,ind_er)
 					END IF
 ! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATE-EXACT)))
-				
+
  			END DO
- 			!$OMP END DO 
+ 			!$OMP END DO
  			!$OMP DO REDUCTION (MIN:L1NORM)
 			DO I=1,KMAXE
-					
+
 					IF (U_C(I)%VAL(1,ind_er).LT.L1NORM)THEN
 					L1NORM=U_C(I)%VAL(1,ind_er)
 					END IF
 ! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATE-EXACT)))
-				
+
  			END DO
- 			!$OMP END DO 
- 			
- 			
+ 			!$OMP END DO
+
+
  			END IF
- 			
- 			
+
+
  			if (initcond.eq.0)then
  			!$OMP DO REDUCTION (+:STENNORM)
  			DO I=1,KMAXE
-				
+
 				STENNORM=STENNORM+abs(ilocal_recon3(i)%cond(2))
  			END DO
- 			!$OMP END DO 
- 			
+ 			!$OMP END DO
+
  			else
  			!$OMP DO REDUCTION (+:STENNORM)
  			DO I=1,KMAXE
 				STENNORM=STENNORM+ielem(n,i)%STENCIL_DIST
  			END DO
- 			!$OMP END DO 
+ 			!$OMP END DO
  			end if
-			
- 			
- 			
- 			
+
+
+
+
  			!$OMP MASTER
  			IF (INITCOND.EQ.3)THEN
  			DUMMYOUT=L0NORM
@@ -14376,7 +14358,7 @@ SUBROUTINE CALCULATE_ERROR(N)
  			CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,1,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
  			L1NORM=DUMMYIN
  			Else
- 			
+
  			DUMMYOUT=L1NORM
  			CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
  			L1NORM=DUMMYIN
@@ -14385,33 +14367,33 @@ SUBROUTINE CALCULATE_ERROR(N)
  			CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
  			DUMMYIN=DUMMYIN/IMAXE
  			ELSE
- 			
+
  			CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
  			END IF
  			L0NORM=DUMMYIN
  			DUMMYOUT=STENNORM
  			CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
  			STENNORM=DUMMYIN
- 			
- 			
- 			
- 			
+
+
+
+
  			END IF
- 			
- 			
+
+
  			CPUX3(1) = MPI_Wtime()
  			if (n.eq.0)then
 			OPEN(30,FILE='Errors.dat',FORM='FORMATTED',ACTION='write',position='append')
 			if (initcond.eq.1)then
 			WRITE(30,'(I9,1X,I4,1X,I4,1X,E14.7,1X,E14.7)')IMAXE,iorder,spatiladiscret,L0NORM,STENNORM/IMAXE
-			
+
 			else
 			IF (INITCOND.NE.3)THEN
-			
+
 			WRITE(30,'(I9,1X,I4,1X,I4,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')IMAXE,iorder,spatiladiscret,L0NORM,SQRT(L1NORM/TOTALVOLUME),STENNORM/IMAXE,(CPUX3(1)-CPUX2(1))*isize
 			ELSE
 			WRITE(30,'(I9,1X,I4,1X,I4,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')IMAXE,iorder,spatiladiscret,L0NORM,L1NORM,STENNORM/IMAXE,(CPUX3(1)-CPUX2(1))*isize
-			
+
 			END IF
 			end if
 ! 			WRITE(30,'(I9,1X,I4,1X,I4,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')IMAXE,iorder,spatiladiscret,L0NORM,SQRT(L1NORM/TOTALVOLUME),STENNORM/IMAXE,(CPUX3(1)-CPUX2(1))*isize
@@ -14436,7 +14418,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -14456,10 +14438,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -14478,7 +14460,7 @@ nvar1=2
 if (n.eq.0)then
 
 WRITE(PROC3,FMT='(I10)') IT
-WRITE(PROC5,FMT='(I10)') 
+WRITE(PROC5,FMT='(I10)')
 	!proc4=".plt"
 	OUTFILE="OUT_"//TRIM(ADJUSTL(PROC3))//".vtk"!//TRIM(ADJUSTL(PROC4))
 	ITGFD=len_trim(OUTFILE)
@@ -14508,7 +14490,7 @@ allocate (Valuelocation(nvar1))
 Valuelocation(:)=0
 Valuelocation(1:2)=1
 
-    
+
 	if (binio.eq.0)then
 	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
         DO I=1,IMAXN
@@ -14527,10 +14509,10 @@ Valuelocation(1:2)=1
 	CLOSE(96)
 	end if
 
-   
-                    
-                    
- WRITE(400+N,*)                   
+
+
+
+ WRITE(400+N,*)
 write(400+N,'(A5,2X,I10,2X,I10)')"CELLS",IMAXE,(IMAXE*8)+IMAXE
 
 if (binio.eq.0)then
@@ -14549,34 +14531,34 @@ write(400+N,'(9i12)')8,J1-1,J2-1,J3-1,J4-1,J5-1,j6-1,j7-1,j8-1
 END DO
 CLOSE(97)
 end if
-                    
-                    
-WRITE(400+N,*)                    
+
+
+WRITE(400+N,*)
 WRITE(400+N,'(A10,2X,I10)')"CELL_TYPES",IMAXE
 DO I=1,IMAXE
 WRITE(400+N,*)12
 END DO
 WRITE(400+N,*)
 WRITE(400+N,'(A9,2X,I10)')"CELL_DATA",IMAXE
-               
-                    
-                    
 
- 
+
+
+
+
   allocate(xbin(imaxe),XBIN2(IMAXE))
-	
+
 
  END IF
  allocate(valuess(kmaxe))
- 
+
   call mpi_barrier(MPI_COMM_WORLD,IERROR)
-  
-    
-   
+
+
+
 do j=1,NOF_VARIABLES
-     
+
      if ((J.ge.2).and.(J.le.4))then
-     
+
         DO I=1,KMAXE
         VALUESS(i)=U_C(I)%VAL(1,j)/U_C(I)%VAL(1,1)!0.0
         END DO
@@ -14592,10 +14574,10 @@ do j=1,NOF_VARIABLES
 		  CALL CONS2PRIM(N)
 		  VALUESS(i)=leftv(5)
 		END DO
-    
+
     end if
-    
-		
+
+
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
 
@@ -14621,44 +14603,44 @@ do j=1,NOF_VARIABLES
     WRITE(400+N,'(A)')"SCALARS  P  double 1"
     END IF
     WRITE(400+N,'(A)')"LOOKUP_TABLE default"
-    
-    
+
+
 		do i=1,imaxe
 		xbin(XMPI_RE(I))=xbin2(I)
 		end do
-    
+
      WRITE(400+N,*)xbin(1:imaxe)
     END IF
 
-    
+
 end do
 
-    
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+
+
+
+
+
  IF (N.EQ.0)THEN
-  CLOSE(400+N) 
-   
+  CLOSE(400+N)
+
    DEALLOCATE(XBIN,VALUESA,XBIN2,VALUELOCATION,ICELLA)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-        
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITEPARA3D
 
@@ -14674,7 +14656,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -14696,10 +14678,10 @@ character(LEN=:),allocatable::out1
 character*1 NULCHAR
 CHARACTER(LEN=1)   :: flui,lf
 CHARACTER(LEN=15)  :: str1,str2
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -14716,7 +14698,7 @@ KMAXE=XMPIELRANK(N)
 if (n.eq.0)then
 
 WRITE(PROC3,FMT='(I10)') IT
-WRITE(PROC5,FMT='(I10)') 
+WRITE(PROC5,FMT='(I10)')
 	!proc4=".plt"
 	OUTFILE="OUT_"//TRIM(ADJUSTL(PROC3))//".vtk"!//TRIM(ADJUSTL(PROC4))
 	ITGFD=len_trim(OUTFILE)
@@ -14745,8 +14727,8 @@ allocate (Valuelocation(nvar1))
 Valuelocation(:)=0
 Valuelocation(1:2)=1
 
-    
-     
+
+
 ! 	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
 !         DO I=1,IMAXN
 ! 	READ(96,*)j,x,y,z
@@ -14754,9 +14736,9 @@ Valuelocation(1:2)=1
 ! 	ybin(i)=y/scaler
 !  	zbin(i)=z/scaler
 ! 	END DO
-! 
+!
 !     CLOSE(96)
-    
+
     if (binio.eq.0)then
 	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
         DO I=1,IMAXN
@@ -14775,11 +14757,11 @@ Valuelocation(1:2)=1
 	CLOSE(96)
 	end if
 
-    
-    
-   
-    
-                    
+
+
+
+
+
 WRITE(str1(1:15),'(i15)') IMAXE
 WRITE(str2(1:15),'(i15)') (IMAXE*8)+IMAXE
 write(400+N)"CELLS",str1//str2//lf
@@ -14799,36 +14781,36 @@ END DO
 CLOSE(97)
 
 END IF
-                    
-                    
-WRITE(str1(1:15),'(i15)') IMAXE                    
-WRITE(400+N)"CELL_TYPES"//str1//lf	
+
+
+WRITE(str1(1:15),'(i15)') IMAXE
+WRITE(400+N)"CELL_TYPES"//str1//lf
 DO I=1,IMAXE
 WRITE(400+N)12
 END DO
 
 WRITE(400+N)"CELL_DATA"//str1//lf
-!                
-!                     
-!                     
-! 
- 
+!
+!
+!
+!
+
   allocate(xbin(imaxe),XBIN2(IMAXE))
-	
-! 
+
+!
  END IF
-! 
-!  
-  
+!
+!
+
   ALLOCATE(VALUESS(KMAXE))
- 
+
  call mpi_barrier(MPI_COMM_WORLD,IERROR)
-!     
-   
+!
+
 do j=1,NOF_VARIABLES
-     
+
      if ((J.ge.2).and.(J.le.4))then
-     
+
         DO I=1,KMAXE
         VALUESS(i)=U_C(I)%VAL(1,j)/U_C(I)%VAL(1,1)!0.0
         END DO
@@ -14844,16 +14826,16 @@ do j=1,NOF_VARIABLES
 		  CALL CONS2PRIM(N)
 		  VALUESS(i)=leftv(5)
 		END DO
-    
+
     end if
-    
-		
-    
-    
+
+
+
+
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
     IF (N.EQ.0)THEN
-    
+
     IF (J.EQ.1)THEN
     WRITE(400+N)"SCALARS  R double 1"//lf
     END IF
@@ -14874,46 +14856,46 @@ do j=1,NOF_VARIABLES
     WRITE(400+N)"SCALARS  P  double 1"//lf
     END IF
     WRITE(400+N)"LOOKUP_TABLE default"//lf
-    
-    
+
+
 		do i=1,imaxe
 		xbin(XMPI_RE(I))=xbin2(I)
 		end do
-    
-    
+
+
      WRITE(400+N)xbin(1:imaxe)
     END IF
 
-     
-    
-    
-end do
-    
-    
-    
-    
 
-     
-    
-  
-    
+
+
+end do
+
+
+
+
+
+
+
+
+
   IF (N.EQ.0)THEN
-  CLOSE(400+N) 
-   
+  CLOSE(400+N)
+
    DEALLOCATE(XBIN,VALUELOCATION,XBIN2)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-        
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITEPARA3Db
 
@@ -14929,7 +14911,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -14951,10 +14933,10 @@ character(LEN=:),allocatable::out1
 character*1 NULCHAR
 CHARACTER(LEN=1)   :: flui,lf
 CHARACTER(LEN=15)  :: str1,str2
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -14971,7 +14953,7 @@ nvar1=2
 if (n.eq.0)then
 
 WRITE(PROC3,FMT='(I10)') IT
-WRITE(PROC5,FMT='(I10)') 
+WRITE(PROC5,FMT='(I10)')
 	!proc4=".plt"
 	OUTFILE="SURF_"//TRIM(ADJUSTL(PROC3))//".vtk"!//TRIM(ADJUSTL(PROC4))
 	ITGFD=len_trim(OUTFILE)
@@ -15012,11 +14994,11 @@ do i=1,imaxb
 	end if
 end do
  close(96)
- 
- 
+
+
  end if
- 
- 
+
+
 igf2=0
 do i=1,imaxn
       if (inog(i).eq.1)then
@@ -15024,7 +15006,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 ! OPEN(400+N,FILE=OUTFILE,FORM='UNFORMATTED',STATUS='NEW',ACTION='WRITE')
  OPEN(400+N,FILE=OUTFILE,STATUS='REPLACE',ACCESS='STREAM',CONVERT='BIG_ENDIAN')
@@ -15045,7 +15027,7 @@ allocate (Valuelocation(nvar1))
 	igf2=0
         DO I=1,IMAXN
 	READ(96,*)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
@@ -15059,7 +15041,7 @@ allocate (Valuelocation(nvar1))
 	igf2=0
         DO I=1,IMAXN
 	READ(96)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
@@ -15068,14 +15050,14 @@ allocate (Valuelocation(nvar1))
 	END DO
 
     CLOSE(96)
-    
-    
+
+
     END IF
 
-    
-   
-    
-    
+
+
+
+
      IF (BINIO.EQ.0)THEN
      OPEN(98,FILE='GRID.bnd',FORM='FORMATTED',STATUS='old',ACTION='read')
      END IF
@@ -15088,7 +15070,7 @@ allocate (Valuelocation(nvar1))
 		igf2=0
 		IF (BINIO.EQ.0)THEN
 		DO K=1,iMAXB
-               
+
  		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
@@ -15096,14 +15078,14 @@ allocate (Valuelocation(nvar1))
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		END DO
 		ELSE
 		DO K=1,iMAXB
-               
+
  		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
@@ -15111,55 +15093,55 @@ allocate (Valuelocation(nvar1))
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		END DO
-		
+
 		END IF
-	    
+
  		close(98)
- 		
- 		
- 		
- 		
+
+
+
+
  		WRITE(str1(1:15),'(i15)') igf2
  WRITE(str2(1:15),'(i15)') (igf2*4)+igf2
  write(400+N)"CELLS",str1//str2//lf
  		DO I=1,IGF2
  		WRITE(400+N)4,ICON(1,I)-1,ICON(2,I)-1,ICON(3,I)-1,ICON(4,I)-1
  		END DO
- 		
-	
-		deallocate(icon)	
+
+
+		deallocate(icon)
 		deallocate(inog)
 
 
-                    
+
 ! WRITE(str1(1:15),'(i15)') IMAXE
 ! WRITE(str2(1:15),'(i15)') (IMAXE*8)+IMAXE
 ! write(400+N)"CELLS",str1//str2//lf
-! 
+!
 ! OPEN(97,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
 ! DO I=1,IMAXE
 ! READ(97,*)j,J1,J2,J3,J4,j5,j6,j7,j8
 ! write(400+N)8,J1-1,J2-1,J3-1,J4-1,J5-1,j6-1,j7-1,j8-1
 ! END DO
 ! CLOSE(97)
-                    
-                    
-                 
- WRITE(400+N)"CELL_TYPES"//str1//lf	
- DO I=1,igf2 
+
+
+
+ WRITE(400+N)"CELL_TYPES"//str1//lf
+ DO I=1,igf2
  WRITE(400+N)9
  END DO
-! 
+!
 WRITE(400+N)"CELL_DATA"//str1//lf
-!                
-!                     
-!                     
-! 
+!
+!
+!
+!
 allocate(xbin(totwalls),XBIN2(TOTWALLS))
 
  END IF
@@ -15168,27 +15150,27 @@ allocate(xbin(totwalls),XBIN2(TOTWALLS))
   if (xmpiwall(n).gt.0)then
   ALLOCATE(VALUESS(xmpiwall(n)))
   end if
-!     
-   
+!
+
 do j=1,NOF_VARIABLES
-     
+
      if ((J.ge.2).and.(J.le.4))then
-     
+
          IF (TOTIW.GT.0)THEN
-		      	
+
 		      do I=1,TOTIW
                 valuess(i)=U_C(IBOUND_T(I))%VAL(1,j)/U_C(IBOUND_T(I))%VAL(1,1)
                 end do
-				
+
 		      end if
     END IF
     if (j.eq.1)then
          IF (TOTIW.GT.0)THEN
-		      	
+
 		      do I=1,TOTIW
                 valuess(i)=U_C(IBOUND_T(I))%VAL(1,j)
                 end do
-				
+
 		      end if
     end if
     if (j.eq.5)then
@@ -15197,23 +15179,23 @@ do j=1,NOF_VARIABLES
 						leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(1,1:nof_Variables)
 						CALL CONS2PRIM(N)
 						VALUESS(i)=leftv(5)
-						
+
 					  END DO
 		      end if
-    
+
     end if
-    
-		
-    
+
+
+
     call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 !     call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
     IF (N.EQ.0)THEN
-    
-    
-    
-    
-    
+
+
+
+
+
     IF (J.EQ.1)THEN
     WRITE(400+N)"SCALARS  R double 1"//lf
     END IF
@@ -15234,50 +15216,50 @@ do j=1,NOF_VARIABLES
     WRITE(400+N)"SCALARS  P  double 1"//lf
     END IF
     WRITE(400+N)"LOOKUP_TABLE default"//lf
-    
-    
-    
+
+
+
 		do i=1,totwalls
 		xbin(XMPI_WRE(I))=xbin2(I)
 		end do
-		
-    
-    
+
+
+
      WRITE(400+N)XBIN(1:TOTWALLS)
     END IF
 
-     
-    
-    
-end do
-    
-    
-    
-    
 
-     
-    
- 
-    
+
+
+end do
+
+
+
+
+
+
+
+
+
   IF (N.EQ.0)THEN
-  
-   
+
+
    DEALLOCATE(XBIN,XBIN2,VALUELOCATION)
   deallocate(out1)
-  CLOSE(400+N)  
+  CLOSE(400+N)
   END IF
    IF (TOTIW.GT.0)THEN
   DEALLOCATE (VALUESS)
   end if
-  
 
-          
-        
+
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITEPARA3Dsb
 
@@ -15298,7 +15280,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -15320,10 +15302,10 @@ character(LEN=:),allocatable::out1
 character*1 NULCHAR
 CHARACTER(LEN=1)   :: flui,lf
 CHARACTER(LEN=15)  :: str1,str2
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -15344,7 +15326,7 @@ if (rungekutta.eq.4)then
 if (n.eq.0)then
 
 WRITE(PROC3,FMT='(I10)') IT
-WRITE(PROC5,FMT='(I10)') 
+WRITE(PROC5,FMT='(I10)')
 	!proc4=".plt"
 	OUTFILE="OUT_AV"//TRIM(ADJUSTL(PROC3))//".vtk"!//TRIM(ADJUSTL(PROC4))
 	ITGFD=len_trim(OUTFILE)
@@ -15373,8 +15355,8 @@ allocate (Valuelocation(nvar1))
 Valuelocation(:)=0
 Valuelocation(1:2)=1
 
-    
-     
+
+
 ! 	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
 !         DO I=1,IMAXN
 ! 	READ(96,*)j,x,y,z
@@ -15382,9 +15364,9 @@ Valuelocation(1:2)=1
 ! 	ybin(i)=y/scaler
 !  	zbin(i)=z/scaler
 ! 	END DO
-! 
+!
 !     CLOSE(96)
-    
+
     if (binio.eq.0)then
 	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
         DO I=1,IMAXN
@@ -15403,11 +15385,11 @@ Valuelocation(1:2)=1
 	CLOSE(96)
 	end if
 
-    
-    
-   
-    
-                    
+
+
+
+
+
 WRITE(str1(1:15),'(i15)') IMAXE
 WRITE(str2(1:15),'(i15)') (IMAXE*8)+IMAXE
 write(400+N)"CELLS",str1//str2//lf
@@ -15427,36 +15409,36 @@ END DO
 CLOSE(97)
 
 END IF
-                    
-                    
-WRITE(str1(1:15),'(i15)') IMAXE                    
-WRITE(400+N)"CELL_TYPES"//str1//lf	
+
+
+WRITE(str1(1:15),'(i15)') IMAXE
+WRITE(400+N)"CELL_TYPES"//str1//lf
 DO I=1,IMAXE
 WRITE(400+N)12
 END DO
 
 WRITE(400+N)"CELL_DATA"//str1//lf
-!                
-!                     
-!                     
-! 
- 
+!
+!
+!
+!
+
   allocate(xbin(imaxe),XBIN2(IMAXE))
-	
-! 
+
+!
  END IF
-! 
-!  
-  
+!
+!
+
   ALLOCATE(VALUESS(KMAXE))
- 
+
  call mpi_barrier(MPI_COMM_WORLD,IERROR)
-!     
-   
+!
+
 do j=1,NOF_VARIABLES+6
-     
+
      if ((J.ge.2).and.(J.le.4))then
-     
+
         DO I=1,KMAXE
         VALUESS(i)=U_C(I)%VAL(IND1,j)/U_C(I)%VAL(IND1,1)!0.0
         END DO
@@ -15472,21 +15454,21 @@ do j=1,NOF_VARIABLES+6
 		  CALL CONS2PRIM(N)
 		  VALUESS(i)=leftv(5)
 		END DO
-    
+
     end if
     IF (J.GT.5)THEN
     DO I=1,KMAXE
 	VALUESS(i)=U_C(I)%RMS(J-5)
     END DO
     END if
-    
-		
-    
-    
+
+
+
+
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
     IF (N.EQ.0)THEN
-    
+
     IF (J.EQ.1)THEN
     WRITE(400+N)"SCALARS  R_MEAN double 1"//lf
     END IF
@@ -15531,45 +15513,45 @@ do j=1,NOF_VARIABLES+6
     WRITE(400+N)"SCALARS  WV  double 1"//lf
     END IF
     WRITE(400+N)"LOOKUP_TABLE default"//lf
-    
-    
+
+
 		do i=1,imaxe
 		xbin(XMPI_RE(I))=xbin2(I)
 		end do
-    
+
      WRITE(400+N)xbin(1:imaxe)
     END IF
-    
-     
-    
-    
-end do
-    
-    
-    
-    
 
-     
-    
-  
-    
+
+
+
+end do
+
+
+
+
+
+
+
+
+
   IF (N.EQ.0)THEN
-  CLOSE(400+N) 
-   
+  CLOSE(400+N)
+
    DEALLOCATE(XBIN,XBIN2,VALUELOCATION)
   deallocate(out1)
   END IF
   DEALLOCATE (VALUESS)
-  
+
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-        
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITEPARA3Dbav
 
@@ -15585,7 +15567,7 @@ IMPLICIT NONE
 ! EXTERNAL TECNODE112
 ! EXTERNAL  TECEND112
 
-! 
+!
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -15607,10 +15589,10 @@ character(LEN=:),allocatable::out1
 character*1 NULCHAR
 CHARACTER(LEN=1)   :: flui,lf
 CHARACTER(LEN=15)  :: str1,str2
- 
+
       Integer::   Debug,III,NPts,NElm
 
-  
+
       Real::    SolTime
       Integer:: VIsDouble, FileType
       Integer:: ZoneType,StrandID,ParentZn,IsBlock
@@ -15631,7 +15613,7 @@ if (rungekutta.eq.4)then
 if (n.eq.0)then
 
 WRITE(PROC3,FMT='(I10)') IT
-WRITE(PROC5,FMT='(I10)') 
+WRITE(PROC5,FMT='(I10)')
 	!proc4=".plt"
 	OUTFILE="SURF_"//TRIM(ADJUSTL(PROC3))//".vtk"!//TRIM(ADJUSTL(PROC4))
 	ITGFD=len_trim(OUTFILE)
@@ -15672,11 +15654,11 @@ do i=1,imaxb
 	end if
 end do
  close(96)
- 
- 
+
+
  end if
- 
- 
+
+
 igf2=0
 do i=1,imaxn
       if (inog(i).eq.1)then
@@ -15684,7 +15666,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 ! OPEN(400+N,FILE=OUTFILE,FORM='UNFORMATTED',STATUS='NEW',ACTION='WRITE')
  OPEN(400+N,FILE=OUTFILE,STATUS='REPLACE',ACCESS='STREAM',CONVERT='BIG_ENDIAN')
@@ -15705,7 +15687,7 @@ allocate (Valuelocation(nvar1))
 	igf2=0
         DO I=1,IMAXN
 	READ(96,*)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
@@ -15719,7 +15701,7 @@ allocate (Valuelocation(nvar1))
 	igf2=0
         DO I=1,IMAXN
 	READ(96)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
@@ -15728,14 +15710,14 @@ allocate (Valuelocation(nvar1))
 	END DO
 
     CLOSE(96)
-    
-    
+
+
     END IF
 
-    
-   
-    
-    
+
+
+
+
      IF (BINIO.EQ.0)THEN
      OPEN(98,FILE='GRID.bnd',FORM='FORMATTED',STATUS='old',ACTION='read')
      END IF
@@ -15748,7 +15730,7 @@ allocate (Valuelocation(nvar1))
 		igf2=0
 		IF (BINIO.EQ.0)THEN
 		DO K=1,iMAXB
-               
+
  		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
@@ -15756,14 +15738,14 @@ allocate (Valuelocation(nvar1))
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		END DO
 		ELSE
 		DO K=1,iMAXB
-               
+
  		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
@@ -15771,55 +15753,55 @@ allocate (Valuelocation(nvar1))
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		END DO
-		
+
 		END IF
-	    
+
  		close(98)
- 		
- 		
- 		
- 		
+
+
+
+
  		WRITE(str1(1:15),'(i15)') igf2
  WRITE(str2(1:15),'(i15)') (igf2*4)+igf2
  write(400+N)"CELLS",str1//str2//lf
  		DO I=1,IGF2
  		WRITE(400+N)4,ICON(1,I)-1,ICON(2,I)-1,ICON(3,I)-1,ICON(4,I)-1
  		END DO
- 		
-	
-		deallocate(icon)	
+
+
+		deallocate(icon)
 		deallocate(inog)
 
 
-                    
+
 ! WRITE(str1(1:15),'(i15)') IMAXE
 ! WRITE(str2(1:15),'(i15)') (IMAXE*8)+IMAXE
 ! write(400+N)"CELLS",str1//str2//lf
-! 
+!
 ! OPEN(97,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
 ! DO I=1,IMAXE
 ! READ(97,*)j,J1,J2,J3,J4,j5,j6,j7,j8
 ! write(400+N)8,J1-1,J2-1,J3-1,J4-1,J5-1,j6-1,j7-1,j8-1
 ! END DO
 ! CLOSE(97)
-                    
-                    
-                 
- WRITE(400+N)"CELL_TYPES"//str1//lf	
- DO I=1,igf2 
+
+
+
+ WRITE(400+N)"CELL_TYPES"//str1//lf
+ DO I=1,igf2
  WRITE(400+N)9
  END DO
-! 
+!
 WRITE(400+N)"CELL_DATA"//str1//lf
-!                
-!                     
-!                     
-! 
+!
+!
+!
+!
 allocate(xbin(totwalls),xbin2(totwalls))
 
  END IF
@@ -15828,27 +15810,27 @@ allocate(xbin(totwalls),xbin2(totwalls))
   if (xmpiwall(n).gt.0)then
   ALLOCATE(VALUESS(xmpiwall(n)))
   end if
-!     
-   
+!
+
 do j=1,NOF_VARIABLES+6
-     
+
      if ((J.ge.2).and.(J.le.4))then
-     
+
          IF (TOTIW.GT.0)THEN
-		      	
+
 		      do I=1,TOTIW
                 valuess(i)=U_C(IBOUND_T(I))%VAL(1,j)/U_C(IBOUND_T(I))%VAL(IND1,1)
                 end do
-				
+
 		      end if
     END IF
     if (j.eq.1)then
          IF (TOTIW.GT.0)THEN
-		      	
+
 		      do I=1,TOTIW
                 valuess(i)=U_C(IBOUND_T(I))%VAL(IND1,j)
                 end do
-				
+
 		      end if
     end if
     if (j.eq.5)then
@@ -15857,10 +15839,10 @@ do j=1,NOF_VARIABLES+6
 						leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(IND1,1:nof_Variables)
 						CALL CONS2PRIM(N)
 						VALUESS(i)=leftv(5)
-						
+
 					  END DO
 		      end if
-    
+
     end if
      IF (J.GT.5)THEN
       IF (TOTIW.GT.0)THEN
@@ -15869,13 +15851,13 @@ do j=1,NOF_VARIABLES+6
 	end do
       END IF
     END if
-		
-    
+
+
     call MPI_GATHERv(valuess,xmpiwall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiwall,woffset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 !     call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
     IF (N.EQ.0)THEN
-    
+
     IF (J.EQ.1)THEN
     WRITE(400+N)"SCALARS  R_MEAN double 1"//lf
     END IF
@@ -15920,47 +15902,47 @@ do j=1,NOF_VARIABLES+6
     WRITE(400+N)"SCALARS  WV  double 1"//lf
     END IF
     WRITE(400+N)"LOOKUP_TABLE default"//lf
-    
-    
+
+
 		do i=1,totwalls
 		xbin(XMPI_WRE(I))=xbin2(I)
 		end do
-    
+
      WRITE(400+N)xbin(1:totwalls)
     END IF
 
-     
-    
-    
-end do
-    
-    
-    
-    
 
-     
-    
- 
-    
+
+
+end do
+
+
+
+
+
+
+
+
+
   IF (N.EQ.0)THEN
-  
-   
+
+
    DEALLOCATE(XBIN,VALUELOCATION,XBIN2)
   deallocate(out1)
-  CLOSE(400+N)  
+  CLOSE(400+N)
   END IF
    IF (TOTIW.GT.0)THEN
   DEALLOCATE (VALUESS)
   end if
-  
 
-          
-        
+
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 END SUBROUTINE OUTWRITEPARA3Dsbav
 

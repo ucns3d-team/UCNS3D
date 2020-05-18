@@ -29,6 +29,8 @@ make -f Makefile clean all
 cd ../
 mkdir build
 cd build
+
+// Intel
 cmake -DBUILD_FORTRAN_EXAMPLES:BOOL=ON \
 	-DCMAKE_BUILD_TYPE:STRING=Debug \
 	-DCMAKE_Fortran_COMPILER="$intelMPI/bin/mpiifort" \
@@ -42,6 +44,7 @@ make
 
 // Compile UCNS3D
 
+// Intel
 cmake -DCMAKE_PREFIX_PATH="/home/jason/Desktop/paraview_build" \
 	-DUSE_CATALYST=ON -DBUILD_FORTRAN_EXAMPLES:BOOL=ON \
 	-DCMAKE_BUILD_TYPE:STRING=Debug \
@@ -49,5 +52,18 @@ cmake -DCMAKE_PREFIX_PATH="/home/jason/Desktop/paraview_build" \
 	-DMPI_Fortran_INCLUDE_PATH="$intelMPI/include" \
 	--debug-output ../
 
+// GCC
+cmake -DCMAKE_PREFIX_PATH="/home/jason/Desktop/pv_gcc_build" \
+	-DUSE_CATALYST=ON -DBUILD_FORTRAN_EXAMPLES:BOOL=ON \
+	-DCMAKE_BUILD_TYPE:STRING=Release \
+	-DCMAKE_Fortran_COMPILER="/usr/bin/mpifort" \
+	--debug-output ../
 make
+
+// For testing
+cd CODE
+mkdir RUN && cd RUN
+cp ../../../Catalyst_Example/UCNS3D_obj/* .
+cp ../ucns3d_p .
+mpirun -np 4 ./ucns3d_p
 

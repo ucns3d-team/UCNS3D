@@ -1,24 +1,24 @@
 module tcp
   use iso_c_binding
   implicit none
-  public
-  interface tcp_adaptor
-    module procedure testcoprocessor
-    end interface
+  public :: testcoprocessor
     contains
 
-subroutine testcoprocessor(nxstart,nxend,nx,ny,nz,step,time,psi01)
+subroutine testcoprocessor(nxstart,nxend,n_x,n_y,n_z,step,time)
   use iso_c_binding
   implicit none
-  integer, intent(in) :: nxstart,nxend,nx,ny,nz,step
+
+  integer :: numtasks, rank, ierr
+  integer, intent(in) :: n_x,n_y,n_z,step
+  integer, intent(in) :: nxstart,nxend
   real(kind=8), intent(in) :: time
-  complex(kind=8), dimension(:,:,:), intent (in) :: psi01
   integer :: flag
   call requestdatadescription(step,time,flag)
+
   if (flag .ne. 0) then
     call needtocreategrid(flag)
     if (flag .ne. 0) then
-      call createcpimagedata(nxstart,nxend,nx,nz,nz)
+      call createcpimagedata(nxstart,nxend,n_x,n_y,n_z)
     end if
     ! adding //char(0) appends the C++ terminating character
     ! to the Fortran array
@@ -29,4 +29,5 @@ subroutine testcoprocessor(nxstart,nxend,nx,ny,nz,step,time,psi01)
   return
 
   end subroutine
+
 end module tcp
