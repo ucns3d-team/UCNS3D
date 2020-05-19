@@ -3164,7 +3164,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 
 ! 				end if
 			    end if
-                IF ((MULTISPECIES.EQ.1).and.(initcond.eq.405))THEN
+                IF ((MULTISPECIES.EQ.1).and.(initcond.eq.408))THEN
 			    if ( mod(it, 20) .eq. 0)then
                     call TRAJECTORIES
 			    end if
