@@ -30,6 +30,8 @@ cd CODE
 mkdir RUN && cd RUN
 cp ../../../Catalyst_Example/UCNS3D_obj/* .
 cp ../ucns3d_p .
+
+export OMP_NUM_THREADS=1
 mpirun -np 4 ./ucns3d_p
 
 ----------------------------------------------------------------
