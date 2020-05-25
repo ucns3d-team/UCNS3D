@@ -3287,16 +3287,14 @@ endif
 			return
 			end if
 
-!      CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-!      call sleep(1)
-!      if (N .eq. 0) then
-      call testcoprocessor(nxstart,nxend,n_x,n_y,n_z,IT,dble(T))
-!      endif
-
-!      CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-
+      ! call testcoprocessor(nxstart,nxend,n_x,n_y,n_z,IT,dble(T))
+      call coprocess_grid(IT, dble(T))
 end do
+
+DEALLOCATE(scalarRU)
+DEALLOCATE(scalarRV)
+DEALLOCATE(scalarE)
+DEALLOCATE(pointSet)
 
 END SUBROUTINE TIME_MARCHING
 

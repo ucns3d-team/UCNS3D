@@ -48,7 +48,7 @@ TOTAL SIMULATION TIME SECONDS  ||\|| TOTAL NUMBER OF ITERATIONS ||\|| WALL CLOCK
 20.0					1000000				82000
 |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 TECPLOT:1(BIN),0(ASCII),PARAVIEW BIN:2 ||\|| WRITE OUTPUT RATE (SEC) ||\|| WRITE RESTART RATE(SEC) ||\|| WRITE AVERAGE OUTPUT RATE(SEC) ||\||PRINT THE STENCILS AT THE PROBE POSITION(0 NOW, 1 YES)
-2				    	120			20000				50000					0
+3				    	20			20000				50000					0
 |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 AVERAGING (0-Disabled, 1-Enabled, computing mean and RMS) Only possible for Unsteady computations || 
 0

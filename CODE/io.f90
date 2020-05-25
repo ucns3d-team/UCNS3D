@@ -72,6 +72,7 @@ NullPtr = 0
       ShrConn = 0
 NULCHAR = CHAR(0)
 
+
 ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     'X Y Z'//NULCHAR, &
                     'GRID.plt'//NULCHAR, &
@@ -79,6 +80,7 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     FileType, &
                     Debug, &
                     VIsDouble)
+
 
  ierr= TecZne112('GRID1'//NULCHAR, &
                     ZoneType, &
@@ -248,7 +250,9 @@ INQUIRE (FILE='GRID.plt',EXIST=HEREV)
 if (herev)then
 
 
+
 else
+
 
 NullPtr = 0
       Debug   = 0
@@ -270,6 +274,7 @@ NullPtr = 0
       ShrConn = 0
 NULCHAR = CHAR(0)
 
+
 ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     'X Y'//NULCHAR, &
                     'GRID.plt'//NULCHAR, &
@@ -277,6 +282,7 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     FileType, &
                     Debug, &
                     VIsDouble)
+
 
  ierr= TecZne112('GRID1'//NULCHAR, &
                     ZoneType, &
@@ -299,6 +305,10 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     Null, &
                     Null, &
                     ShrConn)
+
+
+
+
 
     allocate(xbin(imaxn))
     allocate(ybin(imaxn))
@@ -377,10 +387,18 @@ END IF
 
 end if
 
+
+
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-END SUBROUTINE OUTWRITEGRIDB2D
 
+
+
+
+
+
+
+END SUBROUTINE OUTWRITEGRIDB2D
 SUBROUTINE OUTWRITE3N
  !> @brief
 !> This subroutine is solely for debugging
@@ -932,7 +950,17 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     Debug, &
                     VIsDouble)
      ELSE
+     if (multispecies.eq.1)then
+     NVAR1=9
+      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                    'Density,U,V,W,energy,Pressure,species1,species2,vfraction'//NULCHAR, &
+                    out1//NULCHAR, &
+                    '.'//NULCHAR, &
+                    FileType, &
+                    Debug, &
+                    VIsDouble)
 
+     else
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,W,energy,Pressure,STEN1,STEN2'//NULCHAR, &
                     out1//NULCHAR, &
@@ -942,7 +970,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     VIsDouble)
 
 
-
+     end if
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -1136,11 +1164,13 @@ Valuelocation(:)=0
     END IF
 
     IF (ITESTCASE.ge.3)THEN
-		do kkd=1,nof_variables
+		do kkd=1,5
 		    DO I=1,KMAXE
-		      VALUESS(i)=U_C(I)%VAL(1,kkd)
-			if ((kkd.ge.2).and.(kkd.le.nof_variables-1))then
-			VALUESS(i)=U_C(I)%VAL(1,kkd)/U_C(I)%VAL(1,1)
+		    leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+		    CALL CONS2PRIM2(N)
+		      VALUESS(i)=leftv(kkd)
+			if (kkd.eq.5)then
+			VALUESS(i)=U_C(I)%VAL(1,kkd)!/U_C(I)%VAL(1,1)
 			end if
 		    END DO
 
@@ -1176,10 +1206,55 @@ Valuelocation(:)=0
 
 
 
+                if (multispecies.eq.1)then
+
+                DO I=1,KMAXE
+                VALUESS(i)=U_C(I)%VAL(1,6)
+                END DO
+                call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+                    IF (N.EQ.0)THEN
+                    do i=1,imaxe
+                xbin(XMPI_RE(I))=xbin2(I)
+                end do
+                    ierr = TECDAT112(imaxe,xbin,1)
+                    END IF
+
+
+                    DO I=1,KMAXE
+                        VALUESS(i)=U_C(I)%VAL(1,7)
+                        END DO
+                    call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+                    IF (N.EQ.0)THEN
+                    do i=1,imaxe
+                xbin(XMPI_RE(I))=xbin2(I)
+                end do
+                    ierr = TECDAT112(imaxe,xbin,1)
+                    END IF
+
+
+                       DO I=1,KMAXE
+                VALUESS(i)=U_C(I)%VAL(1,8)
+                END DO
+
+                call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+			IF (N.EQ.0)THEN
+			do i=1,imaxe
+		xbin(XMPI_RE(I))=xbin2(I)
+		end do
+			ierr = TECDAT112(imaxe,xbin,1)
+			END IF
+
+
+
+			else
+
+
+
 
                 DO I=1,KMAXE
                 VALUESS(i)=IELEM(N,I)%GGS!%ISHAPE!IELEM(N,I)%STENCIL_DIST
                 END DO
+
 
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 			IF (N.EQ.0)THEN
@@ -1205,7 +1280,7 @@ Valuelocation(:)=0
 			ierr = TECDAT112(imaxe,xbin,1)
 			END IF
 
-
+              end if
 
 
 		  if (passivescalar.gt.0)then
@@ -1747,7 +1822,7 @@ REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
 INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
-CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
+ CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
 integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
@@ -2251,7 +2326,16 @@ end if
                     Debug, &
                     VIsDouble)
      ELSE
+     if (multispecies.eq.1)then
+     if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                     'Density,U,V,energy,Pressure,species1,species2,vf'//NULCHAR, &
+                    out1//NULCHAR, &
+                    '.'//NULCHAR, &
+                    FileType, &
+                    Debug, &
+                    VIsDouble)
 
+     else
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                      'Density,U,V,energy,Pressure,STEN1,STEN2,SLOPE'//NULCHAR, &
                     out1//NULCHAR, &
@@ -2261,7 +2345,7 @@ end if
                     VIsDouble)
 
 
-
+     end if
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -3070,9 +3154,52 @@ SUBROUTINE READ_UCNS3D
 	HYBRIDIST=0.0D0 !HYBRID DISTANCE
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-    if (initcond.gt.405)iadapt=1
+    if (initcond.eq.405)iadapt=1
 	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
 	extf=2.2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
+	itold=10000	!TOLERANCE=n_iterations
+	GRIDAR1=5.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=7.0	! LIMIT VOLUME CELLS
+	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+	if (dimensiona.eq.2)then
+	if (tecplot.eq.2)then
+	tecplot=1
+	end if
+	end if
+	if (iboundary.eq.1)then
+	 LOWMEM=1
+	 end if
+
+
+	 DES_model=0
+
+
+
+
+	 CASE (9)  !robust
+
+	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+	binio=1	    	!I/O (ASCII=0, BINARY=1)
+	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
+	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+	HYBRIDIST=0.0D0 !HYBRID DISTANCE
+	swirl=0		!swirling flow:0 deactivated, 1 activated
+	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+    if (initcond.eq.405)iadapt=1
+	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+	extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
 	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
 	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
@@ -12128,39 +12255,35 @@ END SUBROUTINE OUTWRITE3vS2dav
 
 
 
-
-
-
 SUBROUTINE GRID_WRITE
-!> @brief
-!> This subroutine calls the appropriate grid writing subroutine based on the settings
-IMPLICIT NONE
-IF (TECPLOT.EQ.1)THEN		!BINARY TECPLOT
-  if (dimensiona.eq.3)then
-  call outwritegridb
-  ELSE
-  call outwritegridb2D
-  END IF
+  !> @brief
+  !> This subroutine calls the appropriate grid writing subroutine based on the settings
+  IMPLICIT NONE
 
-END IF
-IF (TECPLOT.EQ.0)THEN		!ASCII TECPLOT
-    if (dimensiona.eq.3)then
+  SELECT CASE (TECPLOT)
+  CASE (0) !ASCII TECPLOT
+    IF (dimensiona.eq.3) THEN
       call outwritegrid(n)
-
-    eLSE
+    ELSE
       call outwritegrid2D(n)
-
     END IF
 
-END IF
+  CASE (1) !BINARY TECPLOT
+    IF (dimensiona.eq.3) THEN
+      call outwritegridb
+    ELSE
+      call outwritegridb2D
+    END IF
 
-IF (TECPLOT.EQ.2)THEN		!BINARY PARAVIEW 3D ONLY
+  CASE (2) !BINARY PARAVIEW 3D ONLY
+    call OUTWRITEPARA3Db
 
-  call OUTWRITEPARA3Db
-
-END IF
+  CASE (3) !PARAVIEW CATALYST
+    call OUTWRITEPARA3DbP
+  END SELECT
 
 END SUBROUTINE GRID_WRITE
+
 
 
 SUBROUTINE SURF_WRITE
@@ -12626,13 +12749,13 @@ ICPUID=N
 	      write(1086)INITIALRES(4)
 	      write(1086)INITIALRES(5)
 	      if ( turbulence .eq. 1) then
-  	      if (turbulencemodel.eq.1)then
-  	         write(1086)INITIALRES(6)
-  	      end if
-  	      if (turbulencemodel.eq.2)then
-    	       write(1086)INITIALRES(6)
-    	        write(1086)INITIALRES(7)
-  	      end if
+	      if (turbulencemodel.eq.1)then
+	      write(1086)INITIALRES(6)
+	      end if
+	      if (turbulencemodel.eq.2)then
+	      write(1086)INITIALRES(6)
+	      write(1086)INITIALRES(7)
+	      end if
 	      end if
 
 
@@ -12640,10 +12763,10 @@ ICPUID=N
 	WRITE (1086)IT,T
 
 	if (initcond.eq.95)then
-  	write(1086)taylor
-  	end if
+	write(1086)taylor
+	end if
 
-  	end if
+	end if
 	end if
 
 	KMAXE=XMPIELRANK(N)
@@ -13682,7 +13805,7 @@ DO I=1,kmaxe
 		if (ielem(n,i)%interior.eq.1)then
 		    do j=1,ielem(n,i)%ifca
 		      if (ielem(n,i)%ibounds(j).gt.0)then
-			  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).AND.(inoder(IELEM(N,I)%NODES_FACES(J,1))%CORD(3).GT.0.001))then
+			  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4))then
 			      ANGLE1=IELEM(N,I)%FACEANGLEX(j)
 			      ANGLE2=IELEM(N,I)%FACEANGLEY(j)
 			      NX=(COS(ANGLE1)*SIN(ANGLE2))
@@ -14806,7 +14929,6 @@ WRITE(400+N)"CELL_DATA"//str1//lf
 
  call mpi_barrier(MPI_COMM_WORLD,IERROR)
 !
-
 do j=1,NOF_VARIABLES
 
      if ((J.ge.2).and.(J.le.4))then
@@ -14828,9 +14950,6 @@ do j=1,NOF_VARIABLES
 		END DO
 
     end if
-
-
-
 
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
@@ -14893,11 +15012,296 @@ end do
 
  deallocate(variables)
 
-
-
-
-
 END SUBROUTINE OUTWRITEPARA3Db
+
+
+
+SUBROUTINE OUTWRITEPARA3DbP
+  !> @brief
+  !> This subroutine writes the solution and the grid file in binary vtk format
+  ! INODER4(1:number of nodes (kmaxn))%cord(1:3) holds the coordinates for each point
+  ! kmaxn is global across all modules
+  ! kmaxe must be set as equal to xmpielrank(n)
+  use ISO_C_BINDING
+  IMPLICIT NONE
+  INTEGER::KMAXE
+  REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
+  REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
+  INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j2,j3,j4,j5,j6,j7,j8
+  LOGICAL::HEREV
+  REAL,DIMENSION(5)::TOTAL
+  CHARACTER(LEN=30)::PROC,OUTFILE,OUTFILE2,PROC3,SURFILE,proc4,proc5
+  integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+  real,allocatable,dimension(:)::xbin
+  character(LEN=:),allocatable::out1
+  character*1 NULCHAR
+  CHARACTER(LEN=1)   :: flui,lf
+  CHARACTER(LEN=15)  :: str1,str2
+
+  Integer::   Debug,III,NPts,NElm
+  Real::    SolTime
+  Integer:: VIsDouble, FileType
+  Integer:: ZoneType,StrandID,ParentZn,IsBlock
+  Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
+  POINTER   (NullPtr,Null)
+  Integer:: Null(*)
+
+  KMAXE=XMPIELRANK(N)
+  ALLOCATE(xbin(kmaxe))
+  ALLOCATE(scalarRU(kmaxe))
+  ALLOCATE(scalarRV(kmaxe))
+  ALLOCATE(scalarE(kmaxe))
+  WRITE(PROC3,FMT='(I10)') IT
+  WRITE(PROC5,FMT='(I10)') N
+  	!proc4=".plt
+	OUTFILE="OUT_"//TRIM(ADJUSTL(PROC3))//"_"//TRIM(ADJUSTL(PROC5))//".vtk"!//TRIM(ADJUSTL(PROC4))
+	ITGFD=len_trim(OUTFILE)
+	allocate(character(LEN=itgfd) ::out1)
+	out1=OUTFILE(1:itgfd)
+
+  lf=char(10)
+
+  OPEN(400+n,FILE=OUTFILE,STATUS='REPLACE',ACCESS='STREAM',CONVERT='BIG_ENDIAN')
+    WRITE(400+N)"# vtk DataFile Version 3.0"//lf
+    WRITE(400+N)"vtk output"//lf
+    WRITE(400+N)"BINARY"//lf
+    WRITE(400+N)"DATASET UNSTRUCTURED_GRID"//lf
+    WRITE(400+N)"FIELD FieldData 1"//lf
+    WRITE(400+N)"TIME 1 1 double"//lf
+    WRITE(400+N) T
+    WRITE(str1(1:15),'(i15)') kmaxn
+    WRITE(400+N)"POINTS "//str1//" double"//lf
+
+    DO I=1,KMAXN
+  	  WRITE(400+N)INODER4(i)%CORD(1),INODER4(i)%CORD(2),INODER4(i)%CORD(3)
+  	END DO
+
+    WRITE(str1(1:15),'(i15)') KMAXE
+    WRITE(str2(1:15),'(i15)') (KMAXE*8)+KMAXE
+    WRITE(400+N)"CELLS",str1//str2//lf
+
+    DO I=1,kMAXE
+      write(400+N)8, el_connect(1,I), el_connect(2,I), &
+                     el_connect(3,I), el_connect(4,I), &
+                     el_connect(5,I), el_connect(6,I), &
+                     el_connect(7,I), el_connect(8,I)
+    END DO
+
+    WRITE(str1(1:15),'(i15)') KMAXE
+    WRITE(400+N)"CELL_TYPES"//str1//lf
+
+    DO I=1,KMAXE
+      WRITE(400+N)12
+    END DO
+
+    WRITE(400+N)"CELL_DATA"//str1//lf
+
+    DO j=1,NOF_VARIABLES
+      SELECT CASE (J)
+        CASE (1)
+          WRITE(400+N)"SCALARS  R double 1"//lf
+        CASE (2)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  RU double 1"//lf
+          DO i=1,Kmaxe
+            scalarRU(I)=U_C(I)%VAL(1,J)
+          END DO
+        CASE (3)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  RV double 1"//lf
+          DO i=1,Kmaxe
+            scalarRV(I)=U_C(I)%VAL(1,J)
+          END DO
+        CASE (4)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  RW double 1"//lf
+        CASE (5)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  E  double 1"//lf
+          DO i=1,Kmaxe
+            scalarE(I)=U_C(I)%VAL(1,J)
+          END DO
+        CASE (6)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  species1  double 1"//lf
+        CASE (7)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  species2 double 1"//lf
+        CASE (8)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  volumef  double 1"//lf
+      END SELECT
+      WRITE(400+N)"LOOKUP_TABLE default"//lf
+
+  		DO i=1,Kmaxe
+  		  xbin(I)=U_C(I)%VAL(1,J)
+      END DO
+      WRITE(400+N)xbin(1:Kmaxe)
+    END DO
+
+  CLOSE(400+n)
+  DEALLOCATE(XBIN,OUT1)
+  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+END SUBROUTINE OUTWRITEPARA3DbP
+
+
+
+
+SUBROUTINE OUTWRITEPARA3DbPav
+  !> @brief
+  !> This subroutine writes the solution and the grid file in binary vtk format
+  ! INODER4(1:number of nodes (kmaxn))%cord(1:3) holds the coordinates for each point
+  ! kmaxn is global across all modules
+  ! kmaxe must be set as equal to xmpielrank(n)
+  ! Swap el_connect from array of (N:8) to (8:N) since C++ reads arrays in
+  ! row-major order while Fortran reads them in column-major
+  use ISO_C_BINDING
+  IMPLICIT NONE
+  INTEGER::KMAXE,ind1
+  REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
+  REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
+  INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j2,j3,j4,j5,j6,j7,j8
+  LOGICAL::HEREV
+  REAL,DIMENSION(5)::TOTAL
+  CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
+  integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+  real,allocatable,dimension(:)::xbin
+  character(LEN=:),allocatable::out1
+  character*1 NULCHAR
+  CHARACTER(LEN=1)   :: flui,lf
+  CHARACTER(LEN=15)  :: str1,str2
+
+  Integer::   Debug,III,NPts,NElm
+  Real::    SolTime
+  Integer:: VIsDouble, FileType
+  Integer:: ZoneType,StrandID,ParentZn,IsBlock
+  Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
+  POINTER   (NullPtr,Null)
+  Integer:: Null(*)
+  KMAXE=XMPIELRANK(N)
+
+  if (rungekutta.eq.4) then
+  	ind1=7
+  else
+  	ind1=5
+  end if
+
+  allocate(xbin(kmaxe))
+  WRITE(PROC3,FMT='(I10)') IT
+  WRITE(PROC5,FMT='(I10)')N
+  	!proc4=".plt
+	OUTFILE="OUT_AV"//TRIM(ADJUSTL(PROC3))//"_"//TRIM(ADJUSTL(PROC5))//".vtk"!//TRIM(ADJUSTL(PROC4))
+	ITGFD=len_trim(OUTFILE)
+	allocate(character(LEN=itgfd) ::out1)
+	out1=OUTFILE(1:itgfd)
+
+  lf=char(10)
+
+  OPEN(400+n,FILE=OUTFILE,STATUS='REPLACE',ACCESS='STREAM',CONVERT='BIG_ENDIAN')
+    WRITE(400+N)"# vtk DataFile Version 3.0"//lf
+    WRITE(400+N)"vtk output"//lf
+    WRITE(400+N)"BINARY"//lf
+    WRITE(400+N)"DATASET UNSTRUCTURED_GRID"//lf
+    WRITE(400+N)"FIELD FieldData 1"//lf
+    WRITE(400+N)"TIME 1 1 double"//lf
+    WRITE(400+N) T
+    WRITE(str1(1:15),'(i15)') kmaxn
+    WRITE(400+N)"POINTS "//str1//" double"//lf
+
+    DO I=1,KMAXN
+  	  write(400+N)INODER4(i)%CORD(1),INODER4(i)%CORD(2),INODER4(i)%CORD(3)
+  	END DO
+
+    WRITE(str1(1:15),'(i15)') KMAXE
+    WRITE(str2(1:15),'(i15)') (KMAXE*8)+KMAXE
+    write(400+N)"CELLS",str1//str2//lf
+    DO I=1,kMAXE
+      write(400+N)8, el_connect(I,1)-1, el_connect(I,2)-1, &
+                     el_connect(I,3)-1, el_connect(I,4)-1, &
+                     el_connect(I,5)-1, el_connect(I,6)-1, &
+                     el_connect(I,7)-1, el_connect(I,8)-1
+    END DO
+
+    WRITE(str1(1:15),'(i15)') KMAXE
+    WRITE(400+N)"CELL_TYPES"//str1//lf
+    DO I=1,KMAXE
+      WRITE(400+N)12
+    END DO
+
+    WRITE(400+N)"CELL_DATA"//str1//lf
+
+    do j=1,11
+
+      SELECT CASE (j)
+        CASE (1)
+          WRITE(400+N)"SCALARS  R_mean double 1"//lf
+        CASE (2)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  U_mean double 1"//lf
+        CASE (3)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  V_mean double 1"//lf
+        CASE (4)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  W_mean double 1"//lf
+        CASE (5)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  P_mean  double 1"//lf
+        CASE (6)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  U_rms  double 1"//lf
+        CASE (7)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  V_rms double 1"//lf
+        CASE (8)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  W_rms  double 1"//lf
+        CASE (9)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  UV  double 1"//lf
+        CASE (10)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  UW  double 1"//lf
+        CASE (11)
+          WRITE(400+N)
+          WRITE(400+N)"SCALARS  WV  double 1"//lf
+      END SELECT
+      WRITE(400+N)"LOOKUP_TABLE default"//lf
+
+      if (j.eq.1)then
+    		do i=1,Kmaxe
+  		    xbin(I)=U_C(I)%VAL(ind1,J)
+    		end do
+  		end if
+  		if ((j.gt.1).and.(j.lt.5))then
+  		  do i=1,Kmaxe
+  		    xbin(I)=U_C(I)%VAL(ind1,J)/U_C(I)%VAL(ind1,1)
+    		end do
+  		end if
+  		if (j.eq.5)then
+    		do i=1,Kmaxe
+      		leftv(1:nof_variables)=U_C(I)%VAL(ind1,1:nof_variables)
+      		call cons2prim(n)
+      		xbin(I)=leftv(5)
+    		end do
+  		end if
+  		if (j.ge.6)then
+    		do i=1,Kmaxe
+    		  xbin(I)=U_C(I)%RMS(j-6)
+    		end do
+  		end if
+
+      WRITE(400+N)xbin(1:Kmaxe)
+    end do
+
+    close(400+n)
+    DEALLOCATE(XBIN,OUT1)
+    CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+END SUBROUTINE OUTWRITEPARA3DbPav
+
+
 
 SUBROUTINE OUTWRITEPARA3Dsb
 !> @brief
@@ -15940,26 +16344,115 @@ end do
 
  deallocate(variables)
 
-
-
-
-
 END SUBROUTINE OUTWRITEPARA3Dsbav
 
 
 
+SUBROUTINE FIX_NODES_LOCAL
+  IMPLICIT NONE
+  INTEGER::NDLC_COUNT1,NDLC_COUNT2
+  INTEGER::KMAXE,ND_LC_NODES,I,J,K,L,M
+  INTEGER,ALLOCATABLE,DIMENSION(:)::NDLC_ARRAY1
 
+  KMAXE=XMPIELRANK(N)
+  ALLOCATE(NDLC_ARRAY1(KMAXE*8));NDLC_ARRAY1(:)=0
 
+  NDLC_COUNT1=0
+  DO I=1,IMAXN
+    IF (INODER(I)%ITOR.GT.0) THEN
+      NDLC_COUNT1=NDLC_COUNT1+1
+      NDLC_ARRAY1(NDLC_COUNT1)=I
+    END IF
+  END DO
 
+  KMAXN=NDLC_COUNT1
 
+  ALLOCATE(INODER4(1:KMAXN));
+  DO i=1,kmaxn
+    ALLOCATE(inoder4(i)%cord(1:dims))
+  END DO
 
+  ! Set pointSet array to (3, kmaxn) for row-major reading in C++
+  IF (ALLOCATED(pointSet) .eqv. .FALSE.) THEN
+    ALLOCATE(pointSet(dims,kmaxn))
+  END IF
 
+  DO I=1,KMAXN
+    INODER4(I)%ITOR=NDLC_ARRAY1(I)
+    INODER4(I)%CORD(1:DIMS)=INODER(INODER4(I)%iTOR)%CORD(1:DIMS)
+    INODER(INODER4(I)%ITOR)%ITOR=I
 
+    pointSet(1:dims, I)=INODER(INODER4(I)%iTOR)%CORD(1:DIMS)
+  END DO
 
+  DO I=1,KMAXE
+    DO J=1,ielem(n,i)%NONODES
+      IELEM(N,I)%NODES(J)=INODER(IELEM(N,I)%NODES(J))%ITOR
+    END DO
+    DO L=1,IELEM(N,I)%IFCA
+      IF (DIMENSIONA.EQ.2) THEN
 
+        DO J=1,2
+          IELEM(N,I)%NODES_FACES(L,J)=INODER(IELEM(N,I)%NODES_FACES(L,J))%ITOR
+        END DO
+      ELSE
 
+        IF (ielem(n,i)%types_faces(L).eq.5) THEN
+          DO J=1,4
+            IELEM(N,I)%NODES_FACES(L,J)=INODER(IELEM(N,I)%NODES_FACES(L,J))%ITOR
+          END DO
+        END IF
+        IF (ielem(n,i)%types_faces(L).eq.6) THEN
+          DO J=1,3
+            IELEM(N,I)%NODES_FACES(L,J)=INODER(IELEM(N,I)%NODES_FACES(L,J))%ITOR
+          END DO
+        END IF
 
+      END IF
+    END DO
+  END DO
 
+  DEALLOCATE(INODER,NDLC_ARRAY1)
+
+  ! Array el_connect(index1,indices 1:8)
+  ! First index is the element index
+  ! Second index varies from 1:8 for all the vertices of this element (connectivity list)
+  ! kmaxe must be set as equal to xmpielrank(n)
+  ! Swap el_connect from array of (N:8) to (8:N) since C++ reads arrays in
+  ! row-major order while Fortran reads them in column-major
+  IF (dimensiona.eq.3) THEN
+    ALLOCATE(el_connect(8,kmaxe))
+    ! ALLOCATE(connectivity_array(kmaxe*8))
+    DO i=1,kmaxe
+      IF (ielem(n,i)%ishape.eq.1) THEN !hexa
+        el_connect(1:8,i)=ielem(n,i)%nodes(1:8)
+      END IF
+      IF (ielem(n,i)%ishape.eq.2) THEN !tetra
+        el_connect(1:2,i)=ielem(n,i)%nodes(1:2)
+        el_connect(3,i)=ielem(n,i)%nodes(3)
+        el_connect(4,i)=ielem(n,i)%nodes(3)
+        el_connect(5,i)=ielem(n,i)%nodes(4)
+        el_connect(6,i)=ielem(n,i)%nodes(4)
+        el_connect(7,i)=ielem(n,i)%nodes(4)
+        el_connect(8,i)=ielem(n,i)%nodes(4)
+      END IF
+      IF (ielem(n,i)%ishape.eq.3) THEN !pyramid
+        el_connect(1:5,i)=ielem(n,i)%nodes(1:5)
+        el_connect(6,i)=ielem(n,i)%nodes(5)
+        el_connect(7,i)=ielem(n,i)%nodes(5)
+        el_connect(8,i)=ielem(n,i)%nodes(5)
+      END IF
+      IF (ielem(n,i)%ishape.eq.4) THEN !prism
+        el_connect(1:3,i)=ielem(n,i)%nodes(1:3)
+        el_connect(4,i)=ielem(n,i)%nodes(3)
+        el_connect(5:7,i)=ielem(n,i)%nodes(4:6)
+        el_connect(8,i)=ielem(n,i)%nodes(6)
+      END IF
+      el_connect(1:8,i)=el_connect(1:8,i)-1
+    END DO
+  END IF
+
+END SUBROUTINE FIX_NODES_LOCAL
 
 
 END MODULE IO

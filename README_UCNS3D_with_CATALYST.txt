@@ -24,15 +24,17 @@ cmake -DCMAKE_PREFIX_PATH="/home/jason/Desktop/pv_gcc_build" \
 	-DCMAKE_BUILD_TYPE:STRING=Release \
 	-DCMAKE_Fortran_COMPILER="/usr/bin/mpifort" ../
 
+make
+
 // 3. For testing of UCNS3D
 
+
+export OMP_NUM_THREADS=1
 cd CODE
 mkdir RUN && cd RUN
 cp ../../../Catalyst_Example/UCNS3D_obj/* .
 cp ../ucns3d_p .
-
-export OMP_NUM_THREADS=1
-mpirun -np 4 ./ucns3d_p
+mpirun -np 2 ./ucns3d_p
 
 ----------------------------------------------------------------
 // Alternative build version with Intel compilers
