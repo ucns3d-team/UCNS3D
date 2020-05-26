@@ -12377,7 +12377,13 @@ IMPLICIT NONE
 
   call OUTWRITEPARA3Db
 
-END IF
+  END IF
+
+  IF (TECPLOT.EQ.3)THEN		!BINARY PARAVIEW 3D ONLY
+
+  call OUTWRITEPARA3DbP
+
+  END IF
 
 
 
@@ -15048,9 +15054,9 @@ SUBROUTINE OUTWRITEPARA3DbP
 
   KMAXE=XMPIELRANK(N)
   ALLOCATE(xbin(kmaxe))
-  ALLOCATE(scalarRU(kmaxe))
-  ALLOCATE(scalarRV(kmaxe))
-  ALLOCATE(scalarE(kmaxe))
+  if (ALLOCATED(scalarRU) .eqv. .FALSE.) ALLOCATE(scalarRU(kmaxe))
+  if (ALLOCATED(scalarRV) .eqv. .FALSE.) ALLOCATE(scalarRV(kmaxe))
+  if (ALLOCATED(scalarE) .eqv. .FALSE.) ALLOCATE(scalarE(kmaxe))
   WRITE(PROC3,FMT='(I10)') IT
   WRITE(PROC5,FMT='(I10)') N
   	!proc4=".plt

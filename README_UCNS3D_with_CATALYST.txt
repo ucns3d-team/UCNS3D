@@ -28,13 +28,12 @@ make
 
 // 3. For testing of UCNS3D
 
-
 export OMP_NUM_THREADS=1
 cd CODE
 mkdir RUN && cd RUN
 cp ../../../Catalyst_Example/UCNS3D_obj/* .
 cp ../ucns3d_p .
-mpirun -np 2 ./ucns3d_p
+mpirun -np 4 ./ucns3d_p
 
 ----------------------------------------------------------------
 // Alternative build version with Intel compilers
@@ -47,6 +46,8 @@ source psxevars.sh
 cd <Your_Paraview_Build_Dir>
 export intelMPI=<Your_Intel_Compiler_Install_Dir>/compilers_and_libraries_2019.5.281/linux/mpi/intel64
 export intelFort=<Your_Intel_Compiler_Install_Dir>/compilers_and_libraries_2019.5.281/linux/bin/intel64
+
+--------------------------------------------------------------
 
 cmake -DPARAVIEW_USE_PYTHON=ON \
 	-DPARAVIEW_USE_MPI=ON \
