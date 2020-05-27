@@ -14957,26 +14957,13 @@ WRITE(400+N)"CELL_DATA"//str1//lf
    
 do j=1,NOF_VARIABLES
      
-     if ((J.ge.2).and.(J.le.4))then
-     
-        DO I=1,KMAXE
-        VALUESS(i)=U_C(I)%VAL(1,j)/U_C(I)%VAL(1,1)!0.0
-        END DO
-    END IF
-    if (j.eq.1)then
-        DO I=1,KMAXE
-        VALUESS(i)=U_C(I)%VAL(1,j)
-        END DO
-    end if
-    if (j.eq.5)then
-                DO I=1,KMAXE
+         DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 		  CALL CONS2PRIM(N)
-		  VALUESS(i)=leftv(5)
+		  VALUESS(i)=leftv(j)
 		END DO
     
-    end if
-    
+     
 		
     
     
@@ -15002,6 +14989,18 @@ do j=1,NOF_VARIABLES
     IF (J.EQ.5)THEN
     WRITE(400+N)
     WRITE(400+N)"SCALARS  P  double 1"//lf
+    END IF
+    IF (J.EQ.6)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  species1  double 1"//lf
+    END IF
+    IF (J.EQ.7)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  species2  double 1"//lf
+    END IF
+    IF (J.EQ.8)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  volumef1  double 1"//lf
     END IF
     WRITE(400+N)"LOOKUP_TABLE default"//lf
     
