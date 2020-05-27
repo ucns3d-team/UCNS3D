@@ -727,7 +727,6 @@ END IF
  call NEW_ARRAYS(N)
 
 
-
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
   call EXCH_CORDS_opt(N)
@@ -757,10 +756,9 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
  call coprocessorinitializewithpython("coproc.py",9)
 
-
    if (dimensiona.eq.3)then
 !$OMP PARALLEL DEFAULT(SHARED)
-CALL TIME_MARCHING(N, ISIZE)
+CALL TIME_MARCHING(N)
 !$OMP END PARALLEL
 
 else

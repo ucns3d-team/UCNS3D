@@ -537,7 +537,7 @@ REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 REAL,EXTERNAL::DDOT
 
 KMAXE=XMPIELRANK(N)
-DIVBYZERO=1.0e-6
+DIVBYZERO=1.0e-14
 
 POWER=4
 
@@ -1275,7 +1275,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 					  else
 					  !NOT PERIODIC ONES IN MY CPU
 					  facex=l;iconsidered=i
-					   CALL coordinates_face_inner(N,Iconsidered,facex)
+					   CALL coordinates_face_innerx(N,Iconsidered,facex)
 				  CORDS(1:3)=zero
  				  CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 			  
@@ -2805,7 +2805,7 @@ POWER=4
 					  else
 					  !NOT PERIODIC ONES IN MY CPU
 					  facex=l;iconsidered=i
-					   CALL coordinates_face_inner2d(N,Iconsidered,facex)
+					   CALL coordinates_face_inner2dx(N,Iconsidered,facex)
 				  CORDS(1:2)=zero
  				  CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 			  

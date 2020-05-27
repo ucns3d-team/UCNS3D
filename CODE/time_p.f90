@@ -11,7 +11,6 @@ USE FLOW_OPERATIONS
 USE COMMUNICATIONS
 USE implicit_time
 USE implicit_FLUXES
-USE MPIINFO
 ! USE FLUXES_V
 USE IO
 USE tcp
@@ -53,7 +52,12 @@ KMAXE=XMPIELRANK(N)
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
 
 		CALL CONS2PRIM(N)
+		if (multispecies.eq.1)then
+		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
+		else
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+		end if
+
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
 		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
 	END DO
@@ -2940,24 +2944,17 @@ END SUBROUTINE AVERAGING_T
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE TIME_MARCHING(N, ISIZE)
+SUBROUTINE TIME_MARCHING(N)
 !> @brief
 !> TIME MARCHING SUBROUTINE 3D
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N, ISIZE
+INTEGER,INTENT(IN)::N
 real,dimension(1:5)::DUMMYOUT,DUMMYIN
-INTEGER::I,KMAXE,nxstart,nxend
-integer,parameter :: n_x=100,n_y=100,n_z=100
+INTEGER::I,KMAXE
 REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK
       kill=0
       T=RES_TIME
       iscoun=1
-
-nxstart=N*n_x/ISIZE+1
-nxend=(N+1)*n_x/ISIZE
-if(ISIZE .ne. N+1) then
-   nxend=nxend+1
-endif
 
 !$OMP BARRIER
 !$OMP MASTER
@@ -3001,9 +2998,6 @@ endif
 
 
      DO
-
-!        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
 		    CALL CALCULATE_CFL(N)
 
 		    IF (RUNGEKUTTA.GE.5)CALL CALCULATE_CFLL(N)
@@ -3171,7 +3165,11 @@ endif
 
 ! 				end if
 			    end if
-
+                IF ((MULTISPECIES.EQ.1).and.(initcond.eq.408))THEN
+			    if ( mod(it, 20) .eq. 0)then
+                    call TRAJECTORIES
+			    end if
+			    END IF
 
 
 
@@ -3287,7 +3285,8 @@ endif
 			return
 			end if
 
-      ! call testcoprocessor(nxstart,nxend,n_x,n_y,n_z,IT,dble(T))
+
+
       call coprocess_grid(IT, dble(T))
 end do
 
@@ -3603,24 +3602,6 @@ end do
 END SUBROUTINE TIME_MARCHING2
 
 
-SUBROUTINE TIME_MARCH_DISPLAY_GRID(rank, numtasks)
-  integer,parameter :: n_x=100,n_y=100,n_z=100,ntime=1000
-  integer :: time,nxstart,nxend
-  integer,intent(in) :: rank, numtasks
-
-  nxstart=rank*n_x/numtasks+1
-  nxend=(rank+1)*n_x/numtasks
-
-  if(numtasks .ne. rank+1) then
-     nxend=nxend+1
-  endif
-
-  do time=1,ntime
-    call sleep(1)
-    call testcoprocessor(nxstart,nxend,n_x,n_y,n_z,time,dble(time))
-  enddo
-
-END SUBROUTINE TIME_MARCH_DISPLAY_GRID
 
 
 

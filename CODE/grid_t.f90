@@ -772,7 +772,7 @@ KMAXE=XMPIELRANK(N)
     DO I=1,KMAXE
     ICONSIDERED=I
     
- 	IELEM(N,I)%MINEDGE=tolbig!(3.0D0*IELEM(N,I)%TOTVOLUME)/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
+ 	IELEM(N,I)%MINEDGE=(3.0D0*IELEM(N,I)%TOTVOLUME)/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
 	
 	DO L=1,IELEM(N,I)%IFCA
 	FACEX=L
@@ -1320,6 +1320,61 @@ i=iconsidered
 	      
 	     
 end subroutine coordinates_face_inner2d
+
+
+subroutine coordinates_face_innerx(n,iconsidered,facex)
+ !> @brief
+!> This subroutine retrieve the nodes of interior faces of elements in 3D
+IMPLICIT NONE
+integer,intent(in)::n,iconsidered,facex
+integer::nnd
+integer::i,k
+i=iconsidered
+
+
+	      select case (ielem(n,iconsidered)%types_faces(facex))
+	      case(5)
+	      nnd=4
+	      case(6)
+	      nnd=3
+	      end select
+	      
+	      
+	      do K=1,nnd
+		  NODES_LIST(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:3)
+		  VEXT(K,1:3)=NODES_LIST(k,1:3)
+	      END DO
+	      
+	      
+	      N_NODE=NND
+	      
+	     
+end subroutine coordinates_face_innerx
+
+
+subroutine coordinates_face_inner2dx(n,iconsidered,facex)
+ !> @brief
+!> This subroutine retrieves the nodes of edges of elements in 2D
+IMPLICIT NONE
+integer,intent(in)::n,iconsidered,facex
+integer::nnd
+integer::i,k
+i=iconsidered
+
+
+	      nnd=2
+	      
+	      
+	      do K=1,nnd
+		  NODES_LIST(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:2)
+		  VEXT(K,1:2)=NODES_LIST(k,1:2)
+	      END DO
+	      
+	      
+	      N_NODE=NND
+	      
+	     
+end subroutine coordinates_face_inner2dx
 
 
 subroutine coordinates_face_PERIOD(n,iconsidered,facex)
@@ -3524,8 +3579,10 @@ TRI(5,5)=1.0d0
 
 
 
-ROTVECT(1:nof_Variables)=MATMUL(TRI(1:nof_Variables,1:nof_Variables),VECTCO(1:nof_Variables))
-
+ROTVECT(1:5)=MATMUL(TRI(1:5,1:5),VECTCO(1:5))
+IF (MULTISPECIES.EQ.1)THEN
+ROTVECT(6:nof_Variables)=VECTCO(6:nof_Variables)
+END IF
 
 
 END SUBROUTINE ROTATEF
@@ -3569,7 +3626,11 @@ INVTRI(4,2)=coa2!COS(ANGLE2)
 INVTRI(4,3)=-sia2!-SIN(ANGLE2)
 INVTRI(5,5)=1.0d0
 
-ROTVECT(1:nof_Variables)=MATMUL(INVTRI(1:nof_Variables,1:nof_Variables),VECTCO(1:nof_Variables))
+ROTVECT(1:5)=MATMUL(INVTRI(1:5,1:5),VECTCO(1:5))
+IF (MULTISPECIES.EQ.1)THEN
+ROTVECT(6:nof_Variables)=VECTCO(6:nof_Variables)
+END IF
+
 
 END SUBROUTINE ROTATEB
 
