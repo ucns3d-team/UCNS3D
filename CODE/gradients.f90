@@ -505,7 +505,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
-				  CALL coordinates_face_inner(N,ICONSIDERED,FACEX)
+				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX)
 				  CORDS=CORDINATES3(N,NODES_LIST,N_NODE)
 				
 				  Pox(1)=CORDS(1);Poy(1)=CORDS(2);poz(1)=CORDS(3)
@@ -627,7 +627,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
-				  CALL coordinates_face_inner(N,ICONSIDERED,FACEX)
+				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX)
 				  CORDS(1:3)=zero
  				  CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 			  
@@ -750,7 +750,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
-				  CALL coordinates_face_inner(N,ICONSIDERED,FACEX)
+				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX)
 				  CORDS(1:3)=zero
  				  CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 			  
@@ -956,7 +956,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
-				  CALL coordinates_face_inner(N,ICONSIDERED,FACEX)
+				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX)
 				  CORDS=CORDINATES3(N,NODES_LIST,N_NODE)
 				  Pox(1)=CORDS(1);Poy(1)=CORDS(2);poz(1)=CORDS(3)
 				  
@@ -1067,7 +1067,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
-				  CALL coordinates_face_inner(N,ICONSIDERED,FACEX)
+				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX)
 				  CORDS=CORDINATES3(N,NODES_LIST,N_NODE)
 				  Pox(1)=CORDS(1);Poy(1)=CORDS(2);poz(1)=CORDS(3)
 				  
@@ -2374,7 +2374,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
-				  CALL coordinates_face_inner2d(N,ICONSIDERED,FACEX)
+				  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX)
 				  CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
 				  Pox(1)=CORDS(1);Poy(1)=CORDS(2)
 				  
@@ -2479,7 +2479,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
-				  CALL coordinates_face_inner2d(N,ICONSIDERED,FACEX)
+				  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX)
 				  CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
 				  Pox(1)=CORDS(1);Poy(1)=CORDS(2)
 				  
@@ -2679,7 +2679,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
-				  CALL coordinates_face_inner2d(N,ICONSIDERED,FACEX)
+				  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX)
 				  CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
 				  Pox(1)=CORDS(1);Poy(1)=CORDS(2)
 				  
@@ -2785,7 +2785,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
-				  CALL coordinates_face_inner2d(N,I,FACEX)
+				  CALL coordinates_face_inner2dx(N,I,FACEX)
 				  CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
 				  Pox(1)=CORDS(1);Poy(1)=CORDS(2);
 				  

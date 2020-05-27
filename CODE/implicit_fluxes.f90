@@ -233,7 +233,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner(N,Iconsidered,facex)
+								  CALL coordinates_face_innerx(N,Iconsidered,facex)
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 							    
@@ -759,7 +759,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2D(N,Iconsidered,facex)
+								  CALL coordinates_face_inner2Dx(N,Iconsidered,facex)
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 							    
@@ -1264,7 +1264,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner(N,Iconsidered,facex)
+								  CALL coordinates_face_innerx(N,Iconsidered,facex)
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 							    
@@ -1753,7 +1753,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2D(N,Iconsidered,facex)
+								  CALL coordinates_face_inner2Dx(N,Iconsidered,facex)
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 							    

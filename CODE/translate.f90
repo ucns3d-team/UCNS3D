@@ -106,13 +106,16 @@ do
 	if ((ios .eq. -1))goto 11
 	countline=countline+1
 ! 	print*,'line',countlieq. "(0")ne !,dumc
-	      if (dumc .eq. "(0")  then ! COMMENT CONDITIONS
+	     ! if (dumc .eq. "(0")  then ! COMMENT CONDITIONS
+	      if (dumc .eq. "(0 ")  then ! COMMENT CONDITIONS
 		  read(82,*,IOSTAT=ios)
 		  countline=countline+1
 		  go to 10
 	      Endif
-	      if (dumc .eq. "(2") then
-	      read(82,*,IOSTAT=IOS)dimen
+! 	      if (dumc .eq. "(2") then
+! 	      read(82,*,IOSTAT=IOS)dimen
+	       if (dumc .eq. "(2 ") then
+       read(82,'(I1)',IOSTAT=IOS) dimen !changed by holger foysi
 		  countline=countline+1
 ! 	      print*,'Dimension:',dimen
 	      end if

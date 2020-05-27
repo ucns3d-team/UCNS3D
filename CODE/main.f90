@@ -739,6 +739,11 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
    if (fastest.ne.1)then
  CALL EXCHANGE_HIGHER_pre(N)
     end if
+    
+    call FIX_NODES_LOCAL
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+    
   CPUX3(1) = MPI_Wtime()
 !  CALL CPU_TIME(CPUX3(1))
 

@@ -530,7 +530,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner(N,Iconsidered,facex)
+								  CALL coordinates_face_innerx(N,Iconsidered,facex)
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 							    
@@ -1026,7 +1026,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2d(N,Iconsidered,facex)
+								  CALL coordinates_face_inner2dx(N,Iconsidered,facex)
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 							    
@@ -1727,7 +1727,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner(N,Iconsidered,facex)
+								  CALL coordinates_face_innerx(N,Iconsidered,facex)
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 							    
@@ -2578,7 +2578,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2d(N,Iconsidered,facex)
+								  CALL coordinates_face_inner2dx(N,Iconsidered,facex)
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 							    

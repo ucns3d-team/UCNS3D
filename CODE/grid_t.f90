@@ -1322,6 +1322,61 @@ i=iconsidered
 end subroutine coordinates_face_inner2d
 
 
+subroutine coordinates_face_innerx(n,iconsidered,facex)
+ !> @brief
+!> This subroutine retrieve the nodes of interior faces of elements in 3D
+IMPLICIT NONE
+integer,intent(in)::n,iconsidered,facex
+integer::nnd
+integer::i,k
+i=iconsidered
+
+
+	      select case (ielem(n,iconsidered)%types_faces(facex))
+	      case(5)
+	      nnd=4
+	      case(6)
+	      nnd=3
+	      end select
+	      
+	      
+	      do K=1,nnd
+		  NODES_LIST(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:3)
+		  VEXT(K,1:3)=NODES_LIST(k,1:3)
+	      END DO
+	      
+	      
+	      N_NODE=NND
+	      
+	     
+end subroutine coordinates_face_innerx
+
+
+subroutine coordinates_face_inner2dx(n,iconsidered,facex)
+ !> @brief
+!> This subroutine retrieves the nodes of edges of elements in 2D
+IMPLICIT NONE
+integer,intent(in)::n,iconsidered,facex
+integer::nnd
+integer::i,k
+i=iconsidered
+
+
+	      nnd=2
+	      
+	      
+	      do K=1,nnd
+		  NODES_LIST(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:2)
+		  VEXT(K,1:2)=NODES_LIST(k,1:2)
+	      END DO
+	      
+	      
+	      N_NODE=NND
+	      
+	     
+end subroutine coordinates_face_inner2dx
+
+
 subroutine coordinates_face_PERIOD(n,iconsidered,facex)
  !> @brief
 !> This subroutine retrieve the nodes of periodic faces of elements in 3D

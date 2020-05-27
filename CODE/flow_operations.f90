@@ -3448,7 +3448,7 @@ DO I=1,KMAXE
             POST1=IELEM(N,I)%XXC
             TRAJ1=I
         END IF
-        IF ((IELEM(N,I)%YYC.LE.0.0502).AND.(IELEM(N,I)%YYC.GT.0.0498))THEN
+        IF ((IELEM(N,I)%YYC.LE.0.055).AND.(IELEM(N,I)%YYC.GT.0.045))THEN
             IF(IELEM(N,I)%XXC.GE.POST2)THEN
                 POST2=IELEM(N,I)%XXC
                 TRAJ2=i

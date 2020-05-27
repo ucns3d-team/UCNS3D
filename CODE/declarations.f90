@@ -16,9 +16,9 @@ IMPLICIT NONE
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
 
-INTEGER::multispecies,nof_species,pdim,M2,DIMENSIONA,LOWMEM,binio,nof_variables,CHUNK_N,dims,IRES_TURB,CODE_PROFILE,IRES_UNSTEADY,LAMPS,itotalb,totiw,number_of_dog,B_CODE,ICONS_S,ICONS_E,ICOMPACT,EES,iscoun,itold,lmach_style,WEIGHT_LSQR	!DIMENSIONS OF PROBLEM
+INTEGER::kmaxn,multispecies,nof_species,pdim,M2,DIMENSIONA,LOWMEM,binio,nof_variables,CHUNK_N,dims,IRES_TURB,CODE_PROFILE,IRES_UNSTEADY,LAMPS,itotalb,totiw,number_of_dog,B_CODE,ICONS_S,ICONS_E,ICOMPACT,EES,iscoun,itold,lmach_style,WEIGHT_LSQR	!DIMENSIONS OF PROBLEM
 integer::governingequations,guassianquadra,temporder,iboundary,wenocnschar,required,nodes_i,SWIRL,IADAPT,TECPLOT,STENCIL_IO,SURFSHEAR,ISSF,n_node,ELEM_DEC,n_boundaries,NUMBER_OF_NEI,FASTEST_Q,STATISTICS
-integer,allocatable,DIMENSION(:,:)::jtot1,jtot2,jtot3,jtot
+integer,allocatable,DIMENSION(:,:)::jtot1,jtot2,jtot3,jtot,el_connect
 integer::jtotAL,JTOTAL1,JTOTAL2,JTOTAL3,compwrt,varcons,pointx,llx
 INTEGER::KILL,INSTEN			 ! FLAG FOR KILLING A SIMULATION
 INTEGER::NDERIVATIVE		  	! INDEX OF THE NUMBERING OF THE COMPONENT OF THE POLYNOMIALS 
@@ -615,7 +615,7 @@ END TYPE NODE_LIT
 
 
 
-TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:)::INODEN,INODER
+TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:)::INODEN,INODER,INODER4
 TYPE(NODE_LIT),ALLOCATABLE,DIMENSION(:)::INODER2
 
 
