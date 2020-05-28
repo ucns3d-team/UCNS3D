@@ -77,7 +77,7 @@ Subroutine HLLC_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA
 		
 		END IF
 		
-		CALL ESTIMATE_WAVES(N,ROTVL,ROTVR,SL,SM,SR,GAMMA)
+		!CALL ESTIMATE_WAVES(N,ROTVL,ROTVR,SL,SM,SR,GAMMA)
 		
 		
 		
@@ -98,6 +98,31 @@ Subroutine HLLC_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA
 ! 
 ! 			END IF
 			END IF
+			
+			
+			
+			
+			
+			IF (MULTISPECIES.EQ.1)THEN
+		sl(1)=min((ul)-sqrt(gammaL*pl/rl),(ur)-sqrt(gammaR*pr/rr))
+		sr(1)=max((ul)+sqrt(gammaL*pl/rl),(ur)+sqrt(gammaR*pr/rr))	
+		ELSE
+        sl(1)=min((ul)-sqrt(gamma*pl/rl),(ur)-sqrt(gamma*pr/rr))
+		sr(1)=max((ul)+sqrt(gamma*pl/rl),(ur)+sqrt(gamma*pr/rr))	
+		END IF
+		sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 
 
 			FL(1)=RL*UL
@@ -128,6 +153,10 @@ Subroutine HLLC_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA
 			ULSTAR(4)=MUL*WL
 			ULSTAR(5)=MUL*LASTL
 
+			if (MULTISPECIES.EQ.1)THEN
+			FL(6:8)=ROTVL(6:8)*UL
+            UlSTAR(6:8)=MUl*ROTVl(6:8)/rl
+			END IF
 			
 			URSTAR(1)=MUR
 			URSTAR(2)=MUR*SM(1)
@@ -140,20 +169,42 @@ Subroutine HLLC_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA
 			URSTAR(6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=MUR*RMR(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)/rr
 			END IF
 			
+			
+			
+			
+			if (MULTISPECIES.EQ.1)THEN
+			Fr(6:8)=ROTVr(6:8)*Ur
+            UrSTAR(6:8)=MUr*ROTVr(6:8)/rr
+			END IF
+			
+			
+			
 			FLSTAR(:)=FL(:)+SL(1)*(ULSTAR(:)-CLEFT_ROT(:))
 			FRSTAR(:)=FR(:)+SR(1)*(URSTAR(:)-CRIGHT_ROT(:))
 			
 			IF (SL(1).GE.ZERO)THEN
 				HLLCFLUX(:)=FL(:)
+				IF (MULTISPECIES.EQ.1)THEN
+                MP_SOURCE1=UL
+                END IF
 			END IF
 			IF (SR(1).LE.ZERO)THEN
 				HLLCFLUX(:)=FR(:)
+				IF (MULTISPECIES.EQ.1)THEN
+                MP_SOURCE1=UR
+                END IF
 			END IF
 			IF ((SL(1).LE.ZERO).AND.(SM(1).GE.ZERO))THEN
 				HLLCFLUX(:)=FLSTAR(:)
+				IF (MULTISPECIES.EQ.1)THEN
+                MP_SOURCE1=UL+SL(1)*(((SL(1)-UL)/(SL(1)-SM(1)))-1.0D0)
+                END IF
 			END IF
 			IF ((SR(1).GE.ZERO).AND.(SM(1).LE.ZERO))THEN
 				HLLCFLUX(:)=FRSTAR(:)
+				IF (MULTISPECIES.EQ.1)THEN
+                MP_SOURCE1=UR+SR(1)*(((SR(1)-UR)/(SR(1)-SM(1)))-1.0D0)
+                END IF
 			END IF
 
 END SUBROUTINE HLLC_RIEMANN_SOLVER
@@ -972,7 +1023,7 @@ Subroutine RUSANOV_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GA
 		
 		END IF
 		
-		CALL ESTIMATE_WAVES(N,ROTVL,ROTVR,SL,SM,SR,GAMMA)
+		!CALL ESTIMATE_WAVES(N,ROTVL,ROTVR,SL,SM,SR,GAMMA)
 			!NOW CONDITIONS BASED ON WAVE SPEEDS!
 			RL=ROTVL(1);UL=ROTVL(2);VL=ROTVL(3);WL=ROTVL(4);PL=ROTVL(5);EL=CLEFT_ROT(5)
 			RR=ROTVR(1);UR=ROTVR(2);VR=ROTVR(3);WR=ROTVR(4);PR=ROTVR(5);ER=CRIGHT_ROT(5)
@@ -996,13 +1047,20 @@ Subroutine RUSANOV_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GA
 			FL(3)=RL*UL*VL
 			FL(4)=RL*UL*WL
 			FL(5)=UL*(EL+PL)
-			
+			if (MULTISPECIES.EQ.1)THEN
+			FL(6:8)=ROTVL(6:8)*UL
+    
+			END IF
 			
 			FR(1)=RR*UR
 			FR(2)=(RR*(UR**2))+PR
 			FR(3)=RR*UR*VR
 			FR(4)=RR*UR*WR
 			FR(5)=UR*(ER+PR)
+			
+			if (MULTISPECIES.EQ.1)THEN
+			FR(6:8)=ROTVR(6:8)*UR
+			END IF
 			
 			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 			FL(6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=RML(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)*UL
@@ -1014,7 +1072,14 @@ Subroutine RUSANOV_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GA
 			
 
 			
-			
+			if (MULTISPECIES.EQ.1)THEN
+			sl(1)=abs(ul)+sqrt(gammaL*pl/rl)
+			sr(1)=abs(ur)+sqrt(gammaR*pr/rr)
+			MP_SOURCE1=0.5d0*(ul+ur)!(MAX(ABS(SL(1)),ABS(SR(1))))
+			ELSE
+			sl(1)=abs(ul)+sqrt(gamma*pl/rl)
+			sr(1)=abs(ur)+sqrt(gamma*pr/rr)
+			ENDIF
 			
 			
 			
@@ -1761,7 +1826,7 @@ Subroutine RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,
 		
 		END IF
 		
-		CALL ESTIMATE_WAVES2D(N,ROTVL,ROTVR,SL,SM,SR,GAMMA)
+		!CALL ESTIMATE_WAVES2D(N,ROTVL,ROTVR,SL,SM,SR,GAMMA)
 			!NOW CONDITIONS BASED ON WAVE SPEEDS!
 			RL=ROTVL(1);UL=ROTVL(2);VL=ROTVL(3);PL=ROTVL(4);EL=CLEFT_ROT(4)
 			RR=ROTVR(1);UR=ROTVR(2);VR=ROTVR(3);PR=ROTVR(4);ER=CRIGHT_ROT(4)
@@ -1817,7 +1882,7 @@ Subroutine RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,
 			if (MULTISPECIES.EQ.1)THEN
 			sl(1)=abs(ul)+sqrt(gammaL*pl/rl)
 			sr(1)=abs(ur)+sqrt(gammaR*pr/rr)
-			MP_SOURCE1=0.5D0*(ul+ur)-0.5D0*(MAX(ABS(SL(1)),ABS(SR(1))))*(UR-UL)
+			MP_SOURCE1=0.5D0*(ul+ur)!-0.5D0*(MAX(ABS(SL(1)),ABS(SR(1))))*(UR-UL)
 			ELSE
 			sl(1)=abs(ul)+sqrt(gamma*pl/rl)
 			sr(1)=abs(ur)+sqrt(gamma*pr/rr)

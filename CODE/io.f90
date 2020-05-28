@@ -1219,7 +1219,6 @@ Valuelocation(:)=0
                     ierr = TECDAT112(imaxe,xbin,1)
                     END IF
 
-
                     DO I=1,KMAXE
                         VALUESS(i)=U_C(I)%VAL(1,7)
                         END DO
@@ -15605,6 +15604,553 @@ end do
 
 
 
+
+END SUBROUTINE OUTWRITEPARA3DbPav
+
+
+
+
+
+
+ !added by holger foysi
+                          !!-----------------------------------------------------------------------------------
+                          SUBROUTINE OUTWRITEPARA2Db
+                          !!-----------------------------------------------------------------------------------
+                            !!-----------------------------------------------------------------------------------
+                            !> @brief
+                            !> This subroutine writes the 2D solution including the grid in binary vtk format
+                            !!-----------------------------------------------------------------------------------
+                            use ISO_C_BINDING
+                            IMPLICIT NONE
+                            INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
+                            REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
+                            REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
+                            INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD
+                            REAL,allocatable,DIMENSION(:)::VARIABLES
+                            REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
+                            INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j2,j3,j4,j5,j6,j7,j8
+                            LOGICAL::HEREV
+                            REAL,DIMENSION(5)::TOTAL
+                            CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
+                            integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+                            real,allocatable,dimension(:)::xbin,ybin,zbin,XBIN2
+                            real,allocatable,dimension(:,:)::FBIN
+                            integer,allocatable,dimension(:,:)::icon
+                            INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
+                            real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
+                            character(LEN=:),allocatable::out1
+                            character*1 NULCHAR
+                            CHARACTER(LEN=1)   :: flui,lf
+                            CHARACTER(LEN=15)  :: str1,str2,str1a,str2a
+                            Integer::   Debug,III,NPts,NElm
+                            Real::    SolTime
+                            Integer:: VIsDouble, FileType, count
+                            Integer:: ZoneType,StrandID,ParentZn,IsBlock,strl
+                            Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
+                            POINTER   (NullPtr,Null)
+                            Integer:: Null(*)
+                            character(len=:),allocatable  :: str_imaxn,str_imaxe,str_imaxe2,str_time
+                            character(1) :: c
+                            allocate(variables(12))
+                            nvar1=2
+                            KMAXE=XMPIELRANK(N)
+                            
+                            !the previous use of field didn't work, so time is added to the title
+
+                            !create filename
+                            if (n.eq.0)then
+                               WRITE(PROC3,FMT='(I10)') IT
+                               WRITE(PROC5,FMT='(I10)') 
+                               OUTFILE="OUT_"//TRIM(ADJUSTL(PROC3))//".vtk"
+                               ITGFD=len_trim(OUTFILE)
+                               allocate(character(LEN=itgfd) ::out1)
+                               out1=OUTFILE(1:itgfd)
+                            end if
+
+                            ! char(10)  = linefeed ! Alternativeley use ",new_line(c)"
+                            lf=char(10)
+
+                            if (n.eq.0)then
+                               !file
+                               OPEN(400+N,FILE=OUTFILE,STATUS='REPLACE',ACCESS='STREAM',CONVERT='BIG_ENDIAN')
+                               !header
+                               WRITE(400+N)"# vtk DataFile Version 3.0",new_line(c)
+                               !create dynamic string with size equal to the number of digits of Time
+                               WRITE(str1,'(f12.6)') T
+                               str_time=trim(adjustl(str1))
+                               WRITE(400+N)"UCNS3D vtk output 2D. Time: "//str_time,new_line(c)
+                               WRITE(400+N)"BINARY",new_line(c)
+                               WRITE(400+N)"DATASET UNSTRUCTURED_GRID",new_line(c)
+
+                               !create dynamic string with size equal to the number of digits of the integer
+                               WRITE(str1,'(i0)') IMAXN
+                               str_imaxn=trim(adjustl(str1))
+
+                               !Number of node points
+                               WRITE(400+N)"POINTS "//str_imaxn//" double",new_line(c)
+
+                               if (binio.eq.0)then !ascii
+                                  OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
+                                  DO I=1,IMAXN
+                                     READ(96,*)j,x,y
+                                     x=x/scaler;y=y/scaler
+                                     write(400+N) x,y,0.d0  !for 2d vtk needs x,y,z, too, just with z=0
+                                  END DO
+                                  CLOSE(96)
+                               else !binary
+                                  OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
+                                  DO I=1,IMAXN
+                                     READ(96)j,x,y
+                                     x=x/scaler;y=y/scaler
+                                     write(400+N) x,y,0.d0  !for 2d vtk needs x,y,z, too, just with z=0
+                                  END DO
+                                  CLOSE(96)
+                               end if
+
+                               !create dynamic strings with size equal to the number of digits of the integer
+                               !# of Cells
+                               WRITE(str1,'(i0)') IMAXE
+                               str_imaxe  = trim(adjustl(str1))
+
+                               !cell list size:the total number of integer values required to represent the list
+                               !changes needed if grids with different cell types are used, here every cell has the same type
+                               WRITE(str2,'(i0)') IMAXE*5 ! 
+                               str_imaxe2 = trim(adjustl(str2))        
+                               
+                               write(400+N) "CELLS "//str_imaxe//" "//str_imaxe2,new_line(c)
+                               !the grid is such, that triangles are defined using quads with two points being equal (J3=J4)
+                               if (binio.eq.0)then
+                                  OPEN(97,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
+                                  DO I=1,IMAXE
+                                     READ(97,*) j,J1,J2,J3,J4
+                                     write(400+N) 4,J1-1,J2-1,J3-1,J4-1
+                                  END DO
+                                  CLOSE(97)
+                               ELSE
+                                  OPEN(97,FILE='GRID.cel',FORM='UNFORMATTED',STATUS='old',ACTION='read')
+                                  DO I=1,IMAXE
+                                     READ(97) j,J1,J2,J3,J4
+                                     write(400+N) 4,J1-1,J2-1,J3-1,J4-1
+                                  END DO
+                                  CLOSE(97)
+                               END IF
+
+                               !Specify type of cells for each cell
+                               !changes needed if grids with different cell types are used, here every cell has the same type
+                               !hexahedron in 3D (12), quad in 2D (9), triangles (5) etc., see
+                               !https://lorensen.github.io/VTKExamples/site/VTKFileFormats/
+                               WRITE(400+N)"CELL_TYPES "//str_imaxe,new_line(c)
+                               DO I=1,IMAXE
+                                  WRITE(400+N) 9  
+                               END DO
+
+                               ! the data is cell centered. Use CellDataToPointData in Paraview for Warp by Scalar
+                               WRITE(400+N)"CELL_DATA "//str_imaxe,new_line(c)
+
+                               allocate(xbin(imaxe),XBIN2(IMAXE))
+                               ! 
+                            END IF
+
+                            ALLOCATE(VALUESS(KMAXE))
+                            call mpi_barrier(MPI_COMM_WORLD,IERROR)
+
+                            do j=1,NOF_VARIABLES
+                                
+                              
+                                  DO I=1,KMAXE
+                                        leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+                                        call CONS2PRIM2d(n)
+                                        VALUESS(i)=leftv(j)
+                                  END DO
+
+                               call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset, &
+                                                mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+
+                               IF (N.EQ.0)THEN
+                                  IF (J.EQ.1)THEN
+                                     WRITE(400+N)"SCALARS R double 1",new_line(c)
+                                  END IF
+                                  IF (J.EQ.2)THEN
+                                     WRITE(400+N)"SCALARS U double 1",new_line(c)
+                                  END IF
+                                  IF (J.EQ.3)THEN
+                                     WRITE(400+N)"SCALARS V double 1",new_line(c)
+                                  END IF
+                                  IF (J.EQ.4)THEN
+                                     WRITE(400+N)"SCALARS P double 1",new_line(c)
+                                  END IF
+                                  IF (J.EQ.5)THEN
+                                     WRITE(400+N)"SCALARS species1 double 1",new_line(c)
+                                  END IF
+                                  IF (J.EQ.6)THEN
+                                     WRITE(400+N)"SCALARS species2 double 1",new_line(c)
+                                  END IF
+                                  IF (J.EQ.7)THEN
+                                     WRITE(400+N)"SCALARS volumef double 1",new_line(c)
+                                  END IF
+                                  WRITE(400+N)"LOOKUP_TABLE default",new_line(c)
+                                  do i=1,imaxe
+                                     xbin(XMPI_RE(i))=xbin2(i)
+                                  end do
+                                  do i=1,imaxe
+                                     WRITE(400+N) xbin(i)  !test, not clear of whether cell or node based
+                                  end do
+                               END IF
+                            end do
+
+ 
+                            IF (N.EQ.0)THEN
+                               ! close file
+                               CLOSE(400+N) 
+
+                               DEALLOCATE(XBIN,XBIN2)
+                               deallocate(out1)
+                            END IF
+                            DEALLOCATE (VALUESS)
+
+                            CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+                            deallocate(variables)
+
+    END SUBROUTINE OUTWRITEPARA2Db
+
+
+
+
+SUBROUTINE OUTWRITEPARA3DbP
+!> @brief
+!> This subroutine writes the solution and the grid file in binary vtk format
+use ISO_C_BINDING
+IMPLICIT NONE
+INTEGER::KMAXE
+REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
+REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
+INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j2,j3,j4,j5,j6,j7,j8
+LOGICAL::HEREV
+REAL,DIMENSION(5)::TOTAL
+ CHARACTER(LEN=30)::PROC,OUTFILE,OUTFILE2,PROC3,SURFILE,proc4,proc5
+integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+real,allocatable,dimension(:)::xbin
+character(LEN=:),allocatable::out1
+character*1 NULCHAR
+CHARACTER(LEN=1)   :: flui,lf
+CHARACTER(LEN=15)  :: str1,str2
+ 
+      Integer::   Debug,III,NPts,NElm
+
+  
+      Real::    SolTime
+      Integer:: VIsDouble, FileType
+      Integer:: ZoneType,StrandID,ParentZn,IsBlock
+      Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
+      POINTER   (NullPtr,Null)
+      Integer:: Null(*)
+KMAXE=XMPIELRANK(N)
+
+allocate(xbin(kmaxe))
+WRITE(PROC3,FMT='(I10)') IT
+WRITE(PROC5,FMT='(I10)') N 
+	!proc4=".plt
+	OUTFILE="OUT_"//TRIM(ADJUSTL(PROC3))//"_"//TRIM(ADJUSTL(PROC5))//".vtk"!//TRIM(ADJUSTL(PROC4))
+	ITGFD=len_trim(OUTFILE)
+	allocate(character(LEN=itgfd) ::out1)
+	out1=OUTFILE(1:itgfd)
+
+
+lf=char(10)
+
+
+OPEN(400+n,FILE=OUTFILE,STATUS='REPLACE',ACCESS='STREAM',CONVERT='BIG_ENDIAN')
+WRITE(400+N)"# vtk DataFile Version 3.0"//lf
+WRITE(400+N)"vtk output"//lf
+WRITE(400+N)"BINARY"//lf
+WRITE(400+N)"DATASET UNSTRUCTURED_GRID"//lf
+WRITE(400+N)"FIELD FieldData 1"//lf
+WRITE(400+N)"TIME 1 1 double"//lf
+WRITE(400+N) T
+WRITE(str1(1:15),'(i15)') kmaxn
+WRITE(400+N)"POINTS "//str1//" double"//lf
+
+
+    
+    DO I=1,KMAXN
+	write(400+N)INODER4(i)%CORD(1),INODER4(i)%CORD(2),INODER4(i)%CORD(3)
+	END DO
+   
+                    
+WRITE(str1(1:15),'(i15)') KMAXE
+WRITE(str2(1:15),'(i15)') (KMAXE*8)+KMAXE
+write(400+N)"CELLS",str1//str2//lf
+DO I=1,kMAXE
+write(400+N)8,el_connect(I,1)-1,el_connect(I,2)-1,el_connect(I,3)-1,el_connect(I,4)-1,el_connect(I,5)-1,el_connect(I,6)-1,el_connect(I,7)-1,el_connect(I,8)-1
+END DO
+                   
+                    
+WRITE(str1(1:15),'(i15)') KMAXE                    
+WRITE(400+N)"CELL_TYPES"//str1//lf	
+DO I=1,KMAXE
+WRITE(400+N)12
+
+END DO
+
+WRITE(400+N)"CELL_DATA"//str1//lf
+!     
+   
+do j=1,NOF_VARIABLES
+
+    IF (J.EQ.1)THEN
+    WRITE(400+N)"SCALARS  R double 1"//lf
+    END IF
+    IF (J.EQ.2)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  RU double 1"//lf
+    END IF
+    IF (J.EQ.3)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  RV double 1"//lf
+    END IF
+    IF (J.EQ.4)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  RW double 1"//lf
+    END IF
+    IF (J.EQ.5)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  E  double 1"//lf
+    END IF
+    IF (J.EQ.6)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  species1  double 1"//lf
+    END IF
+    IF (J.EQ.7)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  species2 double 1"//lf
+    END IF
+    IF (J.EQ.8)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  volumef  double 1"//lf
+    END IF
+    WRITE(400+N)"LOOKUP_TABLE default"//lf
+    
+    
+		do i=1,Kmaxe
+		xbin(I)=U_C(I)%VAL(1,J)
+		end do
+    
+    
+     WRITE(400+N)xbin(1:Kmaxe)
+     
+    
+
+     
+    
+    
+end do
+    
+    close(400+n)
+    DEALLOCATE(XBIN,OUT1)
+    
+    
+  
+    
+  
+  
+
+  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+        
+
+
+	
+	
+
+END SUBROUTINE OUTWRITEPARA3DbP
+
+
+
+
+SUBROUTINE OUTWRITEPARA3DbPav
+!> @brief
+!> This subroutine writes the solution and the grid file in binary vtk format
+use ISO_C_BINDING
+IMPLICIT NONE
+INTEGER::KMAXE,ind1
+REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
+REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
+INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j2,j3,j4,j5,j6,j7,j8
+LOGICAL::HEREV
+REAL,DIMENSION(5)::TOTAL
+ CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
+integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+real,allocatable,dimension(:)::xbin
+character(LEN=:),allocatable::out1
+character*1 NULCHAR
+CHARACTER(LEN=1)   :: flui,lf
+CHARACTER(LEN=15)  :: str1,str2
+ 
+      Integer::   Debug,III,NPts,NElm
+
+  
+      Real::    SolTime
+      Integer:: VIsDouble, FileType
+      Integer:: ZoneType,StrandID,ParentZn,IsBlock
+      Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
+      POINTER   (NullPtr,Null)
+      Integer:: Null(*)
+KMAXE=XMPIELRANK(N)
+
+
+if (rungekutta.eq.4)then
+	      ind1=7
+	      else
+	      ind1=5
+	      end if
+
+
+allocate(xbin(kmaxe))
+WRITE(PROC3,FMT='(I10)') IT
+WRITE(PROC5,FMT='(I10)')N 
+	!proc4=".plt
+	OUTFILE="OUT_AV"//TRIM(ADJUSTL(PROC3))//"_"//TRIM(ADJUSTL(PROC5))//".vtk"!//TRIM(ADJUSTL(PROC4))
+	ITGFD=len_trim(OUTFILE)
+	allocate(character(LEN=itgfd) ::out1)
+	out1=OUTFILE(1:itgfd)
+
+
+lf=char(10)
+
+
+OPEN(400+n,FILE=OUTFILE,STATUS='REPLACE',ACCESS='STREAM',CONVERT='BIG_ENDIAN')
+WRITE(400+N)"# vtk DataFile Version 3.0"//lf
+WRITE(400+N)"vtk output"//lf
+WRITE(400+N)"BINARY"//lf
+WRITE(400+N)"DATASET UNSTRUCTURED_GRID"//lf
+WRITE(400+N)"FIELD FieldData 1"//lf
+WRITE(400+N)"TIME 1 1 double"//lf
+WRITE(400+N) T
+WRITE(str1(1:15),'(i15)') kmaxn
+WRITE(400+N)"POINTS "//str1//" double"//lf
+
+
+    
+    DO I=1,KMAXN
+	write(400+N)INODER4(i)%CORD(1),INODER4(i)%CORD(2),INODER4(i)%CORD(3)
+	END DO
+   
+                    
+WRITE(str1(1:15),'(i15)') KMAXE
+WRITE(str2(1:15),'(i15)') (KMAXE*8)+KMAXE
+write(400+N)"CELLS",str1//str2//lf
+DO I=1,kMAXE
+write(400+N)8,el_connect(I,1)-1,el_connect(I,2)-1,el_connect(I,3)-1,el_connect(I,4)-1,el_connect(I,5)-1,el_connect(I,6)-1,el_connect(I,7)-1,el_connect(I,8)-1
+END DO
+                   
+                    
+WRITE(str1(1:15),'(i15)') KMAXE                    
+WRITE(400+N)"CELL_TYPES"//str1//lf	
+DO I=1,KMAXE
+WRITE(400+N)12
+END DO
+
+WRITE(400+N)"CELL_DATA"//str1//lf
+!     
+   
+do j=1,11
+
+    IF (J.EQ.1)THEN
+    WRITE(400+N)"SCALARS  R_mean double 1"//lf
+    END IF
+    IF (J.EQ.2)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  U_mean double 1"//lf
+    END IF
+    IF (J.EQ.3)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  V_mean double 1"//lf
+    END IF
+    IF (J.EQ.4)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  W_mean double 1"//lf
+    END IF
+    IF (J.EQ.5)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  P_mean  double 1"//lf
+    END IF
+    IF (J.EQ.6)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  U_rms  double 1"//lf
+    END IF
+    IF (J.EQ.7)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  V_rms double 1"//lf
+    END IF
+    IF (J.EQ.8)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  W_rms  double 1"//lf
+    END IF
+     IF (J.EQ.9)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  UV  double 1"//lf
+    END IF
+     IF (J.EQ.10)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  UW  double 1"//lf
+    END IF
+     IF (J.EQ.11)THEN
+    WRITE(400+N)
+    WRITE(400+N)"SCALARS  WV  double 1"//lf
+    END IF
+    WRITE(400+N)"LOOKUP_TABLE default"//lf
+    
+        
+        if (j.eq.1)then
+		do i=1,Kmaxe
+		xbin(I)=U_C(I)%VAL(ind1,J)
+		end do
+		end if
+		if ((j.gt.1).and.(j.lt.5))then
+		do i=1,Kmaxe
+		xbin(I)=U_C(I)%VAL(ind1,J)/U_C(I)%VAL(ind1,1)
+		end do
+		end if
+		if (j.eq.5)then
+		do i=1,Kmaxe
+		leftv(1:nof_variables)=U_C(I)%VAL(ind1,1:nof_variables)
+		call cons2prim(n)
+		xbin(I)=leftv(5)
+		end do
+		end if
+		if (j.ge.6)then
+		do i=1,Kmaxe
+		xbin(I)=U_C(I)%RMS(j-6)
+		end do
+		end if
+    
+    
+     WRITE(400+N)xbin(1:Kmaxe)
+   
+
+     
+    
+    
+end do
+    
+    
+    
+    close(400+n)
+        DEALLOCATE(XBIN,OUT1)
+     
+    
+  
+    
+  
+  
+
+  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+        
+
+
+	
+	
 
 END SUBROUTINE OUTWRITEPARA3DbPav
 
