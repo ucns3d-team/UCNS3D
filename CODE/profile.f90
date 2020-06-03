@@ -1546,19 +1546,7 @@ end if
 
 
 
-
-
-
 END IF
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1571,12 +1559,273 @@ VECCOS(6)=MP_R(2)*MP_A(2)
 VECCOS(7)=MP_A(1)
 
 
+END IF
 
+
+
+
+
+
+
+
+
+
+IF (INITCOND.EQ.410)THEN
+!TEST CASE 6.2 of The Euler Equations for Multiphase Compressible Flow in Conservation Form Simulation of Shock–Bubble Interactions, Robin K. S. Hankin
+
+!GAMMA_IN(1) = 7.15 ! Water
+!GAMMA_IN(2) = 1.4  ! Air
+!MP_PINF(1) = 3.43e8 !Water from Coralic and Colonius or 2.218e8(abgrall203)
+!MP_PINF(2) = 0 ! Air 
+
+IF (POX(1).LE.-0.007D0)THEN
+MP_R(1)=1225.6d0 ! Water density
+MP_R(2)=1.2d0 ! Air density
+MP_A(1)=1.0D0 ! Water volume fraction (everything is water here)
+MP_A(2)=0.0D0 ! Air volume fraction
+U1=542.76D0	  ! m/s
+V1= 0.0D0
+P1=1.6e9      ! Pa
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+! !KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+! !TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+!VECTOR OF CONSERVED VARIABLES NOW
+
+ELSE
+
+!FIRST WITHIN BUBBLE REGION
+
+
+
+if (sqrt(((pox(1))**2)+((poy(1))**2)).LE.0.003d0)then
+MP_R(1)=1225.6d0 ! Water density
+MP_R(2)=1.2d0 ! Air density
+MP_A(1)=0.0D0 ! Water volume fraction (everything is water here)
+MP_A(2)=1.0D0 ! Air volume fraction
+U1= 0.0D0	  ! m/s
+V1= 0.0D0
+P1= 101325    ! Pa
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+! !KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+! !TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+!VECTOR OF CONSERVED VARIABLES NOW
+else
+
+
+
+MP_R(1)=1000.0d0 ! Water density
+MP_R(2)=1.2d0 ! Air density
+MP_A(1)=1.0D0 ! Water volume fraction (everything is water here)
+MP_A(2)=0.0D0 ! Air volume fraction
+U1= 0.0D0     ! m/s
+V1= 0.0D0
+P1=101325     ! Pa
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+
+
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+
+! !KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+! !TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+
+!VECTOR OF CONSERVED VARIABLES NOW
+end if
+
+END IF
+
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+VECCOS(5)=MP_R(1)*MP_A(1)
+VECCOS(6)=MP_R(2)*MP_A(2)
+VECCOS(7)=MP_A(1)
 
 END IF
 
 
 
+
+IF (INITCOND.EQ.411)THEN
+!EXAMPLE VI Paper5.pdf
+
+!GAMMA_IN(1) = 4.4 ! Water
+!GAMMA_IN(2) = 1.4  ! Air
+!MP_PINF(1) = 6e8 !Water from Coralic and Colonius or 2.218e8(abgrall203)
+!MP_PINF(2) = 0 ! Air 
+
+IF (POX(1).LE.0.0066D0)THEN
+MP_R(2)=1323.65d0 	! Water density
+MP_R(1)=1d0 		! Air density
+MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=0.0D0 		! Air volume fraction
+U1=681.058D0	  	! m/s
+V1= 0.0D0
+P1=1.9e9      		! Pa
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+! !KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+! !TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+!VECTOR OF CONSERVED VARIABLES NOW
+
+ELSE
+
+!FIRST WITHIN BUBBLE REGION
+
+
+
+if (sqrt(((pox(1)-0.012)**2)+((poy(1)-0.012)**2)).LE.0.003d0)then
+MP_R(2)=1000.00d0 	! Water density
+MP_R(1)=1d0 		! Air density
+MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=1.0D0 		! Air volume fraction
+U1= 0.0D0	  		! m/s
+V1= 0.0D0
+P1= 100000    			! Pa
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+! !KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+! !TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+!VECTOR OF CONSERVED VARIABLES NOW
+
+
+else
+
+MP_R(2)=1000.0d0 	! Water density
+MP_R(1)=1d0 		! Air density
+MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=0.0D0 		! Air volume fraction
+U1= 0.0D0	  		! m/s
+V1= 0.0D0
+P1= 100000    			! Pa
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+
+
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+
+! !KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+! !TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+
+!VECTOR OF CONSERVED VARIABLES NOW
+end if
+
+END IF
+
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+VECCOS(5)=MP_R(1)*MP_A(1)
+VECCOS(6)=MP_R(2)*MP_A(2)
+VECCOS(7)=MP_A(1)
+
+END IF
+
+
+IF (INITCOND.EQ.412)THEN
+!EXAMPLE 4.3 Paper2.pdf
+
+!GAMMA_IN(1) = 1.4 ! air
+!GAMMA_IN(2) = 5.5  ! water
+!MP_PINF(1) = 0 !Water from Coralic and Colonius or 2.218e8(abgrall203)
+!MP_PINF(2) = 1.505 ! Air 
+
+IF (POX(1).LE.0.00)THEN
+MP_R(1)=1.241 	! air density
+MP_R(2)=0.991 		! water density
+MP_A(1)=1.0D0 		
+MP_A(2)=0.0D0 		
+U1=0.0	  	! m/s
+V1= 0.0D0
+P1=2.753     		! Pa
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+! !KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+! !TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+!VECTOR OF CONSERVED VARIABLES NOW
+
+ELSE
+
+MP_R(1)=1.241 	! air density
+MP_R(2)=0.991 		! water density
+MP_A(1)=0.0D0 		
+MP_A(2)=1.0D0 		
+U1=0.0	  	! m/s
+V1= 0.0D0
+P1=3.059*10e-4     		! Pa
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+! !KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+! !TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+!VECTOR OF CONSERVED VARIABLES NOW
+
+END IF
+
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+VECCOS(5)=MP_R(1)*MP_A(1)
+VECCOS(6)=MP_R(2)*MP_A(2)
+VECCOS(7)=MP_A(1)
+
+END IF
 
 
 

@@ -525,6 +525,7 @@ MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(
 MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
 
 
+
 TEMPS(4)=(((GAMMAL-1.0D0))*((LEFTV(4))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2))))-MP_STIFF
 TEMPS(5)=LEFTV(5)
 TEMPS(6)=LEFTV(6)
@@ -546,12 +547,17 @@ TEMPS(2)=RIGHTV(2)*OODENSITY
 TEMPS(3)=RIGHTV(3)*OODENSITY
 !MP_STIFF=((RIGHTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((RIGHTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAR-1.0D0)
 MP_STIFF=((rightV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-rightV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAr-1.0D0)
+
+
 MP_PINFr=(rightV(7)*MP_PINF(1))+((1.0D0-rightV(7))*MP_PINF(2))
 TEMPS(4)=(((GAMMAR-1.0D0))*((RIGHTV(4))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2))))-MP_STIFF
 TEMPS(5)=RIGHTV(5)
 TEMPS(6)=RIGHTV(6)
 TEMPS(7)=RIGHTV(7)
  
+ 
+ 
+
  
  RIGHTV(1:nof_Variables)=TEMPS(1:nof_Variables)
  
@@ -605,6 +611,8 @@ TEMPS(3)=LEFTV(3)*OODENSITY
 ! MP_PINFL=(LEFTV(7)*MP_PINF(1))+((LEFTV(7)-1.0D0)*MP_PINF(2))
 
 MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+
+
 MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
 TEMPS(4)=(((GAMMAL-1.0D0))*((LEFTV(4))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2))))-MP_STIFF
 TEMPS(5)=LEFTV(5)
@@ -650,6 +658,10 @@ TEMPS(3)=LEFTV(3)*TEMPS(1)
 skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
 ! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
 MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+
+
+
+
 MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
 ie1=((leftv(4)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
 TEMPS(4)=TEMPS(1)*(ie1+skin1)
@@ -698,6 +710,9 @@ TEMPS(3)=LEFTV(3)*TEMPS(1)
 skin1=(oo2)*((leftv(4)**2)+(leftv(5)**2))
 ! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
 MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+
+
+
 MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
 ie1=((leftv(4)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
 
@@ -718,7 +733,8 @@ TEMPS(3)=RIGHTV(3)*TEMPS(1)
 skin1=(oo2)*((RIGHTv(2)**2)+(RIGHTv(3)**2))
 !MP_STIFF=((RIGHTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((RIGHTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAR-1.0D0)
 MP_STIFF=((RIGHTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-RIGHTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAR-1.0D0)
-MP_PINFL=(RIGHTV(7)*MP_PINF(1))+((1.0D0-RIGHTV(7))*MP_PINF(2))
+
+MP_PINFr=(RIGHTV(7)*MP_PINF(1))+((1.0D0-RIGHTV(7))*MP_PINF(2))
 ie1=((rightv(4)+mp_stiff)/((GAMMAr-1.0D0)*TEMPS(1)))
 TEMPS(4)=TEMPS(1)*(ie1+skin1)
 TEMPS(5:7)=RIGHTV(5:7)
@@ -3532,7 +3548,9 @@ END IF
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 
-else
+end if
+
+if (initcond.eq.408)then
 
 pos_l(1:2)=zero
 pos_g(1:2)=zero
@@ -3541,6 +3559,37 @@ DO I=1,KMAXE
     IF (U_C(I)%VAL(1,8).GT.0.0D0)THEN
             pos_l(1)=pos_l(1)+ielem(n,i)%totvolume
             pos_l(2)=pos_l(2)+U_C(I)%VAL(1,8)*ielem(n,i)%totvolume
+    end if
+END DO
+
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+  
+CALL MPI_ALLREDUCE(pos_l(1:2),pos_g(1:2),2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+IF (n.eq.0)THEN
+
+OPEN(70,FILE='volume.dat',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+WRITE(70,'(E14.7,1X,E14.7,1X,E14.7)')T,POS_G(1),pos_g(2)
+close(70)
+
+END IF
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+end if
+
+
+if (initcond.eq.411)then
+
+pos_l(1:2)=zero
+pos_g(1:2)=zero
+
+DO I=1,KMAXE
+    IF (U_C(I)%VAL(1,7).GT.0.0D0)THEN
+            pos_l(1)=pos_l(1)+ielem(n,i)%totvolume
+            pos_l(2)=pos_l(2)+U_C(I)%VAL(1,7)*ielem(n,i)%totvolume
     end if
 END DO
 

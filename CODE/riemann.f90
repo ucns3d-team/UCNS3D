@@ -104,8 +104,8 @@ Subroutine HLLC_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA
 			
 			
 			IF (MULTISPECIES.EQ.1)THEN
-		sl(1)=min((ul)-sqrt(gammaL*pl/rl),(ur)-sqrt(gammaR*pr/rr))
-		sr(1)=max((ul)+sqrt(gammaL*pl/rl),(ur)+sqrt(gammaR*pr/rr))	
+		sl(1)=min((ul)-sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)-sqrt(gammaR*(pr+MP_PINFr)/rr))
+		sr(1)=max((ul)+sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)+sqrt(gammaR*(pr+MP_PINFr)/rr))
 		ELSE
         sl(1)=min((ul)-sqrt(gamma*pl/rl),(ur)-sqrt(gamma*pr/rr))
 		sr(1)=max((ul)+sqrt(gamma*pl/rl),(ur)+sqrt(gamma*pr/rr))	
@@ -1073,8 +1073,8 @@ Subroutine RUSANOV_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GA
 
 			
 			if (MULTISPECIES.EQ.1)THEN
-			sl(1)=abs(ul)+sqrt(gammaL*pl/rl)
-			sr(1)=abs(ur)+sqrt(gammaR*pr/rr)
+			sl(1)=abs(ul)+sqrt(gammaL*(pl+MP_PINFl)/rl)
+			sr(1)=abs(ur)+sqrt(gammaR*(pr+MP_PINFr)/rr)
 			MP_SOURCE1=0.5d0*(ul+ur)!(MAX(ABS(SL(1)),ABS(SR(1))))
 			ELSE
 			sl(1)=abs(ul)+sqrt(gamma*pl/rl)
@@ -1269,8 +1269,8 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAM
 			
 			
 		IF (MULTISPECIES.EQ.1)THEN
-		sl(1)=min((ul)-sqrt(gammaL*pl/rl),(ur)-sqrt(gammaR*pr/rr))
-		sr(1)=max((ul)+sqrt(gammaL*pl/rl),(ur)+sqrt(gammaR*pr/rr))	
+		sl(1)=min((ul)-sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)-sqrt(gammaR*(pr+MP_PINFr)/rr))
+		sr(1)=max((ul)+sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)+sqrt(gammaR*(pr+MP_PINFr)/rr))	
 		ELSE
         sl(1)=min((ul)-sqrt(gamma*pl/rl),(ur)-sqrt(gamma*pr/rr))
 		sr(1)=max((ul)+sqrt(gamma*pl/rl),(ur)+sqrt(gamma*pr/rr))	
@@ -1880,8 +1880,8 @@ Subroutine RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,
 			
 			
 			if (MULTISPECIES.EQ.1)THEN
-			sl(1)=abs(ul)+sqrt(gammaL*pl/rl)
-			sr(1)=abs(ur)+sqrt(gammaR*pr/rr)
+			sl(1)=abs(ul)+sqrt(gammaL*(pl+MP_PINFl)/rl)
+			sr(1)=abs(ur)+sqrt(gammaR*(pr+MP_PINFr)/rr)
 			MP_SOURCE1=0.5D0*(ul+ur)!-0.5D0*(MAX(ABS(SL(1)),ABS(SR(1))))*(UR-UL)
 			ELSE
 			sl(1)=abs(ul)+sqrt(gamma*pl/rl)
