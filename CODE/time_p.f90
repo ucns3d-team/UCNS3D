@@ -13,6 +13,7 @@ USE implicit_time
 USE implicit_FLUXES
 ! USE FLUXES_V
 USE IO
+USE tcp
 IMPLICIT NONE
 
  CONTAINS
@@ -32,9 +33,9 @@ INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
 REAL::SUVI,SUV3,maxU,MINU
 REAL::CCFL,VELN,AGRT
 KMAXE=XMPIELRANK(N)
-       
+
         CCFL=(CFL/3.0d0)
-        
+
         DT=tolbig
 	IF (ITESTCASE.LT.3)THEN
 	!$OMP DO REDUCTION (MIN:DT)
@@ -44,27 +45,27 @@ KMAXE=XMPIELRANK(N)
 	END DO
 	!$OMP END DO
 	END IF
-	
+
 	IF (ITESTCASE.EQ.3)THEN
 	!$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
+
 		CALL CONS2PRIM(N)
 		if (multispecies.eq.1)then
 		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
 		else
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
 		end if
-		
+
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
 		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
 	END DO
 	!$OMP END DO
 	END IF
-	
-	
-	
+
+
+
 	IF (ITESTCASE.EQ.4)THEN
 	!$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
@@ -74,7 +75,7 @@ KMAXE=XMPIELRANK(N)
 		CALL SUTHERLAND(N,LEFTV,RIGHTV)
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-		
+
 		IF (TURBULENCE.EQ.1)THEN
 		IF (TURBULENCEMODEL.EQ.1)THEN
 		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
@@ -84,20 +85,20 @@ KMAXE=XMPIELRANK(N)
 		VISCL(1)=VISCL(1)+VISCL(3)
 		END IF
 		END IF
-		
-		
-		
-		
-		
+
+
+
+
+
          DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
-                             
+
 	END DO
 	!$OMP END DO
 	END IF
-	
-	
+
+
         RETURN
-        
+
 END SUBROUTINE CALCULATE_CFL
 
 SUBROUTINE CALCULATE_CFLL(N)
@@ -109,10 +110,10 @@ INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
 REAL::SUVI,SUV3,maxU,MINU
 REAL::CCFL,VELN,AGRT
 KMAXE=XMPIELRANK(N)
-       
+
         CCFL=(CFL/3.0d0)
-        
-        
+
+
 	IF (ITESTCASE.LT.3)THEN
 	!$OMP DO SCHEDULE (STATIC)
         DO I=1,KMAXE
@@ -121,12 +122,12 @@ KMAXE=XMPIELRANK(N)
 	END DO
 	!$OMP END DO
 	END IF
-	
+
 	IF (ITESTCASE.EQ.3)THEN
 	!$OMP DO
         DO I=1,KMAXE
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
+
 		CALL CONS2PRIM(N)
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
@@ -134,9 +135,9 @@ KMAXE=XMPIELRANK(N)
 	END DO
 	!$OMP END DO
 	END IF
-	
-	
-	
+
+
+
 	IF (ITESTCASE.EQ.4)THEN
 	!$OMP DO SCHEDULE (STATIC)
         DO I=1,KMAXE
@@ -155,19 +156,19 @@ KMAXE=XMPIELRANK(N)
 		VISCL(1)=VISCL(1)+VISCL(3)
 		END IF
 		END IF
-		
-		
-		
-		
+
+
+
+
 		IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
-		
+
 	END DO
 	!$OMP END DO
 	END IF
-	
-	
+
+
         RETURN
-        
+
 END SUBROUTINE CALCULATE_CFLL
 
 
@@ -181,31 +182,31 @@ INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
 REAL::SUVI,SUV3,maxU,MINU,sum_DT1,sum_dt2
 REAL::CCFL,VELN,AGRT
 KMAXE=XMPIELRANK(N)
-       
+
         CCFL=(CFL/2.0d0)
-        
+
         DT=tolbig
-        
-        
-        
-        
+
+
+
+
 	IF (ITESTCASE.LT.3)THEN
 	!$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
-        
+
 				if (initcond.eq.3)then
 				  lamx=-ielem(n,i)%yyc+0.5d0
 				  lamy=ielem(n,i)%xxc-0.5
 				  end if
-        
-        
+
+
 		VELN=MAX(ABS(LAMx),ABS(LAMy))
 		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
-		
+
 	END DO
 	!$OMP END DO
 	END IF
-	
+
 	IF (ITESTCASE.EQ.3)THEN
 	!$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
@@ -218,13 +219,13 @@ KMAXE=XMPIELRANK(N)
 		end if
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
 		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
-		
+
 	END DO
 	!$OMP END DO
 	END IF
-	
-	
-	
+
+
+
 	IF (ITESTCASE.EQ.4)THEN
 	!$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
@@ -243,15 +244,15 @@ KMAXE=XMPIELRANK(N)
 		VISCL(1)=VISCL(1)+VISCL(3)
 		END IF
 		END IF
-		
+
 		DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
 	END DO
 	!$OMP END DO
 	END IF
-	
-	
+
+
         RETURN
-        
+
 END SUBROUTINE CALCULATE_CFL2D
 
 
@@ -264,10 +265,10 @@ INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
 REAL::SUVI,SUV3,maxU,MINU
 REAL::CCFL,VELN,AGRT
 KMAXE=XMPIELRANK(N)
-       
+
         CCFL=(CFL/2.0d0)
-        
-        
+
+
 	IF (ITESTCASE.LT.3)THEN
 	!$OMP DO SCHEDULE (STATIC)
         DO I=1,KMAXE
@@ -276,12 +277,12 @@ KMAXE=XMPIELRANK(N)
 	END DO
 	!$OMP END DO
 	END IF
-	
+
 	IF (ITESTCASE.EQ.3)THEN
 	!$OMP DO SCHEDULE (STATIC)
         DO I=1,KMAXE
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
+
 		CALL CONS2PRIM2D(N)
 		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
@@ -289,9 +290,9 @@ KMAXE=XMPIELRANK(N)
 	END DO
 	!$OMP END DO
 	END IF
-	
-	
-	
+
+
+
 	IF (ITESTCASE.EQ.4)THEN
 	!$OMP DO SCHEDULE (STATIC)
         DO I=1,KMAXE
@@ -310,15 +311,15 @@ KMAXE=XMPIELRANK(N)
 		VISCL(1)=VISCL(1)+VISCL(3)
 		END IF
 		END IF
-		
+
 		IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
 	END DO
 	!$OMP END DO
 	END IF
-	
-	
+
+
         RETURN
-        
+
 END SUBROUTINE CALCULATE_CFLL2D
 
 
@@ -341,7 +342,7 @@ KMAXE=XMPIELRANK(N)
 TO4=3.0D0/4.0D0
 OO4=1.0D0/4.0D0
 TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+OO3=1.0D0/3.0D0
 
 IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
@@ -358,7 +359,7 @@ IF (FASTEST.EQ.1)THEN
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
-    
+
     END SELECT
 ELSE
     CALL EXCHANGE_HIGHER(N)
@@ -375,7 +376,7 @@ ELSE
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
-    
+
     END SELECT
 END IF
 
@@ -397,7 +398,7 @@ DO I=1,KMAXE
 END DO
 !$OMP END DO
  end if
- 
+
 IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
     CALL ARBITRARY_ORDER3(N)
@@ -511,14 +512,14 @@ END DO
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
 
 
 
-                        
+
 END SUBROUTINE RUNGE_KUTTA3
 
 SUBROUTINE RUNGE_KUTTA1(N)
@@ -551,14 +552,14 @@ IF (FASTEST.EQ.1)THEN
     end if
     END SELECT
 ELSE
-   
-    
+
+
     CALL EXCHANGE_HIGHER(N)
        CALL ARBITRARY_ORDER3(N)
-   
+
     CALL EXHBOUNDHIGHER(N)
-    
-    
+
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI(N)
@@ -579,9 +580,9 @@ END IF
 !$OMP DO
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  
+
   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  
+
 END DO
 !$OMP END DO
 
@@ -600,14 +601,14 @@ END DO
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
 
 
 
-                        
+
 END SUBROUTINE RUNGE_KUTTA1
 
 
@@ -623,7 +624,7 @@ KMAXE=XMPIELRANK(N)
 TO4=3.0D0/4.0D0
 OO4=1.0D0/4.0D0
 TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+OO3=1.0D0/3.0D0
 
 IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
@@ -665,7 +666,7 @@ DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  
+
 END DO
 !$OMP END DO
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
@@ -740,14 +741,14 @@ DO I=1,KMAXE
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
 
 
 
-                        
+
 END SUBROUTINE RUNGE_KUTTA2
 
 
@@ -801,7 +802,7 @@ DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(ielem(n,i)%dtl*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  
+
 END DO
 !$OMP END DO
 
@@ -854,7 +855,7 @@ END IF
 !$OMP DO
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  
+
   U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(ielem(n,i)%dtl*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
 END DO
 !$OMP END DO
@@ -872,14 +873,14 @@ DO I=1,KMAXE
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
 
 
 
-                        
+
 END SUBROUTINE RUNGE_KUTTA5
 
 SUBROUTINE RUNGE_KUTTA5_2D(N)
@@ -932,7 +933,7 @@ DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(ielem(n,i)%dtl*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  
+
 END DO
 !$OMP END DO
 
@@ -1005,14 +1006,14 @@ DO I=1,KMAXE
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
 
 
 
-                        
+
 END SUBROUTINE RUNGE_KUTTA5_2D
 
 
@@ -1066,7 +1067,7 @@ DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  
+
 END DO
 !$OMP END DO
 
@@ -1138,14 +1139,14 @@ DO I=1,KMAXE
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
 
 
 
-                        
+
 END SUBROUTINE RUNGE_KUTTA2_2D
 
 
@@ -1201,7 +1202,7 @@ END IF
 DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  
+
 END DO
 !$OMP END DO
 
@@ -1219,14 +1220,14 @@ DO I=1,KMAXE
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
 
 
 
-                        
+
 END SUBROUTINE RUNGE_KUTTA1_2D
 
 
@@ -1241,13 +1242,13 @@ KMAXE=XMPIELRANK(N)
 TO4=3.0D0/4.0D0
 OO4=1.0D0/4.0D0
 TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+OO3=1.0D0/3.0D0
 
 IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
     CALL ARBITRARY_ORDER2(N)
     CALL EXHBOUNDHIGHER(N)
-    
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI2D(N)
@@ -1260,7 +1261,7 @@ IF (FASTEST.EQ.1)THEN
     call SOURCES_COMPUTATION2d(N)
     end if
     END SELECT
-    
+
 ELSE
     CALL EXCHANGE_HIGHER(N)
     CALL ARBITRARY_ORDER2(N)
@@ -1285,7 +1286,7 @@ DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  
+
 END DO
 !$OMP END DO
 
@@ -1415,7 +1416,7 @@ DO I=1,KMAXE
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
@@ -1436,7 +1437,7 @@ KMAXE=XMPIELRANK(N)
 TO4=3.0D0/4.0D0
 OO4=1.0D0/4.0D0
 TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+OO3=1.0D0/3.0D0
 
 IF (FASTEST.EQ.1)THEN
 
@@ -1457,47 +1458,47 @@ IF (FASTEST.EQ.1)THEN
     END SELECT
 ELSE
     if (statistics.eq.1)then
-    !$OMP BARRIER 
+    !$OMP BARRIER
     !$OMP MASTER
     pr_T1=MPI_Wtime()
      !$OMP END MASTER
      !$OMP BARRIER
     end if
-    
-     
+
+
     CALL EXCHANGE_HIGHER(N)
     if (statistics.eq.1)then
-    !$OMP BARRIER 
+    !$OMP BARRIER
     !$OMP MASTER
     pr_t2=MPI_Wtime()
     prace_t1=pr_t2-pr_t1
     !$OMP END MASTER
      !$OMP BARRIER
     end if
-    
+
     CALL ARBITRARY_ORDER3(N)
     if (statistics.eq.1)then
-    !$OMP BARRIER 
+    !$OMP BARRIER
     !$OMP MASTER
     pr_t3=MPI_Wtime()
     prace_t2=pr_t3-pr_t2
     !$OMP END MASTER
      !$OMP BARRIER
     end if
-    
-    
-    
+
+
+
     CALL EXHBOUNDHIGHER(N)
     if (statistics.eq.1)then
-    !$OMP BARRIER 
+    !$OMP BARRIER
     !$OMP MASTER
     pr_t4=MPI_Wtime()
     prace_t3=pr_t4-pr_t3
     !$OMP END MASTER
      !$OMP BARRIER
     end if
-    
-    
+
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI(N)
@@ -1510,23 +1511,23 @@ ELSE
     call SOURCES_COMPUTATION(N)
     end if
     END SELECT
-    
-    
+
+
     if (statistics.eq.1)then
-    !$OMP BARRIER 
+    !$OMP BARRIER
     !$OMP MASTER
     pr_t5=MPI_Wtime()
     prace_t4=pr_t5-pr_t4
     !$OMP END MASTER
      !$OMP BARRIER
     end if
-    
-    
-    
+
+
+
 END IF
 
 
-    
+
 
 
 
@@ -1535,7 +1536,7 @@ DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*0.391752226571890*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  
+
 END DO
 !$OMP END DO
 
@@ -1548,14 +1549,14 @@ DO I=1,KMAXE
   END DO
 !$OMP END DO
  end if
- 
- 
+
+
     if (statistics.eq.1)then
-    !$OMP BARRIER 
+    !$OMP BARRIER
     !$OMP MASTER
     pr_t6=MPI_Wtime()
     prace_t5=pr_t6-pr_t5
-    
+
     !RECONSTRUCTION TIME=prace_t2
     !COMMUNICATION TIME OF EXBOUNDHIGHER=prace_t3
     !COMMUNICATION TIME OF HALO CELLS=prace_t1
@@ -1567,7 +1568,7 @@ DO I=1,KMAXE
    PRACE_T6=PRACE_T1+PRACE_T3
    PRACE_T7=PRACE_T2+PRACE_T4+PRACE_T5
    PRACE_T8=PRACE_T7+PRACE_T6
-   
+
    DUMPRACEIN=PRACE_t1
  CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
    PRACE_t1=DUMPRACEOUT
@@ -1600,17 +1601,17 @@ DO I=1,KMAXE
                 (QP_QUAD*2*6*3*3*3)+(QP_QUAD*3*2*5*6*5*5)+(5*5*5*2*QP_QUAD*6)+(QP_QUAD*nof_Variables*6*2)+(QP_QUAD*2*6)+(idegfree*QP_QUAD*6*iorder)+(20+300*IORDER*QP_QUAD*6+200+12000*QP_QUAD*6*2))/prace_t8)*1e-9*imaxe
 
 
-   
+
     IF (N.EQ.0)THEN
     OPEN(133,FILE='STATISTICS.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
     WRITE(133,'(I14,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')it,PRACE_T8,PRACE_T6,PRACE_T1,PRACE_T3,PRACE_T7,prace_t2,prace_t4,prace_t5,flops_count
     CLOSE(133)
     END IF
-    
-    
+
+
     !$OMP END MASTER
      !$OMP BARRIER
-    
+
     end if
 
 
@@ -1842,7 +1843,7 @@ END DO
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
@@ -1861,13 +1862,13 @@ KMAXE=XMPIELRANK(N)
 TO4=3.0D0/4.0D0
 OO4=1.0D0/4.0D0
 TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+OO3=1.0D0/3.0D0
 
 IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
     CALL ARBITRARY_ORDER2(N)
     CALL EXHBOUNDHIGHER(N)
-    
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI2D(N)
@@ -1880,7 +1881,7 @@ IF (FASTEST.EQ.1)THEN
     call SOURCES_COMPUTATION2d(N)
     end if
     END SELECT
-    
+
 ELSE
     CALL EXCHANGE_HIGHER(N)
     CALL ARBITRARY_ORDER2(N)
@@ -1904,7 +1905,7 @@ DO I=1,KMAXE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*0.391752226571890*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  
+
 END DO
 !$OMP END DO
 
@@ -1923,7 +1924,7 @@ IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
     CALL ARBITRARY_ORDER2(N)
     CALL EXHBOUNDHIGHER(N)
-    
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI2D(N)
@@ -1936,7 +1937,7 @@ IF (FASTEST.EQ.1)THEN
     call SOURCES_COMPUTATION2d(N)
     end if
     END SELECT
-    
+
 ELSE
     CALL EXCHANGE_HIGHER(N)
     CALL ARBITRARY_ORDER2(N)
@@ -1980,7 +1981,7 @@ IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
     CALL ARBITRARY_ORDER2(N)
     CALL EXHBOUNDHIGHER(N)
-    
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI2D(N)
@@ -1993,7 +1994,7 @@ IF (FASTEST.EQ.1)THEN
     call SOURCES_COMPUTATION2d(N)
     end if
     END SELECT
-    
+
 ELSE
     CALL EXCHANGE_HIGHER(N)
     CALL ARBITRARY_ORDER2(N)
@@ -2030,12 +2031,12 @@ DO I=1,KMAXE
 END DO
 !$OMP END DO
  end if
- 
+
 IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
     CALL ARBITRARY_ORDER2(N)
     CALL EXHBOUNDHIGHER(N)
-    
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI2D(N)
@@ -2048,7 +2049,7 @@ IF (FASTEST.EQ.1)THEN
     call SOURCES_COMPUTATION2d(N)
     end if
     END SELECT
-    
+
 ELSE
     CALL EXCHANGE_HIGHER(N)
     CALL ARBITRARY_ORDER2(N)
@@ -2087,12 +2088,12 @@ DO I=1,KMAXE
 END DO
 !$OMP END DO
  end if
- 
+
 IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
     CALL ARBITRARY_ORDER2(N)
     CALL EXHBOUNDHIGHER(N)
-    
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI2D(N)
@@ -2105,7 +2106,7 @@ IF (FASTEST.EQ.1)THEN
     call SOURCES_COMPUTATION2d(N)
     end if
     END SELECT
-    
+
 ELSE
     CALL EXCHANGE_HIGHER(N)
     CALL ARBITRARY_ORDER2(N)
@@ -2149,7 +2150,7 @@ END DO
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
@@ -2174,7 +2175,7 @@ IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
     CALL ARBITRARY_ORDER3(N)
     CALL EXHBOUNDHIGHER(N)
-    
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI(N)
@@ -2188,7 +2189,7 @@ IF (FASTEST.EQ.1)THEN
     call SOURCES_COMPUTATION(N)
     end if
     END SELECT
-    
+
 ELSE
     CALL EXCHANGE_HIGHER(N)
     CALL ARBITRARY_ORDER3(N)
@@ -2209,21 +2210,21 @@ ELSE
 END IF
 
 
-  
+
 if (lowmemory.eq.0)then
-   
+
  call RELAXATION(N)
-   
+
  else
- 
+
  call RELAXATION_lm(N)
- 
+
  end if
-   
-  
+
+
 
  kill_nan=0
- 
+
 !$OMP DO
 DO I=1,KMAXE
     If ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))then
@@ -2258,11 +2259,11 @@ END IF
 
 
 
-  
+
 END SUBROUTINE IMPLICIT_TIMEs
 
 
-SUBROUTINE IMPLICIT_TIMEs_2d(N) 
+SUBROUTINE IMPLICIT_TIMEs_2d(N)
 !> @brief
 !> IMPLICIT APPROXIMATELY FACTORED TIME STEPPING SCHEME 2D
 IMPLICIT NONE
@@ -2277,7 +2278,7 @@ IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
     CALL ARBITRARY_ORDER2(N)
     CALL EXHBOUNDHIGHER(N)
-    
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI2d(N)
@@ -2291,7 +2292,7 @@ IF (FASTEST.EQ.1)THEN
     call SOURCES_COMPUTATION2d(N)
     end if
     END SELECT
-    
+
 ELSE
     CALL EXCHANGE_HIGHER(N)
     CALL ARBITRARY_ORDER2(N)
@@ -2313,17 +2314,17 @@ END IF
 
 
 
-  
+
  if (lowmemory.eq.0)then
-   
+
  call RELAXATION2d(N)
-   
+
  else
- 
+
  call RELAXATION_lm2d(N)
- 
+
  end if
-  
+
 
  kill_nan=0
 !$OMP DO
@@ -2335,9 +2336,9 @@ DO I=1,KMAXE
         kill_nan=1
     end if
 
-    
-    
-    
+
+
+
 
   U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
 END DO
@@ -2359,7 +2360,7 @@ IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
    end if
    else
    U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,4+k)
-   
+
    end if
   end do
 END DO
@@ -2381,7 +2382,7 @@ END IF
 
 
 
-  
+
 END SUBROUTINE IMPLICIT_TIMEs_2d
 
 
@@ -2402,8 +2403,8 @@ KMAXE=XMPIELRANK(N)
  !$OMP MASTER
  dt=dt*1.5d0
  !$OMP END MASTER
- 
-!$OMP BARRIER 
+
+!$OMP BARRIER
 !$OMP DO
 DO I=1,KMAXE
   U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
@@ -2420,9 +2421,9 @@ IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
   !$OMP DO SCHEDULE (STATIC)
   DO I=1,KMAXE
   do k=1,turbulenceequations+passivescalar
-  
+
   U_CT(I)%VAL(2,k)=U_CT(I)%VAL(1,k)
-  
+
   end do
   END DO
   !$OMP END DO
@@ -2450,18 +2451,18 @@ END IF
 
 firsti=0.0d0
 DO JJ=1,upperlimit
-      rsumfacei=zero;allresdt=zero;dummy3i=zero; 
+      rsumfacei=zero;allresdt=zero;dummy3i=zero;
 if (jj.le.2)then
   iscoun=1
 else
   iscoun=jj
 end if
-      
+
 IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
     CALL ARBITRARY_ORDER3(N)
     CALL EXHBOUNDHIGHER(N)
-    
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI(N)
@@ -2475,7 +2476,7 @@ IF (FASTEST.EQ.1)THEN
     call SOURCES_COMPUTATION(N)
     end if
     END SELECT
-    
+
 ELSE
     CALL EXCHANGE_HIGHER(N)
     CALL ARBITRARY_ORDER3(N)
@@ -2496,16 +2497,16 @@ ELSE
 END IF
 
 if (lowmemory.eq.0)then
-   
+
  call RELAXATION(N)
-   
+
  else
- 
+
  call RELAXATION_lm(N)
- 
+
  end if
 
-!$OMP BARRIER 
+!$OMP BARRIER
 !$OMP DO SCHEDULE(GUIDED) REDUCTION(+:allresdt)
 DO I=1,KMAXE
       rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2)+((IMPDU(I,5))**2))
@@ -2513,7 +2514,7 @@ DO I=1,KMAXE
 end do
 !$OMP END DO
 
-!$OMP BARRIER 
+!$OMP BARRIER
 !$OMP MASTER
 DUMMY3I=zero
 
@@ -2532,7 +2533,7 @@ end if
 
 allresdt=allresdt/firsti
 !$OMP END MASTER
-!$OMP BARRIER 
+!$OMP BARRIER
 
 
 
@@ -2570,16 +2571,16 @@ end if
 
 END DO
 
- !$OMP BARRIER 
+ !$OMP BARRIER
  !$OMP MASTER
  dt=dt/1.5d0
  !$OMP END MASTER
- !$OMP BARRIER 
+ !$OMP BARRIER
 
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
@@ -2591,7 +2592,7 @@ END IF
 
 
 
-  
+
 END SUBROUTINE dual_time
 
 
@@ -2624,9 +2625,9 @@ IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
   !$OMP DO SCHEDULE (STATIC)
   DO I=1,KMAXE
   do k=1,turbulenceequations+passivescalar
-  
+
   U_CT(I)%VAL(2,k)=U_CT(I)%VAL(1,k)
-  
+
   end do
   END DO
   !$OMP END DO
@@ -2654,18 +2655,18 @@ END IF
 
 firsti=0.0d0
 DO JJ=1,upperlimit
-      rsumfacei=zero;allresdt=zero;dummy3i=zero; 
+      rsumfacei=zero;allresdt=zero;dummy3i=zero;
 if (jj.le.2)then
   iscoun=1
 else
   iscoun=jj
 end if
-      
+
 IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
     CALL ARBITRARY_ORDER2(N)
     CALL EXHBOUNDHIGHER(N)
-    
+
     SELECT CASE(ITESTCASE)
     CASE(1,2)
     CALL CALCULATE_FLUXESHI2d(N)
@@ -2679,7 +2680,7 @@ IF (FASTEST.EQ.1)THEN
     call SOURCES_COMPUTATION2d(N)
     end if
     END SELECT
-    
+
 ELSE
     CALL EXCHANGE_HIGHER(N)
     CALL ARBITRARY_ORDER2(N)
@@ -2700,16 +2701,16 @@ ELSE
 END IF
 
 if (lowmemory.eq.0)then
-   
+
  call RELAXATION2d(N)
-   
+
  else
- 
+
  call RELAXATION_lm2d(N)
- 
+
  end if
 
-!$OMP BARRIER 
+!$OMP BARRIER
 !$OMP DO SCHEDULE(GUIDED) REDUCTION(+:allresdt)
 DO I=1,KMAXE
       rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2))
@@ -2717,7 +2718,7 @@ DO I=1,KMAXE
 end do
 !$OMP END DO
 
-!$OMP BARRIER 
+!$OMP BARRIER
 !$OMP MASTER
 DUMMY3I=zero
 
@@ -2732,7 +2733,7 @@ end if
 
 allresdt=allresdt/firsti
 !$OMP END MASTER
-!$OMP BARRIER 
+!$OMP BARRIER
 
 
 
@@ -2778,7 +2779,7 @@ dt=dt/1.5d0
 IF (AVERAGING.EQ.1)THEN
 
  CALL AVERAGING_T(N)
- 
+
 END IF
 
 
@@ -2790,7 +2791,7 @@ END IF
 
 
 
-  
+
 END SUBROUTINE dual_time_2d
 
 
@@ -2827,20 +2828,20 @@ end if
     U_C(I)%val(ind1,:)=(((Tz1-dt)/(Tz1))*U_C(I)%val(ind1,:))+((dt*U_C(I)%VAL(1,:))/Tz1)
       IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
     DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-    
+
     U_CT(I)%val(ind1,NVAR)=(((Tz1-dt)/(Tz1))*U_CT(I)%val(ind1,NVAR))+((dt*U_CT(I)%VAL(1,NVAR))/(Tz1*U_C(I)%val(ind1,1)))
-    
+
     END DO
     END IF
     !U,V,W,UV,UW,WV,PS
     U_C(I)%RMS(1)=SQRT(abs(((U_C(I)%RMS(1)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1)-U_C(I)%val(ind1,2)/U_C(I)%val(ind1,1))**2)*dt/Tz1)))
     U_C(I)%RMS(2)=SQRT(abs(((U_C(I)%RMS(2)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1)-U_C(I)%val(ind1,3)/U_C(I)%val(ind1,1))**2)*dt/Tz1)))
     U_C(I)%RMS(3)=SQRT(abs(((U_C(I)%RMS(3)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1)-U_C(I)%val(ind1,4)/U_C(I)%val(ind1,1))**2)*dt/Tz1)))
-    
-    
-    
-    
-   
+
+
+
+
+
     U_C(I)%RMS(4)=(((U_C(I)%RMS(4))*((Tz1-DT)/(Tz1)))+&
 (((((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,2)/U_C(I)%val(ind1,1)))*((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,3)/U_C(I)%val(ind1,1)))))*DT/Tz1))
     U_C(I)%RMS(5)=(((U_C(I)%RMS(5))*((Tz1-DT)/(Tz1)))+&
@@ -2851,10 +2852,10 @@ end if
     U_C(I)%RMS(7)=SQRT(abs(((U_C(I)%RMS(7)**2)*((Tz1-DT)/(Tz1)))+(((U_CT(I)%VAL(1,TURBULENCEEQUATIONS+1)&
 -U_CT(I)%val(ind1,TURBULENCEEQUATIONS+1))**2)*DT/Tz1)))
     end if
-   
-   
-   
-    
+
+
+
+
   END DO
   !$OMP END DO
   else
@@ -2862,13 +2863,13 @@ end if
   DO I=1,KMAXE
     U_C(I)%val(ind1,:)=ZERO;U_C(I)%RMS=zero
     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-    
-    
+
+
     U_CT(I)%val(ind1,:)=ZERO
-    
-    
+
+
     END IF
-  
+
   END DO
   !$OMP END DO
   end if
@@ -2880,24 +2881,24 @@ if (t.gt.0.0)then
     U_C(I)%val(ind1,:)=(((Tz1-dt)/(Tz1))*U_C(I)%val(ind1,:))+((dt*U_C(I)%VAL(1,:))/Tz1)
       IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
     DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-    
+
     U_CT(I)%val(ind1,NVAR)=(((Tz1-dt)/(Tz1))*U_CT(I)%val(ind1,NVAR))+((dt*U_CT(I)%VAL(1,NVAR))/(Tz1*U_C(I)%val(ind1,1)))
-    
+
     END DO
     END IF
     !U,V,UV,PS
     U_C(I)%RMS(1)=SQRT(abs(((U_C(I)%RMS(1)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,2)-U_C(I)%val(ind1,2))**2)*dt/Tz1)))/U_C(I)%val(ind1,1)
     U_C(I)%RMS(2)=SQRT(abs(((U_C(I)%RMS(2)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,3)-U_C(I)%val(ind1,3))**2)*dt/Tz1)))/U_C(I)%val(ind1,1)
-    
-   
+
+
     U_C(I)%RMS(3)=(((U_C(I)%RMS(4))*((Tz1-dt)/(Tz1)))+&
 ((((U_C(I)%VAL(1,2)-U_C(I)%val(ind1,2))*(U_C(I)%VAL(1,3)-U_C(I)%val(ind1,3))))*dt/Tz1))/U_C(I)%val(ind1,1)
-    
+
     IF ((PASSIVESCALAR.GT.0))THEN
     U_C(I)%RMS(4)=SQRT(abs(((U_C(I)%RMS(4)**2)*((Tz1-dt)/(Tz1)))+(((U_CT(I)%VAL(1,TURBULENCEEQUATIONS+1)&
 -U_CT(I)%val(ind1,TURBULENCEEQUATIONS+1))**2)*dt/Tz1)))/U_C(I)%val(ind1,1)
     end if
-    
+
   END DO
   !$OMP END DO
   else
@@ -2905,13 +2906,13 @@ if (t.gt.0.0)then
   DO I=1,KMAXE
     U_C(I)%val(ind1,:)=ZERO
     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-    
-    
+
+
     U_CT(I)%val(ind1,:)=ZERO
-    
-    
+
+
     END IF
-  
+
   END DO
   !$OMP END DO
   end if
@@ -2922,13 +2923,13 @@ if (t.gt.0.0)then
   dt=dt/1.5
   END IF
    !$OMP END MASTER
-   
+
    IF (OUTSURF.EQ.1)THEN
    CALL EXCHANGE_HIGHER_AV(N)
    CALL AVERAGE_STRESSES(N)
    END IF
-   
-   
+
+
 
 
 
@@ -2956,30 +2957,30 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
       iscoun=1
 
 !$OMP BARRIER
-!$OMP MASTER 
+!$OMP MASTER
 	CPUT1=CPUX1(1)
 	CPUT4=CPUX1(1)
 	CPUT5=CPUX1(1)
 	CPUT8=CPUX1(1)
-!$OMP END MASTER 
+!$OMP END MASTER
 !$OMP BARRIER
-      
-	      			
+
+
 	IT=RESTART
-      
+
 !$OMP BARRIER
-!$OMP MASTER 
+!$OMP MASTER
       CALL GRID_WRITE
       if ((Average_restart.eq.0).and.(averaging.eq.1)) then
 				Tz1=0.0
 				else
 				tz1=t
 		end if
-      
-      
-!$OMP END MASTER 
+
+
+!$OMP END MASTER
 !$OMP BARRIER
-      
+
 
 
 !$OMP BARRIER
@@ -2990,15 +2991,15 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 	END IF
 !$OMP END MASTER
 !$OMP BARRIER
-      		
-             
-      
-      
-      
-      
-     DO 
+
+
+
+
+
+
+     DO
 		    CALL CALCULATE_CFL(N)
-		    
+
 		    IF (RUNGEKUTTA.GE.5)CALL CALCULATE_CFLL(N)
 			!$OMP MASTER
 			DUMMYOUT(1)=DT
@@ -3012,9 +3013,9 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			TIMEC4=CPUT2-CPUT5
 			dummyout(4)=TIMEC4
 			DUMMYOUT(5)=TIMEC8
-			
+
 			CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-			
+
 			DT=DUMMYIN(1)
 			TIMEC1=DUMMYIN(2)
 			TIMEC3=DUMMYIN(3)
@@ -3025,15 +3026,15 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 				  WRITE(63,*)DT,it,"TIME STEP SIZE",T
 				  CLOSE(63)
 				  END IF
-					
-					
-					IF (INITCOND.eq.95)THEN                    
+
+
+					IF (INITCOND.eq.95)THEN
  				TOTK=0
  				DO I=1,xmpielrank(n)
 					TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
 (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
 				END DO
-! 				
+!
  				DUMEtg1=TOTK
  				DUMEtg2=0.0
  				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -3044,67 +3045,67 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 					if (it.eq.0)then
 					TAYLOR=TOTK
 					end if
-					
-				
-				
+
+
+
 				END IF
- 				
- 				
+
+
 !  				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				
+
 
 ! 				end if
 			    end if
-					
-					
-					
-					
-					
-					
-					
-					
-			!$OMP END MASTER 
-			!$OMP BARRIER		
-			
-			
+
+
+
+
+
+
+
+
+			!$OMP END MASTER
+			!$OMP BARRIER
+
+
 			if (rungekutta.eq.11)then
 			dt=timestep
 			DT=MIN(DT,OUT_TIME-T)
 			else
 			DT=MIN(DT,OUT_TIME-T)
 			end if
-			
-			
-			
+
+
+
 			SELECT CASE(RUNGEKUTTA)
-			
+
 			CASE(1)
 			CALL RUNGE_KUTTA1(N)
-			
+
 			CASE(2)
 			CALL RUNGE_KUTTA2(N)
-			
+
 			CASE(3)
 			CALL RUNGE_KUTTA3(N)
-			
+
 			CASE(4)
 			CALL RUNGE_KUTTA4(N)
-			
+
 			CASE(5)
 			CALL RUNGE_KUTTA5(N)
-			
+
 			case(10)
 			call IMPLICIT_TIMEs(N)
-			
-			
+
+
 			case(11)
 			call dual_TIME(N)
-			
+
 			END SELECT
-			
+
 			!$OMP BARRIER
 			!$OMP MASTER
-			
+
 			if (rungekutta.eq.11)then
  			 T=T+(DT)
  			  Tz1=Tz1+(DT)
@@ -3113,9 +3114,9 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
                        T=T+DT
 			tz1=tz1+DT
 			  end if
-			  
-			
-			
+
+
+
 ! 			IF (N.EQ.0)THEN
 ! 				  OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
 ! 				  if (rungekutta.eq.11)then
@@ -3123,21 +3124,21 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 ! 				  end if
 ! 				  CLOSE(63)
 ! 				  END IF
-			
-			
-			
-			
-			
-			
-			
-			
-			IF (INITCOND.eq.95)THEN                    
+
+
+
+
+
+
+
+
+			IF (INITCOND.eq.95)THEN
  				TOTK=0
  				DO I=1,xmpielrank(n)
 					TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
 (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
 				END DO
-! 				
+!
  				DUMEtg1=TOTK
  				DUMEtg2=0.0
  				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -3148,7 +3149,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 					if (it.eq.0)then
 					TAYLOR=TOTK
 					end if
-					
+
 				IF (IT.EQ.0)THEN
 				OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
 				ELSE
@@ -3157,10 +3158,10 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 				WRITE(73,*)T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT
 				CLOSE(73)
 				END IF
- 				
- 				
+
+
  				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				
+
 
 ! 				end if
 			    end if
@@ -3169,28 +3170,28 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
                     call TRAJECTORIES
 			    end if
 			    END IF
-			
-			
-			
-			!$OMP END MASTER 
+
+
+
+			!$OMP END MASTER
 			!$OMP BARRIER
-			
+
 			if ( mod(it, iforce) .eq. 0) then
-			IF (OUTSURF.EQ.1) THEN   
+			IF (OUTSURF.EQ.1) THEN
 				  CALL forces
 			end if
 			end if
-			
+
 			if ((rungekutta.ge.5).and.(rungekutta.ne.11))then
 			if ( mod(it, residualfreq) .eq. 0) then
                                Call RESIDUAL_COMPUTE
 			end if
 			end if
-			
+
 			!$OMP MASTER
 			IF (NPROBES.GT.0) call PROBING
-					
-			
+
+
 			IF (TIMEC1.GE.IEVERY)THEN
 			    CALL VOLUME_SOLUTION_WRITE
 			     if (outsurf.eq.1)then
@@ -3198,9 +3199,9 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			    end if
 			CPUT1=MPI_WTIME()
 			END IF
-			
-			
-			
+
+
+
 			IF (TIMEC8.GE.IEVERYAV)THEN
 			IF (AVERAGING.EQ.1)THEN
 			call VOLUME_SOLUTION_WRITE_av
@@ -3210,41 +3211,41 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			end if
 			CPUT8=MPI_WTIME()
 			end if
-			
-			
-			
+
+
+
 			IF (TIMEC4.GE.IEVERY2)THEN
 			    call CHECKPOINTING
 			      IF (AVERAGING.EQ.1)THEN
 				call CHECKPOINTING_av
 			      end if
-	
+
 			  CPUT5=MPI_WTIME()
-			  
+
 			END IF
-			  
-			
-			!$OMP END MASTER 
+
+
+			!$OMP END MASTER
 			!$OMP BARRIER
-			
-			
-			
+
+
+
 			!$OMP MASTER
 			IT=IT+1
-			
+
 			IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC))THEN
 			 KILL=1
 			END IF
-			
+
 			if ((rungekutta.lt.5).or.(rungekutta.eq.11))then
 			IF (T.GE.OUT_TIME)THEN
 			KILL=1
 			END IF
 			END IF
-			!$OMP END MASTER 
+			!$OMP END MASTER
 			!$OMP BARRIER
 
-			  
+
 			!$OMP MASTER
 			if (kill.eq.1)then
 			    CALL VOLUME_SOLUTION_WRITE
@@ -3256,39 +3257,44 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			      call VOLUME_SOLUTION_WRITE_av
 				if (outsurf.eq.1)then
 				  call surface_SOLUTION_WRITE_av
-				end if	    
+				end if
 				call CHECKPOINTING_av
 			      end if
 			end if
-			
-			
-			
-			
+
+
+
+
 			!$OMP END MASTER
 			!$OMP BARRIER
-			
+
 			if (kill.eq.1)then
-			if (itestcase.le.3)then   
+			if (itestcase.le.3)then
 			call CALCULATE_ERROR(n)
 			end if
-			  
-			  
-			  
-			  
-			  
-			  
-			  
-			  
-			  
-			  
+
+
+
+
+
+
+
+
+
+
 			return
 			end if
 
-			
-			
-			
+
+
+      call coprocess_grid(IT, dble(T))
 end do
-		      
+
+DEALLOCATE(scalarRU)
+DEALLOCATE(scalarRV)
+DEALLOCATE(scalarE)
+DEALLOCATE(pointSet)
+
 END SUBROUTINE TIME_MARCHING
 
 
@@ -3307,36 +3313,36 @@ kmaxe=XMPIELRANK(n)
       kill=0
       T=res_time
       iscoun=1
-	!$OMP MASTER 
+	!$OMP MASTER
 	CPUT1=CPUX1(1)
 	CPUT4=CPUX1(1)
 	CPUT5=CPUX1(1)
 	CPUT8=CPUX1(1)
-	!$OMP END MASTER 
+	!$OMP END MASTER
          !$OMP BARRIER
-      
-	      			
+
+
 	IT=RESTART
-      
-      !$OMP MASTER 
+
+      !$OMP MASTER
       CALL GRID_WRITE
       CALL VOLUME_SOLUTION_WRITE
        if (outsurf.eq.1)then
       call SURF_WRITE
       end if
-      
+
       if ((Average_restart.eq.0).and.(averaging.eq.1)) then
 				Tz1=0.0
 				else
 				tz1=t
 		end if
-      !$OMP END MASTER 
+      !$OMP END MASTER
       !$OMP BARRIER
-      
-     DO 
+
+     DO
 		    CALL CALCULATE_CFL2D(N)
 		    IF (RUNGEKUTTA.GE.5)CALL CALCULATE_CFLL2d(N)
-		    
+
 			!$OMP MASTER
 			DUMMYOUT(1)=DT
 			CPUT2=MPI_WTIME()
@@ -3349,9 +3355,9 @@ kmaxe=XMPIELRANK(n)
 			TIMEC4=CPUT2-CPUT5
 			dummyout(4)=TIMEC4
 			DUMMYOUT(5)=TIMEC8
-			
+
 			CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-			
+
 			DT=DUMMYIN(1)
 			TIMEC1=DUMMYIN(2)
 			TIMEC3=DUMMYIN(3)
@@ -3362,14 +3368,14 @@ kmaxe=XMPIELRANK(n)
 				  WRITE(63,*)DT,it,"TIME STEP SIZE",T
 				  CLOSE(63)
 				  END IF
-				  
-			IF (INITCOND.eq.95)THEN                    
+
+			IF (INITCOND.eq.95)THEN
  				TOTK=0
  				DO I=1,KMAXE
 					TOTK=TOTK+IELEM(N,I)%TOTVOLUME*(1.0/2.0)*&
 (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2))
 				END DO
-! 				
+!
  				DUMEtg1=TOTK
  				DUMEtg2=0.0
  				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -3380,7 +3386,7 @@ kmaxe=XMPIELRANK(n)
 ! 					if (it.eq.0)then
 ! 					TAYLOR=TOTK
 ! 					end if
-					
+
 				IF (IT.EQ.0)THEN
 				OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
 				ELSE
@@ -3389,10 +3395,10 @@ kmaxe=XMPIELRANK(n)
 				WRITE(73,*)T,TOTK
 				CLOSE(73)
 				END IF
- 				
- 				
+
+
  				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				
+
 
 ! 				end if
 			    end if
@@ -3401,46 +3407,46 @@ kmaxe=XMPIELRANK(n)
                     call TRAJECTORIES
 			    end if
 			    END IF
-			
-			
-			
-			!$OMP END MASTER 
+
+
+
+			!$OMP END MASTER
 			!$OMP BARRIER
-			
+
 			if (rungekutta.eq.11)then
 			dt=timestep
                       DT=MIN(DT,OUT_TIME-T)
 		      else
 		      DT=MIN(DT,OUT_TIME-T)
 		      end if
-			
+
 			SELECT CASE(RUNGEKUTTA)
-			
+
 			CASE(1)
 			CALL RUNGE_KUTTA1_2d(N)
-			
+
 			CASE(2)
 			CALL RUNGE_KUTTA2_2d(N)
-			
+
 			CASE(3)
 			CALL RUNGE_KUTTA3_2D(N)
-			
+
 			CASE(4)
 			CALL RUNGE_KUTTA4_2D(N)
-			
+
 			CASE(5)
 			CALL RUNGE_KUTTA5_2D(N)
-			
-			
+
+
 			case(10)
 			call IMPLICIT_TIMEs_2d(N)
-			
-			
+
+
 			case(11)
 			call dual_TIME_2d(N)
-			
+
 			END SELECT
-			
+
 			!$OMP MASTER
 			if (rungekutta.eq.11)then
  			 T=T+(DT)
@@ -3450,32 +3456,32 @@ kmaxe=XMPIELRANK(n)
                        T=T+DT
 			tz1=tz1+DT
 			  end if
-			  
-			  
-			  
-			  
-			  
-			  
-			  
-			  
-			!$OMP END MASTER 
+
+
+
+
+
+
+
+
+			!$OMP END MASTER
 			!$OMP BARRIER
 			if ( mod(it, iforce) .eq. 0) then
-			IF (OUTSURF.EQ.1) THEN   
+			IF (OUTSURF.EQ.1) THEN
 				  CALL forces
 			end if
 			end if
-			
+
 			if ((rungekutta.ge.5).and.(rungekutta.ne.11))then
 			if ( mod(it, residualfreq) .eq. 0) then
                                Call RESIDUAL_COMPUTE
 			end if
 			end if
-			
+
 			!$OMP MASTER
 			IF (NPROBES.GT.0) call PROBING2D
-					
-			
+
+
 			IF (TIMEC1.GE.IEVERY)THEN
 			    CALL VOLUME_SOLUTION_WRITE
 			     if (outsurf.eq.1)then
@@ -3483,9 +3489,9 @@ kmaxe=XMPIELRANK(n)
 			    end if
 			CPUT1=MPI_WTIME()
 			END IF
-			
-			
-			
+
+
+
 			IF (TIMEC8.GE.IEVERYAV)THEN
 			IF (AVERAGING.EQ.1)THEN
 			call VOLUME_SOLUTION_WRITE_av
@@ -3495,34 +3501,34 @@ kmaxe=XMPIELRANK(n)
 			end if
 			CPUT8=MPI_WTIME()
 			end if
-			
-			
-			
+
+
+
 			IF ((TIMEC4.GE.IEVERY2).OR.(TIMEC3.GE.WALLC)) THEN
 			  CPUT5=MPI_WTIME()
 				IF (TIMEC3.GE.WALLC) THEN
 				  KILL=1
 				END IF
-				
+
 			  if (kill.eq.1)then
 			  CALL VOLUME_SOLUTION_WRITE
 			   if (outsurf.eq.1)then
 			    call surface_SOLUTION_WRITE
-			    
+
 			    end if
-			  
+
 			  call CHECKPOINTING
-			  
-			
+
+
 			IF (AVERAGING.EQ.1)THEN
 			  call CHECKPOINTING_av
 			end if
 			else
-			
+
 			  CALL VOLUME_SOLUTION_WRITE
 			    if (outsurf.eq.1)then
 			      call surface_SOLUTION_WRITE
-			      
+
 			      end if
 			  IF (AVERAGING.EQ.1)THEN
 			    call CHECKPOINTING_av
@@ -3533,66 +3539,66 @@ kmaxe=XMPIELRANK(n)
 			if ((rungekutta.lt.5).or.(rungekutta.eq.11))then
 			IF (T.GE.OUT_TIME)THEN
  			  KILL=1
-			  
+
 			  CALL VOLUME_SOLUTION_WRITE
 			   if (outsurf.eq.1)then
 			    call surface_SOLUTION_WRITE
 			    end if
-			  
+
 			  call CHECKPOINTING
-			 
+
 			  if (averaging .eq.1) then
 			  call VOLUME_SOLUTION_WRITE_av
 			   if (outsurf.eq.1)then
 			  call surface_SOLUTION_WRITE_av
 			  end if
 			  call CHECKPOINTING_av
-			  end if			
+			  end if
 			END IF
 			end if
-			!$OMP END MASTER 
+			!$OMP END MASTER
 			!$OMP BARRIER
-			
-			
-			
+
+
+
 			!$OMP MASTER
 			IT=IT+1
 			IF (IT.EQ.NTMAX)THEN
 			 KILL=1
 			END IF
-			!$OMP END MASTER 
+			!$OMP END MASTER
 			!$OMP BARRIER
-		    
+
 			if (kill.eq.1)then
-			IF (OUTSURF.EQ.1) THEN   
+			IF (OUTSURF.EQ.1) THEN
 				  CALL forces
 			  end if
-			
+
 			!$OMP MASTER
 			if ((rungekutta.eq.5).or.(rungekutta.eq.10))then
 			  CALL VOLUME_SOLUTION_WRITE
 			   if (outsurf.eq.1)then
 			    call surface_SOLUTION_WRITE
-			    
+
 			    end if
-			  
+
 			  call CHECKPOINTING
 			end if
 			!$OMP END MASTER
 			!$OMP BARRIER
-			
-			if (itestcase.le.3)then   
+
+			if (itestcase.le.3)then
 			call CALCULATE_ERROR(n)
 			end if
-			
-			
+
+
 			return
 			end if
-			
-			
-			
+
+
+
 end do
-		      
+
 END SUBROUTINE TIME_MARCHING2
 
 
