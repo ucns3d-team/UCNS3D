@@ -1496,13 +1496,13 @@ SOLS2=ZERO
 		CALL CONS2PRIM(N)
 	       SOLS2(2:4)=LEFTV(2:4)
 	       SOLS2(1)=LEFTV(5)/LEFTV(1)
-  	        MATRIX_1(1:nof_Variables,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*(SOLS2(1:nof_Variables)-SOLS1(1:nof_Variables)))
+  	        MATRIX_1(1:nof_Variables-1,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*(SOLS2(1:nof_Variables-1)-SOLS1(1:nof_Variables-1)))
   	        
   	        MATRIX_1(2:4,IQ)=MATRIX_1(2:4,IQ)+((SOLS1(2:4)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
   	        
   	        
 		END DO
-		matrix_3(1:nof_Variables)=-sols1(1:nof_Variables)
+		matrix_3(1:nof_Variables-1)=-sols1(1:nof_Variables-1)
 		matrix_3(1)=zero
 		
 		DO VAR2=1,nof_variables-1
