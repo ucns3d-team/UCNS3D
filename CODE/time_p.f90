@@ -2813,6 +2813,7 @@ KMAXE=XMPIELRANK(N)
   dt=dt*1.5
   END IF
    !$OMP END MASTER
+!$OMP BARRIER 
 
 IF (DIMENSIONA.EQ.3)THEN
 if (rungekutta.eq.4)then
@@ -2922,6 +2923,7 @@ if (t.gt.0.0)then
   dt=dt/1.5
   END IF
    !$OMP END MASTER
+!$OMP BARRIER 
    
    IF (OUTSURF.EQ.1)THEN
    CALL EXCHANGE_HIGHER_AV(N)
@@ -3058,7 +3060,12 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 					
 					
 					
-					
+				if (rungekutta.eq.11)then
+			dt=timestep
+			DT=MIN(DT,OUT_TIME-T)
+			else
+			DT=MIN(DT,OUT_TIME-T)
+			end if	
 					
 					
 					
@@ -3067,12 +3074,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			!$OMP BARRIER		
 			
 			
-			if (rungekutta.eq.11)then
-			dt=timestep
-			DT=MIN(DT,OUT_TIME-T)
-			else
-			DT=MIN(DT,OUT_TIME-T)
-			end if
+			
 			
 			
 			

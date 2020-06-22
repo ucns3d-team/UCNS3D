@@ -1201,7 +1201,7 @@ Implicit None
 EXTERNAL ParMETIS_V3_PartMeshKway
 !!!!!!!!!!!!!!!
 integer,ALLOCATABLE,DIMENSION(:),intent(in)::IESHAPE
-real::average,average2,tsize
+real::average,average2,tsize,tsize2
 integer::maxi,maxi2
 Integer ::i,j,elementid,node1,node2,node3,node4,node5,node6,node7,node8,counternodes,counternodes2,k
 Integer ::vweight
@@ -1224,6 +1224,7 @@ imaxnn=imaxn
 isizee=isize
 tsize=isizee
 allocate(xmpiee(1:isize))
+xmpiee=0
 
 
 do i=1,isize-1
@@ -1522,7 +1523,12 @@ end if
 
 
 allocate(tpwgts(ncon*isize))
-tpwgts = 1. / float(isize)
+tsize2=isize
+tpwgts=1.0d0/tsize2
+
+
+
+!tpwgts = 1. / float(isize)
 allocate(ubvec(ncon))
 ubvec(1)=1.050000
 

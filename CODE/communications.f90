@@ -1091,6 +1091,9 @@ ITEST=nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR
 INEEDT=IRECEXR(1)%TOT
 TNEEDT=IRECEXS(1)%TOT
 
+
+!$OMP BARRIER
+
 If (( turbulence .GT. 0).or.(passivescalar.GT.0)) then
 !$OMP DO SCHEDULE (STATIC)
 DO I=1,TNEEDT
@@ -1112,6 +1115,8 @@ DO I=1,TNEEDT
 END DO
 !$OMP END DO
 end if
+
+!$OMP BARRIER
 
 
 
@@ -1402,6 +1407,8 @@ ITEST=nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR
 INEEDT=IRECEXR(1)%TOT
 TNEEDT=IRECEXS(1)%TOT
 
+!$OMP BARRIER
+
 If (( turbulence .GT. 0).or.(passivescalar.GT.0)) then
 !$OMP DO SCHEDULE (STATIC)
 DO I=1,TNEEDT
@@ -1425,7 +1432,7 @@ END DO
 end if
 
 
-
+!$OMP BARRIER
 
 !$OMP MASTER
 
@@ -1633,6 +1640,7 @@ END IF
 END IF
 
 
+!$OMP BARRIER
 IF (ITESTCASE.LE.3) THEN
 !$OMP DO SCHEDULE (STATIC)
 DO I=1,TNDL
@@ -1694,7 +1702,7 @@ END IF
 END  IF
 
 
-
+!$OMP BARRIER
 
 !-------------------FOR DEBUGGING ONLY -----------------------------------------!
 

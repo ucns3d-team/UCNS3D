@@ -1848,65 +1848,65 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
                                                                     
                                             
                                                                                         IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
-                                                                                                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                                                                                                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-                                                                                                                            DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
-                                                                                                                                IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-                                                                                                                            
-                                                                                                                            DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
-                                                                                                                                
-                                                                                                                                end if
-                                                                                                                                                                
-                                                                                                                        
-                                                                                                                        
-                                                                                                                        ELSE
-                                                                                                                        
-                                                                                                                            
-                                                                                                                            
-                                                                                                                                                                                        
-                                                                                                                            
-                                                                                                                        END IF
-                                                                                                                ELSE
-                                                                                                                    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
-                                                                                                                                IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-                                                                                                                            
-                                                                                                                            DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
-                                                                                                                                
-                                                                                                                                end if
-                                                                                                                    
-                                                                                                                    
-                                                                                                                    
-                                                                                                                    
-                                                                                                                END IF
-                                                                                            ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
-                                                                                            
-                                                                                            
-                                                                                                
-                                                                                                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                                                                                                if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-                                                                                                                
-                                                                                                                DU1(1:nof_variables)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
-                                                                    
-                                                                                                                IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-                                                                                                                
-                                                                                                                DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
-                                                                                                                
-                                                                                                                end if
-                                                                                        
-                                                                                                                END IF
-                                                                                                        ELSE 			
-                                                                                                            DU1(1:nof_variables)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
-                                                                    
-                                                                                                                IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-                                                                                                                
-                                                                                                                DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
-                                                                                                                
-                                                                                                                end if
-                                                                                                        
-                                                                                                                
-                                                ! 								   
-                                                                                                                END IF
-                                                                                                    END IF
+                            IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+                                                DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
+                                                    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+                                                
+                                                DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+                                                    
+                                                    end if
+                                                                                    
+                                            
+                                            
+                                            ELSE
+                                            
+                                                
+                                                
+                                                                                                            
+                                                
+                                            END IF
+                                    ELSE
+                                        DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
+                                                    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+                                                
+                                                DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+                                                    
+                                                    end if
+                                        
+                                        
+                                        
+                                        
+                                    END IF
+                ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+                
+                
+                    
+                            IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                    if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                                    
+                                    DU1(1:nof_variables)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
+
+                                    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+                                    
+                                    DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+                                    
+                                    end if
+            
+                                    END IF
+                            ELSE 			
+                                DU1(1:nof_variables)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
+
+                                    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+                                    
+                                    DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+                                    
+                                    end if
+                            
+                                    
+! 								   
+                                    END IF
+                        END IF
                                                     
                                                     
 
