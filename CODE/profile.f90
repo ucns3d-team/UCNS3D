@@ -108,6 +108,7 @@ END FUNCTION LINEAR_INIT2D
  
  
  SUBROUTINE INITIALISE_EULER3D(N)
+ IMPLICIT NONE
   !> @brief
 !> This function initialises the solution for EULER and NAVIER-STOKES equations in 3D,
 !> various customisable profiles can be generated and assigned to each initcond code
@@ -472,6 +473,7 @@ END SUBROUTINE INITIALISE_EULER3D
 
 
  SUBROUTINE INITIALISE_EULER2D(N)
+ IMPLICIT NONE
    !> @brief
 !> This function initialises the solution for EULER and NAVIER-STOKES equations in 2D,
 !> various customisable profiles can be generated and assigned to each initcond code

@@ -4415,6 +4415,7 @@ ZPER = (ZMAX(N)) - ZMIN(N)
 
 
 SUBROUTINE READ_INPUT_PERIOD(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE,IBOUND,IMAXB,XMPINNUMBER,SCALER)
+IMPLICIT NONE
 !> @brief
 !> This subroutine reads all the periodic data from the grid files
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
@@ -4564,6 +4565,7 @@ END SUBROUTINE READ_INPUT_PERIOD
 
 
 SUBROUTINE stenprint(n)
+IMPLICIT NONE
 !> @brief
 !> This subroutine prints the stencils at a selected position
 integer,intent(in)::n

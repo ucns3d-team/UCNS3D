@@ -357,8 +357,8 @@ SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,
 !> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(nof_variables)::SOLS1,SOLS2
-REAL,DIMENSION(nof_variables,3)::SOLS_F
+REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2
+REAL,DIMENSION(1:nof_variables,3)::SOLS_F
 REAL,DIMENSION(3)::NORMAL_ALL
 REAL::OOV2
 INTEGER::I,J,K,L
@@ -576,8 +576,8 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG
 !> This subroutine computes the gradients of the averaged primitive variables of each non-interior cell using the Green-Gauss algorithm 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(nof_variables)::SOLS1,SOLS2
-REAL,DIMENSION(nof_variables,3)::SOLS_F
+REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2
+REAL,DIMENSION(1:nof_variables,3)::SOLS_F
 REAL,DIMENSION(3)::NORMAL_ALL
 REAL::OOV2
 INTEGER::I,J,K,L,IND1
