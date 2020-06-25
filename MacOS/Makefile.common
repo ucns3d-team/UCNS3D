@@ -1,0 +1,103 @@
+ifdef HPCTOOLKIT
+all: ucns3d_p ucns3d_p.hpcstruct
+else
+all: ucns3d_p
+endif
+
+ucns3d_p.hpcstruct: ucns3d_p
+	hpcstruct ucns3d_p
+
+ucns3d_p: mpi_p.o  declarations.o translate.o grid_t.o flow_operations.o io.o memory.o communications.o parts.o der_r.o svd.o grid_p.o basis.o local_pt.o riemann.o flux_p.o profile.o init_p.o   bc_p.o matrix.o  gradients.o prestore.o reconstruct_p.o source.o  implicit_fluxes.o implicit_time.o flux_pv.o time_p.o  main.o 
+	$(LD) $(FFLAGS) $(OFLAGS) -o ucns3d_p  declarations.o translate.o grid_t.o flow_operations.o   memory.o  io.o mpi_p.o  communications.o riemann.o flux_p.o profile.o init_p.o parts.o bc_p.o matrix.o grid_p.o basis.o gradients.o prestore.o reconstruct_p.o  source.o implicit_fluxes.o implicit_time.o flux_pv.o time_p.o  der_r.o svd.o local_pt.o  main.o   libparmetis.dylib libmetis.dylib libtecio.dylib $(LIBS1) $(LIBS)
+
+main.o: mpiinfo.mod declaration.mod translate.mod  memory.mod communications.mod io.mod partition.mod library.mod transform.mod fluxes.mod initialisation.mod boundary.mod advance.mod recon.mod local.mod fluxes_v.mod profile.mod flow_operations.mod gradients.mod basis.mod prestore.mod riemann.mod source.mod implicit_time.mod implicit_fluxes.mod
+	$(F90) $(FFLAGS)  -c   main.f90
+
+mpiinfo.mod mpi_p.o : mpi_p.f90
+	$(F90) $(FFLAGS)  -c     mpi_p.f90
+
+declaration.mod declarations.o : declarations.f90
+	$(F90) $(FFLAGS)  -c     declarations.f90
+
+translate.mod translate.o : translate.f90
+	$(F90) $(FFLAGS)  -c     translate.f90
+
+basis.mod basis.o : basis.f90 declaration.mod library.mod
+	$(F90) $(FFLAGS)  -c    basis.f90
+
+boundary.mod bc_p.o : bc_p.f90 library.mod transform.mod
+	$(F90) $(FFLAGS)  -c    bc_p.f90
+
+communications.mod communications.o : communications.f90 mpiinfo.mod declaration.mod transform.mod
+	$(F90) $(FFLAGS)  -c     communications.f90
+
+derivatives.mod der_r.o : der_r.f90 mpiinfo.mod
+	$(F90) $(FFLAGS)  -c    der_r.f90
+
+flow_operations.mod flow_operations.o : flow_operations.f90 declaration.mod mpiinfo.mod transform.mod
+	$(F90) $(FFLAGS)  -c    flow_operations.f90
+
+fluxes.mod flux_p.o : flux_p.f90 library.mod transform.mod local.mod riemann.mod flow_operations.mod
+	$(F90) $(FFLAGS)  -c    flux_p.f90
+
+fluxes_v.mod flux_pv.o : flux_pv.f90 library.mod transform.mod local.mod fluxes.mod derivatives.mod initialisation.mod recon.mod
+	$(F90) $(FFLAGS)  -c    flux_pv.f90
+
+gradients.mod gradients.o : gradients.f90 library.mod flow_operations.mod
+	$(F90) $(FFLAGS)  -c    gradients.f90
+
+library.mod grid_p.o : grid_p.f90 mpiinfo.mod declaration.mod io.mod transform.mod
+	$(F90) $(FFLAGS)  -c    grid_p.f90
+
+transform.mod grid_t.o : grid_t.f90 mpiinfo.mod declaration.mod
+	$(F90) $(FFLAGS)  -c    grid_t.f90
+
+implicit_fluxes.mod implicit_fluxes.o : implicit_fluxes.f90 declaration.mod library.mod transform.mod local.mod riemann.mod flow_operations.mod source.mod
+	$(F90) $(FFLAGS)  -c    implicit_fluxes.f90
+
+implicit_time.mod implicit_time.o : implicit_time.f90 library.mod transform.mod flow_operations.mod implicit_fluxes.mod communications.mod
+	$(F90) $(FFLAGS)  -c    implicit_time.f90
+
+initialisation.mod init_p.o : init_p.f90 declaration.mod library.mod transform.mod fluxes.mod profile.mod
+	$(F90) $(FFLAGS)  -c    init_p.f90
+
+io.mod io.o : io.f90 mpiinfo.mod declaration.mod flow_operations.mod transform.mod
+	$(F90) $(FFLAGS)  -c     io.f90
+
+local.mod local_pt.o : local_pt.f90 library.mod declaration.mod transform.mod
+	$(F90) $(FFLAGS)  -c    local_pt.f90
+
+lapck.mod matrix.o : matrix.f90 mpiinfo.mod
+	$(F90) $(FFLAGS)  -c    matrix.f90
+
+memory.mod memory.o : memory.f90 mpiinfo.mod declaration.mod
+	$(F90) $(FFLAGS)  -c     memory.f90
+
+partition.mod parts.o : parts.f90 mpiinfo.mod declaration.mod
+	$(F90) $(FFLAGS)  -c    parts.f90
+
+prestore.mod prestore.o : prestore.f90 declaration.mod derivatives.mod library.mod basis.mod transform.mod local.mod lapck.mod
+	$(F90) $(FFLAGS)  -c    prestore.f90
+
+profile.mod profile.o : profile.f90 declaration.mod library.mod
+	$(F90) $(FFLAGS)  -c    profile.f90
+
+recon.mod reconstruct_p.o : reconstruct_p.f90 declaration.mod derivatives.mod library.mod transform.mod local.mod lapck.mod gradients.mod basis.mod
+	$(F90) $(FFLAGS)  -c    reconstruct_p.f90
+
+riemann.mod riemann.o : riemann.f90 declaration.mod library.mod flow_operations.mod
+	$(F90) $(FFLAGS)  -c    riemann.f90
+
+source.mod source.o : source.f90 library.mod transform.mod local.mod riemann.mod flow_operations.mod
+	$(F90) $(FFLAGS)  -c    source.f90
+
+svd.mod svd.o : svd.f90 mpiinfo.mod
+	$(F90) $(FFLAGS)  -c    svd.f90
+
+advance.mod time_p.o : time_p.f90 library.mod transform.mod fluxes.mod source.mod initialisation.mod boundary.mod recon.mod local.mod flow_operations.mod communications.mod implicit_time.mod implicit_fluxes.mod io.mod
+	$(F90) $(FFLAGS)  -c    time_p.f90
+
+
+clean:
+	rm  -rf *.mod *.o
+
