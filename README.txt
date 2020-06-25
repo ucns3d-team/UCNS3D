@@ -3,7 +3,7 @@ UCNS3D CODE Instructions.
 
 1. Requirements
 
-a) Linux x86-64 (Tested on Redhat, Ubuntu, Centos, Suse)
+a) Linux x86-64 (Tested on Redhat, Ubuntu, Centos, Suse) or MacOS (Catalina and newer)
 b) Intel Parallel Studio Version 17 or newer, or (gfotran and gcc with an MPI distribution)
 c) Intel MKL library (or OpenBLAS)
 d) Tecplot or Paraview for visualisation
