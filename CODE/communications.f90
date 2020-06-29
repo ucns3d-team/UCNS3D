@@ -1120,7 +1120,7 @@ end if
 n_requests = 0
 
 allocate(requests(jtotal*2))
-
+requests(:)=0
 ICPUID=N
 
 do k=1,jtotal
@@ -1278,7 +1278,7 @@ end if
 n_requests = 0
 
 allocate(requests(jtotal*2))
-
+requests(:)=0
 ICPUID=N
 
 do k=1,jtotal
@@ -1704,7 +1704,7 @@ END  IF
 
 n_requests = 0
 allocate(requests(2*indl))
-
+requests(:)=0
 ICPUID=N
 
 

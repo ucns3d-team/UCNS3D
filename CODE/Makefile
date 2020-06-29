@@ -39,7 +39,7 @@ OFLAGS=
 #debug run
 #FFLAGS=-ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fbacktrace -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -Wno-lto-type-mismatch -static $(BLASFLAGS)
 #production run
- FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -fcray-pointer -Ofast  -Wno-lto-type-mismatch -static $(BLASFLAGS)
+ FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast  -Wno-lto-type-mismatch -static $(BLASFLAGS)
 
 
 LIBS =$(BLASLIBS) -lstdc++ 

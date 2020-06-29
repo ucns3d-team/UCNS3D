@@ -477,16 +477,16 @@ end if
   END IF
 
  
-if (fastest.eq.1)then
+
 call SOLEX_ALLOC(N)
-if (rungekutta.ge.10)then
+if (rungekutta.ge.2)then
 if (dimensiona.eq.3)then
 CALL direct_side(n)
 ELSE
 CALL direct_side2d(n)
 END IF
 end if
-end if
+
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
