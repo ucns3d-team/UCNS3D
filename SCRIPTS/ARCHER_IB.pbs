@@ -14,13 +14,12 @@ cd $PBS_O_WORKDIR
 # Set the number of threads to 1
 #   This prevents any system libraries from automatically 
 #   using threading.
-export OMP_NUM_THREADS=12
-export KMP_AFFINITY=disabled
-export MPICH_MAX_THREAD_SAFETY=MPI_THREAD_FUNNELED
 # 2 MPI PROCESSES PER NODE
 # 1 MPI_PROCESS PER NUMA REGION
 # 12 OMP THREADS PER MPI PROCESS
-
-
-# Launch the parallel job
-aprun -n 400 -N 2 -S 1 -d 12 -cc numa_node  ./ucns3d_p 
+export OMP_NUM_THREADS=12
+export OMP_PROC_BIND=true
+export KMP_AFFINITY=granularity=fine,compact
+export MPICH_MAX_THREAD_SAFETY=funneled
+aprun -n 400 -N 2 -ss -S 1 -d 12 -cc numa_node ./ucns3d_p
+ 
