@@ -8,6 +8,7 @@ USE LOCAL
 USE LAPCK
 USE GRADIENTS
 USE BASIS
+USE FLOW_OPERATIONS
 IMPLICIT NONE
 
 
@@ -54,9 +55,17 @@ KMAXE=XMPIELRANK(N)
        if (dimensiona.eq.3)then
 	DO I=1,KMAXE
 		IF (IELEM(N,I)%ISHAPE.EQ.2)THEN
-		ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+            ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+		IF (SRF.EQ.1)THEN
+            ALLOCATE(ILOCAL_RECON3(I)%RPOINTS(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+            ALLOCATE(ILOCAL_RECON3(I)%ROTVEL(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+		END IF
 		ELSE
-		ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,QP_QUAD,3))
+            ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,QP_QUAD,3))
+		IF (SRF.EQ.1)THEN
+            ALLOCATE(ILOCAL_RECON3(I)%RPOINTS(IELEM(N,I)%IFCA,QP_QUAD,3))
+            ALLOCATE(ILOCAL_RECON3(I)%ROTVEL(IELEM(N,I)%IFCA,QP_QUAD,3))
+		END IF
 		END IF
 		ICONSIDERED=I
 		DO L=1,IELEM(N,I)%IFCA
@@ -125,6 +134,109 @@ KMAXE=XMPIELRANK(N)
 		ILOCAL_RECON3(I)%QPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
 		END DO	!NGP
 		END DO
+		if (SRF.eq.1) then
+	   DO L=1,IELEM(N,I)%IFCA
+		IDUMMY=0
+		    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
+				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					      IDUMMY=1
+					  END IF
+				  END IF
+		
+				
+				 if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+				    NND=4
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:3)=INODER(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+! 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD(n,iconsidered,facex)
+! 					  do K=1,nnd
+! 					  VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+! 					  END DO
+					  END IF
+					  
+				    call  QUADRATUREQUAD3D(N,IGQRULES)
+				    
+				    
+				    
+				  else
+				    iqp=QP_TRIANGLE
+				    NND=3
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:3)=INODER(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+! 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD(n,iconsidered,facex)
+! 					  do K=1,nnd
+! 					  VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+! 					  END DO
+					  END IF
+					  
+				    call QUADRATURETRIANG(N,IGQRULES)
+				    
+				    
+				  end if
+		else
+				   if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+				    NND=4
+					 
+					  do K=1,nnd
+					    VEXT(k,1:3)=INODER(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+! 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+					 
+					  
+				    call  QUADRATUREQUAD3D(N,IGQRULES)
+				    
+				    
+				    
+				  else
+				    iqp=QP_TRIANGLE
+				    NND=3
+					  
+					  do K=1,nnd
+					    VEXT(k,1:3)=INODER(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+! 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+					  
+					  
+				    call QUADRATURETRIANG(N,IGQRULES)
+				    
+				    
+				  end if
+       
+       
+		end if          
+
+                             do NGP=1,iqp			!for gqp
+				ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
+				POX(1:3)=ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)-SRF_ORIGIN(1:3)
+                                    POY(1:3)=SRF_VELOCITY(1:3)
+                                    ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)=VECT_FUNCTION(POX,POY,POZ)
+! 				 WRITE(500+N,*)I,L,IELEM(N,I)%XXC,IELEM(N,I)%YYC,IELEM(N,I)%ZZC
+!                                 
+!                                  WRITE(500+N,*)"COMPUTATIONAL",ILOCAL_RECON3(I)%QPOINTS(L,NGP,1:3)
+!  				WRITE(500+N,*)"PHYSICAL1",ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)
+! !                                 
+!  				ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCTJAC(1:3,1:3),ILOCAL_RECON3(I)%QPOINTS(L,NGP,1:3))+ILOCAL_RECON3(I)%VEXT_REF(1:3)
+!  				WRITE(500+N,*)"PHYSICAL2",ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)
+! ! 				
+				END DO	!NGP
+	
+	   
+	  END DO
+	  
+	  end if
 		END DO
 	  
 	  
@@ -1085,7 +1197,10 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				VEIGL(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 				CALL ROTATEF(N,TRI,RVEIGL,VEIGL,ANGLE1,ANGLE2)
 				
-				
+				IF (SRF.EQ.1)THEN
+					SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
+					CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)					
+                END IF
 				IF (IELEM(N,I)%INEIGHB(l).EQ.N)THEN	!MY CPU ONLY
 				      IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES	
 					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN MY CPU

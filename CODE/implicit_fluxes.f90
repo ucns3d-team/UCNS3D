@@ -41,7 +41,8 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 		    
 		    
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
-				  GODFLUX2=ZERO
+				  GODFLUX2=ZERO!                                                                   WRITE(500+N,'(3ES14.6)'),SRF_SPEED(2:4)
+
  				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
  				  ANGLE2=IELEM(N,I)%FACEANGLEY(L)
  				  NX=(COS(ANGLE1)*SIN(ANGLE2))
@@ -82,7 +83,14 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  
 						  ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
-						  
+						   IF(SRF.EQ.1)THEN
+                                !RETRIEVE THE ROTATIONAL VELOCITY (AT THE GAUSSIAN POINT JUST FOR SECOND ORDER)
+                                SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
+                                CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
+                                !CALCULATE THE NEW EIGENVALUE FOR ROTATING REFERENCE FRAME
+                                ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
+                                ASOUND2=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
+                            END IF
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
@@ -173,7 +181,8 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  IMPOFF(i,l,1:5,1:5)=IMPOFF(i,l,1:5,1:5)+(((OO2*CONVJ(1:5,1:5))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
-                                                
+                                                !                                                                   WRITE(500+N,'(3ES14.6)'),SRF_SPEED(2:4)
+
 						  
 						  
 						  END IF
@@ -193,7 +202,8 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 		IMPOFF(i,:,:,:)=0.0
 		if (turbulence.eq.1)then
 		impdiagt(i,:)=0.0
-		IMPOFFt(i,:,:)=0.0
+		IMPOFFt(i,:,:)=0.0!                                                                   WRITE(500+N,'(3ES14.6)'),SRF_SPEED(2:4)
+
 		end if
 		    
 		    DO L=1,IELEM(N,I)%IFCA
@@ -206,6 +216,11 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
  				  mul1=IELEM(N,I)%SURF(L)
 				      B_CODE=0
 				      CLEFT(1:5)=U_C(I)%VAL(1,1:5)
+                 IF (SRF.EQ.1) THEN
+                    !RETRIEVE ROTATIONAL VELOCITY IN CASE OF ROTATING REFERENCE FRAME TO CALCULATE THE CORRECT VALUE OF THE BOUNDARY CONDITION
+                    SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
+                    CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)	
+                END IF
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
@@ -340,10 +355,13 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  
 						  LEFTV(1:5)=CLEFT(1:5);RIGHTV(1:5)=CRIGHT(1:5)						  
 						  CALL CONS2PRIM2(N)
-						  
-						 ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
-						  
+                            ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+                            ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+                        IF (SRF.EQ.1) THEN
+                            ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
+                            ASOUND2=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
+                        END IF
+
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
@@ -449,7 +467,15 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	END DO
 	!$OMP END DO
 
-	
+    !ADD THE CONTRIBUTION OF THE SOURCE TERM TO THE JACOBIAN OF THE DIAGONAL MATRIX(JUST WHEN ONLY OMEGA_Z IS NOT EQUAL TO 0)
+        IF (SRF.EQ.1) THEN
+        !$OMP DO SCHEDULE(GUIDED)
+            DO I=1,KMAXE
+                IMPDIAG(i,2,3)=-SRF_VELOCITY(3)*ielem(n,I)%totvolume
+                IMPDIAG(i,3,2)=SRF_VELOCITY(3)*ielem(n,I)%totvolume
+            END DO
+        !$OMP END DO
+        END IF	
 	
 	
 	

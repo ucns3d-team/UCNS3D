@@ -301,6 +301,12 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
 					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
 					END IF
+					
+					IF (SRF.EQ.1)THEN
+
+                        SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
+                        CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)					
+					END IF
 			
 						  CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
@@ -377,6 +383,9 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					  NORMs=(nx*(U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1)))&
 						+(nY*(U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1)))&
 						+(nz*(U_C(I)%val(1,4)/U_C(I)%val(1,1)))
+                        if (SRF.eq.1) then
+                            NORMs=NORMS-SRF_SPEEDROT(2)
+                        end if
 					      IF (NORMs.GE.ZERO)THEN
 						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=(NORMs)*CTURBL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 					      END IF
@@ -480,6 +489,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				  do NGP=1,iqp
 				      B_CODE=0
 				      CLEFT(1:5)=ILOCAL_RECON3(I)%ULEFT(1:5,L,NGP)
+				       IF (SRF.EQ.1)THEN
+                            SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
+                            CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)					
+                        END IF
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						if (icoupleturb.eq.1)then
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)
@@ -699,6 +712,9 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					  NORMs=(nx*(U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1)))&
 						+(nY*(U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1)))&
 						+(nz*(U_C(I)%val(1,4)/U_C(I)%val(1,1)))
+                        if (SRF.eq.1) then
+                            NORMs=NORMS-SRF_SPEEDROT(2)
+                        end if
 					      IF (NORMs.GE.ZERO)THEN
 						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=(NORMs)*CTURBL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 					      END IF
@@ -1275,7 +1291,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				      CRIGHT(1:5)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:5,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
 				      RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
 				      RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP);
-			
+                    IF (SRF.EQ.1)THEN
+                            SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
+                            CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)					
+					END IF
 					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  if (icoupleturb.eq.1)then
 					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp) !left additional equations flow state
@@ -1630,6 +1649,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				      CLEFT(1:5)=ILOCAL_RECON3(I)%ULEFT(1:5,L,NGP)	!left mean flow state
 				      LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
 				      LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
+				       IF (SRF.EQ.1)THEN
+                            SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
+                            CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)					
+					END IF
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						if (icoupleturb.eq.1)then
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)

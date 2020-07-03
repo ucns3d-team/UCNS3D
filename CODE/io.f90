@@ -3004,11 +3004,21 @@ SUBROUTINE READ_UCNS3D
 	READ(15,*)
 	READ(15,*)
 	READ(15,*)IRES_TURB,IRES_UNSTEADY,LAMPS,Prev_turbmodel  
-	READ(15,*)
-	READ(15,*)
-	READ(15,*)
-	READ(15,*)
-	READ(15,*)
+	READ(15,*)!61
+	READ(15,*)!62
+	READ(15,*)!63
+	READ(15,*)!64
+	READ(15,*)SRF
+	READ(15,*)!66
+	READ(15,*)SRF_ORIGIN(1),SRF_ORIGIN(2),SRF_ORIGIN(3)
+	READ(15,*)!68
+	READ(15,*)SRF_VELOCITY(1),SRF_VELOCITY(2),SRF_VELOCITY(3)
+    READ(15,*)!70    
+	READ(15,*)V_REF	
+    READ(15,*)!72
+    READ(15,*)!73
+    READ(15,*)!74
+    READ(15,*)!75
 	READ(15,*)NPROBES
 	READ(15,*)
 	    
@@ -3329,6 +3339,11 @@ SUBROUTINE READ_UCNS3D
 	   ! Set pressure
 	  if ( PRES .lt. 0 ) PRES = RRES/GAMMA	
 	  ! Set dynamic free-stream viscosity
+    IF (SRF.EQ.0) THEN
+        VISC = (RRES*ufreestream*CharLength)/Reynolds
+    ELSE
+        VISC = (RRES*V_ref*CharLength)/Reynolds
+    END IF
 	  VISC = (RRES*ufreestream*CharLength)/Reynolds
 	  if (swirl.eq.1)then
 	  uvel=ZERO
@@ -3479,8 +3494,19 @@ SUBROUTINE READ_UCNS3D
 	      CLOSE(63)
 	  END IF
 
-	  
-	   
+	  IF (srf.eq.1)THEN
+            SOURCE_ACTIVE=1
+            KINIT_SRF=0.00001
+            ROT_CORR=1
+            D_CORR=1
+        IF (N.EQ.0)THEN
+                OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+                write(63,*)'Single Reference Frame Engaged'
+                CLOSE(63)
+        END IF
+	ELSE
+        SOURCE_ACTIVE=0
+    END IF
 	  
 	  !TURBULENCE DEFAULT VALUES
 	

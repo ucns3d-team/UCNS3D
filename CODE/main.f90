@@ -703,7 +703,7 @@ end if
   
  
 
-
+SRF_SPEEDROT=zero
  
  IF (FASTEST_Q.EQ.1)THEN
  CALL MEMORY_FAST(N)
