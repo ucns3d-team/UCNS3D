@@ -921,7 +921,7 @@ KJ=0
 	
 	n_requests = 0
       allocate(requests(2*ifst))					!3 ALLOCATE(REQUESTS)
-	
+	requests(:)=0
 	do i=0,isize-1
 	
 		  IF (cand(i).gt.0)THEN
