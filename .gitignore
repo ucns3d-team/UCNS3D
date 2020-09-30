@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+TESTS/2D/
+
+TESTS/
+
+TESTS.tar.gz

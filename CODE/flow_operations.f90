@@ -774,6 +774,20 @@ end if
 END SUBROUTINE PRIM2CONS2d2
 
 
+FUNCTION VECT_FUNCTION(POX,POY,POZ)
+IMPLICIT NONE
+REAL,DIMENSION(3)::VECT_FUNCTION
+REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::POX,POY,POZ
+
+VECT_FUNCTION(1)=(POY(2)*POX(3))-(POY(3)*POX(2))
+VECT_FUNCTION(2)=(POY(3)*POX(1))-(POY(1)*POX(3))
+VECT_FUNCTION(3)=(POY(1)*POX(2))-(POY(2)*POX(1))
+
+
+
+
+
+END FUNCTION VECT_FUNCTION
 
 FUNCTION INFLOW(INITCOND,POX,POY,POZ)
 !> @brief
@@ -1872,6 +1886,10 @@ SELECT CASE(B_CODE)
 	      IF (TURBULENCEMODEL.EQ.2)THEN	 
 		CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
 		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
+        IF (SRF.EQ.1)THEN
+        CTURBR(1)=(1.5D0*I_turb_inlet*(KINIT_SRF**2))*RIGHTV(1)!K INITIALIZATION
+		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
+        END IF
 	      END IF
  
 	      IF (PASSIVESCALAR.GT.0)THEN
@@ -1956,13 +1974,19 @@ SELECT CASE(B_CODE)
     CASE(3)!SYMMETRY
     
 			      CALL ROTATEF(N,TRI,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-			      
-         		      CRIGHT_ROT(1)=CLEFT_ROT(1)
-			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
-			      CRIGHT_ROT(3)=CLEFT_ROT(3)
-			      CRIGHT_ROT(4)=CLEFT_ROT(4)
-			      CRIGHT_ROT(5)=CLEFT_ROT(5)
-					 
+				IF (SRF.EQ.1)THEN
+                    CRIGHT_ROT(1)=CLEFT_ROT(1)
+                    CRIGHT_ROT(2)=-(CLEFT_ROT(2))+2.0D0*CLEFT_ROT(1)*SRF_SPEEDROT(2)
+                    CRIGHT_ROT(3)=CLEFT_ROT(3)
+                    CRIGHT_ROT(4)=CLEFT_ROT(4)
+                    CRIGHT_ROT(5)=CLEFT_ROT(5)+2.0D0*CLEFT_ROT(1)*(SRF_SPEEDROT(2)**2)-2.0D0*CLEFT_ROT(2)*SRF_SPEEDROT(2)
+                ELSE
+                    CRIGHT_ROT(1)=CLEFT_ROT(1)
+                    CRIGHT_ROT(2)=-CLEFT_ROT(2)
+                    CRIGHT_ROT(3)=CLEFT_ROT(3)
+                    CRIGHT_ROT(4)=CLEFT_ROT(4)
+                    CRIGHT_ROT(5)=CLEFT_ROT(5)
+				END IF
 				     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 					    CTURBR(:)=CTURBL(:)
 
@@ -1983,10 +2007,16 @@ SELECT CASE(B_CODE)
 			      IF (ITESTCASE.EQ.3)THEN
 			      
 			       CALL ROTATEF(N,TRI,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-			      
+			      IF (SRF.EQ.1)THEN
+                        CRIGHT_ROT(1)=CLEFT_ROT(1)
+                        CRIGHT_ROT(2)=-(CLEFT_ROT(2))+2.0D0*CLEFT_ROT(1)*SRF_SPEEDROT(2)
+                        CRIGHT_ROT(3)=CLEFT_ROT(3)
+                        CRIGHT_ROT(4)=CLEFT_ROT(4)
+                        CRIGHT_ROT(5)=CLEFT_ROT(5)+CLEFT_ROT(1)*(SRF_SPEEDROT(2)**2)*2.0D0-2.0D0*CLEFT_ROT(2)*SRF_SPEEDROT(2)
+			      ELSE
          		      CRIGHT_ROT(:)=CLEFT_ROT(:)
 			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
-					 
+                  END IF
 				     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 					    CTURBR(:)=CTURBL(:)
 
@@ -2004,13 +2034,21 @@ SELECT CASE(B_CODE)
 			      
 			      
 			      ELSE
+                  IF(SRF.EQ.1)THEN
+                    rightv(1)=leftv(1)
+                    rightv(2)=-leftv(2)+2.0D0*leftv(1)*SRF_SPEED(2)
+                    rightv(3)=-leftv(3)+2.0D0*leftv(1)*SRF_SPEED(3)
+                    rightv(4)=-leftv(4)+2.0D0*leftv(1)*SRF_SPEED(4)
+                    rightv(5)=leftv(5)+2.0D0*leftv(1)*(SRF_SPEED(2)**2+SRF_SPEED(3)**2+SRF_SPEED(4)**2)+&
+                                            -2.0D0*(leftv(2)*SRF_SPEED(2)+leftv(3)*SRF_SPEED(3)+leftv(4)*SRF_SPEED(4))
     
-			      rightv(1)=leftv(1)
-			      rightv(2)=-leftv(2)
-			      rightv(3)=-leftv(3)
-			      rightv(4)=-leftv(4)
-			      rightv(5)=leftv(5)
-    
+                  ELSE
+                    rightv(1)=leftv(1)
+                    rightv(2)=-leftv(2)
+                    rightv(3)=-leftv(3)
+                    rightv(4)=-leftv(4)
+                    rightv(5)=leftv(5)
+                  END IF
     
     
     
@@ -2841,17 +2879,21 @@ ES=(RVEIGL(5)*OORS)
 PHI=OO2*(A2)*((US*US)+(VS*VS)+(WS*WS))
  A1=GAMMA*ES-PHI
 
- 
- 
 VVS=NX*US+NY*VS+NZ*WS
 
-
-EIGVL(1,1)=0.0D0		; 		EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=NZ	; 		EIGVL(1,5)=0.0D0
-EIGVL(2,1)=NX*PHI-US*VVS	; 	EIGVL(2,2)=VVS-A3*NX*US	; 	EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=NZ*US-A2*NX*WS	; EIGVL(2,5)=A2*NX
-EIGVL(3,1)=NY*PHI-VS*VVS		; EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS	; EIGVL(3,4)=NZ*VS-A2*NY*WS	; EIGVL(3,5)=A2*NY
-EIGVL(4,1)=NZ*PHI-WS*VVS		; EIGVL(4,2)=NX*WS-A2*NZ*US	; EIGVL(4,3)=NY*WS-A2*NZ*VS	; EIGVL(4,4)=VVS-A3*NZ*WS	; EIGVL(4,5)=A2*NZ
-EIGVL(5,1)=VVS*(PHI-A1)	;		 EIGVL(5,2)=NX*A1-A2*US*VVS	; EIGVL(5,3)=NY*A1-A3*VS*VVS	; EIGVL(5,4)=NZ*A1-A2*WS*VVS	; EIGVL(5,5)=GAMMA*VVS
-
+IF(SRF.EQ.1)THEN
+    EIGVL(1,1)=0.0D0-SRF_SPEEDROT(2);EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=NZ	; 		EIGVL(1,5)=0.0D0
+    EIGVL(2,1)=NX*PHI-US*VVS	;EIGVL(2,2)=VVS-A3*NX*US-SRF_SPEEDROT(2)	;EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=NZ*US-A2*NX*WS; EIGVL(2,5)=A2*NX
+    EIGVL(3,1)=NY*PHI-VS*VVS	;EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS-SRF_SPEEDROT(2)	; EIGVL(3,4)=NZ*VS-A2*NY*WS; EIGVL(3,5)=A2*NY
+    EIGVL(4,1)=NZ*PHI-WS*VVS	;EIGVL(4,2)=NX*WS-A2*NZ*US	; EIGVL(4,3)=NY*WS-A2*NZ*VS	; EIGVL(4,4)=VVS-A3*NZ*WS-SRF_SPEEDROT(2); EIGVL(4,5)=A2*NZ
+    EIGVL(5,1)=VVS*(PHI-A1)         ; EIGVL(5,2)=NX*A1-A2*US*VVS	; EIGVL(5,3)=NY*A1-A3*VS*VVS; EIGVL(5,4)=NZ*A1-A2*WS*VVS; EIGVL(5,5)=GAMMA*VVS-SRF_SPEEDROT(2)
+ELSE
+    EIGVL(1,1)=0.0D0		; 		EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=NZ	; 		EIGVL(1,5)=0.0D0
+    EIGVL(2,1)=NX*PHI-US*VVS	; 	EIGVL(2,2)=VVS-A3*NX*US	; 	EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=NZ*US-A2*NX*WS	; EIGVL(2,5)=A2*NX
+    EIGVL(3,1)=NY*PHI-VS*VVS		; EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS	; EIGVL(3,4)=NZ*VS-A2*NY*WS	; EIGVL(3,5)=A2*NY
+    EIGVL(4,1)=NZ*PHI-WS*VVS		; EIGVL(4,2)=NX*WS-A2*NZ*US	; EIGVL(4,3)=NY*WS-A2*NZ*VS	; EIGVL(4,4)=VVS-A3*NZ*WS	; EIGVL(4,5)=A2*NZ
+    EIGVL(5,1)=VVS*(PHI-A1)	;		 EIGVL(5,2)=NX*A1-A2*US*VVS	; EIGVL(5,3)=NY*A1-A3*VS*VVS	; EIGVL(5,4)=NZ*A1-A2*WS*VVS	; EIGVL(5,5)=GAMMA*VVS
+END IF
 
  
  

@@ -25,6 +25,35 @@ SUBROUTINE SOURCES_COMPUTATION(N)
 	!$OMP END DO 
 END SUBROUTINE SOURCES_COMPUTATION
 
+SUBROUTINE SOURCES_COMPUTATION_ROT(N)
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	INTEGER::I,KMAXE
+	REAL::OODENSITY
+	
+	
+	KMAXE=XMPIELRANK(N)
+	!$OMP DO SCHEDULE (STATIC)
+	DO I=1,KMAXE
+		
+		
+		 OODENSITY=1.0D0/U_C(I)%VAL(1,1)
+        
+                SOURCE_T2(1)=ZERO
+                SOURCE_T2(2)=U_C(I)%VAL(1,2)*OODENSITY-UVEL
+                SOURCE_T2(3)=U_C(I)%VAL(1,3)*OODENSITY-VVEL
+                SOURCE_T2(4)=U_C(I)%VAL(1,4)*OODENSITY-WVEL
+                SOURCE_T2(5)=ZERO
+        
+                POX(1:3)= SOURCE_T2(2:4)  
+                POY(1:3)=SRF_VELOCITY(1:3)
+                SOURCE_T2(2:4)=U_C(I)%VAL(1,1)*VECT_FUNCTION(POX,POY,POZ)
+		RHS(I)%VAL(1:NOF_VARIABLES)=RHS(I)%VAL(1:NOF_VARIABLES)+(SOURCE_T2(1:NOF_VARIABLES)*ielem(n,I)%totvolume)
+		
+	END DO
+	!$OMP END DO 
+END SUBROUTINE SOURCES_COMPUTATION_ROT
+
 SUBROUTINE SOURCES_derivatives_COMPUTATION(N)
 !> @brief
 !> Sources derivative computation for implicit time stepping
@@ -57,7 +86,7 @@ INTEGER::I,K,J,L,IHGT,IHGJ,IEX, LOWRE
 REAL::SNORM,ONORM,DIVNORM,ax,ay,az,TCH_SHH,TCH_SAV,Verysmall,onesix,ProdTerm1,stild,rr
 REAL::gg,FW,destterm,fodt,srcfull,DBPR,DBDI,DBDE,DBY,DBX,ProdTermfinal
 REAL:: r_DES,f_DES, ddw,F_DES_SST,L_t_DES
-Real :: ux,uy,vx,vy,shear,sratio,prodmod,cvor,stildmod,ProdTerm2,sfac,sss,usss,ssss,S_bar,KRON
+Real :: ux,uy,vx,vy,shear,sratio,prodmod,cvor,stildmod,ProdTerm2,sfac,sss,usss,ssss,S_bar,KRON,OODENSITY
 real:: uz,vz,wx,wy,wz
 REAL:: uxx,uyy,uzz,vxx,vyy,vzz,wxx,wyy,wzz  !For SAS only
 REAL,DIMENSION(3,3)::VORTET,TVORT,SVORT,OVORT
@@ -139,7 +168,10 @@ TURBMV(2)=TURBMV(1)
  
  
  CASE(1) !!SPALART ALMARAS MODEL	
-
+        
+    if (ROT_CORR.EQ.1) then
+        OMEGA = OMEGA + 2.0d0*min(0.0d0,SNORM-ONORM)
+    end if
     
       if (ISPAL .eq.1) then
 		eddyfl(2)=turbmv(1)
@@ -189,7 +221,11 @@ TURBMV(2)=TURBMV(1)
 			      destterm  = cw1 * fw * ((( TURBMV(1) )/(leftv(1)*(ddw)))**2)
 			      ! ! 	!  First order diffusion term
 			      fodt  =   cb2 * SQUARET/ SIGMA
-			      SOURCE_T(1) = ProdTermfinal + fodt - destterm
+            if (D_CORR.EQ.0) then
+				SOURCE_T(1) = ProdTermfinal + fodt - destterm
+            else 
+				SOURCE_T(1) = ProdTermfinal + (fodt - destterm)*leftv(1)
+            end if
 			END IF
 	 eLSE
 		    CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
