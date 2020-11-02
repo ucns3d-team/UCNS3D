@@ -15,34 +15,57 @@ LD=$(F90)
 
 #ifdef MKLROOT
 
-#BLASFLAGS=  -I${MKLROOT}/include
-#BLASLIBS=  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+BLASFLAGS=  -I${MKLROOT}/include
+BLASLIBS=  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
 #else
 #   $(error MKLROOT not set. Typing 'module load mkl' may help)
 #endif
 
 #open blas
+#export LD_LIBRARY_PATH=/opt/hlrs/non-spack/libraries/amd-libm/3.5.0/lib:$LD_LIBRARY_PATH
 
- BLASFLAGS=  -I /usr/local/include	###Ensure that you include your BLAS library path here
- BLASLIBS=  -L/usr/local/lib -lopenblas ###Ensure that you include your BLAS library path here
+#BLASFLAGS= -I  ${BLIS_ROOT}/include     	###Ensure that you include your BLAS library path here
+#BLASLIBS=  ${BLIS_ROOT}/lib/libblis.a       ###Ensure that you include your BLAS library path here
+
+
+#amdblis aocl
+
+
+#BLASFLAGS=  -I/opt/hlrs/non-spack/libraries/aocl-gcc/2.1.0/amd-blis/include/
+#BLASLIBS= /opt/hlrs/non-spack/libraries/aocl-gcc/2.1.0/amd-blis/lib/libblis.a
+
 
 OFLAGS= 
 
 #intel compilers
 # debug run
 #FFLAGS=-i4 -r8 -O0  -g  -debug all -xHost -traceback -qopenmp -qopenmp-link=static $(BLASFLAGS) -check bounds -fp-model strict -debug inline-debug-info -zero 
-# production run
-#FFLAGS=-i4 -r8 -O3 -ipo -xHost -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)  
+# production run Intel CPU
+FFLAGS=-i4 -r8 -ipo -march=core-avx2 -mtune=core-avx2 -O3 -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)  
 
-##
+# production run AMD EPYC Rome
+#FFLAGS=-i4 -r8 -ipo -march=core-avx2 -mtune=core-avx2 -O3 -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)  
+
+
 #gfortran
 #debug run
-#FFLAGS=-ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fbacktrace -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -Wno-lto-type-mismatch -static $(BLASFLAGS)
-#production run
- FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast  -Wno-lto-type-mismatch -static $(BLASFLAGS)
+#FFLAGS=-ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fbacktrace -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -Wno-lto-type-mismatch $(BLASFLAGS)
+#production run Intel CPU
+#FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast  -Wno-lto-type-mismatch $(BLASFLAGS) 
 
+#production run AMD EPYC Rome
+#FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -O3 -march=znver2  -Wno-lto-type-mismatch $(BLASFLAGS) 
 
-LIBS =$(BLASLIBS) -lstdc++ 
+#amd_ocl
+#FFLAGS= -O3 -Mfreeform -Mallocatable=03 -Mdaz -fdefault-real-8 -fopenmp -mavx2 -march=znver2 $(BLASFLAGS)
+#FFLAGS= -O2 -mp -fdefault-real-8 -flto -fopenmp -mavx2 -march=znver2 $(BLASFLAGS)
+
+#gnu hybrid static dynamic
+#LIBS = -Wl,-Bstatic libparmetis.a libmetis.a libtecio.a $(BLASLIBS) -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi 
+
+#intel static
+LIBS = libparmetis.a libmetis.a libtecio.a $(BLASLIBS) -lstdc++ 
+
 
 include Makefile.common
 

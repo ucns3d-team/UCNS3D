@@ -11,6 +11,7 @@ USE FLOW_OPERATIONS
 USE COMMUNICATIONS
 USE implicit_time
 USE implicit_FLUXES
+USE DECLARATION
 ! USE FLUXES_V
 USE IO
 IMPLICIT NONE
@@ -2506,7 +2507,7 @@ if (lowmemory.eq.0)then
  end if
 
 !$OMP BARRIER 
-!$OMP DO SCHEDULE(GUIDED) REDUCTION(+:allresdt)
+!$OMP DO SCHEDULE(STATIC) REDUCTION(+:allresdt)
 DO I=1,KMAXE
       rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2)+((IMPDU(I,5))**2))
       allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)
@@ -2710,7 +2711,7 @@ if (lowmemory.eq.0)then
  end if
 
 !$OMP BARRIER 
-!$OMP DO SCHEDULE(GUIDED) REDUCTION(+:allresdt)
+!$OMP DO SCHEDULE(STATIC) REDUCTION(+:allresdt)
 DO I=1,KMAXE
       rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2))
       allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)

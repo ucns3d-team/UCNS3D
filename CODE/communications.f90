@@ -1058,7 +1058,7 @@ END DO
 !$OMP END DO
 END IF
   
-
+!$OMP BARRIER
 !$OMP MASTER
 ICPUID=N
 DO I=1,INEEDT
@@ -1273,7 +1273,6 @@ end if
 
 
 !$OMP BARRIER
-
 !$OMP MASTER
 n_requests = 0
 
@@ -1425,8 +1424,6 @@ END DO
 end if
 
 !$OMP BARRIER
-
-
 !$OMP MASTER
 
 jtotal=0;jtotal1=0;jtotal2=0;jtotal3=0
@@ -1699,6 +1696,7 @@ END  IF
 !-------------------FOR DEBUGGING ONLY -----------------------------------------!
 
 !-------------------FOR DEBUGGING ONLY -----------------------------------------!
+
 !$OMP MASTER
 !CALL MPI_BARRIER(mpi_comm_world,ierror)
 

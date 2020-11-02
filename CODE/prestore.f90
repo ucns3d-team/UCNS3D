@@ -22,7 +22,7 @@ KMAXE=XMPIELRANK(N)
 
 if (dimensiona.eq.3)then
 !$OMP PARALLEL DEFAULT(SHARED) 
-!$OMP DO schedule(guided)
+!$OMP DO schedule(STATIC)
 DO I=1,KMAXE
 
 CALL LOCALISE_STENCIL(N,I)

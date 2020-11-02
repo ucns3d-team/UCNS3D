@@ -457,7 +457,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	
 	
 	IF (RUNGEKUTTA.EQ.10)THEN
-		!$OMP DO SCHEDULE(GUIDED)	
+		!$OMP DO SCHEDULE(STATIC)	
 		do i=1,kmaxe
 		    IMPDIAG(i,1,1)=IMPDIAG(i,1,1)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
 		    IMPDIAG(i,2,2)=IMPDIAG(i,2,2)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
@@ -467,7 +467,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 		end do
 		!$OMP END DO
 	  ELSE
-	!$OMP DO SCHEDULE(GUIDED)
+	!$OMP DO SCHEDULE(STATIC)
 ! 	
 	  do i=1,kmaxe
 
@@ -488,7 +488,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
  if (turbulence.eq.1)CALL SOURCES_derivatives_COMPUTATION(N)
 if (rungekutta.eq.10)then
-!$OMP DO SCHEDULE(GUIDED)
+!$OMP DO SCHEDULE(STATIC)
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
@@ -504,7 +504,7 @@ do i=1,kmaxe
 end do
 !$OMP END DO
 else
-!$OMP DO SCHEDULE(GUIDED)
+!$OMP DO SCHEDULE(STATIC)
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
@@ -984,7 +984,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 	
 	
 	IF (RUNGEKUTTA.EQ.10)THEN
-		!$OMP DO SCHEDULE(GUIDED)	
+		!$OMP DO SCHEDULE(STATIC)	
 		do i=1,kmaxe
 				  
 		    IMPDIAG(i,1,1)=IMPDIAG(i,1,1)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
@@ -995,7 +995,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 		end do
 		!$OMP END DO
 	  ELSE
-	!$OMP DO SCHEDULE(GUIDED)	  
+	!$OMP DO SCHEDULE(STATIC)	  
 	  do i=1,kmaxe
 	      IMPDIAG(I,1,1)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,1,1))
 	      IMPDIAG(I,2,2)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,2,2))
@@ -1015,7 +1015,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
  
  if (turbulence.eq.1)CALL SOURCES_derivatives_COMPUTATION2D(N)
 if (rungekutta.eq.10)then
-!$OMP DO SCHEDULE(GUIDED)
+!$OMP DO SCHEDULE(STATIC)
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
@@ -1031,7 +1031,7 @@ do i=1,kmaxe
 end do
 !$OMP END DO
 else
-!$OMP DO SCHEDULE(GUIDED)
+!$OMP DO SCHEDULE(STATIC)
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations

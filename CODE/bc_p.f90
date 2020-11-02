@@ -2,6 +2,7 @@ MODULE BOUNDARY
 !> @brief
 !> This module includes the subroutines for reading and establishing the boundary conditions
 !> for all the cells that need to be bounded including the periodic ones
+USE DECLARATION
 USE LIBRARY
 USE TRANSFORM
 IMPLICIT NONE
@@ -28,6 +29,11 @@ kkk=0
 totiw=0
 ibgw=0
 ibgw2=0
+
+
+
+
+
 
 IF (DIMENSIONA.EQ.3)THEN
 
@@ -67,7 +73,7 @@ ibound(n:n,:)%inum=0
 end if
 
 
-close(10)
+ close(10)
 
 itl=0
 if (binio.eq.0)OPEN(10,FILE=BNDFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOY)
@@ -88,6 +94,9 @@ DO ji=1,IMAXB
 	    ibound(n,itl)%inum=ibgw
 	    totiw=totiw+1
 	    end if
+		
+
+
 	    ibound(n,itl)%icode=ibx1
 	    if (ib_n(3).eq.ib_n(4))then
 	    
@@ -106,9 +115,12 @@ end do
 
 
 ELSE
+	
 DO ji=1,IMAXB
 	READ(10)IBID,IB_n(1),IB_n(2),IB_n(3),IB_n(4),ibx1
+		
 	
+
 	if (ibx1.eq.4)then
 	ibgw=ibgw+1
 	end if
@@ -120,6 +132,7 @@ DO ji=1,IMAXB
 	    ibound(n,itl)%inum=ibgw
 	    totiw=totiw+1
 	    end if
+
 	    ibound(n,itl)%icode=ibx1
 	    if (ib_n(3).eq.ib_n(4))then
 	    
@@ -137,7 +150,7 @@ DO ji=1,IMAXB
 end do
 
 END IF
-close(10)
+ close(10)
 n_boundaries=itl
 
 itl=0
@@ -457,10 +470,12 @@ end if
 
 end do
 
+
 !$OMP DO SCHEDULE (STATIC)
 DO I=1,KMAXE			! For ALL ELEMENTS
     if (ielem(n,i)%interior.eq.1)then		! THAT HAVE AT LEAST ONE UNKNWON NEIGHBOUR
 	    IF (ielem(n,i)%nofbc.GT.0)THEN		! THAT HAVE AT LEAST ESTABLISHED A BOUNDARY CONDITION CODE
+			
 		  DO J=1,ielem(n,i)%IFCA			! LOOP ALL THEIR FACES
 		      if (IELEM(N,I)%IBOUNDS(J).gt.0)then
 		     IF (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ICODE.EQ.5)THEN	! IF ANY OF THEM HAS A PERIODIC BOUNDARY CONDITION THEN
@@ -491,11 +506,16 @@ DO I=1,KMAXE			! For ALL ELEMENTS
 				      if (((abs(vext(2,1)-xper).lt.tolsmall).or.(abs((abs(vext(2,1)-xper))-xper).lt.tolsmall)).and.&
 				      ((abs(vext(1,1)-xper).lt.tolsmall).or.(abs((abs(vext(1,1)-xper))-xper).lt.tolsmall)))then
 				      if ((abs(vext(2,2)-vext(1,2)).lt.tolsmall).and.(abs(vext(2,3)-vext(1,3)).lt.tolsmall))then
+				
 				      
 ! 				      if (((abs(dist-xper)).lt.TOLSMALL).or.((abs(dist-yper)).lt.TOLSMALL).or.((abs(dist-zper)).lt.TOLSMALL))then
 
 				      IBOUND(N,ii)%localn(2)=i;IBOUND(N,ii)%cpun(2)=n
 				      IELEM(N,I)%INEIGHG(J)=ielem(n,IBOUND(N,ii)%localn(1))%ihexgl
+
+			
+
+
 ! 				      IELEM(N,I)%INEIGHG(J)=IELEM(N,IBOUND(N,IELEM(N,I)%IBOUNDS(J))%localn(1))%IHEXGL
 ! 				      
 				      jj1=jj1+1

@@ -1,6 +1,7 @@
 MODULE GRADIENTS
 USE LIBRARY
 USE FLOW_OPERATIONS
+USE DECLARATION
 IMPLICIT NONE
 
 
@@ -1257,7 +1258,7 @@ numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
                 
                     
                     MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
-                    
+                   
 
                     
                     
@@ -1307,6 +1308,10 @@ numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables,ll),&
 imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables,ll),IELEM(N,I)%IDEGFREE)
+         
+         
+                    
+         
          
          ELSE
 !          call gemm(                                                  &

@@ -8,7 +8,7 @@ ucns3d_p.hpcstruct: ucns3d_p
 	hpcstruct ucns3d_p
 
 ucns3d_p: mpi_p.o  declarations.o translate.o grid_t.o flow_operations.o io.o memory.o communications.o parts.o der_r.o svd.o grid_p.o basis.o local_pt.o riemann.o flux_p.o profile.o init_p.o   bc_p.o matrix.o  gradients.o prestore.o reconstruct_p.o source.o  implicit_fluxes.o implicit_time.o flux_pv.o time_p.o  main.o 
-	$(LD) $(FFLAGS) $(OFLAGS) -o ucns3d_p  declarations.o translate.o grid_t.o flow_operations.o   memory.o  io.o mpi_p.o  communications.o riemann.o flux_p.o profile.o init_p.o parts.o bc_p.o matrix.o grid_p.o basis.o gradients.o prestore.o reconstruct_p.o  source.o implicit_fluxes.o implicit_time.o flux_pv.o time_p.o  der_r.o svd.o local_pt.o  main.o   libparmetis.a libmetis.a libtecio.a $(LIBS)
+	$(LD) $(FFLAGS) $(OFLAGS) -o ucns3d_p  declarations.o translate.o grid_t.o flow_operations.o   memory.o  io.o mpi_p.o  communications.o riemann.o flux_p.o profile.o init_p.o parts.o bc_p.o matrix.o grid_p.o basis.o gradients.o prestore.o reconstruct_p.o  source.o implicit_fluxes.o implicit_time.o flux_pv.o time_p.o  der_r.o svd.o local_pt.o  main.o  $(LIBS)
 
 main.o: mpiinfo.mod declaration.mod translate.mod  memory.mod communications.mod io.mod partition.mod library.mod transform.mod fluxes.mod initialisation.mod boundary.mod advance.mod recon.mod local.mod fluxes_v.mod profile.mod flow_operations.mod gradients.mod basis.mod prestore.mod riemann.mod source.mod implicit_time.mod implicit_fluxes.mod
 	$(F90) $(FFLAGS)  -c   main.f90

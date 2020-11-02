@@ -1954,8 +1954,8 @@ integer::i,j,k,kmaxe,facexx,ixxfff
 real::dist1
 
 kmaxe=xmpielrank(n)
- !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,j,k,facexx,ixxfff) 
- !$OMP DO SCHEDULE (STATIC)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,j,k,facexx,ixxfff) 
+!$OMP DO SCHEDULE (STATIC)
 do i=1,kmaxe
 	if (ielem(n,i)%interior.eq.0)then
 		    CALL COMPUTE_CENTRE3d(N,i)
@@ -2040,8 +2040,8 @@ do i=1,kmaxe
 	end if
 
 end do
- !$OMP END DO
- !$OMP END PARALLEL
+!$OMP END DO
+!$OMP END PARALLEL
 
 
 end subroutine direct_side
@@ -2058,8 +2058,8 @@ real::dist1
 
 kmaxe=xmpielrank(n)
 
-! !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,j,k,facexx,ixxfff) 
-! !$OMP DO
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,j,k,facexx,ixxfff) 
+!$OMP DO
 do i=1,kmaxe
 	if (ielem(n,i)%interior.eq.0)then
 		    CALL COMPUTE_CENTRE2d(N,i)
@@ -2134,8 +2134,8 @@ do i=1,kmaxe
 	end if
 
 end do
-! !$OMP END DO
-! !$OMP END PARALLEL
+!$OMP END DO
+!$OMP END PARALLEL
 
 
 end subroutine direct_side2d

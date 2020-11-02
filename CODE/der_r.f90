@@ -1,5 +1,6 @@
 MODULE DERIVATIVES
 USE MPIINFO
+USE DECLARATION
 IMPLICIT NONE
 
 CONTAINS
@@ -36884,8 +36885,10 @@ CASE(56)
 	END FUNCTION DLZ6 
 	
 real function DF2DX(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+   IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -36938,8 +36941,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DY(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+     IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -36993,8 +36998,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX2(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+   IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    Select case(NDERIVATIVE)
@@ -37036,8 +37043,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DY2(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+  IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    s = 0.0d0
 
@@ -37080,8 +37089,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DXY(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+  IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
 
    S=0.0D0
@@ -37125,8 +37136,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 ! %%%%%%%%%%%%%%%%
  ! *****************************************************************************
   real function DF2DX3(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+   IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
 
    S=0.0D0
@@ -37160,8 +37173,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX2Y(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+  IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
 
    S=0.0D0
@@ -37193,8 +37208,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DXY2(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+   IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    s  = 0.0d0
    select case(NDERIVATIVE)
@@ -37226,8 +37243,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DY3(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+  IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37261,8 +37280,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX4(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+     IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
     S=0.0D0
     select case(NDERIVATIVE)
@@ -37288,8 +37309,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX3Y(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+   IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
 
@@ -37313,8 +37336,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX2Y2(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+  IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37336,8 +37361,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DXY3(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+     IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37361,8 +37388,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DY4(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+    IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37389,8 +37418,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX5(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+    IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37409,8 +37440,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX4Y(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+   IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37429,8 +37462,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX3Y2(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+  IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37449,8 +37484,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX2Y3(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+  IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37469,8 +37506,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DXY4(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+    IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37488,8 +37527,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DY5(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+  IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37508,8 +37549,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX6(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+    IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37524,8 +37567,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX5Y(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+    IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37540,8 +37585,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX4Y2(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+   IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37556,8 +37603,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX3Y3(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+  IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37573,8 +37622,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DX2Y4(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+    IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37590,8 +37641,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DXY5(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+    IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
@@ -37606,8 +37659,10 @@ real function DF2DX(xd1,yd1,NDERIVATIVE)
 
  ! *****************************************************************************
   real function DF2DY6(xd1,yd1,NDERIVATIVE)
-   integer NDERIVATIVE
-   REAL:: xd1,yd1,s
+  IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
 
    S=0.0D0
    select case(NDERIVATIVE)

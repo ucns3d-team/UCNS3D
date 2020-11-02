@@ -43,7 +43,7 @@ Subroutine HLLC_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA
 	REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::SL,SR,SM
 	REAL,INTENT(IN)::GAMMA
 	REAL::RL,RR,PL,PR,EL,ER,UL,UR,VL,VR,WL,WR,SPED
-	REAL::MUL,MUR,LASTL,LASTR
+	REAL::MUL,MUR,LASTL,LASTR,CC2,UU2,CCL,CCR
 	
 	
 	
@@ -104,26 +104,21 @@ Subroutine HLLC_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA
 			
 			
 			IF (MULTISPECIES.EQ.1)THEN
-		sl(1)=min((ul)-sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)-sqrt(gammaR*(pr+MP_PINFr)/rr))
-		sr(1)=max((ul)+sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)+sqrt(gammaR*(pr+MP_PINFr)/rr))
+		CCL=sqrt(gammaL*(pl+MP_PINFl)/rl)
+		CCR=sqrt(gammaR*(pR+MP_PINFR)/rR)
 		ELSE
-        sl(1)=min((ul)-sqrt(gamma*pl/rl),(ur)-sqrt(gamma*pr/rr))
-		sr(1)=max((ul)+sqrt(gamma*pl/rl),(ur)+sqrt(gamma*pr/rr))	
+		CCL=sqrt(gamma*pl/rl)
+		CCR=sqrt(gamma*pr/rr)
 		END IF
+		
+		!EINFELDT APPROXIMATIONS
+		CC2=SQRT(((((CcL**2)*SQRT(RL))+((CcR**2)*SQRT(RR)))/(SQRT(RL)+SQRT(RR)))+(0.5D0*((SQRT(RL)*SQRT(RR))/((SQRT(RL)+SQRT(RR))**2))*((UR-UL)**2)))
+		UU2=(((UL*SQRT(RL))+(UR*SQRT(RR)))/(SQRT(RL)+SQRT(RR)))
+		SL(1)=MIN(UL-CCL,UU2-CC2); SR(1)=MAX(UR+CCR,UU2+CC2)
+ 		SL(1)=MIN(SL(1),0.0D0); SR(1)=MAX(SR(1),0.0D0)
 		sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-
+        
+		
 
 			FL(1)=RL*UL
 			FL(2)=(RL*(UL**2))+PL
@@ -182,6 +177,11 @@ Subroutine HLLC_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA
 			FLSTAR(:)=FL(:)+SL(1)*(ULSTAR(:)-CLEFT_ROT(:))
 			FRSTAR(:)=FR(:)+SR(1)*(URSTAR(:)-CRIGHT_ROT(:))
 			
+			
+			
+			
+			
+			
 			IF (SL(1).GE.ZERO)THEN
 				HLLCFLUX(:)=FL(:)
 				IF (MULTISPECIES.EQ.1)THEN
@@ -206,6 +206,12 @@ Subroutine HLLC_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA
                 MP_SOURCE1=UR+SR(1)*(((SR(1)-UR)/(SR(1)-SM(1)))-1.0D0)
                 END IF
 			END IF
+			
+			
+			HLLCFLUX(:)=(((1.0D0+SIGN(1.0D0,SM(1)))/2.0D0)*(FL(:)+SL(1)*(ULSTAR(:)-CLEFT_ROT(:))))+&
+			(((1.0D0-SIGN(1.0D0,SM(1)))/2.0D0)*(FR(:)+SR(1)*(URSTAR(:)-CRIGHT_ROT(:))))
+			
+			
 
 END SUBROUTINE HLLC_RIEMANN_SOLVER
 
@@ -1216,7 +1222,7 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAM
 	REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::SL,SR,SM
 	REAL,INTENT(IN)::GAMMA
 	REAL::RL,RR,PL,PR,EL,ER,UL,UR,VL,VR,WL,WR,SPED
-	REAL::MUL,MUR,LASTL,LASTR,pgrad,om_P
+	REAL::MUL,MUR,LASTL,LASTR,pgrad,om_P,CCL,CCR,UU2,CC2
 	
 	
 	
@@ -1269,16 +1275,29 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAM
 			
 			
 		IF (MULTISPECIES.EQ.1)THEN
-		sl(1)=min((ul)-sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)-sqrt(gammaR*(pr+MP_PINFr)/rr))
-		sr(1)=max((ul)+sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)+sqrt(gammaR*(pr+MP_PINFr)/rr))	
+		CCL=sqrt(gammaL*(pl+MP_PINFl)/rl)
+		CCR=sqrt(gammaR*(pR+MP_PINFR)/rR)
 		ELSE
-        sl(1)=min((ul)-sqrt(gamma*pl/rl),(ur)-sqrt(gamma*pr/rr))
-		sr(1)=max((ul)+sqrt(gamma*pl/rl),(ur)+sqrt(gamma*pr/rr))	
-		END IF
-		sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))
+		CCL=sqrt(gamma*pl/rl)
+		CCR=sqrt(gamma*pr/rr)
+		END IF	
+			
+! 		IF (MULTISPECIES.EQ.1)THEN
+! 		sl(1)=min((ul)-sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)-sqrt(gammaR*(pr+MP_PINFr)/rr))
+! 		sr(1)=max((ul)+sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)+sqrt(gammaR*(pr+MP_PINFr)/rr))	
+! 		ELSE
+!         sl(1)=min((ul)-sqrt(gamma*pl/rl),(ur)-sqrt(gamma*pr/rr))
+! 		sr(1)=max((ul)+sqrt(gamma*pl/rl),(ur)+sqrt(gamma*pr/rr))	
+! 		END IF
+! 		sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))
 			
 			
-			
+		CC2=SQRT(((((CCL**2)*SQRT(RL))+((CCR**2)*SQRT(RR)))/(SQRT(RL)+SQRT(RR)))+(0.5D0*((SQRT(RL)*SQRT(RR))/((SQRT(RL)+SQRT(RR))**2))*((UR-UL)**2)))
+		UU2=(((UL*SQRT(RL))+(UR*SQRT(RR)))/(SQRT(RL)+SQRT(RR)))
+		SL(1)=MIN(UL-CCL,UU2-CC2);
+		SR(1)=MAX(UR+CCR,UU2+CC2)
+  		SL(1)=MIN(SL(1),0.0D0); SR(1)=MAX(SR(1),0.0D0)
+		sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))	
 			
 			
 			
@@ -1371,18 +1390,23 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAM
                 MP_SOURCE1=UR
                 END IF
 			END IF
-			IF ((SL(1).LE.ZERO).AND.(SM(1).GE.ZERO))THEN
+			IF ((SL(1).Le.ZERO).AND.(SM(1).GE.ZERO))THEN
 				HLLCFLUX(:)=FLSTAR(:)
 				IF (MULTISPECIES.EQ.1)THEN
                 MP_SOURCE1=UL+SL(1)*(((SL(1)-UL)/(SL(1)-SM(1)))-1.0D0)
                 END IF
 			END IF
-			IF ((SR(1).GE.ZERO).AND.(SM(1).LE.ZERO))THEN
+			IF ((SR(1).Ge.ZERO).AND.(SM(1).LE.ZERO))THEN
 				HLLCFLUX(:)=FRSTAR(:)
 				IF (MULTISPECIES.EQ.1)THEN
                 MP_SOURCE1=UR+SR(1)*(((SR(1)-UR)/(SR(1)-SM(1)))-1.0D0)
                 END IF
 			END IF
+			
+			
+			
+			HLLCFLUX(:)=(((1.0D0+SIGN(1.0D0,SM(1)))/2.0D0)*(FL(:)+SL(1)*(ULSTAR(:)-CLEFT_ROT(:))))+&
+			(((1.0D0-SIGN(1.0D0,SM(1)))/2.0D0)*(FR(:)+SR(1)*(URSTAR(:)-CRIGHT_ROT(:))))
 			
 			
 			
