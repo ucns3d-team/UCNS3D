@@ -211,9 +211,16 @@ INTEGER,INTENT(IN)::varcons,FACEX,pointx,ICONSIDERED,INSTEN,LLX
 				    
 				    
 				    else
+				    if (WENWRT.EQ.3)THEN
+                        LEFTV(1:NOF_VARIABLES)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
+                    call cons2prim2d(n)
+                    ILOCAL_RECON3(ICONSIDERED)%ULEFT(varcons,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(varcons,FACEX,pointx)&
+				    +((leftv(varcons)+RESSOLUTION(1,1))*WENO(varcons,INSTEN))
+                    else
+				    
 				     ILOCAL_RECON3(ICONSIDERED)%ULEFT(varcons,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(varcons,FACEX,pointx)&
 				    +((U_C(ICONSIDERED)%VAL(1,varcons)+RESSOLUTION(1,1))*WENO(varcons,INSTEN))
-				    
+				    end if
 				    
 				    end if
 				    ELSE
@@ -244,20 +251,20 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::varcons,FACEX,pointx,ICONSIDERED,INSTEN
 
 	IF (DIMENSIONA.EQ.2)THEN 
-			if (reduce_comp.eq.1)then
-			  ILOCAL_RECON3(ICONSIDERED)%ULEFT(varcons,FACEX,1)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(varcons,FACEX,1)&
-			+(U_C(ICONSIDERED)%VAL(1,varcons)+RESSOLUTION(1,1))*WEQUA2D(pointx)
-			  else
-			ILOCAL_RECON3(ICONSIDERED)%ULEFT(varcons,FACEX,pointx)=(U_C(ICONSIDERED)%VAL(1,varcons)+RESSOLUTION(1,1))
-			  end if
+	if (reduce_comp.eq.1)then
+	  ILOCAL_RECON3(ICONSIDERED)%ULEFT(varcons,FACEX,1)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(varcons,FACEX,1)&
+	+(U_C(ICONSIDERED)%VAL(1,varcons)+RESSOLUTION(1,1))*WEQUA2D(pointx)
+	  else
+	ILOCAL_RECON3(ICONSIDERED)%ULEFT(varcons,FACEX,pointx)=(U_C(ICONSIDERED)%VAL(1,varcons)+RESSOLUTION(1,1))
+	  end if
 	ELSE
-		if (reduce_comp.eq.1)then
-		ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,1)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,1)&
-		+(U_C(ICONSIDERED)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(INSTEN,1:NOF_VARIABLES))*WEiGHT_t2(pointx) 
-		else
-		ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,pointx)&
-		+(U_C(ICONSIDERED)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(INSTEN,1))
-		end if
+	if (reduce_comp.eq.1)then
+	ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,1)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,1)&
+	+(U_C(ICONSIDERED)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(INSTEN,1:NOF_VARIABLES))*WEiGHT_t2(pointx) 
+	else
+	ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,pointx)&
+	+(U_C(ICONSIDERED)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(INSTEN,1))
+	end if
 	END IF
 END SUBROUTINE EXTRAPOLATE_BOUND_LINEAR
 
@@ -272,8 +279,16 @@ if (reduce_comp.eq.1)then
 ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:nof_Variables,FACEX,1)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:nof_Variables,FACEX,1)&
 +(U_C(ICONSIDERED)%VAL(1,1:nof_Variables)+(USOL(1:nof_Variables,FACEX,pointx)*WENO(1:nof_Variables,1)))*WEQUA2D(pointx)
 ELSE
+if (WENWRT.EQ.3)THEN
+LEFTV(1:NOF_VARIABLES)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
+CALL CONS2PRIM2D(N)
+LEFTV(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)+USOL(1:nof_Variables,FACEX,pointx)*WENO(1:nof_Variables,1)
+CALL PRIM2CONS2D(N)
+ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:nof_Variables,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:nof_Variables,FACEX,pointx)+LEFTV(1:NOF_VARIABLES)
+ELSE
 ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:nof_Variables,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:nof_Variables,FACEX,pointx)&
 +(U_C(ICONSIDERED)%VAL(1,1:nof_Variables)+(USOL(1:nof_Variables,FACEX,pointx)*WENO(1:nof_Variables,1)))
+END IF
 END IF
 ELSE
 if (reduce_comp.eq.1)then
@@ -533,8 +548,8 @@ INTEGER::I,J,K,L,M,O,LL,IEX,IEUL,FACX,IELEME,KKD,KMAXE,JF,NGP,IQP,nnd,II,icd
 INTEGER::IDUMMY,POWER,ITARGET
 REAL::SUMOMEGAATILDEL
 REAL::DIVBYZERO,COMPF,checkf,tau_Weno
-REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
-REAL,external:: ddot
+REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
+REAL,EXTERNAL::DDOT
 
 KMAXE=XMPIELRANK(N)
 DIVBYZERO=1.0e-14
@@ -2536,6 +2551,11 @@ POWER=4
 				    
 				END DO		!STENCILS
 				END DO	!COMPONENTS
+				if (wenwrt.eq.3)then
+				leftv(1:nof_variables)=ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)
+                call prim2cons2d(n)
+                ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)=leftv(1:nof_variables)
+				end if
 				END DO	!NGP
 		    END DO	!FACES
 	END IF
@@ -3280,6 +3300,11 @@ POWER=4
 				    
 				END DO		!STENCILS
 				END DO	!COMPONENTS
+				if (wenwrt.eq.3)then
+				leftv(1:nof_variables)=ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)
+                call prim2cons2d(n)
+                ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)=leftv(1:nof_variables)
+				end if
 				END DO	!NGP
 		    END DO	!FACES
 		END IF!WENWRT2
@@ -3589,7 +3614,7 @@ SUBROUTINE LINEAR_SCHEME(N)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,K,KMAXE,IDUMMY,L,NND,IQP,NGP,IEX,ICD
-REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
+REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 KMAXE=XMPIELRANK(N)
 
 call  QUADRATUREQUAD3D(N,IGQRULES)
@@ -4106,7 +4131,7 @@ SUBROUTINE MUSCL(N)
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,IEX,IEUL,JX,LX,KMAXE,iq,LL,NGP,NND,IQP,idummy,ii,icd
 REAL::UMIN,UMAX,PSITOT,ADDC,DIVG0,LIMVBG
-REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
+REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 real,external::ddot
 
 
@@ -5561,17 +5586,27 @@ call  QUADRATURELINE(N,IGQRULES)
 		    IF ((LIMITER.EQ.3).OR.(LIMITER.EQ.9))THEN
                         IF (LIMITER.EQ.3)THEN
 		        if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
-			  DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
-			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
-			  END DO
-			ELSE
-			   DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
-			    IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
-			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:nof_variables)
-			    else
-			      UTEMP(IQ,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
-			    end if
-			   end do
+                        DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+                            UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+                            IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+                        END DO
+                ELSE
+                        DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+                            IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+                            UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:nof_variables)
+                            else
+                            UTEMP(IQ,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
+                            end if
+                                IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+                        end do
 			END IF
 ! 			DO IEX=1,NOF_VARIABLES
 ! 			UTEMP(2:IELEM(N,I)%iNUMNEIGHBOURS,IEX)=UTEMP(2:IELEM(N,I)%iNUMNEIGHBOURS,IEX)-UTEMP(1,iex)
@@ -5586,6 +5621,11 @@ call  QUADRATURELINE(N,IGQRULES)
 			 if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
 			  DO IQ=1,13
 			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+			       IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
 			  END DO
 			ELSE
 			   DO IQ=1,13
@@ -5594,6 +5634,11 @@ call  QUADRATURELINE(N,IGQRULES)
 			    else
 			      UTEMP(IQ,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
 			    end if
+			     IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
 			   end do
 			END IF
 ! 			DO IEX=1,NOF_VARIABLES
@@ -5617,10 +5662,20 @@ call  QUADRATURELINE(N,IGQRULES)
 		    ELSE
 			   K=0
 			  UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+			   IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
 			  K=1
 			  DO L=1,IELEM(N,I)%IFCA
 			    K=K+1
 			    UTEMP(K,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:NOF_VARIABLES)!-UTEMP(1,1:NOF_VARIABLES)
+			     IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(K,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(K,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
 			  END DO
 			  UTMIN=ZERO;UTMAX=ZERO
 			  DO IEX=1,NOF_VARIABLES
@@ -5680,13 +5735,26 @@ call  QUADRATURELINE(N,IGQRULES)
 					  GRADSS(LX,1:NOF_VARIABLES)=ILOCAL_RECON5(1)%GRADIENTS(1,LX,1:NOF_VARIABLES)
 				      END DO
 
+				      
+				      
+                            IF (WENWRT.EQ.3)THEN
+                            UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+                        
 				  DO IEX=1,NOF_VARIABLES
 				  
 ! 				   GRADSS(1:IELEM(N,I)%IDEGFREE,1)=GRADSS(1:IELEM(N,I)%IDEGFREE,IEX)
 ! 				  RESSOLUTION(1,1) = DOT(CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX))
 				  RESSOLUTION(1,1) = DDOT(IELEM(N,I)%IDEGFREE,CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),1,GRADSS(1:IELEM(N,I)%IDEGFREE,IEX),1)
 				  !RESSOLUTION(1:1,1:1)=MATMUL(CONSMATRIX(1:1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX:IEX))
+				  IF (WENWRT.EQ.3)THEN
+				  USOL(IEX,L,Ngp)=((LEFTV(IEX)+RESSOLUTION(1,1)))
+				  ELSE
 				  USOL(IEX,L,Ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END IF
 				  END DO	 
 			    END DO
 		       else
@@ -5720,7 +5788,12 @@ call  QUADRATURELINE(N,IGQRULES)
 				
 				  DO IEX=1,NOF_VARIABLES		      
 				  RESSOLUTION(1,1)=(ax*GRADSS(1,IEX))+(ay*GRADSS(2,IEX))
-				  USOL(IEX,L,ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				   IF (WENWRT.EQ.3)THEN
+				  USOL(IEX,L,Ngp)=((LEFTV(IEX)+RESSOLUTION(1,1)))
+				  ELSE
+				  USOL(IEX,L,Ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END IF
+				  !USOL(IEX,L,ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
 				  END DO	 
 			    END DO
 		       
@@ -5773,8 +5846,14 @@ call  QUADRATURELINE(N,IGQRULES)
 			     ILOCAL_RECON3(I)%ULEFT(:,L,:)=ZERO
 			      do NGP=1,qp_line
 				    
-				    
+				    IF (WENWRT.EQ.3)THEN
+				    LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:nof_Variables)
+				    CALL CONS2PRIM2D(N)
+				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-LEFTV(1:NOF_VARIABLES)
+				    ELSE
 				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-U_C(I)%VAL(1,1:nof_Variables)
+				    END IF
+				    
 				    CALL EXTRAPOLATE_BOUND_MUSCL(IEX,L,NGP,I,1)
 				    
 				    
@@ -6003,6 +6082,11 @@ call  QUADRATURELINE(N,IGQRULES)
 		        if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
 			  DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
 			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+                                IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
 			  END DO
 			ELSE
 			   DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
@@ -6011,6 +6095,11 @@ call  QUADRATURELINE(N,IGQRULES)
 			    else
 			      UTEMP(IQ,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
 			    end if
+			     IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
 			   end do
 			END IF
 ! 			DO IEX=1,NOF_VARIABLES
@@ -6026,6 +6115,11 @@ call  QUADRATURELINE(N,IGQRULES)
 			 if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
 			  DO IQ=1,13
 			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+			      IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
 			  END DO
 			ELSE
 			   DO IQ=1,13
@@ -6034,6 +6128,11 @@ call  QUADRATURELINE(N,IGQRULES)
 			    else
 			      UTEMP(IQ,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
 			    end if
+			    IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
 			   end do
 			END IF
 ! 			DO IEX=1,NOF_VARIABLES
@@ -6057,6 +6156,11 @@ call  QUADRATURELINE(N,IGQRULES)
 		    ELSE
 			    K=0
 			    UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+			    IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
 			    K=1
 			    DO L=1,IELEM(N,I)%IFCA
 			    
@@ -6103,6 +6207,12 @@ call  QUADRATURELINE(N,IGQRULES)
 				      
 			      END IF
 			  END IF
+                            IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(K,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(K,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			 ! END DO
 			  END DO
 			  
 			  
@@ -6202,14 +6312,26 @@ call  QUADRATURELINE(N,IGQRULES)
 				      DO LX=1,IELEM(N,I)%IDEGFREE
 					  GRADSS(LX,1:NOF_VARIABLES)=ILOCAL_RECON5(1)%GRADIENTS(1,LX,1:NOF_VARIABLES)
 				      END DO
-
+                            IF (WENWRT.EQ.3)THEN
+                            UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+				      
+				      
+				      
 				  DO IEX=1,NOF_VARIABLES		      
 ! 				   GRADSS(1:IELEM(N,I)%IDEGFREE,1)=GRADSS(1:IELEM(N,I)%IDEGFREE,IEX)
 ! 				  RESSOLUTION(1,1) = DOT(CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX))
 				  RESSOLUTION(1,1) = DDOT(IELEM(N,I)%IDEGFREE,CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),1,GRADSS(1:IELEM(N,I)%IDEGFREE,IEX),1)
 				  !RESSOLUTION(1:1,1:1)=MATMUL(CONSMATRIX(1:1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX:IEX))
 				  
+				  IF (WENWRT.EQ.3)THEN
+				  USOL(IEX,L,Ngp)=((LEFTV(IEX)+RESSOLUTION(1,1)))
+				  ELSE
 				  USOL(IEX,L,Ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END IF
 				  END DO	 
 			    END DO
 		       else
@@ -6275,8 +6397,13 @@ call  QUADRATURELINE(N,IGQRULES)
 				  
 				
 				  DO IEX=1,NOF_VARIABLES		      
-				  RESSOLUTION(1:1,1:1)=(ax*GRADSS(1,IEX))+(ay*GRADSS(2,IEX))
-				  USOL(IEX,L,ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  RESSOLUTION(1,1)=(ax*GRADSS(1,IEX))+(ay*GRADSS(2,IEX))
+				   IF (WENWRT.EQ.3)THEN
+				  USOL(IEX,L,Ngp)=((LEFTV(IEX)+RESSOLUTION(1,1)))
+				  ELSE
+				  USOL(IEX,L,Ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END IF
+				  !USOL(IEX,L,ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
 				  END DO	 
 			    END DO
 		       
@@ -6322,8 +6449,14 @@ call  QUADRATURELINE(N,IGQRULES)
 			 iqp=qp_line
 			      do NGP=1,iqp
 				    
-				    
+				    IF (WENWRT.EQ.3)THEN
+				    LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:nof_Variables)
+				    CALL CONS2PRIM2D(N)
+				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-LEFTV(1:NOF_VARIABLES)
+				    ELSE
 				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-U_C(I)%VAL(1,1:nof_Variables)
+				    END IF
+! 				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-U_C(I)%VAL(1,1:nof_Variables)
 				    
 				    CALL EXTRAPOLATE_BOUND_MUSCL(IEX,L,NGP,I,1)
 ! 				    ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,ngp)=U_C(I)%VAL(1,1:nof_Variables)+(USOL(1:nof_Variables,l,Ngp)*WENO(1:nof_Variables,1))
@@ -6839,9 +6972,17 @@ IF (ITESTCASE.GE.3)THEN
 						
 						
 				
-					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.8*RIGHTV(1))).OR.((ABS(LEFTV(4)-RIGHTV(4))).GE.(0.8*RIGHTV(4)))) THEN
+					    IF ((((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.8*RIGHTV(1))).OR.((ABS(LEFTV(4)-RIGHTV(4))).GE.(0.8*RIGHTV(4)))).OR.(LEFTV(4).LT.0)) THEN
 						    REDUCE1=1
 					    END IF
+					    if (multispecies.eq.1)then
+					    IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(0.6*RIGHTV(7)))) THEN
+						    REDUCE1=1
+					    END IF
+					    
+					    
+					    
+					    end if
 				
 				
 					
@@ -7229,7 +7370,7 @@ INTEGER::I,J,K,L,M,PPP,IEUL,IEX,IHGT,IHGJ,KMAXE,DECOMF,ICNN,IQDR,NVAR,idummy,iqp
 REAL::RAA1,RAA2,PAA1,PAA2
 REAL::SOLX
 REAL,EXTERNAL::DDOT
-REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
+REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 
 
 call  QUADRATUREQUAD3D(N,IGQRULES);WEIGHTS_Q(1:QP_QUAD)=WEQUA2D(1:QP_QUAD)

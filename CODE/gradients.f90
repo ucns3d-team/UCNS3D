@@ -1,7 +1,6 @@
 MODULE GRADIENTS
 USE LIBRARY
 USE FLOW_OPERATIONS
-USE DECLARATION
 IMPLICIT NONE
 
 
@@ -1258,7 +1257,7 @@ numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
                 
                     
                     MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
-                   
+                    
 
                     
                     
@@ -1308,10 +1307,6 @@ numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables,ll),&
 imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables,ll),IELEM(N,I)%IDEGFREE)
-         
-         
-                    
-         
          
          ELSE
 !          call gemm(                                                  &
@@ -2881,20 +2876,44 @@ SOLS2=ZERO
    SOLS1=ZERO;
    SOLS2=ZERO
 
+   IF (WENWRT.EQ.3)THEN
+   LEFTV(1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_variables)
+   CALL CONS2PRIM2D(N)
+   SOLS1(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+   ELSE
    SOLS1(1:nof_variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_variables)
+   END IF
    if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
 
       DO LL=1,IELEM(N,I)%ADMIS;
          MATRIX_1=ZERO;MATRIX_2=ZERO
                     if ((ees.ne.5).or.(ll.eq.1))then
                     DO IQ=1,imax
+                        
+                        
+                        
+                        IF (WENWRT.EQ.3)THEN
+                        LEFTV(1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:nof_variables)
+                        CALL CONS2PRIM2D(N)
+                        SOLS2(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                        ELSE
                         SOLS2(1:nof_variables)=U_C(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:nof_variables)
+                        END IF
+                                                
                         MATRIX_1(IQ,1:nof_variables)=(SOLS2(1:nof_variables)-SOLS1(1:nof_variables))
 
                     END DO
                         ELSE
                         DO IQ=1,numneighbours2-1
+                        
+                        IF (WENWRT.EQ.3)THEN
+                        LEFTV(1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1))%VAL(1,1:nof_variables)
+                        CALL CONS2PRIM2D(N)
+                        SOLS2(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                        ELSE
                         SOLS2(1:nof_variables)=U_C(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1))%VAL(1,1:nof_variables)
+                        END IF
+                        
                         MATRIX_1(IQ,1:nof_variables)=(SOLS2(1:nof_variables)-SOLS1(1:nof_variables))
                         
 
@@ -2957,6 +2976,16 @@ numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables),IDEGFREE2)
                SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1),1:nof_variables)
             end if
 
+                        IF (WENWRT.EQ.3)THEN
+                        LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables)
+                        CALL CONS2PRIM2D(N)
+                        SOLS2(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                        END IF
+            
+            
+            
+            
+            
             MATRIX_1(IQ,1:nof_variables)=(SOLS2(1:nof_variables)-SOLS1(1:nof_variables))
             
             
@@ -2972,6 +3001,11 @@ numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables),IDEGFREE2)
                SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXNC(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1),1:nof_variables)
             end if
 
+                        IF (WENWRT.EQ.3)THEN
+                        LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables)
+                        CALL CONS2PRIM2D(N)
+                        SOLS2(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                        END IF
             MATRIX_1(IQ,1:nof_variables)=(SOLS2(1:nof_variables)-SOLS1(1:nof_variables))
 
          END DO
