@@ -1157,7 +1157,16 @@ SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
    sol_m=zero
  MATRIX_1=ZERO;MATRIX_2=ZERO
   
+   
    SOLS1(1:nof_variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_variables)
+   IF (WENWRT.EQ.3)THEN
+   LEFTV(1:NOF_VARIABLES)=SOLS1(1:nof_variables)
+   CALL CONS2PRIM(N)
+   SOLS1(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+   END IF
+   
+   
+   
    if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
     
       DO LL=1,IELEM(N,I)%ADMIS;
@@ -1166,8 +1175,19 @@ SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
         if ((ees.ne.5).or.(ll.eq.1))then
              DO IQ=1,imax
             SOLS2(1:nof_variables,ll)=U_C(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:nof_variables)
+            
+            
+            IF (WENWRT.EQ.3)THEN
+            LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
+            CALL CONS2PRIM(N)
+            SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
+            END IF
+            
+            
+            
             MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
            
+            
             END DO
         
         eLSE
@@ -1178,6 +1198,11 @@ SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
         
                DO IQ=1,numneighbours2-1
             SOLS2(1:nof_variables,ll)=U_C(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1))%VAL(1,1:nof_variables)
+            IF (WENWRT.EQ.3)THEN
+            LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
+            CALL CONS2PRIM(N)
+            SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
+            END IF
             MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
             
             
@@ -1254,7 +1279,11 @@ numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
                     SOLS2(1:nof_variables,ll)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1),1:nof_variables)
                     end if
                     
-                
+                    IF (WENWRT.EQ.3)THEN
+            LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
+            CALL CONS2PRIM(N)
+            SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
+            END IF
                     
                     MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
                     
@@ -1277,7 +1306,11 @@ numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
                     else
                     SOLS2(1:nof_variables,ll)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXNC(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1),1:nof_variables)
                     end if
-                    
+                                IF (WENWRT.EQ.3)THEN
+                        LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
+                        CALL CONS2PRIM(N)
+                        SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
+                        END IF
                     
                     MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
                     
