@@ -83,7 +83,7 @@ KMAXE=XMPIELRANK(N)
 						      END DO
 					    ELSE
 						      facex=l;
-						      CALL coordinates_face_PERIOD(n,iconsidered,facex)
+						      CALL coordinates_face_PERIOD1(n,iconsidered,facex)
 						      do K=1,nnd
 						      VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 						      END DO
@@ -99,7 +99,7 @@ KMAXE=XMPIELRANK(N)
 						      END DO
 					    ELSE
 						      facex=l;
-						      CALL coordinates_face_PERIOD(n,iconsidered,facex)
+						      CALL coordinates_face_PERIOD1(n,iconsidered,facex)
 						      do K=1,nnd
 						      VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 						      END DO
@@ -174,7 +174,7 @@ KMAXE=XMPIELRANK(N)
 					  END DO
 					  ELSE
 					  facex=l;
-					  CALL coordinates_face_PERIOD2D(n,iconsidered,facex)
+					  CALL coordinates_face_PERIOD2D1(n,iconsidered,facex)
 					  do K=1,nnd
 					  VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
 					  END DO
@@ -675,13 +675,13 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 		ELSE
 		    if (ielem(n,i)%types_faces(L).eq.5)then;iqp=qp_quad;NND=4
 			    do K=1,nnd
-			    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+			    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 			    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 			    END DO
 			    call  QUADRATUREQUAD3D(N,IGQRULES)
 		    else;iqp=QP_TRIANGLE;NND=3
 			    do K=1,nnd
-			    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+			    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 			    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 			    END DO
 			    call QUADRATURETRIANG(N,IGQRULES)
@@ -892,7 +892,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				    iqp=qp_quad
 				    NND=4
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  
@@ -905,7 +905,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				    iqp=QP_TRIANGLE
 				    NND=3
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 				    call QUADRATURETRIANG(N,IGQRULES)
@@ -1184,7 +1184,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				    iqp=qp_quad
 				    NND=4
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  
@@ -1196,7 +1196,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				    iqp=QP_TRIANGLE
 				    NND=3
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 				    call QUADRATURETRIANG(N,IGQRULES)
@@ -1453,7 +1453,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				    NND=4
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  ELSE
@@ -1473,7 +1473,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				    NND=3
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  ELSE
@@ -1717,7 +1717,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				    NND=4
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  ELSE
@@ -1737,7 +1737,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				    NND=3
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  ELSE
@@ -2028,7 +2028,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				    NND=4
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  ELSE
@@ -2048,7 +2048,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				    NND=3
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  ELSE
@@ -2291,7 +2291,7 @@ POWER=4
 				    iqp=qp_line
 				    NND=2
 					  do K=1,nnd
-					    VEXT(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
 					  END DO
 					  
@@ -2499,7 +2499,7 @@ POWER=4
 				    iqp=qp_line
 				    NND=2
 					  do K=1,nnd
-					    VEXT(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
 					  END DO
 					  
@@ -2716,7 +2716,7 @@ POWER=4
 				    iqp=qp_line
 				    NND=2
 					  do K=1,nnd
-					    VEXT(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
 					  END DO
 					  
@@ -2993,7 +2993,7 @@ POWER=4
 				    NND=2
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
 					  END DO
 					  ELSE
@@ -3237,7 +3237,7 @@ POWER=4
 				    NND=2
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
 					  END DO
 					  ELSE
@@ -3485,7 +3485,7 @@ POWER=4
 				    NND=2
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
 					  END DO
 					  ELSE
@@ -3690,7 +3690,7 @@ call  QUADRATUREQUAD3D(N,IGQRULES)
 				    NND=4
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  ELSE
@@ -3710,7 +3710,7 @@ call  QUADRATUREQUAD3D(N,IGQRULES)
 				    NND=3
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  ELSE
@@ -3731,7 +3731,7 @@ call  QUADRATUREQUAD3D(N,IGQRULES)
 				    NND=4
 					 
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					 
@@ -3745,7 +3745,7 @@ call  QUADRATUREQUAD3D(N,IGQRULES)
 				    NND=3
 					  
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  
@@ -3947,7 +3947,7 @@ call  QUADRATUREline(N,IGQRULES)
 				    NND=2
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
 					  END DO
 					  ELSE
@@ -3968,7 +3968,7 @@ call  QUADRATUREline(N,IGQRULES)
 				    NND=2
 					  
 					  do K=1,nnd
-					    VEXT(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
 					  END DO
 					  
@@ -4275,7 +4275,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                                                         NND=4
                                                             
                                                             do K=1,nnd
-                                                                VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                                VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
                                                                 VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
                                                             END DO
                                                             
@@ -4289,7 +4289,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                                                         NND=3
                                                             
                                                             do K=1,nnd
-                                                                VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                                VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
                                                                 VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
                                                             END DO
                                                             
@@ -4370,7 +4370,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=4
 					 
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					 
@@ -4384,7 +4384,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=3
 					  
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					  
@@ -4539,7 +4539,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=4
 					 
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					 
@@ -4553,7 +4553,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=3
 					  
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  
@@ -4604,7 +4604,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=4
 					 
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					 
@@ -4618,7 +4618,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=3
 					  
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					  
@@ -4877,7 +4877,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                                                                         NND=4
                                                                                 IF (IDUMMY.EQ.0)THEN
                                                                                 do K=1,nnd
-                                                                                VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                                                VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
                                                                                 VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
                                                                                 END DO
                                                                                 ELSE
@@ -4897,7 +4897,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                                                                         NND=3
                                                                                 IF (IDUMMY.EQ.0)THEN
                                                                                 do K=1,nnd
-                                                                                VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                                                VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
                                                                                 VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
                                                                                 END DO
                                                                                 ELSE
@@ -4920,7 +4920,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                                                 NND=4
                                                     
                                                     do K=1,nnd
-                                                        VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                        VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
                                                         VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
                                                     END DO
                                                     
@@ -4934,7 +4934,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                                                 NND=3
                                                     
                                                     do K=1,nnd
-                                                        VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                        VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
                                                         VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
                                                     END DO
                                                     
@@ -5038,7 +5038,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=4
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					  ELSE
@@ -5056,7 +5056,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=3
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					  ELSE
@@ -5075,7 +5075,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=4
 					 
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					 
@@ -5089,7 +5089,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=3
 					  
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					  
@@ -5314,7 +5314,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=4
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  ELSE
@@ -5334,7 +5334,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=3
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  ELSE
@@ -5355,7 +5355,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=4
 					 
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					 
@@ -5369,7 +5369,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=3
 					  
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 					  END DO
 					  
@@ -5428,7 +5428,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=4
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					  ELSE
@@ -5446,7 +5446,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=3
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					  ELSE
@@ -5465,7 +5465,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=4
 					 
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					 
@@ -5479,7 +5479,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				    NND=3
 					  
 					  do K=1,nnd
-					    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					  
@@ -5821,7 +5821,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				    NND=2
 					 
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
 					  END DO
 					 
@@ -5888,7 +5888,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				    NND=2
 					 
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					  END DO
 					 
 					  
@@ -6037,7 +6037,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				    NND=2
 					 
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
 					  END DO
 					 
@@ -6094,7 +6094,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				    NND=2
 					 
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					 
@@ -6373,7 +6373,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				    NND=2
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
 					  END DO
 					  ELSE
@@ -6395,7 +6395,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				    NND=2
 					 
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
 					  END DO
 					 
@@ -6473,7 +6473,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				    NND=2
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					  ELSE
@@ -6493,7 +6493,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				    NND=2
 					 
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					 
@@ -6694,7 +6694,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				    NND=2
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
 					  END DO
 					  ELSE
@@ -6715,7 +6715,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				    NND=2
 					 
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
 					  END DO
 					 
@@ -6778,7 +6778,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				  nnd=2
 					  IF (IDUMMY.EQ.0)THEN
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					  ELSE
@@ -6798,7 +6798,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				    NND=2
 					 
 					  do K=1,nnd
-					    VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
 					    
 					  END DO
 					 
@@ -7536,42 +7536,42 @@ END IF
 				  end if
 	    ELSE
 	           if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
-			IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-			if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-			IDUMMY=1
-			END IF
-			END IF
+                        IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+                        if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                        IDUMMY=1
+                        END IF
+                        END IF
 		        if (ielem(n,i)%types_faces(L).eq.5)then
 			      iqp=qp_quad;NND=4
-			      IF (IDUMMY.EQ.0)THEN
-			      do K=1,nnd
-			      VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-			      VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-			      END DO
-			      ELSE
-			      facex=l;
-			      CALL coordinates_face_PERIOD(n,iconsidered,facex)
-			      do K=1,nnd
-			      VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-			      END DO
-			      END IF
-			      call  QUADRATUREQUAD3D(N,IGQRULES)
-			else
-			    iqp=QP_TRIANGLE;NND=3
-					  IF (IDUMMY.EQ.0)THEN
-					  do K=1,nnd
-					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-					  END DO
-					  ELSE
-					  facex=l;
-					  CALL coordinates_face_PERIOD(n,iconsidered,facex)
-					  do K=1,nnd
-					  VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-					  END DO
-					  END IF
-					call QUADRATURETRIANG(N,IGQRULES)
-			end if
+                        IF (IDUMMY.EQ.0)THEN
+                        do K=1,nnd
+                        VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                        END DO
+                        ELSE
+                        facex=l;
+                        CALL coordinates_face_PERIOD(n,iconsidered,facex)
+                        do K=1,nnd
+                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                        END DO
+                        END IF
+                        call  QUADRATUREQUAD3D(N,IGQRULES)
+                else
+                        iqp=QP_TRIANGLE;NND=3
+                            IF (IDUMMY.EQ.0)THEN
+                            do K=1,nnd
+                                VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                            END DO
+                            ELSE
+                            facex=l;
+                            CALL coordinates_face_PERIOD(n,iconsidered,facex)
+                            do K=1,nnd
+                            VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                            END DO
+                            END IF
+                            call QUADRATURETRIANG(N,IGQRULES)
+                end if
 		else
 			if (ielem(n,i)%types_faces(L).eq.5)then
 			iqp=qp_quad;NND=4

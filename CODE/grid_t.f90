@@ -1377,7 +1377,7 @@ i=iconsidered
 end subroutine coordinates_face_inner2dx
 
 
-subroutine coordinates_face_PERIOD(n,iconsidered,facex)
+subroutine coordinates_face_PERIOD1(n,iconsidered,facex)
  !> @brief
 !> This subroutine retrieve the nodes of periodic faces of elements in 3D
 IMPLICIT NONE
@@ -1419,6 +1419,89 @@ i=iconsidered
 	      END DO
 	      
 	     N_NODE=NND
+end subroutine coordinates_face_PERIOD1
+
+
+subroutine coordinates_face_PERIOD2d1(n,iconsidered,facex)
+ !> @brief
+!> This subroutine retrieve the nodes of periodic edges of elements in 2D
+IMPLICIT NONE
+integer,intent(in)::n,iconsidered,facex
+integer::nnd
+integer::i,k
+i=iconsidered
+
+
+	     nnd=2
+	      
+	      VEXT(1,1)=IELEM(N,I)%XXC
+	      VEXT(1,2)=IELEM(N,I)%YYC
+	      
+	      
+			do K=1,nnd
+			  NODES_LIST(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(FACEX,K))%CORD(1:dims)
+			END DO
+			do K=1,nnd
+			IF(ABS(NODES_LIST(k,1)-vext(1,1)).GT.XPER*oo2)THEN
+			NODES_LIST(k,1)=NODES_LIST(k,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
+			end if
+			IF(ABS(NODES_LIST(k,2)-vext(1,2)).GT.yPER*oo2)THEN
+			NODES_LIST(k,2)=NODES_LIST(k,2)+(yPER*SIGN(1.0,vext(1,2)-yPER*oo2))
+			end if
+			END DO
+	      
+	      
+	      do K=1,nnd
+		  VEXT(K,1:2)=NODES_LIST(k,1:2)
+	      END DO
+	      
+	     N_NODE=NND
+end subroutine coordinates_face_PERIOD2d1
+
+
+
+subroutine coordinates_face_PERIOD(n,iconsidered,facex)
+ !> @brief
+!> This subroutine retrieve the nodes of periodic faces of elements in 3D
+IMPLICIT NONE
+integer,intent(in)::n,iconsidered,facex
+integer::nnd
+integer::i,k
+i=iconsidered
+
+
+	      select case (ielem(n,iconsidered)%types_faces(facex))
+	      case(5)
+	      nnd=4
+	      case(6)
+	      nnd=3
+	      end select
+	      
+	      VEXT(1,1)=IELEM(N,I)%XXC
+	      VEXT(1,2)=IELEM(N,I)%YYC
+	      VEXT(1,3)=IELEM(N,I)%ZZC
+	      
+			do K=1,nnd
+			  NODES_LIST(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(FACEX,K))%CORD(1:dims)
+			END DO
+			do K=1,nnd
+			IF(ABS(NODES_LIST(k,1)-vext(1,1)).GT.XPER*oo2)THEN
+			NODES_LIST(k,1)=NODES_LIST(k,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
+			end if
+			IF(ABS(NODES_LIST(k,2)-vext(1,2)).GT.yPER*oo2)THEN
+			NODES_LIST(k,2)=NODES_LIST(k,2)+(yPER*SIGN(1.0,vext(1,2)-yPER*oo2))
+			end if
+			IF(ABS(NODES_LIST(k,3)-vext(1,3)).GT.zPER*oo2)THEN
+			NODES_LIST(k,3)=NODES_LIST(k,3)+(zPER*SIGN(1.0,vext(1,3)-zPER*oo2))
+			end if
+			END DO
+	      
+	      
+	      do K=1,nnd
+		  VEXT(K,1:3)=NODES_LIST(k,1:3)
+	      END DO
+	      
+	     N_NODE=NND
 end subroutine coordinates_face_PERIOD
 
 
@@ -1439,7 +1522,7 @@ i=iconsidered
 	      
 	      
 			do K=1,nnd
-			  NODES_LIST(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(FACEX,K))%CORD(1:dims)
+			  NODES_LIST(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(FACEX,K))%CORD(1:dims)
 			END DO
 			do K=1,nnd
 			IF(ABS(NODES_LIST(k,1)-vext(1,1)).GT.XPER*oo2)THEN
