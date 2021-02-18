@@ -90,9 +90,7 @@ CALL FIND_SHAPE(N,IMAXE,IESHAPE)	!> Find the shape each element
 
 
 
-IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
- CALL  ALLOCATETURB(N,EDDYFL,EDDYFR) !> Allocate memory for turbulence model or passive scalar variables
-END IF
+
 CALL CHECKRES  !> Check the existence of RESTART/CHECKPOINT files
 
 CALL XMPIALLOCATE(XMPIE,XMPIL,XMPIN,XMPIELRANK,XMPINRANK,IMAXE,IMAXN,NPROC) !> Allocate memory for local and global numbering of elements and nodes
@@ -154,6 +152,9 @@ CALL READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE,IBOUN
  CALL DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBOURS,IDEGFREE,IMAXDEGFREE,IEXTEND) !> Determing the stencil sizes, number of polynomial coefficients etc.
  
 !$OMP PARALLEL DEFAULT(SHARED)
+IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+ CALL  ALLOCATETURB(N,EDDYFL,EDDYFR) !> Allocate memory for turbulence model or passive scalar variables
+END IF
  CALL GAUSSIANPOINTS(IGQRULES,NUMBEROFPOINTS,NUMBEROFPOINTS2)   !> Establish the number of Gausian quadrature points for each element and face
  CALL VERTALLOCATION(N,VEXT,LEFTV,RIGHTV,VISCL,LAML)           !> Allocate the memory for the left and right state variables
   CALL ALLOCATE1(N)                                            !> Additional allocations
