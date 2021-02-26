@@ -29,14 +29,15 @@ OFLAGS=
 # debug run
 #FFLAGS=-i4 -r8 -O0  -g  -debug all -xHost -traceback -qopenmp -qopenmp-link=static $(BLASFLAGS) -check bounds -fp-model strict -debug inline-debug-info -zero 
 # production run
-#FFLAGS=-i4 -r8 -ipo -march=core-avx2 -mtune=core-avx2 -O3 -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)  
+#FFLAGS=-i4 -r8 -ipo -march=core-avx2 -mtune=core-avx2 -O3 -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)  #amd zen
+FFLAGS=-i4 -r8 -ipo -xHost -O3 -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)
 
 
 #gfortran
 #debug run
 #FFLAGS=-ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fbacktrace -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -Wno-lto-type-mismatch $(BLASFLAGS)
 #production run
-FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -march=znver2 -mtune=znver2 -O3 $(BLASFLAGS) 
+#FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -O3 -march=native -Wno-lto-type-mismatch   $(BLASFLAGS) 
 
 #aocl
 #FFLAGS= -O3 -Mfreeform -Mallocatable=03 -Mdaz -fdefault-real-8 -fopenmp -mavx2 -march=znver2 $(BLASFLAGS)
