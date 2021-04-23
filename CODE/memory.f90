@@ -219,6 +219,16 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::KMAXE
 KMAXE=XMPIELRANK(N)
+
+
+
+IF (RUNGEKUTTA.EQ.12)THEN
+ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+impdu(:,:)=zero
+ELSE
+
+
+
 if (dimensiona.eq.3)then
 if (lowmemory.eq.0)then
 
@@ -287,6 +297,10 @@ impdu(:,:)=zero
 end if
 
 end if
+END IF
+
+
+
 
 END  SUBROUTINE IMPALLOCATE
 
@@ -1246,6 +1260,14 @@ end if
 	ISTAGE=3
 	END IF
 	
+	CASE(12)
+	
+	IF (AVERAGING.EQ.1)THEN
+	ISTAGE=5
+	ELSE
+	ISTAGE=3
+	END IF
+	
 	END SELECT
 	
 	DO I=1,KMAXE
@@ -1612,7 +1634,7 @@ SMOOTHINDICATOR(1:kkd,1:TYPESTEN,1:6,1:2),LAMBDA(1:kkd,1:TYPESTEN,1:6,1:2),OMEGA
 OMEGAAL(1:TYPESTEN),SUMOMEGATILDE(1:kkd),RESSOLUTION(1:NUMBEROFPOINTS2*6,1:NOF_VARIABLES),A_CHAR(1:IDEGFREE,1:NOF_VARIABLES,1:TYPESTEN),B_CHAR(1:IDEGFREE,1:IDEGFREE),X_cHAR(1:kkd,1:TYPESTEN))
 
  
-if (rungekutta.ge.10)then
+if ((rungekutta.GE.10).AND.(rungekutta.LT.12))then
 ALLOCATE(B1_imp(nof_Variables),DU1(nof_Variables),DU2(nof_Variables),DUMMY12(nof_Variables),C1_imp(nof_Variables),lscqm1(nof_Variables,nof_Variables))
 ALLOCATE(DUR(nof_Variables),DUL(nof_Variables))
 ALLOCATE(DURR(nof_Variables),DULR(nof_Variables))

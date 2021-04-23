@@ -1305,6 +1305,7 @@ DURR=zero; DULR=zero
 
 
 call CALCULATE_JACOBIAN_2d(N)
+
 !$OMP DO SCHEDULE (STATIC)
 do i=1,kmaxe
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(i,1:nof_Variables,1:nof_Variables)
@@ -2571,6 +2572,31 @@ end if
 
 
 END SUBROUTINE RELAXATION_lm2d
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 end module implicit_time

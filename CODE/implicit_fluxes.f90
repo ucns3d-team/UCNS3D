@@ -1020,12 +1020,12 @@ do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
 !    
-    IMPDIAGt(i,nvar)=IMPDIAGt(i,nvar)+(ielem(n,I)%totvolume/(ielem(n,I)%dtl*(5/CFL)))-sht(i,nvar)
+    IMPDIAGt(i,nvar)=IMPDIAGt(i,nvar)+(ielem(n,I)%totvolume/(ielem(n,I)%dtl*(CFL)))-sht(i,nvar)
     end do
     end if
     if (passivescalar.gt.0)then
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
-    IMPDIAGt(i,nvar)=IMPDIAGt(i,nvar)+(ielem(n,I)%totvolume/(ielem(n,I)%dtl*(5/CFL)))
+    IMPDIAGt(i,nvar)=IMPDIAGt(i,nvar)+(ielem(n,I)%totvolume/(ielem(n,I)%dtl*(CFL)))
     end do
     end if
 end do

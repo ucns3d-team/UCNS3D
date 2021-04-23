@@ -6884,12 +6884,12 @@ allocate (Valuelocation(nvar1))
       JMax    = totwalls
       KMax    = 0
       ZoneType = 3
-      if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .eq. 11)) Then
+      !if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .GE. 11)) Then
       SolTime = T
-      else
-      SolTime = IT
+      !else
+      !SolTime = IT
 
-      end if
+      !end if
       StrandID = 1
       ParentZn = 0
       IsBlock = 1
@@ -7450,12 +7450,12 @@ allocate (Valuelocation(nvar1))
       JMax    = totwalls
       KMax    = 0
       ZoneType = 1
-      if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .eq. 11)) Then
+      !if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .eq. 11)) Then
       SolTime = T
-      else
-      SolTime = IT
+      !else
+      !SolTime = IT
 
-      end if
+      !end if
       StrandID = 1
       ParentZn = 0
       IsBlock = 1
@@ -8613,12 +8613,12 @@ allocate (Valuelocation(nvar1))
       JMax    = totwalls
       KMax    = 0
       ZoneType = 1
-      if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .eq. 11)) Then
+     ! if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .eq. 11)) Then
       SolTime = T
-      else
-      SolTime = IT
+      !else
+      !SolTime = IT
 
-      end if
+      !end if
       StrandID = 1
       ParentZn = 0
       IsBlock = 1
@@ -10209,12 +10209,12 @@ allocate (Valuelocation(nvar1))
       JMax    = totwalls
       KMax    = 0
       ZoneType = 3
-      if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .eq. 11)) Then
+!       if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .eq. 11)) Then
       SolTime = T
-      else
-      SolTime = IT
+!       else
+!       SolTime = IT
 
-      end if
+!       end if
       StrandID = 1
       ParentZn = 0
       IsBlock = 1
@@ -10784,12 +10784,12 @@ allocate (Valuelocation(nvar1))
       JMax    = totwalls
       KMax    = 0
       ZoneType = 1
-      if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .eq. 11)) Then
+!       if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .eq. 11)) Then
       SolTime = T
-      else
-      SolTime = IT
+!       else
+!       SolTime = IT
 
-      end if
+!       end if
       StrandID = 1
       ParentZn = 0
       IsBlock = 1
@@ -11906,12 +11906,12 @@ allocate (Valuelocation(nvar1))
       JMax    = totwalls
       KMax    = 0
       ZoneType = 1
-      if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .eq. 11)) Then
+!       if (( RUNGEKUTTA .LT. 5).or.( RUNGEKUTTA .eq. 11)) Then
       SolTime = T
-      else
-      SolTime = IT
+!       else
+!       SolTime = IT
 
-      end if
+!       end if
       StrandID = 1
       ParentZn = 0
       IsBlock = 1
