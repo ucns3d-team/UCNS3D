@@ -2421,7 +2421,9 @@ END IF
 firsti=0.0d0
 DO JJ=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero; 
-  iscoun=2
+      
+        iscoun=2
+      
 
       
 IF (FASTEST.EQ.1)THEN
@@ -2480,7 +2482,12 @@ DO I=1,KMAXE
 end do
 !$OMP END DO
 
+
 !$OMP BARRIER 
+
+
+
+
 !$OMP MASTER
 DUMMY3I=zero
 
@@ -2501,7 +2508,9 @@ allresdt=allresdt/firsti
 
 
 if (n.eq.0)then
-write(777,*)allresdt,jj,it
+				  OPEN(77,FILE='res1.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+				  WRITE(77,*)allresdt,jj,it
+				  CLOSE(77)
 
 end if
 
@@ -3448,6 +3457,8 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 		    CALL CALCULATE_CFL(N)
 		    
 		    IF (RUNGEKUTTA.GE.5)CALL CALCULATE_CFLL(N)
+		    
+		    !$OMP BARRIER
 			!$OMP MASTER
 			DUMMYOUT(1)=DT
 			CPUT2=MPI_WTIME()
@@ -3555,7 +3566,8 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			
 			END SELECT
 			
-			
+			!$OMP BARRIER
+			!$OMP MASTER
 			
 			if (rungekutta.GE.11)then
  			 T=T+(DT)
@@ -3566,8 +3578,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			tz1=tz1+DT
 			  end if
 			  
-			!$OMP BARRIER
-			!$OMP MASTER
+			
 			
 ! 			IF (N.EQ.0)THEN
 ! 				  OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')

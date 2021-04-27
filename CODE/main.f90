@@ -50,7 +50,7 @@ CALL MPI_COMM_RANK(MPI_COMM_WORLD,N,IERROR)
 
 CALL OPEN_INPUT1(N,ITT) !> Open the input files
 
-
+CALL TOLERANCES  !> setup the tolerances values
 CALL READ_UCNS3D !> Read all the parameter files
 
  CALL CLOSE_INPUT1(N,ITT) !> Close the input files
@@ -61,7 +61,7 @@ IF (N.EQ.0)THEN
 
  END IF
  CALL MPI_BARRIER(MPI_COMM_WORLD, IERROR)
- CALL TOLERANCES  !> setup the tolerances values
+ 
 
 CALL TIMING(N,CPUX1,CPUX2,CPUX3,CPUX4,CPUX5,CPUX6,TIMEX1,TIMEX2,TIMEX3,TIMEX4,TIMEX5,TIMEX6) !> start the timers
  CPUX1(1)=MPI_WTIME()
