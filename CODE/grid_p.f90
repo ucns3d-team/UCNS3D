@@ -949,6 +949,7 @@ KJ=0
 
 	CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
 	
+	CALL MPI_BARRIER(mpi_comm_world,ierror)
 	
 	deallocate (requests)							!33 DALLOCATE(REQUESTS)
 	
@@ -960,7 +961,10 @@ KJ=0
 		imax_cpu=max(imax_cpu,cands(i),candr(i))
 		END IF
 	END DO
-	imax_cpu=imax_cpu*1.3
+	
+	!imax_cpu=imax_cpu*1.3
+	
+	CALL MPI_BARRIER(mpi_comm_world,ierror)
 	
 	CALL MPI_ALLREDUCE(IMAX_CPU,IMAX_CPUT,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
 	
@@ -998,7 +1002,7 @@ KJ=0
       
       
       
-      
+      CALL MPI_BARRIER(mpi_comm_world,ierror)
       
       
       
@@ -1064,14 +1068,21 @@ IMAX_CPUT,MPI_INTEGER,I,&
 	
 	IMAX_CPU=KMAXE
 	IMAX_CPUT=0
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	CALL MPI_ALLREDUCE(IMAX_CPU,IMAX_CPUT,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
 	
+	
+	
+	
 	if (dimensiona.eq.3)then
-	ALLOCATE(CAND2S(IMAX_CPUT,6))						!5 ALLOCATE(CAND2S,CAND2R)
-	ALLOCATE(CAND2R(IFST2,IMAX_CPUT,6))
-	CAND2S=-100
-	CAND2R=-200
+	ALLOCATE(CAND2S(1:IMAX_CPUT,6))						!5 ALLOCATE(CAND2S,CAND2R)
+	
+	ALLOCATE(CAND2R(1:IFST2,1:IMAX_CPUT,1:6))
+	CAND2S(:,:)=-100
+	CAND2R(:,:,:)=-200
+	
 	else
+
 	ALLOCATE(CAND2S(IMAX_CPUT,4))
 	ALLOCATE(CAND2R(IFST2,IMAX_CPUT,4))
 	CAND2S=-100
@@ -1087,7 +1098,7 @@ IMAX_CPUT,MPI_INTEGER,I,&
 	
 	
 	
-
+    CALL MPI_BARRIER(mpi_comm_world,ierror)
 	
 	
 	if (dimensiona.eq.3)then
@@ -1096,12 +1107,15 @@ IMAX_CPUT,MPI_INTEGER,I,&
 	do i=0,isize-1
 	
 		  IF (cand(i).gt.0)THEN
+		 	
+
 		  IFST2=ifst2+1
-		   CALL MPI_SENDRECV(CAND2S(1:IMAX_CPUT,1:6)&
-,IMAX_CPUT*6,MPI_INTEGER,i,&
-      n,CAND2R(IFST2:IFST2,1:IMAX_CPUT,1:6),&
-IMAX_CPUT*6,MPI_INTEGER,I,&
-      I,MPI_COMM_WORLD,STATUS,IERROR)
+	
+
+		
+		
+		   CALL MPI_SENDRECV(CAND2S(1:IMAX_CPUT,1:6),IMAX_CPUT*6,MPI_INTEGER,i,n,CAND2R(IFST2:IFST2,1:IMAX_CPUT,1:6),&
+IMAX_CPUT*6,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
 		  END IF
 	
 	END DO
@@ -1126,6 +1140,7 @@ IMAX_CPUT*4,MPI_INTEGER,I,&
 	end if
 	
 ! 	
+	
 	
 	
 	 if ((typesten.gt.1).or.(icompact.ge.1))then
