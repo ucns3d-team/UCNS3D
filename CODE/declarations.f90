@@ -393,9 +393,9 @@ REAL,ALLOCATABLE,DIMENSION(:,:,:)::ELEM_LISTD
 !$OMP THREADPRIVATE(TEMPFL,lamc,TEMPFR,FLSTAR,FRSTAR,ULSTAR,UrSTAR,TEMPUL,TEMPUR,FL,eddyfl,eddyfr,FR,RML,RMR,NODES_LIST,VEXT,ELTYPE,ELEM_DEC,ELEM_LISTD,DETERJACS,JACS,INVERSEJACS,LEFTV,RIGHTV,CORDS,VISCL,LAML,ETVM,TURBMV)
 REAL,ALLOCATABLE,DIMENSION(:)::XCC,vgg
 integer, allocatable,dimension(:)::cand,CANDS,CANDR
-integer, allocatable,dimension(:,:)::CANDXR,candxS,CAND2S
+integer, allocatable,dimension(:,:)::CANDXR,candxS,CAND2S,CAND2rT
 integer, allocatable,dimension(:,:,:)::CAND2R
-REAL, allocatable,dimension(:,:)::XAND2S
+REAL, allocatable,dimension(:,:)::XAND2S,XAND2rT
 REAL, allocatable,dimension(:,:,:)::XAND2R
 
 real,allocatable,dimension(:,:)::PQR,SIND1,SIND2,SIND3,SIND4,SIND5,SIND6,MATRIX_A,LSQM,VELLSQMAT,MATRIX_SOLUTION,MATRIXFACE,JUSTCHECK,Q,R,QT,INVR,LSCQM,LSCQM2
