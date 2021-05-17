@@ -1237,7 +1237,15 @@ end if
 	ISTAGE=5
 	ELSE
 	ISTAGE=3
+	
+	if (mood.eq.1)then
+	ISTAGE=4
+	end if
+	
 	END IF
+	
+	
+	
 	
 	CASE(4)
 	IF (AVERAGING.EQ.1)THEN
@@ -1283,6 +1291,18 @@ end if
 		ALLOCATE (U_E(I)%VAL(1,NOF_VARIABLES));U_E(I)%VAL=ZERO
 		END IF
 	END DO
+	
+	
+	IF (MOOD.EQ.1)THEN
+DO I=1,KMAXE
+    IELEM(N,I)%RECALC=0
+END DO
+ELSE
+DO I=1,KMAXE
+    IELEM(N,I)%RECALC=1
+END DO
+END IF
+	
 	
 	
 	
@@ -1645,6 +1665,11 @@ ALLOCATE(DUMMY12T(TURBULENCEEQUATIONS+PASSIVESCALAR))
 end if
 
 end if
+
+
+
+
+
 
 
 

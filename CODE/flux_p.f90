@@ -2968,11 +2968,1174 @@ END SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d
 
 
 
+SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE_MOOD(N)
+!> @brief
+!> This subroutine computes the convective fluxes for hyperbolic conservation laws
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,IKAS,igoflux, icaseb
+	REAL::sum_detect,NORMS
+	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP
+	KMAXE=XMPIELRANK(N)
+	
+	call  QUADRATUREQUAD3D(N,IGQRULES)
+	
+	WEIGHTS_Q(1:QP_QUAD)=WEQUA2D(1:QP_QUAD)
+	
+	call QUADRATURETRIANG(N,IGQRULES)
+	WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGLE)
+	
+	if(reduce_comp.eq.1)then
+	WEIGHTS_T=1.0d0;WEIGHTS_Q=1.0d0
+	end if
+        do i=1,xmpielrank(n)
+            IF (IELEM(N,I)%RECALC.EQ.1)THEN
+            RHS(I)%VAL(:)=ZERO;IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) RHST(I)%VAL(:)=ZERO 
+            END IF
+        end do
+        !$OMP BARRIER
+	!$OMP DO SCHEDULE (STATIC)
+	DO II=1,NOF_INTERIOR	!for all the interior elements
+	I=EL_INT(II)
+	ICONSIDERED=I
+            MP_SOURCE3=ZERO        
+		    B_CODE=0
+		    IF (IELEM(N,I)%RECALC.EQ.1)THEN 
+		    
+		    DO L=1,IELEM(N,I)%IFCA !for all their faces
+!                                      IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
+				  GODFLUX2=ZERO
+				  MP_SOURCE2=ZERO
+ 				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
+ 				  ANGLE2=IELEM(N,I)%FACEANGLEY(L)
+ 				  NX=(COS(ANGLE1)*SIN(ANGLE2))
+				  NY=(SIN(ANGLE1)*SIN(ANGLE2))
+				  NZ=(COS(ANGLE2))
+				  if (ielem(n,i)%types_faces(L).eq.5)then
+					iqp=qp_quad_n
+					WEIGHTS_TEMP(1:IQP)=WEIGHTS_Q(1:IQP)
+				  else
+					iqp=QP_TRIANGLE_n
+					WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
+				  end if
+				  do NGP=1,iqp	!for all the gaussian quadrature points
+                    
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+				      IF ((CASCADE.EQ.2).AND.(IELEM(N,I)%MOOD.EQ.1))THEN
+				      CLEFT(1:nof_Variables)=U_c(I)%VAL(3,1:nof_variables)
+				      END IF
+				      
+				      
+				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+				       IF ((CASCADE.EQ.2).AND.(IELEM(N,(IELEM(N,I)%INEIGH(L)))%MOOD.EQ.1))THEN
+				      CRIGHT(1:nof_Variables)=U_c(IELEM(N,I)%INEIGH(L))%VAL(3,1:nof_variables)
+				      END IF
+				      
+				      !right mean flow state
+				      
+					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+					  if (icoupleturb.eq.1)then
+                        
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp) !left additional equations flow state
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+					  ELSE
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					  END IF
+					  
+					  
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+					END IF
+			
+						  CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  
+						  
+						  
+						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
+						  CALL LMACHT(N)
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
+						  END IF
+						  
+				      
+				      SELECT CASE(iRiemann)
+				      
+				      CASE(1)			!hllc
+				      
+				      CALL HLLC_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,SM)
+				      CALL ROTATEB(N,INVTRI,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
+				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+				      
+				      RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      end if
+				      
+				      CASE(2)			!rusanov
+				      
+				      CALL RUSANOV_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,SM)
+				       CALL ROTATEB(N,INVTRI,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
+				       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+				      
+				      RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      end if
+				      CASE(3)			!roe
+				      
+				      
+				      CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+				      CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)   
+				      CALL ROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      
+				      RHLLCFLUX=HLLCFLUX
+				     				      
+				      CASE(4)			!roe
+				      
+				      
+				      CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+				      CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)   
+				      CALL rROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      
+				      RHLLCFLUX=HLLCFLUX
+				      
+				       
+				       
+				       
+				       CASE(5)			!roe
+				      
+				      
+				      CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+				      CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)   
+				      CALL tROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      
+				      RHLLCFLUX=HLLCFLUX
+				      
+				       END SELECT
+				       
+				       
+				       
+				       
+				      
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
+                        END IF
+				     
+				     
+				     
+				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+					  if (icoupleturb.eq.0)then	!first order upwind flux
+					    
+					  NORMs=(nx*(U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1)))&
+						+(nY*(U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1)))&
+						+(nz*(U_C(I)%val(1,4)/U_C(I)%val(1,1)))
+					      IF (NORMs.GE.ZERO)THEN
+						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=(NORMs)*CTURBL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					      END IF
+					      IF (NORMs.LT.ZERO)THEN
+						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=(NORMs)*CTURBR(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					      END IF
+					  
+					  END IF
+					  
+					  GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)+&
+					  (RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+					  
+					 
+					  
+					  
+				      END IF
+				      
+				      
+				  END DO
+				    
+				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
+				      IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE3=MP_SOURCE3+MP_SOURCE2
+                        END IF
+				    
+!  				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)-godflux2(1:nof_Variables)
+				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
+				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+&
+				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+!  				    RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
+! 				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+				    end if
+!  				    end if
+		    END DO
+                 IF (MULTISPECIES.EQ.1)THEN
+                 RHS(I)%VAL(8)=RHS(I)%VAL(8)-(U_C(I)%VAL(1,8)*MP_SOURCE3)
+                 
+                 END IF
+            END IF
+	END DO
+	!$OMP END DO
+	
+	 !$OMP BARRIER
+	!$OMP DO SCHEDULE (STATIC) 
+	DO II=1,NOF_BOUNDED
+	I=EL_BND(II)
+	ICONSIDERED=I	
+		 MP_SOURCE3=ZERO		
+		   IF (IELEM(N,I)%RECALC.EQ.1)THEN
+		    
+		    DO L=1,IELEM(N,I)%IFCA
+                        igoflux=0
+		     IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+                                                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+                                                                icaseb=1        !periodic mine
+                                                        else
+                                                                icaseb=3        !physical
+                                                        end if
+                                                   
+                                                    ELSE
+                                                    
+                                                                icaseb=2!no boundaries interior
+                                                    
+                                                    end if
+                                else
+                                                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                                                                icaseb=4
+                                                                end if
+                                                    else
+                                                                icaseb=5
+                                                    
+                                                    end if
+                                
+                                
+                                end if
+! 				  IF (icaseb.le.2)THEN
+!                                         IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
+!                                             igoflux=1
+!                                         else
+!                                             igoflux=0
+!                                         end if
+!                                 else
+!                                         igoflux=2
+!                                 end if
+!                                   if (igoflux.ge.1)then
+		    
+		    
+		    
+				      
+				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
+				  ANGLE2=IELEM(N,I)%FACEANGLEY(L)
+				NX=(COS(ANGLE1)*SIN(ANGLE2))
+				NY=(SIN(ANGLE1)*SIN(ANGLE2))
+				NZ=(COS(ANGLE2))
+ 				  
+ 				  if (ielem(n,i)%types_faces(L).eq.5)then
+					iqp=qp_quad_n
+					WEIGHTS_TEMP(1:IQP)=WEIGHTS_Q(1:IQP)
+				  else
+					iqp=QP_TRIANGLE_n
+					WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
+				  end if
+				  GODFLUX2=ZERO
+				  
+				   MP_SOURCE2=ZERO
+								  
+				  
+				  do NGP=1,iqp
+				      B_CODE=0
+				      
+				      
+				      
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)
+				     IF ((CASCADE.EQ.2).AND.(IELEM(N,I)%MOOD.EQ.1))THEN
+				     CLEFT(1:nof_Variables)=U_c(I)%VAL(3,1:nof_variables)
+				     
+				     END IF
+				      
+				      
+					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+						if (icoupleturb.eq.1)then
+						
+						
+						
+							CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)
+						
+							
+						ELSE
+							CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+						end if
+					end if
+				      
+				      
+					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+								  
+								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+								  
+								 
+								  
+								  
+								  
+								  IF ((CASCADE.EQ.2).AND.(IELEM(N,(IELEM(N,I)%INEIGH(L)))%MOOD.EQ.1))THEN
+								   CRIGHT(1:nof_variables)=U_c(IELEM(N,I)%INEIGH(L))%VAL(3,1:nof_variables)
+								  
+								  END IF
+								  
+								  
+								  
+								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+									if (icoupleturb.eq.1)then
+									IF (CASCADE.EQ.1)THEN
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+									ELSE
+									CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									
+									END IF
+									  
+									  
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									END IF
+								    END IF
+								  
+								  
+								  
+								  
+								  ELSE
+								  !NOT PERIODIC ONES IN MY CPU
+								   
+								  facex=l;iconsidered=i
+								  CALL coordinates_face_innerx(N,Iconsidered,facex)
+								    CORDS(1:3)=zero
+								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+							    
+								    Poy(1)=cords(2)
+								    Pox(1)=cords(1)
+								    poz(1)=cords(3)
+								    
+								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
+								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
+								    
+								    
+								    
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
+								    			  				  
+								    
+								  END IF
+							ELSE
+							
+							
+                                  
+							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+							      IF ((CASCADE.EQ.2).AND.(IELEM(N,(IELEM(N,I)%INEIGH(L)))%MOOD.EQ.1))THEN
+							      CRIGHT(1:nof_Variables)=U_c(IELEM(N,I)%INEIGH(L))%VAL(3,1:nof_variables)
+							      
+							      END IF
+							      
+							      
+								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+									if (icoupleturb.eq.1)then
+                                       
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+									  
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									END IF
+								    END IF
+							      
+							      
+							      
+							      
+							END IF
+					    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+					    
+					    
+					     
+					    
+					    
+						
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                                    
+									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                    IF ((CASCADE.EQ.2).AND.(IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_M(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1).GT.0.5))THEN
+                                    CRIGHT(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+                                    
+                                    END IF
+									   
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+									if (icoupleturb.eq.1)then
+									 
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+                                   
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+								    END IF
+									  
+									  
+
+								END IF
+							ELSE 			
+							
+                                     
+								  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+								  
+								  IF ((CASCADE.EQ.2).AND.(IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_M(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1).GT.0.5))THEN
+								  CRIGHT(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+								  
+								  END IF
+								  
+								  
+! 								 
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+									if (icoupleturb.eq.1)then
+									
+									
+									
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									  
+									   
+									   
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+								    END IF
+								  
+! 								   
+							END IF
+					    END IF
+				      
+				      
+			
+						  CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+! 						
+						  
+						  
+								    
+						  
+						  
+						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
+						  CALL LMACHT(N)
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
+						  END IF
+						  
+				      
+								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+								      
+								      cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+								      cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+								    END IF
+				      
+				      
+				      
+				      
+				      SELECT CASE(iRiemann)
+				      
+				      CASE(1)			!hllc
+				      
+				      CALL HLLC_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,SM)
+				      CALL ROTATEB(N,INVTRI,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
+				      
+				       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+				      
+				      RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      end if
+				      CASE(2)			!rusanov
+				      
+				      CALL RUSANOV_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,SM)
+				       CALL ROTATEB(N,INVTRI,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
+				       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+				      
+				      RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      end if
+				      
+				      CASE(3)			!roe
+				      
+				      
+				      CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+				      CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)   
+				      CALL ROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      
+				      RHLLCFLUX=HLLCFLUX
+				      
+				      
+				       CASE(4)			!roe
+				      
+				      CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+				      CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)   
+				     
+				      
+				      
+				      
+				      
+				     IF (B_CODE.LE.0)THEN
+				      
+				      CALL rROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      
+				      ELSE
+				      
+				      
+				      CALL ROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      
+				      END IF
+				      
+				       RHLLCFLUX=HLLCFLUX
+				     			
+                                    CASE(5)			!roe
+				      
+				      CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+				      CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)   
+				      
+				     IF (B_CODE.LE.0)THEN
+				      
+				      CALL tROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      
+				      ELSE
+				      
+				      
+				      CALL ROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      
+				      END IF
+				      
+				       RHLLCFLUX=HLLCFLUX
+				     
+				      
+				       END SELECT
+				       
+				     
+				      
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
+                        END IF
+				       
+				      
+				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+					  if (icoupleturb.eq.0)then	!first order upwind flux
+					    
+					  NORMs=(nx*(U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1)))&
+						+(nY*(U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1)))&
+						+(nz*(U_C(I)%val(1,4)/U_C(I)%val(1,1)))
+					      IF (NORMs.GE.ZERO)THEN
+						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=(NORMs)*CTURBL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					      END IF
+					      IF (NORMs.LT.ZERO)THEN
+						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=(NORMs)*CTURBR(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					      END IF
+					  
+					  END IF
+					  
+					  GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)+&
+					  (RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+					  
+					  
+					  
+				      END IF
+				      
+				      
+				  END DO
+				   
+				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
+				    IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE3=MP_SOURCE3+MP_SOURCE2
+                        END IF
+! 				    if ((igoflux.eq.1))then
+! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
+! 				    end if
+				    
+				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
+				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+&
+				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+! 				     if ((igoflux.eq.1))then
+! 				     RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
+! 				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+! 				    end if
+				    end if
+! 				    end if
+		    END DO
+		     IF (MULTISPECIES.EQ.1)THEN
+                 RHS(I)%VAL(8)=RHS(I)%VAL(8)-(U_C(I)%VAL(1,8)*MP_SOURCE3)
+                 
+                 END IF
+                END IF
+	END DO
+	!$OMP END DO
+
+END SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE_MOOD
 
 
 
+SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d_MOOD(N)
+!> @brief
+!> This subroutine computes the convective fluxes for hyperbolic conservation laws in 2D
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,IKAS,igoflux, icaseb
+	REAL::sum_detect,NORMS
+	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP
+	KMAXE=XMPIELRANK(N)
+	
+	call  QUADRATUReline(N,IGQRULES)
+	
+	WEIGHTS_TEMP(1:qp_line_n)=WEQUA2D(1:qp_line_n)
+	
+	if(reduce_comp.eq.1)then
+	WEIGHTS_TEMP=1.0d0
+	end if
+	
+	do i=1,kmaxe
+	IF (IELEM(N,I)%RECALC.EQ.1)THEN
+	RHS(I)%VAL(:)=ZERO;IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) RHST(I)%VAL(:)=ZERO 
+	END IF
+	end do
+	
+	!$OMP BARRIER
+	!$OMP DO SCHEDULE (STATIC)
+	DO II=1,NOF_INTERIOR	!for all the interior elements
+	I=EL_INT(II)
+	ICONSIDERED=I
+! 		    RHS(I)%VAL(:)=ZERO;IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) RHST(I)%VAL(:)=ZERO 
+          IF (IELEM(N,I)%RECALC.EQ.1)THEN             
+                MP_SOURCE3=ZERO     
+		    DO L=1,IELEM(N,I)%IFCA !for all their faces
+		    if (IELEM(N,I)%REORIENT(l).eq.IELEM(N,IELEM(N,I)%INEIGH(L))%REORIENT(IELEM(N,I)%INEIGHN(L)))then
+		    
+		     
+		     end if
+!                               IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
+                                
+                                
+				  GODFLUX2=ZERO
+				  MP_SOURCE2=ZERO
+ 				  nx=IELEM(N,I)%FACEANGLEX(L)
+ 				  NY=IELEM(N,I)%FACEANGLEY(L)
+ 				  angle1=nx
+ 				  angle2=ny
+				 b_code=0
+					iqp=qp_line_n
+				
+				  do NGP=1,iqp	!for all the gaussian quadrature points
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+				      
+				       IF ((CASCADE.EQ.2).AND.(IELEM(N,I)%MOOD.EQ.1))THEN
+				      CLEFT(1:nof_Variables)=U_c(I)%VAL(3,1:nof_variables)
+				      END IF
+				      
+				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+				      
+				      IF ((CASCADE.EQ.2).AND.(IELEM(N,(IELEM(N,I)%INEIGH(L)))%MOOD.EQ.1))THEN
+				      CRIGHT(1:nof_Variables)=U_c(IELEM(N,I)%INEIGH(L))%VAL(3,1:nof_variables)
+				      END IF
+				      
+				      
+! 				      
+					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+					  if (icoupleturb.eq.1)then
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp) !left additional equations flow state
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+					  ELSE
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					  END IF
+					  
+					  
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+					END IF
+			
+						  CALL ROTATEF2d(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF2d(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  
+						  
+						  
+						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
+						  CALL LMACHT2d(N)
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
+						  END IF
+						  
+				      
+				      SELECT CASE(iRiemann)
+				      
+				      CASE(1)			!hllc
+				      
+				      CALL HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,SM)
+				      CALL ROTATEB2d(N,INVTRI,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
+				       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+				      
+				      RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      end if
+				      
+				      CASE(2)			!rusanov
+				      
+				      CALL RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,SM)
+				       CALL ROTATEB2d(N,INVTRI,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
+				      
+				       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+				      
+				      RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      end if
+				      CASE(3)			!roe
+				      
+				      
+				      CALL ROTATEB2d(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+				      CALL ROTATEB2d(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)   
+				      CALL ROE_RIEMANN_SOLVER2d(N,Cleft,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      
+				      RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
+                                        
+                                        
+                                         CASE(4)			!roe
+				      
+				      
+				      CALL ROTATEB2d(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+				      CALL ROTATEB2d(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)   
+				      CALL rROE_RIEMANN_SOLVER2d(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      
+				      RHLLCFLUX=HLLCFLUX
+				     
+				      
+				       END SELECT
+				       
+				       
+				       
+				       
+				       
+				      
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				       IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
+                        END IF
+				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+					  if (icoupleturb.eq.0)then	!first order upwind flux
+					    
+					  NORMs=(nx*(U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1)))&
+						+(nY*(U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1)))
+					      IF (NORMs.GE.ZERO)THEN
+						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=(NORMs)*CTURBL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					      END IF
+					      IF (NORMs.LT.ZERO)THEN
+						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=(NORMs)*CTURBR(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					      END IF
+					  
+					  END IF
+					  
+ 					
+					  
+					  GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)+&
+					  (RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+					  
+! 					 
+					  
+				      END IF
+				      
+				      
+				  END DO
+				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
+				    IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE3=MP_SOURCE3+MP_SOURCE2
+                        END IF
+				    
+				    
+! 				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
+				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+&
+				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+! 				    RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
+!  				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+! 				    
+				    END IF
+! 				    end if
+		    END DO
+		    IF (MULTISPECIES.EQ.1)THEN
+                 RHS(I)%VAL(7)=RHS(I)%VAL(7)-(U_C(I)%VAL(1,7)*MP_SOURCE3)!*ielem(n,I)%totvolume)
+                 
+                 END IF
+                 
+                 
+            END IF     
+	END DO
+	!$OMP END DO
+	
+	
+	!$OMP DO SCHEDULE (STATIC) 
+	DO II=1,NOF_BOUNDED
+	I=EL_BND(II)
+	ICONSIDERED=I	
+	MP_SOURCE3=ZERO  
+		 IF (IELEM(N,I)%RECALC.EQ.1)THEN	
 
+		    
+		    DO L=1,IELEM(N,I)%IFCA
+				  igoflux=0
+				  IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+                                                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+                                                                icaseb=1        !periodic mine
+!                                                                     
+                                                        else
+                                                                icaseb=3        !physical
+!                                                                        
+                                                        end if
+                                                   
+                                                    ELSE
+!                                                                  
+                                                                icaseb=2!no boundaries interior
+                                                    
+                                                    end if
+                                else
+                                                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                                                                icaseb=4
+                                                                end if
+                                                    else
+                                                                icaseb=5
+                                                    
+                                                    end if
+                                
+                                
+                                end if
 
+				    b_code=0  
+				 nx=IELEM(N,I)%FACEANGLEX(L)
+ 				  NY=IELEM(N,I)%FACEANGLEY(L)
+ 				  angle1=nx
+ 				  angle2=ny
+				 
+					iqp=qp_line_n
+				  GODFLUX2=ZERO
+				  MP_SOURCE2=ZERO
+				  do NGP=1,iqp
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)
+				      
+				      IF ((CASCADE.EQ.2).AND.(IELEM(N,I)%MOOD.EQ.1))THEN
+				     CLEFT(1:nof_Variables)=U_c(I)%VAL(3,1:nof_variables)
+				     
+				     END IF
+				      
+				      
+				      
+					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+						if (icoupleturb.eq.1)then
+							CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)
+						ELSE
+							CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+						end if
+					end if
+				      
+				      
+					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+								  
+								   IF ((CASCADE.EQ.2).AND.(IELEM(N,(IELEM(N,I)%INEIGH(L)))%MOOD.EQ.1))THEN
+								   CRIGHT(1:nof_variables)=U_c(IELEM(N,I)%INEIGH(L))%VAL(3,1:nof_variables)
+								  
+								  END IF
+								  
+								  
+								  
+								  
+								  
+								  
+								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									END IF
+								    END IF
+								  
+								  
+								  IKAS=1
+								  
+								  ELSE
+								  !NOT PERIODIC ONES IN MY CPU
+								   
+								  facex=l;iconsidered=i
+								  CALL coordinates_face_inner2dx(N,Iconsidered,facex)
+								    CORDS(1:2)=zero
+								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
+							    
+								    Poy(1)=cords(2)
+								    Pox(1)=cords(1)
+								    
+								    
+								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
+! 								    
+								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
+! 				  				   
+				  				  	 IKAS=2			  				  
+								    
+								  END IF
+							ELSE
+							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+ 							     
+ 							      IF ((CASCADE.EQ.2).AND.(IELEM(N,(IELEM(N,I)%INEIGH(L)))%MOOD.EQ.1))THEN
+							      CRIGHT(1:nof_Variables)=U_c(IELEM(N,I)%INEIGH(L))%VAL(3,1:nof_variables)
+							      
+							      END IF
+ 							     
+ 							     
+ 							     
+ 							     
+ 							     
+								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									END IF
+								    END IF
+							      
+							      
+							       IKAS=3
+							      
+							END IF
+					    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+					    
+					    
+					     
+					    
+					    
+						
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+									  
+									  
+									  IF ((CASCADE.EQ.2).AND.(IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_M(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1).GT.0.5))THEN
+                                    CRIGHT(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+                                    
+                                    END IF
+									  
+									  
+									  
+									  
+ 									   
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+									
+									
+									
+									
+								    END IF
+									  
+									  
+
+								END IF
+							ELSE 			
+							
+								  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+ 								  
+ 								  
+ 								   IF ((CASCADE.EQ.2).AND.(IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_M(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1).GT.0.5))THEN
+                                    CRIGHT(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+                                    
+                                    END IF
+ 								  
+ 								  
+ 								  
+ 								  
+ 								  
+ 								  
+ 								  
+ 								  
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+									
+									
+								    END IF
+								   IKAS=4
+! 								   
+							END IF
+					    END IF
+				      
+				      
+			
+						  CALL ROTATEF2d(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF2d(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+! 						   
+						  
+						  
+						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
+						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
+						  
+						  CALL LMACHT2d(N)
+						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
+						  
+						  
+						  END IF
+						  
+				      
+								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+								      
+								      cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+								      cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+								    END IF
+				      
+				      
+				      
+				      
+				      SELECT CASE(iRiemann)
+				      
+				      CASE(1)			!hllc
+				      
+				      CALL HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,SM)
+				      CALL ROTATEB2d(N,INVTRI,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
+				      
+				       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+				      
+				      RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      end if
+				      
+				      CASE(2)			!rusanov
+				      
+				      CALL RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,SM)
+				       CALL ROTATEB2d(N,INVTRI,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
+				      
+				       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+				      
+				      RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      end if
+				      
+				      CASE(3)			!roe
+				      
+				      
+				      CALL ROTATEB2d(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+				      CALL ROTATEB2d(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)   
+				      CALL ROE_RIEMANN_SOLVER2d(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      
+				      RHLLCFLUX=HLLCFLUX
+				     				      
+				     
+				        CASE(4)			!roe
+				      
+				      
+				       
+				      
+				      IF ((B_CODE.le.0))THEN
+				      
+				      CALL ROTATEB2d(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+				      CALL ROTATEB2d(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)  
+				      
+				      
+				      
+				      CALL rROE_RIEMANN_SOLVER2d(N,CLEFT,CRIGHT,HLLCFLUX,ROTVL,ROTVR,GAMMA,sl,sr,sm)
+				      RHLLCFLUX=HLLCFLUX
+				      ELSE
+				      
+! 				      CALL ROTATEF2d(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+!                                       CALL ROTATEF2d(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)
+				     
+				      
+				      CALL RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,SM)
+				      CALL ROTATEB2d(N,INVTRI,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
+				      
+				      
+				      
+				      END IF
+				      
+				      
+				       END SELECT
+				       
+				     
+				      
+				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
+                        END IF
+				       
+				      
+				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+					  if (icoupleturb.eq.0)then	!first order upwind flux
+					    
+					  NORMs=(nx*(U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1)))&
+						+(nY*(U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1)))
+						
+					      IF (NORMs.GE.ZERO)THEN
+						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=(NORMs)*CTURBL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					      END IF
+					      IF (NORMs.LT.ZERO)THEN
+						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=(NORMs)*CTURBR(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					      END IF
+					  
+					  END IF
+					  
+					  if ((b_code.eq.4).or.(b_code.eq.3))then
+					  rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=zero
+					  end if
+					  
+					  
+					 
+					  GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)+&
+					  (RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+! 					  
+					  
+					  
+				      END IF
+				      
+				      
+				  END DO
+				   
+				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
+				    IF (MULTISPECIES.EQ.1)THEN
+                        MP_SOURCE3=MP_SOURCE3+MP_SOURCE2
+                        END IF
+! 				    if ((igoflux.eq.1))then
+! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
+! 				    end if
+				    
+				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
+				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+&
+				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+! 				     if ((igoflux.eq.1))then
+! 				     RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
+! 				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+! 				    end if
+! 				    end if
+				    end if
+		    END DO
+		     IF (MULTISPECIES.EQ.1)THEN
+                 RHS(I)%VAL(7)=RHS(I)%VAL(7)-(U_C(I)%VAL(1,7)*MP_SOURCE3)!*ielem(n,I)%totvolume)
+                 
+                 END IF
+                 
+                 END IF
+	END DO
+	!$OMP END DO
+
+END SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d_MOOD
 
 
 END MODULE FLUXES

@@ -16,7 +16,7 @@ IMPLICIT NONE
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
 
-INTEGER::kmaxn,multispecies,nof_species,pdim,M2,DIMENSIONA,LOWMEM,binio,nof_variables,CHUNK_N,dims,IRES_TURB,CODE_PROFILE,IRES_UNSTEADY,LAMPS,itotalb,totiw,number_of_dog,B_CODE,ICONS_S,ICONS_E,ICOMPACT,EES,iscoun,itold,lmach_style,WEIGHT_LSQR	!DIMENSIONS OF PROBLEM
+INTEGER::CASCADE,MOOD,MOOD_MODE,kmaxn,multispecies,nof_species,pdim,M2,DIMENSIONA,LOWMEM,binio,nof_variables,CHUNK_N,dims,IRES_TURB,CODE_PROFILE,IRES_UNSTEADY,LAMPS,itotalb,totiw,number_of_dog,B_CODE,ICONS_S,ICONS_E,ICOMPACT,EES,iscoun,itold,lmach_style,WEIGHT_LSQR	!DIMENSIONS OF PROBLEM
 integer::governingequations,guassianquadra,temporder,iboundary,wenocnschar,required,nodes_i,SWIRL,IADAPT,TECPLOT,STENCIL_IO,SURFSHEAR,ISSF,n_node,ELEM_DEC,n_boundaries,NUMBER_OF_NEI,FASTEST_Q,STATISTICS
 integer,allocatable,DIMENSION(:,:)::jtot1,jtot2,jtot3,jtot,el_connect
 integer::jtotAL,JTOTAL1,JTOTAL2,JTOTAL3,compwrt,varcons,pointx,llx
@@ -159,7 +159,7 @@ INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:)::ILOCALALLS      !DUMMY VARIABLE FOR RECU
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.3.   REAL VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
-REAL::wenocentralweight,TIMESTEP,oo2,zero,voltemp,SHEAR_TEMP,forcex,forcey,forcez,extf,vorder
+REAL::wenocentralweight,TIMESTEP,oo2,zero,voltemp,SHEAR_TEMP,forcex,forcey,forcez,extf,vorder,MOOD_VAR1,MOOD_VAR2,MOOD_VAR3,MOOD_VAR4
 REAL::XD1,MP_SOURCE1,MP_SOURCE2,MP_SOURCE3		  	  		!X COORDINATES USED FOR THE POLYNOMIALS DERIVATIVES
 REAL::YD1		  	  		!Y COORDINATES USED FOR THE POLYNOMIALS DERIVATIVES
 REAL::ZD1		  	  		!Z COORDINATES USED FOR THE POLYNOMIALS DERIVATIVES
@@ -589,7 +589,7 @@ TYPE EXCHANGE_BOUNDHI
 	INTEGER::IAVT     !NUMBER OF PROCESSORS THAT WE NEED TO RECEIVE/OR SEND DATA
 	INTEGER::FAST
 	INTEGER::HOWMANY  !HOW MANY ELEMENTS ARE NEEDED
-	REAL,ALLOCATABLE,DIMENSION(:,:)::FACESOL   !ARRAY HOLDING THE NUMBER OF VARIABLES TO BE SENT/RECEIVED
+	REAL,ALLOCATABLE,DIMENSION(:,:)::FACESOL,FACESOL_M   !ARRAY HOLDING THE NUMBER OF VARIABLES TO BE SENT/RECEIVED
 	integer,allocatable,dimension(:,:)::vertpp !VERTEX MAPPING BETWEEN DIFFERENT PROCESSES
 END TYPE EXCHANGE_BOUNDHI
 
@@ -678,6 +678,8 @@ TYPE(RECEX),ALLOCATABLE,DIMENSION(:)::IRECEXS		!SEND ELEMENTS DUE TO STENCIL
 
 TYPE::ELEMENT_NUMBER	!NAME OF TYPE FOR THE SET OF ELEMENTS
     INTEGER::IHEX	!LOCAL INDEX OF EACH CELL
+     INTEGER::MOOD,MOOD_O	!MOOD FLAG FOR EVERY ELEMENT
+     INTEGER::RECALC !FLAG FOR RECALCULATING THE SOLUTION POST-ERIORI
 	INTEGER::IHEXGL !GLOBAL INDEX OF EACH CELL
 	INTEGER::full   !SPECIFIES IF SUFFICIENT NUMBER OF STENCILS ARE FOUND TO PROCEED WITH WENO FOR THIS CELL
 	INTEGER::INTERIOR !SPECIFIES IF THIS CELL HAS ANY SIDE BOUNDED (INTERIOR CELLS GET A VALUE OF 0, NON INTERIOR ONES GET A VALUE OF 1)

@@ -1112,8 +1112,8 @@ IMAX_CPUT,MPI_INTEGER,I,&
 		 	
 
 		  IFST2=ifst2+1
-			
-			
+	
+
 		
 		
 		   CALL MPI_SENDRECV(CAND2S(1:IMAX_CPUT,1:6),IMAX_CPUT*6,MPI_INTEGER,i,n,CAND2RT(1:IMAX_CPUT,1:6),&
@@ -1152,7 +1152,6 @@ IMAX_CPUT*4,MPI_INTEGER,I,&
 	end if
 	
 ! 	
-		
 	
 	
 	

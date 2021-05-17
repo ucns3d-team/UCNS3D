@@ -1911,7 +1911,183 @@ END SUBROUTINE EXHBOUNDHIGHER2
 
 
 
+SUBROUTINE EXHBOUNDHIGHER_MOOD(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
+INTEGER::ITEE,ITEEDUM,JK,JJK,JJK4,JJK12,IMULTI2,ICPE,JMNB,J76,J78,J79,J80,IMULTI3,I_CNT,cinout2
+integer:: n_requests
+integer, dimension(:), allocatable:: requests
+real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
+ cinout2=0
+INDL=IEXCHANGER(1)%TOT
+TNDL=IEXCHANGES(1)%TOT
 
+pr_t31=zero
+pr_t32=zero
+pr_t33=zero
+pr_t34=zero
+pr_t35=zero
+temp_prin=zero
+temp_prout=zero
+
+
+
+
+
+if(indl .ne. tndl) then
+   write (*, *) "exhbounhigher: INDL and TNDL are supposed to be equal; INDL=", INDL, "TNDL=", TNDL
+   call MPI_ABORT(MPI_COMM_WORLD, 1, IERROR)
+end if
+
+IF (DIMENSIONA.EQ.3)THEN
+
+
+            IF( ITESTCASE.EQ.4)THEN
+            I_CNT=1
+            ELSE
+
+            I_CNT=1
+            END IF
+ELSE
+        IF( ITESTCASE.EQ.4)THEN
+        I_CNT=1
+        ELSE
+
+        I_CNT=1
+        END IF
+END IF
+
+
+IF (ITESTCASE.LE.3) THEN
+!$OMP DO SCHEDULE (STATIC)
+DO I=1,TNDL
+DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+  IEXBOUNDHIS(I)%FACESOL_m(K,1)=Ielem(n,(IEXCHANGES(I)%LOCALREF(K)))%mood
+
+END DO
+END DO
+!$OMP END DO
+END  IF
+
+
+IF (ITESTCASE.EQ.4) THEN
+
+IF (TURBULENCE.NE.1)THEN
+!$OMP DO SCHEDULE (STATIC)
+DO I=1,TNDL
+DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+IEXBOUNDHIS(I)%FACESOL(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+
+ITTT=0
+DO IEX=1,NOF_VARIABLES-1
+      DO nvar=1,DIMS
+      ITTT=ITTT+1
+		  IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+
+      END DO
+END DO
+END DO
+END DO
+!$OMP END DO
+
+ELSE
+!$OMP DO SCHEDULE (STATIC)
+DO I=1,TNDL
+DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+IEXBOUNDHIS(I)%FACESOL(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+1:NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+
+
+ITTT=0
+DO IEX=1,NOF_VARIABLES-1
+      DO nvar=1,DIMS
+      ITTT=ITTT+1
+		  IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+      END DO
+END DO
+DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+      DO nvar=1,DIMS
+      ITTT=ITTT+1
+	IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTTURBV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+      END DO
+END DO
+END DO
+END DO
+!$OMP END DO
+
+END IF
+END  IF
+
+
+
+
+!$OMP BARRIER
+!$OMP MASTER
+
+
+n_requests = 0
+allocate(requests(2*indl))
+
+ICPUID=N
+
+
+
+
+
+
+
+
+
+
+DO K=1,INDL
+
+   ! Search unique J such that (IEXBOUNDHIR(K)%PROCID .EQ. IEXBOUNDHIS(J)%PROCID)
+   J = 1
+   DO WHILE(IEXBOUNDHIR(K)%PROCID .NE. IEXBOUNDHIS(J)%PROCID)
+      J = J + 1
+   END DO
+
+   ! non-blocking send
+   n_requests = n_requests + 1
+   CALL MPI_ISEND(                                                     &
+      IEXBOUNDHIS(J)%FACESOL_m(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
+      IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
+      IEXBOUNDHIS(J)%PROCID, 0,                                        & !destination, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+   ! non-blocking receive
+   n_requests = n_requests + 1
+   CALL MPI_IRECV(                                                     &
+      IEXBOUNDHIR(K)%FACESOL_m(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
+      IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+      IEXBOUNDHIR(K)%PROCID, 0,                                        & !source, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+!   CALL MPI_SENDRECV(                                                  &
+!      IEXBOUNDHIS(J)%FACESOL(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
+!      IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
+!      IEXBOUNDHIS(J)%PROCID, ICPUID,                                   & !destination, tag
+!      IEXBOUNDHIR(K)%FACESOL(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
+!      IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+!      IEXBOUNDHIR(K)%PROCID, IEXBOUNDHIR(K)%PROCID,                    & !source, tag
+!      MPI_COMM_WORLD,STATUS,IERROR                                     & !communicator, status, error
+!   )
+END DO
+
+CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
+
+
+
+
+
+deallocate(requests)
+!$OMP END MASTER
+!$OMP BARRIER
+
+END SUBROUTINE EXHBOUNDHIGHER_MOOD
 
 
 

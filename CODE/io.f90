@@ -1250,10 +1250,15 @@ Valuelocation(:)=0
 			
 			
                 
-                
+                IF (MOOD.EQ.1)THEN
+                DO I=1,KMAXE
+                VALUESS(i)=IELEM(N,I)%MOOD_O
+                END DO
+                ELSE
                 DO I=1,KMAXE
                 VALUESS(i)=IELEM(N,I)%STENCIL_DIST
                 END DO
+                END IF
                 
                 
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -2623,9 +2628,16 @@ Valuelocation(:)=0
                 VALUESS(i)=U_C(I)%VAL(1,6)
                 END DO
                 else
+                IF (MOOD.EQ.1)THEN
+                DO I=1,KMAXE
+                VALUESS(i)=IELEM(N,I)%MOOD_O
+                END DO
+                ELSE
+                
                 DO I=1,KMAXE
                 VALUESS(i)=IELEM(N,I)%STENCIL_DIST
                 END DO
+                END IF
                 end if
                 
                 
@@ -3020,7 +3032,7 @@ SUBROUTINE READ_UCNS3D
  	Integer :: INV
  	Real :: angledum
 	CHARACTER(48)::STAMP1
-	LOGICAL::HERE1,HERE2
+	LOGICAL::HERE1,HERE2,HERE3
 
 
  	
@@ -3048,12 +3060,25 @@ SUBROUTINE READ_UCNS3D
     READ(14,*)MP_A_IN(1:NOF_SPECIES)
     READ(14,*)MP_R_IN(1:NOF_SPECIES)
     READ(14,*)MP_PINF(1:NOF_SPECIES)
+    CLOSE(14)
 	ELSE
 	MULTISPECIES=0
 	END IF
 
 
-	
+	INQUIRE (FILE='MOOD.DAT',EXIST=HERE3)
+	IF (HERE3) THEN
+	MOOD=1
+	OPEN(17,FILE='MOOD.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+	READ(17,*)
+	READ(17,*)
+	READ(17,*)MOOD_MODE        !TYPE OF MOOD MODE (1=RELAXED, 0=ORIGINAL)
+    READ(17,*)MOOD_VAR1,MOOD_VAR2
+    READ(17,*)MOOD_VAR3,MOOD_VAR4
+    CLOSE(17)
+	ELSE
+	MOOD=0
+	END IF
 	
 	
 	

@@ -248,6 +248,12 @@ DO I=1,INDL
 	ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),nof_variables))
 ! 	ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
 
+    if (mood.eq.1)then
+	
+            ALLOCATE(IEXBOUNDHIR(I)%FACESOL_m(IEXCHANGER(I)%MUCHINEED(1),1))
+            
+            end if
+
 	Else
 	
 	  if (dimensiona.eq.3)then
@@ -258,7 +264,7 @@ DO I=1,INDL
 
 	    ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),I_CNT))
 
-! 	   ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
+            
 	END IF
 
 	IEXBOUNDHIR(I)%FACESOL(:,:)=0.0d0
@@ -270,7 +276,10 @@ DO I=1,TNDL
 	IF (ITESTCASE.Le.3)THEN
 	ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),nof_variables))
 	
+	 if (mood.eq.1)then
 	
+            ALLOCATE(IEXBOUNDHIs(I)%FACESOL_m(IEXCHANGEs(I)%MUCHTHEYNEED(1),1))
+        end if
 
 	Else
 	
@@ -282,6 +291,8 @@ DO I=1,TNDL
 	  end if
 	    ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),I_CNT))
 
+	   
+	    
 	  
 	END IF
 
