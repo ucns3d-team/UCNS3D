@@ -693,7 +693,7 @@ i=iconsi
 					ELSE
 
 					 
-					NX=ZERO;NY=ZERO;NZ=ZERO;ROOT_ROT=ZERO
+					
 					
 					
 					DELXA=VEXT(4,1)-VEXT(2,1)
@@ -711,18 +711,20 @@ i=iconsi
 					
 					
 					!newells method
-! 					do kk=1,n_node
-! 					if (kk.ne.n_node)then
-! 					nx=nx+(vext(kk,2)-vext(kk+1,2))*(vext(kk,3)+vext(kk+1,3))
-! 					ny=ny+(vext(kk,3)-vext(kk+1,3))*(vext(kk,1)+vext(kk+1,1))
-! 					nz=nz+(vext(kk,1)-vext(kk+1,1))*(vext(kk,2)+vext(kk+1,2))
-! 					else
-! 					nx=nx+(vext(kk,2)-vext(1,2))*(vext(kk,3)+vext(1,3))
-! 					ny=ny+(vext(kk,3)-vext(1,3))*(vext(kk,1)+vext(1,1))
-! 					nz=nz+(vext(kk,1)-vext(1,1))*(vext(kk,2)+vext(1,2))
-! 					
-! 					end if
-! 					end do
+
+					NX=ZERO;NY=ZERO;NZ=ZERO;ROOT_ROT=ZERO
+ 					do kk=1,n_node
+ 					if (kk.ne.n_node)then
+ 					nx=nx+(vext(kk,2)-vext(kk+1,2))*(vext(kk,3)+vext(kk+1,3))
+ 					ny=ny+(vext(kk,3)-vext(kk+1,3))*(vext(kk,1)+vext(kk+1,1))
+ 					nz=nz+(vext(kk,1)-vext(kk+1,1))*(vext(kk,2)+vext(kk+1,2))
+					else
+ 					nx=nx+(vext(kk,2)-vext(1,2))*(vext(kk,3)+vext(1,3))
+ 					ny=ny+(vext(kk,3)-vext(1,3))*(vext(kk,1)+vext(1,1))
+ 					nz=nz+(vext(kk,1)-vext(1,1))*(vext(kk,2)+vext(1,2))
+ 					
+ 					end if
+ 					end do
                                             
 					
 					
@@ -2156,7 +2158,7 @@ SUBROUTINE CHECKGRADS(N,ICONSI)
 !> This subroutine assigns the correct viscous gradient approximation flag for each cell based on some additional geometrical characteristics
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSI
-REAL::DXX1,dxx2,TEMPG1,dist1,dist2,oo2
+REAL::DXX1,dxx2,TEMPG1,dist1,dist2,oo2,surfmin,surfmax
 INTEGER::I,J,K,L,jj,icount3,nnd,ixf4,IDC,IDC2
 
 i=iconsi
@@ -2241,8 +2243,9 @@ I=ICONSI
 
 
 
-
-
+    
+surfmin=1.0e16
+surfmax=1.0e-16
 
 
 
@@ -2268,6 +2271,14 @@ I=ICONSI
 		  VEXT(2,1:dims)=cords(1:dims)
 		
 		end if
+		
+		
+		
+	      surfmin=min(surfmin,IELEM(N,I)%SURF(L))
+	      surfmax=max(surfmax,IELEM(N,I)%SURF(L))
+	      
+	      
+	      
 	      
 		    
 	
@@ -2281,6 +2292,33 @@ I=ICONSI
 		  dxx1=dist1
 		end if
 end do
+        ielem(n,i)%condition=1.0
+
+        if (turbulence.gt.0)then
+        
+
+        if (ielem(n,i)%ishape.eq.2)then
+        ielem(n,i)%condition=surfmax/surfmin
+        
+        if (ielem(n,i)%condition.gt.30)then
+         ielem(n,i)%hybrid=1
+        end if
+        end if
+        
+        if (ielem(n,i)%ishape.eq.3)then
+        ielem(n,i)%condition=surfmax/surfmin
+        
+        if (ielem(n,i)%condition.gt.10)then
+         ielem(n,i)%hybrid=1
+        end if
+        
+       
+        
+        end if
+
+
+        end if
+       
 
 
 

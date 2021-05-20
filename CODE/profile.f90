@@ -1826,6 +1826,54 @@ VECCOS(7)=MP_A(1)
 
 END IF
 
+IF (INITCOND.EQ.430)THEN
+
+
+IF (POy(1).LT.0.386D0)THEN
+
+MP_R(1)=3.483 	! air density
+MP_R(2)=867 		! water density
+MP_A(1)=0.0D0		
+MP_A(2)=1.0D0
+U1=0.0D0	  	! m/s
+V1= 2
+P1=300000    		! Pa
+ELSE
+MP_R(1)=3.483 	! air density
+MP_R(2)=867		! water density
+MP_A(1)=1.0D0		
+MP_A(2)=0.0D0
+U1=0.0D0	  	! m/s
+V1= 0.0D0
+P1=300000    		! Pa
+
+
+END IF
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+! MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)*MP_R(1)))
+! MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)*MP_R(2)))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2))
+E1=(R1*SKIN1)+IE1
+!VECTOR OF CONSERVED VARIABLES NOW
+
+
+
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+VECCOS(5)=MP_R(1)*MP_A(1)
+VECCOS(6)=MP_R(2)*MP_A(2)
+VECCOS(7)=MP_A(1)
+
+END IF
 
 
 

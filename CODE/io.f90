@@ -1256,7 +1256,7 @@ Valuelocation(:)=0
                 END DO
                 ELSE
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%STENCIL_DIST
+                VALUESS(i)=ielem(n,i)%condition!IELEM(N,I)%STENCIL_DIST
                 END DO
                 END IF
                 
@@ -3221,7 +3221,7 @@ SUBROUTINE READ_UCNS3D
 	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
     if (initcond.eq.405)iadapt=1
 	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=4	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+	extf=2	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
 	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
 	guassianquadra=1!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
@@ -3392,6 +3392,7 @@ SUBROUTINE READ_UCNS3D
 	fastest=0	 ! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	 !0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	 !LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+	ISPAL=1! 1				||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
 	if (dimensiona.eq.2)then
 	if (tecplot.eq.2)then
 	tecplot=1
@@ -3732,7 +3733,7 @@ SUBROUTINE READ_UCNS3D
 	
 			! 	TURBULENCE MODEL PARAMETERS:
 			! ---OPTIONS Spalart Almaras---
-			ISPAL=1! 1				||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
+			ISPAL=2 !    ||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
 			!DES_model=0! 0              			|| 1-Detached Eddy Simulation 2-Delayed DES
 			! ---CONSTANTS-------
 			CB1=0.1355	! 0.1355				|| Cb1 
@@ -3749,7 +3750,7 @@ SUBROUTINE READ_UCNS3D
 			CT4=2.0 ! 2.0      			|| CT4
 			PRTU=0.9! 0.9				|| Turbulent Prandtl Number
 			TWALL=0! 0				|| Wall temperature (Kelvin) leave 0 for adiabatic (q_wall =0 <=> dT/dn=0)
-			TURBINIT=3.0! 3.0	  			|| Initial value for turbulence parameter (multiplyied by the freestream viscosity from given Re)
+			TURBINIT=0.1 ! 3.0	  			|| Initial value for turbulence parameter (multiplyied by the freestream viscosity from given Re)
 			Upturblimit=1000000! 1000000				|| Upper limit for turbulence
 			residualfreq=10! 10				|| Residual compute every
 			IRS=0! 0				||IMPLICIT RESIDUAL SMOOTHING (DOUBLES CFL)
