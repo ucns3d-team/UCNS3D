@@ -124,6 +124,7 @@ INTEGER::DES_MODEL 				!INTEGER SWITCHES FOR SST
 INTEGER:: NPROBES,totwalls,NOF_INTERIOR,NOF_BOUNDED				!NUMBER OF PROBES FOR TRANSIENT DATA
 INTEGER:: SRF,SOURCE_ACTIVE !integer for SRF
 INTEGER:: ROT_CORR,D_CORR   !integer for turbulence corrections
+INTEGER:: PER_ROT !rotational periodicity flag
 
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
