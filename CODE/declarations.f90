@@ -122,6 +122,8 @@ INTEGER::VORT_MODEL				!VORTICITY MODEL
 INTEGER::ZERO_TURB_INIT				!FLAG FOR TYPE OF INITIALIZATION FOR K-OMEGA
 INTEGER::DES_MODEL 				!INTEGER SWITCHES FOR SST
 INTEGER:: NPROBES,totwalls,NOF_INTERIOR,NOF_BOUNDED				!NUMBER OF PROBES FOR TRANSIENT DATA
+INTEGER:: SRF,SOURCE_ACTIVE !integer for SRF
+INTEGER:: ROT_CORR,D_CORR   !integer for turbulence corrections
 
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
@@ -283,6 +285,10 @@ REAL:: SCHMIDT_LAM
 REAL::SCHMIDT_TURB
 real::tolsmall,TOLBIG,allresdt,tz1
 REAL,DIMENSION(7)::ALLRES,INITIALRES
+REAL,DIMENSION(3)::SRF_ORIGIN,SRF_VELOCITY
+REAL::V_REF                 !TIP BLADE VELOCITY FOR SRF 
+REAL::TURB_FACTOR			!FACTOR TO ENHANCE STABILITY OF TURBULENCE EQUATION
+REAL::KINIT_SRF             
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.4.   REAL ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -431,7 +437,8 @@ REAL,ALLOCATABLE,DIMENSION(:,:,:,:,:)::FINDW_CHAR
 !$OMP THREADPRIVATE(USOL,PSI,GRADCHARV)
 !$OMP THREADPRIVATE(FINDW,SMOOTHINDICATOR,FINDW_CHAR,LAMBDA,OMEGATILDE,OMEGA,WENOOS,ISHYAPE,ISATISFIED,IWHICHSTEN,VG,VC,BC)
 
-
+REAL,ALLOCATABLE,DIMENSION(:):: SOURCE_T2,SRF_SPEED,srf_speedrot
+!$OMP THREADPRIVATE(SOURCE_T2,SRF_SPEED,SRF_SPEEDROT)
 
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
@@ -546,7 +553,10 @@ TYPE LOCAL_RECON3
 	INTEGER::G0 !CONSTRAINED LEAST SQUARES GAUSSIAN ELIMINATION COMPONENT
 	INTEGER::K0 !CONSTRAINED LEAST SQUARES GAUSSIAN ELIMINATION COMPONENT
 	REAL,ALLOCATABLE,DIMENSION(:)::VEXT_REF !REFERENCE COORDINATES OF THE VERTEX BY WHICH THE TRANSFORMATION HAS BEEN BASED UPON
-END TYPE LOCAL_RECON3
+	
+	REAL,ALLOCATABLE,DIMENSION(:,:,:)::RPOINTS,ROTVEL !RADIUS OF QPOINTS, ROTATIONAL VELOCITY
+	
+	END TYPE LOCAL_RECON3
 
 TYPE::NEIXX
       INTEGER::CPU                              !CPU INDEX

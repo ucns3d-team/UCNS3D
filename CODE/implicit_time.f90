@@ -35,6 +35,7 @@ DURR=zero; DULR=zero
 
 
 call CALCULATE_JACOBIAN(N)
+IF (SRF.EQ.0) THEN
 !$OMP DO
 do i=1,kmaxe
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(i,1:nof_Variables,1:nof_Variables)
@@ -45,6 +46,22 @@ impdiag(i,4,4)=1.0d0/lscqm1(4,4)
 impdiag(i,5,5)=1.0d0/lscqm1(5,5)
 end do
 !$OMP END DO
+end if
+if (SRF.EQ.1)then
+!$OMP DO
+do i=1,kmaxe
+  lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
+  !INVERSE OF THE MATRIX IN CASE OF SOURCE TERM(JUST WHEN ONLY OMEGA_Z IS NOT EQUAL TO 0)
+impdiag(i,1,1)=1.0d0/lscqm1(1,1)
+impdiag(i,2,2)=lscqm1(2,2)/(lscqm1(2,2)**2+lscqm1(3,2)**2)
+impdiag(i,2,3)=lscqm1(3,2)/(lscqm1(2,2)**2+lscqm1(3,2)**2)
+impdiag(i,3,3)=lscqm1(3,3)/(lscqm1(2,2)**2+lscqm1(3,2)**2)
+impdiag(i,3,2)=-lscqm1(3,2)/(lscqm1(2,2)**2+lscqm1(3,2)**2)
+impdiag(i,4,4)=1.0d0/lscqm1(4,4)
+impdiag(i,5,5)=1.0d0/lscqm1(5,5)
+end do
+!$OMP END DO
+END IF
 
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -104,6 +121,11 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 				NX=(COS(ANGLE1)*SIN(ANGLE2))
 				NY=(SIN(ANGLE1)*SIN(ANGLE2))
 				NZ=(COS(ANGLE2))
+                IF (SRF.EQ.1) THEN
+                    !RETRIEVE ROTATIONAL VELOCITY IN CASE OF ROTATING REFERENCE FRAME TO CALCULATE THE CORRECT VALUE OF THE BOUNDARY CONDITION
+                    SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
+                    CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)	       
+                END IF
 	
 					IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 						IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
