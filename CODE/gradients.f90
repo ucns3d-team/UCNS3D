@@ -718,7 +718,7 @@ INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 REAL,DIMENSION(nof_variables)::SOLS1,SOLS2
 REAL,DIMENSION(nof_variables,3)::SOLS_F
 REAL,DIMENSION(3)::NORMAL_ALL
-REAL::OOV2
+REAL::OOV2,TEMPXX
 INTEGER::I,J,K,L
 
 I=ICONSIDERED
@@ -760,8 +760,11 @@ DO J=1,IELEM(N,I)%IFCA
 			
 			IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
 			    IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN MY CPU
+				  if  ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN MY CPU
 				  SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
+				  IF(PER_ROT.EQ.1)THEN
+                    Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
+				  END IF
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 				  
@@ -792,12 +795,15 @@ DO J=1,IELEM(N,I)%IFCA
 			ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
 			    
 			      IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+				  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 				      IF (FASTEST.EQ.1)THEN
 					SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
 				      ELSE
 					SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
 					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
+				      END IF
+				      IF(PER_ROT.EQ.1)THEN
+                        Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
 				      END IF
 				  END IF
 			      ELSE
@@ -1172,6 +1178,8 @@ SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
    REAL,DIMENSION(NUMBER_OF_DOG,NOF_VARIABLES,IELEM(N,ICONSIDERED)%ADMIS)::MATRIX_2
    REAL,DIMENSION(NUMBER_OF_DOG,NOF_VARIABLES,IELEM(N,ICONSIDERED)%ADMIS)::SOL_M
    INTEGER::I,VAR2,iq,ll
+   REAL::TEMPXX
+
 
 
 
@@ -1201,14 +1209,24 @@ SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
              DO IQ=1,imax
             SOLS2(1:nof_variables,ll)=U_C(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:nof_variables)
             
-            
             IF (WENWRT.EQ.3)THEN
             LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
             CALL CONS2PRIM(N)
             SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
             END IF
             
-            
+            IF(PER_ROT.EQ.1)THEN
+                IF (ILOCAL_RECON3(I)%PERIODICFLAG(LL,IQ+1).EQ.2) THEN                  
+                    tempxx=sols2(2,LL)
+                    sols2(2,LL)=tempxx*cosd(angle_per)-sols2(3,LL)*sind(angle_per)
+                    sols2(3,LL)=tempxx*sind(angle_per)+sols2(3,LL)*cosd(angle_per)
+                end if
+                IF (ILOCAL_RECON3(I)%PERIODICFLAG(LL,IQ+1).EQ.1) THEN 
+                    tempxx=sols2(2,LL)
+                    sols2(2,LL)=tempxx*cosd(-angle_per)-sols2(3,LL)*sind(-angle_per)
+                    sols2(3,LL)=tempxx*sind(-angle_per)+sols2(3,LL)*cosd(-angle_per)
+                END IF 
+            END IF
             
             MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
            
@@ -1303,12 +1321,27 @@ numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
                     else
                     SOLS2(1:nof_variables,ll)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1),1:nof_variables)
                     end if
-                    
                     IF (WENWRT.EQ.3)THEN
             LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
             CALL CONS2PRIM(N)
             SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
             END IF
+                    
+                    IF(PER_ROT.EQ.1)THEN
+                        IF (ILOCAL_RECON3(I)%PERIODICFLAG(LL,IQ+1).EQ.1) THEN 
+!             write(2900+n,*),IELEM(N,I)%XXC,IELEM(N,I)%YYC,IELEM(N,I)%ZZC
+                            if (IELEM(N,I)%XXC.gt.0.0d0) then
+                                tempxx=sols2(2,LL)
+                                sols2(2,LL)=sols2(3,LL)
+                                sols2(3,LL)=-TEMPXX
+                            end if
+                            if (IELEM(N,I)%XXC.lt.0.0d0) then
+                                tempxx=sols2(2,LL)
+                                sols2(2,LL)=-sols2(3,LL)
+                                sols2(3,LL)=TEMPXX
+                            end if
+                        END IF 
+                    END IF
                     
                     MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
                     
