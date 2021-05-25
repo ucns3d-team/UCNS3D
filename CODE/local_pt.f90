@@ -1539,13 +1539,17 @@ i=iconsi
 		    end if
 		    ELSE
                 if (ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5) then
+                    DO KK=1,n_node
                     tempxx=vext(kk,1)
                     vext(kk,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*vext(kk,2)
                     vext(kk,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*vext(kk,2)
+                    END DO
                 else
+                    DO KK=1,n_node
                     tempxx=vext(kk,1)
                     vext(kk,1)=tempxx*cosd(angle_per)-sind(angle_per)*vext(kk,2)
                     vext(kk,2)=tempxx*sind(angle_per)+cosd(angle_per)*vext(kk,2)
+                    END DO
                 end if
 		    END IF
 		    dist1=distance3(n)
@@ -1571,13 +1575,17 @@ i=iconsi
 		    end if
 		    ELSE
                 if (ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5) then
+                    DO KK=1,n_node
                       tempxx=vext(kk,1)
 				      vext(kk,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*vext(kk,2)
 				      vext(kk,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*vext(kk,2)
+				     END DO 
                 else
+                    DO KK=1,n_node
 				      tempxx=vext(kk,1)
 				      vext(kk,1)=tempxx*cosd(angle_per)-sind(angle_per)*vext(kk,2)
 				      vext(kk,2)=tempxx*sind(angle_per)+cosd(angle_per)*vext(kk,2)
+				    END DO  
                 end if
 		    END IF
 		    dist1=distance3(n)

@@ -181,7 +181,7 @@ KMAXE=XMPIELRANK(N)
 					  END DO
 					  ELSE
 					  facex=l;
-					  CALL coordinates_face_PERIOD(n,iconsidered,facex)
+					  CALL coordinates_face_PERIOD1(n,iconsidered,facex)
 ! 					  do K=1,nnd
 ! 					  VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
 ! 					  END DO
