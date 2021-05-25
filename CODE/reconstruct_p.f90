@@ -4327,7 +4327,7 @@ SUBROUTINE MUSCL(N)
  IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,IEX,IEUL,JX,LX,KMAXE,iq,LL,NGP,NND,IQP,idummy,ii,icd
-REAL::UMIN,UMAX,PSITOT,ADDC,DIVG0,LIMVBG
+REAL::UMIN,UMAX,PSITOT,ADDC,DIVG0,LIMVBG,tempxx
 REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 real,external::ddot
 
@@ -4360,6 +4360,20 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                             CALL CONS2PRIM(N)
                             UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
                             END IF
+                  IF(PER_ROT.EQ.1)THEN
+                        IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN
+                            if (IELEM(N,I)%XXC.gt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=UTEMP(IQ,3)
+                                UTEMP(IQ,3)=-TEMPXX
+                            end if
+                            if (IELEM(N,I)%XXC.lt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=-UTEMP(IQ,3)
+                                UTEMP(IQ,3)=TEMPXX
+                            end if
+                        END IF
+                  END IF 
 			  END DO
 			ELSE
 			   DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
@@ -4373,6 +4387,20 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                             CALL CONS2PRIM(N)
                             UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
                             END IF
+			    IF(PER_ROT.EQ.1)THEN
+                     IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN 
+                            if (IELEM(N,I)%XXC.gt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=UTEMP(IQ,3)
+                                UTEMP(IQ,3)=-TEMPXX
+                            end if
+                            if (IELEM(N,I)%XXC.lt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=-UTEMP(IQ,3)
+                                UTEMP(IQ,3)=TEMPXX
+                            end if
+                     END IF
+			    END IF
 			   end do
 			END IF                   !end if 1
 			UTMIN=ZERO;UTMAX=ZERO
@@ -4925,6 +4953,20 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                             CALL CONS2PRIM(N)
                             UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
                             END IF
+				IF(PER_ROT.EQ.1)THEN
+				IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN
+			      if (IELEM(N,I)%XXC.gt.0.0d0) then
+			        tempxx=UTEMP(IQ,2)
+			        UTEMP(IQ,2)=UTEMP(IQ,3)
+			        UTEMP(IQ,3)=-TEMPXX
+                  end if
+                  if (IELEM(N,I)%XXC.lt.0.0d0) then
+			        tempxx=UTEMP(IQ,2)
+			        UTEMP(IQ,2)=-UTEMP(IQ,3)
+			        UTEMP(IQ,3)=TEMPXX
+                  end if
+			      END IF
+				END IF
 			    END DO
 			  ELSE
 			    DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
@@ -4938,6 +4980,20 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                             CALL CONS2PRIM(N)
                             UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
                             END IF
+			      IF(PER_ROT.EQ.1)THEN
+                    IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN 
+                        if (IELEM(N,I)%XXC.gt.0.0d0) then
+                            tempxx=UTEMP(IQ,2)
+                            UTEMP(IQ,2)=UTEMP(IQ,3)
+                            UTEMP(IQ,3)=-TEMPXX
+                        end if
+                        if (IELEM(N,I)%XXC.lt.0.0d0) then
+                            tempxx=UTEMP(IQ,2)
+                            UTEMP(IQ,2)=-UTEMP(IQ,3)
+                            UTEMP(IQ,3)=TEMPXX
+                        end if
+                    END IF
+			      END IF
 			    END DO
 			  END IF
 			  UTMIN=ZERO;UTMAX=ZERO
@@ -4961,9 +5017,12 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			     DO L=1,IELEM(N,I)%IFCA
 				  IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 					IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-					      if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+					      if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN MY CPU
 					      K=K+1
 					      UTEMP(k,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(l))%VAL(1,1:nof_variables)
+					      IF(PER_ROT.EQ.1)THEN
+                            UTEMP(k,2:4)=ROTATE_PER_1(UTEMP(k,2:4),ibound(n,ielem(n,i)%ibounds(L))%icode,angle_per)
+					      END IF
 					      ELSE
 					      !NOT PERIODIC ONES IN MY CPU		  
 					      END IF
@@ -4975,7 +5034,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				  ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
 			    
 					      IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-							if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+							if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 							    IF (FASTEST.EQ.1)THEN
 							      K=K+1
 							      UTEMP(K,1:NOF_VARIABLES)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_variables)
@@ -4984,6 +5043,9 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 							      UTEMP(K,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
 							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_variables)
 							    END IF
+                                IF(PER_ROT.EQ.1)THEN
+                                    UTEMP(k,2:4)=ROTATE_PER_1(UTEMP(k,2:4),ibound(n,ielem(n,i)%ibounds(L))%icode,angle_per)
+                                END IF
 							END IF
 					      ELSE
 					      
@@ -5042,7 +5104,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			   
                                         if ((iperiodicity.eq.1))then		!periodicity      !if 2
                                                 IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                                        if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                                                        if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
                                                             IDUMMY=1
                                                         END IF
                                                 END IF
@@ -5203,7 +5265,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 		       
 			    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
 				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					      IDUMMY=1
 					  END IF
 				  END IF
@@ -5410,7 +5472,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			    
 			    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 				IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-				      if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+				      if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
 				      K=K+1
 				      UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 				      ELSE
@@ -5423,7 +5485,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
 			      
 				IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-				    if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+				    if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					IF (FASTEST.EQ.1)THEN
 					
 					  K=K+1
@@ -5479,7 +5541,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			   
 			   if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
 				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					      IDUMMY=1
 					  END IF
 				  END IF
@@ -5593,7 +5655,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 		       else
 			    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
 				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					      IDUMMY=1
 					  END IF
 				  END IF
