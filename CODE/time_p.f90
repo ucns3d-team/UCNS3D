@@ -2934,7 +2934,7 @@ IF (FASTEST.EQ.1)THEN
     if ((SOURCE_ACTIVE.EQ.1))then
     call SOURCES_COMPUTATION_ROT(N)
     end if
-    call VORTEXCALC(N)
+    !call VORTEXCALC(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
@@ -2958,7 +2958,7 @@ ELSE
     if ((SOURCE_ACTIVE.EQ.1))then
     call SOURCES_COMPUTATION_ROT(N)
     end if
-    call VORTEXCALC(N)
+    !call VORTEXCALC(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
