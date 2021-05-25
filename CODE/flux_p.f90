@@ -1295,7 +1295,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,NVAR,KC,IEX,ITTT,IKAS,igoflux, icaseb
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,NVAR,KC,IEX,ITTT,IKAS,igoflux, icaseb,KK
 	REAL::sum_detect,NORMS
 	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP
 	REAL,DIMENSION(4,3)::LCVGRAD,RCVGRAD
@@ -1303,7 +1303,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 	real,dimension(5)::fxv,fyv,fzv,tem_pn,rtem_pn
 	real,dimension(3,3)::taul,taur,TAU
 	REAL,DIMENSION(3)::Q,NNN,nall
-	REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,RHO12,U12,V12,W12 ,damp,vdamp 
+	REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,RHO12,U12,V12,W12 ,damp,vdamp,TEMPXX 
 	KMAXE=XMPIELRANK(N)
 	
 	call  QUADRATUREQUAD3D(N,IGQRULES)
@@ -1649,7 +1649,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
                                      igoflux=0
 				  IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
                                                     IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+                                                        if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN MY CPU
                                                                 icaseb=1        !periodic mine
                                                         else
                                                                 icaseb=3        !physical
@@ -1662,7 +1662,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
                                                     end if
                                 else
                                                     IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+								if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN OTHER CPU
                                                                 icaseb=4
                                                                 end if
                                                     else
@@ -1723,7 +1723,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				      
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+								  if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN MY CPU
 								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
 								  RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,L,NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,L,NGP);
 								  RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,L,NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,L,NGP);
@@ -1741,9 +1741,13 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 									
 									
 								    END IF
-								  
-								  
-								  
+                                    IF(PER_ROT.EQ.1)THEN
+                                        CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                        DO KK=1,4
+                                            RCVGRAD(KK,1:3)=ROTATE_PER_1(RCVGRAD(KK,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                        END DO
+                                        RCVGRAD_T(1,1:3)=ROTATE_PER_1(RCVGRAD_T(1,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                    END IF
 								  
 								  ELSE
 								  !NOT PERIODIC ONES IN MY CPU
@@ -1806,7 +1810,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					    
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+								if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
 									  
 									  ITTT=0
@@ -1844,11 +1848,13 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 									  RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT) 
 										END DO  
 									  END DO
-									  
-									  
-									  
-									  
-
+									  IF(PER_ROT.EQ.1)THEN
+									  CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                        DO KK=1,4
+                                            RCVGRAD(KK,1:3)=ROTATE_PER_1(RCVGRAD(KK,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                        END DO
+                                        RCVGRAD_T(1,1:3)=ROTATE_PER_1(RCVGRAD_T(1,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)  
+									  END IF
 								END IF
 							ELSE 			
 							
