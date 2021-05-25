@@ -7778,11 +7778,11 @@ END IF
 				  end if
 	    ELSE
 	           if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
-                        IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-                        if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-                        IDUMMY=1
-                        END IF
-                        END IF
+			IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+			if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+			IDUMMY=1
+			END IF
+			END IF
 		        if (ielem(n,i)%types_faces(L).eq.5)then
 			      iqp=qp_quad;NND=4
                         IF (IDUMMY.EQ.0)THEN
