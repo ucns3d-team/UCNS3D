@@ -3192,7 +3192,7 @@ SUBROUTINE READ_UCNS3D
 	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
     if (initcond.eq.405)iadapt=1
 	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+	extf=2.5		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
 	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
 	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
@@ -13894,7 +13894,6 @@ FORCEX=zero; FORCEY=zero; FORCEZ=zero;  FORCEXFR=zero
 !$OMP BARRIER 
 !$OMP DO SCHEDULE(STATIC) REDUCTION(+:FORCEX,FORCEY,FORCEZ)
 DO I=1,kmaxe
-    if (srf.eq.0 .or. (srf.eq.1 .and. IELEM(N,I)%YYC.le.0)) then
 		if (ielem(n,i)%interior.eq.1)then	
 		    do j=1,ielem(n,i)%ifca
 		      if (ielem(n,i)%ibounds(j).gt.0)then
@@ -14009,7 +14008,6 @@ DO I=1,kmaxe
 
 			
 		
-	end if		
 END DO					 
 !$OMP END DO
 	
