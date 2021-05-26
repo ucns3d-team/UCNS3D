@@ -277,7 +277,9 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 	ICONSIDERED=I
             MP_SOURCE3=ZERO        
 		    B_CODE=0
-		    
+        IF(MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+        END IF
 		    
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
 !                                      IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
@@ -449,7 +451,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 	I=EL_BND(II)
 	ICONSIDERED=I	
 		 MP_SOURCE3=ZERO		
-		   
+				
+	IF(MRF.EQ.1)THEN
+        SRF=ILOCAL_RECON3(I)%MRF
+    END IF	   
 		    
 		    DO L=1,IELEM(N,I)%IFCA
                         igoflux=0
@@ -1327,6 +1332,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 	ICONSIDERED=I
                     
 		   damp=lamx
+		   IF(MRF.EQ.1)THEN
+                SRF=ILOCAL_RECON3(I)%MRF
+            END IF
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
 !                         IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
 				  GODFLUX2=ZERO
@@ -1645,7 +1653,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 	I=EL_BND(II)
 	ICONSIDERED=I	
 				
-		     
+		     IF(MRF.EQ.1)THEN
+                SRF=ILOCAL_RECON3(I)%MRF
+            END IF
 		   
 		    DO L=1,IELEM(N,I)%IFCA
                         damp=lamx
