@@ -3158,7 +3158,7 @@ SUBROUTINE READ_UCNS3D
 	READ(15,*)!62
 	READ(15,*)!63
 	READ(15,*)!64
-	READ(15,*)SRF
+	READ(15,*)RFRAME
 	READ(15,*)!66
 	READ(15,*)SRF_ORIGIN(1),SRF_ORIGIN(2),SRF_ORIGIN(3)
 	READ(15,*)!68
@@ -3176,10 +3176,12 @@ SUBROUTINE READ_UCNS3D
 	READ(15,*)
 	    
 	    
-	 IF(SRF.EQ.2)THEN
+	 IF(RFRAME.EQ.2)THEN
         MRF=1
         SRF=0
-     ELSE
+     END IF
+     IF (RFRAME.EQ.1)THEN
+        SRF=1
         MRF=0
 	 END IF
 	    
@@ -3594,7 +3596,7 @@ SUBROUTINE READ_UCNS3D
 	   ! Set pressure
 	  if ( PRES .lt. 0 ) PRES = RRES/GAMMA	
 	  ! Set dynamic free-stream viscosity
-    IF ((SRF.EQ.0).OR.(MRF.EQ.0)) THEN
+    IF (RFRAME.EQ.0) THEN
         VISC = (RRES*ufreestream*CharLength)/Reynolds
     ELSE
         VISC = (RRES*V_ref*CharLength)/Reynolds
@@ -3612,11 +3614,12 @@ SUBROUTINE READ_UCNS3D
 	  IF (N.EQ.0)THEN
 	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	      if (ITESTCASE .eq. 4) Then
-	      IF((SRF.EQ.0).OR.(MRF.EQ.0))THEN
-		write(63,*)'----Reynolds Number:',(RRES*ufreestream*CharLength)/VISC
-		END IF 
-				write(63,*)'----Tip blade Reynolds Number:',(RRES*V_REF*CharLength)/VISC
-		end if
+            IF(RFRAME.EQ.0)THEN
+            write(63,*)'----Reynolds Number:',(RRES*ufreestream*CharLength)/VISC
+            ELSE
+                    write(63,*)'----Tip blade Reynolds Number:',int((RRES*V_REF*CharLength)/VISC)
+            end if
+		END IF
 	      CLOSE(63)
 	   END IF
 	  
@@ -14041,7 +14044,7 @@ END DO
 	FORCEX=FORCEX*VECTORX
 	FORCEY=FORCEY*VECTORY
 	FORCEZ=FORCEZ*VECTORZ
-	IF(SRF.EQ.0.or.MRF.EQ.0)THEN
+	IF(RFRAME.EQ.0)THEN
         RTEMP=((AOA/180.0d0)*PI)
 	LIFTF=(FORCEZ*COS(RTEMP))+(FORCEy*COS(RTEMP))-(FORCEX*SIN(RTEMP))
 	DRAGF=(FORCEX*COS(RTEMP))+(FORCEy*SIN(RTEMP))+(FORCEZ*SIN(RTEMP))
@@ -14070,7 +14073,7 @@ END DO
 		ELSE
 	OPEN(50+N,FILE='FORCE.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
 		END IF
-	IF(SRF.EQ.0.OR.MRF.EQ.0)THEN	
+	IF(RFRAME.EQ.0)THEN	
 	WRITE(50+N,'(I14,1X,E14.7,1X,E14.7,1X,E14.7)')it,T,CL,CD
 	ELSE
 	WRITE(50+N,'(I14,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')it,T,FX,FY,FZ

@@ -125,7 +125,7 @@ INTEGER:: NPROBES,totwalls,NOF_INTERIOR,NOF_BOUNDED				!NUMBER OF PROBES FOR TRA
 INTEGER:: SRF,SOURCE_ACTIVE !integer for SRF
 INTEGER:: ROT_CORR,D_CORR   !integer for turbulence corrections
 INTEGER:: PER_ROT !rotational periodicity flag
-
+INTEGER:: RFRAME
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.2.   INTEGER ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -255,6 +255,8 @@ REAL::PRTU
 REAL::TWALL
 CHARACTER(LEN=30)::STATFILE,ST_N_CPU,ST_N_THREADS
 INTEGER::THREAD_N
+
+
 REAL::SIGMA_K1
 REAL::SIGMA_K2
 REAL::SIGMA_OM1
@@ -294,7 +296,7 @@ REAL,DIMENSION(3)::SRF_ORIGIN,SRF_VELOCITY
 REAL::V_REF                 !TIP BLADE VELOCITY FOR SRF 
 REAL::TURB_FACTOR			!FACTOR TO ENHANCE STABILITY OF TURBULENCE EQUATION
 REAL::KINIT_SRF   
-REAL,DIMENSION(3)::SRF_ORIGIN,SRF_VELOCITY,point1,point2
+REAL,DIMENSION(3)::point1,point2
 real:: Radius, MRF_ROT
 
 !--------------------------------------------------------------------------------------------------------------------------!
