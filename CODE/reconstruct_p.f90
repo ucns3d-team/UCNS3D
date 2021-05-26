@@ -240,7 +240,7 @@ KMAXE=XMPIELRANK(N)
 				ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
 				POX(1:3)=ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)-SRF_ORIGIN(1:3)
                                     POY(1:3)=SRF_VELOCITY(1:3)
-                                    ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)=VECT_FUNCTION(POX,POY,POZ)
+                                    ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)=VECT_FUNCTION(POX,POY)
 ! 				 WRITE(500+N,*)I,L,IELEM(N,I)%XXC,IELEM(N,I)%YYC,IELEM(N,I)%ZZC
 !                                 
 !                                  WRITE(500+N,*)"COMPUTATIONAL",ILOCAL_RECON3(I)%QPOINTS(L,NGP,1:3)
