@@ -3612,7 +3612,7 @@ SUBROUTINE READ_UCNS3D
 	  IF (N.EQ.0)THEN
 	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	      if (ITESTCASE .eq. 4) Then
-	      IF((SRF.EQ.0).OR.(MRF.EQ.0)THEN
+	      IF((SRF.EQ.0).OR.(MRF.EQ.0))THEN
 		write(63,*)'----Reynolds Number:',(RRES*ufreestream*CharLength)/VISC
 		END IF 
 				write(63,*)'----Tip blade Reynolds Number:',(RRES*V_REF*CharLength)/VISC
