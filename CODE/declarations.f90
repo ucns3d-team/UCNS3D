@@ -293,7 +293,10 @@ REAL,DIMENSION(7)::ALLRES,INITIALRES
 REAL,DIMENSION(3)::SRF_ORIGIN,SRF_VELOCITY
 REAL::V_REF                 !TIP BLADE VELOCITY FOR SRF 
 REAL::TURB_FACTOR			!FACTOR TO ENHANCE STABILITY OF TURBULENCE EQUATION
-REAL::KINIT_SRF             
+REAL::KINIT_SRF   
+REAL,DIMENSION(3)::SRF_ORIGIN,SRF_VELOCITY,point1,point2
+real:: Radius, MRF_ROT
+
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.4.   REAL ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -564,6 +567,8 @@ TYPE LOCAL_RECON3
 	REAL,ALLOCATABLE,DIMENSION(:,:,:)::RPOINTS,ROTVEL !RADIUS OF QPOINTS, ROTATIONAL VELOCITY
 	
 	INTEGER,ALLOCATABLE,DIMENSION(:,:)::PERIODICFLAG
+    REAL,ALLOCATABLE,DIMENSION(:)::MRF_ORIGIN,MRF_VELOCITY
+	integer::MRF
 	END TYPE LOCAL_RECON3
 
 TYPE::NEIXX

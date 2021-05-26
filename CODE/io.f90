@@ -3166,9 +3166,12 @@ SUBROUTINE READ_UCNS3D
     READ(15,*)!70    
 	READ(15,*)PER_ROT,ANGLE_PER,V_REF	
     READ(15,*)!72
-    READ(15,*)!73
-    READ(15,*)!74
-    READ(15,*)!75
+    READ(15,*)Point1(1),Point1(2),Point1(3)
+	READ(15,*)Point2(1),Point2(2),Point2(3)
+	READ(15,*)Radius, MRF_ROT
+    READ(15,*)!76
+    READ(15,*)!77
+    READ(15,*)!78
 	READ(15,*)NPROBES
 	READ(15,*)
 	    
