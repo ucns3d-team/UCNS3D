@@ -964,6 +964,7 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     VIsDouble)
      
      else
+     IF(MRF.EQ.1)THEN
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,W,energy,MRF,Pressure,STEN1,STEN2'//NULCHAR, &
                     out1//NULCHAR, &
@@ -971,6 +972,16 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     FileType, &
                     Debug, &
                     VIsDouble)
+    ELSE
+        if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                    'Density,U,V,W,energy,Pressure,STEN1,STEN2'//NULCHAR, &
+                    out1//NULCHAR, &
+                    '.'//NULCHAR, &
+                    FileType, &
+                    Debug, &
+                    VIsDouble)
+     END IF
+        
      
      
      end if
@@ -1021,13 +1032,23 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     VIsDouble)
               end if
               if (turbulenceequations.eq.1)then
-              if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                    'Density,U,V,W,energy,MRF,Pressure,STEN1,STEN2,vortex,mu'//NULCHAR, &
-                    out1//NULCHAR, &
-                    '.'//NULCHAR, &
-                    FileType, &
-                    Debug, &
-                    VIsDouble)
+                IF(MRF.EQ.1)THEN
+                    if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                            'Density,U,V,W,energy,MRF,Pressure,STEN1,STEN2,vortex,mu'//NULCHAR, &
+                            out1//NULCHAR, &
+                            '.'//NULCHAR, &
+                            FileType, &
+                            Debug, &
+                            VIsDouble)
+                ELSE
+                    if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                        'Density,U,V,W,energy,Pressure,STEN1,STEN2,vortex,mu'//NULCHAR, &
+                        out1//NULCHAR, &
+                        '.'//NULCHAR, &
+                        FileType, &
+                        Debug, &
+                        VIsDouble)
+                END IF
               end if
               if (turbulenceequations.eq.0)then
               if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
