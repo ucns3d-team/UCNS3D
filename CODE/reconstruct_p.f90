@@ -1244,12 +1244,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
                                CALL  EXTRAPOLATE_BOUND(IEX,L,NGP,I,ICD,LL)
                                 
                                 
-                                if (wenwrt.eq.3)then
-				leftv(1:nof_variables)=ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)
-                call prim2cons(n)
-                ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)=leftv(1:nof_variables)
-				end if
-                                
+                              
                                 
                                 
 !                                 ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,L,NGP)=ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,L,NGP)&
@@ -1259,6 +1254,28 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
                                 end do
                                 
                                 end do
+                                
+                                
+                                
+                                if (wenwrt.eq.3)then
+                                
+                                DO L=1,IELEM(N,I)%IFCA
+                                    
+                                                    if (ielem(n,i)%types_faces(L).eq.5)then
+                                    iqp=qp_quad;WEIGHT_T2(1:IQP)=WEIGHTS_Q(1:IQP)
+                                                    else
+                                    iqp=qp_triangle;WEIGHT_T2(1:IQP)=WEIGHTS_T(1:IQP)
+                                                    end if
+                                                    do NGP=1,iqp
+                                                    leftv(1:nof_variables)=ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)
+                                                    call prim2cons(n)
+                                                    ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)=leftv(1:nof_variables)
+                                                    end do
+                               end do
+                                
+                                end if
+                                
+                                
 
 		    
 	END IF
@@ -2081,17 +2098,33 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
                                         ICD=ICD+1
                                 
                                CALL  EXTRAPOLATE_BOUND(IEX,L,NGP,I,ICD,LL)
-                                 if (wenwrt.eq.3)then
-				leftv(1:nof_variables)=ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)
-                call prim2cons(n)
-                ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)=leftv(1:nof_variables)
-				end if
+                                 
                                
 !                                 ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,L,NGP)=ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,L,NGP)&
 ! 				    +((U_C(I)%VAL(1,1:NOF_vARIABLES)+RESSOLUTION(icd,1:NOF_vARIABLES) )*WENO(1:NOF_vARIABLES,LL))
                                     end do
                                 end do
                                 end do
+                                
+                                if (wenwrt.eq.3)then
+                                
+                                DO L=1,IELEM(N,I)%IFCA
+                                    
+                                                    if (ielem(n,i)%types_faces(L).eq.5)then
+                                    iqp=qp_quad;WEIGHT_T2(1:IQP)=WEIGHTS_Q(1:IQP)
+                                                    else
+                                    iqp=qp_triangle;WEIGHT_T2(1:IQP)=WEIGHTS_T(1:IQP)
+                                                    end if
+                                                    do NGP=1,iqp
+                                                    leftv(1:nof_variables)=ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)
+                                                    call prim2cons(n)
+                                                    ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)=leftv(1:nof_variables)
+                                                    end do
+                               end do
+                                
+                                end if
+                                
+                                
 		END IF!WENWRT2
 		 
 		 !TURBULENCE
