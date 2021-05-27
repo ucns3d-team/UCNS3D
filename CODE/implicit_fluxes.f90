@@ -93,7 +93,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
                                 CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
                                 !CALCULATE THE NEW EIGENVALUE FOR ROTATING REFERENCE FRAME
                                 ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
-                                ASOUND2=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
+                                ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
                             END IF
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -477,7 +477,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	!$OMP END DO
 
     !ADD THE CONTRIBUTION OF THE SOURCE TERM TO THE JACOBIAN OF THE DIAGONAL MATRIX
-        IF (SRF.EQ.1.AND.MRF.EQ.0) THEN
+        IF (SRFg.EQ.1) THEN
         !$OMP DO SCHEDULE(GUIDED)
             DO I=1,KMAXE
                 IMPDIAG(i,2,3)=-SRF_VELOCITY(3)*ielem(n,I)%totvolume
@@ -490,7 +490,6 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
         !$OMP END DO
         END IF	
         IF (MRF.EQ.1) THEN
-        SRF=0
         !$OMP DO SCHEDULE(GUIDED)
             DO I=1,KMAXE
                 IF(ILOCAL_RECON3(I)%MRF.EQ.1)THEN

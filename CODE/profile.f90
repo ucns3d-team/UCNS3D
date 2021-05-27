@@ -155,22 +155,22 @@ IF (TURBULENCE.EQ.1)THEN
   IF (TURBULENCEMODEL.EQ.2)THEN
  
    if (zero_turb_init .eq. 0) then
-    IF (SRF.EQ.0) THEN
+    IF (RFRAME.EQ.0) THEN
         VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
         VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
    ELSE
-        VECCOS(6)=(1.5D0*I_turb_inlet*(KINIT_SRF**2))*R1
-        VECCOS(7)=R1*KINIT_SRF/(10.0e-5*visc)
+        VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
+        VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
    END IF	
   end if
   
   if (zero_turb_init .eq. 1) then
-    IF (SRF.EQ.0) THEN
+    IF (RFRAME.EQ.0) THEN
         VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
         VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
    ELSE
-        VECCOS(6)=(1.5D0*I_turb_inlet*(KINIT_SRF**2))*R1
-        VECCOS(7)=R1*KINIT_SRF/CharLength
+        VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
+        VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
    END IF		
   end if
     

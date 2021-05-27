@@ -127,6 +127,8 @@ INTEGER:: MRF !integer for MRF
 INTEGER:: ROT_CORR,D_CORR   !integer for turbulence corrections
 INTEGER:: PER_ROT !rotational periodicity flag
 INTEGER:: RFRAME
+INTEGER:: SRFG
+INTEGER:: NROTORS
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.2.   INTEGER ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -298,7 +300,10 @@ REAL::V_REF                 !TIP BLADE VELOCITY FOR SRF
 REAL::TURB_FACTOR			!FACTOR TO ENHANCE STABILITY OF TURBULENCE EQUATION
 REAL::KINIT_SRF   
 REAL,DIMENSION(3)::point1,point2
+REAL,DIMENSION(3)::point1_gl,point2_gl
+
 real:: Radius, MRF_ROT
+real:: Radius_gl, MRF_ROT_gl
 
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
@@ -449,7 +454,7 @@ REAL,ALLOCATABLE,DIMENSION(:,:,:,:,:)::FINDW_CHAR
 !$OMP THREADPRIVATE(FINDW,SMOOTHINDICATOR,FINDW_CHAR,LAMBDA,OMEGATILDE,OMEGA,WENOOS,ISHYAPE,ISATISFIED,IWHICHSTEN,VG,VC,BC)
 
 REAL,ALLOCATABLE,DIMENSION(:):: SOURCE_T2,SRF_SPEED,srf_speedrot
-!$OMP THREADPRIVATE(SOURCE_T2,SRF_SPEED,SRF_SPEEDROT)
+!$OMP THREADPRIVATE(SOURCE_T2,SRF_SPEED,SRF_SPEEDROT,SRF)
 
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!

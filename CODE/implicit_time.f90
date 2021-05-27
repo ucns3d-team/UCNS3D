@@ -38,7 +38,7 @@ DURR=zero; DULR=zero
 
 
 call CALCULATE_JACOBIAN(N)
-IF (SRF.EQ.0.AND.MRF.EQ.0) THEN
+IF (SRFg.EQ.0.AND.MRF.EQ.0) THEN
 !$OMP DO
 do i=1,kmaxe
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(i,1:nof_Variables,1:nof_Variables)
@@ -50,7 +50,7 @@ impdiag(i,5,5)=1.0d0/lscqm1(5,5)
 end do
 !$OMP END DO
 end if
-if (SRF.EQ.1.AND.MRF.EQ.0)then
+if (SRFG.EQ.1)then
 !$OMP DO
 do i=1,kmaxe
   lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
@@ -153,9 +153,9 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		
 		B1_imp(1:nof_variables)=B1_imp(1:nof_variables)-MATMUL(IMPoff(i,L,1:nof_variables,1:nof_variables),DU1(1:nof_variables))
 		IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-		IF(SRF.EQ.0)THEN
+		!IF(SRF.EQ.0)THEN
 		b1T(:)=b1T(:)-(IMPofft(i,L,:)*DUt1(:))
-		END IF
+		!END IF
 		end if
 END DO	!loop f
 
@@ -305,9 +305,9 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 
 B1_imp(1:nof_variables)=B1_imp(1:nof_variables)-MATMUL(IMPoff(i,L,1:nof_variables,1:nof_variables),DU1(1:nof_variables))
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-IF(SRF.EQ.0)THEN
+!IF(SRF.EQ.0)THEN
 b1T(:)=b1T(:)-(IMPofft(i,L,:)*DUt1(:))
-END IF
+!END IF
 end if
 END DO	!loop f
 end if

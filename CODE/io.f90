@@ -3042,22 +3042,23 @@ LOGICAL::HERE
     READ(16,*)!10    
 	READ(16,*)PER_ROT,ANGLE_PER,V_REF	
     READ(16,*)!12
-    READ(16,*)Point1(1),Point1(2),Point1(3)
-	READ(16,*)Point2(1),Point2(2),Point2(3)
-	READ(16,*)Radius, MRF_ROT
+    READ(16,*)Point1_GL(1),Point1_GL(2),Point1_GL(3)
+	READ(16,*)Point2_GL(1),Point2_GL(2),Point2_GL(3)
+	READ(16,*)Radius_GL, MRF_ROT_GL
 	CLOSE(16)
 
         IF(RFRAME.EQ.2)THEN
             MRF=1
-            SRF=0
+            SRFG=0
         END IF
         IF (RFRAME.EQ.1)THEN
-            SRF=1
+            SRFG=1
             MRF=0
+			SRF=1
         END IF
 	ELSE
         RFRAME=0
-        SRF=0
+        SRFg=0
         MRF=0
 	END IF
 END SUBROUTINE OPEN_INPUT2
@@ -3674,6 +3675,8 @@ SUBROUTINE READ_UCNS3D
             write(63,*)'----Reynolds Number:',(RRES*ufreestream*CharLength)/VISC
             ELSE
                     write(63,*)'----Tip blade Reynolds Number:',int((RRES*V_REF*CharLength)/VISC)
+					write(63,*)'----Viscosity:',VISC
+
             end if
 		END IF
 	      CLOSE(63)
@@ -3810,7 +3813,7 @@ SUBROUTINE READ_UCNS3D
 	      CLOSE(63)
 	  END IF
 
-	  IF (srf.eq.1)THEN
+	  IF (srfg.eq.1)THEN
             SOURCE_ACTIVE=1
             KINIT_SRF=0.00001
             ROT_CORR=0
