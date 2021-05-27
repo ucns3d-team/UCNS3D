@@ -301,9 +301,9 @@ REAL::TURB_FACTOR			!FACTOR TO ENHANCE STABILITY OF TURBULENCE EQUATION
 REAL::KINIT_SRF   
 REAL,DIMENSION(3)::point1,point2
 REAL,DIMENSION(3)::point1_gl,point2_gl
-
 real:: Radius, MRF_ROT
 real:: Radius_gl, MRF_ROT_gl
+real:: momentx,momenty,momentz
 
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!

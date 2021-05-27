@@ -33,7 +33,7 @@ so from "18" to "8".
 
 This was made so the code knows what is the positive and the negative interface that must be rotated of theta or -theta.
 
-In the UCNS3d.dat there are two new parameter:
+In the ROTFRAME.dat there are two new parameter:
 BOUNDARY CONDITIONS: |0: Non-Periodic | 1: Periodic
 1 180.0  1.0e-08
 
