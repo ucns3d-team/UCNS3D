@@ -15,7 +15,7 @@ subroutine tolerances
 !> This subroutine specifies the tolerances and other fixed numbers used throughout the code
 implicit none
 
-tolsmall=1.0e-10
+tolsmall=1.0e-13
 TOLBIG=1.0E+13
 oo2=1.0d0/2.0d0
 zero=0.0d0
