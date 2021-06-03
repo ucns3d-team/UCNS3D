@@ -1076,7 +1076,7 @@ TURBMV(2)=TURBMV(1)
 			      ! ! 	!  First order diffusion term
 			      fodt  =   cb2 * SQUARET/ SIGMA
 			      SOURCE_T(1) = ProdTermfinal + fodt - destterm
-			      SOURCE_T(1)=  min(ProdTermfinal + fodt - destterm,ZERO)
+			     
 			     
 			END IF
 	 eLSE

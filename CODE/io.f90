@@ -3871,7 +3871,7 @@ SUBROUTINE READ_UCNS3D
 			CT4=2.0 ! 2.0      			|| CT4
 			PRTU=0.9! 0.9				|| Turbulent Prandtl Number
 			TWALL=0! 0				|| Wall temperature (Kelvin) leave 0 for adiabatic (q_wall =0 <=> dT/dn=0)
-			TURBINIT=1.0 ! 3.0	  			|| Initial value for turbulence parameter (multiplyied by the freestream viscosity from given Re)
+			TURBINIT=3.0 ! 3.0	  			|| Initial value for turbulence parameter (multiplyied by the freestream viscosity from given Re)
 			Upturblimit=1000000! 1000000				|| Upper limit for turbulence
 			residualfreq=10! 10				|| Residual compute every
 			IRS=0! 0				||IMPLICIT RESIDUAL SMOOTHING (DOUBLES CFL)
