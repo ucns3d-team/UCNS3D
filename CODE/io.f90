@@ -3162,6 +3162,70 @@ SUBROUTINE READ_UCNS3D
 	READ(15,*)
 	    
 	    
+	    ! 	TURBULENCE MODEL PARAMETERS:
+			! ---OPTIONS Spalart Almaras---
+			ISPAL=1 !    ||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
+			!DES_model=0! 0              			|| 1-Detached Eddy Simulation 2-Delayed DES
+			! ---CONSTANTS-------
+			CB1=0.1355	! 0.1355				|| Cb1 
+			CB2=0.622! 0.622   			|| Cb2
+			SIGMA=0.666666667! 0.666666667      		|| sigma
+			KAPPA=0.41  ! 0.41     			|| kappa
+			CW1=3.23886781677! 3.23886781677      		|| CW1 (0 for (CB1/kappa**2)+1/sigma(1+CB2) or predifined)
+			CW2=0.3! 0.3      			|| CW2
+			CW3=2.0 ! 2.0      			|| CW3
+			CV1=7.1! 7.1      			|| CV1
+			CT1=1.0 ! 1.0      			|| CT1
+			CT2=2.0! 2.0      			|| CT2
+			CT3=1.1 ! 1.1      			|| CT3
+			CT4=2.0 ! 2.0      			|| CT4
+			PRTU=0.9! 0.9				|| Turbulent Prandtl Number
+			TWALL=0! 0				|| Wall temperature (Kelvin) leave 0 for adiabatic (q_wall =0 <=> dT/dn=0)
+			TURBINIT=3.0 ! 3.0	  			|| Initial value for turbulence parameter (multiplyied by the freestream viscosity from given Re)
+			Upturblimit=1000000! 1000000				|| Upper limit for turbulence
+			residualfreq=10! 10				|| Residual compute every
+			IRS=0! 0				||IMPLICIT RESIDUAL SMOOTHING (DOUBLES CFL)
+			C_DES_SA=0.61	! 0.61				||C_DES_SA
+			! =============================================================================
+			! K-OMEGA SST: 
+			! ---OPTIONS---
+			VORT_MODEL=0! 0					||0:Default strain-production for k, 1:Vorticity-production for k
+			QSAS_MODEL=0! 0					||Hybrid models: 1-SAS-SST  //  2-DES-SST 
+			ZERO_TURB_INIT=0! 0					||Zero turbulence option (if 1, initialization for k/w is done with zero turbulence)
+			! --------------K-OMEGA CONSTANTS--------------------------
+			SIGMA_K1=1.176470588! 1.176470588				||sigma_k1
+			SIGMA_K2=1.0! 1.0					||sigma_k2
+			SIGMA_OM1=2.0	! 2.0					||sigma_om1
+			SIGMA_OM2=1.168! 1.168					||sigma_om2
+			AA_1=0.31! 0.31					||aa_1
+			BETA_I1=0.075	! 0.075					||beta_i1
+			BETA_I2=0.0828! 0.0828					||beta_i2
+			ALPHA_STARINF=1.0! 1.0					||alpha_starinf
+			ALPHA_0=0.111111111! 0.111111111				||alpha_0
+			BETA_STARINF=0.09! 0.09					||beta_starinf
+			R_BETA=8.0! 8.0					||R_beta
+			R_K_SST=6.0! 6.0					||R_k_SST
+			BETA_T=0.072	! 0.072					||beta_t
+			KAPPA_sst=0.41! 0.41					||kappa   (Same in Spalart-Allmaras)
+			R_OM_SST=2.95	! 2.95					||R_om_SST
+			ZETA_STAR= 1.5	! 1.5					||zeta_star  (Only for Mach corrections)
+			M_T0=0.25! 0.25					||M_t0		(Only for Mach corrections)
+			C_MU_INLET=0.09! 0.09					||C_mu_inlet
+			C_SMG=0.11! 0.11					||C_smg  (SAS)
+			ETA2_SAS=3.51! 3.51					||eta2_SAS (SAS)
+			SIGMA_PHI=0.666666667	! 0.666666667				||sigma_phi (SAS)
+			C_SAS=2.0! 2.0					||C_SAS   (SAS)
+			L_turb_inlet=0.0026! 0.0026					||L_turb_inlet (Default turbulence lengthscale)
+			I_turb_inlet=0.1! 0.1					||I_turb_inlet (Default turbulene intensity)
+			Init_mu_ratio=0.01! 0.01					||Init_mu_ratio	(Default initial ratio for turbulent viscosity)
+			C_DES_SST=0.61! 0.61					||C_DES_SST
+			! =============================================================================
+			! PASSIVE SCALAR TRANSPORT
+			SCHMIDT_LAM=10.0! 10.0					||Laminar Schmidt number
+			SCHMIDT_TURB=0.7! 0.7					||Turbulent Schmidt number
+	    
+	    
+	    
 	    
 	    
 	    SELECT CASE(CODE_PROFILE)
@@ -3174,7 +3238,7 @@ SUBROUTINE READ_UCNS3D
 	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
 	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
 	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
-	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
 	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
 	HYBRIDIST=0.0D0 !HYBRID DISTANCE
 	swirl=0		!swirling flow:0 deactivated, 1 activated
@@ -3214,14 +3278,14 @@ SUBROUTINE READ_UCNS3D
 	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
 	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
 	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
-	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
 	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
 	HYBRIDIST=0.0D0 !HYBRID DISTANCE
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
     if (initcond.eq.405)iadapt=1
 	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=2	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+	extf=3	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
 	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
 	guassianquadra=1!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
@@ -3252,15 +3316,15 @@ SUBROUTINE READ_UCNS3D
 	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
 	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
 	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
-	icoupleturb=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+! 	icoupleturb=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
 	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
 	HYBRIDIST=0.0D0 !HYBRID DISTANCE
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
 	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+	extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
 	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=7!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
         relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
 	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
@@ -3280,7 +3344,7 @@ SUBROUTINE READ_UCNS3D
 	if (iboundary.eq.1)then
 	 LOWMEM=1
 	 end if
-	 DES_model=2
+	 DES_model=1
 	 
 	 
 	 CASE (3)
@@ -3290,53 +3354,13 @@ SUBROUTINE READ_UCNS3D
 	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
 	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
 	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
-	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
 	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
 	HYBRIDIST=0.0D0 !HYBRID DISTANCE
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
 	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=2.5	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=30.0	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	if (dimensiona.eq.2)then
-	if (tecplot.eq.2)then
-	tecplot=1
-	end if
-	end if
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-	 
-	 
-	 DES_model=2
-	 
-	 
-	  CASE (4)
-	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	!I/O (ASCII=0, BINARY=1) 
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
-	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-	ICOMPACT=1	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=2	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+	extf=3	    !STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
 	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
 	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
@@ -3361,6 +3385,48 @@ SUBROUTINE READ_UCNS3D
 	 
 	 
 	 DES_model=0
+	 
+	 
+	 
+	  CASE (4)
+	
+	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+	binio=1	    	!I/O (ASCII=0, BINARY=1) 
+	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+	HYBRIDIST=0.0D0 !HYBRID DISTANCE
+	swirl=0		!swirling flow:0 deactivated, 1 activated
+	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+	extf=3	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+	itold=10000	!TOLERANCE=n_iterations
+	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=30.0	! LIMIT VOLUME CELLS
+	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+	if (dimensiona.eq.2)then
+	if (tecplot.eq.2)then
+	tecplot=1
+	end if
+	end if
+	if (iboundary.eq.1)then
+	 LOWMEM=1
+	 end if
+	 
+	 DES_model=0
+	 
+	
 	 
 	 
 	 
@@ -3731,67 +3797,7 @@ SUBROUTINE READ_UCNS3D
 	  !TURBULENCE DEFAULT VALUES
 	
 	
-			! 	TURBULENCE MODEL PARAMETERS:
-			! ---OPTIONS Spalart Almaras---
-			ISPAL=1 !    ||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
-			!DES_model=0! 0              			|| 1-Detached Eddy Simulation 2-Delayed DES
-			! ---CONSTANTS-------
-			CB1=0.1355	! 0.1355				|| Cb1 
-			CB2=0.622! 0.622   			|| Cb2
-			SIGMA=0.666666667! 0.666666667      		|| sigma
-			KAPPA=0.41  ! 0.41     			|| kappa
-			CW1=3.23886781677! 3.23886781677      		|| CW1 (0 for (CB1/kappa**2)+1/sigma(1+CB2) or predifined)
-			CW2=0.3! 0.3      			|| CW2
-			CW3=2.0 ! 2.0      			|| CW3
-			CV1=7.1! 7.1      			|| CV1
-			CT1=1.0 ! 1.0      			|| CT1
-			CT2=2.0! 2.0      			|| CT2
-			CT3=1.1 ! 1.1      			|| CT3
-			CT4=2.0 ! 2.0      			|| CT4
-			PRTU=0.9! 0.9				|| Turbulent Prandtl Number
-			TWALL=0! 0				|| Wall temperature (Kelvin) leave 0 for adiabatic (q_wall =0 <=> dT/dn=0)
-			TURBINIT=3.0 ! 3.0	  			|| Initial value for turbulence parameter (multiplyied by the freestream viscosity from given Re)
-			Upturblimit=1000000! 1000000				|| Upper limit for turbulence
-			residualfreq=10! 10				|| Residual compute every
-			IRS=0! 0				||IMPLICIT RESIDUAL SMOOTHING (DOUBLES CFL)
-			C_DES_SA=0.61	! 0.61				||C_DES_SA
-			! =============================================================================
-			! K-OMEGA SST: 
-			! ---OPTIONS---
-			VORT_MODEL=0! 0					||0:Default strain-production for k, 1:Vorticity-production for k
-			QSAS_MODEL=0! 0					||Hybrid models: 1-SAS-SST  //  2-DES-SST 
-			ZERO_TURB_INIT=0! 0					||Zero turbulence option (if 1, initialization for k/w is done with zero turbulence)
-			! --------------K-OMEGA CONSTANTS--------------------------
-			SIGMA_K1=1.176470588! 1.176470588				||sigma_k1
-			SIGMA_K2=1.0! 1.0					||sigma_k2
-			SIGMA_OM1=2.0	! 2.0					||sigma_om1
-			SIGMA_OM2=1.168! 1.168					||sigma_om2
-			AA_1=0.31! 0.31					||aa_1
-			BETA_I1=0.075	! 0.075					||beta_i1
-			BETA_I2=0.0828! 0.0828					||beta_i2
-			ALPHA_STARINF=1.0! 1.0					||alpha_starinf
-			ALPHA_0=0.111111111! 0.111111111				||alpha_0
-			BETA_STARINF=0.09! 0.09					||beta_starinf
-			R_BETA=8.0! 8.0					||R_beta
-			R_K_SST=6.0! 6.0					||R_k_SST
-			BETA_T=0.072	! 0.072					||beta_t
-			KAPPA_sst=0.41! 0.41					||kappa   (Same in Spalart-Allmaras)
-			R_OM_SST=2.95	! 2.95					||R_om_SST
-			ZETA_STAR= 1.5	! 1.5					||zeta_star  (Only for Mach corrections)
-			M_T0=0.25! 0.25					||M_t0		(Only for Mach corrections)
-			C_MU_INLET=0.09! 0.09					||C_mu_inlet
-			C_SMG=0.11! 0.11					||C_smg  (SAS)
-			ETA2_SAS=3.51! 3.51					||eta2_SAS (SAS)
-			SIGMA_PHI=0.666666667	! 0.666666667				||sigma_phi (SAS)
-			C_SAS=2.0! 2.0					||C_SAS   (SAS)
-			L_turb_inlet=0.0026! 0.0026					||L_turb_inlet (Default turbulence lengthscale)
-			I_turb_inlet=0.1! 0.1					||I_turb_inlet (Default turbulene intensity)
-			Init_mu_ratio=0.01! 0.01					||Init_mu_ratio	(Default initial ratio for turbulent viscosity)
-			C_DES_SST=0.61! 0.61					||C_DES_SST
-			! =============================================================================
-			! PASSIVE SCALAR TRANSPORT
-			SCHMIDT_LAM=10.0! 10.0					||Laminar Schmidt number
-			SCHMIDT_TURB=0.7! 0.7					||Turbulent Schmidt number
+			
 
 		
 	
@@ -15046,7 +15052,50 @@ do j=1,NOF_VARIABLES
     
 end do
     
+    if (ITESTCASE.EQ.4)THEN
+
+	 DO I=1,KMAXE
+		  
+		  VALUESS(i)=IELEM(N,I)%VORTEX(1)
+		END DO
     
+    call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+
+	IF (N.EQ.0)THEN
+    
+    	WRITE(400+N)
+    	WRITE(400+N)"SCALARS  Q double 1"//lf
+	    WRITE(400+N)"LOOKUP_TABLE default"//lf
+    
+		do i=1,imaxe
+		xbin(XMPI_RE(I))=xbin2(I)
+		end do
+     WRITE(400+N)xbin(1:imaxe)
+    END IF
+   END IF
+   
+   
+   if (turbulence.EQ.1)THEN
+
+	 DO I=1,KMAXE
+		  
+		  VALUESS(i)=U_CT(I)%VAL(1,1)
+		END DO
+    
+    call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+
+	IF (N.EQ.0)THEN
+    
+    	WRITE(400+N)
+    	WRITE(400+N)"SCALARS  NUT double 1"//lf
+	    WRITE(400+N)"LOOKUP_TABLE default"//lf
+    
+		do i=1,imaxe
+		xbin(XMPI_RE(I))=xbin2(I)
+		end do
+     WRITE(400+N)xbin(1:imaxe)
+    END IF
+   END IF
     
     
 
@@ -15261,7 +15310,42 @@ END SUBROUTINE OUTWRITEPARA3Db
                                END IF
                             end do
 
- 
+                            
+                            if (turbulence.EQ.1)THEN
+
+                            DO I=1,KMAXE
+                                
+                                VALUESS(i)=U_CT(I)%VAL(1,1)
+                                END DO
+                            
+                            call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+
+                            IF (N.EQ.0)THEN
+                            
+                                WRITE(400+N)
+                                WRITE(400+N)"SCALARS  NUT double 1"//lf
+                                WRITE(400+N)"LOOKUP_TABLE default"//lf
+                            
+                                do i=1,imaxe
+                                xbin(XMPI_RE(I))=xbin2(I)
+                                end do
+                            WRITE(400+N)xbin(1:imaxe)
+                            END IF
+                        END IF
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
                             IF (N.EQ.0)THEN
                                ! close file
                                CLOSE(400+N) 
