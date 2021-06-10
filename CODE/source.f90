@@ -126,7 +126,7 @@ REAL:: kx,ky,kz,omx,omy,omz
 
 I=ICONSIDERED
 
-Verysmall = TOLSMALL
+Verysmall = 10e-16
 	
 VORTET(1:3,1:3) = ILOCAL_RECON3(I)%GRADS(1:3,1:3)
 
@@ -300,14 +300,14 @@ TURBMV(2)=TURBMV(1)
 
 		  Prodtermfinal=Stild*turbmv(1)*cb1*tch_x
 		  ! 
-		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*KAPPA * KAPPA * (ddw) * (ddw))))
+		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*Stild*KAPPA * KAPPA * (ddw) * (ddw))))
 
 
 		  gg	= rr +  ( CW2 * (rr**6 - rr) )
 		  Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
 		  ! ! 				!  Destruction term
 
-		  destterm  = cw1 * fw *leftv(1)* (((turbmv(1)*tch_x/leftv(1))**2.0)/( (ddw) * (ddw)))
+		  destterm  = cw1 * fw *leftv(1)* (((turbmv(1)*tch_x/leftv(1))/(ddw))**2)
 		  ! ! 				!  First order diffusion term
 		  fodt  =   LEFTV(1)*cb2 * SQUARET / SIGMA
 		  SOURCE_T(1)= ProdTermfinal + fodt - destterm
@@ -517,7 +517,7 @@ REAL:: kx,ky,kz,omx,omy,omz
 
 I=ICONSIDERED
 
-Verysmall = TOLSMALL
+Verysmall = 10e-16
 	
 VORTET(1:3,1:3) = ILOCAL_RECON3(I)%GRADS(1:3,1:3)
 
@@ -692,14 +692,15 @@ TURBMV(2)=TURBMV(1)
 
 		  Prodtermfinal=Stild*turbmv(1)*cb1*tch_x
 		  ! 
-		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*KAPPA * KAPPA * (ddw) * (ddw))))
+		  ! 
+		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*Stild*KAPPA * KAPPA * (ddw) * (ddw))))
 
 
 		  gg	= rr +  ( CW2 * (rr**6 - rr) )
 		  Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
 		  ! ! 				!  Destruction term
 
-		  destterm  = cw1 * fw *leftv(1)* (((turbmv(1)*tch_x/leftv(1))**2.0)/( (ddw) * (ddw)))
+		  destterm  = cw1 * fw *leftv(1)* (((turbmv(1)*tch_x/leftv(1))/(ddw))**2)
 		  ! ! 				!  First order diffusion term
 		  fodt  =   LEFTV(1)*cb2 * SQUARET / SIGMA
 		  
@@ -957,7 +958,7 @@ REAL:: kx,ky,kz,omx,omy,omz
 
 I=ICONSIDERED
 
-Verysmall = TOLSMALL
+Verysmall = 10e-16
 
 
 
@@ -1131,14 +1132,14 @@ TURBMV(2)=TURBMV(1)
 
 		  Prodtermfinal=Stild*turbmv(1)*cb1*tch_x
 		  ! 
-		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*KAPPA * KAPPA * (ddw) * (ddw))))
+		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*Stild*KAPPA * KAPPA * (ddw) * (ddw))))
 
 
 		  gg	= rr +  ( CW2 * (rr**6 - rr) )
 		  Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
 		  ! ! 				!  Destruction term
 
-		  destterm  = cw1 * fw *leftv(1)* (((turbmv(1)*tch_x/leftv(1))**2.0)/( (ddw) * (ddw)))
+		  destterm  = cw1 * fw *leftv(1)* (((turbmv(1)*tch_x/leftv(1))/(ddw))**2)
 		  ! ! 				!  First order diffusion term
 		  fodt  =   LEFTV(1)*cb2 * SQUARET / SIGMA
 		  SOURCE_T(1)= ProdTermfinal + fodt - destterm
@@ -1349,7 +1350,7 @@ REAL:: kx,ky,kz,omx,omy,omz
 
 I=ICONSIDERED
 
-Verysmall = TOLSMALL
+Verysmall = 10e-16
 	
 VORTET(1:2,1:2) = ILOCAL_RECON3(I)%GRADS(1:2,1:2)
 
@@ -1528,14 +1529,14 @@ TURBMV(2)=TURBMV(1)
 
 		  Prodtermfinal=Stild*turbmv(1)*cb1*tch_x
 		  ! 
-		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*KAPPA * KAPPA * (ddw) * (ddw))))
+		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*Stild*KAPPA * KAPPA * (ddw) * (ddw))))
 
 
 		  gg	= rr +  ( CW2 * (rr**6 - rr) )
 		  Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
 		  ! ! 				!  Destruction term
 
-		  destterm  = cw1 * fw *leftv(1)* (((turbmv(1)*tch_x/leftv(1))**2.0)/( (ddw) * (ddw)))
+		  destterm  = cw1 * fw *leftv(1)* (((turbmv(1)*tch_x/leftv(1))/(ddw))**2)
 		  ! ! 				!  First order diffusion term
 		  fodt  =   LEFTV(1)*cb2 * SQUARET / SIGMA
 		  

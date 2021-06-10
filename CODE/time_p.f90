@@ -3059,7 +3059,7 @@ IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
   DO I=1,KMAXE
   do k=1,turbulenceequations+passivescalar
   if (U_CT(I)%VAL(1,k)+IMPDU(I,5+k).ge.zero)then
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,5+k)
+  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.3*IMPDU(i,5+k)
   end if
   end do
 END DO
@@ -3171,10 +3171,10 @@ IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
   do k=1,turbulenceequations+passivescalar
   if (ispal.eq.1)then
   if (U_CT(I)%VAL(1,k)+IMPDU(I,4+k).ge.zero)then
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
+  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.3*IMPDU(i,4+k)
    end if
    else
-   U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
+   U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.3*IMPDU(i,4+k)
    
    end if
   end do

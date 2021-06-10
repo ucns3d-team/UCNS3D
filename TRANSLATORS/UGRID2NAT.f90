@@ -59,7 +59,7 @@ DO I=1,NBOUND
 
 	select case(ibx(i))
 	
-	case (5000)	!farfield
+	case (5000,5050)	!farfield
 	IBXX(i)=6
 	case(6662)	!symmetry	
 	IBXX(i)=3
@@ -105,17 +105,26 @@ end do
 			    kx=kx+1
 			    !write(11,"(9I10)")kx,ic2nt(1,i),ic2nt(2,i),ic2nt(3,i),ic2nt(3,i),ic2nt(4,i),ic2nt(4,i),ic2nt(4,i),ic2nt(4,i)
 				write(11)kx,ic2nt(1,i),ic2nt(2,i),ic2nt(3,i),ic2nt(3,i),ic2nt(4,i),ic2nt(4,i),ic2nt(4,i),ic2nt(4,i)
+
 			 end do
 			 !pyramid: 1 2 3 4 5 5 5 5
+			 
+			 
 			 do i=1,afnpyr
 			    kx=kx+1
-			    !write(11,"(9I10)")kx,ic2np(1,i),ic2np(2,i),ic2np(3,i),ic2np(4,i),ic2np(5,i),ic2np(5,i),ic2np(5,i),ic2np(5,i)
-				write(11)kx,ic2np(1,i),ic2np(2,i),ic2np(3,i),ic2np(4,i),ic2np(5,i),ic2np(5,i),ic2np(5,i),ic2np(5,i)
+! 			    write(150,*)kx,ic2np(1,i),ic2np(2,i),ic2np(5,i),ic2np(4,i),ic2np(3,i),ic2np(3,i),ic2np(3,i),ic2np(3,i)
+			    	!write(11,"(9I10)")kx,ic2np(1,i),ic2np(4,i),ic2np(5,i),ic2np(2,i),ic2np(3,i),ic2np(3,i),ic2np(3,i),ic2np(3,i)
+				write(11)kx,ic2np(1,i),ic2np(4,i),ic2np(5,i),ic2np(2,i),ic2np(3,i),ic2np(3,i),ic2np(3,i),ic2np(3,i)
 			 end do
 			 !prism: 1 2 3 3 4 5 6 6
+			 
+			 
+			 
+			 
+			 
 			 do i=1,afnprz
 			    kx=kx+1
-			    !write(11,"(9I10)")kx,ic2nz(1,i),ic2nz(2,i),ic2nz(3,i),ic2nz(3,i),ic2nz(4,i),ic2nz(5,i),ic2nz(6,i),ic2nz(6,i)
+ 			    !write(11,"(9I10)")kx,ic2nz(1,i),ic2nz(2,i),ic2nz(3,i),ic2nz(3,i),ic2nz(4,i),ic2nz(5,i),ic2nz(6,i),ic2nz(6,i)
 				write(11)kx,ic2nz(1,i),ic2nz(2,i),ic2nz(3,i),ic2nz(3,i),ic2nz(4,i),ic2nz(5,i),ic2nz(6,i),ic2nz(6,i)
 			 end do
 			 !hexa: 1 2 3 4 5 6 7 8

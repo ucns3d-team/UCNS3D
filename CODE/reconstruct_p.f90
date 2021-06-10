@@ -7298,7 +7298,7 @@ IF (ITESTCASE.GE.3)THEN
 						
 						
 				
-					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.9*RIGHTV(1))).OR.((ABS(LEFTV(5)-RIGHTV(5))).GE.(0.9*RIGHTV(5)))) THEN
+					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.6*RIGHTV(1))).OR.((ABS(LEFTV(5)-RIGHTV(5))).GE.(0.6*RIGHTV(5)))) THEN
 						    REDUCE1=1
 					    END IF
 					    

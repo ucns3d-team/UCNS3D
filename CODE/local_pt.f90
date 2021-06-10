@@ -2367,30 +2367,7 @@ surfmax=1.0e-16
 end do
         ielem(n,i)%condition=1.0
 
-        if (turbulence.gt.0)then
         
-
-        if (ielem(n,i)%ishape.eq.2)then
-        ielem(n,i)%condition=surfmax/surfmin
-        
-        if (ielem(n,i)%condition.gt.30)then
-         ielem(n,i)%hybrid=1
-        end if
-        end if
-        
-        if (ielem(n,i)%ishape.eq.3)then
-        ielem(n,i)%condition=surfmax/surfmin
-        
-        if (ielem(n,i)%condition.gt.10)then
-         ielem(n,i)%hybrid=1
-        end if
-        
-       
-        
-        end if
-
-
-        end if
        
 
 
@@ -2430,10 +2407,13 @@ if (ielem(n,i)%interior.eq.1)then
 	  if (ielem(n,i)%ibounds(J).gt.0)then
 	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
 	        IDC=IDC+1
-	      Else
-idc2=idc2+1
+	      end if
+	      if (ielem(n,i)%ishape.eq.3)then
+		if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.3))then
+	        IDC2=IDC2+1
+		end if	
+	      end if	
 
-		end if
 	  END IF
         END DO
 END IF
@@ -2442,6 +2422,7 @@ IF ((IDC.Gt.1))THEN     !until GE is fully adaptive
 IELEM(N,I)%GGS=1
 
 END IF
+
 
 
 
