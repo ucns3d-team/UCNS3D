@@ -342,7 +342,8 @@ KMAXE=XMPIELRANK(N)
                             ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
                             POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
                             POY(1:3)=ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)
-                            CALL MRFSwitch(point1_GL,point2_GL,Radius_gl,POX(1:3),POY(1:3),ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3), MRF_ROT_gl,ILOCAL_RECON3(I)%MRF_ORIGIN,ILOCAL_RECON3(I)%MRF_VELOCITY,ILOCAL_RECON3(I)%MRF)
+                            ICONSIDERED=I
+                            CALL MRFSwitch(point1_GL,point2_GL,Radius_gl,POX(1:3),POY(1:3), MRF_ROT_gl,ICONSIDERED,L,NGP)
                         END DO	!NGP
             END DO
             end if

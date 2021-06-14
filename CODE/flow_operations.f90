@@ -794,7 +794,8 @@ VECT_FUNCTION(3)=(POY(1)*POX(2))-(POY(2)*POX(1))
 
 END FUNCTION VECT_FUNCTION
 
-subroutine MRFSWITCH(point1,point2, Radius,PO,PGP,ROTVEL,MRF_ROT,MRF_ORIGIN, MRF_VELOCITY,SRF)
+subroutine MRFSWITCH(point1,point2, Radius,PO,PGP,MRF_ROT,ICONSIDERED,L,NGP)
+
   !> @brief
 !> This subroutine  check if the element is on the rotational/stationary reference frame and update the MRF_ORIGIN and SRF_VELOCITY SRF accordingly
 
@@ -802,14 +803,15 @@ implicit none
 
 
 !inputs:
+INTEGER, INTENT(IN) :: ICONSIDERED,L,NGP
 real, INTENT(IN) :: MRF_ROT
 real, dimension(3),INTENT(IN) :: point1, point2,PO,PGP !MRFPOINTS, ELEMENT CENTER CORD, GAUSSIAN POINTS CORD 
 real, INTENT(IN) :: Radius
 ! TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON3
 !output:
 !ILOCAL_RECON3%MRF_ORIGIN; ILOCAL_RECON3%MRF_VELOCITY; ILOCAL_RECON3%ROTVEL, ILOCAL_RECON3%MRF
-real, dimension(3), intent(inout) ::MRF_ORIGIN, MRF_VELOCITY,ROTVEL 
-integer, intent(inout):: SRF
+real, dimension(3) ::MRF_ORIGIN, MRF_VELOCITY,ROTVEL 
+ integer:: SRF
 
 !internal variables
 real, dimension(3) :: P1P2, PC, POPC !element coordinates, roation_axys, Cylinder_center_coordinates, vector_element_center, rotational velocity at gaussian points, Gausian points coordinates
@@ -840,11 +842,16 @@ if ((d1.ge.d2).and.(r1.le.Radius)) then
     ROTVEL(1:3)=VECT_FUNCTION(POX,POY)
 
 else
+    MRF_ORIGIN(1:3)=0.0
     SRF=0
     MRF_VELOCITY(1:3)=0.0
     ROTVEL(1:3)=0.0
 end if
 
+ILOCAL_RECON3(ICONSIDERED)%MRF_ORIGIN=MRF_ORIGIN
+ILOCAL_RECON3(ICONSIDERED)%MRF_VELOCITY=MRF_VELOCITY
+ILOCAL_RECON3(ICONSIDERED)%ROTVEL(L,NGP,1:3)=ROTVEL
+ILOCAL_RECON3(ICONSIDERED)%MRF=SRF
 
 end subroutine MRFSWITCH
 
