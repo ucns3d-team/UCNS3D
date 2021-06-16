@@ -805,13 +805,13 @@ implicit none
 !inputs:
 INTEGER, INTENT(IN) :: ICONSIDERED,L,NGP
 real, INTENT(IN) :: MRF_ROT
-real, dimension(3),INTENT(IN) :: point1, point2,PO,PGP !MRFPOINTS, ELEMENT CENTER CORD, GAUSSIAN POINTS CORD 
+real, allocatable,dimension(:),INTENT(IN) :: point1, point2,PO,PGP !MRFPOINTS, ELEMENT CENTER CORD, GAUSSIAN POINTS CORD 
 real, INTENT(IN) :: Radius
 ! TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON3
 !output:
 !ILOCAL_RECON3%MRF_ORIGIN; ILOCAL_RECON3%MRF_VELOCITY; ILOCAL_RECON3%ROTVEL, ILOCAL_RECON3%MRF
 real, dimension(3) ::MRF_ORIGIN, MRF_VELOCITY,ROTVEL 
- integer:: SRF
+ integer:: ROTFRAME_ON
 
 !internal variables
 real, dimension(3) :: P1P2, PC, POPC !element coordinates, roation_axys, Cylinder_center_coordinates, vector_element_center, rotational velocity at gaussian points, Gausian points coordinates
@@ -831,7 +831,7 @@ r1=dPOPC*abs(sin(theta))
 d1=((point1(1)-PC(1))**2+(point1(2)-PC(2))**2+(point1(3)-PC(3))**2)**0.5
 
 if ((d1.ge.d2).and.(r1.le.Radius)) then
-    SRF=1
+   ROTFRAME_ON=1
     MRF_ORIGIN(1:3)=PC(1:3)
     POX(1:3)=PGP(1:3)-MRF_ORIGIN(1:3)
     MRF_VELOCITY(1:3)=MRF_ROT*(P1P2)/(P1P2(1)**2+P1P2(2)**2+P1P2(3)**2)**0.5
@@ -843,7 +843,7 @@ if ((d1.ge.d2).and.(r1.le.Radius)) then
 
 else
     MRF_ORIGIN(1:3)=0.0
-    SRF=0
+    ROTFRAME_ON=0
     MRF_VELOCITY(1:3)=0.0
     ROTVEL(1:3)=0.0
 end if
@@ -851,7 +851,7 @@ end if
 ILOCAL_RECON3(ICONSIDERED)%MRF_ORIGIN=MRF_ORIGIN
 ILOCAL_RECON3(ICONSIDERED)%MRF_VELOCITY=MRF_VELOCITY
 ILOCAL_RECON3(ICONSIDERED)%ROTVEL(L,NGP,1:3)=ROTVEL
-ILOCAL_RECON3(ICONSIDERED)%MRF=SRF
+ILOCAL_RECON3(ICONSIDERED)%MRF=ROTFRAME_ON
 
 end subroutine MRFSWITCH
 

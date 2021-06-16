@@ -3042,8 +3042,8 @@ LOGICAL::HERE
     READ(16,*)!10    
 	READ(16,*)PER_ROT,ANGLE_PER,V_REF	
     READ(16,*)!12
-    READ(16,*)Point1_GL(1),Point1_GL(2),Point1_GL(3)
-	READ(16,*)Point2_GL(1),Point2_GL(2),Point2_GL(3)
+    READ(16,*)point1_in(1),point1_in(2),point1_in(3)
+	READ(16,*)point2_in(1),point2_in(2),point2_in(3)
 	READ(16,*)Radius_GL, MRF_ROT_GL
 	CLOSE(16)
 
@@ -14169,6 +14169,7 @@ END DO
 	WRITE(500+N,'(I14,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')it,T,MX,MY,MZ
 	END IF
 	CLOSE(50+N)
+	CLOSE(500+N)
 	END IF		
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	

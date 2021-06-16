@@ -8,6 +8,7 @@ USE LAPCK
 USE GRADIENTS
 USE BASIS
 USE FLOW_OPERATIONS
+USE OMP_LIB
 IMPLICIT NONE
 
 
@@ -343,7 +344,7 @@ KMAXE=XMPIELRANK(N)
                             POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
                             POY(1:3)=ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)
                             ICONSIDERED=I
-                            CALL MRFSwitch(point1_GL,point2_GL,Radius_gl,POX(1:3),POY(1:3), MRF_ROT_gl,ICONSIDERED,L,NGP)
+                            CALL MRFSwitch(point1_GL,point2_GL,Radius_gl,POX,POY, MRF_ROT_gl,ICONSIDERED,L,NGP)
                         END DO	!NGP
             END DO
             end if

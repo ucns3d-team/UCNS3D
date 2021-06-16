@@ -1,6 +1,7 @@
 MODULE MEMORY
 USE MPIINFO
 USE DECLARATION
+USE OMP_LIB
 IMPLICIT NONE
 
 CONTAINS
@@ -21,6 +22,13 @@ ALLOCATE(VVA(3,3),VVA1(3,3),DETA(1))
 allocate(sb(idegfree))
 ALLOCATE(VVr1(alls),VVr2(alls),VVr3(alls),VVR4(ALLS),VVwg(alls),POX(3),POY(3),POZ(3),VVnpox(igqrules),VVnpoy(igqrules),VVnpoz(igqrules),VVwpox(igqrules),VVwpoy(igqrules),VVwpoz(igqrules),SRF_SPEED(NOF_VARIABLES),SRF_SPEEDROT(NOF_VARIABLES))
 ALLOCATE(VVnxi(8),VVneta(8),VVnzeta(8),VVxi(8),VVeta(8),VVzeta(8),VVnallx(8),VVnally(8),VVnallz(8),VVB(3),VVC(3),VVD(3),VVE(3),VVF(3),VVJACOBSURF(3),VVJACOBVOLUME(4))
+ALLOCATE(point1_GL(3),point2_GL(3))
+if(RFRAME.NE.0)then
+point1_GL(1:3)=point1_in(1:3)
+point2_GL(1:3)=point2_in(1:3)
+END IF
+!ALLOCATE(point1(3),point2(3))
+
 else
 ALLS=IGQRULES*IGQRULES
 ALLOCATE(VVA(2,2),VVA1(2,2),DETA(1))
@@ -313,8 +321,8 @@ SUBROUTINE VERTALLOCATION(N,vext,LEFTV,RIGHTV,VISCL,LAML)
 	INTEGER,INTENT(IN)::N
 	REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::VeXt
 	REAL,ALLOCATABLE,DIMENSION(:)::LEFTV,RIGHTV
-	REAL,ALLOCATABLE,DIMENSION(:)::VISCL,LAML
-	
+        REAL,ALLOCATABLE,DIMENSION(:)::VISCL,LAML
+        
 	if (dimensiona.eq.3)then
 
 	ALLOCATE (VEXT(8,3))
@@ -358,9 +366,9 @@ SUBROUTINE VERTALLOCATION(N,vext,LEFTV,RIGHTV,VISCL,LAML)
 	end if
 	
   
-   
-	
-	 VEXT=zero
+  
+  
+         VEXT=zero
 	 
 	END SUBROUTINE VERTALLOCATION
 
@@ -1248,11 +1256,11 @@ end if
 	end if
 	
 	END IF
-	
-	
-	
-	
-	CASE(4)
+        
+        
+        
+        
+        CASE(4)
 	IF (AVERAGING.EQ.1)THEN
 	ISTAGE=7
 	ELSE
@@ -1272,16 +1280,16 @@ end if
 	ELSE
 	ISTAGE=3
 	END IF
-	
-	CASE(12)
-	
-	IF (AVERAGING.EQ.1)THEN
-	ISTAGE=5
-	ELSE
-	ISTAGE=3
-	END IF
-	
-	END SELECT
+        
+        CASE(12)
+        
+        IF (AVERAGING.EQ.1)THEN
+        ISTAGE=5
+        ELSE
+        ISTAGE=3
+        END IF
+        
+        END SELECT
 	
 	DO I=1,KMAXE
         ALLOCATE (U_C(I)%VAL(ISTAGE,NOF_VARIABLES));U_C(I)%VAL=ZERO
@@ -1297,8 +1305,8 @@ end if
 		END IF
 	END DO
 	
-	
-	IF (MOOD.EQ.1)THEN
+        
+        IF (MOOD.EQ.1)THEN
 DO I=1,KMAXE
     IELEM(N,I)%RECALC=0
 END DO
@@ -1307,10 +1315,10 @@ DO I=1,KMAXE
     IELEM(N,I)%RECALC=1
 END DO
 END IF
-	
-	
-	
-	
+        
+        
+        
+        
 	
 	END SUBROUTINE U_C_ALLOCATION
 
