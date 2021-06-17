@@ -20,7 +20,7 @@ INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb
 real::impres1,impres2,impres3
 
 
-SWEEPS=4
+SWEEPS=16
 kmaxe=xmpielrank(n)
 
 impdu(:,:)=zero
@@ -1290,7 +1290,7 @@ INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb
 real::impres1,impres2,impres3
 
 
-SWEEPS=4
+SWEEPS=16
 kmaxe=xmpielrank(n)
 
 impdu(:,:)=zero
@@ -1555,7 +1555,7 @@ end if
 
 if (ielem(n,i)%interior.eq.0)then
 DO L=1,IELEM(N,I)%IFCA	!loop3
-	      if (ielem(n,i)%reorient(l).eq.0)then
+	      if (ielem(n,i)%INEIGH(L).lt.i) then
 			    DU1(1:nof_Variables)=zero
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
@@ -1609,7 +1609,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
                                 
                                 end if
 				  IF (icaseb.le.2)THEN
-                                        IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
+                                        if (ielem(n,i)%INEIGH(L).lt.i)then
                                             igoflux=1
                                         else
                                             igoflux=0
@@ -1617,7 +1617,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
                                 else
                                         igoflux=2
                                 end if
-                                 if (IELEM(N,I)%REORIENT(l).EQ.0)then
+                                 if (ielem(n,i)%INEIGH(L).lt.i)then
 				ANGLE1=IELEM(N,I)%FACEANGLEX(L)
 				ANGLE2=IELEM(N,I)%FACEANGLEY(L)
 				NX=ANGLE1
@@ -1780,7 +1780,7 @@ end if
 
 if (ielem(n,i)%interior.eq.0)then
                         DO L=1,IELEM(N,I)%IFCA	!loop3
-                                    if (ielem(n,i)%reorient(l).eq.1)then
+                                    if (ielem(n,i)%INEIGH(L).gt.i)then
                                                     DU1(1:nof_Variables)=zero
                                                     IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
                                                     DUT1(:)=zero
@@ -1808,6 +1808,7 @@ else
 
 DO L=1,IELEM(N,I)%IFCA	!loop3	
 					  igoflux=0
+                                    
                                     IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
                                                                     IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
                                                                         if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
@@ -1842,7 +1843,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
                                                 else
                                                         igoflux=2
                                                 end if
-                                                                    if (IELEM(N,I)%REORIENT(l).EQ.1)then
+                                                                    if (ielem(n,i)%INEIGH(L).gt.i)then
                                                                     ANGLE1=IELEM(N,I)%FACEANGLEX(L)
                                                                     ANGLE2=IELEM(N,I)%FACEANGLEY(L)
                                                                     NX=angle1
@@ -2578,8 +2579,559 @@ END SUBROUTINE RELAXATION_lm2d
 
 
 
+SUBROUTINE RELAXATION_LUMFREE(N)
+IMPLICIT NONE
+!> @brief
+!> This subroutine solves the linear system for implicit time stepping either through MATRIX FREE LU-SGS low memory footprint
+INTEGER,INTENT(IN)::N
+INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux,icaseb,inds
+
+SWEEPS=1
+kmaxe=xmpielrank(n)
+impdu(:,:)=zero
+
+if (TURBULENCE.gt.0)then
+dut1=zero
+end if
 
 
+if (dimensiona.eq.3)then
+inds=5
+CALL CALCULATE_JACOBIAN_3D_MF(n)
+
+else
+inds=4
+CALL CALCULATE_JACOBIAN_2D_MF(n)
+end if
+
+
+
+
+DO II=1,SWEEPS	!loop1
+du1=zero
+call EXHBOUNDHIGHER2(N)
+
+!$OMP MASTER
+DO I=1,kmaxe   !FORWARD SWEEP !loop 1
+iconsidered=i
+                    b1_imp=zero
+                    if (TURBULENCE.gt.0)b1T=zero
+                    MODEU=1
+                     if (ielem(n,i)%interior.eq.0)then  
+                    CALL LUSGS_INTERIOR(N,ICONSIDERED,MODEU)
+                     ELSE
+                    
+                    CALL LUSGS_OUT(N,ICONSIDERED,MODEU)
+                     END IF
+                     
+                    if (iscoun.ne.1)then
+B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof_Variables))-(2.0d0*U_C(I)%VAL(2,1:nof_Variables))+(0.5d0*U_C(I)%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,I)%TOTVOLUME))-B1_IMP(1:NOF_VARIABLES)
+                    else
+			
+                    B1_IMP(1:NOF_VARIABLES)=(-RHS(I)%VAL(1:nof_variables))-B1_IMP(1:NOF_VARIABLES)
+                    end if
+                    
+                    
+                    IMPDU(I,1:nof_variables)=(B1_IMP(1:NOF_VARIABLES)/IMPDIAG_MF(i))
+                    
+                    
+                    
+                    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+                    
+                    if (iscoun.ne.1)then
+                    B1T(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=-(RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+((((1.5d0*U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR))-(2.0d0*U_CT(I)%VAL(2,1:TURBULENCEEQUATIONS+PASSIVESCALAR))+(0.5d0*U_CT(I)%VAL(3,1:TURBULENCEEQUATIONS+PASSIVESCALAR)))/(dt))*IELEM(N,I)%TOTVOLUME))-B1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                    impdu(i,inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)=b1T(:)/impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                    
+                    
+                    else
+                    b1T(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=-RHSt(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-B1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                    impdu(i,inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)=b1T(:)/impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                    end if
+                    
+                    
+                        end if
+                    
+                    
+                  
+END DO
+!$OMP END MASTER
+
+ call EXHBOUNDHIGHERlu(N)
+
+!$OMP MASTER
+DO I=kmaxe,1,-1     !FORWARD SWEEP !loop 1
+iconsidered=i
+                     b1_imp=zero
+                    MODEU=0
+                    if (TURBULENCE.gt.0)b1T=zero
+                     if (ielem(n,i)%interior.eq.0)then  !if 1
+                        CALL LUSGS_INTERIOR(N,ICONSIDERED,MODEU)
+                     ELSE
+                    
+                    CALL LUSGS_OUT(N,ICONSIDERED,MODEU)
+                     END IF
+
+                   
+                    
+!                     IMPDU(I,1:nof_variables)=IMPDU(I,1:nof_variables)-(B1_IMP(1:NOF_VARIABLES)/IMPDIAG_MF(i))
+                    
+                    
+                     IMPDU(I,1:nof_variables)=IMPDU(I,1:nof_variables)-(B1_IMP(1:NOF_VARIABLES)/IMPDIAG_MF(i))
+                    
+                    
+                     IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+                    impdu(i,inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdu(i,inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)-b1T(1:TURBULENCEEQUATIONS+PASSIVESCALAR)/impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                        end if
+                    
+                    
+                 
+END DO
+!$OMP END MASTER
+
+
+
+
+END DO!sweeps
+                                       
+END SUBROUTINE RELAXATION_LUMFREE                  
+                    
+                    
+SUBROUTINE LUSGS_INTERIOR(N,ICONSIDERED,MODEU)
+IMPLICIT NONE
+!> @brief
+!> This subroutine solves the linear system for implicit time stepping either through MATRIX FREE LU-SGS low memory footprint
+INTEGER,INTENT(IN)::N,ICONSIDERED,MODEU
+INTEGER::I,L,K,II,inds
+real::impres1,impres2,impres3
+I=ICONSIDERED
+
+!     MODEU=1!LOWER
+!     MODEU=0!UPPER
+if (dimensiona.eq.3)then
+inds=5
+else
+inds=4
+end if
+
+DO L=1,IELEM(N,I)%IFCA	!loop2     
+                                    if (MODEU.EQ.0)THEN
+                                    
+							       if (IELEM(N,I)%INEIGH(L).lt.ICONSIDERED) CYCLE
+							       
+							       else
+							       
+							        if (IELEM(N,I)%INEIGH(L).gt.ICONSIDERED) CYCLE
+							        
+							       end if
+        
+        
+        
+         du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
+         CRIGHT(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+              IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+                  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+                  CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+                  CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+               END IF	
+        ANGLE1=IELEM(N,I)%FACEANGLEX(L)
+        ANGLE2=IELEM(N,I)%FACEANGLEY(L)
+        NX=ANGLE1
+        NY=ANGLE2
+        facex=l;
+        CALL DELTAFX
+        
+        
+        
+        
+         b1_imp(1:NOF_VARIABLES)=b1_imp(1:NOF_VARIABLES)+(0.5D0*(DELTAF(1:NOF_VARIABLES)-VELNORMAL*du1(1:nof_variables))*IELEM(N,I)%SURF(L))
+        
+!         
+       
+        
+        
+        IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+        
+!         b1T(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=b1T(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+IMPofft(i,L,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+        
+        b1T(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=b1T(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+0.5D0*(DELTAF(inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)-VELNORMAL*duT1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))*IELEM(N,I)%SURF(L)
+        END IF
+        
+        
+
+        
+END DO
+        
+        
+
+        
+        
+        
+END SUBROUTINE LUSGS_INTERIOR
+
+                    
+SUBROUTINE LUSGS_OUT(N,ICONSIDERED,MODEU)
+IMPLICIT NONE
+!> @brief
+!> This subroutine solves the linear system for implicit time stepping either through MATRIX FREE LU-SGS low memory footprint
+INTEGER,INTENT(IN)::N,ICONSIDERED,MODEU
+INTEGER::I,L,K,II,inds,interfaces
+I=ICONSIDERED
+
+if (dimensiona.eq.3)then
+inds=5
+else
+inds=4
+end if
+
+DO L=1,IELEM(N,I)%IFCA	!COND1   
+        B_CODE=0
+        
+        
+        
+        IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY !COND2
+        
+		IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES !COND3
+		if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU !COND4
+		
+		
+                                    if (MODEU.EQ.0)THEN
+							       if (IELEM(N,I)%INEIGH(L).LT.ICONSIDERED)CYCLE
+							       else
+							        if (IELEM(N,I)%INEIGH(L).gt.ICONSIDERED)CYCLE
+							       end if
+! 		if (ielem(n,i)%IELEM(N,I)%INEIGH(L).LT.ICONSIDERED)CYCLE
+		
+		
+		
+		
+		 DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
+		 
+		 CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
+		 
+		 
+		 
+		 
+		IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN  
+        DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)
+        CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+        end if      
+        ELSE                                !COND4
+		!NOT PERIODIC ONES IN MY CPU
+        facex=l;
+        
+        
+        
+        if (dimensiona.eq.2)then
+		CALL coordinates_face_inner2dx(N,Iconsidered,facex)
+		CORDS(1:2)=zero
+		CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE);Pox(1)=cords(1);Poy(1)=cords(2)
+		else
+		CALL coordinates_face_innerx(N,Iconsidered,facex)
+		CORDS(1:3)=zero
+		CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE);Pox(1)=cords(1);Poy(1)=cords(2);poz(1)=cords(3);
+		
+		end if
+		
+		
+        LEFTV(1:nof_variables)=IMPDU(i,1:nof_variables)!U_C(ICONSIDERED)%VAL(1,1:NOF_VARIABLES)						           
+        IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN  !COND5
+		 cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)
+		end if                                                !END COND5
+		B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
+		
+		if (dimensiona.eq.2)then
+		CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+		else
+		
+		CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+		end if
+		
+		DU1(1:nof_variables)=rightV(1:nof_variables)
+		
+        IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN !COND6
+		 dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
+		end if                                              !END COND6  
+                                    select case(b_code)     !COND 7
+                                    case(1)
+                                    du1(:)=zero
+								    
+								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								   
+								    end if
+								    
+								    case(2)
+								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
+								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    end if
+								    
+								    case(4)
+        
+								    
+								    
+								    case(6)
+								    
+								    if (ibfc.eq.-1)then
+								   du1(:)=zero
+								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    
+								    
+								    else
+								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
+								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    end if
+								    
+								    
+								    
+								    end if
+								    
+								    
+								    end select   !END COND7  
+								    
+								    
+				  				  				  				  
+								    
+								  END IF            !END COND4
+							ELSE     !COND3
+                                    
+                                    
+                                     if (MODEU.EQ.0)THEN
+							       if (IELEM(N,I)%INEIGH(L).LT.ICONSIDERED)CYCLE
+							       else
+							        if (IELEM(N,I)%INEIGH(L).gt.ICONSIDERED)CYCLE
+							       end if
+                                    
+                                    
+							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
+							       CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
+							       
+							       if (MODEU.EQ.0)THEN
+							       if (IELEM(N,I)%INEIGH(L).LT.ICONSIDERED)CYCLE
+							       else
+							        if (IELEM(N,I)%INEIGH(L).gt.ICONSIDERED)CYCLE
+							       end if
+							       
+							       
+							       
+									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+								      
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)
+									CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									end if
+							      
+							      
+							      
+							      
+							END IF   !END COND3
+					    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS !COND2
+					    
+					    
+						
+	IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+	
+			if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                
+                                    
+                
+			CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+			(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)					
+			DU1(1:nof_variables)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
+	      	      
+			IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+			CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)					  
+			DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  
+								 end if
+					
+								END IF
+							ELSE 	
+							
+                                    
+                                    
+				DU1(1:nof_variables)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
+	      	      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables) 
+								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+								  
+				DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)
+					CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)			  
+								 end if
+							
+								  
+! 								   
+							END IF
+					    END IF       
+               
+               
+               
+               
+               
+               
+               
+               
+               
+        ANGLE1=IELEM(N,I)%FACEANGLEX(L)
+        ANGLE2=IELEM(N,I)%FACEANGLEY(L)
+        NX=ANGLE1
+        NY=ANGLE2
+        facex=l;
+        CALL DELTAFX
+        
+       
+        if (b_code.gt.0)then
+        if (b_code.ne.5)then
+        deltaf=0.0;VELNORMAL=0.0
+        end if
+        end if
+
+        
+
+        
+        
+         b1_imp(1:NOF_VARIABLES)=b1_imp(1:NOF_VARIABLES)+(0.5D0*(DELTAF(1:NOF_VARIABLES)-VELNORMAL*du1(1:nof_variables))*IELEM(N,I)%SURF(L))
+        
+
+        
+        
+        
+       
+        
+        
+                            
+        IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+!          b1T(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=b1T(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+IMPofft(i,L,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+        b1T(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=b1T(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+0.5D0*(DELTAF(inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)-VELNORMAL*duT1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))*IELEM(N,I)%SURF(L)
+        END IF
+        
+END DO
+        
+
+        
+END SUBROUTINE LUSGS_OUT  
+
+
+
+SUBROUTINE DELTAFX
+IMPLICIT NONE
+real::velnormal,uul,uur
+real,dimension(1:nof_variables)::CDX1,cdx2
+integer::inds
+
+
+                            if (dimensiona.eq.2)then
+                            inds=4
+                            !2 rotate the solution of the neighbour along the face normal and store in cright_rot
+                            CALL ROTATEF2D(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	
+                            !3 copy to cleft the solution of the neighbour plus the change du
+                            CLEFT(1:NOF_VARIABLES)=CRIGHT(1:NOF_VARIABLES)+DU1(1:NOF_VARIABLES)
+                            !4 rotate the cleft along the face normal and store in cleft_rot
+                            CALL ROTATEF2D(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)
+                            !5 Compute the spectral radius
+                            
+                            VELNORMAL=IMPOFF_MF(ICONSIDERED,FACEX)
+                            !copy to temporary variables
+                            RIGHTV(1:NOF_VARIABLES)=CRIGHT_ROT(1:NOF_VARIABLES)
+                            LEFTV(1:NOF_VARIABLES)=CLEFT_ROT(1:NOF_VARIABLES)
+                            
+                            !transform leftv and rightv from cons to prim variables
+                            call CONS2PRIM2d2(N)
+                            
+                            
+                            uul=leftv(2);uur=rightv(2)
+                            !evaluate the fluxes
+                           
+                            CDX2(1:NOF_VARIABLES)=FLUXEVAL2D(LEFTV)
+                            
+                            
+                            leftv=rightv
+                             CDX1(1:NOF_VARIABLES)=FLUXEVAL2D(LEFTV)
+                            
+                           
+                            
+                            DELTAf(1:NOF_VARIABLES)=CDX2(1:NOF_VARIABLES)-CDX1(1:NOF_VARIABLES)!-VELNORMAL*DU1(1:NOF_VARIABLES)
+                           
+                           
+                            
+                            
+                            CLEFT_ROT(1:NOF_VARIABLES)=DELTAF(1:NOF_VARIABLES)
+                            CALL ROTATEB2d(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2) 
+                            DELTAF(1:NOF_VARIABLES)=CLEFT(1:NOF_VARIABLES)-VELNORMAL*DU1(1:NOF_VARIABLES)
+                            
+                            IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+                            
+                            DELTAF(inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)=(((CTURBr(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+duT1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))*uul)-(CTURBR(1:TURBULENCEEQUATIONS+PASSIVESCALAR)*uur))-&
+                             VELNORMAL*DUT1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                            end if
+                            
+                            else
+                            
+                            
+                            
+                            inds=5
+                            !2 rotate the solution of the neighbour along the face normal and store in cright_rot
+                            CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	
+                            !3 copy to cleft the solution of the neighbour plus the change du
+                            CLEFT(1:NOF_VARIABLES)=CRIGHT(1:NOF_VARIABLES)+DU1(1:NOF_VARIABLES)
+                            !4 rotate the cleft along the face normal and store in cleft_rot
+                            CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)
+                            !5 Compute the spectral radius
+                            
+                            VELNORMAL=IMPOFF_MF(ICONSIDERED,FACEX)
+                            !copy to temporary variables
+                            RIGHTV(1:NOF_VARIABLES)=CRIGHT_ROT(1:NOF_VARIABLES)
+                            LEFTV(1:NOF_VARIABLES)=CLEFT_ROT(1:NOF_VARIABLES)
+                            
+                            !transform leftv and rightv from cons to prim variables
+                            call CONS2PRIM2(N)
+                            
+                            
+                            uul=leftv(2);uur=rightv(2)
+                            !evaluate the fluxes
+                           
+                            CDX2(1:NOF_VARIABLES)=FLUXEVAL3D(LEFTV)
+                            
+                            
+                            leftv=rightv
+                             CDX1(1:NOF_VARIABLES)=FLUXEVAL3D(LEFTV)
+                            
+                           
+                            
+                            DELTAf(1:NOF_VARIABLES)=CDX2(1:NOF_VARIABLES)-CDX1(1:NOF_VARIABLES)!-VELNORMAL*DU1(1:NOF_VARIABLES)
+                           
+                           
+                            
+                            
+                            CLEFT_ROT(1:NOF_VARIABLES)=DELTAF(1:NOF_VARIABLES)
+                            CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2) 
+                            DELTAF(1:NOF_VARIABLES)=CLEFT(1:NOF_VARIABLES)-VELNORMAL*DU1(1:NOF_VARIABLES)
+                            
+                            IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+                            
+                            DELTAF(inds+1:inds+TURBULENCEEQUATIONS+PASSIVESCALAR)=(((CTURBr(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+duT1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))*uul)-(CTURBR(1:TURBULENCEEQUATIONS+PASSIVESCALAR)*uur))-&
+                             VELNORMAL*DUT1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                            end if
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            end if
+                            
+                            
+                            
+
+END SUBROUTINE DELTAFX
 
 
 

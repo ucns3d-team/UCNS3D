@@ -2318,7 +2318,28 @@ END SUBROUTINE NEIGHBOURSS
 ! !---------------------------------------------------------------------------------------------!
 
 
+SUBROUTINE FLAG_NEIGH
+IMPLICIT NONE
+INTEGER::I,J,K,L,FLAG2,kmaxe
+KMAXE=XMPIELRANK(N)
+DO I=1,kmaxe  
+    IELEM(N,I)%HALO=0
+    FLAG2=0
+                     if (ielem(n,i)%interior.eq.1)then
+                        DO L=1,IELEM(N,I)%IFCA	
+                                IF (IELEM(N,I)%INEIGHB(L).NE.N)THEN	
+                                    FLAG2=1
+                                END IF
+                        END DO
+                     END IF
+    IF (FLAG2.EQ.1)THEN
+    IELEM(N,I)%HALO=1
+    
+    END IF
+END DO
 
+
+END SUBROUTINE FLAG_NEIGH
 
 
 
