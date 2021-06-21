@@ -3037,8 +3037,12 @@ END IF
 firsti=0.0d0
 DO JJ=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero; 
-      
-        iscoun=2
+   if (jj.eq.1)then
+    iscoun=1
+      else
+      iscoun=2
+      end if    
+    
       
 
       
@@ -3195,13 +3199,13 @@ END DO
 DO I=1,KMAXE 
   U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
   U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
+  !U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
   
   
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
   U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
   U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
+  !U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
   end if
 END DO
 !$OMP END DO
@@ -3674,9 +3678,11 @@ IF (IT.EQ.RESTART)THEN
 DO I=1,KMAXE 
   U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
   U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+  
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
   U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
   U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
+  
   end if
 END DO
 !$OMP END DO
@@ -3687,7 +3693,12 @@ END IF
 firsti=0.0d0
 DO JJ=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero; 
-    iscoun=2
+      if (jj.eq.1)then
+    iscoun=1
+      else
+      iscoun=2
+      end if
+      
 
       
 IF (FASTEST.EQ.1)THEN
@@ -3830,13 +3841,13 @@ END DO
 DO I=1,KMAXE 
   U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
   U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
+  !U_C(I)%VAL(1,1:nof_variables)=(2.0*U_C(I)%VAL(2,1:nof_variables))-U_C(I)%VAL(3,1:nof_variables)
   
   
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
   U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
   U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
+  !U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
   end if
 END DO
 !$OMP END DO
