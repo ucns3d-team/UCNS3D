@@ -26,11 +26,13 @@ SUBROUTINE SOURCES_COMPUTATION(N)
 	!$OMP END DO 
 END SUBROUTINE SOURCES_COMPUTATION
 
+
 SUBROUTINE SOURCES_COMPUTATION_ROT(N)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,KMAXE
 	REAL::OODENSITY
+	real,dimension(5)::source_t2
 	
 	
 	KMAXE=XMPIELRANK(N)
@@ -76,6 +78,7 @@ SUBROUTINE SOURCES_COMPUTATION_ROT(N)
 	END IF
 END SUBROUTINE SOURCES_COMPUTATION_ROT
 
+
 SUBROUTINE SOURCES_derivatives_COMPUTATION(N)
 !> @brief
 !> Sources derivative computation for implicit time stepping
@@ -108,7 +111,7 @@ INTEGER::I,K,J,L,IHGT,IHGJ,IEX, LOWRE
 REAL::SNORM,ONORM,DIVNORM,ax,ay,az,TCH_SHH,TCH_SAV,Verysmall,onesix,ProdTerm1,stild,rr
 REAL::gg,FW,destterm,fodt,srcfull,DBPR,DBDI,DBDE,DBY,DBX,ProdTermfinal
 REAL:: r_DES,f_DES, ddw,F_DES_SST,L_t_DES
-Real :: ux,uy,vx,vy,shear,sratio,prodmod,cvor,stildmod,ProdTerm2,sfac,sss,usss,ssss,S_bar,KRON,OODENSITY
+Real :: ux,uy,vx,vy,shear,sratio,prodmod,cvor,stildmod,ProdTerm2,sfac,sss,usss,ssss,S_bar,KRON
 real:: uz,vz,wx,wy,wz
 REAL:: uxx,uyy,uzz,vxx,vyy,vzz,wxx,wyy,wzz  !For SAS only
 REAL,DIMENSION(3,3)::VORTET,TVORT,SVORT,OVORT
@@ -190,8 +193,7 @@ TURBMV(2)=TURBMV(1)
  
  
  CASE(1) !!SPALART ALMARAS MODEL	
-        
-    if (ROT_CORR.EQ.1) then
+        if (ROT_CORR.EQ.1) then
         OMEGA = OMEGA + 2.0d0*min(0.0d0,SNORM-ONORM)
     end if
     
@@ -243,7 +245,8 @@ TURBMV(2)=TURBMV(1)
 			      destterm  = cw1 * fw * ((( TURBMV(1) )/(leftv(1)*(ddw)))**2)
 			      ! ! 	!  First order diffusion term
 			      fodt  =   cb2 * SQUARET/ SIGMA
-            if (D_CORR.EQ.0) then
+			      
+			      if (D_CORR.EQ.0) then
 				SOURCE_T(1) = ProdTermfinal + fodt - destterm
             else 
 				SOURCE_T(1) = ProdTermfinal + (fodt - destterm)*leftv(1)
