@@ -57,8 +57,8 @@ KMAXE=XMPIELRANK(N)
 		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
 		else
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		end if
-        IF (SRFG.EQ.0.and.MRF.eq.0) THEN
+                end if
+        IF (RFRAME.eq.0) THEN
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
         END IF
         IF (SRFG.EQ.1) THEN
@@ -69,7 +69,8 @@ KMAXE=XMPIELRANK(N)
             VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
         END IF
         IF(MRF.EQ.1)THEN
-            IF (ILOCAL_RECON3(I)%MRF.EQ.0) THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
             ELSE
                 POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
@@ -95,8 +96,8 @@ KMAXE=XMPIELRANK(N)
 		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
 		CALL SUTHERLAND(N,LEFTV,RIGHTV)
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		
-        IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
+                
+        IF (RFRAME.EQ.0) THEN
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
         END IF
         IF(SRFG.EQ.1)THEN
@@ -105,14 +106,15 @@ KMAXE=XMPIELRANK(N)
             SRF_SPEED=ZERO
             SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
             VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF
+        END IF          
         IF(MRF.EQ.1)THEN
-            IF (ILOCAL_RECON3(I)%MRF.EQ.0) THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
+                VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
             ELSE
                 POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
-                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
+                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
                 SRF_SPEED=ZERO
                 SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
                 VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
@@ -171,7 +173,7 @@ KMAXE=XMPIELRANK(N)
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
 		
 		CALL CONS2PRIM(N)
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
         IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
         END IF
@@ -183,11 +185,12 @@ KMAXE=XMPIELRANK(N)
             VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
         END IF
         IF(MRF.EQ.1)THEN
-            IF (ILOCAL_RECON3(I)%MRF.EQ.0) THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
             ELSE
                 POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
+                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
                 POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
                 SRF_SPEED=ZERO
                 SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
@@ -208,7 +211,7 @@ KMAXE=XMPIELRANK(N)
 		CALL CONS2PRIM(N)
 		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
 		CALL SUTHERLAND(N,LEFTV,RIGHTV)
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
         IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
         END IF
@@ -220,11 +223,12 @@ KMAXE=XMPIELRANK(N)
             VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
         END IF
         IF(MRF.EQ.1)THEN
-            IF (ILOCAL_RECON3(I)%MRF.EQ.0) THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
             ELSE
                 POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
+                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
                 POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
                 SRF_SPEED=ZERO
                 SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
@@ -426,7 +430,7 @@ KMAXE=XMPIELRANK(N)
 TO4=3.0D0/4.0D0
 OO4=1.0D0/4.0D0
 TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+OO3=1.0D0/3.0D0 
 
 
 IF (MOOD.EQ.1)THEN
@@ -1867,7 +1871,7 @@ KMAXE=XMPIELRANK(N)
 TO4=3.0D0/4.0D0
 OO4=1.0D0/4.0D0
 TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+OO3=1.0D0/3.0D0 
 
 
 IF (MOOD.EQ.1)THEN
@@ -3215,18 +3219,18 @@ inner_tol=reslimit
 
 KMAXE=XMPIELRANK(N)
 
-
+ 
 IF (IT.EQ.RESTART)THEN
 !$OMP DO
-DO I=1,KMAXE 
+DO I=1,KMAXE
   U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
   U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
   U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
   U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
   end if
-END DO
-!$OMP END DO
+  END DO
+  !$OMP END DO
 END IF
 
 
@@ -3335,9 +3339,9 @@ allresdt=allresdt/firsti
 
 
 if (n.eq.0)then
-				  OPEN(77,FILE='res1.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-				  WRITE(77,*)allresdt,jj,it
-				  CLOSE(77)
+                                  OPEN(77,FILE='res1.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+                                  WRITE(77,*)allresdt,jj,it
+                                  CLOSE(77)
 
 end if
 
@@ -3449,7 +3453,7 @@ KMAXE=XMPIELRANK(N)
 
 IF (IT.EQ.RESTART)THEN
 !$OMP DO
-DO I=1,KMAXE 
+DO I=1,KMAXE
   U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
   U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
@@ -3552,18 +3556,18 @@ allresdt=allresdt/firsti
 
     
   if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
- !$OMP DO SCHEDULE (STATIC)
+  !$OMP DO SCHEDULE (STATIC)
   DO I=1,KMAXE
  U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-    do k=1,turbulenceequations+passivescalar
+  do k=1,turbulenceequations+passivescalar
   U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
     end do
     end if
   end DO
 !$OMP END DO
   exit
-
+  
 else
  !$OMP DO SCHEDULE (STATIC)
  DO I=1,KMAXE
@@ -3653,8 +3657,8 @@ DO I=1,KMAXE
   U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
   U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
   end if
-END DO
-!$OMP END DO
+  END DO
+  !$OMP END DO
 END IF
 
 
@@ -3664,9 +3668,9 @@ END IF
 firsti=0.0d0
 DO JJ=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero; 
-      
-      
-      
+
+
+
       
       
       
@@ -3763,10 +3767,10 @@ allresdt=allresdt/firsti
 
 else
  !$OMP DO SCHEDULE (STATIC)
- DO I=1,KMAXE
+  DO I=1,KMAXE
  U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-    do k=1,turbulenceequations+passivescalar
+  do k=1,turbulenceequations+passivescalar
   U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
     end do
     end if
@@ -3867,8 +3871,8 @@ DO I=1,KMAXE
   U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
   U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
   end if
-END DO
-!$OMP END DO
+  END DO
+   !$OMP END DO
 END IF
 
 
@@ -4283,10 +4287,10 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
      DO 
 		    CALL CALCULATE_CFL(N)
 		    
-		    IF (RUNGEKUTTA.GE.5)CALL CALCULATE_CFLL(N)
-		    
-		    !$OMP BARRIER
-			!$OMP MASTER
+                    IF (RUNGEKUTTA.GE.5)CALL CALCULATE_CFLL(N)
+                    
+                    !$OMP BARRIER
+                        !$OMP MASTER
 			DUMMYOUT(1)=DT
 			CPUT2=MPI_WTIME()
 			TIMEC8=CPUT2-CPUT8
@@ -4348,20 +4352,20 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 					
 					
 					
-					
-				
-			
-			
-			if (rungekutta.GE.11)then
-			dt=timestep
+                                        
+                        
+                        
+                        
+                        if (rungekutta.GE.11)then
+                        dt=timestep
 			DT=MIN(DT,OUT_TIME-T)
 			else
 			DT=MIN(DT,OUT_TIME-T)
 			end if
-			
-			!$OMP END MASTER 
-			!$OMP BARRIER	
-			
+                        
+                        !$OMP END MASTER 
+                        !$OMP BARRIER   
+                        
 			SELECT CASE(RUNGEKUTTA)
 			
 			CASE(1)
@@ -4370,7 +4374,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			CASE(2)
 			CALL RUNGE_KUTTA2(N)
 			
-			CASE(3)
+                        CASE(3)
 			
 			IF (MOOD.EQ.1)THEN
 			CALL RUNGE_KUTTA3_MOOD(N)
@@ -4393,16 +4397,16 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			
 			
 			case(12)
-			call dual_TIME_EX(N)
-			
-			
-			END SELECT
+                        call dual_TIME_EX(N)
+                        
+                        
+                        END SELECT
 			
 			!$OMP BARRIER
 			!$OMP MASTER
-			
-			if (rungekutta.GE.11)then
- 			 T=T+(DT)
+                        
+                        if (rungekutta.GE.11)then
+                         T=T+(DT)
  			  Tz1=Tz1+(DT)
 
 			else
@@ -4459,10 +4463,10 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
  				
 
 ! 				end if
-			    end if
+                            end if
            
-			    if((initcond.eq.408).or.(initcond.eq.422))THEN
-			    if ( mod(it, 40) .eq. 0)then
+                            if((initcond.eq.408).or.(initcond.eq.422))THEN
+                            if ( mod(it, 40) .eq. 0)then
                     call TRAJECTORIES
 			    end if
 			    END IF
@@ -4477,9 +4481,9 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 				  CALL forces
 			end if
 			end if
-			
-			if ((rungekutta.ge.5).and.(rungekutta.lt.11))then
-			if ( mod(it, residualfreq) .eq. 0) then
+                        
+                        if ((rungekutta.ge.5).and.(rungekutta.lt.11))then
+                        if ( mod(it, residualfreq) .eq. 0) then
                                Call RESIDUAL_COMPUTE
 			end if
 			end if
@@ -4532,9 +4536,9 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC))THEN
 			 KILL=1
 			END IF
-			
-			if ((rungekutta.lt.5).or.(rungekutta.GE.11))then
-			IF (T.GE.OUT_TIME)THEN
+                        
+                        if ((rungekutta.lt.5).or.(rungekutta.GE.11))then
+                        IF (T.GE.OUT_TIME)THEN
 			KILL=1
 			END IF
 			END IF
@@ -4702,21 +4706,21 @@ kmaxe=XMPIELRANK(n)
 			    end if
 			
 			
-			
-			
-			
-			if (rungekutta.GE.11)then
-			dt=timestep
+                        
+                        
+                        
+                        if (rungekutta.GE.11)then
+                        dt=timestep
                       DT=MIN(DT,OUT_TIME-T)
 		      else
 		      DT=MIN(DT,OUT_TIME-T)
 		      end if
-		      
-		      !$OMP END MASTER 
-			!$OMP BARRIER
-		      
-			
-			SELECT CASE(RUNGEKUTTA)
+                        
+                      !$OMP END MASTER 
+                        !$OMP BARRIER
+                      
+                        
+                        SELECT CASE(RUNGEKUTTA)
 			
 			CASE(1)
 			CALL RUNGE_KUTTA1_2d(N)
@@ -4724,16 +4728,16 @@ kmaxe=XMPIELRANK(n)
 			CASE(2)
 			CALL RUNGE_KUTTA2_2d(N)
 			
-			CASE(3)
-			
-			IF (MOOD.EQ.1)THEN
-			CALL RUNGE_KUTTA3_2D_MOOD(N)
-			else
-			CALL RUNGE_KUTTA3_2D(N)
-			END IF
-			
-			
-			
+                        CASE(3)
+                        
+                        IF (MOOD.EQ.1)THEN
+                        CALL RUNGE_KUTTA3_2D_MOOD(N)
+                        else
+                        CALL RUNGE_KUTTA3_2D(N)
+                        END IF
+                        
+                        
+                        
 			CASE(4)
 			CALL RUNGE_KUTTA4_2D(N)
 			
@@ -4747,18 +4751,18 @@ kmaxe=XMPIELRANK(n)
 			
 			case(11)
 			call dual_TIME_2d(N)
+                        
+                        case(12)
+                        call dual_TIME_EX_2D(N)
+                        
+                        
+                        
+                        
+                        END SELECT
 			
-			case(12)
-			call dual_TIME_EX_2D(N)
-			
-			
-			
-			
-			END SELECT
-			
-			!$OMP MASTER
-			if (rungekutta.GE.11)then
- 			 T=T+(DT)
+                        !$OMP MASTER
+                        if (rungekutta.GE.11)then
+                         T=T+(DT)
  			  Tz1=Tz1+(DT)
 
 			else
@@ -4780,9 +4784,9 @@ kmaxe=XMPIELRANK(n)
 				  CALL forces
 			end if
 			end if
-			
-			if ((rungekutta.ge.5).and.(rungekutta.lt.11))then
-			if ( mod(it, residualfreq) .eq. 0) then
+                        
+                        if ((rungekutta.ge.5).and.(rungekutta.lt.11))then
+                        if ( mod(it, residualfreq) .eq. 0) then
                                Call RESIDUAL_COMPUTE
 			end if
 			end if
@@ -4844,9 +4848,9 @@ kmaxe=XMPIELRANK(n)
 			  end if
 
 			end if
-			end if
-			if ((rungekutta.lt.5).or.(rungekutta.GE.11))then
-			IF (T.GE.OUT_TIME)THEN
+                        end if
+                        if ((rungekutta.lt.5).or.(rungekutta.GE.11))then
+                        IF (T.GE.OUT_TIME)THEN
  			  KILL=1
 			  
 			  CALL VOLUME_SOLUTION_WRITE

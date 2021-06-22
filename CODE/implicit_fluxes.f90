@@ -492,7 +492,8 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
         IF (MRF.EQ.1) THEN
         !$OMP DO SCHEDULE(GUIDED)
             DO I=1,KMAXE
-                IF(ILOCAL_RECON3(I)%MRF.EQ.1)THEN
+				SRF=ILOCAL_RECON3(I)%MRF
+                IF(SRF.EQ.1)THEN
                     IMPDIAG(i,2,3)=-ILOCAL_RECON3(I)%MRF_VELOCITY(3)*ielem(n,I)%totvolume
                     IMPDIAG(i,2,4)=ILOCAL_RECON3(I)%MRF_VELOCITY(2)*ielem(n,I)%totvolume
                     IMPDIAG(i,3,2)=ILOCAL_RECON3(I)%MRF_VELOCITY(3)*ielem(n,I)%totvolume
@@ -500,6 +501,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
                     IMPDIAG(i,4,2)=-ILOCAL_RECON3(I)%MRF_VELOCITY(2)*ielem(n,I)%totvolume
                     IMPDIAG(i,4,3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1)*ielem(n,I)%totvolume
                 END IF
+				SRF=0
             END DO
         !$OMP END DO
         END IF

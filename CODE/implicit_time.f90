@@ -38,7 +38,7 @@ DURR=zero; DULR=zero
 
 
 call CALCULATE_JACOBIAN(N)
-IF (SRFg.EQ.0.AND.MRF.EQ.0) THEN
+IF (RFRAME.EQ.0) THEN
 !$OMP DO
 do i=1,kmaxe
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(i,1:nof_Variables,1:nof_Variables)
@@ -77,7 +77,8 @@ IF(MRF.EQ.1)THEN
  SRF=0
 !$OMP DO
 do i=1,kmaxe
-    IF(ILOCAL_RECON3(I)%MRF.EQ.0)THEN
+	SRF=ILOCAL_RECON3(I)%MRF
+	IF(SRF.EQ.0)THEN
         lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
         impdiag(i,1,1)=1.0d0/lscqm1(1,1)
         impdiag(i,2,2)=1.0d0/lscqm1(2,2)
