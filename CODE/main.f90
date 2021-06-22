@@ -1,7 +1,7 @@
 PROGRAM UCNS3D
 !> @author 
 !> Panagiotis Tsoutsanis & Antonis Foivos Antoniadis
-!> version: 1.0.2
+!> version: 1.2
 !DESCRIPTION
 !> @brief:
 !> Main Driver of UCNS3D code
@@ -32,6 +32,7 @@ USE implicit_time
 USE implicit_FLUXES
 USE MOODR
 USE OMP_LIB
+USE PARAMETERS
 
 
 

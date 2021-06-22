@@ -1470,11 +1470,11 @@ TURBMV(2)=TURBMV(1)
 			      
 			      
 			      
-			      IF (LAMZ.GT.0)THEN
- 			      SOURCE_T(1)=  min(ProdTermfinal + fodt - destterm,ZERO)
-			      ELSE
+! 			      IF (LAMZ.GT.0)THEN
+!  			      SOURCE_T(1)=  min(ProdTermfinal + fodt - destterm,ZERO)
+! 			      ELSE
 			      SOURCE_T(1)=  min(zero,- destterm +min(fodt,ZERO))
-			      END IF
+! 			      END IF
 			      
 			      
 			END IF

@@ -3021,7 +3021,11 @@ ELSE
     END SELECT
 END IF
 
-
+IF (RELAX.EQ.3)THEN
+ 
+ call RELAXATION_LUMFREE(N)
+ 
+ ELSE
   
 if (lowmemory.eq.0)then
    
@@ -3033,7 +3037,7 @@ if (lowmemory.eq.0)then
  
  end if
    
-  
+  END IF
 
  kill_nan=0
  
@@ -3063,7 +3067,7 @@ IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
   DO I=1,KMAXE
   do k=1,turbulenceequations+passivescalar
   if (U_CT(I)%VAL(1,k)+IMPDU(I,5+k).ge.zero)then
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.3*IMPDU(i,5+k)
+  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,5+k)
   end if
   end do
 END DO
@@ -3133,7 +3137,11 @@ END IF
 
 
 
-  
+ IF (RELAX.EQ.3)THEN
+ 
+ call RELAXATION_LUMFREE(N)
+ 
+ ELSE
  if (lowmemory.eq.0)then
    
  call RELAXATION2d(N)
@@ -3143,7 +3151,7 @@ END IF
  call RELAXATION_lm2d(N)
  
  end if
-  
+  END IF
 
  kill_nan=0
 !$OMP DO
@@ -3175,10 +3183,10 @@ IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
   do k=1,turbulenceequations+passivescalar
   if (ispal.eq.1)then
   if (U_CT(I)%VAL(1,k)+IMPDU(I,4+k).ge.zero)then
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.3*IMPDU(i,4+k)
+  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
    end if
    else
-   U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.3*IMPDU(i,4+k)
+   U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
    
    end if
   end do
@@ -3209,7 +3217,7 @@ SUBROUTINE DUAL_TIME(N)
 !> @brief
 !> DUAL TIME STEPPING
 IMPLICIT NONE
-INTEGER::I,K,KMAXE,nvar,jj
+INTEGER::I,K,KMAXE,nvar,jj,kill_nan
 INTEGER,INTENT(IN)::N
 reaL::verysmall
 real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
@@ -3240,8 +3248,12 @@ END IF
 firsti=0.0d0
 DO JJ=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero; 
-      
-        iscoun=2
+   if (jj.eq.1)then
+    iscoun=1
+      else
+      iscoun=2
+      end if    
+    
       
 
       
@@ -3295,6 +3307,17 @@ ELSE
     END SELECT
 END IF
 
+
+if (relax.eq.3)Then
+
+
+
+call RELAXATION_LUMFREE(N)
+
+
+else
+
+
 if (lowmemory.eq.0)then
    
  call RELAXATION(N)
@@ -3304,18 +3327,29 @@ if (lowmemory.eq.0)then
  call RELAXATION_lm(N)
  
  end if
+ END IF
 
+ 
+ kill_nan=0
+ 
 !$OMP BARRIER 
 !$OMP DO SCHEDULE(STATIC) REDUCTION(+:allresdt)
 DO I=1,KMAXE
       rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2)+((IMPDU(I,5))**2))
       allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)
+      
+      If ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))then
+      kill_nan=1
+      end if
 end do
 !$OMP END DO
 
 
 !$OMP BARRIER 
 
+     if (kill_nan.eq.1)then
+        stop
+    end if
 
 
 
@@ -3388,13 +3422,13 @@ END DO
 DO I=1,KMAXE 
   U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
   U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
+  !U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
   
   
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
   U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
   U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
+  !U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
   end if
 END DO
 !$OMP END DO
@@ -3867,9 +3901,11 @@ IF (IT.EQ.RESTART)THEN
 DO I=1,KMAXE 
   U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
   U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+  
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
   U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
   U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
+  
   end if
   END DO
    !$OMP END DO
@@ -3880,7 +3916,12 @@ END IF
 firsti=0.0d0
 DO JJ=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero; 
-  iscoun=2
+      if (jj.eq.1)then
+    iscoun=1
+      else
+      iscoun=2
+      end if
+      
 
       
 IF (FASTEST.EQ.1)THEN
@@ -3921,6 +3962,18 @@ ELSE
     END SELECT
 END IF
 
+
+if (relax.eq.3)Then
+
+
+
+call RELAXATION_LUMFREE(N)
+
+
+else
+
+
+
 if (lowmemory.eq.0)then
    
  call RELAXATION2d(N)
@@ -3930,6 +3983,8 @@ if (lowmemory.eq.0)then
  call RELAXATION_lm2d(N)
  
  end if
+ 
+end if
 
 !$OMP BARRIER 
 !$OMP DO SCHEDULE(STATIC) REDUCTION(+:allresdt)
@@ -4009,13 +4064,13 @@ END DO
 DO I=1,KMAXE 
   U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
   U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
+  !U_C(I)%VAL(1,1:nof_variables)=(2.0*U_C(I)%VAL(2,1:nof_variables))-U_C(I)%VAL(3,1:nof_variables)
   
   
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
   U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
   U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
+  !U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
   end if
 END DO
 !$OMP END DO
