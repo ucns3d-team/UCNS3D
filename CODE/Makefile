@@ -1,7 +1,7 @@
 ##intel
-#F90=mpiifort
+F90=mpiifort
 #GFORTRAN
-F90=mpif90
+#F90=mpif90
 LD=$(F90)
 # ifdef HPCTOOLKIT
 #    $(info HPCToolkit is loaded - building version for profiling)
