@@ -2611,7 +2611,7 @@ DO II=1,SWEEPS	!loop1
 du1=zero
 call EXHBOUNDHIGHER2(N)
 
-!$OMP MASTER
+!$OMP DO
 DO I=1,kmaxe   !FORWARD SWEEP !loop 1
 iconsidered=i
                     b1_imp=zero
@@ -2654,11 +2654,11 @@ B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof
                     
                   
 END DO
-!$OMP END MASTER
+!$OMP END DO 
 
  call EXHBOUNDHIGHERlu(N)
 
-!$OMP MASTER
+!$OMP DO
 DO I=kmaxe,1,-1     !FORWARD SWEEP !loop 1
 iconsidered=i
                      b1_imp=zero
@@ -2686,7 +2686,7 @@ iconsidered=i
                     
                  
 END DO
-!$OMP END MASTER
+!$OMP END DO
 
 
 

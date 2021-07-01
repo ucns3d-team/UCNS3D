@@ -4069,14 +4069,20 @@ SUBROUTINE TIME_MARCHING(N)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 real,dimension(1:5)::DUMMYOUT,DUMMYIN
-INTEGER::I,KMAXE
+INTEGER::I,KMAXE,TTIME
 REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK
       kill=0
       T=RES_TIME
       iscoun=1
+      
+      EVERY_TIME=RES_TIME+1.0D0
+      
 
 !$OMP BARRIER
 !$OMP MASTER 
+    IF (INITCOND.eq.95)THEN                    
+    CALL CHECKPOINTv3(N)
+    end if
 	CPUT1=CPUX1(1)
 	CPUT4=CPUX1(1)
 	CPUT5=CPUX1(1)
@@ -4190,9 +4196,17 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			
 			if (rungekutta.GE.11)then
 			dt=timestep
+			IF (INITCOND.eq.95)THEN 
+			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+			ELSE
 			DT=MIN(DT,OUT_TIME-T)
+			END IF
 			else
+			IF (INITCOND.eq.95)THEN 
+			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+			ELSE
 			DT=MIN(DT,OUT_TIME-T)
+			END IF
 			end if
 			
 			!$OMP END MASTER 
@@ -4331,6 +4345,22 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			    end if
 			CPUT1=MPI_WTIME()
 			END IF
+			
+			IF (INITCOND.eq.95)THEN           
+			if (mod(T, 1.0D0) .eq. 0) then
+                CALL VOLUME_SOLUTION_WRITE
+			     if (outsurf.eq.1)then
+			    call surface_SOLUTION_WRITE
+			    end if
+			    IF (INITCOND.eq.95)THEN                    
+			    CALL CHECKPOINTv4(N)
+			    END IF
+			EVERY_TIME=EVERY_TIME+1.0D0
+            
+           
+           END IF
+           END IF
+			
 			
 			
 			
