@@ -74,7 +74,7 @@ TYPE(FACE_Number),ALLOCATABLE,DIMENSION(:)::IFAC
 
 Integer::ing2,jj,dimen,imaxe,imaxn,imaxb,dum,index10,zoneid,in1,dum1,bctypdum,iosx,ii,vrt1,vrt2,vrt3,vrt4,vct1,vct2,vct3,vct4,countb,eltype,ing,ibtr,nfin,icte
 Integer::lexist,checkbrac,dum2,dum3,dum4,ierr,il,il1,il2,ispace1,ispace2
-Integer :: countline,counto,countword,lengt,intsize,imaxnglobal,imaxeglobal,imin,imax,imaxfglobal,index1,ina,in2,ichen,iix,iiy,icountfc,corn,icorn
+Integer :: countline,counto,countword,length,intsize,imaxnglobal,imaxeglobal,imin,imax,imaxfglobal,index1,ina,in2,ichen,iix,iiy,icountfc,corn,icorn
 integer,dimension(4)::nod,nodx,cans,cand,cane,cang,canh,iiz,canf
 integer,allocatable,dimension(:),intent(inout):: interray
 integer,allocatable,dimension(:)::spaces,integerarray,ishape
@@ -1277,7 +1277,7 @@ deallocate(iele)
 ! 
 ! 
 ! read(82,"(A1,I2)",advance='NO')braco,dum
-! ! if comment preceed index = 0
+! ! if comment precede index = 0
 ! if (dum.eq.0) then
 ! read(82,"(1x)",advance='YES')
 ! endif

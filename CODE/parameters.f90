@@ -159,7 +159,7 @@ SUBROUTINE READ_UCNS3D
 			CB2=0.622! 0.622   			|| Cb2
 			SIGMA=0.666666667! 0.666666667      		|| sigma
 			KAPPA=0.41  ! 0.41     			|| kappa
-			CW1=3.23886781677! 3.23886781677      		|| CW1 (0 for (CB1/kappa**2)+1/sigma(1+CB2) or predifined)
+			CW1=3.23886781677! 3.23886781677      		|| CW1 (0 for (CB1/kappa**2)+1/sigma(1+CB2) or predefined)
 			CW2=0.3! 0.3      			|| CW2
 			CW3=2.0 ! 2.0      			|| CW3
 			CV1=7.1! 7.1      			|| CV1

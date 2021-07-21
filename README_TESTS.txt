@@ -5,7 +5,7 @@ https://doi.org/10.5281/zenodo.3375432
  
 These include 2D, and 3D test problems using Linear Advection, Euler, Navier-Stokes and RANS equations.
 
-All the directores include the grid files (MESHES), the pointwise files for generating the meshes, 
+All the directories include the grid files (MESHES), the pointwise files for generating the meshes, 
 the parameter files UCNS3D.DAT (DATS), and sample run directories with some representative outputs.
 
 

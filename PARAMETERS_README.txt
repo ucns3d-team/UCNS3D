@@ -78,7 +78,7 @@ PRANDTL= PRANDTL CONSTANT
 
 Reynolds= REYNOLDS NUMBER
         POSSIBLE VALUES= The value is defined as (Re=(RRES*UFREESTREAM*CHARLENGTH)/(VISC)),
-        and it is used to determing the freestream value of viscosity
+        and it is used to determining the freestream value of viscosity
 
  CharLength= CHARACTERISTIC LENGTH
         POSSIBLE VALUES= --> ANY VALUE
@@ -178,7 +178,7 @@ reSLIMIT=       NORMALISED RESIDUAL CONVERGENCE CRITERION FOR STEADY STATE PROBL
                             A WIDE RANGE OF PROBLEMS
                            FOR OPTION (5, 10) A VALUE CLOSE TO 0.00001 MIGHT BE REQUIRED
 
-iboundary= PRESENCE OF PERIDIC BOUNDARY IN THE DOMAIN
+iboundary= PRESENCE OF PERIODIC BOUNDARY IN THE DOMAIN
         POSSIBLE VALUES= 1 --> PERIODIC
                          0 --> NON PERIODIC 
 
