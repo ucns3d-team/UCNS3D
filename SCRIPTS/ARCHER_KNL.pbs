@@ -8,7 +8,7 @@
 # Make sure any symbolic links are resolved to absolute path
 #export PBS_O_WORKDIR=$(readlink -f $PBS_O_WORKDIR)               
 # export PBS_O_WORKDIR=/.....././././.  
-# Change to the direcotry that the job was submitted from
+# Change to the directory that the job was submitted from
 cd $PBS_O_WORKDIR
 
 # Set the number of threads to 1

@@ -1277,7 +1277,7 @@ deallocate(iele)
 ! 
 ! 
 ! read(82,"(A1,I2)",advance='NO')braco,dum
-! ! if comment preceed index = 0
+! ! if comment precede index = 0
 ! if (dum.eq.0) then
 ! read(82,"(1x)",advance='YES')
 ! endif
