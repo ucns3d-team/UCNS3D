@@ -16,16 +16,14 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
 	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar
-	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,TEMPXX
-	REAL,DIMENSION(5,5)::IDENTITY1
-	real,dimension(5,5)::convj,diffj
+	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB
+	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
+	real,dimension(NOF_variables,NOF_variables)::convj,diffj
 	KMAXE=XMPIELRANK(N)
 	IDENTITY1(:,:)=ZERO
-	IDENTITY1(1,1)=1.0D0
-	IDENTITY1(2,2)=1.0D0
-	IDENTITY1(3,3)=1.0D0
-	IDENTITY1(4,4)=1.0D0
-	IDENTITY1(5,5)=1.0D0
+	DO L=1,NOF_VARIABLES
+	IDENTITY1(L,L)=1.0D0
+	END DO
 		
 
 	!$OMP DO SCHEDULE (STATIC)
@@ -45,8 +43,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
             SRF=ILOCAL_RECON3(I)%MRF
         END IF 
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
-				  GODFLUX2=ZERO!                                                                   WRITE(500+N,'(3ES14.6)'),SRF_SPEED(2:4)
-
+				  GODFLUX2=ZERO
  				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
  				  ANGLE2=IELEM(N,I)%FACEANGLEY(L)
  				  NX=(COS(ANGLE1)*SIN(ANGLE2))
@@ -185,8 +182,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
 						  
-                                                !                                                                   WRITE(500+N,'(3ES14.6)'),SRF_SPEED(2:4)
-
+                                                
 						  
 						  
 						  END IF
@@ -206,8 +202,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 		IMPOFF(i,:,:,:)=0.0
 		if (turbulence.eq.1)then
 		impdiagt(i,:)=0.0
-		IMPOFFt(i,:,:)=0.0!                                                                   WRITE(500+N,'(3ES14.6)'),SRF_SPEED(2:4)
-
+		IMPOFFt(i,:,:)=0.0
 		end if
 		IF (MRF.EQ.1)THEN
             SRF=ILOCAL_RECON3(I)%MRF
@@ -236,11 +231,9 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 				      
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
+								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
 								  CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
-                                    IF(PER_ROT.EQ.1)THEN
-                                        CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-                                    END IF
+								  
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									
 									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
@@ -294,7 +287,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 					    
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if  ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
 								
 								IF (FASTEST.EQ.1)THEN
 							      CRIGHT(1:nof_Variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_Variables)
@@ -303,9 +296,8 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 							      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
 							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)
 							    END IF
-								IF(PER_ROT.EQ.1)THEN
-                                    CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-								END IF 
+								
+								 
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
@@ -511,23 +503,18 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	IF (RUNGEKUTTA.EQ.10)THEN
 		!$OMP DO SCHEDULE(STATIC)	
 		do i=1,kmaxe
-		    IMPDIAG(i,1,1)=IMPDIAG(i,1,1)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    IMPDIAG(i,2,2)=IMPDIAG(i,2,2)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    IMPDIAG(i,3,3)=IMPDIAG(i,3,3)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    IMPDIAG(i,4,4)=IMPDIAG(i,4,4)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    IMPDIAG(i,5,5)=IMPDIAG(i,5,5)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
+            DO L=1,NOF_VARIABLES
+		    IMPDIAG(i,L,L)=IMPDIAG(i,L,L)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
+		    END DO
 		end do
 		!$OMP END DO
 	  ELSE
 	!$OMP DO SCHEDULE(STATIC)
 ! 	
 	  do i=1,kmaxe
-
-	    IMPDIAG(I,1,1)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,1,1))
-	      IMPDIAG(I,2,2)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,2,2))
-	      IMPDIAG(I,3,3)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,3,3))
-	      IMPDIAG(I,4,4)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,4,4))
-	    IMPDIAG(I,5,5)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,5,5))
+        DO L=1,NOF_VARIABLES
+	    IMPDIAG(I,L,L)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,L,L))
+	    END DO
 	end do
 	!$OMP END DO
       END IF

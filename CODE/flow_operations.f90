@@ -176,13 +176,17 @@ TOLE=ZERO
 		
       Q2L=(UUL*uul)+(vvl*vvl)+(wwl*wwl)
       Q2R=(uur*uur)+(vvr*vvr)+(wwr*wwr)
+      
+      
+       if (multispecies.eq.1)then
+		 SSL=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
+		  Ssr=SQRT((rightV(5)+MP_PINFr)*GAMMAr/rightV(1))
+		else
 
-!	SSL=((GAMMA*PPL)/(RHOL)); SSR=((GAMMA*PPR)/(RHOR))
-                                  
-!	MLM=((ABS(PPR-PPL))/(0.5*RRES*((GAMMA*PRES/RRES))))
-     
       SSL=((GAMMA*PPL)/(RHOL))
       SSR=((GAMMA*PPR)/(RHOR))
+      end if
+      
       
 
       CMA=1.0D0
@@ -780,83 +784,6 @@ end if
 END SUBROUTINE PRIM2CONS2d2
 
 
-FUNCTION VECT_FUNCTION(POX,POY)
-!> @brief
-!> This makes a multipliciation between two vectors
-IMPLICIT NONE
-REAL,DIMENSION(3)::VECT_FUNCTION
-REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::POX,POY
-
-VECT_FUNCTION(1)=(POY(2)*POX(3))-(POY(3)*POX(2))
-VECT_FUNCTION(2)=(POY(3)*POX(1))-(POY(1)*POX(3))
-VECT_FUNCTION(3)=(POY(1)*POX(2))-(POY(2)*POX(1))
-
-
-
-
-
-END FUNCTION VECT_FUNCTION
-
-subroutine MRFSWITCH(point1,point2, Radius,PO,PGP,MRF_ROT,ICONSIDERED,L,NGP)
-
-  !> @brief
-!> This subroutine  check if the element is on the rotational/stationary reference frame and update the MRF_ORIGIN and SRF_VELOCITY SRF accordingly
-
-implicit none
-
-
-!inputs:
-INTEGER, INTENT(IN) :: ICONSIDERED,L,NGP
-real, INTENT(IN) :: MRF_ROT
-real, allocatable,dimension(:),INTENT(IN) :: point1, point2,PO,PGP !MRFPOINTS, ELEMENT CENTER CORD, GAUSSIAN POINTS CORD 
-real, INTENT(IN) :: Radius
-! TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON3
-!output:
-!ILOCAL_RECON3%MRF_ORIGIN; ILOCAL_RECON3%MRF_VELOCITY; ILOCAL_RECON3%ROTVEL, ILOCAL_RECON3%MRF
-real, dimension(3) ::MRF_ORIGIN, MRF_VELOCITY,ROTVEL 
- integer:: ROTFRAME_ON
-
-!internal variables
-real, dimension(3) :: P1P2, PC, POPC !element coordinates, roation_axys, Cylinder_center_coordinates, vector_element_center, rotational velocity at gaussian points, Gausian points coordinates
-real :: d1, d2, r1, theta, dPOPC
-
-
-!body
-SRF=0
-PC(1:3)= (point1(1:3)+point2(1:3))/2  !center of cilinder
-P1P2(1:3)=point2(1:3)-point1(1:3)          !axysvector
-POPC(1:3)=PO(1:3)-PC(1:3)              ! vector elelement-centre
-dPOPC=((PO(1)-PC(1))**2+(PO(2)-PC(2))**2+(PO(3)-PC(3))**2)**0.5 !distance between element and center
-
-theta= ACOS((dot_product(POPC,P1P2))/(sqrt(POPC(1)**2+POPC(2)**2+POPC(3)**2)*sqrt(P1P2(1)**2+P1P2(2)**2+P1P2(3)**2))) !angle between element vector and axys
-d2=  dPOPC*abs(cos(theta)) 
-r1=dPOPC*abs(sin(theta))
-d1=((point1(1)-PC(1))**2+(point1(2)-PC(2))**2+(point1(3)-PC(3))**2)**0.5
-
-if ((d1.ge.d2).and.(r1.le.Radius)) then
-   ROTFRAME_ON=1
-    MRF_ORIGIN(1:3)=PC(1:3)
-    POX(1:3)=PGP(1:3)-MRF_ORIGIN(1:3)
-    MRF_VELOCITY(1:3)=MRF_ROT*(P1P2)/(P1P2(1)**2+P1P2(2)**2+P1P2(3)**2)**0.5
-!     SRF_VELOCITY(1)=0.0
-!     SRF_VELOCITY(2)=MRF_ROT
-!     SRF_VELOCITY(3)=0.0
-    POY(1:3)=MRF_VELOCITY(1:3)
-    ROTVEL(1:3)=VECT_FUNCTION(POX,POY)
-
-else
-    MRF_ORIGIN(1:3)=0.0
-    ROTFRAME_ON=0
-    MRF_VELOCITY(1:3)=0.0
-    ROTVEL(1:3)=0.0
-end if
-
-ILOCAL_RECON3(ICONSIDERED)%MRF_ORIGIN=MRF_ORIGIN
-ILOCAL_RECON3(ICONSIDERED)%MRF_VELOCITY=MRF_VELOCITY
-ILOCAL_RECON3(ICONSIDERED)%ROTVEL(L,NGP,1:3)=ROTVEL
-ILOCAL_RECON3(ICONSIDERED)%MRF=ROTFRAME_ON
-
-end subroutine MRFSWITCH
 
 FUNCTION INFLOW(INITCOND,POX,POY,POZ)
 !> @brief
@@ -1013,6 +940,8 @@ IMPLICIT NONE
 REAL,DIMENSION(1:nof_Variables)::FLUXEVAL3D
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::LEFTV
 REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
+
+
 R=LEFTV(1)
 U=LEFTV(2)
 V=LEFTV(3)
@@ -1031,6 +960,12 @@ FLUXEVAL3D(2)=(R*(U**2))+P
 FLUXEVAL3D(3)=R*U*V
 FLUXEVAL3D(4)=R*U*W
 FLUXEVAL3D(5)=U*(E+P)
+
+! IF (MULTISPECIES.EQ.1)THEN
+! FLUXEVAL3D(6:8)=LEFTV(6:8)*U
+! END IF
+
+
 
 END FUNCTION
 
@@ -1340,7 +1275,7 @@ SSZ=(VISCL(1)*((NX*TAUZX)+(NY*TAUZY)+(NZ*TAUZZ)))
 
 
 
-IF(SRF.EQ.0)THEN
+IF(SRFG.EQ.0)THEN
 SHEAR_TEMP=-SSX/(0.5*rres*ufreestream*ufreestream)
 ELSE
 SHEAR_TEMP=-SSX/(0.5*rres*V_REF*V_REF)
@@ -1389,7 +1324,7 @@ SSY=(VISCL(1)*((NX*TAUYX)+(NY*TAUYY)+(NZ*TAUZY)))
 SSZ=(VISCL(1)*((NX*TAUZX)+(NY*TAUZY)+(NZ*TAUZZ)))
 
 
-IF(SRF.EQ.0)THEN
+IF(SRFG.EQ.0)THEN
 SHEAR_TEMP=-SSY/(0.5*rres*ufreestream*ufreestream)
 ELSE
 SHEAR_TEMP=-SSY/(0.5*rres*V_REF*V_REF)
@@ -1437,7 +1372,7 @@ SSY=(VISCL(1)*((NX*TAUYX)+(NY*TAUYY)+(NZ*TAUZY)))
 SSZ=(VISCL(1)*((NX*TAUZX)+(NY*TAUZY)+(NZ*TAUZZ)))
 
 
-IF(SRF.EQ.0)THEN
+IF(SRFG.EQ.0)THEN
 SHEAR_TEMP=-SSZ/(0.5*rres*ufreestream*ufreestream)
 ELSE
 SHEAR_TEMP=-SSZ/(0.5*rres*V_REF*V_REF)
@@ -3015,6 +2950,8 @@ ES=(RVEIGL(5)*OORS)
 PHI=OO2*(A2)*((US*US)+(VS*VS)+(WS*WS))
  A1=GAMMA*ES-PHI
 
+ 
+ 
 VVS=NX*US+NY*VS+NZ*WS
 
 IF(SRF.EQ.1)THEN
@@ -3860,6 +3797,94 @@ end if
 
 
 END SUBROUTINE
+
+
+
+
+subroutine MRFSWITCH(N)
+
+  !> @brief
+!> This subroutine  check if the element is on the rotational/stationary reference frame and update the MRF_ORIGIN and SRF_VELOCITY SRF accordingly
+
+implicit none
+INTEGER, INTENT(IN)::N
+! TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON3
+!output:
+!ILOCAL_RECON3%MRF_ORIGIN; ILOCAL_RECON3%MRF_VELOCITY; ILOCAL_RECON3%ROTVEL, ILOCAL_RECON3%MRF
+real, dimension(3) ::MRF_ORIGIN, MRF_VELOCITY,ROTVEL 
+integer:: ROTFRAME_ON
+
+!internal variables
+real, dimension(3) :: P1P2, PC, POPC,PO,PGP !element coordinates, roation_axys, Cylinder_center_coordinates, vector_element_center, rotational velocity at gaussian points, Gausian points coordinates
+real :: d1, d2, r1, theta, dPOPC
+
+PO=(POX(1:3))
+PGP=(POY(1:3))
+!body
+
+PC(1:3)= (point1_GL(1:3)+point2_GL(1:3))/2  !center of cYlinder
+P1P2(1:3)=point2_GL(1:3)-point1_GL(1:3)          !axysvector
+POPC(1:3)=PO(1:3)-PC(1:3)              ! vector elelement-centre
+dPOPC=((PO(1)-PC(1))**2+(PO(2)-PC(2))**2+(PO(3)-PC(3))**2)**0.5 !distance between element and center
+
+theta= ACOS((dot_product(POPC,P1P2))/(sqrt(POPC(1)**2+POPC(2)**2+POPC(3)**2)*sqrt(P1P2(1)**2+P1P2(2)**2+P1P2(3)**2))) !angle between element vector and axys
+d2=  dPOPC*abs(cos(theta)) 
+r1=dPOPC*abs(sin(theta))
+d1=((point1_GL(1)-PC(1))**2+(point1_GL(2)-PC(2))**2+(point1_GL(3)-PC(3))**2)**0.5
+
+if ((d1.ge.d2).and.(r1.le.Radius_GL)) then
+   ROTFRAME_ON=1
+    MRF_ORIGIN(1:3)=PC(1:3)
+    POX(1:3)=PGP(1:3)-MRF_ORIGIN(1:3)
+    MRF_VELOCITY(1:3)=MRF_ROT_GL*(P1P2)/(P1P2(1)**2+P1P2(2)**2+P1P2(3)**2)**0.5
+!     SRF_VELOCITY(1)=0.0
+!     SRF_VELOCITY(2)=MRF_ROT_GL
+!     SRF_VELOCITY(3)=0.0
+    POY(1:3)=MRF_VELOCITY(1:3)
+    ROTVEL(1:3)=VECT_FUNCTION(POX,POY)
+
+else
+    MRF_ORIGIN(1:3)=0.0
+    ROTFRAME_ON=0
+    MRF_VELOCITY(1:3)=0.0
+    ROTVEL(1:3)=0.0
+end if
+
+ILOCAL_RECON3(ICONSIDERED)%MRF_ORIGIN=MRF_ORIGIN
+ILOCAL_RECON3(ICONSIDERED)%MRF_VELOCITY=MRF_VELOCITY
+ILOCAL_RECON3(ICONSIDERED)%ROTVEL(FACEX,POINTX,1:3)=ROTVEL
+ILOCAL_RECON3(ICONSIDERED)%MRF=ROTFRAME_ON
+
+end subroutine MRFSWITCH
+
+
+
+
+FUNCTION VECT_FUNCTION(POX,POY)
+!> @brief
+!> This makes a multipliciation between two vectors
+IMPLICIT NONE
+REAL,DIMENSION(3)::VECT_FUNCTION
+REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::POX,POY
+
+VECT_FUNCTION(1)=(POY(2)*POX(3))-(POY(3)*POX(2))
+VECT_FUNCTION(2)=(POY(3)*POX(1))-(POY(1)*POX(3))
+VECT_FUNCTION(3)=(POY(1)*POX(2))-(POY(2)*POX(1))
+
+
+
+
+
+END FUNCTION VECT_FUNCTION
+
+
+
+
+
+
+
+
+
 
 
 

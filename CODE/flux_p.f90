@@ -250,7 +250,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
 	INTEGER::I,L,NGP,KMAXE,IQP,ii,IKAS,igoflux, icaseb
-	REAL::sum_detect,NORMS,TEMPXX
+	REAL::sum_detect,NORMS
 	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP
 	KMAXE=XMPIELRANK(N)
 	
@@ -397,14 +397,13 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				     
 				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  if (icoupleturb.eq.0)then	!first order upwind flux
-						
-						
-						NORMS=0.5*(CLEFT_ROT(2)+CRIGHT_ROT(2))
-                        if (SRF.eq.1) then
-                            NORMs=NORMS-SRF_SPEEDROT(2)
-                        end if
 					  
-						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=0.5*((norms*(cturbl(:)+cturbr(:)))+(abs(norms)*(cturbl(:)-(cturbr(:)))))
+					  NORMS=(0.5*(CLEFT_ROT(2)+CRIGHT_ROT(2)))
+					  
+					IF (SRF.EQ.1)THEN
+					  NORMS=NORMS-SRF_SPEEDROT(2)
+					END IF
+					  rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=0.5*((norms*(cturbl(:)+cturbr(:)))+(abs(norms)*(cturbl(:)-(cturbr(:)))))
 					  
 					  
 ! 					  NORMs=(nx*(U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1)))&
@@ -466,7 +465,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
                         igoflux=0
 		     IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
                                                     IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                                        if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
+                                                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
                                                                 icaseb=1        !periodic mine
                                                         else
                                                                 icaseb=3        !physical
@@ -479,7 +478,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
                                                     end if
                                 else
                                                     IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
                                                                 icaseb=4
                                                                 end if
                                                     else
@@ -539,11 +538,9 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				      
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
+								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
 								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
-								  IF(PER_ROT.EQ.1)THEN
-                                    CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-								  END IF
+								  
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
 									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
@@ -602,11 +599,8 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					    
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
 									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
-									  IF(PER_ROT.EQ.1)THEN
-                                        CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-									  END IF
 									   
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
@@ -752,12 +746,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					  if (icoupleturb.eq.0)then	!first order upwind flux
 					    
 					   
-						
-						
-						NORMS=0.5*(CLEFT_ROT(2)+CRIGHT_ROT(2))
-                        if (SRF.eq.1) then
-                            NORMs=NORMS-SRF_SPEEDROT(2)
-                        end if
+					  NORMS=(0.5*(CLEFT_ROT(2)+CRIGHT_ROT(2)))
+					   IF (SRF.EQ.1)THEN
+                            NORMS=NORMS-SRF_SPEEDROT(2)
+					END IF
 					  rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=0.5*((norms*(cturbl(:)+cturbr(:)))+(abs(norms)*(cturbl(:)-(cturbr(:)))))
 					  
 					  
@@ -769,7 +761,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					  
 					  
 					  END IF
-
 					  
 					  if ((b_code.eq.3).or.(b_code.eq.4))then
 					  rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=zero
@@ -1310,7 +1301,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,NVAR,KC,IEX,ITTT,IKAS,igoflux, icaseb,KK
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,NVAR,KC,IEX,ITTT,IKAS,igoflux, icaseb
 	REAL::sum_detect,NORMS
 	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP
 	REAL,DIMENSION(4,3)::LCVGRAD,RCVGRAD
@@ -1318,7 +1309,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 	real,dimension(5)::fxv,fyv,fzv,tem_pn,rtem_pn
 	real,dimension(3,3)::taul,taur,TAU
 	REAL,DIMENSION(3)::Q,NNN,nall
-	REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,RHO12,U12,V12,W12 ,damp,vdamp,TEMPXX 
+	REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,RHO12,U12,V12,W12 ,damp,vdamp 
 	KMAXE=XMPIELRANK(N)
 	
 	call  QUADRATUREQUAD3D(N,IGQRULES)
@@ -1365,10 +1356,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
 				      RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
 				      RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP);
-!                     IF (SRF.EQ.1)THEN
-!                             SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
-!                             CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)					
-! 					END IF
+			
 					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  if (icoupleturb.eq.1)then
 					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp) !left additional equations flow state
@@ -1669,7 +1657,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
                                      igoflux=0
 				  IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
                                                     IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                                        if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN MY CPU
+                                                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
                                                                 icaseb=1        !periodic mine
                                                         else
                                                                 icaseb=3        !physical
@@ -1682,7 +1670,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
                                                     end if
                                 else
                                                     IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
                                                                 icaseb=4
                                                                 end if
                                                     else
@@ -1743,7 +1731,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				      
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								  if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN MY CPU
+								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
 								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
 								  RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,L,NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,L,NGP);
 								  RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,L,NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,L,NGP);
@@ -1761,13 +1749,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 									
 									
 								    END IF
-                                    IF(PER_ROT.EQ.1)THEN
-                                        CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-                                        DO KK=1,4
-                                            RCVGRAD(KK,1:3)=ROTATE_PER_1(RCVGRAD(KK,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-                                        END DO
-                                        RCVGRAD_T(1,1:3)=ROTATE_PER_1(RCVGRAD_T(1,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-                                    END IF
+								  
+								  
+								  
 								  
 								  ELSE
 								  !NOT PERIODIC ONES IN MY CPU
@@ -1830,7 +1814,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					    
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
 									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
 									  
 									  ITTT=0
@@ -1868,13 +1852,11 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 									  RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT) 
 										END DO  
 									  END DO
-									  IF(PER_ROT.EQ.1)THEN
-									  CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-                                        DO KK=1,4
-                                            RCVGRAD(KK,1:3)=ROTATE_PER_1(RCVGRAD(KK,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-                                        END DO
-                                        RCVGRAD_T(1,1:3)=ROTATE_PER_1(RCVGRAD_T(1,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)  
-									  END IF
+									  
+									  
+									  
+									  
+
 								END IF
 							ELSE 			
 							

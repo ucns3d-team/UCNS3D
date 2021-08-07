@@ -941,9 +941,6 @@ call mpi_barrier(mpi_comm_world,IERROR)
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=8+PASSIVESCALAR
- IF(MRF.EQ.1)THEN
-     NVAR1=NVAR1+1
- END IF
   if (passivescalar.gt.0)then
  if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,W,energy,Pressure,STEN1,STEN2,passivescalar'//NULCHAR, &
@@ -964,24 +961,13 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     VIsDouble)
      
      else
-     IF(MRF.EQ.1)THEN
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                    'Density,U,V,W,energy,MRF,Pressure,STEN1,STEN2'//NULCHAR, &
-                    out1//NULCHAR, &
-                    '.'//NULCHAR, &
-                    FileType, &
-                    Debug, &
-                    VIsDouble)
-    ELSE
-        if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,W,energy,Pressure,STEN1,STEN2'//NULCHAR, &
                     out1//NULCHAR, &
                     '.'//NULCHAR, &
                     FileType, &
                     Debug, &
                     VIsDouble)
-     END IF
-        
      
      
      end if
@@ -989,9 +975,6 @@ call mpi_barrier(mpi_comm_world,IERROR)
  END IF
  IF (ITESTCASE.EQ.4)THEN
  NVAR1=9+PASSIVESCALAR+turbulenceequations
- IF(MRF.EQ.1)THEN
-     NVAR1=NVAR1+1
- END IF
 	    if (passivescalar.gt.0)then
 	      if (turbulenceequations.eq.2)then
 	      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
@@ -1032,23 +1015,13 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     VIsDouble)
               end if
               if (turbulenceequations.eq.1)then
-                IF(MRF.EQ.1)THEN
-                    if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                            'Density,U,V,W,energy,MRF,Pressure,STEN1,STEN2,vortex,mu'//NULCHAR, &
-                            out1//NULCHAR, &
-                            '.'//NULCHAR, &
-                            FileType, &
-                            Debug, &
-                            VIsDouble)
-                ELSE
-                    if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                        'Density,U,V,W,energy,Pressure,STEN1,STEN2,vortex,mu'//NULCHAR, &
-                        out1//NULCHAR, &
-                        '.'//NULCHAR, &
-                        FileType, &
-                        Debug, &
-                        VIsDouble)
-                END IF
+              if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                    'Density,U,V,W,energy,Pressure,STEN1,STEN2,vortex,mu'//NULCHAR, &
+                    out1//NULCHAR, &
+                    '.'//NULCHAR, &
+                    FileType, &
+                    Debug, &
+                    VIsDouble)
               end if
               if (turbulenceequations.eq.0)then
               if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
@@ -1210,20 +1183,9 @@ Valuelocation(:)=0
 			END IF
 		end do
 		
-		IF(MRF.EQ.1)THEN
-            DO I=1,KMAXE
-            VALUESS(i)=REAL(ILOCAL_RECON3(I)%MRF)
-            END DO
 		
 		
-		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-			IF (N.EQ.0)THEN
-			do i=1,imaxe
-		xbin(XMPI_RE(I))=xbin2(I)
-		end do
-			ierr = TECDAT112(imaxe,xbin,1)
-			END IF
-        END IF
+    
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 		  CALL CONS2PRIM(N)
@@ -1344,7 +1306,6 @@ Valuelocation(:)=0
 		  end if
     
 		  if (itestcase.eq.4)then
-		  call VORTEXCALC(N)
 		  DO I=1,KMAXE
 		      VALUESS(i)=ielem(n,i)%vortex(1)!%inumneighbours
 		  END DO
@@ -3968,46 +3929,6 @@ SUBROUTINE OPEN_INPUT1(N,ITT)
 		OPEN(15,FILE='UCNS3D.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
 	END SUBROUTINE OPEN_INPUT1
 
-SUBROUTINE OPEN_INPUT2
-IMPLICIT NONE
-LOGICAL::HERE
- CHARACTER(LEN=20)::FRAME
- 	FRAME='ROTFRAME.dat'
-	INQUIRE (FILE=FRAME,EXIST=HERE)
-	IF (HERE) THEN
-	OPEN(16,FILE=FRAME,FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	READ(16,*)!1
-	READ(16,*)!2
-	READ(16,*)!3
-	READ(16,*)!4
-	READ(16,*)RFRAME
-	READ(16,*)!6
-	READ(16,*)SRF_ORIGIN(1),SRF_ORIGIN(2),SRF_ORIGIN(3)
-	READ(16,*)!8
-	READ(16,*)SRF_VELOCITY(1),SRF_VELOCITY(2),SRF_VELOCITY(3)
-    READ(16,*)!10    
-	READ(16,*)PER_ROT,ANGLE_PER,V_REF	
-    READ(16,*)!12
-    READ(16,*)point1_in(1),point1_in(2),point1_in(3)
-	READ(16,*)point2_in(1),point2_in(2),point2_in(3)
-	READ(16,*)Radius_GL, MRF_ROT_GL
-	CLOSE(16)
-
-        IF(RFRAME.EQ.2)THEN
-            MRF=1
-            SRFG=0
-        END IF
-        IF (RFRAME.EQ.1)THEN
-            SRFG=1
-            MRF=0
-			SRF=1
-        END IF
-	ELSE
-        RFRAME=0
-        SRFg=0
-        MRF=0
-	END IF
-END SUBROUTINE OPEN_INPUT2
 SUBROUTINE CLOSE_INPUT1(N,ITT)
 !> @brief
 !> This subroutine closes the parameter file
@@ -14158,6 +14079,7 @@ SUBROUTINE COMPUTEFORCE(N)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,K,J,KMAXE,gqi_points,nnd
+INTEGER:: MYSURFACE
 CHARACTER(LEN=12)::PROC,RESTFILE,PROC3
 REAL::DRAG,LIFT,CD,CL,RX,PX,EX,surface_temp,RTEMP,FX,FY,FZ,MX,MY,MZ
 REAL::FORCEXFR,SSX,CDF,LIFTF,DRAGF,FRICTIONF,TAUYX,TAUZX,TAUZY,SSY,SSZ,CF,TAUXX,TAUYY,TAUZZ
@@ -14185,7 +14107,13 @@ FORCEX=zero; FORCEY=zero; FORCEZ=zero;  FORCEXFR=zero
 !$OMP BARRIER 
 !$OMP DO SCHEDULE(STATIC) REDUCTION(+:FORCEX,FORCEY,FORCEZ,momentx,momenty,momentz)
 DO I=1,kmaxe
-		if (ielem(n,i)%interior.eq.1)then	
+		if (ielem(n,i)%interior.eq.1)then
+			IF(MRF.EQ.1)THEN
+				MYSURFACE=ILOCAL_RECON3(I)%MRF
+			else
+				MYSURFACE=1	
+			END IF	
+		IF(MYSURFACE.EQ.1)THEN
 		    do j=1,ielem(n,i)%ifca
 		      if (ielem(n,i)%ibounds(j).gt.0)then
 			  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4))then
@@ -14297,6 +14225,7 @@ DO I=1,kmaxe
 			END IF
 		      end if
 		    end do
+		END IF !MYSURFACE
 		end if
 
 			

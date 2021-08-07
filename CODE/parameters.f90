@@ -15,8 +15,8 @@ SUBROUTINE READ_UCNS3D
 
  	Integer :: INV
  	Real :: angledum
-	CHARACTER(48)::STAMP1
-	LOGICAL::HERE1,HERE2,HERE3
+	CHARACTER(48)::STAMP1,FRAME
+	LOGICAL::HERE1,HERE2,HERE3,HERE
 
 
  	
@@ -26,6 +26,56 @@ SUBROUTINE READ_UCNS3D
 	Average_restart=1
 	Else
 	Average_restart=0
+	end if
+	SOURCE_ACTIVE=0
+	
+ 	FRAME='ROTFRAME.dat'
+	INQUIRE (FILE=FRAME,EXIST=HERE)
+	IF (HERE) THEN
+	OPEN(16,FILE=FRAME,FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+	READ(16,*)!1
+	READ(16,*)!2
+	READ(16,*)!3
+	READ(16,*)!4
+	READ(16,*)RFRAME
+	READ(16,*)!6
+	READ(16,*)SRF_ORIGIN(1),SRF_ORIGIN(2),SRF_ORIGIN(3)
+	READ(16,*)!8
+	READ(16,*)SRF_VELOCITY(1),SRF_VELOCITY(2),SRF_VELOCITY(3)
+    READ(16,*)!10    
+	READ(16,*)PER_ROT,ANGLE_PER,V_REF	
+    READ(16,*)!12
+    READ(16,*)point1_GL(1),point1_GL(2),point1_GL(3)
+	READ(16,*)point2_GL(1),point2_GL(2),point2_GL(3)
+	READ(16,*)Radius_GL, MRF_ROT_GL
+	CLOSE(16)
+
+        IF(RFRAME.EQ.2)THEN
+            MRF=1
+            SRFG=0
+        END IF
+        IF (RFRAME.EQ.1)THEN
+            SRFG=1
+            MRF=0
+        END IF
+	ELSE
+        RFRAME=0
+        SRFg=0
+        MRF=0
+	END IF
+	
+	if ((mrf.eq.1).or.(SRFG.eq.1))then
+	 SOURCE_ACTIVE=1
+    KINIT_SRF=0.00001
+    if (mrf.eq.1)then
+            ROT_CORR=1
+            D_CORR=1
+    end if
+    if (srfg.eq.1)then
+            ROT_CORR=0
+            D_CORR=1
+    end if
+	
 	end if
 	
 	
@@ -608,10 +658,19 @@ SUBROUTINE READ_UCNS3D
 	   ! Set pressure
 	  if ( PRES .lt. 0 ) PRES = RRES/GAMMA	
 	  ! Set dynamic free-stream viscosity
-	  VISC = (RRES*ufreestream*CharLength)/Reynolds
+	  
+	  IF (RFRAME.EQ.0) THEN
+        VISC = (RRES*ufreestream*CharLength)/Reynolds
+    ELSE
+        VISC = (RRES*V_ref*CharLength)/Reynolds
+    END IF
+	  
 	  if (swirl.eq.1)then
 	  uvel=ZERO
 	  end if
+	  
+	  
+	  
 	  If (AOA .NE. 0.0D0) Then
 	  angledum=(AOA*PI)/180.0d0
 	  UVEL = COS(angledum)*ufreestream*VECTORX
@@ -622,7 +681,12 @@ SUBROUTINE READ_UCNS3D
 	  IF (N.EQ.0)THEN
 	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	      if (ITESTCASE .eq. 4) Then
+	      if (rframe.eq.0)then
 		write(63,*)'----Reynolds Number:',(RRES*ufreestream*CharLength)/VISC
+            else
+            write(63,*)'----Reynolds Number:',(RRES*v_ref*CharLength)/VISC
+            
+            end if
 		end if
 	      CLOSE(63)
 	   END IF

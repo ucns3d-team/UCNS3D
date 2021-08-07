@@ -129,7 +129,7 @@ I=xmpil(IEXCHANGER1(K)%sideineedn(E))
 	  if (ielem(n,i)%ineighb(j).ne.n)then
 	  
 	    if (ielem(n,i)%ibounds(J).gt.0)then
-		if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then
+		if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then
 		    if (dimensiona.eq.3)then
 			IF ( IELEM(N,i)%TYPEs_FACES(J).EQ.5)THEN
 			    INUM_POINTS=QP_QUAD_n
