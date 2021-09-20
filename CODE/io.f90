@@ -201,7 +201,6 @@ end if
 END SUBROUTINE OUTWRITEGRIDB
 
 
-
 SUBROUTINE OUTWRITEGRIDB2D
  !> @brief
 !> This subroutine writes the grid file in tecplot binary format in 2D
@@ -399,6 +398,8 @@ end if
 	
 
 END SUBROUTINE OUTWRITEGRIDB2D
+
+
 SUBROUTINE OUTWRITE3N
  !> @brief
 !> This subroutine is solely for debugging
@@ -1374,7 +1375,6 @@ Valuelocation(:)=0
 END SUBROUTINE OUTWRITE3vb
 
 
-
 SUBROUTINE OUTWRITEtec3dbp
  !> @brief
 !> This subroutine writes only the 3D solution without the grid in tecplot binary format
@@ -1844,7 +1844,6 @@ Valuelocation(1:3)=1
 END SUBROUTINE OUTWRITEtec3dbp
 
 
-
 SUBROUTINE OUTWRITEtec3dbpav
  !> @brief
 !> This subroutine writes only the 3D solution without the grid in tecplot binary format
@@ -2306,20 +2305,6 @@ Valuelocation(1:3)=1
 END SUBROUTINE OUTWRITEtec3dbpav
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 SUBROUTINE OUTWRITE3v
 !> @brief
 !> This subroutine writes only the 3D solution without the grid in tecplot ascii format
@@ -2749,7 +2734,6 @@ Valuelocation(:)=0
 END SUBROUTINE OUTWRITE3v
 
 
-
 SUBROUTINE OUTWRITE3v2d
 !> @brief
 !> This subroutine writes only the 2D solution without the grid in tecplot ascii format
@@ -3002,29 +2986,26 @@ Valuelocation(:)=0
 
 
     IF (ITESTCASE.LE.2)THEN
-    DO I=1,KMAXE
-      VALUESS(i)=U_C(I)%VAL(1,1)!0.0
-    END DO
-    
-    call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+        IF (DG == 1) THEN
+            VALUESS(1:KMAXE)=U_C(1:KMAXE)%VALDG(1,1,1)
+        ELSE
+            VALUESS(1:KMAXE)=U_C(1:KMAXE)%VAL(1,1)!0.0
+        END IF
+        
+        call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
-    IF (N.EQ.0)THEN
-    do i=1,imaxp*isize
-	if (icella(i).gt.0)then
-	xbin(icella(i))=valuesa(i)
-	end if
-    end do
-    
-			WRITE(97,*)XBIN(1:IMAXE)
-			
-    
-    END IF
+        IF (N.EQ.0)THEN
+            do i=1,imaxp*isize
+                if (icella(i).gt.0)then
+                    xbin(icella(i))=valuesa(i)
+                end if
+            end do
+        
+            WRITE(97,*)XBIN(1:IMAXE)
+        END IF
 
-     
-    CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    END IF
-    
-    IF (ITESTCASE.ge.3)THEN
+        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+    ELSE IF (ITESTCASE.ge.3)THEN
 		do kkd=1,4
 		DO I=1,KMAXE
 		  VALUESS(i)=U_C(I)%VAL(1,kkd)
@@ -3442,7 +3423,7 @@ Valuelocation(:)=0
 
     IF (ITESTCASE.LE.2)THEN
     DO I=1,KMAXE
-      VALUESS(i)=U_C(I)%VAL(1,1)!0.0
+      VALUESS(i)=U_C(I)%VALDG(1,1,1)!0.0
      
     END DO
     
@@ -3721,8 +3702,6 @@ Valuelocation(:)=0
 END SUBROUTINE OUTWRITE3vb2d
 
 
-
-
 SUBROUTINE CHECKRES
 !> @brief
 !> This subroutine checks the presence of restart file
@@ -3760,6 +3739,7 @@ INTEGER::I,J,K,L,ITER,DIP
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 END SUBROUTINE CHECKRES
+
 
 SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 !> @brief
@@ -3905,12 +3885,7 @@ SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 	DEALLOCATE(ISENT)
 	
 	
-	END SUBROUTINE OPEN_ARBITRARY
-
-
-
-
-
+END SUBROUTINE OPEN_ARBITRARY
 
 
 SUBROUTINE OPEN_INPUT1(N,ITT)
@@ -3927,7 +3902,7 @@ SUBROUTINE OPEN_INPUT1(N,ITT)
 ! 		OPEN(9,FILE=VRTFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ')
 ! 		else
 		OPEN(15,FILE='UCNS3D.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	END SUBROUTINE OPEN_INPUT1
+END SUBROUTINE OPEN_INPUT1
 
 SUBROUTINE CLOSE_INPUT1(N,ITT)
 !> @brief
@@ -3938,7 +3913,7 @@ SUBROUTINE CLOSE_INPUT1(N,ITT)
 !  	CLOSE(8)
 !  	CLOSE(9)
  	CLOSE(15)
- END SUBROUTINE CLOSE_INPUT1
+END SUBROUTINE CLOSE_INPUT1
 
 SUBROUTINE OPEN_INPUT(N,ITT)
 !> @brief

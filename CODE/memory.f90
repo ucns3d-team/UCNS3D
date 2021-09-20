@@ -138,27 +138,32 @@ REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::QPOINTS
 INTEGER,INTENT(INout)::NUMBEROFPOINTS,NUMBEROFPOINTS2
 
 
-if (dimensiona.eq.3)then
-NUMBEROFPOINTS=MAX(QP_HEXA,QP_TETRA,QP_PYRA,QP_PRISM)
-NUMBEROFPOINTS2=MAX(QP_QUAD,QP_TRIANGLE)
-ALLOCATE(WEQUA2D(1:NUMBEROFPOINTS2))
-ALLOCATE(QPOINTS2D(3,1:NUMBEROFPOINTS2))
-ALLOCATE(WEQUA3D(1:NUMBEROFPOINTS))
-ALLOCATE(QPOINTS(3,1:NUMBEROFPOINTS))
-else
-NUMBEROFPOINTS=MAX(QP_QUAD,QP_TRIANGLE)
-NUMBEROFPOINTS2=QP_LINE
-ALLOCATE(WEQUA2D(1:NUMBEROFPOINTS2))
-ALLOCATE(QPOINTS2D(2,1:NUMBEROFPOINTS2))
-ALLOCATE(WEQUA3D(1:NUMBEROFPOINTS))
-ALLOCATE(QPOINTS(2,1:NUMBEROFPOINTS))
-
-end if
+IF (DIMENSIONA.EQ.3)THEN
+    NUMBEROFPOINTS=MAX(QP_HEXA,QP_TETRA,QP_PYRA,QP_PRISM)
+    NUMBEROFPOINTS2=MAX(QP_QUAD,QP_TRIANGLE)
+    ALLOCATE(WEQUA2D(1:NUMBEROFPOINTS2))
+    ALLOCATE(QPOINTS2D(3,1:NUMBEROFPOINTS2))
+    ALLOCATE(WEQUA3D(1:NUMBEROFPOINTS))
+    ALLOCATE(QPOINTS(3,1:NUMBEROFPOINTS))
+ELSE
+    NUMBEROFPOINTS=MAX(QP_QUAD,QP_TRIANGLE)
+    NUMBEROFPOINTS2=QP_LINE
+    ALLOCATE(WEQUA2D(1:NUMBEROFPOINTS2))
+    ALLOCATE(QPOINTS2D(2,1:NUMBEROFPOINTS2))
+    ALLOCATE(WEQUA3D(1:NUMBEROFPOINTS))
+    ALLOCATE(QPOINTS(2,1:NUMBEROFPOINTS))
+    
+	ALLOCATE(QP_ARRAY(XMPIELRANK(N),NUMBEROFPOINTS)); !Allocates for 2D
+END IF
 
 WEQUA2D(:)=0.0D0
 QPOINTS2D(:,:)=0.0D0
 WEQUA3D(:)=0.0D0
 QPOINTS(:,:)=0.0D0
+
+QP_ARRAY(:,:)%X = ZERO
+QP_ARRAY(:,:)%Y = ZERO
+QP_ARRAY(:,:)%QP_WEIGHT = ZERO
 
 
 ALLOCATE(weight_t2(NUMBEROFPOINTS2));weight_t2=zero
@@ -177,17 +182,21 @@ REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::WEQUA2D
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::QPOINTS2D
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::QPOINTS
 INTEGER,INTENT(IN)::NUMBEROFPOINTS,NUMBEROFPOINTS2
+
 DEALLOCATE(WEQUA2D)
 DEALLOCATE(QPOINTS2D)
 DEALLOCATE(WEQUA3D)
 DEALLOCATE(QPOINTS)
+
+DEALLOCATE(QP_ARRAY)
+
 END SUBROUTINE DEQUADALLOC
 
 !!!!!!!!!!!!!!!!!!SUBROUTINE CALLED INITIALLY TO ALLOCATE MEMORY FOR FLUXES!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-	SUBROUTINE SUMFLUX_ALLOCATION(N)
-	!> @brief
+SUBROUTINE SUMFLUX_ALLOCATION(N)
+!> @brief
 !> This subroutine allocates memory for the fluxes
 	IMPLICIT NONE
 	INTEGER,INTENT(INOUT)::N
@@ -202,14 +211,18 @@ END SUBROUTINE DEQUADALLOC
 	END IF
 	
 	DO I=1,KMAXE
+        IF (DG == 1) THEN
+            ALLOCATE(RHS(I)%VALDG(NUM_DG_DOFS, NOF_VARIABLES))
+        ELSE
             ALLOCATE (RHS(I)%VAL(nof_Variables))
+            
             IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)) THEN
-			       ALLOCATE (RHST(I)%VAL(TURBULENCEEQUATIONS+PASSIVESCALAR))
-			END IF
+                ALLOCATE (RHST(I)%VAL(TURBULENCEEQUATIONS+PASSIVESCALAR))
+            END IF
+        END IF
     END DO
 	
-	
-	END SUBROUTINE SUMFLUX_ALLOCATION
+END SUBROUTINE SUMFLUX_ALLOCATION
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE IMPALLOCATE(N)
@@ -586,13 +599,11 @@ ALLOCATE (XMPIE(IMAXE))
 ALLOCATE (XMPIL(IMAXE))
 ALLOCATE(XMPIELRANK(n:n))
 
-
-
 XMPIE=0
 XMPIL=0
 XMPIELRANK=0
 
-END  SUBROUTINE XMPIALLOCATE
+END SUBROUTINE XMPIALLOCATE
 
 
 SUBROUTINE DEALLOCATEMPI1(N)
@@ -603,10 +614,6 @@ INTEGER,INTENT(IN)::N
 
 DEALLOCATE (IEXCHANGES1,IEXCHANGER1)
 
-
-
-
-
 END SUBROUTINE DEALLOCATEMPI1
 
 SUBROUTINE DEALLOCATEMPI2(N)
@@ -616,10 +623,6 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 
 DEALLOCATE (IRECEXR1,IRECEXS1)
-
-
-
-
 
 END SUBROUTINE DEALLOCATEMPI2
 
@@ -1241,7 +1244,7 @@ end if
 	TYPE(U_EXACT),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_E
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 	INTEGER,INTENT(IN)::ITESTCASE,N
-	INTEGER::I,KMAXE,ISTAGE
+	INTEGER::I,KMAXE,ISTAGE,TOTALPOINTS
 	KMAXE=XMPIELRANK(N)
 	ALLOCATE (U_C(KMAXE))
 	
@@ -1307,8 +1310,31 @@ end if
 	
 	END SELECT
 	
+	
+	if (DG.EQ.1)THEN
+        allocate (mass_matrix(kmaxe,1:idegfree,1:idegfree,QP_TRIANGLE*2));mass_matrix=zero
+	END IF
+	
 	DO I=1,KMAXE
         ALLOCATE (U_C(I)%VAL(ISTAGE,NOF_VARIABLES));U_C(I)%VAL=ZERO
+        
+        select case (ielem(n,i)%ishape)
+        
+        case(5) !quadrilateral
+        ielem(n,i)%iTOTALPOINTS=QP_TRIANGLE*2
+        
+        
+        case(6)!triangle
+         ielem(n,i)%iTOTALPOINTS=QP_TRIANGLE
+         
+         
+         end select
+        
+        IF (DG.EQ.1)THEN
+            ALLOCATE (U_C(I)%VALDG(ISTAGE,NOF_VARIABLES,IELEM(N,I)%IDEGFREE+1));U_C(I)%VALDG=ZERO
+        END IF
+        
+        
                     if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
                         Allocate(U_CT(I)%VAL(ISTAGE,turbulenceequations+PASSIVESCALAR));U_CT(I)%VAL=ZERO   
                     Endif
@@ -1568,7 +1594,7 @@ END SUBROUTINE LOCAL_RECONALLOCATION4
 
 
 SUBROUTINE LOCAL_RECONALLOCATION42d(N)
-   !> @brief
+!> @brief
 !> This subroutine allocates memory for reconstruction in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
@@ -1584,68 +1610,51 @@ IF (ITESTCASE.LT.3) THEN
 END IF
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-
-
-
 DO I=1,KMAXE
 	
-	
-	
-	
-	points=qp_line_n
-	
-	
+    points=qp_line_n
 	
 		
-	IF (ITESTCASE.EQ.4)THEN
+	IF (ITESTCASE.EQ.4)THEN !Linear step?
 		
-	if (fastest.ne.1)then
-	ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
-	else
-	ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
-
-	end if
-	ILOCAL_RECON3(I)%ULEFTV=zero
+        if (fastest.ne.1)then
+            ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
+        else
+            ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
+        end if
+        
+        ILOCAL_RECON3(I)%ULEFTV=zero
 	
-	if ((turbulence.eq.1).or.(passivescalar.gt.0)) then
-	  
-	  SVG=(TURBULENCEEQUATIONS+PASSIVESCALAR)
-	  if (fastest.ne.1)then
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-	 
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
-
-	  else
-	   ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-	 
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
-
-
-
-	  end if
-	  ILOCAL_RECON3(I)%ULEFTTURB=zero;ILOCAL_RECON3(I)%ULEFTTURBv=zero
-	  
-	END IF
+        if ((turbulence.eq.1).or.(passivescalar.gt.0)) then
+            SVG=(TURBULENCEEQUATIONS+PASSIVESCALAR)
+            
+            if (fastest.ne.1)then
+                ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
+            
+                ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
+            else
+                ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
+        
+                ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
+            end if
+            
+            ILOCAL_RECON3(I)%ULEFTTURB=zero;ILOCAL_RECON3(I)%ULEFTTURBv=zero  
+        END IF
 	
-	
-	ALLOCATE (ILOCAL_RECON3(I)%GRADS(3+TURBULENCEEQUATIONS+passivescalar+(QSAS_MODEL*2),2))
-	 
+        ALLOCATE (ILOCAL_RECON3(I)%GRADS(3+TURBULENCEEQUATIONS+passivescalar+(QSAS_MODEL*2),2))
 	END IF
 	
 	
 	
-	 if (fastest.ne.1)then
+    if (fastest.ne.1)then
         ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,points))
-	else
-	 ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
+    else
+        ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
 
-	  end if
-	  ILOCAL_RECON3(I)%ULEFT=zero
+    end if
+    ILOCAL_RECON3(I)%ULEFT=zero
 	
-! 	END IF
-	
-	
-	
+
 END DO
 
 
@@ -1657,7 +1666,6 @@ implicit none
    !> @brief
 !> This subroutine allocates memory for all the matrices
 INTEGER::KKD
-
 KKD=nof_variables
 
 !sorting them out first in terms of dimensions, no of variables, turbulence parameters
@@ -1711,7 +1719,6 @@ end if
 end if
 
 end if
-
 
 
 

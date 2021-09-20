@@ -640,6 +640,56 @@ end function CELL_CENTRE_CORD2
 
 
 
+FUNCTION comp_max_diff(N,NODES_LIST,N_NODE)
+!> @brief
+!> This function computes the maximum coordinates value given the nodes location
+INTEGER,INTENT(IN)::N,N_NODE
+REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(in)::NODES_LIST
+REAL,DIMENSION(1:2)::comp_max_diff
+INTEGER::Idex
+REAL,DIMENSION(1:2)::tempDIFF
+tempDiff=0.0d0
+comp_max_diff(1:2)=0.0d0
+
+
+DO Idex=2,N_NODE
+    tempDIFF(1)=abs(nodes_list(1,1)-nodes_list(Idex,1))
+    tempDIFF(2)=abs(nodes_list(1,2)-nodes_list(Idex,2))
+    if (tempDiff(1).gt.comp_max_diff(1)) then
+        comp_max_diff(1)=tempDiff(1)
+    end if
+    if (tempDiff(2).gt.comp_max_diff(2)) then
+        comp_max_diff(2)=tempDiff(2)
+    end if
+END DO
+
+END FUNCTION COMP_MAX_DIFF
+
+
+
+FUNCTION comp_min_diff(N,NODES_LIST,N_NODE)
+!> @brief
+!> This function computes the minimum coordinates value given the nodes location
+INTEGER,INTENT(IN)::N,N_NODE
+REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(in)::NODES_LIST
+REAL,DIMENSION(1:2)::comp_min_diff
+INTEGER::Idex
+REAL,DIMENSION(1:2)::tempDIFF
+tempDiff=0.0d0
+comp_min_diff(1:2)=0.0d0
+
+DO Idex=2,N_NODE
+    tempDIFF(1)=abs(nodes_list(1,1)-nodes_list(Idex,1))
+    tempDIFF(2)=abs(nodes_list(1,2)-nodes_list(Idex,2))
+    if (tempDiff(1).lt.comp_min_diff(1)) then
+        comp_min_diff(1)=tempDiff(1)
+    end if
+    if (tempDiff(2).lt.comp_min_diff(2)) then
+        comp_min_diff(2)=tempDiff(2)
+    end if
+END DO
+
+END FUNCTION COMP_MIN_DIFF
 
 
 
@@ -734,7 +784,7 @@ end SUBROUTINE DECOMPOSE3
 
 subroutine DECOMPOSE2
  !> @brief
-!> This function decomposes element into triangles (counterclockwise numbering)
+!> This function writes decomposed triangle element nodes into ELEM_LISTD from NODES_LIST (counterclockwise numbering)
 implicit none
 !!$OMP THREADPRIVATE(DECOMPOSE2)
 
@@ -1186,34 +1236,26 @@ SUBROUTINE SURFACE_CALCULATOR2(N)
 !> This subroutine computes the length of edges of elements in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-!$ integer::OMP_IN_PARALLEL,OMP_GET_THREAD_NUM
-INTEGER::I,K,KMAXE,jx,JX2,nnd,j
-real::DUMV1,DUMV2,dumr
- KMAXE=XMPIELRANK(N)
+!$ INTEGER::OMP_IN_PARALLEL,OMP_GET_THREAD_NUM
+INTEGER::I,K,KMAXE,JX,JX2,NND,J
+REAL::DUMV1,DUMV2,DUMR
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(DUMV1,DUMV2,dumr,I,JX,jx2,K,nnd,j) 
+KMAXE=XMPIELRANK(N)
+
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(DUMV1,DUMV2,DUMR,I,JX,JX2,K,NND,J) 
 !$OMP DO SCHEDULE (STATIC) 
- DO I=1,KMAXE
-    
-    
+
+DO I=1,KMAXE
     DO J=1,IELEM(N,I)%IFCA
-    				
-					 
-					  NND=2
-				      do K=1,nnd
-					VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
-				      END DO
-					  
-					  
-					  IELEM(N,I)%surf(J)=linearea(N)
-					  
-				  
-				
-    
-    
-    
+        NND=2
+        
+        DO K=1,NND
+            VEXT(K,1:DIMS)=INODER(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:DIMS)
+        END DO
+        
+        IELEM(N,I)%SURF(J)=LINEAREA(N)
     END DO
-    END DO
+END DO
 !$OMP END DO 
 !$OMP END PARALLEL 
 
@@ -1628,12 +1670,6 @@ WEQUA2D=0.0d0
 QPOINTS2D=0.0d0
 
 
-
-
-WEQUA2D=0.0d0
-QPOINTS2D=0.0d0
-
-
 SELECT CASE(IGQRULES)
 
 case(1)
@@ -1912,7 +1948,7 @@ END select
 END SUBROUTINE QUADRATURETRIANG
 
 SUBROUTINE QUADRATURETRIANGLE(N,IGQRULES)
- !> @brief
+!> @brief
 !> This subroutine computes the quadrature points and weights for triangle in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
@@ -1920,13 +1956,6 @@ INTEGER::Kk
 
 WEQUA3D=0.0d0
 QPOINTS=0.0d0
-
-
-
-
-WEQUA3D=0.0d0
-QPOINTS=0.0d0
-
 
 select case(IGQRULES)
 

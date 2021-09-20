@@ -8,8 +8,8 @@ IMPLICIT NONE
  CONTAINS
  
  
- FUNCTION BASIS_REC(N,X1,Y1,Z1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
- !> @brief
+FUNCTION BASIS_REC(N,X1,Y1,Z1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
+!> @brief
 !> This function returns the value of the basis function for a specific polynomial order and coordinates
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
@@ -1482,12 +1482,6 @@ case(2)
  SB(166)=(1 - 72*x1 + 1260*x1**2 - 9240*x1**3 + 34650*x1**4 - 72072*x1**5 + 84084*x1**6 - 51480*x1**7 + 12870*x1**8)*(-1 + 2*y1)
  SB(165)=-1 + 90*x1 - 1980*x1**2 + 18480*x1**3 - 90090*x1**4 + 252252*x1**5 - 420420*x1**6 + 411840*x1**7 - 218790*x1**8 + 48620*x1**9
  
- 
- 
- 
- 
- 
- 
      END select
    END IF
    
@@ -1511,35 +1505,40 @@ END FUNCTION BASIS_REC
 
 
 FUNCTION BASIS_REC2d(N,X1,Y1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
- !> @brief
-!> This function returns the value of the basis function for a specific polynomial order and coordinates in 2D
+!> @brief
+!> This function returns the value of the basis function for a specific polynomial order and coordinates in 2D \n
+!> REQUIRES: X1, Y1: coordinates of basis evaluation wrt ?; NUMBER: order of basis; ICONSIDERED: considered cell?; NUMBER_OF_DOG: number of degrees of freedom
+! NUMBER and NUMBER_OF_DOG redundant?
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(IN)::NUMBER,ICONSIDERED,NUMBER_OF_DOG
 REAL,INTENT(IN)::X1,Y1
+INTEGER::I_NODE,I_QP,N_QP
 REAL::OOV
+REAL,ALLOCATABLE,DIMENSION(:,:)::QP_IN
 real,dimension(number_of_dog)::basis_rec2d
 SB=zero
-OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
 
-    select case(number)
+SELECT CASE(POLY)
+CASE(1) ! Generic
+    select case(number) ! Order of basis
     
     case(1)
-    
-   !FIRST ORDER
+    !FIRST ORDER
     SB(1)=X1
     SB(2)=Y1
-    case(2)
     
+    case(2)
     !SECOND ORDER
-     SB(1)=X1
+    SB(1)=X1
     SB(2)=Y1
     SB(3)=X1*X1
     SB(4) = X1*Y1
     SB(5)= Y1*Y1
+    
     case(3)
     !THIRD ORDER
-     SB(1)=X1
+    SB(1)=X1
     SB(2)=Y1
     SB(3)=X1*X1
     SB(4) = X1*Y1
@@ -1548,6 +1547,7 @@ OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
     SB(7) = X1*X1*Y1
     SB(8)= X1*Y1*Y1
     SB(9)= Y1*Y1*Y1
+    
     case(4)
     !FOURTH ORDER
     SB(1)=X1
@@ -1564,6 +1564,7 @@ OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
     SB(12)= X1*X1*Y1*Y1
     SB(13)= X1*Y1*Y1*Y1
     SB(14)= Y1*Y1*Y1*Y1
+    
     case(5)
     !FIFTH ORDER
     SB(1)=X1
@@ -1586,6 +1587,7 @@ OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
     SB(18)= X1*X1*Y1*Y1*Y1
     SB(19)= X1*Y1*Y1*Y1*Y1
     SB(20)= Y1*Y1*Y1*Y1*Y1
+    
     case(6)
     !SIXTH ORDER
      SB(1)=X1
@@ -1615,19 +1617,304 @@ OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
     SB(25)= X1**2*Y1**4
     SB(26)= X1*Y1**5
     SB(27)= Y1**6
+
     
     END select
+    
+CASE(2) ! Legendre
+    select case(number)
+    case(1)
+        !FIRST ORDER FUNCTIONS (2ND-ORDER OF ACCURACY 3)
+        SB(1)=-1.0d0 + 2.0d0*x1
+        SB(2)=-1.0d0 + 2.0d0*y1
+
+    case(2)
+        ! SECOND ORDER FUNCTIONS (3RD-ORDER OF ACCURACY 4-9)
+        SB(1)=-1.0d0 + 2.0d0*x1
+        SB(2)=-1.0d0 + 2.0d0*y1
+        SB(3)=1.0d0 - 6.0d0*x1 + 6.0d0*x1**2
+        SB(4)=SB(1)*SB(2)
+        SB(5)=1.0d0 - 6.0d0*y1 + 6.0d0*y1**2
+
+    case(3)
+        ! THIRD ORDER FUNCTIONS (4TH-ORDER OF ACCURACY  10-19)
+        SB(1)=-1.0d0 + 2.0d0*x1
+        SB(2)=-1.0d0 + 2.0d0*y1
+        SB(3)=1.0d0 - 6.0d0*x1 + 6.0d0*x1**2
+        SB(4)=SB(1)*SB(2)
+        SB(5)=1.0d0 - 6.0d0*y1 + 6.0d0*y1**2 
+        SB(6)=-1.0d0 + 12.0d0*x1 - 30.0d0*x1**2 + 20.0d0*x1**3
+        SB(7)=SB(3)*SB(2)
+        SB(8)=SB(1)*SB(5)
+        SB(9)=-1.0d0 + 12.0d0*y1 - 30.0d0*y1**2 + 20.0d0*y1**3  
+    end select
+    
+CASE(3) ! Taylor
+    SELECT CASE(IELEM(N,ICONSIDERED)%ISHAPE)
+    CASE(5) ! Quadrilateral
+        N_QP = QP_QUAD
+    CASE(6) ! Triangle
+        N_QP = QP_TRIANGLE
+    END SELECT
+    
+    ALLOCATE(QP_IN(DIMENSIONA,N_QP))
+    
+    DO I_QP = 1, N_QP
+        QP_IN(1, I_QP) = QP_ARRAY(ICONSIDERED,I_QP)%X
+        QP_IN(2, I_QP) = QP_ARRAY(ICONSIDERED,I_QP)%Y
+    END DO
+    
+    BASIS_REC2D = TAYLOR_BASIS( (/ X1,Y1 /), IELEM(N,ICONSIDERED)%DELTA_XYZ, QP_IN, QP_ARRAY(ICONSIDERED,:)%QP_WEIGHT, N_QP, DIMENSIONA, NUMBER_OF_DOG, IELEM(N,ICONSIDERED)%TOTVOLUME)
+    
+    DEALLOCATE(QP_IN)
+    
+    RETURN
+    
+!     select case(number)
+!         case(1)
+!      !FIRST ORDER FUNCTIONS (2ND-ORDER OF ACCURACY 3)
+!     SB(1)=x1
+!     SB(2)=y1   
+!         case(2)
+! ! SECOND ORDER FUNCTIONS (3RD-ORDER OF ACCURACY 4-9)
+!     SB(1)=x1
+!     SB(2)=y1
+!     SB(3)=(x1)**2
+!     SB(4)=SB(1)*SB(2)
+!     SB(5)=(y1)**2
+!      end select 
+END SELECT
    
-    if (compwrt.eq.0)then
-    basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)-((INTEG_BASIS(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
-    else
-    basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)-((INTEG_BASIS(ICONSIDERED)%valuec(1:NUMBER_OF_DOG))*OOV)
+    IF (DG == 1) THEN
+        basis_rec2d=SB
+    ELSE if (compwrt.eq.0)then
+        OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
+        basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)-((INTEG_BASIS(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
+    ELSE if (compwrt.eq.1)then
+        OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
+        basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)-((INTEG_BASIS(ICONSIDERED)%valuec(1:NUMBER_OF_DOG))*OOV)
+    ELSE if (compwrt.eq.-1)then
+!    basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)!-((INTEG_BASIS(ICONSIDERED)%valuec(1:NUMBER_OF_DOG))*OOV)
+        if(poly.eq.3)then
+            basis_rec2d(1:2)=SB(1:2)
+            basis_rec2d(3:NUMBER_OF_DOG)=SB(3:NUMBER_OF_DOG)-((INTEG_BASIS(ICONSIDERED)%valuec(3:NUMBER_OF_DOG))*OOV)
+        else
+            basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)
+        end if
     end if
+    
     
 
 END FUNCTION BASIS_REC2d
 
 
+FUNCTION BASIS_REC2D_DERIVATIVE(N,X1,Y1,ORDER,ICONSIDERED,NUMBER_OF_DOG,DX_OR_DY)
+!> @brief
+!> This function returns the derivative of the basis function for a specific polynomial order and coordinates in 2D \n
+!> REQUIRES: X1, Y1: coordinates of basis evaluation; ORDER: order of basis; ICONSIDERED: considered cell?; NUMBER_OF_DOG: number of degrees of freedom; DX_OR_DY: 1 = wrt x, 2 = wrt y
+! ORDER and NUMBER_OF_DOG redundant?
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER,INTENT(IN)::ORDER,ICONSIDERED,NUMBER_OF_DOG,DX_OR_DY
+    REAL,INTENT(IN)::X1,Y1
+    !REAL::OOV
+    REAL,DIMENSION(NUMBER_OF_DOG)::BASIS_REC2D_DERIVATIVE
+    INTEGER::BASIS_INDEX,INT_COEFF,X_ORDER,Y_ORDER,NUM_TERMS,CURRENT_ORDER ! For computing basis iteratively
 
+    BASIS_REC2D_DERIVATIVE=zero
+    !OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
+
+    SELECT CASE(POLY)
+    CASE(1) ! Generic
+        SELECT CASE(DX_OR_DY)
+        CASE(1) ! Derivative with respect to x
+            IF (ORDER > 0) THEN
+                BASIS_REC2D_DERIVATIVE(1) = 1
+                BASIS_REC2D_DERIVATIVE(2) = 0
+            END IF
+            IF (ORDER > 1) THEN
+                BASIS_REC2D_DERIVATIVE(3) = 2 * X1
+                BASIS_REC2D_DERIVATIVE(4) = Y1
+                BASIS_REC2D_DERIVATIVE(5) = 0
+            END IF
+            IF (ORDER > 2) THEN
+                BASIS_REC2D_DERIVATIVE(6) = 3 * X1 ** 2
+                BASIS_REC2D_DERIVATIVE(7) = 2 * X1 * Y1
+                BASIS_REC2D_DERIVATIVE(8) = Y1 ** 2
+                BASIS_REC2D_DERIVATIVE(9) = 0
+            END IF
+            IF (ORDER > 3) THEN
+                CURRENT_ORDER = 4
+                INT_COEFF = CURRENT_ORDER
+                X_ORDER = CURRENT_ORDER - 1
+                Y_ORDER = 0
+                NUM_TERMS = 9
+                
+                DO BASIS_INDEX = 4, ORDER ! compute total number of terms in basis
+                    NUM_TERMS = NUM_TERMS + BASIS_INDEX + 1
+                END DO
+                
+                BASIS_INDEX = 10 ! starting from 4th order, 10th basis term
+                DO WHILE (BASIS_INDEX < NUM_TERMS)
+                    IF (INT_COEFF == 1) THEN
+                        BASIS_REC2D_DERIVATIVE(BASIS_INDEX) = INT_COEFF * X1 ** X_ORDER * Y1 ** Y_ORDER
+                        BASIS_INDEX = BASIS_INDEX + 1
+                        BASIS_REC2D_DERIVATIVE(BASIS_INDEX) = 0
+                        CURRENT_ORDER = CURRENT_ORDER + 1
+                        INT_COEFF = CURRENT_ORDER
+                        X_ORDER = CURRENT_ORDER - 1
+                        Y_ORDER = 0
+                    ELSE
+                        BASIS_REC2D_DERIVATIVE(BASIS_INDEX) = INT_COEFF * X1 ** X_ORDER * Y1 ** Y_ORDER
+                        INT_COEFF = INT_COEFF - 1
+                        X_ORDER = X_ORDER - 1
+                        Y_ORDER = Y_ORDER + 1
+                    END IF
+                    BASIS_INDEX = BASIS_INDEX + 1
+                END DO
+            END IF
+            
+        CASE(2) ! Derivative with respect to y
+            IF (ORDER > 0) THEN
+                BASIS_REC2D_DERIVATIVE(1) = 0
+                BASIS_REC2D_DERIVATIVE(2) = 1
+            END IF
+            IF (ORDER > 1) THEN
+                BASIS_REC2D_DERIVATIVE(3) = 0
+                BASIS_REC2D_DERIVATIVE(4) = X1
+                BASIS_REC2D_DERIVATIVE(5) = 2 * Y1
+            END IF
+            IF (ORDER > 2) THEN
+                BASIS_REC2D_DERIVATIVE(6) = 0
+                BASIS_REC2D_DERIVATIVE(7) = X1 ** 2
+                BASIS_REC2D_DERIVATIVE(8) = 2 * X1 * Y1
+                BASIS_REC2D_DERIVATIVE(9) = 3 * Y1 ** 2
+            END IF
+            IF (ORDER > 3) THEN
+                CURRENT_ORDER = 4
+                INT_COEFF = CURRENT_ORDER
+                Y_ORDER = CURRENT_ORDER - 1
+                X_ORDER = 0
+                NUM_TERMS = 9
+                
+                DO BASIS_INDEX = 4, ORDER ! compute total number of terms in basis
+                    NUM_TERMS = NUM_TERMS + BASIS_INDEX + 1
+                END DO
+                
+                BASIS_INDEX = 10 ! starting from 4th order, 10th basis term
+                DO WHILE (BASIS_INDEX < NUM_TERMS)
+                    IF (INT_COEFF == 1) THEN
+                        BASIS_REC2D_DERIVATIVE(BASIS_INDEX) = INT_COEFF * X1 ** X_ORDER * Y1 ** Y_ORDER
+                        BASIS_INDEX = BASIS_INDEX + 1
+                        BASIS_REC2D_DERIVATIVE(BASIS_INDEX) = 0
+                        CURRENT_ORDER = CURRENT_ORDER + 1
+                        INT_COEFF = CURRENT_ORDER
+                        Y_ORDER = CURRENT_ORDER - 1
+                        X_ORDER = 0
+                    ELSE
+                        BASIS_REC2D_DERIVATIVE(BASIS_INDEX) = INT_COEFF * X1 ** X_ORDER * Y1 ** Y_ORDER
+                        INT_COEFF = INT_COEFF - 1
+                        Y_ORDER = Y_ORDER - 1
+                        X_ORDER = X_ORDER + 1
+                    END IF
+                    BASIS_INDEX = BASIS_INDEX + 1
+                END DO
+            END IF
+        END SELECT
+    CASE(2) ! Legendre
+        SELECT CASE(DX_OR_DY)
+        CASE(1) ! Derivative with respect to x
+            IF (ORDER > 0) THEN
+                BASIS_REC2D_DERIVATIVE(1) = 2
+                BASIS_REC2D_DERIVATIVE(2) = 0
+            END IF
+            IF (ORDER > 1) THEN
+                BASIS_REC2D_DERIVATIVE(3) = 12 * X1 - 6
+                BASIS_REC2D_DERIVATIVE(4) = (1.0d0 - 6.0d0*y1 + 6.0d0*y1**2) * (-6 + 12 * X1)
+                BASIS_REC2D_DERIVATIVE(5) = 0
+            END IF           
+        CASE(2) ! Derivative with respect to y
+            IF (ORDER > 0) THEN
+                BASIS_REC2D_DERIVATIVE(1) = 0
+                BASIS_REC2D_DERIVATIVE(2) = 2
+            END IF
+            IF (ORDER > 1) THEN
+                BASIS_REC2D_DERIVATIVE(3) = 0
+                BASIS_REC2D_DERIVATIVE(4) = (1.0d0 - 6.0d0*X1 + 6.0d0*X1**2) * (-6 + 12 * Y1)
+                BASIS_REC2D_DERIVATIVE(5) = 12 * Y1 - 6
+            END IF
+        END SELECT
+    CASE(3) ! Taylor
+        BASIS_REC2D_DERIVATIVE = TAYLOR_BASIS_DERIVATIVE((/ X1,Y1 /), IELEM(N,ICONSIDERED)%DELTA_XYZ, ORDER, NUMBER_OF_DOG, DX_OR_DY)
+    END SELECT
+    
+END FUNCTION BASIS_REC2D_DERIVATIVE
+
+FUNCTION TAYLOR_BASIS(XYZ_IN, DELTA_XYZ_IN, QP_XYZ, QP_WEIGHTS, N_QP, N_DIM, N_DOFS, CELL_VOLUME)
+    IMPLICIT NONE
+    REAL, INTENT(IN)::CELL_VOLUME
+    REAL,DIMENSION(N_DIM),INTENT(IN)::XYZ_IN, DELTA_XYZ_IN !XYZ_IN: Location of basis evaluation requested, relative to center of element
+    REAL,DIMENSION(N_DIM,N_QP),INTENT(IN)::QP_XYZ !Volume quadrature points relative to center of element
+    REAL,DIMENSION(N_QP),INTENT(IN)::QP_WEIGHTS
+    INTEGER,INTENT(IN)::N_DIM, N_DOFS, N_QP
+    INTEGER::I_DOF, I_DIM, I_QP
+    REAL,DIMENSION(N_DOFS)::TAYLOR_BASIS
+    
+    !X, Y, Z TERMS
+    DO I_DIM = 1, N_DIM
+        TAYLOR_BASIS(I_DIM) = XYZ_IN(I_DIM) / DELTA_XYZ_IN(I_DIM)
+    END DO
+
+    IF (N_DOFS > N_DIM) THEN
+        !X^2, Y^2, Z^2 TERMS
+        DO I_DIM = 1, N_DIM
+            TAYLOR_BASIS(N_DIM+I_DIM) = TAYLOR_BASIS(I_DIM) ** 2 / 2
+            DO I_QP = 1, N_QP
+                TAYLOR_BASIS(N_DIM+I_DIM) = TAYLOR_BASIS(N_DIM+I_DIM) - (QP_XYZ(I_DIM,I_QP) / DELTA_XYZ_IN(I_DIM)) ** 2 / 2 * QP_WEIGHTS(I_QP) ! * CELL_VOLUME No multiplication because cancelled out
+            END DO
+        END DO
+        
+        !XY TERM
+        TAYLOR_BASIS(2*N_DIM+1) = TAYLOR_BASIS(1) * TAYLOR_BASIS(2)
+        DO I_QP = 1, N_QP
+            TAYLOR_BASIS(2*N_DIM+1) = TAYLOR_BASIS(2*N_DIM+1) - QP_XYZ(1,I_QP) / DELTA_XYZ_IN(1) * QP_XYZ(2,I_QP) / DELTA_XYZ_IN(2) * QP_WEIGHTS(I_QP) ! * CELL_VOLUME No multiplication because cancelled out
+        END DO
+        
+        IF (N_DIM == 3) THEN
+        !XZ, YZ TERMS
+        END IF            
+    END IF
+END FUNCTION TAYLOR_BASIS
+
+FUNCTION TAYLOR_BASIS_DERIVATIVE(XYZ_IN, DELTA_XYZ_IN, ORDER, N_DOFS, DX_OR_DY)
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::ORDER, DX_OR_DY, N_DOFS
+    REAL,DIMENSION(:),INTENT(IN)::XYZ_IN, DELTA_XYZ_IN
+    REAL,DIMENSION(N_DOFS)::TAYLOR_BASIS_DERIVATIVE
+    
+    SELECT CASE(DX_OR_DY)
+    CASE(1) ! Derivative with respect to x
+        IF (ORDER > 0) THEN
+            TAYLOR_BASIS_DERIVATIVE(1) = 1
+            TAYLOR_BASIS_DERIVATIVE(2) = 0
+        END IF
+        IF (ORDER > 1) THEN
+            TAYLOR_BASIS_DERIVATIVE(3) = XYZ_IN(1) / DELTA_XYZ_IN(1)
+            TAYLOR_BASIS_DERIVATIVE(4) = 0
+            TAYLOR_BASIS_DERIVATIVE(5) = XYZ_IN(2) / DELTA_XYZ_IN(2)
+        END IF
+    CASE(2) ! Derivative with respect to y
+        IF (ORDER > 0) THEN
+            TAYLOR_BASIS_DERIVATIVE(1) = 0
+            TAYLOR_BASIS_DERIVATIVE(2) = 1
+        END IF
+        IF (ORDER > 1) THEN
+            TAYLOR_BASIS_DERIVATIVE(3) = 0
+            TAYLOR_BASIS_DERIVATIVE(4) = XYZ_IN(2) / DELTA_XYZ_IN(2)
+            TAYLOR_BASIS_DERIVATIVE(5) = XYZ_IN(1) / DELTA_XYZ_IN(1)
+        END IF
+    END SELECT
+    
+END FUNCTION TAYLOR_BASIS_DERIVATIVE
 
 END MODULE BASIS
