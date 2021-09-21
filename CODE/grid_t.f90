@@ -2611,7 +2611,7 @@ END SUBROUTINE QUADRATUREQUAD3D
 
 SUBROUTINE QUADRATURELINE(N,IGQRULES)
  !> @brief
-!> This subroutine computes the quadrature points for a line
+!> This subroutine computes the quadrature points for a line and returns it in QPOINTS2D(DIM,QP)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
 REAL::R,S,T,a,b,c,d,e,f,G,H,K
