@@ -7,36 +7,36 @@ IMPLICIT NONE
 
 CONTAINS
 
-FUNCTION DG_SOL(N, I_ELEM, X_IN, Y_IN, NUM_VARIABLES, IORDER, IDEGFREE, U_C_VALDG)
+FUNCTION DG_SOL(N, I_ELEM, X_IN, Y_IN, NUM_VARIABLES, ORDER, NUM_DOFS, U_C_VALDG)
 !> @brief
 !> This function returns the DG solution at a given point (X_IN, Y_IN)\n
-!> REQUIRES: X_IN, Y_IN: coordinates of the point where the solution is requested, NUM_VARIABLES: number of solution variables, IDEGFREE: number of basis terms
-    INTEGER,INTENT(IN)::N,I_ELEM,IORDER,IDEGFREE,NUM_VARIABLES
+!> REQUIRES: X_IN, Y_IN: coordinates of the point where the solution is requested, NUM_VARIABLES: number of solution variables, NUM_DOFS: number of basis terms
+    INTEGER,INTENT(IN)::N, I_ELEM, ORDER, NUM_DOFS, NUM_VARIABLES
     REAL,INTENT(IN)::X_IN,Y_IN ! Coordinates of the point where the solution is requested
     REAL,DIMENSION(:,:),INTENT(IN)::U_C_VALDG
-    REAL,DIMENSION(IDEGFREE)::BASIS_TEMP
+    REAL,DIMENSION(NUM_DOFS)::BASIS_TEMP
     INTEGER::I_DOF, I_VAR
     REAL,DIMENSION(NUM_VARIABLES)::DG_SOL
 
-    IF(ALL(SHAPE(U_C_VALDG) /= (/ NUM_VARIABLES,IDEGFREE+1 /))) THEN
+    IF(ALL(SHAPE(U_C_VALDG) /= (/ NUM_VARIABLES, NUM_DOFS+1 /))) THEN
         WRITE(400+N,*) 'DG_SOL: U_C_VALDG WRONG DIMENSIONS:', SHAPE(U_C_VALDG)
         STOP
     END IF
         
-    BASIS_TEMP = BASIS_REC2D(N,X_IN,Y_IN,IORDER,I_ELEM,IDEGFREE)
+    BASIS_TEMP = BASIS_REC2D(N, X_IN, Y_IN, ORDER, I_ELEM, NUM_DOFS)
 
     DO I_VAR = 1, NUM_VARIABLES
-        DG_SOL(I_VAR) = U_C_VALDG(I_VAR,1) + DOT_PRODUCT(BASIS_TEMP(:), U_C_VALDG(I_VAR,2:))
+        DG_SOL(I_VAR) = U_C_VALDG(I_VAR,1) + DOT_PRODUCT(BASIS_TEMP, U_C_VALDG(I_VAR,2:))
     END DO
 
 END FUNCTION DG_SOL
 
-FUNCTION DG_RHS_INTEGRAL(N,I_ELEM,QP_X,QP_Y,QP_WEIGHT,NUM_VARS,ORDER,NUM_DOFS,CELL_VOL_OR_SURF,FLUX_TERM,VOL_OR_SURF)
+FUNCTION DG_RHS_INTEGRAL(N, I_ELEM, QP_X, QP_Y, QP_WEIGHT, NUM_VARS, ORDER, NUM_DOFS, CELL_VOL_OR_SURF, FLUX_TERM, VOL_OR_SURF)
 !> @brief
 !> Calculates the volume or surface integral term in the DG RHS for scalar linear advection with speed = 1
     IMPLICIT NONE
-    INTEGER,INTENT(IN)::N,I_ELEM,ORDER,NUM_VARS,NUM_DOFS,VOL_OR_SURF
-    REAL,INTENT(IN)::QP_X,QP_Y,QP_WEIGHT,CELL_VOL_OR_SURF
+    INTEGER,INTENT(IN)::N, I_ELEM, ORDER, NUM_VARS, NUM_DOFS, VOL_OR_SURF
+    REAL,INTENT(IN)::QP_X, QP_Y, QP_WEIGHT, CELL_VOL_OR_SURF
     REAL,DIMENSION(:),INTENT(IN)::FLUX_TERM
     INTEGER::I_VAR
     REAL,DIMENSION(NUM_DOFS+1,NUM_VARS)::DG_RHS_INTEGRAL
@@ -108,33 +108,31 @@ SUBROUTINE PRESTORE_AND_ALLOCATE_DG
     IMPLICIT NONE
     INTEGER::I, K, I_QP, N_QP, I_FACE
     
-    ALLOCATE(QP_ARRAY(XMPIELRANK(N), MAX(QP_QUAD,QP_TRIANGLE)))
+	ALLOCATE(QP_ARRAY(XMPIELRANK(N),NUMBEROFPOINTS)); !Allocates for 2D
     
-    DO I = 1, XMPIELRANK(N)
-        !Store delta xyz (normalization factor from Luo 2012)
-        IELEM(N,I)%DELTA_XYZ = CALC_DELTA_XYZ(IELEM(N,I)%NONODES, DIMENSIONA, NODES_LIST)
-    
+    DO I = 1, XMPIELRANK(N)    
         !Store volume quadrature points
         DO K = 1,IELEM(N,I)%NONODES
             NODES_LIST(k,1:2)=INODER(IELEM(N,I)%NODES(K))%CORD(1:2)
-            vext(k,1:2)=NODES_LIST(k,1:2)
+            VEXT(k,1:2)=NODES_LIST(k,1:2)
         END DO
+        
+        !Store delta xyz (normalization factor from Luo 2012)
+        IELEM(N,I)%DELTA_XYZ = CALC_DELTA_XYZ(IELEM(N,I)%NONODES, DIMENSIONA, NODES_LIST)
+    
         SELECT CASE(ielem(n,i)%ishape)
         CASE(5)
             CALL QUADRATUREQUAD(N,IGQRULES)
-            N_QP=QP_quad
+            N_QP = QP_quad
         CASE(6)
             CALL QUADRATURETRIANGLE(N,IGQRULES)
-            N_QP=QP_Triangle
+            N_QP = QP_Triangle
         END SELECT
                 
         DO I_QP = 1, N_QP
             QP_ARRAY(I,I_QP)%X = QPOINTS(1,I_QP) - IELEM(N,I)%XXC
             QP_ARRAY(I,I_QP)%Y = QPOINTS(2,I_QP) - IELEM(N,I)%YYC
             QP_ARRAY(I,I_QP)%QP_WEIGHT = WEQUA3D(I_QP)
-            
-!             WRITE(400+N,*) 'QP:', QP_ARRAY(I,I_QP)%X, QP_ARRAY(I,I_QP)%Y
-!             WRITE(400+N,*) 'CENTER:', IELEM(N,I)%XXC, IELEM(N,I)%YYC
         END DO
         
         ALLOCATE(ILOCAL_RECON3(I)%SURF_QPOINTS(IELEM(N,I)%IFCA, QP_LINE_N, DIMENSIONA))
@@ -143,7 +141,7 @@ SUBROUTINE PRESTORE_AND_ALLOCATE_DG
             VEXT(1,1:2) = inoder(IELEM(N,I)%NODES_FACES(I_FACE,1))%CORD(1:2)  !COPY THE COORDINATE OF THE FIRST NODE OF THID EDGE
             VEXT(2,1:2) = inoder(IELEM(N,I)%NODES_FACES(I_FACE,2))%CORD(1:2)  !COPY THE COORDINATE OF THE SECOND NODE OF THID EDGE
             CALL QUADRATURELINE(N,IGQRULES)
-!
+
             DO I_QP = 1, QP_LINE_N
                 ILOCAL_RECON3(I)%SURF_QPOINTS(I_FACE,I_QP,:) = QPOINTS2D(:,I_QP) - (/ IELEM(N,I)%XXC, IELEM(N,I)%YYC /)
             END DO
@@ -178,6 +176,7 @@ SUBROUTINE ASS_MASS_MATRIX(N)
         CASE(6) ! Triangle
             N_QP = QP_TRIANGLE
         END SELECT
+	MASS_MATRIX_CENTERS(N,I_ELEM,1,1) = IELEM(N,I_ELEM)%TOTVOLUME
 
         !TAKIS START
         DO I_DOF = 1, IDEGFREE

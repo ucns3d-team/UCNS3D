@@ -1686,7 +1686,7 @@ CASE(3) ! Taylor
 END SELECT
    
     IF (DG == 1) THEN
-        basis_rec2d=SB
+        basis_rec2d(1:NUMBER_OF_DOG) = SB(1:NUMBER_OF_DOG)
     ELSE if (compwrt.eq.0)then
         OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
         basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)-((INTEG_BASIS(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
@@ -1895,7 +1895,7 @@ FUNCTION TAYLOR_BASIS_DERIVATIVE(XYZ_IN, DELTA_XYZ_IN, ORDER, N_DOFS, DX_OR_DY)
     SELECT CASE(DX_OR_DY)
     CASE(1) ! Derivative with respect to x
         IF (ORDER > 0) THEN
-            TAYLOR_BASIS_DERIVATIVE(1) = 1
+            TAYLOR_BASIS_DERIVATIVE(1) = 1 / DELTA_XYZ_IN(1)
             TAYLOR_BASIS_DERIVATIVE(2) = 0
         END IF
         IF (ORDER > 1) THEN
@@ -1906,7 +1906,7 @@ FUNCTION TAYLOR_BASIS_DERIVATIVE(XYZ_IN, DELTA_XYZ_IN, ORDER, N_DOFS, DX_OR_DY)
     CASE(2) ! Derivative with respect to y
         IF (ORDER > 0) THEN
             TAYLOR_BASIS_DERIVATIVE(1) = 0
-            TAYLOR_BASIS_DERIVATIVE(2) = 1
+            TAYLOR_BASIS_DERIVATIVE(2) = 1 / DELTA_XYZ_IN(2)
         END IF
         IF (ORDER > 1) THEN
             TAYLOR_BASIS_DERIVATIVE(3) = 0
