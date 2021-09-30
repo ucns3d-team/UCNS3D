@@ -2,34 +2,64 @@ MODULE DG_FUNCTIONS
 
 USE BASIS
 USE DECLARATION
+USE DERIVATIVES
 
 IMPLICIT NONE
 
-CONTAINS
+ CONTAINS
 
-FUNCTION DG_SOL(N, I_ELEM, X_IN, Y_IN, NUM_VARIABLES, ORDER, NUM_DOFS, U_C_VALDG)
+FUNCTION DG_SOL(n)
+IMPLICIT NONE
 !> @brief
 !> This function returns the DG solution at a given point (X_IN, Y_IN)\n
 !> REQUIRES: X_IN, Y_IN: coordinates of the point where the solution is requested, NUM_VARIABLES: number of solution variables, NUM_DOFS: number of basis terms
-    INTEGER,INTENT(IN)::N, I_ELEM, ORDER, NUM_DOFS, NUM_VARIABLES
-    REAL,INTENT(IN)::X_IN,Y_IN ! Coordinates of the point where the solution is requested
-    REAL,DIMENSION(:,:),INTENT(IN)::U_C_VALDG
-    REAL,DIMENSION(NUM_DOFS)::BASIS_TEMP
+    REAL,DIMENSION(NUMBER_OF_DOG)::BASIS_TEMP
+    integer,intent(in)::n
     INTEGER::I_DOF, I_VAR
-    REAL,DIMENSION(NUM_VARIABLES)::DG_SOL
+    REAL,DIMENSION(Nof_VARIABLES)::DG_SOL
 
-    IF(ALL(SHAPE(U_C_VALDG) /= (/ NUM_VARIABLES, NUM_DOFS+1 /))) THEN
-        WRITE(400+N,*) 'DG_SOL: U_C_VALDG WRONG DIMENSIONS:', SHAPE(U_C_VALDG)
-        STOP
-    END IF
-        
-    BASIS_TEMP = BASIS_REC2D(N, X_IN, Y_IN, ORDER, I_ELEM, NUM_DOFS)
+!     IF(ALL(SHAPE(U_C_VALDG) /= (/ NUM_VARIABLES, NUM_DOFS+1 /))) THEN
+!         WRITE(400+N,*) 'DG_SOL: U_C_VALDG WRONG DIMENSIONS:', SHAPE(U_C_VALDG)
+!         STOP
+!     END IF
+    number=ielem(n,iconsidered)%iorder
+    BASIS_TEMP = BASIS_REC2D(N, X1, Y1, number, ICONSIDERED, NUMBER_OF_DOG)
 
-    DO I_VAR = 1, NUM_VARIABLES
-        DG_SOL(I_VAR) = U_C_VALDG(I_VAR,1) + DOT_PRODUCT(BASIS_TEMP, U_C_VALDG(I_VAR,2:))
+    DO I_VAR = 1, NOF_VARIABLES
+        DG_SOL(I_VAR) = U_C(iconsidered)%VALDG(1,I_VAR,1) + DOT_PRODUCT(BASIS_TEMP, U_C(iconsidered)%VALDG(1,I_VAR,2:))
     END DO
 
 END FUNCTION DG_SOL
+
+
+
+
+
+FUNCTION DG_SOLFACE(n)
+IMPLICIT NONE
+!> @brief
+!> This function returns the DG solution at a given point (X_IN, Y_IN)\n
+!> REQUIRES: X_IN, Y_IN: coordinates of the point where the solution is requested, NUM_VARIABLES: number of solution variables, NUM_DOFS: number of basis terms
+    REAL,DIMENSION(NUMBER_OF_DOG)::BASIS_TEMP
+    INTEGER::I_DOF, I_VAR
+    integer,intent(in)::n
+    REAL,DIMENSION(1:nof_Variables)::DG_SOLFACE
+
+!     IF(ALL(SHAPE(U_C_VALDG) /= (/ nof_Variables, NUMBER_OF_DOG+1 /))) THEN
+!         WRITE(400+N,*) 'DG_SOL: U_C_VALDG WRONG DIMENSIONS:', SHAPE(U_C_VALDG)
+!         STOP
+!     END IF
+    x1=ilocal_recon3(iconsidered)%surf_qpoints(facex,pointx,1)
+    y1=ilocal_recon3(iconsidered)%surf_qpoints(facex,pointx,2)
+    number=ielem(n,iconsidered)%iorder
+        
+    BASIS_TEMP = BASIS_REC2D(N, X1, Y1, NUMBER, ICONSIDERED, NUMBER_OF_DOG)
+
+    DO I_VAR = 1, NOF_VARIABLES
+        DG_SOLface(I_VAR) = U_C(iconsidered)%VALDG(1,I_VAR,1) + DOT_PRODUCT(BASIS_TEMP(1:number_of_dog), U_C(iconsidered)%VALDG(1,I_VAR,2:number_of_dog+1))
+    END DO
+
+END FUNCTION DG_SOLFACE
 
 FUNCTION DG_RHS_INTEGRAL(N, I_ELEM, QP_X, QP_Y, QP_WEIGHT, NUM_VARS, ORDER, NUM_DOFS, CELL_VOL_OR_SURF, FLUX_TERM, VOL_OR_SURF)
 !> @brief
@@ -60,21 +90,108 @@ FUNCTION DG_RHS_INTEGRAL(N, I_ELEM, QP_X, QP_Y, QP_WEIGHT, NUM_VARS, ORDER, NUM_
 
 END FUNCTION DG_RHS_INTEGRAL
 
+
+
+
+FUNCTION DG_SOLFACEX(n)
+IMPLICIT NONE
+REAL,DIMENSION(NUMBER_OF_DOG+1,NOf_VARIABLES)::DG_solfacex
+integer::i
+integer,intent(in)::n
+NUMBER=IELEM(N,ICONSIDERED)%IORDER
+X1=ilocal_recon3(iconsidered)%surf_qpoints(facex,pointx,1)
+Y1=ilocal_recon3(iconsidered)%surf_qpoints(facex,pointx,2)
+DO I = 1, NOf_VARIABLES
+            DG_SOLFACEX(1,I) = HLLCFLUX(I) * WEQUA2D(pointx)*IELEM(N,ICONSIDERED)%SURF(FACEX)
+            DG_SOLFACEX(2:,I) = HLLCFLUX(I) * WEQUA2D(pointx)*IELEM(N,ICONSIDERED)%SURF(FACEX)*BASIS_REC2D(N,X1,Y1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
+        END DO
+
+END FUNCTION DG_SOLFACEX
+
+FUNCTION DG_RHS_INTEGRAL_vol(N)
+!> @brief
+!> Calculates the volume or surface integral term in the DG RHS for scalar linear advection with speed = 1
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I_VAR,iqp
+    REAL,DIMENSION(idegfree+1,NOF_VARIABLES)::DG_RHS_INTEGRAL_VOL
+    real,dimension(nof_variables)::flux_term
+    INTEGER::I,J,K,ngp
+    REAL::PH,INTEG
+    
+!     IF (SIZE(FLUX_TERM) /= NUM_VARS) THEN
+!         WRITE(400+N,*) 'DG_RHS_INTEGRAL: FLUX_TERM WRONG DIMENSIONS:', SHAPE(FLUX_TERM)
+!         STOP
+!     END IF
+    
+    
+            IF (IELEM(N,Iconsidered)%ISHAPE == 5) IQP = QP_QUAD
+            IF (IELEM(N,Iconsidered)%ISHAPE == 6) IQP = QP_TRIANGLE
+            number=ielem(n,iconsidered)%iorder
+            number_of_dog=ielem(n,iconsidered)%idegfree
+           
+            DO I_VAR = 1, NOF_VARIABLES
+            DG_RHS_INTEGRAL_VOL(1,I_VAR) = 0.0d0
+            DG_RHS_INTEGRAL_VOL(2:,I_VAR)=0.0D0
+
+             do I=1,NUMBER_OF_DOG
+             DO NGP = 1, IQP 
+             X1=qp_array(iconsidered,ngp)%x
+             Y1=qp_array(iconsidered,ngp)%Y
+             
+             FLUX_TERM=DG_SOL(n)
+            
+             if (itestcase.eq.3)then
+             leftv=DG_SOL(n)
+             call prim2cons2d(n)
+             flux_term=FLUXEVAL2D(LEFTV)
+             
+             end if
+             
+             
+             DG_RHS_INTEGRAL_VOL(i+1,I_VAR) = DG_RHS_INTEGRAL_vol(i+1,I_VAR)+FLUX_TERM(I_VAR)* qp_array(iconsidered,ngp)%QP_WEIGHT * ielem(n,iconsidered)%totvolume *(DF2DX(X1,Y1,I)+DF2DY(X1,Y1,I))
+             END DO
+             END DO
+             END DO
+             
+             
+            
+            
+            
+            
+  
+
+END FUNCTION DG_RHS_INTEGRAL_vol
+
+
+
+
 SUBROUTINE RECONSTRUCT_DG(N)
     IMPLICIT NONE
     INTEGER,INTENT(IN)::N
     INTEGER::I_FACE, I_ELEM, I_QP
-
+    
+    
+    !$OMP DO
     DO I_ELEM = 1, XMPIELRANK(N)
         DO I_FACE = 1, IELEM(N,I_ELEM)%IFCA
             !SOMEWHERE PRESTORED THE GUASSIAN QUADRATURE POINTS FOR YOUR SIDES IN ANOTHER SUBROUTINE AND YOU BUILD ONLY THE cleft STATES AND VOLUME INTEGRAL
             
             DO I_QP = 1, QP_LINE_N
-                ILOCAL_RECON3(I_ELEM)%ULEFT_DG(:, I_FACE, I_QP) = DG_SOL(N, I_ELEM, ILOCAL_RECON3(I_ELEM)%SURF_QPOINTS(I_FACE,I_QP,1), ILOCAL_RECON3(I_ELEM)%SURF_QPOINTS(I_FACE,I_QP,2), NOF_VARIABLES, IORDER, IDEGFREE, U_C(I_ELEM)%VALDG(1,:,:))
+            
+            FACEX=I_FACE
+            pointx=I_QP
+            ICONSIDERED=I_ELEM
+            number_of_dog=ielem(n,iconsidered)%idegfree
+                ILOCAL_RECON3(I_ELEM)%ULEFT_DG(:, I_FACE, I_QP) = DG_SOLFACE(n)
+                write(700+n,*)"look here","cell",i_elem,"face",facex,"point",pointx
+                write(700+n,*)ILOCAL_RECON3(I_ELEM)%ULEFT_DG(:, I_FACE, I_QP)
+                
                 !STORE IT HERE (ILOCAL_RECON3(I)%ULEFT_DG(1,1:FACES,1:NGP) ! you need to allocate it in memory
             END DO
         END DO
     END DO
+    !$OMP END DO
 
 END SUBROUTINE RECONSTRUCT_DG
 

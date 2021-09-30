@@ -101,6 +101,8 @@ end if
 IF (INITCOND.EQ.2)THEN
 LINEAR_INIT2d=(SIN((2.0D0*PI)*(POX(1))))*&
  (SIN((2.0D0*PI)*(POY(1))))
+ 
+!  linear_init2d=1.0d0
 end if
 
 
