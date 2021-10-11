@@ -14645,7 +14645,7 @@ SUBROUTINE CALCULATE_ERROR(N)
 	L0NORM=ZERO;STENNORM=ZERO;L1NORM=ZERO
 	ind_er=1
 	if (multispecies.eq.1)then
-	ind_er=nof_variables
+        ind_er=nof_variables
 	end if
 	  !$OMP MASTER
 	  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -14656,7 +14656,11 @@ SUBROUTINE CALCULATE_ERROR(N)
 			DO I=1,KMAXE
 				IF (ITESTCASE.Le.3)THEN
 				EXACT=U_E(I)%VAL(1,ind_er)
-				APROXIMATE=U_C(I)%VAL(1,ind_er)
+                IF (DG == 1) THEN
+                    APROXIMATE=U_C(I)%VALDG(1,ind_er,1)
+                ELSE
+                    APROXIMATE=U_C(I)%VAL(1,ind_er)
+                END IF
 ! 					IF ((ABS(APROXIMATE-EXACT)).GT.L0NORM(N,1))THEN
 ! 					L0NORM(N,1)=ABS(APROXIMATE-EXACT)
 ! 					END IF
@@ -14666,34 +14670,31 @@ SUBROUTINE CALCULATE_ERROR(N)
  			!$OMP END DO 
  			
  			if (initcond.eq.0)then
- 			!$OMP DO REDUCTION (+:L0NORM)
-			DO I=1,KMAXE
-				IF (ITESTCASE.Le.3)THEN
-! 				condm(2)=ilocal_recon3(i)%cond(2)
-! 				L0NORM=ilocal_recon3(i)%cond(1)
-! 					IF (maxval(condm).GT.L0NORM)THEN
-					L0NORM=L0NORM+abs(ilocal_recon3(i)%cond(1))
-! 					END IF
-! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATE-EXACT)))
-				END IF
- 			END DO
- 			!$OMP END DO 
+                !$OMP DO REDUCTION (+:L0NORM)
+                DO I=1,KMAXE
+                    IF (ITESTCASE.Le.3)THEN
+    ! 				condm(2)=ilocal_recon3(i)%cond(2)
+    ! 				L0NORM=ilocal_recon3(i)%cond(1)
+    ! 					IF (maxval(condm).GT.L0NORM)THEN
+                        L0NORM=L0NORM+abs(ilocal_recon3(i)%cond(1))
+    ! 					END IF
+    ! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATE-EXACT)))
+                    END IF
+                END DO
+                !$OMP END DO 
  			ELSE
- 			!$OMP DO REDUCTION (MAX:L0NORM)
-			DO I=1,KMAXE
-				IF (ITESTCASE.Le.3)THEN
-				EXACT=U_E(I)%VAL(1,ind_er)
-				APROXIMATE=U_C(I)%VAL(1,ind_er)
-					IF ((ABS(APROXIMATE-EXACT)).GT.L0NORM)THEN
-					L0NORM=ABS(APROXIMATE-EXACT)
-					END IF
-! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATE-EXACT)))
-				END IF
- 			END DO
- 			!$OMP END DO 
- 			
- 			
- 			
+                !$OMP DO REDUCTION (MAX:L0NORM)
+                DO I=1,KMAXE
+                    IF (ITESTCASE.Le.3)THEN
+                    EXACT=U_E(I)%VAL(1,ind_er)
+                    APROXIMATE=U_C(I)%VAL(1,ind_er)
+                        IF ((ABS(APROXIMATE-EXACT)).GT.L0NORM)THEN
+                        L0NORM=ABS(APROXIMATE-EXACT)
+                        END IF
+    ! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATE-EXACT)))
+                    END IF
+                END DO
+                !$OMP END DO
  			END IF
  			IF (INITCOND.EQ.3)THEN
  			L0NORM=ZERO;L1NORM=TOLBIG

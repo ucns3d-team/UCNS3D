@@ -15,13 +15,9 @@ IMPLICIT NONE
 !> REQUIRES: X_IN, Y_IN: coordinates of the point where the solution is requested, NUM_VARIABLES: number of solution variables, NUM_DOFS: number of basis terms
     REAL,DIMENSION(NUMBER_OF_DOG)::BASIS_TEMP
     integer,intent(in)::n
-    INTEGER::I_DOF, I_VAR
+    INTEGER::I_VAR
     REAL,DIMENSION(Nof_VARIABLES)::DG_SOL
 
-!     IF(ALL(SHAPE(U_C_VALDG) /= (/ NUM_VARIABLES, NUM_DOFS+1 /))) THEN
-!         WRITE(400+N,*) 'DG_SOL: U_C_VALDG WRONG DIMENSIONS:', SHAPE(U_C_VALDG)
-!         STOP
-!     END IF
     number=ielem(n,iconsidered)%iorder
     BASIS_TEMP = BASIS_REC2D(N, X1, Y1, number, ICONSIDERED, NUMBER_OF_DOG)
 
@@ -45,10 +41,6 @@ IMPLICIT NONE
     integer,intent(in)::n
     REAL,DIMENSION(1:nof_Variables)::DG_SOLFACE
 
-!     IF(ALL(SHAPE(U_C_VALDG) /= (/ nof_Variables, NUMBER_OF_DOG+1 /))) THEN
-!         WRITE(400+N,*) 'DG_SOL: U_C_VALDG WRONG DIMENSIONS:', SHAPE(U_C_VALDG)
-!         STOP
-!     END IF
     x1=ilocal_recon3(iconsidered)%surf_qpoints(facex,pointx,1)
     y1=ilocal_recon3(iconsidered)%surf_qpoints(facex,pointx,2)
     number=ielem(n,iconsidered)%iorder
@@ -94,73 +86,60 @@ END FUNCTION DG_RHS_INTEGRAL
 
 
 FUNCTION DG_SOLFACEX(n)
-IMPLICIT NONE
-REAL,DIMENSION(NUMBER_OF_DOG+1,NOf_VARIABLES)::DG_solfacex
-integer::i
-integer,intent(in)::n
-NUMBER=IELEM(N,ICONSIDERED)%IORDER
-X1=ilocal_recon3(iconsidered)%surf_qpoints(facex,pointx,1)
-Y1=ilocal_recon3(iconsidered)%surf_qpoints(facex,pointx,2)
-DO I = 1, NOf_VARIABLES
-            DG_SOLFACEX(1,I) = HLLCFLUX(I) * WEQUA2D(pointx)*IELEM(N,ICONSIDERED)%SURF(FACEX)
-            DG_SOLFACEX(2:,I) = HLLCFLUX(I) * WEQUA2D(pointx)*IELEM(N,ICONSIDERED)%SURF(FACEX)*BASIS_REC2D(N,X1,Y1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
-        END DO
+    IMPLICIT NONE
+    REAL,DIMENSION(NUMBER_OF_DOG+1,NOf_VARIABLES)::DG_solfacex
+    integer::i
+    integer,intent(in)::n
+    
+    NUMBER=IELEM(N,ICONSIDERED)%IORDER
+    X1=ilocal_recon3(iconsidered)%surf_qpoints(facex,pointx,1)
+    Y1=ilocal_recon3(iconsidered)%surf_qpoints(facex,pointx,2)
+    DO I = 1, NOf_VARIABLES
+        DG_SOLFACEX(1,I) = HLLCFLUX(I) * WEQUA2D(pointx)*IELEM(N,ICONSIDERED)%SURF(FACEX)
+        DG_SOLFACEX(2:,I) = HLLCFLUX(I) * WEQUA2D(pointx)*IELEM(N,ICONSIDERED)%SURF(FACEX)*BASIS_REC2D(N,X1,Y1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
+    END DO
 
 END FUNCTION DG_SOLFACEX
 
 FUNCTION DG_RHS_INTEGRAL_vol(N)
 !> @brief
-!> Calculates the volume or surface integral term in the DG RHS for scalar linear advection with speed = 1
+!> Calculates the volume integral term in the DG RHS for scalar linear advection with speed = 1
     IMPLICIT NONE
     INTEGER,INTENT(IN)::N
     INTEGER::I_VAR,iqp
     REAL,DIMENSION(idegfree+1,NOF_VARIABLES)::DG_RHS_INTEGRAL_VOL
     real,dimension(nof_variables)::flux_term
-    INTEGER::I,J,K,ngp
+    INTEGER::I_DOF,ngp
     REAL::PH,INTEG
     
-!     IF (SIZE(FLUX_TERM) /= NUM_VARS) THEN
-!         WRITE(400+N,*) 'DG_RHS_INTEGRAL: FLUX_TERM WRONG DIMENSIONS:', SHAPE(FLUX_TERM)
-!         STOP
-!     END IF
-    
-    
-            IF (IELEM(N,Iconsidered)%ISHAPE == 5) IQP = QP_QUAD
-            IF (IELEM(N,Iconsidered)%ISHAPE == 6) IQP = QP_TRIANGLE
-            number=ielem(n,iconsidered)%iorder
-            number_of_dog=ielem(n,iconsidered)%idegfree
-           
-            DO I_VAR = 1, NOF_VARIABLES
-            DG_RHS_INTEGRAL_VOL(1,I_VAR) = 0.0d0
-            DG_RHS_INTEGRAL_VOL(2:,I_VAR)=0.0D0
+    IF (IELEM(N,Iconsidered)%ISHAPE == 5) IQP = QP_TRIANGLE * 2
+    IF (IELEM(N,Iconsidered)%ISHAPE == 6) IQP = QP_TRIANGLE
+    number=ielem(n,iconsidered)%iorder
+    number_of_dog=ielem(n,iconsidered)%idegfree
+            
+    DO I_VAR = 1, NOF_VARIABLES
+        DG_RHS_INTEGRAL_VOL(1,I_VAR) = 0.0d0
+        DG_RHS_INTEGRAL_VOL(2:,I_VAR)=0.0D0
 
-             do I=1,NUMBER_OF_DOG
-             DO NGP = 1, IQP 
-             X1=qp_array(iconsidered,ngp)%x
-             Y1=qp_array(iconsidered,ngp)%Y
-             
-             FLUX_TERM=DG_SOL(n)
-            
-             if (itestcase.eq.3)then
-             leftv=DG_SOL(n)
-             call prim2cons2d(n)
-             flux_term=FLUXEVAL2D(LEFTV)
-             
-             end if
-             
-             
-             DG_RHS_INTEGRAL_VOL(i+1,I_VAR) = DG_RHS_INTEGRAL_vol(i+1,I_VAR)+FLUX_TERM(I_VAR)* qp_array(iconsidered,ngp)%QP_WEIGHT * ielem(n,iconsidered)%totvolume *(DF2DX(X1,Y1,I)+DF2DY(X1,Y1,I))
-             END DO
-             END DO
-             END DO
-             
-             
-            
-            
-            
-            
-  
-
+        do I_DOF=1,NUMBER_OF_DOG
+            DO NGP = 1, IQP 
+                X1=qp_array(iconsidered,ngp)%x
+                Y1=qp_array(iconsidered,ngp)%Y
+                
+                FLUX_TERM=DG_SOL(n) !Linear advection
+                
+                if (itestcase.eq.3)then !Euler
+                    leftv=DG_SOL(n)
+                    call prim2cons2d(n)
+                    flux_term=FLUXEVAL2D(LEFTV)
+                end if
+                
+                DG_RHS_INTEGRAL_VOL(I_DOF+1,I_VAR) = DG_RHS_INTEGRAL_vol(I_DOF+1,I_VAR)+FLUX_TERM(I_VAR)* qp_array(iconsidered,ngp)%QP_WEIGHT * (DF2DX(X1,Y1,I_DOF)+DF2DY(X1,Y1,I_DOF))! * ielem(n,iconsidered)%totvolume
+                
+!                 WRITE(500+N,*) I_DOF, FLUX_TERM, DF2DX(X1,Y1,I_DOF), DF2DY(X1,Y1,I_DOF), DG_RHS_INTEGRAL_vol!, X1, Y1, qp_array(iconsidered,ngp)%QP_WEIGHT
+            END DO
+        END DO
+    END DO
 END FUNCTION DG_RHS_INTEGRAL_vol
 
 
@@ -171,18 +150,15 @@ SUBROUTINE RECONSTRUCT_DG(N)
     INTEGER,INTENT(IN)::N
     INTEGER::I_FACE, I_ELEM, I_QP
     
-    
     !$OMP DO
     DO I_ELEM = 1, XMPIELRANK(N)
         DO I_FACE = 1, IELEM(N,I_ELEM)%IFCA
             !SOMEWHERE PRESTORED THE GUASSIAN QUADRATURE POINTS FOR YOUR SIDES IN ANOTHER SUBROUTINE AND YOU BUILD ONLY THE cleft STATES AND VOLUME INTEGRAL
-            
             DO I_QP = 1, QP_LINE_N
-            
-            FACEX=I_FACE
-            pointx=I_QP
-            ICONSIDERED=I_ELEM
-            number_of_dog=ielem(n,iconsidered)%idegfree
+                FACEX=I_FACE
+                pointx=I_QP
+                ICONSIDERED=I_ELEM
+                number_of_dog=ielem(n,iconsidered)%idegfree
                 ILOCAL_RECON3(I_ELEM)%ULEFT_DG(:, I_FACE, I_QP) = DG_SOLFACE(n)
                 write(700+n,*)"look here","cell",i_elem,"face",facex,"point",pointx
                 write(700+n,*)ILOCAL_RECON3(I_ELEM)%ULEFT_DG(:, I_FACE, I_QP)
@@ -225,32 +201,49 @@ SUBROUTINE PRESTORE_AND_ALLOCATE_DG
     IMPLICIT NONE
     INTEGER::I, K, I_QP, N_QP, I_FACE
     
-	ALLOCATE(QP_ARRAY(XMPIELRANK(N),NUMBEROFPOINTS)); !Allocates for 2D
+	ALLOCATE(QP_ARRAY(XMPIELRANK(N),QP_Triangle*2)); !Allocates for 2D
     
     DO I = 1, XMPIELRANK(N)    
         !Store volume quadrature points
         DO K = 1,IELEM(N,I)%NONODES
             NODES_LIST(k,1:2)=INODER(IELEM(N,I)%NODES(K))%CORD(1:2)
             VEXT(k,1:2)=NODES_LIST(k,1:2)
+            
+            WRITE(600+N,*) I, IELEM(N,I)%XXC, IELEM(N,I)%YYC, VEXT(k,1:2), IELEM(N,I)%TOTVOLUME
         END DO
         
         !Store delta xyz (normalization factor from Luo 2012)
         IELEM(N,I)%DELTA_XYZ = CALC_DELTA_XYZ(IELEM(N,I)%NONODES, DIMENSIONA, NODES_LIST)
     
+        CALL DECOMPOSE2
+    
         SELECT CASE(ielem(n,i)%ishape)
         CASE(5)
-            CALL QUADRATUREQUAD(N,IGQRULES)
-            N_QP = QP_quad
+            DO K=1,ELEM_DEC
+                VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
+            
+                CALL QUADRATUREtriangle(N,IGQRULES)
+                
+                VOLTEMP=TRIANGLEVOLUME(N)
+                
+                DO I_QP = 1, QP_Triangle
+                    QP_ARRAY(I,I_QP + QP_TRIANGLE * (K - 1))%X = QPOINTS(1,I_QP) - IELEM(N,I)%XXC
+                    QP_ARRAY(I,I_QP + QP_TRIANGLE * (K - 1))%Y = QPOINTS(2,I_QP) - IELEM(N,I)%YYC
+                    QP_ARRAY(I,I_QP + QP_TRIANGLE * (K - 1))%QP_WEIGHT = WEQUA3D(I_QP) * VOLTEMP
+                END DO
+                
+            END DO
         CASE(6)
             CALL QUADRATURETRIANGLE(N,IGQRULES)
             N_QP = QP_Triangle
+            
+            DO I_QP = 1, N_QP
+                QP_ARRAY(I,I_QP)%X = QPOINTS(1,I_QP) - IELEM(N,I)%XXC
+                QP_ARRAY(I,I_QP)%Y = QPOINTS(2,I_QP) - IELEM(N,I)%YYC
+                QP_ARRAY(I,I_QP)%QP_WEIGHT = WEQUA3D(I_QP) * IELEM(N,I)%totvolume
+            END DO
+            
         END SELECT
-                
-        DO I_QP = 1, N_QP
-            QP_ARRAY(I,I_QP)%X = QPOINTS(1,I_QP) - IELEM(N,I)%XXC
-            QP_ARRAY(I,I_QP)%Y = QPOINTS(2,I_QP) - IELEM(N,I)%YYC
-            QP_ARRAY(I,I_QP)%QP_WEIGHT = WEQUA3D(I_QP)
-        END DO
         
         ALLOCATE(ILOCAL_RECON3(I)%SURF_QPOINTS(IELEM(N,I)%IFCA, QP_LINE_N, DIMENSIONA))
         !Store surface quadrature points
@@ -289,11 +282,12 @@ SUBROUTINE ASS_MASS_MATRIX(N)
     DO I_ELEM = 1, KMAXE
         SELECT CASE(IELEM(N,I_ELEM)%ISHAPE)
         CASE(5) ! Quadrilateral
-            N_QP = QP_QUAD
+            N_QP = QP_TRIANGLE * 2
         CASE(6) ! Triangle
             N_QP = QP_TRIANGLE
         END SELECT
-	MASS_MATRIX_CENTERS(N,I_ELEM,1,1) = IELEM(N,I_ELEM)%TOTVOLUME
+        
+        MASS_MATRIX_CENTERS(N,I_ELEM,1,1) = IELEM(N,I_ELEM)%TOTVOLUME
 
         !TAKIS START
         DO I_DOF = 1, IDEGFREE
@@ -303,7 +297,7 @@ SUBROUTINE ASS_MASS_MATRIX(N)
                 BASIS_VECTOR = BASIS_REC2D(N,X1,Y1,IORDER,IXX,IDEGFREE)
             
                 PHX = BASIS_VECTOR(I_DOF)
-                INTEG_TEST = INTEG_TEST + (PHX*QP_ARRAY(I_ELEM,I_QP)%QP_WEIGHT*IELEM(N,I_ELEM)%TOTVOLUME)
+                INTEG_TEST = INTEG_TEST + PHX*QP_ARRAY(I_ELEM,I_QP)%QP_WEIGHT !* IELEM(N,I_ELEM)%TOTVOLUME
             END DO
             
             MASS_MATRIX_CENTERS(N, I_ELEM, 1, I_DOF+1) = MASS_MATRIX_CENTERS(N, I_ELEM, 1, I_DOF+1) + INTEG_TEST
@@ -316,7 +310,7 @@ SUBROUTINE ASS_MASS_MATRIX(N)
                     BASIS_VECTOR = BASIS_REC2D(N,X1,Y1,IORDER,IXX,IDEGFREE)
                 
                     PHX = BASIS_VECTOR(I_DOF) * BASIS_VECTOR(J_DOF)
-                    INTEG_TEST = INTEG_TEST + (PHX*QP_ARRAY(I_ELEM,I_QP)%QP_WEIGHT*IELEM(N,I_ELEM)%TOTVOLUME)
+                    INTEG_TEST = INTEG_TEST + PHX*QP_ARRAY(I_ELEM,I_QP)%QP_WEIGHT !* IELEM(N,I_ELEM)%TOTVOLUME
                 END DO
                 MASS_MATRIX_CENTERS(N, I_ELEM, I_DOF+1, J_DOF+1) = MASS_MATRIX_CENTERS(N, I_ELEM, I_DOF+1, J_DOF+1) + INTEG_TEST
             END DO

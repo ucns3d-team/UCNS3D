@@ -824,15 +824,15 @@ IF (RESTART.EQ.0)THEN
 !$OMP PARALLEL DEFAULT(SHARED) private(iNITIAL,i,QQP,INC)
 	IF (ISCHEME.LT.2)THEN
 		IF (ITESTCASE.EQ.0)THEN
-!$OMP DO SCHEDULE (STATIC) 
+            !$OMP DO SCHEDULE (STATIC) 
             DO INITIAL=1,KMAXE
                 U_C(INITIAL)%VAL(1,1)=1.0D0
                 U_E(INITIAL)%VAL(1,1)=U_C(INITIAL)%VAL(1,1)
             END DO
-!$OMP END DO
+            !$OMP END DO
 		END IF
 		IF (ITESTCASE.EQ.1)THEN
-!$OMP DO SCHEDULE (STATIC) 
+            !$OMP DO SCHEDULE (STATIC) 
             DO INITIAL=1,KMAXE
                 pox(1)=IELEM(N,INITIAL)%XXC
                 poy(1)=IELEM(N,INITIAL)%yyC
@@ -840,10 +840,10 @@ IF (RESTART.EQ.0)THEN
                 U_E(INITIAL)%VAL(1,1)=U_C(INITIAL)%VAL(1,1)
                 U_C(INITIAL)%VAL(1,1)=LINEAR_INIT2D(N)
             END DO
-!$OMP END DO
+            !$OMP END DO
 		END IF
 		IF (ITESTCASE.EQ.2)THEN
-!$OMP DO SCHEDULE (STATIC) 
+            !$OMP DO SCHEDULE (STATIC) 
             DO INITIAL=1,KMAXE
                 pox(1)=IELEM(N,INITIAL)%XXC
                 poy(1)=IELEM(N,INITIAL)%yyC
@@ -851,10 +851,10 @@ IF (RESTART.EQ.0)THEN
                 U_C(INITIAL)%VAL(1,1)=LINEAR_INIT2D(N)
                 U_E(INITIAL)%VAL(1,1)=U_C(INITIAL)%VAL(1,1)
             END DO
-!$OMP END DO
+            !$OMP END DO
 		END IF
 		IF (ITESTCASE.GE.3)THEN
-!$OMP DO SCHEDULE (STATIC) 
+            !$OMP DO SCHEDULE (STATIC) 
             DO INITIAL=1,KMAXE
                 VECCOS(:)=ZERO
                 pox(1)=IELEM(N,INITIAL)%XXC
@@ -868,63 +868,34 @@ IF (RESTART.EQ.0)THEN
                 U_C(INITIAL)%VAL(1,:)=VECCOS(:)
                 end if
             END DO
-!$OMP END DO
+            !$OMP END DO
 		END IF
-	ELSE ! Original if statement: IF (ISCHEME.LT.2)THEN
-!$OMP DO SCHEDULE (STATIC)
+	ELSE ! ISCHEME > 2
+        !$OMP DO SCHEDULE (STATIC)
         DO I=1,KMAXE
             VEXT=ZERO
-        !     NODES_LIST=ZERO
-        !     ELTYPE=IELEM(N,I)%ISHAPE
-        !     ELEM_LISTD=ZERO
-        !         
-        !       jx=IELEM(N,I)%NONODES
-        ! 
-        ! 	  do K=1,jx
-        ! 	    JX2=IELEM(N,I)%NODES(k)
-        ! 	    NODES_LIST(k,:)=inoder(JX2)%CORD(:)
-        ! 	    VEXT(K,:)=NODES_LIST(k,:)
-        ! 	  END DO
-            
-            ELTYPE=IELEM(N,I)%ISHAPE
-            ELEM_DEC=IELEM(N,I)%VDEC
+!             ELTYPE=IELEM(N,I)%ISHAPE
+!             ELEM_DEC=IELEM(N,I)%VDEC
             DO K=1,IELEM(N,I)%NONODES
                 NODES_LIST(k,1:2)=INODER(IELEM(N,I)%NODES(K))%CORD(1:2)
                 VEXT(k,1:2)=NODES_LIST(k,1:2)
-            END DO
+            END DO            
             
-            !for DG staff of volume integrals etc etc you just need after this subroutine to call the following
-                !CALL QUADRATUREQUAD(N,IGQRULES)
-                
-                
-                !or
-                
-                !call QUADRATURETRIANGLE(N,IGQRULES)
-                
-                
-                !you access them like this
-                
-                        !O INC=1,QQP
-                        !    QPOINTS(1,INC)
-                        !     QPOINTS(2,INC)
-                        !      WEQUA3D(INC)
-                        !END DO
-            
-            
-            CALL DECOMPOSE2
+!             CALL DECOMPOSE2
     
             IF (DG.EQ.1)THEN
                 POX(1) = IELEM(N,I)%XXC !POX,POY required for LINEAR_INIT2D
                 POY(1) = IELEM(N,I)%YYC
                  
-                U_C(I)%VALDG(1,1,1)=LINEAR_INIT2D(N)   !THIS IS JUST THE INITIAL SOLUTION
+                U_C(I)%VALDG(1,1,1) = LINEAR_INIT2D(N)   !THIS IS JUST THE INITIAL SOLUTION
                 U_C(I)%VALDG(1,1,2:IELEM(N,I)%IDEGFREE+1) = ZERO ! Eq. 2.2, Cockburn/Shu 2001  
-                    !takis how about the rest of the dof, only one!
+                U_E(I)%VAL(1,1) = U_C(I)%VALDG(1,1,1)
                 
                 WRITE(200+N,*) "ELEMENT", I,"DG INITIAL"
                 WRITE(200+N,*) "SOLUTION", U_C(I)%VALDG(1,1,:)
             END IF
             
+!             IF (DG /= 1) THEN
             SELECT CASE(ielem(n,i)%ishape)
 
             CASE(5)
@@ -968,12 +939,6 @@ IF (RESTART.EQ.0)THEN
                         
                         VOLTEMP=TRIANGLEVOLUME(N)/IELEM(N,I)%totvolume
                         QQP=QP_Triangle
-                        
-                        !DO INC=1,QQP
-                        !    QP_ARRAY(I,INC,K)%X = QPOINTS(1,INC)
-                        !    QP_ARRAY(I,INC,K)%Y = QPOINTS(2,INC)
-                        !    QP_ARRAY(I,INC,K)%QP_WEIGHT = WEQUA3D(INC)
-                        !END DO
                         
                         IF (DG.EQ.1)THEN
                         !    POX(1) = IELEM(N,I)%XXC !POX,POY required for LINEAR_INIT2D
@@ -1049,6 +1014,7 @@ IF (RESTART.EQ.0)THEN
                     END DO
                 END IF
             END SELECT
+!             END IF
         END DO
 !$OMP END DO
 	END IF

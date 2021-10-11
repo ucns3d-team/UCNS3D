@@ -162,11 +162,8 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
         iconsidered=i
         
         IF (DG.EQ.1) THEN
-        
-            
-            
             RHS(I)%VALDG = RHS(I)%VALDG - DG_RHS_INTEGRAL_vol(n)
-            IF (I == 1) WRITE(500+N,*) 'DG_RHS_VOL_INTEGRAL', I, RHS(I)%VALDG
+            WRITE(500+N,*) 'DG_RHS_VOL_INTEGRAL', I, RHS(I)%VALDG
         END IF
         
 		IF (IELEM(N,I)%INTERIOR.EQ.0)THEN ! Element is interior
@@ -184,7 +181,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                 NEIGHBOR_FACE_INDEX = IELEM(N,I)%INEIGHN(L)
                 
                 DO NGP=1,IQP
-                pointx=ngp
+                    pointx=ngp
                     IF (DG.EQ.1) THEN
                         CLEFT = ILOCAL_RECON3(I)%ULEFT_DG(:, L, NGP)
                         CRIGHT = ILOCAL_RECON3(NEIGHBOR_INDEX)%ULEFT_DG(:, NEIGHBOR_FACE_INDEX, NGP)
@@ -199,11 +196,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                         ! Riemann flux at interface quadrature points times basis
                         DG_RHS = DG_RHS + DG_SOLFACEx(n)
                         
-                        
-                        
-                        
-                        
-                        IF (I == 1) WRITE(600+N,*) 'INTERIOR:', I, L, NGP, IELEM(N,I)%INEIGH(L), 'HLLCFLUX:', HLLCFLUX, 'NOMRALVECT:', NORMALVECT, 'CLEFT:', CLEFT, 'CRIGHT:', CRIGHT, 'DG_SURF_INT:', dg_solfacex(n)
+                        WRITE(500+N,*) 'INTERIOR:', I, L, NGP, IELEM(N,I)%INEIGH(L), 'HLLCFLUX:', HLLCFLUX, 'NOMRALVECT:', NORMALVECT, 'CLEFT:', CLEFT, 'CRIGHT:', CRIGHT, 'DG_SURF_INT:', dg_solfacex(n), 'DG_RHS', DG_RHS
                     ELSE !FV
                         GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEIGHTS_TEMP_LINE(NGP)*IELEM(N,I)%SURF(L)))
                     END IF
@@ -214,7 +207,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 		
         ELSE IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
             DO L=1,IELEM(N,I)%IFCA
-                    facex=l
+                facex=l
                 NX=IELEM(N,I)%FACEANGLEX(L)
                 NY=IELEM(N,I)%FACEANGLEY(L)
                 NORMALVECT=(NX*LAMX)+(NY*LAMY)
@@ -222,7 +215,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                 
                 GODFLUX2=ZERO
                 DO NGP=1,IQP
-                pointx=ngp
+                    pointx=ngp
                     IF (DG == 1) THEN
                         CLEFT = ILOCAL_RECON3(I)%ULEFT_DG(:, L, NGP)
                     ELSE
@@ -261,7 +254,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                             END IF
                         ELSE
                             IF (DG == 1) THEN
-                            CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_dg(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_dg(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
                             ELSE
                                 CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
                             end if
@@ -287,7 +280,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 		END IF
 		
         IF (DG == 1) RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
-		IF (I == 1) WRITE(500+N,*) "RHS(I)%VAL:", RHS(I)%VALDG
+		WRITE(500+N,*) "RHS(I)%VALDG:", RHS(I)%VALDG
 	END DO
 	!$OMP END DO 
 END SUBROUTINE CALCULATE_FLUXESHI2D
