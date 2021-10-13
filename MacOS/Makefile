@@ -23,8 +23,8 @@ LD=$(F90)
 
 #open blas
 
- BLASFLAGS=  -I /usr/local/Cellar/openblas/0.3.10/include	###Ensure that you include your BLAS library path here
- BLASLIBS=  /usr/local/Cellar/openblas/0.3.10/lib/libopenblas.a   ###Ensure that you include your BLAS library path here
+ BLASFLAGS=  -I /usr/local/Cellar/openblas/0.3.10_1/include	###Ensure that you include your BLAS library path here
+ BLASLIBS=  /usr/local/Cellar/openblas/0.3.10_1/lib/libopenblas.a   ###Ensure that you include your BLAS library path here
 
 OFLAGS= 
 
@@ -39,10 +39,9 @@ OFLAGS=
 #debug run
 #FFLAGS=-ffree-line-length-none -fimplicit-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fbacktrace -fdefault-double-8 -fbackslash  -O1 -fcray-pointer -Wno-lto-type-mismatch $(BLASFLAGS)
 #production run
-FFLAGS=-fdefault-real-8 -fdefault-double-8 -finit-local-zero -flto -fbackslash -fimplicit-none -fopenmp -O3 -march=native -ffree-line-length-none -fcray-pointer   -Wno-lto-type-mismatch  $(BLASFLAGS)
+FFLAGS=-fdefault-real-8 -fdefault-double-8 -finit-local-zero -flto -fbackslash -fimplicit-none -fopenmp -O3 -march=native -ffree-line-length-none -fcray-pointer -Wno-lto-type-mismatch -fallow-argument-mismatch $(BLASFLAGS)
 
-#LIBS1 = /Applications/Tecplot\ 360\ EX\ Beta/Tecplot\ 360\ EX\ Beta.app/Contents/Frameworks/libtecio.dylib
-#/Applications/Tecplot 360 EX Beta/Tecplot 360 EX Beta.app/Contents/Frameworks/libtecio.dylib
+
 LIBS =$(BLASLIBS) -lstdc++
 
 include Makefile.common
