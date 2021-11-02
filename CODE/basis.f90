@@ -1650,25 +1650,37 @@ CASE(2) ! Legendre
     end select
     
 CASE(3) ! Taylor
-    SELECT CASE(IELEM(N,ICONSIDERED)%ISHAPE)
-    CASE(5) ! Quadrilateral
-        N_QP = QP_QUAD
-    CASE(6) ! Triangle
-        N_QP = QP_TRIANGLE
+    SELECT CASE(NUMBER)
+    CASE(1)
+        SB(1) = X1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(1)
+        SB(2) = Y1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(2)
+    CASE(2)
+        SB(1) = X1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(1)
+        SB(2) = Y1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(2)
+        SB(3) = SB(1) ** 2 / 2 - IELEM(N,ICONSIDERED)%TAYLOR_INTEGRAL(1)
+        SB(4) = SB(2) ** 2 / 2 - IELEM(N,ICONSIDERED)%TAYLOR_INTEGRAL(2)
+        SB(5) = SB(1) * SB(2) - IELEM(N,ICONSIDERED)%TAYLOR_INTEGRAL(3)
     END SELECT
     
-    ALLOCATE(QP_IN(DIMENSIONA,N_QP))
-    
-    DO I_QP = 1, N_QP
-        QP_IN(1, I_QP) = QP_ARRAY(ICONSIDERED,I_QP)%X
-        QP_IN(2, I_QP) = QP_ARRAY(ICONSIDERED,I_QP)%Y
-    END DO
-    
-    BASIS_REC2D = TAYLOR_BASIS( (/ X1,Y1 /), IELEM(N,ICONSIDERED)%DELTA_XYZ, QP_IN, QP_ARRAY(ICONSIDERED,:)%QP_WEIGHT, N_QP, DIMENSIONA, NUMBER_OF_DOG, IELEM(N,ICONSIDERED)%TOTVOLUME)
-    
-    DEALLOCATE(QP_IN)
-    
-    RETURN
+!     SELECT CASE(IELEM(N,ICONSIDERED)%ISHAPE)
+!     CASE(5) ! Quadrilateral
+!         N_QP = QP_QUAD
+!     CASE(6) ! Triangle
+!         N_QP = QP_TRIANGLE
+!     END SELECT
+!     
+!     ALLOCATE(QP_IN(DIMENSIONA,N_QP))
+!     
+!     DO I_QP = 1, N_QP
+!         QP_IN(1, I_QP) = QP_ARRAY(ICONSIDERED,I_QP)%X
+!         QP_IN(2, I_QP) = QP_ARRAY(ICONSIDERED,I_QP)%Y
+!     END DO
+!     
+!     BASIS_REC2D = TAYLOR_BASIS( (/ X1,Y1 /), IELEM(N,ICONSIDERED)%DELTA_XYZ, QP_IN, QP_ARRAY(ICONSIDERED,:)%QP_WEIGHT, N_QP, DIMENSIONA, NUMBER_OF_DOG, IELEM(N,ICONSIDERED)%TOTVOLUME)
+!     
+!     DEALLOCATE(QP_IN)
+!     
+!     RETURN
     
 !     select case(number)
 !         case(1)
@@ -1825,23 +1837,23 @@ FUNCTION BASIS_REC2D_DERIVATIVE(N,X1,Y1,ORDER,ICONSIDERED,NUMBER_OF_DOG,DX_OR_DY
         SELECT CASE(DX_OR_DY)
         CASE(1) ! Derivative with respect to x
             IF (ORDER > 0) THEN
-                BASIS_REC2D_DERIVATIVE(1) = 2
-                BASIS_REC2D_DERIVATIVE(2) = 0
+                BASIS_REC2D_DERIVATIVE(1) = 2.0d0
+                BASIS_REC2D_DERIVATIVE(2) = 0.0d0
             END IF
             IF (ORDER > 1) THEN
-                BASIS_REC2D_DERIVATIVE(3) = 12 * X1 - 6
-                BASIS_REC2D_DERIVATIVE(4) = (1.0d0 - 6.0d0*y1 + 6.0d0*y1**2) * (-6 + 12 * X1)
+                BASIS_REC2D_DERIVATIVE(3) = 12.0d0 * X1 - 6.0d0
+                BASIS_REC2D_DERIVATIVE(4) = (-1.0d0 + 2.0d0 * Y1) * 2.0d0
                 BASIS_REC2D_DERIVATIVE(5) = 0
             END IF           
         CASE(2) ! Derivative with respect to y
             IF (ORDER > 0) THEN
-                BASIS_REC2D_DERIVATIVE(1) = 0
-                BASIS_REC2D_DERIVATIVE(2) = 2
+                BASIS_REC2D_DERIVATIVE(1) = 0.0d0
+                BASIS_REC2D_DERIVATIVE(2) = 2.0d0
             END IF
             IF (ORDER > 1) THEN
-                BASIS_REC2D_DERIVATIVE(3) = 0
-                BASIS_REC2D_DERIVATIVE(4) = (1.0d0 - 6.0d0*X1 + 6.0d0*X1**2) * (-6 + 12 * Y1)
-                BASIS_REC2D_DERIVATIVE(5) = 12 * Y1 - 6
+                BASIS_REC2D_DERIVATIVE(3) = 0.0d0
+                BASIS_REC2D_DERIVATIVE(4) = (-1.0d0 + 2.0d0 * X1) * 2.0d0
+                BASIS_REC2D_DERIVATIVE(5) = 12.0d0 * Y1 - 6.0d0
             END IF
         END SELECT
     CASE(3) ! Taylor

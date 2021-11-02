@@ -36891,6 +36891,8 @@ REAL,INTENT(IN)::XD1,YD1
 real::s
 
    S=0.0D0
+   SELECT CASE(POLY)
+   CASE(1)
    select case(NDERIVATIVE)
      case(1)
       s = 1.d0
@@ -36933,6 +36935,25 @@ real::s
      case(26) 
       s = yd1**5
     End select
+    CASE(2)
+        select case(NDERIVATIVE)
+        case(1)
+            s = 2.d0
+        case(3)
+            s = 12.d0*xd1 - 6.d0
+        case(4)
+            s = (-1.0d0 + 2.0d0 * YD1) * 2.0d0
+        END SELECT
+    CASE(3)
+        select case(NDERIVATIVE)
+        case(1)
+        s = 1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(1)
+        case(3)
+        s = xd1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(1) ** 2
+        case(5)
+        s = yd1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(2) / IELEM(N,ICONSIDERED)%DELTA_XYZ(1)
+        END SELECT
+    END SELECT
 
     DF2DX = s
 
@@ -36947,6 +36968,8 @@ REAL,INTENT(IN)::XD1,YD1
 real::s
 
    S=0.0D0
+   SELECT CASE(POLY)
+   CASE(1)
    select case(NDERIVATIVE)
 
      case(2) 
@@ -36990,6 +37013,26 @@ real::s
      case(27) 
       s = 6.d0*yd1**5
     End select
+    
+    CASE(2)
+        select case(NDERIVATIVE)
+        case(2)
+            s = 2.d0
+        case(5)
+            s = 12.d0*yd1 - 6.d0
+        case(4)
+            s = (-1.0d0 + 2.0d0 * XD1) * 2.0d0
+        END SELECT
+    case(3)
+        select case(NDERIVATIVE)
+        case(2)
+            s = 1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(2)
+        case(4)
+            s = yd1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(2) ** 2
+        case(5)
+            s = xd1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(1) / IELEM(N,ICONSIDERED)%DELTA_XYZ(2)
+        END SELECT
+    END SELECT
 
     DF2DY= s
 
