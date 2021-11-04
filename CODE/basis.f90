@@ -1507,15 +1507,13 @@ END FUNCTION BASIS_REC
 FUNCTION BASIS_REC2d(N,X1,Y1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
 !> @brief
 !> This function returns the value of the basis function for a specific polynomial order and coordinates in 2D \n
-!> REQUIRES: X1, Y1: coordinates of basis evaluation wrt ?; NUMBER: order of basis; ICONSIDERED: considered cell?; NUMBER_OF_DOG: number of degrees of freedom
-! NUMBER and NUMBER_OF_DOG redundant?
+!> REQUIRES: X1, Y1: coordinates of basis evaluation wrt ?; NUMBER: order of basis; ICONSIDERED: considered cell; NUMBER_OF_DOG: number of degrees of freedom
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(IN)::NUMBER,ICONSIDERED,NUMBER_OF_DOG
 REAL,INTENT(IN)::X1,Y1
 INTEGER::I_NODE,I_QP,N_QP
 REAL::OOV
-REAL,ALLOCATABLE,DIMENSION(:,:)::QP_IN
 real,dimension(number_of_dog)::basis_rec2d
 SB=zero
 
@@ -1661,40 +1659,6 @@ CASE(3) ! Taylor
         SB(4) = SB(2) ** 2 / 2 - IELEM(N,ICONSIDERED)%TAYLOR_INTEGRAL(2)
         SB(5) = SB(1) * SB(2) - IELEM(N,ICONSIDERED)%TAYLOR_INTEGRAL(3)
     END SELECT
-    
-!     SELECT CASE(IELEM(N,ICONSIDERED)%ISHAPE)
-!     CASE(5) ! Quadrilateral
-!         N_QP = QP_QUAD
-!     CASE(6) ! Triangle
-!         N_QP = QP_TRIANGLE
-!     END SELECT
-!     
-!     ALLOCATE(QP_IN(DIMENSIONA,N_QP))
-!     
-!     DO I_QP = 1, N_QP
-!         QP_IN(1, I_QP) = QP_ARRAY(ICONSIDERED,I_QP)%X
-!         QP_IN(2, I_QP) = QP_ARRAY(ICONSIDERED,I_QP)%Y
-!     END DO
-!     
-!     BASIS_REC2D = TAYLOR_BASIS( (/ X1,Y1 /), IELEM(N,ICONSIDERED)%DELTA_XYZ, QP_IN, QP_ARRAY(ICONSIDERED,:)%QP_WEIGHT, N_QP, DIMENSIONA, NUMBER_OF_DOG, IELEM(N,ICONSIDERED)%TOTVOLUME)
-!     
-!     DEALLOCATE(QP_IN)
-!     
-!     RETURN
-    
-!     select case(number)
-!         case(1)
-!      !FIRST ORDER FUNCTIONS (2ND-ORDER OF ACCURACY 3)
-!     SB(1)=x1
-!     SB(2)=y1   
-!         case(2)
-! ! SECOND ORDER FUNCTIONS (3RD-ORDER OF ACCURACY 4-9)
-!     SB(1)=x1
-!     SB(2)=y1
-!     SB(3)=(x1)**2
-!     SB(4)=SB(1)*SB(2)
-!     SB(5)=(y1)**2
-!      end select 
 END SELECT
    
     IF (DG == 1) THEN

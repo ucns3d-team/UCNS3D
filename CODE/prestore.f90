@@ -27,9 +27,8 @@ if (dimensiona.eq.3)then
 DO I=1,KMAXE
 
 CALL LOCALISE_STENCIL(N,I)
-
 CALL LOCALISE_STEN2(N,I)
-
+! These subroutines ensure the surface quadrature points are matched up correctly between neighbors
 
 
 call CHECKGRADS(N,I)
@@ -51,15 +50,13 @@ else
 
 !$OMP PARALLEL DEFAULT(SHARED) 
 
-CALL PRESTORE_AND_ALLOCATE_DG
-!takis this needs to be within a omp parallel region!
-
 
 !$OMP DO
 DO I=1,KMAXE
-CALL LOCALISE_STENCIL2d(N,I)
 
+CALL LOCALISE_STENCIL2d(N,I)
 CALL LOCALISE_STEN2d(N,I)
+! These subroutines ensure the surface quadrature points are matched up correctly between neighbors
 
 
  call CHECKGRADS2d(N,I)
@@ -68,11 +65,14 @@ CALL LOCALISE_STEN2d(N,I)
 
 CALL FIND_ROT_ANGLES2D(N,I)
 
- CALL PRESTORE_RECONSTRUCTION2(N,I)
+CALL PRESTORE_RECONSTRUCTION2(N,I)
 
 
 END DO
 !$OMP END DO
+
+CALL PRESTORE_AND_ALLOCATE_DG !takis this needs to be within a omp parallel region!
+
 !$OMP END PARALLEL
 
 

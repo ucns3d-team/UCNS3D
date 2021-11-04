@@ -59,7 +59,7 @@ DO I=1,INEEDT
     ALLOCATE(IEXSOLHIR(I)%SOL(IRECEXR(I)%MUCHINEED(1),nof_variables+turbulenceequations+passivescalar))
 	IEXSOLHIR(I)%SOL(:,:)=0.0d0
 	
-    IF (DG == 1) THEN
+    IF (DG == 1 .AND. RECONSTRUCT_HIGHER_ORDER_DG_DOFS_BOOLEAN == 1) THEN
         ALLOCATE (IEXSOLHIR(I)%SOL_DG(IRECEXS(I)%MUCHTHEYNEED(1),nof_variables+turbulenceequations+passivescalar,NUM_DG_DOFS))
         IEXSOLHIR(I)%SOL_DG(:,:,:)=0.0d0
         ALLOCATE(IEXSOLHIR(I)%DELTA_XYZ(IRECEXS(I)%MUCHTHEYNEED(1), DIMENSIONA))
@@ -109,7 +109,7 @@ DO I=1,TNEEDT
 	ALLOCATE (IEXSOLHIS(I)%SOL(IRECEXS(I)%MUCHTHEYNEED(1),nof_variables+turbulenceequations+passivescalar))
 	IEXSOLHIs(I)%SOL(:,:)=0.0d0
 	
-	IF (DG == 1) THEN
+	IF (DG == 1 .AND. RECONSTRUCT_HIGHER_ORDER_DG_DOFS_BOOLEAN == 1) THEN
         ALLOCATE (IEXSOLHIS(I)%SOL_DG(IRECEXS(I)%MUCHTHEYNEED(1),nof_variables+turbulenceequations+passivescalar,NUM_DG_DOFS))
         IEXSOLHIs(I)%SOL_DG(:,:,:)=0.0d0
         ALLOCATE(IEXSOLHIS(I)%DELTA_XYZ(IRECEXS(I)%MUCHTHEYNEED(1), DIMENSIONA))

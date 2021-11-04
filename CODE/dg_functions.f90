@@ -215,13 +215,13 @@ SUBROUTINE PRESTORE_AND_ALLOCATE_DG
 	ALLOCATE(QP_ARRAY(XMPIELRANK(N),QP_Triangle*2)); !Allocates for 2D
     
     DO I = 1, XMPIELRANK(N)    
-        WRITE(600+N,*) I, IELEM(N,I)%XXC, IELEM(N,I)%YYC, IELEM(N,I)%TOTVOLUME
+!         WRITE(600+N,*) I, IELEM(N,I)%XXC, IELEM(N,I)%YYC, IELEM(N,I)%TOTVOLUME
         !Store volume quadrature points
         DO K = 1,IELEM(N,I)%NONODES
             NODES_LIST(k,1:2)=INODER(IELEM(N,I)%NODES(K))%CORD(1:2)
             VEXT(k,1:2)=NODES_LIST(k,1:2)
             
-            WRITE(600+N,*) VEXT(k,1:2)
+!             WRITE(600+N,*) VEXT(k,1:2)
         END DO
         
         !Store delta xyz (normalization factor from Luo 2012)
@@ -560,8 +560,8 @@ SUBROUTINE LUO_LSQ_RECONSTRUCT(N)
                     ILOCAL_RECON3(I_ELEM)%ULEFT_DG(I_VAR, I_FACE, I_QP) = RECONSTRUCTED_SOL(I_VAR,1) + DOT_PRODUCT(BASIS_TEMP(1:NUM_DG_RECONSTRUCT_DOFS-1), RECONSTRUCTED_SOL(I_VAR, 2:NUM_DG_RECONSTRUCT_DOFS))
                 END DO
                 
-                write(700+n,*)"look here","cell",i_elem,"face",facex,"point",pointx
-                write(700+n,*)ILOCAL_RECON3(I_ELEM)%ULEFT_DG(:, I_FACE, I_QP)
+!                 write(700+n,*)"look here","cell",i_elem,"face",facex,"point",pointx
+!                 write(700+n,*)ILOCAL_RECON3(I_ELEM)%ULEFT_DG(:, I_FACE, I_QP)
             END DO
         END DO
     END DO
@@ -624,7 +624,6 @@ FUNCTION LUO_LSQ_RECONSTRUCT_SOL(N)
         CASE(1) ! Same CPU boundary and not periodic
         CASE(2) ! Other CPU
             ! BASIS_TEMP (basis at center of neighboring element)
-            ! Temporarily setting to basis at center of own element because not sure how to implement cross cpu Takis
             BASIS_TEMP = IEXSOLHIR(ICONSIDERED)%BASIS_NEIGHBOR_CENTER(I_FACE, :)
             ! DELTA_XYZ
             NEIGHBOR_DELTA_XYZ = IEXSOLHIR(ICONSIDERED)%DELTA_XYZ(I_FACE, :)
