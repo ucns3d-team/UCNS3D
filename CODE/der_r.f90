@@ -36891,6 +36891,8 @@ REAL,INTENT(IN)::XD1,YD1
 real::s
 
    S=0.0D0
+   SELECT CASE(POLY)
+   CASE(1)
    select case(NDERIVATIVE)
      case(1)
       s = 1.d0
@@ -36933,6 +36935,25 @@ real::s
      case(26) 
       s = yd1**5
     End select
+    CASE(2)
+        select case(NDERIVATIVE)
+        case(1)
+            s = 2.d0
+        case(3)
+            s = 12.d0*xd1 - 6.d0
+        case(4)
+            s = (-1.0d0 + 2.0d0 * YD1) * 2.0d0
+        END SELECT
+    CASE(3)
+        select case(NDERIVATIVE)
+        case(1)
+        s = 1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(1)
+        case(3)
+        s = xd1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(1) ** 2
+        case(5)
+        s = yd1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(2) / IELEM(N,ICONSIDERED)%DELTA_XYZ(1)
+        END SELECT
+    END SELECT
 
     DF2DX = s
 
@@ -36947,6 +36968,8 @@ REAL,INTENT(IN)::XD1,YD1
 real::s
 
    S=0.0D0
+   SELECT CASE(POLY)
+   CASE(1)
    select case(NDERIVATIVE)
 
      case(2) 
@@ -36990,6 +37013,25 @@ real::s
      case(27) 
       s = 6.d0*yd1**5
     End select
+    CASE(2)
+        select case(NDERIVATIVE)
+        case(2)
+            s = 2.d0
+        case(5)
+            s = 12.d0*yd1 - 6.d0
+        case(4)
+            s = (-1.0d0 + 2.0d0 * XD1) * 2.0d0
+        END SELECT
+    case(3)
+        select case(NDERIVATIVE)
+        case(2)
+            s = 1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(2)
+        case(4)
+            s = yd1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(2) ** 2
+        case(5)
+            s = xd1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(1) / IELEM(N,ICONSIDERED)%DELTA_XYZ(2)
+        END SELECT
+    END SELECT
 
     DF2DY= s
 
@@ -37675,5 +37717,111 @@ real::s
   end function	
 
 
+  
+  
+  real function DF2Dy_t(xd1,yd1,NDERIVATIVE)
+   IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
+
+   S=0.0D0
+   select case(NDERIVATIVE)
+     
+
+
+CASE(2) 
+S=1/h1c
+CASE(5) 
+S=y1/h1c**2 - y1c/h1c**2
+CASE(9) 
+S=y1**2/(2.*h1c**3) - (y1*y1c)/h1c**3 + y1c**2/(2.*h1c**3)
+CASE(14) 
+S=y1**3/(6.*h1c**4) - (y1**2*y1c)/(2.*h1c**4) + (y1*y1c**2)/(2.*h1c**4) - y1c**3/(6.*h1c**4)
+
+CASE(4) 
+S=x1/h1c**2 - x1c/h1c**2
+CASE(8) 
+S=(x1*y1)/h1c**3 - (x1c*y1)/h1c**3 - (x1*y1c)/h1c**3 + (x1c*y1c)/h1c**3
+CASE(13) 
+S=(x1*y1**2)/(2.*h1c**4) - (x1c*y1**2)/(2.*h1c**4) - (x1*y1*y1c)/h1c**4 + (x1c*y1*y1c)/h1c**4 + (x1*y1c**2)/(2.*h1c**4) - (x1c*y1c**2)/(2.*h1c**4)
+
+CASE(7) 
+S=x1**2/(2.*h1c**3) - (x1*x1c)/h1c**3 + x1c**2/(2.*h1c**3)
+CASE(12) 
+S=(x1**2*y1)/(2.*h1c**4) - (x1*x1c*y1)/h1c**4 + (x1c**2*y1)/(2.*h1c**4) - (x1**2*y1c)/(2.*h1c**4) + (x1*x1c*y1c)/h1c**4 - (x1c**2*y1c)/(2.*h1c**4)
+
+CASE(11) 
+S=x1**3/(6.*h1c**4) - (x1**2*x1c)/(2.*h1c**4) + (x1*x1c**2)/(2.*h1c**4) - x1c**3/(6.*h1c**4)
+
+
+
+ 
+     
+     CASE default
+     S=0.0d0
+     
+     
+    End select
+
+    DF2Dy_t = s
+
+  end function
+
+
+ ! *****************************************************************************
+  real function DF2Dx_T(xd1,yd1,NDERIVATIVE)
+     IMPLICIT NONE
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1
+real::s
+
+   S=0.0D0
+   select case(NDERIVATIVE)
+
+
+
+CASE(1) 
+S=1/h1c
+CASE(4) 
+S=y1/h1c**2 - y1c/h1c**2
+CASE(8) 
+S=y1**2/(2.*h1c**3) - (y1*y1c)/h1c**3 + y1c**2/(2.*h1c**3)
+CASE(13) 
+S=y1**3/(6.*h1c**4) - (y1**2*y1c)/(2.*h1c**4) + (y1*y1c**2)/(2.*h1c**4) - y1c**3/(6.*h1c**4)
+CASE(3) 
+S=x1/h1c**2 - x1c/h1c**2
+CASE(7) 
+S=(x1*y1)/h1c**3 - (x1c*y1)/h1c**3 - (x1*y1c)/h1c**3 + (x1c*y1c)/h1c**3
+CASE(12) 
+S=(x1*y1**2)/(2.*h1c**4) - (x1c*y1**2)/(2.*h1c**4) - (x1*y1*y1c)/h1c**4 + (x1c*y1*y1c)/h1c**4 + (x1*y1c**2)/(2.*h1c**4) - (x1c*y1c**2)/(2.*h1c**4)
+CASE(6) 
+S=x1**2/(2.*h1c**3) - (x1*x1c)/h1c**3 + x1c**2/(2.*h1c**3)
+CASE(11) 
+S=(x1**2*y1)/(2.*h1c**4) - (x1*x1c*y1)/h1c**4 + (x1c**2*y1)/(2.*h1c**4) - (x1**2*y1c)/(2.*h1c**4) + (x1*x1c*y1c)/h1c**4 - (x1c**2*y1c)/(2.*h1c**4)
+CASE(10) 
+S=x1**3/(6.*h1c**4) - (x1**2*x1c)/(2.*h1c**4) + (x1*x1c**2)/(2.*h1c**4) - x1c**3/(6.*h1c**4)
+     
+     
+     
+     CASE default
+     S=0.0d0
+     
+    End select
+
+    DF2Dx_t= s
+
+  end function
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 END MODULE DERIVATIVES

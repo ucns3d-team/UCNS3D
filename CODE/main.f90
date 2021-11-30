@@ -36,7 +36,6 @@ USE PARAMETERS
 
 
 
-
 IMPLICIT NONE
 
 
@@ -514,8 +513,9 @@ end if
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
    CPUX2(1) = MPI_Wtime()
   
-  
-
+  IF (DG.EQ.1)THEN
+ CALL ALLOCATE_DG
+ END IF
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
  if (n.eq.0)  then
@@ -529,15 +529,13 @@ end if
 				  WRITE(63,*)"started prestoring reconstruction matrices 1"
 				  CPUX3(1) = MPI_Wtime()
 				  WRITE(63,*)"time7=",CPUX3(1)-cpux1(1)
+				  
 				  CLOSE(63)
 				  END IF
 				  !$OMP END MASTER
   
 
- if ((fastest.ne.1).and.(ischeme.ge.2))then
-
-call PRESTORE_1(N)
-end if
+if ((fastest.ne.1).and.(ischeme.ge.2)) call PRESTORE_1(N)
 
 
 
@@ -650,21 +648,37 @@ end if
 				  END IF
 				  !$OMP END MASTER
 
+CALL U_C_ALLOCATION(N,XMPIELRANK,U_C,U_E,ITESTCASE,U_CT)
 
-  CALL U_C_ALLOCATION(N,XMPIELRANK,U_C,U_E,ITESTCASE,U_CT)
-  
+
+IF (DG.EQ.1)THEN
+
+
+CALL ASS_MASS_MATRIX(N)
+
+
+END IF
+
+
+
+IF (DIMENSIONA.EQ.3) THEN
+    CALL INITIALISE (N)
+ELSE
+    
+    CALL DG_1
+    
+    CALL INITIALISE2D(N)
+    
+    
+    
+!     CALL RUN_ALL_TESTS(N)
+END IF
  
-  
-   if (dimensiona.eq.3)then
-   CALL INITIALISE (N)
-   
-   else
-   CALL INITIALISE2d(N)
-   end if
- 
+
+
+
 IF (RESTART.GT.0)THEN
-   CALL REST_READ(N)
-   
+   CALL REST_READ(N)  
 END IF
  
  
@@ -685,6 +699,7 @@ END IF
  
   
  end if
+ 
 ! 
 ! 
 ! 
@@ -725,63 +740,65 @@ END IF
   
  
 
-
  
- IF (FASTEST_Q.EQ.1)THEN
- CALL MEMORY_FAST(N)
- END IF
+IF (FASTEST_Q.EQ.1)THEN
+    CALL MEMORY_FAST(N)
+    IF (DG.EQ.1)THEN
+    CALL PRESTORE_DG2
+    END IF
+    
+    
+    
+END IF
 
- call NEW_ARRAYS(N)
+CALL NEW_ARRAYS(N)
 
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-  call EXCH_CORDS_opt(N)
-  if (dimensiona.eq.3)then
-   CALL LOCAL_RECONALLOCATION4(N)
-   else
-   CALL LOCAL_RECONALLOCATION42d(N)
-   end if
+
+CALL EXCH_CORDS_OPT(N)
+IF (DIMENSIONA.EQ.3)THEN
+    CALL LOCAL_RECONALLOCATION4(N)
+ELSE
+    CALL LOCAL_RECONALLOCATION42D(N)
+END IF
    
-   
-   if (fastest.ne.1)then
- CALL EXCHANGE_HIGHER_pre(N)
-    end if
+IF (N == 0) PRINT*, 'FASTEST', FASTEST, 'FASTEST_Q', FASTEST_Q
+IF (FASTEST.NE.1)THEN
+    CALL EXCHANGE_HIGHER_PRE(N)
+END IF
     
-    call FIX_NODES_LOCAL
+call FIX_NODES_LOCAL
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    
-  CPUX3(1) = MPI_Wtime()
+CPUX3(1) = MPI_Wtime()
 !  CALL CPU_TIME(CPUX3(1))
 
-  if (n.eq.0)  WRITE(100+N,*)CPUX3(1)-CPUX2(1)
+if (n.eq.0)  WRITE(100+N,*)CPUX3(1)-CPUX2(1)
 
-   CPUX2(1) = MPI_Wtime()
-
- if (n.eq.0)print*,"UCNS3D Running"
+CPUX2(1) = MPI_Wtime()
+if (n.eq.0)print*,"UCNS3D Running"
    
-   if (dimensiona.eq.3)then
-!$OMP PARALLEL DEFAULT(SHARED)
-CALL TIME_MARCHING(N)
-!$OMP END PARALLEL
-
-else
-!$OMP PARALLEL DEFAULT(SHARED)
-CALL TIME_MARCHING2(N)
-!$OMP END PARALLEL
-
-end if
-
+IF (DIMENSIONA.EQ.3)THEN
+    !$OMP PARALLEL DEFAULT(SHARED)
+    CALL TIME_MARCHING(N)
+    !$OMP END PARALLEL
+ELSE
+    !$OMP PARALLEL DEFAULT(SHARED)
+    CALL TIME_MARCHING2(N)
+    !$OMP END PARALLEL
+END IF
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-  CPUX3(1) = MPI_Wtime()
+CPUX3(1) = MPI_Wtime()
 
-  if (n.eq.0)  WRITE(100+N,*)"TOTAL TIME TAKEN=",CPUX3(1)-CPUX2(1),"SECONDS"
+if (n.eq.0)  WRITE(100+N,*)"TOTAL TIME TAKEN=",CPUX3(1)-CPUX2(1),"SECONDS"
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 CALL MPI_FINALIZE(IERROR)
 
+if (n.eq.0) print*,"UCNS3D finished running"
 
 
 END PROGRAM UCNS3D

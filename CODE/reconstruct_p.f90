@@ -57,145 +57,136 @@ INTEGER,INTENT(IN)::N
 INTEGER::I,K,KMAXE,IDUMMY,L,NND,IQP,NGP,IEX
 KMAXE=XMPIELRANK(N)
 
-       if (dimensiona.eq.3)then
-	DO I=1,KMAXE
-		IF (IELEM(N,I)%ISHAPE.EQ.2)THEN
-		ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
-		ELSE
-		ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,QP_QUAD,3))
-		END IF
-		ICONSIDERED=I
-		DO L=1,IELEM(N,I)%IFCA
-		IDUMMY=0
-			    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
-				    IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					    if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-					    IDUMMY=1
-					    END IF
-				    END IF	
-				    if (ielem(n,i)%types_faces(L).eq.5)then
-				    iqp=qp_quad
-				    NND=4
-					    IF (IDUMMY.EQ.0)THEN
-						      do K=1,nnd
-							VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-							VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-						      END DO
-					    ELSE
-						      facex=l;
-						      CALL coordinates_face_PERIOD1(n,iconsidered,facex)
-						      do K=1,nnd
-						      VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-						      END DO
-					    END IF
-				    call  QUADRATUREQUAD3D(N,IGQRULES)
-				    else
-				    iqp=QP_TRIANGLE
-				    NND=3
-					    IF (IDUMMY.EQ.0)THEN
-						      do K=1,nnd
-							VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-							VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-						      END DO
-					    ELSE
-						      facex=l;
-						      CALL coordinates_face_PERIOD1(n,iconsidered,facex)
-						      do K=1,nnd
-						      VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-						      END DO
-					    END IF
-						      
-				    call QUADRATURETRIANG(N,IGQRULES)
-				    end if
-			    else
-					  if (ielem(n,i)%types_faces(L).eq.5)then
-					    iqp=qp_quad
-					    NND=4
-						  do K=1,nnd
-						    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-						    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-						  END DO 
-					    call  QUADRATUREQUAD3D(N,IGQRULES)
-					  else
-					    iqp=QP_TRIANGLE
-					    NND=3 
-						  do K=1,nnd
-						    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-						    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-						  END DO  
-					    call QUADRATURETRIANG(N,IGQRULES)
-					  end if
-			    end if
-		
-		do NGP=1,iqp			!for gqp
-		ILOCAL_RECON3(I)%QPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
-		END DO	!NGP
-		END DO
-		END DO
-	  
-	  
-	  else
-	  
-	  DO I=1,KMAXE
-		
-		ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,qp_line,2))
-		
-		
-	
-	
-	    
-	ICONSIDERED=I
-	
-	
-	
-	      DO L=1,IELEM(N,I)%IFCA
-		IDUMMY=0
-		
-				  
-		
-		
-		
-		
-		    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
-				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-					      IDUMMY=1
-					  END IF
-				  END IF
-		
-				
-				 
-				    iqp=qp_line
-				    NND=2
-					  IF (IDUMMY.EQ.0)THEN
-					  do K=1,nnd
-					    VEXT(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-					    VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
-					  END DO
-					  ELSE
-					  facex=l;
-					  CALL coordinates_face_PERIOD2D1(n,iconsidered,facex)
-					  do K=1,nnd
-					  VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
-					  END DO
-					  END IF
-				    call  QUADRATUREline(N,IGQRULES)	  
-		else
-				   iqp=qp_line
-				    NND=2
-					  do K=1,nnd
-					    VEXT(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-					    VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
-					  END DO  
-				    call  QUADRATUREline(N,IGQRULES)
-
-		end if
-			     do NGP=1,iqp			!for gqp
-				ILOCAL_RECON3(I)%QPOINTS(L,NGP,1:2)=QPOINTS2D(1:2,NGP)
-				END DO	!NGP
-	  END DO
-	  END DO
-	  end if
+if (dimensiona.eq.3)then
+    DO I=1,KMAXE
+        IF (IELEM(N,I)%ISHAPE.EQ.2)THEN
+            ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+        ELSE
+            ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,QP_QUAD,3))
+        END IF
+        ICONSIDERED=I
+        DO L=1,IELEM(N,I)%IFCA
+            IDUMMY=0
+            if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
+                IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+                    if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                    IDUMMY=1
+                    END IF
+                END IF	
+                if (ielem(n,i)%types_faces(L).eq.5)then
+                iqp=qp_quad
+                NND=4
+                    IF (IDUMMY.EQ.0)THEN
+                        do K=1,nnd
+                        VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                        END DO
+                    ELSE
+                        facex=l;
+                        CALL coordinates_face_PERIOD1(n,iconsidered,facex)
+                        do K=1,nnd
+                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                        END DO
+                    END IF
+                call  QUADRATUREQUAD3D(N,IGQRULES)
+                else
+                iqp=QP_TRIANGLE
+                NND=3
+                    IF (IDUMMY.EQ.0)THEN
+                        do K=1,nnd
+                        VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                        END DO
+                    ELSE
+                        facex=l;
+                        CALL coordinates_face_PERIOD1(n,iconsidered,facex)
+                        do K=1,nnd
+                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                        END DO
+                    END IF
+                        
+                call QUADRATURETRIANG(N,IGQRULES)
+                end if
+            else
+                if (ielem(n,i)%types_faces(L).eq.5)then
+                    iqp=qp_quad
+                    NND=4
+                    do K=1,nnd
+                        VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                    END DO 
+                    call  QUADRATUREQUAD3D(N,IGQRULES)
+                else
+                    iqp=QP_TRIANGLE
+                    NND=3 
+                    do K=1,nnd
+                        VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                    END DO  
+                    call QUADRATURETRIANG(N,IGQRULES)
+                end if
+            end if
+            
+            do NGP=1,iqp			!for gqp
+                ILOCAL_RECON3(I)%QPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
+            END DO	!NGP
+        END DO
+    END DO
+    
+ELSE ! 2 dimensions
+    
+    DO I=1,KMAXE
+        ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,qp_line,2))
+        
+        ICONSIDERED=I
+    
+        DO L=1,IELEM(N,I)%IFCA
+            IDUMMY=0
+        
+            if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
+                IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+                    if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                        IDUMMY=1
+                    END IF
+                END IF
+        
+                IQP=QP_LINE
+                NND=2
+                IF (IDUMMY.EQ.0)THEN
+                    DO K=1,NND
+                        VEXT(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                        IF (DG /= 1) THEN ! Only transforming to reference space if not DG
+                            VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
+                        END IF
+                    END DO
+                ELSE
+                    facex=l;
+                    CALL coordinates_face_PERIOD2D1(n,iconsidered,facex)
+                    DO K=1,NND
+                        IF (DG /= 1) THEN ! Only transforming to reference space if not DG
+                            VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
+                        END IF
+                    END DO
+                END IF
+                CALL QUADRATURELINE(N,IGQRULES)	  
+            ELSE
+                IQP=QP_LINE
+                NND=2
+                DO K=1,NND
+                    VEXT(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                    IF (DG /= 1) THEN ! Only transforming to reference space if not DG
+                        VEXT(k,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
+                    END IF
+                END DO
+                CALL QUADRATURELINE(N,IGQRULES)
+            END IF
+        
+            DO NGP=1,iqp !for gqp
+                ILOCAL_RECON3(I)%QPOINTS(L,NGP,1:2)=QPOINTS2D(1:2,NGP) ! Storing surface quadrature points
+            END DO !NGP
+        END DO
+    END DO
+END IF
 END SUBROUTINE MEMORY_FAST
 
 ! ! !---------------------------------------------------------------------------------------------!
@@ -387,9 +378,7 @@ implicit none
 	    x_char(i,LL) =DDOT(IDEGFREE2,a_char(1:IDEGFREE2,i,ll),1,BA_char(1:IDEGFREE2,i,LL),1)
 	  end do;END DO
 
-! 	WRITE(300+N,*)"FINITO"
-! 	WRITE(300+n,*)x_char(1:NOF_VARIABLES,1:IELEM(N,ICONSIDERED)%ADMIS)
-! 		STOP	
+
    ELSE
    
 	      DO LL=1,IELEM(N,ICONSIDERED)%ADMIS
@@ -7817,6 +7806,9 @@ END IF
 						IF (POLY.EQ.2) THEN
 						  XDER(K)=DLX(AX,AY,AZ,K);  YDER(K)=DLY(AX,AY,AZ,K);  ZDER(K)=DLZ(AX,AY,AZ,K)
 						END IF
+						IF (POLY.EQ.3) THEN
+						  XDER(K)=DLX(AX,AY,AZ,K);  YDER(K)=DLY(AX,AY,AZ,K);  ZDER(K)=DLZ(AX,AY,AZ,K)
+						END IF
 				      END DO
 					UGRADLOC = ZERO
 					  DO K=1,IDEGFREE
@@ -7838,6 +7830,9 @@ END IF
 							      XDER(K)=DFX(AX,AY,AZ,K);  YDER(K)=DFY(AX,AY,AZ,K);  ZDER(K)=DFZ(AX,AY,AZ,K)
 							END IF
 							IF (POLY.EQ.2) THEN
+							  XDER(K)=DLX(AX,AY,AZ,K);  YDER(K)=DLY(AX,AY,AZ,K);  ZDER(K)=DLZ(AX,AY,AZ,K)
+							END IF
+							IF (POLY.EQ.3) THEN
 							  XDER(K)=DLX(AX,AY,AZ,K);  YDER(K)=DLY(AX,AY,AZ,K);  ZDER(K)=DLZ(AX,AY,AZ,K)
 							END IF
 						END DO

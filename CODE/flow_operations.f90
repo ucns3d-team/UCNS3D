@@ -10,6 +10,11 @@ IMPLICIT NONE
  CONTAINS
  
  
+ 
+ 
+ 
+ 
+ 
 SUBROUTINE CONS2PRIM(N)
 !> @brief
 !> This subroutine transforms one vector of conservative variables to primitive variables
@@ -778,6 +783,32 @@ rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 end if
 END SUBROUTINE PRIM2CONS2d2
+
+
+
+
+
+! FUNCTION FLUX_TERMF
+! IMPLICIT NONE
+! REAL,DIMENSION(1:nof_Variables)::FLUX_TERMF
+! 
+! 
+! IF (ITESTCASE.EQ.2)THEN
+! 
+! FLUX_TERMF=LAMX*LEFTV(1)
+! 
+! ELSE
+! 
+! FLUX_TERMF=FLUXEVAL2D(LEFTV)
+! 
+! 
+! 
+! END IF
+
+
+
+
+
 
 
 

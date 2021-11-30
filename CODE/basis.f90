@@ -8,8 +8,8 @@ IMPLICIT NONE
  CONTAINS
  
  
- FUNCTION BASIS_REC(N,X1,Y1,Z1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
- !> @brief
+FUNCTION BASIS_REC(N,X1,Y1,Z1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
+!> @brief
 !> This function returns the value of the basis function for a specific polynomial order and coordinates
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
@@ -1482,12 +1482,6 @@ case(2)
  SB(166)=(1 - 72*x1 + 1260*x1**2 - 9240*x1**3 + 34650*x1**4 - 72072*x1**5 + 84084*x1**6 - 51480*x1**7 + 12870*x1**8)*(-1 + 2*y1)
  SB(165)=-1 + 90*x1 - 1980*x1**2 + 18480*x1**3 - 90090*x1**4 + 252252*x1**5 - 420420*x1**6 + 411840*x1**7 - 218790*x1**8 + 48620*x1**9
  
- 
- 
- 
- 
- 
- 
      END select
    END IF
    
@@ -1511,35 +1505,48 @@ END FUNCTION BASIS_REC
 
 
 FUNCTION BASIS_REC2d(N,X1,Y1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
- !> @brief
-!> This function returns the value of the basis function for a specific polynomial order and coordinates in 2D
+!> @brief
+!> This function returns the value of the basis function for a specific polynomial order and coordinates in 2D \n
+!> REQUIRES: X1, Y1: coordinates of basis evaluation wrt ?; NUMBER: order of basis; ICONSIDERED: considered cell?; NUMBER_OF_DOG: number of degrees of freedom
+! NUMBER and NUMBER_OF_DOG redundant?
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(IN)::NUMBER,ICONSIDERED,NUMBER_OF_DOG
 REAL,INTENT(IN)::X1,Y1
+INTEGER::I_NODE,I_QP,N_QP
 REAL::OOV
+REAL,ALLOCATABLE,DIMENSION(:,:)::QP_IN
 real,dimension(number_of_dog)::basis_rec2d
 SB=zero
+
+
 OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
 
-    select case(number)
+IF (DG.EQ.1)THEN
+OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
+! !OOV=1.0D0/(IELEM(N,ICONSIDERED)%TOTVOLUME)
+END IF
+
+SELECT CASE(POLY)
+CASE(1) ! Generic
+    select case(number) ! Order of basis
     
     case(1)
-    
-   !FIRST ORDER
+    !FIRST ORDER
     SB(1)=X1
     SB(2)=Y1
-    case(2)
     
+    case(2)
     !SECOND ORDER
-     SB(1)=X1
+    SB(1)=X1
     SB(2)=Y1
     SB(3)=X1*X1
     SB(4) = X1*Y1
     SB(5)= Y1*Y1
+    
     case(3)
     !THIRD ORDER
-     SB(1)=X1
+    SB(1)=X1
     SB(2)=Y1
     SB(3)=X1*X1
     SB(4) = X1*Y1
@@ -1548,6 +1555,7 @@ OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
     SB(7) = X1*X1*Y1
     SB(8)= X1*Y1*Y1
     SB(9)= Y1*Y1*Y1
+    
     case(4)
     !FOURTH ORDER
     SB(1)=X1
@@ -1564,6 +1572,7 @@ OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
     SB(12)= X1*X1*Y1*Y1
     SB(13)= X1*Y1*Y1*Y1
     SB(14)= Y1*Y1*Y1*Y1
+    
     case(5)
     !FIFTH ORDER
     SB(1)=X1
@@ -1586,6 +1595,7 @@ OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
     SB(18)= X1*X1*Y1*Y1*Y1
     SB(19)= X1*Y1*Y1*Y1*Y1
     SB(20)= Y1*Y1*Y1*Y1*Y1
+    
     case(6)
     !SIXTH ORDER
      SB(1)=X1
@@ -1615,19 +1625,157 @@ OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
     SB(25)= X1**2*Y1**4
     SB(26)= X1*Y1**5
     SB(27)= Y1**6
+
     
     END select
+    
+CASE(2) ! Legendre
+    select case(number)
+    case(1)
+        !FIRST ORDER FUNCTIONS (2ND-ORDER OF ACCURACY 3)
+        SB(1)=-1.0d0 + 2.0d0*x1
+        SB(2)=-1.0d0 + 2.0d0*y1
+
+    case(2)
+        ! SECOND ORDER FUNCTIONS (3RD-ORDER OF ACCURACY 4-9)
+        SB(1)=-1.0d0 + 2.0d0*x1
+        SB(2)=-1.0d0 + 2.0d0*y1
+        SB(3)=1.0d0 - 6.0d0*x1 + 6.0d0*x1**2
+        SB(4)=SB(1)*SB(2)
+        SB(5)=1.0d0 - 6.0d0*y1 + 6.0d0*y1**2
+
+    case(3)
+        ! THIRD ORDER FUNCTIONS (4TH-ORDER OF ACCURACY  10-19)
+        SB(1)=-1.0d0 + 2.0d0*x1
+        SB(2)=-1.0d0 + 2.0d0*y1
+        SB(3)=1.0d0 - 6.0d0*x1 + 6.0d0*x1**2
+        SB(4)=SB(1)*SB(2)
+        SB(5)=1.0d0 - 6.0d0*y1 + 6.0d0*y1**2 
+        SB(6)=-1.0d0 + 12.0d0*x1 - 30.0d0*x1**2 + 20.0d0*x1**3
+        SB(7)=SB(3)*SB(2)
+        SB(8)=SB(1)*SB(5)
+        SB(9)=-1.0d0 + 12.0d0*y1 - 30.0d0*y1**2 + 20.0d0*y1**3  
+    end select
+    
+CASE(3) ! Taylor
+    SELECT CASE(NUMBER)
+    CASE(1)
+        SB(1) = X1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(1)
+        SB(2) = Y1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(2)
+    CASE(2)
+        SB(1) = X1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(1)
+        SB(2) = Y1 / IELEM(N,ICONSIDERED)%DELTA_XYZ(2)
+        SB(3) = SB(1) ** 2 / 2 - IELEM(N,ICONSIDERED)%TAYLOR_INTEGRAL(1)
+        SB(4) = SB(2) ** 2 / 2 - IELEM(N,ICONSIDERED)%TAYLOR_INTEGRAL(2)
+        SB(5) = SB(1) * SB(2) - IELEM(N,ICONSIDERED)%TAYLOR_INTEGRAL(3)
+    END SELECT
+
+CASE(4) ! !taylor
+    select case(number)
+
+
+    case (1)
+    
+    SB(2)=y1/h1c - y1c/h1c
+    SB(1)=x1/h1c - x1c/h1c
+    
+     case (2)
+     
+     SB(2)=y1/h1c - y1c/h1c
+    SB(1)=x1/h1c - x1c/h1c
+    SB(3)=x1**2/(2.*h1c**2) - (x1*x1c)/h1c**2 + x1c**2/(2.*h1c**2)
+    SB(4)=(x1/h1c - x1c/h1c)*(y1/h1c - y1c/h1c)
+    SB(5)=y1**2/(2.*h1c**2) - (y1*y1c)/h1c**2 + y1c**2/(2.*h1c**2)
+    
+    case (3)
+    SB(2)=y1/h1c - y1c/h1c
+    SB(1)=x1/h1c - x1c/h1c
+    SB(3)=x1**2/(2.*h1c**2) - (x1*x1c)/h1c**2 + x1c**2/(2.*h1c**2)
+    SB(4)=(x1/h1c - x1c/h1c)*(y1/h1c - y1c/h1c)
+    SB(5)=y1**2/(2.*h1c**2) - (y1*y1c)/h1c**2 + y1c**2/(2.*h1c**2)
+    SB(8)=(x1/h1c - x1c/h1c)*(y1**2/(2.*h1c**2) - (y1*y1c)/h1c**2 + y1c**2/(2.*h1c**2))
+    SB(6)=x1**3/(6.*h1c**3) - (x1**2*x1c)/(2.*h1c**3) + (x1*x1c**2)/(2.*h1c**3) - x1c**3/(6.*h1c**3)
+    SB(7)=(x1**2/(2.*h1c**2) - (x1*x1c)/h1c**2 + x1c**2/(2.*h1c**2))*(y1/h1c - y1c/h1c)
+    SB(9)=y1**3/(6.*h1c**3) - (y1**2*y1c)/(2.*h1c**3) + (y1*y1c**2)/(2.*h1c**3) - y1c**3/(6.*h1c**3)
+    
+    
+    
+    
+!   SB(2)=y1/h1c - y1c/h1c
+!  SB(5)=y1**2/(2.*h1c**2) - (y1*y1c)/h1c**2 + y1c**2/(2.*h1c**2)
+!  SB(9)=y1**3/(6.*h1c**3) - (y1**2*y1c)/(2.*h1c**3) + (y1*y1c**2)/(2.*h1c**3) - y1c**3/(6.*h1c**3)
+!  SB(14)=y1**4/(24.*h1c**4) - (y1**3*y1c)/(6.*h1c**4) + (y1**2*y1c**2)/(4.*h1c**4) - (y1*y1c**3)/(6.*h1c**4) + y1c**4/(24.*h1c**4)
+!  SB(20)=y1**5/(120.*h1c**5) - (y1**4*y1c)/(24.*h1c**5) + (y1**3*y1c**2)/(12.*h1c**5) - (y1**2*y1c**3)/(12.*h1c**5) + (y1*y1c**4)/(24.*h1c**5) - y1c**5/(120.*h1c**5)
+!  SB(27)=y1**6/(720.*h1c**6) - (y1**5*y1c)/(120.*h1c**6) + (y1**4*y1c**2)/(48.*h1c**6) - (y1**3*y1c**3)/(36.*h1c**6) + (y1**2*y1c**4)/(48.*h1c**6) - (y1*y1c**5)/(120.*h1c**6) + y1c**6/(720.*h1c**6)
+!  SB(35)=y1**7/(5040.*h1c**7) - (y1**6*y1c)/(720.*h1c**7) + (y1**5*y1c**2)/(240.*h1c**7) - (y1**4*y1c**3)/(144.*h1c**7) + (y1**3*y1c**4)/(144.*h1c**7) - (y1**2*y1c**5)/(240.*h1c**7) + (y1*y1c**6)/(720.*h1c**7) - y1c**7/(5040.*h1c**7)
+!  SB(44)=y1**8/(40320.*h1c**8) - (y1**7*y1c)/(5040.*h1c**8) + (y1**6*y1c**2)/(1440.*h1c**8) - (y1**5*y1c**3)/(720.*h1c**8) + (y1**4*y1c**4)/(576.*h1c**8) - (y1**3*y1c**5)/(720.*h1c**8) + (y1**2*y1c**6)/(1440.*h1c**8) - (y1*y1c**7)/(5040.*h1c**8) + y1c**8/(40320.*h1c**8)
+!  SB(1)=x1/h1c - x1c/h1c
+!  SB(4)=(x1/h1c - x1c/h1c)*(y1/h1c - y1c/h1c)
+!  SB(8)=(x1/h1c - x1c/h1c)*(y1**2/(2.*h1c**2) - (y1*y1c)/h1c**2 + y1c**2/(2.*h1c**2))
+!  SB(13)=(x1/h1c - x1c/h1c)*(y1**3/(6.*h1c**3) - (y1**2*y1c)/(2.*h1c**3) + (y1*y1c**2)/(2.*h1c**3) - y1c**3/(6.*h1c**3))
+!  SB(19)=(x1/h1c - x1c/h1c)*(y1**4/(24.*h1c**4) - (y1**3*y1c)/(6.*h1c**4) + (y1**2*y1c**2)/(4.*h1c**4) - (y1*y1c**3)/(6.*h1c**4) + y1c**4/(24.*h1c**4))
+!  SB(26)=(x1/h1c - x1c/h1c)*(y1**5/(120.*h1c**5) - (y1**4*y1c)/(24.*h1c**5) + (y1**3*y1c**2)/(12.*h1c**5) - (y1**2*y1c**3)/(12.*h1c**5) + (y1*y1c**4)/(24.*h1c**5) - y1c**5/(120.*h1c**5))
+!  SB(34)=(x1/h1c - x1c/h1c)*(y1**6/(720.*h1c**6) - (y1**5*y1c)/(120.*h1c**6) + (y1**4*y1c**2)/(48.*h1c**6) - (y1**3*y1c**3)/(36.*h1c**6) + (y1**2*y1c**4)/(48.*h1c**6) - (y1*y1c**5)/(120.*h1c**6) + y1c**6/(720.*h1c**6))
+!  SB(43)=(x1/h1c - x1c/h1c)*(y1**7/(5040.*h1c**7) - (y1**6*y1c)/(720.*h1c**7) + (y1**5*y1c**2)/(240.*h1c**7) - (y1**4*y1c**3)/(144.*h1c**7) + (y1**3*y1c**4)/(144.*h1c**7) - (y1**2*y1c**5)/(240.*h1c**7) + (y1*y1c**6)/(720.*h1c**7) - y1c**7/(5040.*h1c**7))
+!  SB(3)=x1**2/(2.*h1c**2) - (x1*x1c)/h1c**2 + x1c**2/(2.*h1c**2)
+!  SB(7)=(x1**2/(2.*h1c**2) - (x1*x1c)/h1c**2 + x1c**2/(2.*h1c**2))*(y1/h1c - y1c/h1c)
+!  SB(12)=(x1**2/(2.*h1c**2) - (x1*x1c)/h1c**2 + x1c**2/(2.*h1c**2))*(y1**2/(2.*h1c**2) - (y1*y1c)/h1c**2 + y1c**2/(2.*h1c**2))
+!  SB(18)=(x1**2/(2.*h1c**2) - (x1*x1c)/h1c**2 + x1c**2/(2.*h1c**2))*(y1**3/(6.*h1c**3) - (y1**2*y1c)/(2.*h1c**3) + (y1*y1c**2)/(2.*h1c**3) - y1c**3/(6.*h1c**3))
+!  SB(25)=(x1**2/(2.*h1c**2) - (x1*x1c)/h1c**2 + x1c**2/(2.*h1c**2))*(y1**4/(24.*h1c**4) - (y1**3*y1c)/(6.*h1c**4) + (y1**2*y1c**2)/(4.*h1c**4) - (y1*y1c**3)/(6.*h1c**4) + y1c**4/(24.*h1c**4))
+!  SB(33)=(x1**2/(2.*h1c**2) - (x1*x1c)/h1c**2 + x1c**2/(2.*h1c**2))*(y1**5/(120.*h1c**5) - (y1**4*y1c)/(24.*h1c**5) + (y1**3*y1c**2)/(12.*h1c**5) - (y1**2*y1c**3)/(12.*h1c**5) + (y1*y1c**4)/(24.*h1c**5) - y1c**5/(120.*h1c**5))
+!  SB(42)=(x1**2/(2.*h1c**2) - (x1*x1c)/h1c**2 + x1c**2/(2.*h1c**2))*(y1**6/(720.*h1c**6) - (y1**5*y1c)/(120.*h1c**6) + (y1**4*y1c**2)/(48.*h1c**6) - (y1**3*y1c**3)/(36.*h1c**6) + (y1**2*y1c**4)/(48.*h1c**6) - (y1*y1c**5)/(120.*h1c**6) + y1c**6/(720.*h1c**6))
+!  SB(6)=x1**3/(6.*h1c**3) - (x1**2*x1c)/(2.*h1c**3) + (x1*x1c**2)/(2.*h1c**3) - x1c**3/(6.*h1c**3)
+!  SB(11)=(x1**3/(6.*h1c**3) - (x1**2*x1c)/(2.*h1c**3) + (x1*x1c**2)/(2.*h1c**3) - x1c**3/(6.*h1c**3))*(y1/h1c - y1c/h1c)
+!  SB(17)=(x1**3/(6.*h1c**3) - (x1**2*x1c)/(2.*h1c**3) + (x1*x1c**2)/(2.*h1c**3) - x1c**3/(6.*h1c**3))*(y1**2/(2.*h1c**2) - (y1*y1c)/h1c**2 + y1c**2/(2.*h1c**2))
+!  SB(24)=(x1**3/(6.*h1c**3) - (x1**2*x1c)/(2.*h1c**3) + (x1*x1c**2)/(2.*h1c**3) - x1c**3/(6.*h1c**3))*(y1**3/(6.*h1c**3) - (y1**2*y1c)/(2.*h1c**3) + (y1*y1c**2)/(2.*h1c**3) - y1c**3/(6.*h1c**3))
+!  SB(32)=(x1**3/(6.*h1c**3) - (x1**2*x1c)/(2.*h1c**3) + (x1*x1c**2)/(2.*h1c**3) - x1c**3/(6.*h1c**3))*(y1**4/(24.*h1c**4) - (y1**3*y1c)/(6.*h1c**4) + (y1**2*y1c**2)/(4.*h1c**4) - (y1*y1c**3)/(6.*h1c**4) + y1c**4/(24.*h1c**4))
+!  SB(41)=(x1**3/(6.*h1c**3) - (x1**2*x1c)/(2.*h1c**3) + (x1*x1c**2)/(2.*h1c**3) - x1c**3/(6.*h1c**3))*(y1**5/(120.*h1c**5) - (y1**4*y1c)/(24.*h1c**5) + (y1**3*y1c**2)/(12.*h1c**5) - (y1**2*y1c**3)/(12.*h1c**5) + (y1*y1c**4)/(24.*h1c**5) - y1c**5/(120.*h1c**5))
+!  SB(10)=x1**4/(24.*h1c**4) - (x1**3*x1c)/(6.*h1c**4) + (x1**2*x1c**2)/(4.*h1c**4) - (x1*x1c**3)/(6.*h1c**4) + x1c**4/(24.*h1c**4)
+!  SB(16)=(x1**4/(24.*h1c**4) - (x1**3*x1c)/(6.*h1c**4) + (x1**2*x1c**2)/(4.*h1c**4) - (x1*x1c**3)/(6.*h1c**4) + x1c**4/(24.*h1c**4))*(y1/h1c - y1c/h1c)
+!  SB(23)=(x1**4/(24.*h1c**4) - (x1**3*x1c)/(6.*h1c**4) + (x1**2*x1c**2)/(4.*h1c**4) - (x1*x1c**3)/(6.*h1c**4) + x1c**4/(24.*h1c**4))*(y1**2/(2.*h1c**2) - (y1*y1c)/h1c**2 + y1c**2/(2.*h1c**2))
+!  SB(31)=(x1**4/(24.*h1c**4) - (x1**3*x1c)/(6.*h1c**4) + (x1**2*x1c**2)/(4.*h1c**4) - (x1*x1c**3)/(6.*h1c**4) + x1c**4/(24.*h1c**4))*(y1**3/(6.*h1c**3) - (y1**2*y1c)/(2.*h1c**3) + (y1*y1c**2)/(2.*h1c**3) - y1c**3/(6.*h1c**3))
+!  SB(40)=(x1**4/(24.*h1c**4) - (x1**3*x1c)/(6.*h1c**4) + (x1**2*x1c**2)/(4.*h1c**4) - (x1*x1c**3)/(6.*h1c**4) + x1c**4/(24.*h1c**4))*(y1**4/(24.*h1c**4) - (y1**3*y1c)/(6.*h1c**4) + (y1**2*y1c**2)/(4.*h1c**4) - (y1*y1c**3)/(6.*h1c**4) + y1c**4/(24.*h1c**4))
+!  SB(15)=x1**5/(120.*h1c**5) - (x1**4*x1c)/(24.*h1c**5) + (x1**3*x1c**2)/(12.*h1c**5) - (x1**2*x1c**3)/(12.*h1c**5) + (x1*x1c**4)/(24.*h1c**5) - x1c**5/(120.*h1c**5)
+!  SB(22)=(x1**5/(120.*h1c**5) - (x1**4*x1c)/(24.*h1c**5) + (x1**3*x1c**2)/(12.*h1c**5) - (x1**2*x1c**3)/(12.*h1c**5) + (x1*x1c**4)/(24.*h1c**5) - x1c**5/(120.*h1c**5))*(y1/h1c - y1c/h1c)
+!  SB(30)=(x1**5/(120.*h1c**5) - (x1**4*x1c)/(24.*h1c**5) + (x1**3*x1c**2)/(12.*h1c**5) - (x1**2*x1c**3)/(12.*h1c**5) + (x1*x1c**4)/(24.*h1c**5) - x1c**5/(120.*h1c**5))*(y1**2/(2.*h1c**2) - (y1*y1c)/h1c**2 + y1c**2/(2.*h1c**2))
+!  SB(39)=(x1**5/(120.*h1c**5) - (x1**4*x1c)/(24.*h1c**5) + (x1**3*x1c**2)/(12.*h1c**5) - (x1**2*x1c**3)/(12.*h1c**5) + (x1*x1c**4)/(24.*h1c**5) - x1c**5/(120.*h1c**5))*(y1**3/(6.*h1c**3) - (y1**2*y1c)/(2.*h1c**3) + (y1*y1c**2)/(2.*h1c**3) - y1c**3/(6.*h1c**3))
+!  SB(21)=x1**6/(720.*h1c**6) - (x1**5*x1c)/(120.*h1c**6) + (x1**4*x1c**2)/(48.*h1c**6) - (x1**3*x1c**3)/(36.*h1c**6) + (x1**2*x1c**4)/(48.*h1c**6) - (x1*x1c**5)/(120.*h1c**6) + x1c**6/(720.*h1c**6)
+!  SB(29)=(x1**6/(720.*h1c**6) - (x1**5*x1c)/(120.*h1c**6) + (x1**4*x1c**2)/(48.*h1c**6) - (x1**3*x1c**3)/(36.*h1c**6) + (x1**2*x1c**4)/(48.*h1c**6) - (x1*x1c**5)/(120.*h1c**6) + x1c**6/(720.*h1c**6))*(y1/h1c - y1c/h1c)
+!  SB(38)=(x1**6/(720.*h1c**6) - (x1**5*x1c)/(120.*h1c**6) + (x1**4*x1c**2)/(48.*h1c**6) - (x1**3*x1c**3)/(36.*h1c**6) + (x1**2*x1c**4)/(48.*h1c**6) - (x1*x1c**5)/(120.*h1c**6) + x1c**6/(720.*h1c**6))*(y1**2/(2.*h1c**2) - (y1*y1c)/h1c**2 + y1c**2/(2.*h1c**2))
+!  SB(28)=x1**7/(5040.*h1c**7) - (x1**6*x1c)/(720.*h1c**7) + (x1**5*x1c**2)/(240.*h1c**7) - (x1**4*x1c**3)/(144.*h1c**7) + (x1**3*x1c**4)/(144.*h1c**7) - (x1**2*x1c**5)/(240.*h1c**7) + (x1*x1c**6)/(720.*h1c**7) - x1c**7/(5040.*h1c**7)
+!  SB(37)=(x1**7/(5040.*h1c**7) - (x1**6*x1c)/(720.*h1c**7) + (x1**5*x1c**2)/(240.*h1c**7) - (x1**4*x1c**3)/(144.*h1c**7) + (x1**3*x1c**4)/(144.*h1c**7) - (x1**2*x1c**5)/(240.*h1c**7) + (x1*x1c**6)/(720.*h1c**7) - x1c**7/(5040.*h1c**7))*(y1/h1c - y1c/h1c)
+!  SB(36)=x1**8/(40320.*h1c**8) - (x1**7*x1c)/(5040.*h1c**8) + (x1**6*x1c**2)/(1440.*h1c**8) - (x1**5*x1c**3)/(720.*h1c**8) + (x1**4*x1c**4)/(576.*h1c**8) - (x1**3*x1c**5)/(720.*h1c**8) + (x1**2*x1c**6)/(1440.*h1c**8) - (x1*x1c**7)/(5040.*h1c**8) + x1c**8/(40320.*h1c**8)
+
+
+
+
+    end select
+
+
+
+
+END SELECT
    
-    if (compwrt.eq.0)then
-    basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)-((INTEG_BASIS(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
-    else
-    basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)-((INTEG_BASIS(ICONSIDERED)%valuec(1:NUMBER_OF_DOG))*OOV)
+    IF (DG == 1) THEN
+        basis_rec2d(1:NUMBER_OF_DOG) = SB(1:NUMBER_OF_DOG)!-((INTEG_BASIS_DG(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
+    ELSE if (compwrt.eq.0)then
+        OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
+        basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)-((INTEG_BASIS(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
+    ELSE if (compwrt.eq.1)then
+        OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
+        basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)-((INTEG_BASIS(ICONSIDERED)%valuec(1:NUMBER_OF_DOG))*OOV)
+    ELSE if (compwrt.eq.-1)then
+!    basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)!-((INTEG_BASIS(ICONSIDERED)%valuec(1:NUMBER_OF_DOG))*OOV)
+        if(poly.eq.3)then
+            basis_rec2d(1:2)=SB(1:2)
+            basis_rec2d(3:NUMBER_OF_DOG)=SB(3:NUMBER_OF_DOG)-((INTEG_BASIS(ICONSIDERED)%valuec(3:NUMBER_OF_DOG))*OOV)
+        else
+            basis_rec2d(1:NUMBER_OF_DOG)=SB(1:NUMBER_OF_DOG)
+        end if
     end if
+    
     
 
 END FUNCTION BASIS_REC2d
-
-
-
 
 END MODULE BASIS

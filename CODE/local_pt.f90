@@ -60,6 +60,15 @@ DO I=1,INEEDT
 
 	IEXSOLHIR(I)%SOL(:,:)=0.0d0
 	
+    IF (DG == 1 .AND. RECONSTRUCT_HIGHER_ORDER_DG_DOFS_BOOLEAN == 1) THEN
+        ALLOCATE (IEXSOLHIR(I)%SOL_DG(IRECEXS(I)%MUCHTHEYNEED(1),nof_variables+turbulenceequations+passivescalar,NUM_DG_DOFS))
+        IEXSOLHIR(I)%SOL_DG(:,:,:)=0.0d0
+        ALLOCATE(IEXSOLHIR(I)%DELTA_XYZ(IRECEXS(I)%MUCHTHEYNEED(1), DIMENSIONA))
+        IEXSOLHIR(I)%DELTA_XYZ = 0.0D0
+        ALLOCATE(IEXSOLHIR(I)%BASIS_NEIGHBOR_CENTER(IRECEXS(I)%MUCHTHEYNEED(1), DIMENSIONA))
+        IEXSOLHIR(I)%BASIS_NEIGHBOR_CENTER = 0.0D0
+	END IF
+	
 END DO
 END IF
 DO I=1,INDL
@@ -100,6 +109,15 @@ DO I=1,TNEEDT
 	ALLOCATE (IEXSOLHIS(I)%SOL(IRECEXS(I)%MUCHTHEYNEED(1),nof_variables+turbulenceequations+passivescalar))
     
 	IEXSOLHIs(I)%SOL(:,:)=0.0d0
+	
+    IF (DG == 1 .AND. RECONSTRUCT_HIGHER_ORDER_DG_DOFS_BOOLEAN == 1) THEN
+        ALLOCATE (IEXSOLHIS(I)%SOL_DG(IRECEXS(I)%MUCHTHEYNEED(1),nof_variables+turbulenceequations+passivescalar,NUM_DG_DOFS))
+        IEXSOLHIs(I)%SOL_DG(:,:,:)=0.0d0
+        ALLOCATE(IEXSOLHIS(I)%DELTA_XYZ(IRECEXS(I)%MUCHTHEYNEED(1), DIMENSIONA))
+        IEXSOLHIS(I)%DELTA_XYZ = 0.0D0
+        ALLOCATE(IEXSOLHIS(I)%BASIS_NEIGHBOR_CENTER(IRECEXS(I)%MUCHTHEYNEED(1), DIMENSIONA))
+        IEXSOLHIS(I)%BASIS_NEIGHBOR_CENTER = 0.0D0
+	END IF
 	
 END DO
 END IF
@@ -245,14 +263,17 @@ i_cnt5=i_cnt3*i_cnt4
 DO I=1,INDL
 
 	IF (ITESTCASE.Le.3)THEN
-	ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),nof_variables))
-! 	ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
+        ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),nof_variables))
+    ! 	ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
 
-    if (mood.eq.1)then
-	
+
+        IF (DG == 1)THEN
+            ALLOCATE(IEXBOUNDHIR(I)%FACESOL_DG(IEXCHANGER(I)%MUCHINEED(1),NOF_VARIABLES))
+        END IF
+        
+        if (mood.eq.1)then
             ALLOCATE(IEXBOUNDHIR(I)%FACESOL_m(IEXCHANGER(I)%MUCHINEED(1),1))
-            
-            end if
+        end if
 
 	Else
 	
@@ -274,10 +295,13 @@ END DO
 
 DO I=1,TNDL
 	IF (ITESTCASE.Le.3)THEN
-	ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),nof_variables))
-	
-	 if (mood.eq.1)then
-	
+        ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),nof_variables))
+        
+        IF (DG == 1)THEN
+            ALLOCATE(IEXBOUNDHIS(I)%FACESOL_DG(IEXCHANGER(I)%MUCHINEED(1),NOF_VARIABLES))
+        END IF
+        
+        if (mood.eq.1)then
             ALLOCATE(IEXBOUNDHIs(I)%FACESOL_m(IEXCHANGEs(I)%MUCHTHEYNEED(1),1))
         end if
 
@@ -600,7 +624,7 @@ SUBROUTINE FIND_ROT_ANGLES(N,ICONSI)
 !> @brief
 !> This subroutine determines the normal vectors for each face
 IMPLICIT NONE
-real::X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz
+real::Xc1,Yc1,Zc1,Xc2,Yc2,Zc2,Xc3,Yc3,Zc3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz
 REAL::X5,X6,X7,X8,Y5,Y6,Y7,Y8,Z5,Z6,Z7,Z8,XX,YY,ZZ
 REAL::DELXA,DELXB,DELYA,DELYB,DELZA,DELZB
 INTEGER::K,KMAXE,I,J,kk,kk2,ixf4,IXFV
@@ -670,12 +694,12 @@ i=iconsi
 
 			    END IF
 					IF (KK2.EQ.3)THEN  
-					X1=veXt(1,1); X2=veXt(2,1); X3=veXt(3,1);
-					Y1=veXt(1,2);Y2=veXt(2,2); Y3=veXt(3,2);
-					Z1=veXt(1,3); Z2=veXt(2,3); Z3=veXt(3,3);
-					DELXYA=(x1-x2)*(y1+y2);DELyzA=(y1-y2)*(z1+z2);DELzxA=(z1-z2)*(x1+x2)
-					DELXYb=(x2-x3)*(y2+y3);DELyzb=(y2-y3)*(z2+z3);DELzxb=(z2-z3)*(x2+x3)
-					DELXYc=(x3-x1)*(y3+y1);DELyzc=(y3-y1)*(z3+z1);DELzxc=(z3-z1)*(x3+x1)
+					Xc1=veXt(1,1); Xc2=veXt(2,1); Xc3=veXt(3,1);
+					Yc1=veXt(1,2);Yc2=veXt(2,2); Yc3=veXt(3,2);
+					Zc1=veXt(1,3); Zc2=veXt(2,3); Zc3=veXt(3,3);
+					DELXYA=(xc1-xc2)*(yc1+yc2);DELyzA=(yc1-yc2)*(zc1+zc2);DELzxA=(zc1-zc2)*(xc1+xc2)
+					DELXYb=(xc2-xc3)*(yc2+yc3);DELyzb=(yc2-yc3)*(zc2+zc3);DELzxb=(zc2-zc3)*(xc2+xc3)
+					DELXYc=(xc3-xc1)*(yc3+yc1);DELyzc=(yc3-yc1)*(zc3+zc1);DELzxc=(zc3-zc1)*(xc3+xc1)
 					nx=(delyza+delyzb+delyzc)
 					ny=(delzxa+delzxb+delzxc)
 					nz=(delxya+delxyb+delxyc)
@@ -763,7 +787,7 @@ SUBROUTINE FIND_ROT_ANGLES2d(N,ICONSI)
 !> @brief
 !> This subroutine determines the normal vectors for each edge
 IMPLICIT NONE
-real::X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz
+real::Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz
 REAL::X5,X6,X7,X8,Y5,Y6,Y7,Y8,Z5,Z6,Z7,Z8,XX,YY,ZZ
 REAL::DELXA,DELXB,DELYA,DELYB,DELZA,DELZB
 INTEGER::K,KMAXE,I,J,kk,kk2,ixf4,IXFV
@@ -2463,11 +2487,15 @@ REAL::DXX1,dxx2,TEMPG1,dist1,dist2,oo2
 INTEGER::I,J,K,L,jj,icount3,nnd,ixf4
 i=iconsi
 
+tempg1=0.0; 
     IELEM(N,I)%GGS=greengo
     dxx1=-TOLBIG; dxx2=TOLBIG
     CALL COMPUTE_CENTRE2d(N,i)
     vext(1,1:dims)=CORDS(1:dims)
       
+      
+      
+     
 
   if (ielem(n,i)%interior.eq.1)then
   do k=1,ielem(n,i)%ifca
@@ -2507,7 +2535,7 @@ i=iconsi
   end if
 
 
-      
+     
       do l=1,ielem(n,i)%ifca
       
 	      
@@ -2518,18 +2546,21 @@ i=iconsi
 		  if (ielem(n,i)%interior.eq.1)then
 		    if ((ielem(n,i)%ineighg(l).gt.0).and.(ielem(n,i)%ibounds(l).gt.0))then
 		      if (ielem(n,i)%ineighb(l).ne.n)then
-
+           
 			do K=1,nnd
 			  NODES_LIST(k,1:dims)=inoder(IELEM(N,Iconsi)%NODES_FACES(l,K))%CORD(1:dims)
 			END DO
+			
+			
 			do K=1,nnd
 			IF(ABS(NODES_LIST(k,1)-vext(1,1)).GT.XPER*oo2)THEN
-			NODES_LIST(k,1)=NODES_LIST(k,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
+			NODES_LIST(k,1)=NODES_LIST(k,1)+(XPER*SIGN(1.0d0,vext(1,1)-XPER*oo2))
 			end if
 			IF(ABS(NODES_LIST(k,2)-vext(1,2)).GT.yPER*oo2)THEN
-			NODES_LIST(k,2)=NODES_LIST(k,2)+(yPER*SIGN(1.0,vext(1,2)-yPER*oo2))
+			NODES_LIST(k,2)=NODES_LIST(k,2)+(yPER*SIGN(1.0d0,vext(1,2)-yPER*oo2))
 			end if
 			end do
+			
 			CORDS=CORDINATES2(N,NODES_LIST,nnd)
 			vext(2,1:dims)=CORDS(1:dims)
 		    else
@@ -2559,10 +2590,16 @@ i=iconsi
 		if (dist1.gt.dxx1)then
 		  dxx1=dist1
 		end if
+		
+		
+		
 end do
 	    IF (TEMPG1.GT.GRIDAR1)THEN
 	      IELEM(N,I)%GGS=1
 	      end if 
+	      
+	      
+	      
    if (fastest.eq.0)then
 	       dxx1=-tolbig; dxx2=tolbig
 	       JJ=1

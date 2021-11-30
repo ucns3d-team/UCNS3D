@@ -7,6 +7,7 @@ MODULE COMMUNICATIONS
 USE MPIINFO
 USE DECLARATION
 USE TRANSFORM
+USE BASIS
 IMPLICIT NONE
 
 contains
@@ -1057,7 +1058,21 @@ DO I=1,TNEEDT
 END DO
 !$OMP END DO
 END IF
-  
+
+
+! IF (DG.EQ.1) THEN
+!   
+!  !$OMP DO SCHEDULE (STATIC)
+! DO I=1,TNEEDT
+! 	DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+! 	      SOLCHANGES(I)%SOL_DG(K,1:NOF_VARIABLES,1:NUMBER_OF_DOG+1)=U_C(IEXCHANGES(I)%LOCALREF(K))%VALDG(1,1:NOF_VARIABLES,1:NUMBER_OF_DOG+1)
+! 	END DO
+! END DO
+! !$OMP END DO 
+! 
+! END IF
+
+ 
 !$OMP BARRIER
 !$OMP MASTER
 ICPUID=N
@@ -1107,7 +1122,14 @@ else
 !$OMP DO SCHEDULE (STATIC)
 DO I=1,TNEEDT
 	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
-		  IEXSOLHIS(I)%SOL(K,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=U_C(IRECEXS(I)%LOCALREF(K))%VAL(1,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
+        IF (DG == 1 .AND. RECONSTRUCT_HIGHER_ORDER_DG_DOFS_BOOLEAN == 1) THEN
+            IEXSOLHIS(I)%SOL_DG(K, 1:NOF_VARIABLES, 1:NUM_DG_DOFS) = U_C(IRECEXS(I)%LOCALREF(K))%VALDG(1, 1:NOF_VARIABLES, 1:NUM_DG_DOFS)
+            IEXSOLHIS(I)%DELTA_XYZ(K,:) = IELEM( N, IRECEXS(I)%LOCALREF(K) )%DELTA_XYZ
+            X1 = IELEM(N, IRECEXS(I)%LOCALREF(K))%XXC - IELEM(N, I)%XXC
+            Y1 = IELEM(N, IRECEXS(I)%LOCALREF(K))%YYC - IELEM(N, I)%YYC
+            IEXSOLHIS(I)%BASIS_NEIGHBOR_CENTER(K,:) = BASIS_REC2D(N, X1, Y1, NUMBER + 1, I, NUM_DG_RECONSTRUCT_DOFS - 1)
+        END IF
+            IEXSOLHIS(I)%SOL(K,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=U_C(IRECEXS(I)%LOCALREF(K))%VAL(1,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 	END DO
 END DO
 !$OMP END DO
@@ -1150,6 +1172,27 @@ do k=1,jtotal
      IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
    )
+   
+    IF (DG == 1) THEN
+        CALL MPI_IRECV(                                                     &
+            IEXSOLHIR(IAVC)%SOL_DG(1:IRECEXR(IAVC)%MUCHINEED(1),1:NOF_VARIABLES, 1:NUM_DG_DOFS),    & !recvbuf
+            IRECEXR(iavc)%MUCHINEED(1)*NOF_VARIABLES*NUM_DG_DOFS, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+        CALL MPI_IRECV(                                                     &
+            IEXSOLHIR(IAVC)%DELTA_XYZ(1:IRECEXR(IAVC)%MUCHINEED(1),1:DIMENSIONA),    & !recvbuf
+            IRECEXR(iavc)%MUCHINEED(1)*DIMENSIONA, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+        CALL MPI_IRECV(                                                     &
+            IEXSOLHIR(IAVC)%BASIS_NEIGHBOR_CENTER(1:IRECEXR(IAVC)%MUCHINEED(1),1:NUM_DG_DOFS-1),    & !recvbuf
+            IRECEXR(iavc)%MUCHINEED(1)*(NUM_DG_DOFS-1), MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+    END IF
         END IF
         
        if ((jtot(k,1).NE.-1).AND.(jtot(k,2).EQ.-1))then
@@ -1163,7 +1206,27 @@ do k=1,jtotal
       IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+   
+    IF (DG == 1) THEN
+        CALL MPI_ISEND(                                                     &
+            IEXSOLHIS(IAVT)%SOL_DG(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:NOF_VARIABLES, 1:NUM_DG_DOFS),    & !recvbuf
+            IRECEXS(IAVT)%MUCHTHEYNEED(1)*NOF_VARIABLES*NUM_DG_DOFS, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIS(IAVT)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+        CALL MPI_ISEND(                                                     &
+            IEXSOLHIS(IAVT)%DELTA_XYZ(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:DIMENSIONA),    & !recvbuf
+            IRECEXS(IAVT)%MUCHTHEYNEED(1)*DIMENSIONA, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIS(IAVT)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+        CALL MPI_ISEND(                                                     &
+            IEXSOLHIS(IAVT)%BASIS_NEIGHBOR_CENTER(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:NUM_DG_DOFS-1),    & !recvbuf
+            IRECEXS(IAVT)%MUCHTHEYNEED(1)*(NUM_DG_DOFS-1), MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIS(IAVT)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+    END IF
 
          n_requests = n_requests + 1
          iavT=jtot(k,1)
@@ -1196,7 +1259,26 @@ do k=1,jtotal
       IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+    IF (DG == 1) THEN
+        CALL MPI_ISEND(                                                     &
+            IEXSOLHIS(IAVT)%SOL_DG(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:NOF_VARIABLES, 1:NUM_DG_DOFS),    & !recvbuf
+            IRECEXS(IAVT)%MUCHTHEYNEED(1)*NOF_VARIABLES*NUM_DG_DOFS, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIS(IAVT)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+        CALL MPI_ISEND(                                                     &
+            IEXSOLHIS(IAVT)%DELTA_XYZ(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:DIMENSIONA),    & !recvbuf
+            IRECEXS(IAVT)%MUCHTHEYNEED(1)*DIMENSIONA, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIS(IAVT)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+        CALL MPI_ISEND(                                                     &
+            IEXSOLHIS(IAVT)%BASIS_NEIGHBOR_CENTER(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:NUM_DG_DOFS-1),    & !recvbuf
+            IRECEXS(IAVT)%MUCHTHEYNEED(1)*(NUM_DG_DOFS-1), MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIS(IAVT)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+    END IF
 
          n_requests = n_requests + 1
          iavC=jtot(k,2)
@@ -1206,7 +1288,26 @@ do k=1,jtotal
      IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-        
+    IF (DG == 1) THEN
+        CALL MPI_IRECV(                                                     &
+            IEXSOLHIR(IAVC)%SOL_DG(1:IRECEXR(IAVC)%MUCHINEED(1),1:NOF_VARIABLES, 1:NUM_DG_DOFS),    & !recvbuf
+            IRECEXR(iavc)%MUCHINEED(1)*NOF_VARIABLES*NUM_DG_DOFS, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+        CALL MPI_IRECV(                                                     &
+            IEXSOLHIR(IAVC)%DELTA_XYZ(1:IRECEXR(IAVC)%MUCHINEED(1),1:DIMENSIONA),    & !recvbuf
+            IRECEXR(iavc)%MUCHINEED(1)*DIMENSIONA, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+        CALL MPI_IRECV(                                                     &
+            IEXSOLHIR(IAVC)%BASIS_NEIGHBOR_CENTER(1:IRECEXR(IAVC)%MUCHINEED(1),1:NUM_DG_DOFS-1),    & !recvbuf
+            IRECEXR(iavc)%MUCHINEED(1)*(NUM_DG_DOFS-1), MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+            IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
+            MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        )
+    END IF
         
         
         
@@ -1418,6 +1519,13 @@ else
 DO I=1,TNEEDT
 	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
 		  IEXSOLHIS(I)%SOL(K,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=U_C(IRECEXS(I)%LOCALREF(K))%VAL(1,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
+		  IF (DG == 1 .AND. RECONSTRUCT_HIGHER_ORDER_DG_DOFS_BOOLEAN == 1) THEN
+            IEXSOLHIS(I)%SOL_DG(K, 1:NOF_VARIABLES, 1:NUM_DG_DOFS) = U_C(IRECEXS(I)%LOCALREF(K))%VALDG(1, 1:NOF_VARIABLES, 1:NUM_DG_DOFS)
+            IEXSOLHIS(I)%DELTA_XYZ(K,:) = IELEM( N, IRECEXS(I)%LOCALREF(K) )%DELTA_XYZ
+            X1 = IELEM(N, IRECEXS(I)%LOCALREF(K))%XXC - IELEM(N, I)%XXC
+            Y1 = IELEM(N, IRECEXS(I)%LOCALREF(K))%YYC - IELEM(N, I)%YYC
+            IEXSOLHIS(I)%BASIS_NEIGHBOR_CENTER(K,:) = BASIS_REC2D(N, X1, Y1, NUMBER + 1, I, NUM_DG_RECONSTRUCT_DOFS - 1)
+        END IF
 	END DO
 END DO
 !$OMP END DO
@@ -1475,6 +1583,11 @@ ICPUID=N
 				CALL MPI_SENDRECV(IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST),ITEMP1,&
 			      MPI_DOUBLE_PRECISION,IEXSOLHIS(IAVT)%PROCID,ICPUID,&
 				IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),ITEMP2,MPI_DOUBLE_PRECISION,&
+			      IEXSOLHIR(IAVC)%PROCID,IEXSOLHIR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
+			      
+			      CALL MPI_SENDRECV(IEXSOLHIS(IAVT)%SOL_DG(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:NOF_VARIABLES,1:NUM_DG_DOFS),ITEMP1,&
+			      MPI_DOUBLE_PRECISION,IEXSOLHIS(IAVT)%PROCID,ICPUID,&
+				IEXSOLHIR(IAVC)%SOL_DG(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:NOF_VARIABLES,1:NUM_DG_DOFS),ITEMP2,MPI_DOUBLE_PRECISION,&
 			      IEXSOLHIR(IAVC)%PROCID,IEXSOLHIR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
 				END IF		
 			END IF	
@@ -1548,6 +1661,11 @@ ICPUID=N
 				CALL MPI_SENDRECV(IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST),ITEMP1,&
 			      MPI_DOUBLE_PRECISION,IEXSOLHIS(IAVT)%PROCID,ICPUID,&
 				IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),ITEMP2,MPI_DOUBLE_PRECISION,&
+			      IEXSOLHIR(IAVC)%PROCID,IEXSOLHIR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
+			      
+			      CALL MPI_SENDRECV(IEXSOLHIS(IAVT)%SOL_DG(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:NOF_VARIABLES,1:NUM_DG_DOFS),ITEMP1,&
+			      MPI_DOUBLE_PRECISION,IEXSOLHIS(IAVT)%PROCID,ICPUID,&
+				IEXSOLHIR(IAVC)%SOL_DG(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:NOF_VARIABLES,1:NUM_DG_DOFS),ITEMP2,MPI_DOUBLE_PRECISION,&
 			      IEXSOLHIR(IAVC)%PROCID,IEXSOLHIR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
 				END IF		
 			END IF	
@@ -1632,12 +1750,17 @@ END IF
 
 IF (ITESTCASE.LE.3) THEN
 !$OMP DO SCHEDULE (STATIC)
-DO I=1,TNDL
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-  IEXBOUNDHIS(I)%FACESOL(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+    DO I=1,TNDL
+        DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+    
+            IF (DG == 1) THEN
+                
+            ELSE
+                IEXBOUNDHIS(I)%FACESOL(K,1:NOF_VARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT(1:NOF_VARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+            END IF
 
-END DO
-END DO
+        END DO
+    END DO
 !$OMP END DO
 END  IF
 
@@ -2287,7 +2410,218 @@ END SUBROUTINE EXHBOUNDHIGHER_MOOD
 
 
 
+SUBROUTINE EXHBOUNDHIGHER_dg(N)
+!> @brief
+!> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
+!> for the Gaussian quadrature points of direct-side neighbours between MPI processes 
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
+INTEGER::ITEE,ITEEDUM,JK,JJK,JJK4,JJK12,IMULTI2,ICPE,JMNB,J76,J78,J79,J80,IMULTI3,I_CNT,cinout2
+integer:: n_requests 
+integer, dimension(:), allocatable:: requests
+real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
+ cinout2=0
+INDL=IEXCHANGER(1)%TOT
+TNDL=IEXCHANGES(1)%TOT
 
+pr_t31=zero
+pr_t32=zero
+pr_t33=zero
+pr_t34=zero
+pr_t35=zero
+temp_prin=zero
+temp_prout=zero
+
+
+
+! 
+!     if (statistics.eq.1)then
+!     
+!     !$OMP MASTER
+!     pr_t31=MPI_Wtime()
+! !     prace_t1=pr_t2-pr_t1
+!     !$OMP END MASTER
+!      
+!     end if
+
+
+
+if(indl .ne. tndl) then
+   write (*, *) "exhbounhigher: INDL and TNDL are supposed to be equal; INDL=", INDL, "TNDL=", TNDL
+   call MPI_ABORT(MPI_COMM_WORLD, 1, IERROR)
+end if
+
+IF (DIMENSIONA.EQ.3)THEN
+
+
+IF( ITESTCASE.EQ.4)THEN
+I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
+ELSE
+
+I_CNT=nof_variables
+END IF
+ELSE
+IF( ITESTCASE.EQ.4)THEN
+I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
+ELSE
+
+I_CNT=nof_variables
+END IF
+END IF
+
+
+IF (ITESTCASE.LE.3) THEN
+!$OMP DO SCHEDULE (STATIC)
+    DO I=1,TNDL
+        DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+    
+            IF (DG == 1) THEN
+                IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_VARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_VARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+            ELSE
+                IEXBOUNDHIS(I)%FACESOL(K,1:NOF_VARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT(1:NOF_VARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+            END IF
+
+        END DO
+    END DO
+!$OMP END DO
+END  IF
+
+
+IF (ITESTCASE.EQ.4) THEN
+
+IF (TURBULENCE.NE.1)THEN
+!$OMP DO SCHEDULE (STATIC)
+DO I=1,TNDL
+DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+
+ITTT=0
+DO IEX=1,NOF_VARIABLES-1
+      DO nvar=1,DIMS
+      ITTT=ITTT+1
+		  IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+
+      END DO
+END DO
+END DO
+END DO
+!$OMP END DO
+
+ELSE
+!$OMP DO SCHEDULE (STATIC)
+DO I=1,TNDL
+DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+1:NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+
+
+ITTT=0
+DO IEX=1,NOF_VARIABLES-1
+      DO nvar=1,DIMS
+      ITTT=ITTT+1
+		  IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+      END DO
+END DO
+DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+      DO nvar=1,DIMS
+      ITTT=ITTT+1
+	IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTTURBV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+      END DO
+END DO
+END DO
+END DO
+!$OMP END DO
+
+END IF
+END  IF
+
+!$OMP BARRIER
+
+
+!-------------------FOR DEBUGGING ONLY -----------------------------------------!
+
+!-------------------FOR DEBUGGING ONLY -----------------------------------------!
+
+!$OMP MASTER
+!CALL MPI_BARRIER(mpi_comm_world,ierror)
+
+n_requests = 0
+allocate(requests(2*indl))
+requests(:)=0
+ICPUID=N
+
+
+
+!     if (statistics.eq.1)then
+!     
+!     !$OMP MASTER
+!     pr_t32=MPI_Wtime()
+! !     prace_t33=pr_t32-pr_t31
+!     !$OMP END MASTER
+!     
+!     end if
+
+
+
+
+
+
+
+
+DO K=1,INDL
+
+   ! Search unique J such that (IEXBOUNDHIR(K)%PROCID .EQ. IEXBOUNDHIS(J)%PROCID)
+   J = 1
+   DO WHILE(IEXBOUNDHIR(K)%PROCID .NE. IEXBOUNDHIS(J)%PROCID)
+      J = J + 1
+   END DO
+
+   ! non-blocking send
+   n_requests = n_requests + 1
+   CALL MPI_ISEND(                                                     &
+      IEXBOUNDHIS(J)%FACESOL_dg(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
+      IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
+      IEXBOUNDHIS(J)%PROCID, 0,                                        & !destination, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+   ! non-blocking receive
+   n_requests = n_requests + 1
+   CALL MPI_IRECV(                                                     &
+      IEXBOUNDHIR(K)%FACESOL_dg(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
+      IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+      IEXBOUNDHIR(K)%PROCID, 0,                                        & !source, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+END DO
+
+CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
+
+! if (statistics.eq.1)then
+!     
+!    
+!     pr_t33=MPI_Wtime()
+! !     prace_t33=pr_t32-pr_t31
+!         pr_t34=pr_t33-pr_t32
+!         pr_t35=pr_t32-pr_t31
+!         
+! !       
+! 
+!     
+!      
+!     end if
+
+
+
+
+deallocate(requests)
+!$OMP END MASTER
+!$OMP BARRIER
+
+END SUBROUTINE EXHBOUNDHIGHER_dg
 
 
 
