@@ -473,7 +473,7 @@ end do
 
 !$OMP DO SCHEDULE (STATIC)
 DO I=1,KMAXE			! For ALL ELEMENTS
-    if (ielem(n,i)%interior.eq.1)then		! THAT HAVE AT LEAST ONE UNKNWON NEIGHBOUR
+    if (ielem(n,i)%interior.eq.1)then		! THAT HAVE AT LEAST ONE UNKNOWN NEIGHBOUR
 	    IF (ielem(n,i)%nofbc.GT.0)THEN		! THAT HAVE AT LEAST ESTABLISHED A BOUNDARY CONDITION CODE
 			
 		  DO J=1,ielem(n,i)%IFCA			! LOOP ALL THEIR FACES
@@ -574,7 +574,7 @@ end do
 jj1=0
 !$OMP DO SCHEDULE (STATIC)
 DO I=1,KMAXE			!> ALL ELEMENTS
-    if (ielem(n,i)%interior.eq.1)then		! THAT HAVE AT LEAST ONE UNKNWON NEIGHBOUR
+    if (ielem(n,i)%interior.eq.1)then		! THAT HAVE AT LEAST ONE UNKNOWN NEIGHBOUR
 	    IF (ielem(n,i)%nofbc.GT.0)THEN		! THAT HAVE AT LEAST ESTABLISHED A BOUNDARY CONDITION CODE
 		  DO J=1,ielem(n,i)%IFCA			! LOOP ALL THEIR BOUNDARY FACES
 		      if (IELEM(N,I)%IBOUNDS(J).gt.0)then

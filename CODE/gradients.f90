@@ -1379,7 +1379,7 @@ END SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ
 ! 
 SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
 !> @brief
-!> This subroutine computes the gradients of the primitve variables of each interior cell using the least-squares
+!> This subroutine computes the gradients of the primitive variables of each interior cell using the least-squares
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 REAL,DIMENSION(nof_variables)::SOLS1,SOLS2

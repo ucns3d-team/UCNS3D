@@ -151,13 +151,13 @@ call ELALLOCATION(N,XMPIE,XMPIELRANK,IELEM,IMAXE,IESHAPE,ITESTCASE,IMAXB,IBOUND,
 
 CALL READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE,IBOUND,IMAXB,XMPINNUMBER,SCALER,INODER) !> Read the grid files and populate the allocated memory values for vertex coordinates and numbering
 
- CALL DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBOURS,IDEGFREE,IMAXDEGFREE,IEXTEND) !> Determing the stencil sizes, number of polynomial coefficients etc.
+ CALL DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBOURS,IDEGFREE,IMAXDEGFREE,IEXTEND) !> Determining the stencil sizes, number of polynomial coefficients etc.
  
 !$OMP PARALLEL DEFAULT(SHARED)
 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
  CALL  ALLOCATETURB(N,EDDYFL,EDDYFR) !> Allocate memory for turbulence model or passive scalar variables
 END IF
- CALL GAUSSIANPOINTS(IGQRULES,NUMBEROFPOINTS,NUMBEROFPOINTS2)   !> Establish the number of Gausian quadrature points for each element and face
+ CALL GAUSSIANPOINTS(IGQRULES,NUMBEROFPOINTS,NUMBEROFPOINTS2)   !> Establish the number of Gaussian quadrature points for each element and face
  CALL VERTALLOCATION(N,VEXT,LEFTV,RIGHTV,VISCL,LAML)           !> Allocate the memory for the left and right state variables
   CALL ALLOCATE1(N)                                            !> Additional allocations
  call QUADALLOC(QPOINTS,QPOINTS2D,WEQUA2D,WEQUA3D,NUMBEROFPOINTS,NUMBEROFPOINTS2) !>Allocate the memory required for the Gaussian integration rules

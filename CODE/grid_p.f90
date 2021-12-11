@@ -5985,7 +5985,7 @@ END SUBROUTINE STENCIILS
 ! !!!!!!!!!!!!!!!!!!!!!FOR VARIOUS ORDER OF ACCURACY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBOURS,IDEGFREE,IMAXDEGFREE,IEXTEND)
 !> @brief
-!> This subroutine determines the degress of freedom, neighbours and polynomial order for each stencil of each cell
+!> This subroutine determines the degrees of freedom, neighbours and polynomial order for each stencil of each cell
 	IMPLICIT NONE
 	INTEGER,INTENT(INOUT)::IORDER
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ISELEMT

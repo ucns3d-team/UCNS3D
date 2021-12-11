@@ -1960,7 +1960,7 @@ END SUBROUTINE LOCALISE_STEN2d
 
 subroutine direct_side(n)
 !> @brief
-!> This subroutine establishes the distance betwen cell centres for each face
+!> This subroutine establishes the distance between cell centres for each face
 implicit none
 integer,intent(in)::n
 integer::i,j,k,kmaxe,facexx,ixxfff
@@ -2063,7 +2063,7 @@ end subroutine direct_side
 
 subroutine direct_side2d(n)
 !> @brief
-!> This subroutine establishes the distance betwen cell centres for each edge
+!> This subroutine establishes the distance between cell centres for each edge
 implicit none
 integer,intent(in)::n
 integer::i,j,k,kmaxe,facexx,ixxfff

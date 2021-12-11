@@ -69,7 +69,7 @@ The ucns3d code generates numerous files while running depending on the setup ch
 a)history.txt: outlines the various stages of the initialisation and indicates the timestep size, iteration, 
 time, and message when writing solution or checkpoint files
 b)STATISTICS.txt: outlines the cpu time taken per iteration  for various procedures in the code while the code is running,
-including cputime taken for reconstruction, fluxes, solution update, mpi boundary values exhange, mpi hallo exchange for stencils etc. Note that the collection of statistics has a noticeable computational footpring and should only be used for a limited number of iterations rather than production runs for the entire simulation.
+including cputime taken for reconstruction, fluxes, solution update, mpi boundary values exchange, mpi hallo exchange for stencils etc. Note that the collection of statistics has a noticeable computational footpring and should only be used for a limited number of iterations rather than production runs for the entire simulation.
 c) FORCE.dat : specifies in four columns the (iteration, time, Lift Coefficient, Drag Coefficient). You need to ensure that
 the last two are normalised with respect to the reference area of your geometry.
 d) RESTART.dat: A checkpoint file written when the simulation is stopped because one of the four criteria has been met 
