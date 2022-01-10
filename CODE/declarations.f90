@@ -123,10 +123,13 @@ INTEGER::ZERO_TURB_INIT				!FLAG FOR TYPE OF INITIALIZATION FOR K-OMEGA
 INTEGER::DES_MODEL 				!INTEGER SWITCHES FOR SST
 INTEGER:: NPROBES,totwalls,NOF_INTERIOR,NOF_BOUNDED,SRF,MRF			!NUMBER OF PROBES FOR TRANSIENT DATA
 INTEGER:: ROT_CORR,D_CORR   !integer for turbulence corrections
-REAL,DIMENSION(3)::SRF_ORIGIN,SRF_VELOCITY,POINT1_GL,POINT2_GL
+REAL,DIMENSION(3)::SRF_ORIGIN,SRF_VELOCITY
 INTEGER::RFRAME,SOURCE_ACTIVE
-REAL::Radius_GL,MRF_ROT_GL,PER_ROT,ANGLE_PER,V_REF,KINIT_SRF,SRFG
+REAL::PER_ROT,ANGLE_PER,V_REF,KINIT_SRF,SRFG
 REAL,ALLOCATABLE,DIMENSION(:)::SRF_SPEED,srf_speedrot
+REAL,ALLOCATABLE,DIMENSION(:,:)::POINT1_GL,POINT2_GL
+REAL,ALLOCATABLE,DIMENSION(:)::Radius_GL,MRF_ROT_GL
+INTEGER:: NROTORS
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.2.   INTEGER ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
