@@ -483,7 +483,7 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 END SUBROUTINE GLOBALIST
 
-SUBROUTINE GLOBALIST2(N,XMPIE,XMPIL,XMPIELRANK,IMAXE,ISIZE,CENTERR,GLNEIGH,IELEM)
+SUBROUTINE GLOBALIST2(N,XMPIE,XMPIL,XMPIELRANK,IMAXE,ISIZE,CENTERR,GLNEIGH,GLNEIGHPER,IELEM)
 !> @brief
 !> This subroutine establishes the connectivity with elements from other processes
 IMPLICIT NONE
@@ -493,10 +493,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(IN)::IELEM
 INTEGER,INTENT(IN)::IMAXE,N,ISIZE
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::CENTERR
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH
+INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH,GLNEIGHPER
 REAL,ALLOCATABLE,DIMENSION(:,:)::CENTERX
 INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHX
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHTS,GLNEIGHTR
+INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHTS,GLNEIGHTR,GLNEIGHTSPER,GLNEIGHTRPER
 INTEGER,ALLOCATABLE,DIMENSION(:)::GLNEIGHTOT
 real,ALLOCATABLE,DIMENSION(:,:)::centerTS,centerTR
 INTEGER::I,J,K,KMAXE,ICPUID,KJ,TEMPI,tempt
@@ -521,7 +521,15 @@ REAL::XV,YC,ZC
 		
 
  		GLNEIGH(IELEM(N,K)%IHEXGL,J)=IELEM(N,K)%INEIGHG(J)
-
+        if (IELEM(N,k)%INTERIOR.EQ.1) then
+                if (IELEM(N,K)%IBOUNDS(J).GT.0) then
+                if (ibound(n,ielem(n,k)%ibounds(J))%icode.eq.5) then
+                GLNEIGHPER(IELEM(N,K)%IHEXGL,J)=1
+                else if (ibound(n,ielem(n,k)%ibounds(J))%icode.eq.50) then
+                GLNEIGHPER(IELEM(N,K)%IHEXGL,J)=2
+                end if
+		end if
+		end if
 		
 	END DO
 END DO
@@ -564,14 +572,27 @@ END DO
 	    
  ALLOCATE(GLNEIGHTOT(2))
   ALLOCATE(GLNEIGHTS(1:KMAXE,1:7))
+ALLOCATE(GLNEIGHTSPER(1:KMAXE,1:7))
+
       if ((typesten.gt.1).or.(icompact.ge.1))then
    ALLOCATE(centerts(1:KMAXE,1:3))
       end if
   GLNEIGHTS(:,:)=0
+GLNEIGHTSPER(:,:)=0
   DO K=1,KMAXE
 	  GLNEIGHTS(K,1)=IELEM(N,K)%IHEXGL
+	  GLNEIGHTSPER(K,1)=IELEM(N,K)%IHEXGL
 	  DO J=1,IELEM(N,K)%IFCA
 	  GLNEIGHTS(K,1+J)=GLNEIGH(IELEM(N,K)%IHEXGL,J)
+	  if (IELEM(N,k)%INTERIOR.EQ.1) then
+        if  ((IELEM(N,K)%IBOUNDS(J).GT.0).and.((ibound(n,ielem(n,K)%ibounds(J))%icode.eq.5).or.(ibound(n,ielem(n,K)%ibounds(J))%icode.eq.50))) THEN
+            if (ibound(n,ielem(n,K)%ibounds(J))%icode.eq.5) then
+            GLNEIGHTSPER(K,1+J)=1
+            else if (ibound(n,ielem(n,K)%ibounds(J))%icode.eq.50) then
+            GLNEIGHTSPER(K,1+J)=2
+            end if
+        end if
+	  end if
 	  END DO
 	  if ((typesten.gt.1).or.(icompact.ge.1))then
 	  centerts(k,1:3)=CENTERR(IELEM(N,K)%IHEXGL,1:3)
@@ -590,15 +611,19 @@ END DO
 			CALL MPI_SENDRECV(tempi,1,MPI_INTEGER,I,ICPUID,&
 			tempt,1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
 			ALLOCATE(GLNEIGHTR(tempt,1:7))
+			ALLOCATE(GLNEIGHTRPER(tempt,1:7))
 			  if ((typesten.gt.1).or.(icompact.ge.1))then
  			  ALLOCATE(centertR(tempt,1:3))
 			  centertR(:,:)=0.0
 			  end if
 			glneightr(:,:)=0
+			glneightrper(:,:)=0
 ! 			
 			
 			CALL MPI_SENDRECV(GLNEIGHTS(1:TEMPI,1:7),TEMPI*7,MPI_INTEGER,I,ICPUID,&
 			GLNEIGHTR(1:TEMPT,1:7),TEMPT*7,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
+			CALL MPI_SENDRECV(GLNEIGHTSPER(1:TEMPI,1:7),TEMPI*7,MPI_INTEGER,I,ICPUID,&
+			GLNEIGHTRPER(1:TEMPT,1:7),TEMPT*7,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
 
 			if ((typesten.gt.1).or.(icompact.ge.1))then
 			CALL MPI_SENDRECV(CENTERts(1:TEMPI,1:3),TEMPI*3,MPI_DOUBLE_PRECISION,I,ICPUID,&
@@ -609,6 +634,7 @@ END DO
 				      do j=1,6
 					  if (glneightr(k,j+1).gt.0)then
 					    glneigh(glneightr(k,1),j)=glneightr(k,j+1)
+					    glneighper(glneightr(k,1),j)=glneightrPER(k,j+1)
 					    if ((typesten.gt.1).or.(icompact.ge.1))then
 					    centerr(glneightr(k,1),1:3)=CENTERtr(k,1:3)
 					    end if
@@ -617,6 +643,7 @@ END DO
 				      
 			end do
 			deALLOCATE(GLNEIGHTR)
+			deALLOCATE(GLNEIGHTRPER)
 			  if ((typesten.gt.1).or.(icompact.ge.1))then
 			  deALLOCATE(centertR)
 			  end if
@@ -628,6 +655,7 @@ END DO
 	  end do
     deALLOCATE(GLNEIGHTOT)
   deALLOCATE(GLNEIGHTS)
+  deALLOCATE(GLNEIGHTSPER)
       if ((typesten.gt.1).or.(icompact.ge.1))then
    deALLOCATE(centerts)
       end if
