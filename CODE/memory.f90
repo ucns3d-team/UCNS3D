@@ -47,6 +47,8 @@ subroutine allocate5
 implicit none
 ALLOCATE(ILOCALALLELG(N:N,xmpielrank(n),1,ISELEMT(N)))
 ILOCALALLELG(:,:,:,:)=0
+ALLOCATE(ILOCALALLELGPER(N:N,xmpielrank(n),1,ISELEMT(N)))
+ILOCALALLELGPER(:,:,:,:)=0
 end subroutine
 
 
