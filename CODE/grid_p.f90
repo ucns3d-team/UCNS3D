@@ -2353,12 +2353,12 @@ YPER,ZPER,ICONRPF,NUMNEIGHBOURS,TYPESTEN)
 !> This subroutine establishes the connectivity across different cpus
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IPERIODICITY,N,ISIZE,NUMNEIGHBOURS,TYPESTEN
-REAL::SMALL,DIST
+REAL::SMALL,DIST,temp_x
 REAL,INTENT(IN)::XPER,YPER,ZPER
 INTEGER::I,K,JJJ,KJ,J,L,IM,IO,IR,KMAXE,ICPUID,KKJ,countxsize
 INTEGER,DIMENSION(6)::JX
 REAL,DIMENSION(3)::DUMFACE1,DUMFACE2
-INTEGER::FACEPER1,FACEPER2,p,kkj2,kkj3,kkj4,kkj5,JJ1,P1,P2,P3,P4,Q1,Q2,Q3,Q4,J1,J2,J3,J4
+INTEGER::FACEPER1,FACEPER2,p,kkj2,kkj3,kkj4,kkj5,JJ1,P1,P2,P3,P4,Q1,Q2,Q3,Q4,J1,J2,J3,J4,code_PER1
 
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 TYPE(CONNX),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ICONR,ICONRPA,ICONRPM,ICONRPF
@@ -2379,7 +2379,7 @@ KJ=0; KKJ=0
 		      if(IELEM(N,I)%IBOUNDS(K).EQ.0)then
 						KJ=KJ+1
 		      else
-		      if (((IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE)).eq.5)then
+		      if ((IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE.eq.5).or.(IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE.eq.50))then
 						  KJ=KJ+1	
 						
 		      end if
@@ -2427,7 +2427,7 @@ ALLOCATE(ICONR(N)%HOWMANYI(1))
 						
 		      eLSE
 		      
-		      if (((IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE)).eq.5)then
+		      if ((IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE.eq.5).or.(IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE.eq.50))then
 						  KJ=KJ+1
 				ICONR(N)%WHICHI(KJ,1)=I
 				ICONR(N)%WHICHI(KJ,2)=K
@@ -2531,7 +2531,8 @@ END DO
 
 		       IF ((IELEM(N,ICONR(N)%WHICHI(I,1))%INEIGHG(ICONR(N)%WHICHI(I,2)).EQ.0))THEN
 		      IF (IPERIODICITY.EQ.1)THEN
-		      if (((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.5)then
+		      if ((((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.5).or.&
+		      (((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.50))then
 						  KJ=KJ+1
 			
 		      end if
@@ -2562,7 +2563,8 @@ END DO
 
 
 					  IF ((IELEM(N,ICONR(N)%WHICHI(I,1))%INEIGHG(ICONR(N)%WHICHI(I,2)).EQ.0))THEN
-					  if (((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.5)then
+					  if ((((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.5).or.&
+		      (((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.50))then
 								      KJ=KJ+1
 					    ICONRPM(N)%WHICHI(KJ,1)=ICONR(N)%WHICHI(I,1)
 					    ICONRPM(N)%WHICHI(KJ,3)=IELEM(N,ICONR(N)%WHICHI(I,1))%IHEXGL
@@ -2595,7 +2597,8 @@ END DO
 				    DO I=1,ICONRPM(N)%HOWMANYI(1)
 		   
 					    IF ((IELEM(N,ICONRpm(N)%WHICHI(I,1))%INEIGHG(ICONRpm(N)%WHICHI(I,2)).EQ.0))THEN
-					  if (((IBOUND(N,IELEM(N,ICONRpm(N)%WHICHI(I,1))%IBOUNDS(ICONRpm(N)%WHICHI(I,2)))%ICODE)).eq.5)then
+					  if ((((IBOUND(N,IELEM(N,ICONRpm(N)%WHICHI(I,1))%IBOUNDS(ICONRpm(N)%WHICHI(I,2)))%ICODE)).eq.5).or.&
+		      (((IBOUND(N,IELEM(N,ICONRpm(N)%WHICHI(I,1))%IBOUNDS(ICONRpm(N)%WHICHI(I,2)))%ICODE)).eq.50))then
 		    ! 						  KJ=KJ+1
 		    ! 			
 					    KJ=KJ+1
@@ -2698,7 +2701,7 @@ END DO
 
 		dist=distance3(n)
 
-
+                        IF(PER_ROT.EQ.0)THEN
 						    if (((abs(vext(2,1)-xper).lt.tolsmall).or.(abs((abs(vext(2,1)-xper))-xper).lt.tolsmall)).and.&
 						    ((abs(vext(1,1)-xper).lt.tolsmall).or.(abs((abs(vext(1,1)-xper))-xper).lt.tolsmall)))then
 						    if ((abs(vext(2,2)-vext(1,2)).lt.tolsmall).and.(abs(vext(2,3)-vext(1,3)).lt.tolsmall))then
@@ -2729,15 +2732,17 @@ END DO
 						  
 						    end if
 						    end if
-
-
-
-
-
-
-
-
-
+                        ELSE
+                        
+                            code_PER1=IBOUND(N,IELEM(N,ICONRPA(N)%WHICHI(KJ,1))%IBOUNDS(ICONRPA(N)%WHICHI(KJ,2)))%ICODE
+                            vext(2,:)=ROTATE_PER(vext(2,:),code_per1,angle_per)
+                            if ((abs(vext(1,1)-vext(2,1)).lt.tol_per).and.(abs(vext(1,2)-vext(2,2)).lt.tol_per).and.&
+                                      (abs(vext(1,3)-vext(2,3)).lt.tol_per)) then
+!                                      write(9000+n,'(9es24.15)'),vext(1,1:3),vext(2,1:3),abs(vext(1,1:3)-vext(2,1:3))
+                                JJ1=JJ1+1
+                                ICONSPO(K)%WHICHTHEY(I,1)=ICONRPA(N)%WHICHI(KJ,3);go to 401
+                            end if
+                        END IF
 
 					  END DO
 					  401 CONTINUE
@@ -2783,7 +2788,8 @@ K=0
 		DO I=1,ICONRPA(N)%HOWMANYI(1)
 			
 			IF (IELEM(N,ICONRPA(N)%WHICHI(I,1))%Ineighg(ICONRPA(N)%WHICHI(I,2)).EQ.0)THEN
-			  if (((IBOUND(N,IELEM(N,ICONRpa(N)%WHICHI(I,1))%IBOUNDS(ICONRpa(N)%WHICHI(I,2)))%ICODE)).eq.5)then
+			  if ((((IBOUND(N,IELEM(N,ICONRpa(N)%WHICHI(I,1))%IBOUNDS(ICONRpa(N)%WHICHI(I,2)))%ICODE)).eq.5).or.&
+			  (((IBOUND(N,IELEM(N,ICONRpa(N)%WHICHI(I,1))%IBOUNDS(ICONRpa(N)%WHICHI(I,2)))%ICODE)).eq.50))then
 			KJ=KJ+1
 				  
 			      
