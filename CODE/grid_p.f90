@@ -6801,7 +6801,48 @@ END SUBROUTINE WRITE_BLOCKS
 
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+FUNCTION ROTATE_PER(VECT_PER,CODE_PER,ANGLE_PERIOD)
+IMPLICIT NONE
+REAL,DIMENSION(3),INTENT(IN)::VECT_PER
+REAL,INTENT(IN)::ANGLE_PERIOD
+real,dimension(3)::ROTATE_PER
+INTEGER,INTENT(IN)::CODE_PER
+REAL::Angle_temp
 
+
+if (CODE_PER.eq.50) then
+    angle_temp=-angle_period
+    else
+    angle_temp=angle_period
+end if
+
+ROTATE_PER(1)=VECT_PER(1)*cosd(angle_temp)-VECT_PER(2)*sind(angle_temp)
+ROTATE_PER(2)=VECT_PER(1)*sind(angle_temp)+VECT_PER(2)*cosd(angle_temp)
+ROTATE_PER(3)=Vect_PER(3)
+
+
+END FUNCTION
+FUNCTION ROTATE_PER_1(VECT_PER,CODE_PER,ANGLE_PERIOD)
+IMPLICIT NONE
+REAL,DIMENSION(3),INTENT(IN)::VECT_PER
+REAL,INTENT(IN)::ANGLE_PERIOD
+real,dimension(3)::ROTATE_PER_1
+INTEGER,INTENT(IN)::CODE_PER
+REAL::Angle_temp
+
+
+if (CODE_PER.eq.50) then
+    angle_temp=angle_period
+    else
+    angle_temp=-angle_period
+end if
+
+ROTATE_PER_1(1)=VECT_PER(1)*cosd(angle_temp)-VECT_PER(2)*sind(angle_temp)
+ROTATE_PER_1(2)=VECT_PER(1)*sind(angle_temp)+VECT_PER(2)*cosd(angle_temp)
+ROTATE_PER_1(3)=Vect_PER(3)
+
+
+END FUNCTION
 
 
 
