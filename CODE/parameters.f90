@@ -53,7 +53,11 @@ SUBROUTINE READ_UCNS3D
         READ(16,*)Radius_GL(INV1), MRF_ROT_GL(INV1)
 	END DO
 	CLOSE(16)
-
+        IF(PER_ROT.EQ.1)THEN
+	        TOL_PER=1.0E-8
+            LOWMEM=1
+            IPERIODICITY = 1 
+        END IF
         IF(RFRAME.EQ.2)THEN
             MRF=1
             SRFG=0
@@ -840,7 +844,8 @@ SUBROUTINE READ_UCNS3D
             END IF
         END IF
 		IF(PER_ROT.EQ.1)THEN
-        TOL_PER=1.0E-8
+            iboundary=1
+            LOWMEM=1
             IF (N.EQ.0)THEN
                 OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
                 write(63,*)'Rotational  periodicity engaged'
