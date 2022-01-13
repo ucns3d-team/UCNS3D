@@ -292,7 +292,6 @@ REAL::C_DES_SST
 REAL:: SCHMIDT_LAM
 REAL::SCHMIDT_TURB
 real::tolsmall,TOLBIG,allresdt,tz1
-REAL:: ANGLE_PER
 REAL,DIMENSION(7)::ALLRES,INITIALRES
 real:: momentx,momenty,momentz
 !--------------------------------------------------------------------------------------------------------------------------!
