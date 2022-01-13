@@ -17,6 +17,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
 	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar
 	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB
+	REAL::TEMPXX
 	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
 	real,dimension(NOF_variables,NOF_variables)::convj,diffj
 	KMAXE=XMPIELRANK(N)
@@ -231,9 +232,11 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 				      
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+								  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
 								  CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
-								  
+                                    IF(PER_ROT.EQ.1)THEN
+                                        CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                    END IF
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									
 									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
@@ -287,7 +290,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 					    
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+								if  ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 								
 								IF (FASTEST.EQ.1)THEN
 							      CRIGHT(1:nof_Variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_Variables)
@@ -296,8 +299,9 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 							      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
 							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)
 							    END IF
-								
-								 
+								IF(PER_ROT.EQ.1)THEN
+                                    CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+								END IF 
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
