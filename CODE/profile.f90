@@ -472,6 +472,8 @@ real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1
 REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
 real::pr_Radius,pr_beta,pr_machnumberfree,pr_pressurefree,pr_temperaturefree,pr_gammafree,pr_Rgasfree,pr_xcenter,pr_ylength,pr_xlength,pr_ycenter,pr_densityfree,pr_cpconstant,pr_radiusvar,pr_velocityfree,pr_TemperatureVar
 integer::u_cond1,u_cond2,u_cond3,u_cond4
+REAL,dimension(20,2)::bubble_centre
+real,dimension(20)::bubble_radius
 VECCOS(:)=ZERO
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1877,6 +1879,134 @@ END IF
 
 
 
+
+
+
+
+IF (INITCOND.EQ.444)THEN
+
+
+!GAMMA_IN(1) = 4.4 ! Water
+!GAMMA_IN(2) = 1.4  ! Air
+!MP_PINF(1) = 6e8 !Water from Coralic and Colonius or 2.218e8(abgrall203)
+!MP_PINF(2) = 0 ! Air 
+
+IF (POy(1).LE.0.00025)THEN   !Post shock concidions
+MP_R(2)=1323.65d0 	! Water density
+MP_R(1)=1d0 		! Air density
+MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=0.0D0 		! Air volume fraction
+U1=0.0	  	          ! m/s
+V1=681.058D0
+P1=1.9e9      		! Pa
+
+
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2))
+E1=(R1*SKIN1)+IE1
+!VECTOR OF CONSERVED VARIABLES NOW
+
+ELSE
+
+
+MP_R(2)=1000.00d0 	! Water density
+MP_R(1)=1d0 		! Air density
+MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=0.0D0 		! Air volume fraction
+U1= 0.0D0	  		! m/s
+V1= 0.0D0
+P1= 100000    			! Pa
+
+
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2))
+E1=(R1*SKIN1)+IE1
+
+
+
+
+!FIRST loop bubbles
+
+bubble_centre(1,1)=0.0015 ; bubble_centre(1,2)=0.0015
+bubble_radius(1)=0.0002
+
+if (sqrt(((pox(1)-bubble_centre(1,1))**2)+((poy(1)-bubble_centre(1,2))**2)).LE.bubble_radius(1))then
+MP_R(2)=1000.00d0 	! Water density
+MP_R(1)=1d0 		! Air density
+MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=1.0D0 		! Air volume fraction
+U1= 0.0D0	  		! m/s
+V1= 0.0D0
+P1= 100000    			! Pa
+
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2))
+E1=(R1*SKIN1)+IE1
+end if
+
+bubble_centre(2,1)=0.00075 ; bubble_centre(2,2)=0.001
+bubble_radius(2)=0.0005
+
+if (sqrt(((pox(1)-bubble_centre(2,1))**2)+((poy(1)-bubble_centre(2,2))**2)).LE.bubble_radius(2))then
+MP_R(2)=1000.00d0 	! Water density
+MP_R(1)=1d0 		! Air density
+MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=1.0D0 		! Air volume fraction
+U1= 0.0D0	  		! m/s
+V1= 0.0D0
+P1= 100000    			! Pa
+
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2))
+E1=(R1*SKIN1)+IE1
+end if
+
+
+bubble_centre(3,1)=0.00225 ; bubble_centre(3,2)=0.001
+bubble_radius(3)=0.0005
+
+
+if (sqrt(((pox(1)-bubble_centre(3,1))**2)+((poy(1)-bubble_centre(3,2))**2)).LE.bubble_radius(3))then
+MP_R(2)=1000.00d0 	! Water density
+MP_R(1)=1d0 		! Air density
+MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=1.0D0 		! Air volume fraction
+U1= 0.0D0	  		! m/s
+V1= 0.0D0
+P1= 100000    			! Pa
+
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2))
+E1=(R1*SKIN1)+IE1
+end if
+
+
+END IF
+
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+VECCOS(5)=MP_R(1)*MP_A(1)
+VECCOS(6)=MP_R(2)*MP_A(2)
+VECCOS(7)=MP_A(1)
+
+END IF
 
 
 

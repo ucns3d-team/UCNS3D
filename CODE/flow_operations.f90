@@ -3711,16 +3711,21 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 end if
 
 
-if (initcond.eq.411)then
+if ((initcond.eq.411).or.(initcond.eq.444))then
 
-pos_l(1:2)=zero
-pos_g(1:2)=zero
+pos_l(1:3)=zero
+pos_g(1:3)=zero
 
 DO I=1,KMAXE
+    leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_Variables)
+    call CONS2PRIM2d(n)
+    pos_l(3)=max(abs(leftv(4)),pos_l(3))
+
     IF (U_C(I)%VAL(1,7).GT.0.0D0)THEN
             pos_l(1)=pos_l(1)+ielem(n,i)%totvolume
             pos_l(2)=pos_l(2)+U_C(I)%VAL(1,7)*ielem(n,i)%totvolume
     end if
+    
 END DO
 
 
@@ -3728,10 +3733,12 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
   
 CALL MPI_ALLREDUCE(pos_l(1:2),pos_g(1:2),2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
 
+CALL MPI_ALLREDUCE(pos_l(3),pos_g(3),1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
+
 IF (n.eq.0)THEN
 
 OPEN(70,FILE='volume.dat',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-WRITE(70,'(E14.7,1X,E14.7,1X,E14.7)')T,POS_G(1),pos_g(2)
+WRITE(70,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,POS_G(1),pos_g(2),POS_G(3)
 close(70)
 
 END IF

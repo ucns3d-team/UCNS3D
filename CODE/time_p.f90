@@ -4560,7 +4560,7 @@ kmaxe=XMPIELRANK(n)
 ! 				end if
 			    end if
 			    IF ((MULTISPECIES.EQ.1))then
-			    if((initcond.eq.405).or.(initcond.eq.411))THEN
+			    if((initcond.eq.405).or.(initcond.eq.411).or.(initcond.eq.444))THEN
 			    if ( mod(it, 20) .eq. 0)then
                     call TRAJECTORIES
 			    end if

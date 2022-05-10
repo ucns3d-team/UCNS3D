@@ -3278,8 +3278,9 @@ end if
                     VIsDouble)
      ELSE
      if (multispecies.eq.1)then
+     NVAR1=9
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                     'Density,U,V,energy,Pressure,species1,species2,vf'//NULCHAR, &
+                     'Density,U,V,energy,Pressure,species1,species2,vf,aux'//NULCHAR, &
                     out1//NULCHAR, &
                     '.'//NULCHAR, &
                     FileType, &
@@ -3655,7 +3656,36 @@ Valuelocation(:)=0
 		end do
 		ierr = TECDAT112(imaxe,xbin,1)
 		END IF
-		  
+		
+		
+		
+		IF (MOOD.EQ.1)THEN
+                DO I=1,KMAXE
+                VALUESS(i)=IELEM(N,I)%MOOD_O
+                END DO
+                call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+                IF (N.EQ.0)THEN
+                do i=1,imaxe
+                xbin(XMPI_RE(I))=xbin2(I)
+                end do
+                ierr = TECDAT112(imaxe,xbin,1)
+                END IF
+        else
+                DO I=1,KMAXE
+                VALUESS(i)=IELEM(N,I)%ADMIS
+                END DO
+                call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+                IF (N.EQ.0)THEN
+                do i=1,imaxe
+                xbin(XMPI_RE(I))=xbin2(I)
+                end do
+                ierr = TECDAT112(imaxe,xbin,1)
+                END IF
+        
+        
+        
+        end if
+
 		  end if
     
 		  if (itestcase.eq.4)then
