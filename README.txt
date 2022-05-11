@@ -40,6 +40,9 @@ where three files are created namely GRID.cel, GRID.vrt, GRID.bnd.
 Representative tests can be downloaded from 
 https://doi.org/10.5281/zenodo.3375432
 
+Tests2
+https://doi.org/10.5281/zenodo.6538622
+
 For running ucns3d you will need the following files in a directory of your choice:
 a) a grid file generated with any software packages exported in Ansys fluent format (ASCII *.msh extension), 
 given the name grid.msh or their translated to native format files GRID.cel, GRID.vrt, GRID.bnd
