@@ -2254,7 +2254,7 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED)
 !> This subroutine applies the boundary condition to each bounded cell in 2D
 implicit none
 integer,intent(in)::n,b_code,ICONSIDERED
-REAL::SPS,SKINS,IKINS,VEL,vnb
+REAL::SPS,SKINS,IKINS,VEL,vnb,theeta,reeta
 REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
 
 
@@ -2421,7 +2421,7 @@ SELECT CASE(B_CODE)
     
     
     
-                            IF ((INITCOND.EQ.102).or.(INITCOND.EQ.30))THEN	!shock density interaction
+                            IF ((INITCOND.EQ.102).or.(INITCOND.EQ.30).or.(initcond.eq.222))THEN	!shock density interaction
                                    IF ((INITCOND.EQ.102))THEN	!shock density interaction
                             if (pox(1).lt.((1.0d0/6.0d0)+((1.0d0+20.0d0*T)/(sqrt(3.0d0)))))then
                             r1=8.0d0
@@ -2444,11 +2444,43 @@ SELECT CASE(B_CODE)
                             rightv(2)=R1*U1
                             rightv(3)=R1*V1
                             rightv(4)=E1
-                            else
+                            end if
     
                             
+                            
+                            
+                            
+                            
+                             IF ((INITCOND.EQ.222))THEN
+                             if (sqrt((pox(1)**2)+(poy(1)**2)).lt.(T/3.0d0))then
+                            r1=16.0d0
+                            u1=0.0
+                            v1=0.0
+                            p1=16.0d0/3.0d0
+                            else
+                            r1=1.0d0+(t/sqrt((pox(1)**2)+(poy(1)**2)))
+                            reeta=-1
+                            THEETA=ATAN(POY(1)/POX(1))
+                            U1=REETA*COS(THEETA)
+                            V1=REETA*SIN(THEETA)
+                            P1=1.0E-6
+                            end if
+                            SKIN1=(OO2)*((U1**2)+(V1**2))
+                            !INTERNAL ENERGY 
+                            IE1=((P1)/((GAMMA-1.0D0)*R1))
+                            !TOTAL ENERGY
+                            E1=(P1/(GAMMA-1))+(R1*SKIN1)
+                            !VECTOR OF CONSERVED VARIABLES NOW
+                            rightv(1)=R1
+                            rightv(2)=R1*U1
+                            rightv(3)=R1*V1
+                            rightv(4)=E1
+                             
+                             
+                             
+                             end if
 			     
-			      
+			       IF ((INITCOND.EQ.30))THEN
 			      if (pox(1).le.zero)then
                             if (poy(1).le.zero)then
                             r1=0.138

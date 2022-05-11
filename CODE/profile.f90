@@ -468,7 +468,7 @@ INTEGER,INTENT(IN)::N
 !SOLUTION=VECCOS
 !COMPONENTS FROM DAT FILE GAMMA,UVEL,WVEL,VVEL,PRES,RRES
 !INITCOND= PROFILE CHOICE FROM DATA FILE
-real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1
+real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1,theeta,reeta
 REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
 real::pr_Radius,pr_beta,pr_machnumberfree,pr_pressurefree,pr_temperaturefree,pr_gammafree,pr_Rgasfree,pr_xcenter,pr_ylength,pr_xlength,pr_ycenter,pr_densityfree,pr_cpconstant,pr_radiusvar,pr_velocityfree,pr_TemperatureVar
 integer::u_cond1,u_cond2,u_cond3,u_cond4
@@ -2007,6 +2007,40 @@ VECCOS(6)=MP_R(2)*MP_A(2)
 VECCOS(7)=MP_A(1)
 
 END IF
+
+
+
+
+IF (INITCOND.EQ.222)THEN	!shock density interaction
+
+R1=1.0D0
+P1=1.0E-6
+REETA=-1.0D0
+THEETA=ATAN(POY(1)/POX(1))
+
+U1=REETA*COS(THEETA)
+V1=REETA*SIN(THEETA)
+
+
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+!INTERNAL ENERGY 
+IE1=((P1)/((GAMMA-1.0D0)*R1))
+!TOTAL ENERGY
+E1=(P1/(GAMMA-1))+(R1*SKIN1)
+!VECTOR OF CONSERVED VARIABLES NOW
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+
+
+
+
+
+end if
+
 
 
 

@@ -3658,7 +3658,7 @@ Valuelocation(:)=0
 		END IF
 		
 		
-		
+		if (multispecies.eq.1)then
 		IF (MOOD.EQ.1)THEN
                 DO I=1,KMAXE
                 VALUESS(i)=IELEM(N,I)%MOOD_O
@@ -3685,7 +3685,7 @@ Valuelocation(:)=0
         
         
         end if
-
+        end if
 		  end if
     
 		  if (itestcase.eq.4)then
