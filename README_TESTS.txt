@@ -40,6 +40,18 @@ References for the tests included.
 3D/RANS/ONERA_M6/  test 4.4 from (https://doi.org/10.1016/j.compfluid.2017.01.002)
 
 
+https://doi.org/10.5281/zenodo.6538622
+
+CAVITY/ test 4.5 from (https://doi.org/10.1007/s10915-021-01673-y)
+
+HELIUM/ test 4.6 from (https://doi.org/10.1007/s10915-021-01673-y)
+
+BUBBLES/  2D CASE I  from (https://doi:10.1017/jfm.2020.535)
+
+NOH/    test problem from(https://doi.org/10.1016/0021-9991(87)90074-X)
+
+
+
 
 
 
