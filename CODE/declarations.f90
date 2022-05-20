@@ -284,6 +284,9 @@ REAL:: SCHMIDT_LAM
 REAL::SCHMIDT_TURB
 real::tolsmall,TOLBIG,allresdt,tz1
 REAL,DIMENSION(7)::ALLRES,INITIALRES
+REAL,dimension(100,2)::bubble_centre
+real,dimension(100)::bubble_radius
+INTEGER::NOF_BUBBLES
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.4.   REAL ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
