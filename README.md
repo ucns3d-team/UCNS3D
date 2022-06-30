@@ -74,7 +74,7 @@ Running
 For running ucns3d you will need the following files in a directory of your choice
 • a grid file generated with any software packages exported in Ansys fluent format (ASCII *.msh extension), 
 given the name grid.msh or their translated to native format files GRID.cel, GRID.vrt, GRID.bnd
-• the UCNS3D.DAT parameter file responsible for all the settings of the code (more on README_UCNS3D.txt file)
+• the UCNS3D.DAT parameter file responsible for all the settings of the code (details for the parameters of this can be found in PARAMETERS.md file)
 • the executable ucns3d_p
 • For interactively running the code specify the number of threads to be used by typing in the terminal window
 ```
@@ -98,7 +98,7 @@ Representative tests can be downloaded from
 
 [tests2](https://doi.org/10.5281/zenodo.6538622)
 
-
+and a detailed description is provided in the file TESTS.md
 
 
 Support
