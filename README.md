@@ -1,3 +1,8 @@
+<p align="center">
+<img width="300" height="300" src="BOOM_DG_MACH5.png">
+</p>
+
+
 
 # UCNS3D: The Open-Source High-Order Finite-Volume CFD Solver
 
