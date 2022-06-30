@@ -1,5 +1,5 @@
 <p align="center">
-<img width="600" height="600" src="UCNS3D.png">
+<img width="600" height="450" src="UCNS3D.png">
 </p>
 
 
