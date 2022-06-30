@@ -45,10 +45,10 @@ Requirements
 
 The requirements are:
 
-• Linux x86-64 (Tested on Redhat, Ubuntu, Centos, Suse) or MacOS (Catalina and newer)
-• Intel Parallel Studio Version 17 or newer, or (gfotran and gcc with an MPI distribution)
-• Intel MKL library or OpenBLAS
-• Tecplot, Paraview or VisIt for visualisation.
+* Linux x86-64 (Tested on Redhat, Ubuntu, Centos, Suse) or MacOS (Catalina and newer)
+* Intel Parallel Studio Version 17 or newer, or (gfotran and gcc with an MPI distribution)
+* Intel MKL library or OpenBLAS
+* Tecplot, Paraview or VisIt for visualisation.
 
 
 Compiling
@@ -75,20 +75,20 @@ Running
 
 
 For running ucns3d you will need the following files in a directory of your choice:
-• a grid file generated with any software packages exported in Ansys fluent format (ASCII *.msh extension), given the name grid.msh or their translated to native format files GRID.cel, GRID.vrt, GRID.bnd
-• the UCNS3D.DAT parameter file responsible for all the settings of the code (details for the parameters of this can be found in PARAMETERS.md file)
-• the executable ucns3d_p
-• For interactively running the code specify the number of threads to be used by typing in the terminal window
+* a grid file generated with any software packages exported in Ansys fluent format (ASCII *.msh extension), given the name grid.msh or their translated to native format files GRID.cel, GRID.vrt, GRID.bnd
+* the UCNS3D.DAT parameter file responsible for all the settings of the code (details for the parameters of this can be found in PARAMETERS.md file)
+* the executable ucns3d_p
+* For interactively running the code specify the number of threads to be used by typing in the terminal window
 ```
 $ export OMP_NUM_THREADS=N
 ```
 N being the number of threads to be used (use 1 for MPI only mode)
-• in the same terminal window run the code by typing
+* in the same terminal window run the code by typing
 ```
 $ mpirun -np M ./ucns3d_p
 ```
 M being the number of MPI processes (at least 2 are required)
-• For running at different HPC systems sample scripts are provided
+* For running at different HPC systems sample scripts are provided.
 
 
 Examples
