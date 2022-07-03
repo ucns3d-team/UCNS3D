@@ -8,7 +8,7 @@ Overview
 The test problems include 2D, and 3D using Linear Advection, Euler, Navier-Stokes, RANS equations and Diffuse Interface Model with a
 five-equation paradigm.
 
-• All the directores include the grid files (MESHES), the pointwise files for generating the meshes,
+• All the directores include the grid files (MESHES), the [pointwise](https://www.pointwise.com) files for generating the meshes,
 the parameter files UCNS3D.DAT (DATS), and sample run directories with some representative outputs.
 
 
