@@ -72,7 +72,7 @@ $ make -f Makefile clean all
 ```
 $make -f Makefile
 ```
-*the name of the executable is ucns3d_p.
+* the name of the executable is ucns3d_p.
 
 
 Running
