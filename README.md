@@ -70,7 +70,7 @@ $ make -f Makefile clean all
 ```
 * For recompiling changed files and their dependencies
 ```
-$make -f Makefile
+$ make -f Makefile
 ```
 * the name of the executable is ucns3d_p.
 
