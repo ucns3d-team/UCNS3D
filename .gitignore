@@ -34,3 +34,7 @@
 # tmp directory
 
 tmp/
+.vscode/configurationCache.log
+.vscode/settings.json
+.vscode/targets.log
+.vscode/dryrun.log
