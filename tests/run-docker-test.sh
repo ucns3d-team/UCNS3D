@@ -1,7 +1,6 @@
 #!/bin/bash
 
 echo "Run Docker Test"
-# source /root/OpenFOAM/OpenFOAM-v1906/etc/bashrc
 
 echo "Copying input data from tests"
 cp -r /test/taylor_green_vortex/* .
