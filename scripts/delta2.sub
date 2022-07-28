@@ -1,0 +1,105 @@
+#!/bin/bash
+##
+## MPI submission script for PBS on DELTA
+## --------------------------------------
+##
+##"MPI-sub2022v1"
+## Follow the 6 steps below to configure your job
+## 
+## STEP 1:
+##
+## Enter a job name after the -N on the line below:
+##
+#PBS -N FV-iLES
+##
+## STEP 2:
+##
+## Select the number of cpus/cores required by modifying the #PBS -l select line below
+##
+## Normally you select cpus in chunks of 64 cpus
+## The Maximum value for ncpus is 64 and mpiprocs MUST be the same value as ncpus.
+##
+## If more than 64 cpus are required then select multiple chunks of 64
+## e.g.	16 CPUs: select=1:ncpus=64:mpiprocs=64
+##	32 CPUs: select=2:ncpus=64:mpiprocs=64
+##	48 CPUs: select=3:ncpus=64:mpiprocs=64
+##	..etc..
+##
+#PBS -l select=3:ncpus=64:mpiprocs=16:ompthreads=4
+##
+## STEP 3:
+##
+## Select the correct queue by modifying the #PBS -q line below
+##
+## half_hour	-  30 minutes
+## one_hour	-   1 hour
+## three_hour   -   3 hours
+## six_hour     -   6 hours
+## half_day	-  12 hours
+## one_day	-  24 hours
+## two_day	-  48 hours
+## five_day	- 120 hours
+## ten_day	- 240 hours (by special arrangement)
+##
+#PBS -q half_day
+##
+## STEP 4:
+##
+## Replace the hpc@cranfield.ac.uk email address
+## with your Cranfield email address on the #PBS -M line below:
+## Your email address is NOT your username
+##
+#PBS -m abe 
+#PBS -M email@cranfield.ac.uk
+##
+## ====================================
+## DO NOT CHANGE THE LINES BETWEEN HERE
+## ====================================
+#PBS -j oe
+#PBS -W sandbox=PRIVATE
+#PBS -k n
+ln -s $PWD $PBS_O_WORKDIR/$PBS_JOBID
+## Change to working directory
+cd $PBS_O_WORKDIR
+## Calculate number of CPUs
+export cpus=`cat $PBS_NODEFILE | wc -l`
+sort -u $PBS_NODEFILE -o mpi_nodes.$$
+export I_MPI_HYDRA_IFACE=ib0
+export I_MPI_HYDRA_BOOTSTRAP=ssh
+export I_MPI_HYDRA_RMK=pbs
+## Debug options - only enable when instructed by HPC support
+##export I_MPI_HYDRA_DEBUG=1
+##export I_MPI_DEBUG=6
+##export I_MPI_DEBUG_OUTPUT=%h-%r-%p-debug.out
+## set some MPI tuning parameters to use the correct transport
+## ========
+## AND HERE
+## ========
+##
+## STEP 5: 
+## 
+##  Load the default application environment
+##  For a specific version add the version number, e.g.
+##  module load intel/2016b
+##
+module use /apps/modules/all
+module load intel/2021b
+export OMP_NUM_THREADS=4
+export KMP_AFFINITY=granularity=fine,compact
+export MPICH_MAX_THREAD_SAFETY=MPI_THREAD_FUNNELED
+##
+## STEP 6: 
+## 
+## Run MPI code 
+##
+## The main parameter to modify is your mpi program name
+## - change YOUR_EXECUTABLE to your own filename
+## 
+
+mpirun -genvall -hostfile mpi_nodes.$$ -np 48 ./ucns3d_p
+
+## Tidy up the log directory
+## DO NOT CHANGE THE LINE BELOW
+## ============================
+rm $PBS_O_WORKDIR/$PBS_JOBID
+#
