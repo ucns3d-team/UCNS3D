@@ -1,9 +1,3 @@
----
-title: Multiple Reference Frame on UCNS3D
-permalink: tutorials-MRF-UCNS3D.html
-keywords: Helicopter, Hovering, rotor, Wind turbine, 
-summary: Tutorial for MRF application using UCNS3D
----
 
 This document describes how to run a Multiple Reference Frame simulation on UCNS3D solver. The files for this tutorial are located in the Cranfield University repository Cord  (https://cord.cranfield.ac.uk/)
 
@@ -54,7 +48,7 @@ Reference Velocity: Reference velocity for turbulence calculation (blade tip vel
 # Multiple Reference Frame
 
 <p align="center">
-<img width="1000" height="500" src="docs/MRF_schematic.png">
+<img width="1000" height="500" src="docs/MRF_schematic.PNG">
 </p>
 
 Number of rotors: Total number of rotational subdomais
@@ -84,7 +78,81 @@ Rotational velocity: Rotational velocity (rad/s)
  ```
         POSSIBLE VALUES=  any value
 ```
+## Example: Caradonna SRF:
 
+```
+!ROTATIONAL REFERENCE FRAME MODE ( 0 DEACTIVE,1-SINGLE, 2-MULTIPLE)
+1
+!SRF ORIGIN POINT
+0.0 0.0 0.0
+!SRF VELOCITY
+0.0 0.0 265.9
+!Periodic: 1: ACTIVE  0: DEACTIVE |\| Angle: (deg) |\| Reference Velocity: (WxR)
+0 					0.0			 303.9237
+============= Multiple Reference Frame ==================
+0.0 0.0 0.0      !Point 1 (MRF- Bottom cylinder face center)
+0.0 0.0 0.0	   !Point 2 (MRF- Top cylinder face  center)
+0.0 0.0          !MRF Radius - MRF Rotational velocity (rad/s)
+
+```
+## Example: Caradonna MRF:
+
+```
+!ROTATIONAL REFERENCE FRAME MODE ( 0 DEACTIVE,1-SINGLE, 2-MULTIPLE)
+2
+!SRF ORIGIN POINT
+0.0 0.0 0.0
+!SRF VELOCITY
+0.0 0.0 0.0
+!Periodic: 1: ACTIVE  0: DEACTIVE |\| Angle: (deg) |\| Reference Velocity: (WxR)
+0 					0.0			 303.9237
+============= Multiple Reference Frame ==================
+0.0 0.0 -1.5      !Point 1 (MRF- Bottom cylinder face center)
+0.0 0.0 1.5	   !Point 2 (MRF- Top cylinder face  center)
+1.8 265.9          !MRF Radius - MRF Rotational velocity (rad/s)
+
+```
+## Example: MRF Caradonna multirotors:
+
+```
+!ROTATIONAL REFERENCE FRAME MODE ( 0 DEACTIVE,1-SINGLE, 2-MULTIPLE)
+2
+============SRF=================================
+!SRF ORIGIN POINT
+0.0 0.0 0.0
+!SRF VELOCITY
+0.0 0.0 0.0
+!Periodic: 1: ACTIVE  0: DEACTIVE |\| Angle: (deg) |\| Reference Velocity: (WxR)
+0 					180.0			 303.9237
+============= Multiple Reference Frame ==================
+2                  !Number of rotors
+0.0 0.0 -0.5      !Point 1 (MRF- Bottom cylinder face center)
+0.0 0.0 0.5	   !Point 2 (MRF- Top cylinder face  center)
+2.0 265.9          !MRF Radius - MRF Rotational velocity (rad/s)
+0.0 0.0 -2.5      !Point 1 (MRF- Bottom cylinder face center)
+0.0 0.0 -1.5	   !Point 2 (MRF- Top cylinder face  center)
+2.0 265.9          !MRF Radius - MRF Rotational velocity (rad/s)
+
+```
+
+## Example: MRF PSP Periodic:
+
+```
+!ROTATIONAL REFERENCE FRAME MODE ( 0 DEACTIVE,1 ACTIVE, 2-MRF)
+2
+!SRF ORIGIN POINT
+0.0 0.0 0.0
+!SRF VELOCITY
+0.0 0.0 0.0
+!Periodic: 1: ACTIVE  0: DEACTIVE |\| Angle: (deg) |\| Reference Velocity: (WxR)
+1 					90.0			 218.072
+============= Multiple Reference Frame ==================
+1                  !Number of rotors
+0.0 0.0 -0.5      !Point 1 (MRF- Bottom cylinder face center)
+0.0 0.0 0.5	   !Point 2 (MRF- Top cylinder face  center)
+2.0 120.427          !MRF Radius - MRF Rotational velocity (rad/s)
+
+```
 
 The test cases consists of four helicopter cases: 
 
