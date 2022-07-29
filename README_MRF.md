@@ -54,7 +54,7 @@ Reference Velocity: Reference velocity for turbulence calculation (blade tip vel
 # Multiple Reference Frame
 
 <p align="center">
-<img width="1000" height="500" src="docs/MRF_schematic.png">
+<img width="1000" height="500" src="docs/MRF_schematic.PNG">
 </p>
 
 Number of rotors: Total number of rotational subdomais
