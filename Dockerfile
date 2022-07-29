@@ -45,26 +45,27 @@ RUN apt-get update && \
 
 WORKDIR /root/
 
-RUN mkdir -p /root/local ;\
-    cd /root/local \
-    pwd ;\
-    cd /root/ ;\
-    git clone https://github.com/KarypisLab/GKlib.git
+#RUN mkdir -p /root/local ;\
+#   cd /root/local \
+#    cd /root/ ;\
+#  pwd ;\
+#    git clone https://github.com/KarypisLab/GKlib.git
 
-RUN make -C /root/GKlib prefix=/root/local config
-RUN	cd /root/GKlib && make install
+#RUN make -C /root/GKlib prefix=/root/local config
+#RUN	cd /root/GKlib && make install
 
-RUN cd /root/ ;\
-    git clone https://github.com/KarypisLab/METIS.git
-RUN make -C /root/METIS config shared=1 cc=gcc prefix=/root/local
-RUN	cd /root/METIS && make install
+#RUN cd /root/ ;\
+#    git clone https://github.com/KarypisLab/METIS.git
+#RUN make -C /root/METIS config shared=1 cc=gcc prefix=/root/local
+#RUN	cd /root/METIS && make install
 
-RUN cd /root/ ;\
-    git clone https://github.com/KarypisLab/ParMETIS.git
-RUN make -C /root/ParMETIS config cc=mpicc prefix=/root/local
-RUN	cd /root/ParMETIS && make install
+
+#RUN cd /root/ ;\
+#    git clone https://github.com/KarypisLab/ParMETIS.git
+#RUN make -C /root/ParMETIS config cc=mpicc prefix=/root/local
+#RUN	cd /root/ParMETIS && make install
 ADD src /root/CODE
-RUN cd /root/CODE && make -f Makefile clean all
+RUN cd /root/CODE && make -f Makefile_docker clean all
 ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
 
 # Make & set a rundir & copy executable 
@@ -79,6 +80,6 @@ RUN rm -rf /root/CODE && rm -rf /root/GKlib && rm -rf /root/METIS && rm -rf /Par
 WORKDIR /ucns3d_run
 # Copy taylor green problem and run script
 # TODO abstract testing out from dockerfile.
-COPY tests/taylor_green_vortex/* /ucns3d_run
-COPY tests/execute-tests.sh /ucns3d_run
+COPY tests/taylor_green_vortex/* /ucns3d_run/
+COPY tests/execute-tests.sh /ucns3d_run/
 RUN chmod +x execute-tests.sh
