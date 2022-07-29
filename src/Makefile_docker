@@ -20,9 +20,8 @@ LD=$(F90)
 
 BLASFLAGS= -I  /usr/include/x86_64-linux-gnu/openblas-pthread     #Ensure that you include your BLAS library path here
 BLASLIBS=  /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.a     #Ensure that you include your BLAS library path here
-# PARMETISLIBS= /home/afa/local/lib/libparmetis.a
-PARMETISLIBS= /root/local/lib/libparmetis.a
-# METISLIBS= /home/afa/local/lib/libmetis.so
+#PARMETISLIBS= /root/local/lib/libparmetis.a
+
 #amdblis aocl
 #BLASFLAGS=  -I/opt/hlrs/non-spack/libraries/aocl-gcc/2.1.0/amd-blis/include/
 #BLASLIBS= /opt/hlrs/non-spack/libraries/aocl-gcc/2.1.0/amd-blis/lib/libblis.a
@@ -38,16 +37,16 @@ PARMETISLIBS= /root/local/lib/libparmetis.a
 
 #gfortran
 #debug run
-FFLAGS=-ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fbacktrace -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -Wno-lto-type-mismatch -fPIE $(BLASFLAGS)
+#FFLAGS=-ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fbacktrace -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -Wno-lto-type-mismatch -fPIE $(BLASFLAGS)
 #production run
-# FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -O1 -march=native -Wno-lto-type-mismatch -fPIE $(BLASFLAGS) 
+FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -O3 -march=native -Wno-lto-type-mismatch -fPIE $(BLASFLAGS) 
 
 #aocl
 #FFLAGS= -O3 -Mfreeform -Mallocatable=03 -Mdaz -fdefault-real-8 -fopenmp -mavx2 -march=znver2 $(BLASFLAGS)
 #FFLAGS= -O2 -mp -fdefault-real-8 -flto -fopenmp -mavx2 -march=znver2 $(BLASFLAGS)
 
 #gnu hybrid static dynamic
-LIBS = -Wl,-Bstatic $(PARMETISLIBS) libmetis.a libtecio.a $(BLASLIBS) -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi 
+LIBS = -Wl,-Bstatic libparmetis.a libmetis.a libtecio.a $(BLASLIBS) -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi 
 
 #intel static linking
 # LIBS = libparmetis.a libmetis.a libtecio.a $(BLASLIBS) -lstdc++ 
