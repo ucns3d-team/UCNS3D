@@ -88,3 +88,4 @@ WORKDIR /ucns3d_run
 COPY tests/taylor_green_vortex/* /ucns3d_run/
 COPY tests/execute-tests.sh /ucns3d_run/
 RUN chmod +x execute-tests.sh
+RUN sed -i -e 's/\r$//' /ucns3d_run/execute-tests.sh
