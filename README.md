@@ -40,19 +40,19 @@ There are two main methods to locally install the solver and run the solver.
 2. In your bash terminal build the ucns3d image, you would need invoke `docker build` from the repository root directory:
 
 ```
-$ docker build . -t ucns3d -f Dockerfile
+docker build . -t ucns3d -f Dockerfile
 ```
 
 3. Once the image is build run the image, you can run the image interactively like so:
 
 ```
-$ docker run -ti ucns3d
+docker run -ti ucns3d
 ```
 
 The current [Dockerfile](Dockerfile) contains an example case under [tests](/tests/execute-tests.sh). Alternatively, you can mount a tmp directory and copy other uses cases when you run the image like so:
 
 ```
-$ docker run -v $PWD/tmp/:/tmp/ -ti ucns3d
+docker run -v $PWD/tmp/:/tmp/ -ti ucns3d
 ```
 
 ### Manual Build
@@ -86,11 +86,11 @@ compiler options.
 
 * For a clean installation 
 ```
-$ make -f Makefile clean all
+make -f Makefile clean all
 ```
 * For recompiling changed files and their dependencies
 ```
-$ make -f Makefile
+make -f Makefile
 ```
 * the name of the executable is `ucns3d_p`.
 
@@ -104,12 +104,12 @@ For running ucns3d you will need the following files in a directory of your choi
 * the executable ucns3d_p
 * For interactively running the code specify the number of threads to be used by typing in the terminal window
 ```
-$ export OMP_NUM_THREADS=N
+export OMP_NUM_THREADS=N
 ```
 N being the number of threads to be used (use 1 for MPI only mode)
 * in the same terminal window run the code by typing
 ```
-$ mpirun -np M ./ucns3d_p
+mpirun -np M ./ucns3d_p
 ```
 M being the number of MPI processes (at least 2 are required), for running at different HPC systems sample [scripts](/scripts) and [libraries](/bin/lib) are provided.
 
