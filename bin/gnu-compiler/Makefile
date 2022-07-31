@@ -52,7 +52,7 @@ LIBS = -Wl,-Bstatic libparmetis.a libmetis.a libtecio.a $(BLASLIBS) -Wl,-Bdynami
 # LIBS = libparmetis.a libmetis.a libtecio.a $(BLASLIBS) -lstdc++ 
 
 
-include Makefile.common
+include Makefile_common
 
 
  

@@ -50,7 +50,7 @@ FFLAGS=-i4 -r8 -ipo -xHost -O2 -fp-model precise -zero -qopenmp  -qopenmp-link=s
 LIBS = libparmetis.a libmetis.a libtecio.a $(BLASLIBS) -lstdc++ 
 
 
-include Makefile.common
+include Makefile_common
 
 
  
