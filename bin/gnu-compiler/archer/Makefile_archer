@@ -50,7 +50,7 @@ LIBS = -Wl,-Bstatic libparmetis_gnu_mpi.a libmetis.a libtecio.a $(BLASLIBS) -Wl,
 #LIBS = libparmetis.a libmetis.a libtecio.a $(BLASLIBS) -lstdc++ 
 
 
-include Makefile.common
+include Makefile_common
 
 
  

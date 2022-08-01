@@ -29,6 +29,7 @@ RUN apt-get update && \
     libcgal-dev \
     libmpc-dev \
     # ping \
+    nano \
     libstdc++5 \
     libiberty-dev \
     software-properties-common ;\
@@ -45,27 +46,31 @@ RUN apt-get update && \
 
 WORKDIR /root/
 
-#RUN mkdir -p /root/local ;\
-#   cd /root/local \
-#    cd /root/ ;\
-#  pwd ;\
-#    git clone https://github.com/KarypisLab/GKlib.git
+# Download and install GKlib, metis and parmetis dependencies
 
-#RUN make -C /root/GKlib prefix=/root/local config
-#RUN	cd /root/GKlib && make install
+RUN mkdir -p /root/local ;\
+   cd /root/ ;\
+   git clone https://github.com/KarypisLab/GKlib.git
 
-#RUN cd /root/ ;\
-#    git clone https://github.com/KarypisLab/METIS.git
-#RUN make -C /root/METIS config shared=1 cc=gcc prefix=/root/local
-#RUN	cd /root/METIS && make install
+RUN make -C /root/GKlib config cc=gcc prefix=/root/local 
+RUN	cd /root/GKlib && make install
 
+RUN cd /root/ ;\
+   git clone https://github.com/KarypisLab/METIS.git
+RUN make -C /root/METIS config cc=gcc prefix=/root/local
+RUN	cd /root/METIS && make install
 
-#RUN cd /root/ ;\
-#    git clone https://github.com/KarypisLab/ParMETIS.git
-#RUN make -C /root/ParMETIS config cc=mpicc prefix=/root/local
-#RUN	cd /root/ParMETIS && make install
+RUN cd /root/ ;\
+   git clone https://github.com/KarypisLab/ParMETIS.git
+RUN make -C /root/ParMETIS config cc=mpicc prefix=/root/local
+RUN	cd /root/ParMETIS && make install
+
+# Add src and compile
 ADD src /root/CODE
-RUN cd /root/CODE && make -f Makefile_docker clean all
+# Add tecplot dependency
+# TODO build the download and compilation of libtecio.a
+ADD bin/lib/tecplot/libtecio.a /root/CODE
+RUN cd /root/CODE && make -f Makefile_docker all
 ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
 
 # Make & set a rundir & copy executable 
@@ -83,3 +88,4 @@ WORKDIR /ucns3d_run
 COPY tests/taylor_green_vortex/* /ucns3d_run/
 COPY tests/execute-tests.sh /ucns3d_run/
 RUN chmod +x execute-tests.sh
+RUN sed -i -e 's/\r$//' /ucns3d_run/execute-tests.sh
