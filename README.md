@@ -81,7 +81,7 @@ The mesh is partitioned using metis software.
 
 * Open a terminal window in the [src](/src/) directory
 * Ensure that you have selected the desirable compiling options in the Makefile, by specifying the appropriate fortran compiler
-(ftn, ifort etc). Always compile with full debug options when developing something new, and then proceed to the more optimised
+(ftn, ifort etc) and ensure that you have copied the static libraries from the [lib](/bin/lib/) directory. Always compile with full debug options when developing something new, and then proceed to the more optimised
 compiler options.
 
 * For a clean installation 
