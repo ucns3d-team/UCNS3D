@@ -1911,6 +1911,10 @@ Subroutine RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,
 			sl(1)=abs(ul)+sqrt(gamma*pl/rl)
 			sr(1)=abs(ur)+sqrt(gamma*pr/rr)
 			ENDIF
+! 			WRITE(190+N,*)"WHY HERE"
+! 			WRITE(190+N,*)SL(1),SR(1)
+! 			WRITE(190+N,*)FL
+! 			WRITE(190+N,*)FR
 			
 			
 			HLLCFLUX(:)=0.5d0*(FL(:)+FR(:))-0.5d0*MAX(ABS(SL(1)),ABS(SR(1)))*(Cright_ROT(:)-Cleft_ROT(:))
