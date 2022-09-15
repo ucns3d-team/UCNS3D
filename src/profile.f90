@@ -20,7 +20,7 @@ INTEGER,INTENT(IN)::N
 
 IF (INITCOND.EQ.0)THEN
 IF(((POX(1).GE.0.25D0).AND.(POX(1).LE.0.75D0)).AND.((POZ(1).GE.0.25D0).AND.(POZ(1).LE.0.75D0)))THEN
-	LINEAR_INIT3d=10.0D0
+	LINEAR_INIT3d=1.0D0
 ELSE
 	LINEAR_INIT3d=1.0D0
 END IF
@@ -44,23 +44,25 @@ real,dimension(90)::polyfun
 REAL::AADX,AADY,SUMF,rd
 integer::ixg
 !COORDINATES=POX(1),POY(1),POZ(1)
+
+
 SUMF=zero
 IF (INITCOND.EQ.1)THEN
-! IF(((POX(1).GE.0.25D0).AND.(POX(1).LE.0.75D0)).AND.((POy(1).GE.0.25D0).AND.(POy(1).LE.0.75D0)))THEN
-! 	LINEAR_INIT2d=1.0D0
-! ELSE
-	LINEAR_INIT2d=10.0D0
+ IF(((POX(1).GE.0.25D0).AND.(POX(1).LE.0.75D0)).AND.((POy(1).GE.0.25D0).AND.(POy(1).LE.0.75D0)))THEN
+ 	LINEAR_INIT2d=1.0D0
+ ELSE
+	LINEAR_INIT2d=0.0D0
 
 END IF
+end if
 IF (INITCOND.EQ.0)THEN
 ! LINEAR_INIT2d=(SIN((2.0D0*PI)*(POX(1))))*&
 !  (SIN((2.0D0*PI)*(POY(1))))
 AADX=POX(1)
 AADY=POy(1)
- compwrt=0
+ 
 
    polyfun(1:ielem(n,iconsidered)%idegfree)=basis_rec2d(N,AADX,AADY,ielem(n,iconsidered)%iorder,Iconsidered,ielem(n,iconsidered)%idegfree)
- compwrt=0
    do ixg=1,ielem(n,iconsidered)%idegfree
    SUMF=SUMF+polyfun(ixg)
    end do
@@ -99,8 +101,9 @@ end if
 end if
 
 IF (INITCOND.EQ.2)THEN
-LINEAR_INIT2d=(SIN((2.0D0*PI)*(POX(1))))*&
- (SIN((2.0D0*PI)*(POY(1))))
+LINEAR_INIT2d=(SIN((2.0D0*PI)*(POX(1))))*(SIN((2.0D0*PI)*(POY(1))))
+ 
+!linear_init2d=1.0d0
 end if
 
 
@@ -178,17 +181,25 @@ END IF
 
 
 IF (INITCOND.EQ.95)THEN	!TAYLOR GREEN INITIAL PROFILE
+ if(boundtype.eq.1)then
 R1=1.0D0
-
 W1=0.0D0
 P1=100.0D0+((R1/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
-!p1=100.0d0+((r1/16.0d0)*(COS(2.0D0*POZ(1))+(2.0d0*COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))-2.0D0 ))
-!p1=100.0d0+((r1/16.0d0)*(COS(2.0D0*POZ(1))+(2.0d0*COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))-2.0D0 ))
-!UU=(SQRT((GAMMA*P1)/(R1)))*0.28
-!P1=1.0
 u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
 v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
-!KINETIC ENERGY FIRST!
+
+
+
+else
+
+W1=0.0D0
+P1=(1.0d0/(gamma*1.25*1.25))+((1.0d0/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
+r1=(p1*(gamma*1.25*1.25))
+u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
+v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
+
+
+end if
 SKIN1=(OO2)*((U1**2)+(V1**2)+(W1**2))
 !INTERNAL ENERGY 
 IE1=((P1)/((GAMMA-1.0D0)*R1))
@@ -468,8 +479,8 @@ INTEGER,INTENT(IN)::N
 !SOLUTION=VECCOS
 !COMPONENTS FROM DAT FILE GAMMA,UVEL,WVEL,VVEL,PRES,RRES
 !INITCOND= PROFILE CHOICE FROM DATA FILE
-real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1,theeta,reeta
-REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
+real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1
+REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1,khi_slope,khi_b,theeta,reeta
 real::pr_Radius,pr_beta,pr_machnumberfree,pr_pressurefree,pr_temperaturefree,pr_gammafree,pr_Rgasfree,pr_xcenter,pr_ylength,pr_xlength,pr_ycenter,pr_densityfree,pr_cpconstant,pr_radiusvar,pr_velocityfree,pr_TemperatureVar
 integer::u_cond1,u_cond2,u_cond3,u_cond4,IX
 VECCOS(:)=ZERO
@@ -667,21 +678,17 @@ END IF
 
 
 
+
 IF (INITCOND.EQ.65)THEN	!TAYLOR GREEN INITIAL PROFILE
+khi_slope=15.0d0
+khi_b=tanh(khi_slope*(poy(1)-1)+7.5d0)-tanh(khi_slope*(poy(1)-1)-7.5d0)
 
 
-
-R1=1.0D0
-u1=1.0d0
-v1=1.0d0
+R1=0.5d0+0.75d0*khi_b
+u1=0.5*(khi_b-1.d0)
+v1=0.1*sin(2.0d0*pi*(pox(1)-1.0d0))
 p1=1.0d0
-!rgg=((pox(1)**2)+(poy(1)**2))
-rgg=(((pox(1)-5.0d0)**2)+((poy(1)-5.0d0)**2))
-u1=u1+(((5.0d0/(2.0d0*pi)))*(exp(((1.0d0-rgg)/(2.0d0))))*(5.0d0-poy(1)))
-v1=v1+(((5.0d0/(2.0d0*pi)))*(exp(((1.0d0-rgg)/(2.0d0))))*(pox(1)-5.0d0))
-tt1=1.0d0-(((gamma-1)*(25.0d0/(8.0d0*pi**2*gamma)))*exp(1.0d0-rgg))
-r1=tt1**(1.0d0/(gamma-1.0d0))
-P1=R1*tt1
+
 
 
     
@@ -697,6 +704,7 @@ VECCOS(2)=R1*U1
 VECCOS(3)=R1*V1
 VECCOS(4)=E1
 END IF
+
 
 
 
@@ -864,32 +872,32 @@ end if
 
 
 IF (INITCOND.EQ.30)THEN	!shock density interaction
-if (pox(1).le.1.0d0)then
-if (poy(1).le.1.0d0)then
-r1=77.0d0/558.0d0
-u1=4.0d0/sqrt(11.0d0)
-v1=4.0d0/sqrt(11.0d0)
-p1=9.0d0/310.0d0
+if (pox(1).le.zero)then
+if (poy(1).le.zero)then
+r1=0.138
+u1=1.206
+v1=1.206
+p1=0.029
 end if
-if (poy(1).gt.1.0d0)then
-r1=33.0d0/62.0d0
-u1=4.0d0/sqrt(11.0d0)
-v1=0.0d0
-p1=0.3d0
+if (poy(1).gt.zero)then
+r1=0.5323
+u1=1.206
+v1=0.0
+p1=0.3
 end if
 end if
-if (pox(1).gt.1.0d0)then
-if (poy(1).le.1.0d0)then
-r1=33.0d0/62.0d0
-u1=0.0d0
-v1=4.0d0/sqrt(11.0d0)
-p1=0.3d0
+if (pox(1).gt.zero)then
+if (poy(1).le.zero)then
+r1=0.5323
+u1=0.0
+v1=1.206
+p1=0.3
 end if
-if (poy(1).gt.1.0d0)then
-r1=1.5d0
-u1=0.0d0
-v1=0.0d0
-p1=1.5d0
+if (poy(1).gt.zero)then
+r1=1.5
+u1=0.0
+v1=0.0
+p1=1.5
 end if
 end if
 SKIN1=(OO2)*((U1**2)+(V1**2))
@@ -1876,10 +1884,99 @@ VECCOS(7)=MP_A(1)
 END IF
 
 
+if (initcond.eq.133)then
+
+if (pox(1).lt.0.0d0)then
+
+	
+	p1=195557.25
+	R1=p1/(350.5d0*287.058d0)
+	u1=168.62
+	v1=0.0d0
+	
+	rhc1=r1
+	rhc2=u1
+	rhc3=v1
+	rhc4=p1
+
+
+
+	else
+
+	
+	u1=0.0d0
+	v1=0.0d0
+	p1=101325
+	R1=p1/(288.15d0*287.058d0)
+
+	end if
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+!INTERNAL ENERGY 
+IE1=((P1)/((GAMMA-1.0D0)*R1))
+!TOTAL ENERGY
+E1=(P1/(GAMMA-1))+(R1*SKIN1)
+!VECTOR OF CONSERVED VARIABLES NOW
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
 
 
 
 
+
+
+
+
+end if
+
+
+if (initcond.eq.266)then
+
+if (poy(1).gt.1.0d0)then
+
+	
+	p1=20000
+	R1=0.41
+	u1=850
+	v1=0.0d0
+	
+	
+
+
+
+	else
+
+	
+	u1=0.0d0
+	v1=0.0d0
+	p1=100000
+	R1=1.225
+
+	end if
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+!INTERNAL ENERGY 
+IE1=((P1)/((GAMMA-1.0D0)*R1))
+!TOTAL ENERGY
+E1=(P1/(GAMMA-1))+(R1*SKIN1)
+!VECTOR OF CONSERVED VARIABLES NOW
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+
+
+
+
+
+
+
+
+end if
 
 IF (INITCOND.EQ.444)THEN
 
@@ -1998,11 +2095,6 @@ VECCOS(4)=E1
 
 
 end if
-
-
-
-
-
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
