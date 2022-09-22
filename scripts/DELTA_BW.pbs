@@ -1,0 +1,28 @@
+#!/bin/bash
+
+#PBS -N w5
+#PBS -k oe
+#PBS -l select=2:ncpus=16:mpiprocs=2:ompthreads=8
+#PBS -q one_day
+#PBS -M ......@gmail......
+###PBS -l place=exclhost
+
+module load intel/2019a
+#. mpivars.sh      
+#. ifortvars.sh intel64         
+
+cd $PBS_O_WORKDIR 
+
+cat $PBS_NODEFILE > hosts      
+
+# set Openm Environment        
+export OMP_NUM_THREADS=8       
+export KMP_AFFINITY=granularity=fine,compact
+#export KMP_AFFINITY=disabled
+export MPICH_MAX_THREAD_SAFETY=MPI_THREAD_FUNNELED
+
+mpiexec -np 4  ./ucns3d_p
+
+
+
+
