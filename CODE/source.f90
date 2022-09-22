@@ -26,6 +26,59 @@ SUBROUTINE SOURCES_COMPUTATION(N)
 	!$OMP END DO 
 END SUBROUTINE SOURCES_COMPUTATION
 
+
+SUBROUTINE SOURCES_COMPUTATION_ROT(N)
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	INTEGER::I,KMAXE
+	REAL::OODENSITY
+	real,dimension(5)::source_t2
+	
+	
+	KMAXE=XMPIELRANK(N)
+	IF(SRFG.EQ.1)THEN
+	!$OMP DO SCHEDULE (STATIC)
+	DO I=1,KMAXE
+		
+		 OODENSITY=1.0D0/U_C(I)%VAL(1,1)
+        
+                SOURCE_T2(1)=ZERO
+                SOURCE_T2(2)=U_C(I)%VAL(1,2)*OODENSITY-UVEL
+                SOURCE_T2(3)=U_C(I)%VAL(1,3)*OODENSITY-VVEL
+                SOURCE_T2(4)=U_C(I)%VAL(1,4)*OODENSITY-WVEL
+                SOURCE_T2(5)=ZERO
+        
+                POX(1:3)= SOURCE_T2(2:4)  
+                POY(1:3)=SRF_VELOCITY(1:3)
+                SOURCE_T2(2:4)=U_C(I)%VAL(1,1)*VECT_FUNCTION(POX,POY)
+		RHS(I)%VAL(1:NOF_VARIABLES)=RHS(I)%VAL(1:NOF_VARIABLES)+(SOURCE_T2(1:NOF_VARIABLES)*ielem(n,I)%totvolume)
+		
+	END DO
+	!$OMP END DO
+	END IF
+	IF(MRF.EQ.1)THEN
+	!$OMP DO SCHEDULE (STATIC)
+	DO I=1,KMAXE
+		SRF=ILOCAL_RECON3(I)%MRF
+		IF(SRF.EQ.1)THEN    
+            OODENSITY=1.0D0/U_C(I)%VAL(1,1)
+                SOURCE_T2(1)=ZERO
+                SOURCE_T2(2)=U_C(I)%VAL(1,2)*OODENSITY!-UVEL
+                SOURCE_T2(3)=U_C(I)%VAL(1,3)*OODENSITY!-VVEL
+                SOURCE_T2(4)=U_C(I)%VAL(1,4)*OODENSITY!-WVEL
+                SOURCE_T2(5)=ZERO
+        
+                POX(1:3)= SOURCE_T2(2:4)  
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
+                SOURCE_T2(2:4)=U_C(I)%VAL(1,1)*VECT_FUNCTION(POX,POY)
+		RHS(I)%VAL(1:NOF_VARIABLES)=RHS(I)%VAL(1:NOF_VARIABLES)+(SOURCE_T2(1:NOF_VARIABLES)*ielem(n,I)%totvolume)
+		END IF
+	END DO
+	!$OMP END DO
+	END IF
+END SUBROUTINE SOURCES_COMPUTATION_ROT
+
+
 SUBROUTINE SOURCES_derivatives_COMPUTATION(N)
 !> @brief
 !> Sources derivative computation for implicit time stepping
@@ -140,7 +193,9 @@ TURBMV(2)=TURBMV(1)
  
  
  CASE(1) !!SPALART ALMARAS MODEL	
-
+        if (ROT_CORR.EQ.1) then
+        OMEGA = OMEGA + 2.0d0*min(0.0d0,SNORM-ONORM)
+    end if
     
       if (ISPAL .eq.1) then
 		eddyfl(2)=turbmv(1)
@@ -190,7 +245,12 @@ TURBMV(2)=TURBMV(1)
 			      destterm  = cw1 * fw * ((( TURBMV(1) )/(leftv(1)*(ddw)))**2)
 			      ! ! 	!  First order diffusion term
 			      fodt  =   cb2 * SQUARET/ SIGMA
-			      SOURCE_T(1) = ProdTermfinal + fodt - destterm
+			      
+			      if (D_CORR.EQ.0) then
+				SOURCE_T(1) = ProdTermfinal + fodt - destterm
+            else 
+				SOURCE_T(1) = ProdTermfinal + (fodt - destterm)*leftv(1)
+            end if
 			END IF
 	 eLSE
 		    CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)

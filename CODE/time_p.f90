@@ -57,9 +57,30 @@ KMAXE=XMPIELRANK(N)
 		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
 		else
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		end if
-		
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+                end if
+        IF (RFRAME.eq.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+        END IF
+        IF (SRFG.EQ.1) THEN
+            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+            POY(1:3)=SRF_VELOCITY
+            SRF_SPEED=ZERO
+            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+        END IF
+        IF(MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            ELSE
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF
+        END IF
 		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
 	END DO
 	!$OMP END DO
@@ -75,8 +96,30 @@ KMAXE=XMPIELRANK(N)
 		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
 		CALL SUTHERLAND(N,LEFTV,RIGHTV)
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-		
+                
+        IF (RFRAME.EQ.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+        END IF
+        IF(SRFG.EQ.1)THEN
+            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+            POY(1:3)=SRF_VELOCITY
+            SRF_SPEED=ZERO
+            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+        END IF          
+        IF(MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
+                VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            ELSE
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF
+        END IF
 		IF (TURBULENCE.EQ.1)THEN
 		IF (TURBULENCEMODEL.EQ.1)THEN
 		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
@@ -130,9 +173,31 @@ KMAXE=XMPIELRANK(N)
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
 		
 		CALL CONS2PRIM(N)
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
+                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+        IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+        END IF
+        IF(SRFG.EQ.1)THEN
+            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+            POY(1:3)=SRF_VELOCITY
+            SRF_SPEED=ZERO
+            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+        END IF
+        IF(MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            ELSE
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF
+        END IF
+        IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
 	END DO
 	!$OMP END DO
 	END IF
@@ -146,9 +211,31 @@ KMAXE=XMPIELRANK(N)
 		CALL CONS2PRIM(N)
 		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
 		CALL SUTHERLAND(N,LEFTV,RIGHTV)
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-		IF (TURBULENCE.EQ.1)THEN
+                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+        IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+        END IF
+        IF(SRFG.EQ.1)THEN
+            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+            POY(1:3)=SRF_VELOCITY
+            SRF_SPEED=ZERO
+            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+        END IF
+        IF(MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            ELSE
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF
+        END IF
+        IF (TURBULENCE.EQ.1)THEN
 		IF (TURBULENCEMODEL.EQ.1)THEN
 		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -657,13 +744,18 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+        call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
-    
+    if ((SOURCE_ACTIVE.EQ.1))then
+        call SOURCES_COMPUTATION_ROT(N)
+    end if
     END SELECT
 ELSE
     CALL EXCHANGE_HIGHER(N)
@@ -674,6 +766,9 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
@@ -712,11 +807,17 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
+    end if
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
     end if
     END SELECT
 ELSE
@@ -728,11 +829,17 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
+    end if
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
     end if
     END SELECT
 END IF
@@ -768,11 +875,17 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
+    end if
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
     end if
     END SELECT
 ELSE
@@ -784,11 +897,17 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
+    end if
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
     end if
     call VORTEXCALC(N)
     END SELECT
@@ -1078,11 +1197,17 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
+    end if
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
     end if
     END SELECT
 ELSE
@@ -1094,11 +1219,17 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
+    end if
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
     end if
     END SELECT
 END IF
@@ -2057,11 +2188,17 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
+    end if
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
     end if
     END SELECT
 ELSE
@@ -2112,12 +2249,19 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
      if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
+
     END SELECT
     
     
@@ -2232,9 +2376,15 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
      if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
@@ -2248,9 +2398,15 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
      if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
@@ -2289,9 +2445,15 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
      if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
@@ -2305,9 +2467,15 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
      if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
@@ -2344,9 +2512,15 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
      if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
@@ -2360,9 +2534,15 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
      if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
@@ -2401,9 +2581,15 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
      if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
@@ -2417,9 +2603,15 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
      if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
     end if
@@ -2789,9 +2981,15 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_diffusive(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     call VORTEXCALC(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
@@ -2807,9 +3005,15 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_diffusive(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     call VORTEXCALC(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
@@ -2842,6 +3046,13 @@ DO I=1,KMAXE
     If ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))then
         write(600+n,*)"nan present",ielem(n,i)%ihexgl,ielem(n,i)%ishape,ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
         write(600+n,*)ielem(n,i)%dih(:)
+        write(500+n,'(3es14.6)'),ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
+        if(MRF.EQ.1)then
+        write(700+n,*)'SRF -diagonal', ILOCAL_RECON3(I)%MRF ,I
+         write(700+n,'(3es14.6)'),ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
+        write(700+n,*),impdu(i,1),impdu(i,2),impdu(i,3),impdu(i,4),impdu(i,5)
+        end if
+!         write(700+n,'(5es14.6)')(impdu(i,1),(impdu(i,2),(impdu(i,3),(impdu(i,4),(impdu(i,5)
         kill_nan=1
     end if
   U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
@@ -3056,9 +3267,15 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_diffusive(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     call VORTEXCALC(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)
@@ -3074,9 +3291,15 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_diffusive(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     call VORTEXCALC(N)
     if (turbulence.eq.1)then
     call SOURCES_COMPUTATION(N)

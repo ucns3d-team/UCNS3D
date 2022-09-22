@@ -1170,7 +1170,10 @@ do i=1,imaxfglobal
 	
 	  case(8)!periodicity
 	  ibtr=5
-
+	  
+	  case(128) ! rotational periodicity
+      ibtr=50
+      
 	  case(3)  !wall
 	  ibtr=4
 

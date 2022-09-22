@@ -1384,6 +1384,7 @@ IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
 integer::nnd
 integer::i,k
+real::tempxx
 i=iconsidered
 
 
@@ -1402,6 +1403,7 @@ i=iconsidered
 			  NODES_LIST(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(FACEX,K))%CORD(1:dims)
 			END DO
 			do K=1,nnd
+			IF(PER_ROT.EQ.0)THEN
 			IF(ABS(NODES_LIST(k,1)-vext(1,1)).GT.XPER*oo2)THEN
 			NODES_LIST(k,1)=NODES_LIST(k,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
 			end if
@@ -1411,6 +1413,19 @@ i=iconsidered
 			IF(ABS(NODES_LIST(k,3)-vext(1,3)).GT.zPER*oo2)THEN
 			NODES_LIST(k,3)=NODES_LIST(k,3)+(zPER*SIGN(1.0,vext(1,3)-zPER*oo2))
 			end if
+			ELSE
+                if (IELEM(n,i)%reorient(facex).eq.1) then
+                    if (ibound(n,ielem(n,i)%ibounds(facex))%icode.eq.5) then
+                        tempxx=NODES_LIST(k,1)
+                        NODES_LIST(k,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*NODES_LIST(k,2)
+                    else
+                        tempxx=NODES_LIST(k,1)
+                        NODES_LIST(k,1)=tempxx*cosd(angle_per)-sind(angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,2)=tempxx*sind(angle_per)+cosd(angle_per)*NODES_LIST(k,2)
+                    end if
+                end if
+			END IF
 			END DO
 	      
 	      
@@ -1467,6 +1482,7 @@ IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
 integer::nnd
 integer::i,k
+real::tempxx
 i=iconsidered
 
 
@@ -1482,8 +1498,9 @@ i=iconsidered
 	      VEXT(1,3)=IELEM(N,I)%ZZC
 	      
 			do K=1,nnd
-			  NODES_LIST(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(FACEX,K))%CORD(1:dims)
+			  NODES_LIST(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(FACEX,K))%CORD(1:dims)
 			END DO
+            IF(PER_ROT.EQ.0)THEN
 			do K=1,nnd
 			IF(ABS(NODES_LIST(k,1)-vext(1,1)).GT.XPER*oo2)THEN
 			NODES_LIST(k,1)=NODES_LIST(k,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
@@ -1495,6 +1512,21 @@ i=iconsidered
 			NODES_LIST(k,3)=NODES_LIST(k,3)+(zPER*SIGN(1.0,vext(1,3)-zPER*oo2))
 			end if
 			END DO
+			ELSE
+                if (IELEM(n,i)%reorient(facex).eq.1) then
+                do K=1,nnd
+                    if (ibound(n,ielem(n,i)%ibounds(facex))%icode.eq.5) then
+                        tempxx=NODES_LIST(k,1)
+                        NODES_LIST(k,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*NODES_LIST(k,2)
+                    else
+                        tempxx=NODES_LIST(k,1)
+                        NODES_LIST(k,1)=tempxx*cosd(angle_per)-sind(angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,2)=tempxx*sind(angle_per)+cosd(angle_per)*NODES_LIST(k,2)
+                    end if
+                END DO
+                end if
+			END IF
 	      
 	      
 	      do K=1,nnd
