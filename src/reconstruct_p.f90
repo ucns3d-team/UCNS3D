@@ -510,9 +510,7 @@ implicit none
 	    x_char(i,LL) =DDOT(IDEGFREE2,a_char(1:IDEGFREE2,i,ll),1,BA_char(1:IDEGFREE2,i,LL),1)
 	  end do;END DO
 
-! 	WRITE(300+N,*)"FINITO"
-! 	WRITE(300+n,*)x_char(1:NOF_VARIABLES,1:IELEM(N,ICONSIDERED)%ADMIS)
-! 		STOP	
+
    ELSE
    
 	      DO LL=1,IELEM(N,ICONSIDERED)%ADMIS
@@ -703,14 +701,12 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 
 !$OMP DO SCHEDULE (STATIC)
 DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
-   IF (IELEM(N,I)%FULL.EQ.1)THEN
          IF (MRF.EQ.1)THEN
         SRF=ILOCAL_RECON3(I)%MRF
       END IF
-   
-   
+   IF ((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
       CALL ALLGRADS_INNER(N,I)
-      DIVBYZERO=1E-6
+      DIVBYZERO=1E-14
       POWER=4
       
       
@@ -1078,6 +1074,13 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 !                                 DO IEX=1,nof_variables	!COMPONENTS
                                 ILOCAL_RECON3(I)%ULEFT(:,:,:)=ZERO
 ! 				ILOCAL_RECON3(I)%ULEFT(IEX,L,NGP)=ZERO
+
+                IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,:)=ZERO
+				END IF
+
+
+
 				DO LL=1,IELEM(N,I)%ADMIS	!STENCILS
 				
 				IF (EES.EQ.5)THEN
@@ -1165,6 +1168,22 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
                                 end do
                                 
                                 end do
+                                
+                                DO IEX=1,nof_variables	!COMPONENTS
+                                IF (DG.EQ.1)THEN
+                IF (EES.EQ.5)THEN
+                    IF (LL.EQ.1)THEN
+                    ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,IEX)*WENO(IEX,LL))
+                    ELSE
+                    ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE2,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE2,IEX)+(GRADSSL(1:Idegfree2,IEX)*WENO(IEX,LL))
+                    END IF
+                ELSE
+                    ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,IEX)*WENO(IEX,LL))
+				END IF
+				END IF
+                           end do     
+                                
+                                
                                 
                                 end do
                                 
@@ -1446,9 +1465,9 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 	 IF (MRF.EQ.1)THEN
         SRF=ILOCAL_RECON3(I)%MRF
       END IF
-		IF (IELEM(N,I)%FULL.EQ.1)THEN
+		IF ((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
 		CALL ALLGRADS_MIX(N,I)
-	DIVBYZERO=1E-6
+	DIVBYZERO=1E-14
       POWER=4
 		
 		IF (WENWRT.EQ.2)THEN	
@@ -1947,6 +1966,10 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 !                                 DO IEX=1,nof_variables	!COMPONENTS
                                 ILOCAL_RECON3(I)%ULEFT(:,:,:)=ZERO
 ! 				ILOCAL_RECON3(I)%ULEFT(IEX,L,NGP)=ZERO
+
+                IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,:)=ZERO
+				END IF
 				DO LL=1,IELEM(N,I)%ADMIS	!STENCILS
 				
 				IF (EES.EQ.5)THEN
@@ -2020,6 +2043,34 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 ! 				    +((U_C(I)%VAL(1,1:NOF_vARIABLES)+RESSOLUTION(icd,1:NOF_vARIABLES) )*WENO(1:NOF_vARIABLES,LL))
                                     end do
                                 end do
+                                
+                                
+                                DO IEX=1,nof_variables	!COMPONENTS
+                                IF (DG.EQ.1)THEN
+                IF (EES.EQ.5)THEN
+                    IF (LL.EQ.1)THEN
+                    ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,IEX)*WENO(IEX,LL))
+                    ELSE
+                    ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE2,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE2,IEX)+(GRADSSL(1:Idegfree2,IEX)*WENO(IEX,LL))
+                    END IF
+                ELSE
+                    ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,IEX)*WENO(IEX,LL))
+				END IF
+				END IF
+                           end do     
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
                                 end do
                                 
                                 if (wenwrt.eq.3)then
@@ -2346,8 +2397,12 @@ KMAXE=XMPIELRANK(N)
 	DO II=1,NOF_INTERIOR
 	I=EL_INT(II)
 	ICONSIDERED=I
-	IF (IELEM(N,I)%FULL.EQ.1)THEN
-	DIVBYZERO=1E-6
+        
+	IF ((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
+	DIVBYZERO=1E-14
+	
+	
+	
       POWER=4
 		CALL ALLGRADS_INNER2d(N,I)
 		  IF (WENWRT.EQ.2)THEN		
@@ -2708,6 +2763,10 @@ KMAXE=XMPIELRANK(N)
 
 				DO IEX=1,nof_variables	!COMPONENTS
 				
+				IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ZERO
+				END IF
+				
 				DO LL=1,IELEM(N,I)%ADMIS	!STENCILS
 				IF (EES.EQ.5)THEN
                                             IF (LL.EQ.1)THEN
@@ -2754,6 +2813,21 @@ KMAXE=XMPIELRANK(N)
 				    
 				    
 				    end if
+				    
+				    
+				    
+                IF (DG.EQ.1)THEN
+                IF (EES.EQ.5)THEN
+                    IF (LL.EQ.1)THEN
+                    ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,1)*WENO(IEX,LL))
+                    ELSE
+                    ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE2,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE2,IEX)+(GRADSSL(1:Idegfree2,1)*WENO(IEX,LL))
+                    END IF
+                ELSE
+                    ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,1)*WENO(IEX,LL))
+				END IF
+				END IF
+				    
 				    
 				END DO		!STENCILS
 				END DO	!COMPONENTS
@@ -3008,8 +3082,8 @@ KMAXE=XMPIELRANK(N)
 	I=EL_BND(II)
 	ICONSIDERED=I
 	
-	IF (IELEM(N,I)%FULL.EQ.1)THEN
-	DIVBYZERO=1E-6
+	IF((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
+	DIVBYZERO=1E-14
       POWER=4
 		CALL ALLGRADS_MIX2d(N,I)
 		IF (WENWRT.EQ.2)THEN	
@@ -3467,6 +3541,10 @@ KMAXE=XMPIELRANK(N)
 ! 				END DO		!STENCILS
                                 DO IEX=1,nof_variables	!COMPONENTS
 				ILOCAL_RECON3(I)%ULEFT(IEX,L,NGP)=ZERO
+				IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%dg2fv(1:IELEM(N,I)%IDEGFREE,IEX)=ZERO
+				END IF
+				
 				DO LL=1,IELEM(N,I)%ADMIS	!STENCILS
 				IF (EES.EQ.5)THEN
 				IF (LL.EQ.1)THEN
@@ -3504,6 +3582,18 @@ KMAXE=XMPIELRANK(N)
 				  CALL EXTRAPOLATE_BOUND(IEX,L,NGP,I,LL,ll)
 				    
 				    end if
+				    
+				    IF (DG.EQ.1)THEN
+                        IF (EES.EQ.5)THEN
+                            IF (LL.EQ.1)THEN
+                            ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,1)*WENO(IEX,LL))
+                            ELSE
+                            ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE2,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE2,IEX)+(GRADSSL(1:Idegfree2,1)*WENO(IEX,LL))
+                            END IF
+                        ELSE
+                            ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,1)*WENO(IEX,LL))
+                        END IF
+                    END IF
 				    
 				END DO		!STENCILS
 				END DO	!COMPONENTS
@@ -3836,6 +3926,10 @@ call  QUADRATUREQUAD3D(N,IGQRULES)
 !$OMP DO SCHEDULE (STATIC) 		
 	DO I=1,KMAXE
 	ICONSIDERED=I
+	
+	
+	
+	
 	if (ielem(n,i)%interior.ne.1)then
 		CALL ALLGRADS_INNER(N,I)
 	ELSE
@@ -4044,6 +4138,8 @@ call  QUADRATUREQUAD3D(N,IGQRULES)
 	 CALL SOLUTIONTRIAV2(N,ICONSIDERED)
 	  
 	  END DO
+	  
+	  
 !$OMP END DO 
  
 END SUBROUTINE LINEAR_SCHEME
@@ -4169,7 +4265,7 @@ call  QUADRATUREline(N,IGQRULES)
 				
 				
 				END IF
-				
+				compwrt=0
 				CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2d(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
 				
 ! 				IF (INITCOND.EQ.0)THEN
@@ -4349,7 +4445,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
     IF(MRF.EQ.1)THEN
         SRF=ILOCAL_RECON3(I)%MRF
     END IF
-	   IF (IELEM(N,I)%FULL.EQ.0)THEN
+	   IF ((IELEM(N,I)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
 	   
 	   IF (IELEM(N,I)%RECALC.GT.0)THEN
 	   
@@ -4668,6 +4764,16 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			      end do
 			 end do
 			 WENO(IEX,1)=LIMVBG
+			 
+			  IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
+				END IF
+			 
+			 
+			 
+			 
+			 
+			 
 			 end do
 			 
 			 DO L=1,IELEM(N,I)%IFCA	!faces2
@@ -4947,7 +5053,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 	IF(MRF.EQ.1)THEN
         SRF=ILOCAL_RECON3(I)%MRF
     END IF
-	      IF (IELEM(N,I)%FULL.EQ.0)THEN
+	      IF ((IELEM(N,I)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
 	      IF (IELEM(N,I)%RECALC.GT.0)THEN
 		CALL ALLGRADS_MIX(N,I)
 		    IF (LIMITER.EQ.3)THEN
@@ -5412,6 +5518,14 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			      end do
 			 end do
 			 WENO(IEX,1)=LIMVBG
+			 
+			 
+			  IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
+				END IF
+			 
+			 
+			 
 			 end do
 			 
 			 
@@ -5950,8 +6064,8 @@ call  QUADRATURELINE(N,IGQRULES)
 	DO II=1,NOF_INTERIOR
 	I=EL_INT(II)
 	ICONSIDERED=I
-	
-	   IF (IELEM(N,I)%FULL.EQ.0)THEN
+	   
+	   IF ((IELEM(N,I)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
 	    IF (IELEM(N,I)%RECALC.GT.0)THEN
 		
 		CALL ALLGRADS_INNER2d(N,I)
@@ -6098,7 +6212,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				
 				
 				END IF
-				
+				compwrt=0
 			 CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2d(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
 			 
 ! 				  CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2d(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
@@ -6189,6 +6303,9 @@ call  QUADRATURELINE(N,IGQRULES)
 			 END DO
 			 
 			 do iex=1,nof_Variables
+			 
+                
+			 
 			 limvbg=tolbig
 			 DO L=1,IELEM(N,I)%IFCA	!faces2
 ! 			      if (ielem(n,i)%types_faces(L).eq.5)then
@@ -6203,6 +6320,12 @@ call  QUADRATURELINE(N,IGQRULES)
 			      end do
 			 end do
 			 WENO(IEX,1)=LIMVBG
+			 
+                IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
+				END IF
+			 
+			 
 			 end do
 			 
 ! 			 if (itestcase.eq.4)then
@@ -6317,7 +6440,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				END IF
 				
 			 
-			 
+                compwrt=0
 				  CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2d(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
 			 
 				      DO LX=1,IELEM(N,I)%IDEGFREE
@@ -6445,8 +6568,8 @@ call  QUADRATURELINE(N,IGQRULES)
 	DO II=1,NOF_BOUNDED
 	I=EL_BND(II)
 	ICONSIDERED=I
-	
-	   IF (IELEM(N,I)%FULL.EQ.0)THEN
+       
+	   IF ((IELEM(N,I)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
 	IF (IELEM(N,I)%RECALC.GT.0)THEN
 		CALL ALLGRADS_MIX2d(N,I)
 		   IF ((LIMITER.EQ.3).OR.(LIMITER.EQ.9))THEN
@@ -6678,7 +6801,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				END IF
 				
 			 
-			 
+                compwrt=0
 				  CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2d(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
 			 
 				      DO LX=1,IELEM(N,I)%IDEGFREE
@@ -6808,6 +6931,14 @@ call  QUADRATURELINE(N,IGQRULES)
 			      end do
 			 end do
 			 WENO(IEX,1)=LIMVBG
+			 
+			 
+                IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
+				END IF
+			 
+			 
+			 
 			 end do
 			 
 ! 			  if (itestcase.eq.4)then
@@ -6997,7 +7128,7 @@ call  QUADRATURELINE(N,IGQRULES)
 				END IF
 				
 			 
-			 
+                    compwrt=0
 				  CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2d(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
 				      DO LX=1,IELEM(N,I)%IDEGFREE
 					  GRADSS(LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON5(1)%GRADIENTS2(1,LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
@@ -7186,15 +7317,17 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,NGP,iqp,iex
 INTEGER::REDUCE1,kmaxe
-
+real::jump_cond
 KMAXE=XMPIELRANK(N)
-
+jump_cond=0.8
 
 IF (ITESTCASE.GE.3)THEN
 
 !$OMP DO SCHEDULE (STATIC)	
 	DO I=1,KMAXE	!ALL ELEMENTS
-		REDUCE1=0
+        REDUCE1=0
+        if (ielem(n,i)%troubled.eq.1)then
+		
 		  DO L=1,IELEM(N,I)%IFCA	!faces2
 			      if (ielem(n,i)%types_faces(L).eq.5)then
 				    iqp=qp_quad_n
@@ -7209,12 +7342,12 @@ IF (ITESTCASE.GE.3)THEN
 						
 						
 				
-					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.6*RIGHTV(1))).OR.((ABS(LEFTV(5)-RIGHTV(5))).GE.(0.6*RIGHTV(5)))) THEN
+					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))).OR.((ABS(LEFTV(5)-RIGHTV(5))).GE.(jump_cond*RIGHTV(5)))) THEN
 						    REDUCE1=1
 					    END IF
 					    
 					    if (multispecies.eq.1)then
-					    IF (((ABS(LEFTV(8)-RIGHTV(8))).GE.(0.9*RIGHTV(8)))) THEN
+					    IF (((ABS(LEFTV(8)-RIGHTV(8))).GE.(jump_cond*RIGHTV(8)))) THEN
 						    REDUCE1=1
  						    
 					    END IF
@@ -7236,7 +7369,14 @@ IF (ITESTCASE.GE.3)THEN
 		IF (REDUCE1.EQ.1)THEN
 		do iex=1,NOF_VARIABLES
 		ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
+		
 		end do
+		
+		if (dg.eq.1)then
+		ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,:)=zero
+		
+		end if
+		
 		end if			
 		
 		
@@ -7276,7 +7416,7 @@ IF (ITESTCASE.GE.3)THEN
 		
 		
 		
-		
+		end if
 	end do
 !$OMP END DO		
 		
@@ -7344,6 +7484,8 @@ IF (ITESTCASE.GE.3)THEN
 !$OMP DO SCHEDULE (STATIC)	
 	DO I=1,KMAXE	!ALL ELEMENTS
 		REDUCE1=0
+		if (ielem(n,i)%troubled.eq.1)then
+		 
 		 DO L=1,IELEM(N,I)%IFCA	!faces2
 			      
 				    iqp=qp_LINE_n
@@ -7377,69 +7519,78 @@ IF (ITESTCASE.GE.3)THEN
 		if (ielem(n,i)%hybrid.eq.1)then
 		reduce1=1
 		end if
-		IF (INITCOND.EQ.30)THEN
-		 IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
-                    DO L=1,IELEM(N,I)%IFCA
-                                    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
-                                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.NE.5)then	!PERIODIC IN MY CPU
-                                            REDUCE1=1
+                    IF (INITCOND.EQ.30)THEN
+                    IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
+                        DO L=1,IELEM(N,I)%IFCA
+                                        IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+                                            IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.NE.5)then	!PERIODIC IN MY CPU
+                                                REDUCE1=1
+                                            END IF
+                                            end if
                                         END IF
-                                        end if
-                                    END IF
-                    END DO
-                 END IF
-                 END IF
+                        END DO
+                    END IF
+                    END IF
 		IF (REDUCE1.EQ.1)THEN
         
 		do iex=1,NOF_VARIABLES
 		ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
 		end do
+		
+		
+		if (dg.eq.1)then
+		ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,:)=zero
+		
+		end if
+		
 		end if	
 		
-		if (turbulence.eq.1)then
-		if (icoupleturb.eq.1)then
-		REDUCE1=0
-		DO L=1,IELEM(N,I)%IFCA	!faces2
-			      
-				    iqp=qp_LINE_n
-			      
-				  do NGP=1,iqp
-				    leftv(1)=ILOCAL_RECON3(I)%ULEFTTURB(1,L,ngp)
-				    RIGHTV(1)=U_Ct(I)%VAL(1,1)
-					      IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.8*RIGHTV(1))).OR.(leftv(1).le.zero)) THEN
-						    REDUCE1=1
-					    END IF
-				  end do
-		end do
+                            if (turbulence.eq.1)then
+                            if (icoupleturb.eq.1)then
+                            REDUCE1=0
+                                    DO L=1,IELEM(N,I)%IFCA	!faces2
+                                            
+                                                iqp=qp_LINE_n
+                                            
+                                            do NGP=1,iqp
+                                                leftv(1)=ILOCAL_RECON3(I)%ULEFTTURB(1,L,ngp)
+                                                RIGHTV(1)=U_Ct(I)%VAL(1,1)
+                                                    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.8*RIGHTV(1))).OR.(leftv(1).le.zero)) THEN
+                                                        REDUCE1=1
+                                                    END IF
+                                            end do
+                                    end do
+                            
+                                    if (ielem(n,i)%hybrid.eq.1)then
+                                    reduce1=1
+                                    end if
+                            
+                                    IF (REDUCE1.EQ.1)THEN
+                                    do iex=1,1
+                                    ILOCAL_RECON3(I)%ULEFTTURB(1,:,:)=u_ct(i)%val(1,1)
+                                    end do
+                                    
+                                    do iex=1,NOF_VARIABLES
+                                    ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
+                                    end do
+                                    
+                                    
+                                    end if
+                            
+                            
+                            
+                            
+                            end if
+                            end if
 		
-		if (ielem(n,i)%hybrid.eq.1)then
-		reduce1=1
+		
 		end if
-		
-		IF (REDUCE1.EQ.1)THEN
-		do iex=1,1
-		ILOCAL_RECON3(I)%ULEFTTURB(1,:,:)=u_ct(i)%val(1,1)
-		end do
-		
-		do iex=1,NOF_VARIABLES
-		ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
-		end do
-		
-		
-		end if
-		
-		
-		
-		
-		end if
-		end if
-		
 	end do
 !$OMP END DO		
 		
 END IF		
-		
+
 		
 
 END SUBROUTINE CHECKSOL2D 
@@ -7854,6 +8005,10 @@ END IF
 				IF (POLY.EQ.2) THEN
 					XXDER(K,ICD)=DLX(AX,AY,AZ,K);  YYDER(K,ICD)=DLY(AX,AY,AZ,K);  ZZDER(K,ICD)=DLZ(AX,AY,AZ,K)
 				END IF
+				IF (POLY.EQ.4) THEN
+					XXDER(K,ICD)=TL3DX(AX,AY,AZ,K);  YYDER(K,ICD)=TL3DY(AX,AY,AZ,K);  ZZDER(K,ICD)=TL3DZ(AX,AY,AZ,K)
+				END IF
+				
 				END DO
 				end do
 			    ICD=0
@@ -8025,6 +8180,9 @@ END IF
 						IF (POLY.EQ.2) THEN
 						  XDER(K)=DLX(AX,AY,AZ,K);  YDER(K)=DLY(AX,AY,AZ,K);  ZDER(K)=DLZ(AX,AY,AZ,K)
 						END IF
+						IF (POLY.EQ.4) THEN
+						  XDER(K)=TL3DX(AX,AY,AZ,K);  YDER(K)=TL3DY(AX,AY,AZ,K);  ZDER(K)=TL3DZ(AX,AY,AZ,K)
+						END IF
 				      END DO
 					UGRADLOC = ZERO
 					  DO K=1,IDEGFREE
@@ -8047,6 +8205,9 @@ END IF
 							END IF
 							IF (POLY.EQ.2) THEN
 							  XDER(K)=DLX(AX,AY,AZ,K);  YDER(K)=DLY(AX,AY,AZ,K);  ZDER(K)=DLZ(AX,AY,AZ,K)
+							END IF
+							IF (POLY.EQ.4) THEN
+							  XDER(K)=TL3DX(AX,AY,AZ,K);  YDER(K)=TL3DY(AX,AY,AZ,K);  ZDER(K)=TL3DZ(AX,AY,AZ,K)
 							END IF
 						END DO
 						UGRADLOC = ZERO
@@ -8599,6 +8760,668 @@ psi2=zero
 					  END IF
 
 END SUBROUTINE SLOPE_LIMITERS
+
+
+SUBROUTINE TROUBLE_INDICATOR1
+IMPLICIT NONE
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex
+INTEGER::TROUBLE
+
+
+KMAXE=XMPIELRANK(N)
+
+
+if (code_profile.ne.102)then
+
+!$OMP DO
+DO I = 1, KMAXE
+ICONSIDERED=I
+
+    
+    
+
+    
+    CALL FIND_BOUNDS
+
+    DO L = 1, IELEM(N,I)%IFCA
+            
+            if (dimensiona.eq.2)then
+
+            iqp=QP_LINE_N
+            else
+                if (ielem(n,I)%types_faces(L).eq.5)then
+					iqp=qp_quad
+				  else
+					iqp=QP_TRIANGLE
+				  end if
+            end if
+            
+                DO NGP = 1,iqp! 
+                    facex=l
+                    pointx=ngp
+                    USOL(:,facex,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(:,facex,pointx)
+                    LEFTV(:)=USOL(:,facex,pointx)
+                    CALL PAD_DG
+                    CALL NAD_DG
+                END DO
+        
+    END DO
+    
+    
+    
+   
+    
+    
+    
+END DO
+!$OMP END DO    
+    
+end if  
+
+
+
+END SUBROUTINE
+
+
+
+SUBROUTINE TROUBLE_INDICATOR2
+IMPLICIT NONE
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex
+INTEGER::TROUBLE
+REAL,DIMENSION(idegfree)::BASIS_TEMP
+
+KMAXE=XMPIELRANK(N)
+
+if (code_profile.ne.102)then
+
+!$OMP DO
+DO I = 1, KMAXE
+ICONSIDERED=I
+
+    
+    
+    
+
+
+    if (IELEM(N,I)%TROUBLED.eq.1)then
+    
+    DO L = 1, IELEM(N,I)%IFCA
+            
+            if (dimensiona.eq.2)then
+
+            iqp=QP_LINE_N
+            else
+                if (ielem(n,I)%types_faces(L).eq.5)then
+					iqp=qp_quad
+				  else
+					iqp=QP_TRIANGLE
+				  end if
+            end if
+            
+                DO NGP = 1,iqp! 
+                    facex=l
+                    pointx=ngp
+                    ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(:, facex,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(:, facex,pointx)
+                END DO
+        
+    END DO
+    
+      DO IEX=1,NOF_VARIABLES
+     
+!     
+      U_C(ICONSIDERED)%VALDG(1,IEX,2:IDEGFREE+1)=ILOCAL_RECON6(Iconsidered)%DG2FV(1:IDEGFREE,IEX)
+
+      END DO
+    
+    
+    
+    
+    
+    
+
+
+    
+ end if
+    
+END DO
+!$OMP END DO    
+    
+end if
+
+
+
+END SUBROUTINE
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+SUBROUTINE PAD_DG    
+IMPLICIT NONE
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex
+INTEGER::TROUBLE
+    
+    I=ICONSIDERED
+                                                IF (ITESTCASE.GE.3)THEN
+                                                IF (DIMENSIONA.EQ.3)THEN
+                                                
+                                                    CALL CONS2PRIM(N)
+						
+						!
+                                                        IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
+                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+                                                        
+                                                        
+                                                        END IF
+                                                        IF ((LEFTV(5).LE.ZERO).OR.(LEFTV(5).NE.LEFTV(5)))THEN						
+                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+                                                        END IF
+                                                ELSE
+                                                    CALL CONS2PRIM2D(N)
+                                                        IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
+                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+                                                        END IF
+                                                        IF ((LEFTV(4).LE.ZERO).OR.(LEFTV(4).NE.LEFTV(4)))THEN						
+                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+                                                        END IF
+                                                
+                                                
+                                                END IF
+                                                END IF
+    
+END SUBROUTINE
+
+
+SUBROUTINE NAD_DG    
+IMPLICIT NONE
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex
+INTEGER::TROUBLE
+REAL::PAR1,PAR2,d2,minb,maxb
+REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
+
+! PAR1=1E-4
+! PAR2=4e-1
+    
+    
+        
+    
+  
+       SELECT CASE(INDICATOR_TYPE)
+    
+            
+             CASE(1)       !MOOD INDICATOR
+    
+            DO IEX=1,NOF_VARIABLES
+			NAD_DG_EL(IEX)=MAX(INDICATOR_PAR1,(INDICATOR_PAR2)*(UTMAX(IEX)-UTMIN(IEX)))
+			END DO
+    
+    
+            DO IEX=1,NOF_VARIABLES
+                IF ((USOL(iex,facex,pointx).LT.(UTMIN(IEX)-NAD_DG_EL(IEX))).OR.(USOL(iex,facex,pointx).GT.(UTMAX(IEX)+NAD_DG_EL(IEX))))THEN
+                    IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                END IF
+            END DO
+            
+            
+            CASE(2)         !SHU INDICATOR
+
+                        DO IEX=1,NOF_VARIABLES
+                        
+                        
+                         IF ((SUMVARS(IEX)/MAXVARS(IEX)).GT.INDICATOR_PAR1)THEN
+                            IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                        END IF
+
+                        END DO
+                        
+             CASE(22)         !Shock detector, INDICATOR (only density and energy)
+
+                        DO IEX=1,NOF_VARIABLES
+                        
+                        if ((iex.eq.1).or.(iex.eq.nof_variables))then
+                         IF ((SUMVARS(IEX)/MAXVARS(IEX)).GT.INDICATOR_PAR1)THEN
+                            IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                        END IF
+                        end if
+
+                        END DO
+                        
+             CASE(3)         !DMP
+
+                        DO IEX=1,NOF_VARIABLES
+                        
+                        
+                         IF ((USOL(iex,facex,pointx).gt.(UTMax(IEX))).or.(USOL(iex,facex,pointx).lt.(UTmin(IEX))))THEN
+                            IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                        END IF
+
+                        END DO            
+             
+             
+             
+             CASE(4)    !MINMOD
+                        DO IEX=1,NOF_VARIABLES
+                        
+                       
+                        
+                        
+                        IF (ABS(USOL(iex,facex,pointx)-UTEMP(1,IEX)).GT.(INDICATOR_PAR1*UTEMP(1,IEX)))THEN
+                        IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                        END IF
+                        END DO
+             
+             
+             case(5)    !all troubled
+             
+             
+                        IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                        
+                        
+              CASE(6)       !MOOD INDICATOR only density & energy
+    
+            DO IEX=1,NOF_VARIABLES
+            if ((iex.eq.1).or.(iex.eq.nof_variables))then
+			NAD_DG_EL(IEX)=MAX(INDICATOR_PAR1,(INDICATOR_PAR2)*(UTMAX(IEX)-UTMIN(IEX)))
+			end if
+			END DO
+    
+    
+            DO IEX=1,NOF_VARIABLES
+            if ((iex.eq.1).or.(iex.eq.nof_variables))then
+                IF ((USOL(iex,facex,pointx).LT.(UTMIN(IEX)-NAD_DG_EL(IEX))).OR.(USOL(iex,facex,pointx).GT.(UTMAX(IEX)+NAD_DG_EL(IEX))))THEN
+                    IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                END IF
+                end if
+            END DO          
+                        
+                        
+                        
+                                   
+            END SELECT              
+                        
+
+END SUBROUTINE NAD_DG
+
+
+SUBROUTINE FIND_BOUNDS
+IMPLICIT NONE
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,IEX,IK,iq
+
+
+
+AVER_VARS=ZERO
+
+SUMVARS=ZERO
+MAXVARS=ZERO
+
+I=ICONSIDERED
+
+            if (code_profile.eq.100)then
+
+
+            UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+            
+            K=1
+            IF (IELEM(N,I)%INTERIOR.EQ.0)THEN
+                DO L = 1, IELEM(N,I)%IFCA
+                    K=K+1
+                    UTEMP(K,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:NOF_VARIABLES)
+                END DO
+            END IF
+			    
+            IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
+			    DO L=1,IELEM(N,I)%IFCA
+                    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+                            IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+                                K=K+1
+                                UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+                                ELSE
+                                !NOT PERIODIC ONES IN MY CPU			  				  
+                                END IF
+                            ELSE
+                                K=K+1
+                                UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+                            END IF
+                    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+			      
+                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                            K=K+1
+                            UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+                            (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+                            END IF
+                        ELSE
+
+                        K=K+1
+                        UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+                        (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+                        END IF
+				      
+                    END IF
+			              
+			  END DO
+         END IF 
+         
+         end if
+         
+         if (code_profile.eq.101)then
+           
+           !extended bounds
+             k=0
+                if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+                        DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+                            k=k+1
+                            
+                            UTEMP(k,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+                        END DO
+                ELSE
+                        DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+                            k=k+1
+                           
+                            IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+                            UTEMP(k,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:nof_variables)
+                            else
+                            UTEMP(k,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
+                            end if
+                        end do
+                END IF
+           
+           
+           
+           
+           end if
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+          
+          
+                UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,NOF_VARIABLES
+			  
+			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
+			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
+			    
+			    DO IK=2,K
+                    SUMVARS(IEX)=SUMVARS(IEX)+ABS(UTEMP(IK,IEX)-UTEMP(1,IEX))
+                END DO
+                DO IK=1,K
+                AVER_VARS(IEX)=AVER_VARS(IEX)+UTEMP(IK,IEX)
+
+                END DO
+                AVER_VARS(IEX)=AVER_VARS(IEX)/K
+
+
+                DO IK=1,K
+                MAXVARS(IEX)=MAX(MAXVARS(IEX),ABS(UTEMP(IK,IEX)))
+                END DO
+			  END DO
+
+			  
+			  
+			  
+			  
+			  
+			  
+			  
+			  
+
+END SUBROUTINE FIND_BOUNDS
+
+SUBROUTINE FIND_BOUNDS2
+IMPLICIT NONE
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,IEX,IK,iq
+
+
+
+
+	KMAXE=XMPIELRANK(N)
+
+
+
+
+	!$OMP DO
+	DO I=1,KMAXE
+	AVER_VARS=ZERO
+
+
+
+
+            UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+
+            K=1
+            IF (IELEM(N,I)%INTERIOR.EQ.0)THEN
+                DO L = 1, IELEM(N,I)%IFCA
+                    K=K+1
+                    UTEMP(K,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:NOF_VARIABLES)
+                END DO
+            END IF
+
+            IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
+			    DO L=1,IELEM(N,I)%IFCA
+                    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+                            IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+                                K=K+1
+                                UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+                                ELSE
+                                !NOT PERIODIC ONES IN MY CPU
+                                END IF
+                            ELSE
+                                K=K+1
+                                UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+                            END IF
+                    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                            K=K+1
+                            UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+                            (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+                            END IF
+                        ELSE
+
+                        K=K+1
+                        UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+                        (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+                        END IF
+
+                    END IF
+
+			  END DO
+         END IF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+			  DO IEX=1,NOF_VARIABLES
+
+                DO IK=1,K
+                AVER_VARS(IEX)=AVER_VARS(IEX)+UTEMP(IK,IEX)
+
+                END DO
+                AVER_VARS(IEX)=AVER_VARS(IEX)/K
+
+
+			  END DO
+
+
+
+			  IELEM(N,I)%AVARS(1:NOF_VARIABLES)=AVER_VARS(1:NOF_VARIABLES)
+
+
+			  END DO
+			  !$OMP END DO
+
+
+
+END SUBROUTINE FIND_BOUNDS2
+
+
+
+
+SUBROUTINE APPLY_FILTER(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,KMAXE,j,k
+
+KMAXE=XMPIELRANK(N)
+
+
+!$OMP DO
+DO I=1,KMAXE
+DO J=1,NOF_VARIABLES
+do k=1,idegfree
+RHS(I)%VALDG(k+1,J)=RHS(I)%VALDG(K+1,J)*MODAL_FILTER(k)
+END DO
+end do
+END DO
+!$OMP END DO
+
+
+
+END SUBROUTINE APPLY_FILTER
+
+
+SUBROUTINE APPLY_FILTER1(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,KMAXE,j,k
+
+KMAXE=XMPIELRANK(N)
+
+i=iconsidered
+
+DO J=1,NOF_VARIABLES
+do k=1,idegfree
+U_C(I)%VALDG(1,J,K+1)=U_C(I)%VALDG(1,J,K+1)*MODAL_FILTER(k)
+END DO
+end do
+
+
+
+
+END SUBROUTINE APPLY_FILTER1
+
+
+SUBROUTINE APPLY_FILTER2(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,KMAXE,j,k
+
+KMAXE=XMPIELRANK(N)
+
+
+!$OMP DO
+DO I=1,KMAXE
+DO J=1,NOF_VARIABLES
+GRAD1AL(1:IDEGFREE)=0.0d0
+do k=1,idegfree
+GRAD1AL(k)=RHS(I)%VALDG(k+1,j)*MODAL_FILTER(k)
+end do
+RHS(I)%VALDG(2:IDEGFREE+1,j)=GRAD1AL(1:idegfree)
+END DO
+END DO
+!$OMP END DO
+
+
+
+END SUBROUTINE APPLY_FILTER2
+
+
+
+SUBROUTINE FILTER(N)
+implicit none
+INTEGER,INTENT(IN)::N
+INTEGER::fil_i,i,j
+real::filx,xorder
+real::fil_nc,fil_s,fil_alpha
+real,dimension(1:9)::filter2
+real,dimension(1:200)::dgfr
+integer,dimension(0:9)::filt2
+
+
+fil_alpha=36
+fil_s=32
+fil_nc=4
+
+
+
+
+
+do fil_i=1,iorder
+      if (fil_i.lt.iorder)then
+        filter2(fil_i)=1.0d0
+    end if
+!     if (fil_i.gt.fil_nc-1)then
+!         filx=-fil_alpha*(((fil_i+1-fil_nc)/(iorder+1-fil_nc))**fil_s)
+!         filter2(fil_i)=exp(filx)
+!     end if
+     if (fil_i.eq.iorder)then
+        filter2(fil_i)=0.0d0
+     end if
+
+	filt2(fil_i)=(((fil_i+1)*(fil_i+2)*(fil_i+3))/6)-1
+end do
+filt2(0)=0
+
+do i=1,iorder
+	do j=filt2(i-1)+1,filt2(i)
+	dgfr(j)=filter2(i)
+	end do
+end do
+
+
+
+do fil_i=1,IDEGFREE
+        MODAL_FILTER(fil_i)=dgfr(fil_i)**(1.0d0/(1.0/dt))!
+
+end do
+
+
+
+
+
+
+END SUBROUTINE FILTER
+
+
+
+
+
+
+
+
+
 
 ! ! ---------------------------------------------------------------------------------------------!
 

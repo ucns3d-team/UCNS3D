@@ -201,7 +201,6 @@ end if
 END SUBROUTINE OUTWRITEGRIDB
 
 
-
 SUBROUTINE OUTWRITEGRIDB2D
  !> @brief
 !> This subroutine writes the grid file in tecplot binary format in 2D
@@ -399,6 +398,8 @@ end if
 	
 
 END SUBROUTINE OUTWRITEGRIDB2D
+
+
 SUBROUTINE OUTWRITE3N
  !> @brief
 !> This subroutine is solely for debugging
@@ -1112,7 +1113,9 @@ Valuelocation(:)=0
 
     IF (ITESTCASE.LE.2)THEN
 		DO I=1,KMAXE
-		  VALUESS(i)=U_C(I)%VAL(1,1)!0.0
+		 
+     VALUESS(i)=U_C(I)%VAL(1,1)!0.0
+    
 		END DO
 		
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1126,7 +1129,9 @@ Valuelocation(:)=0
 
     
 		DO I=1,KMAXE
-		  VALUESS(i)=n
+		
+      VALUESS(i)=ielem(n,i)%inumneighbours
+     
 		END DO
 		
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1138,7 +1143,7 @@ Valuelocation(:)=0
 		END IF
     
 		DO I=1,KMAXE
-		  VALUESS(i)=IELEM(N,I)%iNUMNEIGHBOURS!%STENCIL_DIST
+		  VALUESS(i)=ielem(n,i)%TROUBLED
 		END DO
 		
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1166,11 +1171,16 @@ Valuelocation(:)=0
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,5
 		    DO I=1,KMAXE
-		    leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+		    
+            
+            leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+            
 		    CALL CONS2PRIM2(N)
 		      VALUESS(i)=leftv(kkd)
 			if (kkd.eq.5)then
-			VALUESS(i)=U_C(I)%VAL(1,kkd)!/U_C(I)%VAL(1,1)
+			
+            VALUESS(i)=U_C(I)%VAL(1,kkd)
+           
 			end if
 		    END DO
 		    
@@ -1187,7 +1197,9 @@ Valuelocation(:)=0
 		
     
 		DO I=1,KMAXE
-		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+		      
+            leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+            
 		  CALL CONS2PRIM(N)
 		  VALUESS(i)=leftv(5)
 		END DO
@@ -1256,7 +1268,7 @@ Valuelocation(:)=0
                 END DO
                 ELSE
                 DO I=1,KMAXE
-                VALUESS(i)=ielem(n,i)%condition!IELEM(N,I)%STENCIL_DIST
+                VALUESS(i)=ielem(n,i)%TROUBLED!IELEM(N,I)%STENCIL_DIST
                 END DO
                 END IF
                 
@@ -1372,7 +1384,6 @@ Valuelocation(:)=0
 	
 
 END SUBROUTINE OUTWRITE3vb
-
 
 
 SUBROUTINE OUTWRITEtec3dbp
@@ -1844,7 +1855,6 @@ Valuelocation(1:3)=1
 END SUBROUTINE OUTWRITEtec3dbp
 
 
-
 SUBROUTINE OUTWRITEtec3dbpav
  !> @brief
 !> This subroutine writes only the 3D solution without the grid in tecplot binary format
@@ -2306,20 +2316,6 @@ Valuelocation(1:3)=1
 END SUBROUTINE OUTWRITEtec3dbpav
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 SUBROUTINE OUTWRITE3v
 !> @brief
 !> This subroutine writes only the 3D solution without the grid in tecplot ascii format
@@ -2749,7 +2745,6 @@ Valuelocation(:)=0
 END SUBROUTINE OUTWRITE3v
 
 
-
 SUBROUTINE OUTWRITE3v2d
 !> @brief
 !> This subroutine writes only the 2D solution without the grid in tecplot ascii format
@@ -2767,7 +2762,7 @@ IMPLICIT NONE
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
-INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD
+INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD, I_DOF
 REAL,allocatable,DIMENSION(:)::VARIABLES
 REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
 INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
@@ -3002,29 +2997,33 @@ Valuelocation(:)=0
 
 
     IF (ITESTCASE.LE.2)THEN
-    DO I=1,KMAXE
-      VALUESS(i)=U_C(I)%VAL(1,1)!0.0
-    END DO
-    
-    call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+        IF (DG == 1) THEN
+!         DO I_DOF = 1, IELEM(N,ICONSIDERED)%IDEGFREE + 1
+            do i=1,kmaxe
+            VALUESS(i)=U_C(I)%VAL(1,1)!U_C(i)%VALDG(1,1,1)
+            end do
+!         END DO
+            
+        ELSE
+         do i=1,kmaxe
+            VALUESS(i)=U_C(i)%VAL(1,1)!0.0
+            end do
+        END IF
+        
+        call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
-    IF (N.EQ.0)THEN
-    do i=1,imaxp*isize
-	if (icella(i).gt.0)then
-	xbin(icella(i))=valuesa(i)
-	end if
-    end do
-    
-			WRITE(97,*)XBIN(1:IMAXE)
-			
-    
-    END IF
+        IF (N.EQ.0)THEN
+            do i=1,imaxp*isize
+                if (icella(i).gt.0)then
+                    xbin(icella(i))=valuesa(i)
+                end if
+            end do
+        
+            WRITE(97,*)XBIN(1:IMAXE)
+        END IF
 
-     
-    CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    END IF
-    
-    IF (ITESTCASE.ge.3)THEN
+        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+    ELSE IF (ITESTCASE.ge.3)THEN
 		do kkd=1,4
 		DO I=1,KMAXE
 		  VALUESS(i)=U_C(I)%VAL(1,kkd)
@@ -3052,7 +3051,7 @@ Valuelocation(:)=0
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 		  CALL CONS2PRIM2d(N)
-		  VALUESS(i)=ielem(n,i)%condition!leftv(4)
+		  VALUESS(i)=leftv(4)
 		END DO
 		
 		
@@ -3428,12 +3427,12 @@ Valuelocation(:)=0
                     Null, &
                     ShrConn)
 
+allocate(xbin(1:imaxe),xbin2(1:imaxe))
+END IF
+  
 
 
-  allocate(xbin(1:imaxe),xbin2(1:imaxe))
-
-
- END IF
+ 
  
   allocate(valuess(1:kmaxe))
   
@@ -3443,8 +3442,7 @@ Valuelocation(:)=0
 
     IF (ITESTCASE.LE.2)THEN
     DO I=1,KMAXE
-      VALUESS(i)=U_C(I)%VAL(1,1)!0.0
-     
+     VALUESS(i)=U_C(I)%VAL(1,1)!0.0
     END DO
     
     call MPI_GATHERv(valuess(1:kmaxe),kmaxe,MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -3467,7 +3465,9 @@ Valuelocation(:)=0
     
     
     DO I=1,KMAXE
-      VALUESS(i)=ielem(n,i)%inumneighbours
+        
+      VALUESS(i)=ielem(n,i)%TROUBLED
+      
     END DO
     
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -3481,7 +3481,7 @@ Valuelocation(:)=0
     
     
     DO I=1,KMAXE
-      VALUESS(i)=IELEM(N,I)%ADMIS
+      VALUESS(i)=ielem(n,i)%walldist!IELEM(N,I)%ADMIS
     END DO
     
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -3518,11 +3518,17 @@ Valuelocation(:)=0
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,4
 		DO I=1,KMAXE
-          leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+        
+        leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+        
 		  CALL CONS2PRIM2D(N)
 		  VALUESS(i)=leftv(kkd)
           if (KKD.EQ.4)THEN
-          VALUESS(i)=U_C(I)%VAL(1,KKD)
+          
+        
+        VALUESS(i)=U_C(I)%VAL(1,KKD)
+        
+          
           END IF
 		END DO
 		
@@ -3538,7 +3544,9 @@ Valuelocation(:)=0
 		end do
     
 		DO I=1,KMAXE
-		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+		 
+        leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+        
 		  CALL CONS2PRIM2D(N)
 		  VALUESS(i)=leftv(4)
 		END DO
@@ -3582,7 +3590,7 @@ Valuelocation(:)=0
                 ELSE
                 
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%STENCIL_DIST
+                VALUESS(i)=IELEM(N,I)%TROUBLED
                 END DO
                 END IF
                 end if
@@ -3751,8 +3759,6 @@ Valuelocation(:)=0
 END SUBROUTINE OUTWRITE3vb2d
 
 
-
-
 SUBROUTINE CHECKRES
 !> @brief
 !> This subroutine checks the presence of restart file
@@ -3783,13 +3789,14 @@ INTEGER::I,J,K,L,ITER,DIP
 	ELSE
 	RESTART=0
         average_restart=0
-	RES_TIME=0.0
+	RES_TIME=0.0d0
 	END IF
 	
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 END SUBROUTINE CHECKRES
+
 
 SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 !> @brief
@@ -3935,12 +3942,7 @@ SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 	DEALLOCATE(ISENT)
 	
 	
-	END SUBROUTINE OPEN_ARBITRARY
-
-
-
-
-
+END SUBROUTINE OPEN_ARBITRARY
 
 
 SUBROUTINE OPEN_INPUT1(N,ITT)
@@ -3957,7 +3959,7 @@ SUBROUTINE OPEN_INPUT1(N,ITT)
 ! 		OPEN(9,FILE=VRTFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ')
 ! 		else
 		OPEN(15,FILE='UCNS3D.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	END SUBROUTINE OPEN_INPUT1
+END SUBROUTINE OPEN_INPUT1
 
 SUBROUTINE CLOSE_INPUT1(N,ITT)
 !> @brief
@@ -3968,7 +3970,7 @@ SUBROUTINE CLOSE_INPUT1(N,ITT)
 !  	CLOSE(8)
 !  	CLOSE(9)
  	CLOSE(15)
- END SUBROUTINE CLOSE_INPUT1
+END SUBROUTINE CLOSE_INPUT1
 
 SUBROUTINE OPEN_INPUT(N,ITT)
 !> @brief
@@ -4033,7 +4035,7 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 	
 	
  	if (dimensiona.eq.3)then
-	!WRITE(400+N,*)KMAXE,IMAXE,IMAXN
+	
 ! 	ALLOCATE(XSIZE(0:ISIZE-1))
 ! 	XSIZE=-1
 	ALLOCATE(iNODEr(imaxn))
@@ -12923,14 +12925,53 @@ ICPUID=N
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 !  ioCPt1=MPI_WTIME()
 
-ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)))	!I ALLOCATE IN MEMORY THE PATTERN OF ACCESS OF DATA IN TERMS OF DISPLACEMENT, AND IN TERMS OF BLOCKLENGTH, AND FINALY AN ARRAY WITH THIS PROCESSOR DATA
+
+IF (DG.EQ.1)THEN
+ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1)))
+ELSE
+ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)))	
+END IF
+
+     if (dg.eq.1)then
+     DO I=1,KMAXE
+	DISPT(I)=(XGO(I)-1)*((NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1))
+      END DO
+      
+
+      n_end=(NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1)
+     
+     else
 
       DO I=1,KMAXE
-	DISPT(I)=(XGO(I)-1)*(NOF_VARIABLES+turbulenceequations+passivescalar)
+	DISPT(I)=(XGO(I)-1)*((NOF_VARIABLES+turbulenceequations+passivescalar))
       END DO
+      
 
       n_end=NOF_VARIABLES+turbulenceequations+passivescalar
+      end if
 
+      
+      if (dg.eq.1)then
+      IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+	    K=1
+	  DO I=1,KMAXE
+	      ARRAY2(K:K+NOF_VARIABLES-1)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+	      K=K+NOF_VARIABLES
+	      ARRAY2(K:K+turbulenceequations+passivescalar-1)=U_CT(I)%VAL(1,1:turbulenceequations+passivescalar)
+	      K=K+turbulenceequations+passivescalar
+	  END DO
+      ELSE
+	  K=1
+	  DO I=1,KMAXE
+        DO J=1,NOF_VARIABLES
+	      ARRAY2(K:K+IDEGFREE)=U_C(I)%VALDG(1,J,1:IDEGFREE+1)
+	      K=K+(IDEGFREE+1)
+        END DO
+	  END DO
+      END IF
+      
+      else
+      
       IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 	    K=1
 	  DO I=1,KMAXE
@@ -12946,7 +12987,7 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	      K=K+NOF_VARIABLES
 	  END DO
       END IF
-      
+      end if
       
 	RESTFILE='RESTART.dat'
 
@@ -13293,7 +13334,22 @@ size_of_real=8
 ICPUID=N
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
+IF (DG.EQ.1)THEN
+ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1)))
+ELSE
 ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)))	!I ALLOCATE IN MEMORY THE PATTERN OF ACCESS OF DATA IN TERMS OF DISPLACEMENT, AND IN TERMS OF BLOCKLENGTH, AND FINALY AN ARRAY WITH THIS PROCESSOR DATA
+END IF
+
+       if (dg.eq.1)then
+     DO I=1,KMAXE
+	DISPT(I)=(XGO(I)-1)*((NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1))
+      END DO
+      
+
+      n_end=(NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1)
+     
+     else
+
 
       DO I=1,KMAXE
 	DISPT(I)=(XGO(I)-1)*(NOF_VARIABLES+turbulenceequations+passivescalar)
@@ -13301,6 +13357,34 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 
       n_end=NOF_VARIABLES+turbulenceequations+passivescalar
 
+      end if
+      
+      
+      
+      if (dg.eq.1)then
+      IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+	    K=1
+	  DO I=1,KMAXE
+	      ARRAY2(K:K+NOF_VARIABLES-1)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+	      K=K+NOF_VARIABLES
+	      ARRAY2(K:K+turbulenceequations+passivescalar-1)=U_CT(I)%VAL(1,1:turbulenceequations+passivescalar)
+	      K=K+turbulenceequations+passivescalar
+	  END DO
+      ELSE
+	  K=1
+	  DO I=1,KMAXE
+        DO J=1,NOF_VARIABLES
+	      ARRAY2(K:K+IDEGFREE)=U_C(I)%VALDG(1,J,1:IDEGFREE+1)
+	     
+	      
+	      K=K+(IDEGFREE+1)
+        END DO
+	  END DO
+      END IF
+      
+      
+      else
+      
       IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 	    K=1
 	  DO I=1,KMAXE
@@ -13316,6 +13400,8 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	      K=K+NOF_VARIABLES
 	  END DO
       END IF
+      
+      end if
       RESTFILE='RESTART.dat'
        IF (N.EQ.0)THEN
 	  !INQUIRE (FILE=RESTFILE,EXIST=HERE1)
@@ -13524,7 +13610,7 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA,dispt
 REAL,ALLOCATABLE,DIMENSION(:)::VALUESA,VALUESS,array2
 REAL,allocatable,DIMENSION(:)::RG,ARG
 CHARACTER(LEN=20)::PROC,RESTFILE,PROC3
-INTEGER:: prev_turbequation,INITIAL,III,i,k,jx,QQP,INC,kmaxe,jkn,ki,iterr,JX2,ind1,fh,size_of_real,size_of_int,dip,N_END,datatype
+INTEGER:: prev_turbequation,INITIAL,III,i,k,j,jx,QQP,INC,kmaxe,jkn,ki,iterr,JX2,ind1,fh,size_of_real,size_of_int,dip,N_END,datatype
 REAL,ALLOCATABLE,DIMENSION(:)::IGINT,TGINT,ARRAY
 integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp
 logical::here
@@ -13550,14 +13636,29 @@ end if
 size_of_real=8
 
 !$OMP MASTER
+IF (DG.EQ.1)THEN
+ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+prev_turbequation+passivescalar)*(IDEGFREE+1)))
+ELSE
+ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+prev_turbequation+passivescalar)))	
+END IF
 
-ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+prev_turbequation+passivescalar)))
+    if (dg.eq.1)then
+     DO I=1,KMAXE
+	DISPT(I)=(XGO(I)-1)*((NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1))
+      END DO
+    n_end=(NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1)
+     
+     else
+
+
     DO I=1,KMAXE
 	DISPT(I)=(XGO(I)-1)*(NOF_VARIABLES+prev_turbequation+passivescalar)
       END DO
       
       
       n_end=NOF_VARIABLES+prev_turbequation+LAMPS
+      
+      end if
       
       CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXE,n_end,DISPT,MPI_DOUBLE_PRECISION,DATATYPE,IERROR)
     CALL MPI_TYPE_COMMIT(DATATYPE,IERROR)
@@ -13601,6 +13702,58 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+prev_turbequation+passivescala
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
 	
 	
+	
+	if (dg.eq.1)then
+	
+	
+	IF ((prev_turbmodel.GT.0).OR.(LAMPS.GT.0))THEN
+	
+	    K=1
+	    DO I=1,KMAXE
+		U_C(I)%VAL(1,1:NOF_VARIABLES)=ARRAY2(K:K+NOF_VARIABLES-1)
+		K=K+NOF_VARIABLES
+		    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+		    U_CT(I)%VAL(1,1:turbulenceequations+passivescalar)=ARRAY2(K:K+prev_turbequation+LAMPS-1)
+		    END IF
+		K=K+prev_turbmodel+LAMPS
+		
+	    END DO
+	ELSE
+	    K=1
+	    DO I=1,KMAXE
+	    DO J=1,NOF_VARIABLES
+	    
+		U_C(I)%VALdg(1,j,1:IDEGFREE+1)=ARRAY2(K:K+IDEGFREE)
+		
+		
+		K=K+(IDEGFREE+1)
+		END DO
+		
+		
+		      IF (TURBULENCE.EQ.1)THEN
+			    IF (TURBULENCEMODEL.EQ.1)THEN
+				U_CT(I)%VAL(1,1)=VISC*TURBINIT
+			    ELSE
+				U_CT(I)%VAL(1,1)=1.5*(I_turb_inlet*ufreestream)**2
+				U_CT(I)%VAL(1,2)=(C_MU_INLET**(-0.25))*SQRT(U_CT(KI)%VAL(1,1))&
+					/L_TURB_INLET*RG(1)
+			    END IF
+			ENDIF
+		K=K+prev_turbmodel+LAMPS
+		
+	    END DO
+	END IF
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	else
 	IF ((prev_turbmodel.GT.0).OR.(LAMPS.GT.0))THEN
 	
 	    K=1
@@ -13631,6 +13784,14 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+prev_turbequation+passivescala
 		
 	    END DO
 	END IF
+	
+	
+	end if
+	
+	
+	
+	
+	
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	DEALLOCATE(DISPT,ARRAY2)
 	
@@ -14216,9 +14377,15 @@ DO I=1,kmaxe
 				  end if
 				 end if
 				  
-				  
+				  IF (DG.EQ.1)THEN
+				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+
+
+				  ELSE
 				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
 				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				  END IF
 				  
 				  
 				  
@@ -14517,7 +14684,12 @@ IF ((ITESTCASE.LE.4).AND.(TURBULENCE.NE.1))THEN
 !$OMP BARRIER 
 !$OMP DO SCHEDULE(STATIC) REDUCTION(+:ALLRES)
 DO I=1,KMAXE
+	if (dg.eq.1)then
+    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VALdg(1,1:nof_Variables)**2)
+    else
     ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VAL(1:nof_Variables)**2)
+
+    end if
 END DO
 !$OMP END DO
 
@@ -14757,8 +14929,11 @@ SUBROUTINE CALCULATE_ERROR(N)
 			!$OMP DO REDUCTION (+:L1NORM)
 			DO I=1,KMAXE
 				IF (ITESTCASE.Le.3)THEN
+				
 				EXACT=U_E(I)%VAL(1,ind_er)
+				
 				APROXIMATE=U_C(I)%VAL(1,ind_er)
+				
 ! 					IF ((ABS(APROXIMATE-EXACT)).GT.L0NORM(N,1))THEN
 ! 					L0NORM(N,1)=ABS(APROXIMATE-EXACT)
 ! 					END IF
@@ -14785,7 +14960,10 @@ SUBROUTINE CALCULATE_ERROR(N)
 			DO I=1,KMAXE
 				IF (ITESTCASE.Le.3)THEN
 				EXACT=U_E(I)%VAL(1,ind_er)
+				
+				
 				APROXIMATE=U_C(I)%VAL(1,ind_er)
+				
 					IF ((ABS(APROXIMATE-EXACT)).GT.L0NORM)THEN
 					L0NORM=ABS(APROXIMATE-EXACT)
 					END IF
@@ -14880,7 +15058,7 @@ SUBROUTINE CALCULATE_ERROR(N)
  			if (n.eq.0)then
 			OPEN(30,FILE='Errors.dat',FORM='FORMATTED',ACTION='write',position='append')
 			if (initcond.eq.1)then
-			WRITE(30,'(I9,1X,I4,1X,I4,1X,E14.7,1X,E14.7)')IMAXE,iorder,spatiladiscret,L0NORM,STENNORM/IMAXE
+			WRITE(30,'(I9,1X,I4,1X,I4,1X,E14.7,1X,E14.7)')IMAXE,T,spatiladiscret,L0NORM,STENNORM/IMAXE
 			
 			else
 			IF (INITCOND.NE.3)THEN
@@ -17444,6 +17622,37 @@ DEALLOCATE(VALUESS)
 
 
 END SUBROUTINE CHECKPOINTv3
+
+
+SUBROUTINE TROUBLED_HISTORY
+INTEGER::I,J,K,TRAJ1,TRAJ2,TRAJ3,TRAJ4,kmaxe,writeid,writeconf
+REAL::WIN1,WIN2,WIN3,WIN4,POST,POST1,POST2,POST3,POST4
+real,dimension(1)::pos_l,pos_g
+KMAXE=XMPIELRANK(N)
+POST1=0
+traj1=0
+pos_l(1)=zero
+pos_G(1)=zero
+DO I=1,KMAXE
+    pos_l(1)=pos_l(1)+IELEM(N,I)%CONDITION
+END DO
+
+  
+CALL MPI_ALLREDUCE(pos_l(1),pos_g(1),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+IF (n.eq.0)THEN
+
+OPEN(70,FILE='TROUBLED.DAT',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+WRITE(70,'(E14.7,1X,E14.7,1X,E14.7)')T,(POS_G(1)/IMAXE)*100.0
+close(70)
+
+END IF
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+END SUBROUTINE TROUBLED_HISTORY
 
 
 

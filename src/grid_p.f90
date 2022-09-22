@@ -1835,6 +1835,7 @@ REAL::DELTA,CPUER
 	
 ! 	if (itestcase.eq.4)then
 	allocate(ielem(n,i)%vortex(1)); ielem(n,i)%vortex=zero
+	ALLOCATE(IELEM(N,I)%AVARS(NOF_VARIABLES));
 ! 	end if
 	
 	SELECT CASE (IELEM(N,I)%ISHAPE)
@@ -6183,114 +6184,182 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
 	INTEGER,INTENT(OUT)::ILX     !NUMBER OF DEGREES OF FREEDOM
 	INTEGER,INTENT(INOUT)::NUMNEIGHBOURS
 	INTEGER,INTENT(IN)::IEXTEND,N
-	integer::i,itemd
+	integer::i,itemd,ilxx
+	
 	ALLOCATE(ISELEMT(N:N))
-	if (dimensiona.eq.3)then
 	
-	IF (IORDER.GE.2)THEN
-		ILX=((IORDER+1)*(IORDER+2)*(IORDER+3))/6
-	IDEGFREE=ILX-1
-	NUMNEIGHBOURS=ILX*extf
-	IMAXDEGFREE=NUMNEIGHBOURS-1
-	ISELEM=(ILX*extf)*IEXTEND
-	ISELEMT(N:N)=ISELEM
-	IOVERST=ISELEM
-	IOVERTO=ISELEM
-	
-	SELECT CASE(IORDER)
-	
-	CASE (1,2,3)
-	idegfree2=3
-	IORDER2=1
-	NUMNEIGHBOURS2=9
-	
-	
-	CASE(4,5,6,7)
-	idegfree2=3
-	IORDER2=1
-	NUMNEIGHBOURS2=9
-	
-	
-	END SELECT
-	
-	
-      
-      
+	IF (dimensiona.eq.3) THEN
+        IF (IORDER.GE.2) THEN
+            ILX=((IORDER+1)*(IORDER+2)*(IORDER+3))/6
+
+            IDEGFREE=ILX-1
+            NUMNEIGHBOURS=ILX*extf
+            IMAXDEGFREE=NUMNEIGHBOURS-1
+            ISELEM=(ILX*extf)*IEXTEND
+            ISELEMT(N:N)=ISELEM
+            IOVERST=ISELEM
+            IOVERTO=ISELEM
+            
+           if (dg.eq.1)then
+                NUMNEIGHBOURS=ILX*extf
+                IMAXDEGFREE=NUMNEIGHBOURS-1
+                itemd=(ILX*extf)*IEXTEND
+                ISELEM=min(itemd,imaxe-1)
+                ISELEMT(N:N)=ISELEM
+                IOVERST=ISELEM
+                IOVERTO=ISELEM
+                idegfree3=(((IORDER)*(IORDER+1)*(IORDER+2))/6)-1
+            else
+                NUMNEIGHBOURS=ILX*extf
+                IMAXDEGFREE=NUMNEIGHBOURS-1
+                itemd=(ILX*extf)*IEXTEND
+                ISELEM=min(itemd,imaxe-1)
+                ISELEMT(N:N)=ISELEM
+                IOVERST=ISELEM
+                IOVERTO=ISELEM
+            end if
+            
+            
+            
+            
+            
+            
+        
+            SELECT CASE(IORDER)
+            
+            CASE (1,2,3)
+                idegfree2=3
+                IORDER2=1
+                NUMNEIGHBOURS2=9
+            
+            CASE(4,5,6,7)
+                idegfree2=3
+                IORDER2=1
+                NUMNEIGHBOURS2=9
+            
+            END SELECT
+        END IF
+        
+        IF (IORDER.EQ.1)THEN
+            ILX=((IORDER+1)*(IORDER+2)*(IORDER+3))/6
+            IDEGFREE=ILX-1
+            NUMNEIGHBOURS=7
+            IMAXDEGFREE=NUMNEIGHBOURS-1
+            ISELEM=(ILX*extf)*IEXTEND
+            ISELEMT(N:N)=ISELEM
+            IOVERST=ISELEM
+            IOVERTO=ISELEM
+            
+            idegfree2=3
+            IORDER2=1
+            NUMNEIGHBOURS2=9
+            
+            
+            if (dg.eq.1)then
+                IDEGFREE=ILX-1
+            NUMNEIGHBOURS=7
+            IMAXDEGFREE=NUMNEIGHBOURS-1
+            ISELEM=(ILX*extf)*IEXTEND
+            ISELEMT(N:N)=ISELEM
+            IOVERST=ISELEM
+            IOVERTO=ISELEM
+            idegfree3=(((IORDER)*(IORDER+1)*(IORDER+2))/6)-1
+            end if
+            
+            
+            
+            
+            
+            
+        END IF
+        
+	ELSE ! 2 DIMENSIONS
+        IF (IORDER.GE.2)THEN
+            ILX=((IORDER+1)*(IORDER+2))/2
+            IDEGFREE=ILX-1
+        
+            if (dg.eq.1)then
+                NUMNEIGHBOURS=ILX*extf
+                IMAXDEGFREE=NUMNEIGHBOURS-1
+                itemd=(ILX*extf)*IEXTEND
+                ISELEM=min(itemd,imaxe-1)
+                ISELEMT(N:N)=ISELEM
+                IOVERST=ISELEM
+                IOVERTO=ISELEM
+                idegfree3=(((IORDER)*(IORDER+1))/2)-1
+            else
+                NUMNEIGHBOURS=ILX*extf
+                IMAXDEGFREE=NUMNEIGHBOURS-1
+                itemd=(ILX*extf)*IEXTEND
+                ISELEM=min(itemd,imaxe-1)
+                ISELEMT(N:N)=ISELEM
+                IOVERST=ISELEM
+                IOVERTO=ISELEM
+            end if
+        
+        
+            SELECT CASE(IORDER)
+            
+            CASE (1,2,3)
+                idegfree2=2
+                IORDER2=1
+                NUMNEIGHBOURS2=7
+            
+            
+            CASE(4,5,6,7)
+                idegfree2=2
+                IORDER2=1
+                NUMNEIGHBOURS2=7
+            
+            END SELECT
+        
+        END IF
+        
+        IF (IORDER.EQ.1)THEN
+            ILX=((IORDER+1)*(IORDER+2))/2
+            IDEGFREE=ILX-1
+            
+            
+            if (dg.eq.1)then
+                NUMNEIGHBOURS=5
+                IMAXDEGFREE=NUMNEIGHBOURS-1
+                itemd=20
+                ISELEM=min(itemd,imaxe-1)
+                ISELEMT(N:N)=ISELEM
+                IOVERST=ISELEM
+                IOVERTO=ISELEM
+                idegfree3=(((IORDER)*(IORDER+1))/2)-1
+            else
+                NUMNEIGHBOURS=ILX*extf
+                IMAXDEGFREE=NUMNEIGHBOURS-1
+                itemd=(ILX*extf)*IEXTEND
+                ISELEM=min(itemd,imaxe-1)
+                ISELEMT(N:N)=ISELEM
+                IOVERST=ISELEM
+                IOVERTO=ISELEM
+            end if
+            
+            IORDER2=1
+            idegfree2=2
+            NUMNEIGHBOURS2=7
+        END IF
 	END IF
-	IF (IORDER.EQ.1)THEN
-		ILX=((IORDER+1)*(IORDER+2)*(IORDER+3))/6
-	IDEGFREE=ILX-1
-	NUMNEIGHBOURS=ILX*extf
-	IMAXDEGFREE=NUMNEIGHBOURS-1
-	ISELEM=(ILX*extf)*IEXTEND
-	ISELEMT(N:N)=ISELEM
-	IOVERST=ISELEM
-	IOVERTO=ISELEM
 	
-	idegfree2=3
-	IORDER2=1
-	NUMNEIGHBOURS2=9
-	
-	
-	
-	END IF
-	else
-	
-	
-	
-	IF (IORDER.GE.2)THEN
-		ILX=((IORDER+1)*(IORDER+2))/2
-	IDEGFREE=ILX-1
-	NUMNEIGHBOURS=ILX*extf
-	IMAXDEGFREE=NUMNEIGHBOURS-1
-	itemd=(ILX*extf)*IEXTEND
-	ISELEM=min(itemd,imaxe-1)
-	ISELEMT(N:N)=ISELEM
-	IOVERST=ISELEM
-	IOVERTO=ISELEM
-	SELECT CASE(IORDER)
-	
-	CASE (1,2,3)
-	idegfree2=2
-	IORDER2=1
-	NUMNEIGHBOURS2=7
-	
-	
-	CASE(4,5,6,7)
-	idegfree2=2
-	IORDER2=1
-	NUMNEIGHBOURS2=7
-	
-	
-	END SELECT
-	
-	END IF
-	IF (IORDER.EQ.1)THEN
-		ILX=((IORDER+1)*(IORDER+2))/2
-	IDEGFREE=ILX-1
-	NUMNEIGHBOURS=ILX*extf
-	IMAXDEGFREE=NUMNEIGHBOURS-1
-	ISELEM=(ILX*extf)*IEXTEND
-	ISELEMT(N:N)=ISELEM
-	IOVERST=ISELEM
-	IOVERTO=ISELEM
-	IORDER2=1
-	idegfree2=2
-	NUMNEIGHBOURS2=7
-	
-	END IF
-
-
-
-
-
-	end if
-	do i=1,xmpielrank(n)
-	  ielem(n,i)%inumneighbours=NUMNEIGHBOURS
-	 ielem(n,i)%idegfree=idegfree
-	 ielem(n,i)%iorder=iorder
-        end do
-
+    do i=1,xmpielrank(n)
+        ielem(n,i)%inumneighbours=NUMNEIGHBOURS
+        ielem(n,i)%idegfree=idegfree
+        ielem(n,i)%iorder=iorder
+    end do
+        
+        
+    IF (DG == 1) THEN
+        NUM_DG_DOFS = ILX
+        IF (DIMENSIONA == 2) THEN 
+            NUM_DG_RECONSTRUCT_DOFS = (IORDER + 2) * (IORDER + 3) / 2 - NUM_DG_DOFS
+        ELSE 
+            NUM_DG_RECONSTRUCT_DOFS = (IORDER+2)*(IORDER+3)*(IORDER+4)/6 - NUM_DG_DOFS
+        END IF
+    END IF
 
 
 	END SUBROUTINE DETERMINE_SIZE
@@ -6323,12 +6392,12 @@ IF (IGQRULES.EQ.2)THEN
 	
 END IF
 IF (IGQRULES.EQ.3)THEN
-	QP_HEXA=27;QP_TETRA=10;QP_PYRA=15;QP_PRISM=18;
+	QP_HEXA=27;QP_TETRA=14;QP_PYRA=15;QP_PRISM=18;
 	QP_QUAD=9;QP_TRIANGLE=6
 	
 END IF
 IF (IGQRULES.EQ.4)THEN
-	QP_HEXA=64;QP_TETRA=20;QP_PYRA=15;QP_PRISM=24;
+	QP_HEXA=64;QP_TETRA=24;QP_PYRA=15;QP_PRISM=24;
 	QP_QUAD=16;QP_TRIANGLE=10
 	
 END IF
@@ -6338,12 +6407,12 @@ IF (IGQRULES.EQ.5)THEN
 	
 END IF
 IF (IGQRULES.EQ.6)THEN
-	QP_HEXA=216;QP_TETRA=35;QP_PYRA=15;QP_PRISM=60;
+	QP_HEXA=216;QP_TETRA=56;QP_PYRA=15;QP_PRISM=60;
 	QP_QUAD=36;QP_TRIANGLE=21
 	
 END IF
 IF (IGQRULES.GE.7)THEN
-	QP_HEXA=216;QP_TETRA=35;QP_PYRA=15;QP_PRISM=60;
+	QP_HEXA=216;QP_TETRA=56;QP_PYRA=15;QP_PRISM=60;
 	QP_QUAD=36;QP_TRIANGLE=36
 	
 END IF
@@ -6478,6 +6547,13 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
 	
 	DO I=1,KMAXE
                  IELEM(N,I)%FULL=0
+                   
+                  IELEM(N,I)%TROUBLED=1
+                  
+                  if(dg.eq.1)then
+                  IELEM(N,I)%TROUBLED=0
+                 
+                  end if
 			KX=0
 		DO LM=1,TYPESTEN
                                 IF ((LM.EQ.1).OR.(EES.NE.5))THEN
@@ -7073,7 +7149,6 @@ DO I=1,KMAXE
     EL_INT(K)=I
     END IF
 END DO
-
 
 END SUBROUTINE NEW_ARRAYS
 
