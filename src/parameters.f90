@@ -14,9 +14,10 @@ SUBROUTINE READ_UCNS3D
 	IMPLICIT NONE
 
  	Integer :: INV,IX
+ 	INTEGER :: INV1
  	Real :: angledum
 	CHARACTER(48)::STAMP1,FRAME
-	LOGICAL::HERE1,HERE2,HERE3,HERE5,here4
+	LOGICAL::HERE1,HERE2,HERE3,HERE5,here4,HERE
 
 
  	
@@ -900,7 +901,11 @@ SUBROUTINE READ_UCNS3D
 	  
 	  END SELECT
 	  
-        
+      	  IF (N.EQ.0)THEN
+	    OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+	    write(63,*)'Order of Accuracy in space:',spatialorder
+	    CLOSE(63)
+	END IF
 	   
         ! Temporal order
         RUNGEKUTTA = temporder 
@@ -951,7 +956,7 @@ SUBROUTINE READ_UCNS3D
 	  		IF(MRF.EQ.1)THEN
             IF (N.EQ.0)THEN
                 OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-                write(63,*)'Multiple Reference Frame engaged:',NROTORS
+                write(63,*)'Number of Rotating Frames engaged:',NROTORS
                 CLOSE(63)
             END IF
         END IF
