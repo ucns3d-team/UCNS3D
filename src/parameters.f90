@@ -14,9 +14,10 @@ SUBROUTINE READ_UCNS3D
 	IMPLICIT NONE
 
  	Integer :: INV,IX
+ 	INTEGER :: INV1
  	Real :: angledum
-	CHARACTER(48)::STAMP1
-	LOGICAL::HERE1,HERE2,HERE3,HERE5,here4
+	CHARACTER(48)::STAMP1,FRAME
+	LOGICAL::HERE1,HERE2,HERE3,HERE5,here,here4,HERE7,HERE8
 
 
  	
@@ -27,10 +28,67 @@ SUBROUTINE READ_UCNS3D
 	Else
 	Average_restart=0
 	end if
+	SOURCE_ACTIVE=0
 	
+ 	FRAME='ROTFRAME.dat'
+	INQUIRE (FILE=FRAME,EXIST=HERE)
+	IF (HERE) THEN
+	OPEN(16,FILE=FRAME,FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+	READ(16,*)!1
+	READ(16,*)!2
+	READ(16,*)!3
+	READ(16,*)!4
+	READ(16,*)RFRAME
+	READ(16,*)!6
+	READ(16,*)SRF_ORIGIN(1),SRF_ORIGIN(2),SRF_ORIGIN(3)
+	READ(16,*)!8
+	READ(16,*)SRF_VELOCITY(1),SRF_VELOCITY(2),SRF_VELOCITY(3)
+    READ(16,*)!10    
+	READ(16,*)PER_ROT,ANGLE_PER,V_REF	
+    READ(16,*)!12
+    READ(16,*)NROTORS
+    ALLOCATE(point1_GL(NROTORS,3),point2_GL(NROTORS,3),Radius_GL(NROTORS),MRF_ROT_GL(NROTORS))
+    DO INV1=1,NROTORS !STORING MULTIPLE ROTATING FRAME COORDINATES
+        READ(16,*)point1_GL(INV1,1),point1_GL(INV1,2),point1_GL(INV1,3)
+        READ(16,*)point2_GL(INV1,1),point2_GL(INV1,2),point2_GL(INV1,3)
+        READ(16,*)Radius_GL(INV1), MRF_ROT_GL(INV1)
+	END DO
+	CLOSE(16)
+        IF(PER_ROT.EQ.1)THEN
+	        TOL_PER=1.0E-8
+            LOWMEM=1
+            IPERIODICITY = 1 
+        END IF
+        IF(RFRAME.EQ.2)THEN
+            MRF=1
+            SRFG=0
+        END IF
+        IF (RFRAME.EQ.1)THEN
+            SRFG=1
+            MRF=0
+        END IF
+	ELSE
+        RFRAME=0
+        SRFg=0
+        MRF=0
+	END IF
 	
+	if ((mrf.eq.1).or.(SRFG.eq.1))then
+	 SOURCE_ACTIVE=1
+    KINIT_SRF=0.00001
+    if (mrf.eq.1)then
+            ROT_CORR=1
+            D_CORR=1
+    end if
+    if (srfg.eq.1)then
+            ROT_CORR=0
+            D_CORR=1
+    end if
 	
-	
+	end if
+
+
+
 	
 	INQUIRE (FILE='MULTISPECIES.DAT',EXIST=HERE2)
 	IF (HERE2) THEN
@@ -83,6 +141,41 @@ SUBROUTINE READ_UCNS3D
 	END IF
 			
 	
+
+
+	INQUIRE (FILE='FILTER.DAT',EXIST=HERE7)
+	IF (HERE7) THEN
+	FILTERING=1
+	OPEN(19,FILE='FILTER.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+	READ(19,*)
+	READ(19,*)
+	READ(19,*)FILTER_TYPE        !TYPE OF FILTER (1=EXPONENTIAL)
+    READ(19,*)fil_alpha
+    READ(19,*)fil_s
+    READ(19,*)fil_nc
+    CLOSE(19)
+	ELSE
+	FILTERING=0
+	END IF
+
+
+
+	INQUIRE (FILE='ADDA.DAT',EXIST=HERE8)
+	IF (HERE8) THEN
+	ADDA=1
+	OPEN(19,FILE='ADDA.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+	READ(19,*)
+	READ(19,*)
+	READ(19,*)ADDA_TYPE        !TYPE OF FILTER (1=EXPONENTIAL)
+    READ(19,*)ADDA_alpha_1,ADDA_alpha_2
+    READ(19,*)ADDA_1_S,ADDA_2_S
+    READ(19,*)ADDA_1,ADDA_2
+    CLOSE(19)
+	ELSE
+	ADDA=0
+	END IF
+
+
 	
 	
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -159,8 +252,8 @@ SUBROUTINE READ_UCNS3D
 	READ(15,*)NPROBES
 	READ(15,*)
 	    
-	
-	DG=0;FILTERING=0
+	fastmovie=0
+	DG=0;
 	!TURBULENCE DEFAULT VALUES
 	
 	
@@ -256,7 +349,7 @@ SUBROUTINE READ_UCNS3D
 	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
 	itold=10000	!TOLERANCE=n_iterations
 	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=10.0	! LIMIT VOLUME CELLS
+	GRIDAR2=50.0	! LIMIT VOLUME CELLS
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
@@ -285,8 +378,8 @@ SUBROUTINE READ_UCNS3D
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
     if (initcond.eq.405)iadapt=1
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=3	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+	ICOMPACT=1	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+	extf=2	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
 	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
 	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
@@ -300,7 +393,7 @@ SUBROUTINE READ_UCNS3D
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	
+	fastmovie=1
 	if (iboundary.eq.1)then
 	 LOWMEM=1
 	 end if
@@ -452,7 +545,9 @@ SUBROUTINE READ_UCNS3D
 	 end if
 	 DES_model=2
 	 
-	 
+	 LAMX=0.0D0
+	 BR2_DAMPING=3.0
+	 BR2_YN=2
 	 
 	 CASE (101)           !FOR HYBRID DG-FV method
 	
@@ -488,7 +583,9 @@ SUBROUTINE READ_UCNS3D
 	 end if
 	 DES_model=2
 	 
-	 
+	  LAMX=0.0D0
+	 BR2_DAMPING=3.0
+	 BR2_YN=2
 	 
 	 
 	  CASE (102)           !FOR PURE DG method
@@ -525,10 +622,10 @@ SUBROUTINE READ_UCNS3D
 	 end if
 	 DES_model=2
 
+	 LAMX=0.0D0
+	 BR2_DAMPING=3.0
+	 BR2_YN=2
 
-	 IF (surfshear.GT.0)THEN
-	 FILTERING=1
-	 END IF
 	 
 	
 	
@@ -725,7 +822,13 @@ SUBROUTINE READ_UCNS3D
 	   ! Set pressure
 	  if ( PRES .lt. 0 ) PRES = RRES/GAMMA	
 	  ! Set dynamic free-stream viscosity
-	  VISC = (RRES*ufreestream*CharLength)/Reynolds
+	  
+	  IF (RFRAME.EQ.0) THEN
+        VISC = (RRES*ufreestream*CharLength)/Reynolds
+    ELSE
+        VISC = (RRES*V_ref*CharLength)/Reynolds
+    END IF
+	  
 	  if (swirl.eq.1)then
 	  uvel=ZERO
 	  end if
@@ -739,7 +842,12 @@ SUBROUTINE READ_UCNS3D
 	  IF (N.EQ.0)THEN
 	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	      if (ITESTCASE .eq. 4) Then
+	      if (rframe.eq.0)then
 		write(63,*)'----Reynolds Number:',(RRES*ufreestream*CharLength)/VISC
+            else
+            write(63,*)'----Reynolds Number:',(RRES*v_ref*CharLength)/VISC
+            
+            end if
 		end if
 	      CLOSE(63)
 	   END IF
@@ -875,7 +983,29 @@ SUBROUTINE READ_UCNS3D
 	      write(63,*)'Total Number of Processes:',isize,IGQRULES
 	      CLOSE(63)
 	  END IF
-
+        IF(SRFG.EQ.1)THEN
+            IF (N.EQ.0)THEN
+                OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+                write(63,*)'Single Reference Frame engaged:'
+                CLOSE(63)
+            END IF
+        END IF
+	  		IF(MRF.EQ.1)THEN
+            IF (N.EQ.0)THEN
+                OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+                write(63,*)'Number of Rotating Frames engaged:',NROTORS
+                CLOSE(63)
+            END IF
+        END IF
+		IF(PER_ROT.EQ.1)THEN
+            iboundary=1
+            LOWMEM=1
+            IF (N.EQ.0)THEN
+                OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+                write(63,*)'Rotational  periodicity engaged'
+                CLOSE(63)
+            END IF
+        END IF
 	  
 	   
 	  

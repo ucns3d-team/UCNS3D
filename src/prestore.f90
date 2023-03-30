@@ -1195,13 +1195,29 @@ IF (LL.EQ.1)THEN		!stencils
 				NNX=(NX*AINVJT(1,1))+(NY*AINVJT(2,1))
 				NNY=(NX*AINVJT(1,2))+(NY*AINVJT(2,2))
 				
-				
+				IF (POLY.EQ.4)THEN
+
+
+				DO IQ=1, IDEG
+
+				XDER(IQ)=TL2dX(AX,AY,IQ);  YDER(IQ)=TL2dY(AX,AY,IQ);
+
+
+				END DO
+
+
+				ELSE
+
+
+
 				DO IQ=1, IDEG
 				
-				XDER(IQ)=DF2dX(AX,AY,IQ);  YDER(IQ)=DF2dY(AX,AY,IQ);  
+				XDER(IQ)=DF2dX(AX,AY,IQ);  YDER(IQ)=DF2dY(AX,AY,IQ);
 				
 				
 				END DO
+
+				END IF
 
 				compwrt=0
 				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE)
@@ -1360,7 +1376,7 @@ i=iconsi
 	IDEG=IELEM(N,I)%iDEGFREE
 	 INUMO=ielem(n,i)%iorder
 	 
-	
+	iconsidered=i
 	 
 
 	VEXT=ZERO
@@ -1482,7 +1498,7 @@ i=iconsi
 	 INUMO=IORDER2
 	 
 	
-	 
+	 iconsidered=i
 
 	VEXT=ZERO
     NODES_LIST=ZERO
@@ -2393,7 +2409,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -2421,7 +2437,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -2454,7 +2470,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -2498,7 +2514,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -2556,7 +2572,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -2635,7 +2651,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -3046,7 +3062,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -3075,7 +3091,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -3104,7 +3120,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
                 
         	
         	
@@ -3142,7 +3158,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -3180,7 +3196,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -3225,7 +3241,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=1.0d0
+        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
                 
 			INTEG =zero
        			 DO K=1,inump

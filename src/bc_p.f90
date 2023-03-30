@@ -155,7 +155,7 @@ n_boundaries=itl
 
 itl=0
 DO JI=1,n_boundaries
-  IF (IBOUND(N,JI)%ICODE.EQ.5)THEN
+  IF ((IBOUND(N,JI)%ICODE.EQ.5).or.(IBOUND(N,JI)%ICODE.EQ.50))THEN
     ALLOCATE(IBOUND(N,JI)%LOCALN(2))
     allocate(ibound(n,ji)%CPUN(2))
     itl=itl+1
@@ -196,7 +196,7 @@ JJ1=0
 				 IBOUND(N,Ji)%which=j
 				 IBOUND(N,Ji)%face=jj
 				  ielem(n,J)%nofbc=ielem(n,J)%nofbc+1
-				    if (IBOUND(N,Ji)%icode.eq.5)then
+				    if ((IBOUND(N,JI)%ICODE.EQ.5).or.(IBOUND(N,JI)%ICODE.EQ.50))then
 				    IBOUND(N,Ji)%localn(1)=J;IBOUND(N,Ji)%cpun(1)=n
 				    JJ1=JJ1+1
 				      
@@ -221,7 +221,7 @@ JJ1=0
 					IBOUND(N,Ji)%which=j
 				 IBOUND(N,Ji)%face=jj
 				    ielem(n,J)%nofbc=ielem(n,J)%nofbc+1
-				    if (IBOUND(N,Ji)%icode.eq.5)then
+				    if ((IBOUND(N,JI)%ICODE.EQ.5).or.(IBOUND(N,JI)%ICODE.EQ.50))then
 				    IBOUND(N,Ji)%localn(1)=J;IBOUND(N,Ji)%cpun(1)=n
 				    JJ1=JJ1+1
 				      
@@ -341,7 +341,7 @@ n_boundaries=itl
 
 
 DO JI=1,n_boundaries
-  IF (IBOUND(N,JI)%ICODE.EQ.5)THEN
+  IF ((IBOUND(N,JI)%ICODE.EQ.5).or.(IBOUND(N,JI)%ICODE.EQ.50))THEN
     ALLOCATE(IBOUND(N,JI)%LOCALN(2))
     allocate(ibound(n,ji)%CPUN(2))
     ibound(n,ji)%localn=0
@@ -378,7 +378,7 @@ itl=0
 				 IBOUND(N,Ji)%which=j
 				 IBOUND(N,Ji)%face=jj
 				    ielem(n,J)%nofbc=ielem(n,J)%nofbc+1
-				    if (IBOUND(N,Ji)%icode.eq.5)then
+				    if ((IBOUND(N,JI)%ICODE.EQ.5).or.(IBOUND(N,JI)%ICODE.EQ.50))then
 				    IBOUND(N,Ji)%localn(1)=J;IBOUND(N,Ji)%cpun(1)=n
 				   
 				    itl=itl+1
@@ -444,7 +444,7 @@ SUBROUTINE APPLY_BOUNDARY(N,XPER,YPER,ZPER,IPERIODICITY,XMPIELRANK)
 IMPLICIT NONE
 REAL,INTENT(IN)::XPER,YPER,ZPER
 INTEGER,INTENT(IN)::IPERIODICITY,N
-REAL::SMALL,tolerance,dist
+REAL::SMALL,tolerance,dist,temp_x
 INTEGER::I,K,j,kk,ii,kmaxe,jj1,jj2,ji,l
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 integer::dum1,dum2
@@ -463,7 +463,7 @@ if (dimensiona.eq.3)then
 
 jj2=0
 do i=1,n_boundaries
-if (IBOUND(n,i)%icode.eq.5)then
+if ((IBOUND(N,I)%ICODE.EQ.5).or.(IBOUND(N,I)%ICODE.EQ.50))then
 jj2=jj2+1
 end if
 
@@ -478,7 +478,7 @@ DO I=1,KMAXE			! For ALL ELEMENTS
 			
 		  DO J=1,ielem(n,i)%IFCA			! LOOP ALL THEIR FACES
 		      if (IELEM(N,I)%IBOUNDS(J).gt.0)then
-		     IF (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ICODE.EQ.5)THEN	! IF ANY OF THEM HAS A PERIODIC BOUNDARY CONDITION THEN
+		     IF ((IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ICODE.EQ.5).or.(IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ICODE.EQ.50))THEN	!IF ANY OF THEM HAS A PERIODIC BOUNDARY CONDITION THEN
 				    if (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ISHAPE.EQ.5)then
 				    N_NODE=4
 				    else
@@ -490,8 +490,8 @@ DO I=1,KMAXE			! For ALL ELEMENTS
 				    vext(1,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 				    
 			   do ii=1,n_boundaries				! loop all the boundaries
-				if (((ii.ne.IELEM(N,I)%IBOUNDS(J)).and.(IBOUND(n,ii)%icode.eq.5).and.&
-(IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ishape.eq.IBOUND(n,ii)%ishape)))then
+				if ((ii.ne.IELEM(N,I)%IBOUNDS(J)).and.((IBOUND(n,ii)%icode.eq.5).or.(IBOUND(n,ii)%icode.eq.50)).and.&
+(IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ishape.eq.IBOUND(n,ii)%ishape))then
 				      if ((IBOUND(n,ii)%localn(1).gt.0)) then	! excluding itself, and of same shape type
  				   if (ielem(n,IBOUND(N,ii)%localn(1))%ihexgl.ne.ielem(n,i)%ihexgl)then
 ! 				    
@@ -502,7 +502,7 @@ DO I=1,KMAXE			! For ALL ELEMENTS
 				    
 				    dist=distance3(n)
 				      
-				      
+                    IF(PER_ROT.EQ.0)THEN
 				      if (((abs(vext(2,1)-xper).lt.tolsmall).or.(abs((abs(vext(2,1)-xper))-xper).lt.tolsmall)).and.&
 				      ((abs(vext(1,1)-xper).lt.tolsmall).or.(abs((abs(vext(1,1)-xper))-xper).lt.tolsmall)))then
 				      if ((abs(vext(2,2)-vext(1,2)).lt.tolsmall).and.(abs(vext(2,3)-vext(1,3)).lt.tolsmall))then
@@ -546,6 +546,18 @@ DO I=1,KMAXE			! For ALL ELEMENTS
  				      go to 101
  				      end if
 				      end if
+				    ELSE
+                        vext(2,:)=ROTATE_PER(vext(2,:),IBOUND(n,ii)%icode,angle_per)
+                        if ((abs(vext(1,1)-vext(2,1)).lt.tol_per).and.&
+                            (abs(vext(1,2)-vext(2,2)).lt.tol_per).and.&
+                            (abs(vext(1,3)-vext(2,3)).lt.tol_per)) then              
+                                IBOUND(N,ii)%localn(2)=i
+                                IBOUND(N,ii)%cpun(2)=n
+                                IELEM(N,I)%INEIGHG(J)=ielem(n,IBOUND(N,ii)%localn(1))%ihexgl
+                                jj1=jj1+1
+                            go to 101
+ 				      end if
+				    END IF
 				    end if
 
 				      

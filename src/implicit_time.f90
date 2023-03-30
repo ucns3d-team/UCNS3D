@@ -17,8 +17,8 @@ subroutine RELAXATION(N)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb
-real::impres1,impres2,impres3
-
+real::impres1,impres2,impres3,TEMPXX
+real:: w1,w2,w3,denx
 
 SWEEPS=16
 kmaxe=xmpielrank(n)
@@ -35,6 +35,7 @@ DURR=zero; DULR=zero
 
 
 call CALCULATE_JACOBIAN(N)
+IF (RFRAME.EQ.0) THEN
 !$OMP DO
 do i=1,kmaxe
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(i,1:nof_Variables,1:nof_Variables)
@@ -45,7 +46,64 @@ impdiag(i,4,4)=1.0d0/lscqm1(4,4)
 impdiag(i,5,5)=1.0d0/lscqm1(5,5)
 end do
 !$OMP END DO
-
+end if
+if (SRFG.EQ.1)then
+!$OMP DO
+do i=1,kmaxe
+  lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
+    w1=LSCQM1(4,3)
+    w2=LSCQM1(2,4)
+    w3=LSCQM1(3,2)
+    !INVERSE OF THE MATRIX IN CASE OF SOURCE TERM
+    DENX=(LSCQM1(2,2)*LSCQM1(3,3)*LSCQM1(4,4)+LSCQM1(2,2)*w1**2+LSCQM1(3,3)*w2**2+LSCQM1(4,4)*w3**2)
+    IMPDIAG(I,1,1)=1.0D0/LSCQM1(1,1)
+    IMPDIAG(I,2,2)=(LSCQM1(3,3)*LSCQM1(4,4)+w1**2)/DENX            
+    IMPDIAG(I,2,3)=(LSCQM1(4,4)*w3+w1*w2)/DENX
+    IMPDIAG(I,2,4)=(-LSCQM1(3,3)*w2+w1*w3)/DENX            
+    IMPDIAG(I,3,2)=(-LSCQM1(4,4)*w3+w1*w2)/DENX
+    IMPDIAG(I,3,3)=(LSCQM1(2,2)*LSCQM1(4,4)+w2**2)/DENX
+    IMPDIAG(I,3,4)=(LSCQM1(2,2)*w1+w2*w3)/DENX
+    IMPDIAG(I,4,2)=(LSCQM1(3,3)*w2+w1*w3)/DENX            
+    IMPDIAG(I,4,3)=(-LSCQM1(2,2)*w1+w2*w3)/DENX
+    IMPDIAG(I,4,4)=(LSCQM1(2,2)*LSCQM1(3,3)+w3**2)/DENX
+    IMPDIAG(I,5,5)=1.0D0/LSCQM1(5,5)
+end do
+!$OMP END DO
+END IF
+IF(MRF.EQ.1)THEN
+ SRF=0
+!$OMP DO
+do i=1,kmaxe
+	SRF=ILOCAL_RECON3(I)%MRF
+	IF(SRF.EQ.0)THEN
+        lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
+        impdiag(i,1,1)=1.0d0/lscqm1(1,1)
+        impdiag(i,2,2)=1.0d0/lscqm1(2,2)
+        impdiag(i,3,3)=1.0d0/lscqm1(3,3)
+        impdiag(i,4,4)=1.0d0/lscqm1(4,4)
+        impdiag(i,5,5)=1.0d0/lscqm1(5,5)
+    ELSE
+        lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
+        w1=LSCQM1(4,3)
+        w2=LSCQM1(2,4)
+        w3=LSCQM1(3,2)
+        !INVERSE OF THE MATRIX IN CASE OF SOURCE TERM
+        DENX=(LSCQM1(2,2)*LSCQM1(3,3)*LSCQM1(4,4)+LSCQM1(2,2)*w1**2+LSCQM1(3,3)*w2**2+LSCQM1(4,4)*w3**2)
+        IMPDIAG(I,1,1)=1.0D0/LSCQM1(1,1)
+        IMPDIAG(I,2,2)=(LSCQM1(3,3)*LSCQM1(4,4)+w1**2)/DENX            
+        IMPDIAG(I,2,3)=(LSCQM1(4,4)*w3+w1*w2)/DENX
+        IMPDIAG(I,2,4)=(-LSCQM1(3,3)*w2+w1*w3)/DENX            
+        IMPDIAG(I,3,2)=(-LSCQM1(4,4)*w3+w1*w2)/DENX
+        IMPDIAG(I,3,3)=(LSCQM1(2,2)*LSCQM1(4,4)+w2**2)/DENX
+        IMPDIAG(I,3,4)=(LSCQM1(2,2)*w1+w2*w3)/DENX
+        IMPDIAG(I,4,2)=(LSCQM1(3,3)*w2+w1*w3)/DENX            
+        IMPDIAG(I,4,3)=(-LSCQM1(2,2)*w1+w2*w3)/DENX
+        IMPDIAG(I,4,4)=(LSCQM1(2,2)*LSCQM1(3,3)+w3**2)/DENX
+        IMPDIAG(I,5,5)=1.0D0/LSCQM1(5,5)
+    END IF
+end do
+!$OMP END DO
+END IF
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 !$OMP DO
@@ -60,7 +118,9 @@ IF (RELAX.EQ.1)THEN
 DO II=1,SWEEPS	!loop1
 !$OMP DO
 do i=1,kmaxe	!loop2
-
+    IF(MRF.EQ.1)THEN
+        SRF=ILOCAL_RECON3(I)%MRF
+    END IF
 if (iscoun.ne.1)then
 B1_imp(1:nof_variables)=-(RHS(I)%VAL(1:nof_variables)+((((1.5*U_C(I)%VAL(1,1:nof_Variables))-(2.0d0*U_C(I)%VAL(2,1:nof_Variables))+(0.5d0*U_C(I)%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,I)%TOTVOLUME))
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -104,11 +164,19 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 				NX=(COS(ANGLE1)*SIN(ANGLE2))
 				NY=(SIN(ANGLE1)*SIN(ANGLE2))
 				NZ=(COS(ANGLE2))
+                IF (SRF.EQ.1) THEN
+                    !RETRIEVE ROTATIONAL VELOCITY IN CASE OF ROTATING REFERENCE FRAME TO CALCULATE THE CORRECT VALUE OF THE BOUNDARY CONDITION
+                    SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
+                    CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)	       
+                END IF
 	
 					IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 						IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+								if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
+								    IF(PER_ROT.EQ.1)THEN
+                                        DU1(2:4)=ROTATE_PER_1(DU1(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+								    END IF
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
 								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
@@ -202,10 +270,12 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 					    
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+								if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 								
 								DU1(1:nof_variables)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
-	      	      
+                                IF(PER_ROT.EQ.1)THEN
+                                    DU1(2:4)=ROTATE_PER_1(DU1(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                END IF
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
 								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)

@@ -173,7 +173,7 @@ END SUBROUTINE XMPIFIND
 
 
 
-SUBROUTINE GLOBALIST(N,XMPIE,XMPIL,XMPIELRANK,IMAXE,ISIZE,CENTERR,GLNEIGH,IELEM)
+SUBROUTINE GLOBALIST(N,XMPIE,XMPIL,XMPIELRANK,IMAXE,ISIZE,CENTERR,GLNEIGH,GLNEIGHPER,IELEM)
 !> @brief
 !> This subroutine establishes the connectivity within each process
 IMPLICIT NONE
@@ -183,7 +183,7 @@ INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(IN)::IELEM
 INTEGER,INTENT(IN)::IMAXE,N,ISIZE
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::CENTERR
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH
+INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH,GLNEIGHPER
 REAL,ALLOCATABLE,DIMENSION(:,:)::CENTERX
 INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHX
 INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHTS,GLNEIGHTR
@@ -203,11 +203,14 @@ if ((typesten.gt.1).or.(icompact.ge.1))then
  ALLOCATE(CENTERR(1:IMAXE,1:3))
 end if
 ALLOCATE(GLNEIGH(1:IMAXE,1:6))
+ALLOCATE(GLNEIGHPER(1:IMAXE,1:6))
+
 if ((typesten.gt.1).or.(icompact.ge.1))then
   CENTERR(:,:)=-TOLBIG
 end if
  GLNEIGH(:,:)=0
- 
+ GLNEIGHPER(:,:)=0
+
 
  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -480,7 +483,7 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 END SUBROUTINE GLOBALIST
 
-SUBROUTINE GLOBALIST2(N,XMPIE,XMPIL,XMPIELRANK,IMAXE,ISIZE,CENTERR,GLNEIGH,IELEM)
+SUBROUTINE GLOBALIST2(N,XMPIE,XMPIL,XMPIELRANK,IMAXE,ISIZE,CENTERR,GLNEIGH,GLNEIGHPER,IELEM)
 !> @brief
 !> This subroutine establishes the connectivity with elements from other processes
 IMPLICIT NONE
@@ -490,10 +493,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(IN)::IELEM
 INTEGER,INTENT(IN)::IMAXE,N,ISIZE
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::CENTERR
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH
+INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH,GLNEIGHPER
 REAL,ALLOCATABLE,DIMENSION(:,:)::CENTERX
 INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHX
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHTS,GLNEIGHTR
+INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHTS,GLNEIGHTR,GLNEIGHTSPER,GLNEIGHTRPER
 INTEGER,ALLOCATABLE,DIMENSION(:)::GLNEIGHTOT
 real,ALLOCATABLE,DIMENSION(:,:)::centerTS,centerTR
 INTEGER::I,J,K,KMAXE,ICPUID,KJ,TEMPI,tempt
@@ -505,48 +508,56 @@ REAL::XV,YC,ZC
   IF (DIMENSIONA.EQ.3)THEN
 
  KMAXE=XMPIELRANK(N)
- DO K=1,KMAXE
-	if ((typesten.gt.1).or.(icompact.ge.1))then
-	
-	CALL COMPUTE_CENTRE3d(N,K)
-	
- 	CENTERR(IELEM(N,K)%IHEXGL,1)=CORDS(1)
- 	CENTERR(IELEM(N,K)%IHEXGL,2)=CORDS(2)
- 	CENTERR(IELEM(N,K)%IHEXGL,3)=CORDS(3)
-	end if
- 	DO J=1,IELEM(N,K)%IFCA
-		
+		 DO K=1,KMAXE
+			if ((typesten.gt.1).or.(icompact.ge.1))then
+			
+			CALL COMPUTE_CENTRE3d(N,K)
+			
+		 	CENTERR(IELEM(N,K)%IHEXGL,1)=CORDS(1)
+		 	CENTERR(IELEM(N,K)%IHEXGL,2)=CORDS(2)
+		 	CENTERR(IELEM(N,K)%IHEXGL,3)=CORDS(3)
+			end if
+		 	DO J=1,IELEM(N,K)%IFCA
+				
 
- 		GLNEIGH(IELEM(N,K)%IHEXGL,J)=IELEM(N,K)%INEIGHG(J)
-
-		
-	END DO
-END DO
+		 		GLNEIGH(IELEM(N,K)%IHEXGL,J)=IELEM(N,K)%INEIGHG(J)
+			if (IELEM(N,k)%INTERIOR.EQ.1) then
+				if (IELEM(N,K)%IBOUNDS(J).GT.0) then
+				if (ibound(n,ielem(n,k)%ibounds(J))%icode.eq.5) then
+				GLNEIGHPER(IELEM(N,K)%IHEXGL,J)=1
+				else if (ibound(n,ielem(n,k)%ibounds(J))%icode.eq.50) then
+				GLNEIGHPER(IELEM(N,K)%IHEXGL,J)=2
+				end if
+				end if
+				end if
+				
+			END DO
+		END DO
 
 	KJ=0
-	do K=1,kmaxe
-		DO J=1,IELEM(N,K)%IFCA
-			IF (IELEM(N,k)%INTERIOR.EQ.0)THEN
-			IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0))THEN
-				KJ=KJ+1
-			END IF
-			ELSE
-			IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0).AND.(IELEM(N,K)%IBOUNDS(J).EQ.0))THEN
-				KJ=KJ+1
-			END IF
+				do K=1,kmaxe
+					DO J=1,IELEM(N,K)%IFCA
+						IF (IELEM(N,k)%INTERIOR.EQ.0)THEN
+						IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0))THEN
+							KJ=KJ+1
+						END IF
+						ELSE
+						IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0).AND.(IELEM(N,K)%IBOUNDS(J).EQ.0))THEN
+							KJ=KJ+1
+						END IF
 
 
 
-			END IF
-			
-		END DO
-	END DO
-	if (n.eq.0)then
-	OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	WRITE(63,*)KJ,"NUMBER OF UNKNOWN NEIGHBOURS AFTER COMMUNICATION"
-      
-	CLOSE(63)
-	end if
+						END IF
+						
+					END DO
+				END DO
+				if (n.eq.0)then
+				OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+				WRITE(63,*)KJ,"NUMBER OF UNKNOWN NEIGHBOURS AFTER COMMUNICATION"
+			      
+				CLOSE(63)
+				end if
 	
 	
 	ICPUID=N
@@ -561,14 +572,29 @@ END DO
 	    
  ALLOCATE(GLNEIGHTOT(2))
   ALLOCATE(GLNEIGHTS(1:KMAXE,1:7))
+ALLOCATE(GLNEIGHTSPER(1:KMAXE,1:7))
+
       if ((typesten.gt.1).or.(icompact.ge.1))then
    ALLOCATE(centerts(1:KMAXE,1:3))
       end if
   GLNEIGHTS(:,:)=0
+GLNEIGHTSPER(:,:)=0
   DO K=1,KMAXE
 	  GLNEIGHTS(K,1)=IELEM(N,K)%IHEXGL
+	  GLNEIGHTSPER(K,1)=IELEM(N,K)%IHEXGL
 	  DO J=1,IELEM(N,K)%IFCA
 	  GLNEIGHTS(K,1+J)=GLNEIGH(IELEM(N,K)%IHEXGL,J)
+	  if (IELEM(N,k)%INTERIOR.EQ.1) then
+        if  (IELEM(N,K)%IBOUNDS(J).GT.0)then
+            if((ibound(n,ielem(n,K)%ibounds(J))%icode.eq.5).or.(ibound(n,ielem(n,K)%ibounds(J))%icode.eq.50)) THEN
+            if (ibound(n,ielem(n,K)%ibounds(J))%icode.eq.5) then
+            GLNEIGHTSPER(K,1+J)=1
+            else if (ibound(n,ielem(n,K)%ibounds(J))%icode.eq.50) then
+            GLNEIGHTSPER(K,1+J)=2
+            end if
+        end if
+	  end if
+	  end if
 	  END DO
 	  if ((typesten.gt.1).or.(icompact.ge.1))then
 	  centerts(k,1:3)=CENTERR(IELEM(N,K)%IHEXGL,1:3)
@@ -587,15 +613,19 @@ END DO
 			CALL MPI_SENDRECV(tempi,1,MPI_INTEGER,I,ICPUID,&
 			tempt,1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
 			ALLOCATE(GLNEIGHTR(tempt,1:7))
+			ALLOCATE(GLNEIGHTRPER(tempt,1:7))
 			  if ((typesten.gt.1).or.(icompact.ge.1))then
  			  ALLOCATE(centertR(tempt,1:3))
 			  centertR(:,:)=0.0
 			  end if
 			glneightr(:,:)=0
+			glneightrper(:,:)=0
 ! 			
 			
 			CALL MPI_SENDRECV(GLNEIGHTS(1:TEMPI,1:7),TEMPI*7,MPI_INTEGER,I,ICPUID,&
 			GLNEIGHTR(1:TEMPT,1:7),TEMPT*7,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
+			CALL MPI_SENDRECV(GLNEIGHTSPER(1:TEMPI,1:7),TEMPI*7,MPI_INTEGER,I,ICPUID,&
+			GLNEIGHTRPER(1:TEMPT,1:7),TEMPT*7,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
 
 			if ((typesten.gt.1).or.(icompact.ge.1))then
 			CALL MPI_SENDRECV(CENTERts(1:TEMPI,1:3),TEMPI*3,MPI_DOUBLE_PRECISION,I,ICPUID,&
@@ -606,6 +636,7 @@ END DO
 				      do j=1,6
 					  if (glneightr(k,j+1).gt.0)then
 					    glneigh(glneightr(k,1),j)=glneightr(k,j+1)
+					    glneighper(glneightr(k,1),j)=glneightrPER(k,j+1)
 					    if ((typesten.gt.1).or.(icompact.ge.1))then
 					    centerr(glneightr(k,1),1:3)=CENTERtr(k,1:3)
 					    end if
@@ -614,6 +645,7 @@ END DO
 				      
 			end do
 			deALLOCATE(GLNEIGHTR)
+			deALLOCATE(GLNEIGHTRPER)
 			  if ((typesten.gt.1).or.(icompact.ge.1))then
 			  deALLOCATE(centertR)
 			  end if
@@ -625,6 +657,7 @@ END DO
 	  end do
     deALLOCATE(GLNEIGHTOT)
   deALLOCATE(GLNEIGHTS)
+  deALLOCATE(GLNEIGHTSPER)
       if ((typesten.gt.1).or.(icompact.ge.1))then
    deALLOCATE(centerts)
       end if
@@ -1263,7 +1296,11 @@ IMPLICIT NONE
 	    IF (LOWMEM.EQ.1)DEALLOCATE(CENTERR)
     end if
 	    IF (LOWMEM.EQ.0)deallocate(cand2s,cand2r,cand2rt,cand)
-	    IF (LOWMEM.EQ.1)DEALLOCATE(GLNEIGH)
+	    IF (LOWMEM.EQ.1)then
+            DEALLOCATE(GLNEIGH)
+
+            if (dimensiona.eq.3)DEALLOCATE(GLNEIGHPER)
+        END IF
  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
  END SUBROUTINE GLOBALDEA
 
@@ -1562,11 +1599,11 @@ END SUBROUTINE ALLOCATEVECTORS
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!SUBROUTINE CALLED INITIALLY TO ALLOCATE MEMORY FOR STENCIL!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	SUBROUTINE LOCALSTALLOCATION(N,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEIGHBOURS)
+	SUBROUTINE LOCALSTALLOCATION(N,XMPIELRANK,ILOCALSTENCIL,ILOCALSTENCILPER,TYPESTEN,NUMNEIGHBOURS)
 !> @brief
 !> This subroutine memory for stencil allocation for all cells
 	IMPLICIT NONE
-	INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALSTENCIL
+	INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALSTENCIL,ILOCALSTENCILPER
 	INTEGER,INTENT(IN)::NUMNEIGHBOURS
 	INTEGER,INTENT(IN)::N
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
@@ -1577,6 +1614,9 @@ END SUBROUTINE ALLOCATEVECTORS
 	ALLOCATE (ILOCALSTENCIL(N:N,kmaxe,TYPESTEN,imaxdegfree+1))
 	
 	ILOCALSTENCIL(N:N,:,:,:)=0
+	ALLOCATE (ILOCALSTENCILPER(N:N,kmaxe,TYPESTEN,imaxdegfree+1))
+	
+	ILOCALSTENCILPER(N:N,:,:,:)=0
 	
 	END SUBROUTINE LOCALSTALLOCATION
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1853,6 +1893,10 @@ REAL::DELTA,CPUER
 ! 	IELEM(N,I)%DEC_FACES(2,1:3)=IELEM(N,I)%NODES_FACES(2,1:3)
 	allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
 	allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
+	if (adda.eq.1)then
+	allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
+	ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
+	end if
 	if (fastest.eq.0)then
 	allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
 	end if
@@ -1920,6 +1964,10 @@ REAL::DELTA,CPUER
 	if (fastest.eq.0)then
 	allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
 	end if
+	if (adda.eq.1)then
+	allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
+	ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
+	end if
 	if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
 ! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
@@ -1960,6 +2008,12 @@ REAL::DELTA,CPUER
 
 	allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
 	allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
+
+	if (adda.eq.1)then
+	allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
+	ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
+	end if
+
 	if (fastest.eq.0)then
 	allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
 	end if
@@ -2019,7 +2073,10 @@ REAL::DELTA,CPUER
 	end if
 	
 	allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
-	
+	if (adda.eq.1)then
+	allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
+	ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
+	end if
 	allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
 	if (fastest.eq.0)then
 	allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
@@ -2351,12 +2408,12 @@ YPER,ZPER,ICONRPF,NUMNEIGHBOURS,TYPESTEN)
 !> This subroutine establishes the connectivity across different cpus
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IPERIODICITY,N,ISIZE,NUMNEIGHBOURS,TYPESTEN
-REAL::SMALL,DIST
+REAL::SMALL,DIST,temp_x
 REAL,INTENT(IN)::XPER,YPER,ZPER
 INTEGER::I,K,JJJ,KJ,J,L,IM,IO,IR,KMAXE,ICPUID,KKJ,countxsize
 INTEGER,DIMENSION(6)::JX
 REAL,DIMENSION(3)::DUMFACE1,DUMFACE2
-INTEGER::FACEPER1,FACEPER2,p,kkj2,kkj3,kkj4,kkj5,JJ1,P1,P2,P3,P4,Q1,Q2,Q3,Q4,J1,J2,J3,J4
+INTEGER::FACEPER1,FACEPER2,p,kkj2,kkj3,kkj4,kkj5,JJ1,P1,P2,P3,P4,Q1,Q2,Q3,Q4,J1,J2,J3,J4,code_PER1
 
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 TYPE(CONNX),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ICONR,ICONRPA,ICONRPM,ICONRPF
@@ -2377,7 +2434,7 @@ KJ=0; KKJ=0
 		      if(IELEM(N,I)%IBOUNDS(K).EQ.0)then
 						KJ=KJ+1
 		      else
-		      if (((IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE)).eq.5)then
+		      if ((IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE.eq.5).or.(IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE.eq.50))then
 						  KJ=KJ+1	
 						
 		      end if
@@ -2425,7 +2482,7 @@ ALLOCATE(ICONR(N)%HOWMANYI(1))
 						
 		      eLSE
 		      
-		      if (((IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE)).eq.5)then
+		      if ((IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE.eq.5).or.(IBOUND(N,IELEM(N,I)%IBOUNDS(k))%ICODE.eq.50))then
 						  KJ=KJ+1
 				ICONR(N)%WHICHI(KJ,1)=I
 				ICONR(N)%WHICHI(KJ,2)=K
@@ -2529,7 +2586,8 @@ END DO
 
 		       IF ((IELEM(N,ICONR(N)%WHICHI(I,1))%INEIGHG(ICONR(N)%WHICHI(I,2)).EQ.0))THEN
 		      IF (IPERIODICITY.EQ.1)THEN
-		      if (((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.5)then
+		      if ((((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.5).or.&
+		      (((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.50))then
 						  KJ=KJ+1
 			
 		      end if
@@ -2560,7 +2618,8 @@ END DO
 
 
 					  IF ((IELEM(N,ICONR(N)%WHICHI(I,1))%INEIGHG(ICONR(N)%WHICHI(I,2)).EQ.0))THEN
-					  if (((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.5)then
+					  if ((((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.5).or.&
+		      (((IBOUND(N,IELEM(N,ICONR(N)%WHICHI(I,1))%IBOUNDS(ICONR(N)%WHICHI(I,2)))%ICODE)).eq.50))then
 								      KJ=KJ+1
 					    ICONRPM(N)%WHICHI(KJ,1)=ICONR(N)%WHICHI(I,1)
 					    ICONRPM(N)%WHICHI(KJ,3)=IELEM(N,ICONR(N)%WHICHI(I,1))%IHEXGL
@@ -2593,7 +2652,8 @@ END DO
 				    DO I=1,ICONRPM(N)%HOWMANYI(1)
 		   
 					    IF ((IELEM(N,ICONRpm(N)%WHICHI(I,1))%INEIGHG(ICONRpm(N)%WHICHI(I,2)).EQ.0))THEN
-					  if (((IBOUND(N,IELEM(N,ICONRpm(N)%WHICHI(I,1))%IBOUNDS(ICONRpm(N)%WHICHI(I,2)))%ICODE)).eq.5)then
+					  if ((((IBOUND(N,IELEM(N,ICONRpm(N)%WHICHI(I,1))%IBOUNDS(ICONRpm(N)%WHICHI(I,2)))%ICODE)).eq.5).or.&
+		      (((IBOUND(N,IELEM(N,ICONRpm(N)%WHICHI(I,1))%IBOUNDS(ICONRpm(N)%WHICHI(I,2)))%ICODE)).eq.50))then
 		    ! 						  KJ=KJ+1
 		    ! 			
 					    KJ=KJ+1
@@ -2696,7 +2756,7 @@ END DO
 
 		dist=distance3(n)
 
-
+                        IF(PER_ROT.EQ.0)THEN
 						    if (((abs(vext(2,1)-xper).lt.tolsmall).or.(abs((abs(vext(2,1)-xper))-xper).lt.tolsmall)).and.&
 						    ((abs(vext(1,1)-xper).lt.tolsmall).or.(abs((abs(vext(1,1)-xper))-xper).lt.tolsmall)))then
 						    if ((abs(vext(2,2)-vext(1,2)).lt.tolsmall).and.(abs(vext(2,3)-vext(1,3)).lt.tolsmall))then
@@ -2727,15 +2787,17 @@ END DO
 						  
 						    end if
 						    end if
-
-
-
-
-
-
-
-
-
+                        ELSE
+                        
+                            code_PER1=IBOUND(N,IELEM(N,ICONRPA(N)%WHICHI(KJ,1))%IBOUNDS(ICONRPA(N)%WHICHI(KJ,2)))%ICODE
+                            vext(2,:)=ROTATE_PER(vext(2,:),code_per1,angle_per)
+                            if ((abs(vext(1,1)-vext(2,1)).lt.tol_per).and.(abs(vext(1,2)-vext(2,2)).lt.tol_per).and.&
+                                      (abs(vext(1,3)-vext(2,3)).lt.tol_per)) then
+!                                      write(9000+n,'(9es24.15)'),vext(1,1:3),vext(2,1:3),abs(vext(1,1:3)-vext(2,1:3))
+                                JJ1=JJ1+1
+                                ICONSPO(K)%WHICHTHEY(I,1)=ICONRPA(N)%WHICHI(KJ,3);go to 401
+                            end if
+                        END IF
 
 					  END DO
 					  401 CONTINUE
@@ -2781,7 +2843,8 @@ K=0
 		DO I=1,ICONRPA(N)%HOWMANYI(1)
 			
 			IF (IELEM(N,ICONRPA(N)%WHICHI(I,1))%Ineighg(ICONRPA(N)%WHICHI(I,2)).EQ.0)THEN
-			  if (((IBOUND(N,IELEM(N,ICONRpa(N)%WHICHI(I,1))%IBOUNDS(ICONRpa(N)%WHICHI(I,2)))%ICODE)).eq.5)then
+			  if ((((IBOUND(N,IELEM(N,ICONRpa(N)%WHICHI(I,1))%IBOUNDS(ICONRpa(N)%WHICHI(I,2)))%ICODE)).eq.5).or.&
+			  (((IBOUND(N,IELEM(N,ICONRpa(N)%WHICHI(I,1))%IBOUNDS(ICONRpa(N)%WHICHI(I,2)))%ICODE)).eq.50))then
 			KJ=KJ+1
 				  
 			      
@@ -3860,21 +3923,21 @@ END SUBROUTINE ALLSX
 
 
 SUBROUTINE DETSTEN(N,ISIZE,IELEM,ISELEMT,XMPIELRANK,ILOCALALLS,TYPESTEN,&
-ILOCALALLELG,STCON,STCONC,STCONS,STCONG,ISOSA,IX,IISTART,IFSAT,PARE,DOSE,PAREEL,DOSEEL,&
-PARES,SOSEEL,XMPIE,IFIN,TFIN,XMPIL,GLNEIGH)
+ILOCALALLELG,ILOCALALLELGPER,STCON,STCONC,STCONS,STCONG,ISOSA,IX,IISTART,IFSAT,PARE,DOSE,PAREEL,DOSEEL,&
+PARES,SOSEEL,XMPIE,IFIN,TFIN,XMPIL,GLNEIGH,GLNEIGHPER)
 !> @brief
 !> This subroutine builds the large stencils suitable for periodic boundaries
 IMPLICIT NONE
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INout)::IELEM
 INTEGER,INTENT(IN)::N,TYPESTEN,ISIZE
 INTEGER::I,K,JJJ,KJ,J,L,IM,IO,IR,KMAXE,ICPUID,ITRUE,IC,PRINT_I,kx,kxk,kk
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH
+INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH,GLNEIGHPER
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE,XMPIL
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IFIN,TFIN
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::ISELEMT
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::STCON,STCONC,STCONS,STCONG,ISOSA,IISTART,IFSAT,IX
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALALLELG	
+INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALALLELG,ILOCALALLELGPER	
 INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALALLS
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::PARE,DOSE,PAREEL,PARES
 INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::DOSEEL,SOSEEL
@@ -3907,6 +3970,7 @@ DO K=1,KMAXE
 
 ! 	ILOCALALLEL(N,K,1,1)=IELEM(N,K)%IHEX
 	ILOCALALLELG(N,K,1,1)=IELEM(N,K)%IHEXGL
+	ILOCALALLELGPER(N,K,1,1)=0
 ! 	ILOCALALLS(N,K,1,1)=IELEM(N,K)%IFCA
 	STCON(N)=k
 	STCONC(N)=k
@@ -3920,7 +3984,7 @@ DO K=1,KMAXE
 
 !-------------------FOR DEBUGGING ONLY -----------------------------------------!
 	CALL ALLS(IC,ISIZE,IELEM,STCON,STCONC,STCONS,STCONG,ISELEMT,ILOCALALLS,&
-ILOCALALLELG,XMPIE,ISOSA,IFSAT,IISTART,IX,XMPIELRANK,PARE,DOSE,PAREEL,DOSEEL,PARES,SOSEEL,IFIN,TFIN,XMPIL,GLNEIGH)
+ILOCALALLELG,ILOCALALLELGPER,XMPIE,ISOSA,IFSAT,IISTART,IX,XMPIELRANK,PARE,DOSE,PAREEL,DOSEEL,PARES,SOSEEL,IFIN,TFIN,XMPIL,GLNEIGH,GLNEIGHPER)
 
 
         
@@ -4309,23 +4373,23 @@ END DO
 END SUBROUTINE DETSTEN
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 RECURSIVE SUBROUTINE ALLS(N,ISIZE,IELEM,STCON,STCONC,STCONS,STCONG,ISELEMT,ILOCALALLS,&
-ILOCALALLELG,XMPIE,ISOSA,IFSAT,IISTART,IX,XMPIELRANK,PARE,DOSE,PAREEL,DOSEEL,PARES,SOSEEL,IFIN,TFIN,XMPIL,GLNEIGH)
+ILOCALALLELG,ILOCALALLELGPER,XMPIE,ISOSA,IFSAT,IISTART,IX,XMPIELRANK,PARE,DOSE,PAREEL,DOSEEL,PARES,SOSEEL,IFIN,TFIN,XMPIL,GLNEIGH,GLNEIGHPER)
 !> @brief
 !> This recursive subroutine builds the large stencils suitable for periodic boundaries
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ISIZE
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(IN)::IELEM
-INTEGER::I,K,JJJ,KJ,J,L,IM,IO,IR,KMAXE,ICPUID,ITRUE,jloop
+INTEGER::I,K,JJJ,KJ,J,L,IM,IO,IR,KMAXE,ICPUID,ITRUE,jloop,FLAG_PER
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IFIN,TFIN
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::ISELEMT
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::STCON,STCONC,STCONS,STCONG,ISOSA,IFSAT,IISTART,IX
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALALLELG	
+INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALALLELG,ILOCALALLELGPER	
 INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALALLS
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE,XMPIL
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::PARE,DOSE,PAREEL,PARES
 INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::DOSEEL,SOSEEL
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH
+INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH,GLNEIGHPER
 KMAXE=XMPIELRANK(N)
       if (dimensiona.eq.3)then
 			  jloop=6
@@ -4333,6 +4397,7 @@ KMAXE=XMPIELRANK(N)
 			  jloop=4
 		end if
 		ICPUID=N
+		FLAG_PER=ILOCALALLELGPER(N,STCON(N),1,IISTART(N))
 		IISTART(N)=IISTART(N)+1
 		IF (XMPIE(STCONG(N)).EQ.N)THEN
 			L=XMPIL(STCONG(N))
@@ -4346,6 +4411,54 @@ KMAXE=XMPIELRANK(N)
 			if (isosa(n).le.ISELEMT(N)-1)then
 			ISOSA(N)=ISOSA(N)+1
 			ILOCALALLELG(N,STCON(N),1,ISOSA(N))=IELEM(N,STCONC(N))%INEIGHG(J)
+			if (dimensiona.eq.3)then
+			IF (FLAG_PER.eq.0) then
+                if (IELEM(N,STCONC(N))%INTERIOR.eq.1)then
+                if(IELEM(N,STCONC(N))%IBOUNDS(J).GT.0)then
+                if((ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5)&
+                            .or.(ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.50)) then
+                    if (ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5) then
+                        ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=1
+                    else
+                        ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=2
+                    end if
+                else
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=0
+                end if
+            end if
+            end if
+			else if (FLAG_PER.eq.1) then
+                if (IELEM(N,STCONC(N))%INTERIOR.eq.1)then
+                if (IELEM(N,STCONC(N))%IBOUNDS(J).GT.0)then
+                if((ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5)&
+                            .or.(ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.50)) then
+                    if (ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5) then
+                        ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=1
+                    else
+                        ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=0
+                    end if
+                else
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=1
+                end if
+                end if
+                end if
+            else
+                if (IELEM(N,STCONC(N))%INTERIOR.eq.1)then
+                if(IELEM(N,STCONC(N))%IBOUNDS(J).GT.0)then
+                if((ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5)&
+                                .or.(ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.50)) then
+                    if (ibound(n,ielem(n,STCONC(N))%ibounds(J))%icode.eq.5) then
+                        ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=0
+                    else
+                        ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=2
+                    end if
+                else
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=2
+                end if
+			end if
+			end if
+			end if
+			end if
 			END IF
 			end if
 			END IF
@@ -4363,6 +4476,33 @@ KMAXE=XMPIELRANK(N)
 			if (isosa(n).le.ISELEMT(N)-1)then
 			ISOSA(N)=ISOSA(N)+1
 			ILOCALALLELG(N,STCON(N),1,ISOSA(N))=GLNEIGH(STCONG(N),J)
+			if (dimensiona.eq.3)then
+			IF (FLAG_PER.eq.0) then
+                if (GLNEIGHPER(STCONG(N),J).eq.1) then
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=1
+                else if (GLNEIGHPER(STCONG(N),J).eq.2) then
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=2
+                else
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=0
+                end if
+			else if (FLAG_PER.eq.1) then
+                if (GLNEIGHPER(STCONG(N),J).eq.1) then
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=1
+                else if (GLNEIGHPER(STCONG(N),J).eq.2) then
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=0
+                else
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=1
+                end if
+            else 
+                if (GLNEIGHPER(STCONG(N),J).eq.1) then
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=0
+                else if (GLNEIGHPER(STCONG(N),J).eq.2) then
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=2
+                else
+                    ILOCALALLELGPER(N,STCON(N),1,ISOSA(N))=2
+                end if
+			end if
+			end if
 			END IF
 			END IF
 			end if
@@ -4377,7 +4517,7 @@ KMAXE=XMPIELRANK(N)
 ! 			
 			!-------------------FOR DEBUGGING ONLY -----------------------------------------!
 			CALL ALLS (N,ISIZE,IELEM,STCON,STCONC,STCONS,STCONG,ISELEMT,ILOCALALLS,&
-ILOCALALLELG,XMPIE,ISOSA,IFSAT,IISTART,IX,XMPIELRANK,PARE,DOSE,PAREEL,DOSEEL,PARES,SOSEEL,IFIN,TFIN,XMPIL,GLNEIGH)
+ILOCALALLELG,ILOCALALLELGPER,XMPIE,ISOSA,IFSAT,IISTART,IX,XMPIELRANK,PARE,DOSE,PAREEL,DOSEEL,PARES,SOSEEL,IFIN,TFIN,XMPIL,GLNEIGH,GLNEIGHPER)
 		END IF
 		IF (ISOSA(N).eq.ISELEMT(N))THEN
 			RETURN
@@ -4417,11 +4557,11 @@ END SUBROUTINE CHECK
 
 
 
-SUBROUTINE CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+SUBROUTINE CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
 !> @brief
 !> This subroutine checks which candidate cells satisfy the directionality condition for directional stencils
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N,IPERIODICITY
+INTEGER,INTENT(IN)::N,IPERIODICITY,IS_PERIODIC
 REAL,INTENT(IN)::XPER,YPER,ZPER
 INTEGER,INTENT(IN)::ISSF
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::IWHICHSTEN,ISHYAPE
@@ -4429,7 +4569,7 @@ INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ISATISFIED
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(IN)::BC
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(IN)::VG
 REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(IN)::VC
-REAL::SMALL
+REAL::SMALL,tempxx
 INTEGER::isat1,isat2,isat4,isat3
 
 
@@ -4452,11 +4592,23 @@ CASE (4)
 	vgg(:)=vg(n,:)
 	CALL COMPUTEJACOBIANS
 	 IF (IPERIODICITY.EQ.1) THEN
+	 IF(PER_ROT.EQ.0)THEN
 	 if (abs(VG(N,1) - BC(N,1)) .ge. XPer/2.0d0)    VGg(1) = VG(N,1) + XPer*sign(1.D0,BC(N,1) - XPer/2.0d0)
           if (abs(VG(N,2) - BC(N,2)) .ge. YPer/2.0d0)    VGg(2) = VG(N,2) + YPer*sign(1.D0,BC(N,2) - yPer/2.0d0)
 	   if (abs(VG(N,3) - BC(N,3)) .ge. zPer/2.0d0)    VGg(3) = VG(N,3) + zPer*sign(1.D0,BC(N,3) - zPer/2.0d0)
-         
-        END IF
+     ELSE
+        if (IS_PERIODIC.eq.2) then
+            tempxx=VG(N,1)
+            VGg(1)=tempxx*cosd(angle_per)-VGg(2)*sind(angle_per)
+            VGg(2)=tempxx*sind(angle_per)+VGg(2)*cosd(angle_per)
+        end if 
+        if (IS_PERIODIC.eq.1) then
+            tempxx=VG(N,1)
+            VGg(1)=tempxx*cosd(-angle_per)-VGg(2)*sind(-angle_per)
+            VGg(2)=tempxx*sind(-angle_per)+VGg(2)*cosd(-angle_per)
+        end if 
+     END IF
+    END IF
           XCC(1:3) =  matmul(vva1(1:3,1:3),VGg(1:3) -VEXT(1,1:3))
           
            IF ((XcC(1).GE.ZERO).AND.(XcC(2).GE.ZERO).AND.(XcC(3).GE.ZERO))THEN
@@ -4475,10 +4627,22 @@ CASE (4)
 	 vext(2,1:3)=vext(6,1:3); vext(3,1:3)=vext(8,1:3);vext(4,1:3)=vext(7,1:3);  
 	 CALL COMPUTEJACOBIANS
 	 IF (IPERIODICITY.EQ.1) THEN
+	 IF(PER_ROT.EQ.0)THEN
 	 if (abs(VG(N,1) - BC(N,1)) .ge. XPer/2.0d0)    VGg(1) = VG(N,1) + XPer*sign(1.D0,BC(N,1) - XPer/2.0d0)
           if (abs(VG(N,2) - BC(N,2)) .ge. YPer/2.0d0)    VGg(2) = VG(N,2) + YPer*sign(1.D0,BC(N,2) - yPer/2.0d0)
 	   if (abs(VG(N,3) - BC(N,3)) .ge. zPer/2.0d0)    VGg(3) = VG(N,3) + zPer*sign(1.D0,BC(N,3) - zPer/2.0d0)
-         
+     ELSE
+        if (IS_PERIODIC.eq.2) then
+	    tempxx=VG(N,1)
+	    VGg(1)=tempxx*cosd(angle_per)-VGg(2)*sind(angle_per)
+	    VGg(2)=tempxx*sind(angle_per)+VGg(2)*cosd(angle_per)
+        end if 
+	if (IS_PERIODIC.eq.1) then
+	    tempxx=VG(N,1)
+	    VGg(1)=tempxx*cosd(-angle_per)-VGg(2)*sind(-angle_per)
+	    VGg(2)=tempxx*sind(-angle_per)+VGg(2)*cosd(-angle_per)
+        end if 
+     END IF
         END IF
           XCC(1:3) =  matmul(vva1(1:3,1:3),VGg(1:3) -VEXT(1,1:3))
           IF ((XcC(1).GE.ZERO).AND.(XcC(2).GE.ZERO).AND.(XcC(3).GE.ZERO))THEN
@@ -4493,10 +4657,22 @@ CASE (4)
 	 vext(2,1:3)=vext(5,1:3); vext(3,1:3)=vext(8,1:3);vext(4,1:3)=vext(7,1:3);  
 	 CALL COMPUTEJACOBIANS
 	 IF (IPERIODICITY.EQ.1) THEN
+	 IF(PER_ROT.EQ.0)THEN
 	 if (abs(VG(N,1) - BC(N,1)) .ge. XPer/2.0d0)    VGg(1) = VG(N,1) + XPer*sign(1.D0,BC(N,1) - XPer/2.0d0)
           if (abs(VG(N,2) - BC(N,2)) .ge. YPer/2.0d0)    VGg(2) = VG(N,2) + YPer*sign(1.D0,BC(N,2) - yPer/2.0d0)
 	   if (abs(VG(N,3) - BC(N,3)) .ge. zPer/2.0d0)    VGg(3) = VG(N,3) + zPer*sign(1.D0,BC(N,3) - zPer/2.0d0)
-         
+     ELSE
+        if (IS_PERIODIC.eq.2) then
+            tempxx=VG(N,1)
+            VGg(1)=tempxx*cosd(angle_per)-VGg(2)*sind(angle_per)
+            VGg(2)=tempxx*sind(angle_per)+VGg(2)*cosd(angle_per)
+        end if 
+        if (IS_PERIODIC.eq.1) then
+            tempxx=VG(N,1)
+            VGg(1)=tempxx*cosd(-angle_per)-VGg(2)*sind(-angle_per)
+            VGg(2)=tempxx*sind(-angle_per)+VGg(2)*cosd(-angle_per)
+        end if 
+     END IF
         END IF
           XCC(1:3) =  matmul(vva1(1:3,1:3),VGg(1:3) -VEXT(1,1:3))
           IF ((XcC(1).GE.ZERO).AND.(XcC(2).GE.ZERO).AND.(XcC(3).GE.ZERO))THEN
@@ -4511,10 +4687,22 @@ CASE (4)
 	 vext(2,1:3)=vext(5,1:3); vext(3,1:3)=vext(8,1:3);vext(4,1:3)=vext(6,1:3);  
 	 CALL COMPUTEJACOBIANS
 	 IF (IPERIODICITY.EQ.1) THEN
+	 IF(PER_ROT.EQ.0)THEN
 	 if (abs(VG(N,1) - BC(N,1)) .ge. XPer/2.0d0)    VGg(1) = VG(N,1) + XPer*sign(1.D0,BC(N,1) - XPer/2.0d0)
           if (abs(VG(N,2) - BC(N,2)) .ge. YPer/2.0d0)    VGg(2) = VG(N,2) + YPer*sign(1.D0,BC(N,2) - yPer/2.0d0)
 	   if (abs(VG(N,3) - BC(N,3)) .ge. zPer/2.0d0)    VGg(3) = VG(N,3) + zPer*sign(1.D0,BC(N,3) - zPer/2.0d0)
-         
+     ELSE
+        if (IS_PERIODIC.eq.2) then
+            tempxx=VG(N,1)
+            VGg(1)=tempxx*cosd(angle_per)-VGg(2)*sind(angle_per)
+            VGg(2)=tempxx*sind(angle_per)+VGg(2)*cosd(angle_per)
+        end if 
+        if (IS_PERIODIC.eq.1) then
+            tempxx=VG(N,1)
+            VGg(1)=tempxx*cosd(-angle_per)-VGg(2)*sind(-angle_per)
+            VGg(2)=tempxx*sind(-angle_per)+VGg(2)*cosd(-angle_per)
+        end if 
+     END IF
         END IF
           XCC(1:3) =  matmul(vva1(1:3,1:3),VGg(1:3) -VEXT(1,1:3))
           IF ((XcC(1).GE.ZERO).AND.(XcC(2).GE.ZERO).AND.(XcC(3).GE.ZERO))THEN
@@ -4537,10 +4725,23 @@ vext(1,:)=BC(N,:)
 	vgg(:)=vg(n,:)
 	CALL COMPUTEJACOBIANS
 	 IF (IPERIODICITY.EQ.1) THEN
+	 IF(PER_ROT.EQ.0)THEN
 	 if (abs(VG(N,1) - BC(N,1)) .ge. XPer/2.d0)    VGg(1) = VG(N,1) + XPer*sign(1.D0,BC(N,1) - XPer/2.d0)
           if (abs(VG(N,2) - BC(N,2)) .ge. YPer/2.d0)    VGg(2) = VG(N,2) + YPer*sign(1.D0,BC(N,2) - yPer/2.d0)
 	   if (abs(VG(N,3) - BC(N,3)) .ge. zPer/2.d0)    VGg(3) = VG(N,3) + zPer*sign(1.D0,BC(N,3) - zPer/2.d0)
-         
+      ELSE
+        if (IS_PERIODIC.eq.2) then
+	    
+            tempxx=VG(N,1)
+            VGg(1)=tempxx*cosd(angle_per)-VGg(2)*sind(angle_per)
+            VGg(2)=tempxx*sind(angle_per)+VGg(2)*cosd(angle_per)
+        end if 
+        if (IS_PERIODIC.eq.1) then
+            tempxx=VG(N,1)
+            VGg(1)=tempxx*cosd(-angle_per)-VGg(2)*sind(-angle_per)
+            VGg(2)=tempxx*sind(-angle_per)+VGg(2)*cosd(-angle_per)
+        end if
+      END IF
         END IF
           XCC =  matmul(vva1(:,:),VGg(:) -VEXT(1,:))
           IF ((XcC(1).GE.ZERO).AND.(XcC(2).GE.ZERO).AND.(XcC(3).GE.ZERO))THEN
@@ -4683,6 +4884,7 @@ REAL,ALLOCATABLE,DIMENSION(:,:,:)::VERTICES
 END TYPE
 ! TYPE(WENOSTENC),ALLOCATABLE,DIMENSION(:)::IWENOST
 TYPE(TEMPCOUNT),ALLOCATABLE,DIMENSION(:)::ICOUNT1
+integer::IS_PERIODIC
 KMAXE=XMPIELRANK(N)
 
 if (dimensiona.eq.3)then
@@ -4817,7 +5019,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 	   VG(N,1)=IELEM(N,ICONSI)%XXC ;VG(N,2)=IELEM(N,I)%YYC;VG(N,3)=IELEM(N,I)%ZZC
 		     n_node=ifno
 
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ielem(n,i)%iNUMNEIGHBOURS)then
   ITGH=ITGH+1
@@ -4843,7 +5045,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 ! 	  VG(N,2)=CENTERR((ILOCALALLELG(N,I,1,J)),2)
 ! 	  VG(N,3)=CENTERR((ILOCALALLELG(N,I,1,J)),3)
 
-	    CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+	    CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
 	    IF (ISATISFIED(N).EQ.1)THEN
 	    if (itgh+1.le.ielem(n,i)%iNUMNEIGHBOURS)then
 	    ITGH=ITGH+1
@@ -4940,7 +5142,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 	    VG(N,1)=IELEM(N,ICONSI)%XXC ;VG(N,2)=IELEM(N,I)%YYC
 		     n_node=ifno
 
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ielem(n,i)%iNUMNEIGHBOURS)then
   ITGH=ITGH+1
@@ -4961,7 +5163,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
                  VG(N,1:2)=XAND2R(CAND(XMPIE(CANDID2)),XMPIL(CANDID2),1:2)
 ! 	  VG(N,3)=CENTERR((ILOCALALLELG(N,I,1,J)),3)
 
-	      CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+	      CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
 	      IF (ISATISFIED(N).EQ.1)THEN
 	      if (itgh+1.le.ielem(n,i)%iNUMNEIGHBOURS)then
 	      ITGH=ITGH+1
@@ -5053,8 +5255,9 @@ REAL,ALLOCATABLE,DIMENSION(:,:,:)::VERTICES
 END TYPE
 ! TYPE(WENOSTENC),ALLOCATABLE,DIMENSION(:)::IWENOST
 TYPE(TEMPCOUNT),ALLOCATABLE,DIMENSION(:)::ICOUNT1
+integer::IS_PERIODIC
 KMAXE=XMPIELRANK(N)
-
+IS_PERIODIC=0
 if (dimensiona.eq.3)then
 ! ALLOCATE(BC(N:N,3))
 ! ALLOCATE(VC(N:N,8,3))
@@ -5202,7 +5405,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 	  VG(N,1)=cords(1) ;VG(N,2)=cords(2) ; VG(N,3)=cords(3)
 		     n_node=ifno
 
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ielem(n,i)%iNUMNEIGHBOURS)then
   ITGH=ITGH+1
@@ -5221,7 +5424,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 	  VG(N,2)=CENTERR((ILOCALALLELG(N,I,1,J)),2)
 	  VG(N,3)=CENTERR((ILOCALALLELG(N,I,1,J)),3)
 
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ielem(n,i)%iNUMNEIGHBOURS)then
   ITGH=ITGH+1
@@ -5312,7 +5515,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 	  VG(N,1)=cords(1) ;VG(N,2)=cords(2) 
 		     n_node=ifno
 
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ielem(n,i)%iNUMNEIGHBOURS)then
   ITGH=ITGH+1
@@ -5331,7 +5534,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 	  VG(N,2)=CENTERR((ILOCALALLELG(N,I,1,J)),2)
 ! 	  VG(N,3)=CENTERR((ILOCALALLELG(N,I,1,J)),3)
 
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ielem(n,i)%iNUMNEIGHBOURS)then
   ITGH=ITGH+1
@@ -5420,6 +5623,8 @@ REAL,ALLOCATABLE,DIMENSION(:,:,:)::VERTICES
 END TYPE
 ! TYPE(WENOSTENC),ALLOCATABLE,DIMENSION(:)::IWENOST
 TYPE(TEMPCOUNT),ALLOCATABLE,DIMENSION(:)::ICOUNT1
+integer::IS_PERIODIC
+IS_PERIODIC=0
 KMAXE=XMPIELRANK(N)
 
 if (dimensiona.eq.3)then
@@ -5504,7 +5709,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 ! 	  VG(N,1)=cords(1) ;VG(N,2)=cords(2) ; VG(N,3)=cords(3)
 		     n_node=ifno
 
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ITARGET)then
   ITGH=ITGH+1
@@ -5525,7 +5730,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
                  VG(N,1:3)=XAND2R(CAND(XMPIE(CANDID2)),XMPIL(CANDID2),1:3)
                 
 
-		CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+		CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
 		      IF (ISATISFIED(N).EQ.1)THEN
 		      if (itgh+1.le.ITARGET)then
 		      ITGH=ITGH+1
@@ -5615,7 +5820,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 ! 	  VG(N,1)=cords(1) ;VG(N,2)=cords(2) 
 		     n_node=ifno
 
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ITARGET)then
   ITGH=ITGH+1
@@ -5639,7 +5844,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 ! 	  VG(N,2)=CENTERR((ILOCALALLELG(N,I,1,J)),2)
 ! 	  VG(N,3)=CENTERR((ILOCALALLELG(N,I,1,J)),3)
 
-	  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+	  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
 	  IF (ISATISFIED(N).EQ.1)THEN
 	  if (itgh+1.le.ITARGET)then
 	  ITGH=ITGH+1
@@ -5692,21 +5897,22 @@ end if
 END SUBROUTINE STENCIILSX
 
 
-SUBROUTINE STENCIILS(N,IELEM,ILOCALALLELG,TYPESTEN,ILOCALSTENCIL,NUMNEIGHBOURS,ISELEMT,XMPIE,&
+SUBROUTINE STENCIILS(N,IELEM,ILOCALALLELG,ILOCALALLELGPER,TYPESTEN,ILOCALSTENCIL,ILOCALSTENCILPER,NUMNEIGHBOURS,ISELEMT,XMPIE,&
 XMPIELRANK,ISIZE,BC,VC,VG,ISATISFIED,IWHICHSTEN,IPERIODICITY,XPER,YPER,ZPER,ISSF,ISHYAPE,XMPIL,CENTERR)
 !> @brief
 !> This subroutine builds all the directional stencils from the large stencil based on various algorithms (suitable for period boundaries)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,TYPESTEN,NUMNEIGHBOURS,ISIZE,IPERIODICITY,ISSF
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALALLELG	
+INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALALLELG,ILOCALALLELGPER	
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
+INTEGER::IS_PERIODIC
 REAL,INTENT(INOUT)::XPER,YPER,ZPER
 REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::BC,VG
 REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::VC
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::ISELEMT
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE,XMPIL
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALSTENCIL
+INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALSTENCIL,ILOCALSTENCILPER
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IWHICHSTEN,ISHYAPE,ISATISFIED
 INTEGER::I,J,K,L,M,O,P,KMAXE,ICOUNT,ICPUID,IATRUE,IG,IL,IFG,STNSHA,ITGH,KK,KXK,IX,IFVS,IXCZ,iadd,iadd2,iadd3,ITARGET
 INTEGER,ALLOCATABLE,DIMENSION(:)::COUNTSIZE,OPS
@@ -5739,6 +5945,7 @@ DO I=1,KMAXE
 	DO J=1,ielem(n,i)%iNUMNEIGHBOURS
 	      
 		ILOCALSTENCIL(N,I,1,J)=ILOCALALLELG(N,I,1,J)
+        ILOCALSTENCILPER(N,I,1,J)=ILOCALALLELGPER(N,I,1,J)
 ! 		
 	END DO
 	
@@ -5809,13 +6016,14 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 	  call COMPUTE_CENTRE3d(N,Iconsi)
 	  VG(N,1)=cords(1) ;VG(N,2)=cords(2) ; VG(N,3)=cords(3)
 		     n_node=ifno
-
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  IS_PERIODIC=ILOCALALLELGPER(N,I,1,J)
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ITARGET)then
   ITGH=ITGH+1
 
   ILOCALSTENCIL(N,I,IL+1,ITGH)=ILOCALALLELG(N,I,1,J)
+  ILOCALSTENCILPER(N,I,IL+1,ITGH)=ILOCALALLELGPER(N,I,1,J)
   END IF
   end if
   IF (ITGH.EQ.ITARGET)THEN
@@ -5828,12 +6036,13 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 	    VG(N,1)=CENTERR((ILOCALALLELG(N,I,1,J)),1)
 	  VG(N,2)=CENTERR((ILOCALALLELG(N,I,1,J)),2)
 	  VG(N,3)=CENTERR((ILOCALALLELG(N,I,1,J)),3)
-
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  IS_PERIODIC=ILOCALALLELGPER(N,I,1,J) 
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ITARGET)then
   ITGH=ITGH+1
   ILOCALSTENCIL(N,I,IL+1,ITGH)=ILOCALALLELG(N,I,1,J)
+  ILOCALSTENCILPER(N,I,IL+1,ITGH)=ILOCALALLELGPER(N,I,1,J)
   END IF
   end if
   IF (ITGH.EQ.ITARGET)THEN
@@ -5914,7 +6123,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 	  VG(N,1)=cords(1) ;VG(N,2)=cords(2) 
 		     n_node=ifno
 
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ITARGET)then
   ITGH=ITGH+1
@@ -5933,7 +6142,7 @@ IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
 	  VG(N,2)=CENTERR((ILOCALALLELG(N,I,1,J)),2)
 ! 	  VG(N,3)=CENTERR((ILOCALALLELG(N,I,1,J)),3)
 
-  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG)
+  CALL CHECK_CONDITION(N,IWHICHSTEN,ISATISFIED,IPERIODICITY,XPER,YPER,ZPER,ISHYAPE,ISSF,BC,VC,VG,IS_PERIODIC)
   IF (ISATISFIED(N).EQ.1)THEN
   if (itgh+1.le.ITARGET)then
   ITGH=ITGH+1
@@ -6154,7 +6363,7 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             
             IORDER2=1
             idegfree2=2
-            NUMNEIGHBOURS2=7
+            NUMNEIGHBOURS2=6
         END IF
 	END IF
 	
@@ -6746,33 +6955,39 @@ SUBROUTINE ADAPT_CRITERION
 	  KMAXE=XMPIELRANK(N)
 	  DO I=1,KMAXE
 	      FC=0
-	      IF (IELEM(N,I)%YYC.LT.0.03)THEN
+	      IF (IELEM(N,I)%YYC.LT.-0.3)THEN
 	      FC=1
 
 	      END IF
-	       IF (IELEM(N,I)%YYC.GT.0.08)THEN
+	       IF (IELEM(N,I)%YYC.GT.0.4)THEN
 
 		FC=1
 	      END IF
-	      IF (IELEM(N,I)%XXC.LT.0.025)THEN
+	      IF (IELEM(N,I)%XXC.LT.-0.5)THEN
 	      FC=1
 
 	      END IF
-	       IF (IELEM(N,I)%XXC.GT.0.18)THEN
+	       IF (IELEM(N,I)%XXC.GT.2.0)THEN
 
 		FC=1
 	      END IF
-	     IF (IELEM(N,I)%zzC.LT.0.03)THEN
-	      FC=1
+! 	     IF (IELEM(N,I)%zzC.LT.0.03)THEN
+! 	      FC=1
+!
+! 	      END IF
+! 	       IF (IELEM(N,I)%zzC.GT.0.08)THEN
+!
+! 		FC=1
+! 	      END IF
 
-	      END IF
-	       IF (IELEM(N,I)%zzC.GT.0.08)THEN
+! 	IF (FC.EQ.1)THEN
+! 		IELEM(N,I)%HYBRID=1
+!
+! 	END IF
 
-		FC=1
-	      END IF
 
 	IF (FC.EQ.1)THEN
-		IELEM(N,I)%HYBRID=1
+		IELEM(N,I)%FULL=0
 
 	END IF
 
@@ -6877,7 +7092,48 @@ END SUBROUTINE WRITE_BLOCKS
 
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+FUNCTION ROTATE_PER(VECT_PER,CODE_PER,ANGLE_PERIOD)
+IMPLICIT NONE
+REAL,DIMENSION(3),INTENT(IN)::VECT_PER
+REAL,INTENT(IN)::ANGLE_PERIOD
+real,dimension(3)::ROTATE_PER
+INTEGER,INTENT(IN)::CODE_PER
+REAL::Angle_temp
 
+
+if (CODE_PER.eq.50) then
+    angle_temp=-angle_period
+    else
+    angle_temp=angle_period
+end if
+
+ROTATE_PER(1)=VECT_PER(1)*cosd(angle_temp)-VECT_PER(2)*sind(angle_temp)
+ROTATE_PER(2)=VECT_PER(1)*sind(angle_temp)+VECT_PER(2)*cosd(angle_temp)
+ROTATE_PER(3)=Vect_PER(3)
+
+
+END FUNCTION
+FUNCTION ROTATE_PER_1(VECT_PER,CODE_PER,ANGLE_PERIOD)
+IMPLICIT NONE
+REAL,DIMENSION(3),INTENT(IN)::VECT_PER
+REAL,INTENT(IN)::ANGLE_PERIOD
+real,dimension(3)::ROTATE_PER_1
+INTEGER,INTENT(IN)::CODE_PER
+REAL::Angle_temp
+
+
+if (CODE_PER.eq.50) then
+    angle_temp=angle_period
+    else
+    angle_temp=-angle_period
+end if
+
+ROTATE_PER_1(1)=VECT_PER(1)*cosd(angle_temp)-VECT_PER(2)*sind(angle_temp)
+ROTATE_PER_1(2)=VECT_PER(1)*sind(angle_temp)+VECT_PER(2)*cosd(angle_temp)
+ROTATE_PER_1(3)=Vect_PER(3)
+
+
+END FUNCTION
 
 
 

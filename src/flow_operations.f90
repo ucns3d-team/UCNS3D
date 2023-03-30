@@ -10,6 +10,69 @@ IMPLICIT NONE
  CONTAINS
  
  
+
+ subroutine MRFSWITCH(N)
+
+  !> @brief
+!> This subroutine  check if the element is on the rotational/stationary reference frame and update the MRF_ORIGIN and SRF_VELOCITY SRF accordingly
+
+implicit none
+INTEGER, INTENT(IN)::N
+! TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON3
+!output:
+!ILOCAL_RECON3%MRF_ORIGIN; ILOCAL_RECON3%MRF_VELOCITY; ILOCAL_RECON3%ROTVEL, ILOCAL_RECON3%MRF
+real, dimension(3) ::MRF_ORIGIN, MRF_VELOCITY,ROTVEL
+integer:: ROTFRAME_ON
+INTEGER::NINV
+!internal variables
+real, dimension(3) :: P1P2, PC, POPC,PO,PGP !element coordinates, roation_axys, Cylinder_center_coordinates, vector_element_center, rotational velocity at gaussian points, Gausian points coordinates
+real :: d1, d2, r1, theta, dPOPC
+
+PO=(POX(1:3))
+PGP=(POY(1:3))
+!body
+DO NINV=1,NROTORS
+
+PC(1:3)= (point1_GL(NINV,1:3)+point2_GL(NINV,1:3))/2  !center of cYlinder
+P1P2(1:3)=point2_GL(NINV,1:3)-point1_GL(NINV,1:3)          !axysvector
+POPC(1:3)=PO(1:3)-PC(1:3)              ! vector elelement-centre
+dPOPC=((PO(1)-PC(1))**2+(PO(2)-PC(2))**2+(PO(3)-PC(3))**2)**0.5 !distance between element and center
+
+theta= ACOS((dot_product(POPC,P1P2))/(sqrt(POPC(1)**2+POPC(2)**2+POPC(3)**2)*sqrt(P1P2(1)**2+P1P2(2)**2+P1P2(3)**2))) !angle between element vector and axys
+d2=  dPOPC*abs(cos(theta))
+r1=dPOPC*abs(sin(theta))
+d1=((point1_GL(NINV,1)-PC(1))**2+(point1_GL(NINV,2)-PC(2))**2+(point1_GL(NINV,3)-PC(3))**2)**0.5
+
+if ((d1.ge.d2).and.(r1.le.Radius_GL(NINV))) then
+   ROTFRAME_ON=1
+    MRF_ORIGIN(1:3)=PC(1:3)
+    POX(1:3)=PGP(1:3)-MRF_ORIGIN(1:3)
+    MRF_VELOCITY(1:3)=MRF_ROT_GL(NINV)*(P1P2)/(P1P2(1)**2+P1P2(2)**2+P1P2(3)**2)**0.5
+!     SRF_VELOCITY(1)=0.0
+!     SRF_VELOCITY(2)=MRF_ROT_GL
+!     SRF_VELOCITY(3)=0.0
+    POY(1:3)=MRF_VELOCITY(1:3)
+    ROTVEL(1:3)=VECT_FUNCTION(POX,POY)
+    GO TO 606
+else
+    MRF_ORIGIN(1:3)=0.0
+    ROTFRAME_ON=0
+    MRF_VELOCITY(1:3)=0.0
+    ROTVEL(1:3)=0.0
+end if
+
+END DO
+
+606 CONTINUE
+
+ILOCAL_RECON3(ICONSIDERED)%MRF_ORIGIN=MRF_ORIGIN
+ILOCAL_RECON3(ICONSIDERED)%MRF_VELOCITY=MRF_VELOCITY
+ILOCAL_RECON3(ICONSIDERED)%ROTVEL(FACEX,POINTX,1:3)=ROTVEL
+ILOCAL_RECON3(ICONSIDERED)%MRF=ROTFRAME_ON
+
+end subroutine MRFSWITCH
+
+
  
  
  FUNCTION FLUXEVAL2D(LEFTV)
@@ -563,7 +626,7 @@ INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,MP_DENSITY,MP_STIFF
 
- IF (governingequations.EQ.-1) then
+ IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
  
  MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
  MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)  
@@ -651,7 +714,7 @@ INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,MP_DENSITY,MP_STIFF,FXA
 
-IF (governingequations.EQ.-1) then
+IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
  
  MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
  MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)  
@@ -703,7 +766,7 @@ INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
 
-IF (governingequations.EQ.-1) then
+ IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
 
  
  MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
@@ -755,7 +818,7 @@ INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
 
-IF (governingequations.EQ.-1) then
+ IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
 
  
  MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
@@ -985,7 +1048,22 @@ END FUNCTION INFLOW
 
 
 
+FUNCTION VECT_FUNCTION(POX,POY)
+!> @brief
+!> This makes a multipliciation between two vectors
+IMPLICIT NONE
+REAL,DIMENSION(3)::VECT_FUNCTION
+REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::POX,POY
 
+VECT_FUNCTION(1)=(POY(2)*POX(3))-(POY(3)*POX(2))
+VECT_FUNCTION(2)=(POY(3)*POX(1))-(POY(1)*POX(3))
+VECT_FUNCTION(3)=(POY(1)*POX(2))-(POY(2)*POX(1))
+
+
+
+
+
+END FUNCTION VECT_FUNCTION
 
 
 FUNCTION INFLOW2d(INITCOND,POX,POY)
@@ -1044,11 +1122,11 @@ INFLOW2d(5)=MP_R_IN(1)*MP_A_IN(1)
 INFLOW2d(6)=MP_R_IN(2)*MP_A_IN(2)
 INFLOW2d(7)=MP_A_IN(1)
 
-if (initcond.eq.430)then
-write(500+n,*)t,v,INFLOW2d(2)
-end if
+
 
 ELSE
+
+
 
 
 R=RRES
@@ -1065,7 +1143,15 @@ p=195557.25
 
 end if
 
+if (initcond.eq.10000)then
+if ((poy(1).ge.-0.05).and.(poy(1).le.0.05))then
+p=0.4127
+	R=5
+	u=30.0
+	v=0.0d0
 
+end if
+end if
 
 
 
@@ -1306,9 +1392,11 @@ SSZ=(VISCL(1)*((NX*TAUZX)+(NY*TAUZY)+(NZ*TAUZZ)))
 
 
 
-
+IF(RFRAME.EQ.0)THEN
 SHEAR_TEMP=-SSX/(0.5*rres*ufreestream*ufreestream)
-
+ELSE
+SHEAR_TEMP=-SSX/(0.5*rres*V_REF*V_REF)
+END IF
 
 END SUBROUTINE SHEAR_X
 
@@ -1353,8 +1441,11 @@ SSY=(VISCL(1)*((NX*TAUYX)+(NY*TAUYY)+(NZ*TAUZY)))
 SSZ=(VISCL(1)*((NX*TAUZX)+(NY*TAUZY)+(NZ*TAUZZ)))
 
 
+IF(RFRAME.EQ.0)THEN
 SHEAR_TEMP=-SSY/(0.5*rres*ufreestream*ufreestream)
-
+ELSE
+SHEAR_TEMP=-SSY/(0.5*rres*V_REF*V_REF)
+END IF
 
 END SUBROUTINE SHEAR_Y
 
@@ -1398,8 +1489,11 @@ SSY=(VISCL(1)*((NX*TAUYX)+(NY*TAUYY)+(NZ*TAUZY)))
 SSZ=(VISCL(1)*((NX*TAUZX)+(NY*TAUZY)+(NZ*TAUZZ)))
 
 
+IF(RFRAME.EQ.0)THEN
 SHEAR_TEMP=-SSZ/(0.5*rres*ufreestream*ufreestream)
-
+ELSE
+SHEAR_TEMP=-SSZ/(0.5*rres*V_REF*V_REF)
+END IF
 
 END SUBROUTINE SHEAR_Z
 
@@ -1976,6 +2070,10 @@ SELECT CASE(B_CODE)
 	      IF (TURBULENCEMODEL.EQ.2)THEN	 
 		CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
 		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
+        IF (SRF.EQ.1)THEN
+        CTURBR(1)=(1.5D0*I_turb_inlet*(KINIT_SRF**2))*RIGHTV(1)!K INITIALIZATION
+		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
+        END IF
 	      END IF
  
 	      IF (PASSIVESCALAR.GT.0)THEN
@@ -2060,13 +2158,19 @@ SELECT CASE(B_CODE)
     CASE(3)!SYMMETRY
     
 			      CALL ROTATEF(N,TRI,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-			      
-         		      CRIGHT_ROT(1)=CLEFT_ROT(1)
-			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
-			      CRIGHT_ROT(3)=CLEFT_ROT(3)
-			      CRIGHT_ROT(4)=CLEFT_ROT(4)
-			      CRIGHT_ROT(5)=CLEFT_ROT(5)
-					 
+				IF (SRF.EQ.1)THEN
+                    CRIGHT_ROT(1)=CLEFT_ROT(1)
+                    CRIGHT_ROT(2)=-(CLEFT_ROT(2))+2.0D0*CLEFT_ROT(1)*SRF_SPEEDROT(2)
+                    CRIGHT_ROT(3)=CLEFT_ROT(3)
+                    CRIGHT_ROT(4)=CLEFT_ROT(4)
+                    CRIGHT_ROT(5)=CLEFT_ROT(5)+2.0D0*CLEFT_ROT(1)*(SRF_SPEEDROT(2)**2)-2.0D0*CLEFT_ROT(2)*SRF_SPEEDROT(2)
+                ELSE
+                    CRIGHT_ROT(1)=CLEFT_ROT(1)
+                    CRIGHT_ROT(2)=-CLEFT_ROT(2)
+                    CRIGHT_ROT(3)=CLEFT_ROT(3)
+                    CRIGHT_ROT(4)=CLEFT_ROT(4)
+                    CRIGHT_ROT(5)=CLEFT_ROT(5)
+				END IF
 				     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 					    CTURBR(:)=CTURBL(:)
 
@@ -2087,10 +2191,16 @@ SELECT CASE(B_CODE)
 			      IF (ITESTCASE.EQ.3)THEN
 			      
 			       CALL ROTATEF(N,TRI,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-			      
+			      IF (SRF.EQ.1)THEN
+                        CRIGHT_ROT(1)=CLEFT_ROT(1)
+                        CRIGHT_ROT(2)=-(CLEFT_ROT(2))+2.0D0*CLEFT_ROT(1)*SRF_SPEEDROT(2)
+                        CRIGHT_ROT(3)=CLEFT_ROT(3)
+                        CRIGHT_ROT(4)=CLEFT_ROT(4)
+                        CRIGHT_ROT(5)=CLEFT_ROT(5)+CLEFT_ROT(1)*(SRF_SPEEDROT(2)**2)*2.0D0-2.0D0*CLEFT_ROT(2)*SRF_SPEEDROT(2)
+			      ELSE
          		      CRIGHT_ROT(:)=CLEFT_ROT(:)
 			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
-					 
+                  END IF
 				     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 					    CTURBR(:)=CTURBL(:)
 
@@ -2108,13 +2218,21 @@ SELECT CASE(B_CODE)
 			      
 			      
 			      ELSE
+                  IF(SRF.EQ.1)THEN
+                    rightv(1)=leftv(1)
+                    rightv(2)=-leftv(2)+2.0D0*leftv(1)*SRF_SPEED(2)
+                    rightv(3)=-leftv(3)+2.0D0*leftv(1)*SRF_SPEED(3)
+                    rightv(4)=-leftv(4)+2.0D0*leftv(1)*SRF_SPEED(4)
+                    rightv(5)=leftv(5)+2.0D0*leftv(1)*(SRF_SPEED(2)**2+SRF_SPEED(3)**2+SRF_SPEED(4)**2)+&
+                                            -2.0D0*(leftv(2)*SRF_SPEED(2)+leftv(3)*SRF_SPEED(3)+leftv(4)*SRF_SPEED(4))
     
-			      rightv(1)=leftv(1)
-			      rightv(2)=-leftv(2)
-			      rightv(3)=-leftv(3)
-			      rightv(4)=-leftv(4)
-			      rightv(5)=leftv(5)
-    
+                  ELSE
+                    rightv(1)=leftv(1)
+                    rightv(2)=-leftv(2)
+                    rightv(3)=-leftv(3)
+                    rightv(4)=-leftv(4)
+                    rightv(5)=leftv(5)
+                  END IF
     
     
     
@@ -2216,6 +2334,10 @@ SELECT CASE(B_CODE)
 	      IF (TURBULENCEMODEL.EQ.2)THEN	 
 		CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
 		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
+		IF(SRF.EQ.1)THEN
+            CTURBR(1)=(1.5D0*I_turb_inlet*(KINIT_SRF**2))*RIGHTV(1)!K INITIALIZATION
+            CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
+		END IF
 	      END IF
  
 	      IF (PASSIVESCALAR.GT.0)THEN
@@ -2981,13 +3103,19 @@ PHI=OO2*(A2)*((US*US)+(VS*VS)+(WS*WS))
  
 VVS=NX*US+NY*VS+NZ*WS
 
-
-EIGVL(1,1)=0.0D0		; 		EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=NZ	; 		EIGVL(1,5)=0.0D0
-EIGVL(2,1)=NX*PHI-US*VVS	; 	EIGVL(2,2)=VVS-A3*NX*US	; 	EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=NZ*US-A2*NX*WS	; EIGVL(2,5)=A2*NX
-EIGVL(3,1)=NY*PHI-VS*VVS		; EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS	; EIGVL(3,4)=NZ*VS-A2*NY*WS	; EIGVL(3,5)=A2*NY
-EIGVL(4,1)=NZ*PHI-WS*VVS		; EIGVL(4,2)=NX*WS-A2*NZ*US	; EIGVL(4,3)=NY*WS-A2*NZ*VS	; EIGVL(4,4)=VVS-A3*NZ*WS	; EIGVL(4,5)=A2*NZ
-EIGVL(5,1)=VVS*(PHI-A1)	;		 EIGVL(5,2)=NX*A1-A2*US*VVS	; EIGVL(5,3)=NY*A1-A3*VS*VVS	; EIGVL(5,4)=NZ*A1-A2*WS*VVS	; EIGVL(5,5)=GAMMA*VVS
-
+IF(SRF.EQ.1)THEN
+    EIGVL(1,1)=0.0D0-SRF_SPEEDROT(2);EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=NZ	; 		EIGVL(1,5)=0.0D0
+    EIGVL(2,1)=NX*PHI-US*VVS	;EIGVL(2,2)=VVS-A3*NX*US-SRF_SPEEDROT(2)	;EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=NZ*US-A2*NX*WS; EIGVL(2,5)=A2*NX
+    EIGVL(3,1)=NY*PHI-VS*VVS	;EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS-SRF_SPEEDROT(2)	; EIGVL(3,4)=NZ*VS-A2*NY*WS; EIGVL(3,5)=A2*NY
+    EIGVL(4,1)=NZ*PHI-WS*VVS	;EIGVL(4,2)=NX*WS-A2*NZ*US	; EIGVL(4,3)=NY*WS-A2*NZ*VS	; EIGVL(4,4)=VVS-A3*NZ*WS-SRF_SPEEDROT(2); EIGVL(4,5)=A2*NZ
+    EIGVL(5,1)=VVS*(PHI-A1)         ; EIGVL(5,2)=NX*A1-A2*US*VVS	; EIGVL(5,3)=NY*A1-A3*VS*VVS; EIGVL(5,4)=NZ*A1-A2*WS*VVS; EIGVL(5,5)=GAMMA*VVS-SRF_SPEEDROT(2)
+ELSE
+    EIGVL(1,1)=0.0D0		; 		EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=NZ	; 		EIGVL(1,5)=0.0D0
+    EIGVL(2,1)=NX*PHI-US*VVS	; 	EIGVL(2,2)=VVS-A3*NX*US	; 	EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=NZ*US-A2*NX*WS	; EIGVL(2,5)=A2*NX
+    EIGVL(3,1)=NY*PHI-VS*VVS		; EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS	; EIGVL(3,4)=NZ*VS-A2*NY*WS	; EIGVL(3,5)=A2*NY
+    EIGVL(4,1)=NZ*PHI-WS*VVS		; EIGVL(4,2)=NX*WS-A2*NZ*US	; EIGVL(4,3)=NY*WS-A2*NZ*VS	; EIGVL(4,4)=VVS-A3*NZ*WS	; EIGVL(4,5)=A2*NZ
+    EIGVL(5,1)=VVS*(PHI-A1)	;		 EIGVL(5,2)=NX*A1-A2*US*VVS	; EIGVL(5,3)=NY*A1-A3*VS*VVS	; EIGVL(5,4)=NZ*A1-A2*WS*VVS	; EIGVL(5,5)=GAMMA*VVS
+END IF
 
  
  
@@ -3831,7 +3959,33 @@ END SUBROUTINE
 
 SUBROUTINE FLUX2DX
 IMPLICIT NONE
-REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
+REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI, IE1, MP_STIFF
+IF(MULTISPECIES.EQ.1)THEN
+
+MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)  
+MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+ 
+ 
+R=LEFTV(1)
+U=LEFTV(2)
+V=LEFTV(3)
+P=LEFTV(4)
+GM=GAMMA
+!KINETIC ENERGY FIRST!
+SKIN=(OO2)*((U**2)+(V**2))
+!INTERNAL ENERGY 
+IE1=((P+MP_stiff)/((GAMMAL-1.0D0)*R))
+!TOTAL ENERGY
+E=R*(SKIN+IE1)
+FLUX_TERM_X(1)=R*U
+FLUX_TERM_X(2)=(R*(U**2))+P
+FLUX_TERM_X(3)=R*U*V
+FLUX_TERM_X(4)=U*(E+P)
+FLUX_TERM_X(5:7)=LEFTV(5:7)*U
+ELSE
+
 R=LEFTV(1)
 U=LEFTV(2)
 V=LEFTV(3)
@@ -3848,12 +4002,21 @@ FLUX_TERM_X(2)=(R*(U**2))+P
 FLUX_TERM_X(3)=R*U*V
 FLUX_TERM_X(4)=U*(E+P)
 
+END IF
+
 END SUBROUTINE
 
 
 SUBROUTINE FLUX2DY
 IMPLICIT NONE
-REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
+REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI, IE1, MP_STIFF
+IF(MULTISPECIES.EQ.1)THEN
+
+MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)  
+MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+
 R=LEFTV(1)
 U=LEFTV(2)
 V=LEFTV(3)
@@ -3862,6 +4025,25 @@ GM=GAMMA
 !KINETIC ENERGY FIRST!
 SKIN=(OO2)*((U**2)+(V**2))
 !INTERNAL ENERGY 
+IE1=((P+MP_stiff)/((GAMMAL-1.0D0)*R))
+!TOTAL ENERGY
+E=R*(SKIN+IE1)
+FLUX_TERM_Y(1)=R*V
+FLUX_TERM_Y(2)=R*U*V
+FLUX_TERM_Y(3)=(R*(V**2))+P
+FLUX_TERM_Y(4)=V*(E+P)
+FLUX_TERM_Y(5:7)=LEFTV(5:7)*V
+ELSE
+
+
+R=LEFTV(1)
+U=LEFTV(2)
+V=LEFTV(3)
+P=LEFTV(4)
+GM=GAMMA
+!KINETIC ENERGY FIRST!
+SKIN=(OO2)*((U**2)+(V**2))
+!INTERNAL ENERGY
 IEN=((P)/((GM-1.0D0)*R))
 !TOTAL ENERGY
 E=R*(SKIN+IEN)
@@ -3871,7 +4053,12 @@ FLUX_TERM_Y(2)=R*u*v
 FLUX_TERM_Y(3)=(R*v*v)+P
 FLUX_TERM_Y(4)=v*(E+P)
 
-END SUBROUTINE
+ENDIF
+
+END subroutine
+
+
+
 
 
 
@@ -3901,6 +4088,7 @@ FLUX_TERM_X(5)=U*(E+P)
 
 
 END SUBROUTINE
+
 
 
 SUBROUTINE FLUX3DY
@@ -3949,5 +4137,133 @@ FLUX_TERM_Z(4)=(R*(w**2))+P
 FLUX_TERM_Z(5)=w*(E+P)
 
 END SUBROUTINE
+
+
+
+
+
+
+SUBROUTINE FLUX_VISC2D(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL:: U, V, UX, UY, VX, VY, TX, TY, TAUXX, TAUXY, TAUYY
+
+    CALL SUTHERLAND2D(N, LEFTV, LEFTV)
+
+       U = LEFTV(2)
+       V = LEFTV(3)
+      UX = LEFTV_DER(2,1)
+      UY = LEFTV_DER(2,2)
+      VX = LEFTV_DER(3,1)
+      VY = LEFTV_DER(3,2)
+      TX = LEFTV_DER(4,1)
+      TY = LEFTV_DER(4,2)
+
+    TAUXX = 2.0D0 / 3.0D0 * VISCL(1) * (2 * UX - VY)
+    TAUYY = 2.0D0 / 3.0D0 * VISCL(1) * (2 * VY - UX)
+    TAUXY = VISCL(1) * (UY + VX)
+
+    FLUX_TERM_X(2) = FLUX_TERM_X(2) - TAUXX
+    FLUX_TERM_X(3) = FLUX_TERM_X(3) - TAUXY
+    FLUX_TERM_X(4) = FLUX_TERM_X(4) - (U * TAUXX + V * TAUXY + LAML(1) * TX)
+    FLUX_TERM_Y(2) = FLUX_TERM_Y(2) - TAUXY
+    FLUX_TERM_Y(3) = FLUX_TERM_Y(3) - TAUYY
+    FLUX_TERM_Y(4) = FLUX_TERM_Y(4) - (U * TAUXY + V * TAUYY + LAML(1) * TY)
+
+
+END SUBROUTINE
+
+
+SUBROUTINE FLUX_VISC3D(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL:: U, V, UX, UY, VX, VY, TX, TY, TAUXX, TAUXY, TAUYY, W, UZ, VZ, WX, WY, WZ, TZ, TAUXZ, TAUYZ, TAUZZ
+
+
+    CALL SUTHERLAND(N, LEFTV, LEFTV)
+
+! Variables extrapolated at boundary
+       U = LEFTV(2)
+       V = LEFTV(3)
+       W = LEFTV(4)
+
+      UX = LEFTV_DER(2,1)
+      UY = LEFTV_DER(2,2)
+      UZ = LEFTV_DER(2,3)
+
+      VX = LEFTV_DER(3,1)
+      VY = LEFTV_DER(3,2)
+      VZ = LEFTV_DER(3,3)
+
+      WX = LEFTV_DER(4,1)
+      WY = LEFTV_DER(4,2)
+      WZ = LEFTV_DER(4,3)
+
+      TX = LEFTV_DER(5,1)
+      TY = LEFTV_DER(5,2)
+      TZ = LEFTV_DER(5,3)
+
+    TAUXX = 2.0D0 / 3.0D0 * VISCL(1) * (2 * UX - VY - WZ)
+    TAUYY = 2.0D0 / 3.0D0 * VISCL(1) * (2 * VY - UX - WZ)
+    TAUXY = VISCL(1) * (UY + VX)
+
+    TAUXZ = VISCL(1) * (UZ + WX)
+    TAUYZ = VISCL(1) * (WY + VZ)
+    TAUZZ = 2.0D0 / 3.0D0 * VISCL(1) * (2 * WZ - UX - VY)
+
+    FLUX_TERM_X(2) = FLUX_TERM_X(2) - TAUXX
+    FLUX_TERM_X(3) = FLUX_TERM_X(3) - TAUXY
+    FLUX_TERM_X(4) = FLUX_TERM_X(4) - TAUXZ
+    FLUX_TERM_X(5) = FLUX_TERM_X(5) - (U * TAUXX + V * TAUXY + W * TAUXZ + LAML(1) * TX)
+
+    FLUX_TERM_Y(2) = FLUX_TERM_Y(2) - TAUXY
+    FLUX_TERM_Y(3) = FLUX_TERM_Y(3) - TAUYY
+    FLUX_TERM_Y(4) = FLUX_TERM_Y(4) - TAUYZ
+    FLUX_TERM_Y(5) = FLUX_TERM_Y(5) - (U * TAUXY + V * TAUYY + W * TAUYZ + LAML(1) * TY)
+
+    FLUX_TERM_Z(2) = FLUX_TERM_Z(2) - TAUXZ
+    FLUX_TERM_Z(3) = FLUX_TERM_Z(3) - TAUYZ
+    FLUX_TERM_Z(4) = FLUX_TERM_Z(4) - TAUZZ
+    FLUX_TERM_Z(5) = FLUX_TERM_Z(5) - (U * TAUXZ + V * TAUYZ + W * TAUZZ + LAML(1) * TZ)
+
+END SUBROUTINE
+
+
+
+
+
+
+
+
+SUBROUTINE DCONS2DPRIM
+IMPLICIT NONE
+INTEGER:: I_DIM, I_VAR
+REAL, EXTERNAL:: DDOT
+
+    DO I_DIM = 1, DIMENSIONA
+        DO I_VAR = 2, NOF_VARIABLES-1
+            LEFTV_DER(I_VAR,I_DIM) = (LEFTV_DER(I_VAR,I_DIM) - LEFTV_DER(1,I_DIM) * LEFTV(I_VAR)) / LEFTV(1) ! UX = (RHOUX - RHOX * U) / RHO
+        END DO
+
+
+        LEFTV_DER(NOF_VARIABLES,I_DIM) = (GAMMA - 1.0D0) * ((LEFTV(1) * LEFTV_DER(NOF_VARIABLES,I_DIM) - LEFTV(NOF_VARIABLES) * LEFTV_DER(1,I_DIM)) / LEFTV(1) ** 2 - DDOT(NOF_VARIABLES-2, LEFTV(2:NOF_VARIABLES-1),1, LEFTV_DER(2:NOF_VARIABLES-1,I_DIM),1))
+        ! TX = (GAMMA-1) * ((RHO * EX - E * RHOX) / RHO ** 2 - (U * UX + V * VX + W * WX))
+    END DO
+
+END SUBROUTINE DCONS2DPRIM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 END MODULE FLOW_OPERATIONS

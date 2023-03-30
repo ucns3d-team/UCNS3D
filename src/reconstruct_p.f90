@@ -61,17 +61,37 @@ if (dimensiona.eq.3)then
     DO I=1,KMAXE
         IF (IELEM(N,I)%ISHAPE.EQ.2)THEN
             ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+			IF (SRFG.EQ.1)THEN
+				ALLOCATE(ILOCAL_RECON3(I)%RPOINTS(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+				ALLOCATE(ILOCAL_RECON3(I)%ROTVEL(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+			END IF
+			IF (MRF.EQ.1)THEN
+				ALLOCATE(ILOCAL_RECON3(I)%RPOINTS(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+				ALLOCATE(ILOCAL_RECON3(I)%ROTVEL(IELEM(N,I)%IFCA,QP_TRIANGLE,3))
+				ALLOCATE (ILOCAL_RECON3(I)%MRF_ORIGIN(1:3))
+				ALLOCATE (ILOCAL_RECON3(I)%MRF_VELOCITY(1:3))
+			END IF
         ELSE
             ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,QP_QUAD,3))
+			IF (SRFG.EQ.1)THEN
+				ALLOCATE(ILOCAL_RECON3(I)%RPOINTS(IELEM(N,I)%IFCA,QP_QUAD,3))
+				ALLOCATE(ILOCAL_RECON3(I)%ROTVEL(IELEM(N,I)%IFCA,QP_QUAD,3))
+			END IF
+			IF (MRF.EQ.1)THEN
+				ALLOCATE(ILOCAL_RECON3(I)%RPOINTS(IELEM(N,I)%IFCA,QP_QUAD,3))
+				ALLOCATE(ILOCAL_RECON3(I)%ROTVEL(IELEM(N,I)%IFCA,QP_QUAD,3))
+				ALLOCATE (ILOCAL_RECON3(I)%MRF_ORIGIN(1:3))
+				ALLOCATE (ILOCAL_RECON3(I)%MRF_VELOCITY(1:3))
+			END IF
         END IF
         ICONSIDERED=I
         DO L=1,IELEM(N,I)%IFCA
             IDUMMY=0
             if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
                 IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-                    if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-                    IDUMMY=1
-                    END IF
+                    if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+					    IDUMMY=1
+					    END IF
                 END IF	
                 if (ielem(n,i)%types_faces(L).eq.5)then
                 iqp=qp_quad
@@ -79,14 +99,14 @@ if (dimensiona.eq.3)then
                     IF (IDUMMY.EQ.0)THEN
                         do K=1,nnd
                         VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+!                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
                         END DO
                     ELSE
                         facex=l;
                         CALL coordinates_face_PERIOD1(n,iconsidered,facex)
-                        do K=1,nnd
-                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-                        END DO
+!                        do K=1,nnd
+ !                       VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+ !                       END DO
                     END IF
                 call  QUADRATUREQUAD3D(N,IGQRULES)
                 else
@@ -95,14 +115,14 @@ if (dimensiona.eq.3)then
                     IF (IDUMMY.EQ.0)THEN
                         do K=1,nnd
                         VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+!                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
                         END DO
                     ELSE
                         facex=l;
                         CALL coordinates_face_PERIOD1(n,iconsidered,facex)
-                        do K=1,nnd
-                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
-                        END DO
+ !                       do K=1,nnd
+  !                      VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+!                        END DO
                     END IF
                         
                 call QUADRATURETRIANG(N,IGQRULES)
@@ -113,7 +133,7 @@ if (dimensiona.eq.3)then
                     NND=4
                     do K=1,nnd
                         VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+!                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
                     END DO 
                     call  QUADRATUREQUAD3D(N,IGQRULES)
                 else
@@ -121,19 +141,110 @@ if (dimensiona.eq.3)then
                     NND=3 
                     do K=1,nnd
                         VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
-                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+!                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
                     END DO  
                     call QUADRATURETRIANG(N,IGQRULES)
                 end if
             end if
             
             do NGP=1,iqp			!for gqp
-                ILOCAL_RECON3(I)%QPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
+!                ILOCAL_RECON3(I)%QPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
+				IF (SRFG.EQ.1)THEN
+					ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
+					POX(1:3)=ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)-SRF_ORIGIN(1:3)
+					POY(1:3)=SRF_VELOCITY(1:3)
+					ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)=VECT_FUNCTION(POX,POY)
+					END IF
+					
+					IF (MRF.EQ.1)THEN
+					ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
+					POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+					POY(1:3)=ILOCAL_RECON3(I)%RPOINTS(L,NGP,1:3)
+					ICONSIDERED=I
+					FACEX=L
+					POINTX=NGP
+					CALL MRFSWITCH(n)
+					
+					END IF 
+
+		END DO	!NGP
+		END DO
+
+
+
+
+
+		DO L=1,IELEM(N,I)%IFCA
+		IDUMMY=0
+			    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
+				    IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+					    if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+					    IDUMMY=1
+					    END IF
+				    END IF	
+                                    if (ielem(n,i)%types_faces(L).eq.5)then
+                                    iqp=qp_quad
+                                    NND=4
+                                        IF (IDUMMY.EQ.0)THEN
+                                            do K=1,nnd
+                                            VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                            VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
             END DO	!NGP
+                                        ELSE
+                                            facex=l;
+                                            CALL coordinates_face_PERIOD1(n,iconsidered,facex)
+                                            do K=1,nnd
+                                            VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
         END DO
+                                        END IF
+                                    call  QUADRATUREQUAD3D(N,IGQRULES)
+                                    else
+                                    iqp=QP_TRIANGLE
+                                    NND=3
+                                        IF (IDUMMY.EQ.0)THEN
+                                            do K=1,nnd
+                                            VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                            VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
     END DO
     
 ELSE ! 2 dimensions
+                                            facex=l;
+                                            CALL coordinates_face_PERIOD1(n,iconsidered,facex)
+                                            do K=1,nnd
+                                            VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                                            END DO
+                                        END IF
+                                            
+                                    call QUADRATURETRIANG(N,IGQRULES)
+                                    end if
+			    else
+					  if (ielem(n,i)%types_faces(L).eq.5)then
+					    iqp=qp_quad
+					    NND=4
+						  do K=1,nnd
+						    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+						    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+						  END DO 
+					    call  QUADRATUREQUAD3D(N,IGQRULES)
+					  else
+					    iqp=QP_TRIANGLE
+					    NND=3 
+						  do K=1,nnd
+						    VEXT(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+						    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+						  END DO  
+					    call QUADRATURETRIANG(N,IGQRULES)
+					  end if
+			    end if
+		
+		do NGP=1,iqp			!for gqp
+		ILOCAL_RECON3(I)%QPOINTS(L,NGP,1:3)=QPOINTS2D(1:3,NGP)
+		END DO	!NGP
+		END DO
+		END DO
+	  
+	  
+	  else
     
     DO I=1,KMAXE
         ALLOCATE(ILOCAL_RECON3(I)%QPOINTS(IELEM(N,I)%IFCA,qp_line,2))
@@ -145,7 +256,7 @@ ELSE ! 2 dimensions
         
             if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
                 IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-                    if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
                         IDUMMY=1
                     END IF
                 END IF
@@ -417,7 +528,7 @@ IMPLICIT NONE
     gradients(0,:,ll) = U_C(I)%VAL(1,1:nof_variables)
    end do
    IF (EES.EQ.5)THEN
-   ;LAMC(:)=ZERO;GRAD5ALC=ZERO;LAMC(1)=(1.0d0-(1.0d0/LWCI1));lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
+   ;LAMC(:)=ZERO;GRAD5ALC=ZERO;LAMC(1)=(1.0d0-(1.0d0/LWCx1));lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
 		    DO LL=2,IELEM(N,I)%ADMIS
 			GRAD5ALC(1:IDEGFREE2,1:nof_variables)=GRAD5ALC(1:IDEGFREE2,1:nof_variables)&
 			+(LAMC(LL)*ILOCAL_RECON5(1)%GRADIENTSC(ll,1:IDEGFREE2,1:nof_variables))
@@ -555,7 +666,7 @@ REAL::DIVISIONBYZERO
 INTEGER::I,J,K,L,M,O,LL,IEX,IEUL,FACX,IELEME,KKD,KMAXE,JF,NGP,IQP,nnd,II,icd
 INTEGER::IDUMMY,POWER,ITARGET
 REAL::SUMOMEGAATILDEL
-REAL::DIVBYZERO,COMPF,checkf,tau_Weno
+REAL::DIVBYZERO,COMPF,checkf,tau_Weno,tempxx
 REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 REAL,EXTERNAL::DDOT
 
@@ -569,11 +680,27 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 
 !$OMP DO SCHEDULE (STATIC)
 DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
+         IF (MRF.EQ.1)THEN
+        SRF=ILOCAL_RECON3(I)%MRF
+      END IF
    IF ((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
       CALL ALLGRADS_INNER(N,I)
-      DIVBYZERO=1E-14
-      POWER=4
+
+      divbyzero=10E-14
+
+      if (ees.eq.5)then
+
+      power=2
+
+
+
+      else
+      power=4
+      end if
       
+      if (ADDA.EQ.1)THEN
+      CALL ADDA_FILTER(N)
+      END IF
       
       
       IF (WENWRT.EQ.2)THEN
@@ -586,11 +713,11 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
             CALL COMPUTE_EIGENVECTORS(N,RVEIGL,RVEIGR,EIGVL,EIGVR,GAMMA)
             LAMBDA(:,:,L,1)=ZERO;SMOOTHINDICATOR(:,:,L,1)=ZERO;OMEGATILDE(:,:,L,1)=ZERO;OMEGA(:,:,L,1)=ZERO;FACEX=L
             CALL compute_gradcharv_smoothindicator(ICONSIDERED,facex)
-	    LAMBDA(1:5,:,L,1)=1.0D0;LAMBDA(1:5,1,L,1)=LWCI1
+	    LAMBDA(1:5,:,L,1)=1.0D0;LAMBDA(1:5,1,L,1)=LWCx1
 	    
 	    
 		if (ees.eq.5)then;DO KKD=1,nof_variables
-		LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+		LAMC(1)=(1.0d0-(1.0d0/LWCx1))
                 lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                 LAMBDA(KKD,1:ielem(n,i)%admis,L,1)=lamc(1:ielem(n,i)%admis)
                 END DO;end if
@@ -602,9 +729,9 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 							DO LL=1,IELEM(N,I)%ADMIS
 							tau_Weno=tau_weno+(abs(SMOOTHINDICATOR(KKD,1,L,1)-SMOOTHINDICATOR(KKD,LL,L,1)))
 							end do
-							tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+							tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
 							DO LL=1,IELEM(N,I)%ADMIS
-							omegatilde(KKD,LL,L,1)=(LAMBDA(KKD,LL,L,1))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATOR(KKD,LL,L,1))))
+							omegatilde(KKD,LL,L,1)=(LAMBDA(KKD,LL,L,1))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATOR(KKD,LL,L,1)))**power)
 							end do
                                                     else
 							DO LL=1,IELEM(N,I)%ADMIS
@@ -626,6 +753,13 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 			    DO LL=1,IELEM(N,I)%ADMIS
 			    WENOOS(KKD,LL,L,1)=OMEGA(KKD,LL,L,1)
 			    END DO
+
+
+
+
+
+
+
 	      END DO
 		LIMITEDDW(:,:)=ZERO
 		  IF (EES.EQ.5)THEN
@@ -764,7 +898,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 		DO IEX=1,nof_variables
 			LAMBDAAL=ZERO;SMOOTHINDICATORAL=ZERO;OMEGAATILDEL=ZERO;OMEGAAL=ZERO
                          IF (EES.EQ.5)THEN
-				    LAMC(:)=ZERO; GRAD3AL(:)=ZERO; LAMC(1)=(1.0d0-(1.0d0/LWCI1));lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
+				    LAMC(:)=ZERO; GRAD3AL(:)=ZERO; LAMC(1)=(1.0d0-(1.0d0/lwcx1));lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
 				    LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 				    !sum the low degree polynomials first
 				    DO LL=2,IELEM(N,I)%ADMIS
@@ -821,9 +955,9 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 			      END DO
                          END IF
 			      LAMBDAAL(:)=1.0D0
-			      LAMBDAAL(1)=LWCI1
+			      LAMBDAAL(1)=lwcx1
                                 if (ees.eq.5)then
-				LAMC(1)=(1.0d0-(1.0d0/LWCI1)); lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1);LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
+				LAMC(1)=(1.0d0-(1.0d0/lwcx1)); lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1);LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 				end if
 
 			     if (ees.eq.5)then
@@ -833,9 +967,9 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 					      DO LL=1,IELEM(N,I)%ADMIS
 					      tau_Weno=tau_weno+(abs(SMOOTHINDICATORAL(1)-SMOOTHINDICATORAL(LL)))
 					      end do
-					      tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+					      tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
 					      DO LL=1,IELEM(N,I)%ADMIS
-					      OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL))))
+					      OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL)))**power)
 					      end do
 				      else
 					      DO LL=1,IELEM(N,I)%ADMIS
@@ -861,6 +995,12 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 			      DO LL=1,IELEM(N,I)%ADMIS
 			      WENO(IEX,LL)=OMEGAAL(LL)
 			      
+
+
+			      if (iex.eq.1)then
+				    ielem(n,i)%wcx(1)=WENO(iex,1)
+				    end if
+
 			      END DO
 			    
 
@@ -1087,7 +1227,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 		   IF (EES.EQ.5)THEN
 		     LAMC(:)=ZERO   
                           GRAD3AL(:)=ZERO
-                            LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                            LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 		    
@@ -1154,14 +1294,14 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 		      
 		      
                                 LAMBDAAL(:)=1.0D0
-                                LAMBDAAL(1)=LWCI1
+                                LAMBDAAL(1)=lwcx1
                                 
 !                                             if (ees.eq.5)then
 !                                         LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 !                                         end if
                                                 if (ees.eq.5)then
                                                 
-                                                LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                                                LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
                                                 
@@ -1170,9 +1310,9 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
                                         DO LL=1,IELEM(N,I)%ADMIS
                                         tau_Weno=tau_weno+(abs(SMOOTHINDICATORAL(1)-SMOOTHINDICATORAL(LL)))
                                         end do
-                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
                                         DO LL=1,IELEM(N,I)%ADMIS
-                                        OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL))))
+                                        OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL)))**power)
                                         end do
                                 else
                                 DO LL=1,IELEM(N,I)%ADMIS
@@ -1327,10 +1467,26 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 	DO II=1,NOF_BOUNDED
 	I=EL_BND(II)
 	ICONSIDERED=I
+	 IF (MRF.EQ.1)THEN
+        SRF=ILOCAL_RECON3(I)%MRF
+      END IF
 		IF ((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
 		CALL ALLGRADS_MIX(N,I)
-	DIVBYZERO=1E-14
-      POWER=4
+ 	divbyzero=10E-14
+
+	if (ees.eq.5)then
+      power=2
+
+
+
+      else
+      power=4
+      end if
+
+      if (ADDA.EQ.1)THEN
+      CALL ADDA_FILTER(N)
+      END IF
+
 		
 		IF (WENWRT.EQ.2)THEN	
 		  DO L=1,IELEM(N,I)%IFCA
@@ -1343,12 +1499,18 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				VEIGL(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 				CALL ROTATEF(N,TRI,RVEIGL,VEIGL,ANGLE1,ANGLE2)
 				
-				
+				IF (SRF.EQ.1)THEN
+					SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
+					CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)					
+                END IF
 				IF (IELEM(N,I)%INEIGHB(l).EQ.N)THEN	!MY CPU ONLY
 				      IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES	
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN MY CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
 					  VEIGR(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(l))%VAL(1,1:nof_variables)
 					  IDUMMY=1
+					  IF(PER_ROT.EQ.1)THEN
+                        VEIGR(2:4)=ROTATE_PER_1(VEIGR(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+					  END IF
 					  else
 					  !NOT PERIODIC ONES IN MY CPU
 					  facex=l;iconsidered=i
@@ -1373,10 +1535,13 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				else
 			      !other my cpu
 				    IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					  VEIGR(1:nof_variables)=(IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
 					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_variables))
 					  IDUMMY=1
+					  IF(PER_ROT.EQ.1)THEN
+                        VEIGR(2:4)=ROTATE_PER_1(VEIGR(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+					  END IF
 					  end if
 				    else
 				  
@@ -1399,11 +1564,11 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				
 
 					LAMBDA(1:5,:,L,1)=1.0D0
-					LAMBDA(1:5,1,L,1)=LWCI1
+					LAMBDA(1:5,1,L,1)=lwcx1
 				
 				 if (ees.eq.5)then
 				 
-				 LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+				 LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
 				 
 				 
@@ -1420,9 +1585,9 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 							DO LL=1,IELEM(N,I)%ADMIS
 							tau_Weno=tau_weno+(abs(SMOOTHINDICATOR(KKD,1,L,1)-SMOOTHINDICATOR(KKD,LL,L,1)))
 							end do
-							tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+							tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
 							DO LL=1,IELEM(N,I)%ADMIS
-							omegatilde(KKD,LL,L,1)=(LAMBDA(KKD,LL,L,1))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATOR(KKD,LL,L,1))))
+							omegatilde(KKD,LL,L,1)=(LAMBDA(KKD,LL,L,1))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATOR(KKD,LL,L,1)))**power)
 							end do
                                                     else
 							DO LL=1,IELEM(N,I)%ADMIS
@@ -1613,7 +1778,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 		DO IEX=1,nof_variables
 			LAMBDAAL=ZERO;SMOOTHINDICATORAL=ZERO;OMEGAATILDEL=ZERO;OMEGAAL=ZERO
 			     IF (EES.EQ.5)THEN
-				    LAMC(:)=ZERO; GRAD3AL(:)=ZERO; LAMC(1)=(1.0d0-(1.0d0/LWCI1));lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
+				    LAMC(:)=ZERO; GRAD3AL(:)=ZERO; LAMC(1)=(1.0d0-(1.0d0/lwcx1));lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
 				    LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 				    !sum the low degree polynomials first
 				    DO LL=2,IELEM(N,I)%ADMIS
@@ -1669,9 +1834,9 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
                          END IF
 
 			     LAMBDAAL(:)=1.0D0
-			      LAMBDAAL(1)=LWCI1
+			      LAMBDAAL(1)=lwcx1
                                 if (ees.eq.5)then
-				LAMC(1)=(1.0d0-(1.0d0/LWCI1)); lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1);LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
+				LAMC(1)=(1.0d0-(1.0d0/lwcx1)); lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1);LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 				end if
                                 
                                 
@@ -1682,9 +1847,9 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 					      DO LL=1,IELEM(N,I)%ADMIS
 					      tau_Weno=tau_weno+(abs(SMOOTHINDICATORAL(1)-SMOOTHINDICATORAL(LL)))
 					      end do
-					      tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+					      tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
 					      DO LL=1,IELEM(N,I)%ADMIS
-					      OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL))))
+					      OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL)))**power)
 					      end do
 				      else
 					      DO LL=1,IELEM(N,I)%ADMIS
@@ -1708,7 +1873,9 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 
 			      DO LL=1,IELEM(N,I)%ADMIS
 			      WENO(IEX,LL)=OMEGAAL(LL)
- 			      
+ 			      if (iex.eq.1)then
+				    ielem(n,i)%wcx(1)=WENO(iex,1)
+				    end if
 			      END DO
 			      
 			      
@@ -1740,7 +1907,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 				  IDUMMY=0
 		
 				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					      IDUMMY=1
 					  END IF
 				  END IF
@@ -1978,7 +2145,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 		    IF (EES.EQ.5)THEN
 		     LAMC(:)=ZERO   
                           GRAD3AL(:)=ZERO
-                             LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                             LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 		    
@@ -2043,7 +2210,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 		      
 		      
 		      LAMBDAAL(:)=1.0D0
-		      LAMBDAAL(1)=LWCI1
+		      LAMBDAAL(1)=lwcx1
 		     
 ! 		   if (ees.eq.5)then
 !                               LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
@@ -2051,7 +2218,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 		   if (ees.eq.5)then
 		   
 		   
-		    LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+		    LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
                                 IF (WENOZ.EQ.1)THEN
@@ -2059,9 +2226,9 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
                                                 DO LL=1,IELEM(N,I)%ADMIS
                                                 tau_Weno=tau_weno+(abs(SMOOTHINDICATORAL(1)-SMOOTHINDICATORAL(LL)))
                                                 end do
-                                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+                                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
                                                 DO LL=1,IELEM(N,I)%ADMIS
-                                                OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL))))
+                                                OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL)))**power)
                                                 end do
                                                 ELSE
 						DO LL=1,IELEM(N,I)%ADMIS
@@ -2099,7 +2266,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 			
 		
 				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					      IDUMMY=1
 					  END IF
 				  END IF
@@ -2238,7 +2405,8 @@ REAL::DIVISIONBYZERO
 INTEGER::I,J,K,L,M,O,LL,IEX,IEUL,FACX,IELEME,KKD,KMAXE,JF,NGP,IQP,nnd,ii
 INTEGER::IDUMMY,POWER,itarget
 REAL::SUMOMEGAATILDEL,tau_Weno
-REAL::DIVBYZERO,COMPF,checkf
+REAL::COMPF,checkf
+real,dimension(20)::dk
 REAL,EXTERNAL::DDOT
 
 KMAXE=XMPIELRANK(N)
@@ -2252,11 +2420,20 @@ KMAXE=XMPIELRANK(N)
 	ICONSIDERED=I
         
 	IF ((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
-	DIVBYZERO=1E-14
+ 	divbyzero=10e-14
+
+	if (ees.eq.5)then
+      power=2
+
+
+      else
+
+       power=4
+
+      end if
 	
 	
-	
-      POWER=4
+
 		CALL ALLGRADS_INNER2d(N,I)
 		  IF (WENWRT.EQ.2)THEN		
 		  DO L=1,IELEM(N,I)%IFCA
@@ -2282,14 +2459,14 @@ KMAXE=XMPIELRANK(N)
 				  
 				  
 					LAMBDA(1:4,:,L,1)=1.0D0
-					LAMBDA(1:4,1,L,1)=LWCI1
+					LAMBDA(1:4,1,L,1)=lwcx1
 					
 					
 					
 					
                                   if (ees.eq.5)then
                                   
-                                  LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                                  LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             
                                   
@@ -2308,9 +2485,9 @@ KMAXE=XMPIELRANK(N)
 							DO LL=1,IELEM(N,I)%ADMIS
 							tau_Weno=tau_weno+(abs(SMOOTHINDICATOR(KKD,1,L,1)-SMOOTHINDICATOR(KKD,LL,L,1)))
 							end do
-							tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+							tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
 							DO LL=1,IELEM(N,I)%ADMIS
-							omegatilde(KKD,LL,L,1)=(LAMBDA(KKD,LL,L,1))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATOR(KKD,LL,L,1))))
+							omegatilde(KKD,LL,L,1)=(LAMBDA(KKD,LL,L,1))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATOR(KKD,LL,L,1)))**power)
 							end do
                                                     else
 							DO LL=1,IELEM(N,I)%ADMIS
@@ -2334,7 +2511,7 @@ KMAXE=XMPIELRANK(N)
 				    
 				    END DO
 				    if (kkd.eq.1)then
-				    ielem(n,i)%vortex(1)=WENOOS(KKD,1,L,1)
+				    ielem(n,i)%wcx(1)=WENOOS(KKD,1,L,1)
 				    end if
 				END DO
 				
@@ -2433,6 +2610,7 @@ KMAXE=XMPIELRANK(N)
 		ELSE
 		
 		DO IEX=1,nof_variables
+		dk=zero
 			LAMBDAAL=ZERO
 			SMOOTHINDICATORAL=ZERO
 			OMEGAATILDEL=ZERO
@@ -2450,9 +2628,18 @@ KMAXE=XMPIELRANK(N)
                                  IF (EES.EQ.5)THEN
                           LAMC(:)=ZERO   
                           GRAD3AL(:)=ZERO
-                            LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                            LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
+
+
+                           !  if (wenoz.eq.2)then
+                           ! LAMBDAAL(1:ielem(n,i)%admis)=1.0d0
+                           ! lamc(:)=1.0d0
+
+                           ! end if
+
+
                              
                              DO LL=2,IELEM(N,I)%ADMIS
                              GRAD3AL(1:IDEGFREE2)=GRAD3AL(1:IDEGFREE2)+(LAMC(LL)*ILOCAL_RECON5(1)%GRADIENTSC(LL,1:IDEGFREE2,IEX))
@@ -2525,13 +2712,21 @@ KMAXE=XMPIELRANK(N)
                               END IF
 
 			      LAMBDAAL(:)=1.0D0
-			      LAMBDAAL(1)=LWCI1
+			      LAMBDAAL(1)=lwcx1
                                if (ees.eq.5)then
                                
-                               LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                               LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
                                end if
+
+
+                          !     if (wenoz.eq.2)then
+                          !  LAMBDAAL(1:ielem(n,i)%admis)=1.0d0
+
+                          !  end if
+
+
 
                                 if (ees.eq.5)then
                                 if (wenoz.eq.1)then
@@ -2539,9 +2734,9 @@ KMAXE=XMPIELRANK(N)
                                         DO LL=1,IELEM(N,I)%ADMIS
                                         tau_Weno=tau_weno+(abs(SMOOTHINDICATORAL(1)-SMOOTHINDICATORAL(LL)))
                                         end do
-                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
                                         DO LL=1,IELEM(N,I)%ADMIS
-                                        OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL))))
+                                        OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL)))**power)
                                         end do
                                 else
                                 DO LL=1,IELEM(N,I)%ADMIS
@@ -2554,6 +2749,11 @@ KMAXE=XMPIELRANK(N)
 			      OMEGAATILDEL(LL)=(LAMBDAAL(LL))/((DIVBYZERO+SMOOTHINDICATORAL(LL))**POWER)
 			      END DO
 			      end if
+
+
+
+
+
 			      SUMOMEGAATILDEL=ZERO
 			      DO LL=1,IELEM(N,I)%ADMIS
 			      SUMOMEGAATILDEL=SUMOMEGAATILDEL+OMEGAATILDEL(LL)
@@ -2561,12 +2761,56 @@ KMAXE=XMPIELRANK(N)
 			      DO LL=1,IELEM(N,I)%ADMIS
 			      OMEGAAL(LL)=(OMEGAATILDEL(LL))/SUMOMEGAATILDEL
 			      END DO
+
+
+
+
+			      if (wenoz.eq.2)then
+
+			      do ll=1,ielem(n,i)%admis
+					if (omegaal(ll).lt.1.0e-5)then
+					dk(LL)=0.0d0
+					else
+					dk(LL)=1.0d0
+					end if
+			      end do
+
+
+			      SUMOMEGAATILDEL=ZERO
+
+			      DO LL=1,IELEM(N,I)%ADMIS
+			      if (dk(ll).gt.0.5)then
+
+			      SUMOMEGAATILDEL=SUMOMEGAATILDEL+OMEGAAL(LL)
+			      end if
+			      END DO
+
+
+
+			      DO LL=1,IELEM(N,I)%ADMIS
+			      if (dk(ll).gt.0.5)then
+			      OMEGAAL(LL)=(OMEGAal(LL))/SUMOMEGAATILDEL
+			      else
+			      OMEGAAL(LL)=0.0d0
+			      end if
+			      END DO
+
+
+					end if
+
+
+
 			      DO LL=1,IELEM(N,I)%ADMIS
 			      WENO(IEX,LL)=OMEGAAL(LL)
  			    
 			      END DO
+
+
+
+
+
 			       if (iex.eq.1)then
-				    ielem(n,i)%vortex(1)=WENO(iex,1)
+				    ielem(n,i)%wcx(1)=WENO(iex,1)
 				    end if
  		  END DO
 		DO L=1,IELEM(N,I)%IFCA	!FACES
@@ -2703,7 +2947,7 @@ KMAXE=XMPIELRANK(N)
 		    IF (EES.EQ.5)THEN
 		     LAMC(:)=ZERO   
                           GRAD3AL(:)=ZERO
-                             LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                             LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 		    
@@ -2768,12 +3012,12 @@ KMAXE=XMPIELRANK(N)
 		      
 		      
 		      LAMBDAAL(:)=1.0D0
-		      LAMBDAAL(1)=LWCI1
+		      LAMBDAAL(1)=lwcx1
 ! 		      if (ees.eq.5)then
 !                               LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 !                               end if
 		   if (ees.eq.5)then
-		   LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+		   LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 				if (wenoz.eq.1)then
@@ -2781,9 +3025,9 @@ KMAXE=XMPIELRANK(N)
                                 DO LL=1,IELEM(N,I)%ADMIS
                                 tau_Weno=tau_weno+(abs(SMOOTHINDICATORAL(1)-SMOOTHINDICATORAL(LL)))
                                 end do
-                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
                                 DO LL=1,IELEM(N,I)%ADMIS
-                                OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL))))
+                                OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL)))**power)
                                 end do
                                 else
                                 
@@ -2936,8 +3180,17 @@ KMAXE=XMPIELRANK(N)
 	ICONSIDERED=I
 	
 	IF((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
-	DIVBYZERO=1E-14
-      POWER=4
+	divbyzero=10e-14
+
+	if (ees.eq.5)then
+      power=2
+
+
+
+      else
+      power=4
+
+      end if
 		CALL ALLGRADS_MIX2d(N,I)
 		IF (WENWRT.EQ.2)THEN	
 		  DO L=1,IELEM(N,I)%IFCA
@@ -3005,10 +3258,10 @@ KMAXE=XMPIELRANK(N)
 				 
 				 
 					LAMBDA(1:4,:,L,1)=1.0D0
-					LAMBDA(1:4,1,L,1)=LWCI1
+					LAMBDA(1:4,1,L,1)=lwcx1
 				      if (ees.eq.5)then
 					  
-                                  LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                                  LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                                   
                                             DO KKD=1,nof_variables
@@ -3024,9 +3277,9 @@ KMAXE=XMPIELRANK(N)
 				      DO LL=1,IELEM(N,I)%ADMIS
 				      tau_Weno=tau_weno+(abs(SMOOTHINDICATOR(KKD,1,L,1)-SMOOTHINDICATOR(KKD,LL,L,1)))
 				      end do
-				      tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+				      tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
 					  DO LL=1,IELEM(N,I)%ADMIS
-					  omegatilde(KKD,LL,L,1)=(LAMBDA(KKD,LL,L,1))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATOR(KKD,LL,L,1))))
+					  omegatilde(KKD,LL,L,1)=(LAMBDA(KKD,LL,L,1))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATOR(KKD,LL,L,1)))**power)
 					  end do
                                  ELSE
                                     DO LL=1,IELEM(N,I)%ADMIS
@@ -3050,7 +3303,7 @@ KMAXE=XMPIELRANK(N)
 				   
 				    END DO
 				     if (kkd.eq.1)then
-				    ielem(n,i)%vortex(1)=WENOOS(KKD,1,L,1)
+				    ielem(n,i)%wcx(1)=WENOOS(KKD,1,L,1)
 				    end if
 				END DO
                             
@@ -3165,6 +3418,7 @@ KMAXE=XMPIELRANK(N)
 		
 		
 		DO IEX=1,nof_variables
+			dk=0.0
 			LAMBDAAL=ZERO
 			SMOOTHINDICATORAL=ZERO
 			OMEGAATILDEL=ZERO
@@ -3181,9 +3435,18 @@ KMAXE=XMPIELRANK(N)
                                   IF (EES.EQ.5)THEN
                           LAMC(:)=ZERO   
                           GRAD3AL(:)=ZERO
-                          LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                          LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
+
+
+                        !    if (wenoz.eq.2)then
+                         !   LAMBDAAL(1:ielem(n,i)%admis)=1.0d0
+                          !  lamc(:)=1.0d0
+
+                           ! end if
+
+
                              DO LL=2,IELEM(N,I)%ADMIS
                              GRAD3AL(1:IDEGFREE2)=GRAD3AL(1:IDEGFREE2)+(LAMC(LL)*ILOCAL_RECON5(1)%GRADIENTSC(LL,1:IDEGFREE2,IEX))
                              END DO
@@ -3257,26 +3520,36 @@ KMAXE=XMPIELRANK(N)
 			      END DO
                               END IF
 			      LAMBDAAL(:)=1.0D0
-			      LAMBDAAL(1)=LWCI1
+			      LAMBDAAL(1)=lwcx1
 !                                 if (ees.eq.5)then
 !                               LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 !                               end if
 !                                  LAMBDAAL(:)=1.0D0
-! 			      LAMBDAAL(1)=LWCI1
+! 			      LAMBDAAL(1)=lwcx1
                             if (ees.eq.5)then
-                            LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                            LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
                             
+
+                           ! if (wenoz.eq.2)then
+                           ! LAMBDAAL(1:ielem(n,i)%admis)=1.0d0
+                           ! lamc(:)=1.0d0
+
+                           ! end if
+
+
+
+
                             
 				IF (WENOZ.EQ.1)THEN
                                 tau_Weno=zero
                                 DO LL=1,IELEM(N,I)%ADMIS
                                 tau_Weno=tau_weno+(abs(SMOOTHINDICATORAL(1)-SMOOTHINDICATORAL(LL)))
                                 end do
-                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
                                 DO LL=1,IELEM(N,I)%ADMIS
-                                OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL))))
+                                OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL)))**power)
                                 end do
                                 ELSE
                                 
@@ -3307,8 +3580,52 @@ KMAXE=XMPIELRANK(N)
 			      
 			     
 			      END DO
+
+				if (wenoz.eq.2)then
+			      do ll=1,ielem(n,i)%admis
+					if (omegaal(ll).lt.1.0e-5)then
+					dk(LL)=0.0d0
+					else
+					dk(LL)=1.0d0
+					end if
+			      end do
+
+
+			      SUMOMEGAATILDEL=ZERO
+
+			      DO LL=1,IELEM(N,I)%ADMIS
+			      if (dk(ll).gt.0.5)then
+
+			      SUMOMEGAATILDEL=SUMOMEGAATILDEL+OMEGAAL(LL)
+			      end if
+			      END DO
+
+
+
+			      DO LL=1,IELEM(N,I)%ADMIS
+			      if (dk(ll).gt.0.5)then
+			      OMEGAAL(LL)=(OMEGAal(LL))/SUMOMEGAATILDEL
+			      else
+			      OMEGAAL(LL)=0.0d0
+			      end if
+			      END DO
+
+					end if
+
+
+
+
+			      DO LL=1,IELEM(N,I)%ADMIS
+			      WENO(IEX,LL)=OMEGAAL(LL)
+
+			      END DO
+
+
+
+
+
                                     if (iex.eq.1)then
-				    ielem(n,i)%vortex(1)=WENO(IEX,1)
+				    ielem(n,i)%wcx(1)=WENO(IEX,1)
 				    end if
 		  END DO
 		  
@@ -3469,7 +3786,7 @@ KMAXE=XMPIELRANK(N)
 		    IF (EES.EQ.5)THEN
 		     LAMC(:)=ZERO   
                           GRAD3AL(:)=ZERO
-                            LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                            LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 		    
@@ -3538,7 +3855,7 @@ KMAXE=XMPIELRANK(N)
 		      
 		      
 		      LAMBDAAL(:)=1.0D0
-		      LAMBDAAL(1)=LWCI1
+		      LAMBDAAL(1)=lwcx1
 		     
 !                                 if (ees.eq.5)then
 !                               LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
@@ -3546,7 +3863,7 @@ KMAXE=XMPIELRANK(N)
                                     if (ees.eq.5)then
                                     
                                     
-                                    LAMC(1)=(1.0d0-(1.0d0/LWCI1))
+                                    LAMC(1)=(1.0d0-(1.0d0/lwcx1))
                                lamc(2:ielem(n,i)%admis)=(1.0d0-lamc(1))/(IELEM(N,I)%ADMIS-1)
                             LAMBDAAL(1:ielem(n,i)%admis)=lamc(1:ielem(n,i)%admis)
 						IF (WENOZ.EQ.1)THEN
@@ -3554,9 +3871,9 @@ KMAXE=XMPIELRANK(N)
                                                 DO LL=1,IELEM(N,I)%ADMIS
                                                 tau_Weno=tau_weno+(abs(SMOOTHINDICATORAL(1)-SMOOTHINDICATORAL(LL)))
                                                 end do
-                                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))**power
+                                                tau_weno=(tau_weno/(IELEM(N,I)%ADMIS-1))!**power
                                                 DO LL=1,IELEM(N,I)%ADMIS
-                                                OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL))))
+                                                OMEGAATILDEL(LL)=(LAMBDAAL(LL))*(1.0d0+(tau_weno/(divbyzero+SMOOTHINDICATORAL(LL)))**power)
                                                 end do
                                                 ELSE
 						DO LL=1,IELEM(N,I)%ADMIS
@@ -4282,7 +4599,7 @@ SUBROUTINE MUSCL(N)
  IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,IEX,IEUL,JX,LX,KMAXE,iq,LL,NGP,NND,IQP,idummy,ii,icd
-REAL::UMIN,UMAX,PSITOT,ADDC,DIVG0,LIMVBG
+REAL::UMIN,UMAX,PSITOT,ADDC,DIVG0,LIMVBG,tempxx
 REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 real,external::ddot
 
@@ -4295,10 +4612,16 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 	DO II=1,NOF_INTERIOR
 	I=EL_INT(II)
 	ICONSIDERED=I
+    IF(MRF.EQ.1)THEN
+        SRF=ILOCAL_RECON3(I)%MRF
+    END IF
 	   IF ((IELEM(N,I)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
 	   
 	   IF (IELEM(N,I)%RECALC.GT.0)THEN
 	   
+	   if (ADDA.EQ.1)THEN
+      CALL ADDA_FILTER(N)
+      END IF
 	    
 ! 		if (ielem(n,i)%interior.ne.1)then
 		CALL ALLGRADS_INNER(N,I)
@@ -4312,6 +4635,20 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                             CALL CONS2PRIM(N)
                             UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
                             END IF
+                  IF(PER_ROT.EQ.1)THEN
+                        IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN
+                            if (IELEM(N,I)%XXC.gt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=UTEMP(IQ,3)
+                                UTEMP(IQ,3)=-TEMPXX
+                            end if
+                            if (IELEM(N,I)%XXC.lt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=-UTEMP(IQ,3)
+                                UTEMP(IQ,3)=TEMPXX
+                            end if
+                        END IF
+                  END IF 
 			  END DO
 			ELSE
 			   DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
@@ -4325,6 +4662,20 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                             CALL CONS2PRIM(N)
                             UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
                             END IF
+			    IF(PER_ROT.EQ.1)THEN
+                     IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN 
+                            if (IELEM(N,I)%XXC.gt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=UTEMP(IQ,3)
+                                UTEMP(IQ,3)=-TEMPXX
+                            end if
+                            if (IELEM(N,I)%XXC.lt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=-UTEMP(IQ,3)
+                                UTEMP(IQ,3)=TEMPXX
+                            end if
+                     END IF
+			    END IF
 			   end do
 			END IF                   !end if 1
 			UTMIN=ZERO;UTMAX=ZERO
@@ -4586,6 +4937,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			      end do
 			 end do
 			 WENO(IEX,1)=LIMVBG
+			 ielem(n,i)%wcx(1)=LIMVBG
 			 
 			  IF (DG.EQ.1)THEN
 				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
@@ -4872,8 +5224,17 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 	DO II=1,NOF_bounded
 	I=EL_BND(II)
 	ICONSIDERED=I
+	IF(MRF.EQ.1)THEN
+        SRF=ILOCAL_RECON3(I)%MRF
+    END IF
 	      IF ((IELEM(N,I)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
 	      IF (IELEM(N,I)%RECALC.GT.0)THEN
+
+	      if (ADDA.EQ.1)THEN
+      CALL ADDA_FILTER(N)
+      END IF
+
+
 		CALL ALLGRADS_MIX(N,I)
 		    IF (LIMITER.EQ.3)THEN
 			  if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
@@ -4884,6 +5245,20 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                             CALL CONS2PRIM(N)
                             UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
                             END IF
+				IF(PER_ROT.EQ.1)THEN
+				IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN
+			      if (IELEM(N,I)%XXC.gt.0.0d0) then
+			        tempxx=UTEMP(IQ,2)
+			        UTEMP(IQ,2)=UTEMP(IQ,3)
+			        UTEMP(IQ,3)=-TEMPXX
+                  end if
+                  if (IELEM(N,I)%XXC.lt.0.0d0) then
+			        tempxx=UTEMP(IQ,2)
+			        UTEMP(IQ,2)=-UTEMP(IQ,3)
+			        UTEMP(IQ,3)=TEMPXX
+                  end if
+			      END IF
+				END IF
 			    END DO
 			  ELSE
 			    DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
@@ -4897,6 +5272,20 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
                             CALL CONS2PRIM(N)
                             UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
                             END IF
+			      IF(PER_ROT.EQ.1)THEN
+                    IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN 
+                        if (IELEM(N,I)%XXC.gt.0.0d0) then
+                            tempxx=UTEMP(IQ,2)
+                            UTEMP(IQ,2)=UTEMP(IQ,3)
+                            UTEMP(IQ,3)=-TEMPXX
+                        end if
+                        if (IELEM(N,I)%XXC.lt.0.0d0) then
+                            tempxx=UTEMP(IQ,2)
+                            UTEMP(IQ,2)=-UTEMP(IQ,3)
+                            UTEMP(IQ,3)=TEMPXX
+                        end if
+                    END IF
+			      END IF
 			    END DO
 			  END IF
 			  UTMIN=ZERO;UTMAX=ZERO
@@ -4920,9 +5309,12 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			     DO L=1,IELEM(N,I)%IFCA
 				  IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 					IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-					      if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+					      if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN MY CPU
 					      K=K+1
 					      UTEMP(k,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(l))%VAL(1,1:nof_variables)
+					      IF(PER_ROT.EQ.1)THEN
+                            UTEMP(k,2:4)=ROTATE_PER_1(UTEMP(k,2:4),ibound(n,ielem(n,i)%ibounds(L))%icode,angle_per)
+					      END IF
 					      ELSE
 					      !NOT PERIODIC ONES IN MY CPU		  
 					      END IF
@@ -4934,7 +5326,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 				  ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
 			    
 					      IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-							if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+							if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 							    IF (FASTEST.EQ.1)THEN
 							      K=K+1
 							      UTEMP(K,1:NOF_VARIABLES)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_variables)
@@ -4943,6 +5335,9 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 							      UTEMP(K,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
 							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_variables)
 							    END IF
+                                IF(PER_ROT.EQ.1)THEN
+                                    UTEMP(k,2:4)=ROTATE_PER_1(UTEMP(k,2:4),ibound(n,ielem(n,i)%ibounds(L))%icode,angle_per)
+                                END IF
 							END IF
 					      ELSE
 					      
@@ -5001,7 +5396,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			   
                                         if ((iperiodicity.eq.1))then		!periodicity      !if 2
                                                 IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                                        if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                                                        if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
                                                             IDUMMY=1
                                                         END IF
                                                 END IF
@@ -5162,7 +5557,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 		       
 			    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
 				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					      IDUMMY=1
 					  END IF
 				  END IF
@@ -5304,6 +5699,9 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			 end do
 			 WENO(IEX,1)=LIMVBG
 			 
+			 IELEM(N,I)%WCX(1)=LIMVBG
+
+
 			 
 			  IF (DG.EQ.1)THEN
 				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
@@ -5377,7 +5775,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			    
 			    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 				IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-				      if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+				      if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
 				      K=K+1
 				      UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 				      ELSE
@@ -5390,7 +5788,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
 			      
 				IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-				    if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+				    if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					IF (FASTEST.EQ.1)THEN
 					
 					  K=K+1
@@ -5446,7 +5844,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 			   
 			   if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
 				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					      IDUMMY=1
 					  END IF
 				  END IF
@@ -5560,7 +5958,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 		       else
 			    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
 				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 					      IDUMMY=1
 					  END IF
 				  END IF
@@ -5784,6 +6182,113 @@ KMAXE=XMPIELRANK(N)
  
 
 END SUBROUTINE ARBITRARY_ORDER3
+
+
+
+SUBROUTINE VISCOUS_DG_GGS(N)
+!> @brief
+!> Subroutine controlling the reconstruction in 3D
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::KMAXE,I,IEX,l,ngp,iqp
+
+
+KMAXE=XMPIELRANK(N)
+
+IF (DIMENSIONA.EQ.3)THEN
+!$OMP DO
+DO I=1,KMAXE
+ICONSIDERED=I
+NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
+NUMBER_OF_NEI=IELEM(N,I)%inumneighbours
+imax=NUMBER_OF_NEI-1
+	IF (IELEM(N,I)%INTERIOR.EQ.0)THEN
+ CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+	ELSE
+
+ CALL COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+	END IF
+
+			DO L=1,IELEM(N,I)%IFCA
+
+						if (ielem(n,i)%types_faces(L).eq.5)then
+							iqp=qp_quad
+						else
+							iqp=QP_TRIANGLE
+						end if
+
+						do NGP=1,iqp
+							ILOCAL_RECON3(I)%ULEFTV(1:3,1,l,ngp) = ILOCAL_RECON3(I)%GRADs(4,1:3)
+								DO IEX=1,3
+									ILOCAL_RECON3(I)%ULEFTV(1:3,IEX+1,l,ngp) = ILOCAL_RECON3(I)%GRADs(IEX,1:3)
+								END DO
+						end do
+			end do
+
+
+
+
+END DO
+!$OMP END DO
+
+
+
+ELSE
+!$OMP DO
+DO I=1,KMAXE
+ICONSIDERED=I
+NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
+NUMBER_OF_NEI=IELEM(N,I)%inumneighbours
+imax=NUMBER_OF_NEI-1
+	IF (IELEM(N,I)%INTERIOR.EQ.0)THEN
+ CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS2D(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+	ELSE
+
+ CALL COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS2D(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+	END IF
+
+		DO L=1,IELEM(N,I)%IFCA
+
+                IQP=QP_LINE_N
+
+                DO NGP=1,IQP
+
+
+
+			ILOCAL_RECON3(I)%ULEFTV(1:2,1,l,ngp) = ILOCAL_RECON3(I)%GRADs(3,1:2)
+				DO IEX=1,2
+				    ILOCAL_RECON3(I)%ULEFTV(1:2,IEX+1,l,ngp) = ILOCAL_RECON3(I)%GRADs(IEX,1:2)
+				END DO
+				end do
+				end do
+
+
+
+END DO
+!$OMP END DO
+
+
+
+
+
+
+
+
+
+
+
+
+END IF
+
+
+END SUBROUTINE VISCOUS_DG_GGS
+
+
+
+
+
+
+
 
 
 
@@ -6115,7 +6620,7 @@ call  QUADRATURELINE(N,IGQRULES)
 			 
 ! 			 if (itestcase.eq.4)then
 			 
-			 ielem(n,i)%vortex(1)=WENO(1,1)
+			 ielem(n,i)%wcx(1)=WENO(1,1)
 
 			 
 			 
@@ -6728,7 +7233,7 @@ call  QUADRATURELINE(N,IGQRULES)
 			 
 ! 			  if (itestcase.eq.4)then
 			 
-			 ielem(n,i)%vortex(1)=WENO(1,1)
+			 ielem(n,i)%wcx(1)=WENO(1,1)
 
 			 
 ! 			 end if
@@ -7285,6 +7790,8 @@ IF (ITESTCASE.GE.3)THEN
 				
 					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))).OR.((ABS(LEFTV(4)-RIGHTV(4))).GE.(jump_cond*RIGHTV(4)))) THEN
 						    REDUCE1=1
+
+
  						    
 					    END IF
 					    if (multispecies.eq.1)then
@@ -7475,11 +7982,11 @@ ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=zero;
 				IF (FASTEST_Q.NE.1)THEN
 				AX = QPOINTS2D(1,NGP)
 				AY = QPOINTS2D(2,NGP)
-! 				AZ = QPOINTS2D(3,NGP)
+! 				
 				ELSE
 				AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1)
 				AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2)
-! 				AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
+! 				
 				
 				
 				
@@ -7512,8 +8019,11 @@ ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=zero;
 				    DO K=1,IELEM(N,I)%IDEGFREE
 					    GRADTEM(K)=ILOCAL_RECON5(1)%GRADIENTSTURB(1,K,NVAR)
 					    
-						    XDER(K)=DF2dX(AX,AY,K);  YDER(K)=DF2dY(AX,AY,K);  
-					    
+							IF (POLY.EQ.4)THEN
+							XDER(K)=TL2dX(AX,AY,K);  YDER(K)=TL2dY(AX,AY,K);
+							ELSE
+						    XDER(K)=DF2dX(AX,AY,K);  YDER(K)=DF2dY(AX,AY,K);
+							END IF
 					    
 				    END DO
 					    UGRADLOC = ZERO
@@ -7538,7 +8048,16 @@ ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=zero;
 				!MEAN FLOW GRADIENTS
 				DO K=1,IELEM(N,I)%IDEGFREE
 					GRADTEM(K)=ILOCAL_RECON5(1)%GRADIENTSTEMP(K)
+
+					IF (POLY.EQ.4)THEN
+
+							XDER(K)=TL2dX(AX,AY,K);  YDER(K)=TL2dY(AX,AY,K);
+							ELSE
+
+
+
 					  XDER(K)=DF2dX(AX,AY,K);  YDER(K)=DF2dY(AX,AY,K);  
+					  END IF
 			         END DO
 					UGRADLOC = ZERO
 					  DO K=1,IDEGFREE
@@ -7556,7 +8075,20 @@ ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=zero;
 				  DO IEX=1,2
 				  DO K=1,IELEM(N,I)%IDEGFREE
 					GRADTEM(K)=ILOCAL_RECON5(1)%VELOCITYDOF(IEX,K)
-					  XDER(K)=DF2dX(AX,AY,K);  YDER(K)=DF2dY(AX,AY,K);  
+
+					iF (POLY.EQ.4)THEN
+
+							XDER(K)=TL2dX(AX,AY,K);  YDER(K)=TL2dY(AX,AY,K);
+							ELSE
+
+
+
+					  XDER(K)=DF2dX(AX,AY,K);  YDER(K)=DF2dY(AX,AY,K);
+					  END IF
+
+
+
+
 				  END DO
 					  UGRADLOC = ZERO
 					  DO K=1,IDEGFREE
@@ -7720,11 +8252,11 @@ END IF
 				  end if
 	    ELSE
 	           if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then	
-                        IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
-                        if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-                        IDUMMY=1
-                        END IF
-                        END IF
+			IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+			if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+			IDUMMY=1
+			END IF
+			END IF
 		        if (ielem(n,i)%types_faces(L).eq.5)then
 			      iqp=qp_quad;NND=4
                         IF (IDUMMY.EQ.0)THEN
@@ -8828,6 +9360,14 @@ REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
                 end if
             END DO          
                         
+
+
+
+
+
+
+
+
                         
                         
                                    
@@ -9097,14 +9637,14 @@ END DO
 END SUBROUTINE APPLY_FILTER
 
 
-SUBROUTINE APPLY_FILTER1(N)
+SUBROUTINE APPLY_FILTER_DG(ICONSIDERED)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,j,k
+INTEGER,INTENT(IN)::ICONSIDERED
+INTEGER::I,J,K
 
-KMAXE=XMPIELRANK(N)
+I=ICONSIDERED
 
-i=iconsidered
+
 
 DO J=1,NOF_VARIABLES
 do k=1,idegfree
@@ -9112,6 +9652,31 @@ U_C(I)%VALDG(1,J,K+1)=U_C(I)%VALDG(1,J,K+1)*MODAL_FILTER(k)
 END DO
 end do
 
+
+
+
+
+END SUBROUTINE APPLY_FILTER_DG
+
+
+
+SUBROUTINE APPLY_FILTER1(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,KMAXE,j,k
+
+KMAXE=XMPIELRANK(N)
+
+
+!$OMP DO
+DO I=1,KMAXE
+DO J=1,NOF_VARIABLES
+do k=1,idegfree
+U_C(I)%VALDG(1,J,K+1)=U_C(I)%VALDG(1,J,K+1)*MODAL_FILTER(k)
+END DO
+end do
+END DO
+!$OMP END DO
 
 
 
@@ -9149,31 +9714,129 @@ implicit none
 INTEGER,INTENT(IN)::N
 INTEGER::fil_i,i,j
 real::filx,xorder
-real::fil_nc,fil_s,fil_alpha
+real::rfil_alpha,rfil_nc,rfil_s,rfil_i
 real,dimension(1:9)::filter2
 real,dimension(1:200)::dgfr
 integer,dimension(0:9)::filt2
 
 
-fil_alpha=36
-fil_s=32
-fil_nc=4
+
+
+
+
+IF (FILTER_TYPE.EQ.1)THEN
+
+do fil_i=1,iorder
+      if (fil_i.le.fil_nc)then
+        filter2(fil_i)=1.0d0
+    end if
+     if (fil_i.gt.fil_nc)then
+		 rfil_alpha=fil_alpha
+		 rfil_nc=fil_nc
+		 rfil_s=fil_s
+		 xorder=iorder
+		 rfil_i=fil_i
+         filx=-rfil_alpha*(((rfil_i-rfil_nc)/(xorder-rfil_nc))**rfil_s)
+         filter2(fil_i)=exp(filx)
+     end if
+
+
+	filt2(fil_i)=(((fil_i+1)*(fil_i+2)*(fil_i+3))/6)-1
+end do
+filt2(0)=0
+
+do i=1,iorder
+	do j=filt2(i-1)+1,filt2(i)
+	dgfr(j)=filter2(i)
+	end do
+end do
+
+END IF
+
+IF (FILTER_TYPE.EQ.2)THEN
+
+do fil_i=1,iorder
+      if (fil_i.lt.iorder)then
+        filter2(fil_i)=1.0d0
+    end if
+     if (fil_i.eq.iorder)then
+         filter2(fil_i)=0.0d0
+     end if
+
+
+	filt2(fil_i)=(((fil_i+1)*(fil_i+2)*(fil_i+3))/6)-1
+end do
+filt2(0)=0
+
+do i=1,iorder
+	do j=filt2(i-1)+1,filt2(i)
+	dgfr(j)=filter2(i)
+	end do
+end do
+
+END IF
+
+
+
+
+
+
+do fil_i=1,IDEGFREE
+        MODAL_FILTER(fil_i)=dgfr(fil_i)**(1.0d0/(1.0/dt))!
+        IF ((IT.le.2).and.(n.eq.0))THEN
+        WRITE(200+N,*)FIL_I,MODAL_FILTER(fil_i)
+        END IF
+
+end do
+
+
+END SUBROUTINE FILTER
+
+
+
+
+SUBROUTINE ADDA_FILTER(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,J,K
+REAL::FILTERED_LOW
+REAL::FILTERED_HIGH
+REAL::UNFILTERED,ENERGY_RATIO
+REAL,DIMENSION(1:NOF_VARIABLES)::EN_F_STRONG,EN_F_WEAK,EN_UNF
+INTEGER::fil_i
+real::filx,xorder,EX1,EX2
+real::rfil_alpha,rfil_nc,rfil_s,rfil_i
+real,dimension(1:9)::filter2,filter3
+real,dimension(1:200)::dgfr,dgfr3
+integer,dimension(0:9)::filt2,filt3
 
 
 
 
 
 do fil_i=1,iorder
-      if (fil_i.lt.iorder)then
+	 if (iorder.eq.2) then
+		filter2(fil_i)=0.0d0
+	else
+
+     if (fil_i.le.1)then  !if (fil_i.le.ADDA_1)then
         filter2(fil_i)=1.0d0
+    else
+		filter2(fil_i)=0.0d0
+
+
     end if
-!     if (fil_i.gt.fil_nc-1)then
-!         filx=-fil_alpha*(((fil_i+1-fil_nc)/(iorder+1-fil_nc))**fil_s)
-!         filter2(fil_i)=exp(filx)
-!     end if
-     if (fil_i.eq.iorder)then
-        filter2(fil_i)=0.0d0
-     end if
+    END IF
+!      if (fil_i.gt.ADDA_1)then
+! 		 rfil_alpha=ADDA_alpha_1
+! 		 rfil_nc=ADDA_1
+! 		 rfil_s=ADDA_1_S
+! 		 xorder=iorder
+! 		 rfil_i=fil_i
+!          filx=-rfil_alpha*(((rfil_i-rfil_nc)/(xorder-rfil_nc))**rfil_s)
+!          filter2(fil_i)=exp(filx)
+!      end if
+
 
 	filt2(fil_i)=(((fil_i+1)*(fil_i+2)*(fil_i+3))/6)-1
 end do
@@ -9186,23 +9849,370 @@ do i=1,iorder
 end do
 
 
+do fil_i=1,iorder
+	if (fil_i.le.iorder-1)then!					if (fil_i.le.ADDA_2)then
+        filter3(fil_i)=1.0d0
+    else
+		filter3(fil_i)=0.0d0
+    end if
+!      if (fil_i.gt.ADDA_2)then
+! 		 rfil_alpha=ADDA_alpha_2
+! 		 rfil_nc=ADDA_2
+! 		 rfil_s=ADDA_2_S
+! 		 xorder=iorder
+! 		 rfil_i=fil_i
+!          filx=-rfil_alpha*(((rfil_i-rfil_nc)/(xorder-rfil_nc))**rfil_s)
+!          filter3(fil_i)=exp(filx)
+!      end if
 
-do fil_i=1,IDEGFREE
-        MODAL_FILTER(fil_i)=dgfr(fil_i)**(1.0d0/(1.0/dt))!
 
+	filt3(fil_i)=(((fil_i+1)*(fil_i+2)*(fil_i+3))/6)-1
+end do
+filt3(0)=0
+
+do i=1,iorder
+	do j=filt3(i-1)+1,filt3(i)
+	dgfr3(j)=filter3(i)
+	end do
 end do
 
 
+do fil_i=1,IDEGFREE
+        ADDA_FILTER_STRONG(fil_i)=dgfr(fil_i)
+        ADDA_FILTER_WEAK(fil_i)=dgfr3(fil_i)
+        if ((it.eq.0).and.(iconsidered.eq.1).AND.(N.EQ.0))then
+        write(300+n,*)fil_i,ADDA_FILTER_WEAK(fil_i),ADDA_FILTER_STRONG(fil_i)
+
+        end if
+end do
+
+
+I=ICONSIDERED
+
+IF (DG.NE.1)THEN
+
+AX = 0.0D0;AY = 0.0D0;AZ = 0.0D0
 
 
 
 
-END SUBROUTINE FILTER
+				CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+
+				GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES)=ILOCAL_RECON5(1)%GRADIENTS(1,1:IELEM(N,I)%IDEGFREE,1:NOF_VARIABLES)
+				CALL DGEMM('N','N',1,nof_variables,IELEM(N,I)%IDEGFREE,ALPHA,&
+                CONSMATRIX(1:1,1:IELEM(N,I)%IDEGFREE),1,&
+                GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES),&
+                IELEM(N,I)%IDEGFREE,BETA,RESSOLUTION(1:1,1:NOF_vARIABLES),1)
+
+				LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(1,1:NOF_vARIABLES)
+
+                EN_UNF(1:NOF_VARIABLES)=LEFTV(1:NOF_vARIABLES)
+
+
+
+                CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+                do k=1,nof_Variables
+				GRADSSL(1:IELEM(N,I)%IDEGFREE,k)=ILOCAL_RECON5(1)%GRADIENTS(1,1:IELEM(N,I)%IDEGFREE,k)*ADDA_FILTER_strong(1:IELEM(N,I)%IDEGFREE)
+				end do
+				CALL DGEMM('N','N',1,nof_variables,IELEM(N,I)%IDEGFREE,ALPHA,&
+                CONSMATRIX(1:1,1:IELEM(N,I)%IDEGFREE),1,&
+                GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES),&
+                IELEM(N,I)%IDEGFREE,BETA,RESSOLUTION(1:1,1:NOF_vARIABLES),1)
+
+                LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(1,1:NOF_vARIABLES)
+
+                EN_F_STRONG(1:NOF_VARIABLES)=LEFTV(1:NOF_vARIABLES)
 
 
 
 
 
+
+                 CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+				do k=1,nof_Variables
+				GRADSSL(1:IELEM(N,I)%IDEGFREE,k)=ILOCAL_RECON5(1)%GRADIENTS(1,1:IELEM(N,I)%IDEGFREE,k)*ADDA_FILTER_weak(1:IELEM(N,I)%IDEGFREE)
+				end do
+				CALL DGEMM('N','N',1,nof_variables,IELEM(N,I)%IDEGFREE,ALPHA,&
+                CONSMATRIX(1:1,1:IELEM(N,I)%IDEGFREE),1,&
+                GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES),&
+                IELEM(N,I)%IDEGFREE,BETA,RESSOLUTION(1:1,1:NOF_vARIABLES),1)
+
+                LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(1,1:NOF_vARIABLES)
+
+                EN_F_WEAK(1:NOF_VARIABLES)=LEFTV(1:NOF_vARIABLES)
+
+
+                ex2=(((EN_UNF(2)-EN_F_WEAK(2))**2)+((EN_UNF(3)-EN_F_WEAK(3))**2)+((EN_UNF(4)-EN_F_WEAK(4))**2))
+                ex1=(((EN_UNF(2)-EN_F_STRONG(2))**2)+((EN_UNF(3)-EN_F_STRONG(3))**2)+((EN_UNF(4)-EN_F_STRONG(4))**2))
+                ENERGY_RATIO=EX2/(EX1+tolsmall)
+
+
+
+
+
+
+
+				!ENERGY_RATIO=ABS(ENERGY_RATIO-1.0D0)/(IELEM(N,I)%TOTVOLUME)
+
+
+
+
+
+
+!		write(400+n,*)it,ENERGY_RATIO,iconsidered,first,second
+
+	ielem(n,i)%er1dt=(ielem(n,i)%er1-EX1)/dt
+	ielem(n,i)%er2dt=(ielem(n,i)%er2-EX2)/dt
+
+  ielem(n,i)%er=ENERGY_RATIO
+  ielem(n,i)%er1=EX1
+  ielem(n,i)%er2=EX2
+
+! 	ielem(n,i)%er1er2=0.0d0
+
+! 	if (ielem(n,i)%er2dt.gt.0)then
+	ielem(n,i)%er1er2=abs(ielem(n,i)%er1dt)/ielem(n,i)%er2dt
+! 	end if
+
+
+
+   CALL APPLY_ADDA_FILTER(N)
+
+
+END IF
+
+
+
+END SUBROUTINE ADDA_FILTER
+
+
+
+SUBROUTINE APPLY_ADDA_FILTER(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I
+
+I=ICONSIDERED
+
+!LWCX1=LWCI1
+
+
+
+
+
+IF (ielem(n,i)%er2dt.gt.0)THEN
+	IF (ielem(n,i)%er1er2.LT.1.0)THEN
+
+		LWCX1=5	!INCREASE DISSIPATION
+
+
+	end if
+
+END IF
+
+IF (ielem(n,i)%er2dt.Lt.0)THEN
+	LWCX1=1000
+
+END IF
+
+
+
+ielem(n,i)%lwcx2=lwcx1
+
+
+
+END SUBROUTINE APPLY_ADDA_FILTER
+
+
+
+
+
+
+SUBROUTINE FIX_DISSIPATION(N)
+IMPLICIT NONE
+REAL::CHECK1
+REAL::CHECK
+INTEGER::I,J,K,L,KMAXE
+integer,intent(in)::n
+
+KMAXE=XMPIELRANK(N)
+
+!$OMP DO SCHEDULE (STATIC)
+DO I=1,KMAXE
+
+	!1)reduce dissipation
+	IF (IELEM(N,I)%LWCX2.GT.10)THEN
+		IF (IELEM(N,I)%WCX(1).GE.0.999)THEN
+		IELEM(N,I)%DISS=max(IELEM(N,I)%DISS-0.1,0.4d0)	!reduce dissipation even more
+		Else
+		IELEM(N,I)%DISS=1.0d0							!increase dissipation if shock
+		END IF
+	ELSE
+	!2) INCREASE DISSIPATION
+	IF (IELEM(N,I)%WCX(1).GE.0.999)THEN
+	IELEM(N,I)%DISS=min(IELEM(N,I)%DISS+0.1,1.0d0)	!increase dissipation even more
+	Else
+	IELEM(N,I)%DISS=1.0d0							!increase dissipation if shock
+	END IF
+	end if
+
+END DO
+!$OMP END DO
+
+
+END SUBROUTINE FIX_DISSIPATION
+
+
+
+
+SUBROUTINE FIX_DISSIPATION2(N)
+IMPLICIT NONE
+REAL::CHECK1
+REAL::CHECK
+INTEGER::I,J,K,L,KMAXE
+integer,intent(in)::n
+
+KMAXE=XMPIELRANK(N)
+
+!$OMP DO SCHEDULE (STATIC)
+DO I=1,KMAXE
+	iconsidered=i
+
+	call FIND_BOUNDS_DISS
+
+END DO
+!$OMP END DO
+
+
+END SUBROUTINE FIX_DISSIPATION2
+
+
+
+
+
+
+SUBROUTINE FIND_BOUNDS_DISS
+IMPLICIT NONE
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,IEX,IK,iq
+
+
+I=ICONSIDERED
+
+
+UTEMP(:,:)=1.0D0
+
+
+
+		IELEM(N,I)%FACEDISS(:)=1.0d0
+
+
+            IF (IELEM(N,I)%INTERIOR.EQ.0)THEN
+                DO L = 1, IELEM(N,I)%IFCA
+
+                    UTEMP(L,1)=IELEM(N,IELEM(N,I)%INEIGH(L))%DISS
+                END DO
+            END IF
+
+            IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
+			    DO L=1,IELEM(N,I)%IFCA
+                    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+                            IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+
+                                UTEMP(l,1)=IELEM(N,IELEM(N,I)%INEIGH(L))%DISS
+                                ELSE
+                                !NOT PERIODIC ONES IN MY CPU
+                                END IF
+                            ELSE
+
+                                UTEMP(l,1)=IELEM(N,IELEM(N,I)%INEIGH(L))%DISS
+                            END IF
+                    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+
+                            UTEMP(l,1)=IEXSOLHIRd(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+                            (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1)
+                            END IF
+                        ELSE
+
+
+                        UTEMP(l,1)=IEXSOLHIRd(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+                        (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1)
+                        END IF
+
+                    END IF
+
+			  END DO
+         END IF
+
+
+
+
+
+            IF (IELEM(N,I)%INTERIOR.EQ.0)THEN
+                DO L = 1, IELEM(N,I)%IFCA
+                    IELEM(N,I)%FACEDISS(L)=MAX(UTEMP(L,1),IELEM(N,I)%DISS)
+
+                END DO
+            END IF
+
+            IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
+			    DO L=1,IELEM(N,I)%IFCA
+                    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+                            IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+                                IELEM(N,I)%FACEDISS(L)=MAX(UTEMP(L,1),IELEM(N,I)%DISS)
+!                                 UTEMP(l,1)=IELEM(N,IELEM(N,I)%INEIGH(L))%DISS
+                                ELSE
+                                !NOT PERIODIC ONES IN MY CPU
+                                END IF
+                            ELSE
+                                IELEM(N,I)%FACEDISS(L)=MAX(UTEMP(L,1),IELEM(N,I)%DISS)
+
+                            END IF
+                    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+
+                            IELEM(N,I)%FACEDISS(L)=MAX(UTEMP(L,1),IELEM(N,I)%DISS)
+                            END IF
+                        ELSE
+
+
+                        IELEM(N,I)%FACEDISS(L)=MAX(UTEMP(L,1),IELEM(N,I)%DISS)
+                        END IF
+
+                    END IF
+
+			  END DO
+         END IF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+END SUBROUTINE FIND_BOUNDS_DISS
 
 
 

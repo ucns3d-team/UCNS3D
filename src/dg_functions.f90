@@ -17,10 +17,10 @@ IMPLICIT NONE
 !> @brief
 !> This function returns the DG solution at a given point (X_IN, Y_IN)\n
 !> REQUIRES: X_IN, Y_IN: coordinates of the point where the solution is requested, NUM_VARIABLES: number of solution variables, NUM_DOFS: number of basis terms
-REAL,DIMENSION(NUMBER_OF_DOG)::BASIS_TEMP
+REAL,DIMENSION(1:NUMBER_OF_DOG)::BASIS_TEMP
 INTEGER,INTENT(IN)::N
 INTEGER::I_DOF, I_VAR
-REAL,DIMENSION(Nof_VARIABLES)::DG_SOL
+REAL,DIMENSION(1:Nof_VARIABLES)::DG_SOL
 REAL,external:: ddot
 
  compwrt=-2
@@ -98,6 +98,116 @@ END DO
 END FUNCTION DG_SOLFACE
 
 
+FUNCTION DG_SOL_DER()
+IMPLICIT NONE
+!> @brief
+!> This function returns the derivative of the DG solution at a given point (X1, Y1, [Z1])
+    INTEGER::I_DOF, I_VAR, I_DIM
+    REAL,DIMENSION(NUMBER_OF_DOG, DIMENSIONA)::BASIS_TEMP
+    REAL,DIMENSION(NOF_VARIABLES, DIMENSIONA)::DG_SOL_DER
+    REAL,external:: DDOT
+
+    IF (BR2_YN /= 1) THEN
+        DO I_DOF = 1, NUMBER_OF_DOG
+            if (dimensiona.eq.2) then
+                IF( POLY == 1) THEN
+                    BASIS_TEMP(I_DOF,1) = DF2DX(X1,Y1,I_DOF)
+                    BASIS_TEMP(I_DOF,2) = DF2DY(X1,Y1,I_DOF)
+                ELSE IF( POLY == 4) THEN
+                    BASIS_TEMP(I_DOF,1) = TL2DX(X1,Y1,I_DOF)
+                    BASIS_TEMP(I_DOF,2) = TL2DY(X1,Y1,I_DOF)
+                END IF
+            ELSE
+                BASIS_TEMP(I_DOF,1) = TL3DX(X1,Y1,Z1,I_DOF)
+                BASIS_TEMP(I_DOF,2) = TL3DY(X1,Y1,Z1,I_DOF)
+                BASIS_TEMP(I_DOF,3) = TL3DZ(X1,Y1,Z1,I_DOF)
+            end if
+        END DO
+    END IF
+
+    compwrt=-2
+    DO I_VAR = 1, NOF_VARIABLES
+        DO I_DIM = 1, DIMENSIONA
+            IF (BR2_YN == 1) THEN
+                IF(DIMENSIONA.EQ.2)THEN
+                    DG_SOL_DER(I_VAR, I_DIM) = U_C(ICONSIDERED)%BR2_AUX_VAR(1,I_VAR,I_DIM) + DDOT(NUMBER_OF_DOG, BASIS_REC2D(N, X1, Y1, NUMBER, ICONSIDERED, NUMBER_OF_DOG),1, U_C(ICONSIDERED)%BR2_AUX_VAR(2:NUM_DG_DOFS,I_VAR,I_DIM),1)
+                ELSE
+                    DG_SOL_DER(I_VAR, I_DIM) = U_C(ICONSIDERED)%BR2_AUX_VAR(1,I_VAR,I_DIM) + DDOT(NUMBER_OF_DOG, BASIS_REC(N, X1, Y1, Z1, NUMBER, ICONSIDERED, NUMBER_OF_DOG),1, U_C(ICONSIDERED)%BR2_AUX_VAR(2:NUM_DG_DOFS,I_VAR,I_DIM),1)
+                 END IF
+            ELSE
+                DG_SOL_DER(I_VAR, I_DIM) = DDOT(NUMBER_OF_DOG, BASIS_TEMP(1:NUMBER_OF_DOG,I_DIM),1, U_C(ICONSIDERED)%VALDG(1,I_VAR,2:NUM_DG_DOFS),1)
+            END IF
+        END DO
+    END DO
+    compwrt=0
+END FUNCTION DG_SOL_DER
+
+
+FUNCTION BR2_LOCAL_LIFT(N, N_QP)
+IMPLICIT NONE
+!> REQUIRES: ICONSIDERED, FACEX, and WEIGHTS_DG or WEQUA2D
+INTEGER,INTENT(IN)::N, N_QP
+INTEGER::I, L, NGP, IQP, I_DIM
+REAL,DIMENSION(DIMENSIONA)::NNN
+REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP
+REAL,DIMENSION(NUMBER_OF_DOG)::BASIS_TEMP
+REAL,DIMENSION(NOF_VARIABLES,DIMENSIONA)::BR2_LOCAL_LIFT
+
+    I = ICONSIDERED
+    L = FACEX
+
+	IF (DIMENSIONA == 3) THEN
+        ANGLE1=IELEM(N,I)%FACEANGLEX(L)
+        ANGLE2=IELEM(N,I)%FACEANGLEY(L)
+        NNN(1)=(COS(ANGLE1)*SIN(ANGLE2))
+        NNN(2)=(SIN(ANGLE1)*SIN(ANGLE2))
+        NNN(3)=(COS(ANGLE2))
+    ELSE
+        NNN(1)=IELEM(N,I)%FACEANGLEX(L)
+        NNN(2)=IELEM(N,I)%FACEANGLEY(L)
+    END IF
+
+    BR2_LOCAL_LIFT = 0.0D0
+    DO NGP = 1, N_QP
+
+        POINTX = NGP
+
+        COMPWRT=-2
+        X1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,1)
+        Y1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,2)
+        IF (DIMENSIONA == 3) Z1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,3)
+
+        IF (DIMENSIONA .EQ. 2)THEN
+            BASIS_TEMP = BASIS_REC2D(N, X1, Y1, NUMBER, ICONSIDERED, NUMBER_OF_DOG)
+        ELSE
+            BASIS_TEMP = BASIS_REC(N, X1, Y1, Z1, NUMBER, ICONSIDERED, NUMBER_OF_DOG)
+        END IF
+
+        CALL GET_LEFT_RIGHT_STATES(ICONSIDERED,FACEX,POINTX)
+
+        LEFTV = CLEFT
+        RIGHTV = CRIGHT
+        IF (DIMENSIONA == 3) THEN
+            CALL CONS2PRIM2(N)
+        ELSE
+            CALL CONS2PRIM2D2(N)
+        END IF
+        ! Change pressure to temperature
+        LEFTV(NOF_VARIABLES) = LEFTV(NOF_VARIABLES) / LEFTV(1)
+        RIGHTV(NOF_VARIABLES) = RIGHTV(NOF_VARIABLES) / RIGHTV(1)
+
+        DO I_DIM = 1, DIMENSIONA
+!             RHLLCFLUX = NNN(I_DIM) * (RIGHTV - LEFTV)
+            BR2_LOCAL_LIFT(1:NOF_VARIABLES,I_DIM) = BR2_LOCAL_LIFT(1:NOF_VARIABLES,I_DIM) + NNN(I_DIM) * (RIGHTV - LEFTV) * WEQUA2D(POINTX) !SUM(DG_SURF_FLUX(N),DIM=1)
+!             IF( N == 3 .AND. ICONSIDERED == 20) WRITE(400+N,*) BR2_LOCAL_LIFT, "BR2_LOCAL_LIFT", DG_SURF_FLUX(N), "DG_SURF_FLUX", SUM(DG_SURF_FLUX(N),DIM=1), "SUM(DG_SURF_FLUX(N),DIM=1)"
+        END DO
+
+    END DO
+    BR2_LOCAL_LIFT = OO2 * BR2_LOCAL_LIFT * IELEM(N,ICONSIDERED)%SURF(FACEX) / IELEM(N,ICONSIDERED)%TOTVOLUME ! / DG_VOL_INTEGRAL3(N)
+
+END FUNCTION BR2_LOCAL_LIFT
+
+
 
 FUNCTION DG_SURF_FLUX(N)
 !> @brief
@@ -145,122 +255,197 @@ end if
 END FUNCTION DG_SURF_FLUX
 
 
+FUNCTION DG_SURF_FLUXV(N)
+!> @brief
+!> Calculates the RHS flux term to be integrated in the DG formulation
+IMPLICIT NONE
+REAL,DIMENSION(NUMBER_OF_DOG+1,1:NOF_VARIABLES)::DG_SURF_FLUXV
+INTEGER::I
+INTEGER,INTENT(IN)::N
+ compwrt=-2
+x1= ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,1)
+ y1= ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,2)
+if (dimensiona.eq.3)then
+ z1= ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,3)
+end if
+
+
+
+
+
+NUMBER=IELEM(N,ICONSIDERED)%IORDER
+if (dimensiona.eq.2)Then
+DO I = 1, NOF_VARIABLES
+    DG_SURF_FLUXV(1,I) = HLLCFLUX(I) * WEQUA2D(POINTX)*IELEM(N,ICONSIDERED)%SURF(FACEX)
+
+    DG_SURF_FLUXV(2:NUMBER_OF_DOG+1,I) = HLLCFLUX(I) * WEQUA2D(POINTX)*IELEM(N,ICONSIDERED)%SURF(FACEX)*BASIS_REC2D(N,X1,Y1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
+
+END DO
+
+else
+DO I = 1, NOF_VARIABLES
+    DG_SURF_FLUXV(1,I) = HLLCFLUX(I) * WEIGHTS_dg(POINTX)*IELEM(N,ICONSIDERED)%SURF(FACEX)
+
+    DG_SURF_FLUXV(2:NUMBER_OF_DOG+1,I) = HLLCFLUX(I) * WEIGHTS_dg(POINTX)*IELEM(N,ICONSIDERED)%SURF(FACEX)*BASIS_REC(N,X1,Y1,z1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
+END DO
+
+end if
+
+
+
+
+
+    compwrt=0
+
+
+
+
+
+END FUNCTION DG_SURF_FLUXV
+
+
+
+
 FUNCTION DG_VOL_INTEGRAL(N)
 !> @brief
 !> Calculates the volume integral term in the DG RHS for scalar linear advection with speed = 1
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
+INTEGER::I,NQP,I_QP
 REAL,DIMENSION(IDEGFREE+1,NOF_VARIABLES)::DG_VOL_INTEGRAL
-REAL,DIMENSION(2)::UGRAD1,UGRAD2
-INTEGER::I,J,K,NQP,I_QP,I_VAR,IHGT,IHGJ
-REAL::PH,INTEG
 
-    
+
 
     compwrt=-2
-    
-    
 
-    NQP = ielem(n,iconsidered)%iTOTALPOINTS 
-	
+
+
+    NQP = IELEM(N,ICONSIDERED)%ITOTALPOINTS
+
 
     NUMBER=IELEM(N,ICONSIDERED)%IORDER
     NUMBER_OF_DOG = IELEM(N,ICONSIDERED)%IDEGFREE
-    
- 
-    DG_VOL_INTEGRAL(:,:) = 0.0d0
 
-     
 
-      
-      DO I=1,NUMBER_OF_DOG
-      
-        DO I_QP = 1, NQP 
-        
+    DG_VOL_INTEGRAL(:,:) = 0.0D0
+
+
+
+
+    DO I=1,NUMBER_OF_DOG
+
+        DO I_QP = 1, NQP
+
             X1=QP_ARRAY(ICONSIDERED)%X(I_QP)
             Y1=QP_ARRAY(ICONSIDERED)%Y(I_QP)
-            if (dimensiona.eq.3)then
-            z1=QP_ARRAY(ICONSIDERED)%z(I_QP)
-            end if
+            IF (DIMENSIONA.EQ.3)THEN
+            Z1=QP_ARRAY(ICONSIDERED)%Z(I_QP)
+            END IF
 
-            if (itestcase.lt.3)Then 
-            FLUX_TERM_X=dg_sol(n)*LAMX !flux in x-axis of linear advection in 2d (lamx*sol), where lamx is the wave speed for x axis, and sol is the solution
-            FLUX_TERM_Y=dg_sol(n)*LAMY !flux in y-axis of linear advection in 2d (lamy*sol), where lamy is the wave speed for y axis, and sol is the solution
-            if (dimensiona.eq.3)then
-            FLUX_TERM_z=dg_sol(n)*LAMz
-            end if
-            
-            
-            end if
-            
-            
-            IF (ITESTCASE.EQ.3)THEN
-            
+            if (itestcase.lt.3) then ! Linear advection
+                FLUX_TERM_X=dg_sol(n)*LAMX !flux in x-axis of linear advection in 2d (lamx*sol), where lamx is the wave speed for x axis, and sol is the solution
+                FLUX_TERM_Y=dg_sol(n)*LAMY !flux in y-axis of linear advection in 2d (lamy*sol), where lamy is the wave speed for y axis, and sol is the solution
+
+                if (dimensiona.eq.3) FLUX_TERM_z = dg_sol(n)*LAMz
+
+            ELSE IF (ITESTCASE.EQ.3) THEN ! Euler
+
                 LEFTV=DG_SOL(N)
 
 
-                
-                
-                    IF (DIMENSIONA.EQ.2)THEN
+
+
+                IF (DIMENSIONA.EQ.2)THEN
                     CALL CONS2PRIM2D(N)
-                   
+
                     CALL FLUX2DX
                     CALL FLUX2DY
-                    
-                    
-                    
-                    ELSE
-                    
+
+                ELSE
+
                     CALL CONS2PRIM(N)
                     CALL FLUX3DX
                     CALL FLUX3DY
                     CALL FLUX3DZ
-                    
-                    END IF
-                
+
+                END IF
+
+            ELSE IF (ITESTCASE == 4) THEN ! NS
+                LEFTV = DG_SOL(N)
+                LEFTV_DER = DG_SOL_DER()
+
+                IF( BR2_YN == 2) THEN
+                    CALL DCONS2DPRIM
+                    LEFTV_DER = LEFTV_DER + SUM(ILOCAL_RECON3(ICONSIDERED)%BR2_LOCAL_LIFT, DIM=3)
+                END IF
+
+
+                IF (DIMENSIONA.EQ.2)THEN
+                    CALL CONS2PRIM2D(N)
+                    CALL FLUX2DX
+                    CALL FLUX2DY
+
+                    CALL FLUX_VISC2D(N)
+
+                ELSE
+                    CALL CONS2PRIM(N)
+                    CALL FLUX3DX
+                    CALL FLUX3DY
+                    CALL FLUX3DZ
+                    CALL FLUX_VISC3D(N)
+                END IF
+
+
+
+
             END IF
-            
-             
+
+
                     if (dimensiona.eq.2)then
-                    
-                    
+
+
                     if (poly.eq.1)then
-                    
+
                     DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP) *(FLUX_TERM_X(:)*DF2DX(X1,Y1,I)+FLUX_TERM_Y(:)*DF2DY(X1,Y1,I))
-                    
+
                     end if
-                    
+
                     if (poly.eq.4)then
-                    
+
                     DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP)*(FLUX_TERM_X(:)*TL2DX(X1,Y1,I)+FLUX_TERM_Y(:)*TL2DY(X1,Y1,I))
-                    
+
                     end if
-                    
-                    
+
+
                     else
-                            if (poly.eq.1)then 
-                            
+                            if (poly.eq.1)then
+
                             DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP) *((FLUX_TERM_X(:)*DFX(X1,Y1,z1,I))&
                             +(FLUX_TERM_Y(:)*DFY(X1,Y1,z1,I))+(FLUX_TERM_z(:)*DFZ(X1,Y1,z1,I)))
-                            
+
                             END IF
-                            
-                            if (poly.eq.4)then 
-                            
+
+                            if (poly.eq.4)then
+
                             DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP)*((FLUX_TERM_X(:)*TL3DX(X1,Y1,z1,I))&
                             +(FLUX_TERM_Y(:)*TL3DY(X1,Y1,z1,I))+(FLUX_TERM_z(:)*TL3DZ(X1,Y1,z1,I)))
-                            
+
                             END IF
-                    
+
                     END IF
          END DO
      END DO
 
-    
-            
+
+
 
         compwrt=0
 END FUNCTION DG_VOL_INTEGRAL
+
+
+
+
+
 
 
 
@@ -384,6 +569,1148 @@ END DO
 END SUBROUTINE RECONSTRUCT_DG
 
 
+SUBROUTINE RECONSTRUCT_BR2_DG
+IMPLICIT NONE
+INTEGER::I_FACE, I_ELEM, I_QP, IQP,J,K
+REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q, WEIGHTS_T
+
+! Needed for DG_SURF_FLUX, used in BR2_LOCAL_LIFT
+IF( DIMENSIONA == 3) THEN
+    call QUADRATUREQUAD3D(N,IGQRULES)
+!      WEIGHTS_Q(1:QP_QUAD)=WEQUA2D(1:QP_QUAD)
+
+    call QUADRATURETRIANG(N,IGQRULES)
+!      WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGLE)
+ELSE
+    CALL QUADRATURELINE(N,IGQRULES)
+END IF
+
+!$OMP DO
+DO I_ELEM = 1, XMPIELRANK(N)
+    ICONSIDERED = I_ELEM
+
+    DO I_FACE = 1, IELEM(N,I_ELEM)%IFCA
+
+        ! Needed for BR2_LOCAL_LIFT
+        if (dimensiona.eq.2)then
+            iqp=QP_LINE_N
+        else
+            if (ielem(n,I_ELEM)%types_faces(I_FACE).eq.5)then
+                iqp=qp_quad
+!                  WEIGHTS_DG = WEIGHTS_Q
+            else
+                iqp=QP_TRIANGLE
+!                  WEIGHTS_DG = WEIGHTS_T
+            end if
+        end if
+
+
+        FACEX = I_FACE
+        ILOCAL_RECON3(ICONSIDERED)%BR2_LOCAL_LIFT(:,:,I_FACE) = BR2_LOCAL_LIFT(N, IQP)
+
+        DO I_QP = 1, IQP
+            POINTX=I_QP
+            IF (BR2_YN /= 1 .AND. ITESTCASE == 4) THEN
+                X1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX, POINTX,1)
+                Y1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX, POINTX,2)
+                IF (DIMENSIONA == 3) Z1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX, POINTX,3)
+
+                LEFTV_DER = DG_SOL_DER()
+                CALL DCONS2DPRIM
+                ILOCAL_RECON3(ICONSIDERED)%BR2_AUX_VAR(:,:,I_FACE,I_QP) = LEFTV_DER + ILOCAL_RECON3(ICONSIDERED)%BR2_LOCAL_LIFT(:,:,I_FACE) * BR2_DAMPING
+
+                !WRITE(150+N,*)"FIRST",ICONSIDERED,IELEM(N,ICONSIDERED)%ISHAPE,ILOCAL_RECON3(ICONSIDERED)%BR2_AUX_VAR(:,:,I_FACE,I_QP)
+                !WRITE(150+N,*)"SECOND",LEFTV_DER
+                !WRITE(150+N,*)"THIRD",ILOCAL_RECON3(ICONSIDERED)%BR2_LOCAL_LIFT(:,:,I_FACE)
+                !WRITE(150+N,*)BR2_DAMPING
+
+                !NOW COPY TO OTHER ARRAY
+                ILOCAL_RECON3(ICONSIDERED)%ULEFTV(1:DIMS,1,I_FACE,I_QP)=ILOCAL_RECON3(ICONSIDERED)%BR2_AUX_VAR(NOF_VARIABLES,1:DIMS,I_FACE,I_QP)
+
+    DO J=2,NOF_VAriables-1
+        ILOCAL_RECON3(ICONSIDERED)%ULEFTV(1:DIMS,J,I_FACE,I_QP)=ILOCAL_RECON3(ICONSIDERED)%BR2_AUX_VAR(J,1:DIMS,I_FACE,I_QP)
+    END DO
+                !END COPYING
+            END IF
+        END DO
+    END DO
+
+
+
+
+
+
+
+
+END DO
+!$OMP END DO
+
+END SUBROUTINE RECONSTRUCT_BR2_DG
+
+SUBROUTINE GET_LEFT_RIGHT_STATES(ICONSIDERED, FACEX, POINTX)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED, FACEX, POINTX
+INTEGER::I
+
+    I = ICONSIDERED
+
+    IF (DIMENSIONA == 3) THEN
+        IF (IELEM(N,I)%INTERIOR == 0) THEN
+            CALL GET_STATES_INTERIOR(ICONSIDERED,FACEX,POINTX)
+        ELSE
+            CALL GET_STATES_BOUNDS(ICONSIDERED,FACEX,POINTX)
+        END IF
+    ELSE
+        IF (IELEM(N,I)%INTERIOR == 0) THEN
+            CALL GET_STATES_INTERIOR2D(ICONSIDERED,FACEX,POINTX)
+        ELSE
+            CALL GET_STATES_BOUNDS2D(ICONSIDERED,FACEX,POINTX)
+        END IF
+    END IF
+
+END SUBROUTINE GET_LEFT_RIGHT_STATES
+
+
+SUBROUTINE  GET_STATES_INTERIOR(ICONSIDERED,FACEX,POINTX)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED, FACEX, POINTX
+INTEGER::I,L,NGP
+L=FACEX
+NGP=POINTX
+I=ICONSIDERED
+
+
+                      IF (DG.EQ.1) THEN
+                        CLEFT(1:nof_Variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                        CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                    ELSE !FV
+
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+
+				      END IF
+
+					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+					  if (icoupleturb.eq.1)then
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp) !left additional equations flow state
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+					  ELSE
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					  END IF
+
+
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+					END IF
+
+					IF (SRF.EQ.1)THEN
+
+                        SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
+                        CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
+					END IF
+
+
+
+END SUBROUTINE GET_STATES_INTERIOR
+
+
+
+SUBROUTINE  GET_STATES_INTERIOR2D(ICONSIDERED,FACEX,POINTX)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED, FACEX, POINTX
+INTEGER::I,L,NGP
+L=FACEX
+NGP=POINTX
+I=ICONSIDERED
+
+
+IF (DG.EQ.1) THEN
+                        CLEFT(1:nof_Variables)= ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                        CRIGHT(1:nof_Variables)= ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES,IELEM(N,I)%INEIGHN(L), NGP)
+                        ELSE !FV
+
+                        CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+                        CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+
+                        END IF
+!
+					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+					  if (icoupleturb.eq.1)then
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp) !left additional equations flow state
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+					  ELSE
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					  END IF
+
+
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+					END IF
+
+
+END SUBROUTINE GET_STATES_INTERIOR2D
+
+
+SUBROUTINE CALCULATE_INTERIOR_VISCOUS(ICONSIDERED,FACEX,POINTX)
+INTEGER,INTENT(IN)::ICONSIDERED, FACEX, POINTX
+INTEGER::I,L,NGP,ITTT,nvar,iex
+L=FACEX
+NGP=POINTX
+I=ICONSIDERED
+
+
+
+					IF (DG.EQ.1) THEN
+                        CLEFT(1:nof_Variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                        CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+						ELSE !FV
+
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+
+				      END IF
+
+
+
+				      LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
+				      LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
+				      RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
+				      RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP);
+
+					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+					  if (icoupleturb.eq.1)then
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp) !left additional equations flow state
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+					  ELSE
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					  END IF
+
+
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+
+
+					  do nvar=1,turbulenceequations+passivescalar
+					  RCVGRAD_T(nvar,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURBV(1:3,nvar,IELEM(N,I)%INEIGHN(L),NGP)
+					  LCVGRAD_T(nvar,1:3)=ILOCAL_RECON3(I)%ULEFTTURBV(1:3,nvar,L,NGP)
+					  end do
+
+
+					END IF
+
+
+
+END SUBROUTINE CALCULATE_INTERIOR_VISCOUS
+
+
+SUBROUTINE CALCULATE_INTERIOR_VISCOUS2D(ICONSIDERED,FACEX,POINTX)
+INTEGER,INTENT(IN)::ICONSIDERED, FACEX, POINTX
+INTEGER::I,L,NGP,ITTT,nvar,iex
+L=FACEX
+NGP=POINTX
+I=ICONSIDERED
+
+
+
+
+					  IF (DG.EQ.1) THEN
+                        CLEFT(1:nof_Variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                        CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+						LCVGRAD(1,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,2,L,NGP);LCVGRAD(2,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,3,L,NGP);
+				      LCVGRAD(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,L,NGP)
+					  RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,IELEM(N,I)%INEIGHN(L),NGP);
+				      RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,IELEM(N,I)%INEIGHN(L),NGP)
+						ELSE !FV
+							CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+				      LCVGRAD(1,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,2,L,NGP);LCVGRAD(2,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,3,L,NGP);
+				      LCVGRAD(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,L,NGP)
+				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+				      RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,IELEM(N,I)%INEIGHN(L),NGP);
+				      RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,IELEM(N,I)%INEIGHN(L),NGP)
+
+						end if
+
+
+
+					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+					  if (icoupleturb.eq.1)then
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp) !left additional equations flow state
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+					  ELSE
+					    CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+					  END IF
+
+
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+
+
+					  do nvar=1,turbulenceequations+passivescalar
+					  RCVGRAD_T(nvar,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURBV(1:2,nvar,IELEM(N,I)%INEIGHN(L),NGP)
+					  LCVGRAD_T(nvar,1:2)=ILOCAL_RECON3(I)%ULEFTTURBV(1:2,nvar,L,NGP)
+					  end do
+
+
+					END IF
+
+
+
+
+
+END SUBROUTINE CALCULATE_INTERIOR_VISCOUS2D
+
+
+SUBROUTINE CALCULATE_BOUNDED_VISCOUS(ICONSIDERED,FACEX,POINTX)
+INTEGER,INTENT(IN)::ICONSIDERED, FACEX, POINTX
+INTEGER::I,L,NGP,ITTT,nvar,iex,kk
+
+L=FACEX
+NGP=POINTX
+I=ICONSIDERED
+
+
+
+
+						IF (DG == 1) THEN
+									CLEFT(1:nof_variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+									else
+								CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)
+								END IF
+
+
+
+!   CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+				      LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
+				      LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
+
+					  IF (SRF.EQ.1)THEN
+						SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
+						CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
+				END IF
+
+					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+						if (icoupleturb.eq.1)then
+							CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)
+						ELSE
+							CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+						end if
+						do nvar=1,turbulenceequations+passivescalar
+						LCVGRAD_T(nvar,1:3)=ILOCAL_RECON3(I)%ULEFTTURBV(1:3,nvar,L,NGP)
+						end do
+					end if
+
+
+					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then
+
+								  IF (DG == 1) THEN
+                                    CRIGHT(1:nof_Variables)= ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                    ELSE
+                                    CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                                    END IF
+
+
+
+								  RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,L,NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,L,NGP);
+								  RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,L,NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,L,NGP);
+								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									END IF
+
+									do nvar=1,turbulenceequations+passivescalar
+									RCVGRAD_T(nvar,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURBV(1:3,nvar,IELEM(N,I)%INEIGHN(L),NGP)
+									end do
+
+
+								    END IF
+									IF(PER_ROT.EQ.1)THEN
+                                        CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                        DO KK=1,4
+                                            RCVGRAD(KK,1:3)=ROTATE_PER_1(RCVGRAD(KK,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                        END DO
+                                        RCVGRAD_T(1,1:3)=ROTATE_PER_1(RCVGRAD_T(1,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                    END IF
+
+
+
+								  ELSE
+								  !NOT PERIODIC ONES IN MY CPU
+
+
+								  CALL coordinates_face_innerx(N,Iconsidered,facex)
+								    CORDS(1:3)=zero
+								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+
+								    Poy(1)=cords(2)
+								    Pox(1)=cords(1)
+								    poz(1)=cords(3)
+
+								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
+								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
+
+
+								    RCVGRAD(:,:)=LCVGRAD(:,:)
+								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+				  				    end if
+				  				     if (B_CODE.eq.4)then
+				  				    rightv=zero
+				  				    rightv(2:4)=LCVGRAD(4,1:3)
+				  				    leftv=zero
+
+				  				    CALL ROTATEF(N,TRI,leftv,rightv,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+								    leftv(2)=-leftv(2)
+								    CALL ROTATEB(N,INVTRI,rightv,leftv,ANGLE1,ANGLE2)
+				  				    RCVGRAD(4,1:3)=rightv(2:4)
+				  				  	end if
+!
+!
+								  END IF
+							ELSE
+							      IF (DG == 1) THEN
+                                CRIGHT(1:NOF_VARIABLES) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                ELSE
+							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+							      END IF
+							      RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
+							      RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP);
+								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									END IF
+									do nvar=1,turbulenceequations+passivescalar
+									RCVGRAD_T(nvar,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURBV(1:3,nvar,IELEM(N,I)%INEIGHN(L),NGP)
+									end do
+								    END IF
+
+
+
+
+							END IF
+					    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+
+
+
+
+
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!periodic in other
+									  IF (DG == 1) THEN
+                                    CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+								ELSE
+
+									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                END IF
+
+									  ITTT=0
+									  DO IEX=1,NOF_VARIABLES-1
+										DO nvar=1,DIMS
+										      ITTT=ITTT+1
+										      IF (DG.EQ.1)THEN
+ 										      RCVGRAD(IEX,nVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+!
+										      ELSE
+                                                        IF (IEX.EQ.1)THEN
+                                                RCVGRAD(4,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                                                        ELSE
+                                                RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                                                        END IF
+
+										      END IF
+
+
+										END DO
+									  END DO
+
+
+
+
+
+
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+								    END IF
+
+
+
+									  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+										DO nvar=1,DIMS
+										      ITTT=ITTT+1
+									  RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+										END DO
+									  END DO
+
+									  IF(PER_ROT.EQ.1)THEN
+										CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+										  DO KK=1,4
+											  RCVGRAD(KK,1:3)=ROTATE_PER_1(RCVGRAD(KK,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+										  END DO
+										  RCVGRAD_T(1,1:3)=ROTATE_PER_1(RCVGRAD_T(1,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+										END IF
+
+
+
+								END IF
+							ELSE
+
+								   IF (DG == 1) THEN
+                                CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                ELSE
+								  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+								  END IF
+								  ITTT=0
+									  DO IEX=1,NOF_VARIABLES-1
+										DO nvar=1,DIMS
+										      ITTT=ITTT+1
+										      IF (DG.EQ.1)THEN
+ 										      RCVGRAD(IEX,nVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+!
+										      ELSE
+
+
+
+										      IF (IEX.EQ.1)THEN
+									  RCVGRAD(4,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+										      ELSE
+									  RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+										      END IF
+
+										      END IF
+										END DO
+									  END DO
+
+
+
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+
+									 DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+										DO nvar=1,DIMS
+										      ITTT=ITTT+1
+									  RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+										END DO
+									  END DO
+
+
+								    END IF
+
+!
+							END IF
+					    END IF
+
+
+
+END SUBROUTINE CALCULATE_BOUNDED_VISCOUS
+
+
+
+SUBROUTINE CALCULATE_BOUNDED_VISCOUS2D(ICONSIDERED,FACEX,POINTX)
+INTEGER,INTENT(IN)::ICONSIDERED, FACEX, POINTX
+INTEGER::I,L,NGP,ITTT,nvar,iex
+
+L=FACEX
+NGP=POINTX
+I=ICONSIDERED
+
+IF (DG == 1) THEN
+	CLEFT(1:nof_variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+	else
+CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)
+END IF
+
+
+				      LCVGRAD(1,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,2,L,NGP);LCVGRAD(2,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,3,L,NGP);
+				      LCVGRAD(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,L,NGP)
+					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+						if (icoupleturb.eq.1)then
+							CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)
+						ELSE
+							CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+						end if
+						do nvar=1,turbulenceequations+passivescalar
+						LCVGRAD_T(nvar,1:2)=ILOCAL_RECON3(I)%ULEFTTURBV(1:2,nvar,L,NGP)
+						end do
+					end if
+
+
+					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+								  !CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+
+									IF (DG == 1) THEN
+										CRIGHT(1:nof_Variables)= ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+										ELSE
+										CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+										END IF
+
+
+								  RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,L,NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,L,NGP);
+								  RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,L,NGP);
+								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									END IF
+
+									do nvar=1,turbulenceequations+passivescalar
+									RCVGRAD_T(nvar,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURBV(1:2,nvar,IELEM(N,I)%INEIGHN(L),NGP)
+									end do
+
+
+								    END IF
+
+
+
+
+								  ELSE
+								  !NOT PERIODIC ONES IN MY CPU
+
+
+								  CALL coordinates_face_inner2dx(N,Iconsidered,facex)
+								    CORDS(1:2)=zero
+								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
+
+								    Poy(1)=cords(2)
+								    Pox(1)=cords(1)
+
+
+								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
+								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
+
+								    RCVGRAD(:,:)=LCVGRAD(:,:)
+
+
+								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+				  				    end if
+! 				  				     if (B_CODE.eq.4)then
+!
+!
+! 				  				    rightv=zero
+! 				  				    rightv(2:3)=LCVGRAD(3,1:2)
+! 				  				    leftv=zero
+!
+! 				  				    CALL ROTATEF2d(N,TRI,leftv,rightv,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+! 								    leftv(2)=-leftv(2)
+! 								    CALL ROTATEB2d(N,INVTRI,rightv,leftv,ANGLE1,ANGLE2)
+! 				  				    RCVGRAD(3,1:2)=rightv(2:3)
+! 				  				  	end if
+!
+!
+								  END IF
+							ELSE
+
+
+								IF (DG == 1) THEN
+									CRIGHT(1:NOF_VARIABLES) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+									ELSE
+									  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+									  END IF
+
+
+
+
+							      RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,IELEM(N,I)%INEIGHN(L),NGP);
+							      RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,IELEM(N,I)%INEIGHN(L),NGP);
+								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									END IF
+									do nvar=1,turbulenceequations+passivescalar
+									RCVGRAD_T(nvar,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURBV(1:2,nvar,IELEM(N,I)%INEIGHN(L),NGP)
+									end do
+								    END IF
+
+
+
+
+							END IF
+					    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+
+
+
+
+
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+									 ! CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+
+									IF (DG == 1) THEN
+										CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+									ELSE
+
+										  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+									END IF
+
+
+									  ITTT=0
+									  DO IEX=1,NOF_VARIABLES-1
+										DO nvar=1,DIMS
+										      ITTT=ITTT+1
+										      IF (DG.EQ.1)THEN
+ 										      RCVGRAD(IEX,nVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+!
+										      ELSE
+
+
+
+										      IF (IEX.EQ.1)THEN
+									  RCVGRAD(3,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+										      ELSE
+									  RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+										      END IF
+
+										      END IF
+										END DO
+									  END DO
+
+
+
+
+
+
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+
+
+
+
+									  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+										DO nvar=1,DIMS
+										      ITTT=ITTT+1
+									  RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+										END DO
+									  END DO
+
+								END IF
+
+
+
+								END IF
+							ELSE
+
+								  !CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+								IF (DG == 1) THEN
+									CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+									ELSE
+									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+									  END IF
+
+
+								ITTT=0
+									  DO IEX=1,NOF_VARIABLES-1
+										DO nvar=1,DIMS
+										      ITTT=ITTT+1
+										      IF (DG.EQ.1)THEN
+ 										      RCVGRAD(IEX,nVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+!
+										      ELSE
+
+
+										      IF (IEX.EQ.1)THEN
+									  RCVGRAD(3,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+										      ELSE
+									  RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+										      END IF
+
+										      END IF
+										END DO
+									  END DO
+
+
+
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+
+									 DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+										DO nvar=1,DIMS
+										      ITTT=ITTT+1
+									  RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+										END DO
+									  END DO
+
+
+								    END IF
+
+!
+							END IF
+					    END IF
+
+
+
+
+
+
+END SUBROUTINE CALCULATE_BOUNDED_VISCOUS2D
+
+
+SUBROUTINE  GET_STATES_BOUNDS(ICONSIDERED,FACEX,POINTX)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED, FACEX, POINTX
+INTEGER::I,L,NGP
+L=FACEX
+NGP=POINTX
+I=ICONSIDERED
+
+
+
+						IF (DG == 1) THEN
+									CLEFT(1:nof_variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+									else
+								CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)
+								END IF
+
+								IF (SRF.EQ.1)THEN
+									SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
+									CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
+							END IF
+
+
+
+								IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+										CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)
+									ELSE
+										CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									end if
+								end if
+
+
+					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								  !if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+									if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then
+
+								 IF (DG == 1) THEN
+                                    CRIGHT(1:nof_Variables)= ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                    ELSE
+                                    CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                                    END IF
+
+									IF(PER_ROT.EQ.1)THEN
+										CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+									  END IF
+
+								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									END IF
+								    END IF
+
+
+
+
+								  ELSE
+								  !NOT PERIODIC ONES IN MY CPU
+
+
+								  CALL coordinates_face_innerx(N,Iconsidered,facex)
+								    CORDS(1:3)=zero
+								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+
+								    Poy(1)=cords(2)
+								    Pox(1)=cords(1)
+								    poz(1)=cords(3)
+
+								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
+								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
+
+
+
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
+
+
+								  END IF
+							ELSE
+
+
+                                   IF (DG == 1) THEN
+                                CRIGHT(1:NOF_VARIABLES) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                ELSE
+							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+							      END IF
+
+								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									END IF
+								    END IF
+
+
+
+
+							END IF
+					    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+
+
+
+
+
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								!if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+									if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then
+								 IF (DG == 1) THEN
+                                    CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+								ELSE
+
+									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                END IF
+								IF(PER_ROT.EQ.1)THEN
+									CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+								  END IF
+
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+								    END IF
+
+
+
+								END IF
+							ELSE
+                                   IF (DG == 1) THEN
+                                CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                ELSE
+								  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+								  END IF
+
+!
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+								    END IF
+
+!
+							END IF
+					    END IF
+
+
+
+
+
+
+END SUBROUTINE GET_STATES_BOUNDS
+
+
+
+SUBROUTINE  GET_STATES_BOUNDS2D(ICONSIDERED,FACEX,POINTX)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED, FACEX, POINTX
+INTEGER::I,L,NGP,IKAS
+L=FACEX
+NGP=POINTX
+I=ICONSIDERED
+
+IF (DG == 1) THEN
+                        CLEFT(1:nof_Variables)= ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                    ELSE
+
+				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)
+
+                    END IF
+
+					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+						if (icoupleturb.eq.1)then
+							CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)
+						ELSE
+							CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+						end if
+					end if
+
+
+					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+                                        IF (DG == 1) THEN
+                                            CRIGHT(1:nof_Variables)= ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                        ELSE !FV
+                                            CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                                        END IF
+								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                                        if (icoupleturb.eq.1)then
+                                        CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+                                        (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+                                        ELSE
+                                        CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+                                        END IF
+								    END IF
+
+
+
+
+
+								  IKAS=1
+
+								  ELSE
+								  !NOT PERIODIC ONES IN MY CPU
+
+
+								  CALL coordinates_face_inner2dx(N,Iconsidered,facex)
+								    CORDS(1:2)=zero
+								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
+
+								    Poy(1)=cords(2)
+								    Pox(1)=cords(1)
+
+
+								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
+!
+								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+								    cright(1:nof_Variables)=rightv(1:nof_Variables)
+!
+				  				  	 IKAS=2
+
+								  END IF
+							ELSE
+                                    IF (DG == 1) THEN
+                                        CRIGHT(1:nof_Variables)= ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+        !
+                                    ELSE !FV
+                                        CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                                    END IF
+
+								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+									END IF
+								    END IF
+
+
+							       IKAS=3
+
+							END IF
+					    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+
+
+
+
+
+							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                                        IF (DG == 1) THEN
+                                            CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                        else
+                                            CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+ 									   END IF
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+
+
+
+
+								    END IF
+
+
+
+								END IF
+							ELSE
+                                    IF (DG == 1) THEN
+                                        CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                    ELSE
+                                        CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                    END IF
+								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+									if (icoupleturb.eq.1)then
+									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									ELSE
+									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+									END IF
+
+
+								    END IF
+								   IKAS=4
+!
+							END IF
+					    END IF
+
+
+
+
+
+
+
+END SUBROUTINE GET_STATES_BOUNDS2D
+
+
 
 
 
@@ -479,6 +1806,15 @@ SUBROUTINE ALLOCATE_DG
     
 
     ALLOCATE(ILOCAL_RECON3(I)%ULEFT_DG(NOF_VARIABLES, IELEM(N,I)%IFCA, NUMBEROFPOINTS2))
+    
+     IF((ITESTCASE == 4).or.((governingequations.EQ.-1).AND.(BR2_YN.EQ.1))) THEN !NS
+            ALLOCATE(ILOCAL_RECON3(I)%BR2_AUX_VAR(NOF_VARIABLES, DIMENSIONA, IELEM(N,I)%IFCA, NUMBEROFPOINTS2))
+            ALLOCATE(ILOCAL_RECON3(I)%BR2_LOCAL_LIFT(NOF_VARIABLES, DIMENSIONA, IELEM(N,I)%IFCA))
+            ILOCAL_RECON3(I)%BR2_AUX_VAR = ZERO
+            ILOCAL_RECON3(I)%BR2_LOCAL_LIFT = ZERO
+
+        END IF
+        
     
     
     END DO
@@ -774,31 +2110,31 @@ SUBROUTINE BUILD_MASS_MATRIX(N)
     
     
         CALL COMPMASSINV
-        
+!
         m_1(i_elem)%val(:,:)=invmm(:,:)
-        
-        maxs=tolsmall
-        mins=tolbig
-        DO I_DOF = 1, NUM_DG_DOFS       
-        DO J_DOF = 1, NUM_DG_DOFS
-        if (abs(m_1(i_elem)%val(i_dof,j_dof)).gt.maxs)then
-        maxs=abs(m_1(i_elem)%val(i_dof,j_dof))
-        
-        end if
-        
-        if (abs(m_1(i_elem)%val(i_dof,j_dof)).lt.mins)then
-        mins=abs(m_1(i_elem)%val(i_dof,j_dof))
-        
-        end if
-        
-        end do
-        end do
-        
-        
-        
-        if ((maxs/mins).gt.higher)then
-        higher=maxs/mins
-        end if
+!
+!         maxs=tolsmall
+!         mins=tolbig
+!         DO I_DOF = 1, NUM_DG_DOFS
+!         DO J_DOF = 1, NUM_DG_DOFS
+!         if (abs(m_1(i_elem)%val(i_dof,j_dof)).gt.maxs)then
+!         maxs=abs(m_1(i_elem)%val(i_dof,j_dof))
+!
+!         end if
+!
+!         if (abs(m_1(i_elem)%val(i_dof,j_dof)).lt.mins)then
+!         mins=abs(m_1(i_elem)%val(i_dof,j_dof))
+!
+!         end if
+!
+!         end do
+!         end do
+!
+!
+!
+!         if ((maxs/mins).gt.higher)then
+!         higher=maxs/mins
+!         end if
         
         
         
