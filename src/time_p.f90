@@ -70,10 +70,29 @@ KMAXE=XMPIELRANK(N)
 		ELSE
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
 		END IF
-		
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-		
-		
+        IF (RFRAME.eq.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+        END IF
+        IF (SRFG.EQ.1) THEN
+            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+            POY(1:3)=SRF_VELOCITY
+            SRF_SPEED=ZERO
+            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+        END IF
+        IF(MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            ELSE
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF
+        END IF
 		if (dg.eq.1)then
 		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
 		
@@ -97,8 +116,30 @@ KMAXE=XMPIELRANK(N)
 		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
 		CALL SUTHERLAND(N,LEFTV,RIGHTV)
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-		
+                
+        IF (RFRAME.EQ.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+        END IF
+        IF(SRFG.EQ.1)THEN
+            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+            POY(1:3)=SRF_VELOCITY
+            SRF_SPEED=ZERO
+            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+        END IF          
+        IF(MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
+                VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            ELSE
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF
+        END IF
 		IF (TURBULENCE.EQ.1)THEN
 		IF (TURBULENCEMODEL.EQ.1)THEN
 		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
@@ -108,12 +149,20 @@ KMAXE=XMPIELRANK(N)
 		VISCL(1)=VISCL(1)+VISCL(3)
 		END IF
 		END IF
+
+		if (dg.eq.1)then
+		
+
+		DT=MIN(DT,(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
 		
 		
-		
-		
+		else
 		
          DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
+
+!          DT=MIN(DT,(CCFL)*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*(1.0D0/IELEM(N,I)%MINEDGE)))))
+
+         end if
                              
 	END DO
 	!$OMP END DO
@@ -152,9 +201,30 @@ KMAXE=XMPIELRANK(N)
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
 		
 		CALL CONS2PRIM(N)
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-		
+                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+        IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
+        END IF
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+        IF(SRFG.EQ.1)THEN
+            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+        END IF
+            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+            SRF_SPEED=ZERO
+            POY(1:3)=SRF_VELOCITY
+            SRF=ILOCAL_RECON3(I)%MRF
+        IF(MRF.EQ.1)THEN
+            IF (SRF.EQ.0) THEN
+            ELSE
+        END IF
+            END IF
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                SRF_SPEED=ZERO
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
+                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
 		if (dg.eq.1)then
 		
 		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1))
@@ -177,9 +247,31 @@ KMAXE=XMPIELRANK(N)
 		CALL CONS2PRIM(N)
 		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
 		CALL SUTHERLAND(N,LEFTV,RIGHTV)
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-		IF (TURBULENCE.EQ.1)THEN
+                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+        IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+        END IF
+        IF(SRFG.EQ.1)THEN
+            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+            POY(1:3)=SRF_VELOCITY
+            SRF_SPEED=ZERO
+            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+        END IF
+        IF(MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            ELSE
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF
+        END IF
+        IF (TURBULENCE.EQ.1)THEN
 		IF (TURBULENCEMODEL.EQ.1)THEN
 		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -189,10 +281,17 @@ KMAXE=XMPIELRANK(N)
 		END IF
 		END IF
 		
+
+		if (dg.eq.1)then
+
+
+		IELEM(N,I)%DTL=(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE))))
+
 		
-		
+		else
 		
 		IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
+		end if
 		
 	END DO
 	!$OMP END DO
@@ -301,9 +400,22 @@ KMAXE=XMPIELRANK(N)
 		VISCL(1)=VISCL(1)+VISCL(3)
 		END IF
 		END IF
+
+
+    if (dg.eq.1)then
+		
+
+      DT=MIN(DT,(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
+      
+      
+      else
+
+
 		
 		DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
-	END DO
+      END IF
+  
+  END DO
 	!$OMP END DO
 	END IF
 	
@@ -382,8 +494,24 @@ KMAXE=XMPIELRANK(N)
 		VISCL(1)=VISCL(1)+VISCL(3)
 		END IF
 		END IF
+
+
+
+
+
+
+		if (dg.eq.1)then
+
+
+      IELEM(N,I)%DTL=(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE))))
+
+
+      else
 		
 		IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
+
+
+		end if
 	END DO
 	!$OMP END DO
 	END IF
@@ -728,10 +856,11 @@ DO I=1,KMAXE
         
         U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
 
-        IF (FILTERING.GT.0)THEN
-        iconsidered=i
-        CALL APPLY_FILTER1(N)
-        END IF
+        IF (FILTERING.EQ.1)THEN
+        ICONSIDERED=I;
+        CALL APPLY_FILTER_DG(ICONSIDERED)
+
+        end if
          
     ELSE
         OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
@@ -740,6 +869,7 @@ DO I=1,KMAXE
     END IF
 END DO
 !$OMP END DO
+
 
 IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
 !$OMP DO
@@ -758,11 +888,13 @@ DO I=1,KMAXE
   IF (DG == 1) THEN
         U_C(I)%VALDG(3,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
         U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=TO4*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + OO4*U_C(I)%VALDG(3,1:NOF_VARIABLES,:) - OO4*DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
+        IF (FILTERING.EQ.1)THEN
 
-        IF (FILTERING.GT.0)THEN
-        iconsidered=i
-        CALL APPLY_FILTER1(N)
+        ICONSIDERED=I;
+        CALL APPLY_FILTER_DG(ICONSIDERED)
+
         END IF
+
 
     ELSE
         OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
@@ -792,10 +924,13 @@ DO I=1,KMAXE
   IF (DG == 1) THEN
         U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=OO3*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + TO3*U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - TO3*DT*TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
 
-        IF (FILTERING.GT.0)THEN
-        iconsidered=i
-        CALL APPLY_FILTER1(N)
+        IF (FILTERING.EQ.1)THEN
+
+        ICONSIDERED=I;
+        CALL APPLY_FILTER_DG(ICONSIDERED)
+
         END IF
+
 
     ELSE
         OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
@@ -1084,9 +1219,19 @@ CALL CALL_FLUX_SUBROUTINES_2D
 
 !$OMP DO
 DO I=1,KMAXE
+
+  IF (DG == 1) THEN
+OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+        U_C(I)%VALDG(2,:,:)=U_C(I)%VALDG(1,:,:)
+        U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (ielem(n,i)%dtl* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
+    ELSE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(ielem(n,i)%dtl*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(ielem(n,i)%dtl*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  END IF
+
+
+
   
 END DO
 !$OMP END DO
@@ -1107,8 +1252,16 @@ CALL CALL_FLUX_SUBROUTINES_2D
 
 !$OMP DO
 DO I=1,KMAXE
+
+   IF (DG == 1) THEN
+OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+        U_C(I)%VALDG(1,:,:)=(oo2*U_C(I)%VALdg(2,:,:))+(oo2*U_C(I)%VALDG(1,:,:))-(ielem(n,i)%dtl* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))
+    ELSE
   OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
   U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(ielem(n,i)%dtl*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+
+  END IF
+
 END DO
 !$OMP END DO
 
@@ -1774,7 +1927,6 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,KMAXE
 REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-real::prace_t1,prace_t2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7,prace_t8,prace_t9,pr_t1,pr_t2,pr_t3,pr_t4,PR_T5,PR_T6,PR_T7,PR_T8
 REAL::DUMPRACEIN,DUMPRACEOUT,flops_count
 KMAXE=XMPIELRANK(N)
 TO4=3.0D0/4.0D0
@@ -1785,127 +1937,14 @@ OO3=1.0D0/3.0D0
 
 
 
+CALL CALL_FLUX_SUBROUTINES_3D
 
 
 
-IF (FASTEST.EQ.1)THEN
 
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER3(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-ELSE
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER 
-    !$OMP MASTER
-    pr_T1=MPI_Wtime()
-     !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
-    if (dg.eq.1)then
-    CALL SOL_INTEG_DG(N)
-    END IF
-    IF (FASTEST.EQ.1) THEN
-        CALL EXCHANGE_LOWER(N)
-    ELSE
-        CALL EXCHANGE_HIGHER(N)
-    END IF
-     
-!     CALL EXCHANGE_HIGHER(N)
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER 
-    !$OMP MASTER
-    pr_t2=MPI_Wtime()
-    prace_t1=pr_t2-pr_t1
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
     
     
-    
-    
-    
-    
-    IF (DG == 1) THEN
-        
-        CALL RECONSTRUCT_DG(N)
-        CALL TROUBLE_INDICATOR1
-        
-    END IF
-    CALL ARBITRARY_ORDER3(N)
-    
-    
-    IF (DG == 1) THEN
-        
-        CALL TROUBLE_INDICATOR2
-        
-    end if
-    
-    
-    
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER 
-    !$OMP MASTER
-    pr_t3=MPI_Wtime()
-    prace_t2=pr_t3-pr_t2
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
-    
-    
-    
-    CALL EXHBOUNDHIGHER(N)
-    
-    if (dg.eq.1)then
-    call EXHBOUNDHIGHER_dg(N)
-    end if
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER 
-    !$OMP MASTER
-    pr_t4=MPI_Wtime()
-    prace_t3=pr_t4-pr_t3
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
-    
-    
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-     IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-    
-    
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER 
-    !$OMP MASTER
-    pr_t5=MPI_Wtime()
-    prace_t4=pr_t5-pr_t4
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
-    
-    
-    
-END IF
+
 
 
 
@@ -1939,20 +1978,11 @@ DO I=1,KMAXE
     IF (statistics.eq.1)THEN
     !$OMP BARRIER 
     !$OMP MASTER
-    pr_t6=MPI_Wtime()
-    prace_t5=pr_t6-pr_t5
+    pr_t8=MPI_Wtime()
+    prace_t7=pr_t8-pr_t7
     
-    !RECONSTRUCTION TIME=prace_t2
-    !COMMUNICATION TIME OF EXBOUNDHIGHER=prace_t3
-    !COMMUNICATION TIME OF HALO CELLS=prace_t1
-    !FLUXES=prace_t4
-    !UPDATE OF SOLUTION=prace_t5
-    !TOTAL COMMUNICATION TIME=PRACE_T1+PRACE_T3=PRACE_T6
-    !TOTAL COMPUTATIONALS TIME=PRACE_T2+PRACE_T4+PRACE_T5=PRACE_T7
-    !TOTAL TIME=TOTAL COMMUNICATION TIME+TOTAL COMPUTATIONALS TIME=PRACE_T8
-   PRACE_T6=PRACE_T1+PRACE_T3
-   PRACE_T7=PRACE_T2+PRACE_T4+PRACE_T5
-   PRACE_T8=PRACE_T7+PRACE_T6
+
+
    
    DUMPRACEIN=PRACE_t1
  CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
@@ -1969,27 +1999,26 @@ DO I=1,KMAXE
    DUMPRACEIN=PRACE_t5
  CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
    PRACE_t5=DUMPRACEOUT
-!    DUMPRACEIN=PRACE_t6
-!  CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-!    PRACE_t6=DUMPRACEOUT
-!    DUMPRACEIN=PRACE_t7
-!  CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-!    PRACE_t7=DUMPRACEOUT
-!    DUMPRACEIN=PRACE_t8
-!  CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-!    PRACE_t8=DUMPRACEOUT
-    PRACE_T6=PRACE_T1+PRACE_T3
-   PRACE_T7=PRACE_T2+PRACE_T4+PRACE_T5
-   PRACE_T8=PRACE_T7+PRACE_T6
 
-   FLOPS_COUNT=(((2*idegfree*nof_Variables*(imaxdegfree+1)*5)+(2*nof_Variables*nof_variables*idegfree*4)+(2*idegfree*nof_Variables*nof_variables*5)+(2*idegfree*nof_Variables*idegfree*5)+&
-                (QP_QUAD*2*6*3*3*3)+(QP_QUAD*3*2*5*6*5*5)+(5*5*5*2*QP_QUAD*6)+(QP_QUAD*nof_Variables*6*2)+(QP_QUAD*2*6)+(idegfree*QP_QUAD*6*iorder)+(20+300*IORDER*QP_QUAD*6+200+12000*QP_QUAD*6*2))/prace_t8)*1e-9*imaxe
+   DUMPRACEIN=PRACE_t6
+ CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
+   PRACE_t6=DUMPRACEOUT
+
+   DUMPRACEIN=PRACE_t7
+ CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
+   PRACE_t7=DUMPRACEOUT
+
+   PRACE_TX1=PRACE_T2+PRACE_T4
+   PRACE_TX2=PRACE_T1+PRACE_T3+PRACE_T5+PRACE_T6+PRACE_T7
+   PRACE_TX3=PRACE_TX1+PRACE_TX2
+
+
 
 
    
     IF (N.EQ.0)THEN
     OPEN(133,FILE=STATFILE,FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-    WRITE(133,'(I6,1X,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4)')it,PRACE_T8,PRACE_T6,PRACE_T1,PRACE_T3,PRACE_T7,prace_t2,prace_t4,prace_t5,flops_count
+    WRITE(133,'(I6,1X,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4)')it,PRACE_TX3,PRACE_TX1,PRACE_TX2,PRACE_T1,PRACE_T2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7
     CLOSE(133)
     END IF
     
@@ -2123,28 +2152,57 @@ END SUBROUTINE RUNGE_KUTTA4
 
 SUBROUTINE CALL_FLUX_SUBROUTINES_3D
 IMPLICIT NONE
+REAL::DUMPRACEIN,DUMPRACEOUT
 
+
+    IF (statistics.eq.1)THEN
+    !$OMP BARRIER
+    !$OMP MASTER
+    pr_T1=MPI_Wtime()
+     !$OMP END MASTER
+     !$OMP BARRIER
+    END IF
 
 
     if (dg.eq.1)then
 
-
-
-    CALL SOL_INTEG_DG(N)
-
-
+    CALL SOL_INTEG_DG(N) ! Calculates cell average of DG solution for FV
 
     END IF
+
+
+    IF (statistics.eq.1)THEN
+    !$OMP BARRIER
+    !$OMP MASTER
+    pr_t2=MPI_Wtime()
+    prace_t1=pr_t2-pr_t1
+    !$OMP END MASTER
+     !$OMP BARRIER
+    END IF
+
     IF (FASTEST.EQ.1) THEN
         CALL EXCHANGE_LOWER(N)
     ELSE
         CALL EXCHANGE_HIGHER(N)
     END IF
         
+
+    IF (statistics.eq.1)THEN
+    !$OMP BARRIER
+    !$OMP MASTER
+    pr_t3=MPI_Wtime()
+    prace_t2=pr_t3-pr_t2
+    !$OMP END MASTER
+     !$OMP BARRIER
+    END IF
+
+
     IF (DG == 1) THEN
 
-        CALL RECONSTRUCT_DG(N)
-        CALL TROUBLE_INDICATOR1
+        CALL RECONSTRUCT_DG(N) ! Extrapolates solution to faces
+
+
+        CALL TROUBLE_INDICATOR1 ! Checks for troubled cells
         
     END IF
     
@@ -2153,16 +2211,80 @@ IMPLICIT NONE
     
     IF (DG == 1) THEN
         
-        CALL TROUBLE_INDICATOR2
-        
+        CALL TROUBLE_INDICATOR2 ! Changes DG to FV
+
     end if
-    
-    
+
     CALL EXHBOUNDHIGHER(N)
-    
+
+
+
     if (dg.eq.1)then
-    call EXHBOUNDHIGHER_dg(N)
+
+        CALL EXHBOUNDHIGHER_DG(N)
+
+        IF (ITESTCASE.EQ.4)THEN
+
+          IF( BR2_YN.eq.2) then
+
+          CALL RECONSTRUCT_BR2_DG
+
+          CALL EXHBOUNDHIGHER_DG2(N)
+
+          END IF
+
+          IF( BR2_YN.eq.0) then
+          CALL VISCOUS_DG_GGS(N)
+          END IF
+
+
+
+        END IF
+
     end if
+    
+     IF (statistics.eq.1)THEN
+    !$OMP BARRIER
+    !$OMP MASTER
+    pr_t4=MPI_Wtime()
+    prace_t3=pr_t4-pr_t3
+    !$OMP END MASTER
+     !$OMP BARRIER
+    END IF
+
+
+
+
+
+
+    IF (statistics.eq.1)THEN
+    !$OMP BARRIER
+    !$OMP MASTER
+    pr_t5=MPI_Wtime()
+    prace_t4=pr_t5-pr_t4
+    !$OMP END MASTER
+     !$OMP BARRIER
+    END IF
+
+
+    if (adda.eq.1)then
+    call fix_dissipation(n)
+    call EXCHANGE_ADDA_DISS(N)
+    call fix_dissipation2(n)
+    end if
+
+
+
+    IF (statistics.eq.1)THEN
+    !$OMP BARRIER
+    !$OMP MASTER
+    pr_t6=MPI_Wtime()
+    prace_t5=pr_t6-pr_t5
+    !$OMP END MASTER
+     !$OMP BARRIER
+    END IF
+
+
     
     !Modifies RHS
     SELECT CASE(ITESTCASE)
@@ -2170,19 +2292,58 @@ IMPLICIT NONE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_dIFfusive(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     IF (turbulence.eq.1)THEN
     CALL SOURCES_COMPUTATION(N)
     END IF
+
+      CALL VORTEXCALC(N)
+
     END SELECT
 
-!     IF (DG.EQ.1)THEN
-!     IF (surfshear.GT.0)THEN
-!     CALL APPLY_FILTER(N)
-!     END IF
-!     END IF
+	
+
+
+
+
+    IF (statistics.eq.1)THEN
+    !$OMP BARRIER
+    !$OMP MASTER
+    pr_t7=MPI_Wtime()
+    prace_t6=pr_t7-pr_t6
+    !$OMP END MASTER
+     !$OMP BARRIER
+    END IF
+
+
+
+
+
+
+
+    !SOL INTEGRATION TIME=PRACE_T1
+    !COMMUNICATION TIME OF HALO CELLS=prace_t2
+    !RECONSTRUCTION TIME=prace_t3
+    !COMMUNICATION TIME OF EXBOUNDHIGHER=prace_t4
+    !ADDA=prace_t5
+    !FLUXES=PRACE_T6
+
+    !UPDATE OF SOLUTION=prace_t7
+    !TOTAL COMMUNICATION TIME=PRACE_T2+PRACE_T4=PRACE_TX1
+    !TOTAL COMPUTATIONALS TIME=PRACE_T1+PRACE_T3+PRACE_T5+PRACE_T6+PRACE_T7=PRACE_TX2
+    !TOTAL TIME=TOTAL COMMUNICATION TIME+TOTAL COMPUTATIONALS TIME=PRACE_TX3
+
+  IF ((DG.EQ.1).AND.(FILTERING.EQ.1))THEN
+    CALL APPLY_FILTER(N)
+  END IF
 
 
 
@@ -2221,7 +2382,7 @@ IMPLICIT NONE
     IF (DG == 1) THEN
         
         CALL TROUBLE_INDICATOR2
-        
+
     end if
     
     
@@ -2229,6 +2390,27 @@ IMPLICIT NONE
     
     if (dg.eq.1)then
     call EXHBOUNDHIGHER_dg(N)
+
+    IF (ITESTCASE.EQ.4)THEN
+
+          IF( BR2_YN.eq.2) then
+
+          CALL RECONSTRUCT_BR2_DG
+
+          CALL EXHBOUNDHIGHER_DG2(N)
+
+          END IF
+
+          IF( BR2_YN.eq.0) then
+          CALL VISCOUS_DG_GGS(N)
+          END IF
+
+
+
+        END IF
+
+
+
     end if
     
     !Modifies RHS
@@ -2449,13 +2631,19 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive(N)
-    CALL VORTEXCALC(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
+    CALL CALCULATE_FLUXESHI_diffusive(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
+    call VORTEXCALC(N)
+    if (turbulence.eq.1)then
+    call SOURCES_COMPUTATION(N)
+    end if
     END SELECT
     
 ELSE
@@ -2467,13 +2655,19 @@ ELSE
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive(N)
-    CALL VORTEXCALC(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
+    CALL CALCULATE_FLUXESHI_diffusive(N)
+    if ((SOURCE_ACTIVE.EQ.1))then
+    call SOURCES_COMPUTATION_ROT(N)
+    end if
+    call VORTEXCALC(N)
+    if (turbulence.eq.1)then
+    call SOURCES_COMPUTATION(N)
+    end if
     END SELECT
 END IF
 
@@ -2502,6 +2696,12 @@ DO I=1,KMAXE
     IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))THEN
         write(600+n,*)"nan present",ielem(n,i)%ihexgl,ielem(n,i)%ishape,ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
         write(600+n,*)ielem(n,i)%dih(:)
+        write(500+n,'(3es14.6)'),ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
+        if(MRF.EQ.1)then
+        write(700+n,*)'SRF -diagonal', ILOCAL_RECON3(I)%MRF ,I
+         write(700+n,'(3es14.6)'),ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
+        write(700+n,*),impdu(i,1),impdu(i,2),impdu(i,3),impdu(i,4),impdu(i,5)
+        end if
         kill_nan=1
     END IF
   U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
@@ -2706,43 +2906,7 @@ DO JJ=1,upperlimit
       
 
       
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER3(N)
-    CALL EXHBOUNDHIGHER(N)
-    
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive(N)
-    CALL VORTEXCALC(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-    
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER3(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive(N)
-    CALL VORTEXCALC(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-END IF
+CALL CALL_FLUX_SUBROUTINES_3D
 
 
 IF (relax.eq.3)THEN
@@ -3806,37 +3970,37 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 				  END IF
 					
 					
-					IF (INITCOND.eq.95)THEN                    
- 				TOTK=0
- 				DO I=1,xmpielrank(n)
-                    
-					TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-(((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
-                    
+                              IF (INITCOND.eq.95)THEN
+                          TOTK=0
+                          DO I=1,xmpielrank(n)
+
+                              TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
+          (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
 
 
-				END DO
-! 				
- 				DUMEtg1=TOTK
- 				DUMEtg2=0.0
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
- 				TOTK=DUMEtg2
- 				IF (N.EQ.0)THEN
- 				TOTV1=TOTK/((2.0*PI)**3)
-					IF (it.eq.0)THEN
-					TAYLOR=TOTK
-					END IF
-					
-				
-				
-				END IF
- 				
- 				
-!  				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+                          END DO
+          !
+                          DUMEtg1=TOTK
+                          DUMEtg2=0.0
+                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+                          TOTK=DUMEtg2
+                          IF (N.EQ.0)THEN
+                          TOTV1=TOTK/((2.0*PI)**3)
+                              IF (it.eq.0)THEN
+                              TAYLOR=TOTK
+                              END IF
+
+
+
+                          END IF
+
+
+
+
  				
 
-! 				END IF
 			    END IF
 			
 			
@@ -3856,7 +4020,11 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			end if
 
 
-			IF (DG.EQ.1)call filter(n)
+			IF (DG.EQ.1)then
+			if (filtering.gt.0)then
+			call filter(n)
+			end if
+			end if
 			
 
 !             print*,"iam here2"
@@ -3919,7 +4087,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			
 				IF (DG.EQ.1)THEN
           IF (CODE_PROFILE.ne.102)THEN
-          IF ( mod(it, residualfreq) .eq. 0) THEN
+          IF ( mod(it, 100) .eq. 0) THEN
             CALL TROUBLED_HISTORY
           END IF
           end if
@@ -3946,23 +4114,66 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
  				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
  				TOTK=DUMEtg2
  				IF (N.EQ.0)THEN
- 				TOTV2=TOTK/((2.0*PI)**3)
-					IF (it.eq.0)THEN
-					TAYLOR=TOTK
-					END IF
-					
-				IF (IT.EQ.0)THEN
-				OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-				ELSE
-				OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-				END IF
-				WRITE(73,*)T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT
-				CLOSE(73)
+                          TOTV2=TOTK/((2.0*PI)**3)
+                              IF (it.eq.0)THEN
+                              TAYLOR=TOTK
+                              END IF
+
+                          IF (IT.EQ.0)THEN
+                          OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
+                          ELSE
+                          OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
+                          END IF
+
+                          WRITE(73,*)T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT
+                          CLOSE(73)
 				END IF
  				
  				
  				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
  				
+
+ 				IF (ADDA.EQ.1)THEN
+                          TOTK=0
+                          DO I=1,xmpielrank(n)
+
+                              TOTK=TOTK+IELEM(N,I)%ER
+
+
+                          END DO
+                          DUMEtg1=TOTK
+                          DUMEtg2=0.0
+                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+
+
+                        IF (N.EQ.0)THEN
+                        TOTK=DUMEtg2/IMAXE
+                                          IF (IT.EQ.0)THEN
+                                OPEN(123,FILE='ER.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
+                                ELSE
+                                OPEN(123,FILE='ER.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
+                                END IF
+                                WRITE(123,*)T,TOTK
+                                CLOSE(123)
+
+                        end if
+
+
+
+
+
+
+
+                   END IF
+
+
+
+                  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
 
 ! 				END IF
 			    END IF
@@ -4294,7 +4505,7 @@ DO
           
           IF (DG.EQ.1)THEN
           IF (CODE_PROFILE.ne.102)THEN
-          IF ( mod(it, residualfreq) .eq. 0) THEN
+          IF ( mod(it, 100) .eq. 0) THEN
             CALL TROUBLED_HISTORY
           END IF
           end if
@@ -4378,27 +4589,14 @@ DO
         
             KILL=1
             
-            CALL VOLUME_SOLUTION_WRITE
-            IF (outsurf.eq.1)THEN
-                CALL surface_SOLUTION_WRITE
-            END IF
-            
-            CALL CHECKPOINTING
-            
-            IF (averaging .eq.1) THEN
-                CALL VOLUME_SOLUTION_WRITE_av
-                IF (outsurf.eq.1)THEN
-                    CALL surface_SOLUTION_WRITE_av
-                END IF
-                CALL CHECKPOINTING_av
-            END IF			
+
         END IF
     END IF
     !$OMP END MASTER 
     !$OMP BARRIER
     
     
-!     WRITE(500+N,*) 'IT:',IT
+
     !$OMP MASTER
     IT=IT+1
     IF (IT.EQ.NTMAX)THEN
@@ -4420,14 +4618,21 @@ DO
         END IF
     
         !$OMP MASTER
-            IF ((rungekutta.eq.5).or.(rungekutta.eq.10))THEN
+            !IF ((rungekutta.eq.5).or.(rungekutta.eq.10))THEN
                     
                     CALL VOLUME_SOLUTION_WRITE
-                    IF (outsurf.eq.1)THEN
-                        CALL surface_SOLUTION_WRITE
-                    END IF
-                
-                    CALL CHECKPOINTING
+            IF (outsurf.eq.1)THEN
+                CALL surface_SOLUTION_WRITE
+            END IF
+
+            CALL CHECKPOINTING
+
+            IF (averaging .eq.1) THEN
+                CALL VOLUME_SOLUTION_WRITE_av
+                IF (outsurf.eq.1)THEN
+                    CALL surface_SOLUTION_WRITE_av
+                END IF
+                CALL CHECKPOINTING_av
             END IF
         !$OMP END MASTER
         !$OMP BARRIER

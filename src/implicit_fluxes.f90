@@ -16,16 +16,14 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
 	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar
-	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB
-	REAL,DIMENSION(5,5)::IDENTITY1
-	real,dimension(5,5)::convj,diffj
+	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx
+	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
+	real,dimension(NOF_variables,NOF_variables)::convj,diffj
 	KMAXE=XMPIELRANK(N)
 	IDENTITY1(:,:)=ZERO
-	IDENTITY1(1,1)=1.0D0
-	IDENTITY1(2,2)=1.0D0
-	IDENTITY1(3,3)=1.0D0
-	IDENTITY1(4,4)=1.0D0
-	IDENTITY1(5,5)=1.0D0
+	DO L=1,NOF_VARIABLES
+	IDENTITY1(L,L)=1.0D0
+	END DO
 		
 
 	!$OMP DO SCHEDULE (STATIC)
@@ -41,7 +39,9 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	
 		    
 		    
-		    
+        IF (MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+        END IF 
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
 				  GODFLUX2=ZERO
  				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
@@ -84,7 +84,14 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  
 						  ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
-						  
+						   IF(SRF.EQ.1)THEN
+                                !RETRIEVE THE ROTATIONAL VELOCITY (AT THE GAUSSIAN POINT JUST FOR SECOND ORDER)
+                                SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
+                                CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
+                                !CALCULATE THE NEW EIGENVALUE FOR ROTATING REFERENCE FRAME
+                                ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
+                                ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
+                            END IF
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
@@ -197,7 +204,9 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 		impdiagt(i,:)=0.0
 		IMPOFFt(i,:,:)=0.0
 		end if
-		    
+		IF (MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+        END IF     
 		    DO L=1,IELEM(N,I)%IFCA
 				      B_CODE=0
 				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
@@ -208,6 +217,11 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
  				  mul1=IELEM(N,I)%SURF(L)
 				      B_CODE=0
 				      CLEFT(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+                 IF (SRF.EQ.1) THEN
+                    !RETRIEVE ROTATIONAL VELOCITY IN CASE OF ROTATING REFERENCE FRAME TO CALCULATE THE CORRECT VALUE OF THE BOUNDARY CONDITION
+                    SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
+                    CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)	
+                END IF
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=U_CT(I)%VAL(1,1:turbulenceequations+PASSIVESCALAR)
@@ -217,9 +231,11 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 				      
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+								  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
 								  CRIGHT(1:nof_Variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_Variables)
-								  
+                                    IF(PER_ROT.EQ.1)THEN
+                                        CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                    END IF
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									
 									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
@@ -273,7 +289,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 					    
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+								if  ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
 								
 								IF (FASTEST.EQ.1)THEN
 							      CRIGHT(1:nof_Variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_Variables)
@@ -282,8 +298,9 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 							      CRIGHT(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
 							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_Variables)
 							    END IF
-								
-								 
+								IF(PER_ROT.EQ.1)THEN
+                                    CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+								END IF 
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
@@ -342,10 +359,13 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N)
-						  
-						 ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
-						  
+                            ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+                            ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+                        IF (SRF.EQ.1) THEN
+                            ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
+                            ASOUND2=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
+                        END IF
+
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
@@ -451,31 +471,53 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	END DO
 	!$OMP END DO
 
-	
-	
+    !ADD THE CONTRIBUTION OF THE SOURCE TERM TO THE JACOBIAN OF THE DIAGONAL MATRIX
+        IF (SRFg.EQ.1) THEN
+        !$OMP DO SCHEDULE(GUIDED)
+            DO I=1,KMAXE
+                IMPDIAG(i,2,3)=-SRF_VELOCITY(3)*ielem(n,I)%totvolume
+                IMPDIAG(i,2,4)=SRF_VELOCITY(2)*ielem(n,I)%totvolume
+                IMPDIAG(i,3,2)=SRF_VELOCITY(3)*ielem(n,I)%totvolume
+                IMPDIAG(i,3,4)=-SRF_VELOCITY(1)*ielem(n,I)%totvolume
+                IMPDIAG(i,4,2)=-SRF_VELOCITY(2)*ielem(n,I)%totvolume
+                IMPDIAG(i,4,3)=SRF_VELOCITY(1)*ielem(n,I)%totvolume
+            END DO
+        !$OMP END DO
+        END IF	
+        IF (MRF.EQ.1) THEN
+        !$OMP DO SCHEDULE(GUIDED)
+            DO I=1,KMAXE
+				SRF=ILOCAL_RECON3(I)%MRF
+                IF(SRF.EQ.1)THEN
+                    IMPDIAG(i,2,3)=-ILOCAL_RECON3(I)%MRF_VELOCITY(3)*ielem(n,I)%totvolume
+                    IMPDIAG(i,2,4)=ILOCAL_RECON3(I)%MRF_VELOCITY(2)*ielem(n,I)%totvolume
+                    IMPDIAG(i,3,2)=ILOCAL_RECON3(I)%MRF_VELOCITY(3)*ielem(n,I)%totvolume
+                    IMPDIAG(i,3,4)=-ILOCAL_RECON3(I)%MRF_VELOCITY(1)*ielem(n,I)%totvolume
+                    IMPDIAG(i,4,2)=-ILOCAL_RECON3(I)%MRF_VELOCITY(2)*ielem(n,I)%totvolume
+                    IMPDIAG(i,4,3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1)*ielem(n,I)%totvolume
+                END IF
+				SRF=0
+            END DO
+        !$OMP END DO
+        END IF
 	
 	
 	
 	IF (RUNGEKUTTA.EQ.10)THEN
 		!$OMP DO SCHEDULE(STATIC)	
 		do i=1,kmaxe
-		    IMPDIAG(i,1,1)=IMPDIAG(i,1,1)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    IMPDIAG(i,2,2)=IMPDIAG(i,2,2)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    IMPDIAG(i,3,3)=IMPDIAG(i,3,3)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    IMPDIAG(i,4,4)=IMPDIAG(i,4,4)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    IMPDIAG(i,5,5)=IMPDIAG(i,5,5)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
+            DO L=1,NOF_VARIABLES
+		    IMPDIAG(i,L,L)=IMPDIAG(i,L,L)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
+		    END DO
 		end do
 		!$OMP END DO
 	  ELSE
 	!$OMP DO SCHEDULE(STATIC)
 ! 	
 	  do i=1,kmaxe
-
-	    IMPDIAG(I,1,1)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,1,1))
-	      IMPDIAG(I,2,2)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,2,2))
-	      IMPDIAG(I,3,3)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,3,3))
-	      IMPDIAG(I,4,4)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,4,4))
-	    IMPDIAG(I,5,5)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,5,5))
+        DO L=1,NOF_VARIABLES
+	    IMPDIAG(I,L,L)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,L,L))
+	    END DO
 	end do
 	!$OMP END DO
       END IF

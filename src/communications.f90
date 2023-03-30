@@ -129,7 +129,7 @@ I=xmpil(IEXCHANGER1(K)%sideineedn(E))
 	  if (ielem(n,i)%ineighb(j).ne.n)then
 	  
 	    if (ielem(n,i)%ibounds(J).gt.0)then
-		if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then
+		if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then
 		    if (dimensiona.eq.3)then
 			IF ( IELEM(N,i)%TYPEs_FACES(J).EQ.5)THEN
 			    INUM_POINTS=QP_QUAD_n
@@ -1090,8 +1090,12 @@ INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITEST,ITEE,ITEEDUM,ITEMP
 REAL,DIMENSION(1:1)::DUMTS,RUMTS
 integer:: n_requests
 integer, dimension(:), allocatable:: requests
+
+
+
 	
 ITEST=nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR
+
 
 INEEDT=IRECEXR(1)%TOT
 TNEEDT=IRECEXS(1)%TOT
@@ -1108,6 +1112,15 @@ END DO
 !$OMP END DO
 
 else
+
+
+
+
+
+
+
+
+
 !$OMP DO SCHEDULE (STATIC)
 DO I=1,TNEEDT
 	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
@@ -1230,6 +1243,161 @@ deallocate(requests)
 
 
 END SUBROUTINE EXCHANGE_HIGHER
+
+
+
+
+SUBROUTINE EXCHANGE_ADDA_DISS(N)
+!> @brief
+!> This subroutine is exchanging the variables of all the halo cells for all the reconstruction stencils
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITEST,ITEE,ITEEDUM,ITEMP1,ITEMP2,IAVC,IAVT
+REAL,DIMENSION(1:1)::DUMTS,RUMTS
+integer:: n_requests
+integer, dimension(:), allocatable:: requests
+
+
+
+
+ITEST=1
+
+
+INEEDT=IRECEXR(1)%TOT
+TNEEDT=IRECEXS(1)%TOT
+
+
+
+
+
+
+
+
+
+
+
+!$OMP DO SCHEDULE (STATIC)
+DO I=1,TNEEDT
+	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
+		  IEXSOLHISD(I)%SOL(K,1)=IELEM(N,IRECEXS(I)%LOCALREF(K))%DISS
+	END DO
+END DO
+!$OMP END DO
+
+
+
+
+!$OMP BARRIER
+!$OMP MASTER
+n_requests = 0
+
+allocate(requests(jtotal*2))
+requests(:)=0
+ICPUID=N
+
+do k=1,jtotal
+
+
+        if ((jtot(k,1).eq.-1).AND.(jtot(k,2).NE.-1))then
+
+
+
+          n_requests = n_requests + 1
+        iavC=jtot(k,2)
+!
+        CALL MPI_ISEND(                                                     &
+      DUMTS(1:1), & !sendbuf
+      1, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
+      JTOT(K,3), 0,                                        & !destination, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+         n_requests = n_requests + 1
+         iavC=jtot(k,2)
+
+   CALL MPI_IRECV(                                                     &
+      IEXSOLHIRD(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1),    & !recvbuf
+      IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+     IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+        END IF
+
+       if ((jtot(k,1).NE.-1).AND.(jtot(k,2).EQ.-1))then
+
+        n_requests = n_requests + 1
+        iavT=jtot(k,1)
+!
+        CALL MPI_ISEND(                                                     &
+      IEXSOLHISD(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1), & !sendbuf
+      IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
+      IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+         n_requests = n_requests + 1
+         iavT=jtot(k,1)
+   CALL MPI_IRECV(                                                     &
+      DUMTS(1:1),    & !recvbuf
+      1, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+     jtot(k,3), 0,                                        & !source, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+
+        END IF
+
+
+
+        if ((jtot(k,1).NE.-1).AND.(jtot(k,2).NE.-1))then
+
+
+
+
+
+         n_requests = n_requests + 1
+        iavt=jtot(k,1)
+         iavC=jtot(k,2)
+!
+        CALL MPI_ISEND(                                                     &
+      IEXSOLHISD(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST), & !sendbuf
+      IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
+      IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+         n_requests = n_requests + 1
+         iavC=jtot(k,2)
+   CALL MPI_IRECV(                                                     &
+      IEXSOLHIRD(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),    & !recvbuf
+      IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+     IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+
+
+       end if
+
+end do
+
+
+
+CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
+
+deallocate(requests)
+
+!$OMP END MASTER
+!$OMP BARRIER
+
+
+
+END SUBROUTINE EXCHANGE_ADDA_DISS
 
 
 SUBROUTINE EXCHANGE_HIGHER_av(N)
@@ -2294,12 +2462,12 @@ END SUBROUTINE EXHBOUNDHIGHER_MOOD
 SUBROUTINE EXHBOUNDHIGHER_dg(N)
 !> @brief
 !> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
-!> for the Gaussian quadrature points of direct-side neighbours between MPI processes 
+!> for the Gaussian quadrature points of direct-side neighbours between MPI processes
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
 INTEGER::ITEE,ITEEDUM,JK,JJK,JJK4,JJK12,IMULTI2,ICPE,JMNB,J76,J78,J79,J80,IMULTI3,I_CNT,cinout2
-integer:: n_requests 
+integer:: n_requests
 integer, dimension(:), allocatable:: requests
 real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
  cinout2=0
@@ -2316,14 +2484,170 @@ temp_prout=zero
 
 
 
-! 
+!
 !     if (statistics.eq.1)then
-!     
+!
 !     !$OMP MASTER
 !     pr_t31=MPI_Wtime()
 ! !     prace_t1=pr_t2-pr_t1
 !     !$OMP END MASTER
-!      
+!
+!     end if
+
+
+
+if(indl .ne. tndl) then
+   write (*, *) "exhbounhigher: INDL and TNDL are supposed to be equal; INDL=", INDL, "TNDL=", TNDL
+   call MPI_ABORT(MPI_COMM_WORLD, 1, IERROR)
+end if
+
+
+
+I_CNT=nof_variables
+
+
+
+
+
+
+!$OMP DO SCHEDULE (STATIC)
+    DO I=1,TNDL
+        DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+
+
+                IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_VARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_VARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+
+        END DO
+    END DO
+!$OMP END DO
+
+
+
+
+!$OMP BARRIER
+
+
+!-------------------FOR DEBUGGING ONLY -----------------------------------------!
+
+!-------------------FOR DEBUGGING ONLY -----------------------------------------!
+
+!$OMP MASTER
+!CALL MPI_BARRIER(mpi_comm_world,ierror)
+
+n_requests = 0
+allocate(requests(2*indl))
+requests(:)=0
+ICPUID=N
+
+
+
+!     if (statistics.eq.1)then
+!
+!     !$OMP MASTER
+!     pr_t32=MPI_Wtime()
+! !     prace_t33=pr_t32-pr_t31
+!     !$OMP END MASTER
+!
+!     end if
+
+
+
+
+
+
+
+
+DO K=1,INDL
+
+   ! Search unique J such that (IEXBOUNDHIR(K)%PROCID .EQ. IEXBOUNDHIS(J)%PROCID)
+   J = 1
+   DO WHILE(IEXBOUNDHIR(K)%PROCID .NE. IEXBOUNDHIS(J)%PROCID)
+      J = J + 1
+   END DO
+
+   ! non-blocking send
+   n_requests = n_requests + 1
+   CALL MPI_ISEND(                                                     &
+      IEXBOUNDHIS(J)%FACESOL_dg(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
+      IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
+      IEXBOUNDHIS(J)%PROCID, 0,                                        & !destination, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+   ! non-blocking receive
+   n_requests = n_requests + 1
+   CALL MPI_IRECV(                                                     &
+      IEXBOUNDHIR(K)%FACESOL_dg(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
+      IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
+      IEXBOUNDHIR(K)%PROCID, 0,                                        & !source, tag
+      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+END DO
+
+CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
+
+! if (statistics.eq.1)then
+!
+!
+!     pr_t33=MPI_Wtime()
+! !     prace_t33=pr_t32-pr_t31
+!         pr_t34=pr_t33-pr_t32
+!         pr_t35=pr_t32-pr_t31
+!
+! !
+!
+!
+!
+!     end if
+
+
+
+
+deallocate(requests)
+!$OMP END MASTER
+!$OMP BARRIER
+
+END SUBROUTINE EXHBOUNDHIGHER_dg
+
+
+
+
+
+SUBROUTINE EXHBOUNDHIGHER_dg2(N)
+!> @brief
+!> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
+!> for the Gaussian quadrature points of direct-side neighbours between MPI processes
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
+INTEGER::ITEE,ITEEDUM,JK,JJK,JJK4,JJK12,IMULTI2,ICPE,JMNB,J76,J78,J79,J80,IMULTI3,I_CNT,cinout2
+integer:: n_requests
+integer, dimension(:), allocatable:: requests
+real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
+ cinout2=0
+INDL=IEXCHANGER(1)%TOT
+TNDL=IEXCHANGES(1)%TOT
+
+pr_t31=zero
+pr_t32=zero
+pr_t33=zero
+pr_t34=zero
+pr_t35=zero
+temp_prin=zero
+temp_prout=zero
+
+
+
+!
+!     if (statistics.eq.1)then
+!
+!     !$OMP MASTER
+!     pr_t31=MPI_Wtime()
+! !     prace_t1=pr_t2-pr_t1
+!     !$OMP END MASTER
+!
 !     end if
 
 
@@ -2347,24 +2671,47 @@ ELSE
 IF( ITESTCASE.EQ.4)THEN
 I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
 ELSE
-
-I_CNT=nof_variables
+	I_CNT=nof_variables
 END IF
 END IF
 
 
 IF (ITESTCASE.LE.3) THEN
+
+
+IF((GOVERNINGEQUATIONS.EQ.-1).AND.(BR2_YN.EQ.1)) THEN
+!$OMP DO SCHEDULE (STATIC)
+DO I=1,TNDL
+DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+
+ITTT=0
+DO IEX=1,NOF_VARIABLES-4
+      DO nvar=1,DIMS
+      ITTT=ITTT+1
+	  	!IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+		IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%BR2_AUX_VAR(IEX,NVAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+
+      END DO
+END DO
+END DO
+END DO
+!$OMP END DO
+
+ELSE
+
 !$OMP DO SCHEDULE (STATIC)
     DO I=1,TNDL
         DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-    
-            
+
+
                 IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_VARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_VARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-            
 
         END DO
     END DO
 !$OMP END DO
+
+END IF
 END  IF
 
 
@@ -2380,7 +2727,8 @@ ITTT=0
 DO IEX=1,NOF_VARIABLES-1
       DO nvar=1,DIMS
       ITTT=ITTT+1
-		  IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+	  	!IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+		IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%BR2_AUX_VAR(IEX+1,NVAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
 
       END DO
 END DO
@@ -2434,12 +2782,12 @@ ICPUID=N
 
 
 !     if (statistics.eq.1)then
-!     
+!
 !     !$OMP MASTER
 !     pr_t32=MPI_Wtime()
 ! !     prace_t33=pr_t32-pr_t31
 !     !$OMP END MASTER
-!     
+!
 !     end if
 
 
@@ -2481,17 +2829,17 @@ END DO
 CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
 
 ! if (statistics.eq.1)then
-!     
-!    
+!
+!
 !     pr_t33=MPI_Wtime()
 ! !     prace_t33=pr_t32-pr_t31
 !         pr_t34=pr_t33-pr_t32
 !         pr_t35=pr_t32-pr_t31
-!         
-! !       
-! 
-!     
-!      
+!
+! !
+!
+!
+!
 !     end if
 
 
@@ -2501,8 +2849,7 @@ deallocate(requests)
 !$OMP END MASTER
 !$OMP BARRIER
 
-END SUBROUTINE EXHBOUNDHIGHER_dg
-
+END SUBROUTINE EXHBOUNDHIGHER_dg2
 
 
 

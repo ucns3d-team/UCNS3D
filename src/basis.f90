@@ -21,7 +21,7 @@ SB=zero
 OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
 
 
-hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
+hxc=(sqrt(IELEM(N,Iconsidered)%totvolume))
 
  IF (POLY.EQ.1)THEN
  select case(number)
@@ -1762,7 +1762,7 @@ SB=zero
 
 OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
 
-hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
+hxc=(sqrt(IELEM(N,Iconsidered)%totvolume))
 
 
 

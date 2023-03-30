@@ -21,7 +21,7 @@ REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
 INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD
 REAL,DIMENSION(8)::VARIABLES
 REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
-INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax
+INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,kmmg
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE
@@ -852,6 +852,248 @@ Valuelocation(:)=0
 END SUBROUTINE OUTWRITE3N
 
 
+
+SUBROUTINE MOVIE
+ !> @brief
+!> This subroutine writes only the 3D solution without the grid in tecplot binary format
+use ISO_C_BINDING
+IMPLICIT NONE
+INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
+REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
+REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
+INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD
+REAL,allocatable,DIMENSION(:)::VARIABLES
+REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
+INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
+LOGICAL::HEREV
+REAL,DIMENSION(5)::TOTAL
+ CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
+integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+real,allocatable,dimension(:)::xbin,ybin,zbin,xbin2
+real,allocatable,dimension(:,:)::FBIN
+integer,allocatable,dimension(:,:)::icon
+INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
+real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
+ character(LEN=:),allocatable::out1
+ character*1 NULCHAR
+
+      Integer::   Debug,III,NPts,NElm
+
+
+      Real::    SolTime
+      Integer:: VIsDouble, FileType
+      Integer:: ZoneType,StrandID,ParentZn,IsBlock
+      Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
+      POINTER   (NullPtr,Null)
+      Integer:: Null(*)
+
+
+
+
+
+
+
+
+
+allocate(variables(2))
+
+KMAXE=XMPIELRANK(N)
+
+
+
+
+
+
+if (n.eq.0)then
+
+
+
+
+
+ NullPtr = 0
+      Debug   = 0
+      FileType = 2
+VIsDouble = 1
+
+NULCHAR = CHAR(0)
+
+WRITE(PROC3,FMT='(I10)') IT
+	!proc4=".plt"
+	OUTFILE="MOV_"//TRIM(ADJUSTL(PROC3))//".plt"!//TRIM(ADJUSTL(PROC4))
+	ITGFD=len_trim(OUTFILE)
+	allocate(character(LEN=itgfd) ::out1)
+	out1=OUTFILE(1:itgfd)
+! 	out1=out1//CHAR(0)
+
+
+end if
+call mpi_barrier(mpi_comm_world,IERROR)
+
+
+ IF (ITESTCASE.EQ.4)THEN
+ NVAR1=2
+
+
+
+              if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                    'v_MAG,Q'//NULCHAR, &
+                    out1//NULCHAR, &
+                    '.'//NULCHAR, &
+                    FileType, &
+                    Debug, &
+                    VIsDouble)
+
+
+
+
+END IF
+
+
+
+
+if (n.eq.0)then
+allocate (Valuelocation(nvar1))
+
+
+      IMax    = imaxn
+      JMax    = IMAXe
+      KMax    = 0
+      ZoneType = 5
+
+      SolTime = T
+
+      StrandID = 1
+      ParentZn = 0
+      IsBlock = 1
+      ICellMax = 0
+      JCellMax = 0
+      KCellMax = 0
+      NFConns = 0
+      FNMode = 0
+      ShrConn = 0
+
+Valuelocation(:)=0
+
+
+
+
+
+ ierr= TecZne112('GRID2'//NULCHAR, &
+                    ZoneType, &
+                    IMax, &
+                    JMax, &
+                    kmax, &
+                    ICellMax, &
+                    JCellMax, &
+                    KCellMax, &
+                    SolTime, &
+                    StrandID, &
+                    ParentZn, &
+                    IsBlock, &
+                    NFConns, &
+                    FNMode, &
+                    0, &
+                    0, &
+                    0, &
+                    Null, &
+                    Valuelocation, &
+                    Null, &
+                    ShrConn)
+
+
+
+  allocate(xbin(imaxe),xbin2(imaxe))
+
+
+ eLSE
+ allocate(xbin2(1))
+ end if
+
+
+
+  allocate(valuess(kmaxe))
+
+!   call mpi_barrier(MPI_COMM_WORLD,IERROR)
+
+
+
+
+
+
+
+
+
+		    DO I=1,KMAXE
+
+
+            leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+
+		    CALL CONS2PRIM2(N)
+
+		    valuess(i)=sqrt(leftv(2)**2+leftv(3)**2+leftv(4)**2)
+
+			end do
+
+		    call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+					IF (N.EQ.0)THEN
+					do i=1,imaxe
+				xbin(XMPI_RE(I))=xbin2(I)
+				end do
+					ierr = TECDAT112(imaxe,xbin,1)
+					END IF
+
+
+
+
+
+		DO I=1,KMAXE
+
+		  VALUESS(i)=ielem(n,i)%vortex(1)
+		END DO
+
+
+		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+			IF (N.EQ.0)THEN
+			do i=1,imaxe
+		xbin(XMPI_RE(I))=xbin2(I)
+		end do
+			ierr = TECDAT112(imaxe,xbin,1)
+			END IF
+
+
+
+
+
+
+
+
+
+
+
+
+  IF (N.EQ.0)THEN
+  ierr = TECEND112()
+  DEALLOCATE(XBIN,valuelocation,out1)
+  END IF
+
+  DEALLOCATE (VALUESS,VARIABLES,xbin2)
+
+
+
+
+
+
+
+
+
+
+
+END SUBROUTINE MOVIE
+
+
+
+
+
 SUBROUTINE OUTWRITE3vb
  !> @brief
 !> This subroutine writes only the 3D solution without the grid in tecplot binary format
@@ -1102,7 +1344,12 @@ Valuelocation(:)=0
   allocate(xbin(imaxe),xbin2(imaxe))
 	
 
- END IF
+ eLSE
+ allocate(xbin2(1))
+ end if
+
+
+
   allocate(valuess(kmaxe))
 
 !   call mpi_barrier(MPI_COMM_WORLD,IERROR)
@@ -1179,7 +1426,7 @@ Valuelocation(:)=0
 		      VALUESS(i)=leftv(kkd)
 			if (kkd.eq.5)then
 			
-            VALUESS(i)=U_C(I)%VAL(1,kkd)
+            VALUESS(i)=ILOCAL_RECON3(I)%MRF!ielem(n,i)%vortex(1)!U_C(I)%VAL(1,kkd)
            
 			end if
 		    END DO
@@ -1268,7 +1515,7 @@ Valuelocation(:)=0
                 END DO
                 ELSE
                 DO I=1,KMAXE
-                VALUESS(i)=ielem(n,i)%TROUBLED!IELEM(N,I)%STENCIL_DIST
+                VALUESS(i)=IELEM(N,I)%DISS!IELEM(N,I)%STENCIL_DIST
                 END DO
                 END IF
                 
@@ -1286,7 +1533,7 @@ Valuelocation(:)=0
                 
                 
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%ADMIS
+                VALUESS(i)=ielem(n,i)%condition!WCX(1)!IELEM(N,I)%ADMIS
                 END DO
                 
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1319,7 +1566,7 @@ Valuelocation(:)=0
     
 		  if (itestcase.eq.4)then
 		  DO I=1,KMAXE
-		      VALUESS(i)=ielem(n,i)%vortex(1)!%inumneighbours
+		      VALUESS(i)=ielem(n,i)%VOrtex(1)!%inumneighbours
 		  END DO
 		  
 		  
@@ -1368,10 +1615,10 @@ Valuelocation(:)=0
     
   IF (N.EQ.0)THEN
   ierr = TECEND112()
-  DEALLOCATE(XBIN,valuelocation,out1,XBIN2)
+  DEALLOCATE(XBIN,valuelocation,out1)
   END IF
   
-  DEALLOCATE (VALUESS,VARIABLES)
+  DEALLOCATE (VALUESS,VARIABLES,xbin2)
   
 
   
@@ -3481,7 +3728,7 @@ END IF
     
     
     DO I=1,KMAXE
-      VALUESS(i)=ielem(n,i)%walldist!IELEM(N,I)%ADMIS
+      VALUESS(i)=ielem(n,i)%WCX(1)!IELEM(N,I)%ADMIS
     END DO
     
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -3650,7 +3897,7 @@ END IF
                 END DO
                 else
                 DO I=1,KMAXE
-                VALUESS(i)=ielem(n,i)%vortex(1)
+                VALUESS(i)=ielem(n,i)%wcx(1)!vortex(1)
                 END DO
                 end if
                             
@@ -3698,7 +3945,7 @@ END IF
     
 		  if (itestcase.eq.4)then
                             DO I=1,KMAXE
-                                VALUESS(i)=ielem(n,i)%vortex(1)
+                                VALUESS(i)=ielem(n,i)%ggs!vortex(1)
                             END DO
                             
                             
@@ -3775,6 +4022,8 @@ INTEGER::I,J,K,L,ITER,DIP
 	DIP=1
 	if (IRES_UNSTEADY.eq.1)then
 	READ(1083+N,pos=dip)ITER
+
+
 	dip=dip+4
 	READ(1083+N,pos=dip)RES_TIME
 	dip=dip+8
@@ -3790,6 +4039,12 @@ INTEGER::I,J,K,L,ITER,DIP
 	RESTART=0
         average_restart=0
 	RES_TIME=0.0d0
+	END IF
+
+
+	IF (N.EQ.0)THEN
+	PRINT*,"RESTARTING",ITER,RES_TIME,RESTART
+
 	END IF
 	
 
@@ -7164,6 +7419,9 @@ Valuelocation(:)=0
   allocate(xbin(totwalls),xbin2(totwalls))
 	
 
+ ELSE
+ allocate(xbin2(1))
+
  END IF
  
   totiw=xmpiwall(n)
@@ -7393,10 +7651,10 @@ IF (ITESTCASE.LE.2)THEN
 
   IF (N.EQ.0)THEN
   ierr = TECEND112()
-  DEALLOCATE(XBIN,valuelocation,out1,XBIN2)
+  DEALLOCATE(valuelocation,out1,xbin)
   END IF
 !   IF (TOTIW.GT.0)THEN
-  DEALLOCATE (VALUESS)
+  DEALLOCATE (VALUESS,xbin2)
 !   end if
 
 
@@ -12592,7 +12850,14 @@ IMPLICIT NONE
 					  WRITE(63,*)"output2",T
 					  CLOSE(63)
 					  END IF
+					if (fastmovie.eq.1)then
+
+					call movie
+
+					else
 					call OUTWRITE3vb
+
+					end if
 					
 					
 						IF (N.EQ.0)THEN
@@ -12631,7 +12896,18 @@ IMPLICIT NONE
 	IF (TECPLOT.EQ.2)THEN		!BINARY PARAVIEW 3D ONLY
 	if (dimensiona.eq.3)then
 
-        call OUTWRITEPARA3Db
+
+
+
+        if (fastmovie.eq.1)then
+
+					call movie_PARA
+
+					else
+
+					call OUTWRITEPARA3Db
+
+					END IF
     else
     
         call OUTWRITEPARA2Db
@@ -14270,11 +14546,12 @@ SUBROUTINE COMPUTEFORCE(N)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,K,J,KMAXE,gqi_points,nnd
+INTEGER:: MYSURFACE
 CHARACTER(LEN=12)::PROC,RESTFILE,PROC3
-REAL::DRAG,LIFT,CD,CL,RX,PX,EX,surface_temp,RTEMP
+REAL::DRAG,LIFT,CD,CL,RX,PX,EX,surface_temp,RTEMP,FX,FY,FZ,MX,MY,MZ
 REAL::FORCEXFR,SSX,CDF,LIFTF,DRAGF,FRICTIONF,TAUYX,TAUZX,TAUZY,SSY,SSZ,CF,TAUXX,TAUYY,TAUZZ
 REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ
- REAL,DIMENSION(2)::CI,CO
+ REAL,DIMENSION(3)::CI,CO
  logical::heref
  INTEGER::IM
  REAL::TSOLR,TSOLU,TSOLE,TSOLV,TSOLW,TSOLP,SSP
@@ -14283,12 +14560,27 @@ FORCEX=zero; FORCEY=zero; FORCEZ=zero;  FORCEXFR=zero
  CL=zero
  CI(:)=zero
  CO(:)=zero
+ FX=zero
+ FY=zero
+ FZ=zero
+ MX=ZERO
+ MY=ZERO
+ MZ=ZERO
+ momenty=ZERO 
+ momentz=ZERO
+ MOMENTX=ZERO
  KMAXE=XMPIELRANK(N)
  
 !$OMP BARRIER 
-!$OMP DO SCHEDULE(STATIC) REDUCTION(+:FORCEX,FORCEY,FORCEZ)
+!$OMP DO SCHEDULE(STATIC) REDUCTION(+:FORCEX,FORCEY,FORCEZ,momentx,momenty,momentz)
 DO I=1,kmaxe
-		if (ielem(n,i)%interior.eq.1)then	
+		if (ielem(n,i)%interior.eq.1)then
+			IF(MRF.EQ.1)THEN
+				MYSURFACE=ILOCAL_RECON3(I)%MRF
+			else
+				MYSURFACE=1	
+			END IF	
+		IF(MYSURFACE.EQ.1)THEN
 		    do j=1,ielem(n,i)%ifca
 		      if (ielem(n,i)%ibounds(j).gt.0)then
 			  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4))then
@@ -14399,11 +14691,14 @@ DO I=1,kmaxe
 				  FORCEY=FORCEY+(((SSP)*(surface_temp)*NY))+((SSY)*surface_temp)
 				  FORCEZ=FORCEZ+(((SSP)*(surface_temp)*NZ))+((SSZ)*surface_temp)
 
-					    
+				  MOMENTX=MOMENTX+(((SSP)*(surface_temp)*NZ))*IELEM(N,I)%YYC-(((SSP)*(surface_temp)*NY))*IELEM(N,I)%ZZC
+				  MOMENTY=MOMENTY+ (((SSP)*(surface_temp)*NX))*IELEM(N,I)%ZZC-(((SSP)*(surface_temp)*NZ))*IELEM(N,I)%XXC	
+				  MOMENTZ=MOMENTZ+(((SSP)*(surface_temp)*NY))*IELEM(N,I)%XXC-(((SSP)*(surface_temp)*NX))*IELEM(N,I)%YYC
 					    
 			END IF
 		      end if
 		    end do
+		END IF !MYSURFACE
 		end if
 
 			
@@ -14420,6 +14715,7 @@ END DO
 	FORCEX=FORCEX*VECTORX
 	FORCEY=FORCEY*VECTORY
 	FORCEZ=FORCEZ*VECTORZ
+	IF(RFRAME.EQ.0)THEN
         RTEMP=((AOA/180.0d0)*PI)
 	LIFTF=(FORCEZ*COS(RTEMP))+(FORCEy*COS(RTEMP))-(FORCEX*SIN(RTEMP))
 	DRAGF=(FORCEX*COS(RTEMP))+(FORCEy*SIN(RTEMP))+(FORCEZ*SIN(RTEMP))
@@ -14432,7 +14728,22 @@ END DO
 	CALL MPI_ALLREDUCE(CO(1:2),CI(1:2),2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
 	CL=CI(1)
 	CD=CI(2)
-	
+	ELSE
+        CO(1)=FORCEX
+        CO(2)=FORCEY
+        CO(3)=FORCEZ
+        CALL MPI_ALLREDUCE(CO(1:3),CI(1:3),3,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+        FX=CI(1)
+        FY=CI(2)
+        FZ=CI(3)
+		CO(1)=MOMENTX
+        CO(2)=MOMENTY
+        CO(3)=MOMENTZ
+        CALL MPI_ALLREDUCE(CO(1:3),CI(1:3),3,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+        MX=CI(1)
+        MY=CI(2)
+        MZ=CI(3)
+	END IF
 	IF (N.EQ.0) THEN
 	INQUIRE (FILE='FORCE.dat',EXIST=HEREf)
 		IF (HEREf) THEN
@@ -14440,9 +14751,21 @@ END DO
 		ELSE
 	OPEN(50+N,FILE='FORCE.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
 		END IF
+	INQUIRE (FILE='MOMENT.dat',EXIST=HEREf)
+		IF (HEREf) THEN
+		OPEN(500+N,FILE='MOMENT.dat',FORM='FORMATTED',STATUS='OLD',ACTION='WRITE',POSITION='APPEND')
+		ELSE
+	OPEN(500+N,FILE='MOMENT.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
+		END IF	
+	IF(RFRAME.EQ.0)THEN	
 	WRITE(50+N,'(I14,1X,E14.7,1X,E14.7,1X,E14.7)')it,T,CL,CD
-	
+	WRITE(500+N,'(I14,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')it,T,FX,FY,FZ
+	ELSE
+	WRITE(50+N,'(I14,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')it,T,FX,FY,FZ
+	WRITE(500+N,'(I14,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')it,T,MX,MY,MZ
+	END IF
 	CLOSE(50+N)
+	CLOSE(500+N)
 	END IF		
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	
@@ -14763,7 +15086,13 @@ IF ((ITESTCASE.LE.4).AND.(TURBULENCE.NE.1))THEN
 !$OMP BARRIER 
 !$OMP DO SCHEDULE(STATIC) REDUCTION(+:ALLRES)
 DO I=1,KMAXE
+
+    if (dg.eq.1)then
+    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VALdg(1,1:nof_Variables)**2)
+    else
     ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VAL(1:nof_Variables)**2)
+
+    end if
 END DO
 !$OMP END DO
 
@@ -15566,6 +15895,279 @@ end do
 	
 
 END SUBROUTINE OUTWRITEPARA3Db
+
+
+
+
+SUBROUTINE movie_PARA
+!> @brief
+!> This subroutine writes the solution and the grid file in binary vtk format
+use ISO_C_BINDING
+IMPLICIT NONE
+
+! EXTERNAL TecIni112
+! EXTERNAL TecZne112
+! EXTERNAL TECDAT112
+! EXTERNAL TECNODE112
+! EXTERNAL  TECEND112
+
+!
+
+INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
+REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
+REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
+INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD
+REAL,allocatable,DIMENSION(:)::VARIABLES
+REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
+INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j2,j3,j4,j5,j6,j7,j8
+LOGICAL::HEREV
+REAL,DIMENSION(5)::TOTAL
+ CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
+integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+real,allocatable,dimension(:)::xbin,ybin,zbin,XBIN2
+real,allocatable,dimension(:,:)::FBIN
+integer,allocatable,dimension(:,:)::icon
+INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
+real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
+character(LEN=:),allocatable::out1
+character*1 NULCHAR
+CHARACTER(LEN=1)   :: flui,lf
+CHARACTER(LEN=15)  :: str1,str2
+
+      Integer::   Debug,III,NPts,NElm
+
+
+      Real::    SolTime
+      Integer:: VIsDouble, FileType
+      Integer:: ZoneType,StrandID,ParentZn,IsBlock
+      Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
+      POINTER   (NullPtr,Null)
+      Integer:: Null(*)
+allocate(variables(12))
+nvar1=2
+KMAXE=XMPIELRANK(N)
+
+
+
+
+if (n.eq.0)then
+
+WRITE(PROC3,FMT='(I10)') IT
+WRITE(PROC5,FMT='(I10)')
+	!proc4=".plt"
+	OUTFILE="MOV_"//TRIM(ADJUSTL(PROC3))//".vtk"!//TRIM(ADJUSTL(PROC4))
+	ITGFD=len_trim(OUTFILE)
+	allocate(character(LEN=itgfd) ::out1)
+	out1=OUTFILE(1:itgfd)
+end if
+
+lf=char(10)
+
+if (n.eq.0)then
+
+OPEN(400+N,FILE=OUTFILE,STATUS='REPLACE',ACCESS='STREAM',CONVERT='BIG_ENDIAN')
+WRITE(400+N)"# vtk DataFile Version 3.0"//lf
+WRITE(400+N)"vtk output"//lf
+WRITE(400+N)"BINARY"//lf
+WRITE(400+N)"DATASET UNSTRUCTURED_GRID"//lf
+WRITE(400+N)"FIELD FieldData 1"//lf
+WRITE(400+N)"TIME 1 1 double"//lf
+WRITE(400+N) T
+WRITE(str1(1:15),'(i15)') IMAXN
+WRITE(400+N)"POINTS "//str1//" double"//lf
+
+allocate (Valuelocation(nvar1))
+
+
+Valuelocation(:)=0
+Valuelocation(1:2)=1
+
+
+
+! 	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
+!         DO I=1,IMAXN
+! 	READ(96,*)j,x,y,z
+! 	xbin(i)=x/scaler
+! 	ybin(i)=y/scaler
+!  	zbin(i)=z/scaler
+! 	END DO
+!
+!     CLOSE(96)
+
+    if (binio.eq.0)then
+	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
+        DO I=1,IMAXN
+	READ(96,*)j,x,y,z
+	x=x/scaler;y=y/scaler;z=z/scaler
+	write(400+N)x,y,z
+	END DO
+	CLOSE(96)
+	else
+	OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
+        DO I=1,IMAXN
+	READ(96)j,x,y,z
+	x=x/scaler;y=y/scaler;z=z/scaler
+	write(400+N)x,y,z
+	END DO
+	CLOSE(96)
+	end if
+
+
+
+
+
+
+WRITE(str1(1:15),'(i15)') IMAXE
+WRITE(str2(1:15),'(i15)') (IMAXE*8)+IMAXE
+write(400+N)"CELLS",str1//str2//lf
+if (binio.eq.0)then
+OPEN(97,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
+DO I=1,IMAXE
+READ(97,*)j,J1,J2,J3,J4,j5,j6,j7,j8
+write(400+N)8,J1-1,J2-1,J3-1,J4-1,J5-1,j6-1,j7-1,j8-1
+END DO
+CLOSE(97)
+ELSE
+OPEN(97,FILE='GRID.cel',FORM='UNFORMATTED',STATUS='old',ACTION='read')
+DO I=1,IMAXE
+READ(97)j,J1,J2,J3,J4,j5,j6,j7,j8
+write(400+N)8,J1-1,J2-1,J3-1,J4-1,J5-1,j6-1,j7-1,j8-1
+END DO
+CLOSE(97)
+
+END IF
+
+
+WRITE(str1(1:15),'(i15)') IMAXE
+WRITE(400+N)"CELL_TYPES"//str1//lf
+DO I=1,IMAXE
+WRITE(400+N)12
+END DO
+
+WRITE(400+N)"CELL_DATA"//str1//lf
+!
+!
+!
+!
+
+  allocate(xbin(imaxe),XBIN2(IMAXE))
+
+!
+ END IF
+!
+!
+
+  ALLOCATE(VALUESS(KMAXE))
+
+ call mpi_barrier(MPI_COMM_WORLD,IERROR)
+!
+
+do j=1,1
+
+         DO I=1,KMAXE
+		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+		  CALL CONS2PRIM(N)
+
+		  valuess(i)=sqrt(leftv(2)**2+leftv(3)**2+leftv(4)**2)
+		END DO
+
+
+
+
+
+    call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+
+    IF (N.EQ.0)THEN
+
+    IF (J.EQ.1)THEN
+    WRITE(400+N)"SCALARS  vel double 1"//lf
+    END IF
+    WRITE(400+N)"LOOKUP_TABLE default"//lf
+
+
+		do i=1,imaxe
+		xbin(XMPI_RE(I))=xbin2(I)
+		end do
+
+
+     WRITE(400+N)xbin(1:imaxe)
+    END IF
+
+
+
+
+end do
+
+    if (ITESTCASE.EQ.4)THEN
+
+	 DO I=1,KMAXE
+
+		  VALUESS(i)=IELEM(N,I)%VORTEX(1)
+		END DO
+
+    call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+
+	IF (N.EQ.0)THEN
+
+    	WRITE(400+N)
+    	WRITE(400+N)"SCALARS  Q double 1"//lf
+	    WRITE(400+N)"LOOKUP_TABLE default"//lf
+
+		do i=1,imaxe
+		xbin(XMPI_RE(I))=xbin2(I)
+		end do
+     WRITE(400+N)xbin(1:imaxe)
+    END IF
+   END IF
+
+
+   if (turbulence.EQ.1)THEN
+
+	 DO I=1,KMAXE
+
+		  VALUESS(i)=U_CT(I)%VAL(1,1)
+		END DO
+
+    call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+
+	IF (N.EQ.0)THEN
+
+    	WRITE(400+N)
+    	WRITE(400+N)"SCALARS  NUT double 1"//lf
+	    WRITE(400+N)"LOOKUP_TABLE default"//lf
+
+		do i=1,imaxe
+		xbin(XMPI_RE(I))=xbin2(I)
+		end do
+     WRITE(400+N)xbin(1:imaxe)
+    END IF
+   END IF
+
+
+
+
+
+
+
+  IF (N.EQ.0)THEN
+  CLOSE(400+N)
+
+   DEALLOCATE(XBIN,VALUELOCATION,XBIN2)
+  deallocate(out1)
+  END IF
+  DEALLOCATE (VALUESS)
+
+
+  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+ deallocate(variables)
+
+
+
+
+
+END SUBROUTINE movie_PARA
 
 
  !added by holger foysi
@@ -17512,16 +18114,23 @@ END DO
 	    ALLOCATE(ICELLA(IMAXP*ISIZE))
 	    ICELLA=0
 
-    END IF
+     ELSE
+		ALLOCATE(ICELLA(1))
+
+     END IF
 
     call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORLD,IERROR)
 
     deallocate (icell)
 
-    IF (N.EQ.0) then
+	IF (N.EQ.0) then
     ALLOCATE(VALUESA(IMAXP*ISIZE))
+
     allocate(xbin(imaxe,3))
     VALUESA=ZERO
+    ELSE
+    ALLOCATE(VALUESA(1),xbin(1,3))
+
     END IF
     
     
@@ -17562,9 +18171,13 @@ END DO
     WRITE(1086)XBIN(i,1:3)
     END DO
 
-    DEALLOCATE(XBIN,ICELLA,VALUESA)
+
     close(1086)
     END IF
+
+    DEALLOCATE(XBIN,ICELLA,VALUESA)
+
+
     
 DEALLOCATE(VALUESS)
 
