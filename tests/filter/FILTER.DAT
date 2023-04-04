@@ -1,0 +1,10 @@
+!------------FILTER         DAT FILE-----! (FILTERING FOR DG)
+!--------------UCNS3D-------------------!
+2		!FILTER TYPE (1=EXPONENTIAL)
+217075		!ALPHA PARAMETER FOR FILTER (FIL_ALPHA)
+16		!S PARAMETER FOR FILTER (FIL_S)
+2		!NC PARAMETER FOR FILTER (FIL_NC)	
+!------------------EQUATION---------------!
+! FILTER=EXP(-fil_alpha*(((fil_i+1-fil_nc)/(iorder+1-fil_nc))**fil_s))! IORDER is the polynomial order
+
+
