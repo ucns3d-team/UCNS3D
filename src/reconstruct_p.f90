@@ -686,7 +686,18 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
    IF ((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
       CALL ALLGRADS_INNER(N,I)
 
-      divbyzero=10E-14
+
+
+      if (poly.eq.4)then
+
+      divbyzero=ielem(n,iconsidered)%totvolume**3
+
+      else
+
+      divbyzero=10E-12
+
+
+      end if
 
       if (ees.eq.5)then
 
@@ -1472,9 +1483,20 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
       END IF
 		IF ((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
 		CALL ALLGRADS_MIX(N,I)
- 	divbyzero=10E-14
+ 	 
+ 	if (poly.eq.4)then
 
-	if (ees.eq.5)then
+      divbyzero=ielem(n,iconsidered)%totvolume**3
+
+      else
+
+      divbyzero=10E-12
+
+
+      end if
+
+      if (ees.eq.5)then
+
       power=2
 
 
@@ -2420,9 +2442,19 @@ KMAXE=XMPIELRANK(N)
 	ICONSIDERED=I
         
 	IF ((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
- 	divbyzero=10e-14
+ 	if (poly.eq.4)then
 
-	if (ees.eq.5)then
+      divbyzero=ielem(n,i)%totvolume**3
+
+      else
+
+      divbyzero=10E-12
+
+
+      end if
+
+      if (ees.eq.5)then
+
       power=2
 
 
@@ -3180,9 +3212,19 @@ KMAXE=XMPIELRANK(N)
 	ICONSIDERED=I
 	
 	IF((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
-	divbyzero=10e-14
+	 if (poly.eq.4)then
 
-	if (ees.eq.5)then
+      divbyzero=ielem(n,i)%totvolume**3
+
+      else
+
+      divbyzero=10E-12
+
+
+      end if
+
+      if (ees.eq.5)then
+
       power=2
 
 
@@ -6312,10 +6354,11 @@ KMAXE=XMPIELRANK(N)
   CALL CHECKSOL2d(N)
 
 
+
   CASE(-1)
   CALL MUSCL2d(N)		
   CALL CHECKSOL2d(N)
- 
+
  
  
   CASE(0)
@@ -9254,6 +9297,10 @@ INTEGER::TROUBLE
                                                 
                                                 END IF
                                                 END IF
+
+
+
+
     
 END SUBROUTINE
 
@@ -9361,8 +9408,11 @@ REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
             END DO          
                         
 
+			CASE(9)       !MOOD INDICATOR only density & energy
 
-
+			 IF (IELEM(N,ICONSIDERED)%FILTERED.EQ.1)THEN
+				IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+			END IF
 
 
 
@@ -9624,11 +9674,16 @@ KMAXE=XMPIELRANK(N)
 
 !$OMP DO
 DO I=1,KMAXE
+IF (IELEM(N,I)%FILTERED.EQ.1)THEN
+
+
 DO J=1,NOF_VARIABLES
 do k=1,idegfree
-RHS(I)%VALDG(k+1,J)=RHS(I)%VALDG(K+1,J)*MODAL_FILTER(k)
+RHS(I)%VALDG(k+1,J)=RHS(I)%VALDG(K+1,J)*MODAL_FILTER_WEAK(k)
 END DO
 end do
+
+END IF
 END DO
 !$OMP END DO
 
@@ -9637,23 +9692,97 @@ END DO
 END SUBROUTINE APPLY_FILTER
 
 
-SUBROUTINE APPLY_FILTER_DG(ICONSIDERED)
+SUBROUTINE APPLY_FILTER_DG(n)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::ICONSIDERED
-INTEGER::I,J,K
+INTEGER,INTENT(IN)::N
+INTEGER::I,J,K,KMAXE
+REAL::FILTERED_LOW
+REAL::FILTERED_HIGH
+REAL::UNFILTERED,ENERGY_RATIO
+REAL,DIMENSION(1:NOF_VARIABLES)::EN_F_STRONG,EN_F_WEAK,EN_UNF,EN_AVERAGE
+INTEGER::fil_i
+real::filx,xorder,EX1,EX2
 
-I=ICONSIDERED
+
+kmaxe=xmpielrank(n)
+
+!$OMP DO
+DO I=1,KMAXE
 
 
 
-DO J=1,NOF_VARIABLES
-do k=1,idegfree
-U_C(I)%VALDG(1,J,K+1)=U_C(I)%VALDG(1,J,K+1)*MODAL_FILTER(k)
+ielem(n,I)%FILTERED=0
+
+
+EN_UNF(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+
+EN_F_STRONG(1:NOF_VARIABLES)=U_CS(I)%VAL(1,1:NOF_vARIABLES)
+
+EN_F_WEAK(1:NOF_VARIABLES)=U_CW(I)%VAL(1,1:NOF_vARIABLES)
+
+EN_AVERAGE(1:NOF_VARIABLES)=U_C(I)%VALDG(1,1:NOF_VARIABLES,1)
+
+
+
+ex2=(((EN_UNF(2)-EN_F_WEAK(2))**2)+((EN_UNF(3)-EN_F_WEAK(3))**2)+((EN_UNF(4)-EN_F_WEAK(4))**2))
+
+
+!ex1=(((EN_F_WEAK(2)-EN_AVERAGE(2))**2)+((EN_F_WEAK(3)-EN_AVERAGE(3))**2)+((EN_F_WEAK(4)-EN_AVERAGE(4))**2))
+ex1=(((EN_UNF(2)-EN_F_STRONG(2))**2)+((EN_UNF(3)-EN_F_STRONG(3))**2)+((EN_UNF(4)-EN_F_STRONG(4))**2))
+
+
+
+
+	ENERGY_RATIO=(EX2+10e-32)/(EX1+10e-32)
+
+
+    ielem(n,i)%er1dt=((ielem(n,i)%er1-EX1))/dt
+	ielem(n,i)%er2dt=((ielem(n,i)%er2-EX2))/dt
+
+
+	!ielem(n,i)%er=(ielem(n,i)%erX-ENERGY_RATIO)/dt
+
+
+
+
+
+
+  ielem(n,i)%er=ENERGY_RATIO
+  ielem(n,i)%er1=EX1
+  ielem(n,i)%er2=EX2
+
+  !ielem(n,i)%er1er2=abs(ielem(n,i)%er1dt)/ielem(n,i)%er2dt
+
+
+
+!if (ielem(n,i)%er2dt.gt.0)THen
+!if ((ielem(n,i)%er1er2.gt.1.0))then
+
+!ielem(n,I)%FILTERED=1
+!end if
+!end if
+
+
+ if (ielem(n,i)%er.GT.1.1)THen
+
+ ielem(n,I)%FILTERED=1
+!
+ end if
+!
+ !if (ielem(n,I)%FILTERED.eq.1)then
+!
+ !DO J=1,NOF_VARIABLES
+ !do k=1,idegfree
+ !U_C(I)%VALDG(1,J,K+1)=U_C(I)%VALDG(1,J,K+1)*MODAL_FILTER_STRONG(k)
+ !END DO
+ !end do
+!
+!
+!
+ !END IF
+
 END DO
-end do
-
-
-
+!$OMP END DO
 
 
 END SUBROUTINE APPLY_FILTER_DG
@@ -9751,6 +9880,17 @@ do i=1,iorder
 	end do
 end do
 
+do fil_i=1,IDEGFREE
+        MODAL_FILTER(fil_i)=dgfr(fil_i)**(1.0d0/(1.0/dt))!
+        IF ((IT.le.2).and.(n.eq.0))THEN
+        WRITE(200+N,*)FIL_I,MODAL_FILTER(fil_i)
+        END IF
+
+end do
+
+
+
+
 END IF
 
 IF (FILTER_TYPE.EQ.2)THEN
@@ -9774,13 +9914,6 @@ do i=1,iorder
 	end do
 end do
 
-END IF
-
-
-
-
-
-
 do fil_i=1,IDEGFREE
         MODAL_FILTER(fil_i)=dgfr(fil_i)**(1.0d0/(1.0/dt))!
         IF ((IT.le.2).and.(n.eq.0))THEN
@@ -9788,6 +9921,102 @@ do fil_i=1,IDEGFREE
         END IF
 
 end do
+
+
+
+
+END IF
+
+
+
+IF (FILTER_TYPE.EQ.3)THEN
+
+do fil_i=1,iorder
+     if (fil_i.lt.iorder)then
+          filter2(fil_i)=1.0d0
+     eLSE
+ 		filter2(fil_i)=0.0d0
+     END IF
+
+!  	if (fil_i.le.fil_nc)then
+!          filter2(fil_i)=1.0d0
+!      end if
+!       if (fil_i.gt.fil_nc)then
+!  		 rfil_alpha=fil_alpha
+!  		 rfil_nc=fil_nc
+!  		 rfil_s=fil_s
+!  		 xorder=iorder
+!  		 rfil_i=fil_i
+!           filx=-rfil_alpha*(((rfil_i-rfil_nc)/(xorder-rfil_nc))**rfil_s)
+!           filter2(fil_i)=exp(filx)
+!       end if
+
+
+
+
+	filt2(fil_i)=(((fil_i+1)*(fil_i+2)*(fil_i+3))/6)-1
+end do
+filt2(0)=0
+
+do i=1,iorder
+	do j=filt2(i-1)+1,filt2(i)
+	dgfr(j)=filter2(i)
+	end do
+end do
+
+
+
+do fil_i=1,IDEGFREE
+        MODAL_FILTER_weak(fil_i)=dgfr(fil_i)!**(1.0d0/(1.0/dt))!
+
+end do
+
+do fil_i=1,iorder
+     if (fil_i.lt.iorder-1)then
+          filter2(fil_i)=1.0d0
+     eLSE
+ 		filter2(fil_i)=0.0d0
+     END IF
+
+
+	filt2(fil_i)=(((fil_i+1)*(fil_i+2)*(fil_i+3))/6)-1
+end do
+filt2(0)=0
+
+do i=1,iorder
+	do j=filt2(i-1)+1,filt2(i)
+	dgfr(j)=filter2(i)
+	end do
+end do
+
+
+
+do fil_i=1,IDEGFREE
+        MODAL_FILTER_strong(fil_i)=dgfr(fil_i)!**(1.0d0/(1.0/dt))!
+end do
+
+
+
+
+do fil_i=1,IDEGFREE
+        IF ((IT.le.2).and.(n.eq.0))THEN
+        WRITE(200+N,*)FIL_I,MODAL_FILTER_WEAK(fil_i),MODAL_FILTER_STRONG(fil_i)
+        END IF
+
+end do
+
+
+
+
+
+END IF
+
+
+
+
+
+
+
 
 
 END SUBROUTINE FILTER
@@ -9944,7 +10173,10 @@ AX = 0.0D0;AY = 0.0D0;AZ = 0.0D0
 
                 ex2=(((EN_UNF(2)-EN_F_WEAK(2))**2)+((EN_UNF(3)-EN_F_WEAK(3))**2)+((EN_UNF(4)-EN_F_WEAK(4))**2))
                 ex1=(((EN_UNF(2)-EN_F_STRONG(2))**2)+((EN_UNF(3)-EN_F_STRONG(3))**2)+((EN_UNF(4)-EN_F_STRONG(4))**2))
-                ENERGY_RATIO=EX2/(EX1+tolsmall)
+
+
+
+                ENERGY_RATIO=(EX2+10E-32)/(EX1+10E-32)
 
 
 
@@ -9963,6 +10195,8 @@ AX = 0.0D0;AY = 0.0D0;AZ = 0.0D0
 
 	ielem(n,i)%er1dt=(ielem(n,i)%er1-EX1)/dt
 	ielem(n,i)%er2dt=(ielem(n,i)%er2-EX2)/dt
+
+	!ielem(n,i)%er=(ielem(n,i)%erX-ENERGY_RATIO)/dt
 
   ielem(n,i)%er=ENERGY_RATIO
   ielem(n,i)%er1=EX1
@@ -9994,32 +10228,77 @@ INTEGER::I
 
 I=ICONSIDERED
 
-!LWCX1=LWCI1
+LWCX1=LWCI1
+
+IF (RUNGEKUTTA.EQ.11)THEN
+IF (ISCOUN.EQ.1)THEN
+
+LWCX1=LWCI1
 
 
 
 
 
-IF (ielem(n,i)%er2dt.gt.0)THEN
-	IF (ielem(n,i)%er1er2.LT.1.0)THEN
+		 IF (ielem(n,i)%er.gt.1.3)THEN
 
-		LWCX1=5	!INCREASE DISSIPATION
+				LWCX1=2!INCREASE DISSIPATION
 
 
-	end if
+		 	end if
+
+! END IF
+!
+		 IF (ielem(n,i)%er.LE.0.9)THEN
+			
+			 LWCX1=10**(2-(1*ielem(n,i)%er**0.8))
+			
+		       
+		 END IF
+
+
+
+
+
+		ielem(n,i)%lwcx2=lwcx1
+
+
+ELSE
+
+LWCX1=ielem(n,i)%lwcx2
+
 
 END IF
 
-IF (ielem(n,i)%er2dt.Lt.0)THEN
-	LWCX1=1000
+
+
+ELSE
+
+
+		 IF (ielem(n,i)%er.gt.1.3)THEN
+
+				LWCX1=2!INCREASE DISSIPATION
+
+
+		 	end if
+
+! END IF
+!
+		 IF (ielem(n,i)%er.LE.0.9)THEN
+
+			 LWCX1=10**(5-(2*ielem(n,i)%er**0.8))
+
+
+		 END IF
+
+
+
+
+
+		ielem(n,i)%lwcx2=lwcx1
+
+
 
 END IF
-
-
-
-ielem(n,i)%lwcx2=lwcx1
-
-
 
 END SUBROUTINE APPLY_ADDA_FILTER
 
@@ -10040,8 +10319,9 @@ KMAXE=XMPIELRANK(N)
 !$OMP DO SCHEDULE (STATIC)
 DO I=1,KMAXE
 
+	if (ielem(n,i)%full.eq.1)then
 	!1)reduce dissipation
-	IF (IELEM(N,I)%LWCX2.GT.10)THEN
+	IF (IELEM(N,I)%LWCX2.GT.5)THEN
 		IF (IELEM(N,I)%WCX(1).GE.0.999)THEN
 		IELEM(N,I)%DISS=max(IELEM(N,I)%DISS-0.1,0.4d0)	!reduce dissipation even more
 		Else
@@ -10049,11 +10329,12 @@ DO I=1,KMAXE
 		END IF
 	ELSE
 	!2) INCREASE DISSIPATION
-	IF (IELEM(N,I)%WCX(1).GE.0.999)THEN
-	IELEM(N,I)%DISS=min(IELEM(N,I)%DISS+0.1,1.0d0)	!increase dissipation even more
-	Else
-	IELEM(N,I)%DISS=1.0d0							!increase dissipation if shock
-	END IF
+		IF (IELEM(N,I)%WCX(1).GE.0.999)THEN
+		IELEM(N,I)%DISS=min(IELEM(N,I)%DISS+0.1,1.0d0)	!increase dissipation even more
+		Else
+		IELEM(N,I)%DISS=1.0d0							!increase dissipation if shock
+		END IF
+	end if
 	end if
 
 END DO
