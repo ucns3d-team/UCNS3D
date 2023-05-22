@@ -2481,12 +2481,15 @@ end do
 
 
 
-	    TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
+	    TEMPG1=ielem(n,i)%condition!MAX((DXX1/DXX2),(DXX2/DXX1))
 ! 	   
-			
+			ielem(n,i)%erx=tempg1
 	    
 	      IF (TEMPG1.GT.GRIDAR1)THEN
 	      IELEM(N,I)%GGS=1
+	      IF ((IADAPT.EQ.1).or.(code_profile.eq.88))THEN
+                IELEM(N,I)%FULL=0
+			END IF
 	      end if 
    if (fastest.eq.0)then
 	       dxx1=-tolbig; dxx2=tolbig
@@ -2502,8 +2505,12 @@ end do
 		       end if
 	       end do
 	 TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
+	 ielem(n,i)%walldist=tempg1
 	     IF (TEMPG1.GT.GRIDAR2)THEN
 	       IELEM(N,I)%GGS=1
+	  	IF ((IADAPT.EQ.1).or.(code_profile.eq.88))THEN
+                IELEM(N,I)%FULL=0
+			END IF
 	       end if  
 	      
 ! ! 	      

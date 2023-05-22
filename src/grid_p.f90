@@ -6325,13 +6325,13 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             CASE (1,2,3)
                 idegfree2=2
                 IORDER2=1
-                NUMNEIGHBOURS2=7
+                NUMNEIGHBOURS2=6
             
             
             CASE(4,5,6,7)
                 idegfree2=2
                 IORDER2=1
-                NUMNEIGHBOURS2=7
+                NUMNEIGHBOURS2=6
             
             END SELECT
         
@@ -6955,19 +6955,19 @@ SUBROUTINE ADAPT_CRITERION
 	  KMAXE=XMPIELRANK(N)
 	  DO I=1,KMAXE
 	      FC=0
-	      IF (IELEM(N,I)%YYC.LT.-0.3)THEN
+	      IF (IELEM(N,I)%YYC.gt.0.244444)THEN
 	      FC=1
 
 	      END IF
-	       IF (IELEM(N,I)%YYC.GT.0.4)THEN
+	       IF (IELEM(N,I)%YYC.lt.-0.1)THEN
 
 		FC=1
 	      END IF
-	      IF (IELEM(N,I)%XXC.LT.-0.5)THEN
+	      IF (IELEM(N,I)%XXC.LT.-0.05)THEN
 	      FC=1
 
 	      END IF
-	       IF (IELEM(N,I)%XXC.GT.2.0)THEN
+	       IF (IELEM(N,I)%XXC.GT.3.0)THEN
 
 		FC=1
 	      END IF
@@ -6983,7 +6983,7 @@ SUBROUTINE ADAPT_CRITERION
 ! 	IF (FC.EQ.1)THEN
 ! 		IELEM(N,I)%HYBRID=1
 !
-! 	END IF
+ !	END IF
 
 
 	IF (FC.EQ.1)THEN

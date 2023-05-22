@@ -2409,7 +2409,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -2437,7 +2437,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -2470,7 +2470,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -2514,7 +2514,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -2572,7 +2572,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -2651,7 +2651,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -3062,7 +3062,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -3091,7 +3091,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -3120,7 +3120,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
         	
         	
@@ -3158,7 +3158,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -3196,7 +3196,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
 			INTEG =zero
        			 DO K=1,inump
@@ -3241,7 +3241,7 @@ WEFF=zero
 		
  	DO I=1,IDEG
         	DO J=1,IDEG
-        	scalerx=sqrt(IELEM(N,Iconsidered)%totvolume)!1.0d0
+        	scalerx=ielem(n,iconsidered)%totvolume
                 
 			INTEG =zero
        			 DO K=1,inump

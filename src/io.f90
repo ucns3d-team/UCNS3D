@@ -1426,7 +1426,7 @@ Valuelocation(:)=0
 		      VALUESS(i)=leftv(kkd)
 			if (kkd.eq.5)then
 			
-            VALUESS(i)=ILOCAL_RECON3(I)%MRF!ielem(n,i)%vortex(1)!U_C(I)%VAL(1,kkd)
+            VALUESS(i)=U_C(I)%VAL(1,kkd)
            
 			end if
 		    END DO
@@ -1515,7 +1515,14 @@ Valuelocation(:)=0
                 END DO
                 ELSE
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%DISS!IELEM(N,I)%STENCIL_DIST
+                IF (ADDA.EQ.1)THEN
+
+                VALUESS(i)=IELEM(N,I)%lwcx2!DISS!IELEM(N,I)%STENCIL_DIST
+
+                ELSE
+                VALUESS(i)=IELEM(N,I)%WCX(1)!TROUBLED!FILTERED
+
+                END IF
                 END DO
                 END IF
                 
@@ -1533,7 +1540,15 @@ Valuelocation(:)=0
                 
                 
                 DO I=1,KMAXE
-                VALUESS(i)=ielem(n,i)%condition!WCX(1)!IELEM(N,I)%ADMIS
+                
+                if (adda.eq.1)then
+                
+                valuess(i)=ielem(n,i)%diss
+                else
+                
+                
+                VALUESS(i)=ielem(n,i)%FULL!WCX(1)!IELEM(N,I)%ADMIS
+                end if
                 END DO
                 
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -18220,7 +18235,138 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 END SUBROUTINE TROUBLED_HISTORY
 
+SUBROUTINE FILTERED_HISTORY
+INTEGER::I,J,K,TRAJ1,TRAJ2,TRAJ3,TRAJ4,kmaxe,writeid,writeconf,countfd
+REAL::WIN1,WIN2,WIN3,WIN4,POST,POST1,POST2,POST3,POST4
+real,dimension(5)::pos_l,pos_g
+KMAXE=XMPIELRANK(N)
+POST1=0
+traj1=0
+pos_l(:)=zero
+pos_G(:)=zero
+! pos_L(2)=10e20
+! pos_g(2)=0
+! pos_L(3)=0.0d0
+! pos_g(3)=0
+! pos_L(4)=-10e20
+! pos_g(4)=0
+! countfd=0
+DO I=1,KMAXE
 
+    pos_l(1)=pos_l(1)+IELEM(N,I)%FILTERED
+
+!     if (ielem(n,i)%er2dt.gt.0)THen
+!
+!
+! 			if (ielem(n,i)%er1er2.gt.1)then
+!
+!
+! 			countfd=countfd+1
+!
+! 			pos_l(2)=min(pos_l(2),ielem(n,i)%er1er2)
+!
+! 			pos_l(3)=ielem(n,i)%er1er2+pos_l(3)
+!
+!
+!
+!
+!
+! 			end if
+
+
+
+
+
+
+
+
+! 	end if
+
+
+! 	if (ielem(n,i)%er2dt.lt.0.0)THen
+! 			pos_l(4)=max(pos_L(4),ielem(n,i)%er2dt)
+!
+! 			end if
+
+
+
+
+!
+!
+!
+!
+!  			countfd=countfd+1
+!
+
+!
+ 			pos_l(3)=ielem(n,i)%er+pos_l(3)
+
+
+
+
+!  			if (ielem(n,i)%er.gt.0)then
+
+ 			pos_l(2)=ielem(n,i)%er1+pos_l(2)
+!
+ 			pos_l(4)=ielem(n,i)%er2+pos_l(4)
+
+!  			end if
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+END DO
+
+! pos_l(3)=pos_l(3)/countfd
+
+
+CALL MPI_ALLREDUCE(pos_l(1),pos_g(1),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+
+post1=(POS_G(1)/IMAXE)*100.0
+
+CALL MPI_ALLREDUCE(pos_l(2),pos_g(2),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+
+
+post2=(POS_G(2)/IMAXE)
+
+CALL MPI_ALLREDUCE(pos_l(3),pos_g(3),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+
+post3=(POS_G(3)/IMAXE)
+
+CALL MPI_ALLREDUCE(pos_l(4),pos_g(4),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+post4=(POS_G(4)/IMAXE)
+
+
+
+IF (n.eq.0)THEN
+
+OPEN(70,FILE='FILTERED.DAT',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+WRITE(70,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,POST1,POST2,POST3,POST4
+close(70)
+
+END IF
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+END SUBROUTINE FILTERED_HISTORY
 
 
 
