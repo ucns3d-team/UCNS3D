@@ -1835,7 +1835,7 @@ REAL::DELTA,CPUER
 	
 	
 ! 	if (itestcase.eq.4)then
-	allocate(ielem(n,i)%vortex(1)); ielem(n,i)%vortex=zero
+	allocate(ielem(n,i)%vortex(3)); ielem(n,i)%vortex=zero
 	ALLOCATE(IELEM(N,I)%AVARS(NOF_VARIABLES));
 ! 	end if
 	

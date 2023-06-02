@@ -690,7 +690,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 
       if (poly.eq.4)then
 
-      divbyzero=ielem(n,iconsidered)%totvolume**3
+      divbyzero=ielem(n,iconsidered)%totvolume**2
 
       else
 
@@ -701,7 +701,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 
       if (ees.eq.5)then
 
-      power=2
+      power=4
 
 
 
@@ -1486,7 +1486,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
  	 
  	if (poly.eq.4)then
 
-      divbyzero=ielem(n,iconsidered)%totvolume**3
+      divbyzero=ielem(n,iconsidered)%totvolume**2
 
       else
 
@@ -1497,7 +1497,7 @@ DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
 
       if (ees.eq.5)then
 
-      power=2
+      power=4
 
 
 
@@ -2444,7 +2444,7 @@ KMAXE=XMPIELRANK(N)
 	IF ((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
  	if (poly.eq.4)then
 
-      divbyzero=ielem(n,i)%totvolume**3
+      divbyzero=ielem(n,iconsidered)%totvolume**2
 
       else
 
@@ -2455,7 +2455,7 @@ KMAXE=XMPIELRANK(N)
 
       if (ees.eq.5)then
 
-      power=2
+      power=4
 
 
       else
@@ -3214,7 +3214,7 @@ KMAXE=XMPIELRANK(N)
 	IF((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
 	 if (poly.eq.4)then
 
-      divbyzero=ielem(n,i)%totvolume**3
+      divbyzero=ielem(n,iconsidered)%totvolume**2
 
       else
 
@@ -3225,7 +3225,7 @@ KMAXE=XMPIELRANK(N)
 
       if (ees.eq.5)then
 
-      power=2
+      power=4
 
 
 
@@ -9763,7 +9763,7 @@ ex1=(((EN_UNF(2)-EN_F_STRONG(2))**2)+((EN_UNF(3)-EN_F_STRONG(3))**2)+((EN_UNF(4)
 !end if
 
 
- if (ielem(n,i)%er.GT.1.1)THen
+ if (ielem(n,i)%er.GT.(1.15))THen
 
  ielem(n,I)%FILTERED=1
 !
@@ -10241,16 +10241,20 @@ LWCX1=LWCI1
 
 		 IF (ielem(n,i)%er.gt.1.3)THEN
 
-				LWCX1=2!INCREASE DISSIPATION
+				LWCX1=10!INCREASE DISSIPATION
 
 
 		 	end if
 
+
 ! END IF
 !
-		 IF (ielem(n,i)%er.LE.0.9)THEN
+		 IF (ielem(n,i)%er.LE.0.95)THEN
+
+						LWCX1=1000
 			
-			 LWCX1=10**(2-(1*ielem(n,i)%er**0.8))
+                        !LWCX1=10**(12-(4*ielem(n,i)%er**0.8))
+			
 			
 		       
 		 END IF
@@ -10276,16 +10280,19 @@ ELSE
 
 		 IF (ielem(n,i)%er.gt.1.3)THEN
 
-				LWCX1=2!INCREASE DISSIPATION
+				LWCX1=10!INCREASE DISSIPATION
 
 
 		 	end if
 
 ! END IF
 !
-		 IF (ielem(n,i)%er.LE.0.9)THEN
+		 IF (ielem(n,i)%er.LE.0.95)THEN
 
-			 LWCX1=10**(5-(2*ielem(n,i)%er**0.8))
+		 	
+
+			 LWCX1=1000
+			 !LWCX1=100**(12-(4*ielem(n,i)%er**0.8))
 
 
 		 END IF
@@ -10321,7 +10328,7 @@ DO I=1,KMAXE
 
 	if (ielem(n,i)%full.eq.1)then
 	!1)reduce dissipation
-	IF (IELEM(N,I)%LWCX2.GT.5)THEN
+	IF (IELEM(N,I)%LWCX2.GT.10)THEN
 		IF (IELEM(N,I)%WCX(1).GE.0.999)THEN
 		IELEM(N,I)%DISS=max(IELEM(N,I)%DISS-0.1,0.4d0)	!reduce dissipation even more
 		Else

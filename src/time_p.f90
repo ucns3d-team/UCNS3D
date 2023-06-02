@@ -2375,6 +2375,10 @@ KMAXE=XMPIELRANK(N)
     CALL CALCULATE_FLUXESHI(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
+    
+    
+    
+    
     if ((SOURCE_ACTIVE.EQ.1))then
     call SOURCES_COMPUTATION_ROT(N)
     end if
@@ -2394,7 +2398,10 @@ KMAXE=XMPIELRANK(N)
 
 	
 
-
+    IF (INITCOND.EQ.95)THEN
+    
+    CALL  ENSTROPHY_CALC(N)
+    END IF
 
 
     IF (statistics.eq.1)THEN
@@ -3961,7 +3968,7 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 real,dimension(1:5)::DUMMYOUT,DUMMYIN
 INTEGER::I,KMAXE,TTIME
-REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK,TZX1,TZX2,resolx
+REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK,TZX1,TZX2,resolx,totens,totens1,totens2,totensx,totensx1,totensx2
       kill=0
       T=RES_TIME
       resolx=0.01
@@ -4011,6 +4018,16 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 !$OMP END MASTER
 !$OMP BARRIER
       
+
+
+
+      if ((it.eq.0).and.(initcond.eq.95))then
+        call EXCHANGE_HIGHER(N)
+        call ARBITRARY_ORDER3(N)
+        call ENSTROPHY_CALC(N)
+
+
+      end if
       
      DO 
             
@@ -4058,13 +4075,21 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 					
 					
                               IF (INITCOND.eq.95)THEN
-                          TOTK=0
+                          TOTK=0;TOTENS=0;totensx=0.0d0
                           DO I=1,xmpielrank(n)
 
                               TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
           (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
 
+                              if (BOUNDTYPE.eq.1)then
 
+                              TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
+                              IELEM(N,I)%VORTEX(2))
+                              else
+
+                              TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
+                              TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
+                              end if
 
                           END DO
           !
@@ -4073,10 +4098,24 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
                           CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
                           CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
                           TOTK=DUMEtg2
+                          DUMEtg1=TOTENS
+                          DUMEtg2=0.0
+                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+                          TOTENS=DUMEtg2
+                          DUMEtg1=TOTENSx
+                          DUMEtg2=0.0
+                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+                          TOTENSx=DUMEtg2
                           IF (N.EQ.0)THEN
                           TOTV1=TOTK/((2.0*PI)**3)
+                          TOTENS1=TOTENS/(((2.0*PI)**3))
+                          TOTENSx1=TOTENSx/((2.0*PI)**3)
                               IF (it.eq.0)THEN
                               TAYLOR=TOTK
+                              TAYLOR_ENS=TOTENS
+                              TAYLOR_ENSx=TOTENSx
                               END IF
 
 
@@ -4188,14 +4227,29 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			
 			
 			IF (INITCOND.eq.95)THEN                    
- 				TOTK=0
+ 				TOTK=0; TOTENS=0.0; totensx=0.0d0
  				DO I=1,xmpielrank(n)
  				
                    
                     TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
 (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
                     
-                    
+
+
+
+
+
+                              if (BOUNDTYPE.eq.1)then
+
+                              TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
+                              IELEM(N,I)%VORTEX(2))
+                              else
+
+                              TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
+                               TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
+                              end if
+
+
 
 
 
@@ -4206,10 +4260,29 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
  				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
  				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
  				TOTK=DUMEtg2
+
+ 				DUMEtg1=TOTENS
+ 				DUMEtg2=0.0
+ 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+ 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+ 				TOTENS=DUMEtg2
+
+
+
+ 				DUMEtg1=TOTENSx
+ 				DUMEtg2=0.0
+ 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+ 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+ 				TOTENSx=DUMEtg2
+
  				IF (N.EQ.0)THEN
                           TOTV2=TOTK/((2.0*PI)**3)
+                          TOTENS2=TOTENS/((2.0*PI)**3)
+                          TOTENSx2=TOTENSx/((2.0*PI)**3)
                               IF (it.eq.0)THEN
                               TAYLOR=TOTK
+                              TAYLOR_ENS=TOTENS
+                              TAYLOR_ENSx=TOTENSx
                               END IF
 
                           IF (IT.EQ.0)THEN
@@ -4217,8 +4290,15 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
                           ELSE
                           OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
                           END IF
-
-                          WRITE(73,*)T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT
+                          IF (DG.EQ.1)THEN
+                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT
+                          ELSE
+                          if (boundtype.eq.1)then
+                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS/TAYLOR_ENS
+                          else
+                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS,TOTENSx
+                          end if
+                          END IF
                           CLOSE(73)
 				END IF
  				

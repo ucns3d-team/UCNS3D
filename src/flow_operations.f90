@@ -1156,6 +1156,18 @@ end if
 
 
 
+IF (INITCOND.EQ.790)THEN
+R=(2.4D0*6**2)/((0.4*6**2)+2)
+U=(6*SQRT(1.4))*(70/(2.4*36))
+V=0.0D0
+P=(2.8*36-0.4)/(2.4)
+
+
+END IF
+
+
+
+
 !KINETIC ENERGY FIRST!
 SKIN=(OO2)*((U**2)+(V**2))
 !INTERNAL ENERGY 
@@ -1948,6 +1960,112 @@ END DO
 
 
 END SUBROUTINE VORTEXCALC
+
+
+
+SUBROUTINE ENSTROPHY_CALC(N)
+!> @brief
+!> This subroutine computes the q-criterion
+
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::KMAXE,I,IHGT,IHGJ
+REAL::SNORM,ONORM
+REAL,DIMENSION(3,3)::TVORT,SVORT,OVORT
+real,dimension(3,3)::taul,taur,TAU
+REAL,DIMENSION(3)::Q,NNN,nall
+REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,RHO12,U12,V12,W12 ,damp,vdamp,TEMPXX
+
+ 	 KMAXE=XMPIELRANK(N)
+!$OMP DO SCHEDULE (STATIC)
+DO I=1,KMAXE
+
+                VORTET1(1:3,1:3)=ILOCAL_RECON3(I)%GRADS(1:3,1:3)
+
+	    DO IHGT=1,3; DO IHGJ=1,3
+	    TVORT(IHGT,IHGJ)=VORTET1(IHGJ,IHGT)
+	      END DO; END DO
+
+	      OVORT=(VORTET1-TVORT)
+	      ONORM=((OVORT(1,1)*OVORT(1,1))+(OVORT(1,2)*OVORT(1,2))+(OVORT(1,3)*OVORT(1,3))+&
+(OVORT(2,1)*OVORT(2,1))+(OVORT(2,2)*OVORT(2,2))+(OVORT(2,3)*OVORT(2,3))+(OVORT(3,1)*OVORT(3,1))+&
+(OVORT(3,2)*OVORT(3,2))+(OVORT(3,3)*OVORT(3,3)))
+
+           if(boundtype.eq.1)then
+
+	      IELEM(N,I)%VORTEX(2)=(0.5D0*(ONORM*u_c(i)%val(1,1)))
+
+	      else
+
+
+	      LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+		CALL CONS2PRIM(N)
+		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
+		CALL SUTHERLAND(N,LEFTV,RIGHTV)
+
+
+
+
+                      UX = ILOCAL_RECON3(I)%GRADS(1,1); UY = ILOCAL_RECON3(I)%GRADS(1,2); UZ = ILOCAL_RECON3(I)%GRADS(1,3);
+					  VX = ILOCAL_RECON3(I)%GRADS(2,1); VY = ILOCAL_RECON3(I)%GRADS(2,2); VZ = ILOCAL_RECON3(I)%GRADS(2,3);
+					  WX = ILOCAL_RECON3(I)%GRADS(3,1); WY = ILOCAL_RECON3(I)%GRADS(3,2); WZ = ILOCAL_RECON3(I)%GRADS(3,3);
+
+
+
+
+
+
+					  ! TAU_XX
+					  TAUL(1,1) = (4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY - (2.0D0/3.0D0)*WZ
+					  ! TAU_YY
+					  TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*WZ
+					  ! TAU_ZZ
+					  TAUL(3,3) = (4.0D0/3.0D0)*WZ - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY
+
+					  ! tau_xy
+					  TAUL(1,2) = (UY + VX);TAUL(2,1) = TAUL(1,2)
+
+					  ! TAU_XZ
+					  TAUL(1,3) = (WX + UZ);TAUL(3,1) = TAUL(1,3)
+
+					  ! TAU_YZ
+					  TAUL(2,3) = (VZ + WY);TAUL(3,2) = TAUL(2,3)
+
+
+        IELEM(N,I)%VORTEX(3)=(4.0/3.0)*VISCL(1)*((ux+vy+wz)**2)*ielem(n,i)%TOTVOLUME
+
+
+          SNORM=2.0D0*(UX*UX)+2.0D0*(VY*VY)+2.0D0*(WZ*WZ)+(VX+UY)**2+(WZ+VZ)**2+(UZ+WX)**2-((2.0/3.0)*(UX+VY+WZ)**2)
+
+
+          ielem(n,i)%vortex(2)=ielem(n,i)%TOTVOLUME*SNORM*viscl(1)
+! 	      IELEM(N,I)%VORTEX(2)=VISCL(1)*sNORM!(-ILOCAL_RECON3(I)%GRADS(2,3)+ILOCAL_RECON3(I)%GRADS(3,2)+ILOCAL_RECON3(I)%GRADS(2,1)-ILOCAL_RECON3(I)%GRADS(3,1)+ILOCAL_RECON3(I)%GRADS(1,3)-ILOCAL_RECON3(I)%GRADS(1,2))**2
+
+
+
+
+
+
+	      end if
+
+END DO
+
+
+!
+!
+! DUDX DVDY DWDZ
+
+
+
+
+
+
+!$OMP END DO
+
+
+
+END SUBROUTINE ENSTROPHY_CALC
+
 
 SUBROUTINE VORTEXCALC2D(N)
 !> @brief
