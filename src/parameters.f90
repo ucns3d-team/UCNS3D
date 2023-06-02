@@ -387,7 +387,7 @@ SUBROUTINE READ_UCNS3D
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
 	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=20.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR1=12.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
 	GRIDAR2=20.0	! LIMIT VOLUME CELLS
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
@@ -425,7 +425,7 @@ SUBROUTINE READ_UCNS3D
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
 	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=8.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR1=20.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
 	GRIDAR2=20.0	! LIMIT VOLUME CELLS
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
