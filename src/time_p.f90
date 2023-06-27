@@ -2351,9 +2351,21 @@ KMAXE=XMPIELRANK(N)
 
 
     if (adda.eq.1)then
+
+    IF (RUNGEKUTTA.EQ.11)THEN
+
+    IF (ISCOUN.EQ.1)THEN
     call fix_dissipation(n)
     call EXCHANGE_ADDA_DISS(N)
     call fix_dissipation2(n)
+    END IF
+    ELSE
+    call fix_dissipation(n)
+    call EXCHANGE_ADDA_DISS(N)
+    call fix_dissipation2(n)
+    END IF
+
+
     end if
 
 

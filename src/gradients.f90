@@ -1632,7 +1632,7 @@ SOLS2=ZERO
 		CALL CONS2PRIM(N)
 	       SOLS2(2:4)=LEFTV(2:4)
 	       SOLS2(1)=LEFTV(5)/LEFTV(1)
-  	        MATRIX_1(1:nof_Variables-1,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*(SOLS2(1:nof_Variables-1)-SOLS1(1:nof_Variables-1)))
+  	        MATRIX_1(1:nof_Variables-1,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:nof_Variables-1)-SOLS1(1:nof_Variables-1)))
   	        
   	        MATRIX_1(2:4,IQ)=MATRIX_1(2:4,IQ)+((SOLS1(2:4)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
   	        
@@ -1707,7 +1707,6 @@ SOLS2=ZERO
 			
 
 
-
 END SUBROUTINE COMPUTE_GRADIENTS_wall_mean_LSQ_VISCOUS
 
 SUBROUTINE COMPUTE_GRADIENTS_wall_turb_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI) !check_all
@@ -1764,7 +1763,7 @@ SOLS2=ZERO
 	      end if
    
 		
-  	        MATRIX_1(1:turbulenceequations+passivescalar,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*(SOLS2(1:turbulenceequations+passivescalar)-SOLS1(1:turbulenceequations+passivescalar)))
+  	        MATRIX_1(1:turbulenceequations+passivescalar,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:turbulenceequations+passivescalar)-SOLS1(1:turbulenceequations+passivescalar)))
   	        MATRIX_1(1:turbulenceequations+passivescalar,IQ)=MATRIX_1(1:turbulenceequations+passivescalar,IQ)+((SOLS1(1:turbulenceequations+passivescalar)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
 		END DO
 		matrix_3(1:turbulenceequations+passivescalar)=-sols1(1:turbulenceequations+passivescalar)
@@ -3346,7 +3345,7 @@ ll=1
 		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
 		CALL CONS2PRIM2d(N)
 		
-	       SOLS1(2:4)=LEFTV(2:4)
+	       SOLS1(2:3)=LEFTV(2:3)
 	       SOLS1(1)=LEFTV(4)/LEFTV(1)
 	    
 	   
@@ -3367,7 +3366,7 @@ ll=1
 		CALL CONS2PRIM2d(N)
 	       SOLS2(2:3)=LEFTV(2:3)
 	       SOLS2(1)=LEFTV(4)/LEFTV(1)
-  	        MATRIX_1(1:3,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*(SOLS2(1:3)-SOLS1(1:3)))
+  	        MATRIX_1(1:3,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:3)-SOLS1(1:3)))
   	        MATRIX_1(2:3,IQ)=MATRIX_1(2:3,IQ)+((SOLs1(2:3)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
 		END DO
 		matrix_3(1:3)=-sols1(1:3)
@@ -3419,10 +3418,8 @@ ll=1
 			    ILOCAL_RECON5(1)%VELOCITYDOF(var2-1,K0)=ATTT
  
 		
-		
-		
-		
-		
+
+
 		
 		
 		
@@ -3447,7 +3444,7 @@ ll=1
 			    ILOCAL_RECON5(1)%GRADIENTSTEMP(G0)=ATTT
 	   
 		
-		
+
 		
 		
 		
@@ -3510,7 +3507,7 @@ SOLS2=ZERO
 	      end if
    
 		
-  	        MATRIX_1(1:turbulenceequations+passivescalar,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*(SOLS2(1:turbulenceequations+passivescalar)-SOLS1(1:turbulenceequations+passivescalar)))
+  	        MATRIX_1(1:turbulenceequations+passivescalar,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:turbulenceequations+passivescalar)-SOLS1(1:turbulenceequations+passivescalar)))
   	        MATRIX_1(1:turbulenceequations+passivescalar,IQ)=MATRIX_1(1:turbulenceequations+passivescalar,IQ)+((SOLs1(1:turbulenceequations+passivescalar)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
 		END DO
 		matrix_3(1:turbulenceequations+passivescalar)=-sols1(1:turbulenceequations+passivescalar)

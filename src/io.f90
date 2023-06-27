@@ -1520,7 +1520,7 @@ Valuelocation(:)=0
                 VALUESS(i)=IELEM(N,I)%lwcx2!DISS!IELEM(N,I)%STENCIL_DIST
 
                 ELSE
-                VALUESS(i)=IELEM(N,I)%WCX(1)!TROUBLED!FILTERED
+                VALUESS(i)=IELEM(N,I)%ggs!WCX(1)!TROUBLED!FILTERED
 
                 END IF
                 END DO
@@ -3829,7 +3829,7 @@ END IF
                 END DO
                 else
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%ADMIS
+                VALUESS(i)=IELEM(N,I)%full!ADMIS
                 END DO
                 end if
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)

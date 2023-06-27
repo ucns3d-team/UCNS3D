@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Slurm job options (job-name, compute nodes, job time)
-#SBATCH --job-name=FVHO
+#SBATCH --job-name=DGUNF5
 #SBATCH --time=24:00:00
 #SBATCH --nodes=20
 #SBATCH --ntasks=160
@@ -9,14 +9,14 @@
 #SBATCH --cpus-per-task=16
 
 # Replace [budget code] below with your project code (e.g. t01)
-#SBATCH --account=your_account
+#SBATCH --account=budget code
 #SBATCH --partition=standard
 #SBATCH --qos=standard
 
 # Setup the job environment (this module needs to be loaded before any other modules)
 module load epcc-job-env
 
-
+export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 
 export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
 

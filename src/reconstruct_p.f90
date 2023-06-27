@@ -8137,13 +8137,21 @@ ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=zero;
 					  DO K=1,IDEGFREE
 					  UGRADLOC(1) = UGRADLOC(1) + GRADTEM(K)*XDER(K)
 					  UGRADLOC(2) = UGRADLOC(2) + GRADTEM(K)*YDER(K)
-					  
+
 					  END DO 
+
+
+
 					  if (reduce_comp.eq.1)then
 					  ILOCAL_RECON3(I)%ULEFTV(1:2,IEX+1,L,1) = ILOCAL_RECON3(I)%ULEFTV(1:2,IEX+1,L,1)+MATMUL(AINVJT(1:2,1:2),UGRADLOC(1:2))*wequa2d(ngp)
 					  else
 					  ILOCAL_RECON3(I)%ULEFTV(1:2,IEX+1,L,NGP) = MATMUL(AINVJT(1:2,1:2),UGRADLOC(1:2))
 					  end if
+
+
+
+
+
 				  END DO	    
 				  				
 				CASE(1)
@@ -8215,7 +8223,18 @@ ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=zero;
 				END IF
 				      DO K=1,IELEM(N,I)%IDEGFREE
 					      GRADTEM(K)=ILOCAL_RECON5(1)%GRADIENTSTEMP(K)
-						XDER(K)=DF2dX(AX,AY,K);  YDER(K)=DF2dY(AX,AY,K);  
+
+
+					      IF (POLY.EQ.4)THEN
+							XDER(K)=TL2dX(AX,AY,K);  YDER(K)=TL2dY(AX,AY,K);
+							ELSE
+						    XDER(K)=DF2dX(AX,AY,K);  YDER(K)=DF2dY(AX,AY,K);
+							END IF
+
+
+
+
+						!XDER(K)=DF2dX(AX,AY,K);  YDER(K)=DF2dY(AX,AY,K);
 				      END DO
 					UGRADLOC = ZERO
 					  DO K=1,IDEGFREE
@@ -10048,7 +10067,7 @@ do fil_i=1,iorder
 		filter2(fil_i)=0.0d0
 	else
 
-     if (fil_i.le.1)then  !if (fil_i.le.ADDA_1)then
+     if (fil_i.lt.2)then  !if (fil_i.le.ADDA_1)then
         filter2(fil_i)=1.0d0
     else
 		filter2(fil_i)=0.0d0
@@ -10079,7 +10098,7 @@ end do
 
 
 do fil_i=1,iorder
-	if (fil_i.le.iorder-1)then!					if (fil_i.le.ADDA_2)then
+	if (fil_i.le.2)then!					if (fil_i.le.ADDA_2)then
         filter3(fil_i)=1.0d0
     else
 		filter3(fil_i)=0.0d0
@@ -10239,7 +10258,7 @@ LWCX1=LWCI1
 
 
 
-		 IF (ielem(n,i)%er.gt.1.3)THEN
+		 IF (ielem(n,i)%er.gt.1.2)THEN
 
 				LWCX1=10!INCREASE DISSIPATION
 
@@ -10278,7 +10297,7 @@ END IF
 ELSE
 
 
-		 IF (ielem(n,i)%er.gt.1.3)THEN
+		 IF (ielem(n,i)%er.gt.1.2)THEN
 
 				LWCX1=10!INCREASE DISSIPATION
 
@@ -10307,6 +10326,13 @@ ELSE
 
 END IF
 
+
+if (ielem(n,i)%full.eq.0)then
+        ielem(n,i)%lwcx2=-10
+end if
+
+
+
 END SUBROUTINE APPLY_ADDA_FILTER
 
 
@@ -10330,7 +10356,7 @@ DO I=1,KMAXE
 	!1)reduce dissipation
 	IF (IELEM(N,I)%LWCX2.GT.10)THEN
 		IF (IELEM(N,I)%WCX(1).GE.0.999)THEN
-		IELEM(N,I)%DISS=max(IELEM(N,I)%DISS-0.1,0.4d0)	!reduce dissipation even more
+		IELEM(N,I)%DISS=max(IELEM(N,I)%DISS-0.1,0.5d0)	!reduce dissipation even more
 		Else
 		IELEM(N,I)%DISS=1.0d0							!increase dissipation if shock
 		END IF
