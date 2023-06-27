@@ -1822,9 +1822,9 @@ i=iconsi
 		    ILOCAL_RECON3(I)%VEXT_REF(1:2)=VEXT(1,1:2)
 		    
 		    if ((poly.eq.4).OR.(DG.EQ.1))then
-		    ILOCAL_RECON3(I)%INVCCJAC(1:2,1:2)=zero
-		     ILOCAL_RECON3(I)%INVCCJAC(1,1)=1.0d0
-		      ILOCAL_RECON3(I)%INVCCJAC(2,2)=1.0d0
+		    ILOCAL_RECON3(I)%INVCCJAC(1:2,1:2)=0.0d0
+ 		     ILOCAL_RECON3(I)%INVCCJAC(1,1)=1.0d0
+ 		      ILOCAL_RECON3(I)%INVCCJAC(2,2)=1.0d0
 		      detjc=1.0
 		      VEXT(1,1)=ielem(n,i)%xxc
 		      VEXT(1,2)=ielem(n,i)%yyc
@@ -2487,7 +2487,7 @@ end do
 	    
 	      IF (TEMPG1.GT.GRIDAR1)THEN
 	      IELEM(N,I)%GGS=1
-	      IF ((IADAPT.EQ.1).or.(code_profile.eq.88))THEN
+	      IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
                 IELEM(N,I)%FULL=0
 			END IF
 	      end if 
@@ -2505,10 +2505,10 @@ end do
 		       end if
 	       end do
 	 TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
-	 ielem(n,i)%walldist=tempg1
+	 !ielem(n,i)%walldist=tempg1
 	     IF (TEMPG1.GT.GRIDAR2)THEN
 	       IELEM(N,I)%GGS=1
-	  	IF ((IADAPT.EQ.1).or.(code_profile.eq.88))THEN
+	  	IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
                 IELEM(N,I)%FULL=0
 			END IF
 	       end if  
@@ -2625,7 +2625,7 @@ SUBROUTINE CHECKGRADS2d(N,ICONSI)
 !> This subroutine assigns the correct viscous gradient approximation flag for each cell based on some additional geometrical characteristics
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSI
-REAL::DXX1,dxx2,TEMPG1,dist1,dist2,oo2
+REAL::DXX1,dxx2,TEMPG1,dist1,dist2,oo2,surfmin,surfmax
 INTEGER::I,J,K,L,jj,icount3,nnd,ixf4
 i=iconsi
 
@@ -2677,13 +2677,19 @@ tempg1=0.0;
   end if
 
 
+
+
+  surfmin=1.0e16
+surfmax=1.0e-16
+
      
       do l=1,ielem(n,i)%ifca
       
 	      
 	      nnd=2
 	     
-
+			 surfmin=min(surfmin,IELEM(N,I)%SURF(L))
+	      surfmax=max(surfmax,IELEM(N,I)%SURF(L))
 		
 		  if (ielem(n,i)%interior.eq.1)then
 		    if ((ielem(n,i)%ineighg(l).gt.0).and.(ielem(n,i)%ibounds(l).gt.0))then
@@ -2736,8 +2742,22 @@ tempg1=0.0;
 		
 		
 end do
+
+
+			ielem(n,i)%condition=1.0
+
+
+        ielem(n,i)%condition=surfmax/surfmin
+
+        TEMPG1=ielem(n,i)%condition
+
 	    IF (TEMPG1.GT.GRIDAR1)THEN
 	      IELEM(N,I)%GGS=1
+
+	      IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
+                IELEM(N,I)%FULL=0
+			END IF
+
 	      end if 
 	      
 	      
@@ -2758,6 +2778,9 @@ end do
 	 TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
 	     IF (TEMPG1.GT.GRIDAR2)THEN
 	       IELEM(N,I)%GGS=1
+	       IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
+                IELEM(N,I)%FULL=0
+			END IF
 	       end if 
 end if
 

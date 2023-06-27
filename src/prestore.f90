@@ -122,7 +122,7 @@ real::ssss,gggg,UPTEMP,LOTEMP,X_STENCIL,Y_STENCIL,Z_STENCIL,DIST_STEN,DIST_STEN2
 real, dimension(IELEM(N,Iconsi)%inumneighbours-1, ielem(n,iconsi)%idegfree):: stencil
 real, dimension(20,IELEM(N,Iconsi)%inumneighbours-1, ielem(n,iconsi)%idegfree):: stencilS
 real, dimension(ielem(n,iconsi)%idegfree, ielem(n,iconsi)%idegfree):: invmat
-
+REAL,DIMENSION(7,IELEM(N,Iconsi)%inumneighbours-1)::WLSQR
 
 i=iconsi
 
@@ -247,12 +247,22 @@ X_STENCIL=(ilocal_elem(1)%XXC(ll,k+1)-ilocal_elem(1)%XXC(ll,1))**2
 Y_STENCIL=(ilocal_elem(1)%YYC(ll,k+1)-ilocal_elem(1)%YYC(ll,1))**2
 Z_STENCIL=(ilocal_elem(1)%ZZC(ll,k+1)-ilocal_elem(1)%ZZC(ll,1))**2
 
-!DIST_STEN2=SQRT(X_STENCIL+Y_STENCIL+Z_STENCIL)
+DIST_STEN2=SQRT(X_STENCIL+Y_STENCIL+Z_STENCIL)
 
+IF (WEIGHT_LSQR.EQ.1)THEN
+	    WLSQR(ll,K)=1.0D0/((DIST_STEN2))
+	    ELSE
+	    WLSQR(ll,K)=1.0D0
+	    END IF
+
+
+
+
+	    !ILOCAL_RECON3(I)%WEIGHTL(LL,K)=WLSQR(K)
 
 !DIST_STEN=MAX(DIST_STEN,DIST_STEN2)
 
-!IELEM(N,I)%STENCIL_DIST=DIST_STEN/(ilocal_elem(1)%VOLUME(1,1)**(1/3))
+!IELEM(N,I)%STENCIL_DIST=WLSQR(K)
 
 			
 			
@@ -270,20 +280,22 @@ IF (GREENGO.EQ.0)THEN
 
 if (idum.eq.1)then
     if((ees.ne.5).or.(ll.eq.1))then
-    ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=basis_rec(N,x1,y1,z1,ielem(n,i)%iorder,IXX,ielem(n,i)%idegfree)
+    ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,ielem(n,i)%iorder,IXX,ielem(n,i)%idegfree)
+    ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
     else
     compwrt=1
-    ILOCAL_RECON3(I)%STENCILSc(LL,K,1:IDEG)=basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG)
+    ILOCAL_RECON3(I)%STENCILSc(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG)
+    ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
     compwrt=0
     end if
 else
 if((ees.ne.5).or.(ll.eq.1))then
 
  compwrt=0
-STENCILS(LL,K,1:IDEG)=basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG)
+STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG)
 else
  compwrt=1
-STENCILS(LL,K,1:IDEG)=basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG)
+STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG)
  compwrt=0
 end if
 end if
@@ -291,10 +303,10 @@ end if
 ELSE
  if((ees.ne.5).or.(ll.eq.1))then
  compwrt=0
-STENCILS(LL,K,1:IDEG)=basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG)
+STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG)
 else
  compwrt=1
-STENCILS(LL,K,1:IDEG)=basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG)
+STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG)
  compwrt=0
 
 end if
@@ -308,29 +320,31 @@ IF (GREENGO.EQ.0)THEN
 if (idum.eq.1)then
 		if((ees.ne.5).or.(ll.eq.1))then
 		 compwrt=0
-		ILOCAL_RECON3(I)%STENCILS(LL,K,1:IDEG)=COMPBASEL(N,ELTYPE,IDEG)
+		ILOCAL_RECON3(I)%STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IDEG)
+		ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 		else
 		 compwrt=1
-		ILOCAL_RECON3(I)%STENCILSc(LL,K,1:IDEG)=COMPBASEL(N,ELTYPE,IDEG)
+		ILOCAL_RECON3(I)%STENCILSc(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IDEG)
+		ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 		 compwrt=0
 		end if
 else
     if((ees.ne.5).or.(ll.eq.1))then
    compwrt=0
-    STENCILS(LL,K,1:IDEG)=COMPBASEL(N,ELTYPE,IDEG)
+    STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IDEG)
     else
     compwrt=1
-    STENCILS(LL,K,1:IDEG)=COMPBASEL(N,ELTYPE,IDEG)
+    STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IDEG)
     compwrt=0
     end if
 end if
 ELSE
 if((ees.ne.5).or.(ll.eq.1))then
    compwrt=0
-    STENCILS(LL,K,1:IDEG)=COMPBASEL(N,ELTYPE,IDEG)
+    STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IDEG)
     else
     compwrt=1
-    STENCILS(LL,K,1:IDEG)=COMPBASEL(N,ELTYPE,IDEG)
+    STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IDEG)
     compwrt=0
     end if
 
@@ -450,6 +464,7 @@ IF (GREENGO.EQ.0)THEN
     if (idum.eq.1)then
         if((ees.ne.5).or.(ll.eq.1))then
         stencil(1:imax,1:ideg)=ILOCAL_RECON3(I)%STENCILS(LL,1:imax,1:ideg)
+
         else
         stencil(1:imax,1:ideg)=ILOCAL_RECON3(I)%STENCILSc(LL,1:imax,1:ideg)
 
@@ -479,7 +494,7 @@ stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stencilt(1:IDEG,1:IMAX,
 			
 			do iq=1,imax
 			ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)&
-			*ilocal_elem(1)%VOLUME(ll,iq+1)
+			*ilocal_elem(1)%VOLUME(ll,iq+1)*WLSQR(ll,iq)
 			end do
 			
 			
@@ -498,7 +513,7 @@ stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stenciltc(1:IDEG,1:IMAX
 
 do iq=1,imax
 			ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)&
-			*ilocal_elem(1)%VOLUME(ll,iq+1)
+			*ilocal_elem(1)%VOLUME(ll,iq+1)*WLSQR(ll,iq)
 			end do
 
 end if
@@ -817,7 +832,7 @@ real::ssss,gggg,UPTEMP,LOTEMP,DIST_STEN2,X_STENCIL,Y_STENCIL,DIST_STEN,maxai,min
 real, dimension(IELEM(N,Iconsi)%inumneighbours-1, ielem(n,iconsi)%idegfree):: stencil
 real, dimension(7,IELEM(N,Iconsi)%inumneighbours-1, ielem(n,iconsi)%idegfree):: stencilS
 real, dimension(ielem(n,iconsi)%idegfree, ielem(n,iconsi)%idegfree):: invmat
-REAL,DIMENSION(IELEM(N,Iconsi)%inumneighbours-1)::WLSQR
+REAL,DIMENSION(7,IELEM(N,Iconsi)%inumneighbours-1)::WLSQR
 
 i=iconsi
 
@@ -835,7 +850,7 @@ i=iconsi
 		
 		
 		
-		
+		ICONSIDERED=I
 		
 		
 		
@@ -916,9 +931,9 @@ end if
 
 ! 	    WLSQR(K)=ilocal_elem(1)%XXC(ll,k+1)
 	    IF (WEIGHT_LSQR.EQ.1)THEN
-	    WLSQR(K)=1.0D0/((SQRT(((ilocal_elem(1)%XXC(ll,k+1)-ilocal_elem(1)%XXC(ll,1))**2)+((ilocal_elem(1)%YYC(ll,k+1)-ilocal_elem(1)%YYC(ll,1))**2))))
+	    WLSQR(LL,K)=1.0D0/((SQRT(((ilocal_elem(1)%XXC(ll,k+1)-ilocal_elem(1)%XXC(ll,1))**2)+((ilocal_elem(1)%YYC(ll,k+1)-ilocal_elem(1)%YYC(ll,1))**2))))
 	    ELSE
-	    WLSQR(K)=1.0D0
+	    WLSQR(LL,K)=1.0D0
 	    END IF
 	    X_STENCIL=(ilocal_elem(1)%XXC(ll,k+1)-ilocal_elem(1)%XXC(ll,1))**2
 	    Y_STENCIL=(ilocal_elem(1)%YYC(ll,k+1)-ilocal_elem(1)%YYC(ll,1))**2
@@ -930,9 +945,9 @@ end if
 	    
 	    
 	    IF (WEIGHT_LSQR.EQ.1)THEN
-	    WLSQR(K)=1.0D0/SQRT(X_STENCIL+Y_STENCIL)
+	    WLSQR(ll,K)=1.0D0/SQRT(X_STENCIL+Y_STENCIL)
 	    ELSE
-	    WLSQR(K)=1.0D0
+	    WLSQR(ll,K)=1.0D0
 	    END IF
 
 	    IELEM(N,I)%STENCIL_DIST=DIST_STEN/(ilocal_elem(1)%VOLUME(1,1)**(1/2))
@@ -943,10 +958,12 @@ end if
 
 					if((ees.ne.5).OR.(ll.eq.1))then
 					compwrt=0
-					ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=basis_rec2d(N,x1,y1,ielem(n,i)%iorder,IXX,ielem(n,i)%idegfree)
+					ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=WLSQR(ll,K)*basis_rec2d(N,x1,y1,ielem(n,i)%iorder,IXX,ielem(n,i)%idegfree)
+					ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 					else
 					compwrt=1
-					ILOCAL_RECON3(I)%STENCILSc(LL,K,1:ideg)=basis_rec2d(N,x1,y1,inumo,IXX,ideg)
+					ILOCAL_RECON3(I)%STENCILSc(LL,K,1:ideg)=WLSQR(ll,K)*basis_rec2d(N,x1,y1,inumo,IXX,ideg)
+					ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 					compwrt=0
 					end if
 
@@ -959,10 +976,12 @@ end if
 					  if (idum.eq.1)then
 						  if((ees.ne.5).OR.(ll.eq.1))then
 						  compwrt=0
-						  ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=WLSQR(K)*COMPBASEL(N,ELTYPE,ielem(n,i)%idegfree)
+						  ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,ielem(n,i)%idegfree)
+						  ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 						  else
 						  compwrt=1
-						  ILOCAL_RECON3(I)%STENCILSc(LL,K,1:ideg)=WLSQR(K)*COMPBASEL(N,ELTYPE,ideg)
+						  ILOCAL_RECON3(I)%STENCILSc(LL,K,1:ideg)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,ideg)
+						  ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 						  compwrt=0
 						  end if
 					  else
@@ -971,7 +990,7 @@ end if
 						  else
 						  compwrt=1
 						  end if
-					  STENCILS(LL,K,1:ideg)=WLSQR(K)*COMPBASEL(N,ELTYPE,ideg)
+					  STENCILS(LL,K,1:ideg)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,ideg)
 					  compwrt=0
 					  end if
 	    
@@ -981,7 +1000,7 @@ end if
 				  else
 				  compwrt=1
 				  end if
-				  STENCILS(LL,K,1:ideg)=WLSQR(K)*COMPBASEL(N,ELTYPE,ideg)
+				  STENCILS(LL,K,1:ideg)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,ideg)
 				  compwrt=0
 			      end if
 		      end if		!fastest
@@ -1086,7 +1105,7 @@ stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stencilt(1:IDEG,1:IMAX,
             
            do iq=1,imax
 			ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)&
-			*ilocal_elem(1)%VOLUME(ll,iq+1)
+			*ilocal_elem(1)%VOLUME(ll,iq+1)*WLSQR(ll,iq)
 			end do
 
 else
@@ -1103,7 +1122,7 @@ stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stenciltc(1:IDEG,1:IMAX
 
 do iq=1,imax
 			ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)&
-			*ilocal_elem(1)%VOLUME(ll,iq+1)
+			*ilocal_elem(1)%VOLUME(ll,iq+1)*WLSQR(ll,iq)
 			end do
 
 
@@ -1173,15 +1192,15 @@ IF (LL.EQ.1)THEN		!stencils
 							    
 								    AY=cords(2)
 								    AX=cords(1)
-								    
-				
-					
+
 					    VEXT(1,1)=AX;VEXT(1,2)=AY;
 					    VEXT(1,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(1:2,1:2),VEXT(1,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
 					  
 					    AX=VEXT(1,1);AY=VEXT(1,2)
 				
-				
+
+
+
 				
 				
 				
@@ -1219,8 +1238,11 @@ IF (LL.EQ.1)THEN		!stencils
 
 				END IF
 
+
+
+				ICONSIDERED=I
 				compwrt=0
-				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE)
+				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,Iconsidered,ielem(n,i)%IDEGFREE)
 				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=((NNX*XDER(1:ielem(n,i)%IDEGFREE))+(NNY*YDER(1:ielem(n,i)%IDEGFREE)))
 				
 
@@ -1290,6 +1312,12 @@ LSQM(LQ,LCOU)=ILOCAL_RECON3(I)%STENCILS(LL,LQ,IQ)&
     END DO
 END DO
 ILOCAL_RECON3(I)%TEMPSQ(1:IMAX,1:IDEG-1)=LSQM(1:IMAX,1:IDEG-1)
+
+
+
+
+
+
 VELLSQMAT=ZERO
 DO IQ=1,IDEG-1; DO JQ=1,IDEG-1;	DO LCC=1,IMAX
 !now store the least square matrix
@@ -1334,7 +1362,7 @@ LSCQM=ZERO
 LSCQM(1:IDEG-1,1:IDEG-1)=VELLSQMAT(1:IDEG-1,1:IDEG-1)
 
 
-Q=ZERO; R=ZERO; QT=ZERO; INVR=ZERO
+QFF=ZERO; RFF=ZERO; QTFF=ZERO; INVRFF=ZERO
 	  IVGT=IDEG
     CALL QRDECOMPOSITION(LSCQM,QFF,RFF,IVGT-1)
     CALL TRANSPOSEMATRIX(QFF,QTFF,IVGT-1)
@@ -1342,7 +1370,7 @@ Q=ZERO; R=ZERO; QT=ZERO; INVR=ZERO
     CALL INVERT(RFF,INVRFF,IVGT)
 !   final inverted R^(-1)*Q^(-1)
 ILOCAL_RECON3(I)%VELINVLSQMAT(1:IDEG-1,1:IDEG-1) = &
-MATMUL(INVR(1:IDEG-1,1:IDEG-1),QT(1:IDEG-1,1:IDEG-1))
+MATMUL(INVRFF(1:IDEG-1,1:IDEG-1),QTFF(1:IDEG-1,1:IDEG-1))
 			
 		
 		

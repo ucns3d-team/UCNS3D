@@ -1703,7 +1703,7 @@ DO I=1,NBOUND
 
 	case (5000,5050)	!farfield
 	IBXX(i)=6
-	case(6662,6661)	!symmetry
+	case(6662,6661,6663)	!symmetry
 	IBXX(i)=3
 	case(4000)	!wall
 	IBXX(i)=4
