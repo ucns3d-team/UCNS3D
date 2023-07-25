@@ -7,7 +7,7 @@ USE TRANSFORM
 IMPLICIT NONE
 contains
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITEGRIDB
  !> @brief
 !> This subroutine writes the grid file in tecplot binary format
@@ -199,8 +199,9 @@ end if
 	
 
 END SUBROUTINE OUTWRITEGRIDB
+#endif
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITEGRIDB2D
  !> @brief
 !> This subroutine writes the grid file in tecplot binary format in 2D
@@ -398,8 +399,9 @@ end if
 	
 
 END SUBROUTINE OUTWRITEGRIDB2D
+#endif
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITE3N
  !> @brief
 !> This subroutine is solely for debugging
@@ -850,9 +852,9 @@ Valuelocation(:)=0
 	
 
 END SUBROUTINE OUTWRITE3N
+#endif
 
-
-
+#ifdef USE_TECPLOT
 SUBROUTINE MOVIE
  !> @brief
 !> This subroutine writes only the 3D solution without the grid in tecplot binary format
@@ -1089,11 +1091,11 @@ Valuelocation(:)=0
 
 
 END SUBROUTINE MOVIE
+#endif
 
 
 
-
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITE3vb
  !> @brief
 !> This subroutine writes only the 3D solution without the grid in tecplot binary format
@@ -1646,8 +1648,9 @@ Valuelocation(:)=0
 	
 
 END SUBROUTINE OUTWRITE3vb
+#endif
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITEtec3dbp
  !> @brief
 !> This subroutine writes only the 3D solution without the grid in tecplot binary format
@@ -2115,8 +2118,9 @@ Valuelocation(1:3)=1
 	
 
 END SUBROUTINE OUTWRITEtec3dbp
+#endif
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITEtec3dbpav
  !> @brief
 !> This subroutine writes only the 3D solution without the grid in tecplot binary format
@@ -2576,7 +2580,7 @@ Valuelocation(1:3)=1
 	
 
 END SUBROUTINE OUTWRITEtec3dbpav
-
+#endif
 
 SUBROUTINE OUTWRITE3v
 !> @brief
@@ -2584,11 +2588,7 @@ SUBROUTINE OUTWRITE3v
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -2602,7 +2602,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -3013,12 +3013,6 @@ SUBROUTINE OUTWRITE3v2d
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
-
 ! 
 
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
@@ -3031,7 +3025,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -3439,6 +3433,7 @@ Valuelocation(:)=0
 
 END SUBROUTINE OUTWRITE3v2d
 
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITE3vb2d
 !> @brief
 !> This subroutine writes only the 2D solution without the grid in tecplot binary format
@@ -4019,7 +4014,7 @@ END IF
 	
 
 END SUBROUTINE OUTWRITE3vb2d
-
+#endif
 
 SUBROUTINE CHECKRES
 !> @brief
@@ -5775,7 +5770,7 @@ DeAllocate(Wallvrt)
 
 End Subroutine
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITEGRIDBs
 !> @brief
 !> This subroutine writes the wall surface grid in tecplotm binary format for 3D meshes
@@ -6078,7 +6073,7 @@ END IF
 	
 
 END SUBROUTINE OUTWRITEGRIDBs
-
+#endif
 
 
 SUBROUTINE OUTWRITEGRIDs
@@ -6087,11 +6082,7 @@ SUBROUTINE OUTWRITEGRIDs
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -6106,7 +6097,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112
+integer::ierr,cv
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -6358,11 +6349,7 @@ SUBROUTINE OUTWRITEGRIDs2D
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -6377,7 +6364,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112
+integer::ierr,cv
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -6605,7 +6592,7 @@ END IF
 END SUBROUTINE OUTWRITEGRIDs2D
 
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITEGRIDBs2d
 !> @brief
 !> This subroutine writes the wall surface grid in tecplot binary format for 2D meshes
@@ -6904,7 +6891,7 @@ END IF
 	
 
 END SUBROUTINE OUTWRITEGRIDBs2d
-
+#endif
 
 SUBROUTINE OUTWRITEGRID(N)
 !> @brief
@@ -7131,7 +7118,7 @@ ICPUID=N
 END IF
 END SUBROUTINE OUTWRITEGRID2d
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITE3vSb
 !> @brief
 !> This subroutine writes the 3D surface solution file in tecplot binary format
@@ -7698,8 +7685,9 @@ IF (ITESTCASE.LE.2)THEN
 	
 
 END SUBROUTINE OUTWRITE3vSb
+#endif
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITE3vSb2d
 !> @brief
 !> This subroutine writes the 2D surface solution file in tecplot binary format
@@ -8241,7 +8229,7 @@ IF (ITESTCASE.LE.2)THEN
 	
 
 END SUBROUTINE OUTWRITE3vSb2d
-
+#endif
 
 
 SUBROUTINE OUTWRITE3vS
@@ -8250,11 +8238,7 @@ SUBROUTINE OUTWRITE3vS
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -8268,7 +8252,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,icou
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -8839,11 +8823,7 @@ SUBROUTINE OUTWRITE3vS2d
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -8857,7 +8837,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,icou
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -9457,7 +9437,7 @@ END SUBROUTINE OUTWRITE3vS2d
 
 
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITE3vbav
 !> @brief
 !> This subroutine writes the 3D averaged solution file in tecplot binary format
@@ -9704,7 +9684,9 @@ Valuelocation(:)=0
 	
 
 END SUBROUTINE OUTWRITE3vbav
+#endif
 
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITE3vb2Dav
 !> @brief
 !> This subroutine writes the 2D averaged solution file in tecplot binary format
@@ -9992,7 +9974,7 @@ Valuelocation(:)=0
 	
 
 END SUBROUTINE OUTWRITE3vb2Dav
-
+#endif
 
 
 SUBROUTINE OUTWRITE3vav
@@ -10001,11 +9983,7 @@ SUBROUTINE OUTWRITE3vav
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -10019,7 +9997,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -10238,11 +10216,7 @@ SUBROUTINE OUTWRITE3v2Dav
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -10256,7 +10230,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -10500,7 +10474,7 @@ Valuelocation(:)=0
 END SUBROUTINE OUTWRITE3v2Dav
 
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITE3vSbav
 !> @brief
 !> This subroutine writes the 3D surface averaged solution file in tecplot binary format
@@ -11032,8 +11006,9 @@ IF (ITESTCASE.LE.2)THEN
 	
 
 END SUBROUTINE OUTWRITE3vSbav
+#endif
 
-
+#ifdef USE_TECPLOT
 SUBROUTINE OUTWRITE3vSb2dav
 !> @brief
 !> This subroutine writes the 2D surface averaged solution file in tecplot binary format
@@ -11535,7 +11510,7 @@ IF (ITESTCASE.LE.2)THEN
 	
 
 END SUBROUTINE OUTWRITE3vSb2dav
-
+#endif
 
 SUBROUTINE OUTWRITE3vSav
 !> @brief
@@ -11543,11 +11518,7 @@ SUBROUTINE OUTWRITE3vSav
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -11561,7 +11532,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,icou
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -12132,11 +12103,7 @@ SUBROUTINE OUTWRITE3vS2dav
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -12150,7 +12117,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,icou
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -12757,6 +12724,7 @@ SUBROUTINE GRID_WRITE
 !> @brief
 !> This subroutine calls the appropriate grid writing subroutine based on the settings
 IMPLICIT NONE
+#ifdef USE_TECPLOT
 IF (TECPLOT.EQ.1)THEN		!BINARY TECPLOT
   if (dimensiona.eq.3)then
   call outwritegridb
@@ -12765,6 +12733,7 @@ IF (TECPLOT.EQ.1)THEN		!BINARY TECPLOT
   END IF
 
 END IF
+#endif
 IF (TECPLOT.EQ.0)THEN		!ASCII TECPLOT
     if (dimensiona.eq.3)then
       call outwritegrid(n)
@@ -12795,13 +12764,13 @@ IF (TECPLOT.EQ.3)THEN		!BINARY PARAVIEW 3D ONLY
 
 END IF
 
-
+#ifdef USE_TECPLOT
 IF (TECPLOT.EQ.4)THEN		!BINARY tecplot partitioned 3D ONLY
 
   call OUTWRITEtec3DbP
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 END IF
-
+#endif
 
 END SUBROUTINE GRID_WRITE
 
@@ -12810,6 +12779,7 @@ SUBROUTINE SURF_WRITE
 !> @brief
 !> This subroutine calls the appropriate surface writing subroutine based on the settings
 IMPLICIT NONE
+#ifdef USE_TECPLOT
 IF (TECPLOT.EQ.1)THEN
    if (dimensiona.eq.3)then
 call OUTWRITEGRIDBs
@@ -12817,6 +12787,7 @@ ELSE
 call OUTWRITEGRIDBs2d
 END IF
 END IF
+#endif
 IF (TECPLOT.EQ.0)THEN
  if (dimensiona.eq.3)then
 call OUTWRITEGRIDs
@@ -12834,13 +12805,13 @@ IF (TECPLOT.eq.3)THEN		!BINARY PARAVIEW 3D ONLY
 END IF
 
 
-
+#ifdef USE_TECPLOT
 IF (TECPLOT.EQ.4)THEN		!BINARY tecplot partitioned 3D ONLY
 
   call OUTWRITEGRIDBs
 
 END IF
-
+#endif
 
 
 END SUBROUTINE SURF_WRITE
@@ -12857,6 +12828,7 @@ IMPLICIT NONE
 				  WRITE(63,*)"output1",T
 				  CLOSE(63)
 				  END IF
+#ifdef USE_TECPLOT
 	  IF (TECPLOT.EQ.1)THEN
 				if (dimensiona.eq.3)then
 		
@@ -12897,6 +12869,7 @@ IMPLICIT NONE
 					  END IF
 				END IF
 	END IF
+#endif
 	IF (TECPLOT.EQ.0)THEN
   			if (dimensiona.eq.3)then
 
@@ -12935,12 +12908,13 @@ IF (TECPLOT.EQ.3)THEN		!BINARY PARAVIEW 3D ONLY
   call OUTWRITEPARA3DbP
 
 END IF
-
+#ifdef USE_TECPLOT
 IF (TECPLOT.EQ.4)THEN		!BINARY PARAVIEW 3D ONLY
 
   call OUTWRITEtec3DbP
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 end if
+#endif
 
 
 					IF (N.EQ.0)THEN
@@ -12961,7 +12935,7 @@ SUBROUTINE surface_SOLUTION_WRITE
 !> @brief
 !> This subroutine calls the appropriate surface solution writing subroutine based on the settings
 IMPLICIT NONE
-
+#ifdef USE_TECPLOT
 IF (TECPLOT.EQ.1)THEN
     if (dimensiona.eq.3)then
 
@@ -12971,6 +12945,7 @@ IF (TECPLOT.EQ.1)THEN
   call OUTWRITE3vsb2D
   END IF
 END IF
+#endif
 IF (TECPLOT.EQ.0)THEN
       if (dimensiona.eq.3)then
 
@@ -13002,7 +12977,7 @@ IF (TECPLOT.eq.3)THEN		!BINARY PARAVIEW 3D ONLY
 
 END IF
 
-
+#ifdef USE_TECPLOT
 IF (TECPLOT.EQ.4)THEN
     if (dimensiona.eq.3)then
 
@@ -13012,7 +12987,7 @@ IF (TECPLOT.EQ.4)THEN
   call OUTWRITE3vsb2D
   END IF
 END IF
-
+#endif
 
 END SUBROUTINE surface_SOLUTION_WRITE
 
@@ -13020,13 +12995,14 @@ SUBROUTINE VOLUME_SOLUTION_WRITE_av
 !> @brief
 !> This subroutine calls the appropriate average volume writing subroutine based on the settings
 IMPLICIT NONE
-
+#ifdef USE_TECPLOT
 IF (TECPLOT.EQ.1)THEN
 
 
 call OUTWRITE3vbav
 
 END IF
+#endif
 
 IF (TECPLOT.EQ.0)THEN
     if (dimensiona.eq.3)then
@@ -13053,13 +13029,13 @@ CALL OUTWRITEPARA3DbPav
 
 END IF
 
-
+#ifdef USE_TECPLOT
 IF (TECPLOT.EQ.4)THEN		!BINARY PARAVIEW 3D ONLY
 
   call OUTWRITEtec3DbPav
   
 end if
-
+#endif
 
 
 END SUBROUTINE VOLUME_SOLUTION_WRITE_av
@@ -13070,7 +13046,7 @@ SUBROUTINE surface_SOLUTION_WRITE_av
 !> @brief
 !> This subroutine calls the appropriate surface writing subroutine based on the settings
 IMPLICIT NONE
-
+#ifdef USE_TECPLOT
 IF (TECPLOT.EQ.1)THEN
    if (dimensiona.eq.3)then
 
@@ -13080,6 +13056,7 @@ eLSE
 call OUTWRITE3vsb2Dav
 END IF
 END IF
+#endif
 
 IF (TECPLOT.EQ.0)THEN
   if (dimensiona.eq.3)then
@@ -13104,7 +13081,7 @@ CALL OUTWRITEPARA3Dsbav
 END IF
 
 
-
+#ifdef USE_TECPLOT
 IF (TECPLOT.EQ.4)THEN
    if (dimensiona.eq.3)then
 
@@ -13114,6 +13091,7 @@ eLSE
 call OUTWRITE3vsb2Dav
 END IF
 END IF
+#endif
 
 
 END SUBROUTINE surface_SOLUTION_WRITE_av
@@ -15382,11 +15360,7 @@ SUBROUTINE OUTWRITEPARA3D
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -15400,7 +15374,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin,xbin2
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -15620,11 +15594,7 @@ SUBROUTINE OUTWRITEPARA3Db
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -15638,7 +15608,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin,XBIN2
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -15920,11 +15890,7 @@ SUBROUTINE movie_PARA
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 !
 
@@ -15938,7 +15904,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin,XBIN2
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -16205,7 +16171,7 @@ END SUBROUTINE movie_PARA
                             LOGICAL::HEREV
                             REAL,DIMENSION(5)::TOTAL
                             CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
-                            integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+                            integer::ierr,cv,ITGFD
                             real,allocatable,dimension(:)::xbin,ybin,zbin,XBIN2
                             real,allocatable,dimension(:,:)::FBIN
                             integer,allocatable,dimension(:,:)::icon
@@ -16436,7 +16402,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=30)::PROC,OUTFILE,OUTFILE2,PROC3,SURFILE,proc4,proc5
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
@@ -16624,7 +16590,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
@@ -16809,11 +16775,7 @@ SUBROUTINE OUTWRITEPARA3Dsb
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -16827,7 +16789,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin,XBIN2
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -17178,11 +17140,7 @@ SUBROUTINE OUTWRITEPARA3Dbav
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -17196,7 +17154,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,j1,j
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin,XBIN2
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
@@ -17465,11 +17423,7 @@ SUBROUTINE OUTWRITEPARA3Dsbav
 use ISO_C_BINDING
 IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+
 
 ! 
 
@@ -17483,7 +17437,7 @@ INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,IND1
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=30)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNODE112,TECEND112,ITGFD
+integer::ierr,cv,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin,XBIN2
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon

@@ -9,7 +9,7 @@ GKLIB= /root/local/lib/libGKlib.a
 METISLIB= /root/local/lib/libmetis.a
 PARMETISLIB= /root/local/lib/libparmetis.a
 
-FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -O3 -march=native -Wno-lto-type-mismatch -fPIE $(BLASFLAGS) 
+FFLAGS=-cpp -DUSE_TECPLOT -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -O3 -march=native -Wno-lto-type-mismatch -fPIE $(BLASFLAGS) 
 
 LIBS = -Wl,-V,-Bstatic libtecio.a $(BLASLIBS) $(GKLIB) $(METISLIB) $(PARMETISLIB) -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi
 
