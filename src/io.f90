@@ -3690,7 +3690,9 @@ Valuelocation(:)=0
                     ShrConn)
 
 allocate(xbin(1:imaxe),xbin2(1:imaxe))
-END IF
+ eLSE
+ allocate(xbin2(1))
+ end if
   
 
 
@@ -4009,10 +4011,10 @@ END IF
     
   IF (N.EQ.0)THEN
   ierr = TECEND112()
-  DEALLOCATE(XBIN,xbin2,valuelocation,out1)
+  DEALLOCATE(XBIN,valuelocation,out1)
   END IF
   
-  DEALLOCATE (VALUESS,variables)
+  DEALLOCATE (VALUESS,variables,xbin2)
 
 
 	
@@ -5294,7 +5296,11 @@ DO INV=1,NPROBES
                                             
                                             END IF
                                             
-                                            
+                    
+											
+
+
+
                                             IF (BINIO.EQ.0)THEN
                                             OPEN(96,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
                                             OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
@@ -8003,7 +8009,10 @@ Valuelocation(:)=0
   allocate(xbin(totwalls),xbin2(totwalls))
 	
 
- END IF
+ Else
+ allocate(xbin2(1))
+
+ end if
 
  totiw=xmpiwall(n)
 !   if (xmpiwall(n).gt.0)then
@@ -8207,11 +8216,11 @@ IF (ITESTCASE.LE.2)THEN
 
     IF (N.EQ.0)THEN
   ierr = TECEND112()
-  DEALLOCATE(XBIN,valuelocation,out1,XBIN2)
+  DEALLOCATE(XBIN,valuelocation,out1)
   END IF
   
 !   IF (TOTIW.GT.0)THEN
-  DEALLOCATE (VALUESS)
+  DEALLOCATE (VALUESS,xbin2)
 !   end if
   
 
