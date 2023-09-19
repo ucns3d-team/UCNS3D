@@ -1084,7 +1084,7 @@ SUBROUTINE LOCALISE_STENCIL2d(N,Iconsi)
 !> This subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::n,iconsi
-INTEGER::I,J,l,IXFF,IXSST,ikg,ismp,inv,ineedt,ikg2,IN_STEN,K,itarget
+INTEGER::I,J,l,IXFF,IXSST,ikg,ismp,inv,ineedt,ikg2,IN_STEN,K,itarget,NOJCOUNT
 REAL::RIN_STEN
 INEEDT=IRECEXR(1)%TOT
 i=iconsi
@@ -1180,6 +1180,10 @@ i=iconsi
 				END IF
 				END IF
 				END DO
+
+				
+
+				
 
 END SUBROUTINE LOCALISE_STENCIL2d
 
@@ -1710,10 +1714,11 @@ SUBROUTINE  LOCALISE_STEN2d(N,ICONSI)
 !> @brief
 !> This subroutine continues expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2d
 IMPLICIT NONE
-INTEGER::I,J,K,L,KK,PRK,JJ,kmaxe,ineedt,jx2,jx,in1,facexx,ixxfff,IHGT,IHGJ,ITARGET,IDUM
+INTEGER::I,J,K,L,KK,PRK,JJ,kmaxe,ineedt,jx2,jx,in1,facexx,ixxfff,IHGT,IHGJ,ITARGET,IDUM,IN_STEN,NJ
 real,dimension(2)::tempcentres,rel2
-real::dumv1,dumv2,detjc,dist1
+real::dumv1,dumv2,detjc,dist1,DISTFD,X1X,Y1Y,X2X,Y2Y
 INTEGER,INTENT(IN)::ICONSI,N
+INTEGER,DIMENSION(4)::NOJCOUNT
 
 KMAXE=XMPIELRANK(N)
 INEEDT=IRECEXR(1)%TOT
@@ -1749,6 +1754,95 @@ i=iconsi
 	END DO
 	END IF
 	
+
+	!$OMP MASTER
+
+	IF (CODE_PROFILE.EQ.30)THEN
+		DO NJ=1,IELEM(N,I)%nonodes
+				X1X=ILOCAL_NODE(1)%x(1,1,NJ)
+				Y1Y=ILOCAL_NODE(1)%Y(1,1,NJ)
+				NOJCOUNT(NJ)=0
+
+				IF (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+					DO L=2,itarget
+						j=(XMPIL(ILOCAL_ELEM(1)%IHEXG(1,L)))
+						DO K=1,ielem(n,j)%nonodes    
+							X2X=ILOCAL_NODE(1)%x(1,L,K)
+							Y2Y=ILOCAL_NODE(1)%y(1,L,K)
+
+							DISTFD=SQRT(((X1X-X2X)**2)+((Y1Y-Y2Y)**2))
+
+							IF (DISTFD.LT.TOLSMALL)THEN
+								NOJCOUNT(NJ)=NOJCOUNT(NJ)+1
+								IELEM(N,I)%NODES_NEIGHBOURS(NJ,NOJCOUNT(NJ))=L
+							END IF
+						END DO
+					END DO
+				END IF
+				!---------------------- MIXED----------!
+				IF (ILOCAL_RECON3(I)%LOCAL.NE.1)then
+					DO L=2,itarget
+						IF (ILOCAL_ELEM(1)%IHEXB(1,L).EQ.N)THEN
+							j=(XMPIL(ILOCAL_ELEM(1)%IHEXG(1,L)))
+							DO K=1,ielem(n,j)%nonodes    
+								X2X=ILOCAL_NODE(1)%x(1,L,K)
+								Y2Y=ILOCAL_NODE(1)%y(1,L,K)
+
+								DISTFD=SQRT(((X1X-X2X)**2)+((Y1Y-Y2Y)**2))
+
+								IF (DISTFD.LT.TOLSMALL)THEN
+									NOJCOUNT(NJ)=NOJCOUNT(NJ)+1
+									IELEM(N,I)%NODES_NEIGHBOURS(NJ,NOJCOUNT(NJ))=L
+								END IF
+							END DO
+						ELSE
+							SELECT CASE(ilocal_elem(1)%ISHAPE(1,L))
+							CASE(5)
+							IN_STEN=4
+							CASE(6)
+							IN_STEN=3
+							END SELECT
+							DO K=1,IN_STEN
+								X2X=ILOCAL_NODE(1)%X(1,L,K)
+								Y2Y=ILOCAL_NODE(1)%Y(1,L,K)
+
+								DISTFD=SQRT(((X1X-X2X)**2)+((Y1Y-Y2Y)**2))
+
+								IF (DISTFD.LT.TOLSMALL)THEN
+									NOJCOUNT(NJ)=NOJCOUNT(NJ)+1
+									IELEM(N,I)%NODES_NEIGHBOURS(NJ,NOJCOUNT(NJ))=L
+								END IF
+
+							END DO
+						END IF
+					END DO
+				END IF
+
+			END DO
+			WRITE(630+N,*)"ELEMENT NUMBER GLOBAL",IELEM(N,I)%IHEXGL
+			ALLOCATE(IELEM(N,I)%NOJECOUNT(IELEM(N,I)%nonodes))
+			
+			DO NJ=1,IELEM(N,I)%nonodes
+				WRITE(630+N,*)"NODE NUMBER",NJ
+				IELEM(N,I)%NOJECOUNT(NJ)=NOJCOUNT(NJ)
+
+				DO J=1,NOJCOUNT(NJ)
+				!IF (IELEM(N,I)%NODES_NEIGHBOURS(NJ,J).GT.0)THEN
+					WRITE(630+N,*)J,IELEM(N,I)%NODES_NEIGHBOURS(NJ,J)
+				!END IF
+				END DO
+			END DO
+
+
+	END IF
+	!$OMP END MASTER
+
+
+
+
+	
+
+
 	  
      VEXT=0.0d0
     NODES_LIST=0.0d0
