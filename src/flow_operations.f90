@@ -1300,6 +1300,11 @@ ELSE
 R=RRES
 GM=GAMMA
 P=PRES
+
+if (initcond.eq.977)then
+ p=101325
+ end if 
+
 U=uvel
 V=vvel
 W=wvel
@@ -1322,7 +1327,48 @@ end if
 END FUNCTION OUTFLOW
 
 
+FUNCTION OUTFLOW2(INITCOND,POX,POY,POZ)
+!> @brief
+!> This function applies a prescribed boundary condition to  the outflow in 3D
+IMPLICIT NONE
+REAL,DIMENSION(1:nof_Variables)::OUTFLOW2
+INTEGER,INTENT(IN)::INITCOND
+REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::POX,POY,POZ
+REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
+REAL::XF,YF,ZF
 
+
+
+
+
+R=RRES
+GM=GAMMA
+P=PRESS_OUTLET
+U=uvel
+V=vvel
+W=wvel
+
+
+
+
+
+
+!KINETIC ENERGY FIRST!
+SKIN=(OO2)*((U**2)+(V**2)+(W**2))
+!INTERNAL ENERGY
+IEN=((P)/((GM-1.0D0)*R))
+!TOTAL ENERGY
+E=R*(SKIN+IEN)
+!VECTOR OF CONSERVED VARIABLES NOW
+OUTFLOW2(1)=R
+OUTFLOW2(2)=R*U
+OUTFLOW2(3)=R*V
+OUTFLOW2(4)=R*W
+OUTFLOW2(5)=E
+
+
+
+END FUNCTION OUTFLOW2
 
 FUNCTION PASS_INLET(INITCOND,POX,POY,POZ)
 !> @brief
@@ -2269,7 +2315,59 @@ SELECT CASE(B_CODE)
     
     
     
-    
+    CASE(9)!OUTLETS SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
+    ! if (boundtype.eq.0)then
+     ! rightv(1:nof_Variables)=leftv(1:nof_Variables)
+
+     !else
+
+     rightv(1:nof_Variables)=OUTFLOW2(INITCOND,pox,poy,poz)
+     CALL cons2prim2(N)
+
+    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+
+    !write(500+n,*)subson1(5)
+    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
+
+     SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
+
+    SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+
+    CALL PRIM2CONS2(N)
+
+    IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
+    CALL PRIM2CONS2(N)
+    rightv(1:nof_Variables)=leftv(1:nof_Variables)
+
+
+      Else
+
+    SUBSON3(5)=subson1(5)
+    SUBSON3(1)=SUBSON2(1)+(SUBSON3(5)-SUBSON2(5))/(SPS**2)
+    SUBSON3(2)=SUBSON2(2)+(NX*(SUBSON2(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
+    SUBSON3(3)=SUBSON2(3)+(NY*(SUBSON2(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
+    SUBSON3(4)=SUBSON2(4)+(NZ*(SUBSON2(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
+!
+    rightv(1)=SUBSON3(1)
+    rightv(2)=SUBSON3(2)*SUBSON3(1)
+    rightv(3)=SUBSON3(3)*SUBSON3(1)
+    rightv(4)=SUBSON3(4)*SUBSON3(1)
+    SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2)+(SUBSON3(4)**2))
+    IKINS=SUBSON3(5)/((GAMMA-1.0d0)*(SUBSON3(1)))
+    rightv(5)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
+
+
+    !end if
+    end if
+
+
+
+      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+
+		  CTURBR(:)=CTURBL(:)
+
+      END IF
     
     
     

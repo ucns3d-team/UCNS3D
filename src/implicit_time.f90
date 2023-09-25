@@ -20,7 +20,7 @@ INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb
 real::impres1,impres2,impres3,TEMPXX
 real:: w1,w2,w3,denx
 
-SWEEPS=16
+SWEEPS=10
 kmaxe=xmpielrank(n)
 
 impdu(:,:)=zero
