@@ -2579,6 +2579,15 @@ end do
 ! 	   
 			ielem(n,i)%erx=tempg1
 	    
+
+              IF (CODE_PROFILE.EQ.88)THEN
+                      IF ((IELEM(N,I)%ISHAPE.EQ.3).or.(ielem(n,i)%ishape.eq.2)) THEN
+                                        IELEM(N,I)%FULL=0
+                         END IF
+
+              END IF
+
+
 	      IF (TEMPG1.GT.GRIDAR1)THEN
 	      IELEM(N,I)%GGS=1
 	      IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
