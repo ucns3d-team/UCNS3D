@@ -1,0 +1,2 @@
+1		!THERMAL MODEL (1=isothermal)
+70		!WALL TEMPERATURE (in Kelvin)

@@ -730,8 +730,17 @@ DO J=1,IELEM(N,I)%IFCA
 			  leftv(1:nof_variables)=sols2(1:nof_variables)
 			call cons2prim(n)
 			SOLS2(1:nof_variables)=leftv(1:nof_variables)
+
+
+			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
+
+			sols2(5)=wall_temp
+			ELSE
+
+
+
 			sols2(5)=leftv(5)/leftv(1)
-			
+			end if
 			
 			
 			
@@ -1262,13 +1271,13 @@ SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
             IF(PER_ROT.EQ.1)THEN
                 IF (ILOCAL_RECON3(I)%PERIODICFLAG(LL,IQ+1).EQ.2) THEN                  
                     tempxx=sols2(2,LL)
-                    sols2(2,LL)=tempxx*cosd(angle_per)-sols2(3,LL)*sind(angle_per)
-                    sols2(3,LL)=tempxx*sind(angle_per)+sols2(3,LL)*cosd(angle_per)
+                    sols2(2,LL)=tempxx*cos(angle_per)-sols2(3,LL)*sin(angle_per)
+                    sols2(3,LL)=tempxx*sin(angle_per)+sols2(3,LL)*cos(angle_per)
                 end if
                 IF (ILOCAL_RECON3(I)%PERIODICFLAG(LL,IQ+1).EQ.1) THEN 
                     tempxx=sols2(2,LL)
-                    sols2(2,LL)=tempxx*cosd(-angle_per)-sols2(3,LL)*sind(-angle_per)
-                    sols2(3,LL)=tempxx*sind(-angle_per)+sols2(3,LL)*cosd(-angle_per)
+                    sols2(2,LL)=tempxx*cos(-angle_per)-sols2(3,LL)*sin(-angle_per)
+                    sols2(3,LL)=tempxx*sin(-angle_per)+sols2(3,LL)*cos(-angle_per)
                 END IF 
             END IF
             
@@ -1636,6 +1645,9 @@ SOLS2=ZERO
   	        
   	        MATRIX_1(2:4,IQ)=MATRIX_1(2:4,IQ)+((SOLS1(2:4)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
   	        
+  	          if (thermal.eq.1)then
+  	        MATRIX_1(1,IQ)=MATRIX_1(1,IQ)+((SOLs1(1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))-((wall_temp*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))
+  	        end if
   	        
 		END DO
 		matrix_3(1:nof_Variables-1)=-sols1(1:nof_Variables-1)
@@ -1697,6 +1709,11 @@ SOLS2=ZERO
 					    ILOCAL_RECON5(1)%GRADIENTSTEMP(TTK)=SOL_M(IVVM,1)
 		    END DO
 		    ATTT=ZERO
+		    if (thermal.eq.1)then
+		    ATTT=WALL_TEMP-SOLs1(1)
+		    END IF
+
+
 			  DO TTK=1,NUMBER_OF_DOG
 				    IF (TTK.NE.G0) &
 				  ATTT=ATTT-ILOCAL_RECON5(1)%GRADIENTSTEMP(TTK)*&
@@ -2614,6 +2631,7 @@ OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
 DO J=1,IELEM(N,I)%IFCA
 			 FACEX=J
 			 
+			 B_CODE=0
 
 			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
 			ANGLE2=IELEM(N,I)%FACEANGLEY(J)
@@ -2645,6 +2663,11 @@ DO J=1,IELEM(N,I)%IFCA
 				  CALL BOUNDARYS2d(N,B_CODE,iconsidered)
 				  
 				  SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
+
+
+
+
+
 				  				  
 				  END IF
 			    ELSE
@@ -2680,7 +2703,14 @@ DO J=1,IELEM(N,I)%IFCA
 			  leftv(1:nof_variables)=sols2(1:nof_variables)
 			call CONS2PRIM2d(n)
 			SOLS2(1:nof_variables)=leftv(1:nof_variables)
+
+			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
+
+			sols2(4)=wall_Temp
+			ELSE
+
 			sols2(4)=leftv(4)/leftv(1)
+			END IF
 			
 			
 			DO K=1,2
@@ -3353,21 +3383,27 @@ ll=1
 	   
 	   
 	      DO IQ=1,imax
-	      if (ilocal_Recon3(i)%local.eq.1)then
-	       LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-	      else
-		IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-	    else
-		LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
-	    END IF
-	      end if
+				if (ilocal_Recon3(i)%local.eq.1)then
+				LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+				else
+						IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
+						LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+						else
+						LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
+						END IF
+				end if
    
 		CALL CONS2PRIM2d(N)
 	       SOLS2(2:3)=LEFTV(2:3)
 	       SOLS2(1)=LEFTV(4)/LEFTV(1)
   	        MATRIX_1(1:3,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:3)-SOLS1(1:3)))
   	        MATRIX_1(2:3,IQ)=MATRIX_1(2:3,IQ)+((SOLs1(2:3)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
+
+  	        if (thermal.eq.1)then
+  	        MATRIX_1(1,IQ)=MATRIX_1(1,IQ)+((SOLs1(1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))-((wall_temp*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))
+  	        end if
+
+
 		END DO
 		matrix_3(1:3)=-sols1(1:3)
 		matrix_3(1)=zero
@@ -3435,6 +3471,9 @@ ll=1
 					    ILOCAL_RECON5(1)%GRADIENTSTEMP(TTK)=SOL_M(ivvm,1)
 		    END DO
 		    ATTT=zero
+		    if (thermal.eq.1)then
+		    ATTT=WALL_TEMP-SOLs1(1)
+		    END IF
 			  DO TTK=1,NUMBER_OF_DOG
 				    IF (TTK.NE.G0) &
 				  ATTT=ATTT-ILOCAL_RECON5(1)%GRADIENTSTEMP(TTK)*&

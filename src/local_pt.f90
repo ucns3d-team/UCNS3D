@@ -679,13 +679,13 @@ i=iconsi
                         if (IELEM(N,I)%REORIENT(K).EQ.1) then
                             if (ibound(n,ielem(n,i)%ibounds(K))%icode.eq.5) then
                                 tempxx=vext(kk,1)
-                                vext(kk,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*vext(kk,2)
-                                vext(kk,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*vext(kk,2)
+                                vext(kk,1)=tempxx*cos(-angle_per)-sin(-angle_per)*vext(kk,2)
+                                vext(kk,2)=tempxx*sin(-angle_per)+cos(-angle_per)*vext(kk,2)
 				      				      
                             else
                                 tempxx=vext(kk,1)
-                                vext(kk,1)=tempxx*cosd(angle_per)-sind(angle_per)*vext(kk,2)
-                                vext(kk,2)=tempxx*sind(angle_per)+cosd(angle_per)*vext(kk,2)
+                                vext(kk,1)=tempxx*cos(angle_per)-sin(angle_per)*vext(kk,2)
+                                vext(kk,2)=tempxx*sin(angle_per)+cos(angle_per)*vext(kk,2)
                             end if
 				      end if
 				    END IF  
@@ -1243,24 +1243,24 @@ i=iconsi
 	    ELSE
             if (ILOCAL_ELEM(1)%PERIODICFLAG(jj,J).EQ.2) THEN
                     tempxx=ilocal_elem(1)%XXC(JJ,J)
-                    ilocal_elem(1)%XXC(JJ,J)=tempxx*cosd(angle_per)-ilocal_elem(1)%YYC(JJ,J)*sind(angle_per)
-                    ilocal_elem(1)%YYC(JJ,J)=tempxx*sind(angle_per)+ilocal_elem(1)%YYC(JJ,J)*cosd(angle_per)
+                    ilocal_elem(1)%XXC(JJ,J)=tempxx*cos(angle_per)-ilocal_elem(1)%YYC(JJ,J)*sin(angle_per)
+                    ilocal_elem(1)%YYC(JJ,J)=tempxx*sin(angle_per)+ilocal_elem(1)%YYC(JJ,J)*cos(angle_per)
                     !write(3300+n,'(6es14.6,I5)'),ilocal_elem(1)%XXC(JJ,1),ilocal_elem(1)%YYC(JJ,1),ilocal_elem(1)%ZZC(JJ,1),ilocal_elem(1)%XXC(JJ,J),ilocal_elem(1)%YYC(JJ,J),ilocal_elem(1)%ZZC(JJ,j),ILOCAL_ELEM(1)%PERIODICFLAG(jj,J)
                     DO KK=1,8
                     tempxx=ILOCAL_NODE(1)%X(JJ,J,KK)
-                            ILOCAL_NODE(1)%X(JJ,J,KK)=tempxx*cosd(angle_per)-ILOCAL_NODE(1)%Y(JJ,J,KK)*sind(angle_per)
-                            ILOCAL_NODE(1)%Y(JJ,J,KK)=tempxx*sind(angle_per)+ILOCAL_NODE(1)%Y(JJ,J,KK)*cosd(angle_per)
+                            ILOCAL_NODE(1)%X(JJ,J,KK)=tempxx*cos(angle_per)-ILOCAL_NODE(1)%Y(JJ,J,KK)*sin(angle_per)
+                            ILOCAL_NODE(1)%Y(JJ,J,KK)=tempxx*sin(angle_per)+ILOCAL_NODE(1)%Y(JJ,J,KK)*cos(angle_per)
                     END DO
             end if
             if (ILOCAL_ELEM(1)%PERIODICFLAG(jj,J).EQ.1) THEN
                         tempxx=ilocal_elem(1)%XXC(JJ,J)
-                        ilocal_elem(1)%XXC(JJ,J)=tempxx*cosd(-angle_per)-ilocal_elem(1)%YYC(JJ,J)*sind(-angle_per)
-                        ilocal_elem(1)%YYC(JJ,J)=tempxx*sind(-angle_per)+ilocal_elem(1)%YYC(JJ,J)*cosd(-angle_per)
+                        ilocal_elem(1)%XXC(JJ,J)=tempxx*cos(-angle_per)-ilocal_elem(1)%YYC(JJ,J)*sin(-angle_per)
+                        ilocal_elem(1)%YYC(JJ,J)=tempxx*sin(-angle_per)+ilocal_elem(1)%YYC(JJ,J)*cos(-angle_per)
                         !write(3300+n,'(6es14.6,I5)'),ilocal_elem(1)%XXC(JJ,1),ilocal_elem(1)%YYC(JJ,1),ilocal_elem(1)%ZZC(JJ,1),ilocal_elem(1)%XXC(JJ,J),ilocal_elem(1)%YYC(JJ,J),ilocal_elem(1)%ZZC(JJ,j),ILOCAL_ELEM(1)%PERIODICFLAG(jj,J)
                 DO KK=1,8
                         tempxx=ILOCAL_NODE(1)%X(JJ,J,KK)
-                        ILOCAL_NODE(1)%X(JJ,J,KK)=tempxx*cosd(-angle_per)-ILOCAL_NODE(1)%Y(JJ,J,KK)*sind(-angle_per)
-                        ILOCAL_NODE(1)%Y(JJ,J,KK)=tempxx*sind(-angle_per)+ILOCAL_NODE(1)%Y(JJ,J,KK)*cosd(-angle_per)
+                        ILOCAL_NODE(1)%X(JJ,J,KK)=tempxx*cos(-angle_per)-ILOCAL_NODE(1)%Y(JJ,J,KK)*sin(-angle_per)
+                        ILOCAL_NODE(1)%Y(JJ,J,KK)=tempxx*sin(-angle_per)+ILOCAL_NODE(1)%Y(JJ,J,KK)*cos(-angle_per)
                 END DO
             end if
 	    END IF
@@ -1607,14 +1607,14 @@ i=iconsi
                 if (ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5) then
                     DO KK=1,n_node
                     tempxx=vext(kk,1)
-                    vext(kk,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*vext(kk,2)
-                    vext(kk,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*vext(kk,2)
+                    vext(kk,1)=tempxx*cos(-angle_per)-sin(-angle_per)*vext(kk,2)
+                    vext(kk,2)=tempxx*sin(-angle_per)+cos(-angle_per)*vext(kk,2)
                     END DO
                 else
                     DO KK=1,n_node
                     tempxx=vext(kk,1)
-                    vext(kk,1)=tempxx*cosd(angle_per)-sind(angle_per)*vext(kk,2)
-                    vext(kk,2)=tempxx*sind(angle_per)+cosd(angle_per)*vext(kk,2)
+                    vext(kk,1)=tempxx*cos(angle_per)-sin(angle_per)*vext(kk,2)
+                    vext(kk,2)=tempxx*sin(angle_per)+cos(angle_per)*vext(kk,2)
                     END DO
                 end if
 		    END IF
@@ -1643,14 +1643,14 @@ i=iconsi
                 if (ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5) then
                     DO KK=1,n_node
                       tempxx=vext(kk,1)
-				      vext(kk,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*vext(kk,2)
-				      vext(kk,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*vext(kk,2)
+				      vext(kk,1)=tempxx*cos(-angle_per)-sin(-angle_per)*vext(kk,2)
+				      vext(kk,2)=tempxx*sin(-angle_per)+cos(-angle_per)*vext(kk,2)
 				     END DO 
                 else
                     DO KK=1,n_node
 				      tempxx=vext(kk,1)
-				      vext(kk,1)=tempxx*cosd(angle_per)-sind(angle_per)*vext(kk,2)
-				      vext(kk,2)=tempxx*sind(angle_per)+cosd(angle_per)*vext(kk,2)
+				      vext(kk,1)=tempxx*cos(angle_per)-sin(angle_per)*vext(kk,2)
+				      vext(kk,2)=tempxx*sin(angle_per)+cos(angle_per)*vext(kk,2)
 				    END DO  
                 end if
 		    END IF
