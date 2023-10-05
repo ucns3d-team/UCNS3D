@@ -4641,13 +4641,13 @@ CASE (4)
      ELSE
         if (IS_PERIODIC.eq.2) then
             tempxx=VG(N,1)
-            VGg(1)=tempxx*cosd(angle_per)-VGg(2)*sind(angle_per)
-            VGg(2)=tempxx*sind(angle_per)+VGg(2)*cosd(angle_per)
+            VGg(1)=tempxx*cos(angle_per)-VGg(2)*sin(angle_per)
+            VGg(2)=tempxx*sin(angle_per)+VGg(2)*cos(angle_per)
         end if 
         if (IS_PERIODIC.eq.1) then
             tempxx=VG(N,1)
-            VGg(1)=tempxx*cosd(-angle_per)-VGg(2)*sind(-angle_per)
-            VGg(2)=tempxx*sind(-angle_per)+VGg(2)*cosd(-angle_per)
+            VGg(1)=tempxx*cos(-angle_per)-VGg(2)*sin(-angle_per)
+            VGg(2)=tempxx*sin(-angle_per)+VGg(2)*cos(-angle_per)
         end if 
      END IF
     END IF
@@ -4676,13 +4676,13 @@ CASE (4)
      ELSE
         if (IS_PERIODIC.eq.2) then
 	    tempxx=VG(N,1)
-	    VGg(1)=tempxx*cosd(angle_per)-VGg(2)*sind(angle_per)
-	    VGg(2)=tempxx*sind(angle_per)+VGg(2)*cosd(angle_per)
+	    VGg(1)=tempxx*cos(angle_per)-VGg(2)*sin(angle_per)
+	    VGg(2)=tempxx*sin(angle_per)+VGg(2)*cos(angle_per)
         end if 
 	if (IS_PERIODIC.eq.1) then
 	    tempxx=VG(N,1)
-	    VGg(1)=tempxx*cosd(-angle_per)-VGg(2)*sind(-angle_per)
-	    VGg(2)=tempxx*sind(-angle_per)+VGg(2)*cosd(-angle_per)
+	    VGg(1)=tempxx*cos(-angle_per)-VGg(2)*sin(-angle_per)
+	    VGg(2)=tempxx*sin(-angle_per)+VGg(2)*cos(-angle_per)
         end if 
      END IF
         END IF
@@ -4706,13 +4706,13 @@ CASE (4)
      ELSE
         if (IS_PERIODIC.eq.2) then
             tempxx=VG(N,1)
-            VGg(1)=tempxx*cosd(angle_per)-VGg(2)*sind(angle_per)
-            VGg(2)=tempxx*sind(angle_per)+VGg(2)*cosd(angle_per)
+            VGg(1)=tempxx*cos(angle_per)-VGg(2)*sin(angle_per)
+            VGg(2)=tempxx*sin(angle_per)+VGg(2)*cos(angle_per)
         end if 
         if (IS_PERIODIC.eq.1) then
             tempxx=VG(N,1)
-            VGg(1)=tempxx*cosd(-angle_per)-VGg(2)*sind(-angle_per)
-            VGg(2)=tempxx*sind(-angle_per)+VGg(2)*cosd(-angle_per)
+            VGg(1)=tempxx*cos(-angle_per)-VGg(2)*sin(-angle_per)
+            VGg(2)=tempxx*sin(-angle_per)+VGg(2)*cos(-angle_per)
         end if 
      END IF
         END IF
@@ -4736,13 +4736,13 @@ CASE (4)
      ELSE
         if (IS_PERIODIC.eq.2) then
             tempxx=VG(N,1)
-            VGg(1)=tempxx*cosd(angle_per)-VGg(2)*sind(angle_per)
-            VGg(2)=tempxx*sind(angle_per)+VGg(2)*cosd(angle_per)
+            VGg(1)=tempxx*cos(angle_per)-VGg(2)*sin(angle_per)
+            VGg(2)=tempxx*sin(angle_per)+VGg(2)*cos(angle_per)
         end if 
         if (IS_PERIODIC.eq.1) then
             tempxx=VG(N,1)
-            VGg(1)=tempxx*cosd(-angle_per)-VGg(2)*sind(-angle_per)
-            VGg(2)=tempxx*sind(-angle_per)+VGg(2)*cosd(-angle_per)
+            VGg(1)=tempxx*cos(-angle_per)-VGg(2)*sin(-angle_per)
+            VGg(2)=tempxx*sin(-angle_per)+VGg(2)*cos(-angle_per)
         end if 
      END IF
         END IF
@@ -4775,13 +4775,13 @@ vext(1,:)=BC(N,:)
         if (IS_PERIODIC.eq.2) then
 	    
             tempxx=VG(N,1)
-            VGg(1)=tempxx*cosd(angle_per)-VGg(2)*sind(angle_per)
-            VGg(2)=tempxx*sind(angle_per)+VGg(2)*cosd(angle_per)
+            VGg(1)=tempxx*cos(angle_per)-VGg(2)*sin(angle_per)
+            VGg(2)=tempxx*sin(angle_per)+VGg(2)*cos(angle_per)
         end if 
         if (IS_PERIODIC.eq.1) then
             tempxx=VG(N,1)
-            VGg(1)=tempxx*cosd(-angle_per)-VGg(2)*sind(-angle_per)
-            VGg(2)=tempxx*sind(-angle_per)+VGg(2)*cosd(-angle_per)
+            VGg(1)=tempxx*cos(-angle_per)-VGg(2)*sin(-angle_per)
+            VGg(2)=tempxx*sin(-angle_per)+VGg(2)*cos(-angle_per)
         end if
       END IF
         END IF
@@ -7149,8 +7149,8 @@ if (CODE_PER.eq.50) then
     angle_temp=angle_period
 end if
 
-ROTATE_PER(1)=VECT_PER(1)*cosd(angle_temp)-VECT_PER(2)*sind(angle_temp)
-ROTATE_PER(2)=VECT_PER(1)*sind(angle_temp)+VECT_PER(2)*cosd(angle_temp)
+ROTATE_PER(1)=VECT_PER(1)*cos(angle_temp)-VECT_PER(2)*sin(angle_temp)
+ROTATE_PER(2)=VECT_PER(1)*sin(angle_temp)+VECT_PER(2)*cos(angle_temp)
 ROTATE_PER(3)=Vect_PER(3)
 
 
@@ -7170,8 +7170,8 @@ if (CODE_PER.eq.50) then
     angle_temp=-angle_period
 end if
 
-ROTATE_PER_1(1)=VECT_PER(1)*cosd(angle_temp)-VECT_PER(2)*sind(angle_temp)
-ROTATE_PER_1(2)=VECT_PER(1)*sind(angle_temp)+VECT_PER(2)*cosd(angle_temp)
+ROTATE_PER_1(1)=VECT_PER(1)*cos(angle_temp)-VECT_PER(2)*sin(angle_temp)
+ROTATE_PER_1(2)=VECT_PER(1)*sin(angle_temp)+VECT_PER(2)*cos(angle_temp)
 ROTATE_PER_1(3)=Vect_PER(3)
 
 
