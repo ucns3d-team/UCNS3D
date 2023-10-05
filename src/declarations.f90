@@ -4,7 +4,7 @@ MODULE DECLARATION
 !_____________________________________________ START HEADER OF MODULE______________________________________________________!
 !FUNCTION: IS TO COLLECT ALL THE GLOBAL VARIABLES, AND DATA TYPES OF THE CODE IN ONE MODULE
 !////////////////////////////////////RESPONSIBLE TSOUTSANIS PANAGIOTIS/////////////////////////////////////////////////////! 
-!**************************************LAST EDITED ON THE 12-02-2014*******************************************************!
+!**************************************************************************************************************************!
 !_____________________________________________ END HEADER OF MODULE________________________________________________________!
 !--------------------------------------------------------------------------------------------------------------------------!
 
@@ -178,6 +178,7 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::STCONC		!DUMMY VARIABLE FOR RECURSIVE SUBROUTI
 INTEGER,ALLOCATABLE,DIMENSION(:)::STCONS		!DUMMY VARIABLE FOR RECURSIVE SUBROUTINE OF STENCILS
 INTEGER,ALLOCATABLE,DIMENSION(:)::STCONG,LIST,INEB,IPERB,NODELIST		!DUMMY VARIABLE FOR RECURSIVE SUBROUTINE OF STENCILS
 INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:)::ILOCALALLS      !DUMMY VARIABLE FOR RECURSIVE SUBROUTINE OF STENCILS
+INTEGER::THERMAL,TEMP_MODEL
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.3.   REAL VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -196,6 +197,7 @@ REAL::Y1					!Y1 COORDINATE FOR BASIS FUNCTION COMPUTATION OF POLYNOMIALS
 REAL::Z1,x1c,y1c,h1c,z1c					!Z1 COORDINATE FOR BASIS FUNCTION COMPUTATION OF POLYNOMIALS
 REAL::TAYLOR,taylor_ens,TAYLOR_ENSX					!ONLY TO BE USED FOR TAYLOR GREEN VORTEX
 REAL::VOLL					!TOTAL VOLUME OF THE DOMAIN	
+REAL::WALL_TEMP					!WALL TEMPERATURE MODEL
 REAL::UPTURBLIMIT				!UPPER TURBULENCE VISCOSITY RATIO
 REAL::HYBRIDIST					!UPPER TURBULENCE VISCOSITY RATIO
 REAL::VISCOTS					!EFFECTIVE VISCOCITY

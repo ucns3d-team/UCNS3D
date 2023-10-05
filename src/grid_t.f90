@@ -1464,12 +1464,12 @@ i=iconsidered
                 if (IELEM(n,i)%reorient(facex).eq.1) then
                     if (ibound(n,ielem(n,i)%ibounds(facex))%icode.eq.5) then
                         tempxx=NODES_LIST(k,1)
-                        NODES_LIST(k,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*NODES_LIST(k,2)
-                        NODES_LIST(k,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,1)=tempxx*cos(-angle_per)-sin(-angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,2)=tempxx*sin(-angle_per)+cos(-angle_per)*NODES_LIST(k,2)
                     else
                         tempxx=NODES_LIST(k,1)
-                        NODES_LIST(k,1)=tempxx*cosd(angle_per)-sind(angle_per)*NODES_LIST(k,2)
-                        NODES_LIST(k,2)=tempxx*sind(angle_per)+cosd(angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,1)=tempxx*cos(angle_per)-sin(angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,2)=tempxx*sin(angle_per)+cos(angle_per)*NODES_LIST(k,2)
                     end if
                 end if
 			END IF
@@ -1564,12 +1564,12 @@ i=iconsidered
                 do K=1,nnd
                     if (ibound(n,ielem(n,i)%ibounds(facex))%icode.eq.5) then
                         tempxx=NODES_LIST(k,1)
-                        NODES_LIST(k,1)=tempxx*cosd(-angle_per)-sind(-angle_per)*NODES_LIST(k,2)
-                        NODES_LIST(k,2)=tempxx*sind(-angle_per)+cosd(-angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,1)=tempxx*cos(-angle_per)-sin(-angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,2)=tempxx*sin(-angle_per)+cos(-angle_per)*NODES_LIST(k,2)
                     else
                         tempxx=NODES_LIST(k,1)
-                        NODES_LIST(k,1)=tempxx*cosd(angle_per)-sind(angle_per)*NODES_LIST(k,2)
-                        NODES_LIST(k,2)=tempxx*sind(angle_per)+cosd(angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,1)=tempxx*cos(angle_per)-sin(angle_per)*NODES_LIST(k,2)
+                        NODES_LIST(k,2)=tempxx*sin(angle_per)+cos(angle_per)*NODES_LIST(k,2)
                     end if
                 END DO
                 end if

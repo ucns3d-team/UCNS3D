@@ -519,7 +519,7 @@ IF (RESTART.EQ.0)THEN
 !$OMP END PARALLEL 
 	RES_TIME=ZERO
 END IF
-
+INITIALRES=0.0d0
 
 
 
@@ -531,7 +531,7 @@ END IF
 ! 
 ! 
 ! !Just to assure they are zero if not read	
-!          INITIALRES=ZERO
+
 ! 	
 !        
 ! 
@@ -1311,7 +1311,7 @@ IF (RESTART.EQ.0)THEN
 !$OMP END PARALLEL 
 	RES_TIME=ZERO
 END IF
-
+INITIALRES=ZERO
 
 
 ! IF (RESTART.GT.0)THEN     !IF_RESTART

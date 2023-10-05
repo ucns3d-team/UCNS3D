@@ -292,6 +292,9 @@ I=ICONSIDERED
 				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
 				  				    end if
 				  				     if (B_CODE.eq.4)then
+
+				  				     IF (THERMAL.EQ.0)THEN
+
 				  				    rightv=zero
 				  				    rightv(2:4)=LCVGRAD(4,1:3)
 				  				    leftv=zero
@@ -301,6 +304,7 @@ I=ICONSIDERED
 								    CALL ROTATEB(N,INVTRI,rightv,leftv,ANGLE1,ANGLE2)
 				  				    RCVGRAD(4,1:3)=rightv(2:4)
 				  				  	end if
+				  				  	END IF
 !
 !
 								  END IF
@@ -542,19 +546,19 @@ END IF
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
 				  				    end if
-! 				  				     if (B_CODE.eq.4)then
-!
-!
-! 				  				    rightv=zero
-! 				  				    rightv(2:3)=LCVGRAD(3,1:2)
-! 				  				    leftv=zero
-!
-! 				  				    CALL ROTATEF2d(N,TRI,leftv,rightv,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-! 								    leftv(2)=-leftv(2)
-! 								    CALL ROTATEB2d(N,INVTRI,rightv,leftv,ANGLE1,ANGLE2)
-! 				  				    RCVGRAD(3,1:2)=rightv(2:3)
-! 				  				  	end if
-!
+ 				  				    if (B_CODE.eq.4)then
+									 IF (THERMAL.EQ.0)THEN
+
+ 				  				    rightv=zero
+ 				  				    rightv(2:3)=LCVGRAD(3,1:2)
+ 				  				    leftv=zero
+
+ 				  				    CALL ROTATEF2d(N,TRI,leftv,rightv,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+ 								    leftv(2)=-leftv(2)
+ 								    CALL ROTATEB2d(N,INVTRI,rightv,leftv,ANGLE1,ANGLE2)
+ 				  				    RCVGRAD(3,1:2)=rightv(2:3)
+ 				  				  	end if
+									END IF
 !
 								  END IF
 							ELSE

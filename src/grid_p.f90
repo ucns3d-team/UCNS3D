@@ -1848,7 +1848,7 @@ REAL::DELTA,CPUER
 
 	IF (CODE_PROFILE.EQ.30)THEN
 		allocate(IELEM(N,I)%NODES_NEIGHBOURS(5,30))
-                ielem(n,i)%nodes_neighbours=0
+		IELEM(N,I)%NODES_NEIGHBOURS=0
 	END IF
 	
 	allocate(IELEM(N,I)%INEIGHG(5))
