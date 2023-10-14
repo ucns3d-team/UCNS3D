@@ -1,0 +1,18 @@
+# Makefile to be build shared executable
+
+F90=mpif90
+LD=$(F90)
+
+BLASFLAGS= -I  /path/to/openblas/include     #Ensure that you include your BLAS library path here
+BLASLIBS=  -L/path/to/openblas/lib     #Ensure that you include your BLAS library path here
+METISLIB= -L/path/to/metis/lib
+PARMETISLIB= -L/path/to/parmetis/lib
+
+FFLAGS=-cpp -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -O3 -Wno-lto-type-mismatch -fPIE $(BLASFLAGS) 
+
+LIBS = $(BLASLIBS) $(GKLIB) $(METISLIB) $(PARMETISLIB) -lstdc++ -lpthread -lm -ldl -lc -lmpi -lopenblas -lmetis -lparmetis
+
+include Makefile_common
+
+
+ 

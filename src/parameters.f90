@@ -1244,6 +1244,13 @@ SUBROUTINE READ_UCNS3D
 	cLOSE(18)
 	END IF
     end if
+
+#ifndef USE_TECPLOT
+	IF ((TECPLOT.EQ.1).OR.(TECPLOT.EQ.4))THEN
+		TECPLOT = 0
+	ENDIF
+#endif
+	
 		
 	
 
