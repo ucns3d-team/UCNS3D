@@ -47,11 +47,8 @@ Reference Velocity: Reference velocity for turbulence calculation (blade tip vel
 ```
 # Multiple Reference Frame
 
-![](SBR2.gif)
+![Alt text](SBR2.gif)
 
-
-
-<video src="SBR2.mp4" width="800" height="800" controls></video>
 
 Number of rotors: Total number of rotational subdomais
 -----------------------------------------------------
