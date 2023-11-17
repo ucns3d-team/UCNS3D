@@ -47,9 +47,7 @@ Reference Velocity: Reference velocity for turbulence calculation (blade tip vel
 ```
 # Multiple Reference Frame
 
-<p align="center">
-<img width="1000" height="500" src="MRF_schematic.PNG">
-</p>
+![](SBR2.gif)
 
 
 
