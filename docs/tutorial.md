@@ -18,7 +18,7 @@ The solid body rotation test of Leveque \cite{Leveque1996627} is employed to inv
 
 # Table of Contents
 1. [Aim](##Aim)
-2. [Resources](## Resources)
+2. [Resources](##Resources)
 
 > :warning: **Warning:** Do not push the big red button.
 
