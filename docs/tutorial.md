@@ -1,12 +1,10 @@
 
 # 2D Solid Body Rotation 
 
-| Item              | In Stock | Price |
-| :---------------- | :------: | ----: |
-| Python Hat        |   True   | 23.99 |
-| SQL Hat           |   True   | 23.99 |
-| Codecademy Tee    |  False   | 19.99 |
-| Codecademy Hoodie |  False   | 42.99 |
+| Written by       | for Version | Revised by | Revision Date |for Version |
+| :---------------: | :------: | :---: | :------: | :------: |
+| Python Hat        |   True   | 23.99 | True   | 23.99 |
+
 
 ## Summary
 
