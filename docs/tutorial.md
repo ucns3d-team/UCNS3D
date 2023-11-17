@@ -1,12 +1,10 @@
 
 # 2D Solid Body Rotation 
 
-
-<span style="color:blue">some *This is Blue italic.* text</span>
   
 | Written by       | for Version | Revised by | Revision Date |for Version |
 | :---------------: | :------: | :---: | :------: | :------: |
-| Python Hat        |   True   | 23.99 | True   | 23.99 |
+| @TakisCFD        |   True   | 23.99 | True   | 23.99 |
 
 
 ## Summary
