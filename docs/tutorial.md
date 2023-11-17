@@ -1,6 +1,12 @@
 
 # 2D Solid Body Rotation 
 
+
+table th {
+         background-color: #FF0000;
+        /* sets table header cell background colour */
+    }
+  
 | Written by       | for Version | Revised by | Revision Date |for Version |
 | :---------------: | :------: | :---: | :------: | :------: |
 | Python Hat        |   True   | 23.99 | True   | 23.99 |
