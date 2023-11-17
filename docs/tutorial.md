@@ -16,13 +16,9 @@
 The solid body rotation test of Leveque \cite{Leveque1996627} is employed to investigate the performance of the WENO, CWENO and CWENOZ schemes in terms of their non-oscillatory properties on the correct and accurate revolution of a body
 
 
-#### Table of Contents
-
-- [Underline](#underline)
-- [Indent](#indent)
-- [Center](#center)
-- [Color](#color)
-
+# Table of Contents
+1. [Aim](##Aim)
+2. [Resources](## Resources)
 
 > :warning: **Warning:** Do not push the big red button.
 
