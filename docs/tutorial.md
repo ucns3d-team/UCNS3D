@@ -2,6 +2,8 @@
 # 2D Solid Body Rotation 
 ## CWENO
 ### Description
+The solid body rotation test of Leveque \cite{Leveque1996627} is employed to investigate the performance of the WENO, CWENO and CWENOZ schemes in terms of their non-oscillatory properties on the correct and accurate revolution of a body. The continuity equation is considered as follows:
+
 
 $\frac{\partial{U}}{\partial t}+\nabla \cdot({\mathbf{v}U})=0$
 
