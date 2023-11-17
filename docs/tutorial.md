@@ -17,10 +17,10 @@ $\mathbf{f}(x,y)=\frac{1+cos(\pi r(x,y))}{4}$
 $\mathbf{f}(x,y)=1- r(x,y)$
 
 $\mathbf{f}(x,y)=
-\begin{cases}
+
 1, & \text{if }\text{$|x-x_0|$$\geq$ 0.025 or y $\geq$ 0.85} \\
 0, & \text{if }\text{ otherwise.}
-\end{cases}$
+$
 
 
 
