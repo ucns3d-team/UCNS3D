@@ -2,7 +2,7 @@
 # 2D Solid Body Rotation 
 
   
-| Written by       | for Version | Date | 
+| Written by| for Version | Date | 
 | :---------------: | :------: | :---: | 
 | @TakisCFD        |   True   | 23.99 | 
 
