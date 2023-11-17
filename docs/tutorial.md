@@ -2,11 +2,7 @@
 # 2D Solid Body Rotation 
 
 
-<style>
-table {
-    background-color: white;
-}
-</style>
+<span style="color:blue">some *This is Blue italic.* text</span>
   
 | Written by       | for Version | Revised by | Revision Date |for Version |
 | :---------------: | :------: | :---: | :------: | :------: |
