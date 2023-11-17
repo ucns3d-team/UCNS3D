@@ -17,7 +17,7 @@ $\mathbf{f}(x,y)=\frac{1+cos(\pi r(x,y))}{4}$
 $\mathbf{f}(x,y)=1- r(x,y)$
 
 
-
+with $r_0=0.15$. The rest of the domain the solution is initialised with zero, and after one full revolution $t_{f}=2\pi$ the exact solution coincides with the initial solution. A triangular unstructured mesh is used as shown in  with $64$ edges per side of the computational domain. The WENO, CWENO and CWENOZ schemes ranging from 3rd- to 6th-order of spatial accuracy are employed, with their selected weights from the previous study. The obtained results following one revolution are illustrated in Fig. .
 
 
 Bullet list:
