@@ -6,6 +6,7 @@
 | :---------------: | :------: | :---: | :------: | :------: |
 | @TakisCFD        |   True   | 23.99 | True   | 23.99 |
 
+@TakisCFD
 
 ## Summary
 
@@ -17,6 +18,10 @@ The solid body rotation test of Leveque \cite{Leveque1996627} is employed to inv
 ## Aim
 
 ## Resources
+- [x] #739
+- [ ] https://github.com/octo-org/octo-repo/issues/740
+- [ ] Add delight to the experience when all tasks are complete :tada:
+
 
 ## Tutorial
 
