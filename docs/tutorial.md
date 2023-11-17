@@ -3,6 +3,7 @@
 ## Subtitle
 ### Another deeper title
 
+$\frac{\partial{U}}{\partial t}+\nabla \cdot({\mathbf{v}U})=0$
 
 Bullet list:
 * Start a line with an asterisk
