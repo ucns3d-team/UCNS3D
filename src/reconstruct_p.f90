@@ -426,6 +426,50 @@ END IF
 
 END SUBROUTINE 
 
+SUBROUTINE EXTRAPOLATE_BOUND_MUSCLX(varcons,FACEX,pointx,ICONSIDERED,INSTEN)
+!> @brief
+!> Subroutine for extrapolating the reconstructed solution at the cell interfaces for MUSCL schemes
+IMPLICIT NONE
+INTEGER,INTENT(IN)::varcons,FACEX,pointx,ICONSIDERED,INSTEN
+IF (DIMENSIONA.EQ.2)THEN
+if (reduce_comp.eq.1)then
+ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,1)=ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,1)&
++(U_C(ICONSIDERED)%VAL(1,1:nof_Variables)+(USOL(1:nof_Variables,FACEX,pointx)*WENO(1:nof_Variables,1)))*WEQUA2D(pointx)
+ELSE
+if (WENWRT.EQ.3)THEN
+LEFTV(1:NOF_VARIABLES)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
+CALL CONS2PRIM2D(N)
+LEFTV(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)+USOL(1:nof_Variables,FACEX,pointx)*WENO(1:nof_Variables,1)
+CALL PRIM2CONS2D(N)
+ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,pointx)+LEFTV(1:NOF_VARIABLES)
+ELSE
+ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,pointx)&
++(U_C(ICONSIDERED)%VAL(1,1:nof_Variables)+(USOL(1:nof_Variables,FACEX,pointx)*WENO(1:nof_Variables,1)))
+END IF
+END IF
+ELSE
+if (reduce_comp.eq.1)then
+ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,1)=ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,1)&
++(U_C(ICONSIDERED)%VAL(1,1:nof_Variables)+(USOL(1:nof_Variables,FACEX,pointx)*WENO(1:nof_Variables,1)))*WEIGHT_T2(pointx)
+ELSE
+if (WENWRT.EQ.3)THEN
+LEFTV(1:NOF_VARIABLES)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
+CALL CONS2PRIM(N)
+LEFTV(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)+USOL(1:nof_Variables,FACEX,pointx)*WENO(1:nof_Variables,1)
+CALL PRIM2CONS(N)
+ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,pointx)+LEFTV(1:NOF_VARIABLES)
+ELSE
+ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFTX(1:nof_Variables,FACEX,pointx)&
++(U_C(ICONSIDERED)%VAL(1,1:nof_Variables)+(USOL(1:nof_Variables,FACEX,pointx)*WENO(1:nof_Variables,1)))
+END IF
+end if
+
+
+END IF
+
+
+END SUBROUTINE
+
 
 subroutine diag_At_B_A(ICONSIDERED)
 !> @brief
@@ -679,7 +723,9 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 
 
 !$OMP DO SCHEDULE (STATIC)
-DO II=1,NOF_INTERIOR;I=EL_INT(II);ICONSIDERED=I
+DO II=1,NOF_INTERIOR;
+I=EL_INT(II)
+ICONSIDERED=I
          IF (MRF.EQ.1)THEN
         SRF=ILOCAL_RECON3(I)%MRF
       END IF
@@ -2424,7 +2470,7 @@ SUBROUTINE WENOWEIGHTS2d(N)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL::DIVISIONBYZERO
-INTEGER::I,J,K,L,M,O,LL,IEX,IEUL,FACX,IELEME,KKD,KMAXE,JF,NGP,IQP,nnd,ii
+INTEGER::I,J,K,L,M,O,LL,IEX,IEUL,FACX,IELEME,KKD,KMAXE,JF,NGP,IQP,nnd,ii,IFREE
 INTEGER::IDUMMY,POWER,itarget
 REAL::SUMOMEGAATILDEL,tau_Weno
 REAL::COMPF,checkf
@@ -2443,6 +2489,7 @@ KMAXE=XMPIELRANK(N)
         
 	IF ((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
  	if (poly.eq.4)then
+
 
       divbyzero=ielem(n,iconsidered)%totvolume**2
 
@@ -2800,7 +2847,7 @@ KMAXE=XMPIELRANK(N)
 			      if (wenoz.eq.2)then
 
 			      do ll=1,ielem(n,i)%admis
-					if (omegaal(ll).lt.1.0e-5)then
+					if (omegaal(ll).lt.1.0e-6)then
 					dk(LL)=0.0d0
 					else
 					dk(LL)=1.0d0
@@ -3625,7 +3672,7 @@ KMAXE=XMPIELRANK(N)
 
 				if (wenoz.eq.2)then
 			      do ll=1,ielem(n,i)%admis
-					if (omegaal(ll).lt.1.0e-5)then
+					if (omegaal(ll).lt.1.0e-6)then
 					dk(LL)=0.0d0
 					else
 					dk(LL)=1.0d0
@@ -4657,7 +4704,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
     IF(MRF.EQ.1)THEN
         SRF=ILOCAL_RECON3(I)%MRF
     END IF
-	   IF ((IELEM(N,I)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
+	   IF (((ielem(n,i)%TROUBLED.EQ.1).AND.(ielem(n,i)%REDUCE.EQ.1)).OR.((ielem(n,i)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1)))THEN
 	   
 	   IF (IELEM(N,I)%RECALC.GT.0)THEN
 	   
@@ -5269,7 +5316,7 @@ call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGL
 	IF(MRF.EQ.1)THEN
         SRF=ILOCAL_RECON3(I)%MRF
     END IF
-	      IF ((IELEM(N,I)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
+	      IF (((ielem(n,i)%TROUBLED.EQ.1).AND.(ielem(n,i)%REDUCE.EQ.1)).OR.((ielem(n,i)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1)))THEN
 	      IF (IELEM(N,I)%RECALC.GT.0)THEN
 
 	      if (ADDA.EQ.1)THEN
@@ -6180,6 +6227,1550 @@ END SUBROUTINE MUSCL
 
 
 
+SUBROUTINE MUSCL_R(N)
+!> @brief
+!> Subroutine for MUSCL type reconstruction in 3D
+ IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,J,K,L,IEX,IEUL,JX,LX,KMAXE,iq,LL,NGP,NND,IQP,idummy,ii,icd
+REAL::UMIN,UMAX,PSITOT,ADDC,DIVG0,LIMVBG,tempxx
+REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
+real,external::ddot
+
+
+KMAXE=XMPIELRANK(N)
+call  QUADRATUREQUAD3D(N,IGQRULES);WEIGHTS_Q(1:QP_QUAD)=WEQUA2D(1:QP_QUAD)
+call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGLE)
+
+!$OMP DO SCHEDULE (STATIC)
+	DO II=1,NOF_INTERIOR
+	I=EL_INT(II)
+	ICONSIDERED=I
+    IF(MRF.EQ.1)THEN
+        SRF=ILOCAL_RECON3(I)%MRF
+    END IF
+	   IF ((IELEM(N,I)%REDUCE.EQ.1).and.(ielem(n,i)%troubled.eq.1))then
+
+	   IF (IELEM(N,I)%RECALC.GT.0)THEN
+
+	   if (ADDA.EQ.1)THEN
+      CALL ADDA_FILTER(N)
+      END IF
+
+! 		if (ielem(n,i)%interior.ne.1)then
+		CALL ALLGRADS_INNER(N,I)
+		    IF (LIMITER.EQ.3)THEN !if 2
+		        if (ILOCAL_RECON3(I)%LOCAL.eq.1)then  !if 1
+			  DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+
+			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+                            IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+                  IF(PER_ROT.EQ.1)THEN
+                        IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN
+                            if (IELEM(N,I)%XXC.gt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=UTEMP(IQ,3)
+                                UTEMP(IQ,3)=-TEMPXX
+                            end if
+                            if (IELEM(N,I)%XXC.lt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=-UTEMP(IQ,3)
+                                UTEMP(IQ,3)=TEMPXX
+                            end if
+                        END IF
+                  END IF
+			  END DO
+			ELSE
+			   DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+			    IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:nof_variables)
+			    else
+			      UTEMP(IQ,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
+			    end if
+			    IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			    IF(PER_ROT.EQ.1)THEN
+                     IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN
+                            if (IELEM(N,I)%XXC.gt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=UTEMP(IQ,3)
+                                UTEMP(IQ,3)=-TEMPXX
+                            end if
+                            if (IELEM(N,I)%XXC.lt.0.0d0) then
+                                tempxx=UTEMP(IQ,2)
+                                UTEMP(IQ,2)=-UTEMP(IQ,3)
+                                UTEMP(IQ,3)=TEMPXX
+                            end if
+                     END IF
+			    END IF
+			   end do
+			END IF                   !end if 1
+			UTMIN=ZERO;UTMAX=ZERO
+			DO IEX=1,NOF_VARIABLES
+			UTMIN(IEX)=MINVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			UTMAX(IEX)=MAXVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			END DO
+
+
+		    ELSE
+			   K=0
+			  UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+			   IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			  K=1
+
+
+
+			  DO L=1,IELEM(N,I)%IFCA
+			  K=K+1
+			    UTEMP(K,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:NOF_VARIABLES)
+			     IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(K,1:NOF_VARIABLES)
+                            CALL CONS2PRIM(N)
+                            UTEMP(K,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			  END DO
+
+
+
+
+                            IF (WENWRT.EQ.3)THEN
+                            UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+
+
+
+
+
+
+			  UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,NOF_VARIABLES
+			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
+			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
+			  END DO
+		    END IF   !end if 2
+
+		    USOL(:,:,:)=ZERO
+
+
+
+                                        if (fastest.ne.1)then
+                                         icd=0
+                                        DO L=1,IELEM(N,I)%IFCA	!faces2
+                                            idummy=0
+                                                IF (FASTEST_Q.EQ.1)THEN
+                                                        if (ielem(n,i)%types_faces(L).eq.5)then
+                                                            iqp=qp_quad
+                                                        else
+                                                            iqp=qp_triangle
+                                                        end if
+                                                ELSE
+                                                    if (ielem(n,i)%types_faces(L).eq.5)then
+                                                        iqp=qp_quad
+                                                        NND=4
+
+                                                            do K=1,nnd
+                                                                VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                                VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                                                            END DO
+
+
+                                                        call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+                                                    else
+                                                        iqp=QP_TRIANGLE
+                                                        NND=3
+
+                                                            do K=1,nnd
+                                                                VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                                VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                                                            END DO
+
+
+                                                        call QUADRATURETRIANG(N,IGQRULES)
+
+
+                                                    end if
+
+                                            end if
+			!end fastest
+
+
+
+			     do NGP=1,iqp			!for gqp
+				IF (FASTEST_Q.NE.1)THEN
+				AX = QPOINTS2D(1,NGP)
+				AY = QPOINTS2D(2,NGP)
+				AZ = QPOINTS2D(3,NGP)
+				ELSE
+				AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1)
+				AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2)
+				AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
+
+
+
+				END IF
+                                    icd=icd+1
+
+				  CONSMATRIX(icd,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+                            end do
+                            end do
+
+					  GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_VARIABLES)=ILOCAL_RECON5(1)%GRADIENTS(1,1:IELEM(N,I)%IDEGFREE,1:NOF_VARIABLES)
+
+
+! 				  call gemm(                                                  &
+!                             CONSMATRIX(1:ICD,1:IELEM(N,I)%IDEGFREE),                &
+!                             GRADSS(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES),                                                &
+!                             RESSOLUTION(1:ICD,1:NOF_vARIABLES)                                                    &
+!                                 )
+
+
+
+                CALL DGEMM('N','N',ICD,nof_variables,IELEM(N,I)%IDEGFREE,ALPHA,&
+                    CONSMATRIX(1:ICD,1:IELEM(N,I)%IDEGFREE),ICD,&
+                    GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES),&
+                    IELEM(N,I)%IDEGFREE,BETA,RESSOLUTION(1:ICD,1:NOF_vARIABLES),ICD)
+
+
+                                ICD=0
+                                DO L=1,IELEM(N,I)%IFCA
+                                    if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+                                    else
+				    iqp=qp_triangle
+                                    end if
+                                     do NGP=1,iqp
+			     ICD=ICD+1
+
+				 IF (WENWRT.EQ.3)THEN
+				  USOL(1:NOF_VARIABLES,L,Ngp)=((LEFTV(1:NOF_VARIABLES)+RESSOLUTION(icd,1:NOF_VARIABLES)))
+				  ELSE
+				  USOL(1:NOF_VARIABLES,L,Ngp)=((U_C(I)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(icd,1:NOF_VARIABLES)))
+				  END IF
+
+				  END DO
+			    END DO
+
+
+
+		       else
+		       DO L=1,IELEM(N,I)%IFCA	!faces2
+			      idummy=0
+
+				   if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+				    NND=4
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+
+
+				    call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+				  else
+				    iqp=QP_TRIANGLE
+				    NND=3
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+
+
+				    call QUADRATURETRIANG(N,IGQRULES)
+
+
+				  end if
+
+
+
+
+
+
+			     do NGP=1,iqp
+				AX = QPOINTS2D(1,NGP)-ielem(n,i)%xxc
+				AY = QPOINTS2D(2,NGP)-ielem(n,i)%yyc
+				AZ = QPOINTS2D(3,NGP)-ielem(n,i)%zzc
+
+
+				      DO LX=1,3
+					  GRADSS(LX,1:NOF_VARIABLES)=ILOCAL_RECON5(1)%GRADIENTS(1,LX,1:NOF_VARIABLES)
+				      END DO
+
+
+
+				  DO IEX=1,NOF_VARIABLES
+				  RESSOLUTION(1,1)=(ax*GRADSS(1,IEX))+(ay*GRADSS(2,IEX))+(az*GRADSS(3,IEX))
+				  IF (WENWRT.EQ.3)THEN
+				  USOL(IEX,L,Ngp)=((LEFTV(IEX)+RESSOLUTION(1,1)))
+				  ELSE
+				  USOL(IEX,L,Ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END IF
+
+
+
+				  END DO
+			    END DO
+
+
+
+		   END DO
+		   end if
+
+
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+			      else
+				    iqp=QP_TRIANGLE
+			      end if
+			      do NGP=1,iqp
+				    DO iex=1,nof_Variables
+
+				 ICONS_E=IEX
+				 FACEX=L
+				 ICONS_S=NGP
+				 ICONSIDERED=I
+				CALL SLOPE_LIMITERS(N,ICONSIDERED,ICONS_E,FACEX,ICONS_S)
+				    end do
+			      END DO
+			 END DO
+
+			 do iex=1,nof_Variables
+			 limvbg=tolbig
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+			      else
+				    iqp=QP_TRIANGLE
+			      end if
+			      do NGP=1,iqp
+
+
+				  LIMVBG=MIN(LIMVBG,PSI(iex,L,Ngp) )
+			      end do
+			 end do
+			 WENO(IEX,1)=LIMVBG
+			 ielem(n,i)%wcx(1)=LIMVBG
+
+			  IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
+				END IF
+
+
+
+
+
+
+			 end do
+
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      ILOCAL_RECON3(I)%ULEFT(:,L,:)=ZERO
+			      if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad;WEIGHT_T2(1:QP_QUAD)=WEIGHTs_Q(1:QP_QUAD)
+			      else
+				    iqp=QP_TRIANGLE;WEIGHT_T2(1:QP_TRIANGLE)=WEIGHTs_T(1:QP_TRIANGLE)
+			      end if
+			      do NGP=1,iqp
+                    IF (WENWRT.EQ.3)THEN
+				    LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:nof_Variables)
+				    CALL CONS2PRIM(N)
+				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-LEFTV(1:NOF_VARIABLES)
+				    ELSE
+				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-U_C(I)%VAL(1,1:nof_Variables)
+				    END IF
+				    CALL EXTRAPOLATE_BOUND_MUSCL(IEX,L,NGP,I,1)
+			      END DO
+			 END DO
+
+			 !TURBULENCE NOW
+			 IF (((PASSIVESCALAR.GT.0).OR.(TURBULENCE.EQ.1)).and.(icoupleturb.eq.1))then
+			 IF (LIMITER.EQ.3)THEN
+		        if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+			  DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+			      UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			  END DO
+			ELSE
+			    DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+			    IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+			      UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			    else
+			      UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+			    end if
+			    end do
+			END IF
+			UTMIN=ZERO;UTMAX=ZERO
+			DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+			UTMIN(IEX)=MINVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			UTMAX(IEX)=MAXVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			END DO
+
+
+		    ELSE
+			   K=0
+			  UTEMP(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			  K=1
+			  DO L=1,IELEM(N,I)%IFCA
+			    K=K+1
+			    UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			  END DO
+			  UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
+			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
+			  END DO
+		    END IF
+
+		    USOL(:,:,:)=ZERO
+			DO L=1,IELEM(N,I)%IFCA	!faces2
+			      idummy=0
+
+			   if (fastest.ne.1)then
+				      IF (FASTEST_Q.EQ.1)THEN
+				  if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+		else
+				    iqp=qp_triangle
+		end if
+			    ELSE
+				   if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+				    NND=4
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+
+
+				    call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+				  else
+				    iqp=QP_TRIANGLE
+				    NND=3
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+
+
+				    call QUADRATURETRIANG(N,IGQRULES)
+
+
+				  end if
+
+
+			end if
+
+
+
+			     do NGP=1,iqp			!for gqp
+				IF (FASTEST_Q.NE.1)THEN
+				AX = QPOINTS2D(1,NGP)
+				AY = QPOINTS2D(2,NGP)
+				AZ = QPOINTS2D(3,NGP)
+				ELSE
+				AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1)
+				AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2)
+				AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
+
+
+
+				END IF
+
+                                  CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+
+				      DO LX=1,IELEM(N,I)%IDEGFREE
+					  GRADSS(LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON5(1)%GRADIENTS2(1,LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      END DO
+
+				  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+! 				  GRADSS(1:IELEM(N,I)%IDEGFREE,1)=GRADSS(1:IELEM(N,I)%IDEGFREE,IEX)
+! 				  RESSOLUTION(1,1) = DOT(CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX))
+				  RESSOLUTION(1,1) = DDOT(IELEM(N,I)%IDEGFREE,CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),1,GRADSS(1:IELEM(N,I)%IDEGFREE,IEX),1)
+
+				  !RESSOLUTION(1:1,1:1)=MATMUL(CONSMATRIX(1:1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX:IEX))
+				  USOL(IEX,L,Ngp)=((U_CT(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END DO
+			    END DO
+		       else
+
+				   if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+				    NND=4
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+
+
+				    call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+				  else
+				    iqp=QP_TRIANGLE
+				    NND=3
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+
+
+				    call QUADRATURETRIANG(N,IGQRULES)
+
+
+				  end if
+
+
+
+
+
+
+			     do NGP=1,iqp
+				AX = QPOINTS2D(1,NGP)-ielem(n,i)%xxc
+				AY = QPOINTS2D(2,NGP)-ielem(n,i)%yyc
+				AZ = QPOINTS2D(3,NGP)-ielem(n,i)%zzc
+
+
+				      DO LX=1,3
+					  GRADSS(LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON5(1)%GRADIENTS2(1,LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      END DO
+
+
+
+				  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+				  RESSOLUTION(1,1)=(ax*GRADSS(1,IEX))+(ay*GRADSS(2,IEX))+(az*GRADSS(3,IEX))
+				  USOL(IEX,L,ngp)=((U_CT(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END DO
+			    END DO
+
+
+		       end if
+		   END DO
+
+
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+			      else
+				    iqp=QP_TRIANGLE
+			      end if
+			      do NGP=1,iqp
+				    DO iex=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+
+				 ICONS_E=IEX
+				 FACEX=L
+				 ICONS_S=NGP
+				 ICONSIDERED=I
+				CALL SLOPE_LIMITERS(N,ICONSIDERED,ICONS_E,FACEX,ICONS_S)
+				    end do
+			      END DO
+			 END DO
+
+			 do iex=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+			 limvbg=tolbig
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+			      else
+				    iqp=QP_TRIANGLE
+			      end if
+			      do NGP=1,iqp
+
+
+				  LIMVBG=MIN(LIMVBG,PSI(iex,L,Ngp) )
+			      end do
+			 end do
+			 WENO(IEX,1)=LIMVBG
+			 end do
+
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+			      else
+				    iqp=QP_TRIANGLE
+			      end if
+			      do NGP=1,iqp
+
+
+				    USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)=USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)-U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				    ILOCAL_RECON3(I)%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,L,ngp)=U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)+(USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)*WENO(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))
+
+
+			      END DO
+			 END DO
+
+			 END IF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		ICONSIDERED=I
+	 CALL SOLUTIONTRIAV2(N,ICONSIDERED)
+
+
+	END IF
+	END IF
+	END DO
+!$OMP END DO
+
+!$OMP DO SCHEDULE (STATIC)
+	DO II=1,NOF_bounded
+	I=EL_BND(II)
+	ICONSIDERED=I
+	IF(MRF.EQ.1)THEN
+        SRF=ILOCAL_RECON3(I)%MRF
+    END IF
+	      IF ((IELEM(N,I)%REDUCE.EQ.1).and.(ielem(n,i)%troubled.eq.1))then
+	      IF (IELEM(N,I)%RECALC.GT.0)THEN
+
+	      if (ADDA.EQ.1)THEN
+      CALL ADDA_FILTER(N)
+      END IF
+
+
+		CALL ALLGRADS_MIX(N,I)
+		    IF (LIMITER.EQ.3)THEN
+			  if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+			    DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+				UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+				 IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+				IF(PER_ROT.EQ.1)THEN
+				IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN
+			      if (IELEM(N,I)%XXC.gt.0.0d0) then
+			        tempxx=UTEMP(IQ,2)
+			        UTEMP(IQ,2)=UTEMP(IQ,3)
+			        UTEMP(IQ,3)=-TEMPXX
+                  end if
+                  if (IELEM(N,I)%XXC.lt.0.0d0) then
+			        tempxx=UTEMP(IQ,2)
+			        UTEMP(IQ,2)=-UTEMP(IQ,3)
+			        UTEMP(IQ,3)=TEMPXX
+                  end if
+			      END IF
+				END IF
+			    END DO
+			  ELSE
+			    DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+			      IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+				UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:nof_variables)
+			      else
+				UTEMP(IQ,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
+			      end if
+			       IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			      IF(PER_ROT.EQ.1)THEN
+                    IF (ILOCAL_RECON3(I)%PERIODICFLAG(1,IQ).EQ.1) THEN
+                        if (IELEM(N,I)%XXC.gt.0.0d0) then
+                            tempxx=UTEMP(IQ,2)
+                            UTEMP(IQ,2)=UTEMP(IQ,3)
+                            UTEMP(IQ,3)=-TEMPXX
+                        end if
+                        if (IELEM(N,I)%XXC.lt.0.0d0) then
+                            tempxx=UTEMP(IQ,2)
+                            UTEMP(IQ,2)=-UTEMP(IQ,3)
+                            UTEMP(IQ,3)=TEMPXX
+                        end if
+                    END IF
+			      END IF
+			    END DO
+			  END IF
+			  UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,NOF_VARIABLES
+			  UTMIN(IEX)=MINVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			  UTMAX(IEX)=MAXVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			  END DO
+
+
+		    ELSE
+			    K=0
+			    UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+			     IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			    K=1
+
+
+			     DO L=1,IELEM(N,I)%IFCA
+				  IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+					IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+					      if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN MY CPU
+					      K=K+1
+					      UTEMP(k,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(l))%VAL(1,1:nof_variables)
+					      IF(PER_ROT.EQ.1)THEN
+                            UTEMP(k,2:4)=ROTATE_PER_1(UTEMP(k,2:4),ibound(n,ielem(n,i)%ibounds(L))%icode,angle_per)
+					      END IF
+					      ELSE
+					      !NOT PERIODIC ONES IN MY CPU
+					      END IF
+
+					ELSE
+					      K=K+1
+						UTEMP(K,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(l))%VAL(1,1:nof_variables)
+					END IF
+				  ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+					      IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+							if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+							    IF (FASTEST.EQ.1)THEN
+							      K=K+1
+							      UTEMP(K,1:NOF_VARIABLES)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_variables)
+							    ELSE
+							      K=K+1
+							      UTEMP(K,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_variables)
+							    END IF
+                                IF(PER_ROT.EQ.1)THEN
+                                    UTEMP(k,2:4)=ROTATE_PER_1(UTEMP(k,2:4),ibound(n,ielem(n,i)%ibounds(L))%icode,angle_per)
+                                END IF
+							END IF
+					      ELSE
+
+						      IF (FASTEST.EQ.1)THEN
+							K=K+1
+							UTEMP(K,1:NOF_VARIABLES)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL(IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),1:nof_variables)
+						      ELSE
+							K=K+1
+							UTEMP(K,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
+							(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_variables)
+!
+						      END IF
+
+					    END IF
+				  END IF
+				  IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(K,1:NOF_VARIABLES)
+                            CALL CONS2PRIM(N)
+                            UTEMP(K,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			   END DO
+! 				if (utemp(k,1).ne.utemp(k,1))then
+!
+!
+! 			      end if
+
+			UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,NOF_VARIABLES
+			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
+			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
+			  END DO
+
+		    END IF
+
+		    USOL(:,:,:)=ZERO
+
+			      IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+
+			   if (fastest.ne.1)then !1 fastest
+			   icd=0
+			    DO L=1,IELEM(N,I)%IFCA	!faces2
+			      idummy=0
+
+                                        IF (FASTEST_Q.EQ.1)THEN   !if 1
+                                                            if (ielem(n,i)%types_faces(L).eq.5)then
+                                                            iqp=qp_quad
+                                                            else
+                                                            iqp=qp_triangle
+                                                            end if
+                                        ELSE
+
+
+                                        if ((iperiodicity.eq.1))then		!periodicity      !if 2
+                                                IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                                        if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+                                                            IDUMMY=1
+                                                        END IF
+                                                END IF
+
+
+                                                                    if (ielem(n,i)%types_faces(L).eq.5)then
+                                                                        iqp=qp_quad
+                                                                        NND=4
+                                                                                IF (IDUMMY.EQ.0)THEN
+                                                                                do K=1,nnd
+                                                                                VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                                                VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                                                                                END DO
+                                                                                ELSE
+                                                                                facex=l;
+                                                                                CALL coordinates_face_PERIOD(n,iconsidered,facex)
+                                                                                do K=1,nnd
+                                                                                VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                                                                                END DO
+                                                                                END IF
+
+                                                                        call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+                                                                        else
+                                                                        iqp=QP_TRIANGLE
+                                                                        NND=3
+                                                                                IF (IDUMMY.EQ.0)THEN
+                                                                                do K=1,nnd
+                                                                                VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                                                VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                                                                                END DO
+                                                                                ELSE
+                                                                                facex=l;
+                                                                                CALL coordinates_face_PERIOD(n,iconsidered,facex)
+                                                                                do K=1,nnd
+                                                                                VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                                                                                END DO
+                                                                                END IF
+
+                                                                        call QUADRATURETRIANG(N,IGQRULES)
+
+
+                                                                        end if
+
+                                else
+
+                                            if (ielem(n,i)%types_faces(L).eq.5)then
+                                                iqp=qp_quad
+                                                NND=4
+
+                                                    do K=1,nnd
+                                                        VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                                                    END DO
+
+
+                                                call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+                                            else
+                                                iqp=QP_TRIANGLE
+                                                NND=3
+
+                                                    do K=1,nnd
+                                                        VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+                                                        VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+                                                    END DO
+
+
+                                                call QUADRATURETRIANG(N,IGQRULES)
+
+
+                                            end if
+
+
+                            end if      !if 2
+
+		      end if      !if 1
+
+			     do NGP=1,iqp			!for gqp
+				IF (FASTEST_Q.NE.1)THEN
+				AX = QPOINTS2D(1,NGP)
+				AY = QPOINTS2D(2,NGP)
+				AZ = QPOINTS2D(3,NGP)
+				ELSE
+				AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1)
+				AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2)
+				AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
+
+
+
+				END IF
+
+				icd=icd+1
+
+
+
+				  CONSMATRIX(icd,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+
+
+                            end do
+                        end do
+
+
+
+
+
+! 				      DO LX=1,IELEM(N,I)%IDEGFREE
+					  GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_VARIABLES)=ILOCAL_RECON5(1)%GRADIENTS(1,1:IELEM(N,I)%IDEGFREE,1:NOF_VARIABLES)
+! 					  if (GRADSS(LX,1).ne.GRADSS(LX,1))then
+!
+!
+! 					  end if
+
+
+! 				 call gemm(                                                  &
+!                             CONSMATRIX(1:ICD,1:IELEM(N,I)%IDEGFREE),                &
+!                             GRADSS(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES),                                                &
+!                             RESSOLUTION(1:ICD,1:NOF_vARIABLES)                                                    &
+!                                 )
+
+
+
+                                CALL DGEMM('N','N',ICD,nof_variables,IELEM(N,I)%IDEGFREE,ALPHA,&
+                    CONSMATRIX(1:ICD,1:IELEM(N,I)%IDEGFREE),ICD,&
+                    GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES),&
+                    IELEM(N,I)%IDEGFREE,BETA,RESSOLUTION(1:ICD,1:NOF_vARIABLES),ICD)
+
+
+                                ICD=0
+                                DO L=1,IELEM(N,I)%IFCA
+                                    if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+                                    else
+				    iqp=qp_triangle
+                                    end if
+                                     do NGP=1,iqp
+			     ICD=ICD+1
+
+				 IF (WENWRT.EQ.3)THEN
+				  USOL(1:NOF_VARIABLES,L,Ngp)=((LEFTV(1:NOF_VARIABLES)+RESSOLUTION(ICD,1:NOF_VARIABLES)))
+				  ELSE
+				  USOL(1:NOF_VARIABLES,L,Ngp)=((U_C(I)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(ICD,1:NOF_VARIABLES)))
+				  END IF
+
+				  END DO
+			    END DO
+
+
+
+
+		       else
+		       DO L=1,IELEM(N,I)%IFCA	!faces2
+			      idummy=0
+
+			    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then
+				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+					      IDUMMY=1
+					  END IF
+				  END IF
+
+
+				 if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+				    NND=4
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD(n,iconsidered,facex)
+
+					  END IF
+
+				    call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+				  else
+				    iqp=QP_TRIANGLE
+				    NND=3
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD(n,iconsidered,facex)
+
+					  END IF
+
+				    call QUADRATURETRIANG(N,IGQRULES)
+
+
+				  end if
+			else
+				   if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+				    NND=4
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+
+
+				    call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+				  else
+				    iqp=QP_TRIANGLE
+				    NND=3
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+
+
+				    call QUADRATURETRIANG(N,IGQRULES)
+
+
+				  end if
+
+
+			end if
+
+
+
+			     do NGP=1,iqp
+				AX = QPOINTS2D(1,NGP)-ielem(n,i)%xxc
+				AY = QPOINTS2D(2,NGP)-ielem(n,i)%yyc
+				AZ = QPOINTS2D(3,NGP)-ielem(n,i)%zzc
+
+
+				      DO LX=1,3
+					  GRADSS(LX,1:NOF_VARIABLES)=ILOCAL_RECON5(1)%GRADIENTS(1,LX,1:NOF_VARIABLES)
+				      END DO
+
+
+
+				  DO IEX=1,NOF_VARIABLES
+				  RESSOLUTION(1:1,1:1)=(ax*GRADSS(1,IEX))+(ay*GRADSS(2,IEX))+(az*GRADSS(3,IEX))
+
+
+				   IF (WENWRT.EQ.3)THEN
+				  USOL(IEX,L,Ngp)=((LEFTV(IEX)+RESSOLUTION(1,1)))
+				  ELSE
+				  USOL(IEX,L,Ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END IF
+
+
+
+				  END DO
+			    END DO
+
+		       		END DO
+		       end if
+
+
+		    DO L=1,IELEM(N,I)%IFCA	!faces2
+			      if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+			      else
+				    iqp=QP_TRIANGLE
+			      end if
+			      do NGP=1,iqp
+				    DO iex=1,nof_Variables
+
+				 ICONS_E=IEX
+				 FACEX=L
+				 ICONS_S=NGP
+				 ICONSIDERED=I
+				CALL SLOPE_LIMITERS(N,ICONSIDERED,ICONS_E,FACEX,ICONS_S)
+				    end do
+			      END DO
+			 END DO
+
+			 do iex=1,nof_Variables
+			 limvbg=tolbig
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+			      else
+				    iqp=QP_TRIANGLE
+			      end if
+			      do NGP=1,iqp
+
+
+				  LIMVBG=MIN(LIMVBG,PSI(iex,L,Ngp) )
+			      end do
+			 end do
+			 WENO(IEX,1)=LIMVBG
+
+			 IELEM(N,I)%WCX(1)=LIMVBG
+
+
+
+			  IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
+				END IF
+
+
+
+			 end do
+
+
+
+
+
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      ILOCAL_RECON3(I)%ULEFT(:,L,:)=ZERO
+			       if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad;WEIGHT_T2(1:QP_QUAD)=WEIGHTs_Q(1:QP_QUAD)
+			      else
+				    iqp=QP_TRIANGLE;WEIGHT_T2(1:QP_TRIANGLE)=WEIGHTs_T(1:QP_TRIANGLE)
+			      end if
+			      do NGP=1,iqp
+                    IF (WENWRT.EQ.3)THEN
+				    LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:nof_Variables)
+				    CALL CONS2PRIM(N)
+				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-LEFTV(1:NOF_VARIABLES)
+				    ELSE
+				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-U_C(I)%VAL(1,1:nof_Variables)
+				    END IF
+
+
+
+
+! 				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-U_C(I)%VAL(1,1:nof_Variables)
+				    CALL EXTRAPOLATE_BOUND_MUSCL(IEX,L,NGP,I,1)
+			      END DO
+
+
+			 END DO
+
+
+
+		    !TURBULENCE NOW
+			 IF (((PASSIVESCALAR.GT.0).OR.(TURBULENCE.EQ.1)).and.(icoupleturb.eq.1))then
+
+			     IF (LIMITER.EQ.3)THEN
+			  if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+			    DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+				UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			    END DO
+			  ELSE
+			    DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+			      IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+				UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			      else
+				UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+			      end if
+			    end do
+			  END IF
+			  UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+			  UTMIN(IEX)=MINVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			  UTMAX(IEX)=MAXVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			  END DO
+
+
+		    ELSE
+			    K=0
+			    UTEMP(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			    K=1
+			    DO L=1,IELEM(N,I)%IFCA
+
+			    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+				IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+				      if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
+				      K=K+1
+				      UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      ELSE
+				      !NOT PERIODIC ONES IN MY CPU
+				      END IF
+				ELSE
+					K=K+1
+					UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				END IF
+			    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+				IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+				    if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+					IF (FASTEST.EQ.1)THEN
+
+					  K=K+1
+					UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(L))%SOL(IELEM(N,i)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+					ELSE
+
+					  K=K+1
+					UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+					  (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+					END IF
+				    END IF
+				ELSE
+
+					IF (FASTEST.EQ.1)THEN
+
+					  K=K+1
+					UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(L))%SOL(IELEM(N,i)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+					ELSE
+
+					  K=K+1
+					UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+					  (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+					END IF
+
+			      END IF
+			  END IF
+			  END DO
+			UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
+			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
+			  END DO
+
+		    END IF
+
+		    USOL(:,:,:)=ZERO
+			DO L=1,IELEM(N,I)%IFCA	!faces2
+			      idummy=0
+
+			   if (fastest.ne.1)then
+
+
+			    IF (FASTEST_Q.EQ.1)THEN
+				  if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+		else
+				    iqp=qp_triangle
+		end if
+			    ELSE
+
+
+
+			   if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then
+				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+					      IDUMMY=1
+					  END IF
+				  END IF
+
+
+				 if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+				    NND=4
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD(n,iconsidered,facex)
+					  do K=1,nnd
+					  VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+					  END IF
+
+				    call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+				  else
+				    iqp=QP_TRIANGLE
+				    NND=3
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD(n,iconsidered,facex)
+					  do K=1,nnd
+					  VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+					  END IF
+
+				    call QUADRATURETRIANG(N,IGQRULES)
+
+
+				  end if
+			else
+				   if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+				    NND=4
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+
+
+				    call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+				  else
+				    iqp=QP_TRIANGLE
+				    NND=3
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					  END DO
+
+
+				    call QUADRATURETRIANG(N,IGQRULES)
+
+
+				  end if
+
+
+			end if
+
+		end if
+
+			     do NGP=1,iqp			!for gqp
+				IF (FASTEST_Q.NE.1)THEN
+				AX = QPOINTS2D(1,NGP)
+				AY = QPOINTS2D(2,NGP)
+				AZ = QPOINTS2D(3,NGP)
+				ELSE
+				AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1)
+				AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2)
+				AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
+
+
+
+				END IF
+
+
+				   CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+
+				      DO LX=1,IELEM(N,I)%IDEGFREE
+					  GRADSS(LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON5(1)%GRADIENTS2(1,LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      END DO
+
+				  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+! 				   GRADSS(1:IELEM(N,I)%IDEGFREE,1)=GRADSS(1:IELEM(N,I)%IDEGFREE,IEX)
+! 				  RESSOLUTION(1,1) = DOT(CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX))
+				  RESSOLUTION(1,1) = DDOT(IELEM(N,I)%IDEGFREE,CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),1,GRADSS(1:IELEM(N,I)%IDEGFREE,IEX),1)
+				  !RESSOLUTION(1:1,1:1)=MATMUL(CONSMATRIX(1:1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX:IEX))
+
+				  USOL(IEX,L,Ngp)=((U_CT(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END DO
+			    END DO
+		       else
+			    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then
+				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+					  if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+					      IDUMMY=1
+					  END IF
+				  END IF
+
+
+				 if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+				    NND=4
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD(n,iconsidered,facex)
+
+					  END IF
+
+				    call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+				  else
+				    iqp=QP_TRIANGLE
+				    NND=3
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD(n,iconsidered,facex)
+
+					  END IF
+
+				    call QUADRATURETRIANG(N,IGQRULES)
+
+
+				  end if
+			else
+				   if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+				    NND=4
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+
+
+				    call  QUADRATUREQUAD3D(N,IGQRULES)
+
+
+
+				  else
+				    iqp=QP_TRIANGLE
+				    NND=3
+
+					  do K=1,nnd
+					    VEXT(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+
+
+				    call QUADRATURETRIANG(N,IGQRULES)
+
+
+				  end if
+
+
+			end if
+
+
+
+			     do NGP=1,iqp
+				AX = QPOINTS2D(1,NGP)-ielem(n,i)%xxc
+				AY = QPOINTS2D(2,NGP)-ielem(n,i)%yyc
+				AZ = QPOINTS2D(3,NGP)-ielem(n,i)%zzc
+
+
+				      DO LX=1,3
+					  GRADSS(LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON5(1)%GRADIENTS2(1,LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      END DO
+
+
+
+				  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+				  RESSOLUTION(1:1,1:1)=(ax*GRADSS(1,IEX))+(ay*GRADSS(2,IEX))+(az*GRADSS(3,IEX))
+				  USOL(IEX,L,ngp)=((U_CT(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END DO
+			    END DO
+
+
+		       end if
+		   END DO
+
+		    DO L=1,IELEM(N,I)%IFCA	!faces2
+			      if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+			      else
+				    iqp=QP_TRIANGLE
+			      end if
+			      do NGP=1,iqp
+				    DO iex=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+
+				 ICONS_E=IEX
+				 FACEX=L
+				 ICONS_S=NGP
+				 ICONSIDERED=I
+				CALL SLOPE_LIMITERS(N,ICONSIDERED,ICONS_E,FACEX,ICONS_S)
+				    end do
+			      END DO
+			 END DO
+
+			 do iex=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+			 limvbg=tolbig
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+			      else
+				    iqp=QP_TRIANGLE
+			      end if
+			      do NGP=1,iqp
+
+
+				  LIMVBG=MIN(LIMVBG,PSI(iex,L,Ngp) )
+			      end do
+			 end do
+			 WENO(IEX,1)=LIMVBG
+			 end do
+
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_quad
+			      else
+				    iqp=QP_TRIANGLE
+			      end if
+			      do NGP=1,iqp
+
+
+				    USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)=USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)-U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				    ILOCAL_RECON3(I)%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,L,ngp)=U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)+(USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)*WENO(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))
+
+
+			      END DO
+			 END DO
+
+
+
+
+
+
+
+
+
+
+
+			END IF
+
+
+! 	END IF
+
+	  ICONSIDERED=I
+	 CALL SOLUTIONTRIAV2(N,ICONSIDERED)
+	  END IF
+
+
+	END IF
+	END DO
+!$OMP END DO
+
+
+
+END SUBROUTINE MUSCL_R
+
+
 SUBROUTINE ARBITRARY_ORDER3(N)
 !> @brief
 !> Subroutine controlling the reconstruction in 3D
@@ -6194,16 +7785,16 @@ KMAXE=XMPIELRANK(N)
  
  
   CASE(1)
-  CALL MUSCL(N)		
   CALL WENOWEIGHTS(N)
   CALL CHECKSOL(N)
-
+  CALL MUSCL(N)
+  CALL CHECKSOLX(N)
 
   CASE(-1)
 
   CALL MUSCL(N)		
-  CALL CHECKSOL(N)
- 
+  CALL CHECKSOLX(N)
+
  
  
   CASE(0)
@@ -6215,7 +7806,7 @@ KMAXE=XMPIELRANK(N)
   
 
   CALL LINEAR_SCHEME(N)
-
+  CALL CHECKSOLX(N)
   END IF
  
  END SELECT
@@ -6349,15 +7940,16 @@ KMAXE=XMPIELRANK(N)
  
  
   CASE(1)
-  CALL MUSCL2d(N)		
   CALL WENOWEIGHTS2d(N)
   CALL CHECKSOL2d(N)
+  CALL MUSCL2d(N)		
+  CALL CHECKSOL2dX(N)
 
 
 
   CASE(-1)
   CALL MUSCL2d(N)		
-  CALL CHECKSOL2d(N)
+  CALL CHECKSOL2dX(N)
 
  
  
@@ -6370,6 +7962,7 @@ KMAXE=XMPIELRANK(N)
   
   else
   CALL LINEAR_SCHEME2d(N)
+  CALL CHECKSOL2dX(N)
   end if
   END IF
  
@@ -6398,7 +7991,7 @@ call  QUADRATURELINE(N,IGQRULES)
 	I=EL_INT(II)
 	ICONSIDERED=I
 	   
-	   IF ((IELEM(N,I)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
+	   IF (((ielem(n,i)%TROUBLED.EQ.1).AND.(ielem(n,i)%REDUCE.EQ.1)).OR.((ielem(n,i)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1)))THEN
 	    IF (IELEM(N,I)%RECALC.GT.0)THEN
 		
 		CALL ALLGRADS_INNER2d(N,I)
@@ -6902,7 +8495,7 @@ call  QUADRATURELINE(N,IGQRULES)
 	I=EL_BND(II)
 	ICONSIDERED=I
        
-	   IF ((IELEM(N,I)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
+	  IF (((ielem(n,i)%TROUBLED.EQ.1).AND.(ielem(n,i)%REDUCE.EQ.1)).OR.((ielem(n,i)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1)))THEN
 	IF (IELEM(N,I)%RECALC.GT.0)THEN
 		CALL ALLGRADS_MIX2d(N,I)
 		   IF ((LIMITER.EQ.3).OR.(LIMITER.EQ.9))THEN
@@ -7638,7 +9231,1258 @@ END SUBROUTINE MUSCL2d
 
 
 
+SUBROUTINE MUSCL2dX(N)
+!> @brief
+!> Subroutine for MUSCL type reconstruction in 2D
+ IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,J,K,L,IEX,IEUL,JX,LX,KMAXE,iq,LL,NGP,NND,IQP,idummy,ii
+REAL::UMIN,UMAX,PSITOT,ADDC,DIVG0,LIMVBG
+real,external::ddot
 
+
+KMAXE=XMPIELRANK(N)
+call  QUADRATURELINE(N,IGQRULES)
+
+!$OMP DO SCHEDULE (STATIC)
+	DO II=1,NOF_INTERIOR
+	I=EL_INT(II)
+	ICONSIDERED=I
+
+	   IF (IELEM(N,I)%FULL.EQ.1)THEN
+	    IF (IELEM(N,I)%RECALC.GT.0)THEN
+
+		CALL ALLGRADS_INNER2d(N,I)
+		    IF ((LIMITER.EQ.3).OR.(LIMITER.EQ.9))THEN
+                        IF (LIMITER.EQ.3)THEN
+		        if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+                        DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+                            UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+                            IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+                        END DO
+                ELSE
+                        DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+                            IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+                            UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:nof_variables)
+                            else
+                            UTEMP(IQ,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
+                            end if
+                                IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+                        end do
+			END IF
+! 			DO IEX=1,NOF_VARIABLES
+! 			UTEMP(2:IELEM(N,I)%iNUMNEIGHBOURS,IEX)=UTEMP(2:IELEM(N,I)%iNUMNEIGHBOURS,IEX)-UTEMP(1,iex)
+! 			END DO
+
+			UTMIN=ZERO;UTMAX=ZERO
+			DO IEX=1,NOF_VARIABLES
+			UTMIN(IEX)=MINVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			UTMAX(IEX)=MAXVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			END DO
+			ELSE
+			 if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+			  DO IQ=1,13
+			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+			       IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			  END DO
+			ELSE
+			   DO IQ=1,13
+			    IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:nof_variables)
+			    else
+			      UTEMP(IQ,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
+			    end if
+			     IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			   end do
+			END IF
+! 			DO IEX=1,NOF_VARIABLES
+! 			UTEMP(2:IELEM(N,I)%iNUMNEIGHBOURS,IEX)=UTEMP(2:IELEM(N,I)%iNUMNEIGHBOURS,IEX)-UTEMP(1,iex)
+! 			END DO
+
+			UTMIN=ZERO;UTMAX=ZERO
+			DO IEX=1,NOF_VARIABLES
+			UTMIN(IEX)=MINVAL(UTEMP(1:13,IEX))
+			UTMAX(IEX)=MAXVAL(UTEMP(1:13,IEX))
+			END DO
+
+
+
+
+			END IF
+
+
+
+
+		    ELSE
+			   K=0
+			  UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+			   IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			  K=1
+			  DO L=1,IELEM(N,I)%IFCA
+			    K=K+1
+			    UTEMP(K,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:NOF_VARIABLES)!-UTEMP(1,1:NOF_VARIABLES)
+			     IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(K,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(K,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			  END DO
+			  UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,NOF_VARIABLES
+
+			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
+			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
+			  END DO
+		    END IF
+
+		    USOL(:,:,:)=ZERO
+			DO L=1,IELEM(N,I)%IFCA	!faces2
+			      idummy=0
+
+			   if (fastest.ne.1)then
+			   IF (FASTEST_Q.NE.1)THEN
+
+				    iqp=qp_line
+				    NND=2
+
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
+					  END DO
+
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+
+
+
+
+
+
+			else
+				    iqp=qp_line
+		        end if
+
+			     do NGP=1,iqp			!for gqp
+				IF (FASTEST_Q.NE.1)THEN
+				AX = QPOINTS2D(1,NGP)
+				AY = QPOINTS2D(2,NGP)
+! 				AZ = QPOINTS2D(3,NGP)
+				ELSE
+				AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1)
+				AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2)
+! 				AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
+
+
+
+				END IF
+				compwrt=0
+			 CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2d(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+
+! 				  CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2d(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+
+				      DO LX=1,IELEM(N,I)%IDEGFREE
+					  GRADSS(LX,1:NOF_VARIABLES)=ILOCAL_RECON5(1)%GRADIENTS(1,LX,1:NOF_VARIABLES)
+				      END DO
+
+
+
+                            IF (WENWRT.EQ.3)THEN
+                            UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+
+				  DO IEX=1,NOF_VARIABLES
+
+! 				   GRADSS(1:IELEM(N,I)%IDEGFREE,1)=GRADSS(1:IELEM(N,I)%IDEGFREE,IEX)
+! 				  RESSOLUTION(1,1) = DOT(CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX))
+				  RESSOLUTION(1,1) = DDOT(IELEM(N,I)%IDEGFREE,CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),1,GRADSS(1:IELEM(N,I)%IDEGFREE,IEX),1)
+				  !RESSOLUTION(1:1,1:1)=MATMUL(CONSMATRIX(1:1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX:IEX))
+				  IF (WENWRT.EQ.3)THEN
+				  USOL(IEX,L,Ngp)=((LEFTV(IEX)+RESSOLUTION(1,1)))
+				  ELSE
+				  USOL(IEX,L,Ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END IF
+				  END DO
+			    END DO
+		       else
+
+				   iqp=qp_line
+				    NND=2
+
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					  END DO
+
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+
+
+
+
+
+			     do NGP=1,iqp
+				AX = QPOINTS2D(1,NGP)-ielem(n,i)%xxc
+				AY = QPOINTS2D(2,NGP)-ielem(n,i)%yyc
+
+
+
+				      DO LX=1,2
+					  GRADSS(LX,1:NOF_VARIABLES)=ILOCAL_RECON5(1)%GRADIENTS(1,LX,1:NOF_VARIABLES)
+				      END DO
+
+
+
+				  DO IEX=1,NOF_VARIABLES
+				  RESSOLUTION(1,1)=(ax*GRADSS(1,IEX))+(ay*GRADSS(2,IEX))
+				   IF (WENWRT.EQ.3)THEN
+				  USOL(IEX,L,Ngp)=((LEFTV(IEX)+RESSOLUTION(1,1)))
+				  ELSE
+				  USOL(IEX,L,Ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END IF
+				  !USOL(IEX,L,ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END DO
+			    END DO
+
+
+		       end if
+		   END DO
+
+
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+
+			      do NGP=1,qp_line
+				    DO iex=1,nof_Variables
+
+				 ICONS_E=IEX
+				 FACEX=L
+				 ICONS_S=NGP
+				 ICONSIDERED=I
+				CALL SLOPE_LIMITERS(N,ICONSIDERED,ICONS_E,FACEX,ICONS_S)
+				    end do
+			      END DO
+			 END DO
+
+			 do iex=1,nof_Variables
+
+
+
+			 limvbg=tolbig
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+! 			      if (ielem(n,i)%types_faces(L).eq.5)then
+! 				    iqp=qp_quad
+! 			      else
+! 				    iqp=QP_TRIANGLE
+! 			      end if
+			      do NGP=1,qp_line
+
+
+				  LIMVBG=MIN(LIMVBG,PSI(iex,L,Ngp) )
+			      end do
+			 end do
+			 WENO(IEX,1)=LIMVBG
+
+                IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
+				END IF
+
+
+			 end do
+
+! 			 if (itestcase.eq.4)then
+
+			 ielem(n,i)%wcx(1)=WENO(1,1)
+
+
+
+! 			 end if
+
+
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			     ILOCAL_RECON3(I)%ULEFTX(:,L,:)=ZERO
+			      do NGP=1,qp_line
+
+				    IF (WENWRT.EQ.3)THEN
+				    LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:nof_Variables)
+				    CALL CONS2PRIM2D(N)
+				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-LEFTV(1:NOF_VARIABLES)
+				    ELSE
+				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-U_C(I)%VAL(1,1:nof_Variables)
+				    END IF
+
+				    CALL EXTRAPOLATE_BOUND_MUSCLX(IEX,L,NGP,I,1)
+
+
+! 				    ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,ngp)=U_C(I)%VAL(1,1:nof_Variables)+(USOL(1:nof_Variables,l,Ngp)*WENO(1:nof_Variables,1))
+
+
+			      END DO
+			 END DO
+
+			 !TURBULENCE NOW
+			 IF (((PASSIVESCALAR.GT.0).OR.(TURBULENCE.EQ.1)).and.(icoupleturb.eq.1))then
+			 IF (LIMITER.EQ.3)THEN
+		        if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+			  DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+			      UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			  END DO
+			ELSE
+			    DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+			    IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+			      UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			    else
+			      UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+			    end if
+			    end do
+			END IF
+			UTMIN=ZERO;UTMAX=ZERO
+			DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+			UTMIN(IEX)=MINVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			UTMAX(IEX)=MAXVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			END DO
+
+
+		    ELSE
+			   K=0
+			  UTEMP(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			  K=1
+			  DO L=1,IELEM(N,I)%IFCA
+			    K=K+1
+			    UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			  END DO
+			  UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
+			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
+			  END DO
+		    END IF
+
+		    USOL(:,:,:)=ZERO
+			DO L=1,IELEM(N,I)%IFCA	!faces2
+			      idummy=0
+
+			   if (fastest.ne.1)then
+			   if (fastest_q.ne.1)then
+
+				    iqp=qp_line
+				    NND=2
+
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
+					  END DO
+
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+				else
+				iqp=qp_line
+				end if
+
+
+
+
+
+
+
+
+			     do NGP=1,iqp			!for gqp
+				IF (FASTEST_Q.NE.1)THEN
+				AX = QPOINTS2D(1,NGP)
+				AY = QPOINTS2D(2,NGP)
+! 				AZ = QPOINTS2D(3,NGP)
+				ELSE
+				AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1)
+				AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2)
+! 				AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
+
+
+
+				END IF
+
+
+                compwrt=0
+				  CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2d(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+
+				      DO LX=1,IELEM(N,I)%IDEGFREE
+					  GRADSS(LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON5(1)%GRADIENTS2(1,LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      END DO
+
+
+				  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+
+! 				   GRADSS(1:IELEM(N,I)%IDEGFREE,1)=GRADSS(1:IELEM(N,I)%IDEGFREE,IEX)
+! 				  RESSOLUTION(1,1) = DOT(CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX))
+				  RESSOLUTION(1,1) = DDOT(IELEM(N,I)%IDEGFREE,CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),1,GRADSS(1:IELEM(N,I)%IDEGFREE,IEX),1)
+				  !RESSOLUTION(1:1,1:1)=MATMUL(CONSMATRIX(1:1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX:IEX))
+				  USOL(IEX,L,Ngp)=((U_CT(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END DO
+			    END DO
+		       else
+
+
+				    iqp=qp_line
+				    NND=2
+
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+
+
+
+
+
+
+
+
+
+			     do NGP=1,iqp
+				AX = QPOINTS2D(1,NGP)-ielem(n,i)%xxc
+				AY = QPOINTS2D(2,NGP)-ielem(n,i)%yyc
+
+
+
+				      DO LX=1,2
+					  GRADSS(LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON5(1)%GRADIENTS2(1,LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      END DO
+
+
+
+				  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+				  RESSOLUTION(1,1)=(ax*GRADSS(1,IEX))+(ay*GRADSS(2,IEX))
+				  USOL(IEX,L,ngp)=((U_CT(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END DO
+			    END DO
+
+
+		       end if
+		   END DO
+
+
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+
+				    iqp=qp_line
+
+			      do NGP=1,iqp
+				    DO iex=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+
+				 ICONS_E=IEX
+				 FACEX=L
+				 ICONS_S=NGP
+				 ICONSIDERED=I
+				CALL SLOPE_LIMITERS(N,ICONSIDERED,ICONS_E,FACEX,ICONS_S)
+				    end do
+			      END DO
+			 END DO
+
+			 do iex=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+
+			 limvbg=tolbig
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      iqp=qp_line
+			      do NGP=1,iqp
+
+
+				  LIMVBG=MIN(LIMVBG,PSI(iex,L,Ngp) )
+			      end do
+			 end do
+			 WENO(IEX,1)=LIMVBG
+			 end do
+
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			  ILOCAL_RECON3(I)%ULEFTTURB(:,L,:)=zero
+			      iqp=qp_line
+			      do NGP=1,iqp
+
+
+				    USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)=USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)-U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+				    if (reduce_comp.eq.1)then
+				    ILOCAL_RECON3(I)%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,L,1)=ILOCAL_RECON3(I)%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,L,1)+(U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)+(USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)*WENO(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)))*wequa2d(ngp)
+				    else
+				    ILOCAL_RECON3(I)%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,L,ngp)=U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)+(USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)*WENO(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))
+
+				    end if
+
+			      END DO
+			 END DO
+
+			 END IF
+
+
+		 ICONSIDERED=I
+
+
+	END IF
+	END IF
+	END DO
+	!$OMP END DO
+
+
+
+	!$OMP DO SCHEDULE (STATIC)
+	DO II=1,NOF_BOUNDED
+	I=EL_BND(II)
+	ICONSIDERED=I
+
+	   IF (IELEM(N,I)%FULL.EQ.1)THEN
+	IF (IELEM(N,I)%RECALC.GT.0)THEN
+		CALL ALLGRADS_MIX2d(N,I)
+		   IF ((LIMITER.EQ.3).OR.(LIMITER.EQ.9))THEN
+                        IF (LIMITER.EQ.3)THEN
+		        if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+			  DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+                                IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			  END DO
+			ELSE
+			   DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+			    IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:nof_variables)
+			    else
+			      UTEMP(IQ,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
+			    end if
+			     IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			   end do
+			END IF
+! 			DO IEX=1,NOF_VARIABLES
+! 			UTEMP(2:IELEM(N,I)%iNUMNEIGHBOURS,IEX)=UTEMP(2:IELEM(N,I)%iNUMNEIGHBOURS,IEX)-UTEMP(1,iex)
+! 			END DO
+
+			UTMIN=ZERO;UTMAX=ZERO
+			DO IEX=1,NOF_VARIABLES
+			UTMIN(IEX)=MINVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			UTMAX(IEX)=MAXVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			END DO
+			ELSE
+			 if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+			  DO IQ=1,13
+			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+			      IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			  END DO
+			ELSE
+			   DO IQ=1,13
+			    IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+			      UTEMP(IQ,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:nof_variables)
+			    else
+			      UTEMP(IQ,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
+			    end if
+			    IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(IQ,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(IQ,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			   end do
+			END IF
+! 			DO IEX=1,NOF_VARIABLES
+! 			UTEMP(2:IELEM(N,I)%iNUMNEIGHBOURS,IEX)=UTEMP(2:IELEM(N,I)%iNUMNEIGHBOURS,IEX)-UTEMP(1,iex)
+! 			END DO
+
+			UTMIN=ZERO;UTMAX=ZERO
+			DO IEX=1,NOF_VARIABLES
+			UTMIN(IEX)=MINVAL(UTEMP(1:13,IEX))
+			UTMAX(IEX)=MAXVAL(UTEMP(1:13,IEX))
+			END DO
+
+
+
+
+			END IF
+
+
+
+
+		    ELSE
+			    K=0
+			    UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+			    IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			    K=1
+			    DO L=1,IELEM(N,I)%IFCA
+
+			    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+				IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+				      if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+				      K=K+1
+				      UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+				      ELSE
+				      !NOT PERIODIC ONES IN MY CPU
+				      END IF
+				ELSE
+					K=K+1
+					UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+				END IF
+			    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+				IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+				    if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					IF (FASTEST.EQ.1)THEN
+
+					  K=K+1
+					UTEMP(K,1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(L))%SOL(IELEM(N,i)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
+					ELSE
+
+					  K=K+1
+					UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+					  (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+					END IF
+				    END IF
+				ELSE
+
+					IF (FASTEST.EQ.1)THEN
+
+					  K=K+1
+					UTEMP(K,1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(L))%SOL(IELEM(N,i)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
+
+					ELSE
+
+					  K=K+1
+					UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+					  (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+					END IF
+
+			      END IF
+			  END IF
+                            IF (WENWRT.EQ.3)THEN
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(K,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(K,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+			 ! END DO
+			  END DO
+
+
+! 			  DO IEX=1,NOF_VARIABLES
+! 			UTEMP(2:k,IEX)=UTEMP(2:k,IEX)-UTEMP(1,iex)
+! 			END DO
+
+
+			UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,NOF_VARIABLES
+			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
+			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
+			  END DO
+
+		    END IF
+
+		    USOL(:,:,:)=ZERO
+			DO L=1,IELEM(N,I)%IFCA	!faces2
+			      idummy=0
+
+			   if (fastest.ne.1)then
+			   if (fastest_q.ne.1)then
+			   if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then
+				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					      IDUMMY=1
+					  END IF
+				  END IF
+
+
+				 iqp=qp_line
+
+				    NND=2
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD2d(n,iconsidered,facex)
+					  do K=1,nnd
+					  VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
+					  END DO
+					  END IF
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+
+
+
+			else
+
+				    iqp=qp_line
+				    NND=2
+
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
+					  END DO
+
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+
+
+
+
+
+			end if
+			else
+			 iqp=qp_line
+
+
+			end if
+
+
+
+			     do NGP=1,iqp			!for gqp
+				IF (FASTEST_Q.NE.1)THEN
+				AX = QPOINTS2D(1,NGP)
+				AY = QPOINTS2D(2,NGP)
+! 				AZ = QPOINTS2D(3,NGP)
+				ELSE
+				AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1)
+				AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2)
+! 				AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
+
+
+
+				END IF
+
+
+                compwrt=0
+				  CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2d(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+
+				      DO LX=1,IELEM(N,I)%IDEGFREE
+					  GRADSS(LX,1:NOF_VARIABLES)=ILOCAL_RECON5(1)%GRADIENTS(1,LX,1:NOF_VARIABLES)
+				      END DO
+                            IF (WENWRT.EQ.3)THEN
+                            UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+                            LEFTV(1:NOF_VARIABLES)=UTEMP(1,1:NOF_VARIABLES)
+                            CALL CONS2PRIM2d(N)
+                            UTEMP(1,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+                            END IF
+
+
+
+				  DO IEX=1,NOF_VARIABLES
+! 				   GRADSS(1:IELEM(N,I)%IDEGFREE,1)=GRADSS(1:IELEM(N,I)%IDEGFREE,IEX)
+! 				  RESSOLUTION(1,1) = DOT(CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX))
+				  RESSOLUTION(1,1) = DDOT(IELEM(N,I)%IDEGFREE,CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),1,GRADSS(1:IELEM(N,I)%IDEGFREE,IEX),1)
+				  !RESSOLUTION(1:1,1:1)=MATMUL(CONSMATRIX(1:1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX:IEX))
+
+				  IF (WENWRT.EQ.3)THEN
+				  USOL(IEX,L,Ngp)=((LEFTV(IEX)+RESSOLUTION(1,1)))
+				  ELSE
+				  USOL(IEX,L,Ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END IF
+				  END DO
+			    END DO
+		       else
+			    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then
+				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					      IDUMMY=1
+					  END IF
+				  END IF
+
+
+! 				 if (ielem(n,i)%types_faces(L).eq.5)then
+				    iqp=qp_line
+				    NND=2
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD2d(n,iconsidered,facex)
+
+					  END IF
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+
+
+
+			else
+
+				     iqp=qp_line
+				    NND=2
+
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+
+
+
+
+
+			end if
+
+
+
+			     do NGP=1,iqp
+				AX = QPOINTS2D(1,NGP)-ielem(n,i)%xxc
+				AY = QPOINTS2D(2,NGP)-ielem(n,i)%yyc
+
+
+
+				      DO LX=1,2
+					  GRADSS(LX,1:NOF_VARIABLES)=ILOCAL_RECON5(1)%GRADIENTS(1,LX,1:NOF_VARIABLES)
+				      END DO
+
+
+
+				  DO IEX=1,NOF_VARIABLES
+				  RESSOLUTION(1,1)=(ax*GRADSS(1,IEX))+(ay*GRADSS(2,IEX))
+				   IF (WENWRT.EQ.3)THEN
+				  USOL(IEX,L,Ngp)=((LEFTV(IEX)+RESSOLUTION(1,1)))
+				  ELSE
+				  USOL(IEX,L,Ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END IF
+				  !USOL(IEX,L,ngp)=((U_C(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END DO
+			    END DO
+
+
+		       end if
+		   END DO
+
+		    DO L=1,IELEM(N,I)%IFCA	!faces2
+			      iqp=qp_line
+			      do NGP=1,iqp
+				    DO iex=1,nof_Variables
+
+				 ICONS_E=IEX
+				 FACEX=L
+				 ICONS_S=NGP
+				 ICONSIDERED=I
+				CALL SLOPE_LIMITERS(N,ICONSIDERED,ICONS_E,FACEX,ICONS_S)
+				    end do
+			      END DO
+			 END DO
+
+			 do iex=1,nof_Variables
+			 limvbg=tolbig
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      iqp=qp_line
+			      do NGP=1,iqp
+
+
+				  LIMVBG=MIN(LIMVBG,PSI(iex,L,Ngp) )
+			      end do
+			 end do
+			 WENO(IEX,1)=LIMVBG
+
+
+                IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
+				END IF
+
+
+
+			 end do
+
+! 			  if (itestcase.eq.4)then
+
+			 ielem(n,i)%wcx(1)=WENO(1,1)
+
+
+! 			 end if
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			  ILOCAL_RECON3(I)%ULEFTX(:,L,:)=zero
+			 iqp=qp_line
+			      do NGP=1,iqp
+
+				    IF (WENWRT.EQ.3)THEN
+				    LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:nof_Variables)
+				    CALL CONS2PRIM2D(N)
+				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-LEFTV(1:NOF_VARIABLES)
+				    ELSE
+				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-U_C(I)%VAL(1,1:nof_Variables)
+				    END IF
+! 				    USOL(1:nof_Variables,l,Ngp)=USOL(1:nof_Variables,l,Ngp)-U_C(I)%VAL(1,1:nof_Variables)
+
+				    CALL EXTRAPOLATE_BOUND_MUSCLX(IEX,L,NGP,I,1)
+! 				    ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,ngp)=U_C(I)%VAL(1,1:nof_Variables)+(USOL(1:nof_Variables,l,Ngp)*WENO(1:nof_Variables,1))
+
+
+
+			      END DO
+			 END DO
+
+
+
+		    !TURBULENCE NOW
+			 IF (((PASSIVESCALAR.GT.0).OR.(TURBULENCE.EQ.1)).and.(icoupleturb.eq.1))then
+
+			     IF (LIMITER.EQ.3)THEN
+			  if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+			    DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+				UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			    END DO
+			  ELSE
+			    DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+			      IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+				UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			      else
+				UTEMP(IQ,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+			      end if
+			    end do
+			  END IF
+			  UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+			  UTMIN(IEX)=MINVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			  UTMAX(IEX)=MAXVAL(UTEMP(1:IELEM(N,I)%iNUMNEIGHBOURS,IEX))
+			  END DO
+
+
+		    ELSE
+			    K=0
+			    UTEMP(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			    K=1
+			    DO L=1,IELEM(N,I)%IFCA
+
+			    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+				IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+				      if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+				      K=K+1
+				      UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      ELSE
+				      !NOT PERIODIC ONES IN MY CPU
+				      END IF
+				ELSE
+					K=K+1
+					UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				END IF
+			    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+				IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+				    if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					IF (FASTEST.EQ.1)THEN
+
+					  K=K+1
+					UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(L))%SOL(IELEM(N,i)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+					ELSE
+
+					  K=K+1
+					UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+					  (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+					END IF
+				    END IF
+				ELSE
+
+					IF (FASTEST.EQ.1)THEN
+
+					  K=K+1
+					UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(L))%SOL(IELEM(N,i)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+					ELSE
+
+					  K=K+1
+					UTEMP(K,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+					  (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+					END IF
+
+			      END IF
+			  END IF
+			  END DO
+			UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
+			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
+			  END DO
+
+		    END IF
+
+		    USOL(:,:,:)=ZERO
+			DO L=1,IELEM(N,I)%IFCA	!faces2
+			      idummy=0
+
+			   if (fastest.ne.1)then
+			   IF (FASTEST_Q.NE.1)THEN
+			   if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then
+				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					      IDUMMY=1
+					  END IF
+				  END IF
+
+
+
+				    iqp=qp_line
+				    NND=2
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD2d(n,iconsidered,facex)
+					  do K=1,nnd
+					  VEXT(k,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
+					  END DO
+					  END IF
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+
+
+
+			else
+				   iqp=qp_line
+				    NND=2
+
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+					    VEXT(k,1:dims)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(K,1:dims)-ILOCAL_RECON3(I)%VEXT_REF(1:dims))
+					  END DO
+
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+
+
+
+
+
+			end if
+			else
+
+			iqp=qp_line
+			end if
+
+
+
+			     do NGP=1,iqp			!for gqp
+				IF (FASTEST_Q.NE.1)THEN
+				AX = QPOINTS2D(1,NGP)
+				AY = QPOINTS2D(2,NGP)
+! 				AZ = QPOINTS2D(3,NGP)
+				ELSE
+				AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1)
+				AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2)
+! 				AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
+
+
+
+				END IF
+
+
+                    compwrt=0
+				  CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2d(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE)
+				      DO LX=1,IELEM(N,I)%IDEGFREE
+					  GRADSS(LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON5(1)%GRADIENTS2(1,LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      END DO
+
+				  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+! 				   GRADSS(1:IELEM(N,I)%IDEGFREE,1)=GRADSS(1:IELEM(N,I)%IDEGFREE,IEX)
+! 				  RESSOLUTION(1,1) = DOT(CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX))
+				  RESSOLUTION(1,1) = DDOT(IELEM(N,I)%IDEGFREE,CONSMATRIX(1,1:IELEM(N,I)%IDEGFREE),1,GRADSS(1:IELEM(N,I)%IDEGFREE,IEX),1)
+				  !RESSOLUTION(1:1,1:1)=MATMUL(CONSMATRIX(1:1,1:IELEM(N,I)%IDEGFREE),GRADSS(1:IELEM(N,I)%IDEGFREE,IEX:IEX))
+
+				  USOL(IEX,L,Ngp)=((U_CT(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END DO
+			    END DO
+		       else
+			    if ((iperiodicity.eq.1).and.(ielem(n,i)%interior.eq.1))then
+				  IF (IELEM(N,I)%IBOUNDS(l).GT.0)THEN	!CHECK FOR BOUNDARIES
+					  if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+					      IDUMMY=1
+					  END IF
+				  END IF
+
+
+				  iqp=qp_line
+				  nnd=2
+					  IF (IDUMMY.EQ.0)THEN
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+					  ELSE
+					  facex=l;
+					  CALL coordinates_face_PERIOD2d(n,iconsidered,facex)
+
+					  END IF
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+
+
+
+			else
+
+				    iqp=qp_line
+				    NND=2
+
+					  do K=1,nnd
+					    VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(L,K))%CORD(1:dims)
+
+					  END DO
+
+
+				    call  QUADRATUREline(N,IGQRULES)
+
+
+
+
+
+
+			end if
+
+
+
+			     do NGP=1,iqp
+				AX = QPOINTS2D(1,NGP)-ielem(n,i)%xxc
+				AY = QPOINTS2D(2,NGP)-ielem(n,i)%yyc
+
+
+
+				      DO LX=1,2
+					  GRADSS(LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON5(1)%GRADIENTS2(1,LX,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				      END DO
+
+
+
+				  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+				  RESSOLUTION(1:1,1:1)=(ax*GRADSS(1,IEX))+(ay*GRADSS(2,IEX))
+				  USOL(IEX,L,ngp)=((U_CT(I)%VAL(1,IEX)+RESSOLUTION(1,1)))
+				  END DO
+			    END DO
+
+
+		       end if
+		   END DO
+
+		    DO L=1,IELEM(N,I)%IFCA	!faces2
+
+				    iqp=qp_line
+
+			      do NGP=1,iqp
+				    DO iex=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+
+				 ICONS_E=IEX
+				 FACEX=L
+				 ICONS_S=NGP
+				 ICONSIDERED=I
+				CALL SLOPE_LIMITERS(N,ICONSIDERED,ICONS_E,FACEX,ICONS_S)
+				    end do
+			      END DO
+			 END DO
+
+			 do iex=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+			 limvbg=tolbig
+			 DO L=1,IELEM(N,I)%IFCA	!faces2
+			      iqp=qp_line
+			      do NGP=1,iqp
+
+
+				  LIMVBG=MIN(LIMVBG,PSI(iex,L,Ngp) )
+			      end do
+			 end do
+			 WENO(IEX,1)=LIMVBG
+			 end do
+
+! 			 DO L=1,IELEM(N,I)%IFCA	!faces2
+! 			       iqp=qp_line
+! 				    do NGP=1,iqp
+!
+! 				    USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)=USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)-U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+! 				    ILOCAL_RECON3(I)%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,L,ngp)=U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)+(USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)*WENO(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))
+!
+!
+!
+!
+! 			      END DO
+! 			 END DO
+
+			DO L=1,IELEM(N,I)%IFCA	!faces2
+			  ILOCAL_RECON3(I)%ULEFTTURB(:,L,:)=zero
+			      iqp=qp_line
+			      do NGP=1,iqp
+
+
+				    USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)=USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)-U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+				    if (reduce_comp.eq.1)then
+				    ILOCAL_RECON3(I)%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,L,1)=ILOCAL_RECON3(I)%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,L,1)+(U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)+(USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)*WENO(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)))*wequa2d(ngp)
+				    else
+				    ILOCAL_RECON3(I)%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,L,ngp)=U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)+(USOL(1:TURBULENCEEQUATIONS+PASSIVESCALAR,l,Ngp)*WENO(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))
+
+				    end if
+
+			      END DO
+			 END DO
+
+
+
+
+
+
+
+
+
+			END IF
+
+
+
+	  ICONSIDERED=I
+! 	 CALL SOLUTIONTRIAV22d(N,ICONSIDERED)
+
+
+
+	END IF
+	END IF
+	END DO
+!$OMP END DO
+
+
+
+END SUBROUTINE MUSCL2dX
 
 
 
@@ -7652,14 +10496,24 @@ INTEGER::I,L,NGP,iqp,iex
 INTEGER::REDUCE1,kmaxe
 real::jump_cond
 KMAXE=XMPIELRANK(N)
-jump_cond=0.8
+jump_cond=0.85
 
 IF (ITESTCASE.GE.3)THEN
 
 !$OMP DO SCHEDULE (STATIC)	
 	DO I=1,KMAXE	!ALL ELEMENTS
-        REDUCE1=0
+        IELEM(N,I)%REDUCE=0;REDUCE1=0
+
+
+
         if (ielem(n,i)%troubled.eq.1)then
+
+        IF (IELEM(N,I)%FULL.EQ.0)THEN
+			IELEM(N,I)%REDUCE=1
+        END IF
+
+
+        IF (IELEM(N,I)%FULL.EQ.1)THEN
 		
 		  DO L=1,IELEM(N,I)%IFCA	!faces2
 			      if (ielem(n,i)%types_faces(L).eq.5)then
@@ -7676,18 +10530,23 @@ IF (ITESTCASE.GE.3)THEN
 						
 				
 					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))).OR.((ABS(LEFTV(5)-RIGHTV(5))).GE.(jump_cond*RIGHTV(5)))) THEN
-						    REDUCE1=1
+						    IELEM(N,I)%REDUCE=1
+! 						    PRINT*,"H--1",LEFTV(1),RIGHTV(1)
+
 					    END IF
-					    
-					    if (multispecies.eq.1)then
-					    IF (((ABS(LEFTV(8)-RIGHTV(8))).GE.(jump_cond*RIGHTV(8)))) THEN
-						    REDUCE1=1
- 						    
-					    END IF
-					    
-					    
-					    
-					    end if
+					 
+                                               
+
+ 					  if (multispecies.eq.1)then
+
+! 						IF (((ABS(LEFTV(8)-RIGHTV(8))).GE.(jump_cond*RIGHTV(8))).or.(leftv(8).lt.-0.01))then
+!  						    IELEM(N,I)%REDUCE=1
+!
+!  					    END IF
+!
+!
+!
+ 					    end if
 				
 				
 					
@@ -7699,98 +10558,17 @@ IF (ITESTCASE.GE.3)THEN
 		reduce1=1
 		end if
 		
-		IF (REDUCE1.EQ.1)THEN
-		do iex=1,NOF_VARIABLES
-		ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
-		
-		end do
-		
-		if (dg.eq.1)then
-		ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,:)=zero
-		
-		end if
-		
-		end if			
+!
 		
 		
-		if (turbulence.eq.1)then
-		if (icoupleturb.eq.1)then
-		REDUCE1=0
-		DO L=1,IELEM(N,I)%IFCA	!faces2
-			      
-				   if (ielem(n,i)%types_faces(L).eq.5)then
-				    iqp=qp_quad
-				    else
-				    iqp=QP_TRIANGLE
-				    end if
-			      
-				  do NGP=1,iqp
-				    leftv(1)=ILOCAL_RECON3(I)%ULEFTTURB(1,L,ngp)
-				    RIGHTV(1)=U_Ct(I)%VAL(1,1)
-					      IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.6*RIGHTV(1))).OR.(leftv(1).le.zero)) THEN
-						    REDUCE1=1
-					    END IF
-				  end do
-		end do
-		
-		if (ielem(n,i)%hybrid.eq.1)then
-		reduce1=1
-		end if
-		
-		IF (REDUCE1.EQ.1)THEN
-		do iex=1,1
-		ILOCAL_RECON3(I)%ULEFTTURB(1,:,:)=u_ct(i)%val(1,1)
-		end do
-		end if	
-		end if
-		end if
-		
-		
-		
+		END IF
 		
 		
 		end if
 	end do
 !$OMP END DO		
 		
-! ELSE
 
-
-! 
-! 
-! !$OMP DO SCHEDULE (STATIC)	
-! 	DO I=1,KMAXE	!ALL ELEMENTS
-! ! 		REDUCE1=0
-! 		  DO L=1,IELEM(N,I)%IFCA	!faces2
-! 			      if (ielem(n,i)%types_faces(L).eq.5)then
-! 				    iqp=qp_quad
-! 			      else
-! 				    iqp=QP_TRIANGLE
-! 			      end if
-! 				  do NGP=1,iqp
-! 					      
-! 						LEFTV(1:NOF_VARIABLES)=ILOCAL_RECON3(I)%ULEFT(1:NOF_VARIABLES,L,NGP)
-! 						RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-! ! 						CALL CONS2PRIM2(N)
-! 						
-! 						
-! 				
-! 					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.7*RIGHTV(1)))) THEN
-! ! 						    REDUCE1=1
-! 						    ILOCAL_RECON3(I)%ULEFT(1:NOF_VARIABLES,L,NGP)=u_c(i)%val(1,1:NOF_VARIABLES)
-! 					    END IF
-! 				
-! 				
-! 					
-! 				  END DO
-! 		END DO			
-! ! 		IF (REDUCE1.EQ.1)THEN
-! ! 		do iex=1,NOF_VARIABLES
-! ! 		ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
-! ! 		end do
-! ! 		end if			
-! 	end do
-! !$OMP END DO		
 		
 END IF		
 		
@@ -7798,7 +10576,129 @@ END IF
 
 END SUBROUTINE CHECKSOL
  
+SUBROUTINE CHECKSOLX(N)
+!> @brief
+!> Subroutine for checking the reconstructed solution
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,L,NGP,iqp,iex
+INTEGER::REDUCE1,kmaxe
+real::jump_cond
+KMAXE=XMPIELRANK(N)
+jump_cond=0.95
 
+IF (ITESTCASE.GE.3)THEN
+
+!$OMP DO SCHEDULE (STATIC)
+	DO I=1,KMAXE	!ALL ELEMENTS
+        
+
+
+
+        if (ielem(n,i)%troubled.eq.1)then
+        
+
+						DO L=1,IELEM(N,I)%IFCA	!faces2
+								if (ielem(n,i)%types_faces(L).eq.5)then
+									iqp=qp_quad_n
+								else
+									iqp=QP_TRIANGLE_n
+								end if
+										do NGP=1,iqp
+
+												LEFTV(1:NOF_VARIABLES)=ILOCAL_RECON3(I)%ULEFT(1:NOF_VARIABLES,L,NGP)
+												RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+												CALL CONS2PRIM2(N)
+
+
+
+												IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))).OR.((ABS(LEFTV(5)-RIGHTV(5))).GE.(jump_cond*RIGHTV(5)))) THEN
+													IELEM(N,I)%REDUCE=1
+
+
+                                                     					END IF
+                                      if (multispecies.eq.1)then
+!                                            IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))).or.(leftv(7).lt.zero))then
+! 						    REDUCE1=1
+!
+! 					    END IF
+
+                                                                                   end if
+
+										
+
+
+
+										END DO
+						END DO
+
+
+					if (ielem(n,i)%hybrid.eq.1)then
+					reduce1=1
+					end if
+
+					IF (REDUCE1.EQ.1)THEN
+						do iex=1,NOF_VARIABLES
+						ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
+
+						end do
+
+						if (dg.eq.1)then
+						ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,:)=zero
+
+						end if
+
+					end if
+
+
+					if (turbulence.eq.1)then
+							if (icoupleturb.eq.1)then
+							REDUCE1=0
+								DO L=1,IELEM(N,I)%IFCA	!faces2
+
+										if (ielem(n,i)%types_faces(L).eq.5)then
+											iqp=qp_quad
+											else
+											iqp=QP_TRIANGLE
+											end if
+
+										do NGP=1,iqp
+											leftv(1)=ILOCAL_RECON3(I)%ULEFTTURB(1,L,ngp)
+											RIGHTV(1)=U_Ct(I)%VAL(1,1)
+												IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.6*RIGHTV(1))).OR.(leftv(1).le.zero)) THEN
+													REDUCE1=1
+												END IF
+										end do
+								end do
+
+								if (ielem(n,i)%hybrid.eq.1)then
+								reduce1=1
+								end if
+
+								IF (REDUCE1.EQ.1)THEN
+								do iex=1,1
+								ILOCAL_RECON3(I)%ULEFTTURB(1,:,:)=u_ct(i)%val(1,1)
+								end do
+								end if
+							end if
+					end if
+
+
+
+
+
+		end if
+	end do
+!$OMP END DO
+
+
+
+
+END IF
+
+
+
+END SUBROUTINE CHECKSOLX
  
  
 SUBROUTINE CHECKSOL2D(N)
@@ -7810,15 +10710,21 @@ INTEGER::I,L,NGP,iqp,iex,kmaxe
 INTEGER::REDUCE1
 real::jump_cond
 KMAXE=XMPIELRANK(N)
-jump_cond=0.8
+jump_cond=0.85
 
 IF (ITESTCASE.GE.3)THEN
 
 !$OMP DO SCHEDULE (STATIC)	
 	DO I=1,KMAXE	!ALL ELEMENTS
-		REDUCE1=0
+		 IELEM(N,I)%REDUCE=0;REDUCE1=0
 		if (ielem(n,i)%troubled.eq.1)then
 		 
+		 IF (IELEM(N,I)%FULL.EQ.0)THEN
+			IELEM(N,I)%REDUCE=1
+        END IF
+
+		 IF (IELEM(N,I)%FULL.EQ.1)THEN
+
 		 DO L=1,IELEM(N,I)%IFCA	!faces2
 			      
 				    iqp=qp_LINE_n
@@ -7834,14 +10740,16 @@ IF (ITESTCASE.GE.3)THEN
 					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))).OR.((ABS(LEFTV(4)-RIGHTV(4))).GE.(jump_cond*RIGHTV(4)))) THEN
 						    REDUCE1=1
 
-
+							IELEM(N,I)%REDUCE=1
  						    
 					    END IF
 					    if (multispecies.eq.1)then
-					    IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7)))) THEN
-						    REDUCE1=1
- 						    
-					    END IF
+
+
+! 					    IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))).or.(leftv(7).lt.-0.00001))then
+! 						    REDUCE1=1
+! 							IELEM(N,I)%REDUCE=1
+! 					    END IF
 					    
 					    
 					    
@@ -7851,6 +10759,78 @@ IF (ITESTCASE.GE.3)THEN
 					
 				  END DO
 		END DO		
+		if (ielem(n,i)%hybrid.eq.1)then
+		reduce1=1
+		end if
+
+		END IF
+
+
+		end if
+
+
+	end do
+!$OMP END DO		
+		
+END IF		
+
+		
+
+END SUBROUTINE CHECKSOL2D 
+
+
+SUBROUTINE CHECKSOL2DX(N)
+!> @brief
+!> Subroutine for checking the reconstructed solution in 2D
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,L,NGP,iqp,iex,kmaxe
+INTEGER::REDUCE1
+real::jump_cond
+KMAXE=XMPIELRANK(N)
+jump_cond=0.95
+
+IF (ITESTCASE.GE.3)THEN
+
+!$OMP DO SCHEDULE (STATIC)
+	DO I=1,KMAXE	!ALL ELEMENTS
+		REDUCE1=0
+		if (ielem(n,i)%troubled.eq.1)then
+
+		 DO L=1,IELEM(N,I)%IFCA	!faces2
+
+				    iqp=qp_LINE_n
+
+				  do NGP=1,iqp
+
+						LEFTV(1:NOF_VARIABLES)=ILOCAL_RECON3(I)%ULEFT(1:NOF_VARIABLES,L,NGP)
+						RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+						CALL CONS2PRIM2d2(N)
+
+
+
+					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))).OR.((ABS(LEFTV(4)-RIGHTV(4))).GE.(jump_cond*RIGHTV(4)))) THEN
+						    REDUCE1=1
+							IELEM(N,I)%REDUCE=1
+
+
+					    END IF
+					    if (multispecies.eq.1)then
+
+
+! 					    IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))).or.(leftv(7).lt.zero))then
+! 						    REDUCE1=1
+!
+! 					    END IF
+
+
+
+					    end if
+
+
+
+				  END DO
+		END DO
 		if (ielem(n,i)%hybrid.eq.1)then
 		reduce1=1
 		end if
@@ -7868,26 +10848,26 @@ IF (ITESTCASE.GE.3)THEN
                     END IF
                     END IF
 		IF (REDUCE1.EQ.1)THEN
-        
+
 		do iex=1,NOF_VARIABLES
 		ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
 		end do
-		
-		
+
+
 		if (dg.eq.1)then
 		ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,:)=zero
-		
+
 		end if
-		
-		end if	
-		
+
+		end if
+
                             if (turbulence.eq.1)then
                             if (icoupleturb.eq.1)then
                             REDUCE1=0
                                     DO L=1,IELEM(N,I)%IFCA	!faces2
-                                            
+
                                                 iqp=qp_LINE_n
-                                            
+
                                             do NGP=1,iqp
                                                 leftv(1)=ILOCAL_RECON3(I)%ULEFTTURB(1,L,ngp)
                                                 RIGHTV(1)=U_Ct(I)%VAL(1,1)
@@ -7896,39 +10876,41 @@ IF (ITESTCASE.GE.3)THEN
                                                     END IF
                                             end do
                                     end do
-                            
+
                                     if (ielem(n,i)%hybrid.eq.1)then
                                     reduce1=1
                                     end if
-                            
+
                                     IF (REDUCE1.EQ.1)THEN
                                     do iex=1,1
                                     ILOCAL_RECON3(I)%ULEFTTURB(1,:,:)=u_ct(i)%val(1,1)
                                     end do
-                                    
+
                                     do iex=1,NOF_VARIABLES
                                     ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
                                     end do
-                                    
-                                    
+
+
                                     end if
-                            
-                            
-                            
-                            
+
+
+
+
                             end if
                             end if
-		
-		
+
+
 		end if
 	end do
-!$OMP END DO		
-		
-END IF		
+!$OMP END DO
 
-		
+END IF
 
-END SUBROUTINE CHECKSOL2D 
+
+
+END SUBROUTINE CHECKSOL2DX
+
+
 
 SUBROUTINE SOLUTIONTRIAV22d(N,ICONSIDERED)
 !> @brief
@@ -8618,6 +11600,73 @@ END IF
 END SUBROUTINE SOLUTIONTRIAV2
 
 
+
+
+SUBROUTINE CHECK_AGAIN(N)
+INTEGER,INTENT(IN)::N
+INTEGER::I,L,NGP,iqp,iex,kmaxe
+INTEGER::countgh1,countgh2
+real::jump_cond,d2,kappax,epsf
+KMAXE=XMPIELRANK(N)
+
+
+kappax=5
+
+!$OMP DO SCHEDULE (STATIC)
+	DO I=1,KMAXE	!ALL ELEMENTS
+		countgh1=0;countgh2=0
+		ielem(n,i)%vortex=0
+		ICONSIDERED=I
+!  		CALL FIND_BOUNDS
+
+
+
+		 DO L=1,IELEM(N,I)%IFCA	!faces2
+				    iqp=qp_LINE_n
+				  do NGP=1,iqp
+						ielem(n,i)%condx=0
+						countgh1=countgh1+1
+						LEFTV(1:NOF_VARIABLES)=ILOCAL_RECON3(I)%ULEFT(1:NOF_VARIABLES,L,NGP)
+						RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+ 						facex=l
+ 						pointx=ngp
+!
+ 						USOL(1:nof_Variables,facex,pointx)=LEFTV(1:NOF_VARIABLES)
+
+						d2=leftv(1)-rightv(1)
+ 						epsf=0.4
+! 						call NAD_DG
+
+
+
+ 						IF (ABS(D2).GT.epsf*rightv(1))THEN
+!   						if (ielem(n,i)%condx.eq.1)then
+						countgh2=countgh2+1
+
+						ILOCAL_RECON3(I)%ULEFT(1:NOF_VARIABLES,L,NGP)=ILOCAL_RECON3(I)%ULEFTX(1:NOF_VARIABLES,L,NGP)
+						END IF
+
+
+
+
+				END DO
+		END DO
+		if (countgh2.gt.0)then
+		ielem(n,i)%vortex=countgh2/countgh1
+		eLSE
+		ielem(n,i)%vortex=0.0d0
+		end if
+
+	END DO
+!$OMP END DO
+
+
+
+
+
+END SUBROUTINE CHECK_AGAIN
+
+
 SUBROUTINE SLOPE_LIMITERS(N,ICONSIDERED,ICONS_E,FACEX,ICONS_S)
 !> @brief
 !> Subroutine MUSCL slope limiters
@@ -9205,8 +12254,8 @@ END SUBROUTINE
 
 SUBROUTINE TROUBLE_INDICATOR2
 IMPLICIT NONE
-INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex
-INTEGER::TROUBLE
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex,NDOF
+INTEGER::TROUBLE, IFREE,I_DEG
 REAL,DIMENSION(idegfree)::BASIS_TEMP
 
 KMAXE=XMPIELRANK(N)
@@ -9291,28 +12340,75 @@ INTEGER::TROUBLE
     
     I=ICONSIDERED
                                                 IF (ITESTCASE.GE.3)THEN
-                                                IF (DIMENSIONA.EQ.3)THEN
+														IF (DIMENSIONA.EQ.3)THEN
                                                 
                                                     CALL CONS2PRIM(N)
+                                                    
+                                                    
+                                                    IF(MULTISPECIES.EQ.1)THEN
+                                                    
+															IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN
+																IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+															END IF
+															IF ((LEFTV(5).LE.ZERO).OR.(LEFTV(5).NE.LEFTV(5)))THEN
+																IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+															END IF
+	! 														IF ((LEFTV(5).LE.-MP_PINF(1)).OR.(LEFTV(5).LE.-MP_PINF(2)))THEN
+	! 															IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+	!                                                         END IF
+
+                                                                
+														!	IF((LEFTV(NOF_VARIABLES).LT.-0.05).OR.LEFTV(NOF_VARIABLES).ne.leftv(8)) THEN
+														!		IELEM(N,I)%TROUBLED =1; IELEM(N,I)%CONDITION=1
+														!	END IF
+													ELSE
 						
 						!
-                                                        IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
-                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
-                                                        
-                                                        
-                                                        END IF
-                                                        IF ((LEFTV(5).LE.ZERO).OR.(LEFTV(5).NE.LEFTV(5)))THEN						
-                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
-                                                        END IF
+															IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN
+															IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+
+
+															END IF
+															IF ((LEFTV(5).LE.ZERO).OR.(LEFTV(5).NE.LEFTV(5)))THEN
+															IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+															END IF
+													end if
                                                 ELSE
-                                                    CALL CONS2PRIM2D(N)
+												CALL CONS2PRIM2D(N)
+                                                IF (MULTISPECIES.EQ.1)THEN
+
+													IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN
+														IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+													END IF
+													IF ((LEFTV(4).LE.ZERO))THEN
+														IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+													END IF
+													IF ((LEFTV(4).NE.LEFTV(4)))THEN
+														IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+													END IF
+
+! IF ((LEFTV(4).LE.ZERO).OR.(LEFTV(4).NE.LEFTV(4)))THEN
+! 														IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+! 													END IF
+
+													IF((LEFTV(NOF_VARIABLES).LT.ZERO).OR.LEFTV(NOF_VARIABLES).GT.1.0D0) THEN
+														IELEM(N,I)%TROUBLED =1; IELEM(N,I)%CONDITION=1
+													END IF
+
+
+
+
+
+                                                ELSE
+
                                                         IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
                                                         IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
                                                         END IF
                                                         IF ((LEFTV(4).LE.ZERO).OR.(LEFTV(4).NE.LEFTV(4)))THEN						
                                                         IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
                                                         END IF
-                                                
+                                                        
+                                                END IF
                                                 
                                                 END IF
                                                 END IF
@@ -9327,14 +12423,20 @@ END SUBROUTINE
 SUBROUTINE NAD_DG    
 IMPLICIT NONE
 INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex
-INTEGER::TROUBLE
+INTEGER::TROUBLE,img
 REAL::PAR1,PAR2,d2,minb,maxb
 REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
 
 ! PAR1=1E-4
 ! PAR2=4e-1
     
+        if (dimensiona.eq.3)then
     
+        img=5
+    else
+    
+        img=4
+    end if
         
     
   
@@ -9346,11 +12448,33 @@ REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
             DO IEX=1,NOF_VARIABLES
 			NAD_DG_EL(IEX)=MAX(INDICATOR_PAR1,(INDICATOR_PAR2)*(UTMAX(IEX)-UTMIN(IEX)))
 			END DO
-    
+			leftv(1:nof_Variables)=USOL(1:nof_Variables,facex,pointx)
+
+
+			IF (DIMENSIONA.EQ.2)THEN
+			CALL CONS2PRIM2D(N)
+			ELSE
+			CALL CONS2PRIM(N)
+			END IF
     
             DO IEX=1,NOF_VARIABLES
-                IF ((USOL(iex,facex,pointx).LT.(UTMIN(IEX)-NAD_DG_EL(IEX))).OR.(USOL(iex,facex,pointx).GT.(UTMAX(IEX)+NAD_DG_EL(IEX))))THEN
+                IF ((leftv(iex).LT.(UTMIN(IEX)-NAD_DG_EL(IEX))).OR.(leftv(iex).GT.(UTMAX(IEX)+NAD_DG_EL(IEX))))THEN
                     IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                END IF
+            END DO
+
+
+
+             CASE(11)       !MOOD INDICATOR
+
+            DO IEX=1,NOF_VARIABLES
+			NAD_DG_EL(IEX)=MAX(INDICATOR_PAR1,(INDICATOR_PAR2)*(UTMAX(IEX)-UTMIN(IEX)))
+			END DO
+
+
+            DO IEX=1,NOF_VARIABLES
+                IF ((USOL(iex,facex,pointx).LT.(UTMIN(IEX)-NAD_DG_EL(IEX))).OR.(USOL(iex,facex,pointx).GT.(UTMAX(IEX)+NAD_DG_EL(IEX))))THEN
+                    IELEM(N,ICONSIDERED)%CONDx=1
                 END IF
             END DO
             
@@ -9370,7 +12494,7 @@ REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
 
                         DO IEX=1,NOF_VARIABLES
                         
-                        if ((iex.eq.1).or.(iex.eq.nof_variables))then
+                        if ((iex.eq.1).or.(iex.eq.img))then
                          IF ((SUMVARS(IEX)/MAXVARS(IEX)).GT.INDICATOR_PAR1)THEN
                             IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
                         END IF
@@ -9396,9 +12520,10 @@ REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
                         
                        
                         
-                        
+                         if ((iex.eq.1).or.(iex.eq.img))then
                         IF (ABS(USOL(iex,facex,pointx)-UTEMP(1,IEX)).GT.(INDICATOR_PAR1*UTEMP(1,IEX)))THEN
                         IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                        END IF
                         END IF
                         END DO
              
@@ -9412,15 +12537,22 @@ REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
               CASE(6)       !MOOD INDICATOR only density & energy
     
             DO IEX=1,NOF_VARIABLES
-            if ((iex.eq.1).or.(iex.eq.nof_variables))then
+            if ((iex.eq.1).or.(iex.eq.img))then
 			NAD_DG_EL(IEX)=MAX(INDICATOR_PAR1,(INDICATOR_PAR2)*(UTMAX(IEX)-UTMIN(IEX)))
 			end if
 			END DO
-    
+			leftv(1:nof_Variables)=USOL(1:nof_Variables,facex,pointx)
+
+			IF (DIMENSIONA.EQ.2)THEN
+			CALL CONS2PRIM2D(N)
+			eLSE
+			CALL CONS2PRIM(N)
+			END IF
     
             DO IEX=1,NOF_VARIABLES
-            if ((iex.eq.1).or.(iex.eq.nof_variables))then
-                IF ((USOL(iex,facex,pointx).LT.(UTMIN(IEX)-NAD_DG_EL(IEX))).OR.(USOL(iex,facex,pointx).GT.(UTMAX(IEX)+NAD_DG_EL(IEX))))THEN
+            if ((iex.eq.1).or.(iex.eq.img))then
+
+                IF ((leftv(iex).LT.(UTMIN(IEX)-NAD_DG_EL(IEX))).OR.(leftv(iex).GT.(UTMAX(IEX)+NAD_DG_EL(IEX))))THEN
                     IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
                 END IF
                 end if
@@ -9448,7 +12580,7 @@ END SUBROUTINE NAD_DG
 
 SUBROUTINE FIND_BOUNDS
 IMPLICIT NONE
-INTEGER::I,L,J,K,KMAXE,IQP,NGP,IEX,IK,iq
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,IEX,IK,iq,jk
 
 
 
@@ -9459,7 +12591,7 @@ MAXVARS=ZERO
 
 I=ICONSIDERED
 
-            if (code_profile.eq.100)then
+            if ((code_profile.eq.100).or.(code_profile.eq.0))then
 
 
             UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
@@ -9504,7 +12636,21 @@ I=ICONSIDERED
                     END IF
 			              
 			  END DO
-         END IF 
+		END IF
+
+			do jk=1,k
+			leftv(1:nof_Variables)=utemp(jk,1:nof_Variables)
+
+		if (dimensiona.eq.2)then
+			CALL CONS2PRIM2D(N)
+			else
+			call cons2prim(n)
+			end if
+
+			utemp(jk,1:nof_Variables)=leftv(1:nof_Variables)
+			end do
+
+
          
          end if
          
@@ -9530,7 +12676,17 @@ I=ICONSIDERED
                         end do
                 END IF
            
-           
+            do jk=1,k
+                        leftv(1:nof_Variables)=utemp(jk,1:nof_Variables)
+
+                if (dimensiona.eq.2)then
+                        CALL CONS2PRIM2D(N)
+                        else
+                        call cons2prim(n)
+                        end if
+
+                        utemp(jk,1:nof_Variables)=leftv(1:nof_Variables)
+                        end do
            
            
            end if
@@ -10530,6 +13686,175 @@ END SUBROUTINE FIND_BOUNDS_DISS
 
 
 
+SUBROUTINE VFBP_LIMITER
+
+IMPLICIT NONE
+REAL::VF_QPSOL, VF_AVSOL, LTHRESH, HTHRESH,SCALING,SCALING1,SCALING2, PD1_QPSOL, PD1_AVSOL,PD2_QPSOL, PD2_AVSOL
+REAL,external:: ddot
+INTEGER::I,II,ICD,K,NUMBER_OF_NEI,IDUMMy,L,NND,NGP, IQP,I_ELEM,I_FACE, IMG1,IMG2
+REAL, DIMENSION(NUMBEROFPOINTS2)::SCALING_F,SCALING_F1,SCALING_F2
+
+ !iqp=QP_LINE_N
+
+ LTHRESH = 1.0e-16
+ HTHRESH = 1.0d0-LTHRESH
+
+
+
+!$OMP DO
+DO I = 1, XMPIELRANK(N)
+
+    DO L = 1, IELEM(N,I)%IFCA
+
+
+
+    if (dimensiona.eq.2)then
+
+            iqp=QP_LINE_N
+            IMG1=5
+            IMG2=6
+            else
+            IMG1=6
+            IMG2=7
+                if (ielem(n,I)%types_faces(L).eq.5)then
+					iqp=qp_quad
+				  else
+					iqp=QP_TRIANGLE
+
+				  end if
+            end if
+
+ !COMPUTE SCALING FACTORS AT EACH FACE AND EACH QP
+
+     DO NGP = 1,iqp! QP_LINE_N
+
+                FACEX=L
+                POINTX=NGP
+                ICONSIDERED=I
+                NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
+
+                VF_QPSOL = ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(NOF_VARIABLES, FACEX, POINTX)
+                VF_AVSOL = U_C(I)%VALDG(1,NOF_VARIABLES,1)
+
+                PD1_QPSOL = ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(IMG1, FACEX, POINTX)
+                PD1_AVSOL = U_C(I)%VALDG(1,IMG1,1)
+
+                PD2_QPSOL = ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(IMG2, FACEX, POINTX)
+                PD2_AVSOL = U_C(I)%VALDG(1,IMG2,1)
+
+
+!                 COND1 = (VF_AVSOL - LTHRESH)/(VF_AVSOL - VF_QPSOL)
+!                 COND2 = 1.0d0
+!                 COND3 = (HTHRESH - VF_AVSOL)/(VF_QPSOL - VF_AVSOL)
+
+        !VOLUME FRACTION
+                IF (VF_QPSOL.LT.LTHRESH) THEN
+
+                    SCALING_F(NGP) = (VF_AVSOL - LTHRESH)/(VF_AVSOL - VF_QPSOL)
+
+                ELSE IF ((VF_QPSOL.GT.LTHRESH).and.(VF_QPSOL.lt.HTHRESH)) THEN
+
+                    SCALING_F(NGP) = 1.0d0
+
+                ELSE IF (VF_QPSOL.GT.HTHRESH) THEN
+
+                    SCALING_F(NGP) = (HTHRESH - VF_AVSOL)/(VF_QPSOL - VF_AVSOL)
+
+                END IF
+
+
+
+
+        !PARTIAL DENSITIES
+                IF (PD1_QPSOL.LT.LTHRESH) THEN
+
+                    SCALING_F1(NGP) = (PD1_AVSOL - LTHRESH)/(PD1_AVSOL - PD1_QPSOL)
+                ELSE
+
+                    SCALING_F1(NGP) = 1.0D0
+
+                END IF
+
+
+
+                IF (PD2_QPSOL.LT.LTHRESH) THEN
+
+                    SCALING_F2(NGP) = (PD2_AVSOL - LTHRESH)/(PD2_AVSOL - PD2_QPSOL)
+
+                ELSE
+
+                    SCALING_F2(NGP) = 1.0D0
+
+                END IF
+
+
+
+            END DO
+
+
+
+            SCALING = MINVAL(SCALING_F(:))
+            SCALING1 = MINVAL(SCALING_F1(:))
+            SCALING2 = MINVAL(SCALING_F2(:))
+
+
+
+
+
+            DO NGP = 1,iqp! QP_LINE_N
+
+                FACEX=L
+                POINTX=NGP
+                ICONSIDERED=I
+                NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
+
+                VF_QPSOL = ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(NOF_VARIABLES, FACEX, POINTX)
+                VF_AVSOL = U_C(I)%VALDG(1,NOF_VARIABLES,1)
+
+                PD1_QPSOL = ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(IMG1, FACEX, POINTX)
+                PD1_AVSOL = U_C(I)%VALDG(1,IMG1,1)
+
+                PD2_QPSOL = ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(IMG2, FACEX, POINTX)
+                PD2_AVSOL = U_C(I)%VALDG(1,IMG2,1)
+
+
+            !VOLUME FRACTION SCALING AT QPS
+                IF((SCALING.GT.0.0d0).and.(SCALING.LT.1.0d0)) THEN
+                    ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(NOF_VARIABLES, FACEX, POINTX) = VF_AVSOL + SCALING*(VF_QPSOL - VF_AVSOL)
+                   ! WRITE(300+n,*)"ELEM  ",I
+                   ! WRITE(300+n,*)VF_QPSOL, "  ",ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(NOF_VARIABLES, FACEX, POINTX)
+                END IF
+
+            !PARTIAL DENSITIES SCALING AT QPS
+
+                IF((SCALING1.GT.0.0d0).and.(SCALING1.LT.1.0d0)) THEN
+                    ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(IMG1, FACEX, POINTX) = PD1_AVSOL + SCALING1*(PD1_QPSOL - PD1_AVSOL)
+                   ! WRITE(300+n,*)"ELEM  ",I
+                   ! WRITE(300+n,*)PD1_QPSOL, "  ",ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(5, FACEX, POINTX)
+                END IF
+
+                IF((SCALING2.GT.0.0d0).and.(SCALING2.LT.1.0d0)) THEN
+                    ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(IMG2, FACEX, POINTX) = PD2_AVSOL + SCALING2*(PD2_QPSOL - PD2_AVSOL)
+                   ! WRITE(300+n,*)"ELEM  ",I
+                   ! WRITE(300+n,*)PD2_QPSOL, "  ",ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(6, FACEX, POINTX)
+                END IF
+
+
+
+
+            END DO
+
+
+
+
+
+    END DO
+
+END DO
+!$OMP END DO
+
+
+END SUBROUTINE VFBP_LIMITER
 
 
 ! ! ---------------------------------------------------------------------------------------------!

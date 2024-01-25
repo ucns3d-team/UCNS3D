@@ -100,6 +100,22 @@ end if
 
 end if
 
+
+
+IF (INITCOND.EQ.5)THEN
+
+LINEAR_INIT2d=0.0d0
+if ((sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.5d0)**2)).gt.0.25).and.(sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.5d0)**2)).lt.0.35))then
+
+LINEAR_INIT2d=1.0
+else
+LINEAR_INIT2d=0.0
+
+
+end if
+end if
+
+
 IF (INITCOND.EQ.2)THEN
 LINEAR_INIT2d=(SIN((2.0D0*PI)*(POX(1))))*(SIN((2.0D0*PI)*(POY(1))))
  
@@ -270,12 +286,12 @@ end if
 IF (INITCOND.EQ.405)THEN
 !TEST CASE 4.5 OF CORALIC & COLONIUS
 
-IF (POX(1).GT.0.1D0)THEN
+IF (POX(1).LT.-0.1D0)THEN
 MP_R(1)=0.166315789d0
 MP_R(2)=1.658d0
 MP_A(1)=0.0D0
 MP_A(2)=1.0D0
-U1=-114.49D0
+U1=114.49D0
 V1= 0.0D0
 w1=0.0D0
 P1=159060.0d0
@@ -300,7 +316,7 @@ ELSE
 
 
 
-if (sqrt(((pox(1)-0.05d0)**2)+((poy(1)-0.05d0)**2)+((poz(1)-0.05d0)**2)).LE.0.025d0)then
+if (sqrt(((pox(1)+0.05d0)**2)+((poy(1)-0.05d0)**2)+((poz(1)-0.05d0)**2)).LE.0.025d0)then
 MP_R(1)=0.166315789d0
 MP_R(2)=1.204D0
 MP_A(1)=0.95d0
@@ -374,6 +390,105 @@ VECCOS(8)=MP_A(1)
 
 
 END IF
+
+
+IF (INITCOND.EQ.411)THEN
+!EXAMPLE VI Paper5.pdf
+
+!GAMMA_IN(1) = 4.4 ! Water
+!GAMMA_IN(2) = 1.4  ! Air
+!MP_PINF(1) = 6e8 !Water from Coralic and Colonius or 2.218e8(abgrall203)
+!MP_PINF(2) = 0 ! Air
+
+IF (POX(1).LE.0.0066D0)THEN
+MP_R(2)=1323.65d0 	! Water density
+MP_R(1)=1d0 		! Air density
+MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=0.0D0 		! Air volume fraction
+U1=681.058D0	  	! m/s
+V1= 0.0D0
+w1=0.0d0
+P1=1.9e9      		! Pa
+
+
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+E1=(R1*SKIN1)+IE1
+!VECTOR OF CONSERVED VARIABLES NOW
+
+ELSE
+
+!FIRST WITHIN BUBBLE REGION
+
+
+
+if (sqrt(((pox(1)-0.012)**2)+((poy(1)-0.012)**2)+((poz(1)-0.012)**2)).LE.0.003d0)then
+MP_R(2)=1000.00d0 	! Water density
+MP_R(1)=1d0 		! Air density
+MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=1.0D0 		! Air volume fraction
+U1= 0.0D0	  		! m/s
+V1= 0.0D0
+w1=0.0d0
+P1= 100000    			! Pa
+
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+E1=(R1*SKIN1)+IE1
+!VECTOR OF CONSERVED VARIABLES NOW
+
+
+else
+
+MP_R(2)=1000.0d0 	! Water density
+MP_R(1)=1d0 		! Air density
+MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=0.0D0 		! Air volume fraction
+U1= 0.0D0	  		! m/s
+V1= 0.0D0
+w1=0.0d0
+P1= 100000    			! Pa
+
+
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+E1=(R1*SKIN1)+IE1
+
+!VECTOR OF CONSERVED VARIABLES NOW
+end if
+
+END IF
+
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=R1*w1
+VECCOS(5)=E1
+VECCOS(6)=MP_R(1)*MP_A(1)
+VECCOS(7)=MP_R(2)*MP_A(2)
+VECCOS(8)=MP_A(1)
+
+END IF
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1301,12 +1416,12 @@ END IF
 IF (INITCOND.EQ.405)THEN
 !TEST CASE 4.5 OF CORALIC & COLONIUS
 
-IF (POX(1).GT.0.1D0)THEN
+IF (POX(1).lt.-0.1D0)THEN
 MP_R(1)=0.166315789d0
 MP_R(2)=1.658d0
 MP_A(1)=0.0D0
 MP_A(2)=1.0D0
-U1=-114.49D0
+U1=114.49D0
 V1= 0.0D0
 P1=159060.0d0
 
@@ -1325,7 +1440,7 @@ ELSE
 
 
 
-if (sqrt(((pox(1)-0.05d0)**2)+((poy(1)-0.05d0)**2)).LE.0.025d0)then
+if (sqrt(((pox(1)+0.05d0)**2)+((poy(1)-0.05d0)**2)).LE.0.025d0)then
 MP_R(1)=0.166315789d0
 MP_R(2)=1.204D0
 MP_A(1)=0.95d0
@@ -2218,9 +2333,89 @@ VECCOS(4)=E1
 
 end if
 
+IF (INITCOND.EQ.470)THEN
 
 
 
+
+IF (POx(1).Lt.1.0)THEN   !Post shock concidions
+MP_R(2)=1.0d0 	! Water density
+MP_R(1)=1.0d0 		! Air density
+MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=1.0D0 		! Air volume fraction
+U1=0.0	  	          ! m/s
+V1=0.0
+P1=1.0      		! Pa
+
+
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2))
+E1=(R1*SKIN1)+IE1
+!VECTOR OF CONSERVED VARIABLES NOW
+
+ELSE
+
+IF (POy(1).gt.1.5)THEN
+
+MP_R(2)=1.0d0 	! Water density
+MP_R(1)=0.125d0 		! Air density
+MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=1.0D0 		! Air volume fraction
+U1=0.0	  	          ! m/s
+V1=0.0
+P1=0.1      		! Pa
+
+
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2))
+E1=(R1*SKIN1)+IE1
+!VECTOR OF CONSERVED VARIABLES NOW
+
+ELSE
+
+MP_R(2)=1.0d0 	! Water density
+MP_R(1)=0.125d0 		! Air density
+MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
+MP_A(1)=0.0D0 		! Air volume fraction
+U1=0.0	  	          ! m/s
+V1=0.0
+P1=0.1      		! Pa
+
+
+R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+SKIN1=(OO2)*((U1**2)+(V1**2))
+E1=(R1*SKIN1)+IE1
+!VECTOR OF CONSERVED VARIABLES NOW
+
+
+
+end if
+
+end if
+
+
+
+
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+VECCOS(5)=MP_R(1)*MP_A(1)
+VECCOS(6)=MP_R(2)*MP_A(2)
+VECCOS(7)=MP_A(1)
+
+
+
+end if
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

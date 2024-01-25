@@ -2581,7 +2581,7 @@ end do
 	    
 
               IF (CODE_PROFILE.EQ.88)THEN
-                      IF ((IELEM(N,I)%ISHAPE.EQ.3).or.(ielem(n,i)%ishape.eq.2)) THEN
+                      IF ((IELEM(N,I)%ISHAPE.EQ.3)) THEN
                                         IELEM(N,I)%FULL=0
                          END IF
 

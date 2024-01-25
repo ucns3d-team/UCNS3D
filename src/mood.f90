@@ -137,18 +137,20 @@ IF (ITESTCASE.GE.3)THEN
                         IF (MOOD_MODE.GT.0)THEN
                         DO IEX=1,NOF_VARIABLES
                         
-                        
+                        IF ((IEX.EQ.1).OR.(IEX.EQ.NOF_vARIABLES))then
                          IF ((U_C(I)%VAL(4,IEX).LT.(UTMIN(IEX)-NAD_DELTA1(IEX))).OR.(U_C(I)%VAL(4,IEX).GT.(UTMAX(IEX)+NAD_DELTA1(IEX))))THEN
                             NAD_TRUE=1
                         END IF
+                        endif
                         
                         END DO
                         ELSE
                         DO IEX=1,NOF_VARIABLES
+                         IF ((IEX.EQ.1).OR.(IEX.EQ.NOF_vARIABLES))then
                         IF ((U_C(I)%VAL(4,IEX).lt.(UTMIN(IEX))).or.(U_C(I)%VAL(4,IEX).gt.(UTMAX(IEX))))THEN
                             NAD_TRUE=1
                         END IF
-                        
+                        end if
                         END DO
                         
                         
@@ -269,18 +271,20 @@ IF (ITESTCASE.GE.3)THEN
                         IF (MOOD_MODE.GT.0)THEN
                         DO IEX=1,NOF_VARIABLES
                         
-                        
+                         IF ((IEX.EQ.1).OR.(IEX.EQ.NOF_vARIABLES))then
                          IF ((U_C(I)%VAL(4,IEX).LT.(UTMIN(IEX)-NAD_DELTA1(IEX))).OR.(U_C(I)%VAL(4,IEX).GT.(UTMAX(IEX)+NAD_DELTA1(IEX))))THEN
                             NAD_TRUE=1
                         END IF
+                        end if
                         
                         END DO
                         ELSE
                         DO IEX=1,NOF_VARIABLES
+                         IF ((IEX.EQ.1).OR.(IEX.EQ.NOF_vARIABLES))then
                         IF ((U_C(I)%VAL(4,IEX).lt.(UTMIN(IEX))).or.(U_C(I)%VAL(4,IEX).gt.(UTMAX(IEX))))THEN
                             NAD_TRUE=1
                         END IF
-                        
+                        end if
                         END DO
                         
                         
