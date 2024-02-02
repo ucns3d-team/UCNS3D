@@ -1194,14 +1194,33 @@ call mpi_barrier(mpi_comm_world,IERROR)
                     VIsDouble)
      ELSE
      if (multispecies.eq.1)then
-     NVAR1=9
-      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                    'Density,U,V,W,energy,Pressure,species1,species2,vfraction'//NULCHAR, &
+     NVAR1=10
+
+     if (dg.eq.1)then
+     NVAR1=10
+     if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                    'Density,U,V,W,energy,Pressure,species1,species2,vfraction,TROUBLED'//NULCHAR, &
                     out1//NULCHAR, &
                     '.'//NULCHAR, &
                     FileType, &
                     Debug, &
                     VIsDouble)
+
+
+
+     else
+
+      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                    'Density,U,V,W,energy,Pressure,species1,species2,vfraction,AUX'//NULCHAR, &
+                    out1//NULCHAR, &
+                    '.'//NULCHAR, &
+                    FileType, &
+                    Debug, &
+                    VIsDouble)
+
+
+         end if
+
      
      else
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
@@ -1503,6 +1522,44 @@ Valuelocation(:)=0
 			ierr = TECDAT112(imaxe,xbin,1)
 			END IF
                     
+
+                    IF (DG.EQ.1)THEN
+                     DO I=1,KMAXE
+                VALUESS(i)=IELEM(N,I)%TROUBLED
+                END DO
+
+                call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+			IF (N.EQ.0)THEN
+			do i=1,imaxe
+		xbin(XMPI_RE(I))=xbin2(I)
+		end do
+			ierr = TECDAT112(imaxe,xbin,1)
+			END IF
+                Else
+                        DO I=1,KMAXE
+                VALUESS(i)=IELEM(N,I)%REDUCE
+                END DO
+
+                call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+                        IF (N.EQ.0)THEN
+                        do i=1,imaxe
+                xbin(XMPI_RE(I))=xbin2(I)
+                end do
+                        ierr = TECDAT112(imaxe,xbin,1)
+                        END IF
+
+
+
+
+
+
+
+                end if
+
+
+
+
+
                     
                     
 			else
@@ -3745,7 +3802,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
     
     
     DO I=1,KMAXE
-      VALUESS(i)=ielem(n,i)%WCX(1)!IELEM(N,I)%ADMIS
+      VALUESS(i)=ielem(n,i)%wcx(1)!IELEM(N,I)%ADMIS
     END DO
     
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -3944,7 +4001,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
                 END IF
         else
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%ADMIS
+                VALUESS(i)=IELEM(N,I)%REDUCE
                 END DO
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
                 IF (N.EQ.0)THEN
@@ -18248,6 +18305,38 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 
 END SUBROUTINE TROUBLED_HISTORY
+
+
+SUBROUTINE REDUCED_HISTORY
+INTEGER::I,J,K,TRAJ1,TRAJ2,TRAJ3,TRAJ4,kmaxe,writeid,writeconf
+REAL::WIN1,WIN2,WIN3,WIN4,POST,POST1,POST2,POST3,POST4
+real,dimension(1)::pos_l,pos_g
+KMAXE=XMPIELRANK(N)
+POST1=0
+traj1=0
+pos_l(1)=zero
+pos_G(1)=zero
+DO I=1,KMAXE
+    pos_l(1)=pos_l(1)+IELEM(N,I)%REDUCE
+END DO
+
+
+CALL MPI_ALLREDUCE(pos_l(1),pos_g(1),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+IF (n.eq.0)THEN
+
+OPEN(70,FILE='REDUCED.DAT',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+WRITE(70,'(E14.7,1X,E14.7,1X,E14.7)')T,(POS_G(1)/IMAXE)*100.0
+close(70)
+
+END IF
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+END SUBROUTINE REDUCED_HISTORY
+
 
 SUBROUTINE FILTERED_HISTORY
 INTEGER::I,J,K,TRAJ1,TRAJ2,TRAJ3,TRAJ4,kmaxe,writeid,writeconf,countfd

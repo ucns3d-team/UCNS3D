@@ -247,6 +247,9 @@ SUBROUTINE SUMFLUX_ALLOCATION(N)
 	DO I=1,KMAXE
         IF (DG == 1) THEN
             ALLOCATE(RHS(I)%VALDG(NUM_DG_DOFS, NOF_VARIABLES))
+		if (multispecies.eq.1)then
+			ALLOCATE(RHS(I)%SOL_MM_DG(NUM_DG_DOFS, NOF_VARIABLES))
+		end if
             
         end if
             ALLOCATE (RHS(I)%VAL(nof_Variables))
@@ -1727,6 +1730,7 @@ DO I=1,KMAXE
 		
         if (fastest.ne.1)then
             ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
+
         else
             ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
         end if
@@ -1756,6 +1760,7 @@ DO I=1,KMAXE
 	
     if (fastest.ne.1)then
         ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,points))
+        ALLOCATE (ILOCAL_RECON3(I)%ULEFTx(IT,ielem(n,i)%ifca,points))
     else
         ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
 

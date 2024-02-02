@@ -5647,7 +5647,7 @@ INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::ISELEMT
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE,XMPIL
 INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALSTENCIL
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IWHICHSTEN,ISHYAPE,ISATISFIED
-INTEGER::I,J,K,L,M,O,P,KMAXE,ICOUNT,ICPUID,IATRUE,IG,IL,IFG,STNSHA,ITGH,KK,KXK,IX,IFVS,IXCZ,iadd,iadd2,iadd3,ITARGET
+INTEGER::I,J,K,L,M,O,P,KMAXE,ICOUNT,ICPUID,IATRUE,IG,IL,IFG,STNSHA,ITGH,KK,KXK,IX,IFVS,IXCZ,iadd,iadd2,iadd3,ITARGET,IADDX,iaddx1
 INTEGER,ALLOCATABLE,DIMENSION(:)::COUNTSIZE,OPS
 INTEGER::COUNTERST1,ISB1,ISB2,ISB3,TEMPSTEN3,ifno,INV,CANDID2
 INTEGER,ALLOCATABLE,DIMENSION(:)::TOTALN
@@ -5838,6 +5838,24 @@ IF (TYPESTEN.GT.1)THEN
 			DO IL=1,STNSHA	!for all stencils
 			ifno=2
 
+! 				 IL=0
+! 			DO IADDX=1,STNSHA	!for all stencils
+!
+! 			DO IADDX1=1,2
+! 			IL=IL+1
+! 			ifno=2
+!
+! 			IF (iADDX1.EQ.1)THEN
+! 			vext(2,1:2)=inoder(ielem(n,i)%nodes_faces(IADDX,1))%cord(1:2)
+! 			vext(3,1:2)=inoder(ielem(n,i)%nodes_faces(IADDX,2))%cord(1:2)
+! 			VEXT(3,1:2)=(VEXT(2,1:2)+VEXT(3,1:2))*OO2
+!
+! 			ELSE
+! 			vext(2,1:2)=inoder(ielem(n,i)%nodes_faces(IADDX,1))%cord(1:2)
+! 			vext(3,1:2)=inoder(ielem(n,i)%nodes_faces(IADDX,2))%cord(1:2)
+! 			VEXT(2,1:2)=(VEXT(2,1:2)+VEXT(3,1:2))*OO2
+! 			END IF
+
 			vext(2,1:2)=inoder(ielem(n,i)%nodes_faces(il,1))%cord(1:2)
 			vext(3,1:2)=inoder(ielem(n,i)%nodes_faces(il,2))%cord(1:2)
 
@@ -5845,6 +5863,7 @@ IF (TYPESTEN.GT.1)THEN
 
 
 			IF ((IELEM(N,I)%INEIGHG(il).GT.0))THEN
+! 			IF ((IELEM(N,I)%INEIGHG(IADDX).GT.0))THEN
 			IWHICHSTEN(N)=IL
 			
 			ILOCALSTENCIL(N,I,IL+1,1)=ILOCALALLELG(N,I,1,1)
@@ -5908,7 +5927,7 @@ END IF
 					END DO		!elements in stencil
 			      end if
 			END DO		!directional stencils
-	
+! 	end do
 	END DO
 	!$OMP END DO
 END IF
@@ -5956,7 +5975,7 @@ INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::ISELEMT
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE,XMPIL
 INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::ILOCALSTENCIL,ILOCALSTENCILPER
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IWHICHSTEN,ISHYAPE,ISATISFIED
-INTEGER::I,J,K,L,M,O,P,KMAXE,ICOUNT,ICPUID,IATRUE,IG,IL,IFG,STNSHA,ITGH,KK,KXK,IX,IFVS,IXCZ,iadd,iadd2,iadd3,ITARGET
+INTEGER::I,J,K,L,M,O,P,KMAXE,ICOUNT,ICPUID,IATRUE,IG,IL,IFG,STNSHA,ITGH,KK,KXK,IX,IFVS,IXCZ,iadd,iadd2,iadd3,ITARGET,IADDX,iaddx1
 INTEGER,ALLOCATABLE,DIMENSION(:)::COUNTSIZE,OPS
 INTEGER::COUNTERST1,ISB1,ISB2,ISB3,TEMPSTEN3,ifno,INV
 INTEGER,ALLOCATABLE,DIMENSION(:)::TOTALN
@@ -6145,10 +6164,30 @@ IF (TYPESTEN.GT.1)THEN
 			vext(2,1:2)=inoder(ielem(n,i)%nodes_faces(il,1))%cord(1:2)
 			vext(3,1:2)=inoder(ielem(n,i)%nodes_faces(il,2))%cord(1:2)
 
+! 		  IL=0
+! 			DO IADDX=1,STNSHA	!for all stencils
+!
+! 			DO IADDX1=1,2
+! 			IL=IL+1
+! 			ifno=2
+!
+! 			IF (iADDX1.EQ.1)THEN
+! 			vext(2,1:2)=inoder(ielem(n,i)%nodes_faces(IADDX,1))%cord(1:2)
+! 			vext(3,1:2)=inoder(ielem(n,i)%nodes_faces(IADDX,2))%cord(1:2)
+! 			VEXT(3,1:2)=(VEXT(2,1:2)+VEXT(3,1:2))*OO2
+!
+! 			ELSE
+! 			vext(2,1:2)=inoder(ielem(n,i)%nodes_faces(IADDX,1))%cord(1:2)
+! 			vext(3,1:2)=inoder(ielem(n,i)%nodes_faces(IADDX,2))%cord(1:2)
+! 			VEXT(2,1:2)=(VEXT(2,1:2)+VEXT(3,1:2))*OO2
+! 			END IF
 
 
 
-			IF ((IELEM(N,I)%INEIGHG(il).GT.0))THEN
+! 			IF ((IELEM(N,I)%INEIGHG(IADDX).GT.0))THEN
+
+
+ 			IF ((IELEM(N,I)%INEIGHG(il).GT.0))THEN
 			IWHICHSTEN(N)=IL
 			
 			ILOCALSTENCIL(N,I,IL+1,1)=ILOCALALLELG(N,I,1,1)
@@ -6202,6 +6241,7 @@ END IF
 			END DO		!directional stencils
 	
 	END DO
+! 	end do
 	!$OMP END DO
 END IF
 
@@ -6316,7 +6356,7 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             
             idegfree2=3
             IORDER2=1
-            NUMNEIGHBOURS2=9
+            NUMNEIGHBOURS2=7
             
             
             if (dg.eq.1)then
@@ -6367,13 +6407,13 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             CASE (1,2,3)
                 idegfree2=2
                 IORDER2=1
-                NUMNEIGHBOURS2=6
+                NUMNEIGHBOURS2=7
             
             
             CASE(4,5,6,7)
                 idegfree2=2
                 IORDER2=1
-                NUMNEIGHBOURS2=6
+                NUMNEIGHBOURS2=7
             
             END SELECT
         
@@ -6641,7 +6681,7 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
 			IELEM(N,I)%ADMIS=KX
 			IF ((EES.EQ.0))THEN
                             
-                            if (initcond.eq.101)then
+                            if ((initcond.eq.101).or.(initcond.eq.102))then
                             
                             IF (IELEM(N,I)%ADMIS.eq.ielem(n,i)%ifca+1)THEN
                             IELEM(N,I)%FULL=1
@@ -6660,7 +6700,7 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
 			
 			IF ((EES.GE.4))THEN
                             
-                            if (initcond.eq.101)then
+                            if ((initcond.eq.101).or.(initcond.eq.405))then
                             
                             IF (IELEM(N,I)%ADMIS.eq.ielem(n,i)%ifca+1)THEN
                             IELEM(N,I)%FULL=1
@@ -6668,7 +6708,7 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
                             end if
                             
                             else
-                            IF (IELEM(N,I)%ADMIS.GE.3)THEN
+                            IF (IELEM(N,I)%ADMIS.eq.ielem(n,i)%ifca+1)THEN
                             IELEM(N,I)%FULL=1
                             END IF
                             

@@ -419,7 +419,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 !> This subroutine computes the convective fluxes for hyperbolic conservation laws
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
-	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
+	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2, DG_VOL_REC
 	INTEGER::I,L,NGP,KMAXE,IQP,ii,IKAS,igoflux, icaseb,jx,jx2
 	REAL::sum_detect,NORMS,TEMPXX
 	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP
@@ -639,11 +639,16 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
                  
                  IF (DG.eq.1)then
 
-
-
-
-                    DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
+                   DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
                     RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
+                    
+                    IF (MULTISPECIES.EQ.1)THEN
+						DG_VOL_REC = DG_SOL(N)                   
+						RHS(I)%VALdg(1,8)=RHS(I)%VALdg(1,8)-(DG_VOL_REC(8)*MP_SOURCE3)!*ielem(n,I)%totvolume)
+
+					end if
+
+                   
 
 
 
@@ -901,6 +906,14 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
                     IF (DG.eq.1)then
                     DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
                     RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
+                    
+                    IF (MULTISPECIES.EQ.1)THEN
+						DG_VOL_REC = DG_SOL(N)                   
+						RHS(I)%VALdg(1,8)=RHS(I)%VALdg(1,8)-(DG_VOL_REC(8)*MP_SOURCE3)!*ielem(n,I)%totvolume)
+
+
+
+					END IF
 
 
 
