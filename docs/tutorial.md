@@ -28,6 +28,8 @@ The solid body rotation test of Leveque \cite{Leveque1996627} is employed to inv
 
 ## Aim
 
+![Alt text](schardin1.gif)
+
 ## Resources
 - [x] #739
 - [ ] https://github.com/octo-org/octo-repo/issues/740
