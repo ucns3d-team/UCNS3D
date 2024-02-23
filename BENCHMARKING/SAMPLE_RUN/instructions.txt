@@ -10,4 +10,38 @@ If the RESTART file is present in the directory the code will automatically rest
 STATS_..... files.
 
 
-The UCNS3D.DAT parameter that controls the order of accuracy should be varied from 3 (currently in the UCNS3D.DAT file
+The UCNS3D.DAT parameter that controls the order of accuracy should be varied from 3 (currently in the UCNS3D.DAT file line 30).
+
+The second parameter for the statistics on line 5 on UCNS3D.DAT, activates the statistics collection when set to 1.
+The statistics are then exported in the file STATS_MPI_...... which the naming convention is such that you can identify the number of mpi processes and threads used for this run. The times are all in seconds. And the code computes the maximum time taken per iteration for several subroutines/procedures within the code and writes the results in the following order.
+
+IT : iteration number 
+T_TIME: total time taken per (all the times are maximum time taken per Runge-Kutta Stage) 
+T_COMM: total time spent on communications
+T_COMP: total time spent on computations
+T_DGINT: total time spent on DF integrals    (not used for these tests)   
+T_HALO:  total time spent on exchanging halo cells across different MPI processes
+T_RECON:  total time spent on reconstruction (high order component of the code)   
+T_BOUND:  total time spent on exchanging reconstructed boundary extrapolated values for gaussian quadrature points across different MPI processes     
+T_ADDA:   total time spent on ADDA filtering (not used for these tests)  
+T_FLUX:  total time spent for flux calculations    
+T_UPDATE: total time spent on updating the solution
+
+
+
+You will need the following libraries in your src directory for compiling the code on ARCHER2:
+
+1) libmetis.a      located in /bin/lib/metis (static compiled with gcc)
+2) libparmetis_gnu_mpi.a      located in /bin/lib/parmetis  (static compile with gnu_mpi from archer2)
+3) libtecio.a      located in /bin/lib/tecplot/ (static compiled with gcc)
+4) Makefile      from /bin/gnu-compiler/archer/  (linking to the correct libraries)
+
+
+
+
+
+
+
+
+
+
