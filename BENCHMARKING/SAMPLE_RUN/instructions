@@ -1,1 +1,13 @@
+You need only the following files in a directory to run the simulation:
 
+1) GRID.cel, GRID.bnd, GRID.vrt (grid files)
+2) ucns3d_p                     (executable)
+3) UCNS3D.DAT                   (parameter file)
+
+
+If the RESTART file is present in the directory the code will automatically restart from this checkpoint file,
+(so it should be removed for the sake of benchmarking), the same applies for the *.vtk files and the 
+STATS_..... files.
+
+
+The UCNS3D.DAT parameter that controls the order of accuracy should be varied from 3 (currently in the UCNS3D.DAT file
