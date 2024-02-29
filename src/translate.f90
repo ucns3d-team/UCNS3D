@@ -123,7 +123,7 @@ do
 	read(82,"(A3)",advance='NO',IOSTAT=ios)dumc
 	dumc2=dumc(2:3)
 	read(dumc2,*,iostat=ioss)str2int
-	if ((ios .eq. -1))goto 11
+	if ((ios .eq. -1).or.(ios .eq. -4003))goto 11
 	countline=countline+1
 ! 	print*,'line',countlieq. "(0")ne !,dumc
 	     ! if (dumc .eq. "(0")  then ! COMMENT CONDITIONS
