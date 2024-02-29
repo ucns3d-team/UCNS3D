@@ -1716,8 +1716,8 @@ SUBROUTINE RUNGE_KUTTA3_2D_MOOD(N)
 !> SSP RUNGE KUTTA 3RD-ORDER SCHEME
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3,INDS
+INTEGER::I,KMAXE,INDS
+REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
 KMAXE=XMPIELRANK(N)
 TO4=3.0D0/4.0D0
 OO4=1.0D0/4.0D0
@@ -2855,11 +2855,11 @@ DO I=1,KMAXE
     IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))THEN
         write(600+n,*)"nan present",ielem(n,i)%ihexgl,ielem(n,i)%ishape,ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
         write(600+n,*)ielem(n,i)%dih(:)
-        write(500+n,'(3es14.6)'),ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
+        write(500+n,'(3es14.6)') ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
         if(MRF.EQ.1)then
         write(700+n,*)'SRF -diagonal', ILOCAL_RECON3(I)%MRF ,I
-         write(700+n,'(3es14.6)'),ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
-        write(700+n,*),impdu(i,1),impdu(i,2),impdu(i,3),impdu(i,4),impdu(i,5)
+         write(700+n,'(3es14.6)') ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
+        write(700+n,*) impdu(i,1),impdu(i,2),impdu(i,3),impdu(i,4),impdu(i,5)
         end if
         kill_nan=1
     END IF
