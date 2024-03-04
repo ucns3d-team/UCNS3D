@@ -7780,6 +7780,10 @@ INTEGER::KMAXE,I
 
 
 KMAXE=XMPIELRANK(N)
+
+
+
+	ielem(n,1:kmaxe)%REDUCE=0
 	
  SELECT CASE(IWENO)
  
@@ -7935,7 +7939,10 @@ INTEGER::KMAXE,I
 
 
 KMAXE=XMPIELRANK(N)
-	
+
+	ielem(n,1:kmaxe)%REDUCE=0
+
+
  SELECT CASE(IWENO)
  
  
@@ -10498,6 +10505,11 @@ real::jump_cond
 KMAXE=XMPIELRANK(N)
 jump_cond=0.85
 
+
+
+
+
+
 IF (ITESTCASE.GE.3)THEN
 
 !$OMP DO SCHEDULE (STATIC)	
@@ -10529,25 +10541,55 @@ IF (ITESTCASE.GE.3)THEN
 						
 						
 				
-					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))).OR.((ABS(LEFTV(5)-RIGHTV(5))).GE.(jump_cond*RIGHTV(5)))) THEN
-						    IELEM(N,I)%REDUCE=1
-! 						    PRINT*,"H--1",LEFTV(1),RIGHTV(1)
+											if (multispecies.EQ.1)then
 
-					    END IF
-					 
-                                               
+														IF (((ABS(LEFTV(8)-RIGHTV(8))).GE.(jump_cond*RIGHTV(8))))then
+															REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														END IF
 
- 					  if (multispecies.eq.1)then
+														IF (leftv(8).lt.0.0)then
+															REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														END IF
 
-! 						IF (((ABS(LEFTV(8)-RIGHTV(8))).GE.(jump_cond*RIGHTV(8))).or.(leftv(8).lt.-0.01))then
-!  						    IELEM(N,I)%REDUCE=1
-!
-!  					    END IF
-!
-!
-!
- 					    end if
-				
+														IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+
+														IF ((LEFTV(1).LT.0.0))then
+																REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														end if
+
+
+
+														IF ((LEFTV(5).LT.0.0))then
+																REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														end if
+
+
+
+												else
+															IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+															IF (((ABS(LEFTV(5)-RIGHTV(5))).GE.(jump_cond*RIGHTV(5))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+															IF ((LEFTV(5).LT.0.0).OR.(LEFTV(1).LT.0.0))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+												end if
 				
 					
 				  END DO
@@ -10587,13 +10629,16 @@ real::jump_cond
 KMAXE=XMPIELRANK(N)
 jump_cond=0.95
 
+
+
+
 IF (ITESTCASE.GE.3)THEN
 
 !$OMP DO SCHEDULE (STATIC)
 	DO I=1,KMAXE	!ALL ELEMENTS
         
 
-
+			REDUCE1=0
 
         if (ielem(n,i)%troubled.eq.1)then
         
@@ -10610,23 +10655,55 @@ IF (ITESTCASE.GE.3)THEN
 												RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
 												CALL CONS2PRIM2(N)
 
+												if (multispecies.EQ.1)then
+
+														IF (((ABS(LEFTV(8)-RIGHTV(8))).GE.(jump_cond*RIGHTV(8))))then
+															REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														END IF
+
+														IF (leftv(8).lt.0.0)then
+															REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														END IF
+
+														IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
 
 
-												IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))).OR.((ABS(LEFTV(5)-RIGHTV(5))).GE.(jump_cond*RIGHTV(5)))) THEN
-													IELEM(N,I)%REDUCE=1
+														IF ((LEFTV(1).LT.0.0))then
+																REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														end if
 
 
-                                                     					END IF
-                                      if (multispecies.eq.1)then
-!                                            IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))).or.(leftv(7).lt.zero))then
-! 						    REDUCE1=1
-!
-! 					    END IF
 
-                                                                                   end if
+														IF ((LEFTV(5).LT.0.0))then
+																REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														end if
 
-										
 
+
+												else
+															IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+															IF (((ABS(LEFTV(5)-RIGHTV(5))).GE.(jump_cond*RIGHTV(5))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+															IF ((LEFTV(5).LT.0.0).OR.(LEFTV(1).LT.0.0))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+												end if
 
 
 										END DO
@@ -10712,6 +10789,10 @@ real::jump_cond
 KMAXE=XMPIELRANK(N)
 jump_cond=0.85
 
+
+
+
+
 IF (ITESTCASE.GE.3)THEN
 
 !$OMP DO SCHEDULE (STATIC)	
@@ -10737,23 +10818,48 @@ IF (ITESTCASE.GE.3)THEN
 						
 						
 				
-					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))).OR.((ABS(LEFTV(4)-RIGHTV(4))).GE.(jump_cond*RIGHTV(4)))) THEN
-						    REDUCE1=1
+					    if (multispecies.EQ.1)then
 
-							IELEM(N,I)%REDUCE=1
- 						    
-					    END IF
-					    if (multispecies.eq.1)then
+														IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))))then
+															REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														END IF
+
+														IF (leftv(7).lt.0.0)then
+															REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														END IF
+
+														IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
 
 
-! 					    IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))).or.(leftv(7).lt.-0.00001))then
-! 						    REDUCE1=1
-! 							IELEM(N,I)%REDUCE=1
-! 					    END IF
-					    
-					    
-					    
-					    end if
+														IF ((LEFTV(1).LT.0.0))then
+																REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														end if
+
+
+
+												else
+															IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+															IF (((ABS(LEFTV(4)-RIGHTV(4))).GE.(jump_cond*RIGHTV(4))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+															IF ((LEFTV(4).LT.0.0).OR.(LEFTV(1).LT.0.0))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+												end if
 				
 				
 					
@@ -10790,6 +10896,8 @@ real::jump_cond
 KMAXE=XMPIELRANK(N)
 jump_cond=0.95
 
+
+
 IF (ITESTCASE.GE.3)THEN
 
 !$OMP DO SCHEDULE (STATIC)
@@ -10809,23 +10917,60 @@ IF (ITESTCASE.GE.3)THEN
 
 
 
-					    IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))).OR.((ABS(LEFTV(4)-RIGHTV(4))).GE.(jump_cond*RIGHTV(4)))) THEN
-						    REDUCE1=1
-							IELEM(N,I)%REDUCE=1
+					    if (multispecies.EQ.1)then
+
+														IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))))then
+															REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														END IF
+
+														IF (leftv(7).lt.0.0)then
+															REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														END IF
+
+														IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
 
 
-					    END IF
-					    if (multispecies.eq.1)then
-
-
-! 					    IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))).or.(leftv(7).lt.zero))then
-! 						    REDUCE1=1
-!
-! 					    END IF
+														IF ((LEFTV(1).LT.0.0))then
+																REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														end if
 
 
 
-					    end if
+														IF ((LEFTV(4).LT.0.0))then
+																REDUCE1=1
+															IELEM(N,I)%REDUCE=1
+														end if
+
+
+
+
+
+
+												else
+															IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+															IF (((ABS(LEFTV(4)-RIGHTV(4))).GE.(jump_cond*RIGHTV(4))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+
+
+															IF ((LEFTV(4).LT.0.0).OR.(LEFTV(1).LT.0.0))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
+
+												end if
 
 
 
