@@ -34,11 +34,16 @@ OFLAGS=
 
 #gfortran
 #debug run
-FFLAGS=-g -fbacktrace -ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -fcheck=all -Wno-lto-type-mismatch -fallow-argument-mismatch $(BLASFLAGS)
+#FFLAGS=-g -fbacktrace -ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -fcheck=all -Wno-lto-type-mismatch -fallow-argument-mismatch $(BLASFLAGS)
 
 
 
-FFLAGS= -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast -march=native -Wno-lto-type-mismatch -fallow-argument-mismatch $(BLASFLAGS) 
+#FFLAGS= -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast -march=native -Wno-lto-type-mismatch -fallow-argument-mismatch $(BLASFLAGS) 
+
+
+#this is the most stable for reproducability (without the combination of (-fno-lto -fno-tree-sra) no reproducible results beyond 00)
+FFLAGS= -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none  -O2 -march=native -fcray-pointer -fno-lto -fno-tree-sra -Wno-lto-type-mismatch -fallow-argument-mismatch $(BLASFLAGS)
+
 
 #aocl
 #FFLAGS= -O3 -Mfreeform -Mallocatable=03 -Mdaz -fdefault-real-8 -fopenmp -mavx2 -march=znver2 $(BLASFLAGS)
