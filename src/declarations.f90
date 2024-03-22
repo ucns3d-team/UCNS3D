@@ -16,6 +16,8 @@ IMPLICIT NONE
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
 
+!$omp declare target(compwrt, ielem, ilocal_recon3, integ_basis, integ_basis_dg, poly, sb, zero)
+
 INTEGER::CASCADE,MOOD,MOOD_MODE,kmaxn,multispecies,nof_species,pdim,M2,DIMENSIONA,LOWMEM,binio,nof_variables,CHUNK_N,dims,IRES_TURB,CODE_PROFILE,IRES_UNSTEADY,LAMPS,itotalb,totiw,number_of_dog,B_CODE,ICONS_S,ICONS_E,ICOMPACT,EES,iscoun,itold,lmach_style,WEIGHT_LSQR	!DIMENSIONS OF PROBLEM
 integer::governingequations,FILTERING,guassianquadra,temporder,iboundary,wenocnschar,required,nodes_i,SWIRL,IADAPT,TECPLOT,STENCIL_IO,SURFSHEAR,ISSF,n_node,ELEM_DEC,n_boundaries,NUMBER_OF_NEI,FASTEST_Q,STATISTICS,ADDA
 integer,allocatable,DIMENSION(:,:)::jtot1,jtot2,jtot3,jtot,el_connect
@@ -332,10 +334,10 @@ REAL,allocatable,dimension(:,:)::DG_RHS, DG_RHS_VOL_INTEG, DG_RHS_SURF_INTEG
 REAL,allocatable,dimension(:)::BASIS_VECTOR
 REAL,allocatable,DIMENSION(:,:)::tempsol
 
-!$OMP THREADPRIVATE(MP_SOURCE1,SUMVARS,LWCX1,MAXVARS,aver_vars,MP_SOURCE2,BASIS_VECTOR,tempsol,MP_SOURCE3,b_char,x_Char,INSTEN,llx,varcons,pointx,ba_char,a_char,ICONS_S,ICONS_E,compwrt,ILOCALALLELGD,ILOCALALLELG3,STCON,STCONC,STCONS,STCONG,COUNT_1,ISOSA,DIVBYZERO,IX,IFSAT,WEIGHTS_dg,DG_RHS, DG_RHS_VOL_INTEG, DG_RHS_SURF_INTEG,IISTART,SHEARTEMP,IMAX,NUMBER_OF_NEI,b_code,INUM,angle1,angle2,IDEG,n_node,inump,INUMO,inumo2,ideg2,m2,inump2,imax2,A_ROT,C_ROT,B_ROT,ROOT_ROT,ANGLEFACEX,ANGLEFACEY,voltemp,VISCOTS,PHX,INTEG_MM)
+!$OMP THREADPRIVATE(MP_SOURCE1,SUMVARS,LWCX1,MAXVARS,aver_vars,MP_SOURCE2,BASIS_VECTOR,tempsol,MP_SOURCE3,b_char,x_Char,INSTEN,llx,varcons,pointx,ba_char,a_char,ICONS_S,ICONS_E,ILOCALALLELGD,ILOCALALLELG3,STCON,STCONC,STCONS,STCONG,COUNT_1,ISOSA,DIVBYZERO,IX,IFSAT,WEIGHTS_dg,DG_RHS, DG_RHS_VOL_INTEG, DG_RHS_SURF_INTEG,IISTART,SHEARTEMP,IMAX,NUMBER_OF_NEI,b_code,INUM,angle1,angle2,IDEG,n_node,inump,INUMO,inumo2,ideg2,m2,inump2,imax2,A_ROT,C_ROT,B_ROT,ROOT_ROT,ANGLEFACEX,ANGLEFACEY,voltemp,VISCOTS,PHX,INTEG_MM)
 REAL,ALLOCATABLE,DIMENSION(:,:)::VVA,VVA1,lscqm1,xxder,yyder,zzder
 REAL,ALLOCATABLE,DIMENSION(:)::B1_imp,DU1,DU2,DUMMY12,C1_imp,DUR,DUL,DURR,DULR,DUT1,B1T,DUMMY12T,SOURCE_T,sb,DETA,UTMIN,UTMAX,VVr1,VVr2,VVr3,VVR4,VVwg,VVnpox,VVnpoy,VVnpoz,VVwpox,VVwpoy,VVwpoz,VVnxi,VVneta,VVnzeta,VVxi,VVeta,VVzeta,VVnallx,VVnally,VVnallz,VVB,VVC,VVD,VVE,VVF,vvjacobsurf,vvjacobvolume
-!$OMP THREADPRIVATE(sb,IBFC,x1c,y1c,z1c,h1c,number_of_dog,WEIGHT_T2,lscqm1,B1_imp,DU1,DU2,DUMMY12,xxder,yyder,zzder,C1_imp,DUR,DUL,DURR,DULR,DUT1,B1T,DUMMY12T,SOURCE_T,UTMIN,UTMAX,ax,ay,az,nx,ny,nz,nnx,nny,nnz,VVA,DETA,VVA1,VVr1,VVr2,VVr3,VVR4,VVwg,VVnpox,VVnpoy,VVnpoz,VVwpox,VVwpoy,VVwpoz,VVnxi,VVneta,VVnzeta,VVxi,VVeta,VVzeta,VVnallx,VVnally,VVnallz,VVB,VVC,VVD,VVE,VVF,vvjacobsurf,vvjacobvolume)
+!$OMP THREADPRIVATE(IBFC,x1c,y1c,z1c,h1c,number_of_dog,WEIGHT_T2,lscqm1,B1_imp,DU1,DU2,DUMMY12,xxder,yyder,zzder,C1_imp,DUR,DUL,DURR,DULR,DUT1,B1T,DUMMY12T,SOURCE_T,UTMIN,UTMAX,ax,ay,az,nx,ny,nz,nnx,nny,nnz,VVA,DETA,VVA1,VVr1,VVr2,VVr3,VVR4,VVwg,VVnpox,VVnpoy,VVnpoz,VVwpox,VVwpoy,VVwpoz,VVnxi,VVneta,VVnzeta,VVxi,VVeta,VVzeta,VVnallx,VVnally,VVnallz,VVB,VVC,VVD,VVE,VVF,vvjacobsurf,vvjacobvolume)
 
 REAL,ALLOCATABLE,DIMENSION(:)::gamma_IN,MP_IE,MP_A,MP_AR,MP_R,MP_R_IN,MP_A_IN,MP_PINF !MULTIPHASE COMPONENTS	
 REAL,ALLOCATABLE,DIMENSION(:)::MODAL_FILTER,ADDA_FILTER_WEAK,ADDA_FILTER_STRONG,MODAL_FILTER_STRONG,MODAL_FILTER_WEAK
@@ -463,7 +465,7 @@ integer,allocatable,dimension(:)::permutation,permutationg
 !$OMP THREADPRIVATE(QFF,RFF,QTFF,INVRFF,AINVJT,MATRIX_B,MATRIX_X,BASEFACEVAL,BASEFACGVAL,MOMENT,WEIGHTINV,VECTOR,INTBS,PERMUTATION,PERMUTATIONG,XDER,YDER,ZDER)
 
 
-!$OMP THREADPRIVATE(IXX,JXX,KXX,LXX1,NUMBER,ICONSIDERED,X1,Y1,Z1,facex,ixxff,iconsi,lxx,VECCOS)
+!$OMP THREADPRIVATE(IXX,JXX,KXX,LXX1,ICONSIDERED,facex,ixxff,iconsi,lxx,VECCOS)
 
 !$OMP THREADPRIVATE(CLEFT,cleft_rot,gammaL,MP_PINFL,MP_PINFR,GAMMAR,MP_IE,MP_AR,MP_R,MP_A,cright,cright_rot,sl,sr,sm,HLLCFLUX)
 !$OMP THREADPRIVATE(RHLLCFLUX,ROTVL,ROTVR,SUBSON1,SUBSON2,SUBSON3,CTURBL,CTURBr)
