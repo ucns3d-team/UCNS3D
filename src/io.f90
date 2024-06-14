@@ -15042,9 +15042,9 @@ IF ((ITESTCASE.LE.4).AND.(TURBULENCE.NE.1))THEN
 !$OMP DO SCHEDULE(STATIC) REDUCTION(+:ALLRES)
 DO I=1,KMAXE
 	if (dg.eq.1)then
-    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VALdg(1,1:nof_Variables)**2)
+    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+((rhs(i)%VALdg(1,1:nof_Variables)*ielem(n,i)%totvolume)**2)
     else
-    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VAL(1:nof_Variables)**2)
+    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+((rhs(i)%VAL(1:nof_Variables)*ielem(n,i)%totvolume)**2)
 
     end if
 END DO
@@ -15055,7 +15055,7 @@ DO I=1,5
 SUML3=ALLRES(I)
 DUM_RESI=ZERO
 CALL MPI_ALLREDUCE(SUML3,DUM_RESI,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-ALLRES(I)=DUM_RESI/IMAXE
+ALLRES(I)=DUM_RESI/totalvolume
 
 END DO
 
@@ -15078,8 +15078,8 @@ IF (TURBULENCE.EQ.1)THEN
 !$OMP BARRIER 
 !$OMP DO SCHEDULE(STATIC) REDUCTION(+:ALLRES)
 DO I=1,KMAXE
-    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VAL(1:nof_Variables)**2)
-    ALLRES(6:5+TURBULENCEEQUATIONS)=ALLRES(6:5+TURBULENCEEQUATIONS)+(RHST(I)%VAL(1:TURBULENCEEQUATIONS)**2)
+    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+((rhs(i)%VAL(1:nof_Variables)*ielem(n,i)%totvolume)**2)
+    ALLRES(6:5+TURBULENCEEQUATIONS)=ALLRES(6:5+TURBULENCEEQUATIONS)+((RHST(I)%VAL(1:TURBULENCEEQUATIONS)*ielem(n,i)%totvolume)**2)
 END DO
 !$OMP END DO
 
@@ -15169,9 +15169,9 @@ IF ((ITESTCASE.LE.4).AND.(TURBULENCE.NE.1))THEN
 DO I=1,KMAXE
 
     if (dg.eq.1)then
-    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VALdg(1,1:nof_Variables)**2)
+    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+((rhs(i)%VALdg(1,1:nof_Variables)*ielem(n,i)%totvolume)**2)
     else
-    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VAL(1:nof_Variables)**2)
+    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+((rhs(i)%VAL(1:nof_Variables)*ielem(n,i)%totvolume)**2)
 
     end if
 END DO
@@ -15186,7 +15186,7 @@ DO I=1,4
 SUML3=ALLRES(I)
 DUM_RESI=ZERO
 CALL MPI_ALLREDUCE(SUML3,DUM_RESI,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-ALLRES(I)=DUM_RESI/IMAXE
+ALLRES(I)=DUM_RESI/totalvolume
 
 END DO
 
@@ -15210,8 +15210,8 @@ IF (TURBULENCE.EQ.1)THEN
 !$OMP BARRIER 
 !$OMP DO SCHEDULE(STATIC) REDUCTION(+:ALLRES)
 DO I=1,KMAXE
-    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+(rhs(i)%VAL(1:nof_Variables)**2)
-    ALLRES(5:4+TURBULENCEEQUATIONS)=ALLRES(5:4+TURBULENCEEQUATIONS)+(RHST(I)%VAL(1:TURBULENCEEQUATIONS)**2)
+    ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+((rhs(i)%VAL(1:nof_Variables)*ielem(n,i)%totvolume)**2)
+    ALLRES(5:4+TURBULENCEEQUATIONS)=ALLRES(5:4+TURBULENCEEQUATIONS)+((RHST(I)%VAL(1:TURBULENCEEQUATIONS)*ielem(n,i)%totvolume)**2)
 END DO
 !$OMP END DO
 
