@@ -7,18 +7,271 @@ IMPLICIT NONE
 
  CONTAINS
  
+ FUNCTION BASIS_REC_SPHERE_CASE_ONLY(N, X1, Y1, Z1, NUMBER, ICONSIDERED, NUMBER_OF_DOG, compwrt_L, SB_L)
+    !> @brief
+    !> This function returns the value of the basis function for a specific polynomial order and coordinates
+       IMPLICIT NONE
+       INTEGER, INTENT(IN)::N
+       INTEGER, INTENT(IN)::NUMBER, ICONSIDERED, NUMBER_OF_DOG
+       integer,INTENT(IN)::compwrt_L
+       REAL,DIMENSION(:),INTENT(INOUT)::SB_L
+       REAL, INTENT(IN)::X1, Y1, Z1
+       REAL::OOV, hxc
+       real, dimension(NUMBER_OF_DOG)::BASIS_REC_SPHERE_CASE_ONLY
+       SB_L = zero
+       OOV = 1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1, 1))
+    
+       hxc = (sqrt(IELEM(N, Iconsidered)%totvolume))
+    
+       select case (number)
+       case (1)
+          !FIRST ORDER FUNCTIONS (2ND-ORDER OF ACCURACY 3)
+          SB_L(1) = x1/hxc
+          SB_L(2) = y1/hxc
+          SB_L(3) = z1/hxc
+       case (2)
+    ! SECOND ORDER FUNCTIONS (3RD-ORDER OF ACCURACY 4-9)
+          SB_L(1) = x1/hxc
+          SB_L(2) = y1/hxc
+          SB_L(3) = z1/hxc
+          SB_L(4) = x1**2/(2.0D0*hxc**2)
+          SB_L(5) = (x1*y1)/hxc**2
+          SB_L(6) = (x1*z1)/hxc**2
+          SB_L(7) = y1**2/(2.0D0*hxc**2)
+          SB_L(8) = (y1*z1)/hxc**2
+          SB_L(9) = z1**2/(2.0D0*hxc**2)
+       case (3)
+    ! THIRD ORDER FUNCTIONS (4TH-ORDER OF ACCURACY  10-19)
+          SB_L(1) = x1/hxc
+          SB_L(2) = y1/hxc
+          SB_L(3) = z1/hxc
+          SB_L(4) = x1**2/(2.0D0*hxc**2)
+          SB_L(5) = (x1*y1)/hxc**2
+          SB_L(6) = (x1*z1)/hxc**2
+          SB_L(7) = y1**2/(2.0D0*hxc**2)
+          SB_L(8) = (y1*z1)/hxc**2
+          SB_L(9) = z1**2/(2.0D0*hxc**2)
+          SB_L(10) = x1**3/(6.0D0*hxc**3)
+          SB_L(11) = (x1**2*y1)/(2.0D0*hxc**3)
+          SB_L(12) = (x1**2*z1)/(2.0D0*hxc**3)
+          SB_L(13) = (x1*y1**2)/(2.0D0*hxc**3)
+          SB_L(14) = (x1*z1**2)/(2.0D0*hxc**3)
+          SB_L(15) = (x1*y1*z1)/hxc**3
+          SB_L(16) = y1**3/(6.0D0*hxc**3)
+          SB_L(17) = (y1**2*z1)/(2.0D0*hxc**3)
+          SB_L(18) = (y1*z1**2)/(2.0D0*hxc**3)
+          SB_L(19) = z1**3/(6.0D0*hxc**3)
+    
+       case (4)
+    ! FOURTH ORDER FUNCTIONS (5TH-ORDER OF ACCURACY 20-34)
+          SB_L(1) = x1/hxc
+          SB_L(2) = y1/hxc
+          SB_L(3) = z1/hxc
+          SB_L(4) = x1**2/(2.0D0*hxc**2)
+          SB_L(5) = (x1*y1)/hxc**2
+          SB_L(6) = (x1*z1)/hxc**2
+          SB_L(7) = y1**2/(2.0D0*hxc**2)
+          SB_L(8) = (y1*z1)/hxc**2
+          SB_L(9) = z1**2/(2.0D0*hxc**2)
+          SB_L(10) = x1**3/(6.0D0*hxc**3)
+          SB_L(11) = (x1**2*y1)/(2.0D0*hxc**3)
+          SB_L(12) = (x1**2*z1)/(2.0D0*hxc**3)
+          SB_L(13) = (x1*y1**2)/(2.0D0*hxc**3)
+          SB_L(14) = (x1*z1**2)/(2.0D0*hxc**3)
+          SB_L(15) = (x1*y1*z1)/hxc**3
+          SB_L(16) = y1**3/(6.0D0*hxc**3)
+          SB_L(17) = (y1**2*z1)/(2.0D0*hxc**3)
+          SB_L(18) = (y1*z1**2)/(2.0D0*hxc**3)
+          SB_L(19) = z1**3/(6.0D0*hxc**3)
+          SB_L(20) = x1**4/(24.0D0*hxc**4)
+          SB_L(21) = (x1**3*y1)/(6.0D0*hxc**4)
+          SB_L(22) = (x1**3*z1)/(6.0D0*hxc**4)
+          SB_L(23) = (x1**2*y1**2)/(4.0D0*hxc**4)
+          SB_L(24) = (x1**2*z1**2)/(4.0D0*hxc**4)
+          SB_L(25) = (x1**2*y1*z1)/(2.0D0*hxc**4)
+          SB_L(26) = (x1*y1**3)/(6.0D0*hxc**4)
+          SB_L(27) = (x1*z1**3)/(6.0D0*hxc**4)
+          SB_L(28) = (x1*y1**2*z1)/(2.0D0*hxc**4)
+          SB_L(29) = (x1*y1*z1**2)/(2.0D0*hxc**4)
+          SB_L(30) = y1**4/(24.0D0*hxc**4)
+          SB_L(31) = (y1**3*z1)/(6.0D0*hxc**4)
+          SB_L(32) = (y1**2*z1**2)/(4.0D0*hxc**4)
+          SB_L(33) = (y1*z1**3)/(6.0D0*hxc**4)
+          SB_L(34) = z1**4/(24.0D0*hxc**4)
+       case (5)
+    ! FIFTH ORDER FUNCTIONS (6TH-ORDER OF ACCURACY 35-55)
+          SB_L(1) = x1/hxc
+          SB_L(2) = y1/hxc
+          SB_L(3) = z1/hxc
+          SB_L(4) = x1**2/(2.0D0*hxc**2)
+          SB_L(5) = (x1*y1)/hxc**2
+          SB_L(6) = (x1*z1)/hxc**2
+          SB_L(7) = y1**2/(2.0D0*hxc**2)
+          SB_L(8) = (y1*z1)/hxc**2
+          SB_L(9) = z1**2/(2.0D0*hxc**2)
+          SB_L(10) = x1**3/(6.0D0*hxc**3)
+          SB_L(11) = (x1**2*y1)/(2.0D0*hxc**3)
+          SB_L(12) = (x1**2*z1)/(2.0D0*hxc**3)
+          SB_L(13) = (x1*y1**2)/(2.0D0*hxc**3)
+          SB_L(14) = (x1*z1**2)/(2.0D0*hxc**3)
+          SB_L(15) = (x1*y1*z1)/hxc**3
+          SB_L(16) = y1**3/(6.0D0*hxc**3)
+          SB_L(17) = (y1**2*z1)/(2.0D0*hxc**3)
+          SB_L(18) = (y1*z1**2)/(2.0D0*hxc**3)
+          SB_L(19) = z1**3/(6.0D0*hxc**3)
+          SB_L(20) = x1**4/(24.0D0*hxc**4)
+          SB_L(21) = (x1**3*y1)/(6.0D0*hxc**4)
+          SB_L(22) = (x1**3*z1)/(6.0D0*hxc**4)
+          SB_L(23) = (x1**2*y1**2)/(4.0D0*hxc**4)
+          SB_L(24) = (x1**2*z1**2)/(4.0D0*hxc**4)
+          SB_L(25) = (x1**2*y1*z1)/(2.0D0*hxc**4)
+          SB_L(26) = (x1*y1**3)/(6.0D0*hxc**4)
+          SB_L(27) = (x1*z1**3)/(6.0D0*hxc**4)
+          SB_L(28) = (x1*y1**2*z1)/(2.0D0*hxc**4)
+          SB_L(29) = (x1*y1*z1**2)/(2.0D0*hxc**4)
+          SB_L(30) = y1**4/(24.0D0*hxc**4)
+          SB_L(31) = (y1**3*z1)/(6.0D0*hxc**4)
+          SB_L(32) = (y1**2*z1**2)/(4.0D0*hxc**4)
+          SB_L(33) = (y1*z1**3)/(6.0D0*hxc**4)
+          SB_L(34) = z1**4/(24.0D0*hxc**4)
+          SB_L(35) = x1**5/(120.0D0*hxc**5)
+          SB_L(36) = (x1**4*y1)/(24.0D0*hxc**5)
+          SB_L(37) = (x1**4*z1)/(24.0D0*hxc**5)
+          SB_L(38) = (x1**3*y1**2)/(12.0D0*hxc**5)
+          SB_L(39) = (x1**3*z1**2)/(12.0D0*hxc**5)
+          SB_L(40) = (x1**3*y1*z1)/(6.0D0*hxc**5)
+          SB_L(41) = (x1**2*y1**3)/(12.0D0*hxc**5)
+          SB_L(42) = (x1**2*y1**2*z1)/(4.0D0*hxc**5)
+          SB_L(43) = (x1**2*y1*z1**2)/(4.0D0*hxc**5)
+          SB_L(44) = (x1**2*z1**3)/(12.0D0*hxc**5)
+          SB_L(45) = (x1*y1**4)/(24.0D0*hxc**5)
+          SB_L(46) = (x1*y1**3*z1)/(6.0D0*hxc**5)
+          SB_L(47) = (x1*y1**2*z1**2)/(4.0D0*hxc**5)
+          SB_L(48) = (x1*y1*z1**3)/(6.0D0*hxc**5)
+          SB_L(49) = (x1*z1**4)/(24.0D0*hxc**5)
+          SB_L(50) = y1**5/(120.0D0*hxc**5)
+          SB_L(51) = (y1**4*z1)/(24.0D0*hxc**5)
+          SB_L(52) = (y1**3*z1**2)/(12.0D0*hxc**5)
+          SB_L(53) = (y1**2*z1**3)/(12.0D0*hxc**5)
+          SB_L(54) = (y1*z1**4)/(24.0D0*hxc**5)
+          SB_L(55) = z1**5/(120.0D0*hxc**5)
+       case (6)
+          ! SIXTH ORDER FUNCTIONS (7TH-ORDER OF ACCURACY 56-83)
+          SB_L(1) = x1/hxc
+          SB_L(2) = y1/hxc
+          SB_L(3) = z1/hxc
+          SB_L(4) = x1**2/(2.0D0*hxc**2)
+          SB_L(5) = (x1*y1)/hxc**2
+          SB_L(6) = (x1*z1)/hxc**2
+          SB_L(7) = y1**2/(2.0D0*hxc**2)
+          SB_L(8) = (y1*z1)/hxc**2
+          SB_L(9) = z1**2/(2.0D0*hxc**2)
+          SB_L(10) = x1**3/(6.0D0*hxc**3)
+          SB_L(11) = (x1**2*y1)/(2.0D0*hxc**3)
+          SB_L(12) = (x1**2*z1)/(2.0D0*hxc**3)
+          SB_L(13) = (x1*y1**2)/(2.0D0*hxc**3)
+          SB_L(14) = (x1*z1**2)/(2.0D0*hxc**3)
+          SB_L(15) = (x1*y1*z1)/hxc**3
+          SB_L(16) = y1**3/(6.0D0*hxc**3)
+          SB_L(17) = (y1**2*z1)/(2.0D0*hxc**3)
+          SB_L(18) = (y1*z1**2)/(2.0D0*hxc**3)
+          SB_L(19) = z1**3/(6.0D0*hxc**3)
+          SB_L(20) = x1**4/(24.0D0*hxc**4)
+          SB_L(21) = (x1**3*y1)/(6.0D0*hxc**4)
+          SB_L(22) = (x1**3*z1)/(6.0D0*hxc**4)
+          SB_L(23) = (x1**2*y1**2)/(4.0D0*hxc**4)
+          SB_L(24) = (x1**2*z1**2)/(4.0D0*hxc**4)
+          SB_L(25) = (x1**2*y1*z1)/(2.0D0*hxc**4)
+          SB_L(26) = (x1*y1**3)/(6.0D0*hxc**4)
+          SB_L(27) = (x1*z1**3)/(6.0D0*hxc**4)
+          SB_L(28) = (x1*y1**2*z1)/(2.0D0*hxc**4)
+          SB_L(29) = (x1*y1*z1**2)/(2.0D0*hxc**4)
+          SB_L(30) = y1**4/(24.0D0*hxc**4)
+          SB_L(31) = (y1**3*z1)/(6.0D0*hxc**4)
+          SB_L(32) = (y1**2*z1**2)/(4.0D0*hxc**4)
+          SB_L(33) = (y1*z1**3)/(6.0D0*hxc**4)
+          SB_L(34) = z1**4/(24.0D0*hxc**4)
+          SB_L(35) = x1**5/(120.0D0*hxc**5)
+          SB_L(36) = (x1**4*y1)/(24.0D0*hxc**5)
+          SB_L(37) = (x1**4*z1)/(24.0D0*hxc**5)
+          SB_L(38) = (x1**3*y1**2)/(12.0D0*hxc**5)
+          SB_L(39) = (x1**3*z1**2)/(12.0D0*hxc**5)
+          SB_L(40) = (x1**3*y1*z1)/(6.0D0*hxc**5)
+          SB_L(41) = (x1**2*y1**3)/(12.0D0*hxc**5)
+          SB_L(42) = (x1**2*y1**2*z1)/(4.0D0*hxc**5)
+          SB_L(43) = (x1**2*y1*z1**2)/(4.0D0*hxc**5)
+          SB_L(44) = (x1**2*z1**3)/(12.0D0*hxc**5)
+          SB_L(45) = (x1*y1**4)/(24.0D0*hxc**5)
+          SB_L(46) = (x1*y1**3*z1)/(6.0D0*hxc**5)
+          SB_L(47) = (x1*y1**2*z1**2)/(4.0D0*hxc**5)
+          SB_L(48) = (x1*y1*z1**3)/(6.0D0*hxc**5)
+          SB_L(49) = (x1*z1**4)/(24.0D0*hxc**5)
+          SB_L(50) = y1**5/(120.0D0*hxc**5)
+          SB_L(51) = (y1**4*z1)/(24.0D0*hxc**5)
+          SB_L(52) = (y1**3*z1**2)/(12.0D0*hxc**5)
+          SB_L(53) = (y1**2*z1**3)/(12.0D0*hxc**5)
+          SB_L(54) = (y1*z1**4)/(24.0D0*hxc**5)
+          SB_L(55) = z1**5/(120.0D0*hxc**5)
+          SB_L(56) = x1**6/(720.0D0*hxc**6)
+          SB_L(57) = (x1**5*y1)/(120.0D0*hxc**6)
+          SB_L(58) = (x1**5*z1)/(120.0D0*hxc**6)
+          SB_L(59) = (x1**4*y1**2)/(48.0D0*hxc**6)
+          SB_L(60) = (x1**4*y1*z1)/(24.0D0*hxc**6)
+          SB_L(61) = (x1**4*z1**2)/(48.0D0*hxc**6)
+          SB_L(62) = (x1**3*y1**3)/(36.0D0*hxc**6)
+          SB_L(63) = (x1**3*y1**2*z1)/(12.0D0*hxc**6)
+          SB_L(64) = (x1**3*y1*z1**2)/(12.0D0*hxc**6)
+          SB_L(65) = (x1**3*z1**3)/(36.0D0*hxc**6)
+          SB_L(66) = (x1**2*y1**4)/(48.0D0*hxc**6)
+          SB_L(67) = (x1**2*y1**3*z1)/(12.0D0*hxc**6)
+          SB_L(68) = (x1**2*y1**2*z1**2)/(8.0D0*hxc**6)
+          SB_L(69) = (x1**2*y1*z1**3)/(12.0D0*hxc**6)
+          SB_L(70) = (x1**2*z1**4)/(48.0D0*hxc**6)
+          SB_L(71) = (x1*y1**5)/(120.0D0*hxc**6)
+          SB_L(72) = (x1*y1**4*z1)/(24.0D0*hxc**6)
+          SB_L(73) = (x1*y1**3*z1**2)/(12.0D0*hxc**6)
+          SB_L(74) = (x1*y1**2*z1**3)/(12.0D0*hxc**6)
+          SB_L(75) = (x1*y1*z1**4)/(24.0D0*hxc**6)
+          SB_L(76) = (x1*z1**5)/(120.0D0*hxc**6)
+          SB_L(77) = y1**6/(720.0D0*hxc**6)
+          SB_L(78) = (y1**5*z1)/(120.0D0*hxc**6)
+          SB_L(79) = (y1**4*z1**2)/(48.0D0*hxc**6)
+          SB_L(80) = (y1**3*z1**3)/(36.0D0*hxc**6)
+          SB_L(81) = (y1**2*z1**4)/(48.0D0*hxc**6)
+          SB_L(82) = (y1*z1**5)/(120.0D0*hxc**6)
+          SB_L(83) = z1**6/(720.0D0*hxc**6)
+    
+       end select
+    
+       select case (compwrt)
+    
+       case (-2)
+    
+          OOV = 1.0D0/(IELEM(N, ICONSIDERED)%TOTVOLUME)
+          BASIS_REC_SPHERE_CASE_ONLY(1:NUMBER_OF_DOG) = SB_L(1:NUMBER_OF_DOG) - ((INTEG_BASIS_DG(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
+    
+       case (0)
+          OOV = 1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1, 1))
+          BASIS_REC_SPHERE_CASE_ONLY(1:NUMBER_OF_DOG) = SB_L(1:NUMBER_OF_DOG) - ((INTEG_BASIS(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
+    
+       case (1)
+          OOV = 1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1, 1))
+          BASIS_REC_SPHERE_CASE_ONLY(1:NUMBER_OF_DOG) = SB_L(1:NUMBER_OF_DOG) - ((INTEG_BASIS(ICONSIDERED)%valuec(1:NUMBER_OF_DOG))*OOV)
+    
+       end select
+    
+END FUNCTION BASIS_REC_SPHERE_CASE_ONLY
+    
  
 FUNCTION BASIS_REC(N,X1,Y1,Z1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
 !> @brief
 !> This function returns the value of the basis function for a specific polynomial order and coordinates
 IMPLICIT NONE
-!$omp declare target
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(IN)::NUMBER,ICONSIDERED,NUMBER_OF_DOG
 REAL,INTENT(IN)::X1,Y1,Z1
 REAL::OOV,hxc
 real,dimension(NUMBER_OF_DOG)::basis_rec
-
 SB=zero
 OOV=1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1,1))
 
@@ -1738,6 +1991,8 @@ case(2)
 
 
 
+
+
     
 
 END FUNCTION BASIS_REC
@@ -1750,7 +2005,6 @@ FUNCTION BASIS_REC2d(N,X1,Y1,NUMBER,ICONSIDERED,NUMBER_OF_DOG)
 !> REQUIRES: X1, Y1: coordinates of basis evaluation wrt ?; NUMBER: order of basis; ICONSIDERED: considered cell?; NUMBER_OF_DOG: number of degrees of freedom
 ! NUMBER and NUMBER_OF_DOG redundant?
 IMPLICIT NONE
- !$omp declare target
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(IN)::NUMBER,ICONSIDERED,NUMBER_OF_DOG
 REAL,INTENT(IN)::X1,Y1
@@ -2197,7 +2451,6 @@ FUNCTION BASIS_REC2D_DERIVATIVE(N,X1,Y1,ORDER,ICONSIDERED,NUMBER_OF_DOG,DX_OR_DY
 !> REQUIRES: X1, Y1: coordinates of basis evaluation; ORDER: order of basis; ICONSIDERED: considered cell?; NUMBER_OF_DOG: number of degrees of freedom; DX_OR_DY: 1 = wrt x, 2 = wrt y
 ! ORDER and NUMBER_OF_DOG redundant?
     IMPLICIT NONE
-    
     INTEGER,INTENT(IN)::N
     INTEGER,INTENT(IN)::ORDER,ICONSIDERED,NUMBER_OF_DOG,DX_OR_DY
     REAL,INTENT(IN)::X1,Y1

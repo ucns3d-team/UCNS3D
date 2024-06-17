@@ -6,6 +6,49 @@ IMPLICIT NONE
 
  CONTAINS
  
+
+ SUBROUTINE ALLGRADS_INNER_SPHERE_CASE_ONLY(N, ICONSIDERED,ILOCAL_RECON5_L, LEFTV_L)
+	!> @brief
+	!> This subroutine calls the gradient approximation subroutines for every interior cell
+	IMPLICIT NONE
+	INTEGER, INTENT(IN)::N, ICONSIDERED
+	TYPE(LOCAL_RECON3),DIMENSION(:), INTENT(INOUT)::ILOCAL_RECON5_L
+	REAL,DIMENSION(:), INTENT(INOUT) ::LEFTV_L
+	INTEGER::I
+	I = iconsidered
+	NUMBER_OF_DOG = IELEM(N, I)%IDEGFREE
+	NUMBER_OF_NEI = IELEM(N, I)%inumneighbours
+	imax = NUMBER_OF_NEI - 1
+ 
+
+	SELECT CASE (IELEM(N, I)%GGS)
+
+	CASE (0)        !LEAST SQUARES EVERYTHING
+
+		CALL COMPUTE_GRADIENTS_MEAN_LSQ_SPHERE_CASE_ONLY(N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI, ILOCAL_RECON5_L)
+		CALL COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS_SPHERE_CASE_ONLY(N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI, ILOCAL_RECON5_L, LEFTV_L)
+
+
+		CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_SPHERE_CASE_ONLY(N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI, LEFTV_L)
+			 
+
+	CASE (1)
+
+		CALL COMPUTE_GRADIENTS_MEAN_LSQ_SPHERE_CASE_ONLY(N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI, ILOCAL_RECON5_L)
+		CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_SPHERE_CASE_ONLY(N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI, LEFTV_L)
+
+	CASE (2)
+
+
+		CALL COMPUTE_GRADIENTS_MEAN_LSQ_SPHERE_CASE_ONLY(N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI, ILOCAL_RECON5_L)
+		CALL COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS_SPHERE_CASE_ONLY(N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI, ILOCAL_RECON5_L, LEFTV_L)
+
+		CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_SPHERE_CASE_ONLY(N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI, LEFTV_L)
+
+
+	END SELECT
+ 
+ END SUBROUTINE ALLGRADS_INNER_SPHERE_CASE_ONLY
  
 SUBROUTINE ALLGRADS_INNER(N,ICONSIDERED)
 !> @brief
@@ -394,6 +437,51 @@ END DO
 			END DO
 			
 end subroutine COMPUTE_GRADIENTS_INNER_MEAN_GGS
+
+SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_SPHERE_CASE_ONLY(N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI, LEFTV_L)!check_all
+	!> @brief
+	!> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm
+	   IMPLICIT NONE
+	   INTEGER, INTENT(IN)::N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI
+	   REAL,DIMENSION(:), INTENT(INOUT) ::LEFTV_L
+	   REAL, DIMENSION(1:nof_variables)::SOLS1, SOLS2
+	   REAL, DIMENSION(1:nof_variables, 3)::SOLS_F
+	   REAL, DIMENSION(3)::NORMAL_ALL
+	   REAL::OOV2
+	   INTEGER::I, J, K, L
+	
+	   I = ICONSIDERED
+	   SOLS_F = zero
+	   OOV2 = 1.0D0/IELEM(N, I)%TOTVOLUME
+	
+	   leftv_L(1:nof_variables) = U_C(I)%VAL(1, 1:nof_variables)
+	   call cons2prim_SPHERE_CASE_ONLY(n, LEFTV_L)
+	   SOLS1(1:nof_variables) = leftv_L(1:nof_variables)
+	   sols1(5) = leftv_L(5)/leftv_L(1)
+	
+	   DO J = 1, IELEM(N, I)%IFCA
+		  ANGLE1 = IELEM(N, I)%FACEANGLEX(J)
+		  ANGLE2 = IELEM(N, I)%FACEANGLEY(J)
+		  NORMAL_ALL(1) = (COS(ANGLE1)*SIN(ANGLE2))
+		  NORMAL_ALL(2) = (SIN(ANGLE1)*SIN(ANGLE2))
+		  NORMAL_ALL(3) = (COS(ANGLE2))
+	
+		  leftv_L(1:nof_variables) = U_C(IELEM(N, I)%INEIGH(J))%VAL(1, 1:nof_variables)
+		  call cons2prim_SPHERE_CASE_ONLY(n, LEFTV_L)
+		  SOLS2(1:nof_variables) = leftv_L(1:nof_variables)
+		  sols2(5) = leftv_L(5)/leftv_L(1)
+		  DO K = 1, 3
+				SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+	
+		  END DO
+	   END DO
+	
+	   DO K = 1, 3
+		  ILOCAL_RECON3(I)%GRADs(1:3, k) = sOLS_F(2:4, K)
+		  ILOCAL_RECON3(I)%GRADs(4, k) = sOLS_F(5, K)
+	   END DO
+	
+end subroutine COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_SPHERE_CASE_ONLY
  
 SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
 !> @brief
@@ -1219,6 +1307,148 @@ END DO
 			
 end subroutine COMPUTE_GRADIENTS_MIX_turb_GGS_viscous
 
+SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ_SPHERE_CASE_ONLY(N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI,ILOCAL_RECON5_L)!check all
+	!> @brief
+	!> This subroutine computes the gradients of the conserved variables of each cell using the least-squares
+	   IMPLICIT NONE
+	   INTEGER, INTENT(IN)::N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI
+	   TYPE(LOCAL_RECON3),DIMENSION(:), INTENT(INOUT)::ILOCAL_RECON5_L
+	   REAL, DIMENSION(nof_variables)::SOLS1
+	   REAL, DIMENSION(nof_variables, IELEM(N, ICONSIDERED)%ADMIS)::SOLS2
+	   REAL, DIMENSION(imax, nof_variables, IELEM(N, ICONSIDERED)%ADMIS)::MATRIX_1
+	   REAL, DIMENSION(NUMBER_OF_DOG, NOF_VARIABLES, IELEM(N, ICONSIDERED)%ADMIS)::MATRIX_2
+	   REAL, DIMENSION(NUMBER_OF_DOG, NOF_VARIABLES, IELEM(N, ICONSIDERED)%ADMIS)::SOL_M
+	   INTEGER::I, VAR2, iq, ll
+	   REAL::TEMPXX
+	
+	   I = ICONSIDERED
+	   SOLS1 = ZERO; 
+	   SOLS2 = ZERO
+	   matrix_2 = zero
+	   sol_m = zero
+	   MATRIX_1 = ZERO; MATRIX_2 = ZERO
+	
+	   SOLS1(1:nof_variables) = U_C(ILOCAL_RECON3(I)%IHEXL(1, 1))%VAL(1, 1:nof_variables)
+	
+	   if (ILOCAL_RECON3(I)%LOCAL .eq. 1) then
+	
+		  DO LL = 1, IELEM(N, I)%ADMIS; 
+			 if (ll .eq. 1) then
+				DO IQ = 1, imax
+				   SOLS2(1:nof_variables, ll) = U_C(ILOCAL_RECON3(I)%IHEXL(LL, IQ + 1))%VAL(1, 1:nof_variables)
+	
+				   MATRIX_1(IQ, 1:nof_variables, ll) = (SOLS2(1:nof_variables, ll) - SOLS1(1:nof_variables))
+	
+				END DO
+	
+			 eLSE
+	
+				DO IQ = 1, numneighbours2 - 1
+				   SOLS2(1:nof_variables, ll) = U_C(ILOCAL_RECON3(I)%IHEXLC(LL, IQ + 1))%VAL(1, 1:nof_variables)
+				   MATRIX_1(IQ, 1:nof_variables, ll) = (SOLS2(1:nof_variables, ll) - SOLS1(1:nof_variables))
+	
+				END DO
+	
+			 END IF
+	
+		  end do
+		  DO LL = 1, IELEM(N, I)%ADMIS; 
+			 if (ll .eq. 1) then
+	
+				CALL DGEMM('N', 'N', IELEM(N, I)%IDEGFREE, nof_variables, imax, &
+						   ALPHA, ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N, I)%IDEGFREE, 1:imax, LL), &
+						   IELEM(N, I)%IDEGFREE, MATRIX_1(1:imax, 1:nof_variables, ll), &
+						   imax, BETA, SOL_M(1:IELEM(N, I)%IDEGFREE, 1:nof_variables, ll), IELEM(N, I)%IDEGFREE)
+	
+			 ELSE
+	
+				CALL DGEMM('N', 'N', IDEGFREE2, nof_variables, numneighbours2 - 1, &
+						   ALPHA, ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2, 1:numneighbours2 - 1, LL), &
+						   IDEGFREE2, MATRIX_1(1:numneighbours2 - 1, 1:nof_variables, ll), &
+						   numneighbours2 - 1, BETA, SOL_M(1:IDEGFREE2, 1:nof_variables, ll), IDEGFREE2)
+	
+			 END IF
+		  end do
+	
+		  DO LL = 1, IELEM(N, I)%ADMIS; 
+			 if (ll .eq. 1) then
+				ILOCAL_RECON5_L(1)%GRADIENTS(LL, 1:NUMBER_OF_DOG, 1:nof_variables) = SOL_M(1:NUMBER_OF_DOG, 1:nof_variables, ll)
+	
+			 ELSE
+				ILOCAL_RECON5_L(1)%GRADIENTSC(LL, 1:IDEGFREE2, 1:nof_variables) = SOL_M(1:IDEGFREE2, 1:nof_variables, ll)
+	
+			 END IF
+		  end do
+	
+	   else
+	
+		  DO LL = 1, IELEM(N, I)%ADMIS; 
+			 if (ll .eq. 1) then
+	
+				DO IQ = 1, imax
+	
+				   IF (ILOCAL_RECON3(I)%IHEXB(LL, IQ + 1) .EQ. N) THEN
+	
+					  SOLS2(1:nof_variables, ll) = U_C(ILOCAL_RECON3(I)%IHEXL(LL, IQ + 1))%VAL(1, 1:nof_variables)
+				   else
+	 SOLS2(1:nof_variables, ll) = IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(LL, IQ + 1))%SOL(ILOCAL_RECON3(I)%IHEXL(LL, IQ + 1), 1:nof_variables)
+				   end if
+	
+				   MATRIX_1(IQ, 1:nof_variables, ll) = (SOLS2(1:nof_variables, ll) - SOLS1(1:nof_variables))
+	
+				END DO
+	
+			 ELSE
+				DO IQ = 1, numneighbours2 - 1
+	
+				   IF (ILOCAL_RECON3(I)%IHEXBC(LL, IQ + 1) .EQ. N) THEN
+	
+					  SOLS2(1:nof_variables, ll) = U_C(ILOCAL_RECON3(I)%IHEXLC(LL, IQ + 1))%VAL(1, 1:nof_variables)
+				   else
+			 SOLS2(1:nof_variables,ll)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXNC(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1),1:nof_variables)
+				   end if
+	
+				   MATRIX_1(IQ, 1:nof_variables, ll) = (SOLS2(1:nof_variables, ll) - SOLS1(1:nof_variables))
+	
+				END DO
+	
+			 END IF
+	
+		  end do
+	
+		  DO LL = 1, IELEM(N, I)%ADMIS; 
+			 if (ll .eq. 1) then
+	
+				CALL DGEMM('N', 'N', IELEM(N, I)%IDEGFREE, nof_variables, imax, &
+						   ALPHA, ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N, I)%IDEGFREE, 1:imax, LL), &
+						   IELEM(N, I)%IDEGFREE, MATRIX_1(1:imax, 1:nof_variables, ll), &
+						   imax, BETA, SOL_M(1:IELEM(N, I)%IDEGFREE, 1:nof_variables, ll), IELEM(N, I)%IDEGFREE)
+	
+			 ELSE
+	
+				CALL DGEMM('N', 'N', IDEGFREE2, nof_variables, numneighbours2 - 1, &
+						   ALPHA, ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2, 1:numneighbours2 - 1, LL), &
+						   IDEGFREE2, MATRIX_1(1:numneighbours2 - 1, 1:nof_variables, ll), &
+						   numneighbours2 - 1, BETA, SOL_M(1:IDEGFREE2, 1:nof_variables, ll), IDEGFREE2)
+	
+			 END IF
+		  end do
+	
+		  DO LL = 1, IELEM(N, I)%ADMIS; 
+			 if (ll .eq. 1) then
+				ILOCAL_RECON5_L(1)%GRADIENTS(LL, 1:NUMBER_OF_DOG, 1:nof_variables) = SOL_M(1:NUMBER_OF_DOG, 1:nof_variables, ll)
+	
+			 ELSE
+	
+				ILOCAL_RECON5_L(1)%GRADIENTSC(LL, 1:IDEGFREE2, 1:nof_variables) = SOL_M(1:IDEGFREE2, 1:nof_variables, ll)
+	
+			 END IF
+		  end do
+	
+	   END IF
+	
+END SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ_SPHERE_CASE_ONLY
+
 SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check all
 !> @brief
 !> This subroutine computes the gradients of the conserved variables of each cell using the least-squares
@@ -1487,6 +1717,88 @@ numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
    END IF
 
 END SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ
+
+SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS_SPHERE_CASE_ONLY(N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI, ILOCAL_RECON5_L, LEFTV_L)!check_all
+	!> @brief
+	!> This subroutine computes the gradients of the primitve variables of each interior cell using the least-squares
+	   IMPLICIT NONE
+	   INTEGER, INTENT(IN)::N, ICONSIDERED, NUMBER_OF_DOG, NUMBER_OF_NEI
+	   TYPE(LOCAL_RECON3), DIMENSION(:), INTENT(INOUT)::ILOCAL_RECON5_L
+	   REAL,DIMENSION(:), INTENT(INOUT) ::LEFTV_L
+	   REAL, DIMENSION(nof_variables)::SOLS1, SOLS2
+	   REAL, DIMENSION(imax, nof_variables)::MATRIX_1
+	   REAL, DIMENSION(NOF_VARIABLES, NUMBER_OF_DOG)::MATRIX_2
+	   REAL, DIMENSION(NUMBER_OF_DOG, NOF_VARIABLES)::SOL_M
+	   INTEGER::I, VAR2, iq, lq, ll
+	
+	   I = ICONSIDERED
+	   SOLS1 = ZERO; 
+	   SOLS2 = ZERO
+	
+	   ll = 1
+	
+	   if (ILOCAL_RECON3(I)%LOCAL .eq. 1) then
+		  MATRIX_1 = ZERO; MATRIX_2 = ZERO
+		  LEFTV_L(1:nof_Variables) = U_C(ILOCAL_RECON3(I)%IHEXL(1, 1))%VAL(1, 1:nof_Variables)
+		  CALL CONS2PRIM_SPHERE_CASE_ONLY(N, LEFTV_L)
+	
+		  SOLS1(2:4) = LEFTV_L(2:4)
+		  SOLS1(1) = LEFTV_L(5)/LEFTV_L(1)
+	
+		  DO IQ = 1, imax
+			 LEFTV_L(1:nof_Variables) = U_C(ILOCAL_RECON3(I)%IHEXL(1, IQ + 1))%VAL(1, 1:nof_Variables)
+			 CALL CONS2PRIM_SPHERE_CASE_ONLY(N, LEFTV_L)
+			 SOLS2(2:4) = LEFTV_L(2:4)
+			 SOLS2(1) = LEFTV_L(5)/LEFTV_L(1)
+			 MATRIX_1(iq, 1:nof_Variables) = ((SOLS2(1:nof_Variables) - SOLS1(1:nof_Variables)))
+	
+		  END DO
+	
+		  CALL DGEMM('N', 'N', IELEM(N, I)%IDEGFREE, nof_variables, imax, &
+					 ALPHA, ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N, I)%IDEGFREE, 1:imax, LL), &
+					 IELEM(N, I)%IDEGFREE, MATRIX_1(1:imax, 1:nof_variables), &
+					 imax, BETA, SOL_M(1:IELEM(N, I)%IDEGFREE, 1:nof_variables), IELEM(N, I)%IDEGFREE)
+	
+		  DO VAR2 = 2, 4
+			 ILOCAL_RECON5_L(1)%VELOCITYDOF(VAR2 - 1, 1:NUMBER_OF_DOG) = SOL_M(1:NUMBER_OF_DOG, VAR2)
+		  END DO
+		  ILOCAL_RECON5_L(1)%GRADIENTSTEMP(1:NUMBER_OF_DOG) = SOL_M(1:NUMBER_OF_DOG, 1)
+	
+	   ELSE
+	
+		  MATRIX_1 = ZERO; MATRIX_2 = ZERO
+		  LEFTV_L(1:nof_Variables) = U_C(ILOCAL_RECON3(I)%IHEXL(1, 1))%VAL(1, 1:nof_Variables)
+		  CALL CONS2PRIM_SPHERE_CASE_ONLY(N, LEFTV_L)
+	
+		  SOLS1(2:4) = LEFTV_L(2:4)
+		  SOLS1(1) = LEFTV_L(5)/LEFTV_L(1)
+	
+		  DO IQ = 1, imax
+			 IF (ILOCAL_RECON3(I)%IHEXB(1, IQ + 1) .EQ. N) THEN
+				LEFTV_L(1:nof_Variables) = U_C(ILOCAL_RECON3(I)%IHEXL(1, IQ + 1))%VAL(1, 1:nof_Variables)
+	
+			 else
+		   LEFTV_L(1:nof_Variables) = IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1, IQ + 1))%SOL(ILOCAL_RECON3(I)%IHEXL(1, IQ + 1), 1:nof_Variables)
+			 end if
+			 CALL CONS2PRIM_SPHERE_CASE_ONLY(N, LEFTV_L)
+			 SOLS2(2:4) = LEFTV_L(2:4)
+			 SOLS2(1) = LEFTV_L(5)/LEFTV_L(1)
+			 MATRIX_1(iq, 1:nof_Variables) = ((SOLS2(1:nof_Variables) - SOLS1(1:nof_Variables)))
+		  END DO
+	
+		  CALL DGEMM('N', 'N', IELEM(N, I)%IDEGFREE, nof_variables, imax, &
+					 ALPHA, ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N, I)%IDEGFREE, 1:imax, LL), &
+					 IELEM(N, I)%IDEGFREE, MATRIX_1(1:imax, 1:nof_variables), &
+					 imax, BETA, SOL_M(1:IELEM(N, I)%IDEGFREE, 1:nof_variables), IELEM(N, I)%IDEGFREE)
+	
+		  DO VAR2 = 2, 4
+			 ILOCAL_RECON5_L(1)%VELOCITYDOF(VAR2 - 1, 1:NUMBER_OF_DOG) = SOL_M(1:NUMBER_OF_DOG, VAR2)
+		  END DO
+		  ILOCAL_RECON5_L(1)%GRADIENTSTEMP(1:NUMBER_OF_DOG) = SOL_M(1:NUMBER_OF_DOG, 1)
+	
+	   END IF
+	
+	END SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS_SPHERE_CASE_ONLY
 
 ! 
 SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all

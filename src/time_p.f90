@@ -2304,12 +2304,12 @@ KMAXE=XMPIELRANK(N)
         
 
     IF (statistics.eq.1)THEN
-      !$OMP BARRIER
-      !$OMP MASTER
-      pr_t3=MPI_Wtime()
-      prace_t2=pr_t3-pr_t2
-      !$OMP END MASTER
-      !$OMP BARRIER
+    !$OMP BARRIER
+    !$OMP MASTER
+    pr_t3=MPI_Wtime()
+    prace_t2=pr_t3-pr_t2
+    !$OMP END MASTER
+     !$OMP BARRIER
     END IF
 
 
@@ -2334,15 +2334,6 @@ KMAXE=XMPIELRANK(N)
         CALL TROUBLE_INDICATOR2 ! Changes DG to FV
 
     end if
-
-    IF (statistics.eq.1)THEN
-      !$OMP BARRIER
-      !$OMP MASTER
-      pr_t4=MPI_Wtime()
-      prace_t3=pr_t4-pr_t3
-      !$OMP END MASTER
-      !$OMP BARRIER
-    END IF
 
     CALL EXHBOUNDHIGHER(N)
 
@@ -2372,6 +2363,19 @@ KMAXE=XMPIELRANK(N)
 
     end if
     
+     IF (statistics.eq.1)THEN
+    !$OMP BARRIER
+    !$OMP MASTER
+    pr_t4=MPI_Wtime()
+    prace_t3=pr_t4-pr_t3
+    !$OMP END MASTER
+     !$OMP BARRIER
+    END IF
+
+
+
+
+
 
     IF (statistics.eq.1)THEN
     !$OMP BARRIER

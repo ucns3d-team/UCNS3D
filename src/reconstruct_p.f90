@@ -300,6 +300,19 @@ ELSE ! 2 dimensions
 END IF
 END SUBROUTINE MEMORY_FAST
 
+
+SUBROUTINE EXTRAPOLATE_BOUND_SPHERE_CASE_ONLY(varcons, FACEX, pointx, ICONSIDERED, INSTEN, LLX, WENO_L,RESSOLUTION_L)
+	!> @brief
+	!> Subroutine for extrapolating the reconstructed solution at the cell interfaces
+	   IMPLICIT NONE
+	   REAL,DIMENSION(:,:),INTENT(IN)::WENO_L,RESSOLUTION_L
+
+	   INTEGER, INTENT(IN)::varcons, FACEX, pointx, ICONSIDERED, INSTEN, LLX
+		  ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,pointx)&
+						  + (U_C(ICONSIDERED)%VAL(1, 1:NOF_VARIABLES) + RESSOLUTION_L(INSTEN, 1:NOF_vARIABLES))*WENO_L(1:NOF_vARIABLES, LLX)
+	
+END SUBROUTINE EXTRAPOLATE_BOUND_SPHERE_CASE_ONLY
+
 ! ! !---------------------------------------------------------------------------------------------!
 SUBROUTINE EXTRAPOLATE_BOUND(varcons,FACEX,pointx,ICONSIDERED,INSTEN,LLX)
 !> @brief
@@ -697,9 +710,7 @@ IMPLICIT NONE
         deallocate(gradients,gradients_eigvlt)
 
 end subroutine
-
-
-
+	
 
 SUBROUTINE WENOWEIGHTS(N)
 !> @brief
@@ -721,10 +732,15 @@ call  QUADRATUREQUAD3D(N,IGQRULES);WEIGHTS_Q(1:QP_QUAD)=WEQUA2D(1:QP_QUAD)
 call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGLE)
 
 
-if ((ees .eq. 5) .and. (wenoz .eq. 1) .and. (fastest_q .eq. 1) .and. (wenwrt .eq. 1) .and. (poly .eq. 4) .and. (mrf .eq. 0) .and. (dg .eq. 0) .and. (adda .eq. 0) .and. (passivescalar .eq. 0) .and. (turbulence .eq. 0) .and. (icoupleturb .eq. 0)) then
+if ((ees .eq. 5) .and. (wenoz .eq. 1) .and. (fastest_q .eq. 1) .and. (wenwrt .eq. 1) .and. (poly .eq. 4) .and. (mrf .eq. 0) .and. (dg .eq. 0) &
+					.and. (adda .eq. 0) .and. (passivescalar .eq. 0) .and. (turbulence .eq. 0) .and. (icoupleturb .eq. 0) .and. (ITESTCASE .eq. 4) &
+					 .and. (FASTEST .eq. 0) .and. (INITCOND .eq. 4) .and. (governingequations .eq. 1) .and. (reduce_comp .eq. 0) .and. (IGQRULES .eq. 5) &
+					.and. (PER_ROT .eq. 0)) then
 	OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 	!WRITE(63,*)"Parameters: ",ees,wenoz,fastest_q,wenwrt,poly,mrf,dg,adda,turbulence,passivescalar,icoupleturb
+
 	WRITE(63,*)"Activating WENO Reconstruction kernel"
+	WRITE(63,*)"Parameters: ",ITESTCASE,FASTEST,INITCOND,governingequations,reduce_comp,IGQRULES,PER_ROT
 	CLOSE(63)
 
 	!$OMP DO SCHEDULE (STATIC)
@@ -732,7 +748,7 @@ if ((ees .eq. 5) .and. (wenoz .eq. 1) .and. (fastest_q .eq. 1) .and. (wenwrt .eq
 		I = EL_INT(II)
 		ICONSIDERED = I
 		IF ((IELEM(N, I)%FULL .EQ. 1) .AND. (ielem(n, i)%TROUBLED .EQ. 1)) THEN
-		CALL ALLGRADS_INNER(N, I)
+		CALL ALLGRADS_INNER_SPHERE_CASE_ONLY(N, I, ILOCAL_RECON5, LEFTV)
 	
 		divbyzero = ielem(n, iconsidered)%totvolume**2
 	
@@ -748,7 +764,7 @@ if ((ees .eq. 5) .and. (wenoz .eq. 1) .and. (fastest_q .eq. 1) .and. (wenwrt .eq
 				GRAD3AL(1:IDEGFREE2) = GRAD3AL(1:IDEGFREE2) + (LAMC(LL)*ILOCAL_RECON5(1)%GRADIENTSC(LL, 1:IDEGFREE2, IEX))
 			END DO
 			!this is the zero polynomial
-								GRAD1AL(1:IELEM(N,I)%IDEGFREE)=(1.0D0/LAMC(1))*(ILOCAL_RECON5(1)%GRADIENTS(1,1:IELEM(N,I)%IDEGFREE,IEX)-GRAD3AL(1:IELEM(N,I)%IDEGFREE))
+			GRAD1AL(1:IELEM(N,I)%IDEGFREE)=(1.0D0/LAMC(1))*(ILOCAL_RECON5(1)%GRADIENTS(1,1:IELEM(N,I)%IDEGFREE,IEX)-GRAD3AL(1:IELEM(N,I)%IDEGFREE))
 			GRAD5ALc(1:IELEM(N, I)%IDEGFREE, iex) = GRAD1AL(1:IELEM(N, I)%IDEGFREE)
 			DO LL = 1, IELEM(N, I)%ADMIS
 				IF (LL .EQ. 1) THEN
@@ -814,17 +830,17 @@ if ((ees .eq. 5) .and. (wenoz .eq. 1) .and. (fastest_q .eq. 1) .and. (wenwrt .eq
 			do NGP = 1, iqp                        !for gqp
 				icd = icd + 1
 	
-				AX = QPOINTS2D(1, NGP)
-				AY = QPOINTS2D(2, NGP)
-				AZ = QPOINTS2D(3, NGP)
+				AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1)
+				AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2)
+				AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
 	
 	
 	!                                 DO K=1,IELEM(N,I)%IDEGFREE
 				compwrt = 0
-				CONSMATRIX(icd, 1:IELEM(N, I)%IDEGFREE) = BASIS_REC(N, AX, AY, AZ, IELEM(N, I)%IORDER, I, IELEM(N, I)%IDEGFREE)
+				CONSMATRIX(icd, 1:IELEM(N, I)%IDEGFREE) = BASIS_REC_SPHERE_CASE_ONLY(N, AX, AY, AZ, IELEM(N, I)%IORDER, I, IELEM(N, I)%IDEGFREE, compwrt, SB)
 	
 				compwrt = 1
-				CONSMATRIXC(icd, 1:IDEGFREE2) = BASIS_REC(N, AX, AY, AZ, IORDER2, I, IDEGFREE2)
+				CONSMATRIXC(icd, 1:IDEGFREE2) = BASIS_REC_SPHERE_CASE_ONLY(N, AX, AY, AZ, IORDER2, I, IDEGFREE2, compwrt, SB)
 				compwrt = 0
 	
 	!                                 END DO
@@ -865,7 +881,7 @@ if ((ees .eq. 5) .and. (wenoz .eq. 1) .and. (fastest_q .eq. 1) .and. (wenwrt .eq
 				do NGP = 1, iqp
 					ICD = ICD + 1
 	
-					CALL EXTRAPOLATE_BOUND(IEX, L, NGP, I, ICD, LL)
+					CALL EXTRAPOLATE_BOUND_SPHERE_CASE_ONLY(IEX, L, NGP, I, ICD, LL, WENO, RESSOLUTION)
 	
 				end do
 	
@@ -874,7 +890,9 @@ if ((ees .eq. 5) .and. (wenoz .eq. 1) .and. (fastest_q .eq. 1) .and. (wenwrt .eq
 		end do
 	
 		ICONSIDERED = I
-		CALL SOLUTIONTRIAV2(N, ICONSIDERED)
+		CALL SOLUTIONTRIAV2_SPHERE_CASE_ONLY(N, ICONSIDERED, AX, AY, AZ, ILOCAL_RECON5, GRADSS, AINVJT, WEIGHT_T2, XXDER, YYDER, ZZDER, GRADTEM, XDER, YDER, ZDER, UGRADLOC, WEQUA2D, QPOINTS2D, vvwg, VVR1, VVR2, VVR3, vvnpox, vvnpoy, vvnpoz, vvwpox, vvwpoy, vvwpoz, VVnxi)
+
+
 	
 		END IF
 	
@@ -11565,6 +11583,149 @@ ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=zero;
 					    
 END SUBROUTINE SOLUTIONTRIAV22d
 
+SUBROUTINE SOLUTIONTRIAV2_SPHERE_CASE_ONLY(N, ICONSIDERED, AX_L, AY_L, AZ_L, ILOCAL_RECON5_L, GRADSS_L, AINVJT_L, WEIGHT_T2_L, XXDER_L, YYDER_L, ZZDER_L, GRADTEM_L, XDER_L, YDER_L, ZDER_L, UGRADLOC_L,WEQUA2D_L,QPOINTS2D_L,vvwg_L,VVR1_L,VVR2_L,VVR3_L,vvnpox_L,vvnpoy_L,vvnpoz_L,vvwpox_L,vvwpoy_L,vvwpoz_L,VVnxi_L)
+	!> @brief
+	!> Subroutine for extrapolating the unlimited reconstructed values for diffusive fluxes in 3D
+	   IMPLICIT NONE
+	   INTEGER, INTENT(IN)::N, ICONSIDERED
+	   REAL, INTENT(INOUT)::AX_L, AY_L, AZ_L
+	   TYPE(LOCAL_RECON3), DIMENSION(:), INTENT(IN)::ILOCAL_RECON5_L
+	   REAL, DIMENSION(:,:), INTENT(INOUT)::GRADSS_L
+	   real, dimension(:,:), INTENT(INOUT)::AINVJT_L
+	   REAL, DIMENSION(:), INTENT(INOUT)::WEIGHT_T2_L
+	   REAL,DIMENSION(:,:), INTENT(INOUT)::XXDER_L, YYDER_L, ZZDER_L
+	   REAL,DIMENSION(:), INTENT(INOUT)::GRADTEM_L
+	   REAL,DIMENSION(:), INTENT(INOUT)::XDER_L, YDER_L, ZDER_L
+	   REAL,DIMENSION(:), INTENT(INOUT)::UGRADLOC_L
+
+		REAL,DIMENSION(:),INTENT(INOUT)::WEQUA2D_L
+		REAL,DIMENSION(:,:),INTENT(INOUT)::QPOINTS2D_L
+		REAL,DIMENSION(:),INTENT(INOUT)::vvwg_L
+		REAL,DIMENSION(:),INTENT(INOUT)::VVR1_L
+		REAL,DIMENSION(:),INTENT(INOUT)::VVR2_L
+		REAL,DIMENSION(:),INTENT(INOUT)::VVR3_L
+		REAL,DIMENSION(:),INTENT(INOUT)::vvnpox_L
+		REAL,DIMENSION(:),INTENT(INOUT)::vvnpoy_L
+		REAL,DIMENSION(:),INTENT(INOUT)::vvnpoz_L
+		REAL,DIMENSION(:),INTENT(INOUT)::vvwpox_L
+		REAL,DIMENSION(:),INTENT(INOUT)::vvwpoy_L
+		REAL,DIMENSION(:),INTENT(INOUT)::vvwpoz_L
+		REAL,DIMENSION(:),INTENT(INOUT)::VVnxi_L
+
+	   INTEGER::I, J, K, L, M, PPP, IEUL, IEX, IHGT, IHGJ, KMAXE, DECOMF, ICNN, IQDR, NVAR, idummy, iqp, nnd, ngp, icd
+	   REAL::RAA1, RAA2, PAA1, PAA2
+	   REAL::SOLX
+	   REAL, EXTERNAL::DDOT
+	   REAL, DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q, WEIGHTS_T
+	
+
+	   call QUADRATUREQUAD3D_SPHERE_CASE_ONLY(N,IGQRULES,WEQUA2D_L,QPOINTS2D_L,vvwg_L,VVR1_L,VVR2_L,vvnpox_L,vvnpoy_L,vvnpoz_L,vvwpox_L,vvwpoy_L,vvwpoz_L,VVnxi_L); WEIGHTS_Q(1:QP_QUAD) = WEQUA2D(1:QP_QUAD)
+	   call QUADRATURETRIANG_SPHERE_CASE_ONLY(N,IGQRULES,WEQUA2D_L,QPOINTS2D_L,vvwg_L,VVR1_L,VVR2_L,VVR3_L); WEIGHTS_T(1:QP_TRIANGLE) = WEQUA2D(1:QP_TRIANGLE)
+
+	
+	   KMAXE = XMPIELRANK(N); GRADSS_L = ZERO; I = ICONSIDERED
+	
+	   ILOCAL_RECON3(I)%ULEFTV(:, :, :, :) = zero; 
+	   DO IHGT = 1, 3; DO IHGJ = 1, 3
+			 AINVJT_L(IHGT, IHGJ) = ILOCAL_RECON3(I)%INVCCJAC(IHGJ, IHGT)
+		  END DO; END DO
+	
+	   DO l = 1, IELEM(N, I)%IFCA; IDUMMY = 0
+		  if (ielem(n, i)%types_faces(L) .eq. 5) then
+			 iqp = qp_quad; WEIGHT_T2_L(1:IQP) = WEIGHTS_Q(1:IQP)
+		  else
+			 iqp = qp_triangle; WEIGHT_T2_L(1:IQP) = WEIGHTS_T(1:IQP)
+		  end if
+	
+		  ICD = 0
+		  do NGP = 1, iqp                        !for gqp
+	
+			 AX_L = ILOCAL_RECON3(I)%QPOINTS(L, NGP, 1); AY_L = ILOCAL_RECON3(I)%QPOINTS(L, NGP, 2); AZ_L = ILOCAL_RECON3(I)%QPOINTS(L, NGP, 3)
+			 icd = icd + 1
+			 DO K = 1, IELEM(N, I)%IDEGFREE
+				XXDER_L(K, ICD) = TL3DX(AX_L, AY_L, AZ_L, K); YYDER_L(K, ICD) = TL3DY(AX_L, AY_L, AZ_L, K); ZZDER_L(K, ICD) = TL3DZ(AX_L, AY_L, AZ_L, K)
+			 END DO
+		  end do
+		  ICD = 0
+		  do NGP = 1, iqp
+			 icd = icd + 1
+	
+			 SELECT CASE (IELEM(N, I)%GGS)
+	
+			 CASE (0)
+	
+				GRADTEM_L(1:IELEM(N, I)%IDEGFREE) = ILOCAL_RECON5_L(1)%GRADIENTSTEMP(1:IELEM(N, I)%IDEGFREE)
+	!
+				UGRADLOC_L = ZERO
+	
+				UGRADLOC_L(1) = DDOT(IELEM(N, I)%IDEGFREE, GRADTEM_L(1:IELEM(N, I)%IDEGFREE), 1, XXDER_L(1:IELEM(N, I)%IDEGFREE, ICD), 1)
+				UGRADLOC_L(2) = DDOT(IELEM(N, I)%IDEGFREE, GRADTEM_L(1:IELEM(N, I)%IDEGFREE), 1, YYDER_L(1:IELEM(N, I)%IDEGFREE, ICD), 1)
+				UGRADLOC_L(3) = DDOT(IELEM(N, I)%IDEGFREE, GRADTEM_L(1:IELEM(N, I)%IDEGFREE), 1, ZZDER_L(1:IELEM(N, I)%IDEGFREE, ICD), 1)
+	
+				ILOCAL_RECON3(I)%ULEFTV(1:3, 1, L, NGP) = MATMUL(AINVJT_L(1:3, 1:3), UGRADLOC_L(1:3))
+	
+				DO IEX = 1, 3
+	!
+				   GRADTEM_L(1:IELEM(N, I)%IDEGFREE) = ILOCAL_RECON5_L(1)%VELOCITYDOF(IEX, 1:IELEM(N, I)%IDEGFREE)
+	!
+				   UGRADLOC_L = ZERO
+	
+				   UGRADLOC_L(1) = DDOT(IELEM(N, I)%IDEGFREE, GRADTEM_L(1:IELEM(N, I)%IDEGFREE), 1, XXDER_L(1:IELEM(N, I)%IDEGFREE, ICD), 1)
+				   UGRADLOC_L(2) = DDOT(IELEM(N, I)%IDEGFREE, GRADTEM_L(1:IELEM(N, I)%IDEGFREE), 1, YYDER_L(1:IELEM(N, I)%IDEGFREE, ICD), 1)
+				   UGRADLOC_L(3) = DDOT(IELEM(N, I)%IDEGFREE, GRADTEM_L(1:IELEM(N, I)%IDEGFREE), 1, ZZDER_L(1:IELEM(N, I)%IDEGFREE, ICD), 1)
+	
+				   ILOCAL_RECON3(I)%ULEFTV(1:3, IEX + 1, L, NGP) = MATMUL(AINVJT_L(1:3, 1:3), UGRADLOC_L(1:3))
+	
+	!
+				END DO
+	
+			 CASE (1)
+	
+				!MEAN FLOW GRADIENTS
+	
+				ILOCAL_RECON3(I)%ULEFTV(1:3, 1, L, NGP) = ILOCAL_RECON3(I)%GRADs(4, 1:3)
+	
+				DO IEX = 1, 3
+				   ILOCAL_RECON3(I)%ULEFTV(1:3, IEX + 1, L, NGP) = ILOCAL_RECON3(I)%GRADs(IEX, 1:3)
+				END DO
+	
+			 CASE (2)
+				DO K = 1, IELEM(N, I)%IDEGFREE
+				   GRADTEM_L(K) = ILOCAL_RECON5_L(1)%GRADIENTSTEMP(K)
+				   XDER_L(K) = TL3DX(AX_L, AY_L, AZ_L, K); YDER_L(K) = TL3DY(AX_L, AY_L, AZ_L, K); ZDER_L(K) = TL3DZ(AX_L, AY_L, AZ_L, K)
+				END DO
+				UGRADLOC = ZERO
+				DO K = 1, IDEGFREE
+				   UGRADLOC_L(1) = UGRADLOC_L(1) + GRADTEM_L(K)*XDER_L(K)
+				   UGRADLOC_L(2) = UGRADLOC_L(2) + GRADTEM_L(K)*YDER_L(K)
+				   UGRADLOC_L(3) = UGRADLOC_L(3) + GRADTEM_L(K)*ZDER_L(K)
+				END DO
+	
+				ILOCAL_RECON3(I)%ULEFTV(1:3, 1, L, NGP) = MATMUL(AINVJT_L(1:3, 1:3), UGRADLOC_L(1:3))
+	
+				DO IEX = 1, 3
+				   DO K = 1, IELEM(N, I)%IDEGFREE
+					  GRADTEM_L(K) = ILOCAL_RECON5_L(1)%VELOCITYDOF(IEX, K)
+	
+					  XDER_L(K) = TL3DX(AX_L, AY_L, AZ_L, K); YDER_L(K) = TL3DY(AX_L, AY_L, AZ_L, K); ZDER_L(K) = TL3DZ(AX_L, AY_L, AZ_L, K)
+	
+				   END DO
+				   UGRADLOC = ZERO
+				   DO K = 1, IDEGFREE
+					  UGRADLOC_L(1) = UGRADLOC_L(1) + GRADTEM_L(K)*XDER_L(K)
+					  UGRADLOC_L(2) = UGRADLOC_L(2) + GRADTEM_L(K)*YDER_L(K)
+					  UGRADLOC_L(3) = UGRADLOC_L(3) + GRADTEM_L(K)*ZDER_L(K)
+				   END DO
+	
+				   ILOCAL_RECON3(I)%ULEFTV(1:3, IEX + 1, L, NGP) = MATMUL(AINVJT_L(1:3, 1:3), UGRADLOC_L(1:3))
+	
+				END DO
+	
+			 END SELECT
+		  END DO
+	   END DO
+	
+	END SUBROUTINE SOLUTIONTRIAV2_SPHERE_CASE_ONLY
 
 SUBROUTINE SOLUTIONTRIAV2(N,ICONSIDERED)
 !> @brief

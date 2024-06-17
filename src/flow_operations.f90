@@ -124,7 +124,27 @@ FLUXEVAL3D(4)=R*U*W
 FLUXEVAL3D(5)=U*(E+P)
 
 END FUNCTION
- 
+
+SUBROUTINE CONS2PRIM_SPHERE_CASE_ONLY(N, LEFTV_L)
+  !> @brief
+  !> This subroutine transforms one vector of conservative variables to primitive variables
+     IMPLICIT NONE
+     INTEGER, INTENT(IN)::N
+     REAL,DIMENSION(:), INTENT(INOUT) ::LEFTV_L
+     REAL, DIMENSION(1:NOF_VARIABLES)::TEMPS
+     REAL::OODENSITY, MP_DENSITY, MP_STIFF
+  
+     OODENSITY = 1.0D0/LEFTV_L(1)
+  
+     TEMPS(1) = LEFTV_L(1)
+     TEMPS(2) = LEFTV_L(2)*OODENSITY
+     TEMPS(3) = LEFTV_L(3)*OODENSITY
+     TEMPS(4) = LEFTV_L(4)*OODENSITY
+     TEMPS(5) = ((GAMMA - 1.0D0))*((LEFTV_L(5)) - OO2*LEFTV_L(1)*(((TEMPS(2))**2) + ((TEMPS(3))**2) + ((TEMPS(4))**2)))
+  
+     LEFTV_L(1:nof_Variables) = TEMPS(1:nof_Variables)
+  
+END SUBROUTINE CONS2PRIM_SPHERE_CASE_ONLY
  
 SUBROUTINE CONS2PRIM(N)
 !> @brief
