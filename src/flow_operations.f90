@@ -129,6 +129,7 @@ SUBROUTINE CONS2PRIM_SPHERE_CASE_ONLY(N, LEFTV_L)
   !> @brief
   !> This subroutine transforms one vector of conservative variables to primitive variables
      IMPLICIT NONE
+     !$omp declare target
      INTEGER, INTENT(IN)::N
      REAL,DIMENSION(:), INTENT(INOUT) ::LEFTV_L
      REAL, DIMENSION(1:NOF_VARIABLES)::TEMPS

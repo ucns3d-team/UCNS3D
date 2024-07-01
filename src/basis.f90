@@ -7,21 +7,26 @@ IMPLICIT NONE
 
  CONTAINS
  
- FUNCTION BASIS_REC_SPHERE_CASE_ONLY(N, X1, Y1, Z1, NUMBER, ICONSIDERED, NUMBER_OF_DOG, compwrt_L, SB_L)
+ FUNCTION BASIS_REC_SPHERE_CASE_ONLY(N, X1, Y1, Z1, NUMBER, ICONSIDERED, NUMBER_OF_DOG, compwrt_L, SB_L, IELEM_L, ILOCAL_RECON3_L,INTEG_BASIS_L,integ_basis_dg_L)
     !> @brief
     !> This function returns the value of the basis function for a specific polynomial order and coordinates
        IMPLICIT NONE
+       !$omp declare target
        INTEGER, INTENT(IN)::N
+       REAL, INTENT(IN)::X1, Y1, Z1
        INTEGER, INTENT(IN)::NUMBER, ICONSIDERED, NUMBER_OF_DOG
        integer,INTENT(IN)::compwrt_L
        REAL,DIMENSION(:),INTENT(INOUT)::SB_L
-       REAL, INTENT(IN)::X1, Y1, Z1
+       TYPE(ELEMENT_NUMBER),DIMENSION(:,:),INTENT(IN)::IELEM_L
+       TYPE(LOCAL_RECON3),DIMENSION(:),INTENT(IN)::ILOCAL_RECON3_L
+       TYPE(INTEGRALBASIS),DIMENSION(:),INTENT(IN)::INTEG_BASIS_L,integ_basis_dg_L
+
        REAL::OOV, hxc
        real, dimension(NUMBER_OF_DOG)::BASIS_REC_SPHERE_CASE_ONLY
        SB_L = zero
-       OOV = 1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1, 1))
+       OOV = 1.0D0/(ILOCAL_RECON3_L(ICONSIDERED)%VOLUME(1, 1))
     
-       hxc = (sqrt(IELEM(N, Iconsidered)%totvolume))
+       hxc = (sqrt(IELEM_L(N, Iconsidered)%totvolume))
     
        select case (number)
        case (1)
@@ -243,20 +248,20 @@ IMPLICIT NONE
     
        end select
     
-       select case (compwrt)
+       select case (compwrt_L)
     
        case (-2)
     
-          OOV = 1.0D0/(IELEM(N, ICONSIDERED)%TOTVOLUME)
-          BASIS_REC_SPHERE_CASE_ONLY(1:NUMBER_OF_DOG) = SB_L(1:NUMBER_OF_DOG) - ((INTEG_BASIS_DG(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
+          OOV = 1.0D0/(IELEM_L(N, ICONSIDERED)%TOTVOLUME)
+          BASIS_REC_SPHERE_CASE_ONLY(1:NUMBER_OF_DOG) = SB_L(1:NUMBER_OF_DOG) - ((INTEG_BASIS_DG_L(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
     
        case (0)
-          OOV = 1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1, 1))
-          BASIS_REC_SPHERE_CASE_ONLY(1:NUMBER_OF_DOG) = SB_L(1:NUMBER_OF_DOG) - ((INTEG_BASIS(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
+          OOV = 1.0D0/(ILOCAL_RECON3_L(ICONSIDERED)%VOLUME(1, 1))
+          BASIS_REC_SPHERE_CASE_ONLY(1:NUMBER_OF_DOG) = SB_L(1:NUMBER_OF_DOG) - ((INTEG_BASIS_L(ICONSIDERED)%value(1:NUMBER_OF_DOG))*OOV)
     
        case (1)
-          OOV = 1.0D0/(ILOCAL_RECON3(ICONSIDERED)%VOLUME(1, 1))
-          BASIS_REC_SPHERE_CASE_ONLY(1:NUMBER_OF_DOG) = SB_L(1:NUMBER_OF_DOG) - ((INTEG_BASIS(ICONSIDERED)%valuec(1:NUMBER_OF_DOG))*OOV)
+          OOV = 1.0D0/(ILOCAL_RECON3_L(ICONSIDERED)%VOLUME(1, 1))
+          BASIS_REC_SPHERE_CASE_ONLY(1:NUMBER_OF_DOG) = SB_L(1:NUMBER_OF_DOG) - ((INTEG_BASIS_L(ICONSIDERED)%valuec(1:NUMBER_OF_DOG))*OOV)
     
        end select
     

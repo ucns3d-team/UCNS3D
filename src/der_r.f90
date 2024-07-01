@@ -36884,9 +36884,119 @@ CASE(56)
 	DLZ6=S    
 	END FUNCTION DLZ6
 	
+
+
+REAL FUNCTION TL3DZ_SPHERE_CASE_ONLY(Iconsidered, XD1,YD1,ZD1,NDERIVATIVE,IELEM_L)
+IMPLICIT NONE
+!$omp declare target
+INTEGER,INTENT(IN)::Iconsidered
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1,ZD1
+TYPE(ELEMENT_NUMBER),DIMENSION(:,:),INTENT(IN)::IELEM_L
+REAL::S,HXC   
+hxc=sqrt(IELEM_L(N,Iconsidered)%totvolume)
+
+
+
+
+S=0.0D0
+select case(NDERIVATIVE)
+CASE(3) ; S= 1/hxc
+CASE(9) ; S= zd1/hxc**2
+CASE(19) ; S= zd1**2/(2.0D0*hxc**3)
+CASE(34) ; S= zd1**3/(6.0D0*hxc**4)
+CASE(55) ; S= zd1**4/(24.0D0*hxc**5)
+CASE(83) ; S= zd1**5/(120.0D0*hxc**6)
+CASE(2) ; S= 0.0D0
+CASE(8) ; S= yd1/hxc**2
+CASE(18) ; S= (yd1*zd1)/hxc**3
+CASE(33) ; S= (yd1*zd1**2)/(2.0D0*hxc**4)
+CASE(54) ; S= (yd1*zd1**3)/(6.0D0*hxc**5)
+CASE(82) ; S= (yd1*zd1**4)/(24.0D0*hxc**6)
+CASE(7) ; S= 0.0D0
+CASE(17) ; S= yd1**2/(2.0D0*hxc**3)
+CASE(32) ; S= (yd1**2*zd1)/(2.0D0*hxc**4)
+CASE(53) ; S= (yd1**2*zd1**2)/(4.0D0*hxc**5)
+CASE(81) ; S= (yd1**2*zd1**3)/(12.0D0*hxc**6)
+CASE(16) ; S= 0.0D0
+CASE(31) ; S= yd1**3/(6.0D0*hxc**4)
+CASE(52) ; S= (yd1**3*zd1)/(6.0D0*hxc**5)
+CASE(80) ; S= (yd1**3*zd1**2)/(12.0D0*hxc**6)
+CASE(30) ; S= 0.0D0
+CASE(51) ; S= yd1**4/(24.0D0*hxc**5)
+CASE(79) ; S= (yd1**4*zd1)/(24.0D0*hxc**6)
+CASE(50) ; S= 0.0D0
+CASE(78) ; S= yd1**5/(120.0D0*hxc**6)
+CASE(77) ; S= 0.0D0
+CASE(1) ; S= 0.0D0
+CASE(6) ; S= xd1/hxc**2
+CASE(14) ; S= (xd1*zd1)/hxc**3
+CASE(27) ; S= (xd1*zd1**2)/(2.0D0*hxc**4)
+CASE(49) ; S= (xd1*zd1**3)/(6.0D0*hxc**5)
+CASE(76) ; S= (xd1*zd1**4)/(24.0D0*hxc**6)
+CASE(5) ; S= 0.0D0
+CASE(15) ; S= (xd1*yd1)/hxc**3
+CASE(29) ; S= (xd1*yd1*zd1)/hxc**4
+CASE(48) ; S= (xd1*yd1*zd1**2)/(2.0D0*hxc**5)
+CASE(75) ; S= (xd1*yd1*zd1**3)/(6.0D0*hxc**6)
+CASE(13) ; S= 0.0D0
+CASE(28) ; S= (xd1*yd1**2)/(2.0D0*hxc**4)
+CASE(47) ; S= (xd1*yd1**2*zd1)/(2.0D0*hxc**5)
+CASE(74) ; S= (xd1*yd1**2*zd1**2)/(4.0D0*hxc**6)
+CASE(26) ; S= 0.0D0
+CASE(46) ; S= (xd1*yd1**3)/(6.0D0*hxc**5)
+CASE(73) ; S= (xd1*yd1**3*zd1)/(6.0D0*hxc**6)
+CASE(45) ; S= 0.0D0
+CASE(72) ; S= (xd1*yd1**4)/(24.0D0*hxc**6)
+CASE(71) ; S= 0.0D0
+CASE(4) ; S= 0.0D0
+CASE(12) ; S= xd1**2/(2.0D0*hxc**3)
+CASE(24) ; S= (xd1**2*zd1)/(2.0D0*hxc**4)
+CASE(44) ; S= (xd1**2*zd1**2)/(4.0D0*hxc**5)
+CASE(70) ; S= (xd1**2*zd1**3)/(12.0D0*hxc**6)
+CASE(11) ; S= 0.0D0
+CASE(25) ; S= (xd1**2*yd1)/(2.0D0*hxc**4)
+CASE(43) ; S= (xd1**2*yd1*zd1)/(2.0D0*hxc**5)
+CASE(69) ; S= (xd1**2*yd1*zd1**2)/(4.0D0*hxc**6)
+CASE(23) ; S= 0.0D0
+CASE(42) ; S= (xd1**2*yd1**2)/(4.0D0*hxc**5)
+CASE(68) ; S= (xd1**2*yd1**2*zd1)/(4.0D0*hxc**6)
+CASE(41) ; S= 0.0D0
+CASE(67) ; S= (xd1**2*yd1**3)/(12.0D0*hxc**6)
+CASE(66) ; S= 0.0D0
+CASE(10) ; S= 0.0D0
+CASE(22) ; S= xd1**3/(6.0D0*hxc**4)
+CASE(39) ; S= (xd1**3*zd1)/(6.0D0*hxc**5)
+CASE(65) ; S= (xd1**3*zd1**2)/(12.0D0*hxc**6)
+CASE(21) ; S= 0.0D0
+CASE(40) ; S= (xd1**3*yd1)/(6.0D0*hxc**5)
+CASE(64) ; S= (xd1**3*yd1*zd1)/(6.0D0*hxc**6)
+CASE(38) ; S= 0.0D0
+CASE(63) ; S= (xd1**3*yd1**2)/(12.0D0*hxc**6)
+CASE(62) ; S= 0.0D0
+CASE(20) ; S= 0.0D0
+CASE(37) ; S= xd1**4/(24.0D0*hxc**5)
+CASE(61) ; S= (xd1**4*zd1)/(24.0D0*hxc**6)
+CASE(36) ; S= 0.0D0
+CASE(60) ; S= (xd1**4*yd1)/(24.0D0*hxc**6)
+CASE(59) ; S= 0.0D0
+CASE(35) ; S= 0.0D0
+CASE(58) ; S= xd1**5/(120.0D0*hxc**6)
+CASE(57) ; S= 0.0D0
+CASE(56) ; S= 0.0D0
+
+
+End select
+
+TL3DZ_SPHERE_CASE_ONLY = s
+
+end function
+
+      
 	
 REAL FUNCTION TL3DZ(XD1,YD1,ZD1,NDERIVATIVE)
 IMPLICIT NONE
+
 INTEGER,INTENT(IN)::NDERIVATIVE
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
@@ -37522,9 +37632,118 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
   end function
  
  
+
+  REAL FUNCTION TL3DY_SPHERE_CASE_ONLY(Iconsidered,XD1,YD1,ZD1,NDERIVATIVE,IELEM_L)
+IMPLICIT NONE
+!$omp declare target
+INTEGER,INTENT(IN)::Iconsidered
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1,ZD1
+TYPE(ELEMENT_NUMBER),DIMENSION(:,:),INTENT(IN)::IELEM_L
+REAL::S,HXC   
+hxc=sqrt(IELEM_L(N,Iconsidered)%totvolume)
+
+
+
+
+   S=0.0D0
+   select case(NDERIVATIVE)
+ CASE(3) ; S= 0.0D0
+ CASE(9) ; S= 0.0D0
+ CASE(19) ; S= 0.0D0
+ CASE(34) ; S= 0.0D0
+ CASE(55) ; S= 0.0D0
+ CASE(83) ; S= 0.0D0
+ CASE(2) ; S= 1/hxc
+ CASE(8) ; S= zd1/hxc**2
+ CASE(18) ; S= zd1**2/(2.0D0*hxc**3)
+ CASE(33) ; S= zd1**3/(6.0D0*hxc**4)
+ CASE(54) ; S= zd1**4/(24.0D0*hxc**5)
+ CASE(82) ; S= zd1**5/(120.0D0*hxc**6)
+ CASE(7) ; S= yd1/hxc**2
+ CASE(17) ; S= (yd1*zd1)/hxc**3
+ CASE(32) ; S= (yd1*zd1**2)/(2.0D0*hxc**4)
+ CASE(53) ; S= (yd1*zd1**3)/(6.0D0*hxc**5)
+ CASE(81) ; S= (yd1*zd1**4)/(24.0D0*hxc**6)
+ CASE(16) ; S= yd1**2/(2.0D0*hxc**3)
+ CASE(31) ; S= (yd1**2*zd1)/(2.0D0*hxc**4)
+ CASE(52) ; S= (yd1**2*zd1**2)/(4.0D0*hxc**5)
+ CASE(80) ; S= (yd1**2*zd1**3)/(12.0D0*hxc**6)
+ CASE(30) ; S= yd1**3/(6.0D0*hxc**4)
+ CASE(51) ; S= (yd1**3*zd1)/(6.0D0*hxc**5)
+ CASE(79) ; S= (yd1**3*zd1**2)/(12.0D0*hxc**6)
+ CASE(50) ; S= yd1**4/(24.0D0*hxc**5)
+ CASE(78) ; S= (yd1**4*zd1)/(24.0D0*hxc**6)
+ CASE(77) ; S= yd1**5/(120.0D0*hxc**6)
+ CASE(1) ; S= 0.0D0
+ CASE(6) ; S= 0.0D0
+ CASE(14) ; S= 0.0D0
+ CASE(27) ; S= 0.0D0
+ CASE(49) ; S= 0.0D0
+ CASE(76) ; S= 0.0D0
+ CASE(5) ; S= xd1/hxc**2
+ CASE(15) ; S= (xd1*zd1)/hxc**3
+ CASE(29) ; S= (xd1*zd1**2)/(2.0D0*hxc**4)
+ CASE(48) ; S= (xd1*zd1**3)/(6.0D0*hxc**5)
+ CASE(75) ; S= (xd1*zd1**4)/(24.0D0*hxc**6)
+ CASE(13) ; S= (xd1*yd1)/hxc**3
+ CASE(28) ; S= (xd1*yd1*zd1)/hxc**4
+ CASE(47) ; S= (xd1*yd1*zd1**2)/(2.0D0*hxc**5)
+ CASE(74) ; S= (xd1*yd1*zd1**3)/(6.0D0*hxc**6)
+ CASE(26) ; S= (xd1*yd1**2)/(2.0D0*hxc**4)
+ CASE(46) ; S= (xd1*yd1**2*zd1)/(2.0D0*hxc**5)
+ CASE(73) ; S= (xd1*yd1**2*zd1**2)/(4.0D0*hxc**6)
+ CASE(45) ; S= (xd1*yd1**3)/(6.0D0*hxc**5)
+ CASE(72) ; S= (xd1*yd1**3*zd1)/(6.0D0*hxc**6)
+ CASE(71) ; S= (xd1*yd1**4)/(24.0D0*hxc**6)
+ CASE(4) ; S= 0.0D0
+ CASE(12) ; S= 0.0D0
+ CASE(24) ; S= 0.0D0
+ CASE(44) ; S= 0.0D0
+ CASE(70) ; S= 0.0D0
+ CASE(11) ; S= xd1**2/(2.0D0*hxc**3)
+ CASE(25) ; S= (xd1**2*zd1)/(2.0D0*hxc**4)
+ CASE(43) ; S= (xd1**2*zd1**2)/(4.0D0*hxc**5)
+ CASE(69) ; S= (xd1**2*zd1**3)/(12.0D0*hxc**6)
+ CASE(23) ; S= (xd1**2*yd1)/(2.0D0*hxc**4)
+ CASE(42) ; S= (xd1**2*yd1*zd1)/(2.0D0*hxc**5)
+ CASE(68) ; S= (xd1**2*yd1*zd1**2)/(4.0D0*hxc**6)
+ CASE(41) ; S= (xd1**2*yd1**2)/(4.0D0*hxc**5)
+ CASE(67) ; S= (xd1**2*yd1**2*zd1)/(4.0D0*hxc**6)
+ CASE(66) ; S= (xd1**2*yd1**3)/(12.0D0*hxc**6)
+ CASE(10) ; S= 0.0D0
+ CASE(22) ; S= 0.0D0
+ CASE(39) ; S= 0.0D0
+ CASE(65) ; S= 0.0D0
+ CASE(21) ; S= xd1**3/(6.0D0*hxc**4)
+ CASE(40) ; S= (xd1**3*zd1)/(6.0D0*hxc**5)
+ CASE(64) ; S= (xd1**3*zd1**2)/(12.0D0*hxc**6)
+ CASE(38) ; S= (xd1**3*yd1)/(6.0D0*hxc**5)
+ CASE(63) ; S= (xd1**3*yd1*zd1)/(6.0D0*hxc**6)
+ CASE(62) ; S= (xd1**3*yd1**2)/(12.0D0*hxc**6)
+ CASE(20) ; S= 0.0D0
+ CASE(37) ; S= 0.0D0
+ CASE(61) ; S= 0.0D0
+ CASE(36) ; S= xd1**4/(24.0D0*hxc**5)
+ CASE(60) ; S= (xd1**4*zd1)/(24.0D0*hxc**6)
+ CASE(59) ; S= (xd1**4*yd1)/(24.0D0*hxc**6)
+ CASE(35) ; S= 0.0D0
+ CASE(58) ; S= 0.0D0
+ CASE(57) ; S= xd1**5/(120.0D0*hxc**6)
+ CASE(56) ; S= 0.0D0
+ 
+ 
+ 
+   End select
+
+   TL3DY_SPHERE_CASE_ONLY = s
+
+  end function
+ 
  
   REAL FUNCTION TL3DY(XD1,YD1,ZD1,NDERIVATIVE)
 IMPLICIT NONE
+
 INTEGER,INTENT(IN)::NDERIVATIVE
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
@@ -39742,10 +39961,116 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
  
+  
+  REAL FUNCTION TL3DX_SPHERE_CASE_ONLY(Iconsidered,XD1,YD1,ZD1,NDERIVATIVE,IELEM_L)
+IMPLICIT NONE
+!$omp declare target
+INTEGER,INTENT(IN)::Iconsidered
+INTEGER,INTENT(IN)::NDERIVATIVE
+REAL,INTENT(IN)::XD1,YD1,ZD1
+TYPE(ELEMENT_NUMBER),DIMENSION(:,:),INTENT(IN)::IELEM_L
+REAL::S,HXC   
+hxc=sqrt(IELEM_L(N,Iconsidered)%totvolume)
+
+
+
+
+   S=0.0D0
+   select case(NDERIVATIVE)
+ CASE(3) ; S= 0.0D0
+ CASE(9) ; S= 0.0D0
+ CASE(19) ; S= 0.0D0
+ CASE(34) ; S= 0.0D0
+ CASE(55) ; S= 0.0D0
+ CASE(83) ; S= 0.0D0
+ CASE(2) ; S= 0.0D0
+ CASE(8) ; S= 0.0D0
+ CASE(18) ; S= 0.0D0
+ CASE(33) ; S= 0.0D0
+ CASE(54) ; S= 0.0D0
+ CASE(82) ; S= 0.0D0
+ CASE(7) ; S= 0.0D0
+ CASE(17) ; S= 0.0D0
+ CASE(32) ; S= 0.0D0
+ CASE(53) ; S= 0.0D0
+ CASE(81) ; S= 0.0D0
+ CASE(16) ; S= 0.0D0
+ CASE(31) ; S= 0.0D0
+ CASE(52) ; S= 0.0D0
+ CASE(80) ; S= 0.0D0
+ CASE(30) ; S= 0.0D0
+ CASE(51) ; S= 0.0D0
+ CASE(79) ; S= 0.0D0
+ CASE(50) ; S= 0.0D0
+ CASE(78) ; S= 0.0D0
+ CASE(77) ; S= 0.0D0
+ CASE(1) ; S= 1/hxc
+ CASE(6) ; S= zd1/hxc**2
+ CASE(14) ; S= zd1**2/(2.0D0*hxc**3)
+ CASE(27) ; S= zd1**3/(6.0D0*hxc**4)
+ CASE(49) ; S= zd1**4/(24.0D0*hxc**5)
+ CASE(76) ; S= zd1**5/(120.0D0*hxc**6)
+ CASE(5) ; S= yd1/hxc**2
+ CASE(15) ; S= (yd1*zd1)/hxc**3
+ CASE(29) ; S= (yd1*zd1**2)/(2.0D0*hxc**4)
+ CASE(48) ; S= (yd1*zd1**3)/(6.0D0*hxc**5)
+ CASE(75) ; S= (yd1*zd1**4)/(24.0D0*hxc**6)
+ CASE(13) ; S= yd1**2/(2.0D0*hxc**3)
+ CASE(28) ; S= (yd1**2*zd1)/(2.0D0*hxc**4)
+ CASE(47) ; S= (yd1**2*zd1**2)/(4.0D0*hxc**5)
+ CASE(74) ; S= (yd1**2*zd1**3)/(12.0D0*hxc**6)
+ CASE(26) ; S= yd1**3/(6.0D0*hxc**4)
+ CASE(46) ; S= (yd1**3*zd1)/(6.0D0*hxc**5)
+ CASE(73) ; S= (yd1**3*zd1**2)/(12.0D0*hxc**6)
+ CASE(45) ; S= yd1**4/(24.0D0*hxc**5)
+ CASE(72) ; S= (yd1**4*zd1)/(24.0D0*hxc**6)
+ CASE(71) ; S= yd1**5/(120.0D0*hxc**6)
+ CASE(4) ; S= xd1/hxc**2
+ CASE(12) ; S= (xd1*zd1)/hxc**3
+ CASE(24) ; S= (xd1*zd1**2)/(2.0D0*hxc**4)
+ CASE(44) ; S= (xd1*zd1**3)/(6.0D0*hxc**5)
+ CASE(70) ; S= (xd1*zd1**4)/(24.0D0*hxc**6)
+ CASE(11) ; S= (xd1*yd1)/hxc**3
+ CASE(25) ; S= (xd1*yd1*zd1)/hxc**4
+ CASE(43) ; S= (xd1*yd1*zd1**2)/(2.0D0*hxc**5)
+ CASE(69) ; S= (xd1*yd1*zd1**3)/(6.0D0*hxc**6)
+ CASE(23) ; S= (xd1*yd1**2)/(2.0D0*hxc**4)
+ CASE(42) ; S= (xd1*yd1**2*zd1)/(2.0D0*hxc**5)
+ CASE(68) ; S= (xd1*yd1**2*zd1**2)/(4.0D0*hxc**6)
+ CASE(41) ; S= (xd1*yd1**3)/(6.0D0*hxc**5)
+ CASE(67) ; S= (xd1*yd1**3*zd1)/(6.0D0*hxc**6)
+ CASE(66) ; S= (xd1*yd1**4)/(24.0D0*hxc**6)
+ CASE(10) ; S= xd1**2/(2.0D0*hxc**3)
+ CASE(22) ; S= (xd1**2*zd1)/(2.0D0*hxc**4)
+ CASE(39) ; S= (xd1**2*zd1**2)/(4.0D0*hxc**5)
+ CASE(65) ; S= (xd1**2*zd1**3)/(12.0D0*hxc**6)
+ CASE(21) ; S= (xd1**2*yd1)/(2.0D0*hxc**4)
+ CASE(40) ; S= (xd1**2*yd1*zd1)/(2.0D0*hxc**5)
+ CASE(64) ; S= (xd1**2*yd1*zd1**2)/(4.0D0*hxc**6)
+ CASE(38) ; S= (xd1**2*yd1**2)/(4.0D0*hxc**5)
+ CASE(63) ; S= (xd1**2*yd1**2*zd1)/(4.0D0*hxc**6)
+ CASE(62) ; S= (xd1**2*yd1**3)/(12.0D0*hxc**6)
+ CASE(20) ; S= xd1**3/(6.0D0*hxc**4)
+ CASE(37) ; S= (xd1**3*zd1)/(6.0D0*hxc**5)
+ CASE(61) ; S= (xd1**3*zd1**2)/(12.0D0*hxc**6)
+ CASE(36) ; S= (xd1**3*yd1)/(6.0D0*hxc**5)
+ CASE(60) ; S= (xd1**3*yd1*zd1)/(6.0D0*hxc**6)
+ CASE(59) ; S= (xd1**3*yd1**2)/(12.0D0*hxc**6)
+ CASE(35) ; S= xd1**4/(24.0D0*hxc**5)
+ CASE(58) ; S= (xd1**4*zd1)/(24.0D0*hxc**6)
+ CASE(57) ; S= (xd1**4*yd1)/(24.0D0*hxc**6)
+ CASE(56) ; S= xd1**5/(120.0D0*hxc**6)
+ 
+  End select
+
+  TL3DX_SPHERE_CASE_ONLY = s
+
+  end function
  
  
   REAL FUNCTION TL3DX(XD1,YD1,ZD1,NDERIVATIVE)
 IMPLICIT NONE
+
 INTEGER,INTENT(IN)::NDERIVATIVE
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
