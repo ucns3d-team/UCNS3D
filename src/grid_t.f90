@@ -2750,7 +2750,7 @@ END SELECT
 END SUBROUTINE QUADRATUREQUAD
 
 
-SUBROUTINE QUADRATUREQUAD3D_SPHERE_CASE_ONLY(N,IGQRULES,WEQUA2D_L,QPOINTS2D_L,vvwg_L,VVR1_L,VVR2_L,vvnpox_L,vvnpoy_L,vvnpoz_L,vvwpox_L,vvwpoy_L,vvwpoz_L,VVnxi_L)
+SUBROUTINE QUADRATUREQUAD3D_SPHERE_CASE_ONLY_OLD(N,IGQRULES,WEQUA2D_L,QPOINTS2D_L,vvwg_L,VVR1_L,VVR2_L,vvnpox_L,vvnpoy_L,vvnpoz_L,vvwpox_L,vvwpoy_L,vvwpoz_L,VVnxi_L)
  !> @brief
 !> This subroutine computes the quadrature points and weights for quadrilateral in 3D
 IMPLICIT NONE
@@ -2832,7 +2832,215 @@ end do
 
 
 
-END SUBROUTINE QUADRATUREQUAD3D_SPHERE_CASE_ONLY
+END SUBROUTINE QUADRATUREQUAD3D_SPHERE_CASE_ONLY_OLD
+
+
+SUBROUTINE QUADRATUREQUAD3D_SPHERE_CASE_ONLY(N,IGQRULES,WEQUA2D_L,QPOINTS2D_L,vvwg_L,VVR1_L,VVR2_L,vvnpox_L,vvnpoy_L,vvnpoz_L,vvwpox_L,vvwpoy_L,vvwpoz_L,VVnxi_L)
+	!> @brief
+   !> This subroutine computes the quadrature points and weights for quadrilateral in 3D
+   IMPLICIT NONE
+   !$omp declare target
+   INTEGER,INTENT(IN)::IGQRULES,N
+   REAL,DIMENSION(:),INTENT(INOUT)::WEQUA2D_L
+   REAL,DIMENSION(:,:),INTENT(INOUT)::QPOINTS2D_L
+   REAL,DIMENSION(:),INTENT(INOUT)::vvwg_L
+   REAL,DIMENSION(:),INTENT(INOUT)::VVR1_L
+   REAL,DIMENSION(:),INTENT(INOUT)::VVR2_L
+   REAL,DIMENSION(:),INTENT(INOUT)::vvnpox_L
+   REAL,DIMENSION(:),INTENT(INOUT)::vvnpoy_L
+   REAL,DIMENSION(:),INTENT(INOUT)::vvnpoz_L
+   REAL,DIMENSION(:),INTENT(INOUT)::vvwpox_L
+   REAL,DIMENSION(:),INTENT(INOUT)::vvwpoy_L
+   REAL,DIMENSION(:),INTENT(INOUT)::vvwpoz_L
+   REAL,DIMENSION(:),INTENT(INOUT)::VVnxi_L
+
+   REAL::R,S,T,a,b,c,d,e,f
+   REAL::a1,b1,c1,d1,e1,f1
+   INTEGER::Kk,J,ii,ij,ik,count1,alls
+   
+   
+	WEQUA2D_L=0.0d0
+	 QPOINTS2D_L=0.0d0
+   
+   SELECT CASE(IGQRULES)
+	
+   
+	case(1)
+   
+		   vvwg_L(1) = 4.0d0
+		   VVR1_L(1)=0.0d0	;VVR2_L(1)=0.0d0	
+   
+   
+	case(2)
+   
+	a=-0.5773502691896257
+	 b=0.5773502691896257
+	 a1=1.0d0
+	 b1=1.0d0
+	 
+	 vvnpox_L(1)=a	;vvnpox_L(2)=b	
+	 vvnpoy_L(1)= a	;vvnpoy_L(2)=b	
+	 vvnpoz_L(1)= a	;vvnpoz_L(2)=b
+   
+	 vvwpox_L(1)=a1	;vvwpox_L(2)=b1	
+	 vvwpoy_L(1)= a1;vvwpoy_L(2)=b1	
+	 vvwpoz_L(1)= a1;vvwpoz_L(2)=b1
+	 
+	 count1=0
+	do ii=1,2
+	   do ij=1,2
+		 
+	   count1=count1+1
+	   VVR1_L(count1)=vvnpox_L(ii);VVR2_L(count1)=vvnpoy_L(ij) 
+	   vvwg_L(count1)=vvwpox_L(ii)*vvwpox_L(ij)
+		 
+	   end do
+   end do
+		 
+   
+   
+		 
+	CASE(3)
+	 a=0.0d0
+	 b=-0.7745966692414834
+	 c=0.7745966692414834
+	 a1=0.8888888888888888
+	 b1=0.5555555555555556
+	 c1=0.5555555555555556
+	 vvnpox_L(1)=a	;vvnpox_L(2)=b	;vvnpox_L(3)=c
+	 vvnpoy_L(1)= a	;vvnpoy_L(2)=b	;vvnpoy_L(3)=c
+	 vvnpoz_L(1)= a	;vvnpoz_L(2)=b	;vvnpoz_L(3)=c
+	 vvwpox_L(1)=a1	;vvwpox_L(2)=b1	;vvwpox_L(3)=c1
+	 vvwpoy_L(1)= a1	;vvwpoy_L(2)=b1	;vvwpoy_L(3)=c1
+	 vvwpoz_L(1)= a1	;vvwpoz_L(2)=b1	;vvwpoz_L(3)=c1
+	 count1=0
+	do ii=1,3
+	   do ij=1,3
+		
+	   count1=count1+1
+	   VVR1_L(count1)=vvnpox_L(ii);VVR2_L(count1)=vvnpoy_L(ij) 
+	   vvwg_L(count1)=vvwpox_L(ii)*vvwpox_L(ij)
+		 
+	   end do
+   end do
+	
+   
+			   
+	CASE(4)
+	 a=-0.3399810435848563
+	 b=0.3399810435848563
+	 c=-0.8611363115940526
+	 d=0.8611363115940526
+	  a1=0.6521451548625461
+	 b1=0.6521451548625461
+	 c1=0.3478548451374538
+	 d1=0.3478548451374538
+	 vvnpox_L(1)=a	;vvnpox_L(2)=b	;vvnpox_L(3)=c ;vvnpox_L(4)=d
+	 vvnpoy_L(1)= a	;vvnpoy_L(2)=b	;vvnpoy_L(3)=c ;vvnpoy_L(4)=d
+	 vvnpoz_L(1)= a	;vvnpoz_L(2)=b	;vvnpoz_L(3)=c ;vvnpoz_L(4)=d
+	 vvwpox_L(1)=a1	;vvwpox_L(2)=b1	;vvwpox_L(3)=c1 ;vvwpox_L(4)=d1
+	 vvwpoy_L(1)= a1;vvwpoy_L(2)=b1	;vvwpoy_L(3)=c1 ;vvwpoy_L(4)=d1
+	 vvwpoz_L(1)= a1;vvwpoz_L(2)=b1	;vvwpoz_L(3)=c1 ;vvwpoz_L(4)=d1
+	 count1=0
+	do ii=1,4
+	   do ij=1,4
+		 
+	   count1=count1+1
+	   VVR1_L(count1)=vvnpox_L(ii);VVR2_L(count1)=vvnpoy_L(ij) 
+	   vvwg_L(count1)=vvwpox_L(ii)*vvwpox_L(ij)
+		
+	   end do
+   end do
+   
+   
+			   
+   CASE(5)
+   
+	 a=0.0d0
+	 b=-0.5384693101056831
+	 c=0.5384693101056831
+	 d=-0.9061798459386640
+	 e=0.9061798459386640
+	   a1=0.5688888888888889
+	 b1=0.4786286704993665
+	 c1=0.4786286704993665
+	 d1=0.2369268850561891
+	 E1=0.2369268850561891
+	 vvnpox_L(1)=a	;vvnpox_L(2)=b	;vvnpox_L(3)=c ;vvnpox_L(4)=d ;vvnpox_L(5)=e
+	 vvnpoy_L(1)= a	;vvnpoy_L(2)=b	;vvnpoy_L(3)=c ;vvnpoy_L(4)=d ;vvnpoy_L(5)=e
+	 vvnpoz_L(1)= a	;vvnpoz_L(2)=b	;vvnpoz_L(3)=c ;vvnpoz_L(4)=d ;vvnpoz_L(5)=e
+	 vvwpox_L(1)=a1	;vvwpox_L(2)=b1	;vvwpox_L(3)=c1 ;vvwpox_L(4)=d1 ;vvwpox_L(5)=e1
+	 vvwpoy_L(1)= a1	;vvwpoy_L(2)=b1	;vvwpoy_L(3)=c1 ;vvwpoy_L(4)=d1 ;vvwpoy_L(5)=e1
+	 vvwpoz_L(1)= a1	;vvwpoz_L(2)=b1	;vvwpoz_L(3)=c1 ;vvwpoz_L(4)=d1 ;vvwpoz_L(5)=e1
+	 count1=0
+	do ii=1,5
+	   do ij=1,5
+		 
+	   count1=count1+1
+	   VVR1_L(count1)=vvnpox_L(ii);VVR2_L(count1)=vvnpoy_L(ij) 
+	   vvwg_L(count1)=(vvwpox_L(ii)*vvwpox_L(ij))
+		 
+	   end do
+   end do
+	   
+			   
+   CASE(6,7,8,9)
+   
+	 a=0.6612093864662645
+	 b=-0.6612093864662645
+	 c=-0.2386191860831969
+	 d=0.2386191860831969
+	 e=-0.9324695142031521
+	 F=0.9324695142031521
+	 a1=0.3607615730481386
+	 b1=0.3607615730481386
+	 c1=0.4679139345726910
+	 d1=0.4679139345726910
+	 e1=0.1713244923791704
+	 F1=0.1713244923791704
+	 vvnpox_L(1)=a	;vvnpox_L(2)=b	;vvnpox_L(3)=c ;vvnpox_L(4)=d ;vvnpox_L(5)=e;vvnpox_L(6)=f
+	 vvnpoy_L(1)= a	;vvnpoy_L(2)=b	;vvnpoy_L(3)=c ;vvnpoy_L(4)=d ;vvnpoy_L(5)=e;vvnpoy_L(6)=f
+	 vvnpoz_L(1)= a	;vvnpoz_L(2)=b	;vvnpoz_L(3)=c ;vvnpoz_L(4)=d ;vvnpoz_L(5)=e;vvnpoz_L(6)=f
+	 vvwpox_L(1)=a1	;vvwpox_L(2)=b1	;vvwpox_L(3)=c1 ;vvwpox_L(4)=d1 ;vvwpox_L(5)=e1 ;vvwpox_L(6)=f1
+	 vvwpoy_L(1)= a1	;vvwpoy_L(2)=b1	;vvwpoy_L(3)=c1 ;vvwpoy_L(4)=d1 ;vvwpoy_L(5)=e1 ;vvwpoy_L(6)=f1
+	 vvwpoz_L(1)= a1	;vvwpoz_L(2)=b1	;vvwpoz_L(3)=c1 ;vvwpoz_L(4)=d1 ;vvwpoz_L(5)=e1 ;vvwpoz_L(6)=f1
+	 count1=0
+	do ii=1,6
+	   do ij=1,6
+		 
+	   count1=count1+1
+	   VVR1_L(count1)=vvnpox_L(ii);VVR2_L(count1)=vvnpoy_L(ij) 
+	   vvwg_L(count1)=vvwpox_L(ii)*vvwpox_L(ij)
+		 
+	   end do
+   end do
+	   
+			   
+   END SELECT
+		   QPOINTS2D_L(:,:)=0.0d0
+		   
+			 vvwg_L(:)=vvwg_L(:)*0.25d0
+   ! 		  WEQUA2D(:)=vvwg(:)
+		   do kk=1,qp_quad
+			   WEQUA2D_L(kk)=vvwg_L(kk)
+			   R=VVR1_L(kk); S=VVR2_L(kk);
+			   VVnxi_L(1)=(0.25d0)*(1.0d0-R)*(1.0d0-s)
+			   VVnxi_L(2)=(0.25d0)*(1.0d0+R)*(1.0d0-s)
+			   VVnxi_L(3)=(0.25d0)*(1.0d0+R)*(1.0d0+s)
+			   VVnxi_L(4)=(0.25d0)*(1.0d0-R)*(1.0d0+s)
+			   
+			   DO J=1,4
+			   QPOINTS2D_L(1:3,kk)=QPOINTS2D_L(1:3,kk)+(VVNXI_L(j)*VEXT(j,1:3))
+			   END DO
+   ! 			
+   
+		   END DO
+		   
+   
+   
+   
+   
+   END SUBROUTINE QUADRATUREQUAD3D_SPHERE_CASE_ONLY
 
 
 SUBROUTINE QUADRATUREQUAD3D(N,IGQRULES)

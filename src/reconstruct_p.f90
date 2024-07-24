@@ -769,6 +769,12 @@ SUBROUTINE WENOWEIGHTS_KERNEL_SPHERE_CASE_ONLY(N, UGRADLOC_L, GRAD1AL_L, INDICAT
 
 	KMAXE=XMPIELRANK(N)
 
+        IF (N.EQ.0)THEN
+                OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+
+                WRITE(63,*)"Activating WENO Reconstruction kernel"
+                CLOSE(63)
+        END IF
 
 	!!$OMP DO SCHEDULE (STATIC)
 	!!$OMP target teams loop private(ugradloc_L, GRAD1AL_L, INDICATEMATRIXAL_L,compwrt_L,I,imax_L, NUMBER_OF_DOG_L, NUMBER_OF_NEI_L, ANGLE1_L, ANGLE2_L, AX_L, AY_L, AZ_L, SB_L, CONSMATRIX_L,CONSMATRIXC_L,icd, WENO_L, RESSOLUTION_L, ILOCAL_RECON5_L, LEFTV_L, GRADSS_L, AINVJT_L, WEIGHT_T2_L, XXDER_L, YYDER_L, ZZDER_L, GRADTEM_L, XDER_L, YDER_L, ZDER_L, WEQUA2D_L, QPOINTS2D_L, vvwg_L, VVR1_L, VVR2_L, VVR3_L, vvnpox_L, vvnpoy_L, vvnpoz_L, vvwpox_L, vvwpoy_L, vvwpoz_L, VVnxi_L, divbyzero, power, tau_Weno, SUMOMEGAATILDEL, lamc_L, LAMBDAAL_L, GRAD3AL_L, GRAD5ALc_L, SMOOTHINDICATORAL_L, OMEGAATILDEL_L, OMEGAAL_L, GRADSSL_L)
@@ -951,20 +957,11 @@ KMAXE=XMPIELRANK(N)
 call  QUADRATUREQUAD3D(N,IGQRULES);WEIGHTS_Q(1:QP_QUAD)=WEQUA2D(1:QP_QUAD)
 call QUADRATURETRIANG(N,IGQRULES); WEIGHTS_T(1:QP_TRIANGLE)=WEQUA2D(1:QP_TRIANGLE)
 
-OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-!WRITE(63,*)"Parameters: ",ees,wenoz,fastest_q,wenwrt,poly,mrf,dg,adda,turbulence,passivescalar,icoupleturb
-
-WRITE(63,*)"Activating WENO Reconstruction kernel"
-WRITE(63,*)"Parameters: ",ees,wenoz,fastest_q,wenwrt,poly,mrf,dg, &
-	adda,passivescalar,turbulence,icoupleturb,ITESTCASE, &
-	FASTEST,INITCOND,governingequations,reduce_comp,IGQRULES, &
-	PER_ROT,LBOUND(U_C),UBOUND(U_C)
-CLOSE(63)
 
 
 if ((ees .eq. 5) .and. (wenoz .eq. 1) .and. (fastest_q .eq. 1) .and. (wenwrt .eq. 1) .and. (poly .eq. 4) .and. (mrf .eq. 0) .and. (dg .eq. 0) &
 					.and. (adda .eq. 0) .and. (passivescalar .eq. 0) .and. (turbulence .eq. 0) .and. (icoupleturb .eq. 0) .and. (ITESTCASE .eq. 4) &
-					 .and. (FASTEST .eq. 0) .and. (INITCOND .eq. 4) .and. (governingequations .eq. 1) .and. (reduce_comp .eq. 0) .and. (IGQRULES .eq. 5) &
+					 .and. (FASTEST .eq. 0) .and. (INITCOND .eq. 4) .and. (governingequations .eq. 1) .and. (reduce_comp .eq. 0) &
 					.and. (PER_ROT .eq. 0)) then
 
 	CALL WENOWEIGHTS_KERNEL_SPHERE_CASE_ONLY(N, UGRADLOC, GRAD1AL, INDICATEMATRIXAL, compwrt, imax, NUMBER_OF_DOG, NUMBER_OF_NEI, ANGLE1, ANGLE2, AX, AY, AZ, SB, &
