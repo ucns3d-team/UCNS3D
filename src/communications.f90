@@ -1091,8 +1091,6 @@ REAL,DIMENSION(1:1)::DUMTS,RUMTS
 integer:: n_requests
 integer, dimension(:), allocatable:: requests
 
-
-
 	
 ITEST=nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR
 
@@ -1162,7 +1160,7 @@ do k=1,jtotal
          iavC=jtot(k,2)
          
    CALL MPI_IRECV(                                                     &
-      IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),    & !recvbuf
+      IEXSOLHIR(IAVC)%SOL,    & !recvbuf
       IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
      IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1173,9 +1171,10 @@ do k=1,jtotal
         
         n_requests = n_requests + 1
         iavT=jtot(k,1)
+
 !         
         CALL MPI_ISEND(                                                     &
-      IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST), & !sendbuf
+      IEXSOLHIS(IAVT)%SOL, & !sendbuf
       IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
       IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1184,6 +1183,7 @@ do k=1,jtotal
 
          n_requests = n_requests + 1
          iavT=jtot(k,1)
+
    CALL MPI_IRECV(                                                     &
       DUMTS(1:1),    & !recvbuf
       1, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
@@ -1206,19 +1206,21 @@ do k=1,jtotal
          n_requests = n_requests + 1
         iavt=jtot(k,1)
          iavC=jtot(k,2)
+
 !          
         CALL MPI_ISEND(                                                     &
-      IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST), & !sendbuf
+      IEXSOLHIS(IAVT)%SOL, & !sendbuf
       IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
       IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
    )
 
 
+
          n_requests = n_requests + 1
          iavC=jtot(k,2)
    CALL MPI_IRECV(                                                     &
-      IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),    & !recvbuf
+      IEXSOLHIR(IAVC)%SOL,    & !recvbuf
       IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
      IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1239,6 +1241,7 @@ deallocate(requests)
 
 !$OMP END MASTER 
 !$OMP BARRIER
+
 	
 
 
@@ -1256,7 +1259,6 @@ INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITEST,ITEE,ITEEDUM,ITEMP
 REAL,DIMENSION(1:1)::DUMTS,RUMTS
 integer:: n_requests
 integer, dimension(:), allocatable:: requests
-
 
 
 
@@ -1317,7 +1319,7 @@ do k=1,jtotal
          iavC=jtot(k,2)
 
    CALL MPI_IRECV(                                                     &
-      IEXSOLHIRD(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1),    & !recvbuf
+      IEXSOLHIRD(IAVC)%SOL,    & !recvbuf
       IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
      IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1330,7 +1332,7 @@ do k=1,jtotal
         iavT=jtot(k,1)
 !
         CALL MPI_ISEND(                                                     &
-      IEXSOLHISD(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1), & !sendbuf
+      IEXSOLHISD(IAVT)%SOL, & !sendbuf
       IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
       IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1363,7 +1365,7 @@ do k=1,jtotal
          iavC=jtot(k,2)
 !
         CALL MPI_ISEND(                                                     &
-      IEXSOLHISD(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST), & !sendbuf
+      IEXSOLHISD(IAVT)%SOL, & !sendbuf
       IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
       IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1373,7 +1375,7 @@ do k=1,jtotal
          n_requests = n_requests + 1
          iavC=jtot(k,2)
    CALL MPI_IRECV(                                                     &
-      IEXSOLHIRD(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),    & !recvbuf
+      IEXSOLHIRD(IAVC)%SOL,    & !recvbuf
       IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
      IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1474,7 +1476,7 @@ do k=1,jtotal
          iavC=jtot(k,2)
          
    CALL MPI_IRECV(                                                     &
-      IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),    & !recvbuf
+      IEXSOLHIR(IAVC)%SOL,    & !recvbuf
       IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
      IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1487,7 +1489,7 @@ do k=1,jtotal
         iavT=jtot(k,1)
 !         
         CALL MPI_ISEND(                                                     &
-      IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST), & !sendbuf
+      IEXSOLHIS(IAVT)%SOL, & !sendbuf
       IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
       IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1520,7 +1522,7 @@ do k=1,jtotal
          iavC=jtot(k,2)
 !          
         CALL MPI_ISEND(                                                     &
-      IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST), & !sendbuf
+      IEXSOLHIS(IAVT)%SOL, & !sendbuf
       IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
       IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1530,7 +1532,7 @@ do k=1,jtotal
          n_requests = n_requests + 1
          iavC=jtot(k,2)
    CALL MPI_IRECV(                                                     &
-      IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),    & !recvbuf
+      IEXSOLHIR(IAVC)%SOL,    & !recvbuf
       IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
      IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1906,7 +1908,7 @@ DO K=1,INDL
    ! non-blocking send
    n_requests = n_requests + 1
    CALL MPI_ISEND(                                                     &
-      IEXBOUNDHIS(J)%FACESOL(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
+      IEXBOUNDHIS(J)%FACESOL, & !sendbuf
       IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
       IEXBOUNDHIS(J)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -1915,7 +1917,7 @@ DO K=1,INDL
    ! non-blocking receive
    n_requests = n_requests + 1
    CALL MPI_IRECV(                                                     &
-      IEXBOUNDHIR(K)%FACESOL(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
+      IEXBOUNDHIR(K)%FACESOL,    & !recvbuf
       IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
       IEXBOUNDHIR(K)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -2417,7 +2419,7 @@ DO K=1,INDL
    ! non-blocking send
    n_requests = n_requests + 1
    CALL MPI_ISEND(                                                     &
-      IEXBOUNDHIS(J)%FACESOL_m(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
+      IEXBOUNDHIS(J)%FACESOL_m, & !sendbuf
       IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
       IEXBOUNDHIS(J)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -2426,7 +2428,7 @@ DO K=1,INDL
    ! non-blocking receive
    n_requests = n_requests + 1
    CALL MPI_IRECV(                                                     &
-      IEXBOUNDHIR(K)%FACESOL_m(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
+      IEXBOUNDHIR(K)%FACESOL_m,    & !recvbuf
       IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
       IEXBOUNDHIR(K)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -2568,7 +2570,7 @@ DO K=1,INDL
    ! non-blocking send
    n_requests = n_requests + 1
    CALL MPI_ISEND(                                                     &
-      IEXBOUNDHIS(J)%FACESOL_dg(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
+      IEXBOUNDHIS(J)%FACESOL_dg, & !sendbuf
       IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
       IEXBOUNDHIS(J)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -2577,7 +2579,7 @@ DO K=1,INDL
    ! non-blocking receive
    n_requests = n_requests + 1
    CALL MPI_IRECV(                                                     &
-      IEXBOUNDHIR(K)%FACESOL_dg(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
+      IEXBOUNDHIR(K)%FACESOL_dg,    & !recvbuf
       IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
       IEXBOUNDHIR(K)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -2808,7 +2810,7 @@ DO K=1,INDL
    ! non-blocking send
    n_requests = n_requests + 1
    CALL MPI_ISEND(                                                     &
-      IEXBOUNDHIS(J)%FACESOL_dg(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
+      IEXBOUNDHIS(J)%FACESOL_dg, & !sendbuf
       IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
       IEXBOUNDHIS(J)%PROCID, 0,                                        & !destination, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
@@ -2817,7 +2819,7 @@ DO K=1,INDL
    ! non-blocking receive
    n_requests = n_requests + 1
    CALL MPI_IRECV(                                                     &
-      IEXBOUNDHIR(K)%FACESOL_dg(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
+      IEXBOUNDHIR(K)%FACESOL_dg,    & !recvbuf
       IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
       IEXBOUNDHIR(K)%PROCID, 0,                                        & !source, tag
       MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
