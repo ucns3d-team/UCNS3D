@@ -15,7 +15,7 @@ Key characteristics:
 - Tip Mach number: 0.877
 
 <p align="center">
-<img width="1000" height="500" src="caradonna_schematic.png">
+<img width="517" height="712" src="caradonna_schematic.png">
 </p>
 
 
@@ -35,7 +35,7 @@ Place the following files in your working directory:
 
 
 <p align="center">
-<img width="1000" height="500" src="mesh_coarse.PNG">
+<img width="1148" height="882" src="mesh_coarse.PNG">
 </p>
 
 ### 2.2 ROTFRAME.dat File
@@ -121,7 +121,7 @@ tec360 SURF.plt SURF_xxx.plt
 
 
 <p align="center">
-<img width="1000" height="500" src="Pressure_Coefficient_096rR.png">
+<img width="1270" height="685" src="Pressure_Coefficient_096rR.png">
 </p>
 
 
@@ -135,7 +135,7 @@ In tecplot:
 
 
 <p align="center">
-<img width="1000" height="500" src="wake.png">
+<img width="912" height="811" src="wake.png">
 </p>
 
 ## 5. Tips and Troubleshooting
