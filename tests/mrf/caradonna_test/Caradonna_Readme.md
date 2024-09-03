@@ -1,7 +1,6 @@
 # UCNS3D Tutorial: Caradonna and Tung Rotor Simulation with Ground Effect
 
-This tutorial will guide you through the process of setting up and running a Multiple Reference Frame (MRF) simulation for the Caradonna and Tung rotor using the UCNS3D solver, including both out-of-ground-effect (OGE) and in-ground-effect (IGE) scenarios.
-
+This tutorial will guide you through the process of setting up and running a Multiple Reference Frame (MRF) simulation for the Caradonna and Tung rotor using the UCNS3D solver.
 ## 1. Case Overview
 
 The Caradonna and Tung rotor is a two-bladed rotor that serves as a benchmark case for helicopter rotor simulations.
