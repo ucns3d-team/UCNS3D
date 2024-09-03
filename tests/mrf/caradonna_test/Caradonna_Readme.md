@@ -15,7 +15,7 @@ Key characteristics:
 - Tip Mach number: 0.877
 
 <p align="center">
-<img width="1000" height="500" src="caradonna_schematic.png.PNG">
+<img width="1000" height="500" src="caradonna_schematic.png">
 </p>
 
 
