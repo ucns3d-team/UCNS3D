@@ -149,4 +149,4 @@ In tecplot:
 - Analyze the differences between OGE and IGE simulations in terms of thrust production, wake structure, and tip vortex trajectory.
 - Investigate the formation of the ground vortex in IGE cases.
 
-By following this tutorial, you should be able to set up, run, and analyze comprehensive simulations of the Caradonna and Tung rotor in both out-of-ground and in-ground effect conditions using the UCNS3D solver with the Multiple Reference Frame approach.
+By following this tutorial, you should be able to set up, run, and analyze comprehensive simulations of the Caradonna and Tung rotor in both out-of-ground effect conditions using the UCNS3D solver with the Multiple Reference Frame approach.
