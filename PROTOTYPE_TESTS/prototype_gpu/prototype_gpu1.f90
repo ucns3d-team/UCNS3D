@@ -1,12 +1,184 @@
+MODULE LAPCK
+IMPLICIT NONE
+CONTAINS
+SUBROUTINE dgemm(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB, BETA,C,LDC)
+    !$omp declare target
+   !
+   !  -- Reference BLAS level3 routine --
+   !  -- Reference BLAS is a software package provided by Univ. of Tennessee,    --
+   !  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
+   !
+   !     .. Scalar Arguments ..
+         DOUBLE PRECISION ALPHA,BETA
+         INTEGER K,LDA,LDB,LDC,M,N
+         LOGICAL TRANSA,TRANSB
+   !     ..
+   !     .. Array Arguments ..
+         DOUBLE PRECISION A(LDA,*),B(LDB,*),C(LDC,*)
+   !     ..
+   !
+   !  =====================================================================
+   !
+   !     ..
+   !     ..
+   !     .. Intrinsic Functions ..
+         INTRINSIC max
+   !     ..
+   !     .. Local Scalars ..
+         DOUBLE PRECISION TEMP
+         INTEGER I,INFO,J,L,NROWA,NROWB
+         LOGICAL NOTA,NOTB
+   !     ..
+   !     .. Parameters ..
+         DOUBLE PRECISION ONE,ZERO
+         parameter(one=1.0d+0,zero=0.0d+0)
+   !     ..
+   !
+   !     Set  NOTA  and  NOTB  as  true if  A  and  B  respectively are not
+   !     transposed and set  NROWA and NROWB  as the number of rows of  A
+   !     and  B  respectively.
+   !
+         nota = .NOT. transa
+         notb = .NOT. transb
+         IF (nota) THEN
+             nrowa = m
+         ELSE
+             nrowa = k
+         END IF
+         IF (notb) THEN
+             nrowb = k
+         ELSE
+             nrowb = n
+         END IF
+
+   !
+   !     Quick return if possible.
+   !
+         IF ((m.EQ.0) .OR. (n.EQ.0) .OR.   (((alpha.EQ.zero).OR. (k.EQ.0)).AND. (beta.EQ.one))) RETURN
+   !
+   !     And if  alpha.eq.zero.
+   !
+         IF (alpha.EQ.zero) THEN
+             IF (beta.EQ.zero) THEN
+                 DO 20 j = 1,n
+                     DO 10 i = 1,m
+                         c(i,j) = zero
+      10             CONTINUE
+      20         CONTINUE
+             ELSE
+                 DO 40 j = 1,n
+                     DO 30 i = 1,m
+                         c(i,j) = beta*c(i,j)
+      30             CONTINUE
+      40         CONTINUE
+             END IF
+             RETURN
+         END IF
+   !
+   !     Start the operations.
+   !
+         IF (notb) THEN
+             IF (nota) THEN
+   !
+   !           Form  C := alpha*A*B + beta*C.
+   !
+                 DO 90 j = 1,n
+                     IF (beta.EQ.zero) THEN
+                         DO 50 i = 1,m
+                             c(i,j) = zero
+      50                 CONTINUE
+                     ELSE IF (beta.NE.one) THEN
+                         DO 60 i = 1,m
+                             c(i,j) = beta*c(i,j)
+      60                 CONTINUE
+                     END IF
+                     DO 80 l = 1,k
+                         temp = alpha*b(l,j)
+                         DO 70 i = 1,m
+                             c(i,j) = c(i,j) + temp*a(i,l)
+      70                 CONTINUE
+      80             CONTINUE
+      90         CONTINUE
+             ELSE
+   !
+   !           Form  C := alpha*A**T*B + beta*C
+   !
+                 DO 120 j = 1,n
+                     DO 110 i = 1,m
+                         temp = zero
+                         DO 100 l = 1,k
+                             temp = temp + a(l,i)*b(l,j)
+     100                 CONTINUE
+                         IF (beta.EQ.zero) THEN
+                             c(i,j) = alpha*temp
+                         ELSE
+                             c(i,j) = alpha*temp + beta*c(i,j)
+                         END IF
+     110             CONTINUE
+     120         CONTINUE
+             END IF
+         ELSE
+             IF (nota) THEN
+   !
+   !           Form  C := alpha*A*B**T + beta*C
+   !
+                 DO 170 j = 1,n
+                     IF (beta.EQ.zero) THEN
+                         DO 130 i = 1,m
+                             c(i,j) = zero
+     130                 CONTINUE
+                     ELSE IF (beta.NE.one) THEN
+                         DO 140 i = 1,m
+                             c(i,j) = beta*c(i,j)
+     140                 CONTINUE
+                     END IF
+                     DO 160 l = 1,k
+                         temp = alpha*b(j,l)
+                         DO 150 i = 1,m
+                             c(i,j) = c(i,j) + temp*a(i,l)
+     150                 CONTINUE
+     160             CONTINUE
+     170         CONTINUE
+             ELSE
+   !
+   !           Form  C := alpha*A**T*B**T + beta*C
+   !
+                 DO 200 j = 1,n
+                     DO 190 i = 1,m
+                         temp = zero
+                         DO 180 l = 1,k
+                             temp = temp + a(l,i)*b(j,l)
+     180                 CONTINUE
+                         IF (beta.EQ.zero) THEN
+                             c(i,j) = alpha*temp
+                         ELSE
+                             c(i,j) = alpha*temp + beta*c(i,j)
+                         END IF
+     190             CONTINUE
+     200         CONTINUE
+             END IF
+         END IF
+   !
+         RETURN
+   !
+   !     End of DGEMM
+   !
+
+END
+
+END MODULE LAPCK
+
 PROGRAM PROTOTYPE1
 USE MPI
+USE LAPCK
 IMPLICIT NONE
 
 
 INTEGER:: N !THE NUMBER OF RANK THAT I HAVE(FOR EACH PROCESSOR!
 INTEGER:: ISIZE !THE TOTAL NUMBER OF RANKS(SIZE OF)
 ! INTEGER:: ICOMMUNICATOR !THE COMMUNICATOR OF COMM_wORLD
-INTEGER::IERROR,provided,alpha,beta
+INTEGER::IERROR,provided
+REAL::alpha,beta
 INTEGER::STATUS(MPI_STATUS_SIZE)
 INTEGER::I,J,K,L,M,IDEGFREE,stencil_local2,ll
 INTEGER::KMAXE,KMAXN,NOF_VARIABLES,DOF,IMAX,STENCIL_LOCAL
@@ -20,7 +192,7 @@ TYPE LOCAL_RECON3
 	REAL,ALLOCATABLE,DIMENSION(:,:,:)::INVMAT,SOL,MATRIX_1 ! (VAR, DIM, I_FACE)
 END TYPE LOCAL_RECON3
 TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:)::ILOCAL_RECON3
-CHARACTER(LEN=1):: TRANSA = 'N'
+LOGICAL :: TRANSA = .FALSE.
 
 !$OMP THREADPRIVATE(LEFTV,STENCIL_LOCAL)
 
@@ -99,6 +271,7 @@ CALL DGEMM(TRANSA,TRANSA,IDEGFREE,nof_variables,imax,&
          ALPHA,ILOCAL_RECON3(I)%INVMAT(1:IDEGFREE,1:imax,LL),&
          IDEGFREE,ILOCAL_RECON3(I)%MATRIX_1(1:imax,1:nof_variables,ll),&
 imax,BETA,ILOCAL_RECON3(I)%SOL(1:IDEGFREE,1:nof_variables,ll),IDEGFREE)
+        ILOCAL_RECON3(I)%SOL(1:IDEGFREE,1:nof_variables,ll)=ILOCAL_RECON3(I)%SOL(1:IDEGFREE,1:nof_variables,ll)+i*2
         end do
 end do
 !$OMP END target teams distribute parallel do
