@@ -9,6 +9,10 @@ F90=ftn
 prototype.x:
 	$(F90) -s real64 -fbackslash -fopenmp -e 0 -e I -Ofast prototype_gpu1.f90 -o prototype.x
 
+#nvfortran
+#prototype.x:
+#        $(F90) -gpu=mem:managed -Minfo -Mnovect -mp=gpu -r8 -Mbackslash -march=native -Mcray=pointer prototype_gpu1.f90 -o prototype.x
+
 
 #GNU compiler
 #$(F90) -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast -march=native -Wno-lto-type-mismatch -fallow-argument-mismatch prototype_gpu1.f90 -o prototype.x
