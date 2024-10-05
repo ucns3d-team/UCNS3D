@@ -18,7 +18,7 @@
 module load rocm
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 
-export LD_LIBRARY_PATH=/work/ecseak03/ecseak03/shared/cce_build/local/lib:$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$PROJECT_DIR/shared/cce_build/local/lib:$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
 
 export OMP_NUM_THREADS=1
 export OMP_PLACES=cores
