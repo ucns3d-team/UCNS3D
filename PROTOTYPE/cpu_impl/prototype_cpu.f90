@@ -29,7 +29,7 @@ integer :: ierror
 integer :: status(mpi_status_size) ! unused
 
 integer :: provided, alpha, beta
-integer :: i, j, k, s, m, num_dof, tot_stencils, num_stencils ! s = l, stencil = ll, num_dof = idegfree, tot_stencils = stencil_local2
+integer :: i, j, k, s, m, num_dof, tot_stencils, num_stencils ! s = l, num_stencils = ll unused, num_dof = idegfree, tot_stencils = stencil_local2
 integer :: num_elems, num_vars, num_neighbours ! num_elems = kmaxe, num_vars = nof_variables, imax = num_neighbours, kmaxn unused, dof unused
 integer, save :: stencil_local  ! threadprivate requires save attribute under GNU 
 real :: r_s, r_num_elems, r_j, r_k
