@@ -15,7 +15,7 @@
 
 program prototype
 
-#ifdef __CIRRUS_GNU__
+#ifdef CIRRUS_GNU_BUILD
   implicit none
   include "mpif.h"
 #else
@@ -50,10 +50,12 @@ call mpi_init_thread(mpi_thread_funneled, provided, ierror)
 call mpi_comm_size(mpi_comm_world, tot_ranks, ierror)
 call mpi_comm_rank(mpi_comm_world, rank, ierror)
 
-#ifdef __CIRRUS_GNU__
-if (rank .eq. 0) then
-  write(*, *) "COMPILING WITH GNU"
-end if
+#ifdef UCNS3D_DEBUG
+#ifdef CIRRUS_GNU_BUILD
+  if (rank .eq. 0) then
+    write(*, *) "COMPILING UCNS3D WITH GNU ON CIRRUS"
+  end if
+#endif
 #endif
 
 ! for all mpi processes
