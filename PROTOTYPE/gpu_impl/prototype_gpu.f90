@@ -18,9 +18,9 @@
 ! reference implementation of LAPACK's DGEMM
 module lapck
 
-implicit none
+  implicit none
 
-contains
+  contains
 
   subroutine dgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c,ldc)
     !$omp declare target
