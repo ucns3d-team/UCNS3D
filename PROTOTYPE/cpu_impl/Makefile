@@ -48,30 +48,41 @@ SOURCES=prototype_cpu.f90
 
 # open mpi
 #MPIROOT=/ADD/PATH/TO/openmpi/4.1.6-cuda-12.4-nvfortran
-MPIFLAGS= -I${MPIROOT}/lib
+#MPIFLAGS= -I${MPIROOT}/lib
 
-BLAS_FLAGS= -I${MKLROOT}/include
-FFLAGS= -mp -mp=multicore -Minfo -Mnovect -r8 -Mbackslash -march=native $(BLAS_FLAGS) $(MPIFLAGS)
+#BLAS_FLAGS= -I${MKLROOT}/include
+#FFLAGS= -mp -mp=multicore -Minfo -Mnovect -r8 -Mbackslash -march=native $(BLAS_FLAGS) $(MPIFLAGS)
 #FFLAGS= -Mcray=pointer $(BLASFLAGS)
 
 # --- GNU
 # Macro definition picks "include mpif.h" instead of "use mpi" when compiling under GNU on Cirrus (see Cirrus user guide)
-#CPPFLAGS= -cpp -DCIRRUS_GNU_BUILD -DUCNS3D_DEBUG
+CPPFLAGS= -cpp -DCIRRUS_GNU_BUILD -DUCNS3D_DEBUG
 
 # Note: switching on LTO can slow down compilation
-#FFLAGS= -fopenmp -fimplicit-none -march=native -g -finit-local-zero -ffree-line-length-none -fbackslash -fdefault-real-8 -fdefault-double-8 -Wno-lto-type-mismatch -Wno-argument-mismatch -fno-tree-sra -fno-lto
-
+FFLAGS= -fopenmp -fimplicit-none -march=native -g -finit-local-zero -ffree-line-length-none -fbackslash -fdefault-real-8 -fdefault-double-8 -Wno-lto-type-mismatch -Wno-argument-mismatch -fno-tree-sra -fno-lto
 
 #-fdefault-real-8 -fdefault-double-8 -fbackslash -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast -march=native -Wno-lto-type-mismatch -Wno-argument-mismatch
 #-fno-lto -fno-tree-sra
 
+# --- AMD
+
+#FFLAGS= -fopenmp -fimplicit-none -march=native -g -finit-local-zero -ffree-line-length-none -fbackslash -fdefault-real-8 -fdefault-double-8 -Wno-lto-type-mismatch -Wno-argument-mismatch -fno-lto
+## -fno-tree-sra
+
 # --- LIBS
-BLAS_LIBS= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group
+# Cirrus - Intel / GNU
+#BLAS_LIBS= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group
+
+# Archer2 - Cray / AMD
+#BLAS_LIBS= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group
+#BLAS_LIBS=
+
 LIBS= -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi $(BLAS_LIBS)
 
 #> Compiler wrapper
+
 #F90=mpif90   # -v # verbose output
-F90=mpifort
+F90=ftn
 
 all: $(EXECUTABLE)
 

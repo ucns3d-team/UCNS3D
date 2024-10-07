@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+# UCNS3D : An Open Source, High-Order, Finite-Volume CFD Solver
+#
+# Main contact:  Panagiotis (Takis) Tsoutsanis (Cranfield University)
+#
+# Licensed under the GNU General Public License, Version 3.0 (the "License");
+# you may not use this file except in compliance with the License.
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "as is" basis,
+# without warranties or conditions of any kind, either express or implied.
+# see the License for the specific language governing permissions and
+# limitations under the License.
+#
+# --------------------------------------------------------------------
+#
+# SLURM job submission file for GNU build on ARCHER2
+#
+
+# Slurm job options (job-name, compute nodes, job time)
+#SBATCH --job-name=proto_cpu
+#SBATCH --output=res_Ne5000.%A
+#SBATCH --error=joberr.%A
+#SBATCH --time=0:10:0
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --account=ecseak03
+#SBATCH --partition=standard
+#SBATCH --qos=standard
+#SBATCH --exclusive
+###SBATCH --tasks-per-node=1
+
+# Programming Environment
+module load PrgEnv-gnu
+module load cray-libsci
+
+cd $SLURM_SUBMIT_DIR
+
+export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
+export OMP_NUM_THREADS=1
+export OMP_PLACES=cores
+
+# ! TODO: add WORK_DIR
+WORK_DIR=/work/ecseak03/ecseak03/nbak03/PROTOTYPE
+PROJECT_DIR=$WORK_DIR/UCNS3D/PROTOTYPE/cpu_impl
+EXECUTABLE=test
+PATH_TO_EXECUTABLE=$PROJECT_DIR/$EXECUTABLE
+
+# Input parameters
+NUM_ELEMS=5000
+
+srun --hint=nomultithread --distribution=block:block $PATH_TO_EXECUTABLE $NUM_ELEMS

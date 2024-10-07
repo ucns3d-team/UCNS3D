@@ -13,15 +13,188 @@
 ! limitations under the License.
 !
 
+!TODO:CHECK keeping module in same file is important?
+
+! reference implementation of LAPACK's DGEMM
+module lapck
+
+implicit none
+
+contains
+
+  subroutine dgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c,ldc)
+    !$omp declare target
+    !
+    ! -- reference blas level3 routine --
+    ! -- reference blas is a software package provided by univ. of tennessee,    --
+    ! -- univ. of california berkeley, univ. of colorado denver and nag ltd..--
+    !
+    ! .. scalar arguments ..
+      double precision alpha,beta
+      integer k,lda,ldb,ldc,m,n
+      logical transa,transb
+    ! ..
+    ! .. array arguments ..
+      double precision a(lda,*),b(ldb,*),c(ldc,*)
+    ! ..
+    !
+    ! =====================================================================
+    !
+    ! ..
+    ! ..
+    ! .. intrinsic functions ..
+      intrinsic max
+    ! ..
+    ! .. local scalars ..
+      double precision temp
+      integer i,info,j,l,nrowa,nrowb
+      logical nota,notb
+    ! ..
+    ! .. parameters ..
+      double precision one,zero
+      parameter(one=1.0d+0,zero=0.0d+0)
+    ! ..
+    !
+    ! set  nota  and  notb  as  true if  a  and  b  respectively are not
+    ! transposed and set  nrowa and nrowb  as the number of rows of  a
+    ! and  b  respectively.
+    !
+      nota = .not. transa
+      notb = .not. transb
+      if (nota) then
+        nrowa = m
+      else
+        nrowa = k
+      end if
+      if (notb) then
+        nrowb = k
+      else
+        nrowb = n
+      end if
+
+    !
+    ! quick return if possible.
+    !
+      if ((m .eq. 0) .or. (n .eq. 0) .or. (((alpha .eq. zero) .or. (k .eq. 0)) .and. (beta .eq. one))) return
+    !
+    ! and if  alpha.eq.zero.
+    !
+      if (alpha.eq.zero) then
+        if (beta.eq.zero) then
+          do 20 j = 1,n
+            do 10 i = 1,m
+              c(i,j) = zero
+    10      continue
+    20    continue
+        else
+          do 40 j = 1,n
+            do 30 i = 1,m
+              c(i,j) = beta*c(i,j)
+    30      continue
+    40    continue
+        end if
+        return
+      end if
+    !
+    ! start the operations.
+    !
+      if (notb) then
+        if (nota) then
+    !
+    !     form  c := alpha*a*b + beta*c.
+    !
+          do 90 j = 1,n
+            if (beta.eq.zero) then
+              do 50 i = 1,m
+                c(i,j) = zero
+    50        continue
+            else if (beta.ne.one) then
+              do 60 i = 1,m
+                c(i,j) = beta*c(i,j)
+    60        continue
+            end if
+            do 80 l = 1,k
+              temp = alpha*b(l,j)
+              do 70 i = 1,m
+                c(i,j) = c(i,j) + temp*a(i,l)
+    70        continue
+    80      continue
+    90    continue
+        else
+    !
+    !     form  c := alpha*a**t*b + beta*c
+    !
+          do 120 j = 1,n
+            do 110 i = 1,m
+              temp = zero
+              do 100 l = 1,k
+                temp = temp + a(l,i)*b(l,j)
+    100       continue
+              if (beta.eq.zero) then
+                c(i,j) = alpha*temp
+              else
+                c(i,j) = alpha*temp + beta*c(i,j)
+              end if
+    110     continue
+    120   continue
+        end if
+      else if (nota) then
+    !
+    !     form  c := alpha*a*b**t + beta*c
+    !
+          do 170 j = 1,n
+            if (beta.eq.zero) then
+              do 130 i = 1,m
+                 c(i,j) = zero
+    130       continue
+            else if (beta.ne.one) then
+              do 140 i = 1,m
+                c(i,j) = beta*c(i,j)
+    140       continue
+            end if
+            do 160 l = 1,k
+              temp = alpha*b(j,l)
+              do 150 i = 1,m
+                c(i,j) = c(i,j) + temp*a(i,l)
+    150       continue
+    160     continue
+    170   continue
+        else
+   !
+   !      form  c := alpha*a**t*b**t + beta*c
+   !
+          do 200 j = 1,n
+            do 190 i = 1,m
+              temp = zero
+                do 180 l = 1,k
+                  temp = temp + a(l,i)*b(j,l)
+    180         continue
+                if (beta.eq.zero) then
+                  c(i,j) = alpha*temp
+                else
+                  c(i,j) = alpha*temp + beta*c(i,j)
+                end if
+    190     continue
+    200   continue
+        end if
+      end if
+    !
+      return
+    !
+    ! end of dgemm
+    !
+  end subroutine dgemm
+
+end module lapck
+
 program prototype
 
-#ifdef CIRRUS_GNU_BUILD
+  use omp_lib
+  use MPI
+
+  use lapck
+
   implicit none
-  include "mpif.h"
-#else
-  use mpi
-  implicit none
-#endif
 
   integer :: rank       ! rank of each process  ! rank = N
   integer :: tot_ranks  ! total number of ranks ! tot_ranks = isize
@@ -29,6 +202,7 @@ program prototype
   integer :: status(MPI_STATUS_SIZE) ! unused
 
   real :: alpha, beta
+  logical :: transa = .false.
 
   ! !!! s = l, num_stencils = ll unused, num_dof = idegfree, tot_stencils = stencil_local2
   integer :: i, j, k, s, m, num_dof, tot_stencils, num_stencils
@@ -55,28 +229,30 @@ program prototype
   ! timing parameters
   real :: time_start, time_end
 
+
+  !integer :: i, j, k, l, m, idegfree, stencil_local2, ll
+  !integer::kmaxe,kmaxn,nof_variables,dof,imax,stencil_local
+  !real::r_l,r_kmaxe,r_j,r_k
+  !real,allocatable,dimension(:)::leftv
+
+  !nbedit
+  integer :: num_devices = 0
+  integer :: device_num = 0
+  !nbedit
+
   type local_recon3
     integer :: local, mrf, g0
-    integer, allocatable, dimension(:,:) :: ihexg  ! global index of cells
-    real, allocatable, dimension(:) :: cond        ! dummy variable used for gradient approximation estimation
+    real, allocatable, dimension(:) :: cond       ! dummy variable used for gradient approximation estimation 
+    integer, allocatable, dimension(:,:) :: ihexg ! global index of cells
     real, allocatable, dimension(:,:,:) :: invmat, sol, matrix_1  ! (var, dim, i_face)
   end type local_recon3
   type(local_recon3), allocatable, dimension(:) :: ilocal_recon3
-
-
-!$omp threadprivate(leftv, stencil_local)
+ 
+!$omp threadprivate(leftv,stencil_local)
 
   call MPI_Init_thread(MPI_THREAD_FUNNELED, provided, ierror)
   call MPI_Comm_size(MPI_COMM_WORLD, tot_ranks, ierror)
   call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierror)
-
-#ifdef UCNS3D_DEBUG
-#ifdef CIRRUS_GNU_BUILD
-  if (rank .eq. 0) then
-    write(*, *) "*** COMPILING UCNS3D WITH GNU ON CIRRUS ***"
-  end if
-#endif
-#endif
 
   ! for all mpi processes
   call get_command_argument(1, input_num_elems)
@@ -93,10 +269,17 @@ program prototype
   write (*, '(a35, i8)') 'NUMBER OF NEIGHBOURS : ', num_neighbours
   write (*, '(a35, i8)') 'NUMBER OF STENCILS : ', num_stencils
 
+  ! for all mpi processes
+  !kmaxe = 10000
+  !nof_variables = 5
+  !idegfree = 10
+  !imax = 20
+  !ll = 4
+
 ! now allocate a thread private variable
 !$omp parallel default(shared)
   allocate(leftv(1:num_vars))
-!$omp end parallel
+!$omp end parallel 
 !$omp barrier
 
   allocate(ilocal_recon3(1:num_elems))
@@ -155,12 +338,23 @@ program prototype
       end do
     end do
   end do
+  
+!!$omp parallel default(shared)
+!!$omp do
+
+!nbedit
+!$omp target data map(from: device_num)
+!nbedit
+
+!nbedit
+  device_num = omp_get_device_num()
+  num_devices = omp_get_num_devices()
+!nbedit
 
   ! TIMEIT
   time_start = MPI_Wtime()
 
-!$omp parallel default(shared)
-!$omp do
+!$omp target teams distribute parallel do
   do i=1,num_elems
     if (i .lt. 500) then
       tot_stencils = 5
@@ -175,7 +369,7 @@ program prototype
       ! num_vars : number of columns of B and C
       ! num_neighbours : number of column of A and number of rows of B
       ! C is the solution matrix
-      call dgemm('n', 'n', num_dof, num_vars, num_neighbours, alpha, &
+      call dgemm(transa, transa, num_dof, num_vars, num_neighbours, alpha, &
                  ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, s), num_dof,&
                  ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, s), num_neighbours, &
                  beta, ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s), num_dof)
@@ -184,8 +378,16 @@ program prototype
       !ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) = ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) + i * 2
     end do
   end do
-!$omp end do
-!$omp end parallel
+!$omp end target teams distribute parallel do
+
+!!$omp end do
+!!$omp end parallel 
+
+!nbedit
+!$omp end target data
+  write(*, *) 'got number of devices : ', num_devices
+  write(*, *) 'got device number : ', device_num
+!nbedit
 
   ! TIMEIT
   time_end = MPI_Wtime() - time_start
@@ -202,22 +404,15 @@ program prototype
     out_suffix = '.DAT'
     output_filename =  out_prefix//trim(input_num_elems)//out_suffix
     open(20, file=output_filename, form='formatted', status='new', action='write')
-
     do i=1,num_elems
-      write(20, *) ilocal_recon3(i)%sol(:,:,:)
+      write(20,*)ilocal_recon3(i)%sol(:,:,:)
     end do
     close(20)
 !$omp end master
 !$omp barrier
   end if
 
-  ! TIMEIT
-  time_end = MPI_Wtime() - time_start
-  if (rank .eq. 0) then
-    write (*, '(a35, es15.7)') "TIME: OUTPUT IO (s): ", time_end
-  end if
-
   call MPI_Barrier(MPI_COMM_WORLD, ierror)
   call MPI_Finalize(ierror)
-
+    
 end program prototype
