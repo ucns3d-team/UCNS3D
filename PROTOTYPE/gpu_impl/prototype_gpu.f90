@@ -16,6 +16,7 @@
 !TODO:CHECK keeping module in same file is important?
 
 ! reference implementation of LAPACK's DGEMM
+! Note: spelling "lapck"
 module lapck
 
   implicit none
