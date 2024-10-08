@@ -79,9 +79,9 @@ program prototype
 #endif
 
   ! for all mpi processes
+  ! get number of elements from command-line - note all MPI processes do this
   call get_command_argument(1, input_num_elems)
   read (input_num_elems, '(i7)', iostat=istat) num_elems
-  !num_elems =
   num_vars = 5
   num_dof = 10
   num_neighbours = 20
@@ -168,6 +168,11 @@ program prototype
       tot_stencils = 4
     end if
 
+    
+    ! set DGEMM parameters alpha and beta here
+    alpha = 1.0
+    beta = 0.0
+
     do s=1,tot_stencils
 
       ! DGEMM calculates: C := alpha * A x B + beta * C
@@ -180,7 +185,7 @@ program prototype
                  ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, s), num_neighbours, &
                  beta, ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s), num_dof)
 
-      ! TODO:CHECK where did the following line come from?
+      ! TODO:NOTE this is to fill solution matrix with non-zero entries 
       !ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) = ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) + i * 2
     end do
   end do

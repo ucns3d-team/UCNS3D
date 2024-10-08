@@ -30,12 +30,12 @@ module lapck
     ! -- univ. of california berkeley, univ. of colorado denver and nag ltd..--
     !
     ! .. scalar arguments ..
-      double precision alpha,beta
-      integer k,lda,ldb,ldc,m,n
-      logical transa,transb
+      double precision alpha, beta
+      integer k, lda, ldb, ldc, m, n
+      logical transa, transb
     ! ..
     ! .. array arguments ..
-      double precision a(lda,*),b(ldb,*),c(ldc,*)
+      double precision a(lda,*), b(ldb,*), c(ldc,*)
     ! ..
     !
     ! =====================================================================
@@ -47,11 +47,11 @@ module lapck
     ! ..
     ! .. local scalars ..
       double precision temp
-      integer i,info,j,l,nrowa,nrowb
-      logical nota,notb
+      integer i, info, j, l, nrowa, nrowb
+      logical nota, notb
     ! ..
     ! .. parameters ..
-      double precision one,zero
+      double precision one, zero
       parameter(one=1.0d+0,zero=0.0d+0)
     ! ..
     !
@@ -257,9 +257,9 @@ program prototype
   call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierror)
 
   ! for all mpi processes
+  ! get number of elements from command-line - note all MPI processes do this
   call get_command_argument(1, input_num_elems)
   read (input_num_elems, '(i7)', iostat=istat) num_elems
-  !num_elems =
   num_vars = 5
   num_dof = 10
   num_neighbours = 20
@@ -357,6 +357,11 @@ program prototype
   time_start = MPI_Wtime()
 
 !$omp target teams distribute parallel do
+
+  ! set DGEMM parameters alpha and beta here
+  alpha = 1.0
+  beta = 0.0
+
   do i=1,num_elems
     if (i .lt. 500) then
       tot_stencils = 5
@@ -376,7 +381,7 @@ program prototype
                  ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, s), num_neighbours, &
                  beta, ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s), num_dof)
 
-      ! TODO:CHECK where did the following line come from?
+      ! TODO:NOTE this is to fill solution matrix with non-zero entries 
       !ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) = ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) + i * 2
     end do
   end do
