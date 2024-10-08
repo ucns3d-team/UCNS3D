@@ -26,11 +26,13 @@
 #SBATCH --account=ecseak03
 
 #SBATCH --partition=gpu
-#SBATCH --qos=gpu-exc
 #SBATCH --gpus=1
 #SBATCH --gpu-bind=single:1
 #SBATCH --nodes=1
-#SBATCH --exclusive
+
+##SBATCH --qos=gpu-exc
+##SBATCH --exclusive
+#SBATCH --qos=gpu-shd
 
 # Setup the job environment (this module needs to be loaded before any other modules)
 
@@ -42,7 +44,7 @@ module load cray-libsci
 
 cd $SLURM_SUBMIT_DIR
 
-export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
+#export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 export OMP_NUM_THREADS=1
 export OMP_PLACES=cores
 
@@ -51,7 +53,7 @@ export OMP_PLACES=cores
 #export HSA_XNACK=1
 
 # ! TODO: add WORK_DIR
-WORK_DIR=
+WORK_DIR=/work/ecseak03/ecseak03/nbak03/PROTOTYPE
 PROJECT_DIR=$WORK_DIR/UCNS3D/PROTOTYPE/gpu_impl
 EXECUTABLE=test
 PATH_TO_EXECUTABLE=$PROJECT_DIR/$EXECUTABLE
@@ -59,4 +61,8 @@ PATH_TO_EXECUTABLE=$PROJECT_DIR/$EXECUTABLE
 # Input parameters
 NUM_ELEMS=5000
 
-srun --ntasks=4 --cpus-per-task=1 --hint=nomultithread --distribution=block:block $PATH_TO_EXECUTABLE $NUM_ELEMS
+# Check assigned GPU
+#srun --ntasks=1 rocm-smi
+
+srun --ntasks=1 --cpus-per-task=1 $PATH_TO_EXECUTABLE $NUM_ELEMS
+#--hint=nomultithread --distribution=block:block

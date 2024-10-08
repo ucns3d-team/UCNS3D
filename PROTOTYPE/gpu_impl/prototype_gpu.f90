@@ -53,7 +53,7 @@ module lapck
     ! ..
     ! .. parameters ..
       double precision one, zero
-      parameter(one=1.0d+0,zero=0.0d+0)
+      parameter(one=1.0d+0, zero=0.0d+0)
     ! ..
     !
     ! set  nota  and  notb  as  true if  a  and  b  respectively are not
@@ -332,6 +332,7 @@ program prototype
   end if
 
   ! check some values of matrix_1 in ilocal_recon3
+  write (*, *) 'CHECK INPUT MATRIX MATRIX_1'
   do j=1,5
     do k=1,1
       do s=1,1
@@ -357,7 +358,8 @@ program prototype
   ! TIMEIT
   time_start = MPI_Wtime()
 
-!$omp target teams distribute parallel do
+!!$omp target teams distribute parallel do
+!$omp master
 
   ! set DGEMM parameters alpha and beta here
   alpha = 1.0
@@ -386,7 +388,8 @@ program prototype
       !ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) = ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) + i * 2
     end do
   end do
-!$omp end target teams distribute parallel do
+!!$omp end target teams distribute parallel do
+!$omp end master
 
 !!$omp end do
 !!$omp end parallel 
