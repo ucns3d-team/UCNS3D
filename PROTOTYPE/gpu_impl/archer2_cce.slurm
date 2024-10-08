@@ -19,7 +19,7 @@
 #
 
 # Slurm job options (job-name, compute nodes, job time)
-#SBATCH --job-name=proto_cpu
+#SBATCH --job-name=proto_gpu
 #SBATCH --output=res_Ne5000.%A
 #SBATCH --error=joberr.%A
 #SBATCH --time=0:10:0
