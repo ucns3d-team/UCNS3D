@@ -75,7 +75,9 @@ module lapck
     !
     ! quick return if possible.
     !
-      if ((m .eq. 0) .or. (n .eq. 0) .or. (((alpha .eq. zero) .or. (k .eq. 0)) .and. (beta .eq. one))) return
+      if ((m .eq. 0) .or. (n .eq. 0) .or. (((alpha .eq. zero) .or. (k .eq. 0)) .and. (beta .eq. one))) then
+        return
+      end if
     !
     ! and if  alpha.eq.zero.
     !
@@ -159,33 +161,33 @@ module lapck
     150       continue
     160     continue
     170   continue
-        else
+      else
    !
-   !      form  c := alpha*a**t*b**t + beta*c
+   !    form  c := alpha*a**t*b**t + beta*c
    !
-          do 200 j = 1,n
-            do 190 i = 1,m
-              temp = zero
-                do 180 l = 1,k
-                  temp = temp + a(l,i)*b(j,l)
-    180         continue
-                if (beta.eq.zero) then
-                  c(i,j) = alpha*temp
-                else
-                  c(i,j) = alpha*temp + beta*c(i,j)
-                end if
-    190     continue
-    200   continue
-        end if
+        do 200 j = 1,n
+          do 190 i = 1,m
+            temp = zero
+              do 180 l = 1,k
+                temp = temp + a(l,i)*b(j,l)
+    180       continue
+              if (beta.eq.zero) then
+                c(i,j) = alpha*temp
+              else
+                c(i,j) = alpha*temp + beta*c(i,j)
+              end if
+    190   continue
+    200 continue
       end if
     !
       return
     !
     ! end of dgemm
     !
-  end subroutine dgemm
+  end subroutine
 
 end module lapck
+
 
 program prototype
 
@@ -343,7 +345,7 @@ program prototype
 !!$omp do
 
 !nbedit
-!$omp target data map(from: device_num)
+!$omp target data map(from: device_num, num_devices)
 !nbedit
 
 !nbedit
