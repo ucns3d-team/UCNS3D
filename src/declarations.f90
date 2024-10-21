@@ -31,7 +31,9 @@ IMPLICIT NONE
 
 !$omp declare target(IGQRULES)
 
-!!$omp declare target(IELEM,ILOCAL_RECON3,ILOCAL_RECON5,U_C,IEXSOLHIR)
+!$omp declare target(IELEM,ILOCAL_RECON3,ILOCAL_RECON5,U_C,IEXSOLHIR)
+
+!!$omp declare target(WEQUA2D)
 
 
 !!$omp declare target(Iconsidered)!

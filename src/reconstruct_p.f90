@@ -722,14 +722,14 @@ SUBROUTINE WENOWEIGHTS_KERNEL_SPHERE_CASE_ONLY(N, UGRADLOC_L, GRAD1AL_L, INDICAT
 	 leftv_L,GRADSS_L,AINVJT_L,WEIGHT_T2_L,XXDER_L, YYDER_L, ZZDER_L,GRADTEM_L,XDER_L, YDER_L, ZDER_L,WEQUA2D_L,QPOINTS2D_L, vvwg_L, &
 	  VVR1_L, VVR2_L, VVR3_L, vvnpox_L, vvnpoy_L, vvnpoz_L, vvwpox_L, vvwpoy_L, vvwpoz_L, VVnxi_L, &
 	  lamc_L, LAMBDAAL_L, GRAD3AL_L, GRAD5ALc_L, SMOOTHINDICATORAL_L, OMEGAATILDEL_L, OMEGAAL_L, GRADSSL_L, &
-	  IELEM_L, U_C_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, IEXSOLHIR_L, INTEG_BASIS_L,integ_basis_dg_L)
+	  IELEM_L, U_C_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, IEXSOLHIR_L0, INTEG_BASIS_L,integ_basis_dg_L)
 
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 
-	REAL,DIMENSION(:),INTENT(INOUT)::UGRADLOC_L
+	REAL,DIMENSION(:),INTENT(IN)::UGRADLOC_L
 	REAL,DIMENSION(:),INTENT(INOUT)::GRAD1AL_L
-	REAL,DIMENSION(:),INTENT(INOUT)::INDICATEMATRIXAL_L
+	REAL,DIMENSION(:),INTENT(IN)::INDICATEMATRIXAL_L
 	INTEGER,INTENT(INOUT)::compwrt_L,imax_L, NUMBER_OF_DOG_L, NUMBER_OF_NEI_L
 	REAL,INTENT(INOUT)::ANGLE1_L, ANGLE2_L, AX_L, AY_L, AZ_L
 	REAL,DIMENSION(:),INTENT(INOUT)::SB_L
@@ -755,9 +755,11 @@ SUBROUTINE WENOWEIGHTS_KERNEL_SPHERE_CASE_ONLY(N, UGRADLOC_L, GRAD1AL_L, INDICAT
 	TYPE(LOCAL_RECON3),DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON3_L
 	TYPE(LOCAL_RECON3),DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON5_L
 	
-	TYPE(EXCHANGE_SOLHI),DIMENSION(:), INTENT(INOUT)::IEXSOLHIR_L
+	TYPE(EXCHANGE_SOLHI),DIMENSION(:), INTENT(INOUT)::IEXSOLHIR_L0
 
 	TYPE(INTEGRALBASIS),DIMENSION(:),INTENT(IN)::INTEG_BASIS_L,integ_basis_dg_L
+
+        TYPE(EXCHANGE_SOLHI),DIMENSION(:),ALLOCATABLE::IEXSOLHIR_L
 
 	REAL::DIVISIONBYZERO
 	INTEGER::I,J,K,L,M,O,LL,IEX,IEUL,FACX,IELEME,KKD,KMAXE,JF,NGP,IQP,nnd,II,icd
@@ -765,172 +767,185 @@ SUBROUTINE WENOWEIGHTS_KERNEL_SPHERE_CASE_ONLY(N, UGRADLOC_L, GRAD1AL_L, INDICAT
 	REAL::SUMOMEGAATILDEL
 	REAL::DIVBYZERO,COMPF,checkf,tau_Weno,tempxx
 	REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
+        REAL,DIMENSION(:,:),ALLOCATABLE :: VVR
+		REAL,DIMENSION(:,:),ALLOCATABLE :: DER
+		REAL,DIMENSION(:),ALLOCATABLE::WEQUA
+		REAL,DIMENSION(:,:),ALLOCATABLE::vvnpo
 	!REAL,EXTERNAL::DDOT
 
 	KMAXE=XMPIELRANK(N)
+
+        ALLOCATE(VVR(3,SIZE(VVR3_L)))
+		ALLOCATE(DER(3,SIZE(XDER_L)))
+		ALLOCATE(vvnpo(3,SIZE(vvnpox_L)))
+		ALLOCATE(WEQUA(SIZE(WEQUA2D_L)))
+        ALLOCATE(IEXSOLHIR_L(1))
 
         IF (N.EQ.0)THEN
                 OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 
                 WRITE(63,*)"Activating WENO Reconstruction kernel"
+                WRITE(63,*),SIZE(IEXSOLHIR_L)
                 CLOSE(63)
         END IF
 
 	!!$OMP DO SCHEDULE (STATIC)
 	!!$OMP target teams loop private(ugradloc_L, GRAD1AL_L, INDICATEMATRIXAL_L,compwrt_L,I,imax_L, NUMBER_OF_DOG_L, NUMBER_OF_NEI_L, ANGLE1_L, ANGLE2_L, AX_L, AY_L, AZ_L, SB_L, CONSMATRIX_L,CONSMATRIXC_L,icd, WENO_L, RESSOLUTION_L, ILOCAL_RECON5_L, LEFTV_L, GRADSS_L, AINVJT_L, WEIGHT_T2_L, XXDER_L, YYDER_L, ZZDER_L, GRADTEM_L, XDER_L, YDER_L, ZDER_L, WEQUA2D_L, QPOINTS2D_L, vvwg_L, VVR1_L, VVR2_L, VVR3_L, vvnpox_L, vvnpoy_L, vvnpoz_L, vvwpox_L, vvwpoy_L, vvwpoz_L, VVnxi_L, divbyzero, power, tau_Weno, SUMOMEGAATILDEL, lamc_L, LAMBDAAL_L, GRAD3AL_L, GRAD5ALc_L, SMOOTHINDICATORAL_L, OMEGAATILDEL_L, OMEGAAL_L, GRADSSL_L)
-	!$OMP target teams distribute parallel do private(ugradloc_L, GRAD1AL_L, INDICATEMATRIXAL_L,compwrt_L,I,imax_L, NUMBER_OF_DOG_L, NUMBER_OF_NEI_L, ANGLE1_L, ANGLE2_L, AX_L, AY_L, AZ_L, SB_L, CONSMATRIX_L,CONSMATRIXC_L,icd, WENO_L, RESSOLUTION_L, LEFTV_L, GRADSS_L, AINVJT_L, WEIGHT_T2_L, XXDER_L, YYDER_L, ZZDER_L, GRADTEM_L, XDER_L, YDER_L, ZDER_L, WEQUA2D_L, QPOINTS2D_L, vvwg_L, VVR1_L, VVR2_L, VVR3_L, vvnpox_L, vvnpoy_L, vvnpoz_L, vvwpox_L, vvwpoy_L, vvwpoz_L, VVnxi_L, divbyzero, power, tau_Weno, SUMOMEGAATILDEL, lamc_L, LAMBDAAL_L, GRAD3AL_L, GRAD5ALc_L, SMOOTHINDICATORAL_L, OMEGAATILDEL_L, OMEGAAL_L, GRADSSL_L)
-	DO II = 1, NOF_INTERIOR; 
-		I = EL_INT(II)
-		ICONSIDERED = I
-		IF ((IELEM_L(N, I)%FULL .EQ. 1) .AND. (ielem_L(n, i)%TROUBLED .EQ. 1)) THEN
-		CALL ALLGRADS_INNER_SPHERE_CASE_ONLY(N, I, imax_L, NUMBER_OF_DOG_L, NUMBER_OF_NEI_L, ANGLE1_L, ANGLE2_L, LEFTV_L, IELEM_L, U_C_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, IEXSOLHIR_L)
-	
-		divbyzero = ielem_L(n, iconsidered)%totvolume**2
-	
-		power = 4
-	
-		DO IEX = 1, nof_variables
-			LAMBDAAL_L(:) = ZERO; SMOOTHINDICATORAL_L(:) = ZERO; OMEGAATILDEL_L(:) = ZERO; OMEGAAL_L(:) = ZERO
-	
-			LAMC_L(:) = ZERO; GRAD3AL_L(:) = ZERO; LAMC_L(1) = (1.0d0 - (1.0d0/lwcx1)); LAMC_L(2:ielem_L(n, i)%admis) = (1.0d0 - LAMC_L(1))/(IELEM_L(N, I)%ADMIS - 1)
-			LAMBDAAL_L(1:ielem_L(n, i)%admis) = LAMC_L(1:ielem_L(n, i)%admis)
-			!sum the low degree polynomials first
-			DO LL = 2, IELEM_L(N, I)%ADMIS
-				GRAD3AL_L(1:IDEGFREE2) = GRAD3AL_L(1:IDEGFREE2) + (LAMC_L(LL)*ILOCAL_RECON5_L(I)%GRADIENTSC(LL, 1:IDEGFREE2, IEX))
-			END DO
-			!this is the zero polynomial
-			GRAD1AL_L(1:IELEM_L(N,I)%IDEGFREE)=(1.0D0/LAMC_L(1))*(ILOCAL_RECON5_L(I)%GRADIENTS(1,1:IELEM_L(N,I)%IDEGFREE,IEX)-GRAD3AL_L(1:IELEM_L(N,I)%IDEGFREE))
-			GRAD5ALc_L(1:IELEM_L(N, I)%IDEGFREE, iex) = GRAD1AL_L(1:IELEM_L(N, I)%IDEGFREE)
-			DO LL = 1, IELEM_L(N, I)%ADMIS
-				IF (LL .EQ. 1) THEN
-	
-					CALL DGEMV_DN( IELEM_L(N, I)%IDEGFREE, IELEM_L(N, I)%IDEGFREE, ALPHA, &
-								ILOCAL_RECON3_L(I)%INDICATOR(1:IELEM_L(N, I)%IDEGFREE, 1:IELEM_L(N, I)%IDEGFREE), &
-					IELEM_L(N, I)%IDEGFREE, GRAD1AL_L(1:IELEM_L(N, I)%IDEGFREE), 1, BETA, INDICATEMATRIXAL_L(1:IELEM_L(N, I)%IDEGFREE), 1)
-	
-	
-					SMOOTHINDICATORAL_L(LL) = DDOT_D(IELEM_L(N, I)%IDEGFREE, GRAD1AL_L(1:IELEM_L(N, I)%IDEGFREE), 1, INDICATEMATRIXAL_L(1:IELEM_L(N, I)%IDEGFREE), 1)
-	
-				ELSE
-					GRAD1AL_L(1:IDEGFREE2) = ILOCAL_RECON5_L(I)%GRADIENTSC(ll, 1:IDEGFREE2, IEX)
-	
-					CALL DGEMV_DN( IDEGFREE2, IDEGFREE2, ALPHA, &
-								ILOCAL_RECON3_L(I)%INDICATORC(1:IDEGFREE2, 1:IDEGFREE2), &
-								IDEGFREE2, GRAD1AL_L(1:IDEGFREE2), 1, BETA, INDICATEMATRIXAL_L(1:IDEGFREE2), 1)
-	
-					SMOOTHINDICATORAL_L(LL) = DDOT_D(IDEGFREE2, GRAD1AL_L(1:IDEGFREE2), 1, INDICATEMATRIXAL_L(1:IDEGFREE2), 1)
-				END IF
-			END DO
-			
-			LAMBDAAL_L(:) = 1.0D0
-			LAMBDAAL_L(1) = lwcx1
-	
-			LAMC_L(1) = (1.0d0 - (1.0d0/lwcx1)); LAMC_L(2:ielem_L(n, i)%admis) = (1.0d0 - LAMC_L(1))/(IELEM_L(N, I)%ADMIS - 1); LAMBDAAL_L(1:ielem_L(n, i)%admis) = LAMC_L(1:ielem_L(n, i)%admis)
-	
-			tau_Weno = zero
-			DO LL = 1, IELEM_L(N, I)%ADMIS
-				tau_Weno = tau_weno + (abs(SMOOTHINDICATORAL_L(1) - SMOOTHINDICATORAL_L(LL)))
-			end do
-			tau_weno = (tau_weno/(IELEM_L(N, I)%ADMIS - 1))!**power
-			DO LL = 1, IELEM_L(N, I)%ADMIS
-				OMEGAATILDEL_L(LL) = (LAMBDAAL_L(LL))*(1.0d0 + (tau_weno/(divbyzero + SMOOTHINDICATORAL_L(LL)))**power)
-			end do
-	
-			SUMOMEGAATILDEL = ZERO
-			DO LL = 1, IELEM_L(N, I)%ADMIS
-				SUMOMEGAATILDEL = SUMOMEGAATILDEL + OMEGAATILDEL_L(LL)
-			END DO
-			DO LL = 1, IELEM_L(N, I)%ADMIS
-				OMEGAAL_L(LL) = (OMEGAATILDEL_L(LL))/SUMOMEGAATILDEL
-			END DO
-	
-			DO LL = 1, IELEM_L(N, I)%ADMIS
-				WENO_L(IEX, LL) = OMEGAAL_L(LL)
-	
-				if (iex .eq. 1) then
-					ielem_L(n, i)%wcx(1) = WENO_L(iex, 1)
-				end if
-	
-			END DO
-	
-		END DO
-		icd = 0
-		DO L = 1, IELEM_L(N, I)%IFCA        !FACES
-				if (ielem_L(n, i)%types_faces(L) .eq. 5) then
-					iqp = qp_quad
-				else
-					iqp = qp_triangle
-				end if
-	
-			do NGP = 1, iqp                        !for gqp
-				icd = icd + 1
-	
-				AX_L = ILOCAL_RECON3_L(I)%QPOINTS(L,NGP,1)
-				AY_L = ILOCAL_RECON3_L(I)%QPOINTS(L,NGP,2)
-				AZ_L = ILOCAL_RECON3_L(I)%QPOINTS(L,NGP,3)
-	
-	
-	!                                 DO K=1,IELEM(N,I)%IDEGFREE
-				compwrt_L = 0
-				CONSMATRIX_L(icd, 1:IELEM_L(N, I)%IDEGFREE) = BASIS_REC_SPHERE_CASE_ONLY(N, AX_L, AY_L, AZ_L, IELEM_L(N, I)%IORDER, I, IELEM_L(N, I)%IDEGFREE, compwrt_L, SB_L(:), IELEM_L, ILOCAL_RECON3_L,INTEG_BASIS_L,integ_basis_dg_L)
-	
-				compwrt_L = 1
-				CONSMATRIXC_L(icd, 1:IDEGFREE2) = BASIS_REC_SPHERE_CASE_ONLY(N, AX_L, AY_L, AZ_L, IORDER2, I, IDEGFREE2, compwrt_L, SB_L(:), IELEM_L, ILOCAL_RECON3_L,INTEG_BASIS_L,integ_basis_dg_L)
-				compwrt_L = 0
-	
-	!                                 END DO
-			end do
-	
-		END DO        !FACES
-	!                                 DO IEX=1,nof_variables        !COMPONENTS
-		ILOCAL_RECON3_L(I)%ULEFT(:, :, :) = ZERO
-	!                                 ILOCAL_RECON3(I)%ULEFT(IEX,L,NGP)=ZERO
-	
-		DO LL = 1, IELEM_L(N, I)%ADMIS        !STENCILS
-	
-			IF (LL .EQ. 1) THEN
-				GRADSSL_L(1:IELEM_L(N, I)%IDEGFREE, 1:nof_variables) = GRAD5ALc_L(1:IELEM_L(N, I)%IDEGFREE, 1:nof_variables)
-	
-				CALL DGEMM_D(.FALSE., .FALSE., ICD, nof_variables, IELEM_L(N, I)%IDEGFREE, ALPHA, &
-							CONSMATRIX_L(1:ICD, 1:IELEM_L(N, I)%IDEGFREE), ICD, &
-							GRADSSL_L(1:IELEM_L(N, I)%IDEGFREE, 1:NOF_vARIABLES), &
-							IELEM_L(N, I)%IDEGFREE, BETA, RESSOLUTION_L(1:ICD, 1:NOF_vARIABLES), ICD)
-	
-			else
-				GRADSSL_L(1:Idegfree2, 1:nof_variables) = ILOCAL_RECON5_L(I)%GRADIENTSc(LL, 1:idegfree2, 1:nof_variables)
-	
-				CALL DGEMM_D(.FALSE., .FALSE., ICD, nof_variables, idegfree2, ALPHA, &
-							CONSMATRIXc_L(1:ICD, 1:IDEGFREE2), ICD, &
-							GRADSSL_L(1:IDEGFREE2, 1:NOF_vARIABLES), &
-							IDEGFREE2, BETA, RESSOLUTION_L(1:ICD, 1:NOF_vARIABLES), ICD)
-	
-			end if
-	
-			ICD = 0
-			DO L = 1, IELEM_L(N, I)%IFCA
-				if (ielem_L(n, i)%types_faces(L) .eq. 5) then
-					iqp = qp_quad; WEIGHT_T2_L(1:IQP) = WEIGHTS_Q(1:IQP)
-				else
-					iqp = qp_triangle; WEIGHT_T2_L(1:IQP) = WEIGHTS_T(1:IQP)
-				end if
-				do NGP = 1, iqp
-					ICD = ICD + 1
-	
-					CALL EXTRAPOLATE_BOUND_SPHERE_CASE_ONLY(IEX, L, NGP, I, ICD, LL, WENO_L(:,:), RESSOLUTION_L(:,:), U_C_L, ILOCAL_RECON3_L)
-	
+
+!$OMP target teams distribute parallel do private(ugradloc, GRAD1AL, INDICATEMATRIXAL,compwrt,I,imax, NUMBER_OF_DOG, NUMBER_OF_NEI, ANGLE1, ANGLE2, AX, AY, AZ, SB, CONSMATRIX,CONSMATRIXC,icd, WENO, RESSOLUTION, LEFTV, GRADSS, AINVJT, WEIGHT_T2, XXDER, YYDER, ZZDER, GRADTEM, XDER, YDER, ZDER, WEQUA2D, QPOINTS2D, vvwg, VVR1, VVR2, VVR3, vvnpox, vvnpoy, vvnpoz, vvwpox, vvwpoy, vvwpoz, VVnxi, divbyzero, power, tau_Weno, SUMOMEGAATILDEL, lamc, LAMBDAAL, GRAD3AL, GRAD5ALc, SMOOTHINDICATORAL, OMEGAATILDEL, OMEGAAL, GRADSSL)
+		DO II = 1, NOF_INTERIOR; 
+			I = EL_INT(II)
+			ICONSIDERED = I
+			IF ((IELEM_L(N, I)%FULL .EQ. 1) .AND. (ielem(n, i)%TROUBLED .EQ. 1)) THEN
+			CALL ALLGRADS_INNER_SPHERE_CASE_ONLY(N, I, imax, NUMBER_OF_DOG, NUMBER_OF_NEI, ANGLE1, ANGLE2, LEFTV, IELEM, U_C, ILOCAL_RECON3, ILOCAL_RECON5, IEXSOLHIR)
+		
+			divbyzero = ielem(n, iconsidered)%totvolume**2
+		
+			power = 4
+		
+			DO IEX = 1, nof_variables
+				LAMBDAAL(:) = ZERO; SMOOTHINDICATORAL(:) = ZERO; OMEGAATILDEL(:) = ZERO; OMEGAAL(:) = ZERO
+		
+				LAMC(:) = ZERO; GRAD3AL(:) = ZERO; LAMC(1) = (1.0d0 - (1.0d0/lwcx1)); LAMC(2:ielem(n, i)%admis) = (1.0d0 - LAMC(1))/(IELEM(N, I)%ADMIS - 1)
+				LAMBDAAL(1:ielem(n, i)%admis) = LAMC(1:ielem(n, i)%admis)
+				!sum the low degree polynomials first
+				DO LL = 2, IELEM(N, I)%ADMIS
+					GRAD3AL(1:IDEGFREE2) = GRAD3AL(1:IDEGFREE2) + (LAMC(LL)*ILOCAL_RECON5(I)%GRADIENTSC(LL, 1:IDEGFREE2, IEX))
+				END DO
+				!this is the zero polynomial
+				GRAD1AL(1:IELEM(N,I)%IDEGFREE)=(1.0D0/LAMC(1))*(ILOCAL_RECON5(I)%GRADIENTS(1,1:IELEM(N,I)%IDEGFREE,IEX)-GRAD3AL(1:IELEM(N,I)%IDEGFREE))
+				GRAD5ALc(1:IELEM(N, I)%IDEGFREE, iex) = GRAD1AL(1:IELEM(N, I)%IDEGFREE)
+				DO LL = 1, IELEM(N, I)%ADMIS
+					IF (LL .EQ. 1) THEN
+		
+						CALL DGEMV_DN( IELEM(N, I)%IDEGFREE, IELEM(N, I)%IDEGFREE, ALPHA, &
+									ILOCAL_RECON3(I)%INDICATOR(1:IELEM(N, I)%IDEGFREE, 1:IELEM(N, I)%IDEGFREE), &
+						IELEM(N, I)%IDEGFREE, GRAD1AL(1:IELEM(N, I)%IDEGFREE), 1, BETA, INDICATEMATRIXAL(1:IELEM(N, I)%IDEGFREE), 1)
+		
+		
+						SMOOTHINDICATORAL(LL) = DDOT_D(IELEM(N, I)%IDEGFREE, GRAD1AL(1:IELEM(N, I)%IDEGFREE), 1, INDICATEMATRIXAL(1:IELEM(N, I)%IDEGFREE), 1)
+		
+					ELSE
+						GRAD1AL(1:IDEGFREE2) = ILOCAL_RECON5(I)%GRADIENTSC(ll, 1:IDEGFREE2, IEX)
+		
+						CALL DGEMV_DN( IDEGFREE2, IDEGFREE2, ALPHA, &
+									ILOCAL_RECON3(I)%INDICATORC(1:IDEGFREE2, 1:IDEGFREE2), &
+									IDEGFREE2, GRAD1AL(1:IDEGFREE2), 1, BETA, INDICATEMATRIXAL(1:IDEGFREE2), 1)
+		
+						SMOOTHINDICATORAL(LL) = DDOT_D(IDEGFREE2, GRAD1AL(1:IDEGFREE2), 1, INDICATEMATRIXAL(1:IDEGFREE2), 1)
+					END IF
+				END DO
+				
+				LAMBDAAL(:) = 1.0D0
+				LAMBDAAL(1) = lwcx1
+		
+				LAMC(1) = (1.0d0 - (1.0d0/lwcx1)); LAMC(2:ielem(n, i)%admis) = (1.0d0 - LAMC(1))/(IELEM(N, I)%ADMIS - 1); LAMBDAAL(1:ielem(n, i)%admis) = LAMC(1:ielem(n, i)%admis)
+		
+				tau_Weno = zero
+				DO LL = 1, IELEM(N, I)%ADMIS
+					tau_Weno = tau_weno + (abs(SMOOTHINDICATORAL(1) - SMOOTHINDICATORAL(LL)))
 				end do
-	
+				tau_weno = (tau_weno/(IELEM(N, I)%ADMIS - 1))!**power
+				DO LL = 1, IELEM(N, I)%ADMIS
+					OMEGAATILDEL(LL) = (LAMBDAAL(LL))*(1.0d0 + (tau_weno/(divbyzero + SMOOTHINDICATORAL(LL)))**power)
+				end do
+		
+				SUMOMEGAATILDEL = ZERO
+				DO LL = 1, IELEM(N, I)%ADMIS
+					SUMOMEGAATILDEL = SUMOMEGAATILDEL + OMEGAATILDEL(LL)
+				END DO
+				DO LL = 1, IELEM(N, I)%ADMIS
+					OMEGAAL(LL) = (OMEGAATILDEL(LL))/SUMOMEGAATILDEL
+				END DO
+		
+				DO LL = 1, IELEM(N, I)%ADMIS
+					WENO(IEX, LL) = OMEGAAL(LL)
+		
+					if (iex .eq. 1) then
+						ielem(n, i)%wcx(1) = WENO(iex, 1)
+					end if
+		
+				END DO
+		
+			END DO
+			icd = 0
+			DO L = 1, IELEM(N, I)%IFCA        !FACES
+					if (ielem(n, i)%types_faces(L) .eq. 5) then
+						iqp = qp_quad
+					else
+						iqp = qp_triangle
+					end if
+		
+				do NGP = 1, iqp                        !for gqp
+					icd = icd + 1
+		
+					AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1)
+					AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2)
+					AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
+		
+		
+		!                                 DO K=1,IELEM(N,I)%IDEGFREE
+					compwrt = 0
+					CONSMATRIX(icd, 1:IELEM(N, I)%IDEGFREE) = BASIS_REC_SPHERE_CASE_ONLY(N, AX, AY, AZ, IELEM(N, I)%IORDER, I, IELEM(N, I)%IDEGFREE, compwrt, SB(:), IELEM, ILOCAL_RECON3,INTEG_BASIS,integ_basis_dg)
+		
+					compwrt = 1
+					CONSMATRIXC(icd, 1:IDEGFREE2) = BASIS_REC_SPHERE_CASE_ONLY(N, AX, AY, AZ, IORDER2, I, IDEGFREE2, compwrt, SB(:), IELEM, ILOCAL_RECON3,INTEG_BASIS,integ_basis_dg)
+					compwrt = 0
+		
+		!                                 END DO
+				end do
+		
+			END DO        !FACES
+		!                                 DO IEX=1,nof_variables        !COMPONENTS
+			ILOCAL_RECON3(I)%ULEFT(:, :, :) = ZERO
+		!                                 ILOCAL_RECON3(I)%ULEFT(IEX,L,NGP)=ZERO
+		
+			DO LL = 1, IELEM(N, I)%ADMIS        !STENCILS
+		
+				IF (LL .EQ. 1) THEN
+					GRADSSL(1:IELEM(N, I)%IDEGFREE, 1:nof_variables) = GRAD5ALc(1:IELEM(N, I)%IDEGFREE, 1:nof_variables)
+		
+					CALL DGEMM_D(.FALSE., .FALSE., ICD, nof_variables, IELEM(N, I)%IDEGFREE, ALPHA, &
+								CONSMATRIX(1:ICD, 1:IELEM(N, I)%IDEGFREE), ICD, &
+								GRADSSL(1:IELEM(N, I)%IDEGFREE, 1:NOF_vARIABLES), &
+								IELEM(N, I)%IDEGFREE, BETA, RESSOLUTION(1:ICD, 1:NOF_vARIABLES), ICD)
+		
+				else
+					GRADSSL(1:Idegfree2, 1:nof_variables) = ILOCAL_RECON5(I)%GRADIENTSc(LL, 1:idegfree2, 1:nof_variables)
+		
+					CALL DGEMM_D(.FALSE., .FALSE., ICD, nof_variables, idegfree2, ALPHA, &
+								CONSMATRIXc(1:ICD, 1:IDEGFREE2), ICD, &
+								GRADSSL(1:IDEGFREE2, 1:NOF_vARIABLES), &
+								IDEGFREE2, BETA, RESSOLUTION(1:ICD, 1:NOF_vARIABLES), ICD)
+		
+				end if
+		
+				ICD = 0
+				DO L = 1, IELEM(N, I)%IFCA
+					if (ielem(n, i)%types_faces(L) .eq. 5) then
+						iqp = qp_quad; WEIGHT_T2(1:IQP) = WEIGHTS_Q(1:IQP)
+					else
+						iqp = qp_triangle; WEIGHT_T2(1:IQP) = WEIGHTS_T(1:IQP)
+					end if
+					do NGP = 1, iqp
+						ICD = ICD + 1
+		
+						CALL EXTRAPOLATE_BOUND_SPHERE_CASE_ONLY(IEX, L, NGP, I, ICD, LL, WENO(:,:), RESSOLUTION(:,:), U_C, ILOCAL_RECON3)
+		
+					end do
+		
+				end do
+		
 			end do
-	
-		end do
-	
-		ICONSIDERED = I
-		CALL SOLUTIONTRIAV2_SPHERE_CASE_ONLY(N, I, AX_L, AY_L, AZ_L, GRADSS_L(:,:), AINVJT_L(:,:), WEIGHT_T2_L(:), XXDER_L(:,:), YYDER_L(:,:), ZZDER_L(:,:), GRADTEM_L(:), XDER_L(:), YDER_L(:), ZDER_L(:), UGRADLOC_L(:), WEQUA2D_L(:), QPOINTS2D_L(:,:), vvwg_L(:), VVR1_L(:), VVR2_L(:), VVR3_L(:), vvnpox_L(:), vvnpoy_L(:), vvnpoz_L(:), vvwpox_L(:), vvwpoy_L(:), vvwpoz_L(:), VVnxi_L(:), IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L)
-	
-		END IF
-	
-	END DO
-	!$OMP end target teams distribute parallel do
+		
+			ICONSIDERED = I
+			CALL SOLUTIONTRIAV2_SPHERE_CASE_ONLY(N, I, AX, AY, AZ, GRADSS(:,:), AINVJT(:,:), WEIGHT_T2(:), XXDER(:,:), YYDER(:,:), ZZDER(:,:), GRADTEM(:), XDER(:), YDER(:), ZDER(:), UGRADLOC(:), WEQUA2D(:), QPOINTS2D(:,:), vvwg(:), VVR1(:), VVR2(:), VVR3(:), vvnpox(:), vvnpoy(:), vvnpoz(:), vvwpox(:), vvwpoy(:), vvwpoz(:), VVnxi(:), IELEM, ILOCAL_RECON3, ILOCAL_RECON5)
+		
+			END IF
+		
+		END DO
+		!$OMP end target teams distribute parallel do
+
 	!!$OMP END DO
 	!!$OMP end target teams loop
 
@@ -968,7 +983,7 @@ if ((ees .eq. 5) .and. (wenoz .eq. 1) .and. (fastest_q .eq. 1) .and. (wenwrt .eq
 	 CONSMATRIX, CONSMATRIXC, WENO, RESSOLUTION,leftv,GRADSS,AINVJT,WEIGHT_T2,XXDER, YYDER, ZZDER,GRADTEM,XDER, YDER, ZDER,WEQUA2D,QPOINTS2D, &
 	vvwg, VVR1, VVR2, VVR3, vvnpox, vvnpoy, vvnpoz, vvwpox, vvwpoy, vvwpoz, VVnxi,&
 	lamc, LAMBDAAL, GRAD3AL, GRAD5ALc, SMOOTHINDICATORAL, OMEGAATILDEL, OMEGAAL, GRADSSL, &
-	 IELEM, U_C, ILOCAL_RECON3, ILOCAL_RECON5, IEXSOLHIR, INTEG_BASIS,integ_basis_dg)
+	 IELEM, U_C, ILOCAL_RECON3, ILOCAL_RECON5, IEXSOLHIR, INTEG_BASIS,integ_basis)
 											!(N, UGRADLOC_L, GRAD1AL_L, INDICATEMATRIXAL_L, compwrt_L, imax_L, NUMBER_OF_DOG_L, NUMBER_OF_NEI_L, ANGLE1_L, ANGLE2_L, AX_L, AY_L, AZ_L, SB_L, CONSMATRIX_L, CONSMATRIXC_L, WENO_L, RESSOLUTION_L,ILOCAL_RECON5_L,leftv_L,GRADSS_L,AINVJT_L,WEIGHT_T2_L,XXDER_L, YYDER_L, ZZDER_L,GRADTEM_L,XDER_L, YDER_L, ZDER_L,WEQUA2D_L,QPOINTS2D_L, vvwg_L, VVR1_L, VVR2_L, VVR3_L, vvnpox_L, vvnpoy_L, vvnpoz_L, vvwpox_L, vvwpoy_L, vvwpoz_L, VVnxi_L)
 
 ELSE
