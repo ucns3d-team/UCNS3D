@@ -37,12 +37,7 @@ OFLAGS=
 #FFLAGS=-g -fbacktrace -ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -fcheck=all -Wno-lto-type-mismatch -fallow-argument-mismatch $(BLASFLAGS)
 
 
-
-#FFLAGS= -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast -march=native -Wno-lto-type-mismatch -fallow-argument-mismatch $(BLASFLAGS) 
-
-
-#this is the most stable for reproducability (without the combination of (-fno-lto -fno-tree-sra) no reproducible results beyond 00)
-
+#nvfortran
 FFLAGS=-Minfo -Mnovect -mp=gpu -r8 -Mbackslash -march=native -Mcray=pointer $(BLASFLAGS)
 
 #aocl
