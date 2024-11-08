@@ -4028,8 +4028,8 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
       resolx=0.01
       iscoun=1
       kmaxe=XMPIELRANK(n)
-      EVERY_TIME=FLOOR(RES_TIME)+output_freq
-      EK_TIME=FLOOR(RES_TIME)+resolx
+      EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
+
       TOTV1=0.0
 
 !$OMP BARRIER
@@ -4583,7 +4583,10 @@ kill=0
 T=res_time
 iscoun=1
 
-EVERY_TIME=FLOOR(RES_TIME)+output_freq
+EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
+
+
+
 
 !$OMP MASTER 
 CPUT1=CPUX1(1)
