@@ -1539,7 +1539,7 @@ i=iconsi
 		      dist1=distance3(n)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
-! 		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(1,1:DIMS)-VEXT(2,1:DIMS)
+!  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 		    end if
 	  end do
       else
@@ -1561,7 +1561,7 @@ i=iconsi
 		      dist1=distance3(n)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1*2.0d0
-! 		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(1,1:DIMS)-VEXT(2,1:DIMS)
+! 			IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 		    end if
 		 end if
 		if ((ielem(n,i)%ineighg(k).gt.0).and.(ielem(n,i)%ibounds(k).eq.0))then	!non periodic boundaries 
@@ -1572,7 +1572,7 @@ i=iconsi
 		      dist1=distance3(n)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
-! 		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(1,1:DIMS)-VEXT(2,1:DIMS)
+!  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 		    end if
 		else						!from another cpu 
 		    DO In1=1,ielem(n,i)%iNUMNEIGHBOURS
@@ -1582,7 +1582,7 @@ i=iconsi
 		    vext(2,1)=ilocal_elem(1)%XXC(1,In1);vext(2,2)=ilocal_elem(1)%yyC(1,In1); vext(2,3)=ilocal_elem(1)%zzC(1,In1)	      
 		     dist1=distance3(n)
 		    IELEM(N,i)%DIH(K)=dist1
-! 		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(1,1:DIMS)-VEXT(2,1:DIMS)
+! 			IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 				      end if
 			  end if
 		    end do
@@ -1621,7 +1621,7 @@ i=iconsi
 		    dist1=distance3(n)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
-! 		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(1,1:DIMS)-VEXT(2,1:DIMS)
+!  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 		    end if
 		else	!periodic boundaries from another cpu
 		     DO In1=1,ielem(n,i)%iNUMNEIGHBOURS
@@ -1656,7 +1656,7 @@ i=iconsi
 		    END IF
 		    dist1=distance3(n)
 		    IELEM(N,i)%DIH(K)=dist1
-! 		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(1,1:DIMS)-VEXT(2,1:DIMS)
+!  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 				end if
 			  end if
 		    end do

@@ -98,6 +98,7 @@ DO ji=1,IMAXB
 
 
 	    ibound(n,itl)%icode=ibx1
+	    ibound(n,itl)%IBID=IBID
 	    if (ib_n(3).eq.ib_n(4))then
 	    
 	      ibound(n,itl)%ishape=6
@@ -134,6 +135,7 @@ DO ji=1,IMAXB
 	    end if
 
 	    ibound(n,itl)%icode=ibx1
+	    ibound(n,itl)%ibid=IBID
 	    if (ib_n(3).eq.ib_n(4))then
 	    
 	      ibound(n,itl)%ishape=6
@@ -300,7 +302,7 @@ DO ji=1,IMAXB
 	    ibound(n,itl)%inum=ibgw;totiw=totiw+1
 	    end if
 	    ibound(n,itl)%icode=ibx1
-	    
+	   ibound(n,itl)%ibid=IBID
 
 	      ibound(n,itl)%ishape=7
 	       ALLOCATE( ibound(n,itl)%ibl(1:2))
@@ -321,7 +323,7 @@ DO ji=1,IMAXB
 	    ibound(n,itl)%inum=ibgw;totiw=totiw+1
 	    end if
 	    ibound(n,itl)%icode=ibx1
-	    
+	 ibound(n,itl)%ibid=IBID
 
 	      ibound(n,itl)%ishape=7
 	       ALLOCATE( ibound(n,itl)%ibl(1:2))

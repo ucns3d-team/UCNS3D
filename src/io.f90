@@ -9720,9 +9720,9 @@ Valuelocation(:)=0
 		
 		end do
 		do kkd=1,6
-		
+
     		DO I=1,KMAXE
-		  
+
 		  VALUESS(i)=U_C(I)%RMS(kkd)
 		END DO
 		
@@ -12823,6 +12823,9 @@ SUBROUTINE GRID_WRITE
 !> @brief
 !> This subroutine calls the appropriate grid writing subroutine based on the settings
 IMPLICIT NONE
+
+
+
 IF (TECPLOT.EQ.1)THEN		!BINARY TECPLOT
   if (dimensiona.eq.3)then
   call outwritegridb
@@ -12868,6 +12871,24 @@ IF (TECPLOT.EQ.4)THEN		!BINARY tecplot partitioned 3D ONLY
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 END IF
 
+IF (TECPLOT.EQ.5)THEN		!FAST OUTPUT WRITTEN BY ALL PROCESSORS USING MPI-IO
+
+CALL PARALLEL_VTK_COMBINE(N)
+
+END IF
+
+IF (TECPLOT.EQ.6)THEN		!FAST OUTPUT WRITTEN BY ALL PROCESSORS
+
+
+
+CALL PARALLEL_VTK_COMBINE_PARTITIONED(N)
+
+END IF
+
+
+
+
+
 
 END SUBROUTINE GRID_WRITE
 
@@ -12900,12 +12921,23 @@ IF (TECPLOT.eq.3)THEN		!BINARY PARAVIEW 3D ONLY
 END IF
 
 
+IF (TECPLOT.EQ.5)THEN		!FAST OUTPUT WRITTEN BY ALL PROCESSORS
 
-IF (TECPLOT.EQ.4)THEN		!BINARY tecplot partitioned 3D ONLY
 
-  call OUTWRITEGRIDBs
+
+CALL PARALLEL_VTK_COMBINE_WALL(N)
 
 END IF
+
+
+IF (TECPLOT.EQ.6)THEN		!FAST OUTPUT WRITTEN BY ALL PROCESSORS
+
+
+
+CALL PARALLEL_VTK_COMBINE_PARTITIONED_WALL(N)
+
+END IF
+
 
 
 
@@ -13008,6 +13040,20 @@ IF (TECPLOT.EQ.4)THEN		!BINARY PARAVIEW 3D ONLY
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 end if
 
+IF (TECPLOT.EQ.5)THEN		!FAST OUTPUT WRITTEN BY ALL PROCESSORS USING MPI-IO
+
+CALL PARALLEL_VTK_COMBINE(N)
+
+END IF
+
+IF (TECPLOT.EQ.6)THEN		!FAST OUTPUT WRITTEN BY ALL PROCESSORS
+
+CALL PARALLEL_VTK_COMBINE_PARTITIONED(N)
+
+END IF
+
+
+
 
 					IF (N.EQ.0)THEN
 				  OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
@@ -13079,6 +13125,21 @@ IF (TECPLOT.EQ.4)THEN
   END IF
 END IF
 
+IF (TECPLOT.eq.5)THEN		!BINARY PARAVIEW 3D ONLY
+
+  call PARALLEL_VTK_COMBINE_WALL(N)
+
+END IF
+
+
+IF (TECPLOT.EQ.6)THEN		!FAST OUTPUT WRITTEN BY ALL PROCESSORS
+
+
+
+CALL PARALLEL_VTK_COMBINE_PARTITIONED_WALL(N)
+
+END IF
+
 
 END SUBROUTINE surface_SOLUTION_WRITE
 
@@ -13125,6 +13186,19 @@ IF (TECPLOT.EQ.4)THEN		!BINARY PARAVIEW 3D ONLY
   call OUTWRITEtec3DbPav
   
 end if
+
+IF (TECPLOT.EQ.5)THEN
+	IF (DIMENSIONA.EQ.3)THEN
+	CALL PARALLEL_VTK_COMBINE_AV(N)
+	END IF
+END IF
+
+IF (TECPLOT.EQ.6)THEN
+	IF (DIMENSIONA.EQ.3)THEN
+	CALL PARALLEL_VTK_COMBINE_PARTITIONED_AV(N)
+	END IF
+END IF
+
 
 
 
@@ -13180,6 +13254,23 @@ eLSE
 call OUTWRITE3vsb2Dav
 END IF
 END IF
+
+IF (TECPLOT.EQ.5)THEN
+	IF (DIMENSIONA.EQ.3)THEN
+	CALL PARALLEL_VTK_COMBINE_WALL_AV(N)
+	END IF
+END IF
+
+
+
+IF (TECPLOT.EQ.6)THEN
+	IF (DIMENSIONA.EQ.3)THEN
+	CALL PARALLEL_VTK_COMBINE_partitioned_wall_av(N)
+	END IF
+END IF
+
+
+
 
 
 END SUBROUTINE surface_SOLUTION_WRITE_av
@@ -13425,9 +13516,7 @@ END IF
         call MPI_FILE_CLOSE(fh, ierror)
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
           
-          
-          
-	
+
 	
 	
 	
@@ -13443,6 +13532,4086 @@ END IF
 
 END SUBROUTINE CHECKPOINT
 
+
+
+SUBROUTINE PREPARE_SURFACES_V(N)
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	INTEGER::I,J,K,KMAXE,temp_cord,ILOOP,KLOOP,zloop,kloopf,temp_loop,KN
+	INTEGER,ALLOCATABLE,DIMENSION(:)::LIST_NIN2,LIST_NOUT2
+	KMAXE=XMPIELRANK(N)
+ILOOP=0
+DO I=1,KMAXE
+  if (ielem(n,i)%interior.eq.1)then
+	DO j=1,IELEM(N,I)%IFCA
+	  if (ielem(n,i)%ibounds(J).gt.0)then
+	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+		  iloop=iloop+1
+	      END IF
+	  end if
+	END DO
+   end if
+END DO
+
+
+iloopx=iloop
+
+if (iloopx.gt.0)then
+ALLOCATE(WALL_L(1:ILOOPX,1:4))
+
+eLSE
+ALLOCATE(WALL_L(0,0))
+end if
+
+ILOOP=0
+DO I=1,KMAXE
+  if (ielem(n,i)%interior.eq.1)then
+	DO j=1,IELEM(N,I)%IFCA
+	  if (ielem(n,i)%ibounds(J).gt.0)then
+	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+		  iloop=iloop+1
+				if (DIMENSIONA.EQ.2)then
+					KLOOP=2
+				ELSE
+					if (ielem(n,i)%types_faces(J).eq.5)then
+					KLOOP=4
+					ELSE
+					KLOOP=3
+					END IF
+				END IF
+
+		  WALL_L(ILOOP,1)=I		!this contains the iloop of all the elements that are needed with local numbering
+		  WALL_L(ILOOP,2)=j		!face
+		  WALL_L(ILOOP,3)=KLOOP !NUMBER OF NODES
+	      END IF
+	  end if
+	END DO
+   end if
+END DO
+
+
+	IWMAXE=0
+
+
+	!NOW FIND ALL THE ELEMENT TYPES AND COPY THEM IN A LOCAL LIST
+
+	CALL MPI_ALLREDUCE(ILOOPX,IWMAXE,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+
+
+
+	ALLOCATE(WALLSHAPE_G(1:IWMAXE));WALLSHAPE_G=0
+
+	IF (ILOOPX.GT.0)then
+	ALLOCATE(WALLSHAPE(1:ILOOPX));WALLSHAPE=0
+
+	DO I=1,ILOOPX
+		IF (WALL_L(I,3).EQ.2)THEN	!LINE
+			WALLSHAPE(I)=3
+		END IF
+
+		IF (WALL_L(I,3).EQ.3)THEN	!TRIANGULAR
+			WALLSHAPE(I)=5
+		END IF
+
+		IF (WALL_L(I,3).EQ.4)THEN	!QUADRILATERAL
+			WALLSHAPE(I)=9
+		END IF
+	END DO
+
+
+	eLSE
+	ALLOCATE(WALLSHAPE(0:0));WALLSHAPE=0
+	END IF
+
+
+
+	!WE NEED THE TOTAL WITH AN OFFSET
+	ALLOCATE(WALLCX_G(0:ISIZE-1),OFFSETWC_G(0:ISIZE-1))
+WALLCX_G(:)=0
+OFFSETWC_G(0:ISIZE-1)=0
+
+WALLCX_G(N)=ILOOPX
+
+CALL MPI_ALLGATHER(ILOOPX,1,MPI_INTEGER,WALLCX_G,1,MPI_INTEGER,MPI_COMM_WORLD,IERROR)
+
+OFFSETWC_G(0)=0
+DO I=1,ISIZE-1
+		OFFSETWC_G(I)=OFFSETWC_G(I-1)+WALLCX_g(I-1)
+END DO
+
+
+
+IF (ILOOPX.GT.0)THEN
+WALLSHAPE_G(OFFSETWC_G(N)+1:OFFSETWC_G(N)+WALLCX_g(N))=WALLSHAPE(1:ILOOPX)
+END IF
+
+
+
+
+
+
+
+
+
+
+ALLOCATE(WALLSHAPE_G2(1:IWMAXE));WALLSHAPE_G2=0
+
+
+
+
+CALL MPI_ALLREDUCE(WALLSHAPE_G,WALLSHAPE_G2,IWMAXE,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
+
+
+
+
+
+
+
+
+	IF (ILOOPX.GT.0)then
+	ALLOCATE(TYP_NODESN_W(1:ILOOPX));TYP_NODESN_w(:)=0
+	eLSE
+	ALLOCATE(TYP_NODESN_W(0:0));TYP_NODESN_W(:)=0
+	END IF
+	TYP_COUNTN_W=0
+	IF (ILOOPX.GT.0)THEN
+	temp_loop=OFFSETWC_G(N)
+	DO I=1,ILOOPX
+		TYP_COUNTN_W=TYP_COUNTN_w+WALL_L(I,3)
+		temp_loop=temp_loop+1
+		WALL_L(i,4)=temp_loop
+
+		TYP_NODESN_W(I)=WALL_L(I,3)
+	END DO
+	END IF
+
+
+allocate(nodes_offsetW(1:IWMAXE),nodes_offsetW2(1:IWMAXE))
+
+
+
+
+
+
+CALL MPI_ALLREDUCE(TYP_COUNTN_W,TYP_COUNTN_GLOBAL_W,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+KN=0
+DO J=1,IWMAXE
+	nodes_offsetW(j)=kn
+		IF (WALLSHAPE_G2(J).EQ.3)THEN
+			KN=KN+2
+		END IF
+		IF (WALLSHAPE_G2(J).EQ.5)THEN
+			KN=KN+3
+		END IF
+		IF (WALLSHAPE_G2(J).EQ.9)THEN
+			KN=KN+4
+		END IF
+	nodes_offsetW2(j)=kn
+
+
+END DO
+
+
+	IF (ILOOPX.GT.0)THEN
+	allocate(nodes_offset_localW(1:ILOOPX));nodes_offset_localW=0
+	allocate(nodes_offset_local2W(1:ILOOPX));nodes_offset_local2W=0
+
+
+
+
+	ELSE
+	Allocate(nodes_offset_localW(0:0));nodes_offset_localW=0
+	allocate(nodes_offset_local2W(0:0));nodes_offset_local2W=0
+	END IF
+
+	IF (ILOOPX.GT.0)THEN
+	DO I=1,ILOOPX
+	NODES_OFFSET_LOCALW(I)=NODES_OFFSETW(WALL_L(i,4))
+	NODES_OFFSET_LOCAL2W(I)=NODES_OFFSETW2(WALL_L(i,4))
+
+	END DO
+	END IF
+
+
+
+
+END SUBROUTINE PREPARE_SURFACES_V
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SUBROUTINE PARTITION_PREPARATION_WALLv(N)
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	INTEGER::I,J,K,temp_cord,KLOOP,varg_max,KMAXN_P
+	INTEGER,DIMENSION(4)::TEMPWNODE
+	KMAXN_P=XMPIALL_v(N)
+	temp_cord=3
+
+	IF (DIMENSIONA.EQ.2)THEN
+	WNODES_PART=2
+	ELSE
+	WNODES_PART=3
+	END IF
+	varg_max=max(WRITE_VARIABLES_W,WRITE_VARIABLES_Av_w)
+
+	IF (ILOOPX.GT.0)THEN
+ 	ALLOCATE(WDISPART1(1:ILOOPX),WrARRAY_PART1(1:ILOOPX,1:varg_max))	!
+
+ 		DO I=1,ILOOPX
+ 			WDISPART1(I)=(wall_l(i,4)-1)*1
+ 		END DO
+			WPART1_end=1
+	eLSE
+		ALLOCATE(WDISPART1(1),WrARRAY_PART1(1,1:WRITE_VARIABLES_W))	!
+		WrARRAY_PART1(1,:)=0
+		WDISPART1(1)=0!
+			WPART1_end=0
+
+	END IF
+
+
+
+
+
+	IF (ILOOPX.GT.0)THEN
+ 	ALLOCATE(WDISPART2(1:ILOOPX),WiARRAY_PART2(1:TYP_COUNTN_W))		!
+ 		DO I=1,iloopx
+ 			WDISPART2(I)=nodes_offset_localW(i)
+ 		END DO
+
+ 		WPART2_end=WNODES_PART
+
+
+	eLSE
+		ALLOCATE(WDISPART2(1),WiARRAY_PART2(1))	!
+		WiARRAY_PART2(1)=0
+		WDISPART2(1)=0!(totwallsc-1)*WNODES_PART	!MAYBE TOTAL NUMBER OF VALUES WRITTEN
+		WPART2_end=0
+
+	END IF
+
+
+
+	!the nodes of the boundary cells
+
+	IF (ILOOPX.GT.0)THEN
+
+
+
+
+ 		K=1
+ 	  DO I=1,iloopx
+
+		WiARRAY_PART2(K:K+TYP_NODESN_W(I)-1)=IELEM(N,WALL_L(I,1))%NODES_FACES_V(WALL_L(I,2),1:TYP_NODESN_W(I))
+		K=K+TYP_NODESN_W(I)
+ 	  END DO
+
+
+    END IF
+
+
+
+
+		IF (ILOOPX.GT.0)THEN
+		ALLOCATE(WDISPART5(1:ILOOPX),WiARRAY_PART5(1:ILOOPX))
+
+
+			DO I=1,ILOOPX
+				WDISPART5(I)=(wall_l(i,4)-1)*1
+			END DO
+
+			DO I=1,iloopx
+				WiARRAY_PART5(i)=nodes_offset_local2W(i)
+			END DO
+
+
+		ELSE
+			ALLOCATE(WDISPART5(1),WiARRAY_PART5(1))
+				WDISPART5(1)=0!totwallsc-1
+				WiARRAY_PART5(1)=0
+
+
+		END IF
+
+
+
+	IF (ILOOPX.GT.0)THEN
+
+!	!tHE TYPES of elements OF THE nodes OF  tHE boundary cells
+	ALLOCATE(wDISPART3(1:ILOOPX),wiARRAY_PART3(1:ILOOPX))
+
+			DO I=1,ILOOPX
+				WDISPART3(I)=(wall_l(i,4)-1)*1
+				wiARRAY_PART3(I)=WALLSHAPE(I)
+			END DO
+			wPART3_end=1
+	ELSE
+	ALLOCATE(wDISPART3(1),wiARRAY_PART3(1))
+			WDISPART3(1)=0!totwallsc-1
+			WiARRAY_PART3(1)=0
+			wPART3_end=0
+	END IF
+
+
+
+
+
+  	ALLOCATE(WDISPART4(1:KMAXN_P),WrARRAY_PART4(1:KMAXN_P*temp_cord))		!
+  	wPART4_end=temp_cord
+
+  	DO I=1,KMAXN_P
+			WDISPART4(I)=(my_nodesg(I)-1)*(temp_cord)
+		END DO
+
+		K=1
+	  DO I=1,KMAXN_P
+		WrARRAY_PART4(K:K+dims-1)=INODER4(my_nodesl(i))%CORD(1:DIMS)
+		if (dimensiona.eq.2)then
+		WrARRAY_PART4(K+temp_cord-1:K+temp_cord-1)=0.0D0
+		end if
+		K=K+TEMP_CORD
+	  END DO
+
+
+
+!
+!
+IF (N.EQ.0)THEN
+WKDUM1=1
+WKDUM2=1
+WKDUM3(1)=0
+ELSE
+WKDUM1=0
+WKDUM2=0
+WKDUM3(1)=1
+END IF
+!
+			!now commit datatypes
+
+ 				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(ILOOPX,WPART1_end,WDISPART1,MPI_DOUBLE_PRECISION,WDATATYPEX,IERROR)
+ 				CALL MPI_TYPE_COMMIT(WDATATYPEX,IERROR)
+!
+ 				!DUMMY TYPE FOR WRITING ONE COMPONENT ONLY FROM ONE CPU
+ 				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(WKDUM1,WKDUM2,WKDUM3,MPI_INTEGER,WDATATYPEINT,IERROR)
+ 				CALL MPI_TYPE_COMMIT(WDATATYPEINT,IERROR)
+!
+!
+!
+! 				!point coordinates
+ 				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXN_P,WPART4_end,WDISPART4,MPI_DOUBLE_PRECISION,WDATATYPEz,IERROR)
+ 				CALL MPI_TYPE_COMMIT(WDATATYPEz,IERROR)
+!
+! 				!connectivity
+!  				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(ILOOPX,TYP_NODESN_W(:),WDISPART2,MPI_INTEGER,WDATATYPEy,IERROR)
+ 				CALL MPI_TYPE_INDEXED(ILOOPX,TYP_NODESN_W(:),WDISPART2,MPI_INTEGER,WDATATYPEy,IERROR)
+ 				CALL MPI_TYPE_COMMIT(WDATATYPEy,IERROR)
+!
+! 				!type of element
+ 				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(ILOOPX,WPART1_end,WDISPART5,MPI_INTEGER,WDATATYPEXx,IERROR)
+ 				CALL MPI_TYPE_COMMIT(WDATATYPEXx,IERROR)
+!
+! 				!nodes
+ 				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(ILOOPX,wPART3_end,WDISPART3,MPI_INTEGER,WDATATYPEyy,IERROR)
+ 				CALL MPI_TYPE_COMMIT(WDATATYPEyy,IERROR)
+!
+!
+!
+
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+DEALLOCATE(WALLSHAPE_G,WALLSHAPE,WALLCX_G,OFFSETWC_G,WALLSHAPE_G2,TYP_NODESN_W,nodes_offsetW,nodes_offsetW2,NODES_OFFSET_LOCALW,NODES_OFFSET_LOCAL2W)
+
+
+
+
+
+END SUBROUTINE PARTITION_PREPARATION_WALLv
+
+
+
+
+
+SUBROUTINE PARTITION_PREPARATION(N)
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	INTEGER::I,J,K,KMAXE,KMAXN_P,temp_cord,varg_max
+	KMAXE=XMPIELRANK(N)
+	KMAXN_P=XMPIALL_v(N)
+
+	temp_cord=3
+
+	IF (DIMENSIONA.EQ.2)THEN
+	NODES_PART=4
+	ELSE
+	NODES_PART=8
+	END IF
+	varg_max=max(WRITE_VARIABLES,WRITE_VARIABLES_Av)
+	ALLOCATE(DISPART1(1:KMAXE),rARRAY_PART1(1:KMAXE,1:varg_max))	!
+
+		DO I=1,KMAXE
+			DISPART1(I)=(XGO(I)-1)*(1)
+		END DO
+		PART1_end=1
+
+
+	ALLOCATE(TYP_NODESN(1:kmaxe));TYP_NODESN(:)=0
+	TYP_COUNTN=0
+	DO I=1,KMAXE
+			IF (IELEM(N,I)%ishape.EQ.1)THEN	!HEXA
+				TYP_COUNTN=TYP_COUNTN+8
+				TYP_NODESN(I)=8
+
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.2)THEN	!TETRA
+				TYP_COUNTN=TYP_COUNTN+4
+				TYP_NODESN(I)=4
+! 				TYP_COUNTN=TYP_COUNTN+8
+! 				TYP_NODESN(I)=8
+
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.3)THEN	!PYRAMID
+				TYP_COUNTN=TYP_COUNTN+5
+				TYP_NODESN(I)=5
+! 				TYP_COUNTN=TYP_COUNTN+8
+! 				TYP_NODESN(I)=8
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.4)THEN	!PRISM
+				TYP_COUNTN=TYP_COUNTN+6
+				TYP_NODESN(I)=6
+! 				TYP_COUNTN=TYP_COUNTN+8
+! 				TYP_NODESN(I)=8
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.5)THEN	!QUAD
+				TYP_COUNTN=TYP_COUNTN+4
+				TYP_NODESN(I)=4
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.6)THEN	!TRIANGULAR
+				TYP_COUNTN=TYP_COUNTN+3
+				TYP_NODESN(I)=3
+! 				TYP_COUNTN=TYP_COUNTN+4
+! 				TYP_NODESN(I)=4
+			END IF
+	END DO
+
+
+
+
+	CALL MPI_ALLREDUCE(TYP_COUNTN,TYP_COUNTN_GLOBAL,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+
+! 		print*,TYP_COUNTN,TYP_COUNTN_GLOBAL,"check here",IMAXE*6
+
+
+
+
+	ALLOCATE(DISPART2(1:KMAXE),iARRAY_PART2(1:TYP_COUNTN))		!
+		DO I=1,KMAXE
+! 			DISPART2(I)=(XGO(I)-1)*(NODES_PART)
+!  			DISPART2(I)=(XGO(I)-1)*(TYP_NODESN(I))
+ 			DISPART2(I)=nodes_offset_local(i)
+
+		END DO
+
+		PART2_end=NODES_PART
+
+			K=1
+	  DO I=1,KMAXE
+! 		iARRAY_PART2(K:K+NODES_PART-1)=IELEM(N,I)%NODES_v(1:NODES_PART)
+! 	      K=K+NODES_PART
+	      iARRAY_PART2(K:K+TYP_NODESN(I)-1)=IELEM(N,I)%NODES_v(1:TYP_NODESN(I))
+	      K=K+TYP_NODESN(I)
+	  END DO
+
+
+
+	  ALLOCATE(DISPART5(1:KMAXE),iARRAY_PART5(1:KMAXE))
+		DO I=1,KMAXE
+			DISPART5(I)=(XGO(I)-1)*(1)
+		END DO
+
+
+	   DO I=1,KMAXE
+		iARRAY_PART5(i)=nodes_offset_local2(i)!(XGO(I))*TYP_NODESN(I)
+	  END DO
+
+
+
+
+	ALLOCATE(DISPART3(1:KMAXe),iARRAY_PART3(1:KMAXE))
+ 		DO I=1,KMAXE
+ 			DISPART3(I)=(XGO(I)-1)*(1)
+
+
+ 			IF (IELEM(N,I)%ishape.EQ.1)THEN	!HEXA
+				IARRAY_PART3(I)=12
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.2)THEN	!TETRA
+				IARRAY_PART3(I)=10
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.3)THEN	!PYRAMID
+				IARRAY_PART3(I)=14
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.4)THEN	!PRISM
+				IARRAY_PART3(I)=13
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.5)THEN	!QUAD
+				IARRAY_PART3(I)=9
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.6)THEN	!TRIANGULAR
+				IARRAY_PART3(I)=5
+			END IF
+
+
+
+
+
+ 		END DO
+
+		PART3_end=1
+
+
+
+
+
+	ALLOCATE(DISPART4(1:KMAXN_P),rARRAY_PART4(1:KMAXN_P*temp_cord))
+
+		PART4_end=temp_cord
+		DO I=1,KMAXN_P
+			DISPART4(I)=(my_nodesg(I)-1)*(temp_cord)
+		END DO
+
+
+		K=1
+	  DO I=1,KMAXN_P
+		rARRAY_PART4(K:K+dims-1)=INODER4(my_nodesl(i))%CORD(1:DIMS)
+		if (dimensiona.eq.2)then
+		rARRAY_PART4(K+temp_cord-1:K+temp_cord-1)=0.0D0
+		end if
+		K=K+TEMP_CORD
+	  END DO
+
+
+IF (N.EQ.0)THEN
+KDUM1=1
+KDUM2=1
+KDUM3(1)=0
+ELSE
+KDUM1=0
+KDUM2=0
+KDUM3(1)=1
+END IF
+
+ !now commit datatypes
+
+				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXE,PART1_end,DISPART1,MPI_DOUBLE_PRECISION,DATATYPEX,IERROR)
+				CALL MPI_TYPE_COMMIT(DATATYPEX,IERROR)
+
+				!DUMMY TYPE FOR WRITING ONE COMPONENT ONLY FROM ONE CPU
+				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KDUM1,KDUM2,KDUM3,MPI_INTEGER,DATATYPEINT,IERROR)
+				CALL MPI_TYPE_COMMIT(DATATYPEINT,IERROR)
+
+
+
+				!point coordinates
+				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXN_P,PART4_end,DISPART4,MPI_DOUBLE_PRECISION,DATATYPEz,IERROR)
+				CALL MPI_TYPE_COMMIT(DATATYPEz,IERROR)
+
+				!connectivity
+! 				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(kmaxe,nodes_part,DISPART2,MPI_INTEGER,DATATYPEy,IERROR)
+				CALL MPI_TYPE_INDEXED(kmaxe,TYP_NODESN(1:kmaxe),DISPART2,MPI_INTEGER,DATATYPEy,IERROR)
+				CALL MPI_TYPE_COMMIT(DATATYPEy,IERROR)
+
+				!type of element
+				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(kmaxe,PART1_end,DISPART5,MPI_INTEGER,DATATYPEXx,IERROR)
+				CALL MPI_TYPE_COMMIT(DATATYPEXx,IERROR)
+
+				!nodes
+				CALL MPI_TYPE_CREATE_INDEXED_BLOCK(kmaxe,PART1_end,DISPART3,MPI_INTEGER,DATATYPEyy,IERROR)
+				CALL MPI_TYPE_COMMIT(DATATYPEyy,IERROR)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+END SUBROUTINE PARTITION_PREPARATION
+
+SUBROUTINE PARTITION_PREPARATION_p(N)
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	INTEGER::I,J,K,KMAXE,KMAXN_P,temp_cord,varg_max
+	INTEGER,DIMENSION(8)::TEMP_PART_N
+	KMAXE=XMPIELRANK(N)
+
+
+	temp_cord=3
+
+
+	varg_max=max(WRITE_VARIABLES,WRITE_VARIABLES_Av)
+	ALLOCATE(sol_vtu(1:KMAXE,1:varg_max));sol_vtu=0	!
+
+	ALLOCATE(TYP_NODESN(1:kmaxe));TYP_NODESN(:)=0
+	TYP_COUNTN=0
+	DO I=1,KMAXE
+			IF (IELEM(N,I)%ishape.EQ.1)THEN	!HEXA
+				TYP_COUNTN=TYP_COUNTN+8
+				TYP_NODESN(I)=8
+
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.2)THEN	!TETRA
+				TYP_COUNTN=TYP_COUNTN+4
+				TYP_NODESN(I)=4
+
+
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.3)THEN	!PYRAMID
+				TYP_COUNTN=TYP_COUNTN+5
+				TYP_NODESN(I)=5
+
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.4)THEN	!PRISM
+				TYP_COUNTN=TYP_COUNTN+6
+				TYP_NODESN(I)=6
+
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.5)THEN	!QUAD
+				TYP_COUNTN=TYP_COUNTN+4
+				TYP_NODESN(I)=4
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.6)THEN	!TRIANGULAR
+				TYP_COUNTN=TYP_COUNTN+3
+				TYP_NODESN(I)=3
+
+			END IF
+	END DO
+
+
+
+
+
+
+	ALLOCATE(offset_vtu(1:KMAXE),connect_vtu(1:TYP_COUNTN))
+	!
+	K=0
+		DO I=1,KMAXE
+				K=k+TYP_NODESN(I)
+			offset_vtu(I)=k
+		END DO
+
+
+
+			K=1
+	  DO I=1,KMAXE
+			TEMP_PART_N(1:TYP_NODESN(I))=IELEM(N,I)%NODES(1:TYP_NODESN(I))
+
+			DO J=1,TYP_NODESN(I)
+				TEMP_PART_N(J)=TEMP_PART_N(J)-1
+			END DO
+
+	      connect_vtu(K:K+TYP_NODESN(I)-1)=TEMP_PART_N(1:TYP_NODESN(I))
+	      K=K+TYP_NODESN(I)
+	  END DO
+
+
+
+
+
+	ALLOCATE(type_vtu(1:KMAXE))
+ 		DO I=1,KMAXE
+ 			IF (IELEM(N,I)%ishape.EQ.1)THEN	!HEXA
+				type_vtu(I)=12
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.2)THEN	!TETRA
+				type_vtu(I)=10
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.3)THEN	!PYRAMID
+				type_vtu(I)=14
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.4)THEN	!PRISM
+				type_vtu(I)=13
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.5)THEN	!QUAD
+				type_vtu(I)=9
+			END IF
+			IF (IELEM(N,I)%ishape.EQ.6)THEN	!TRIANGULAR
+				type_vtu(I)=5
+			END IF
+
+
+ 		END DO
+
+
+
+
+
+
+	ALLOCATE(nodes_vtu(1:KMAXN*temp_cord))
+
+
+
+
+
+		K=1
+	  DO I=1,KMAXN
+		nodes_vtu(K:K+dims-1)=INODER4(I)%CORD(1:DIMS)
+		if (dimensiona.eq.2)then
+		nodes_vtu(K+temp_cord-1:K+temp_cord-1)=0.0D0
+		end if
+		K=K+TEMP_CORD
+	  END DO
+
+
+
+
+END SUBROUTINE PARTITION_PREPARATION_p
+
+
+SUBROUTINE PARTITION_PREPARATION_p_WALL(N)
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	INTEGER::I,J,K,KMAXE,KMAXN_P,temp_cord,varg_max,ILOOP,KLOOP,zloop,kloopf,temp_loop,KN,KKD
+	INTEGER,DIMENSION(8)::TEMP_PART_N
+	KMAXE=XMPIELRANK(N)
+
+
+	temp_cord=3
+				ILOOP=0
+			DO I=1,KMAXE
+			if (ielem(n,i)%interior.eq.1)then
+				DO j=1,IELEM(N,I)%IFCA
+				if (ielem(n,i)%ibounds(J).gt.0)then
+					if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+					iloop=iloop+1
+					END IF
+				end if
+				END DO
+			end if
+			END DO
+
+
+
+			iloopx=iloop
+
+
+	allocate(wallcount_cpu_l(0:isize-1),wallcount_cpu_g(0:isize-1));wallcount_cpu_l=0;wallcount_cpu_g=0
+
+
+	wallcount_cpu_l(n)=iloopx
+
+	call MPI_ALLREDUCE(wallcount_cpu_l(0:isize-1),wallcount_cpu_g(0:isize-1),isize,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
+
+
+	call mpi_barrier(mpi_comm_world,ierror)
+
+
+if (iloopx.gt.0)then
+ALLOCATE(WALL_L(1:ILOOPX,1:4))
+
+eLSE
+ALLOCATE(WALL_L(0,0))
+end if
+
+ILOOP=0
+DO I=1,KMAXE
+  if (ielem(n,i)%interior.eq.1)then
+	DO j=1,IELEM(N,I)%IFCA
+	  if (ielem(n,i)%ibounds(J).gt.0)then
+	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+		  iloop=iloop+1
+				if (DIMENSIONA.EQ.2)then
+					KLOOP=2
+				ELSE
+					if (ielem(n,i)%types_faces(J).eq.5)then
+					KLOOP=4
+					ELSE
+					KLOOP=3
+					END IF
+				END IF
+
+		  WALL_L(ILOOP,1)=I		!this contains the iloop of all the elements that are needed with local numbering
+		  WALL_L(ILOOP,2)=j		!face
+		  WALL_L(ILOOP,3)=KLOOP !NUMBER OF NODES
+	      END IF
+	  end if
+	END DO
+   end if
+END DO
+
+
+
+	varg_max=max(WRITE_VARIABLES_w,WRITE_VARIABLES_Av_w)
+	IF (ILOOPX.GT.0)THEN
+	ALLOCATE(sol_vtu_W(1:ILOOPX,1:varg_max));sol_vtu=0	!
+	ELSE
+	ALLOCATE(sol_vtu_W(0:0,1:varg_max));sol_vtu=0	!
+	END IF
+
+	IF (ILOOPX.GT.0)THEN
+	ALLOCATE(TYP_NODESN_W(1:ILOOPX),type_vtu_W(1:ILOOPX));TYP_NODESN_W(:)=0;type_vtu_w=0
+	eLSE
+	ALLOCATE(TYP_NODESN_W(0:0),type_vtu_w(0:0));TYP_NODESN_W(:)=0;type_vtu_w=0
+	END IF
+
+
+
+	TYP_COUNTN_W=0
+	IF (ILOOPX.GT.0)THEN
+
+
+
+	DO I=1,ILOOPX
+			IF (WALL_L(I,3).EQ.4)THEN	!QUAD
+				TYP_COUNTN_W=TYP_COUNTN+4
+				TYP_NODESN_W(I)=4
+				type_vtu_W(I)=9
+			END IF
+
+			IF (WALL_L(I,3).EQ.3)THEN	!TRI
+				TYP_COUNTN_W=TYP_COUNTN+3
+				TYP_NODESN_W(I)=3
+				type_vtu_W(I)=5
+			END IF
+
+			IF (WALL_L(I,3).EQ.2)THEN	!LINE
+				TYP_COUNTN_W=TYP_COUNTN+2
+				TYP_NODESN_W(I)=2
+				type_vtu_W(I)=3
+			END IF
+	END DO
+
+	END IF
+
+
+
+	IF (ILOOPX.GT.0)THEN
+	ALLOCATE(offset_vtu_w(1:ILOOPX),connect_vtu_w(1:TYP_COUNTN_W))
+	ELSE
+	ALLOCATE(offset_vtu_w(0:0),connect_vtu_w(0:0))
+	END IF
+	!
+
+	IF (ILOOPX.GT.0)THEN
+	K=0
+		DO I=1,ILOOPX
+				K=k+TYP_NODESN_W(I)
+			offset_vtu_W(I)=k
+		END DO
+
+
+
+			K=1
+	  DO I=1,ILOOPX
+			TEMP_PART_N(1:TYP_NODESN_W(I))=IELEM(N,WALL_L(I,1))%NODES_FACES(WALL_L(I,2),1:TYP_NODESN_W(I))
+
+			DO J=1,TYP_NODESN_W(I)
+				TEMP_PART_N(J)=TEMP_PART_N(J)-1
+			END DO
+
+	      connect_vtu_W(K:K+TYP_NODESN_w(I)-1)=TEMP_PART_N(1:TYP_NODESN_W(I))
+	      K=K+TYP_NODESN_W(I)
+	  END DO
+
+
+	END IF
+
+
+
+
+
+
+
+
+	IF (ILOOPX.GT.0)THEN
+	ALLOCATE(nodes_vtu_w(1:KMAXN*temp_cord))
+
+	eLSE
+	ALLOCATE(nodes_vtu_w(0:0))
+	END IF
+
+
+	IF (ILOOPX.GT.0)THEN
+
+		K=1
+	  DO I=1,KMAXN
+		nodes_vtu_W(K:K+dims-1)=INODER4(I)%CORD(1:DIMS)
+		if (dimensiona.eq.2)then
+		nodes_vtu_W(K+temp_cord-1:K+temp_cord-1)=0.0D0
+		end if
+		K=K+TEMP_CORD
+	  END DO
+	END IF
+
+
+
+END SUBROUTINE PARTITION_PREPARATION_p_WALL
+
+
+
+SUBROUTINE SPECIFY_WRITE_VARIABLES(N)
+!> @brief
+!> This subroutine uses MPI-IO for writing the VTK FILES
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,J,k
+
+
+
+
+!volume instantaneous variables
+
+if (dimensiona.eq.3)then
+
+
+
+IF (multispecies.EQ.1)THEN
+WRITE_VARIABLES=NOF_VARIABLES+1
+!!specify the name of the variable names!!
+
+Variable_names(1)='density'
+Variable_names(2)='U'
+Variable_names(3)='V'
+Variable_names(4)='W'
+Variable_names(5)='Pressure'
+Variable_names(6)='rho vf1'
+Variable_names(7)='rho vf2'
+Variable_names(8)='volume_fraction'
+Variable_names(9)='Q'
+
+
+Else
+
+WRITE_VARIABLES=NOF_VARIABLES+1+TURBULENCEEQUATIONS
+
+
+!!specify the name of the variable names!!
+
+Variable_names(1)='density'
+Variable_names(2)='U'
+Variable_names(3)='V'
+Variable_names(4)='W'
+Variable_names(5)='Pressure'
+Variable_names(6)='Q'
+	if (turbulence.eq.1)then
+	Variable_names(7)='turb'
+	end if
+
+	IF (ITESTCASE.EQ.1)THEN
+	Variable_names(1)='solution'
+	Variable_names(2)='aux'
+	end if
+
+
+
+END IF
+
+
+else
+
+
+
+
+IF (multispecies.EQ.1)THEN
+WRITE_VARIABLES=NOF_VARIABLES+1
+!!specify the name of the variable names!!
+
+Variable_names(1)='density'
+Variable_names(2)='U'
+Variable_names(3)='V'
+Variable_names(4)='Pressure'
+Variable_names(5)='rho vf1'
+Variable_names(6)='rho vf2'
+Variable_names(7)='volume_fraction'
+Variable_names(8)='Q'
+
+
+Else
+
+WRITE_VARIABLES=NOF_VARIABLES+1+TURBULENCEEQUATIONS
+!!specify the name of the variable names!!
+
+Variable_names(1)='density'
+Variable_names(2)='U'
+Variable_names(3)='V'
+Variable_names(4)='Pressure'
+Variable_names(5)='Q'
+if (turbulence.eq.1)then
+Variable_names(6)='turb'
+end if
+
+
+
+IF (ITESTCASE.EQ.1)THEN
+Variable_names(1)='solution'
+Variable_names(2)='aux'
+end if
+
+
+
+end if
+
+
+
+end if
+
+
+
+
+
+if(Averaging.eq.1)then
+
+if (dimensiona.eq.3)then
+
+
+
+
+WRITE_VARIABLES_Av=11
+
+
+!!specify the name of the variable names!!
+
+Variable_names_AV(1)='R_mean'
+Variable_names_AV(2)='U_mean'
+Variable_names_AV(3)='V_mean'
+Variable_names_AV(4)='W_mean'
+Variable_names_AV(5)='P_mean'
+Variable_names_AV(6)='U_rms'
+Variable_names_AV(7)='V_rms'
+Variable_names_AV(8)='W_rms'
+Variable_names_AV(9)='UV'
+Variable_names_AV(10)='UW'
+Variable_names_AV(11)='WV'
+
+WRITE_VARIABLES_Av_w=8
+
+Variable_names_AV_w(1)='R_mean'
+Variable_names_AV_w(2)='U_mean'
+Variable_names_AV_w(3)='V_mean'
+Variable_names_AV_w(4)='W_mean'
+Variable_names_AV_w(5)='P_mean'
+Variable_names_AV_w(6)='ssx_mean'
+Variable_names_AV_w(7)='ssy_mean'
+Variable_names_AV_w(8)='ssz_mean'
+end if
+end if
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+!wall instantaneous variables
+
+
+
+ if (dimensiona.eq.3)then
+
+
+ if (itestcase.eq.4)then
+ WRITE_VARIABLES_W=NOF_VARIABLES+4
+ Variable_names_W(1)='density'
+Variable_names_W(2)='U'
+Variable_names_W(3)='V'
+Variable_names_W(4)='W'
+Variable_names_W(5)='Pressure'
+Variable_names_W(6)='Q'
+Variable_names_W(7)='ssx'
+Variable_names_W(8)='ssy'
+Variable_names_W(9)='ssz'
+
+ end if
+
+ if (itestcase.eq.3)then
+ WRITE_VARIABLES_W=NOF_VARIABLES+1
+Variable_names_W(1)='density'
+Variable_names_W(2)='U'
+Variable_names_W(3)='V'
+Variable_names_W(4)='W'
+Variable_names_W(5)='Pressure'
+Variable_names_W(6)='Q'
+ end if
+
+
+
+ if (itestcase.eq.-1)then
+ WRITE_VARIABLES_W=NOF_VARIABLES+1
+ Variable_names_W(1)='density'
+Variable_names_W(2)='U'
+Variable_names_W(3)='V'
+Variable_names_W(4)='W'
+Variable_names_W(5)='Pressure'
+Variable_names_W(6)='rho vf1'
+Variable_names_W(7)='rho vf2'
+Variable_names_W(8)='volume_fraction'
+Variable_names_W(9)='Q'
+ end if
+
+
+
+
+ELSE
+
+if (itestcase.eq.4)then
+ WRITE_VARIABLES_W=NOF_VARIABLES+3
+ Variable_names_W(1)='density'
+Variable_names_W(2)='U'
+Variable_names_W(3)='V'
+Variable_names_W(4)='Pressure'
+Variable_names_W(5)='Q'
+Variable_names_W(6)='ssx'
+Variable_names_W(7)='ssy'
+
+ end if
+
+ if (itestcase.eq.3)then
+ WRITE_VARIABLES_W=NOF_VARIABLES+1
+Variable_names_W(1)='density'
+Variable_names_W(2)='U'
+Variable_names_W(3)='V'
+Variable_names_W(4)='Pressure'
+Variable_names_W(5)='Q'
+
+ end if
+
+ if (itestcase.eq.-1)then
+ WRITE_VARIABLES_W=NOF_VARIABLES+1
+ Variable_names_W(1)='density'
+Variable_names_W(2)='U'
+Variable_names_W(3)='V'
+Variable_names_W(4)='Pressure'
+Variable_names_W(5)='rho vf1'
+Variable_names_W(6)='rho vf2'
+Variable_names_W(7)='volume_fraction'
+Variable_names_W(8)='Q'
+ end if
+
+
+
+END IF
+
+
+
+
+
+
+END SUBROUTINE SPECIFY_WRITE_VARIABLES
+
+
+SUBROUTINE PARALLEL_VTK_COMBINE(N)
+!> @brief
+!> This subroutine uses MPI-IO for writing the VTK FILES
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL,ALLOCATABLE,DIMENSION(:)::array2,ARRAY3,ARRAY4
+INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,dip,N_END,ifg,kmaxn_p,ITRIMM,temp_cord
+CHARACTER(LEN=20)::PROC,FILEX,PROC3
+REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
+LOGICAL::HERE1
+REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
+INTEGER                     :: nbytes,eight
+CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
+CHARACTER(LEN=200)          :: Buffer
+CHARACTER(LEN=1)            :: lf
+character(LEN=:),allocatable::VTU
+nbytes=1
+
+
+ 	size_of_int=4
+ 	size_of_real=8
+
+offset_temp=0
+disp_in_file=0
+tmp=0
+disp_init=0
+KMAXE=XMPIELRANK(N)
+KMAXN_P=XMPIALL_v(N)
+
+
+temp_cord=3
+
+
+! 						if (n.eq.0)then
+                               WRITE(PROC3,FMT='(I10)') IT
+                               FILEX="OUT_"//TRIM(ADJUSTL(PROC3))//".vtu"
+                               ITRIMM=len_trim(FILEX)
+                               allocate(character(LEN=ITRIMM)::VTU)
+                               VTU=FILEX(1:ITRIMM)
+!                             end if
+
+		IF (MOVEMENT.EQ.1)THEN
+
+					K=1
+	  DO I=1,KMAXN_P
+		rARRAY_PART4(K:K+dims-1)=INODER4(my_nodesl(i))%CORD(1:DIMS)
+		if (dimensiona.eq.2)then
+		rARRAY_PART4(K+temp_cord-1:K+temp_cord-1)=0.0D0
+		end if
+		K=K+TEMP_CORD
+	  END DO
+
+
+	  END IF
+
+
+
+
+
+
+
+
+
+
+
+
+				if (dimensiona.eq.3)then
+				DO I=1,KMAXE
+				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+				call cons2prim(n)
+					rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
+                                        if (multispecies.eq.1)then
+					rARRAY_PART1(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
+                                        else
+                                        rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+                                        end if        
+                                        end do
+                                        IF (TURBULENCEEQUATIONS.GT.0)THEN
+                                        rARRAY_PART1(i,write_variables)=U_CT(I)%VAL(1,1)
+                                        END IF
+
+				END DO
+
+				temp_node=8;temp_dims=3
+
+				end if
+
+				if (dimensiona.eq.2)then
+				DO I=1,KMAXE
+				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+				call cons2prim2d(n)
+					rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
+										if (multispecies.eq.1)then
+
+										rARRAY_PART1(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
+                                        else
+                                        rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+                                        end if
+										end do
+										IF (TURBULENCEEQUATIONS.GT.0)THEN
+                                        rARRAY_PART1(i,write_variables)=U_CT(I)%VAL(1,1)
+                                        END IF
+				END DO
+				temp_node=4;temp_dims=3
+				end if
+
+
+
+temp_imaxe=imaxe
+temp_imaxn=imaxn
+
+
+if (n.eq.0)then
+
+	!first write the header xml file from one MPI process
+
+	lf = char(10)
+   ! Write file name
+    OPEN(300,FILE=VTU,ACCESS='STREAM')
+    ! Write header
+    Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write unstructured grid type
+    Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    ! Write solution time type
+    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+	 offset_temp=0
+     WRITE(Offset_stamp,'(I16)')offset_temp
+    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify field pieces
+    WRITE(tempstamp1,'(I16)')imaxn
+    WRITE(tempstamp2,'(I16)')imaxe
+    Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify point data
+    Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+size_of_real
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    DO i=1,WRITE_VARIABLES
+      Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names(i))//'" '// &
+                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+      offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+      WRITE(Offset_stamp,'(I16)')offset_temp
+    END DO
+    Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify necessary cell data
+    Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+    ! Connectivity
+    Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+TYP_COUNTN_GLOBAL*size_of_int
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    ! Offsets
+    Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    ! Elem types
+    Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    ! Prepare append section
+    Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write leading data underscore
+    Buffer='_';WRITE(300) TRIM(Buffer)
+	Bytes = size_of_real
+	close(300)
+
+
+end if
+
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+				call MPI_file_open(MPI_COMM_WORLD,VTU,MPI_MODE_WRONLY + MPI_MODE_APPEND,MPI_INFO_NULL, fh, ierror)
+				call MPI_FILE_GET_POSITION(fh, disp_in_file, ierror)
+				disp_init=disp_in_FILE
+
+				!----write time stamp----!
+				IF (N.EQ.0)THEN
+				call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
+				BYTES=size_of_real
+				call MPI_file_write(fh, bytes, nbytes, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
+				disp_in_file = disp_in_file + size_of_int
+				call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
+				call MPI_file_write(fh, T, nbytes, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierror)
+				disp_in_file=disp_in_file+size_of_Real
+				else
+				disp_in_file=disp_in_file+size_of_int+size_of_real
+				end if
+				!end time stamp
+
+
+
+
+				do i=1,WRITE_VARIABLES
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+				IF (N.EQ.0)THEN
+				BYTES=temp_imaxe*size_of_real
+				nbytes=1
+				Else
+				BYTES=0
+				nbytes=0
+				end if
+
+				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file = disp_in_file + size_of_int
+				!write variables---within loop
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,DATATYPEX,'native',MPI_INFO_NULL, ierror)
+				call MPI_FILE_WRITE_ALL(fh,rARRAY_PART1(1:kmaxe,i),KMAXE*PART1_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE,ierror)
+				!end write variables---within loop
+				disp_in_file=disp_in_file+temp_imaxe*size_of_real
+				!end loop
+				end do
+
+! 				IF (N.EQ.0)print*,"LOCATION2",disp_in_file
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+				IF (N.EQ.0)THEN
+				BYTES=temp_imaxn*size_of_real*temp_dims
+				nbytes=1
+				Else
+				BYTES=0
+				nbytes=0
+				end if
+
+				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file = disp_in_file + size_of_int
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_DOUBLE_PRECISION,DATATYPEz,'native',MPI_INFO_NULL, ierror)
+				call MPI_FILE_WRITE_ALL(fh,rARRAY_PART4,KMAXN_P*PART4_end,MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
+
+
+				disp_in_file=disp_in_file+(temp_imaxn*size_of_real*temp_dims)
+
+! 				IF (N.EQ.0)print*,"LOCATION3",disp_in_file
+
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+				IF (N.EQ.0)THEN
+				BYTES=size_of_int*TYP_COUNTN_GLOBAL!temp_imaxe*size_of_int*temp_node
+				nbytes=1
+				Else
+				BYTES=0
+				nbytes=0
+				end if
+
+				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file = disp_in_file + size_of_int
+
+
+				call MPI_FILE_SET_VIEW(fh,disp_in_file,MPI_INTEGER,DATATYPEy,'native',MPI_INFO_NULL,ierror)
+
+				call MPI_FILE_WRITE_ALL(fh,iARRAY_PART2,TYP_COUNTN, MPI_INTEGER,STATUS,ierror)
+
+				disp_in_file=disp_in_file+(size_of_int*TYP_COUNTN_GLOBAL)!(temp_imaxe*size_of_int*temp_node)
+
+! 				IF (N.EQ.0)print*,"LOCATION4",disp_in_file
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+				IF (N.EQ.0)THEN
+				BYTES=temp_imaxe*size_of_int
+				nbytes=1
+				Else
+				BYTES=0
+				nbytes=0
+				end if
+
+				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file = disp_in_file + size_of_int
+
+
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,DATATYPEXx, 'native',MPI_INFO_NULL, ierror)
+				call MPI_FILE_WRITE_ALL(fh, iARRAY_PART5,kmaxe*PART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+
+
+! 				IF (N.EQ.0)print*,"LOCATION5",disp_in_file
+
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+				IF (N.EQ.0)THEN
+				BYTES=temp_imaxe*size_of_int
+				nbytes=1
+				Else
+				BYTES=0
+				nbytes=0
+				end if
+
+				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file = disp_in_file + size_of_int
+
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,DATATYPEyy, 'native',MPI_INFO_NULL, ierror)
+				call MPI_FILE_WRITE_ALL(fh, iARRAY_PART3,kmaxe*PART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+
+				disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+
+				call MPI_FILE_CLOSE(fh, ierror)
+				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+
+if (n.eq.0)then
+OPEN(300,FILE=FILEX,ACCESS='STREAM',position='APPEND')
+  lf = char(10)
+  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  CLOSE(300)
+end if
+
+
+ DEallocate(vTU)
+
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+
+
+
+END SUBROUTINE PARALLEL_VTK_COMBINE
+
+
+SUBROUTINE PARALLEL_VTK_COMBINE_AV(N)
+!> @brief
+!> This subroutine uses MPI-IO for writing the VTK FILES
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL,ALLOCATABLE,DIMENSION(:)::array2,ARRAY3,ARRAY4
+INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,dip,N_END,ifg,kmaxn_p,ITRIMM,temp_cord,IND1
+CHARACTER(LEN=40)::PROC,FILEX,PROC3
+REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
+LOGICAL::HERE1
+REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
+INTEGER                     :: nbytes,eight
+CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
+CHARACTER(LEN=200)          :: Buffer
+CHARACTER(LEN=1)            :: lf
+character(LEN=:),allocatable::VTU
+nbytes=1
+
+
+ 	size_of_int=4
+ 	size_of_real=8
+
+offset_temp=0
+disp_in_file=0
+tmp=0
+disp_init=0
+KMAXE=XMPIELRANK(N)
+KMAXN_P=XMPIALL_v(N)
+
+
+temp_cord=3
+
+
+if (rungekutta.eq.4)then
+	      ind1=7
+	      else
+	      ind1=5
+	      end if
+
+
+
+! 						if (n.eq.0)then
+                               WRITE(PROC3,FMT='(I10)') IT
+                               FILEX="VOL_AVER"//TRIM(ADJUSTL(PROC3))//".vtu"
+                               ITRIMM=len_trim(FILEX)
+                               allocate(character(LEN=ITRIMM)::VTU)
+                               VTU=FILEX(1:ITRIMM)
+!                             end if
+
+		IF (MOVEMENT.EQ.1)THEN
+
+					K=1
+	  DO I=1,KMAXN_P
+		rARRAY_PART4(K:K+dims-1)=INODER4(my_nodesl(i))%CORD(1:DIMS)
+		if (dimensiona.eq.2)then
+		rARRAY_PART4(K+temp_cord-1:K+temp_cord-1)=0.0D0
+		end if
+		K=K+TEMP_CORD
+	  END DO
+
+
+	  END IF
+
+
+
+
+
+
+
+
+
+
+
+
+				if (dimensiona.eq.3)then
+				DO I=1,KMAXE
+				leftv(1:nof_Variables)=U_C(I)%VAL(ind1,1:NOF_VARIABLES)
+				call cons2prim(n)
+					rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+					do j=nof_Variables+1,write_variables_AV
+					rARRAY_PART1(i,j)=U_C(I)%RMS(J-nof_Variables)
+                     end do
+				END DO
+
+				temp_node=8;temp_dims=3
+
+				end if
+
+
+
+
+
+temp_imaxe=imaxe
+temp_imaxn=imaxn
+
+
+if (n.eq.0)then
+
+	!first write the header xml file from one MPI process
+
+	lf = char(10)
+   ! Write file name
+    OPEN(300,FILE=VTU,ACCESS='STREAM')
+    ! Write header
+    Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write unstructured grid type
+    Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    ! Write solution time type
+    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+	 offset_temp=0
+     WRITE(Offset_stamp,'(I16)')offset_temp
+    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify field pieces
+    WRITE(tempstamp1,'(I16)')imaxn
+    WRITE(tempstamp2,'(I16)')imaxe
+    Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify point data
+    Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+size_of_real
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    DO i=1,write_variables_AV
+      Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV(i))//'" '// &
+                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+      offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+      WRITE(Offset_stamp,'(I16)')offset_temp
+    END DO
+    Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify necessary cell data
+    Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+    ! Connectivity
+    Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+TYP_COUNTN_GLOBAL*size_of_int
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    ! Offsets
+    Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    ! Elem types
+    Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    ! Prepare append section
+    Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write leading data underscore
+    Buffer='_';WRITE(300) TRIM(Buffer)
+	Bytes = size_of_real
+	close(300)
+
+
+end if
+
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+				call MPI_file_open(MPI_COMM_WORLD,VTU,MPI_MODE_WRONLY + MPI_MODE_APPEND,MPI_INFO_NULL, fh, ierror)
+				call MPI_FILE_GET_POSITION(fh, disp_in_file, ierror)
+				disp_init=disp_in_FILE
+
+				!----write time stamp----!
+				IF (N.EQ.0)THEN
+				call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
+				BYTES=size_of_real
+				call MPI_file_write(fh, bytes, nbytes, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
+				disp_in_file = disp_in_file + size_of_int
+				call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
+				call MPI_file_write(fh, T, nbytes, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierror)
+				disp_in_file=disp_in_file+size_of_Real
+				else
+				disp_in_file=disp_in_file+size_of_int+size_of_real
+				end if
+				!end time stamp
+
+
+
+
+				do i=1,write_variables_AV
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+				IF (N.EQ.0)THEN
+				BYTES=temp_imaxe*size_of_real
+				nbytes=1
+				Else
+				BYTES=0
+				nbytes=0
+				end if
+
+				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file = disp_in_file + size_of_int
+				!write variables---within loop
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,DATATYPEX,'native',MPI_INFO_NULL, ierror)
+				call MPI_FILE_WRITE_ALL(fh,rARRAY_PART1(1:kmaxe,i),KMAXE*PART1_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE,ierror)
+				!end write variables---within loop
+				disp_in_file=disp_in_file+temp_imaxe*size_of_real
+				!end loop
+				end do
+
+! 				IF (N.EQ.0)print*,"LOCATION2",disp_in_file
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+				IF (N.EQ.0)THEN
+				BYTES=temp_imaxn*size_of_real*temp_dims
+				nbytes=1
+				Else
+				BYTES=0
+				nbytes=0
+				end if
+
+				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file = disp_in_file + size_of_int
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_DOUBLE_PRECISION,DATATYPEz,'native',MPI_INFO_NULL, ierror)
+				call MPI_FILE_WRITE_ALL(fh,rARRAY_PART4,KMAXN_P*PART4_end,MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
+
+
+				disp_in_file=disp_in_file+(temp_imaxn*size_of_real*temp_dims)
+
+! 				IF (N.EQ.0)print*,"LOCATION3",disp_in_file
+
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+				IF (N.EQ.0)THEN
+				BYTES=size_of_int*TYP_COUNTN_GLOBAL!temp_imaxe*size_of_int*temp_node
+				nbytes=1
+				Else
+				BYTES=0
+				nbytes=0
+				end if
+
+				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file = disp_in_file + size_of_int
+
+
+				call MPI_FILE_SET_VIEW(fh,disp_in_file,MPI_INTEGER,DATATYPEy,'native',MPI_INFO_NULL,ierror)
+
+				call MPI_FILE_WRITE_ALL(fh,iARRAY_PART2,TYP_COUNTN, MPI_INTEGER,STATUS,ierror)
+
+				disp_in_file=disp_in_file+(size_of_int*TYP_COUNTN_GLOBAL)!(temp_imaxe*size_of_int*temp_node)
+
+! 				IF (N.EQ.0)print*,"LOCATION4",disp_in_file
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+				IF (N.EQ.0)THEN
+				BYTES=temp_imaxe*size_of_int
+				nbytes=1
+				Else
+				BYTES=0
+				nbytes=0
+				end if
+
+				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file = disp_in_file + size_of_int
+
+
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,DATATYPEXx, 'native',MPI_INFO_NULL, ierror)
+				call MPI_FILE_WRITE_ALL(fh, iARRAY_PART5,kmaxe*PART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+
+
+! 				IF (N.EQ.0)print*,"LOCATION5",disp_in_file
+
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+				IF (N.EQ.0)THEN
+				BYTES=temp_imaxe*size_of_int
+				nbytes=1
+				Else
+				BYTES=0
+				nbytes=0
+				end if
+
+				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+				disp_in_file = disp_in_file + size_of_int
+
+
+				call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,DATATYPEyy, 'native',MPI_INFO_NULL, ierror)
+				call MPI_FILE_WRITE_ALL(fh, iARRAY_PART3,kmaxe*PART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+
+				disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+
+				call MPI_FILE_CLOSE(fh, ierror)
+				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+
+if (n.eq.0)then
+OPEN(300,FILE=FILEX,ACCESS='STREAM',position='APPEND')
+  lf = char(10)
+  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  CLOSE(300)
+end if
+
+
+ DEallocate(vTU)
+
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+
+
+
+END SUBROUTINE PARALLEL_VTK_COMBINE_AV
+
+
+
+
+
+SUBROUTINE PARALLEL_VTK_COMBINE_partitioned(N)
+!> @brief
+!> This subroutine uses MPI-IO for writing the VTK FILES
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL,ALLOCATABLE,DIMENSION(:)::array2,ARRAY3,ARRAY4
+INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,dip,N_END,ifg,kmaxn_p,ITRIMM,temp_cord
+CHARACTER(LEN=20)::PROC,PROC3,proc5,proc6,proc7
+CHARACTER(LEN=90)::FILEX,filev
+REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
+LOGICAL::HERE1
+REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+integer:: disp_in_file,procx ,tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
+INTEGER                     :: nbytes,eight
+CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
+CHARACTER(LEN=200)          :: Buffer
+CHARACTER(LEN=1)            :: lf
+character(LEN=:),allocatable::VTU
+nbytes=1
+
+temp_cord=3
+ 	size_of_int=4
+ 	size_of_real=8
+
+offset_temp=0
+disp_in_file=0
+tmp=0
+disp_init=0
+KMAXE=XMPIELRANK(N)
+
+
+
+temp_cord=3
+
+
+
+
+
+! 						if (n.eq.0)then
+                               WRITE(PROC3,FMT='(I10)') IT
+                               WRITE(PROC5,FMT='(I10)') N
+                               FILEX="OUT_"//TRIM(ADJUSTL(PROC3))//"_"//TRIM(ADJUSTL(PROC5))//".vtu"
+                               ITRIMM=len_trim(FILEX)
+                               allocate(character(LEN=ITRIMM)::VTU)
+                               VTU=FILEX(1:ITRIMM)
+!                             end if
+
+
+
+	if (movement.eq.1)then
+				K=1
+	  DO I=1,KMAXN
+		nodes_vtu(K:K+dims-1)=INODER4(I)%CORD(1:DIMS)
+		if (dimensiona.eq.2)then
+		nodes_vtu(K+temp_cord-1:K+temp_cord-1)=0.0D0
+		end if
+		K=K+TEMP_CORD
+	  END DO
+
+   end if
+
+
+
+
+
+
+				if (dimensiona.eq.3)then
+				DO I=1,KMAXE
+				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+				call cons2prim(n)
+					sol_vtu(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
+                                        if (multispecies.eq.1)then
+										sol_vtu(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
+                                        else
+                                        sol_vtu(i,j)=ielem(n,i)%vortex(1)
+                                        end if
+                                        end do
+                                        IF (TURBULENCEEQUATIONS.GT.0)THEN
+                                        sol_vtu(i,write_variables)=U_CT(I)%VAL(1,1)
+                                        END IF
+				END DO
+
+				temp_node=8;temp_dims=3
+
+				end if
+
+				if (dimensiona.eq.2)then
+				DO I=1,KMAXE
+				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+				call cons2prim2d(n)
+					sol_vtu(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
+                                        if (multispecies.eq.1)then
+
+					sol_vtu(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
+                                        else
+                                        sol_vtu(i,j)=ielem(n,i)%vortex(1)
+                                        end if
+                                        end do
+                                        IF (TURBULENCEEQUATIONS.GT.0)THEN
+                                        sol_vtu(i,write_variables)=U_CT(I)%VAL(1,1)
+                                        END IF
+
+				END DO
+				temp_node=4;temp_dims=3
+				end if
+
+
+
+
+
+temp_imaxe=kmaxe
+temp_imaxn=kmaxn
+
+
+	!first write the header xml file from one MPI process
+
+	lf = char(10)
+   ! Write file name
+    OPEN(300,FILE=VTU,ACCESS='STREAM')
+    ! Write header
+    Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write unstructured grid type
+    Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    ! Write solution time type
+    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+	 offset_temp=0
+     WRITE(Offset_stamp,'(I16)')offset_temp
+    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify field pieces
+    WRITE(tempstamp1,'(I16)')kmaxn
+    WRITE(tempstamp2,'(I16)')kmaxe
+    Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify point data
+    Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+size_of_real
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    DO i=1,WRITE_VARIABLES
+      Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names(i))//'" '// &
+                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+      offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+      WRITE(Offset_stamp,'(I16)')offset_temp
+    END DO
+    Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify necessary cell data
+    Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+    ! Connectivity
+    Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+(TYP_COUNTN)*size_of_int
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    ! Offsets
+    Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    ! Elem types
+    Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    ! Prepare append section
+    Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write leading data underscore
+    Buffer='_';WRITE(300) TRIM(Buffer)
+	Bytes = size_of_real
+
+
+
+
+
+				!----write time stamp----!
+				BYTES=size_of_real
+				WRITE(300)BYTES,T
+
+				!end time stamp
+
+
+
+				!----write variables----!
+				do j=1,WRITE_VARIABLES
+				BYTES=temp_imaxe*size_of_real
+					 WRITE(300)bytes,sol_vtu(1:kmaxe,j)
+
+				end do
+				!end----write variables----!
+
+
+				!write nodes now!
+				BYTES=kmaxn*3*size_of_real
+					 WRITE(300)bytes,nodes_vtu(1:kmaxn*3)
+
+				!end write nodes now!
+
+
+				!write connectivity now!
+				BYTES=TYP_COUNTN*size_of_int
+					 WRITE(300)bytes, connect_vtu(1:TYP_COUNTN)
+
+				!end write connectivity now!
+
+
+				!write offsets now!
+				BYTES=kmaxe*size_of_int
+					 WRITE(300)bytes,offset_vtu(1:kmaxe)
+
+				!end write nodes now!
+
+
+				!write types now!
+				BYTES=kmaxe*size_of_int
+					 WRITE(300)bytes,type_vtu(1:kmaxe)
+
+				!end write nodes now!
+
+  lf = char(10)
+  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  CLOSE(300)
+
+
+
+ DEallocate(vTU)
+
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+ IF (N.EQ.0)THEN
+
+
+							WRITE(PROC3,FMT='(I10)') IT
+                               WRITE(PROC5,FMT='(I10)') N
+                               FILEX="PAR_"//TRIM(ADJUSTL(PROC3))//".pvtu"
+                               ITRIMM=len_trim(FILEX)
+                               allocate(character(LEN=ITRIMM)::VTU)
+                               VTU=FILEX(1:ITRIMM)
+
+
+
+
+                               lf = char(10)
+   ! Write file name
+    OPEN(300,FILE=VTU,ACCESS='STREAM')
+    ! Write header
+    Buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write unstructured grid type
+    Buffer='  <PUnstructuredGrid GhostLevel="0">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write solution time type
+    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf;WRITE(300) TRIM(Buffer)
+!     Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) TRIM(Buffer)
+    WRITE(tempstamp1,'(F17.9)')T
+     Buffer='        '//TRIM(ADJUSTL(tempstamp1))//lf;WRITE(300) TRIM(Buffer)
+	Buffer='      </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify point data
+    Buffer='    <PCellData>'//lf;WRITE(300) TRIM(Buffer)
+    DO i=1,WRITE_VARIABLES
+      Buffer='        <PDataArray type="Float64" Name="'//TRIM(Variable_names(i))//'" '// &
+                       'format="appended"/>'//lf;WRITE(300) TRIM(Buffer)
+      offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+    END DO
+	Buffer='    </PCellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    <PPoints>'//lf;WRITE(300) TRIM(Buffer)
+
+     Buffer='        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    </PPoints>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    <PCells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='        <PDataArray type="Int32" Name="connectivity"/>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer='        <PDataArray type="Int32" Name="offsets"/>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer='        <PDataArray type="Int32" Name="types"/>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer='    </PCells>'//lf;WRITE(300) TRIM(Buffer)
+   DO procx=0,isize-1
+
+				WRITE(PROC6,FMT='(I10)') IT
+				WRITE(PROC7,FMT='(I10)') PROCX
+		Buffer='    <Piece Source="OUT_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf;WRITE(300) TRIM(Buffer)
+   end do
+  Buffer='  </PUnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  CLOSE(300)
+
+
+
+	DEallocate(vTU)
+
+
+
+ END IF
+
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+END SUBROUTINE PARALLEL_VTK_COMBINE_partitioned
+
+
+SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_wall(N)
+!> @brief
+!> This subroutine uses MPI-IO for writing the VTK FILES
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL,ALLOCATABLE,DIMENSION(:)::array2,ARRAY3,ARRAY4
+INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,dip,N_END,ifg,kmaxn_p,ITRIMM,temp_cord,KKD_I,KKD
+CHARACTER(LEN=20)::PROC,PROC3,proc5,proc6,proc7
+CHARACTER(LEN=90)::FILEX,filev
+REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
+LOGICAL::HERE1
+REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+integer:: disp_in_file,procx ,tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
+INTEGER                     :: nbytes,eight
+CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
+CHARACTER(LEN=200)          :: Buffer
+CHARACTER(LEN=1)            :: lf
+character(LEN=:),allocatable::VTU
+nbytes=1
+
+temp_cord=3
+ 	size_of_int=4
+ 	size_of_real=8
+
+offset_temp=0
+disp_in_file=0
+tmp=0
+disp_init=0
+
+
+if (iloopx.gt.0)then
+
+
+
+
+
+temp_cord=3
+
+
+
+
+
+
+                               WRITE(PROC3,FMT='(I10)') IT
+                               WRITE(PROC5,FMT='(I10)') N
+                               FILEX="SURF_"//TRIM(ADJUSTL(PROC3))//"_"//TRIM(ADJUSTL(PROC5))//".vtu"
+                               ITRIMM=len_trim(FILEX)
+                               allocate(character(LEN=ITRIMM)::VTU)
+                               VTU=FILEX(1:ITRIMM)
+
+
+
+
+			if (movement.eq.1)then
+						K=1
+			DO I=1,KMAXN
+				nodes_vtu_W(K:K+dims-1)=INODER4(I)%CORD(1:DIMS)
+				if (dimensiona.eq.2)then
+				nodes_vtu_w(K+temp_cord-1:K+temp_cord-1)=0.0D0
+				end if
+				K=K+TEMP_CORD
+			END DO
+
+		end if
+
+
+
+
+
+
+
+
+				DO I=1,iloopx
+				ICONSIDERED=WALL_L(I,2)
+				ICONSI=WALL_L(I,1)
+				LEFTV(1:NOF_VARIABLES)=U_C(ICONSI)%VAL(1,1:NOF_VARIABLES)
+							IF (DIMENSIONA.EQ.3)THEN
+								CALL CONS2PRIM(N)
+								temp_node=3;temp_dims=3
+
+								ELSE
+								CALL CONS2PRIM2D(N)
+								temp_node=2;temp_dims=2
+								END IF
+
+
+
+					sol_vtu_w(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+
+					sol_vtu_w(I,NOF_VARIABLES+1:NOF_VARIABLES+1)=IELEM(N,ICONSI)%VORTEX(1)
+
+
+					KKD_I=NOF_VARIABLES+1
+								    IF (ITESTCASE.EQ.4)THEN
+
+										IF (DIMENSIONA.EQ.3)THEN
+											DO KKD=1,3
+
+
+
+
+										select case(kkd)
+											case(1)
+
+											call SHEAR_X(ICONSI,ICONSIDERED)
+											CASE (2)
+											call SHEAR_Y(ICONSI,ICONSIDERED)
+											CASE(3)
+											call SHEAR_Z(ICONSI,ICONSIDERED)
+											END SELECT
+
+											sol_vtu_w(I,KKD_I+kkd)=SHEAR_TEMP
+
+											END DO
+										END IF
+
+										IF (DIMENSIONA.EQ.2)THEN
+											DO KKD=1,2
+
+
+
+
+										select case(kkd)
+											case(1)
+
+											call SHEAR_X2d(ICONSI,ICONSIDERED)
+											CASE (2)
+											call SHEAR_Y2d(ICONSI,ICONSIDERED)
+
+											END SELECT
+
+											sol_vtu_w(I,KKD_I+kkd)=SHEAR_TEMP
+
+											END DO
+										END IF
+
+
+
+									END IF
+
+								END DO
+
+
+
+
+
+
+temp_imaxe=iloopx
+temp_imaxn=kmaxn
+
+
+
+	!first write the header xml file from one MPI process
+
+	lf = char(10)
+   ! Write file name
+    OPEN(300,FILE=VTU,ACCESS='STREAM')
+    ! Write header
+    Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write unstructured grid type
+    Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    ! Write solution time type
+    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+	 offset_temp=0
+     WRITE(Offset_stamp,'(I16)')offset_temp
+    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify field pieces
+    WRITE(tempstamp1,'(I16)')kmaxn
+    WRITE(tempstamp2,'(I16)')iloopx
+    Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify point data
+    Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+size_of_real
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    DO i=1,WRITE_VARIABLES_W
+      Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_W(i))//'" '// &
+                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+      offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+      WRITE(Offset_stamp,'(I16)')offset_temp
+    END DO
+    Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify necessary cell data
+    Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+    ! Connectivity
+    Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+(TYP_COUNTN_w)*size_of_int
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    ! Offsets
+    Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    ! Elem types
+    Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    ! Prepare append section
+    Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write leading data underscore
+    Buffer='_';WRITE(300) TRIM(Buffer)
+	Bytes = size_of_real
+
+
+
+
+
+				!----write time stamp----!
+				BYTES=size_of_real
+				WRITE(300)BYTES,T
+
+				!end time stamp
+
+
+
+				!----write variables----!
+
+				do j=1,WRITE_VARIABLES_W
+				BYTES=temp_imaxe*size_of_real
+					 WRITE(300)bytes,sol_vtu_W(1:iloopx,j)
+
+				end do
+				!end----write variables----!
+
+
+				!write nodes now!
+				BYTES=kmaxn*3*size_of_real
+					 WRITE(300)bytes,nodes_vtu_W(1:kmaxn*3)
+
+				!end write nodes now!
+
+
+				!write connectivity now!
+				BYTES=TYP_COUNTN_w*size_of_int
+					 WRITE(300)bytes, connect_vtu_W(1:TYP_COUNTN_w)
+
+				!end write connectivity now!
+
+
+				!write offsets now!
+				BYTES=iloopx*size_of_int
+					 WRITE(300)bytes,offset_vtu_w(1:iloopx)
+
+				!end write nodes now!
+
+
+				!write types now!
+				BYTES=iloopx*size_of_int
+					 WRITE(300)bytes,type_vtu_W(1:iloopx)
+
+				!end write nodes now!
+
+  lf = char(10)
+  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  CLOSE(300)
+
+
+
+ DEallocate(vTU)
+
+
+end if
+
+
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+ IF (N.EQ.0)THEN
+
+
+							WRITE(PROC3,FMT='(I10)') IT
+                               WRITE(PROC5,FMT='(I10)') N
+                               FILEX="PAR_SURF_"//TRIM(ADJUSTL(PROC3))//".pvtu"
+                               ITRIMM=len_trim(FILEX)
+                               allocate(character(LEN=ITRIMM)::VTU)
+                               VTU=FILEX(1:ITRIMM)
+
+
+
+
+                               lf = char(10)
+   ! Write file name
+    OPEN(300,FILE=VTU,ACCESS='STREAM')
+    ! Write header
+    Buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write unstructured grid type
+    Buffer='  <PUnstructuredGrid GhostLevel="0">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write solution time type
+    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf;WRITE(300) TRIM(Buffer)
+!     Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) TRIM(Buffer)
+    WRITE(tempstamp1,'(F17.9)')T
+     Buffer='        '//TRIM(ADJUSTL(tempstamp1))//lf;WRITE(300) TRIM(Buffer)
+	Buffer='      </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify point data
+    Buffer='    <PCellData>'//lf;WRITE(300) TRIM(Buffer)
+    DO i=1,WRITE_VARIABLES_W
+      Buffer='        <PDataArray type="Float64" Name="'//TRIM(Variable_names_W(i))//'" '// &
+                       'format="appended"/>'//lf;WRITE(300) TRIM(Buffer)
+      offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+    END DO
+	Buffer='    </PCellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    <PPoints>'//lf;WRITE(300) TRIM(Buffer)
+
+     Buffer='        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    </PPoints>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    <PCells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='        <PDataArray type="Int32" Name="connectivity"/>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer='        <PDataArray type="Int32" Name="offsets"/>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer='        <PDataArray type="Int32" Name="types"/>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer='    </PCells>'//lf;WRITE(300) TRIM(Buffer)
+   DO procx=0,isize-1
+				if (wallcount_cpu_G(procx).gt.0)then
+				WRITE(PROC6,FMT='(I10)') IT
+				WRITE(PROC7,FMT='(I10)') PROCX
+		Buffer='    <Piece Source="SURF_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf;WRITE(300) TRIM(Buffer)
+				end if
+   end do
+  Buffer='  </PUnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  CLOSE(300)
+
+
+
+	DEallocate(vTU)
+
+
+
+ END IF
+
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+END SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_wall
+
+
+
+
+SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_wall_av(N)
+!> @brief
+!> This subroutine uses MPI-IO for writing the VTK FILES
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL,ALLOCATABLE,DIMENSION(:)::array2,ARRAY3,ARRAY4
+INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,dip,N_END,ifg,kmaxn_p,ITRIMM,temp_cord,KKD_I,KKD,ind1
+CHARACTER(LEN=20)::PROC,PROC3,proc5,proc6,proc7
+CHARACTER(LEN=90)::FILEX,filev
+REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
+LOGICAL::HERE1
+REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+integer:: disp_in_file,procx ,tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
+INTEGER                     :: nbytes,eight
+CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
+CHARACTER(LEN=200)          :: Buffer
+CHARACTER(LEN=1)            :: lf
+character(LEN=:),allocatable::VTU
+nbytes=1
+
+temp_cord=3
+ 	size_of_int=4
+ 	size_of_real=8
+
+offset_temp=0
+disp_in_file=0
+tmp=0
+disp_init=0
+
+if (rungekutta.eq.4)then
+	      ind1=7
+	      else
+	      ind1=5
+	      end if
+
+
+
+if (iloopx.gt.0)then
+
+
+
+
+
+temp_cord=3
+
+
+
+
+
+
+                               WRITE(PROC3,FMT='(I10)') IT
+                               WRITE(PROC5,FMT='(I10)') N
+                               FILEX="SURF_AV_"//TRIM(ADJUSTL(PROC3))//"_"//TRIM(ADJUSTL(PROC5))//".vtu"
+                               ITRIMM=len_trim(FILEX)
+                               allocate(character(LEN=ITRIMM)::VTU)
+                               VTU=FILEX(1:ITRIMM)
+
+
+
+
+			if (movement.eq.1)then
+						K=1
+			DO I=1,KMAXN
+				nodes_vtu_W(K:K+dims-1)=INODER4(I)%CORD(1:DIMS)
+				if (dimensiona.eq.2)then
+				nodes_vtu_w(K+temp_cord-1:K+temp_cord-1)=0.0D0
+				end if
+				K=K+TEMP_CORD
+			END DO
+
+		end if
+
+
+
+
+
+
+
+
+				DO I=1,iloopx
+				ICONSIDERED=WALL_L(I,2)
+				ICONSI=WALL_L(I,1)
+				LEFTV(1:NOF_VARIABLES)=U_C(ICONSI)%VAL(ind1,1:NOF_VARIABLES)
+							IF (DIMENSIONA.EQ.3)THEN
+								CALL CONS2PRIM(N)
+								temp_node=3;temp_dims=3
+
+								ELSE
+								CALL CONS2PRIM2D(N)
+								temp_node=2;temp_dims=2
+								END IF
+
+
+
+					sol_vtu_w(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+
+
+
+
+					KKD_I=NOF_VARIABLES
+								    IF (ITESTCASE.EQ.4)THEN
+
+										IF (DIMENSIONA.EQ.3)THEN
+											DO KKD=1,3
+
+
+
+
+										select case(kkd)
+											case(1)
+
+											call SHEAR_X_Av(ICONSI,ICONSIDERED)
+											CASE (2)
+											call SHEAR_Y_Av(ICONSI,ICONSIDERED)
+											CASE(3)
+											call SHEAR_Z_Av(ICONSI,ICONSIDERED)
+											END SELECT
+
+											sol_vtu_w(I,KKD_I+kkd)=SHEAR_TEMP
+
+											END DO
+										END IF
+
+										IF (DIMENSIONA.EQ.2)THEN
+											DO KKD=1,2
+
+
+
+
+										select case(kkd)
+											case(1)
+
+											call SHEAR_X2d_Av(ICONSI,ICONSIDERED)
+											CASE (2)
+											call SHEAR_Y2d_av(ICONSI,ICONSIDERED)
+
+											END SELECT
+
+											sol_vtu_w(I,KKD_I+kkd)=SHEAR_TEMP
+
+											END DO
+										END IF
+
+
+
+									END IF
+
+								END DO
+
+
+
+
+
+
+temp_imaxe=iloopx
+temp_imaxn=kmaxn
+
+
+
+	!first write the header xml file from one MPI process
+
+	lf = char(10)
+   ! Write file name
+    OPEN(300,FILE=VTU,ACCESS='STREAM')
+    ! Write header
+    Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write unstructured grid type
+    Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    ! Write solution time type
+    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+	 offset_temp=0
+     WRITE(Offset_stamp,'(I16)')offset_temp
+    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify field pieces
+    WRITE(tempstamp1,'(I16)')kmaxn
+    WRITE(tempstamp2,'(I16)')iloopx
+    Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify point data
+    Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+size_of_real
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    DO i=1,WRITE_VARIABLES_Av_w
+      Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV_w(i))//'" '// &
+                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+      offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+      WRITE(Offset_stamp,'(I16)')offset_temp
+    END DO
+    Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify necessary cell data
+    Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+    ! Connectivity
+    Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+(TYP_COUNTN_w)*size_of_int
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    ! Offsets
+    Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
+    WRITE(Offset_stamp,'(I16)')offset_temp
+    ! Elem types
+    Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    ! Prepare append section
+    Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write leading data underscore
+    Buffer='_';WRITE(300) TRIM(Buffer)
+	Bytes = size_of_real
+
+
+
+
+
+				!----write time stamp----!
+				BYTES=size_of_real
+				WRITE(300)BYTES,T
+
+				!end time stamp
+
+
+
+				!----write variables----!
+
+				do j=1,WRITE_VARIABLES_Av_w
+				BYTES=temp_imaxe*size_of_real
+					 WRITE(300)bytes,sol_vtu_W(1:iloopx,j)
+
+				end do
+				!end----write variables----!
+
+
+				!write nodes now!
+				BYTES=kmaxn*3*size_of_real
+					 WRITE(300)bytes,nodes_vtu_W(1:kmaxn*3)
+
+				!end write nodes now!
+
+
+				!write connectivity now!
+				BYTES=TYP_COUNTN_w*size_of_int
+					 WRITE(300)bytes, connect_vtu_W(1:TYP_COUNTN_w)
+
+				!end write connectivity now!
+
+
+				!write offsets now!
+				BYTES=iloopx*size_of_int
+					 WRITE(300)bytes,offset_vtu_w(1:iloopx)
+
+				!end write nodes now!
+
+
+				!write types now!
+				BYTES=iloopx*size_of_int
+					 WRITE(300)bytes,type_vtu_W(1:iloopx)
+
+				!end write nodes now!
+
+  lf = char(10)
+  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  CLOSE(300)
+
+
+
+ DEallocate(vTU)
+
+
+end if
+
+
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+ IF (N.EQ.0)THEN
+
+
+							WRITE(PROC3,FMT='(I10)') IT
+                               WRITE(PROC5,FMT='(I10)') N
+                               FILEX="PAR_SURF_AV_"//TRIM(ADJUSTL(PROC3))//".pvtu"
+                               ITRIMM=len_trim(FILEX)
+                               allocate(character(LEN=ITRIMM)::VTU)
+                               VTU=FILEX(1:ITRIMM)
+
+
+
+
+                               lf = char(10)
+   ! Write file name
+    OPEN(300,FILE=VTU,ACCESS='STREAM')
+    ! Write header
+    Buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write unstructured grid type
+    Buffer='  <PUnstructuredGrid GhostLevel="0">'//lf;WRITE(300) TRIM(Buffer)
+    ! Write solution time type
+    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf;WRITE(300) TRIM(Buffer)
+!     Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) TRIM(Buffer)
+    WRITE(tempstamp1,'(F17.9)')T
+     Buffer='        '//TRIM(ADJUSTL(tempstamp1))//lf;WRITE(300) TRIM(Buffer)
+	Buffer='      </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    ! Specify point data
+    Buffer='    <PCellData>'//lf;WRITE(300) TRIM(Buffer)
+    DO i=1,WRITE_VARIABLES_Av_w
+      Buffer='        <PDataArray type="Float64" Name="'//TRIM(Variable_names_AV_w(i))//'" '// &
+                       'format="appended"/>'//lf;WRITE(300) TRIM(Buffer)
+      offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+    END DO
+	Buffer='    </PCellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    <PPoints>'//lf;WRITE(300) TRIM(Buffer)
+
+     Buffer='        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    </PPoints>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='    <PCells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer='        <PDataArray type="Int32" Name="connectivity"/>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer='        <PDataArray type="Int32" Name="offsets"/>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer='        <PDataArray type="Int32" Name="types"/>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer='    </PCells>'//lf;WRITE(300) TRIM(Buffer)
+   DO procx=0,isize-1
+				if (wallcount_cpu_G(procx).gt.0)then
+				WRITE(PROC6,FMT='(I10)') IT
+				WRITE(PROC7,FMT='(I10)') PROCX
+		Buffer='    <Piece Source="SURF_AV_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf;WRITE(300) TRIM(Buffer)
+				end if
+   end do
+  Buffer='  </PUnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  CLOSE(300)
+
+
+
+	DEallocate(vTU)
+
+
+
+ END IF
+
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+END SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_wall_av
+
+
+
+
+
+SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
+	!> @brief
+	!> This subroutine uses MPI-IO for writing the VTK FILES
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	REAL,ALLOCATABLE,DIMENSION(:)::array2,ARRAY3,ARRAY4
+	INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,dip,N_END,ifg,kmaxn_p,ITRIMM,temp_cord,ind1
+	CHARACTER(LEN=20)::PROC,PROC3,proc5,proc6,proc7
+	CHARACTER(LEN=90)::FILEX,filev
+	REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
+	LOGICAL::HERE1
+	REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+	integer:: disp_in_file,procx ,tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
+	INTEGER                     :: nbytes,eight
+	CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
+	CHARACTER(LEN=200)          :: Buffer
+	CHARACTER(LEN=1)            :: lf
+	character(LEN=:),allocatable::VTU
+	nbytes=1
+	
+	temp_cord=3
+		 size_of_int=4
+		 size_of_real=8
+	
+	offset_temp=0
+	disp_in_file=0
+	tmp=0
+	disp_init=0
+	KMAXE=XMPIELRANK(N)
+	
+	
+	
+	temp_cord=3
+	
+
+	if (rungekutta.eq.4)then
+		ind1=7
+		else
+		ind1=5
+		end if
+
+	
+	
+	
+	
+	! 						if (n.eq.0)then
+								   WRITE(PROC3,FMT='(I10)') IT
+								   WRITE(PROC5,FMT='(I10)') N
+								   FILEX="VOL_AVER_"//TRIM(ADJUSTL(PROC3))//"_"//TRIM(ADJUSTL(PROC5))//".vtu"
+								   ITRIMM=len_trim(FILEX)
+								   allocate(character(LEN=ITRIMM)::VTU)
+								   VTU=FILEX(1:ITRIMM)
+	!                             end if
+	
+	
+	
+		if (movement.eq.1)then
+					K=1
+		  DO I=1,KMAXN
+			nodes_vtu(K:K+dims-1)=INODER4(I)%CORD(1:DIMS)
+			if (dimensiona.eq.2)then
+			nodes_vtu(K+temp_cord-1:K+temp_cord-1)=0.0D0
+			end if
+			K=K+TEMP_CORD
+		  END DO
+	
+	   end if
+	
+	
+	
+	
+	
+	
+					if (dimensiona.eq.3)then
+					DO I=1,KMAXE
+					leftv(1:nof_Variables)=U_C(I)%VAL(IND1,1:NOF_VARIABLES)
+					call cons2prim(n)
+						sol_vtu(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+						do j=nof_Variables+1,write_variables_AV
+							sol_vtu(i,J)=U_C(I)%RMS(J-nof_Variables)
+						end do
+					END DO
+	
+					temp_node=8;temp_dims=3
+	
+					end if
+	
+					
+	
+	
+	
+	
+	
+	temp_imaxe=kmaxe
+	temp_imaxn=kmaxn
+	
+	
+		!first write the header xml file from one MPI process
+	
+		lf = char(10)
+	   ! Write file name
+		OPEN(300,FILE=VTU,ACCESS='STREAM')
+		! Write header
+		Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+		! Write unstructured grid type
+		Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+		! Write solution time type
+		Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+		 offset_temp=0
+		 WRITE(Offset_stamp,'(I16)')offset_temp
+		Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+		! Specify field pieces
+		WRITE(tempstamp1,'(I16)')kmaxn
+		WRITE(tempstamp2,'(I16)')kmaxe
+		Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+			   &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+		! Specify point data
+		Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+		offset_temp=offset_temp+size_of_int+size_of_real
+		WRITE(Offset_stamp,'(I16)')offset_temp
+		DO i=1,WRITE_VARIABLES_av
+		  Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV(i))//'" '// &
+						   'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		  offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+		  WRITE(Offset_stamp,'(I16)')offset_temp
+		END DO
+		Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+		offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
+		WRITE(Offset_stamp,'(I16)')offset_temp
+		Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+		! Specify necessary cell data
+		Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+		! Connectivity
+		Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		offset_temp=offset_temp+size_of_int+(TYP_COUNTN)*size_of_int
+		WRITE(Offset_stamp,'(I16)')offset_temp
+		! Offsets
+		Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
+		WRITE(Offset_stamp,'(I16)')offset_temp
+		! Elem types
+		Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
+						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+		! Prepare append section
+		Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+		! Write leading data underscore
+		Buffer='_';WRITE(300) TRIM(Buffer)
+		Bytes = size_of_real
+	
+	
+	
+	
+	
+					!----write time stamp----!
+					BYTES=size_of_real
+					WRITE(300)BYTES,T
+	
+					!end time stamp
+	
+					
+	
+					!----write variables----!
+					do j=1,WRITE_VARIABLES_AV
+					BYTES=temp_imaxe*size_of_real
+						 WRITE(300)bytes,sol_vtu(1:kmaxe,j)
+	
+					end do
+					!end----write variables----!
+	
+	
+					!write nodes now!
+					BYTES=kmaxn*3*size_of_real
+						 WRITE(300)bytes,nodes_vtu(1:kmaxn*3)
+	
+					!end write nodes now!
+	
+	
+					!write connectivity now!
+					BYTES=TYP_COUNTN*size_of_int
+						 WRITE(300)bytes, connect_vtu(1:TYP_COUNTN)
+	
+					!end write connectivity now!
+	
+	
+					!write offsets now!
+					BYTES=kmaxe*size_of_int
+						 WRITE(300)bytes,offset_vtu(1:kmaxe)
+	
+					!end write nodes now!
+	
+	
+					!write types now!
+					BYTES=kmaxe*size_of_int
+						 WRITE(300)bytes,type_vtu(1:kmaxe)
+	
+					!end write nodes now!
+	
+	  lf = char(10)
+	  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
+	  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+	  CLOSE(300)
+	
+	
+	
+	 DEallocate(vTU)
+	
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	
+	
+	 IF (N.EQ.0)THEN
+	
+	
+								WRITE(PROC3,FMT='(I10)') IT
+								   WRITE(PROC5,FMT='(I10)') N
+								   FILEX="PAR_VOL_AVER_"//TRIM(ADJUSTL(PROC3))//".pvtu"
+								   ITRIMM=len_trim(FILEX)
+								   allocate(character(LEN=ITRIMM)::VTU)
+								   VTU=FILEX(1:ITRIMM)
+	
+	
+	
+	
+								   lf = char(10)
+	   ! Write file name
+		OPEN(300,FILE=VTU,ACCESS='STREAM')
+		! Write header
+		Buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;WRITE(300) TRIM(Buffer)
+		! Write unstructured grid type
+		Buffer='  <PUnstructuredGrid GhostLevel="0">'//lf;WRITE(300) TRIM(Buffer)
+		! Write solution time type
+		Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf;WRITE(300) TRIM(Buffer)
+	!     Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) TRIM(Buffer)
+		WRITE(tempstamp1,'(F17.9)')T
+		 Buffer='        '//TRIM(ADJUSTL(tempstamp1))//lf;WRITE(300) TRIM(Buffer)
+		Buffer='      </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+		! Specify point data
+		Buffer='    <PCellData>'//lf;WRITE(300) TRIM(Buffer)
+		DO i=1,WRITE_VARIABLES_AV
+		  Buffer='        <PDataArray type="Float64" Name="'//TRIM(Variable_names_AV(i))//'" '// &
+						   'format="appended"/>'//lf;WRITE(300) TRIM(Buffer)
+		  offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+		END DO
+		Buffer='    </PCellData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='    <PPoints>'//lf;WRITE(300) TRIM(Buffer)
+	
+		 Buffer='        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='    </PPoints>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='    <PCells>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='        <PDataArray type="Int32" Name="connectivity"/>'//lf;WRITE(300) TRIM(Buffer)
+		 Buffer='        <PDataArray type="Int32" Name="offsets"/>'//lf;WRITE(300) TRIM(Buffer)
+		 Buffer='        <PDataArray type="Int32" Name="types"/>'//lf;WRITE(300) TRIM(Buffer)
+		 Buffer='    </PCells>'//lf;WRITE(300) TRIM(Buffer)
+	   DO procx=0,isize-1
+	
+					WRITE(PROC6,FMT='(I10)') IT
+					WRITE(PROC7,FMT='(I10)') PROCX
+			Buffer='    <Piece Source="VOL_AVER_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf;WRITE(300) TRIM(Buffer)
+	   end do
+	  Buffer='  </PUnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+	  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+	  CLOSE(300)
+	
+	
+	
+		DEallocate(vTU)
+	
+	
+	
+	 END IF
+	
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	
+	
+	
+	
+	END SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV
+
+
+
+
+
+	SUBROUTINE PARALLEL_VTK_COMBINE_WALL(N)
+		!> @brief
+		!> This subroutine uses MPI-IO for writing the VTK FILES
+		IMPLICIT NONE
+		INTEGER,INTENT(IN)::N
+		REAL,ALLOCATABLE,DIMENSION(:)::array2,ARRAY3,ARRAY4
+		INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,dip,N_END,ifg,kmaxn_p,ITRIMM,temp_cord,KKD_I,KKD,TYP_COUNTN_GLOBAL
+		CHARACTER(LEN=20)::PROC,FILEX,PROC3
+		REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
+		LOGICAL::HERE1
+		REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+		integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
+		INTEGER                     :: nbytes,eight
+		CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
+		CHARACTER(LEN=200)          :: Buffer
+		CHARACTER(LEN=1)            :: lf
+		character(LEN=:),allocatable::VTU
+		nbytes=1
+		
+		
+			 size_of_int=4
+			 size_of_real=8
+		
+		offset_temp=0
+		disp_in_file=0
+		tmp=0
+		disp_init=0
+		KMAXE=XMPIELRANK(N)
+		KMAXN_P=XMPIALL_v(N)
+		
+		
+		temp_cord=3
+
+
+
+		
+		
+
+									   WRITE(PROC3,FMT='(I10)') IT
+									   FILEX="SURF_"//TRIM(ADJUSTL(PROC3))//".vtu"
+									   ITRIMM=len_trim(FILEX)
+									   allocate(character(LEN=ITRIMM)::VTU)
+									   VTU=FILEX(1:ITRIMM)
+
+		
+				IF (MOVEMENT.EQ.1)THEN
+
+						k=1
+						do i=1,kmaxn_P
+									WrARRAY_PART4(K:k+dims-1)=INODER4(my_nodesl(i))%CORD(1:DIMS)
+									if (dimensiona.eq.2)then
+									wrARRAY_PART4(K+temp_cord-1:K+temp_cord-1)=0.0D0
+									end if
+									K=K+TEMP_CORD
+						end do
+
+				END IF
+		
+		
+		
+		
+		
+		
+			  			!LOOP THE CORRECT NUMBER OF ELEMENTS THAT ARE BOUNDED 
+			  			IF (ILOOPX.GT.0)THEN
+							do i=1,ILOOPX
+								ICONSIDERED=WALL_L(I,2)
+								ICONSI=WALL_L(I,1)
+								LEFTV(1:NOF_VARIABLES)=U_C(ICONSI)%VAL(1,1:NOF_VARIABLES)
+
+
+								IF (DIMENSIONA.EQ.3)THEN
+								CALL CONS2PRIM(N)
+								temp_node=3;temp_dims=3
+
+								ELSE
+								CALL CONS2PRIM2D(N)
+								temp_node=2;temp_dims=3
+								END IF
+
+									WrARRAY_PART1(I,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+
+									!the next variable is always going to be an auxiliary
+									WrARRAY_PART1(I,NOF_VARIABLES+1:NOF_VARIABLES+1)=IELEM(N,ICONSI)%VORTEX(1)
+						
+									KKD_I=NOF_VARIABLES+1
+								    IF (ITESTCASE.EQ.4)THEN
+									
+										IF (DIMENSIONA.EQ.3)THEN
+											DO KKD=1,3
+
+
+
+
+										select case(kkd)
+											case(1)
+											
+											call SHEAR_X(ICONSI,ICONSIDERED)
+											CASE (2)
+											call SHEAR_Y(ICONSI,ICONSIDERED)
+											CASE(3)
+											call SHEAR_Z(ICONSI,ICONSIDERED)
+											END SELECT
+
+											WrARRAY_PART1(I,KKD_I+kkd)=SHEAR_TEMP
+
+											END DO
+										END IF
+
+										IF (DIMENSIONA.EQ.2)THEN
+											DO KKD=1,2
+
+
+
+
+										select case(kkd)
+											case(1)
+											
+											call SHEAR_X2d(ICONSI,ICONSIDERED)
+											CASE (2)
+											call SHEAR_Y2d(ICONSI,ICONSIDERED)
+											
+											END SELECT
+
+											WrARRAY_PART1(I,KKD_I+kkd)=SHEAR_TEMP
+
+											END DO
+										END IF
+
+
+
+									END IF
+		
+								END DO
+		
+							END IF
+
+
+
+
+		
+		
+		
+		
+		temp_imaxe=IWMAXE !TOTAL NUMBER OF WALL ELEMENTS IN THE DOMAIN
+		temp_imaxn=imaxn	 !imaxn	!WE NEED THE TOTAL NUMBER OF NODES IN THE DOMAIN
+		
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+		if (n.eq.0)then
+		
+			!first write the header xml file from one MPI process
+		
+			lf = char(10)
+		   ! Write file name
+			OPEN(300,FILE=VTU,ACCESS='STREAM')
+			! Write header
+			Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+			! Write unstructured grid type
+			Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+			! Write solution time type
+			Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+			 offset_temp=0
+			 WRITE(Offset_stamp,'(I16)')offset_temp
+			Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+			! Specify field pieces
+			WRITE(tempstamp1,'(I16)')temp_imaxn
+			WRITE(tempstamp2,'(I16)')temp_imaxe
+			Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+				   &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+			! Specify point data
+			Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+			offset_temp=offset_temp+size_of_int+size_of_real
+			WRITE(Offset_stamp,'(I16)')offset_temp
+			DO i=1,WRITE_VARIABLES_W
+			  Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_W(i))//'" '// &
+							   'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			  offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+			  WRITE(Offset_stamp,'(I16)')offset_temp
+			END DO
+			Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+			offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
+			WRITE(Offset_stamp,'(I16)')offset_temp
+			Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+			! Specify necessary cell data
+			Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+			! Connectivity
+			Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			offset_temp=offset_temp+size_of_int+TYP_COUNTN_GLOBAL_W*size_of_int
+			WRITE(Offset_stamp,'(I16)')offset_temp
+			! Offsets
+			Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
+			WRITE(Offset_stamp,'(I16)')offset_temp
+			! Elem types
+			Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+			! Prepare append section
+			Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+			! Write leading data underscore
+			Buffer='_';WRITE(300) TRIM(Buffer)
+			Bytes = size_of_real
+			close(300)
+		
+		
+		end if
+		
+
+
+		
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+		
+						call MPI_file_open(MPI_COMM_WORLD,VTU,MPI_MODE_WRONLY + MPI_MODE_APPEND,MPI_INFO_NULL, fh, ierror)
+						call MPI_FILE_GET_POSITION(fh, disp_in_file, ierror)
+						disp_init=disp_in_FILE
+		
+						!----write time stamp----!
+						IF (N.EQ.0)THEN
+						call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
+						BYTES=size_of_real
+						call MPI_file_write(fh, bytes, nbytes, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
+						disp_in_file = disp_in_file + size_of_int
+						call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
+						call MPI_file_write(fh, T, nbytes, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierror)
+						disp_in_file=disp_in_file+size_of_Real
+						else
+						disp_in_file=disp_in_file+size_of_int+size_of_real
+						end if
+						!end time stamp
+		
+
+
+		
+		
+! 						do i=1,WRITE_VARIABLES
+						DO I=1,WRITE_VARIABLES_W
+
+
+
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,WDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+		
+						IF (N.EQ.0)THEN
+						BYTES=temp_imaxe*size_of_real
+						nbytes=1
+						Else
+						BYTES=0
+						nbytes=0
+						end if
+		
+						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+		
+						disp_in_file = disp_in_file + size_of_int
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,WDATATYPEX,'native',MPI_INFO_NULL, ierror)
+						call MPI_FILE_WRITE_ALL(fh,WrARRAY_PART1(:,i),iloopx*WPART1_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE,ierror)
+						!end write variables---within loop
+						disp_in_file=disp_in_file+temp_imaxe*size_of_real
+						!end loop
+						end do
+		
+		! 				IF (N.EQ.0)print*,"LOCATION2",disp_in_file
+		
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+		
+						IF (N.EQ.0)THEN
+						BYTES=temp_imaxn*size_of_real*temp_dims
+						nbytes=1
+						Else
+						BYTES=0
+						nbytes=0
+						end if
+		
+						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+		
+						disp_in_file = disp_in_file + size_of_int
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_DOUBLE_PRECISION,wDATATYPEz,'native',MPI_INFO_NULL, ierror)
+						call MPI_FILE_WRITE_ALL(fh,wrARRAY_PART4,KMAXN_P*wPART4_end,MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
+
+						disp_in_file=disp_in_file+(temp_imaxn*size_of_real*temp_dims)
+
+
+
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+		
+						IF (N.EQ.0)THEN
+						BYTES=size_of_int*TYP_COUNTN_GLOBAL_W!temp_imaxe*size_of_int*temp_node
+						nbytes=1
+						Else
+						BYTES=0
+						nbytes=0
+						end if
+		
+
+
+
+
+						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+		
+						disp_in_file = disp_in_file + size_of_int
+
+
+						call MPI_FILE_SET_VIEW(fh,disp_in_file,MPI_INTEGER,wDATATYPEy,'native',MPI_INFO_NULL,ierror)
+
+
+						call MPI_FILE_WRITE_ALL(fh,WiARRAY_PART2,TYP_COUNTN_W, MPI_INTEGER,STATUS,ierror)
+
+
+		
+						disp_in_file=disp_in_file+(size_of_int*TYP_COUNTN_GLOBAL_W)!(temp_imaxe*size_of_int*temp_node)
+		
+
+
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+		
+						IF (N.EQ.0)THEN
+						BYTES=temp_imaxe*size_of_int
+						nbytes=1
+						Else
+						BYTES=0
+						nbytes=0
+						end if
+		
+						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+		
+						disp_in_file = disp_in_file + size_of_int
+		
+		
+						CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,wDATATYPEXx, 'native',MPI_INFO_NULL, ierror)
+
+						call MPI_FILE_WRITE_ALL(fh,WiARRAY_PART5,ILOOPX*WPART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+		
+						disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+		
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+		
+						IF (N.EQ.0)THEN
+						BYTES=temp_imaxe*size_of_int
+						nbytes=1
+						Else
+						BYTES=0
+						nbytes=0
+						end if
+		
+						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+		
+						disp_in_file = disp_in_file + size_of_int
+		
+		
+
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,wDATATYPEyy, 'native',MPI_INFO_NULL, ierror)
+
+						call MPI_FILE_WRITE_ALL(fh, wiARRAY_PART3,iloopx*WPART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+		
+
+
+		
+						disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+		
+						call MPI_FILE_CLOSE(fh, ierror)
+						CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+		
+		
+		
+		
+		if (n.eq.0)then
+		OPEN(300,FILE=FILEX,ACCESS='STREAM',position='APPEND')
+		  lf = char(10)
+		  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
+		  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+		  CLOSE(300)
+		end if
+		
+		
+		 DEallocate(vTU)
+		
+		
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+		
+		
+
+		
+		
+		
+		
+		END SUBROUTINE PARALLEL_VTK_COMBINE_WALL
+
+
+		SUBROUTINE PARALLEL_VTK_COMBINE_WALL_AV(N)
+		!> @brief
+		!> This subroutine uses MPI-IO for writing the VTK FILES
+		IMPLICIT NONE
+		INTEGER,INTENT(IN)::N
+		REAL,ALLOCATABLE,DIMENSION(:)::array2,ARRAY3,ARRAY4
+		INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,dip,N_END,ifg,kmaxn_p,ITRIMM,temp_cord,KKD_I,KKD,TYP_COUNTN_GLOBAL,ind1
+		CHARACTER(LEN=20)::PROC,FILEX,PROC3
+		REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
+		LOGICAL::HERE1
+		REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+		integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
+		INTEGER                     :: nbytes,eight
+		CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
+		CHARACTER(LEN=200)          :: Buffer
+		CHARACTER(LEN=1)            :: lf
+		character(LEN=:),allocatable::VTU
+		nbytes=1
+
+
+			 size_of_int=4
+			 size_of_real=8
+
+		offset_temp=0
+		disp_in_file=0
+		tmp=0
+		disp_init=0
+		KMAXE=XMPIELRANK(N)
+		KMAXN_P=XMPIALL_v(N)
+
+
+		temp_cord=3
+	if (rungekutta.eq.4)then
+	      ind1=7
+	      else
+	      ind1=5
+	      end if
+
+
+
+
+
+									   WRITE(PROC3,FMT='(I10)') IT
+									   FILEX="SURF_AV"//TRIM(ADJUSTL(PROC3))//".vtu"
+									   ITRIMM=len_trim(FILEX)
+									   allocate(character(LEN=ITRIMM)::VTU)
+									   VTU=FILEX(1:ITRIMM)
+
+
+				IF (MOVEMENT.EQ.1)THEN
+
+						k=1
+						do i=1,kmaxn_P
+									WrARRAY_PART4(K:k+dims-1)=INODER4(my_nodesl(i))%CORD(1:DIMS)
+									if (dimensiona.eq.2)then
+									wrARRAY_PART4(K+temp_cord-1:K+temp_cord-1)=0.0D0
+									end if
+									K=K+TEMP_CORD
+						end do
+
+				END IF
+
+
+
+
+
+
+			  			!LOOP THE CORRECT NUMBER OF ELEMENTS THAT ARE BOUNDED
+			  			IF (ILOOPX.GT.0)THEN
+							do i=1,ILOOPX
+								ICONSIDERED=WALL_L(I,2)
+								ICONSI=WALL_L(I,1)
+								LEFTV(1:NOF_VARIABLES)=U_C(ICONSI)%VAL(ind1,1:NOF_VARIABLES)
+
+
+								IF (DIMENSIONA.EQ.3)THEN
+								CALL CONS2PRIM(N)
+								temp_node=3;temp_dims=3
+
+								ELSE
+								CALL CONS2PRIM2D(N)
+								temp_node=2;temp_dims=3
+								END IF
+
+									WrARRAY_PART1(I,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+
+
+									KKD_I=NOF_VARIABLES
+								    IF (ITESTCASE.EQ.4)THEN
+
+										IF (DIMENSIONA.EQ.3)THEN
+											DO KKD=1,3
+
+
+
+
+										select case(kkd)
+											case(1)
+
+											call SHEAR_X_av(ICONSI,ICONSIDERED)
+											CASE (2)
+											call SHEAR_Y_av(ICONSI,ICONSIDERED)
+											CASE(3)
+											call SHEAR_Z_av(ICONSI,ICONSIDERED)
+											END SELECT
+
+											WrARRAY_PART1(I,KKD_I+kkd)=SHEAR_TEMP
+
+											END DO
+										END IF
+
+										IF (DIMENSIONA.EQ.2)THEN
+											DO KKD=1,2
+
+
+
+
+										select case(kkd)
+											case(1)
+
+											call SHEAR_X2d_av(ICONSI,ICONSIDERED)
+											CASE (2)
+											call SHEAR_Y2d_Av(ICONSI,ICONSIDERED)
+
+											END SELECT
+
+											WrARRAY_PART1(I,KKD_I+kkd)=SHEAR_TEMP
+
+											END DO
+										END IF
+
+
+
+									END IF
+
+								END DO
+
+							END IF
+
+
+
+
+
+
+		temp_imaxe=IWMAXE !TOTAL NUMBER OF WALL ELEMENTS IN THE DOMAIN
+		temp_imaxn=imaxn	 !imaxn	!WE NEED THE TOTAL NUMBER OF NODES IN THE DOMAIN
+
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+		if (n.eq.0)then
+
+			!first write the header xml file from one MPI process
+
+			lf = char(10)
+		   ! Write file name
+			OPEN(300,FILE=VTU,ACCESS='STREAM')
+			! Write header
+			Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+			! Write unstructured grid type
+			Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+			! Write solution time type
+			Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+			 offset_temp=0
+			 WRITE(Offset_stamp,'(I16)')offset_temp
+			Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+			! Specify field pieces
+			WRITE(tempstamp1,'(I16)')temp_imaxn
+			WRITE(tempstamp2,'(I16)')temp_imaxe
+			Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+				   &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+			! Specify point data
+			Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+			offset_temp=offset_temp+size_of_int+size_of_real
+			WRITE(Offset_stamp,'(I16)')offset_temp
+			DO i=1,WRITE_VARIABLES_Av_w
+			  Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV_w(i))//'" '// &
+							   'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			  offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+			  WRITE(Offset_stamp,'(I16)')offset_temp
+			END DO
+			Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+			offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
+			WRITE(Offset_stamp,'(I16)')offset_temp
+			Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+			! Specify necessary cell data
+			Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+			! Connectivity
+			Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			offset_temp=offset_temp+size_of_int+TYP_COUNTN_GLOBAL_W*size_of_int
+			WRITE(Offset_stamp,'(I16)')offset_temp
+			! Offsets
+			Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
+			WRITE(Offset_stamp,'(I16)')offset_temp
+			! Elem types
+			Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+			! Prepare append section
+			Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+			! Write leading data underscore
+			Buffer='_';WRITE(300) TRIM(Buffer)
+			Bytes = size_of_real
+			close(300)
+
+
+		end if
+
+
+
+
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+						call MPI_file_open(MPI_COMM_WORLD,VTU,MPI_MODE_WRONLY + MPI_MODE_APPEND,MPI_INFO_NULL, fh, ierror)
+						call MPI_FILE_GET_POSITION(fh, disp_in_file, ierror)
+						disp_init=disp_in_FILE
+
+						!----write time stamp----!
+						IF (N.EQ.0)THEN
+						call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
+						BYTES=size_of_real
+						call MPI_file_write(fh, bytes, nbytes, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
+						disp_in_file = disp_in_file + size_of_int
+						call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
+						call MPI_file_write(fh, T, nbytes, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierror)
+						disp_in_file=disp_in_file+size_of_Real
+						else
+						disp_in_file=disp_in_file+size_of_int+size_of_real
+						end if
+						!end time stamp
+
+
+
+
+
+!
+						DO I=1,WRITE_VARIABLES_Av_w
+
+
+
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,WDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+						IF (N.EQ.0)THEN
+						BYTES=temp_imaxe*size_of_real
+						nbytes=1
+						Else
+						BYTES=0
+						nbytes=0
+						end if
+
+						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+						disp_in_file = disp_in_file + size_of_int
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,WDATATYPEX,'native',MPI_INFO_NULL, ierror)
+						call MPI_FILE_WRITE_ALL(fh,WrARRAY_PART1(:,i),iloopx*WPART1_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE,ierror)
+						!end write variables---within loop
+						disp_in_file=disp_in_file+temp_imaxe*size_of_real
+						!end loop
+						end do
+
+		! 				IF (N.EQ.0)print*,"LOCATION2",disp_in_file
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+						IF (N.EQ.0)THEN
+						BYTES=temp_imaxn*size_of_real*temp_dims
+						nbytes=1
+						Else
+						BYTES=0
+						nbytes=0
+						end if
+
+						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+						disp_in_file = disp_in_file + size_of_int
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_DOUBLE_PRECISION,wDATATYPEz,'native',MPI_INFO_NULL, ierror)
+						call MPI_FILE_WRITE_ALL(fh,wrARRAY_PART4,KMAXN_P*wPART4_end,MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
+
+						disp_in_file=disp_in_file+(temp_imaxn*size_of_real*temp_dims)
+
+
+
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+						IF (N.EQ.0)THEN
+						BYTES=size_of_int*TYP_COUNTN_GLOBAL_W!temp_imaxe*size_of_int*temp_node
+						nbytes=1
+						Else
+						BYTES=0
+						nbytes=0
+						end if
+
+
+
+
+
+						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+						disp_in_file = disp_in_file + size_of_int
+
+
+						call MPI_FILE_SET_VIEW(fh,disp_in_file,MPI_INTEGER,wDATATYPEy,'native',MPI_INFO_NULL,ierror)
+
+
+						call MPI_FILE_WRITE_ALL(fh,WiARRAY_PART2,TYP_COUNTN_W, MPI_INTEGER,STATUS,ierror)
+
+
+
+						disp_in_file=disp_in_file+(size_of_int*TYP_COUNTN_GLOBAL_W)!(temp_imaxe*size_of_int*temp_node)
+
+
+
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+						IF (N.EQ.0)THEN
+						BYTES=temp_imaxe*size_of_int
+						nbytes=1
+						Else
+						BYTES=0
+						nbytes=0
+						end if
+
+						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+						disp_in_file = disp_in_file + size_of_int
+
+
+						CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,wDATATYPEXx, 'native',MPI_INFO_NULL, ierror)
+
+						call MPI_FILE_WRITE_ALL(fh,WiARRAY_PART5,ILOOPX*WPART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+						disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+						IF (N.EQ.0)THEN
+						BYTES=temp_imaxe*size_of_int
+						nbytes=1
+						Else
+						BYTES=0
+						nbytes=0
+						end if
+
+						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+						disp_in_file = disp_in_file + size_of_int
+
+
+
+
+						call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,wDATATYPEyy, 'native',MPI_INFO_NULL, ierror)
+
+						call MPI_FILE_WRITE_ALL(fh, wiARRAY_PART3,iloopx*WPART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+
+
+
+						disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+
+						call MPI_FILE_CLOSE(fh, ierror)
+						CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+		if (n.eq.0)then
+		OPEN(300,FILE=FILEX,ACCESS='STREAM',position='APPEND')
+		  lf = char(10)
+		  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
+		  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+		  CLOSE(300)
+		end if
+
+
+		 DEallocate(vTU)
+
+
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+
+
+
+		END SUBROUTINE PARALLEL_VTK_COMBINE_WALL_AV
 
 
 
@@ -13586,76 +17755,7 @@ END IF
 DEALLOCATE(VALUESS)
 
 
-! !NEW APPROACH WITH GATHERV
-!     IF (N.EQ.0) then
-!     ALLOCATE(VALUESA(ImaxE));VALUESA=ZERO
-!     allocate(xbin(imaxe,5+turbulenceequations+passivescalar))
-!     END IF
-!     
-!     
-!     ALLOCATE(VALUESS(KmaxE));VALUESS=ZERO
-! 
-! 
-! 
-! 
-! IF (TURBULENCE.EQ.1)THEN
-! do jj=1,5+turbulenceequations+passivescalar
-!  
-!       IF (jj.gt.5) THEN
-!       DO I=1,KMAXE
-! 		      VALUESS(I)=U_CT(I)%VAL(1,jj-5)
-!       END DO
-!       Else
-!       DO I=1,KMAXE
-! 	VALUESS(I)=U_C(I)%VAL(1,jj)
-!       END DO
-!       end if
-! 
-! !       CALL MPI_GATHERV(SENDBUF, SENDCOUNT, SENDTYPE, RECVBUF, RECVCOUNTS,DISPLS, RECVTYPE, ROOT, COMM, IERROR)
-!       
-!       
-!     call MPI_GATHERV(VALUESS,KMAXE,MPI_DOUBLE_PRECISION,VALUESA,imaxE,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-!     IF (N.EQ.0)THEN
-!     do i=1,imaxp*isize
-! 	if (icella(i).gt.0)then
-! 	xbin(icella(i),jj)=valuesa(i)
-! 	end if
-!     end do
-!     end if
-!     
-! end do
-! ELSE
-!   do jj=1,5
-! 	DO I=1,KMAXE
-! 		VALUESS(I)=U_C(I)%VAL(1,jj)
-! 	END DO
-! 	call MPI_GATHER(VALUESS,imaxp,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
-! 	
-! 	    IF (N.EQ.0)THEN
-! 	    do i=1,imaxp*isize
-! 		if (icella(i).gt.0)then
-! 		xbin(icella(i),jj)=valuesa(i)
-! 		end if
-! 	    end do
-! 	    end if
-!     
-!   end do
-! 
-! END IF
-! 
-! !   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-! 
-!     IF (N.EQ.0)THEN
-! 
-!     DO I=1,IMAXE
-!     WRITE(1086)XBIN(i,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-!     END DO
-! 
-!     DEALLOCATE(XBIN,ICELLA,VALUESA)
-!     close(1086)
-!     END IF
-!     
-! DEALLOCATE(VALUESS)
+
 
 
 
@@ -14217,179 +18317,7 @@ END IF
 !$OMP END MASTER
 
 
-!INFO_NULL, fh, ierror)
-! 
-! 
-! 	  
-! 	 if (IRES_UNSTEADY .lt.1) then
-! 	    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
-! 	    call MPI_file_write(fh, RESCOUNTER, 1, MPI_INTEGER, MPI_STATUS_IGNORE,ierror)
-! 			disp_in_file = disp_in_file + size_of_int	!1
-! 	    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
-! 	    call MPI_file_write(fh, INITIALRES(nof_variables+prev_turbmodel+PASSIVESCALAR), nof_variables+prev_turbmodel+PASSIVESCALAR, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
-! 			disp_in_file = disp_in_file + size_of_real*(Nof_variables+prev_turbmodel+PASSIVESCALAR)	!1	    
-! 	 else
-! 	    if (initcond.eq.95)then
-! 		    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
-! 		    call MPI_file_write(fh, iterr, 1, MPI_INTEGER, MPI_STATUS_IGNORE,ierror)
-! 		      disp_in_file = disp_in_file + size_of_int	!1
-! 		    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
-! 		    call MPI_file_write(fh, RES_TIME, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
-! 		      disp_in_file = disp_in_file + size_of_real   
-! 		    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
-! 		    call MPI_file_write(fh, taylor, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
-! 		      disp_in_file = disp_in_file + size_of_real   
-! 		
-! 	      eLSE
-! 		  call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
-! 		    call MPI_file_write(fh, iterr, 1, MPI_INTEGER, MPI_STATUS_IGNORE,ierror)
-! 		      disp_in_file = disp_in_file + size_of_int	!1
-! 		    call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
-! 		    call MPI_file_write(fh, RES_TIME, 1, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE,ierror)
-! 		      disp_in_file = disp_in_file + size_of_real   
-! 	      END IF
-! 	 end if
-!       
-!       
-!       call MPI_Barrier(MPI_COMM_WORLD, ierror)
-! 	  
-! 	  
-! 	  if (n.ne.0) then
-! 	    do i=0, n-1
-! 	      tmp = tmp + (xmpiall(i)*size_of_int) + (xmpiall(i)*(size_of_real*(nof_Variables+prev_turbequation+lamps)))
-! 	    end do
-! 	    disp_in_file = disp_in_file + tmp
-! 	  end if
-! 	  write(100+n,*)disp_in_file,xmpiall(n)
-! 
-! 
-! 
-!   DO I=1,IMAXE
-!   
-! 	READ(1083)KI,RG(1:NOF_VARIABLES+prev_turbmodel+LAMPS)
-! 	
-! 	IF (XMPIE(I).EQ.N)THEN
-! 	    KI=XMPIL(I)
-! 	    U_C(KI)%VAL(1,1:NOF_VARIABLES)=RG(1:NOF_VARIABLES)
-! 	 
-! 		  IF (IRES_TURB.LT.1)THEN	!FROM NON TURBULENT RESTART	
-! 		      IF (TURBULENCE.EQ.1)THEN
-! 			  IF (TURBULENCEMODEL.EQ.1)THEN
-! 			      U_CT(KI)%VAL(1,1)=VISC*TURBINIT
-! 			  ELSE
-! 			      U_CT(KI)%VAL(1,1)=1.5*(I_turb_inlet*ufreestream)**2
-! 			      U_CT(KI)%VAL(1,2)=(C_MU_INLET**(-0.25))*SQRT(U_CT(KI)%VAL(1,1))&
-! 				      /L_TURB_INLET*RG(1)
-! 			  END IF
-! 		      ENDIF
-! 		  
-! 		  ELSE			!FROM TURBULENT RESTART
-! 		  
-! 		      if (turbulencemodel .eq.prev_turbmodel)then
-! 			      U_CT(KI)%VAL(1,1:Turbulenceequations)=RG(nof_Variables+1:nof_variables+Turbulenceequations)
-! 		      end if
-! 		  END IF
-! 		  
-! 		  
-! 		  IF (LAMPS.LT.1)THEN
-! 			  IF (PASSIVESCALAR.GT.0)THEN
-! 				  U_CT(KI)%VAL(1,TURBULENCEEQUATIONS+1)=ZERO
-! 			  END IF
-! 		  ELSE
-! 			  IF (PASSIVESCALAR.GT.0)THEN
-! 				  U_CT(KI)%VAL(1,TURBULENCEEQUATIONS+1)=RG(NOF_VARIABLES+prev_turbmodel+LAMPS)
-! 			  END IF
-! 		  END IF
-! 		  
-! 		  
-! 	  END IF
-!   END DO
-! 
-!   CLOSE(1083)
-! 
-! if (Averaging .EQ. 1) then
-! 
-! IF (Average_restart.EQ.1)THEN
-! 
-! allocate(Arg(nof_variables+prev_turbmodel+lamps+6))
-! 
-! RESTFILE='RESTARTav.dat'
-! 
-! OPEN(1084,FILE=RESTFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ')
-! 	  
-! 	    DO I=1,IMAXE
-!   
-! 		  READ(1084)KI,aRG(1:NOF_VARIABLES+prev_turbmodel+LAMPS)
-! 	
-! 		  IF (XMPIE(I).EQ.N)THEN
-! 		      KI=XMPIL(I)
-! 			U_C(KI)%VAL(ind1,1:NOF_VARIABLES)=aRG(1:NOF_VARIABLES)
-! 	    
-! 			IF (IRES_TURB.LT.1)THEN	!FROM NON TURBULENT RESTART	
-! 			  IF (TURBULENCE.EQ.1)THEN
-! 			      IF (TURBULENCEMODEL.EQ.1)THEN
-! 				  U_CT(KI)%VAL(ind1,1)=VISC*TURBINIT
-! 			      ELSE
-! 				  U_CT(KI)%VAL(ind1,1)=1.5*(I_turb_inlet*ufreestream)**2
-! 				  U_CT(KI)%VAL(ind1,2)=(C_MU_INLET**(-0.25))*SQRT(U_CT(KI)%VAL(ind1,1))&
-! 					  /L_TURB_INLET*aRG(1)
-! 			      END IF
-! 			  ENDIF
-! 		      
-! 			ELSE			!FROM TURBULENT RESTART
-! 		      
-! 			  if (turbulencemodel .eq.prev_turbmodel)then
-! 				  U_CT(KI)%VAL(ind1,1:Turbulenceequations)=aRG(nof_Variables+1:nof_variables+Turbulenceequations)
-! 			  end if
-! 		      END IF
-! 		  
-! 		  
-! 			IF (LAMPS.LT.1)THEN
-! 				IF (PASSIVESCALAR.GT.0)THEN
-! 					U_CT(KI)%VAL(ind1,TURBULENCEEQUATIONS+1)=ZERO
-! 				END IF
-! 			ELSE
-! 				IF (PASSIVESCALAR.GT.0)THEN
-! 					U_CT(KI)%VAL(ind1,TURBULENCEEQUATIONS+1)=aRG(NOF_VARIABLES+prev_turbmodel+LAMPS)
-! 				END IF
-! 			END IF
-! 		  
-! 		  U_C(KI)%RMS(1:6+lamps)=ARG(5+prev_turbmodel+lamps+1:11+prev_turbmodel+lamps+lamps)
-! 		  
-! 		END IF
-! 		
-! 		
-! 		
-! 	   END DO
-! 
-! 	   CLOSE(1084)
-! 	   
-!   DEALLOCATE(ARG)
-!   
-!   
-!   
-!   ELSE
-! 	    
-!   DO I=1,kmaxe
-!       U_C(i)%VAL(ind1,:)=ZERO
-!       U_C(i)%RMS(:)=ZERO
-! 	if ((passivescalar.gt.0).or.(turbulence.eq.1))then
-! 	U_CT(i)%VAL(ind1,:)=ZERO
-! 	end if   
-!   END DO
-!   
-! 
-! 
-!   END IF
-! 
-! 
-! 
-! 
-!  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-! 
-! deallocate(rg)
-! 
-! 
+
 
 
 
@@ -15088,7 +19016,7 @@ DO I=1,7
 SUML3=ALLRES(I)
 DUM_RESI=ZERO
 CALL MPI_ALLREDUCE(SUML3,DUM_RESI,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-ALLRES(I)=DUM_RESI/IMAXE
+ALLRES(I)=DUM_RESI/totalvolume
 
 END DO
 
@@ -15220,7 +19148,7 @@ DO I=1,nof_variables+turbulenceequations
 SUML3=ALLRES(I)
 DUM_RESI=ZERO
 CALL MPI_ALLREDUCE(SUML3,DUM_RESI,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-ALLRES(I)=DUM_RESI/IMAXE
+ALLRES(I)=DUM_RESI/totalvolume
 
 END DO
 
@@ -17925,20 +21853,61 @@ END SUBROUTINE OUTWRITEPARA3Dsbav
 
 SUBROUTINE FIX_NODES_LOCAL
 IMPLICIT NONE
-INTEGER::NDLC_COUNT1,NDLC_COUNT2
-INTEGER::KMAXE,ND_LC_NODES,I,J,K,L,M
+INTEGER::NDLC_COUNT1,NDLC_COUNT2,indexgt
+INTEGER::KMAXE,ND_LC_NODES,I,J,K,L,M,COUNTFNODES,indfc
 INTEGER,ALLOCATABLE,DIMENSION(:)::NDLC_ARRAY1
+INTEGER,ALLOCATABLE,DIMENSION(:)::LIST_NIN,LIST_NOUT
+
 KMAXE=XMPIELRANK(N)
 ALLOCATE(NDLC_ARRAY1(KMAXE*8));NDLC_ARRAY1(:)=0
 
 NDLC_COUNT1=0
 
+ALLOCATE(LIST_NIN(1:IMAXN),LIST_NOUT(1:IMAXN))
+LIST_NIN(:)=-10
+LIST_NOuT(:)=-10
+
+!FIND ONLY THE UNIQUES FIRST
+COUNTFNODES=0
+DO I=1,IMAXN
+    IF (INODER(I)%ITOR.GT.0)THEN
+    COUNTFNODES=COUNTFNODES+1
+    LIST_NIN(I)=n
+    END IF
+END do
+
+
+
+CALL MPI_ALLREDUCE(LIST_NIN,LIST_NOUT,IMAXN,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
+
+!FIND ONLY THE UNIQUES FIRST
+COUNTFNODES=0
+DO I=1,IMAXN
+    IF (LIST_NOUT(i).EQ.N)THEN
+    COUNTFNODES=COUNTFNODES+1
+    END IF
+END do
+
+
+
+
+deallocate(LIST_NIN)
+
+
+
+!FIND ONLY THE UNIQUES FIRST
+
+
+
+
 
 DO I=1,IMAXN
     IF (INODER(I)%ITOR.GT.0)THEN
+
     NDLC_COUNT1=NDLC_COUNT1+1
     NDLC_ARRAY1(NDLC_COUNT1)=I
     END IF
+
 END DO
 
 KMAXN=NDLC_COUNT1
@@ -17948,27 +21917,199 @@ KMAXN=NDLC_COUNT1
 ALLOCATE(INODER4(1:KMAXN));
 do i=1,kmaxn
     allocate(inoder4(i)%cord(1:dims))
+    ALLOCATE(INODER4(I)%BCT(1:3));INODER4(I)%BCT(:)=0
 end do
 
-
-
+allocate(my_nodesl(1:COUNTFNODES),my_nodesg(COUNTFNODES))
+COUNTFNODES=0
 DO I=1,KMAXN
+
     INODER4(I)%ITOR=NDLC_ARRAY1(I)
     INODER4(I)%CORD(1:DIMS)=INODER(INODER4(I)%iTOR)%CORD(1:DIMS)
     INODER(INODER4(I)%ITOR)%ITOR=I
+    if (LIST_NOUT(INODER4(I)%ITOR).eq.n)then
+    COUNTFNODES=COUNTFNODES+1
+    INODER4(I)%ITORm=COUNTFNODES
+    my_nodesl(COUNTFNODES)=i
+    my_nodesg(COUNTFNODES)=INODER4(I)%ITOR
+    end if
 END DO
 
 
+
+
+
+
+ALLOCATE(XMPIALL_v(0:ISIZE-1),OFFSET_v(0:ISIZE-1))
+
+XMPIALL_v=0
+
+XMPIALL_v(N)=COUNTFNODES
+
+
+
+call mpi_barrier(MPI_COMM_WORLD,IERROR)
+
+
+CALL MPI_ALLGATHER(COUNTFNODES,1,MPI_INTEGER,XMPIALL_v,1,MPI_INTEGER,MPI_COMM_WORLD,IERROR)
+
+
+
+
+OFFSET_v(0)=0
+DO I=1,ISIZE-1
+OFFSET_v(I)=OFFSET_v(I-1)+XMPIALL_v(I-1)
+END DO
+
+
+
+
+
+
+
+
+
+
+!NOW WE FIXED THE CORRECT NUMBERING FOR WRITING VTK OUTPUT
+
+
+
 DO I=1,KMAXE
+	if (tecplot.eq.5)then
+	if (DIMENSIONA.EQ.2)then
+	IF (ielem(n,i)%ishape.eq.5)then !QUAD
+	indfc=4
+	eLSE
+	indfc=3
+	end if
+	allocate(IELEM(N,I)%NODES_v(1:indfc))
+	eLSE
+	IF (ielem(n,i)%ishape.eq.1)then !HEXA
+	indfc=8
+	end if
+	IF (ielem(n,i)%ishape.eq.2)then !tetra
+	indfc=4
+	end if
+	IF (ielem(n,i)%ishape.eq.3)then !pyramid
+	indfc=5
+	end if
+	IF (ielem(n,i)%ishape.eq.4)then !prism
+	indfc=6
+	end if
+
+
+	allocate(IELEM(N,I)%NODES_v(1:indfc))
+	end if
+
+	end if
+
+
+
     DO J=1,ielem(n,i)%NONODES
     IELEM(N,I)%NODES(J)=INODER(IELEM(N,I)%NODES(J))%ITOR
     END DO
+
+
+
+
+
+    if (tecplot.eq.5)then
+					if (DIMENSIONA.EQ.2)then
+						IF (ielem(n,i)%ishape.eq.5)then !QUAD
+						IELEM(N,I)%NODES_v(1)=INODER4(IELEM(N,I)%NODES(1))%ITOR-1
+						IELEM(N,I)%NODES_v(2)=INODER4(IELEM(N,I)%NODES(2))%ITOR-1
+						IELEM(N,I)%NODES_v(3)=INODER4(IELEM(N,I)%NODES(3))%ITOR-1
+						IELEM(N,I)%NODES_v(4)=INODER4(IELEM(N,I)%NODES(4))%ITOR-1
+						eLSE							!TRIANGLE
+						IELEM(N,I)%NODES_v(1)=INODER4(IELEM(N,I)%NODES(1))%ITOR-1
+						IELEM(N,I)%NODES_v(2)=INODER4(IELEM(N,I)%NODES(2))%ITOR-1
+						IELEM(N,I)%NODES_v(3)=INODER4(IELEM(N,I)%NODES(3))%ITOR-1
+						!IELEM(N,I)%NODES_v(4)=INODER4(IELEM(N,I)%NODES(3))%ITOR-1
+
+						END IF
+					END IF
+					if (DIMENSIONA.EQ.3)then
+						IF (ielem(n,i)%ishape.eq.1)then !HEXA
+						IELEM(N,I)%NODES_v(1)=INODER4(IELEM(N,I)%NODES(1))%ITOR-1
+						IELEM(N,I)%NODES_v(2)=INODER4(IELEM(N,I)%NODES(2))%ITOR-1
+						IELEM(N,I)%NODES_v(3)=INODER4(IELEM(N,I)%NODES(3))%ITOR-1
+						IELEM(N,I)%NODES_v(4)=INODER4(IELEM(N,I)%NODES(4))%ITOR-1
+						IELEM(N,I)%NODES_v(5)=INODER4(IELEM(N,I)%NODES(5))%ITOR-1
+						IELEM(N,I)%NODES_v(6)=INODER4(IELEM(N,I)%NODES(6))%ITOR-1
+						IELEM(N,I)%NODES_v(7)=INODER4(IELEM(N,I)%NODES(7))%ITOR-1
+						IELEM(N,I)%NODES_v(8)=INODER4(IELEM(N,I)%NODES(8))%ITOR-1
+						END IF
+						IF (ielem(n,i)%ishape.eq.2)then !TETRA
+						IELEM(N,I)%NODES_v(1)=INODER4(IELEM(N,I)%NODES(1))%ITOR-1
+						IELEM(N,I)%NODES_v(2)=INODER4(IELEM(N,I)%NODES(2))%ITOR-1
+						IELEM(N,I)%NODES_v(3)=INODER4(IELEM(N,I)%NODES(3))%ITOR-1
+						IELEM(N,I)%NODES_v(4)=INODER4(IELEM(N,I)%NODES(4))%ITOR-1
+						END IF
+						IF (ielem(n,i)%ishape.eq.3)then !PYRAMID
+						IELEM(N,I)%NODES_v(1)=INODER4(IELEM(N,I)%NODES(1))%ITOR-1
+						IELEM(N,I)%NODES_v(2)=INODER4(IELEM(N,I)%NODES(2))%ITOR-1
+						IELEM(N,I)%NODES_v(3)=INODER4(IELEM(N,I)%NODES(3))%ITOR-1
+						IELEM(N,I)%NODES_v(4)=INODER4(IELEM(N,I)%NODES(4))%ITOR-1
+						IELEM(N,I)%NODES_v(5)=INODER4(IELEM(N,I)%NODES(5))%ITOR-1
+						END IF
+						IF (ielem(n,i)%ishape.eq.4)then !PRISM
+
+						IELEM(N,I)%NODES_v(1)=INODER4(IELEM(N,I)%NODES(1))%ITOR-1
+						IELEM(N,I)%NODES_v(2)=INODER4(IELEM(N,I)%NODES(2))%ITOR-1
+						IELEM(N,I)%NODES_v(3)=INODER4(IELEM(N,I)%NODES(3))%ITOR-1
+						IELEM(N,I)%NODES_v(4)=INODER4(IELEM(N,I)%NODES(4))%ITOR-1
+						IELEM(N,I)%NODES_v(5)=INODER4(IELEM(N,I)%NODES(5))%ITOR-1
+						IELEM(N,I)%NODES_v(6)=INODER4(IELEM(N,I)%NODES(6))%ITOR-1
+
+						END IF
+
+					END IF
+
+
+
+
+			DO L=1,IELEM(N,I)%IFCA
+					if (DIMENSIONA.EQ.2)then
+					DO J=1,2
+							indexgt=INODER(IELEM(N,I)%NODES_FACES(L,J))%ITOR
+							IELEM(N,I)%NODES_FACES_v(L,J)=INODER4(indexgt)%ITOR-1
+					END DO
+
+					else
+						if (ielem(n,i)%types_faces(L).eq.5)then
+							DO J=1,4
+								indexgt=INODER(IELEM(N,I)%NODES_FACES(L,J))%ITOR
+								IELEM(N,I)%NODES_FACES_v(L,J)=INODER4(indexgt)%ITOR-1
+							END DO
+						END IF
+						if (ielem(n,i)%types_faces(L).eq.6)then
+							DO J=1,3
+								indexgt=INODER(IELEM(N,I)%NODES_FACES(L,J))%ITOR
+								IELEM(N,I)%NODES_FACES_v(L,J)=INODER4(indexgt)%ITOR-1
+
+							END DO
+						END IF
+					END IF
+			END DO
+
+	end if
+
+
+
+END DO
+
+
+
+	DO I=1,KMAXE
+
+
     DO L=1,IELEM(N,I)%IFCA
          if (DIMENSIONA.EQ.2)then
           DO J=1,2
                 IELEM(N,I)%NODES_FACES(L,J)=INODER(IELEM(N,I)%NODES_FACES(L,J))%ITOR
+
             END DO
-            
+
             else
         if (ielem(n,i)%types_faces(L).eq.5)then
             DO J=1,4
@@ -17980,14 +22121,30 @@ DO I=1,KMAXE
                 IELEM(N,I)%NODES_FACES(L,J)=INODER(IELEM(N,I)%NODES_FACES(L,J))%ITOR
             END DO
         END IF
-        
-       
-        
+
+
+
         END IF
     END DO
 END DO
 
-DEALLOCATE (INODER,NDLC_ARRAY1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+DEALLOCATE (INODER,NDLC_ARRAY1,LIST_NOuT)
+
+
+IF (TECPLOT.EQ.3)then
 
 if (dimensiona.eq.3)then
 
@@ -18019,9 +22176,10 @@ do i=1,kmaxe
     end if
 
 end do
-end if
 
+END IF
 
+END IF
 !array el_connect(index1,indices 1:8)
 !first index is the element index
 !second index varies from 1:8 for all the vertices of this element (connectivity list)

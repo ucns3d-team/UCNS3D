@@ -62,9 +62,9 @@ SELECT CASE(IELEM(N,I)%GGS)
                 
                 End if
    
-    CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
 
 
+				CALL COMPUTE_GRADIENTS_CENTER(N,ICONSIDERED)
    
    END SELECT
    
@@ -219,7 +219,10 @@ SELECT CASE(IELEM(N,I)%GGS)
                     
                     END IF
                     END IF
-    CALL COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+!     CALL COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+
+
+				CALL COMPUTE_GRADIENTS_CENTER(N,ICONSIDERED)
 
    END SELECT
    
@@ -394,16 +397,36 @@ END DO
 			END DO
 			
 end subroutine COMPUTE_GRADIENTS_INNER_MEAN_GGS
+
+
+SUBROUTINE COMPUTE_GRADIENTS_CENTER(N,ICONSIDERED)
+!> @brief
+!> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N,ICONSIDERED
+REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2,dudl,aver1
+REAL::OOV2,titj
+INTEGER::I,J,K,L,IEX
+i=iconsidered
+	DO IEX=1,3
+				ILOCAL_RECON3(I)%GRADS(IEX,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,IEX+1,1,1)
+	END DO
+			       ILOCAL_RECON3(I)%GRADS(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,1,1)
+
+
+END SUBROUTINE COMPUTE_GRADIENTS_CENTER
+
+
  
 SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
 !> @brief
 !> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2
+REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2,dudl,aver1
 REAL,DIMENSION(1:nof_variables,3)::SOLS_F
 REAL,DIMENSION(3)::NORMAL_ALL
-REAL::OOV2
+REAL::OOV2,titj
 INTEGER::I,J,K,L
 
 
@@ -428,10 +451,20 @@ DO J=1,IELEM(N,I)%IFCA
 			call cons2prim(n)
 			SOLS2(1:nof_variables)=leftv(1:nof_variables)
 			sols2(5)=leftv(5)/leftv(1)
-			DO K=1,3
-			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
-			
-			END DO
+ 			DO K=1,3
+ 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+ 			END DO
+
+
+! 			aver1=OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables))
+! 			dudl=(SOLS2(1:nof_variables)-SOLS1(1:nof_variables))/IELEM(N,i)%DIH(j)
+! 			DO K=1,3
+! 			titj=IELEM(N,i)%DIH2(j,k)/IELEM(N,i)%DIH(j)
+! 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((aver1-(((aver1*titj)-dudl)*titj))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+! 			END DO
+
+
+
 END DO
 
 			DO K=1,3
@@ -488,6 +521,12 @@ DO J=1,IELEM(N,I)%IFCA
 			call cons2prim(n)
 			SOLS2(1:nof_variables)=leftv(1:nof_variables)
 			sols2(5)=leftv(5)/leftv(1)
+
+
+
+
+
+
 			DO K=1,3
 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 			
@@ -767,10 +806,10 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NU
 !> This subroutine computes the gradients of the primitive variables of each non-interior cell using the Green-Gauss algorithm 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(nof_variables)::SOLS1,SOLS2
+REAL,DIMENSION(nof_variables)::SOLS1,SOLS2,dudl,aver1
 REAL,DIMENSION(nof_variables,3)::SOLS_F
 REAL,DIMENSION(3)::NORMAL_ALL
-REAL::OOV2,TEMPXX
+REAL::OOV2,TEMPXX,titj
 INTEGER::I,J,K,L
 
 I=ICONSIDERED
@@ -876,8 +915,12 @@ DO J=1,IELEM(N,I)%IFCA
 			sols2(5)=leftv(5)/leftv(1)
 			
 			
-			
-			
+! 			aver1=OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables))
+! 			dudl=(SOLS2(1:nof_variables)-SOLS1(1:nof_variables))/IELEM(N,i)%DIH(j)
+! 			DO K=1,3
+! 			titj=IELEM(N,i)%DIH2(j,k)/IELEM(N,i)%DIH(j)
+! 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((aver1-(((aver1*titj)-dudl)*titj))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+! 			END DO
 			
 			DO K=1,3
 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
@@ -1250,7 +1293,7 @@ SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
    SOLS1(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
    END IF
    
-   
+
    
    if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
     
@@ -1282,7 +1325,8 @@ SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
             END IF
             
             MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
-           
+
+
             
             END DO
         
@@ -1400,7 +1444,6 @@ numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
                     MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
                     
 
-                    
                     
                 END DO
                 

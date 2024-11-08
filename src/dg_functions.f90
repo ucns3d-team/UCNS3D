@@ -1962,6 +1962,7 @@ SUBROUTINE ALLOCATE_DG
         END SELECT
     
 
+    IF (DG.EQ.1)THEN
     ALLOCATE(ILOCAL_RECON3(I)%ULEFT_DG(NOF_VARIABLES, IELEM(N,I)%IFCA, NUMBEROFPOINTS2))
     
      IF((ITESTCASE == 4).or.((governingequations.EQ.-1).AND.(BR2_YN.EQ.1))) THEN !NS
@@ -1973,11 +1974,15 @@ SUBROUTINE ALLOCATE_DG
         END IF
         
     
-    
+    END IF
     END DO
     
     
 END SUBROUTINE ALLOCATE_DG
+
+
+
+
 
 
 
@@ -1988,7 +1993,9 @@ SUBROUTINE PRESTORE_DG1
     INTEGER::I, K, I_QP, N_QP, I_FACE,nnd,iqp,idummy,loopc
     real,dimension(1:idegfree+1)::tempint
     real::tempf,tempx
+        IF (DG.EQ.1)THEN
         compwrt=-2
+        END IF
         I=iconsidered
         !Store volume quadrature points
         ELTYPE=IELEM(N,I)%ISHAPE
@@ -2093,8 +2100,10 @@ SUBROUTINE PRESTORE_DG1
         
         
         
+        IF (DG.EQ.1)THEN
         !Store volume quadrature points
         INTEG_BASIS_DG(ICONSIDERED)%value(1:IDEGFREE)=zero
+        END IF
         tempint=zero
         
             N_QP = ielem(n,iconsidered)%iTOTALPOINTS
@@ -2113,7 +2122,7 @@ SUBROUTINE PRESTORE_DG1
             end if
 !                    
                     IXX=ICONSIDERED
-                    
+                    IF (DG.EQ.1)THEN
                     if (dimensiona.eq.2)then
                     NUMBER=IELEM(N,ICONSIDERED)%IORDER
                     tempint(1:IDEGFREE)=tempint(1:IDEGFREE)+(BASIS_REC2D(N,X1,Y1,number,IXX,IDEGFREE)*QP_ARRAY(I)%QP_WEIGHT(I_QP))
@@ -2123,12 +2132,12 @@ SUBROUTINE PRESTORE_DG1
                     tempint(1:IDEGFREE)=tempint(1:IDEGFREE)+(BASIS_REC(N,X1,Y1,z1,number,IXX,IDEGFREE)*QP_ARRAY(I)%QP_WEIGHT(I_QP))
                     
                     end if
-                    
+                    END IF
                 END DO
 !                 
-                
+                IF (DG.EQ.1)THEN
                 INTEG_BASIS_DG(ICONSIDERED)%value(1:IDEGFREE)=tempint(1:IDEGFREE)
-               
+                END IF
            
         
         compwrt=0

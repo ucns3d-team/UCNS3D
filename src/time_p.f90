@@ -311,7 +311,7 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
 REAL::SUVI,SUV3,maxU,MINU,sum_DT1,sum_dt2
-REAL::CCFL,VELN,AGRT
+REAL::CCFL,VELN,AGRT,lamxl,lamyl
 KMAXE=XMPIELRANK(N)
        
         CCFL=(CFL/2.0d0)
@@ -326,12 +326,15 @@ KMAXE=XMPIELRANK(N)
         DO I=1,KMAXE
         
 				IF (initcond.eq.3)THEN
-				  lamx=-ielem(n,i)%yyc+0.5d0
-				  lamy=ielem(n,i)%xxc-0.5
-				  END IF
+				  lamxl=-ielem(n,i)%yyc+0.5d0
+				  lamyl=ielem(n,i)%xxc-0.5
+				  Else
+				  lamxl=lamx
+				  lamyl=lamy
+                end if
         
         
-		VELN=MAX(ABS(LAMx),ABS(LAMy))
+		VELN=MAX(ABS(LAMxl),ABS(LAMyl))
 		
 		if (dg.eq.1)then
 		
@@ -3645,7 +3648,7 @@ SUBROUTINE DUAL_TIME_2d(N)
 !> @brief
 !> DUAL TIME STEPPING 2D
 IMPLICIT NONE
-INTEGER::I,K,KMAXE,nvar,jj
+INTEGER::I,K,KMAXE,nvar,jj,kill_nan
 INTEGER,INTENT(IN)::N
 reaL::verysmall
 real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
@@ -3684,43 +3687,7 @@ DO JJ=1,upperlimit
       
 
       
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER2(N)
-    CALL EXHBOUNDHIGHER(N)
-    
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2d(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    CALL VORTEXCALC2D(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-    
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER2(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2d(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    CALL VORTEXCALC2D(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-END IF
+CALL CALL_FLUX_SUBROUTINES_2D
 
 
 IF (relax.eq.3)THEN
@@ -3751,10 +3718,24 @@ END IF
 DO I=1,KMAXE
       rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2))
       allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)
+
+
+      IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)))THEN
+      kill_nan=1
+      END IF
+
 END do
 !$OMP END DO
 
 !$OMP BARRIER 
+
+
+ IF (kill_nan.eq.1)THEN
+        stop
+    END IF
+
+
+
 !$OMP MASTER
 DUMMY3I=zero
 
@@ -3769,9 +3750,10 @@ END IF
 
 allresdt=allresdt/firsti
 
-
 IF (n.eq.0)THEN
-write(777,*)allresdt,jj,it
+				  OPEN(77,FILE='res1.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+				  WRITE(77,*)allresdt,jj,it
+				  CLOSE(77)
 
 END IF
 
@@ -4046,7 +4028,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
       resolx=0.01
       iscoun=1
       kmaxe=XMPIELRANK(n)
-      EVERY_TIME=FLOOR(RES_TIME)+1.0D0
+      EVERY_TIME=FLOOR(RES_TIME)+output_freq
       EK_TIME=FLOOR(RES_TIME)+resolx
       TOTV1=0.0
 
@@ -4068,7 +4050,9 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
       
 !$OMP BARRIER
 !$OMP MASTER 
-      CALL GRID_WRITE
+      if (tecplot.lt.5)then
+        CALL GRID_WRITE
+      end if
       IF ((Average_restart.eq.0).and.(averaging.eq.1)) THEN
 				Tz1=0.0
 				ELSE
@@ -4085,7 +4069,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 !$OMP MASTER
 	CALL VOLUME_SOLUTION_WRITE
 	IF (OUTSURF.EQ.1)THEN
-	CALL SURF_WRITE
+	CALL surface_SOLUTION_WRITE
 	END IF
 !$OMP END MASTER
 !$OMP BARRIER
@@ -4204,16 +4188,16 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			
 			IF (rungekutta.GE.11)THEN
 			dt=timestep
-			IF (INITCOND.eq.95)THEN 
+			IF (INITCOND.eq.95)THEN
 			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
 			ELSE
-			DT=MIN(DT,OUT_TIME-T)
+			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
 			END IF
 			else
-			IF (INITCOND.eq.95)THEN 
+			IF (INITCOND.eq.95)THEN
 			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
 			ELSE
-			DT=MIN(DT,OUT_TIME-T)
+			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
 			END IF
 			end if
 
@@ -4428,11 +4412,11 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 ! 				END IF
 			    END IF
            
-			    IF ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411))THEN
-			    IF ( mod(it, 10) .eq. 0)THEN
-                                CALL TRAJECTORIES
-			    END IF
-			    END IF
+! 			    IF ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411).or.(initcond.eq.157))THEN
+! 			    IF ( mod(it, 1) .eq. 0)THEN
+!                                 CALL TRAJECTORIES
+! 			    END IF
+! 			    END IF
 			
 			
 			
@@ -4473,7 +4457,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			END IF
 			
 			IF (INITCOND.eq.95)THEN           
-			if (mod(T, 1.0D0) .eq. 0) then
+			if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
 			
                 CALL VOLUME_SOLUTION_WRITE
 			     if (outsurf.eq.1)then
@@ -4482,11 +4466,24 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			    IF (INITCOND.eq.95)THEN                    
 			    CALL CHECKPOINTv4(N)
 			    END IF
-			EVERY_TIME=EVERY_TIME+1.0D0
-            
-           
-           END IF
-           END IF
+			EVERY_TIME=EVERY_TIME+output_freq
+            END IF
+
+            ELSE
+
+
+            IF (CODE_PROFILE.EQ.-1)THEN
+			if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
+
+                CALL VOLUME_SOLUTION_WRITE
+			     if (outsurf.eq.1)then
+			    call surface_SOLUTION_WRITE
+			    end if
+			EVERY_TIME=EVERY_TIME+output_freq
+            END IF
+            END IF
+
+            END IF
 			
 			
 			
@@ -4580,13 +4577,13 @@ INTEGER,INTENT(IN)::N
 real,dimension(1:5)::DUMMYOUT,DUMMYIN
 INTEGER::I,KMAXE
 REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK
-
+real::dtiv,flort
 kmaxe=XMPIELRANK(n)
 kill=0
 T=res_time
 iscoun=1
 
-EVERY_TIME=FLOOR(RES_TIME)+1.0D0
+EVERY_TIME=FLOOR(RES_TIME)+output_freq
 
 !$OMP MASTER 
 CPUT1=CPUX1(1)
@@ -4601,7 +4598,9 @@ IT=RESTART
 if (dg.eq.1)call SOL_INTEG_DG_init(N)
 !$OMP BARRIER
 !$OMP MASTER 
-CALL GRID_WRITE
+if (tecplot.lt.5)then
+  CALL GRID_WRITE
+end if
 
 
 CALL VOLUME_SOLUTION_WRITE
@@ -4643,7 +4642,7 @@ DO
     DUMMYOUT(5)=TIMEC8
     
     CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-    
+    DTIV=DUMMYIN(1)
     DT=DUMMYIN(1)
     TIMEC1=DUMMYIN(2)
     TIMEC3=DUMMYIN(3)
@@ -4686,19 +4685,19 @@ DO
         CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
     END IF
     
-    IF ((MULTISPECIES.EQ.1))THEN
-        IF((initcond.eq.405).or.(initcond.eq.411))THEN
-            IF ( mod(it, 20) .eq. 0)THEN
-                CALL TRAJECTORIES
-            END IF
-        END IF
-    END IF
+!     IF ((MULTISPECIES.EQ.1))THEN
+!         IF((initcond.eq.405).or.(initcond.eq.411))THEN
+!             IF ( mod(it, 20) .eq. 0)THEN
+!                 CALL TRAJECTORIES
+!             END IF
+!         END IF
+!     END IF
         
     IF (rungekutta.GE.11)THEN
         dt=timestep
-        DT=MIN(DT,OUT_TIME-T)
+        DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
     ELSE
-        DT=MIN(DT,OUT_TIME-T)
+        DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
     END IF
             
 
@@ -4761,9 +4760,8 @@ DO
           end if
           END IF
 
-         ! IF ( mod(it, 10) .eq. 0) THEN
-         !   CALL REDUCED_HISTORY
-         ! END IF
+
+
 
 
     
@@ -4809,97 +4807,80 @@ DO
         CPUT8=MPI_WTIME()
     END IF
 
+            IF (CODE_PROFILE.EQ.-1)THEN
+
+
+
+			if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
+
+                CALL VOLUME_SOLUTION_WRITE
+			     if (outsurf.eq.1)then
+			    call surface_SOLUTION_WRITE
+			    end if
+			EVERY_TIME=EVERY_TIME+output_freq
+            END IF
+            END IF
+
+
+
+
 ! Check end condition
-    IF ((TIMEC4.GE.IEVERY2).OR.(TIMEC3.GE.WALLC)) THEN
-        CPUT5=MPI_WTIME()
-        
-        IF (TIMEC3.GE.WALLC) THEN
-            KILL=1
-        END IF
-        
-        IF (kill.eq.1)THEN
-            
-            CALL VOLUME_SOLUTION_WRITE
-            IF (outsurf.eq.1)THEN
-                CALL surface_SOLUTION_WRITE
-            END IF
-            CALL CHECKPOINTING
-        
-            IF (AVERAGING.EQ.1)THEN
-                CALL CHECKPOINTING_av
-            END IF
-        ELSE
-            
-            CALL VOLUME_SOLUTION_WRITE
-            IF (outsurf.eq.1)THEN
-                CALL surface_SOLUTION_WRITE
-            END IF
-            IF (AVERAGING.EQ.1)THEN
-                CALL CHECKPOINTING_av
-            END IF
-        END IF
-        
-    END IF
-    IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
-        IF (T.GE.OUT_TIME)THEN
-        
-            KILL=1
-            
 
-        END IF
-    END IF
     !$OMP END MASTER 
     !$OMP BARRIER
     
     
 
-    !$OMP MASTER
-    IT=IT+1
-    IF (IT.EQ.NTMAX)THEN
-        KILL=1
-    END IF
-    !$OMP END MASTER 
-    !$OMP BARRIER
+          !$OMP MASTER
+			IT=IT+1
+
+			IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC).OR.(DTiv.GT.OUT_TIME))THEN
+			 KILL=1
+			END IF
+
+			IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
+			IF ((T.GE.OUT_TIME).OR.(DTiv.GT.OUT_TIME))THEN
+			KILL=1
+			END IF
+			END IF
+			!$OMP END MASTER
+			!$OMP BARRIER
     
-    
-    
-        
-    
-    
-    
-    
-    IF (kill.eq.1)THEN ! END DO LOOP
-        IF (OUTSURF.EQ.1) THEN   
-            CALL forces
-        END IF
     
         !$OMP MASTER
-            !IF ((rungekutta.eq.5).or.(rungekutta.eq.10))THEN
-                    
-                    CALL VOLUME_SOLUTION_WRITE
-            IF (outsurf.eq.1)THEN
-                CALL surface_SOLUTION_WRITE
-            END IF
+			IF (kill.eq.1)THEN
 
-            CALL CHECKPOINTING
+			    CALL VOLUME_SOLUTION_WRITE
+			      IF (outsurf.eq.1)THEN
+			      CALL surface_SOLUTION_WRITE
+			      END IF
+			    CALL CHECKPOINTING
+			      IF (AVERAGING.EQ.1)THEN
+			      CALL VOLUME_SOLUTION_WRITE_av
+				IF (outsurf.eq.1)THEN
+				  CALL surface_SOLUTION_WRITE_av
+				END IF
+				CALL CHECKPOINTING_av
+			      END IF
+			END IF
 
-            IF (averaging .eq.1) THEN
-                CALL VOLUME_SOLUTION_WRITE_av
-                IF (outsurf.eq.1)THEN
-                    CALL surface_SOLUTION_WRITE_av
-                END IF
-                CALL CHECKPOINTING_av
-            END IF
-        !$OMP END MASTER
-        !$OMP BARRIER
+			!$OMP END MASTER
+			!$OMP BARRIER
+
+			IF (kill.eq.1)THEN
+			IF (itestcase.le.3)THEN
+
+			CALL CALCULATE_ERROR(n)
+			END IF
+
+			return
+			END IF
         
-        IF (itestcase.le.3)THEN  
-             
-            CALL CALCULATE_ERROR(n)
-        END IF
     
-    return
-    END IF
+    
+    
+    
+
 END DO
 		      
 END SUBROUTINE TIME_MARCHING2

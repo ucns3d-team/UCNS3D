@@ -410,6 +410,8 @@ SUBROUTINE VERTALLOCATION(N,vext,LEFTV,RIGHTV,VISCL,LAML)
 	Allocate(NODES_LIST(8,3))
 	Allocate(ELEM_LISTD(6,4,3))
 
+
+
 	else
 	ALLOCATE (VEXT(4,2))
 	ALLOCATE (DETERJACS(1))
@@ -494,7 +496,10 @@ END  SUBROUTINE TIMING
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IESHAPE
 	INTEGER,INTENT(INOUT)::IMAXE
 	ALLOCATE (IESHAPE(IMAXE))
+	allocate (nodes_offset(imaxe),nodes_offset2(imaxe))
 	IESHAPE=0
+	nodes_offset=0
+	nodes_offset2=0
 	
 	END SUBROUTINE SHALLOCATION
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -512,7 +517,7 @@ END  SUBROUTINE TIMING
 	IMPLICIT NONE
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IESHAPE
 	INTEGER,INTENT(INOUT)::IMAXE
-	DEALLOCATE (IESHAPE)
+	DEALLOCATE (IESHAPE,nodes_offset,nodes_offset2)
 	END SUBROUTINE SHDEALLOCATION
 
 
@@ -543,6 +548,10 @@ END  SUBROUTINE TIMING
 	KK=0; I=0; J=0; LM=0 
 	KMAXE=XMPIELRANK(N)
 	ALLOCATE(IELEM(N:N,XMPIELRANK(N)))
+	IF (TECPLOT.EQ.5)THEN
+	allocate(nodes_offset_local(1:kmaxe));nodes_offset_local=0
+	allocate(nodes_offset_local2(1:kmaxe));nodes_offset_local2=0
+	END IF
 ! 	ALLOCATE(IELEM2(N:N,XMPIELRANK(N)))
 	IF (ITESTCASE.LT.3)THEN
 		IEX=1
@@ -1760,7 +1769,9 @@ DO I=1,KMAXE
 	
     if (fastest.ne.1)then
         ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,points))
+        IF (CODE_PROFILE.EQ.2)THEN
         ALLOCATE (ILOCAL_RECON3(I)%ULEFTx(IT,ielem(n,i)%ifca,points))
+        END IF
     else
         ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
 

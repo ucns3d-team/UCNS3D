@@ -2491,7 +2491,7 @@ KMAXE=XMPIELRANK(N)
  	if (poly.eq.4)then
 
 
-      divbyzero=ielem(n,iconsidered)%totvolume**2
+      divbyzero=10e-40!ielem(n,iconsidered)%totvolume**2
 
       else
 
@@ -3261,7 +3261,7 @@ KMAXE=XMPIELRANK(N)
 	IF((IELEM(N,I)%FULL.EQ.1).AND.(ielem(n,i)%TROUBLED.EQ.1))THEN
 	 if (poly.eq.4)then
 
-      divbyzero=ielem(n,iconsidered)%totvolume**2
+      divbyzero=10e-40!ielem(n,iconsidered)%totvolume**2
 
       else
 
@@ -4414,6 +4414,14 @@ INTEGER::I,K,KMAXE,IEX
 KMAXE=XMPIELRANK(N)
 !$OMP DO SCHEDULE (STATIC) 		
 	DO I=1,KMAXE
+
+	if (ielem(n,i)%interior.ne.1)then
+		CALL ALLGRADS_INNER2d(N,I)
+	ELSE
+		CALL ALLGRADS_MIX2d(N,I)
+	END IF
+
+
 	DO IEX=1,nof_variables
 	ILOCAL_RECON3(I)%ULEFT(IEX,:,:)=U_C(I)%VAL(1,IEX)
 	END DO
@@ -7972,6 +7980,10 @@ KMAXE=XMPIELRANK(N)
   CALL CHECKSOL2dX(N)
   end if
   END IF
+
+  CASE(5)
+  CALL PIECEWISE_CONSTANT2d(N)
+
  
  END SELECT
  
@@ -10541,39 +10553,7 @@ IF (ITESTCASE.GE.3)THEN
 						
 						
 				
-											if (multispecies.EQ.1)then
 
-														IF (((ABS(LEFTV(8)-RIGHTV(8))).GE.(jump_cond*RIGHTV(8))))then
-															REDUCE1=1
-															IELEM(N,I)%REDUCE=1
-														END IF
-
-! 														IF (leftv(8).lt.0.0)then
-! 															REDUCE1=1
-! 															IELEM(N,I)%REDUCE=1
-! 														END IF
-
-														IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
-																	REDUCE1=1
-																IELEM(N,I)%REDUCE=1
-															end if
-
-
-														IF ((LEFTV(1).LT.0.0))then
-																REDUCE1=1
-															IELEM(N,I)%REDUCE=1
-														end if
-
-
-
-! 														IF ((LEFTV(5).LT.0.0))then
-! 																REDUCE1=1
-! 															IELEM(N,I)%REDUCE=1
-! 														end if
-
-
-
-												else
 															IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
 																	REDUCE1=1
 																IELEM(N,I)%REDUCE=1
@@ -10589,7 +10569,7 @@ IF (ITESTCASE.GE.3)THEN
 																IELEM(N,I)%REDUCE=1
 															end if
 
-												end if
+
 				
 					
 				  END DO
@@ -10598,6 +10578,7 @@ IF (ITESTCASE.GE.3)THEN
 		
 		if (ielem(n,i)%hybrid.eq.1)then
 		reduce1=1
+		IELEM(N,I)%REDUCE=1
 		end if
 		
 !
@@ -10655,39 +10636,39 @@ IF (ITESTCASE.GE.3)THEN
 												RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
 												CALL CONS2PRIM2(N)
 
-												if (multispecies.EQ.1)then
+											!	if (multispecies.EQ.1)then
 
-! 														IF (((ABS(LEFTV(8)-RIGHTV(8))).GE.(jump_cond*RIGHTV(8))))then
-! 															REDUCE1=1
-! 															IELEM(N,I)%REDUCE=1
-! 														END IF
+!  														IF (((ABS(LEFTV(8)-RIGHTV(8))).GE.(jump_cond*RIGHTV(8))))then
+!  															REDUCE1=1
+! !  															write(130+n,*)"oups1"
+!  															IELEM(N,I)%REDUCE=1
+!  														END IF
 !
-! 														IF (leftv(8).lt.0.0)then
-! 															REDUCE1=1
-! 															IELEM(N,I)%REDUCE=1
-! 														END IF
+ 														!IF ((leftv(8).lt.-tolsmall).or.(leftv(8).gt.1.0+tolsmall))then
 
-														IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
-																	REDUCE1=1
-																IELEM(N,I)%REDUCE=1
-															end if
+ 														!	REDUCE1=1
+ 														!	IELEM(N,I)%REDUCE=1
+ 														!END IF
 
-
-! 														IF ((LEFTV(1).LT.0.0))then
-! 																REDUCE1=1
-! 															IELEM(N,I)%REDUCE=1
-! 														end if
+ 											!			IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+ 											!						REDUCE1=1
 !
-!
-!
-! 														IF ((LEFTV(5).LT.0.0))then
-! 																REDUCE1=1
-! 															IELEM(N,I)%REDUCE=1
-! 														end if
+ 											!					IELEM(N,I)%REDUCE=1
+ 											!				end if
 
 
 
-												else
+
+
+
+ 														!IF ((LEFTV(5).LT.0.0))then
+ 														!		REDUCE1=1
+ 														!	IELEM(N,I)%REDUCE=1
+ 														!end if
+
+
+
+											!	else
 															IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
 																	REDUCE1=1
 																IELEM(N,I)%REDUCE=1
@@ -10698,12 +10679,12 @@ IF (ITESTCASE.GE.3)THEN
 																IELEM(N,I)%REDUCE=1
 															end if
 
-! 															IF ((LEFTV(5).LT.0.0).OR.(LEFTV(1).LT.0.0))then
-! 																	REDUCE1=1
-! 																IELEM(N,I)%REDUCE=1
-! 															end if
+															IF ((LEFTV(5).LT.0.0).OR.(LEFTV(1).LT.0.0))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+															end if
 
-												end if
+
 
 
 										END DO
@@ -10712,6 +10693,7 @@ IF (ITESTCASE.GE.3)THEN
 
 					if (ielem(n,i)%hybrid.eq.1)then
 					reduce1=1
+					IELEM(N,I)%REDUCE=1
 					end if
 
 					IF (REDUCE1.EQ.1)THEN
@@ -10742,7 +10724,7 @@ IF (ITESTCASE.GE.3)THEN
 										do NGP=1,iqp
 											leftv(1)=ILOCAL_RECON3(I)%ULEFTTURB(1,L,ngp)
 											RIGHTV(1)=U_Ct(I)%VAL(1,1)
-												IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.8*RIGHTV(1))).OR.(leftv(1).le.zero)) THEN
+												IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(0.6*RIGHTV(1))).OR.(leftv(1).le.zero)) THEN
 													REDUCE1=1
 												END IF
 										end do
@@ -10750,6 +10732,7 @@ IF (ITESTCASE.GE.3)THEN
 
 								if (ielem(n,i)%hybrid.eq.1)then
 								reduce1=1
+								IELEM(N,I)%REDUCE=1
 								end if
 
 								IF (REDUCE1.EQ.1)THEN
@@ -10819,31 +10802,46 @@ IF (ITESTCASE.GE.3)THEN
 						
 				
 					    if (multispecies.EQ.1)then
-
-														IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))))then
-															REDUCE1=1
-															IELEM(N,I)%REDUCE=1
-														END IF
-
-! 														IF (leftv(7).lt.0.0)then
-! 															REDUCE1=1
-! 															IELEM(N,I)%REDUCE=1
-! 														END IF
-
-														IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
-																	REDUCE1=1
-																IELEM(N,I)%REDUCE=1
-															end if
-
-
-														IF ((LEFTV(1).LT.0.0))then
-																REDUCE1=1
-															IELEM(N,I)%REDUCE=1
-														end if
+					    IF ((((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7)))).OR.(leftv(7).lt.0.0)) then
+									REDUCE1=1
+									IELEM(N,I)%REDUCE=1
+						END IF
+						IF ((((ABS(LEFTV(6)-RIGHTV(6))).GE.(jump_cond*RIGHTV(6)))).OR.(leftv(6).lt.0.0)) then
+									REDUCE1=1
+									IELEM(N,I)%REDUCE=1
+						END IF
+						IF ((((ABS(LEFTV(5)-RIGHTV(5))).GE.(jump_cond*RIGHTV(5)))).OR.(leftv(5).lt.0.0)) then
+									REDUCE1=1
+									IELEM(N,I)%REDUCE=1
+						END IF
+						END IF
 
 
 
-												else
+					!					IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))))then
+					!										REDUCE1=1
+					!										IELEM(N,I)%REDUCE=1
+					!									END IF
+
+					!									IF (leftv(7).lt.0.0)then
+					!										REDUCE1=1
+					!										IELEM(N,I)%REDUCE=1
+					!									END IF
+!
+!														IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+!																	REDUCE1=1
+!																IELEM(N,I)%REDUCE=1
+!															end if
+
+
+!														IF ((LEFTV(1).LT.0.0))then
+!																REDUCE1=1
+!															IELEM(N,I)%REDUCE=1
+!														end if
+
+
+
+!												else
 															IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
 																	REDUCE1=1
 																IELEM(N,I)%REDUCE=1
@@ -10859,7 +10857,7 @@ IF (ITESTCASE.GE.3)THEN
 																IELEM(N,I)%REDUCE=1
 															end if
 
-												end if
+!												end if
 				
 				
 					
@@ -10867,6 +10865,7 @@ IF (ITESTCASE.GE.3)THEN
 		END DO		
 		if (ielem(n,i)%hybrid.eq.1)then
 		reduce1=1
+		IELEM(N,I)%REDUCE=1
 		end if
 
 		END IF
@@ -10917,42 +10916,42 @@ IF (ITESTCASE.GE.3)THEN
 
 
 
-					    if (multispecies.EQ.1)then
+!					    if (multispecies.EQ.1)then
 
-														IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))))then
-															REDUCE1=1
-															IELEM(N,I)%REDUCE=1
-														END IF
+!														IF (((ABS(LEFTV(7)-RIGHTV(7))).GE.(jump_cond*RIGHTV(7))))then
+!															REDUCE1=1
+!															IELEM(N,I)%REDUCE=1
+!														END IF
 
-! 														IF (leftv(7).lt.0.0)then
-! 															REDUCE1=1
-! 															IELEM(N,I)%REDUCE=1
-! 														END IF
+!														IF (leftv(7).lt.0.0)then
+!															REDUCE1=1
+!															IELEM(N,I)%REDUCE=1
+!														END IF
 
-														IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
-																	REDUCE1=1
-																IELEM(N,I)%REDUCE=1
-															end if
-
-
-														IF ((LEFTV(1).LT.0.0))then
-																REDUCE1=1
-															IELEM(N,I)%REDUCE=1
-														end if
+!														IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+!																	REDUCE1=1
+!																IELEM(N,I)%REDUCE=1
+!															end if
 
 
+!														IF ((LEFTV(1).LT.0.0))then
+!																REDUCE1=1
+!															IELEM(N,I)%REDUCE=1
+!														end if
 
-! 														IF ((LEFTV(4).LT.0.0))then
-! 																REDUCE1=1
-! 															IELEM(N,I)%REDUCE=1
-! 														end if
 
 
+!														IF ((LEFTV(4).LT.0.0))then
+!																REDUCE1=1
+!															IELEM(N,I)%REDUCE=1
+!														end if
 
 
 
 
-												else
+
+
+!												else
 															IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
 																	REDUCE1=1
 																IELEM(N,I)%REDUCE=1
@@ -10970,7 +10969,7 @@ IF (ITESTCASE.GE.3)THEN
 																IELEM(N,I)%REDUCE=1
 															end if
 
-												end if
+!												end if
 
 
 
@@ -10978,6 +10977,7 @@ IF (ITESTCASE.GE.3)THEN
 		END DO
 		if (ielem(n,i)%hybrid.eq.1)then
 		reduce1=1
+		IELEM(N,I)%REDUCE=1
 		end if
                     IF (INITCOND.EQ.30)THEN
                     IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
@@ -11024,6 +11024,7 @@ IF (ITESTCASE.GE.3)THEN
 
                                     if (ielem(n,i)%hybrid.eq.1)then
                                     reduce1=1
+                                    IELEM(N,I)%REDUCE=1
                                     end if
 
                                     IF (REDUCE1.EQ.1)THEN
@@ -11031,7 +11032,9 @@ IF (ITESTCASE.GE.3)THEN
                                     ILOCAL_RECON3(I)%ULEFTTURB(1,:,:)=u_ct(i)%val(1,1)
                                     end do
 
-
+                                    do iex=1,NOF_VARIABLES
+                                    ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
+                                    end do
 
 
                                     end if
@@ -11601,8 +11604,19 @@ END IF
 					  ELSE
 					   ILOCAL_RECON3(I)%ULEFTV(1:3,IEX+1,L,NGP) = MATMUL(AINVJT(1:3,1:3),UGRADLOC(1:3))
 					  END IF
+
+
+
+
+
+
 ! 		
-				  END DO	    
+				  END DO
+
+
+
+
+
 				  	
 				CASE(1)
 				

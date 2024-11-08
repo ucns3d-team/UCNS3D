@@ -1596,7 +1596,9 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAM
 			IF (SL(1).GE.ZERO)THEN
 				HLLCFLUX(:)=FL(:)
 				IF (MULTISPECIES.EQ.1)THEN
+
                 MP_SOURCE1=UL
+
                 END IF
 				
 			END IF
@@ -1609,13 +1611,18 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAM
 			IF ((SL(1).Le.ZERO).AND.(SM(1).GE.ZERO))THEN
 				HLLCFLUX(:)=FLSTAR(:)
 				IF (MULTISPECIES.EQ.1)THEN
+
+
                 MP_SOURCE1=UL+SL(1)*(((SL(1)-UL)/(SL(1)-SM(1)))-1.0D0)
+
                 END IF
 			END IF
 			IF ((SR(1).Ge.ZERO).AND.(SM(1).LE.ZERO))THEN
 				HLLCFLUX(:)=FRSTAR(:)
 				IF (MULTISPECIES.EQ.1)THEN
+
                 MP_SOURCE1=UR+SR(1)*(((SR(1)-UR)/(SR(1)-SM(1)))-1.0D0)
+
                 END IF
 			END IF
 			

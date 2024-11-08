@@ -133,6 +133,10 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:NOF_VARIABLES)::TEMPS
 REAL::OODENSITY,MP_DENSITY,MP_STIFF
+REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC,p_temp
+
+P_SAT =2000
+P_TOL =10E-5
 
 IF (governingequations.EQ.-1) then
  
@@ -154,6 +158,48 @@ TEMPS(6)=LEFTV(6)
 TEMPS(7)=LEFTV(7)
 TEMPS(8)=LEFTV(8)
  
+
+
+
+
+
+
+
+ IF(CAVITATION.EQ.1)THEN
+RHO_G = LEFTV(6)/LEFTV(8)
+RHO_L = LEFTV(7)/LEFTV(8)
+SS_G = sqrt(GAMMA_IN(1)*(TEMPS(5)+MP_PINF(1))/RHO_G)
+SS_L = sqrt(GAMMA_IN(2)*(TEMPS(5)+MP_PINF(2))/RHO_L)
+
+P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
+VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(LEFTV(8)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-LEFTV(8)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
+
+P_tEMP=TEMPS(5)
+
+if ((TEMPS(5).GT.P_TOL).AND.(TEMPS(5).LT.P_SAT))THEN
+p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
+END IF
+
+IF (TEMPS(5).LT.P_TOL)THEN
+p_temp=P_TOL
+end if
+TEMPS(5)=p_temp
+
+end if
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
  ELSE
  
@@ -183,6 +229,10 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_variables)::TEMPS
 REAL::OODENSITY,MP_DENSITY,MP_STIFF
+REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC,p_temp
+
+P_SAT =2000
+P_TOL =10E-5
 
 IF (governingequations.EQ.-1) then
  
@@ -204,6 +254,31 @@ TEMPS(5)=(((GAMMAL-1.0D0))*((LEFTV(5))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))
 TEMPS(6)=LEFTV(6)
 TEMPS(7)=LEFTV(7)
 TEMPS(8)=LEFTV(8)
+
+
+IF(CAVITATION.EQ.1)THEN
+RHO_G = LEFTV(6)/LEFTV(8)
+RHO_L = LEFTV(7)/LEFTV(8)
+SS_G = sqrt(GAMMA_IN(1)*(TEMPS(5)+MP_PINF(1))/RHO_G)
+SS_L = sqrt(GAMMA_IN(2)*(TEMPS(5)+MP_PINF(2))/RHO_L)
+
+P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
+VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(LEFTV(8)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-LEFTV(8)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
+
+P_tEMP=TEMPS(5)
+
+if ((TEMPS(5).GT.P_TOL).AND.(TEMPS(5).LT.P_SAT))THEN
+p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
+END IF
+
+IF (TEMPS(5).LT.P_TOL)THEN
+p_temp=P_TOL
+end if
+TEMPS(5)=p_temp
+
+end if
+
+
  
  LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
  
@@ -229,6 +304,41 @@ TEMPS(6)=rightV(6)
 TEMPS(7)=rightV(7)
 TEMPS(8)=rightV(8)
  
+
+
+ IF(CAVITATION.EQ.1)THEN
+RHO_G = RIGHTV(6)/RIGHTV(8)
+RHO_L = RIGHTV(7)/RIGHTV(8)
+SS_G = sqrt(GAMMA_IN(1)*(TEMPS(5)+MP_PINF(1))/RHO_G)
+SS_L = sqrt(GAMMA_IN(2)*(TEMPS(5)+MP_PINF(2))/RHO_L)
+P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
+VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(rightV(8)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-rightV(8)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
+
+
+P_tEMP=TEMPS(5)
+
+if ((TEMPS(5).GT.P_TOL).AND.(TEMPS(5).LT.P_SAT))THEN
+p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
+END IF
+
+IF (TEMPS(5).LT.P_TOL)THEN
+p_temp=P_TOL
+end if
+TEMPS(5)=p_temp
+
+end if
+
+
+
+
+
+
+
+
+
+
+
+
  rightV(1:nof_Variables)=TEMPS(1:nof_Variables)
  
  
@@ -296,9 +406,20 @@ TOLE=ZERO
 !	SSL=((GAMMA*PPL)/(RHOL)); SSR=((GAMMA*PPR)/(RHOR))
                                   
 !	MLM=((ABS(PPR-PPL))/(0.5*RRES*((GAMMA*PRES/RRES))))
-     
+
+
+
+
+if (multispecies.eq.1)then
+		 SSL=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
+		  Ssr=SQRT((rightV(5)+MP_PINFr)*GAMMAr/rightV(1))
+		else
+
       SSL=((GAMMA*PPL)/(RHOL))
       SSR=((GAMMA*PPR)/(RHOR))
+      end if
+
+
       
 
       CMA=1.0D0
@@ -535,6 +656,66 @@ end if
 
 END SUBROUTINE PRIM2CONS
 
+
+
+SUBROUTINE PRIM2CONS_fix(N)
+!> @brief
+! !> This subroutine transforms one vector of primitive variables to conservative variables
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:nof_Variables)::TEMPS
+REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff,temp_pres
+
+IF (governingequations.EQ.-1) then
+
+temp_pres=leftv(5)
+if (leftv(5).le.0.0)then
+temp_pres=2000
+end if
+
+leftv(5)=temp_pres
+
+ MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)
+ MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
+ GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+
+TEMPS(1)=MP_DENSITY
+TEMPS(2)=LEFTV(2)*TEMPS(1)
+TEMPS(3)=LEFTV(3)*TEMPS(1)
+TEMPS(4)=LEFTV(4)*TEMPS(1)
+skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
+!MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(8)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
+MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+
+ie1=((leftv(5)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
+TEMPS(5)=TEMPS(1)*(ie1+skin1)
+TEMPS(6:8)=LEFTV(6:8)
+ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+
+
+ else
+skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
+ie1=((leftv(5))/((GAMMA-1.0D0)*leftv(1)))
+
+OODENSITY=1.0D0/LEFTV(1)
+
+TEMPS(1)=LEFTV(1)
+TEMPS(2)=LEFTV(2)*LEFTV(1)
+TEMPS(3)=LEFTV(3)*LEFTV(1)
+TEMPS(4)=LEFTV(4)*LEFTV(1)
+TEMPS(5)=leftv(1)*(ie1+skin1)
+
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+end if
+
+
+END SUBROUTINE PRIM2CONS_fix
+
+
+
 SUBROUTINE PRIM2CONS2(N)
 !> @brief
 !> This subroutine transforms two vectors of primitive variables to conservative variables
@@ -625,7 +806,7 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,MP_DENSITY,MP_STIFF
-REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC
+REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC,p_temp
 
 P_SAT =2000
 P_TOL =10E-5
@@ -660,9 +841,23 @@ RHO_G = LEFTV(5)/LEFTV(7)
 RHO_L = LEFTV(6)/LEFTV(7)
 SS_G = sqrt(GAMMA_IN(1)*(TEMPS(4)+MP_PINF(1))/RHO_G)
 SS_L = sqrt(GAMMA_IN(2)*(TEMPS(4)+MP_PINF(2))/RHO_L)
-IF (TEMPS(4).LT.P_SAT)THEN
-TEMPS(4)=P_TOL
+
+P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
+VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(LEFTV(7)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-LEFTV(7)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
+
+
+
+P_tEMP=TEMPS(4)
+
+if ((TEMPS(4).GT.P_TOL).AND.(TEMPS(4).LT.P_SAT))THEN
+p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
+END IF
+
+IF (TEMPS(4).LT.P_TOL)THEN
+p_temp=P_TOL
 end if
+TEMPS(4)=p_temp
+
 end if
 
  LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
@@ -690,13 +885,26 @@ TEMPS(6)=RIGHTV(6)
 TEMPS(7)=RIGHTV(7)
  
  IF(CAVITATION.EQ.1)THEN
-  RHO_G = RIGHTV(5)/RIGHTV(7)
-  RHO_L = RIGHTV(6)/RIGHTV(7)
-  SS_G = sqrt(GAMMA_IN(1)*(TEMPS(4)+MP_PINF(1))/RHO_G)
-  SS_L = sqrt(GAMMA_IN(2)*(TEMPS(4)+MP_PINF(2))/RHO_L)
- IF (TEMPS(4).LT.P_SAT)THEN
-  TEMPS(4)=P_TOL
+RHO_G = RIGHTV(5)/RIGHTV(7)
+RHO_L = RIGHTV(6)/RIGHTV(7)
+SS_G = sqrt(GAMMA_IN(1)*(TEMPS(4)+MP_PINF(1))/RHO_G)
+SS_L = sqrt(GAMMA_IN(2)*(TEMPS(4)+MP_PINF(2))/RHO_L)
+
+P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
+VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(rightV(7)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-rightV(7)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
+
+
+P_tEMP=TEMPS(4)
+
+if ((TEMPS(4).GT.P_TOL).AND.(TEMPS(4).LT.P_SAT))THEN
+p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
+END IF
+
+IF (TEMPS(4).LT.P_TOL)THEN
+p_temp=P_TOL
 end if
+TEMPS(4)=p_temp
+
 end if
  
  RIGHTV(1:nof_Variables)=TEMPS(1:nof_Variables)
@@ -734,7 +942,7 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,MP_DENSITY,MP_STIFF,FXA
-REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC
+REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC,P_TEMP
 P_SAT =2000
 P_TOL =10E-5
 IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
@@ -765,18 +973,29 @@ TEMPS(6)=LEFTV(6)
 TEMPS(7)=LEFTV(7)
  
 
-IF(CAVITATION.EQ.1)THEN
-
-
+ IF(CAVITATION.EQ.1)THEN
 RHO_G = LEFTV(5)/LEFTV(7)
 RHO_L = LEFTV(6)/LEFTV(7)
 SS_G = sqrt(GAMMA_IN(1)*(TEMPS(4)+MP_PINF(1))/RHO_G)
 SS_L = sqrt(GAMMA_IN(2)*(TEMPS(4)+MP_PINF(2))/RHO_L)
-!
-IF (TEMPS(4).LT.P_SAT)THEN
-TEMPS(4)=P_TOL
+
+P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
+VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(LEFTV(7)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-LEFTV(7)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
+
+
+
+P_tEMP=TEMPS(4)
+
+if ((TEMPS(4).GT.P_TOL).AND.(TEMPS(4).LT.P_SAT))THEN
+p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
 END IF
-END IF
+
+IF (TEMPS(4).LT.P_TOL)THEN
+p_temp=P_TOL
+end if
+TEMPS(4)=p_temp
+
+end if
 
 
  LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
@@ -794,6 +1013,70 @@ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 END IF
 END SUBROUTINE CONS2PRIM2d
+
+
+
+SUBROUTINE PRIM2CONS2d_fIX(N)
+!> @brief
+!> This subroutine transforms one vector of primitive variables to  conservative variables 2D
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:nof_Variables)::TEMPS
+REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff,temp_pres
+
+ IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
+
+
+ temp_pres=leftv(4)
+if (leftv(4).le.0.0)then
+temp_pres=2000
+end if
+
+leftv(4)=temp_pres
+
+
+
+
+ MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
+ MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+ GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+
+TEMPS(1)=MP_DENSITY
+TEMPS(2)=LEFTV(2)*TEMPS(1)
+TEMPS(3)=LEFTV(3)*TEMPS(1)
+skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
+! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
+MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+
+
+
+
+MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
+ie1=((leftv(4)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
+TEMPS(4)=TEMPS(1)*(ie1+skin1)
+TEMPS(5:7)=LEFTV(5:7)
+ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+ else
+
+
+
+skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
+ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
+
+OODENSITY=1.0D0/LEFTV(1)
+
+TEMPS(1)=LEFTV(1)
+TEMPS(2)=LEFTV(2)*LEFTV(1)
+TEMPS(3)=LEFTV(3)*LEFTV(1)
+TEMPS(4)=leftv(1)*(ie1+skin1)
+
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+end if
+
+END SUBROUTINE PRIM2CONS2d_FIX
 
 
 SUBROUTINE PRIM2CONS2d(N)
@@ -867,7 +1150,7 @@ REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
 TEMPS(1)=MP_DENSITY
 TEMPS(2)=LEFTV(2)*TEMPS(1)
 TEMPS(3)=LEFTV(3)*TEMPS(1)
-skin1=(oo2)*((leftv(4)**2)+(leftv(5)**2))
+skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
 ! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
 MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
 
@@ -1018,6 +1301,26 @@ U=uvel
 V=vvel
 W=wvel
 
+
+
+if (initcond.eq.10000)then
+if (sqrt(((poy(1)-0.0)**2)+((poz(1)-0.5)**2)).le.0.05)then
+!if (((poy(1).ge.-0.05).and.(poy(1).le.0.05)).and.((poz(1).ge.-0.05).and.(poz(1).le.0.05)))then
+p=0.4127
+	R=5
+	u=30.0
+	v=0.0d0
+	w=0.0d0
+
+end if
+end if
+
+
+
+
+
+
+
 !KINETIC ENERGY FIRST!
 SKIN=(OO2)*((U**2)+(V**2)+(W**2))
 !INTERNAL ENERGY 
@@ -1111,8 +1414,8 @@ IMPLICIT NONE
 REAL,DIMENSION(1:nof_Variables)::INFLOW2d
 INTEGER,INTENT(IN)::INITCOND
 REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::POX,POY
-REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
-REAL::XF,YF,ZF
+REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI,PS
+REAL::XF,YF,ZF,LIT_A,LIT_O
 REAL:: Theta_0,vtang, vradial
 REAL::MP_DENSITY,MP_STIFF
 
@@ -1128,10 +1431,23 @@ V=vvel
 !time variable boundary condition
 if (initcond.eq.430)then
 v=(179299.375638680*(t**5)) - (82455.0868677361*(t**4)) + (14299.8472891299*(t**3)) - (1281.65548492021*(t**2)) + (62.2260666329356*t) - (0.0419033282181554)
-
-
-
 end if
+
+
+! IF (INITCOND.EQ.157)THEN
+! PS=35*10e6
+! LIT_A=1.48*10E8
+! LIT_o=1.21*10E8
+! p=PRES+2.0D0*PS*EXP(-LIT_A*T)*COS((LIT_O*T)+(PI/3.0))
+! UVEL=0.0
+! vVEL=0.0
+! end if
+
+
+
+
+
+
 !
 
 
@@ -2116,15 +2432,14 @@ DO I=1,KMAXE
 					  TAUL(2,3) = (VZ + WY);TAUL(3,2) = TAUL(2,3)
 
 
-        IELEM(N,I)%VORTEX(3)=(4.0/3.0)*VISCL(1)*((ux+vy+wz)**2)*ielem(n,i)%TOTVOLUME
 
 
-          SNORM=2.0D0*(UX*UX)+2.0D0*(VY*VY)+2.0D0*(WZ*WZ)+(VX+UY)**2+(WZ+VZ)**2+(UZ+WX)**2-((2.0/3.0)*(UX+VY+WZ)**2)
 
 
+
+          SNORM=((WY-VZ)**2)+((UZ-WX)**2)+((VX-UY)**2)
           ielem(n,i)%vortex(2)=ielem(n,i)%TOTVOLUME*SNORM*viscl(1)
-! 	      IELEM(N,I)%VORTEX(2)=VISCL(1)*sNORM!(-ILOCAL_RECON3(I)%GRADS(2,3)+ILOCAL_RECON3(I)%GRADS(3,2)+ILOCAL_RECON3(I)%GRADS(2,1)-ILOCAL_RECON3(I)%GRADS(3,1)+ILOCAL_RECON3(I)%GRADS(1,3)-ILOCAL_RECON3(I)%GRADS(1,2))**2
-
+          IELEM(N,I)%VORTEX(3)=(4.0/3.0)*VISCL(1)*((ux+vy+wz)**2)*ielem(n,i)%TOTVOLUME
 
 
 
@@ -4005,7 +4320,7 @@ END IF
 
 SUBROUTINE TRAJECTORIES
 IMPLICIT NONE
-INTEGER::I,J,K,TRAJ1,TRAJ2,TRAJ3,TRAJ4,kmaxe,writeid,writeconf
+INTEGER::I,J,K,TRAJ1,TRAJ2,TRAJ3,TRAJ4,kmaxe,writeid,writeconf,num_Vg
 REAL::WIN1,WIN2,WIN3,WIN4,POST,POST1,POST2,POST3,POST4
 real,dimension(4)::pos_l,pos_g
 KMAXE=XMPIELRANK(N)
@@ -4015,6 +4330,63 @@ POST3=-TOLBIG
 traj1=0
 TRAJ2=0
 TRAJ3=0
+
+if (dimensiona.eq.3)then
+num_Vg=5
+else
+num_Vg=4
+
+end if
+
+
+IF (INITCOND.EQ.157)THEN
+pos_l(1:2)=zero
+pos_g(1:2)=zero
+DO I=1,KMAXE
+      LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+      if (dimensiona.eq.3)then
+      CALL CONS2PRIM(N)
+      else
+      CALL CONS2PRIM2d(N)
+      end if
+
+     IF ((LEFTV(NOF_VARIABLES)).GT.0.0D0)THEN  !total volume of gas evolution
+            pos_l(2)=pos_l(2)+(LEFTV(NOF_VARIABLES))*ielem(n,i)%totvolume
+     end if
+     IF (LEFTV(num_Vg).GT.pos_l(1))THEN  !total volume of gas evolution
+            pos_l(1)=MAX(pos_l(1),LEFTV(num_Vg))
+     end if
+
+
+
+END Do
+     !find position globally
+CALL MPI_ALLREDUCE(pos_l(1),pos_g(1),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+CALL MPI_ALLREDUCE(pos_l(2),pos_g(2),1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
+
+
+
+
+
+IF (n.eq.0)THEN
+
+OPEN(70,FILE='Volumex.DAT',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+WRITE(70,'(E14.7,1X,E14.7,1X,E14.7)')T,POS_G(1),POS_G(2)
+close(70)
+
+END IF
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+
+
+END IF
+
+
+
 
 IF (INITCOND.EQ.430)THEN
 pos_l(1:2)=zero

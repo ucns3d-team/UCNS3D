@@ -248,7 +248,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 !> This subroutine computes the fluxes for linear-advection equation in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
-	REAL::GODFLUX2,sum_detect
+	REAL::GODFLUX2,sum_detect,lamxl,lamyl
 	INTEGER::I,L,K,NGP,KMAXE,IQP, NEIGHBOR_INDEX, NEIGHBOR_FACE_INDEX
 	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_TEMP_LINE !Quadrature weights for interfaces
 	
@@ -262,9 +262,12 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 	DO I=1,KMAXE
 	
         if (initcond.eq.3)then
-            lamx=-ielem(n,i)%yyc+0.5d0
-            lamy=ielem(n,i)%xxc-0.5
-        end if
+            lamxl=-ielem(n,i)%yyc+0.5d0
+            lamyl=ielem(n,i)%xxc-0.5
+        else
+			lamxl=lamx
+			lamyl=lamy
+		end if
         
         
         if (dg.eq.1)then
@@ -292,7 +295,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                 NY=IELEM(N,I)%FACEANGLEY(L)
                 facex=l
                 
-                NORMALVECT=(NX*LAMX)+(NY*LAMY)
+                NORMALVECT=(NX*LAMXl)+(NY*LAMYl)
 
                 IQP=QP_LINE_N
                 
@@ -332,7 +335,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                 FACEX = L
                 NX=IELEM(N,I)%FACEANGLEX(L)
                 NY=IELEM(N,I)%FACEANGLEY(L)
-                NORMALVECT=(NX*LAMX)+(NY*LAMY)
+                NORMALVECT=(NX*LAMXl)+(NY*LAMYl)
                 IQP=QP_LINE_N
                 
                 GODFLUX2=ZERO
@@ -1129,8 +1132,9 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 ! 				    end if
 		    END DO
 		    IF (MULTISPECIES.EQ.1)THEN
+
                  RHS(I)%VAL(7)=RHS(I)%VAL(7)-(U_C(I)%VAL(1,7)*MP_SOURCE3)!*ielem(n,I)%totvolume)
-                 
+
                  END IF
                  
                IF (DG == 1) THEN

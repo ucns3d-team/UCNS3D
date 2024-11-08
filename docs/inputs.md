@@ -328,11 +328,13 @@ TECPLOT=   OUTPUT FILE FORMAT
                          2 --> VTK BINARY (ONE FILE FOR THE ENTIRE DOMAIN)
                          3 --> VTK BINARY PARTITIONED OUTPUT  
                          4 --> TECPLOT BINARY PARTITIONED OUTPUT
+                         5 --> VTU BINARY OUTPUT (ONE FILE FOR THE ENTIRE DOMAIN) -USE ONLY FOR MESHES UP TO 50 million cells
+                         6 --> pVTU BINARY PARTITIONED OUTPUT (parallel pVTU output)
 ```
 
 IEVERY
 -----------------------------------------------------
-HOW OFTEN (WALLCLOCK TIME IN SECONDS) TO WRITE AN OUTPUT FILE
+FREQUENCY OF OUTPUT IN TERMS OF (WALLCLOCK TIME IN SECONDS FOR CODE PROFILES>0) or (simulation time frequency when CODE profile set to -1) TO WRITE AN OUTPUT FILE
 ```
          POSSIBLE VALUES= --> ANY VALUE
 ```

@@ -1650,7 +1650,7 @@ SUBROUTINE FIND_SHAPE(N,IMAXE,IESHAPE)
 	IMPLICIT NONE
 	INTEGER,INTENT(INOUT)::IMAXE
 	integer,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IESHAPE
-	INTEGER::I1,I2,I3,I4,I5,I6,I7,I8,I,J,K,L,M,KK,INFO,FH,ll,mm
+	INTEGER::I1,I2,I3,I4,I5,I6,I7,I8,I,J,K,L,M,KK,INFO,FH,ll,mm,kn
 	CHARACTER(LEN=12)::CELFILE,PROC
 	INTEGER,INTENT(IN)::N
 	INFO=1
@@ -1737,7 +1737,7 @@ SUBROUTINE FIND_SHAPE(N,IMAXE,IESHAPE)
 	
 	END IF
 	
-	
+	kn=0
 	K=0
 	L=0
 	M=0
@@ -1745,24 +1745,32 @@ SUBROUTINE FIND_SHAPE(N,IMAXE,IESHAPE)
 	ll=0
 	mm=0
 	DO J=1,IMAXE
-	IF (IESHAPE(J).EQ.1)THEN
+	nodes_offset(j)=kn
+	IF (IESHAPE(J).EQ.1)THEN	!hexa
 		K=K+1
+		kn=kn+8
 	END IF
-	IF (IESHAPE(J).EQ.2)THEN
+	IF (IESHAPE(J).EQ.2)THEN	!tetra
 		L=L+1
+		kn=kn+4
 	END IF
-	IF (IESHAPE(J).EQ.3)THEN
+	IF (IESHAPE(J).EQ.3)THEN	!pyramid
 		M=M+1
+		kn=kn+5
 	END IF
-	IF (IESHAPE(J).EQ.4)THEN
+	IF (IESHAPE(J).EQ.4)THEN	!prism
 		KK=KK+1
+		kn=kn+6
 	END IF
-	IF (IESHAPE(J).EQ.5)THEN
+	IF (IESHAPE(J).EQ.5)THEN	!quad
 		ll=ll+1
+		kn=kn+4
 	END IF
-	IF (IESHAPE(J).EQ.6)THEN
+	IF (IESHAPE(J).EQ.6)THEN	!tri
 		mm=mm+1
+		kn=kn+3
 	END IF
+	nodes_offset2(j)=kn
 	END DO
 	
 
@@ -1805,6 +1813,34 @@ END IF
 
 	!-------------------FOR DEBUGGING ONLY -----------------------------------------!
 END SUBROUTINE FIND_SHAPE
+
+SUBROUTINE FIX_OFFSETS_LOCAL(N)
+!> @brief
+!> This assigns the offset for the nodes for each cell in my cpu from the global list
+INTEGER::I,J,K,L,M,KK,KMAXE
+INTEGER,INTENT(IN)::N
+
+
+KMAXE=XMPIELRANK(N)
+
+if (tecplot.eq.5)then
+DO I=1,KMAXE
+	NODES_OFFSET_LOCAL(I)=NODES_OFFSET(IELEM(N,I)%IHEXGL)
+	NODES_OFFSET_LOCAL2(I)=NODES_OFFSET2(IELEM(N,I)%IHEXGL)
+
+END DO
+end if
+
+
+
+
+END SUBROUTINE FIX_OFFSETS_LOCAL
+
+
+
+
+
+
 ! ---------------------------------------------------------------------------------------------!
 SUBROUTINE NEIGHBOURSS(N,IELEM,IMAXE,IMAXN,XMPIE,XMPIN,XMPIELRANK,RESTART,INODEr)
 !> @brief
@@ -1844,6 +1880,10 @@ REAL::DELTA,CPUER
 		CASE(4) !prism
 	
 	allocate(IELEM(N,I)%NODES_FACES(5,4))
+
+	if (tecplot.eq.5)then
+	allocate(IELEM(N,I)%NODES_FACES_V(5,4))
+	end if
 
 
 	IF (CODE_PROFILE.EQ.30)THEN
@@ -1908,11 +1948,15 @@ REAL::DELTA,CPUER
 	end if
 	if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
+!  	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 	  
 	end if
 	CASE(1) !HEXAHEDRAL
 	allocate(IELEM(N,I)%NODES_FACES(6,4))
+
+	if (tecplot.eq.5)then
+	allocate(IELEM(N,I)%NODES_FACES_V(6,4))
+	end if
 
 	IF (CODE_PROFILE.EQ.30)THEN
 		allocate(IELEM(N,I)%NODES_NEIGHBOURS(6,30))
@@ -1983,13 +2027,17 @@ REAL::DELTA,CPUER
 	end if
 	if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
+!  	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 ! 	  
 	end if
 
 
 	CASE(2) !TETRAHEDRAL
 	allocate(IELEM(N,I)%NODES_FACES(4,3))
+
+	if (tecplot.eq.5)then
+	allocate(IELEM(N,I)%NODES_FACES_V(4,3))
+	end if
 
 	IF (CODE_PROFILE.EQ.30)THEN
 		allocate(IELEM(N,I)%NODES_NEIGHBOURS(4,30))
@@ -2038,12 +2086,14 @@ REAL::DELTA,CPUER
 	end if
 	if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
+!  	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 	  
 	end if
 	CASE(3) !pyramidal
 	allocate(IELEM(N,I)%NODES_FACES(5,4))
-	
+	if (tecplot.eq.5)then
+	allocate(IELEM(N,I)%NODES_FACES_V(5,4))
+	end if
 
 	IF (CODE_PROFILE.EQ.30)THEN
 		allocate(IELEM(N,I)%NODES_NEIGHBOURS(5,30))
@@ -2094,7 +2144,7 @@ REAL::DELTA,CPUER
 
 	  if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
+!  	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 	  
 	end if
 	
@@ -2115,7 +2165,9 @@ REAL::DELTA,CPUER
 	CASE(5) !quadrilateral
 	IELEM(N,I)%ifca=4; 
 	allocate(IELEM(N,I)%NODES_FACES(4,2))
-
+	if (tecplot.eq.5)then
+	allocate(IELEM(N,I)%NODES_FACES_V(4,2))
+	end if
 	IF (CODE_PROFILE.EQ.30)THEN
 		allocate(IELEM(N,I)%NODES_NEIGHBOURS(4,30))
 		IELEM(N,I)%NODES_NEIGHBOURS=0
@@ -2154,13 +2206,15 @@ REAL::DELTA,CPUER
 	end if
 	if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
+!  	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 	  
 	end if
 	CASE(6) !Triangular
 	IELEM(N,I)%ifca=3; 
 	allocate(IELEM(N,I)%NODES_FACES(3,2))
-
+	if (tecplot.eq.5)then
+	allocate(IELEM(N,I)%NODES_FACES_V(3,2))
+	end if
 
 	IF (CODE_PROFILE.EQ.30)THEN
 		allocate(IELEM(N,I)%NODES_NEIGHBOURS(3,30))
@@ -2198,7 +2252,7 @@ REAL::DELTA,CPUER
 
 	 if (rungekutta.ge.2)then
 	  allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-! 	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
+!  	  allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
 	  
 	end if
 
@@ -6334,12 +6388,12 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             CASE (1,2,3)
                 idegfree2=3
                 IORDER2=1
-                NUMNEIGHBOURS2=9
+                NUMNEIGHBOURS2=12
             
             CASE(4,5,6,7)
-                idegfree2=3
-                IORDER2=1
-                NUMNEIGHBOURS2=9
+                idegfree2=9
+                IORDER2=2
+                NUMNEIGHBOURS2=20
             
             END SELECT
         END IF
@@ -6347,7 +6401,7 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
         IF (IORDER.EQ.1)THEN
             ILX=((IORDER+1)*(IORDER+2)*(IORDER+3))/6
             IDEGFREE=ILX-1
-            NUMNEIGHBOURS=7
+            NUMNEIGHBOURS=9
             IMAXDEGFREE=NUMNEIGHBOURS-1
             ISELEM=(ILX*extf)*IEXTEND
             ISELEMT(N:N)=ISELEM
@@ -6361,7 +6415,7 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             
             if (dg.eq.1)then
                 IDEGFREE=ILX-1
-            NUMNEIGHBOURS=7
+            NUMNEIGHBOURS=9
             IMAXDEGFREE=NUMNEIGHBOURS-1
             ISELEM=(ILX*extf)*IEXTEND
             ISELEMT(N:N)=ISELEM
@@ -6411,9 +6465,9 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             
             
             CASE(4,5,6,7)
-                idegfree2=2
-                IORDER2=1
-                NUMNEIGHBOURS2=7
+                idegfree2=5
+                IORDER2=2
+                NUMNEIGHBOURS2=11
             
             END SELECT
         
@@ -7034,38 +7088,37 @@ SUBROUTINE ADAPT_CRITERION
 !> This subroutine is establishing a region for which to use a very high-order discretisation and a lower one outside this region
 	IMPLICIT NONE
 	INTEGER::KMAXE,I,FC
+	real::xmin_ad,xmax_ad
 	  KMAXE=XMPIELRANK(N)
+
+	  if (initcond.eq.405)then
+	  xmin_ad=-0.2d0
+	  xmax_ad=0.2d0
+
+	  end if
+	  if (initcond.eq.422)then
+	  xmin_ad=0.01
+	  xmax_ad=0.15
+
+	  end if
+
 	  DO I=1,KMAXE
 	      FC=0
-	      IF (IELEM(N,I)%YYC.lt.-52)THEN
+
+
+	      IF (IELEM(N,I)%XXC.LT.xmin_ad)THEN
 	      FC=1
 
 	      END IF
-	       !IF (IELEM(N,I)%YYC.lt.-0.1)THEN
-
-	!	FC=1
-	 !     END IF
-	      IF (IELEM(N,I)%XXC.LT.-15)THEN
-	      FC=1
-
-	      END IF
-	       IF (IELEM(N,I)%XXC.GT.140)THEN
+	       IF (IELEM(N,I)%XXC.GT.xmax_ad)THEN
 
 		FC=1
 	      END IF
- 	     IF (IELEM(N,I)%zzC.LT.-28)THEN
- 	      FC=1
 
- 	      END IF
- 	       IF (IELEM(N,I)%zzC.GT.33)THEN
+ 	IF (FC.EQ.1)THEN
+ 		IELEM(N,I)%HYBRID=1
 
- 		FC=1
- 	      END IF
-
-! 	IF (FC.EQ.1)THEN
-! 		IELEM(N,I)%HYBRID=1
-!
- !	END IF
+ 	END IF
 
 
 	IF (FC.EQ.1)THEN
