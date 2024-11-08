@@ -81,7 +81,7 @@ REAL FUNCTION QUADVOLUME(N)
 IMPLICIT NONE
 !!$OMP THREADPRIVATE(QUADVOLUME)
 INTEGER,INTENT(IN)::N
-real::s,t,r,vol
+real::s,tx,r,vol
 integer::kK,II
 	
 VVXI(1)=-1.0d0; VVeta(1)=-1.0d0;
@@ -156,7 +156,7 @@ REAL FUNCTION TRIANGLEVOLUME(N)
 IMPLICIT NONE
 !!$OMP THREADPRIVATE(TRIANGLEVOLUME)
 INTEGER,INTENT(IN)::N
-real::s,t,r,vol
+real::s,tx,r,vol
 
 
 VVA(1,1)=VEXT(1,1)-VEXT(3,1)
@@ -280,7 +280,7 @@ REAL FUNCTION hexaVOLUME(N)
 IMPLICIT NONE
 !!$OMP THREADPRIVATE(hexaVOLUME)
 INTEGER,INTENT(IN)::N
-real::s,t,r,vol
+real::s,tx,r,vol
 integer::kk,Ii
 
 
@@ -301,17 +301,17 @@ VVnallx(:)=0.0d0;VVnally(:)=0.0d0;VVnallz(:)=0.0d0
 do kk=1,qp_hexa
 r=QPOINTS(1,Kk)
 s=QPOINTS(2,Kk)
-t=QPOINTS(3,Kk)
+tx=QPOINTS(3,Kk)
 
 do ii=1,8
-VVNXI(1)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0-t); VVNETA(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-T); VVNZETA(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
-VVNXI(2)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0-t); VVNETA(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-T); VVNZETA(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
-VVNXI(3)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0-t); VVNETA(3)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-T); VVNZETA(3)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
-VVNXI(4)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0-t); VVNETA(4)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-T); VVNZETA(4)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
-VVNXI(5)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0+t); VVNETA(5)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+t); VVNZETA(5)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
-VVNXI(6)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0+t); VVNETA(6)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+t); VVNZETA(6)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
-VVNXI(7)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0+t); VVNETA(7)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+t); VVNZETA(7)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
-VVNXI(8)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0+t); VVNETA(8)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+t); VVNZETA(8)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
+VVNXI(1)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); VVNETA(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-Tx); VVNZETA(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
+VVNXI(2)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); VVNETA(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-Tx); VVNZETA(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
+VVNXI(3)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); VVNETA(3)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-Tx); VVNZETA(3)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
+VVNXI(4)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); VVNETA(4)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-Tx); VVNZETA(4)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
+VVNXI(5)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0+tx); VVNETA(5)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+tx); VVNZETA(5)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
+VVNXI(6)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0+tx); VVNETA(6)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+tx); VVNZETA(6)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
+VVNXI(7)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0+tx); VVNETA(7)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+tx); VVNZETA(7)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
+VVNXI(8)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0+tx); VVNETA(8)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+tx); VVNZETA(8)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
 
 VVnallx(ii)=VVnallx(ii)+(VVNXI(ii)*WEQUA3D(kk))
 VVnally(ii)=VVnally(ii)+(VVNETA(ii)*WEQUA3D(kk))
@@ -326,9 +326,7 @@ VVa1=0.0d0
 
 do ii=1,8
 
-!  r=xi(ii)
-!  s=eta(ii)
-!  t=zeta(ii)
+
 VVnxi(ii)=VVnallx(ii)
 VVneta(ii)=VVnally(ii)
 VVnzeta(ii)=VVnallz(ii)
@@ -384,7 +382,7 @@ REAL FUNCTION PYRAVOLUME(N)
 IMPLICIT NONE
 !!$OMP THREADPRIVATE(PYRAVOLUME)
 INTEGER,INTENT(IN)::N
-real::s,t,r,vol
+real::s,tx,r,vol
 integer::kk,ii
 
 	
@@ -402,13 +400,13 @@ vvnallx(:)=0.0d0;vvnally(:)=0.0d0;vvnallz(:)=0.0d0
 do kk=1,qp_PYRA
 r=QPOINTS(1,kk)
 s=QPOINTS(2,kk)
-t=QPOINTS(3,kk)
+tx=QPOINTS(3,kk)
 
 do ii=1,5
-vvnxi(1)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0-t); vvneta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-t); vvnzeta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
-vvnxi(2)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0-t); vvneta(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-t); vvnzeta(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
-vvnxi(3)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0-t); vvneta(3)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-t); vvnzeta(3)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
-vvnxi(4)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0-t); vvneta(4)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-t); vvnzeta(4)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
+vvnxi(1)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); vvneta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-tx); vvnzeta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
+vvnxi(2)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); vvneta(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-tx); vvnzeta(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
+vvnxi(3)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); vvneta(3)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-tx); vvnzeta(3)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
+vvnxi(4)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); vvneta(4)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-tx); vvnzeta(4)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
 vvnxi(5)=0.0d0; vvneta(5)=0.0d0; vvnzeta(5)=0.5d0;
 
 
@@ -474,7 +472,7 @@ REAL FUNCTION PRISMVOLUME(N)
 IMPLICIT NONE
 ! !$OMP THREADPRIVATE(PRISMVOLUME)
 INTEGER,INTENT(IN)::N
-real::s,t,r,vol
+real::s,tx,r,vol
 integer::kk,ii
 
 
@@ -495,16 +493,16 @@ do ii=1,6
 do kk=1,qp_prism
 r=qpoints(1,kk)
 s=qpoints(2,kk)
-t=qpoints(3,kk)
+tx=qpoints(3,kk)
 
 
 
-vvnxi(1)=0.5d0*(1.0d0-t); vvneta(1)=0.0d0; vvnzeta(1)=-0.5d0*r;
-vvnxi(2)=0.0d0; vvneta(2)=0.5d0*(1.0d0-t); vvnzeta(2)=-0.5d0*s;
-vvnxi(3)=-0.5d0*(1.0d0-t); vvneta(3)=-0.5d0*(1.0d0-t); vvnzeta(3)=-0.5d0*(1.0-r-s);
-vvnxi(4)=0.5d0*(1.0d0+t); vvneta(4)=0.0d0; vvnzeta(4)=0.5d0*r;
-vvnxi(5)=0.0d0; vvneta(5)=0.5d0*(1.0d0+t); vvnzeta(5)=0.5d0*s;
-vvnxi(6)=-0.5d0*(1.0d0+t); vvneta(6)=-0.5d0*(1.0d0+t); vvnzeta(6)=0.5d0*(1.0-r-s);
+vvnxi(1)=0.5d0*(1.0d0-tx); vvneta(1)=0.0d0; vvnzeta(1)=-0.5d0*r;
+vvnxi(2)=0.0d0; vvneta(2)=0.5d0*(1.0d0-tx); vvnzeta(2)=-0.5d0*s;
+vvnxi(3)=-0.5d0*(1.0d0-tx); vvneta(3)=-0.5d0*(1.0d0-tx); vvnzeta(3)=-0.5d0*(1.0-r-s);
+vvnxi(4)=0.5d0*(1.0d0+tx); vvneta(4)=0.0d0; vvnzeta(4)=0.5d0*r;
+vvnxi(5)=0.0d0; vvneta(5)=0.5d0*(1.0d0+tx); vvnzeta(5)=0.5d0*s;
+vvnxi(6)=-0.5d0*(1.0d0+tx); vvneta(6)=-0.5d0*(1.0d0+tx); vvnzeta(6)=0.5d0*(1.0-r-s);
 
 
 vvnallx(ii)=vvnallx(ii)+(vvnxi(ii)*WEQUA3D(kk))
@@ -520,9 +518,7 @@ vva1=0.0d0
 
 do ii=1,6
 
-!  r=xi(ii)
-!  s=eta(ii)
-!  t=zeta(ii)
+
 vvnxi(ii)=vvnallx(ii)
 vvneta(ii)=vvnally(ii)
 vvnzeta(ii)=vvnallz(ii)
@@ -817,7 +813,7 @@ INTEGER,INTENT(IN)::N
 INTEGER::I,KMAXE,L
 REAL::EDGEL,DIST
 KMAXE=XMPIELRANK(N)
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(I) 
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(I,dist)
  IF (DIMENSIONA.EQ.3)THEN
 !$OMP DO SCHEDULE (STATIC) 
     DO I=1,KMAXE
@@ -832,12 +828,8 @@ KMAXE=XMPIELRANK(N)
  				  VEXT(2,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; VEXT(1,3)=IELEM(N,I)%ZZC
 				  DIST=DISTANCE3(N)
-				  
-				
-!   				  IELEM(N,I)%MINEDGE=DIST
   				   IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
-! 				  
-! !                                      IELEM(N,I)%MINEDGE=dist*2
+
  	END DO
 	
     END DO
@@ -904,7 +896,7 @@ DUMV5=ZERO
 	    NODES_LIST(k,:)=inoder(JX2)%CORD(:)
 	    VEXT(K,:)=NODES_LIST(k,:)
 	  END DO
-	  CALL DECOMPOSE3!(N,ELTYPE,ELEM_DEC)
+	  CALL DECOMPOSE3
     
       SELECT CASE(ielem(n,i)%ishape)
 
@@ -2264,7 +2256,7 @@ SUBROUTINE QUADRATUREQUAD(N,IGQRULES)
 !> This subroutine computes the quadrature points and weights for quadrilateral in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,T,a,b,c,d,e,f
+REAL::R,S,Tx,a,b,c,d,e,f
 REAL::a1,b1,c1,d1,e1,f1
 INTEGER::Kk,J,ii,ij,ik,count1,alls
 
@@ -2460,7 +2452,7 @@ SUBROUTINE QUADRATUREQUAD3D(N,IGQRULES)
 !> This subroutine computes the quadrature points and weights for quadrilateral in 3D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,T,a,b,c,d,e,f
+REAL::R,S,Tx,a,b,c,d,e,f
 REAL::a1,b1,c1,d1,e1,f1
 INTEGER::Kk,J,ii,ij,ik,count1,alls
 
@@ -2654,7 +2646,7 @@ SUBROUTINE QUADRATURELINE(N,IGQRULES)
 !> This subroutine computes the quadrature points for a line and returns it in QPOINTS2D(DIM,QP)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,T,a,b,c,d,e,f,G,H,K
+REAL::R,S,Tx,a,b,c,d,e,f,G,H,K
 REAL::a1,b1,c1,d1,e1,f1,G1,H1,K1
 INTEGER::Kk,J,ii,ij,ik,count1,alls
 
@@ -3175,7 +3167,7 @@ SUBROUTINE QUADRATUREPRISM(N,IGQRULES)
 !> This subroutine computes the quadrature points and weights for a prism
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,T,a,b,c,d,e,f
+REAL::R,S,Tx,a,b,c,d,e,f
 REAL::a1,b1,c1,d1,e1,f1,sumwe
 INTEGER::Kk,J,ii,ij,ik,count1,alls
 
@@ -3443,13 +3435,13 @@ END SELECT
 		do kk=1,qp_prism
 			WEQUA3D(kk)=vvwg(kk)*0.5d0
 			
-			R=VVR1(kk); S=VVR2(kk); T=VVR3(kk)
-			VVnxi(1)=(0.5d0)*r*(1.0d0-t)
-			VVnxi(2)=(0.5d0)*(s)*(1.0d0-t)
-			VVnxi(3)=(0.5d0)*(1.0-R-s)*(1.0d0-t)
-			VVnxi(4)=(0.5d0)*r*(1.0d0+t)
-			VVnxi(5)=(0.5d0)*(s)*(1.0d0+t)
-			VVnxi(6)=(0.5d0)*(1.0-R-s)*(1.0d0+t)
+			R=VVR1(kk); S=VVR2(kk); Tx=VVR3(kk)
+			VVnxi(1)=(0.5d0)*r*(1.0d0-tx)
+			VVnxi(2)=(0.5d0)*(s)*(1.0d0-tx)
+			VVnxi(3)=(0.5d0)*(1.0-R-s)*(1.0d0-tx)
+			VVnxi(4)=(0.5d0)*r*(1.0d0+tx)
+			VVnxi(5)=(0.5d0)*(s)*(1.0d0+tx)
+			VVnxi(6)=(0.5d0)*(1.0-R-s)*(1.0d0+tx)
 			
 			DO J=1,6
 			QPOINTS(:,kk)=QPOINTS(:,kk)+(VVNXI(j)*VEXT(j,:))
@@ -3470,7 +3462,7 @@ SUBROUTINE QUADRATUREPYRA(N,IGQRULES)
 !> This subroutine computes the quadrature points and weights for a pyramid
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,T,a,b,c,d,e,f,g
+REAL::R,S,Tx,a,b,c,d,e,f,g
 REAL::a1,b1,c1,d1,e1,f1,sumwe
 INTEGER::Kk,J,ii,ij,ik,count1,alls
 
@@ -3656,12 +3648,12 @@ END SELECT
 		do kk=1,qp_pyra
 			WEQUA3D(kk)=vvwg(kk)*0.1250000000000
 			
-			R=VVR1(kk); S=VVR2(kk); T=VVR3(kk)
-			VVnxi(1)=(0.1250000000000)*(1.0-R)*(1.0d0-s)*(1.0d0-t)
-			VVnxi(2)=(0.1250000000000)*(1.0+R)*(1.0d0-s)*(1.0d0-t)
-			VVnxi(3)=(0.1250000000000)*(1.0+R)*(1.0d0+s)*(1.0d0-t)
-			VVnxi(4)=(0.1250000000000)*(1.0-R)*(1.0d0+s)*(1.0d0-t)
-			VVnxi(5)=0.5d0*(1.0d0+t)
+			R=VVR1(kk); S=VVR2(kk); Tx=VVR3(kk)
+			VVnxi(1)=(0.1250000000000)*(1.0-R)*(1.0d0-s)*(1.0d0-tx)
+			VVnxi(2)=(0.1250000000000)*(1.0+R)*(1.0d0-s)*(1.0d0-tx)
+			VVnxi(3)=(0.1250000000000)*(1.0+R)*(1.0d0+s)*(1.0d0-tx)
+			VVnxi(4)=(0.1250000000000)*(1.0-R)*(1.0d0+s)*(1.0d0-tx)
+			VVnxi(5)=0.5d0*(1.0d0+tx)
 			
 			
 			DO J=1,5
@@ -3683,7 +3675,7 @@ SUBROUTINE QUADRATUREHEXA(N,IGQRULES)
 !> This subroutine computes the quadrature points and weights for a hexahedral
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,T,a,b,c,d,e,f
+REAL::R,S,Tx,a,b,c,d,e,f
 REAL::a1,b1,c1,d1,e1,f1
 INTEGER::Kk,J,ii,ij,ik,count1,alls
 
@@ -3851,15 +3843,15 @@ END SELECT
 ! 		  WEQUA3D(:)=vvwg(:)
 		do kk=1,qp_hexa
 			WEQUA3D(kk)=vvwg(kk)
-			R=VVR1(kk); S=VVR2(kk); T=VVR3(kk)
-			VVnxi(1)=(0.125d0)*(1.0d0-R)*(1.0d0-s)*(1.0d0-t)
-			VVnxi(2)=(0.125d0)*(1.0d0+R)*(1.0d0-s)*(1.0d0-t)
-			VVnxi(3)=(0.125d0)*(1.0d0+R)*(1.0d0+s)*(1.0d0-t)
-			VVnxi(4)=(0.125d0)*(1.0d0-R)*(1.0d0+s)*(1.0d0-t)
-			VVnxi(5)=(0.125d0)*(1.0d0-R)*(1.0d0-s)*(1.0d0+t)
-			VVnxi(6)=(0.125d0)*(1.0d0+R)*(1.0d0-s)*(1.0d0+t)
-			VVnxi(7)=(0.125d0)*(1.0d0+R)*(1.0d0+s)*(1.0d0+t)
-			VVnxi(8)=(0.125d0)*(1.0d0-R)*(1.0d0+s)*(1.0d0+t)
+			R=VVR1(kk); S=VVR2(kk); Tx=VVR3(kk)
+			VVnxi(1)=(0.125d0)*(1.0d0-R)*(1.0d0-s)*(1.0d0-tx)
+			VVnxi(2)=(0.125d0)*(1.0d0+R)*(1.0d0-s)*(1.0d0-tx)
+			VVnxi(3)=(0.125d0)*(1.0d0+R)*(1.0d0+s)*(1.0d0-tx)
+			VVnxi(4)=(0.125d0)*(1.0d0-R)*(1.0d0+s)*(1.0d0-tx)
+			VVnxi(5)=(0.125d0)*(1.0d0-R)*(1.0d0-s)*(1.0d0+tx)
+			VVnxi(6)=(0.125d0)*(1.0d0+R)*(1.0d0-s)*(1.0d0+tx)
+			VVnxi(7)=(0.125d0)*(1.0d0+R)*(1.0d0+s)*(1.0d0+tx)
+			VVnxi(8)=(0.125d0)*(1.0d0-R)*(1.0d0+s)*(1.0d0+tx)
 			DO J=1,8
 			QPOINTS(:,kk)=QPOINTS(:,kk)+(VVNXI(j)*VEXT(j,:))
 			END DO

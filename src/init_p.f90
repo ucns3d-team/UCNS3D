@@ -111,7 +111,7 @@ IF (RESTART.EQ.0)THEN
 			U_CT(INITIAL)%VAL(1,1:0+turbulenceequations+passivescalar)=VECCOS(6:5+turbulenceequations+passivescalar)
 			else
 			U_C(INITIAL)%VAL(1,:)=VECCOS(:)
-			if (itestcase.eq.3)U_E(INITIAL)%VAL(1,:)=U_C(INITIAL)%VAL(1,:)
+			if (itestcase.ge.3)U_E(INITIAL)%VAL(1,:)=U_C(INITIAL)%VAL(1,:)
 			end if
 		END DO
 !$OMP END DO
@@ -162,7 +162,7 @@ IF (RESTART.EQ.0)THEN
 			else
 			U_C(I)%VAL(1,:)=U_C(I)%VAL(1,:)+VECCOS(:)*WEQUA3D(INC)*(VOLTEMP)
 			
-			if (itestcase.eq.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
+			if (itestcase.ge.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
 			end if
 			END IF
 	  END DO
@@ -235,7 +235,7 @@ IF (RESTART.EQ.0)THEN
                                         END DO
                     ELSE
                     U_C(I)%VAL(1,:)=U_C(I)%VAL(1,:)+VECCOS(:)*WEQUA3D(INC)*(VOLTEMP)
-                    if (itestcase.eq.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
+                    if (itestcase.ge.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
                     END IF
                 end if
 			END IF
@@ -327,7 +327,7 @@ IF (RESTART.EQ.0)THEN
                                         END DO
                     ELSE
                     U_C(I)%VAL(1,:)=U_C(I)%VAL(1,:)+VECCOS(:)*WEQUA3D(INC)*(VOLTEMP)
-                    if (itestcase.eq.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
+                    if (itestcase.ge.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
                     END IF
 			end if
 			END IF
@@ -391,7 +391,7 @@ IF (RESTART.EQ.0)THEN
                                         END DO
                     ELSE
                     U_C(I)%VAL(1,:)=U_C(I)%VAL(1,:)+VECCOS(:)*WEQUA3D(INC)*(VOLTEMP)
-                    if (itestcase.eq.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
+                    if (itestcase.ge.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
                     END IF
 			end if
 			END IF
@@ -434,7 +434,7 @@ IF (RESTART.EQ.0)THEN
                                         END DO
                     ELSE
                     U_C(I)%VAL(1,:)=U_C(I)%VAL(1,:)+VECCOS(:)*WEQUA3D(INC)*(VOLTEMP)
-                    if (itestcase.eq.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
+                    if (itestcase.ge.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
                     END IF
 			end if
 			END IF
@@ -496,7 +496,7 @@ IF (RESTART.EQ.0)THEN
                                         END DO
                     ELSE
                     U_C(I)%VAL(1,:)=U_C(I)%VAL(1,:)+VECCOS(:)*WEQUA3D(INC)*(VOLTEMP)
-                    if (itestcase.eq.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
+                    if (itestcase.ge.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
                     END IF
 			end if
 			END IF
