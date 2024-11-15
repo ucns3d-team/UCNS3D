@@ -227,7 +227,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6)
+								    case(6,9,99)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -475,7 +475,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6)
+								    case(6,9,99)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -1096,7 +1096,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6)
+								    case(6,9,99)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -1502,7 +1502,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6)
+								    case(6,9,99)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -1748,7 +1748,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6)
+								    case(6,9,99)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -2172,7 +2172,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6)
+								    case(6,9,99)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -2393,7 +2393,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6)
+								    case(6,9,99)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -2940,7 +2940,7 @@ DO L=1,IELEM(N,I)%IFCA	!COND1
         
 								    
 								    
-								    case(6)
+								    case(6,9,99)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero

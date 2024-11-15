@@ -20,7 +20,7 @@ TYPE(BOUND_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IBOUND
 CHARACTER(LEN=12)::BNDFILE,ibx_code
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 INTEGER::I,J,JI,K,LM,IEX,KMAXN,KK,KMAXE,kkk,JJJ,jfx,JB,KXK,ITR1,jj,JJ1
-INTEGER::IOY,IBID,IB1,IB2,IB3,IB4,IBX1,ITL,ibgw,ibgw2
+INTEGER::IOY,IBID,IB1,IB2,IB3,IB4,IBX1,ITL,ibgw,ibgw2,IBLEED,ibdum
 integer,dimension(4)::ib_n
 INTEGER::NB1,NB2,NB3,NB4
 	KMAXE=XMPIELRANK(N)
@@ -293,12 +293,38 @@ IF (BINIO.EQ.1)OPEN(10,FILE=BNDFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ
 IF (BINIO.EQ.0)THEN
 DO ji=1,IMAXB
 	READ(10,*)IBID,IB_n(1),IB_n(2),IB_n(3),IB_n(4),ibx1
-	if (ibx1.eq.4)then
+	IF (BLEED.EQ.1)THEN
+		ibdum=ibx1
+		if (ibx1.eq.4)then
+
+		if ((inoder(IB_n(1))%itor.gt.0).and.(inoder(IB_n(2))%itor.GT.0))then
+
+		!NOW CHECK IF THIS IS IN A BLEED ZONE
+
+
+		DO IBLEED=1,BLEED_NUMBER
+			IF (((inoder(IB_n(1))%CORD(1).GE.bleed_start(IBLEED,1)).AND.(inoder(IB_n(1))%CORD(1).LE.bleed_END(IBLEED,1))).AND.((inoder(IB_n(2))%CORD(1).GE.bleed_start(IBLEED,1)).AND.(inoder(IB_n(2))%CORD(1).LE.bleed_END(IBLEED,1))).AND.((inoder(IB_n(1))%CORD(2).GE.bleed_start(IBLEED,2)).AND.(inoder(IB_n(1))%CORD(2).LE.bleed_END(IBLEED,2))).AND.((inoder(IB_n(2))%CORD(2).GE.bleed_start(IBLEED,2)).AND.(inoder(IB_n(2))%CORD(2).LE.bleed_END(IBLEED,2))))THEN
+			IBdum=99
+
+
+			END IF
+
+		END DO
+
+		END IF
+		end if
+		ibx1=IBdum
+
+
+	END IF
+
+
+	if ((ibx1.eq.4).or.(ibx1.eq.99))then
 	ibgw=ibgw+1
 	end if
 	if ((inoder(IB_n(1))%itor.gt.0).and.(inoder(IB_n(2))%itor.GT.0))then
 	itl=itl+1
-	     if (ibx1.eq.4)then
+	     if ((ibx1.eq.4).or.(ibx1.eq.99))then
 	    ibound(n,itl)%inum=ibgw;totiw=totiw+1
 	    end if
 	    ibound(n,itl)%icode=ibx1
@@ -314,12 +340,37 @@ end do
 ELSE
 DO ji=1,IMAXB
 	READ(10)IBID,IB_n(1),IB_n(2),IB_n(3),IB_n(4),ibx1
-	if (ibx1.eq.4)then
+	IF (BLEED.EQ.1)THEN
+		ibdum=ibx1
+		if (ibx1.eq.4)then
+		if ((inoder(IB_n(1))%itor.gt.0).and.(inoder(IB_n(2))%itor.GT.0))then
+
+		!NOW CHECK IF THIS IS IN A BLEED ZONE
+
+
+		DO IBLEED=1,BLEED_NUMBER
+			IF (((inoder(IB_n(1))%CORD(1).GE.bleed_start(IBLEED,1)).AND.(inoder(IB_n(1))%CORD(1).LE.bleed_END(IBLEED,1))).AND.((inoder(IB_n(2))%CORD(1).GE.bleed_start(IBLEED,1)).AND.(inoder(IB_n(2))%CORD(1).LE.bleed_END(IBLEED,1))).AND.((inoder(IB_n(1))%CORD(2).GE.bleed_start(IBLEED,2)).AND.(inoder(IB_n(1))%CORD(2).LE.bleed_END(IBLEED,2))).AND.((inoder(IB_n(2))%CORD(2).GE.bleed_start(IBLEED,2)).AND.(inoder(IB_n(2))%CORD(2).LE.bleed_END(IBLEED,2))))THEN
+			IBdum=99
+
+
+			END IF
+
+		END DO
+
+		END IF
+		end if
+		ibx1=IBdum
+
+
+	END IF
+
+
+	if ((ibx1.eq.4).or.(ibx1.eq.99))then
 	ibgw=ibgw+1
 	end if
 	if ((inoder(IB_n(1))%itor.gt.0).and.(inoder(IB_n(2))%itor.GT.0))then
 	itl=itl+1
-	     if (ibx1.eq.4)then
+	     if ((ibx1.eq.4).or.(ibx1.eq.99))then
 	    ibound(n,itl)%inum=ibgw;totiw=totiw+1
 	    end if
 	    ibound(n,itl)%icode=ibx1
@@ -354,6 +405,11 @@ end do
 DO I=1,KMAXE
   IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
   ALLOCATE(IELEM(N,I)%iBOUNDs(IELEM(N,I)%IFCA))
+
+IF (BLEED.EQ.1)THEN
+  ALLOCATE(IELEM(N,I)%BLEEDN(IELEM(N,I)%IFCA))
+  IELEM(N,I)%BLEEDN(:)=0
+  END IF
   IELEM(N,I)%iBOUNDs=0
   ielem(n,i)%nofbc=0
   END IF
@@ -420,7 +476,7 @@ totwalls=ibgw
   if (ielem(n,i)%interior.eq.1)then
 	DO j=1,IELEM(N,I)%IFCA
 	  if (ielem(n,i)%ibounds(J).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+	     if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
 		 TOTIW=TOTIW+1
 				IBOUND_T(TOTIW)=I
 				IBOUND_T2(TOTIW)=j
@@ -447,7 +503,7 @@ IMPLICIT NONE
 REAL,INTENT(IN)::XPER,YPER,ZPER
 INTEGER,INTENT(IN)::IPERIODICITY,N
 REAL::SMALL,tolerance,dist,temp_x
-INTEGER::I,K,j,kk,ii,kmaxe,jj1,jj2,ji,l
+INTEGER::I,K,j,kk,ii,kmaxe,jj1,jj2,ji,l,IBLEED
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
 integer::dum1,dum2
 
@@ -592,6 +648,30 @@ DO I=1,KMAXE			!> ALL ELEMENTS
 	    IF (ielem(n,i)%nofbc.GT.0)THEN		! THAT HAVE AT LEAST ESTABLISHED A BOUNDARY CONDITION CODE
 		  DO J=1,ielem(n,i)%IFCA			! LOOP ALL THEIR BOUNDARY FACES
 		      if (IELEM(N,I)%IBOUNDS(J).gt.0)then
+
+
+			  IF (BLEED.EQ.1)THEN
+		      IF (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ICODE.EQ.99)THEN
+
+
+					!ASSIGN THE BLEED ZONE
+					N_NODE=2
+				    DO Kk=1,n_node
+				      NODES_LIST(kk,1:2)=inoder(IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ibl(kk))%CORD(1:2)
+				    END DO
+				    vext(1,:)=CORDINATES2(N,NODES_LIST,N_NODE)
+
+					DO IBLEED=1,BLEED_NUMBER
+						IF (((vext(1,1).GE.bleed_start(IBLEED,1)).AND.(vext(1,1).LE.bleed_END(IBLEED,1))).AND.((vext(1,2).GE.bleed_start(IBLEED,2)).AND.(vext(1,2).LE.bleed_END(IBLEED,2))))THEN
+
+						IELEM(N,I)%BLEEDN(J)=IBLEED	!ASSIGN THE BLEED NUMBER
+						END IF
+					END DO
+
+				END IF
+				END IF
+
+
 		     IF (IBOUND(N,IELEM(N,I)%IBOUNDS(J))%ICODE.EQ.5)THEN	! IF ANY OF THEM HAS A PERIODIC BOUNDARY CONDITION THEN
 		     
 				    N_NODE=2

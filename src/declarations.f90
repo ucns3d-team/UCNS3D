@@ -172,6 +172,11 @@ INTEGER::CAVITATION
 REAL::INDICATOR_PAR1,INDICATOR_PAR2,INDICATOR_PAR3, Bound_lim  !TROUBLED INDICATOR PARAMETERS
 real::rhc1,rhc2,rhc3,rhc4
 real::prace_t1,prace_t2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7,prace_t8,prace_t9,pr_t1,pr_t2,pr_t3,pr_t4,PR_T5,PR_T6,PR_T7,PR_T8,PRACE_TX1,PRACE_TX2,PRACE_TX3
+!------------------START BLEED PARAMETERS-------------------!
+INTEGER::BLEED_NUMBER,BLEED,BLEED_TYPE
+REAL,ALLOCATABLE,DIMENSION(:,:)::bleed_start,bleed_end
+REAL,ALLOCATABLE,DIMENSION(:)::BLEED_PLENUM,BLEED_POROSITY
+!------------------END BLEED PARAMETERS-------------------!
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.2.   INTEGER ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -813,6 +818,7 @@ TYPE::ELEMENT_NUMBER
 	INTEGER::walls     !FLAG TO DECLARE IF THIS IS CELL BOUNDED BY A WALL
 	INTEGER::LUMP
 	INTEGER::FILTERED,REDUCE
+	INTEGER,ALLOCATABLE,DIMENSION(:)::BLEEDN
 	INTEGER,ALLOCATABLE,DIMENSION(:)::NOJECOUNT
 	INTEGER,ALLOCATABLE,DIMENSION(:)::NODES    !NODES INDEX
 	INTEGER,ALLOCATABLE,DIMENSION(:,:)::NODES_NEIGHBOURS    !NODES INDEX
