@@ -5598,7 +5598,7 @@ KMAXE=XMPIELRANK(N)
     if (ielem(n,i)%interior.eq.1)then
     Do l=1,IELEM(N,I)%IFCA
 	if (ielem(n,i)%ibounds(l).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.4)then
+	      if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.99))then
 	  countwall = countwall + 1
 	      end if
 	      
@@ -5739,7 +5739,7 @@ KMAXE=XMPIELRANK(N)
     if (ielem(n,i)%interior.eq.1)then
     Do l=1,IELEM(N,I)%IFCA
 	if (ielem(n,i)%ibounds(l).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(l))%icode.eq.4)then
+	      if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.99))then
 	  countwall = countwall + 1
 	      end if
 	       
@@ -8388,7 +8388,7 @@ DO I=1,KMAXE
   if (ielem(n,i)%interior.eq.1)then
 	DO j=1,IELEM(N,I)%IFCA
 	  if (ielem(n,i)%ibounds(J).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+	      if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
 		  iloop=iloop+1
 		    ICELL(Iloop)=ibound(n,ielem(n,i)%ibounds(j))%inum
 	      END IF
@@ -13545,7 +13545,7 @@ DO I=1,KMAXE
   if (ielem(n,i)%interior.eq.1)then
 	DO j=1,IELEM(N,I)%IFCA
 	  if (ielem(n,i)%ibounds(J).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+	      if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
 		  iloop=iloop+1
 	      END IF
 	  end if
@@ -13568,7 +13568,7 @@ DO I=1,KMAXE
   if (ielem(n,i)%interior.eq.1)then
 	DO j=1,IELEM(N,I)%IFCA
 	  if (ielem(n,i)%ibounds(J).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+	     if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
 		  iloop=iloop+1
 				if (DIMENSIONA.EQ.2)then
 					KLOOP=2
@@ -13841,6 +13841,7 @@ SUBROUTINE PARTITION_PREPARATION_WALLv(N)
 
 			DO I=1,iloopx
 				WiARRAY_PART5(i)=nodes_offset_local2W(i)
+
 			END DO
 
 
@@ -13862,6 +13863,7 @@ SUBROUTINE PARTITION_PREPARATION_WALLv(N)
 			DO I=1,ILOOPX
 				WDISPART3(I)=(wall_l(i,4)-1)*1
 				wiARRAY_PART3(I)=WALLSHAPE(I)
+
 			END DO
 			wPART3_end=1
 	ELSE
@@ -14309,7 +14311,7 @@ SUBROUTINE PARTITION_PREPARATION_p_WALL(N)
 			if (ielem(n,i)%interior.eq.1)then
 				DO j=1,IELEM(N,I)%IFCA
 				if (ielem(n,i)%ibounds(J).gt.0)then
-					if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+					if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
 					iloop=iloop+1
 					END IF
 				end if
@@ -14345,7 +14347,7 @@ DO I=1,KMAXE
   if (ielem(n,i)%interior.eq.1)then
 	DO j=1,IELEM(N,I)%IFCA
 	  if (ielem(n,i)%ibounds(J).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+	    if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
 		  iloop=iloop+1
 				if (DIMENSIONA.EQ.2)then
 					KLOOP=2
@@ -16807,7 +16809,7 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 		character(LEN=:),allocatable::VTU
 		nbytes=1
 		
-		
+
 			 size_of_int=4
 			 size_of_real=8
 		
@@ -16817,7 +16819,11 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 		disp_init=0
 		KMAXE=XMPIELRANK(N)
 		KMAXN_P=XMPIALL_v(N)
-		
+		if (dimensiona.eq.3)then
+ 		temp_node=3;temp_dims=3
+ 		else
+ 		temp_node=2;temp_dims=3
+ 		end if
 		
 		temp_cord=3
 
@@ -17230,6 +17236,12 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 		disp_init=0
 		KMAXE=XMPIELRANK(N)
 		KMAXN_P=XMPIALL_v(N)
+
+		if (dimensiona.eq.3)then
+ 		temp_node=3;temp_dims=3
+ 		else
+ 		temp_node=2;temp_dims=3
+ 		end if
 
 
 		temp_cord=3

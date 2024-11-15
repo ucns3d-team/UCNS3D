@@ -1,0 +1,10 @@
+!--------------------BLEED DAT FILE--------------------!
+!---THE USER NEED TO SPECIFY THE FOLLOWING PARAMETERS--!
+2      		!BLEED_NUMBER=Number of bleed boundary conditions
+1      				!BLEED_TYPE=bleed type (Slater=1,other=2,porous=3,etc)
+2.1 0.35 2.2 0.35   	!locations for each bleed type (bleed_start(BLEED_NUMBER,1:3) first index for bleed number, second for (for x,y,z)
+2.1 0.15 2.2 0.15   	!locations for each bleed type (bleed_start(BLEED_NUMBER,1:3) first index for bleed number, second for (for x,y,z)
+0.6         0.80        !BLEED_PLENUM(BLEED_NUMBER)(pressure),BLEED_POROSITY(BLEED_NUMBER)-percentage (0.0-1.0)
+0.6         0.80        !BLEED_PLENUM(BLEED_NUMBER)(pressure),BLEED_POROSITY(BLEED_NUMBER)-percentage (0.0-1.0)
+
+

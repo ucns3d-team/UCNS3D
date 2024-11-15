@@ -1454,7 +1454,7 @@ DO I=1,KMAXE
   if (ielem(n,i)%interior.eq.1)then
 	DO j=1,IELEM(N,I)%IFCA
 	  if (ielem(n,i)%ibounds(J).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+	      if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
 		  iloop=iloop+1
 	      END IF
 	  end if
@@ -1492,7 +1492,7 @@ DO I=1,KMAXE
   if (ielem(n,i)%interior.eq.1)then
 	DO j=1,IELEM(N,I)%IFCA
 	  if (ielem(n,i)%ibounds(J).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+	      if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
 		  iloop=iloop+1
 		  VAL(Iloop)=ibound(n,ielem(n,i)%ibounds(j))%inum
 	      END IF
