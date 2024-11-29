@@ -26,7 +26,7 @@
 #> Executable and source files
 
 EXECUTABLE=test
-SOURCES=prototype_gpu.f90
+SOURCES=prototype_gpu_matmu_no_dtypes.f90
 
 #> Programming Environment
 
@@ -40,7 +40,7 @@ SOURCES=prototype_gpu.f90
 
 # --- Nvidia
 #nvfortran
-FFLAGS=  -gpu=mem:managed -Minfo -mp=gpu -r8 -Mbackslash -march=native -Mcray=pointer -Ofast
+FFLAGS=  -gpu=mem:managed,maxregcount:64 -Minfo -mp=gpu -r8 -Mbackslash -march=native -Mcray=pointer -Ofast
 
 # --- AMD
 # AMD flang ? (GNU?)
