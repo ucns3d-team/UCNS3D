@@ -251,7 +251,7 @@ program prototype
   end type local_recon3
   type(local_recon3), allocatable, dimension(:) :: ilocal_recon3
  
-!$omp threadprivate(leftv,stencil_local)
+!!$omp threadprivate(leftv,stencil_local)
 
   call MPI_Init_thread(MPI_THREAD_FUNNELED, provided, ierror)
   call MPI_Comm_size(MPI_COMM_WORLD, tot_ranks, ierror)
@@ -358,13 +358,11 @@ program prototype
   ! TIMEIT
   time_start = MPI_Wtime()
 
-!!$omp target teams distribute parallel do
-!$omp master
 
   ! set DGEMM parameters alpha and beta here
   alpha = 1.0
   beta = 0.0
-
+!$omp target teams distribute parallel do private(leftv,stencil_local)
   do i=1,num_elems
     if (i .lt. 500) then
       tot_stencils = 5
@@ -388,8 +386,7 @@ program prototype
       !ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) = ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) + i * 2
     end do
   end do
-!!$omp end target teams distribute parallel do
-!$omp end master
+!$omp end target teams distribute parallel do
 
 !!$omp end do
 !!$omp end parallel 

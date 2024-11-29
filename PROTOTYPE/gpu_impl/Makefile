@@ -30,17 +30,17 @@ SOURCES=prototype_gpu.f90
 
 #> Programming Environment
 
-# --- Cray
+# --- Cray/Archer2
 # module load PrgEnv-cray
 # module load rocm
 # module load craype-accel-amd-gfx90a
 # module load craype-x86-milan
 
-FFLAGS= -s real64 -fbackslash -fopenmp -e 0 -e I -g #-O2 -Ofast
+#FFLAGS= -s real64 -fbackslash -fopenmp -e 0 -e I -g #-O2 -Ofast
 
 # --- Nvidia
 #nvfortran
-#FFLAGS=  -gpu=mem:managed -Minfo -Mnovect -mp=gpu -r8 -Mbackslash -march=native -Mcray=pointer
+FFLAGS=  -gpu=mem:managed -Minfo -mp=gpu -r8 -Mbackslash -march=native -Mcray=pointer -Ofast
 
 # --- AMD
 # AMD flang ? (GNU?)
@@ -52,7 +52,10 @@ FFLAGS= -s real64 -fbackslash -fopenmp -e 0 -e I -g #-O2 -Ofast
 #> Compiler wrapper
 
 # Check compiler wrapper with: $(F90) -craype-verbose <source file>  | tr " " "\n"
-F90=ftn  
+#F90=ftn  
+
+# --- Nvidia/Cirrus
+F90=mpifort
 
 all: $(EXECUTABLE)
 
