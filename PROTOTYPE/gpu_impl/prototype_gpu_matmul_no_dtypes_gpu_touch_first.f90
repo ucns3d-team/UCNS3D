@@ -207,7 +207,6 @@ program prototype
   real :: alpha, beta
   logical :: transa = .false.
 
-  logical :: writeout = .false.
   ! !!! s = l, num_stencils = ll unused, num_dof = idegfree, tot_stencils = stencil_local2
   integer :: i, j, k, s, m, num_dof, tot_stencils, num_stencils
 
@@ -302,6 +301,8 @@ program prototype
   allocate(invmat(1:num_dof, 1:num_neighbours, 1:stencil_local, 1:num_elems));
   allocate(matrix_1(1:num_neighbours, 1:num_vars, 1:stencil_local, 1:num_elems));
   allocate(sol(1:num_dof, 1:num_vars, 1:stencil_local, 1:num_elems));
+  
+  !$omp target teams distribute parallel do private(leftv,stencil_local)
   do i=1,num_elems
     do j=1,num_dof
       do k=1,num_neighbours
@@ -325,6 +326,7 @@ program prototype
       end do
     end do
   end do
+  !$omp end target teams distribute parallel do
 
   ! TIMEIT
   time_end = MPI_Wtime() - time_start
@@ -412,16 +414,14 @@ program prototype
 
   if (rank .eq. 0) then
 !$omp master
-    if(writeout) then
-        out_prefix = 'OUTPUT_Ne'
-        out_suffix = '.DAT'
-        output_filename =  out_prefix//trim(input_num_elems)//out_suffix
-        open(20, file=output_filename, form='formatted', status='new', action='write')
-        do i=1,num_elems
-                write(20,*) sol(:,:,:,i)
-        end do
-        close(20)
-    end if
+    out_prefix = 'OUTPUT_Ne'
+    out_suffix = '.DAT'
+    output_filename =  out_prefix//trim(input_num_elems)//out_suffix
+    open(20, file=output_filename, form='formatted', status='new', action='write')
+    do i=1,num_elems
+      write(20,*) sol(:,:,:,i)
+    end do
+    close(20)
 !$omp end master
 !$omp barrier
   end if

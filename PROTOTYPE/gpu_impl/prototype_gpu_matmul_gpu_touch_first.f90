@@ -207,7 +207,6 @@ program prototype
   real :: alpha, beta
   logical :: transa = .false.
 
-  logical :: writeout = .false.
   ! !!! s = l, num_stencils = ll unused, num_dof = idegfree, tot_stencils = stencil_local2
   integer :: i, j, k, s, m, num_dof, tot_stencils, num_stencils
 
@@ -244,13 +243,13 @@ program prototype
   integer :: device_num = 0
   !nbedit
 
-  !type local_recon3
+  type local_recon3
     integer :: local, mrf, g0
     real, allocatable, dimension(:) :: cond       ! dummy variable used for gradient approximation estimation 
     integer, allocatable, dimension(:,:) :: ihexg ! global index of cells
-    real, allocatable, dimension(:,:,:,:) :: invmat, sol, matrix_1  ! (var, dim, i_face)
-  !end type local_recon3
-  !type(local_recon3), allocatable, dimension(:) :: ilocal_recon3
+    real, allocatable, dimension(:,:,:) :: invmat, sol, matrix_1  ! (var, dim, i_face)
+  end type local_recon3
+  type(local_recon3), allocatable, dimension(:) :: ilocal_recon3
  
 !!$omp threadprivate(leftv,stencil_local)
 
@@ -286,30 +285,39 @@ program prototype
 !$omp end parallel 
 !$omp barrier
 
-  !allocate(ilocal_recon3(1:num_elems))
+  allocate(ilocal_recon3(1:num_elems))
 
   ! TIMEIT
   time_start = MPI_Wtime()
 
 
-
-    !if (i .lt. 500) then
-      stencil_local = 5
-    !else
-    !  stencil_local = 4
-    !end if
-
-  allocate(invmat(1:num_dof, 1:num_neighbours, 1:stencil_local, 1:num_elems));
-  allocate(matrix_1(1:num_neighbours, 1:num_vars, 1:stencil_local, 1:num_elems));
-  allocate(sol(1:num_dof, 1:num_vars, 1:stencil_local, 1:num_elems));
   do i=1,num_elems
+
+    if (i .lt. 500) then
+      stencil_local = 5
+    else
+      stencil_local = 4
+    end if
+
+    allocate(ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, 1:stencil_local));
+    allocate(ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, 1:stencil_local));
+    allocate(ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, 1:stencil_local));
+
+end do
+  !$omp target teams distribute parallel do private(leftv,stencil_local)
+do i=1,num_elems
+    if (i .lt. 500) then
+        stencil_local = 5
+      else
+        stencil_local = 4
+      end if
     do j=1,num_dof
       do k=1,num_neighbours
         do s=1,stencil_local
           r_j = j
           r_k = k
           r_s = s
-          invmat(j, k, s, i) = atan(r_j / r_k) * r_s
+          ilocal_recon3(i)%invmat(j, k, s) = atan(r_j / r_k) * r_s
         end do
       end do
     end do
@@ -320,11 +328,13 @@ program prototype
           r_j = j
           r_k = k
           r_s = s
-          matrix_1(j, k, s, i) = atan(r_j / r_k) * r_s
+          ilocal_recon3(i)%matrix_1(j, k, s) = atan(r_j / r_k) * r_s
         end do
       end do
     end do
   end do
+  !$omp end target teams distribute parallel do
+  
 
   ! TIMEIT
   time_end = MPI_Wtime() - time_start
@@ -339,10 +349,11 @@ program prototype
       do s=1,1
         i = 1
         write (*, '(a, i2, a, i2, a, i2, a, i2, a, f12.10)') 'I=', i, 'J=', j, ',K=', k,', S=', s, ',ILOCAL=', &
-                                                             matrix_1(j,k,s,i)
+                                                             ilocal_recon3(i)%matrix_1(j,k,s)
       end do
     end do
   end do
+
   
 !!$omp parallel default(shared)
 !!$omp do
@@ -384,7 +395,7 @@ program prototype
       !           beta, ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s), num_dof)
 
 
-      sol(1:num_dof, 1:num_vars, s, i) = matmul(invmat(1:num_dof, 1:num_neighbours, s, i), matrix_1(1:num_neighbours, 1:num_vars, s, i))
+      ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) = matmul(ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, s), ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, s))
 
       ! TODO:NOTE this is to fill solution matrix with non-zero entries 
       !ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) = ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) + i * 2
@@ -412,16 +423,14 @@ program prototype
 
   if (rank .eq. 0) then
 !$omp master
-    if(writeout) then
-        out_prefix = 'OUTPUT_Ne'
-        out_suffix = '.DAT'
-        output_filename =  out_prefix//trim(input_num_elems)//out_suffix
-        open(20, file=output_filename, form='formatted', status='new', action='write')
-        do i=1,num_elems
-                write(20,*) sol(:,:,:,i)
-        end do
-        close(20)
-    end if
+    out_prefix = 'OUTPUT_Ne'
+    out_suffix = '.DAT'
+    output_filename =  out_prefix//trim(input_num_elems)//out_suffix
+    open(20, file=output_filename, form='formatted', status='new', action='write')
+    do i=1,num_elems
+      write(20,*)ilocal_recon3(i)%sol(:,:,:)
+    end do
+    close(20)
 !$omp end master
 !$omp barrier
   end if

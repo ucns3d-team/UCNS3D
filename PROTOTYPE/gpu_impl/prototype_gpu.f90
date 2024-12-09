@@ -206,6 +206,8 @@ program prototype
 
   real :: alpha, beta
   logical :: transa = .false.
+  
+  logical :: writeout = .false.
 
   ! !!! s = l, num_stencils = ll unused, num_dof = idegfree, tot_stencils = stencil_local2
   integer :: i, j, k, s, m, num_dof, tot_stencils, num_stencils
@@ -408,14 +410,16 @@ program prototype
 
   if (rank .eq. 0) then
 !$omp master
-    out_prefix = 'OUTPUT_Ne'
-    out_suffix = '.DAT'
-    output_filename =  out_prefix//trim(input_num_elems)//out_suffix
-    open(20, file=output_filename, form='formatted', status='new', action='write')
-    do i=1,num_elems
-      write(20,*)ilocal_recon3(i)%sol(:,:,:)
-    end do
-    close(20)
+    if(writeout) then
+        out_prefix = 'OUTPUT_Ne'
+        out_suffix = '.DAT'
+        output_filename =  out_prefix//trim(input_num_elems)//out_suffix
+        open(20, file=output_filename, form='formatted', status='new', action='write')
+        do i=1,num_elems
+                write(20,*)ilocal_recon3(i)%sol(:,:,:)
+        end do
+        close(20)
+    end if
 !$omp end master
 !$omp barrier
   end if

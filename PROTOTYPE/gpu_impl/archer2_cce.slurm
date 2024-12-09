@@ -49,20 +49,16 @@ export OMP_NUM_THREADS=1
 export OMP_PLACES=cores
 
 # enable unified memory management
-#export CRAY_ACC_USE_UNIFIED_MEM=1
-#export HSA_XNACK=1
+export CRAY_ACC_USE_UNIFIED_MEM=1
+export HSA_XNACK=1
 
-# ! TODO: add WORK_DIR
-WORK_DIR=/work/ecseak03/ecseak03/nbak03/PROTOTYPE
-PROJECT_DIR=$WORK_DIR/UCNS3D/PROTOTYPE/gpu_impl
-EXECUTABLE=test
-PATH_TO_EXECUTABLE=$PROJECT_DIR/$EXECUTABLE
+EXECUTABLE=prototype_gpu.x
 
 # Input parameters
-NUM_ELEMS=5000
+NUM_ELEMS=2000000
 
 # Check assigned GPU
 #srun --ntasks=1 rocm-smi
 
-srun --ntasks=1 --cpus-per-task=1 $PATH_TO_EXECUTABLE $NUM_ELEMS
+srun --ntasks=1 --cpus-per-task=1 $EXECUTABLE $NUM_ELEMS
 #--hint=nomultithread --distribution=block:block
