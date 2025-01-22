@@ -116,15 +116,13 @@ Focus on pressure measurements at key stations:
 - r/R = 93% (pressure sensor location))
 
 <p align="center">
-<img width="912" height="811" src="results/psp_medium_Cp_rr_093
-.pdf">
+<img width="912" height="811" src="results/psp_medium_Cp_rr_093.pdf">
 </p>
 #- r/R = 99% (pressure sensor location)
 - r/R = 93% (pressure sensor location))
 
 <p align="center">
-<img width="912" height="811" src="results/psp_medium_Cp_rr_099
-.pdf">
+<img width="912" height="811" src="results/psp_medium_Cp_rr_099.pdf">
 </p>
 
 
