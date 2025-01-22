@@ -149,7 +149,7 @@ Compare results with experimental data from:
 ## 6. References
 
 1. PSP Rotor Workshop documentation
-2. Original NASA/ADD design documentation
+2. Original NASA design documentation
 3. Experimental validation datasets
 
 By following this tutorial, you should be able to set up and run a simulation of the PSP rotor using UCNS3D with the Multiple Reference Frame approach and periodic boundary conditions.
