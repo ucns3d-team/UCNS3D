@@ -1,0 +1,703 @@
+#!MC 1410
+$!VarSet |LFDSRN1| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL1| = ''
+$!VarSet |LFDSFN1| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/FoMxCt.txt" "I1" "D,"'
+$!VarSet |LFDSRN2| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL2| = '"ct/sigma" "FoM" "Cq/sigma"'
+$!VarSet |LFDSFN2| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/M_MUSCL2.txt" "I1" "D,"'
+$!VarSet |LFDSRN3| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL3| = '"ct/sigma" "FoM" "Cq/sigma"'
+$!VarSet |LFDSFN3| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/M_MUSCL3.txt" "I1" "D,"'
+$!VarSet |LFDSRN4| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL4| = '"ct/sigma" "FoM" "Cq/sigma"'
+$!VarSet |LFDSFN4| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/M_MUSCL4.txt" "I1" "D,"'
+$!VarSet |LFDSRN5| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL5| = '"ct/sigma" "FoM" "Cq/sigma"'
+$!VarSet |LFDSFN5| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/M_WENO3.txt" "I1" "D,"'
+$!VarSet |LFDSRN6| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL6| = '"ct/sigma" "FoM" "Cq/sigma"'
+$!VarSet |LFDSFN6| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/M_WENO4.txt" "I1" "D,"'
+$!VarSet |LFDSRN7| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL7| = '"ct/sigma" "FoM" "Cq/sigma";"Cq"'
+$!VarSet |LFDSFN7| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/CqxCt.txt" "I1" "D,"'
+$!VarSet |LFDSRN8| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL8| = '"ct/sigma" "FoM" "Cq/sigma";"Cq"'
+$!VarSet |LFDSFN8| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/CqxCt.txt" "I1" "D,"'
+$!VarSet |LFDSRN9| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL9| = '"ct/sigma" "FoM" "Cq/sigma;Cq" "Cq/sigma"'
+$!VarSet |LFDSFN9| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/CqxCt.txt" "I1" "D,"'
+$!VarSet |LFDSRN10| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL10| = '"ct/sigma" "FoM" "Cq/sigma;Cq" "Cq/sigma"'
+$!VarSet |LFDSFN10| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/C_MUSCL2.txt" "I1" "D,"'
+$!VarSet |LFDSRN11| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL11| = '"ct/sigma" "FoM" "Cq/sigma;Cq" "Cq/sigma"'
+$!VarSet |LFDSFN11| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/C_MUSCL3.txt" "I1" "D,"'
+$!VarSet |LFDSRN12| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL12| = '"ct/sigma" "FoM" "Cq/sigma;Cq" "Cq/sigma"'
+$!VarSet |LFDSFN12| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/C_MUSCL4.txt" "I1" "D,"'
+$!VarSet |LFDSRN13| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL13| = '"ct/sigma" "FoM" "Cq/sigma;Cq" "Cq/sigma"'
+$!VarSet |LFDSFN13| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/C_WENO3.txt" "I1" "D,"'
+$!VarSet |LFDSRN14| = 'Text Spreadsheet Loader'
+$!VarSet |LFDSVL14| = '"ct/sigma" "FoM" "Cq/sigma;Cq" "Cq/sigma"'
+$!VarSet |LFDSFN14| = '"M" "F/media/strobel/Data/Dropbox/test_cases/psp/PSP_PERIODIC/data/C_WENO4.txt" "I1" "D,"'
+$!SETSTYLEBASE FACTORY
+$!PLOTOPTIONS 
+  SUBDIVIDEALLCELLS = NO
+$!GLOBALPAPER 
+  PAPERSIZEINFO
+    {
+    LETTER
+      {
+      WIDTH = 8.5
+      HEIGHT = 11
+      LEFTHARDCLIPOFFSET = 0.125
+      RIGHTHARDCLIPOFFSET = 0.125
+      TOPHARDCLIPOFFSET = 0.125
+      BOTTOMHARDCLIPOFFSET = 0.125
+      }
+    A4
+      {
+      WIDTH = 8.2677
+      HEIGHT = 11.693
+      }
+    }
+$!PAGE 
+  NAME = 'Untitled'
+  PAPERATTRIBUTES
+    {
+    BACKGROUNDCOLOR = WHITE
+    ISTRANSPARENT = YES
+    ORIENTPORTRAIT = NO
+    SHOWGRID = YES
+    SHOWRULER = NO
+    SHOWPAPER = NO
+    PAPERSIZE = LETTER
+    RULERSPACING = ONEINCH
+    PAPERGRIDSPACING = HALFINCH
+    REGIONINWORKAREA
+      {
+      X1 = 1
+      Y1 = 0.25
+      X2 = 10
+      Y2 = 8.25
+      }
+    }
+### Frame Number 1 ###
+$!READDATASET  '|LFDSFN1|'
+  DATASETREADER = '|LFDSRN1|'
+  VARNAMELIST = '|LFDSVL1|'
+  INITIALPLOTTYPE = XYLINE
+$!REMOVEVAR |LFDSRN1|
+$!REMOVEVAR |LFDSVL1|
+$!REMOVEVAR |LFDSFN1|
+$!READDATASET  '|LFDSFN2|'
+  DATASETREADER = '|LFDSRN2|'
+  VARNAMELIST = '|LFDSVL2|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN2|
+$!REMOVEVAR |LFDSVL2|
+$!REMOVEVAR |LFDSFN2|
+$!RENAMEDATASETZONE 
+  ZONE = 2
+  NAME = 'Zone 1'
+$!RENAMEDATASETZONE 
+  ZONE = 1
+  NAME = 'Experimentaç'
+$!RENAMEDATASETZONE 
+  ZONE = 2
+  NAME = 'Zone 1'
+$!RENAMEDATASETZONE 
+  ZONE = 1
+  NAME = 'Experimental'
+$!RENAMEDATASETZONE 
+  ZONE = 2
+  NAME = 'MUSCL2'
+$!READDATASET  '|LFDSFN3|'
+  DATASETREADER = '|LFDSRN3|'
+  VARNAMELIST = '|LFDSVL3|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN3|
+$!REMOVEVAR |LFDSVL3|
+$!REMOVEVAR |LFDSFN3|
+$!RENAMEDATASETZONE 
+  ZONE = 3
+  NAME = 'MUSCL3'
+$!READDATASET  '|LFDSFN4|'
+  DATASETREADER = '|LFDSRN4|'
+  VARNAMELIST = '|LFDSVL4|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN4|
+$!REMOVEVAR |LFDSVL4|
+$!REMOVEVAR |LFDSFN4|
+$!RENAMEDATASETZONE 
+  ZONE = 4
+  NAME = 'MUSCL4'
+$!READDATASET  '|LFDSFN5|'
+  DATASETREADER = '|LFDSRN5|'
+  VARNAMELIST = '|LFDSVL5|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN5|
+$!REMOVEVAR |LFDSVL5|
+$!REMOVEVAR |LFDSFN5|
+$!RENAMEDATASETZONE 
+  ZONE = 5
+  NAME = 'WENO3'
+$!READDATASET  '|LFDSFN6|'
+  DATASETREADER = '|LFDSRN6|'
+  VARNAMELIST = '|LFDSVL6|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN6|
+$!REMOVEVAR |LFDSVL6|
+$!REMOVEVAR |LFDSFN6|
+$!RENAMEDATASETZONE 
+  ZONE = 6
+  NAME = 'WENO4'
+$!READDATASET  '|LFDSFN7|'
+  DATASETREADER = '|LFDSRN7|'
+  VARNAMELIST = '|LFDSVL7|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN7|
+$!REMOVEVAR |LFDSVL7|
+$!REMOVEVAR |LFDSFN7|
+$!DELETEZONES  [7]
+$!READDATASET  '|LFDSFN8|'
+  DATASETREADER = '|LFDSRN8|'
+  VARNAMELIST = '|LFDSVL8|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN8|
+$!REMOVEVAR |LFDSVL8|
+$!REMOVEVAR |LFDSFN8|
+$!RENAMEDATASETZONE 
+  ZONE = 7
+  NAME = 'Experimental_Cq'
+$!RENAMEDATASETVAR 
+  VAR = 3
+  NAME = 'Cq/sigma;Cq'
+$!DELETEZONES  [7]
+$!READDATASET  '|LFDSFN9|'
+  DATASETREADER = '|LFDSRN9|'
+  VARNAMELIST = '|LFDSVL9|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN9|
+$!REMOVEVAR |LFDSVL9|
+$!REMOVEVAR |LFDSFN9|
+$!RENAMEDATASETZONE 
+  ZONE = 7
+  NAME = 'experimental Cq'
+$!READDATASET  '|LFDSFN10|'
+  DATASETREADER = '|LFDSRN10|'
+  VARNAMELIST = '|LFDSVL10|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN10|
+$!REMOVEVAR |LFDSVL10|
+$!REMOVEVAR |LFDSFN10|
+$!RENAMEDATASETZONE 
+  ZONE = 8
+  NAME = 'MUSCL2'
+$!RENAMEDATASETZONE 
+  ZONE = 2
+  NAME = 'MUSCL2 (7M)'
+$!RENAMEDATASETZONE 
+  ZONE = 3
+  NAME = 'MUSCL3 (7M)'
+$!RENAMEDATASETZONE 
+  ZONE = 4
+  NAME = 'MUSCL4 (7M)'
+$!RENAMEDATASETZONE 
+  ZONE = 5
+  NAME = 'WENO3 (7M)'
+$!RENAMEDATASETZONE 
+  ZONE = 6
+  NAME = 'WENO4 (7M)'
+$!RENAMEDATASETZONE 
+  ZONE = 7
+  NAME = 'experimental Cq'
+$!RENAMEDATASETZONE 
+  ZONE = 8
+  NAME = 'MUSCL2 (7M)'
+$!RENAMEDATASETZONE 
+  ZONE = 8
+  NAME = 'MUSCL2 (2.5M)'
+$!READDATASET  '|LFDSFN11|'
+  DATASETREADER = '|LFDSRN11|'
+  VARNAMELIST = '|LFDSVL11|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN11|
+$!REMOVEVAR |LFDSVL11|
+$!REMOVEVAR |LFDSFN11|
+$!RENAMEDATASETZONE 
+  ZONE = 9
+  NAME = 'MUSCL3 (2.5M)'
+$!READDATASET  '|LFDSFN12|'
+  DATASETREADER = '|LFDSRN12|'
+  VARNAMELIST = '|LFDSVL12|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN12|
+$!REMOVEVAR |LFDSVL12|
+$!REMOVEVAR |LFDSFN12|
+$!RENAMEDATASETZONE 
+  ZONE = 10
+  NAME = 'MUSCL4 (2.5M)'
+$!READDATASET  '|LFDSFN13|'
+  DATASETREADER = '|LFDSRN13|'
+  VARNAMELIST = '|LFDSVL13|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN13|
+$!REMOVEVAR |LFDSVL13|
+$!REMOVEVAR |LFDSFN13|
+$!RENAMEDATASETZONE 
+  ZONE = 11
+  NAME = 'WENO3 (2.5M)'
+$!READDATASET  '|LFDSFN14|'
+  DATASETREADER = '|LFDSRN14|'
+  VARNAMELIST = '|LFDSVL14|'
+  READDATAOPTION = APPEND
+  INITIALPLOTTYPE = XYLINE
+  RESETSTYLE = NO
+$!REMOVEVAR |LFDSRN14|
+$!REMOVEVAR |LFDSVL14|
+$!REMOVEVAR |LFDSFN14|
+$!RENAMEDATASETZONE 
+  ZONE = 12
+  NAME = 'WENO4 (2.5M)'
+$!FRAMELAYOUT 
+  SHOWHEADER = NO
+  HEADERCOLOR = RED
+  XYPOS
+    {
+    X = 1
+    Y = 0.25
+    }
+  WIDTH = 9
+  HEIGHT = 8
+$!THREEDAXIS 
+  ASPECTRATIOLIMIT = 25
+  BOXASPECTRATIOLIMIT = 25
+$!PLOTTYPE  = XYLINE
+$!FRAMENAME  = 'Frame 001'
+$!GLOBALTIME 
+  SOLUTIONTIME = 0
+$!DELETELINEMAPS 
+$!ACTIVELINEMAPS  =  [1-11]
+$!GLOBALLINEPLOT 
+  DATALABELS
+    {
+    DISTANCESKIP = 5
+    }
+  LEGEND
+    {
+    SHOW = YES
+    BOX
+      {
+      BOXTYPE = NONE
+      }
+    XYPOS
+      {
+      X = 82.889
+      Y = 61.729
+      }
+    }
+$!LINEMAP  [1]
+  NAME = '&ZN&'
+  ASSIGN
+    {
+    ZONE = 2
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    SHOW = NO
+    COLOR = GREEN
+    }
+  SYMBOLS
+    {
+    SYMBOLSHAPE
+      {
+      GEOMSHAPE = RTRI
+      }
+    COLOR = GREEN
+    FILLCOLOR = GREEN
+    LINETHICKNESS = 0.4
+    }
+  BARCHARTS
+    {
+    COLOR = GREEN
+    FILLCOLOR = GREEN
+    }
+  ERRORBARS
+    {
+    COLOR = GREEN
+    }
+$!LINEMAP  [2]
+  NAME = '&ZN&'
+  ASSIGN
+    {
+    ZONE = 3
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    SHOW = NO
+    COLOR = BLUE
+    }
+  SYMBOLS
+    {
+    SYMBOLSHAPE
+      {
+      GEOMSHAPE = GRAD
+      }
+    COLOR = GREEN
+    FILLCOLOR = BLUE
+    LINETHICKNESS = 0.4
+    }
+  BARCHARTS
+    {
+    COLOR = BLUE
+    FILLCOLOR = BLUE
+    }
+  ERRORBARS
+    {
+    COLOR = BLUE
+    }
+$!LINEMAP  [3]
+  NAME = '&ZN&'
+  ASSIGN
+    {
+    ZONE = 4
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    SHOW = NO
+    COLOR = CUSTOM1
+    }
+  SYMBOLS
+    {
+    SYMBOLSHAPE
+      {
+      GEOMSHAPE = DIAMOND
+      }
+    COLOR = GREEN
+    FILLCOLOR = CUSTOM1
+    LINETHICKNESS = 0.4
+    }
+  BARCHARTS
+    {
+    COLOR = CUSTOM1
+    FILLCOLOR = CUSTOM1
+    }
+  ERRORBARS
+    {
+    COLOR = CUSTOM1
+    }
+$!LINEMAP  [4]
+  NAME = '&ZN&'
+  ASSIGN
+    {
+    ZONE = 5
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    SHOW = NO
+    COLOR = CUSTOM3
+    }
+  SYMBOLS
+    {
+    SYMBOLSHAPE
+      {
+      GEOMSHAPE = CIRCLE
+      }
+    COLOR = GREEN
+    FILLCOLOR = CUSTOM3
+    LINETHICKNESS = 0.4
+    }
+  BARCHARTS
+    {
+    COLOR = CUSTOM3
+    FILLCOLOR = CUSTOM3
+    }
+  ERRORBARS
+    {
+    COLOR = CUSTOM3
+    }
+$!LINEMAP  [5]
+  NAME = '&ZN&'
+  ASSIGN
+    {
+    ZONE = 6
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    SHOW = NO
+    COLOR = PURPLE
+    }
+  SYMBOLS
+    {
+    COLOR = GREEN
+    FILLCOLOR = PURPLE
+    LINETHICKNESS = 0.4
+    }
+  BARCHARTS
+    {
+    COLOR = PURPLE
+    FILLCOLOR = PURPLE
+    }
+  ERRORBARS
+    {
+    COLOR = PURPLE
+    }
+$!LINEMAP  [6]
+  NAME = 'Experimental'
+  ASSIGN
+    {
+    ZONE = 1
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    COLOR = BLACK
+    }
+  CURVES
+    {
+    CURVETYPE = POLYNOMIALFIT
+    }
+  SYMBOLS
+    {
+    COLOR = BLACK
+    FILLCOLOR = PURPLE
+    }
+  BARCHARTS
+    {
+    COLOR = PURPLE
+    FILLCOLOR = PURPLE
+    }
+  ERRORBARS
+    {
+    COLOR = PURPLE
+    }
+$!LINEMAP  [7]
+  NAME = 'MUSCL2 (2.5M)'
+  ASSIGN
+    {
+    ZONE = 8
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    SHOW = NO
+    COLOR = RED
+    }
+  SYMBOLS
+    {
+    SYMBOLSHAPE
+      {
+      GEOMSHAPE = RTRI
+      }
+    COLOR = BLUE
+    FILLCOLOR = RED
+    LINETHICKNESS = 0.4
+    }
+  BARCHARTS
+    {
+    COLOR = RED
+    FILLCOLOR = RED
+    }
+  ERRORBARS
+    {
+    COLOR = RED
+    }
+$!LINEMAP  [8]
+  NAME = '&ZN&'
+  ASSIGN
+    {
+    ZONE = 10
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    SHOW = NO
+    COLOR = BLUE
+    }
+  SYMBOLS
+    {
+    SYMBOLSHAPE
+      {
+      GEOMSHAPE = DIAMOND
+      }
+    COLOR = BLUE
+    FILLCOLOR = BLUE
+    LINETHICKNESS = 0.4
+    }
+  BARCHARTS
+    {
+    COLOR = BLUE
+    FILLCOLOR = BLUE
+    }
+  ERRORBARS
+    {
+    COLOR = BLUE
+    }
+$!LINEMAP  [9]
+  NAME = '&ZN&'
+  ASSIGN
+    {
+    ZONE = 11
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    SHOW = NO
+    COLOR = CUSTOM1
+    }
+  SYMBOLS
+    {
+    SYMBOLSHAPE
+      {
+      GEOMSHAPE = CIRCLE
+      }
+    COLOR = BLUE
+    FILLCOLOR = CUSTOM1
+    LINETHICKNESS = 0.4
+    }
+  BARCHARTS
+    {
+    COLOR = CUSTOM1
+    FILLCOLOR = CUSTOM1
+    }
+  ERRORBARS
+    {
+    COLOR = CUSTOM1
+    }
+$!LINEMAP  [10]
+  NAME = '&ZN&'
+  ASSIGN
+    {
+    ZONE = 12
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    SHOW = NO
+    COLOR = CUSTOM3
+    }
+  SYMBOLS
+    {
+    COLOR = BLUE
+    FILLCOLOR = CUSTOM3
+    LINETHICKNESS = 0.4
+    }
+  BARCHARTS
+    {
+    COLOR = CUSTOM3
+    FILLCOLOR = CUSTOM3
+    }
+  ERRORBARS
+    {
+    COLOR = CUSTOM3
+    }
+$!LINEMAP  [11]
+  NAME = '&ZN&'
+  ASSIGN
+    {
+    ZONE = 9
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    SHOW = NO
+    COLOR = GREEN
+    }
+  SYMBOLS
+    {
+    SYMBOLSHAPE
+      {
+      GEOMSHAPE = GRAD
+      }
+    COLOR = BLUE
+    FILLCOLOR = GREEN
+    LINETHICKNESS = 0.4
+    }
+  BARCHARTS
+    {
+    COLOR = GREEN
+    FILLCOLOR = GREEN
+    }
+  ERRORBARS
+    {
+    COLOR = GREEN
+    }
+$!XYLINEAXIS 
+  DEPXTOYRATIO = 1
+  VIEWPORTPOSITION
+    {
+    Y1 = 15.405
+    Y2 = 92.405
+    }
+  VIEWPORTTOPSNAPTARGET = 92.4045676998
+$!XYLINEAXIS 
+  XDETAIL 1
+    {
+    RANGEMIN = 0.008429908431074505798
+    RANGEMAX = 0.12539157925414007311
+    GRSPACING = 0.02
+    TITLE
+      {
+      TITLEMODE = USETEXT
+      TEXT = 'C<sub>t</sub>/<greek>s</greek>'
+      }
+    }
+$!XYLINEAXIS 
+  YDETAIL 1
+    {
+    RANGEMIN = -0.21394899506725700844
+    RANGEMAX = 0.96758914886272961997
+    GRSPACING = 0.2
+    TITLE
+      {
+      TITLEMODE = USETEXT
+      TEXT = 'FoM'
+      }
+    }
+$!LINEPLOTLAYERS 
+  SHOWSYMBOLS = YES
+$!FRAMECONTROL ACTIVATEBYNUMBER
+  FRAME = 1
+$!SETSTYLEBASE CONFIG
