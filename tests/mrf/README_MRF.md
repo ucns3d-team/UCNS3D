@@ -206,7 +206,7 @@ The test cases consists of four helicopter cases:
 * Caradonna and Tung (out of ground effect): The mesh files and results of the test case from section 4 used on the publication ["Hovering rotor solutions by high-order methods on unstructured grids"](https://doi.org/10.1016/j.ast.2019.105648)  can be download [here](https://www.dropbox.com/scl/fi/x8d8u60p5z1kjde7mzsy9/CARADONA_8degrees_NS_MRF_Z_refined2.cas?rlkey=en29wpjda40q088royqy1k1aj&st=0ag63fat&dl=0).
 
 <p align="center">
-<img width="1000" height="500" src="caradonna_test/results/Caradona_OGE_all_orders.pn">
+<img width="1000" height="500" src="caradonna_test/Results/Caradona_OGE_all_orders.PNG">
 </p>
 
 
@@ -220,7 +220,7 @@ The test cases consists of four helicopter cases:
 
 
 <p align="center">
-<img width="1000" height="500" src="caradonna_test/results/caradona_IGE.png">
+<img width="1000" height="500" src="caradonna_test/Results/caradona_IGE.png">
 </p>
 
 * Paint Sensitive Pressure full-helicopter (with and without ground effect): The periodic mesh files and results of the test case from section 5 used on the publication ["Numerical Investigation of full helicopter with and without the ground effect"](https://doi.org/10.1016/j.ast.2022.107401)and the  Data underlying this study can be accessed through the [Cranfield University repository](https://doi.org/10.17862/cranfield.rd.
