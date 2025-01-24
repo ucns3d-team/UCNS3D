@@ -26,7 +26,7 @@ Key characteristics:
 
 You can download the mesh from [AIAA Rotorcraft Hover Prediction Workshop (HPW)](https://www.aiaa-hpw.org/file-share) and create your own compuational domain.
 
-Alternatively you can download [full helicopter pointwise](https://dspace.lib.cranfield.ac.uk/handle/1826/22474 ) or the [periodic mesh.](https://www.dropbox.com/scl/fi/sndjeqp3xdq6y0a827euy/grid.msh?rlkey=fy2fqykmasf31dmccc3vu6v8p&st=b4c07jgq&dl=0)
+Alternatively you can download [full helicopter pointwise](https://dspace.lib.cranfield.ac.uk/handle/1826/22474 ) or the [periodic mesh.](https://www.dropbox.com/scl/fi/0ir2jfyyoxagm93rawqkf/psp_periodic.rar?rlkey=p4prk6w072qia77f24naukm9p&st=d0xjsq7x&dl=0)
 
 
 Required files in working directory:
@@ -36,6 +36,22 @@ Required files in working directory:
 <img width="912" height="811" src="results/psp_mesh.png">
 </p>
 
+
+Alternatively you can create the blade geometry and mesh based on tje blade sections according to Table 1:
+
+```
+r/R     Twist(deg)  Chord(in)  Sweep(Deg)  Airfoil
+0.12    8.2         5.45       0           -
+0.17    8.2         5.45       0           RC(4)-12
+0.25    7.01        5.45       0           RC(4)-12
+0.65    1.4         5.45       0           RC(4)-12
+0.70    0.7         5.45       0           RC(4)-10
+0.80    -0.7        5.45       0           RC(4)-10
+0.85    -1.4        5.45       0           RC(6)-8
+0.95    -2.8        5.45       0           RC(6)-8
+1.00    -3.5        3.27       30          RC(6)-8
+
+```
 ### 2.2 ROTFRAME.dat File
 
 Create a file named `ROTFRAME.dat` with the following content for periodic simulation:
@@ -56,27 +72,9 @@ Create a file named `ROTFRAME.dat` with the following content for periodic simul
 2.0 120.427       !MRF Radius - MRF Rotational velocity (rad/s)
 ```
 
-### 2.3 Planform Definition
-
-Create a file to define the blade sections according to Table 1:
-
-```
-r/R     Twist(deg)  Chord(in)  Sweep(Deg)  Airfoil
-0.12    8.2         5.45       0           -
-0.17    8.2         5.45       0           RC(4)-12
-0.25    7.01        5.45       0           RC(4)-12
-0.65    1.4         5.45       0           RC(4)-12
-0.70    0.7         5.45       0           RC(4)-10
-0.80    -0.7        5.45       0           RC(4)-10
-0.85    -1.4        5.45       0           RC(6)-8
-0.95    -2.8        5.45       0           RC(6)-8
-1.00    -3.5        3.27       30          RC(6)-8
-```
-
 ### 2.4 UCNS3D Input File
 
-Create your main UCNS3D input file  with the following settings. Adjust the settings as needed for different simulation runs. For this coarse mesh we will deactivate the Turbulence as the mesh is coarse and with no Boundary layer.
-
+Create your main UCNS3D input file  with the following settings. Adjust the settings as needed for different simulation runs.
 ```
 ====================================================================================================================================================================================================|
 ----------------------------------------------------------------------------------------UCNS3D PARAMETERS-------------------------------------------------------------------------------------------|
@@ -89,10 +87,66 @@ EQUATIONS: |1: Navier-Stokes |2: Euler | 3: Linear-sinewave | 4: Linear-step  ||
 |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 TURBULENCE MODEL ACTIVATION:1:Active 0:Deactive   ||COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED  ||SCALAR TRANSPORT COMPUTATION (number of passive scalars [only output for the first one])
 0							0							0
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+====================================================================================================================================================================================================|
+---------------------------------------------------------------------------------------------CONDITIONS-----------------------------------------------------------------------------------------------|
+====================================================================================================================================================================================================|
+FREE-STREAM CONDITIONS
+Density ||\|| U-velocity||\||V-velocity ||\||W-velocity ||\||Pressure(if -1 then pressure=rho/gamma)
+ 1.2168		0.0		0.0		0.0		101325
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+Angle of Attack ||\|| WRT AXIS (XY-PLANE=(1 1 0),XZ-PLANE=(1 0 1))
+0.0			1.0     1.0       1.0
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+Gamma ||\||Prandtl Number ||\|| Reynolds Number ||\||Characteristic Length
+1.4	    0.72		 6000000			0.1905
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+====================================================================================================================================================================================================|
+-------------------------------------------------------------------------------------------DISCRETISATION-------------------------------------------------------------------------------------------|
+====================================================================================================================================================================================================|
+SCHEME:1:LINEAR 2:MUSCL-TVD 3:WENO||\||FLUX HLLC:1,RUSANOV:2,ROE:3||\|| SPATIAL ORDER: 1-7  ||\|| LIMITER TYPE: 1=MIN,2=BJ,3=MOGE,4=SB,5=VA,6=VL,7=VENKATA.. ||\||POLYNOMIAL: 1: Generic  2: Legendre
+2						1			    2					3								2
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+WENO RECONSTRUCTION: 1: CONSERVED 2: CHARACTERISTIC ||\|| STENCILS  ||\|| WEIGHT NORMALISATION ||\|| WENO CENTRAL WEIGHT (lamda)
+2								0				0					100000.0
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+TEMPORAL ORDER: |(1-4):RK1-RK4, 5: RK-LTS, 10: IMPLICIT BACKWARD EULER |11: IMPLICIT 2ND-ORDER ||\|| CFL ||\||DTS TIMESTEP SIZE ||\|| ITERATION (FOR DTS ONLY) ||\|| Residual THRESHOLD
+10												     15		0.00001			30				0.000001
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+BOUNDARY CONDITIONS: 0: Non-Periodic 1: Periodic ||\||  BOUNDARY CONDITIONS: 0: SUPERSONIC 1: SUBSONIC  ||\||  SCALING FACTOR:
+1							1							1.0
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+Gradients Approximation(All Least squares=0, Green Gauss=1)||\|| LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),
+			1						0
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+====================================================================================================================================================================================================|
+-------------------------------------------------------------------------------------------I/O OPERATIONS-------------------------------------------------------------------------------------------|
+====================================================================================================================================================================================================|
+TOTAL SIMULATION TIME SECONDS  ||\|| TOTAL NUMBER OF ITERATIONS ||\|| WALL CLOCK MAXIMUM TIME - REAL SECONDS:
+1.0					900000				600
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+TECPLOT:1(BIN),0(ASCII),PARAVIEW BIN:2 ||\|| WRITE OUTPUT RATE (SEC) ||\|| WRITE RESTART RATE(SEC) ||\|| WRITE AVERAGE OUTPUT RATE(SEC) ||\||PRINT THE STENCILS AT THE PROBE POSITION(0 NO, 1 YES)
+1				    	13200			200000				50000					0
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+AVERAGING (0-Disabled, 1-Enabled, computing mean and RMS) Only possible for Unsteady computations ||
+0
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+COMPUTE FORCES: 1: ACTIVE  0: DEACTIVE ||\|| FREQUENCY:HOW OFTEN IN ITERATIONS ||\|| Write shear stresses 1: enable 0: disable
+1	  					10					0
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+SIMULATION AVAILABLE: TURBULENT (PREVIOUS YES=1,0=NO)||\|| TYPE (UNSTEADY YES=1,0=STEADY)||\|| PASSIVE (PREVIOUS YES=1,0=NO) ||\|| PREVIOUS TURBULENCE MODEL (SA=1, K-OMEGA=2)
+1								0				0					1
+====================================================================================================================================================================================================|
+====================================================================================================================================================================================================|
+PROBES-----------------------------------------------------------------------------------------------|
+====================================================================================================================================================================================================|
+!NUMBER OF PROBES!
+0				||NUMBER OF PROBE POSITIONS. They probe density, velocities and PS
+!COORDINATES
+0.50001    0.50001  	0.0		||PROBE POSITION #1
+
+
 ```
-
-
-
 ## 3. Running the Simulation
 
 1. Ensure all required files are in your working directory.
@@ -116,13 +170,14 @@ Focus on pressure measurements at key stations:
 - r/R = 93% (pressure sensor location))
 
 <p align="center">
-<img width="912" height="811" src="results/psp_medium_Cp_rr_093.pdf">
+<img width="912" height="811" src="results/psp_medium_Cp_rr_093.png">
 </p>
 #- r/R = 99% (pressure sensor location)
 - r/R = 93% (pressure sensor location))
 
 <p align="center">
-<img width="912" height="811" src="results/psp_medium_Cp_rr_099.pdf">
+<img width="912" height="811" src="results/psp_medium_Cp_rr_099
+.png">
 </p>
 
 
@@ -135,7 +190,7 @@ Calculate and compare:
 - Blade loading distribution
 
 <p align="center">
-<img width="912" height="811" src="results/FoMxCt.pdf">
+<img width="912" height="811" src="results/FoMxCt.png">
 </p>
 
 ## 5. Validation Data
@@ -149,7 +204,7 @@ Compare results with experimental data from:
 ## 6. References
 
 1. PSP Rotor Workshop documentation
-2. Original NASA design documentation
+2. Original NASA/ADD design documentation
 3. Experimental validation datasets
 
 By following this tutorial, you should be able to set up and run a simulation of the PSP rotor using UCNS3D with the Multiple Reference Frame approach and periodic boundary conditions.

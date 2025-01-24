@@ -61,7 +61,7 @@ This configuration sets up a Multiple Reference Frame simulation with one rotor.
 
 ### 2.3 UCNS3D Input File
 
-Create your main UCNS3D input file (e.g., `input.dat`) with the following settings. Adjust the settings as needed for different simulation runs. For this coarse mesh we will deactivate the Turbulence as the mesh is coarse and with no Boundary layer.
+Create your main UCNS3D input file  with the following settings. Adjust the settings as needed for different simulation runs. For this coarse mesh we will deactivate the Turbulence as the mesh is coarse and with no Boundary layer.
 
 ```
 ====================================================================================================================================================================================================|
@@ -150,3 +150,54 @@ In tecplot:
 - Investigate the formation of the ground vortex in IGE cases.
 
 By following this tutorial, you should be able to set up, run, and analyze comprehensive simulations of the Caradonna and Tung rotor in both out-of-ground effect conditions using the UCNS3D solver with the Multiple Reference Frame approach.
+
+## 7. Data Availability and Citations
+
+### 7.1 Available Resources
+
+#### Experimental Data
+- **Original Caradonna and Tung Data (1981)**
+  - Pressure coefficients at different radial stations
+  - Available from: [NASA Technical Memorandum 81232](https://ntrs.nasa.gov/api/citations/19820004169/downloads/19820004169.pdf)
+### Wake Refined Mesh:
+  - Available from: [case 4.2 on "Simple multiple reference frame for high-order solution of hovering
+rotors with and without ground effect"](https://www.dropbox.com/scl/fi/x8d8u60p5z1kjde7mzsy9/CARADONA_8degrees_NS_MRF_Z_refined2.cas?rlkey=en29wpjda40q088royqy1k1aj&st=quwkrqfv&dl=0)
+
+### 7.2 Key References
+
+When using this tutorial or referencing results, please cite the following key papers:
+
+1. **Original Experimental Work**
+```bibtex
+@techreport{caradonna1981experimental,
+  title={Experimental and Analytical Studies of a Model Helicopter Rotor in Hover},
+  author={Caradonna, F X and Tung, C},
+  year={1981},
+  institution={NASA},
+  number={NASA-TM-81232}
+}
+```
+
+2. **High-Order Method Implementation**
+```bibtex
+@article{silva2021simple,
+  title={Simple multiple reference frame for high-order solution of hovering rotors with and without ground effect},
+  author={Silva, Paulo A.S.F. and Tsoutsanis, Panagiotis and Antoniadis, Antonis F.},
+  journal={Aerospace Science and Technology},
+  year={2021},
+  publisher={Elsevier}
+}
+```
+
+3. **UCNS3D Solver**
+```bibtex
+@article{antoniadis2022ucns3d,
+  title={UCNS3D: An open-source high-order finite-volume unstructured CFD solver},
+  author={Antoniadis, Antonis F and Drikakis, Dimitris and Farmakis, Pericles S and Fu, Lin and Kokkinakis, Ioannis and Nogueira, Xes{\'u}s and Silva, Paulo ASF and Skote, Martin and Titarev, Vladimir and Tsoutsanis, Panagiotis},
+  journal={Computer Physics Communications},
+  volume={279},
+  pages={108453},
+  year={2022},
+  publisher={Elsevier}
+}
+```
