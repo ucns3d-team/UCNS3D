@@ -203,28 +203,33 @@ KMAXE=XMPIELRANK(N)
 		CALL CONS2PRIM(N)
                 AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
         IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
-        END IF
+        
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        IF(SRFG.EQ.1)THEN
-            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
         END IF
+	IF(SRFG.EQ.1)THEN
+            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+        
             VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
             SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
             SRF_SPEED=ZERO
             POY(1:3)=SRF_VELOCITY
             SRF=ILOCAL_RECON3(I)%MRF
-        IF(MRF.EQ.1)THEN
-            IF (SRF.EQ.0) THEN
-            ELSE
         END IF
-            END IF
-                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                SRF_SPEED=ZERO
-                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
-                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
-                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+	IF(MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (SRF.EQ.0) THEN
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            ELSE
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF
+        END IF
+
+
 		if (dg.eq.1)then
 		
 		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1))
@@ -2762,10 +2767,6 @@ IF (AVERAGING.EQ.1)THEN
  
 END IF
 
-IF (DG == 1 .AND. ALL(U_C(1)%VALDG(1,:,:) /= U_C(1)%VALDG(1,:,:))) THEN
-    IF (N == 0) PRINT*, 'STOPPING BECAUSE NaNs'
-    STOP ! Stop if NaNs
-END IF
 
 END SUBROUTINE RUNGE_KUTTA4_2D
 
