@@ -45686,6 +45686,8 @@ real::s
      case(11)
       s = 3.d0*xd1**2*yd1
      case(12)
+      s = 2.d0*xd1*yd1**2
+     case(13)
       s = yd1**3
      case(15) 
       s = 5.d0*xd1**4
@@ -45742,7 +45744,9 @@ real::s
       s = 3.d0*yd1**2
      case(11) 
       s = xd1**3
-     case(12) 
+     case(12)
+      s = 2.d0*xd1**2*yd1
+     case(13)
       s = 3.d0*xd1*yd1**2
      case(14) 
       s = 4.d0*yd1**3
@@ -45794,6 +45798,8 @@ real::s
       s = 12.d0*xd1**2
      case(  11  ) 
       s = 6.d0*xd1*yd1
+     case(12)
+      s = 2.d0*yd1**2
      case(  15  ) 
       s = 20.d0*xd1**3
      case(  16  ) 
@@ -45837,9 +45843,11 @@ real::s
       s = 2.d0*xd1
     case(9) 
       s = 6.d0*yd1
-    case(12) 
+    case(12)
+      s = 2.d0*xd1**2
+    case(13)
       s = 6.d0*xd1*yd1
-    case(14) 
+    case(14)
       s = 12.d0*yd1**2
     case(17) 
       s = 2.d0*xd1**3
@@ -45886,7 +45894,9 @@ real::s
       s = 2.d0*yd1
     case( 11 ) 
       s = 3.d0*xd1**2
-    case( 12 ) 
+    case(12)
+      s = 4.d0*xd1*yd1
+    case(13)
       s = 3.d0*yd1**2
     case( 16 ) 
       s = 4.d0*xd1**3
@@ -45964,6 +45974,8 @@ real::s
       s = 2.d0
      case(11) 
       s = 6.d0*xd1
+     case(12)
+      s = 4.d0*yd1
      case(16) 
       s = 12.d0*xd1**2
      case(17) 
@@ -45997,7 +46009,9 @@ real::s
 
      case( 8  ) 
       s = 2.d0
-     case( 12  ) 
+     case(12)
+      s = 4.d0*xd1
+    case(13)
       s = 6.d0*yd1
      case( 17  ) 
       s = 6.d0*xd1**2
@@ -46031,7 +46045,7 @@ real::s
    select case(NDERIVATIVE)
      case(  9  ) 
       s = 6.d0
-     case(  12  ) 
+     case(13)
       s = 6.d0*xd1
      case(  14  ) 
       s = 24.d0*yd1
@@ -46096,6 +46110,8 @@ real::s
    S=0.0D0
 
    select case(NDERIVATIVE)
+     case(11)
+      s = 6.d0
      case(16)
       s = 24.d0*xd1
      case(17)
@@ -46122,6 +46138,8 @@ real::s
 
    S=0.0D0
    select case(NDERIVATIVE)
+     case(12)
+      s = 4.d0
      case(17)
       s = 12.d0*xd1
      case(18)
