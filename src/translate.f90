@@ -95,7 +95,7 @@ TYPE(FACE_Number),ALLOCATABLE,DIMENSION(:)::IFAC
 Integer::ing2,jj,dimen,imaxe,imaxn,imaxb,dum,index10,zoneid,in1,dum1,bctypdum,iosx,ii,vrt1,vrt2,vrt3,vrt4,vct1,vct2,vct3,vct4,countb,eltype,ing,ibtr,nfin,icte
 Integer::lexist,checkbrac,dum2,dum3,dum4,ierr,il,il1,il2,ispace1,ispace2
 Integer :: countline,counto,countword,lengt,intsize,imaxnglobal,imaxeglobal,imin,imax,imaxfglobal,index1,ina,in2,ichen,iix,iiy,icountfc,corn,icorn
-integer,dimension(4)::nod,nodx,cans,cand,cane,cang,canh,iiz,canf
+integer,dimension(4)::nod,nodx,cans,xcand,cane,cang,canh,iiz,canf
 integer,allocatable,dimension(:),intent(inout):: interray
 integer,allocatable,dimension(:)::spaces,integerarray,ishape
 integer,allocatable,dimension(:,:)::ifaci,iface
@@ -828,10 +828,10 @@ Do i=1,imaxeglobal
 		  ing=ii
 
 
-		    cand(1)=vrt1
-		    cand(2)=vrt2
-		    cand(3)=vrt3
-		    cand(4)=vrt4
+		    xcand(1)=vrt1
+		    xcand(2)=vrt2
+		    xcand(3)=vrt3
+		    xcand(4)=vrt4
 
 
 		    cane(1)=vct1
@@ -848,7 +848,7 @@ Do i=1,imaxeglobal
 			  canf(3)=IELE(I)%FACEs(IIx,3)
 			  canf(4)=IELE(I)%FACEs(IIx,4)
 			do iiy=1,4
-			      if (canf(iiy).eq.cand(1))then
+			      if (canf(iiy).eq.xcand(1))then
 
 				icountfc=icountfc+1
 				    iiz(icountfc)=iix
@@ -880,9 +880,9 @@ Do i=1,imaxeglobal
 		      
 
 		    do iix=1,4
-			if (cang(iix).ne.cand(1))then
+			if (cang(iix).ne.xcand(1))then
 		      do iiy=1,4
-			  if (canh(iiy).ne.cand(1))then
+			  if (canh(iiy).ne.xcand(1))then
 			      if (cang(iix).eq.canh(iiy))then
 			      icorn=canh(iiy)
 
@@ -928,8 +928,8 @@ Do i=1,imaxeglobal
 		      end if
 
 		   
- 		  IF (BINIO.EQ.0)WRITE(10,"(9I10)")I,cand(1),cand(2),cand(3),cand(4),cans(1),cans(4),cans(3),cans(2)
-		  IF (BINIO.EQ.1)WRITE(10)I,cand(1),cand(2),cand(3),cand(4),cans(1),cans(4),cans(3),cans(2)
+ 		  IF (BINIO.EQ.0)WRITE(10,"(9I10)")I,xcand(1),xcand(2),xcand(3),xcand(4),cans(1),cans(4),cans(3),cans(2)
+		  IF (BINIO.EQ.1)WRITE(10)I,xcand(1),xcand(2),xcand(3),xcand(4),cans(1),cans(4),cans(3),cans(2)
 		cycle
 
 	    end if
@@ -1015,10 +1015,10 @@ Do i=1,imaxeglobal
 	     
 
 
-		    cand(1)=vrt1
-		    cand(2)=vrt2
-		    cand(3)=vrt3
- 		    cand(4)=0
+		    xcand(1)=vrt1
+		    xcand(2)=vrt2
+		    xcand(3)=vrt3
+ 		    xcand(4)=0
 
 
 		    cane(1)=vct1
@@ -1035,7 +1035,7 @@ Do i=1,imaxeglobal
 			  canf(3)=IELE(I)%FACEs(IIx,3)
 			  canf(4)=IELE(I)%FACEs(IIx,4)
 			do iiy=1,4
-			      if (canf(iiy).eq.cand(1))then
+			      if (canf(iiy).eq.xcand(1))then
 
 				icountfc=icountfc+1
 				    iiz(icountfc)=iix
@@ -1067,9 +1067,9 @@ Do i=1,imaxeglobal
 		      
 
 		    do iix=1,4
-			if (cang(iix).ne.cand(1))then
+			if (cang(iix).ne.xcand(1))then
 		      do iiy=1,4
-			  if (canh(iiy).ne.cand(1))then
+			  if (canh(iiy).ne.xcand(1))then
 			      if ((cang(iix).ne.0).and.(cang(iix).eq.canh(iiy)))then
 			      icorn=canh(iiy)
 
@@ -1150,8 +1150,8 @@ Do i=1,imaxeglobal
 
 
 
-   IF (BINIO.EQ.0)WRITE(10,"(9I10)")I,cand(1),cand(2),cand(3),cand(3),cans(1),cans(3),cans(2),cans(2)
-   IF (BINIO.EQ.1)WRITE(10)I,cand(1),cand(2),cand(3),cand(3),cans(1),cans(3),cans(2),cans(2)
+   IF (BINIO.EQ.0)WRITE(10,"(9I10)")I,xcand(1),xcand(2),xcand(3),xcand(3),cans(1),cans(3),cans(2),cans(2)
+   IF (BINIO.EQ.1)WRITE(10)I,xcand(1),xcand(2),xcand(3),xcand(3),cans(1),cans(3),cans(2),cans(2)
 
 		!WRITE(10,"(9I10)")I,VRT1,VRT2,VRT3,vrt3,VCT1,vct2,vct3,vct3
 !  		WRITE(10,"(9I10)")Icte,VRT1,VRT2,VRT3,vrt3,VCT2,vct1,vct3,vct3
@@ -1188,7 +1188,7 @@ do i=1,imaxfglobal
 	  case(7) !symmetry
 	  ibtr=3
 	
-	  case(8)!periodicity
+	  case(8,24,37)!periodicity	note that we use several codes
 	  ibtr=5
 
 	  case(3)  !wall

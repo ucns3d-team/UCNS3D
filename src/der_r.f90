@@ -6,9 +6,9 @@ IMPLICIT NONE
 CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -219,9 +219,9 @@ END FUNCTION DFX
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -432,9 +432,9 @@ END FUNCTION DFY
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -625,9 +625,9 @@ END FUNCTION DFZ
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -890,9 +890,9 @@ END FUNCTION DFX2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -1158,9 +1158,9 @@ END FUNCTION DFY2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -1426,9 +1426,9 @@ END FUNCTION DFZ2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXY(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXY(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -1694,9 +1694,9 @@ END FUNCTION DFXY
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFYZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFYZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -1962,9 +1962,9 @@ END FUNCTION DFYZ
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -2230,9 +2230,9 @@ END FUNCTION DFXZ
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -2496,9 +2496,9 @@ END FUNCTION DFX3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2Y(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -2762,9 +2762,9 @@ END FUNCTION DFX2Y
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXY2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXY2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -3028,9 +3028,9 @@ END FUNCTION DFXY2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -3294,9 +3294,9 @@ END FUNCTION DFY3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -3560,9 +3560,9 @@ END FUNCTION DFX2Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXYZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXYZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -3826,9 +3826,9 @@ END FUNCTION DFXYZ
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY2Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -4092,9 +4092,9 @@ END FUNCTION DFY2Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -4358,9 +4358,9 @@ END FUNCTION DFXZ2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFYZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFYZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -4624,9 +4624,9 @@ END FUNCTION DFYZ2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFZ3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -4890,9 +4890,9 @@ END FUNCTION DFZ3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -5156,9 +5156,9 @@ END FUNCTION DFX4
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX3Y(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX3Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -5423,9 +5423,9 @@ END FUNCTION DFX3Y
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2Y2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2Y2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -5690,9 +5690,9 @@ END FUNCTION DFX2Y2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXY3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXY3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -5957,9 +5957,9 @@ END FUNCTION DFXY3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -6224,9 +6224,9 @@ END FUNCTION DFY4
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX3Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -6491,9 +6491,9 @@ END FUNCTION DFX3Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2YZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2YZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -6758,9 +6758,9 @@ END FUNCTION DFX2YZ
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXY2Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXY2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -7025,9 +7025,9 @@ END FUNCTION DFXY2Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY3Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -7292,9 +7292,9 @@ END FUNCTION DFY3Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -7559,9 +7559,9 @@ END FUNCTION DFX2Z2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXYZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXYZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -7826,9 +7826,9 @@ END FUNCTION DFXYZ2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -8093,9 +8093,9 @@ END FUNCTION DFY2Z2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXZ3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -8359,9 +8359,9 @@ END FUNCTION DFXZ3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFYZ3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFYZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -8625,9 +8625,9 @@ END FUNCTION DFYZ3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFZ4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -8891,9 +8891,9 @@ END FUNCTION DFZ4
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -9157,9 +9157,9 @@ END FUNCTION DFX5
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX4Y(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX4Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -9423,9 +9423,9 @@ END FUNCTION DFX4Y
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX3Y2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX3Y2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -9689,9 +9689,9 @@ END FUNCTION DFX3Y2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2Y3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2Y3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -9955,9 +9955,9 @@ END FUNCTION DFX2Y3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXY4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXY4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -10221,9 +10221,9 @@ END FUNCTION DFXY4
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -10487,9 +10487,9 @@ END FUNCTION DFY5
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX4Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX4Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -10753,9 +10753,9 @@ END FUNCTION DFX4Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX3YZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX3YZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -11019,9 +11019,9 @@ END FUNCTION DFX3YZ
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2Y2Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2Y2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -11285,9 +11285,9 @@ END FUNCTION DFX2Y2Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXY3Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXY3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -11551,9 +11551,9 @@ END FUNCTION DFXY3Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY4Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY4Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -11817,9 +11817,9 @@ END FUNCTION DFY4Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX3Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX3Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -12083,9 +12083,9 @@ END FUNCTION DFX3Z2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2YZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2YZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -12349,9 +12349,9 @@ END FUNCTION DFX2YZ2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXY2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXY2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -12615,9 +12615,9 @@ END FUNCTION DFXY2Z2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY3Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY3Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -12881,9 +12881,9 @@ END FUNCTION DFY3Z2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2Z3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -13147,9 +13147,9 @@ END FUNCTION DFX2Z3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXYZ3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXYZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -13413,9 +13413,9 @@ END FUNCTION DFXYZ3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY2Z3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY2Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -13679,9 +13679,9 @@ END FUNCTION DFY2Z3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXZ4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -13945,9 +13945,9 @@ END FUNCTION DFXZ4
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFYZ4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFYZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -14211,9 +14211,9 @@ END FUNCTION DFYZ4
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFZ5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFZ5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -14478,9 +14478,9 @@ END FUNCTION DFZ5
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX6(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX6(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -14744,9 +14744,9 @@ END FUNCTION DFX6
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX5Y(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX5Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -15010,9 +15010,9 @@ END FUNCTION DFX5Y
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX4Y2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX4Y2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -15276,9 +15276,9 @@ END FUNCTION DFX4Y2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX3Y3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX3Y3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -15542,9 +15542,9 @@ END FUNCTION DFX3Y3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2Y4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2Y4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -15808,9 +15808,9 @@ END FUNCTION DFX2Y4
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXY5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXY5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -16074,9 +16074,9 @@ END FUNCTION DFXY5
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY6(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY6(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -16340,9 +16340,9 @@ END FUNCTION DFY6
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX5Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX5Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -16606,9 +16606,9 @@ END FUNCTION DFX5Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX4YZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX4YZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -16872,9 +16872,9 @@ END FUNCTION DFX4YZ
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX3Y2Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX3Y2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -17138,9 +17138,9 @@ END FUNCTION DFX3Y2Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2Y3Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2Y3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -17404,9 +17404,9 @@ END FUNCTION DFX2Y3Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXY4Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXY4Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -17670,9 +17670,9 @@ END FUNCTION DFXY4Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY5Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY5Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -17936,9 +17936,9 @@ END FUNCTION DFY5Z
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX4Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX4Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -18202,9 +18202,9 @@ END FUNCTION DFX4Z2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX3YZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX3YZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -18468,9 +18468,9 @@ END FUNCTION DFX3YZ2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2Y2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2Y2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -18734,9 +18734,9 @@ END FUNCTION DFX2Y2Z2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXY3Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXY3Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -19000,9 +19000,9 @@ END FUNCTION DFXY3Z2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY4Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY4Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -19266,9 +19266,9 @@ END FUNCTION DFY4Z2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX3Z3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX3Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -19532,9 +19532,9 @@ END FUNCTION DFX3Z3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2YZ3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2YZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -19798,9 +19798,9 @@ END FUNCTION DFX2YZ3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXY2Z3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXY2Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -20064,9 +20064,9 @@ END FUNCTION DFXY2Z3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY3Z3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY3Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -20330,9 +20330,9 @@ END FUNCTION DFY3Z3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFX2Z4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFX2Z4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -20596,9 +20596,9 @@ END FUNCTION DFX2Z4
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXYZ4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXYZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -20862,9 +20862,9 @@ END FUNCTION DFXYZ4
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFY2Z4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFY2Z4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -21128,9 +21128,9 @@ END FUNCTION DFY2Z4
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFXZ5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFXZ5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -21394,9 +21394,9 @@ END FUNCTION DFXZ5
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFYZ5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFYZ5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -21660,9 +21660,9 @@ END FUNCTION DFYZ5
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DFZ6(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DFZ6(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -21923,9 +21923,9 @@ END FUNCTION DFZ6
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION DLX(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -22076,9 +22076,9 @@ END SELECT
 	END FUNCTION DLX 
 
 
-REAL FUNCTION DLY(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -22228,9 +22228,9 @@ CASE default
  DLY=S    
 	END FUNCTION DLY
 	
-REAL FUNCTION DLZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -22403,9 +22403,9 @@ CASE default
  DLZ=S    
 	END FUNCTION DLZ
  
-REAL FUNCTION DLX2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -22585,9 +22585,9 @@ CASE(56)
 	END FUNCTION DLX2
  
  
-REAL FUNCTION DLY2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -22769,9 +22769,9 @@ CASE(56)
  DLY2=S    
 	END FUNCTION DLY2
  
-REAL FUNCTION DLZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -22952,9 +22952,9 @@ CASE(56)
  DLZ2=S    
 	END FUNCTION DLZ2
  
-REAL FUNCTION DLXY(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXY(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -23136,9 +23136,9 @@ CASE(56)
  DLXY=S    
 	END FUNCTION DLXY
  
-REAL FUNCTION DLYZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLYZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -23317,9 +23317,9 @@ CASE(56)
  DLYZ=S    
 	END FUNCTION DLYZ
  
-REAL FUNCTION DLXZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -23501,9 +23501,9 @@ CASE(56)
 	END FUNCTION DLXZ
  
  
-REAL FUNCTION DLX3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -23679,9 +23679,9 @@ CASE(56)
  DLX3=S    
 	END FUNCTION DLX3
  
-REAL FUNCTION DLX2Y(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -23858,9 +23858,9 @@ CASE(56)
  DLX2Y=S    
 	END FUNCTION DLX2Y
  
-REAL FUNCTION DLXY2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXY2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -24037,9 +24037,9 @@ CASE(56)
 	END FUNCTION DLXY2
  
  
-REAL FUNCTION DLY3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -24216,9 +24216,9 @@ CASE(56)
 	END FUNCTION DLY3
  
  
-REAL FUNCTION DLX2Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -24394,9 +24394,9 @@ CASE(56)
  DLX2Z=S    
 	END FUNCTION DLX2Z
  
-REAL FUNCTION DLXYZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXYZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -24573,9 +24573,9 @@ CASE(56)
 	END FUNCTION DLXYZ
  
  
-REAL FUNCTION DLY2Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -24752,9 +24752,9 @@ CASE(56)
 	END FUNCTION DLY2Z
  
  
-REAL FUNCTION DLXZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -24931,9 +24931,9 @@ CASE(56)
 	END FUNCTION DLXZ2
  
  
-REAL FUNCTION DLYZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLYZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -25110,9 +25110,9 @@ CASE(56)
 	END FUNCTION DLYZ2
  
  
-REAL FUNCTION DLZ3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -25290,9 +25290,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -25469,9 +25469,9 @@ CASE(56)
 	END FUNCTION DLX4
  
  
-REAL FUNCTION DLX3Y(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX3Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -25650,9 +25650,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX2Y2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2Y2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -25830,9 +25830,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLXY3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXY3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -26010,9 +26010,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLY4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -26189,9 +26189,9 @@ CASE(56)
 	END FUNCTION DLY4
  
  
-REAL FUNCTION DLX3Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -26368,9 +26368,9 @@ CASE(56)
 	END FUNCTION DLX3Z
  
  
-REAL FUNCTION DLX2YZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2YZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -26547,9 +26547,9 @@ CASE(56)
 	END FUNCTION DLX2YZ
  
  
-REAL FUNCTION DLXY2Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXY2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -26728,9 +26728,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLY3Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -26911,9 +26911,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -27091,9 +27091,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLXYZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXYZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -27270,9 +27270,9 @@ CASE(56)
 	END FUNCTION DLXYZ2
  
  
-REAL FUNCTION DLY2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -27450,9 +27450,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLXZ3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -27630,9 +27630,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLYZ3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLYZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -27811,9 +27811,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLZ4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -27991,9 +27991,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -28169,9 +28169,9 @@ CASE(56)
  DLX5=S    
 	END FUNCTION DLX5
  
-REAL FUNCTION DLX4Y(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX4Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -28350,9 +28350,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX3Y2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX3Y2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -28530,9 +28530,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX2Y3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2Y3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -28711,9 +28711,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLXY4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXY4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -28890,9 +28890,9 @@ CASE(56)
 	END FUNCTION DLXY4
  
  
-REAL FUNCTION DLY5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -29068,9 +29068,9 @@ CASE(56)
  DLY5=S    
 	END FUNCTION DLY5
  
-REAL FUNCTION DLX4Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX4Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -29248,9 +29248,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX3YZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX3YZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -29428,9 +29428,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX2Y2Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2Y2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -29606,9 +29606,9 @@ CASE(56)
  DLX2Y2Z=S    
 	END FUNCTION DLX2Y2Z
  
-REAL FUNCTION DLXY3Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXY3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -29784,9 +29784,9 @@ CASE(56)
  DLXY3Z=S    
 	END FUNCTION DLXY3Z
  
-REAL FUNCTION DLY4Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY4Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -29963,9 +29963,9 @@ CASE(56)
 	END FUNCTION DLY4Z
  
  
-REAL FUNCTION DLX3Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX3Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -30142,9 +30142,9 @@ CASE(56)
 	END FUNCTION DLX3Z2
  
  
-REAL FUNCTION DLX2YZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2YZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -30320,9 +30320,9 @@ CASE(56)
  DLX2YZ2=S    
 	END FUNCTION DLX2YZ2
 	
- REAL FUNCTION DLXY2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+ REAL FUNCTION DLXY2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -30595,9 +30595,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLY3Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY3Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -30775,9 +30775,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX2Z3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -30954,9 +30954,9 @@ CASE(56)
 	END FUNCTION DLX2Z3
  
  
-REAL FUNCTION DLXYZ3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXYZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -31134,9 +31134,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLY2Z3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY2Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -31313,9 +31313,9 @@ CASE(56)
 	END FUNCTION DLY2Z3
  
  
-REAL FUNCTION DLXZ4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -31492,9 +31492,9 @@ CASE(56)
 	END FUNCTION DLXZ4
  
  
-REAL FUNCTION DLYZ4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLYZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -31671,9 +31671,9 @@ CASE(56)
 	END FUNCTION DLYZ4
  
  
-REAL FUNCTION DLZ5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLZ5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -31850,9 +31850,9 @@ CASE(56)
 	END FUNCTION DLZ5
  
  
-REAL FUNCTION DLX6(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX6(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -32030,9 +32030,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX5Y(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX5Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -32209,9 +32209,9 @@ CASE(56)
 	END FUNCTION DLX5Y
  
  
-REAL FUNCTION DLX4Y2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX4Y2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -32388,9 +32388,9 @@ CASE(56)
 	END FUNCTION DLX4Y2
  
  
-REAL FUNCTION DLX3Y3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX3Y3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -32567,9 +32567,9 @@ CASE(56)
 	END FUNCTION DLX3Y3
  
  
-REAL FUNCTION DLX2Y4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2Y4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -32747,9 +32747,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLXY5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXY5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -32926,9 +32926,9 @@ CASE(56)
 	END FUNCTION DLXY5
  
  
-REAL FUNCTION DLY6(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY6(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -33105,9 +33105,9 @@ CASE(56)
 	END FUNCTION DLY6
  
  
-REAL FUNCTION DLX5Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX5Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -33286,9 +33286,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX4YZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX4YZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -33466,9 +33466,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX3Y2Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX3Y2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -33646,9 +33646,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX2Y3Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2Y3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -33829,9 +33829,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLXY4Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXY4Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -34009,9 +34009,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLY5Z(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY5Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -34189,9 +34189,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX4Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX4Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -34368,9 +34368,9 @@ CASE(56)
 	END FUNCTION DLX4Z2
  
  
-REAL FUNCTION DLX3YZ2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX3YZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -34548,9 +34548,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX2Y2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2Y2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -34727,9 +34727,9 @@ CASE(56)
 	END FUNCTION DLX2Y2Z2
  
  
-REAL FUNCTION DLXY3Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXY3Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -34908,9 +34908,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLY4Z2(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY4Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -35087,9 +35087,9 @@ CASE(56)
 	END FUNCTION DLY4Z2
  
  
-REAL FUNCTION DLX3Z3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX3Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -35266,9 +35266,9 @@ CASE(56)
 	END FUNCTION DLX3Z3
  
  
-REAL FUNCTION DLX2YZ3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2YZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -35448,9 +35448,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLXY2Z3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXY2Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -35629,9 +35629,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLY3Z3(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY3Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -35809,9 +35809,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLX2Z4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLX2Z4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -35988,9 +35988,9 @@ CASE(56)
 	END FUNCTION DLX2Z4
  
  
-REAL FUNCTION DLXYZ4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXYZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -36167,9 +36167,9 @@ CASE(56)
 	END FUNCTION DLXYZ4
  
  
-REAL FUNCTION DLY2Z4(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLY2Z4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -36347,9 +36347,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLXZ5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLXZ5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -36527,9 +36527,9 @@ CASE(56)
  
  
  
-REAL FUNCTION DLYZ5(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLYZ5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -36706,9 +36706,9 @@ CASE(56)
 	END FUNCTION DLYZ5
  
  
-REAL FUNCTION DLZ6(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION DLZ6(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
                     
@@ -36885,9 +36885,9 @@ CASE(56)
 	END FUNCTION DLZ6
 	
 	
-REAL FUNCTION TL3DZ(XD1,YD1,ZD1,NDERIVATIVE)
+REAL FUNCTION TL3DZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -36991,9 +36991,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
   
  
  
-  REAL FUNCTION TL3DZ2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -37098,9 +37098,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DZ3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -37205,9 +37205,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DZ4(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -37311,9 +37311,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION  TL3DZ5(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION  TL3DZ5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -37417,9 +37417,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DZ6(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DZ6(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -37523,9 +37523,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -37629,9 +37629,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DYZ(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DYZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -37736,9 +37736,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DYZ2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DYZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -37842,9 +37842,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DYZ3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DYZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -37948,9 +37948,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DYZ4(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DYZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -38054,9 +38054,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DYZ5 (XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DYZ5 (XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -38160,9 +38160,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -38267,9 +38267,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY2Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -38373,9 +38373,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -38478,9 +38478,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY2Z3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY2Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -38584,9 +38584,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY2Z4(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY2Z4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -38689,9 +38689,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -38794,9 +38794,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY3Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -38899,9 +38899,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY3Z2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY3Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -39005,9 +39005,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY3Z3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY3Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -39111,9 +39111,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY4(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -39217,9 +39217,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY4Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY4Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -39322,9 +39322,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY4Z2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY4Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -39427,9 +39427,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY5(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -39533,9 +39533,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY5Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY5Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -39639,9 +39639,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY6(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DY6(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -39744,9 +39744,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -39848,9 +39848,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXZ(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -39954,9 +39954,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXZ2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -40060,9 +40060,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXZ3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -40166,9 +40166,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXZ4(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -40272,9 +40272,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXZ5(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXZ5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -40377,9 +40377,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXY(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXY(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -40482,9 +40482,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXYZ(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXYZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -40587,9 +40587,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXYZ2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXYZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -40693,9 +40693,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXYZ3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXYZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -40799,9 +40799,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXYZ4(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXYZ4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -40905,9 +40905,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXY2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXY2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -41011,9 +41011,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXY2Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXY2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -41116,9 +41116,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXY2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXY2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -41221,9 +41221,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXY2Z3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXY2Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -41327,9 +41327,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXY3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXY3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -41432,9 +41432,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXY3Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXY3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -41538,9 +41538,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXY3Z2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXY3Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -41643,9 +41643,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXY4(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXY4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -41748,9 +41748,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXY4Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXY4Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -41854,9 +41854,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DXY5(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DXY5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -41960,9 +41960,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -42065,9 +42065,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -42171,9 +42171,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -42275,9 +42275,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2Z3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -42380,9 +42380,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2Z4(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2Z4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -42486,9 +42486,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2Y(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -42591,9 +42591,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2YZ(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2YZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -42697,9 +42697,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2YZ2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2YZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -42803,9 +42803,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2YZ3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2YZ3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -42908,9 +42908,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2Y2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2Y2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -43014,9 +43014,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2Y2Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2Y2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -43119,9 +43119,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2Y2Z2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2Y2Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -43224,9 +43224,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2Y3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2Y3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -43329,9 +43329,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2Y3Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2Y3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -43434,9 +43434,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX2Y4(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX2Y4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -43539,9 +43539,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -43645,9 +43645,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX3Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX3Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -43750,9 +43750,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX3Z2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX3Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -43855,9 +43855,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX3Z3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX3Z3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -43960,9 +43960,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX3Y(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX3Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -44065,9 +44065,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX3YZ(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX3YZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -44171,9 +44171,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX3YZ2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX3YZ2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -44277,9 +44277,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX3Y2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX3Y2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -44382,9 +44382,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX3Y2Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX3Y2Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -44487,9 +44487,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX3Y3(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX3Y3(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -44592,9 +44592,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX4(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX4(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -44697,9 +44697,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX4Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX4Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -44802,9 +44802,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX4Z2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX4Z2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -44907,9 +44907,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX4Y(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX4Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -45012,9 +45012,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX4YZ(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX4YZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -45118,9 +45118,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX4Y2(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX4Y2(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -45223,9 +45223,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX5(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX5(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -45328,9 +45328,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX5Z(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX5Z(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -45433,9 +45433,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX5Y(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX5Y(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -45538,9 +45538,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX6(XD1,YD1,ZD1,NDERIVATIVE)
+  REAL FUNCTION TL3DX6(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -45656,9 +45656,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 	
 	
 	
-real function DF2DX(xd1,yd1,NDERIVATIVE)
+real function DF2DX(XD1,YD1,NDERIVATIVE,iconsidered)
    IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -45719,9 +45719,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DY(xd1,yd1,NDERIVATIVE)
+  real function DF2DY(XD1,YD1,NDERIVATIVE,iconsidered)
      IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -45780,9 +45780,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX2(xd1,yd1,NDERIVATIVE)
+  real function DF2DX2(XD1,YD1,NDERIVATIVE,iconsidered)
    IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -45827,9 +45827,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DY2(xd1,yd1,NDERIVATIVE)
+  real function DF2DY2(XD1,YD1,NDERIVATIVE,iconsidered)
   IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -45875,9 +45875,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DXY(xd1,yd1,NDERIVATIVE)
+  real function DF2DXY(XD1,YD1,NDERIVATIVE,iconsidered)
   IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -45924,9 +45924,9 @@ real::s
 
 ! %%%%%%%%%%%%%%%%
  ! *****************************************************************************
-  real function DF2DX3(xd1,yd1,NDERIVATIVE)
+  real function DF2DX3(XD1,YD1,NDERIVATIVE,iconsidered)
    IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -45961,9 +45961,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX2Y(xd1,yd1,NDERIVATIVE)
+  real function DF2DX2Y(XD1,YD1,NDERIVATIVE,iconsidered)
   IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -45998,9 +45998,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DXY2(xd1,yd1,NDERIVATIVE)
+  real function DF2DXY2(XD1,YD1,NDERIVATIVE,iconsidered)
    IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46035,9 +46035,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DY3(xd1,yd1,NDERIVATIVE)
+  real function DF2DY3(XD1,YD1,NDERIVATIVE,iconsidered)
   IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46072,9 +46072,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX4(xd1,yd1,NDERIVATIVE)
+  real function DF2DX4(XD1,YD1,NDERIVATIVE,iconsidered)
      IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46101,9 +46101,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX3Y(xd1,yd1,NDERIVATIVE)
+  real function DF2DX3Y(XD1,YD1,NDERIVATIVE,iconsidered)
    IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46130,9 +46130,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX2Y2(xd1,yd1,NDERIVATIVE)
+  real function DF2DX2Y2(XD1,YD1,NDERIVATIVE,iconsidered)
   IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46157,9 +46157,9 @@ real::s
   end function
 
  ! *****************************************************************************
-  real function DF2DXY3(xd1,yd1,NDERIVATIVE)
+  real function DF2DXY3(XD1,YD1,NDERIVATIVE,iconsidered)
      IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46184,9 +46184,9 @@ real::s
   end function
 
  ! *****************************************************************************
-  real function DF2DY4(xd1,yd1,NDERIVATIVE)
+  real function DF2DY4(XD1,YD1,NDERIVATIVE,iconsidered)
     IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46214,9 +46214,9 @@ real::s
 ! for  6th order WENO
 
  ! *****************************************************************************
-  real function DF2DX5(xd1,yd1,NDERIVATIVE)
+  real function DF2DX5(XD1,YD1,NDERIVATIVE,iconsidered)
     IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46236,9 +46236,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX4Y(xd1,yd1,NDERIVATIVE)
+  real function DF2DX4Y(XD1,YD1,NDERIVATIVE,iconsidered)
    IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46258,9 +46258,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX3Y2(xd1,yd1,NDERIVATIVE)
+  real function DF2DX3Y2(XD1,YD1,NDERIVATIVE,iconsidered)
   IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46280,9 +46280,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX2Y3(xd1,yd1,NDERIVATIVE)
+  real function DF2DX2Y3(XD1,YD1,NDERIVATIVE,iconsidered)
   IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46302,9 +46302,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DXY4(xd1,yd1,NDERIVATIVE)
+  real function DF2DXY4(XD1,YD1,NDERIVATIVE,iconsidered)
     IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46323,9 +46323,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DY5(xd1,yd1,NDERIVATIVE)
+  real function DF2DY5(XD1,YD1,NDERIVATIVE,iconsidered)
   IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46345,9 +46345,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX6(xd1,yd1,NDERIVATIVE)
+  real function DF2DX6(XD1,YD1,NDERIVATIVE,iconsidered)
     IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46363,9 +46363,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX5Y(xd1,yd1,NDERIVATIVE)
+  real function DF2DX5Y(XD1,YD1,NDERIVATIVE,iconsidered)
     IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46381,9 +46381,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX4Y2(xd1,yd1,NDERIVATIVE)
+  real function DF2DX4Y2(XD1,YD1,NDERIVATIVE,iconsidered)
    IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46399,9 +46399,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX3Y3(xd1,yd1,NDERIVATIVE)
+  real function DF2DX3Y3(XD1,YD1,NDERIVATIVE,iconsidered)
   IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46418,9 +46418,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DX2Y4(xd1,yd1,NDERIVATIVE)
+  real function DF2DX2Y4(XD1,YD1,NDERIVATIVE,iconsidered)
     IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46437,9 +46437,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DXY5(xd1,yd1,NDERIVATIVE)
+  real function DF2DXY5(XD1,YD1,NDERIVATIVE,iconsidered)
     IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46455,9 +46455,9 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DY6(xd1,yd1,NDERIVATIVE)
+  real function DF2DY6(XD1,YD1,NDERIVATIVE,iconsidered)
   IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
 
@@ -46474,9 +46474,9 @@ real::s
 
   
   
-  REAL FUNCTION TL2DY(XD1,YD1,NDERIVATIVE)
+  REAL FUNCTION TL2DY(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -46523,9 +46523,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DY2(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DY2(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -46571,9 +46571,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DY3(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DY3(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -46619,9 +46619,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DY4(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DY4(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -46666,9 +46666,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DY5(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DY5(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -46714,9 +46714,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DY6(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DY6(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -46762,9 +46762,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -46810,9 +46810,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DXY(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DXY(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -46857,9 +46857,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DXY2(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DXY2(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -46905,9 +46905,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DXY3(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DXY3(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -46952,9 +46952,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DXY4(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DXY4(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -46999,9 +46999,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DXY5(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DXY5(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47046,9 +47046,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX2(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX2(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47094,9 +47094,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX2Y(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX2Y(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47141,9 +47141,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX2Y2(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX2Y2(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47189,9 +47189,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX2Y3(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX2Y3(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47236,9 +47236,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX2Y4(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX2Y4(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47283,9 +47283,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX3(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX3(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47330,9 +47330,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX3Y(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX3Y(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47378,9 +47378,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX3Y2(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX3Y2(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47426,9 +47426,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX3Y3(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX3Y3(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47473,9 +47473,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX4(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX4(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47521,9 +47521,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX4Y(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX4Y(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47569,9 +47569,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX4Y2(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX4Y2(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47617,9 +47617,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX5(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX5(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47664,9 +47664,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX5Y(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX5Y(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
@@ -47712,9 +47712,9 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX6(XD1,YD1,NDERIVATIVE)
+REAL FUNCTION  TL2DX6(XD1,YD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::NDERIVATIVE
+INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 REAL::S,HXC   
 hxc=sqrt(IELEM(N,Iconsidered)%totvolume)

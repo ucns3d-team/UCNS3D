@@ -9,11 +9,14 @@ IMPLICIT NONE
 ! ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- REAL FUNCTION TRIANGLEAREA(N)
+ REAL FUNCTION TRIANGLEAREA(N,VEXT)
 !> @brief
 !> This function computes the area of a triangle in 3D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:3,1:3)::VVA
+REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD,VVJACOBSURF
 	VVB(1:3)=VEXT(1,1:3)
 	VVC(1:3)=VEXT(2,1:3)
 	VVD(1:3)=VEXT(3,1:3)
@@ -39,12 +42,13 @@ END FUNCTION TRIANGLEAREA
 
 
 
- REAL FUNCTION QUADAREA(N)
+ REAL FUNCTION QUADAREA(N,VEXT)
  !> @brief
 !> This function computes the area of a quadrilateral in 3D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-	
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:3)::VVE,VVD
 	
 	VVE(1:3)=VEXT(4,1:3)-VEXT(2,1:3)
 	VVD(1:3)=VEXT(3,1:3)-VEXT(1,1:3)
@@ -57,12 +61,13 @@ INTEGER,INTENT(IN)::N
 END FUNCTION QUADAREA
 
 
- REAL FUNCTION LINEAREA(N)
+ REAL FUNCTION LINEAREA(N,VEXT)
  !> @brief
 !> This function computes the length of an edge in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-	
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:3)::VVE
 	
 	
 	VVE(1:2)=VEXT(2,1:2)-VEXT(1,1:2)
@@ -75,13 +80,19 @@ INTEGER,INTENT(IN)::N
 
 END FUNCTION LINEAREA
 
-REAL FUNCTION QUADVOLUME(N)
+REAL FUNCTION QUADVOLUME(N,VEXT,QPOINTS,WEQUA3D)
 !> @brief
 !> This function computes the area of quad in 2D
 IMPLICIT NONE
-!!$OMP THREADPRIVATE(QUADVOLUME)
 INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
 real::s,tx,r,vol
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
+REAL,DIMENSION(1:4)::VVXI,VVeta,VVnallx,VVnally,VVNXI,VVNETA
+REAL,DIMENSION(1:3,1:3)::VVA,VVA1
+REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
+REAL,DIMENSION(1)::DETA
 integer::kK,II
 	
 VVXI(1)=-1.0d0; VVeta(1)=-1.0d0;
@@ -122,10 +133,6 @@ do iI=1,4
 VVnxi(ii)=VVnallx(ii)
 VVneta(ii)=VVnally(ii)
 
-
-
-
-
     VVa(1,1)=VVa(1,1)+VVnxi(ii)*vext(ii,1); VVa(1,2)=VVa(1,2)+VVnxi(ii)*vext(ii,2)
     VVa(2,1)=VVa(2,1)+VVneta(ii)*vext(ii,1); VVa(2,2)=VVa(2,2)+VVneta(ii)*vext(ii,2)
     
@@ -140,7 +147,7 @@ VVA1(2,2)=(VVA(1,1))
 
 vol=DETA(1)*4.0d0
 VVa1=VVa1/DETA(1)
-! Deta(1)=vol
+
 
 quadvolume=VOL
 
@@ -150,14 +157,17 @@ END FUNCTION QUADVOLUME
 
 
 
-REAL FUNCTION TRIANGLEVOLUME(N)
+REAL FUNCTION TRIANGLEVOLUME(N,VEXT)
 !> @brief
 !> This function computes the area of triangle in 2D
 IMPLICIT NONE
-!!$OMP THREADPRIVATE(TRIANGLEVOLUME)
 INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
 real::s,tx,r,vol
-
+REAL,DIMENSION(1:3,1:3)::VVA,VVA1
+REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
+REAL,DIMENSION(1)::DETA
+vol=0.0d0
 
 VVA(1,1)=VEXT(1,1)-VEXT(3,1)
 VVA(1,2)=VEXT(1,2)-VEXT(3,2)
@@ -181,13 +191,18 @@ END FUNCTION TRIANGLEVOLUME
 
 
 ! ! ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION TETRAVOLUME(N)
+REAL FUNCTION TETRAVOLUME(N,vext)
 !> @brief
 !> This function computes the volume of a tetrahedrals 
 
 IMPLICIT NONE
 !!$OMP THREADPRIVATE(TETRAVOLUME)
 INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:3,1:3)::VVA
+REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
+REAL,DIMENSION(1:4)::VVJACOBVOLUME
+
 
 
 	VVB(1:3)=VEXT(1,1:3)
@@ -224,10 +239,354 @@ INTEGER,INTENT(IN)::N
 	
 END FUNCTION TETRAVOLUME
 
-SUBROUTINE COMPUTEJACOBIANS
+
+
+SUBROUTINE FIND_ANGLES(N)
+INTEGER,INTENT(IN)::N
+INTEGER::I,J,K,L,jj,KMAXE
+
+KMAXE=XMPIELRANK(N)
+
+IF (DIMENSIONA.EQ.3)THEN
+
+!$OMP DO
+do i=1,kmaxe
+	CALL FIND_ROT_ANGLES(N,I)
+end do
+!$OMP END DO
+
+Else
+
+!$OMP DO
+do i=1,kmaxe
+	CALL FIND_ROT_ANGLES2D(N,I)
+end do
+!$OMP END DO
+
+END IF
+
+
+
+
+END SUBROUTINE FIND_ANGLES
+
+
+SUBROUTINE FIND_ROT_ANGLES(N,ICONSI)
+!> @brief
+!> This subroutine determines the normal vectors for each face
+IMPLICIT NONE
+real::Xc1,Yc1,Zc1,Xc2,Yc2,Zc2,Xc3,Yc3,Zc3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz
+REAL::X5,X6,X7,X8,Y5,Y6,Y7,Y8,Z5,Z6,Z7,Z8,XX,YY,ZZ
+REAL::DELXA,DELXB,DELYA,DELYB,DELZA,DELZB,L_ANGLE1,L_ANGLE2,lNX,LNY,LNZ,A_ROT,B_ROT,C_ROT,ROOT_ROT,ANGLEFACEX,ANGLEFACEY
+INTEGER::K,KMAXE,I,J,kk,kk2,ixf4,IXFV,N_NODE
+INTEGER,INTENT(IN)::N,ICONSI
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL:: tempxx
+KMAXE=XMPIELRANK(N)
+
+i=iconsi
+
+			DO K=1,IELEM(N,I)%IFCA
+			       if (ielem(n,i)%types_faces(k).eq.5)then
+				    kk2=4;n_node=kk2
+			      else
+				    kk2=3;n_node=kk2
+			      end if
+			    IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
+			    IF ((IELEM(N,I)%INEIGHG(K).GT.0).AND.(IELEM(N,I)%IBOUNDS(K).GT.0))THEN 	!PERIODIC NEIGHBOUR
+
+			    XX=IELEM(N,I)%XXC  ;YY=IELEM(N,I)%YYC; ZZ=IELEM(N,I)%ZZC
+
+				    DO Kk=1,n_node
+				       IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
+				       vext(kk,1:3)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:3)
+				       ELSE
+
+
+
+					vext(kk,1:3)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:3)
+!
+				       END IF
+                    IF(PER_ROT.EQ.0)THEN
+				      IF(ABS(vext(kk,1)-xx).GT.XPER*oo2)THEN
+				      vext(kk,1)=vext(kk,1)+(XPER*SIGN(1.0,xx-XPER*oo2))
+				      end if
+				      IF(ABS(vext(kk,2)-yy).GT.yPER*oo2)THEN
+				      vext(kk,2)=vext(kk,2)+(yPER*SIGN(1.0,yy-yPER*oo2))
+				      end if
+				      IF(ABS(vext(kk,3)-zz).GT.zPER*oo2)THEN
+				      vext(kk,3)=vext(kk,3)+(zPER*SIGN(1.0,zz-zPER*oo2))
+				      end if
+
+                    ELSE
+                        if (IELEM(N,I)%REORIENT(K).EQ.1) then
+                            if (ibound(n,ielem(n,i)%ibounds(K))%icode.eq.5) then
+                                tempxx=vext(kk,1)
+                                vext(kk,1)=tempxx*cos(-angle_per)-sin(-angle_per)*vext(kk,2)
+                                vext(kk,2)=tempxx*sin(-angle_per)+cos(-angle_per)*vext(kk,2)
+
+                            else
+                                tempxx=vext(kk,1)
+                                vext(kk,1)=tempxx*cos(angle_per)-sin(angle_per)*vext(kk,2)
+                                vext(kk,2)=tempxx*sin(angle_per)+cos(angle_per)*vext(kk,2)
+                            end if
+				      end if
+				    END IF
+
+			      end do
+
+			    Else
+				  DO Kk=1,n_node
+					 IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
+				       vext(kk,1:3)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:3)
+				       ELSE
+					vext(KK,1:3)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:3)
+				       END IF
+				  END DO
+
+			    END IF
+			    ELSE
+				   DO Kk=1,n_node
+					 IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
+				       vext(kk,1:3)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:3)
+				       ELSE
+					vext(KK,1:3)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:3)
+				       END IF
+				  END DO
+
+
+
+
+			    END IF
+					IF (KK2.EQ.3)THEN
+					Xc1=veXt(1,1); Xc2=veXt(2,1); Xc3=veXt(3,1);
+					Yc1=veXt(1,2);Yc2=veXt(2,2); Yc3=veXt(3,2);
+					Zc1=veXt(1,3); Zc2=veXt(2,3); Zc3=veXt(3,3);
+					DELXYA=(xc1-xc2)*(yc1+yc2);DELyzA=(yc1-yc2)*(zc1+zc2);DELzxA=(zc1-zc2)*(xc1+xc2)
+					DELXYb=(xc2-xc3)*(yc2+yc3);DELyzb=(yc2-yc3)*(zc2+zc3);DELzxb=(zc2-zc3)*(xc2+xc3)
+					DELXYc=(xc3-xc1)*(yc3+yc1);DELyzc=(yc3-yc1)*(zc3+zc1);DELzxc=(zc3-zc1)*(xc3+xc1)
+					nx=(delyza+delyzb+delyzc)
+					ny=(delzxa+delzxb+delzxc)
+					nz=(delxya+delxyb+delxyc)
+					ROOT_ROT=SQRT((nx**2)+(ny**2)+(nz**2))
+					nx=nx/root_ROT; ny=ny/root_ROT; nz=nz/root_ROT
+					root_ROT=1.0D0
+					a_ROT=nx
+					b_ROT=ny
+					c_ROT=nz
+
+					CALL ANGLEX(A_ROT,B_ROT,ANGLEFACEX)
+					CALL ANGLEY(C_ROT,ROOT_rot,ANGLEFACEY)
+					IELEM(N,I)%FACEANGLEX(K)=anglefacex
+					IELEM(N,I)%FACEANGLEY(K)=anglefacey
+
+					ELSE
+
+
+
+
+
+					DELXA=VEXT(4,1)-VEXT(2,1)
+					DELXB=VEXT(3,1)-VEXT(1,1)
+					DELYA=VEXT(4,2)-VEXT(2,2)
+					DELYB=VEXT(3,2)-VEXT(1,2)
+					DELZA=VEXT(4,3)-VEXT(2,3)
+					DELZB=VEXT(3,3)-VEXT(1,3)
+
+
+					NX=-0.50D0*((DELYA*DELZB)-(DELZA*DELYB))
+					NY=-0.50D0*((DELZA*DELXB)-(DELXA*DELZB))
+					NZ=-0.50D0*((DELXA*DELYB)-(DELYA*DELXB))
+
+
+
+					!newells method
+
+					NX=ZERO;NY=ZERO;NZ=ZERO;ROOT_ROT=ZERO
+ 					do kk=1,n_node
+ 					if (kk.ne.n_node)then
+ 					nx=nx+(vext(kk,2)-vext(kk+1,2))*(vext(kk,3)+vext(kk+1,3))
+ 					ny=ny+(vext(kk,3)-vext(kk+1,3))*(vext(kk,1)+vext(kk+1,1))
+ 					nz=nz+(vext(kk,1)-vext(kk+1,1))*(vext(kk,2)+vext(kk+1,2))
+					else
+ 					nx=nx+(vext(kk,2)-vext(1,2))*(vext(kk,3)+vext(1,3))
+ 					ny=ny+(vext(kk,3)-vext(1,3))*(vext(kk,1)+vext(1,1))
+ 					nz=nz+(vext(kk,1)-vext(1,1))*(vext(kk,2)+vext(1,2))
+
+ 					end if
+ 					end do
+
+
+
+
+!
+					root_ROT=SQRT((nx**2)+(ny**2)+(nz**2))
+					nx=nx/root_ROT; ny=ny/root_ROT; nz=nz/root_ROT
+					root_ROT=1.0D0
+					a_ROT=nx
+					b_ROT=ny
+					c_ROT=nz
+					CALL ANGLEX(A_ROT,B_ROT,ANGLEFACEX)
+					CALL ANGLEY(C_ROT,ROOT_rot,ANGLEFACEY)
+
+
+					IELEM(N,I)%FACEANGLEX(K)=anglefacex
+					IELEM(N,I)%FACEANGLEY(K)=anglefacey
+					END IF
+                    IELEM(N,I)%LUMP=0
+                    if (ielem(n,i)%ishape.eq.2)then
+                    L_ANGLE1=IELEM(N,I)%FACEANGLEX(K);L_ANGLE2=IELEM(N,I)%FACEANGLEY(K)
+                    LNX=COS(L_ANGLE1)*SIN(L_ANGLE2)
+                    LNY=SIN(L_ANGLE1)*SIN(L_ANGLE2)
+                    LNZ=COS(L_ANGLE2)
+                    if ((abs(LNX-1.0d0).le.10e-16).OR.(abs(LNY-1.0d0).le.10e-16).OR.(abs(LNZ-1.0d0).le.10e-16))THEN
+                    IELEM(N,I)%LUMP=100
+                    end if
+                    END IF
+
+
+			    END DO
+
+
+
+
+
+
+
+END SUBROUTINE FIND_ROT_ANGLES
+
+
+
+SUBROUTINE FIND_ROT_ANGLES2d(N,ICONSI)
+!> @brief
+!> This subroutine determines the normal vectors for each edge
+IMPLICIT NONE
+real::Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz,ANGLEFACEX,ANGLEFACEY
+REAL::X5,X6,X7,X8,Y5,Y6,Y7,Y8,Z5,Z6,Z7,Z8,XX,YY,ZZ
+REAL::DELXA,DELXB,DELYA,DELYB,DELZA,DELZB
+INTEGER::K,KMAXE,I,J,kk,kk2,ixf4,IXFV,n_node
+INTEGER,INTENT(IN)::N,ICONSI
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+
+i=iconsi
+
+
+	i=iconsi
+
+			DO K=1,IELEM(N,I)%IFCA
+! 			       if (ielem(n,i)%types_faces(k).eq.5)then
+				    kk2=2;n_node=kk2
+! 			      else
+! 				    kk2=3;n_node=kk2
+! 			      end if
+			    IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
+			    IF ((IELEM(N,I)%INEIGHG(K).GT.0).AND.(IELEM(N,I)%IBOUNDS(K).GT.0))THEN 	!PERIODIC NEIGHBOUR
+
+ 			    XX=IELEM(N,I)%XXC  ;YY=IELEM(N,I)%YYC; !ZZ=IELEM(N,I)%ZZC
+
+				    DO Kk=1,n_node
+				       IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
+				       vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:2)
+				       ELSE
+
+!
+					vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:2)
+
+!
+				       END IF
+
+
+
+
+
+				      IF(ABS(vext(kk,1)-xx).GT.XPER*oo2)THEN
+				      vext(kk,1)=vext(kk,1)+(XPER*SIGN(1.0d0,xx-XPER/2.0D0))
+				      end if
+				      IF(ABS(vext(kk,2)-yy).GT.yPER*oo2)THEN
+				      vext(kk,2)=vext(kk,2)+(yPER*SIGN(1.0d0,yy-yPER/2.0D0))
+				      end if
+
+
+!
+
+
+
+			      end do
+
+			    Else
+				  DO Kk=1,n_node
+					 IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
+				       vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:2)
+				       ELSE
+					vext(KK,1:2)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:2)
+				       END IF
+				  END DO
+
+			    END IF
+			    ELSE
+				   DO Kk=1,n_node
+					 IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
+				       vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:2)
+				       ELSE
+					vext(KK,1:2)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:2)
+				       END IF
+				  END DO
+
+
+
+
+			    END IF
+
+
+
+					CALL ANGLE2D(VEXT,ANGLEFACEX,ANGLEFACEY)
+
+
+!
+					IELEM(N,I)%FACEANGLEX(K)=anglefacex
+					IELEM(N,I)%FACEANGLEY(K)=anglefacey
+
+!
+
+
+
+
+			    END DO
+
+
+
+
+
+
+
+
+
+
+
+
+
+!
+
+
+
+
+
+
+
+END SUBROUTINE FIND_ROT_ANGLES2d
+
+
+
+
+SUBROUTINE COMPUTEJACOBIANS(N,VEXT,VVA1,DETA)
 !> @brief
 !> This function computes the jacobian of a tetrahedral
 IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:3,1:3)::VVA
+REAL,DIMENSION(1:3,1:3),INTENT(INOUT)::VVA1
+REAL,DIMENSION(1),INTENT(INOUT)::DETA
 
 
      vva(:,1) = vext(2,:)-vext(1,:)
@@ -256,10 +615,16 @@ IMPLICIT NONE
 	
 END SUBROUTINE COMPUTEJACOBIANs
 
-SUBROUTINE COMPUTeJACOBIANS2
+SUBROUTINE COMPUTeJACOBIANS2(N,VEXT,VVA1,DETA)
 !> @brief
 !> This function computes the volume of a triangle
 implicit none
+INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:2,1:2)::VVA
+REAL,DIMENSION(1:2,1:2),INTENT(INOUT)::VVA1
+REAL,DIMENSION(1),INTENT(INOUT)::DETA
+
 VVA(1,1) = VEXT(2,1) - VEXT(1,1); 	 VVA(1,2) = VEXT(3,1) - VEXT(1,1)
 	  VVA(2,1) = VEXT(2,2) - VEXT(1,2); 	 VVA(2,2) = VEXT(3,2) - VEXT(1,2)
       DeTA(1) = VVA(1,1)*VVA(2,2) - VVA(1,2)*VVA(2,1)
@@ -274,13 +639,22 @@ END SUBROUTINE COMPUTEJACOBIANS2
 
 
 
-REAL FUNCTION hexaVOLUME(N)
+REAL FUNCTION hexaVOLUME(N,VEXT,QPOINTS,WEQUA3D)
 !> @brief
 !> This function computes the volume of a hexahedral
 IMPLICIT NONE
 !!$OMP THREADPRIVATE(hexaVOLUME)
 INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
 real::s,tx,r,vol
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
+REAL,DIMENSION(1:8)::VVXI,VVeta,VVzeta,VVnallx,VVnally,VVnallz,VVNXI,VVNETA,VVNzeta
+REAL,DIMENSION(1:3,1:3)::VVA,VVA1
+REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
+REAL,DIMENSION(1)::DETA
+
+
 integer::kk,Ii
 
 
@@ -326,7 +700,9 @@ VVa1=0.0d0
 
 do ii=1,8
 
-
+!  r=xi(ii)
+!  s=eta(ii)
+!  t=zeta(ii)
 VVnxi(ii)=VVnallx(ii)
 VVneta(ii)=VVnally(ii)
 VVnzeta(ii)=VVnallz(ii)
@@ -376,13 +752,20 @@ END FUNCTION hexaVOLUME
 
 
 
-REAL FUNCTION PYRAVOLUME(N)
+REAL FUNCTION PYRAVOLUME(N,VEXT,QPOINTS,WEQUA3D)
 !> @brief
 !> This function computes the volume of a pyramid 
 IMPLICIT NONE
 !!$OMP THREADPRIVATE(PYRAVOLUME)
 INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
 real::s,tx,r,vol
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
+REAL,DIMENSION(1:8)::VVXI,VVeta,VVzeta,VVnallx,VVnally,VVnallz,VVNXI,VVNETA,VVNzeta
+REAL,DIMENSION(1:3,1:3)::VVA,VVA1
+REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
+REAL,DIMENSION(1)::DETA
 integer::kk,ii
 
 	
@@ -466,13 +849,19 @@ PYRAVOLUME=VOL
 END FUNCTION PYRAVOLUME
 
 
-REAL FUNCTION PRISMVOLUME(N)
+REAL FUNCTION PRISMVOLUME(N,vext,qpoints,WEQUA3D)
 !> @brief
 !> This function computes the volume of a prism 
 IMPLICIT NONE
-! !$OMP THREADPRIVATE(PRISMVOLUME)
 INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
 real::s,tx,r,vol
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
+REAL,DIMENSION(1:8)::VVXI,VVeta,VVzeta,VVnallx,VVnally,VVnallz,VVNXI,VVNETA,VVNzeta
+REAL,DIMENSION(1:3,1:3)::VVA,VVA1
+REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
+REAL,DIMENSION(1)::DETA
 integer::kk,ii
 
 
@@ -518,7 +907,9 @@ vva1=0.0d0
 
 do ii=1,6
 
-
+!  r=xi(ii)
+!  s=eta(ii)
+!  t=zeta(ii)
 vvnxi(ii)=vvnallx(ii)
 vvneta(ii)=vvnally(ii)
 vvnzeta(ii)=vvnallz(ii)
@@ -566,7 +957,7 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N,N_NODE
  REAL,DIMENSION(3)::CORDINATES3
 real::rnode
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(in)::NODES_LIST
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(in)::NODES_LIST
   rnode=n_node
  CORDINATES3(1)=sum(nodes_list(1:n_node,1))/rnode
  CORDINATES3(2)=sum(nodes_list(1:n_node,2))/rnode
@@ -576,11 +967,12 @@ REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(in)::NODES_LIST
 end function CORDINATES3
 
 
- FUNCTION distance3(N)
+ FUNCTION distance3(N,vext)
  !> @brief
 !> This function computes the distance between two points in 3D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
  REAL::distance3
 real::rnode
 
@@ -589,11 +981,12 @@ real::rnode
 
 end function distance3
 
- FUNCTION distance2(N)
+ FUNCTION distance2(N,vext)
  !> @brief
 !> This function computes the distance between two points in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
  REAL::distance2
 real::rnode
 
@@ -609,7 +1002,7 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N,N_NODE
  REAL,DIMENSION(2)::CORDINATES2
 real::rnode
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(in)::NODES_LIST
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(in)::NODES_LIST
   rnode=n_node
  CORDINATES2(1)=sum(nodes_list(1:n_node,1))/rnode
  CORDINATES2(2)=sum(nodes_list(1:n_node,2))/rnode
@@ -620,81 +1013,25 @@ end function CORDINATES2
 
 
 
-REAL FUNCTION CELL_CENTRE_CORD2(N,CORDS,NODES_LIST,N_NODE)
- !> @brief
-!> This function computes the centre of 2d element 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,N_NODE
-REAL,ALLOCATABLE,DIMENSION(:),INTENT(OUT)::CORDS
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(in)::NODES_LIST
-
- cords(1)=sum(nodes_list(1:n_node,1))/n_node
- cords(2)=sum(nodes_list(1:n_node,2))/n_node
- 
- CELL_CENTRE_CORD2=cords(1)
-
-end function CELL_CENTRE_CORD2
-
-
-
-FUNCTION comp_max_diff(N,NODES_LIST,N_NODE)
-!> @brief
-!> This function computes the maximum coordinates value given the nodes location
-INTEGER,INTENT(IN)::N,N_NODE
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(in)::NODES_LIST
-REAL,DIMENSION(1:2)::comp_max_diff
-INTEGER::Idex
-REAL,DIMENSION(1:2)::tempDIFF
-tempDiff=0.0d0
-comp_max_diff(1:2)=0.0d0
-
-
-DO Idex=2,N_NODE
-    tempDIFF(1)=abs(nodes_list(1,1)-nodes_list(Idex,1))
-    tempDIFF(2)=abs(nodes_list(1,2)-nodes_list(Idex,2))
-    if (tempDiff(1).gt.comp_max_diff(1)) then
-        comp_max_diff(1)=tempDiff(1)
-    end if
-    if (tempDiff(2).gt.comp_max_diff(2)) then
-        comp_max_diff(2)=tempDiff(2)
-    end if
-END DO
-
-END FUNCTION COMP_MAX_DIFF
-
-
-
-FUNCTION comp_min_diff(N,NODES_LIST,N_NODE)
-!> @brief
-!> This function computes the minimum coordinates value given the nodes location
-INTEGER,INTENT(IN)::N,N_NODE
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(in)::NODES_LIST
-REAL,DIMENSION(1:2)::comp_min_diff
-INTEGER::Idex
-REAL,DIMENSION(1:2)::tempDIFF
-tempDiff=0.0d0
-comp_min_diff(1:2)=0.0d0
-
-DO Idex=2,N_NODE
-    tempDIFF(1)=abs(nodes_list(1,1)-nodes_list(Idex,1))
-    tempDIFF(2)=abs(nodes_list(1,2)-nodes_list(Idex,2))
-    if (tempDiff(1).lt.comp_min_diff(1)) then
-        comp_min_diff(1)=tempDiff(1)
-    end if
-    if (tempDiff(2).lt.comp_min_diff(2)) then
-        comp_min_diff(2)=tempDiff(2)
-    end if
-END DO
-
-END FUNCTION COMP_MIN_DIFF
 
 
 
 
-SUBROUTINE DECOMPOSE3
+
+
+
+
+
+
+
+SUBROUTINE DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
  !> @brief
 !> This function decomposes element into tetrahedrals (counterclockwise numbering)
 IMPLICIT NONE
+integer,intent(in)::n,eltype
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(in)::NODES_LIST
+REAL,DIMENSION(1:6,1:4,1:DIMENSIONA),INTENT(inout)::ELEM_LISTD
+
 
 ELEM_LISTD(:,:,:)=zero
 
@@ -716,15 +1053,11 @@ SELECT CASE(ELTYPE)
       ELEM_LISTD(2,1,:)=NODES_LIST(1,:);ELEM_LISTD(2,2,:)=NODES_LIST(3,:);ELEM_LISTD(2,3,:)=NODES_LIST(4,:);ELEM_LISTD(2,4,:)=NODES_LIST(5,:)
      
 
-
-
     CASE(4)
     
     
     
-!      ELEM_LISTD(1,1,:)=NODES_LIST(1,:);ELEM_LISTD(1,2,:)=NODES_LIST(3,:);ELEM_LISTD(1,3,:)=NODES_LIST(2,:);ELEM_LISTD(1,4,:)=NODES_LIST(4,:)
-!       ELEM_LISTD(2,1,:)=NODES_LIST(4,:);ELEM_LISTD(2,2,:)=NODES_LIST(3,:);ELEM_LISTD(2,3,:)=NODES_LIST(5,:);ELEM_LISTD(2,4,:)=NODES_LIST(6,:)
-!       ELEM_LISTD(3,1,:)=NODES_LIST(3,:);ELEM_LISTD(3,2,:)=NODES_LIST(5,:);ELEM_LISTD(3,3,:)=NODES_LIST(2,:);ELEM_LISTD(3,4,:)=NODES_LIST(4,:)
+
       ELEM_LISTD(1,1,:)=NODES_LIST(1,:);ELEM_LISTD(1,2,:)=NODES_LIST(2,:);ELEM_LISTD(1,3,:)=NODES_LIST(3,:);ELEM_LISTD(1,4,:)=NODES_LIST(6,:)
       ELEM_LISTD(2,1,:)=NODES_LIST(1,:);ELEM_LISTD(2,2,:)=NODES_LIST(2,:);ELEM_LISTD(2,3,:)=NODES_LIST(6,:);ELEM_LISTD(2,4,:)=NODES_LIST(5,:)
       ELEM_LISTD(3,1,:)=NODES_LIST(1,:);ELEM_LISTD(3,2,:)=NODES_LIST(5,:);ELEM_LISTD(3,3,:)=NODES_LIST(6,:);ELEM_LISTD(3,4,:)=NODES_LIST(4,:)
@@ -736,54 +1069,22 @@ SELECT CASE(ELTYPE)
 
 
 
-
-
-!  SELECT CASE(ELTYPE)
-!     
-!     CASE(1)
-!       ELEM_LISTD(1,1,:)=NODES_LIST(5,:);ELEM_LISTD(1,2,:)=NODES_LIST(7,:);ELEM_LISTD(1,3,:)=NODES_LIST(8,:);ELEM_LISTD(1,4,:)=NODES_LIST(4,:)
-!       ELEM_LISTD(2,1,:)=NODES_LIST(5,:);ELEM_LISTD(2,2,:)=NODES_LIST(6,:);ELEM_LISTD(2,3,:)=NODES_LIST(7,:);ELEM_LISTD(2,4,:)=NODES_LIST(4,:)
-!       ELEM_LISTD(3,1,:)=NODES_LIST(6,:);ELEM_LISTD(3,2,:)=NODES_LIST(3,:);ELEM_LISTD(3,3,:)=NODES_LIST(7,:);ELEM_LISTD(3,4,:)=NODES_LIST(4,:)
-!       ELEM_LISTD(4,1,:)=NODES_LIST(1,:);ELEM_LISTD(4,2,:)=NODES_LIST(5,:);ELEM_LISTD(4,3,:)=NODES_LIST(4,:);ELEM_LISTD(4,4,:)=NODES_LIST(2,:)
-!       ELEM_LISTD(5,1,:)=NODES_LIST(5,:);ELEM_LISTD(5,2,:)=NODES_LIST(2,:);ELEM_LISTD(5,3,:)=NODES_LIST(6,:);ELEM_LISTD(5,4,:)=NODES_LIST(4,:)
-!       ELEM_LISTD(6,1,:)=NODES_LIST(4,:);ELEM_LISTD(6,2,:)=NODES_LIST(3,:);ELEM_LISTD(6,3,:)=NODES_LIST(2,:);ELEM_LISTD(6,4,:)=NODES_LIST(6,:)
-!       
-! 
-!     CASE(2)
-!       ELEM_LISTD(1,1,1:3)=NODES_LIST(1,1:3);ELEM_LISTD(1,2,1:3)=NODES_LIST(3,1:3);ELEM_LISTD(1,3,1:3)=NODES_LIST(2,1:3);ELEM_LISTD(1,4,1:3)=NODES_LIST(4,1:3)
-!     CASE(3)
-!       ELEM_LISTD(1,1,:)=NODES_LIST(1,:);ELEM_LISTD(1,2,:)=NODES_LIST(4,:);ELEM_LISTD(1,3,:)=NODES_LIST(2,:);ELEM_LISTD(1,4,:)=NODES_LIST(5,:)
-!       ELEM_LISTD(2,1,:)=NODES_LIST(2,:);ELEM_LISTD(2,2,:)=NODES_LIST(4,:);ELEM_LISTD(2,3,:)=NODES_LIST(3,:);ELEM_LISTD(2,4,:)=NODES_LIST(5,:)
-!      
-! 
-! 
-! 
-!     CASE(4)
-!     !1324  !4356  !3524
-!     
-!     
-!      
-!      ELEM_LISTD(1,1,1:3)=NODES_LIST(1,1:3);ELEM_LISTD(1,2,1:3)=NODES_LIST(3,1:3);ELEM_LISTD(1,3,1:3)=NODES_LIST(2,1:3);ELEM_LISTD(1,4,1:3)=NODES_LIST(4,1:3)
-!       ELEM_LISTD(2,1,1:3)=NODES_LIST(4,1:3);ELEM_LISTD(2,2,1:3)=NODES_LIST(3,1:3);ELEM_LISTD(2,3,1:3)=NODES_LIST(5,1:3);ELEM_LISTD(2,4,1:3)=NODES_LIST(6,1:3)
-!       ELEM_LISTD(3,1,1:3)=NODES_LIST(3,1:3);ELEM_LISTD(3,2,1:3)=NODES_LIST(5,1:3);ELEM_LISTD(3,3,1:3)=NODES_LIST(2,1:3);ELEM_LISTD(3,4,1:3)=NODES_LIST(4,1:3)
-! 
-!     
-!  
-! 
-! 
-!   END SELECT
-
  
 
 end SUBROUTINE DECOMPOSE3
 
 
 
-subroutine DECOMPOSE2
+subroutine DECOMPOSE2(n,eltype,NODES_LIST,ELEM_LISTD)
  !> @brief
 !> This function writes decomposed triangle element nodes into ELEM_LISTD from NODES_LIST (counterclockwise numbering)
 implicit none
-!!$OMP THREADPRIVATE(DECOMPOSE2)
+integer,intent(in)::n,eltype
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(in)::NODES_LIST
+REAL,DIMENSION(1:6,1:4,1:DIMENSIONA),INTENT(inout)::ELEM_LISTD
+
+
+
 
  SELECT CASE(ELTYPE)
     
@@ -805,51 +1106,74 @@ implicit none
 end subroutine DECOMPOSE2
 
 
-SUBROUTINE EDGE_CALCULATOR(N)
+SUBROUTINE EDGE_CALCULATOR3d(ICONSIDERED)
  !> @brief
 !> This subroutine computes the radius of inscribed sphere or circle
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,L
+INTEGER,INTENT(IN)::ICONSIDERED
+INTEGER::I,L,FACEX,N_NODE
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL::EDGEL,DIST
-KMAXE=XMPIELRANK(N)
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(I,dist)
- IF (DIMENSIONA.EQ.3)THEN
-!$OMP DO SCHEDULE (STATIC) 
-    DO I=1,KMAXE
-    ICONSIDERED=I
+
+	I=ICONSIDERED
+
     
  	IELEM(N,I)%MINEDGE=(3.0D0*IELEM(N,I)%TOTVOLUME)/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
 	
 	DO L=1,IELEM(N,I)%IFCA
 	FACEX=L
-				  CALL coordinates_face_inner(N,Iconsidered,facex)
+
+	 select case (ielem(n,I)%types_faces(facex))
+	      case(5)
+	      N_NODE=4
+	      case(6)
+	      N_NODE=3
+	      end select
+
+
+				  CALL coordinates_face_inner(N,I,facex,vext,NODES_LIST)
 				  
  				  VEXT(2,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; VEXT(1,3)=IELEM(N,I)%ZZC
-				  DIST=DISTANCE3(N)
+				  DIST=DISTANCE3(N,VEXT)
+				  
   				   IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
-
  	END DO
 	
-    END DO
-!$OMP END DO 
 
-ELSE
 
-!$OMP DO SCHEDULE (STATIC) 
-    DO I=1,KMAXE
-    ICONSIDERED=I
+END SUBROUTINE EDGE_CALCULATOR3d
+
+
+
+
+
+
+SUBROUTINE EDGE_CALCULATOR2d(ICONSIDERED)
+ !> @brief
+!> This subroutine computes the radius of inscribed sphere or circle
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED
+INTEGER::I,L,FACEX,N_NODE
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+REAL::EDGEL,DIST
+
+
+
+    I=Iconsidered
     
 	IELEM(N,I)%MINEDGE=(2.0D0*IELEM(N,I)%TOTVOLUME)/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
 	
 	DO L=1,IELEM(N,I)%IFCA
 	FACEX=L
-				  CALL coordinates_face_inner2D(N,Iconsidered,facex)
+	N_NODE=2
+				  CALL coordinates_face_inner2D(N,I,facex,vext,NODES_LIST)
 				  
  				  VEXT(2,1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; 
-				  DIST=DISTANCE2(N)
+				  DIST=DISTANCE2(N,VEXT)
 				  
 				  
 				  IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
@@ -857,29 +1181,86 @@ ELSE
 	
 	END DO
 	
-    END DO
+
+
+
+
+
+END SUBROUTINE EDGE_CALCULATOR2d
+
+
+SUBROUTINE GEOMETRY_CALC
+ !> @brief
+!> This subroutine computes the volume, surface, centre and min edge for each element
+IMPLICIT NONE
+INTEGER::KMAXE,i
+real::DUMV5
+
+KMAXE=XMPIELRANK(N)
+
+
+if (DIMENSIONA.EQ.3)THEN
+
+!$OMP DO 
+DO I=1,KMAXE
+
+	CALL VOLUME_CALCULATOR3(I)
+	call SURFACE_CALCULATOR3(i)
+	CALL CENTRE3D(i)
+	call EDGE_CALCULATOR3d(i)
+END DO
+!$OMP END DO
+
+ELSE
+!$OMP DO
+DO I=1,KMAXE
+	CALL VOLUME_CALCULATOR2(I)
+	call SURFACE_CALCULATOR2(i)
+	call CENTRE2D(i)
+	call EDGE_CALCULATOR2d(i)
+END DO
 !$OMP END DO 
+
 END IF
-!$OMP END PARALLEL
 
 
 
 
-END SUBROUTINE EDGE_CALCULATOR
 
-SUBROUTINE VOLUME_CALCULATOR3(N)
+!$OMP BARRIER 
+!$OMP MASTER
+DUMV5=ZERO
+DO I=1,KMAXE
+    DUMV5=DUMV5+IELEM(N,I)%TOTVOLUME
+END DO
+ CALL MPI_ALLREDUCE(DUMV5,TOTALVOLUME,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+!$OMP END MASTER
+!$OMP BARRIER 
+
+
+
+END SUBROUTINE GEOMETRY_CALC
+
+
+
+
+SUBROUTINE VOLUME_CALCULATOR3(ICONSIDERED)
  !> @brief
 !> This subroutine computes the volume of elements
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-!$ integer::OMP_IN_PARALLEL,OMP_GET_THREAD_NUM
-INTEGER::I,K,KMAXE,jx,JX2
+INTEGER,INTENT(IN)::ICONSIDERED
+INTEGER::I,K,KMAXE,jx,JX2,ELTYPE,ELEM_DEC
 real::DUMV1,DUMV2,dumv3,DUMV5
- KMAXE=XMPIELRANK(N)
-DUMV5=ZERO
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(DUMV1,DUMV2,I,JX,jx2,K) 
-!$OMP DO 
-    DO I=1,KMAXE
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+REAL,DIMENSION(1:6,1:4,1:DIMENSIONA)::ELEM_LISTD
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
+
+
+
+ 	i=iconsidered
+
     
     VEXT=0.0d0
     NODES_LIST=0.0d0
@@ -887,152 +1268,127 @@ DUMV5=ZERO
     ELEM_DEC=IELEM(N,I)%VDEC
     ELEM_LISTD=0.0d0
      IELEM(N,I)%TOTVOLUME=0.0d0
-      
       jx=IELEM(N,I)%NONODES
       
-
 	  do K=1,jx
 	    JX2=IELEM(N,I)%NODES(k)
 	    NODES_LIST(k,:)=inoder(JX2)%CORD(:)
 	    VEXT(K,:)=NODES_LIST(k,:)
 	  END DO
-	  CALL DECOMPOSE3
+	  CALL DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
+
+
+
+
     
       SELECT CASE(ielem(n,i)%ishape)
 
-      CASE(1)
-      CALL QUADRATUREHEXA(N,IGQRULES)
+      CASE(1)	!hexa
+      CALL QUADRATUREHEXA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
       
-      DUMV1=HEXAVOLUME(N)
+      DUMV1=HEXAVOLUME(N,VEXT,QPOINTS,WEQUA3D)
       DUMV2=0.0d0
        do K=1,ELEM_DEC
-	VEXT(1:4,1:3)=ELEM_LISTD(k,1:4,1:3)
+		VEXT(1:4,1:3)=ELEM_LISTD(k,1:4,1:3)
 
-	  DUMV2=DUMV2+TETRAVOLUME(N)
+	  DUMV2=DUMV2+TETRAVOLUME(N,vext)
 	
-	END DO
+		END DO
 	
-	IF (ABS(DUMV2-DUMV1).LE.(0.001d0*ABS(DUMV2)))THEN
-	IELEM(N,I)%TOTVOLUME=DUMV1
-	IELEM(N,I)%MODE=0
-	ELSE
-	IELEM(N,I)%TOTVOLUME=DUMV2
-	IELEM(N,I)%MODE=1
-	END IF
+! 		IF (ABS(DUMV2-DUMV1).LE.(0.001d0*ABS(DUMV2)))THEN
+! 		IELEM(N,I)%TOTVOLUME=DUMV1
+! 		IELEM(N,I)%MODE=0
+! 		ELSE
+! 		IELEM(N,I)%TOTVOLUME=DUMV2
+! 		IELEM(N,I)%MODE=1
+! 		END IF
+!
+! 		IF (DUMV1.LE.ZERO)THEN
+! 		IELEM(N,I)%MODE=1
+! 		IELEM(N,I)%TOTVOLUME=DUMV2
+! 		END IF
 	
-	IF (DUMV1.LE.ZERO)THEN
-	IELEM(N,I)%MODE=1
-	IELEM(N,I)%TOTVOLUME=DUMV2
-	END IF
-	
-	ielem(n,i)%mode=1
-	IELEM(N,I)%TOTVOLUME=DUMV2
+		ielem(n,i)%mode=1
+		IELEM(N,I)%TOTVOLUME=DUMV2
 
-      CASE(2)
+      CASE(2)	!tetra
       VEXT(1:4,1:3)=ELEM_LISTD(1,1:4,1:3)
 	
-       
-      
-	IELEM(N,I)%TOTVOLUME=TETRAVOLUME(N)
-	IELEM(N,I)%MODE=1
-	
-	
-	
-	
-	
+		IELEM(N,I)%TOTVOLUME=TETRAVOLUME(N,VEXT)
+		IELEM(N,I)%MODE=1
 	
     
-      CASE(3)
+      CASE(3)	!pyramid
       
-      CALL QUADRATUREPYRA(N,IGQRULES)
-      DUMV1=PYRAVOLUME(N)
-      
-      
+      CALL QUADRATUREPYRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+      DUMV1=PYRAVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+    
       DUMV2=0.0d0
        do K=1,ELEM_DEC
-	VEXT(1:4,1:3)=ELEM_LISTD(k,1:4,1:3)
-            dumv3=TETRAVOLUME(N)
-
-            
-	  DUMV2=DUMV2+TETRAVOLUME(N)
-    
-	END DO
-
-	IELEM(N,I)%TOTVOLUME=DUMV2
-	IELEM(N,I)%MODE=1
+		VEXT(1:4,1:3)=ELEM_LISTD(k,1:4,1:3)
+        dumv3=TETRAVOLUME(N,VEXT)     
+	  DUMV2=DUMV2+TETRAVOLUME(N,VEXT)
+		END DO
+		IELEM(N,I)%TOTVOLUME=DUMV2
+		IELEM(N,I)%MODE=1
 
 	
-	
-	
-	
-       CASE(4)
-      CALL QUADRATUREPRISM(N,IGQRULES)
+       CASE(4)	!prism
+      CALL QUADRATUREPRISM(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
       
-      DUMV1=PRISMVOLUME(N)
+      DUMV1=PRISMVOLUME(N,VEXT,QPOINTS,WEQUA3D)
 
-      
-      
-      
-      
-      
       DUMV2=0.0d0
        do K=1,ELEM_DEC
-	VEXT(1:4,1:3)=ELEM_LISTD(k,1:4,1:3)
-             dumv3=TETRAVOLUME(N)
+		VEXT(1:4,1:3)=ELEM_LISTD(k,1:4,1:3)
+				dumv3=TETRAVOLUME(N,VEXT)
 
-	  DUMV2=DUMV2+TETRAVOLUME(N)
-    
-	END DO
-	IF (ABS(DUMV2-DUMV1).LE.(0.001d0*ABS(DUMV2)))THEN
-	IELEM(N,I)%TOTVOLUME=DUMV1
-	IELEM(N,I)%MODE=0
-	ELSE
-	IELEM(N,I)%TOTVOLUME=DUMV2
-	IELEM(N,I)%MODE=1
-	END IF
-	IF (DUMV1.LE.ZERO)THEN
-	IELEM(N,I)%MODE=1
-	END IF
+		DUMV2=DUMV2+TETRAVOLUME(N,VEXT)
+		
+		END DO
+
+! 	IF (ABS(DUMV2-DUMV1).LE.(0.001d0*ABS(DUMV2)))THEN
+! 	IELEM(N,I)%TOTVOLUME=DUMV1
+! 	IELEM(N,I)%MODE=0
+! 	ELSE
+! 	IELEM(N,I)%TOTVOLUME=DUMV2
+! 	IELEM(N,I)%MODE=1
+! 	END IF
+! 	IF (DUMV1.LE.ZERO)THEN
+! 	IELEM(N,I)%MODE=1
+! 	END IF
 	
  	
  	IELEM(N,I)%MODE=1
         IELEM(N,I)%TOTVOLUME=DUMV2
+
       END SELECT
    
    
     
-   
-    END DO
-!$OMP END DO 
-!$OMP END PARALLEL 
-    
-!$OMP BARRIER 
-!$OMP MASTER
-DUMV5=ZERO
-DO I=1,KMAXE
-    DUMV5=DUMV5+IELEM(N,I)%TOTVOLUME
-END DO
- CALL MPI_ALLREDUCE(DUMV5,TOTALVOLUME,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-!$OMP END MASTER
-!$OMP BARRIER 
+
 
 END SUBROUTINE VOLUME_CALCULATOR3
 
 
 
-SUBROUTINE VOLUME_CALCULATOR2(N)
+SUBROUTINE VOLUME_CALCULATOR2(iconsidered)
  !> @brief
 !> This subroutine computes the volume of elements in 2D
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N
+INTEGER,INTENT(IN)::iconsidered
 !$ integer::OMP_IN_PARALLEL,OMP_GET_THREAD_NUM
-INTEGER::I,K,KMAXE,jx,JX2
-real::DUMV1,DUMV2,dumr,DUMV5
- KMAXE=XMPIELRANK(N)
+INTEGER::I,K,KMAXE,jx,JX2,ELTYPE,ELEM_DEC
+real::DUMV1,DUMV2,dumv3,DUMV5
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+REAL,DIMENSION(1:6,1:4,1:DIMENSIONA)::ELEM_LISTD
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(DUMV1,DUMV2,dumr,I,JX,jx2,K) 
-!$OMP DO SCHEDULE (STATIC) 
- DO I=1,KMAXE
+i=iconsidered
+
+
     ELTYPE=IELEM(N,I)%ISHAPE
     ELEM_DEC=IELEM(N,I)%VDEC
      IELEM(N,I)%TOTVOLUME=0.0d0
@@ -1040,19 +1396,16 @@ real::DUMV1,DUMV2,dumr,DUMV5
 	    NODES_LIST(k,1:2)=inoder(IELEM(N,I)%NODES(K))%CORD(1:2)
 	    vext(k,1:2)=NODES_LIST(k,1:2)
 	  END DO
-	 call DECOMPOSE2
+	 call DECOMPOSE2(n,eltype,NODES_LIST,ELEM_LISTD)
 
+	
 	    SELECT CASE(ielem(n,i)%ishape)
 
       CASE(5)
 
-      CALL QUADRATUREQUAD(N,IGQRULES)
-      DUMV1=QUADVOLUME(N)
-!       do K=1,IELEM(N,I)%IFCA
-! 	VEXT(1,1:2)=inoder(IELEM(N,I)%NODES_FACES(K,1))%CORD(1:2)
-! 	VEXT(2,1:2)=inoder(IELEM(N,I)%NODES_FACES(K,2))%CORD(1:2)
-! 	CALL QUADRATURELINE(N,IGQRULES)
-!       END DO
+      CALL QUADRATUREQUAD(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+      DUMV1=QUADVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+
       
 
       
@@ -1063,83 +1416,76 @@ real::DUMV1,DUMV2,dumr,DUMV5
       
        do K=1,ELEM_DEC
 	VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
-	  DUMV2=DUMV2+TRIANGLEVOLUME(N)
+	  DUMV2=DUMV2+TRIANGLEVOLUME(N,VEXT)
     
 	END DO
-	IF (ABS(DUMV2-DUMV1).LE.(0.001*DUMV2))THEN
-	IELEM(N,I)%TOTVOLUME=DUMV1
-	IELEM(N,I)%MODE=0
-	ELSE
-	IELEM(N,I)%TOTVOLUME=DUMV2
-	IELEM(N,I)%MODE=1
-	END IF
+
+
+! 	IF (ABS(DUMV2-DUMV1).LE.(0.001*DUMV2))THEN
+! 	IELEM(N,I)%TOTVOLUME=DUMV1
+! 	IELEM(N,I)%MODE=0
+! 	ELSE
+! 	IELEM(N,I)%TOTVOLUME=DUMV2
+! 	IELEM(N,I)%MODE=1
+! 	END IF
+
+
+
  	IELEM(N,I)%MODE=1
  	IELEM(N,I)%TOTVOLUME=DUMV2
      
       CASE(6)
 
-      DUMV1=TRIANGLEVOLUME(N)
+      DUMV1=TRIANGLEVOLUME(N,VEXT)
 
       
 
       DUMV2=0.0d0
        do K=1,ELEM_DEC
 	VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
-	  DUMV2=DUMV2+TRIANGLEVOLUME(N)
+	  DUMV2=DUMV2+TRIANGLEVOLUME(N,VEXT)
     
 	END DO
-	IF (ABS(DUMV2-DUMV1).LE.(0.001d0*DUMV2))THEN
-	IELEM(N,I)%TOTVOLUME=DUMV1
-	IELEM(N,I)%MODE=0
-	ELSE
-	IELEM(N,I)%TOTVOLUME=DUMV2
-	IELEM(N,I)%MODE=1
-	END IF
+! 	IF (ABS(DUMV2-DUMV1).LE.(0.001d0*DUMV2))THEN
+! 	IELEM(N,I)%TOTVOLUME=DUMV1
+! 	IELEM(N,I)%MODE=0
+! 	ELSE
+! 	IELEM(N,I)%TOTVOLUME=DUMV2
+! 	IELEM(N,I)%MODE=1
+! 	END IF
         IELEM(N,I)%MODE=1
  	IELEM(N,I)%TOTVOLUME=DUMV2
      
     END SELECT
    
     
-    END DO
-!$OMP END DO 
-!$OMP END PARALLEL
+
 
  
     
-!$OMP BARRIER 
-!$OMP MASTER
-DUMV5=ZERO
-DO I=1,KMAXE
-    DUMV5=DUMV5+IELEM(N,I)%TOTVOLUME
-END DO
- CALL MPI_ALLREDUCE(DUMV5,TOTALVOLUME,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-!$OMP END MASTER
-!$OMP BARRIER 
+
 
 END SUBROUTINE VOLUME_CALCULATOR2
 
 
 
 
-SUBROUTINE SURFACE_CALCULATOR3(N)
+SUBROUTINE SURFACE_CALCULATOR3(iconsidered)
  !> @brief
 !> This subroutine computes the surface area of elements in 3D
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-!$ integer::OMP_IN_PARALLEL,OMP_GET_THREAD_NUM
-INTEGER::I,K,KMAXE,jx,JX2,J,nnd
-real::DUMV1,DUMV2
- KMAXE=XMPIELRANK(N)
+INTEGER,INTENT(IN)::iconsidered
+INTEGER::I,K,KMAXE,jx,JX2,ELTYPE,ELEM_DEC,nnd,J
+real::DUMV1,DUMV2,dumv3,DUMV5
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(DUMV1,DUMV2,I,JX,jx2,K,J,nnd) 
-!$OMP DO SCHEDULE (STATIC) 
-    DO I=1,KMAXE
-    
-    
+
+	i=iconsidered
+
+
     
     DO J=1,IELEM(N,I)%IFCA
-    select case(ielem(n,i)%types_faces(j))
+				select case(ielem(n,i)%types_faces(j))
 				case (5)
 					 
 					  NND=4
@@ -1148,7 +1494,7 @@ real::DUMV1,DUMV2
 				      END DO
 					  
 					  
-					  IELEM(N,I)%surf(J)=QUADarea(N)
+					  IELEM(N,I)%surf(J)=QUADAREA(N,VEXT)
 					  
 				  
 				case(6)
@@ -1159,7 +1505,7 @@ real::DUMV1,DUMV2
 					END DO
 					    
 					
- 					    IELEM(N,I)%surf(J)=TRIANGLEAREA(N)
+ 					    IELEM(N,I)%surf(J)=TRIANGLEAREA(N,VEXT)
  					    
  					    
 					  
@@ -1172,7 +1518,7 @@ real::DUMV1,DUMV2
     
     
     DO J=1,IELEM(N,I)%IFCA
-                        select case(ielem(n,i)%types_faces(j))
+				select case(ielem(n,i)%types_faces(j))
                         case (5)
                                 DUMV2=ZERO
 				
@@ -1185,38 +1531,28 @@ real::DUMV1,DUMV2
 				     
 					  
 					  
-					  DUMV2=DUMV2+TRIANGLEAREA(N)
+					  DUMV2=DUMV2+TRIANGLEAREA(N,VEXT)
 					  
 					  VEXT(1,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,1))%CORD(1:dims)
 					VEXT(2,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,3))%CORD(1:dims)
 					VEXT(3,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,4))%CORD(1:dims)
-					  DUMV2=DUMV2+TRIANGLEAREA(N)
+					  DUMV2=DUMV2+TRIANGLEAREA(N,VEXT)
 					  
 					  if (abs((DUMV2-IELEM(N,I)%surf(J))/IELEM(N,I)%surf(J))*100.0d0.gt.10.0d0)then
 ! 					  
 					  
 					  
 					  IELEM(N,I)%surf(J)=dumv2
-                                          end if
+						end if
                                           
                                           
-                                          
-                                          
-				
-					
+
     
     end select
     END DO
     
     
-    
-    
-    
-    
-    
-    END DO
-!$OMP END DO 
-!$OMP END PARALLEL 
+
     
 
 
@@ -1224,21 +1560,18 @@ END SUBROUTINE SURFACE_CALCULATOR3
 
 
 
-SUBROUTINE SURFACE_CALCULATOR2(N)
+SUBROUTINE SURFACE_CALCULATOR2(iconsidered)
  !> @brief
 !> This subroutine computes the length of edges of elements in 2D
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-!$ INTEGER::OMP_IN_PARALLEL,OMP_GET_THREAD_NUM
-INTEGER::I,K,KMAXE,JX,JX2,NND,J
-REAL::DUMV1,DUMV2,DUMR
+INTEGER,INTENT(IN)::iconsidered
+INTEGER::I,K,jx,JX2,ELTYPE,ELEM_DEC,nnd,j
+real::DUMV1,DUMV2,dumv3,DUMV5,DUMR
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 
-KMAXE=XMPIELRANK(N)
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(DUMV1,DUMV2,DUMR,I,JX,JX2,K,NND,J) 
-!$OMP DO SCHEDULE (STATIC) 
 
-DO I=1,KMAXE
+i=iconsidered
     DO J=1,IELEM(N,I)%IFCA
         NND=2
         
@@ -1246,11 +1579,9 @@ DO I=1,KMAXE
             VEXT(K,1:DIMS)=INODER(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:DIMS)
         END DO
         
-        IELEM(N,I)%SURF(J)=LINEAREA(N)
+        IELEM(N,I)%SURF(J)=LINEAREA(N,vext)
     END DO
-END DO
-!$OMP END DO 
-!$OMP END PARALLEL 
+
 
 END SUBROUTINE SURFACE_CALCULATOR2
 
@@ -1263,41 +1594,24 @@ END SUBROUTINE SURFACE_CALCULATOR2
 
 
 
-SUBROUTINE COMPUTE_CENTRE3d(N,Iconsi)
- !> @brief
-!> This subroutine computes the cell centre of elements in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,Iconsi
-integer::k
-    N_NODE=IELEM(N,Iconsi)%NONODES
-    do K=1,IELEM(N,Iconsi)%NONODES
-      NODES_LIST(k,1:3)=inoder(IELEM(N,Iconsi)%NODES(K))%CORD(1:3)
-    END DO
-    CORDS=CORDINATES3(N,NODES_LIST,N_NODE)
-   
-   
-   ielem(n,iconsi)%dxx=0.5*(maxval(nodes_list(1:n_node,1))-minval(nodes_list(1:n_node,1)))
-   ielem(n,iconsi)%dyy=0.5*(maxval(nodes_list(1:n_node,2))-minval(nodes_list(1:n_node,2)))
-   ielem(n,iconsi)%dzz=0.5*(maxval(nodes_list(1:n_node,3))-minval(nodes_list(1:n_node,3)))
 
-
-END SUBROUTINE
-
-SUBROUTINE COMPUTE_CENTRE3dF(N,Iconsi,facex,IXXFF)
+SUBROUTINE COMPUTE_CENTRE3dF(N,Iconsidered,facex,N_NODE,cords)
  !> @brief
 !> This subroutine retrieve the nodes of faces of elements in 3D
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N,Iconsi,facex,IXXFF
-integer::k
-    N_NODE=ixxff
+INTEGER,INTENT(IN)::N,Iconsidered,facex
+INTEGER,INTENT(INOUT)::N_NODE
+REAL,dimension(1:dimensiona),INTENT(INOUT)::CORDS
+REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+integer::k,i
+
+i=iconsidered
   
+    do K=1,N_NODE
 
-    do K=1,ixxff
-
-      NODES_LIST(k,1:3)=inoder(IELEM(N,Iconsi)%NODES_FACES(facex,K))%CORD(1:3)
+      NODES_LIST(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:3)
     END DO
    
-
 
     CORDS=CORDINATES3(N,NODES_LIST,N_NODE)
    
@@ -1306,17 +1620,19 @@ integer::k
 END SUBROUTINE
 
 
-subroutine coordinates_face_inner(n,iconsidered,facex)
+subroutine coordinates_face_inner(n,iconsidered,facex,VEXT,NODES_LIST)
  !> @brief
 !> This subroutine retrieve the nodes of interior faces of elements in 3D
 IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
 integer::nnd
 integer::i,k
 i=iconsidered
 
 
-	      select case (ielem(n,iconsidered)%types_faces(facex))
+	      select case (ielem(n,I)%types_faces(facex))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -1330,17 +1646,19 @@ i=iconsidered
 	      END DO
 	      
 	      
-	      N_NODE=NND
+
 	      
 	     
 end subroutine coordinates_face_inner
 
 
-subroutine coordinates_face_inner2d(n,iconsidered,facex)
+subroutine coordinates_face_inner2d(n,iconsidered,facex,VEXT,NODES_LIST)
  !> @brief
 !> This subroutine retrieves the nodes of edges of elements in 2D
 IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
 integer::nnd
 integer::i,k
 i=iconsidered
@@ -1355,23 +1673,24 @@ i=iconsidered
 	      END DO
 	      
 	      
-	      N_NODE=NND
 	      
 	     
 end subroutine coordinates_face_inner2d
 
 
-subroutine coordinates_face_innerx(n,iconsidered,facex)
+subroutine coordinates_face_innerx(n,iconsidered,facex,VEXT,NODES_LIST)
  !> @brief
 !> This subroutine retrieve the nodes of interior faces of elements in 3D
 IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
 integer::nnd
 integer::i,k
+
+
 i=iconsidered
-
-
-	      select case (ielem(n,iconsidered)%types_faces(facex))
+	      select case (ielem(n,i)%types_faces(facex))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -1385,19 +1704,20 @@ i=iconsidered
 	      END DO
 	      
 	      
-	      N_NODE=NND
-	      
 	     
 end subroutine coordinates_face_innerx
 
 
-subroutine coordinates_face_inner2dx(n,iconsidered,facex)
+subroutine coordinates_face_inner2dx(n,iconsidered,facex,VEXT,NODES_LIST)
  !> @brief
 !> This subroutine retrieves the nodes of edges of elements in 2D
 IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
 integer::nnd
 integer::i,k
+
 i=iconsidered
 
 
@@ -1410,24 +1730,26 @@ i=iconsidered
 	      END DO
 	      
 	      
-	      N_NODE=NND
+
 	      
 	     
 end subroutine coordinates_face_inner2dx
 
 
-subroutine coordinates_face_PERIOD1(n,iconsidered,facex)
+subroutine coordinates_face_PERIOD1(n,iconsidered,facex,VEXT,NODES_LIST)
  !> @brief
 !> This subroutine retrieve the nodes of periodic faces of elements in 3D
 IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
 integer::nnd
 integer::i,k
 real::tempxx
 i=iconsidered
 
 
-	      select case (ielem(n,iconsidered)%types_faces(facex))
+	      select case (ielem(n,i)%types_faces(facex))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -1472,15 +1794,17 @@ i=iconsidered
 		  VEXT(K,1:3)=NODES_LIST(k,1:3)
 	      END DO
 	      
-	     N_NODE=NND
+
 end subroutine coordinates_face_PERIOD1
 
 
-subroutine coordinates_face_PERIOD2d1(n,iconsidered,facex)
+subroutine coordinates_face_PERIOD2d1(n,iconsidered,facex,VEXT,NODES_LIST)
  !> @brief
 !> This subroutine retrieve the nodes of periodic edges of elements in 2D
 IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
 integer::nnd
 integer::i,k
 i=iconsidered
@@ -1509,23 +1833,25 @@ i=iconsidered
 		  VEXT(K,1:2)=NODES_LIST(k,1:2)
 	      END DO
 	      
-	     N_NODE=NND
+
 end subroutine coordinates_face_PERIOD2d1
 
 
 
-subroutine coordinates_face_PERIOD(n,iconsidered,facex)
+subroutine coordinates_face_PERIOD(n,iconsidered,facex,VEXT,NODES_LIST)
  !> @brief
 !> This subroutine retrieve the nodes of periodic faces of elements in 3D
 IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
 integer::nnd
 integer::i,k
 real::tempxx
 i=iconsidered
 
 
-	      select case (ielem(n,iconsidered)%types_faces(facex))
+	      select case (ielem(n,i)%types_faces(facex))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -1572,15 +1898,16 @@ i=iconsidered
 		  VEXT(K,1:3)=NODES_LIST(k,1:3)
 	      END DO
 	      
-	     N_NODE=NND
 end subroutine coordinates_face_PERIOD
 
 
-subroutine coordinates_face_PERIOD2d(n,iconsidered,facex)
+subroutine coordinates_face_PERIOD2d(n,iconsidered,facex,VEXT,NODES_LIST)
  !> @brief
 !> This subroutine retrieve the nodes of periodic edges of elements in 2D
 IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
 integer::nnd
 integer::i,k
 i=iconsidered
@@ -1609,21 +1936,25 @@ i=iconsidered
 		  VEXT(K,1:2)=NODES_LIST(k,1:2)
 	      END DO
 	      
-	     N_NODE=NND
+
 end subroutine coordinates_face_PERIOD2d
 
 
 
-SUBROUTINE COMPUTE_CENTRE2dF(N,Iconsi,facex,IXXFF)
+SUBROUTINE COMPUTE_CENTRE2dF(N,Iconsidered,facex,N_NODE,cords)
  !> @brief
 !> This subroutine retrieves the nodes of the vertices of edges of 2D elements
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N,Iconsi,facex,IXXFF
-integer::k
-    N_NODE=ixxff
+INTEGER,INTENT(IN)::N,Iconsidered,facex
+INTEGER,INTENT(INOUT)::N_NODE
+REAL,dimension(1:dimensiona),INTENT(INOUT)::CORDS
+REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+integer::k,i
+i=iconsidered
+
     
     do K=1,N_NODE
-      NODES_LIST(k,1:2)=inoder(IELEM(N,Iconsi)%NODES_FACES(facex,K))%CORD(1:2)
+      NODES_LIST(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:2)
     END DO
     CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
    
@@ -1632,15 +1963,47 @@ integer::k
 END SUBROUTINE
 
 
-SUBROUTINE COMPUTE_CENTRE2d(N,Iconsi)
+
+SUBROUTINE COMPUTE_CENTRE3d(iconsidered,CORDS)
+ !> @brief
+!> This subroutine computes the cell centre of elements in 3D
+IMPLICIT NONE
+INTEGER,INTENT(IN)::Iconsidered
+integer::k,i,j,n_node
+real,dimension(1:dimensiona),INTENT(INOUT)::cords
+REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+
+
+i=iconsidered
+
+    N_NODE=IELEM(N,i)%NONODES
+    do K=1,IELEM(N,I)%NONODES
+      NODES_LIST(k,1:3)=inoder(IELEM(N,i)%NODES(K))%CORD(1:3)
+    END DO
+    CORDS=CORDINATES3(N,NODES_LIST,N_NODE)
+
+
+
+
+END SUBROUTINE
+
+
+
+SUBROUTINE COMPUTE_CENTRE2d(Iconsidered,CORDS)
  !> @brief
 !> This subroutine retrieves the nodes of the vertices of 2D elements
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N,Iconsi
-integer::k
-    N_NODE=IELEM(N,Iconsi)%NONODES
-    do K=1,IELEM(N,Iconsi)%NONODES
-      NODES_LIST(k,1:2)=inoder(IELEM(N,Iconsi)%NODES(K))%CORD(1:2)
+INTEGER,INTENT(IN)::Iconsidered
+integer::k,i,j,n_node
+real,dimension(1:dimensiona),INTENT(INOUT)::cords
+REAL,DIMENSION(1:8,1:dimensiona)::NODES_LIST
+
+
+i=iconsidered
+
+    N_NODE=IELEM(N,I)%NONODES
+    do K=1,IELEM(N,I)%NONODES
+      NODES_LIST(k,1:2)=inoder(IELEM(N,I)%NODES(K))%CORD(1:2)
     END DO
     CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
    
@@ -1649,53 +2012,58 @@ integer::k
 END SUBROUTINE
 
 
-SUBROUTINE CENTRE(N)
+SUBROUTINE CENTRE3D(iconsidered)
  !> @brief
 !> This subroutine computes the cell centres
 IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::KMAXE,I
-KMAXE=XMPIELRANK(N)
-
-!$OMP PARALLEL DEFAULT(SHARED) private(i)
-IF (DIMENSIONA.EQ.3)THEN
+INTEGER,INTENT(IN)::iconsidered
+REAL,DIMENSION(1:DIMENSIONA)::CORDS
+INTEGER::I
+i=iconsidered
 
 
-!$OMP DO SCHEDULE (STATIC) 
-DO I=1,KMAXE
-    CALL COMPUTE_CENTRE3d(N,I)
+
+    CALL COMPUTE_CENTRE3d(i,CORDS)
     IELEM(N,I)%XXC=CORDS(1);IELEM(N,I)%YYC=CORDS(2);IELEM(N,I)%ZZC=CORDS(3);
-    ielem(n,i)%xxc=ielem(n,i)%xxc
-    ielem(n,i)%yyc=ielem(n,i)%yyc
-    ielem(n,i)%zzc=ielem(n,i)%zzc
-END DO
-!$OMP END DO
 
 
-ELSE
 
 
-!$OMP DO SCHEDULE (STATIC)  
-DO I=1,KMAXE
-    CALL COMPUTE_CENTRE2d(N,I)
+
+END SUBROUTINE CENTRE3D
+
+
+SUBROUTINE CENTRE2D(iconsidered)
+ !> @brief
+!> This subroutine computes the cell centres
+IMPLICIT NONE
+INTEGER,INTENT(IN)::iconsidered
+REAL,DIMENSION(1:DIMENSIONA)::CORDS
+INTEGER::I
+i=iconsidered
+
+
+    CALL COMPUTE_CENTRE2d(i,CORDS)
     IELEM(N,I)%XXC=CORDS(1);IELEM(N,I)%YYC=CORDS(2)
-END DO
-!$OMP END DO
 
 
 
-END IF
-!$OMP END PARALLEL
 
+END SUBROUTINE CENTRE2D
 
-
-END SUBROUTINE CENTRE
-
-SUBROUTINE QUADRATURETRIANG(N,IGQRULES)
+SUBROUTINE QUADRATURETRIANG(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
  !> @brief
 !> This subroutine computes the quadrature points and weights for triangle in 3D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2),INTENT(INOUT)::QPOINTS2D
+REAL,DIMENSION(1:NUMBEROFPOINTS2),INTENT(INOUT)::WEQUA2D
+real,dimension(1:DIMENSIONA,1:DIMENSIONA)::VVA,VVA1
+REAL,dimension(1)::DETA
+REAL,DIMENSION(1:4)::VVNXI
+real,dimension(1:ALLS)::VVwg
+real,dimension(1:ALLS)::VVR1,VVR2,VVR3
 INTEGER::Kk
 
 WEQUA2D=0.0d0
@@ -1979,11 +2347,19 @@ END select
 
 END SUBROUTINE QUADRATURETRIANG
 
-SUBROUTINE QUADRATURETRIANGLE(N,IGQRULES)
+SUBROUTINE QUADRATURETRIANGLE(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
 !> @brief
 !> This subroutine computes the quadrature points and weights for triangle in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
+real,dimension(1:DIMENSIONA,1:DIMENSIONA)::VVA,VVA1
+REAL,dimension(1)::DETA
+REAL,DIMENSION(1:4)::VVNXI
+real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3
+real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
 INTEGER::Kk
 
 WEQUA3D=0.0d0
@@ -2251,14 +2627,22 @@ END select
 END SUBROUTINE QUADRATURETRIANGLE
 
 
-SUBROUTINE QUADRATUREQUAD(N,IGQRULES)
+SUBROUTINE QUADRATUREQUAD(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
  !> @brief
 !> This subroutine computes the quadrature points and weights for quadrilateral in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,Tx,a,b,c,d,e,f
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
+real,dimension(1:2,1:2)::VVA,VVA1
+REAL,dimension(1)::DETA
+REAL,DIMENSION(1:4)::VVNXI
+real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3
+real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
+REAL::R,S,TX,a,b,c,d,e,f
 REAL::a1,b1,c1,d1,e1,f1
-INTEGER::Kk,J,ii,ij,ik,count1,alls
+INTEGER::Kk,J,ii,ij,ik,count1
 
 
  WEQUA3D=0.0d0
@@ -2447,14 +2831,24 @@ END SUBROUTINE QUADRATUREQUAD
 
 
 
-SUBROUTINE QUADRATUREQUAD3D(N,IGQRULES)
+SUBROUTINE QUADRATUREQUAD3D(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
  !> @brief
 !> This subroutine computes the quadrature points and weights for quadrilateral in 3D
 IMPLICIT NONE
-INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,Tx,a,b,c,d,e,f
+INTEGER,INTENT(IN)::N,IGQRULES
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS2),INTENT(INOUT)::QPOINTS2D
+REAL,DIMENSION(1:NUMBEROFPOINTS2),INTENT(INOUT)::WEQUA2D
+real,dimension(1:3,1:3)::VVA,VVA1
+REAL,dimension(1)::DETA
+REAL,DIMENSION(1:4)::VVNXI
+real,dimension(1:ALLS)::VVwg
+real,dimension(1:ALLS)::VVR1,VVR2,VVR3
+real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
+REAL::R,S,a,b,c,d,e,f
 REAL::a1,b1,c1,d1,e1,f1
-INTEGER::Kk,J,ii,ij,ik,count1,alls
+INTEGER::Kk,J,ii,ij,ik,count1
+
 
 
  WEQUA2D=0.0d0
@@ -2641,14 +3035,24 @@ END SELECT
 END SUBROUTINE QUADRATUREQUAD3D
 
 
-SUBROUTINE QUADRATURELINE(N,IGQRULES)
+SUBROUTINE QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
  !> @brief
 !> This subroutine computes the quadrature points for a line and returns it in QPOINTS2D(DIM,QP)
 IMPLICIT NONE
-INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,Tx,a,b,c,d,e,f,G,H,K
+INTEGER,INTENT(IN)::N,IGQRULES
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS2),INTENT(INOUT)::QPOINTS2D
+REAL,DIMENSION(1:NUMBEROFPOINTS2),INTENT(INOUT)::WEQUA2D
+real,dimension(1:2,1:2)::VVA,VVA1
+REAL,dimension(1)::DETA
+REAL,DIMENSION(1:4)::VVNXI
+real,dimension(1:ALLS)::VVwg
+real,dimension(1:ALLS)::VVR1,VVR2,VVR3
+real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
+REAL::R,S,TX,a,b,c,d,e,f,G,H,K
 REAL::a1,b1,c1,d1,e1,f1,G1,H1,K1
-INTEGER::Kk,J,ii,ij,ik,count1,alls
+INTEGER::Kk,J,ii,ij,ik,count1
+
 
 
  WEQUA2D=0.0d0
@@ -2838,7 +3242,7 @@ END SELECT
 		QPOINTS2D(:,:)=0.0d0
 		
 		  vvwg(:)=vvwg(:)*0.5d0
-! 		  WEQUA2D(:)=vvwg(:)
+
 		do kk=1,qp_LINE
 			WEQUA2D(kk)=vvwg(kk)
 			R=VVR1(kk); 
@@ -2859,21 +3263,26 @@ END SUBROUTINE QUADRATURELINE
 
 
 
-SUBROUTINE QUADRATURETETRA(N,IGQRULES)
+SUBROUTINE QUADRATURETETRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
  !> @brief
 !> This subroutine computes the quadrature points and weights for a tetrahedral
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
 INTEGER::Kk
-
+real,dimension(1:3,1:3)::VVA,VVA1
+REAL,dimension(1)::DETA
+REAL,DIMENSION(1:8)::VVNXI
+real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3,VVR4
+real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
 
 
 
 WEQUA3D=0.0d0
 QPOINTS=0.0d0
-! R1=VEXT2(N,:)-VEXT1(N,:)
-! R2=VEXT3(N,:)-VEXT1(N,:)
-! R3=VEXT4(N,:)-VEXT1(N,:)
+
 
 select case(IGQRULES)
 case(1)
@@ -2910,21 +3319,7 @@ VVR1(14)= 0.4544962958743504E+00;VVR2(14)= 0.4544962958743504E+00;VVR3(14)= 0.45
 
 
 
-! 
-! 
-! 
-! 
-! 
-! VVR1(1)=0.7784952948213300 ;VVR2(1)=0.0738349017262234 ;VVR3(1)=0.0738349017262234 ;VVR4(1)=0.0738349017262234 ;vvwg(1)=0.0476331348432089
-! VVR1(2)=0.0738349017262234 ;VVR2(2)=0.7784952948213300 ;VVR3(2)=0.0738349017262234 ;VVR4(2)=0.0738349017262234 ;vvwg(2)=0.0476331348432089
-! VVR1(3)=0.0738349017262234 ;VVR2(3)=0.0738349017262234 ;VVR3(3)=0.7784952948213300 ;VVR4(3)=0.0738349017262234 ;vvwg(3)=0.0476331348432089
-! VVR1(4)=0.0738349017262234 ;VVR2(4)=0.0738349017262234 ;VVR3(4)=0.0738349017262234 ;VVR4(4)=0.7784952948213300 ;vvwg(4)=0.0476331348432089
-! VVR1(5)=0.4062443438840510 ;VVR2(5)=0.4062443438840510 ;VVR3(5)=0.0937556561159491 ;VVR4(5)=0.0937556561159491 ;vvwg(5)=0.1349112434378610
-! VVR1(6)=0.4062443438840510 ;VVR2(6)=0.0937556561159491 ;VVR3(6)=0.4062443438840510 ;VVR4(6)=0.0937556561159491 ;vvwg(6)=0.1349112434378610
-! VVR1(7)=0.4062443438840510 ;VVR2(7)=0.0937556561159491 ;VVR3(7)=0.0937556561159491 ;VVR4(7)=0.4062443438840510 ;vvwg(7)=0.1349112434378610
-! VVR1(8)=0.0937556561159491 ;VVR2(8)=0.4062443438840510 ;VVR3(8)=0.4062443438840510 ;VVR4(8)=0.0937556561159491 ;vvwg(8)=0.1349112434378610
-! VVR1(9)=0.0937556561159491 ;VVR2(9)=0.4062443438840510 ;VVR3(9)=0.0937556561159491 ;VVR4(9)=0.4062443438840510 ;vvwg(9)=0.1349112434378610
-! VVR1(10)=0.0937556561159491 ;VVR2(10)=0.0937556561159491 ;VVR3(10)=0.4062443438840510 ;VVR4(10)=0.4062443438840510 ;vvwg(10)=0.1349112434378610
+
 
 
   
@@ -2970,41 +3365,6 @@ VVR1(24)= 0.6030056647916491E+00;VVR2(24)= 0.2696723314583158E+00;VVR3(24)= 0.63
 
 
 
-! VVR1(1)=0.9029422158182680 ;VVR2(1)=0.0323525947272439 ;VVR3(1)=0.0323525947272439 ;VVR4(1)=0.0323525947272439 ;vvwg(1)=0.0070670747944695
-! VVR1(2)=0.0323525947272439 ;VVR2(2)=0.9029422158182680 ;VVR3(2)=0.0323525947272439 ;VVR4(2)=0.0323525947272439 ;vvwg(2)=0.0070670747944695
-! VVR1(3)=0.0323525947272439 ;VVR2(3)=0.0323525947272439 ;VVR3(3)=0.9029422158182680 ;VVR4(3)=0.0323525947272439 ;vvwg(3)=0.0070670747944695
-! VVR1(4)=0.0323525947272439 ;VVR2(4)=0.0323525947272439 ;VVR3(4)=0.0323525947272439 ;VVR4(4)=0.9029422158182680 ;vvwg(4)=0.0070670747944695
-! VVR1(5)=0.2626825838877790 ;VVR2(5)=0.6165965330619370 ;VVR3(5)=0.0603604415251421 ;VVR4(5)=0.0603604415251421 ;vvwg(5)=0.0469986689718877
-! VVR1(6)=0.6165965330619370 ;VVR2(6)=0.2626825838877790 ;VVR3(6)=0.0603604415251421 ;VVR4(6)=0.0603604415251421 ;vvwg(6)=0.0469986689718877
-! VVR1(7)=0.2626825838877790 ;VVR2(7)=0.0603604415251421 ;VVR3(7)=0.6165965330619370 ;VVR4(7)=0.0603604415251421 ;vvwg(7)=0.0469986689718877
-! VVR1(8)=0.6165965330619370 ;VVR2(8)=0.0603604415251421 ;VVR3(8)=0.2626825838877790 ;VVR4(8)=0.0603604415251421 ;vvwg(8)=0.0469986689718877
-! VVR1(9)=0.2626825838877790 ;VVR2(9)=0.0603604415251421 ;VVR3(9)=0.0603604415251421 ;VVR4(9)=0.6165965330619370 ;vvwg(9)=0.0469986689718877
-! VVR1(10)=0.6165965330619370 ;VVR2(10)=0.0603604415251421 ;VVR3(10)=0.0603604415251421 ;VVR4(10)=0.2626825838877790 ;vvwg(10)=0.0469986689718877
-! VVR1(11)=0.0603604415251421 ;VVR2(11)=0.2626825838877790 ;VVR3(11)=0.6165965330619370 ;VVR4(11)=0.0603604415251421 ;vvwg(11)=0.0469986689718877
-! VVR1(12)=0.0603604415251421 ;VVR2(12)=0.6165965330619370 ;VVR3(12)=0.2626825838877790 ;VVR4(12)=0.0603604415251421 ;vvwg(12)=0.0469986689718877
-! VVR1(13)=0.0603604415251421 ;VVR2(13)=0.2626825838877790 ;VVR3(13)=0.0603604415251421 ;VVR4(13)=0.6165965330619370 ;vvwg(13)=0.0469986689718877
-! VVR1(14)=0.0603604415251421 ;VVR2(14)=0.6165965330619370 ;VVR3(14)=0.0603604415251421 ;VVR4(14)=0.2626825838877790 ;vvwg(14)=0.0469986689718877
-! VVR1(15)=0.0603604415251421 ;VVR2(15)=0.0603604415251421 ;VVR3(15)=0.2626825838877790 ;VVR4(15)=0.6165965330619370 ;vvwg(15)=0.0469986689718877
-! VVR1(16)=0.0603604415251421 ;VVR2(16)=0.0603604415251421 ;VVR3(16)=0.6165965330619370 ;VVR4(16)=0.2626825838877790 ;vvwg(16)=0.0469986689718877
-! VVR1(17)=0.3097693042728620 ;VVR2(17)=0.3097693042728620 ;VVR3(17)=0.3097693042728620 ;VVR4(17)=0.0706920871814129 ;vvwg(17)=0.1019369182898680
-! VVR1(18)=0.3097693042728620 ;VVR2(18)=0.3097693042728620 ;VVR3(18)=0.0706920871814129 ;VVR4(18)=0.3097693042728620 ;vvwg(18)=0.1019369182898680
-! VVR1(19)=0.3097693042728620 ;VVR2(19)=0.0706920871814129 ;VVR3(19)=0.3097693042728620 ;VVR4(19)=0.3097693042728620 ;vvwg(19)=0.1019369182898680
-! VVR1(20)=0.0706920871814129 ;VVR2(20)=0.3097693042728620 ;VVR3(20)=0.3097693042728620 ;VVR4(20)=0.3097693042728620 ;vvwg(20)=0.1019369182898680
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
 			
 case(5)
 
@@ -3046,42 +3406,6 @@ VVR1(34)= 0.1466388138184849E+00;VVR2(34)= 0.2126547254148325E-01;VVR3(34)= 0.21
 VVR1(35)= 0.8108302410985486E+00;VVR2(35)= 0.1466388138184849E+00;VVR3(35)= 0.2126547254148325E-01;VVR4(35)= 0.2126547254148320E-01;VVWG(35)= 0.8110770829903342E-02
 
 
-
-! VVR1(1)=0.9197896733368800 ;VVR2(1)=0.0267367755543735 ;VVR3(1)=0.0267367755543735 ;VVR4(1)=0.0267367755543735 ;vvwg(1)=0.0021900463965388
-! VVR1(2)=0.0267367755543735 ;VVR2(2)=0.9197896733368800 ;VVR3(2)=0.0267367755543735 ;VVR4(2)=0.0267367755543735 ;vvwg(2)=0.0021900463965388
-! VVR1(3)=0.0267367755543735 ;VVR2(3)=0.0267367755543735 ;VVR3(3)=0.9197896733368800 ;VVR4(3)=0.0267367755543735 ;vvwg(3)=0.0021900463965388
-! VVR1(4)=0.0267367755543735 ;VVR2(4)=0.0267367755543735 ;VVR3(4)=0.0267367755543735 ;VVR4(4)=0.9197896733368800 ;vvwg(4)=0.0021900463965388
-! VVR1(5)=0.1740356302468940 ;VVR2(5)=0.7477598884818090 ;VVR3(5)=0.0391022406356488 ;VVR4(5)=0.0391022406356488 ;vvwg(5)=0.0143395670177665
-! VVR1(6)=0.7477598884818090 ;VVR2(6)=0.1740356302468940 ;VVR3(6)=0.0391022406356488 ;VVR4(6)=0.0391022406356488 ;vvwg(6)=0.0143395670177665
-! VVR1(7)=0.1740356302468940 ;VVR2(7)=0.0391022406356488 ;VVR3(7)=0.7477598884818090 ;VVR4(7)=0.0391022406356488 ;vvwg(7)=0.0143395670177665
-! VVR1(8)=0.7477598884818090 ;VVR2(8)=0.0391022406356488 ;VVR3(8)=0.1740356302468940 ;VVR4(8)=0.0391022406356488 ;vvwg(8)=0.0143395670177665
-! VVR1(9)=0.1740356302468940 ;VVR2(9)=0.0391022406356488 ;VVR3(9)=0.0391022406356488 ;VVR4(9)=0.7477598884818090 ;vvwg(9)=0.0143395670177665
-! VVR1(10)=0.7477598884818090 ;VVR2(10)=0.0391022406356488 ;VVR3(10)=0.0391022406356488 ;VVR4(10)=0.1740356302468940 ;vvwg(10)=0.0143395670177665
-! VVR1(11)=0.0391022406356488 ;VVR2(11)=0.1740356302468940 ;VVR3(11)=0.7477598884818090 ;VVR4(11)=0.0391022406356488 ;vvwg(11)=0.0143395670177665
-! VVR1(12)=0.0391022406356488 ;VVR2(12)=0.7477598884818090 ;VVR3(12)=0.1740356302468940 ;VVR4(12)=0.0391022406356488 ;vvwg(12)=0.0143395670177665
-! VVR1(13)=0.0391022406356488 ;VVR2(13)=0.1740356302468940 ;VVR3(13)=0.0391022406356488 ;VVR4(13)=0.7477598884818090 ;vvwg(13)=0.0143395670177665
-! VVR1(14)=0.0391022406356488 ;VVR2(14)=0.7477598884818090 ;VVR3(14)=0.0391022406356488 ;VVR4(14)=0.1740356302468940 ;vvwg(14)=0.0143395670177665
-! VVR1(15)=0.0391022406356488 ;VVR2(15)=0.0391022406356488 ;VVR3(15)=0.1740356302468940 ;VVR4(15)=0.7477598884818090 ;vvwg(15)=0.0143395670177665
-! VVR1(16)=0.0391022406356488 ;VVR2(16)=0.0391022406356488 ;VVR3(16)=0.7477598884818090 ;VVR4(16)=0.1740356302468940 ;vvwg(16)=0.0143395670177665
-! VVR1(17)=0.4547545999844830 ;VVR2(17)=0.4547545999844830 ;VVR3(17)=0.0452454000155172 ;VVR4(17)=0.0452454000155172 ;vvwg(17)=0.0250305395686746
-! VVR1(18)=0.4547545999844830 ;VVR2(18)=0.0452454000155172 ;VVR3(18)=0.4547545999844830 ;VVR4(18)=0.0452454000155172 ;vvwg(18)=0.0250305395686746
-! VVR1(19)=0.4547545999844830 ;VVR2(19)=0.0452454000155172 ;VVR3(19)=0.0452454000155172 ;VVR4(19)=0.4547545999844830 ;vvwg(19)=0.0250305395686746
-! VVR1(20)=0.0452454000155172 ;VVR2(20)=0.4547545999844830 ;VVR3(20)=0.4547545999844830 ;VVR4(20)=0.0452454000155172 ;vvwg(20)=0.0250305395686746
-! VVR1(21)=0.0452454000155172 ;VVR2(21)=0.4547545999844830 ;VVR3(21)=0.0452454000155172 ;VVR4(21)=0.4547545999844830 ;vvwg(21)=0.0250305395686746
-! VVR1(22)=0.0452454000155172 ;VVR2(22)=0.0452454000155172 ;VVR3(22)=0.4547545999844830 ;VVR4(22)=0.4547545999844830 ;vvwg(22)=0.0250305395686746
-! VVR1(23)=0.5031186450145980 ;VVR2(23)=0.2232010379623150 ;VVR3(23)=0.2232010379623150 ;VVR4(23)=0.0504792790607720 ;vvwg(23)=0.0479839333057554
-! VVR1(24)=0.2232010379623150 ;VVR2(24)=0.5031186450145980 ;VVR3(24)=0.2232010379623150 ;VVR4(24)=0.0504792790607720 ;vvwg(24)=0.0479839333057554
-! VVR1(25)=0.2232010379623150 ;VVR2(25)=0.2232010379623150 ;VVR3(25)=0.5031186450145980 ;VVR4(25)=0.0504792790607720 ;vvwg(25)=0.0479839333057554
-! VVR1(26)=0.5031186450145980 ;VVR2(26)=0.2232010379623150 ;VVR3(26)=0.0504792790607720 ;VVR4(26)=0.2232010379623150 ;vvwg(26)=0.0479839333057554
-! VVR1(27)=0.2232010379623150 ;VVR2(27)=0.5031186450145980 ;VVR3(27)=0.0504792790607720 ;VVR4(27)=0.2232010379623150 ;vvwg(27)=0.0479839333057554
-! VVR1(28)=0.2232010379623150 ;VVR2(28)=0.2232010379623150 ;VVR3(28)=0.0504792790607720 ;VVR4(28)=0.5031186450145980 ;vvwg(28)=0.0479839333057554
-! VVR1(29)=0.5031186450145980 ;VVR2(29)=0.0504792790607720 ;VVR3(29)=0.2232010379623150 ;VVR4(29)=0.2232010379623150 ;vvwg(29)=0.0479839333057554
-! VVR1(30)=0.2232010379623150 ;VVR2(30)=0.0504792790607720 ;VVR3(30)=0.5031186450145980 ;VVR4(30)=0.2232010379623150 ;vvwg(30)=0.0479839333057554
-! VVR1(31)=0.2232010379623150 ;VVR2(31)=0.0504792790607720 ;VVR3(31)=0.2232010379623150 ;VVR4(31)=0.5031186450145980 ;vvwg(31)=0.0479839333057554
-! VVR1(32)=0.0504792790607720 ;VVR2(32)=0.5031186450145980 ;VVR3(32)=0.2232010379623150 ;VVR4(32)=0.2232010379623150 ;vvwg(32)=0.0479839333057554
-! VVR1(33)=0.0504792790607720 ;VVR2(33)=0.2232010379623150 ;VVR3(33)=0.5031186450145980 ;VVR4(33)=0.2232010379623150 ;vvwg(33)=0.0479839333057554
-! VVR1(34)=0.0504792790607720 ;VVR2(34)=0.2232010379623150 ;VVR3(34)=0.2232010379623150 ;VVR4(34)=0.5031186450145980 ;vvwg(34)=0.0479839333057554
-! VVR1(35)=0.2500000000000000 ;VVR2(35)=0.2500000000000000 ;VVR3(35)=0.2500000000000000 ;VVR4(35)=0.2500000000000000 ;vvwg(35)=0.0931745731195340
 	
 	
 CASE(6,7,8,9)
@@ -3162,16 +3486,24 @@ END select
 
 END SUBROUTINE QUADRATURETETRA
 
-SUBROUTINE QUADRATUREPRISM(N,IGQRULES)
+SUBROUTINE QUADRATUREPRISM(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
  !> @brief
 !> This subroutine computes the quadrature points and weights for a prism
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,Tx,a,b,c,d,e,f
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
+real,dimension(1:3,1:3)::VVA,VVA1
+REAL,dimension(1)::DETA
+REAL,DIMENSION(1:8)::VVNXI
+real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3
+real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
+REAL::R,S,TX,a,b,c,d,e,f
 REAL::a1,b1,c1,d1,e1,f1,sumwe
-INTEGER::Kk,J,ii,ij,ik,count1,alls
+INTEGER::Kk,J,ii,ij,ik,count1
 
-alls=igqrules*QP_TRIANGLE
+
 
 
  
@@ -3435,13 +3767,13 @@ END SELECT
 		do kk=1,qp_prism
 			WEQUA3D(kk)=vvwg(kk)*0.5d0
 			
-			R=VVR1(kk); S=VVR2(kk); Tx=VVR3(kk)
-			VVnxi(1)=(0.5d0)*r*(1.0d0-tx)
-			VVnxi(2)=(0.5d0)*(s)*(1.0d0-tx)
-			VVnxi(3)=(0.5d0)*(1.0-R-s)*(1.0d0-tx)
-			VVnxi(4)=(0.5d0)*r*(1.0d0+tx)
-			VVnxi(5)=(0.5d0)*(s)*(1.0d0+tx)
-			VVnxi(6)=(0.5d0)*(1.0-R-s)*(1.0d0+tx)
+			R=VVR1(kk); S=VVR2(kk); TX=VVR3(kk)
+			VVnxi(1)=(0.5d0)*r*(1.0d0-tX)
+			VVnxi(2)=(0.5d0)*(s)*(1.0d0-tX)
+			VVnxi(3)=(0.5d0)*(1.0-R-s)*(1.0d0-tX)
+			VVnxi(4)=(0.5d0)*r*(1.0d0+tX)
+			VVnxi(5)=(0.5d0)*(s)*(1.0d0+tX)
+			VVnxi(6)=(0.5d0)*(1.0-R-s)*(1.0d0+tX)
 			
 			DO J=1,6
 			QPOINTS(:,kk)=QPOINTS(:,kk)+(VVNXI(j)*VEXT(j,:))
@@ -3457,16 +3789,24 @@ END SELECT
 END SUBROUTINE QUADRATUREPRISM
 
 
-SUBROUTINE QUADRATUREPYRA(N,IGQRULES)
+SUBROUTINE QUADRATUREPYRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
  !> @brief
 !> This subroutine computes the quadrature points and weights for a pyramid
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,Tx,a,b,c,d,e,f,g
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
+REAL::R,S,TX,a,b,c,d,e,f,g
 REAL::a1,b1,c1,d1,e1,f1,sumwe
-INTEGER::Kk,J,ii,ij,ik,count1,alls
+INTEGER::Kk,J,ii,ij,ik,count1
+real,dimension(1:3,1:3)::VVA,VVA1
+REAL,dimension(1)::DETA
+REAL,DIMENSION(1:8)::VVNXI
+real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3
+real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
 
-alls=QP_PYRA
+
 
 
  
@@ -3644,18 +3984,18 @@ CASE(6,7,8,9)
 END SELECT
 		QPOINTS(:,:)=0.0d0
 
-! 		  WEQUA3D(:)=vvwg(:)*0.1250000000000
+
 		do kk=1,qp_pyra
 			WEQUA3D(kk)=vvwg(kk)*0.1250000000000
 			
-			R=VVR1(kk); S=VVR2(kk); Tx=VVR3(kk)
-			VVnxi(1)=(0.1250000000000)*(1.0-R)*(1.0d0-s)*(1.0d0-tx)
-			VVnxi(2)=(0.1250000000000)*(1.0+R)*(1.0d0-s)*(1.0d0-tx)
-			VVnxi(3)=(0.1250000000000)*(1.0+R)*(1.0d0+s)*(1.0d0-tx)
-			VVnxi(4)=(0.1250000000000)*(1.0-R)*(1.0d0+s)*(1.0d0-tx)
-			VVnxi(5)=0.5d0*(1.0d0+tx)
+			R=VVR1(kk); S=VVR2(kk); TX=VVR3(kk)
+			VVnxi(1)=(0.1250000000000)*(1.0-R)*(1.0d0-s)*(1.0d0-tX)
+			VVnxi(2)=(0.1250000000000)*(1.0+R)*(1.0d0-s)*(1.0d0-tX)
+			VVnxi(3)=(0.1250000000000)*(1.0+R)*(1.0d0+s)*(1.0d0-tX)
+			VVnxi(4)=(0.1250000000000)*(1.0-R)*(1.0d0+s)*(1.0d0-tX)
+			VVnxi(5)=0.5d0*(1.0d0+tX)
 			
-			
+
 			DO J=1,5
 			QPOINTS(:,kk)=QPOINTS(:,kk)+(VVNXI(j)*VEXT(j,:))
 			END DO
@@ -3670,14 +4010,24 @@ END SELECT
 END SUBROUTINE QUADRATUREPYRA
 
 
-SUBROUTINE QUADRATUREHEXA(N,IGQRULES)
+SUBROUTINE QUADRATUREHEXA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
  !> @brief
 !> This subroutine computes the quadrature points and weights for a hexahedral
 IMPLICIT NONE
 INTEGER,INTENT(IN)::IGQRULES,N
-REAL::R,S,Tx,a,b,c,d,e,f
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
+REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
+REAL::R,S,TX,a,b,c,d,e,f
 REAL::a1,b1,c1,d1,e1,f1
-INTEGER::Kk,J,ii,ij,ik,count1,alls
+INTEGER::Kk,J,ii,ij,ik,count1
+real,dimension(1:3,1:3)::VVA,VVA1
+REAL,dimension(1)::DETA
+REAL,DIMENSION(1:8)::VVNXI
+real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3
+real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
+
+
 
  WEQUA3D=0.0d0
   QPOINTS=0.0d0
@@ -3717,7 +4067,6 @@ SELECT CASE(IGQRULES)
     end do
 end do
   	
-
 
   	
  CASE(3)
@@ -3840,7 +4189,6 @@ END SELECT
 		QPOINTS(:,:)=0.0d0
 		
 		  vvwg(:)=vvwg(:)*0.125d0
-! 		  WEQUA3D(:)=vvwg(:)
 		do kk=1,qp_hexa
 			WEQUA3D(kk)=vvwg(kk)
 			R=VVR1(kk); S=VVR2(kk); Tx=VVR3(kk)
@@ -3866,14 +4214,14 @@ END SELECT
 
 END SUBROUTINE QUADRATUREHEXA
 
-SUBROUTINE ROTATEF(N,TRI,ROTVECT,VECTCO,ANGLE1,ANGLE2)
+SUBROUTINE ROTATEF(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
  !> @brief
 !> This subroutine rotates the vector of fluxes in the directions normal to the face in 3D 
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::TRI
-REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ROTVECT
-REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::VECTCO
+REAL,DIMENSION(1:5,1:5)::TRI
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO
 REAL,INTENT(IN)::ANGLE1,ANGLE2
 REAL::sia1,coa1,coa2,sia2
 
@@ -3888,22 +4236,17 @@ tri=zero
 
 TRI(1,1)=1.0d0
 
-TRI(2,2)=coa1*sia2!COS(ANGLE1)*SIN(ANGLE2)
-TRI(2,3)=sia1*sia2!SIN(ANGLE1)*SIN(ANGLE2)
-TRI(2,4)=coa2!COS(ANGLE2)
+TRI(2,2)=coa1*sia2	!COS(ANGLE1)*SIN(ANGLE2)
+TRI(2,3)=sia1*sia2	!SIN(ANGLE1)*SIN(ANGLE2)
+TRI(2,4)=coa2		!COS(ANGLE2)
 
-TRI(3,2)=coa1*coa2!COS(ANGLE1)*COS(ANGLE2)
-TRI(3,3)=sia1*coa2!SIN(ANGLE1)*COS(ANGLE2)
-TRI(3,4)=-sia2!-SIN(ANGLE2)
+TRI(3,2)=coa1*coa2	!COS(ANGLE1)*COS(ANGLE2)
+TRI(3,3)=sia1*coa2	!SIN(ANGLE1)*COS(ANGLE2)
+TRI(3,4)=-sia2		!-SIN(ANGLE2)
 
-TRI(4,2)=-sia1!-SIN(ANGLE1)
-TRI(4,3)=coa1!COS(ANGLE1)
+TRI(4,2)=-sia1		!-SIN(ANGLE1)
+TRI(4,3)=coa1		!COS(ANGLE1)
 TRI(5,5)=1.0d0
-
-
-
-
-
 
 
 ROTVECT(1:5)=MATMUL(TRI(1:5,1:5),VECTCO(1:5))
@@ -3915,14 +4258,14 @@ END IF
 END SUBROUTINE ROTATEF
 
 
-SUBROUTINE ROTATEB(N,INVTRI,ROTVECT,VECTCO,ANGLE1,ANGLE2)
+SUBROUTINE ROTATEB(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
  !> @brief
 !> This subroutine rotates back the vector of fluxes from the directions normal to the face to cartesian coordinates
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::INVTRI
-REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ROTVECT
-REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::VECTCO
+REAL,DIMENSION(1:5,1:5)::INVTRI
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO
 REAL,INTENT(IN)::ANGLE1,ANGLE2
 REAL::sia1,coa1,coa2,sia2
 
@@ -3962,14 +4305,13 @@ END IF
 END SUBROUTINE ROTATEB
 
 
-SUBROUTINE ROTATEF2d(N,TRI,ROTVECT,VECTCO,ANGLE1,ANGLE2)
+SUBROUTINE ROTATEF2d(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
  !> @brief
 !> This subroutine rotates the vector of fluxes in the directions normal to the edge in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::TRI
-REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ROTVECT
-REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::VECTCO
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO
 REAL,INTENT(IN)::ANGLE1,ANGLE2
 
 ROTVECT(1)=VECTCO(1)
@@ -3984,14 +4326,13 @@ END IF
 END SUBROUTINE ROTATEF2d
 
 
-SUBROUTINE ROTATEB2d(N,INVTRI,ROTVECT,VECTCO,ANGLE1,ANGLE2)
+SUBROUTINE ROTATEB2d(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
  !> @brief
 !> This subroutine rotates back the vector of fluxes from the directions normal to the edge to cartesian coordinates
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::INVTRI
-REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ROTVECT
-REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::VECTCO
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO
 REAL,INTENT(IN)::ANGLE1,ANGLE2
 
 
@@ -4020,9 +4361,14 @@ IMPLICIT NONE
 INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::PROBEI
 INTEGER,INTENT(IN)::N
 INTEGER::I,J,K,L,KMAXE,INV
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL::dist
 REAL::DUMIN,DUMOUT,DELTA
+REAL,DIMENSION(1:DIMENSIONA)::CORDS
+
 ALLOCATE (PROBEI(N:N,NPROBES))
+
+
 PROBEI(N:N,:)=0
 
 KMAXE=XMPIELRANK(N)
@@ -4031,14 +4377,14 @@ KMAXE=XMPIELRANK(N)
 	DO INV=1,NPROBES
 	DELTA=TOLBIG
 	DO I=1,KMAXE
-		iconsi=i
+
 		
 		
 		
-		call COMPUTE_CENTRE3d(N,Iconsi)
+		call COMPUTE_CENTRE3d(I,CORDS)
 		vext(1,1:3)=cords(1:3)
 		vext(2,1:3)=PROBEC(inv,1:3)
-		dist=distance3(n)
+		dist=distance3(n,VEXT)
 		
 		
 		IF (dist.LT.DELTA) THEN
@@ -4061,14 +4407,12 @@ KMAXE=XMPIELRANK(N)
       	DO INV=1,NPROBES
 	DELTA=TOLBIG
 	DO I=1,KMAXE
-		iconsi=i
+
 		
-		
-		
-		call COMPUTE_CENTRE2d(N,Iconsi)
+		call COMPUTE_CENTRE2d(i,cords)
 		vext(1,1:2)=cords(1:2)
 		vext(2,1:2)=PROBEC(inv,1:2)
-		dist=distance2(n)
+		dist=distance2(n,VEXT)
 		
 		
 		IF (dist.Le.DELTA) THEN
@@ -4094,11 +4438,12 @@ KMAXE=XMPIELRANK(N)
 END SUBROUTINE PROBEPOS
 
 
-SUBROUTINE  ANGLEX(ANGLEFACEX)
+SUBROUTINE  ANGLEX(A_ROT,B_ROT,ANGLEFACEX)
  !> @brief
 !> This subroutine computes the angles according to the quadrant sign
 IMPLICIT NONE
 REAL,INTENT(INOUT)::ANGLEFACEX
+REAL,INTENT(IN)::A_ROT,B_ROT
 
 IF ((A_rot.NE.zero).AND.(b_rot.NE.zero))THEN
 	IF ((A_rot.GT.zero).AND.(b_rot.GT.zero))THEN
@@ -4142,11 +4487,12 @@ END SUBROUTINE ANGLEX
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!OF THE NORMAL PLANE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-SUBROUTINE ANGLEY(ANGLEFACEY)
+SUBROUTINE ANGLEY(C_ROT,ROOT_rot,ANGLEFACEY)
  !> @brief
 !> This subroutine computes the angles according to the quadrant sign
 IMPLICIT NONE
 REAL,INTENT(INOUT)::ANGLEFACEY
+REAL,INTENT(IN)::C_ROT,ROOT_rot
 
 IF (C_rot.EQ.zero)THEN
 	ANGLEFACEY=ACOS(zero)
@@ -4162,12 +4508,13 @@ END IF
 END SUBROUTINE ANGLEY
 
 
-SUBROUTINE ANGLE2D(ANGLEFACEX,ANGLEFACEY)
+SUBROUTINE ANGLE2D(VEXT,ANGLEFACEX,ANGLEFACEY)
 IMPLICIT NONE
 REAL,INTENT(INOUT)::ANGLEFACEX,ANGLEFACEY
+REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
 real::length
 
-length=distance2(N)
+length=distance2(N,VEXT)
 
 ANGLEFACEX=(vext(2,2)-vext(1,2))/length
 ANGLEFACEy=-(vext(2,1)-vext(1,1))/length

@@ -10,12 +10,18 @@ IMPLICIT NONE
  
  
  
- REAL FUNCTION LINEAR_INIT3D(n)
+ REAL FUNCTION LINEAR_INIT3D(n,pox,poy,poz)
  !> @brief
 !> This function initialises the solution for linear advection in 3D,
 !> various customisable profiles can be generated and assigned to each initcond code
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
+real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
+
+
+
+
+
 !COORDINATES=POX(1),POY(1),POZ(1)
 
 IF (INITCOND.EQ.0)THEN
@@ -34,13 +40,13 @@ END IF
 END FUNCTION LINEAR_INIT3D
 
 
- REAL FUNCTION LINEAR_INIT2D(n)
+ REAL FUNCTION LINEAR_INIT2D(n,pox,poy,poz)
   !> @brief
 !> This function initialises the solution for linear advection in 2D,
 !> various customisable profiles can be generated and assigned to each initcond code
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-real,dimension(90)::polyfun
+real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
 REAL::AADX,AADY,SUMF,rd
 integer::ixg
 !COORDINATES=POX(1),POY(1),POZ(1)
@@ -55,20 +61,7 @@ IF (INITCOND.EQ.1)THEN
 
 END IF
 end if
-IF (INITCOND.EQ.0)THEN
-! LINEAR_INIT2d=(SIN((2.0D0*PI)*(POX(1))))*&
-!  (SIN((2.0D0*PI)*(POY(1))))
-AADX=POX(1)
-AADY=POy(1)
- 
 
-   polyfun(1:ielem(n,iconsidered)%idegfree)=basis_rec2d(N,AADX,AADY,ielem(n,iconsidered)%iorder,Iconsidered,ielem(n,iconsidered)%idegfree)
-   do ixg=1,ielem(n,iconsidered)%idegfree
-   SUMF=SUMF+polyfun(ixg)
-   end do
-linear_init2d=SUMF
-
-END IF
 
 IF (INITCOND.EQ.3)THEN
 
@@ -126,7 +119,7 @@ end if
 END FUNCTION LINEAR_INIT2D
  
  
- SUBROUTINE INITIALISE_EULER3D(N)
+ SUBROUTINE INITIALISE_EULER3D(N,veccos,pox,poy,poz)
  IMPLICIT NONE
   !> @brief
 !> This function initialises the solution for EULER and NAVIER-STOKES equations in 3D,
@@ -136,8 +129,15 @@ INTEGER,INTENT(IN)::N
 !SOLUTION=VECCOS
 !COMPONENTS FROM DAT FILE GAMMA,UVEL,WVEL,VVEL,PRES,RRES
 !INITCOND= PROFILE CHOICE FROM DATA FILE
+real,dimension(1:nof_Variables+turbulenceequations+passivescalar),intent(inout)::veccos
+real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
+REAL,DIMENSION(1:NOF_SPECIES)::MP_R,MP_A,MP_IE
 REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL
 integer::u_cond1,u_cond2,u_cond3,u_cond4
+
+
+
+
 VECCOS(:)=ZERO
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -314,6 +314,8 @@ VECCOS(5)=E1
 
 
 end if
+
+
 
 
 
@@ -891,7 +893,7 @@ END SUBROUTINE INITIALISE_EULER3D
 
 
 
- SUBROUTINE INITIALISE_EULER2D(N)
+ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz)
  IMPLICIT NONE
    !> @brief
 !> This function initialises the solution for EULER and NAVIER-STOKES equations in 2D,
@@ -903,8 +905,11 @@ INTEGER,INTENT(IN)::N
 !INITCOND= PROFILE CHOICE FROM DATA FILE
 real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1
 REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1,khi_slope,khi_b,theeta,reeta
-real::pr_Radius,pr_beta,pr_machnumberfree,pr_pressurefree,pr_temperaturefree,pr_gammafree,pr_Rgasfree,pr_xcenter,pr_ylength,pr_xlength,pr_ycenter,pr_densityfree,pr_cpconstant,pr_radiusvar,pr_velocityfree,pr_TemperatureVar
+real::pr_Radius,pr_beta,pr_machnumberfree,pr_pressurefree,pr_temperaturefree,pr_gammafree,pr_Rgasfree,pr_xcenter,pr_ylength,pr_xlength,pr_ycenter,pr_densityfree,pr_cpconstant,pr_radiusvar,pr_velocityfree,pr_TemperatureVar,drad
 integer::u_cond1,u_cond2,u_cond3,u_cond4,IX
+real,dimension(1:nof_Variables+turbulenceequations+passivescalar),intent(inout)::veccos
+real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
+REAL,DIMENSION(1:NOF_SPECIES)::MP_R,MP_A,MP_IE
 VECCOS(:)=ZERO
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1726,9 +1731,11 @@ END IF
 IF (INITCOND.EQ.405)THEN
 !TEST CASE 4.5 OF CORALIC & COLONIUS
 
+drad=sqrt(((pox(1)+0.05d0)**2)+((poy(1)-0.05d0)**2))
+
 IF (POX(1).lt.-0.1D0)THEN
-MP_R(1)=0.166315789d0
-MP_R(2)=1.658d0
+MP_R(1)=0.166315789
+MP_R(2)=1.658
 MP_A(1)=0.0D0
 MP_A(2)=1.0D0
 U1=114.49D0
@@ -1750,7 +1757,7 @@ ELSE
 
 
 
-if (sqrt(((pox(1)+0.05d0)**2)+((poy(1)-0.05d0)**2)).LE.0.025d0)then
+if (drad.LE.0.025d0)then
 MP_R(1)=0.166315789d0
 MP_R(2)=1.204D0
 MP_A(1)=0.95d0
@@ -1770,8 +1777,8 @@ else
 
 
 
-MP_R(1)=0.166315789d0
-MP_R(2)=1.204D0
+MP_R(1)=0.166315789
+MP_R(2)=1.204
 MP_A(1)=0.0D0
 MP_A(2)=1.0D0
 U1=0.0D0
@@ -2801,6 +2808,25 @@ end if
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 END SUBROUTINE INITIALISE_EULER2D
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

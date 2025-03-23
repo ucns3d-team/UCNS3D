@@ -15,10 +15,29 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar
-	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC
+	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx,VISCOTS
 	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
 	real,dimension(NOF_variables,NOF_variables)::convj,diffj
+	INTEGER::ICONSIDERED, FACEX, POINTX,igoflux
+	INTEGER::B_CODE,srf
+	REAL::ANGLE1,ANGLE2,NX,NY,NZ
+	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
+	real,dimension(1:nof_Variables)::RIGHTv
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+	REAL,DIMENSION(1:DIMENSIONA)::CORDS
+	REAL,DIMENSION(1:4)::viscl,LAML
+	REAL,DIMENSION(1:2)::TURBMV
+    REAL,DIMENSION(1)::ETVM
+    REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+	real::MP_PINFL,gammal
+    real::MP_PINFR,gammaR
+   REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::EIGVL
+
 	KMAXE=XMPIELRANK(N)
 	IDENTITY1(:,:)=ZERO
 	DO L=1,NOF_VARIABLES
@@ -26,7 +45,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	END DO
 		
 
-	!$OMP DO SCHEDULE (STATIC)
+	!$OMP DO
 	DO II=1,NOF_INTERIOR	!for all the interior elements
 	I=EL_INT(II)
 	ICONSIDERED=I
@@ -51,8 +70,8 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 				  NZ=(COS(ANGLE2))
 				  mul1=IELEM(N,I)%SURF(L)
 				  B_CODE=0
-				    CLEFT(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-				   CRIGHT(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+				  CLEFT(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+				  CRIGHT(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
 				     				      
 					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  
@@ -61,17 +80,17 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 
 					END IF
 			
-						  CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT(N)
+						  CALL LMACHT(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 						  
-						  CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
-						   CALL ROTATEB(N,INVTRI,ClefT,Cleft_ROT,ANGLE1,ANGLE2)
+						  CALL ROTATEB(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
+						   CALL ROTATEB(N,ClefT,Cleft_ROT,ANGLE1,ANGLE2)
 						  
 						  
 						  
@@ -80,14 +99,14 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2(N)
+						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
 						  ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
-						   IF(SRF.EQ.1)THEN
+						  IF (ILOCAL_RECON3(i)%MRF.EQ.1)THEN
                                 !RETRIEVE THE ROTATIONAL VELOCITY (AT THE GAUSSIAN POINT JUST FOR SECOND ORDER)
                                 SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
-                                CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
+                                CALL ROTATEF(N,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
                                 !CALCULATE THE NEW EIGENVALUE FOR ROTATING REFERENCE FRAME
                                 ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
                                 ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
@@ -95,7 +114,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -111,7 +130,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
 							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      IF (TURBULENCEMODEL.EQ.2)THEN
 							  EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
@@ -125,7 +144,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 							    
 							    
 							  eddyfr=eddyfl
-							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
@@ -139,7 +158,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -177,7 +196,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  ELSE
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -193,7 +212,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	!$OMP END DO
 	
 	
-	!$OMP DO SCHEDULE (STATIC) 
+	!$OMP DO
 	DO II=1,NOF_BOUNDED
 	I=EL_BND(II)
 	ICONSIDERED=I	
@@ -217,10 +236,10 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
  				  mul1=IELEM(N,I)%SURF(L)
 				      B_CODE=0
 				      CLEFT(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
-                 IF (SRF.EQ.1) THEN
+                 IF (ILOCAL_RECON3(i)%MRF.EQ.1)THEN
                     !RETRIEVE ROTATIONAL VELOCITY IN CASE OF ROTATING REFERENCE FRAME TO CALCULATE THE CORRECT VALUE OF THE BOUNDARY CONDITION
                     SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
-                    CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)	
+                    CALL ROTATEF(N,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
                 END IF
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						
@@ -249,7 +268,14 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,Iconsidered,facex)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+
+								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
+                                            N_NODE=4
+                                    else
+                                            N_NODE=3
+                                    end if
+
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 							    
@@ -262,7 +288,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				   
 				  				  				  				  
@@ -341,16 +367,16 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 							END IF
 					    END IF
 				      
-				       CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	
+				       CALL ROTATEF(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)
 				      
 				      
 				      IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT(N)
+						  CALL LMACHT(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						  CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
-						   CALL ROTATEB(N,INVTRI,ClefT,Cleft_ROT,ANGLE1,ANGLE2)
+						  CALL ROTATEB(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
+						   CALL ROTATEB(N,ClefT,Cleft_ROT,ANGLE1,ANGLE2)
 						  
 						  
 						  END IF
@@ -358,10 +384,10 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2(N)
+						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
                             ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
                             ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
-                        IF (SRF.EQ.1) THEN
+                        IF (ILOCAL_RECON3(i)%MRF.EQ.1)THEN
                             ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
                             ASOUND2=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
                         END IF
@@ -369,7 +395,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -385,7 +411,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
 							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      IF (TURBULENCEMODEL.EQ.2)THEN
 							  EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
@@ -398,7 +424,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 							    
 							    
 							  
-							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
@@ -412,7 +438,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -454,7 +480,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 						  ELSE
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -473,7 +499,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 
     !ADD THE CONTRIBUTION OF THE SOURCE TERM TO THE JACOBIAN OF THE DIAGONAL MATRIX
         IF (SRFg.EQ.1) THEN
-        !$OMP DO SCHEDULE(GUIDED)
+        !$OMP DO
             DO I=1,KMAXE
                 IMPDIAG(i,2,3)=-SRF_VELOCITY(3)*ielem(n,I)%totvolume
                 IMPDIAG(i,2,4)=SRF_VELOCITY(2)*ielem(n,I)%totvolume
@@ -485,10 +511,10 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
         !$OMP END DO
         END IF	
         IF (MRF.EQ.1) THEN
-        !$OMP DO SCHEDULE(GUIDED)
+        !$OMP DO
             DO I=1,KMAXE
 				SRF=ILOCAL_RECON3(I)%MRF
-                IF(SRF.EQ.1)THEN
+                IF (ILOCAL_RECON3(i)%MRF.EQ.1)THEN
                     IMPDIAG(i,2,3)=-ILOCAL_RECON3(I)%MRF_VELOCITY(3)*ielem(n,I)%totvolume
                     IMPDIAG(i,2,4)=ILOCAL_RECON3(I)%MRF_VELOCITY(2)*ielem(n,I)%totvolume
                     IMPDIAG(i,3,2)=ILOCAL_RECON3(I)%MRF_VELOCITY(3)*ielem(n,I)%totvolume
@@ -504,7 +530,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	
 	
 	IF (RUNGEKUTTA.EQ.10)THEN
-		!$OMP DO SCHEDULE(STATIC)	
+		!$OMP DO
 		do i=1,kmaxe
             DO L=1,NOF_VARIABLES
 		    IMPDIAG(i,L,L)=IMPDIAG(i,L,L)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
@@ -512,7 +538,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 		end do
 		!$OMP END DO
 	  ELSE
-	!$OMP DO SCHEDULE(STATIC)
+	!$OMP DO
 ! 	
 	  do i=1,kmaxe
         DO L=1,NOF_VARIABLES
@@ -530,7 +556,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
  if (turbulence.eq.1)CALL SOURCES_derivatives_COMPUTATION(N)
 if (rungekutta.eq.10)then
-!$OMP DO SCHEDULE(STATIC)
+!$OMP DO
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
@@ -545,21 +571,18 @@ do i=1,kmaxe
 end do
 !$OMP END DO
 else
-!$OMP DO SCHEDULE(STATIC)
+!$OMP DO
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
-    
-    !IMPDIAGt(i,nvar)=ielem(n,I)%totvolume*(((dt+1.5d0*ielem(n,I)%dtl)/dt) +(IMPDIAGt(i,nvar)*ielem(n,i)%dtl/ielem(n,I)%totvolume)-(sht(i,nvar)/ielem(n,I)%totvolume))/ielem(n,i)%dtl
-!     IMPDIAGt(i,nvar)=(ielem(n,I)%totvolume*(((dt+1.5d0*ielem(n,I)%dtl)/dt) +(IMPDIAGt(i,nvar)*ielem(n,i)%dtl/ielem(n,I)%totvolume))/ielem(n,i)%dtl)-(sht(i,nvar))
+
     IMPDIAGt(i,nvar)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAGt(i,nvar))-sht(i,nvar)
     end do
     end if
     if (passivescalar.gt.0)then
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
     IMPDIAGt(i,nvar)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAGt(i,1))
-!     IMPDIAGt(i,nvar)=(ielem(n,I)%totvolume*(((dt+1.5d0*ielem(n,I)%dtl)/dt)+(IMPDIAGt(i,nvar)*ielem(n,i)%dtl/ielem(n,I)%totvolume))/ielem(n,i)%dtl)
-    end do
+ end do
     end if
 end do
 !$OMP END DO
@@ -578,10 +601,31 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,KAS
-	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1
-	REAL,DIMENSION(4,4)::IDENTITY1
-	real,dimension(4,4)::convj,diffj
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC
+	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx,VISCOTS
+	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
+	real,dimension(NOF_variables,NOF_variables)::convj,diffj
+	INTEGER::ICONSIDERED, FACEX, POINTX,igoflux,kas
+	INTEGER::B_CODE
+	REAL::ANGLE1,ANGLE2,NX,NY,NZ
+	real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
+	real,dimension(1:nof_Variables)::RIGHTv
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+	REAL,DIMENSION(1:DIMENSIONA)::CORDS
+	REAL,DIMENSION(1:4)::viscl,LAML
+	REAL,DIMENSION(1:2)::TURBMV
+    REAL,DIMENSION(1)::ETVM
+    REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+
+	real::MP_PINFL,gammal
+    real::MP_PINFR,gammaR
+     REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::EIGVL
+
+
+
 	KMAXE=XMPIELRANK(N)
 	IDENTITY1(:,:)=ZERO
 	IDENTITY1(1,1)=1.0D0
@@ -591,7 +635,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 	
 		
 
-	!$OMP DO SCHEDULE (STATIC)
+	!$OMP DO
 	DO II=1,NOF_INTERIOR	!for all the interior elements
 	I=EL_INT(II)
 	ICONSIDERED=I
@@ -624,16 +668,16 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 
 					END IF
 			
-						  CALL ROTATEF2D(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF2D(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF2D(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF2D(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT2d(N)
+						  CALL LMACHT2d(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						  CALL ROTATEb2D(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEb2D(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
+						  CALL ROTATEb2D(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEb2D(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  
 						  
 						  
@@ -643,7 +687,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2D2(N)
+						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
 						 ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
@@ -651,7 +695,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -667,7 +711,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
 							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							  Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      IF (TURBULENCEMODEL.EQ.2)THEN
 							  EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
@@ -677,7 +721,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 							    
 							    
 							  eddyfr=eddyfl
-							    Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							    Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 					 
 						      
@@ -693,7 +737,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2D(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE2D(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -739,7 +783,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  ELSE
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -753,7 +797,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 	!$OMP END DO
 	
 	
-	!$OMP DO SCHEDULE (STATIC) 
+	!$OMP DO
 	DO II=1,NOF_BOUNDED
 	I=EL_BND(II)
 	ICONSIDERED=I	
@@ -800,7 +844,8 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2Dx(N,Iconsidered,facex)
+								  CALL coordinates_face_inner2Dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 							    
@@ -813,7 +858,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+								     CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				    
 				  				  	KAS=2			  				  
@@ -894,16 +939,16 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 				    
 						  
 						  
-						 CALL ROTATEF2D(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF2D(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						 CALL ROTATEF2D(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF2D(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT2d(N)
+						  CALL LMACHT2d(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						  CALL ROTATEb2D(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEb2D(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
+						  CALL ROTATEb2D(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEb2D(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  
 						  
 						  
@@ -913,7 +958,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2D2(N)
+						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
 						ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
@@ -921,7 +966,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -937,7 +982,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
 							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							  Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      IF (TURBULENCEMODEL.EQ.2)THEN
 							  EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
@@ -947,7 +992,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 							    
 							    
 							  eddyfr=eddyfl
-							    Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							    Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 					 
 						      
@@ -962,7 +1007,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2D(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1002,7 +1047,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 						  ELSE
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1025,7 +1070,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 	
 	
 	IF (RUNGEKUTTA.EQ.10)THEN
-		!$OMP DO SCHEDULE(STATIC)	
+		!$OMP DO
 		do i=1,kmaxe
 				  
 		    IMPDIAG(i,1,1)=IMPDIAG(i,1,1)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
@@ -1036,7 +1081,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 		end do
 		!$OMP END DO
 	  ELSE
-	!$OMP DO SCHEDULE(STATIC)	  
+	!$OMP DO
 	  do i=1,kmaxe
 	      IMPDIAG(I,1,1)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,1,1))
 	      IMPDIAG(I,2,2)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,2,2))
@@ -1056,7 +1101,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
  
  if (turbulence.eq.1)CALL SOURCES_derivatives_COMPUTATION2D(N)
 if (rungekutta.eq.10)then
-!$OMP DO SCHEDULE(STATIC)
+!$OMP DO
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
@@ -1072,7 +1117,7 @@ do i=1,kmaxe
 end do
 !$OMP END DO
 else
-!$OMP DO SCHEDULE(STATIC)
+!$OMP DO
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
@@ -1096,17 +1141,42 @@ end if
 END SUBROUTINE CALCULATE_JACOBIAN_2D
 	
 	
-SUBROUTINE CALCULATE_JACOBIANLM(N)
+SUBROUTINE CALCULATE_JACOBIANLM(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
  !> @brief
 !> This subroutine computes the approximate jacobian for implicit time stepping in 3D with low-memory footprint
 	IMPLICIT NONE
-	INTEGER,INTENT(IN)::N
+	INTEGER,INTENT(IN)::N,ICONSIDERED
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar
-	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1
-	REAL,DIMENSION(5,5)::IDENTITY1
-	real,dimension(5,5)::convj,diffj
-	KMAXE=XMPIELRANK(N)
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC
+	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx,VISCOTS
+	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
+	real,dimension(NOF_variables,NOF_variables)::convj,diffj
+	INTEGER::FACEX, POINTX,igoflux
+	INTEGER::B_CODE
+	REAL::ANGLE1,ANGLE2,NX,NY,NZ
+	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
+	real,dimension(1:nof_Variables)::RIGHTv
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+	REAL,DIMENSION(1:4)::viscl,LAML
+	REAL,DIMENSION(1:2)::TURBMV
+    REAL,DIMENSION(1)::ETVM
+    REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+
+	REAL,DIMENSION(1:DIMENSIONA)::CORDS
+	real::MP_PINFL,gammal
+    real::MP_PINFR,gammaR
+	REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IMPDIAGT
+	REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::IMPDIAG,IMPOFFt
+	REAL,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::IMPOFF
+    REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::EIGVL
+   REAL,DIMENSION(TURBULENCEEQUATIONS)::SOURCE_T
+
+
+
 	IDENTITY1(:,:)=ZERO
 	IDENTITY1(1,1)=1.0D0
 	IDENTITY1(2,2)=1.0D0
@@ -1146,16 +1216,16 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 
 					END IF
 			
-						  CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT(N)
+						  CALL LMACHT(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						  CALL ROTATEF(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
+						  CALL ROTATEF(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  
 						  
 						  
@@ -1164,7 +1234,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2(N)
+						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
 						ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
@@ -1172,7 +1242,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -1188,7 +1258,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
 							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      IF (TURBULENCEMODEL.EQ.2)THEN
 							  
@@ -1203,7 +1273,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 							    
 							    
 							  eddyfr=eddyfl
-							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
@@ -1217,7 +1287,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1250,7 +1320,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  ELSE
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1304,8 +1374,15 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 								  ELSE
 								  !NOT PERIODIC ONES IN MY CPU
 								   
-								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,Iconsidered,facex)
+								 facex=l;
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+
+								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
+                                            N_NODE=4
+                                    else
+                                            N_NODE=3
+                                    end if
+
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 							    
@@ -1318,7 +1395,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				   
 				  				  				  				  
@@ -1396,16 +1473,16 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 							END IF
 					    END IF
 				      
-				       CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+				       CALL ROTATEF(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT(N)
+						  CALL LMACHT(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						  CALL ROTATEF(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
+						  CALL ROTATEF(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  
 						  
 						  
@@ -1414,7 +1491,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2(N)
+						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
 						  ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
@@ -1422,7 +1499,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -1438,7 +1515,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
 							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      IF (TURBULENCEMODEL.EQ.2)THEN
 							  EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
@@ -1452,7 +1529,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 							    
 							    
 							  eddyfr=eddyfl
-							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
@@ -1466,7 +1543,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1499,7 +1576,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 						  ELSE
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1553,7 +1630,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N)
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
- CALL SOURCES_derivatives2D(N,ICONSIDERED)
+ CALL SOURCES_derivatives(N,ICONSIDERED,SOURCE_T)
  sht(I,1:turbulenceequations)=(SOURCE_T(1:turbulenceequations)*ielem(n,I)%totvolume)
 if (rungekutta.eq.10)then
 
@@ -1590,17 +1667,40 @@ END SUBROUTINE CALCULATE_JACOBIANLM
 	
 	
 
-SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
+SUBROUTINE CALCULATE_JACOBIAN_2DLM(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
  !> @brief
 !> This subroutine computes the approximate jacobian for implicit time stepping in 2D with low-memory footprint
 	IMPLICIT NONE
-	INTEGER,INTENT(IN)::N
+	INTEGER,INTENT(IN)::N,ICONSIDERED
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar
-	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1
-	REAL,DIMENSION(4,4)::IDENTITY1
-	real,dimension(4,4)::convj,diffj
-	KMAXE=XMPIELRANK(N)
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC
+	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx,VISCOTS
+	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
+	real,dimension(NOF_variables,NOF_variables)::convj,diffj
+	INTEGER::FACEX, POINTX,igoflux
+	INTEGER::B_CODE
+	REAL::ANGLE1,ANGLE2,NX,NY,NZ
+	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
+	real,dimension(1:nof_Variables)::RIGHTv
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+	REAL,DIMENSION(1:4)::viscl,LAML
+	REAL,DIMENSION(1:2)::TURBMV
+    REAL,DIMENSION(1)::ETVM
+    REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+    REAL,DIMENSION(1:DIMENSIONA)::CORDS
+	real::MP_PINFL,gammal
+    real::MP_PINFR,gammaR
+	REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IMPDIAGT
+	REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::IMPDIAG,IMPOFFt
+	REAL,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(INOUT)::IMPOFF
+    REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::EIGVL
+   REAL,DIMENSION(TURBULENCEEQUATIONS)::SOURCE_T
+
+
+
 	IDENTITY1(:,:)=ZERO
 	IDENTITY1(1,1)=1.0D0
 	IDENTITY1(2,2)=1.0D0
@@ -1640,23 +1740,23 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
 
 					END IF
-			
-						  CALL ROTATEF2D(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF2D(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+
+						  CALL ROTATEF2D(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF2D(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT2d(N)
+						  CALL LMACHT2d(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						   CALL ROTATEb2D(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEb2D(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and so
+						   CALL ROTATEb2D(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEb2D(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and so
 						  END IF
 						  
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2D2(N)
+						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
 						ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
@@ -1664,7 +1764,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -1680,7 +1780,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
 							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							  Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      IF (TURBULENCEMODEL.EQ.2)THEN
 							   EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
@@ -1690,7 +1790,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 							    
 							    
 							  eddyfr=eddyfl
-							    Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							    Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 					 
 						      
@@ -1705,7 +1805,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2D(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1738,7 +1838,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  ELSE
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1750,7 +1850,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 		    END DO
 	else
 	
-	ICONSIDERED=I	
+
 				
 		   IMPDIAG(1,:,:)=0.0
 		IMPOFF(1,:,:,:)=0.0
@@ -1793,8 +1893,9 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 								  ELSE
 								  !NOT PERIODIC ONES IN MY CPU
 								   
-								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2Dx(N,Iconsidered,facex)
+								  facex=l;
+								  CALL coordinates_face_inner2Dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 							    
@@ -1807,7 +1908,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				   
 				  				  				  				  
@@ -1885,22 +1986,22 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 							END IF
 					    END IF
 				      
-				    CALL ROTATEF2D(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF2D(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+				    CALL ROTATEF2D(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF2D(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT2d(N)
+						  CALL LMACHT2d(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						   CALL ROTATEb2D(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEb2D(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and so
+						   CALL ROTATEb2D(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEb2D(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and so
 						  END IF
 						  
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2D2(N)
+						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
 						 ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
@@ -1908,7 +2009,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -1924,7 +2025,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
 							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							  Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      IF (TURBULENCEMODEL.EQ.2)THEN
 							  EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
@@ -1934,7 +2035,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 							    
 							    
 							  eddyfr=eddyfl
-							    Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							    Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 					 
 						      
@@ -1949,7 +2050,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2D(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1982,7 +2083,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 						  ELSE
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -2028,7 +2129,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N)
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
- CALL SOURCES_derivatives2d(N,ICONSIDERED)
+ CALL SOURCES_derivatives2d(N,ICONSIDERED,SOURCE_T)
  sht(I,1:turbulenceequations)=(SOURCE_T(1:turbulenceequations)*ielem(n,I)%totvolume)
 if (rungekutta.eq.10)then
 
@@ -2072,12 +2173,33 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,KAS,j
-	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC,KAS
+	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx,VISCOTS
+	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
+	real,dimension(NOF_variables,NOF_variables)::convj,diffj
+	INTEGER::ICONSIDERED, FACEX, POINTX,igoflux
+	INTEGER::B_CODE
+	REAL::ANGLE1,ANGLE2,NX,NY,NZ
+	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
+	real,dimension(1:nof_Variables)::RIGHTv
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+	REAL,DIMENSION(1:DIMENSIONA)::CORDS
+	REAL,DIMENSION(1:4)::viscl,LAML
+	REAL,DIMENSION(1:2)::TURBMV
+    REAL,DIMENSION(1)::ETVM
+    REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+
+	real::MP_PINFL,gammal
+    real::MP_PINFR,gammaR
+   REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::EIGVL
 	KMAXE=XMPIELRANK(N)
 	
 
-	!$OMP DO SCHEDULE (STATIC)
+	!$OMP DO
 	DO II=1,NOF_INTERIOR	!for all the interior elements
 	I=EL_INT(II)
 	ICONSIDERED=I
@@ -2113,16 +2235,16 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 
 					END IF
 			
-						  CALL ROTATEF2D(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF2D(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF2D(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF2D(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT2d(N)
+						  CALL LMACHT2d(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						  CALL ROTATEb2D(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEb2D(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
+						  CALL ROTATEb2D(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEb2D(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  
 						  
 						  
@@ -2132,7 +2254,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2D2(N)
+						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
 						 ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
@@ -2140,7 +2262,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  
@@ -2153,7 +2275,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
                                         IF (TURBULENCE.EQ.1)THEN
                                             IF (TURBULENCEMODEL.EQ.1)THEN
                                             TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-                                            Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+                                            Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
                                             END IF
                                             IF (TURBULENCEMODEL.EQ.2)THEN
                                             EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
@@ -2163,7 +2285,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
                                                 
                                                 
                                             eddyfr=eddyfl
-                                                Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+                                                Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
                                             END IF
                                     
                                             
@@ -2194,7 +2316,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 	!$OMP END DO
 	
 	
-	!$OMP DO SCHEDULE (STATIC) 
+	!$OMP DO
 	DO II=1,NOF_BOUNDED
 	I=EL_BND(II)
 	ICONSIDERED=I	
@@ -2242,7 +2364,8 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2Dx(N,Iconsidered,facex)
+								  CALL coordinates_face_inner2Dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 							    
@@ -2255,7 +2378,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				    
 				  				  	KAS=2			  				  
@@ -2347,16 +2470,16 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 				    
 						  
 						  
-						 CALL ROTATEF2D(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF2D(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						 CALL ROTATEF2D(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF2D(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT2d(N)
+						  CALL LMACHT2d(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						  CALL ROTATEb2D(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEb2D(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
+						  CALL ROTATEb2D(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEb2D(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  
 						  
 						  
@@ -2366,7 +2489,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2D2(N)
+						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
 						ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
@@ -2374,7 +2497,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  
@@ -2390,7 +2513,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 						  IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
 							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							  Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      IF (TURBULENCEMODEL.EQ.2)THEN
 							  EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
@@ -2400,7 +2523,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 							    
 							    
 							  eddyfr=eddyfl
-							    Call EDDYVISCO2d(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							    Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 					 
 						      
@@ -2472,7 +2595,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 	
 	
 	IF (RUNGEKUTTA.EQ.10)THEN
-		!$OMP DO SCHEDULE(STATIC)	
+		!$OMP DO
 		do i=1,kmaxe
 				  
 		    IMPDIAG_MF(i)=(IMPDIAG_MF(i))+(IELEM(N,I)%TOTVOLUME/ielem(n,I)%dtl)
@@ -2480,7 +2603,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 		end do
 		!$OMP END DO
 	  ELSE
-	!$OMP DO SCHEDULE(STATIC)	  
+	!$OMP DO
 	  do i=1,kmaxe
             IMPDIAG_MF(i)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG_MF(i))
 	end do
@@ -2496,7 +2619,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
  
  if (turbulence.eq.1)CALL SOURCES_derivatives_COMPUTATION2D(N)
 if (rungekutta.eq.10)then
-!$OMP DO SCHEDULE(STATIC)
+!$OMP DO
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
@@ -2511,7 +2634,7 @@ do i=1,kmaxe
 end do
 !$OMP END DO
 else
-!$OMP DO SCHEDULE(STATIC)
+!$OMP DO
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
@@ -2542,12 +2665,33 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,KAS,j
-	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC,KAS
+	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx,VISCOTS
+	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
+	real,dimension(NOF_variables,NOF_variables)::convj,diffj
+	INTEGER::ICONSIDERED, FACEX, POINTX,igoflux
+	INTEGER::B_CODE
+	REAL::ANGLE1,ANGLE2,NX,NY,NZ
+	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
+	real,dimension(1:nof_Variables)::RIGHTv
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+
+	REAL,DIMENSION(1:4)::viscl,LAML
+	REAL,DIMENSION(1:2)::TURBMV
+    REAL,DIMENSION(1)::ETVM
+    REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+
+	REAL,DIMENSION(1:DIMENSIONA)::CORDS
+	real::MP_PINFL,gammal
+    real::MP_PINFR,gammaR
+   REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::EIGVL
 	KMAXE=XMPIELRANK(N)
 	
 
-	!$OMP DO SCHEDULE (STATIC)
+	!$OMP DO
 	DO II=1,NOF_INTERIOR	!for all the interior elements
 	I=EL_INT(II)
 	ICONSIDERED=I
@@ -2583,16 +2727,16 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 
 					END IF
 			
-						  CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT(N)
+						  CALL LMACHT(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						  CALL ROTATEb(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEb(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
+						  CALL ROTATEB(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEB(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  
 						  
 						  
@@ -2602,7 +2746,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2(N)
+						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
 						ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
@@ -2610,7 +2754,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  
@@ -2623,7 +2767,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
                                         IF (TURBULENCE.EQ.1)THEN
                                             IF (TURBULENCEMODEL.EQ.1)THEN
                                             TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-                                            Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+                                            Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
                                             END IF
                                             IF (TURBULENCEMODEL.EQ.2)THEN
                                             EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
@@ -2633,7 +2777,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
                                                 
                                                 
                                             eddyfr=eddyfl
-                                                Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+                                                Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
                                             END IF
                                     
                                             
@@ -2664,7 +2808,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 	!$OMP END DO
 	
 	
-	!$OMP DO SCHEDULE (STATIC) 
+	!$OMP DO
 	DO II=1,NOF_BOUNDED
 	I=EL_BND(II)
 	ICONSIDERED=I	
@@ -2712,7 +2856,14 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,Iconsidered,facex)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+
+								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
+                                            N_NODE=4
+                                    else
+                                            N_NODE=3
+                                    end if
+
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 							    
@@ -2726,7 +2877,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				    
 				  				  	KAS=2			  				  
@@ -2818,16 +2969,16 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 				    
 						  
 						  
-						 CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						 CALL ROTATEF(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEF(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 						  
 						  
 						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT(N)
+						  CALL LMACHT(N,LEFTV,RIGHTV)
 						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						  CALL ROTATEb(N,invTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEb(N,invTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)	
+						  CALL ROTATEB(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+						  CALL ROTATEB(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						  
 						  
 						  
@@ -2837,7 +2988,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 						  				  
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
-						  CALL CONS2PRIM2(N)
+						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
 						ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
@@ -2845,7 +2996,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV)
+						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  
@@ -2861,7 +3012,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 						  IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
 							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 						      IF (TURBULENCEMODEL.EQ.2)THEN
 							  EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
@@ -2871,7 +3022,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 							    
 							    
 							  eddyfr=eddyfl
-							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
+							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 						      END IF
 					 
 						      
@@ -2943,7 +3094,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 	
 	
 	IF (RUNGEKUTTA.EQ.10)THEN
-		!$OMP DO SCHEDULE(STATIC)	
+		!$OMP DO
 		do i=1,kmaxe
 				  
 		    IMPDIAG_MF(i)=(IMPDIAG_MF(i))+(IELEM(N,I)%TOTVOLUME/ielem(n,I)%dtl)
@@ -2951,7 +3102,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 		end do
 		!$OMP END DO
 	  ELSE
-	!$OMP DO SCHEDULE(STATIC)	  
+	!$OMP DO
 	  do i=1,kmaxe
             IMPDIAG_MF(i)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG_MF(i))
 	end do
@@ -2967,7 +3118,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
  
  if (turbulence.eq.1)CALL SOURCES_derivatives_COMPUTATION(N)
 if (rungekutta.eq.10)then
-!$OMP DO SCHEDULE(STATIC)
+!$OMP DO
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
@@ -2982,7 +3133,7 @@ do i=1,kmaxe
 end do
 !$OMP END DO
 else
-!$OMP DO SCHEDULE(STATIC)
+!$OMP DO
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations

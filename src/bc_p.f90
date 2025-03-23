@@ -505,7 +505,8 @@ INTEGER,INTENT(IN)::IPERIODICITY,N
 REAL::SMALL,tolerance,dist,temp_x
 INTEGER::I,K,j,kk,ii,kmaxe,jj1,jj2,ji,l,IBLEED
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
-integer::dum1,dum2
+integer::dum1,dum2,N_NODE
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
 
 	KMAXE=XMPIELRANK(N)
  
@@ -529,7 +530,7 @@ end if
 end do
 
 
-!$OMP DO SCHEDULE (STATIC)
+!$OMP DO
 DO I=1,KMAXE			! For ALL ELEMENTS
     if (ielem(n,i)%interior.eq.1)then		! THAT HAVE AT LEAST ONE UNKNWON NEIGHBOUR
 	    IF (ielem(n,i)%nofbc.GT.0)THEN		! THAT HAVE AT LEAST ESTABLISHED A BOUNDARY CONDITION CODE
@@ -558,7 +559,7 @@ DO I=1,KMAXE			! For ALL ELEMENTS
 				    END DO
 				    vext(2,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 				    
-				    dist=distance3(n)
+				    dist=distance3(n,VEXT)
 				      
                     IF(PER_ROT.EQ.0)THEN
 				      if (((abs(vext(2,1)-xper).lt.tolsmall).or.(abs((abs(vext(2,1)-xper))-xper).lt.tolsmall)).and.&
@@ -642,7 +643,7 @@ jj2=jj2+1
 end if
 end do
 jj1=0
-!$OMP DO SCHEDULE (STATIC)
+!$OMP DO
 DO I=1,KMAXE			!> ALL ELEMENTS
     if (ielem(n,i)%interior.eq.1)then		! THAT HAVE AT LEAST ONE UNKNWON NEIGHBOUR
 	    IF (ielem(n,i)%nofbc.GT.0)THEN		! THAT HAVE AT LEAST ESTABLISHED A BOUNDARY CONDITION CODE
@@ -687,7 +688,7 @@ DO I=1,KMAXE			!> ALL ELEMENTS
 				      NODES_LIST(kk,1:2)=inoder(ibound(N,ii)%ibl(kk))%CORD(1:2)
 				    END DO
 				    vext(2,:)=CORDINATES2(N,NODES_LIST,N_NODE)
-				      dist=distance2(n)
+				      dist=distance2(n,VEXT)
 				      
 
 

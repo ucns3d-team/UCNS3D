@@ -16,9 +16,27 @@ subroutine RELAXATION(N)
 !> This subroutine solves the linear system for implicit time stepping either through jacobian or LU-SGS in 3D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb
+INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb,N_NODE,IBFC,SRF
 real::impres1,impres2,impres3,TEMPXX
 real:: w1,w2,w3,denx
+REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::LSCQM1
+REAL::B1_imp(1:nof_Variables),DU1(1:nof_Variables),DU2(1:nof_Variables),DUMMY12(1:nof_Variables),C1_imp(1:nof_Variables)
+REAL::DUR(nof_Variables),DUL(nof_Variables)
+REAL::DURR(nof_Variables),DULR(nof_Variables)
+REAL::DUT1(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::B1T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::DUMMY12T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+INTEGER::ICONSIDERED, FACEX, POINTX
+INTEGER::NGP
+INTEGER::B_CODE
+REAL::ANGLE1,ANGLE2,NX,NY,NZ
+real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
+real,dimension(1:nof_Variables)::RIGHTv
+REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+REAL,DIMENSION(1:DIMENSIONA)::CORDS
 
 SWEEPS=10
 kmaxe=xmpielrank(n)
@@ -75,7 +93,7 @@ IF(MRF.EQ.1)THEN
 !$OMP DO
 do i=1,kmaxe
 	SRF=ILOCAL_RECON3(I)%MRF
-	IF(SRF.EQ.0)THEN
+	IF (ILOCAL_RECON3(i)%MRF.EQ.0)THEN
         lscqm1(1:5,1:5)=impdiag(i,1:5,1:5)
         impdiag(i,1,1)=1.0d0/lscqm1(1,1)
         impdiag(i,2,2)=1.0d0/lscqm1(2,2)
@@ -164,10 +182,10 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 				NX=(COS(ANGLE1)*SIN(ANGLE2))
 				NY=(SIN(ANGLE1)*SIN(ANGLE2))
 				NZ=(COS(ANGLE2))
-                IF (SRF.EQ.1) THEN
+               IF (ILOCAL_RECON3(i)%MRF.EQ.1)THEN
                     !RETRIEVE ROTATIONAL VELOCITY IN CASE OF ROTATING REFERENCE FRAME TO CALCULATE THE CORRECT VALUE OF THE BOUNDARY CONDITION
                     SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
-                    CALL ROTATEF(N,TRI,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)	       
+                    CALL ROTATEF(N,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
                 END IF
 	
 					IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
@@ -189,7 +207,14 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,Iconsidered,facex)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+
+								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
+                                            N_NODE=4
+                                    else
+                                            N_NODE=3
+                                    end if
+
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 							    
@@ -205,7 +230,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
 								    DU1(1:nof_variables)=rightv(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -437,7 +462,14 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,Iconsidered,facex)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+
+								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
+                                            N_NODE=4
+                                    else
+                                            N_NODE=3
+                                    end if
+
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 							    
@@ -453,7 +485,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -750,8 +782,41 @@ subroutine RELAXATION_lm(N)
 !> This subroutine solves the linear system for implicit time stepping either through jacobian or LU-SGS in 3D with low memory footprint
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar
+INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,IBFC,igoflux
 real::impres1,impres2,impres3
+REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::LSCQM1
+REAL::B1_imp(1:nof_Variables),DU1(1:nof_Variables),DU2(1:nof_Variables),DUMMY12(1:nof_Variables),C1_imp(1:nof_Variables)
+REAL::DUR(nof_Variables),DUL(nof_Variables)
+REAL::DURR(nof_Variables),DULR(nof_Variables)
+REAL::DUT1(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::B1T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::DUMMY12T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+INTEGER::ICONSIDERED, FACEX, POINTX
+INTEGER::NGP,n_node
+INTEGER::B_CODE
+REAL::ANGLE1,ANGLE2,NX,NY,NZ
+real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
+real,dimension(1:nof_Variables)::RIGHTv
+REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+REAL,DIMENSION(1:DIMENSIONA)::CORDS
+REAL,ALLOCATABLE,DIMENSION(:,:)::IMPDIAGT
+REAL,ALLOCATABLE,DIMENSION(:,:,:)::IMPDIAG,IMPOFFt
+REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::IMPOFF
+
+
+ALLOCATE (IMPDIAG(1,1:nof_Variables,1:nof_Variables))
+ALLOCATE (IMPOFF(1,6,1:nof_Variables,1:nof_Variables))
+IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
+ALLOCATE(IMPOFFt(1,6,TURBULENCEEQUATIONS+PASSIVESCALAR))
+ALLOCATE(IMPDIAGT(1,TURBULENCEEQUATIONS+PASSIVESCALAR))
+END IF
+
+
+
+
 
 
 SWEEPS=4
@@ -777,7 +842,7 @@ DO II=1,SWEEPS	!loop1
 !$OMP DO
 do i=1,kmaxe	!loop2
 iconsidered=i
-call CALCULATE_JACOBIANlm(N)
+call CALCULATE_JACOBIANlm(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
@@ -857,7 +922,14 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,Iconsidered,facex)
+								  CALL coordinates_face_innerx(N,Iconsidered,facex,VEXT,NODES_LIST)
+
+								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
+                                            N_NODE=4
+                                    else
+                                            N_NODE=3
+                                    end if
+
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 							    
@@ -873,7 +945,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -972,7 +1044,7 @@ DO II=1,SWEEPS	!loop1
 !$OMP DO
 do i=1,kmaxe	!loop2
 iconsidered=i
-call CALCULATE_JACOBIANlm(N)
+call CALCULATE_JACOBIANlm(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
@@ -1059,7 +1131,15 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,Iconsidered,facex)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+
+								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
+                                            N_NODE=4
+                                    else
+                                            N_NODE=3
+                                    end if
+
+
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
 							    
@@ -1075,7 +1155,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -1194,7 +1274,7 @@ END DO	!loop elements
 do i=1,kmaxe,-1	!loop2
 
 iconsidered=i
-call CALCULATE_JACOBIANlm(N)
+call CALCULATE_JACOBIANlm(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
@@ -1344,7 +1424,7 @@ end if
 
 
 
-
+DEALLOCATE(IMPDIAG,IMPOFF,IMPOFFT,IMPDIAGT)
 
 
 
@@ -1356,11 +1436,28 @@ subroutine RELAXATION2d(N)
 !> This subroutine solves the linear system for implicit time stepping either through jacobian or LU-SGS in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb
+INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb,N_NODE,IBFC
 real::impres1,impres2,impres3
+REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::LSCQM1
+REAL::B1_imp(1:nof_Variables),DU1(1:nof_Variables),DU2(1:nof_Variables),DUMMY12(1:nof_Variables),C1_imp(1:nof_Variables)
+REAL::DUR(nof_Variables),DUL(nof_Variables)
+REAL::DURR(nof_Variables),DULR(nof_Variables)
+REAL::DUT1(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::B1T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::DUMMY12T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+INTEGER::ICONSIDERED, FACEX, POINTX
+INTEGER::NGP
+INTEGER::B_CODE
+REAL::ANGLE1,ANGLE2,NX,NY,NZ
+real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,srf_speed
+real,dimension(1:nof_Variables)::RIGHTv
+REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+REAL,DIMENSION(1:DIMENSIONA)::CORDS
 
-
-SWEEPS=16
+SWEEPS=10
 kmaxe=xmpielrank(n)
 
 impdu(:,:)=zero
@@ -1376,7 +1473,7 @@ DURR=zero; DULR=zero
 
 call CALCULATE_JACOBIAN_2d(N)
 
-!$OMP DO SCHEDULE (STATIC)
+!$OMP DO
 do i=1,kmaxe
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(i,1:nof_Variables,1:nof_Variables)
 impdiag(i,1,1)=1.0d0/lscqm1(1,1)
@@ -1462,7 +1559,8 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2dx(N,Iconsidered,facex)
+								  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 							    
@@ -1478,7 +1576,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -1710,7 +1808,8 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2dx(N,Iconsidered,facex)
+								  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 							    
@@ -1726,7 +1825,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -2028,9 +2127,37 @@ subroutine RELAXATION_lm2d(N)
 !> This subroutine solves the linear system for implicit time stepping either through jacobian or LU-SGS in 2D with low memory footprint
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar
+INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,IBFC,igoflux
 real::impres1,impres2,impres3
+REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::LSCQM1
+REAL::B1_imp(1:nof_Variables),DU1(1:nof_Variables),DU2(1:nof_Variables),DUMMY12(1:nof_Variables),C1_imp(1:nof_Variables)
+REAL::DUR(nof_Variables),DUL(nof_Variables)
+REAL::DURR(nof_Variables),DULR(nof_Variables)
+REAL::DUT1(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::B1T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::DUMMY12T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+INTEGER::ICONSIDERED, FACEX, POINTX,N_NODE
+INTEGER::NGP
+INTEGER::B_CODE
+REAL::ANGLE1,ANGLE2,NX,NY,NZ
+real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,srf_Speed
+real,dimension(1:nof_Variables)::RIGHTv
+REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+REAL,DIMENSION(1:DIMENSIONA)::CORDS
+REAL,ALLOCATABLE,DIMENSION(:,:)::IMPDIAGT
+REAL,ALLOCATABLE,DIMENSION(:,:,:)::IMPDIAG,IMPOFFt
+REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::IMPOFF
 
+
+ALLOCATE (IMPDIAG(1,1:nof_Variables,1:nof_Variables))
+ALLOCATE (IMPOFF(1,4,1:nof_Variables,1:nof_Variables))
+IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
+ALLOCATE(IMPOFFt(1,4,TURBULENCEEQUATIONS+PASSIVESCALAR))
+ALLOCATE(IMPDIAGT(1,TURBULENCEEQUATIONS+PASSIVESCALAR))
+END IF
 
 SWEEPS=4
 kmaxe=xmpielrank(n)
@@ -2055,7 +2182,7 @@ DO II=1,SWEEPS	!loop1
 !$OMP DO
 do i=1,kmaxe	!loop2
 iconsidered=i
-call CALCULATE_JACOBIAN_2dlm(N)
+call CALCULATE_JACOBIAN_2dlm(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
@@ -2134,7 +2261,8 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2dx(N,Iconsidered,facex)
+								  CALL coordinates_face_inner2dx(N,Iconsidered,facex,VEXT,NODES_LIST)
+								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 							    
@@ -2150,7 +2278,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -2172,7 +2300,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6,9,99)
+								    case(6)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -2269,7 +2397,7 @@ DO II=1,SWEEPS	!loop1
 !$OMP DO
 do i=1,kmaxe	!loop2
 iconsidered=i
-call CALCULATE_JACOBIAN_2dlm(N)
+call CALCULATE_JACOBIAN_2dlm(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
@@ -2356,7 +2484,8 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2dx(N,Iconsidered,facex)
+								  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
 							    
@@ -2372,7 +2501,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -2393,7 +2522,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6,9,99)
+								    case(6)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -2491,7 +2620,7 @@ END DO	!loop elements
 do i=1,kmaxe,-1	!loop2
 
 iconsidered=i
-call CALCULATE_JACOBIAN_2dlm(N)
+call CALCULATE_JACOBIAN_2dlm(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(1,1:nof_Variables,1:nof_Variables)
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
@@ -2638,7 +2767,7 @@ end if
 
 
 
-
+DEALLOCATE(IMPDIAG,IMPOFF,IMPOFFT,IMPDIAGT)
 
 
 
@@ -2654,7 +2783,25 @@ IMPLICIT NONE
 !> @brief
 !> This subroutine solves the linear system for implicit time stepping either through MATRIX FREE LU-SGS low memory footprint
 INTEGER,INTENT(IN)::N
-INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux,icaseb,inds
+INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux,icaseb,inds,MODEU
+REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::LSCQM1
+REAL::B1_imp(1:nof_Variables),DU1(1:nof_Variables),DU2(1:nof_Variables),DUMMY12(1:nof_Variables),C1_imp(1:nof_Variables)
+REAL::DUR(nof_Variables),DUL(nof_Variables)
+REAL::DURR(nof_Variables),DULR(nof_Variables)
+REAL::DUT1(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::B1T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::DUMMY12T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+INTEGER::ICONSIDERED, FACEX, POINTX
+INTEGER::NGP
+INTEGER::B_CODE
+REAL::ANGLE1,ANGLE2,NX,NY,NZ
+real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT
+real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv
+real,dimension(1:nof_Variables)::RIGHTv
+REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+REAL,DIMENSION(1:DIMENSIONA)::CORDS
 
 SWEEPS=1
 kmaxe=xmpielrank(n)
@@ -2688,10 +2835,10 @@ iconsidered=i
                     if (TURBULENCE.gt.0)b1T=zero
                     MODEU=1
                      if (ielem(n,i)%interior.eq.0)then  
-                    CALL LUSGS_INTERIOR(N,ICONSIDERED,MODEU)
+                    CALL LUSGS_INTERIOR(N,ICONSIDERED,MODEU,B1_IMP,B1T)
                      ELSE
                     
-                    CALL LUSGS_OUT(N,ICONSIDERED,MODEU)
+                    CALL LUSGS_OUT(N,ICONSIDERED,MODEU,B1_IMP,B1T)
                      END IF
                      
                     if (iscoun.ne.1)then
@@ -2735,10 +2882,10 @@ iconsidered=i
                     MODEU=0
                     if (TURBULENCE.gt.0)b1T=zero
                      if (ielem(n,i)%interior.eq.0)then  !if 1
-                        CALL LUSGS_INTERIOR(N,ICONSIDERED,MODEU)
+                        CALL LUSGS_INTERIOR(N,ICONSIDERED,MODEU,B1_IMP,B1T)
                      ELSE
                     
-                    CALL LUSGS_OUT(N,ICONSIDERED,MODEU)
+                    CALL LUSGS_OUT(N,ICONSIDERED,MODEU,B1_IMP,B1T)
                      END IF
 
                    
@@ -2766,13 +2913,35 @@ END DO!sweeps
 END SUBROUTINE RELAXATION_LUMFREE                  
                     
                     
-SUBROUTINE LUSGS_INTERIOR(N,ICONSIDERED,MODEU)
+SUBROUTINE LUSGS_INTERIOR(N,ICONSIDERED,MODEU,B1_IMP,B1T)
 IMPLICIT NONE
 !> @brief
 !> This subroutine solves the linear system for implicit time stepping either through MATRIX FREE LU-SGS low memory footprint
 INTEGER,INTENT(IN)::N,ICONSIDERED,MODEU
 INTEGER::I,L,K,II,inds
 real::impres1,impres2,impres3
+REAL,INTENT(INOUT)::B1_imp(1:nof_Variables),B1T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::DU1(1:nof_Variables),DU2(1:nof_Variables),DUMMY12(1:nof_Variables),C1_imp(1:nof_Variables)
+REAL::DUR(nof_Variables),DUL(nof_Variables)
+REAL::DURR(nof_Variables),DULR(nof_Variables)
+REAL::DUT1(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::DUMMY12T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+INTEGER::FACEX, POINTX,igoflux
+INTEGER::NGP
+INTEGER::B_CODE
+REAL::ANGLE1,ANGLE2,NX,NY,NZ,VELNORMAL
+real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT
+real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv
+real,dimension(1:nof_Variables)::RIGHTv
+REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+REAL,DIMENSION(1:DIMENSIONA)::CORDS
+REAl::DELTAF(1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+
+
+
 I=ICONSIDERED
 
 !     MODEU=1!LOWER
@@ -2808,7 +2977,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop2
         NX=ANGLE1
         NY=ANGLE2
         facex=l;
-        CALL DELTAFX
+        CALL DELTAFX(ICONSIDERED,FACEX,DELTAF,VELNORMAL)
         
         
         
@@ -2839,18 +3008,37 @@ END DO
 END SUBROUTINE LUSGS_INTERIOR
 
                     
-SUBROUTINE LUSGS_OUT(N,ICONSIDERED,MODEU)
+SUBROUTINE LUSGS_OUT(N,ICONSIDERED,MODEU,B1_IMP,B1T)
 IMPLICIT NONE
 !> @brief
 !> This subroutine solves the linear system for implicit time stepping either through MATRIX FREE LU-SGS low memory footprint
 INTEGER,INTENT(IN)::N,ICONSIDERED,MODEU
-INTEGER::I,L,K,II,inds,interfaces
+INTEGER::I,L,K,II,inds,interfaces,N_NODE
+REAL,INTENT(INOUT)::B1_imp(1:nof_Variables),B1T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::DU1(1:nof_Variables),DU2(1:nof_Variables),DUMMY12(1:nof_Variables),C1_imp(1:nof_Variables)
+REAL::DUR(nof_Variables),DUL(nof_Variables)
+REAL::DURR(nof_Variables),DULR(nof_Variables)
+REAL::DUT1(TURBULENCEEQUATIONS+PASSIVESCALAR)
+REAL::DUMMY12T(TURBULENCEEQUATIONS+PASSIVESCALAR)
+INTEGER::FACEX, POINTX,igoflux
+INTEGER::NGP
+INTEGER::B_CODE
+REAL::ANGLE1,ANGLE2,NX,NY,NZ,VELNORMAL
+real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
+real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
+real,dimension(1:nof_Variables)::RIGHTv
+REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
+REAL,DIMENSION(1:DIMENSIONA)::CORDS
+INTEGER::IBFC
+REAl::DELTAF(1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 I=ICONSIDERED
 
 if (dimensiona.eq.3)then
-inds=5
+inds=NOF_VARIABLES
 else
-inds=4
+inds=NOF_VARIABLES
 end if
 
 DO L=1,IELEM(N,I)%IFCA	!COND1   
@@ -2892,11 +3080,20 @@ DO L=1,IELEM(N,I)%IFCA	!COND1
         
         
         if (dimensiona.eq.2)then
-		CALL coordinates_face_inner2dx(N,Iconsidered,facex)
+		CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+
+		N_NODE=2
 		CORDS(1:2)=zero
 		CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE);Pox(1)=cords(1);Poy(1)=cords(2)
 		else
-		CALL coordinates_face_innerx(N,Iconsidered,facex)
+		CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+
+		 if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
+                                            N_NODE=4
+                                    else
+                                            N_NODE=3
+                                    end if
+
 		CORDS(1:3)=zero
 		CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE);Pox(1)=cords(1);Poy(1)=cords(2);poz(1)=cords(3);
 		
@@ -2910,10 +3107,10 @@ DO L=1,IELEM(N,I)%IFCA	!COND1
 		B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 		
 		if (dimensiona.eq.2)then
-		CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED)
+		CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 		else
 		
-		CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+		CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 		end if
 		
 		DU1(1:nof_variables)=rightV(1:nof_variables)
@@ -2940,7 +3137,7 @@ DO L=1,IELEM(N,I)%IFCA	!COND1
         
 								    
 								    
-								    case(6,9,99)
+								    case(6)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -3051,7 +3248,7 @@ DO L=1,IELEM(N,I)%IFCA	!COND1
         NX=ANGLE1
         NY=ANGLE2
         facex=l;
-        CALL DELTAFX
+        CALL DELTAFX(ICONSIDERED,FACEX,DELTAF,VELNORMAL)
         
        
         if (b_code.gt.0)then
@@ -3087,21 +3284,28 @@ END SUBROUTINE LUSGS_OUT
 
 
 
-SUBROUTINE DELTAFX
+SUBROUTINE DELTAFX(ICONSIDERED,FACEX,DELTAF,VELNORMAL)
 IMPLICIT NONE
-real::velnormal,uul,uur
+integer,intent(in)::ICONSIDERED,facex
+real::uul,uur,angle1,angle2
 real,dimension(1:nof_variables)::CDX1,cdx2
+REAl,INTENT(INOUT)::DELTAF(1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR),VELNORMAL
+real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT
+real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr,dut1
+real,dimension(1:nof_Variables)::leftv,du1
+real,dimension(1:nof_Variables)::RIGHTv
+REAL::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
 integer::inds
 
 
                             if (dimensiona.eq.2)then
-                            inds=4
+                            inds=NOF_VARIABLES
                             !2 rotate the solution of the neighbour along the face normal and store in cright_rot
-                            CALL ROTATEF2D(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	
+                            CALL ROTATEF2D(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)
                             !3 copy to cleft the solution of the neighbour plus the change du
                             CLEFT(1:NOF_VARIABLES)=CRIGHT(1:NOF_VARIABLES)+DU1(1:NOF_VARIABLES)
                             !4 rotate the cleft along the face normal and store in cleft_rot
-                            CALL ROTATEF2D(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)
+                            CALL ROTATEF2D(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)
                             !5 Compute the spectral radius
                             
                             VELNORMAL=IMPOFF_MF(ICONSIDERED,FACEX)
@@ -3110,7 +3314,7 @@ integer::inds
                             LEFTV(1:NOF_VARIABLES)=CLEFT_ROT(1:NOF_VARIABLES)
                             
                             !transform leftv and rightv from cons to prim variables
-                            call CONS2PRIM2d2(N)
+                            call cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
                             
                             
                             uul=leftv(2);uur=rightv(2)
@@ -3130,7 +3334,7 @@ integer::inds
                             
                             
                             CLEFT_ROT(1:NOF_VARIABLES)=DELTAF(1:NOF_VARIABLES)
-                            CALL ROTATEB2d(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2) 
+                            CALL ROTATEB2d(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
                             DELTAF(1:NOF_VARIABLES)=CLEFT(1:NOF_VARIABLES)-VELNORMAL*DU1(1:NOF_VARIABLES)
                             
                             IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -3143,13 +3347,13 @@ integer::inds
                             
                             
                             
-                            inds=5
+                            inds=NOF_VARIABLES
                             !2 rotate the solution of the neighbour along the face normal and store in cright_rot
-                            CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	
+                            CALL ROTATEF(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)
                             !3 copy to cleft the solution of the neighbour plus the change du
                             CLEFT(1:NOF_VARIABLES)=CRIGHT(1:NOF_VARIABLES)+DU1(1:NOF_VARIABLES)
                             !4 rotate the cleft along the face normal and store in cleft_rot
-                            CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)
+                            CALL ROTATEF(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)
                             !5 Compute the spectral radius
                             
                             VELNORMAL=IMPOFF_MF(ICONSIDERED,FACEX)
@@ -3158,7 +3362,7 @@ integer::inds
                             LEFTV(1:NOF_VARIABLES)=CLEFT_ROT(1:NOF_VARIABLES)
                             
                             !transform leftv and rightv from cons to prim variables
-                            call CONS2PRIM2(N)
+                            call CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
                             
                             
                             uul=leftv(2);uur=rightv(2)
@@ -3178,7 +3382,7 @@ integer::inds
                             
                             
                             CLEFT_ROT(1:NOF_VARIABLES)=DELTAF(1:NOF_VARIABLES)
-                            CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2) 
+                            CALL ROTATEB(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
                             DELTAF(1:NOF_VARIABLES)=CLEFT(1:NOF_VARIABLES)-VELNORMAL*DU1(1:NOF_VARIABLES)
                             
                             IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
