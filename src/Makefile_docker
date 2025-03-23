@@ -3,15 +3,14 @@
 F90=mpif90
 LD=$(F90)
 
-BLASFLAGS= -I  /usr/include/x86_64-linux-gnu/openblas-pthread     #Ensure that you include your BLAS library path here
-BLASLIBS=  /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.a     #Ensure that you include your BLAS library path here
+
 GKLIB= /root/local/lib/libGKlib.a
 METISLIB= /root/local/lib/libmetis.a
 PARMETISLIB= /root/local/lib/libparmetis.a
 
-FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -O3 -march=native -Wno-lto-type-mismatch -fPIE $(BLASFLAGS) 
+FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -O3 -march=native -Wno-lto-type-mismatch -fPIE  
 
-LIBS = -Wl,-V,-Bstatic libtecio.a $(BLASLIBS) $(GKLIB) $(METISLIB) $(PARMETISLIB) -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi
+LIBS = -Wl,-V,-Bstatic libtecio.a  $(GKLIB) $(METISLIB) $(PARMETISLIB) -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi
 
 include Makefile_common
 

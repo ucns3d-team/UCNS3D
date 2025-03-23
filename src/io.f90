@@ -871,6 +871,10 @@ REAL,DIMENSION(5)::TOTAL
 integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin,xbin2
 real,allocatable,dimension(:,:)::FBIN
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 integer,allocatable,dimension(:,:)::icon
 INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
@@ -1028,7 +1032,7 @@ Valuelocation(:)=0
 
             leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 
-		    CALL CONS2PRIM2(N)
+		    CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 
 		    valuess(i)=sqrt(leftv(2)**2+leftv(3)**2+leftv(4)**2)
 
@@ -1115,6 +1119,10 @@ real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
 INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
  character(LEN=:),allocatable::out1
  character*1 NULCHAR
  
@@ -1441,7 +1449,7 @@ Valuelocation(:)=0
             
             leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
             
-		    CALL CONS2PRIM2(N)
+		    CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 		      VALUESS(i)=leftv(kkd)
 			if (kkd.eq.5)then
 			
@@ -1466,7 +1474,7 @@ Valuelocation(:)=0
 		      
             leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
             
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(5)
 		END DO
 		
@@ -1728,6 +1736,10 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
  character(LEN=:),allocatable::out1
  character*1 NULCHAR
+ real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
  
       Integer::   Debug,III,NPts,NElm
 
@@ -2009,7 +2021,7 @@ Valuelocation(1:3)=1
 		do kkd=1,5
 		    DO I=1,KMAXE
 		    leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
-		    CALL CONS2PRIM2(N)
+		    CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 		      VALUESS(i)=leftv(kkd)
 			if (kkd.eq.5)then
 			VALUESS(i)=U_C(I)%VAL(1,kkd)!/U_C(I)%VAL(1,1)
@@ -2026,7 +2038,7 @@ Valuelocation(1:3)=1
     
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(5)
 		END DO
 		
@@ -2191,6 +2203,10 @@ REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4,proc5
 integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECNODE112,TECEND112,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin,xbin2,xbin3
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
 INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
@@ -2470,7 +2486,7 @@ Valuelocation(1:3)=1
 		do kkd=1,5
 		    DO I=1,KMAXE
 		    leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
-		    CALL CONS2PRIM2(N)
+		    CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 		      VALUESS(i)=leftv(kkd)
 			if (kkd.eq.5)then
 			VALUESS(i)=U_C(I)%VAL(1,kkd)!/U_C(I)%VAL(1,1)
@@ -2487,7 +2503,7 @@ Valuelocation(1:3)=1
     
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(5)
 		END DO
 		
@@ -2661,6 +2677,10 @@ REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
 integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
 real,allocatable,dimension(:)::xbin,ybin,zbin
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
 INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
@@ -2936,7 +2956,7 @@ Valuelocation(:)=0
     
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(5)
 		END DO
 		
@@ -3086,6 +3106,10 @@ REAL,allocatable,DIMENSION(:)::VARIABLES
 REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
 INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
 LOGICAL::HEREV
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
 integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
@@ -3369,7 +3393,7 @@ Valuelocation(:)=0
     
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
-		  CALL CONS2PRIM2d(N)
+		  CALL cons2prim(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(4)
 		END DO
 		
@@ -3509,7 +3533,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -3842,7 +3869,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
         
         leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
         
-		  CALL CONS2PRIM2D(N)
+		  CALL cons2prim(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(kkd)
           if (KKD.EQ.4)THEN
           
@@ -3868,7 +3895,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		 
         leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
         
-		  CALL CONS2PRIM2D(N)
+		  CALL cons2prim(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(4)
 		END DO
 		
@@ -5870,7 +5897,10 @@ real,allocatable,dimension(:,:)::FBIN
 integer,allocatable,dimension(:,:)::icon
 INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog
 character*1 NULCHAR
- 
+ real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
       Integer::   Debug,III,NPts,NElm
 
   
@@ -6157,7 +6187,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 INTEGER,DIMENSION(70)::IVALID
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -6428,7 +6461,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 INTEGER,DIMENSION(70)::IVALID
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -6682,7 +6718,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 INTEGER,DIMENSION(70)::IVALID
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
@@ -6978,11 +7017,14 @@ INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
 INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,i6,i7,i8,DECOMF,KD
-INTEGER::INX,I,K,J,M,O,P,Q,JK
+INTEGER::INX,I,K,J,M,O,P,Q,JK,IXXFF
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE
- 
+ real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 
 
 
@@ -7097,11 +7139,14 @@ INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
 INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,i6,i7,i8,DECOMF,KD
-INTEGER::INX,I,K,J,M,O,P,Q,JK
+INTEGER::INX,I,K,J,M,O,P,Q,JK,IXXFF
 LOGICAL::HEREV
 REAL,DIMENSION(5)::TOTAL
  CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE
- 
+ real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 
 
 
@@ -7208,7 +7253,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -7237,6 +7285,8 @@ character*1 NULCHAR
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
+      integer::iconsidered,facex
+      REAL::SHEAR_TEMP
 
 
  KMAXE=XMPIELRANK(N)
@@ -7572,7 +7622,7 @@ IF (ITESTCASE.LE.2)THEN
 					  
                                             
 						leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(1,1:nof_Variables)
-						CALL CONS2PRIM(N)
+						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 						VALUESS(i)=leftv(5)
 						
 					  ENDDO
@@ -7676,16 +7726,16 @@ IF (ITESTCASE.LE.2)THEN
 				      IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 						
-					 ICONSI=IBOUND_T(I)
-					 ICONSIDERED=IBOUND_T2(I)
+					 ICONSIdered=IBOUND_T(I)
+					 facex=IBOUND_T2(I)
 					select case(kkd)
 					 case(1)
 					 
-					 call SHEAR_X(ICONSI,ICONSIDERED)
+					 call SHEAR_X(ICONSIdered,facex,shear_temp)
 					 CASE (2)
-					 call SHEAR_Y(ICONSI,ICONSIDERED)
+					 call SHEAR_y(ICONSIdered,facex,shear_temp)
 					 CASE(3)
-					 call SHEAR_Z(ICONSI,ICONSIDERED)
+					 call SHEAR_z(ICONSIdered,facex,shear_temp)
 					 END SELECT
 				       		VALUESS(i)=SHEAR_TEMP					
 					  ENDDO
@@ -7776,7 +7826,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -7805,6 +7858,8 @@ character*1 NULCHAR
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
+      integer::iconsidered,facex
+      REAL::SHEAR_TEMP
 
 
  KMAXE=XMPIELRANK(N)
@@ -8131,7 +8186,7 @@ IF (ITESTCASE.LE.2)THEN
 		      IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 					  leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(1,1:nof_Variables)
-				    CALL CONS2PRIM2d(N)
+				    CALL cons2prim(N,leftv,MP_PINFl,gammal)
 				    VALUESS(i)=leftv(4)
 					end do	
 			      end if	
@@ -8226,14 +8281,14 @@ IF (ITESTCASE.LE.2)THEN
 		  do kkd=1,2
 			    IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
-					  ICONSI=IBOUND_T(I)
-					  ICONSIDERED=IBOUND_t2(i)
+					  ICONSIdered=IBOUND_T(I)
+					  facex=IBOUND_t2(i)
 					  select case(kkd)
 					 case(1)
 					 
-					 call SHEAR_X2d(ICONSI,ICONSIDERED)
+					 call SHEAR_x2d(ICONSIdered,facex,shear_temp)
 					 CASE (2)
-					 call SHEAR_Y2d(ICONSI,ICONSIDERED)
+					 call SHEAR_y2d(ICONSIdered,facex,shear_temp)
 					 
 					 END SELECT
 					VALUESS(i)=SHEAR_TEMP
@@ -8323,7 +8378,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -8352,7 +8410,8 @@ character*1 NULCHAR
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-
+integer::iconsidered,facex
+      REAL::SHEAR_TEMP
 
  KMAXE=XMPIELRANK(N)
 ! 
@@ -8680,7 +8739,7 @@ IF (ITESTCASE.LE.2)THEN
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_Variables)=U_C(IBOUND(N,i)%which)%VAL(1,1:nof_Variables)
-				    CALL CONS2PRIM(N)
+				    CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 				    VALUESS(icount_wall)=leftv(5)
 				  
 				END IF
@@ -8809,16 +8868,16 @@ IF (ITESTCASE.LE.2)THEN
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
-					ICONSI=IBOUND(N,i)%which
-					 ICONSIDERED=IBOUND(N,i)%FACE
+					ICONSIdered=IBOUND(N,i)%which
+					 facex=IBOUND(N,i)%FACE
 					select case(kkd)
 					 case(1)
 					 
-					 call SHEAR_X(ICONSI,ICONSIDERED)
+					 call SHEAR_X(ICONSIdered,facex,shear_temp)
 					 CASE (2)
-					 call SHEAR_Y(ICONSI,ICONSIDERED)
+					 call SHEAR_y(ICONSIdered,facex,shear_temp)
 					 CASE(3)
-					 call SHEAR_Z(ICONSI,ICONSIDERED)
+					 call SHEAR_z(ICONSIdered,facex,shear_temp)
 					 END SELECT
 				       		VALUESS(icount_wall)=SHEAR_TEMP		
 				       
@@ -8912,7 +8971,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -8941,7 +9003,8 @@ character*1 NULCHAR
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-
+integer::iconsidered,facex
+      REAL::SHEAR_TEMP
 
  KMAXE=XMPIELRANK(N)
 ! 
@@ -9304,7 +9367,7 @@ IF (ITESTCASE.LE.2)THEN
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_Variables)=U_C(IBOUND(N,i)%which)%VAL(1,1:nof_Variables)
-				    CALL CONS2PRIM2d(N)
+				    CALL cons2prim(N,leftv,MP_PINFl,gammal)
 				    VALUESS(icount_wall)=leftv(4)
 				  
 				END IF
@@ -9433,14 +9496,14 @@ IF (ITESTCASE.LE.2)THEN
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
-					ICONSI=IBOUND(N,i)%which
-					 ICONSIDERED=IBOUND(N,i)%FACE
+					ICONSIdered=IBOUND(N,i)%which
+					 facex=IBOUND(N,i)%FACE
 					select case(kkd)
 					 case(1)
 					 
-					 call SHEAR_X2d(ICONSI,ICONSIDERED)
+					 call SHEAR_x2d(ICONSIdered,facex,shear_temp)
 					 CASE (2)
-					 call SHEAR_Y2d(ICONSI,ICONSIDERED)
+					 call SHEAR_y2d(ICONSIdered,facex,shear_temp)
 					 
 					 END SELECT
 				       		VALUESS(icount_wall)=SHEAR_TEMP		
@@ -9537,7 +9600,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -9701,7 +9767,7 @@ Valuelocation(:)=0
 		  end if
 		  if (kkd.eq.5)then
 		   leftv(1:nof_Variables)=U_C(I)%VAL(ind1,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(5)
 		  
 		  end if
@@ -9784,7 +9850,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -9977,7 +10046,7 @@ Valuelocation(:)=0
 		  end if
 		  if (kkd.eq.4)then
 		   leftv(1:nof_Variables)=U_C(I)%VAL(ind1,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(4)
 		  
 		  end if
@@ -10074,7 +10143,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -10217,7 +10289,7 @@ allocate (Valuelocation(nvar1))
 		  end if
 		  if (kkd.eq.5)then
 		   leftv(1:nof_Variables)=U_C(I)%VAL(5,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(5)
 		  
 		  end if
@@ -10311,7 +10383,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -10484,7 +10559,7 @@ Valuelocation(:)=0
 		  end if
 		  if (kkd.eq.4)then
 		   leftv(1:nof_Variables)=U_C(I)%VAL(5,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(4)
 		  
 		  end if
@@ -10580,7 +10655,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -10609,7 +10687,8 @@ character*1 NULCHAR
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-
+integer::iconsidered,facex
+      REAL::SHEAR_TEMP
 
  KMAXE=XMPIELRANK(N)
 ! 
@@ -10892,7 +10971,7 @@ IF (ITESTCASE.LE.2)THEN
 					  DO I=1,TOTIW
 					        leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(ind1,1:nof_Variables)
 						
-						CALL CONS2PRIM(N)
+						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 				    VALUESS(i)=leftv(5)
 						
 						
@@ -11011,16 +11090,16 @@ IF (ITESTCASE.LE.2)THEN
 					        
 				    
 						
-						ICONSI=IBOUND_T(I)
-					 ICONSIDERED=IBOUND_T2(I)
+						ICONSIdered=IBOUND_T(I)
+					 facex=IBOUND_T2(I)
 					select case(kkd)
 					 case(1)
 					 
-					 call SHEAR_X_av(ICONSI,ICONSIDERED)
+					 call shear_x_av(iconsidered,facex,shear_temp)
 					 CASE (2)
-					 call SHEAR_Y_av(ICONSI,ICONSIDERED)
+					 call shear_y_av(iconsidered,facex,shear_temp)
 					 CASE(3)
-					 call SHEAR_Z_av(ICONSI,ICONSIDERED)
+					 call shear_z_av(iconsidered,facex,shear_temp)
 					 END SELECT
 				       		VALUESS(i)=SHEAR_TEMP		
 						
@@ -11113,7 +11192,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -11142,7 +11224,8 @@ character*1 NULCHAR
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-
+integer::iconsidered,facex
+      REAL::SHEAR_TEMP
 
  KMAXE=XMPIELRANK(N)
  
@@ -11449,7 +11532,7 @@ IF (ITESTCASE.LE.2)THEN
 		      IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
 						leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(5,1:nof_Variables)
-						CALL CONS2PRIM2d(N)
+						CALL cons2prim(N,leftv,MP_PINFl,gammal)
 					  VALUESS(i)=leftv(4)
 					  ENDDO
 					  END IF
@@ -11534,14 +11617,14 @@ IF (ITESTCASE.LE.2)THEN
 		  do kkd=1,2
 				      IF (TOTIW.GT.0)THEN
 					  DO I=1,TOTIW
-						ICONSI=IBOUND_T(I)
-					 ICONSIDERED=IBOUND_T2(I)
+						ICONSIdered=IBOUND_T(I)
+					 facex=IBOUND_T2(I)
 					select case(kkd)
 					 case(1)
 					 
-					 call SHEAR_X2d_av(ICONSI,ICONSIDERED)
+					 call shear_x2d_av(iconsidered,facex,shear_temp)
 					 CASE (2)
-					 call SHEAR_Y2d_av(ICONSI,ICONSIDERED)
+					 call shear_y2d_av(iconsidered,facex,shear_temp)
 					 
 					 END SELECT
 				       		VALUESS(i)=SHEAR_TEMP		
@@ -11616,7 +11699,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -11645,7 +11731,8 @@ character*1 NULCHAR
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-
+integer::iconsidered,facex
+      REAL::SHEAR_TEMP
 
  KMAXE=XMPIELRANK(N)
 ! 
@@ -11973,7 +12060,7 @@ IF (ITESTCASE.LE.2)THEN
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_Variables)=U_C(IBOUND(N,i)%which)%VAL(5,1:nof_Variables)
-				    CALL CONS2PRIM(N)
+				    CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 				    VALUESS(icount_wall)=leftv(5)
 				  
 				END IF
@@ -12102,16 +12189,16 @@ IF (ITESTCASE.LE.2)THEN
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
-					ICONSI=IBOUND(N,i)%which
-					 ICONSIDERED=IBOUND(N,i)%FACE
+					ICONSIdered=IBOUND(N,i)%which
+					 facex=IBOUND(N,i)%FACE
 					select case(kkd)
 					 case(1)
 					 
-					 call SHEAR_X_av(ICONSI,ICONSIDERED)
+					 call shear_x_av(iconsidered,facex,shear_temp)
 					 CASE (2)
-					 call SHEAR_Y_av(ICONSI,ICONSIDERED)
+					 call shear_y_av(iconsidered,facex,shear_temp)
 					 CASE(3)
-					 call SHEAR_Z_av(ICONSI,ICONSIDERED)
+					 call shear_z_av(iconsidered,facex,shear_temp)
 					 END SELECT
 				       		VALUESS(icount_wall)=SHEAR_TEMP		
 				       
@@ -12205,7 +12292,10 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -12234,7 +12324,8 @@ character*1 NULCHAR
       Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
       POINTER   (NullPtr,Null)
       Integer:: Null(*)
-
+      REAL::SHEAR_TEMP
+integer::iconsidered,facex
 
  KMAXE=XMPIELRANK(N)
 ! 
@@ -12597,7 +12688,7 @@ IF (ITESTCASE.LE.2)THEN
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_Variables)=U_C(IBOUND(N,i)%which)%VAL(5,1:nof_Variables)
-				    CALL CONS2PRIM(N)
+				    CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 				    VALUESS(icount_wall)=leftv(4)
 				  
 				END IF
@@ -12726,14 +12817,14 @@ IF (ITESTCASE.LE.2)THEN
 		      DO I=1,n_boundaries
 			      if ((ibound(n,i)%icode.eq.4).and.(IBOUND(N,i)%which.gt.0)) then
 				    icount_wall=icount_wall+1
-					ICONSI=IBOUND(N,i)%which
-					 ICONSIDERED=IBOUND(N,i)%FACE
+					ICONSIdered=IBOUND(N,i)%which
+					 facex=IBOUND(N,i)%FACE
 					select case(kkd)
 					 case(1)
 					 
-					 call SHEAR_X2d_av(ICONSI,ICONSIDERED)
+					 call shear_x2d_av(iconsidered,facex,shear_temp)
 					 CASE (2)
-					 call SHEAR_Y2d_av(ICONSI,ICONSIDERED)
+					 call shear_y2d_av(iconsidered,facex,shear_temp)
 					 
 					 END SELECT
 				       		VALUESS(icount_wall)=SHEAR_TEMP		
@@ -13841,7 +13932,6 @@ SUBROUTINE PARTITION_PREPARATION_WALLv(N)
 
 			DO I=1,iloopx
 				WiARRAY_PART5(i)=nodes_offset_local2W(i)
-
 			END DO
 
 
@@ -13863,7 +13953,6 @@ SUBROUTINE PARTITION_PREPARATION_WALLv(N)
 			DO I=1,ILOOPX
 				WDISPART3(I)=(wall_l(i,4)-1)*1
 				wiARRAY_PART3(I)=WALLSHAPE(I)
-
 			END DO
 			wPART3_end=1
 	ELSE
@@ -14511,7 +14600,7 @@ Variable_names(9)='Q'
 
 Else
 
-WRITE_VARIABLES=NOF_VARIABLES+1+TURBULENCEEQUATIONS
+WRITE_VARIABLES=NOF_VARIABLES+1+TURBULENCEEQUATIONS+adda
 
 
 !!specify the name of the variable names!!
@@ -14522,8 +14611,13 @@ Variable_names(3)='V'
 Variable_names(4)='W'
 Variable_names(5)='Pressure'
 Variable_names(6)='Q'
+
+	if (adda.eq.1)then
+	Variable_names(NOF_VARIABLES+1+adda)='ADDA'
+	end if
+
 	if (turbulence.eq.1)then
-	Variable_names(7)='turb'
+	Variable_names(NOF_VARIABLES+1+TURBULENCEEQUATIONS+adda)='turb'
 	end if
 
 	IF (ITESTCASE.EQ.1)THEN
@@ -14774,6 +14868,10 @@ CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
 CHARACTER(LEN=200)          :: Buffer
 CHARACTER(LEN=1)            :: lf
 character(LEN=:),allocatable::VTU
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 nbytes=1
 
 
@@ -14827,13 +14925,19 @@ temp_cord=3
 				if (dimensiona.eq.3)then
 				DO I=1,KMAXE
 				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-				call cons2prim(n)
+				call CONS2PRIM(N,leftv,MP_PINFl,gammal)
 					rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
                                         if (multispecies.eq.1)then
-					rARRAY_PART1(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
+											rARRAY_PART1(i,j)=ielem(n,i)%REDUCE!ielem(n,i)%vortex(1)
                                         else
-                                        rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+
+											rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+											 if (j.eq.write_variables-TURBULENCEEQUATIONS)then
+											 if (adda.eq.1)then
+											 rARRAY_PART1(i,j)=ielem(n,i)%diss
+											 end if
+											 end if
                                         end if        
                                         end do
                                         IF (TURBULENCEEQUATIONS.GT.0)THEN
@@ -14849,14 +14953,22 @@ temp_cord=3
 				if (dimensiona.eq.2)then
 				DO I=1,KMAXE
 				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-				call cons2prim2d(n)
+				call cons2prim(N,leftv,MP_PINFl,gammal)
 					rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
 										if (multispecies.eq.1)then
 
 										rARRAY_PART1(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
                                         else
+                                        if (mood.eq.1)then
+                                         rARRAY_PART1(i,j)=ielem(n,i)%mood_o
+                                        else
+										if (Dg.eq.1)then
+											rARRAY_PART1(i,j)=ielem(n,i)%troubled
+										else
                                         rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+                                        end if
+                                        end if
                                         end if
 										end do
 										IF (TURBULENCEEQUATIONS.GT.0)THEN
@@ -15125,6 +15237,10 @@ INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,dip,N_END,ifg,kmaxn_p,
 CHARACTER(LEN=40)::PROC,FILEX,PROC3
 REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
 LOGICAL::HERE1
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
 integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
 INTEGER                     :: nbytes,eight
@@ -15193,7 +15309,7 @@ if (rungekutta.eq.4)then
 				if (dimensiona.eq.3)then
 				DO I=1,KMAXE
 				leftv(1:nof_Variables)=U_C(I)%VAL(ind1,1:NOF_VARIABLES)
-				call cons2prim(n)
+				call CONS2PRIM(N,leftv,MP_PINFl,gammal)
 					rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 					do j=nof_Variables+1,write_variables_AV
 					rARRAY_PART1(i,j)=U_C(I)%RMS(J-nof_Variables)
@@ -15476,6 +15592,10 @@ CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
 CHARACTER(LEN=200)          :: Buffer
 CHARACTER(LEN=1)            :: lf
 character(LEN=:),allocatable::VTU
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 nbytes=1
 
 temp_cord=3
@@ -15527,7 +15647,7 @@ temp_cord=3
 				if (dimensiona.eq.3)then
 				DO I=1,KMAXE
 				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-				call cons2prim(n)
+				call CONS2PRIM(N,leftv,MP_PINFl,gammal)
 					sol_vtu(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
                                         if (multispecies.eq.1)then
@@ -15548,7 +15668,7 @@ temp_cord=3
 				if (dimensiona.eq.2)then
 				DO I=1,KMAXE
 				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-				call cons2prim2d(n)
+				call cons2prim(N,leftv,MP_PINFl,gammal)
 					sol_vtu(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
                                         if (multispecies.eq.1)then
@@ -15789,6 +15909,12 @@ CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
 CHARACTER(LEN=200)          :: Buffer
 CHARACTER(LEN=1)            :: lf
 character(LEN=:),allocatable::VTU
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+REAL::SHEAR_TEMP
+integer::iconsidered,facex
 nbytes=1
 
 temp_cord=3
@@ -15844,15 +15970,15 @@ temp_cord=3
 
 
 				DO I=1,iloopx
-				ICONSIDERED=WALL_L(I,2)
-				ICONSI=WALL_L(I,1)
-				LEFTV(1:NOF_VARIABLES)=U_C(ICONSI)%VAL(1,1:NOF_VARIABLES)
+				facex=WALL_L(I,2)
+				ICONSIdered=WALL_L(I,1)
+				LEFTV(1:NOF_VARIABLES)=U_C(ICONSIdered)%VAL(1,1:NOF_VARIABLES)
 							IF (DIMENSIONA.EQ.3)THEN
-								CALL CONS2PRIM(N)
+								CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 								temp_node=3;temp_dims=3
 
 								ELSE
-								CALL CONS2PRIM2D(N)
+								CALL cons2prim(N,leftv,MP_PINFl,gammal)
 								temp_node=2;temp_dims=2
 								END IF
 
@@ -15860,7 +15986,7 @@ temp_cord=3
 
 					sol_vtu_w(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 
-					sol_vtu_w(I,NOF_VARIABLES+1:NOF_VARIABLES+1)=IELEM(N,ICONSI)%VORTEX(1)
+					sol_vtu_w(I,NOF_VARIABLES+1:NOF_VARIABLES+1)=IELEM(N,ICONSIdered)%VORTEX(1)
 
 
 					KKD_I=NOF_VARIABLES+1
@@ -15875,11 +16001,11 @@ temp_cord=3
 										select case(kkd)
 											case(1)
 
-											call SHEAR_X(ICONSI,ICONSIDERED)
+											call SHEAR_X(ICONSIdered,facex,shear_temp)
 											CASE (2)
-											call SHEAR_Y(ICONSI,ICONSIDERED)
+											call SHEAR_y(ICONSIdered,facex,shear_temp)
 											CASE(3)
-											call SHEAR_Z(ICONSI,ICONSIDERED)
+											call SHEAR_z(ICONSIdered,facex,shear_temp)
 											END SELECT
 
 											sol_vtu_w(I,KKD_I+kkd)=SHEAR_TEMP
@@ -15896,9 +16022,9 @@ temp_cord=3
 										select case(kkd)
 											case(1)
 
-											call SHEAR_X2d(ICONSI,ICONSIDERED)
+											call SHEAR_x2d(ICONSIdered,facex,shear_temp)
 											CASE (2)
-											call SHEAR_Y2d(ICONSI,ICONSIDERED)
+											call SHEAR_y2d(ICONSIdered,facex,shear_temp)
 
 											END SELECT
 
@@ -16146,6 +16272,12 @@ CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
 CHARACTER(LEN=200)          :: Buffer
 CHARACTER(LEN=1)            :: lf
 character(LEN=:),allocatable::VTU
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+REAL::SHEAR_TEMP
+integer::iconsidered,facex
 nbytes=1
 
 temp_cord=3
@@ -16208,15 +16340,15 @@ temp_cord=3
 
 
 				DO I=1,iloopx
-				ICONSIDERED=WALL_L(I,2)
-				ICONSI=WALL_L(I,1)
-				LEFTV(1:NOF_VARIABLES)=U_C(ICONSI)%VAL(ind1,1:NOF_VARIABLES)
+				facex=WALL_L(I,2)
+				ICONSIdered=WALL_L(I,1)
+				LEFTV(1:NOF_VARIABLES)=U_C(ICONSIdered)%VAL(ind1,1:NOF_VARIABLES)
 							IF (DIMENSIONA.EQ.3)THEN
-								CALL CONS2PRIM(N)
+								CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 								temp_node=3;temp_dims=3
 
 								ELSE
-								CALL CONS2PRIM2D(N)
+								CALL cons2prim(N,leftv,MP_PINFl,gammal)
 								temp_node=2;temp_dims=2
 								END IF
 
@@ -16239,11 +16371,11 @@ temp_cord=3
 										select case(kkd)
 											case(1)
 
-											call SHEAR_X_Av(ICONSI,ICONSIDERED)
+											call shear_x_av(iconsidered,facex,shear_temp)
 											CASE (2)
-											call SHEAR_Y_Av(ICONSI,ICONSIDERED)
+											call shear_y_av(iconsidered,facex,shear_temp)
 											CASE(3)
-											call SHEAR_Z_Av(ICONSI,ICONSIDERED)
+											call shear_z_av(iconsidered,facex,shear_temp)
 											END SELECT
 
 											sol_vtu_w(I,KKD_I+kkd)=SHEAR_TEMP
@@ -16260,9 +16392,9 @@ temp_cord=3
 										select case(kkd)
 											case(1)
 
-											call SHEAR_X2d_Av(ICONSI,ICONSIDERED)
+											call shear_x2d_av(iconsidered,facex,shear_temp)
 											CASE (2)
-											call SHEAR_Y2d_av(ICONSI,ICONSIDERED)
+											call shear_y2d_av(iconsidered,facex,shear_temp)
 
 											END SELECT
 
@@ -16511,6 +16643,10 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 	CHARACTER(LEN=200)          :: Buffer
 	CHARACTER(LEN=1)            :: lf
 	character(LEN=:),allocatable::VTU
+	real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
 	nbytes=1
 	
 	temp_cord=3
@@ -16569,7 +16705,7 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 					if (dimensiona.eq.3)then
 					DO I=1,KMAXE
 					leftv(1:nof_Variables)=U_C(I)%VAL(IND1,1:NOF_VARIABLES)
-					call cons2prim(n)
+					call CONS2PRIM(N,leftv,MP_PINFl,gammal)
 						sol_vtu(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 						do j=nof_Variables+1,write_variables_AV
 							sol_vtu(i,J)=U_C(I)%RMS(J-nof_Variables)
@@ -16807,9 +16943,15 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 		CHARACTER(LEN=200)          :: Buffer
 		CHARACTER(LEN=1)            :: lf
 		character(LEN=:),allocatable::VTU
+		real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+REAL::SHEAR_TEMP
+integer::iconsidered,facex
 		nbytes=1
 		
-
+		
 			 size_of_int=4
 			 size_of_real=8
 		
@@ -16860,24 +17002,24 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 			  			!LOOP THE CORRECT NUMBER OF ELEMENTS THAT ARE BOUNDED 
 			  			IF (ILOOPX.GT.0)THEN
 							do i=1,ILOOPX
-								ICONSIDERED=WALL_L(I,2)
-								ICONSI=WALL_L(I,1)
-								LEFTV(1:NOF_VARIABLES)=U_C(ICONSI)%VAL(1,1:NOF_VARIABLES)
+								facex=WALL_L(I,2)
+								ICONSIdered=WALL_L(I,1)
+								LEFTV(1:NOF_VARIABLES)=U_C(ICONSIdered)%VAL(1,1:NOF_VARIABLES)
 
 
 								IF (DIMENSIONA.EQ.3)THEN
-								CALL CONS2PRIM(N)
+								CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 								temp_node=3;temp_dims=3
 
 								ELSE
-								CALL CONS2PRIM2D(N)
+								CALL cons2prim(N,leftv,MP_PINFl,gammal)
 								temp_node=2;temp_dims=3
 								END IF
 
 									WrARRAY_PART1(I,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
 
 									!the next variable is always going to be an auxiliary
-									WrARRAY_PART1(I,NOF_VARIABLES+1:NOF_VARIABLES+1)=IELEM(N,ICONSI)%VORTEX(1)
+									WrARRAY_PART1(I,NOF_VARIABLES+1:NOF_VARIABLES+1)=IELEM(N,ICONSIdered)%VORTEX(1)
 						
 									KKD_I=NOF_VARIABLES+1
 								    IF (ITESTCASE.EQ.4)THEN
@@ -16891,11 +17033,11 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 										select case(kkd)
 											case(1)
 											
-											call SHEAR_X(ICONSI,ICONSIDERED)
+											call SHEAR_X(ICONSIdered,facex,shear_temp)
 											CASE (2)
-											call SHEAR_Y(ICONSI,ICONSIDERED)
+											call SHEAR_y(ICONSIdered,facex,shear_temp)
 											CASE(3)
-											call SHEAR_Z(ICONSI,ICONSIDERED)
+											call SHEAR_z(ICONSIdered,facex,shear_temp)
 											END SELECT
 
 											WrARRAY_PART1(I,KKD_I+kkd)=SHEAR_TEMP
@@ -16912,9 +17054,9 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 										select case(kkd)
 											case(1)
 											
-											call SHEAR_X2d(ICONSI,ICONSIDERED)
+											call SHEAR_x2d(ICONSIdered,facex,shear_temp)
 											CASE (2)
-											call SHEAR_Y2d(ICONSI,ICONSIDERED)
+											call SHEAR_y2d(ICONSIdered,facex,shear_temp)
 											
 											END SELECT
 
@@ -17224,6 +17366,12 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 		CHARACTER(LEN=200)          :: Buffer
 		CHARACTER(LEN=1)            :: lf
 		character(LEN=:),allocatable::VTU
+		real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+REAL::SHEAR_TEMP
+integer::iconsidered,facex
 		nbytes=1
 
 
@@ -17236,12 +17384,6 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 		disp_init=0
 		KMAXE=XMPIELRANK(N)
 		KMAXN_P=XMPIALL_v(N)
-
-		if (dimensiona.eq.3)then
- 		temp_node=3;temp_dims=3
- 		else
- 		temp_node=2;temp_dims=3
- 		end if
 
 
 		temp_cord=3
@@ -17283,17 +17425,17 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 			  			!LOOP THE CORRECT NUMBER OF ELEMENTS THAT ARE BOUNDED
 			  			IF (ILOOPX.GT.0)THEN
 							do i=1,ILOOPX
-								ICONSIDERED=WALL_L(I,2)
-								ICONSI=WALL_L(I,1)
-								LEFTV(1:NOF_VARIABLES)=U_C(ICONSI)%VAL(ind1,1:NOF_VARIABLES)
+								facex=WALL_L(I,2)
+								ICONSIdered=WALL_L(I,1)
+								LEFTV(1:NOF_VARIABLES)=U_C(ICONSIdered)%VAL(ind1,1:NOF_VARIABLES)
 
 
 								IF (DIMENSIONA.EQ.3)THEN
-								CALL CONS2PRIM(N)
+								CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 								temp_node=3;temp_dims=3
 
 								ELSE
-								CALL CONS2PRIM2D(N)
+								CALL cons2prim(N,leftv,MP_PINFl,gammal)
 								temp_node=2;temp_dims=3
 								END IF
 
@@ -17312,11 +17454,11 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 										select case(kkd)
 											case(1)
 
-											call SHEAR_X_av(ICONSI,ICONSIDERED)
+											call shear_x_av(iconsidered,facex,shear_temp)
 											CASE (2)
-											call SHEAR_Y_av(ICONSI,ICONSIDERED)
+											call shear_y_av(iconsidered,facex,shear_temp)
 											CASE(3)
-											call SHEAR_Z_av(ICONSI,ICONSIDERED)
+											call shear_z_av(iconsidered,facex,shear_temp)
 											END SELECT
 
 											WrARRAY_PART1(I,KKD_I+kkd)=SHEAR_TEMP
@@ -17333,9 +17475,9 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 										select case(kkd)
 											case(1)
 
-											call SHEAR_X2d_av(ICONSI,ICONSIDERED)
+											call shear_x2d_av(iconsidered,facex,shear_temp)
 											CASE (2)
-											call SHEAR_Y2d_Av(ICONSI,ICONSIDERED)
+											call shear_y2d_av(iconsidered,facex,shear_temp)
 
 											END SELECT
 
@@ -18471,6 +18613,10 @@ IMPLICIT NONE
 INTEGER::INV
 CHARACTER(LEN=120)::PROB,PROBFILE,PROC3
 LOGICAL::HERES
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
                     IF (nof_variables.GT.1)THEN
 
 			IF (NPROBES.GT.0)THEN
@@ -18491,11 +18637,11 @@ LOGICAL::HERES
 				END IF
 				IF (PASSIVESCALAR.EQ.0)THEN
 				LEFTV(1:NOF_vARIABLES)=U_C(PROBEI(N,INV))%VAL(1,1:NOF_vARIABLES)
-				CALL CONS2PRIM(N)
+				CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 	WRITE(3000+N,'(1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,LEFTV(1),LEFTV(2),LEFTV(3),LEFTV(4),LEFTV(5)
 				ELSE
 				LEFTV(1:NOF_vARIABLES)=U_C(PROBEI(N,INV))%VAL(1,1:NOF_vARIABLES)
-				CALL CONS2PRIM(N)
+				CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 	WRITE(3000+N,'(1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,LEFTV(1),LEFTV(2),LEFTV(3),LEFTV(4),LEFTV(5)&
 	,U_CT(PROBEI(N,INV))%VAL(1,1)/U_C(PROBEI(N,INV))%VAL(1,1)
 
@@ -18519,6 +18665,10 @@ IMPLICIT NONE
 INTEGER::INV
 CHARACTER(LEN=120)::PROB,PROBFILE,PROC3
 LOGICAL::HERES
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
                         IF(nof_variables.GT.1)THEN
 
 			IF (NPROBES.GT.0)THEN
@@ -18571,11 +18721,20 @@ INTEGER:: MYSURFACE
 CHARACTER(LEN=12)::PROC,RESTFILE,PROC3
 REAL::DRAG,LIFT,CD,CL,RX,PX,EX,surface_temp,RTEMP,FX,FY,FZ,MX,MY,MZ
 REAL::FORCEXFR,SSX,CDF,LIFTF,DRAGF,FRICTIONF,TAUYX,TAUZX,TAUZY,SSY,SSZ,CF,TAUXX,TAUYY,TAUZZ
-REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ
+REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,angle1,angle2,nx,ny,nz
  REAL,DIMENSION(3)::CI,CO
  logical::heref
  INTEGER::IM
  REAL::TSOLR,TSOLU,TSOLE,TSOLV,TSOLW,TSOLP,SSP
+ REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
+ real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
+REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
+real,dimension(1:4)::viscl,laml
 FORCEX=zero; FORCEY=zero; FORCEZ=zero;  FORCEXFR=zero
  CD=zero
  CL=zero
@@ -18593,7 +18752,7 @@ FORCEX=zero; FORCEY=zero; FORCEZ=zero;  FORCEXFR=zero
  KMAXE=XMPIELRANK(N)
  
 !$OMP BARRIER 
-!$OMP DO SCHEDULE(STATIC) REDUCTION(+:FORCEX,FORCEY,FORCEZ,momentx,momenty,momentz)
+!$OMP DO  REDUCTION(+:FORCEX,FORCEY,FORCEZ,momentx,momenty,momentz)
 DO I=1,kmaxe
 		if (ielem(n,i)%interior.eq.1)then
 			IF(MRF.EQ.1)THEN
@@ -18626,7 +18785,7 @@ DO I=1,kmaxe
 				      do K=1,nnd
 					VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
 				      END DO
-					  call  QUADRATUREQUAD3D(N,IGQRULES)
+					  call  QUADRATUREQUAD3D(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
 					  end if
 					  surface_temp=IELEM(N,I)%SURF(J)
 					  
@@ -18642,7 +18801,7 @@ DO I=1,kmaxe
 					do K=1,nnd
 					  VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
 					END DO
-					call QUADRATURETRIANG(N,IGQRULES)
+					call QUADRATURETRIANG(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
 					end if
  					    surface_temp=IELEM(N,I)%SURF(J)
  					    
@@ -18686,11 +18845,11 @@ DO I=1,kmaxe
 				  
 				  
 				  
-				    call cons2prim2(n)
+				    call CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 				    px=leftv(5)
 				    ssp=ssp+(px*WEQUA2D(im))
 				    if (itestcase.eq.4)then
-				    CALL SUTHERLAND(N,LEFTV,RIGHTV)
+				    CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
 				  
 				  
 				  TAUXX=(4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY - (2.0D0/3.0D0)*WZ
@@ -18812,11 +18971,20 @@ INTEGER::I,K,J,KMAXE,gqi_points,nnd
 CHARACTER(LEN=12)::PROC,RESTFILE,PROC3
 REAL::DRAG,LIFT,CD,CL,RX,PX,EX,surface_temp,RTEMP
 REAL::FORCEXFR,SSX,CDF,LIFTF,DRAGF,FRICTIONF,TAUYX,TAUZX,TAUZY,SSY,SSZ,CF,TAUXX,TAUYY,TAUZZ
-REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ
+REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,nx,ny,angle1,angle2
  REAL,DIMENSION(2)::CI,CO
  logical::heref
  INTEGER::IM
  REAL::TSOLR,TSOLU,TSOLE,TSOLV,TSOLW,TSOLP,SSP
+ REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
+ real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
+REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
+real,dimension(1:4)::viscl,laml
 FORCEX=zero; FORCEY=zero; FORCEZ=zero;  FORCEXFR=zero
  CD=zero
  CL=zero
@@ -18825,7 +18993,7 @@ FORCEX=zero; FORCEY=zero; FORCEZ=zero;  FORCEXFR=zero
  KMAXE=XMPIELRANK(N)
  
 !$OMP BARRIER 
-!$OMP DO SCHEDULE(STATIC) REDUCTION(+:FORCEX,FORCEY,FORCEZ)
+!$OMP DO  REDUCTION(+:FORCEX,FORCEY,FORCEZ)
 DO I=1,kmaxe
 		if (ielem(n,i)%interior.eq.1)then	
 		    do j=1,ielem(n,i)%ifca
@@ -18847,7 +19015,7 @@ DO I=1,kmaxe
 					VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
 				      END DO
 					  
-					  call  QUADRATURELINE(N,IGQRULES)
+					  call  QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
 					  end if
 					  surface_temp=IELEM(N,I)%SURF(J)
 					  
@@ -18879,12 +19047,12 @@ DO I=1,kmaxe
 				  
 				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
 				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
-				    call cons2prim2d2(n)
+				    call cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 				    px=leftv(4)
 				    
 				    
 				    if (itestcase.eq.4)then
-				    CALL SUTHERLAND2d(N,LEFTV,RIGHTV)
+				    CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
 				  
 				  
 				  TAUXX=2.0d0*ux
@@ -18979,7 +19147,7 @@ ALLRES(:)=ZERO
 
 IF ((ITESTCASE.LE.4).AND.(TURBULENCE.NE.1))THEN
 !$OMP BARRIER 
-!$OMP DO SCHEDULE(STATIC) REDUCTION(+:ALLRES)
+!$OMP DO  REDUCTION(+:ALLRES)
 DO I=1,KMAXE
 	if (dg.eq.1)then
     ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+((rhs(i)%VALdg(1,1:nof_Variables)*ielem(n,i)%totvolume)**2)
@@ -19016,7 +19184,7 @@ END IF
 
 IF (TURBULENCE.EQ.1)THEN
 !$OMP BARRIER 
-!$OMP DO SCHEDULE(STATIC) REDUCTION(+:ALLRES)
+!$OMP DO  REDUCTION(+:ALLRES)
 DO I=1,KMAXE
     ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+((rhs(i)%VAL(1:nof_Variables)*ielem(n,i)%totvolume)**2)
     ALLRES(6:5+TURBULENCEEQUATIONS)=ALLRES(6:5+TURBULENCEEQUATIONS)+((RHST(I)%VAL(1:TURBULENCEEQUATIONS)*ielem(n,i)%totvolume)**2)
@@ -19105,7 +19273,7 @@ ALLRES(:)=ZERO
 
 IF ((ITESTCASE.LE.4).AND.(TURBULENCE.NE.1))THEN
 !$OMP BARRIER 
-!$OMP DO SCHEDULE(STATIC) REDUCTION(+:ALLRES)
+!$OMP DO  REDUCTION(+:ALLRES)
 DO I=1,KMAXE
 
     if (dg.eq.1)then
@@ -19148,7 +19316,7 @@ END IF
 
 IF (TURBULENCE.EQ.1)THEN
 !$OMP BARRIER 
-!$OMP DO SCHEDULE(STATIC) REDUCTION(+:ALLRES)
+!$OMP DO  REDUCTION(+:ALLRES)
 DO I=1,KMAXE
     ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+((rhs(i)%VAL(1:nof_Variables)*ielem(n,i)%totvolume)**2)
     ALLRES(5:4+TURBULENCEEQUATIONS)=ALLRES(5:4+TURBULENCEEQUATIONS)+((RHST(I)%VAL(1:TURBULENCEEQUATIONS)*ielem(n,i)%totvolume)**2)
@@ -19366,7 +19534,7 @@ SUBROUTINE CALCULATE_ERROR(N)
  			if (n.eq.0)then
 			OPEN(30,FILE='Errors.dat',FORM='FORMATTED',ACTION='write',position='append')
 			if (initcond.eq.1)then
-			WRITE(30,'(I9,1X,I4,1X,I4,1X,E14.7,1X,E14.7)')IMAXE,T,spatiladiscret,L0NORM,STENNORM/IMAXE
+			WRITE(30,'(I9,1X,E14.7,1X,I4,1X,E14.7,1X,E14.7)')IMAXE,T,spatiladiscret,L0NORM,STENNORM/IMAXE
 			
 			else
 			IF (INITCOND.NE.3)THEN
@@ -19419,6 +19587,14 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
 real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
 character(LEN=:),allocatable::out1
 character*1 NULCHAR
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz
+real,dimension(1:4)::viscl,laml
+
+
  
       Integer::   Debug,III,NPts,NElm
 
@@ -19552,7 +19728,7 @@ do j=1,NOF_VARIABLES
     if (j.eq.5)then
                 DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(5)
 		END DO
     
@@ -19638,7 +19814,12 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz
+real,dimension(1:4)::viscl,laml
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -19792,7 +19973,7 @@ do j=1,NOF_VARIABLES
      
          DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(j)
 		END DO
     
@@ -19938,7 +20119,12 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 !
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz
+real,dimension(1:4)::viscl,laml
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -20092,7 +20278,7 @@ do j=1,1
 
          DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 
 		  valuess(i)=sqrt(leftv(2)**2+leftv(3)**2+leftv(4)**2)
 		END DO
@@ -20206,6 +20392,12 @@ END SUBROUTINE movie_PARA
                             !!-----------------------------------------------------------------------------------
                             use ISO_C_BINDING
                             IMPLICIT NONE
+                            real,dimension(1:nof_Variables)::leftv
+							real::MP_PINFL,gammal
+							real,dimension(1:nof_Variables)::RIGHTv
+							real::MP_PINFR,gammaR
+							real::angle1,angle2,nx,ny,nz
+							real,dimension(1:4)::viscl,laml
                             INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
                             REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
                             REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -20343,7 +20535,7 @@ END SUBROUTINE movie_PARA
                               
                                   DO I=1,KMAXE
                                         leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-                                        call CONS2PRIM2d(n)
+                                        call cons2prim(N,leftv,MP_PINFl,gammal)
                                         VALUESS(i)=leftv(j)
                                   END DO
 
@@ -20453,7 +20645,12 @@ character(LEN=:),allocatable::out1
 character*1 NULCHAR
 CHARACTER(LEN=1)   :: flui,lf
 CHARACTER(LEN=15)  :: str1,str2
- 
+ real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz
+real,dimension(1:4)::viscl,laml
       Integer::   Debug,III,NPts,NElm
 
   
@@ -20519,7 +20716,7 @@ do j=1,NOF_VARIABLES
 
      DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  XBIN(i)=leftv(j)
 		END DO
 
@@ -20641,7 +20838,12 @@ character(LEN=:),allocatable::out1
 character*1 NULCHAR
 CHARACTER(LEN=1)   :: flui,lf
 CHARACTER(LEN=15)  :: str1,str2
- 
+ real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz
+real,dimension(1:4)::viscl,laml
       Integer::   Debug,III,NPts,NElm
 
   
@@ -20770,7 +20972,7 @@ do j=1,11
 		if (j.eq.5)then
 		do i=1,Kmaxe
 		leftv(1:nof_variables)=U_C(I)%VAL(ind1,1:nof_variables)
-		call cons2prim(n)
+		call CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		xbin(I)=leftv(5)
 		end do
 		end if
@@ -20827,7 +21029,12 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz
+real,dimension(1:4)::viscl,laml
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -21092,7 +21299,7 @@ do j=1,NOF_VARIABLES
                 IF (TOTIW.GT.0)THEN
 		     DO I=1,TOTIW
 						leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(1,1:nof_Variables)
-						CALL CONS2PRIM(N)
+						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 						VALUESS(i)=leftv(5)
 						
 					  END DO
@@ -21196,7 +21403,12 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz
+real,dimension(1:4)::viscl,laml
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -21366,7 +21578,7 @@ do j=1,NOF_VARIABLES+6
     if (j.eq.5)then
                 DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(IND1,1:nof_Variables)
-		  CALL CONS2PRIM(N)
+		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		  VALUESS(i)=leftv(5)
 		END DO
     
@@ -21483,7 +21695,12 @@ IMPLICIT NONE
 ! EXTERNAL  TECEND112
 
 ! 
-
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz
+real,dimension(1:4)::viscl,laml
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
@@ -21752,7 +21969,7 @@ do j=1,NOF_VARIABLES+6
                 IF (TOTIW.GT.0)THEN
 		     DO I=1,TOTIW
 						leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(IND1,1:nof_Variables)
-						CALL CONS2PRIM(N)
+						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 						VALUESS(i)=leftv(5)
 						
 					  END DO
@@ -22230,6 +22447,8 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA
 REAL,ALLOCATABLE,DIMENSION(:)::VALUESA,VALUESS
 REAL,ALLOCATABLE,DIMENSION(:,:)::xbin
 INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,igfs
+REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV
+REAL::MP_PINFl,gammal
 CHARACTER(LEN=20)::PROC,RESTFILE,PROC3
 REAL,ALLOCATABLE,DIMENSION(:)::IGINT,TGINT
  KMAXE=XMPIELRANK(N)
@@ -22285,7 +22504,7 @@ END DO
   do jj=1,5
 	DO I=1,KMAXE
         LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL CONS2PRIM(N)
+		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		VALUESS(I)=leftv(jj)
 	END DO
 	call MPI_GATHER(VALUESS,imaxp,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -22449,12 +22668,52 @@ END SUBROUTINE CHECKPOINTv3
 SUBROUTINE TROUBLED_HISTORY
 INTEGER::I,J,K,TRAJ1,TRAJ2,TRAJ3,TRAJ4,kmaxe,writeid,writeconf
 REAL::WIN1,WIN2,WIN3,WIN4,POST,POST1,POST2,POST3,POST4
-real,dimension(1)::pos_l,pos_g
+real,dimension(3)::pos_l,pos_g
+integer,dimension(3)::ipos_l,ipos_g
 KMAXE=XMPIELRANK(N)
 POST1=0
 traj1=0
 pos_l(1)=zero
 pos_G(1)=zero
+ipos_l(:)=0
+ipos_G(:)=0
+
+if (mood.gt.0)then
+
+DO I=1,KMAXE
+	if (IELEM(N,I)%mood_o.lt.(iorder+1))then
+    ipos_l(1)=ipos_l(1)+1		!number of cells
+    end if
+    if (IELEM(N,I)%mood_o.EQ.1)then
+    ipos_l(2)=ipos_l(2)+1
+    end if
+END DO
+
+
+CALL MPI_ALLREDUCE(Ipos_l(1:2),Ipos_g(1:2),2,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+POS_G(1)=IPOS_G(1)
+POS_G(2)=IPOS_G(2)
+POS_G(1)=(POS_G(1)/IMAXE)*100
+POS_G(2)=(POS_G(2)/IMAXE)*100
+
+IF (n.eq.0)THEN
+
+OPEN(70,FILE='TROUBLED.DAT',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+WRITE(70,'(E14.7,1X,E14.7,1X,E14.7)')T,POS_G(1),POS_G(2)
+close(70)
+
+END IF
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+
+
+
+eLSE
+
 DO I=1,KMAXE
     pos_l(1)=pos_l(1)+IELEM(N,I)%CONDITION
 END DO
@@ -22471,6 +22730,14 @@ close(70)
 END IF
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+end if
+
+  
+
+
+
 
 
 

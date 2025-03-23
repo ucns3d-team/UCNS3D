@@ -12,44 +12,32 @@ LD=$(F90)
 # endif
 
 
-#intel MKL
-#BLASFLAGS=  -I${MKLROOT}/include
-#BLASLIBS=  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
 
-#BLASFLAGS= -I  ${BLIS_ROOT}/include     #Ensure that you include your BLAS library path here
-#BLASLIBS=  ${BLIS_ROOT}/lib/libblis.a   #Ensure that you include your BLAS library path here
-
-
-#amdblis aocl
-BLASFLAGS=  -I    /opt/cray/pe/libsci/22.12.1.1/GNU/9.1/x86_64/include/
-BLASLIBS= /opt/cray/pe/libsci/22.12.1.1/GNU/9.1/x86_64/lib/libsci_gnu.a
 
 OFLAGS= 
-#intel compilers
-# debug run
-#FFLAGS=-i4 -r8 -O1  -xHost -ipo -g  -debug all -xHost -traceback -qopenmp -qopenmp-link=static $(BLASFLAGS) -check bounds -fp-model strict -debug inline-debug-info -zero 
-# production run
-#FFLAGS=-i4 -r8 -O2 -xHost -ipo -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)  
+
 
 
 #gfortran
 #debug run
-FFLAGS=-g -fbacktrace -ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -fcheck=all -Wno-lto-type-mismatch -fallow-argument-mismatch $(BLASFLAGS)
+#FFLAGS=-g -fbacktrace -ffree-line-length-none -fdefault-real-8 -fopenmp -Wall  -fbounds-check -finit-local-zero  -fdump-parse-tree -fdump-core -fdefault-double-8 -fbackslash  -O0 -fcray-pointer -fcheck=all -Wno-lto-type-mismatch -fallow-argument-mismatch
 
 
+#this is the most stable for reproducability (without the combination of (-fno-lto -fno-tree-sra) no reproducible results beyond 00)
+#FFLAGS= -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none  -O2 -march=native -fcray-pointer -fno-lto -fno-tree-sra -Wno-lto-type-mismatch -fallow-argument-mismatch 
 
-FFLAGS= -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast -march=native -Wno-lto-type-mismatch -fallow-argument-mismatch $(BLASFLAGS) 
+FFLAGS= -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast -march=native -Wno-lto-type-mismatch -fallow-argument-mismatch
 
 #aocl
-#FFLAGS= -O3 -Mfreeform -Mallocatable=03 -Mdaz -fdefault-real-8 -fopenmp -mavx2 -march=znver2 $(BLASFLAGS)
-#FFLAGS= -O2 -mp -fdefault-real-8 -flto -fopenmp -mavx2 -march=znver2 $(BLASFLAGS)
+#FFLAGS= -O3 -Mfreeform -Mallocatable=03 -Mdaz -fdefault-real-8 -fopenmp -mavx2 -march=znver2
+#FFLAGS= -O2 -mp -fdefault-real-8 -flto -fopenmp -mavx2 -march=znver2
 
 #gnu hybrid static dynamic
-LIBS = -Wl,-Bstatic libparmetis_gnu_mpi.a libmetis.a libtecio.a $(BLASLIBS) -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi
+LIBS = -Wl,-Bstatic libparmetis_gnu_mpi.a libmetis.a libtecio.a  -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi
 ###-Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc 
 
 #intel static linking
-#LIBS = libparmetis.a libmetis.a libtecio.a $(BLASLIBS) -lstdc++ 
+#LIBS = libparmetis.a libmetis.a libtecio.a  -lstdc++
 
 
 include Makefile_common

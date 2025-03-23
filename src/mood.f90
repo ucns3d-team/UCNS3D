@@ -13,7 +13,6 @@ USE INITIALISATION
 USE BOUNDARY
 USE RECON
 USE LOCAL
-USE FLUXES_V
 USE PROFILE
 USE FLOW_OPERATIONS
 USE GRADIENTS
@@ -36,11 +35,22 @@ IMPLICIT NONE
 SUBROUTINE PAD_NAD(N)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-INTEGER::I,L,NGP,iqp,iex,kmaxe,K,ii
+INTEGER::I,L,NGP,iqp,iex,kmaxe,K,ii,iconsidered
 INTEGER::REDUCE1
 REAl,DIMENSION(NOF_vARIABLES)::NAD_DELTA1
 INTEGER::PAD_TRUE,NAD_TRUE
 REAL::RELAX_MOOD1,RELAX_MOOD2
+real,dimension(1:nof_Variables)::leftv
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::rightv
+real::MP_PINFr,gammar
+REAL,allocatable,DIMENSION(:,:)::UTEMP
+REAL,DIMENSION(1:NOF_VARIABLES)::UTMIN,UTMAX
+
+
+allocate(utemp(IMAXDEGFREE+1,1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR))
+
+
 KMAXE=XMPIELRANK(N)
 
 
@@ -57,7 +67,7 @@ END IF
 
 IF (ITESTCASE.GE.3)THEN
 
-!$OMP DO SCHEDULE (STATIC)	
+!$OMP DO
 	DO II=1,NOF_INTERIOR
 	I=EL_INT(II)
 	ICONSIDERED=I
@@ -72,7 +82,7 @@ IF (ITESTCASE.GE.3)THEN
      !2 TRANSFORM CONSERVATIVE  TO PRIMITIVE AND CHECK IF PRESSURE AND DENSITY ARE PHYSICALLY ADMISSIBLE IF NOT PAD_TRUE=1
                                                 IF (DIMENSIONA.EQ.3)THEN
                                                 
-                                                CALL CONS2PRIM(N)
+                                                CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 						
 						!
                                                     IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
@@ -82,7 +92,7 @@ IF (ITESTCASE.GE.3)THEN
                                                     PAD_TRUE=1
                                                     END IF
                                                 ELSE
-                                                    CALL CONS2PRIM2D(N)
+                                                    CALL cons2prim(N,leftv,MP_PINFl,gammal)
                                                     IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
                                                     PAD_TRUE=1
                                                     END IF
@@ -169,7 +179,7 @@ IF (ITESTCASE.GE.3)THEN
 !$OMP END DO		
 
 
-!$OMP DO SCHEDULE (STATIC) 		
+!$OMP DO
 	DO II=1,NOF_BOUNDED
 	I=EL_BND(II)
 	ICONSIDERED=I
@@ -179,7 +189,7 @@ IF (ITESTCASE.GE.3)THEN
 		IELEM(N,I)%MOOD=0
                                 LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
 						IF (DIMENSIONA.EQ.3)THEN
-						CALL CONS2PRIM2(N)
+						CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
                                                     IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
                                                     PAD_TRUE=1
                                                     END IF
@@ -187,7 +197,7 @@ IF (ITESTCASE.GE.3)THEN
                                                     PAD_TRUE=1
                                                     END IF
                                                 ELSE
-                                                    CALL CONS2PRIM2D(N)
+                                                    CALL cons2prim(N,leftv,MP_PINFl,gammal)
                                                     IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
                                                     PAD_TRUE=1
                                                     END IF
@@ -313,6 +323,8 @@ IF (ITESTCASE.GE.3)THEN
 
 END IF		
 		
+
+		DEALLOCATE(UTEMP)
 		
 
 END SUBROUTINE PAD_NAD
@@ -344,15 +356,7 @@ END DO
  
  CALL FIX_LIST(N)
  
- 
- if (dimensiona.eq.2)then
- 
- CALL MUSCL2D(N)
- else
- 
  CALL MUSCL(N)
- 
- end if
  
  CALL EXHBOUNDHIGHER(N)
  
@@ -439,10 +443,11 @@ SUBROUTINE FIX_LIST(N)
 	REAL::GODFLUX2,sum_detect
 	INTEGER::I,L,NGP,KMAXE,IQP
 	REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_TEMP
+	REAL,DIMENSION(1)::CRIGHT
 	KMAXE=XMPIELRANK(N)
 	
 	
-	!$OMP DO SCHEDULE (STATIC)
+	!$OMP DO
 	DO I=1,KMAXE
                 IELEM(N,I)%RECALC=0
 		IF (IELEM(N,I)%MOOD.EQ.1)THEN
