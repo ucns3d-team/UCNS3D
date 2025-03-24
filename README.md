@@ -72,7 +72,7 @@ The source code requires compilation and linking both static and dynamic librari
 
 ### Compilation Dependencies
 
-The solver makes use of BLAS libraries that are required for the compilation and running of the solver.
+The solver used BLAS libraries (before V3.0) for the compilation and running of the solver.
 
 * Intel MKL library
 * OpenBLAS
