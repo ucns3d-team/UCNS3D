@@ -2561,7 +2561,7 @@ DO I=1,KMAXE
 	      SVORT=0.5D0*(VORTET1+TVORT)
 	      OVORT=0.5D0*(VORTET1-TVORT)
 	      SNORM=SQRT((SVORT(1,1)*SVORT(1,1))+(SVORT(1,2)*SVORT(1,2))+&
-+(SVORT(2,1)*SVORT(2,1))+(SVORT(2,2)*SVORT(2,2)))
+(SVORT(2,1)*SVORT(2,1))+(SVORT(2,2)*SVORT(2,2)))
 	      ONORM=SQRT((OVORT(1,1)*OVORT(1,1))+(OVORT(1,2)*OVORT(1,2))+&
 (OVORT(2,1)*OVORT(2,1))+(OVORT(2,2)*OVORT(2,2)))
 	      
@@ -2896,7 +2896,7 @@ SELECT CASE(B_CODE)
                     rightv(2)=-leftv(2)+2.0D0*leftv(1)*SRF_SPEED(2)
                     rightv(3)=-leftv(3)+2.0D0*leftv(1)*SRF_SPEED(3)
                     rightv(4)=-leftv(4)+2.0D0*leftv(1)*SRF_SPEED(4)
-                    rightv(5)=leftv(5)+2.0D0*leftv(1)*(SRF_SPEED(2)**2+SRF_SPEED(3)**2+SRF_SPEED(4)**2)+&
+                    rightv(5)=leftv(5)+2.0D0*leftv(1)*(SRF_SPEED(2)**2+SRF_SPEED(3)**2+SRF_SPEED(4)**2)&
                                             -2.0D0*(leftv(2)*SRF_SPEED(2)+leftv(3)*SRF_SPEED(3)+leftv(4)*SRF_SPEED(4))
     
                   ELSE
