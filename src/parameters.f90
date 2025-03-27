@@ -24,9 +24,9 @@ SUBROUTINE READ_UCNS3D
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	INQUIRE (FILE='RESTARTav.dat',EXIST=HERE1)
 	IF (HERE1) THEN
-	Average_restart=1
+		Average_restart=1
 	Else
-	Average_restart=0
+		Average_restart=0
 	end if
 	SOURCE_ACTIVE=0
 
@@ -36,27 +36,27 @@ SUBROUTINE READ_UCNS3D
  	FRAME='ROTFRAME.dat'
 	INQUIRE (FILE=FRAME,EXIST=HERE)
 	IF (HERE) THEN
-	OPEN(16,FILE=FRAME,FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	READ(16,*)!1
-	READ(16,*)!2
-	READ(16,*)!3
-	READ(16,*)!4
-	READ(16,*)RFRAME
-	READ(16,*)!6
-	READ(16,*)SRF_ORIGIN(1),SRF_ORIGIN(2),SRF_ORIGIN(3)
-	READ(16,*)!8
-	READ(16,*)SRF_VELOCITY(1),SRF_VELOCITY(2),SRF_VELOCITY(3)
-    READ(16,*)!10    
-	READ(16,*)PER_ROT,ANGLE_PER,V_REF	
-    READ(16,*)!12
-    READ(16,*)NROTORS
-    ALLOCATE(point1_GL(NROTORS,3),point2_GL(NROTORS,3),Radius_GL(NROTORS),MRF_ROT_GL(NROTORS))
-    DO INV1=1,NROTORS !STORING MULTIPLE ROTATING FRAME COORDINATES
-        READ(16,*)point1_GL(INV1,1),point1_GL(INV1,2),point1_GL(INV1,3)
-        READ(16,*)point2_GL(INV1,1),point2_GL(INV1,2),point2_GL(INV1,3)
-        READ(16,*)Radius_GL(INV1), MRF_ROT_GL(INV1)
-	END DO
-	CLOSE(16)
+		OPEN(16,FILE=FRAME,FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+		READ(16,*)!1
+		READ(16,*)!2
+		READ(16,*)!3
+		READ(16,*)!4
+		READ(16,*)RFRAME
+		READ(16,*)!6
+		READ(16,*)SRF_ORIGIN(1),SRF_ORIGIN(2),SRF_ORIGIN(3)
+		READ(16,*)!8
+		READ(16,*)SRF_VELOCITY(1),SRF_VELOCITY(2),SRF_VELOCITY(3)
+		READ(16,*)!10    
+		READ(16,*)PER_ROT,ANGLE_PER,V_REF	
+		READ(16,*)!12
+		READ(16,*)NROTORS
+		ALLOCATE(point1_GL(NROTORS,3),point2_GL(NROTORS,3),Radius_GL(NROTORS),MRF_ROT_GL(NROTORS))
+		DO INV1=1,NROTORS !STORING MULTIPLE ROTATING FRAME COORDINATES
+			READ(16,*)point1_GL(INV1,1),point1_GL(INV1,2),point1_GL(INV1,3)
+			READ(16,*)point2_GL(INV1,1),point2_GL(INV1,2),point2_GL(INV1,3)
+			READ(16,*)Radius_GL(INV1), MRF_ROT_GL(INV1)
+		END DO
+		CLOSE(16)
         IF(PER_ROT.EQ.1)THEN
 	        TOL_PER=1.0E-8
             LOWMEM=1
@@ -77,17 +77,16 @@ SUBROUTINE READ_UCNS3D
 	END IF
 	
 	if ((mrf.eq.1).or.(SRFG.eq.1))then
-	 SOURCE_ACTIVE=1
-    KINIT_SRF=0.00001
-    if (mrf.eq.1)then
+	 	SOURCE_ACTIVE=1
+    	KINIT_SRF=0.00001
+    	if (mrf.eq.1)then
             ROT_CORR=1
             D_CORR=1
-    end if
-    if (srfg.eq.1)then
+    	end if
+    	if (srfg.eq.1)then
             ROT_CORR=0
             D_CORR=1
-    end if
-	
+    	end if
 	end if
 
 
@@ -95,31 +94,31 @@ SUBROUTINE READ_UCNS3D
 	
 	INQUIRE (FILE='MULTISPECIES.DAT',EXIST=HERE2)
 	IF (HERE2) THEN
-	MULTISPECIES=1
-	OPEN(14,FILE='MULTISPECIES.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	READ(14,*)
-	READ(14,*)
-	READ(14,*)NOF_SPECIES
-    ALLOCATE(GAMMA_IN(1:NOF_SPECIES),MP_A_IN(1:NOF_SPECIES),MP_R_IN(1:NOF_SPECIES),MP_PINF(1:NOF_SPECIES))
-    READ(14,*)GAMMA_IN(1:NOF_SPECIES)
-    READ(14,*)MP_A_IN(1:NOF_SPECIES)
-    READ(14,*)MP_R_IN(1:NOF_SPECIES)
-    READ(14,*)MP_PINF(1:NOF_SPECIES)
-    CLOSE(14)
+		MULTISPECIES=1
+		OPEN(14,FILE='MULTISPECIES.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+		READ(14,*)
+		READ(14,*)
+		READ(14,*)NOF_SPECIES
+		ALLOCATE(GAMMA_IN(1:NOF_SPECIES),MP_A_IN(1:NOF_SPECIES),MP_R_IN(1:NOF_SPECIES),MP_PINF(1:NOF_SPECIES))
+		READ(14,*)GAMMA_IN(1:NOF_SPECIES)
+		READ(14,*)MP_A_IN(1:NOF_SPECIES)
+		READ(14,*)MP_R_IN(1:NOF_SPECIES)
+		READ(14,*)MP_PINF(1:NOF_SPECIES)
+		CLOSE(14)
 	ELSE
-	MULTISPECIES=0
+		MULTISPECIES=0
 	END IF
 
 	INQUIRE (FILE='THERMAL.DAT',EXIST=HERE9)
 	IF (HERE9) THEN
-	THERMAL=1
-	OPEN(31,FILE='THERMAL.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	READ(31,*)TEMP_MODEL !1=ADIABATIC,2=ISOTHERMAL 3
-    READ(31,*)WALL_TEMP
-    WALL_TEMP=WALL_TEMP/287
-    CLOSE(31)
+		THERMAL=1
+		OPEN(31,FILE='THERMAL.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+		READ(31,*)TEMP_MODEL !1=ADIABATIC,2=ISOTHERMAL 3
+		READ(31,*)WALL_TEMP
+		WALL_TEMP=WALL_TEMP/287
+		CLOSE(31)
 	ELSE
-	THERMAL=0
+		THERMAL=0
 	END IF
 
 
@@ -127,46 +126,45 @@ SUBROUTINE READ_UCNS3D
 	INQUIRE (FILE='MOOD.DAT',EXIST=HERE3)
 	IF (HERE3) THEN
 	MOOD=1
-	OPEN(17,FILE='MOOD.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	READ(17,*)
-	READ(17,*)
-	READ(17,*)MOOD_MODE        !TYPE OF MOOD MODE (1=RELAXED, 0=ORIGINAL)
-    READ(17,*)MOOD_VAR1,MOOD_VAR2
-    READ(17,*)MOOD_VAR3,MOOD_VAR4
-    if (n.eq.0)then
-		print*,"mood active"
-    end if
-    CLOSE(17)
+		OPEN(17,FILE='MOOD.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+		READ(17,*)
+		READ(17,*)
+		READ(17,*)MOOD_MODE        !TYPE OF MOOD MODE (1=RELAXED, 0=ORIGINAL)
+		READ(17,*)MOOD_VAR1,MOOD_VAR2
+		READ(17,*)MOOD_VAR3,MOOD_VAR4
+		if (n.eq.0)then
+			print*,"mood active"
+		end if
+		CLOSE(17)
 	ELSE
-	MOOD=0
+		MOOD=0
 	END IF
 	
 	
 	
 	INQUIRE (FILE='INDICATOR.DAT',EXIST=HERE4)
 	IF (HERE4) THEN
-	OPEN(18,FILE='INDICATOR.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	READ(18,*)
-	READ(18,*)
-	READ(18,*)INDICATOR_TYPE        !TYPE OF INDICATOR (1=MOOD,2=SHU,3=...)
-    READ(18,*)INDICATOR_PAR1        !PARAMETER 1    
-    READ(18,*)INDICATOR_PAR2        !PARAMETER 2    
-    READ(18,*)INDICATOR_PAR3        !PARAMETER 3
-    CLOSE(18)
+		OPEN(18,FILE='INDICATOR.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+		READ(18,*)
+		READ(18,*)
+		READ(18,*)INDICATOR_TYPE        !TYPE OF INDICATOR (1=MOOD,2=SHU,3=...)
+		READ(18,*)INDICATOR_PAR1        !PARAMETER 1    
+		READ(18,*)INDICATOR_PAR2        !PARAMETER 2    
+		READ(18,*)INDICATOR_PAR3        !PARAMETER 3
+		CLOSE(18)
 	ELSE
-	INDICATOR_TYPE=11
-	INDICATOR_PAR1=10e-12;INDICATOR_PAR2=10e-10;INDICATOR_PAR3=ZERO;
-	
+		INDICATOR_TYPE=11
+		INDICATOR_PAR1=10e-12;INDICATOR_PAR2=10e-10;INDICATOR_PAR3=ZERO;
 	END IF
 			
 	
 	INQUIRE (FILE='OUTLETS.DAT',EXIST=HERE9)
 	IF (HERE9) THEN
-	OPEN(29,FILE='OUTLETS.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	READ(29,*)
-	READ(29,*)PRESS_OUTLET
-	print*,"i am reading the pressure for the outlet vents from the file"
-    CLOSE(29)	
+		OPEN(29,FILE='OUTLETS.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+		READ(29,*)
+		READ(29,*)PRESS_OUTLET
+		print*,"i am reading the pressure for the outlet vents from the file"
+		CLOSE(29)	
 	END IF
 
 
@@ -174,34 +172,34 @@ SUBROUTINE READ_UCNS3D
 	INQUIRE (FILE='FILTER.DAT',EXIST=HERE7)
 	IF (HERE7) THEN
 	FILTERING=1
-	OPEN(19,FILE='FILTER.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	READ(19,*)
-	READ(19,*)
-	READ(19,*)FILTER_TYPE        !TYPE OF FILTER (1=EXPONENTIAL)
-    READ(19,*)fil_alpha
-    READ(19,*)fil_s
-    READ(19,*)fil_nc
-    CLOSE(19)
+		OPEN(19,FILE='FILTER.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+		READ(19,*)
+		READ(19,*)
+		READ(19,*)FILTER_TYPE        !TYPE OF FILTER (1=EXPONENTIAL)
+		READ(19,*)fil_alpha
+		READ(19,*)fil_s
+		READ(19,*)fil_nc
+		CLOSE(19)
 	ELSE
-	FILTERING=0
+		FILTERING=0
 	END IF
 
 
 
 	INQUIRE (FILE='ADDA.DAT',EXIST=HERE8)
 	IF (HERE8) THEN
-	ADDA=1
-	OPEN(19,FILE='ADDA.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	READ(19,*)
-	READ(19,*)
-	READ(19,*)ADDA_TYPE        !TYPE OF FILTER (1=EXPONENTIAL)
-    READ(19,*)ADDA_alpha_1,ADDA_alpha_2
-    READ(19,*)ADDA_1_S,ADDA_2_S
-    READ(19,*)ADDA_1,ADDA_2
-    CLOSE(19)
+		ADDA=1
+		OPEN(19,FILE='ADDA.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+		READ(19,*)
+		READ(19,*)
+		READ(19,*)ADDA_TYPE        !TYPE OF FILTER (1=EXPONENTIAL)
+		READ(19,*)ADDA_alpha_1,ADDA_alpha_2
+		READ(19,*)ADDA_1_S,ADDA_2_S
+		READ(19,*)ADDA_1,ADDA_2
+		CLOSE(19)
 	ELSE
-	ADDA=0
-	ADDA_TYPE=0
+		ADDA=0
+		ADDA_TYPE=0
 	END IF
 
 
@@ -291,156 +289,76 @@ SUBROUTINE READ_UCNS3D
 	fastmovie=0
 	DG=0;
 	!TURBULENCE DEFAULT VALUES
-	
-	
-			! 	TURBULENCE MODEL PARAMETERS:
-			! ---OPTIONS Spalart Almaras---
-			ISPAL=1 !    ||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
-			!DES_model=0! 0              			|| 1-Detached Eddy Simulation 2-Delayed DES
-			! ---CONSTANTS-------
-			CB1=0.1355	! 0.1355				|| Cb1 
-			CB2=0.622! 0.622   			|| Cb2
-			SIGMA=0.666666667! 0.666666667      		|| sigma
-			KAPPA=0.41  ! 0.41     			|| kappa
-			CW1=3.23886781677! 3.23886781677      		|| CW1 (0 for (CB1/kappa**2)+1/sigma(1+CB2) or predifined)
-			CW2=0.3! 0.3      			|| CW2
-			CW3=2.0 ! 2.0      			|| CW3
-			CV1=7.1! 7.1      			|| CV1
-			CT1=1.0 ! 1.0      			|| CT1
-			CT2=2.0! 2.0      			|| CT2
-			CT3=1.1 ! 1.1      			|| CT3
-			CT4=2.0 ! 2.0      			|| CT4
-			PRTU=0.9! 0.9				|| Turbulent Prandtl Number
-			TWALL=0! 0				|| Wall temperature (Kelvin) leave 0 for adiabatic (q_wall =0 <=> dT/dn=0)
-			TURBINIT=3.0 ! 3.0	  			|| Initial value for turbulence parameter (multiplyied by the freestream viscosity from given Re)
-			Upturblimit=1000000! 1000000				|| Upper limit for turbulence
-			residualfreq=10! 10				|| Residual compute every
-			IRS=0! 0				||IMPLICIT RESIDUAL SMOOTHING (DOUBLES CFL)
-			C_DES_SA=0.61	! 0.61				||C_DES_SA
-			! =============================================================================
-			! K-OMEGA SST: 
-			! ---OPTIONS---
-			VORT_MODEL=0! 0					||0:Default strain-production for k, 1:Vorticity-production for k
-			QSAS_MODEL=0! 0					||Hybrid models: 1-SAS-SST  //  2-DES-SST 
-			ZERO_TURB_INIT=0! 0					||Zero turbulence option (if 1, initialization for k/w is done with zero turbulence)
-			! --------------K-OMEGA CONSTANTS--------------------------
-			SIGMA_K1=1.176470588! 1.176470588				||sigma_k1
-			SIGMA_K2=1.0! 1.0					||sigma_k2
-			SIGMA_OM1=2.0	! 2.0					||sigma_om1
-			SIGMA_OM2=1.168! 1.168					||sigma_om2
-			AA_1=0.31! 0.31					||aa_1
-			BETA_I1=0.075	! 0.075					||beta_i1
-			BETA_I2=0.0828! 0.0828					||beta_i2
-			ALPHA_STARINF=1.0! 1.0					||alpha_starinf
-			ALPHA_0=0.111111111! 0.111111111				||alpha_0
-			BETA_STARINF=0.09! 0.09					||beta_starinf
-			R_BETA=8.0! 8.0					||R_beta
-			R_K_SST=6.0! 6.0					||R_k_SST
-			BETA_T=0.072	! 0.072					||beta_t
-			KAPPA_sst=0.41! 0.41					||kappa   (Same in Spalart-Allmaras)
-			R_OM_SST=2.95	! 2.95					||R_om_SST
-			ZETA_STAR= 1.5	! 1.5					||zeta_star  (Only for Mach corrections)
-			M_T0=0.25! 0.25					||M_t0		(Only for Mach corrections)
-			C_MU_INLET=0.09! 0.09					||C_mu_inlet
-			C_SMG=0.11! 0.11					||C_smg  (SAS)
-			ETA2_SAS=3.51! 3.51					||eta2_SAS (SAS)
-			SIGMA_PHI=0.666666667	! 0.666666667				||sigma_phi (SAS)
-			C_SAS=2.0! 2.0					||C_SAS   (SAS)
-			L_turb_inlet=0.0026! 0.0026					||L_turb_inlet (Default turbulence lengthscale)
-			I_turb_inlet=0.1! 0.1					||I_turb_inlet (Default turbulene intensity)
-			Init_mu_ratio=0.01! 0.01					||Init_mu_ratio	(Default initial ratio for turbulent viscosity)
-			C_DES_SST=0.61! 0.61					||C_DES_SST
-			! =============================================================================
-			! PASSIVE SCALAR TRANSPORT
-			SCHMIDT_LAM=10.0! 10.0					||Laminar Schmidt number
-			SCHMIDT_TURB=0.7! 0.7					||Turbulent Schmidt number
+
+
+	! 	TURBULENCE MODEL PARAMETERS:
+	! ---OPTIONS Spalart Almaras---
+	ISPAL=1 !    ||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
+	!DES_model=0! 0              			|| 1-Detached Eddy Simulation 2-Delayed DES
+	! ---CONSTANTS-------
+	CB1=0.1355	! 0.1355				|| Cb1 
+	CB2=0.622! 0.622   			|| Cb2
+	SIGMA=0.666666667! 0.666666667      		|| sigma
+	KAPPA=0.41  ! 0.41     			|| kappa
+	CW1=3.23886781677! 3.23886781677      		|| CW1 (0 for (CB1/kappa**2)+1/sigma(1+CB2) or predifined)
+	CW2=0.3! 0.3      			|| CW2
+	CW3=2.0 ! 2.0      			|| CW3
+	CV1=7.1! 7.1      			|| CV1
+	CT1=1.0 ! 1.0      			|| CT1
+	CT2=2.0! 2.0      			|| CT2
+	CT3=1.1 ! 1.1      			|| CT3
+	CT4=2.0 ! 2.0      			|| CT4
+	PRTU=0.9! 0.9				|| Turbulent Prandtl Number
+	TWALL=0! 0				|| Wall temperature (Kelvin) leave 0 for adiabatic (q_wall =0 <=> dT/dn=0)
+	TURBINIT=3.0 ! 3.0	  			|| Initial value for turbulence parameter (multiplyied by the freestream viscosity from given Re)
+	Upturblimit=1000000! 1000000				|| Upper limit for turbulence
+	residualfreq=10! 10				|| Residual compute every
+	IRS=0! 0				||IMPLICIT RESIDUAL SMOOTHING (DOUBLES CFL)
+	C_DES_SA=0.61	! 0.61				||C_DES_SA
+	! =============================================================================
+	! K-OMEGA SST: 
+	! ---OPTIONS---
+	VORT_MODEL=0! 0					||0:Default strain-production for k, 1:Vorticity-production for k
+	QSAS_MODEL=0! 0					||Hybrid models: 1-SAS-SST  //  2-DES-SST 
+	ZERO_TURB_INIT=0! 0					||Zero turbulence option (if 1, initialization for k/w is done with zero turbulence)
+	! --------------K-OMEGA CONSTANTS--------------------------
+	SIGMA_K1=1.176470588! 1.176470588				||sigma_k1
+	SIGMA_K2=1.0! 1.0					||sigma_k2
+	SIGMA_OM1=2.0	! 2.0					||sigma_om1
+	SIGMA_OM2=1.168! 1.168					||sigma_om2
+	AA_1=0.31! 0.31					||aa_1
+	BETA_I1=0.075	! 0.075					||beta_i1
+	BETA_I2=0.0828! 0.0828					||beta_i2
+	ALPHA_STARINF=1.0! 1.0					||alpha_starinf
+	ALPHA_0=0.111111111! 0.111111111				||alpha_0
+	BETA_STARINF=0.09! 0.09					||beta_starinf
+	R_BETA=8.0! 8.0					||R_beta
+	R_K_SST=6.0! 6.0					||R_k_SST
+	BETA_T=0.072	! 0.072					||beta_t
+	KAPPA_sst=0.41! 0.41					||kappa   (Same in Spalart-Allmaras)
+	R_OM_SST=2.95	! 2.95					||R_om_SST
+	ZETA_STAR= 1.5	! 1.5					||zeta_star  (Only for Mach corrections)
+	M_T0=0.25! 0.25					||M_t0		(Only for Mach corrections)
+	C_MU_INLET=0.09! 0.09					||C_mu_inlet
+	C_SMG=0.11! 0.11					||C_smg  (SAS)
+	ETA2_SAS=3.51! 3.51					||eta2_SAS (SAS)
+	SIGMA_PHI=0.666666667	! 0.666666667				||sigma_phi (SAS)
+	C_SAS=2.0! 2.0					||C_SAS   (SAS)
+	L_turb_inlet=0.0026! 0.0026					||L_turb_inlet (Default turbulence lengthscale)
+	I_turb_inlet=0.1! 0.1					||I_turb_inlet (Default turbulene intensity)
+	Init_mu_ratio=0.01! 0.01					||Init_mu_ratio	(Default initial ratio for turbulent viscosity)
+	C_DES_SST=0.61! 0.61					||C_DES_SST
+	! =============================================================================
+	! PASSIVE SCALAR TRANSPORT
+	SCHMIDT_LAM=10.0! 10.0					||Laminar Schmidt number
+	SCHMIDT_TURB=0.7! 0.7					||Turbulent Schmidt number
 	
 	cavitation=0
-	    EXTENDED_BOUNDS=0
+	EXTENDED_BOUNDS=0
 	    
-	    SELECT CASE(CODE_PROFILE)
+	SELECT CASE(CODE_PROFILE)
 	
-	
-	CASE (0)       
-	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	!I/O (ASCII=0, BINARY=1) 
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
-! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-    if ((initcond.eq.405).OR.(initcond.eq.405))THEN
-    iadapt=1
-    END IF
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=30	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=30	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	
-	
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-	 
-	 
-	 DES_model=0
-
-	 CASE (501)
-
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
-	binio=1	    	!I/O (ASCII=0, BINARY=1)
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
-! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-    if (initcond.eq.405)iadapt=1
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=20.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=50.0	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-
-
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-
-
-	 DES_model=0
-	 
-
-
-
-	CASE (30)  !VERTEX BASED MULTIDIMENSIONAL-EXPERIMENTAL OPTION NOT FOR PRODUCTION     
+	  CASE (0)       
 	
 		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
 		binio=1	    	!I/O (ASCII=0, BINARY=1) 
@@ -448,6 +366,80 @@ SUBROUTINE READ_UCNS3D
 		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
 		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
 	! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		if ((initcond.eq.405).OR.(initcond.eq.405))THEN
+			iadapt=1
+		END IF
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=30	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=30	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		
+		
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+	 
+	 	DES_model=0
+
+	  CASE (501)
+
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+		binio=1	    	!I/O (ASCII=0, BINARY=1)
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
+	! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		if (initcond.eq.405)iadapt=1
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=20.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=50.0	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+
+		if (iboundary.eq.1)then
+	 		LOWMEM=1
+	 	end if
+
+	 	DES_model=0
+	 
+
+	  CASE (30)  !VERTEX BASED MULTIDIMENSIONAL-EXPERIMENTAL OPTION NOT FOR PRODUCTION     
+	
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+		binio=1	    	!I/O (ASCII=0, BINARY=1) 
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+		! icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
 		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
 		HYBRIDIST=0.0D0 !HYBRID DISTANCE
 		swirl=0		!swirling flow:0 deactivated, 1 activated
@@ -469,939 +461,884 @@ SUBROUTINE READ_UCNS3D
 		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
 		
-		
 		if (iboundary.eq.1)then
-		 LOWMEM=1
-		 end if
+		 	LOWMEM=1
+		end if
 		 
-		 
-		 DES_model=0
+		DES_model=0
 
 
 
 
+	  CASE (8)
 
-	 CASE (8)
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+		binio=1	    	!I/O (ASCII=0, BINARY=1)
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
+	! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		if (initcond.eq.405)iadapt=1
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=100.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=200.0	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
 
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
-	binio=1	    	!I/O (ASCII=0, BINARY=1)
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
-! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-    if (initcond.eq.405)iadapt=1
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=100.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=200.0	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
 
-
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-
-
-	 DES_model=0
+		DES_model=0
 	 
 	 
 	  CASE (88)
 
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
-	binio=1	    	!I/O (ASCII=0, BINARY=1)
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
-! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-    if (initcond.eq.405)iadapt=1
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=40.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=40.0	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+		binio=1	    	!I/O (ASCII=0, BINARY=1)
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
+		! icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		if (initcond.eq.405)iadapt=1
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=40.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=40.0	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
 
-	fastmovie=0
+		fastmovie=0
+			
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+
+		DES_model=0
+
+
+	  CASE (18)
+
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+		binio=1	    	!I/O (ASCII=0, BINARY=1)
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
+		! icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		if (initcond.eq.405)iadapt=1
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=1	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=40000.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=40000.0	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=0.0D0;LAMY=0.0D0;LAMZ=0.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+
+		fastmovie=0
+
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+
+		DES_model=0
+
+
+	 
+	  CASE (98)
+
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+		binio=1	    	!I/O (ASCII=0, BINARY=1)
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
+		! icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		if (initcond.eq.405)iadapt=1
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=1	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=20.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=40.0	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+
+		fastmovie=0
+
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+
+		DES_model=0
+	 
+	 
+	  CASE (9)  !robust
+	
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+		binio=1	    	!I/O (ASCII=0, BINARY=1) 
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+		! icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		if (initcond.eq.405)iadapt=1
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=3	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=7.0	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		fastmovie=0
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
 		
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-
-
-	 DES_model=0
-
-	 CASE (18)
-
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
-	binio=1	    	!I/O (ASCII=0, BINARY=1)
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
-! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-    if (initcond.eq.405)iadapt=1
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=1	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=40000.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=40000.0	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=0.0D0;LAMY=0.0D0;LAMZ=0.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-
-	fastmovie=0
-
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-
-
-	 DES_model=0
-
-
-	 
-	 CASE (98)
-
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
-	binio=1	    	!I/O (ASCII=0, BINARY=1)
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
-! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-    if (initcond.eq.405)iadapt=1
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=1	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=20.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=40.0	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-
-	fastmovie=0
-
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-
-
-	 DES_model=0
+		DES_model=0
 	 
 	 
-	 CASE (9)  !robust
+	  CASE (91)  !robust WITH Matrix free LU-SGS
+		
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+		binio=1	    	!I/O (ASCII=0, BINARY=1) 
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+		! icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		if (initcond.eq.405)iadapt=1
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=3	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=1	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=3		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=7.0	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+		
+		DES_model=0
+	 
+	 
+	 
+	 
+	  CASE (1)           !FOR DDES
+		
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+		binio=1	    	!I/O (ASCII=0, BINARY=1) 
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+		! icoupleturb=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=7.0	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		CAVITATION=0
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+		TURBINIT=0.1
+		DES_model=2
+	 
+	 
+	 
+	  CASE (11)           !FOR DDES with matrix free LU-SGS
+		
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+		binio=1	    	!I/O (ASCII=0, BINARY=1) 
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+		! icoupleturb=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=10.0	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+		DES_model=2
+	 
+	 
+	 
+      CASE (100)           !FOR HYBRID DG-FV method
 	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	!I/O (ASCII=0, BINARY=1) 
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
-! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-    if (initcond.eq.405)iadapt=1
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=3	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=7.0	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	fastmovie=0
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-	 
-	 
-	 DES_model=0
-	 
-	 
-	 CASE (91)  !robust WITH Matrix free LU-SGS
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+		BINIO=1	    	!I/O (ASCII=0, BINARY=1) 
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		REDUCE_COMP=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		TURBULENCEMODEL=1 !TURBULENCE MODEL SELECTION: |1:SPALART-ALLMARAS |2:K-W SST	
+		!ICOUPLETURB=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		IHYBRID=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		SWIRL=0		!SWIRLING FLOW:0 DEACTIVATED, 1 ACTIVATED
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		EXTF=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		GUASSIANQUADRA=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE GQP POINTS (1 =YES FASTER, 0= SLOWER)
+		RELAX=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		EMETIS=6    	!METIS PARTITIONER : 1: HYBRID METIS, 2:ADAPTIVE WEIGHTS FOR HYBRID GRIDS, 3: UNIFORM METIS PARTIONIONER,4:NODAL,6=PARMETS 
+		ITOLD=10000	!TOLERANCE=N_ITERATIONS
+		GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=10.0	! LIMIT VOLUME CELLS
+		FASTEST=0	! 0		       		||FASTEST, NO COORDINATE MAPPING (1: ENGAGED,0:WITH TRANSFORMATION)
+		LMACH_STYLE=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),LMACH_STYLE(0=ONLY NORMAL COMPONENT,1=ALL COMPONENTS)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		DG=1   !0=DEACTIVATED FV ONLY, 1=ACTIVATED DG ONLY, 2=HYBRID
+		
+		BOUND_LIM=0
+		CAVITATION=0        
 	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	!I/O (ASCII=0, BINARY=1) 
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
-! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-    if (initcond.eq.405)iadapt=1
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=3	!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=1	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=3		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=7.0	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+		DES_model=2
+		
+		BR2_DAMPING=3.0
+		BR2_YN=2
 	 
-	 
-	 DES_model=0
-	 
-	 
-	 
-	 
-	CASE (1)           !FOR DDES
-	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	!I/O (ASCII=0, BINARY=1) 
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
-	!icoupleturb=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=7.0	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	CAVITATION=0
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-	 TURBINIT=0.1
-	 DES_model=2
-	 
-	 
-	 
-	 CASE (11)           !FOR DDES with matrix free LU-SGS
-	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	!I/O (ASCII=0, BINARY=1) 
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
-	!icoupleturb=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=10.0	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-	 DES_model=2
-	 
-	 
-	 
-    CASE (100)           !FOR HYBRID DG-FV method
-	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	BINIO=1	    	!I/O (ASCII=0, BINARY=1) 
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	REDUCE_COMP=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	TURBULENCEMODEL=1 !TURBULENCE MODEL SELECTION: |1:SPALART-ALLMARAS |2:K-W SST	
-	!ICOUPLETURB=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	IHYBRID=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	SWIRL=0		!SWIRLING FLOW:0 DEACTIVATED, 1 ACTIVATED
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	EXTF=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	GUASSIANQUADRA=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE GQP POINTS (1 =YES FASTER, 0= SLOWER)
-    RELAX=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	EMETIS=6    	!METIS PARTITIONER : 1: HYBRID METIS, 2:ADAPTIVE WEIGHTS FOR HYBRID GRIDS, 3: UNIFORM METIS PARTIONIONER,4:NODAL,6=PARMETS 
-	ITOLD=10000	!TOLERANCE=N_ITERATIONS
-	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=10.0	! LIMIT VOLUME CELLS
-	FASTEST=0	! 0		       		||FASTEST, NO COORDINATE MAPPING (1: ENGAGED,0:WITH TRANSFORMATION)
-	LMACH_STYLE=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),LMACH_STYLE(0=ONLY NORMAL COMPONENT,1=ALL COMPONENTS)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	DG=1   !0=DEACTIVATED FV ONLY, 1=ACTIVATED DG ONLY, 2=HYBRID
-	
-	BOUND_LIM=0
-    CAVITATION=0        
-	
-	
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-	 DES_model=2
-	 
-
-	 BR2_DAMPING=3.0
-	 BR2_YN=2
-	 
-	 CASE (101)           !FOR HYBRID DG-FV method
-	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	BINIO=1	    	!I/O (ASCII=0, BINARY=1) 
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	REDUCE_COMP=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	TURBULENCEMODEL=1 !TURBULENCE MODEL SELECTION: |1:SPALART-ALLMARAS |2:K-W SST	
-	!ICOUPLETURB=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	IHYBRID=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	SWIRL=0		!SWIRLING FLOW:0 DEACTIVATED, 1 ACTIVATED
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	EXTF=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	GUASSIANQUADRA=6!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE GQP POINTS (1 =YES FASTER, 0= SLOWER)
-        RELAX=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	EMETIS=6    	!METIS PARTITIONER : 1: HYBRID METIS, 2:ADAPTIVE WEIGHTS FOR HYBRID GRIDS, 3: UNIFORM METIS PARTIONIONER,4:NODAL,6=PARMETS 
-	ITOLD=10000	!TOLERANCE=N_ITERATIONS
-	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=10.0	! LIMIT VOLUME CELLS
-	FASTEST=0	! 0		       		||FASTEST, NO COORDINATE MAPPING (1: ENGAGED,0:WITH TRANSFORMATION)
-	LMACH_STYLE=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),LMACH_STYLE(0=ONLY NORMAL COMPONENT,1=ALL COMPONENTS)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	DG=1   !0=DEACTIVATED FV ONLY, 1=ACTIVATED DG ONLY, 2=HYBRID
-	BOUND_LIM=0
-	CAVITATION=0
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-	 DES_model=2
-	 
-
-	 BR2_DAMPING=3.0
-	 BR2_YN=2
+	  CASE (101)           !FOR HYBRID DG-FV method
+		
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+		BINIO=1	    	!I/O (ASCII=0, BINARY=1) 
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		REDUCE_COMP=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		TURBULENCEMODEL=1 !TURBULENCE MODEL SELECTION: |1:SPALART-ALLMARAS |2:K-W SST	
+		! ICOUPLETURB=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		IHYBRID=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		SWIRL=0		!SWIRLING FLOW:0 DEACTIVATED, 1 ACTIVATED
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		EXTF=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		GUASSIANQUADRA=6!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE GQP POINTS (1 =YES FASTER, 0= SLOWER)
+			RELAX=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		EMETIS=6    	!METIS PARTITIONER : 1: HYBRID METIS, 2:ADAPTIVE WEIGHTS FOR HYBRID GRIDS, 3: UNIFORM METIS PARTIONIONER,4:NODAL,6=PARMETS 
+		ITOLD=10000	!TOLERANCE=N_ITERATIONS
+		GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=10.0	! LIMIT VOLUME CELLS
+		FASTEST=0	! 0		       		||FASTEST, NO COORDINATE MAPPING (1: ENGAGED,0:WITH TRANSFORMATION)
+		LMACH_STYLE=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),LMACH_STYLE(0=ONLY NORMAL COMPONENT,1=ALL COMPONENTS)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		DG=1   !0=DEACTIVATED FV ONLY, 1=ACTIVATED DG ONLY, 2=HYBRID
+		BOUND_LIM=0
+		CAVITATION=0
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+		DES_model=2
+		
+		BR2_DAMPING=3.0
+		BR2_YN=2
 	 
 	 
 	  CASE (102)           !FOR PURE DG method
 	
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	BINIO=1	    	!I/O (ASCII=0, BINARY=1) 
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	REDUCE_COMP=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	TURBULENCEMODEL=1 !TURBULENCE MODEL SELECTION: |1:SPALART-ALLMARAS |2:K-W SST	
-	!ICOUPLETURB=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	IHYBRID=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	SWIRL=0		!SWIRLING FLOW:0 DEACTIVATED, 1 ACTIVATED
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	EXTF=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	GUASSIANQUADRA=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE GQP POINTS (1 =YES FASTER, 0= SLOWER)
-    RELAX=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	EMETIS=6    	!METIS PARTITIONER : 1: HYBRID METIS, 2:ADAPTIVE WEIGHTS FOR HYBRID GRIDS, 3: UNIFORM METIS PARTIONIONER,4:NODAL,6=PARMETS 
-	ITOLD=10000	!TOLERANCE=N_ITERATIONS
-	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=10.0	! LIMIT VOLUME CELLS
-	FASTEST=0	! 0		       		||FASTEST, NO COORDINATE MAPPING (1: ENGAGED,0:WITH TRANSFORMATION)
-	LMACH_STYLE=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),LMACH_STYLE(0=ONLY NORMAL COMPONENT,1=ALL COMPONENTS)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	DG=1   !0=DEACTIVATED FV ONLY, 1=ACTIVATED DG ONLY, 2=HYBRID
-	
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-	 DES_model=2
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+		BINIO=1	    	!I/O (ASCII=0, BINARY=1) 
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		REDUCE_COMP=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		TURBULENCEMODEL=1 !TURBULENCE MODEL SELECTION: |1:SPALART-ALLMARAS |2:K-W SST	
+		!ICOUPLETURB=1	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		IHYBRID=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		SWIRL=0		!SWIRLING FLOW:0 DEACTIVATED, 1 ACTIVATED
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		EXTF=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		GUASSIANQUADRA=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE GQP POINTS (1 =YES FASTER, 0= SLOWER)
+		RELAX=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		EMETIS=6    	!METIS PARTITIONER : 1: HYBRID METIS, 2:ADAPTIVE WEIGHTS FOR HYBRID GRIDS, 3: UNIFORM METIS PARTIONIONER,4:NODAL,6=PARMETS 
+		ITOLD=10000	!TOLERANCE=N_ITERATIONS
+		GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=10.0	! LIMIT VOLUME CELLS
+		FASTEST=0	! 0		       		||FASTEST, NO COORDINATE MAPPING (1: ENGAGED,0:WITH TRANSFORMATION)
+		LMACH_STYLE=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),LMACH_STYLE(0=ONLY NORMAL COMPONENT,1=ALL COMPONENTS)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		DG=1   !0=DEACTIVATED FV ONLY, 1=ACTIVATED DG ONLY, 2=HYBRID
+		
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+		DES_model=2
 
+		BR2_DAMPING=3.0
+		BR2_YN=2
 
-	 BR2_DAMPING=3.0
-	 BR2_YN=2
-
-	 
+	  CASE DEFAULT
 	
-	
-	CASE DEFAULT
-	
-	LOWMEMORY=0 	 !MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
-	binio=1	    	 !I/O (ASCII=0, BINARY=1) 
-	LOWMEM=0    	 !GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	 !QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
-	icoupleturb=0	 !COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	 !HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0  !HYBRID DISTANCE
-	swirl=0		 !swirling flow:0 deactivated, 1 activated
-	IADAPT=0	 !ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-	ICOMPACT=0	 !COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=2		 !STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=0	 !WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0 !GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	 !STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		 !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	 !CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	 !CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	 !Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
-	itold=10000	 !TOLERANCE=n_iterations
-	GRIDAR1=10.0	 ! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=10.0	 ! LIMIT VOLUME CELLS
-	fastest=0	 ! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	 !0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	 !LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	ISPAL=1! 1				||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
-	
-	
-	
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
-	
-	
-	DES_model=0
+		LOWMEMORY=0 	 !MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+		binio=1	    	 !I/O (ASCII=0, BINARY=1) 
+		LOWMEM=0    	 !GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	 !QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+		icoupleturb=0	 !COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	 !HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0  !HYBRID DISTANCE
+		swirl=0		 !swirling flow:0 deactivated, 1 activated
+		IADAPT=0	 !ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		ICOMPACT=0	 !COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=2		 !STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	 !WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0 !GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	 !STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=1		 !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	 !CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	 !CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	 !Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+		itold=10000	 !TOLERANCE=n_iterations
+		GRIDAR1=10.0	 ! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=10.0	 ! LIMIT VOLUME CELLS
+		fastest=0	 ! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	 !0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	 !LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		ISPAL=1! 1				||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
+		
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+		
+		DES_model=0
 
 
 
 
 
 
-	CASE (17)
+	  CASE (17)
 
-	LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
-	binio=1	    	!I/O (ASCII=0, BINARY=1)
-	LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
-	reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
-	turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
-! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
-	ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
-	HYBRIDIST=0.0D0 !HYBRID DISTANCE
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
-    if (initcond.eq.405)iadapt=1
-	ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
-	extf=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-	WEIGHT_LSQR=1	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
-	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
-	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
-	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
-	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
-	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
-	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=200000.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=500000.0	! LIMIT VOLUME CELLS
-	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-	LAMX=0.0D0;LAMY=0.0D0;LAMZ=0.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	IWENO=5
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+		binio=1	    	!I/O (ASCII=0, BINARY=1)
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
+	! 	icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		if (initcond.eq.405)iadapt=1
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=2		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=1	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+			relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=200000.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=500000.0	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=0.0D0;LAMY=0.0D0;LAMZ=0.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+		IWENO=5
 
-	if (iboundary.eq.1)then
-	 LOWMEM=1
-	 end if
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
 
-
-	 DES_model=0
+		DES_model=0
 	
 	
-	
-	
+
 	END SELECT
 	    
 	    
 	
-	 IF (N.EQ.0)THEN
-      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-      CALL DATE_and_time(STAMP1)
-      WRITE(63,*)"UCNS3D Parallel Computation Start",STAMP1
-      END IF
+	IF (N.EQ.0)THEN
+      	OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+      	CALL DATE_and_time(STAMP1)
+      	WRITE(63,*)"UCNS3D Parallel Computation Start",STAMP1
+    END IF
 
+	 NPROC=isize-1;vorder=iorder
       
-      
-	    NPROC=isize-1;vorder=iorder
-      
-	    !--------------------------1------------------------------!
-	    !PROBE POSITION ALLOCATION AND READING OF COORDINATES
-	    !$OMP MASTER
-	    IF (NPROBES.GT.0)THEN
+	!--------------------------1------------------------------!
+	!PROBE POSITION ALLOCATION AND READING OF COORDINATES
+	!$OMP MASTER
+	IF (NPROBES.GT.0)THEN
 	    IF (DIMENSIONA.EQ.3)THEN
-		  ALLOCATE(PROBEC(1:NPROBES,1:3))
+		  	ALLOCATE(PROBEC(1:NPROBES,1:3))
 		    DO INV=1,NPROBES
-		      READ(15,*)PROBEC(INV,1),PROBEC(INV,2),PROBEC(INV,3)
+		      	READ(15,*)PROBEC(INV,1),PROBEC(INV,2),PROBEC(INV,3)
 		    END DO
 	    ELSE
-		  ALLOCATE(PROBEC(1:NPROBES,1:2))
+		  	ALLOCATE(PROBEC(1:NPROBES,1:2))
 	    
 		    DO INV=1,NPROBES
-		      READ(15,*)PROBEC(INV,1),PROBEC(INV,2)
+		      	READ(15,*)PROBEC(INV,1),PROBEC(INV,2)
 		    END DO
 	    END IF
-	    END IF
-	    !$OMP END MASTER
-	     !--------------------------END 1-------------------------!
+	END IF
+	!$OMP END MASTER
+	!--------------------------END 1-------------------------!
 	     
 	     
-	     CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	     
 	     
-	     !-------------------------2---------------------------------!
-	     !NUMBER OF VARIABLES SETUP
-	     if (governingequations.le.2)then ! NS or Euler
-		  if (dimensiona.eq.3)then
-		      nof_variables=5;dims=3
-		  else
-		      nof_variables=4;dims=2
-		  end if
+	!-------------------------2---------------------------------!
+	!NUMBER OF VARIABLES SETUP
+	if (governingequations.le.2)then ! NS or Euler
+		if (dimensiona.eq.3)then
+		    nof_variables=5;dims=3
+		else
+		    nof_variables=4;dims=2
+		end if
 		  
 		  
-	      else ! Linear advection
-		  nof_variables=1
+	else ! Linear advection
+		nof_variables=1
 		  
-		  if (dimensiona.eq.3)then
+		if (dimensiona.eq.3)then
 		    dims=3
-		    else
+		else
 		    dims=2
-		    end if
-	      end if
+		end if
+	end if
 	      
-	      !multiphase modification starts
-	      IF (governingequations.EQ.-1)THEN
-	      if (dimensiona.eq.3)then
-		      nof_variables=5+NOF_SPECIES+(NOF_SPECIES-1);dims=3
-		  else
-		      nof_variables=4+NOF_SPECIES+(NOF_SPECIES-1);dims=2
-		  end if
-		  END IF
-		  !multiphase modification ends
+	!multiphase modification starts
+	IF (governingequations.EQ.-1)THEN
+	    if (dimensiona.eq.3)then
+		    nof_variables=5+NOF_SPECIES+(NOF_SPECIES-1);dims=3
+		else
+		    nof_variables=4+NOF_SPECIES+(NOF_SPECIES-1);dims=2
+		end if
+	END IF
+	!multiphase modification ends
 		  
-	    !--------------------------END 2-------------------------!
+	!--------------------------END 2-------------------------!
 
 
-	    !-------------------------3---------------------------------!
-	     !TURBULENCE
-	      if (turbulence .eq.1) then
-		      if (turbulencemodel .eq. 1) then
-			      turbulenceequations=1
-		      else if (turbulencemodel .eq. 2) then
-			      turbulenceequations=2
-		      end if 
-	      eLSE
-		      turbulenceequations=0
-		      turbulencemodel=0
-	      END IF
-	    !------------------------- END 3---------------------------------!
+	!-------------------------3---------------------------------!
+	!TURBULENCE
+	IF (turbulence .eq.1) THEN
+		if (turbulencemodel .eq. 1) then
+			turbulenceequations=1
+		else if (turbulencemodel .eq. 2) then
+			turbulenceequations=2
+		end if 
+	ELSE
+		turbulenceequations=0
+		turbulencemodel=0
+	END IF
+	!------------------------- END 3---------------------------------!
 	   
 	   
-! 	   !-------------------------4---------------------------------!
-	   !EQUATIONS TYPE
+	!-------------------------4---------------------------------!
+	!EQUATIONS TYPE
 	   
-	   SELECT CASE(governingequations)
-	   CASE(-1)
-	   !MULTI-PHASE INVISCID EULER EQUATIONS
+	SELECT CASE(governingequations)
+	  CASE(-1)
+	   	!MULTI-PHASE INVISCID EULER EQUATIONS
 	    IF (N.EQ.0)THEN
-	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	      write(63,*)'Multi-Phase inviscid Euler Solver Engaged'
-	      CLOSE(63)
+	      	OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+	      	write(63,*)'Multi-Phase inviscid Euler Solver Engaged'
+	      	CLOSE(63)
 	    END IF
 	    ITESTCASE = 3;IVORTEX = 0
 	   
-	   CASE(1)
-	   !NAVIER STOKES EQUATIONS
+	  CASE(1)
+	    !NAVIER STOKES EQUATIONS
 	    IF (N.EQ.0)THEN
-	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	      write(63,*)'Navier-Stokes Solver Engaged'
-	      CLOSE(63)
+	      	OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+	      	write(63,*)'Navier-Stokes Solver Engaged'
+	      	CLOSE(63)
 	    END IF
 	    ITESTCASE = 4;IVORTEX = 1
 	    
 	  CASE(2)
-	   !EULER EQUATIONS
+	    !EULER EQUATIONS
 	    IF (N.EQ.0)THEN
-	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	      write(63,*)'Euler Solver Engaged'
-	      CLOSE(63)
+	      	OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+	      	write(63,*)'Euler Solver Engaged'
+	      	CLOSE(63)
 	    END IF
 	    ITESTCASE = 3;IVORTEX = 0
 	    
-	    
-	    
 	  CASE(3)
-	   !LINEAR ADVECTION EQUATION
+	    !LINEAR ADVECTION EQUATION
 	    IF (N.EQ.0)THEN
-	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	      write(63,*)'Linear Solver Engaged Sinewave'
-	      CLOSE(63)
+	       	OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+	       	write(63,*)'Linear Solver Engaged Sinewave'
+	       	CLOSE(63)
 	    END IF
 	    ITESTCASE = 1;IVORTEX = 0
 	    
-	 CASE(4)
-	   !LINEAR ADVECTION EQUATION
+	  CASE(4)
+	    !LINEAR ADVECTION EQUATION
 	    IF (N.EQ.0)THEN
-	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	      write(63,*)'Linear Solver Engaged STEP FUNCTION'
-	      CLOSE(63)
+	      	OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+	      	write(63,*)'Linear Solver Engaged STEP FUNCTION'
+	      	CLOSE(63)
 	    END IF
 	    ITESTCASE = 2;IVORTEX = 0
 	    
-	  END SELECT
+	END SELECT
+	!-------------------------END EQUATIONS 4---------------------------------!
+	  
+
+	!-------------------------5---------------------------------!
+	!FLOW PARAMETERS
+	UNWOU = 3
+	BETAAS=1.5d0
+	SUTHER=0.412158681d0
+	uvel=ufreestream
 	  
 	  
-	  
-	  !-------------------------END EQUATIONS 4---------------------------------!
-	  
-	  !-------------------------5---------------------------------!
-	  !FLOW PARAMETERS
-	  UNWOU = 3
-	  BETAAS=1.5d0
-	  SUTHER=0.412158681d0
-	  uvel=ufreestream
+	if (initcond.eq.977)then
+	  	uvel=0.0d0;vvel=0.0d0;
+	  	ufreestream=wvel
+	end if
 	  
 	  
-	  if (initcond.eq.977)then
-	  uvel=0.0d0;vvel=0.0d0;
-	  ufreestream=wvel
-	  end if
-	  
-	  
-	   ! Set pressure
-	  if ( PRES .lt. 0 ) PRES = RRES/GAMMA	
-	  ! Set dynamic free-stream viscosity
-	  
-	  IF (RFRAME.EQ.0) THEN
-        VISC = (RRES*ufreestream*CharLength)/Reynolds
-    ELSE
-        VISC = (RRES*V_ref*CharLength)/Reynolds
-    END IF
-	  
-	  if (swirl.eq.1)then
-	  uvel=ZERO
-	  end if
-	  If (AOA .NE. 0.0D0) Then
-	  angledum=(AOA*PI)/180.0d0
-	  UVEL = COS(angledum)*ufreestream*VECTORX
-	  WVEL = SIN(angledum)*ufreestream*VECTORZ
-	  VVEL = SIN(angledum)*ufreestream*VECTORY
-	  end if
-	  
-	  IF (N.EQ.0)THEN
-	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	      if (ITESTCASE .eq. 4) Then
-	      if (rframe.eq.0)then
-		write(63,*)'----Reynolds Number:',(RRES*ufreestream*CharLength)/VISC
-            else
-            write(63,*)'----Reynolds Number:',(RRES*v_ref*CharLength)/VISC
-            
-            end if
+	! Set pressure
+	if ( PRES .lt. 0 ) PRES = RRES/GAMMA	
+	! Set dynamic free-stream viscosity
+	
+	IF (RFRAME.EQ.0) THEN
+		VISC = (RRES*ufreestream*CharLength)/Reynolds
+	ELSE
+		VISC = (RRES*V_ref*CharLength)/Reynolds
+	END IF
+	
+	if (swirl.eq.1)then
+		uvel=ZERO
+	end if
+	If (AOA .NE. 0.0D0) Then
+		angledum=(AOA*PI)/180.0d0
+		UVEL = COS(angledum)*ufreestream*VECTORX
+		WVEL = SIN(angledum)*ufreestream*VECTORZ
+		VVEL = SIN(angledum)*ufreestream*VECTORY
+	end if
+	
+	IF (N.EQ.0)THEN
+		OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+		if (ITESTCASE .eq. 4) Then
+			if (rframe.eq.0)then
+				write(63,*)'----Reynolds Number:',(RRES*ufreestream*CharLength)/VISC
+			else
+				write(63,*)'----Reynolds Number:',(RRES*v_ref*CharLength)/VISC
+			end if
 		end if
-	      CLOSE(63)
-	   END IF
+		CLOSE(63)
+	END IF
+	!-------------------------END FLOW PARAMETERS 5---------------------------------!
 	  
-	  
-	  
-	  !-------------------------END FLOW PARAMETERS 5---------------------------------!
-	  
-	  !-------------------------6---------------------------------!
-	   !SPATIAL & TEMPORAL DISCRETISATION
+
+	!-------------------------6---------------------------------!
+	!SPATIAL & TEMPORAL DISCRETISATION
 	   
-	   IORDER = max(1,spatialorder-1)
-	   firstorder = 0
-! 	   if (ees.eq.5)then
-! 	   icompact=1
-! 	   end if
-	   IEXTEND =2; IF (ICOMPACT.EQ.1)IEXTEND = 10
-	   IWENO =0
-	   WENWRT = 1
-	   ISCHEME=3
-	   TYPESTEN=1
-	   LWCI1=wenocentralweight
+	IORDER = max(1,spatialorder-1)
+	firstorder = 0
+	! if (ees.eq.5)then
+	!     icompact=1
+	! end if
+	IEXTEND =2; IF (ICOMPACT.EQ.1)IEXTEND = 10
+	IWENO =0
+	WENWRT = 1
+	ISCHEME=3
+	TYPESTEN=1
+	LWCI1=wenocentralweight
 
+	! IF (EES.EQ.5)THEN
+	!     lwci1=10**((wenocentralweight*14)+2)
+	! END if
 
-!  	   IF (EES.EQ.5)THEN
-!   	    		lwci1=10**((wenocentralweight*14)+2)
-!   	   END if
-
-
-
-	  if (fastest.eq.1)ischeme=1
+	if (fastest.eq.1)ischeme=1
 	    
 	   
-	   SELECT CASE(spatiladiscret)
+		SELECT CASE(spatiladiscret)
 
-
-
-	   
-	   CASE(1)	!NO LIMITER
+	   	  CASE(1)	!NO LIMITER
 	      
-	   IF (N.EQ.0)THEN
-	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	      write(63,*)'----1st Order in Space|LINEAR Scheme'
-	      CLOSE(63)
-	   END IF
+	   		IF (N.EQ.0)THEN
+	      		OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+	      		write(63,*)'----1st Order in Space|LINEAR Scheme'
+	      		CLOSE(63)
+	  		END IF
 	   
-	      if (spatialorder.eq.1) then 
-	      firstorder = 1;iorder=1
-	      else
-	      firstorder = 0
-	      end if
+	      	if (spatialorder.eq.1) then 
+	      		firstorder = 1;iorder=1
+	      	else
+	      		firstorder = 0
+	      	end if
 
-	     CASE(2)	!MUSCL TYPE
+	      CASE(2)	!MUSCL TYPE
 	      
-	   IF (N.EQ.0)THEN
-	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	      write(63,*)'----MUSCL Scheme Engaged----'
-	      CLOSE(63)
-	   END IF
+	   		IF (N.EQ.0)THEN
+	      		OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+	      		write(63,*)'----MUSCL Scheme Engaged----'
+	      		CLOSE(63)
+	   		END IF
 	  
-	  IWENO = -1
+	  		IWENO = -1
 	  
 	  
-	   CASE(3)	!WENO TYPE
+	      CASE(3)	!WENO TYPE
 	      
-	   IF (N.EQ.0)THEN
-	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	      write(63,*)'----WENO Scheme Engaged----'
-	      CLOSE(63)
-	   END IF
+	   		IF (N.EQ.0)THEN
+	      		OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+	      		write(63,*)'----WENO Scheme Engaged----'
+	      		CLOSE(63)
+	   		END IF
 	  
-	  IWENO = 1
-	  IWENO = 1
-	  IEXTEND = 12	;
+	 		IWENO = 1
+	  		IWENO = 1
+	  		IEXTEND = 12	;
 	  
-	  
-	  if (EES.EQ.5)THEN
-	   IF (ICOMPACT.EQ.1)THEN
-	  IEXTEND = 10
-	  
-	  
-	  
-	  ELSE
-	  IEXTEND = 5
-	  
-	  END IF
-	  END IF
-	  WENWRT=wenocnschar
-	  
-	  IF (DIMENSIONA.EQ.2)THEN
-	    if ((EES.EQ.0))THEN;TYPESTEN = 5;End if
-	    if ((EES.EQ.5))THEN;TYPESTEN = 5;End if
-	    if (EES.EQ.1)THEN;TYPESTEN = 9;end if
-	    if (EES.EQ.2)THEN;TYPESTEN = 9;End if
-	    if (EES.EQ.3)THEN;TYPESTEN = 5;end if
-	  ELSE
-	    if ((EES.EQ.0))THEN;TYPESTEN = 7;End if
-	    if ((EES.GE.4))THEN;TYPESTEN = 7;End if
-	    if (EES.EQ.1)THEN ;TYPESTEN = 15;End if
-	    if (EES.EQ.2)THEN;TYPESTEN = 15;End if
-	    if (EES.EQ.3)THEN;TYPESTEN = 7;End if
-	  END IF
-	  
-	  
-	  
-	  END SELECT
+	  		if (EES.EQ.5)THEN
+	   			IF (ICOMPACT.EQ.1)THEN
+	  				IEXTEND = 10
+	  			ELSE
+	  				IEXTEND = 5
+	  			END IF
+	  		END IF
 
-
-	  IF (CODE_PROFILE.EQ.17)IWENO=5
+	 		WENWRT=wenocnschar
 	  
-        
-	   
-        ! Temporal order
-        RUNGEKUTTA = temporder 
+	  	IF (DIMENSIONA.EQ.2)THEN
+	    	if ((EES.EQ.0))THEN;TYPESTEN = 5;End if
+	   		if ((EES.EQ.5))THEN;TYPESTEN = 5;End if
+	    	if (EES.EQ.1)THEN;TYPESTEN = 9;end if
+	    	if (EES.EQ.2)THEN;TYPESTEN = 9;End if
+	    	if (EES.EQ.3)THEN;TYPESTEN = 5;end if
+	  	ELSE
+	    	if ((EES.EQ.0))THEN;TYPESTEN = 7;End if
+	    	if ((EES.GE.4))THEN;TYPESTEN = 7;End if
+	    	if (EES.EQ.1)THEN ;TYPESTEN = 15;End if
+	    	if (EES.EQ.2)THEN;TYPESTEN = 15;End if
+	    	if (EES.EQ.3)THEN;TYPESTEN = 7;End if
+	  	END IF
 	  
-       if ( iboundary .eq. 0 ) then 
-	    IPERIODICITY = -3 
-	    end if
-	    if ( iboundary .eq. 1 ) then 
-	    IPERIODICITY = 1 
-	    end if
+	END SELECT
 
-	    
-	    
-            if (dg.eq.1)then
-                
-                IGQRULES=min(iorder+1,6)
-                else
-                IGQRULES=min(iorder,6)
-                end if
-            
-
+	IF (CODE_PROFILE.EQ.17)IWENO=5
+	
+	! Temporal order
+	RUNGEKUTTA = temporder 
+	
+	if ( iboundary .eq. 0 ) then 
+		IPERIODICITY = -3 
+	end if
+	if ( iboundary .eq. 1 ) then 
+		IPERIODICITY = 1 
+	end if
+	
+	if (dg.eq.1)then
+			
+		GQRULES=min(iorder+1,6)
+	else
+		IGQRULES=min(iorder,6)
+	end if
+			
+	ALLS=IGQRULES**(DIMENSIONA)
              
-		ALLS=IGQRULES**(DIMENSIONA)
-             
-        
 	    
-	    
-	  !-------------------------END DISCRETISATION 6---------------------------------!
+	!-------------------------END DISCRETISATION 6---------------------------------!
 
 
 
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-	    IF (N.EQ.0)THEN
-	      OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	      write(63,*)'Total Number of Processes:',isize,IGQRULES
-	      CLOSE(63)
-	  END IF
-        IF(SRFG.EQ.1)THEN
-            IF (N.EQ.0)THEN
-                OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-                write(63,*)'Single Reference Frame engaged:'
-                CLOSE(63)
-            END IF
-        END IF
-	  		IF(MRF.EQ.1)THEN
-            IF (N.EQ.0)THEN
-                OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-                write(63,*)'Number of Rotating Frames engaged:',NROTORS
-                CLOSE(63)
-            END IF
-        END IF
-		IF(PER_ROT.EQ.1)THEN
-            iboundary=1
-            LOWMEM=1
-            IF (N.EQ.0)THEN
-                OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-                write(63,*)'Rotational  periodicity engaged'
-                CLOSE(63)
-            END IF
-        END IF
+	IF (N.EQ.0)THEN
+	    OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+	    write(63,*)'Total Number of Processes:',isize,IGQRULES
+	    CLOSE(63)
+	END IF
+	IF(SRFG.EQ.1)THEN
+		IF (N.EQ.0)THEN
+			OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+			write(63,*)'Single Reference Frame engaged:'
+			CLOSE(63)
+		END IF
+	END IF
+	IF(MRF.EQ.1)THEN
+		IF (N.EQ.0)THEN
+			OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+			write(63,*)'Number of Rotating Frames engaged:',NROTORS
+			CLOSE(63)
+		END IF
+	END IF
+	IF(PER_ROT.EQ.1)THEN
+		iboundary=1
+		LOWMEM=1
+		IF (N.EQ.0)THEN
+			OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+			write(63,*)'Rotational  periodicity engaged'
+			CLOSE(63)
+		END IF
+	END IF
 	  
 	   
 	  
-	  IF (INITCOND.EQ.444)THEN
-	INQUIRE (FILE='BUBBLES.DAT',EXIST=HERE5)
-	IF (HERE5) THEN
-	OPEN(18,FILE='BUBBLES.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	READ(18,*)NOF_BUBBLES
-	DO IX=1,NOF_BUBBLES
-	READ(18,*)BUBBLE_CENTRE(IX,1),BUBBLE_CENTRE(IX,2),bubble_radius(IX)
-	END do
-	cLOSE(18)
-	END IF
+	IF (INITCOND.EQ.444)THEN
+		INQUIRE (FILE='BUBBLES.DAT',EXIST=HERE5)
+		IF (HERE5) THEN
+			OPEN(18,FILE='BUBBLES.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+			READ(18,*)NOF_BUBBLES
+			DO IX=1,NOF_BUBBLES
+				READ(18,*)BUBBLE_CENTRE(IX,1),BUBBLE_CENTRE(IX,2),bubble_radius(IX)
+			END do
+			cLOSE(18)
+		END IF
     end if
     
     IF (INITCOND.EQ.445)THEN
 
 		INQUIRE (FILE = 'BUBBLES.DAT',EXIST=HERE5)
 		IF (HERE5) THEN
-		OPEN(18,FILE='BUBBLES.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-		READ(18,*)NOF_BUBBLES
-		DO IX=1,NOF_BUBBLES
-		READ(18,*)BUBBLE_CENTRE(IX,1),BUBBLE_CENTRE(IX,2),BUBBLE_CENTRE(IX,3),BUBBLE_RADIUS(IX)
-		END DO
-		CLOSE(18)
-
+			OPEN(18,FILE='BUBBLES.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+			READ(18,*)NOF_BUBBLES
+			DO IX=1,NOF_BUBBLES
+				READ(18,*)BUBBLE_CENTRE(IX,1),BUBBLE_CENTRE(IX,2),BUBBLE_CENTRE(IX,3),BUBBLE_RADIUS(IX)
+			END DO
+			CLOSE(18)
 		END IF
-		END IF
+	END IF
 		
 
-		INQUIRE (FILE='BLEED.DAT',EXIST=BLEEDIO)
+	INQUIRE (FILE='BLEED.DAT',EXIST=BLEEDIO)
 	IF (BLEEDIO) THEN
-	BLEED=1
-	OPEN(27,FILE='BLEED.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
-	READ(27,*)
-	READ(27,*)
-	READ(27,*)BLEED_NUMBER !BLEED_NUMBER=Number of bleed boundary conditions
-	READ(27,*)BLEED_TYPE	!BLEED_TYPE=bleed type (Slater=1,other=2,porous=3,etc)
-	ALLOCATE(bleed_start(1:BLEED_NUMBER,1:DIMS),bleed_end(1:BLEED_NUMBER,1:DIMS),BLEED_PLENUM(1:BLEED_NUMBER), BLEED_POROSITY(1:BLEED_NUMBER))
-	DO IBLEED=1,BLEED_NUMBER
-    READ(27,*)bleed_start(IBLEED,1:DIMS),bleed_END(IBLEED,1:DIMS)
-    END DO
-    DO IBLEED=1,BLEED_NUMBER
-    READ(27,*)BLEED_PLENUM(IBLEED), BLEED_POROSITY(IBLEED)
-    END DO
-    CLOSE(27)
+		BLEED=1
+		OPEN(27,FILE='BLEED.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+		READ(27,*)
+		READ(27,*)
+		READ(27,*)BLEED_NUMBER !BLEED_NUMBER=Number of bleed boundary conditions
+		READ(27,*)BLEED_TYPE	!BLEED_TYPE=bleed type (Slater=1,other=2,porous=3,etc)
+		ALLOCATE(bleed_start(1:BLEED_NUMBER,1:DIMS),bleed_end(1:BLEED_NUMBER,1:DIMS),BLEED_PLENUM(1:BLEED_NUMBER), BLEED_POROSITY(1:BLEED_NUMBER))
+		DO IBLEED=1,BLEED_NUMBER
+			READ(27,*)bleed_start(IBLEED,1:DIMS),bleed_END(IBLEED,1:DIMS)
+		END DO
+		DO IBLEED=1,BLEED_NUMBER
+			READ(27,*)BLEED_PLENUM(IBLEED), BLEED_POROSITY(IBLEED)
+		END DO
+		CLOSE(27)
 	ELSE
-	BLEED=0
+		BLEED=0
 	END IF
 
-
-	
-
-	END SUBROUTINE READ_UCNS3D
+END SUBROUTINE READ_UCNS3D
 	
 	
 	

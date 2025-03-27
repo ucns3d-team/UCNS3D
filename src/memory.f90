@@ -14,6 +14,8 @@ implicit none
 ALLOCATE(LIST(2000),INEB(6),IPERB(6),NODELIST(8))
 END SUBROUTINE
 
+
+
 subroutine allocate5
 !> @brief
 !> This subroutine allocates memory for the stencils
@@ -56,52 +58,39 @@ integer::i,kmaxe
 IF (DIMENSIONA.EQ.3)THEN
     NUMBEROFPOINTS=MAX(QP_HEXA,QP_TETRA,QP_PYRA,QP_PRISM)
     if (dg.eq.1)NUMBEROFPOINTS=MAX(QP_HEXA,QP_TETRA*6,QP_PYRA,QP_PRISM)
-    NUMBEROFPOINTS2=MAX(QP_QUAD,QP_TRIANGLE,QP_TRIANGLE)
-    
-
+   	NUMBEROFPOINTS2=MAX(QP_QUAD,QP_TRIANGLE,QP_TRIANGLE)
 ELSE
     NUMBEROFPOINTS=MAX(QP_QUAD,QP_TRIANGLE)
     if (dg.eq.1)NUMBEROFPOINTS=MAX(QP_QUAD,QP_TRIANGLE*2)
     NUMBEROFPOINTS2=QP_LINE
-   
 END IF
 
 
 
 kmaxe=xmpielrank(n)
 do i=1,kmaxe
+	select case (ielem(n,i)%ishape)
 
-select case (ielem(n,i)%ishape)
-        
-        
-        case(1) !hexa
+      case(1) !hexa
         ielem(n,i)%iTOTALPOINTS=QP_Tetra*6
         
-        case(2) !tetra
+      case(2) !tetra
         ielem(n,i)%iTOTALPOINTS=QP_Tetra
         
-        case(3) !pyramid
+      case(3) !pyramid
         ielem(n,i)%iTOTALPOINTS=QP_Tetra*2
         
-        case(4) !prism
+      case(4) !prism
         ielem(n,i)%iTOTALPOINTS=QP_tetra*3
         
-        case(5) !quadrilateral
+      case(5) !quadrilateral
         ielem(n,i)%iTOTALPOINTS=QP_TRIANGLE*2
-        
-        
-        
-        case(6)!triangle
-         ielem(n,i)%iTOTALPOINTS=QP_TRIANGLE
+     
+      case(6)!triangle
+        ielem(n,i)%iTOTALPOINTS=QP_TRIANGLE
          
-         
-         end select
-
-
+    end select
 end do
-
-
-
 
 END SUBROUTINE QUADALLOC
 
@@ -122,25 +111,21 @@ SUBROUTINE SUMFLUX_ALLOCATION(N)
 	
 	ALLOCATE (RHS(KMAXE))
 
-
-	
-	
 	IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-	ALLOCATE (RHST(KMAXE))
+		ALLOCATE (RHST(KMAXE))
 	END IF
 	
 	DO I=1,KMAXE
         IF (DG == 1) THEN
             ALLOCATE(RHS(I)%VALDG(NUM_DG_DOFS, NOF_VARIABLES))
 
-            
         end if
-            ALLOCATE (RHS(I)%VAL(nof_Variables))
-            
-            IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)) THEN
-                ALLOCATE (RHST(I)%VAL(TURBULENCEEQUATIONS+PASSIVESCALAR))
-            END IF
-        
+
+		ALLOCATE (RHS(I)%VAL(nof_Variables))
+		
+		IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)) THEN
+			ALLOCATE (RHST(I)%VAL(TURBULENCEEQUATIONS+PASSIVESCALAR))
+		END IF	
     END DO
 	
 END SUBROUTINE SUMFLUX_ALLOCATION
@@ -156,110 +141,94 @@ KMAXE=XMPIELRANK(N)
 
 
 if (dimensiona.eq.3)then
-interf=nof_Variables
+	interf=nof_Variables
 else
-interf=nof_Variables
+	interf=nof_Variables
 end if
 
 IF (RUNGEKUTTA.EQ.12)THEN
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
-impdu(:,:)=zero
+	ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+	impdu(:,:)=zero
 ELSE
+	IF (RELAX.EQ.3)THEN
 
+		ALLOCATE (IMPDIAG_MF(KMAXE))
+		ALLOCATE (IMPOFF_MF(KMAXE,INTERF))
+		ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
 
+		IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
+			ALLOCATE(IMPDIAGT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
+			ALLOCATE(IMPOFFt(KMAXE,INTERF,TURBULENCEEQUATIONS+PASSIVESCALAR))
+			ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
+		END IF
 
-IF (RELAX.EQ.3)THEN
+		IMPDIAG_MF=zero
+		IMPOFF_MF=zero
+		impdu=zero
 
-ALLOCATE (IMPDIAG_MF(KMAXE))
-ALLOCATE (IMPOFF_MF(KMAXE,INTERF))
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+	ELSE
+		if (dimensiona.eq.3)then
+			if (lowmemory.eq.0)then
 
-IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
-ALLOCATE(IMPDIAGT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(IMPOFFt(KMAXE,INTERF,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
+				ALLOCATE (IMPDIAG(KMAXE,1:nof_Variables,1:nof_Variables))
+				ALLOCATE (IMPOFF(KMAXE,6,1:nof_Variables,1:nof_Variables))
+				ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+
+				IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
+					ALLOCATE(IMPOFFt(KMAXE,6,TURBULENCEEQUATIONS+PASSIVESCALAR))
+					ALLOCATE(IMPDIAGT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
+					ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
+				END IF
+
+				IMPDIAG(:,:,:)=zero
+				IMPOFF(:,:,:,:)=zero
+				impdu(:,:)=zero
+			else
+
+				ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+				impdu(:,:)=zero
+				IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
+					ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
+				END IF
+			end if
+		else
+			if (lowmemory.eq.0)then
+
+				ALLOCATE (IMPDIAG(KMAXE,1:nof_Variables,1:nof_Variables))
+				ALLOCATE (IMPOFF(KMAXE,4,1:nof_Variables,1:nof_Variables))
+				ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+
+				IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
+					ALLOCATE(IMPOFFt(KMAXE,4,TURBULENCEEQUATIONS+PASSIVESCALAR))
+					ALLOCATE(IMPDIAGT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
+					ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
+				END IF
+
+				IMPDIAG(:,:,:)=zero
+				IMPOFF(:,:,:,:)=zero
+				impdu(:,:)=zero
+			else
+
+				! ALLOCATE (IMPDIAG(1,1:nof_Variables,1:nof_Variables))
+				! ALLOCATE (IMPOFF(1,4,1:nof_Variables,1:nof_Variables))
+				ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+				IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
+					! ALLOCATE(IMPOFFt(1,4,TURBULENCEEQUATIONS+PASSIVESCALAR))
+					! ALLOCATE(IMPDIAGT(1,TURBULENCEEQUATIONS+PASSIVESCALAR))
+					ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
+				END IF
+				! IMPDIAG(1,:,:)=zero
+				! IMPOFF(1,:,:,:)=zero
+				impdu(:,:)=zero
+			end if
+		end if
+	end if
 END IF
-
-IMPDIAG_MF=zero
-IMPOFF_MF=zero
-impdu=zero
-
-ELSE
-
-
-
-
-if (dimensiona.eq.3)then
-if (lowmemory.eq.0)then
-
-ALLOCATE (IMPDIAG(KMAXE,1:nof_Variables,1:nof_Variables))
-ALLOCATE (IMPOFF(KMAXE,6,1:nof_Variables,1:nof_Variables))
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
-
-IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
-ALLOCATE(IMPOFFt(KMAXE,6,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(IMPDIAGT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-END IF
-
-
-IMPDIAG(:,:,:)=zero
-IMPOFF(:,:,:,:)=zero
-impdu(:,:)=zero
-
-else
-
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
-impdu(:,:)=zero
-IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
-ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-END IF
-end if
-
-else
-
-if (lowmemory.eq.0)then
-
-ALLOCATE (IMPDIAG(KMAXE,1:nof_Variables,1:nof_Variables))
-ALLOCATE (IMPOFF(KMAXE,4,1:nof_Variables,1:nof_Variables))
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
-
-IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
-ALLOCATE(IMPOFFt(KMAXE,4,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(IMPDIAGT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-END IF
-
-
-IMPDIAG(:,:,:)=zero
-IMPOFF(:,:,:,:)=zero
-impdu(:,:)=zero
-
-else
-
-! ALLOCATE (IMPDIAG(1,1:nof_Variables,1:nof_Variables))
-! ALLOCATE (IMPOFF(1,4,1:nof_Variables,1:nof_Variables))
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
-IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
-! ALLOCATE(IMPOFFt(1,4,TURBULENCEEQUATIONS+PASSIVESCALAR))
-! ALLOCATE(IMPDIAGT(1,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-END IF
-! IMPDIAG(1,:,:)=zero
-! IMPOFF(1,:,:,:)=zero
-impdu(:,:)=zero
-end if
-
-
-
-end if
-end if
-END IF
-
-
-
 
 END  SUBROUTINE IMPALLOCATE
+
+
+
 
 
 
@@ -488,301 +457,268 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 ALLOCATE (ILOCAL_RECON3(KMAXE))
 
 IF (DG.EQ.1)THEN
-ALLOCATE (ILOCAL_RECON6(KMAXE))
-DO I=1,KMAXE	!for all elements
- ALLOCATE (ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE,1:NOF_vARIABLES))
- ILOCAL_RECON6(I)%DG2FV=0.0D0
-END DO
-
+	ALLOCATE (ILOCAL_RECON6(KMAXE))
+	DO I=1,KMAXE	!for all elements
+ 		ALLOCATE (ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE,1:NOF_vARIABLES))
+ 		ILOCAL_RECON6(I)%DG2FV=0.0D0
+	END DO
 END IF
 
 perde=0.0d0
 
 if (fastest.ne.1)then
-DO I=1,KMAXE	!for all elements
+	DO I=1,KMAXE	!for all elements
 
-    
+		SELECT CASE(IELEM(N,I)%ISHAPE)
 
-
-
-	SELECT CASE(IELEM(N,I)%ISHAPE)
-
-	CASE(1,2,3,4)
-	IMAX=IELEM(N,I)%inumneighbours-1
-	INUM=IELEM(N,I)%inumneighbours
-	IDEG=IELEM(N,I)%iDEGFREE
-	M=IELEM(N,I)%ADMIS
-	IF (EES.EQ.5)THEN
-	IMAX2=NUMNEIGHBOURS2-1
-	INUM2=NUMNEIGHBOURS2
-	IDEG2=IDEGFREE2
-	M2=IELEM(N,I)%ADMIS
-	END IF
-	if (fastest.ne.1)then
-	    ALLOCATE (ILOCAL_RECON3(I)%INVCCJAC(3,3));ILOCAL_RECON3(I)%INVCCJAC(:,:)=0.0D0
-		IDUM=0
-		if (ielem(n,i)%interior.eq.1)then
-                        DO j=1,IELEM(N,I)%IFCA
-                        if (ielem(n,i)%ibounds(J).gt.0)then
-                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-                                IDUM=1
-                            end if
-                        END IF
-                        END DO
-                end if
-		
-		if (idum.eq.1)then
-	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	   else
-	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	   end if
-		
-		
-	    
-	    ALLOCATE(ILOCAL_RECON3(I)%VEXT_REF(3));ILOCAL_RECON3(I)%VEXT_REF=0.0D0
-	end if
-	IF (FIRSTORDER.NE.1)THEN
-	   IF (GREENGO.EQ.0)then
-	  
-	   IDUM=0;
-                if (ielem(n,i)%interior.eq.1)then
-                        DO j=1,IELEM(N,I)%IFCA
-                        if (ielem(n,i)%ibounds(J).gt.0)then
-                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-                                IDUM=1
-                            end if
-                        END IF
-                        END DO
-                end if
-                if (idum.eq.1)then
-	      
-				   ALLOCATE (ILOCAL_RECON3(I)%STENCILS(M,IMAX,IDEG));ILOCAL_RECON3(I)%STENCILS(:,:,:)=0.0d0
-				   ALLOCATE (ILOCAL_RECON3(I)%WEIGHTL(M,IMAX));ILOCAL_RECON3(I)%WEIGHTL(:,:)=0.0d0!WEIGHTL
-				   IF (EES.EQ.5)THEN
-				   ALLOCATE (ILOCAL_RECON3(I)%STENCILSC(M2,IMAX2,IDEG2));ILOCAL_RECON3(I)%STENCILSC(:,:,:)=0.0d0
-				   END IF
-	   
+		  CASE(1,2,3,4)
+			IMAX=IELEM(N,I)%inumneighbours-1
+			INUM=IELEM(N,I)%inumneighbours
+			IDEG=IELEM(N,I)%iDEGFREE
+			M=IELEM(N,I)%ADMIS
+			IF (EES.EQ.5)THEN
+				IMAX2=NUMNEIGHBOURS2-1
+				INUM2=NUMNEIGHBOURS2
+				IDEG2=IDEGFREE2
+				M2=IELEM(N,I)%ADMIS
+			END IF
+			if (fastest.ne.1)then
+				ALLOCATE (ILOCAL_RECON3(I)%INVCCJAC(3,3));ILOCAL_RECON3(I)%INVCCJAC(:,:)=0.0D0
+				IDUM=0
+				if (ielem(n,i)%interior.eq.1)then
+					DO j=1,IELEM(N,I)%IFCA
+						if (ielem(n,i)%ibounds(J).gt.0)then
+							if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+								IDUM=1
+							end if
+						END IF
+					END DO
 				end if
-	   end if
-	   
-	   
-	   
-! 	    ALLOCATE (ILOCAL_RECON3(I)%INVMAT(M,IDEG,IDEG));ILOCAL_RECON3(I)%INVMAT(:,:,:)=0.0D0
-	    allocate (ILOCAL_RECON3(I)%invmat_stencilt(ideg,imax,M));ILOCAL_RECON3(I)%invmat_stencilt(:,:,:)=0.0d0
-	    IF (EES.EQ.5)THEN
-	    allocate (ILOCAL_RECON3(I)%invmat_stenciltC(ideg2,imax2,M2));ILOCAL_RECON3(I)%invmat_stenciltC(:,:,:)=0.0d0
-	    END IF
-	    
-	END IF
-	
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXG(M,INUM))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXL(M,INUM))
-	ALLOCATE (ILOCAL_RECON3(I)%PERIODICFLAG(M,INUM))
-	
-	IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXGC(M2,INUM2))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXLC(M2,INUM2))
-	
-	
-	END IF
-	
-	ITRUE=0
-	DO J=1,TYPESTEN
-		IKG=0
-                    IF ((EES.NE.5).OR.(J.EQ.1))THEN
-                            ITARGET=INUM
-                    ELSE
-                            ITARGET=INUM2
-                    END IF
-			DO K=1,ITARGET
-				IF (ILOCALSTENCIL(N,I,J,K).GT.0)THEN
-				IKG=IKG+1
-				IF (XMPIE(ILOCALSTENCIL(N,I,J,K)).NE.N)THEN
-				  ITRUE=1
-				END IF
-				END IF
-			END DO
-
-	END DO
-	IF (ITRUE.EQ.0)THEN
-	ILOCAL_RECON3(I)%LOCAL=1
-	ELSE
-	ILOCAL_RECON3(I)%LOCAL=0
-	END IF
-	
-
-	IF (ILOCAL_RECON3(I)%LOCAL.EQ.0)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXB(M,INUM))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXN(M,INUM))
-	IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXbC(M2,INUM2))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXnC(M2,INUM2))
-	
-	
-	END IF
-	
-	
-	
-	END IF
-
-	if (iweno.eq.1)then
-	ALLOCATE (ILOCAL_RECON3(I)%INDICATOR(IDEG,IDEG));ILOCAL_RECON3(I)%INDICATOR(:,:)=0.0D0
-	IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%INDICATORc(IDEG2,IDEG2));ILOCAL_RECON3(I)%INDICATORc(:,:)=0.0D0
-	end if
-	END IF
-	
-
-
-	CASE(5,6)
-	IMAX=IELEM(N,I)%inumneighbours-1
-	INUM=IELEM(N,I)%inumneighbours
-	IDEG=IELEM(N,I)%iDEGFREE
-	M=IELEM(N,I)%ADMIS
-	
-	IF (EES.EQ.5)THEN
-	IMAX2=NUMNEIGHBOURS2-1
-	INUM2=NUMNEIGHBOURS2
-	IDEG2=IDEGFREE2
-	M2=IELEM(N,I)%ADMIS
-	END IF
-	
-	
-	
-	if (fastest.ne.1)then
-	    ALLOCATE (ILOCAL_RECON3(I)%INVCCJAC(2,2));ILOCAL_RECON3(I)%INVCCJAC(:,:)=0.0D0
-!   	    ALLOCATE (ILOCAL_RECON3(I)%INVCTJAC(2,2));ILOCAL_RECON3(I)%INVCTJAC(:,:)=0.0D0
-	    !ALLOCATE (ILOCAL_RECON3(I)%VOLUME(M,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	     !IF (EES.EQ.5)THEN
-	     !ALLOCATE (ILOCAL_RECON3(I)%VOLUMEC(M2,INUM2));ILOCAL_RECON3(I)%VOLUMEC(:,:)=0.0D0
-	    !END IF
-	    ALLOCATE(ILOCAL_RECON3(I)%VEXT_REF(2));ILOCAL_RECON3(I)%VEXT_REF=0.0D0
-	end if
-	
-	IDUM=0
-		if (ielem(n,i)%interior.eq.1)then
-                        DO j=1,IELEM(N,I)%IFCA
-                        if (ielem(n,i)%ibounds(J).gt.0)then
-                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-                                IDUM=1
-                            end if
-                        END IF
-                        END DO
-                end if
 		
-		if (idum.eq.1)then
-	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	   else
-	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	   end if
-	
-	
-	
-	IF (FIRSTORDER.NE.1)THEN
-	   IF (GREENGO.EQ.0)then
-	  
-	   IDUM=0;
-                if (ielem(n,i)%interior.eq.1)then
+				if (idum.eq.1)then
+					ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
+				else
+					ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
+				end if
+		
+	    		ALLOCATE(ILOCAL_RECON3(I)%VEXT_REF(3));ILOCAL_RECON3(I)%VEXT_REF=0.0D0
+			end if
+
+			IF (FIRSTORDER.NE.1)THEN
+				IF (GREENGO.EQ.0)then
+			
+					IDUM=0
+                	if (ielem(n,i)%interior.eq.1)then
                         DO j=1,IELEM(N,I)%IFCA
-                        if (ielem(n,i)%ibounds(J).gt.0)then
-                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-                                IDUM=1
-                            end if
-                        END IF
+                        	if (ielem(n,i)%ibounds(J).gt.0)then
+                            	if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+                                	IDUM=1
+                            	end if
+                        	END IF
                         END DO
-                end if
-                if (idum.eq.1)then
-	      
-	   ALLOCATE (ILOCAL_RECON3(I)%STENCILS(M,IMAX,IDEG));ILOCAL_RECON3(I)%STENCILS(:,:,:)=0.0d0
-	   ALLOCATE (ILOCAL_RECON3(I)%WEIGHTL(M,IMAX));ILOCAL_RECON3(I)%WEIGHTL(:,:)=0.0d0
-	   IF (EES.EQ.5)THEN
-	   ALLOCATE (ILOCAL_RECON3(I)%STENCILSC(M2,IMAX2,IDEG2));ILOCAL_RECON3(I)%STENCILSC(:,:,:)=0.0d0
-	   END IF
-	   end if
-	   end if
+                	end if
+                	if (idum.eq.1)then
+				   		ALLOCATE (ILOCAL_RECON3(I)%STENCILS(M,IMAX,IDEG));ILOCAL_RECON3(I)%STENCILS(:,:,:)=0.0d0
+				   		ALLOCATE (ILOCAL_RECON3(I)%WEIGHTL(M,IMAX));ILOCAL_RECON3(I)%WEIGHTL(:,:)=0.0d0!WEIGHTL
+				   		IF (EES.EQ.5)THEN
+				   			ALLOCATE (ILOCAL_RECON3(I)%STENCILSC(M2,IMAX2,IDEG2));ILOCAL_RECON3(I)%STENCILSC(:,:,:)=0.0d0
+				   		END IF
+					end if
+	   			end if
 	   
 	   
 	   
-	   
-! 	    ALLOCATE (ILOCAL_RECON3(I)%INVMAT(M,IDEG,IDEG));ILOCAL_RECON3(I)%INVMAT(:,:,:)=0.0D0
-	    allocate (ILOCAL_RECON3(I)%invmat_stencilt(ideg,imax,ielem(n,i)%admis));ILOCAL_RECON3(I)%invmat_stencilt(:,:,:)=0.0d0
-	    IF (EES.EQ.5)THEN
-	    allocate (ILOCAL_RECON3(I)%invmat_stenciltC(ideg2,imax2,M2));ILOCAL_RECON3(I)%invmat_stenciltC(:,:,:)=0.0d0
-	    END IF
-	END IF
+				! ALLOCATE (ILOCAL_RECON3(I)%INVMAT(M,IDEG,IDEG));ILOCAL_RECON3(I)%INVMAT(:,:,:)=0.0D0
+	    		allocate (ILOCAL_RECON3(I)%invmat_stencilt(ideg,imax,M));ILOCAL_RECON3(I)%invmat_stencilt(:,:,:)=0.0d0
+	    		IF (EES.EQ.5)THEN
+	    			allocate (ILOCAL_RECON3(I)%invmat_stenciltC(ideg2,imax2,M2));ILOCAL_RECON3(I)%invmat_stenciltC(:,:,:)=0.0d0
+	    		END IF
+			END IF
 	
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXG(M,INUM))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXL(M,INUM))
-	if (initcond.eq.0)then
-	allocate (ILOCAL_RECON3(I)%cond(7))
-	end if
-	IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXGC(M2,INUM2))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXLC(M2,INUM2))
+			ALLOCATE (ILOCAL_RECON3(I)%IHEXG(M,INUM))
+			ALLOCATE (ILOCAL_RECON3(I)%IHEXL(M,INUM))
+			ALLOCATE (ILOCAL_RECON3(I)%PERIODICFLAG(M,INUM))
 	
+			IF (EES.EQ.5)THEN
+				ALLOCATE (ILOCAL_RECON3(I)%IHEXGC(M2,INUM2))
+				ALLOCATE (ILOCAL_RECON3(I)%IHEXLC(M2,INUM2))
+			END IF
 	
-	END IF
-	ITRUE=0
-	DO J=1,TYPESTEN
-		IKG=0
-			 IF ((EES.NE.5).OR.(J.EQ.1))THEN
-                            ITARGET=INUM
-                    ELSE
-                            ITARGET=INUM2
-                    END IF
-			DO K=1,ITARGET
-				IF (ILOCALSTENCIL(N,I,J,K).GT.0)THEN
-				IKG=IKG+1
-				IF (XMPIE(ILOCALSTENCIL(N,I,J,K)).NE.N)THEN
-				  ITRUE=1
+			ITRUE=0
+			DO J=1,TYPESTEN
+				IKG=0
+                IF ((EES.NE.5).OR.(J.EQ.1))THEN
+					ITARGET=INUM
+				ELSE
+					ITARGET=INUM2
 				END IF
-				END IF
+				DO K=1,ITARGET
+					IF (ILOCALSTENCIL(N,I,J,K).GT.0)THEN
+						IKG=IKG+1
+						IF (XMPIE(ILOCALSTENCIL(N,I,J,K)).NE.N)THEN
+							ITRUE=1
+						END IF
+					END IF
+				END DO
 			END DO
+			IF (ITRUE.EQ.0)THEN
+				ILOCAL_RECON3(I)%LOCAL=1
+			ELSE
+				ILOCAL_RECON3(I)%LOCAL=0
+			END IF
+	
 
+			IF (ILOCAL_RECON3(I)%LOCAL.EQ.0)THEN
+				ALLOCATE (ILOCAL_RECON3(I)%IHEXB(M,INUM))
+				ALLOCATE (ILOCAL_RECON3(I)%IHEXN(M,INUM))
+				IF (EES.EQ.5)THEN
+					ALLOCATE (ILOCAL_RECON3(I)%IHEXbC(M2,INUM2))
+					ALLOCATE (ILOCAL_RECON3(I)%IHEXnC(M2,INUM2))
+				END IF
+			END IF
+
+			if (iweno.eq.1)then
+				ALLOCATE (ILOCAL_RECON3(I)%INDICATOR(IDEG,IDEG));ILOCAL_RECON3(I)%INDICATOR(:,:)=0.0D0
+				IF (EES.EQ.5)THEN
+					ALLOCATE (ILOCAL_RECON3(I)%INDICATORc(IDEG2,IDEG2));ILOCAL_RECON3(I)%INDICATORc(:,:)=0.0D0
+				end if
+			END IF
+	
+
+
+		  CASE(5,6)
+			IMAX=IELEM(N,I)%inumneighbours-1
+			INUM=IELEM(N,I)%inumneighbours
+			IDEG=IELEM(N,I)%iDEGFREE
+			M=IELEM(N,I)%ADMIS
+	
+			IF (EES.EQ.5)THEN
+				IMAX2=NUMNEIGHBOURS2-1
+				INUM2=NUMNEIGHBOURS2
+				IDEG2=IDEGFREE2
+				M2=IELEM(N,I)%ADMIS
+			END IF
+
+			if (fastest.ne.1)then
+				ALLOCATE (ILOCAL_RECON3(I)%INVCCJAC(2,2));ILOCAL_RECON3(I)%INVCCJAC(:,:)=0.0D0
+				! ALLOCATE (ILOCAL_RECON3(I)%INVCTJAC(2,2));ILOCAL_RECON3(I)%INVCTJAC(:,:)=0.0D0
+				! ALLOCATE (ILOCAL_RECON3(I)%VOLUME(M,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
+				! IF (EES.EQ.5)THEN
+				!     ALLOCATE (ILOCAL_RECON3(I)%VOLUMEC(M2,INUM2));ILOCAL_RECON3(I)%VOLUMEC(:,:)=0.0D0
+				! END IF
+				ALLOCATE(ILOCAL_RECON3(I)%VEXT_REF(2));ILOCAL_RECON3(I)%VEXT_REF=0.0D0
+			end if
+			
+			IDUM=0
+			if (ielem(n,i)%interior.eq.1)then
+                DO j=1,IELEM(N,I)%IFCA
+                    if (ielem(n,i)%ibounds(J).gt.0)then
+                        if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+                            IDUM=1
+                        end if
+                    END IF
+                END DO
+            end if
+		
+			if (idum.eq.1)then
+	   			ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
+	   		else
+	   			ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
+	   		end if
+	
+			IF (FIRSTORDER.NE.1)THEN
+	   			IF (GREENGO.EQ.0)then
+	  
+	   				IDUM=0;
+                	if (ielem(n,i)%interior.eq.1)then
+                        DO j=1,IELEM(N,I)%IFCA
+                        	if (ielem(n,i)%ibounds(J).gt.0)then
+                            	if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+                                	IDUM=1
+                            	end if
+                        	END IF
+                        END DO
+                	end if
+                	if (idum.eq.1)then
+	      
+	   					ALLOCATE (ILOCAL_RECON3(I)%STENCILS(M,IMAX,IDEG));ILOCAL_RECON3(I)%STENCILS(:,:,:)=0.0d0
+	   					ALLOCATE (ILOCAL_RECON3(I)%WEIGHTL(M,IMAX));ILOCAL_RECON3(I)%WEIGHTL(:,:)=0.0d0
+	   					IF (EES.EQ.5)THEN
+	   						ALLOCATE (ILOCAL_RECON3(I)%STENCILSC(M2,IMAX2,IDEG2));ILOCAL_RECON3(I)%STENCILSC(:,:,:)=0.0d0
+	   					END IF
+	   				end if
+	   			end if
+
+				! ALLOCATE (ILOCAL_RECON3(I)%INVMAT(M,IDEG,IDEG));ILOCAL_RECON3(I)%INVMAT(:,:,:)=0.0D0
+	    		allocate (ILOCAL_RECON3(I)%invmat_stencilt(ideg,imax,ielem(n,i)%admis));ILOCAL_RECON3(I)%invmat_stencilt(:,:,:)=0.0d0
+	    		IF (EES.EQ.5)THEN
+	    			allocate (ILOCAL_RECON3(I)%invmat_stenciltC(ideg2,imax2,M2));ILOCAL_RECON3(I)%invmat_stenciltC(:,:,:)=0.0d0
+	    		END IF
+			END IF
+	
+			ALLOCATE (ILOCAL_RECON3(I)%IHEXG(M,INUM))
+			ALLOCATE (ILOCAL_RECON3(I)%IHEXL(M,INUM))
+			if (initcond.eq.0)then
+				allocate (ILOCAL_RECON3(I)%cond(7))
+			end if
+			IF (EES.EQ.5)THEN
+				ALLOCATE (ILOCAL_RECON3(I)%IHEXGC(M2,INUM2))
+				ALLOCATE (ILOCAL_RECON3(I)%IHEXLC(M2,INUM2))
+			END IF
+			ITRUE=0
+			DO J=1,TYPESTEN
+				IKG=0
+			 	IF ((EES.NE.5).OR.(J.EQ.1))THEN
+					ITARGET=INUM
+				ELSE
+					ITARGET=INUM2
+				END IF
+				DO K=1,ITARGET
+					IF (ILOCALSTENCIL(N,I,J,K).GT.0)THEN
+						IKG=IKG+1
+						IF (XMPIE(ILOCALSTENCIL(N,I,J,K)).NE.N)THEN
+				  			ITRUE=1
+						END IF
+					END IF
+				END DO
+
+			END DO
+			IF (ITRUE.EQ.0)THEN
+				ILOCAL_RECON3(I)%LOCAL=1
+			ELSE
+				ILOCAL_RECON3(I)%LOCAL=0
+			END IF
+	
+			IF (ILOCAL_RECON3(I)%LOCAL.EQ.0)THEN
+				ALLOCATE (ILOCAL_RECON3(I)%IHEXB(M,INUM))
+				ALLOCATE (ILOCAL_RECON3(I)%IHEXN(M,INUM))
+				IF (EES.EQ.5)THEN
+					ALLOCATE (ILOCAL_RECON3(I)%IHEXbC(M2,INUM2))
+					ALLOCATE (ILOCAL_RECON3(I)%IHEXnC(M2,INUM2))
+				END IF
+			END IF
+
+			if (iweno.eq.1)then
+				ALLOCATE (ILOCAL_RECON3(I)%INDICATOR(IDEG,IDEG));ILOCAL_RECON3(I)%INDICATOR(:,:)=0.0D0
+				IF (EES.EQ.5)THEN
+					ALLOCATE (ILOCAL_RECON3(I)%INDICATORc(IDEG2,IDEG2));ILOCAL_RECON3(I)%INDICATORc(:,:)=0.0D0
+				end if
+			END IF
+
+      	end select
+		! perc=ilocal_recon3(i)%local
+		! perd=kmaxe
+		! perde=perde+perc
 	END DO
-	IF (ITRUE.EQ.0)THEN
-	ILOCAL_RECON3(I)%LOCAL=1
-	ELSE
-	ILOCAL_RECON3(I)%LOCAL=0
-	END IF
-	
-
-	IF (ILOCAL_RECON3(I)%LOCAL.EQ.0)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXB(M,INUM))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXN(M,INUM))
-	IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXbC(M2,INUM2))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXnC(M2,INUM2))
-	
-	
-	END IF
-	END IF
-
-	if (iweno.eq.1)then
-	ALLOCATE (ILOCAL_RECON3(I)%INDICATOR(IDEG,IDEG));ILOCAL_RECON3(I)%INDICATOR(:,:)=0.0D0
-        IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%INDICATORc(IDEG2,IDEG2));ILOCAL_RECON3(I)%INDICATORc(:,:)=0.0D0
-	end if
-	END IF
-
-
-      end select
-!       perc=ilocal_recon3(i)%local
-!       perd=kmaxe
-!       perde=perde+perc
-
-    
-	
-END DO
 END IF
 
-
-
-	
-
-
-
 END SUBROUTINE LOCAL_RECONALLOCATION3
+
+
+
+
+
+
 
 
 
@@ -826,19 +762,17 @@ KMAXE=XMPIELRANK(N)
 
 ALLOCATE(INTEG_BASIS(KMAXE))
 if (dg.eq.1)then
-ALLOCATE(INTEG_BASIS_dg(KMAXE))
+	ALLOCATE(INTEG_BASIS_dg(KMAXE))
 
-
-do i=1,kmaxe
- allocate(INTEG_BASIS_dg(i)%value(1:idegfree));INTEG_BASIS_dg(i)%value(:)=zero
-end do
+	do i=1,kmaxe
+ 		allocate(INTEG_BASIS_dg(i)%value(1:idegfree));INTEG_BASIS_dg(i)%value(:)=zero
+	end do
 end if
 do i=1,kmaxe
- allocate(INTEG_BASIS(i)%value(1:idegfree));INTEG_BASIS(i)%value(:)=zero
- if (ees.eq.5)then
- allocate(INTEG_BASIS(i)%valuec(1:idegfree2));INTEG_BASIS(i)%valuec(:)=zero
- end if
-		  
+ 	allocate(INTEG_BASIS(i)%value(1:idegfree));INTEG_BASIS(i)%value(:)=zero
+ 	if (ees.eq.5)then
+ 		allocate(INTEG_BASIS(i)%valuec(1:idegfree2));INTEG_BASIS(i)%valuec(:)=zero
+ 	end if	  
 end do
 
 END SUBROUTINE ALLOCATE_BASIS_FUNCTION
@@ -872,154 +806,138 @@ END SUBROUTINE DEALLOCATE_BASIS_FUNCTION
 	
 
 	
-	SUBROUTINE U_C_ALLOCATION(N,XMPIELRANK,U_C,U_E,ITESTCASE,U_CT)
-	   !> @brief
+SUBROUTINE U_C_ALLOCATION(N,XMPIELRANK,U_C,U_E,ITESTCASE,U_CT)
+!> @brief
 !> This subroutine allocates memory for solution vector
-	IMPLICIT NONE
-	TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_C,U_CT	
-	TYPE(U_EXACT),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_E
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
-	INTEGER,INTENT(IN)::ITESTCASE,N
-	INTEGER::I,KMAXE,ISTAGE,TOTALPOINTS,totalpointsvol
-	KMAXE=XMPIELRANK(N)
-	ALLOCATE (U_C(KMAXE))
-	IF (FILTERING.EQ.1)THEN
+IMPLICIT NONE
+TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_C,U_CT	
+TYPE(U_EXACT),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_E
+INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
+INTEGER,INTENT(IN)::ITESTCASE,N
+INTEGER::I,KMAXE,ISTAGE,TOTALPOINTS,totalpointsvol
+KMAXE=XMPIELRANK(N)
+ALLOCATE (U_C(KMAXE))
+IF (FILTERING.EQ.1)THEN
 	ALLOCATE (U_CW(KMAXE))
 	ALLOCATE (U_CS(KMAXE))
-	END IF
-	
-	
-	
-	IF (ITESTCASE.LE.4)THEN
-	ALLOCATE (U_E(KMAXE))
-	end if
-	
-	if (( turbulence .GT. 0).OR.(PASSIVESCALAR.GT.0))THEN
-	  Allocate(U_CT(kmaxe))
-	END IF
-
-	SELECT CASE(RUNGEKUTTA)
-	
-	CASE(1)
-	ISTAGE=1
-	
-	CASE(2)
-	ISTAGE=2
-	
-	CASE(3)
-	IF (AVERAGING.EQ.1)THEN
-	ISTAGE=5
-	ELSE
-	ISTAGE=3
-	
-	if (mood.eq.1)then
-	ISTAGE=4
-	end if
-	
-	END IF
-	
-	
-	
-	
-	CASE(4)
-	IF (AVERAGING.EQ.1)THEN
-	ISTAGE=7
-	ELSE
-	ISTAGE=6
-	END IF
-	
-	CASE(5)
-	ISTAGE=2
-	
-	CASE(10)
-	ISTAGE=1
-	
-	CASE(11)
-	
-	IF (AVERAGING.EQ.1)THEN
-	ISTAGE=5
-	ELSE
-	ISTAGE=3
-	END IF
-	
-	CASE(12)
-	
-	IF (AVERAGING.EQ.1)THEN
-	ISTAGE=5
-	ELSE
-	ISTAGE=3
-	END IF
-	
-	END SELECT
-	
-	
-	if (DG.EQ.1)THEN
-	
-        allocate(M_1(kmaxe))
-	END IF
-	
-	DO I=1,KMAXE
-        ALLOCATE (U_C(I)%VAL(ISTAGE,NOF_VARIABLES));U_C(I)%VAL=ZERO
-        IF (FILTERING.EQ.1)tHEN
-        ALLOCATE (U_CW(I)%VAL(1,NOF_VARIABLES));U_CW(I)%VAL=ZERO
-        ALLOCATE (U_CS(I)%VAL(1,NOF_VARIABLES));U_CS(I)%VAL=ZERO
-
-        END IF
-         
-         
-         
-         
-         
-         
-        
-        IF (DG.EQ.1)THEN
-            ALLOCATE (U_C(I)%VALDG(ISTAGE,NOF_VARIABLES,IELEM(N,I)%IDEGFREE+1));U_C(I)%VALDG=ZERO
-            IF (FILTERING.EQ.1)tHEN
-            ALLOCATE (U_CW(I)%VALDG(1,NOF_VARIABLES,IELEM(N,I)%IDEGFREE+1));U_CW(I)%VALDG=ZERO
-            ALLOCATE (U_CS(I)%VALDG(1,NOF_VARIABLES,IELEM(N,I)%IDEGFREE+1));U_CS(I)%VALDG=ZERO
-            END IF
-            
-            allocate (M_1(i)%val(1:idegfree+1,1:idegfree+1));M_1(i)%val=zero
-            
-            IF (ITESTCASE == 4) ALLOCATE(U_C(I)%BR2_AUX_VAR(IELEM(N,I)%IDEGFREE+1,NOF_VARIABLES,DIMENSIONA)) ! NS
-            
-        END IF
-        
-        
-                    if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-                        Allocate(U_CT(I)%VAL(ISTAGE,turbulenceequations+PASSIVESCALAR));U_CT(I)%VAL=ZERO   
-                    Endif
-        IF (AVERAGING.EQ.1)THEN
-		ALLOCATE(U_C(I)%RMS(7))
-		U_C(I)%RMS(:)=ZERO
-		END IF
-		IF (ITESTCASE.LE.4)THEN
-		ALLOCATE (U_E(I)%VAL(1,NOF_VARIABLES));U_E(I)%VAL=ZERO
-		END IF
-	END DO
-	
-	
-	IF (MOOD.EQ.1)THEN
-DO I=1,KMAXE
-    IELEM(N,I)%RECALC=0
-END DO
-ELSE
-DO I=1,KMAXE
-    IELEM(N,I)%RECALC=1
-END DO
 END IF
 	
 	
+IF (ITESTCASE.LE.4)THEN
+	ALLOCATE (U_E(KMAXE))
+end if
 	
-	
-	
-	END SUBROUTINE U_C_ALLOCATION
+if (( turbulence .GT. 0).OR.(PASSIVESCALAR.GT.0))THEN
+	Allocate(U_CT(kmaxe))
+END IF
 
+SELECT CASE(RUNGEKUTTA)
 	
+  CASE(1)
+	ISTAGE=1
+	
+  CASE(2)
+	ISTAGE=2
+	
+  CASE(3)
+	IF (AVERAGING.EQ.1)THEN
+		ISTAGE=5
+	ELSE
+		ISTAGE=3
+		if (mood.eq.1)then
+			ISTAGE=4
+		end if
+	END IF
+	
+  CASE(4)
+	IF (AVERAGING.EQ.1)THEN
+		ISTAGE=7
+	ELSE
+		ISTAGE=6
+	END IF
+	
+  CASE(5)
+	ISTAGE=2
+	
+  CASE(10)
+	ISTAGE=1
+	
+  CASE(11)
+	
+	IF (AVERAGING.EQ.1)THEN
+		ISTAGE=5
+	ELSE
+		ISTAGE=3
+	END IF
+	
+   CASE(12)
+	
+	IF (AVERAGING.EQ.1)THEN
+		ISTAGE=5
+	ELSE
+		ISTAGE=3
+	END IF
+	
+END SELECT
+	
+if (DG.EQ.1)THEN
+    allocate(M_1(kmaxe))
+END IF
+	
+DO I=1,KMAXE
+    ALLOCATE (U_C(I)%VAL(ISTAGE,NOF_VARIABLES));U_C(I)%VAL=ZERO
+    IF (FILTERING.EQ.1)tHEN
+        ALLOCATE (U_CW(I)%VAL(1,NOF_VARIABLES));U_CW(I)%VAL=ZERO
+        ALLOCATE (U_CS(I)%VAL(1,NOF_VARIABLES));U_CS(I)%VAL=ZERO
+    END IF
+        
+	IF (DG.EQ.1)THEN
+		ALLOCATE (U_C(I)%VALDG(ISTAGE,NOF_VARIABLES,IELEM(N,I)%IDEGFREE+1));U_C(I)%VALDG=ZERO
+		IF (FILTERING.EQ.1)tHEN
+			ALLOCATE (U_CW(I)%VALDG(1,NOF_VARIABLES,IELEM(N,I)%IDEGFREE+1));U_CW(I)%VALDG=ZERO
+			ALLOCATE (U_CS(I)%VALDG(1,NOF_VARIABLES,IELEM(N,I)%IDEGFREE+1));U_CS(I)%VALDG=ZERO
+		END IF
+		
+		allocate (M_1(i)%val(1:idegfree+1,1:idegfree+1));M_1(i)%val=zero
+		IF (ITESTCASE == 4) ALLOCATE(U_C(I)%BR2_AUX_VAR(IELEM(N,I)%IDEGFREE+1,NOF_VARIABLES,DIMENSIONA)) ! NS
+
+	END IF
+            
+    if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
+        Allocate(U_CT(I)%VAL(ISTAGE,turbulenceequations+PASSIVESCALAR));U_CT(I)%VAL=ZERO   
+    End if
+    IF (AVERAGING.EQ.1)THEN
+		ALLOCATE(U_C(I)%RMS(7))
+		U_C(I)%RMS(:)=ZERO
+	END IF
+	IF (ITESTCASE.LE.4)THEN
+		ALLOCATE (U_E(I)%VAL(1,NOF_VARIABLES));U_E(I)%VAL=ZERO
+	END IF
+END DO
+	
+	
+IF (MOOD.EQ.1)THEN
+	DO I=1,KMAXE
+    	IELEM(N,I)%RECALC=0
+	END DO
+ELSE
+	DO I=1,KMAXE
+    	IELEM(N,I)%RECALC=1
+	END DO
+END IF
+	
+
+END SUBROUTINE U_C_ALLOCATION
+
+
+
+
+
+
 
 	
 subroutine local_reconallocation5(n)
-   !> @brief
+!> @brief
 !> This subroutine allocates memory for reconstruction (one per process since these are destroyed after each element)
 implicit none
 INTEGER,INTENT(IN)::N
@@ -1029,72 +947,59 @@ kmaxe=xmpielrank(n)
 allocate (ilocal_recon5(1:kmaxe))
 
 
-
 do i=1,kmaxe
 
-if (dimensiona.eq.3)then
+	if (dimensiona.eq.3)then
 
-
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS(TYPESTEN,IDEGFREE,NOF_VARIABLES)) !1000
-if (ees.eq.5)then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSc(TYPESTEN,IDEGFREE2,NOF_VARIABLES)) !1000
-end if
-
-
-
-		if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
-		ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS2(TYPESTEN,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
-				if (ees.eq.5)then
-				ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSC2(TYPESTEN,IDEGFREE2,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
-				end if
+		ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS(TYPESTEN,IDEGFREE,NOF_VARIABLES)) !1000
+		if (ees.eq.5)then
+			ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSc(TYPESTEN,IDEGFREE2,NOF_VARIABLES)) !1000
 		end if
 
+		if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
+			ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS2(TYPESTEN,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
+			if (ees.eq.5)then
+				ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSC2(TYPESTEN,IDEGFREE2,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
+			end if
+		end if
 
-if (itestcase.eq.4)Then
-if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTURB(1,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR)) !10
-END IF
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTEMP(IDEGFREE))!10
-ALLOCATE (ILOCAL_RECON5(i)%VELOCITYDOF(3,IDEGFREE))!30
+		if (itestcase.eq.4)Then
+			if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
+				ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTURB(1,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR)) !10
+			END IF
+			ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTEMP(IDEGFREE))!10
+			ALLOCATE (ILOCAL_RECON5(i)%VELOCITYDOF(3,IDEGFREE))!30
+		end if
 
-end if
+	else
 
+		ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS(TYPESTEN,IDEGFREE,NOF_VARIABLES)) !1000
+		if (ees.eq.5)then
+			ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSc(TYPESTEN,IDEGFREE2,NOF_VARIABLES)) !1000
+		end if
+		if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
+			ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS2(TYPESTEN,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
+			if (ees.eq.5)then
+				ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSC2(TYPESTEN,IDEGFREE2,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
+			end if
+		end if
 
-
-else
-
-
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS(TYPESTEN,IDEGFREE,NOF_VARIABLES)) !1000
-if (ees.eq.5)then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSc(TYPESTEN,IDEGFREE2,NOF_VARIABLES)) !1000
-end if
-if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS2(TYPESTEN,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
-if (ees.eq.5)then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSC2(TYPESTEN,IDEGFREE2,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
-end if
-end if
-
-
-
-
-
-if (itestcase.eq.4)Then
-if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTURB(1,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR)) !10
-END IF
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTEMP(IDEGFREE))!10
-ALLOCATE (ILOCAL_RECON5(i)%VELOCITYDOF(2,IDEGFREE))!30
-
-end if
-
-end if
-
-
-
+		if (itestcase.eq.4)Then
+			if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
+				ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTURB(1,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR)) !10
+			END IF
+			ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTEMP(IDEGFREE))!10
+			ALLOCATE (ILOCAL_RECON5(i)%VELOCITYDOF(2,IDEGFREE))!30
+		end if
+	end if
 end do
 
 end subroutine 
+
+
+
+
+
 
 SUBROUTINE LOCAL_RECONALLOCATION4(N)
    !> @brief
@@ -1121,68 +1026,54 @@ DO II=1,NOF_INTERIOR	!for all the interior elements
 
 	select case(ielem(n,i)%ishape)
 	
-	case(1,3,4)
-	points=QP_quad_n
+	  case(1,3,4)
+		points=QP_quad_n
 	
-	case(2)
-	points=QP_TRIANGLE_n
+	  case(2)
+		points=QP_TRIANGLE_n
 	end select
 		
 	IF (ITESTCASE.EQ.4)THEN
 		
-                if (fastest.ne.1)then
-                ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
-                
-                
-                
-                else
-                ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
+        if (fastest.ne.1)then
+        	ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))     
+        else
+            ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
+        end if
 
-                end if
-                ILOCAL_RECON3(I)%ULEFTV=zero
+        ILOCAL_RECON3(I)%ULEFTV=zero
                 
-                if ((turbulence.eq.1).or.(passivescalar.gt.0)) then
+        if ((turbulence.eq.1).or.(passivescalar.gt.0)) then
                 
-                SVG=(TURBULENCEEQUATIONS+PASSIVESCALAR)
-                        if (fastest.ne.1)then
-                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-                        
-                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
-
-                        else
-                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-                        
-                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
-
-
-
-                        end if
-                ILOCAL_RECON3(I)%ULEFTTURB=zero;ILOCAL_RECON3(I)%ULEFTTURBv=zero
-                
-                END IF
-	
-	
-	
-	 
+            SVG=(TURBULENCEEQUATIONS+PASSIVESCALAR)
+			if (fastest.ne.1)then
+				ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
+					
+				ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
+			else
+				ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
+					
+				ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
+			end if
+			ILOCAL_RECON3(I)%ULEFTTURB=zero;ILOCAL_RECON3(I)%ULEFTTURBv=zero     
+        END IF
 	END IF
 	ALLOCATE (ILOCAL_RECON3(I)%GRADS(4+TURBULENCEEQUATIONS+passivescalar+(QSAS_MODEL*3),3))
 	
 	IF ((OUTSURF.EQ.1).AND.(AVERAGING.EQ.1))THEN
-	ALLOCATE (ILOCAL_RECON3(I)%GRADSAV(4,3))
+		ALLOCATE (ILOCAL_RECON3(I)%GRADSAV(4,3))
 	END IF
 	
-	 if (fastest.ne.1)then
+	if (fastest.ne.1)then
         ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,points))
 	else
-	 ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
+	 	ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
 
-	  end if
-	  ILOCAL_RECON3(I)%ULEFT=zero
+	end if
+	ILOCAL_RECON3(I)%ULEFT=zero
 	
-! 	END IF
-	
-	
-	
+! END IF
+
 END DO
 
 
@@ -1193,69 +1084,56 @@ DO II=1,NOF_BOUNDED
 	
 	select case(ielem(n,i)%ishape)
 	
-	case(1,3,4)
-	points=QP_quad_n
+	  case(1,3,4)
+		points=QP_quad_n
 	
-	case(2)
-	points=QP_TRIANGLE_n
+	  case(2)
+		points=QP_TRIANGLE_n
 	end select
 		
 	IF (ITESTCASE.EQ.4)THEN
-		
-	if (fastest.ne.1)then
-	ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
-	
-	
-	
-	else
-	ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
+		if (fastest.ne.1)then
+			ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
+		else
+			ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
 
-	end if
-	ILOCAL_RECON3(I)%ULEFTV=zero
+		end if
+		ILOCAL_RECON3(I)%ULEFTV=zero
 	
-	if ((turbulence.eq.1).or.(passivescalar.gt.0)) then
-	  
-	  SVG=(TURBULENCEEQUATIONS+PASSIVESCALAR)
-	  if (fastest.ne.1)then
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
+		if ((turbulence.eq.1).or.(passivescalar.gt.0)) then
+	  		SVG=(TURBULENCEEQUATIONS+PASSIVESCALAR)
+	  		if (fastest.ne.1)then
+	  			ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
 	 
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
-
-	  else
-	   ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
+	  			ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
+	  		else
+	   			ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
 	 
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
-
-
-
-	  end if
-	  ILOCAL_RECON3(I)%ULEFTTURB=zero;ILOCAL_RECON3(I)%ULEFTTURBv=zero
-	  
+	  			ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
+	  		end if
+	  		ILOCAL_RECON3(I)%ULEFTTURB=zero;ILOCAL_RECON3(I)%ULEFTTURBv=zero
+		END IF 
 	END IF
-	
-	
-	
-	 
-	END IF
+
 	ALLOCATE (ILOCAL_RECON3(I)%GRADS(4+TURBULENCEEQUATIONS+passivescalar+(QSAS_MODEL*3),3))
 	IF ((OUTSURF.EQ.1).AND.(AVERAGING.EQ.1))THEN
-	ALLOCATE (ILOCAL_RECON3(I)%GRADSAV(4,3))
+		ALLOCATE (ILOCAL_RECON3(I)%GRADSAV(4,3))
 	END IF
 	
-	 if (fastest.ne.1)then
+	if (fastest.ne.1)then
         ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,points))
 	else
-	 ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
-
-	  end if
-	  ILOCAL_RECON3(I)%ULEFT=zero
-	
-	
+	 	ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
+	end if
+	ILOCAL_RECON3(I)%ULEFT=zero
 	
 END DO
 
-
 END SUBROUTINE LOCAL_RECONALLOCATION4
+
+
+
+
 
 
 SUBROUTINE LOCAL_RECONALLOCATION42d(N)
@@ -1279,12 +1157,10 @@ DO I=1,KMAXE
 	
     points=qp_line_n
 	
-		
 	IF (ITESTCASE.EQ.4)THEN !Linear step?
 		
         if (fastest.ne.1)then
             ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
-
         else
             ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
         end if
@@ -1315,29 +1191,16 @@ DO I=1,KMAXE
     if (fastest.ne.1)then
         ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,points))
         IF (CODE_PROFILE.EQ.2)THEN
-        ALLOCATE (ILOCAL_RECON3(I)%ULEFTx(IT,ielem(n,i)%ifca,points))
+        	ALLOCATE (ILOCAL_RECON3(I)%ULEFTx(IT,ielem(n,i)%ifca,points))
         END IF
     else
         ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
-
     end if
     ILOCAL_RECON3(I)%ULEFT=zero
 	
-
 END DO
-
 
 END SUBROUTINE LOCAL_RECONALLOCATION42d
 	
-
-
-
-
-
-
-
-
-
-
 
 END MODULE MEMORY
