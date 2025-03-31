@@ -417,7 +417,8 @@ REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 KMAXE=XMPIELRANK(N)
 
 
-!$OMP DO
+!!!$OMP DO
+!$OMP target teams distribute parallel do
 DO II=1,NOF_INTERIOR;
 I=EL_INT(II)
 ICONSIDERED=I
@@ -452,7 +453,8 @@ ILOCAL_RECON3(ICONSIDERED)%ULEFT(:,:,:)=ZERO
             END IF
 
 END DO
-!$OMP END DO
+!!!$OMP END DO
+!$OMP end target teams distribute parallel do
 
 !$OMP DO
 	DO II=1,NOF_BOUNDED

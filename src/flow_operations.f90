@@ -2582,6 +2582,7 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
 !> @brief
 !> This subroutine applies the boundary condition to each bounded cell
 implicit none
+!$omp declare target
 integer,intent(in)::n,b_code,ICONSIDERED,facex
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::LEFTV,RIGHTV
 INTEGER,INTENT(INOUT)::IBFC
@@ -3091,6 +3092,7 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
 !> @brief
 !> This subroutine applies the boundary condition to each bounded cell
 implicit none
+!$omp declare target
 integer,intent(in)::n,b_code,ICONSIDERED,facex
 INTEGER,INTENT(INOUT)::IBFC
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::LEFTV,RIGHTV
@@ -3650,6 +3652,7 @@ SUBROUTINE COMPUTE_EIGENVECTORS(N,RVEIGL,RVEIGR,EIGVL,EIGVR,GAMMA)
 !> @brief
 !> This subroutine computes the left and right eigenvectors 
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL,RVEIGR
 REAL,INTENT(IN)::GAMMA
@@ -3770,6 +3773,7 @@ SUBROUTINE COMPUTE_EIGENVECTORS2D(N,RVEIGL,RVEIGR,EIGVL,EIGVR,GAMMA)
 !> @brief
 !> This subroutine computes the left and right eigenvectors  in 2D
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL,RVEIGR
 REAL,INTENT(IN)::GAMMA
