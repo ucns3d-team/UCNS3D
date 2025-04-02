@@ -1682,6 +1682,7 @@ subroutine coordinates_face_innerx(n,iconsidered,facex,VEXT,NODES_LIST)
  !> @brief
 !> This subroutine retrieve the nodes of interior faces of elements in 3D
 IMPLICIT NONE
+!$omp declare target
 integer,intent(in)::n,iconsidered,facex
 REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
@@ -1712,6 +1713,7 @@ subroutine coordinates_face_inner2dx(n,iconsidered,facex,VEXT,NODES_LIST)
  !> @brief
 !> This subroutine retrieves the nodes of edges of elements in 2D
 IMPLICIT NONE
+!$omp declare target
 integer,intent(in)::n,iconsidered,facex
 REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
@@ -4218,6 +4220,7 @@ SUBROUTINE ROTATEF(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
  !> @brief
 !> This subroutine rotates the vector of fluxes in the directions normal to the face in 3D 
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:5,1:5)::TRI
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT

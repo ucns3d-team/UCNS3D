@@ -12,6 +12,7 @@ FUNCTION BASIS_REC(N,X1,Y1,Z1,NUMBER,ICONSIDERED,NUMBER_OF_DOG,ICOMPWRT)
 !> @brief
 !> This function returns the value of the basis function for a specific polynomial order and coordinates
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(IN)::NUMBER,ICONSIDERED,NUMBER_OF_DOG,icompwrt
 REAL,INTENT(IN)::X1,Y1,Z1
@@ -1751,6 +1752,7 @@ FUNCTION BASIS_REC2d(N,X1,Y1,NUMBER,ICONSIDERED,NUMBER_OF_DOG,ICOMPWRT)
 !> REQUIRES: X1, Y1: coordinates of basis evaluation wrt ?; NUMBER: order of basis; ICONSIDERED: considered cell?; NUMBER_OF_DOG: number of degrees of freedom
 ! NUMBER and NUMBER_OF_DOG redundant?
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 INTEGER,INTENT(IN)::NUMBER,ICONSIDERED,NUMBER_OF_DOG,ICOMPWRT
 REAL,INTENT(IN)::X1,Y1
