@@ -228,6 +228,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
+
 								    
 								    
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
@@ -483,7 +484,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
-								    
+
 								    
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
@@ -943,7 +944,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
-								    
+
 								    
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
@@ -1153,7 +1154,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
-								    
+
 								    
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
@@ -1574,8 +1575,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
-								    
-								    
+
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
@@ -1583,6 +1583,9 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
 								    end if
 								    
+
+
+
 								    
 								     select case(b_code)
 								    case(1)
@@ -1618,6 +1621,10 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    end if
+
+
+								
+
 								    
 								    
 								    end select
@@ -1668,7 +1675,6 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							END IF
 					    END IF
 	
-	
 
 B1_imp(1:nof_variables)=B1_imp(1:nof_variables)-MATMUL(IMPoff(i,L,1:nof_variables,1:nof_variables),DU1(1:nof_variables))
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -1681,11 +1687,14 @@ IMPDU(I,1:nof_variables)=MATMUL(impdiag(i,1:nof_variables,1:nof_variables),b1_im
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 end if
-END DO	!loop elements
+	!loop elements
+
+end do
 !$OMP end DO
 
  call EXHBOUNDHIGHER2(N)
 
+ 
 
 END DO!sweeps
 
@@ -1823,7 +1832,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
-								    
+
 								    
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
@@ -2277,7 +2286,6 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
 								    
-								    
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
@@ -2498,8 +2506,8 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
-								    
-								    
+								   
+
 								    
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    
@@ -3107,6 +3115,9 @@ DO L=1,IELEM(N,I)%IFCA	!COND1
 		B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 		
 		if (dimensiona.eq.2)then
+			
+
+
 		CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 		else
 		
