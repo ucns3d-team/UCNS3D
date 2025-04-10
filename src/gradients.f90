@@ -1725,7 +1725,7 @@ real::attt
 integer::ll
 
 allocate(MATRIX_1(1:turbulenceequations+passivescalar,NUMBER_OF_NEI-1))
-allocate(MATRIX_2(NUMBER_OF_DOG,1:turbulenceequations+passivescalar))	
+allocate(MATRIX_2(1:turbulenceequations+passivescalar,NUMBER_OF_DOG))	
 allocate(SOL_M(NUMBER_OF_DOG,1:turbulenceequations+passivescalar))	
 
 
