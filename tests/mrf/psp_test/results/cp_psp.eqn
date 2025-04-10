@@ -1,0 +1,17 @@
+#!MC 1410
+$!ALTERDATA 
+  EQUATION = '{velocity}=sqrt({U}**2+{V}**2+{W}**2)'
+$!ALTERDATA 
+  EQUATION = '{rot}=120.427'
+$!ALTERDATA 
+  EQUATION = '{section}=1.6891*0.93'
+$!ALTERDATA 
+  EQUATION = '{CP}=({PRESSURE}-101325)/(0.5*1.2167*({rot}*{section})**2)'
+$!ALTERDATA 
+  EQUATION = '{Xmin}=-0.0342007'
+$!ALTERDATA 
+  EQUATION = '{Xmax}=0.10242'
+$!ALTERDATA 
+  EQUATION = '{dx}=((-{Xmax}+{Xmin})**2)**0.5'
+$!ALTERDATA 
+  EQUATION = '{x/c}=({X}-{Xmin})/({dx})'
