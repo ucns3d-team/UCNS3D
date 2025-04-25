@@ -7,10 +7,10 @@ endif
 ucns3d_p.hpcstruct: ucns3d_p
 	hpcstruct ucns3d_p
 
-ucns3d_p: mpi_p.o declarations.o parameters.o translate.o grid_t.o flow_operations.o io.o memory.o communications.o  der_r.o parts.o svd.o grid_p.o basis.o local_pt.o riemann.o flux_p.o profile.o init_p.o bc_p.o matrix.o gradients.o prestore.o reconstruct_p.o source.o  implicit_fluxes.o implicit_time.o flux_pv.o mood.o time_p.o dg_functions.o   main.o 
-	$(LD) $(FFLAGS) $(OFLAGS) -o ucns3d_p declarations.o translate.o grid_t.o flow_operations.o memory.o io.o mpi_p.o der_r.o parameters.o  communications.o riemann.o flux_p.o profile.o init_p.o parts.o bc_p.o matrix.o grid_p.o basis.o gradients.o prestore.o reconstruct_p.o source.o implicit_fluxes.o implicit_time.o flux_pv.o time_p.o   svd.o local_pt.o mood.o dg_functions.o  main.o  $(LIBS)
+ucns3d_p: mpi_p.o declarations.o parameters.o translate.o grid_t.o flow_operations.o io.o memory.o communications.o  der_r.o parts.o svd.o grid_p.o basis.o local_pt.o riemann.o flux_p.o profile.o init_p.o bc_p.o matrix.o gradients.o prestore.o reconstruct_p.o source.o  implicit_fluxes.o implicit_time.o mood.o time_p.o dg_functions.o   main.o 
+	$(LD) $(FFLAGS) $(OFLAGS) -o ucns3d_p declarations.o translate.o grid_t.o flow_operations.o memory.o io.o mpi_p.o der_r.o parameters.o  communications.o riemann.o flux_p.o profile.o init_p.o parts.o bc_p.o matrix.o grid_p.o basis.o gradients.o prestore.o reconstruct_p.o source.o implicit_fluxes.o implicit_time.o time_p.o   svd.o local_pt.o mood.o dg_functions.o  main.o  $(LIBS)
 
-main.o: mpi_p.o declarations.o translate.o parameters.o memory.o communications.o io.o parts.o grid_p.o grid_t.o flux_p.o implicit_time.o bc_p.o time_p.o reconstruct_p.o local_pt.o flux_pv.o profile.o flow_operations.o gradients.o basis.o prestore.o riemann.o source.o implicit_time.o implicit_fluxes.o mood.o
+main.o: mpi_p.o declarations.o translate.o parameters.o memory.o communications.o io.o parts.o grid_p.o grid_t.o flux_p.o implicit_time.o bc_p.o time_p.o reconstruct_p.o local_pt.o profile.o flow_operations.o gradients.o basis.o prestore.o riemann.o source.o implicit_time.o implicit_fluxes.o mood.o
 	$(F90) $(FFLAGS)  -c	main.f90
 
 mpi_p.o : $@ mpi_p.f90
@@ -18,7 +18,7 @@ mpi_p.o : $@ mpi_p.f90
 
 declarations.o : $@ declarations.f90
 	$(F90) $(FFLAGS)  -c    declarations.f90
-
+	
 parameters.o : $@ parameters.f90 mpi_p.o declarations.o
 	$(F90) $(FFLAGS)  -c    parameters.f90
 
@@ -45,9 +45,6 @@ dg_functions.o : $@ dg_functions.f90 basis.o der_r.o flow_operations.o matrix.o
 
 flux_p.o : $@ flux_p.f90 grid_p.o grid_t.o local_pt.o riemann.o flow_operations.o dg_functions.o
 	$(F90) $(FFLAGS)  -c    flux_p.f90
-
-flux_pv.o : $@ flux_pv.f90 grid_p.o grid_t.o local_pt.o flux_p.o der_r.o implicit_time.o reconstruct_p.o
-	$(F90) $(FFLAGS)  -c    flux_pv.f90
 
 gradients.o : $@ gradients.f90 grid_p.o flow_operations.o
 	$(F90) $(FFLAGS)  -c    gradients.f90
@@ -100,7 +97,7 @@ source.o : $@ source.f90 grid_p.o grid_t.o local_pt.o riemann.o flow_operations.
 svd.o : $@ svd.f90 mpi_p.o
 	$(F90) $(FFLAGS)  -c    svd.f90
 
-mood.o : $@ mood.f90 mpi_p.o declarations.o translate.o memory.o communications.o io.o parts.o grid_p.o grid_t.o flux_p.o implicit_time.o bc_p.o reconstruct_p.o local_pt.o flux_pv.o profile.o flow_operations.o gradients.o basis.o prestore.o riemann.o source.o implicit_time.o implicit_fluxes.o
+mood.o : $@ mood.f90 mpi_p.o declarations.o translate.o memory.o communications.o io.o parts.o grid_p.o grid_t.o flux_p.o implicit_time.o bc_p.o reconstruct_p.o local_pt.o profile.o flow_operations.o gradients.o basis.o prestore.o riemann.o source.o implicit_time.o implicit_fluxes.o
 	$(F90) $(FFLAGS)  -c    mood.f90
 
 time_p.o : $@ time_p.f90 mood.o grid_p.o grid_t.o flux_p.o source.o implicit_time.o bc_p.o reconstruct_p.o local_pt.o flow_operations.o communications.o implicit_time.o implicit_fluxes.o io.o
