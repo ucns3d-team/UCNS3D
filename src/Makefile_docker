@@ -10,6 +10,12 @@ PARMETISLIB= /root/local/lib/libparmetis.a
 
 FFLAGS=-fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -O3 -march=native -Wno-lto-type-mismatch -fPIE  
 
+# the following option should be used for reproducibility
+
+FFLAGS= -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none  -O2 -march=native -fcray-pointer -fno-lto -fno-tree-sra -Wno-lto-type-mismatch -fallow-argument-mismatch
+
+
+
 LIBS = -Wl,-V,-Bstatic libtecio.a  $(GKLIB) $(METISLIB) $(PARMETISLIB) -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi
 
 include Makefile_common
