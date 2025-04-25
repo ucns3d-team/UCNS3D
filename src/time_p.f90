@@ -2861,7 +2861,7 @@ DO I=1,KMAXE
         write(500+n,'(3es14.6)')ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
         if(MRF.EQ.1)then
         write(700+n,*)'SRF -diagonal', ILOCAL_RECON3(I)%MRF ,I
-        write(700+n,'(3es14.6)')ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
+         write(700+n,'(3es14.6)')ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
         write(700+n,*)impdu(i,1),impdu(i,2),impdu(i,3),impdu(i,4),impdu(i,5)
         end if
         kill_nan=1
