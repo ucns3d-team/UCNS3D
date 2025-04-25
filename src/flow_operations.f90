@@ -139,6 +139,7 @@ SUBROUTINE CONS2PRIM(N,leftv,MP_PINFl,gammal)
 !> @brief
 !> This subroutine transforms one vector of conservative variables to primitive variables
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:NOF_VARIABLES)::TEMPS
 real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
@@ -857,6 +858,7 @@ SUBROUTINE PRIM2CONS(N,leftv)
 !> @brief
 ! !> This subroutine transforms one vector of primitive variables to conservative variables
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
@@ -972,6 +974,7 @@ SUBROUTINE PRIM2CONS2(N,LEFTV,RIGHTV)
 !> @brief
 !> This subroutine transforms two vectors of primitive variables to conservative variables
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff

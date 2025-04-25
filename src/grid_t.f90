@@ -954,6 +954,7 @@ END FUNCTION PRISMVOLUME
  !> @brief
 !> This function computes the centre of 3d element 
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N,N_NODE
  REAL,DIMENSION(3)::CORDINATES3
 real::rnode
@@ -999,6 +1000,7 @@ end function distance2
   !> @brief
 !> This function computes the centre of 2d element 
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N,N_NODE
  REAL,DIMENSION(2)::CORDINATES2
 real::rnode
@@ -4265,6 +4267,7 @@ SUBROUTINE ROTATEB(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
  !> @brief
 !> This subroutine rotates back the vector of fluxes from the directions normal to the face to cartesian coordinates
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:5,1:5)::INVTRI
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
@@ -4312,6 +4315,7 @@ SUBROUTINE ROTATEF2d(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
  !> @brief
 !> This subroutine rotates the vector of fluxes in the directions normal to the edge in 2D
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO
@@ -4333,6 +4337,7 @@ SUBROUTINE ROTATEB2d(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
  !> @brief
 !> This subroutine rotates back the vector of fluxes from the directions normal to the edge to cartesian coordinates
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO

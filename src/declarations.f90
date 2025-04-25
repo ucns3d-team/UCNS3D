@@ -10,7 +10,7 @@ MODULE DECLARATION
 
 IMPLICIT NONE
 
-!$omp declare target(adda_filter_strong, adda_filter_weak, adda_type, angle_per, cavitation, dg, dimensiona, dt, ees, gamma, gamma_in, governingequations, ibound, idegfree, idegfree2, ielem, iexsolhir, ilocal_recon3, ilocal_recon5, ilocal_recon6, iorder, iorder2, iscoun, it, lwci1, mp_pinf, multispecies, nof_species, nof_variables, numberofpoints2, oo2, passivescalar, per_rot, qp_array, qp_line, qp_quad, qp_triangle, rungekutta, turbulenceequations, typesten, u_c, u_ct, viscous_s, wenoz, wenwrt, zero, inoder4)
+!$omp declare target(adda_filter_strong, adda_filter_weak, adda_type, angle_per, cavitation, dg, dimensiona, dt, ees, gamma_in, governingequations, ibound, idegfree, idegfree2, ielem, iexsolhir, ilocal_recon3, ilocal_recon5, ilocal_recon6, iorder, iorder2, iscoun, it, lwci1, mp_pinf, multispecies, nof_species, nof_variables, numberofpoints2, oo2, passivescalar, per_rot, qp_array, qp_line, qp_quad, qp_triangle, rungekutta, turbulenceequations, typesten, u_c, u_ct, viscous_s, wenoz, wenwrt, zero, inoder4)
 
 
 !$omp declare target(beta_i1, bleed_end, bleed_plenum, bleed_porosity, bleed_start, boundtype, initcond, itestcase, i_turb_inlet, kinit_srf, mp_a_in, mp_r_in, pi, pres, press_outlet, rres, swirl, t, tolsmall, turbinit, turbulence, turbulencemodel, ufreestream, uvel, visc, vvel, wvel)
@@ -258,6 +258,7 @@ REAL::FIRSTRESK					!RESIDUAL DIMENSIONAL MEAN FLOW
 REAL::FIRSTRESOMEGA				!RESIDUAL DIMENSIONAL MEAN FLOW
 REAL::FIRSTRESPASS				!RESIDUAL DIMENSIONAL MEAN FLOW
 REAL::GAMMA
+!$omp declare target(GAMMA)
 REAL::UVEL					!U VELOCITY
 REAL::UFREESTREAM				!U VELOCITY
 REAL::VVEL					!V-VELOCITY
