@@ -7,104 +7,106 @@ endif
 ucns3d_p.hpcstruct: ucns3d_p
 	hpcstruct ucns3d_p
 
-ucns3d_p: mpi_p.o declarations.o parameters.o translate.o grid_t.o flow_operations.o io.o memory.o communications.o  der_r.o parts.o svd.o grid_p.o basis.o local_pt.o riemann.o flux_p.o profile.o init_p.o bc_p.o matrix.o gradients.o prestore.o reconstruct_p.o source.o  implicit_fluxes.o implicit_time.o  mood.o time_p.o dg_functions.o   main.o 
-	$(LD) $(FFLAGS) $(OFLAGS) -o ucns3d_p declarations.o translate.o grid_t.o flow_operations.o memory.o io.o mpi_p.o der_r.o parameters.o  communications.o riemann.o flux_p.o profile.o init_p.o parts.o bc_p.o matrix.o grid_p.o basis.o gradients.o prestore.o reconstruct_p.o source.o implicit_fluxes.o implicit_time.o  time_p.o   svd.o local_pt.o mood.o dg_functions.o  main.o  $(LIBS)
+ucns3d_p: mpi_p.o declarations.o parameters.o translate.o grid_t.o flow_operations.o io.o memory.o communications.o  der_r.o parts.o svd.o grid_p.o basis.o local_pt.o riemann.o flux_p.o profile.o init_p.o bc_p.o matrix.o gradients.o prestore.o reconstruct_p.o source.o  implicit_fluxes.o implicit_time.o flux_pv.o mood.o time_p.o dg_functions.o   main.o 
+	$(LD) $(FFLAGS) $(OFLAGS) -o ucns3d_p declarations.o translate.o grid_t.o flow_operations.o memory.o io.o mpi_p.o der_r.o parameters.o  communications.o riemann.o flux_p.o profile.o init_p.o parts.o bc_p.o matrix.o grid_p.o basis.o gradients.o prestore.o reconstruct_p.o source.o implicit_fluxes.o implicit_time.o flux_pv.o time_p.o   svd.o local_pt.o mood.o dg_functions.o  main.o  $(LIBS)
 
-main.o: mpiinfo.mod declaration.mod translate.mod parameters.mod memory.mod communications.mod io.mod partition.mod library.mod transform.mod fluxes.mod initialisation.mod boundary.mod advance.mod recon.mod local.mod profile.mod flow_operations.mod gradients.mod basis.mod prestore.mod riemann.mod source.mod implicit_time.mod implicit_fluxes.mod moodr.mod 
+main.o: mpi_p.o declarations.o translate.o parameters.o memory.o communications.o io.o parts.o grid_p.o grid_t.o flux_p.o implicit_time.o bc_p.o time_p.o reconstruct_p.o local_pt.o flux_pv.o profile.o flow_operations.o gradients.o basis.o prestore.o riemann.o source.o implicit_time.o implicit_fluxes.o mood.o
 	$(F90) $(FFLAGS)  -c	main.f90
 
-mpiinfo.mod mpi_p.o : mpi_p.f90
+mpi_p.o : $@ mpi_p.f90
 	$(F90) $(FFLAGS)  -c    mpi_p.f90
 
-declaration.mod declarations.o : declarations.f90
+declarations.o : $@ declarations.f90
 	$(F90) $(FFLAGS)  -c    declarations.f90
 
-parameters.mod parameters.o : parameters.f90 mpiinfo.mod declaration.mod 
+parameters.o : $@ parameters.f90 mpi_p.o declarations.o
 	$(F90) $(FFLAGS)  -c    parameters.f90
 
-translate.mod translate.o : translate.f90
+translate.o : $@ translate.f90 declarations.o
 	$(F90) $(FFLAGS)  -c    translate.f90
 
-basis.mod basis.o : basis.f90 declaration.mod library.mod
+basis.o : $@ basis.f90 declarations.o grid_p.o
 	$(F90) $(FFLAGS)  -c    basis.f90
 	
-boundary.mod bc_p.o : bc_p.f90 library.mod transform.mod
+bc_p.o : $@ bc_p.f90 grid_p.o grid_t.o
 	$(F90) $(FFLAGS)  -c    bc_p.f90
 
-derivatives.mod der_r.o : der_r.f90 mpiinfo.mod
+der_r.o : $@ der_r.f90 mpi_p.o
 	$(F90) $(FFLAGS)  -c    der_r.f90
 
-communications.mod communications.o : communications.f90 mpiinfo.mod declaration.mod transform.mod 
+communications.o : $@ communications.f90 mpi_p.o declarations.o grid_t.o 
 	$(F90) $(FFLAGS)  -c    communications.f90
 
-flow_operations.mod flow_operations.o : flow_operations.f90 declaration.mod mpiinfo.mod transform.mod
+flow_operations.o : $@ flow_operations.f90 declarations.o mpi_p.o grid_t.o
 	$(F90) $(FFLAGS)  -c    flow_operations.f90
 
-dg_functions.mod dg_functions.o : dg_functions.f90 basis.mod derivatives.mod flow_operations.mod lapck.mod
+dg_functions.o : $@ dg_functions.f90 basis.o der_r.o flow_operations.o matrix.o
 	$(F90) $(FFLAGS)  -c    dg_functions.f90
 
-fluxes.mod flux_p.o : flux_p.f90 library.mod transform.mod local.mod riemann.mod flow_operations.mod dg_functions.mod
+flux_p.o : $@ flux_p.f90 grid_p.o grid_t.o local_pt.o riemann.o flow_operations.o dg_functions.o
 	$(F90) $(FFLAGS)  -c    flux_p.f90
 
-gradients.mod gradients.o : gradients.f90 library.mod flow_operations.mod
+flux_pv.o : $@ flux_pv.f90 grid_p.o grid_t.o local_pt.o flux_p.o der_r.o implicit_time.o reconstruct_p.o
+	$(F90) $(FFLAGS)  -c    flux_pv.f90
+
+gradients.o : $@ gradients.f90 grid_p.o flow_operations.o
 	$(F90) $(FFLAGS)  -c    gradients.f90
 
-library.mod grid_p.o : grid_p.f90 mpiinfo.mod declaration.mod io.mod transform.mod
+grid_p.o : $@ grid_p.f90 mpi_p.o declarations.o io.o grid_t.o
 	$(F90) $(FFLAGS)  -c    grid_p.f90
 
-transform.mod grid_t.o : grid_t.f90 mpiinfo.mod declaration.mod
+grid_t.o : $@ grid_t.f90 mpi_p.o declarations.o
 	$(F90) $(FFLAGS)  -c    grid_t.f90
 
-implicit_fluxes.mod implicit_fluxes.o : implicit_fluxes.f90 declaration.mod library.mod transform.mod local.mod riemann.mod flow_operations.mod source.mod
+implicit_fluxes.o  : $@ implicit_fluxes.f90 declarations.o grid_p.o grid_t.o local_pt.o riemann.o flow_operations.o source.o
 	$(F90) $(FFLAGS)  -c    implicit_fluxes.f90
 
-implicit_time.mod implicit_time.o : implicit_time.f90 library.mod transform.mod flow_operations.mod implicit_fluxes.mod communications.mod
+implicit_time.o : $@ implicit_time.f90 grid_p.o grid_t.o flow_operations.o implicit_fluxes.o communications.o
 	$(F90) $(FFLAGS)  -c    implicit_time.f90
 
-initialisation.mod init_p.o : init_p.f90 declaration.mod library.mod transform.mod profile.mod
+init_p.o : $@ init_p.f90 declarations.o grid_p.o grid_t.o profile.o
 	$(F90) $(FFLAGS)  -c    init_p.f90
 
-io.mod io.o : io.f90 mpiinfo.mod declaration.mod flow_operations.mod transform.mod
+io.o : $@ io.f90 mpi_p.o declarations.o flow_operations.o grid_t.o
 	$(F90) $(FFLAGS)  -c    io.f90
 
-local.mod local_pt.o : local_pt.f90 library.mod declaration.mod transform.mod
+local_pt.o : $@ local_pt.f90 grid_p.o declarations.o grid_t.o
 	$(F90) $(FFLAGS)  -c    local_pt.f90
 
-lapck.mod matrix.o : matrix.f90 mpiinfo.mod
+matrix.o : $@ matrix.f90 mpi_p.o
 	$(F90) $(FFLAGS)  -c    matrix.f90
 
-memory.mod memory.o : memory.f90 mpiinfo.mod declaration.mod
+memory.o : $@ memory.f90 mpi_p.o declarations.o
 	$(F90) $(FFLAGS)  -c    memory.f90
 
-partition.mod parts.o : parts.f90 mpiinfo.mod declaration.mod
+parts.o : $@ parts.f90 mpi_p.o declarations.o
 	$(F90) $(FFLAGS)  -c    parts.f90
 
-prestore.mod prestore.o : prestore.f90 declaration.mod derivatives.mod library.mod basis.mod transform.mod local.mod lapck.mod dg_functions.mod
+prestore.o : $@ prestore.f90 declarations.o der_r.o grid_p.o basis.o grid_t.o local_pt.o matrix.o dg_functions.o
 	$(F90) $(FFLAGS)  -c    prestore.f90
 
-profile.mod profile.o : profile.f90 declaration.mod library.mod
+profile.o : $@ profile.f90 declarations.o grid_p.o basis.o
 	$(F90) $(FFLAGS)  -c    profile.f90
 
-recon.mod reconstruct_p.o : reconstruct_p.f90 declaration.mod derivatives.mod library.mod transform.mod local.mod lapck.mod gradients.mod basis.mod
+reconstruct_p.o : $@ reconstruct_p.f90 declarations.o der_r.o grid_p.o grid_t.o local_pt.o matrix.o gradients.o basis.o
 	$(F90) $(FFLAGS)  -c    reconstruct_p.f90
 
-riemann.mod riemann.o : riemann.f90 declaration.mod library.mod flow_operations.mod
+riemann.o : $@ riemann.f90 declarations.o grid_p.o flow_operations.o
 	$(F90) $(FFLAGS)  -c    riemann.f90
 
-source.mod source.o : source.f90 library.mod transform.mod local.mod riemann.mod flow_operations.mod
+source.o : $@ source.f90 grid_p.o grid_t.o local_pt.o riemann.o flow_operations.o
 	$(F90) $(FFLAGS)  -c    source.f90
 
-svd.mod svd.o : svd.f90 mpiinfo.mod
+svd.o : $@ svd.f90 mpi_p.o
 	$(F90) $(FFLAGS)  -c    svd.f90
 
-moodr.mod mood.o : mood.f90 mpiinfo.mod declaration.mod translate.mod memory.mod communications.mod io.mod partition.mod library.mod transform.mod fluxes.mod initialisation.mod boundary.mod recon.mod local.mod profile.mod flow_operations.mod gradients.mod basis.mod prestore.mod riemann.mod source.mod implicit_time.mod implicit_fluxes.mod
+mood.o : $@ mood.f90 mpi_p.o declarations.o translate.o memory.o communications.o io.o parts.o grid_p.o grid_t.o flux_p.o implicit_time.o bc_p.o reconstruct_p.o local_pt.o flux_pv.o profile.o flow_operations.o gradients.o basis.o prestore.o riemann.o source.o implicit_time.o implicit_fluxes.o
 	$(F90) $(FFLAGS)  -c    mood.f90
 
-advance.mod time_p.o : time_p.f90 library.mod transform.mod fluxes.mod source.mod initialisation.mod boundary.mod recon.mod local.mod flow_operations.mod communications.mod implicit_time.mod implicit_fluxes.mod io.mod
+time_p.o : $@ time_p.f90 mood.o grid_p.o grid_t.o flux_p.o source.o implicit_time.o bc_p.o reconstruct_p.o local_pt.o flow_operations.o communications.o implicit_time.o implicit_fluxes.o io.o
 	$(F90) $(FFLAGS)  -c    time_p.f90
 
 
 
 clean:
 	rm  -rf *.mod *.o
-
