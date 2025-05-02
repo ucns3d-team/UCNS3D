@@ -13,22 +13,65 @@
 ! limitations under the License.
 !
 
+  module benchclock
+
+  implicit none
+
+  logical,          save, private :: firstcall = .true.
+  double precision, save, private :: ticktime = 0.0
+
+  integer, parameter :: int32kind = selected_int_kind( 9)
+  integer, parameter :: int64kind = selected_int_kind(18)
+
+!
+!  Select high resolution clock
+!
+
+  integer, parameter :: intkind = int64kind
+  integer(kind = intkind) :: clkcount, clkrate
+
+contains
+
+double precision function benchtime()
+
+  double precision :: dummy
+
+! Ensure clock is initialised  
+
+  if (firstcall) dummy = benchtick()
+
+  call system_clock(clkcount)
+
+  benchtime  = dble(clkcount)*ticktime
+
+end function benchtime
+
+
+double precision function benchtick()
+
+  if (firstcall) then
+
+     firstcall = .false.
+     call system_clock(clkcount, clkrate)
+     ticktime = 1.0d0/dble(clkrate)
+
+  end if
+
+  benchtick = ticktime
+
+end function benchtick
+
+end module benchclock
+
 program prototype
 
-#ifdef CIRRUS_GNU_BUILD
-  implicit none
-  include "mpif.h"
-#else
-  use mpi
-  implicit none
-#endif
+  use benchclock
 
-  integer :: rank       ! rank of each process  ! rank = N
-  integer :: tot_ranks  ! total number of ranks ! tot_ranks = isize
+  implicit none
+
   integer :: provided, ierror
-  integer :: status(MPI_STATUS_SIZE) ! unused
 
-  real :: alpha, beta
+  double precision :: alpha, beta, check
 
   ! !!! s = l, num_stencils = ll unused, num_dof = idegfree, tot_stencils = stencil_local2
   integer :: i, j, k, s, m, num_dof, tot_stencils, num_stencils
@@ -37,11 +80,11 @@ program prototype
   integer :: num_elems, num_vars, num_neighbours
 
   ! !!! r_s = r_l, r_num_elems = r_kmaxe
-  real :: r_s, r_num_elems, r_j, r_k
+  double precision :: r_s, r_num_elems, r_j, r_k
 
   ! !!! threadprivate requires save attribute under GNU - ?
   integer, save :: stencil_local
-  real, allocatable, save, dimension(:) :: leftv  ! threadprivate requires SAVE attribute under GNU
+  double precision, allocatable, save, dimension(:) :: leftv  ! threadprivate requires SAVE attribute under GNU
 
   ! command-line argument for convenience
   integer :: istat
@@ -53,33 +96,16 @@ program prototype
   character(len=4) :: out_suffix
 
   ! timing parameters
-  real :: time_start, time_end
+  double precision :: time_start, time_end
 
   type local_recon3
     integer :: local, mrf, g0
     integer, allocatable, dimension(:,:) :: ihexg  ! global index of cells
-    real, allocatable, dimension(:) :: cond        ! dummy variable used for gradient approximation estimation
-    real, allocatable, dimension(:,:,:) :: invmat, sol, matrix_1  ! (var, dim, i_face)
+    double precision, allocatable, dimension(:) :: cond        ! dummy variable used for gradient approximation estimation
+    double precision, allocatable, dimension(:,:,:) :: invmat, sol, matrix_1  ! (var, dim, i_face)
   end type local_recon3
   type(local_recon3), allocatable, dimension(:) :: ilocal_recon3
 
-
-!$omp threadprivate(leftv, stencil_local)
-
-  call MPI_Init_thread(MPI_THREAD_FUNNELED, provided, ierror)
-  call MPI_Comm_size(MPI_COMM_WORLD, tot_ranks, ierror)
-  call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierror)
-
-#ifdef UCNS3D_DEBUG
-#ifdef CIRRUS_GNU_BUILD
-  if (rank .eq. 0) then
-    write(*, *) "*** COMPILING UCNS3D WITH GNU ON CIRRUS ***"
-  end if
-#endif
-#endif
-
-  ! for all mpi processes
-  ! get number of elements from command-line - note all MPI processes do this
   call get_command_argument(1, input_num_elems)
   read (input_num_elems, '(i7)', iostat=istat) num_elems
   num_vars = 5
@@ -93,16 +119,10 @@ program prototype
   write (*, '(a35, i8)') 'NUMBER OF NEIGHBOURS : ', num_neighbours
   write (*, '(a35, i8)') 'NUMBER OF STENCILS : ', num_stencils
 
-! now allocate a thread private variable
-!$omp parallel default(shared)
-  allocate(leftv(1:num_vars))
-!$omp end parallel
-!$omp barrier
-
   allocate(ilocal_recon3(1:num_elems))
 
   ! TIMEIT
-  time_start = MPI_Wtime()
+  time_start = benchtime()
 
   do i=1,num_elems
 
@@ -139,28 +159,12 @@ program prototype
     end do
   end do
 
-  ! TIMEIT
-  time_end = MPI_Wtime() - time_start
-  if (rank .eq. 0) then
-    write(*, '(a35, es15.7)') "TIME: FILL ilocal_recon3 (s): ", time_end
-  end if
-
-  ! check some values of matrix_1 in ilocal_recon3
-  do j=1,5
-    do k=1,1
-      do s=1,1
-        i = 1
-        write (*, '(a, i2, a, i2, a, i2, a, i2, a, f12.10)') 'I=', i, 'J=', j, ',K=', k,', S=', s, ',ILOCAL=', &
-                                                             ilocal_recon3(i)%matrix_1(j,k,s)
-      end do
-    end do
+  do i=1,num_elems
+     ilocal_recon3(i)%sol(:,:,:) = 0.0
   end do
 
-  ! TIMEIT
-  time_start = MPI_Wtime()
+  time_start = benchtime()
 
-!$omp parallel default(shared)
-!$omp do
   do i=1,num_elems
     if (i .lt. 500) then
       tot_stencils = 5
@@ -189,40 +193,33 @@ program prototype
       !ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) = ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s) + i * 2
     end do
   end do
-!$omp end do
-!$omp end parallel
 
+  i = 1
+
+  !write(*,*) 'invmat'
+!  write(*,*) '------'
+!    write(*,*) ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, 1:stencil_local)
+!  write(*,*) '------'
+!  write(*,*)    
+!    write(*,*) 'matrix_1'
+!  write(*,*) '------'
+!    write(*,*) ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, 1:stencil_local)
+!  write(*,*) '------'
+!  write(*,*)    
+!    write(*,*) 'sol'
+!  write(*,*) '------'
+!    write(*,*) ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, 1:stencil_local)
+!  write(*,*) '------'
+
+
+  check = 0.0
+  ! verification
+  do i=1,num_elems
+     check = check +  sum(ilocal_recon3(i)%sol(:,:,:)**2)
+  end do
   ! TIMEIT
-  time_end = MPI_Wtime() - time_start
-  if (rank .eq. 0) then
+  time_end = benchtime() - time_start
     write (*, '(a35, es15.7)') "TIME: DGEMM (s): ", time_end
-  end if
-
-  ! TIMEIT
-  time_start = MPI_Wtime()
-
-  if (rank .eq. 0) then
-!$omp master
-    out_prefix = 'OUTPUT_Ne'
-    out_suffix = '.DAT'
-    output_filename =  out_prefix//trim(input_num_elems)//out_suffix
-    open(20, file=output_filename, form='formatted', status='new', action='write')
-
-    do i=1,num_elems
-      write(20, *) ilocal_recon3(i)%sol(:,:,:)
-    end do
-    close(20)
-!$omp end master
-!$omp barrier
-  end if
-
-  ! TIMEIT
-  time_end = MPI_Wtime() - time_start
-  if (rank .eq. 0) then
-    write (*, '(a35, es15.7)') "TIME: OUTPUT IO (s): ", time_end
-  end if
-
-  call MPI_Barrier(MPI_COMM_WORLD, ierror)
-  call MPI_Finalize(ierror)
+    write (*, '(a35, es15.7)') "check val      : ", check
 
 end program prototype
