@@ -154,40 +154,40 @@ program prototype
      end do
   end do
 
-  do i=1,num_elems
-     ilocal_recon3(i)%sol(:,:,:) = 0.0
-  end do
-
-  time_start = benchtime()
-
-  do i=1,num_elems
-     if (i .lt. 500) then
-        tot_stencils = 5
-     else
-        tot_stencils = 4
-     end if
-
-
-     ! set DGEMM parameters alpha and beta here
-     alpha = 1.0
-     beta = 0.0
-
-     do s=1,tot_stencils
-
-        ! DGEMM calculates: C := alpha * A x B + beta * C
-        ! num_dof  : number of rows of A and C
-        ! num_vars : number of columns of B and C
-        ! num_neighbours : number of column of A and number of rows of B
-        ! C is the solution matrix
-        call dgemm('n', 'n', num_dof, num_vars, num_neighbours, alpha, &
-             ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, s), num_dof,&
-             ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, s), num_neighbours, &
-             beta, ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s), num_dof)
-
-     end do
-  end do
-
-  time_end = benchtime() - time_start
+!  do i=1,num_elems
+!     ilocal_recon3(i)%sol(:,:,:) = 0.0
+!  end do
+!
+!  time_start = benchtime()
+!
+!  do i=1,num_elems
+!     if (i .lt. 500) then
+!        tot_stencils = 5
+!     else
+!        tot_stencils = 4
+!     end if
+!
+!
+!     ! set DGEMM parameters alpha and beta here
+!     alpha = 1.0
+!     beta = 0.0
+!
+!     do s=1,tot_stencils
+!
+!        ! DGEMM calculates: C := alpha * A x B + beta * C
+!        ! num_dof  : number of rows of A and C
+!        ! num_vars : number of columns of B and C
+!        ! num_neighbours : number of column of A and number of rows of B
+!        ! C is the solution matrix
+!        call dgemm('n', 'n', num_dof, num_vars, num_neighbours, alpha, &
+!             ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, s), num_dof,&
+!             ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, s), num_neighbours, &
+!             beta, ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s), num_dof)
+!
+!     end do
+!  end do
+!
+!  time_end = benchtime() - time_start
 
   check = 0.0
   ! verification
@@ -205,6 +205,7 @@ program prototype
 
   time_start = benchtime()
 
+  !$omp target teams distribute parallel do private(s, tot_stencils)
   do i=1,num_elems
      if (i .lt. 500) then
         tot_stencils = 5
@@ -235,8 +236,8 @@ program prototype
      check = check +  sum(ilocal_recon3(i)%sol(:,:,:)**2)
   end do
   ! TIMEIT
-  write (*, '(a35, es15.7)') "TIME: MATMUL (s): ", time_end
-  write (*, '(a35, es15.7)') "GFLOP:MATMUL    : ", 1.0e-9*(nflop/time_end)
-  write (*, '(a35, es15.7)') "check val       : ", check
+  write (*, '(a35, es15.7)') "TIME: GPU (s): ", time_end
+  write (*, '(a35, es15.7)') "GFLOP:MATMUL : ", 1.0e-9*(nflop/time_end)
+  write (*, '(a35, es15.7)') "check val    : ", check
 
 end program prototype
