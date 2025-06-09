@@ -249,6 +249,9 @@ TURBMV(2)=TURBMV(1)
 			Prodtermfinal=Stild*turbmv(1)*cb1
 
 			RR=MIN((TURBMV(1)/(((LEFTV(1)*STILD*KAPPA * KAPPA * (ddw) * (ddw)))+0.000000001)),10.0)
+
+			!cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
+
 			gg	= rr +  ( CW2 * (rr**6 - rr) )
 			Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
 						!  Destruction term
@@ -316,7 +319,7 @@ TURBMV(2)=TURBMV(1)
 		  ! 
 		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*Stild*KAPPA * KAPPA * (ddw) * (ddw))))
 
-
+			cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
 		  gg	= rr +  ( CW2 * (rr**6 - rr) )
 		  Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
 		  ! ! 				!  Destruction term
@@ -645,6 +648,8 @@ TURBMV(2)=TURBMV(1)
 			Prodtermfinal=Stild*turbmv(1)*cb1/leftv(1)
 
 			RR=MIN((TURBMV(1)/(((LEFTV(1)*STILD*KAPPA * KAPPA * (ddw) * (ddw)))+0.000000001)),10.0)
+			!cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
+
 			gg	= rr +  ( CW2 * (rr**6 - rr) )
 			Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
 						!  Destruction term
@@ -715,7 +720,7 @@ TURBMV(2)=TURBMV(1)
 		  ! 
 		  ! 
 		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*Stild*KAPPA * KAPPA * (ddw) * (ddw))))
-
+		!	cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
 
 		  gg	= rr +  ( CW2 * (rr**6 - rr) )
 		  Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
@@ -1099,6 +1104,8 @@ TURBMV(2)=TURBMV(1)
 			Prodtermfinal=Stild*turbmv(1)*cb1
 
 			RR=MIN((TURBMV(1)/(((LEFTV(1)*STILD*KAPPA * KAPPA * (ddw) * (ddw)))+0.000000001)),10.0)
+
+			!cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
 			gg	= rr +  ( CW2 * (rr**6 - rr) )
 			Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
 						!  Destruction term
@@ -1163,7 +1170,7 @@ TURBMV(2)=TURBMV(1)
 		  ! 
 		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*Stild*KAPPA * KAPPA * (ddw) * (ddw))))
 
-
+			cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
 		  gg	= rr +  ( CW2 * (rr**6 - rr) )
 		  Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
 		  ! ! 				!  Destruction term
@@ -1488,6 +1495,7 @@ TURBMV(2)=TURBMV(1)
 			Prodtermfinal=Stild*turbmv(1)*cb1/leftv(1)
 
 			RR=MIN((TURBMV(1)/(((LEFTV(1)*STILD*KAPPA * KAPPA * (ddw) * (ddw)))+0.000000001)),10.0)
+			cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
 			gg	= rr +  ( CW2 * (rr**6 - rr) )
 			Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
 						!  Destruction term
@@ -1566,7 +1574,7 @@ TURBMV(2)=TURBMV(1)
 		  ! 
 		  RR=((TURBMV(1)*TCH_X/(LEFTV(1)*Stild*KAPPA * KAPPA * (ddw) * (ddw))))
 
-
+			cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
 		  gg	= rr +  ( CW2 * (rr**6 - rr) )
 		  Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
 		  ! ! 				!  Destruction term
