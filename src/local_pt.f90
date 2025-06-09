@@ -2369,30 +2369,30 @@ end do
 		end if
 		end if
 
-        if (turbulence.gt.0)then
+        !if (turbulence.gt.0)then
         
 
-        if (ielem(n,i)%ishape.eq.2)then
-        ielem(n,i)%condition=surfmax/surfmin
+        !if (ielem(n,i)%ishape.eq.2)then
+        !ielem(n,i)%condition=surfmax/surfmin
         
-        if (ielem(n,i)%condition.gt.30)then
-         ielem(n,i)%hybrid=1
-        end if
-        end if
+        !if (ielem(n,i)%condition.gt.30)then
+        ! ielem(n,i)%hybrid=1
+        !end if
+        !end if
         
-        if (ielem(n,i)%ishape.eq.3)then
-        ielem(n,i)%condition=surfmax/surfmin
+        !if (ielem(n,i)%ishape.eq.3)then
+        !ielem(n,i)%condition=surfmax/surfmin
         
-        if (ielem(n,i)%condition.gt.10)then
-         ielem(n,i)%hybrid=1
-        end if
+        !if (ielem(n,i)%condition.gt.10)then
+         !ielem(n,i)%hybrid=1
+        !end if
         
        
         
-        end if
+        !end if
 
 
-        end if
+        !end if
        
 
 

@@ -1868,6 +1868,7 @@ END SUBROUTINE SHEAR_X
 
 
 
+
 SUBROUTINE SHEAR_Y(ICONSIDERED,FACEX,SHEAR_TEMP)
 !> @brief
 !> This subroutine computes the shear stresses in Y-axis
@@ -1978,6 +1979,277 @@ SHEAR_TEMP=-SSZ/(0.5*rres*V_REF*V_REF)
 END IF
 
 END SUBROUTINE SHEAR_Z
+
+
+
+
+
+
+
+SUBROUTINE HEAT_X(ICONSIDERED,FACEX,SHEAR_TEMP)
+!> @brief
+!> This subroutine computes the shear stresses in x-axis
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED,FACEX
+REAL,INTENT(INOUT)::SHEAR_TEMP
+REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,TAUXX,TAUYY,TAUZZ,TAUYX,TAUZX,TAUZY
+ REAL::SSX,SSY,SSZ,SSP,lam_qflux
+ REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
+ INTEGER::I,K,J,KMAXE,gqi_points,nnd,IM
+ real,dimension(1:nof_Variables)::leftv
+ real,dimension(1:3)::TEMP_gRAD
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz,surface_temp
+real,dimension(1:4)::viscl,laml
+REAL,DIMENSION(1:2)::TURBMV
+REAL,DIMENSION(1)::ETVM
+REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
+REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
+
+
+I=ICONSIDERED
+SSX=ZERO;SSy=ZERO;SSz=ZERO
+J=FACEX
+			      ANGLE1=IELEM(N,I)%FACEANGLEX(j)
+			      ANGLE2=IELEM(N,I)%FACEANGLEY(j)
+			      NX=(COS(ANGLE1)*SIN(ANGLE2))
+			      NY=(SIN(ANGLE1)*SIN(ANGLE2))
+			      NZ=(COS(ANGLE2))
+
+                select case(ielem(n,i)%types_faces(j))
+				case (5)
+					  gqi_points=qp_quad_n
+
+
+
+					  if(reduce_comp.eq.1)then
+					  WEqua2d=1.0d0;
+					  else
+					    NND=4
+				      do K=1,nnd
+					VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+				      END DO
+					  call  QUADRATUREQUAD3D(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+					  end if
+					  surface_temp=IELEM(N,I)%SURF(J)
+
+
+				case(6)
+					gqi_points=qp_triangle_n
+
+
+					if(reduce_comp.eq.1)then
+					  WEqua2d=1.0d0;
+					  else
+					  NND=3
+					do K=1,nnd
+					  VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+					END DO
+					call QUADRATURETRIANG(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+					end if
+ 					    surface_temp=IELEM(N,I)%SURF(J)
+
+
+
+				end select
+
+
+
+
+				do im=1,gqi_points
+				TEMP_gRAD(1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,1,J,IM)
+				IF (DG.EQ.1)THEN
+				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+
+
+				  ELSE
+				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				  END IF
+
+                    CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+					CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+
+                              IF (TURBULENCEMODEL.EQ.1)THEN
+
+                              TURBMV(1)=ILOCAL_RECON3(I)%ULEFTTURB(1,j,im)
+
+							  TURBMV(2)=ILOCAL_RECON3(I)%ULEFTTURB(1,j,im)
+							  eddyfl(2)=turbmv(1);
+							  eddyfr(2)=turbmv(2)
+							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+						      END IF
+
+					if (turbulence .eq. 1) then
+					lam_qflux=LAML(3)
+					else
+					lam_qflux=LAML(1)
+					end if
+
+
+
+				  SSX=SSX+lam_qflux*TEMP_gRAD(1)*WEQUA2D(im)*nx!*surface_temp
+				  SSy=SSy+lam_qflux*TEMP_gRAD(2)*WEQUA2D(im)*ny!*surface_temp
+				  SSz=SSz+lam_qflux*TEMP_gRAD(3)*WEQUA2D(im)*nz!*surface_temp
+               END DO
+
+
+
+
+
+
+
+
+SHEAR_TEMP=-(SSX+ssy+ssz)
+
+
+
+END SUBROUTINE HEAT_X
+
+
+
+
+
+
+
+
+SUBROUTINE HEAT_X2D(ICONSIDERED,FACEX,SHEAR_TEMP)
+!> @brief
+!> This subroutine computes the shear stresses in x-axis
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED,FACEX
+REAL,INTENT(INOUT)::SHEAR_TEMP
+ REAL::SSX,SSY,SSZ,SSP
+ REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
+ INTEGER::I,K,J,KMAXE,gqi_points,nnd,IM
+ real,dimension(1:nof_Variables)::leftv
+ real,dimension(1:2)::TEMP_gRAD
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz,surface_temp
+real,dimension(1:4)::viscl,laml
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
+REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
+
+
+I=ICONSIDERED
+SSX=ZERO;ssy=zero
+J=FACEX
+			     nx=IELEM(N,I)%FACEANGLEX(j)
+			      ny=IELEM(N,I)%FACEANGLEY(j)
+
+                gqi_points=qp_line_n
+					   if(reduce_comp.eq.1)then
+					  WEqua2d=1.0d0;
+					  else
+					  NND=2
+				      do K=1,nnd
+					VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+				      END DO
+
+					  call  QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+					  end if
+					  surface_temp=IELEM(N,I)%SURF(J)
+
+
+
+
+				do im=1,gqi_points
+				TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,1,J,IM)
+				    SSX=SSX+0.026*TEMP_gRAD(1)*WEQUA2D(im)*nx*surface_temp
+				  SSy=SSy+0.026*TEMP_gRAD(2)*WEQUA2D(im)*ny*surface_temp
+               END DO
+
+
+
+SHEAR_TEMP=SSX+ssy
+
+
+
+END SUBROUTINE HEAT_X2D
+
+
+SUBROUTINE HEAT_Y2D(ICONSIDERED,FACEX,SHEAR_TEMP)
+!> @brief
+!> This subroutine computes the shear stresses in x-axis
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED,FACEX
+REAL,INTENT(INOUT)::SHEAR_TEMP
+ REAL::SSX,SSY,SSZ,SSP
+ REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
+ INTEGER::I,K,J,KMAXE,gqi_points,nnd,IM
+ real,dimension(1:nof_Variables)::leftv
+ real,dimension(1:3)::TEMP_gRAD
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz,surface_temp
+real,dimension(1:4)::viscl,laml
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
+REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
+
+
+I=ICONSIDERED
+SSY=ZERO
+J=FACEX
+			     nx=IELEM(N,I)%FACEANGLEX(j)
+			      ny=IELEM(N,I)%FACEANGLEY(j)
+
+                gqi_points=qp_line_n
+					   if(reduce_comp.eq.1)then
+					  WEqua2d=1.0d0;
+					  else
+					  NND=2
+				      do K=1,nnd
+					VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+				      END DO
+
+					  call  QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+					  end if
+					  surface_temp=IELEM(N,I)%SURF(J)
+
+
+
+
+				do im=1,gqi_points
+				TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,1,J,IM)
+				  SSY=SSY-0.026*TEMP_gRAD(2)*WEQUA2D(im)*surface_temp
+               END DO
+
+
+
+SHEAR_TEMP=SSY
+
+
+
+END SUBROUTINE HEAT_Y2D
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 SUBROUTINE SHEAR_X_av(ICONSIDERED,FACEX,SHEAR_TEMP)
 !> @brief

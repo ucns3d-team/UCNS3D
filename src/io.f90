@@ -14762,7 +14762,7 @@ end if
 
 
  if (itestcase.eq.4)then
- WRITE_VARIABLES_W=NOF_VARIABLES+4
+ WRITE_VARIABLES_W=NOF_VARIABLES+5
  Variable_names_W(1)='density'
 Variable_names_W(2)='U'
 Variable_names_W(3)='V'
@@ -14772,6 +14772,8 @@ Variable_names_W(6)='Q'
 Variable_names_W(7)='ssx'
 Variable_names_W(8)='ssy'
 Variable_names_W(9)='ssz'
+Variable_names_W(10)='q_heat'
+
 
  end if
 
@@ -14806,7 +14808,7 @@ Variable_names_W(9)='Q'
 ELSE
 
 if (itestcase.eq.4)then
- WRITE_VARIABLES_W=NOF_VARIABLES+3
+ WRITE_VARIABLES_W=NOF_VARIABLES+4
  Variable_names_W(1)='density'
 Variable_names_W(2)='U'
 Variable_names_W(3)='V'
@@ -14814,6 +14816,8 @@ Variable_names_W(4)='Pressure'
 Variable_names_W(5)='Q'
 Variable_names_W(6)='ssx'
 Variable_names_W(7)='ssy'
+Variable_names_W(8)='q_heat'
+
 
  end if
 
@@ -17025,7 +17029,7 @@ integer::iconsidered,facex
 								    IF (ITESTCASE.EQ.4)THEN
 									
 										IF (DIMENSIONA.EQ.3)THEN
-											DO KKD=1,3
+											DO KKD=1,4
 
 
 
@@ -17038,6 +17042,13 @@ integer::iconsidered,facex
 											call SHEAR_y(ICONSIdered,facex,shear_temp)
 											CASE(3)
 											call SHEAR_z(ICONSIdered,facex,shear_temp)
+
+											case(4)
+
+											call heat_X(ICONSIdered,facex,shear_temp)
+
+
+
 											END SELECT
 
 											WrARRAY_PART1(I,KKD_I+kkd)=SHEAR_TEMP
@@ -17046,7 +17057,7 @@ integer::iconsidered,facex
 										END IF
 
 										IF (DIMENSIONA.EQ.2)THEN
-											DO KKD=1,2
+											DO KKD=1,3
 
 
 
@@ -17057,6 +17068,10 @@ integer::iconsidered,facex
 											call SHEAR_x2d(ICONSIdered,facex,shear_temp)
 											CASE (2)
 											call SHEAR_y2d(ICONSIdered,facex,shear_temp)
+											case(3)
+
+											call heat_x2d(ICONSIdered,facex,shear_temp)
+
 											
 											END SELECT
 
