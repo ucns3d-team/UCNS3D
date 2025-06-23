@@ -318,21 +318,21 @@ iconsidered=i
 							if (idum.eq.1)then
 								if((ees.ne.5).or.(ll.eq.1))then
 								icompwrt=0
-								ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,ielem(n,i)%iorder,I,ielem(n,i)%idegfree,icompwrt)
+								ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,ielem(n,i)%iorder,I,ielem(n,i)%idegfree,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 								ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 								else
 								icompwrt=1
-								ILOCAL_RECON3(I)%STENCILSc(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,I,IDEG,icompwrt)
+								ILOCAL_RECON3(I)%STENCILSc(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,I,IDEG,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 								ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 								end if
 							else
 								if((ees.ne.5).or.(ll.eq.1))then
 
 								icompwrt=0
-								STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt)
+								STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 								else
 								icompwrt=1
-								STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt)
+								STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 
 								end if
 							end if
@@ -340,10 +340,10 @@ iconsidered=i
 					ELSE
 							if((ees.ne.5).or.(ll.eq.1))then
 							icompwrt=0
-							STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt)
+							STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 							else
 							icompwrt=1
-							STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt)
+							STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 
 
 							end if
@@ -583,13 +583,13 @@ IF (LL.EQ.1)THEN		!stencils
 				END DO
 
 				icompwrt=0
-				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE,icompwrt)
+				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 
 				if (thermal.eq.0)then
 				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=((NNX*XDER(1:ielem(n,i)%IDEGFREE))+(NNY*YDER(1:ielem(n,i)%IDEGFREE))+(NNZ*ZDER(1:ielem(n,i)%IDEGFREE)))
 				ELSE
 				icompwrt=0
-				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE,icompwrt)
+				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 
 				end if
 
@@ -983,11 +983,11 @@ i=iconsi
 
 										if((ees.ne.5).OR.(ll.eq.1))then
 										icompwrt=0
-										ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=WLSQR(ll,K)*basis_rec2d(N,x1,y1,ielem(n,i)%iorder,IXX,ielem(n,i)%idegfree,icompwrt)
+										ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=WLSQR(ll,K)*basis_rec2d(N,x1,y1,ielem(n,i)%iorder,IXX,ielem(n,i)%idegfree,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 										ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 										else
 										icompwrt=1
-										ILOCAL_RECON3(I)%STENCILSc(LL,K,1:ideg)=WLSQR(ll,K)*basis_rec2d(N,x1,y1,inumo,IXX,ideg,icompwrt)
+										ILOCAL_RECON3(I)%STENCILSc(LL,K,1:ideg)=WLSQR(ll,K)*basis_rec2d(N,x1,y1,inumo,IXX,ideg,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 										ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 
 										end if
@@ -1281,7 +1281,7 @@ IF (LL.EQ.1)THEN		!stencils
 
 				ICONSIDERED=I
 				Icompwrt=0
-				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,Iconsidered,ielem(n,i)%IDEGFREE,ICOMPWRT)
+				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,Iconsidered,ielem(n,i)%IDEGFREE,ICOMPWRT, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 
 				if (thermal.eq.0)then
 				Icompwrt=0
@@ -1289,7 +1289,7 @@ IF (LL.EQ.1)THEN		!stencils
 				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=((NNX*XDER(1:ielem(n,i)%IDEGFREE))+(NNY*YDER(1:ielem(n,i)%IDEGFREE)))
 				ELSE
 				Icompwrt=0
-				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,Iconsidered,ielem(n,i)%IDEGFREE,ICOMPWRT)
+				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,Iconsidered,ielem(n,i)%IDEGFREE,ICOMPWRT, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 
 				end if
 
@@ -3830,7 +3830,7 @@ CALL QUADRATURETETRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
 INTEG=ZERO
 DO Lc=1,QP_TETRA
 	  x1=QPOINTS(1,Lc);y1=QPOINTS(2,Lc);z1=QPOINTS(3,Lc)
-	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC(N,x1,y1,z1,kxx,IXX,number_of_dog,ICOMPWRT)*&
+	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC(N,x1,y1,z1,kxx,IXX,number_of_dog,ICOMPWRT, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)*&
 WEQUA3D(Lc)*VOL)
 END DO
 	  COMPBASTR = INTEG
@@ -3862,7 +3862,7 @@ CALL QUADRATUREHEXA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
 INTEG=zero
 DO Lc=1,QP_HEXA
 	x1=QPOINTS(1,Lc);y1=QPOINTS(2,Lc);z1=QPOINTS(3,Lc)
-	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC(N,x1,y1,z1,kxx,IXX,number_of_dog,ICOMPWRT)*&
+	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC(N,x1,y1,z1,kxx,IXX,number_of_dog,ICOMPWRT, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)*&
 WEQUA3D(Lc)*VOL)
 END DO
 	  COMPBASHEX = INTEG
@@ -3892,7 +3892,7 @@ CALL QUADRATUREPRISM(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
 INTEG=zero
 DO Lc=1,QP_PRISM
 	x1=QPOINTS(1,Lc);y1=QPOINTS(2,Lc);z1=QPOINTS(3,Lc)
-	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC(N,x1,y1,z1,kxx,IXX,number_of_dog,ICOMPWRT)*&
+	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC(N,x1,y1,z1,kxx,IXX,number_of_dog,ICOMPWRT, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)*&
 WEQUA3D(Lc)*VOL)
 END DO
 	  COMPBASPR= INTEG
@@ -3923,7 +3923,7 @@ CALL QUADRATUREQUAD(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
 INTEG=zero
 DO Lc=1,qp_quad
 	x1=QPOINTS(1,Lc);y1=QPOINTS(2,Lc)
-	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC2D(N,x1,y1,kxx,IXX,number_of_dog,ICOMPWRT)*&
+	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC2D(N,x1,y1,kxx,IXX,number_of_dog,ICOMPWRT, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)*&
 WEQUA3D(Lc)*VOL)
 END DO
 	  COMPBASQUAD= INTEG
@@ -3954,7 +3954,7 @@ CALL QUADRATURETRIANGLE(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
 INTEG=zero
 DO Lc=1,qp_triangle
 	x1=QPOINTS(1,Lc);y1=QPOINTS(2,Lc)
-	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC2D(N,x1,y1,kxx,IXX,number_of_dog,ICOMPWRT)*&
+	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC2D(N,x1,y1,kxx,IXX,number_of_dog,ICOMPWRT, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)*&
 WEQUA3D(Lc)*VOL)
 END DO
 	  COMPBASTRI= INTEG

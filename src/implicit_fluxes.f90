@@ -268,7 +268,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -288,7 +288,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				   
 				  				  				  				  
@@ -844,7 +844,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2Dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_inner2Dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
@@ -858,7 +858,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    
 								    
 								    
-								     CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								     CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				    
 				  				  	KAS=2			  				  
@@ -1375,7 +1375,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								 facex=l;
-								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -1395,7 +1395,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				   
 				  				  				  				  
@@ -1894,7 +1894,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;
-								  CALL coordinates_face_inner2Dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_inner2Dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
@@ -1908,7 +1908,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				   
 				  				  				  				  
@@ -2364,7 +2364,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2Dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_inner2Dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
@@ -2378,7 +2378,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				    
 				  				  	KAS=2			  				  
@@ -2856,7 +2856,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -2877,7 +2877,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				    
 				  				  	KAS=2			  				  

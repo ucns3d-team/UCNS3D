@@ -1521,7 +1521,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 
-				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 				   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -1540,7 +1540,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 				  cturbl(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
 				  B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
-				  CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+				  CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 
 				  SOLS2(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)/rightv(1)
 
@@ -1622,7 +1622,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 
-				  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+				  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 				  CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
 				  Pox(1)=CORDS(1);Poy(1)=CORDS(2);
 
@@ -1633,7 +1633,7 @@ DO J=1,IELEM(N,I)%IFCA
 
 				  cturbl(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
 				  B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
-				  CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+				  CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 
 				  SOLS2(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)/RIGHTV(1)
 
@@ -1905,7 +1905,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 
-				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 				   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
                                     else
@@ -1920,7 +1920,7 @@ DO J=1,IELEM(N,I)%IFCA
 
  				  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 				  B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
- 				  CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+ 				  CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 
 				  SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
 
@@ -2021,14 +2021,14 @@ DO J=1,IELEM(N,I)%IFCA
 
 
 
-				  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+				  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 				  CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
 				  Pox(1)=CORDS(1);Poy(1)=CORDS(2)
 
 
 				  LEFTV(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 				  B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
-				  CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+				  CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 
 				  SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
 
@@ -2204,7 +2204,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  ELSE
 				  !NOT PERIODIC ONES IN MY CPU
 
-				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 				   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -2221,7 +2221,7 @@ DO J=1,IELEM(N,I)%IFCA
 
  				  leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
 				  B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
- 				  CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+ 				  CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 
 
 				  SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)

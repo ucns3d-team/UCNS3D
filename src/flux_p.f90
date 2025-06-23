@@ -2952,7 +2952,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE_MOOD(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL  coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL  coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -2974,7 +2974,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE_MOOD(N)
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 								    			  				  
 								    
@@ -3548,7 +3548,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d_MOOD(N)
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2dx(N,Iconsidered,facex,vext,nodes_list)
+								  CALL coordinates_face_inner2dx(N,Iconsidered,facex,vext,nodes_list, IELEM, INODER4)
 								    CORDS(1:2)=zero
 								    N_NODE=2
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
@@ -3560,7 +3560,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d_MOOD(N)
 								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 ! 								    
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 ! 				  				   
 				  				  	 IKAS=2			  				  
