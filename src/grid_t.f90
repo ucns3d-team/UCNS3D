@@ -954,6 +954,7 @@ END FUNCTION PRISMVOLUME
  !> @brief
 !> This function computes the centre of 3d element 
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N,N_NODE
  REAL,DIMENSION(3)::CORDINATES3
 real::rnode
@@ -999,6 +1000,7 @@ end function distance2
   !> @brief
 !> This function computes the centre of 2d element 
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N,N_NODE
  REAL,DIMENSION(2)::CORDINATES2
 real::rnode
@@ -1678,7 +1680,7 @@ i=iconsidered
 end subroutine coordinates_face_inner2d
 
 
-subroutine coordinates_face_innerx(n,iconsidered,facex,VEXT,NODES_LIST)
+subroutine coordinates_face_innerx(n,iconsidered,facex,VEXT,NODES_LIST, IELEM_L, INODER4_L)
  !> @brief
 !> This subroutine retrieve the nodes of interior faces of elements in 3D
 IMPLICIT NONE
@@ -1686,12 +1688,16 @@ IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
 REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
+
+TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM_L
+TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:)::INODER4_L
+
 integer::nnd
 integer::i,k
 
 
 i=iconsidered
-	      select case (ielem(n,i)%types_faces(facex))
+	      select case (ielem_L(n,i)%types_faces(facex))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -1700,7 +1706,7 @@ i=iconsidered
 	      
 	      
 	      do K=1,nnd
-		  NODES_LIST(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:3)
+		  NODES_LIST(k,1:3)=inoder4_L(IELEM_L(N,I)%NODES_FACES(facex,K))%CORD(1:3)
 		  VEXT(K,1:3)=NODES_LIST(k,1:3)
 	      END DO
 	      
@@ -1709,7 +1715,7 @@ i=iconsidered
 end subroutine coordinates_face_innerx
 
 
-subroutine coordinates_face_inner2dx(n,iconsidered,facex,VEXT,NODES_LIST)
+subroutine coordinates_face_inner2dx(n,iconsidered,facex,VEXT,NODES_LIST, IELEM_L, INODER4_L)
  !> @brief
 !> This subroutine retrieves the nodes of edges of elements in 2D
 IMPLICIT NONE
@@ -1717,6 +1723,10 @@ IMPLICIT NONE
 integer,intent(in)::n,iconsidered,facex
 REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
+
+TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM_L
+TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:)::INODER4_L
+
 integer::nnd
 integer::i,k
 
@@ -1727,7 +1737,7 @@ i=iconsidered
 	      
 	      
 	      do K=1,nnd
-		  NODES_LIST(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:2)
+		  NODES_LIST(k,1:2)=inoder4_L(IELEM_L(N,I)%NODES_FACES(facex,K))%CORD(1:2)
 		  VEXT(K,1:2)=NODES_LIST(k,1:2)
 	      END DO
 	      

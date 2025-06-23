@@ -439,10 +439,10 @@ I=ICONSIDERED
             icompwrt=-2
 
             IF (DIMENSIONA.EQ.2)THEN
-             BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),IORDER,I,IDEGFREE,icompwrt)
+             BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),IORDER,I,IDEGFREE,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 
             ELSE
-            BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE,icompwrt)
+            BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
             END IF
 
 
@@ -497,10 +497,10 @@ I=ICONSIDERED
 
 
                     IF (DIMENSIONA.EQ.2)THEN
-                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),IORDER,I,IDEGFREE,icompwrt)
+                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),IORDER,I,IDEGFREE,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 
                     Else
-                     BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE,icompwrt)
+                     BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE,icompwrt, IELEM, ILOCAL_RECON3, INTEG_BASIS,integ_basis_dg)
 
                     END IF
 

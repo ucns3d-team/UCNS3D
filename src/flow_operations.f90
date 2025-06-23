@@ -139,6 +139,7 @@ SUBROUTINE CONS2PRIM(N,leftv,MP_PINFl,gammal)
 !> @brief
 !> This subroutine transforms one vector of conservative variables to primitive variables
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:NOF_VARIABLES)::TEMPS
 real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
@@ -316,6 +317,7 @@ SUBROUTINE CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 !> @brief
 !> This subroutine transforms two vector of conservative variables to primitive variables
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_variables)::TEMPS
 REAL::OODENSITY,MP_DENSITY,MP_STIFF
@@ -857,6 +859,7 @@ SUBROUTINE PRIM2CONS(N,leftv)
 !> @brief
 ! !> This subroutine transforms one vector of primitive variables to conservative variables
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
@@ -972,6 +975,7 @@ SUBROUTINE PRIM2CONS2(N,LEFTV,RIGHTV)
 !> @brief
 !> This subroutine transforms two vectors of primitive variables to conservative variables
 IMPLICIT NONE
+!$omp declare target
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
@@ -1160,6 +1164,7 @@ FUNCTION INFLOW(INITCOND,POX,POY,POZ)
 !> @brief
 !> This function applies a prescribed boundary condition to  the inflow in 3D
 IMPLICIT NONE
+!$omp declare target
 REAL,DIMENSION(1:nof_Variables)::INFLOW
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
@@ -1324,6 +1329,7 @@ FUNCTION INFLOW2d(INITCOND,POX,POY)
 !> @brief
 !> This function applies a prescribed boundary condition to  the inflow in 2D
 IMPLICIT NONE
+!$omp declare target
 REAL,DIMENSION(1:nof_Variables)::INFLOW2d
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:2),INTENT(IN)::POX,POY
@@ -1458,6 +1464,7 @@ FUNCTION OUTFLOW2d(INITCOND,POX,POY)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 2D
 IMPLICIT NONE
+!$omp declare target
 REAL,DIMENSION(1:nof_Variables)::OUTFLOW2d
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:2),INTENT(IN)::POX,POY
@@ -1525,6 +1532,7 @@ FUNCTION OUTFLOW(INITCOND,POX,POY,POZ)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 3D
 IMPLICIT NONE
+!$omp declare target
 REAL,DIMENSION(1:nof_Variables)::OUTFLOW
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
@@ -1601,6 +1609,7 @@ FUNCTION OUTFLOW2(INITCOND,POX,POY,POZ)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 3D
 IMPLICIT NONE
+!$omp declare target
 REAL,DIMENSION(1:nof_Variables)::OUTFLOW2
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
@@ -1642,13 +1651,17 @@ END FUNCTION OUTFLOW2
 
 
 
-FUNCTION BLEED2D(Iconsidered,facex,POX,POY)
+FUNCTION BLEED2D(Iconsidered,facex,POX,POY, IELEM_L)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 3D
 IMPLICIT NONE
+!$omp declare target
 REAL,DIMENSION(1:nof_Variables)::BLEED2D
 INTEGER,INTENT(IN)::iconsidered, facex
 REAL,dimension(1:dimensiona),INTENT(IN)::POX,POY
+
+TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM_L
+
 INTEGER::IBLEEDn
 REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
 REAL::XF,YF,ZF
@@ -1667,7 +1680,7 @@ REAL,DIMENSION(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)::CLEFT,CRIGHT,
 
 
 
-CELL_AREA=IELEM(N,Iconsidered)%SURF(facex)
+CELL_AREA=IELEM_L(N,Iconsidered)%SURF(facex)
 
 
 
@@ -1686,7 +1699,7 @@ P=LEFTV(4)
 
 
 !NOW FIND THE BLEED NUMBER CONDITIONS FOR THIS FACE
-IBLEEDn=IELEM(N,ICONSIDERED)%BLEEDN(FACEX)
+IBLEEDn=IELEM_L(N,ICONSIDERED)%BLEEDN(FACEX)
 
 
 
@@ -1739,6 +1752,7 @@ FUNCTION BLEED3D(Iconsidered,facex,POX,POY,poz)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 3D
 IMPLICIT NONE
+!$omp declare target
 REAL,DIMENSION(1:nof_Variables)::BLEED3D
 INTEGER,INTENT(IN)::iconsidered, facex
 REAL,dimension(1:dimensiona),INTENT(IN)::POX,POY,poz
@@ -1772,6 +1786,7 @@ FUNCTION PASS_INLET(INITCOND,POX,POY,POZ)
 !> @brief
 !> This function applies a prescribed boundary condition to  the inlet for a passive scalar
 IMPLICIT NONE
+!$omp declare target
 REAL,DIMENSION(1:PASSIVESCALAR)::PASS_INLET
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
@@ -1786,6 +1801,7 @@ FUNCTION PASS_INLET2d(INITCOND,POX,POY)
 !> @brief
 !> This function applies a prescribed boundary condition to  the inlet for a passive scalar in 2d
 IMPLICIT NONE
+!$omp declare target
 REAL,DIMENSION(1:PASSIVESCALAR)::PASS_INLET2d
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY
@@ -2578,7 +2594,7 @@ END SUBROUTINE VORTEXCALC2D
 
 
 
-SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM_L, ILOCAL_RECON3_L)
 !> @brief
 !> This subroutine applies the boundary condition to each bounded cell
 implicit none
@@ -2591,6 +2607,8 @@ REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
 REAL,INTENT(IN)::ANGLE1,ANGLE2,NX,NY,NZ
 REAL,DIMENSION(TURBULENCEEQUATIONS),INTENT(INOUT)::CTURBL,CTURBR
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
+TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM_L
+TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON3_L
 REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3
 REAL::SPS,SKINS,IKINS,VEL,vnb
 REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
@@ -2669,7 +2687,7 @@ SELECT CASE(B_CODE)
 	      IF (TURBULENCEMODEL.EQ.2)THEN	 
 		CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
 		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
-        IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
+        IF (ILOCAL_RECON3_L(ICONSIDERED)%MRF.EQ.1)THEN
         CTURBR(1)=(1.5D0*I_turb_inlet*(KINIT_SRF**2))*RIGHTV(1)!K INITIALIZATION
 		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
         END IF
@@ -2824,7 +2842,7 @@ SELECT CASE(B_CODE)
     CASE(3)!SYMMETRY
     
 			      CALL ROTATEF(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-				IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
+				IF (ILOCAL_RECON3_L(ICONSIDERED)%MRF.EQ.1)THEN
                     CRIGHT_ROT(1)=CLEFT_ROT(1)
                     CRIGHT_ROT(2)=-(CLEFT_ROT(2))+2.0D0*CLEFT_ROT(1)*SRF_SPEEDROT(2)
                     CRIGHT_ROT(3)=CLEFT_ROT(3)
@@ -2865,7 +2883,7 @@ SELECT CASE(B_CODE)
 			      IF (ITESTCASE.EQ.3)THEN
 			      
 			       CALL ROTATEF(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-			      IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
+			      IF (ILOCAL_RECON3_L(ICONSIDERED)%MRF.EQ.1)THEN
                         CRIGHT_ROT(1)=CLEFT_ROT(1)
                         CRIGHT_ROT(2)=-(CLEFT_ROT(2))+2.0D0*CLEFT_ROT(1)*SRF_SPEEDROT(2)
                         CRIGHT_ROT(3)=CLEFT_ROT(3)
@@ -2892,7 +2910,7 @@ SELECT CASE(B_CODE)
 			      
 			      
 			      ELSE
-                  IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
+                  IF (ILOCAL_RECON3_L(ICONSIDERED)%MRF.EQ.1)THEN
                     rightv(1)=leftv(1)
                     rightv(2)=-leftv(2)+2.0D0*leftv(1)*SRF_SPEED(2)
                     rightv(3)=-leftv(3)+2.0D0*leftv(1)*SRF_SPEED(3)
@@ -2921,7 +2939,7 @@ SELECT CASE(B_CODE)
 					  end if
 					ELSE
 					     CTURBR(1)=-CTURBL(1)
-					     CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
+					     CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM_L(N,ICONSIDERED)%WallDist**2))
 
 					  if (passivescalar.gt.0)then
 					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
@@ -3008,7 +3026,7 @@ SELECT CASE(B_CODE)
 	      IF (TURBULENCEMODEL.EQ.2)THEN	 
 		CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
 		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
-		IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
+		IF (ILOCAL_RECON3_L(ICONSIDERED)%MRF.EQ.1)THEN
             CTURBR(1)=(1.5D0*I_turb_inlet*(KINIT_SRF**2))*RIGHTV(1)!K INITIALIZATION
             CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
 		END IF
@@ -3088,7 +3106,7 @@ END SELECT
 END SUBROUTINE BOUNDARYS
 
 
-SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM_L)
 !> @brief
 !> This subroutine applies the boundary condition to each bounded cell
 implicit none
@@ -3101,6 +3119,7 @@ REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
 REAL,INTENT(IN)::ANGLE1,ANGLE2,NX,NY,NZ
 REAL,DIMENSION(TURBULENCEEQUATIONS),INTENT(INOUT)::CTURBL,CTURBR
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
+TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM_L
 REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3
 REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
 REAL::SPS,SKINS,IKINS,VEL,vnb,theeta,reeta
@@ -3262,7 +3281,7 @@ SELECT CASE(B_CODE)
      CASE(99)  !BLEED
 
 
-     rightv(1:nof_Variables)=BLEED2d(Iconsidered,facex,pox,poy)
+     rightv(1:nof_Variables)=BLEED2d(Iconsidered,facex,pox,poy, IELEM_L)
 
 
 
@@ -3483,7 +3502,7 @@ SELECT CASE(B_CODE)
 					  end if
 					ELSE
 					     CTURBR(1)=-CTURBL(1)
-					     CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
+					     CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM_L(N,ICONSIDERED)%WallDist**2))
 
 					  if (passivescalar.gt.0)then
 					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
