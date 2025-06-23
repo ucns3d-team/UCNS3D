@@ -1268,7 +1268,7 @@ I=ICONSIDERED
 								  !NOT PERIODIC ONES IN MY CPU
 
 
-								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 								    CORDS(1:3)=zero
 
 								    if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
@@ -1286,7 +1286,7 @@ I=ICONSIDERED
 
 								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 
 
@@ -1539,7 +1539,7 @@ END IF
 								  !NOT PERIODIC ONES IN MY CPU
 
 
-								  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 
                                             N_NODE=2
@@ -1554,7 +1554,7 @@ END IF
 
 								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 
 								    RCVGRAD(:,:)=LCVGRAD(:,:)
@@ -1804,7 +1804,7 @@ I=ICONSIDERED
 								  !NOT PERIODIC ONES IN MY CPU
 
 
-								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -1824,7 +1824,7 @@ I=ICONSIDERED
 
 
 
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 
 
@@ -1981,7 +1981,7 @@ IF (DG == 1) THEN
 								  !NOT PERIODIC ONES IN MY CPU
 
 
-								 CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								 CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 
 
@@ -1998,7 +1998,7 @@ IF (DG == 1) THEN
 								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 !
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 !
 				  				  	 IKAS=2

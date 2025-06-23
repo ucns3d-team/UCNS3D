@@ -207,7 +207,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -230,7 +230,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 								    
 								    DU1(1:nof_variables)=rightv(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -462,7 +462,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -485,7 +485,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -922,7 +922,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,Iconsidered,facex,VEXT,NODES_LIST)
+								  CALL coordinates_face_innerx(N,Iconsidered,facex,VEXT,NODES_LIST, IELEM, INODER4)
 
 								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -945,7 +945,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -1131,7 +1131,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -1155,7 +1155,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -1559,7 +1559,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
@@ -1576,7 +1576,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -1808,7 +1808,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
@@ -1825,7 +1825,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -2261,7 +2261,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2dx(N,Iconsidered,facex,VEXT,NODES_LIST)
+								  CALL coordinates_face_inner2dx(N,Iconsidered,facex,VEXT,NODES_LIST, IELEM, INODER4)
 								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
@@ -2278,7 +2278,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 								    
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -2484,7 +2484,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								  !NOT PERIODIC ONES IN MY CPU
 								   
 								  facex=l;iconsidered=i
-								  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+								  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 								  N_NODE=2
 								    CORDS(1:2)=zero
 								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
@@ -2501,8 +2501,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    
 								    
-								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
-								    
+								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 								    DU1(1:nof_variables)=rightV(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								    dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
@@ -3080,13 +3079,13 @@ DO L=1,IELEM(N,I)%IFCA	!COND1
         
         
         if (dimensiona.eq.2)then
-		CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+		CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 		N_NODE=2
 		CORDS(1:2)=zero
 		CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE);Pox(1)=cords(1);Poy(1)=cords(2)
 		else
-		CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+		CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST, IELEM, INODER4)
 
 		 if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
                                             N_NODE=4
@@ -3107,10 +3106,10 @@ DO L=1,IELEM(N,I)%IFCA	!COND1
 		B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 		
 		if (dimensiona.eq.2)then
-		CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+		CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM)
 		else
 		
-		CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+		CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC, IELEM, ILOCAL_RECON3)
 		end if
 		
 		DU1(1:nof_variables)=rightV(1:nof_variables)
