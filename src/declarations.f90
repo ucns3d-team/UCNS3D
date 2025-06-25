@@ -10,12 +10,14 @@ MODULE DECLARATION
 
 IMPLICIT NONE
 
+#if defined(WENOWEIGHTS_GPU_KERNEL) || defined(LEASTSQUARES_GPU_KERNEL)
 !$omp declare target(adda_filter_strong, adda_filter_weak, adda_type, angle_per, cavitation, dg, dimensiona, dt, ees, gamma, gamma_in, governingequations, ibound, idegfree, idegfree2, iorder, iorder2, iscoun, it, lwci1, mp_pinf, multispecies, nof_species, nof_variables, numberofpoints2, oo2, passivescalar, per_rot, qp_array, qp_line, qp_quad, qp_triangle, rungekutta, turbulenceequations, typesten, viscous_s, wenoz, wenwrt, zero)
 
 
 !$omp declare target(beta_i1, bleed_end, bleed_plenum, bleed_porosity, bleed_start, boundtype, initcond, itestcase, i_turb_inlet, kinit_srf, mp_a_in, mp_r_in, pi, pres, press_outlet, rres, swirl, t, tolsmall, turbinit, turbulence, turbulencemodel, ufreestream, uvel, visc, vvel, wvel)
 
 !$omp declare target(poly,numneighbours2)
+#endif
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.1.   INTEGER  VARIABLES HERE                  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

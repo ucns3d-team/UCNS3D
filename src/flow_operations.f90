@@ -139,7 +139,9 @@ SUBROUTINE CONS2PRIM(N,leftv,MP_PINFl,gammal)
 !> @brief
 !> This subroutine transforms one vector of conservative variables to primitive variables
 IMPLICIT NONE
+#if defined(WENOWEIGHTS_GPU_KERNEL) || defined(LEASTSQUARES_GPU_KERNEL)
 !$omp declare target
+#endif
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:NOF_VARIABLES)::TEMPS
 real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
@@ -317,7 +319,9 @@ SUBROUTINE CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 !> @brief
 !> This subroutine transforms two vector of conservative variables to primitive variables
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_variables)::TEMPS
 REAL::OODENSITY,MP_DENSITY,MP_STIFF
@@ -859,7 +863,9 @@ SUBROUTINE PRIM2CONS(N,leftv)
 !> @brief
 ! !> This subroutine transforms one vector of primitive variables to conservative variables
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
@@ -975,7 +981,9 @@ SUBROUTINE PRIM2CONS2(N,LEFTV,RIGHTV)
 !> @brief
 !> This subroutine transforms two vectors of primitive variables to conservative variables
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
@@ -1164,7 +1172,9 @@ FUNCTION INFLOW(INITCOND,POX,POY,POZ)
 !> @brief
 !> This function applies a prescribed boundary condition to  the inflow in 3D
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 REAL,DIMENSION(1:nof_Variables)::INFLOW
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
@@ -1329,7 +1339,9 @@ FUNCTION INFLOW2d(INITCOND,POX,POY)
 !> @brief
 !> This function applies a prescribed boundary condition to  the inflow in 2D
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 REAL,DIMENSION(1:nof_Variables)::INFLOW2d
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:2),INTENT(IN)::POX,POY
@@ -1464,7 +1476,9 @@ FUNCTION OUTFLOW2d(INITCOND,POX,POY)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 2D
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 REAL,DIMENSION(1:nof_Variables)::OUTFLOW2d
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:2),INTENT(IN)::POX,POY
@@ -1532,7 +1546,9 @@ FUNCTION OUTFLOW(INITCOND,POX,POY,POZ)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 3D
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 REAL,DIMENSION(1:nof_Variables)::OUTFLOW
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
@@ -1609,7 +1625,9 @@ FUNCTION OUTFLOW2(INITCOND,POX,POY,POZ)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 3D
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 REAL,DIMENSION(1:nof_Variables)::OUTFLOW2
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
@@ -1655,7 +1673,9 @@ FUNCTION BLEED2D(Iconsidered,facex,POX,POY, IELEM_L)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 3D
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 REAL,DIMENSION(1:nof_Variables)::BLEED2D
 INTEGER,INTENT(IN)::iconsidered, facex
 REAL,dimension(1:dimensiona),INTENT(IN)::POX,POY
@@ -1752,7 +1772,9 @@ FUNCTION BLEED3D(Iconsidered,facex,POX,POY,poz)
 !> @brief
 !> This function applies a prescribed boundary condition to  the outflow in 3D
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 REAL,DIMENSION(1:nof_Variables)::BLEED3D
 INTEGER,INTENT(IN)::iconsidered, facex
 REAL,dimension(1:dimensiona),INTENT(IN)::POX,POY,poz
@@ -1786,7 +1808,9 @@ FUNCTION PASS_INLET(INITCOND,POX,POY,POZ)
 !> @brief
 !> This function applies a prescribed boundary condition to  the inlet for a passive scalar
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 REAL,DIMENSION(1:PASSIVESCALAR)::PASS_INLET
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
@@ -1801,7 +1825,9 @@ FUNCTION PASS_INLET2d(INITCOND,POX,POY)
 !> @brief
 !> This function applies a prescribed boundary condition to  the inlet for a passive scalar in 2d
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 REAL,DIMENSION(1:PASSIVESCALAR)::PASS_INLET2d
 INTEGER,INTENT(IN)::INITCOND
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY
@@ -2598,7 +2624,9 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
 !> @brief
 !> This subroutine applies the boundary condition to each bounded cell
 implicit none
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 integer,intent(in)::n,b_code,ICONSIDERED,facex
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::LEFTV,RIGHTV
 INTEGER,INTENT(INOUT)::IBFC
@@ -3110,7 +3138,9 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
 !> @brief
 !> This subroutine applies the boundary condition to each bounded cell
 implicit none
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 integer,intent(in)::n,b_code,ICONSIDERED,facex
 INTEGER,INTENT(INOUT)::IBFC
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::LEFTV,RIGHTV
@@ -3671,7 +3701,9 @@ SUBROUTINE COMPUTE_EIGENVECTORS(N,RVEIGL,RVEIGR,EIGVL,EIGVR,GAMMA)
 !> @brief
 !> This subroutine computes the left and right eigenvectors 
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL,RVEIGR
 REAL,INTENT(IN)::GAMMA
@@ -3792,7 +3824,9 @@ SUBROUTINE COMPUTE_EIGENVECTORS2D(N,RVEIGL,RVEIGR,EIGVL,EIGVR,GAMMA)
 !> @brief
 !> This subroutine computes the left and right eigenvectors  in 2D
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL,RVEIGR
 REAL,INTENT(IN)::GAMMA

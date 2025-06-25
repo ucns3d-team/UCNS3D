@@ -427,9 +427,11 @@ REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 
 KMAXE=XMPIELRANK(N)
 
-
-!!!$OMP DO
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$OMP target teams distribute parallel do
+#else
+!$OMP DO
+#endif
 DO II=1,NOF_INTERIOR;
 I=EL_INT(II)
 ICONSIDERED=I
@@ -464,8 +466,12 @@ ILOCAL_RECON3_L(ICONSIDERED)%ULEFT(:,:,:)=ZERO
             END IF
 
 END DO
-!!!$OMP END DO
+
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$OMP end target teams distribute parallel do
+#else
+!$OMP END DO
+#endif
 
 !$OMP DO
 	DO II=1,NOF_BOUNDED
@@ -506,7 +512,9 @@ END SUBROUTINE WENOWEIGHTS
 
 SUBROUTINE CHARACTERISTIC_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, IBOUND_L, U_C_L, INTEG_BASIS_L, integ_basis_dg_L, INODER4_L, IEXSOLHIR_L)
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 integer,intent(in)::iconsidered,POWER
 integer,intent(inOUT)::IDUMMY
 REAL,INTENT(IN)::DIVBYZERO
@@ -791,7 +799,9 @@ END SUBROUTINE CHARACTERISTIC_RECONSTRUCTION
 
 SUBROUTINE WENO_NEIGHBOUR(ICONSIDERED,FACEX,VEIGL,VEIGR,NX,NY,NZ,ANGLE1,ANGLE2,IDUMMY, IELEM_L, ILOCAL_RECON3_L, IBOUND_L, U_C_L, INODER4_L, IEXSOLHIR_L)
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 real,dimension(1:nof_Variables),INTENT(INOUT)::veigr
 real,dimension(1:nof_Variables),INTENT(INOUT)::VEIGL
 REAL,INTENT(IN)::NX,NY,NZ,ANGLE1,ANGLE2
@@ -959,7 +969,9 @@ END SUBROUTINE WENO_NEIGHBOUR
 
 SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, ILOCAL_RECON6_L, U_C_L, INTEG_BASIS_L,integ_basis_dg_L)
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 integer,intent(in)::iconsidered,POWER
 integer,intent(inOUT)::IDUMMY
 REAL,INTENT(IN)::DIVBYZERO
@@ -1312,7 +1324,9 @@ END SUBROUTINE CP_RECONSTRUCTION
 
 SUBROUTINE CP_RECONSTRUCTION_Turb(ICONSIDERED,IDUMMY,DIVBYZERO,POWER, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, ILOCAL_RECON6_L, U_Ct_L, INTEG_BASIS_L, integ_basis_dg_L)
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 integer,intent(in)::iconsidered,POWER
 integer,intent(inOUT)::IDUMMY
 REAL,INTENT(IN)::DIVBYZERO
@@ -1632,7 +1646,9 @@ SUBROUTINE EXTRAPOLATE_BOUND(RESSOLUTION,varcons,FACEX,pointx,ICONSIDERED,INSTEN
 !> @brief
 !> Subroutine for extrapolating the reconstructed solution at the cell interfaces
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 INTEGER,INTENT(IN)::varcons,FACEX,pointx,ICONSIDERED,INSTEN,LLX
 REAL,dimension(:,:),INTENT(IN)::WENO
 REAL,DIMENSION(:,:),intent(in)::RESSOLUTION
@@ -1668,7 +1684,9 @@ SUBROUTINE EXTRAPOLATE_BOUNDt(RESSOLUTION,varcons,FACEX,pointx,ICONSIDERED,INSTE
 !> @brief
 !> Subroutine for extrapolating the reconstructed solution at the cell interfaces
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 INTEGER,INTENT(IN)::varcons,FACEX,pointx,ICONSIDERED,INSTEN,LLX
 REAL,dimension(:,:),INTENT(IN)::WENO
 real,dimension(1:nof_Variables)::leftv
@@ -1694,7 +1712,9 @@ subroutine diag_At_B_A(ICONSIDERED,A_CHAR,B_CHAR,X_CHAR, IELEM_L, ILOCAL_RECON3_
 !> @brief
 !> Subroutine For general matrix A and square matrix B, computes the vector x = diag(A' * B * A), used for characteristics reconstruction
 implicit none
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
    integer, intent(in):: ICONSIDERED
    REAL,dimension(:,:),INTENT(INout)::b_char,x_char
    REAL,dimension(:,:,:),INTENT(INout)::a_char
@@ -1782,7 +1802,9 @@ subroutine compute_gradcharv_smoothindicator(ICONSIDERED,FACEX,EIGVL,GRADCHARV,S
 !> @brief
 !> Subroutine for characteristics reconstruction of WENO schemes
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
    integer, intent(in)::ICONSIDERED,FACEX
    integer:: LL, k,I,L,ifds
    REAL::LWCX1
@@ -2733,15 +2755,24 @@ TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_C_L, U_CT_L
 TYPE(EXCHANGE_SOLHI),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXSOLHIR_L
 INTEGER::ICONSIDERED,II,I
 
-!!!!$OMP DO
+
+#ifdef LEASTSQUARES_GPU_KERNEL
 !$OMP target teams distribute parallel do
+#else
+!$OMP DO
+#endif
 DO II=1,NOF_INTERIOR;
+
 I=EL_INT(II)
 ICONSIDERED=I
  CALL ALLGRADS_INNER(N,ICONSIDERED,IELEM_L,ILOCAL_RECON3_L,ILOCAL_RECON5_L,U_C_L,U_CT_L,IEXSOLHIR_L)
 END DO
-!!!$OMP END DO
+#ifdef LEASTSQUARES_GPU_KERNEL
 !$OMP end target teams distribute parallel do
+#else
+!$OMP END DO
+#endif
+
 
 !$OMP DO
 DO II=1,NOF_BOUNDED
@@ -4785,7 +4816,9 @@ END SUBROUTINE FILTER
 
 SUBROUTINE ADDA_FILTER(N,iconsidered, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, U_C_L, INTEG_BASIS_L, integ_basis_dg_L)
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 INTEGER,INTENT(IN)::N,iconsidered
 
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM_L
@@ -5067,7 +5100,9 @@ END SUBROUTINE ADDA_FILTER
 
 SUBROUTINE APPLY_ADDA_FILTER(N,iconsidered, IELEM_L)
 IMPLICIT NONE
+#ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
+#endif
 INTEGER,INTENT(IN)::N
 INTEGER::I,ICONSIDERED
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM_L
