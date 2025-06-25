@@ -1521,7 +1521,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 	INTEGER::ICONSIDERED,FACEX,POINTX
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ,MP_SOURCE1,MP_SOURCE2,MP_SOURCE3
 	REAL,DIMENSION(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)::CLEFT,CRIGHT,CLEFT_ROT,CRIGHT_ROT
-	REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV,SRF_SPEEDROT
+	REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV,SRF_SPEEDROT,tempx_l,rtempx_l
 	REAL,DIMENSION(1:TURBULENCEEQUATIONS+PASSIVESCALAR)::CTURBL,CTURBR
 	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
 	REAL,DIMENSION(1:NOF_VARIABLES)::SRF_SPEED
@@ -1659,7 +1659,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
                                       LCVGRAD(1,1:3)=((LCVGRAD(1,1:3)+rCVGRAD(1,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(2)-leftv(2)))
 					   LCVGRAD(2,1:3)=((LCVGRAD(2,1:3)+rCVGRAD(2,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(3)-leftv(3)))
 					  LCVGRAD(3,1:3)=((LCVGRAD(3,1:3)+rCVGRAD(3,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(4)-leftv(4)))
-                                        LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/rightv(1))-(leftv(5)/leftv(1))))
+                                        LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/(rightv(1)*R_gas))-(leftv(5)/(leftv(1)*R_gas))))
 				       				  
 					  if (turbulence .eq. 1) then
 					  Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(4,1:3))
@@ -1909,13 +1909,34 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					 if ((b_Code.lt.5).and.(b_Code.gt.0))then
 					  damp=zero
  					  end if
+
+ 					  if (b_code.eq.4)then	!adiabatic wall
+ 					  if (ielem(n,i)%ggs.eq.1)then
+ 					  if (thermal.eq.0)then
+ 					  tempx_l=0.0d0
+ 					  rtempx_l=0.0d0
+ 					  tempx_l(2)=lCVGRAD(4,1)
+ 					  tempx_l(3)=lCVGRAD(4,2)
+ 					  tempx_l(4)=lCVGRAD(4,3)
+ 					  CALL ROTATEF(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
+ 					  rtempx_l(2)=-rtempx_l(2)
+ 					  CALL ROTATEb(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
+ 					  lCVGRAD(4,1)=tempx_l(2)
+ 					  lCVGRAD(4,2)=tempx_l(3)
+					  lCVGRAD(4,3)=tempx_l(4)
+ 					  rCVGRAD(4,1:3)=lCVGRAD(4,1:3)
+					  end if
+					  end if
+ 					  end if
+
+
 					  
 					  vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
                                         nall(1)=nx;nall(2)=ny;nall(3)=nz
                                       LCVGRAD(1,1:3)=((LCVGRAD(1,1:3)+rCVGRAD(1,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(2)-leftv(2)))
 					   LCVGRAD(2,1:3)=((LCVGRAD(2,1:3)+rCVGRAD(2,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(3)-leftv(3)))
 					  LCVGRAD(3,1:3)=((LCVGRAD(3,1:3)+rCVGRAD(3,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(4)-leftv(4)))
-                                        LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/rightv(1))-(leftv(5)/leftv(1))))
+                                        LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/(rightv(1)*R_gas))-(leftv(5)/(leftv(1)*R_gas))))
 				       				  
 					  if (turbulence .eq. 1) then
 					  Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(4,1:3))
@@ -2087,7 +2108,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 	INTEGER::ICONSIDERED,FACEX,POINTX
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ,MP_SOURCE1,MP_SOURCE2,MP_SOURCE3
 	REAL,DIMENSION(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)::CLEFT,CRIGHT,CLEFT_ROT,CRIGHT_ROT
-	REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV,SRF_SPEEDROT
+	REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV,SRF_SPEEDROT,tempx_l,rtempx_l
 	REAL,DIMENSION(1:TURBULENCEEQUATIONS+PASSIVESCALAR)::CTURBL,CTURBR
 	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
 	REAL,DIMENSION(1:NOF_VARIABLES)::SRF_SPEED
@@ -2215,7 +2236,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					  				
                                       LCVGRAD(1,1:2)=((LCVGRAD(1,1:2)+rCVGRAD(1,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(2)-leftv(2)))
 					   LCVGRAD(2,1:2)=((LCVGRAD(2,1:2)+rCVGRAD(2,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(3)-leftv(3)))
-					  LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/rightv(1))-(leftv(4)/leftv(1))))
+					  LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/(rightv(1)*R_gas))-(leftv(4)/(leftv(1)*R_gas))))
                                         
 				       
 					  
@@ -2440,12 +2461,33 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				      if ((b_Code.lt.5).and.(b_Code.gt.0))then
 					  damp=zero
  					  end if
+
+
+ 					  if (b_code.eq.4)then	!adiabatic wall
+ 					  if (ielem(n,i)%ggs.eq.1)then
+ 					  if (thermal.eq.0)then
+ 					  tempx_l=0.0d0
+ 					  rtempx_l=0.0d0
+ 					  tempx_l(2)=lCVGRAD(3,1)
+ 					  tempx_l(3)=lCVGRAD(3,2)
+ 					  CALL ROTATEF2d(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
+ 					  rtempx_l(2)=-rtempx_l(2)
+ 					  CALL ROTATEb2d(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
+ 					  lCVGRAD(3,1)=tempx_l(2)
+ 					  lCVGRAD(3,2)=tempx_l(3)
+
+ 					  rCVGRAD(3,1)=lCVGRAD(3,1)
+ 					  rCVGRAD(3,2)=lCVGRAD(3,2)
+					  end if
+ 					  end if
+ 					  end if
+
 				       
 					   vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
                                         nall(1)=nx;nall(2)=ny
                                       LCVGRAD(1,1:2)=((LCVGRAD(1,1:2)+rCVGRAD(1,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(2)-leftv(2)))
 					   LCVGRAD(2,1:2)=((LCVGRAD(2,1:2)+rCVGRAD(2,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(3)-leftv(3)))
-					  LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/rightv(1))-(leftv(4)/leftv(1))))
+					  LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/(rightv(1)*R_gas))-(leftv(4)/(leftv(1)*R_gas))))
 					  
 					  
 					  
