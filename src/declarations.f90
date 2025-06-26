@@ -15,7 +15,7 @@ IMPLICIT NONE
 
 
 !$omp declare target(beta_i1, bleed_end, bleed_plenum, bleed_porosity, bleed_start, boundtype, initcond, itestcase, i_turb_inlet, kinit_srf, mp_a_in, mp_r_in, pi, pres, press_outlet, rres, swirl, t, tolsmall, turbinit, turbulence, turbulencemodel, ufreestream, uvel, visc, vvel, wvel)
-
+!$omp declare target(r_gas)
 !$omp declare target(poly,numneighbours2)
 #endif
 !--------------------------------------------------------------------------------------------------------------------------!
