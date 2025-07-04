@@ -235,7 +235,7 @@ SUBROUTINE READ_UCNS3D
 	READ(15,*)AOA,vectorx,vectory,vectorz
 	READ(15,*)
 	READ(15,*)
-	READ(15,*)GAMMA,PRANDTL,Reynolds,CharLength
+	READ(15,*)gamma_g,PRANDTL,Reynolds,CharLength
 	READ(15,*)
 	READ(15,*)
 	READ(15,*)
@@ -1190,7 +1190,7 @@ SUBROUTINE READ_UCNS3D
 	  
 	  
 	   ! Set pressure
-	  if ( PRES .lt. 0 ) PRES = RRES/GAMMA	
+	  if ( PRES .lt. 0 ) PRES = RRES/gamma_g	
 	  ! Set dynamic free-stream viscosity
 	  
 	  IF (RFRAME.EQ.0) THEN

@@ -117,8 +117,8 @@ Subroutine HLL_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPE
 		CCL=sqrt(gammaL*(pl+MP_PINFl)/rl)
 		CCR=sqrt(gammaR*(pR+MP_PINFR)/rR)
 		ELSE
-		CCL=sqrt(gamma*pl/rl)
-		CCR=sqrt(gamma*pr/rr)
+		CCL=sqrt(gamma_g*pl/rl)
+		CCR=sqrt(gamma_g*pr/rr)
 		END IF
 		
 		!EINFELDT APPROXIMATIONS
@@ -271,8 +271,8 @@ Subroutine HLLC_RIEMANN_SOLVER(N,iconsidered, facex,CLEFT_ROT,CRIGHT_ROT,HLLCFLU
 		CCL=sqrt(gammaL*(pl+MP_PINFl)/rl)
 		CCR=sqrt(gammaR*(pR+MP_PINFR)/rR)
 		ELSE
-		CCL=sqrt(gamma*pl/rl)
-		CCR=sqrt(gamma*pr/rr)
+		CCL=sqrt(gamma_g*pl/rl)
+		CCR=sqrt(gamma_g*pr/rr)
 		END IF
 
 		!EINFELDT APPROXIMATIONS
@@ -474,8 +474,8 @@ SUBROUTINE ROE_RIEMANN_SOLVER(N,iconsidered, facex,CLEFT,CRIGHT,HLLCFLUX,MP_SOUR
       wL = primL(4)
      qnL = uL*nx + vL*ny + wL*nz
       pL = primL(5)
-      aL = sqrt(gamma*pL/rhoL)
-      HL = aL*aL/(gamma-one) + half*(uL*uL+vL*vL+wL*wL)
+      aL = sqrt(gamma_g*pL/rhoL)
+      HL = aL*aL/(gamma_g-one) + half*(uL*uL+vL*vL+wL*wL)
 !  Right state
     rhoR = primR(1)
       uR = primR(2)
@@ -483,8 +483,8 @@ SUBROUTINE ROE_RIEMANN_SOLVER(N,iconsidered, facex,CLEFT,CRIGHT,HLLCFLUX,MP_SOUR
       wR = primR(4)
      qnR = uR*nx + vR*ny + wR*nz
       pR = primR(5)
-      aR = sqrt(gamma*pR/rhoR)
-      HR = aR*aR/(gamma-one) + half*(uR*uR+vR*vR+wR*wR)
+      aR = sqrt(gamma_g*pR/rhoR)
+      HR = aR*aR/(gamma_g-one) + half*(uR*uR+vR*vR+wR*wR)
 
 !First compute the Roe-averaged quantities
 
@@ -497,7 +497,7 @@ SUBROUTINE ROE_RIEMANN_SOLVER(N,iconsidered, facex,CLEFT,CRIGHT,HLLCFLUX,MP_SOUR
      v = (vL + RT*vR)/(one + RT)                        !Roe-averaged y-velocity
      w = (wL + RT*wR)/(one + RT)                        !Roe-averaged z-velocity
      H = (HL + RT*HR)/(one + RT)                        !Roe-averaged total enthalpy
-     a = sqrt( (gamma-one)*(H-half*(u*u + v*v + w*w)) ) !Roe-averaged speed of sound
+     a = sqrt( (gamma_g-one)*(H-half*(u*u + v*v + w*w)) ) !Roe-averaged speed of sound
     qn = u*nx + v*ny + w*nz                             !Roe-averaged face-normal velocity
 
 !Wave Strengths
@@ -727,8 +727,8 @@ real:: eig(4)                         ! Eigenvalues
      qlL = uL*lx + vL*ly + wL*lz
      qmL = uL*mx + vL*my + wL*mz
       pL = primL(5)
-      aL = sqrt(gamma*pL/rhoL)
-      HL = aL*aL/(gamma-one) + half*(uL*uL+vL*vL+wL*wL)
+      aL = sqrt(gamma_g*pL/rhoL)
+      HL = aL*aL/(gamma_g-one) + half*(uL*uL+vL*vL+wL*wL)
 !  Right state
     rhoR = primR(1)
       uR = primR(2)
@@ -738,8 +738,8 @@ real:: eig(4)                         ! Eigenvalues
      qlR = uR*lx + vR*ly + wR*lz
      qmR = uR*mx + vR*my + wR*mz
       pR = primR(5)
-      aR = sqrt(gamma*pR/rhoR)
-      HR = aR*aR/(gamma-one) + half*(uR*uR+vR*vR+wR*wR)
+      aR = sqrt(gamma_g*pR/rhoR)
+      HR = aR*aR/(gamma_g-one) + half*(uR*uR+vR*vR+wR*wR)
 
 !First compute the Roe-averaged quantities
 
@@ -752,7 +752,7 @@ real:: eig(4)                         ! Eigenvalues
      v = (vL + RT*vR)/(one + RT)                        !Roe-averaged y-velocity
      w = (wL + RT*wR)/(one + RT)                        !Roe-averaged z-velocity
      H = (HL + RT*HR)/(one + RT)                        !Roe-averaged total enthalpy
-     a = sqrt( (gamma-one)*(H-half*(u*u + v*v + w*w)) ) !Roe-averaged speed of sound
+     a = sqrt( (gamma_g-one)*(H-half*(u*u + v*v + w*w)) ) !Roe-averaged speed of sound
     qn = u*nx + v*ny + w*nz                             !Roe-averaged face-normal velocity
     ql = u*lx + v*ly + w*lz                             !Roe-averaged face-tangent velocity
     qm = u*mx + v*my + w*mz                             !Roe-averaged face-tangent velocity
@@ -931,8 +931,8 @@ real:: eig(4)                         ! Eigenvalues
       wL = primL(4)
      qnL = uL*nx + vL*ny + wL*nz
       pL = primL(5)
-      aL = sqrt(gamma*pL/rhoL)
-      HL = aL*aL/(gamma-one) + half*(uL*uL+vL*vL+wL*wL)
+      aL = sqrt(gamma_g*pL/rhoL)
+      HL = aL*aL/(gamma_g-one) + half*(uL*uL+vL*vL+wL*wL)
 
 !  Right state
     rhoR = primR(1)
@@ -941,8 +941,8 @@ real:: eig(4)                         ! Eigenvalues
       wR = primR(4)
      qnR = uR*nx + vR*ny + wR*nz
       pR = primR(5)
-      aR = sqrt(gamma*pR/rhoR)
-      HR = aR*aR/(gamma-one) + half*(uR*uR+vR*vR+wR*wR)
+      aR = sqrt(gamma_g*pR/rhoR)
+      HR = aR*aR/(gamma_g-one) + half*(uR*uR+vR*vR+wR*wR)
 
 !Compute the physical flux: fL = Fn(UL) and fR = Fn(UR)
 
@@ -1072,7 +1072,7 @@ real:: eig(4)                         ! Eigenvalues
        v = (vL + RT*vR)/(one + RT)                        !Roe-averaged y-velocity
        w = (wL + RT*wR)/(one + RT)                        !Roe-averaged z-velocity
        H = (HL + RT*HR)/(one + RT)                        !Roe-averaged total enthalpy
-       a = sqrt( (gamma-one)*(H-half*(u*u + v*v + w*w)) ) !Roe-averaged speed of sound
+       a = sqrt( (gamma_g-one)*(H-half*(u*u + v*v + w*w)) ) !Roe-averaged speed of sound
 
 !----------------------------------------------------
 !Compute the wave speed estimates for the HLL part,
@@ -1319,8 +1319,8 @@ Subroutine RUSANOV_RIEMANN_SOLVER(N,iconsidered,facex,CLEFT_ROT,CRIGHT_ROT,HLLCF
 					sr(1)=abs(ur)+sqrt(gammaR*(pr+MP_PINFr)/rr)
 					MP_SOURCE1=0.5d0*(ul+ur)!(MAX(ABS(SL(1)),ABS(SR(1))))
 					ELSE
-					sl(1)=abs(ul)+sqrt(gamma*pl/rl)
-					sr(1)=abs(ur)+sqrt(gamma*pr/rr)
+					sl(1)=abs(ul)+sqrt(gamma_g*pl/rl)
+					sr(1)=abs(ur)+sqrt(gamma_g*pr/rr)
 					ENDIF
 			
 					if (adda.eq.0)then
@@ -1384,14 +1384,14 @@ SUBROUTINE ESTIMATE_WAVES(N,ROTVL,ROTVR,SL,SM,SR)
 	REAL::CL,CR,PR,PL,UL,UR,VL,VR,WR,WL,RL,RR
 	REAL::CUP,PPV,PMIN,PMAX,QMAX,QUSER,BL,BR,COV,PM,UM
 	REAL::G1,G2,G3,G4,G5,G6,G7,G8,GEL,GER,PQ,PTL,PTR
-	G1 = (GAMMA - 1.0d0)/(2.0d0*GAMMA)
-    	G2 = (GAMMA + 1.0d0)/(2.0d0*GAMMA)
-   	G3 = 2.0d0*GAMMA/(GAMMA - 1.0d0)
-    	G4 = 2.0d0/(GAMMA - 1.0d0)
-    	G5 = 2.0d0/(GAMMA + 1.0d0)
-    	G6 = (GAMMA - 1.0d0)/(GAMMA + 1.0d0)
-   	G7 = (GAMMA - 1.0d0)/2.0d0
-   	G8 = GAMMA - 1.0d0
+	G1 = (gamma_g - 1.0d0)/(2.0d0*gamma_g)
+    	G2 = (gamma_g + 1.0d0)/(2.0d0*gamma_g)
+   	G3 = 2.0d0*gamma_g/(gamma_g - 1.0d0)
+    	G4 = 2.0d0/(gamma_g - 1.0d0)
+    	G5 = 2.0d0/(gamma_g + 1.0d0)
+    	G6 = (gamma_g - 1.0d0)/(gamma_g + 1.0d0)
+   	G7 = (gamma_g - 1.0d0)/2.0d0
+   	G8 = gamma_g - 1.0d0
 	
 	SL=0.0d0
 	SR=0.0d0
@@ -1403,14 +1403,14 @@ SUBROUTINE ESTIMATE_WAVES(N,ROTVL,ROTVR,SL,SM,SR)
 	VL=ROTVL(3)
 	WL=ROTVL(4)
 	PL=ROTVL(5)
-	CL=SQRT((PL*GAMMA)/(RL))
+	CL=SQRT((PL*gamma_g)/(RL))
 	!BUILD RIGHT  STATE VARIABLES
 	RR=ROTVR(1)
 	UR=ROTVR(2)
 	VR=ROTVR(3)
 	WR=ROTVR(4)
 	PR=ROTVR(5)
-	CR=SQRT((PR*GAMMA)/(RR))
+	CR=SQRT((PR*gamma_g)/(RR))
 
 	CUP=0.25d0*(RL+RR)*(CL+CR)
 	PPV=0.5d0*(PL + PR) + 0.5d0*(UL - UR)*CUP
@@ -1559,8 +1559,8 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_
 		CCL=sqrt(gammaL*(pl+MP_PINFl)/rl)
 		CCR=sqrt(gammaR*(pR+MP_PINFR)/rR)
 		ELSE
-		CCL=sqrt(gamma*pl/rl)
-		CCR=sqrt(gamma*pr/rr)
+		CCL=sqrt(gamma_g*pl/rl)
+		CCR=sqrt(gamma_g*pr/rr)
 		END IF	
 			
 ! 		IF (MULTISPECIES.EQ.1)THEN
@@ -1798,8 +1798,8 @@ Subroutine HLL_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_S
 		CCL=sqrt(gammaL*(pl+MP_PINFl)/rl)
 		CCR=sqrt(gammaR*(pR+MP_PINFR)/rR)
 		ELSE
-		CCL=sqrt(gamma*pl/rl)
-		CCR=sqrt(gamma*pr/rr)
+		CCL=sqrt(gamma_g*pl/rl)
+		CCR=sqrt(gamma_g*pr/rr)
 		END IF
 
 ! 		IF (MULTISPECIES.EQ.1)THEN
@@ -1951,8 +1951,8 @@ SUBROUTINE ROE_RIEMANN_SOLVER2d(N,Cleft,Cright,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,
      vyL = uL(3)/uL(1)
      vnL = vxL*nx+vyL*ny
      vtL = vxL*tx+vyL*ty
-      pL = (gamma-one)*( uL(4) - half*rhoL*(vxL*vxL+vyL*vyL) )
-      aL = sqrt(gamma*pL/rhoL)
+      pL = (gamma_g-one)*( uL(4) - half*rhoL*(vxL*vxL+vyL*vyL) )
+      aL = sqrt(gamma_g*pL/rhoL)
       HL = ( uL(4) + pL ) / rhoL
 !  Right state
     rhoR = uR(1)
@@ -1960,8 +1960,8 @@ SUBROUTINE ROE_RIEMANN_SOLVER2d(N,Cleft,Cright,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,
      vyR = uR(3)/uR(1)
      vnR = vxR*nx+vyR*ny
      vtR = vxR*tx+vyR*ty
-      pR = (gamma-one)*( uR(4) - half*rhoR*(vxR*vxR+vyR*vyR) )
-      aR = sqrt(gamma*pR/rhoR)
+      pR = (gamma_g-one)*( uR(4) - half*rhoR*(vxR*vxR+vyR*vyR) )
+      aR = sqrt(gamma_g*pR/rhoR)
       HR = ( uR(4) + pR ) / rhoR
 
 !First compute the Roe Averages
@@ -1970,7 +1970,7 @@ SUBROUTINE ROE_RIEMANN_SOLVER2d(N,Cleft,Cright,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,
     vx = (vxL+RT*vxR)/(one+RT)
     vy = (vyL+RT*vyR)/(one+RT)
      H = ( HL+RT* HR)/(one+RT)
-     a = sqrt( (gamma-one)*(H-half*(vx*vx+vy*vy)) )
+     a = sqrt( (gamma_g-one)*(H-half*(vx*vx+vy*vy)) )
     vn = vx*nx+vy*ny
     vt = vx*tx+vy*ty
 
@@ -2111,15 +2111,15 @@ real :: uL(4), uR(4)    !  Input: conservative variables rho*[1, u, v, E]
     rhoL = uL(1)
      vxL = uL(2)/uL(1)
      vyL = uL(3)/uL(1)
-      pL = (gamma-one)*( uL(4) - half*rhoL*(vxL*vxL+vyL*vyL) )
-      aL = sqrt(gamma*pL/rhoL)
+      pL = (gamma_g-one)*( uL(4) - half*rhoL*(vxL*vxL+vyL*vyL) )
+      aL = sqrt(gamma_g*pL/rhoL)
       HL = ( uL(4) + pL ) / rhoL
 !  Right state
     rhoR = uR(1)
      vxR = uR(2)/uR(1)
      vyR = uR(3)/uR(1)
-      pR = (gamma-one)*( uR(4) - half*rhoR*(vxR*vxR+vyR*vyR) )
-      aR = sqrt(gamma*pR/rhoR)
+      pR = (gamma_g-one)*( uR(4) - half*rhoR*(vxR*vxR+vyR*vyR) )
+      aR = sqrt(gamma_g*pR/rhoR)
       HR = ( uR(4) + pR ) / rhoR
 
      vnL = vxL*nx + vyL*ny
@@ -2189,7 +2189,7 @@ real :: uL(4), uR(4)    !  Input: conservative variables rho*[1, u, v, E]
      vx = (vxL+RT*vxR)/(one+RT)
      vy = (vyL+RT*vyR)/(one+RT)
       H = ( HL+RT* HR)/(one+RT)
-      a = sqrt( (gamma-one)*(H-half*(vx*vx+vy*vy)) )
+      a = sqrt( (gamma_g-one)*(H-half*(vx*vx+vy*vy)) )
      vn = vx*nx2+vy*ny2
      vt = vx*nx1+vy*ny1
 
@@ -2393,8 +2393,8 @@ Subroutine RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,S
 			sr(1)=abs(ur)+sqrt(gammaR*(pr+MP_PINFr)/rr)
 			MP_SOURCE1=0.5D0*(ul+ur)!-0.5D0*(MAX(ABS(SL(1)),ABS(SR(1))))*(UR-UL)
 			ELSE
-			sl(1)=abs(ul)+sqrt(gamma*pl/rl)
-			sr(1)=abs(ur)+sqrt(gamma*pr/rr)
+			sl(1)=abs(ul)+sqrt(gamma_g*pl/rl)
+			sr(1)=abs(ur)+sqrt(gamma_g*pr/rr)
 			ENDIF
 ! 			WRITE(190+N,*)"WHY HERE"
 ! 			WRITE(190+N,*)SL(1),SR(1)

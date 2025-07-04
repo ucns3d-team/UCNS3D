@@ -101,15 +101,15 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						  ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						  ASOUND1=SQRT(LEFTV(5)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(5)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
 						  IF (ILOCAL_RECON3(i)%MRF.EQ.1)THEN
                                 !RETRIEVE THE ROTATIONAL VELOCITY (AT THE GAUSSIAN POINT JUST FOR SECOND ORDER)
                                 SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
                                 CALL ROTATEF(N,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
                                 !CALCULATE THE NEW EIGENVALUE FOR ROTATING REFERENCE FRAME
-                                ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
-                                ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
+                                ASOUND1=SQRT(LEFTV(5)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
+                                ASOUND2=SQRT(RIGHTV(5)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
                             END IF
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -120,7 +120,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  mul1=IELEM(N,I)%SURF(L)
 						  
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
 						  
@@ -150,7 +150,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 		
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-						      mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+						      mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
 						      viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
 						      
 						      VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
@@ -158,7 +158,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -196,7 +196,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  ELSE
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -385,11 +385,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-                            ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-                            ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+                            ASOUND1=SQRT(LEFTV(5)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+                            ASOUND2=SQRT(RIGHTV(5)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
                         IF (ILOCAL_RECON3(i)%MRF.EQ.1)THEN
-                            ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
-                            ASOUND2=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
+                            ASOUND1=SQRT(LEFTV(5)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
+                            ASOUND2=SQRT(LEFTV(5)*gamma_g/LEFTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
                         END IF
 
 						  VPP=MAX(ASOUND1,ASOUND2)
@@ -401,7 +401,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  mul1=IELEM(N,I)%SURF(L)
 						  
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
 						  
@@ -430,7 +430,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 		
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-						      mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+						      mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
 						      viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
 						      
 						      VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
@@ -438,7 +438,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -480,7 +480,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  ELSE
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -689,8 +689,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						 ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						 ASOUND1=SQRT(LEFTV(4)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(4)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -701,7 +701,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  mul1=IELEM(N,I)%SURF(L)
 ! 						  viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
 						  
@@ -729,7 +729,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 		
 ! 						      viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-						      mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+						      mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
 						      viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
 						      
 						      VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
@@ -737,7 +737,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2D(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE2D(N,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -783,7 +783,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  ELSE
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -960,8 +960,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						ASOUND1=SQRT(LEFTV(4)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(4)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -972,7 +972,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  mul1=IELEM(N,I)%SURF(L)
 ! 						  viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
 						  
@@ -999,7 +999,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 ! 						      viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-						      mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+						      mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
 						      viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
 						      
 						      VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
@@ -1007,7 +1007,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1047,7 +1047,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  ELSE
 						  
 						  IMPDIAG(i,1:nof_Variables,1:nof_Variables)=IMPDIAG(i,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(i,l,1:nof_Variables,1:nof_Variables)=IMPOFF(i,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1236,8 +1236,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						ASOUND1=SQRT(LEFTV(5)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(5)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -1248,7 +1248,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  mul1=IELEM(N,I)%SURF(L)
 						  
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
 						  
@@ -1279,7 +1279,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 		
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-						      mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+						      mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
 						      viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
 						      
 						      VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
@@ -1287,7 +1287,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1320,7 +1320,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  ELSE
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1493,8 +1493,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						  ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						  ASOUND1=SQRT(LEFTV(5)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(5)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -1505,7 +1505,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  mul1=IELEM(N,I)%SURF(L)
 						  
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
 						  
@@ -1535,7 +1535,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 		
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-						      mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+						      mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
 						      viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
 						      
 						      VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
@@ -1543,7 +1543,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1576,7 +1576,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  ELSE
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1758,8 +1758,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						ASOUND1=SQRT(LEFTV(4)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(4)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -1770,7 +1770,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  mul1=IELEM(N,I)%SURF(L)
 						  
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
 						  
@@ -1797,7 +1797,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 		
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-						      mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+						      mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
 						      viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
 						      
 						      VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
@@ -1805,7 +1805,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -1838,7 +1838,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  ELSE
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -2003,8 +2003,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						 ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						 ASOUND1=SQRT(LEFTV(4)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(4)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -2015,7 +2015,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  mul1=IELEM(N,I)%SURF(L)
 						  
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
 						  
@@ -2042,7 +2042,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 		
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-						      mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+						      mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
 						      viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
 						      
 						      VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
@@ -2050,7 +2050,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -2083,7 +2083,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  ELSE
 						  
 						  IMPDIAG(1,1:nof_Variables,1:nof_Variables)=IMPDIAG(1,1:nof_Variables,1:nof_Variables)+(OO2*((vpp*identity1))*MUL1)
-						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
+						  CALL COMPUTE_JACOBIANSE2d(N,EIGVL,Cright,gamma_g,ANGLE1,ANGLE2,nx,ny,nz)
 						  convj=eigvl
 						  IMPOFF(1,l,1:nof_Variables,1:nof_Variables)=IMPOFF(1,l,1:nof_Variables,1:nof_Variables)+(((OO2*CONVJ(1:nof_Variables,1:nof_Variables))&
 						  -((OO2*vpp)*IDENTITY1))*MUL1)
@@ -2256,8 +2256,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						 ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						 ASOUND1=SQRT(LEFTV(4)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(4)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -2268,7 +2268,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 ! 						  viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
  
@@ -2293,7 +2293,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
                         
                 ! 						      viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
                                             viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-                                            mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+                                            mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
                                             viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
                                             
                                             VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
@@ -2491,8 +2491,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						ASOUND1=SQRT(LEFTV(4)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(4)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -2503,7 +2503,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 ! 						  viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
 						  
@@ -2530,7 +2530,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 ! 						      viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-						      mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+						      mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
 						      viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
 						      
 						      VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
@@ -2748,8 +2748,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						ASOUND1=SQRT(LEFTV(5)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(5)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -2760,7 +2760,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 ! 						  viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
  
@@ -2785,7 +2785,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
                         
                 ! 						      viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
                                             viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-                                            mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+                                            mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
                                             viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
                                             
                                             VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
@@ -2990,8 +2990,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						ASOUND1=SQRT(LEFTV(5)*gamma_g/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(5)*gamma_g/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -3002,7 +3002,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 ! 						  viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*mul1&
-						  /ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))&
+						  /ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))&
 						  *viscots*mul1/(ielem(n,i)%dih(l)*prandtl)))
 						  VPP=MAX(ASOUND1,ASOUND2)+VISCOTS
 						  
@@ -3029,7 +3029,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						      VISCOTS=OO2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 ! 						      viscots=viscots/((0.5*(cleft(1)+cRIGHT(1)))*ielem(n,i)%dih(l))
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cRIGHT(1))))*viscots*&
-						      mul1/ielem(n,i)%dih(l),((gamma/(0.5*(cleft(1)+cRIGHT(1))))*&
+						      mul1/ielem(n,i)%dih(l),((gamma_g/(0.5*(cleft(1)+cRIGHT(1))))*&
 						      viscots*mul1/(ielem(n,i)%dih(l)*(prandtl+prtu))))
 						      
 						      VPP=MAX(ASOUND1,ASOUND2)+VISCOTS

@@ -93,7 +93,7 @@ R=LEFTV(1)
 U=LEFTV(2)
 V=LEFTV(3)
 P=LEFTV(4)
-GM=GAMMA
+GM=gamma_g
 !KINETIC ENERGY FIRST!
 SKIN=(OO2)*((U**2)+(V**2))
 !INTERNAL ENERGY 
@@ -118,7 +118,7 @@ U=LEFTV(2)
 V=LEFTV(3)
 w=LEFTV(4)
 P=LEFTV(5)
-GM=GAMMA
+GM=gamma_g
 !KINETIC ENERGY FIRST!
 SKIN=(OO2)*((U**2)+(V**2)+(W**2))
 !INTERNAL ENERGY 
@@ -217,7 +217,7 @@ TEMPS(1)=LEFTV(1)
 TEMPS(2)=LEFTV(2)*OODENSITY
 TEMPS(3)=LEFTV(3)*OODENSITY
 TEMPS(4)=LEFTV(4)*OODENSITY
-TEMPS(5)=((GAMMA-1.0D0))*((LEFTV(5))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
+TEMPS(5)=((gamma_g-1.0D0))*((LEFTV(5))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
 
 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
@@ -294,7 +294,7 @@ OODENSITY=1.0D0/LEFTV(1)
 TEMPS(1)=LEFTV(1)
 TEMPS(2)=LEFTV(2)*OODENSITY
 TEMPS(3)=LEFTV(3)*OODENSITY
-TEMPS(4)=((GAMMA-1.0D0))*((LEFTV(4))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
+TEMPS(4)=((gamma_g-1.0D0))*((LEFTV(4))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
 
 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
@@ -456,7 +456,7 @@ TEMPS(1)=LEFTV(1)
 TEMPS(2)=LEFTV(2)*OODENSITY
 TEMPS(3)=LEFTV(3)*OODENSITY
 TEMPS(4)=LEFTV(4)*OODENSITY
-TEMPS(5)=((GAMMA-1.0D0))*((LEFTV(5))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
+TEMPS(5)=((gamma_g-1.0D0))*((LEFTV(5))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
 
 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
@@ -468,7 +468,7 @@ TEMPS(1)=rightv(1)
 TEMPS(2)=rightv(2)*OODENSITY
 TEMPS(3)=rightv(3)*OODENSITY
 TEMPS(4)=rightv(4)*OODENSITY
-TEMPS(5)=((GAMMA-1.0D0))*((rightv(5))-OO2*rightv(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
+TEMPS(5)=((gamma_g-1.0D0))*((rightv(5))-OO2*rightv(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
 
 rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
 
@@ -590,7 +590,7 @@ OODENSITY=1.0D0/LEFTV(1)
 TEMPS(1)=LEFTV(1)
 TEMPS(2)=LEFTV(2)*OODENSITY
 TEMPS(3)=LEFTV(3)*OODENSITY
-TEMPS(4)=((GAMMA-1.0D0))*((LEFTV(4))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
+TEMPS(4)=((gamma_g-1.0D0))*((LEFTV(4))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
 
 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
@@ -600,7 +600,7 @@ OODENSITY=1.0D0/rightv(1)
 TEMPS(1)=rightv(1)
 TEMPS(2)=rightv(2)*OODENSITY
 TEMPS(3)=rightv(3)*OODENSITY
-TEMPS(4)=((GAMMA-1.0D0))*((rightv(4))-OO2*rightv(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
+TEMPS(4)=((gamma_g-1.0D0))*((rightv(4))-OO2*rightv(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
 
 rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
 end if
@@ -664,8 +664,8 @@ if (multispecies.eq.1)then
 		  Ssr=SQRT((rightV(5)+MP_PINFr)*GAMMAr/rightV(1))
 		else
 
-      SSL=((GAMMA*PPL)/(RHOL))
-      SSR=((GAMMA*PPR)/(RHOR))
+      SSL=((gamma_g*PPL)/(RHOL))
+      SSR=((gamma_g*PPR)/(RHOR))
       end if
 
 
@@ -775,8 +775,8 @@ TOLE=tolsmall
 		  Ssr=SQRT((rightV(4)+MP_PINFr)*GAMMAr/rightV(1))
 		else
 
-      SSL=((GAMMA*PPL)/(RHOL))
-      SSR=((GAMMA*PPR)/(RHOR))
+      SSL=((gamma_g*PPL)/(RHOL))
+      SSR=((gamma_g*PPR)/(RHOR))
       end if
 
       CMA=1.0D0
@@ -902,7 +902,7 @@ TEMPS(6:8)=LEFTV(6:8)
  
  else
 skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
-ie1=((leftv(5))/((GAMMA-1.0D0)*leftv(1)))
+ie1=((leftv(5))/((gamma_g-1.0D0)*leftv(1)))
 
 OODENSITY=1.0D0/LEFTV(1)
 
@@ -950,7 +950,7 @@ TEMPS(5:7)=LEFTV(5:7)
 
 
 skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
+ie1=((leftv(4))/((gamma_g-1.0D0)*leftv(1)))
 
 OODENSITY=1.0D0/LEFTV(1)
 
@@ -1042,7 +1042,7 @@ TEMPS(6:8)=rightV(6:8)
 
 
 skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
-ie1=((leftv(5))/((GAMMA-1.0D0)*leftv(1)))
+ie1=((leftv(5))/((gamma_g-1.0D0)*leftv(1)))
 
 OODENSITY=1.0D0/LEFTV(1)
 
@@ -1056,7 +1056,7 @@ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 
 skin1=(oo2)*((rightv(2)**2)+(rightv(3)**2)+(rightv(4)**2))
-ie1=((rightv(5))/((GAMMA-1.0D0)*rightv(1)))
+ie1=((rightv(5))/((gamma_g-1.0D0)*rightv(1)))
 
 OODENSITY=1.0D0/rightv(1)
 
@@ -1121,7 +1121,7 @@ TEMPS(5:7)=RIGHTV(5:7)
 
 
 skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
+ie1=((leftv(4))/((gamma_g-1.0D0)*leftv(1)))
 
 OODENSITY=1.0D0/LEFTV(1)
 
@@ -1133,7 +1133,7 @@ TEMPS(4)=leftv(1)*(ie1+skin1)
 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 skin1=(oo2)*((rightv(2)**2)+(rightv(3)**2))
-ie1=((rightv(4))/((GAMMA-1.0D0)*rightv(1)))
+ie1=((rightv(4))/((gamma_g-1.0D0)*rightv(1)))
 
 OODENSITY=1.0D0/rightv(1)
 
@@ -1225,7 +1225,7 @@ INFLOW(8)=MP_A_IN(1)
 ELSE
 
 R=RRES
-GM=GAMMA
+GM=gamma_g
 P=PRES
 U=uvel
 V=vvel
@@ -1293,7 +1293,7 @@ ELSE
 END IF
 
 R=RRES
-GM=GAMMA
+GM=gamma_g
 P=PRES
 S=SQRT((GM*P)/(R))
   
@@ -1418,7 +1418,7 @@ ELSE
 
 
 R=RRES
-GM=GAMMA
+GM=gamma_g
 P=PRES
 U=uvel
 V=vvel
@@ -1523,7 +1523,7 @@ OUTFLOW2d(7)=MP_A_IN(1)
 ELSE
 
 R=RRES
-GM=GAMMA
+GM=gamma_g
 P=PRES
 U=uvel
 V=vvel
@@ -1594,7 +1594,7 @@ OUTFLOW(8)=MP_A_IN(1)
 ELSE
 
 R=RRES
-GM=GAMMA
+GM=gamma_g
 P=PRES
 
 if (initcond.eq.977)then
@@ -1641,7 +1641,7 @@ REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
 
 
 R=RRES
-GM=GAMMA
+GM=gamma_g
 P=PRESS_OUTLET
 U=uvel
 V=vvel
@@ -1733,7 +1733,7 @@ BLEED_AREA=BLEED_POROSITY(IBLEEDN)*BLEED_REGION
 
 !NOW COMPUTE THE BLEED M DOT SONIC-S MASS FLOW RATE EQ.17 , https://doi.org/10.2514/1.B37474
 
-BLEED_MDOTSONIC_S=BLEED_AREA*P*(SQRT(GAMMA*R/P))*(((GAMMA+1.0D0)/(2))**((GAMMA+1)/(2*(1-GAMMA))))
+BLEED_MDOTSONIC_S=BLEED_AREA*P*(SQRT(gamma_g*R/P))*(((gamma_g+1.0D0)/(2))**((gamma_g+1)/(2*(1-gamma_g))))
 
 !NOW COMPUTE QSONIC EQ. 22
 BLEED_QSONIC_S=0.598+0.0307*(BLEED_PLENUM(IBLEEDN)/P)-0.5936*((BLEED_PLENUM(IBLEEDN)/P)**2)
@@ -2670,8 +2670,8 @@ SUBROUTINE SUTHERLAND(N,leftv,rightv,VISCL,LAML)
               VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
 
 	      
-	      LAML(1)=VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1.d0))
-	      LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
+	      LAML(1)=VISCL(1)*gamma_g/(PRANDTL*(gamma_g-1.d0))
+	      LAML(2)=VISCL(2)*gamma_g/(PRANDTL*(gamma_g-1.d0))
 	  
 	
 	     
@@ -2706,8 +2706,8 @@ SUBROUTINE SUTHERLAND(N,leftv,rightv,VISCL,LAML)
               VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
 
 	      
-	      LAML(1)=VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1.d0))
-	      LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
+	      LAML(1)=VISCL(1)*gamma_g/(PRANDTL*(gamma_g-1.d0))
+	      LAML(2)=VISCL(2)*gamma_g/(PRANDTL*(gamma_g-1.d0))
 	  
 
 	   
@@ -2944,7 +2944,7 @@ SELECT CASE(B_CODE)
     
     SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
     SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-    SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+    SPS=SQRT((gamma_g*SUBSON2(5))/(SUBSON2(1)))
     VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
     CALL PRIM2CONS2(N,LEFTV,RIGHTV)
     
@@ -2971,7 +2971,7 @@ SELECT CASE(B_CODE)
     rightv(3)=SUBSON3(3)*SUBSON3(1)
     rightv(4)=SUBSON3(4)*SUBSON3(1)
     SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2)+(SUBSON3(4)**2))
-    IKINS=SUBSON3(5)/((GAMMA-1.0d0)*(SUBSON3(1)))
+    IKINS=SUBSON3(5)/((gamma_g-1.0d0)*(SUBSON3(1)))
     rightv(5)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
       
       
@@ -3028,10 +3028,10 @@ SELECT CASE(B_CODE)
     SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
     SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
      
-     SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+     SPS=SQRT((gamma_g*SUBSON2(5))/(SUBSON2(1)))
     VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
      
-    SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+    SPS=SQRT((gamma_g*SUBSON2(5))/(SUBSON2(1)))
     
     CALL PRIM2CONS2(N,LEFTV,RIGHTV)
     
@@ -3052,7 +3052,7 @@ SELECT CASE(B_CODE)
     rightv(3)=SUBSON3(3)*SUBSON3(1)
     rightv(4)=SUBSON3(4)*SUBSON3(1)
     SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2)+(SUBSON3(4)**2))
-    IKINS=SUBSON3(5)/((GAMMA-1.0d0)*(SUBSON3(1)))
+    IKINS=SUBSON3(5)/((gamma_g-1.0d0)*(SUBSON3(1)))
     rightv(5)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
      
      
@@ -3089,10 +3089,10 @@ SELECT CASE(B_CODE)
 
     SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
 
-     SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+     SPS=SQRT((gamma_g*SUBSON2(5))/(SUBSON2(1)))
     VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
 
-    SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+    SPS=SQRT((gamma_g*SUBSON2(5))/(SUBSON2(1)))
 
     CALL PRIM2CONS2(N,LEFTV,RIGHTV)
 
@@ -3114,7 +3114,7 @@ SELECT CASE(B_CODE)
     rightv(3)=SUBSON3(3)*SUBSON3(1)
     rightv(4)=SUBSON3(4)*SUBSON3(1)
     SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2)+(SUBSON3(4)**2))
-    IKINS=SUBSON3(5)/((GAMMA-1.0d0)*(SUBSON3(1)))
+    IKINS=SUBSON3(5)/((gamma_g-1.0d0)*(SUBSON3(1)))
     rightv(5)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
 
 
@@ -3282,7 +3282,7 @@ SELECT CASE(B_CODE)
     
 	    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
 	    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-	    SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+	    SPS=SQRT((gamma_g*SUBSON2(5))/(SUBSON2(1)))
 	    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
 	  
 	    CALL PRIM2CONS2(N,LEFTV,RIGHTV)
@@ -3305,7 +3305,7 @@ SELECT CASE(B_CODE)
 			
 			SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
 			SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-			SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+			SPS=SQRT((gamma_g*SUBSON2(5))/(SUBSON2(1)))
 			VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
 	             CALL PRIM2CONS2(N,LEFTV,RIGHTV)
 				    
@@ -3322,7 +3322,7 @@ SELECT CASE(B_CODE)
     rightv(3)=SUBSON3(3)*SUBSON3(1)
     rightv(4)=SUBSON3(4)*SUBSON3(1)
     SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2)+(SUBSON3(4)**2))
-    IKINS=SUBSON3(5)/((GAMMA-1.0d0)*(SUBSON3(1)))
+    IKINS=SUBSON3(5)/((gamma_g-1.0d0)*(SUBSON3(1)))
     rightv(5)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
 		  
 		  END IF
@@ -3389,7 +3389,7 @@ SELECT CASE(B_CODE)
     rightv(3)=SUBSON3(3)*SUBSON3(1)
     rightv(4)=SUBSON3(4)*SUBSON3(1)
     SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2)+(SUBSON3(4)**2))
-    IKINS=SUBSON3(5)/((GAMMA-1.0d0)*(SUBSON3(1)))
+    IKINS=SUBSON3(5)/((gamma_g-1.0d0)*(SUBSON3(1)))
     rightv(5)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
 	
 	      
@@ -3462,7 +3462,7 @@ SELECT CASE(B_CODE)
     
     SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
     SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-    SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+    SPS=SQRT((gamma_g*SUBSON2(4))/(SUBSON2(1)))
     VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
     
 
@@ -3494,7 +3494,7 @@ SELECT CASE(B_CODE)
     rightv(3)=SUBSON3(3)*SUBSON3(1)
     
     SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
-    IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
+    IKINS=SUBSON3(4)/((gamma_g-1.0d0)*(SUBSON3(1)))
     rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
       
       
@@ -3550,10 +3550,10 @@ SELECT CASE(B_CODE)
     SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
     SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
      
-     SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+     SPS=SQRT((gamma_g*SUBSON2(4))/(SUBSON2(1)))
     VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
      
-    SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+    SPS=SQRT((gamma_g*SUBSON2(4))/(SUBSON2(1)))
     
     CALL PRIM2CONS2(N,LEFTV,RIGHTV)
     
@@ -3573,7 +3573,7 @@ SELECT CASE(B_CODE)
     rightv(3)=SUBSON3(3)*SUBSON3(1)
     
     SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
-    IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
+    IKINS=SUBSON3(4)/((gamma_g-1.0d0)*(SUBSON3(1)))
     rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
      
      
@@ -3630,9 +3630,9 @@ SELECT CASE(B_CODE)
                             end if
                             SKIN1=(OO2)*((U1**2)+(V1**2))
                             !INTERNAL ENERGY 
-                            IE1=((P1)/((GAMMA-1.0D0)*R1))
+                            IE1=((P1)/((gamma_g-1.0D0)*R1))
                             !TOTAL ENERGY
-                            E1=(P1/(GAMMA-1))+(R1*SKIN1)
+                            E1=(P1/(gamma_g-1))+(R1*SKIN1)
                             !VECTOR OF CONSERVED VARIABLES NOW
                             rightv(1)=R1
                             rightv(2)=R1*U1
@@ -3661,9 +3661,9 @@ SELECT CASE(B_CODE)
                             end if
                             SKIN1=(OO2)*((U1**2)+(V1**2))
                             !INTERNAL ENERGY 
-                            IE1=((P1)/((GAMMA-1.0D0)*R1))
+                            IE1=((P1)/((gamma_g-1.0D0)*R1))
                             !TOTAL ENERGY
-                            E1=(P1/(GAMMA-1))+(R1*SKIN1)
+                            E1=(P1/(gamma_g-1))+(R1*SKIN1)
                             !VECTOR OF CONSERVED VARIABLES NOW
                             rightv(1)=R1
                             rightv(2)=R1*U1
@@ -3705,9 +3705,9 @@ SELECT CASE(B_CODE)
                             end if
 			       SKIN1=(OO2)*((U1**2)+(V1**2))
                             !INTERNAL ENERGY 
-                            IE1=((P1)/((GAMMA-1.0D0)*R1))
+                            IE1=((P1)/((gamma_g-1.0D0)*R1))
                             !TOTAL ENERGY
-                            E1=(P1/(GAMMA-1))+(R1*SKIN1)
+                            E1=(P1/(gamma_g-1))+(R1*SKIN1)
                             !VECTOR OF CONSERVED VARIABLES NOW
                            ! rightv(1)=leftv(1)
                             !rightv(2)=0.0
@@ -3854,7 +3854,7 @@ SELECT CASE(B_CODE)
     
 	    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
 	    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-	    SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+	    SPS=SQRT((gamma_g*SUBSON2(4))/(SUBSON2(1)))
 	    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
 	  
 	  CALL PRIM2CONS2(N,LEFTV,RIGHTV)
@@ -3876,7 +3876,7 @@ SELECT CASE(B_CODE)
 			
 			SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
 			SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-			SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+			SPS=SQRT((gamma_g*SUBSON2(4))/(SUBSON2(1)))
 			VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
 			  CALL PRIM2CONS2(N,LEFTV,RIGHTV)
 				    
@@ -3892,7 +3892,7 @@ SELECT CASE(B_CODE)
     rightv(3)=SUBSON3(3)*SUBSON3(1)
     
     SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
-    IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
+    IKINS=SUBSON3(4)/((gamma_g-1.0d0)*(SUBSON3(1)))
     rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
 		  
 		  END IF
@@ -3952,7 +3952,7 @@ SELECT CASE(B_CODE)
     rightv(3)=SUBSON3(3)*SUBSON3(1)
     
     SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
-    IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
+    IKINS=SUBSON3(4)/((gamma_g-1.0d0)*(SUBSON3(1)))
     rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
 	
 	      
@@ -4379,8 +4379,8 @@ END SELECT
 		  Viscl(4) = MIN(10000000*visc,VISCL(4))		  
   
 
-	 LAML(3)=( VISCL(3)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1)) )
-	 LAML(4)=( VISCL(4)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1)) )
+	 LAML(3)=( VISCL(3)*gamma_g/(PRTU*(gamma_g-1)) ) + ( VISCL(1)*gamma_g/(PRANDTL*(gamma_g-1)) )
+	 LAML(4)=( VISCL(4)*gamma_g/(PRTU*(gamma_g-1)) ) + ( VISCL(2)*gamma_g/(PRANDTL*(gamma_g-1)) )
 	 VISCL(3)=MAX(0.0D0,VISCL(3))
 	 VISCL(4)=MAX(0.0D0,VISCL(4))
 	 
@@ -4605,8 +4605,8 @@ END SELECT
 		  Viscl(4) = MIN(10000000*visc,VISCL(4))		  
   
 
-	 LAML(3)=( VISCL(3)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1)) )
-	 LAML(4)=( VISCL(4)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1)) )
+	 LAML(3)=( VISCL(3)*gamma_g/(PRTU*(gamma_g-1)) ) + ( VISCL(1)*gamma_g/(PRANDTL*(gamma_g-1)) )
+	 LAML(4)=( VISCL(4)*gamma_g/(PRTU*(gamma_g-1)) ) + ( VISCL(2)*gamma_g/(PRANDTL*(gamma_g-1)) )
 	 VISCL(3)=MAX(0.0D0,VISCL(3))
 	 VISCL(4)=MAX(0.0D0,VISCL(4))
 	 
@@ -5109,7 +5109,7 @@ R=LEFTV(1)
 U=LEFTV(2)
 V=LEFTV(3)
 P=LEFTV(4)
-GM=GAMMA
+GM=gamma_g
 !KINETIC ENERGY FIRST!
 SKIN=(OO2)*((U**2)+(V**2))
 !INTERNAL ENERGY 
@@ -5163,7 +5163,7 @@ R=LEFTV(1)
 U=LEFTV(2)
 V=LEFTV(3)
 P=LEFTV(4)
-GM=GAMMA
+GM=gamma_g
 !KINETIC ENERGY FIRST!
 SKIN=(OO2)*((U**2)+(V**2))
 !INTERNAL ENERGY
@@ -5228,7 +5228,7 @@ U=LEFTV(2)
 V=LEFTV(3)
 w=LEFTV(4)
 P=LEFTV(5)
-GM=GAMMA
+GM=gamma_g
 !KINETIC ENERGY FIRST!
 SKIN=(OO2)*((U**2)+(V**2)+(W**2))
 !INTERNAL ENERGY 
@@ -5291,7 +5291,7 @@ U=LEFTV(2)
 V=LEFTV(3)
 w=LEFTV(4)
 P=LEFTV(5)
-GM=GAMMA
+GM=gamma_g
 !KINETIC ENERGY FIRST!
 SKIN=(OO2)*((U**2)+(V**2)+(W**2))
 !INTERNAL ENERGY 
@@ -5348,7 +5348,7 @@ U=LEFTV(2)
 V=LEFTV(3)
 w=LEFTV(4)
 P=LEFTV(5)
-GM=GAMMA
+GM=gamma_g
 !KINETIC ENERGY FIRST!
 SKIN=(OO2)*((U**2)+(V**2)+(W**2))
 !INTERNAL ENERGY 
@@ -5480,7 +5480,7 @@ INTEGER:: I_DIM, I_VAR
         END DO
 
 
-        LEFTV_DER(NOF_VARIABLES,I_DIM) = (GAMMA - 1.0D0) * ((LEFTV(1) * LEFTV_DER(NOF_VARIABLES,I_DIM) - LEFTV(NOF_VARIABLES) * LEFTV_DER(1,I_DIM)) / LEFTV(1) ** 2 - DOT_PRODUCT(LEFTV(2:NOF_VARIABLES-1), LEFTV_DER(2:NOF_VARIABLES-1,I_DIM)))
+        LEFTV_DER(NOF_VARIABLES,I_DIM) = (gamma_g - 1.0D0) * ((LEFTV(1) * LEFTV_DER(NOF_VARIABLES,I_DIM) - LEFTV(NOF_VARIABLES) * LEFTV_DER(1,I_DIM)) / LEFTV(1) ** 2 - DOT_PRODUCT(LEFTV(2:NOF_VARIABLES-1), LEFTV_DER(2:NOF_VARIABLES-1,I_DIM)))
         ! TX = (GAMMA-1) * ((RHO * EX - E * RHOX) / RHO ** 2 - (U * UX + V * VX + W * WX))
     END DO
 

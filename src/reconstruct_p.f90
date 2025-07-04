@@ -428,7 +428,7 @@ REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 KMAXE=XMPIELRANK(N)
 
 #ifdef WENOWEIGHTS_GPU_KERNEL
-!$OMP target teams distribute parallel do
+!$OMP target loop
 #else
 !$OMP DO
 #endif
@@ -468,7 +468,7 @@ ILOCAL_RECON3_L(ICONSIDERED)%ULEFT(:,:,:)=ZERO
 END DO
 
 #ifdef WENOWEIGHTS_GPU_KERNEL
-!$OMP end target teams distribute parallel do
+!$OMP end target loop
 #else
 !$OMP END DO
 #endif
@@ -607,9 +607,9 @@ lwcx1=IELEM_L(n,i)%LINC
             END IF
 
             IF (DIMENSIONA.EQ.3)THEN
-            CALL COMPUTE_EIGENVECTORS(N,RVEIGL,RVEIGR,EIGVL,EIGVR,GAMMA)
+            CALL COMPUTE_EIGENVECTORS(N,RVEIGL,RVEIGR,EIGVL,EIGVR,gamma_g)
             ELSE
-            CALL COMPUTE_EIGENVECTORS2D(N,RVEIGL,RVEIGR,EIGVL,EIGVR,GAMMA)
+            CALL COMPUTE_EIGENVECTORS2D(N,RVEIGL,RVEIGR,EIGVL,EIGVR,gamma_g)
             END IF
             LAMBDA(:,:,L,1)=ZERO;
             SMOOTHINDICATOR(:,:,L,1)=ZERO;

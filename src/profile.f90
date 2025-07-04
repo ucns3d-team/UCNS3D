@@ -145,7 +145,7 @@ VECCOS(:)=ZERO
 !! READ INITIAL VALUES FROM DAT FILE
 R1=RRES
 P1=PRES
-S1=SQRT((GAMMA*P1)/(R1))
+S1=SQRT((gamma_g*P1)/(R1))
 U1=UVEL
 V1=VVEL
 W1=WVEL
@@ -154,7 +154,7 @@ W1=WVEL
 SKIN1=(oo2)*((U1**2)+(V1**2)+(W1**2))
 !INTERNAL ENERGY 
 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 
 !TOTAL ENERGY
 E1=R1*(SKIN1+IE1)
@@ -230,9 +230,9 @@ w1=0.0
 
 SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
 !INTERNAL ENERGY
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -263,8 +263,8 @@ v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
 else
 
 W1=0.0D0
-P1=(1.0d0/(gamma*1.25*1.25))+((1.0d0/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
-r1=(p1*(gamma*1.25*1.25))
+P1=(1.0d0/(gamma_g*1.25*1.25))+((1.0d0/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
+r1=(p1*(gamma_g*1.25*1.25))
 u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
 v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
 
@@ -272,9 +272,9 @@ v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
 end if
 SKIN1=(OO2)*((U1**2)+(V1**2)+(W1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -299,9 +299,9 @@ p1=1
 end if
 SKIN1=(OO2)*((U1**2)+(V1**2)+(W1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -820,7 +820,7 @@ IF (INITCOND.EQ.103)THEN
 
 R1=RRES
 P1=PRES
-S1=SQRT((GAMMA*P1)/(R1))
+S1=SQRT((gamma_g*P1)/(R1))
 V1=VVEL
 W1=WVEL
 IF (POY(1).GT.0.0D0)THEN
@@ -843,7 +843,7 @@ END IF
 SKIN1=(oo2)*((U1**2)+(V1**2)+(W1**2))
 !INTERNAL ENERGY
 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 
 !TOTAL ENERGY
 E1=R1*(SKIN1+IE1)
@@ -917,7 +917,7 @@ VECCOS(:)=ZERO
 !! READ INITIAL VALUES FROM DAT FILE
 R1=RRES
 P1=PRES
-S1=SQRT((GAMMA*P1)/(R1))
+S1=SQRT((gamma_g*P1)/(R1))
 U1=UVEL
 V1=VVEL
 
@@ -925,7 +925,7 @@ V1=VVEL
 SKIN1=(oo2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 
 !TOTAL ENERGY
 E1=R1*(SKIN1+IE1)
@@ -991,9 +991,9 @@ END IF
 !KINETIC ENERGY FIRST!
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -1022,9 +1022,9 @@ end if
 !KINETIC ENERGY FIRST!
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -1059,9 +1059,9 @@ end if
 !KINETIC ENERGY FIRST!
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -1093,9 +1093,9 @@ end if
 !KINETIC ENERGY FIRST!
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -1122,9 +1122,9 @@ p1=1.0d0
 !KINETIC ENERGY FIRST!
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -1140,18 +1140,18 @@ acp=0.075d0
 bcp=0.175d0
 mscp=1.5d0
 mvcp=0.7d0
-vmcp=sqrt(gamma)*mvcp
+vmcp=sqrt(gamma_g)*mvcp
 
 rcp=sqrt((pox(1)-0.25d0)**2+(poy(1)-0.5d0)**2)
 
 if (rcp.le.acp)then
 vfr=vmcp*rcp/acp
-tcp=((rcp-0.175)*(gamma-1.0d0)*(vfr**2)/(rcp*gamma))+1.0d0
-p1=tcp**(gamma/(gamma-1.0d0))
-r1=tcp**(1.0d0/(gamma-1.0d0))
+tcp=((rcp-0.175)*(gamma_g-1.0d0)*(vfr**2)/(rcp*gamma_g))+1.0d0
+p1=tcp**(gamma_g/(gamma_g-1.0d0))
+r1=tcp**(1.0d0/(gamma_g-1.0d0))
 theta1=atan((poy(1)-0.5d0)/(pox(1)-0.25d0))
 v1=vfr*COS(theta1)
-u1=1.5d0*sqrt(gamma)-vfr*SIN(theta1)
+u1=1.5d0*sqrt(gamma_g)-vfr*SIN(theta1)
 
 
 
@@ -1161,12 +1161,12 @@ ELSE
 vfr=vmcp*(acp/(acp**2-bcp**2))*(rcp-((bcp**2)/rcp))
 
 vfr=vmcp*rcp/acp
-tcp=((rcp-0.175)*(gamma-1.0d0)*(vfr**2)/(rcp*gamma))+1.0d0
-p1=tcp**(gamma/(gamma-1.0d0))
-r1=tcp**(1.0d0/(gamma-1.0d0))
+tcp=((rcp-0.175)*(gamma_g-1.0d0)*(vfr**2)/(rcp*gamma_g))+1.0d0
+p1=tcp**(gamma_g/(gamma_g-1.0d0))
+r1=tcp**(1.0d0/(gamma_g-1.0d0))
 theta1=atan((poy(1)-0.5d0)/(pox(1)-0.25d0))
 v1=vfr*COS(theta1)
-u1=1.5d0*sqrt(gamma)-vfr*SIN(theta1)
+u1=1.5d0*sqrt(gamma_g)-vfr*SIN(theta1)
 
 
 
@@ -1178,16 +1178,16 @@ u1=1.5d0*sqrt(gamma)-vfr*SIN(theta1)
 else
 vfr=0.0d0
 r1=1.0d0
-u1=1.5d0*sqrt(gamma)
+u1=1.5d0*sqrt(gamma_g)
 v1=0.0
 p1=1.0d0
 end if
 END IF
 
 if (pox(1).gt.0.5)then
-r1=(9.0d0*gamma+9.0d0)/(9.0d0*gamma-1.0d0)
-u1=sqrt(gamma)*((9.0d0*gamma-1.0d0)/(6.0d0*(gamma+1.0d0)))
-p1=(7.0d0*gamma+2.0d0)/(2.0d0*gamma+2.0d0)
+r1=(9.0d0*gamma_g+9.0d0)/(9.0d0*gamma_g-1.0d0)
+u1=sqrt(gamma_g)*((9.0d0*gamma_g-1.0d0)/(6.0d0*(gamma_g+1.0d0)))
+p1=(7.0d0*gamma_g+2.0d0)/(2.0d0*gamma_g+2.0d0)
 v1=0.0d0
 end if
 
@@ -1196,9 +1196,9 @@ end if
 !KINETIC ENERGY FIRST!
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -1225,9 +1225,9 @@ end if
 !KINETIC ENERGY FIRST!
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -1250,9 +1250,9 @@ p1=1.0d0
 end if
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -1279,9 +1279,9 @@ p1=1.0d0
 end if
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -1329,9 +1329,9 @@ end if
 end if
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -1358,9 +1358,9 @@ p1=180219.75d0
 end if
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -2510,9 +2510,9 @@ if (pox(1).lt.0.0d0)then
 
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -2556,9 +2556,9 @@ if (poy(1).gt.1.0d0)then
 
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -2677,9 +2677,9 @@ V1=REETA*SIN(THEETA)
 
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY 
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
@@ -2706,9 +2706,9 @@ v1=0.0
 
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((gamma_g-1.0D0)*R1))
 !TOTAL ENERGY
-E1=(P1/(GAMMA-1))+(R1*SKIN1)
+E1=(P1/(gamma_g-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
 VECCOS(1)=R1
 VECCOS(2)=R1*U1
