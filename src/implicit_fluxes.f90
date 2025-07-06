@@ -286,7 +286,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
-								    
+
 								    
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
@@ -848,7 +848,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
-								    
+
 								    
 								     CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
@@ -1388,7 +1388,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
 								    
-								    
+
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 				  				   
@@ -1900,7 +1900,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
-								    
+
 								    
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
@@ -2370,7 +2370,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
-								    
+
 								    
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
@@ -2869,7 +2869,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
-								    
+
 								    
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)

@@ -770,46 +770,57 @@ if (nof_Variables.gt.1)then
     end if
 
 
-  ELSE ! dimensiona == 2
+ELSE
 
-    IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
+IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
 
-      MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
-      MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
-      MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
-      GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
 
-      TEMPS(1)=MP_DENSITY
-      TEMPS(2)=LEFTV(2)*TEMPS(1)
-      TEMPS(3)=LEFTV(3)*TEMPS(1)
-      skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-      ! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
-      MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+ MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
+ MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
+ MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+ GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
 
-      MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
-      ie1=((leftv(4)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
-      TEMPS(4)=TEMPS(1)*(ie1+skin1)
-      TEMPS(5:7)=LEFTV(5:7)
-      LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+TEMPS(1)=MP_DENSITY
+TEMPS(2)=LEFTV(2)*TEMPS(1)
+TEMPS(3)=LEFTV(3)*TEMPS(1)
+skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
+! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
+MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
 
-    else
 
-      skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-      ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
 
-      OODENSITY=1.0D0/LEFTV(1)
 
-      TEMPS(1)=LEFTV(1)
-      TEMPS(2)=LEFTV(2)*LEFTV(1)
-      TEMPS(3)=LEFTV(3)*LEFTV(1)
-      TEMPS(4)=leftv(1)*(ie1+skin1)
+MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
+ie1=((leftv(4)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
+TEMPS(4)=TEMPS(1)*(ie1+skin1)
+TEMPS(5:7)=LEFTV(5:7)
+ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
-      LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ else
 
-    end if
 
-  end if
+
+skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
+ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
+
+OODENSITY=1.0D0/LEFTV(1)
+
+TEMPS(1)=LEFTV(1)
+TEMPS(2)=LEFTV(2)*LEFTV(1)
+TEMPS(3)=LEFTV(3)*LEFTV(1)
+TEMPS(4)=leftv(1)*(ie1+skin1)
+
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
 end if
+
+
+
+end if
+
+end if
+
+
 
 END SUBROUTINE PRIM2CONS
 
@@ -1578,7 +1589,6 @@ END SUBROUTINE SHEAR_X
 
 
 
-
 SUBROUTINE SHEAR_Y(ICONSIDERED,FACEX,SHEAR_TEMP)
 !> @brief
 !> This subroutine computes the shear stresses in Y-axis
@@ -1686,6 +1696,273 @@ ELSE
 END IF
 
 END SUBROUTINE SHEAR_Z
+
+
+
+
+
+
+
+SUBROUTINE HEAT_X(ICONSIDERED,FACEX,SHEAR_TEMP)
+!> @brief
+!> This subroutine computes the shear stresses in x-axis
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED,FACEX
+REAL,INTENT(INOUT)::SHEAR_TEMP
+REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,TAUXX,TAUYY,TAUZZ,TAUYX,TAUZX,TAUZY
+ REAL::SSX,SSY,SSZ,SSP,lam_qflux
+ REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
+ INTEGER::I,K,J,KMAXE,gqi_points,nnd,IM
+ real,dimension(1:nof_Variables)::leftv
+ real,dimension(1:3)::TEMP_gRAD
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz,surface_temp
+real,dimension(1:4)::viscl,laml
+REAL,DIMENSION(1:2)::TURBMV
+REAL,DIMENSION(1)::ETVM
+REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
+REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
+
+
+I=ICONSIDERED
+SSX=ZERO;SSy=ZERO;SSz=ZERO
+J=FACEX
+			      ANGLE1=IELEM(N,I)%FACEANGLEX(j)
+			      ANGLE2=IELEM(N,I)%FACEANGLEY(j)
+			      NX=(COS(ANGLE1)*SIN(ANGLE2))
+			      NY=(SIN(ANGLE1)*SIN(ANGLE2))
+			      NZ=(COS(ANGLE2))
+
+                select case(ielem(n,i)%types_faces(j))
+				case (5)
+					  gqi_points=qp_quad_n
+
+
+
+					  if(reduce_comp.eq.1)then
+					  WEqua2d=1.0d0;
+					  else
+					    NND=4
+				      do K=1,nnd
+					VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+				      END DO
+					  call  QUADRATUREQUAD3D(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+					  end if
+					  surface_temp=IELEM(N,I)%SURF(J)
+
+
+				case(6)
+					gqi_points=qp_triangle_n
+
+
+					if(reduce_comp.eq.1)then
+					  WEqua2d=1.0d0;
+					  else
+					  NND=3
+					do K=1,nnd
+					  VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+					END DO
+					call QUADRATURETRIANG(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+					end if
+ 					    surface_temp=IELEM(N,I)%SURF(J)
+
+
+
+				end select
+
+
+
+
+				do im=1,gqi_points
+				TEMP_gRAD(1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,1,J,IM)
+				IF (DG.EQ.1)THEN
+				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+
+
+				  ELSE
+				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				  END IF
+
+                    CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+					CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+
+                              IF (TURBULENCEMODEL.EQ.1)THEN
+
+                              TURBMV(1)=ILOCAL_RECON3(I)%ULEFTTURB(1,j,im)
+
+							  TURBMV(2)=ILOCAL_RECON3(I)%ULEFTTURB(1,j,im)
+							  eddyfl(2)=turbmv(1);
+							  eddyfr(2)=turbmv(2)
+							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+						      END IF
+
+					if (turbulence .eq. 1) then
+					lam_qflux=LAML(3)
+					else
+					lam_qflux=LAML(1)
+					end if
+
+
+
+				  SSX=SSX+lam_qflux*TEMP_gRAD(1)*WEQUA2D(im)*nx!*surface_temp
+				  SSy=SSy+lam_qflux*TEMP_gRAD(2)*WEQUA2D(im)*ny!*surface_temp
+				  SSz=SSz+lam_qflux*TEMP_gRAD(3)*WEQUA2D(im)*nz!*surface_temp
+               END DO
+
+
+
+
+
+
+
+
+SHEAR_TEMP=-(SSX+ssy+ssz)
+
+
+
+END SUBROUTINE HEAT_X
+
+
+
+
+
+
+
+
+SUBROUTINE HEAT_X2D(ICONSIDERED,FACEX,SHEAR_TEMP)
+!> @brief
+!> This subroutine computes the shear stresses in x-axis
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED,FACEX
+REAL,INTENT(INOUT)::SHEAR_TEMP
+ REAL::SSX,SSY,SSZ,SSP
+ REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
+ INTEGER::I,K,J,KMAXE,gqi_points,nnd,IM
+ real,dimension(1:nof_Variables)::leftv
+ real,dimension(1:2)::TEMP_gRAD
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz,surface_temp
+real,dimension(1:4)::viscl,laml
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
+REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
+
+
+I=ICONSIDERED
+SSX=ZERO;ssy=zero
+J=FACEX
+			     nx=IELEM(N,I)%FACEANGLEX(j)
+			      ny=IELEM(N,I)%FACEANGLEY(j)
+
+                gqi_points=qp_line_n
+					   if(reduce_comp.eq.1)then
+					  WEqua2d=1.0d0;
+					  else
+					  NND=2
+				      do K=1,nnd
+					VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+				      END DO
+
+					  call  QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+					  end if
+					  surface_temp=IELEM(N,I)%SURF(J)
+
+
+
+
+				do im=1,gqi_points
+				TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,1,J,IM)
+				    SSX=SSX+0.026*TEMP_gRAD(1)*WEQUA2D(im)*nx*surface_temp
+				  SSy=SSy+0.026*TEMP_gRAD(2)*WEQUA2D(im)*ny*surface_temp
+               END DO
+
+
+
+SHEAR_TEMP=SSX+ssy
+
+
+
+END SUBROUTINE HEAT_X2D
+
+
+SUBROUTINE HEAT_Y2D(ICONSIDERED,FACEX,SHEAR_TEMP)
+!> @brief
+!> This subroutine computes the shear stresses in x-axis
+IMPLICIT NONE
+INTEGER,INTENT(IN)::ICONSIDERED,FACEX
+REAL,INTENT(INOUT)::SHEAR_TEMP
+ REAL::SSX,SSY,SSZ,SSP
+ REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
+ INTEGER::I,K,J,KMAXE,gqi_points,nnd,IM
+ real,dimension(1:nof_Variables)::leftv
+ real,dimension(1:3)::TEMP_gRAD
+real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::RIGHTv
+real::MP_PINFR,gammaR
+real::angle1,angle2,nx,ny,nz,surface_temp
+real,dimension(1:4)::viscl,laml
+REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
+REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
+
+
+I=ICONSIDERED
+SSY=ZERO
+J=FACEX
+			     nx=IELEM(N,I)%FACEANGLEX(j)
+			      ny=IELEM(N,I)%FACEANGLEY(j)
+
+                gqi_points=qp_line_n
+					   if(reduce_comp.eq.1)then
+					  WEqua2d=1.0d0;
+					  else
+					  NND=2
+				      do K=1,nnd
+					VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+				      END DO
+
+					  call  QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+					  end if
+					  surface_temp=IELEM(N,I)%SURF(J)
+
+
+
+
+				do im=1,gqi_points
+				TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,1,J,IM)
+				  SSY=SSY-0.026*TEMP_gRAD(2)*WEQUA2D(im)*surface_temp
+               END DO
+
+
+
+SHEAR_TEMP=SSY
+
+
+
+END SUBROUTINE HEAT_Y2D
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2037,8 +2314,29 @@ SUBROUTINE SUTHERLAND(N,leftv,rightv,VISCL,LAML)
 	INTEGER,INTENT(IN)::N
 	REAL::KINETIC,U,V,W,T0L,T1L,T0R,T1R
 		
-  T1L=LEFTv(5)/LEFTv(1)
-  T0L=PRES/RRES
+		T1L=LEFTv(5)/(LEFTv(1)*R_gas)
+		T0L=PRES/(RRES*R_gas)
+		
+		
+		T1R=RIGHTv(5)/(RIGHTv(1)*R_gas)
+		T0R=PRES/(RRES*R_gas)
+
+              VISCL=VISC*T1L
+	      	
+              VISCL(1)=VISC*((T1L/T0L)**BETAAS)*((T0L+(SUTHER*T0L))/(T1L+(SUTHER*T0L)))
+              VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
+
+	      
+	      LAML(1)=VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1.d0))
+	      LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
+	  
+	
+	     
+	   
+
+      
+
+  END SUBROUTINE SUTHERLAND
   
   
   T1R=RIGHTv(5)/RIGHTv(1)
@@ -2065,11 +2363,17 @@ SUBROUTINE SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
   INTEGER,INTENT(IN)::N
 	REAL::KINETIC,U,V,W,T0L,T1L,T0R,T1R
 		
-	T1L=LEFTv(4)/LEFTv(1)
-	T0L=PRES/RRES
-			
-	T1R=RIGHTv(4)/RIGHTv(1)
-	T0R=PRES/RRES
+		T1L=LEFTv(4)/(LEFTv(1)*R_gas)
+		T0L=PRES/(RRES*R_gas)
+		
+		
+		T1R=RIGHTv(4)/(RIGHTv(1)*R_gas)
+		T0R=PRES/(RRES*R_gas)
+
+
+
+
+
 	      	
   VISCL(1)=VISC*((T1L/T0L)**BETAAS)*((T0L+(SUTHER*T0L))/(T1L+(SUTHER*T0L)))
   VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
@@ -2243,7 +2547,7 @@ REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
 REAL,INTENT(IN)::ANGLE1,ANGLE2,NX,NY,NZ
 REAL,DIMENSION(TURBULENCEEQUATIONS),INTENT(INOUT)::CTURBL,CTURBR
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
-REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3
+REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3,tempxv
 REAL::SPS,SKINS,IKINS,VEL,vnb
 REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
 
@@ -2448,6 +2752,66 @@ SELECT CASE(B_CODE)
 					      cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
 						        ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 					  end if
+				      END IF
+				
+				
+				
+			      CALL ROTATEB(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
+			      
+			      
+			      
+			      ELSE
+                  IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
+                    rightv(1)=leftv(1)
+                    rightv(2)=-leftv(2)+2.0D0*leftv(1)*SRF_SPEED(2)
+                    rightv(3)=-leftv(3)+2.0D0*leftv(1)*SRF_SPEED(3)
+                    rightv(4)=-leftv(4)+2.0D0*leftv(1)*SRF_SPEED(4)
+                    rightv(5)=leftv(5)+2.0D0*leftv(1)*(SRF_SPEED(2)**2+SRF_SPEED(3)**2+SRF_SPEED(4)**2)&
+                                            -2.0D0*(leftv(2)*SRF_SPEED(2)+leftv(3)*SRF_SPEED(3)+leftv(4)*SRF_SPEED(4))
+    
+                  ELSE
+                    rightv(1)=leftv(1)
+                    rightv(2)=-leftv(2)
+                    rightv(3)=-leftv(3)
+                    rightv(4)=-leftv(4)
+                    rightv(5)=leftv(5)
+
+
+
+
+
+
+                  END IF
+    
+    
+    
+				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+					IF (TURBULENCEMODEL.NE.2)THEN
+					    CTURBR(:)=-CTURBL(:)
+
+					  if (passivescalar.gt.0)then
+					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+						    -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+					  end if
+					ELSE
+					     CTURBR(1)=-CTURBL(1)
+					     CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
+
+					  if (passivescalar.gt.0)then
+					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+						    -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+					  end if
+					  
+					
+					
+					
+					
+					END IF
+				      END IF
+    
+    
 				END IF
 				
 			  CALL ROTATEB(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
@@ -2612,7 +2976,7 @@ REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
 REAL,INTENT(IN)::ANGLE1,ANGLE2,NX,NY,NZ
 REAL,DIMENSION(TURBULENCEEQUATIONS),INTENT(INOUT)::CTURBL,CTURBR
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
-REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3
+REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3,tempxv
 REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
 REAL::SPS,SKINS,IKINS,VEL,vnb,theeta,reeta
 REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
@@ -2817,6 +3181,214 @@ SELECT CASE(B_CODE)
             rightv(4)=E1    
 			  end if
 			      
+			      end if
+			      
+			      
+			      
+			      
+			      else
+			      
+			      
+			       CALL ROTATEF2d(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
+			      
+                  CRIGHT_ROT(1)=CLEFT_ROT(1)
+			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
+			      CRIGHT_ROT(3)=CLEFT_ROT(3)
+			      CRIGHT_ROT(4)=CLEFT_ROT(4)
+			      
+			      IF(MULTISPECIES.EQ.1)THEN
+                      CRIGHT_ROT(5)=CLEFT_ROT(5)
+                      CRIGHT_ROT(6)=CLEFT_ROT(6)
+                      CRIGHT_ROT(7)=CLEFT_ROT(7)
+                    
+                    END IF
+			     
+					 
+				     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+					    CTURBR(:)=CTURBL(:)
+
+					  if (passivescalar.gt.0)then
+					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+						    ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+					  end if
+				      END IF
+				
+			    	
+				
+			      CALL ROTATEb2d(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
+                            end if
+    
+    
+    CASE(4)!WALL
+    
+			     IF (ITESTCASE.EQ.3)THEN
+			      
+			       CALL ROTATEF2D(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
+			      
+			      
+			      IF (governingequations.EQ.-1)then
+			          CRIGHT_ROT(:)=CLEFT_ROT(:)
+			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
+			      
+			      
+			      else
+         		      CRIGHT_ROT(1)=CLEFT_ROT(1)
+			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
+			      CRIGHT_ROT(3)=CLEFT_ROT(3)
+			      CRIGHT_ROT(4)=CLEFT_ROT(4)
+			      end if
+			     
+			      
+					 
+				     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+					    CTURBR(:)=CTURBL(:)
+
+					  if (passivescalar.gt.0)then
+					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+						    ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+					  end if
+				      END IF
+				
+				
+				
+			      CALL ROTATEb2D(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
+			      
+			    
+			      
+			      ELSE
+    
+			      rightv(1)=leftv(1)
+			      rightv(2)=-leftv(2)
+			      rightv(3)=-leftv(3)
+			      
+			      rightv(4)=leftv(4)
+    
+
+    
+    
+				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+					IF (TURBULENCEMODEL.NE.2)THEN
+					    CTURBR(:)=-CTURBL(:)
+
+					  if (passivescalar.gt.0)then
+					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+						    -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+					  end if
+					ELSE
+					     CTURBR(1)=-CTURBL(1)
+					     CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
+
+					  if (passivescalar.gt.0)then
+					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+						    -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+					  end if
+					  
+					
+					
+					
+					
+					END IF
+				      END IF
+    
+    
+				END IF
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    CASE(6)!FARFIELD INFLOW OR OUTFLOW, SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
+	 CALL ROTATEF2d(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
+	    vnb=cleft_rot(2)/CLEFT_ROT(1)
+	    
+	    
+	  
+	    
+	    CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+    
+	    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+	    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
+	    SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+	    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
+	  
+	  CALL PRIM2CONS2(N,LEFTV,RIGHTV)
+
+	  if (vnb.le.0.0d0)then		!inflow
+			ibfc=-1
+	
+		  if ((abs(vnb)).ge.sps)then
+				!supersonic
+				rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
+					
+		  else
+				!subsonic
+				
+			rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
+	  	  
+			  
+			  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+			
+			SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+			SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
+			SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+			VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
+			  CALL PRIM2CONS2(N,LEFTV,RIGHTV)
+				    
+		    SUBSON3(4)=0.5d0*((SUBSON1(4))+(SUBSON2(4))-(SUBSON2(1)*SPS*((NX*(SUBSON1(2)-SUBSON2(2)))+(NY*(SUBSON1(3)-SUBSON2(3))))))
+		    SUBSON3(1)=SUBSON1(1)+(SUBSON3(4)-SUBSON1(4))/(SPS**2)
+		    SUBSON3(2)=SUBSON1(2)-(NX*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+		    SUBSON3(3)=SUBSON1(3)-(NY*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+		    
+		    
+
+		    rightv(1)=SUBSON3(1)
+    rightv(2)=SUBSON3(2)*SUBSON3(1)
+    rightv(3)=SUBSON3(3)*SUBSON3(1)
+    
+    SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
+    IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
+    rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
+		  
+		  END IF
+		  
+		  
+		  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+	      
+      
+      
+      
+	        IF (TURBULENCEMODEL.EQ.1)THEN
+		  CTURBR(1)=VISC*TURBINIT
+	      END IF
+	     IF (TURBULENCEMODEL.EQ.2)THEN	 
+		CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
+		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
+	      END IF
+ 
+	      IF (PASSIVESCALAR.GT.0)THEN
+	      CTURBR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=PASS_INLET2d(INITCOND,POX,POY)*RIGHTV(1)
+	      END IF
+		    END IF
+		  
+		  
+      
+	else
+      
+	  !outflow
+	
+	    ibfc=-2
+		if ((abs(vnb)).ge.sps)then
+		
+		      rightv(1:nof_Variables)=leftv(1:nof_Variables)
+		
 		else
 			          
 			  CALL ROTATEF2d(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
