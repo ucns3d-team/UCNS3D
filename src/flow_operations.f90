@@ -732,8 +732,7 @@ REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
 
 if (nof_Variables.gt.1)then
   if (dimensiona.eq.3)then
-
-    IF (governingequations.EQ.-1) then
+    if (governingequations.EQ.-1) then
 
       MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
       MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
@@ -752,7 +751,7 @@ if (nof_Variables.gt.1)then
       TEMPS(5)=TEMPS(1)*(ie1+skin1)
       TEMPS(6:8)=LEFTV(6:8)
       LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
- 
+
     else
       skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
       ie1=((leftv(5))/((GAMMA-1.0D0)*leftv(1)))
@@ -766,61 +765,44 @@ if (nof_Variables.gt.1)then
       TEMPS(5)=leftv(1)*(ie1+skin1)
 
       LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
     end if
+  else ! dimensiona.eq.2
+    IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
 
+      MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
+      MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
+      MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+      GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
 
-ELSE
+      TEMPS(1)=MP_DENSITY
+      TEMPS(2)=LEFTV(2)*TEMPS(1)
+      TEMPS(3)=LEFTV(3)*TEMPS(1)
+      skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
+      ! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
+      MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
 
-IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
+      MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
+      ie1=((leftv(4)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
+      TEMPS(4)=TEMPS(1)*(ie1+skin1)
+      TEMPS(5:7)=LEFTV(5:7)
+      LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
+    ELSE
 
- MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
- MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
- GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+      skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
+      ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
 
-TEMPS(1)=MP_DENSITY
-TEMPS(2)=LEFTV(2)*TEMPS(1)
-TEMPS(3)=LEFTV(3)*TEMPS(1)
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
-MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+      OODENSITY=1.0D0/LEFTV(1)
 
+      TEMPS(1)=LEFTV(1)
+      TEMPS(2)=LEFTV(2)*LEFTV(1)
+      TEMPS(3)=LEFTV(3)*LEFTV(1)
+      TEMPS(4)=leftv(1)*(ie1+skin1)
 
-
-
-MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
-ie1=((leftv(4)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
-TEMPS(4)=TEMPS(1)*(ie1+skin1)
-TEMPS(5:7)=LEFTV(5:7)
- LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
- else
-
-
-
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
-
-OODENSITY=1.0D0/LEFTV(1)
-
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*LEFTV(1)
-TEMPS(3)=LEFTV(3)*LEFTV(1)
-TEMPS(4)=leftv(1)*(ie1+skin1)
-
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
+      LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+    END IF
+  end if
 end if
-
-
-
-end if
-
-end if
-
-
 
 END SUBROUTINE PRIM2CONS
 
@@ -972,7 +954,6 @@ if (nof_Variables.gt.1)then
       rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
     end if
   end if
-
 end if
 
 END SUBROUTINE PRIM2CONS2
@@ -1727,109 +1708,81 @@ REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
 REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
 
-
 I=ICONSIDERED
 SSX=ZERO;SSy=ZERO;SSz=ZERO
 J=FACEX
-			      ANGLE1=IELEM(N,I)%FACEANGLEX(j)
-			      ANGLE2=IELEM(N,I)%FACEANGLEY(j)
-			      NX=(COS(ANGLE1)*SIN(ANGLE2))
-			      NY=(SIN(ANGLE1)*SIN(ANGLE2))
-			      NZ=(COS(ANGLE2))
+ANGLE1=IELEM(N,I)%FACEANGLEX(j)
+ANGLE2=IELEM(N,I)%FACEANGLEY(j)
+NX=(COS(ANGLE1)*SIN(ANGLE2))
+NY=(SIN(ANGLE1)*SIN(ANGLE2))
+NZ=(COS(ANGLE2))
 
-                select case(ielem(n,i)%types_faces(j))
-				case (5)
-					  gqi_points=qp_quad_n
+select case(ielem(n,i)%types_faces(j))
+	case (5)
+    gqi_points=qp_quad_n
 
+    if(reduce_comp.eq.1)then
+        WEqua2d=1.0d0;
+    else
+        NND=4
+        do K=1,nnd
+            VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+        END DO
+        call  QUADRATUREQUAD3D(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+    end if
+    surface_temp=IELEM(N,I)%SURF(J)
 
+	case(6)
+		gqi_points=qp_triangle_n
 
-					  if(reduce_comp.eq.1)then
-					  WEqua2d=1.0d0;
-					  else
-					    NND=4
-				      do K=1,nnd
-					VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
-				      END DO
-					  call  QUADRATUREQUAD3D(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
-					  end if
-					  surface_temp=IELEM(N,I)%SURF(J)
-
-
-				case(6)
-					gqi_points=qp_triangle_n
-
-
-					if(reduce_comp.eq.1)then
-					  WEqua2d=1.0d0;
-					  else
-					  NND=3
-					do K=1,nnd
+    if(reduce_comp.eq.1)then
+			  WEqua2d=1.0d0;
+		else
+			  NND=3
+				do K=1,nnd
 					  VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
-					END DO
-					call QUADRATURETRIANG(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
-					end if
- 					    surface_temp=IELEM(N,I)%SURF(J)
+				end do
+				call QUADRATURETRIANG(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+		end if
+ 		surface_temp=IELEM(N,I)%SURF(J)
 
+end select
 
+do im=1,gqi_points
+		TEMP_gRAD(1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,1,J,IM)
+		IF (DG.EQ.1)THEN
+				LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+			  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+		ELSE
+				LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+			  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+	  END IF
 
-				end select
+    CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+		CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
 
+    IF (TURBULENCEMODEL.EQ.1)THEN
+        TURBMV(1)=ILOCAL_RECON3(I)%ULEFTTURB(1,j,im)
+        TURBMV(2)=ILOCAL_RECON3(I)%ULEFTTURB(1,j,im)
+        eddyfl(2)=turbmv(1);
+        eddyfr(2)=turbmv(2)
+        Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+		END IF
 
+		if (turbulence .eq. 1) then
+				lam_qflux=LAML(3)
+		else
+				lam_qflux=LAML(1)
+		end if
 
-
-				do im=1,gqi_points
-				TEMP_gRAD(1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,1,J,IM)
-				IF (DG.EQ.1)THEN
-				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
-				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
-
-
-				  ELSE
-				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
-				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
-				  END IF
-
-                    CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-					CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
-
-                              IF (TURBULENCEMODEL.EQ.1)THEN
-
-                              TURBMV(1)=ILOCAL_RECON3(I)%ULEFTTURB(1,j,im)
-
-							  TURBMV(2)=ILOCAL_RECON3(I)%ULEFTTURB(1,j,im)
-							  eddyfl(2)=turbmv(1);
-							  eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-						      END IF
-
-					if (turbulence .eq. 1) then
-					lam_qflux=LAML(3)
-					else
-					lam_qflux=LAML(1)
-					end if
-
-
-
-				  SSX=SSX+lam_qflux*TEMP_gRAD(1)*WEQUA2D(im)*nx!*surface_temp
-				  SSy=SSy+lam_qflux*TEMP_gRAD(2)*WEQUA2D(im)*ny!*surface_temp
-				  SSz=SSz+lam_qflux*TEMP_gRAD(3)*WEQUA2D(im)*nz!*surface_temp
-               END DO
-
-
-
-
-
-
-
+    SSX=SSX+lam_qflux*TEMP_gRAD(1)*WEQUA2D(im)*nx!*surface_temp
+    SSy=SSy+lam_qflux*TEMP_gRAD(2)*WEQUA2D(im)*ny!*surface_temp
+    SSz=SSz+lam_qflux*TEMP_gRAD(3)*WEQUA2D(im)*nz!*surface_temp
+end do
 
 SHEAR_TEMP=-(SSX+ssy+ssz)
 
-
-
 END SUBROUTINE HEAT_X
-
-
-
 
 
 
@@ -1841,11 +1794,11 @@ SUBROUTINE HEAT_X2D(ICONSIDERED,FACEX,SHEAR_TEMP)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSIDERED,FACEX
 REAL,INTENT(INOUT)::SHEAR_TEMP
- REAL::SSX,SSY,SSZ,SSP
- REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
- INTEGER::I,K,J,KMAXE,gqi_points,nnd,IM
- real,dimension(1:nof_Variables)::leftv
- real,dimension(1:2)::TEMP_gRAD
+REAL::SSX,SSY,SSZ,SSP
+REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
+INTEGER::I,K,J,KMAXE,gqi_points,nnd,IM
+real,dimension(1:nof_Variables)::leftv
+real,dimension(1:2)::TEMP_gRAD
 real::MP_PINFL,gammal
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
@@ -1855,42 +1808,37 @@ REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
 REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
 
-
 I=ICONSIDERED
 SSX=ZERO;ssy=zero
 J=FACEX
-			     nx=IELEM(N,I)%FACEANGLEX(j)
-			      ny=IELEM(N,I)%FACEANGLEY(j)
+nx=IELEM(N,I)%FACEANGLEX(j)
+ny=IELEM(N,I)%FACEANGLEY(j)
 
-                gqi_points=qp_line_n
-					   if(reduce_comp.eq.1)then
-					  WEqua2d=1.0d0;
-					  else
-					  NND=2
-				      do K=1,nnd
-					VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
-				      END DO
+gqi_points=qp_line_n
+if(reduce_comp.eq.1)then
+    WEqua2d=1.0d0;
+else
+    NND=2
+    do K=1,nnd
+        VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+    end do
 
-					  call  QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
-					  end if
-					  surface_temp=IELEM(N,I)%SURF(J)
+    call  QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+end if
+surface_temp=IELEM(N,I)%SURF(J)
 
-
-
-
-				do im=1,gqi_points
-				TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,1,J,IM)
-				    SSX=SSX+0.026*TEMP_gRAD(1)*WEQUA2D(im)*nx*surface_temp
-				  SSy=SSy+0.026*TEMP_gRAD(2)*WEQUA2D(im)*ny*surface_temp
-               END DO
-
-
+do im=1,gqi_points
+    TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,1,J,IM)
+    SSX=SSX+0.026*TEMP_gRAD(1)*WEQUA2D(im)*nx*surface_temp
+    SSy=SSy+0.026*TEMP_gRAD(2)*WEQUA2D(im)*ny*surface_temp
+end do
 
 SHEAR_TEMP=SSX+ssy
 
-
-
 END SUBROUTINE HEAT_X2D
+
+
+
 
 
 SUBROUTINE HEAT_Y2D(ICONSIDERED,FACEX,SHEAR_TEMP)
@@ -1899,11 +1847,11 @@ SUBROUTINE HEAT_Y2D(ICONSIDERED,FACEX,SHEAR_TEMP)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::ICONSIDERED,FACEX
 REAL,INTENT(INOUT)::SHEAR_TEMP
- REAL::SSX,SSY,SSZ,SSP
- REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
- INTEGER::I,K,J,KMAXE,gqi_points,nnd,IM
- real,dimension(1:nof_Variables)::leftv
- real,dimension(1:3)::TEMP_gRAD
+REAL::SSX,SSY,SSZ,SSP
+REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
+INTEGER::I,K,J,KMAXE,gqi_points,nnd,IM
+real,dimension(1:nof_Variables)::leftv
+real,dimension(1:3)::TEMP_gRAD
 real::MP_PINFL,gammal
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
@@ -1913,56 +1861,33 @@ REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
 REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
 
-
 I=ICONSIDERED
 SSY=ZERO
 J=FACEX
-			     nx=IELEM(N,I)%FACEANGLEX(j)
-			      ny=IELEM(N,I)%FACEANGLEY(j)
+nx=IELEM(N,I)%FACEANGLEX(j)
+ny=IELEM(N,I)%FACEANGLEY(j)
 
-                gqi_points=qp_line_n
-					   if(reduce_comp.eq.1)then
-					  WEqua2d=1.0d0;
-					  else
-					  NND=2
-				      do K=1,nnd
-					VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
-				      END DO
+gqi_points=qp_line_n
+if(reduce_comp.eq.1)then
+    WEqua2d=1.0d0;
+else
+    NND=2
+    do K=1,nnd
+        VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+    END DO
 
-					  call  QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
-					  end if
-					  surface_temp=IELEM(N,I)%SURF(J)
+    call  QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+end if
+surface_temp=IELEM(N,I)%SURF(J)
 
-
-
-
-				do im=1,gqi_points
-				TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,1,J,IM)
-				  SSY=SSY-0.026*TEMP_gRAD(2)*WEQUA2D(im)*surface_temp
-               END DO
-
-
+do im=1,gqi_points
+		TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,1,J,IM)
+		SSY=SSY-0.026*TEMP_gRAD(2)*WEQUA2D(im)*surface_temp
+end do
 
 SHEAR_TEMP=SSY
 
-
-
 END SUBROUTINE HEAT_Y2D
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2308,48 +2233,29 @@ END SUBROUTINE SHEAR_Y2d_av
 SUBROUTINE SUTHERLAND(N,leftv,rightv,VISCL,LAML)
 !> @brief
 !> This subroutine computes the viscosity according to sutherland's law
-	IMPLICIT NONE
-  REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV,RIGHTV
-  REAL,DIMENSION(1:4),INTENT(INOUT)::VISCL,LAML
-	INTEGER,INTENT(IN)::N
-	REAL::KINETIC,U,V,W,T0L,T1L,T0R,T1R
+IMPLICIT NONE
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV,RIGHTV
+REAL,DIMENSION(1:4),INTENT(INOUT)::VISCL,LAML
+INTEGER,INTENT(IN)::N
+REAL::KINETIC,U,V,W,T0L,T1L,T0R,T1R
 		
-		T1L=LEFTv(5)/(LEFTv(1)*R_gas)
-		T0L=PRES/(RRES*R_gas)
-		
-		
-		T1R=RIGHTv(5)/(RIGHTv(1)*R_gas)
-		T0R=PRES/(RRES*R_gas)
+T1L=LEFTv(5)/(LEFTv(1)*R_gas)
+T0L=PRES/(RRES*R_gas)
 
-              VISCL=VISC*T1L
-	      	
-              VISCL(1)=VISC*((T1L/T0L)**BETAAS)*((T0L+(SUTHER*T0L))/(T1L+(SUTHER*T0L)))
-              VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
 
-	      
-	      LAML(1)=VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1.d0))
-	      LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
+T1R=RIGHTv(5)/(RIGHTv(1)*R_gas)
+T0R=PRES/(RRES*R_gas)
+
+VISCL=VISC*T1L
+
+VISCL(1)=VISC*((T1L/T0L)**BETAAS)*((T0L+(SUTHER*T0L))/(T1L+(SUTHER*T0L)))
+VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
+
+LAML(1)=VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1.d0))
+LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
 	  
-	
-	     
-	   
-
-      
-
-  END SUBROUTINE SUTHERLAND
-  
-  
-  T1R=RIGHTv(5)/RIGHTv(1)
-  T0R=PRES/RRES
-	      	
-  VISCL(1)=VISC*((T1L/T0L)**BETAAS)*((T0L+(SUTHER*T0L))/(T1L+(SUTHER*T0L)))
-  VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
-  
-  LAML(1)=VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1.d0))
-  LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
-
 END SUBROUTINE SUTHERLAND
-  
+
 
 
 
@@ -2357,24 +2263,18 @@ END SUBROUTINE SUTHERLAND
 SUBROUTINE SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
 !> @brief
 !> This subroutine computes the viscosity according to sutherland's law
-	IMPLICIT NONE
-  REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV,RIGHTV
-  REAL,DIMENSION(1:4),INTENT(INOUT)::VISCL,LAML
-  INTEGER,INTENT(IN)::N
-	REAL::KINETIC,U,V,W,T0L,T1L,T0R,T1R
-		
-		T1L=LEFTv(4)/(LEFTv(1)*R_gas)
-		T0L=PRES/(RRES*R_gas)
-		
-		
-		T1R=RIGHTv(4)/(RIGHTv(1)*R_gas)
-		T0R=PRES/(RRES*R_gas)
-
-
-
-
-
-	      	
+IMPLICIT NONE
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV,RIGHTV
+REAL,DIMENSION(1:4),INTENT(INOUT)::VISCL,LAML
+INTEGER,INTENT(IN)::N
+REAL::KINETIC,U,V,W,T0L,T1L,T0R,T1R
+  
+  T1L=LEFTv(4)/(LEFTv(1)*R_gas)
+  T0L=PRES/(RRES*R_gas)
+  
+  T1R=RIGHTv(4)/(RIGHTv(1)*R_gas)
+  T0R=PRES/(RRES*R_gas)
+     	
   VISCL(1)=VISC*((T1L/T0L)**BETAAS)*((T0L+(SUTHER*T0L))/(T1L+(SUTHER*T0L)))
   VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
 	      
@@ -2752,7 +2652,7 @@ SELECT CASE(B_CODE)
 					      cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
 						        ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 					  end if
-				      END IF
+				END IF
 				
 				
 				
@@ -3949,212 +3849,186 @@ END SUBROUTINE EDDYVISCO
 SUBROUTINE EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 !> @brief
 !> This subroutine computes the tubulent eddy viscosity for turbulence models
-	IMPLICIT NONE
-  REAL,DIMENSION(1:2),INTENT(INOUT)::TURBMV
-  real,dimension(1:nof_Variables),INTENT(IN)::leftv,rightv
-  REAL,DIMENSION(1),INTENT(INOUT)::ETVM
-  REAL,DIMENSION(1:4),INTENT(INOUT)::VISCL,LAML
-  REAL,DIMENSION(1:20),INTENT(INOUT)::EDDYFL,EDDYFR
-	INTEGER,INTENT(IN)::N
-	REAL::ML,SMMM,MTT,chi,tolepsma,chipow3,fv1
-	INTEGER:: IHGT, IHGJ
-	REAL,DIMENSION(2,2)::VORTET,TVORT,SVORT
-	REAL:: ux,uy,uz,vx,vy,vz,wx,wy,wz
-	REAL:: wally, D_omplus, phi_2, phi_1, F_1, F_2, k_0, om_0,alpha_inf, alpha_star, Mu_turb
-	REAL:: sigma_k_L, sigma_om_L, sigma_k_r, sigma_om_r
-	REAL::SNORM,dervk_dervom,Re_t_SST,RHO_0,beta_i
+IMPLICIT NONE
+REAL,DIMENSION(1:2),INTENT(INOUT)::TURBMV
+real,dimension(1:nof_Variables),INTENT(IN)::leftv,rightv
+REAL,DIMENSION(1),INTENT(INOUT)::ETVM
+REAL,DIMENSION(1:4),INTENT(INOUT)::VISCL,LAML
+REAL,DIMENSION(1:20),INTENT(INOUT)::EDDYFL,EDDYFR
+INTEGER,INTENT(IN)::N
+REAL::ML,SMMM,MTT,chi,tolepsma,chipow3,fv1
+INTEGER:: IHGT, IHGJ
+REAL,DIMENSION(2,2)::VORTET,TVORT,SVORT
+REAL:: ux,uy,uz,vx,vy,vz,wx,wy,wz
+REAL:: wally, D_omplus, phi_2, phi_1, F_1, F_2, k_0, om_0,alpha_inf, alpha_star, Mu_turb
+REAL:: sigma_k_L, sigma_om_L, sigma_k_r, sigma_om_r
+REAL::SNORM,dervk_dervom,Re_t_SST,RHO_0,beta_i
 
-	tolepsma = TOLSMALL
+tolepsma = TOLSMALL
 	
-	IF (TURBULENCE.EQ.0)THEN
-	  VISCL(4)=ZERO;VISCL(3)=ZERO
-	  LAML(4)=ZERO;LAML(3)=ZERO
-	ELSE
+IF (TURBULENCE.EQ.0)THEN
+    VISCL(4)=ZERO;VISCL(3)=ZERO
+    LAML(4)=ZERO;LAML(3)=ZERO
+ELSE
 	
     !Modified on 19/6/2013
     SELECT CASE(TURBULENCEMODEL)
   
-     CASE(1)
-            if (ispal.eq.2)then
-	  TURBMV(1)=EDDYFL(2)
-	  TURBMV(2)=EDDYFR(2)  
+      CASE(1)
+        if (ispal.eq.2)then
+	          TURBMV(1)=EDDYFL(2)
+	          TURBMV(2)=EDDYFR(2)  
 	  
-	  chi     = abs ((TURBMV(1)) / (VISCL(1)))
-         !chi     = abs ( max(TURBMV(1),tolepsma) / max(VISCL(1),tolepsma))
-         chipow3 = chi * chi * chi
-         fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
-	VISCL(3) = TURBMV(1)*fv1
-	 chi     = abs ((TURBMV(2)) / (VISCL(2)))
-! 	chi     = abs ( max(TURBMV(2),tolepsma) / max(VISCL(2),tolepsma))
-         chipow3 = chi * chi * chi
-         fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
-		VISCL(4) = TURBMV(2)*fv1
+	          chi = abs ((TURBMV(1)) / (VISCL(1)))
+            ! chi     = abs ( max(TURBMV(1),tolepsma) / max(VISCL(1),tolepsma))
+            chipow3 = chi * chi * chi
+            fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
+	          VISCL(3) = TURBMV(1)*fv1
+	          chi = abs ((TURBMV(2)) / (VISCL(2)))
+            ! chi = abs ( max(TURBMV(2),tolepsma) / max(VISCL(2),tolepsma))
+            chipow3 = chi * chi * chi
+            fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
+		        VISCL(4) = TURBMV(2)*fv1
         else
-        TURBMV(1)=EDDYFL(2)
-	  TURBMV(2)=EDDYFR(2)  
-	  
-	 
-         chi     = abs ( max(TURBMV(1),tolepsma) / max(VISCL(1),tolepsma))
-         chipow3 = chi * chi * chi
-         fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
-	VISCL(3) = TURBMV(1)*fv1
-! 	 chi     = abs ((TURBMV(2)) / (VISCL(2)))
- 	chi     = abs ( max(TURBMV(2),tolepsma) / max(VISCL(2),tolepsma))
-         chipow3 = chi * chi * chi
-         fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
-		VISCL(4) = TURBMV(2)*fv1
-        
-        
+            TURBMV(1)=EDDYFL(2)
+	          TURBMV(2)=EDDYFR(2)  
+	
+            chi     = abs ( max(TURBMV(1),tolepsma) / max(VISCL(1),tolepsma))
+            chipow3 = chi * chi * chi
+            fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
+	          VISCL(3) = TURBMV(1)*fv1
+            ! chi     = abs ((TURBMV(2)) / (VISCL(2)))
+            chi     = abs ( max(TURBMV(2),tolepsma) / max(VISCL(2),tolepsma))
+            chipow3 = chi * chi * chi
+            fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
+		        VISCL(4) = TURBMV(2)*fv1
         end if
 
-  CASE(2)
-
+      CASE(2)
+        !FOR LEFT CELL
   
-  !FOR LEFT CELL
+        VORTET(1,1:2) = EDDYFL(4:5)
+        VORTET(2,1:2) = EDDYFL(6:7) 
+
+        ux = Vortet(1,1);uy = Vortet(1,2)
+        vx = Vortet(2,1);vy = Vortet(2,2)
+      
+        DO IHGT=1,2
+            DO IHGJ=1,2
+                TVORT(IHGT,IHGJ)=VORTET(IHGJ,IHGT)
+            END DO
+        END DO
+
+        sVORT=0.5*(VORTET+TVORT)
+        SNORM=SQRT(2.0*((SVORT(1,1)*SVORT(1,1))+(SVORT(1,2)*SVORT(1,2))+&
+                (SVORT(2,1)*SVORT(2,1))+(SVORT(2,2)*SVORT(2,2))))
+              
+        wally=EDDYFL(1)
+        rho_0=LEFTV(1)
+        k_0=MAX(tolepsma,EDDYFL(2)/LEFTV(1))
+        om_0=max(EDDYFL(3)/LEFTV(1),ufreestream/charlength/10.0)
+
+        dervk_dervom=(EDDYFL(8)*EDDYFL(10))+(EDDYFL(9)*EDDYFL(11))
+              
+        D_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    
+        phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*VISCL(1)/(rho_0*wally*wally*om_0))
+        phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*D_omplus*wally*wally)) 
+
+        F_1=tanh(phi_1**4)
+        F_2=tanh(phi_2**2)
+        RE_T_SST=RHO_0*K_0/(VISCL(1)*OM_0)
+        beta_i=F_1*beta_i1+(1.0-F_1)*beta_i2
+        alpha_star0=beta_i/3.0    
+        alpha_inf=F_1*alpha_inf1+(1.0-F_1)*alpha_inf2
+        alpha_star=alpha_starinf*(alpha_star0+Re_t_SST/R_k_SST)/(1.0+Re_t_SST/R_k_SST)
+
+        VISCL(3)=rho_0*k_0/om_0/max(1.0/alpha_star,SNORM*F_2/(aa_1*om_0))
+
+        !Added 20/6/2013
+        sigma_k_l=sigma_k1/F_1+sigma_k2/F_2
+        sigma_om_l=sigma_om1/F_1+sigma_om2/F_2
+
+        IF (EDDYFR(1).GT.0.0)THEN
+            VORTET(1,1:2) = EDDYFL(4:5)
+            VORTET(2,1:2) = EDDYFL(6:7) 
+        
+            ux = Vortet(1,1);uy = Vortet(1,2)
+            vx = Vortet(2,1);vy = Vortet(2,2)
+ 
+            DO IHGT=1,2
+                DO IHGJ=1,2
+                    TVORT(IHGT,IHGJ)=VORTET(IHGJ,IHGT)
+                END DO
+            END DO
+
+            sVORT=0.5*(VORTET+TVORT)
+            SNORM=SQRT(2.0*((SVORT(1,1)*SVORT(1,1))+(SVORT(1,2)*SVORT(1,2))+&
+                    (SVORT(2,1)*SVORT(2,1))+(SVORT(2,2)*SVORT(2,2))))
+                  
+            wally=EDDYFR(1)
+            rho_0=RIGHTV(1)
+            k_0=EDDYFR(2)/RIGHTV(1)
+            om_0=max(EDDYFR(3)/RIGHTV(1),1.0e-6)
+
+            ! EDDYFL(13:15)=ILOCAL_RECON3(K)%GRADS(4,1:3)
+            ! EDDYFL(16:18)=ILOCAL_RECON3(K)%GRADS(5,1:3)
+
+            dervk_dervom=(EDDYFL(8)*EDDYFL(10))+(EDDYFL(9)*EDDYFL(11))
+                  
+            D_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    !I need derivative of k
+            phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*VISCL(2)/(rho_0*wally*wally*om_0))
+            phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*D_omplus*wally*wally)) 
+
+            F_1=tanh(phi_1**4)
+            F_2=tanh(phi_2**2)
+            RE_T_SST=RHO_0*K_0/(VISCL(2)*OM_0)
+            beta_i=F_1*beta_i1+(1.0-F_1)*beta_i2
+            alpha_star0=beta_i/3.0    
+            alpha_inf=F_1*alpha_inf1+(1.0-F_1)*alpha_inf2
+            alpha_star=alpha_starinf*(alpha_star0+Re_t_SST/R_k_SST)/(1.0+Re_t_SST/R_k_SST)
+
+            VISCL(4)=rho_0*k_0/om_0/max(1.0/alpha_star,SNORM*F_2/(aa_1*om_0))
+
+            !Added 20/6/2013
+            sigma_k_r=sigma_k1/F_1+sigma_k2/F_2
+            sigma_om_r=sigma_om1/F_1+sigma_om2/F_2
+
+        ELSE
+            VISCL(4)=-VISCL(3)
+            SIGMA_K_R=SIGMA_K_L
+            SIGMA_OM_R=SIGMA_OM_L
+        END IF
+
+
+    END SELECT
+		  
+		Viscl(3) = MIN(10000000*visc,VISCL(3))  
+		Viscl(4) = MIN(10000000*visc,VISCL(4))		  
   
- VORTET(1,1:2) = EDDYFL(4:5)
- VORTET(2,1:2) = EDDYFL(6:7) 
- 
-
-  ux = Vortet(1,1);uy = Vortet(1,2)
-  vx = Vortet(2,1);vy = Vortet(2,2)
- 
-
-  DO IHGT=1,2
-  DO IHGJ=1,2
-  TVORT(IHGT,IHGJ)=VORTET(IHGJ,IHGT)
-  END DO
-  END DO
-
-sVORT=0.5*(VORTET+TVORT)
-SNORM=SQRT(2.0*((SVORT(1,1)*SVORT(1,1))+(SVORT(1,2)*SVORT(1,2))+&
-	       (SVORT(2,1)*SVORT(2,1))+(SVORT(2,2)*SVORT(2,2))))
-		   
- wally=EDDYFL(1)
- rho_0=LEFTV(1)
- k_0=MAX(tolepsma,EDDYFL(2)/LEFTV(1))
- om_0=max(EDDYFL(3)/LEFTV(1),ufreestream/charlength/10.0)
-
-
- dervk_dervom=(EDDYFL(8)*EDDYFL(10))+(EDDYFL(9)*EDDYFL(11))
-		   
-D_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    
- phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*VISCL(1)/(rho_0*wally*wally*om_0))
- phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*D_omplus*wally*wally)) 
-
-F_1=tanh(phi_1**4)
-F_2=tanh(phi_2**2)
-RE_T_SST=RHO_0*K_0/(VISCL(1)*OM_0)
-beta_i=F_1*beta_i1+(1.0-F_1)*beta_i2
-alpha_star0=beta_i/3.0    
-alpha_inf=F_1*alpha_inf1+(1.0-F_1)*alpha_inf2
-alpha_star=alpha_starinf*(alpha_star0+Re_t_SST/R_k_SST)/(1.0+Re_t_SST/R_k_SST)
-
-
-VISCL(3)=rho_0*k_0/om_0/max(1.0/alpha_star,SNORM*F_2/(aa_1*om_0))
-
-
-!Added 20/6/2013
-sigma_k_l=sigma_k1/F_1+sigma_k2/F_2
-sigma_om_l=sigma_om1/F_1+sigma_om2/F_2
-
-
-
-  IF (EDDYFR(1).GT.0.0)THEN
-VORTET(1,1:2) = EDDYFL(4:5)
- VORTET(2,1:2) = EDDYFL(6:7) 
- 
-
-  ux = Vortet(1,1);uy = Vortet(1,2)
-  vx = Vortet(2,1);vy = Vortet(2,2)
- 
-
-  DO IHGT=1,2
-  DO IHGJ=1,2
-  TVORT(IHGT,IHGJ)=VORTET(IHGJ,IHGT)
-  END DO
-  END DO
-
-sVORT=0.5*(VORTET+TVORT)
-SNORM=SQRT(2.0*((SVORT(1,1)*SVORT(1,1))+(SVORT(1,2)*SVORT(1,2))+&
-	       (SVORT(2,1)*SVORT(2,1))+(SVORT(2,2)*SVORT(2,2))))
-		   
- wally=EDDYFR(1)
- rho_0=RIGHTV(1)
- k_0=EDDYFR(2)/RIGHTV(1)
- om_0=max(EDDYFR(3)/RIGHTV(1),1.0e-6)
-
- ! EDDYFL(13:15)=ILOCAL_RECON3(K)%GRADS(4,1:3)
-!EDDYFL(16:18)=ILOCAL_RECON3(K)%GRADS(5,1:3)
-
- dervk_dervom=(EDDYFL(8)*EDDYFL(10))+(EDDYFL(9)*EDDYFL(11))
-		   
-D_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    !I need derivative of k
- phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*VISCL(2)/(rho_0*wally*wally*om_0))
- phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*D_omplus*wally*wally)) 
-
-F_1=tanh(phi_1**4)
-F_2=tanh(phi_2**2)
-RE_T_SST=RHO_0*K_0/(VISCL(2)*OM_0)
-beta_i=F_1*beta_i1+(1.0-F_1)*beta_i2
-alpha_star0=beta_i/3.0    
-alpha_inf=F_1*alpha_inf1+(1.0-F_1)*alpha_inf2
-alpha_star=alpha_starinf*(alpha_star0+Re_t_SST/R_k_SST)/(1.0+Re_t_SST/R_k_SST)
-
-
-VISCL(4)=rho_0*k_0/om_0/max(1.0/alpha_star,SNORM*F_2/(aa_1*om_0))
-
-!Added 20/6/2013
-sigma_k_r=sigma_k1/F_1+sigma_k2/F_2
-sigma_om_r=sigma_om1/F_1+sigma_om2/F_2
-
-
-ELSE
-VISCL(4)=-VISCL(3)
-SIGMA_K_R=SIGMA_K_L
-SIGMA_OM_R=SIGMA_OM_L
-
-
-
-END IF
-
-
-END SELECT
-		  
-		  
+    LAML(3)=( VISCL(3)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1)) )
+    LAML(4)=( VISCL(4)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1)) )
+    VISCL(3)=MAX(0.0D0,VISCL(3))
+    VISCL(4)=MAX(0.0D0,VISCL(4))
     
-		  Viscl(3) = MIN(10000000*visc,VISCL(3))  
-		  Viscl(4) = MIN(10000000*visc,VISCL(4))		  
-  
+    IF ((TURBMV(1).LT.ZERO).OR.(TURBMV(2).LT.ZERO))THEN
+        VISCL(3)=0.0D0
+        VISCL(4)=0.0D0
+    END IF
+    
+    ETVM(1) = ( 0.5*(VISCL(1)+VISCL(2)) ) +  ( 0.5*(VISCL(3)+VISCL(4)) )
 
-	 LAML(3)=( VISCL(3)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1)) )
-	 LAML(4)=( VISCL(4)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1)) )
-	 VISCL(3)=MAX(0.0D0,VISCL(3))
-	 VISCL(4)=MAX(0.0D0,VISCL(4))
-	 
-	 IF ((TURBMV(1).LT.ZERO).OR.(TURBMV(2).LT.ZERO))THEN
-	 VISCL(3)=0.0D0
-	 VISCL(4)=0.0D0
-	 END IF
-	 
-	 ETVM(1) = ( 0.5*(VISCL(1)+VISCL(2)) ) +  ( 0.5*(VISCL(3)+VISCL(4)) )
+    !Added on 20/6/2013---------------------------------------------------------------
+    !After limiting these variables, we compute the diffusion for the turbulent variables
+    if (TURBULENCEMODEL .eq. 2) then
+        !--------EDDYFL/R(19)=GAMMA_k_L/R
+        !--------EDDYFL/R(20)=GAMMA_om_L/R  
 
+        EDDYFL(12)=VISCL(1)+VISCL(3)/sigma_k_l
+        EDDYFR(13)=VISCL(2)+VISCL(4)/sigma_k_r
 
-
-
-	  
-!Added on 20/6/2013---------------------------------------------------------------
-!After limiting these variables, we compute the diffusion for the turbulent variables
-  if (TURBULENCEMODEL .eq. 2) then
-    !--------EDDYFL/R(19)=GAMMA_k_L/R
-    !--------EDDYFL/R(20)=GAMMA_om_L/R  
-
-    EDDYFL(12)=VISCL(1)+VISCL(3)/sigma_k_l
-    EDDYFR(13)=VISCL(2)+VISCL(4)/sigma_k_r
-
-    EDDYFL(12)=VISCL(1)+VISCL(3)/sigma_om_l
-    EDDYFR(13)=VISCL(2)+VISCL(4)/sigma_om_r
-  end if
+        EDDYFL(12)=VISCL(1)+VISCL(3)/sigma_om_l
+        EDDYFR(13)=VISCL(2)+VISCL(4)/sigma_om_r
+    end if
 END IF
 
 END SUBROUTINE EDDYVISCO2d
