@@ -220,9 +220,6 @@ IF (INITCOND.EQ.10000)THEN	!shock density interaction
 end if
 
 
-
-
-
 IF (INITCOND.EQ.95)THEN	!TAYLOR GREEN INITIAL PROFILE
     if(boundtype.eq.1)then
         R1=1.0D0
@@ -835,7 +832,6 @@ IF (INITCOND.EQ.95)THEN	!TAYLOR GREEN INITIAL PROFILE
     VECCOS(4)=E1
 END IF
 
-
 IF (INITCOND.EQ.75)THEN	!TAYLOR GREEN INITIAL PROFILE
 
     if (((pox(1).ge.(2.0d0)).and.(pox(1).le.(4.0d0))).and.((poy(1).ge.(2.0d0)).and.(poy(1).le.(4.0d0))))then
@@ -863,9 +859,6 @@ IF (INITCOND.EQ.75)THEN	!TAYLOR GREEN INITIAL PROFILE
     VECCOS(4)=E1
 END IF
 
-
-
-
 IF (INITCOND.EQ.25)THEN	!TAYLOR GREEN INITIAL PROFILE
 
     if (sqrt(((pox(1)-1.0d0)**2)+((poy(1)-1.0d0)**2)).LE.0.4d0)then
@@ -879,8 +872,6 @@ IF (INITCOND.EQ.25)THEN	!TAYLOR GREEN INITIAL PROFILE
         u1=0.0
         p1=0.1d0
     end if
-
-
     !KINETIC ENERGY FIRST!
     SKIN1=(OO2)*((U1**2)+(V1**2))
     !INTERNAL ENERGY 
@@ -907,7 +898,6 @@ IF (INITCOND.EQ.31)THEN	!TAYLOR GREEN INITIAL PROFILE
         u1=0.0
         p1=0.1d0
     end if
-
     !KINETIC ENERGY FIRST!
     SKIN1=(OO2)*((U1**2)+(V1**2))
     !INTERNAL ENERGY 
@@ -920,9 +910,6 @@ IF (INITCOND.EQ.31)THEN	!TAYLOR GREEN INITIAL PROFILE
     VECCOS(3)=R1*V1
     VECCOS(4)=E1
 END IF
-
-
-
 
 IF (INITCOND.EQ.65)THEN	!TAYLOR GREEN INITIAL PROFILE
     khi_slope=15.0d0
@@ -1010,7 +997,7 @@ IF (INITCOND.EQ.100)THEN	!TAYLOR GREEN INITIAL PROFILE
 END IF
 
 
-IF (INITCOND.EQ.101)THEN	!shock density interaction
+IF ((INITCOND.EQ.101).or.(initcond.eq.103)) THEN	!shock density interaction
     if (pox(1).lt.-4.0d0)then
         r1=3.8571d0
         u1=2.6294d0
