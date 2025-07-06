@@ -580,6 +580,9 @@ END IF
  
 IF (MOOD.EQ.1)THEN
 
+  if (MOOD_MODE.eq.3) then
+    Call EXCHANGE_HIGHER_MOOD(N, INDS)
+  endif
   CALL MOOD_OPERATOR_2(N)
 
   !$OMP DO
@@ -592,6 +595,9 @@ IF (MOOD.EQ.1)THEN
   END DO
   !$OMP END DO
 
+  if (MOOD_MODE.eq.3) then
+    Call EXCHANGE_HIGHER_MOOD(N, INDS)
+  endif
   CALL MOOD_OPERATOR_1(N)
 
   !$OMP DO
@@ -664,6 +670,9 @@ END IF
 
 IF (MOOD.EQ.1)THEN
  
+  if (MOOD_MODE.eq.3) then
+    Call EXCHANGE_HIGHER_MOOD(N, INDS)
+  endif
   CALL MOOD_OPERATOR_2(N)
   !$OMP DO
   DO I=1,KMAXE
@@ -676,6 +685,9 @@ IF (MOOD.EQ.1)THEN
   END DO
   !$OMP END DO
 
+  if (MOOD_MODE.eq.3) then
+    Call EXCHANGE_HIGHER_MOOD(N, INDS)
+  endif
   CALL MOOD_OPERATOR_1(N)
 
   !$OMP DO
@@ -742,6 +754,9 @@ END DO
 
 IF (MOOD.EQ.1)THEN
  
+  if (MOOD_MODE.eq.3) then
+    Call EXCHANGE_HIGHER_MOOD(N, INDS)
+  endif
   CALL MOOD_OPERATOR_2(N)
   !$OMP DO
   DO I=1,KMAXE
@@ -754,6 +769,9 @@ IF (MOOD.EQ.1)THEN
   END DO
   !$OMP END DO
 
+  if (MOOD_MODE.eq.3) then
+    Call EXCHANGE_HIGHER_MOOD(N, INDS)
+  endif
   CALL MOOD_OPERATOR_1(N)
 
   !$OMP DO

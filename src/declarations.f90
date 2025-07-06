@@ -205,7 +205,7 @@ INTEGER::THERMAL,TEMP_MODEL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.3.   REAL VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
-REAL::wenocentralweight,TIMESTEP,oo2,zero,forcex,forcey,forcez,extf,vorder,MOOD_VAR1,MOOD_VAR2,MOOD_VAR3,MOOD_VAR4
+REAL::wenocentralweight,TIMESTEP,oo2,zero,forcex,forcey,forcez,extf,vorder,MOOD_VAR1,MOOD_VAR2,MOOD_VAR3,MOOD_VAR4,MOOD_VAR5,MOOD_VAR6
 
 real,ALLOCATABLE,DIMENSION(:)::SUMVARS,MAXVARS,aver_Vars            !VARIABLES FOR BOUNDS OF TROUBLED CELL INDICATOR
 
@@ -537,6 +537,7 @@ TYPE EXCHANGE_SOLHI
 	INTEGER::FAST
 	INTEGER::HOWMANY   !HOW MANY ELEMENTS ARE NEEDED
 	REAL,ALLOCATABLE,DIMENSION(:,:)::SOL   !ARRAY TO HOLD THE VALUES TO BE SEND/RECEIVED
+	REAL,ALLOCATABLE,DIMENSION(:,:)::SOL2   !ARRAY TO HOLD THE VALUES TO BE SEND/RECEIVED
 END TYPE EXCHANGE_SOLHI
 
 TYPE(EXCHANGE_SOLHI),ALLOCATABLE,DIMENSION(:)::IEXSOLHIR,iexsolhird    !RECEIVING DATA TYPE FOR HALO CELLS OF STENCILS

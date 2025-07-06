@@ -131,9 +131,15 @@ SUBROUTINE READ_UCNS3D
 		READ(17,*)MOOD_MODE        !TYPE OF MOOD MODE (1=RELAXED, 0=ORIGINAL)
 		READ(17,*)MOOD_VAR1,MOOD_VAR2
 		READ(17,*)MOOD_VAR3,MOOD_VAR4
+		IF (MOOD_MODE.ge.5) THEN
+			READ(17,*)MOOD_VAR5,MOOD_VAR6
+		ENDIF
 		if (n.eq.0)then
 			print*,"mood active"
 		end if
+		if (n.eq.0)then; IF (MOOD_MODE.ge.5) THEN
+			print*,"MOOD_VAR5, MOOD_VAR6", MOOD_VAR5, MOOD_VAR6
+		ENDIF; ENDIF
 		CLOSE(17)
 	ELSE
 		MOOD=0
@@ -382,8 +388,43 @@ SUBROUTINE READ_UCNS3D
 		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-		
-		
+		if (iboundary.eq.1)then
+			LOWMEM=1
+		end if
+	 	DES_model=0
+
+
+
+		CASE (-1)       
+	
+		LOWMEMORY=0 	!MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)|| 
+		binio=1	    	!I/O (ASCII=0, BINARY=1) 
+		LOWMEM=0    	!GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+		reduce_comp=0	!QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+		turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST	
+		! icoupleturb=0	!COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+		ihybrid=0	!HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+		HYBRIDIST=0.0D0 !HYBRID DISTANCE
+		swirl=0		!swirling flow:0 deactivated, 1 activated
+		IADAPT=0	!ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+		if ((initcond.eq.405).OR.(initcond.eq.470).OR.(initcond.eq.101).or.(initcond.eq.103))THEN
+			iadapt=1
+		END IF
+		ICOMPACT=0	!COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+		extf=3		!STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+		WEIGHT_LSQR=0	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+		guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+		FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+		relax=1		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+		CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
+		CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+		emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
+		itold=10000	!TOLERANCE=n_iterations
+		GRIDAR1=30	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+		GRIDAR2=30	! LIMIT VOLUME CELLS
+		fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+		lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+		LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
 		if (iboundary.eq.1)then
 			LOWMEM=1
 		end if
