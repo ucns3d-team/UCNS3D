@@ -3,2081 +3,1747 @@ USE LIBRARY
 USE FLOW_OPERATIONS
 IMPLICIT NONE
 
-
- CONTAINS
- 
- 
+CONTAINS
+	 
+	 
 SUBROUTINE ALLGRADS_INNER(N,ICONSIDERED)
-!> @brief
-!> This subroutine calls the gradient approximation subroutines for every interior cell
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED
-INTEGER::I
-INTEGER::NUMBER_OF_DOG,NUMBER_OF_NEI,IMAX
-I=iconsidered
-NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
-NUMBER_OF_NEI=IELEM(N,I)%inumneighbours
-! imax=NUMBER_OF_NEI-1
+	!> @brief
+	!> This subroutine calls the gradient approximation subroutines for every interior cell
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED
+	INTEGER::I
+	INTEGER::NUMBER_OF_DOG,NUMBER_OF_NEI,IMAX
+	I=iconsidered
+	NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
+	NUMBER_OF_NEI=IELEM(N,I)%inumneighbours
+	! imax=NUMBER_OF_NEI-1
+	
+	IF (DG.EQ.1)THEN
+		CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+	ELSE
+	
+		SELECT CASE(IELEM(N,I)%GGS)
+	
+		  CASE(0)	!LEAST SQUARES EVERYTHING
 
+			SELECT case (ITESTCASE)
+	 
+		      CASE(1,2,3)
+				CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+				IF (INITCOND.EQ.95)THEN
+					CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+				END IF
+	
+			  CASE(4)
+				CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+				CALL COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+				IF (TURBULENCE.EQ.1)THEN
+					CALL COMPUTE_GRADIENTS_INNER_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+					CALL COMPUTE_GRADIENTS_TURB_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+					CALL COMPUTE_GRADIENTS_TURB_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+				End if
 
-IF (DG.EQ.1)THEN
-	CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-ELSE
-
-	SELECT CASE(IELEM(N,I)%GGS)
-
-  	  CASE(0)	!LEAST SQUARES EVERYTHING
-    	SELECT case (ITESTCASE)
- 
-      	  CASE(1,2,3)
-      
-    		CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-
-    		IF (INITCOND.EQ.95)THEN
-    			CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-    		END IF
-
-    	  CASE(4)
-			CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-    		CALL COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-			IF (TURBULENCE.EQ.1)THEN
-				CALL COMPUTE_GRADIENTS_INNER_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-				CALL COMPUTE_GRADIENTS_TURB_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-				CALL COMPUTE_GRADIENTS_TURB_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-			END IF
-
-   		END SELECT
-   
-	  CASE(1) !GREEN GAUSS EVERYTHING
-
-    	SELECT case (ITESTCASE)
- 
-    	  CASE(1,2,3)
-      
-      		CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-
-     		IF (INITCOND.EQ.95)THEN
-    			CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-    		END IF
-
-    	  CASE(4)
-
-      		CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-      		CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-      
-      		IF (TURBULENCE.EQ.1)THEN
-      			CALL COMPUTE_GRADIENTS_TURB_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-      			CALL COMPUTE_GRADIENTS_INNER_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-      		END IF
-
-    	END SELECT
-	END SELECT
-END IF
-
+	  		END SELECT
+	   
+	   
+	 	  CASE(1) !GREEN GAUSS EVERYTHING
+		    SELECT case (ITESTCASE)
+	 
+		      CASE(1,2,3)
+		  		CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+		  		IF (INITCOND.EQ.95)THEN
+					CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+				END IF
+	
+		  	  CASE(4)
+				CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+		  		CALL COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+		  		IF (TURBULENCE.EQ.1)THEN
+		  			CALL COMPUTE_GRADIENTS_TURB_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+		  			CALL COMPUTE_GRADIENTS_INNER_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+		  		END IF
+		  
+		  	END SELECT
+	 	END SELECT
+	END IF
+	
 END SUBROUTINE ALLGRADS_INNER
-
+	
 
 
 
 
 SUBROUTINE ALLGRADS_MIX(N,ICONSIDERED)
-!> @brief
-!> This subroutine calls the gradient approximation subroutines for every non-interior cell
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED
-INTEGER::I
-INTEGER::NUMBER_OF_DOG,NUMBER_OF_NEI,IMAX
-I=iconsidered
-NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
-NUMBER_OF_NEI=IELEM(N,I)%inumneighbours
-
-
-IF (DG.EQ.1)THEN
-
-	CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-
-ELSE
-
-	IF (FASTEST.ne.1)THEN !LEAST SQUARES
-		SELECT CASE(IELEM(N,I)%GGS)
-
-		  CASE(0)	!LEAST SQUARES EVERYTHING
-			SELECT case (ITESTCASE)
-
-			  CASE(1,2,3)
-
-				CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-
-				IF (INITCOND.EQ.95)THEN
-					CALL COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-				END IF
-
-			  CASE(4)
-				CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-
-				IF (ielem(n,i)%walls.NE.1)THEN
-					CALL COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-				ELSE
-					CALL COMPUTE_GRADIENTS_wall_mean_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-				END IF
-
-				IF (TURBULENCE.EQ.1)THEN
-					CALL COMPUTE_GRADIENTS_MIX_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-					CALL COMPUTE_GRADIENTS_TURB_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-
-					IF (ielem(n,i)%walls.NE.1)THEN
-						CALL COMPUTE_GRADIENTS_TURB_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-					ELSE
-						CALL COMPUTE_GRADIENTS_wall_turb_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+	!> @brief
+	!> This subroutine calls the gradient approximation subroutines for every non-interior cell
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED
+	INTEGER::I
+	INTEGER::NUMBER_OF_DOG,NUMBER_OF_NEI,IMAX
+	I=iconsidered
+	NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
+	NUMBER_OF_NEI=IELEM(N,I)%inumneighbours
+	
+	IF (DG.EQ.1)THEN
+		CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+	ELSE
+	
+		IF (FASTEST.ne.1)THEN !LEAST SQUARES
+			SELECT CASE(IELEM(N,I)%GGS)
+	
+			  CASE(0)	!LEAST SQUARES EVERYTHING
+				SELECT case (ITESTCASE)
+	
+				  CASE(1,2,3)
+					CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+					IF (INITCOND.EQ.95)THEN
+						CALL COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
 					END IF
-				END IF
+	
+				  CASE(4)
+					CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+	
+					IF (ielem(n,i)%walls.NE.1)THEN
+						CALL COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+					ELSE
+						CALL COMPUTE_GRADIENTS_wall_mean_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+					END IF
 
-			END SELECT
+					IF (TURBULENCE.EQ.1)THEN
+						CALL COMPUTE_GRADIENTS_MIX_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+						CALL COMPUTE_GRADIENTS_TURB_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
 
+						IF (ielem(n,i)%walls.NE.1)THEN
+							CALL COMPUTE_GRADIENTS_TURB_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+						ELSE
+							CALL COMPUTE_GRADIENTS_wall_turb_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+						END IF
+					END IF
 
-		  CASE(1)
-			SELECT case (ITESTCASE)
-
-			  CASE(1,2,3)
-
-				CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-
-				IF (INITCOND.EQ.95)THEN
+				END SELECT
+	
+			  CASE(1)
+				SELECT case (ITESTCASE)
+	
+				  CASE(1,2,3)
+					CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+					IF (INITCOND.EQ.95)THEN
+						CALL COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+					END IF
+	
+				  CASE(4)
+					CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
 					CALL COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-				END IF
-
-			  CASE(4)
-
-				CALL COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-				CALL COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-
-				IF (TURBULENCE.EQ.1)THEN
-					CALL COMPUTE_GRADIENTS_TURB_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-					CALL COMPUTE_GRADIENTS_MIX_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-				END IF
-
+					IF (TURBULENCE.EQ.1)THEN
+						CALL COMPUTE_GRADIENTS_TURB_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+						CALL COMPUTE_GRADIENTS_MIX_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+					END IF
+	
+				END SELECT
 			END SELECT
-		END SELECT
-
-
-	END IF
-end if
-      
+		END IF
+	end if
+	
 END SUBROUTINE ALLGRADS_MIX
 
 
-
-
+	
+	
+	
 SUBROUTINE ALLGRADS_MIX_AV(N,ICONSIDERED)
-!> @brief
-!> This subroutine calls the average gradient approximation subroutines for every non interior cell 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED
-INTEGER::I
-INTEGER::NUMBER_OF_DOG,NUMBER_OF_NEI,IMAX
-I=iconsidered
-
-NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
-NUMBER_OF_NEI=IELEM(N,I)%inumneighbours
-
- call COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-
-
+	!> @brief
+	!> This subroutine calls the average gradient approximation subroutines for every non interior cell 
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED
+	INTEGER::I
+	INTEGER::NUMBER_OF_DOG,NUMBER_OF_NEI,IMAX
+	I=iconsidered
+	
+	NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
+	NUMBER_OF_NEI=IELEM(N,I)%inumneighbours
+	
+	call COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+	
 END SUBROUTINE ALLGRADS_MIX_AV
+	
+
+
 
 
 SUBROUTINE ALLGRADS_INNER_AV(N,ICONSIDERED)
-!> @brief
-!> This subroutine calls the average gradient approximation subroutines for every interior cell 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED
-INTEGER::I
-INTEGER::NUMBER_OF_DOG,NUMBER_OF_NEI,IMAX
-I=iconsidered
-NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
-NUMBER_OF_NEI=IELEM(N,I)%inumneighbours
-
- call COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
-
-
+	!> @brief
+	!> This subroutine calls the average gradient approximation subroutines for every interior cell 
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED
+	INTEGER::I
+	INTEGER::NUMBER_OF_DOG,NUMBER_OF_NEI,IMAX
+	I=iconsidered
+	NUMBER_OF_DOG=IELEM(N,I)%IDEGFREE
+	NUMBER_OF_NEI=IELEM(N,I)%inumneighbours
+	
+	call COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
+	
 END SUBROUTINE ALLGRADS_INNER_AV
+	
+
+
 
 
 SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check all
-!> @brief
-!> This subroutine computes the gradients of the conserved variables of each cell using the least-squares
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(nof_variables)::SOLS1
-REAL,DIMENSION(nof_variables,typesten)::SOLS2
-REAL,ALLOCATABLE,DIMENSION(:,:,:)::MATRIX_1,MATRIX_2
-REAL,ALLOCATABLE,DIMENSION(:,:,:)::SOL_M	
-REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV
-REAL::MP_PINFl,GAMMAL
-INTEGER::I,VAR2,iq,ll,IMAX
-REAL::TEMPXX
+	!> @brief
+	!> This subroutine computes the gradients of the conserved variables of each cell using the least-squares
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(nof_variables)::SOLS1
+	REAL,DIMENSION(nof_variables,typesten)::SOLS2
+	REAL,ALLOCATABLE,DIMENSION(:,:,:)::MATRIX_1,MATRIX_2
+	REAL,ALLOCATABLE,DIMENSION(:,:,:)::SOL_M	
+	REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV
+	REAL::MP_PINFl,GAMMAL
+	INTEGER::I,VAR2,iq,ll,IMAX
+	REAL::TEMPXX
+
 	I=ICONSIDERED
 
-ALLOCATE(MATRIX_1(NUMBER_OF_NEI-1,nof_variables,IELEM(N,ICONSIDERED)%ADMIS))	
-ALLOCATE(MATRIX_2(NUMBER_OF_DOG,NOF_VARIABLES,IELEM(N,ICONSIDERED)%ADMIS))	
-ALLOCATE	(SOL_M(NUMBER_OF_DOG,NOF_VARIABLES,IELEM(N,ICONSIDERED)%ADMIS))	
-
-IMAX=NUMBER_OF_NEI-1
-
-I=ICONSIDERED
-SOLS1=ZERO; SOLS2=ZERO; matrix_2=zero; sol_m=zero; MATRIX_1=ZERO;MATRIX_2=ZERO
-
-SOLS1(1:nof_variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_variables)
-IF (WENWRT.EQ.3)THEN
-	LEFTV(1:NOF_VARIABLES)=SOLS1(1:nof_variables)
-   	CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-   	SOLS1(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
-END IF
-
-if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
-    DO LL=1,IELEM(N,I)%ADMIS;
-        if ((ees.ne.5).or.(ll.eq.1))then
-            DO IQ=1,imax
-            	SOLS2(1:nof_variables,ll)=U_C(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:nof_variables)
-
-            	IF (WENWRT.EQ.3)THEN
-            		LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
-            		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-            		SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
-            	END IF
-
-            	IF(PER_ROT.EQ.1)THEN
-                	IF (ILOCAL_RECON3(I)%PERIODICFLAG(LL,IQ+1).EQ.2) THEN
-                    	tempxx=sols2(2,LL)
-                    	sols2(2,LL)=tempxx*cos(angle_per)-sols2(3,LL)*sin(angle_per)
-                    	sols2(3,LL)=tempxx*sin(angle_per)+sols2(3,LL)*cos(angle_per)
-                	end if
-					IF (ILOCAL_RECON3(I)%PERIODICFLAG(LL,IQ+1).EQ.1) THEN
-						tempxx=sols2(2,LL)
-						sols2(2,LL)=tempxx*cos(-angle_per)-sols2(3,LL)*sin(-angle_per)
-						sols2(3,LL)=tempxx*sin(-angle_per)+sols2(3,LL)*cos(-angle_per)
-					END IF
-				END IF
-
-            	MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
-            END DO
-        else
-            DO IQ=1,numneighbours2-1
-            	SOLS2(1:nof_variables,ll)=U_C(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1))%VAL(1,1:nof_variables)
-            	IF (WENWRT.EQ.3)THEN
-            		LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
-            		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-            		SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
-            	END IF
-            	MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
-         	END DO
-		end if
-    end do
-    DO LL=1,IELEM(N,I)%ADMIS;
-        if ((ees.ne.5).or.(ll.eq.1))then
-			! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
-			!            ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-			!            IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables,ll),&
-			!            imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables,ll),IELEM(N,I)%IDEGFREE)
-
-			SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables,ll)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables,ll))
-		else
-			! CALL DGEMM('N','N',IDEGFREE2,nof_variables,numneighbours2-1,&
-			!            ALPHA,ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),&
-			!            IDEGFREE2,MATRIX_1(1:numneighbours2-1,1:nof_variables,ll),&
-			!            numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
-
-			SOL_M(1:IDEGFREE2,1:nof_variables,ll)=MATMUL(ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),MATRIX_1(1:numneighbours2-1,1:nof_variables,ll))
-        end if
-    END DO
-
-    DO LL=1,IELEM(N,I)%ADMIS;
-       	if ((ees.ne.5).or.(ll.eq.1))then
-      		ILOCAL_rECON5(ICONSIDERED)%GRADIENTS(LL,1:NUMBER_OF_DOG,1:nof_variables)=SOL_M(1:NUMBER_OF_DOG,1:nof_variables,ll)
-		else
-      		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSC(LL,1:IDEGFREE2,1:nof_variables)=SOL_M(1:IDEGFREE2,1:nof_variables,ll)
-		end if
-    END DO
-else
-    DO LL=1,IELEM(N,I)%ADMIS;
-        if ((ees.ne.5).or.(ll.eq.1))then
-            DO IQ=1,imax
-                IF (ILOCAL_RECON3(I)%IHEXB(LL,IQ+1).EQ.N)THEN
-                    SOLS2(1:nof_variables,ll)=U_C(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:nof_variables)
-				ELSE
-                    SOLS2(1:nof_variables,ll)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1),1:nof_variables)
-                END IF
-                IF (WENWRT.EQ.3)THEN
-        	    	LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
-        	    	CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-        		    SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
-            	END IF
-                IF(PER_ROT.EQ.1)THEN
-                    IF (ILOCAL_RECON3(I)%PERIODICFLAG(LL,IQ+1).EQ.1) THEN
-						! write(2900+n,*),IELEM(N,I)%XXC,IELEM(N,I)%YYC,IELEM(N,I)%ZZC
-                        if (IELEM(N,I)%XXC.gt.0.0d0) then
-                            tempxx=sols2(2,LL)
-                            sols2(2,LL)=sols2(3,LL)
-                            sols2(3,LL)=-TEMPXX
-                        end if
-                        if (IELEM(N,I)%XXC.lt.0.0d0) then
-                            tempxx=sols2(2,LL)
-							sols2(2,LL)=-sols2(3,LL)
-                            sols2(3,LL)=TEMPXX
-                        end if
-                    END IF
-                END IF
-
-                MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
-
-            END DO
-        else
-            DO IQ=1,numneighbours2-1
-                IF (ILOCAL_RECON3(I)%IHEXBC(LL,IQ+1).EQ.N)THEN
-
-                    SOLS2(1:nof_variables,ll)=U_C(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1))%VAL(1,1:nof_variables)
-				ELSE
-                    SOLS2(1:nof_variables,ll)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXNC(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1),1:nof_variables)
-                END IF
-                IF (WENWRT.EQ.3)THEN
-                        LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
-                        CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-                        SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
-                END IF
-
-                MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
-            END DO
-        END IF
-    end do
-
-    DO LL=1,IELEM(N,I)%ADMIS;
-        if ((ees.ne.5).or.(ll.eq.1))then
-			! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
-			!            ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-			!            IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables,ll),&
-			!            imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables,ll),IELEM(N,I)%IDEGFREE)
-
-			SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables,ll)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables,ll))
-		else
-			! CALL DGEMM('N','N',IDEGFREE2,nof_variables,numneighbours2-1,&
-			!            ALPHA,ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),&
-			!            IDEGFREE2,MATRIX_1(1:numneighbours2-1,1:nof_variables,ll),&
-			!            numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
-
-			SOL_M(1:IDEGFREE2,1:nof_variables,ll)=MATMUL(ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),MATRIX_1(1:numneighbours2-1,1:nof_variables,ll))
-        end if
-    end do
-
-    DO LL=1,IELEM(N,I)%ADMIS;
-       	if ((ees.ne.5).or.(ll.eq.1))then
-      		ILOCAL_rECON5(ICONSIDERED)%GRADIENTS(LL,1:NUMBER_OF_DOG,1:nof_variables)=SOL_M(1:NUMBER_OF_DOG,1:nof_variables,ll)
-	   	else
-      		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSC(LL,1:IDEGFREE2,1:nof_variables)=SOL_M(1:IDEGFREE2,1:nof_variables,ll)
-		end if
-    end do
-end if
-
-DEALLOCATE(MATRIX_1,MATRIX_2)
-DEALLOCATE(SOL_M)
-
-END SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ
-
-
-
-
-
-SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-!> @brief
-!> This subroutine computes the gradients of the primitve variables of each interior cell using the least-squares
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(nof_variables)::SOLS1,SOLS2
-REAL,allocatable,DIMENSION(:,:)::MATRIX_1
-REAL,allocatable,DIMENSION(:,:)::MATRIX_2
-REAL,allocatable,DIMENSION(:,:)::SOL_M
-INTEGER::I,VAR2,iq,lq,ll,imax
-real::MP_PINFl,gammal
-real,dimension(1:nof_Variables)::leftv
-
-allocate(MATRIX_1(NUMBER_OF_NEI-1,nof_variables))
-allocate(MATRIX_2(NOF_VARIABLES,NUMBER_OF_DOG))		
-allocate(SOL_M(NUMBER_OF_DOG,NOF_VARIABLES))	
-
-imax=NUMBER_OF_NEI-1
-
-I=ICONSIDERED
-SOLS1=ZERO;
-SOLS2=ZERO
-
-if (dimensiona.eq.3)then
-
-	ll=1
-
+	ALLOCATE(MATRIX_1(NUMBER_OF_NEI-1,nof_variables,IELEM(N,ICONSIDERED)%ADMIS))	
+	ALLOCATE(MATRIX_2(NUMBER_OF_DOG,NOF_VARIABLES,IELEM(N,ICONSIDERED)%ADMIS))	
+	ALLOCATE	(SOL_M(NUMBER_OF_DOG,NOF_VARIABLES,IELEM(N,ICONSIDERED)%ADMIS))	
+	
+	IMAX=NUMBER_OF_NEI-1
+	
+	I=ICONSIDERED
+	SOLS1=ZERO; SOLS2=ZERO; matrix_2=zero; sol_m=zero; MATRIX_1=ZERO;MATRIX_2=ZERO
+	
+	SOLS1(1:nof_variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_variables)
+	IF (WENWRT.EQ.3)THEN
+		LEFTV(1:NOF_VARIABLES)=SOLS1(1:nof_variables)
+		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		SOLS1(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+	END IF
+	
 	if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
-		MATRIX_1=ZERO;MATRIX_2=ZERO
-		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 
-	       SOLS1(2:4)=LEFTV(2:4)
-	       SOLS1(1)=LEFTV(5)/(LEFTV(1)*R_gas)
+		DO LL=1,IELEM(N,I)%ADMIS;
 
-               DO IQ=1,imax
-                LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:4)=LEFTV(2:4)
-	       SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
-  	        MATRIX_1(iq,1:nof_Variables)=((SOLS2(1:nof_Variables)-SOLS1(1:nof_Variables)))
-		END DO
+			if ((ees.ne.5).or.(ll.eq.1))then
+				DO IQ=1,imax
+					SOLS2(1:nof_variables,ll)=U_C(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:nof_variables)
+
+					IF (WENWRT.EQ.3)THEN
+						LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
+						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+						SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
+					END IF
+
+					IF(PER_ROT.EQ.1)THEN
+						IF (ILOCAL_RECON3(I)%PERIODICFLAG(LL,IQ+1).EQ.2) THEN
+							tempxx=sols2(2,LL)
+							sols2(2,LL)=tempxx*cos(angle_per)-sols2(3,LL)*sin(angle_per)
+							sols2(3,LL)=tempxx*sin(angle_per)+sols2(3,LL)*cos(angle_per)
+						end if
+						IF (ILOCAL_RECON3(I)%PERIODICFLAG(LL,IQ+1).EQ.1) THEN
+							tempxx=sols2(2,LL)
+							sols2(2,LL)=tempxx*cos(-angle_per)-sols2(3,LL)*sin(-angle_per)
+							sols2(3,LL)=tempxx*sin(-angle_per)+sols2(3,LL)*cos(-angle_per)
+						END IF
+					END IF
+	
+					MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
+				END DO
+			else
+				DO IQ=1,numneighbours2-1
+					SOLS2(1:nof_variables,ll)=U_C(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1))%VAL(1,1:nof_variables)
+					IF (WENWRT.EQ.3)THEN
+						LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
+						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+						SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
+					END IF
+					MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
+				END DO
+			END IF
+		end do
+	 	DO LL=1,IELEM(N,I)%ADMIS;
+			if ((ees.ne.5).or.(ll.eq.1))then
+				! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
+				!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
+				!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables,ll),&
+				!          imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables,ll),IELEM(N,I)%IDEGFREE)
+				SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables,ll)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables,ll))
+			ELSE
+				! CALL DGEMM('N','N',IDEGFREE2,nof_variables,numneighbours2-1,&
+				!          ALPHA,ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),&
+				!          IDEGFREE2,MATRIX_1(1:numneighbours2-1,1:nof_variables,ll),&
+				! 		   numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
+				SOL_M(1:IDEGFREE2,1:nof_variables,ll)=MATMUL(ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),MATRIX_1(1:numneighbours2-1,1:nof_variables,ll))
+			END IF
+		end do
+	
+		DO LL=1,IELEM(N,I)%ADMIS;
+		   	if ((ees.ne.5).or.(ll.eq.1))then
+		  		ILOCAL_rECON5(ICONSIDERED)%GRADIENTS(LL,1:NUMBER_OF_DOG,1:nof_variables)=SOL_M(1:NUMBER_OF_DOG,1:nof_variables,ll)
+		  	ELSE
+		  		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSC(LL,1:IDEGFREE2,1:nof_variables)=SOL_M(1:IDEGFREE2,1:nof_variables,ll)
+		  	END IF
+		end do
+	
+	else
+	
+		DO LL=1,IELEM(N,I)%ADMIS;
+			if ((ees.ne.5).or.(ll.eq.1))then
+				DO IQ=1,imax
+	
+					IF (ILOCAL_RECON3(I)%IHEXB(LL,IQ+1).EQ.N)THEN
+						SOLS2(1:nof_variables,ll)=U_C(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:nof_variables)
+					else
+						SOLS2(1:nof_variables,ll)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1),1:nof_variables)
+					end if
+	
+					IF (WENWRT.EQ.3)THEN
+						LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
+						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+						SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
+					END IF
+					IF(PER_ROT.EQ.1)THEN
+						IF (ILOCAL_RECON3(I)%PERIODICFLAG(LL,IQ+1).EQ.1) THEN
+							!  write(2900+n,*),IELEM(N,I)%XXC,IELEM(N,I)%YYC,IELEM(N,I)%ZZC
+							if (IELEM(N,I)%XXC.gt.0.0d0) then
+								tempxx=sols2(2,LL)
+								sols2(2,LL)=sols2(3,LL)
+								sols2(3,LL)=-TEMPXX
+							end if
+							if (IELEM(N,I)%XXC.lt.0.0d0) then
+								tempxx=sols2(2,LL)
+								sols2(2,LL)=-sols2(3,LL)
+								sols2(3,LL)=TEMPXX
+							end if
+						END IF
+					END IF
+	
+					MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
+				END DO
+			ELSE
+				DO IQ=1,numneighbours2-1
+					IF (ILOCAL_RECON3(I)%IHEXBC(LL,IQ+1).EQ.N)THEN
+						SOLS2(1:nof_variables,ll)=U_C(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1))%VAL(1,1:nof_variables)
+					else
+						SOLS2(1:nof_variables,ll)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXNC(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXLC(LL,IQ+1),1:nof_variables)
+					end if
+					IF (WENWRT.EQ.3)THEN
+						LEFTV(1:NOF_VARIABLES)=SOLS2(1:nof_variables,LL)
+						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+						SOLS2(1:NOF_VARIABLES,LL)=LEFTV(1:NOF_VARIABLES)
+					END IF
+
+					MATRIX_1(IQ,1:nof_variables,ll)=(SOLS2(1:nof_variables,ll)-SOLS1(1:nof_variables))
+				END DO
+			END IF
+
+		end do
+	
+		DO LL=1,IELEM(N,I)%ADMIS;
+			if ((ees.ne.5).or.(ll.eq.1))then
+				! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
+				!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
+				!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables,ll),&
+				!          imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables,ll),IELEM(N,I)%IDEGFREE)
+				SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables,ll)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables,ll))
+			ELSE
+				! CALL DGEMM('N','N',IDEGFREE2,nof_variables,numneighbours2-1,&
+				!          ALPHA,ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),&
+				!          IDEGFREE2,MATRIX_1(1:numneighbours2-1,1:nof_variables,ll),&
+				!          numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:nof_variables,ll),IDEGFREE2)
+	
+				SOL_M(1:IDEGFREE2,1:nof_variables,ll)=MATMUL(ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),MATRIX_1(1:numneighbours2-1,1:nof_variables,ll))
+			END IF
+		end do
+
+		DO LL=1,IELEM(N,I)%ADMIS;
+			if ((ees.ne.5).or.(ll.eq.1))then
+				ILOCAL_rECON5(ICONSIDERED)%GRADIENTS(LL,1:NUMBER_OF_DOG,1:nof_variables)=SOL_M(1:NUMBER_OF_DOG,1:nof_variables,ll)
+			ELSE
+				ILOCAL_rECON5(ICONSIDERED)%GRADIENTSC(LL,1:IDEGFREE2,1:nof_variables)=SOL_M(1:IDEGFREE2,1:nof_variables,ll)
+			END IF
+		end do
+
+	END IF
+
+	DEALLOCATE(MATRIX_1,MATRIX_2)
+	DEALLOCATE(SOL_M)
+	
+END SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ
+	
+	
+	
 
 
-
-!             CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
-!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables),&
-! imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
-
-
-		SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables))
-
-
-		DO VAR2=2,4
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
-		END DO
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
-
-		ELSE
-
-		MATRIX_1=ZERO;MATRIX_2=ZERO
-		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-
-	       SOLS1(2:4)=LEFTV(2:4)
-	       SOLS1(1)=LEFTV(5)/(LEFTV(1)*R_gas)
-
-               DO IQ=1,imax
-		  IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-		  LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-
-		  else
-		  LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
-		  end if
-		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:4)=LEFTV(2:4)
-	       SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
-  	        MATRIX_1(iq,1:nof_Variables)=((SOLS2(1:nof_Variables)-SOLS1(1:nof_Variables)))
-		END DO
-
-
-
-!          CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
-!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables),&
-! imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
-
-			SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables))
-
-
-		DO VAR2=2,4
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
-		END DO
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
-
-
-		END IF
-
-
-		else
-
-		    ll=1
-
-
+	
+SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
+	!> @brief
+	!> This subroutine computes the gradients of the primitve variables of each interior cell using the least-squares
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(nof_variables)::SOLS1,SOLS2
+	REAL,allocatable,DIMENSION(:,:)::MATRIX_1
+	REAL,allocatable,DIMENSION(:,:)::MATRIX_2
+	REAL,allocatable,DIMENSION(:,:)::SOL_M
+	INTEGER::I,VAR2,iq,lq,ll,imax
+	real::MP_PINFl,gammal
+	real,dimension(1:nof_Variables)::leftv
+	
+	allocate(MATRIX_1(NUMBER_OF_NEI-1,nof_variables))
+	allocate(MATRIX_2(NOF_VARIABLES,NUMBER_OF_DOG))		
+	allocate(SOL_M(NUMBER_OF_DOG,NOF_VARIABLES))	
+	
+	imax=NUMBER_OF_NEI-1
+	
+	I=ICONSIDERED
+	SOLS1=ZERO;
+	SOLS2=ZERO
+	
+	if (dimensiona.eq.3)then
+		ll=1
+	
 		if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
-		MATRIX_1=ZERO;MATRIX_2=ZERO
-		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-
-	       SOLS1(2:3)=LEFTV(2:3)
-	       SOLS1(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-
-               DO IQ=1,imax
-                LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:3)=LEFTV(2:3)
-	       SOLS2(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-  	        MATRIX_1(iq,1:3)=((SOLS2(1:3)-SOLS1(1:3)))
-
-		END DO
-
-
-
-!             CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
-!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables),&
-! imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
-
-
+			MATRIX_1=ZERO;MATRIX_2=ZERO
+			LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
+			CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+	
+			SOLS1(2:4)=LEFTV(2:4)
+		   	SOLS1(1)=LEFTV(5)/(LEFTV(1)*R_gas)
+	
+			DO IQ=1,imax
+				LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+				CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+			   	SOLS2(2:4)=LEFTV(2:4)
+			   	SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
+				MATRIX_1(iq,1:nof_Variables)=((SOLS2(1:nof_Variables)-SOLS1(1:nof_Variables)))
+			END DO
+	
+			! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
+			!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
+			!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables),&
+			! 		   imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
+			
 			SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables))
-
-
-		DO VAR2=2,3
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
-		END DO
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
-
+	
+			DO VAR2=2,4
+				ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
+			END DO
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
+	
 		ELSE
-
-		MATRIX_1=ZERO;MATRIX_2=ZERO
-		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-
-	       SOLS1(2:3)=LEFTV(2:3)
-	       SOLS1(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-
-               DO IQ=1,imax
-		  IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-		  LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-
-		  else
-		  LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
-		  end if
-		  CALL cons2prim(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:3)=LEFTV(2:3)
-	       SOLS2(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-  	        MATRIX_1(iq,1:3)=((SOLS2(1:3)-SOLS1(1:3)))
-		END DO
-
-
-!             CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
-!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables),&
-! imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
-
-		SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables))
-
-
-		DO VAR2=2,3
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
-		END DO
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
-
-
+	
+			MATRIX_1=ZERO;MATRIX_2=ZERO
+			LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
+			CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+	
+			SOLS1(2:4)=LEFTV(2:4)
+			SOLS1(1)=LEFTV(5)/(LEFTV(1)*R_gas)
+	
+			DO IQ=1,imax
+			  	IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
+			  		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+			  	else
+			  		LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
+			  	end if
+			  	CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+			 	SOLS2(2:4)=LEFTV(2:4)
+			   	SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
+				MATRIX_1(iq,1:nof_Variables)=((SOLS2(1:nof_Variables)-SOLS1(1:nof_Variables)))
+			END DO
+	
+			! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
+			!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
+			!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables),&
+			!          imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
+	
+			SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables))
+	
+			DO VAR2=2,4
+				ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
+			END DO
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
+	
 		END IF
+	
+	else
+	
+		ll=1
+	
+		if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+			MATRIX_1=ZERO;MATRIX_2=ZERO
+			LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
+			CALL cons2prim(N,leftv,MP_PINFl,gammal)
+	
+			SOLS1(2:3)=LEFTV(2:3)
+			SOLS1(1)=LEFTV(4)/(LEFTV(1)*R_gas)
 
+			DO IQ=1,imax
+				LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+				CALL cons2prim(N,leftv,MP_PINFl,gammal)
+			   	SOLS2(2:3)=LEFTV(2:3)
+			   	SOLS2(1)=LEFTV(4)/(LEFTV(1)*R_gas)
+				MATRIX_1(iq,1:3)=((SOLS2(1:3)-SOLS1(1:3)))
+			END DO
+	
+			! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
+			!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
+			!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables),&
+			! 		   imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
+	
+			SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables))
+	
+			DO VAR2=2,3
+				ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
+			END DO
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
+	
+		ELSE
+	
+			MATRIX_1=ZERO;MATRIX_2=ZERO
+			LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
+			CALL cons2prim(N,leftv,MP_PINFl,gammal)
+	
+			SOLS1(2:3)=LEFTV(2:3)
+			SOLS1(1)=LEFTV(4)/(LEFTV(1)*R_gas)
 
-
-
-		end if
-
-deallocate(MATRIX_1,MATRIX_2)	
-deallocate(SOL_M)	
-
+			DO IQ=1,imax
+			  	IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
+			  		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+			  	else
+			  		LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
+			  	end if
+			  	CALL cons2prim(N,leftv,MP_PINFl,gammal)
+			   	SOLS2(2:3)=LEFTV(2:3)
+			   	SOLS2(1)=LEFTV(4)/(LEFTV(1)*R_gas)
+				MATRIX_1(iq,1:3)=((SOLS2(1:3)-SOLS1(1:3)))
+			END DO
+	
+			! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
+			!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
+			!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables),&
+			! 		   imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
+	
+			SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables))
+	
+			DO VAR2=2,3
+				ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
+			END DO
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
+	
+		END IF
+	
+	end if
+	
+	deallocate(MATRIX_1,MATRIX_2)	
+	deallocate(SOL_M)	
+	
 END SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS
-
-
-
-
-
+	
+	
+	
+	
+	
 SUBROUTINE COMPUTE_GRADIENTS_INNER_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-!> @brief
-!> This subroutine computes the gradients of the turbulence variables of each interior cell using the Green-Gauss algorithm
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(turbulenceequations+passivescalar)::SOLS1,SOLS2
-REAL,DIMENSION(turbulenceequations+passivescalar,nof_Variables)::SOLS_F
-REAL,DIMENSION(dimensiona)::NORMAL_ALL
-REAL::OOV2,angle1,angle2
-INTEGER::I,J,K,L,var2
-real,dimension(1:nof_Variables)::leftv
-
-I=ICONSIDERED
-SOLS_F=zero
-OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
-
-if (dimensiona.eq.3)then
-
-	SOLS1(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)/U_C(I)%VAL(1,1)
-
-DO J=1,IELEM(N,I)%IFCA
+	!> @brief
+	!> This subroutine computes the gradients of the turbulence variables of each interior cell using the Green-Gauss algorithm
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(turbulenceequations+passivescalar)::SOLS1,SOLS2
+	REAL,DIMENSION(turbulenceequations+passivescalar,nof_Variables)::SOLS_F
+	REAL,DIMENSION(dimensiona)::NORMAL_ALL
+	REAL::OOV2,angle1,angle2
+	INTEGER::I,J,K,L,var2
+	real,dimension(1:nof_Variables)::leftv
+	
+	I=ICONSIDERED
+	SOLS_F=zero
+	OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
+	
+	if (dimensiona.eq.3)then
+		SOLS1(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)/U_C(I)%VAL(1,1)
+		DO J=1,IELEM(N,I)%IFCA
 			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
 			ANGLE2=IELEM(N,I)%FACEANGLEY(J)
-				NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
-				NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
-				NORMAL_ALL(3)=(COS(ANGLE2))
+			NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
+			NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
+			NORMAL_ALL(3)=(COS(ANGLE2))
 
 			SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1)
 
 			DO K=1,3
 				SOLS_F(1:turbulenceequations+passivescalar,K)=SOLS_F(1:turbulenceequations+passivescalar,K)+((OO2*(SOLS2(1:turbulenceequations+passivescalar)+SOLS1(1:turbulenceequations+passivescalar)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 			END DO
-END DO
-
-			  DO VAR2=1,turbulenceequations+passivescalar
-			    ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:3,VAR2)=SOLs_f(var2,1:3)
-			    ILOCAL_RECON3(I)%GRADs(4+var2,1:3)=SOLs_f(var2,1:3)
-			 END DO
-
-else
-
-
- SOLS1(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)/U_C(I)%VAL(1,1)
-
-DO J=1,IELEM(N,I)%IFCA
+		END DO
+		DO VAR2=1,turbulenceequations+passivescalar
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:3,VAR2)=SOLs_f(var2,1:3)
+			ILOCAL_RECON3(I)%GRADs(4+var2,1:3)=SOLs_f(var2,1:3)
+		END DO
+	else
+	 	SOLS1(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)/U_C(I)%VAL(1,1)
+		DO J=1,IELEM(N,I)%IFCA
 			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
 			ANGLE2=IELEM(N,I)%FACEANGLEY(J)
-				NORMAL_ALL(1)=angle1
-				NORMAL_ALL(2)=angle2
+			NORMAL_ALL(1)=angle1
+			NORMAL_ALL(2)=angle2
 
 			SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1)
-
-
 			DO K=1,2
-			SOLS_F(1:turbulenceequations+passivescalar,K)=SOLS_F(1:turbulenceequations+passivescalar,K)+((OO2*(SOLS2(1:turbulenceequations+passivescalar)+SOLS1(1:turbulenceequations+passivescalar)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
-
+				SOLS_F(1:turbulenceequations+passivescalar,K)=SOLS_F(1:turbulenceequations+passivescalar,K)+((OO2*(SOLS2(1:turbulenceequations+passivescalar)+SOLS1(1:turbulenceequations+passivescalar)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 			END DO
-END DO
-
-			  DO VAR2=1,turbulenceequations+passivescalar
-			    ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:2,VAR2)=SOLs_f(var2,1:2)
-			    ILOCAL_RECON3(I)%GRADs(3+var2,1:2)=SOLs_f(var2,1:2)
-			 END DO
-
-
-
-
-
-
-
-end if
-
-
-
+		END DO
+		DO VAR2=1,turbulenceequations+passivescalar
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:2,VAR2)=SOLs_f(var2,1:2)
+			ILOCAL_RECON3(I)%GRADs(3+var2,1:2)=SOLs_f(var2,1:2)
+		END DO
+	end if
 
 end subroutine COMPUTE_GRADIENTS_INNER_turb_GGS_VISCOUS
+	
+	
 
-
-
-
+	
+	
 SUBROUTINE COMPUTE_GRADIENTS_TURB_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI) !check_all
-!> @brief
-!> This subroutine computes the gradients of the turbulence variables of each cell using the least-squares
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(TURBULENCEEQUATIONS+PASSIVESCALAR)::SOLS1,SOLS2
-REAL,allocatable,DIMENSION(:,:)::MATRIX_1
-REAL,allocatable,DIMENSION(:,:)::MATRIX_2
-REAL,allocatable,DIMENSION(:,:)::SOL_M
-INTEGER::I,VAR2,ll,iq,il,ih
-integer::imax
-
-
-allocate(MATRIX_1(NUMBER_OF_NEI-1,TURBULENCEEQUATIONS+PASSIVESCALAR))	
-allocate(MATRIX_2(TURBULENCEEQUATIONS+PASSIVESCALAR,NUMBER_OF_DOG))	
-allocate(SOL_M(NUMBER_OF_DOG,TURBULENCEEQUATIONS+PASSIVESCALAR))	
-
-
-
-
-
-
-
-
-
-imax=NUMBER_OF_NEI-1
-I=ICONSIDERED
-SOLS1=ZERO;
-SOLS2=ZERO
-
-
-
-
-
-
-	      SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-	      if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
-
-	      DO LL=1,IELEM(N,I)%ADMIS;
-		MATRIX_1=ZERO;MATRIX_2=ZERO
-		if ((ees.ne.5).or.(ll.eq.1))then
-		DO IQ=1,imax
-		  SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-		  MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=(SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
-		END DO
-		else
-                DO IQ=1,numneighbours2-1
-		  SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXLc(LL,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-		  MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=(SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
-		END DO
-
-
-                end if
-
-             if ((ees.ne.5).or.(ll.eq.1))then
-
-
-
-! c          CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,TURBULENCEEQUATIONS+PASSIVESCALAR,imax,&
-! c          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-! c          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
-! c imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IELEM(N,I)%IDEGFREE)
-
-		SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
-
-
-            else
-
-
-!         CALL DGEMM('N','N',IDEGFREE2,TURBULENCEEQUATIONS+PASSIVESCALAR,numneighbours2-1,&
-!          ALPHA,ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),&
-!          IDEGFREE2,MATRIX_1(1:numneighbours2-1,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
-! numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IDEGFREE2)
-
-			SOL_M(1:IDEGFREE2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=MATMUL(ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),MATRIX_1(1:numneighbours2-1,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
-
-
-            end if
-
-
-                 if ((ees.ne.5).or.(ll.eq.1))then
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTS2(LL,1:NUMBER_OF_DOG,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOL_M(1:NUMBER_OF_DOG,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-		else
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSC2(LL,1:idegfree2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOL_M(1:idegfree2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-
-		end if
-	        end do
-
-	       else
-
-	       DO LL=1,IELEM(N,I)%ADMIS;
-		MATRIX_1=ZERO;MATRIX_2=ZERO
-		 if ((ees.ne.5).or.(ll.eq.1))then
-		DO IQ=1,imax
-
-		  IF (ILOCAL_RECON3(I)%IHEXB(LL,IQ+1).EQ.N)THEN
-		  SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-		  else
-		  SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1),NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
-		  end if
-
-		   MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=(SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
-		END DO
-		else
-		DO IQ=1,numneighbours2-1
-
-		  IF (ILOCAL_RECON3(I)%IHEXBc(LL,IQ+1).EQ.N)THEN
-		  SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXLc(LL,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-		  else
-		  SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXNc(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXLc(LL,IQ+1),NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
-		  end if
-
-		   MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=(SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
-		END DO
-
-
-
-		end if
-
-
-                if ((ees.ne.5).or.(ll.eq.1))then
-
-
-
-
-!          CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,TURBULENCEEQUATIONS+PASSIVESCALAR,imax,&
-!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
-! imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IELEM(N,I)%IDEGFREE)
-
-			SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
-
-
-                else
-
-
-!             CALL DGEMM('N','N',IDEGFREE2,TURBULENCEEQUATIONS+PASSIVESCALAR,numneighbours2-1,&
-!          ALPHA,ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),&
-!          IDEGFREE2,MATRIX_1(1:numneighbours2-1,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
-! numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IDEGFREE2)
-
-
-			SOL_M(1:IDEGFREE2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=MATMUL(ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),MATRIX_1(1:numneighbours2-1,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
-
-
-                end if
-
-
-
-		  if ((ees.ne.5).or.(ll.eq.1))then
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTS2(LL,1:NUMBER_OF_DOG,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOL_M(1:NUMBER_OF_DOG,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-		else
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSC2(LL,1:idegfree2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOL_M(1:idegfree2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-
-		end if
-
-	       end do
-
-
-		END IF
-
-
-
-		deallocate(MATRIX_1)	
-		deallocate(matrix_2)
-		deallocate(SOL_M)	
-
-		
-
-
-
-
-
-
+	!> @brief
+	!> This subroutine computes the gradients of the turbulence variables of each cell using the least-squares
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(TURBULENCEEQUATIONS+PASSIVESCALAR)::SOLS1,SOLS2
+	REAL,allocatable,DIMENSION(:,:)::MATRIX_1
+	REAL,allocatable,DIMENSION(:,:)::MATRIX_2
+	REAL,allocatable,DIMENSION(:,:)::SOL_M
+	INTEGER::I,VAR2,ll,iq,il,ih
+	integer::imax
+	
+	allocate(MATRIX_1(NUMBER_OF_NEI-1,TURBULENCEEQUATIONS+PASSIVESCALAR))	
+	allocate(MATRIX_2(TURBULENCEEQUATIONS+PASSIVESCALAR,NUMBER_OF_DOG))	
+	allocate(SOL_M(NUMBER_OF_DOG,TURBULENCEEQUATIONS+PASSIVESCALAR))	
+	
+	imax=NUMBER_OF_NEI-1
+	I=ICONSIDERED
+	SOLS1=ZERO;
+	SOLS2=ZERO
+	SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+
+	if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+		DO LL=1,IELEM(N,I)%ADMIS;
+			MATRIX_1=ZERO;MATRIX_2=ZERO
+			if ((ees.ne.5).or.(ll.eq.1))then
+				DO IQ=1,imax
+			  		SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			  		MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=(SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
+				END DO
+			else
+				DO IQ=1,numneighbours2-1
+			  		SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXLc(LL,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			 		MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=(SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
+				END DO
+			end if
+	
+			if ((ees.ne.5).or.(ll.eq.1))then
+				! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,TURBULENCEEQUATIONS+PASSIVESCALAR,imax,&
+				!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
+				!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
+				!          imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IELEM(N,I)%IDEGFREE)
+				SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
+			else
+				! CALL DGEMM('N','N',IDEGFREE2,TURBULENCEEQUATIONS+PASSIVESCALAR,numneighbours2-1,&
+				!          ALPHA,ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),&
+				!          IDEGFREE2,MATRIX_1(1:numneighbours2-1,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
+				!          numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IDEGFREE2)
+				SOL_M(1:IDEGFREE2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=MATMUL(ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),MATRIX_1(1:numneighbours2-1,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
+			end if
+
+			if ((ees.ne.5).or.(ll.eq.1))then
+				ILOCAL_rECON5(ICONSIDERED)%GRADIENTS2(LL,1:NUMBER_OF_DOG,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOL_M(1:NUMBER_OF_DOG,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			else
+				ILOCAL_rECON5(ICONSIDERED)%GRADIENTSC2(LL,1:idegfree2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOL_M(1:idegfree2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			end if
+		end do
+	else
+		DO LL=1,IELEM(N,I)%ADMIS;
+			MATRIX_1=ZERO;MATRIX_2=ZERO
+			if ((ees.ne.5).or.(ll.eq.1))then
+				DO IQ=1,imax
+			  		IF (ILOCAL_RECON3(I)%IHEXB(LL,IQ+1).EQ.N)THEN
+			  			SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			  		else
+			  			SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(LL,IQ+1),NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+			  		end if
+			   		MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=(SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
+				END DO
+			else
+				DO IQ=1,numneighbours2-1
+			  		IF (ILOCAL_RECON3(I)%IHEXBc(LL,IQ+1).EQ.N)THEN
+			  			SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXLc(LL,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			  		else
+			  			SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXNc(LL,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXLc(LL,IQ+1),NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+			  		end if
+			   		MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=(SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
+				END DO
+			end if
+
+			if ((ees.ne.5).or.(ll.eq.1))then
+				! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,TURBULENCEEQUATIONS+PASSIVESCALAR,imax,&
+				!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
+				!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
+				!          imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IELEM(N,I)%IDEGFREE)
+				SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
+			else
+				! CALL DGEMM('N','N',IDEGFREE2,TURBULENCEEQUATIONS+PASSIVESCALAR,numneighbours2-1,&
+				!          ALPHA,ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),&
+				!          IDEGFREE2,MATRIX_1(1:numneighbours2-1,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
+				!          numneighbours2-1,BETA,SOL_M(1:IDEGFREE2,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IDEGFREE2)
+				SOL_M(1:IDEGFREE2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=MATMUL(ILOCAL_RECON3(I)%invmat_stenciltC(1:IDEGFREE2,1:numneighbours2-1,LL),MATRIX_1(1:numneighbours2-1,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
+			end if
+	
+			if ((ees.ne.5).or.(ll.eq.1))then
+				ILOCAL_rECON5(ICONSIDERED)%GRADIENTS2(LL,1:NUMBER_OF_DOG,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOL_M(1:NUMBER_OF_DOG,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			else
+				ILOCAL_rECON5(ICONSIDERED)%GRADIENTSC2(LL,1:idegfree2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=SOL_M(1:idegfree2,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+			end if
+	
+		end do
+	END IF
+	
+	deallocate(MATRIX_1)	
+	deallocate(matrix_2)
+	deallocate(SOL_M)	
+	
 END SUBROUTINE COMPUTE_GRADIENTS_TURB_LSQ
-
-
+	
+	
 
 
 
 SUBROUTINE COMPUTE_GRADIENTS_TURB_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-!> @brief
-!> This subroutine computes the gradients of the turbulence variables of each interior cell using the least-squares
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(TURBULENCEEQUATIONS+PASSIVESCALAR)::SOLS1,SOLS2
-REAL,allocatable,DIMENSION(:,:)::MATRIX_1
-REAL,allocatable,DIMENSION(:,:)::MATRIX_2
-REAL,allocatable,DIMENSION(:,:)::SOL_M
-INTEGER::I,VAR2,iq,lq,ll,imax,ideg
+	!> @brief
+	!> This subroutine computes the gradients of the turbulence variables of each interior cell using the least-squares
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(TURBULENCEEQUATIONS+PASSIVESCALAR)::SOLS1,SOLS2
+	REAL,allocatable,DIMENSION(:,:)::MATRIX_1
+	REAL,allocatable,DIMENSION(:,:)::MATRIX_2
+	REAL,allocatable,DIMENSION(:,:)::SOL_M
+	INTEGER::I,VAR2,iq,lq,ll,imax,ideg
+	
+	allocate(MATRIX_1(NUMBER_OF_NEI-1,TURBULENCEEQUATIONS+PASSIVESCALAR))	
+	allocate(MATRIX_2(TURBULENCEEQUATIONS+PASSIVESCALAR,NUMBER_OF_DOG))	
+	allocate(SOL_M(NUMBER_OF_DOG,TURBULENCEEQUATIONS+PASSIVESCALAR))	
+	
+	IMAX=NUMBER_OF_NEI-1
+	
+	I=ICONSIDERED
+	SOLS1=ZERO;
+	SOLS2=ZERO
+	ideg=ielem(n,i)%idegfree
+	ll=1
 
-allocate(MATRIX_1(NUMBER_OF_NEI-1,TURBULENCEEQUATIONS+PASSIVESCALAR))	
-allocate(MATRIX_2(TURBULENCEEQUATIONS+PASSIVESCALAR,NUMBER_OF_DOG))	
-allocate(SOL_M(NUMBER_OF_DOG,TURBULENCEEQUATIONS+PASSIVESCALAR))	
+	if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
 
-
-
-
-
-
-IMAX=NUMBER_OF_NEI-1
-
-I=ICONSIDERED
-SOLS1=ZERO;
-SOLS2=ZERO
-ideg=ielem(n,i)%idegfree
-		 ll=1
-
-
-
-
-
-
-
-		if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
 		MATRIX_1=ZERO;MATRIX_2=ZERO
 		SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)/&
 		U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1)
-
-
-
-
-               DO IQ=1,imax
-                SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)/&
-                U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1)
-
-  	        MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=((SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)))
+	
+		DO IQ=1,imax
+			SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)/&
+			U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1)
+			MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=((SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)))
 		END DO
-
-
-
-
-!         CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,TURBULENCEEQUATIONS+PASSIVESCALAR,imax,&
-!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
-! imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IELEM(N,I)%IDEGFREE)
-
-
-
+	
+		! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,TURBULENCEEQUATIONS+PASSIVESCALAR,imax,&
+		!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
+		!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
+		!          imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IELEM(N,I)%IDEGFREE)
 		SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
-
-
-
+	
 		DO VAR2=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:NUMBER_OF_DOG,VAR2)=SOL_M(1:NUMBER_OF_DOG,VAR2)
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:NUMBER_OF_DOG,VAR2)=SOL_M(1:NUMBER_OF_DOG,VAR2)
 		END DO
-
-
-		ELSE
-
+	
+	ELSE
+	
 		MATRIX_1=ZERO;MATRIX_2=ZERO
 		SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)&
-		/U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1)
-
-
-               DO IQ=1,imax
-		  IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-		  SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)&
-		/U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1)
-
-		  else
-		  SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
-		  IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1)
-		  end if
-
-  	        MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=((SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)))
+			/U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1)
+	
+		DO IQ=1,imax
+			IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
+			  SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)&
+					/U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1)
+			else
+			  	SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
+			  		IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1)
+			end if
+	
+			MATRIX_1(iq,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=((SOLS2(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-SOLS1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)))
 		END DO
 
-
-
-
-!           CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,TURBULENCEEQUATIONS+PASSIVESCALAR,imax,&
-!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
-! imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IELEM(N,I)%IDEGFREE)
-
-
-			SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
-
-
-
-
+		! CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,TURBULENCEEQUATIONS+PASSIVESCALAR,imax,&
+		!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
+		!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR),&
+		!          imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR),IELEM(N,I)%IDEGFREE)
+	
+		SOL_M(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
+	
 		DO VAR2=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTurb(1,1:NUMBER_OF_DOG,VAR2)=SOL_M(1:NUMBER_OF_DOG,VAR2)
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTurb(1,1:NUMBER_OF_DOG,VAR2)=SOL_M(1:NUMBER_OF_DOG,VAR2)
 		END DO
-
-
-		END IF
-
-deallocate(MATRIX_1,MATRIX_2)	
-deallocate(SOL_M)	
-
-
-
-
-
+	
+	END IF
+	
+	deallocate(MATRIX_1,MATRIX_2)	
+	deallocate(SOL_M)	
+	
 END SUBROUTINE COMPUTE_GRADIENTS_TURB_LSQ_VISCOUS
 
 
 
 
-
+	
 SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-!> @brief
-!> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2,dudl,aver1
-REAL,DIMENSION(1:nof_variables,dimensiona)::SOLS_F
-REAL,DIMENSION(3)::NORMAL_ALL
-REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2
-INTEGER::I,J,K,L
-real,dimension(1:nof_Variables)::leftv
-
-
-I=ICONSIDERED
-SOLS_F=zero
-OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
-
-
-if (dimensiona.eq.3)then
-
-
-	    leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-	    call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(5)=leftv(5)/(leftv(1)*R_gas)
-
-DO J=1,IELEM(N,I)%IFCA
+	!> @brief
+	!> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2,dudl,aver1
+	REAL,DIMENSION(1:nof_variables,dimensiona)::SOLS_F
+	REAL,DIMENSION(3)::NORMAL_ALL
+	REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2
+	INTEGER::I,J,K,L
+	real,dimension(1:nof_Variables)::leftv
+	
+	I=ICONSIDERED
+	SOLS_F=zero
+	OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
+	
+	if (dimensiona.eq.3)then
+	
+		leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+		call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		SOLS1(1:nof_variables)=leftv(1:nof_variables)
+		sols1(5)=leftv(5)/(leftv(1)*R_gas)
+	
+		DO J=1,IELEM(N,I)%IFCA
 			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
 			ANGLE2=IELEM(N,I)%FACEANGLEY(J)
-				NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
-				NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
-				NORMAL_ALL(3)=(COS(ANGLE2))
+			NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
+			NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
+			NORMAL_ALL(3)=(COS(ANGLE2))
 
 			leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
 			call CONS2PRIM(N,leftv,MP_PINFl,gammal)
 			SOLS2(1:nof_variables)=leftv(1:nof_variables)
 			sols2(5)=leftv(5)/(leftv(1)*R_gas)
- 			DO K=1,3
- 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
- 			END DO
-END DO
-
 			DO K=1,3
+				SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+			END DO
+		END DO
+	
+		DO K=1,3
 			ILOCAL_RECON3(I)%GRADs(1:3,k)=sOLS_F(2:4,K)
 			ILOCAL_RECON3(I)%GRADs(4,k)=sOLS_F(5,K)
-			END DO
-
-eLSE
-
-				    leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-	    call cons2prim(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(4)=leftv(4)/(leftv(1)*R_gas)
-
-DO J=1,IELEM(N,I)%IFCA
+		END DO
+	
+	eLSE
+	
+		leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+		call cons2prim(N,leftv,MP_PINFl,gammal)
+		SOLS1(1:nof_variables)=leftv(1:nof_variables)
+		sols1(4)=leftv(4)/(leftv(1)*R_gas)
+	
+		DO J=1,IELEM(N,I)%IFCA
 			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
 			ANGLE2=IELEM(N,I)%FACEANGLEY(J)
-				NORMAL_ALL(1)=angle1
-				NORMAL_ALL(2)=ANGLE2
+			NORMAL_ALL(1)=angle1
+			NORMAL_ALL(2)=ANGLE2
 
 			leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
 			call cons2prim(N,leftv,MP_PINFl,gammal)
 			SOLS2(1:nof_variables)=leftv(1:nof_variables)
 			sols2(4)=leftv(4)/(leftv(1)*R_gas)
+				
 			DO K=1,2
-			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
-
+				SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+	
 			END DO
-END DO
-
-			DO K=1,2
-			ILOCAL_RECON3(I)%GRADs(1:2,k)=sOLS_F(2:3,K)
-			ILOCAL_RECON3(I)%GRADs(3,k)=sOLS_F(4,K)
-			END DO
-
-
-
-
-
-end if
-
+		END DO
+	
+		DO K=1,2
+				ILOCAL_RECON3(I)%GRADs(1:2,k)=sOLS_F(2:3,K)
+				ILOCAL_RECON3(I)%GRADs(3,k)=sOLS_F(4,K)
+		END DO
+	
+	end if
+	
 end subroutine COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS
+	
 
-
-
+	
 
 
 SUBROUTINE COMPUTE_GRADIENTS_wall_mean_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check all
-!> @brief
-!> This subroutine computes the gradients of the primitive variables of each non-interior cell using the least-squares
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(nof_variables-1)::SOLS1,SOLS2
-REAL,allocatable,DIMENSION(:,:)::MATRIX_1
-REAL,allocatable,DIMENSION(:,:)::MATRIX_2
-REAL,allocatable,DIMENSION(:,:)::SOL_M
-REAL,DIMENSION(1:nof_variables)::MATRIX_3
-INTEGER::I,VAR2,ii,k0,g0,ttk,ivvm,iq,lq
-real::attt
-integer::ll,imax
-real::MP_PINFl,gammal
-REAL,DIMENSION(1:NOF_VARIABLES)::leftv
-
-allocate(MATRIX_1(nof_variables,NUMBER_OF_NEI-1))
-allocate(MATRIX_2(NOF_VARIABLES,NUMBER_OF_DOG))
-allocate(SOL_M(NUMBER_OF_DOG,NOF_VARIABLES))	
-
-IMAX=NUMBER_OF_NEI-1
-
-IF (dimensiona.EQ.3)THEN
-
-
-ll=1
-I=ICONSIDERED
-SOLS1=ZERO;
-SOLS2=ZERO
-
-	    ll=1
-	    K0=ILOCAL_RECON3(I)%K0
-	    G0=ILOCAL_RECON3(I)%G0
-
-	     MATRIX_1=ZERO;MATRIX_2=ZERO;sol_m=zero;
+	!> @brief
+	!> This subroutine computes the gradients of the primitive variables of each non-interior cell using the least-squares
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(nof_variables-1)::SOLS1,SOLS2
+	REAL,allocatable,DIMENSION(:,:)::MATRIX_1
+	REAL,allocatable,DIMENSION(:,:)::MATRIX_2
+	REAL,allocatable,DIMENSION(:,:)::SOL_M
+	REAL,DIMENSION(1:nof_variables)::MATRIX_3
+	INTEGER::I,VAR2,ii,k0,g0,ttk,ivvm,iq,lq
+	real::attt
+	integer::ll,imax
+	real::MP_PINFl,gammal
+	REAL,DIMENSION(1:NOF_VARIABLES)::leftv
+	
+	allocate(MATRIX_1(nof_variables,NUMBER_OF_NEI-1))
+	allocate(MATRIX_2(NOF_VARIABLES,NUMBER_OF_DOG))
+	allocate(SOL_M(NUMBER_OF_DOG,NOF_VARIABLES))	
+	
+	IMAX=NUMBER_OF_NEI-1
+	
+	IF (dimensiona.EQ.3)THEN
+	
+		ll=1
+		I=ICONSIDERED
+		SOLS1=ZERO;
+		SOLS2=ZERO
+	
+		ll=1
+		K0=ILOCAL_RECON3(I)%K0
+		G0=ILOCAL_RECON3(I)%G0
+	
+	 	MATRIX_1=ZERO;MATRIX_2=ZERO;sol_m=zero;
 		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
 		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-
-	       SOLS1(2:4)=LEFTV(2:4)
-	       SOLS1(1)=LEFTV(5)/(leftv(1)*R_gas)
-
-	      DO IQ=1,imax
-	      if (ilocal_Recon3(i)%local.eq.1)then
-	       LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-	      else
-		IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-	    else
-		LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
-	    END IF
-	      end if
-
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:4)=LEFTV(2:4)
-	       SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
-  	        MATRIX_1(1:nof_Variables-1,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:nof_Variables-1)-SOLS1(1:nof_Variables-1)))
-
-  	        MATRIX_1(2:4,IQ)=MATRIX_1(2:4,IQ)+((SOLS1(2:4)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
-
-  	          if (thermal.eq.1)then
-  	        MATRIX_1(1,IQ)=MATRIX_1(1,IQ)+((SOLs1(1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))-(((wall_temp)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))
-  	        end if
-
+	
+		SOLS1(2:4)=LEFTV(2:4)
+	    SOLS1(1)=LEFTV(5)/(leftv(1)*R_gas)
+	
+		DO IQ=1,imax
+			if (ilocal_Recon3(i)%local.eq.1)then
+			   	LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+			else
+				IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
+					LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+				else
+					LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
+				END IF
+			end if
+	
+			CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+			SOLS2(2:4)=LEFTV(2:4)
+			SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
+			MATRIX_1(1:nof_Variables-1,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:nof_Variables-1)-SOLS1(1:nof_Variables-1)))
+			MATRIX_1(2:4,IQ)=MATRIX_1(2:4,IQ)+((SOLS1(2:4)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
+	
+			if (thermal.eq.1)then
+				MATRIX_1(1,IQ)=MATRIX_1(1,IQ)+((SOLs1(1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))-(((wall_temp)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))
+			end if
+	
 		END DO
 		matrix_3(1:nof_Variables-1)=-sols1(1:nof_Variables-1)
 		matrix_3(1)=zero
 
 		DO VAR2=1,nof_variables-1
-		  MATRIX_2=ZERO
-		  IF (VAR2.gt.1)THEN
-		  DO IQ=1,imax
+			MATRIX_2=ZERO
+			IF (VAR2.gt.1)THEN
+				DO IQ=1,imax
+				  	do lq=1,NUMBER_OF_DOG-1
+				  		MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%VELLSQ(IQ,LQ)
+				  	end do
+			  	END DO
+			ELSE
+			  	DO IQ=1,imax
+				 	do lq=1,NUMBER_OF_DOG-1
+				  		MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%TEMPSQ(IQ,LQ)
+				  	end do
+			  	END DO
+			end if
 
-		      do lq=1,NUMBER_OF_DOG-1
-		      MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%VELLSQ(IQ,LQ)
-		      end do
+			if (var2.eq.1)then
+				SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%TEMPSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
+			else
+				SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
+			end if
+		END DO
 
-		  END DO
-		  ELSE
-		  DO IQ=1,imax
-		     do lq=1,NUMBER_OF_DOG-1
-		      MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%TEMPSQ(IQ,LQ)
-		      end do
-		  END DO
-		  end if
-		if (var2.eq.1)then
-		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%TEMPSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-		else
-		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-
-		end if
-
-	     END DO
 		DO VAR2=2,4
+			ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:IDEGFREE)=-TOLBIG
+			IVVM=0
+			DO TTK=1,NUMBER_OF_DOG
+				IF (TTK.EQ.K0) CYCLE
+				IVVM=IVVM+1
+				ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,TTK)=SOL_M(IVVM,VAR2)
+			END DO
 
-
-		 ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:IDEGFREE)=-TOLBIG
-		    IVVM=0
-		    DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.EQ.K0) CYCLE
-					  IVVM=IVVM+1
-					    ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,TTK)=SOL_M(IVVM,VAR2)
-		  END DO
-		  ATTT=ZERO
-		  ATTT=-SOLS1(VAR2)
-			  DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.NE.K0) &
-				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,TTK)*&
-						    ILOCAL_RECON3(I)%WALLCOEFF(TTK)
-			  END DO
-			    ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFF(K0)
-			    ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,K0)=ATTT
-
+			ATTT=ZERO
+			ATTT=-SOLS1(VAR2)
+			DO TTK=1,NUMBER_OF_DOG
+				IF (TTK.NE.K0) THEN
+					ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,TTK)*ILOCAL_RECON3(I)%WALLCOEFF(TTK)
+				END IF
+			END DO
+			ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFF(K0)
+			ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,K0)=ATTT
 		END DO
-
-
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=-TOLBIG
-		    IVVM=0
-		    DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.EQ.G0) CYCLE
-					  IVVM=IVVM+1
-					    ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)=SOL_M(IVVM,1)
-		    END DO
-		    ATTT=ZERO
-		    if (thermal.eq.1)then
-		    ATTT=WALL_TEMP-SOLS1(1)
-		    END IF
-
-
-			  DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.NE.G0) &
-				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)*&
-						    ILOCAL_RECON3(I)%WALLCOEFG(TTK)
-			  END DO
-			    ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
-			    ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(G0)=ATTT
-
-
-	eLSE	!2D
-
-	I=ICONSIDERED
-	SOLS1=ZERO;
-	SOLS2=ZERO
-
-	ll=1
-	K0=ILOCAL_RECON3(I)%K0
-	G0=ILOCAL_RECON3(I)%G0
-
-	MATRIX_1=ZERO; MATRIX_2=ZERO; sol_m=zero;
 	
-	LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-	CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-
-	SOLS1(2:4)=LEFTV(2:4)
-	SOLS1(1)=LEFTV(5)/LEFTV(1)
-
-	       SOLS1(2:3)=LEFTV(2:3)
-	       SOLS1(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-
-
-
-
-
-	      DO IQ=1,imax
-				if (ilocal_Recon3(i)%local.eq.1)then
-				LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-	    	ELSE
-				LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
-	    	END IF
-	    end if
-
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:3)=LEFTV(2:3)
-	       SOLS2(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-  	        MATRIX_1(1:3,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:3)-SOLS1(1:3)))
-  	        MATRIX_1(2:3,IQ)=MATRIX_1(2:3,IQ)+((SOLs1(2:3)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
-
-  	        if (thermal.eq.1)then
-  	        MATRIX_1(1,IQ)=MATRIX_1(1,IQ)+((SOLs1(1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))-(((wall_temp-sols1(1))*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))
-  	        end if
-
-
+		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=-TOLBIG
+		IVVM=0
+		DO TTK=1,NUMBER_OF_DOG
+			IF (TTK.EQ.G0) CYCLE
+			IVVM=IVVM+1
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)=SOL_M(IVVM,1)
 		END DO
+
+		ATTT=ZERO
+		if (thermal.eq.1)then
+			ATTT=WALL_TEMP-SOLS1(1)
+		END IF
+	
+		DO TTK=1,NUMBER_OF_DOG
+			IF (TTK.NE.G0) THEN
+				ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)*ILOCAL_RECON3(I)%WALLCOEFG(TTK)
+			END IF
+		END DO
+		ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
+		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(G0)=ATTT
+	
+	eLSE	!2D
+	
+		I=ICONSIDERED
+		SOLS1=ZERO;
+		SOLS2=ZERO
+		ll=1
+	
+		k0=ilocal_recon3(i)%k0
+		g0=ilocal_recon3(i)%g0
+	
+		MATRIX_1=ZERO;MATRIX_2=ZERO;sol_m=zero;
+		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
+		CALL cons2prim(N,leftv,MP_PINFl,gammal)
+	
+		SOLS1(2:3)=LEFTV(2:3)
+		SOLS1(1)=LEFTV(4)/(LEFTV(1)*R_gas)
+	
+		DO IQ=1,imax
+			if (ilocal_Recon3(i)%local.eq.1)then
+				LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+			else
+				IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
+					LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+				else
+					LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
+				END IF
+			end if
+	
+			CALL cons2prim(N,leftv,MP_PINFl,gammal)
+			SOLS2(2:3)=LEFTV(2:3)
+			SOLS2(1)=LEFTV(4)/(LEFTV(1)*R_gas)
+			MATRIX_1(1:3,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:3)-SOLS1(1:3)))
+			MATRIX_1(2:3,IQ)=MATRIX_1(2:3,IQ)+((SOLs1(2:3)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
+
+			if (thermal.eq.1)then
+				MATRIX_1(1,IQ)=MATRIX_1(1,IQ)+((SOLs1(1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))-(((wall_temp-sols1(1))*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))
+			end if
+		END DO
+
 		matrix_3(1:3)=-sols1(1:3)
 		matrix_3(1)=zero
-
+	
 		DO VAR2=1,nof_variables-1
-		  MATRIX_2=ZERO
-		  IF (VAR2.gt.1)THEN
-		  DO IQ=1,imax
-
-		      do lq=1,NUMBER_OF_DOG-1
-		      MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(var2,IQ)*ILOCAL_RECON3(I)%VELLSQ(IQ,lq)
-		      end do
-
-		  END DO
-		  ELSE
-		  DO IQ=1,imax
-		      do lq=1,NUMBER_OF_DOG-1
-		      MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(var2,IQ)*ILOCAL_RECON3(I)%tempsq(IQ,lq)
-		      end do
-		  END DO
-		  end if
-		if (var2.eq.1)then
-		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%TEMPSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-		else
-		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-
-		if (thermal.eq.1)then
-			MATRIX_1(1,IQ)=MATRIX_1(1,IQ)+((SOLs1(1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))-((wall_temp*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))
-		end if
-	END DO
-
-	matrix_3(1:nof_Variables-1)=-sols1(1:nof_Variables-1)
-	matrix_3(1)=zero
-
-	DO VAR2=1,nof_variables-1
-		MATRIX_2=ZERO
-		IF (VAR2.gt.1)THEN
-		  	DO IQ=1,imax
-		      	do lq=1,NUMBER_OF_DOG-1
-		      		MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%VELLSQ(IQ,LQ)
-		      	end do
-		  	END DO
-		ELSE
-		  	DO IQ=1,imax
-		     	do lq=1,NUMBER_OF_DOG-1
-		      		MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%TEMPSQ(IQ,LQ)
-		      	end do
-		  	END DO
-		END IF
-		if (var2.eq.1)then
-			SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%TEMPSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-		else
-			SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-		end if
-	END DO
-
-	DO VAR2=2,4
-
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:IDEGFREE)=-TOLBIG
-		IVVM=0
-		DO TTK=1,NUMBER_OF_DOG
-			IF (TTK.EQ.K0) CYCLE
-			IVVM=IVVM+1
-			ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,TTK)=SOL_M(IVVM,VAR2)
-		END DO
-		ATTT=ZERO
-		ATTT=-SOLS1(VAR2)
-		DO TTK=1,NUMBER_OF_DOG
-			IF (TTK.NE.K0) &
-				ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,TTK)*&
-					ILOCAL_RECON3(I)%WALLCOEFF(TTK)
-		END DO
-		ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFF(K0)
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,K0)=ATTT
-
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=-tolbig
-
-		    IVVM=0
-		    DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.EQ.G0) CYCLE
-					  IVVM=IVVM+1
-					    ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)=SOL_M(ivvm,1)
-		    END DO
-		    ATTT=zero
-		    if (thermal.eq.1)then
-		    ATTT=WALL_TEMP-SOLS1(1)
-		    END IF
-			  DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.NE.G0) &
-				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)*&
-						    ILOCAL_RECON3(I)%WALLCOEFG(TTK)
-			  END DO
-			    ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
-			    ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(G0)=ATTT
-
-
-
-	DO TTK=1,NUMBER_OF_DOG
-		IF (TTK.EQ.G0) CYCLE
-		IVVM=IVVM+1
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)=SOL_M(IVVM,1)
-    END DO
-	ATTT=ZERO
-	if (thermal.eq.1)then
-		ATTT=WALL_TEMP-SOLs1(1)
-	END IF
-
-	DO TTK=1,NUMBER_OF_DOG
-		IF (TTK.NE.G0) &
-			ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)*&
-				ILOCAL_RECON3(I)%WALLCOEFG(TTK)
-	END DO
-	ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
-	ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(G0)=ATTT
-
-
-eLSE	!2D
-
-	I=ICONSIDERED
-	SOLS1=ZERO;
-	SOLS2=ZERO
-	ll=1
-
-	k0=ilocal_recon3(i)%k0
-	g0=ilocal_recon3(i)%g0
-
-	MATRIX_1=ZERO;MATRIX_2=ZERO;sol_m=zero;
-	LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-	CALL cons2prim(N,leftv,MP_PINFl,gammal)
-
-	SOLS1(2:3)=LEFTV(2:3)
-	SOLS1(1)=LEFTV(4)/LEFTV(1)
-
-	DO IQ=1,imax
-		if (ilocal_Recon3(i)%local.eq.1)then
-			LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-		else
-			IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-				LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+			MATRIX_2=ZERO
+			IF (VAR2.gt.1)THEN
+			  	DO IQ=1,imax
+				  	do lq=1,NUMBER_OF_DOG-1
+				  		MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(var2,IQ)*ILOCAL_RECON3(I)%VELLSQ(IQ,lq)
+				  	end do
+			  	END DO
 			ELSE
-				LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
-			END IF
-		end if
+			  	DO IQ=1,imax
+				  	do lq=1,NUMBER_OF_DOG-1
+				 		MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(var2,IQ)*ILOCAL_RECON3(I)%tempsq(IQ,lq)
+				  	end do
+			  	END DO
+			end if
+			if (var2.eq.1)then
+				SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%TEMPSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
+			else
+				SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
+			end if
+		END DO
 
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-		SOLS2(2:3)=LEFTV(2:3)
-		SOLS2(1)=LEFTV(4)/LEFTV(1)
-		MATRIX_1(1:3,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:3)-SOLS1(1:3)))
-		MATRIX_1(2:3,IQ)=MATRIX_1(2:3,IQ)+((SOLs1(2:3)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
-
-		if (thermal.eq.1)then
-			MATRIX_1(1,IQ)=MATRIX_1(1,IQ)+((SOLs1(1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))-((wall_temp*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))
-		end if
-
-	END DO
-	matrix_3(1:3)=-sols1(1:3)
-	matrix_3(1)=zero
-
-	DO VAR2=1,nof_variables-1
-		MATRIX_2=ZERO
-		IF (VAR2.gt.1)THEN
-		  	DO IQ=1,imax
-		      	do lq=1,NUMBER_OF_DOG-1
-		      		MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(var2,IQ)*ILOCAL_RECON3(I)%VELLSQ(IQ,lq)
-		      	end do
-		  	END DO
-		ELSE
-		  	DO IQ=1,imax
-		      	do lq=1,NUMBER_OF_DOG-1
-		      		MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(var2,IQ)*ILOCAL_RECON3(I)%tempsq(IQ,lq)
-		      	end do
-		  	END DO
-		END IF
-		if (var2.eq.1)then
-			SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%TEMPSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-		else
-			SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-		end if
-	END DO
-
-	DO VAR2=2,3
-
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,1:IDEGFREE)=-tolbig
+		DO VAR2=2,3
+			ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,1:IDEGFREE)=-tolbig
+			IVVM=0
+			DO TTK=1,NUMBER_OF_DOG
+				IF (TTK.EQ.K0) CYCLE
+				IVVM=IVVM+1
+				ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,TTK)=SOL_M(ivvm,VAR2)
+			END DO
+			ATTT=zero
+			ATTT=-SOLs1(var2)
+			DO TTK=1,NUMBER_OF_DOG
+				IF (TTK.NE.K0) THEN
+					ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,TTK)*ILOCAL_RECON3(I)%WALLCOEFF(TTK)
+				END IF
+			END DO
+			ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFF(K0)
+			ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,K0)=ATTT
+		END DO
+	
+		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=-tolbig
+	
 		IVVM=0
 		DO TTK=1,NUMBER_OF_DOG
-			IF (TTK.EQ.K0) CYCLE
+			IF (TTK.EQ.G0) CYCLE
 			IVVM=IVVM+1
-			ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,TTK)=SOL_M(ivvm,VAR2)
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)=SOL_M(ivvm,1)
 		END DO
 		ATTT=zero
-		ATTT=-SOLs1(var2)
+		if (thermal.eq.1)then
+			ATTT=WALL_TEMP-SOLS1(1)
+		END IF
 		DO TTK=1,NUMBER_OF_DOG
-			IF (TTK.NE.K0) &
-				ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,TTK)*&
-					ILOCAL_RECON3(I)%WALLCOEFF(TTK)
-		END DO
-		ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFF(K0)
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,K0)=ATTT
-
-	END DO
-
-	ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=-tolbig
-
-	IVVM=0
-	DO TTK=1,NUMBER_OF_DOG
-		IF (TTK.EQ.G0) CYCLE
-		IVVM=IVVM+1
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)=SOL_M(ivvm,1)
-	END DO
-	ATTT=zero
-	if (thermal.eq.1)then
-		ATTT=WALL_TEMP-SOLs1(1)
-    END IF
-	DO TTK=1,NUMBER_OF_DOG
-		IF (TTK.NE.G0) &
-			ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)*&
-				ILOCAL_RECON3(I)%WALLCOEFG(TTK)
-	END DO
-	ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
-	ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(G0)=ATTT
-
-END IF
-
-deallocate(matrix_1,matrix_2)
-deallocate(sol_m)
-
-END SUBROUTINE COMPUTE_GRADIENTS_wall_mean_LSQ_VISCOUS
-
-
-
-
-
-SUBROUTINE COMPUTE_GRADIENTS_MIX_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-!> @brief
-!> This subroutine computes the gradients of the turbulnece variables of each non-interior cell using the Green-Gauss algorithm
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(turbulenceequations+passivescalar)::SOLS1,SOLS2
-REAL,DIMENSION(turbulenceequations+passivescalar,3)::SOLS_F
-REAL,DIMENSION(3)::NORMAL_ALL,TEMP_VERT
-REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2,NX,NY,NZ
-INTEGER::I,J,K,L,var2,B_CODE,FACEX,N_NODe,imax
-real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,rightv
-REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
-REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
-REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
-INTEGER::IBFC
-
-
-IF (DIMENSIONA.EQ.3)THEN
-
-	I=ICONSIDERED
-	SOLS_F=zero
-	OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
-
-	SOLS1(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)/U_C(I)%VAL(1,1)
-
-	DO J=1,IELEM(N,I)%IFCA
-		FACEX=J
-
-		ANGLE1=IELEM(N,I)%FACEANGLEX(J)
-		ANGLE2=IELEM(N,I)%FACEANGLEY(J)
-
-		NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
-		NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
-		NORMAL_ALL(3)=(COS(ANGLE2))
-		nx=NORMAL_ALL(1);ny=NORMAL_ALL(2);nz=NORMAL_ALL(3)
-
-		IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
-			IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN MY CPU
-				  	SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/&
-				  		U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1)
-				ELSE
-				  	!NOT PERIODIC ONES IN MY CPU
-
-				  	CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
-
-				   	if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
-						N_NODE=4
-					else
-						N_NODE=3
-					end if
-
-				  	CORDS=CORDINATES3(N,NODES_LIST,N_NODE)
-				  	Pox(1)=CORDS(1);Poy(1)=CORDS(2);poz(1)=CORDS(3)
-
-				  	leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-				  	cturbl(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-				  	B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
-				  	CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
-
-				  	SOLS2(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)/rightv(1)
-
-				END IF
-			ELSE
-				SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/&
-			    U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1)
+			IF (TTK.NE.G0) THEN
+				ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)*ILOCAL_RECON3(I)%WALLCOEFG(TTK)
 			END IF
-		ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+		END DO
+		ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
+		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(G0)=ATTT
+	
+	END IF
 
-			IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-				    IF (FASTEST.EQ.1)THEN
+	deallocate(matrix_1,matrix_2)
+	deallocate(sol_m)
+	
+END SUBROUTINE COMPUTE_GRADIENTS_wall_mean_LSQ_VISCOUS
+	
+	
+	
+	
+	
+SUBROUTINE COMPUTE_GRADIENTS_MIX_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
+	!> @brief
+	!> This subroutine computes the gradients of the turbulnece variables of each non-interior cell using the Green-Gauss algorithm
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(turbulenceequations+passivescalar)::SOLS1,SOLS2
+	REAL,DIMENSION(turbulenceequations+passivescalar,3)::SOLS_F
+	REAL,DIMENSION(3)::NORMAL_ALL,TEMP_VERT
+	REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2,NX,NY,NZ
+	INTEGER::I,J,K,L,var2,B_CODE,FACEX,N_NODe,imax
+	real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,rightv
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+	REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
+	REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
+	INTEGER::IBFC
+	
+	IF (DIMENSIONA.EQ.3)THEN
+	
+		I=ICONSIDERED
+		SOLS_F=zero
+		OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
+	
+		SOLS1(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)/U_C(I)%VAL(1,1)
+	
+		DO J=1,IELEM(N,I)%IFCA
+			FACEX=J
+
+			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
+			ANGLE2=IELEM(N,I)%FACEANGLEY(J)
+			NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
+			NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
+			NORMAL_ALL(3)=(COS(ANGLE2))
+			nx=NORMAL_ALL(1);ny=NORMAL_ALL(2);nz=NORMAL_ALL(3)
+	
+			IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
+				IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
+					if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN MY CPU
+					  	SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/&
+					  	U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1)
+					ELSE	! NOT PERIODIC ONES IN MY CPU
+	
+					  	CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+	
+					   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
+							N_NODE=4
+						else
+							N_NODE=3
+						end if
+	
+					  	CORDS=CORDINATES3(N,NODES_LIST,N_NODE)
+					  	Pox(1)=CORDS(1);Poy(1)=CORDS(2);poz(1)=CORDS(3)
+	
+					  	leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+					  	cturbl(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+					 	B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
+					  	CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+	
+					  	SOLS2(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)/rightv(1)
+	
+					END IF
+				ELSE
+					SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/&
+						U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1)
+				END IF
+			ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+	
+				IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
+					if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+						IF (FASTEST.EQ.1)THEN
+							SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
+								SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
+						ELSE
+							SOLS2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
+								(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
+							IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
+								(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
+						END IF
+					 END IF
+				ELSE
+					IF (FASTEST.EQ.1)THEN
 						SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
 							SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
-				    ELSE
+					ELSE
 						SOLS2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
 							(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
-							IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-							(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
-				    END IF
-				END IF
-			ELSE
-
-				IF (FASTEST.EQ.1)THEN
-					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
-						SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
-				ELSE
-					SOLS2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-						(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
 						IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-						(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
+							(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
+					END IF
 				END IF
-
 			END IF
-		END IF
-
-		DO K=1,3
-			SOLS_F(1:turbulenceequations+passivescalar,K)=SOLS_F(1:turbulenceequations+passivescalar,K)+((OO2*(SOLS2(1:turbulenceequations+passivescalar)+SOLS1(1:turbulenceequations+passivescalar)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+	
+			DO K=1,3
+				SOLS_F(1:turbulenceequations+passivescalar,K)=SOLS_F(1:turbulenceequations+passivescalar,K)+((OO2*(SOLS2(1:turbulenceequations+passivescalar)+SOLS1(1:turbulenceequations+passivescalar)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+			END DO
 		END DO
-	END DO
+	
+		DO VAR2=1,turbulenceequations+passivescalar
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:3,VAR2)=SOLs_f(var2,1:3)
+			ILOCAL_RECON3(I)%GRADs(4+var2,1:3)=SOLs_f(var2,1:3)
+		END DO
+	
+	ELSE	!2D
+	
+		I=ICONSIDERED
+		SOLS_F=zero
+		OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
+		SOLS1(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)/U_C(I)%VAL(1,1)
+	
+		DO J=1,IELEM(N,I)%IFCA
 
-	DO VAR2=1,turbulenceequations+passivescalar
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:3,VAR2)=SOLs_f(var2,1:3)
-	    ILOCAL_RECON3(I)%GRADs(4+var2,1:3)=SOLs_f(var2,1:3)
-	END DO
+			FACEX=J
+		
+			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
+			ANGLE2=IELEM(N,I)%FACEANGLEY(J)
+			NORMAL_ALL(1)=angle1
+			NORMAL_ALL(2)=angle2
+			nx=NORMAL_ALL(1);ny=NORMAL_ALL(2)
+	
+			IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
+				IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
+					if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN MY CPU
+						SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/&
+						U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1)
+					ELSE	! NOT PERIODIC ONES IN MY CPU
 
-eLSE	!2D
+						CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+						CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
+						Pox(1)=CORDS(1);Poy(1)=CORDS(2);
 
-	I=ICONSIDERED
-	SOLS_F=zero
-	OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
+						LEFTV(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 
-	SOLS1(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)/U_C(I)%VAL(1,1)
-
-	DO J=1,IELEM(N,I)%IFCA
-		FACEX=J
-
-		ANGLE1=IELEM(N,I)%FACEANGLEX(J)
-		ANGLE2=IELEM(N,I)%FACEANGLEY(J)
-
-		NORMAL_ALL(1)=angle1
-		NORMAL_ALL(2)=angle2
-		nx=NORMAL_ALL(1);ny=NORMAL_ALL(2)
-
-		IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
-			IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN MY CPU
-				  	SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/&
-				  	U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1)
+						cturbl(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+						B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
+						CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+		
+						SOLS2(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)/RIGHTV(1)
+		
+					END IF
 				ELSE
-				  	!NOT PERIODIC ONES IN MY CPU
-
-				  	CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
-				 	CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
-				  	Pox(1)=CORDS(1);Poy(1)=CORDS(2);
-
-				    LEFTV(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-
-				  	cturbl(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-				  	B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
-				  	CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
-
-				  	SOLS2(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)/RIGHTV(1)
-
-			  	END IF
-			ELSE
-				SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/&
+					SOLS2(1:turbulenceequations+passivescalar)=U_Ct(IELEM(N,I)%INEIGH(J))%VAL(1,1:turbulenceequations+passivescalar)/&
 					U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1)
-
-			END IF
-		ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
-
-			IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+				END IF
+			ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+	
+				IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
+					if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+						IF (FASTEST.EQ.1)THEN
+							SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)&
+								/SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
+						ELSE
+							SOLS2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
+								(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
+							IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
+								(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
+						END IF
+					END IF
+				ELSE
 					IF (FASTEST.EQ.1)THEN
 						SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)&
 							/SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
 					ELSE
 						SOLS2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
 							(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
-							IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-							(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
-				    END IF
-				END IF
-			ELSE
-
-				IF (FASTEST.EQ.1)THEN
-					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)&
-						/SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
-				ELSE
-					SOLS2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-						(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
 						IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-						(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
+							(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
+					END IF
 				END IF
 			END IF
-		END IF
-
-		DO K=1,2
-			SOLS_F(1:turbulenceequations+passivescalar,K)=SOLS_F(1:turbulenceequations+passivescalar,K)+((OO2*(SOLS2(1:turbulenceequations+passivescalar)+SOLS1(1:turbulenceequations+passivescalar)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+	
+			DO K=1,2
+				SOLS_F(1:turbulenceequations+passivescalar,K)=SOLS_F(1:turbulenceequations+passivescalar,K)+((OO2*(SOLS2(1:turbulenceequations+passivescalar)+SOLS1(1:turbulenceequations+passivescalar)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+			END DO
 		END DO
-	END DO
-
-	DO VAR2=1,turbulenceequations+passivescalar
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:2,VAR2)=SOLs_f(var2,1:2)
-		ILOCAL_RECON3(I)%GRADs(3+var2,1:2)=SOLs_f(var2,1:2)
-	END DO
-
-END IF
-
+	
+		DO VAR2=1,turbulenceequations+passivescalar
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:2,VAR2)=SOLs_f(var2,1:2)
+			ILOCAL_RECON3(I)%GRADs(3+var2,1:2)=SOLs_f(var2,1:2)
+		END DO
+	
+	END IF
+	
 end subroutine COMPUTE_GRADIENTS_MIX_turb_GGS_viscous
-
-
-
-
-
+	
+	
+	
+	
+	
 SUBROUTINE COMPUTE_GRADIENTS_wall_turb_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI) !check_all
-!> @brief
-!> This subroutine computes the gradients of the turbulence variables of each non-interior cell using the least-squares
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(1:turbulenceequations+passivescalar)::SOLS1,SOLS2
-REAL,allocatable,DIMENSION(:,:)::MATRIX_1
-REAL,allocatable,DIMENSION(:,:)::MATRIX_2
-REAL,allocatable,DIMENSION(:,:)::SOL_M
-REAL,DIMENSION(1:turbulenceequations+passivescalar)::MATRIX_3
-INTEGER::I,VAR2,ii,k0,g0,ttk,ivvm,iq,lq,imax
-real::attt
-integer::ll
-
-allocate(MATRIX_1(1:turbulenceequations+passivescalar,NUMBER_OF_NEI-1))
-allocate(MATRIX_2(1:turbulenceequations+passivescalar,NUMBER_OF_DOG))	
-allocate(SOL_M(NUMBER_OF_DOG,1:turbulenceequations+passivescalar))	
-
-
-
-
-IMAX=NUMBER_OF_NEI-1
-
-ll=1
-
-I=ICONSIDERED
-SOLS1=ZERO;
-SOLS2=ZERO
-
-K0=ILOCAL_RECON3(I)%K0
-
-MATRIX_1=ZERO
-MATRIX_2=ZERO
-sol_m=zero;
-
-sols1(1:turbulenceequations+passivescalar)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:turbulenceequations+passivescalar)/&
-U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1)
-
-DO IQ=1,imax
-	if (ilocal_Recon3(i)%local.eq.1)then
-	    sols2(1:turbulenceequations+passivescalar)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:turbulenceequations+passivescalar)/&
-	      	U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1)
-	else
-		IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-			sols2(1:turbulenceequations+passivescalar)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:turbulenceequations+passivescalar)/&
-				U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1)
-	    ELSE
-			sols2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),6:5+turbulenceequations+passivescalar)/&
-				IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1)
-	    END IF
-	end if
-
-    MATRIX_1(1:turbulenceequations+passivescalar,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:turbulenceequations+passivescalar)-SOLS1(1:turbulenceequations+passivescalar)))
-  	MATRIX_1(1:turbulenceequations+passivescalar,IQ)=MATRIX_1(1:turbulenceequations+passivescalar,IQ)+((SOLS1(1:turbulenceequations+passivescalar)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
-END DO
-		
-matrix_3(1:turbulenceequations+passivescalar)=-sols1(1:turbulenceequations+passivescalar)
-
-if (turbulencemodel.eq.2)then
-	matrix_3(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
-end if
-
-DO VAR2=1,turbulenceequations+passivescalar
-	MATRIX_2=ZERO
-
+	!> @brief
+	!> This subroutine computes the gradients of the turbulence variables of each non-interior cell using the least-squares
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(1:turbulenceequations+passivescalar)::SOLS1,SOLS2
+	REAL,allocatable,DIMENSION(:,:)::MATRIX_1
+	REAL,allocatable,DIMENSION(:,:)::MATRIX_2
+	REAL,allocatable,DIMENSION(:,:)::SOL_M
+	REAL,DIMENSION(1:turbulenceequations+passivescalar)::MATRIX_3
+	INTEGER::I,VAR2,ii,k0,g0,ttk,ivvm,iq,lq,imax
+	real::attt
+	integer::ll
+	
+	allocate(MATRIX_1(1:turbulenceequations+passivescalar,NUMBER_OF_NEI-1))
+	allocate(MATRIX_2(1:turbulenceequations+passivescalar,NUMBER_OF_DOG))	
+	allocate(SOL_M(NUMBER_OF_DOG,1:turbulenceequations+passivescalar))	
+	
+	IMAX=NUMBER_OF_NEI-1
+	ll=1
+	I=ICONSIDERED
+	SOLS1=ZERO;
+	SOLS2=ZERO
+	
+	K0=ILOCAL_RECON3(I)%K0
+	
+	MATRIX_1=ZERO;MATRIX_2=ZERO;sol_m=zero;
+	
+	sols1(1:turbulenceequations+passivescalar)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:turbulenceequations+passivescalar)/&
+	U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1)
+	
 	DO IQ=1,imax
-
-		do lq=1,NUMBER_OF_DOG-1
-		    MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%VELLSQ(IQ,LQ)
-		end do
+		if (ilocal_Recon3(i)%local.eq.1)then
+			sols2(1:turbulenceequations+passivescalar)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:turbulenceequations+passivescalar)/&
+			U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1)
+		else
+			IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
+				sols2(1:turbulenceequations+passivescalar)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:turbulenceequations+passivescalar)/&
+				U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1)
+			ELSE
+				sols2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),6:5+turbulenceequations+passivescalar)/&
+				IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1)
+			END IF
+		end if
+	
+		MATRIX_1(1:turbulenceequations+passivescalar,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:turbulenceequations+passivescalar)-SOLS1(1:turbulenceequations+passivescalar)))
+		MATRIX_1(1:turbulenceequations+passivescalar,IQ)=MATRIX_1(1:turbulenceequations+passivescalar,IQ)+((SOLS1(1:turbulenceequations+passivescalar)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
 	END DO
 
-	SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-END DO
-
-DO VAR2=1,turbulenceequations+passivescalar
-
-	ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:NUMBER_OF_DOG,VAR2)=-TOLBIG
-	IVVM=0
-	DO TTK=1,NUMBER_OF_DOG
-		IF (TTK.EQ.K0) CYCLE
-		IVVM=IVVM+1
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,TTK,VAR2)=SOL_M(IVVM,VAR2)
+	matrix_3(1:turbulenceequations+passivescalar)=-sols1(1:turbulenceequations+passivescalar)
+	
+	if (turbulencemodel.eq.2)then
+		matrix_3(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
+	end if
+	
+	DO VAR2=1,turbulenceequations+passivescalar
+		MATRIX_2=ZERO
+		DO IQ=1,imax
+			do lq=1,NUMBER_OF_DOG-1
+				MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%VELLSQ(IQ,LQ)
+			end do
+		END DO
+		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
 	END DO
-	ATTT=ZERO
-	ATTT=-SOLS1(VAR2)
-	DO TTK=1,NUMBER_OF_DOG
-		IF (TTK.NE.K0) &
-			ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,TTK,VAR2)*&
-				ILOCAL_RECON3(I)%WALLCOEFF(TTK)
+	
+	DO VAR2=1,turbulenceequations+passivescalar
+	
+		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:NUMBER_OF_DOG,VAR2)=-TOLBIG
+		IVVM=0
+		DO TTK=1,NUMBER_OF_DOG
+			IF (TTK.EQ.K0) CYCLE
+			IVVM=IVVM+1
+			ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,TTK,VAR2)=SOL_M(IVVM,VAR2)
+		END DO
+		ATTT=ZERO
+		ATTT=-SOLS1(VAR2)
+		DO TTK=1,NUMBER_OF_DOG
+			IF (TTK.NE.K0) THEN
+				ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,TTK,VAR2)*ILOCAL_RECON3(I)%WALLCOEFF(TTK)
+			END IF
+		END DO
+		ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFF(K0)
+		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,K0,VAR2)=ATTT
+	
 	END DO
-	ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFF(K0)
-	ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,K0,VAR2)=ATTT
-
-END DO
-
-deallocate(matrix_1,matrix_2)	
-deallocate(sol_m)
-
+	
+	deallocate(matrix_1,matrix_2)	
+	deallocate(sol_m)
+	
 END SUBROUTINE COMPUTE_GRADIENTS_wall_turb_LSQ_VISCOUS
-
+	
 
 
 
 
 SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-!> @brief
-!> This subroutine computes the gradients of the primitive variables of each non-interior cell using the Green-Gauss algorithm
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(nof_variables)::SOLS1,SOLS2,dudl,aver1
-REAL,DIMENSION(nof_variables,3)::SOLS_F
-REAL,DIMENSION(3)::NORMAL_ALL
-REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2,NX,NY,NZ
-INTEGER::I,J,K,L,B_CODE,FACEX,N_NODE,imax
-real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,rightv
-REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
-REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
-REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
-INTEGER::IBFC
-
-IF (DIMENSIONA.EQ.3)THEN
-
-I=ICONSIDERED
-SOLS_F=zero
-OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
-
-
-
-
-	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-	    call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(5)=leftv(5)/(leftv(1)*R_gas)
-
-
-	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-
-
-
-
-DO J=1,IELEM(N,I)%IFCA
-			 FACEX=J
-			 b_code=0
+	!> @brief
+	!> This subroutine computes the gradients of the primitive variables of each non-interior cell using the Green-Gauss algorithm
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(nof_variables)::SOLS1,SOLS2,dudl,aver1
+	REAL,DIMENSION(nof_variables,3)::SOLS_F
+	REAL,DIMENSION(3)::NORMAL_ALL
+	REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2,NX,NY,NZ
+	INTEGER::I,J,K,L,B_CODE,FACEX,N_NODE,imax
+	real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,rightv
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+	REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
+	REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
+	INTEGER::IBFC
+	
+	IF (DIMENSIONA.EQ.3)THEN
+	
+		I=ICONSIDERED
+		SOLS_F=zero
+		OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
+	
+		leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+		call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		SOLS1(1:nof_variables)=leftv(1:nof_variables)
+		sols1(5)=leftv(5)/(leftv(1)*R_gas)
+	
+		leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+	
+		DO J=1,IELEM(N,I)%IFCA
+			FACEX=J
+			b_code=0
 
 			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
 			ANGLE2=IELEM(N,I)%FACEANGLEY(J)
-				NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
-				NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
-				NORMAL_ALL(3)=(COS(ANGLE2))
-				nx=NORMAL_ALL(1);ny=NORMAL_ALL(2);nz=NORMAL_ALL(3)
-
+			NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
+			NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
+			NORMAL_ALL(3)=(COS(ANGLE2))
+			nx=NORMAL_ALL(1);ny=NORMAL_ALL(2);nz=NORMAL_ALL(3)
+	
 			IF (ILOCAL_RECON3(Iconsidered)%MRF.EQ.1)THEN
-			!RETRIEVE ROTATIONAL VELOCITY IN CASE OF ROTATING REFERENCE FRAME TO CALCULATE
-			!THE CORRECT VALUE OF THE BOUNDARY CONDITION
+				!RETRIEVE ROTATIONAL VELOCITY IN CASE OF ROTATING REFERENCE FRAME TO CALCULATE
+				!THE CORRECT VALUE OF THE BOUNDARY CONDITION
 				SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(J,1,1:3)
 				CALL ROTATEF(N,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
 			END	IF
-
-
+	
 			IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
-			    IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				  if  ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN MY CPU
-				  SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
-				  IF(PER_ROT.EQ.1)THEN
-                    Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
-				  END IF
-				  ELSE
-				  !NOT PERIODIC ONES IN MY CPU
-
-				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
-				   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
-                                            N_NODE=4
-                                    else
-                                            N_NODE=3
-                                    end if
-				  CORDS(1:3)=zero
- 				  CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
-
-				  Poy(1)=cords(2)
-				  Pox(1)=cords(1)
-				  poz(1)=cords(3)
-
- 				  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-				  B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
- 				  CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
-
-				  SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
-
-				  END IF
-			    ELSE
-				    SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
-
-
-
-
-			    END IF
+				IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
+					if  ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN MY CPU
+					  	SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
+					  	IF(PER_ROT.EQ.1)THEN
+							Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
+					  	END IF
+					ELSE	! NOT PERIODIC ONES IN MY CPU
+	
+					  	CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+					   	if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
+							N_NODE=4
+						else
+							N_NODE=3
+						end if
+					  	CORDS(1:3)=zero
+					   	CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+		
+						Poy(1)=cords(2)
+						Pox(1)=cords(1)
+						poz(1)=cords(3)
+		
+						leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+						B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
+						CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+		
+						SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
+	
+					END IF
+				ELSE
+					SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
+				END IF
 			ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
-
-			      IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				  if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN OTHER CPU
-				      IF (FASTEST.EQ.1)THEN
-					SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
-				      ELSE
-					SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
-				      END IF
-				      IF(PER_ROT.EQ.1)THEN
-                        Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
-				      END IF
-				  END IF
-			      ELSE
-
-				      IF (FASTEST.EQ.1)THEN
-					SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
-				      ELSE
-					SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
-				      END IF
-
-			     END IF
+				IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
+					if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN OTHER CPU
+						IF (FASTEST.EQ.1)THEN
+							SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
+						ELSE
+							SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
+								(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
+						END IF
+						IF (PER_ROT.EQ.1)THEN
+							Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
+						END IF
+					END IF
+				ELSE
+					IF (FASTEST.EQ.1)THEN
+						SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
+					ELSE
+						SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
+							(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
+					END IF
+				END IF
 			END IF
-
-			  leftv(1:nof_variables)=sols2(1:nof_variables)
+	
+			leftv(1:nof_variables)=sols2(1:nof_variables)
 			call CONS2PRIM(N,leftv,MP_PINFl,gammal)
 			SOLS2(1:nof_variables)=leftv(1:nof_variables)
 			sols2(5)=leftv(5)/(leftv(1)*R_gas)
 			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
-
 				sols2(5)=wall_Temp
-				ELSE
-	
+			ELSE
 				sols2(5)=leftv(5)/(leftv(1)*R_gas)
-				END IF
-
-
-
+			END IF
+	
 			DO K=1,3
-			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
-
+				SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 			END DO
-END DO
+		END DO
 
-
-
-			DO K=1,3
+		DO K=1,3
 			ILOCAL_RECON3(I)%GRADs(1:3,k)=sOLS_F(2:4,K)
 			ILOCAL_RECON3(I)%GRADs(4,k)=sOLS_F(5,K)
-			END DO
-
-
-
+		END DO
+	
 	eLSE
+	
+		I=ICONSIDERED
+		SOLS_F=zero
+		OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
+	
+	
+		leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+		call cons2prim(N,leftv,MP_PINFl,gammal)
+		SOLS1(1:nof_variables)=leftv(1:nof_variables)
+		sols1(4)=leftv(4)/(leftv(1)*R_gas)
+	
+		leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+	
+		DO J=1,IELEM(N,I)%IFCA
 
+			FACEX=J
+			B_CODE=0
+
+			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
+			ANGLE2=IELEM(N,I)%FACEANGLEY(J)
+			NORMAL_ALL(1)=angle1
+			NORMAL_ALL(2)=angle2
+			nx=NORMAL_ALL(1);ny=NORMAL_ALL(2)
+	
+			IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
+				IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
+					if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN MY CPU
+					  	SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
+					ELSE	! NOT PERIODIC ONES IN MY CPU
+	
+					  	CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+					  	CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
+					  	Pox(1)=CORDS(1);Poy(1)=CORDS(2)
+	
+					  	LEFTV(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+					  	B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
+					  	CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
+	
+					  	SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
+					END IF
+				ELSE
+					SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
+				END IF
+			ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+				IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
+					if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+						IF (FASTEST.EQ.1)THEN
+							SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
+						ELSE
+							SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
+								(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
+						END IF
+					END IF
+				ELSE
+					IF (FASTEST.EQ.1)THEN
+						SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
+					ELSE
+						SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
+							(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
+					END IF
+				END IF
+			END IF
+	
+			leftv(1:nof_variables)=sols2(1:nof_variables)
+			call cons2prim(N,leftv,MP_PINFl,gammal)
+			SOLS2(1:nof_variables)=leftv(1:nof_variables)
+	
+			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
+				sols2(4)=wall_Temp
+			ELSE
+				sols2(4)=leftv(4)/(leftv(1)*R_gas)
+			END IF
+	
+			DO K=1,2
+				SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+			END DO
+		END DO
+	
+		DO K=1,2
+			ILOCAL_RECON3(I)%GRADs(1:2,k)=sOLS_F(2:3,K)
+			ILOCAL_RECON3(I)%GRADs(3,k)=sOLS_F(4,K)
+		END DO
+	
+	END IF
+
+end subroutine COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS
+	
+
+
+
+	
+SUBROUTINE COMPUTE_GRADIENTS_CENTER(N,ICONSIDERED)
+	!> @brief
+	!> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED
+	REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2,dudl,aver1
+	REAL::OOV2,titj
+	INTEGER::I,J,K,L,IEX
+	i=iconsidered
+	
+	IF (DIMENSIONA.EQ.3)THEN
+		DO IEX=1,3
+			ILOCAL_RECON3(I)%GRADS(IEX,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,IEX+1,1,1)
+		END DO
+		ILOCAL_RECON3(I)%GRADS(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,1,1)
+	ELSE
+		DO IEX=1,2
+			ILOCAL_RECON3(I)%GRADS(IEX,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,IEX+1,1,1)
+		END DO
+		ILOCAL_RECON3(I)%GRADS(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,1,1)
+	
+	END IF
+	
+END SUBROUTINE COMPUTE_GRADIENTS_CENTER
+	
+	
+
+
+	
+SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
+	!> @brief
+	!> This subroutine computes the gradients of the averaged primitive variables of each non-interior cell using the Green-Gauss algorithm
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2
+	REAL,DIMENSION(1:nof_variables,3)::SOLS_F
+	REAL,DIMENSION(3)::NORMAL_ALL,TEMP_VERT
+	REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2,NX,NY,NZ
+	INTEGER::I,J,K,L,var2,B_CODE,FACEX,N_NODE,IND1
+	real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,rightv
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+	REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
+	REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
+	INTEGER::IBFC
+	
+	if (rungekutta.eq.4)then
+		ind1=7
+	else
+		ind1=5
+	end if
+	
 	I=ICONSIDERED
 	SOLS_F=zero
 	OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
-
-	leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+	
+	leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
 	call CONS2PRIM(N,leftv,MP_PINFl,gammal)
 	SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	sols1(5)=leftv(5)/leftv(1)
-
-	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-	    call cons2prim(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(4)=leftv(4)/(leftv(1)*R_gas)
-
+	sols1(5)=leftv(5)/(leftv(1)*R_gas)
+	
+	leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
+	
 	DO J=1,IELEM(N,I)%IFCA
 		FACEX=J
 		b_code=0
 
 		ANGLE1=IELEM(N,I)%FACEANGLEX(J)
 		ANGLE2=IELEM(N,I)%FACEANGLEY(J)
-
 		NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
 		NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
 		NORMAL_ALL(3)=(COS(ANGLE2))
 		nx=NORMAL_ALL(1);ny=NORMAL_ALL(2);nz=NORMAL_ALL(3)
-
-		IF (ILOCAL_RECON3(Iconsidered)%MRF.EQ.1)THEN
-			! RETRIEVE ROTATIONAL VELOCITY IN CASE OF ROTATING REFERENCE FRAME TO CALCULATE
-			! THE CORRECT VALUE OF THE BOUNDARY CONDITION
-			SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(J,1,1:3)
-			CALL ROTATEF(N,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
-		END	IF
-
-		IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
-			IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				if  ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN MY CPU
-				  	SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
-				  	IF(PER_ROT.EQ.1)THEN
-                    	Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
-				  	END IF
-				else
-				  	!NOT PERIODIC ONES IN MY CPU
-
-				  	CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
-				   	if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
-                        N_NODE=4
-                    else
-                        N_NODE=3
-                    end if
-				  	CORDS(1:3)=zero
- 				  	CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
-
-				  	Poy(1)=cords(2)
-				  	Pox(1)=cords(1)
-				  	Poz(1)=cords(3)
-
- 				  	leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-				  	B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
- 				  	CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
-
-				  	SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
-				end if
-			ELSE
-				SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
-			END IF
-		ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
-
-			IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then	!PERIODIC IN OTHER CPU
-				    IF (FASTEST.EQ.1)THEN
-						SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
-				    ELSE
-					SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-						(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
-				    END IF
-				    IF (PER_ROT.EQ.1)THEN
-                        Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
-				    END IF
-				end if
-			ELSE
-
-			sols2(4)=leftv(4)/(leftv(1)*R_gas)
-			END IF
-		END IF
-
-		leftv(1:nof_variables)=sols2(1:nof_variables)
-		call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		SOLS2(1:nof_variables)=leftv(1:nof_variables)
-		sols2(5)=leftv(5)/leftv(1)
-
-		DO K=1,3
-			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
-		END DO
-	END DO
-
-	DO K=1,3
-		ILOCAL_RECON3(I)%GRADs(1:3,k)=sOLS_F(2:4,K)
-		ILOCAL_RECON3(I)%GRADs(4,k)=sOLS_F(5,K)
-	END DO
-
-ELSE
-
-	I=ICONSIDERED
-	SOLS_F=zero
-	OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
-
-	leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-	call cons2prim(N,leftv,MP_PINFl,gammal)
-	SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	sols1(4)=leftv(4)/leftv(1)
-
-	leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-
-	DO J=1,IELEM(N,I)%IFCA
-		FACEX=J
-
-		B_CODE=0
-
-		ANGLE1=IELEM(N,I)%FACEANGLEX(J)
-		ANGLE2=IELEM(N,I)%FACEANGLEY(J)
-
-		NORMAL_ALL(1)=angle1
-		NORMAL_ALL(2)=angle2
-		nx=NORMAL_ALL(1);ny=NORMAL_ALL(2)
-
-
+	
 		IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
 			IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
 				if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN MY CPU
-				  	SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
+					SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(IND1,1:nof_variables)
 				ELSE
-				   !NOT PERIODIC ONES IN MY CPU
-					CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
-					CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
-					Pox(1)=CORDS(1);Poy(1)=CORDS(2)
+					!NOT PERIODIC ONES IN MY CPU
+					CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+	
+					if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
+						N_NODE=4
+					else
+						N_NODE=3
+					end if
+	
+					CORDS(1:3)=zero
+					CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+	
+					Poy(1)=cords(2)
+					Pox(1)=cords(1)
+					Poz(1)=cords(3)
+	
+					leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
+					B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
+					CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 
-				  	LEFTV(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-				  	B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
-				  	CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
-
-				  	SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
-
+					SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
 				END IF
 			ELSE
-			    SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
+				SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(IND1,1:nof_variables)
 			END IF
-		ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
 
+		ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+	
 			IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
 				if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-				    IF (FASTEST.EQ.1)THEN
+					IF (FASTEST.EQ.1)THEN
 						SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
-				    ELSE
+					ELSE
 						SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
 							(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
-				    END IF
-				end if
+					END IF
+				END IF
 			ELSE
-
 				IF (FASTEST.EQ.1)THEN
 					SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
 				ELSE
@@ -2086,277 +1752,86 @@ ELSE
 				END IF
 			END IF
 		END IF
-
+	
 		leftv(1:nof_variables)=sols2(1:nof_variables)
-		call cons2prim(N,leftv,MP_PINFl,gammal)
+		call CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		SOLS2(1:nof_variables)=leftv(1:nof_variables)
-
 		IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
-			sols2(4)=wall_Temp
+			sols2(5)=wall_temp
 		ELSE
-			sols2(4)=leftv(4)/leftv(1)
-		END IF
-
-		DO K=1,2
+			sols2(5)=leftv(5)/(leftv(1)*R_gas)
+		end if
+	
+		DO K=1,3
 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 		END DO
 	END DO
-
-	DO K=1,2
-		ILOCAL_RECON3(I)%GRADs(1:2,k)=sOLS_F(2:3,K)
-		ILOCAL_RECON3(I)%GRADs(3,k)=sOLS_F(4,K)
+	
+	DO K=1,3
+		ILOCAL_RECON3(I)%GRADsAV(1:3,k)=sOLS_F(2:4,K)
+		ILOCAL_RECON3(I)%GRADsAV(4,k)=sOLS_F(5,K)
 	END DO
-
-END IF
-
-end subroutine COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS
-
-
-
-
-
-SUBROUTINE COMPUTE_GRADIENTS_CENTER(N,ICONSIDERED)
-!> @brief
-!> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED
-REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2,dudl,aver1
-REAL::OOV2,titj
-INTEGER::I,J,K,L,IEX
-i=iconsidered
-
-IF (DIMENSIONA.EQ.3)THEN
-	DO IEX=1,3
-		ILOCAL_RECON3(I)%GRADS(IEX,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,IEX+1,1,1)
-	END DO
-
-	ILOCAL_RECON3(I)%GRADS(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,1,1)
-ELSE
-	DO IEX=1,2
-		ILOCAL_RECON3(I)%GRADS(IEX,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,IEX+1,1,1)
-	END DO
-	ILOCAL_RECON3(I)%GRADS(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,1,1)
-END IF
-
-END SUBROUTINE COMPUTE_GRADIENTS_CENTER
-
-
-
-
-
-SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-!> @brief
-!> This subroutine computes the gradients of the averaged primitive variables of each non-interior cell using the Green-Gauss algorithm
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2
-REAL,DIMENSION(1:nof_variables,3)::SOLS_F
-REAL,DIMENSION(3)::NORMAL_ALL,TEMP_VERT
-REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2,NX,NY,NZ
-INTEGER::I,J,K,L,var2,B_CODE,FACEX,N_NODE,IND1
-real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,rightv
-REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
-REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
-REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
-INTEGER::IBFC
-
-if (rungekutta.eq.4)then
-	ind1=7
-else
-	ind1=5
-end if
-
-I=ICONSIDERED
-SOLS_F=zero
-OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
-
-leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
-call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-SOLS1(1:nof_variables)=leftv(1:nof_variables)
-sols1(5)=leftv(5)/leftv(1)
-
-
-
-	  leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
-	    call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(5)=leftv(5)/(leftv(1)*R_gas)
-
-
-	  leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
-
-
-
-
-DO J=1,IELEM(N,I)%IFCA
-	FACEX=J
-	b_code=0
-
-	ANGLE1=IELEM(N,I)%FACEANGLEX(J)
-	ANGLE2=IELEM(N,I)%FACEANGLEY(J)
-
-	NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
-	NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
-	NORMAL_ALL(3)=(COS(ANGLE2))
-	nx=NORMAL_ALL(1);ny=NORMAL_ALL(2);nz=NORMAL_ALL(3)
-
-	IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
-		IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-			if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN MY CPU
-				SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(IND1,1:nof_variables)
-			ELSE
-				  !NOT PERIODIC ONES IN MY CPU
-
-				  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
-
-				   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
-                                            N_NODE=4
-                                    else
-                                            N_NODE=3
-                                    end if
-
-				  CORDS(1:3)=zero
- 				  CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
-
-				  Poy(1)=cords(2)
-				  Pox(1)=cords(1)
-				  poz(1)=cords(3)
-
- 				  leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
-				  B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
- 				  CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
-
-
-				  SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
-
-
-
-				  END IF
-			    ELSE
-				    SOLS2(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(IND1,1:nof_variables)
-
-
-
-
-			    END IF
-			ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
-
-			      IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
-				  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-				      IF (FASTEST.EQ.1)THEN
-					SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
-				      ELSE
-					SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
-				      END IF
-				  END IF
-			      ELSE
-
-				      IF (FASTEST.EQ.1)THEN
-					SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
-				      ELSE
-					SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
-				      END IF
-
-			     END IF
-			END IF
-
-			  leftv(1:nof_variables)=sols2(1:nof_variables)
-			call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables)=leftv(1:nof_variables)
-
-
-	IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
-		sols2(5)=wall_temp
-	ELSE
-		sols2(5)=leftv(5)/leftv(1)
-	end if
-
-			sols2(5)=wall_temp
-			ELSE
-
-
-
-			sols2(5)=leftv(5)/(leftv(1)*R_gas)
-			end if
-
-
-
-
-			DO K=1,3
-			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
-
-			END DO
-END DO
-
-DO K=1,3
-	ILOCAL_RECON3(I)%GRADsAV(1:3,k)=sOLS_F(2:4,K)
-	ILOCAL_RECON3(I)%GRADsAV(4,k)=sOLS_F(5,K)
-END DO
-
+	
 end subroutine COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV
-
-
+	
+	
 
 
 
 SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-!> @brief
-!> This subroutine computes the gradients of the averaged primitive variables of each interior cell using the Green-Gauss algorithm
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(nof_variables)::SOLS1,SOLS2,LEFTV
-REAL,DIMENSION(nof_variables,3)::SOLS_F
-REAL,DIMENSION(3)::NORMAL_ALL
-REAL::OOV2,MP_PINFl,gammal,ANGLE1,ANGLE2
-INTEGER::I,J,K,L,IND1
-
-if (rungekutta.eq.4)then
-	ind1=7
-else
-	ind1=5
-end if
-
-I=ICONSIDERED
-SOLS_F=zero
-OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
-
-
-	    leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
-	    call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(5)=leftv(5)/(leftv(1)*R_gas)
-
-DO J=1,IELEM(N,I)%IFCA
-
-			leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(IND1,1:nof_variables)
-			call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables)=leftv(1:nof_variables)
-			sols2(5)=leftv(5)/(leftv(1)*R_gas) 
-
-	leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(IND1,1:nof_variables)
+	!> @brief
+	!> This subroutine computes the gradients of the averaged primitive variables of each interior cell using the Green-Gauss algorithm
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
+	REAL,DIMENSION(nof_variables)::SOLS1,SOLS2,LEFTV
+	REAL,DIMENSION(nof_variables,3)::SOLS_F
+	REAL,DIMENSION(3)::NORMAL_ALL
+	REAL::OOV2,MP_PINFl,gammal,ANGLE1,ANGLE2
+	INTEGER::I,J,K,L,IND1
+	
+	if (rungekutta.eq.4)then
+		ind1=7
+	else
+		ind1=5
+	end if
+	
+	I=ICONSIDERED
+	SOLS_F=zero
+	OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
+	
+	leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
 	call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	SOLS2(1:nof_variables)=leftv(1:nof_variables)
-	sols2(5)=leftv(5)/leftv(1)
+	SOLS1(1:nof_variables)=leftv(1:nof_variables)
+	sols1(5)=leftv(5)/(leftv(1)*R_gas)
+	
+	DO J=1,IELEM(N,I)%IFCA
+		ANGLE1=IELEM(N,I)%FACEANGLEX(J)
+		ANGLE2=IELEM(N,I)%FACEANGLEY(J)
+		NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
+		NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
+		NORMAL_ALL(3)=(COS(ANGLE2))
+	
+		leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(IND1,1:nof_variables)
+		call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		SOLS2(1:nof_variables)=leftv(1:nof_variables)
+		sols2(5)=leftv(5)/(leftv(1)*R_gas) 
 
-	DO K=1,3
-		SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+		DO K=1,3
+			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+		END DO
 	END DO
-END DO
-
-DO K=1,3
-	ILOCAL_RECON3(I)%GRADsAV(1:3,k)=sOLS_F(2:4,K)
-	ILOCAL_RECON3(I)%GRADsAV(4,k)=sOLS_F(5,K)
-END DO
+	
+	DO K=1,3
+		ILOCAL_RECON3(I)%GRADsAV(1:3,k)=sOLS_F(2:4,K)
+		ILOCAL_RECON3(I)%GRADsAV(4,k)=sOLS_F(5,K)
+	END DO
+	
 
 end subroutine COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_AV
-
-
-
-
-
-
+	
+	
+	
+	
+	
+	
 END MODULE GRADIENTS

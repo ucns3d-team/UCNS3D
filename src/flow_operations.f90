@@ -2632,98 +2632,39 @@ SELECT CASE(B_CODE)
 		CALL ROTATEb(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
     
   CASE(4)!WALL
-    
-		IF (ITESTCASE.EQ.3)THEN
+
+    IF (ITESTCASE.EQ.3)THEN
 			      
-			  CALL ROTATEF(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-		    IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
+        CALL ROTATEF(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
+        IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
             CRIGHT_ROT(1)=CLEFT_ROT(1)
             CRIGHT_ROT(2)=-(CLEFT_ROT(2))+2.0D0*CLEFT_ROT(1)*SRF_SPEEDROT(2)
             CRIGHT_ROT(3)=CLEFT_ROT(3)
             CRIGHT_ROT(4)=CLEFT_ROT(4)
             CRIGHT_ROT(5)=CLEFT_ROT(5)+CLEFT_ROT(1)*(SRF_SPEEDROT(2)**2)*2.0D0-2.0D0*CLEFT_ROT(2)*SRF_SPEEDROT(2)
-			  ELSE
-         	  CRIGHT_ROT(:)=CLEFT_ROT(:)
-			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
+        ELSE
+            CRIGHT_ROT(:)=CLEFT_ROT(:)
+            CRIGHT_ROT(2)=-CLEFT_ROT(2)
         END IF
-				IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-					  CTURBR(:)=CTURBL(:)
-					  if (passivescalar.gt.0)then
-					      cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						        ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-					  end if
-				END IF
-				
-				
-				
-			      CALL ROTATEB(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
-			      
-			      
-			      
-			      ELSE
-                  IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
-                    rightv(1)=leftv(1)
-                    rightv(2)=-leftv(2)+2.0D0*leftv(1)*SRF_SPEED(2)
-                    rightv(3)=-leftv(3)+2.0D0*leftv(1)*SRF_SPEED(3)
-                    rightv(4)=-leftv(4)+2.0D0*leftv(1)*SRF_SPEED(4)
-                    rightv(5)=leftv(5)+2.0D0*leftv(1)*(SRF_SPEED(2)**2+SRF_SPEED(3)**2+SRF_SPEED(4)**2)&
-                                            -2.0D0*(leftv(2)*SRF_SPEED(2)+leftv(3)*SRF_SPEED(3)+leftv(4)*SRF_SPEED(4))
-    
-                  ELSE
-                    rightv(1)=leftv(1)
-                    rightv(2)=-leftv(2)
-                    rightv(3)=-leftv(3)
-                    rightv(4)=-leftv(4)
-                    rightv(5)=leftv(5)
+        IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+            CTURBR(:)=CTURBL(:)
 
-
-
-
-
-
-                  END IF
-    
-    
-    
-				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-					IF (TURBULENCEMODEL.NE.2)THEN
-					    CTURBR(:)=-CTURBL(:)
-
-					  if (passivescalar.gt.0)then
-					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						    -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-					  end if
-					ELSE
-					     CTURBR(1)=-CTURBL(1)
-					     CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
-
-					  if (passivescalar.gt.0)then
-					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						    -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-					  end if
-					  
-					
-					
-					
-					
-					END IF
-				      END IF
-    
-    
-				END IF
-				
-			  CALL ROTATEB(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
-			      
-		ELSE
+            if (passivescalar.gt.0)then
+                cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+                    ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+            end if
+        END IF
+ 
+        CALL ROTATEB(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
+      
+    ELSE
         IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
             rightv(1)=leftv(1)
             rightv(2)=-leftv(2)+2.0D0*leftv(1)*SRF_SPEED(2)
             rightv(3)=-leftv(3)+2.0D0*leftv(1)*SRF_SPEED(3)
             rightv(4)=-leftv(4)+2.0D0*leftv(1)*SRF_SPEED(4)
             rightv(5)=leftv(5)+2.0D0*leftv(1)*(SRF_SPEED(2)**2+SRF_SPEED(3)**2+SRF_SPEED(4)**2)&
-                -2.0D0*(leftv(2)*SRF_SPEED(2)+leftv(3)*SRF_SPEED(3)+leftv(4)*SRF_SPEED(4))
+                                     -2.0D0*(leftv(2)*SRF_SPEED(2)+leftv(3)*SRF_SPEED(3)+leftv(4)*SRF_SPEED(4))
 
         ELSE
             rightv(1)=leftv(1)
@@ -2732,25 +2673,25 @@ SELECT CASE(B_CODE)
             rightv(4)=-leftv(4)
             rightv(5)=leftv(5)
         END IF
-  
-				IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-				    IF (TURBULENCEMODEL.NE.2)THEN
-			          CTURBR(:)=-CTURBL(:)
+
+        IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+            IF (TURBULENCEMODEL.NE.2)THEN
+                CTURBR(:)=-CTURBL(:)
                 if (passivescalar.gt.0)then
                     cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
                         -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
                 end if
-				    ELSE
-					      CTURBR(1)=-CTURBL(1)
-					      CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
-					      if (passivescalar.gt.0)then
-					          cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						            -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-					      end if
-					  END IF
-			  END IF
+            ELSE
+                CTURBR(1)=-CTURBL(1)
+                CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
 
-		END IF
+                if (passivescalar.gt.0)then
+                    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+                    -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                end if
+            END IF
+       END IF
+    END IF
     
   CASE(6)!FARFIELD INFLOW OR OUTFLOW, SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
 
@@ -2865,553 +2806,60 @@ END SUBROUTINE BOUNDARYS
 
 
 SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
-!> @brief
-!> This subroutine applies the boundary condition to each bounded cell
-implicit none
-integer,intent(in)::n,b_code,ICONSIDERED,facex
-INTEGER,INTENT(INOUT)::IBFC
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::LEFTV,RIGHTV
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::SRF_SPEEDROT,SRF_SPEED
-REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
-REAL,INTENT(IN)::ANGLE1,ANGLE2,NX,NY,NZ
-REAL,DIMENSION(TURBULENCEEQUATIONS),INTENT(INOUT)::CTURBL,CTURBR
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
-REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3,tempxv
-REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
-REAL::SPS,SKINS,IKINS,VEL,vnb,theeta,reeta
-REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
+    !> @brief
+    !> This subroutine applies the boundary condition to each bounded cell
+    implicit none
+    integer,intent(in)::n,b_code,ICONSIDERED,facex
+    INTEGER,INTENT(INOUT)::IBFC
+    REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::LEFTV,RIGHTV
+    REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::SRF_SPEEDROT,SRF_SPEED
+    REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
+    REAL,INTENT(IN)::ANGLE1,ANGLE2,NX,NY,NZ
+    REAL,DIMENSION(TURBULENCEEQUATIONS),INTENT(INOUT)::CTURBL,CTURBR
+    REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
+    REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3,tempxv
+    REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
+    REAL::SPS,SKINS,IKINS,VEL,vnb,theeta,reeta
+    REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
 
-SELECT CASE(B_CODE)
+    SELECT CASE(B_CODE)
 
-  CASE(1)!INFLOW SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
-    if (boundtype.eq.0)then	!SUPERSONIC
-    
-        RIGHTV(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
-    
-    ELSE		!SUBSONIC
-        RIGHTV(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
-
-        CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-        
-        SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
-        SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-        SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
-        VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
-        
-        CALL PRIM2CONS2(N,LEFTV,RIGHTV)
-
-        IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
-      
+      CASE(1)!INFLOW SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
+        if (boundtype.eq.0)then	!SUPERSONIC
             RIGHTV(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
-      
         ELSE		!SUBSONIC
-      
-            SUBSON3(4)=0.5*((SUBSON1(4))+(SUBSON2(4))-(SUBSON2(1)*SPS*((NX*(SUBSON1(2)-SUBSON2(2)))+(NY*(SUBSON1(3)-SUBSON2(3))))))
-            SUBSON3(1)=SUBSON1(1)+(SUBSON3(4)-SUBSON1(4))/(SPS**2)
-            SUBSON3(2)=SUBSON1(2)-(NX*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
-            SUBSON3(3)=SUBSON1(3)-(NY*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
-      
-            rightv(1)=SUBSON3(1)
-            rightv(2)=SUBSON3(2)*SUBSON3(1)
-            rightv(3)=SUBSON3(3)*SUBSON3(1)
-            
-            SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
-            IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
-            rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
-      
-        END IF  
-    END IF
-        
-    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-	      IF (TURBULENCEMODEL.EQ.1)THEN
-		        CTURBR(1)=VISC*TURBINIT
-	      END IF
-	      IF (TURBULENCEMODEL.EQ.2)THEN	 
-		        CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
-		        CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
-	      END IF
-	      IF (PASSIVESCALAR.GT.0)THEN
-	          CTURBR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=PASS_INLET2d(INITCOND,POX,POY)*RIGHTV(1)
-	      END IF
-    END IF
-      
-  CASE(2)!OUTFLOW SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
-    if (boundtype.eq.0)then
-        rightv(1:nof_Variables)=leftv(1:nof_Variables)  
-    else
-     
-        rightv(1:nof_Variables)=OUTFLOW2d(INITCOND,pox,poy)
-        CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-      
-        SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
-        SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-      
-        SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
-        VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
-        
-        SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
-        
-        CALL PRIM2CONS2(N,LEFTV,RIGHTV)
-        
-        IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
-            rightv(1:nof_Variables)=leftv(1:nof_Variables)
-        Else
-            SUBSON3(4)=SUBSON1(4)
-            SUBSON3(1)=SUBSON2(1)+(SUBSON3(4)-SUBSON2(4))/(SPS**2)
-            SUBSON3(2)=SUBSON2(2)+(NX*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
-            SUBSON3(3)=SUBSON2(3)+(NY*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
-                        
-            rightv(1)=SUBSON3(1)
-            rightv(2)=SUBSON3(2)*SUBSON3(1)
-            rightv(3)=SUBSON3(3)*SUBSON3(1)
-            
-            SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
-            IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
-            rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
-        end if
-    end if
+            RIGHTV(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
 
-    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-		  CTURBR(:)=CTURBL(:)
-    END IF
-    
-  CASE(99)  !BLEED
-
-    rightv(1:nof_Variables)=BLEED2d(Iconsidered,facex,pox,poy)
-
-    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-  		  CTURBR(:)=CTURBL(:)
-    END IF
-      
-  CASE(3)!SYMMETRY
-    
-    IF ((INITCOND.EQ.102).or.(INITCOND.EQ.30).or.(initcond.eq.222))THEN	!shock density interaction
-        IF ((INITCOND.EQ.102))THEN	!shock density interaction
-            if (pox(1).lt.((1.0d0/6.0d0)+((1.0d0+20.0d0*T)/(sqrt(3.0d0)))))then
-                r1=8.0d0
-                u1=8.25*cos(pi/6.0d0)
-                v1=-8.25*sin(pi/6.0d0)
-                p1=116.5
-            else
-                r1=1.4d0
-                u1=zero
-                v1=zero
-                p1=1.0d0
-            end if
-            SKIN1=(OO2)*((U1**2)+(V1**2))
-            !INTERNAL ENERGY 
-            IE1=((P1)/((GAMMA-1.0D0)*R1))
-            !TOTAL ENERGY
-            E1=(P1/(GAMMA-1))+(R1*SKIN1)
-            !VECTOR OF CONSERVED VARIABLES NOW
-            rightv(1)=R1
-            rightv(2)=R1*U1
-            rightv(3)=R1*V1
-            rightv(4)=E1
-        end if
-            
-        IF ((INITCOND.EQ.222))THEN
-            if (sqrt((pox(1)**2)+(poy(1)**2)).lt.(T/3.0d0))then
-                r1=16.0d0
-                u1=0.0
-                v1=0.0
-                p1=16.0d0/3.0d0
-            else
-                r1=1.0d0+(t/sqrt((pox(1)**2)+(poy(1)**2)))
-                reeta=-1
-                THEETA=ATAN(POY(1)/POX(1))
-                U1=REETA*COS(THEETA)
-                V1=REETA*SIN(THEETA)
-                P1=1.0E-6
-            end if
-            SKIN1=(OO2)*((U1**2)+(V1**2))
-            !INTERNAL ENERGY 
-            IE1=((P1)/((GAMMA-1.0D0)*R1))
-            !TOTAL ENERGY
-            E1=(P1/(GAMMA-1))+(R1*SKIN1)
-            !VECTOR OF CONSERVED VARIABLES NOW
-            rightv(1)=R1
-            rightv(2)=R1*U1
-            rightv(3)=R1*V1
-            rightv(4)=E1                     
-        end if
-			     
-			  IF ((INITCOND.EQ.30))THEN
-			      if (pox(1).le.zero)then
-                if (poy(1).le.zero)then
-                    r1=0.138
-                    u1=1.206
-                    v1=1.206
-                    p1=0.029
-                end if
-                if (poy(1).gt.zero)then
-                    r1=0.5323
-                    u1=1.206
-                    v1=0.0
-                    p1=0.3
-                end if
-            end if
-            if (pox(1).gt.zero)then
-                if (poy(1).le.zero)then
-                    r1=0.5323
-                    u1=0.0
-                    v1=1.206
-                    p1=0.3
-                end if
-                if (poy(1).gt.zero)then
-                    r1=1.5
-                    u1=0.0
-                    v1=0.0
-                    p1=1.5
-                end if
-            end if
-			      SKIN1=(OO2)*((U1**2)+(V1**2))
-            !INTERNAL ENERGY 
-            IE1=((P1)/((GAMMA-1.0D0)*R1))
-            !TOTAL ENERGY
-            E1=(P1/(GAMMA-1))+(R1*SKIN1)
-            !VECTOR OF CONSERVED VARIABLES NOW
-            ! rightv(1)=leftv(1)
-            ! rightv(2)=0.0
-            ! rightv(3)=0.0
-            ! rightv(4)=leftv(4)
-            rightv(1)=R1
-            rightv(2)=R1*U1
-            rightv(3)=R1*V1
-            rightv(4)=E1    
-			  end if
-			      
-			      end if
-			      
-			      
-			      
-			      
-			      else
-			      
-			      
-			       CALL ROTATEF2d(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-			      
-                  CRIGHT_ROT(1)=CLEFT_ROT(1)
-			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
-			      CRIGHT_ROT(3)=CLEFT_ROT(3)
-			      CRIGHT_ROT(4)=CLEFT_ROT(4)
-			      
-			      IF(MULTISPECIES.EQ.1)THEN
-                      CRIGHT_ROT(5)=CLEFT_ROT(5)
-                      CRIGHT_ROT(6)=CLEFT_ROT(6)
-                      CRIGHT_ROT(7)=CLEFT_ROT(7)
-                    
-                    END IF
-			     
-					 
-				     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-					    CTURBR(:)=CTURBL(:)
-
-					  if (passivescalar.gt.0)then
-					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						    ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-					  end if
-				      END IF
-				
-			    	
-				
-			      CALL ROTATEb2d(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
-                            end if
-    
-    
-    CASE(4)!WALL
-    
-			     IF (ITESTCASE.EQ.3)THEN
-			      
-			       CALL ROTATEF2D(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-			      
-			      
-			      IF (governingequations.EQ.-1)then
-			          CRIGHT_ROT(:)=CLEFT_ROT(:)
-			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
-			      
-			      
-			      else
-         		      CRIGHT_ROT(1)=CLEFT_ROT(1)
-			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
-			      CRIGHT_ROT(3)=CLEFT_ROT(3)
-			      CRIGHT_ROT(4)=CLEFT_ROT(4)
-			      end if
-			     
-			      
-					 
-				     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-					    CTURBR(:)=CTURBL(:)
-
-					  if (passivescalar.gt.0)then
-					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						    ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-					  end if
-				      END IF
-				
-				
-				
-			      CALL ROTATEb2D(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
-			      
-			    
-			      
-			      ELSE
-    
-			      rightv(1)=leftv(1)
-			      rightv(2)=-leftv(2)
-			      rightv(3)=-leftv(3)
-			      
-			      rightv(4)=leftv(4)
-    
-
-    
-    
-				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-					IF (TURBULENCEMODEL.NE.2)THEN
-					    CTURBR(:)=-CTURBL(:)
-
-					  if (passivescalar.gt.0)then
-					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						    -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-					  end if
-					ELSE
-					     CTURBR(1)=-CTURBL(1)
-					     CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
-
-					  if (passivescalar.gt.0)then
-					  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						    -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
-					  end if
-					  
-					
-					
-					
-					
-					END IF
-				      END IF
-    
-    
-				END IF
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    CASE(6)!FARFIELD INFLOW OR OUTFLOW, SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
-	 CALL ROTATEF2d(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-	    vnb=cleft_rot(2)/CLEFT_ROT(1)
-	    
-	    
-	  
-	    
-	    CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-    
-	    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
-	    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-	    SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
-	    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
-	  
-	  CALL PRIM2CONS2(N,LEFTV,RIGHTV)
-
-	  if (vnb.le.0.0d0)then		!inflow
-			ibfc=-1
-	
-		  if ((abs(vnb)).ge.sps)then
-				!supersonic
-				rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
-					
-		  else
-				!subsonic
-				
-			rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
-	  	  
-			  
-			  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-			
-			SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
-			SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-			SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
-			VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
-			  CALL PRIM2CONS2(N,LEFTV,RIGHTV)
-				    
-		    SUBSON3(4)=0.5d0*((SUBSON1(4))+(SUBSON2(4))-(SUBSON2(1)*SPS*((NX*(SUBSON1(2)-SUBSON2(2)))+(NY*(SUBSON1(3)-SUBSON2(3))))))
-		    SUBSON3(1)=SUBSON1(1)+(SUBSON3(4)-SUBSON1(4))/(SPS**2)
-		    SUBSON3(2)=SUBSON1(2)-(NX*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
-		    SUBSON3(3)=SUBSON1(3)-(NY*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
-		    
-		    
-
-		    rightv(1)=SUBSON3(1)
-    rightv(2)=SUBSON3(2)*SUBSON3(1)
-    rightv(3)=SUBSON3(3)*SUBSON3(1)
-    
-    SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
-    IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
-    rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
-		  
-		  END IF
-		  
-		  
-		  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-	      
-      
-      
-      
-	        IF (TURBULENCEMODEL.EQ.1)THEN
-		  CTURBR(1)=VISC*TURBINIT
-	      END IF
-	     IF (TURBULENCEMODEL.EQ.2)THEN	 
-		CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
-		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
-	      END IF
- 
-	      IF (PASSIVESCALAR.GT.0)THEN
-	      CTURBR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=PASS_INLET2d(INITCOND,POX,POY)*RIGHTV(1)
-	      END IF
-		    END IF
-		  
-		  
-      
-	else
-      
-	  !outflow
-	
-	    ibfc=-2
-		if ((abs(vnb)).ge.sps)then
-		
-		      rightv(1:nof_Variables)=leftv(1:nof_Variables)
-		
-		else
-			          
-			  CALL ROTATEF2d(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-			      
-        CRIGHT_ROT(1)=CLEFT_ROT(1)
-        CRIGHT_ROT(2)=-CLEFT_ROT(2)
-        CRIGHT_ROT(3)=CLEFT_ROT(3)
-        CRIGHT_ROT(4)=CLEFT_ROT(4)
-        
-        IF(MULTISPECIES.EQ.1)THEN
-            CRIGHT_ROT(5)=CLEFT_ROT(5)
-            CRIGHT_ROT(6)=CLEFT_ROT(6)
-            CRIGHT_ROT(7)=CLEFT_ROT(7)
-        END IF
-			     
-				IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-					  CTURBR(:)=CTURBL(:)
-
-					  if (passivescalar.gt.0)then
-					      cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						    ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-					  end if
-				END IF
-				
-			  CALL ROTATEb2d(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
-    end if
-    
-  CASE(4)!WALL
-    
-		IF (ITESTCASE.EQ.3)THEN 
-			  CALL ROTATEF2D(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-			      
-			  if (governingequations.EQ.-1)then
-			      CRIGHT_ROT(:)=CLEFT_ROT(:)
-			      CRIGHT_ROT(2)=-CLEFT_ROT(2)    
-			  else
-         		CRIGHT_ROT(1)=CLEFT_ROT(1)
-			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
-			      CRIGHT_ROT(3)=CLEFT_ROT(3)
-			      CRIGHT_ROT(4)=CLEFT_ROT(4)
-			  end if
-			  	 
-				IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-				    CTURBR(:)=CTURBL(:)
-					  if (passivescalar.gt.0)then
-			    		  cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						    ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-					  end if
-				END IF
-				
-			  CALL ROTATEb2D(N,rightv,Cright_ROT,ANGLE1,ANGLE2)   
-		ELSE
-        rightv(1)= leftv(1)
-        rightv(2)=-leftv(2)
-        rightv(3)=-leftv(3)
-        rightv(4)= leftv(4)
-    
-				IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-					  IF (TURBULENCEMODEL.NE.2)THEN
-					      CTURBR(:)=-CTURBL(:)
-					      if (passivescalar.gt.0)then
-					          cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						            -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-					      end if
-					  ELSE
-					      CTURBR(1)=-CTURBL(1)
-					      CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
-					      if (passivescalar.gt.0)then
-					          cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						            -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-					      end if
-					  END IF 
-          END IF
-		END IF
-      
-  CASE(6)!FARFIELD INFLOW OR OUTFLOW, SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
-
-	  CALL ROTATEF2d(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-    vnb=cleft_rot(2)/CLEFT_ROT(1)
-  
-    CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-
-    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
-    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-    SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
-    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
-  
-    CALL PRIM2CONS2(N,LEFTV,RIGHTV)
-
-    if (vnb.le.0.0d0)then		!inflow
-        ibfc=-1
-
-        if ((abs(vnb)).ge.sps)then
-          !supersonic
-            rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
-        else
-          !subsonic
-            rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
             CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-  
+        
             SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
             SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
             SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
             VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
-            CALL PRIM2CONS2(N,LEFTV,RIGHTV)
         
-            SUBSON3(4)=0.5d0*((SUBSON1(4))+(SUBSON2(4))-(SUBSON2(1)*SPS*((NX*(SUBSON1(2)-SUBSON2(2)))+(NY*(SUBSON1(3)-SUBSON2(3))))))
-            SUBSON3(1)=SUBSON1(1)+(SUBSON3(4)-SUBSON1(4))/(SPS**2)
-            SUBSON3(2)=SUBSON1(2)-(NX*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
-            SUBSON3(3)=SUBSON1(3)-(NY*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+            CALL PRIM2CONS2(N,LEFTV,RIGHTV)
+
+            IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
+                RIGHTV(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
+            ELSE		!SUBSONIC
+                SUBSON3(4)=0.5*((SUBSON1(4))+(SUBSON2(4))-(SUBSON2(1)*SPS*((NX*(SUBSON1(2)-SUBSON2(2)))+(NY*(SUBSON1(3)-SUBSON2(3))))))
+                SUBSON3(1)=SUBSON1(1)+(SUBSON3(4)-SUBSON1(4))/(SPS**2)
+                SUBSON3(2)=SUBSON1(2)-(NX*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+                SUBSON3(3)=SUBSON1(3)-(NY*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
           
-            rightv(1)=SUBSON3(1)
-            rightv(2)=SUBSON3(2)*SUBSON3(1)
-            rightv(3)=SUBSON3(3)*SUBSON3(1)
-            
-            SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
-            IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
-            rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
-        end if
-  
+                rightv(1)=SUBSON3(1)
+                rightv(2)=SUBSON3(2)*SUBSON3(1)
+                rightv(3)=SUBSON3(3)*SUBSON3(1)
+                
+                SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
+                IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
+                rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
+            END IF  
+        END IF
+        
         IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-            IF (TURBULENCEMODEL.EQ.1)THEN
-                CTURBR(1)=VISC*TURBINIT
+	          IF (TURBULENCEMODEL.EQ.1)THEN
+		            CTURBR(1)=VISC*TURBINIT
             END IF
             IF (TURBULENCEMODEL.EQ.2)THEN	 
                 CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
@@ -3421,43 +2869,331 @@ SELECT CASE(B_CODE)
                 CTURBR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=PASS_INLET2d(INITCOND,POX,POY)*RIGHTV(1)
             END IF
         END IF
-  
-    else !outflow
-    
-        ibfc=-2
-        if ((abs(vnb)).ge.sps)then
-            rightv(1:nof_Variables)=leftv(1:nof_Variables)
+      
+      CASE(2)!OUTFLOW SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
+        if (boundtype.eq.0)then
+            rightv(1:nof_Variables)=leftv(1:nof_Variables)  
         else
-          
+        
             rightv(1:nof_Variables)=OUTFLOW2d(INITCOND,pox,poy)
             CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
           
             SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
             SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
           
-            CALL PRIM2CONS2(N,LEFTV,RIGHTV)
-          
-            SUBSON3(4)=SUBSON1(4)
-            SUBSON3(1)=SUBSON2(1)+(SUBSON3(4)-SUBSON2(4))/(SPS**2)
-            SUBSON3(2)=SUBSON2(2)+(NX*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
-            SUBSON3(3)=SUBSON2(3)+(NY*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
-                        
-            rightv(1)=SUBSON3(1)
-            rightv(2)=SUBSON3(2)*SUBSON3(1)
-            rightv(3)=SUBSON3(3)*SUBSON3(1)
+            SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+            VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
             
-            SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
-            IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
-            rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
-        
-            IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-                CTURBR(:)=CTURBL(:)
-            END IF
+            SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+            
+            CALL PRIM2CONS2(N,LEFTV,RIGHTV)
+            
+            IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
+                rightv(1:nof_Variables)=leftv(1:nof_Variables)
+            Else
+                SUBSON3(4)=SUBSON1(4)
+                SUBSON3(1)=SUBSON2(1)+(SUBSON3(4)-SUBSON2(4))/(SPS**2)
+                SUBSON3(2)=SUBSON2(2)+(NX*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+                SUBSON3(3)=SUBSON2(3)+(NY*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+                            
+                rightv(1)=SUBSON3(1)
+                rightv(2)=SUBSON3(2)*SUBSON3(1)
+                rightv(3)=SUBSON3(3)*SUBSON3(1)
+                
+                SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
+                IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
+                rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
+            end if
         end if
-        
-    END IF
 
-END SELECT
+        IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+          CTURBR(:)=CTURBL(:)
+        END IF
+        
+      CASE(99)  !BLEED
+
+        rightv(1:nof_Variables)=BLEED2d(Iconsidered,facex,pox,poy)
+        IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+            CTURBR(:)=CTURBL(:)
+        END IF
+      
+      CASE(3)!SYMMETRY
+    
+    
+        IF ((INITCOND.EQ.102).or.(INITCOND.EQ.30).or.(initcond.eq.222))THEN	!shock density interaction
+            IF ((INITCOND.EQ.102))THEN	!shock density interaction
+                if (pox(1).lt.((1.0d0/6.0d0)+((1.0d0+20.0d0*T)/(sqrt(3.0d0)))))then
+                    r1=8.0d0
+                    u1=8.25*cos(pi/6.0d0)
+                    v1=-8.25*sin(pi/6.0d0)
+                    p1=116.5
+                else
+                    r1=1.4d0
+                    u1=zero
+                    v1=zero
+                    p1=1.0d0
+                end if
+                SKIN1=(OO2)*((U1**2)+(V1**2))
+                !INTERNAL ENERGY 
+                IE1=((P1)/((GAMMA-1.0D0)*R1))
+                !TOTAL ENERGY
+                E1=(P1/(GAMMA-1))+(R1*SKIN1)
+                !VECTOR OF CONSERVED VARIABLES NOW
+                rightv(1)=R1
+                rightv(2)=R1*U1
+                rightv(3)=R1*V1
+                rightv(4)=E1
+            END IF
+
+            IF ((INITCOND.EQ.222))THEN
+                if (sqrt((pox(1)**2)+(poy(1)**2)).lt.(T/3.0d0))then
+                    r1=16.0d0
+                    u1=0.0
+                    v1=0.0
+                    p1=16.0d0/3.0d0
+                else
+                    r1=1.0d0+(t/sqrt((pox(1)**2)+(poy(1)**2)))
+                    reeta=-1
+                    THEETA=ATAN(POY(1)/POX(1))
+                    U1=REETA*COS(THEETA)
+                    V1=REETA*SIN(THEETA)
+                    P1=1.0E-6
+                end if
+                SKIN1=(OO2)*((U1**2)+(V1**2))
+                !INTERNAL ENERGY 
+                IE1=((P1)/((GAMMA-1.0D0)*R1))
+                !TOTAL ENERGY
+                E1=(P1/(GAMMA-1))+(R1*SKIN1)
+                !VECTOR OF CONSERVED VARIABLES NOW
+                rightv(1)=R1
+                rightv(2)=R1*U1
+                rightv(3)=R1*V1
+                rightv(4)=E1
+            END IF
+
+            IF ((INITCOND.EQ.30))THEN
+                if (pox(1).le.zero)then
+                    if (poy(1).le.zero)then
+                        r1=0.138
+                        u1=1.206
+                        v1=1.206
+                        p1=0.029
+                    end if
+                    if (poy(1).gt.zero)then
+                        r1=0.5323
+                        u1=1.206
+                        v1=0.0
+                        p1=0.3
+                    end if
+                end if
+                if (pox(1).gt.zero)then
+                    if (poy(1).le.zero)then
+                        r1=0.5323
+                        u1=0.0
+                        v1=1.206
+                        p1=0.3
+                    end if
+                    if (poy(1).gt.zero)then
+                        r1=1.5
+                        u1=0.0
+                        v1=0.0
+                        p1=1.5
+                    end if
+                end if
+                SKIN1=(OO2)*((U1**2)+(V1**2))
+                ! INTERNAL ENERGY 
+                IE1=((P1)/((GAMMA-1.0D0)*R1))
+                ! TOTAL ENERGY
+                E1=(P1/(GAMMA-1))+(R1*SKIN1)
+                ! VECTOR OF CONSERVED VARIABLES NOW
+                ! rightv(1)=leftv(1)
+                ! rightv(2)=0.0
+                ! rightv(3)=0.0
+                ! rightv(4)=leftv(4)      
+                rightv(1)=R1
+                rightv(2)=R1*U1
+                rightv(3)=R1*V1
+                rightv(4)=E1
+
+            end if
+
+        else
+
+            CALL ROTATEF2d(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
+
+            CRIGHT_ROT(1)=CLEFT_ROT(1)
+            CRIGHT_ROT(2)=-CLEFT_ROT(2)
+            CRIGHT_ROT(3)=CLEFT_ROT(3)
+            CRIGHT_ROT(4)=CLEFT_ROT(4)
+            IF(MULTISPECIES.EQ.1)THEN
+                CRIGHT_ROT(5)=CLEFT_ROT(5)
+                CRIGHT_ROT(6)=CLEFT_ROT(6)
+                CRIGHT_ROT(7)=CLEFT_ROT(7)
+            END IF
+
+            IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                CTURBR(:)=CTURBL(:)
+
+                if (passivescalar.gt.0)then
+                    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+                        ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                end if
+            END IF
+
+            CALL ROTATEb2d(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
+        end if
+
+      CASE(4)!WALL
+
+        IF (ITESTCASE.EQ.3)THEN
+
+            CALL ROTATEF2D(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
+
+            IF (governingequations.EQ.-1)then
+                CRIGHT_ROT(:)=CLEFT_ROT(:)
+                CRIGHT_ROT(2)=-CLEFT_ROT(2)
+            else
+                CRIGHT_ROT(1)=CLEFT_ROT(1)
+                CRIGHT_ROT(2)=-CLEFT_ROT(2)
+                CRIGHT_ROT(3)=CLEFT_ROT(3)
+                CRIGHT_ROT(4)=CLEFT_ROT(4)
+            end if
+
+            IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                CTURBR(:)=CTURBL(:)
+
+                if (passivescalar.gt.0)then
+                    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+                        ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                end if
+            END IF
+
+            CALL ROTATEb2D(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
+
+        ELSE
+
+            rightv(1)=leftv(1)
+            rightv(2)=-leftv(2)
+            rightv(3)=-leftv(3)
+            rightv(4)=leftv(4)
+
+            IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                IF (TURBULENCEMODEL.NE.2)THEN
+                    CTURBR(:)=-CTURBL(:)
+
+                    if (passivescalar.gt.0)then
+                        cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+                            -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                    end if
+                ELSE
+                    CTURBR(1)=-CTURBL(1)
+                    CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
+
+                    if (passivescalar.gt.0)then
+                        cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
+                            -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+                    end if
+
+                END IF
+            END IF
+
+        END IF
+
+      CASE(6)!FARFIELD INFLOW OR OUTFLOW, SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
+
+        CALL ROTATEF2d(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
+        vnb=cleft_rot(2)/CLEFT_ROT(1)
+
+        CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+
+        SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+        SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
+        SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+        VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
+
+        CALL PRIM2CONS2(N,LEFTV,RIGHTV)
+
+        if (vnb.le.0.0d0)then		! inflow
+            ibfc=-1
+
+            if ((abs(vnb)).ge.sps)then ! supersonic
+                rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
+            else ! subsonic
+
+                rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
+
+                CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+
+                SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+                SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
+                SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+                VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
+                CALL PRIM2CONS2(N,LEFTV,RIGHTV)
+
+                SUBSON3(4)=0.5d0*((SUBSON1(4))+(SUBSON2(4))-(SUBSON2(1)*SPS*((NX*(SUBSON1(2)-SUBSON2(2)))+(NY*(SUBSON1(3)-SUBSON2(3))))))
+                SUBSON3(1)=SUBSON1(1)+(SUBSON3(4)-SUBSON1(4))/(SPS**2)
+                SUBSON3(2)=SUBSON1(2)-(NX*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+                SUBSON3(3)=SUBSON1(3)-(NY*(SUBSON1(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+
+                rightv(1)=SUBSON3(1)
+                rightv(2)=SUBSON3(2)*SUBSON3(1)
+                rightv(3)=SUBSON3(3)*SUBSON3(1)
+
+                SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
+                IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
+                rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
+
+            END IF
+
+            IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                IF (TURBULENCEMODEL.EQ.1)THEN
+                    CTURBR(1)=VISC*TURBINIT
+                END IF
+                IF (TURBULENCEMODEL.EQ.2)THEN	 
+                    CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
+                    CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
+                END IF
+                IF (PASSIVESCALAR.GT.0)THEN
+                    CTURBR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=PASS_INLET2d(INITCOND,POX,POY)*RIGHTV(1)
+                END IF
+            END IF
+
+        else ! outflow
+
+            ibfc=-2
+            if ((abs(vnb)).ge.sps)then
+                rightv(1:nof_Variables)=leftv(1:nof_Variables)
+            else
+
+                rightv(1:nof_Variables)=OUTFLOW2d(INITCOND,pox,poy)
+                CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+
+                SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+                SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
+
+                CALL PRIM2CONS2(N,LEFTV,RIGHTV)
+
+                SUBSON3(4)=SUBSON1(4)
+                SUBSON3(1)=SUBSON2(1)+(SUBSON3(4)-SUBSON2(4))/(SPS**2)
+                SUBSON3(2)=SUBSON2(2)+(NX*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+                SUBSON3(3)=SUBSON2(3)+(NY*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+                              
+                rightv(1)=SUBSON3(1)
+                rightv(2)=SUBSON3(2)*SUBSON3(1)
+                rightv(3)=SUBSON3(3)*SUBSON3(1)
+
+                SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
+                IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
+                rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
+
+                IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                    CTURBR(:)=CTURBL(:)
+                END IF
+            end if
+
+        END IF
+
+    END SELECT
 
 END SUBROUTINE BOUNDARYS2d
 
@@ -3531,43 +3267,43 @@ END SUBROUTINE COMPUTE_EIGENVECTORS
 
 
 SUBROUTINE COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,RVEIGL,GAMMA,ANGLE1,ANGLE2,SRF_SPEEDROT,nx,ny,nz)
-!> @brief
-!> This subroutine computes the Jacobians for the implicit time stepping
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,ICONSIDERED
-REAL,INTENT(IN)::ANGLE1,ANGLE2
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL,SRF_SPEEDROT
-REAL,INTENT(IN)::GAMMA
-REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES),INTENT(INOUT)::EIGVL
-REAL::RS,US,VS,WS,ES,PS,VVS,AS,HS,GAMMAM1,vsd,PHI,A1,A2,A3,OORS,NX,NY,NZ
-INTEGER::IVGT
+    !> @brief
+    !> This subroutine computes the Jacobians for the implicit time stepping
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N,ICONSIDERED
+    REAL,INTENT(IN)::ANGLE1,ANGLE2
+    REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL,SRF_SPEEDROT
+    REAL,INTENT(IN)::GAMMA
+    REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES),INTENT(INOUT)::EIGVL
+    REAL::RS,US,VS,WS,ES,PS,VVS,AS,HS,GAMMAM1,vsd,PHI,A1,A2,A3,OORS,NX,NY,NZ
+    INTEGER::IVGT
 
-A2=GAMMA-1.0D0
-A3=GAMMA-2.0D0
-OORS=1.0D0/RVEIGL(1)
-RS=(RVEIGL(1))
-US=(RVEIGL(2)*OORS)
-VS=(RVEIGL(3)*OORS)
-WS=(RVEIGL(4)*OORS)
-ES=(RVEIGL(5)*OORS)
-PHI=OO2*(A2)*((US*US)+(VS*VS)+(WS*WS))
-A1=GAMMA*ES-PHI
- 
-VVS=NX*US+NY*VS+NZ*WS
+    A2=GAMMA-1.0D0
+    A3=GAMMA-2.0D0
+    OORS=1.0D0/RVEIGL(1)
+    RS=(RVEIGL(1))
+    US=(RVEIGL(2)*OORS)
+    VS=(RVEIGL(3)*OORS)
+    WS=(RVEIGL(4)*OORS)
+    ES=(RVEIGL(5)*OORS)
+    PHI=OO2*(A2)*((US*US)+(VS*VS)+(WS*WS))
+    A1=GAMMA*ES-PHI
+    
+    VVS=NX*US+NY*VS+NZ*WS
 
-IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
-    EIGVL(1,1)=0.0D0-SRF_SPEEDROT(2);EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=NZ	; 		EIGVL(1,5)=0.0D0
-    EIGVL(2,1)=NX*PHI-US*VVS	;EIGVL(2,2)=VVS-A3*NX*US-SRF_SPEEDROT(2)	;EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=NZ*US-A2*NX*WS; EIGVL(2,5)=A2*NX
-    EIGVL(3,1)=NY*PHI-VS*VVS	;EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS-SRF_SPEEDROT(2)	; EIGVL(3,4)=NZ*VS-A2*NY*WS; EIGVL(3,5)=A2*NY
-    EIGVL(4,1)=NZ*PHI-WS*VVS	;EIGVL(4,2)=NX*WS-A2*NZ*US	; EIGVL(4,3)=NY*WS-A2*NZ*VS	; EIGVL(4,4)=VVS-A3*NZ*WS-SRF_SPEEDROT(2); EIGVL(4,5)=A2*NZ
-    EIGVL(5,1)=VVS*(PHI-A1)         ; EIGVL(5,2)=NX*A1-A2*US*VVS	; EIGVL(5,3)=NY*A1-A3*VS*VVS; EIGVL(5,4)=NZ*A1-A2*WS*VVS; EIGVL(5,5)=GAMMA*VVS-SRF_SPEEDROT(2)
-ELSE
-    EIGVL(1,1)=0.0D0		; 		EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=NZ	; 		EIGVL(1,5)=0.0D0
-    EIGVL(2,1)=NX*PHI-US*VVS	; 	EIGVL(2,2)=VVS-A3*NX*US	; 	EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=NZ*US-A2*NX*WS	; EIGVL(2,5)=A2*NX
-    EIGVL(3,1)=NY*PHI-VS*VVS		; EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS	; EIGVL(3,4)=NZ*VS-A2*NY*WS	; EIGVL(3,5)=A2*NY
-    EIGVL(4,1)=NZ*PHI-WS*VVS		; EIGVL(4,2)=NX*WS-A2*NZ*US	; EIGVL(4,3)=NY*WS-A2*NZ*VS	; EIGVL(4,4)=VVS-A3*NZ*WS	; EIGVL(4,5)=A2*NZ
-    EIGVL(5,1)=VVS*(PHI-A1)	;		 EIGVL(5,2)=NX*A1-A2*US*VVS	; EIGVL(5,3)=NY*A1-A3*VS*VVS	; EIGVL(5,4)=NZ*A1-A2*WS*VVS	; EIGVL(5,5)=GAMMA*VVS
-END IF
+    IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
+        EIGVL(1,1)=0.0D0-SRF_SPEEDROT(2);EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=NZ	; 		EIGVL(1,5)=0.0D0
+        EIGVL(2,1)=NX*PHI-US*VVS	;EIGVL(2,2)=VVS-A3*NX*US-SRF_SPEEDROT(2)	;EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=NZ*US-A2*NX*WS; EIGVL(2,5)=A2*NX
+        EIGVL(3,1)=NY*PHI-VS*VVS	;EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS-SRF_SPEEDROT(2)	; EIGVL(3,4)=NZ*VS-A2*NY*WS; EIGVL(3,5)=A2*NY
+        EIGVL(4,1)=NZ*PHI-WS*VVS	;EIGVL(4,2)=NX*WS-A2*NZ*US	; EIGVL(4,3)=NY*WS-A2*NZ*VS	; EIGVL(4,4)=VVS-A3*NZ*WS-SRF_SPEEDROT(2); EIGVL(4,5)=A2*NZ
+        EIGVL(5,1)=VVS*(PHI-A1)         ; EIGVL(5,2)=NX*A1-A2*US*VVS	; EIGVL(5,3)=NY*A1-A3*VS*VVS; EIGVL(5,4)=NZ*A1-A2*WS*VVS; EIGVL(5,5)=GAMMA*VVS-SRF_SPEEDROT(2)
+    ELSE
+        EIGVL(1,1)=0.0D0		; 		EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=NZ	; 		EIGVL(1,5)=0.0D0
+        EIGVL(2,1)=NX*PHI-US*VVS	; 	EIGVL(2,2)=VVS-A3*NX*US	; 	EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=NZ*US-A2*NX*WS	; EIGVL(2,5)=A2*NX
+        EIGVL(3,1)=NY*PHI-VS*VVS		; EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS	; EIGVL(3,4)=NZ*VS-A2*NY*WS	; EIGVL(3,5)=A2*NY
+        EIGVL(4,1)=NZ*PHI-WS*VVS		; EIGVL(4,2)=NX*WS-A2*NZ*US	; EIGVL(4,3)=NY*WS-A2*NZ*VS	; EIGVL(4,4)=VVS-A3*NZ*WS	; EIGVL(4,5)=A2*NZ
+        EIGVL(5,1)=VVS*(PHI-A1)	;		 EIGVL(5,2)=NX*A1-A2*US*VVS	; EIGVL(5,3)=NY*A1-A3*VS*VVS	; EIGVL(5,4)=NZ*A1-A2*WS*VVS	; EIGVL(5,5)=GAMMA*VVS
+    END IF
 
 END SUBROUTINE COMPUTE_JACOBIANSE
 
@@ -3576,52 +3312,52 @@ END SUBROUTINE COMPUTE_JACOBIANSE
 
 
 SUBROUTINE COMPUTE_EIGENVECTORS2D(N,RVEIGL,RVEIGR,EIGVL,EIGVR,GAMMA)
-!> @brief
-!> This subroutine computes the left and right eigenvectors  in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL,RVEIGR
-REAL,INTENT(IN)::GAMMA
-REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES),INTENT(INOUT)::EIGVL,EIGVR
-REAL::RS,US,VS,WS,ES,PS,VVS,AS,HS,GAMMAM1,vsd,G8,s1,s2,vtots,OOR1,OOR2
-INTEGER::IVGT,J,K
+    !> @brief
+    !> This subroutine computes the left and right eigenvectors  in 2D
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL,RVEIGR
+    REAL,INTENT(IN)::GAMMA
+    REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES),INTENT(INOUT)::EIGVL,EIGVR
+    REAL::RS,US,VS,WS,ES,PS,VVS,AS,HS,GAMMAM1,vsd,G8,s1,s2,vtots,OOR1,OOR2
+    INTEGER::IVGT,J,K
 
-EIGVR=ZERO
-GAMMAM1=GAMMA-1.0D0
-OOR1=1.0D0/RVEIGL(1)
-OOR2=1.0D0/RVEIGR(1)
+    EIGVR=ZERO
+    GAMMAM1=GAMMA-1.0D0
+    OOR1=1.0D0/RVEIGL(1)
+    OOR2=1.0D0/RVEIGR(1)
 
-EIGVR=0.0D0
-GAMMAM1=GAMMA-1.0D0
-RS=0.5*(RVEIGL(1)+RVEIGR(1))
-US=0.5*((RVEIGL(2)*OOR1)+(RVEIGR(2)*OOR2))
-VS=0.5*((RVEIGL(3)*OOR1)+(RVEIGR(3)*OOR2))
-ES=0.5*(RVEIGL(4)+RVEIGR(4))
-G8 = gamma - 1.0D0
- 
-VTOTS = US**2 + VS**2
-PS = (GAMMA-1)*(ES - OO2*RS*VTOTS)
-AS = SQRT(GAMMA*PS/RS)
-HS = OO2*VTOTS + (AS**2)/(G8)
+    EIGVR=0.0D0
+    GAMMAM1=GAMMA-1.0D0
+    RS=0.5*(RVEIGL(1)+RVEIGR(1))
+    US=0.5*((RVEIGL(2)*OOR1)+(RVEIGR(2)*OOR2))
+    VS=0.5*((RVEIGL(3)*OOR1)+(RVEIGR(3)*OOR2))
+    ES=0.5*(RVEIGL(4)+RVEIGR(4))
+    G8 = gamma - 1.0D0
+    
+    VTOTS = US**2 + VS**2
+    PS = (GAMMA-1)*(ES - OO2*RS*VTOTS)
+    AS = SQRT(GAMMA*PS/RS)
+    HS = OO2*VTOTS + (AS**2)/(G8)
 
-EIGVR(1,1) =1.D0;      EIGVR(1,2) = 1.D0;                       EIGVR(1,3) =0.D0;  EIGVR(1,4) = 1.D0  
-EIGVR(2,1) =Us-As;     EIGVR(2,2) = Us;                         EIGVR(2,3) =0.D0;  EIGVR(2,4) = Us+As 
-EIGVR(3,1) =Vs;        EIGVR(3,2) = Vs;                         EIGVR(3,3) =1.D0;  EIGVR(3,4) = Vs   
-EIGVR(4,1) =Hs-Us*As;  EIGVR(4,2) = OO2*VTOTS; EIGVR(4,3) =Vs ; EIGVR(4,4) = Hs+Us*As 
+    EIGVR(1,1) =1.D0;      EIGVR(1,2) = 1.D0;                       EIGVR(1,3) =0.D0;  EIGVR(1,4) = 1.D0  
+    EIGVR(2,1) =Us-As;     EIGVR(2,2) = Us;                         EIGVR(2,3) =0.D0;  EIGVR(2,4) = Us+As 
+    EIGVR(3,1) =Vs;        EIGVR(3,2) = Vs;                         EIGVR(3,3) =1.D0;  EIGVR(3,4) = Vs   
+    EIGVR(4,1) =Hs-Us*As;  EIGVR(4,2) = OO2*VTOTS; EIGVR(4,3) =Vs ; EIGVR(4,4) = Hs+Us*As 
 
-S1 = AS/(Gamma-1D0)
-S2 = AS**2/(Gamma-1D0)
+    S1 = AS/(Gamma-1D0)
+    S2 = AS**2/(Gamma-1D0)
 
-EIGVl(1,1) =  HS + S1*(US-AS);    EIGVl(1,2) = -(US+S1);   EIGVl(1,3) = -VS;            EIGVl(1,4) = 1.D0
-EIGVl(2,1) =-2D0*HS+4D0*S2;       EIGVl(2,2) = 2D0*US;     EIGVl(2,3) = 2D0*VS;         EIGVl(2,4) = -2.D0
-EIGVl(3,1) =-2D0*VS*S2;           EIGVl(3,2) =   0.D0;     EIGVl(3,3) = 2D0*S2;         EIGVl(3,4) = 0.D0
-EIGVl(4,1) = HS- S1*(US+AS);      EIGVl(4,2) = -US+S1;     EIGVl(4,3) = - VS;           EIGVl(4,4) = 1.D0 
+    EIGVl(1,1) =  HS + S1*(US-AS);    EIGVl(1,2) = -(US+S1);   EIGVl(1,3) = -VS;            EIGVl(1,4) = 1.D0
+    EIGVl(2,1) =-2D0*HS+4D0*S2;       EIGVl(2,2) = 2D0*US;     EIGVl(2,3) = 2D0*VS;         EIGVl(2,4) = -2.D0
+    EIGVl(3,1) =-2D0*VS*S2;           EIGVl(3,2) =   0.D0;     EIGVl(3,3) = 2D0*S2;         EIGVl(3,4) = 0.D0
+    EIGVl(4,1) = HS- S1*(US+AS);      EIGVl(4,2) = -US+S1;     EIGVl(4,3) = - VS;           EIGVl(4,4) = 1.D0 
 
-DO J=1,4
-	DO K=1,4
-    EIGVl(J,K) = EIGVl(J,K)/(2D0*S2)
-	END DO
-END DO
+    DO J=1,4
+        DO K=1,4
+            EIGVl(J,K) = EIGVl(J,K)/(2D0*S2)
+        END DO
+    END DO
 
 END SUBROUTINE COMPUTE_EIGENVECTORS2D
 
@@ -3630,34 +3366,33 @@ END SUBROUTINE COMPUTE_EIGENVECTORS2D
 
 
 subroutine COMPUTE_JACOBIANSE2D(N,EIGVL,rveigl,GAMMA,ANGLE1,ANGLE2,nx,ny,nz)
-!> @brief
-!> This subroutine computes the Jacobians for the implicit time stepping in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,INTENT(IN)::ANGLE1,ANGLE2,nx,ny,nz
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL
-REAL,INTENT(IN)::GAMMA
-REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES),INTENT(INOUT)::EIGVL
-REAL::RS,US,VS,ES,PS,VVS,AS,HS,GAMMAM1,vsd,PHI,A1,A2,A3,OORS
-INTEGER::IVGT
+    !> @brief
+    !> This subroutine computes the Jacobians for the implicit time stepping in 2D
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    REAL,INTENT(IN)::ANGLE1,ANGLE2,nx,ny,nz
+    REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL
+    REAL,INTENT(IN)::GAMMA
+    REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES),INTENT(INOUT)::EIGVL
+    REAL::RS,US,VS,ES,PS,VVS,AS,HS,GAMMAM1,vsd,PHI,A1,A2,A3,OORS
+    INTEGER::IVGT
 
-A2=GAMMA-1.0D0
-A3=GAMMA-2.0D0
-OORS=1.0D0/RVEIGL(1)
-RS=(RVEIGL(1))
-US=(RVEIGL(2)*OORS)
-VS=(RVEIGL(3)*OORS)
-ES=(RVEIGL(4)*OORS)
-PHI=OO2*(A2)*((US*US)+(VS*VS))
-A1=GAMMA*ES-PHI
+    A2=GAMMA-1.0D0
+    A3=GAMMA-2.0D0
+    OORS=1.0D0/RVEIGL(1)
+    RS=(RVEIGL(1))
+    US=(RVEIGL(2)*OORS)
+    VS=(RVEIGL(3)*OORS)
+    ES=(RVEIGL(4)*OORS)
+    PHI=OO2*(A2)*((US*US)+(VS*VS))
+    A1=GAMMA*ES-PHI
 
-VVS=NX*US+NY*VS
+    VVS=NX*US+NY*VS
 
-EIGVL(1,1)=0.0D0		; 		EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=0.0D0
-EIGVL(2,1)=NX*PHI-US*VVS	; 	EIGVL(2,2)=VVS-A3*NX*US	; 	EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=A2*NX
-EIGVL(3,1)=NY*PHI-VS*VVS		; EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS	; EIGVL(3,4)=A2*NY
-
-EIGVL(4,1)=VVS*(PHI-A1)	;		 EIGVL(4,2)=NX*A1-A2*US*VVS	; EIGVL(4,3)=NY*A1-A2*VS*VVS	; EIGVL(4,4)=GAMMA*VVS
+    EIGVL(1,1)=0.0D0		; 		EIGVL(1,2)=NX	; 		EIGVL(1,3)=NY	; 		EIGVL(1,4)=0.0D0
+    EIGVL(2,1)=NX*PHI-US*VVS	; 	EIGVL(2,2)=VVS-A3*NX*US	; 	EIGVL(2,3)=NY*US-A2*NX*VS	; EIGVL(2,4)=A2*NX
+    EIGVL(3,1)=NY*PHI-VS*VVS		; EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS	; EIGVL(3,4)=A2*NY
+    EIGVL(4,1)=VVS*(PHI-A1)	;		 EIGVL(4,2)=NX*A1-A2*US*VVS	; EIGVL(4,3)=NY*A1-A2*VS*VVS	; EIGVL(4,4)=GAMMA*VVS
 
 END SUBROUTINE COMPUTE_JACOBIANSE2D
 
@@ -3666,8 +3401,8 @@ END SUBROUTINE COMPUTE_JACOBIANSE2D
 
 
 SUBROUTINE EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-!> @brief
-!> This subroutine computes the tubulent eddy viscosity for turbulence models
+  !> @brief
+  !> This subroutine computes the tubulent eddy viscosity for turbulence models
 	IMPLICIT NONE
   REAL,DIMENSION(1:2),INTENT(INOUT)::TURBMV
   real,dimension(1:nof_Variables),INTENT(IN)::leftv,rightv

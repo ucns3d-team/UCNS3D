@@ -1117,10 +1117,8 @@ SUBROUTINE PAD_NAD(N)
                     entropy_new = ENTROPY(rho_new, p_new, gamma)
                     entropy_old = ENTROPY(rho_old, p_old, gamma)
                     
-                    ! IF (ABS(entropy_new - entropy_old) > parameter) THEN
-                    !     NAD_TRUE = 1
-                    ! END IF
-                    helper_value = ABS(entropy_new - entropy_old)/CELL_SIZE
+                    ! helper_value = ABS(entropy_new - entropy_old)/CELL_SIZE
+                    helper_value = ABS(entropy_new - entropy_old)
                     ! write(*,*) helper_value
                     IF (helper_value > parameter) THEN
                         NAD_TRUE = 1
@@ -1171,10 +1169,8 @@ SUBROUTINE PAD_NAD(N)
                     entropy_new = ENTROPY(rho_new, p_new, gamma)
                     entropy_old = ENTROPY(rho_old, p_old, gamma)
                     
-                    ! IF (ABS(entropy_new - entropy_old) > parameter) THEN
-                    !     NAD_TRUE = 1
-                    ! END IF
-                    helper_value = ABS(entropy_new - entropy_old)/CELL_SIZE
+                    ! helper_value = ABS(entropy_new - entropy_old)/CELL_SIZE
+                    helper_value = ABS(entropy_new - entropy_old)
                     ! write(*,*) helper_value
                     IF (helper_value > parameter) THEN
                         NAD_TRUE = 1

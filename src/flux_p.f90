@@ -390,8 +390,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                     IF (DG.EQ.1) THEN
                         !Riemann flux at interface quadrature points times basis
                         RHLLCFLUX(1)=HLLCFLUX(1)
-                        DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N,ICONSIDERED,FACEX,POINTX,WEIGHTS_TEMP,RHLLCFLUX)
-                         
+                        DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N,ICONSIDERED,FACEX,POINTX,WEIGHTS_TEMP,RHLLCFLUX) 
                     ELSE !FV
                         GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
                     END IF
@@ -404,7 +403,6 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 		END IF
 		
 		IF (DG == 1) DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
-
         IF (DG == 1) RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
 		
 	END DO
@@ -520,7 +518,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				      
 				    CALL HLLC_RIEMANN_SOLVER(N,iconsidered, facex,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
 				    CALL ROTATEB(N,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
-
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then  
 				      	RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
 				    end if
@@ -537,7 +534,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				      
 				    CALL RUSANOV_RIEMANN_SOLVER(N,iconsidered,facex,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
 				    CALL ROTATEB(N,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
-
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 				      	RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
 				    end if
@@ -547,7 +543,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					CALL ROTATEB(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 					CALL ROTATEB(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 					CALL ROE_RIEMANN_SOLVER(N,iconsidered, facex,CLEFT,CRIGHT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY,NZ)
-					
 					RHLLCFLUX=HLLCFLUX
 				     				      
 				  CASE(4)			!roe
@@ -555,7 +550,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					CALL ROTATEB(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 					CALL ROTATEB(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 					CALL rROE_RIEMANN_SOLVER(N,iconsidered,facex,CLEFT,CRIGHT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY,NZ)
-					
 					RHLLCFLUX=HLLCFLUX
 				       
 				  CASE(5)			!roe
@@ -563,7 +557,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					CALL ROTATEB(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 					CALL ROTATEB(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 					CALL tROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY,NZ)
-					
 					RHLLCFLUX=HLLCFLUX
 				      
 				END SELECT
@@ -639,8 +632,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
             DG_RHS = ZERO
             DG_RHS_SURF_INTEG = ZERO
             DG_RHS_VOL_INTEG = ZERO
-            
-             DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N,ICONSIDERED)        
+            DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N,ICONSIDERED)        
         END IF
 
 		DO L=1,IELEM(N,I)%IFCA
@@ -667,7 +659,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 								
 			do NGP=1,iqp
 				POINTX = NGP
-				
 				B_CODE=0
 
 				CALL GET_STATES_BOUNDS(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT,CLEFT,CRIGHT)
@@ -692,7 +683,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					
 					CALL HLLC_RIEMANN_SOLVER(N,iconsidered, facex,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
 					CALL ROTATEB(N,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
-
 					if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 						RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
 					end if
@@ -709,7 +699,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					
 					CALL RUSANOV_RIEMANN_SOLVER(N,iconsidered,facex,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
 					CALL ROTATEB(N,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
-
 					if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 						RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
 					end if
@@ -719,7 +708,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					CALL ROTATEB(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 					CALL ROTATEB(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 					CALL ROE_RIEMANN_SOLVER(N,iconsidered, facex,CLEFT,CRIGHT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY,NZ)
-					
 					RHLLCFLUX=HLLCFLUX
 					
 				  CASE(4)		!roe
@@ -732,7 +720,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 						CALL ROTATEB(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 					
 						CALL rROE_RIEMANN_SOLVER(N,iconsidered,facex,CLEFT,CRIGHT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY,NZ)
-					
 						RHLLCFLUX=HLLCFLUX
 					END IF
 							
@@ -740,13 +727,11 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					
 					CALL ROTATEB(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 					CALL ROTATEB(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
-					
 					IF (B_CODE.LE.0)THEN
 						CALL tROE_RIEMANN_SOLVER(N,CLEFT,CRIGHT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY,NZ)
 					ELSE
 						CALL ROE_RIEMANN_SOLVER(N,iconsidered, facex,CLEFT,CRIGHT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY,NZ)
 					END IF
-					
 					RHLLCFLUX=HLLCFLUX
 					
 				END SELECT
@@ -911,7 +896,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				    CALL HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
 				    CALL ROTATEB2d(N,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-				      
 				    	RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
 				    end if
 
@@ -928,9 +912,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				      
 				    CALL RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
                     CALL ROTATEB2d(N,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
-				      
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-				      
 				      	RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
 				    end if
 
@@ -939,7 +921,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				    CALL ROTATEB2d(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 				    CALL ROTATEB2d(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 				    CALL ROE_RIEMANN_SOLVER2d(N,CLEFT,CRIGHT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY)
-				      
 				    RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
                                                         
                   CASE(4)			!roe
@@ -947,7 +928,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				    CALL ROTATEB2d(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 				    CALL ROTATEB2d(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 				    CALL RROE_RIEMANN_SOLVER2d(N,Cleft,Cright,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY,b_code)
-				      
 				    RHLLCFLUX=HLLCFLUX
 				      
 				END SELECT  
@@ -966,7 +946,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 
 				IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) THEN 
 					if (icoupleturb.eq.0) then	!first order upwind flux
-
                     	NORMS=0.5*(CLEFT_ROT(2)+CRIGHT_ROT(2))
 						rHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=0.5*((norms*(cturbl(:)+cturbr(:)))+(abs(norms)*(cturbl(:)-(cturbr(:)))))
 					end if
@@ -987,7 +966,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+&
 				GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)    
 			END IF
-				! end if
+			! end if
 		END DO
 
 		IF (MULTISPECIES.EQ.1)THEN
@@ -1018,7 +997,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
             DG_RHS = ZERO
             DG_RHS_SURF_INTEG = ZERO
             DG_RHS_VOL_INTEG = ZERO
-            
             DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N,ICONSIDERED)  
         END IF
 
@@ -1035,6 +1013,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 			iqp=qp_line_n
 			GODFLUX2=ZERO
 			MP_SOURCE2=ZERO
+
 			do NGP=1,iqp
 				POINTX=NGP
 				FACEX=L
@@ -1042,12 +1021,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				CALL GET_STATES_BOUNDS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT,CLEFT,CRIGHT)
 
 				CALL ROTATEF2d(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-				CALL ROTATEF2d(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem						   
-						  
+				CALL ROTATEF2d(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem						     
 						  
 				IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-					LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  
+					LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)  
 					CALL LMACHT2d(N,LEFTV,RIGHTV)
 					CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);	  
 				END IF
@@ -1063,7 +1040,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				      
 				    CALL HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
 					CALL ROTATEB2d(N,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
-					
 					if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 						RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
 					end if
@@ -1073,7 +1049,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				    CALL HLL_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
 				    CALL ROTATEB2d(N,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-
 				    	RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
 				    end if
 				      
@@ -1081,9 +1056,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				      
 				    CALL RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
 				    CALL ROTATEB2d(N,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
-				      
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-				      
 				    	RHLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
 				    end if
 				      
@@ -1092,23 +1065,19 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				    CALL ROTATEB2d(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 					CALL ROTATEB2d(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 					CALL ROE_RIEMANN_SOLVER2d(N,CLEFT,CRIGHT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY)
-			
 					RHLLCFLUX=HLLCFLUX
 
 				  CASE(4)			!roe
 				      
 				    IF ((B_CODE.le.0))THEN
-				      
 						CALL ROTATEB2d(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 						CALL ROTATEB2d(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 				
 						CALL RROE_RIEMANN_SOLVER2d(N,Cleft,Cright,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY,b_code)
 						RHLLCFLUX=HLLCFLUX
 				    ELSE
-				      
 						CALL RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
 						CALL ROTATEB2d(N,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
- 
 				    END IF
 				      
 				END SELECT
@@ -1158,10 +1127,8 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 		IF (DG == 1) THEN
 			DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
 			RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS  
-			
 			IF (MULTISPECIES.EQ.1)THEN
 				RHS(I)%VALdg(1,7)=RHS(I)%VALdg(1,7)-(U_C(I)%VAL(1,7)*MP_SOURCE3)
-
 			END IF	
 		END IF
                          
@@ -1295,7 +1262,6 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 						EDDYFL(10:12)=LCVGRAD(3,1:3);EDDYFL(13:15)=LCVGRAD_T(1,1:3)
 						EDDYFL(16:18)=LCVGRAD_T(2,1:3)
 						
-						
 						EDDYFR(1)=IELEM(N,I)%WALLDIST;EDDYFR(2)=CTURBR(1);EDDYFR(3)=CTURBR(2)
 						EDDYFR(4:6)= RCVGRAD(1,1:3);EDDYFR(7:9)=RCVGRAD(2,1:3);EDDYFR(10:12)=RCVGRAD(3,1:3)
 						EDDYFR(13:15)=RCVGRAD_T(1,1:3);EDDYFL(16:18)=RCVGRAD_T(2,1:3)
@@ -1335,48 +1301,38 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*WZ
 				! TAU_ZZ
 				TAUL(3,3) = (4.0D0/3.0D0)*WZ - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY
-
 				! tau_xy
 				TAUL(1,2) = (UY + VX);TAUL(2,1) = TAUL(1,2)
-
 				! TAU_XZ
 				TAUL(1,3) = (WX + UZ);TAUL(3,1) = TAUL(1,3)
-
-					  
-					  vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
-                                        nall(1)=nx;nall(2)=ny;nall(3)=nz
-                                      LCVGRAD(1,1:3)=((LCVGRAD(1,1:3)+rCVGRAD(1,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(2)-leftv(2)))
-					   LCVGRAD(2,1:3)=((LCVGRAD(2,1:3)+rCVGRAD(2,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(3)-leftv(3)))
-					  LCVGRAD(3,1:3)=((LCVGRAD(3,1:3)+rCVGRAD(3,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(4)-leftv(4)))
-                                        LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/(rightv(1)*R_gas))-(leftv(5)/(leftv(1)*R_gas))))
+  
+				vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
+                nall(1)=nx;nall(2)=ny;nall(3)=nz
+                LCVGRAD(1,1:3)=((LCVGRAD(1,1:3)+rCVGRAD(1,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(2)-leftv(2)))
+				LCVGRAD(2,1:3)=((LCVGRAD(2,1:3)+rCVGRAD(2,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(3)-leftv(3)))
+				LCVGRAD(3,1:3)=((LCVGRAD(3,1:3)+rCVGRAD(3,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(4)-leftv(4)))
+                LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/(rightv(1)*R_gas))-(leftv(5)/(leftv(1)*R_gas))))
 				       				  
-					  if (turbulence .eq. 1) then
-					  Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(4,1:3))
-					  else
-					  Q(1:3) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(4,1:3))
-					  end if
+				if (turbulence .eq. 1) then
+					Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(4,1:3))
+				else
+					Q(1:3) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(4,1:3))
+				end if
 					  
-					  FXV(5) = FXV(5) - Q(1);FYV(5) = FYV(5) - Q(2);FZV(5) = FZV(5) - Q(3)
-							
+				FXV(5) = FXV(5) - Q(1);FYV(5) = FYV(5) - Q(2);FZV(5) = FZV(5) - Q(3)
+								 
+				!LEFT STATE DERIVATIVES
 					 
-					  !LEFT STATE DERIVATIVES
-					 
-					  ! DETERMINE TAUL!!
-					   UX = LCVGRAD(1,1); UY = LCVGRAD(1,2); UZ = LCVGRAD(1,3);
-					  VX = LCVGRAD(2,1); VY = LCVGRAD(2,2); VZ = LCVGRAD(2,3);
-					  WX = LCVGRAD(3,1); WY = LCVGRAD(3,2); WZ = LCVGRAD(3,3);
-					  
-					  
-					  
-                                
-					  
-					  
-					  ! TAU_XX
-					  TAUL(1,1) = (4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY - (2.0D0/3.0D0)*WZ
-					  ! TAU_YY
-					  TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*WZ
-					  ! TAU_ZZ
-					  TAUL(3,3) = (4.0D0/3.0D0)*WZ - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY
+				! DETERMINE TAUL!!
+				UX = LCVGRAD(1,1); UY = LCVGRAD(1,2); UZ = LCVGRAD(1,3);
+				VX = LCVGRAD(2,1); VY = LCVGRAD(2,2); VZ = LCVGRAD(2,3);
+				WX = LCVGRAD(3,1); WY = LCVGRAD(3,2); WZ = LCVGRAD(3,3);
+				! TAU_XX
+				TAUL(1,1) = (4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY - (2.0D0/3.0D0)*WZ
+				! TAU_YY
+				TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*WZ
+				! TAU_ZZ
+				TAUL(3,3) = (4.0D0/3.0D0)*WZ - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY
 
 				! NOW ADDITION INTO MOMENTUM FLUXES
 				DO KC=2,4
@@ -1399,7 +1355,6 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 				if (dg.eq.1)then
 					RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
-
 					DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N,ICONSIDERED,FACEX,POINTX,WEIGHTS_TEMP,RHLLCFLUX)
 				else
 					GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
@@ -1439,13 +1394,11 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 		if (DG.eq.1)then
 			DG_RHS = DG_RHS_SURF_INTEG
-
 			RHS(I)%VALDG = RHS(I)%VALDG - DG_RHS
 		end if
 
 	END DO
 	!$OMP END DO
-	
 	
 	!$OMP DO
 	DO II=1,NOF_BOUNDED
@@ -1484,7 +1437,6 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 			IF( DG == 1) WEIGHTS_DG = WEIGHTS_TEMP
 				  
 			GODFLUX2=ZERO
-				  
 		  	b_code=0
 								  	  
 			do NGP=1,iqp
@@ -1561,13 +1513,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*WZ
 				! TAU_ZZ
 				TAUL(3,3) = (4.0D0/3.0D0)*WZ - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY
-
 				! tau_xy
 				TAUL(1,2) = (UY + VX);TAUL(2,1) = TAUL(1,2)
-
 				! TAU_XZ
 				TAUL(1,3) = (WX + UZ);TAUL(3,1) = TAUL(1,3)
-
 				! TAU_YZ
 				TAUL(2,3) = (VZ + WY);TAUL(3,2) = TAUL(2,3)
 				!END DETERMINE TAUL
@@ -1592,71 +1541,62 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				V12   = OO2*(CLEFT(3)+CRIGHT(3))/RHO12
 				W12   = OO2*(CLEFT(4)+CRIGHT(4))/RHO12
 
-					 if ((b_Code.lt.5).and.(b_Code.gt.0))then
-					  damp=zero
- 					  end if
+				if ((b_Code.lt.5).and.(b_Code.gt.0))then
+					damp=zero
+ 				end if
 
- 					  if (b_code.eq.4)then	!adiabatic wall
- 					  if (ielem(n,i)%ggs.eq.1)then
- 					  if (thermal.eq.0)then
- 					  tempx_l=0.0d0
- 					  rtempx_l=0.0d0
- 					  tempx_l(2)=lCVGRAD(4,1)
- 					  tempx_l(3)=lCVGRAD(4,2)
- 					  tempx_l(4)=lCVGRAD(4,3)
- 					  CALL ROTATEF(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
- 					  rtempx_l(2)=-rtempx_l(2)
- 					  CALL ROTATEb(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
- 					  lCVGRAD(4,1)=tempx_l(2)
- 					  lCVGRAD(4,2)=tempx_l(3)
-					  lCVGRAD(4,3)=tempx_l(4)
- 					  rCVGRAD(4,1:3)=lCVGRAD(4,1:3)
-					  end if
-					  end if
- 					  end if
-
-
-					  
-					  vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
-                                        nall(1)=nx;nall(2)=ny;nall(3)=nz
-                                      LCVGRAD(1,1:3)=((LCVGRAD(1,1:3)+rCVGRAD(1,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(2)-leftv(2)))
-					   LCVGRAD(2,1:3)=((LCVGRAD(2,1:3)+rCVGRAD(2,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(3)-leftv(3)))
-					  LCVGRAD(3,1:3)=((LCVGRAD(3,1:3)+rCVGRAD(3,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(4)-leftv(4)))
-                                        LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/(rightv(1)*R_gas))-(leftv(5)/(leftv(1)*R_gas))))
-				       				  
-					  if (turbulence .eq. 1) then
-					  Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(4,1:3))
-					  else
-					  Q(1:3) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(4,1:3))
-					  end if
-					  
-					  FXV(5) = FXV(5) - Q(1);FYV(5) = FYV(5) - Q(2);FZV(5) = FZV(5) - Q(3)
-							
-					 
-					  !LEFT STATE DERIVATIVES
-					 
-					  ! DETERMINE TAUL!!
-					   UX = LCVGRAD(1,1); UY = LCVGRAD(1,2); UZ = LCVGRAD(1,3);
-					  VX = LCVGRAD(2,1); VY = LCVGRAD(2,2); VZ = LCVGRAD(2,3);
-					  WX = LCVGRAD(3,1); WY = LCVGRAD(3,2); WZ = LCVGRAD(3,3);
-					  
-					  
-					  
-                                
-					  
-					  
-					  ! TAU_XX
-					  TAUL(1,1) = (4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY - (2.0D0/3.0D0)*WZ
-					  ! TAU_YY
-					  TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*WZ
-					  ! TAU_ZZ
-					  TAUL(3,3) = (4.0D0/3.0D0)*WZ - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY
+				if (b_code.eq.4)then	!adiabatic wall
+					if (ielem(n,i)%ggs.eq.1)then
+						if (thermal.eq.0)then
+							tempx_l=0.0d0
+							rtempx_l=0.0d0
+							tempx_l(2)=lCVGRAD(4,1)
+							tempx_l(3)=lCVGRAD(4,2)
+							tempx_l(4)=lCVGRAD(4,3)
+							CALL ROTATEF(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
+							rtempx_l(2)=-rtempx_l(2)
+							CALL ROTATEb(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
+							lCVGRAD(4,1)=tempx_l(2)
+							lCVGRAD(4,2)=tempx_l(3)
+							lCVGRAD(4,3)=tempx_l(4)
+							rCVGRAD(4,1:3)=lCVGRAD(4,1:3)
+						end if
+					end if
+				end if
+ 
+				vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
+				nall(1)=nx;nall(2)=ny;nall(3)=nz
+				LCVGRAD(1,1:3)=((LCVGRAD(1,1:3)+rCVGRAD(1,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(2)-leftv(2)))
+				LCVGRAD(2,1:3)=((LCVGRAD(2,1:3)+rCVGRAD(2,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(3)-leftv(3)))
+				LCVGRAD(3,1:3)=((LCVGRAD(3,1:3)+rCVGRAD(3,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(4)-leftv(4)))
+				LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/(rightv(1)*R_gas))-(leftv(5)/(leftv(1)*R_gas))))
+								
+				if (turbulence .eq. 1) then
+					Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(4,1:3))
+				else
+					Q(1:3) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(4,1:3))
+				end if
+				
+				FXV(5) = FXV(5) - Q(1);FYV(5) = FYV(5) - Q(2);FZV(5) = FZV(5) - Q(3)
+					
+				!LEFT STATE DERIVATIVES
+	
+				! DETERMINE TAUL!!
+				UX = LCVGRAD(1,1); UY = LCVGRAD(1,2); UZ = LCVGRAD(1,3);
+				VX = LCVGRAD(2,1); VY = LCVGRAD(2,2); VZ = LCVGRAD(2,3);
+				WX = LCVGRAD(3,1); WY = LCVGRAD(3,2); WZ = LCVGRAD(3,3);
+				
+				! TAU_XX
+				TAUL(1,1) = (4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY - (2.0D0/3.0D0)*WZ
+				! TAU_YY
+				TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*WZ
+				! TAU_ZZ
+				TAUL(3,3) = (4.0D0/3.0D0)*WZ - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY
 
 				HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)	
 
 				if (dg.eq.1)then
 					RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
-
 					DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N,ICONSIDERED,FACEX,POINTX,WEIGHTS_TEMP,RHLLCFLUX)
 				else
 				    GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
@@ -1686,8 +1626,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 					GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)+&
 					  	(HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
-				END IF
-				      
+				END IF   
 				      
 			END DO	  
 				    
@@ -1718,8 +1657,8 @@ END SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE
 
 
 SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
-!> @brief
-!> This subroutine computes the diffusive fluxes for Euler-Navier-Stokes Equations in 2D
+	!> @brief
+	!> This subroutine computes the diffusive fluxes for Euler-Navier-Stokes Equations in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2,DG_VOL_REC,RHLLCFLUX,HLLCFLUX
@@ -1739,368 +1678,45 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 	REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
 	REAL,DIMENSION(1:4)::VISCL,LAML
 	REAL,DIMENSION(1:2)::TURBMV
-    REAL,DIMENSION(1)::ETVM
-    REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-    REAL,DIMENSION(1:nof_Variables-1,1:dims)::LCVGRAD,RCVGRAD
+	REAL,DIMENSION(1)::ETVM
+	REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+	REAL,DIMENSION(1:nof_Variables-1,1:dims)::LCVGRAD,RCVGRAD
 	REAL,DIMENSION(turbulenceequations+passivescalar,1:dims)::LCVGRAD_T,RCVGRAD_T
 	real,dimension(4)::fxv,fyv,fzv,tem_pn,rtem_pn
 	real,dimension(2,2)::taul,taur,TAU
 	REAL,DIMENSION(2)::Q,NALL
 	REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,RHO12,U12,V12,W12,damp,vdamp  
 	REAL,allocatable,dimension(:,:)::DG_RHS, DG_RHS_VOL_INTEG, DG_RHS_SURF_INTEG
-
-
-    IF (DG.EQ.1)THEN
+	
+	IF (DG.EQ.1)THEN
 		allocate(DG_RHS(1:NUM_DG_DOFS,1:NOF_VARIABLES), DG_RHS_VOL_INTEG(1:NUM_DG_DOFS,1:NOF_VARIABLES), DG_RHS_SURF_INTEG(1:NUM_DG_DOFS,1:NOF_VARIABLES))
 	END IF
-
+			
 	KMAXE=XMPIELRANK(N)
-	
+		
 	CALL QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
-	
+		
 	WEIGHTS_temp(1:QP_line_n)=WEQUA2D(1:QP_line_n)
 	if (Reduce_comp.eq.1)then
 		WEIGHTS_temp=1.0d0
 	end if
-	
+		
 	!$OMP DO
 	DO II=1,NOF_INTERIOR	!for all the interior elements
 		I=EL_INT(II)
 		ICONSIDERED=I
-		   
+			   
 		IF (DG.EQ.1) THEN
 			DG_RHS = ZERO
 			DG_RHS_SURF_INTEG = ZERO
 			DG_RHS_VOL_INTEG = ZERO
 		END IF
-
+	
 		DO L=1,IELEM(N,I)%IFCA !for all their faces
 			! IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
-            damp=LAMX
-            IF( BR2_YN == 2) DAMP = 0.0D0
-                    
-			GODFLUX2=ZERO
-			ANGLE1=IELEM(N,I)%FACEANGLEX(L)
-			ANGLE2=IELEM(N,I)%FACEANGLEY(L)
-			NX=angle1
-			NY=angle2
-			
-					
-						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  CALL ROTATEF2d(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF2d(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT2d(N,leftv,rightv)
-						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						  CALL ROTATEB2d(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
-						  CALL ROTATEB2d(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
-						  END IF
-						  
-				      
-				        LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
-					CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-					CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
-				     
-					    IF (TURBULENCE.EQ.1)THEN
-						      IF (TURBULENCEMODEL.EQ.1)THEN
-							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-						      END IF
-						      IF (TURBULENCEMODEL.EQ.2)THEN
-							  EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
-							  EDDYFL(4:5)= LCVGRAD(1,1:2);EDDYFL(6:7)=LCVGRAD(2,1:2)
-							  EDDYFL(8:9)=LCVGRAD_T(1,1:2)
-							  EDDYFL(10:11)=LCVGRAD_T(2,1:2)
-							    
-							    
-							  EDDYFR(1)=IELEM(N,I)%WALLDIST;EDDYFR(2)=CTURBR(1);EDDYFR(3)=CTURBR(2)
-							  EDDYFR(4:5)= RCVGRAD(1,1:2);EDDYFR(6:7)=RCVGRAD(2,1:2)
-							  EDDYFR(8:9)=RCVGRAD_T(1,1:2);EDDYFL(10:11)=RCVGRAD_T(2,1:2)
-							    Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-						      END IF
-					  END IF
-				       
-				       
-
-
-
-                                     TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
-					    FXV=ZERO;FYV=ZERO;FZV=ZERO;RHO12 =ZERO;
-					  U12=ZERO;V12=ZERO;W12=ZERO 
-				       
-! 				      
-					  
-					  vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
-                                        nall(1)=nx;nall(2)=ny
-					  				
-                                      LCVGRAD(1,1:2)=((LCVGRAD(1,1:2)+rCVGRAD(1,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(2)-leftv(2)))
-					   LCVGRAD(2,1:2)=((LCVGRAD(2,1:2)+rCVGRAD(2,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(3)-leftv(3)))
-					  LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/(rightv(1)*R_gas))-(leftv(4)/(leftv(1)*R_gas))))
-                                        
-				       
-					  
-					  
-					  
-					  
-					   
-				       				  
-					  if (turbulence .eq. 1) then
-					  Q(1:2)=  - OO2* ((LAML(3) +(LAML(4)))*lCVGRAD(3,1:2))
-					  else
-					  Q(1:2)=  - OO2* ((LAML(1) +(LAML(2)))*lCVGRAD(3,1:2))
-					  end if
-					  
-					  FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
-							
-					 
-					  !LEFT STATE DERIVATIVES
-					  UX = LCVGRAD(1,1); UY = LCVGRAD(1,2)
-					  VX = LCVGRAD(2,1); VY = LCVGRAD(2,2)
-					  ! DETERMINE TAUL!!
-					 
-
-					  ! TAU_XX
-					  TAUL(1,1) = (4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY 
-					  ! TAU_YY
-					  TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX 
-					  ! TAU_ZZ
-					 
-
-					  ! tau_xy
-					  TAUL(1,2) = (UY + VX);TAUL(2,1) = TAUL(1,2)
-
-					  
-					 ! AVERAGE AND MULTIPLAY BY VISCOSITY
-					  if ( turbulence .eq. 1) then
-					    TAU = OO2*(( (VISCL(1)+VISCL(3)))+( (VISCL(2)+VISCL(4))))*taul
-					  else
-					    TAU = OO2*((VISCL(1))+(VISCL(2)))*taul
-					  end if
-
-					    ! NOW ADDITION INTO MOMENTUM FLUXES
-					  DO KC=2,3
-					      FXV(KC) = FXV(KC) + TAU(1,KC-1)
-					      FYV(KC) = FYV(KC) + TAU(2,KC-1)
-					      
-					  ENDDO
-
-					    ! COMPUTE INTERFACE VELOCITIES
-					  RHO12 = OO2*(CLEFT(1)+CRIGHT(1))
-					  U12   = OO2*(CLEFT(2)+CRIGHT(2))/RHO12
-					  V12   = OO2*(CLEFT(3)+CRIGHT(3))/RHO12
-					  
-
-					  FXV(4) = FXV(4) + U12*TAU(1,1) + V12*TAU(1,2) 
-					  FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2) 
-! 					 
-					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)	
-		
-					  if (dg.eq.1)then
-
-					  RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
+			damp=LAMX
+			IF( BR2_YN == 2) DAMP = 0.0D0
 						
-						DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N,ICONSIDERED,FACEX,POINTX,WEIGHTS_TEMP,RHLLCFLUX)
-  
-						else
-					  
-				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
-						end if
-				     
-				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-					  IF (TURBULENCE.EQ.1)THEN
-					  HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR) =&
-					  ((OO2*(VISCL(1)+VISCL(2)))+(OO2*(VISCL(3)+VISCL(4))))*&
-		    (((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))*OO2*NX)+&
-		    ((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2))*OO2*NY))
-					  ELSE
-					  HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR) =&
-					  ((OO2*(VISCL(1)+VISCL(2))))*&
-		    (((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))*OO2*NX)+&
-		    ((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2))*OO2*NY))
-					  
-					  END IF
-						IF (TURBULENCEMODEL.EQ.1)THEN
-						HLLCFLUX(5)=HLLCFLUX(5)/SIGMA
-						END IF					  
-					  GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)+&
-					  (HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
-				      END IF
-				      
-				      
-				  END DO
-				  
-				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
-
-				    
-				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
-				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
-				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
-
- 				    end if
-		    END DO
-
-			IF (DG.eq.1)then
-
-
-
-				DG_RHS = DG_RHS_SURF_INTEG
-
-				
-			do NGP=1,iqp	!for all the gaussian quadrature points
-				facex=L
-				POINTX=NGP
-
-				CALL CALCULATE_INTERIOR_VISCOUS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT,CLEFT,CRIGHT,LCVGRAD,RCVGRAD,LCVGRAD_T,RCVGRAD_T)
-
-				IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-					CALL ROTATEF2d(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-					CALL ROTATEF2d(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-					LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-					CALL LMACHT2d(N,leftv,rightv)
-					CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-					CALL ROTATEB2d(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
-					CALL ROTATEB2d(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
-				END IF
-						
-				LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
-				CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-				CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
-					
-				IF (TURBULENCE.EQ.1)THEN
-					IF (TURBULENCEMODEL.EQ.1)THEN
-						TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-						Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-					END IF
-					IF (TURBULENCEMODEL.EQ.2)THEN
-						EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
-						EDDYFL(4:5)= LCVGRAD(1,1:2);EDDYFL(6:7)=LCVGRAD(2,1:2)
-						EDDYFL(8:9)=LCVGRAD_T(1,1:2)
-						EDDYFL(10:11)=LCVGRAD_T(2,1:2)
-							
-						EDDYFR(1)=IELEM(N,I)%WALLDIST;EDDYFR(2)=CTURBR(1);EDDYFR(3)=CTURBR(2)
-						EDDYFR(4:5)= RCVGRAD(1,1:2);EDDYFR(6:7)=RCVGRAD(2,1:2)
-						EDDYFR(8:9)=RCVGRAD_T(1,1:2);EDDYFL(10:11)=RCVGRAD_T(2,1:2)
-						Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-					END IF
-				END IF
-					
-				TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
-				FXV=ZERO;FYV=ZERO;FZV=ZERO;RHO12 =ZERO;
-				U12=ZERO;V12=ZERO;W12=ZERO 
-									
-				vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
-				nall(1)=nx;nall(2)=ny
-								
-				LCVGRAD(1,1:2)=((LCVGRAD(1,1:2)+rCVGRAD(1,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(2)-leftv(2)))
-				LCVGRAD(2,1:2)=((LCVGRAD(2,1:2)+rCVGRAD(2,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(3)-leftv(3)))
-				LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/rightv(1))-(leftv(4)/leftv(1))))
-									
-				if (turbulence .eq. 1) then
-					Q(1:2)=  - OO2* ((LAML(3) +(LAML(4)))*lCVGRAD(3,1:2))
-				else
-					Q(1:2)=  - OO2* ((LAML(1) +(LAML(2)))*lCVGRAD(3,1:2))
-				end if
-					
-				FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
-						
-				!LEFT STATE DERIVATIVES
-				UX = LCVGRAD(1,1); UY = LCVGRAD(1,2)
-				VX = LCVGRAD(2,1); VY = LCVGRAD(2,2)
-				! DETERMINE TAUL!!
-					
-				! TAU_XX
-				TAUL(1,1) = (4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY 
-				! TAU_YY
-				TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX 
-				! TAU_ZZ
-					
-				! tau_xy
-				TAUL(1,2) = (UY + VX);TAUL(2,1) = TAUL(1,2)
-				
-				! AVERAGE AND MULTIPLAY BY VISCOSITY
-				if ( turbulence .eq. 1) then
-					TAU = OO2*(( (VISCL(1)+VISCL(3)))+( (VISCL(2)+VISCL(4))))*taul
-				else
-					TAU = OO2*((VISCL(1))+(VISCL(2)))*taul
-				end if
-
-				! NOW ADDITION INTO MOMENTUM FLUXES
-				DO KC=2,3
-					FXV(KC) = FXV(KC) + TAU(1,KC-1)
-					FYV(KC) = FYV(KC) + TAU(2,KC-1)      
-				ENDDO
-
-				! COMPUTE INTERFACE VELOCITIES
-					RHO12 = OO2*(CLEFT(1)+CRIGHT(1))
-				U12   = OO2*(CLEFT(2)+CRIGHT(2))/RHO12
-				V12   = OO2*(CLEFT(3)+CRIGHT(3))/RHO12
-
-				FXV(4) = FXV(4) + U12*TAU(1,1) + V12*TAU(1,2) 
-				FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2) 
-				
-				HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)	
-
-				if (dg.eq.1)then
-					RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
-					
-					DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N,ICONSIDERED,FACEX,POINTX,WEIGHTS_TEMP,RHLLCFLUX)
-				else
-					GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
-				end if
-					
-				IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-					IF (TURBULENCE.EQ.1)THEN
-						HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR) =&
-							((OO2*(VISCL(1)+VISCL(2)))+(OO2*(VISCL(3)+VISCL(4))))*&
-							(((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))*OO2*NX)+&
-							((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2))*OO2*NY))
-					ELSE
-						HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR) =&
-							((OO2*(VISCL(1)+VISCL(2))))*&
-							(((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))*OO2*NX)+&
-							((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2))*OO2*NY))
-					END IF
-					IF (TURBULENCEMODEL.EQ.1)THEN
-						HLLCFLUX(5)=HLLCFLUX(5)/SIGMA
-					END IF					  
-					GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)+&
-						(HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
-				END IF
-					
-			END DO
-				
-			RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
-
-			if ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
-				RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
-				GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
-			end if
-		END DO
-
-		if (DG.eq.1)then
-			DG_RHS = DG_RHS_SURF_INTEG
-
-			RHS(I)%VALDG = RHS(I)%VALDG - DG_RHS
-		end if
-
-	END DO
-	!$OMP END DO
-	
-	!$OMP DO
-	DO II=1,NOF_BOUNDED
-		I=EL_BND(II)
-		ICONSIDERED=I	
-		IF (DG.EQ.1) THEN
-			DG_RHS = ZERO
-			DG_RHS_SURF_INTEG = ZERO
-			DG_RHS_VOL_INTEG = ZERO
-		END IF
-		        
-		DO L=1,IELEM(N,I)%IFCA
-            damp=lamx
-            IF (BR2_YN == 2) DAMP = 0.0D0
-
-			b_code=0
 			GODFLUX2=ZERO
 			ANGLE1=IELEM(N,I)%FACEANGLEX(L)
 			ANGLE2=IELEM(N,I)%FACEANGLEY(L)
@@ -2108,13 +1724,12 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 			NY=angle2
 			
 			iqp=qp_line_n
-				
-			do NGP=1,iqp
-				FACEX=L
+			do NGP=1,iqp	!for all the gaussian quadrature points
+				facex=L
 				POINTX=NGP
 
-				CALL CALCULATE_BOUNDED_VISCOUS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT,CLEFT,CRIGHT,LCVGRAD,RCVGRAD,LCVGRAD_T,RCVGRAD_T)
-
+				CALL CALCULATE_INTERIOR_VISCOUS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT,CLEFT,CRIGHT,LCVGRAD,RCVGRAD,LCVGRAD_T,RCVGRAD_T)
+	
 				IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 					CALL ROTATEF2d(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 					CALL ROTATEF2d(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
@@ -2123,8 +1738,8 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 					CALL ROTATEB2d(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 					CALL ROTATEB2d(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
-				END IF	  
-					
+				END IF
+							    
 				LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
 				CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 				CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
@@ -2133,17 +1748,13 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					IF (TURBULENCEMODEL.EQ.1)THEN
 						TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
 						Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-						IF (B_CODE.EQ.4)THEN
-							VISCL(3:4)=ZERo
-							LAML(3:4)=ZERO
-						END IF
 					END IF
 					IF (TURBULENCEMODEL.EQ.2)THEN
 						EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
 						EDDYFL(4:5)= LCVGRAD(1,1:2);EDDYFL(6:7)=LCVGRAD(2,1:2)
 						EDDYFL(8:9)=LCVGRAD_T(1,1:2)
 						EDDYFL(10:11)=LCVGRAD_T(2,1:2)
-						
+							
 						EDDYFR(1)=IELEM(N,I)%WALLDIST;EDDYFR(2)=CTURBR(1);EDDYFR(3)=CTURBR(2)
 						EDDYFR(4:5)= RCVGRAD(1,1:2);EDDYFR(6:7)=RCVGRAD(2,1:2)
 						EDDYFR(8:9)=RCVGRAD_T(1,1:2);EDDYFL(10:11)=RCVGRAD_T(2,1:2)
@@ -2154,25 +1765,22 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
 				FXV=ZERO;FYV=ZERO;FZV=ZERO;RHO12 =ZERO;
 				U12=ZERO;V12=ZERO;W12=ZERO 
-					
-				if ((b_Code.lt.5).and.(b_Code.gt.0))then
-					damp=zero
-				end if
-					
+						     
 				vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
 				nall(1)=nx;nall(2)=ny
+				
 				LCVGRAD(1,1:2)=((LCVGRAD(1,1:2)+rCVGRAD(1,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(2)-leftv(2)))
 				LCVGRAD(2,1:2)=((LCVGRAD(2,1:2)+rCVGRAD(2,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(3)-leftv(3)))
-				LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/rightv(1))-(leftv(4)/leftv(1))))
-									
+				LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/(rightv(1)*R_gas))-(leftv(4)/(leftv(1)*R_gas))))
+						   			
 				if (turbulence .eq. 1) then
 					Q(1:2)=  - OO2* ((LAML(3) +(LAML(4)))*lCVGRAD(3,1:2))
 				else
 					Q(1:2)=  - OO2* ((LAML(1) +(LAML(2)))*lCVGRAD(3,1:2))
 				end if
 				
-				FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)		
-					 
+				FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
+					
 				!LEFT STATE DERIVATIVES
 				UX = LCVGRAD(1,1); UY = LCVGRAD(1,2)
 				VX = LCVGRAD(2,1); VY = LCVGRAD(2,2)
@@ -2182,11 +1790,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				TAUL(1,1) = (4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY 
 				! TAU_YY
 				TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX 
-				! TAU_ZZ
-				
 				! tau_xy
 				TAUL(1,2) = (UY + VX);TAUL(2,1) = TAUL(1,2)
-	  
+		  
 				! AVERAGE AND MULTIPLAY BY VISCOSITY
 				if ( turbulence .eq. 1) then
 					TAU = OO2*(( (VISCL(1)+VISCL(3)))+( (VISCL(2)+VISCL(4))))*taul
@@ -2207,195 +1813,236 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				
 				FXV(4) = FXV(4) + U12*TAU(1,1) + V12*TAU(1,2) 
 				FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2) 
-				
-				HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)			
-					  
+	 					 
+				HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)	
+			
 				if (dg.eq.1)then
 					RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
-
 					DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N,ICONSIDERED,FACEX,POINTX,WEIGHTS_TEMP,RHLLCFLUX)
 				else
-				    GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+					GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
 				end if
-				     
-					    IF (TURBULENCE.EQ.1)THEN
-						      IF (TURBULENCEMODEL.EQ.1)THEN
-							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-						      IF (B_CODE.EQ.4)THEN
-						      VISCL(3:4)=ZERo
-						      LAML(3:4)=ZERO
-						      END IF
-						      END IF
-						      IF (TURBULENCEMODEL.EQ.2)THEN
-							  EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
-							  EDDYFL(4:5)= LCVGRAD(1,1:2);EDDYFL(6:7)=LCVGRAD(2,1:2)
-							  EDDYFL(8:9)=LCVGRAD_T(1,1:2)
-							  EDDYFL(10:11)=LCVGRAD_T(2,1:2)
-							    
-							    
-							  EDDYFR(1)=IELEM(N,I)%WALLDIST;EDDYFR(2)=CTURBR(1);EDDYFR(3)=CTURBR(2)
-							  EDDYFR(4:5)= RCVGRAD(1,1:2);EDDYFR(6:7)=RCVGRAD(2,1:2)
-							  EDDYFR(8:9)=RCVGRAD_T(1,1:2);EDDYFL(10:11)=RCVGRAD_T(2,1:2)
-							    Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-						      END IF
-					  END IF
-				       
-				       
-				       
-				       
-
-
-
-                                          TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
-					    FXV=ZERO;FYV=ZERO;FZV=ZERO;RHO12 =ZERO;
-					  U12=ZERO;V12=ZERO;W12=ZERO 
-				       
-				      if ((b_Code.lt.5).and.(b_Code.gt.0))then
-					  damp=zero
- 					  end if
-
-
- 					  if (b_code.eq.4)then	!adiabatic wall
- 					  if (ielem(n,i)%ggs.eq.1)then
- 					  if (thermal.eq.0)then
- 					  tempx_l=0.0d0
- 					  rtempx_l=0.0d0
- 					  tempx_l(2)=lCVGRAD(3,1)
- 					  tempx_l(3)=lCVGRAD(3,2)
- 					  CALL ROTATEF2d(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
- 					  rtempx_l(2)=-rtempx_l(2)
- 					  CALL ROTATEb2d(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
- 					  lCVGRAD(3,1)=tempx_l(2)
- 					  lCVGRAD(3,2)=tempx_l(3)
-
- 					  rCVGRAD(3,1)=lCVGRAD(3,1)
- 					  rCVGRAD(3,2)=lCVGRAD(3,2)
-					  end if
- 					  end if
- 					  end if
-
-				       
-					   vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
-                                        nall(1)=nx;nall(2)=ny
-                                      LCVGRAD(1,1:2)=((LCVGRAD(1,1:2)+rCVGRAD(1,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(2)-leftv(2)))
-					   LCVGRAD(2,1:2)=((LCVGRAD(2,1:2)+rCVGRAD(2,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(3)-leftv(3)))
-					  LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/(rightv(1)*R_gas))-(leftv(4)/(leftv(1)*R_gas))))
-					  
-					  
-					  
-					  
-					   
-				       				  
-					  if (turbulence .eq. 1) then
-					  Q(1:2)=  - OO2* ((LAML(3) +(LAML(4)))*lCVGRAD(3,1:2))
-					  else
-					  Q(1:2)=  - OO2* ((LAML(1) +(LAML(2)))*lCVGRAD(3,1:2))
-					  end if
-					  
-					  FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
-							
-					 
-					  !LEFT STATE DERIVATIVES
-					  UX = LCVGRAD(1,1); UY = LCVGRAD(1,2)
-					  VX = LCVGRAD(2,1); VY = LCVGRAD(2,2)
-					  ! DETERMINE TAUL!!
-					 
-
-					  ! TAU_XX
-					  TAUL(1,1) = (4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY 
-					  ! TAU_YY
-					  TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX 
-					  ! TAU_ZZ
-					 
-
-					  ! tau_xy
-					  TAUL(1,2) = (UY + VX);TAUL(2,1) = TAUL(1,2)
-
-					  
-					 ! AVERAGE AND MULTIPLAY BY VISCOSITY
-					  if ( turbulence .eq. 1) then
-					    TAU = OO2*(( (VISCL(1)+VISCL(3)))+( (VISCL(2)+VISCL(4))))*taul
-					  else
-					    TAU = OO2*((VISCL(1))+(VISCL(2)))*taul
-					  end if
-
-					    ! NOW ADDITION INTO MOMENTUM FLUXES
-					  DO KC=2,3
-					      FXV(KC) = FXV(KC) + TAU(1,KC-1)
-					      FYV(KC) = FYV(KC) + TAU(2,KC-1)
-					      
-					  ENDDO
-
-					    ! COMPUTE INTERFACE VELOCITIES
-					  RHO12 = OO2*(CLEFT(1)+CRIGHT(1))
-					  U12   = OO2*(CLEFT(2)+CRIGHT(2))/RHO12
-					  V12   = OO2*(CLEFT(3)+CRIGHT(3))/RHO12
-					  
-
-					  FXV(4) = FXV(4) + U12*TAU(1,1) + V12*TAU(1,2) 
-					  FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2) 
-! 					 
-					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)			
-					  
-					  if (dg.eq.1)then
-
-					   RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
-
-						DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N,ICONSIDERED,FACEX,POINTX,WEIGHTS_TEMP,RHLLCFLUX)
-
-
-
-
-
-  
-						else
-		
-
-
-
-			      
-				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
-						end if
-				     
-				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-					  IF (TURBULENCE.EQ.1)THEN
-					  HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR) =&
-					  ((OO2*(VISCL(1)+VISCL(2)))+(OO2*(VISCL(3)+VISCL(4))))*&
-		    (((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))*OO2*NX)+&
-		    ((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2))*OO2*NY))
-					  ELSE
-					  HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR) =&
-					  ((OO2*(VISCL(1)+VISCL(2))))*&
-		    (((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))*OO2*NX)+&
-		    ((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2))*OO2*NY))
-					  
-					  END IF
-						IF (TURBULENCEMODEL.EQ.1)THEN
+						 
+				IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+					IF (TURBULENCE.EQ.1)THEN
+						HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR) =&
+						  	((OO2*(VISCL(1)+VISCL(2)))+(OO2*(VISCL(3)+VISCL(4))))*&
+							(((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))*OO2*NX)+&
+							((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2))*OO2*NY))
+					ELSE
+						HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR) =&
+						  	((OO2*(VISCL(1)+VISCL(2))))*&
+							(((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))*OO2*NX)+&
+							((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2))*OO2*NY))	  
+					END IF
+					IF (TURBULENCEMODEL.EQ.1)THEN
 						HLLCFLUX(5)=HLLCFLUX(5)/SIGMA
-					END IF			
-						
-					if ((b_code.eq.3))then
-					  	HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=zero
-					end if
-						
+					END IF					  
 					GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)+&
-					  	(HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
-				END IF      
-				      
-			END DO	  
-				    
+						(HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				END IF	  
+						  
+			END DO
+					  
 			RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
-				    
+	
 			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
 				RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
-			    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+				GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
 			end if
 		END DO
-
+	
 		IF (DG.eq.1)then
 			DG_RHS = DG_RHS_SURF_INTEG
+			RHS(I)%VALDG = RHS(I)%VALDG - DG_RHS
+		end if
 
+	END DO
+	!$OMP END DO
+		
+	!$OMP DO
+	DO II=1,NOF_BOUNDED
+		I=EL_BND(II)
+		ICONSIDERED=I	
+		IF (DG.EQ.1) THEN
+			DG_RHS = ZERO
+			DG_RHS_SURF_INTEG = ZERO
+			DG_RHS_VOL_INTEG = ZERO
+		END IF
+					
+		DO L=1,IELEM(N,I)%IFCA
+			damp=lamx
+			IF( BR2_YN == 2) DAMP = 0.0D0
+			b_code=0
+			GODFLUX2=ZERO
+			ANGLE1=IELEM(N,I)%FACEANGLEX(L)
+			ANGLE2=IELEM(N,I)%FACEANGLEY(L)
+			NX=angle1
+			NY=angle2
+					 	  
+			iqp=qp_line_n
+							  
+			do NGP=1,iqp
+	
+				FACEX=L
+				POINTX=NGP
+	
+				CALL CALCULATE_BOUNDED_VISCOUS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT,CLEFT,CRIGHT,LCVGRAD,RCVGRAD,LCVGRAD_T,RCVGRAD_T)
+
+				IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
+					CALL ROTATEF2d(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+					CALL ROTATEF2d(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+					LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
+					CALL LMACHT2d(N,leftv,rightv)
+					CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
+					CALL ROTATEB2d(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+					CALL ROTATEB2d(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
+				END IF	
+					
+				LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
+				CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+				CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+						 
+				IF (TURBULENCE.EQ.1)THEN
+					IF (TURBULENCEMODEL.EQ.1)THEN
+						TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
+						Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+						IF (B_CODE.EQ.4)THEN
+							VISCL(3:4)=ZERo
+							LAML(3:4)=ZERO
+						END IF
+					END IF
+					IF (TURBULENCEMODEL.EQ.2)THEN
+						EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
+						EDDYFL(4:5)= LCVGRAD(1,1:2);EDDYFL(6:7)=LCVGRAD(2,1:2)
+						EDDYFL(8:9)=LCVGRAD_T(1,1:2)
+						EDDYFL(10:11)=LCVGRAD_T(2,1:2)
+						
+						
+						EDDYFR(1)=IELEM(N,I)%WALLDIST;EDDYFR(2)=CTURBR(1);EDDYFR(3)=CTURBR(2)
+						EDDYFR(4:5)= RCVGRAD(1,1:2);EDDYFR(6:7)=RCVGRAD(2,1:2)
+						EDDYFR(8:9)=RCVGRAD_T(1,1:2);EDDYFL(10:11)=RCVGRAD_T(2,1:2)
+						Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+					END IF
+				END IF
+						   
+				TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
+				FXV=ZERO;FYV=ZERO;FZV=ZERO;RHO12 =ZERO;
+				U12=ZERO;V12=ZERO;W12=ZERO 
+						   
+				if ((b_Code.lt.5).and.(b_Code.gt.0))then
+					damp=zero
+				end if
+	
+				if (b_code.eq.4)then	!adiabatic wall
+					if (ielem(n,i)%ggs.eq.1)then
+						if (thermal.eq.0)then
+							tempx_l=0.0d0
+							rtempx_l=0.0d0
+							tempx_l(2)=lCVGRAD(3,1)
+							tempx_l(3)=lCVGRAD(3,2)
+							CALL ROTATEF2d(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
+							rtempx_l(2)=-rtempx_l(2)
+							CALL ROTATEb2d(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
+							lCVGRAD(3,1)=tempx_l(2)
+							lCVGRAD(3,2)=tempx_l(3)
+		
+							rCVGRAD(3,1)=lCVGRAD(3,1)
+							rCVGRAD(3,2)=lCVGRAD(3,2)
+						end if
+					end if
+				end if
+						   
+				vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
+				nall(1)=nx;nall(2)=ny
+				LCVGRAD(1,1:2)=((LCVGRAD(1,1:2)+rCVGRAD(1,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(2)-leftv(2)))
+				LCVGRAD(2,1:2)=((LCVGRAD(2,1:2)+rCVGRAD(2,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(3)-leftv(3)))
+				LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/(rightv(1)*R_gas))-(leftv(4)/(leftv(1)*R_gas))))
+											 
+				if (turbulence .eq. 1) then
+					Q(1:2)=  - OO2* ((LAML(3) +(LAML(4)))*lCVGRAD(3,1:2))
+				else
+					Q(1:2)=  - OO2* ((LAML(1) +(LAML(2)))*lCVGRAD(3,1:2))
+				end if
+				
+				FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
+					
+				!LEFT STATE DERIVATIVES
+				UX = LCVGRAD(1,1); UY = LCVGRAD(1,2)
+				VX = LCVGRAD(2,1); VY = LCVGRAD(2,2)
+				! DETERMINE TAUL!!
+				! TAU_XX
+				TAUL(1,1) = (4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY 
+				! TAU_YY
+				TAUL(2,2) = (4.0D0/3.0D0)*VY - (2.0D0/3.0D0)*UX 
+				! TAU_ZZ
+				! tau_xy
+				TAUL(1,2) = (UY + VX);TAUL(2,1) = TAUL(1,2)
+	 
+				! AVERAGE AND MULTIPLAY BY VISCOSITY
+				if ( turbulence .eq. 1) then
+					TAU = OO2*(( (VISCL(1)+VISCL(3)))+( (VISCL(2)+VISCL(4))))*taul
+				else
+					TAU = OO2*((VISCL(1))+(VISCL(2)))*taul
+				end if
+	
+				! NOW ADDITION INTO MOMENTUM FLUXES
+				DO KC=2,3
+					FXV(KC) = FXV(KC) + TAU(1,KC-1)
+					FYV(KC) = FYV(KC) + TAU(2,KC-1)
+				ENDDO
+
+				! COMPUTE INTERFACE VELOCITIES
+				RHO12 = OO2*(CLEFT(1)+CRIGHT(1))
+				U12   = OO2*(CLEFT(2)+CRIGHT(2))/RHO12
+				V12   = OO2*(CLEFT(3)+CRIGHT(3))/RHO12
+					
+				FXV(4) = FXV(4) + U12*TAU(1,1) + V12*TAU(1,2) 
+				FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2)  					 
+				HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)			
+						  
+				if (dg.eq.1)then
+					RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
+					DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N,ICONSIDERED,FACEX,POINTX,WEIGHTS_TEMP,RHLLCFLUX)
+				else
+					GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				end if
+					
+				IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+					IF (TURBULENCE.EQ.1)THEN
+						HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR) =&
+						  	((OO2*(VISCL(1)+VISCL(2)))+(OO2*(VISCL(3)+VISCL(4))))*&
+							(((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))*OO2*NX)+&
+							((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2))*OO2*NY))
+					ELSE
+						HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR) =&
+						  	((OO2*(VISCL(1)+VISCL(2))))*&
+							(((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,1))*OO2*NX)+&
+							((LCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2)+RCVGRAD_T(1:TURBULENCEEQUATIONS+PASSIVESCALAR,2))*OO2*NY))	  
+					END IF
+					IF (TURBULENCEMODEL.EQ.1)THEN
+						HLLCFLUX(5)=HLLCFLUX(5)/SIGMA
+					END IF			
+					if ((b_code.eq.3))then
+						HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=zero  
+					end if
+									
+					GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)+&
+						(HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				END IF		  
+						  
+			END DO
+					  
+			RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
+						
+			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
+				RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
+					GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+			end if
+		END DO
+	
+		IF (DG.eq.1)then
+			DG_RHS = DG_RHS_SURF_INTEG
 			RHS(I)%VALDG = RHS(I)%VALDG - DG_RHS
 		end if
 
@@ -2405,8 +2052,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 	IF (DG.EQ.1)THEN
 		DEALLOCATE(DG_RHS,DG_RHS_VOL_INTEG,DG_RHS_SURF_INTEG)
 	END IF
-
+	
 END SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d
+	
 
 
 
