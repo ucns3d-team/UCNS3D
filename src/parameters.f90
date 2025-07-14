@@ -136,9 +136,9 @@ SUBROUTINE READ_UCNS3D
 		if (n.eq.0)then
 			print*,"mood active"
 		end if
-		if (n.eq.0)then; IF (MOOD_MODE.ge.5) THEN
-			print*,"MOOD_VAR5, MOOD_VAR6", MOOD_VAR5, MOOD_VAR6
-		ENDIF; ENDIF
+		! if (n.eq.0)then; IF (MOOD_MODE.ge.5) THEN
+		! 	print*,"MOOD_VAR5, MOOD_VAR6", MOOD_VAR5, MOOD_VAR6
+		! ENDIF; ENDIF
 		CLOSE(17)
 	ELSE
 		MOOD=0

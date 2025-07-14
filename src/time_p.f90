@@ -3398,40 +3398,43 @@ END SUBROUTINE AVERAGING_T
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE TIME_MARCHING(N)
-!> @brief
-!> TIME MARCHING SUBROUTINE 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-real,dimension(1:5)::DUMMYOUT,DUMMYIN
-INTEGER::I,KMAXE,TTIME
-real::dtiv
-REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK,TZX1,TZX2,resolx,totens,totens1,totens2,totensx,totensx1,totensx2
-      kill=0
-      T=RES_TIME
-      resolx=0.01
-      iscoun=1
-      kmaxe=XMPIELRANK(n)
-      EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
+  !> @brief
+  !> TIME MARCHING SUBROUTINE 3D
+  IMPLICIT NONE
+  INTEGER,INTENT(IN)::N
+  real,dimension(1:5)::DUMMYOUT,DUMMYIN
+  INTEGER::I,KMAXE,TTIME
+  real::dtiv
+  REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK,TZX1,TZX2,resolx,totens,totens1,totens2,totensx,totensx1,totensx2
+  kill=0
+  T=RES_TIME
+  resolx=0.01
+  iscoun=1
+  kmaxe=XMPIELRANK(n)
+  EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
 
-      TOTV1=0.0
+  TOTV1=0.0
 
-!$OMP BARRIER
-!$OMP MASTER 
-    IF (INITCOND.eq.95)THEN                    
+  !$OMP BARRIER
+
+  !$OMP MASTER 
+  IF (INITCOND.eq.95)THEN                    
       CALL CHECKPOINTv3(N)
-    end if
-    CPUT1=CPUX1(1)
-    CPUT4=CPUX1(1)
-    CPUT5=CPUX1(1)
-    CPUT8=CPUX1(1)
-!$OMP END MASTER 
-!$OMP BARRIER
+  end if
+  CPUT1=CPUX1(1)
+  CPUT4=CPUX1(1)
+  CPUT5=CPUX1(1)
+  CPUT8=CPUX1(1)
+  !$OMP END MASTER 
+
+  !$OMP BARRIER
       	      			
-IT=RESTART
-if (dg.eq.1) call SOL_INTEG_DG_init(N)
+  IT=RESTART
+  if (dg.eq.1) call SOL_INTEG_DG_init(N)
       
-!$OMP BARRIER
-!$OMP MASTER 
+  !$OMP BARRIER
+
+  !$OMP MASTER 
   if (tecplot.lt.5)then
       CALL GRID_WRITE
       IF (outsurf.eq.1)THEN
@@ -3443,404 +3446,405 @@ if (dg.eq.1) call SOL_INTEG_DG_init(N)
   ELSE
       tz1=t
   END IF 
-!$OMP END MASTER 
-!$OMP BARRIER
-      
-!$OMP BARRIER
-!$OMP MASTER
+  !$OMP END MASTER 
+
+  !$OMP BARRIER
+  ! !$OMP BARRIER
+
+  !$OMP MASTER
 	CALL VOLUME_SOLUTION_WRITE
 	IF (OUTSURF.EQ.1)THEN
 	    CALL surface_SOLUTION_WRITE
 	END IF
-!$OMP END MASTER
-!$OMP BARRIER
+  !$OMP END MASTER
+
+  !$OMP BARRIER
       
-if ((it.eq.0).and.(initcond.eq.95))then
-    call EXCHANGE_HIGHER(N)
-    call ARBITRARY_ORDER(N)
-    call ENSTROPHY_CALC(N)
-end if
-      
-DO 
-            
-		CALL CALCULATE_CFL(N)
-		    
-		IF (RUNGEKUTTA.GE.5) CALL CALCULATE_CFLL(N)
-		     
-    IF (DG.EQ.1)THEN
-        DO I=1,KMAXE
-          ielem(n,i)%condition=0
-          IELEM(N,I)%TROUBLED=0
-        END DO
-    END IF
-
-		!$OMP BARRIER
-		!$OMP MASTER
-    DUMMYOUT(1)=DT
-    CPUT2=MPI_WTIME()
-    TIMEC8=CPUT2-CPUT8
-    TIMEC1=CPUT2-CPUT1
-    dummyout(2)=TIMEC1
-    DUMMYIN=0.0
-    timec3=cput2-cput4
-    dummyout(3)=TIMEC3
-    TIMEC4=CPUT2-CPUT5
-    dummyout(4)=TIMEC4
-    DUMMYOUT(5)=TIMEC8
-			
-    CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-    dtiv=DUMMYIN(1)
-    DT=DUMMYIN(1)
-    TIMEC1=DUMMYIN(2)
-    TIMEC3=DUMMYIN(3)
-    TIMEC4=DUMMYIN(4)
-    TIMEC8=DUMMYIN(5)
-    IF (N.EQ.0)THEN
-        OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-        WRITE(63,*)DT,it,"TIME STEP SIZE",T
-        CLOSE(63)
-    END IF
-					
-    IF (INITCOND.eq.95)THEN
-        TOTK=0;TOTENS=0;totensx=0.0d0
-        DO I=1,xmpielrank(n)
-
-            TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-                (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
-
-            if (BOUNDTYPE.eq.1)then
-                TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-                IELEM(N,I)%VORTEX(2))
-            else
-                TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
-                TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
-            end if
-        END DO
-
-        DUMEtg1=TOTK
-        DUMEtg2=0.0
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-        CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-        TOTK=DUMEtg2
-        DUMEtg1=TOTENS
-        DUMEtg2=0.0
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-        CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-        TOTENS=DUMEtg2
-        DUMEtg1=TOTENSx
-        DUMEtg2=0.0
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-        CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-        TOTENSx=DUMEtg2
-        IF (N.EQ.0)THEN
-            TOTV1=TOTK/((2.0*PI)**3)
-            TOTENS1=TOTENS/(((2.0*PI)**3))
-            TOTENSx1=TOTENSx/((2.0*PI)**3)
-            IF (it.eq.0)THEN
-                TAYLOR=TOTK
-                TAYLOR_ENS=TOTENS
-                TAYLOR_ENSx=TOTENSx
-            END IF
-        END IF
-
-		END IF
-			
-    IF (rungekutta.GE.11)THEN
-        dt=timestep
-        IF (INITCOND.eq.95)THEN 
-            DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-        ELSE
-            DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-        END IF
-    else
-        IF (INITCOND.eq.95)THEN
-            DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-        ELSE
-            DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-        END IF
-    end if
-
-    IF (DG.EQ.1)then
-        if (filtering.gt.0)then
-            call filter(n)
-        end if
-    end if
-			
-		!$OMP END MASTER 
-		!$OMP BARRIER	
-			
-		SELECT CASE(RUNGEKUTTA)
-			
-			CASE(1)
-			  CALL RUNGE_KUTTA1(N)
-			
-			CASE(2)
-			  CALL RUNGE_KUTTA2(N)
-			
-			CASE(3)
-			
-			  IF (MOOD.EQ.1)THEN
-			      CALL RUNGE_KUTTA3_MOOD(N)
-			  ELSE
-			      CALL RUNGE_KUTTA3(N)
-			  END IF
-			
-			CASE(4)
-			  CALL RUNGE_KUTTA4(N)
-			
-			CASE(5)
-			  CALL RUNGE_KUTTA5(N)
-			
-			case(10)
-			  CALL IMPLICIT_TIMEs(N)
-			
-			case(11)
-			  CALL dual_TIME(N)
-			
-			case(12)
-			  CALL dual_TIME_EX(N)
-			
-		END SELECT
-			
-		if (dg.eq.1) call SOL_INTEG_DG(N)
-
-		!$OMP BARRIER
-		!$OMP MASTER
-			
-		IF (rungekutta.GE.11)THEN
- 			  T=T+(DT)
- 			  Tz1=Tz1+(DT)
-
-		ELSE
-        T=T+DT
-			  tz1=tz1+DT
-		END IF
-			  
-		IF (DG.EQ.1)THEN
-        IF (CODE_PROFILE.ne.102)THEN
-            IF ( mod(it, 100) .eq. 0) THEN
-                CALL TROUBLED_HISTORY
-            END IF
-        end if
-        IF ( filtering .eq. 1) THEN
-            CALL FILTERED_HISTORY
-        END IF
-    end if
-
-    ! IF ( mod(it, 100) .eq. 0) THEN
-    !     CALL REDUCED_HISTORY
-    ! END IF
-
-		IF (INITCOND.eq.95)THEN                    
- 				TOTK=0; TOTENS=0.0; totensx=0.0d0
- 				DO I=1,xmpielrank(n)
- 				       
-            TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-                (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
-
-            if (BOUNDTYPE.eq.1)then
-                TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-                IELEM(N,I)%VORTEX(2))
-            else
-                TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
-                TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
-            end if
-				END DO
- 				
- 				DUMEtg1=TOTK
- 				DUMEtg2=0.0
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
- 				TOTK=DUMEtg2
-
- 				DUMEtg1=TOTENS
- 				DUMEtg2=0.0
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
- 				TOTENS=DUMEtg2
-
- 				DUMEtg1=TOTENSx
- 				DUMEtg2=0.0
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
- 				TOTENSx=DUMEtg2
-
- 				IF (N.EQ.0)THEN
-            TOTV2=TOTK/((2.0*PI)**3)
-            TOTENS2=TOTENS/((2.0*PI)**3)
-            TOTENSx2=TOTENSx/((2.0*PI)**3)
-            IF (it.eq.0)THEN
-                TAYLOR=TOTK
-                TAYLOR_ENS=TOTENS
-                TAYLOR_ENSx=TOTENSx
-            END IF
-
-            IF (IT.EQ.0)THEN
-                OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-            ELSE
-                OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-            END IF
-            IF (DG.EQ.1)THEN
-                WRITE(73,'(E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT
-            ELSE
-                if (boundtype.eq.1)then
-                    WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS/TAYLOR_ENS
-                else
-                    WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS,TOTENSx
-                end if
-            END IF
-            CLOSE(73)
-				END IF
- 				
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				
- 				IF (ADDA.EQ.1)THEN
-            TOTK=0
-            DO I=1,xmpielrank(n)
-                TOTK=TOTK+IELEM(N,I)%ER
-            END DO
-            DUMEtg1=TOTK
-            DUMEtg2=0.0
-            CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-            CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-
-            IF (N.EQ.0)THEN
-                TOTK=DUMEtg2/IMAXE
-                IF (IT.EQ.0)THEN
-                    OPEN(123,FILE='ER.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-                ELSE
-                    OPEN(123,FILE='ER.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-                END IF
-                WRITE(123,*)T,TOTK
-                CLOSE(123)
-            end if
-
-        END IF
-
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-    ! END IF
-    END IF
-           
-    ! IF ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411).or.(initcond.eq.157))THEN
-    !     IF ( mod(it, 1) .eq. 0)THEN
-    !         CALL TRAJECTORIES
-    ! 	  END IF
-    !	END IF
-    
-    
-    !$OMP END MASTER 
-    !$OMP BARRIER
-			
-    IF ( mod(it, IForce) .eq. 0) THEN
-        IF (OUTSURF.EQ.1) THEN   
-            CALL forces
-        END IF
-    END IF
-			
-    IF ((rungekutta.ge.5).and.(rungekutta.lt.11))THEN
-        IF ( mod(it, residualfreq) .eq. 0) THEN
-            CALL RESIDUAL_COMPUTE
-        END IF
-    END IF
-
-    !$OMP MASTER
-    IF (NPROBES.GT.0) CALL PROBING
+  if ((it.eq.0).and.(initcond.eq.95))then
+      call EXCHANGE_HIGHER(N)
+      call ARBITRARY_ORDER(N)
+      call ENSTROPHY_CALC(N)
+  end if
         
-    IF (TIMEC1.GE.IEVERY)THEN
-        CALL VOLUME_SOLUTION_WRITE
-        IF (outsurf.eq.1)THEN
-            CALL surface_SOLUTION_WRITE
-        END IF
-        CPUT1=MPI_WTIME()
-    END IF
-    
-    IF (INITCOND.eq.95)THEN           
-        if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
-            CALL VOLUME_SOLUTION_WRITE
-            if (outsurf.eq.1)then
-                call surface_SOLUTION_WRITE
-            end if
-                IF (INITCOND.eq.95)THEN                    
-            CALL CHECKPOINTv4(N)
-            END IF
-            EVERY_TIME=EVERY_TIME+output_freq
-        END IF
-    ELSE
-        IF (CODE_PROFILE.EQ.-1)THEN
-            if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
-                CALL VOLUME_SOLUTION_WRITE
-                if (outsurf.eq.1)then
-                    call surface_SOLUTION_WRITE
-                end if
-                EVERY_TIME=EVERY_TIME+output_freq
-            END IF
-        END IF
-    END IF
-		
-    IF (TIMEC8.GE.IEVERYAV)THEN
-        IF (AVERAGING.EQ.1)THEN
-            CALL VOLUME_SOLUTION_WRITE_av
-            IF (outsurf.eq.1)THEN
-                CALL surface_SOLUTION_WRITE_av
-            END IF
-        END IF
-        CPUT8=MPI_WTIME()
-    END IF
-			
-    IF (TIMEC4.GE.IEVERY2)THEN
-        CALL CHECKPOINTING
-        IF (AVERAGING.EQ.1)THEN
-            CALL CHECKPOINTING_av
-        END IF
-        CPUT5=MPI_WTIME()
-    END IF
-			  
-    !$OMP END MASTER 
-    !$OMP BARRIER
-			
-		!$OMP MASTER
-		IT=IT+1
-			
-		IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC).OR.(DTiv.GT.OUT_TIME))THEN
-			  KILL=1
-		END IF
-			
-		IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
-        IF ((T.GE.OUT_TIME).OR.(DTiv.GT.OUT_TIME))THEN
-            KILL=1
-        END IF
-		END IF
-    !$OMP END MASTER 
-    !$OMP BARRIER
+  DO 
+            
+		  CALL CALCULATE_CFL(N)
+		  IF (RUNGEKUTTA.GE.5) CALL CALCULATE_CFLL(N)
+		     
+      IF (DG.EQ.1)THEN
+          DO I=1,KMAXE
+            ielem(n,i)%condition=0
+            IELEM(N,I)%TROUBLED=0
+          END DO
+      END IF
 
-		!$OMP MASTER
-		IF (kill.eq.1)THEN
+      !$OMP BARRIER
+        
+      !$OMP MASTER
+      DUMMYOUT(1)=DT
+      CPUT2=MPI_WTIME()
+      TIMEC8=CPUT2-CPUT8
+      TIMEC1=CPUT2-CPUT1
+      dummyout(2)=TIMEC1
+      DUMMYIN=0.0
+      timec3=cput2-cput4
+      dummyout(3)=TIMEC3
+      TIMEC4=CPUT2-CPUT5
+      dummyout(4)=TIMEC4
+      DUMMYOUT(5)=TIMEC8
+        
+      CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
+      dtiv=DUMMYIN(1)
+      DT=DUMMYIN(1)
+      TIMEC1=DUMMYIN(2)
+      TIMEC3=DUMMYIN(3)
+      TIMEC4=DUMMYIN(4)
+      TIMEC8=DUMMYIN(5)
+      IF (N.EQ.0)THEN
+          OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
+          WRITE(63,*)DT,it,"TIME STEP SIZE",T
+          CLOSE(63)
+      END IF
+					
+      IF (INITCOND.eq.95)THEN
+          TOTK=0;TOTENS=0;totensx=0.0d0
+          DO I=1,xmpielrank(n)
+
+              TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
+                  (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
+
+              if (BOUNDTYPE.eq.1)then
+                  TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
+                  IELEM(N,I)%VORTEX(2))
+              else
+                  TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
+                  TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
+              end if
+          END DO
+
+          DUMEtg1=TOTK
+          DUMEtg2=0.0
+          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+          TOTK=DUMEtg2
+          DUMEtg1=TOTENS
+          DUMEtg2=0.0
+          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+          TOTENS=DUMEtg2
+          DUMEtg1=TOTENSx
+          DUMEtg2=0.0
+          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+          TOTENSx=DUMEtg2
+          IF (N.EQ.0)THEN
+              TOTV1=TOTK/((2.0*PI)**3)
+              TOTENS1=TOTENS/(((2.0*PI)**3))
+              TOTENSx1=TOTENSx/((2.0*PI)**3)
+              IF (it.eq.0)THEN
+                  TAYLOR=TOTK
+                  TAYLOR_ENS=TOTENS
+                  TAYLOR_ENSx=TOTENSx
+              END IF
+          END IF
+
+		  END IF
 			
-			  CALL VOLUME_SOLUTION_WRITE
-			  IF (outsurf.eq.1)THEN
-			      CALL surface_SOLUTION_WRITE
-			  END IF
-			  CALL CHECKPOINTING
-			  IF (AVERAGING.EQ.1)THEN
-			      CALL VOLUME_SOLUTION_WRITE_av
-				    IF (outsurf.eq.1)THEN
-				        CALL surface_SOLUTION_WRITE_av
-				    END IF	    
-				    CALL CHECKPOINTING_av
-			  END IF
-		END IF
+      IF (rungekutta.GE.11)THEN
+          dt=timestep
+          IF (INITCOND.eq.95)THEN 
+              DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+          ELSE
+              DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+          END IF
+      else
+          IF (INITCOND.eq.95)THEN
+              DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+          ELSE
+              DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+          END IF
+      end if
+
+      IF (DG.EQ.1)then
+          if (filtering.gt.0)then
+              call filter(n)
+          end if
+      end if
 			
-    !$OMP END MASTER
+      !$OMP END MASTER 
+      !$OMP BARRIER	
+        
+      SELECT CASE(RUNGEKUTTA)
+			
+        CASE(1)
+          CALL RUNGE_KUTTA1(N)
+        
+        CASE(2)
+          CALL RUNGE_KUTTA2(N)
+        
+        CASE(3)
+          IF (MOOD.EQ.1)THEN
+              CALL RUNGE_KUTTA3_MOOD(N)
+          ELSE
+              CALL RUNGE_KUTTA3(N)
+          END IF
+			
+        CASE(4)
+          CALL RUNGE_KUTTA4(N)
+        
+        CASE(5)
+          CALL RUNGE_KUTTA5(N)
+        
+        case(10)
+          CALL IMPLICIT_TIMEs(N)
+        
+        case(11)
+          CALL dual_TIME(N)
+        
+        case(12)
+          CALL dual_TIME_EX(N)
+        
+      END SELECT
+			
+		  if (dg.eq.1) call SOL_INTEG_DG(N)
+
+		  !$OMP BARRIER
+
+      !$OMP MASTER
+      IF (rungekutta.GE.11)THEN
+          T=T+(DT)
+          Tz1=Tz1+(DT)
+
+      ELSE
+          T=T+DT
+          tz1=tz1+DT
+      END IF
+			  
+      IF (DG.EQ.1)THEN
+          IF (CODE_PROFILE.ne.102)THEN
+              IF ( mod(it, 100) .eq. 0) THEN
+                  CALL TROUBLED_HISTORY
+              END IF
+          end if
+          IF ( filtering .eq. 1) THEN
+              CALL FILTERED_HISTORY
+          END IF
+      end if
+
+      ! IF ( mod(it, 100) .eq. 0) THEN
+      !     CALL REDUCED_HISTORY
+      ! END IF
+
+      IF (INITCOND.eq.95)THEN                    
+          TOTK=0; TOTENS=0.0; totensx=0.0d0
+          DO I=1,xmpielrank(n)
+                
+              TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
+                  (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
+
+              if (BOUNDTYPE.eq.1)then
+                  TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
+                  IELEM(N,I)%VORTEX(2))
+              else
+                  TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
+                  TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
+              end if
+          END DO
+ 				
+          DUMEtg1=TOTK
+          DUMEtg2=0.0
+          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+          TOTK=DUMEtg2
+
+          DUMEtg1=TOTENS
+          DUMEtg2=0.0
+          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+          TOTENS=DUMEtg2
+
+          DUMEtg1=TOTENSx
+          DUMEtg2=0.0
+          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+          TOTENSx=DUMEtg2
+
+          IF (N.EQ.0)THEN
+              TOTV2=TOTK/((2.0*PI)**3)
+              TOTENS2=TOTENS/((2.0*PI)**3)
+              TOTENSx2=TOTENSx/((2.0*PI)**3)
+              IF (it.eq.0)THEN
+                  TAYLOR=TOTK
+                  TAYLOR_ENS=TOTENS
+                  TAYLOR_ENSx=TOTENSx
+              END IF
+
+              IF (IT.EQ.0)THEN
+                  OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
+              ELSE
+                  OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
+              END IF
+              IF (DG.EQ.1)THEN
+                  WRITE(73,'(E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT
+              ELSE
+                  if (boundtype.eq.1)then
+                      WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS/TAYLOR_ENS
+                  else
+                      WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS,TOTENSx
+                  end if
+              END IF
+              CLOSE(73)
+          END IF
+ 				
+          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+          
+          IF (ADDA.EQ.1)THEN
+              TOTK=0
+              DO I=1,xmpielrank(n)
+                  TOTK=TOTK+IELEM(N,I)%ER
+              END DO
+              DUMEtg1=TOTK
+              DUMEtg2=0.0
+              CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+              CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+              IF (N.EQ.0)THEN
+                  TOTK=DUMEtg2/IMAXE
+                  IF (IT.EQ.0)THEN
+                      OPEN(123,FILE='ER.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
+                  ELSE
+                      OPEN(123,FILE='ER.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
+                  END IF
+                  WRITE(123,*)T,TOTK
+                  CLOSE(123)
+              end if
+
+          END IF
+
+          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+      ! END IF
+      END IF
+           
+      ! IF ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411).or.(initcond.eq.157))THEN
+      !     IF ( mod(it, 1) .eq. 0)THEN
+      !         CALL TRAJECTORIES
+      ! 	  END IF
+      !	END IF
+      
+      !$OMP END MASTER 
+
+      !$OMP BARRIER
+			
+      IF ( mod(it, IForce) .eq. 0) THEN
+          IF (OUTSURF.EQ.1) THEN   
+              CALL forces
+          END IF
+      END IF
+			
+      IF ((rungekutta.ge.5).and.(rungekutta.lt.11))THEN
+          IF ( mod(it, residualfreq) .eq. 0) THEN
+              CALL RESIDUAL_COMPUTE
+          END IF
+      END IF
+
+      !$OMP MASTER
+      IF (NPROBES.GT.0) CALL PROBING
+        
+      IF (TIMEC1.GE.IEVERY)THEN
+          CALL VOLUME_SOLUTION_WRITE
+          IF (outsurf.eq.1)THEN
+              CALL surface_SOLUTION_WRITE
+          END IF
+          CPUT1=MPI_WTIME()
+      END IF
+      
+      IF (INITCOND.eq.95)THEN           
+          if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
+              CALL VOLUME_SOLUTION_WRITE
+              if (outsurf.eq.1)then
+                  call surface_SOLUTION_WRITE
+              end if
+                  IF (INITCOND.eq.95)THEN                    
+              CALL CHECKPOINTv4(N)
+              END IF
+              EVERY_TIME=EVERY_TIME+output_freq
+          END IF
+      ELSE
+          IF (CODE_PROFILE.EQ.-1)THEN
+              if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
+                  CALL VOLUME_SOLUTION_WRITE
+                  if (outsurf.eq.1)then
+                      call surface_SOLUTION_WRITE
+                  end if
+                  EVERY_TIME=EVERY_TIME+output_freq
+              END IF
+          END IF
+      END IF
+      
+      IF (TIMEC8.GE.IEVERYAV)THEN
+          IF (AVERAGING.EQ.1)THEN
+              CALL VOLUME_SOLUTION_WRITE_av
+              IF (outsurf.eq.1)THEN
+                  CALL surface_SOLUTION_WRITE_av
+              END IF
+          END IF
+          CPUT8=MPI_WTIME()
+      END IF
+        
+      IF (TIMEC4.GE.IEVERY2)THEN
+          CALL CHECKPOINTING
+          IF (AVERAGING.EQ.1)THEN
+              CALL CHECKPOINTING_av
+          END IF
+          CPUT5=MPI_WTIME()
+      END IF
+      !$OMP END MASTER 
+
     !$OMP BARRIER
 			
-		IF (kill.eq.1)THEN
-		  	IF (itestcase.le.3)THEN  
-			      CALL CALCULATE_ERROR(n)
-			  END IF			  
-			  return
-		END IF
-END do
+      !$OMP MASTER
+      IT=IT+1
+        
+      IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC).OR.(DTiv.GT.OUT_TIME))THEN
+          KILL=1
+      END IF
+        
+      IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
+          IF ((T.GE.OUT_TIME).OR.(DTiv.GT.OUT_TIME))THEN
+              KILL=1
+          END IF
+      END IF
+      !$OMP END MASTER 
+
+      !$OMP BARRIER
+
+      !$OMP MASTER
+      IF (kill.eq.1)THEN
+          CALL VOLUME_SOLUTION_WRITE
+          IF (outsurf.eq.1)THEN
+              CALL surface_SOLUTION_WRITE
+          END IF
+          CALL CHECKPOINTING
+          IF (AVERAGING.EQ.1)THEN
+              CALL VOLUME_SOLUTION_WRITE_av
+              IF (outsurf.eq.1)THEN
+                  CALL surface_SOLUTION_WRITE_av
+              END IF	    
+              CALL CHECKPOINTING_av
+          END IF
+      END IF
+      !$OMP END MASTER
+
+      !$OMP BARRIER
+			
+      IF (kill.eq.1)THEN
+          IF (itestcase.le.3)THEN  
+              CALL CALCULATE_ERROR(n)
+          END IF			  
+          return
+      END IF
+  END do
 		      
 END SUBROUTINE TIME_MARCHING
 
@@ -3849,296 +3853,298 @@ END SUBROUTINE TIME_MARCHING
 
 
 SUBROUTINE TIME_MARCHING2(N)
-!> @brief
-!> TIME MARCHING SUBROUTINE 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-real,dimension(1:5)::DUMMYOUT,DUMMYIN
-INTEGER::I,KMAXE
-REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK
-real::dtiv,flort
-kmaxe=XMPIELRANK(n)
-kill=0
-T=res_time
-iscoun=1
+  !> @brief
+  !> TIME MARCHING SUBROUTINE 2D
+  IMPLICIT NONE
+  INTEGER,INTENT(IN)::N
+  real,dimension(1:5)::DUMMYOUT,DUMMYIN
+  INTEGER::I,KMAXE
+  REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK
+  real::dtiv,flort
+  INTEGER::NumStepsToOutput1,NumStepsToOutput2
+  kmaxe=XMPIELRANK(n)
+  kill=0
+  T=res_time
+  iscoun=1
 
-EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
+  EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
 
+  !$OMP MASTER
+  CPUT1=CPUX1(1)
+  CPUT4=CPUX1(1)
+  CPUT5=CPUX1(1)
+  CPUT8=CPUX1(1)
+  !$OMP END MASTER
+  !$OMP BARRIER
 
-!$OMP MASTER
-CPUT1=CPUX1(1)
-CPUT4=CPUX1(1)
-CPUT5=CPUX1(1)
-CPUT8=CPUX1(1)
-!$OMP END MASTER
-!$OMP BARRIER
+  IT=RESTART
+  if (dg.eq.1) call SOL_INTEG_DG_init(N)
+  !$OMP BARRIER
+  !$OMP MASTER
+  if (tecplot.lt.5)then
+      CALL GRID_WRITE
+  end if
 
+  CALL VOLUME_SOLUTION_WRITE
+  IF (outsurf.eq.1)THEN
+      CALL SURF_WRITE
+  END IF
 
-IT=RESTART
-if (dg.eq.1) call SOL_INTEG_DG_init(N)
-!$OMP BARRIER
-!$OMP MASTER
-if (tecplot.lt.5)then
-    CALL GRID_WRITE
-end if
+  IF ((Average_restart.eq.0).and.(averaging.eq.1)) THEN
+      Tz1=0.0
+  ELSE
+      tz1=t
+  END IF
+  !$OMP END MASTER
+  !$OMP BARRIER
 
+  DO
+      CALL CALCULATE_CFL2D(N)
+      IF (RUNGEKUTTA.GE.5) CALL CALCULATE_CFLL2d(N)
 
-CALL VOLUME_SOLUTION_WRITE
-IF (outsurf.eq.1)THEN
-    CALL SURF_WRITE
-END IF
+      IF (DG.EQ.1)THEN
+         DO I=1,KMAXE
+              ielem(n,i)%condition=0
+              IELEM(N,I)%TROUBLED=0
+          END DO
+      END IF
 
-IF ((Average_restart.eq.0).and.(averaging.eq.1)) THEN
-    Tz1=0.0
-ELSE
-    tz1=t
-END IF
-!$OMP END MASTER
-!$OMP BARRIER
+      !$OMP MASTER
+      DUMMYOUT(1)=DT
+      CPUT2=MPI_WTIME()
+      TIMEC8=CPUT2-CPUT8
+      TIMEC1=CPUT2-CPUT1
+      DUMMYOUT(2)=TIMEC1
+      DUMMYIN=0.0d0
+      TIMEC3=CPUT2-CPUT4
+      DUMMYOUT(3)=TIMEC3
+      TIMEC4=CPUT2-CPUT5
+      DUMMYOUT(4)=TIMEC4
+      DUMMYOUT(5)=TIMEC8
 
-DO
-    CALL CALCULATE_CFL2D(N)
-    IF (RUNGEKUTTA.GE.5) CALL CALCULATE_CFLL2d(N)
+      CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
+      DTIV=DUMMYIN(1)
+      DT=DUMMYIN(1)
+      TIMEC1=DUMMYIN(2)
+      TIMEC3=DUMMYIN(3)
+      TIMEC4=DUMMYIN(4)
+      TIMEC8=DUMMYIN(5)
+      IF (N.EQ.0)THEN
+          OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
+          WRITE(63,*)DT,it,"TIME STEP SIZE",T
+          CLOSE(63)
+      END IF
 
-    IF (DG.EQ.1)THEN
-        DO I=1,KMAXE
-            ielem(n,i)%condition=0
-            IELEM(N,I)%TROUBLED=0
-        END DO
-    END IF
+      IF (INITCOND.eq.95)THEN
+          TOTK=0
+          DO I=1,KMAXE
+              TOTK=TOTK+IELEM(N,I)%TOTVOLUME*(1.0/2.0)*&
+                  (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2))
+          END DO
 
+          DUMEtg1=TOTK
+          DUMEtg2=0.0
+          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+          TOTK=DUMEtg2
+          IF (N.EQ.0)THEN
+              ! TOTV2=TOTK/((2.0*PI)**3)
+              ! IF (it.eq.0)THEN
+              ! 		TAYLOR=TOTK
+              ! END IF
+              IF (IT.EQ.0)THEN
+                  OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
+              ELSE
+                  OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
+              END IF
+              WRITE(73,*)T,TOTK
+              CLOSE(73)
+          END IF
 
-    !$OMP MASTER
-    DUMMYOUT(1)=DT
-    CPUT2=MPI_WTIME()
-    TIMEC8=CPUT2-CPUT8
-    TIMEC1=CPUT2-CPUT1
-    DUMMYOUT(2)=TIMEC1
-    DUMMYIN=0.0d0
-    TIMEC3=CPUT2-CPUT4
-    DUMMYOUT(3)=TIMEC3
-    TIMEC4=CPUT2-CPUT5
-    DUMMYOUT(4)=TIMEC4
-    DUMMYOUT(5)=TIMEC8
+          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+      END IF
 
-    CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-    DTIV=DUMMYIN(1)
-    DT=DUMMYIN(1)
-    TIMEC1=DUMMYIN(2)
-    TIMEC3=DUMMYIN(3)
-    TIMEC4=DUMMYIN(4)
-    TIMEC8=DUMMYIN(5)
-    IF (N.EQ.0)THEN
-        OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-        WRITE(63,*)DT,it,"TIME STEP SIZE",T
-        CLOSE(63)
-    END IF
+      ! IF ((MULTISPECIES.EQ.1))THEN
+      !     IF ((initcond.eq.405).or.(initcond.eq.411))THEN
+      !         IF ( mod(it, 20) .eq. 0)THEN
+      !             CALL TRAJECTORIES
+      !         END IF
+      !     END IF
+      ! END IF
 
+      IF (rungekutta.GE.11)THEN
+          dt=timestep
+          DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+      ELSE
+          ! DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+          NumStepsToOutput1 = ceiling((OUT_TIME-T)/DT)
+          NumStepsToOutput2 = ceiling((EVERY_TIME-T)/DT)
+          if (NumStepsToOutput1 <= 8) then
+            dt = min(dt, (OUT_TIME-T) / NumStepsToOutput1)
+          endif
+          if (NumStepsToOutput2 < 5) then
+            dt = min(dt, (EVERY_TIME-T) / NumStepsToOutput2)
+          endif
+      END IF
 
+      !$OMP END MASTER
+      !$OMP BARRIER
 
-    IF (INITCOND.eq.95)THEN
-        TOTK=0
-        DO I=1,KMAXE
-            TOTK=TOTK+IELEM(N,I)%TOTVOLUME*(1.0/2.0)*&
-                (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2))
-        END DO
+      SELECT CASE(RUNGEKUTTA)
 
-        DUMEtg1=TOTK
-        DUMEtg2=0.0
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-        CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-        TOTK=DUMEtg2
-        IF (N.EQ.0)THEN
-            ! TOTV2=TOTK/((2.0*PI)**3)
-            ! IF (it.eq.0)THEN
-            ! 		TAYLOR=TOTK
-            ! END IF
-            IF (IT.EQ.0)THEN
-                OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-            ELSE
-                OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-            END IF
-            WRITE(73,*)T,TOTK
-            CLOSE(73)
-        END IF
+        CASE(1)
+          CALL RUNGE_KUTTA1_2d(N)
 
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    END IF
+        CASE(2)
+          CALL RUNGE_KUTTA2_2d(N)
 
-    ! IF ((MULTISPECIES.EQ.1))THEN
-    !     IF ((initcond.eq.405).or.(initcond.eq.411))THEN
-    !         IF ( mod(it, 20) .eq. 0)THEN
-    !             CALL TRAJECTORIES
-    !         END IF
-    !     END IF
-    ! END IF
+        CASE(3)
+          IF (MOOD.EQ.1)THEN
+              CALL RUNGE_KUTTA3_2D_MOOD(N)
+          ELSE
+              CALL RUNGE_KUTTA3_2D(N)
+          END IF
 
-    IF (rungekutta.GE.11)THEN
-        dt=timestep
-        DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-    ELSE
-        DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-    END IF
+        CASE(4)
+          CALL RUNGE_KUTTA4_2D(N)
 
+        CASE(5)
+          CALL RUNGE_KUTTA5_2D(N)
 
-    !$OMP END MASTER
-    !$OMP BARRIER
+        CASE(10)
+          CALL IMPLICIT_TIMEs_2d(N)
 
-    SELECT CASE(RUNGEKUTTA)
+        CASE(11)
+          CALL dual_TIME_2d(N)
 
-      CASE(1)
-        CALL RUNGE_KUTTA1_2d(N)
+        CASE(12)
+          CALL dual_TIME_EX_2D(N)
 
-      CASE(2)
-        CALL RUNGE_KUTTA2_2d(N)
+      END SELECT
 
-      CASE(3)
-        IF (MOOD.EQ.1)THEN
-            CALL RUNGE_KUTTA3_2D_MOOD(N)
-        ELSE
-            CALL RUNGE_KUTTA3_2D(N)
-        END IF
+      if (dg.eq.1)call SOL_INTEG_DG(N)
 
-      CASE(4)
-        CALL RUNGE_KUTTA4_2D(N)
+    ! Increment time
 
-      CASE(5)
-        CALL RUNGE_KUTTA5_2D(N)
+      !$OMP BARRIER
+      !$OMP MASTER
+      IF (rungekutta.GE.11)THEN
+          T=T+(DT)
+          Tz1=Tz1+(DT)
+      ELSE
+          T=T+DT
+          tz1=tz1+DT
+      END IF
 
-      CASE(10)
-        CALL IMPLICIT_TIMEs_2d(N)
+      IF (DG.EQ.1)THEN
+          IF (CODE_PROFILE.ne.102)THEN
+              IF ( mod(it, 100) .eq. 0) THEN
+                  CALL TROUBLED_HISTORY
+              END IF
+          END IF
+      END IF
 
-      CASE(11)
-        CALL dual_TIME_2d(N)
+      IF (mood.gt.0)THEN
+          CALL TROUBLED_HISTORY
+      end if
 
-      CASE(12)
-        CALL dual_TIME_EX_2D(N)
+  ! Write output
 
-    END SELECT
+      !$OMP END MASTER
+      !$OMP BARRIER
+      IF ( mod(it, IForce) .eq. 0) THEN
+          IF (OUTSURF.EQ.1) THEN
+              CALL forces
+          END IF
+      END IF
 
-    if (dg.eq.1)call SOL_INTEG_DG(N)
+      IF ((rungekutta.ge.5).and.(rungekutta.lt.11))THEN
+          IF ( mod(it, residualfreq) .eq. 0) THEN
+              CALL RESIDUAL_COMPUTE
+          END IF
+      END IF
 
-! Increment time
+      !$OMP MASTER
+      IF (NPROBES.GT.0) CALL PROBING2D
 
-    !$OMP BARRIER
-    !$OMP MASTER
-    IF (rungekutta.GE.11)THEN
-        T=T+(DT)
-        Tz1=Tz1+(DT)
-    ELSE
-        T=T+DT
-        tz1=tz1+DT
-    END IF
+      IF (TIMEC1.GE.IEVERY)THEN
+          CALL VOLUME_SOLUTION_WRITE
+          IF (outsurf.eq.1)THEN
+              CALL surface_SOLUTION_WRITE
+          END IF
+          CPUT1=MPI_WTIME()
+      END IF
 
-    IF (DG.EQ.1)THEN
-        IF (CODE_PROFILE.ne.102)THEN
-            IF ( mod(it, 100) .eq. 0) THEN
-                CALL TROUBLED_HISTORY
-            END IF
-        END IF
-    END IF
+      IF (TIMEC8.GE.IEVERYAV)THEN
+          IF (AVERAGING.EQ.1)THEN
+              CALL VOLUME_SOLUTION_WRITE_av
+              IF (outsurf.eq.1) THEN
+                  CALL surface_SOLUTION_WRITE_av
+              END IF
+          END IF
+          CPUT8=MPI_WTIME()
+      END IF
 
-    IF (mood.gt.0)THEN
-        CALL TROUBLED_HISTORY
-    end if
+      IF (CODE_PROFILE.EQ.-1)THEN
+          if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
 
-! Write output
+              CALL VOLUME_SOLUTION_WRITE
+              if (outsurf.eq.1)then
+                  call surface_SOLUTION_WRITE
+              end if
+              EVERY_TIME=EVERY_TIME+output_freq
+          END IF
+      END IF
+      !$OMP END MASTER
+    ! Check end condition
 
-    !$OMP END MASTER
-    !$OMP BARRIER
-    IF ( mod(it, IForce) .eq. 0) THEN
-        IF (OUTSURF.EQ.1) THEN
-            CALL forces
-        END IF
-    END IF
+      
+      !$OMP BARRIER
 
-    IF ((rungekutta.ge.5).and.(rungekutta.lt.11))THEN
-        IF ( mod(it, residualfreq) .eq. 0) THEN
-            CALL RESIDUAL_COMPUTE
-        END IF
-    END IF
+      !$OMP MASTER
+      IT=IT+1
 
-    !$OMP MASTER
-    IF (NPROBES.GT.0) CALL PROBING2D
+      IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC).OR.(DTiv.GT.OUT_TIME))THEN
+          KILL=1
+      END IF
 
-    IF (TIMEC1.GE.IEVERY)THEN
-        CALL VOLUME_SOLUTION_WRITE
-        IF (outsurf.eq.1)THEN
-            CALL surface_SOLUTION_WRITE
-        END IF
-        CPUT1=MPI_WTIME()
-    END IF
+      IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
+          IF ((T.GE.OUT_TIME).OR.(DTiv.GT.OUT_TIME))THEN
+              KILL=1
+          END IF
+      END IF
+      !$OMP END MASTER
 
-    IF (TIMEC8.GE.IEVERYAV)THEN
-        IF (AVERAGING.EQ.1)THEN
-            CALL VOLUME_SOLUTION_WRITE_av
-            IF (outsurf.eq.1) THEN
-                CALL surface_SOLUTION_WRITE_av
-            END IF
-        END IF
-        CPUT8=MPI_WTIME()
-    END IF
+      !$OMP BARRIER
 
-    IF (CODE_PROFILE.EQ.-1)THEN
-			  if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
+      !$OMP MASTER
+      IF (kill.eq.1)THEN
+          CALL VOLUME_SOLUTION_WRITE
+          IF (outsurf.eq.1)THEN
+              CALL surface_SOLUTION_WRITE
+          END IF
+          CALL CHECKPOINTING
+          IF (AVERAGING.EQ.1)THEN
+              CALL VOLUME_SOLUTION_WRITE_av
+              IF (outsurf.eq.1)THEN
+                  CALL surface_SOLUTION_WRITE_av
+              END IF
+              CALL CHECKPOINTING_av
+          END IF
+      END IF
+      !$OMP END MASTER
 
-            CALL VOLUME_SOLUTION_WRITE
-            if (outsurf.eq.1)then
-                call surface_SOLUTION_WRITE
-            end if
-            EVERY_TIME=EVERY_TIME+output_freq
-        END IF
-    END IF
+      !$OMP BARRIER
 
-! Check end condition
+      IF (kill.eq.1)THEN
+          IF (itestcase.le.3)THEN
+              CALL CALCULATE_ERROR(n)
+          END IF
 
-    !$OMP END MASTER
-    !$OMP BARRIER
+          return
+      END IF
 
-    !$OMP MASTER
-    IT=IT+1
-
-    IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC).OR.(DTiv.GT.OUT_TIME))THEN
-        KILL=1
-    END IF
-
-    IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
-        IF ((T.GE.OUT_TIME).OR.(DTiv.GT.OUT_TIME))THEN
-            KILL=1
-        END IF
-    END IF
-    !$OMP END MASTER
-    !$OMP BARRIER
-
-    !$OMP MASTER
-    IF (kill.eq.1)THEN
-
-        CALL VOLUME_SOLUTION_WRITE
-        IF (outsurf.eq.1)THEN
-            CALL surface_SOLUTION_WRITE
-        END IF
-        CALL CHECKPOINTING
-        IF (AVERAGING.EQ.1)THEN
-            CALL VOLUME_SOLUTION_WRITE_av
-            IF (outsurf.eq.1)THEN
-                CALL surface_SOLUTION_WRITE_av
-            END IF
-            CALL CHECKPOINTING_av
-        END IF
-    END IF
-
-    !$OMP END MASTER
-    !$OMP BARRIER
-
-    IF (kill.eq.1)THEN
-        IF (itestcase.le.3)THEN
-            CALL CALCULATE_ERROR(n)
-        END IF
-
-        return
-    END IF
-
-END DO
+  END DO
 
 END SUBROUTINE TIME_MARCHING2
 

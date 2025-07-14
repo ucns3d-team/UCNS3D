@@ -718,7 +718,6 @@ SUBROUTINE PAD_NAD(N)
                     num_valid_neighbrs = num_valid_neighbrs + 1
                     UTEMP(num_valid_neighbrs,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(L))%VAL(4,1:NOF_VARIABLES)
                 END DO
-
                            
                 !5 NOW ESTABLISH THE MIN AND MAX BOUNDS
                 DO IEX=1,NOF_VARIABLES
@@ -1071,7 +1070,7 @@ SUBROUTINE PAD_NAD(N)
                 parameter = MOOD_VAR6
             end if
             
-            !$OMP DO
+            !$OMP DO REDUCTION (MAX:MAX_ENTROPY)
             DO II=1,NOF_INTERIOR
                 I=EL_INT(II)
                 ICONSIDERED=I
@@ -1116,9 +1115,12 @@ SUBROUTINE PAD_NAD(N)
                     
                     entropy_new = ENTROPY(rho_new, p_new, gamma)
                     entropy_old = ENTROPY(rho_old, p_old, gamma)
+
+                    max_entropy = MAX(entropy_old, max_entropy)
                     
-                    ! helper_value = ABS(entropy_new - entropy_old)/CELL_SIZE
-                    helper_value = ABS(entropy_new - entropy_old)
+                    ! helper_value = ABS(entropy_new - entropy_old)/CELL_AREA
+                    helper_value = ABS(entropy_new - entropy_old)/CELL_SIZE
+                    ! helper_value = ABS(entropy_new - entropy_old)
                     ! write(*,*) helper_value
                     IF (helper_value > parameter) THEN
                         NAD_TRUE = 1
@@ -1132,7 +1134,7 @@ SUBROUTINE PAD_NAD(N)
             END DO
             !$OMP END DO		
 
-            !$OMP DO
+            !$OMP DO REDUCTION (MAX:MAX_ENTROPY)
             DO II=1,NOF_BOUNDED
                 I=EL_BND(II)
                 ICONSIDERED=I
@@ -1141,6 +1143,13 @@ SUBROUTINE PAD_NAD(N)
                 NAD_TRUE=0
                 IELEM(N,I)%MOOD=0
                 LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
+
+                CELL_AREA=IELEM(N,I)%TOTVOLUME
+                if (dimensiona.eq.2) then
+                    CELL_SIZE = SQRT(CELL_AREA)
+                else
+                    CELL_SIZE = CELL_AREA ** (1/3)
+                end if
 
                 IF (DIMENSIONA.EQ.3) THEN
                     CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
@@ -1168,9 +1177,12 @@ SUBROUTINE PAD_NAD(N)
                     
                     entropy_new = ENTROPY(rho_new, p_new, gamma)
                     entropy_old = ENTROPY(rho_old, p_old, gamma)
+
+                    max_entropy = MAX(entropy_old, max_entropy)
                     
-                    ! helper_value = ABS(entropy_new - entropy_old)/CELL_SIZE
-                    helper_value = ABS(entropy_new - entropy_old)
+                    ! helper_value = ABS(entropy_new - entropy_old)/CELL_AREA
+                    helper_value = ABS(entropy_new - entropy_old)/CELL_SIZE
+                    ! helper_value = ABS(entropy_new - entropy_old)
                     ! write(*,*) helper_value
                     IF (helper_value > parameter) THEN
                         NAD_TRUE = 1
