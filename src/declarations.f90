@@ -206,7 +206,7 @@ INTEGER::THERMAL,TEMP_MODEL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.3.   REAL VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
-REAL::wenocentralweight,TIMESTEP,oo2,zero,forcex,forcey,forcez,extf,vorder,MOOD_VAR1,MOOD_VAR2,MOOD_VAR3,MOOD_VAR4
+REAL::wenocentralweight,TIMESTEP,oo2,zero,forcex,forcey,forcez,extf,vorder,MOOD_VAR1,MOOD_VAR2,MOOD_VAR3,MOOD_VAR4,MOOD_VAR5,MOOD_VAR6
 
 real,ALLOCATABLE,DIMENSION(:)::SUMVARS,MAXVARS,aver_Vars            !VARIABLES FOR BOUNDS OF TROUBLED CELL INDICATOR
 
@@ -331,6 +331,9 @@ REAL,dimension(100,3)::bubble_centre
 real,dimension(100)::bubble_radius
 INTEGER::NOF_BUBBLES
 
+real::max_entropy
+real::global_max_entropy
+
 real:: momentx,momenty,momentz
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
@@ -349,7 +352,6 @@ REAL,ALLOCATABLE,DIMENSION(:,:)::INVERSEJAC	!inverse jacobians
 REAL,ALLOCATABLE,DIMENSION(:)::DETERJAC		!determinant jacobians
 REAL,ALLOCATABLE,DIMENSION(:,:)::PROBEC		!probe positions
 
-
 REAL,ALLOCATABLE,DIMENSION(:,:)::IMPDU		!IMPLICIT ONLY CHANGE OF SOLUTION
 
 REAL,ALLOCATABLE,DIMENSION(:,:,:)::IMPDIAG	!IMPLICIT ONLY DIAGONAL MATRIX D
@@ -359,7 +361,6 @@ REAL,ALLOCATABLE,DIMENSION(:,:)::IMPOFF_MF	!IMPLICIT ONLY OFF DIAGONAL MATRIX D
 REAL,ALLOCATABLE,DIMENSION(:,:,:)::IMPOFFT	!IMPLICIT ONLY OFF DIAGONAL MATRIX D FOR TURBULENCE
 REAL,ALLOCATABLE,DIMENSION(:,:)::IMPDIAGT	!IMPLICIT ONLY  DIAGONAL MATRIX D FOR TURBULENCE
 REAL,ALLOCATABLE,DIMENSION(:,:)::SHT		!IMPLICIT ONLY  SORUCE TERM JACOBIAN
-
 
 REAL,ALLOCATABLE,DIMENSION(:)::maxDiff		!SE
 REAL,ALLOCATABLE,DIMENSION(:)::minDiff		!SE
@@ -395,6 +396,7 @@ REAL, allocatable,dimension(:,:,:)::XAND2R
 REAL,ALLOCATABLE,DIMENSION(:)::FLUX_TERM_LEFT_Z,FLUX_TERM_LEFT_X,FLUX_TERM_LEFT_Y
 REAL,ALLOCATABLE,DIMENSION(:)::FLUX_TERM_RIGHT_Z,FLUX_TERM_RIGHT_X,FLUX_TERM_RIGHT_Y
 real,allocatable,dimension(:,:)::SIND1,SIND2,SIND3,SIND4,SIND5,SIND6
+
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.5.   DATA TYPE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -538,6 +540,7 @@ TYPE EXCHANGE_SOLHI
 	INTEGER::FAST
 	INTEGER::HOWMANY   !HOW MANY ELEMENTS ARE NEEDED
 	REAL,ALLOCATABLE,DIMENSION(:,:)::SOL   !ARRAY TO HOLD THE VALUES TO BE SEND/RECEIVED
+	REAL,ALLOCATABLE,DIMENSION(:,:)::SOL2   !ARRAY TO HOLD THE VALUES TO BE SEND/RECEIVED
 END TYPE EXCHANGE_SOLHI
 
 TYPE(EXCHANGE_SOLHI),ALLOCATABLE,DIMENSION(:)::IEXSOLHIR,iexsolhird    !RECEIVING DATA TYPE FOR HALO CELLS OF STENCILS

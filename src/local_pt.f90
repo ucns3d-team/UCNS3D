@@ -25,23 +25,20 @@ kmaxe=xmpielrank(n)
 INDL=IEXCHANGER(1)%TOT
 TNDL=IEXCHANGES(1)%TOT
 
-
-
 IF (FASTEST.NE.1)THEN
-INEEDT=IRECEXR(1)%TOT
-TNEEDT=IRECEXS(1)%TOT
-ALLOCATE (IEXCORDR(INEEDT))
-ALLOCATE (IEXCORDS(TNEEDT))
-ALLOCATE (IEXSOLHIR(INEEDT))
-ALLOCATE (IEXSOLHIS(TNEEDT))
+	INEEDT=IRECEXR(1)%TOT
+	TNEEDT=IRECEXS(1)%TOT
+	ALLOCATE (IEXCORDR(INEEDT))
+	ALLOCATE (IEXCORDS(TNEEDT))
+	ALLOCATE (IEXSOLHIR(INEEDT))
+	ALLOCATE (IEXSOLHIS(TNEEDT))
 
-
-if (adda.eq.1)then
-ALLOCATE (IEXSOLHIRd(INEEDT))
-ALLOCATE (IEXSOLHISd(TNEEDT))
-end if
-
+	if (adda.eq.1)then
+		ALLOCATE (IEXSOLHIRd(INEEDT))
+		ALLOCATE (IEXSOLHISd(TNEEDT))
+	end if
 END IF
+
 ALLOCATE (IEXBOUNDHIR(INDL))
 ALLOCATE (IEXBOUNDHIS(TNDL))
 ALLOCATE (IEXBOUNDHIRR(INDL))
@@ -50,112 +47,89 @@ ALLOCATE (IEXBOUNDHISS(TNDL))
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 if (dimensiona.eq.3)then
-i_cnt2=4;i_cnt3=3;i_cnt4=8
+	i_cnt2=4;i_cnt3=3;i_cnt4=8
 else
-i_cnt2=2;i_cnt3=2;i_cnt4=4
+	i_cnt2=2;i_cnt3=2;i_cnt4=4
 end if
 i_cnt5=i_cnt3*i_cnt4
 IF (FASTEST.NE.1)THEN
-DO I=1,INEEDT
+	DO I=1,INEEDT
 
-	IEXSOLHIR(I)%PROCID=IRECEXR(I)%PROCID
- 	IEXCORDR(I)%PROCID=IRECEXR(I)%PROCID
- 	ALLOCATE (IEXCORDR(I)%NODECORD(IRECEXR(I)%MUCHINEED(1),i_cnt4,i_cnt3))
- 	IEXCORDR(I)%NODECORD(1:IRECEXR(I)%MUCHINEED(1),i_cnt4,i_cnt3)=-tolbig
+		IEXSOLHIR(I)%PROCID=IRECEXR(I)%PROCID
+ 		IEXCORDR(I)%PROCID=IRECEXR(I)%PROCID
+ 		ALLOCATE (IEXCORDR(I)%NODECORD(IRECEXR(I)%MUCHINEED(1),i_cnt4,i_cnt3))
+ 		IEXCORDR(I)%NODECORD(1:IRECEXR(I)%MUCHINEED(1),i_cnt4,i_cnt3)=-tolbig
 
-		 ALLOCATE(IEXSOLHIR(I)%SOL(IRECEXR(I)%MUCHINEED(1),nof_variables+turbulenceequations+passivescalar))
+		ALLOCATE(IEXSOLHIR(I)%SOL(IRECEXR(I)%MUCHINEED(1),nof_variables+turbulenceequations+passivescalar))
 
-		 if (adda.eq.1)then
-		ALLOCATE(IEXSOLHIRd(I)%SOL(IRECEXR(I)%MUCHINEED(1),1))
+		if (adda.eq.1)then
+			ALLOCATE(IEXSOLHIRd(I)%SOL(IRECEXR(I)%MUCHINEED(1),1))
 		end if
-	IEXSOLHIR(I)%SOL(:,:)=0.0d0
-
-END DO
+		if (mood.ge.1) then
+			ALLOCATE(IEXSOLHIR(I)%SOL2(IRECEXR(I)%MUCHINEED(1),nof_variables+turbulenceequations+passivescalar))
+			IEXSOLHIR(I)%SOL2(:,:)=0.0d0
+		end if
+		IEXSOLHIR(I)%SOL(:,:)=0.0d0
+	END DO
 END IF
 DO I=1,INDL
 	IEXBOUNDHIR(I)%PROCID=IEXCHANGER(I)%PROCID
 	IEXBOUNDHIRR(I)%PROCID=IEXCHANGER(I)%PROCID
 	IF (ITESTCASE.Le.3)THEN
-! 	ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),nof_variables))
-	ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
+		! ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),nof_variables))
+		ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
+	ELSE
+	  	if (dimensiona.eq.3)then
+			 I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
+	 	 else
+	  		I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
+	  	end if
 
-	Else
-
-	  if (dimensiona.eq.3)then
-	 I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
-	  else
-	  I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
-	  end if
-
-! 	    ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),I_CNT))
-
+		! ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),I_CNT))
 	   ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
 	END IF
 
-! 	IEXBOUNDHIR(I)%FACESOL(:,:)=0.0d0
+	! IEXBOUNDHIR(I)%FACESOL(:,:)=0.0d0
 	IEXBOUNDHIRR(I)%vertpp(:,:)=0
-
 END DO
 IF (FASTEST.NE.1)THEN
-DO I=1,TNEEDT
+	DO I=1,TNEEDT
+		IEXSOLHIS(I)%PROCID=IRECEXS(I)%PROCID
 
-	IEXSOLHIS(I)%PROCID=IRECEXS(I)%PROCID
+		IEXCORDS(I)%PROCID=IRECEXS(I)%PROCID
+		ALLOCATE (IEXCORDS(I)%NODECORD(IRECEXS(I)%MUCHTHEYNEED(1),i_cnt4,i_cnt3))
 
-	IEXCORDS(I)%PROCID=IRECEXS(I)%PROCID
-	ALLOCATE (IEXCORDS(I)%NODECORD(IRECEXS(I)%MUCHTHEYNEED(1),i_cnt4,i_cnt3))
+		IEXCORDs(I)%NODECORD(1:IRECEXs(I)%MUCHTHEYNEED(1),1:i_cnt4,1:i_cnt3)=-tolbig
+		ALLOCATE (IEXSOLHIS(I)%SOL(IRECEXS(I)%MUCHTHEYNEED(1),nof_variables+turbulenceequations+passivescalar))
 
+		if (adda.eq.1)then
+			ALLOCATE(IEXSOLHIsd(I)%SOL(IRECEXS(I)%MUCHTHEYNEED(1),1))
+		end if
 
-
-	IEXCORDs(I)%NODECORD(1:IRECEXs(I)%MUCHTHEYNEED(1),1:i_cnt4,1:i_cnt3)=-tolbig
-	ALLOCATE (IEXSOLHIS(I)%SOL(IRECEXS(I)%MUCHTHEYNEED(1),nof_variables+turbulenceequations+passivescalar))
-
-	if (adda.eq.1)then
-	ALLOCATE(IEXSOLHIsd(I)%SOL(IRECEXS(I)%MUCHTHEYNEED(1),1))
-	end if
-
-	IEXSOLHIs(I)%SOL(:,:)=0.0d0
-
-END DO
+		IEXSOLHIs(I)%SOL(:,:)=0.0d0
+	END DO
 END IF
 DO I=1,TNDL
 
-
-      IEXBOUNDHIs(I)%PROCID=IEXCHANGEs(I)%PROCID
+    IEXBOUNDHIs(I)%PROCID=IEXCHANGEs(I)%PROCID
 	IEXBOUNDHIss(I)%PROCID=IEXCHANGEs(I)%PROCID
 	IF (ITESTCASE.Le.3)THEN
-! 	ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),nof_variables))
-
-	ALLOCATE(IEXBOUNDHIss(I)%vertpp(IEXCHANGEs(I)%MUCHTHEYNEED(1),i_cnt2))
-
+		! ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),nof_variables))
+		ALLOCATE(IEXBOUNDHIss(I)%vertpp(IEXCHANGEs(I)%MUCHTHEYNEED(1),i_cnt2))
 	Else
-
-	  if (dimensiona.eq.3)then
-	 I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
-	  else
-	  I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
-
-	  end if
-! 	    ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),I_CNT))
-
+	  	if (dimensiona.eq.3)then
+	 		I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
+	  	else
+	  		I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
+	  	end if
+		! ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),I_CNT))
 	   ALLOCATE(IEXBOUNDHIss(I)%vertpp(IEXCHANGEs(I)%MUCHTHEYNEED(1),i_cnt2))
 	END IF
-
-! 	IEXBOUNDHIs(I)%FACESOL(:,:)=0.0d0
+	! IEXBOUNDHIs(I)%FACESOL(:,:)=0.0d0
 	IEXBOUNDHIss(I)%vertpp(:,:)=0
 END DO
 
-
-
-
 CALL EXCHANGE_CORDX(N,INEEDT,TNEEDT,i_cnt4,i_cnt3)
-
-
-
-
-
-
-
-
 
 END SUBROUTINE EXCH_CORDS
 
@@ -168,76 +142,66 @@ REAL,DIMENSION(1)::DUMTS,RUMTS
 
 IF (FASTEST.NE.1)THEN
 
-DO I=1,TNEEDT
-!
-	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
-!
- 	    do j=1,ielem(n,IRECEXS(I)%LOCALREF(K))%nonodes
-!
-		IEXCORDS(I)%NODECORD(K,j,1:DIMS)=inoder(ielem(n,IRECEXS(I)%LOCALREF(K))%nodes(j))%CORD(1:DIMS)
-!
-	    end do
+	DO I=1,TNEEDT
+		DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
+			do j=1,ielem(n,IRECEXS(I)%LOCALREF(K))%nonodes
+				IEXCORDS(I)%NODECORD(K,j,1:DIMS)=inoder(ielem(n,IRECEXS(I)%LOCALREF(K))%nodes(j))%CORD(1:DIMS)
+			end do
+		END DO
 	END DO
-END DO
 
-
-
-
-CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-ICPUID=N
-DUMTS(1:1)=tolsmall
-		DO I=0,ISIZE-1
-			IF (I.NE.N) THEN
-				DO J=1,TNEEDT
-					IAVT=10000
-					IF (IRECEXS(J)%PROCID.EQ.I)THEN
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	ICPUID=N
+	DUMTS(1:1)=tolsmall
+	DO I=0,ISIZE-1
+		IF (I.NE.N) THEN
+			DO J=1,TNEEDT
+				IAVT=10000
+				IF (IRECEXS(J)%PROCID.EQ.I)THEN
 					IAVT=J
 					GO TO 7001
-					END IF
-				END DO
-				7001 CONTINUE
-				DO K=1,INEEDT
-					IAVC=10000
-					IF (IRECEXR(K)%PROCID.EQ.I) THEN
+				END IF
+			END DO
+			7001 CONTINUE
+			DO K=1,INEEDT
+				IAVC=10000
+				IF (IRECEXR(K)%PROCID.EQ.I) THEN
 					IAVC=K
 					GO TO 8001
-					END IF
-				END DO
-				8001 CONTINUE
-				IF ((IAVT.EQ.10000).AND.(IAVC.NE.10000)) THEN
+				END IF
+			END DO
+			8001 CONTINUE
+			IF ((IAVT.EQ.10000).AND.(IAVC.NE.10000)) THEN
 				CALL MPI_SENDRECV(DUMTS(1:1),1,MPI_DOUBLE_PRECISION,I,ICPUID,&
 				IEXCORDR(IAVC)%NODECORD(1:IRECEXR(IAVC)%MUCHINEED(1),1:i_cnt4,1:i_cnt3),&
-IRECEXR(IAVC)%MUCHINEED(1)*i_cnt4*i_cnt3,MPI_DOUBLE_PRECISION,IEXCORDR(IAVC)%PROCID,IEXCORDR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-
-				END IF
-				IF ((IAVT.NE.10000).AND.(IAVC.EQ.10000)) THEN
+					IRECEXR(IAVC)%MUCHINEED(1)*i_cnt4*i_cnt3,MPI_DOUBLE_PRECISION,IEXCORDR(IAVC)%PROCID,IEXCORDR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
+			END IF
+			IF ((IAVT.NE.10000).AND.(IAVC.EQ.10000)) THEN
 				!MESSAGE 1
 				CALL MPI_SENDRECV(IEXCORDS(IAVT)%NODECORD(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:i_cnt4,1:i_cnt3),&
-IRECEXS(IAVT)%MUCHTHEYNEED(1)*i_cnt4*i_cnt3,MPI_DOUBLE_PRECISION,IEXCORDS(IAVT)%PROCID,ICPUID,&
+					IRECEXS(IAVT)%MUCHTHEYNEED(1)*i_cnt4*i_cnt3,MPI_DOUBLE_PRECISION,IEXCORDS(IAVT)%PROCID,ICPUID,&
 				DUMTS(1:1),1,MPI_DOUBLE_PRECISION,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-				END IF
-				IF ((IAVT.NE.10000).AND.(IAVC.NE.10000)) THEN
+			END IF
+			IF ((IAVT.NE.10000).AND.(IAVC.NE.10000)) THEN
 				!MESSAGE 1
 				CALL MPI_SENDRECV(IEXCORDS(IAVT)%NODECORD(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:i_cnt4,1:i_cnt3),&
-IRECEXS(IAVT)%MUCHTHEYNEED(1)*i_cnt4*i_cnt3,MPI_DOUBLE_PRECISION,IEXCORDS(IAVT)%PROCID,ICPUID,&
-				IEXCORDR(IAVC)%NODECORD(1:IRECEXR(IAVC)%MUCHINEED(1),1:i_cnt4,1:i_cnt3),IRECEXR(IAVC)%MUCHINEED(1)*i_cnt4*i_cnt3,&
-MPI_DOUBLE_PRECISION,IEXCORDR(IAVC)%PROCID,IEXCORDR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-!
-
-
-				END IF
-
+					IRECEXS(IAVT)%MUCHTHEYNEED(1)*i_cnt4*i_cnt3,MPI_DOUBLE_PRECISION,IEXCORDS(IAVT)%PROCID,ICPUID,&
+					IEXCORDR(IAVC)%NODECORD(1:IRECEXR(IAVC)%MUCHINEED(1),1:i_cnt4,1:i_cnt3),IRECEXR(IAVC)%MUCHINEED(1)*i_cnt4*i_cnt3,&
+					MPI_DOUBLE_PRECISION,IEXCORDR(IAVC)%PROCID,IEXCORDR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
+			END IF
 
 			!	END DO !K
 			!END DO! J
-			END IF	! I.NE.N
-		END DO
+		END IF	! I.NE.N
+	END DO
 END IF
+
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-
-
 END SUBROUTINE EXCHANGE_CORDX
+
+
+
 
 
 sUBROUTINE EXCH_CORDS_opt(N)
@@ -255,25 +219,20 @@ real::rcfv1,rcfv2
 !-------------------FOR DEBUGGING ONLY -----------------------------------------!
 kmaxe=xmpielrank(n)
 
-
 INDL=IEXCHANGER(1)%TOT
 TNDL=IEXCHANGES(1)%TOT
 
-
-
 if (dimensiona.eq.3)then
-i_cnt2=4;i_cnt3=3;i_cnt4=8
+	i_cnt2=4;i_cnt3=3;i_cnt4=8
 else
-i_cnt2=2;i_cnt3=2;i_cnt4=4
+	i_cnt2=2;i_cnt3=2;i_cnt4=4
 end if
 i_cnt5=i_cnt3*i_cnt4
 
 DO I=1,INDL
-
 	IF (ITESTCASE.Le.3)THEN
         ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),nof_variables))
-    ! 	ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
-
+    	! ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
 
         IF (DG == 1)THEN
             ALLOCATE(IEXBOUNDHIR(I)%FACESOL_DG(IEXCHANGER(I)%MUCHINEED(1),NOF_VARIABLES))
@@ -282,30 +241,24 @@ DO I=1,INDL
         if (mood.eq.1)then
             ALLOCATE(IEXBOUNDHIR(I)%FACESOL_m(IEXCHANGER(I)%MUCHINEED(1),1))
         end if
-
-	Else
-	
-	  if (dimensiona.eq.3)then
-	 I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
-	  else
-	  I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
-	  end if
+	ELSE
+	  	if (dimensiona.eq.3)then
+	 		I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
+	  	else
+	  		I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
+	  	end if
 
 	    ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),I_CNT))
         IF (DG == 1)THEN
             ALLOCATE(IEXBOUNDHIR(I)%FACESOL_DG(IEXCHANGER(I)%MUCHINEED(1),I_CNT))
-        END IF
-
-
-            
+        END IF            
 	END IF
 
 	IEXBOUNDHIR(I)%FACESOL(:,:)=0.0d0
 	if (DG.EQ.1)THEN
-	IEXBOUNDHIR(I)%FACESOL_DG(:,:)=0.0d0
+		IEXBOUNDHIR(I)%FACESOL_DG(:,:)=0.0d0
 	END IF
-! 	IEXBOUNDHIRR(I)%vertpp(:,:)=0
-
+	! IEXBOUNDHIRR(I)%vertpp(:,:)=0
 END DO
 
 DO I=1,TNDL
@@ -319,46 +272,27 @@ DO I=1,TNDL
         if (mood.eq.1)then
             ALLOCATE(IEXBOUNDHIs(I)%FACESOL_m(IEXCHANGEs(I)%MUCHTHEYNEED(1),1))
         end if
-
-	Else
-	
-	  if (dimensiona.eq.3)then
-	 I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
-	  else
-	  I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
-
-	  end if
+	ELSE
+	  	if (dimensiona.eq.3)then
+	 		I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
+	  	else
+	  		I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
+	  	end if
 	    ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),I_CNT))
 
-	   IF (DG == 1)THEN
+	   	IF (DG == 1)THEN
             ALLOCATE(IEXBOUNDHIS(I)%FACESOL_DG(IEXCHANGEs(I)%MUCHTHEYNEED(1),I_CNT))
         END IF
-	    
-	  
 	END IF
 
 	IEXBOUNDHIS(I)%FACESOL(:,:)=0.0d0
 	if (DG.EQ.1)THEN
-	IEXBOUNDHIS(I)%FACESOL_DG(:,:)=0.0d0
+		IEXBOUNDHIS(I)%FACESOL_DG(:,:)=0.0d0
 	END IF
 
-	
 END DO
 
-
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-
-
-
-
-
-
-
-
-
-
-		
 
 END SUBROUTINE EXCH_CORDS_opt
 
@@ -384,208 +318,140 @@ INDL=IEXCHANGER(1)%TOT
 TNDL=IEXCHANGES(1)%TOT
 
 if (dimensiona.eq.3)then
-i_cnt2=4;i_cnt3=3;i_cnt4=8
+	i_cnt2=4;i_cnt3=3;i_cnt4=8
 else
-i_cnt2=2;i_cnt3=2;i_cnt4=4
+	i_cnt2=2;i_cnt3=2;i_cnt4=4
 end if
 i_cnt5=i_cnt3*i_cnt4
 
 if (dimensiona.eq.3)then
 
+	! now try to remap the local and global neighbours and mapping of the gaussian quadrature points
 
+	!first the global
+	DO J=1,INDL
+		DO I=1,TNDL
+			IF (IEXCHANGER(J)%PROCID.EQ.IEXCHANGES(I)%PROCID)THEN
+				DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+	    			if (ielem(n,(IEXCHANGES(I)%LOCALREF(K)))%TYPES_FACES(IEXCHANGES(I)%SIDETHEYNEED(K)).eq.5)then
+	    				ixf4=4
+	    			else
+	    				ixf4=3
+	    			end if 
+	    			IEXBOUNDHISS(I)%VERTPP(K,1:ixf4)=ielem(n,(IEXCHANGES(I)%LOCALREF(K)))%NODES_FACES(IEXCHANGES(I)%SIDETHEYNEED(K),1:ixf4)
+				END DO
+			END IF
+		END DO
+	END DO
 
-!now try to remap the local and global neighbours and mapping of the gaussian quadrature points
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
+	DO K=1,INDL
+		DO J=1,TNDL
+      		IF (IEXCHANGER(k)%PROCID.EQ.IEXCHANGES(j)%PROCID)THEN
+      			CALL MPI_SENDRECV(IEXBOUNDHISs(J)%vertpp(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:i_cnt2)&
+					,IEXCHANGES(J)%MUCHTHEYNEED(1)*I_cnt2,MPI_INTEGER,IEXCHANGES(j)%PROCID,&
+      				IEXCHANGES(j)%PROCID,IEXBOUNDHIRr(K)%vertpp(1:IEXCHANGER(K)%MUCHINEED(1),1:i_cnt2),&
+					IEXCHANGER(K)%MUCHINEED(1)*I_cnt2,MPI_INTEGER,IEXCHANGES(j)%PROCID,&
+      				ICPUID,MPI_COMM_WORLD,STATUS,IERROR)
+      		END IF
+		END DO
+	END DO
 
-!first the global
-DO J=1,INDL
-DO I=1,TNDL
-IF (IEXCHANGER(J)%PROCID.EQ.IEXCHANGES(I)%PROCID)THEN
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-
-! 	    
-	    if (ielem(n,(IEXCHANGES(I)%LOCALREF(K)))%TYPES_FACES(IEXCHANGES(I)%SIDETHEYNEED(K)).eq.5)then
-	    ixf4=4
-	    else
-	    ixf4=3
-	    end if
-! 	    
-	    IEXBOUNDHISS(I)%VERTPP(K,1:ixf4)=ielem(n,(IEXCHANGES(I)%LOCALREF(K)))%NODES_FACES(IEXCHANGES(I)%SIDETHEYNEED(K),1:ixf4)
-
-
+	do i=1,kmaxe
+  		if (ielem(n,i)%interior.eq.1)then
+  			do k=1,ielem(n,i)%ifca
+		  		if (ielem(n,i)%TYPES_FACES(k).eq.5)then
+	    			ixf4=4
+	    		else
+	    			ixf4=3
+	    		end if
 	    
-
-end do
-END IF
-end do
-END DO
-
-CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-DO K=1,INDL
-DO J=1,TNDL
-      IF (IEXCHANGER(k)%PROCID.EQ.IEXCHANGES(j)%PROCID)THEN
-
-      CALL MPI_SENDRECV(IEXBOUNDHISs(J)%vertpp(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:i_cnt2)&
-,IEXCHANGES(J)%MUCHTHEYNEED(1)*I_cnt2,MPI_INTEGER,IEXCHANGES(j)%PROCID,&
-      IEXCHANGES(j)%PROCID,IEXBOUNDHIRr(K)%vertpp(1:IEXCHANGER(K)%MUCHINEED(1),1:i_cnt2),&
-IEXCHANGER(K)%MUCHINEED(1)*I_cnt2,MPI_INTEGER,IEXCHANGES(j)%PROCID,&
-      ICPUID,MPI_COMM_WORLD,STATUS,IERROR)
-      END IF
-END DO
-END DO
-
-
-
-
-
-
-
-do i=1,kmaxe
-  if (ielem(n,i)%interior.eq.1)then
-  do k=1,ielem(n,i)%ifca
-		  if (ielem(n,i)%TYPES_FACES(k).eq.5)then
-	    ixf4=4
-	    else
-	    ixf4=3
-	    end if
-	    
-      if (ielem(n,i)%ineighg(K).gt.0)then
-	if (ielem(n,i)%ineighb(K).ne.n)then
-	    
-	    if (ielem(n,i)%ineighg(K).gt.ielem(n,i)%ihexgl)then
-! 		ielem(n,i)%NODES_FACES(k,1:ixf4)=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),1:ixf4)
-! 		ielem(n,i)%REORIENT(K)=1
-	    if (ielem(n,i)%ibounds(k).gt.0)then
-	      if ((ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(k))%icode.eq.50))then
-		do ixfv=1,ixf4
-		inoder(IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv))%itor=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv)
-		end do
-	      end if
-	    end if
-	    end if
-
-	END IF
-	eND IF
-	
-      END DO
-    END IF
-  
-end do
-
-
-
-
-
-
-
-
-
-
+      			if (ielem(n,i)%ineighg(K).gt.0)then
+					if (ielem(n,i)%ineighb(K).ne.n)then
+	    				if (ielem(n,i)%ineighg(K).gt.ielem(n,i)%ihexgl)then
+							! ielem(n,i)%NODES_FACES(k,1:ixf4)=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),1:ixf4)
+							! ielem(n,i)%REORIENT(K)=1
+							if (ielem(n,i)%ibounds(k).gt.0)then
+								if ((ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(k))%icode.eq.50))then
+									do ixfv=1,ixf4
+										inoder(IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv))%itor=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv)
+									end do
+	      						end if
+	    					end if
+	    				end if
+					END IF
+				eND IF
+      		END DO
+    	END IF
+	end do
 else
+	!now try to remap the local and global neighbours and mapping of the gaussian quadrature points
 
+	!first the global
+	DO J=1,INDL
+		DO I=1,TNDL
+			IF (IEXCHANGER(J)%PROCID.EQ.IEXCHANGES(I)%PROCID)THEN
+				DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+					ixf4=2
 
+					IEXBOUNDHISs(I)%vertpp(K,1:ixf4)=ielem(n,(IEXCHANGES(I)%LOCALREF(K)))%NODES_FACES(IEXCHANGES(I)%SIDETHEYNEED(K),1:ixf4)
+				END DO
+			END IF
+		END DO
+	END DO
 
+	DO K=1,INDL
+		DO J=1,TNDL
+      		IF (IEXBOUNDHIRR(K)%PROCID.EQ.IEXBOUNDHISs(J)%PROCID)THEN
+      			CALL MPI_SENDRECV(IEXBOUNDHISs(J)%vertpp(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:i_cnt2)&
+					,IEXCHANGES(J)%MUCHTHEYNEED(1)*I_cnt2,MPI_INTEGER,IEXBOUNDHISs(J)%PROCID,&
+      				ICPUID,IEXBOUNDHIRr(K)%vertpp(1:IEXCHANGER(K)%MUCHINEED(1),1:i_cnt2),&
+					IEXCHANGER(K)%MUCHINEED(1)*I_cnt2,MPI_INTEGER,IEXBOUNDHIRr(K)%PROCID,&
+      				IEXBOUNDHIRR(K)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
+      		END IF
+		END DO
+	END DO
 
-
-
-
-!now try to remap the local and global neighbours and mapping of the gaussian quadrature points
-
-
-!first the global
-DO J=1,INDL
-DO I=1,TNDL
-IF (IEXCHANGER(J)%PROCID.EQ.IEXCHANGES(I)%PROCID)THEN
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-
-ixf4=2
-
-IEXBOUNDHISs(I)%vertpp(K,1:ixf4)=ielem(n,(IEXCHANGES(I)%LOCALREF(K)))%NODES_FACES(IEXCHANGES(I)%SIDETHEYNEED(K),1:ixf4)
-end do
-END IF
-end do
-END DO
-
-
-DO K=1,INDL
-DO J=1,TNDL
-      IF (IEXBOUNDHIRR(K)%PROCID.EQ.IEXBOUNDHISs(J)%PROCID)THEN
-      CALL MPI_SENDRECV(IEXBOUNDHISs(J)%vertpp(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:i_cnt2)&
-,IEXCHANGES(J)%MUCHTHEYNEED(1)*I_cnt2,MPI_INTEGER,IEXBOUNDHISs(J)%PROCID,&
-      ICPUID,IEXBOUNDHIRr(K)%vertpp(1:IEXCHANGER(K)%MUCHINEED(1),1:i_cnt2),&
-IEXCHANGER(K)%MUCHINEED(1)*I_cnt2,MPI_INTEGER,IEXBOUNDHIRr(K)%PROCID,&
-      IEXBOUNDHIRR(K)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-      END IF
-END DO
-END DO
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-do i=1,kmaxe
-  if (ielem(n,i)%interior.eq.1)then
-  do k=1,ielem(n,i)%ifca
-		 
-	    ixf4=2
+	do i=1,kmaxe
+  		if (ielem(n,i)%interior.eq.1)then
+  			do k=1,ielem(n,i)%ifca
+	    		ixf4=2
 	    
-      if (ielem(n,i)%ineighg(K).gt.0)then
-	if (ielem(n,i)%ineighb(K).ne.n)then
+      			if (ielem(n,i)%ineighg(K).gt.0)then
+					if (ielem(n,i)%ineighb(K).ne.n)then
 	    
-	    if (ielem(n,i)%ineighg(K).gt.ielem(n,i)%ihexgl)then
-
-! 		ielem(n,i)%NODES_FACES(k,1:ixf4)=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),1:ixf4)
-! 		ielem(n,i)%REORIENT(K)=1
-	    if (ielem(n,i)%ibounds(k).gt.0)then
-	      if ((ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(k))%icode.eq.50))then
-		do ixfv=1,ixf4
- 		inoder(IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv))%itor=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv)
-		end do
-	      end if
-	    end if
-	    end if
-
-
-	else
-! 	    if (ielem(n,i)%ineighg(K).gt.ielem(n,i)%ihexgl)then
-! 		ielem(n,i)%NODES_FACES(k,1:ixf4)=IELEM(N,ielem(n,i)%ineigh(K))%NODES_FACES(IELEM(N,I)%INEIGHN(K),1:ixf4)
-! 		ielem(n,i)%REORIENT(K)=1
-! 	    end if
-	end if
-      end if
-  end do
-  else
-!       do k=1,ielem(n,i)%ifca
-! 
-! 
-! 	  ixf4=2
-!       if (ielem(n,i)%ineighg(K).gt.0)then
-! 	
-! 	
-! 	    if (ielem(n,i)%ineighg(K).gt.ielem(n,i)%ihexgl)then
-! 		ielem(n,i)%NODES_FACES(k,1:ixf4)=IELEM(N,ielem(n,i)%ineigh(K))%NODES_FACES(IELEM(N,I)%INEIGHN(K),1:ixf4)
-! 		ielem(n,i)%REORIENT(K)=1
-! 	    end if
-! 	
-!       end if
-!       end do
-  end if
-end do
-
-
+	    				if (ielem(n,i)%ineighg(K).gt.ielem(n,i)%ihexgl)then
+							! ielem(n,i)%NODES_FACES(k,1:ixf4)=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),1:ixf4)
+							! (n,i)%REORIENT(K)=1
+	    					if (ielem(n,i)%ibounds(k).gt.0)then
+	      						if ((ibound(n,ielem(n,i)%ibounds(k))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(k))%icode.eq.50))then
+									do ixfv=1,ixf4
+ 										inoder(IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv))%itor=IEXBOUNDHIRR(IELEM(N,I)%INEIGHN(K))%VERTPP(IELEM(N,I)%Q_FACE(K)%Q_MAPL(1),ixfv)
+									end do
+	      						end if
+	    					end if
+	    				end if
+					else
+						! if (ielem(n,i)%ineighg(K).gt.ielem(n,i)%ihexgl)then
+						! 	  ielem(n,i)%NODES_FACES(k,1:ixf4)=IELEM(N,ielem(n,i)%ineigh(K))%NODES_FACES(IELEM(N,I)%INEIGHN(K),1:ixf4)
+						!     ielem(n,i)%REORIENT(K)=1
+						! end if
+					end if
+      			end if
+  			end do
+  		else
+			! do k=1,ielem(n,i)%ifca
+			! 	  ixf4=2
+			!     if (ielem(n,i)%ineighg(K).gt.0)then
+			! 	      if (ielem(n,i)%ineighg(K).gt.ielem(n,i)%ihexgl)then
+			! 		      ielem(n,i)%NODES_FACES(k,1:ixf4)=IELEM(N,ielem(n,i)%ineigh(K))%NODES_FACES(IELEM(N,I)%INEIGHN(K),1:ixf4)
+			! 		      ielem(n,i)%REORIENT(K)=1
+			! 	      end if
+			!     end if
+			! end do
+  		end if
+	end do
 end if
 
 END SUBROUTINE EXCH_CORD3
@@ -607,10 +473,8 @@ REAL,DIMENSION(1:1)::DUMTS,RUMTS
 INDL=IEXCHANGER(1)%TOT
 TNDL=IEXCHANGES(1)%TOT
 
-
 ALLOCATE (IEXBOUNDHIRi(INDL))
 ALLOCATE (IEXBOUNDHISi(TNDL))
-
 
 I_CNT=(nof_variables+turbulenceequations+passivescalar)
 DO I=1,INDL
@@ -619,7 +483,6 @@ DO I=1,INDL
 	
 	ALLOCATE(IEXBOUNDHIRi(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),I_CNT))
 	IEXBOUNDHIRi(I)%FACESOL(:,:)=0.0d0
-	
 END DO
 
 DO I=1,TNDL
@@ -628,13 +491,10 @@ DO I=1,TNDL
 	ALLOCATE(IEXBOUNDHISi(I)%FACESOL(IEXCHANGES(I)%MUCHTHEYNEED(1),I_CNT))
 	
 	IEXBOUNDHISi(I)%FACESOL(:,:)=0.0d0
-	
 END DO
-
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		
-
 END SUBROUTINE EXCH_CORDS2
 
 
@@ -674,32 +534,28 @@ REAL::RIN_STEN
 REAL,dimension(1:dimensiona)::CORDS
 INEEDT=IRECEXR(1)%TOT
 i=iconsi
-	IKG2=0
-	DO ISMP=1,TYPESTEN
-		IKG=0
-		
-                        if ((ees.ne.5).or.(ismp.eq.1))then
-                        itarget=ielem(n,i)%iNUMNEIGHBOURS
-                        
-                        else
-                        itarget=NUMNEIGHBOURS2
-                        
-                        end if
-                        
-		
+IKG2=0
+
+DO ISMP=1,TYPESTEN
+	IKG=0
+	
+	if ((ees.ne.5).or.(ismp.eq.1))then
+		itarget=ielem(n,i)%iNUMNEIGHBOURS           
+	else
+		itarget=NUMNEIGHBOURS2                
+	end if
+					
+	DO L=1,itarget
+		IF (ILOCALSTENCIL(N,I,ISMP,L).GT.0)THEN
+			IKG=IKG+1
+		END IF
+	END DO
+	IF (IKG.EQ.itarget)THEN
+						
+		if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+			IKG2=IKG2+1
+			
 			DO L=1,itarget
-				IF (ILOCALSTENCIL(N,I,ISMP,L).GT.0)THEN
-				IKG=IKG+1
-				END IF
-			END DO
-			IF (IKG.EQ.itarget)THEN
-			
-			
-			
-				if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
-				IKG2=IKG2+1
-				
-				DO L=1,itarget
 				ILOX_IHEXG(IKG2,L)=ILOCALSTENCIL(N,I,ISMP,L)
 				ILOX_PERIODICFLAG(IKG2,L)=ILOCALSTENCILPER(N,I,ISMP,L)
 				j=(XMPIL(ILOX_IHEXG(IKG2,L)))
@@ -713,97 +569,83 @@ i=iconsi
 				ILON_NODCOUNT(IKG2,L,1:ielem(n,j)%nonodes)=ielem(n,j)%nodes(1:ielem(n,j)%nonodes)
 				
 				DO K=1,ielem(n,j)%nonodes    
-				ILON_x(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(1)
-				ILON_y(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(2)
-				ILON_z(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(3)
+					ILON_x(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(1)
+					ILON_y(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(2)
+					ILON_z(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(3)
 				END DO
-				end do
-				
-				
-				
-				ELSE
-				IKG2=IKG2+1
-				DO L=1,itarget
+			end do	
+		else
+			IKG2=IKG2+1
+			DO L=1,itarget
 				ILOX_IHEXG(IKG2,L)=ILOCALSTENCIL(N,I,ISMP,L)
 				ILOX_PERIODICFLAG(IKG2,L)=ILOCALSTENCILPER(N,I,ISMP,L)
 				ILOX_IHEXB(IKG2,L)=XMPIE(ILOCALSTENCIL(N,I,ISMP,L))
 				IF (ILOX_IHEXB(IKG2,L).EQ.N)THEN
-				      j=(XMPIL(ILOX_IHEXG(IKG2,L)))
-						IF (ILOX_IHEXG(IKG2,L).EQ.IELEM(N,J)%IHEXGL)THEN
+					j=(XMPIL(ILOX_IHEXG(IKG2,L)))
+					IF (ILOX_IHEXG(IKG2,L).EQ.IELEM(N,J)%IHEXGL)THEN
 						ILOX_IHEXL(IKG2,L)=J
 						ILOX_ISHAPE(IKG2,L)=IELEM(N,J)%ISHAPE
-						END IF
-						CALL COMPUTE_CENTRE3d(j,cords)
-						ILOX_XXC(IKG2,L)=CORDS(1)
-						ILOX_YYC(IKG2,L)=CORDS(2)
-						ILOX_ZZC(IKG2,L)=CORDS(3)
-						ILON_NODCOUNT(IKG2,L,1:ielem(n,j)%nonodes)=ielem(n,j)%nodes(1:ielem(n,j)%nonodes)
-						DO K=1,ielem(n,j)%nonodes    
-				ILON_x(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(1)
-				ILON_y(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(2)
-				ILON_z(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(3)
-				
-				
-				
-				END DO
-				
-				
-				
-				
+					END IF
+					CALL COMPUTE_CENTRE3d(j,cords)
+					ILOX_XXC(IKG2,L)=CORDS(1)
+					ILOX_YYC(IKG2,L)=CORDS(2)
+					ILOX_ZZC(IKG2,L)=CORDS(3)
+					ILON_NODCOUNT(IKG2,L,1:ielem(n,j)%nonodes)=ielem(n,j)%nodes(1:ielem(n,j)%nonodes)
+					DO K=1,ielem(n,j)%nonodes    
+						ILON_x(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(1)
+						ILON_y(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(2)
+						ILON_z(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(3)
+					END DO
 				ELSE
 				
-				
-				
-					
-					 DO IXFF=1,INEEDT
+					DO IXFF=1,INEEDT
 						IF (IEXCORDR(IXFF)%PROCID.EQ.ILOX_IHEXB(IKG2,L))THEN
 							DO IXSST=1,IRECEXR(IXFF)%MUCHINEED(1)
-							      IF ((ILOX_IHEXG(IKG2,L)).EQ.IRECEXR1(IXFF)%WHATINEED(IXSST))THEN
-								ILOX_IHEXL(IKG2,L)=IXSST
-								ILOX_IHEXN(IKG2,L)=IXFF
-								ILOX_ISHAPE(IKG2,L)=IRECEXR1(IXFF)%ISHAPE(IXSST)
-								EXIT
-							       END IF
+								IF ((ILOX_IHEXG(IKG2,L)).EQ.IRECEXR1(IXFF)%WHATINEED(IXSST))THEN
+									ILOX_IHEXL(IKG2,L)=IXSST
+									ILOX_IHEXN(IKG2,L)=IXFF
+									ILOX_ISHAPE(IKG2,L)=IRECEXR1(IXFF)%ISHAPE(IXSST)
+									EXIT
+								END IF
 							END DO
 						END IF
-					 END DO	
+					END DO	
 					SELECT CASE(ILOX_ISHAPE(IKG2,L))
-					CASE(1)
-					IN_STEN=8
-					RIN_STEN=8.0D0
-					CASE(2)
-					IN_STEN=4
-					RIN_STEN=4.0D0
+					  CASE(1)
+						IN_STEN=8
+						RIN_STEN=8.0D0
+				
+					  CASE(2)
+						IN_STEN=4
+						RIN_STEN=4.0D0
 
-					CASE(3)
-					IN_STEN=5
-					RIN_STEN=5.0D0
+					  CASE(3)
+						IN_STEN=5
+						RIN_STEN=5.0D0
 
-					CASE(4)
-					IN_STEN=6
-					RIN_STEN=6.0D0
+					  CASE(4)
+						IN_STEN=6
+						RIN_STEN=6.0D0
+
 					END SELECT
+
 					ILON_X(IKG2,L,1:IN_STEN)=IEXCORDR(ILOX_IHEXN(IKG2,L))%NODECORD(ILOX_IHEXL(IKG2,L),1:IN_STEN,1)
 					ILON_Y(IKG2,L,1:IN_STEN)=IEXCORDR(ILOX_IHEXN(IKG2,L))%NODECORD(ILOX_IHEXL(IKG2,L),1:IN_STEN,2)
 					ILON_Z(IKG2,L,1:IN_STEN)=IEXCORDR(ILOX_IHEXN(IKG2,L))%NODECORD(ILOX_IHEXL(IKG2,L),1:IN_STEN,3)
 					ILOX_XXC(IKG2,L)=sum(ILON_X(IKG2,L,1:IN_STEN))/RIN_STEN
 					ILOX_YYC(IKG2,L)=sum(ILON_Y(IKG2,L,1:IN_STEN))/RIN_STEN
 					ILOX_ZZC(IKG2,L)=sum(ILON_Z(IKG2,L,1:IN_STEN))/RIN_STEN
-					
-					
-					
-					
-					
-					
-! 			
-					
+						
 				END IF
-				END DO
-				END IF
-				END IF
-				END DO
+			END DO
+		END IF
+	END IF
+END DO
 
 END SUBROUTINE LOCALISE_STENCIL
+
+
+
 
 
 SUBROUTINE LOCALISE_STENCIL2d(N,Iconsi,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
@@ -830,27 +672,25 @@ INTEGER::I,J,l,IXFF,IXSST,ikg,ismp,inv,ineedt,ikg2,IN_STEN,K,itarget,NOJCOUNT
 REAL::RIN_STEN
 INEEDT=IRECEXR(1)%TOT
 i=iconsi
-	IKG2=0
-	DO ISMP=1,TYPESTEN
-		IKG=0
-                             if ((ees.ne.5).or.(ismp.eq.1))then
-                        itarget=ielem(n,i)%iNUMNEIGHBOURS
-                        
-                        else
-                        itarget=NUMNEIGHBOURS2
-                        
-                        end if
+IKG2=0
+
+DO ISMP=1,TYPESTEN
+	IKG=0
+    if ((ees.ne.5).or.(ismp.eq.1))then
+        itarget=ielem(n,i)%iNUMNEIGHBOURS                    
+    else
+        itarget=NUMNEIGHBOURS2
+    end if
 		
-		
+	DO L=1,itarget
+		IF (ILOCALSTENCIL(N,I,ISMP,L).GT.0)THEN
+			IKG=IKG+1
+		END IF
+	END DO
+	IF (IKG.EQ.itarget)THEN
+		if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+			IKG2=IKG2+1
 			DO L=1,itarget
-				IF (ILOCALSTENCIL(N,I,ISMP,L).GT.0)THEN
-				IKG=IKG+1
-				END IF
-			END DO
-			IF (IKG.EQ.itarget)THEN
-				if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
-				IKG2=IKG2+1
-				DO L=1,itarget
 				ILOX_IHEXG(IKG2,L)=ILOCALSTENCIL(N,I,ISMP,L)
 				j=(XMPIL(ILOX_IHEXG(IKG2,L)))
 				ILOX_IHEXL(IKG2,L)=J
@@ -859,57 +699,55 @@ i=iconsi
 				ILOX_XXC(IKG2,L)=CORDS(1)
 				ILOX_YYC(IKG2,L)=CORDS(2)
 				
-				
 				ILON_NODCOUNT(IKG2,L,1:ielem(n,j)%nonodes)=ielem(n,j)%nodes(1:ielem(n,j)%nonodes)
 				DO K=1,ielem(n,j)%nonodes    
-				ILON_x(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(1)
-				ILON_y(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(2)
-				
+					ILON_x(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(1)
+					ILON_y(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(2)
 				END DO
-				end do
-				ELSE
-				IKG2=IKG2+1
-				DO L=1,itarget
+			END DO
+		else
+			IKG2=IKG2+1
+			DO L=1,itarget
 				ILOX_IHEXG(IKG2,L)=ILOCALSTENCIL(N,I,ISMP,L)
 				ILOX_IHEXB(IKG2,L)=XMPIE(ILOCALSTENCIL(N,I,ISMP,L))
 				IF (ILOX_IHEXB(IKG2,L).EQ.N)THEN
-				      j=(XMPIL(ILOX_IHEXG(IKG2,L)))
-						IF (ILOX_IHEXG(IKG2,L).EQ.IELEM(N,J)%IHEXGL)THEN
+				    j=(XMPIL(ILOX_IHEXG(IKG2,L)))
+					IF (ILOX_IHEXG(IKG2,L).EQ.IELEM(N,J)%IHEXGL)THEN
 						ILOX_IHEXL(IKG2,L)=J
 						ILOX_ISHAPE(IKG2,L)=IELEM(N,J)%ISHAPE
-						END IF
-						CALL COMPUTE_CENTRE2d(j,cords)
-						ILOX_XXC(IKG2,L)=CORDS(1)
-						ILOX_YYC(IKG2,L)=CORDS(2)
-						
-						ILON_NODCOUNT(IKG2,L,1:ielem(n,j)%nonodes)=ielem(n,j)%nodes(1:ielem(n,j)%nonodes)
-						DO K=1,ielem(n,j)%nonodes    
-				ILON_x(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(1)
-				ILON_y(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(2)
-				
-				END DO
+					END IF
+					CALL COMPUTE_CENTRE2d(j,cords)
+					ILOX_XXC(IKG2,L)=CORDS(1)
+					ILOX_YYC(IKG2,L)=CORDS(2)
+
+					ILON_NODCOUNT(IKG2,L,1:ielem(n,j)%nonodes)=ielem(n,j)%nodes(1:ielem(n,j)%nonodes)
+					DO K=1,ielem(n,j)%nonodes    
+						ILON_x(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(1)
+						ILON_y(IKG2,L,K)=inoder(ielem(n,j)%nodes(K))%cord(2)
+					END DO
 				ELSE
-					 DO IXFF=1,INEEDT
+					DO IXFF=1,INEEDT
 						IF (IEXCORDR(IXFF)%PROCID.EQ.ILOX_IHEXB(IKG2,L))THEN
 							DO IXSST=1,IRECEXR(IXFF)%MUCHINEED(1)
-							      IF ((ILOX_IHEXG(IKG2,L)).EQ.IRECEXR1(IXFF)%WHATINEED(IXSST))THEN
-								ILOX_IHEXL(IKG2,L)=IXSST
-								ILOX_IHEXN(IKG2,L)=IXFF
-								ILOX_ISHAPE(IKG2,L)=IRECEXR1(IXFF)%ISHAPE(IXSST)
-								EXIT
-							       END IF
+							    IF ((ILOX_IHEXG(IKG2,L)).EQ.IRECEXR1(IXFF)%WHATINEED(IXSST))THEN
+									ILOX_IHEXL(IKG2,L)=IXSST
+									ILOX_IHEXN(IKG2,L)=IXFF
+									ILOX_ISHAPE(IKG2,L)=IRECEXR1(IXFF)%ISHAPE(IXSST)
+									EXIT
+							    END IF
 							END DO
 						END IF
-					 END DO	
-					SELECT CASE(ILOX_ISHAPE(IKG2,L))
-					CASE(5)
-					IN_STEN=4
-					RIN_STEN=4.D0
-					CASE(6)
-					IN_STEN=3
-					RIN_STEN=3.D0
+					END DO
 
-					
+					SELECT CASE(ILOX_ISHAPE(IKG2,L))
+					  CASE(5)
+						IN_STEN=4
+						RIN_STEN=4.D0
+
+					  CASE(6)
+						IN_STEN=3
+						RIN_STEN=3.D0
+
 					END SELECT
 					ILON_X(IKG2,L,1:IN_STEN)=IEXCORDR(ILOX_IHEXN(IKG2,L))%NODECORD(ILOX_IHEXL(IKG2,L),1:IN_STEN,1)
 					ILON_Y(IKG2,L,1:IN_STEN)=IEXCORDR(ILOX_IHEXN(IKG2,L))%NODECORD(ILOX_IHEXL(IKG2,L),1:IN_STEN,2)
@@ -918,16 +756,13 @@ i=iconsi
 					ILOX_YYC(IKG2,L)=sum(ILON_Y(IKG2,L,1:IN_STEN))/RIN_STEN
 					
 				END IF
-				END DO
-				END IF
-				END IF
-				END DO
-
-				
-
-				
+			END DO
+		END IF
+	END IF
+END DO	
 
 END SUBROUTINE LOCALISE_STENCIL2d
+
 
 
 
@@ -965,14 +800,11 @@ REAL,DIMENSION(1)::DETA
 INEEDT=IRECEXR(1)%TOT
 i=iconsi
 
+IF (IPERIODICITY.EQ.1)THEN
 
-
-
-	IF (IPERIODICITY.EQ.1)THEN
-
-	  DO JJ=1,IELEM(N,I)%ADMIS
+	DO JJ=1,IELEM(N,I)%ADMIS
 	  
-             if ((ees.ne.5).or.(jj.eq.1))then
+        if ((ees.ne.5).or.(jj.eq.1))then
                         itarget=ielem(n,i)%iNUMNEIGHBOURS
                         
                         else
@@ -2665,55 +2497,43 @@ surfmax=1.0e-16
 		if (dist1.lt.dxx2)then
 		  dxx2=dist1
 		end if
-		if (dist1.gt.dxx1)then
-		  dxx1=dist1
-		end if
-		
-		
-		
+	if (dist1.gt.dxx1)then
+		dxx1=dist1
+	end if
 end do
 
+ielem(n,i)%condition=1.0
 
-			ielem(n,i)%condition=1.0
+ielem(n,i)%condition=surfmax/surfmin
 
+TEMPG1=ielem(n,i)%condition
 
-        ielem(n,i)%condition=surfmax/surfmin
-
-        TEMPG1=ielem(n,i)%condition
-
-	    IF (TEMPG1.GT.GRIDAR1)THEN
-	      IELEM(N,I)%GGS=1
-
-	      IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
-                IELEM(N,I)%FULL=0
-			END IF
-
-	      end if 
-	      
-	      
-	      
-   if (fastest.eq.0)then
-	       dxx1=-tolbig; dxx2=tolbig
-	       JJ=1
-	       DO L=1,ielem(n,i)%iNUMNEIGHBOURS
-		        if (ILOCAL_RECON3(i)%VOLUME(JJ,L).lt.dxx2)then
-
-		       dxx2=ILOCAL_RECON3(i)%VOLUME(JJ,L)
-		       end if
-		       if (ILOCAL_RECON3(i)%VOLUME(JJ,L).gt.dxx1)then
-
-		       dxx1=ILOCAL_RECON3(i)%VOLUME(JJ,L)
-		       end if
-	       end do
-! 	 TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
-! 	     IF (TEMPG1.GT.GRIDAR2)THEN
-! 	       IELEM(N,I)%GGS=1
-! 	       IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
-!                 IELEM(N,I)%FULL=0
-! 			END IF
-! 	       end if
+IF (TEMPG1.GT.GRIDAR1)THEN
+	IELEM(N,I)%GGS=1
+	IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
+        IELEM(N,I)%FULL=0
+	END IF
+end if 
+	       
+if (fastest.eq.0)then
+	dxx1=-tolbig; dxx2=tolbig
+	JJ=1
+	DO L=1,ielem(n,i)%iNUMNEIGHBOURS
+		if (ILOCAL_RECON3(i)%VOLUME(JJ,L).lt.dxx2)then
+		    dxx2=ILOCAL_RECON3(i)%VOLUME(JJ,L)
+		end if
+		if (ILOCAL_RECON3(i)%VOLUME(JJ,L).gt.dxx1)then
+		    dxx1=ILOCAL_RECON3(i)%VOLUME(JJ,L)
+		end if
+	END DO
+	! TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
+	! IF (TEMPG1.GT.GRIDAR2)THEN
+	! 	  IELEM(N,I)%GGS=1
+	! 	  IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
+	!         IELEM(N,I)%FULL=0
+	! 	  END IF
+	! end if
 end if
-
 
 END SUBROUTINE CHECKGRADS2d
 

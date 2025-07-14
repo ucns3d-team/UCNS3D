@@ -14878,9 +14878,8 @@ real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
 nbytes=1
 
-
- 	size_of_int=4
- 	size_of_real=8
+size_of_int=4
+size_of_real=8
 
 offset_temp=0
 disp_in_file=0
@@ -14893,94 +14892,81 @@ KMAXN_P=XMPIALL_v(N)
 temp_cord=3
 
 
-! 						if (n.eq.0)then
-                               WRITE(PROC3,FMT='(I10)') IT
-                               FILEX="OUT_"//TRIM(ADJUSTL(PROC3))//".vtu"
-                               ITRIMM=len_trim(FILEX)
-                               allocate(character(LEN=ITRIMM)::VTU)
-                               VTU=FILEX(1:ITRIMM)
-!                             end if
+! if (n.eq.0)then
+	WRITE(PROC3,FMT='(I10)') IT
+	FILEX="OUT_"//TRIM(ADJUSTL(PROC3))//".vtu"
+	ITRIMM=len_trim(FILEX)
+	allocate(character(LEN=ITRIMM)::VTU)
+	VTU=FILEX(1:ITRIMM)
+! end if
 
-		IF (MOVEMENT.EQ.1)THEN
-
-					K=1
-	  DO I=1,KMAXN_P
+IF (MOVEMENT.EQ.1)THEN
+	K=1
+	DO I=1,KMAXN_P
 		rARRAY_PART4(K:K+dims-1)=INODER4(my_nodesl(i))%CORD(1:DIMS)
 		if (dimensiona.eq.2)then
-		rARRAY_PART4(K+temp_cord-1:K+temp_cord-1)=0.0D0
+			rARRAY_PART4(K+temp_cord-1:K+temp_cord-1)=0.0D0
 		end if
 		K=K+TEMP_CORD
-	  END DO
-
-
-	  END IF
-
+	END DO
+END IF
 
 
 
 
+if (dimensiona.eq.3)then
+	DO I=1,KMAXE
+		leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+		call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+		do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
+			if (multispecies.eq.1)then
+				rARRAY_PART1(i,j)=ielem(n,i)%REDUCE!ielem(n,i)%vortex(1)
+			else
 
-
-
-
-
-
-
-				if (dimensiona.eq.3)then
-				DO I=1,KMAXE
-				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-				call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-					rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
-										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
-                                        if (multispecies.eq.1)then
-											rARRAY_PART1(i,j)=ielem(n,i)%REDUCE!ielem(n,i)%vortex(1)
-                                        else
-
-											rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
-											 if (j.eq.write_variables-TURBULENCEEQUATIONS)then
-											 if (adda.eq.1)then
-											 rARRAY_PART1(i,j)=ielem(n,i)%diss
-											 end if
-											 end if
-                                        end if        
-                                        end do
-                                        IF (TURBULENCEEQUATIONS.GT.0)THEN
-                                        rARRAY_PART1(i,write_variables)=U_CT(I)%VAL(1,1)
-                                        END IF
-
-				END DO
-
-				temp_node=8;temp_dims=3
-
+				rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+				if (j.eq.write_variables-TURBULENCEEQUATIONS)then
+					if (adda.eq.1)then
+						rARRAY_PART1(i,j)=ielem(n,i)%diss
+					end if
 				end if
+			end if        
+		end do
+		IF (TURBULENCEEQUATIONS.GT.0)THEN
+			rARRAY_PART1(i,write_variables)=U_CT(I)%VAL(1,1)
+		END IF
+	END DO
 
-				if (dimensiona.eq.2)then
-				DO I=1,KMAXE
-				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-				call cons2prim(N,leftv,MP_PINFl,gammal)
-					rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
-										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
-										if (multispecies.eq.1)then
+	temp_node=8;temp_dims=3
+end if
 
-										rARRAY_PART1(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
-                                        else
-                                        if (mood.eq.1)then
-                                         rARRAY_PART1(i,j)=ielem(n,i)%mood_o
-                                        else
-										if (Dg.eq.1)then
-											rARRAY_PART1(i,j)=ielem(n,i)%troubled
-										else
-                                        rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
-                                        end if
-                                        end if
-                                        end if
-										end do
-										IF (TURBULENCEEQUATIONS.GT.0)THEN
-                                        rARRAY_PART1(i,write_variables)=U_CT(I)%VAL(1,1)
-                                        END IF
-				END DO
-				temp_node=4;temp_dims=3
+if (dimensiona.eq.2)then
+	DO I=1,KMAXE
+		leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+		call cons2prim(N,leftv,MP_PINFl,gammal)
+		rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+		do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
+			! different reduced order indicators or voirticity if none
+			if (mood.eq.1) then
+				rARRAY_PART1(i,j)=ielem(n,i)%mood_o
+			else
+				if (multispecies.eq.1)then
+					rARRAY_PART1(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
+				else
+					if (Dg.eq.1)then
+						rARRAY_PART1(i,j)=ielem(n,i)%troubled
+					else
+						rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+					end if
 				end if
+			end if
+		end do
+		IF (TURBULENCEEQUATIONS.GT.0)THEN
+			rARRAY_PART1(i,write_variables)=U_CT(I)%VAL(1,1)
+		END IF
+	END DO
+	temp_node=4;temp_dims=3
+end if
 
 
 
@@ -15018,10 +15004,10 @@ if (n.eq.0)then
     offset_temp=offset_temp+size_of_int+size_of_real
     WRITE(Offset_stamp,'(I16)')offset_temp
     DO i=1,WRITE_VARIABLES
-      Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names(i))//'" '// &
+      	Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names(i))//'" '// &
                        'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-      offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
-      WRITE(Offset_stamp,'(I16)')offset_temp
+      	offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
+      	WRITE(Offset_stamp,'(I16)')offset_temp
     END DO
     Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
     Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
@@ -15057,178 +15043,159 @@ if (n.eq.0)then
 	Bytes = size_of_real
 	close(300)
 
-
 end if
 
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 
-				call MPI_file_open(MPI_COMM_WORLD,VTU,MPI_MODE_WRONLY + MPI_MODE_APPEND,MPI_INFO_NULL, fh, ierror)
-				call MPI_FILE_GET_POSITION(fh, disp_in_file, ierror)
-				disp_init=disp_in_FILE
+call MPI_file_open(MPI_COMM_WORLD,VTU,MPI_MODE_WRONLY + MPI_MODE_APPEND,MPI_INFO_NULL, fh, ierror)
+call MPI_FILE_GET_POSITION(fh, disp_in_file, ierror)
+disp_init=disp_in_FILE
 
-				!----write time stamp----!
-				IF (N.EQ.0)THEN
-				call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
-				BYTES=size_of_real
-				call MPI_file_write(fh, bytes, nbytes, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
-				disp_in_file = disp_in_file + size_of_int
-				call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
-				call MPI_file_write(fh, T, nbytes, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierror)
-				disp_in_file=disp_in_file+size_of_Real
-				else
-				disp_in_file=disp_in_file+size_of_int+size_of_real
-				end if
-				!end time stamp
-
-
-
-
-				do i=1,WRITE_VARIABLES
-				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
-
-				IF (N.EQ.0)THEN
-				BYTES=temp_imaxe*size_of_real
-				nbytes=1
-				Else
-				BYTES=0
-				nbytes=0
-				end if
-
-				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-
-				disp_in_file = disp_in_file + size_of_int
-				!write variables---within loop
-				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,DATATYPEX,'native',MPI_INFO_NULL, ierror)
-				call MPI_FILE_WRITE_ALL(fh,rARRAY_PART1(1:kmaxe,i),KMAXE*PART1_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE,ierror)
-				!end write variables---within loop
-				disp_in_file=disp_in_file+temp_imaxe*size_of_real
-				!end loop
-				end do
-
-! 				IF (N.EQ.0)print*,"LOCATION2",disp_in_file
-
-				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
-
-				IF (N.EQ.0)THEN
-				BYTES=temp_imaxn*size_of_real*temp_dims
-				nbytes=1
-				Else
-				BYTES=0
-				nbytes=0
-				end if
-
-				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-
-				disp_in_file = disp_in_file + size_of_int
-
-				call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_DOUBLE_PRECISION,DATATYPEz,'native',MPI_INFO_NULL, ierror)
-				call MPI_FILE_WRITE_ALL(fh,rARRAY_PART4,KMAXN_P*PART4_end,MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
-
-
-				disp_in_file=disp_in_file+(temp_imaxn*size_of_real*temp_dims)
-
-! 				IF (N.EQ.0)print*,"LOCATION3",disp_in_file
-
-
-				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
-
-				IF (N.EQ.0)THEN
-				BYTES=size_of_int*TYP_COUNTN_GLOBAL!temp_imaxe*size_of_int*temp_node
-				nbytes=1
-				Else
-				BYTES=0
-				nbytes=0
-				end if
-
-				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-
-				disp_in_file = disp_in_file + size_of_int
-
-
-				call MPI_FILE_SET_VIEW(fh,disp_in_file,MPI_INTEGER,DATATYPEy,'native',MPI_INFO_NULL,ierror)
-
-				call MPI_FILE_WRITE_ALL(fh,iARRAY_PART2,TYP_COUNTN, MPI_INTEGER,STATUS,ierror)
-
-				disp_in_file=disp_in_file+(size_of_int*TYP_COUNTN_GLOBAL)!(temp_imaxe*size_of_int*temp_node)
-
-! 				IF (N.EQ.0)print*,"LOCATION4",disp_in_file
-
-				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
-
-				IF (N.EQ.0)THEN
-				BYTES=temp_imaxe*size_of_int
-				nbytes=1
-				Else
-				BYTES=0
-				nbytes=0
-				end if
-
-				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-
-				disp_in_file = disp_in_file + size_of_int
-
-
-
-				call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,DATATYPEXx, 'native',MPI_INFO_NULL, ierror)
-				call MPI_FILE_WRITE_ALL(fh, iARRAY_PART5,kmaxe*PART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-
-				disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
-
-
-! 				IF (N.EQ.0)print*,"LOCATION5",disp_in_file
-
-
-				call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
-
-				IF (N.EQ.0)THEN
-				BYTES=temp_imaxe*size_of_int
-				nbytes=1
-				Else
-				BYTES=0
-				nbytes=0
-				end if
-
-				call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-
-				disp_in_file = disp_in_file + size_of_int
-
-
-				call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,DATATYPEyy, 'native',MPI_INFO_NULL, ierror)
-				call MPI_FILE_WRITE_ALL(fh, iARRAY_PART3,kmaxe*PART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-
-
-				disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
-
-				call MPI_FILE_CLOSE(fh, ierror)
-				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+!----write time stamp----!
+IF (N.EQ.0)THEN
+call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
+BYTES=size_of_real
+call MPI_file_write(fh, bytes, nbytes, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
+disp_in_file = disp_in_file + size_of_int
+call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
+call MPI_file_write(fh, T, nbytes, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierror)
+disp_in_file=disp_in_file+size_of_Real
+else
+disp_in_file=disp_in_file+size_of_int+size_of_real
+end if
+!end time stamp
 
 
 
 
+do i=1,WRITE_VARIABLES
+	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+	IF (N.EQ.0)THEN
+		BYTES=temp_imaxe*size_of_real
+		nbytes=1
+	Else
+		BYTES=0
+		nbytes=0
+	end if
+
+	call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+	disp_in_file = disp_in_file + size_of_int
+	!write variables---within loop
+	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,DATATYPEX,'native',MPI_INFO_NULL, ierror)
+	call MPI_FILE_WRITE_ALL(fh,rARRAY_PART1(1:kmaxe,i),KMAXE*PART1_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE,ierror)
+	!end write variables---within loop
+	disp_in_file=disp_in_file+temp_imaxe*size_of_real
+	!end loop
+end do
+
+! IF (N.EQ.0)print*,"LOCATION2",disp_in_file
+
+call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+IF (N.EQ.0)THEN
+	BYTES=temp_imaxn*size_of_real*temp_dims
+	nbytes=1
+Else
+	BYTES=0
+	nbytes=0
+end if
+
+call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+disp_in_file = disp_in_file + size_of_int
+
+call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_DOUBLE_PRECISION,DATATYPEz,'native',MPI_INFO_NULL, ierror)
+call MPI_FILE_WRITE_ALL(fh,rARRAY_PART4,KMAXN_P*PART4_end,MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
+
+
+disp_in_file=disp_in_file+(temp_imaxn*size_of_real*temp_dims)
+
+! IF (N.EQ.0)print*,"LOCATION3",disp_in_file
+
+call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+IF (N.EQ.0)THEN
+	BYTES=size_of_int*TYP_COUNTN_GLOBAL!temp_imaxe*size_of_int*temp_node
+	nbytes=1
+Else
+	BYTES=0
+	nbytes=0
+end if
+
+call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+disp_in_file = disp_in_file + size_of_int
+
+call MPI_FILE_SET_VIEW(fh,disp_in_file,MPI_INTEGER,DATATYPEy,'native',MPI_INFO_NULL,ierror)
+
+call MPI_FILE_WRITE_ALL(fh,iARRAY_PART2,TYP_COUNTN, MPI_INTEGER,STATUS,ierror)
+
+disp_in_file=disp_in_file+(size_of_int*TYP_COUNTN_GLOBAL)!(temp_imaxe*size_of_int*temp_node)
+
+! IF (N.EQ.0)print*,"LOCATION4",disp_in_file
+
+call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+IF (N.EQ.0)THEN
+	BYTES=temp_imaxe*size_of_int
+	nbytes=1
+Else
+	BYTES=0
+	nbytes=0
+end if
+
+call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+disp_in_file = disp_in_file + size_of_int
+
+call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,DATATYPEXx, 'native',MPI_INFO_NULL, ierror)
+call MPI_FILE_WRITE_ALL(fh, iARRAY_PART5,kmaxe*PART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+
+! IF (N.EQ.0)print*,"LOCATION5",disp_in_file
+
+call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,DATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+IF (N.EQ.0)THEN
+	BYTES=temp_imaxe*size_of_int
+	nbytes=1
+Else
+	BYTES=0
+	nbytes=0
+end if
+
+call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+disp_in_file = disp_in_file + size_of_int
+
+call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,DATATYPEyy, 'native',MPI_INFO_NULL, ierror)
+call MPI_FILE_WRITE_ALL(fh, iARRAY_PART3,kmaxe*PART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
+
+disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+
+call MPI_FILE_CLOSE(fh, ierror)
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 if (n.eq.0)then
-OPEN(300,FILE=FILEX,ACCESS='STREAM',position='APPEND')
-  lf = char(10)
-  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
-  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
-  CLOSE(300)
+	OPEN(300,FILE=FILEX,ACCESS='STREAM',position='APPEND')
+  	lf = char(10)
+  	Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
+  	Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  	CLOSE(300)
 end if
 
-
- DEallocate(vTU)
-
+DEallocate(vTU)
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-
-
-
-
-
-
 END SUBROUTINE PARALLEL_VTK_COMBINE
+
+
 
 
 SUBROUTINE PARALLEL_VTK_COMBINE_AV(N)
@@ -22115,8 +22082,8 @@ LIST_NOuT(:)=-10
 COUNTFNODES=0
 DO I=1,IMAXN
     IF (INODER(I)%ITOR.GT.0)THEN
-    COUNTFNODES=COUNTFNODES+1
-    LIST_NIN(I)=n
+    	COUNTFNODES=COUNTFNODES+1
+    	LIST_NIN(I)=n
     END IF
 END do
 
@@ -22128,7 +22095,7 @@ CALL MPI_ALLREDUCE(LIST_NIN,LIST_NOUT,IMAXN,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,I
 COUNTFNODES=0
 DO I=1,IMAXN
     IF (LIST_NOUT(i).EQ.N)THEN
-    COUNTFNODES=COUNTFNODES+1
+    	COUNTFNODES=COUNTFNODES+1
     END IF
 END do
 
@@ -22714,7 +22681,7 @@ POS_G(2)=(POS_G(2)/IMAXE)*100
 
 IF (n.eq.0)THEN
 
-OPEN(70,FILE='TROUBLED.DAT',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+OPEN(70,FILE='TROUBLED.dat',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 WRITE(70,'(E14.7,1X,E14.7,1X,E14.7)')T,POS_G(1),POS_G(2)
 close(70)
 
@@ -22738,7 +22705,7 @@ CALL MPI_ALLREDUCE(pos_l(1),pos_g(1),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WOR
 
 IF (n.eq.0)THEN
 
-OPEN(70,FILE='TROUBLED.DAT',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+OPEN(70,FILE='TROUBLED.dat',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
 WRITE(70,'(E14.7,1X,E14.7,1X,E14.7)')T,(POS_G(1)/IMAXE)*100.0
 close(70)
 

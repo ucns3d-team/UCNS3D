@@ -527,73 +527,65 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
         !$OMP END DO
         END IF
 	
-	
-	
-	IF (RUNGEKUTTA.EQ.10)THEN
-		!$OMP DO
-		do i=1,kmaxe
-            DO L=1,NOF_VARIABLES
-		    IMPDIAG(i,L,L)=IMPDIAG(i,L,L)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    END DO
-		end do
-		!$OMP END DO
-	  ELSE
+IF (RUNGEKUTTA.EQ.10)THEN
 	!$OMP DO
-! 	
-	  do i=1,kmaxe
+	do i=1,kmaxe
+		DO L=1,NOF_VARIABLES
+			IMPDIAG(i,L,L)=IMPDIAG(i,L,L)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
+		END DO
+	end do
+	!$OMP END DO
+ELSE
+	!$OMP DO
+	do i=1,kmaxe
         DO L=1,NOF_VARIABLES
-	    IMPDIAG(I,L,L)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,L,L))
+	    	IMPDIAG(I,L,L)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,L,L))
 	    END DO
 	end do
 	!$OMP END DO
-      END IF
-
-
-
-
-
+END IF
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
- if (turbulence.eq.1)CALL SOURCES_derivatives_COMPUTATION(N)
-if (rungekutta.eq.10)then
-!$OMP DO
-do i=1,kmaxe
-    if (turbulence.eq.1)then
-    do nvar=1,turbulenceequations
-    IMPDIAGt(i,nvar)=IMPDIAGt(i,nvar)+(ielem(n,I)%totvolume/(ielem(n,I)%dtl))-sht(i,nvar)
-    end do
-    end if
-    if (passivescalar.gt.0)then
-    do nvar=turbulenceequations+1,turbulenceequations+passivescalar
-    IMPDIAGt(i,nvar)=IMPDIAGt(i,nvar)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-    end do
-    end if
-end do
-!$OMP END DO
-else
-!$OMP DO
-do i=1,kmaxe
-    if (turbulence.eq.1)then
-    do nvar=1,turbulenceequations
+ 	if (turbulence.eq.1)CALL SOURCES_derivatives_COMPUTATION(N)
+	if (rungekutta.eq.10)then
+		!$OMP DO
+		do i=1,kmaxe
+			if (turbulence.eq.1)then
+				do nvar=1,turbulenceequations
+					IMPDIAGt(i,nvar)=IMPDIAGt(i,nvar)+(ielem(n,I)%totvolume/(ielem(n,I)%dtl))-sht(i,nvar)
+				end do
+			end if
+			if (passivescalar.gt.0)then
+				do nvar=turbulenceequations+1,turbulenceequations+passivescalar
+					IMPDIAGt(i,nvar)=IMPDIAGt(i,nvar)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
+				end do
+			end if
+		end do
+		!$OMP END DO
+	else
+		!$OMP DO
+		do i=1,kmaxe
+			if (turbulence.eq.1)then
+				do nvar=1,turbulenceequations
+    				IMPDIAGt(i,nvar)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAGt(i,nvar))-sht(i,nvar)
+				end do
+			end if
+			if (passivescalar.gt.0)then
+				do nvar=turbulenceequations+1,turbulenceequations+passivescalar
+    				IMPDIAGt(i,nvar)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAGt(i,1))
+ 				end do
+    		end if
+		end do
+		!$OMP END DO
 
-    IMPDIAGt(i,nvar)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAGt(i,nvar))-sht(i,nvar)
-    end do
-    end if
-    if (passivescalar.gt.0)then
-    do nvar=turbulenceequations+1,turbulenceequations+passivescalar
-    IMPDIAGt(i,nvar)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAGt(i,1))
- end do
-    end if
-end do
-!$OMP END DO
-
-end if
+	end if
 end if
 	
-
 END SUBROUTINE CALCULATE_JACOBIAN
 	
 	
+
+
 
 SUBROUTINE CALCULATE_JACOBIAN_2D(N)
  !> @brief
@@ -1129,18 +1121,20 @@ do i=1,kmaxe
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
     IMPDIAGt(i,nvar)=ielem(n,I)%totvolume*((1.0D0/(ielem(n,I)%dtl))+(1.5D0/DT))+(IMPDIAGt(i,1))
 !     IMPDIAGt(i,nvar)=(ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+((1.5D0/dt)*IMPDIAGt(i,nvar))))
-    end do
-    end if
-end do
-!$OMP END DO
+    			end do
+    		end if
+		end do
+		!$OMP END DO
 
-end if
+	end if
 end if
 	
-
 END SUBROUTINE CALCULATE_JACOBIAN_2D
 	
 	
+
+
+
 SUBROUTINE CALCULATE_JACOBIANLM(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
  !> @brief
 !> This subroutine computes the approximate jacobian for implicit time stepping in 3D with low-memory footprint
