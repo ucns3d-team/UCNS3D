@@ -4416,11 +4416,11 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 ! 				END IF
 			    END IF
            
-! 			    IF ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411).or.(initcond.eq.157))THEN
+ 			    IF ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411).or.(initcond.eq.157))THEN
 ! 			    IF ( mod(it, 1) .eq. 0)THEN
-!                                 CALL TRAJECTORIES
+                                 CALL TRAJECTORIES
 ! 			    END IF
-! 			    END IF
+ 			    END IF
 			
 			
 			
@@ -4692,13 +4692,13 @@ DO
         CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
     END IF
 
-!     IF ((MULTISPECIES.EQ.1))THEN
-!         IF((initcond.eq.405).or.(initcond.eq.411))THEN
-!             IF ( mod(it, 20) .eq. 0)THEN
-!                 CALL TRAJECTORIES
-!             END IF
-!         END IF
-!     END IF
+     IF ((MULTISPECIES.EQ.1))THEN
+         IF((initcond.eq.405).or.(initcond.eq.411))THEN
+            ! IF ( mod(it, 20) .eq. 0)THEN
+                 CALL TRAJECTORIES
+            ! END IF
+         END IF
+     END IF
 
     IF (rungekutta.GE.11)THEN
         dt=timestep
