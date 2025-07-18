@@ -163,6 +163,21 @@ INTEGER::BLEED_NUMBER,BLEED,BLEED_TYPE
 REAL,ALLOCATABLE,DIMENSION(:,:)::bleed_start,bleed_end
 REAL,ALLOCATABLE,DIMENSION(:)::BLEED_PLENUM,BLEED_POROSITY
 !------------------END BLEED PARAMETERS-------------------!
+!------------------------REAL GAS EFFECTS SECTION VARIABLES-----------------!
+integer::REALGAS					!FLAG FOR REAL GAS EFFECTS
+INTEGER::RG_NOF_REACTIONS,RG_NOF_Tv_coef, RG_KF_TYPE, RG_RELAX
+REAL::RG_T_INF,RG_T_WALL_INIT, RG_T_REF,RG_Tv_const, RG_ATV
+real::rg_runiv,rg_Ttr,rg_Tve
+REAL,ALLOCATABLE,DIMENSION(:)::RG_VF,RG_MOLM,rg_hzero,rg_thetag !VOLUME FRACTION, MOLAR MASS, FORMATION entropy
+REAL,ALLOCATABLE,DIMENSION(:,:)::RG_Tv_coef !Coefs for Tv
+REAL,ALLOCATABLE,DIMENSION(:)::SOURCE_R !SOURCE TERM
+! REAL,DIMENSION(:,:)::RG_DS !DIFFUSION COEFF (2,NOSPECIS)
+! REAL,DIMENSION(:,:)::RG_HS !species enthalpy (2,NOSPECIS)
+!-------------------------------------------------------------------------!
+
+
+
+
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.2.   INTEGER ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

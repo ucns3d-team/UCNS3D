@@ -82,6 +82,392 @@ SUBROUTINE SOURCES_COMPUTATION_ROT(N)
 END SUBROUTINE SOURCES_COMPUTATION_ROT
 
 
+
+
+SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
+	!> @brief
+	!> Sources  computation in 2D
+	implicit none
+	INTEGER,INTENT(IN)::N,ICONSIDERED
+	INTEGER::I,J,K,L,rg_i,RG_J
+	REAL,DIMENSION(RG_SPECIES)::rg_R,RG_RM, RG_N  !RG_R=DENSITY_S; RG_RMs=DENSITY_s/M_s; RG_N=RG_RMS*NA
+	REAL::RG_DQ_RAD,RG_QTV,RG_QW
+	REAL,DIMENSION(RG_SPECIES)::RG_EV,RG_ESV
+	REAL,DIMENSION(3)::RG_THETA !characteristic Vibrational temperature for each species
+	REAL,DIMENSION(3)::RG_TVS !Vibrational temperature for each species
+	REAL,DIMENSION(RG_SPECIES)::RG_DW_S !mass production rate, RG_DW_s
+	REAL::RG_KE1,RG_KE2,RG_KE3,RG_KE4,RG_KE5 !equilibrium constant
+	REAL::RG_T,RG_TA,RG_TV	!TEMPERATURE, average temperature, vibrational temperature
+	REAL::RG_Z,rg_speed
+	REAL::RG_R1,RG_R2,RG_R3,RG_R4,RG_R5 !total raction rate for each reaction
+	!Gupta:
+	REAL::RG_KF1,RG_KF2,RG_KF3,RG_KF4,RG_KF5 !forward reaction rate
+	REAL::RG_KB1,RG_KB2,RG_KB3,RG_KB4,RG_KB5 !backward reaction rate
+	!Candler:
+	!forward reaction rate for each species RG_KFrs
+	REAL::RG_KF11,RG_KF12,RG_KF13,RG_KF14,RG_KF15 !reaction 1
+	REAL::RG_KF21,RG_KF22,RG_KF23,RG_KF24,RG_KF25 !2
+	REAL::RG_KF31,RG_KF32,RG_KF33,RG_KF34,RG_KF35 !3
+	!backward reaction rate
+	REAL::RG_KB11,RG_KB12,RG_KB13,RG_KB14,RG_KB15 !reaction 1
+	REAL::RG_KB21,RG_KB22,RG_KB23,RG_KB24,RG_KB25 !2
+	REAL::RG_KB31,RG_KB32,RG_KB33,RG_KB34,RG_KB35 !3
+
+		!lei have a look
+	!translational-vibrational energy relaxation time
+	REAL,DIMENSION(RG_SPECIES,RG_SPECIES)::RG_MU	!reduced molecular weight
+	REAL::TEMP1,TEMP2
+	REAL,DIMENSION(RG_SPECIES)::RG_TSMW,RG_TSP,RG_TSSUM, RG_Ablot
+
+	I=ICONSIDERED
+
+	SOURCE_R(1:NOF_VARIABLES)=0.0
+
+
+
+	!(r,ru,rv,e,ev,rg_1,rg_2,rg_3,rg_4,rg_5,TEMPORARY)	!CONSERVED
+	leftv(1:nof_variables)=U_C(i)%VAL(1,1:nof_variables)
+	call CONS2PRIM2d(n)
+
+	!primitive variable vector (r,u,v,p,ev,rg_1,rg_2,rg_3,rg_4,rg_5,TEMP)
+	!LEFTV(:)
+
+	!DENSITY OF EACH SPECIES
+	DO RG_I=6,nof_variables
+		RG_R(RG_I-rg_species)=LEFTV(RG_I)
+		! RG_1=LEFTV(6) !N2
+		! RG_2=LEFTV(7) !O2
+		! RG_3=LEFTV(8) !NO
+		! RG_4=LEFTV(9) !N
+		! RG_5=LEFTV(10) !O
+	END DO
+
+	!DENSITY_s/M_s
+	DO RG_I=1,RG_SPECIES
+		RG_RM(RG_I)=RG_R(RG_I)/RG_MOLM(RG_I)
+	END DO
+
+	!TEMPERATURE
+	RG_T=LEFTV(4)/LEFTV(1)
+	RG_TV=LEFTV(nof_variables)
+	RG_Z=1.0/RG_T
+
+	!Adjusted TWO TEMPERATURE MODEL
+	RG_TA=RG_T**0.6*RG_Tv**0.4
+
+	!flow velocity magnitude
+	rg_speed=sqrt(leftv(2)**2+LEFTV(3)**2)
+
+	!(DU/DX,DV/DX,DT/DX,DEV/DX,DRG1/DX,DRG2/DX,DRG3/DX,DRG4/DX,DRG5/DX,DTv/DX)
+	!ILOCAL_RECON3(I)%GRADs(RG_I,k)	!THESE ARE TGE GRADIENTS
+
+	!mass production rate, RG_DW_s
+	if (RG_SPECIES==5)then
+
+		IF (RG_NOF_REACTIONS==5)THEN
+
+			!equilibrium constant
+			RG_KE1=EXP(3.898-12.611*RG_Z+0.683*RG_Z**2-0.118*RG_Z**3+0.006*RG_Z**4)
+			RG_KE2=EXP(1.335-4.127*RG_Z-0.616*RG_Z**2+0.093*RG_Z**3-0.005*RG_Z**4)
+			RG_KE3=EXP(1.549-7.784*RG_Z+0.228*RG_Z**2-0.043*RG_Z**3+0.002*RG_Z**4)
+			RG_KE4=EXP(2.349-4.828*RG_Z+0.455*RG_Z**2-0.075*RG_Z**3+0.004*RG_Z**4)
+			RG_KE5=EXP(0.215-3.652*RG_Z+0.843*RG_Z**2-0.136*RG_Z**3+0.007*RG_Z**4)
+
+			!forward raction rates for each reaction
+			!THERMAL NONEQUILIBRIUM
+			!2 OPTION: 1. Gupta, 2. Candler
+			if (RG_KF_TYPE==1)THEN
+				!Gupta(1990)
+				!REACTION1: N2+M<-->2N+M
+				RG_KF1=1.92E17*RG_TA**(-0.5)*EXP(-1.131E5/RG_TA)*1e-6
+				!REACTION2: O2+M<-->2O+M
+				RG_KF2=3.61E18*RG_TA**(-1.0)*EXP(-5.94E4/RG_TA)*1e-6
+				!REACTION3: NO+M<-->N+O+M
+				RG_KF3=3.97E20*RG_TA**(-1.5)*EXP(-7.56E4/RG_TA)*1e-6
+				!REACTION4: N2+O<-->NO+N
+				RG_KF4=6.75E13*RG_TA**(0.0)*EXP(-3.75E4/RG_TA)*1e-6
+				!REACTION5: NO+O<-->O2+N
+				RG_KF5=3.18E9*RG_TA**(1.0)*EXP(-1.97E4/RG_TA)*1e-6
+
+				!backward raction rates for each reaction
+				!THERMAL NONEQUILIBRIUM
+				!flow velocity over 8 km/s, RG_KB needs to be calculated with: RG_KB=RG_KF/RG_KE
+				IF(rg_speed.le.8e3)THEN
+					!below 8 km/s
+					!REACTION1: N2+M<-->2N+M
+					RG_KB1=1.09e16*RG_T**(-0.5)*1e-6
+					!REACTION2: O2+M<-->2O+M
+					RG_KB2=3.01E15*RG_T**(-0.5)*1e-6
+					!REACTION3: NO+M<-->N+O+M
+					RG_KB3=1.01E20*RG_T**(-1.5)*1e-6
+					!REACTION4: N2+O<-->NO+N
+					RG_KB4=1.5E13*1e-6
+					!REACTION5: NO+O<-->O2+N
+					RG_KB5=9.63E11*RG_T**(0.5)*EXP(-3.6E3/RG_T)*1e-6
+
+				else
+					!over 8 km/s
+					RG_KB1=RG_KF1/RG_KE1
+					RG_KB2=RG_KF2/RG_KE2
+					RG_KB3=RG_KF3/RG_KE3
+					RG_KB4=RG_KF4/RG_KE4
+					RG_KB5=RG_KF5/RG_KE5
+
+				end if
+
+				!TOTAL REACTION RATE
+				!M = 1. N2, 2. O2, 3. NO, 4. N, 5. O
+				RG_R1=0.0
+				RG_R2=0.0
+				RG_R3=0.0
+				!REACTION 1
+				DO RG_I=1,RG_SPECIES
+					RG_R1= RG_R1-RG_KF1*RG_RM(1)*RG_RM(RG_I) + RG_KB1*RG_RM(4)**2*RG_RM(RG_I)
+				END DO
+				!REACTION 2
+				DO RG_I=1,RG_SPECIES
+					RG_R2= RG_R2-RG_KF2*RG_RM(2)*RG_RM(RG_I) + RG_KB2*RG_RM(5)**2*RG_RM(RG_I)
+				END DO
+				!REACTION 3
+				DO RG_I=1,RG_SPECIES
+					RG_R3= RG_R3-RG_KF3*RG_RM(3)*RG_RM(RG_I) + RG_KB3*RG_RM(4)*RG_RM(5)*RG_RM(RG_I)
+				END DO
+				!REACTION 4
+				RG_R4= -RG_KF4*RG_RM(1)*RG_RM(5) + RG_KB4*RG_RM(3)*RG_RM(4)
+				!REACTION 5
+				RG_R5= -RG_KF5*RG_RM(3)*RG_RM(5) + RG_KB5*RG_RM(2)*RG_RM(4)
+
+			ELSE IF (RG_KF_TYPE==2)THEN
+				!Candler(1988)
+				!REACTION1: N2+M<-->2N+M
+				RG_KF11=3.78E18*RG_TA**(-1.6)*EXP(-1.132E5/RG_TA)*1e-6
+				RG_KF12=3.78E18*RG_TA**(-1.6)*EXP(-1.132E5/RG_TA)*1e-6
+				RG_KF13=1.11E18*RG_TA**(-1.6)*EXP(-1.132E5/RG_TA)*1e-6
+				RG_KF14=1.11E18*RG_TA**(-1.6)*EXP(-1.132E5/RG_TA)*1e-6
+				RG_KF15=3.78E18*RG_TA**(-1.6)*EXP(-1.132E5/RG_TA)*1e-6
+
+				!REACTION2: O2+M<-->2O+M
+				RG_KF21=2.75E16*RG_TA**(-1.0)*EXP(-5.95E4/RG_TA)*1e-6
+				RG_KF22=2.75E16*RG_TA**(-1.0)*EXP(-5.95E4/RG_TA)*1e-6
+				RG_KF23=8.25E16*RG_TA**(-1.0)*EXP(-5.95E4/RG_TA)*1e-6
+				RG_KF24=8.25E16*RG_TA**(-1.0)*EXP(-5.95E4/RG_TA)*1e-6
+				RG_KF25=2.75E16*RG_TA**(-1.0)*EXP(-5.95E4/RG_TA)*1e-6
+
+				!REACTION3: NO+M<-->N+O+M
+				RG_KF31=2.30E14*RG_TA**(-0.5)*EXP(-7.55E4/RG_TA)*1e-6
+				RG_KF32=2.30E14*RG_TA**(-0.5)*EXP(-7.55E4/RG_TA)*1e-6
+				RG_KF33=4.60E14*RG_TA**(-0.5)*EXP(-7.55E4/RG_TA)*1e-6
+				RG_KF34=4.60E14*RG_TA**(-0.5)*EXP(-7.55E4/RG_TA)*1e-6
+				RG_KF35=2.30E14*RG_TA**(-0.5)*EXP(-7.55E4/RG_TA)*1e-6
+
+				!REACTION4: N2+O<-->NO+N
+				RG_KF4=3.18E10*RG_TA**(0.1)*EXP(-3.77E4/RG_TA)*1e-6
+
+				!REACTION5: NO+O<-->O2+N
+				RG_KF5=2.16E5*RG_TA**(1.29)*EXP(-1.922E4/RG_TA)*1e-6
+
+				!backward raction rates for each reaction
+				!THERMAL NONEQUILIBRIUM
+				!flow velocity over 8 km/s, RG_KB needs to be calculated with: RG_KB=RG_KF/RG_KE
+				!reaction 1
+				RG_KB11=RG_KF11/RG_KE1
+				RG_KB12=RG_KF12/RG_KE1
+				RG_KB13=RG_KF13/RG_KE1
+				RG_KB14=RG_KF14/RG_KE1
+				RG_KB15=RG_KF15/RG_KE1
+				!reaction 2
+				RG_KB21=RG_KF21/RG_KE2
+				RG_KB22=RG_KF22/RG_KE2
+				RG_KB23=RG_KF23/RG_KE2
+				RG_KB24=RG_KF24/RG_KE2
+				RG_KB25=RG_KF25/RG_KE2
+				!reaction 3
+				RG_KB31=RG_KF31/RG_KE3
+				RG_KB32=RG_KF32/RG_KE3
+				RG_KB33=RG_KF33/RG_KE3
+				RG_KB34=RG_KF34/RG_KE3
+				RG_KB35=RG_KF35/RG_KE3
+				!reaction 4
+				RG_KB4=RG_KF4/RG_KE4
+				!reaction 5
+				RG_KB5=RG_KF5/RG_KE5
+
+				!TOTAL REACTION RATE
+				!M = 1. N2, 2. O2, 3. NO, 4. N, 5. O
+				!REACTION 1
+				RG_R1= -RG_KF11*RG_RM(1)*RG_RM(1) + RG_KB11*RG_RM(4)**2*RG_RM(1) &
+					   -RG_KF12*RG_RM(1)*RG_RM(2) + RG_KB12*RG_RM(4)**2*RG_RM(2) &
+					   -RG_KF13*RG_RM(1)*RG_RM(3) + RG_KB13*RG_RM(4)**2*RG_RM(3) &
+					   -RG_KF14*RG_RM(1)*RG_RM(4) + RG_KB14*RG_RM(4)**2*RG_RM(4) &
+					   -RG_KF15*RG_RM(1)*RG_RM(5) + RG_KB15*RG_RM(4)**2*RG_RM(5)
+				!REACTION 2
+				RG_R2= -RG_KF21*RG_RM(2)*RG_RM(1) + RG_KB21*RG_RM(5)**2*RG_RM(1) &
+					   -RG_KF22*RG_RM(2)*RG_RM(2) + RG_KB22*RG_RM(5)**2*RG_RM(2) &
+					   -RG_KF23*RG_RM(2)*RG_RM(3) + RG_KB23*RG_RM(5)**2*RG_RM(3) &
+					   -RG_KF24*RG_RM(2)*RG_RM(4) + RG_KB24*RG_RM(5)**2*RG_RM(4) &
+					   -RG_KF25*RG_RM(2)*RG_RM(5) + RG_KB25*RG_RM(5)**2*RG_RM(5)
+				!REACTION 3
+				RG_R3= -RG_KF31*RG_RM(3)*RG_RM(1) + RG_KB31*RG_RM(4)*RG_RM(5)*RG_RM(1) &
+					   -RG_KF32*RG_RM(3)*RG_RM(2) + RG_KB32*RG_RM(4)*RG_RM(5)*RG_RM(2) &
+					   -RG_KF33*RG_RM(3)*RG_RM(3) + RG_KB33*RG_RM(4)*RG_RM(5)*RG_RM(3) &
+					   -RG_KF34*RG_RM(3)*RG_RM(4) + RG_KB34*RG_RM(4)*RG_RM(5)*RG_RM(4) &
+					   -RG_KF35*RG_RM(3)*RG_RM(5) + RG_KB35*RG_RM(4)*RG_RM(5)*RG_RM(5)
+				!REACTION 4
+				RG_R4= -RG_KF4*RG_RM(1)*RG_RM(5) + RG_KB4*RG_RM(3)*RG_RM(4)
+				!REACTION 5
+				RG_R5= -RG_KF5*RG_RM(3)*RG_RM(5) + RG_KB5*RG_RM(2)*RG_RM(4)
+
+			ELSE
+				PRINT*,'INVALID FORWARD/BACKWARD REACTION RATE TYPE'
+			END IF
+
+			!mass production rate
+			RG_DW_S(1)=RG_MOLM(1)*(RG_R1+RG_R4)
+			RG_DW_S(2)=RG_MOLM(2)*(RG_R2-RG_R5)
+			RG_DW_S(3)=RG_MOLM(3)*(RG_R3-RG_R4+RG_R5)
+			RG_DW_S(4)=RG_MOLM(4)*(-2*RG_R1-RG_R3-RG_R4-RG_R5)
+			RG_DW_S(5)=RG_MOLM(5)*(-2*RG_R1-RG_R3+RG_R4+RG_R5)
+
+		ELSE
+			PRINT*,'INVALID NUMBER OF REACTIONS'
+		END IF
+
+		!Stefan-Boltzmann law of radiation: radiative energy transfer rate, RG_DQ_RAD
+		RG_DQ_RAD=5.67E-8*0.85*RG_T_WALL_INIT
+
+
+		!reduced molecular weight of the colliding species s and j, 1-5:
+		DO RG_I=1,RG_SPECIES
+			DO RG_J=1,RG_SPECIES
+				RG_MU(RG_I,RG_J)=(RG_MOLM(RG_I)*RG_MOLM(RG_J))/(RG_MOLM(RG_I)+RG_MOLM(RG_J))
+			END DO
+		END DO
+
+		!number density of s:1-5
+		DO RG_I=1,RG_SPECIES
+			RG_N(RG_I)=RG_RM(RG_I)*6.022E23
+		END DO
+
+		!translational-vibrational energy relaxation time for molecular species s
+		IF (RG_RELAX==1) THEN
+			!SEPARATE EQUATION
+			IF (RG_T.LE.8000.0)THEN
+				!T=300~8000K
+				!Millikan and White
+				TEMP1=0.0
+				TEMP2=0.0
+				!viscosity coef for Blottner model
+				RG_Ablot=(/0.00268142, 0.0449290, 0.0436378, 0.0115572, 0.0203144/)
+
+				DO RG_I=1,RG_SPECIES
+					DO RG_J=1,RG_SPECIES
+						TEMP1=TEMP1+RG_N(RG_J)*EXP(RG_Ablot(RG_J)*(RG_T**(1/3)-0.015*RG_MU(RG_I,RG_J)**0.25)-18.42)
+						TEMP2=TEMP2+RG_N(RG_J)
+					END DO
+					RG_TSMW(RG_I)=TEMP1/TEMP2
+				END DO
+			ELSE
+				!Park(1989)
+				DO RG_I=1,RG_SPECIES
+					!mass of a PARTICLE for each species in g
+					RG_TSP(RG_I)=1/(((10e-17)*(50000.0/(RG_T))**2)*((8.0*1.3805E-23*RG_T)/(PI*RG_MOLM(RG_I)/6.022E23/1000.0))*RG_N(RG_I))
+				END DO
+			END IF
+
+		ELSE IF (RG_RELAX==2)THEN
+			!SUM
+			!Millikan and White
+			TEMP1=0.0
+			TEMP2=0.0
+			!viscosity coef for Blottner model
+			RG_Ablot=(/0.00268142, 0.0449290, 0.0436378, 0.0115572, 0.0203144/)
+			DO RG_I=1,RG_SPECIES
+				DO RG_J=1,RG_SPECIES
+					TEMP1=TEMP1+RG_N(RG_J)*EXP(RG_Ablot(RG_J)*(RG_T**(1/3)-0.015*RG_MU(RG_I,RG_J)**0.25)-18.42)
+					TEMP2=TEMP2+RG_N(RG_J)
+				END DO
+				RG_TSMW(RG_I)=TEMP1/TEMP2
+			END DO
+			!Park(1989)
+			DO RG_I=1,RG_SPECIES
+				!mass of a PARTICLE for each species in g
+				RG_TSP(RG_I)=1/(((10e-17)*(50000.0/(RG_T))**2)*((8.0*1.3805E-23*RG_T)/(PI*RG_MOLM(RG_I)/6.022E23/1000.0))*RG_N(RG_I))
+			END DO
+			!SUM
+			RG_TSSUM=RG_TSMW+RG_TSP
+
+		ELSE
+			PRINT*,'INVALID RELAXATION TYPE OF TRANS-VIB ENERGY'
+		END IF
+
+		!characteristic Vibrational temperature for each species
+		RG_THETA=(/3395.0, 2239.0, 2817.0/)
+		!Vibrational temperature for each species
+		!N2
+		IF (RG_T.le.1880)THEN
+			RG_TVS(1)=RG_T_WALL_INIT
+		ELSE
+			RG_TVS(1)=RG_Tv_coef(1,1)*RG_T**3+RG_Tv_coef(1,2)*RG_T**2+RG_Tv_coef(1,3)*RG_T+RG_Tv_coef(1,4)
+		END IF
+		!O2
+		IF (RG_T.LE.1100) THEN
+			RG_TVS(2)=RG_T_WALL_INIT
+		ELSE
+			RG_TVS(2)=RG_Tv_coef(2,1)*RG_T**3+RG_Tv_coef(2,2)*RG_T**2+RG_Tv_coef(2,3)*RG_T+RG_Tv_coef(2,4)
+		END IF
+		!NO
+		IF (RG_T.LE.1600)THEN
+			RG_TVS(3)=RG_T_WALL_INIT
+		ELSE
+			RG_TVS(3)=RG_Tv_coef(3,1)*RG_T**3+RG_Tv_coef(3,2)*RG_T**2+RG_Tv_coef(3,3)*RG_T+RG_Tv_coef(3,4)
+		END IF
+		!translational-vibrational energy energy of species s per unit mass
+		DO RG_I=1,3
+			RG_EV(RG_I)=(8.3143/RG_MOLM(RG_I))*(RG_THETA(RG_I)/(EXP(RG_THETA(RG_I)/RG_TVS(RG_I))-1))
+		END DO
+		!local translational-vibrational energy energy of species s per unit mass
+		RG_ESV(1)=22.94E-3*((3393/RG_T)**2)*((EXP(-3393/RG_T))/(1-EXP(-3393/RG_T))**2)
+		RG_ESV(2)=11.76E-3*((2274/RG_T)**2)*((EXP(-2274/RG_T))/(1-EXP(-2274/RG_T))**2)
+		RG_ESV(3)=15.70E-3*((2719/RG_T)**2)*((EXP(-2719/RG_T))/(1-EXP(-2719/RG_T))**2)
+
+		!vibrational-translational energy relaxation
+		RG_QTV=0.0
+		DO RG_I=1,3
+			RG_QTV=RG_QTV+RG_R(RG_I)*(RG_ESV(RG_I)-RG_EV(RG_I))/RG_TSSUM(RG_I)
+		END DO
+
+		!vibrational energy reactive source term
+		RG_QW=0.0
+		DO RG_I=1,3
+			RG_QW=RG_QW+RG_DW_S(RG_I)*RG_EV(RG_I)
+		END DO
+
+		!SOURCE
+		SOURCE_R(1)=SUM(RG_DW_S)
+		SOURCE_R(2:3)=0.0
+		SOURCE_R(4)=RG_DQ_RAD
+		SOURCE_R(5)=RG_QTV+RG_QW
+		SOURCE_R(6:nof_variables)=RG_DW_S(:)
+	ELSE
+		PRINT*,'invalid number of species'
+	END IF
+
+
+END subroutine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 SUBROUTINE SOURCES_derivatives_COMPUTATION(N)
 !> @brief
 !> Sources derivative computation for implicit time stepping

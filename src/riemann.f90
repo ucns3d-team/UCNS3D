@@ -1662,9 +1662,9 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_
 			
 			ULSTAR(4)=MUL*LASTL
 			
-			if (MULTISPECIES.EQ.1)THEN
-			FL(5:7)=ROTVL(5:7)*UL
-            UlSTAR(5:7)=MUl*ROTVl(5:7)/rl
+			if ((MULTISPECIES.EQ.1).or.(realgas.eq.1))THEN
+			FL(5:nof_Variables)=ROTVL(5:nof_Variables)*UL
+            UlSTAR(5:nof_Variables)=MUl*ROTVl(5:nof_Variables)/rl
 			END IF
 			
 			
@@ -1676,9 +1676,9 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_
 			
 			URSTAR(4)=MUR*LASTR
 			
-			if (MULTISPECIES.EQ.1)THEN
-			FR(5:7)=ROTVR(5:7)*UR
-            URSTAR(5:7)=MUR*ROTVR(5:7)/rr
+			if ((MULTISPECIES.EQ.1).or.(realgas.eq.1))THEN
+			FR(5:nof_Variables)=ROTVR(5:nof_Variables)*UR
+            URSTAR(5:nof_Variables)=MUR*ROTVR(5:nof_Variables)/rr
 			END IF
 			
 			

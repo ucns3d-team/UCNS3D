@@ -144,8 +144,15 @@ REAL,DIMENSION(1:NOF_VARIABLES)::TEMPS
 real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
 real,INTENT(INOUT)::MP_PINFL,gammal
 REAL::OODENSITY,MP_DENSITY,MP_STIFF
-REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC,p_temp
+REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC,p_temp,etr
 REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+INTEGER::rg_i,rg_j
+REAL,DIMENSION(1:NOF_SPECIES)::RG_VFTEMP
+REAL,DIMENSION(1:NOF_SPECIES)::RG_CVS
+REAL,DIMENSION(1:NOF_SPECIES)::RG_TVSL,RG_EV
+REAL::RG_VE,RG_TR,RG_CHEM,RG_DENSITY,RG_EV_TOTAL,rg_rmix,rg_kin
+integer::rg_iter,rg_maxiter
+real::rgf_vib,rgdf_vib,rg_tol,tve,TTR,rg_f,rg_df
 
 
 if (nof_Variables.gt.1)then
@@ -286,6 +293,124 @@ end if
 
 ELSE
 
+
+IF (REALGAS.EQ.1)then
+
+OODENSITY=1.0D0/LEFTV(1)
+TEMPS(:)=0.0
+
+
+TEMPS(1)=LEFTV(1)
+TEMPS(2)=LEFTV(2)*OODENSITY
+TEMPS(3)=LEFTV(3)*OODENSITY
+TEMPS(4)=LEFTV(4) !TOTAL ENERGY
+TEMPS(5)=LEFTV(5)*OODENSITY !TOTAL VIRBRATIONAL ENERGY
+
+DO RG_I=1,RG_SPECIES
+RG_VFTEMP(RG_i)=leftv(5+RG_I)*OODENSITY
+END DO
+
+!Kinetic Energy
+RG_KIN=0.5D0*(TEMPS(2)**2 + TEMPS(3)**2)
+
+!Vibrational Energy
+RG_EV_TOTAL=TEMPS(5)!*OODENSITY
+
+!Chemical Energy
+RG_CHEM=zero
+
+
+do rg_i = 1, RG_SPECIES
+      if (rg_hzero(RG_i).gt.1.0e-12)then
+    rg_chem = rg_chem -RG_VFTEMP(RG_i) * rg_hzero(RG_i) / RG_MOLM(RG_i)
+      end if
+end do
+
+RG_CHEM=zero
+
+
+!now Neton-Raphson for vibRational temperature
+Tve = 3000
+  do rg_iter = 1, rg_maxiter
+    rgf_vib = 0.0D0
+    rgdf_vib = 0.0D0
+    do rg_i = 1, 3  ! Assume only first 3 species have vibrational modes
+      if (RG_VFTEMP(RG_i) > 1.0d-12) then
+        rgf_vib = rgf_vib + RG_VFTEMP(RG_i) * (rg_runiv / rg_molm(rg_i)) *rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/Tve) - 1.0D0)
+        rgdf_vib = rgdf_vib + RG_VFTEMP(RG_i) * (rg_runiv / rg_molm(rg_i)) * (rg_thetag(rg_i)**2 * exp(rg_thetag(rg_i)/Tve)) / &
+                 ((exp(rg_thetag(rg_i)/Tve) - 1.0D0)**2 * Tve**2)
+      end if
+    end do
+    rgf_vib = rgf_vib - RG_EV_TOTAL
+    if (abs(rgf_vib) < rg_tol) exit
+    Tve = Tve - rgf_vib / rgdf_vib
+  end do
+
+etr=((TEMPS(4)/leftv(1))-rg_kin)-RG_EV_TOTAL - RG_CHEM
+
+
+
+!now Neton-Raphson for vibrational temperature
+  Ttr = 3000
+  do rg_iter = 1, rg_maxiter
+    rg_f = 0.0D0
+    RG_df = 0.0D0
+    do rg_i = 1, rg_species
+      if (rg_i <= 3) then
+        RG_cvs(rg_i) = (5.0D0 / 2.0D0) * rg_runiv / RG_molm(rg_i)
+      else
+        RG_cvs(rg_i) = (3.0D0 / 2.0D0) * rg_runiv / RG_molm(rg_i)
+      end if
+      RG_f  = RG_f  + RG_VFTEMP(RG_i) * RG_cvs(rg_i) * Ttr
+      RG_df = RG_df + RG_VFTEMP(RG_i) * RG_cvs(rg_i)
+    end do
+    RG_f = RG_f -etr
+
+    if (abs(RG_f) < RG_tol) exit
+    Ttr = Ttr - RG_f / RG_df
+  end do
+
+
+
+  rg_rmix=zero
+do rg_i=1,RG_species
+  rg_rmix=rg_rmix+RG_VFTEMP(rg_i)/RG_MOLM(rg_i)
+end do
+
+rg_rmix=rg_runiv*rg_rmix
+
+
+
+
+
+temps(4)=leftv(1)*rg_rmix*Ttr
+
+
+DO RG_I=1,RG_SPECIES
+TEMPS(5+RG_i)=RG_VFTEMP(RG_i)
+END DO
+
+
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+
+
+else
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 OODENSITY=1.0D0/LEFTV(1)
 
 TEMPS(1)=LEFTV(1)
@@ -294,6 +419,8 @@ TEMPS(3)=LEFTV(3)*OODENSITY
 TEMPS(4)=((GAMMA-1.0D0))*((LEFTV(4))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
 
 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+
 
 END IF
 
@@ -859,10 +986,17 @@ SUBROUTINE PRIM2CONS(N,leftv)
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
-REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
+REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff,RG_VE,RG_TR,RG_CHEM
 real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
 real::MP_PINFL,gammal
 REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+INTEGER::rg_i,rg_j
+REAL,DIMENSION(1:RG_SPECIES)::RG_VFTEMP
+REAL,DIMENSION(1:RG_SPECIES)::RG_CVS,rg_theta
+REAL,DIMENSION(1:RG_SPECIES)::RG_TVSL,RG_EV
+REAL::RG_DENSITY,RG_EV_TOTAL,rg_rmix,rg_kin
+integer::rg_iter,rg_maxiter
+real::rgf_vib,rgdf_vib,rg_tol,tve,TTR
 
 if (nof_Variables.gt.1)then
 
@@ -939,6 +1073,80 @@ TEMPS(5:7)=LEFTV(5:7)
  else
 
 
+ IF (REALGAS.EQ.1)THEN
+
+
+!First we compute the mixture gas constant
+
+
+do rg_i=1,rg_species
+  RG_VFTEMP(rg_i)=leftv(5+rg_i)
+end do
+
+
+rg_rmix=zero
+do rg_i=1,RG_species
+  rg_rmix=rg_rmix+RG_VFTEMP(rg_i)/RG_MOLM(rg_i)
+end do
+
+  rg_rmix=rg_runiv*rg_rmix
+
+!now obtain the translational-rotational temperature from pressure
+
+
+ttr=leftv(4)/(leftv(1)*rg_rmix)
+
+! Translational-rotational internal energy
+
+rg_tr = 0.0D0
+    do rg_i = 1, RG_species
+      if (rg_i <= 3) then
+        RG_CVS(rg_i) = (5.0D0 / 2.0D0) * rg_runiv / RG_MOLM(rg_i)
+      else
+        RG_CVS(rg_i) = (3.0D0 / 2.0D0) * rg_runiv / RG_MOLM(rg_i)
+      end if
+      rg_tr = rg_tr + RG_VFTEMP(rg_i) * RG_CVS(rg_i) * Ttr
+    end do
+
+
+! Vibrational energy
+    RG_EV_TOTAL=leftv(5)!/leftv(1)
+
+
+! Chemical energy
+RG_CHEM=zero
+ do rg_i=1,RG_species
+ if (rg_hzero(RG_i).gt.1.0e-12)then
+        RG_CHEM=RG_CHEM-(RG_VFTEMP(rg_i)*rg_hzero(RG_SPECIES)/RG_MOLM(rg_i))
+  end if
+END DO
+
+RG_CHEM=zero
+
+skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
+
+
+
+
+
+
+TEMPS(1)=LEFTV(1)
+TEMPS(2)=LEFTV(2)*LEFTV(1)
+TEMPS(3)=LEFTV(3)*LEFTV(1)
+
+TEMPS(4)=LEFTV(1)*(skin1+RG_EV_TOTAL+RG_TR+RG_CHEM)
+TEMPS(5)=LEFTV(1)*RG_EV_TOTAL
+
+do rg_i=1,RG_species
+TEMPS(5+rg_i)=LEFTV(1) * RG_VFTEMP(rg_i)
+end do
+
+
+LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+ELSE
+
+
+
 
 skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
 ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
@@ -954,7 +1162,7 @@ LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 end if
 
-
+END IF
 
 end if
 
