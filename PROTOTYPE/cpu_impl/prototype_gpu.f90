@@ -81,7 +81,7 @@ program prototype
   character(len=4) :: out_suffix
 
   ! timing parameters
-  double precision :: time_start, time_end
+  double precision :: time_start1, time_start2, time_end1, time_end2
   double precision :: nflop
 
   type local_recon3
@@ -106,9 +106,6 @@ program prototype
   write (*, '(a35, i8)') 'NUMBER OF STENCILS : 5 then 4'
 
   allocate(ilocal_recon3(1:num_elems))
-
-  ! TIMEIT
-  time_start = benchtime()
 
   nflop = dble(min(num_elems, 500-1))*5.0*dble(num_dof)*dble(num_neighbours)*dble(num_vars)
 
@@ -154,40 +151,42 @@ program prototype
      end do
   end do
 
-!  do i=1,num_elems
-!     ilocal_recon3(i)%sol(:,:,:) = 0.0
-!  end do
-!
-!  time_start = benchtime()
-!
-!  do i=1,num_elems
-!     if (i .lt. 500) then
-!        tot_stencils = 5
-!     else
-!        tot_stencils = 4
-!     end if
-!
-!
-!     ! set DGEMM parameters alpha and beta here
-!     alpha = 1.0
-!     beta = 0.0
-!
-!     do s=1,tot_stencils
-!
-!        ! DGEMM calculates: C := alpha * A x B + beta * C
-!        ! num_dof  : number of rows of A and C
-!        ! num_vars : number of columns of B and C
-!        ! num_neighbours : number of column of A and number of rows of B
-!        ! C is the solution matrix
-!        call dgemm('n', 'n', num_dof, num_vars, num_neighbours, alpha, &
-!             ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, s), num_dof,&
-!             ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, s), num_neighbours, &
-!             beta, ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s), num_dof)
-!
-!     end do
-!  end do
-!
-!  time_end = benchtime() - time_start
+  do i=1,num_elems
+     ilocal_recon3(i)%sol(:,:,:) = 0.0
+  end do
+
+
+  time_start1 = benchtime()
+
+  do i=1,num_elems
+     if (i .lt. 500) then
+        tot_stencils = 5
+     else
+        tot_stencils = 4
+     end if
+
+
+     ! set DGEMM parameters alpha and beta here
+     alpha = 1.0
+     beta = 0.0
+
+     do s=1,tot_stencils
+
+        ! DGEMM calculates: C := alpha * A x B + beta * C
+        ! num_dof  : number of rows of A and C
+        ! num_vars : number of columns of B and C
+        ! num_neighbours : number of column of A and number of rows of B
+        ! C is the solution matrix
+        call dgemm('n', 'n', num_dof, num_vars, num_neighbours, alpha, &
+             ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, s), num_dof,&
+             ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, s), num_neighbours, &
+             beta, ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s), num_dof)
+
+     end do
+  end do
+
+
+  time_end1 = benchtime() - time_start1
 
   check = 0.0
   ! verification
@@ -195,17 +194,22 @@ program prototype
      check = check +  sum(ilocal_recon3(i)%sol(:,:,:)**2)
   end do
   ! TIMEIT
-  write (*, '(a35, es15.7)') "TIME: DGEMM  (s): ", time_end
-  write (*, '(a35, es15.7)') "GFLOP:DGEMM     : ", 1.0e-9*(nflop/time_end)
+  write (*, '(a35, es15.7)') "TIME: DGEMM  (s): ", time_end1
+  write (*, '(a35, es15.7)') "GFLOP:DGEMM     : ", 1.0e-9*(nflop/time_end1)
   write (*, '(a35, es15.7)') "check val      : ", check
 
   do i=1,num_elems
      ilocal_recon3(i)%sol(:,:,:) = 0.0
   end do
 
-  time_start = benchtime()
+  time_start1 = benchtime()
 
-  !$omp target teams distribute parallel do private(s, tot_stencils)
+  !$omp target data map(tofrom:ilocal_recon3)
+
+  time_start2 = benchtime()
+
+  !$omp target teams distribute parallel do simd private(s, tot_stencils)
+
   do i=1,num_elems
      if (i .lt. 500) then
         tot_stencils = 5
@@ -228,7 +232,11 @@ program prototype
      end do
   end do
 
-  time_end = benchtime() - time_start
+  time_end2 = benchtime() - time_start2
+
+  !$omp end target data
+
+  time_end1 = benchtime() - time_start1
 
   check = 0.0
   ! verification
@@ -236,8 +244,9 @@ program prototype
      check = check +  sum(ilocal_recon3(i)%sol(:,:,:)**2)
   end do
   ! TIMEIT
-  write (*, '(a35, es15.7)') "TIME: GPU (s): ", time_end
-  write (*, '(a35, es15.7)') "GFLOP:MATMUL : ", 1.0e-9*(nflop/time_end)
+  write (*, '(a35, es15.7)') "TIME: tot (s): ", time_end1
+  write (*, '(a35, es15.7)') "TIME: GPU (s): ", time_end2
+  write (*, '(a35, es15.7)') "GFLOP:MATMUL : ", 1.0e-9*(nflop/time_end2)
   write (*, '(a35, es15.7)') "check val    : ", check
 
 end program prototype
