@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Slurm job options (name, compute nodes, job time)
+#SBATCH --job-name=protogpu
+#SBATCH --time=00:10:00
+#SBATCH --output=%x-%j.out
+#SBATCH --gpus=1
+#SBATCH --partition=gpu
+#SBATCH --qos=gpu-shd
+
+. ./modules.sh
+
+#export CRAY_ACC_USE_UNIFIED_MEM=1
+#export HSA_XNACK=1
+
+for n in 100000 1000000
+do
+    
+    echo "protogpu $n"
+    echo
+    srun -n 1 ./protogpu $n
+    echo
+
+done
