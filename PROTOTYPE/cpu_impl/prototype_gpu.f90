@@ -100,17 +100,19 @@ module mylapack
       !
       !     form  c := alpha*a*b
       !
-      do j = 1,n
-!         !$omp parallel do simd
-         do i = 1,m
+      !$omp parallel do simd private(j,l)
+      do i = 1,m
+
+         do j = 1,n
             c(i,j) = 0.0
          end do
-!         !$omp parallel do simd private(i) collapse(2)
+
          do l = 1,k
-            do i = 1,m
+            do j = 1,n
                c(i,j) = c(i,j) + a(i,l)*b(l,j)
             end do
          end do
+
       end do
 
       return

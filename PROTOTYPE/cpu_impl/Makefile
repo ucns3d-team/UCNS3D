@@ -21,13 +21,23 @@
 #
 
 
-#> ===== Building on Cirrus
-
 #> Executable and source files
 
-EXECUTABLE=test
-SOURCES=prototype_cpu.f90
+EXECUTABLE=protogpu
+SOURCES=prototype_gpu.f90
 #SOURCES=original_prototype_cpu.f90
+
+#> ===== Building on ARCHER2
+
+#> Programming Environment
+
+# --- GNU
+# module load PrgEnv-gnu
+
+#FFLAGS= -O1 -fopenmp
+FFLAGS= -O3 -fopenmp
+
+#> ===== Building on Cirrus
 
 #> Programming Environment
 
@@ -56,10 +66,10 @@ SOURCES=prototype_cpu.f90
 
 # --- GNU
 # Macro definition picks "include mpif.h" instead of "use mpi" when compiling under GNU on Cirrus (see Cirrus user guide)
-CPPFLAGS= -cpp -DCIRRUS_GNU_BUILD -DUCNS3D_DEBUG
+#CPPFLAGS= -cpp -DCIRRUS_GNU_BUILD -DUCNS3D_DEBUG
 
 # Note: switching on LTO can slow down compilation
-FFLAGS= -fopenmp -fimplicit-none -march=native -g -finit-local-zero -ffree-line-length-none -fbackslash -fdefault-real-8 -fdefault-double-8 -Wno-lto-type-mismatch -Wno-argument-mismatch -fno-tree-sra -fno-lto
+#FFLAGS= -fopenmp -fimplicit-none -march=native -g -finit-local-zero -ffree-line-length-none -fbackslash -fdefault-real-8 -fdefault-double-8 -Wno-lto-type-mismatch -Wno-argument-mismatch -fno-tree-sra -fno-lto
 
 #-fdefault-real-8 -fdefault-double-8 -fbackslash -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast -march=native -Wno-lto-type-mismatch -Wno-argument-mismatch
 #-fno-lto -fno-tree-sra
@@ -77,7 +87,7 @@ FFLAGS= -fopenmp -fimplicit-none -march=native -g -finit-local-zero -ffree-line-
 #BLAS_LIBS= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group
 #BLAS_LIBS=
 
-LIBS= -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi $(BLAS_LIBS)
+#LIBS= -Wl,-Bdynamic -lstdc++ -lpthread -lm -ldl -lc -lmpi $(BLAS_LIBS)
 
 #> Compiler wrapper
 
@@ -86,8 +96,8 @@ F90=ftn
 
 all: $(EXECUTABLE)
 
-$(EXECUTABLE):
+$(EXECUTABLE): $(SOURCES) Makefile
 	$(F90) $(CPPFLAGS) $(FFLAGS) $(SOURCES) $(LIBS) -o $(EXECUTABLE)
 
 clean:
-	rm $(EXECUTABLE) *.o *.mod
+	rm -f $(EXECUTABLE) *.o *.mod
