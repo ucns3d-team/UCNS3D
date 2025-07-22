@@ -298,7 +298,7 @@ program prototype
   double precision :: alpha, beta, check
 
   ! !!! s = l, num_stencils = ll unused, num_dof = idegfree, tot_stencils = stencil_local2
-  integer :: i, j, k, s, m, num_dof, tot_stencils, num_stencils
+  integer :: i, j, k, s, m, num_dof, tot_stencils, num_stencils, ibuf
 
   ! !!! num_elems = kmaxe, num_vars = nof_variables, imax = num_neighbours, kmaxn unused, dof unused
   integer :: num_elems, num_vars, num_neighbours
@@ -322,6 +322,9 @@ program prototype
   ! timing parameters
   double precision :: time_start1, time_start2, time_end1, time_end2
   double precision :: nflop
+  integer :: ndat
+
+  double precision, allocatable, dimension(:) :: tmpbuf
 
   type local_recon3
      integer :: local, mrf, g0
@@ -355,6 +358,8 @@ program prototype
 
   write(*,*) "nflop = ", nflop
 
+  ndat = 0
+
   do i=1,num_elems
 
      if (i .lt. 500) then
@@ -366,6 +371,10 @@ program prototype
      allocate(ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, 1:stencil_local));
      allocate(ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, 1:stencil_local));
      allocate(ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, 1:stencil_local));
+
+     ndat = ndat + num_dof*num_neighbours*stencil_local
+     ndat = ndat + num_neighbours*num_vars*stencil_local
+     ndat = ndat + num_dof*num_vars*stencil_local
 
      do j=1,num_dof
         do k=1,num_neighbours
@@ -388,6 +397,14 @@ program prototype
            end do
         end do
      end do
+  end do
+
+  write(*,*) "ndat = ", ndat
+
+  allocate(tmpbuf(ndat))
+
+  do i = 1, ndat
+     tmpbuf(i) = 0.0
   end do
 
   do i=1,num_elems
@@ -426,7 +443,7 @@ program prototype
   time_end1 = benchtime() - time_start1
 
   check = 0.0
-  ! verification
+  ! verificatio
   do i=1,num_elems
      check = check +  sum(ilocal_recon3(i)%sol(:,:,:)**2)
   end do
@@ -577,6 +594,10 @@ program prototype
   ! TIMEIT
   write (*, '(a35, es15.7)') "TIME: tot (s): ", time_end1
   write (*, '(a35, es15.7)') "TIME: GPU (s): ", time_end2
+  write (*, '(a35, es15.7)') "TIME: upload : ", time_start2 - time_start1
+  write (*, '(a35, es15.7)') "TIME: dnload : ", time_end1   - time_end2
+  write (*, '(a35, es15.7)') "GB/s  to     : ", 1.0e-9*8*ndat/(time_start2 - time_start1)
+  write (*, '(a35, es15.7)') "GB/s  from   : ", 1.0e-9*8*ndat/(time_end1 - time_end2)
   write (*, '(a35, es15.7)') "GFLOP:GMATMUL: ", 1.0e-9*(nflop/time_end2)
   write (*, '(a35, es15.7)') "check val    : ", check
 
@@ -630,6 +651,133 @@ program prototype
   ! TIMEIT
   write (*, '(a35, es15.7)') "TIME: tot (s)  :", time_end1
   write (*, '(a35, es15.7)') "TIME: GPU (s)  :", time_end2
+  write (*, '(a35, es15.7)') "TIME: upload : ", time_start2 - time_start1
+  write (*, '(a35, es15.7)') "TIME: dnload : ", time_end1   - time_end2
+  write (*, '(a35, es15.7)') "GB/s  to     : ", 1.0e-9*8*ndat/(time_start2 - time_start1)
+  write (*, '(a35, es15.7)') "GB/s  from   : ", 1.0e-9*8*ndat/(time_end1 - time_end2)
+  write (*, '(a35, es15.7)') "GFLOP:GMYDGM(s):", 1.0e-9*(nflop/time_end2)
+  write (*, '(a35, es15.7)') "check val    : ", check
+
+  do i=1,num_elems
+     ilocal_recon3(i)%sol(:,:,:) = 0.0
+  end do
+
+  time_start1 = benchtime()
+
+  ibuf = 1
+
+  do i=1,num_elems
+
+     if (i .lt. 500) then
+        stencil_local = 5
+     else
+        stencil_local = 4
+     end if
+
+     tmpbuf(ibuf:ibuf+num_dof*num_neighbours*stencil_local-1) = &
+          reshape(ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, 1:stencil_local), (/num_dof*num_neighbours*stencil_local/))
+
+     ibuf = ibuf + num_dof*num_neighbours*stencil_local
+
+     tmpbuf(ibuf:ibuf+num_neighbours*num_vars*stencil_local-1) = &
+          reshape(ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, 1:stencil_local), (/num_neighbours*num_vars*stencil_local/))
+
+     ibuf = ibuf + num_neighbours*num_vars*stencil_local
+
+     tmpbuf(ibuf:ibuf+num_dof*num_vars*stencil_local-1) = &
+          reshape(ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, 1:stencil_local), (/num_dof*num_vars*stencil_local/))
+     
+     ibuf = ibuf + num_dof*num_vars*stencil_local
+
+  end do
+
+  write(*,*) "ibuf, ndat = ", ibuf, ndat
+     
+  do i=1,num_elems
+     ilocal_recon3(i)%matrix_1(:,:,:) = 0.0
+     ilocal_recon3(i)%invmat(:,:,:) = 0.0
+     ilocal_recon3(i)%sol(:,:,:) = 0.0
+  end do
+
+
+  ibuf = 1
+  
+  do i=1,num_elems
+
+     if (i .lt. 500) then
+        stencil_local = 5
+     else
+        stencil_local = 4
+     end if
+
+     ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, 1:stencil_local) = &
+          reshape(tmpbuf(ibuf:ibuf+num_dof*num_neighbours*stencil_local-1), &
+          (/num_dof,num_neighbours,stencil_local/))
+
+     ibuf = ibuf + num_dof*num_neighbours*stencil_local
+
+     ilocal_recon3(i)%matrix_1(1:num_neighbours,1:num_vars,1:stencil_local) = &
+          reshape(tmpbuf(ibuf:ibuf+num_neighbours*num_vars*stencil_local-1), &
+          (/num_neighbours, num_vars, stencil_local/))
+
+     ibuf = ibuf + num_neighbours*num_vars*stencil_local
+
+     ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, 1:stencil_local) = &
+          reshape(tmpbuf(ibuf:ibuf+num_dof*num_vars*stencil_local-1), &
+          (/num_dof, num_vars,stencil_local/))
+
+     ibuf = ibuf + num_dof*num_vars*stencil_local
+
+  end do
+
+  !$omp target data map(tofrom:ilocal_recon3,tmpbuf)
+
+  time_start2 = benchtime()
+
+!  !$omp target teams distribute parallel do simd private(s, tot_stencils)
+  !$omp target teams distribute private(s, tot_stencils)
+
+  do i=1,num_elems
+     if (i .lt. 500) then
+        tot_stencils = 5
+     else
+        tot_stencils = 4
+     end if
+
+
+!     !$omp parallel do simd
+     do s=1,tot_stencils
+
+        ! DGEMM calculates: C := alpha * A x B + beta * C
+        ! num_dof  : number of rows of A and C
+        ! num_vars : number of columns of B and C
+        ! num_neighbours : number of column of A and number of rows of B
+        ! C is the solution matrix
+        call mydgemmgpu(.false.,.false., num_dof, num_vars, num_neighbours, alpha, &
+             ilocal_recon3(i)%invmat(1:num_dof, 1:num_neighbours, s), num_dof,&
+             ilocal_recon3(i)%matrix_1(1:num_neighbours, 1:num_vars, s), num_neighbours, &
+             beta, ilocal_recon3(i)%sol(1:num_dof, 1:num_vars, s), num_dof)
+     end do
+  end do
+
+  time_end2 = benchtime() - time_start2
+
+  !$omp end target data
+
+  time_end1 = benchtime() - time_start1
+
+  check = 0.0
+  ! verification
+  do i=1,num_elems
+     check = check +  sum(ilocal_recon3(i)%sol(:,:,:)**2)
+  end do
+  ! TIMEIT
+  write (*, '(a35, es15.7)') "TIME: tot (s)  :", time_end1
+  write (*, '(a35, es15.7)') "TIME: GPU (s)  :", time_end2
+  write (*, '(a35, es15.7)') "TIME: upload : ", time_start2 - time_start1
+  write (*, '(a35, es15.7)') "TIME: dnload : ", time_end1   - time_end2
+  write (*, '(a35, es15.7)') "GB/s  to     : ", 1.0e-9*8*ndat/(time_start2 - time_start1)
+  write (*, '(a35, es15.7)') "GB/s  from   : ", 1.0e-9*8*ndat/(time_end1 - time_end2)
   write (*, '(a35, es15.7)') "GFLOP:GMYDGM(s):", 1.0e-9*(nflop/time_end2)
   write (*, '(a35, es15.7)') "check val    : ", check
 
