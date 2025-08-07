@@ -8,6 +8,9 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 REAL FUNCTION DFX(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
@@ -221,6 +224,9 @@ END FUNCTION DFX
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 REAL FUNCTION DFY(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
@@ -434,6 +440,9 @@ END FUNCTION DFY
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 REAL FUNCTION DFZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
@@ -21925,6 +21934,9 @@ END FUNCTION DFZ6
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 REAL FUNCTION DLX(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
@@ -22078,6 +22090,9 @@ END SELECT
 
 REAL FUNCTION DLY(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
@@ -22230,6 +22245,9 @@ CASE default
 	
 REAL FUNCTION DLZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S
@@ -36885,12 +36903,15 @@ CASE(56)
 	END FUNCTION DLZ6
 	
 	
-REAL FUNCTION TL3DZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
+REAL FUNCTION TL3DZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered,totvolume)
 IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
-REAL,INTENT(IN)::XD1,YD1,ZD1
-REAL::S,HXC   
-hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
+REAL,INTENT(IN)::XD1,YD1,ZD1,totvolume
+REAL::S,HXC
+hxc=sqrt(totvolume)
 
 
 
@@ -37523,12 +37544,15 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DY(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
+REAL FUNCTION TL3DY(XD1,YD1,ZD1,NDERIVATIVE,iconsidered,totvolume)
 IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
-REAL,INTENT(IN)::XD1,YD1,ZD1
+REAL,INTENT(IN)::XD1,YD1,ZD1,totvolume
 REAL::S,HXC   
-hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
+hxc=sqrt(totvolume)
 
 
 
@@ -39744,12 +39768,15 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
  
  
-  REAL FUNCTION TL3DX(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
+REAL FUNCTION TL3DX(XD1,YD1,ZD1,NDERIVATIVE,iconsidered,totvolume)
 IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
-REAL,INTENT(IN)::XD1,YD1,ZD1
+REAL,INTENT(IN)::XD1,YD1,ZD1,totvolume
 REAL::S,HXC   
-hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
+hxc=sqrt(totvolume)
 
 
 
@@ -39850,6 +39877,7 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
  
   REAL FUNCTION TL3DXZ(XD1,YD1,ZD1,NDERIVATIVE,iconsidered)
 IMPLICIT NONE
+
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1,ZD1
 REAL::S,HXC   
@@ -45656,8 +45684,11 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 	
 	
 	
-real function DF2DX(XD1,YD1,NDERIVATIVE,iconsidered)
+REAL function DF2DX(XD1,YD1,NDERIVATIVE,iconsidered)
    IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
@@ -45719,8 +45750,11 @@ real::s
 
 
  ! *****************************************************************************
-  real function DF2DY(XD1,YD1,NDERIVATIVE,iconsidered)
-     IMPLICIT NONE
+REAL function DF2DY(XD1,YD1,NDERIVATIVE,iconsidered)
+IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
 REAL,INTENT(IN)::XD1,YD1
 real::s
@@ -46474,12 +46508,15 @@ real::s
 
   
   
-  REAL FUNCTION TL2DY(XD1,YD1,NDERIVATIVE,iconsidered)
+REAL FUNCTION TL2DY(XD1,YD1,NDERIVATIVE,iconsidered,totvolume)
 IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
-REAL,INTENT(IN)::XD1,YD1
+REAL,INTENT(IN)::XD1,YD1,totvolume
 REAL::S,HXC   
-hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
+hxc=sqrt(totvolume)
 
 
 
@@ -46762,12 +46799,15 @@ hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
 
   end function
 
-REAL FUNCTION  TL2DX(XD1,YD1,NDERIVATIVE,iconsidered)
+REAL FUNCTION  TL2DX(XD1,YD1,NDERIVATIVE,iconsidered,totvolume)
 IMPLICIT NONE
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$omp declare target
+#endif
 INTEGER,INTENT(IN)::NDERIVATIVE,ICONSIDERED
-REAL,INTENT(IN)::XD1,YD1
+REAL,INTENT(IN)::XD1,YD1,totvolume
 REAL::S,HXC   
-hxc=sqrt(IELEM(N,Iconsidered)%totvolume)
+hxc=sqrt(totvolume)
 
 
 

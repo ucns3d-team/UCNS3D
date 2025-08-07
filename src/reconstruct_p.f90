@@ -401,7 +401,7 @@ END SUBROUTINE EXTRAPOLATE_BOUND_MUSCLX
 
 
 
-SUBROUTINE WENOWEIGHTS(N, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, ILOCAL_RECON6_L, IBOUND_L, U_C_L, U_Ct_L, INTEG_BASIS_L,integ_basis_dg_L, INODER4_L, IEXSOLHIR_L)
+SUBROUTINE WENOWEIGHTS(N, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, ILOCAL_RECON6_L, IBOUND_L, U_C_L, U_Ct_L, INTEG_BASIS_L,integ_basis_dg_L, INODER4_L, IEXSOLHIR_L,QP_ARRAY_L)
 !> @brief
 !> Subroutine For WENO type reconstruction in 3D
 IMPLICIT NONE
@@ -413,9 +413,10 @@ TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON5_L
 TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON6_L
 TYPE(BOUND_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IBOUND_L
 TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_C_L, U_Ct_L
-TYPE(INTEGRALBASIS),ALLOCATABLE,DIMENSION(:)::INTEG_BASIS_L,integ_basis_dg_L
-TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:)::INODER4_L
-TYPE(EXCHANGE_SOLHI),ALLOCATABLE,DIMENSION(:)::IEXSOLHIR_L
+TYPE(INTEGRALBASIS),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::INTEG_BASIS_L,integ_basis_dg_L
+TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::INODER4_L
+TYPE(EXCHANGE_SOLHI),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXSOLHIR_L
+TYPE(VOL_GQP),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::QP_ARRAY_L
 
 REAL::DIVISIONBYZERO
 INTEGER::I,J,K,L,M,O,LL,IEX,IEUL,FACX,IELEME,KKD,KMAXE,JF,NGP,IQP,nnd,II,icd
@@ -424,11 +425,18 @@ REAL::SUMOMEGAATILDEL
 REAL::DIVBYZERO,COMPF,checkf,tau_Weno,tempxx
 REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T
 
+TYPE(device_packed_parameters) :: dparams
+
 
 KMAXE=XMPIELRANK(N)
 
+
 #ifdef WENOWEIGHTS_GPU_KERNEL
-!$OMP target teams distribute parallel do
+!$OMP target enter data map(to: IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L,ILOCAL_RECON6_L, IBOUND_L, U_C_L, U_CT_L, INTEG_BASIS_L,integ_basis_dg_L,INODER4_L, IEXSOLHIR_L)
+CALL pack_params_for_device(dparams)
+!$OMP target teams
+CALL unpack_params_for_device(dparams)
+!$OMP distribute parallel do
 #else
 !$OMP DO
 #endif
@@ -450,7 +458,7 @@ ILOCAL_RECON3_L(ICONSIDERED)%ULEFT(:,:,:)=ZERO
             POWER=4
 
             if (ADDA.EQ.1)THEN
-                CALL ADDA_FILTER(N,iconsidered, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, U_C_L, INTEG_BASIS_L, integ_basis_dg_L)
+                CALL ADDA_FILTER(N,iconsidered, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, U_C_L, INTEG_BASIS_L, integ_basis_dg_L, QP_ARRAY_L)
             END IF
 
             IF (WENWRT.EQ.2)THEN
@@ -468,7 +476,10 @@ ILOCAL_RECON3_L(ICONSIDERED)%ULEFT(:,:,:)=ZERO
 END DO
 
 #ifdef WENOWEIGHTS_GPU_KERNEL
-!$OMP end target teams distribute parallel do
+!$OMP end distribute parallel do
+CALL pack_params_for_device(dparams)
+!$OMP end target teams
+CALL unpack_params_for_device(dparams)
 #else
 !$OMP END DO
 #endif
@@ -490,7 +501,7 @@ END DO
             POWER=4
 
             if (ADDA.EQ.1)THEN
-                CALL ADDA_FILTER(N,iconsidered,  IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, U_C_L, INTEG_BASIS_L, integ_basis_dg_L)
+                CALL ADDA_FILTER(N,iconsidered,  IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, U_C_L, INTEG_BASIS_L, integ_basis_dg_L,QP_ARRAY_L)
             END IF
 
             IF (WENWRT.EQ.2)THEN
@@ -2433,7 +2444,7 @@ KMAXE=XMPIELRANK(N)
         IF (((ielem(n,i)%TROUBLED.EQ.1).AND.(ielem(n,i)%REDUCE.EQ.1)).OR.((ielem(n,i)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1)))THEN
             IF (IELEM(N,I)%RECALC.GT.0)THEN
                 if (ADDA.EQ.1)THEN
-                    CALL ADDA_FILTER(N,ICONSIDERED,  IELEM, ILOCAL_RECON3, ILOCAL_RECON5, U_C, INTEG_BASIS, integ_basis_dg)
+                    CALL ADDA_FILTER(N,ICONSIDERED,  IELEM, ILOCAL_RECON3, ILOCAL_RECON5, U_C, INTEG_BASIS, integ_basis_dg, QP_ARRAY)
                 END IF
 
                     CALL FIND_BOUNDS(ICONSIDERED,MAXVARS,AVER_VARS,SUMVARS,UTMIN,UTMAX,UTEMP)
@@ -2451,13 +2462,13 @@ DO II=1,NOF_bounded
 	ICONSIDERED=I
 
      if (ADDA.EQ.1)THEN
-      CALL ADDA_FILTER(N,ICONSIDERED, IELEM, ILOCAL_RECON3, ILOCAL_RECON5, U_C, INTEG_BASIS, integ_basis_dg)
+      CALL ADDA_FILTER(N,ICONSIDERED, IELEM, ILOCAL_RECON3, ILOCAL_RECON5, U_C, INTEG_BASIS, integ_basis_dg, QP_ARRAY)
       END IF
 
        IF (((ielem(n,i)%TROUBLED.EQ.1).AND.(ielem(n,i)%REDUCE.EQ.1)).OR.((ielem(n,i)%FULL.EQ.0).AND.(ielem(n,i)%TROUBLED.EQ.1)))THEN
             IF (IELEM(N,I)%RECALC.GT.0)THEN
                 if (ADDA.EQ.1)THEN
-                    CALL ADDA_FILTER(N,ICONSIDERED, IELEM, ILOCAL_RECON3, ILOCAL_RECON5, U_C, INTEG_BASIS, integ_basis_dg)
+                    CALL ADDA_FILTER(N,ICONSIDERED, IELEM, ILOCAL_RECON3, ILOCAL_RECON5, U_C, INTEG_BASIS, integ_basis_dg,QP_ARRAY)
                 END IF
 
                     CALL FIND_BOUNDS(ICONSIDERED,MAXVARS,AVER_VARS,SUMVARS,UTMIN,UTMAX,UTEMP)
@@ -2476,67 +2487,217 @@ DEALLOCATE(UTEMP)
 END SUBROUTINE MUSCL
 
 
+!This is needed because global scalars are not assoicated between host and
+!device versions.
+SUBROUTINE pack_params_for_device(dparams)
+        IMPLICIT NONE
+        !$OMP declare target
+        TYPE(device_packed_parameters),INTENT(INOUT) :: dparams
+
+        dparams%ADDA_TYPE = ADDA_TYPE
+        dparams%ANGLE_PER = ANGLE_PER
+        dparams%CAVITATION = CAVITATION
+        dparams%DG = DG
+        dparams%dimensiona = dimensiona
+        dparams%DT = DT
+        dparams%ees = ees
+        dparams%GAMMA = GAMMA
+    !gamma_in
+        dparams%governingequations = governingequations
+        dparams%IDEGFREE = IDEGFREE
+        dparams%idegfree2 = idegfree2
+        dparams%IORDER = IORDER
+        dparams%IORDER2 = IORDER2
+        dparams%iscoun = iscoun
+        dparams%IT = IT
+        dparams%LWCI1 = LWCI1
+    !mp_pinf
+        dparams%multispecies = multispecies
+        dparams%nof_species = nof_species
+        dparams%nof_variables = nof_variables
+        dparams%numberofpoints2 = numberofpoints2
+        dparams%oo2 = oo2
+        dparams%PASSIVESCALAR = PASSIVESCALAR
+        dparams%PER_ROT = PER_ROT
+        dparams%QP_QUAD = QP_QUAD
+        dparams%QP_TRIANGLE = QP_TRIANGLE
+        dparams%QP_LINE = QP_LINE
+        dparams%RUNGEKUTTA = RUNGEKUTTA
+        dparams%TURBULENCEEQUATIONS = TURBULENCEEQUATIONS
+        dparams%TYPESTEN = TYPESTEN
+        dparams%viscous_s = viscous_s
+        dparams%wenoz = wenoz
+        dparams%WENWRT = WENWRT
+        dparams%zero = zero
+        dparams%BETA_I1 = BETA_I1
+        !bleed_end
+        !bleed_plenum
+        !bleed_porosity
+        !bleed_start
+        dparams%BOUNDTYPE = BOUNDTYPE
+        dparams%INITCOND = INITCOND
+        dparams%ITESTCASE = ITESTCASE
+        dparams%I_TURB_INLET = I_TURB_INLET
+        dparams%kinit_srf = kinit_srf
+        !mp_a_in
+        !mp_r_in
+        dparams%PI = PI
+        dparams%PRES = PRES
+        dparams%PRESS_OUTLET = PRESS_OUTLET
+        dparams%RRES	 = RRES	
+        dparams%swirl = swirl
+        dparams%T = T
+        dparams%tolsmall = tolsmall
+        dparams%turbinit = turbinit
+        dparams%turbulence = turbulence
+        dparams%turbulencemodel = turbulencemodel
+        dparams%ufreestream = ufreestream
+        dparams% uvel =  uvel
+        dparams% visc =  visc
+        dparams%vvel = vvel
+        dparams%wvel = wvel
+        dparams%r_gas = r_gas
+        dparams%poly = poly
+        dparams%numneighbours2 = numneighbours2
+        dparams%icoupleturb = icoupleturb
+
+END SUBROUTINE
+
+SUBROUTINE unpack_params_for_device(dparams)
+        IMPLICIT NONE
+        !$OMP declare target
+        TYPE(device_packed_parameters),INTENT(INOUT) :: dparams
 
 
+        ADDA_TYPE = dparams%ADDA_TYPE
+        ANGLE_PER = dparams%ANGLE_PER
+        CAVITATION = dparams%CAVITATION
+        DG = dparams%DG
+        dimensiona = dparams%dimensiona
+        DT = dparams%DT
+        ees = dparams%ees
+        GAMMA = dparams%GAMMA
+    !gamma_in
+        governingequations = dparams%governingequations
+        IDEGFREE = dparams%IDEGFREE
+        idegfree2 = dparams%idegfree2
+        IORDER = dparams%IORDER
+        IORDER2 = dparams%IORDER2
+        iscoun = dparams%iscoun
+        IT = dparams%IT
+        LWCI1 = dparams%LWCI1
+    !mp_pinf
+        multispecies = dparams%multispecies
+        nof_species = dparams%nof_species
+        nof_variables = dparams%nof_variables
+        numberofpoints2 = dparams%numberofpoints2
+        oo2 = dparams%oo2
+        PASSIVESCALAR = dparams%PASSIVESCALAR
+        PER_ROT = dparams%PER_ROT
+        QP_QUAD = dparams%QP_QUAD
+        QP_TRIANGLE = dparams%QP_TRIANGLE
+        QP_LINE = dparams%QP_LINE
+        RUNGEKUTTA = dparams%RUNGEKUTTA
+        TURBULENCEEQUATIONS = dparams%TURBULENCEEQUATIONS
+        TYPESTEN = dparams%TYPESTEN
+        viscous_s = dparams%viscous_s
+        wenoz = dparams%wenoz
+        WENWRT = dparams%WENWRT
+        zero = dparams%zero
+        BETA_I1 = dparams%BETA_I1
+        !bleed_end
+        !bleed_plenum
+        !bleed_porosity
+        !bleed_start
+        BOUNDTYPE = dparams%BOUNDTYPE
+        INITCOND = dparams%INITCOND
+        ITESTCASE = dparams%ITESTCASE
+        I_TURB_INLET = dparams%I_TURB_INLET
+        kinit_srf = dparams%kinit_srf
+        !mp_a_in
+        !mp_r_in
+        PI = dparams%PI
+        PRES = dparams%PRES
+        PRESS_OUTLET = dparams%PRESS_OUTLET
+        RRES	 = dparams%RRES	
+        swirl = dparams%swirl
+        T = dparams%T
+        tolsmall = dparams%tolsmall
+        turbinit = dparams%turbinit
+        turbulence = dparams%turbulence
+        turbulencemodel = dparams%turbulencemodel
+        ufreestream = dparams%ufreestream
+            uvel = dparams% uvel
+            visc = dparams% visc
+        vvel = dparams%vvel
+        wvel = dparams%wvel
+        r_gas = dparams%r_gas
+        poly = dparams%poly
+        numneighbours2 = dparams%numneighbours2
+        icoupleturb = dparams%icoupleturb
+END SUBROUTINE
 
-SUBROUTINE SOLUTIONTRIAV2(N)
+
+SUBROUTINE SOLUTIONTRIAV2(N, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, U_Ct_L, IEXSOLHIR_L)
 !> @brief
 !> Subroutine for extrapolating the unlimited reconstructed values for diffusive fluxes in 3D
 IMPLICIT NONE
+
 INTEGER,INTENT(IN)::N
+
+TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM_L
+TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON3_L
+TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON5_L
+TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT):: U_Ct_L
+TYPE(EXCHANGE_SOLHI),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXSOLHIR_L
+
 INTEGER::I,J,K,L,M,PPP,IEUL,IEX,IHGT,IHGJ,KMAXE,DECOMF,ICNN,IQDR,NVAR,idummy,iqp,nnd,ngp,icd,icompwrt,ICONSIDERED
 REAL::RAA1,RAA2,PAA1,PAA2,ax,ay,az
 REAL::SOLX
 real,dimension(1:dimensiona)::ugradloc
 real,dimension(1:dimensionA,1:dimensionA)::ainvjt
-real,allocatable,dimension(:)::gradtem
-real,allocatable,dimension(:,:)::XXDER,YYDER,ZZDER
+real,dimension(1:idegfree)::gradtem
+real,dimension(1:idegfree,1:NUMBEROFPOINTS2)::XXDER,YYDER,ZZDER
+
+TYPE(device_packed_parameters) :: dparams
 
 
 KMAXE=XMPIELRANK(N);
 
 
-allocate(xxder(1:idegfree,1:NUMBEROFPOINTS2))
-allocate(yyder(1:idegfree,1:NUMBEROFPOINTS2))
-allocate(zzder(1:idegfree,1:NUMBEROFPOINTS2))
-allocate(gradtem(1:idegfree))
-
-
-
-
-
-
-
-
-
-
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+CALL pack_params_for_device(dparams)
+!$OMP target teams
+CALL unpack_params_for_device(dparams)
+!$OMP distribute parallel do private(ugradloc,ainvjt,gradtem,XXDER,YYDER,ZZDER)
+#else
 !$OMP DO
+#endif
+
 DO I=1,kmaxe
 	ICONSIDERED=I
 
 
 
 
-
-ILOCAL_RECON3(I)%ULEFTV(:,:,:,:)=zero;
+ILOCAL_RECON3_L(I)%ULEFTV(:,:,:,:)=zero;
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-ILOCAL_RECON3(I)%ULEFTTURBV(:,:,:,:)=zero;ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=zero;
+ILOCAL_RECON3_L(I)%ULEFTTURBV(:,:,:,:)=zero;ILOCAL_RECON3_L(I)%ULEFTTURB(:,:,:)=zero;
 END IF
 
 
 
+
 	    DO IHGT=1,DIMENSIONA;DO IHGJ=1,DIMENSIONA
-		AINVJT(IHGT,IHGJ)=ILOCAL_RECON3(I)%INVCCJAC(IHGJ,IHGT)
+		AINVJT(IHGT,IHGJ)=ILOCAL_RECON3_L(I)%INVCCJAC(IHGJ,IHGT)
 	    END DO;END DO
 
 
 
 
-
-
-	DO l=1,IELEM(N,I)%IFCA;IDUMMY=0
+	DO l=1,IELEM_L(N,I)%IFCA;IDUMMY=0
                                                     IF (DIMENSIONA.EQ.3)THEN
-                                                    if (ielem(n,i)%types_faces(L).eq.5)then
+                                                    if (IELEM_L(n,i)%types_faces(L).eq.5)then
                                                     iqp=qp_quad;
                                                     else
                                                     iqp=qp_triangle;
@@ -2547,35 +2708,35 @@ END IF
 		 ICD=0
                 do NGP=1,iqp			!for gqp
 
-				AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1);
-				AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2);
+				AX = ILOCAL_RECON3_L(I)%QPOINTS(L,NGP,1);
+				AY = ILOCAL_RECON3_L(I)%QPOINTS(L,NGP,2);
 				IF (DIMENSIONA.EQ.3)THEN
-				AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
+				AZ = ILOCAL_RECON3_L(I)%QPOINTS(L,NGP,3)
 				end if
 
 				icd=icd+1
-                        if (dimensiona.eq.3)then
-                        DO K=1,IELEM(N,I)%IDEGFREE
-                            IF (POLY.EQ.1) THEN
-                                XXDER(K,ICD)=DFX(AX,AY,AZ,K,i);  YYDER(K,ICD)=DFY(AX,AY,AZ,K,i);  ZZDER(K,ICD)=DFZ(AX,AY,AZ,K,i)
-                            END IF
-                            IF (POLY.EQ.2) THEN
-                                XXDER(K,ICD)=DLX(AX,AY,AZ,K,i);  YYDER(K,ICD)=DLY(AX,AY,AZ,K,i);  ZZDER(K,ICD)=DLZ(AX,AY,AZ,K,i)
-                            END IF
-                            IF (POLY.EQ.4) THEN
-                                XXDER(K,ICD)=TL3DX(AX,AY,AZ,K,i);  YYDER(K,ICD)=TL3DY(AX,AY,AZ,K,i);  ZZDER(K,ICD)=TL3DZ(AX,AY,AZ,K,i)
-                            END IF
-                        END DO
-                        ELSE
-                         DO K=1,IELEM(N,I)%IDEGFREE
-                            IF (POLY.EQ.4)THEN
-							xXDER(K,icd)=TL2dX(AX,AY,K,i);  yYDER(K,icd)=TL2dY(AX,AY,K,i);
-							ELSE
-						    xXDER(K,icd)=DF2dX(AX,AY,K,i);  yYDER(K,icd)=DF2dY(AX,AY,K,i);
-							END IF
+                if (dimensiona .eq. 3) then
+                    DO K = 1, IELEM_L(N, I)%IDEGFREE
+                    IF (POLY .EQ. 1) THEN
+                        XXDER(K, ICD) = DFX(AX, AY, AZ, K, i); YYDER(K, ICD) = DFY(AX, AY, AZ, K, i); ZZDER(K, ICD) = DFZ(AX, AY, AZ, K, i)
+                    END IF
+                    IF (POLY .EQ. 2) THEN
+                        XXDER(K, ICD) = DLX(AX, AY, AZ, K, i); YYDER(K, ICD) = DLY(AX, AY, AZ, K, i); ZZDER(K, ICD) = DLZ(AX, AY, AZ, K, i)
+                    END IF
+                    IF (POLY .EQ. 4) THEN
+                        XXDER(K, ICD) = TL3DX(AX, AY, AZ, K, i, IELEM_L(N, I)%totvolume); YYDER(K, ICD) = TL3DY(AX, AY, AZ, K, i, IELEM_L(N, I)%totvolume); ZZDER(K, ICD) = TL3DZ(AX, AY, AZ, K, i, IELEM_L(N, I)%totvolume)
+                    END IF
+                    END DO
+                    ELSE
+                    DO K = 1, IELEM_L(N, I)%IDEGFREE
+                    IF (POLY .EQ. 4) THEN
+                        xXDER(K, icd) = TL2dX(AX, AY, K, i, IELEM_L(N, I)%totvolume); yYDER(K, icd) = TL2dY(AX, AY, K, i, IELEM_L(N, I)%totvolume); 
+                    ELSE
+                        xXDER(K, icd) = DF2dX(AX, AY, K, i); yYDER(K, icd) = DF2dY(AX, AY, K, i); 
+                    END IF
 
-                        END DO
-                        end if
+                    END DO
+                end if
 
 
 				end do
@@ -2583,7 +2744,7 @@ END IF
 			     do NGP=1,iqp
                                     icd=icd+1
 
-				SELECT CASE(IELEM(N,I)%GGS)
+				SELECT CASE(IELEM_L(N,I)%GGS)
 
 				CASE(0)
 
@@ -2592,7 +2753,7 @@ END IF
 
                             if (icoupleturb.eq.0)then
                                 DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-                                ILOCAL_RECON3(I)%ULEFTTURB(NVAR,L,NGP)=u_ct(i)%val(1,nvar)
+                                ILOCAL_RECON3_L(I)%ULEFTTURB(NVAR,L,NGP)=U_Ct_L(i)%val(1,nvar)
                                 END DO
 
                             end if
@@ -2600,27 +2761,27 @@ END IF
 
                             DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
 
-                                    GRADTEM(1:IELEM(N,I)%IDEGFREE)=ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:IELEM(N,I)%IDEGFREE,NVAR)
+                                    GRADTEM(1:IELEM_L(N,I)%IDEGFREE)=ILOCAL_RECON5_L(ICONSIDERED)%GRADIENTSTURB(1,1:IELEM_L(N,I)%IDEGFREE,NVAR)
 
                                     UGRADLOC = ZERO
 
 
-                            UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),XXDER(1:IELEM(N,I)%IDEGFREE,ICD))
-                            UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),YYDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                            UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM_L(N,I)%IDEGFREE),XXDER(1:IELEM_L(N,I)%IDEGFREE,ICD))
+                            UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM_L(N,I)%IDEGFREE),YYDER(1:IELEM_L(N,I)%IDEGFREE,ICD))
                             if (dimensiona.eq.3)then
-                            UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),ZZDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                            UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM_L(N,I)%IDEGFREE),ZZDER(1:IELEM_L(N,I)%IDEGFREE,ICD))
                             end if
 
 
 
-                                ILOCAL_RECON3(I)%ULEFTTURBV(1:dimensiona,NVAR,L,NGP) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
+                                ILOCAL_RECON3_L(I)%ULEFTTURBV(1:dimensiona,NVAR,L,NGP) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
 
 
                             END DO
                         END IF
 
                     !now temperature
-					GRADTEM(1:IELEM(N,I)%IDEGFREE)=ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:IELEM(N,I)%IDEGFREE)
+					GRADTEM(1:IELEM_L(N,I)%IDEGFREE)=ILOCAL_RECON5_L(ICONSIDERED)%GRADIENTSTEMP(1:IELEM_L(N,I)%IDEGFREE)
 !
 					UGRADLOC = ZERO
 
@@ -2629,32 +2790,32 @@ END IF
 
 
 
-                UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),XXDER(1:IELEM(N,I)%IDEGFREE,ICD))
-                UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),YYDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM_L(N,I)%IDEGFREE),XXDER(1:IELEM_L(N,I)%IDEGFREE,ICD))
+                UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM_L(N,I)%IDEGFREE),YYDER(1:IELEM_L(N,I)%IDEGFREE,ICD))
                  if (dimensiona.eq.3)then
-                UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),ZZDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM_L(N,I)%IDEGFREE),ZZDER(1:IELEM_L(N,I)%IDEGFREE,ICD))
                 end if
 
 
-					  ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,1,L,NGP) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
+					  ILOCAL_RECON3_L(I)%ULEFTV(1:dimensiona,1,L,NGP) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
 
 
                     !now velocities
 				  DO IEX=1,dimensiona
 !
-					GRADTEM(1:IELEM(N,I)%IDEGFREE)=ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(IEX,1:IELEM(N,I)%IDEGFREE)
+					GRADTEM(1:IELEM_L(N,I)%IDEGFREE)=ILOCAL_RECON5_L(ICONSIDERED)%VELOCITYDOF(IEX,1:IELEM_L(N,I)%IDEGFREE)
 !
 					 UGRADLOC = ZERO
 
 
-					     UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),XXDER(1:IELEM(N,I)%IDEGFREE,ICD))
-                UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),YYDER(1:IELEM(N,I)%IDEGFREE,ICD))
+					     UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM_L(N,I)%IDEGFREE),XXDER(1:IELEM_L(N,I)%IDEGFREE,ICD))
+                UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM_L(N,I)%IDEGFREE),YYDER(1:IELEM_L(N,I)%IDEGFREE,ICD))
                 if (dimensiona.eq.3)then
-                UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),ZZDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM_L(N,I)%IDEGFREE),ZZDER(1:IELEM_L(N,I)%IDEGFREE,ICD))
                 end if
 
 
-					   ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,IEX+1,L,NGP) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
+					   ILOCAL_RECON3_L(I)%ULEFTV(1:dimensiona,IEX+1,L,NGP) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
 
 
 
@@ -2677,24 +2838,24 @@ END IF
 
                         if (icoupleturb.eq.0)then
                             DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-                        ILOCAL_RECON3(I)%ULEFTTURB(NVAR,L,NGP)=u_ct(i)%val(1,nvar)
+                        ILOCAL_RECON3_L(I)%ULEFTTURB(NVAR,L,NGP)=U_Ct_L(i)%val(1,nvar)
                             END DO
                         end if
 
 
                         DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
 
-                            ILOCAL_RECON3(I)%ULEFTTURBV(1:dimensiona,NVAR,L,NGP)=ILOCAL_RECON3(I)%GRADs(dimensiona+1+NVAR,1:dimensiona)
+                            ILOCAL_RECON3_L(I)%ULEFTTURBV(1:dimensiona,NVAR,L,NGP)=ILOCAL_RECON3_L(I)%GRADs(dimensiona+1+NVAR,1:dimensiona)
 
                             END DO
 				END IF
 
 				!MEAN FLOW GRADIENTS
 
-				ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,1,L,NGP) = ILOCAL_RECON3(I)%GRADs(dimensiona+1,1:dimensiona)
+				ILOCAL_RECON3_L(I)%ULEFTV(1:dimensiona,1,L,NGP) = ILOCAL_RECON3_L(I)%GRADs(dimensiona+1,1:dimensiona)
 
 				DO IEX=1,dimensiona
-				    ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,IEX+1,L,NGP) = ILOCAL_RECON3(I)%GRADs(IEX,1:dimensiona)
+				    ILOCAL_RECON3_L(I)%ULEFTV(1:dimensiona,IEX+1,L,NGP) = ILOCAL_RECON3_L(I)%GRADs(IEX,1:dimensiona)
 				END DO
 
 
@@ -2707,9 +2868,9 @@ END IF
 
 
 
-                    IF (IELEM(N,ICONSIDERED)%GGS.EQ.0)THEN
+                    IF (IELEM_L(N,ICONSIDERED)%GGS.EQ.0)THEN
 
-                    CALL COMPUTE_GRADIENTS_CENTER(N,ICONSIDERED)
+                    CALL COMPUTE_GRADIENTS_CENTER(N,ICONSIDERED,ILOCAL_RECON3_L)
 
                     END IF
 
@@ -2717,15 +2878,17 @@ END IF
 
 
 
-
-
 	  end do
-!$OMP END DO
 
-deallocate(xxder)
-deallocate(yyder)
-deallocate(zzder)
-deallocate(gradtem)
+#ifdef SOLUTIONTRIAV2_GPU_KERNEL
+!$OMP end distribute parallel do
+CALL pack_params_for_device(dparams)
+!$OMP end target teams
+CALL unpack_params_for_device(dparams)
+#else
+!$OMP END DO
+#endif
+
 
 
 
@@ -2755,9 +2918,17 @@ TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_C_L, U_CT_L
 TYPE(EXCHANGE_SOLHI),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXSOLHIR_L
 INTEGER::ICONSIDERED,II,I
 
+TYPE(device_packed_parameters) :: dparams
+
 
 #ifdef LEASTSQUARES_GPU_KERNEL
-!$OMP target teams distribute parallel do
+! Map the parent containers
+!$OMP target enter data map(to: IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, U_C_L, U_CT_L, IEXSOLHIR_L)
+CALL pack_params_for_device(dparams)
+!$OMP target teams
+CALL unpack_params_for_device(dparams)
+!$OMP distribute parallel do
+
 #else
 !$OMP DO
 #endif
@@ -2768,11 +2939,13 @@ ICONSIDERED=I
  CALL ALLGRADS_INNER(N,ICONSIDERED,IELEM_L,ILOCAL_RECON3_L,ILOCAL_RECON5_L,U_C_L,U_CT_L,IEXSOLHIR_L)
 END DO
 #ifdef LEASTSQUARES_GPU_KERNEL
-!$OMP end target teams distribute parallel do
+!$OMP end distribute parallel do
+CALL pack_params_for_device(dparams)
+!$OMP end target teams
+CALL unpack_params_for_device(dparams)
 #else
 !$OMP END DO
 #endif
-
 
 !$OMP DO
 DO II=1,NOF_BOUNDED
@@ -3023,24 +3196,24 @@ KMAXE=XMPIELRANK(N)
 ielem(n,1:kmaxe)%REDUCE=0
 
 
-
   CALL LEAST_SQUARES(N,IELEM, ILOCAL_RECON3,ILOCAL_RECON5,U_C,U_CT,IEXSOLHIR)
-
 	
  SELECT CASE(IWENO)
  
  
   CASE(1)
 
-  CALL WENOWEIGHTS(N, IELEM, ILOCAL_RECON3, ILOCAL_RECON5, ILOCAL_RECON6, IBOUND, U_C, U_Ct, INTEG_BASIS,integ_basis_dg, INODER4, IEXSOLHIR)
+  CALL WENOWEIGHTS(N, IELEM, ILOCAL_RECON3, ILOCAL_RECON5, ILOCAL_RECON6, IBOUND, U_C, U_Ct, INTEG_BASIS,integ_basis_dg, INODER4, IEXSOLHIR, QP_ARRAY)
   CALL CHECKSOL(N)
   CALL MUSCL(N)
   CALL CHECKSOLX(N)
 
+
   CASE(-1)
 
-  CALL MUSCL(N)		
+  CALL MUSCL(N)
   CALL CHECKSOLX(N)
+
 
  
  
@@ -3051,6 +3224,7 @@ ielem(n,1:kmaxe)%REDUCE=0
 
 	CALL LINEAR_SCHEME(N)
 	CALL CHECKSOLX(N)
+
 	END IF
 
 
@@ -3062,13 +3236,8 @@ ielem(n,1:kmaxe)%REDUCE=0
 
 	if (Itestcase.eq.4)then
 
-	call solutiontriav2(n)
+	call SOLUTIONTRIAV2(N, IELEM, ILOCAL_RECON3, ILOCAL_RECON5, U_Ct, IEXSOLHIR)
 	end if
-
-
- 
-
- 
  
  
 
@@ -4814,7 +4983,7 @@ END SUBROUTINE FILTER
 
 
 
-SUBROUTINE ADDA_FILTER(N,iconsidered, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, U_C_L, INTEG_BASIS_L, integ_basis_dg_L)
+SUBROUTINE ADDA_FILTER(N,iconsidered, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, U_C_L, INTEG_BASIS_L, integ_basis_dg_L,QP_ARRAY_L)
 IMPLICIT NONE
 #ifdef WENOWEIGHTS_GPU_KERNEL
 !$omp declare target
@@ -4824,7 +4993,8 @@ INTEGER,INTENT(IN)::N,iconsidered
 TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM_L
 TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON3_L, ILOCAL_RECON5_L
 TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_C_L
-TYPE(INTEGRALBASIS),ALLOCATABLE,DIMENSION(:)::INTEG_BASIS_L,integ_basis_dg_L
+TYPE(INTEGRALBASIS),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::INTEG_BASIS_L,integ_basis_dg_L
+TYPE(VOL_GQP),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::QP_ARRAY_L
 
 INTEGER::I,J,K
 REAL::FILTERED_LOW
@@ -4982,9 +5152,9 @@ EN_F_WEAK(1:NOF_VARIABLES)=zero
 
 do ngp=1,IELEM_L(N,ICONSIDERED)%ITOTALPOINTS
 
-ax=QP_ARRAY(ICONSIDERED)%X(ngp)
-ay=QP_ARRAY(ICONSIDERED)%Y(ngp)
-az=QP_ARRAY(ICONSIDERED)%Z(ngp)
+ax=QP_ARRAY_L(ICONSIDERED)%X(ngp)
+ay=QP_ARRAY_L(ICONSIDERED)%Y(ngp)
+az=QP_ARRAY_L(ICONSIDERED)%Z(ngp)
 
 
 
@@ -4998,7 +5168,7 @@ RESSOLUTION(1:1,1:NOF_vARIABLES)=matmul(CONSMATRIX(1:1,1:IELEM_L(N,I)%IDEGFREE),
 LEFTV(1:NOF_VARIABLES)=U_C_L(I)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(1,1:NOF_vARIABLES)
 
 
-EN_UNF(1:NOF_VARIABLES)=EN_UNF(1:NOF_VARIABLES)+LEFTV(1:NOF_vARIABLES)*QP_ARRAY(ICONSIDERED)%QP_WEIGHT(ngp)
+EN_UNF(1:NOF_VARIABLES)=EN_UNF(1:NOF_VARIABLES)+LEFTV(1:NOF_vARIABLES)*QP_ARRAY_L(ICONSIDERED)%QP_WEIGHT(ngp)
 
 
 
@@ -5016,7 +5186,7 @@ EN_UNF(1:NOF_VARIABLES)=EN_UNF(1:NOF_VARIABLES)+LEFTV(1:NOF_vARIABLES)*QP_ARRAY(
 
 !                 EN_F_STRONG(1:NOF_VARIABLES)=LEFTV(1:NOF_vARIABLES)
 
-                EN_F_STRONG(1:NOF_VARIABLES)=EN_F_STRONG(1:NOF_VARIABLES)+LEFTV(1:NOF_vARIABLES)*QP_ARRAY(ICONSIDERED)%QP_WEIGHT(ngp)
+                EN_F_STRONG(1:NOF_VARIABLES)=EN_F_STRONG(1:NOF_VARIABLES)+LEFTV(1:NOF_vARIABLES)*QP_ARRAY_L(ICONSIDERED)%QP_WEIGHT(ngp)
 
 
 
@@ -5032,7 +5202,7 @@ EN_UNF(1:NOF_VARIABLES)=EN_UNF(1:NOF_VARIABLES)+LEFTV(1:NOF_vARIABLES)*QP_ARRAY(
 
 !                 EN_F_WEAK(1:NOF_VARIABLES)=LEFTV(1:NOF_vARIABLES)
 
-                EN_F_WEAK(1:NOF_VARIABLES)=EN_F_WEAK(1:NOF_VARIABLES)+LEFTV(1:NOF_vARIABLES)*QP_ARRAY(ICONSIDERED)%QP_WEIGHT(ngp)
+                EN_F_WEAK(1:NOF_VARIABLES)=EN_F_WEAK(1:NOF_VARIABLES)+LEFTV(1:NOF_vARIABLES)*QP_ARRAY_L(ICONSIDERED)%QP_WEIGHT(ngp)
 
 
 end do

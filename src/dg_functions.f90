@@ -123,13 +123,13 @@ IMPLICIT NONE
                     BASIS_TEMP(I_DOF,1) = DF2DX(X1,Y1,I_DOF,iconsidered)
                     BASIS_TEMP(I_DOF,2) = DF2DY(X1,Y1,I_DOF,iconsidered)
                 ELSE IF( POLY == 4) THEN
-                    BASIS_TEMP(I_DOF,1) = TL2DX(X1,Y1,I_DOF,iconsidered)
-                    BASIS_TEMP(I_DOF,2) = TL2DY(X1,Y1,I_DOF,iconsidered)
+                    BASIS_TEMP(I_DOF,1) = TL2DX(X1,Y1,I_DOF,iconsidered,IELEM(N,iconsidered)%totvolume)
+                    BASIS_TEMP(I_DOF,2) = TL2DY(X1,Y1,I_DOF,iconsidered,IELEM(N,iconsidered)%totvolume)
                 END IF
             ELSE
-                BASIS_TEMP(I_DOF,1) = TL3DX(X1,Y1,Z1,I_DOF,iconsidered)
-                BASIS_TEMP(I_DOF,2) = TL3DY(X1,Y1,Z1,I_DOF,iconsidered)
-                BASIS_TEMP(I_DOF,3) = TL3DZ(X1,Y1,Z1,I_DOF,iconsidered)
+                BASIS_TEMP(I_DOF,1) = TL3DX(X1,Y1,Z1,I_DOF,iconsidered, IELEM(N,iconsidered)%totvolume)
+                BASIS_TEMP(I_DOF,2) = TL3DY(X1,Y1,Z1,I_DOF,iconsidered, IELEM(N,iconsidered)%totvolume)
+                BASIS_TEMP(I_DOF,3) = TL3DZ(X1,Y1,Z1,I_DOF,iconsidered, IELEM(N,iconsidered)%totvolume)
             end if
         END DO
     END IF
@@ -476,7 +476,7 @@ REAL::MP_PINFl,gammal
 
                       if (poly.eq.4)then
 
-                      DG_VOL_INTEGRAL(I+1,1:NOF_VARIABLES) = DG_VOL_INTEGRAL(I+1,1:NOF_VARIABLES)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP)*(FLUX_TERM_X(1:NOF_VARIABLES)*TL2DX(X1,Y1,I,ICONSIDERED)+FLUX_TERM_Y(1:NOF_VARIABLES)*TL2DY(X1,Y1,I,ICONSIDERED))
+                      DG_VOL_INTEGRAL(I+1,1:NOF_VARIABLES) = DG_VOL_INTEGRAL(I+1,1:NOF_VARIABLES)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP)*(FLUX_TERM_X(1:NOF_VARIABLES)*TL2DX(X1,Y1,I,ICONSIDERED,IELEM(N,iconsidered)%totvolume)+FLUX_TERM_Y(1:NOF_VARIABLES)*TL2DY(X1,Y1,I,ICONSIDERED,IELEM(N,iconsidered)%totvolume))
 
                       end if
 
@@ -500,8 +500,10 @@ REAL::MP_PINFl,gammal
 
                             if (poly.eq.4)then
 
-                            DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP)*((FLUX_TERM_X(:)*TL3DX(X1,Y1,z1,I,ICONSIDERED))&
-                            +(FLUX_TERM_Y(:)*TL3DY(X1,Y1,z1,I,ICONSIDERED))+(FLUX_TERM_z(:)*TL3DZ(X1,Y1,z1,I,ICONSIDERED)))
+                            DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP)*(&
+                             (FLUX_TERM_X(:)*TL3DX(X1,Y1,z1,I,ICONSIDERED,IELEM(N,iconsidered)%totvolume))&
+                            +(FLUX_TERM_Y(:)*TL3DY(X1,Y1,z1,I,ICONSIDERED,IELEM(N,iconsidered)%totvolume))&
+                            +(FLUX_TERM_z(:)*TL3DZ(X1,Y1,z1,I,ICONSIDERED,IELEM(N,iconsidered)%totvolume)))
 
                             END IF
 

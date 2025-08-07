@@ -10,14 +10,7 @@ MODULE DECLARATION
 
 IMPLICIT NONE
 
-#if defined(WENOWEIGHTS_GPU_KERNEL) || defined(LEASTSQUARES_GPU_KERNEL)
-!$omp declare target(adda_filter_strong, adda_filter_weak, adda_type, angle_per, cavitation, dg, dimensiona, dt, ees, gamma, gamma_in, governingequations, ibound, idegfree, idegfree2, iorder, iorder2, iscoun, it, lwci1, mp_pinf, multispecies, nof_species, nof_variables, numberofpoints2, oo2, passivescalar, per_rot, qp_array, qp_line, qp_quad, qp_triangle, rungekutta, turbulenceequations, typesten, viscous_s, wenoz, wenwrt, zero)
 
-
-!$omp declare target(beta_i1, bleed_end, bleed_plenum, bleed_porosity, bleed_start, boundtype, initcond, itestcase, i_turb_inlet, kinit_srf, mp_a_in, mp_r_in, pi, pres, press_outlet, rres, swirl, t, tolsmall, turbinit, turbulence, turbulencemodel, ufreestream, uvel, visc, vvel, wvel)
-!$omp declare target(r_gas)
-!$omp declare target(poly,numneighbours2)
-#endif
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.1.   INTEGER  VARIABLES HERE                  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -299,7 +292,7 @@ REAL::CT3
 REAL::CT4
 REAL::PRTU
 REAL::TWALL
-CHARACTER(LEN=30)::STATFILE,ST_N_CPU,ST_N_THREADS
+CHARACTER(LEN=35)::STATFILE,ST_N_CPU,ST_N_THREADS
 INTEGER::THREAD_N
 REAL::SIGMA_K1
 REAL::SIGMA_K2
@@ -760,10 +753,87 @@ TYPE::NODE_NUMBER	!NAME OF TYPE FOR THE SET OF NODES
 END TYPE NODE_NUMBER 
 
 
+
 TYPE(NODE_NUMBER),ALLOCATABLE,DIMENSION(:,:)::INODE	  !1-D ARRAY FOR POINTER TYPE FOR NODES
 
 TYPE(NODE_NUMBER)::ITEMP				  !TEMPORARY POINTER NODE ITERATION
 
+#if defined(WENOWEIGHTS_GPU_KERNEL) || defined(LEASTSQUARES_GPU_KERNEL) || defined(SOLUTIONTRIAV2_GPU_KERNEL)
+!$omp declare target(adda_filter_strong, adda_filter_weak, adda_type, angle_per, cavitation, dg, dimensiona, dt, ees, gamma, gamma_in, governingequations, idegfree, idegfree2, iorder, iorder2, iscoun, it, lwci1, mp_pinf, multispecies, nof_species, nof_variables, numberofpoints2, oo2, passivescalar, per_rot, qp_line, qp_quad, qp_triangle, rungekutta, turbulenceequations, typesten, viscous_s, wenoz, wenwrt, zero)
 
+
+!$omp declare target(beta_i1, bleed_end, bleed_plenum, bleed_porosity, bleed_start, boundtype, initcond, itestcase, i_turb_inlet, kinit_srf, mp_a_in, mp_r_in, pi, pres, press_outlet, rres, swirl, t, tolsmall, turbinit, turbulence, turbulencemodel, ufreestream, uvel, visc, vvel, wvel)
+!$omp declare target(r_gas)
+!$omp declare target(poly,numneighbours2)
+
+!$omp declare target(icoupleturb)
+
+#endif
+
+TYPE device_packed_parameters
+!adda_filter_strong, adda_filter_weak
+	INTEGER::ADDA_TYPE
+	REAL::ANGLE_PER
+	INTEGER::CAVITATION
+	INTEGER::DG
+	INTEGER::dimensiona
+	REAL::DT
+	INTEGER::ees
+	REAL::GAMMA
+	!gamma_in
+	integer::governingequations
+	INTEGER::IDEGFREE,idegfree2
+	INTEGER::IORDER,IORDER2
+	INTEGER::iscoun
+	INTEGER::IT
+	REAL::LWCI1
+	!mp_pinf
+	INTEGER::multispecies
+	INTEGER::nof_species
+	INTEGER::nof_variables
+	INTEGER::numberofpoints2
+	REAL::oo2
+	INTEGER::PASSIVESCALAR
+	REAL::PER_ROT
+	INTEGER::QP_QUAD,QP_TRIANGLE,QP_LINE
+	INTEGER::RUNGEKUTTA
+	INTEGER::TURBULENCEEQUATIONS
+	INTEGER::TYPESTEN
+	integer::viscous_s
+	INTEGER::wenoz
+	INTEGER::WENWRT
+	REAL::zero
+	REAL::BETA_I1
+	!bleed_end
+	!bleed_plenum
+	!bleed_porosity
+	!bleed_start
+	INTEGER::BOUNDTYPE
+	INTEGER::INITCOND
+	INTEGER::ITESTCASE
+	REAL::I_TURB_INLET
+	REAL::kinit_srf
+	!mp_a_in
+	!mp_r_in
+	REAL::PI
+	REAL::PRES
+	REAL::PRESS_OUTLET
+	REAL::RRES	
+	integer::swirl
+	REAL::T
+	real::tolsmall
+	REAL :: turbinit
+	INTEGER::turbulence
+	INTEGER::turbulencemodel
+	REAL::ufreestream
+	REAL:: uvel
+	REAL:: visc
+	REAL::vvel
+	REAL :: wvel
+	REAL :: r_gas
+	INTEGER :: poly
+	INTEGER :: numneighbours2
+	INTEGER :: icoupleturb
+END TYPE device_packed_parameters
 
 END MODULE DECLARATION
