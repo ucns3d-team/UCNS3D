@@ -2486,14 +2486,14 @@ DEALLOCATE(UTEMP)
 
 END SUBROUTINE MUSCL
 
-
+#if defined(WENOWEIGHTS_GPU_KERNEL) || defined(LEASTSQUARES_GPU_KERNEL) || defined(SOLUTIONTRIAV2_GPU_KERNEL)
 !This is needed because global scalars are not assoicated between host and
 !device versions.
 SUBROUTINE pack_params_for_device(dparams)
         IMPLICIT NONE
         !$OMP declare target
         TYPE(device_packed_parameters),INTENT(INOUT) :: dparams
-
+        dparams%N = N
         dparams%ADDA_TYPE = ADDA_TYPE
         dparams%ANGLE_PER = ANGLE_PER
         dparams%CAVITATION = CAVITATION
@@ -2567,7 +2567,7 @@ SUBROUTINE unpack_params_for_device(dparams)
         IMPLICIT NONE
         !$OMP declare target
         TYPE(device_packed_parameters),INTENT(INOUT) :: dparams
-
+        N = dparams%N
 
         ADDA_TYPE = dparams%ADDA_TYPE
         ANGLE_PER = dparams%ANGLE_PER
@@ -2636,6 +2636,7 @@ SUBROUTINE unpack_params_for_device(dparams)
         numneighbours2 = dparams%numneighbours2
         icoupleturb = dparams%icoupleturb
 END SUBROUTINE
+#endif
 
 
 SUBROUTINE SOLUTIONTRIAV2(N, IELEM_L, ILOCAL_RECON3_L, ILOCAL_RECON5_L, U_Ct_L, IEXSOLHIR_L)

@@ -772,6 +772,7 @@ TYPE(NODE_NUMBER)::ITEMP				  !TEMPORARY POINTER NODE ITERATION
 
 TYPE device_packed_parameters
 !adda_filter_strong, adda_filter_weak
+	INTEGER:: N
 	INTEGER::ADDA_TYPE
 	REAL::ANGLE_PER
 	INTEGER::CAVITATION

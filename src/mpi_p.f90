@@ -3,7 +3,7 @@ USE MPI
 IMPLICIT NONE
 
  !INCLUDE "mpif.h"
-#if defined(WENOWEIGHTS_GPU_KERNEL) || defined(LEASTSQUARES_GPU_KERNEL)
+#if defined(WENOWEIGHTS_GPU_KERNEL) || defined(LEASTSQUARES_GPU_KERNEL) || defined(SOLUTIONTRIAV2_GPU_KERNEL)
 !$omp declare target(n)
 #endif
 
