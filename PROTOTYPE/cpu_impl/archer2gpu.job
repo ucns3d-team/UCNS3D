@@ -8,12 +8,13 @@
 #SBATCH --partition=gpu
 #SBATCH --qos=gpu-shd
 
-. ./modules.sh
+. ./archer2modules.sh
 
-#export CRAY_ACC_USE_UNIFIED_MEM=1
-#export HSA_XNACK=1
+export CRAY_ACC_USE_UNIFIED_MEM=1
+export HSA_XNACK=1
 
-for n in 100000 1000000
+#for n in 100000 1000000
+for n in 100000
 do
     
     echo "protogpu $n"

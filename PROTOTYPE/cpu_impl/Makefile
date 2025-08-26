@@ -35,7 +35,7 @@ SOURCES=prototype_gpu.f90
 # module load PrgEnv-gnu
 
 #FFLAGS= -O1 -fopenmp
-#FFLAGS= -O3 -fopenmp
+FFLAGS= -O3 -fopenmp
 
 #> ===== Building on Cirrus
 
@@ -64,7 +64,7 @@ SOURCES=prototype_gpu.f90
 #FFLAGS= -mp -mp=multicore -Minfo -Mnovect -r8 -Mbackslash -march=native $(BLAS_FLAGS) $(MPIFLAGS)
 #FFLAGS= -Mcray=pointer $(BLASFLAGS)
 
-FFLAGS=-mp=gpu
+#FFLAGS=-mp=gpu
 
 # --- GNU
 # Macro definition picks "include mpif.h" instead of "use mpi" when compiling under GNU on Cirrus (see Cirrus user guide)
@@ -86,9 +86,9 @@ FFLAGS=-mp=gpu
 #BLAS_LIBS= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group
 
 # Cirrus - nvfortran
-BLAS_LIBS= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group
+#BLAS_LIBS= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group
 
-BLAS_LIBS=-L${MKLROOT}/lib/intel64 -lmkl_gf_lp64 -lmkl_core -lmkl_sequential
+#BLAS_LIBS=-L${MKLROOT}/lib/intel64 -lmkl_gf_lp64 -lmkl_core -lmkl_sequential
 
 # Archer2 - Cray / AMD
 #BLAS_LIBS= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group
@@ -100,7 +100,7 @@ LIBS=$(BLAS_LIBS)
 
 #F90=mpif90   # -v # verbose output
 #F90=nvfortran
-F90=mpifort
+F90=ftn
 
 all: $(EXECUTABLE)
 
