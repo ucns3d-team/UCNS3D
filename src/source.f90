@@ -112,6 +112,7 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 	REAL::RG_KB11,RG_KB12,RG_KB13,RG_KB14,RG_KB15 !reaction 1
 	REAL::RG_KB21,RG_KB22,RG_KB23,RG_KB24,RG_KB25 !2
 	REAL::RG_KB31,RG_KB32,RG_KB33,RG_KB34,RG_KB35 !3
+	REAL::RG_RMIX !WP: MIXTURE GAS CONSTANT
 
 		!lei have a look
 	!translational-vibrational energy relaxation time
@@ -147,8 +148,17 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 		RG_RM(RG_I)=RG_R(RG_I)/RG_MOLM(RG_I)
 	END DO
 
+ !! WP:CALCULATE MIXTURE GAS CONSTANT
+RG_RMIX=zero
+do RG_I=1,RG_SPECIES
+  RG_RMIX=RG_RMIX+RG_R(RG_I)/LEFTV(1)(rg_i)/RG_MOLM(rg_i)
+end do
+
+RG_RMIX=rg_runiv*RG_RMIX
+
+
 	!TEMPERATURE
-	RG_T=LEFTV(4)/LEFTV(1)  !!WP:Isn't division by mixture constant R missing? T=P/R/rho
+	RG_T=LEFTV(4)/RG_RMIX/LEFTV(1)  !!WP:Isn't division by mixture constant R missing? T=P/R/rho, originally was LEFTV(4)/RG_RMIX/LEFTV(1)
 	RG_TV=LEFTV(nof_variables)
 	RG_Z=1.0/RG_T  
 
