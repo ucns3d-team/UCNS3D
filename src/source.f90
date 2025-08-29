@@ -118,6 +118,7 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 	REAL,DIMENSION(RG_SPECIES,RG_SPECIES)::RG_MU	!reduced molecular weight
 	REAL::TEMP1,TEMP2
 	REAL,DIMENSION(RG_SPECIES)::RG_TSMW,RG_TSP,RG_TSSUM, RG_Ablot
+	REAL::rg_mix_temp
 
 	I=ICONSIDERED
 
@@ -147,8 +148,15 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 		RG_RM(RG_I)=RG_R(RG_I)/RG_MOLM(RG_I)
 	END DO
 
+ !WP: Calculation of R for mixture
+rg_mix_temp=0
+do RG_I=1,RG_species
+  rg_mix_temp=rg_mix_temp+RG_R(RG_I)/LEFTV(1)/RG_MOLM(rg_i)
+end do
+rg_mix_temp=rg_mix_temp*rg_runiv
+
 	!TEMPERATURE
-	RG_T=LEFTV(4)/LEFTV(1)  !!WP:Isn't division by mixture constant R missing? T=P/R/rho
+	RG_T=LEFTV(4)/LEFTV(1)/rg_mix_temp  !!WP:Isn't division by mixture constant R missing? T=P/R/rho. Before it was RG_T=LEFTV(4)/LEFTV(1)
 	RG_TV=LEFTV(nof_variables)
 	RG_Z=1.0/RG_T  
 
@@ -181,7 +189,7 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 			if (RG_KF_TYPE==1)THEN
 				!Gupta(1990)
 				!REACTION1: N2+M<-->2N+M
-    				!!!WP: Why RG_TA for forward and RG_T for backward?
+    				
 				RG_KF1=1.92E17*RG_TA**(-0.5)*EXP(-1.131E5/RG_TA)*1e-6  !m3/mol/s
 				!REACTION2: O2+M<-->2O+M
 				RG_KF2=3.61E18*RG_TA**(-1.0)*EXP(-5.94E4/RG_TA)*1e-6   !m3/mol/s
@@ -377,7 +385,7 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 
 
 		!Stefan-Boltzmann law of radiation: radiative energy transfer rate, RG_DQ_RAD
-		RG_DQ_RAD=5.67E-8*0.85*RG_T_WALL_INIT !WP: Shouldn't it be 5.67E-8*0.85*RG_T_WALL_INIT**4?
+		RG_DQ_RAD=5.67E-8*0.85*RG_T_WALL_INIT**4 !WP: Shouldn't it be 5.67E-8*0.85*RG_T_WALL_INIT**4? Before was RG_DQ_RAD=5.67E-8*0.85*RG_T_WALL_INIT
 
 
 		!reduced molecular weight of the colliding species s and j, 1-5:
@@ -408,7 +416,7 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 						TEMP1=TEMP1+RG_N(RG_J)*EXP(RG_Ablot(RG_J)*(RG_T**(1/3)-0.015*RG_MU(RG_I,RG_J)**0.25)-18.42)
 						TEMP2=TEMP2+RG_N(RG_J)
 					END DO
-					RG_TSMW(RG_I)=TEMP1/TEMP2   !WP: Missing pressure in atmospheres at denominator
+					RG_TSMW(RG_I)=TEMP1/TEMP2/LEFTV(4)/0.00000987   !WP: Missing pressure in atmospheres at denominator. Before was RG_TSMW(RG_I)=TEMP1/TEMP2
 				END DO
 			ELSE
 				!Park(1989)
@@ -430,7 +438,7 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 					TEMP1=TEMP1+RG_N(RG_J)*EXP(RG_Ablot(RG_J)*(RG_T**(1/3)-0.015*RG_MU(RG_I,RG_J)**0.25)-18.42)
 					TEMP2=TEMP2+RG_N(RG_J)
 				END DO
-				RG_TSMW(RG_I)=TEMP1/TEMP2 !WP: Missing pressure in atmospheres at denominator
+				RG_TSMW(RG_I)=TEMP1/TEMP2/LEFTV(4)/0.00000987 !WP: Missing pressure in atmospheres at denominator
 			END DO
 			!Park(1989)
 			DO RG_I=1,RG_SPECIES
@@ -480,11 +488,32 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 
 !WP: Coefficients ok
 
-		!vibrational-translational energy relaxation
+		!!vibrational-translational energy relaxation
+  		!! OLD COMPUTATION OF RG_QTV 
+		!RG_QTV=0.0
+		!DO RG_I=1,3
+			!RG_QTV=RG_QTV+RG_R(RG_I)*(RG_ESV(RG_I)-RG_EV(RG_I))/RG_TSSUM(RG_I)  !!WP: RG_TSSUM ONLY DEFINED IF RG_RELAX IS 2. FOR RG_RELAX=1, RG_TSSUM not defined and RG_TSMW or RG_TSP should be used
+		!END DO
+
+  !vibrational-translational energy relaxation
 		RG_QTV=0.0
-		DO RG_I=1,3
-			RG_QTV=RG_QTV+RG_R(RG_I)*(RG_ESV(RG_I)-RG_EV(RG_I))/RG_TSSUM(RG_I)  !!WP: RG_TSSUM ONLY DEFINED IF RG_RELAX IS 2. FOR RG_RELAX=1, RG_TSSUM not defined and RG_TSMW or RG_TSP should be used
-		END DO
+  		IF (RG_RELAX==1)THEN
+			IF (RG_T.LE.8000.0)THEN
+   				DO RG_I=1,3
+					RG_QTV=RG_QTV+RG_R(RG_I)*(RG_ESV(RG_I)-RG_EV(RG_I))/RG_TSMW(RG_I)  
+				END DO
+			ELSE 
+   				DO RG_I=1,3
+					RG_QTV=RG_QTV+RG_R(RG_I)*(RG_ESV(RG_I)-RG_EV(RG_I))/RG_TSP(RG_I)  
+				END DO
+			END IF
+		ELSE IF (RG_RELAX==2)THEN
+			DO RG_I=1,3
+				RG_QTV=RG_QTV+RG_R(RG_I)*(RG_ESV(RG_I)-RG_EV(RG_I))/RG_TSSUM(RG_I) 
+			END DO
+   		END IF
+
+
 
 		!vibrational energy reactive source term
   
