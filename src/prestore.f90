@@ -235,18 +235,30 @@ iconsidered=i
 		INTBS=CALINTBASIS(N,IXX,JXX,KXX,LXX1,number_of_dog,ICOMPWRT,ELTYPE,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
 
 		INTEG_BASIS(I)%VALUE(1:ielem(n,i)%IDEGFREE)=INTBS(1:ielem(n,i)%IDEGFREE)
+
+
                 
         !the indicator matrix for the smaller polynomial
 		IF (IWENO.EQ.1)THEN
 		CALL INDICATORMATRIX(N,I,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+
 		END IF
 		
 					!the indicator matrix for the lower order polynomial
 					if (ees.eq.5)then
 					INTBS=zero;JXX=1;IXX=i;LXX1=1;number_of_dog=idegfree2;kxx=IORDER2;ELTYPE=ielem(n,i)%ishape
 					icompwrt=1
+
+
+
+
 					INTBS=CALINTBASIS(N,IXX,JXX,KXX,LXX1,number_of_dog,ICOMPWRT,ELTYPE,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
 					INTEG_BASIS(I)%VALUEc(1:number_of_dog)=INTBS(1:number_of_dog)
+
+
+
+
+
 						IF (IWENO.EQ.1)THEN
 						CALL INDICATORMATRIX2(N,I,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
 						icompwrt=0
@@ -365,10 +377,20 @@ iconsidered=i
 
 
 										ILOCAL_RECON3(I)%STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+
+
 										ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 										else
 										icompwrt=1
 										ILOCAL_RECON3(I)%STENCILSc(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+
+
+
+
+
+
+
+
 										ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
 
 										end if
@@ -419,14 +441,23 @@ iconsidered=i
 					else
 					LSCQM(JQ,IQ)=LSCQM(JQ,IQ)&
 					+((ILOCAL_RECON3(I)%STENCILSc(LL,LQ,JQ)*ILOCAL_RECON3(I)%STENCILSc(LL,LQ,IQ)))
+
+
+
 					end if
 					END DO;END DO;END DO
+
+
+
 				else
 					invmat=zero;LSCQM=zero
 					DO IQ=1,IDEG;DO JQ=1,IDEG;DO LQ=1,IMAX
 					LSCQM(JQ,IQ)=LSCQM(JQ,IQ)&
 					+((STENCILS(LL,LQ,JQ)*STENCILS(LL,LQ,IQ)))
 					END DO;END DO;END DO
+
+
+
 				end if
 		ELSE
 
@@ -434,7 +465,13 @@ iconsidered=i
 				DO IQ=1,IDEG;DO JQ=1,IDEG;DO LQ=1,IMAX
 				LSCQM(JQ,IQ)=LSCQM(JQ,IQ)&
 				+((STENCILS(LL,LQ,JQ)*STENCILS(LL,LQ,IQ)))
+
+
+
 				END DO;END DO;END DO
+
+
+
 
 		END IF
 
@@ -447,6 +484,10 @@ iconsidered=i
 		IVGT=IDEG+1
 		CALL INVERT(RFF,INVRFF,IVGT)
 		invmat(1:IDEg,1:ideg)=MATMUL(INVRFF(1:ideg,1:IDEG),QTFF(1:IDEG,1:IDEG))
+
+
+
+
 
 
 		IF (GREENGO.EQ.0)THEN
@@ -473,10 +514,22 @@ iconsidered=i
 
 
 
+
+
+
 					do iq=1,imax
 					ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)&
 					*ILOX_VOLUME(ll,iq+1)*WLSQR(ll,iq)
 					end do
+
+
+					if (ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL))then	!prevents non-invertible nan stencils from being deployed
+
+					ielem(n,i)%full=0
+					end if
+
+
+
 		else
 ! 					call DGEMM ('N','T',IDEG,IMAX,IDEG,ALPHA,invmat(1:ideg,1:ideg),IDEG,&
 ! 				stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stenciltc(1:IDEG,1:IMAX,LL),IDEG)
@@ -485,11 +538,29 @@ iconsidered=i
 				ILOCAL_RECON3(i)%invmat_stenciltC(1:IDEG,1:IMAX,LL)=MATMUL(invmat(1:ideg,1:ideg),TRANSPOSE(stencil(1:imax,1:ideg)))
 
 
+					if (ILOCAL_RECON3(i)%invmat_stenciltC(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stenciltC(1,1,LL))then	!!prevents non-invertible nan stencils from being deployed
+
+					ielem(n,i)%full=0
+					end if
+
 
 					do iq=1,imax
 					ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)&
 					*ILOX_VOLUME(ll,iq+1)*WLSQR(ll,iq)
+
+
+
+
+
+
+
+
+
+
 					end do
+
+
+
 		end if
 
 
@@ -1140,6 +1211,11 @@ if((ees.ne.5).OR.(ll.eq.1))then
 			end do
 
 
+			if (ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL))then	!prevents non-invertible nan stencils from being deployed
+
+					ielem(n,i)%full=0
+					end if
+
 
 
 else
@@ -1163,6 +1239,11 @@ else
 			*ILOX_VOLUME(ll,iq+1)*WLSQR(ll,iq)
 			end do
 
+
+			if (ILOCAL_RECON3(i)%invmat_stenciltc(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stenciltc(1,1,LL))then	!prevents non-invertible nan stencils from being deployed
+
+					ielem(n,i)%full=0
+					end if
 
 end if
 
@@ -1446,6 +1527,7 @@ END SUBROUTINE PRESTORE_RECONSTRUCTION2
 
 
 SUBROUTINE INDICATORMATRIX(N,iconsi,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+
 !> @brief
 !> This subroutine computes the indicator matrices for weno reconstructions
 IMPLICIT NONE
@@ -1475,7 +1557,7 @@ allocate(weff(1:IDEGFREE,1:IDEGFREE))
 i=iconsi
 
 
-
+weff=ZERO
 
 	IMAX=IELEM(N,I)%inumneighbours-1
 	INUM=IELEM(N,I)%inumneighbours
@@ -1617,14 +1699,14 @@ REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_X           !COORDINATES O
 REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Y           !COORDINATES OF EACH NODE IN X
 REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Z           !COORDINATES OF EACH NODE IN X
 REAL,allocatable,DIMENSION(:,:)::WEFF
-allocate(weff(1:IDEGFREE,1:IDEGFREE))
+allocate(weff(1:IDEGFREE2,1:IDEGFREE2))
 i=iconsi
 
 	IMAX=numneighbours2-1
 	INUM=numneighbours2
 	IDEG=iDEGFREE2
 	 INUMO=IORDER2
-	 
+	 weff=ZERO
 	
 	 iconsidered=i
 
