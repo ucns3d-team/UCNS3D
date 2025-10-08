@@ -170,14 +170,13 @@ Focus on pressure measurements at key stations:
 - r/R = 93% (pressure sensor location))
 
 <p align="center">
-<img width="912" height="811" src="results/psp_medium_Cp_rr_093.png">
+<img width="912" height="811" src="results/psp_medium_Cp_rr_093.PNG">
 </p>
 #- r/R = 99% (pressure sensor location)
 - r/R = 93% (pressure sensor location))
 
 <p align="center">
-<img width="912" height="811" src="results/psp_medium_Cp_rr_099
-.png">
+<img width="912" height="811" src="results/psp_medium_Cp_rr_099.PNG">
 </p>
 
 
@@ -190,7 +189,7 @@ Calculate and compare:
 - Blade loading distribution
 
 <p align="center">
-<img width="912" height="811" src="results/FoMxCt.png">
+<img width="912" height="811" src="results/FoMxCt.PNG">
 </p>
 
 ## 5. Validation Data
@@ -208,3 +207,4 @@ Compare results with experimental data from:
 3. Experimental validation datasets
 
 By following this tutorial, you should be able to set up and run a simulation of the PSP rotor using UCNS3D with the Multiple Reference Frame approach and periodic boundary conditions.
+
