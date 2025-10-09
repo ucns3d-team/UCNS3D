@@ -2492,30 +2492,14 @@ END IF
                             END DO
                         END IF
 
-                    !now temperature
-					GRADTEM(1:IELEM(N,I)%IDEGFREE)=ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:IELEM(N,I)%IDEGFREE)
+
+
+
+
+                    !now viscous gradients
+				  DO IEX=1,nof_Variables-1
 !
-					UGRADLOC = ZERO
-
-
-
-
-
-
-                UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),XXDER(1:IELEM(N,I)%IDEGFREE,ICD))
-                UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),YYDER(1:IELEM(N,I)%IDEGFREE,ICD))
-                 if (dimensiona.eq.3)then
-                UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),ZZDER(1:IELEM(N,I)%IDEGFREE,ICD))
-                end if
-
-
-					  ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,1,L,NGP) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
-
-
-                    !now velocities
-				  DO IEX=1,dimensiona
-!
-					GRADTEM(1:IELEM(N,I)%IDEGFREE)=ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(IEX,1:IELEM(N,I)%IDEGFREE)
+					GRADTEM(1:IELEM(N,I)%IDEGFREE)=ILOCAL_rECON5(ICONSIDERED)%gradf(IEX,1:IELEM(N,I)%IDEGFREE)
 !
 					 UGRADLOC = ZERO
 
@@ -2527,7 +2511,7 @@ END IF
                 end if
 
 
-					   ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,IEX+1,L,NGP) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
+					   ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,IEX,L,NGP) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
 
 
 
@@ -2564,10 +2548,10 @@ END IF
 
 				!MEAN FLOW GRADIENTS
 
-				ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,1,L,NGP) = ILOCAL_RECON3(I)%GRADs(dimensiona+1,1:dimensiona)
 
-				DO IEX=1,dimensiona
-				    ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,IEX+1,L,NGP) = ILOCAL_RECON3(I)%GRADs(IEX,1:dimensiona)
+
+				DO IEX=1,nof_Variables-1
+				    ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,IEX,L,NGP) = ILOCAL_RECON3(I)%GRADs(IEX,1:dimensiona)
 				END DO
 
 
@@ -2958,10 +2942,7 @@ ICONSIDERED=I
 						end if
 
 						do NGP=1,iqp
-							ILOCAL_RECON3(I)%ULEFTV(1:3,1,l,ngp) = ILOCAL_RECON3(I)%GRADs(4,1:3)
-								DO IEX=1,3
-									ILOCAL_RECON3(I)%ULEFTV(1:3,IEX+1,l,ngp) = ILOCAL_RECON3(I)%GRADs(IEX,1:3)
-								END DO
+							ILOCAL_RECON3(I)%ULEFTV(1:3,1:nof_Variables-1,l,ngp) = ILOCAL_RECON3(I)%GRADs(1:nof_Variables-1,1:3)
 						end do
 			end do
 
@@ -2988,10 +2969,8 @@ ICONSIDERED=I
 
 
 
-			ILOCAL_RECON3(I)%ULEFTV(1:2,1,l,ngp) = ILOCAL_RECON3(I)%GRADs(3,1:2)
-				DO IEX=1,2
-				    ILOCAL_RECON3(I)%ULEFTV(1:2,IEX+1,l,ngp) = ILOCAL_RECON3(I)%GRADs(IEX,1:2)
-				END DO
+			ILOCAL_RECON3(I)%ULEFTV(1:2,1:nof_Variables-1,l,ngp) = ILOCAL_RECON3(I)%GRADs(1:nof_Variables-1,1:2)
+
 				end do
 				end do
 

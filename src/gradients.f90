@@ -532,7 +532,7 @@ SOLS2=ZERO
 
 
 
-if (dimensiona.eq.3)then
+
 
 
 
@@ -542,17 +542,18 @@ if (dimensiona.eq.3)then
 		if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
 		MATRIX_1=ZERO;MATRIX_2=ZERO
 		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
 
-	       SOLS1(2:4)=LEFTV(2:4)
-	       SOLS1(1)=LEFTV(5)/(LEFTV(1)*R_gas)
+	       SOLS1(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
 
                DO IQ=1,imax
                 LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:4)=LEFTV(2:4)
-	       SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
-  	        MATRIX_1(iq,1:nof_Variables)=((SOLS2(1:nof_Variables)-SOLS1(1:nof_Variables)))
+
+		CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
+	       SOLS2(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
+
+
+  	        MATRIX_1(iq,1:nof_Variables-1)=((SOLS2(1:nof_Variables-1)-SOLS1(1:nof_Variables-1)))
 
 		END DO
 
@@ -564,22 +565,22 @@ if (dimensiona.eq.3)then
 ! imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
 
 
-		SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables))
+		SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables-1)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables-1))
 
 
-		DO VAR2=2,4
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
+		DO VAR2=1,nof_Variables-1
+		ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
 		END DO
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
+
+
 
 		ELSE
 
 		MATRIX_1=ZERO;MATRIX_2=ZERO
 		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
 
-	       SOLS1(2:4)=LEFTV(2:4)
-	       SOLS1(1)=LEFTV(5)/(LEFTV(1)*R_gas)
+	       SOLS1(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
 
                DO IQ=1,imax
 		  IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
@@ -588,10 +589,13 @@ if (dimensiona.eq.3)then
 		  else
 		  LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
 		  end if
-		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:4)=LEFTV(2:4)
-	       SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
-  	        MATRIX_1(iq,1:nof_Variables)=((SOLS2(1:nof_Variables)-SOLS1(1:nof_Variables)))
+
+
+		  CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
+	       SOLS2(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
+
+
+  	        MATRIX_1(iq,1:nof_Variables-1)=((SOLS2(1:nof_Variables-1)-SOLS1(1:nof_Variables-1)))
 		END DO
 
 
@@ -601,99 +605,19 @@ if (dimensiona.eq.3)then
 !          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables),&
 ! imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
 
-			SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables))
+			SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables-1)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables-1))
 
 
-		DO VAR2=2,4
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
+
+
+		DO VAR2=1,nof_Variables-1
+		ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
 		END DO
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
-
-
-		END IF
-
-
-		else
-
-		    ll=1
-
-
-		if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
-		MATRIX_1=ZERO;MATRIX_2=ZERO
-		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-
-	       SOLS1(2:3)=LEFTV(2:3)
-	       SOLS1(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-
-               DO IQ=1,imax
-                LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:3)=LEFTV(2:3)
-	       SOLS2(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-  	        MATRIX_1(iq,1:3)=((SOLS2(1:3)-SOLS1(1:3)))
-
-		END DO
-
-
-
-!             CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
-!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables),&
-! imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
-
-
-			SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables))
-
-
-		DO VAR2=2,3
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
-		END DO
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
-
-		ELSE
-
-		MATRIX_1=ZERO;MATRIX_2=ZERO
-		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-
-	       SOLS1(2:3)=LEFTV(2:3)
-	       SOLS1(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-
-               DO IQ=1,imax
-		  IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-		  LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-
-		  else
-		  LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
-		  end if
-		  CALL cons2prim(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:3)=LEFTV(2:3)
-	       SOLS2(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-  	        MATRIX_1(iq,1:3)=((SOLS2(1:3)-SOLS1(1:3)))
-		END DO
-
-
-!             CALL DGEMM('N','N',IELEM(N,I)%IDEGFREE,nof_variables,imax,&
-!          ALPHA,ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),&
-!          IELEM(N,I)%IDEGFREE,MATRIX_1(1:imax,1:nof_variables),&
-! imax,BETA,SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables),IELEM(N,I)%IDEGFREE)
-
-		SOL_M(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=MATMUL(ILOCAL_RECON3(I)%invmat_stencilt(1:IELEM(N,I)%IDEGFREE,1:imax,LL),MATRIX_1(1:imax,1:nof_variables))
-
-
-		DO VAR2=2,3
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,VAR2)
-		END DO
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=SOL_M(1:NUMBER_OF_DOG,1)
-
 
 		END IF
 
 
 
-
-		end if
 
 		deallocate(MATRIX_1,MATRIX_2)	
 		deallocate(SOL_M)	
@@ -1123,9 +1047,9 @@ if (dimensiona.eq.3)then
 
 
 	    leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-	    call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(5)=leftv(5)/(leftv(1)*R_gas)
+	    call CONS2div(N,leftv,MP_PINFl,gammal)
+	  SOLS1(1:nof_variables-1)=leftv(1:nof_variables-1)
+
 
 DO J=1,IELEM(N,I)%IFCA
 			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
@@ -1135,25 +1059,24 @@ DO J=1,IELEM(N,I)%IFCA
 				NORMAL_ALL(3)=(COS(ANGLE2))
 
 			leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
-			call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables)=leftv(1:nof_variables)
-			sols2(5)=leftv(5)/(leftv(1)*R_gas)
- 			DO K=1,3
+			call CONS2div(N,leftv,MP_PINFl,gammal)
+			SOLS2(1:nof_variables-1)=leftv(1:nof_variables-1)
+
+ 			DO K=1,dimensiona
  			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
  			END DO
 END DO
 
-			DO K=1,3
-			ILOCAL_RECON3(I)%GRADs(1:3,k)=sOLS_F(2:4,K)
-			ILOCAL_RECON3(I)%GRADs(4,k)=sOLS_F(5,K)
+			DO K=1,dimensiona
+			ILOCAL_RECON3(I)%GRADs(1:nof_Variables-1,k)=sOLS_F(1:nof_Variables-1,K)
 			END DO
 
 eLSE
 
 				    leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-	    call cons2prim(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(4)=leftv(4)/(leftv(1)*R_gas)
+	    call cons2div(N,leftv,MP_PINFl,gammal)
+	  SOLS1(1:nof_variables-1)=leftv(1:nof_variables-1)
+
 
 DO J=1,IELEM(N,I)%IFCA
 			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
@@ -1162,18 +1085,17 @@ DO J=1,IELEM(N,I)%IFCA
 				NORMAL_ALL(2)=ANGLE2
 
 			leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
-			call cons2prim(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables)=leftv(1:nof_variables)
-			sols2(4)=leftv(4)/(leftv(1)*R_gas)
+			call cons2div(N,leftv,MP_PINFl,gammal)
+			SOLS2(1:nof_variables-1)=leftv(1:nof_variables-1)
+
 			DO K=1,2
 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 
 			END DO
 END DO
 
-			DO K=1,2
-			ILOCAL_RECON3(I)%GRADs(1:2,k)=sOLS_F(2:3,K)
-			ILOCAL_RECON3(I)%GRADs(3,k)=sOLS_F(4,K)
+			DO K=1,dimensiona
+			ILOCAL_RECON3(I)%GRADs(1:nof_Variables-1,k)=sOLS_F(1:nof_Variables-1,K)
 			END DO
 
 
@@ -1199,7 +1121,7 @@ REAL,allocatable,DIMENSION(:,:)::MATRIX_1
 REAL,allocatable,DIMENSION(:,:)::MATRIX_2
 REAL,allocatable,DIMENSION(:,:)::SOL_M
 REAL,DIMENSION(1:nof_variables)::MATRIX_3
-INTEGER::I,VAR2,ii,k0,g0,ttk,ivvm,iq,lq
+INTEGER::I,VAR2,ii,k0,g0,ttk,ivvm,iq,lq,IRG
 real::attt
 integer::ll,imax
 real::MP_PINFl,gammal
@@ -1218,7 +1140,7 @@ IMAX=NUMBER_OF_NEI-1
 
 
 
-IF (dimensiona.EQ.3)THEN
+
 
 
 ll=1
@@ -1232,10 +1154,10 @@ SOLS2=ZERO
 
 	     MATRIX_1=ZERO;MATRIX_2=ZERO;sol_m=zero;
 		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
 
-	       SOLS1(2:4)=LEFTV(2:4)
-	       SOLS1(1)=LEFTV(5)/(leftv(1)*R_gas)
+	       SOLS1(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
+! 	       SOLS1(1)=LEFTV(5)/(leftv(1)*R_gas)
 
 	      DO IQ=1,imax
 	      if (ilocal_Recon3(i)%local.eq.1)then
@@ -1248,24 +1170,31 @@ SOLS2=ZERO
 	    END IF
 	      end if
 
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:4)=LEFTV(2:4)
-	       SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
+		 CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
+	       SOLS2(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
+! 	       SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
   	        MATRIX_1(1:nof_Variables-1,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:nof_Variables-1)-SOLS1(1:nof_Variables-1)))
 
-  	        MATRIX_1(2:4,IQ)=MATRIX_1(2:4,IQ)+((SOLS1(2:4)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
+  	        !VELOCITY GRADIENTS
+  	        MATRIX_1(1:dimensiona,IQ)=MATRIX_1(1:dimensiona,IQ)+((SOLS1(1:dimensiona)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
 
-  	          if (thermal.eq.1)then
-  	        MATRIX_1(1,IQ)=MATRIX_1(1,IQ)+((SOLs1(1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))-(((wall_temp)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))
-  	        end if
+  	        !TEMPERATURE NOW CHECK
+
+			IF (THERMAL.EQ.1)THEN
+  	        MATRIX_1(dimensiona+1:NOF_VARIABLES-NOF_SPECIES-1,IQ)=MATRIX_1(dimensiona+1:NOF_VARIABLES-NOF_SPECIES-1,IQ)+((SOLs1(dimensiona+1:NOF_VARIABLES-NOF_SPECIES-1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,k0))/ILOCAL_RECON3(I)%WALLCOEFF(k0))-(((wall_temp)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,k0))/ILOCAL_RECON3(I)%WALLCOEFF(k0))
+
+  	        END IF
+
+
 
 		END DO
-		matrix_3(1:nof_Variables-1)=-sols1(1:nof_Variables-1)
-		matrix_3(1)=zero
+		matrix_3(:)=zero
+		matrix_3(1:dimensiona)=-sols1(1:dimensiona)
 
-		DO VAR2=1,nof_variables-1
+
+		DO VAR2=1,nof_Variables-1
 		  MATRIX_2=ZERO
-		  IF (VAR2.gt.1)THEN
+		  IF (VAR2.le.dimensiona)THEN
 		  DO IQ=1,imax
 
 		      do lq=1,NUMBER_OF_DOG-1
@@ -1273,191 +1202,129 @@ SOLS2=ZERO
 		      end do
 
 		  END DO
-		  ELSE
+		  end if
+		  IF ((VAR2.gt.dimensiona).and.(var2.le.nof_Variables-nof_species-1))then
 		  DO IQ=1,imax
 		     do lq=1,NUMBER_OF_DOG-1
-		      MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%TEMPSQ(IQ,LQ)
+		     if (thermal.eq.1)then
+		      MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%VELLSQ(IQ,LQ)
+			else
+			MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%TEMPSQ(IQ,LQ)
+			end if
 		      end do
 		  END DO
 		  end if
-		if (var2.eq.1)then
-		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%TEMPSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-		else
-		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
+		   IF (VAR2.gt.nof_Variables-nof_species-1)then
+		   DO IQ=1,imax
+		     do lq=1,NUMBER_OF_DOG-1
+			MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%TEMPSQ(IQ,LQ)
+		      end do
+		  END DO
+		   end if
 
+		IF (VAR2.le.dimensiona)THEN
+		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
+		end if
+		IF ((VAR2.gt.dimensiona).and.(var2.le.nof_Variables-nof_species-1))then
+		if (thermal.eq.1)then
+		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
+		else
+		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%TEMPSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
+		end if
+		end if
+
+		IF (VAR2.gt.nof_Variables-nof_species-1)then
+		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%TEMPSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
 		end if
 
 	     END DO
-		DO VAR2=2,4
 
+		DO VAR2=1,NOF_VARIABLES-1
 
-		 ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,1:IDEGFREE)=-TOLBIG
+		 IF (VAR2.le.dimensiona)THEN
+		 ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,1:IDEGFREE)=-TOLBIG
 		    IVVM=0
 		    DO TTK=1,NUMBER_OF_DOG
 				    IF (TTK.EQ.K0) CYCLE
 					  IVVM=IVVM+1
-					    ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,TTK)=SOL_M(IVVM,VAR2)
+					    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)=SOL_M(IVVM,VAR2)
 		  END DO
 		  ATTT=ZERO
 		  ATTT=-SOLS1(VAR2)
 			  DO TTK=1,NUMBER_OF_DOG
 				    IF (TTK.NE.K0) &
-				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,TTK)*&
+				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)*&
 						    ILOCAL_RECON3(I)%WALLCOEFF(TTK)
 			  END DO
 			    ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFF(K0)
-			    ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(VAR2-1,K0)=ATTT
-
-		END DO
+			    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,K0)=ATTT
 
 
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=-TOLBIG
-		    IVVM=0
-		    DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.EQ.G0) CYCLE
-					  IVVM=IVVM+1
-					    ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)=SOL_M(IVVM,1)
-		    END DO
-		    ATTT=ZERO
-		    if (thermal.eq.1)then
-		    ATTT=WALL_TEMP-SOLS1(1)
-		    END IF
+		END IF
 
-
-			  DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.NE.G0) &
-				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)*&
-						    ILOCAL_RECON3(I)%WALLCOEFG(TTK)
-			  END DO
-			    ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
-			    ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(G0)=ATTT
-
-
-	eLSE	!2D
-
-	I=ICONSIDERED
-SOLS1=ZERO;
-SOLS2=ZERO
-ll=1
-
-	    k0=ilocal_recon3(i)%k0
-	    g0=ilocal_recon3(i)%g0
-
-
-	     MATRIX_1=ZERO;MATRIX_2=ZERO;sol_m=zero;
-		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-
-	       SOLS1(2:3)=LEFTV(2:3)
-	       SOLS1(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-
-
-
-
-
-	      DO IQ=1,imax
-				if (ilocal_Recon3(i)%local.eq.1)then
-				LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-				else
-						IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-						LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-						else
-						LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
-						END IF
-				end if
-
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-	       SOLS2(2:3)=LEFTV(2:3)
-	       SOLS2(1)=LEFTV(4)/(LEFTV(1)*R_gas)
-  	        MATRIX_1(1:3,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:3)-SOLS1(1:3)))
-  	        MATRIX_1(2:3,IQ)=MATRIX_1(2:3,IQ)+((SOLs1(2:3)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,K0))/ILOCAL_RECON3(I)%WALLCOEFF(K0))
-
-  	        if (thermal.eq.1)then
-  	        MATRIX_1(1,IQ)=MATRIX_1(1,IQ)+((SOLs1(1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))-(((wall_temp-sols1(1))*ILOCAL_RECON3(I)%STENCILS(LL,IQ,g0))/ILOCAL_RECON3(I)%WALLCOEFg(g0))
-  	        end if
-
-
-		END DO
-		matrix_3(1:3)=-sols1(1:3)
-		matrix_3(1)=zero
-
-		DO VAR2=1,nof_variables-1
-		  MATRIX_2=ZERO
-		  IF (VAR2.gt.1)THEN
-		  DO IQ=1,imax
-
-		      do lq=1,NUMBER_OF_DOG-1
-		      MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(var2,IQ)*ILOCAL_RECON3(I)%VELLSQ(IQ,lq)
-		      end do
-
-		  END DO
-		  ELSE
-		  DO IQ=1,imax
-		      do lq=1,NUMBER_OF_DOG-1
-		      MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(var2,IQ)*ILOCAL_RECON3(I)%tempsq(IQ,lq)
-		      end do
-		  END DO
-		  end if
-		if (var2.eq.1)then
-		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%TEMPSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-		else
-		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
-
-		end if
-
-	     END DO
-		DO VAR2=2,3
-
-
-		ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,1:IDEGFREE)=-tolbig
+		IF ((VAR2.gt.dimensiona).and.(var2.le.nof_Variables-nof_species-1))then
+		if (thermal.eq.1)then
+		ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,1:IDEGFREE)=-TOLBIG
 		    IVVM=0
 		    DO TTK=1,NUMBER_OF_DOG
 				    IF (TTK.EQ.K0) CYCLE
 					  IVVM=IVVM+1
-					    ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,TTK)=SOL_M(ivvm,VAR2)
+					    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)=SOL_M(IVVM,VAR2)
 		  END DO
-		  ATTT=zero
-		  ATTT=-SOLs1(var2)
+		  ATTT=ZERO
+		  ATTT=WALL_TEMP-SOLS1(VAR2)
 			  DO TTK=1,NUMBER_OF_DOG
 				    IF (TTK.NE.K0) &
-				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,TTK)*&
+				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)*&
 						    ILOCAL_RECON3(I)%WALLCOEFF(TTK)
 			  END DO
 			    ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFF(K0)
-			    ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(var2-1,K0)=ATTT
+			    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,K0)=ATTT
 
-
-
-
-
-
-
-
-		END DO
-
-		ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:NUMBER_OF_DOG)=-tolbig
-
-		    IVVM=0
+		ELSE
+		IVVM=0
 		    DO TTK=1,NUMBER_OF_DOG
 				    IF (TTK.EQ.G0) CYCLE
 					  IVVM=IVVM+1
-					    ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)=SOL_M(ivvm,1)
+					    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)=SOL_M(IVVM,VAR2)
 		    END DO
-		    ATTT=zero
-		    if (thermal.eq.1)then
-		    ATTT=WALL_TEMP-SOLS1(1)
-		    END IF
+		    ATTT=ZERO
+
 			  DO TTK=1,NUMBER_OF_DOG
 				    IF (TTK.NE.G0) &
-				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(TTK)*&
+				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)*&
+						    ILOCAL_RECON3(I)%WALLCOEFG(VAR2,TTK)
+			  END DO
+			    ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
+			    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,G0)=ATTT
+		END IF
+		END IF
+		IF (VAR2.gt.nof_Variables-nof_species-1)then
+		IVVM=0
+		    DO TTK=1,NUMBER_OF_DOG
+				    IF (TTK.EQ.G0) CYCLE
+					  IVVM=IVVM+1
+					    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)=SOL_M(IVVM,VAR2)
+		    END DO
+		    ATTT=ZERO
+
+			  DO TTK=1,NUMBER_OF_DOG
+				    IF (TTK.NE.G0) &
+				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)*&
 						    ILOCAL_RECON3(I)%WALLCOEFG(TTK)
 			  END DO
 			    ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
-			    ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(G0)=ATTT
+			    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,G0)=ATTT
+
+
+		END IF
+		END DO
 
 
 
-	END IF
+
+
+
 
 
 	deallocate(matrix_1,matrix_2)
@@ -1866,9 +1733,8 @@ OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
 
 
 	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-	    call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(5)=leftv(5)/(leftv(1)*R_gas)
+	    call CONS2div(N,leftv,MP_PINFl,gammal)
+	  SOLS1(1:nof_variables-1)=leftv(1:nof_variables-1)
 
 
 	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
@@ -1959,20 +1825,16 @@ DO J=1,IELEM(N,I)%IFCA
 			END IF
 
 			  leftv(1:nof_variables)=sols2(1:nof_variables)
-			call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables)=leftv(1:nof_variables)
-			sols2(5)=leftv(5)/(leftv(1)*R_gas)
+			call CONS2div(N,leftv,MP_PINFl,gammal)
+			SOLS2(1:nof_variables-1)=leftv(1:nof_variables-1)
+
 			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
-
-				sols2(5)=wall_Temp
-				ELSE
-	
-				sols2(5)=leftv(5)/(leftv(1)*R_gas)
-				END IF
+				sols2(dimensiona+1:NOF_VARIABLES-NOF_SPECIES-1)=wall_Temp
+			END IF
 
 
 
-			DO K=1,3
+			DO K=1,dimensiona
 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 
 			END DO
@@ -1980,9 +1842,8 @@ END DO
 
 
 
-			DO K=1,3
-			ILOCAL_RECON3(I)%GRADs(1:3,k)=sOLS_F(2:4,K)
-			ILOCAL_RECON3(I)%GRADs(4,k)=sOLS_F(5,K)
+			DO K=1,dimensiona
+			ILOCAL_RECON3(I)%GRADs(1:nof_Variables-1,k)=sOLS_F(1:nof_Variables-1,K)
 			END DO
 
 
@@ -1995,9 +1856,8 @@ OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
 
 
 	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-	    call cons2prim(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(4)=leftv(4)/(leftv(1)*R_gas)
+	    call CONS2div(N,leftv,MP_PINFl,gammal)
+			SOLS1(1:nof_variables-1)=leftv(1:nof_variables-1)
 
 
 	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
@@ -2067,19 +1927,15 @@ DO J=1,IELEM(N,I)%IFCA
 			END IF
 
 			  leftv(1:nof_variables)=sols2(1:nof_variables)
-			call cons2prim(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables)=leftv(1:nof_variables)
+			call CONS2div(N,leftv,MP_PINFl,gammal)
+			SOLS2(1:nof_variables-1)=leftv(1:nof_variables-1)
 
 			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
-
-			sols2(4)=wall_Temp
-			ELSE
-
-			sols2(4)=leftv(4)/(leftv(1)*R_gas)
+				sols2(dimensiona+1:NOF_VARIABLES-NOF_SPECIES-1)=wall_Temp
 			END IF
 
 
-			DO K=1,2
+			DO K=1,dimensiona
 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 
 			END DO
@@ -2087,9 +1943,8 @@ END DO
 
 
 
-			DO K=1,2
-			ILOCAL_RECON3(I)%GRADs(1:2,k)=sOLS_F(2:3,K)
-			ILOCAL_RECON3(I)%GRADs(3,k)=sOLS_F(4,K)
+			DO K=1,dimensiona
+			ILOCAL_RECON3(I)%GRADs(1:nof_Variables-1,k)=sOLS_F(1:nof_Variables-1,K)
 			END DO
 
 	END IF
@@ -2118,24 +1973,15 @@ REAL::OOV2,titj
 INTEGER::I,J,K,L,IEX
 i=iconsidered
 
-	IF (DIMENSIONA.EQ.3)THEN
-	DO IEX=1,3
-				ILOCAL_RECON3(I)%GRADS(IEX,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,IEX+1,1,1)
+
+	DO IEX=1,nof_Variables-1
+				ILOCAL_RECON3(I)%GRADS(IEX,1:dimensiona)=ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,IEX,1,1)
 
 
 
 	END DO
 
-			       ILOCAL_RECON3(I)%GRADS(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,1,1)
 
-
-	eLSE
-	DO IEX=1,2
-				ILOCAL_RECON3(I)%GRADS(IEX,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,IEX+1,1,1)
-	END DO
-			       ILOCAL_RECON3(I)%GRADS(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,1,1)
-
-	END IF
 
 
 END SUBROUTINE COMPUTE_GRADIENTS_CENTER
@@ -2179,9 +2025,9 @@ OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
 
 
 	  leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
-	    call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(5)=leftv(5)/(leftv(1)*R_gas)
+	    call CONS2div(N,leftv,MP_PINFl,gammal)
+	  SOLS1(1:nof_variables-1)=leftv(1:nof_variables-1)
+
 
 
 	  leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
@@ -2266,19 +2112,17 @@ DO J=1,IELEM(N,I)%IFCA
 			END IF
 
 			  leftv(1:nof_variables)=sols2(1:nof_variables)
-			call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables)=leftv(1:nof_variables)
+			call CONS2div(N,leftv,MP_PINFl,gammal)
+			SOLS2(1:nof_variables-1)=leftv(1:nof_variables-1)
 
 
 			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
-
-			sols2(5)=wall_temp
-			ELSE
-
+				sols2(dimensiona+1:NOF_VARIABLES-NOF_SPECIES-1)=wall_Temp
+			END IF
 
 
-			sols2(5)=leftv(5)/(leftv(1)*R_gas)
-			end if
+
+
 
 
 
@@ -2291,10 +2135,11 @@ END DO
 
 
 
-			DO K=1,3
-			ILOCAL_RECON3(I)%GRADsAV(1:3,k)=sOLS_F(2:4,K)
-			ILOCAL_RECON3(I)%GRADsAV(4,k)=sOLS_F(5,K)
+			DO K=1,dimensiona
+			ILOCAL_RECON3(I)%GRADsav(1:nof_Variables-1,k)=sOLS_F(1:nof_Variables-1,K)
 			END DO
+
+
 
 
 
@@ -2328,9 +2173,9 @@ OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
 
 
 	    leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
-	    call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+	    call CONS2div(N,leftv,MP_PINFl,gammal)
 	  SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	  sols1(5)=leftv(5)/(leftv(1)*R_gas)
+
 
 DO J=1,IELEM(N,I)%IFCA
 			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
@@ -2340,9 +2185,9 @@ DO J=1,IELEM(N,I)%IFCA
 				NORMAL_ALL(3)=(COS(ANGLE2))
 
 			leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(IND1,1:nof_variables)
-			call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+			call CONS2div(N,leftv,MP_PINFl,gammal)
 			SOLS2(1:nof_variables)=leftv(1:nof_variables)
-			sols2(5)=leftv(5)/(leftv(1)*R_gas) 
+
 
 
 
@@ -2355,9 +2200,8 @@ DO J=1,IELEM(N,I)%IFCA
 			END DO
 END DO
 
-			DO K=1,3
-			ILOCAL_RECON3(I)%GRADsAV(1:3,k)=sOLS_F(2:4,K)
-			ILOCAL_RECON3(I)%GRADsAV(4,k)=sOLS_F(5,K)
+			DO K=1,dimensiona
+			ILOCAL_RECON3(I)%GRADsav(1:nof_Variables-1,k)=sOLS_F(1:nof_Variables-1,K)
 			END DO
 
 

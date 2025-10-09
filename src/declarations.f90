@@ -174,10 +174,16 @@ REAL,ALLOCATABLE,DIMENSION(:)::SOURCE_R !SOURCE TERM
 ! REAL,DIMENSION(:,:)::RG_DS !DIFFUSION COEFF (2,NOSPECIS)
 ! REAL,DIMENSION(:,:)::RG_HS !species enthalpy (2,NOSPECIS)
 !-------------------------------------------------------------------------!
-
-
-
-
+!----------------MULTIPHYSICS-----------------------!
+!----------------Diffusion Coefficients-------------!
+!CONSTANTS READ FROM FILE
+REAL,DIMENSION(1:NOF_SPECIEs):: MP_M
+!---REAL::MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix	!these are local!
+! JANAF coefficients for Cp/R: Cp = R*(a1 + a2*T + a3*T^2 + a4*T^3 + a5*T^4)
+REAL,DIMENSION(1:NOF_SPECIES,1:2,1:5) :: MP_JANAF
+! Brokaw model constants: mu = A*T^B + C
+REAL,DIMENSION(1:NOF_SPECIEs):: MP_BROK_A, MP_BROK_B, MP_BROK_C
+REAL,DIMENSION(1:NOF_SPECIES):: MP_Tlow_in, MP_Thigh_in,MP_Tmid_in
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.2.   INTEGER ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -487,7 +493,7 @@ TYPE LOCAL_RECON3
 	REAL,ALLOCATABLE,DIMENSION(:)::GRADIENTSTEMP !UNLIMITED GRADIENTS FOR TEMPERATURE
 	REAL,ALLOCATABLE,DIMENSION(:,:)::GRADIENTSTEMP_wall !UNLIMITED GRADIENTS FOR TEMPERATURE FOR WALL CELLS
 	REAL,ALLOCATABLE,DIMENSION(:,:,:)::CGRADIENTSTEMP !UNLIMITED GRADIENTS FOR TEMPERATURE FOR WALL CELLS
-	REAL,ALLOCATABLE,DIMENSION(:,:)::VELOCITYDOF !UNLIMITED GRADIENTS FOR VELOCITY
+	REAL,ALLOCATABLE,DIMENSION(:,:)::gradf !UNLIMITED GRADIENTS FOR VELOCITY
 	REAL,ALLOCATABLE,DIMENSION(:,:,:)::VELOCITYDOF_wall !UNLIMITED GRADIENTS FOR VELOCITY FOR WALL CELLS
 	REAL,ALLOCATABLE,DIMENSION(:,:)::INVCCJAC  !INVERSE JACOBIAN
 	REAL,ALLOCATABLE,DIMENSION(:,:)::INVCTJAC  !INVERSE JACOBIAN TRANSPOSED

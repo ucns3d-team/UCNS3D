@@ -82,6 +82,369 @@ ILOCAL_RECON3(ICONSIDERED)%MRF=ROTFRAME_ON
 end subroutine MRFSWITCH
 
 
+
+
+SUBROUTINE MULTISPECIES_MIXTURES(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal)
+  IMPLICIT NONE
+  REAL, INTENT(INOUT)  :: MP_TEMP    ! Temperature in Kelvin
+  REAL, INTENT(IN),DIMENSION(1:NOF_variables)  :: LEFTV      ! Vector of conserved variables
+  REAL, INTENT(OUT) :: MP_mu_mix  ! Mixture viscosity [Pa.s]
+  REAL, INTENT(OUT) :: MP_k_mix   ! Mixture thermal conductivity [W/m.K]
+  REAL, INTENT(OUT) :: MP_Cp_mix  ! Mixture Cp [J/mol.K]
+  REAL, INTENT(OUT) :: GAMMAL     ! total
+  REAL::VF_SUM
+  integer::i,j,k
+  ! Constants
+  REAL,DIMENSION(1:NOF_SPECIEs) :: MP_VISCL,MP_DENOM
+  REAL,DIMENSION(1:NOF_SPECIES) ::MP_VF_FRACTION
+  REAL,DIMENSION(1:NOF_SPECIEs) :: MP_Cp
+  REAL,DIMENSION(1:NOF_SPECIEs) :: ML_LAML,MP_DENOL
+  REAL,DIMENSION(1:NOF_SPECIES,1:NOF_SPECIES) :: MP_phi
+
+
+
+
+
+  ! Molar masses
+  MP_M(1)  = 2.016E-3    ! kg/mol
+  MP_M(2)  = 28.97E-3    ! kg/mol
+
+  ! Mole fraction of EACH SPECIES
+  VF_SUM=ZERO
+  DO I=1,NOF_SPECIES-1
+      MP_VF_FRACTION(I)=LEFTV(NOF_VARIABLES-NOF_SPECIES+I)
+      VF_SUM=VF_SUM+MP_VF_FRACTION(I)
+  END DO
+  MP_VF_FRACTION(NOF_SPECIES)=1.0D0-VF_SUM  !THE LAST SPECIES
+
+
+  !NOW GET THE TEMPERATURE
+
+  CALL GET_TEMP_JANAF(LEFTV, MP_TEMP)
+
+
+
+
+  ! --- Compute individual Cp values [J/mol.K]
+  DO I=1,NOF_SPECIES
+   MP_Cp(I)=R_GAS*(MP_JANAF(I,j,1) + MP_JANAF(I,j,2)*mp_Temp + MP_JANAF(I,j,3)*mp_Temp**2 + MP_JANAF(I,j,4)*mp_Temp**3 + MP_JANAF(I,j,5)*mp_Temp**4)
+  END DO
+  ! --- Compute individual viscosities [Pa.s]
+  DO I=1,NOF_SPECIES
+    MP_VISCL(I)=MP_BROK_A(I) * mp_Temp**MP_BROK_B(I) + MP_BROK_C(I)
+  END DO
+
+  ! --- Compute interaction terms
+  DO i = 1, NOF_SPECIES
+    DO j = 1, NOF_SPECIES
+      IF (i == j) THEN
+        MP_phi(i,j) = 1.0D0
+      ELSE
+        MP_phi(i,j) = (1.0D0 + SQRT(MP_VISCL(i)/MP_VISCL(j)) * (MP_M(j)/MP_M(i))**0.25D0)**2 / &
+                   SQRT(8.0D0 * (1.0D0 + MP_M(i)/MP_M(j)))
+      END IF
+    END DO
+  END DO
+
+  ! Wilke’s mixture viscosity
+  MP_mu_mix = 0.0D0
+  DO i = 1, NOF_SPECIES
+    MP_DENOM(i) = 0.0D0
+    DO j = 1, NOF_SPECIES
+      MP_DENOM(i) = MP_DENOM(i) + MP_VF_FRACTION(j) * MP_phi(i,j)
+    END DO
+    MP_mu_mix = MP_mu_mix + MP_VF_FRACTION(i) * MP_VISCL(i) / MP_DENOM(i)
+  END DO
+
+  ! Compute thermal conductivity via Eucken
+  DO i = 1, NOF_SPECIES
+    ML_LAML(i) = (MP_Cp(i) + 1.25D0 * R_GAS) * MP_VISCL(i)
+  END DO
+
+
+  MP_k_mix = 0.0D0
+  DO i = 1, nspecies
+    MP_DENOL(i) = 0.0D0
+    DO j = 1, nspecies
+      MP_DENOL(i) = MP_DENOL(i) + MP_VF_FRACTION(j) * MP_phi(i,j)
+    END DO
+    MP_k_mix = MP_k_mix + MP_VF_FRACTION(i) * ML_LAML(i) / MP_DENOL(i)
+  END DO
+
+  ! Mixture Cp
+  MP_Cp_mix = 0.0D0
+  DO i = 1, nspecies
+    MP_Cp_mix = MP_Cp_mix + MP_VF_FRACTION(i) * MP_Cp(i)
+  END DO
+
+  !  Mixture gamma
+  gammaL = MP_Cp_mix / (MP_Cp_mix - R_GAS)
+
+
+
+
+END SUBROUTINE MULTISPECIES_MIXTURES
+
+
+
+
+  subroutine normalize_MF(MPC_MP)
+    implicit none
+    !! Ensure mole fractions sum to 1 (robust to roundoff)
+    real,DIMENSION(1:NOF_SPECIES),intent(inout) :: MPC_MP
+    real:: s
+    integer :: k
+    s = ZERO
+    do k=1,NOF_SPECIES
+    s = s + max(ZERO, MPC_MP(k))
+    end do
+    if (s > ZERO) then
+      do k=1,NOF_SPECIES
+      MPC_MP(k) = max(ZERO, MPC_MP(k))/s
+      end do
+    else
+      do k=1,NOF_SPECIES
+      MPC_MP(k) = ZERO
+      end do
+    end if
+  end subroutine normalize_MF
+
+  subroutine MOLEF_to_MASSF(MPC_MP,MPC_MASS)
+    implicit none
+    !! Convert mole fractions to mass fractions (for mass-specific energy)
+    real,DIMENSION(1:NOF_SPECIES), intent(in)  :: MPC_MP
+    real,DIMENSION(1:NOF_SPECIES), intent(out) :: MPC_MASS
+    real :: denom
+    integer :: s
+    denom = ZERO
+    do s=1,NOF_SPECIES
+      denom = denom + MPC_MP(s)*MP_M(s)
+    end do
+    if (denom <= zero) then
+      MPC_MASS = zero
+    else
+      do s=1,NOF_SPECIES
+        MPC_MASS(s) = MPC_MP(s)*MP_M(s) / denom
+      end do
+    end if
+  end subroutine MOLEF_to_MASSF
+
+   subroutine species_cp_h_sensible(mp_Temp, is, mp_cpl, mp_hl)
+    implicit none
+    !! JANAF 5-coeffs, sensible enthalpy with h(298.15K)=0 for each species
+    !!   cp/R = a1 + a2*T + a3*T^2 + a4*T^3 + a5*T^-2
+    !!    h/R = a1*T + a2*T^2/2 + a3*T^3/3 + a4*T^4/4 - a5/T  (then shifted so h(298.15)=0)
+    real, intent(in)  :: mp_Temp
+    integer,  intent(in)  :: is
+    real, intent(out) :: mp_cpl, mp_hl
+    integer :: r
+    real:: Rs, mp_tt,mp_t2,mp_t3, mp_invT, mp_invT2, mp_a1,mp_a2,mp_a3,mp_a4,mp_a5, mp_href, mp_Tref
+
+    Rs = R_Gas / MP_M(is)
+    r  = merge(1,2, mp_Temp <= MP_Tmid_in(is))
+    a1=MP_JANAF(1,r,is); a2=MP_JANAF(2,r,is); a3=MP_JANAF(3,r,is); a4=MP_JANAF(4,r,is); a5=MP_JANAF(5,r,is)
+
+     mp_tt=mp_temp; mp_t2=mp_tt*mp_tt; mp_t3=mp_t2*mp_tt; mp_invT=1.0_dp/mp_tt; mp_invT2=mp_invT*mp_invT
+
+    mp_cpl = Rs * ( a1 + a2*t + a3*t2 + a4*t3 + a5*invT2 )
+
+    ! raw enthalpy
+    mp_hl  = Rs * ( a1*mp_tt + 0.5_dp*a2*mp_t2 + (a3/3.0_dp)*mp_t3 + 0.25_dp*a4*mp_t2*mp_t2 - a5*mp_invT )
+
+    !only for sensible enthalpies
+    ! subtract reference to exclude formation/constant offsets: h(298.15 K) = 0
+    mp_Tref = 298.15d0
+    mp_href = Rs * ( a1*mp_Tref + 0.5_d0*a2*mp_Tref**2 + (a3/3.0d0)*mp_Tref**3 + 0.25d0*a4*mp_Tref**4 - a5/mp_Tref )
+    mp_hl = mp_hl - mp_href
+  end subroutine species_cp_h_sensible
+
+  pure subroutine mixture_props(MP_TEMP, MP_M, MP_RMIX, MP_cp_mix, MP_cv_mix, MP_e_mix)
+  implicit none
+    !! Mixture properties with mass-weighted energies; energies are sensible
+    real, intent(in)  :: MP_TEMP
+    real,DIMENSION(1:NOF_SPECIES), intent(in)  :: MP_M
+    real, intent(out) :: MP_Rmix, MP_cp_mix, MP_cv_mix, MP_e_mix
+    real, DIMENSION(1:NOF_SPECIES) :: MPC_MASS(NS), MP_cp_s, MP_h_s
+    integer :: s
+    call MOLEF_to_MASSF(MP_M,MPC_MASS)
+    MP_Rmix  = ZERO
+    MP_cp_mix= ZERO
+    MP_e_mix = ZERO
+    do s=1,NOF_SPECIES
+      if (MPC_MASS(s) <= ZERO) cycle
+      MP_Rmix = MP_Rmix + MPC_MASS(s) * (R_GAS/MP_M(s))
+      call species_cp_h_sensible(MP_TEMP, s, MP_cp_s, MP_h_s)
+      MP_e_mix  = MP_e_mix  + MPC_MASS(s) * (MP_h_s - (R_GAS/MP_M(s))*MP_TEMP)  ! e = h - Rs*T (sensible e)
+      MP_cp_mix = MP_cp_mix + MPC_MASS(s) * MP_cp_s
+    end do
+    MP_cv_mix = MP_cp_mix - MP_Rmix
+  end subroutine mixture_props
+
+
+
+
+
+  subroutine GET_TEMP_JANAF(LEFTV, MP_TEMP)
+   implicit none
+    !! Recover temperature from conserved variables using mole fractions X
+    !!
+    !! Inputs:
+    !!   rho   [kg/m^3], u,v,w [m/s], rhoE [J/m^3], X_in(NS) mole fractions (sum≈1)
+    !! Optional:
+    !!   T_low,T_high [K] bracket (default 150..20000 clipped to species ranges)
+    !!   tol residual on |e_mix - e_target| [J/kg] (default ~1e-6*|e_target|+1e-3)
+    !!   max_iter (default 60)
+    !!
+    !! Outputs:
+    !!   T [K], info: 0 ok; 1 bracket width tol; 2 iter limit; <0 bracketing issue
+    real, dimension(1:nof_Variables),intent(in):: leftv
+    real, intent(out) :: mp_temp
+    integer:: info
+    real:: mp_tol,mp_SUM,u,v,w
+    integer:: mp_max_iter,i,j,k
+    real,dimension(1:nof_SPECIES)::mp_mol_x
+    real:: mp_Rmix, mp_cp_mix, mp_cv_mix, mp_e_mix
+    real:: mp_kin, mp_e_tgt, mp_Tlo, mp_Thi, mp_fa, mp_fb, mp_f, mp_df, mp_aT, mp_bT, mp_Tn, mp_fn, mp_Tguess, mp_atol
+    integer  :: mp_it, mp_itmax, mp_s
+    logical::mp_bracket
+
+
+    ! copy/normalize X
+    mp_mol_x = zero
+
+
+
+    mp_SUM=ZERO
+  DO I=1,NOF_SPECIES-1
+      mp_mol_x(I)=LEFTV(NOF_VARIABLES-NOF_SPECIES+I)
+      mp_SUM=mp_SUM+mp_mol_x(I)
+  END DO
+  mp_mol_x(NOF_SPECIES)=1.0D0-mp_SUM  !THE LAST SPECIES
+
+
+    call normalize_X(mp_mol_x)
+
+    U=LEFTV(2)/LEFTV(1)
+    V=LEFTV(3)/LEFTV(1)
+
+    IF (DIMENSIONA.EQ.3)THEN
+    W=LEFTV(4)/LEFTV(1)
+    ELSE
+    W=ZERO
+    END IF
+
+    mp_itmax = 50
+    mp_kin   = 0.5D0*(u*u + v*v + w*w)
+    mp_e_tgt = (LEFTV(NOF_VARIABLES-NOF_SPECIES)/LEFTV(1)) - MP_kin        ! target sensible internal energy [J/kg]
+
+    ! temperature bracket honoring species ranges
+    mp_Tlo = 150.0D0
+    mp_Thi = 20000.0D0
+    do s=1,NOF_SPECIES
+      if (mp_mol_x(s) <= zero) cycle
+      mp_Tlo = max(mp_Tlo, MP_Tlow_in(s))
+      mp_Thi = min(mp_Thi, MP_Thigh_in(s))
+    end do
+    if (mp_Tlo >= mp_Thi) then
+      MP_info = -3; MP_TEMP = 300.0_dp; return
+    end if
+
+    ! initial guess from cv around 300 K
+    call mixture_props(300.0D0, mp_mol_x, mp_Rmix, mp_cp_mix, mp_cv_mix, mp_e_mix)
+    mp_Tguess = 300.0_dp + (MP_e_tgt - MP_e_mix)/max(1.0e-8_d0, MP_cv_mix)
+    mp_Temp = min(max(mp_Tguess, mp_Tlo), mp_Thi)
+
+    ! establish/verify bracket
+    call mixture_props(mp_Tlo, mp_mol_x, mp_Rmix, mp_cp_mix, mp_cv_mix, mp_e_mix); mp_fa = mp_e_mix - mp_e_tgt
+    call mixture_props(mp_Thi, mp_mol_x, mp_Rmix, mp_cp_mix, mp_cv_mix, mp_e_mix); mp_fb = mp_e_mix - mp_e_tgt
+    mp_bracket = (mp_fa*mp_fb <= 0.0_d0)
+    mp_aT = mp_Tlo; mp_bT = mp_Thi
+
+    do mp_it = 1, mp_itmax
+      call mixture_props(mp_Temp, mp_mol_x, mp_Rmix, mp_cp_mix, mp_cv_mix, mp_e_mix)
+      mp_f  = mp_e_mix - mp_e_tgt
+      mp_df = max(mp_cv_mix, 1.0e-20_dp)
+
+      mp_atol = 1.0e-6_d0*max(1.0d0,abs(mp_e_tgt)) + 1.0e-3_d0
+      if (abs(mp_f) <= mp_atol) then
+        mp_info = 0; return
+      end if
+
+      ! safeguarded Newton step
+      mp_Tn = mp_Temp - mp_f/mp_df
+      if ((.not. mp_bracket) .or. (mp_Tn <= mp_aT) .or. (mp_Tn >= mp_bT)) mp_Tn = 0.5_dp*(mp_aT + mp_bT)
+
+      call mixture_props(mp_Tn, mp_mol_x, mp_Rmix, mp_cp_mix, mp_cv_mix, mp_e_mix)
+      mp_fn = mp_e_mix - mp_e_tgt
+
+      if (mp_fa*mp_fn <= 0.0_dp) then
+        mp_bT = mp_Tn; mp_fb = mp_fn; mp_bracket = .true.
+      else
+        mp_aT = mp_Tn; mp_fa = mp_fn
+      end if
+      mp_Temp = mp_Tn
+
+      if (abs(mp_bT - mp_aT) <= 1.0e-8_dp*max(1.0_dp,mp_T)) then
+        mp_info = 1; return
+      end if
+    end do
+
+    mp_info = 2  ! iteration limit
+  end subroutine T_from_conserved_X
+
+end module GET_TEMP_JANAF
+
+
+
+
+subroutine compute_sound_speed_MP(MP_TEMP,MP_SOUND)
+  implicit none
+  real, intent(in)  :: MP_TEMP
+  real, intent(out) :: MP_SOUND
+  real :: MP_cp_mix, MP_cv_mix, MP_Rmix, MP_cp_s, MP_h_s
+  integer :: s
+  real:: mp_SUM
+  real,dimension(1:nof_SPECIES)::mp_mol_x
+  REAL,DIMENSION(1:NOF_VARIABLES),intent(in)::LEFTV
+
+   mp_mol_x = zero
+
+    mp_SUM=ZERO
+  DO I=1,NOF_SPECIES-1
+      mp_mol_x(I)=LEFTV(NOF_VARIABLES-NOF_SPECIES+I)
+      mp_SUM=mp_SUM+mp_mol_x(I)
+  END DO
+  mp_mol_x(NOF_SPECIES)=1.0D0-mp_SUM  !THE LAST SPECIES
+
+
+
+  MP_cp_mix = 0.0_dp; MP_Rmix = 0.0_dp
+  do s = 1, NOF_SPECIES
+    if (mp_mol_x(s) <= ZERO) cycle
+    call species_cp_h_sensible(mp_Temp, s, mp_cp_s, mp_h_s)
+    mp_cp_mix = mp_cp_mix + mp_mol_x(s) * mp_cp_s
+    mp_Rmix   = mp_Rmix   + mp_mol_x(s) * (R_GAS / MP_M(s))
+  end do
+  mp_cv_mix = mp_cp_mix - mp_Rmix
+  MP_SOUND = sqrt( (mp_cp_mix/mp_cv_mix) * mp_Rmix * MP_TEMP )
+end subroutine compute_sound_speed_MP
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
  
  FUNCTION FLUXEVAL2D(LEFTV)
@@ -306,7 +669,7 @@ TEMPS(3)=LEFTV(3)*OODENSITY
 TEMPS(4)=LEFTV(4) !TOTAL ENERGY
 TEMPS(5)=LEFTV(5)*OODENSITY !TOTAL VIRBRATIONAL ENERGY
 
-DO RG_I=1,RG_SPECIES
+DO RG_I=1,nof_species
 RG_VFTEMP(RG_i)=leftv(5+RG_I)*OODENSITY
 END DO
 
@@ -320,7 +683,7 @@ RG_EV_TOTAL=TEMPS(5)!*OODENSITY
 RG_CHEM=zero
 
 
-do rg_i = 1, RG_SPECIES
+do rg_i = 1, nof_SPECIES
       if (rg_hzero(RG_i).gt.1.0e-12)then
     rg_chem = rg_chem -RG_VFTEMP(RG_i) * rg_hzero(RG_i) / RG_MOLM(RG_i)
       end if
@@ -350,12 +713,12 @@ etr=((TEMPS(4)/leftv(1))-rg_kin)-RG_EV_TOTAL - RG_CHEM
 
 
 
-!now Neton-Raphson for vibrational temperature
+!now Neton-Raphson for translational- temperature
   Ttr = 3000
   do rg_iter = 1, rg_maxiter
     rg_f = 0.0D0
     RG_df = 0.0D0
-    do rg_i = 1, rg_species
+    do rg_i = 1, nof_species
       if (rg_i <= 3) then
         RG_cvs(rg_i) = (5.0D0 / 2.0D0) * rg_runiv / RG_molm(rg_i)
       else
@@ -373,7 +736,7 @@ etr=((TEMPS(4)/leftv(1))-rg_kin)-RG_EV_TOTAL - RG_CHEM
 
 
   rg_rmix=zero
-do rg_i=1,RG_species
+do rg_i=1,nof_species
   rg_rmix=rg_rmix+RG_VFTEMP(rg_i)/RG_MOLM(rg_i)
 end do
 
@@ -386,7 +749,7 @@ rg_rmix=rg_runiv*rg_rmix
 temps(4)=leftv(1)*rg_rmix*Ttr
 
 
-DO RG_I=1,RG_SPECIES
+DO RG_I=1,nof_species
 TEMPS(5+RG_i)=RG_VFTEMP(RG_i)
 END DO
 
@@ -991,9 +1354,9 @@ real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
 real::MP_PINFL,gammal
 REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
 INTEGER::rg_i,rg_j
-REAL,DIMENSION(1:RG_SPECIES)::RG_VFTEMP
-REAL,DIMENSION(1:RG_SPECIES)::RG_CVS,rg_theta
-REAL,DIMENSION(1:RG_SPECIES)::RG_TVSL,RG_EV
+REAL,DIMENSION(1:nof_species)::RG_VFTEMP
+REAL,DIMENSION(1:nof_species)::RG_CVS,rg_theta
+REAL,DIMENSION(1:nof_species)::RG_TVSL,RG_EV
 REAL::RG_DENSITY,RG_EV_TOTAL,rg_rmix,rg_kin
 integer::rg_iter,rg_maxiter
 real::rgf_vib,rgdf_vib,rg_tol,tve,TTR
@@ -1079,13 +1442,13 @@ TEMPS(5:7)=LEFTV(5:7)
 !First we compute the mixture gas constant
 
 
-do rg_i=1,rg_species
+do rg_i=1,nof_species
   RG_VFTEMP(rg_i)=leftv(5+rg_i)
 end do
 
 
 rg_rmix=zero
-do rg_i=1,RG_species
+do rg_i=1,nof_species
   rg_rmix=rg_rmix+RG_VFTEMP(rg_i)/RG_MOLM(rg_i)
 end do
 
@@ -1099,7 +1462,7 @@ ttr=leftv(4)/(leftv(1)*rg_rmix)
 ! Translational-rotational internal energy
 
 rg_tr = 0.0D0
-    do rg_i = 1, RG_species
+    do rg_i = 1, nof_species
       if (rg_i <= 3) then
         RG_CVS(rg_i) = (5.0D0 / 2.0D0) * rg_runiv / RG_MOLM(rg_i)
       else
@@ -1115,9 +1478,9 @@ rg_tr = 0.0D0
 
 ! Chemical energy
 RG_CHEM=zero
- do rg_i=1,RG_species
+ do rg_i=1,nof_species
  if (rg_hzero(RG_i).gt.1.0e-12)then
-        RG_CHEM=RG_CHEM-(RG_VFTEMP(rg_i)*rg_hzero(RG_SPECIES)/RG_MOLM(rg_i))
+        RG_CHEM=RG_CHEM-(RG_VFTEMP(rg_i)*rg_hzero(nof_species)/RG_MOLM(rg_i))
   end if
 END DO
 
@@ -1137,7 +1500,7 @@ TEMPS(3)=LEFTV(3)*LEFTV(1)
 TEMPS(4)=LEFTV(1)*(skin1+RG_EV_TOTAL+RG_TR+RG_CHEM)
 TEMPS(5)=LEFTV(1)*RG_EV_TOTAL
 
-do rg_i=1,RG_species
+do rg_i=1,nof_species
 TEMPS(5+rg_i)=LEFTV(1) * RG_VFTEMP(rg_i)
 end do
 
@@ -2269,7 +2632,7 @@ J=FACEX
 
 
 				do im=1,gqi_points
-				TEMP_gRAD(1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,1,J,IM)
+				TEMP_gRAD(1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,dimensiona+1,J,IM)
 				IF (DG.EQ.1)THEN
 				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
 				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
@@ -2370,7 +2733,7 @@ J=FACEX
 
 
 				do im=1,gqi_points
-				TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,1,J,IM)
+				TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,dimensiona+1,J,IM)
 				    SSX=SSX+0.026*TEMP_gRAD(1)*WEQUA2D(im)*nx*surface_temp
 				  SSy=SSy+0.026*TEMP_gRAD(2)*WEQUA2D(im)*ny*surface_temp
                END DO
@@ -2428,7 +2791,7 @@ J=FACEX
 
 
 				do im=1,gqi_points
-				TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,1,J,IM)
+				TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,dimensiona+1,J,IM)
 				  SSY=SSY-0.026*TEMP_gRAD(2)*WEQUA2D(im)*surface_temp
                END DO
 
@@ -2674,8 +3037,8 @@ CALL QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
  if (ielem(n,iconsiDERED)%ggs.eq.1)then
 VORTET1(1:2,1:2) = ILOCAL_RECON3(ICONSIDERED)%GRADS(1:2,1:2)
 else
- vortet1(1,1:2)=ILOCAL_RECON3(iconsiDERED)%ULEFTV(1:2,2,FACEX,IM)
-vortet1(2,1:2)=ILOCAL_RECON3(iconsiDERED)%ULEFTV(1:2,3,FACEX,IM)
+ vortet1(1,1:2)=ILOCAL_RECON3(iconsiDERED)%ULEFTV(1:2,1,FACEX,IM)
+vortet1(2,1:2)=ILOCAL_RECON3(iconsiDERED)%ULEFTV(1:2,2,FACEX,IM)
 
 end if
 
@@ -2743,8 +3106,8 @@ CALL QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
  if (ielem(n,iconsiDERED)%ggs.eq.1)then
 VORTET1(1:2,1:2) = ILOCAL_RECON3(ICONSIDERED)%GRADS(1:2,1:2)
 else
- vortet1(1,1:2)=ILOCAL_RECON3(iconsiDERED)%ULEFTV(1:2,2,FACEX,IM)
-vortet1(2,1:2)=ILOCAL_RECON3(iconsiDERED)%ULEFTV(1:2,3,FACEX,IM)
+ vortet1(1,1:2)=ILOCAL_RECON3(iconsiDERED)%ULEFTV(1:2,1,FACEX,IM)
+vortet1(2,1:2)=ILOCAL_RECON3(iconsiDERED)%ULEFTV(1:2,2,FACEX,IM)
 
 end if
 
@@ -2822,6 +3185,48 @@ SUBROUTINE SUTHERLAND(N,leftv,rightv,VISCL,LAML)
         REAL,DIMENSION(1:4),INTENT(INOUT)::VISCL,LAML
 	INTEGER,INTENT(IN)::N
 	REAL::KINETIC,U,V,W,T0L,T1L,T0R,T1R
+	REAL::MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal,GAMMAR
+
+	if ((multispecies.eq.1).or.(real.gas.eq.1))then
+
+	if (multispecies.eq.1)then
+    CALL MULTISPECIES_MIXTURES(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal)
+
+    VISCL(1)=MP_mu_mix
+    LAML(1)=MP_k_mix
+
+
+    CALL MULTISPECIES_MIXTURES(RIGHTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammaR)
+
+    VISCL(2)=MP_mu_mix
+    LAML(2)=MP_k_mix
+
+    end if
+
+
+    if (realgas.eq.1)then
+    CALL MULTISPECIES_MIXTURES_RG(LEFTV,MP_mu_mix,MP_k_mix)
+
+    VISCL(1)=MP_mu_mix
+    LAML(1)=MP_k_mix
+
+
+    CALL MULTISPECIES_MIXTURES_RG(RIGHTV,MP_mu_mix,MP_k_mix)
+
+    VISCL(2)=MP_mu_mix
+    LAML(2)=MP_k_mix
+
+
+
+
+    end if
+
+
+
+
+
+	else
+
 		
 		T1L=LEFTv(5)/(LEFTv(1)*R_gas)
 		T0L=PRES/(RRES*R_gas)
@@ -2839,6 +3244,9 @@ SUBROUTINE SUTHERLAND(N,leftv,rightv,VISCL,LAML)
 	      LAML(1)=VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1.d0))
 	      LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
 	  
+
+
+	  end if
 	
 	     
 	   
@@ -2855,6 +3263,56 @@ SUBROUTINE SUTHERLAND(N,leftv,rightv,VISCL,LAML)
         REAL,DIMENSION(1:4),INTENT(INOUT)::VISCL,LAML
 	INTEGER,INTENT(IN)::N
 	REAL::KINETIC,U,V,W,T0L,T1L,T0R,T1R
+	REAL::MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal,GAMMAR
+
+	if ((multispecies.eq.1).or.(real.gas.eq.1))then
+
+	if (multispecies.eq.1)then
+    CALL MULTISPECIES_MIXTURES(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal)
+
+    VISCL(1)=MP_mu_mix
+    LAML(1)=MP_k_mix
+
+
+    CALL MULTISPECIES_MIXTURES(RIGHTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammaR)
+
+    VISCL(2)=MP_mu_mix
+    LAML(2)=MP_k_mix
+
+    end if
+
+
+    if (realgas.eq.1)then
+    CALL MULTISPECIES_MIXTURES_RG(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal)
+
+    VISCL(1)=MP_mu_mix
+    LAML(1)=MP_k_mix
+
+
+    CALL MULTISPECIES_MIXTURES_RG(RIGHTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammaR)
+
+    VISCL(2)=MP_mu_mix
+    LAML(2)=MP_k_mix
+
+
+
+
+    end if
+
+
+
+
+
+	else
+
+
+
+
+
+
+
+
+
 		
 		T1L=LEFTv(4)/(LEFTv(1)*R_gas)
 		T0L=PRES/(RRES*R_gas)
@@ -2876,7 +3334,7 @@ SUBROUTINE SUTHERLAND(N,leftv,rightv,VISCL,LAML)
 	      LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
 	  
 
-	   
+	   end if
 
       
 

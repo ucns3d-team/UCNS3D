@@ -583,15 +583,16 @@ IF (LL.EQ.1)THEN		!stencils
 				END DO
 
 				icompwrt=0
+
 				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE,icompwrt)
 
-				if (thermal.eq.0)then
+				!if (thermal.eq.0)then
 				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=((NNX*XDER(1:ielem(n,i)%IDEGFREE))+(NNY*YDER(1:ielem(n,i)%IDEGFREE))+(NNZ*ZDER(1:ielem(n,i)%IDEGFREE)))
-				ELSE
-				icompwrt=0
-				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE,icompwrt)
+				!ELSE
+				!icompwrt=0
+				!BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE,icompwrt)
 
-				end if
+! 				end if
 
 
 				DO IQ=1,IDEG
@@ -1283,15 +1284,15 @@ IF (LL.EQ.1)THEN		!stencils
 				Icompwrt=0
 				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,Iconsidered,ielem(n,i)%IDEGFREE,ICOMPWRT)
 
-				if (thermal.eq.0)then
+				!if (thermal.eq.0)then
 				Icompwrt=0
 
 				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=((NNX*XDER(1:ielem(n,i)%IDEGFREE))+(NNY*YDER(1:ielem(n,i)%IDEGFREE)))
-				ELSE
-				Icompwrt=0
-				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,Iconsidered,ielem(n,i)%IDEGFREE,ICOMPWRT)
+				!ELSE
+				!Icompwrt=0
+				!BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,Iconsidered,ielem(n,i)%IDEGFREE,ICOMPWRT)
 
-				end if
+				!end if
 
 
 				DO IQ=1,IDEG

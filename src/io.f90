@@ -18837,9 +18837,9 @@ DO I=1,kmaxe
 				  
 				  else
 				  
-				  vortet1(1,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,2,J,IM)
-				  vortet1(2,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,3,J,IM)
-				  vortet1(3,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,4,J,IM)
+				  vortet1(1,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,1,J,IM)
+				  vortet1(2,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,2,J,IM)
+				  vortet1(3,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,3,J,IM)
 				  ux = Vortet1(1,1);uy = Vortet1(1,2);uz = Vortet1(1,3)
 				  vx = Vortet1(2,1);vy = Vortet1(2,2);vz = Vortet1(2,3)
 				  wx = Vortet1(3,1);wy = Vortet1(3,2);wz = Vortet1(3,3)

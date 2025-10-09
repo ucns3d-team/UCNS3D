@@ -222,14 +222,9 @@ REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
 
         LEFTV = CLEFT
         RIGHTV = CRIGHT
-        IF (DIMENSIONA == 3) THEN
-            CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-        ELSE
-            CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-        END IF
-        ! Change pressure to temperature
-        LEFTV(NOF_VARIABLES) = LEFTV(NOF_VARIABLES) / LEFTV(1)
-        RIGHTV(NOF_VARIABLES) = RIGHTV(NOF_VARIABLES) / RIGHTV(1)
+        CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
+        CALL CONS2DIV(N,rightv,MP_PINFl,gammal)
+
 
         DO I_DIM = 1, DIMENSIONA
 !             RHLLCFLUX = NNN(I_DIM) * (RIGHTV - LEFTV)
@@ -875,11 +870,9 @@ DO I_ELEM = 1, XMPIELRANK(N)
 
 
                 !NOW COPY TO OTHER ARRAY
-                ILOCAL_RECON3(ICONSIDERED)%ULEFTV(1:DIMS,1,I_FACE,I_QP)=ILOCAL_RECON3(ICONSIDERED)%BR2_AUX_VAR(NOF_VARIABLES,1:DIMS,I_FACE,I_QP)
+                ILOCAL_RECON3(ICONSIDERED)%ULEFTV(1:DIMS,1:NOF_VARIABLES-1,I_FACE,I_QP)=ILOCAL_RECON3(ICONSIDERED)%BR2_AUX_VAR(1:NOF_VARIABLES-1,1:DIMS,I_FACE,I_QP)
 
-    DO J=2,NOF_VAriables-1
-        ILOCAL_RECON3(ICONSIDERED)%ULEFTV(1:DIMS,J,I_FACE,I_QP)=ILOCAL_RECON3(ICONSIDERED)%BR2_AUX_VAR(J,1:DIMS,I_FACE,I_QP)
-    END DO
+
                 !END COPYING
             END IF
         END DO
@@ -1042,7 +1035,7 @@ REAL,DIMENSION(turbulenceequations+passivescalar,1:dims)::LCVGRAD_T,RCVGRAD_T
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::CORDS
-INTEGER::I,L,NGP,ITTT,nvar,iex
+INTEGER::I,L,NGP,ITTT,nvar,iex,k
 L=FACEX
 NGP=POINTX
 I=ICONSIDERED
@@ -1060,11 +1053,11 @@ I=ICONSIDERED
 				      END IF
 
 
+                      do k=1,dimensiona
+				      LCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(I)%ULEFTV(k,1:nof_Variables-1,L,NGP);
+				      RCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(k,1:nof_Variables-1,IELEM(N,I)%INEIGHN(L),NGP)
+				      end do
 
-				      LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
-				      LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
-				      RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
-				      RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP);
 
 					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 					  if (icoupleturb.eq.1)then
@@ -1127,17 +1120,33 @@ I=ICONSIDERED
 					  IF (DG.EQ.1) THEN
                         CLEFT(1:nof_Variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
                         CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
-						LCVGRAD(1,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,2,L,NGP);LCVGRAD(2,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,3,L,NGP);
-				      LCVGRAD(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,L,NGP)
-					  RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,IELEM(N,I)%INEIGHN(L),NGP);
-				      RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,IELEM(N,I)%INEIGHN(L),NGP)
+
+
+
+                        do k=1,dimensiona
+				      LCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(I)%ULEFTV(k,1:nof_Variables-1,L,NGP);
+				      RCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(k,1:nof_Variables-1,IELEM(N,I)%INEIGHN(L),NGP)
+				      end do
+
+
+
+
+
 						ELSE !FV
 							CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
-				      LCVGRAD(1,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,2,L,NGP);LCVGRAD(2,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,3,L,NGP);
-				      LCVGRAD(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,L,NGP)
+
+
+
+
 				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
-				      RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,IELEM(N,I)%INEIGHN(L),NGP);
-				      RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,IELEM(N,I)%INEIGHN(L),NGP)
+
+
+				      do k=1,dimensiona
+				      LCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(I)%ULEFTV(k,1:nof_Variables-1,L,NGP);
+				      RCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(k,1:nof_Variables-1,IELEM(N,I)%INEIGHN(L),NGP)
+				      end do
+
+
 
 						end if
 
@@ -1187,7 +1196,7 @@ REAL,DIMENSION(turbulenceequations+passivescalar,1:dims)::LCVGRAD_T,RCVGRAD_T
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::CORDS
-INTEGER::I,L,NGP,ITTT,nvar,iex,kk,N_NODE
+INTEGER::I,L,NGP,ITTT,nvar,iex,kk,N_NODE,k
 INTEGER::IBFC
 
 L=FACEX
@@ -1206,8 +1215,17 @@ I=ICONSIDERED
 
 
 !   CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
-				      LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
-				      LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
+
+
+
+				      do k=1,dimensiona
+				      LCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(I)%ULEFTV(k,1:nof_Variables-1,L,NGP);
+				      end do
+
+
+
+
+
 
 					  IF (ILOCAL_RECON3(I)%MRF.EQ.1)THEN
 						SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
@@ -1238,8 +1256,14 @@ I=ICONSIDERED
 
 
 
-								  RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,L,NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,L,NGP);
-								  RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,L,NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,L,NGP);
+
+
+								   do k=1,dimensiona
+                                    RCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(k,1:nof_Variables-1,IELEM(N,I)%INEIGHN(L),NGP)
+                                end do
+
+
+
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 									if (icoupleturb.eq.1)then
 									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
@@ -1256,9 +1280,12 @@ I=ICONSIDERED
 								    END IF
 									IF(PER_ROT.EQ.1)THEN
                                         CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-                                        DO KK=1,4
-                                            RCVGRAD(KK,1:3)=ROTATE_PER_1(RCVGRAD(KK,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-                                        END DO
+
+                                        do k=1,dimensiona
+                                    RCVGRAD(1:nof_Variables-1,k)=ROTATE_PER_1(RCVGRAD(1:nof_Variables-1,k),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                end do
+
+
                                         RCVGRAD_T(1,1:3)=ROTATE_PER_1(RCVGRAD_T(1,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
                                     END IF
 
@@ -1313,8 +1340,14 @@ I=ICONSIDERED
                                 ELSE
 							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
 							      END IF
-							      RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
-							      RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP);
+
+
+							      do k=1,dimensiona
+                                    RCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(k,1:nof_Variables-1,IELEM(N,I)%INEIGHN(L),NGP)
+                                end do
+
+
+
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 									if (icoupleturb.eq.1)then
 									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
@@ -1355,11 +1388,9 @@ I=ICONSIDERED
  										      RCVGRAD(IEX,nVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
 !
 										      ELSE
-                                                        IF (IEX.EQ.1)THEN
-                                                RCVGRAD(4,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
-                                                        ELSE
-                                                RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
-                                                        END IF
+
+                                                RCVGRAD(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+
 
 										      END IF
 
@@ -1392,10 +1423,16 @@ I=ICONSIDERED
 									  END DO
 
 									  IF(PER_ROT.EQ.1)THEN
+
+
+									   do k=1,dimensiona
+                                    RCVGRAD(1:nof_Variables-1,k)=ROTATE_PER_1(RCVGRAD(1:nof_Variables-1,k),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
+                                end do
+
+
+
 										CRIGHT(2:4)=ROTATE_PER_1(CRIGHT(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-										  DO KK=1,4
-											  RCVGRAD(KK,1:3)=ROTATE_PER_1(RCVGRAD(KK,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
-										  END DO
+
 										  RCVGRAD_T(1,1:3)=ROTATE_PER_1(RCVGRAD_T(1,1:3),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
 										END IF
 
@@ -1420,11 +1457,9 @@ I=ICONSIDERED
 
 
 
-										      IF (IEX.EQ.1)THEN
-									  RCVGRAD(4,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
-										      ELSE
-									  RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
-										      END IF
+
+									  RCVGRAD(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+
 
 										      END IF
 										END DO
@@ -1476,7 +1511,7 @@ REAL,DIMENSION(turbulenceequations+passivescalar,1:dims)::LCVGRAD_T,RCVGRAD_T
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::CORDS
-INTEGER::I,L,NGP,ITTT,nvar,iex,N_NODE
+INTEGER::I,L,NGP,ITTT,nvar,iex,N_NODE,k
 INTEGER::IBFC
 L=FACEX
 NGP=POINTX
@@ -1488,9 +1523,11 @@ IF (DG == 1) THEN
 CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)
 END IF
 
+                      do k=1,dimensiona
+				      LCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(I)%ULEFTV(k,1:nof_Variables-1,L,NGP)
+				      end do
 
-				      LCVGRAD(1,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,2,L,NGP);LCVGRAD(2,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,3,L,NGP);
-				      LCVGRAD(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,L,NGP)
+
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 						if (icoupleturb.eq.1)then
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)
@@ -1515,8 +1552,15 @@ END IF
 										END IF
 
 
-								  RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,L,NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,L,NGP);
-								  RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,L,NGP);
+
+
+
+								  do k=1,dimensiona
+                                  RCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(k,1:nof_Variables-1,IELEM(N,I)%INEIGHN(L),NGP)
+                                  end do
+
+
+
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 									if (icoupleturb.eq.1)then
 									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
@@ -1577,8 +1621,12 @@ END IF
 
 
 
-							      RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,IELEM(N,I)%INEIGHN(L),NGP);
-							      RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,IELEM(N,I)%INEIGHN(L),NGP);
+
+
+							      do k=1,dimensiona
+                                  RCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(k,1:nof_Variables-1,IELEM(N,I)%INEIGHN(L),NGP)
+                                  end do
+
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 									if (icoupleturb.eq.1)then
 									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
@@ -1625,11 +1673,9 @@ END IF
 
 
 
-										      IF (IEX.EQ.1)THEN
-									  RCVGRAD(3,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
-										      ELSE
-									  RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
-										      END IF
+
+									  RCVGRAD(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+
 
 										      END IF
 										END DO
@@ -1684,11 +1730,9 @@ END IF
 										      ELSE
 
 
-										      IF (IEX.EQ.1)THEN
-									  RCVGRAD(3,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
-										      ELSE
-									  RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
-										      END IF
+
+									  RCVGRAD(iex,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+
 
 										      END IF
 										END DO

@@ -90,12 +90,12 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 	implicit none
 	INTEGER,INTENT(IN)::N,ICONSIDERED
 	INTEGER::I,J,K,L,rg_i,RG_J
-	REAL,DIMENSION(RG_SPECIES)::rg_R,RG_RM, RG_N  !RG_R=DENSITY_S; RG_RMs=DENSITY_s/M_s; RG_N=RG_RMS*NA
+	REAL,DIMENSION(nof_species)::rg_R,RG_RM, RG_N  !RG_R=DENSITY_S; RG_RMs=DENSITY_s/M_s; RG_N=RG_RMS*NA
 	REAL::RG_DQ_RAD,RG_QTV,RG_QW
-	REAL,DIMENSION(RG_SPECIES)::RG_EV,RG_ESV
+	REAL,DIMENSION(nof_species)::RG_EV,RG_ESV
 	REAL,DIMENSION(3)::RG_THETA !characteristic Vibrational temperature for each species
 	REAL,DIMENSION(3)::RG_TVS !Vibrational temperature for each species
-	REAL,DIMENSION(RG_SPECIES)::RG_DW_S !mass production rate, RG_DW_s
+	REAL,DIMENSION(nof_species)::RG_DW_S !mass production rate, RG_DW_s
 	REAL::RG_KE1,RG_KE2,RG_KE3,RG_KE4,RG_KE5 !equilibrium constant
 	REAL::RG_T,RG_TA,RG_TV	!TEMPERATURE, average temperature, vibrational temperature
 	REAL::RG_Z,rg_speed
@@ -115,9 +115,9 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 
 		!lei have a look
 	!translational-vibrational energy relaxation time
-	REAL,DIMENSION(RG_SPECIES,RG_SPECIES)::RG_MU	!reduced molecular weight
+	REAL,DIMENSION(nof_species,nof_species)::RG_MU	!reduced molecular weight
 	REAL::TEMP1,TEMP2
-	REAL,DIMENSION(RG_SPECIES)::RG_TSMW,RG_TSP,RG_TSSUM, RG_Ablot
+	REAL,DIMENSION(nof_species)::RG_TSMW,RG_TSP,RG_TSSUM, RG_Ablot
 
 	I=ICONSIDERED
 
@@ -134,7 +134,7 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 
 	!DENSITY OF EACH SPECIES
 	DO RG_I=6,nof_variables
-		RG_R(RG_I-rg_species)=LEFTV(RG_I)
+		RG_R(RG_I-nof_species)=LEFTV(RG_I)
 		! RG_1=LEFTV(6) !N2
 		! RG_2=LEFTV(7) !O2
 		! RG_3=LEFTV(8) !NO
@@ -143,7 +143,7 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 	END DO
 
 	!DENSITY_s/M_s
-	DO RG_I=1,RG_SPECIES
+	DO RG_I=1,nof_species
 		RG_RM(RG_I)=RG_R(RG_I)/RG_MOLM(RG_I)
 	END DO
 
@@ -162,7 +162,7 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 	!ILOCAL_RECON3(I)%GRADs(RG_I,k)	!THESE ARE TGE GRADIENTS
 
 	!mass production rate, RG_DW_s
-	if (RG_SPECIES==5)then
+	if (nof_species==5)then
 
 		IF (RG_NOF_REACTIONS==5)THEN
 
@@ -227,15 +227,15 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 				RG_R2=0.0
 				RG_R3=0.0
 				!REACTION 1
-				DO RG_I=1,RG_SPECIES
+				DO RG_I=1,nof_species
 					RG_R1= RG_R1-RG_KF1*RG_RM(1)*RG_RM(RG_I) + RG_KB1*RG_RM(4)**2*RG_RM(RG_I)
 				END DO
 				!REACTION 2
-				DO RG_I=1,RG_SPECIES
+				DO RG_I=1,nof_species
 					RG_R2= RG_R2-RG_KF2*RG_RM(2)*RG_RM(RG_I) + RG_KB2*RG_RM(5)**2*RG_RM(RG_I)
 				END DO
 				!REACTION 3
-				DO RG_I=1,RG_SPECIES
+				DO RG_I=1,nof_species
 					RG_R3= RG_R3-RG_KF3*RG_RM(3)*RG_RM(RG_I) + RG_KB3*RG_RM(4)*RG_RM(5)*RG_RM(RG_I)
 				END DO
 				!REACTION 4
@@ -381,14 +381,14 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 
 
 		!reduced molecular weight of the colliding species s and j, 1-5:
-		DO RG_I=1,RG_SPECIES
-			DO RG_J=1,RG_SPECIES
+		DO RG_I=1,nof_species
+			DO RG_J=1,nof_species
 				RG_MU(RG_I,RG_J)=(RG_MOLM(RG_I)*RG_MOLM(RG_J))/(RG_MOLM(RG_I)+RG_MOLM(RG_J))
 			END DO
 		END DO
 
 		!number density of s:1-5
-		DO RG_I=1,RG_SPECIES
+		DO RG_I=1,nof_species
 			RG_N(RG_I)=RG_RM(RG_I)*6.022E23
 		END DO
 
@@ -403,8 +403,8 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 				!viscosity coef for Blottner model
 				RG_Ablot=(/0.0268142, 0.0449290, 0.0436378, 0.0115572, 0.0203144/)   !WP CORRECTED, OLD (/0.00268142, 0.0449290, 0.0436378, 0.0115572, 0.0203144/)
 
-				DO RG_I=1,RG_SPECIES
-					DO RG_J=1,RG_SPECIES
+				DO RG_I=1,nof_species
+					DO RG_J=1,nof_species
 						TEMP1=TEMP1+RG_N(RG_J)*EXP(RG_Ablot(RG_J)*(RG_T**(1/3)-0.015*RG_MU(RG_I,RG_J)**0.25)-18.42)
 						TEMP2=TEMP2+RG_N(RG_J)
 					END DO
@@ -412,7 +412,7 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 				END DO
 			ELSE
 				!Park(1989)
-				DO RG_I=1,RG_SPECIES
+				DO RG_I=1,nof_species
 					!mass of a PARTICLE for each species in g
 					RG_TSP(RG_I)=1/(((10e-17)*(50000.0/(RG_T))**2)*((8.0*1.3805E-23*RG_T)/(PI*RG_MOLM(RG_I)/6.022E23/1000.0))*RG_N(RG_I)) !WP: Difficult to verify if this equation is correct
 				END DO
@@ -425,8 +425,8 @@ SUBROUTINE SOURCES2d_realgas(N,ICONSIDERED)
 			TEMP2=0.0
 			!viscosity coef for Blottner model
 			RG_Ablot=(/0.0268142, 0.0449290, 0.0436378, 0.0115572, 0.0203144/)   !WP CORRECTED, OLD (/0.00268142, 0.0449290, 0.0436378, 0.0115572, 0.0203144/)
-			DO RG_I=1,RG_SPECIES
-				DO RG_J=1,RG_SPECIES
+			DO RG_I=1,nof_species
+				DO RG_J=1,nof_species
 					TEMP1=TEMP1+RG_N(RG_J)*EXP(RG_Ablot(RG_J)*(RG_T**(1/3)-0.015*RG_MU(RG_I,RG_J)**0.25)-18.42)
 					TEMP2=TEMP2+RG_N(RG_J)
 				END DO
