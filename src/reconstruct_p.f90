@@ -51,6 +51,9 @@ REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
 
 
+!@TT: ensure allocation outside of this one so that you can call it as many times as possible
+
+
 KMAXE=XMPIELRANK(N)
 
 if (dimensiona.eq.3)then

@@ -4339,11 +4339,14 @@ SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
   !   print *, "node positions copied back"
   ! end if
   Call GEOMETRY_CALC_MovingMesh(N, 1)
+
+  !1 EXCHANGE OPT AND EXCHANGE CORDS (BECAREFUL WITH MEMORY ALLOCATIONS-BETTER PUT THEM SOMEWHERE INODER4)
   ! !$OMP BARRIER
   ! if (n.eq.0) then
   !   print *, "geometric properties recomputed"
   ! end if
   Call RE_PRESTORE_1(N, 1)
+  !NEED TO COMPUTE THE LOCATION OF THE NEW QUADRATURE POINTS THROUGH MEMORY FAST
   ! !$OMP BARRIER
   ! if (n.eq.0) then
   !   print *, "reconstruction polynomials recomputed"
