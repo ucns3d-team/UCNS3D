@@ -374,9 +374,9 @@ CLOSE(63)
 
  
 deallocate(testar)
-deAllocate(Elements)
-deAllocate(ALLNODES)
-deAllocate(AllnodesPTR)
+deallocate(Elements)
+deallocate(ALLNODES)
+deallocate(AllnodesPTR)
 deallocate(vwgt)
 deallocate(vsize)
 deallocate(tpwgts)
@@ -674,9 +674,9 @@ CLOSE(63)
 
  
 deallocate(testar)
-deAllocate(Elements)
-deAllocate(ALLNODES)
-deAllocate(AllnodesPTR)
+deallocate(Elements)
+deallocate(ALLNODES)
+deallocate(AllnodesPTR)
 deallocate(vwgt)
 deallocate(vsize)
 deallocate(tpwgts)
@@ -926,9 +926,9 @@ CLOSE(63)
 
  
 deallocate(testar)
-deAllocate(Elements)
-deAllocate(ALLNODES)
-deAllocate(AllnodesPTR)
+deallocate(Elements)
+deallocate(ALLNODES)
+deallocate(AllnodesPTR)
 deallocate(vwgt)
 deallocate(vsize)
 deallocate(tpwgts)
@@ -1176,9 +1176,9 @@ CLOSE(63)
 
  
 deallocate(testar)
-deAllocate(Elements)
-deAllocate(ALLNODES)
-deAllocate(AllnodesPTR)
+deallocate(Elements)
+deallocate(ALLNODES)
+deallocate(AllnodesPTR)
 deallocate(vwgt)
 deallocate(vsize)
 deallocate(tpwgts)
@@ -1506,7 +1506,7 @@ close(1112)
 
  allocate(eind(1:counternodes))
  eind(1:counternodes)=Allnodes(1:counternodes)
- deAllocate(ALLNODES)
+ deallocate(ALLNODES)
 
  
 allocate(vwgt(xmpiee(n+1)))
@@ -1571,7 +1571,7 @@ CALL MPI_BARRIER(MPI_COMM_WORLD, IERROR)
 
 
 
-deAllocate(ePTR)
+deallocate(ePTR)
 deallocate(eind)
 deallocate(vwgt)
 deallocate(tpwgts)
@@ -1593,7 +1593,7 @@ deallocate(options)
  
  call MPI_BCAST(XMPIE,IMAXE,MPI_INTEGER,ISIZE-1,MPI_COMM_WORLD,IERROR) 
 
-deAllocate(parts_el)
+deallocate(parts_el)
 deallocate(xmpiee)
  deallocate(elmdist)
   XMPIE=XMPIE-1

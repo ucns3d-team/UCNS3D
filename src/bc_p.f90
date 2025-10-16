@@ -491,7 +491,7 @@ END DO
 
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-! 	DEALLOCATE(IBOUND)
+! 	deallocate(IBOUND)
 END SUBROUTINE READ_BOUND
 ! 
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

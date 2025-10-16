@@ -105,7 +105,8 @@ character(len=1)::braco,bracstr
 character(len=3)::dumc,bracc
 character(len=3)::dumc1
 character(len=2)::dumc2
-real(8),allocatable,dimension(:)::x,y,z
+! real(8),allocatable,dimension(:)::x,y,z
+real,allocatable,dimension(:)::x,y,z
 logical:: back
 character(256) :: gchar,char1
 character(len=256)::gchar1,gchar2
@@ -198,7 +199,9 @@ do
 			    end do 
 			    close(10)
 			    deallocate(x,y)
-                            if (dimen.eq.3) deallocate(z)
+                            if (dimen.eq.3) then
+								deallocate(z)
+							end if
 !                             
 			  end select
 		      endif
@@ -1796,7 +1799,7 @@ end do
 
 			close(10)
 
-			 DEALLOCATE(IBID,IBX,IBXX, x,y,z, if2nt,if2nq,ifacetag,ic2nt,ic2np,ic2nz,ic2nh)
+			 deallocate(IBID,IBX,IBXX, x,y,z, if2nt,if2nq,ifacetag,ic2nt,ic2np,ic2nz,ic2nh)
 
 
 END SUBROUTINE
