@@ -837,4 +837,60 @@ TYPE device_packed_parameters
 	INTEGER :: icoupleturb
 END TYPE device_packed_parameters
 
+
+TYPE::NODE_NUMBER1	!NAME OF TYPE FOR THE SET OF NODES 
+	INTEGER::NODEN	!IDENTIFICATION NUMBER THAT CAN BE USED AS A POINTER INSIDE AN ARRAY
+	REAL::X		!COORDINATES IN X AXIS
+	REAL::Y		!COORDINATES IN Y AXIS
+	Real::z
+END TYPE NODE_NUMBER1
+TYPE::ELEMENT_NUMBER1	!NAME OF TYPE FOR THE SET OF ELEMENTS
+    INTEGER::IEINDEX
+    INTEGER::IECOUNTER
+    Integer:: IFACE
+    INTEGER,ALLOCATABLE,DIMENSION(:,:)::FACES ! id of face and id of node
+    Integer,allocatable,dimension(:):: ND
+    INTEGER ::IShape ! id of shape ! 1 triangle, 2 tetra, 3 quad, 4 hexa, 5 pyramid, 6 prism
+END TYPE ELEMENT_NUMBER1
+TYPE::BOUNDARY_NUMBER1	!NAME OF TYPE FOR THE SET OF ELEMENTS
+    INTEGER::IBINDEX
+    INTEGER::IBCOUNTER
+    Integer:: IBTYPE
+    Integer,allocatable,dimension(:):: NDB
+    INTEGER ::IBShape ! 1 line ! 3 triangle ! 4 quad
+END TYPE BOUNDARY_NUMBER1
+TYPE::FACE_Number	!NAME OF TYPE FOR THE SET OF ELEMENTS
+    INTEGER::IFINDEX
+    INTEGER::IFCOUNTER
+    INTEGER::IFACBTYPE,ishb
+!     Integer::IFMAXNODE
+    Integer,allocatable,dimension(:,:):: IFA ! elements id (always two) , nodes id only 1s row
+    INTEGER ::IFShape ! 1 line ! 3 triangle ! 4 quad
+END TYPE Face_number
+
+TYPE::elementglobal
+  INTEGER::ELEMENTGLID,NodeID1,NodeID2,NodeID3,NodeID4,NodeID5,NodeID6,NodeID7,NodeID8!,vweight!,vsize
+END TYPE elementglobal
+
+Type :: Wallboundary
+	    Integer :: GlobalID,wbid,wb1,wb2,wb3,wb4,NumNodes!,wbdescr
+	    Real :: Wallx,Wally,Wallz
+End Type
+
+Type :: NodesWall
+	    Integer :: ID
+	    Real :: wnx,wny,wnz
+End Type
+
+TYPE LISTSTENCILS
+	INTEGER::PROCID
+	INTEGER,ALLOCATABLE,DIMENSION(:)::LISTSARRAY
+END TYPE LISTSTENCILS
+
+TYPE:: LISTGOG
+	INTEGER::PROCID,IMUCH,IAVC,IAVT
+	INTEGER,ALLOCATABLE,DIMENSION(:)::GLOBARRAY
+	integer,allocatable,dimension(:,:)::nodex
+END TYPE LISTGOG
+
 END MODULE DECLARATION

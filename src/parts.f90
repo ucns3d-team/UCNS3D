@@ -159,9 +159,7 @@ EXTERNAL METIS_PartMeshDual
 EXTERNAL METIS_PartMeshNodal
 integer,ALLOCATABLE,DIMENSION(:),intent(in)::IESHAPE
 !!!!!!!!!!!!!!!!
-TYPE::elementglobal
-  INTEGER::ELEMENTGLID,NodeID1,NodeID2,NodeID3,NodeID4,NodeID5,NodeID6,NodeID7,NodeID8!,vweight!,vsize
-END TYPE elementglobal
+
 !!!!!!!!!!!!!!!
 real::average
 integer::maxi
@@ -401,9 +399,7 @@ EXTERNAL METIS_PartMeshDual
 EXTERNAL METIS_PartMeshNodal
 integer,ALLOCATABLE,DIMENSION(:),intent(in)::IESHAPE
 !!!!!!!!!!!!!!!!
-TYPE::elementglobal
-  INTEGER::ELEMENTGLID,NodeID1,NodeID2,NodeID3,NodeID4,NodeID5,NodeID6,NodeID7,NodeID8!,vweight!,vsize
-END TYPE elementglobal
+
 !!!!!!!!!!!!!!!
 real::average,average2
 integer::maxi,maxi2
@@ -703,9 +699,7 @@ EXTERNAL METIS_PartMeshDual
 EXTERNAL METIS_PartMeshNodal
 integer,ALLOCATABLE,DIMENSION(:),intent(in)::IESHAPE
 !!!!!!!!!!!!!!!!
-TYPE::elementglobal
-  INTEGER::ELEMENTGLID,NodeID1,NodeID2,NodeID3,NodeID4,NodeID5,NodeID6,NodeID7,NodeID8!,vweight!,vsize
-END TYPE elementglobal
+
 !!!!!!!!!!!!!!!
 real::average,average2
 integer::maxi,maxi2
@@ -961,9 +955,7 @@ EXTERNAL METIS_PartMeshDual
 EXTERNAL METIS_PartMeshNodal
 integer,ALLOCATABLE,DIMENSION(:),intent(in)::IESHAPE
 !!!!!!!!!!!!!!!!
-TYPE::elementglobal
-  INTEGER::ELEMENTGLID,NodeID1,NodeID2,NodeID3,NodeID4,NodeID5,NodeID6,NodeID7,NodeID8!,vweight!,vsize
-END TYPE elementglobal
+
 !!!!!!!!!!!!!!!
 real::average
 integer::maxi

@@ -5607,15 +5607,9 @@ Real,allocatable,dimension(:,:) :: WallElemArrayCord,WallElemArrayCordGlobal
 Real :: Distance
 CHARACTER(LEN=12)::BNDFILE,VRTFILE
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-Type :: Wallboundary
-	    Integer :: GlobalID,wbid,wb1,wb2,wb3,wb4,NumNodes!,wbdescr
-	    Real :: Wallx,Wally,Wallz
-End Type
+
 Type(Wallboundary),Allocatable,Dimension(:):: Wallbnd
-Type :: NodesWall
-	    Integer :: ID
-	    Real :: wnx,wny,wnz
-End Type
+
 Type(NodesWall),Allocatable,Dimension(:):: Wallvrt
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! How many element for this block have wall
@@ -5748,15 +5742,9 @@ Real,allocatable,dimension(:,:) :: WallElemArrayCord,WallElemArrayCordGlobal
 Real :: Distance
 CHARACTER(LEN=12)::BNDFILE,VRTFILE
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-Type :: Wallboundary
-	    Integer :: GlobalID,wbid,wb1,wb2,wb3,wb4,NumNodes!,wbdescr
-	    Real :: Wallx,Wally,Wallz
-End Type
+
 Type(Wallboundary),Allocatable,Dimension(:):: Wallbnd
-Type :: NodesWall
-	    Integer :: ID
-	    Real :: wnx,wny,wnz
-End Type
+
 Type(NodesWall),Allocatable,Dimension(:):: Wallvrt
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! How many element for this block have wall
