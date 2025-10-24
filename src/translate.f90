@@ -59,10 +59,10 @@ Subroutine Drive(interray)
 implicit none
 
 
-TYPE(ELEMENT_NUMBER1),ALLOCATABLE,DIMENSION(:)::IELE
-TYPE(NODE_NUMBER1),ALLOCATABLE,DIMENSION(:)::INOD
-TYPE(BOUNDARY_NUMBER1),ALLOCATABLE,DIMENSION(:)::IBOU
-TYPE(FACE_Number),ALLOCATABLE,DIMENSION(:)::IFAC
+TYPE(A_ELEMENT_NUMBER1),ALLOCATABLE,DIMENSION(:)::IELE
+TYPE(A_NODE_NUMBER1),ALLOCATABLE,DIMENSION(:)::INOD
+TYPE(A_BOUNDARY_NUMBER1),ALLOCATABLE,DIMENSION(:)::IBOU
+TYPE(A_FACE_Number),ALLOCATABLE,DIMENSION(:)::IFAC
 
 Integer::ing2,jj,dimen,imaxe,imaxn,imaxb,dum,index10,zoneid,in1,dum1,bctypdum,iosx,ii,vrt1,vrt2,vrt3,vrt4,vct1,vct2,vct3,vct4,countb,eltype,ing,ibtr,nfin,icte
 Integer::lexist,checkbrac,dum2,dum3,dum4,ierr,il,il1,il2,ispace1,ispace2
