@@ -14984,64 +14984,64 @@ if (n.eq.0)then
    ! Write file name
     OPEN(300,FILE=VTU,ACCESS='STREAM')
     ! Write header
-    Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf);WRITE(300) Buffer
     ! Write unstructured grid type
-    Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <UnstructuredGrid>'//lf);WRITE(300) Buffer
     ! Write solution time type
-    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
 	 offset_temp=0
      WRITE(Offset_stamp,'(I16)')offset_temp
-    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+	Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
     ! Specify field pieces
     WRITE(tempstamp1,'(I16)')imaxn
     WRITE(tempstamp2,'(I16)')imaxe
-    Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
-           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf);WRITE(300) Buffer
     ! Specify point data
-    Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     <PointData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     </PointData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     <CellData>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+size_of_real
     WRITE(Offset_stamp,'(I16)')offset_temp
     DO i=1,WRITE_VARIABLES
-      Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names(i))//'" '// &
-                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+      Buffer=TRIM('        <DataArray type="Float64" Name="'//TRIM(Variable_names(i))//'" '// &
+                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
       offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
       WRITE(Offset_stamp,'(I16)')offset_temp
     END DO
-    Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     </CellData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     <Points>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+    ! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
     WRITE(Offset_stamp,'(I16)')offset_temp
-    Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     </Points>'//lf);WRITE(300) Buffer
     ! Specify necessary cell data
-    Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('      <Cells>'//lf);WRITE(300) Buffer
     ! Connectivity
-    Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+TYP_COUNTN_GLOBAL*size_of_int
     WRITE(Offset_stamp,'(I16)')offset_temp
     ! Offsets
-    Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
     WRITE(Offset_stamp,'(I16)')offset_temp
     ! Elem types
-    Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="types" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+    ! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
+    Buffer=TRIM('      </Cells>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    </Piece>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('  </UnstructuredGrid>'//lf);WRITE(300) Buffer
     ! Prepare append section
-    Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <AppendedData encoding="raw">'//lf);WRITE(300) Buffer
     ! Write leading data underscore
-    Buffer='_';WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('_');WRITE(300) Buffer
 	Bytes = size_of_real
 	close(300)
 
@@ -15199,8 +15199,8 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 if (n.eq.0)then
 OPEN(300,FILE=FILEX,ACCESS='STREAM',position='APPEND')
   lf = char(10)
-  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
-  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer=TRIM(lf//'  </AppendedData>'//lf);WRITE(300) Buffer
+  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
   CLOSE(300)
 end if
 
@@ -15328,64 +15328,64 @@ if (n.eq.0)then
    ! Write file name
     OPEN(300,FILE=VTU,ACCESS='STREAM')
     ! Write header
-    Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf);WRITE(300) Buffer
     ! Write unstructured grid type
-    Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <UnstructuredGrid>'//lf);WRITE(300) Buffer
     ! Write solution time type
-    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
 	 offset_temp=0
      WRITE(Offset_stamp,'(I16)')offset_temp
-    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+	Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
     ! Specify field pieces
     WRITE(tempstamp1,'(I16)')imaxn
     WRITE(tempstamp2,'(I16)')imaxe
-    Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
-           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf);WRITE(300) Buffer
     ! Specify point data
-    Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     <PointData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     </PointData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     <CellData>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+size_of_real
     WRITE(Offset_stamp,'(I16)')offset_temp
     DO i=1,write_variables_AV
-      Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV(i))//'" '// &
-                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+      Buffer=TRIM('        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV(i))//'" '// &
+                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
       offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
       WRITE(Offset_stamp,'(I16)')offset_temp
     END DO
-    Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     </CellData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     <Points>'//lf);WRITE(300)Buffer
+    Buffer=TRIM('        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+    ! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
     WRITE(Offset_stamp,'(I16)')offset_temp
-    Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     </Points>'//lf);WRITE(300) Buffer
     ! Specify necessary cell data
-    Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('      <Cells>'//lf);WRITE(300) Buffer
     ! Connectivity
-    Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+TYP_COUNTN_GLOBAL*size_of_int
     WRITE(Offset_stamp,'(I16)')offset_temp
     ! Offsets
-    Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
     WRITE(Offset_stamp,'(I16)')offset_temp
     ! Elem types
-    Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="types" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+    ! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
+    Buffer=TRIM('      </Cells>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    </Piece>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('  </UnstructuredGrid>'//lf);WRITE(300) Buffer
     ! Prepare append section
-    Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <AppendedData encoding="raw">'//lf);WRITE(300) Buffer
     ! Write leading data underscore
-    Buffer='_';WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('_');WRITE(300) Buffer
 	Bytes = size_of_real
 	close(300)
 
@@ -15543,8 +15543,8 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 if (n.eq.0)then
 OPEN(300,FILE=FILEX,ACCESS='STREAM',position='APPEND')
   lf = char(10)
-  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
-  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer=TRIM(lf//'  </AppendedData>'//lf);WRITE(300) Buffer
+  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
   CLOSE(300)
 end if
 
@@ -15692,64 +15692,64 @@ temp_imaxn=kmaxn
    ! Write file name
     OPEN(300,FILE=VTU,ACCESS='STREAM')
     ! Write header
-    Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf);WRITE(300) Buffer
     ! Write unstructured grid type
-    Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <UnstructuredGrid>'//lf);WRITE(300) Buffer
     ! Write solution time type
-    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
 	 offset_temp=0
      WRITE(Offset_stamp,'(I16)')offset_temp
-    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+	Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
     ! Specify field pieces
     WRITE(tempstamp1,'(I16)')kmaxn
     WRITE(tempstamp2,'(I16)')kmaxe
-    Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
-           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf);WRITE(300) Buffer
     ! Specify point data
-    Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     <PointData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     </PointData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     <CellData>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+size_of_real
     WRITE(Offset_stamp,'(I16)')offset_temp
     DO i=1,WRITE_VARIABLES
-      Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names(i))//'" '// &
-                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+      Buffer=TRIM('        <DataArray type="Float64" Name="'//TRIM(Variable_names(i))//'" '// &
+                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
       offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
       WRITE(Offset_stamp,'(I16)')offset_temp
     END DO
-    Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     </CellData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     <Points>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+    ! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
     WRITE(Offset_stamp,'(I16)')offset_temp
-    Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     </Points>'//lf);WRITE(300) Buffer
     ! Specify necessary cell data
-    Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('      <Cells>'//lf);WRITE(300) Buffer
     ! Connectivity
-    Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+(TYP_COUNTN)*size_of_int
     WRITE(Offset_stamp,'(I16)')offset_temp
     ! Offsets
-    Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
     WRITE(Offset_stamp,'(I16)')offset_temp
     ! Elem types
-    Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="types" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+    ! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
+    Buffer=TRIM('      </Cells>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    </Piece>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('  </UnstructuredGrid>'//lf);WRITE(300) Buffer
     ! Prepare append section
-    Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <AppendedData encoding="raw">'//lf);WRITE(300) Buffer
     ! Write leading data underscore
-    Buffer='_';WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('_');WRITE(300) Buffer
 	Bytes = size_of_real
 
 
@@ -15801,8 +15801,8 @@ temp_imaxn=kmaxn
 				!end write nodes now!
 
   lf = char(10)
-  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
-  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer=TRIM(lf//'  </AppendedData>'//lf);WRITE(300) Buffer
+  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
   CLOSE(300)
 
 
@@ -15829,42 +15829,42 @@ temp_imaxn=kmaxn
    ! Write file name
     OPEN(300,FILE=VTU,ACCESS='STREAM')
     ! Write header
-    Buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf);WRITE(300) Buffer
     ! Write unstructured grid type
-    Buffer='  <PUnstructuredGrid GhostLevel="0">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <PUnstructuredGrid GhostLevel="0">'//lf);WRITE(300) Buffer
     ! Write solution time type
-    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf;WRITE(300) TRIM(Buffer)
-!     Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf);WRITE(300) Buffer
+!     Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) Buffer
     WRITE(tempstamp1,'(F17.9)')T
-     Buffer='        '//TRIM(ADJUSTL(tempstamp1))//lf;WRITE(300) TRIM(Buffer)
-	Buffer='      </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        '//TRIM(ADJUSTL(tempstamp1))//lf);WRITE(300) Buffer
+	Buffer=TRIM('      </DataArray>'//lf);WRITE(300) Buffer
+	Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
     ! Specify point data
-    Buffer='    <PCellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <PCellData>'//lf);WRITE(300) Buffer
     DO i=1,WRITE_VARIABLES
-      Buffer='        <PDataArray type="Float64" Name="'//TRIM(Variable_names(i))//'" '// &
-                       'format="appended"/>'//lf;WRITE(300) TRIM(Buffer)
+      Buffer=TRIM('        <PDataArray type="Float64" Name="'//TRIM(Variable_names(i))//'" '// &
+                       'format="appended"/>'//lf);WRITE(300) Buffer
       offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
     END DO
-	Buffer='    </PCellData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    <PPoints>'//lf;WRITE(300) TRIM(Buffer)
+	Buffer=TRIM('    </PCellData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    <PPoints>'//lf);WRITE(300) Buffer
 
-     Buffer='        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    </PPoints>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    <PCells>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='        <PDataArray type="Int32" Name="connectivity"/>'//lf;WRITE(300) TRIM(Buffer)
-     Buffer='        <PDataArray type="Int32" Name="offsets"/>'//lf;WRITE(300) TRIM(Buffer)
-     Buffer='        <PDataArray type="Int32" Name="types"/>'//lf;WRITE(300) TRIM(Buffer)
-     Buffer='    </PCells>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer=TRIM('        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    </PPoints>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    <PCells>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('        <PDataArray type="Int32" Name="connectivity"/>'//lf);WRITE(300) Buffer
+     Buffer=TRIM('        <PDataArray type="Int32" Name="offsets"/>'//lf);WRITE(300) Buffer
+     Buffer=TRIM('        <PDataArray type="Int32" Name="types"/>'//lf);WRITE(300) Buffer
+     Buffer=TRIM('    </PCells>'//lf);WRITE(300) Buffer
    DO procx=0,isize-1
 
 				WRITE(PROC6,FMT='(I10)') IT
 				WRITE(PROC7,FMT='(I10)') PROCX
-		Buffer='    <Piece Source="OUT_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('    <Piece Source="OUT_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf);WRITE(300) Buffer
    end do
-  Buffer='  </PUnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
-  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer=TRIM('  </PUnstructuredGrid>'//lf);WRITE(300) Buffer
+  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
   CLOSE(300)
 
 
@@ -16047,64 +16047,64 @@ temp_imaxn=kmaxn
    ! Write file name
     OPEN(300,FILE=VTU,ACCESS='STREAM')
     ! Write header
-    Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf);WRITE(300) Buffer
     ! Write unstructured grid type
-    Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <UnstructuredGrid>'//lf);WRITE(300) Buffer
     ! Write solution time type
-    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
 	 offset_temp=0
      WRITE(Offset_stamp,'(I16)')offset_temp
-    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+	Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
     ! Specify field pieces
     WRITE(tempstamp1,'(I16)')kmaxn
     WRITE(tempstamp2,'(I16)')iloopx
-    Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
-           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf);WRITE(300) Buffer
     ! Specify point data
-    Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     <PointData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     </PointData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     <CellData>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+size_of_real
     WRITE(Offset_stamp,'(I16)')offset_temp
     DO i=1,WRITE_VARIABLES_W
-      Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_W(i))//'" '// &
-                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+      Buffer=TRIM('        <DataArray type="Float64" Name="'//TRIM(Variable_names_W(i))//'" '// &
+                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
       offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
       WRITE(Offset_stamp,'(I16)')offset_temp
     END DO
-    Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     </CellData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     <Points>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+    ! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
     WRITE(Offset_stamp,'(I16)')offset_temp
-    Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     </Points>'//lf);WRITE(300) Buffer
     ! Specify necessary cell data
-    Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('      <Cells>'//lf);WRITE(300) Buffer
     ! Connectivity
-    Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+(TYP_COUNTN_w)*size_of_int
     WRITE(Offset_stamp,'(I16)')offset_temp
     ! Offsets
-    Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
     WRITE(Offset_stamp,'(I16)')offset_temp
     ! Elem types
-    Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="types" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+    ! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
+    Buffer=TRIM('      </Cells>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    </Piece>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('  </UnstructuredGrid>'//lf);WRITE(300) Buffer
     ! Prepare append section
-    Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <AppendedData encoding="raw">'//lf);WRITE(300) Buffer
     ! Write leading data underscore
-    Buffer='_';WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('_');WRITE(300) Buffer
 	Bytes = size_of_real
 
 
@@ -16157,8 +16157,8 @@ temp_imaxn=kmaxn
 				!end write nodes now!
 
   lf = char(10)
-  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
-  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer=TRIM(lf//'  </AppendedData>'//lf);WRITE(300) Buffer
+  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
   CLOSE(300)
 
 
@@ -16189,43 +16189,43 @@ end if
    ! Write file name
     OPEN(300,FILE=VTU,ACCESS='STREAM')
     ! Write header
-    Buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf);WRITE(300) Buffer
     ! Write unstructured grid type
-    Buffer='  <PUnstructuredGrid GhostLevel="0">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <PUnstructuredGrid GhostLevel="0">'//lf);WRITE(300) Buffer
     ! Write solution time type
-    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf;WRITE(300) TRIM(Buffer)
-!     Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf);WRITE(300) Buffer
+!     Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) Buffer
     WRITE(tempstamp1,'(F17.9)')T
-     Buffer='        '//TRIM(ADJUSTL(tempstamp1))//lf;WRITE(300) TRIM(Buffer)
-	Buffer='      </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer=TRIM('        '//TRIM(ADJUSTL(tempstamp1))//lf);WRITE(300) Buffer
+	Buffer=TRIM('      </DataArray>'//lf);WRITE(300) Buffer
+	Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
     ! Specify point data
-    Buffer='    <PCellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <PCellData>'//lf);WRITE(300) Buffer
     DO i=1,WRITE_VARIABLES_W
-      Buffer='        <PDataArray type="Float64" Name="'//TRIM(Variable_names_W(i))//'" '// &
-                       'format="appended"/>'//lf;WRITE(300) TRIM(Buffer)
+      Buffer=TRIM('        <PDataArray type="Float64" Name="'//TRIM(Variable_names_W(i))//'" '// &
+                       'format="appended"/>'//lf);WRITE(300) Buffer
       offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
     END DO
-	Buffer='    </PCellData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    <PPoints>'//lf;WRITE(300) TRIM(Buffer)
+	Buffer=TRIM('    </PCellData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    <PPoints>'//lf);WRITE(300) Buffer
 
-     Buffer='        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    </PPoints>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    <PCells>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='        <PDataArray type="Int32" Name="connectivity"/>'//lf;WRITE(300) TRIM(Buffer)
-     Buffer='        <PDataArray type="Int32" Name="offsets"/>'//lf;WRITE(300) TRIM(Buffer)
-     Buffer='        <PDataArray type="Int32" Name="types"/>'//lf;WRITE(300) TRIM(Buffer)
-     Buffer='    </PCells>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer=TRIM('        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    </PPoints>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    <PCells>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('        <PDataArray type="Int32" Name="connectivity"/>'//lf);WRITE(300) Buffer
+     Buffer=TRIM('        <PDataArray type="Int32" Name="offsets"/>'//lf);WRITE(300) Buffer
+     Buffer=TRIM('        <PDataArray type="Int32" Name="types"/>'//lf);WRITE(300) Buffer
+     Buffer=TRIM('    </PCells>'//lf);WRITE(300) Buffer
    DO procx=0,isize-1
 				if (wallcount_cpu_G(procx).gt.0)then
 				WRITE(PROC6,FMT='(I10)') IT
 				WRITE(PROC7,FMT='(I10)') PROCX
-		Buffer='    <Piece Source="SURF_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('    <Piece Source="SURF_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf);WRITE(300) Buffer
 				end if
    end do
-  Buffer='  </PUnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
-  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer=TRIM('  </PUnstructuredGrid>'//lf);WRITE(300) Buffer
+  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
   CLOSE(300)
 
 
@@ -16417,64 +16417,64 @@ temp_imaxn=kmaxn
    ! Write file name
     OPEN(300,FILE=VTU,ACCESS='STREAM')
     ! Write header
-    Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf);WRITE(300) Buffer
     ! Write unstructured grid type
-    Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <UnstructuredGrid>'//lf);WRITE(300) Buffer
     ! Write solution time type
-    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
 	 offset_temp=0
      WRITE(Offset_stamp,'(I16)')offset_temp
-    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+	Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
     ! Specify field pieces
     WRITE(tempstamp1,'(I16)')kmaxn
     WRITE(tempstamp2,'(I16)')iloopx
-    Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
-           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+           &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf);WRITE(300) Buffer
     ! Specify point data
-    Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     <PointData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     </PointData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     <CellData>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+size_of_real
     WRITE(Offset_stamp,'(I16)')offset_temp
     DO i=1,WRITE_VARIABLES_Av_w
-      Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV_w(i))//'" '// &
-                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+      Buffer=TRIM('        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV_w(i))//'" '// &
+                       'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
       offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
       WRITE(Offset_stamp,'(I16)')offset_temp
     END DO
-    Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     </CellData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('     <Points>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+    ! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
     WRITE(Offset_stamp,'(I16)')offset_temp
-    Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('     </Points>'//lf);WRITE(300) Buffer
     ! Specify necessary cell data
-    Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('      <Cells>'//lf);WRITE(300) Buffer
     ! Connectivity
-    Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+(TYP_COUNTN_w)*size_of_int
     WRITE(Offset_stamp,'(I16)')offset_temp
     ! Offsets
-    Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
     offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
     WRITE(Offset_stamp,'(I16)')offset_temp
     ! Elem types
-    Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
-                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-    ! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('        <DataArray type="Int32" Name="types" format="appended" '// &
+                     'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+    ! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
+    Buffer=TRIM('      </Cells>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    </Piece>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('  </UnstructuredGrid>'//lf);WRITE(300) Buffer
     ! Prepare append section
-    Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <AppendedData encoding="raw">'//lf);WRITE(300) Buffer
     ! Write leading data underscore
-    Buffer='_';WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('_');WRITE(300) Buffer
 	Bytes = size_of_real
 
 
@@ -16527,8 +16527,8 @@ temp_imaxn=kmaxn
 				!end write nodes now!
 
   lf = char(10)
-  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
-  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer=TRIM(lf//'  </AppendedData>'//lf);WRITE(300) Buffer
+  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
   CLOSE(300)
 
 
@@ -16559,43 +16559,43 @@ end if
    ! Write file name
     OPEN(300,FILE=VTU,ACCESS='STREAM')
     ! Write header
-    Buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf);WRITE(300) Buffer
     ! Write unstructured grid type
-    Buffer='  <PUnstructuredGrid GhostLevel="0">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('  <PUnstructuredGrid GhostLevel="0">'//lf);WRITE(300) Buffer
     ! Write solution time type
-    Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf;WRITE(300) TRIM(Buffer)
-!     Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf);WRITE(300) Buffer
+!     Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) Buffer
     WRITE(tempstamp1,'(F17.9)')T
-     Buffer='        '//TRIM(ADJUSTL(tempstamp1))//lf;WRITE(300) TRIM(Buffer)
-	Buffer='      </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-	Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer=TRIM('        '//TRIM(ADJUSTL(tempstamp1))//lf);WRITE(300) Buffer
+	Buffer=TRIM('      </DataArray>'//lf);WRITE(300) Buffer
+	Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
     ! Specify point data
-    Buffer='    <PCellData>'//lf;WRITE(300) TRIM(Buffer)
+    Buffer=TRIM('    <PCellData>'//lf);WRITE(300) Buffer
     DO i=1,WRITE_VARIABLES_Av_w
-      Buffer='        <PDataArray type="Float64" Name="'//TRIM(Variable_names_AV_w(i))//'" '// &
-                       'format="appended"/>'//lf;WRITE(300) TRIM(Buffer)
+      Buffer=TRIM('        <PDataArray type="Float64" Name="'//TRIM(Variable_names_AV_w(i))//'" '// &
+                       'format="appended"/>'//lf);WRITE(300) Buffer
       offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
     END DO
-	Buffer='    </PCellData>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    <PPoints>'//lf;WRITE(300) TRIM(Buffer)
+	Buffer=TRIM('    </PCellData>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    <PPoints>'//lf);WRITE(300) Buffer
 
-     Buffer='        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    </PPoints>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='    <PCells>'//lf;WRITE(300) TRIM(Buffer)
-    Buffer='        <PDataArray type="Int32" Name="connectivity"/>'//lf;WRITE(300) TRIM(Buffer)
-     Buffer='        <PDataArray type="Int32" Name="offsets"/>'//lf;WRITE(300) TRIM(Buffer)
-     Buffer='        <PDataArray type="Int32" Name="types"/>'//lf;WRITE(300) TRIM(Buffer)
-     Buffer='    </PCells>'//lf;WRITE(300) TRIM(Buffer)
+     Buffer=TRIM('        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    </PPoints>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('    <PCells>'//lf);WRITE(300) Buffer
+    Buffer=TRIM('        <PDataArray type="Int32" Name="connectivity"/>'//lf);WRITE(300) Buffer
+     Buffer=TRIM('        <PDataArray type="Int32" Name="offsets"/>'//lf);WRITE(300) Buffer
+     Buffer=TRIM('        <PDataArray type="Int32" Name="types"/>'//lf);WRITE(300) Buffer
+     Buffer=TRIM('    </PCells>'//lf);WRITE(300) Buffer
    DO procx=0,isize-1
 				if (wallcount_cpu_G(procx).gt.0)then
 				WRITE(PROC6,FMT='(I10)') IT
 				WRITE(PROC7,FMT='(I10)') PROCX
-		Buffer='    <Piece Source="SURF_AV_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('    <Piece Source="SURF_AV_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf);WRITE(300) Buffer
 				end if
    end do
-  Buffer='  </PUnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
-  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+  Buffer=TRIM('  </PUnstructuredGrid>'//lf);WRITE(300) Buffer
+  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
   CLOSE(300)
 
 
@@ -16724,64 +16724,64 @@ real::MP_PINFR,gammaR
 	   ! Write file name
 		OPEN(300,FILE=VTU,ACCESS='STREAM')
 		! Write header
-		Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf);WRITE(300) Buffer
 		! Write unstructured grid type
-		Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('  <UnstructuredGrid>'//lf);WRITE(300) Buffer
 		! Write solution time type
-		Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
 		 offset_temp=0
 		 WRITE(Offset_stamp,'(I16)')offset_temp
-		Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
 		! Specify field pieces
 		WRITE(tempstamp1,'(I16)')kmaxn
 		WRITE(tempstamp2,'(I16)')kmaxe
-		Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
-			   &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+			   &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf);WRITE(300) Buffer
 		! Specify point data
-		Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('     <PointData>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('     </PointData>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('     <CellData>'//lf);WRITE(300) Buffer
 		offset_temp=offset_temp+size_of_int+size_of_real
 		WRITE(Offset_stamp,'(I16)')offset_temp
 		DO i=1,WRITE_VARIABLES_av
-		  Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV(i))//'" '// &
-						   'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		  Buffer=TRIM('        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV(i))//'" '// &
+						   'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
 		  offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
 		  WRITE(Offset_stamp,'(I16)')offset_temp
 		END DO
-		Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-		! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('     </CellData>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('     <Points>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+		! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
 		offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
 		WRITE(Offset_stamp,'(I16)')offset_temp
-		Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('     </Points>'//lf);WRITE(300) Buffer
 		! Specify necessary cell data
-		Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('      <Cells>'//lf);WRITE(300) Buffer
 		! Connectivity
-		Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
 		offset_temp=offset_temp+size_of_int+(TYP_COUNTN)*size_of_int
 		WRITE(Offset_stamp,'(I16)')offset_temp
 		! Offsets
-		Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
-						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
 		offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
 		WRITE(Offset_stamp,'(I16)')offset_temp
 		! Elem types
-		Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
-						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-		! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('        <DataArray type="Int32" Name="types" format="appended" '// &
+						 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+		! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
+		Buffer=TRIM('      </Cells>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('    </Piece>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('  </UnstructuredGrid>'//lf);WRITE(300) Buffer
 		! Prepare append section
-		Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('  <AppendedData encoding="raw">'//lf);WRITE(300) Buffer
 		! Write leading data underscore
-		Buffer='_';WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('_');WRITE(300) Buffer
 		Bytes = size_of_real
 	
 	
@@ -16833,8 +16833,8 @@ real::MP_PINFR,gammaR
 					!end write nodes now!
 	
 	  lf = char(10)
-	  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
-	  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+	  Buffer=TRIM(lf//'  </AppendedData>'//lf);WRITE(300) Buffer
+	  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
 	  CLOSE(300)
 	
 	
@@ -16861,42 +16861,42 @@ real::MP_PINFR,gammaR
 	   ! Write file name
 		OPEN(300,FILE=VTU,ACCESS='STREAM')
 		! Write header
-		Buffer='<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf);WRITE(300) Buffer
 		! Write unstructured grid type
-		Buffer='  <PUnstructuredGrid GhostLevel="0">'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('  <PUnstructuredGrid GhostLevel="0">'//lf);WRITE(300) Buffer
 		! Write solution time type
-		Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf;WRITE(300) TRIM(Buffer)
-	!     Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf);WRITE(300) Buffer
+	!     Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;WRITE(300) Buffer
 		WRITE(tempstamp1,'(F17.9)')T
-		 Buffer='        '//TRIM(ADJUSTL(tempstamp1))//lf;WRITE(300) TRIM(Buffer)
-		Buffer='      </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+		 Buffer=TRIM('        '//TRIM(ADJUSTL(tempstamp1))//lf);WRITE(300) Buffer
+		Buffer=TRIM('      </DataArray>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
 		! Specify point data
-		Buffer='    <PCellData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('    <PCellData>'//lf);WRITE(300) Buffer
 		DO i=1,WRITE_VARIABLES_AV
-		  Buffer='        <PDataArray type="Float64" Name="'//TRIM(Variable_names_AV(i))//'" '// &
-						   'format="appended"/>'//lf;WRITE(300) TRIM(Buffer)
+		  Buffer=TRIM('        <PDataArray type="Float64" Name="'//TRIM(Variable_names_AV(i))//'" '// &
+						   'format="appended"/>'//lf);WRITE(300) Buffer
 		  offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
 		END DO
-		Buffer='    </PCellData>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='    <PPoints>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer=TRIM('    </PCellData>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('    <PPoints>'//lf);WRITE(300) Buffer
 	
-		 Buffer='        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='    </PPoints>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='    <PCells>'//lf;WRITE(300) TRIM(Buffer)
-		Buffer='        <PDataArray type="Int32" Name="connectivity"/>'//lf;WRITE(300) TRIM(Buffer)
-		 Buffer='        <PDataArray type="Int32" Name="offsets"/>'//lf;WRITE(300) TRIM(Buffer)
-		 Buffer='        <PDataArray type="Int32" Name="types"/>'//lf;WRITE(300) TRIM(Buffer)
-		 Buffer='    </PCells>'//lf;WRITE(300) TRIM(Buffer)
+		 Buffer=TRIM('        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('    </PPoints>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('    <PCells>'//lf);WRITE(300) Buffer
+		Buffer=TRIM('        <PDataArray type="Int32" Name="connectivity"/>'//lf);WRITE(300) Buffer
+		 Buffer=TRIM('        <PDataArray type="Int32" Name="offsets"/>'//lf);WRITE(300) Buffer
+		 Buffer=TRIM('        <PDataArray type="Int32" Name="types"/>'//lf);WRITE(300) Buffer
+		 Buffer=TRIM('    </PCells>'//lf);WRITE(300) Buffer
 	   DO procx=0,isize-1
 	
 					WRITE(PROC6,FMT='(I10)') IT
 					WRITE(PROC7,FMT='(I10)') PROCX
-			Buffer='    <Piece Source="VOL_AVER_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('    <Piece Source="VOL_AVER_'//TRIM(ADJUSTL(PROC6))//"_"//TRIM(ADJUSTL(PROC7))//'.vtu"/>'//lf);WRITE(300) Buffer
 	   end do
-	  Buffer='  </PUnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
-	  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+	  Buffer=TRIM('  </PUnstructuredGrid>'//lf);WRITE(300) Buffer
+	  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
 	  CLOSE(300)
 	
 	
@@ -17099,64 +17099,64 @@ integer::iconsidered,facex
 		   ! Write file name
 			OPEN(300,FILE=VTU,ACCESS='STREAM')
 			! Write header
-			Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf);WRITE(300) Buffer
 			! Write unstructured grid type
-			Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('  <UnstructuredGrid>'//lf);WRITE(300) Buffer
 			! Write solution time type
-			Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
 			 offset_temp=0
 			 WRITE(Offset_stamp,'(I16)')offset_temp
-			Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
 			! Specify field pieces
 			WRITE(tempstamp1,'(I16)')temp_imaxn
 			WRITE(tempstamp2,'(I16)')temp_imaxe
-			Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
-				   &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+				   &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf);WRITE(300) Buffer
 			! Specify point data
-			Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('     <PointData>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('     </PointData>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('     <CellData>'//lf);WRITE(300) Buffer
 			offset_temp=offset_temp+size_of_int+size_of_real
 			WRITE(Offset_stamp,'(I16)')offset_temp
 			DO i=1,WRITE_VARIABLES_W
-			  Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_W(i))//'" '// &
-							   'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			  Buffer=TRIM('        <DataArray type="Float64" Name="'//TRIM(Variable_names_W(i))//'" '// &
+							   'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
 			  offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
 			  WRITE(Offset_stamp,'(I16)')offset_temp
 			END DO
-			Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('     </CellData>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('     <Points>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+			! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
 			offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
 			WRITE(Offset_stamp,'(I16)')offset_temp
-			Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('     </Points>'//lf);WRITE(300) Buffer
 			! Specify necessary cell data
-			Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('      <Cells>'//lf);WRITE(300) Buffer
 			! Connectivity
-			Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
 			offset_temp=offset_temp+size_of_int+TYP_COUNTN_GLOBAL_W*size_of_int
 			WRITE(Offset_stamp,'(I16)')offset_temp
 			! Offsets
-			Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
 			offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
 			WRITE(Offset_stamp,'(I16)')offset_temp
 			! Elem types
-			Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('        <DataArray type="Int32" Name="types" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+			! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
+			Buffer=TRIM('      </Cells>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('    </Piece>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('  </UnstructuredGrid>'//lf);WRITE(300) Buffer
 			! Prepare append section
-			Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('  <AppendedData encoding="raw">'//lf);WRITE(300) Buffer
 			! Write leading data underscore
-			Buffer='_';WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('_');WRITE(300) Buffer
 			Bytes = size_of_real
 			close(300)
 		
@@ -17332,8 +17332,8 @@ integer::iconsidered,facex
 		if (n.eq.0)then
 		OPEN(300,FILE=FILEX,ACCESS='STREAM',position='APPEND')
 		  lf = char(10)
-		  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
-		  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+		  Buffer=TRIM(lf//'  </AppendedData>'//lf);WRITE(300) Buffer
+		  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
 		  CLOSE(300)
 		end if
 		
@@ -17518,64 +17518,64 @@ integer::iconsidered,facex
 		   ! Write file name
 			OPEN(300,FILE=VTU,ACCESS='STREAM')
 			! Write header
-			Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf);WRITE(300) Buffer
 			! Write unstructured grid type
-			Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('  <UnstructuredGrid>'//lf);WRITE(300) Buffer
 			! Write solution time type
-			Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('    <FieldData>'//lf);WRITE(300) Buffer
 			 offset_temp=0
 			 WRITE(Offset_stamp,'(I16)')offset_temp
-			Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('    </FieldData>'//lf);WRITE(300) Buffer
 			! Specify field pieces
 			WRITE(tempstamp1,'(I16)')temp_imaxn
 			WRITE(tempstamp2,'(I16)')temp_imaxe
-			Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
-				   &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+				   &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf);WRITE(300) Buffer
 			! Specify point data
-			Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('     <PointData>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('     </PointData>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('     <CellData>'//lf);WRITE(300) Buffer
 			offset_temp=offset_temp+size_of_int+size_of_real
 			WRITE(Offset_stamp,'(I16)')offset_temp
 			DO i=1,WRITE_VARIABLES_Av_w
-			  Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV_w(i))//'" '// &
-							   'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			  Buffer=TRIM('        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV_w(i))//'" '// &
+							   'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
 			  offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
 			  WRITE(Offset_stamp,'(I16)')offset_temp
 			END DO
-			Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('     </CellData>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('     <Points>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+			! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
 			offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
 			WRITE(Offset_stamp,'(I16)')offset_temp
-			Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('     </Points>'//lf);WRITE(300) Buffer
 			! Specify necessary cell data
-			Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('      <Cells>'//lf);WRITE(300) Buffer
 			! Connectivity
-			Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
 			offset_temp=offset_temp+size_of_int+TYP_COUNTN_GLOBAL_W*size_of_int
 			WRITE(Offset_stamp,'(I16)')offset_temp
 			! Offsets
-			Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
 			offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
 			WRITE(Offset_stamp,'(I16)')offset_temp
 			! Elem types
-			Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('        <DataArray type="Int32" Name="types" format="appended" '// &
+							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf);WRITE(300) Buffer
+			! Buffer=TRIM('        </DataArray>'//lf;WRITE(300) Buffer
+			Buffer=TRIM('      </Cells>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('    </Piece>'//lf);WRITE(300) Buffer
+			Buffer=TRIM('  </UnstructuredGrid>'//lf);WRITE(300) Buffer
 			! Prepare append section
-			Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('  <AppendedData encoding="raw">'//lf);WRITE(300) Buffer
 			! Write leading data underscore
-			Buffer='_';WRITE(300) TRIM(Buffer)
+			Buffer=TRIM('_');WRITE(300) Buffer
 			Bytes = size_of_real
 			close(300)
 
@@ -17751,8 +17751,8 @@ integer::iconsidered,facex
 		if (n.eq.0)then
 		OPEN(300,FILE=FILEX,ACCESS='STREAM',position='APPEND')
 		  lf = char(10)
-		  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
-		  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+		  Buffer=TRIM(lf//'  </AppendedData>'//lf);WRITE(300) Buffer
+		  Buffer=TRIM('</VTKFile>'//lf);WRITE(300) Buffer
 		  CLOSE(300)
 		end if
 
