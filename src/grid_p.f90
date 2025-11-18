@@ -1876,7 +1876,7 @@ REAL::DELTA,CPUER
 	
 	
 ! 	if (itestcase.eq.4)then
-	allocate(ielem(n,i)%vortex(3)); ielem(n,i)%vortex=zero
+	allocate(ielem(n,i)%vortex(4)); ielem(n,i)%vortex=zero
 	ALLOCATE(IELEM(N,I)%AVARS(NOF_VARIABLES));
 ! 	end if
 	
@@ -6508,7 +6508,7 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
                             end if
                             
                             else
-                            IF (IELEM(N,I)%ADMIS.Gt.3)THEN
+                            IF (IELEM(N,I)%ADMIS.GE.ielem(n,i)%ifca+1)THEN
                             IELEM(N,I)%FULL=1
                             END IF
                             
@@ -6527,7 +6527,7 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
                             end if
                             
                             else
-                            IF (IELEM(N,I)%ADMIS.eq.ielem(n,i)%ifca+1)THEN
+                            IF (IELEM(N,I)%ADMIS.GE.ielem(n,i)%ifca+1)THEN
                             IELEM(N,I)%FULL=1
                             END IF
                             
@@ -6848,6 +6848,9 @@ SUBROUTINE ADAPT_CRITERION
 	INTEGER::KMAXE,I,FC
 	real::xmin_ad,xmax_ad
 	  KMAXE=XMPIELRANK(N)
+
+          XMax_AD=-TOLbig
+          XMin_AD=TOLBIG
 
 	  if (initcond.eq.405)then
 	  xmin_ad=-0.2d0

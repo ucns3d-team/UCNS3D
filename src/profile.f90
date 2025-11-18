@@ -132,7 +132,7 @@ INTEGER,INTENT(IN)::N
 real,dimension(1:nof_Variables+turbulenceequations+passivescalar),intent(inout)::veccos
 real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
 REAL,DIMENSION(1:NOF_SPECIES)::MP_R,MP_A,MP_IE
-REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL
+REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,xin,yin,zin
 integer::u_cond1,u_cond2,u_cond3,u_cond4
 
 
@@ -251,22 +251,26 @@ end if
 
 
 IF (INITCOND.EQ.95)THEN	!TAYLOR GREEN INITIAL PROFILE
- if(boundtype.eq.1)then
+xin=pox(1)-pi
+yin=poy(1)-pi
+zin=poz(1)-pi
+       
+        if(boundtype.eq.1)then
 R1=1.0D0
 W1=0.0D0
-P1=100.0D0+((R1/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
-u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
-v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
+P1=100.0D0+((R1/16.0D0)*((COS(2.0D0*zin))+2.0d0)*((COS(2.0D0*xin))+(COS(2.0D0*yin))))
+u1=sin(xin)*COS(yin)*COS(zin)
+v1=-COS(xin)*SIN(yin)*COS(zin)
 
 
 
 else
 
 W1=0.0D0
-P1=(1.0d0/(gamma*1.25*1.25))+((1.0d0/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
+P1=(1.0d0/(gamma*1.25*1.25))+((1.0d0/16.0D0)*((COS(2.0D0*zin))+2.0d0)*((COS(2.0D0*xin))+(COS(2.0D0*yin))))
 r1=(p1*(gamma*1.25*1.25))
-u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
-v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
+u1=sin(xin)*COS(yin)*COS(zin)
+v1=-COS(xin)*SIN(yin)*COS(zin)
 
 
 end if
@@ -939,7 +943,7 @@ IF (TURBULENCE.EQ.1)THEN
 
   IF (TURBULENCEMODEL.EQ.1)THEN
 
-  VECCOS(5)=VISC*TURBINIT/R1
+  VECCOS(5)=VISC*TURBINIT*r1
   END IF
   IF (TURBULENCEMODEL.EQ.2)THEN
  
