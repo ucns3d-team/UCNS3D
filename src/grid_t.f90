@@ -1121,25 +1121,25 @@ REAL::EDGEL,DIST
     
  	IELEM(N,I)%MINEDGE=(3.0D0*IELEM(N,I)%TOTVOLUME)/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
 	
-	DO L=1,IELEM(N,I)%IFCA
-	FACEX=L
-
-	 select case (ielem(n,I)%types_faces(facex))
-	      case(5)
-	      N_NODE=4
-	      case(6)
-	      N_NODE=3
-	      end select
-
-
-				  CALL coordinates_face_inner(N,I,facex,vext,NODES_LIST)
-				  
- 				  VEXT(2,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
-				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; VEXT(1,3)=IELEM(N,I)%ZZC
-				  DIST=DISTANCE3(N,VEXT)
-				  
-  				   !IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
- 	END DO
+! 	DO L=1,IELEM(N,I)%IFCA
+! 	FACEX=L
+!
+! 	 select case (ielem(n,I)%types_faces(facex))
+! 	      case(5)
+! 	      N_NODE=4
+! 	      case(6)
+! 	      N_NODE=3
+! 	      end select
+!
+!
+! 				  CALL coordinates_face_inner(N,I,facex,vext,NODES_LIST)
+!
+!  				  VEXT(2,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+! 				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; VEXT(1,3)=IELEM(N,I)%ZZC
+! 				  DIST=DISTANCE3(N,VEXT)
+!
+!   				   IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
+!  	END DO
 	
 
 
@@ -1166,20 +1166,20 @@ REAL::EDGEL,DIST
     
 	IELEM(N,I)%MINEDGE=(2.0D0*IELEM(N,I)%TOTVOLUME)/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
 	
-	DO L=1,IELEM(N,I)%IFCA
-	FACEX=L
-	N_NODE=2
-				  CALL coordinates_face_inner2D(N,I,facex,vext,NODES_LIST)
-				  
- 				  VEXT(2,1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
-				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; 
-				  DIST=DISTANCE2(N,VEXT)
-				  
-				  
-				  IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
-				  
-	
-	END DO
+! 	DO L=1,IELEM(N,I)%IFCA
+! 	FACEX=L
+! 	N_NODE=2
+! 				  CALL coordinates_face_inner2D(N,I,facex,vext,NODES_LIST)
+!
+!  				  VEXT(2,1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
+! 				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC;
+! 				  DIST=DISTANCE2(N,VEXT)
+!
+!
+! 				  IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
+!
+!
+! 	END DO
 	
 
 

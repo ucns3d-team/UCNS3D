@@ -385,8 +385,8 @@ SUBROUTINE READ_UCNS3D
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
 	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=1000	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=1000	! LIMIT VOLUME CELLS
+	GRIDAR1=100000	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=100000	! LIMIT VOLUME CELLS
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
@@ -713,6 +713,46 @@ SUBROUTINE READ_UCNS3D
 	 
 	 
 	 DES_model=0
+
+
+
+
+
+         CASE (777)  !robust
+
+        LOWMEMORY=0     !MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+        binio=1         !I/O (ASCII=0, BINARY=1)
+        LOWMEM=0        !GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+        reduce_comp=0   !QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+        turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
+!       icoupleturb=0   !COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+        ihybrid=0       !HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+        HYBRIDIST=0.0D0 !HYBRID DISTANCE
+        swirl=0         !swirling flow:0 deactivated, 1 activated
+        IADAPT=1        !ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+    if (initcond.eq.405)iadapt=1
+        ICOMPACT=0      !COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+        extf=3  !STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+        WEIGHT_LSQR=0   !WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+        guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+        FASTEST_Q=1     !STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+        relax=2         !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+        CFLMAX=30       !CFLMAX:TO BE USED WITH RAMPING
+        CFLRAMP=0       !CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+        emetis=6        !Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
+        itold=10000     !TOLERANCE=n_iterations
+        GRIDAR1=100000.0    ! 0       5.0    7.0  LIMIT ASPECT RATIO CELLS,
+        GRIDAR2=700000.0     ! LIMIT VOLUME CELLS
+        fastest=0       ! 0                             ||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+        lmach_style=0   !0                      ||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+        LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0        !LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+        fastmovie=0
+        if (iboundary.eq.1)then
+         LOWMEM=1
+         end if
+
+
+         DES_model=0
 	 
 	 
 	 CASE (91)  !robust WITH Matrix free LU-SGS
@@ -733,13 +773,13 @@ SUBROUTINE READ_UCNS3D
 	WEIGHT_LSQR=1	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
 	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=3		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+        relax=3	!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
 	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
 	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=7.0	! LIMIT VOLUME CELLS
+	GRIDAR1=10000.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=70000.0	! LIMIT VOLUME CELLS
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
@@ -965,13 +1005,13 @@ SUBROUTINE READ_UCNS3D
 	WEIGHT_LSQR=0	 !WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
 	guassianquadra=0 !GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	 !STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		 !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+        relax=2		 !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
 	CFLMAX=30	 !CFLMAX:TO BE USED WITH RAMPING
 	CFLRAMP=0	 !CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	 !Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
 	itold=10000	 !TOLERANCE=n_iterations
-	GRIDAR1=1000.0	 ! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=1000.0	 ! LIMIT VOLUME CELLS
+	GRIDAR1=1000000.0	 ! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=1000000.0	 ! LIMIT VOLUME CELLS
 	fastest=0	 ! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	 !0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	 !LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
@@ -1180,12 +1220,12 @@ SUBROUTINE READ_UCNS3D
 	  BETAAS=1.5d0
 	  SUTHER=0.412158681d0
 	  uvel=ufreestream
-          !if (uvel.lt.2.0)then
-          !r_gas=1.0
-          !else
+          if (uvel.lt.10.0)then
+          r_gas=1.0
+          else
                   r_gas=287.052874d0
 
-          !end if
+          end if
 	  
 	  if (initcond.eq.977)then
 	  uvel=0.0d0;vvel=0.0d0;

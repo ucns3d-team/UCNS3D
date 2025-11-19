@@ -17056,8 +17056,9 @@ integer::iconsidered,facex
 											CASE (2)
 											call SHEAR_y(ICONSIdered,facex,shear_temp)
 											CASE(3)
+                                                                                                
 											call SHEAR_z(ICONSIdered,facex,shear_temp)
-
+                                                                                        
 											case(4)
 
 											call heat_X(ICONSIdered,facex,shear_temp)

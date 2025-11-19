@@ -123,8 +123,16 @@ KMAXE=XMPIELRANK(N)
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
 		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
+                    
+
+
 		CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+                if (it.eq.0)then
+                        ielem(n,i)%vortex(4)=viscl(1)
+                end if 
+
+
+                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
                 
         IF (RFRAME.EQ.0) THEN
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
@@ -2994,7 +3002,7 @@ IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
   do k=1,turbulenceequations+passivescalar
   IF (ispal.eq.1)THEN
   IF (U_CT(I)%VAL(1,k)+IMPDU(I,4+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
+  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,4+k)
    END IF
    ELSE
    U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
@@ -4086,7 +4094,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
         call ARBITRARY_ORDER(N)
         call ENSTROPHY_CALC(N)
 
-
+        
       end if
       
      DO 
@@ -4171,7 +4179,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
                           IF (N.EQ.0)THEN
                           TOTV1=TOTK/((2.0*PI)**3)
                           TOTENS1=TOTENS/(((2.0*PI)**3))
-                          TOTENSx1=TOTENSx/((2.0*PI)**3)
+                          TOTENSx1=4.0*TOTENSx/(3.0*((2.0*PI)**3))
                               IF (it.eq.0)THEN
                               TAYLOR=TOTK
                               TAYLOR_ENS=TOTENS
@@ -4342,8 +4350,8 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 
  				IF (N.EQ.0)THEN
                           TOTV2=TOTK/((2.0*PI)**3)
-                          TOTENS2=TOTENS/((2.0*PI)**3)
-                          TOTENSx2=TOTENSx/((2.0*PI)**3)
+                          TOTENS2=TOTENS/(Reynolds*((2.0*PI)**3))
+                          TOTENSx2=4.0*TOTENSx/(3.0*Reynolds*((2.0*PI)**3))
                               IF (it.eq.0)THEN
                               TAYLOR=TOTK
                               TAYLOR_ENS=TOTENS
@@ -4361,7 +4369,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
                           if (boundtype.eq.1)then
                           WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS/TAYLOR_ENS
                           else
-                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS,TOTENSx
+                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTv2,-(TOTV2-TOTV1)/DT,TOTENS2,TOTENSx2
                           end if
                           END IF
                           CLOSE(73)

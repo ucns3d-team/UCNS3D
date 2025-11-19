@@ -964,9 +964,10 @@ I=ICONSIDERED
 					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
 					  END IF
 
-
-! 					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
-! 					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+                      IF (TURBULENCE.EQ.1)THEN
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+ 					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+ 					  END IF
 					END IF
 
 					IF (ILOCAL_RECON3(I)%MRF.EQ.1)THEN
@@ -1017,9 +1018,11 @@ IF (DG.EQ.1) THEN
 					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
 					  END IF
 
+                      IF (TURBULENCE.EQ.1)THEN
+                        cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+                        cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
 
-! 					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
-! 					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+                      END IF
 					END IF
 
 
@@ -1132,9 +1135,10 @@ I=ICONSIDERED
 					  RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,IELEM(N,I)%INEIGHN(L),NGP);
 				      RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,IELEM(N,I)%INEIGHN(L),NGP)
 						ELSE !FV
-							CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+                      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
 				      LCVGRAD(1,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,2,L,NGP);LCVGRAD(2,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,3,L,NGP);
 				      LCVGRAD(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,L,NGP)
+
 				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
 				      RCVGRAD(1,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,3,IELEM(N,I)%INEIGHN(L),NGP);
 				      RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,IELEM(N,I)%INEIGHN(L),NGP)
@@ -1564,6 +1568,10 @@ END IF
 				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
 				  				    end if
 
+
+
+
+
 								  END IF
 							ELSE
 
@@ -1827,6 +1835,11 @@ I=ICONSIDERED
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 
+								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+								    CTURBR(1:turbulenceequations+PASSIVESCALAR)=CTURBR(1:turbulenceequations+PASSIVESCALAR)
+
+								    END IF
+
 
 								  END IF
 							ELSE
@@ -1906,7 +1919,10 @@ I=ICONSIDERED
 							END IF
 					    END IF
 
-
+                         IF (TURBULENCE.EQ.1)THEN
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+ 					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+ 					  END IF
 
 
 
@@ -1921,7 +1937,7 @@ INTEGER,INTENT(IN)::ICONSIDERED, FACEX, POINTX,n
 INTEGER::I,L,NGP,N_nODE
 INTEGER,INTENT(INOUT)::B_CODE
 REAL,INTENT(INOUT)::ANGLE1,ANGLE2,NX,NY,NZ
-real,dimension(1:nof_variables),intent(inout)::cleft,cright,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT
+real,dimension(1:nof_Variables+turbulenceequations+PASSIVESCALAR),intent(inout)::cleft,cright,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT
 real,dimension(1:turbulenceequations+PASSIVESCALAR),intent(inout)::cturbl,cturbr
 real,dimension(1:nof_Variables),intent(inout)::leftv
 real,dimension(1:nof_Variables),intent(inout)::RIGHTv
@@ -2000,6 +2016,11 @@ IF (DG == 1) THEN
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
+                                    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+								    CTURBR(1:turbulenceequations+PASSIVESCALAR)=CTURBR(1:turbulenceequations+PASSIVESCALAR)
+
+								    END IF
+
 !
 				  				  	 IKAS=2
 
@@ -2079,6 +2100,10 @@ IF (DG == 1) THEN
 					    END IF
 
 
+                          IF (TURBULENCE.EQ.1)THEN
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+ 					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+ 					  END IF
 
 
 
