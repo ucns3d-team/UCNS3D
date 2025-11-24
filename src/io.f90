@@ -15199,7 +15199,7 @@ temp_cord=3
 											rARRAY_PART1(i,j)=ielem(n,i)%REDUCE!vortex(1)
 											end if
 										else
-											rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+											rARRAY_PART1(i,j)=ielem(n,i)%REDUCE
 										end if
                                         end if
                                         end if

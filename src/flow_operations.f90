@@ -5134,6 +5134,7 @@ SELECT CASE(B_CODE)
 			      
 			      
 			      else
+				 CRIGHT_ROT(:)=CLEFT_ROT(:)
          		      CRIGHT_ROT(1)=CLEFT_ROT(1)
 			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
 			      CRIGHT_ROT(3)=CLEFT_ROT(3)

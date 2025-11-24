@@ -3139,7 +3139,7 @@ IF (ITESTCASE.GE.3)THEN
 						
 
                                                     DO IEX=1,NOF_VARIABLES
-                                                           IF ((IEX.eq.1).or.(IEX.eq.DIMENSIONA+2)) then
+                                                           IF ((IEX.GE.2).AND.(IEX.LE.DIMENSIONA+1)) CYCLE
 
 
 
@@ -3149,7 +3149,7 @@ IF (ITESTCASE.GE.3)THEN
 															end if
 
 
-                                                            end if
+
 
 
 
@@ -3235,14 +3235,14 @@ IF (ITESTCASE.GE.3)THEN
 												CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 
                                                             DO IEX=1,NOF_VARIABLES
-                                                            IF ((IEX.eq.1).or.(IEX.eq.DIMENSIONA+2)) then
+                                                            IF ((IEX.EQ.1).OR.(IEX.EQ.DIMENSIONA+2)) THEN
 
 
                                                             IF (((ABS(LEFTV(IEX)-RIGHTV(IEX))).GE.(jump_cond*RIGHTV(IEX))))then
 																	REDUCE1=1
 																IELEM(N,I)%REDUCE=2
 															end if
-                                                            end if
+                                                            END IF
 
 
 
