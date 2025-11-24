@@ -84,6 +84,334 @@ end subroutine MRFSWITCH
 
 
 
+
+SUBROUTINE MULTISPECIES_MIXTURES_RG(LEFTV,MP_mu_mix,MP_ktr_mix,MP_kve,MP_D_eff,MP_HTR,MP_HVIB,GAMMAL)
+implicit none
+real,dimension(1:nof_Variables),intent(in)::leftv
+real,intent(inout)::MP_mu_mix,MP_ktr_mix,MP_kve,gammal
+real,dimension(1:nof_species),intent(inout)::MP_HTR,MP_HVIB,MP_D_eff
+real,dimension(1:nof_species)::RGS_htr_i, RGS_hvib_i
+real:: RGS_Ttr, RGS_Tv, RGS_P_pa, RGS_rho,RGS_mu_mix,MP_PINFl
+real, dimension(1:nof_SPECIES):: RGS_x, RGS_Y, RGS_Deff, RGS_mu_i, RGS_ktr_i
+real, dimension(1:nof_SPECIES,1:nof_SPECIES):: RGS_Dij
+real ::RGS_ktr_mix, RGS_kve
+real,dimension(1:nof_variables)::temp_vect1,temp_vect2,temp_vect3,temp_vect4
+integer::rg_i
+
+temp_vect1=leftv  !copy left vector
+
+CALL CONS2DIV(N,temp_vect1,MP_PINFl,gammal)
+
+!now this vector holds the following variables rho, u,v,w,Ttt,tvib,y_1,y_2,y_3,y_4,y_5 etc
+
+RGS_Ttr=temp_vect1(dimensiona+2)
+RGS_Tv=temp_vect1(dimensiona+3)
+
+RGS_Y(1:nof_SPECIES)=temp_vect1(nof_Variables-nof_species+1:nof_Variables)
+
+
+!compute this one
+do rg_i=1,nof_species
+RGS_x(rg_i)=leftv(nof_Variables-nof_species+rg_i)/rg_molm(rg_i)
+end do
+
+rgs_x=rgS_x/sum(rgs_x)
+
+
+temp_vect2=leftv
+
+
+call cons2prim(n,temp_Vect2,mp_pinfl,gammal)
+
+RGS_P_pa=temp_Vect2(dimensiona+2)
+RGS_rho=temp_Vect2(1)
+
+
+
+! RGS_Ttr=RGS_Ttr
+! RGS_Tv=RGS_Tv
+
+
+    CALL COMPUTE_REAL_GAS_DIFFUSION(RGS_Ttr, RGS_Tv, RGS_P_pa, RGS_rho, RGS_x, RGS_Y, &
+                                     RGS_Dij, RGS_Deff, RGS_mu_i, RGS_mu_mix, RGS_ktr_i, RGS_ktr_mix, RGS_kve, &
+                                     RGS_htr_i, RGS_hvib_i)
+
+       MP_mu_mix=RGS_mu_mix
+       MP_ktr_mix=RGS_ktr_mix
+       MP_kve=RGS_kve
+       MP_D_eff=RGS_Deff
+       MP_HTR(1:nof_SPECIES)=RGS_htr_i(1:nof_species)
+       MP_Hvib(1:nof_SPECIES)=RGS_hvib_i(1:nof_species)
+
+
+
+END SUBROUTINE MULTISPECIES_MIXTURES_RG
+
+
+
+
+
+
+  subroutine COMPUTE_REAL_GAS_DIFFUSION(RGS_Ttr, RGS_Tv, RGS_P_pa, RGS_rho, RGS_x, RGS_Y, &
+                                     RGS_Dij, RGS_Deff, RGS_mu_i, RGS_mu_mix, RGS_ktr_i, RGS_ktr_mix, RGS_kve, &
+                                     RGS_htr_i, RGS_hvib_i)
+    implicit none
+    real, intent(in)  :: RGS_Ttr, RGS_Tv, RGS_P_pa, RGS_rho
+    real, intent(in)  :: RGS_x(5), RGS_Y(5)
+    real, intent(out) :: RGS_Dij(5,5), RGS_Deff(5), RGS_mu_i(5), RGS_mu_mix
+    real, intent(out) :: RGS_ktr_i(5), RGS_ktr_mix, RGS_kve
+    real, intent(out) :: RGS_htr_i(5), RGS_hvib_i(5)
+    call compute_binary_diffusion(RGS_Ttr, RGS_P_pa, RGS_Dij)
+    call compute_effective_diffusion(RGS_x, RGS_Dij, RGS_Deff)
+    call blottner_mu_species(RGS_Ttr, RGS_mu_i)
+    call wilke_mixture_viscosity(RGS_x, RGS_mu_i, RGS_mu_mix)
+    call eucken_ktr_species(RGS_mu_i, RGS_ktr_i)
+    call mason_saxena_ktr_mixture(RGS_x, RGS_ktr_i, RGS_ktr_mix)
+    call vibrational_conductivity(RGS_rho, RGS_Y, RGS_Deff, RGS_Tv, RGS_kve)
+    call htr_air5 (RGS_Ttr, RGS_htr_i)
+    call hvib_air5(RGS_Tv , RGS_hvib_i)
+  end subroutine COMPUTE_REAL_GAS_DIFFUSION
+
+
+function omega11_neufeld(RGS_Tstar) result(RGS_omega11)
+    implicit none
+    real, intent(in) :: RGS_Tstar
+    real :: RGS_omega11
+    real, parameter :: RGS_A=1.06036, RGS_B=0.15610, RGS_C=0.19300, RGS_D=0.47635, &
+                               RGS_E=1.03587, RGS_F=1.52996, RGS_G=1.76474, RGS_H=3.89411
+    RGS_omega11 = RGS_A / (RGS_Tstar**RGS_B) + RGS_C*exp(-RGS_D*RGS_Tstar) + RGS_E*exp(-RGS_F*RGS_Tstar) + RGS_G*exp(-RGS_H*RGS_Tstar)
+  end function omega11_neufeld
+
+     subroutine compute_binary_diffusion(RGS_T, RGS_P_pa, RGS_Dij)
+  implicit none
+    real, intent(in)  :: RGS_T, RGS_P_pa
+    real, intent(out) :: RGS_Dij(5,5)
+    integer :: RGS_i, RGS_j
+    real :: RGS_sig_ij, RGS_epsk_ij, RGS_Tstar, RGS_omega, RGS_P_atm, RGS_denom
+    RGS_Dij = 0.0
+    RGS_P_atm = max(RGS_P_pa / RGS_Pa_per_atm, 1.0e-12)
+    do RGS_i = 1, 5
+      do RGS_j = RGS_i+1, 5
+        RGS_sig_ij  = 0.5*(RGS_sigmaA(RGS_i) + RGS_sigmaA(RGS_j))
+        RGS_epsk_ij = sqrt(RGS_eps_over_k(RGS_i) * RGS_eps_over_k(RGS_j))
+        RGS_Tstar   = max(RGS_T / RGS_epsk_ij, 1.0e-8)
+        RGS_omega   = omega11_neufeld(RGS_Tstar)
+        RGS_denom   = RGS_P_atm * (RGS_sig_ij**2) * RGS_omega * sqrt( 1.0/RGS_Mg(RGS_i) + 1.0/RGS_Mg(RGS_j) )
+        RGS_Dij(RGS_i,RGS_j) = (0.001858 * RGS_T**1.5) / max(RGS_denom,RGS_tiny) * RGS_cm2s_to_m2s
+        RGS_Dij(RGS_j,RGS_i) = RGS_Dij(RGS_i,RGS_j)
+      end do
+    end do
+  end subroutine compute_binary_diffusion
+
+  subroutine compute_effective_diffusion(RGS_x, RGS_Dij, RGS_Deff)
+  implicit none
+    real, intent(in)  :: RGS_x(5)
+    real, intent(in)  :: RGS_Dij(5,5)
+    real, intent(out) :: RGS_Deff(5)
+    integer :: RGS_i, RGS_j
+    real :: RGS_sumj
+    do RGS_i = 1, 5
+      RGS_sumj = 0.0
+      do RGS_j = 1, 5
+        if (RGS_j /= RGS_i) RGS_sumj = RGS_sumj + RGS_x(RGS_j) / max(RGS_Dij(RGS_i,RGS_j), RGS_tiny)
+      end do
+      RGS_Deff(RGS_i) = 1.0d0/max(rgs_sumj,1e-30)
+    end do
+  end subroutine compute_effective_diffusion
+
+   subroutine blottner_mu_species(RGS_T, RGS_mu)
+  implicit none
+    real, intent(in)  :: RGS_T
+    real, intent(out) :: RGS_mu(5)
+    integer :: RGS_i
+    real :: RGS_lt
+    RGS_lt = log10(max(RGS_T,1.0))
+    do RGS_i = 1, 5
+      RGS_mu(RGS_i) = 1.0e-7 * 10.0**( RGS_aB(RGS_i)*RGS_lt*RGS_lt + RGS_bB(RGS_i)*RGS_lt + RGS_cB(RGS_i) )
+    end do
+  end subroutine blottner_mu_species
+
+   subroutine wilke_mixture_viscosity(RGS_x, RGS_mu_i, RGS_mu_mix)
+  implicit none
+    real, intent(in)  :: RGS_x(5), RGS_mu_i(5)
+    real, intent(out) :: RGS_mu_mix
+    integer :: RGS_i, RGS_j
+    real :: RGS_phi_ij, RGS_denom
+    RGS_mu_mix = 0.0
+    do RGS_i = 1, 5
+      RGS_denom = 0.0
+      do RGS_j = 1, 5
+        if (RGS_i == RGS_j) then
+          RGS_denom = RGS_denom + RGS_x(RGS_j)
+        else
+          RGS_phi_ij = ( 1.0 + sqrt(RGS_mu_i(RGS_i)/RGS_mu_i(RGS_j)) * (RG_MOLM(RGS_j)/RG_MOLM(RGS_i))**0.25 )**2 &
+                       / ( sqrt(8.0) * sqrt(1.0 + RG_MOLM(RGS_i)/RG_MOLM(RGS_j)) )
+          RGS_denom = RGS_denom + RGS_x(RGS_j) * RGS_phi_ij
+        end if
+      end do
+      RGS_mu_mix = RGS_mu_mix + RGS_x(RGS_i) * RGS_mu_i(RGS_i) / max(RGS_denom, RGS_tiny)
+    end do
+  end subroutine wilke_mixture_viscosity
+
+   subroutine cp_tr_species(RGS_Cp_tr)
+  implicit none
+    real, intent(out) :: RGS_Cp_tr(5)  ! J/kg-K
+    integer :: RGS_i
+    real :: RGS_Rspec
+    do RGS_i = 1, 5
+      RGS_Rspec = RGS_Ru / RG_MOLM(RGS_i)
+      if (RGS_i <= 3) then
+        RGS_Cp_tr(RGS_i) = 3.5 * RGS_Rspec   ! diatomics: 7/2 R
+      else
+        RGS_Cp_tr(RGS_i) = 2.5 * RGS_Rspec   ! atoms:     5/2 R
+      end if
+    end do
+  end subroutine cp_tr_species
+
+   subroutine eucken_ktr_species(RGS_mu_i, RGS_ktr_i)
+   implicit none
+    real, intent(in)  :: RGS_mu_i(5)
+    real, intent(out) :: RGS_ktr_i(5)
+    integer :: RGS_i
+    real :: RGS_Rspec, RGS_Cp
+    do RGS_i = 1, 5
+      RGS_Rspec = RGS_Ru / RG_MOLM(RGS_i)
+      if (RGS_i <= 3) then
+        RGS_Cp = 3.5 * RGS_Rspec
+      else
+        RGS_Cp = 2.5 * RGS_Rspec
+      end if
+      RGS_ktr_i(RGS_i) = RGS_mu_i(RGS_i) * ( RGS_Cp + 1.25 * RGS_Rspec )
+    end do
+  end subroutine eucken_ktr_species
+
+   subroutine mason_saxena_ktr_mixture(RGS_x, RGS_ktr_i, RGS_ktr_mix)
+   implicit none
+    real, intent(in)  :: RGS_x(5), RGS_ktr_i(5)
+    real, intent(out) :: RGS_ktr_mix
+    integer :: RGS_i, RGS_j
+    real :: RGS_psi_ij, RGS_denom
+    RGS_ktr_mix = 0.0
+    do RGS_i = 1, 5
+      RGS_denom = 0.0
+      do RGS_j = 1, 5
+        if (RGS_i == RGS_j) then
+          RGS_denom = RGS_denom + RGS_x(RGS_j)
+        else
+          RGS_psi_ij = ( 1.0 + sqrt(RGS_ktr_i(RGS_i)/RGS_ktr_i(RGS_j)) * (RG_MOLM(RGS_j)/RG_MOLM(RGS_i))**0.25 )**2 &
+                       / ( sqrt(8.0) * sqrt(1.0 + RG_MOLM(RGS_i)/RG_MOLM(RGS_j)) )
+          RGS_denom = RGS_denom + RGS_x(RGS_j) * RGS_psi_ij
+        end if
+      end do
+      RGS_ktr_mix = RGS_ktr_mix + RGS_x(RGS_i) * RGS_ktr_i(RGS_i) / max(RGS_denom, RGS_tiny)
+    end do
+  end subroutine mason_saxena_ktr_mixture
+
+  function RGS_cv_vibrational_diatomic(RGS_Tv, RGS_theta) result(RGS_cv)
+  implicit none
+    real, intent(in) :: RGS_Tv, RGS_theta
+    real :: RGS_cv, RGS_x
+    if (RGS_Tv <= 1.0 .or. RGS_theta <= 0.0) then
+      RGS_cv = 0.0
+    else
+      RGS_x = RGS_theta / RGS_Tv
+      RGS_cv = RGS_Ru * (RGS_x*RGS_x) * exp(RGS_x) / ( (exp(RGS_x) - 1.0)**2 )   ! J/mol-K
+    end if
+  end function RGS_cv_vibrational_diatomic
+
+   function RGS_hvib_species(RGS_Tv, RGS_theta, RGS_Mi) result(RGS_hv)
+   implicit none
+    real, intent(in) :: RGS_Tv, RGS_theta, RGS_Mi
+    real :: RGS_hv, RGS_x, RGS_Ri
+    logical  :: RGS_zpe
+    if (RGS_theta <= 0.0 .or. RGS_Tv <= 1.0) then
+      RGS_hv = 0.0
+      return
+    end if
+    RGS_Ri = RGS_Ru / RGS_Mi
+    RGS_x  = RGS_theta / RGS_Tv
+    RGS_hv = RGS_Ri * RGS_theta / (exp(RGS_x) - 1.0)
+
+  end function RGS_hvib_species
+
+  subroutine hvib_air5(RGS_Tv, RGS_hvib_i)
+  implicit none
+    real, intent(in)  :: RGS_Tv
+    real, intent(out) :: RGS_hvib_i(5)     ! J/kg
+    integer :: RGS_i
+    do RGS_i = 1, 5
+      RGS_hvib_i(RGS_i) = RGS_hvib_species(RGS_Tv, RG_thetaG(RGS_i), RG_MOLM(RGS_i))
+    end do
+  end subroutine hvib_air5
+
+!    subroutine htr_air5(RGS_Ttr, RGS_htr_i)
+!     implicit none
+!     real, intent(in)  :: RGS_Ttr
+!     real, intent(out) :: RGS_htr_i(5)     ! J/kg
+!     real :: RGS_Cp(5)
+!     call cp_tr_species(RGS_Cp)
+!     RGS_htr_i = RGS_Cp * RGS_Ttr
+!   end subroutine htr_air5
+
+
+
+  subroutine htr_air5(RGS_Ttr, RGS_htr_i)
+  implicit none
+  real, intent(in)  :: RGS_Ttr
+  real, intent(out) :: RGS_htr_i(5)
+  real :: RGS_Cp(5)
+  real :: RGS_h0_mass(5)
+  real, parameter :: Tref = 298.15   ! reference temperature (K)
+  integer :: i
+
+  ! --- Compute constant translational Cp (mass basis, J/kg-K)
+  call cp_tr_species(RGS_Cp)
+
+  ! --- Convert formation enthalpies (J/mol -> J/kg)
+  do i = 1, 5
+     RGS_h0_mass(i) = RG_hzero(i) / RG_MOLM(i)
+  end do
+
+  ! --- Species enthalpy = h0 + Cp * (T - Tref)
+  do i = 1, 5
+     RGS_htr_i(i) = RGS_h0_mass(i) + RGS_Cp(i) * (RGS_Ttr - Tref)
+  end do
+
+end subroutine htr_air5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  subroutine vibrational_conductivity(RGS_rho, RGS_Y, RGS_Deff, RGS_Tv, RGS_kve)
+   implicit none
+    real, intent(in)  :: RGS_rho, RGS_Y(5), RGS_Deff(5), RGS_Tv
+    real, intent(out) :: RGS_kve
+    real :: RGS_cv_ve(5)     ! J/kg-K
+    integer :: RGS_i
+    do RGS_i = 1, 5
+      if (RG_thetaG(RGS_i) > 0.0) then
+        RGS_cv_ve(RGS_i) = RGS_cv_vibrational_diatomic(RGS_Tv, RG_thetaG(RGS_i)) / RG_MOLM(RGS_i)
+      else
+        RGS_cv_ve(RGS_i) = 0.0
+      end if
+    end do
+    RGS_kve = sum( RGS_rho * RGS_Y * RGS_Deff * RGS_cv_ve )
+  end subroutine vibrational_conductivity
+
+
+
+
 SUBROUTINE MULTISPECIES_MIXTURES(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal)
   IMPLICIT NONE
   REAL, INTENT(INOUT)  :: MP_TEMP    ! Temperature in Kelvin
@@ -92,11 +420,11 @@ SUBROUTINE MULTISPECIES_MIXTURES(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gamm
   REAL, INTENT(OUT) :: MP_k_mix   ! Mixture thermal conductivity [W/m.K]
   REAL, INTENT(OUT) :: MP_Cp_mix  ! Mixture Cp [J/mol.K]
   REAL, INTENT(OUT) :: GAMMAL     ! total
-  REAL::VF_SUM
+  REAL::MOLAR_SUM,MASS_SUM
   integer::i,j,k
   ! Constants
   REAL,DIMENSION(1:NOF_SPECIEs) :: MP_VISCL,MP_DENOM
-  REAL,DIMENSION(1:NOF_SPECIES) ::MP_VF_FRACTION
+  REAL,DIMENSION(1:NOF_SPECIES) ::MP_MOLE_FRACTION,MP_MASS_FRACTION
   REAL,DIMENSION(1:NOF_SPECIEs) :: MP_Cp
   REAL,DIMENSION(1:NOF_SPECIEs) :: ML_LAML,MP_DENOL
   REAL,DIMENSION(1:NOF_SPECIES,1:NOF_SPECIES) :: MP_phi
@@ -106,28 +434,43 @@ SUBROUTINE MULTISPECIES_MIXTURES(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gamm
 
 
   ! Molar masses
-  MP_M(1)  = 2.016E-3    ! kg/mol
-  MP_M(2)  = 28.97E-3    ! kg/mol
+  !MP_M(1)  = 2.016E-3    ! kg/mol   !defined in file
+  !MP_M(2)  = 28.97E-3    ! kg/mol   !defined in file
 
-  ! Mole fraction of EACH SPECIES
-  VF_SUM=ZERO
-  DO I=1,NOF_SPECIES-1
-      MP_VF_FRACTION(I)=LEFTV(NOF_VARIABLES-NOF_SPECIES+I)
-      VF_SUM=VF_SUM+MP_VF_FRACTION(I)
+  !MASS SUM
+  MASS_SUM=ZERO
+  DO I=1,NOF_SPECIES
+      MP_MASS_FRACTION(I)=LEFTV(NOF_VARIABLES-NOF_SPECIES-1+I)
+      MASS_SUM=MASS_SUM+MP_MASS_FRACTION(I)
   END DO
-  MP_VF_FRACTION(NOF_SPECIES)=1.0D0-VF_SUM  !THE LAST SPECIES
+  DO I=1,NOF_SPECIES
+        MP_MASS_FRACTION(I)=MP_MASS_FRACTION(I)/MASS_SUM
+  END DO
+
+
+
+  !Mole fraction of EACH SPECIES
+  MOLAR_SUM=ZERO
+  DO I=1,NOF_SPECIES
+      MP_MOLE_FRACTION(I)=MP_MASS_FRACTION(i)/MP_M(I)
+      MOLAR_SUM=MOLAR_SUM+MP_MOLE_FRACTION(I)
+  END DO
+  DO I=1,NOF_SPECIES
+        MP_MOLE_FRACTION(I)=MP_MOLE_FRACTION(I)/MOLAR_SUM
+  END DO
+
 
 
   !NOW GET THE TEMPERATURE
 
-  CALL GET_TEMP_JANAF(LEFTV, MP_TEMP)
+  CALL GET_TEMP_JANAF(LEFTV,MP_TEMP,MP_MASS_FRACTION,MP_MOLE_FRACTION)
 
 
 
 
   ! --- Compute individual Cp values [J/mol.K]
   DO I=1,NOF_SPECIES
-   MP_Cp(I)=R_GAS*(MP_JANAF(I,j,1) + MP_JANAF(I,j,2)*mp_Temp + MP_JANAF(I,j,3)*mp_Temp**2 + MP_JANAF(I,j,4)*mp_Temp**3 + MP_JANAF(I,j,5)*mp_Temp**4)
+   MP_Cp(I)=RGS_Ru*(MP_JANAF(I,j,1) + MP_JANAF(I,j,2)*mp_Temp + MP_JANAF(I,j,3)*mp_Temp**2 + MP_JANAF(I,j,4)*mp_Temp**3 + MP_JANAF(I,j,5)*mp_Temp**4)
   END DO
   ! --- Compute individual viscosities [Pa.s]
   DO I=1,NOF_SPECIES
@@ -151,39 +494,110 @@ SUBROUTINE MULTISPECIES_MIXTURES(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gamm
   DO i = 1, NOF_SPECIES
     MP_DENOM(i) = 0.0D0
     DO j = 1, NOF_SPECIES
-      MP_DENOM(i) = MP_DENOM(i) + MP_VF_FRACTION(j) * MP_phi(i,j)
+      MP_DENOM(i) = MP_DENOM(i) + MP_MOLE_FRACTION(j) * MP_phi(i,j)
     END DO
-    MP_mu_mix = MP_mu_mix + MP_VF_FRACTION(i) * MP_VISCL(i) / MP_DENOM(i)
+    MP_mu_mix = MP_mu_mix + MP_MOLE_FRACTION(i) * MP_VISCL(i) / MP_DENOM(i)
   END DO
 
   ! Compute thermal conductivity via Eucken
   DO i = 1, NOF_SPECIES
-    ML_LAML(i) = (MP_Cp(i) + 1.25D0 * R_GAS) * MP_VISCL(i)
+    ML_LAML(i) = (MP_Cp(i) + 1.25D0 * RGS_Ru) * MP_VISCL(i)
   END DO
 
 
   MP_k_mix = 0.0D0
-  DO i = 1, nspecies
+  DO i = 1, nof_species
     MP_DENOL(i) = 0.0D0
-    DO j = 1, nspecies
-      MP_DENOL(i) = MP_DENOL(i) + MP_VF_FRACTION(j) * MP_phi(i,j)
+    DO j = 1, nof_species
+      MP_DENOL(i) = MP_DENOL(i) + MP_MOLE_FRACTION(j) * MP_phi(i,j)
     END DO
-    MP_k_mix = MP_k_mix + MP_VF_FRACTION(i) * ML_LAML(i) / MP_DENOL(i)
+    MP_k_mix = MP_k_mix + MP_MOLE_FRACTION(i) * ML_LAML(i) / MP_DENOL(i)
   END DO
 
   ! Mixture Cp
   MP_Cp_mix = 0.0D0
-  DO i = 1, nspecies
-    MP_Cp_mix = MP_Cp_mix + MP_VF_FRACTION(i) * MP_Cp(i)
+  DO i = 1, nof_species
+    MP_Cp_mix = MP_Cp_mix + MP_MOLE_FRACTION(i) * MP_Cp(i)
   END DO
 
   !  Mixture gamma
-  gammaL = MP_Cp_mix / (MP_Cp_mix - R_GAS)
+  gammaL = MP_Cp_mix / (MP_Cp_mix - RGS_Ru)
 
 
 
 
 END SUBROUTINE MULTISPECIES_MIXTURES
+
+
+
+
+
+
+
+
+
+
+
+
+
+SUBROUTINE MULTISPECIES_temp(LEFTV,MP_Temp)
+  IMPLICIT NONE
+  REAL, INTENT(INOUT)  :: MP_TEMP    ! Temperature in Kelvin
+  REAL, INTENT(IN),DIMENSION(1:NOF_variables)  :: LEFTV      ! Vector of conserved variables
+  REAL::MOLAR_SUM,MASS_SUM
+  integer::i,j,k
+  ! Constants
+  REAL,DIMENSION(1:NOF_SPECIEs) :: MP_VISCL,MP_DENOM
+  REAL,DIMENSION(1:NOF_SPECIES) ::MP_MOLE_FRACTION,MP_MASS_FRACTION
+  REAL,DIMENSION(1:NOF_SPECIEs) :: MP_Cp
+  REAL,DIMENSION(1:NOF_SPECIEs) :: ML_LAML,MP_DENOL
+  REAL,DIMENSION(1:NOF_SPECIES,1:NOF_SPECIES) :: MP_phi
+
+
+
+
+
+  ! Molar masses
+  !MP_M(1)  = 2.016E-3    ! kg/mol   !PLEASE DEFINE IN FILE
+  !MP_M(2)  = 28.97E-3    ! kg/mol   !PLEASE DEFINE IN FILE
+
+  !MASS SUM
+  MASS_SUM=ZERO
+  DO I=1,NOF_SPECIES
+      MP_MASS_FRACTION(I)=LEFTV(NOF_VARIABLES-NOF_SPECIES-1+I)
+      MASS_SUM=MASS_SUM+MP_MASS_FRACTION(I)
+  END DO
+  DO I=1,NOF_SPECIES
+        MP_MASS_FRACTION(I)=MP_MASS_FRACTION(I)/MASS_SUM
+  END DO
+
+
+
+  !Mole fraction of EACH SPECIES
+  MOLAR_SUM=ZERO
+  DO I=1,NOF_SPECIES
+      MP_MOLE_FRACTION(I)=MP_MASS_FRACTION(i)/MP_M(I)
+      MOLAR_SUM=MOLAR_SUM+MP_MOLE_FRACTION(I)
+  END DO
+  DO I=1,NOF_SPECIES
+        MP_MOLE_FRACTION(I)=MP_MOLE_FRACTION(I)/MOLAR_SUM
+  END DO
+
+
+
+  !NOW GET THE TEMPERATURE
+
+  CALL GET_TEMP_JANAF(LEFTV,MP_TEMP,MP_MASS_FRACTION,MP_MOLE_FRACTION)
+
+
+
+
+
+
+
+
+
+END SUBROUTINE MULTISPECIES_temp
 
 
 
@@ -240,51 +654,66 @@ END SUBROUTINE MULTISPECIES_MIXTURES
     integer :: r
     real:: Rs, mp_tt,mp_t2,mp_t3, mp_invT, mp_invT2, mp_a1,mp_a2,mp_a3,mp_a4,mp_a5, mp_href, mp_Tref
 
-    Rs = R_Gas / MP_M(is)
+    Rs = RGS_Ru / MP_M(is)
     r  = merge(1,2, mp_Temp <= MP_Tmid_in(is))
-    a1=MP_JANAF(1,r,is); a2=MP_JANAF(2,r,is); a3=MP_JANAF(3,r,is); a4=MP_JANAF(4,r,is); a5=MP_JANAF(5,r,is)
+    mp_a1=MP_JANAF(1,r,is); mp_a2=MP_JANAF(2,r,is); mp_a3=MP_JANAF(3,r,is); mp_a4=MP_JANAF(4,r,is); mp_a5=MP_JANAF(5,r,is)
 
-     mp_tt=mp_temp; mp_t2=mp_tt*mp_tt; mp_t3=mp_t2*mp_tt; mp_invT=1.0_dp/mp_tt; mp_invT2=mp_invT*mp_invT
+     mp_tt=mp_temp; mp_t2=mp_tt*mp_tt; mp_t3=mp_t2*mp_tt; mp_invT=1.0d0/mp_tt; mp_invT2=mp_invT*mp_invT
 
-    mp_cpl = Rs * ( a1 + a2*t + a3*t2 + a4*t3 + a5*invT2 )
+    mp_cpl = Rs * ( mp_a1 + mp_a2*mp_tt + mp_a3*mp_t2 + mp_a4*mp_t3 + mp_a5*mp_invT2 )
 
     ! raw enthalpy
-    mp_hl  = Rs * ( a1*mp_tt + 0.5_dp*a2*mp_t2 + (a3/3.0_dp)*mp_t3 + 0.25_dp*a4*mp_t2*mp_t2 - a5*mp_invT )
+    mp_hl  = Rs * ( mp_a1*mp_tt + 0.5d0*mp_a2*mp_t2 + (mp_a3/3.0d0)*mp_t3 + 0.25d0*mp_a4*mp_t2*mp_t2 - mp_a5*mp_invT )
 
     !only for sensible enthalpies
     ! subtract reference to exclude formation/constant offsets: h(298.15 K) = 0
     mp_Tref = 298.15d0
-    mp_href = Rs * ( a1*mp_Tref + 0.5_d0*a2*mp_Tref**2 + (a3/3.0d0)*mp_Tref**3 + 0.25d0*a4*mp_Tref**4 - a5/mp_Tref )
+    mp_href = Rs * ( mp_a1*mp_Tref + 0.5d0*mp_a2*mp_Tref**2 + (mp_a3/3.0d0)*mp_Tref**3 + 0.25d0*mp_a4*mp_Tref**4 - mp_a5/mp_Tref )
     mp_hl = mp_hl - mp_href
   end subroutine species_cp_h_sensible
 
-  pure subroutine mixture_props(MP_TEMP, MP_M, MP_RMIX, MP_cp_mix, MP_cv_mix, MP_e_mix)
+  subroutine mixture_props(MP_TEMP, mp_mol_x, MP_RMIX, MP_cp_mix, MP_cv_mix, MP_e_mix)
   implicit none
     !! Mixture properties with mass-weighted energies; energies are sensible
     real, intent(in)  :: MP_TEMP
-    real,DIMENSION(1:NOF_SPECIES), intent(in)  :: MP_M
+    real,DIMENSION(1:NOF_SPECIES), intent(in)  :: mp_mol_x
     real, intent(out) :: MP_Rmix, MP_cp_mix, MP_cv_mix, MP_e_mix
-    real, DIMENSION(1:NOF_SPECIES) :: MPC_MASS(NS), MP_cp_s, MP_h_s
+    real, DIMENSION(1:NOF_SPECIES) :: MPC_MASS
+    real::MP_cp_s, MP_h_s
     integer :: s
-    call MOLEF_to_MASSF(MP_M,MPC_MASS)
+    call MOLEF_to_MASSF(mp_mol_x,MPC_MASS)
     MP_Rmix  = ZERO
     MP_cp_mix= ZERO
     MP_e_mix = ZERO
     do s=1,NOF_SPECIES
       if (MPC_MASS(s) <= ZERO) cycle
-      MP_Rmix = MP_Rmix + MPC_MASS(s) * (R_GAS/MP_M(s))
+      MP_Rmix = MP_Rmix + MPC_MASS(s) * (RGS_Ru/mp_M(s))
       call species_cp_h_sensible(MP_TEMP, s, MP_cp_s, MP_h_s)
-      MP_e_mix  = MP_e_mix  + MPC_MASS(s) * (MP_h_s - (R_GAS/MP_M(s))*MP_TEMP)  ! e = h - Rs*T (sensible e)
+      MP_e_mix  = MP_e_mix  + MPC_MASS(s) * (MP_h_s - (RGS_Ru/mp_M(s))*MP_TEMP)  ! e = h - Rs*T (sensible e)
       MP_cp_mix = MP_cp_mix + MPC_MASS(s) * MP_cp_s
     end do
     MP_cv_mix = MP_cp_mix - MP_Rmix
   end subroutine mixture_props
 
 
+  subroutine normalize_X(X)
+  implicit none
+    !! Ensure mole fractions sum to 1 (robust to roundoff)
+    real, intent(inout) :: X(nof_species)
+    real :: s
+    integer :: k
+    s = 0.0d0
+    do k=1,Nof_species; s = s + max(0.0d0, X(k)); end do
+    if (s > 0.0d0) then
+      do k=1,Nof_species; X(k) = max(0.0d0, X(k))/s; end do
+    else
+      do k=1,Nof_species; X(k) = 0.0d0; end do
+    end if
+  end subroutine normalize_X
 
 
 
-  subroutine GET_TEMP_JANAF(LEFTV, MP_TEMP)
+  subroutine GET_TEMP_JANAF(LEFTV, MP_TEMP,MP_MASS_FRACTION,MP_MOLE_FRACTION)
    implicit none
     !! Recover temperature from conserved variables using mole fractions X
     !!
@@ -299,7 +728,8 @@ END SUBROUTINE MULTISPECIES_MIXTURES
     !!   T [K], info: 0 ok; 1 bracket width tol; 2 iter limit; <0 bracketing issue
     real, dimension(1:nof_Variables),intent(in):: leftv
     real, intent(out) :: mp_temp
-    integer:: info
+    REAL,DIMENSION(1:NOF_SPECIES),intent(in) ::MP_MOLE_FRACTION,MP_MASS_FRACTION
+    integer:: mp_info,s
     real:: mp_tol,mp_SUM,u,v,w
     integer:: mp_max_iter,i,j,k
     real,dimension(1:nof_SPECIES)::mp_mol_x
@@ -314,12 +744,9 @@ END SUBROUTINE MULTISPECIES_MIXTURES
 
 
 
-    mp_SUM=ZERO
-  DO I=1,NOF_SPECIES-1
-      mp_mol_x(I)=LEFTV(NOF_VARIABLES-NOF_SPECIES+I)
-      mp_SUM=mp_SUM+mp_mol_x(I)
-  END DO
-  mp_mol_x(NOF_SPECIES)=1.0D0-mp_SUM  !THE LAST SPECIES
+
+
+  mp_mol_x(1:NOF_SPECIES)=MP_MOLE_FRACTION(1:nof_SPECIES)
 
 
     call normalize_X(mp_mol_x)
@@ -335,7 +762,7 @@ END SUBROUTINE MULTISPECIES_MIXTURES
 
     mp_itmax = 50
     mp_kin   = 0.5D0*(u*u + v*v + w*w)
-    mp_e_tgt = (LEFTV(NOF_VARIABLES-NOF_SPECIES)/LEFTV(1)) - MP_kin        ! target sensible internal energy [J/kg]
+    mp_e_tgt = (LEFTV(NOF_VARIABLES-NOF_SPECIES-1)/LEFTV(1)) - MP_kin        ! target sensible internal energy [J/kg]
 
     ! temperature bracket honoring species ranges
     mp_Tlo = 150.0D0
@@ -346,88 +773,58 @@ END SUBROUTINE MULTISPECIES_MIXTURES
       mp_Thi = min(mp_Thi, MP_Thigh_in(s))
     end do
     if (mp_Tlo >= mp_Thi) then
-      MP_info = -3; MP_TEMP = 300.0_dp; return
+      MP_info = -3; MP_TEMP = 300.0d0; return
     end if
 
     ! initial guess from cv around 300 K
     call mixture_props(300.0D0, mp_mol_x, mp_Rmix, mp_cp_mix, mp_cv_mix, mp_e_mix)
-    mp_Tguess = 300.0_dp + (MP_e_tgt - MP_e_mix)/max(1.0e-8_d0, MP_cv_mix)
+    mp_Tguess = 300.0d0 + (MP_e_tgt - MP_e_mix)/max(1.0e-8, MP_cv_mix)
     mp_Temp = min(max(mp_Tguess, mp_Tlo), mp_Thi)
 
     ! establish/verify bracket
     call mixture_props(mp_Tlo, mp_mol_x, mp_Rmix, mp_cp_mix, mp_cv_mix, mp_e_mix); mp_fa = mp_e_mix - mp_e_tgt
     call mixture_props(mp_Thi, mp_mol_x, mp_Rmix, mp_cp_mix, mp_cv_mix, mp_e_mix); mp_fb = mp_e_mix - mp_e_tgt
-    mp_bracket = (mp_fa*mp_fb <= 0.0_d0)
+    mp_bracket = (mp_fa*mp_fb <= 0.0)
     mp_aT = mp_Tlo; mp_bT = mp_Thi
 
     do mp_it = 1, mp_itmax
       call mixture_props(mp_Temp, mp_mol_x, mp_Rmix, mp_cp_mix, mp_cv_mix, mp_e_mix)
       mp_f  = mp_e_mix - mp_e_tgt
-      mp_df = max(mp_cv_mix, 1.0e-20_dp)
+      mp_df = max(mp_cv_mix, 1.0e-20)
 
-      mp_atol = 1.0e-6_d0*max(1.0d0,abs(mp_e_tgt)) + 1.0e-3_d0
+      mp_atol = 1.0e-6*max(1.0d0,abs(mp_e_tgt)) + 1.0e-3
       if (abs(mp_f) <= mp_atol) then
         mp_info = 0; return
       end if
 
       ! safeguarded Newton step
       mp_Tn = mp_Temp - mp_f/mp_df
-      if ((.not. mp_bracket) .or. (mp_Tn <= mp_aT) .or. (mp_Tn >= mp_bT)) mp_Tn = 0.5_dp*(mp_aT + mp_bT)
+      if ((.not. mp_bracket) .or. (mp_Tn <= mp_aT) .or. (mp_Tn >= mp_bT)) mp_Tn = 0.5d0*(mp_aT + mp_bT)
 
       call mixture_props(mp_Tn, mp_mol_x, mp_Rmix, mp_cp_mix, mp_cv_mix, mp_e_mix)
       mp_fn = mp_e_mix - mp_e_tgt
 
-      if (mp_fa*mp_fn <= 0.0_dp) then
+      if (mp_fa*mp_fn <= 0.0) then
         mp_bT = mp_Tn; mp_fb = mp_fn; mp_bracket = .true.
       else
         mp_aT = mp_Tn; mp_fa = mp_fn
       end if
       mp_Temp = mp_Tn
 
-      if (abs(mp_bT - mp_aT) <= 1.0e-8_dp*max(1.0_dp,mp_T)) then
+      if (abs(mp_bT - mp_aT) <= 1.0e-8*max(1.0,MP_TEMP)) then
         mp_info = 1; return
       end if
     end do
 
     mp_info = 2  ! iteration limit
-  end subroutine T_from_conserved_X
-
-end module GET_TEMP_JANAF
+  end subroutine GET_TEMP_JANAF
 
 
 
 
-subroutine compute_sound_speed_MP(MP_TEMP,MP_SOUND)
-  implicit none
-  real, intent(in)  :: MP_TEMP
-  real, intent(out) :: MP_SOUND
-  real :: MP_cp_mix, MP_cv_mix, MP_Rmix, MP_cp_s, MP_h_s
-  integer :: s
-  real:: mp_SUM
-  real,dimension(1:nof_SPECIES)::mp_mol_x
-  REAL,DIMENSION(1:NOF_VARIABLES),intent(in)::LEFTV
-
-   mp_mol_x = zero
-
-    mp_SUM=ZERO
-  DO I=1,NOF_SPECIES-1
-      mp_mol_x(I)=LEFTV(NOF_VARIABLES-NOF_SPECIES+I)
-      mp_SUM=mp_SUM+mp_mol_x(I)
-  END DO
-  mp_mol_x(NOF_SPECIES)=1.0D0-mp_SUM  !THE LAST SPECIES
 
 
 
-  MP_cp_mix = 0.0_dp; MP_Rmix = 0.0_dp
-  do s = 1, NOF_SPECIES
-    if (mp_mol_x(s) <= ZERO) cycle
-    call species_cp_h_sensible(mp_Temp, s, mp_cp_s, mp_h_s)
-    mp_cp_mix = mp_cp_mix + mp_mol_x(s) * mp_cp_s
-    mp_Rmix   = mp_Rmix   + mp_mol_x(s) * (R_GAS / MP_M(s))
-  end do
-  mp_cv_mix = mp_cp_mix - mp_Rmix
-  MP_SOUND = sqrt( (mp_cp_mix/mp_cv_mix) * mp_Rmix * MP_TEMP )
-end subroutine compute_sound_speed_MP
 
 
 
@@ -506,16 +903,285 @@ INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:NOF_VARIABLES)::TEMPS
 real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
 real,INTENT(INOUT)::MP_PINFL,gammal
-REAL::OODENSITY,MP_DENSITY,MP_STIFF
+REAL::OODENSITY,MP_DENSITY,MP_STIFF,skinx
 REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC,p_temp,etr
-REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+REAL,DIMENSION(1:NOF_SPECIES)::MP_AR,MP_IE,mp_vft
+INTEGER::rg_i,rg_j
+REAL,DIMENSION(1:NOF_SPECIES)::RG_VFTEMP
+REAL,DIMENSION(1:NOF_SPECIES)::RG_CVS,rg_cps
+REAL,DIMENSION(1:NOF_SPECIES)::RG_TVSL,RG_EV
+REAL::RG_VE,RG_TR,RG_CHEM,RG_DENSITY,RG_EV_TOTAL,rg_rmix,rg_kin,rg_cvt,rg_cpt
+integer::rg_iter,rg_maxiter
+real::rgf_vib,rgdf_vib,rg_tol,tve,TTR,rg_f,rg_df,sum1,sum2,sum3,U,V,W
+REAL:: rhoE, rhoEv
+REAL,dimension(1:NOF_SPECIES):: rho_i,y
+REAL:: KE, etot, echem, rmix,evib
+REAL:: Cv_mix, Cp_mix,rho
+INTEGER :: i, idxE, idxEv
+
+
+
+
+
+
+rg_maxiter=20
+
+if (nof_Variables.gt.1)then     !only then
+
+P_SAT =2000
+P_TOL =10E-5
+
+      IF (MULTISPECIES.EQ.1) then   !multispecies
+
+
+            if (mp_modelc.eq.0)then
+                  sum1=zero;
+                  sum2=zero;
+                  sum3=zero
+                  do rg_i=1,nof_species
+                      sum1=sum1+LEFTV(nof_Variables+rg_i)
+                  end do
+                  MP_DENSITY=sum1
+
+                  do rg_i=1,nof_SPECIES-1
+                  sum2=sum2+LEFTV(dimensiona+2+nof_species+rg_i)
+                  MP_AR(rg_i)=LEFTV(dimensiona+2+nof_species+rg_i)/(GAMMA_IN(rg_i)-1.0D0)
+                  mp_vft(rg_i)=LEFTV(dimensiona+2+nof_species+rg_i)
+                  end do
+
+                  MP_AR(nof_SPECIES)=(1.0d0-sum2)/(GAMMA_IN(nof_SPECIES)-1.0D0)
+                  mp_vft(nof_SPECIES)=(1.0d0-sum2)
+                  sum3=zero
+                  do rg_i=1,nof_SPECIES
+                    sum3=sum3+MP_AR(rg_i)
+                    end do
+                    GAMMAL=(1.0D0/(sum3))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+                    OODENSITY=1.0D0/MP_DENSITY
+
+                  TEMPS(1)=MP_DENSITY
+                  TEMPS(2)=LEFTV(2)*OODENSITY; u=temps(2)
+                  TEMPS(3)=LEFTV(3)*OODENSITY;v=temps(3)
+                  w=zero
+                    if (dimensiona.eq.3)then
+                    TEMPS(4)=LEFTV(4)*OODENSITY;w=TEMPS(4)
+                    end if
+                  sum3=zero
+                  do rg_i=1,nof_SPECIES
+                    sum3=sum3+(mp_vft(rg_i)*(GAMMA_IN(rg_i)/(GAMMA_IN(rg_i)-1.0D0))*MP_PINF(rg_i))
+                    end do
+
+                  MP_STIFF=sum3*(GAMMAL-1.0D0)
+                  sum2=zero
+                  do rg_i=1,nof_SPECIES
+                    sum2=sum2+(mp_vft(rg_i)*MP_PINF(rg_i))
+                    end do
+
+                    MP_PINFL=sum2
+
+                    skinx=(u*u)+(v*v)+(w*w)
+
+                  TEMPS(dimensiona+2)=(((GAMMAL-1.0D0))*((LEFTV(dimensiona+2))-OO2*TEMPS(1)*skinx))-MP_STIFF
+                  TEMPS(dimensiona+3:NOF_VARIABLES)=LEFTV(dimensiona+3:NOF_VARIABLES)
+                  LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+            end if  !mp modelc
+
+
+
+      ELSE
+
+                        IF (REALGAS.EQ.1)then
+
+                                TEMPS(:)=0.0d0
+
+                                !first get total density-correct
+
+!
+!                                 DO RG_I = 1, nof_species
+!                                   IF (leftv(dimensiona+3+RG_I).LT.0.0D0)THEN
+!                                       leftv(dimensiona+3+RG_I)=0.0D0
+!                                   END IF
+!                                 END DO
+
+
+
+
+
+
+
+                                DO RG_I=1,nof_species
+                                TEMPS(1)=temps(1)+leftv(dimensiona+3+RG_I)
+                                END DO
+
+
+
+
+
+
+                                RHO=temps(1)
+
+                                U=LEFTV(2)/rho
+                                v=LEFTV(3)/rho
+                                IF (DIMENSIONA.EQ.3)THEN
+                                w=LEFTV(4)/rho
+                                Else
+                                w=zero
+                                end if
+
+                               idxE  = DIMENSIONA + 2          ! index of ρE
+                                idxEv = DIMENSIONA + 3          ! index of ρe_vib
+
+                                rhoE  = LEFTV(idxE)
+                                rhoEv = LEFTV(idxEv)
+
+                                DO i = 1, NOF_SPECIES
+                                  rho_i(i) = LEFTV(idxEv + i)   ! species densities ρ_i
+                                END DO
+
+
+                                ! -------------------------------
+                                ! 2. Mass fractions
+                                ! -------------------------------
+                                DO i = 1, NOF_SPECIES
+                                  Y(i) = rho_i(i) / RHO
+                                END DO
+
+                                ! -------------------------------
+                                ! 3. Energies
+                                ! -------------------------------
+                                KE   = 0.5D0 * (U*U + V*V + W*W)
+                                etot = rhoE / RHO
+                                EVIB = rhoEv / RHO
+
+                                ! Chemical energy: e_chem = - Σ Y_i * h°_i / M_i  [J/kg]
+                                  echem = 0.0D0
+                                  DO i = 1, NOF_SPECIES
+                                    IF (RG_HZERO(i) > 0.0D0) THEN
+                                      echem = echem - Y(i) * (RG_HZERO(i) / RG_MOLM(i))
+                                    END IF
+                                  END DO
+
+                                  ! Translational–rotational internal energy
+                                  etr = etot - EVIB - echem - KE
+                                  IF (etr < 0.0D0) etr = 1.0D-12   ! safety
+
+                                  ! -------------------------------
+                                  ! 4. Mixture gas constant Rmix
+                                  ! -------------------------------
+                                  rmix = 0.0D0
+                                  DO i = 1, NOF_SPECIES
+                                    rmix = rmix + Y(i) / RG_MOLM(i)
+                                  END DO
+                                  rmix = RGS_Ru * rmix    ! [J/kg/K]
+
+                                  ! -------------------------------
+                                  ! 5. Mixture Cv, Cp, gamma
+                                  !    Here Cv_i = 5/2 R for i<=3 (diatomic),
+                                  !               3/2 R for i>3  (monatomic)
+                                  ! -------------------------------
+                                  Cv_mix = 0.0D0
+                                  DO i = 1, NOF_SPECIES
+                                    IF (i <= 3) THEN
+                                      Cv_mix = Cv_mix + Y(i) * (5.0D0/2.0D0) * (RGS_Ru / RG_MOLM(i))
+                                    ELSE
+                                      Cv_mix = Cv_mix + Y(i) * (3.0D0/2.0D0) * (RGS_Ru / RG_MOLM(i))
+                                    END IF
+                                  END DO
+
+                                  Cp_mix = Cv_mix + rmix
+                                  GAMMAl  = Cp_mix / Cv_mix
+
+                                  ! -------------------------------
+                                  ! 6. Translational temperature Ttr and pressure
+                                  !     etr = Cv_mix * Ttr  → Ttr = etr/Cv_mix
+                                  !     P   = ρ Rmix Ttr
+                                  ! -------------------------------
+                                  IF (Cv_mix > 1.0D-20) THEN
+                                    TEMPS(DIMENSIONA+2) = RHO * rmix * (etr / Cv_mix)
+                                  ELSE
+                                    TEMPS(DIMENSIONA+2) = 0.0D0
+                                  END IF
+
+                                mp_pinfl=zero
+
+
+                                LEFTV(1)=RHO
+                                LEFTV(2)=U
+                                LEFTV(3)=V
+                                IF (DIMENSIONA.EQ.3)THEN
+                                LEFTV(4)=W
+                                END IF
+                                LEFTV(DIMENSIONA+2)=TEMPS(DIMENSIONA+2) !pressure
+                                LEFTV(DIMENSIONA+3)=EVIB
+                                DO i = 1, NOF_SPECIES
+                                  LEFTV(idxEv + i)=y(i)
+                                END DO
+
+
+                                else      !NO REAL GAS
+
+
+                                OODENSITY=1.0D0/LEFTV(1)
+
+                                TEMPS(1)=LEFTV(1)
+
+
+                                TEMPS(2)=LEFTV(2)*OODENSITY; u=temps(2)
+                                TEMPS(3)=LEFTV(3)*OODENSITY; V=temps(3)
+                                W=ZERO
+                                IF (DIMENSIONA.EQ.3)THEN
+                                TEMPS(4)=LEFTV(4)*OODENSITY; W=temps(4)
+                                END IF
+                                SKINX=(U**2 + V**2+ W**2)
+
+                                TEMPS(DIMENSIONA+2)=((GAMMA-1.0D0))*((LEFTV(DIMENSIONA+2))-OO2*LEFTV(1)*SKINX)
+
+                                LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+                                END IF                    !
+
+        END IF              !MULTISPECIES IF
+
+END IF
+
+
+END SUBROUTINE CONS2PRIM
+
+
+
+
+SUBROUTINE CONS2DIV(N,leftv,MP_PINFl,gammal)
+!> @brief
+!> This subroutine transforms one vector of conservative variables to the variables required for the diffusion (r,u,v,w,T,y1,y2,y3..) or (r,u,v,w,Ttr,tve,y1,y2,etc)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL,DIMENSION(1:NOF_VARIABLES)::TEMPS
+real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
+real,INTENT(INOUT)::MP_PINFL,gammal
+REAL::OODENSITY,MP_DENSITY,MP_STIFF,mp_temp
+REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC,p_temp,etr
+REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE,mp_vft
 INTEGER::rg_i,rg_j
 REAL,DIMENSION(1:NOF_SPECIES)::RG_VFTEMP
 REAL,DIMENSION(1:NOF_SPECIES)::RG_CVS
 REAL,DIMENSION(1:NOF_SPECIES)::RG_TVSL,RG_EV
 REAL::RG_VE,RG_TR,RG_CHEM,RG_DENSITY,RG_EV_TOTAL,rg_rmix,rg_kin
 integer::rg_iter,rg_maxiter
-real::rgf_vib,rgdf_vib,rg_tol,tve,TTR,rg_f,rg_df
+real::rgf_vib,rgdf_vib,rg_tol,tve,TTR,rg_f,rg_df,sum1,sum2,sum3,Cv_i
+REAL:: rhoE, rhoev, KE, etot, ev, u,v,w,Cv_mix
+REAL:: g, f, df, theta, ei, dEi
+REAL, DIMENSION(1:Nof_species) :: rho_i,  Cv_s
+REAL :: echem, sumY
+REAL:: RG_Temp, rg_T_old,denom,tmpExp
+INTEGER :: i, iter
+REAL, PARAMETER :: rgtol = 1.0d-10
+REAL, PARAMETER :: rg_T_lo = 50.0d0, rg_T_hi = 20000.0d0
+REAL:: RHO
+REAL:: RG_TTR2, rg_TV
+REAL,dimension(1:nof_species):: Y
+
+
+
+
+
 
 
 if (nof_Variables.gt.1)then
@@ -525,68 +1191,298 @@ IF (DIMENSIONA.EQ.3)THEN
 P_SAT =2000
 P_TOL =10E-5
 
-IF (governingequations.EQ.-1) then
- 
- MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
- MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
- GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
- OODENSITY=1.0D0/MP_DENSITY
- 
- 
- TEMPS(1)=MP_DENSITY
-TEMPS(2)=LEFTV(2)*OODENSITY
-TEMPS(3)=LEFTV(3)*OODENSITY
-TEMPS(4)=LEFTV(4)*OODENSITY
-MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
-MP_PINFL=(LEFTV(8)*MP_PINF(1))+((1.0D0-LEFTV(8))*MP_PINF(2))
-TEMPS(5)=(((GAMMAL-1.0D0))*((LEFTV(5))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2))))-MP_STIFF
-TEMPS(6)=LEFTV(6)
-TEMPS(7)=LEFTV(7)
-TEMPS(8)=LEFTV(8)
- 
+      IF (MULTISPECIES.EQ.1) then
+            if (mp_modelc.eq.0)then
+            sum1=zero;
+            sum2=zero;
+            sum3=zero
+            do rg_i=1,nof_species
+                sum1=sum1+LEFTV(nof_Variables+rg_i)
+            end do
+            MP_DENSITY=sum1
 
+            do rg_i=1,nof_SPECIES-1
+            sum2=sum2+LEFTV(5+nof_species+rg_i)
+            MP_AR(rg_i)=LEFTV(5+nof_species+rg_i)/(GAMMA_IN(rg_i)-1.0D0)
+            mp_vft(rg_i)=LEFTV(5+nof_species+rg_i)
+            end do
 
- IF(CAVITATION.EQ.1)THEN
-RHO_G = LEFTV(6)/LEFTV(8)
-RHO_L = LEFTV(7)/LEFTV(8)
-SS_G = sqrt(GAMMA_IN(1)*(TEMPS(5)+MP_PINF(1))/RHO_G)
-SS_L = sqrt(GAMMA_IN(2)*(TEMPS(5)+MP_PINF(2))/RHO_L)
+            MP_AR(nof_SPECIES)=(1.0d0-sum2)/(GAMMA_IN(nof_SPECIES)-1.0D0)
+            mp_vft(nof_SPECIES)=(1.0d0-sum2)
+            sum3=zero
+            do rg_i=1,nof_SPECIES
+              sum3=sum3+MP_AR(rg_i)
+              end do
+              GAMMAL=(1.0D0/(sum3))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+              OODENSITY=1.0D0/MP_DENSITY
 
-P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
-VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(LEFTV(8)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-LEFTV(8)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
+            TEMPS(1)=MP_DENSITY
+            TEMPS(2)=LEFTV(2)*OODENSITY
+            TEMPS(3)=LEFTV(3)*OODENSITY
+            TEMPS(4)=LEFTV(4)*OODENSITY
+            sum3=zero
+            do rg_i=1,nof_SPECIES
+              sum3=sum3+(mp_vft(rg_i)*(GAMMA_IN(rg_i)/(GAMMA_IN(rg_i)-1.0D0))*MP_PINF(rg_i))
+              end do
 
-P_tEMP=TEMPS(5)
+            MP_STIFF=sum3*(GAMMAL-1.0D0)
+             sum2=zero
+            do rg_i=1,nof_SPECIES
+              sum2=sum2+(mp_vft(rg_i)*MP_PINF(rg_i))
+              end do
 
-if ((TEMPS(5).GT.P_TOL).AND.(TEMPS(5).LT.P_SAT))THEN
-p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
-END IF
+              MP_PINFL=sum2
 
-IF (TEMPS(5).LT.P_TOL)THEN
-p_temp=P_TOL
-end if
-TEMPS(5)=p_temp
+            TEMPS(5)=(((GAMMAL-1.0D0))*((LEFTV(5))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2))))-MP_STIFF
 
-end if
-
-
-
-
- LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
- ELSE
- 
+            TEMPS(6:NOF_VARIABLES)=LEFTV(6:NOF_VARIABLES)
 
 
 
-OODENSITY=1.0D0/LEFTV(1)
+            call MULTISPECIES_temp(LEFTV,MP_Temp)
 
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*OODENSITY
-TEMPS(3)=LEFTV(3)*OODENSITY
-TEMPS(4)=LEFTV(4)*OODENSITY
-TEMPS(5)=((GAMMA-1.0D0))*((LEFTV(5))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
 
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+            TEMPS(5)=MP_Temp
+
+
+!             IF(CAVITATION.EQ.1)THEN
+!             RHO_G = LEFTV(6)/LEFTV(8)
+!             RHO_L = LEFTV(7)/LEFTV(8)
+!             SS_G = sqrt(GAMMA_IN(1)*(TEMPS(5)+MP_PINF(1))/RHO_G)
+!             SS_L = sqrt(GAMMA_IN(2)*(TEMPS(5)+MP_PINF(2))/RHO_L)
+!
+!             P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
+!             VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(LEFTV(8)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-LEFTV(8)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
+!
+!             P_tEMP=TEMPS(5)
+!
+!               if ((TEMPS(5).GT.P_TOL).AND.(TEMPS(5).LT.P_SAT))THEN
+!               p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
+!               END IF
+!
+!               IF (TEMPS(5).LT.P_TOL)THEN
+!               p_temp=P_TOL
+!               end if
+!             TEMPS(5)=p_temp
+!
+!             end if
+
+
+
+
+      LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+            end if !(mp_modelc.eq.0)then
+
+      ELSE
+
+
+
+      IF (REALGAS.EQ.1)then
+
+              TEMPS(:)=0.0d0
+
+              !first get total density-correct
+
+!                                 DO RG_I = 1, nof_species
+!                                   IF (leftv(dimensiona+3+RG_I).LT.0.0D0)THEN
+!                                       leftv(dimensiona+3+RG_I)=0.0D0
+!                                   END IF
+!                                 END DO
+
+
+
+
+
+
+
+
+
+
+
+              DO RG_I=1,nof_species
+              TEMPS(1)=temps(1)+leftv(dimensiona+3+RG_I)
+              END DO
+
+
+
+              ! ============================================================
+              ! 1. Unpack conservative variables
+              ! ============================================================
+
+              RHO  = TEMPS(1)
+              U    = LEFTV(2) / RHO
+              V    = LEFTV(3) / RHO
+              if (dimensiona.eq.3)then
+              w   =LEFTV(4) / RHO
+              else
+              w=zero
+              end if
+
+              rhoE = LEFTV(dimensiona+2)
+              rhoev = LEFTV(dimensiona+3)
+
+              DO i=1,Nof_species
+                rho_i(i) = LEFTV(dimensiona+3+i)
+              END DO
+
+              ! ============================================================
+              ! 2. Recover mass fractions
+              ! ============================================================
+              sumY = 0.0d0
+              DO i=1,Nof_species
+                Y(i) = rho_i(i) / RHO
+                sumY = sumY + Y(i)
+              END DO
+
+!               ! Normalize (safety)
+!               DO i=1,Nof_species
+!                 Y(i) = Y(i) / sumY
+!               END DO
+
+              ! ============================================================
+              ! 3. Compute kinetic energy and total specific energy
+              ! ============================================================
+              KE   = 0.5d0*(U*U + V*V + W*W)
+              etot = rhoE / RHO
+
+              ! Vibrational specific energy (already known from conservative vars)
+              ev = rhoev / RHO
+
+              ! ============================================================
+              ! 4. Compute chemical energy
+              ! ============================================================
+              echem = 0.0d0
+              DO i=1,Nof_species
+                IF (rg_hzero(i) > 0.0d0) THEN
+                  ! hzero is J/mol → convert to J/kg
+                  echem = echem - Y(i) * (rg_hzero(i) / RG_MOLM(i))
+                END IF
+              END DO
+
+              ! ============================================================
+              ! 5. Compute remaining translational energy
+              !     etr = etot - ev - echem - KE
+              ! ============================================================
+              etr = etot - ev - echem - KE
+              IF (etr < 0.0d0) etr = 1d-12    ! safety
+
+              ! ============================================================
+              ! 6. Compute Ttr (no Newton needed: etr = Cv_mix * Ttr)
+              ! ============================================================
+              Cv_mix = 0.0d0
+              DO i = 1, nof_species
+                IF (i <= 3) THEN
+                  Cv_i = (5.0d0/2.0d0)*(RGS_Ru/RG_MOLM(i))
+                ELSE
+                  Cv_i = (3.0d0/2.0d0)*(RGS_Ru/RG_MOLM(i))
+                END IF
+                Cv_mix = Cv_mix + Y(i)*Cv_i
+              END DO
+
+              IF (Cv_mix > rgs_tiny) THEN
+                rg_TTR2 = etr / Cv_mix
+              ELSE
+                rg_TTR2 = rg_T_lo
+              END IF
+
+              rg_TTR2 = MAX(rg_T_lo, MIN(rg_T_hi, rg_TTR2))
+
+              ! ============================================================
+              ! 7. Solve for Tv using Newton iteration
+              !     ev = Σ Y_i * (R/M_i) * θ/(exp(θ/Tv)-1)
+              !     --> use Ttr as initial guess
+              ! ============================================================
+
+              rg_TV = rg_TTR2   ! <-- use Ttr as initial guess for Tv
+              rg_TV = MAX(rg_T_lo, MIN(rg_T_hi, rg_TV))
+
+              DO iter=1,200
+                g  = 0.0d0
+                df = 0.0d0
+
+                DO i=1,3   ! only N2,O2,NO vibrate
+                  IF (Y(i) < 1d-16) CYCLE
+                  theta = rg_thetag(i)
+                  IF (theta <= 0.0d0) CYCLE
+
+                  ei = theta / rg_TV
+
+                  IF (ei > 60.0d0) THEN
+                    ! overflow-safe asymptotic form
+                    tmpExp = EXP(-ei)
+                    g  = g  + Y(i)*(RGS_Ru/RG_MOLM(i))*theta*tmpExp
+                    df = df - Y(i)*(RGS_Ru/RG_MOLM(i))*theta*(ei/rg_TV)*tmpExp
+                  ELSE
+                    tmpExp = EXP(ei)
+                    denom  = tmpExp - 1.0d0
+                    g  = g  + Y(i)*(RGS_Ru/RG_MOLM(i))*(theta/denom)
+                    df = df + Y(i)*(RGS_Ru/RG_MOLM(i))*theta*ei*tmpExp / (denom*denom*rg_TV)
+                  END IF
+                END DO
+
+                g = g - ev        ! target equation ev(Tv) - ev_known = 0
+
+                IF (ABS(g) < rg_tol) EXIT
+                IF (ABS(df) < 1d-20) EXIT
+
+                rg_TV = rg_TV - g/df
+
+                ! enforce bounds
+                IF (rg_TV < rg_T_lo) rg_TV = rg_T_lo
+                IF (rg_TV > rg_T_hi) rg_TV = rg_T_hi
+              END DO
+
+
+
+              leftv(1)=RHO
+              leftv(2)=U
+              leftv(3)=V
+
+              IF (DIMENSIONA.EQ.3)THEN
+              leftv(4)=W
+              END IF
+
+              LEFTV(DIMENSIONA+2)=rg_TTR2
+              LEFTV(DIMENSIONA+3)=rg_TV
+
+
+
+              DO i=1,Nof_species
+                 LEFTV(dimensiona+3+i)=Y(i)
+              END DO
+
+
+
+              else
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      OODENSITY=1.0D0/LEFTV(1)
+
+      TEMPS(1)=LEFTV(1)
+      TEMPS(2)=LEFTV(2)*OODENSITY
+      TEMPS(3)=LEFTV(3)*OODENSITY
+      TEMPS(4)=LEFTV(4)*OODENSITY
+      TEMPS(5)=((GAMMA-1.0D0))*((LEFTV(5))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
+
+      TEMPS(5)=  leftv(5)/(leftv(1)*R_gas)  !temperature
+
+      LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+      END IF
 
 END IF
 
@@ -599,162 +1495,246 @@ P_SAT =2000
 P_TOL =10E-5
 
 
-IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
+IF ((MULTISPECIES.EQ.1)) then
+            if (mp_modelc.eq.0)then
+            sum1=zero;
+            sum2=zero;
+            sum3=zero
+            do rg_i=1,nof_species
+                sum1=sum1+LEFTV(nof_Variables+rg_i)
+            end do
+            MP_DENSITY=sum1
 
- MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
- MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
- GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
- OODENSITY=1.0D0/MP_DENSITY
+            do rg_i=1,nof_SPECIES-1
+            sum2=sum2+LEFTV(4+nof_species+rg_i)
+            MP_AR(rg_i)=LEFTV(4+nof_species+rg_i)/(GAMMA_IN(rg_i)-1.0D0)
+            mp_vft(rg_i)=LEFTV(4+nof_species+rg_i)
+            end do
+
+             MP_AR(nof_SPECIES)=(1.0d0-sum2)/(GAMMA_IN(nof_SPECIES)-1.0D0)
+            mp_vft(nof_SPECIES)=(1.0d0-sum2)
+            sum3=zero
+            do rg_i=1,nof_SPECIES
+              sum3=sum3+MP_AR(rg_i)
+              end do
+              GAMMAL=(1.0D0/(sum3))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+              OODENSITY=1.0D0/MP_DENSITY
+
+              TEMPS(1)=MP_DENSITY
+              TEMPS(2)=LEFTV(2)*OODENSITY
+              TEMPS(3)=LEFTV(3)*OODENSITY
+
+            sum3=zero
+            do rg_i=1,nof_SPECIES
+              sum3=sum3+(mp_vft(rg_i)*(GAMMA_IN(rg_i)/(GAMMA_IN(rg_i)-1.0D0))*MP_PINF(rg_i))
+              end do
+
+            MP_STIFF=sum3*(GAMMAL-1.0D0)
+
+             sum2=zero
+            do rg_i=1,nof_SPECIES
+              sum2=sum2+(mp_vft(rg_i)*MP_PINF(rg_i))
+              end do
+
+              MP_PINFL=sum2
+
+            TEMPS(4)=(((GAMMAL-1.0D0))*((LEFTV(4))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2))))-MP_STIFF
+
+            TEMPS(5:NOF_VARIABLES)=LEFTV(5:NOF_VARIABLES)
+
+            call MULTISPECIES_temp(LEFTV,MP_Temp)
 
 
- TEMPS(1)=MP_DENSITY
-TEMPS(2)=LEFTV(2)*OODENSITY
-TEMPS(3)=LEFTV(3)*OODENSITY
-! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
-! MP_PINFL=(LEFTV(7)*MP_PINF(1))+((LEFTV(7)-1.0D0)*MP_PINF(2))
-
-MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+            TEMPS(4)=MP_Temp
 
 
 
 
-MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
-TEMPS(4)=(((GAMMAL-1.0D0))*((LEFTV(4))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2))))-MP_STIFF
-
-TEMPS(5)=LEFTV(5)
-TEMPS(6)=LEFTV(6)
-TEMPS(7)=LEFTV(7)
 
 
- IF(CAVITATION.EQ.1)THEN
-RHO_G = LEFTV(5)/LEFTV(7)
-RHO_L = LEFTV(6)/LEFTV(7)
-SS_G = sqrt(GAMMA_IN(1)*(TEMPS(4)+MP_PINF(1))/RHO_G)
-SS_L = sqrt(GAMMA_IN(2)*(TEMPS(4)+MP_PINF(2))/RHO_L)
-
-P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
-VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(LEFTV(7)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-LEFTV(7)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
-
-
-
-P_tEMP=TEMPS(4)
-
-if ((TEMPS(4).GT.P_TOL).AND.(TEMPS(4).LT.P_SAT))THEN
-p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
-END IF
-
-IF (TEMPS(4).LT.P_TOL)THEN
-p_temp=P_TOL
-end if
-TEMPS(4)=p_temp
-
-end if
 
 
  LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+           end  if !(mp_modelc.eq.0)then
 
 ELSE
 
 
 IF (REALGAS.EQ.1)then
 
-OODENSITY=1.0D0/LEFTV(1)
-TEMPS(:)=0.0
+TEMPS(:)=0.0d0
 
+              !first get total density-correct
 
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*OODENSITY
-TEMPS(3)=LEFTV(3)*OODENSITY
-TEMPS(4)=LEFTV(4) !TOTAL ENERGY
-TEMPS(5)=LEFTV(5)*OODENSITY !TOTAL VIRBRATIONAL ENERGY
-
-DO RG_I=1,nof_species
-RG_VFTEMP(RG_i)=leftv(5+RG_I)*OODENSITY
-END DO
-
-!Kinetic Energy
-RG_KIN=0.5D0*(TEMPS(2)**2 + TEMPS(3)**2)
-
-!Vibrational Energy
-RG_EV_TOTAL=TEMPS(5)!*OODENSITY
-
-!Chemical Energy
-RG_CHEM=zero
-
-
-do rg_i = 1, nof_SPECIES
-      if (rg_hzero(RG_i).gt.1.0e-12)then
-    rg_chem = rg_chem -RG_VFTEMP(RG_i) * rg_hzero(RG_i) / RG_MOLM(RG_i)
-      end if
-end do
-
-RG_CHEM=zero
-
-
-!now Neton-Raphson for vibRational temperature
-Tve = 3000
-  do rg_iter = 1, rg_maxiter
-    rgf_vib = 0.0D0
-    rgdf_vib = 0.0D0
-    do rg_i = 1, 3  ! Assume only first 3 species have vibrational modes
-      if (RG_VFTEMP(RG_i) > 1.0d-12) then
-        rgf_vib = rgf_vib + RG_VFTEMP(RG_i) * (rg_runiv / rg_molm(rg_i)) *rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/Tve) - 1.0D0)
-        rgdf_vib = rgdf_vib + RG_VFTEMP(RG_i) * (rg_runiv / rg_molm(rg_i)) * (rg_thetag(rg_i)**2 * exp(rg_thetag(rg_i)/Tve)) / &
-                 ((exp(rg_thetag(rg_i)/Tve) - 1.0D0)**2 * Tve**2)
-      end if
-    end do
-    rgf_vib = rgf_vib - RG_EV_TOTAL
-    if (abs(rgf_vib) < rg_tol) exit
-    Tve = Tve - rgf_vib / rgdf_vib
-  end do
-
-etr=((TEMPS(4)/leftv(1))-rg_kin)-RG_EV_TOTAL - RG_CHEM
-
-
-
-!now Neton-Raphson for translational- temperature
-  Ttr = 3000
-  do rg_iter = 1, rg_maxiter
-    rg_f = 0.0D0
-    RG_df = 0.0D0
-    do rg_i = 1, nof_species
-      if (rg_i <= 3) then
-        RG_cvs(rg_i) = (5.0D0 / 2.0D0) * rg_runiv / RG_molm(rg_i)
-      else
-        RG_cvs(rg_i) = (3.0D0 / 2.0D0) * rg_runiv / RG_molm(rg_i)
-      end if
-      RG_f  = RG_f  + RG_VFTEMP(RG_i) * RG_cvs(rg_i) * Ttr
-      RG_df = RG_df + RG_VFTEMP(RG_i) * RG_cvs(rg_i)
-    end do
-    RG_f = RG_f -etr
-
-    if (abs(RG_f) < RG_tol) exit
-    Ttr = Ttr - RG_f / RG_df
-  end do
-
-
-
-  rg_rmix=zero
-do rg_i=1,nof_species
-  rg_rmix=rg_rmix+RG_VFTEMP(rg_i)/RG_MOLM(rg_i)
-end do
-
-rg_rmix=rg_runiv*rg_rmix
+!                DO RG_I = 1, nof_species
+!                                   IF (leftv(dimensiona+3+RG_I).LT.0.0D0)THEN
+!                                       leftv(dimensiona+3+RG_I)=0.0D0
+!                                   END IF
+!                                 END DO
 
 
 
 
 
-temps(4)=leftv(1)*rg_rmix*Ttr
+
+              DO RG_I=1,nof_species
+              TEMPS(1)=temps(1)+leftv(dimensiona+3+RG_I)
+              END DO
 
 
-DO RG_I=1,nof_species
-TEMPS(5+RG_i)=RG_VFTEMP(RG_i)
-END DO
+
+              ! ============================================================
+              ! 1. Unpack conservative variables
+              ! ============================================================
+
+              RHO  = TEMPS(1)
+              U    = LEFTV(2) / RHO
+              V    = LEFTV(3) / RHO
+              if (dimensiona.eq.3)then
+              w   =LEFTV(4) / RHO
+              else
+              w=zero
+              end if
+
+              rhoE = LEFTV(dimensiona+2)
+              rhoev = LEFTV(dimensiona+3)
+
+              DO i=1,Nof_species
+                rho_i(i) = LEFTV(dimensiona+3+i)
+              END DO
+
+              ! ============================================================
+              ! 2. Recover mass fractions
+              ! ============================================================
+              sumY = 0.0d0
+              DO i=1,Nof_species
+                Y(i) = rho_i(i) / RHO
+                sumY = sumY + Y(i)
+              END DO
+
+!               ! Normalize (safety)
+!               DO i=1,Nof_species
+!                 Y(i) = Y(i) / sumY
+!               END DO
+
+              ! ============================================================
+              ! 3. Compute kinetic energy and total specific energy
+              ! ============================================================
+              KE   = 0.5d0*(U*U + V*V + W*W)
+              etot = rhoE / RHO
+
+              ! Vibrational specific energy (already known from conservative vars)
+              ev = rhoev / RHO
+
+              ! ============================================================
+              ! 4. Compute chemical energy
+              ! ============================================================
+              echem = 0.0d0
+              DO i=1,Nof_species
+                IF (rg_hzero(i) > 0.0d0) THEN
+                  ! hzero is J/mol → convert to J/kg
+                  echem = echem - Y(i) * (rg_hzero(i) / RG_MOLM(i))
+                END IF
+              END DO
+
+              ! ============================================================
+              ! 5. Compute remaining translational energy
+              !     etr = etot - ev - echem - KE
+              ! ============================================================
+              etr = etot - ev - echem - KE
+              IF (etr < 0.0d0) etr = 1d-12    ! safety
+
+              ! ============================================================
+              ! 6. Compute Ttr (no Newton needed: etr = Cv_mix * Ttr)
+              ! ============================================================
+              Cv_mix = 0.0d0
+              DO i = 1, nof_species
+                IF (i <= 3) THEN
+                  Cv_i = (5.0d0/2.0d0)*(RGS_Ru/RG_MOLM(i))
+                ELSE
+                  Cv_i = (3.0d0/2.0d0)*(RGS_Ru/RG_MOLM(i))
+                END IF
+                Cv_mix = Cv_mix + Y(i)*Cv_i
+              END DO
+
+              IF (Cv_mix > rgs_tiny) THEN
+                rg_TTR2 = etr / Cv_mix
+              ELSE
+                rg_TTR2 = rg_T_lo
+              END IF
+
+              rg_TTR2 = MAX(rg_T_lo, MIN(rg_T_hi, rg_TTR2))
+
+              ! ============================================================
+              ! 7. Solve for Tv using Newton iteration
+              !     ev = Σ Y_i * (R/M_i) * θ/(exp(θ/Tv)-1)
+              !     --> use Ttr as initial guess
+              ! ============================================================
+
+              rg_TV = rg_TTR2   ! <-- use Ttr as initial guess for Tv
+              rg_TV = MAX(rg_T_lo, MIN(rg_T_hi, rg_TV))
+
+              DO iter=1,200
+                g  = 0.0d0
+                df = 0.0d0
+
+                DO i=1,3   ! only N2,O2,NO vibrate
+                  IF (Y(i) < 1d-16) CYCLE
+                  theta = rg_thetag(i)
+                  IF (theta <= 0.0d0) CYCLE
+
+                  ei = theta / rg_TV
+
+                  IF (ei > 60.0d0) THEN
+                    ! overflow-safe asymptotic form
+                    tmpExp = EXP(-ei)
+                    g  = g  + Y(i)*(RGS_Ru/RG_MOLM(i))*theta*tmpExp
+                    df = df - Y(i)*(RGS_Ru/RG_MOLM(i))*theta*(ei/rg_TV)*tmpExp
+                  ELSE
+                    tmpExp = EXP(ei)
+                    denom  = tmpExp - 1.0d0
+                    g  = g  + Y(i)*(RGS_Ru/RG_MOLM(i))*(theta/denom)
+                    df = df + Y(i)*(RGS_Ru/RG_MOLM(i))*theta*ei*tmpExp / (denom*denom*rg_TV)
+                  END IF
+                END DO
+
+                g = g - ev        ! target equation ev(Tv) - ev_known = 0
+
+                IF (ABS(g) < rg_tol) EXIT
+                IF (ABS(df) < 1d-20) EXIT
+
+                rg_TV = rg_TV - g/df
+
+                ! enforce bounds
+                IF (rg_TV < rg_T_lo) rg_TV = rg_T_lo
+                IF (rg_TV > rg_T_hi) rg_TV = rg_T_hi
+              END DO
 
 
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+              leftv(1)=RHO
+              leftv(2)=U
+              leftv(3)=V
+
+              IF (DIMENSIONA.EQ.3)THEN
+              leftv(4)=W
+              END IF
+
+              LEFTV(DIMENSIONA+2)=rg_TTR2
+              LEFTV(DIMENSIONA+3)=rg_TV
+
+
+
+              DO i=1,Nof_species
+                 LEFTV(dimensiona+3+i)=Y(i)
+              END DO
+
+
+
+
+
+
 
 
 
@@ -781,6 +1761,8 @@ TEMPS(2)=LEFTV(2)*OODENSITY
 TEMPS(3)=LEFTV(3)*OODENSITY
 TEMPS(4)=((GAMMA-1.0D0))*((LEFTV(4))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
 
+TEMPS(4)=  leftv(4)/(leftv(1)*R_gas)  !temperature
+
 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
 
@@ -799,7 +1781,22 @@ END IF
 end if
 
 
-END SUBROUTINE CONS2PRIM
+end if
+
+
+END SUBROUTINE CONS2DIV
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 SUBROUTINE CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
@@ -807,295 +1804,13 @@ SUBROUTINE CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 !> This subroutine transforms two vector of conservative variables to primitive variables
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:nof_variables)::TEMPS
-REAL::OODENSITY,MP_DENSITY,MP_STIFF
-REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC,p_temp
 real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
 real,INTENT(INOUT)::MP_PINFL,gammal
 real,dimension(1:nof_Variables),INTENT(INOUT)::RIGHTv
 real,INTENT(INOUT)::MP_PINFR,gammaR
-REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
 
-if (nof_Variables.gt.1)then
-
-IF (DIMENSIONA.EQ.3)THEN
-
-P_SAT =2000
-P_TOL =10E-5
-
-IF (governingequations.EQ.-1) then
- 
- MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
- MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
- GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
- OODENSITY=1.0D0/MP_DENSITY
- 
- 
- TEMPS(1)=MP_DENSITY
-TEMPS(2)=LEFTV(2)*OODENSITY
-TEMPS(3)=LEFTV(3)*OODENSITY
-TEMPS(4)=LEFTV(4)*OODENSITY
-!MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(8)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
-MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
-MP_PINFL=(LEFTV(8)*MP_PINF(1))+((1.0D0-LEFTV(8))*MP_PINF(2))
-TEMPS(5)=(((GAMMAL-1.0D0))*((LEFTV(5))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2))))-MP_STIFF
-TEMPS(6)=LEFTV(6)
-TEMPS(7)=LEFTV(7)
-TEMPS(8)=LEFTV(8)
-
-
-IF(CAVITATION.EQ.1)THEN
-RHO_G = LEFTV(6)/LEFTV(8)
-RHO_L = LEFTV(7)/LEFTV(8)
-SS_G = sqrt(GAMMA_IN(1)*(TEMPS(5)+MP_PINF(1))/RHO_G)
-SS_L = sqrt(GAMMA_IN(2)*(TEMPS(5)+MP_PINF(2))/RHO_L)
-
-P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
-VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(LEFTV(8)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-LEFTV(8)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
-
-P_tEMP=TEMPS(5)
-
-if ((TEMPS(5).GT.P_TOL).AND.(TEMPS(5).LT.P_SAT))THEN
-p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
-END IF
-
-IF (TEMPS(5).LT.P_TOL)THEN
-p_temp=P_TOL
-end if
-TEMPS(5)=p_temp
-
-end if
-
-
- 
- LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
- 
- 
- 
-  MP_DENSITY=(rightV(6)+rightV(7)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=rightV(8)/(GAMMA_IN(1)-1.0D0)  
- MP_AR(2)=(1.0D0-rightV(8))/(GAMMA_IN(2)-1.0D0)
- GAMMAr=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
- OODENSITY=1.0D0/MP_DENSITY
- 
- 
- TEMPS(1)=MP_DENSITY
-TEMPS(2)=rightV(2)*OODENSITY
-TEMPS(3)=rightV(3)*OODENSITY
-TEMPS(4)=rightV(4)*OODENSITY
-! MP_STIFF=((RIGHTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((RIGHTV(8)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAR-1.0D0)
-! MP_PINFL=(rightV(8)*MP_PINF(1))+((rightV(8)-1.0D0)*MP_PINF(2))
-MP_STIFF=((rightV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-rightV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAr-1.0D0)
-MP_PINFR=(rightV(8)*MP_PINF(1))+((1.0D0-rightV(8))*MP_PINF(2))
-TEMPS(5)=(((GAMMAr-1.0D0))*((rightV(5))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2))))-MP_STIFF
-TEMPS(6)=rightV(6)
-TEMPS(7)=rightV(7)
-TEMPS(8)=rightV(8)
- 
-
-
- IF(CAVITATION.EQ.1)THEN
-RHO_G = RIGHTV(6)/RIGHTV(8)
-RHO_L = RIGHTV(7)/RIGHTV(8)
-SS_G = sqrt(GAMMA_IN(1)*(TEMPS(5)+MP_PINF(1))/RHO_G)
-SS_L = sqrt(GAMMA_IN(2)*(TEMPS(5)+MP_PINF(2))/RHO_L)
-P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
-VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(rightV(8)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-rightV(8)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
-
-
-P_tEMP=TEMPS(5)
-
-if ((TEMPS(5).GT.P_TOL).AND.(TEMPS(5).LT.P_SAT))THEN
-p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
-END IF
-
-IF (TEMPS(5).LT.P_TOL)THEN
-p_temp=P_TOL
-end if
-TEMPS(5)=p_temp
-
-end if
-
-
-
-
-
-
-
-
-
-
-
-
- rightV(1:nof_Variables)=TEMPS(1:nof_Variables)
- 
- 
- 
- ELSE
-
-OODENSITY=1.0D0/LEFTV(1)
-
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*OODENSITY
-TEMPS(3)=LEFTV(3)*OODENSITY
-TEMPS(4)=LEFTV(4)*OODENSITY
-TEMPS(5)=((GAMMA-1.0D0))*((LEFTV(5))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
-
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-
-
-OODENSITY=1.0D0/rightv(1)
-
-TEMPS(1)=rightv(1)
-TEMPS(2)=rightv(2)*OODENSITY
-TEMPS(3)=rightv(3)*OODENSITY
-TEMPS(4)=rightv(4)*OODENSITY
-TEMPS(5)=((GAMMA-1.0D0))*((rightv(5))-OO2*rightv(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
-
-rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-end if
-
-
-
-
-Else    !2D
-
-
-P_SAT =2000
-P_TOL =10E-5
-
- IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
-
- MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
- MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
- GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
- OODENSITY=1.0D0/MP_DENSITY
-
-
- TEMPS(1)=MP_DENSITY
-TEMPS(2)=LEFTV(2)*OODENSITY
-TEMPS(3)=LEFTV(3)*OODENSITY
-!MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
-!MP_PINFL=(LEFTV(7)*MP_PINF(1))+((LEFTV(7)-1.0D0)*MP_PINF(2))
-MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
-MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
-
-
-
-TEMPS(4)=(((GAMMAL-1.0D0))*((LEFTV(4))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2))))-MP_STIFF
-TEMPS(5)=LEFTV(5)
-TEMPS(6)=LEFTV(6)
-TEMPS(7)=LEFTV(7)
-
-
-IF(CAVITATION.EQ.1)THEN
-RHO_G = LEFTV(5)/LEFTV(7)
-RHO_L = LEFTV(6)/LEFTV(7)
-SS_G = sqrt(GAMMA_IN(1)*(TEMPS(4)+MP_PINF(1))/RHO_G)
-SS_L = sqrt(GAMMA_IN(2)*(TEMPS(4)+MP_PINF(2))/RHO_L)
-
-P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
-VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(LEFTV(7)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-LEFTV(7)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
-
-
-
-P_tEMP=TEMPS(4)
-
-if ((TEMPS(4).GT.P_TOL).AND.(TEMPS(4).LT.P_SAT))THEN
-p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
-END IF
-
-IF (TEMPS(4).LT.P_TOL)THEN
-p_temp=P_TOL
-end if
-TEMPS(4)=p_temp
-
-end if
-
- LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-
-
- MP_DENSITY=(RIGHTV(5)+RIGHTV(6)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=RIGHTV(7)/(GAMMA_IN(1)-1.0D0)
- MP_AR(2)=(1.0D0-RIGHTV(7))/(GAMMA_IN(2)-1.0D0)
- GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
- OODENSITY=1.0D0/MP_DENSITY
-
-
- TEMPS(1)=MP_DENSITY
-TEMPS(2)=RIGHTV(2)*OODENSITY
-TEMPS(3)=RIGHTV(3)*OODENSITY
-!MP_STIFF=((RIGHTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((RIGHTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAR-1.0D0)
-MP_STIFF=((rightV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-rightV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAr-1.0D0)
-
-
-MP_PINFr=(rightV(7)*MP_PINF(1))+((1.0D0-rightV(7))*MP_PINF(2))
-TEMPS(4)=(((GAMMAR-1.0D0))*((RIGHTV(4))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2))))-MP_STIFF
-TEMPS(5)=RIGHTV(5)
-TEMPS(6)=RIGHTV(6)
-TEMPS(7)=RIGHTV(7)
-
- IF(CAVITATION.EQ.1)THEN
-RHO_G = RIGHTV(5)/RIGHTV(7)
-RHO_L = RIGHTV(6)/RIGHTV(7)
-SS_G = sqrt(GAMMA_IN(1)*(TEMPS(4)+MP_PINF(1))/RHO_G)
-SS_L = sqrt(GAMMA_IN(2)*(TEMPS(4)+MP_PINF(2))/RHO_L)
-
-P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
-VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(rightV(7)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-rightV(7)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
-
-
-P_tEMP=TEMPS(4)
-
-if ((TEMPS(4).GT.P_TOL).AND.(TEMPS(4).LT.P_SAT))THEN
-p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
-END IF
-
-IF (TEMPS(4).LT.P_TOL)THEN
-p_temp=P_TOL
-end if
-TEMPS(4)=p_temp
-
-end if
-
- RIGHTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-else
-
-
-
-OODENSITY=1.0D0/LEFTV(1)
-
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*OODENSITY
-TEMPS(3)=LEFTV(3)*OODENSITY
-TEMPS(4)=((GAMMA-1.0D0))*((LEFTV(4))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
-
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-
-OODENSITY=1.0D0/rightv(1)
-
-TEMPS(1)=rightv(1)
-TEMPS(2)=rightv(2)*OODENSITY
-TEMPS(3)=rightv(3)*OODENSITY
-TEMPS(4)=((GAMMA-1.0D0))*((rightv(4))-OO2*rightv(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
-
-rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
-end if
-
-
-
-end if
-
-END IF
-
-
+CALL cons2prim(N,leftv,MP_PINFl,gammal)
+CALL cons2prim(N,RIGHTV,MP_PINFR,gammaR)
 
 
 END SUBROUTINE CONS2PRIM2
@@ -1143,7 +1858,7 @@ TOLE=ZERO
 
 
 
-if (multispecies.eq.1)then
+      if ((multispecies.eq.1).OR.(REALGAS.EQ.1))then
 		 SSL=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
 		  Ssr=SQRT((rightV(5)+MP_PINFr)*GAMMAr/rightV(1))
 		else
@@ -1254,7 +1969,7 @@ TOLE=tolsmall
       
       
       
-    if (multispecies.eq.1)then
+    if ((multispecies.eq.1).OR.(REALGAS.EQ.1))then
 		 SSL=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
 		  Ssr=SQRT((rightV(4)+MP_PINFr)*GAMMAr/rightV(1))
 		else
@@ -1351,185 +2066,217 @@ INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff,RG_VE,RG_TR,RG_CHEM
 real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
-real::MP_PINFL,gammal
-REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+real::MP_PINFL,gammal,p
+REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE,mp_vft
 INTEGER::rg_i,rg_j
 REAL,DIMENSION(1:nof_species)::RG_VFTEMP
 REAL,DIMENSION(1:nof_species)::RG_CVS,rg_theta
-REAL,DIMENSION(1:nof_species)::RG_TVSL,RG_EV
+REAL,DIMENSION(1:nof_species)::RG_TVSL,RG_EV,y
 REAL::RG_DENSITY,RG_EV_TOTAL,rg_rmix,rg_kin
 integer::rg_iter,rg_maxiter
-real::rgf_vib,rgdf_vib,rg_tol,tve,TTR
+real::rgf_vib,rgdf_vib,rg_tol,tve,TTR,rg_f,rg_df,sum1,sum2,sum3,u,v,w
+REAL:: rmix
+REAL:: Cv_mix, e_tr, e_chem, KE, e_tot,evib,rho
+INTEGER :: i, idxE, idxEv
+
+rg_maxiter=20
 
 if (nof_Variables.gt.1)then
 
-if (dimensiona.eq.3)then
+IF (MULTISPECIES.EQ.1) then
 
-IF (governingequations.EQ.-1) then
+            if (mp_modelc.eq.0)then
+            sum1=zero;
+            sum2=zero;
+            sum3=zero
+            do rg_i=1,nof_species
+                sum1=sum1+LEFTV(nof_Variables+rg_i)
+            end do
+            MP_DENSITY=sum1
+
+            do rg_i=1,nof_SPECIES-1
+            sum2=sum2+LEFTV(dimensiona+2+nof_species+rg_i)
+            MP_AR(rg_i)=LEFTV(dimensiona+2+nof_species+rg_i)/(GAMMA_IN(rg_i)-1.0D0)
+            mp_vft(rg_i)=LEFTV(dimensiona+2+nof_species+rg_i)
+            end do
+            MP_AR(nof_SPECIES)=(1.0d0-sum2)/(GAMMA_IN(nof_SPECIES)-1.0D0)
+            mp_vft(nof_SPECIES)=(1.0d0-sum2)
+
+             sum3=zero
+            do rg_i=1,nof_SPECIES
+              sum3=sum3+MP_AR(rg_i)
+              end do
+              GAMMAL=(1.0D0/(sum3))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+ 
 
  
- MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
- MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
- GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+          TEMPS(1)=MP_DENSITY
+          TEMPS(2)=LEFTV(2)*TEMPS(1);u=LEFTV(2)
+          TEMPS(3)=LEFTV(3)*TEMPS(1);v=LEFTV(3)
+          w=zero
+          if (dimensiona.eq.3)then
+                    TEMPS(4)=LEFTV(4)*TEMPS(1);w=LEFTV(4)
+                    end if
+          skin1=(oo2)*((u*u)+(v*v)+(w*w))
+
+            sum3=zero
+            do rg_i=1,nof_SPECIES
+              sum3=sum3+(mp_vft(rg_i)*(GAMMA_IN(rg_i)/(GAMMA_IN(rg_i)-1.0D0))*MP_PINF(rg_i))
+              end do
+
+            MP_STIFF=sum3*(GAMMAL-1.0D0)
+
+
+! MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+
+      ie1=((leftv(dimensiona+2)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
+      TEMPS(dimensiona+2)=TEMPS(1)*(ie1+skin1)
+      TEMPS(dimensiona+3:NOF_VARIABLES)=LEFTV(dimensiona+3:NOF_VARIABLES)
+      LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
  
-TEMPS(1)=MP_DENSITY
-TEMPS(2)=LEFTV(2)*TEMPS(1)
-TEMPS(3)=LEFTV(3)*TEMPS(1)
-TEMPS(4)=LEFTV(4)*TEMPS(1)
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
-!MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(8)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
-MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
-
-ie1=((leftv(5)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
-TEMPS(5)=TEMPS(1)*(ie1+skin1)
-TEMPS(6:8)=LEFTV(6:8)
- LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+            end if !(mp_modelc.eq.0)then
  
- 
- 
- else
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
-ie1=((leftv(5))/((GAMMA-1.0D0)*leftv(1)))
-
-OODENSITY=1.0D0/LEFTV(1)
-
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*LEFTV(1)
-TEMPS(3)=LEFTV(3)*LEFTV(1)
-TEMPS(4)=LEFTV(4)*LEFTV(1)
-TEMPS(5)=leftv(1)*(ie1+skin1)
-
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-
-
-end if
-
-
-ELSE
-
-IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
-
-
- MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
- MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
- GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
-
-TEMPS(1)=MP_DENSITY
-TEMPS(2)=LEFTV(2)*TEMPS(1)
-TEMPS(3)=LEFTV(3)*TEMPS(1)
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
-MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
-
-
-
-
-MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
-ie1=((leftv(4)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
-TEMPS(4)=TEMPS(1)*(ie1+skin1)
-TEMPS(5:7)=LEFTV(5:7)
- LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
  else
 
 
- IF (REALGAS.EQ.1)THEN
+            IF (REALGAS.EQ.1)THEN
 
 
-!First we compute the mixture gas constant
+            RHO=leftv(1)
+            U=leftv(2)
+            v=leftv(3)
 
+            if (dimensiona.eq.3)then
+            w=leftv(4)
+            ELSE
+            w=zero
+            end if
 
-do rg_i=1,nof_species
-  RG_VFTEMP(rg_i)=leftv(5+rg_i)
-end do
+            idxE  = DIMENSIONA + 2
+            idxEv = DIMENSIONA + 3
 
+            p=leftv(idxE)
+            evib=leftv(idxEv)
 
-rg_rmix=zero
-do rg_i=1,nof_species
-  rg_rmix=rg_rmix+RG_VFTEMP(rg_i)/RG_MOLM(rg_i)
-end do
-
-  rg_rmix=rg_runiv*rg_rmix
-
-!now obtain the translational-rotational temperature from pressure
-
-
-ttr=leftv(4)/(leftv(1)*rg_rmix)
-
-! Translational-rotational internal energy
-
-rg_tr = 0.0D0
-    do rg_i = 1, nof_species
-      if (rg_i <= 3) then
-        RG_CVS(rg_i) = (5.0D0 / 2.0D0) * rg_runiv / RG_MOLM(rg_i)
-      else
-        RG_CVS(rg_i) = (3.0D0 / 2.0D0) * rg_runiv / RG_MOLM(rg_i)
-      end if
-      rg_tr = rg_tr + RG_VFTEMP(rg_i) * RG_CVS(rg_i) * Ttr
-    end do
-
-
-! Vibrational energy
-    RG_EV_TOTAL=leftv(5)!/leftv(1)
-
-
-! Chemical energy
-RG_CHEM=zero
- do rg_i=1,nof_species
- if (rg_hzero(RG_i).gt.1.0e-12)then
-        RG_CHEM=RG_CHEM-(RG_VFTEMP(rg_i)*rg_hzero(nof_species)/RG_MOLM(rg_i))
-  end if
-END DO
-
-RG_CHEM=zero
-
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
+                              DO i = 1, NOF_SPECIES
+                                  Y(i) = LEFTV(idxEv + i)   ! species mass fractions
+                                END DO
 
 
 
 
-
-
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*LEFTV(1)
-TEMPS(3)=LEFTV(3)*LEFTV(1)
-
-TEMPS(4)=LEFTV(1)*(skin1+RG_EV_TOTAL+RG_TR+RG_CHEM)
-TEMPS(5)=LEFTV(1)*RG_EV_TOTAL
-
-do rg_i=1,nof_species
-TEMPS(5+rg_i)=LEFTV(1) * RG_VFTEMP(rg_i)
-end do
-
-
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-ELSE
+             DO i = 1, NOF_SPECIES
+              rmix = rmix + Y(i) / RG_MOLM(i)
+            END DO
 
 
 
 
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
+            ! -------------------------------
+            ! 1. Mixture gas constant Rmix
+            ! P = ρ Rmix Ttr → Ttr = P / (ρ Rmix)
+            ! -------------------------------
+            rmix = 0.0D0
+            DO i = 1, NOF_SPECIES
+              rmix = rmix + Y(i) / RG_MOLM(i)
+            END DO
+            rmix = RGS_Ru * rmix
 
-OODENSITY=1.0D0/LEFTV(1)
+            ! -------------------------------
+            ! 2. Mixture Cv and translational energy
+            !    Cv_i = 5/2 R for i<=3 (diatomic),
+            !           3/2 R for i>3  (monatomic)
+            ! -------------------------------
+            Cv_mix = 0.0D0
+            DO i = 1, NOF_SPECIES
+              IF (i <= 3) THEN
+                Cv_mix = Cv_mix + Y(i) * (5.0D0/2.0D0) * (RGS_Ru / RG_MOLM(i))
+              ELSE
+                Cv_mix = Cv_mix + Y(i) * (3.0D0/2.0D0) * (RGS_Ru / RG_MOLM(i))
+              END IF
+            END DO
 
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*LEFTV(1)
-TEMPS(3)=LEFTV(3)*LEFTV(1)
-TEMPS(4)=leftv(1)*(ie1+skin1)
+            ! Translational temperature Ttr from P = ρ Rmix Ttr
+            ! Then e_tr = Cv_mix * Ttr
+            IF (rmix > 1.0D-20 .AND. Cv_mix > 1.0D-20) THEN
+              e_tr = Cv_mix * (P / (RHO * rmix))
+            ELSE
+              e_tr = 0.0D0
+            END IF
 
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+            ! -------------------------------
+            ! 3. Chemical energy: e_chem = - Σ Y_i * h°_i/M_i
+            ! -------------------------------
+            e_chem = 0.0D0
+!             DO i = 1, NOF_SPECIES
+!               IF (RG_HZERO(i) > 0.0D0) THEN
+!                 e_chem = e_chem - Y(i) * (RG_HZERO(i) / RG_MOLM(i))
+!               END IF
+!             END DO
+
+            ! -------------------------------
+            ! 4. Kinetic and total specific energy
+            ! -------------------------------
+            KE    = 0.5D0 * (U*U + V*V + W*W)
+            e_tot = e_tr + EVIB + e_chem + KE
+
+            ! -------------------------------
+            ! 5. Fill conservative vector
+            ! -------------------------------
+            LEFTV(1) = RHO
+            LEFTV(2) = RHO * U
+            LEFTV(3) = RHO * V
+            IF (DIMENSIONA == 3) THEN
+              LEFTV(4) = RHO * W
+            ELSE
+              LEFTV(4) = 0.0D0
+            END IF
+
+
+
+            LEFTV(idxE)  = RHO * e_tot      ! ρE_total
+            LEFTV(idxEv) = RHO * EVIB       ! ρ e_vib
+
+            DO i = 1, NOF_SPECIES
+              LEFTV(idxEv + i) = RHO * Y(i) ! ρ_i
+            END DO
+
+
+
+
+            else
+
+
+
+                      u=LEFTV(2)
+                      v=LEFTV(3)
+                      w=zero
+                            if (dimensiona.eq.3)then
+                                w=LEFTV(4)
+                                end if
+                      skin1=(oo2)*((u*u)+(v*v)+(w*w))
+            ie1=((leftv(dimensiona+2))/((GAMMA-1.0D0)*leftv(1)))
+
+            OODENSITY=1.0D0/LEFTV(1)
+
+            TEMPS(1)=LEFTV(1)
+            TEMPS(2)=LEFTV(2)*LEFTV(1)
+            TEMPS(3)=LEFTV(3)*LEFTV(1)
+            if (dimensiona.eq.3)then
+            TEMPS(4)=LEFTV(4)*LEFTV(1)
+            end if
+            TEMPS(dimensiona+2)=leftv(1)*(ie1+skin1)
+
+            LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+            end if
 
 end if
 
-END IF
-
 end if
 
-end if
+
+
 
 
 
@@ -1548,172 +2295,24 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::TEMPS
 REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
-REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE,mp_vft
 real,dimension(1:nof_Variables),INTENT(INOUT)::leftv,RIGHTV
 real::MP_PINFL,gammal,MP_PINFR,gammaR
+INTEGER::rg_i,rg_j
+REAL,DIMENSION(1:nof_species)::RG_VFTEMP
+REAL,DIMENSION(1:nof_species)::RG_CVS,rg_theta
+REAL,DIMENSION(1:nof_species)::RG_TVSL,RG_EV
+REAL::RG_DENSITY,RG_EV_TOTAL,rg_rmix,rg_kin
+integer::rg_iter,rg_maxiter
+real::rgf_vib,rgdf_vib,rg_tol,tve,TTR,rg_f,rg_df,sum1,sum2,sum3
 
 if (nof_Variables.gt.1)then
-if (dimensiona.eq.3)then
 
-
-IF (governingequations.EQ.-1) then
-
- 
- MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
- MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
- GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
- 
-TEMPS(1)=MP_DENSITY
-TEMPS(2)=LEFTV(2)*TEMPS(1)
-TEMPS(3)=LEFTV(3)*TEMPS(1)
-TEMPS(4)=LEFTV(4)*TEMPS(1)
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
-!MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(8)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
-MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
-ie1=((leftv(5)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
-TEMPS(5)=TEMPS(1)*(ie1+skin1)
-TEMPS(6:8)=LEFTV(6:8)
- LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
- 
- 
- 
- 
-  MP_DENSITY=(rightV(6)+rightV(7)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=rightV(8)/(GAMMA_IN(1)-1.0D0)  
- MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
- GAMMAr=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
- 
-TEMPS(1)=MP_DENSITY
-TEMPS(2)=rightV(2)*TEMPS(1)
-TEMPS(3)=rightV(3)*TEMPS(1)
-TEMPS(4)=rightV(4)*TEMPS(1)
-skin1=(oo2)*((rightv(2)**2)+(rightv(3)**2)+(rightv(4)**2))
-!MP_STIFF=((RIGHTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((RIGHTV(8)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAR-1.0D0)
-MP_STIFF=((rightV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-rightV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAr-1.0D0)
-ie1=((rightv(5)+mp_stiff)/((GAMMAr-1.0D0)*TEMPS(1)))
-TEMPS(5)=TEMPS(1)*(ie1+skin1)
-TEMPS(6:8)=rightV(6:8)
- rightV(1:nof_Variables)=TEMPS(1:nof_Variables)
- 
- 
- else
-
-
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
-ie1=((leftv(5))/((GAMMA-1.0D0)*leftv(1)))
-
-OODENSITY=1.0D0/LEFTV(1)
-
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*LEFTV(1)
-TEMPS(3)=LEFTV(3)*LEFTV(1)
-TEMPS(4)=LEFTV(4)*LEFTV(1)
-TEMPS(5)=leftv(1)*(ie1+skin1)
-
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-
-skin1=(oo2)*((rightv(2)**2)+(rightv(3)**2)+(rightv(4)**2))
-ie1=((rightv(5))/((GAMMA-1.0D0)*rightv(1)))
-
-OODENSITY=1.0D0/rightv(1)
-
-TEMPS(1)=rightv(1)
-TEMPS(2)=rightv(2)*rightv(1)
-TEMPS(3)=rightv(3)*rightv(1)
-TEMPS(4)=rightv(4)*rightv(1)
-TEMPS(5)=rightv(1)*(ie1+skin1)
-
-rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
-end if
-
-else
-IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
-
-
- MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
- MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
- GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
-
-TEMPS(1)=MP_DENSITY
-TEMPS(2)=LEFTV(2)*TEMPS(1)
-TEMPS(3)=LEFTV(3)*TEMPS(1)
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
-MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
-
-
-
-MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
-ie1=((leftv(4)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
-
-TEMPS(4)=TEMPS(1)*(ie1+skin1)
-TEMPS(5:7)=LEFTV(5:7)
- LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-
-
- MP_DENSITY=(RIGHTV(5)+RIGHTV(6)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=RIGHTV(7)/(GAMMA_IN(1)-1.0D0)
- MP_AR(2)=(1.0D0-RIGHTV(7))/(GAMMA_IN(2)-1.0D0)
- GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
-
-TEMPS(1)=MP_DENSITY
-TEMPS(2)=RIGHTV(2)*TEMPS(1)
-TEMPS(3)=RIGHTV(3)*TEMPS(1)
-skin1=(oo2)*((RIGHTv(2)**2)+(RIGHTv(3)**2))
-!MP_STIFF=((RIGHTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((RIGHTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAR-1.0D0)
-MP_STIFF=((RIGHTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-RIGHTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAR-1.0D0)
-
-MP_PINFr=(RIGHTV(7)*MP_PINF(1))+((1.0D0-RIGHTV(7))*MP_PINF(2))
-ie1=((rightv(4)+mp_stiff)/((GAMMAr-1.0D0)*TEMPS(1)))
-TEMPS(4)=TEMPS(1)*(ie1+skin1)
-TEMPS(5:7)=RIGHTV(5:7)
- RIGHTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-
-
-
- else
-
-
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
-
-OODENSITY=1.0D0/LEFTV(1)
-
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*LEFTV(1)
-TEMPS(3)=LEFTV(3)*LEFTV(1)
-TEMPS(4)=leftv(1)*(ie1+skin1)
-
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-skin1=(oo2)*((rightv(2)**2)+(rightv(3)**2))
-ie1=((rightv(4))/((GAMMA-1.0D0)*rightv(1)))
-
-OODENSITY=1.0D0/rightv(1)
-
-TEMPS(1)=rightv(1)
-TEMPS(2)=rightv(2)*rightv(1)
-TEMPS(3)=rightv(3)*rightv(1)
-TEMPS(4)=rightv(1)*(ie1+skin1)
-
-rightv(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-end if
-
+call PRIM2CONS(N,leftv)
+call PRIM2CONS(N,rightv)
 
 
 end if
-
-
-
-end if
-
-
 
 
 END SUBROUTINE PRIM2CONS2
@@ -1739,10 +2338,16 @@ REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
 REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
 REAL::XF,YF,ZF
 REAL:: Theta_0,vtang, vradial,GAMMAR
-REAL::MP_DENSITY,MP_STIFF
+REAL::MP_DENSITY,MP_STIFF,SUM1,SUM2,SUM3
+REAL,DIMENSION(1:NOF_VARIABLES)::VECT_IN
 REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+INTEGER::RG_I,RG_J
+REAL::KHX,T1L,VHX,AMP,DVEL,rgg,tt1,khi_slope,khi_b,theeta,reeta,RG_VE,RG_TR,RG_CHEM,RG_DENSITY,RG_EV_TOTAL,rg_rmix
+REAL,DIMENSION(1:NOF_SPECIES)::RG_CVS
+REAL,DIMENSION(1:NOF_SPECIES)::RG_TVSL,RG_EV
+real::rg_tv,rg_Ttr0,rg_Tve0
 
-IF (governingequations.EQ.-1) then
+IF (multispecies.EQ.1) then
 
 
 
@@ -1750,31 +2355,58 @@ P=PRES
 U=uvel
 V=vvel
 w=wvel
-MP_AR(1)=MP_A_IN(1)/(GAMMA_IN(1)-1.0D0)  
-MP_AR(2)=MP_A_IN(2)/(GAMMA_IN(2)-1.0D0)
-GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
 
-GM=GAMMAR
 
-R=(MP_R_IN(1)*MP_A_IN(1))+(MP_R_IN(2)*MP_A_IN(2))
-MP_IE(1)=((P+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-MP_IE(2)=((P+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+VECT_IN(1)=R
+VECT_IN(2)=U
+VECT_IN(3)=V
+VECT_IN(4)=w
+VECT_IN(5)=p
 
-IEn=(MP_IE(1)*MP_A_IN(1))+(MP_IE(2)*MP_A_IN(2))
-! !KINETIC ENERGY FIRST!
-SKIN=(OO2)*((U**2)+(V**2)+(w**2))
-! !TOTAL ENERGY
-E=(R*SKIN)+IEN
+DO RG_I=1,NOF_SPECIES
+VECT_IN(6+RG_I)=MP_R_IN(RG_I)*MP_A_IN(RG_I)
+END DO
+DO RG_I=1,NOF_SPECIES-1
+VECT_IN(6+NOF_SPECIES+RG_I)=MP_A_IN(RG_I)
+END DO
 
-!VECTOR OF CONSERVED VARIABLES NOW
-INFLOW(1)=R
-INFLOW(2)=R*U
-INFLOW(3)=R*V
-INFLOW(4)=R*w
-INFLOW(5)=E
-INFLOW(6)=MP_R_IN(1)*MP_A_IN(1)
-INFLOW(7)=MP_R_IN(2)*MP_A_IN(2)
-INFLOW(8)=MP_A_IN(1)
+   CALL PRIM2CONS(N,VECT_IN)
+
+
+INFLOW(1:NOF_VARIABLES)=VECT_IN(1:NOF_VARIABLES)
+
+
+!
+!
+!
+!
+!
+!
+! MP_AR(1)=MP_A_IN(1)/(GAMMA_IN(1)-1.0D0)
+! MP_AR(2)=MP_A_IN(2)/(GAMMA_IN(2)-1.0D0)
+! GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+!
+! GM=GAMMAR
+!
+! R=(MP_R_IN(1)*MP_A_IN(1))+(MP_R_IN(2)*MP_A_IN(2))
+! MP_IE(1)=((P+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+! MP_IE(2)=((P+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+!
+! IEn=(MP_IE(1)*MP_A_IN(1))+(MP_IE(2)*MP_A_IN(2))
+! ! !KINETIC ENERGY FIRST!
+! SKIN=(OO2)*((U**2)+(V**2)+(w**2))
+! ! !TOTAL ENERGY
+! E=(R*SKIN)+IEN
+!
+! !VECTOR OF CONSERVED VARIABLES NOW
+! INFLOW(1)=R
+! INFLOW(2)=R*U
+! INFLOW(3)=R*V
+! INFLOW(4)=R*w
+! INFLOW(5)=E
+! INFLOW(6)=MP_R_IN(1)*MP_A_IN(1)
+! INFLOW(7)=MP_R_IN(2)*MP_A_IN(2)
+! INFLOW(8)=MP_A_IN(1)
 
 
 
@@ -1870,6 +2502,85 @@ INFLOW(5)=E
   
 END IF
 
+
+IF (REALGAS.EQ.1)THEN
+U=UVEL
+V=VVEL
+w=wVEL
+P=PRES
+R=RRES
+
+
+
+!First build mixture gas constant
+rg_rmix=zero
+do rg_i=1,nof_species
+  rg_rmix=rg_rmix+RG_VF(rg_i)/RG_MOLM(rg_i)
+end do
+
+  rg_rmix=RGS_Ru*rg_rmix
+
+  rg_ttr0=rg_ttr
+  rg_tve0=rg_tve
+
+
+! Translational-rotational internal energy
+rg_tr = 0.0D0
+    do rg_i = 1, nof_species
+      if (rg_i <= 3) then
+        RG_CVS(rg_i) = (5.0D0 / 2.0D0) * RGS_Ru / RG_MOLM(rg_i)
+      else
+        RG_CVS(rg_i) = (3.0D0 / 2.0D0) * RGS_Ru / RG_MOLM(rg_i)
+      end if
+      rg_tr = rg_tr + RG_VF(rg_i) * RG_CVS(rg_i) * rg_Ttr0
+    end do
+
+
+! Vibrational energy
+    RG_EV_TOTAL= 0.0D0
+    do rg_i = 1, 3
+      RG_EV_TOTAL = RG_EV_TOTAL + RG_VF(rg_i)  * (RGS_Ru / RG_MOLM(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/rg_Tve0) - 1.0D0))
+    end do
+
+RG_CHEM=zero
+
+  ! Chemical energy
+ do rg_i=1,nof_species
+        if (rg_hzero(RG_i).gt.1.0e-12)then
+        RG_CHEM=RG_CHEM-(RG_VF(rg_i)*rg_hzero(RG_i)/RG_MOLM(rg_i))
+        end if
+END DO
+!RG_CHEM=zero
+
+
+
+
+
+! Kinetic energy
+
+SKIN=(oo2)*((U**2)+(V**2)+(W**2))
+
+
+inflow(1)=R
+inflow(2)=R*U
+inflow(3)=R*V
+inflow(4)=R*w
+inflow(5)=R*(RG_EV_TOTAL+RG_TR+RG_CHEM+skin)
+inflow(6)=R*RG_EV_TOTAL
+
+do rg_i=1,nof_species
+inflow(6+rg_i)=r * RG_VF(rg_i)
+end do
+
+
+
+end if
+
+
+
+
+
+
 END FUNCTION INFLOW
 
 
@@ -1903,11 +2614,20 @@ REAL,DIMENSION(1:2),INTENT(IN)::POX,POY
 REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI,PS
 REAL::XF,YF,ZF,LIT_A,LIT_O
 REAL:: Theta_0,vtang, vradial,GAMMAR
-REAL::MP_DENSITY,MP_STIFF
+REAL::MP_DENSITY,MP_STIFF,SUM1,SUM2,SUM3
+REAL,DIMENSION(1:NOF_VARIABLES)::VECT_IN
 REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+INTEGER::RG_I,RG_J
+REAL::KHX,T1L,VHX,AMP,DVEL,rgg,tt1,khi_slope,khi_b,theeta,reeta,RG_VE,RG_TR,RG_CHEM,RG_DENSITY,RG_EV_TOTAL,rg_rmix
+REAL,DIMENSION(1:NOF_SPECIES)::RG_CVS
+REAL,DIMENSION(1:NOF_SPECIES)::RG_TVSL,RG_EV
+real::rg_tv,rg_Ttr0,rg_Tve0
 
 
-IF (governingequations.EQ.-1) then
+
+
+
+IF (multispecies.EQ.1) then
 
 
 
@@ -1932,36 +2652,30 @@ end if
 
 
 
+VECT_IN(1)=R
+VECT_IN(2)=U
+VECT_IN(3)=V
+VECT_IN(4)=P
+DO RG_I=1,NOF_SPECIES
+VECT_IN(5+RG_I)=MP_R_IN(RG_I)*MP_A_IN(RG_I)
+END DO
+DO RG_I=1,NOF_SPECIES-1
+VECT_IN(5+NOF_SPECIES+RG_I)=MP_A_IN(RG_I)
+END DO
+
+   CALL PRIM2CONS(N,VECT_IN)
 
 
+INFLOW2D(1:NOF_VARIABLES)=VECT_IN(1:NOF_VARIABLES)
 
-!
-
-
-MP_AR(1)=MP_A_IN(1)/(GAMMA_IN(1)-1.0D0)  
-MP_AR(2)=MP_A_IN(2)/(GAMMA_IN(2)-1.0D0)
-GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
-
-GM=GAMMAR
-
-R=(MP_R_IN(1)*MP_A_IN(1))+(MP_R_IN(2)*MP_A_IN(2))
-MP_IE(1)=((P+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-MP_IE(2)=((P+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-
-IEn=(MP_IE(1)*MP_A_IN(1))+(MP_IE(2)*MP_A_IN(2))
-! !KINETIC ENERGY FIRST!
-SKIN=(OO2)*((U**2)+(V**2))
-! !TOTAL ENERGY
-E=(R*SKIN)+IEN
-
-!VECTOR OF CONSERVED VARIABLES NOW
-INFLOW2d(1)=R
-INFLOW2d(2)=R*U
-INFLOW2d(3)=R*V
-INFLOW2d(4)=E
-INFLOW2d(5)=MP_R_IN(1)*MP_A_IN(1)
-INFLOW2d(6)=MP_R_IN(2)*MP_A_IN(2)
-INFLOW2d(7)=MP_A_IN(1)
+! !VECTOR OF CONSERVED VARIABLES NOW
+! INFLOW2d(1)=R
+! INFLOW2d(2)=R*U
+! INFLOW2d(3)=R*V
+! INFLOW2d(4)=E
+! INFLOW2d(5)=MP_R_IN(1)*MP_A_IN(1)
+! INFLOW2d(6)=MP_R_IN(2)*MP_A_IN(2)
+! INFLOW2d(7)=MP_A_IN(1)
 
 
 
@@ -2024,6 +2738,82 @@ INFLOW2d(4)=E
 
 ENDIF
 
+IF (REALGAS.EQ.1)THEN
+U=UVEL
+V=VVEL
+P=PRES
+R=RRES
+
+
+
+!First build mixture gas constant
+rg_rmix=zero
+do rg_i=1,nof_species
+  rg_rmix=rg_rmix+RG_VF(rg_i)/RG_MOLM(rg_i)
+end do
+
+  rg_rmix=RGS_Ru*rg_rmix
+
+  rg_ttr0=rg_ttr
+  rg_tve0=rg_tve
+
+
+! Translational-rotational internal energy
+rg_tr = 0.0D0
+    do rg_i = 1, nof_species
+      if (rg_i <= 3) then
+        RG_CVS(rg_i) = (5.0D0 / 2.0D0) * RGS_Ru / RG_MOLM(rg_i)
+      else
+        RG_CVS(rg_i) = (3.0D0 / 2.0D0) * RGS_Ru / RG_MOLM(rg_i)
+      end if
+      rg_tr = rg_tr + RG_VF(rg_i) * RG_CVS(rg_i) * rg_Ttr0
+    end do
+
+
+! Vibrational energy
+    RG_EV_TOTAL= 0.0D0
+    do rg_i = 1, 3
+      RG_EV_TOTAL = RG_EV_TOTAL + RG_VF(rg_i)  * (RGS_Ru / RG_MOLM(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/rg_Tve0) - 1.0D0))
+    end do
+
+RG_CHEM=zero
+
+  ! Chemical energy
+ do rg_i=1,nof_species
+        if (rg_hzero(RG_i).gt.1.0e-12)then
+        RG_CHEM=RG_CHEM-(RG_VF(rg_i)*rg_hzero(RG_i)/RG_MOLM(rg_i))
+        end if
+END DO
+!RG_CHEM=zero
+
+
+
+
+
+! Kinetic energy
+
+SKIN=(oo2)*((U**2)+(V**2))
+
+
+inflow2d(1)=R
+inflow2d(2)=R*U
+inflow2d(3)=R*V
+inflow2d(4)=R*(RG_EV_TOTAL+RG_TR+RG_CHEM+skin)
+inflow2d(5)=R*RG_EV_TOTAL
+
+do rg_i=1,nof_species
+inflow2d(5+rg_i)=r * RG_VF(rg_i)
+end do
+
+
+
+end if
+
+
+
+
+
+
 END FUNCTION INFLOW2d
 
 
@@ -2039,7 +2829,7 @@ REAL::XF,YF,ZF,GAMMAR
 REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
 
 
-IF (governingequations.EQ.-1) then
+IF (multispecies.EQ.1) then
 
 
 
@@ -2105,7 +2895,7 @@ REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
 REAL::XF,YF,ZF,GAMMAR
 REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
 
-IF (governingequations.EQ.-1) then
+IF (multispecies.EQ.1) then
 
 
 
@@ -2411,8 +3201,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSIDERED)%GRADS(1:3,1:3)
  NZ=(COS(ANGLE2))
  LEFTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
  RIGHTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
- CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
- CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+
+ CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
 SSX=ZERO; SSP=ZERO; SSY=ZERO; SSZ=ZERO
 
@@ -2471,8 +3261,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSIDERED)%GRADS(1:3,1:3)
  NZ=(COS(ANGLE2))
  LEFTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
  RIGHTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
- CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
- CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+
+ CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
 SSX=ZERO; SSP=ZERO; SSY=ZERO; SSZ=ZERO
 
@@ -2527,8 +3317,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSIDERED)%GRADS(1:3,1:3)
  NZ=(COS(ANGLE2))
  LEFTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
  RIGHTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
- CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
- CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+
+ CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
 SSX=ZERO; SSP=ZERO; SSY=ZERO; SSZ=ZERO
 
@@ -2643,8 +3433,8 @@ J=FACEX
 				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
 				  END IF
 
-                    CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-					CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+
+					CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
                               IF (TURBULENCEMODEL.EQ.1)THEN
 
@@ -2700,7 +3490,7 @@ REAL,INTENT(INOUT)::SHEAR_TEMP
  INTEGER::I,K,J,KMAXE,gqi_points,nnd,IM
  real,dimension(1:nof_Variables)::leftv
  real,dimension(1:2)::TEMP_gRAD
-real::MP_PINFL,gammal
+real::MP_PINFL,gammal,lam_qflux
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
 real::angle1,angle2,nx,ny,nz,surface_temp
@@ -2708,6 +3498,9 @@ real,dimension(1:4)::viscl,laml
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
 REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
+REAL,DIMENSION(1:2)::TURBMV
+REAL,DIMENSION(1)::ETVM
+REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
 
 
 I=ICONSIDERED
@@ -2734,13 +3527,47 @@ J=FACEX
 
 				do im=1,gqi_points
 				TEMP_gRAD(1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,dimensiona+1,J,IM)
-				    SSX=SSX+0.026*TEMP_gRAD(1)*WEQUA2D(im)*nx*surface_temp
-				  SSy=SSy+0.026*TEMP_gRAD(2)*WEQUA2D(im)*ny*surface_temp
+
+				IF (DG.EQ.1)THEN
+				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+
+
+				  ELSE
+				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				  END IF
+
+				  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
+
+                              IF (TURBULENCEMODEL.EQ.1)THEN
+
+                              TURBMV(1)=ILOCAL_RECON3(I)%ULEFTTURB(1,j,im)
+
+							  TURBMV(2)=ILOCAL_RECON3(I)%ULEFTTURB(1,j,im)
+							  eddyfl(2)=turbmv(1);
+							  eddyfr(2)=turbmv(2)
+							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+						      END IF
+
+					if (turbulence .eq. 1) then
+					lam_qflux=LAML(3)
+					else
+					lam_qflux=LAML(1)
+					end if
+
+                      SSX=SSX+lam_qflux*TEMP_gRAD(1)*WEQUA2D(im)*nx!*surface_temp
+                      SSy=SSy+lam_qflux*TEMP_gRAD(2)*WEQUA2D(im)*ny!*surface_temp
+
+
+
+
+
                END DO
 
 
 
-SHEAR_TEMP=SSX+ssy
+SHEAR_TEMP=-(SSX+ssy)
 
 
 
@@ -2861,8 +3688,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSIDERED)%GRADSAV(1:3,1:3)
  NZ=(COS(ANGLE2))
  LEFTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(IND1,1:nof_Variables)
  RIGHTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(IND1,1:nof_Variables)
- CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
- CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+
+ CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
 SSX=ZERO; SSP=ZERO; SSY=ZERO; SSZ=ZERO
 
@@ -2925,8 +3752,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSIDERED)%GRADSAV(1:3,1:3)
  NZ=(COS(ANGLE2))
  LEFTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(IND1,1:nof_Variables)
  RIGHTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(IND1,1:nof_Variables)
- CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
- CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+
+ CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
 SSX=ZERO; SSP=ZERO; SSY=ZERO; SSZ=ZERO
 
@@ -2987,8 +3814,8 @@ VORTET1(1:3,1:3) = ILOCAL_RECON3(ICONSIDERED)%GRADSAV(1:3,1:3)
  NZ=(COS(ANGLE2))
  LEFTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(IND1,1:nof_Variables)
  RIGHTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(IND1,1:nof_Variables)
- CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
- CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+
+ CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
 SSX=ZERO; SSP=ZERO; SSY=ZERO; SSZ=ZERO
 
@@ -3054,8 +3881,8 @@ end if
  
  LEFTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
  RIGHTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
- CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
- CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+
+ CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
 SSX=ZERO; SSP=ZERO; SSY=ZERO; SSZ=ZERO
 
@@ -3123,8 +3950,8 @@ end if
  
  LEFTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
  RIGHTV(1:nof_Variables)=U_C(ICONSIDERED)%VAL(1,1:nof_Variables)
- CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
- CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+
+ CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
 SSX=ZERO; SSP=ZERO; SSY=ZERO; SSZ=ZERO
 
@@ -3177,72 +4004,78 @@ END SUBROUTINE SHEAR_Y2d_av
 
 
 
-SUBROUTINE SUTHERLAND(N,leftv,rightv,VISCL,LAML)
+SUBROUTINE GET_visc_conduct(N,leftv,rightv,VISCL,LAML)
 !> @brief
-!> This subroutine computes the viscosity according to sutherland's law
+!> This subroutine computes the viscosity and thermal conductivity according to sutherland's law or others
 	IMPLICIT NONE
         REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV,RIGHTV
         REAL,DIMENSION(1:4),INTENT(INOUT)::VISCL,LAML
 	INTEGER,INTENT(IN)::N
 	REAL::KINETIC,U,V,W,T0L,T1L,T0R,T1R
 	REAL::MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal,GAMMAR
-
-	if ((multispecies.eq.1).or.(real.gas.eq.1))then
-
-	if (multispecies.eq.1)then
-    CALL MULTISPECIES_MIXTURES(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal)
-
-    VISCL(1)=MP_mu_mix
-    LAML(1)=MP_k_mix
+	REAL,DIMENSION(1:NOF_SPECIES)::MP_D_eff,mp_mu_i,MP_ktr_i
+	REAL::MP_ktr_mix,MP_kve,mp_pinfl,mp_pinfr
+	REAL,DIMENSION(1:NOF_VARIABLES)::LEFT_Temp,RIGHT_temp
 
 
-    CALL MULTISPECIES_MIXTURES(RIGHTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammaR)
+          LEFT_Temp=leftv
+          right_temp=rightv
+	if ((multispecies.eq.1).or.(realgas.eq.1))then
 
-    VISCL(2)=MP_mu_mix
-    LAML(2)=MP_k_mix
+          if (multispecies.eq.1)then
 
-    end if
+              CALL cons2prim(N,LEFT_Temp,MP_PINFl,gammal)
+              CALL PRIM2CONS(N,LEFT_Temp)
 
+              CALL MULTISPECIES_MIXTURES(LEFT_Temp,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal)
 
-    if (realgas.eq.1)then
-    CALL MULTISPECIES_MIXTURES_RG(LEFTV,MP_mu_mix,MP_k_mix)
+              VISCL(1)=MP_mu_mix
+              LAML(1)=MP_k_mix
 
-    VISCL(1)=MP_mu_mix
-    LAML(1)=MP_k_mix
+              CALL cons2prim(N,right_temp,MP_PINFR,gammaR)
+              CALL PRIM2CONS(N,right_temp)
+              CALL MULTISPECIES_MIXTURES(right_temp,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammaR)
 
+              VISCL(2)=MP_mu_mix
+              LAML(2)=MP_k_mix
 
-    CALL MULTISPECIES_MIXTURES_RG(RIGHTV,MP_mu_mix,MP_k_mix)
-
-    VISCL(2)=MP_mu_mix
-    LAML(2)=MP_k_mix
-
-
-
-
-    end if
+          end if
 
 
+          if (realgas.eq.1)then
+            call MULTISPECIES_MIXTURES_RG(LEFT_Temp,MP_mu_mix,MP_ktr_mix,MP_kve,MP_D_eff,mp_mu_i,MP_ktr_i,GAMMAL)
+								LAML(1)=MP_ktr_mix
+								VISCL(1)=MP_mu_mix
+
+            call MULTISPECIES_MIXTURES_RG(right_temp,MP_mu_mix,MP_ktr_mix,MP_kve,MP_D_eff,mp_mu_i,MP_ktr_i,GAMMAr)
+								LAML(2)=MP_ktr_mix
+								VISCL(2)=MP_mu_mix
+
+
+          end if
 
 
 
 	else
 
+
+        CALL CONS2PRIM2(N,LEFT_Temp,right_temp,MP_PINFl,MP_PINFr,gammal,gammar)
 		
-		T1L=LEFTv(5)/(LEFTv(1)*R_gas)
+		T1L=LEFT_Temp(dimensiona+2)/(LEFT_Temp(1)*R_gas)
 		T0L=PRES/(RRES*R_gas)
 		
 		
-		T1R=RIGHTv(5)/(RIGHTv(1)*R_gas)
+		T1R=right_temp(dimensiona+2)/(right_temp(1)*R_gas)
 		T0R=PRES/(RRES*R_gas)
 
-              VISCL=VISC*T1L
+             
 	      	
               VISCL(1)=VISC*((T1L/T0L)**BETAAS)*((T0L+(SUTHER*T0L))/(T1L+(SUTHER*T0L)))
               VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
 
 	      
-	      LAML(1)=VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1.d0))
-	      LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
+	      LAML(1)=VISCL(1)*R_gas*GAMMA/(PRANDTL*(GAMMA-1.d0))
+	      LAML(2)=VISCL(2)*R_gas*GAMMA/(PRANDTL*(GAMMA-1.d0))
 	  
 
 
@@ -3253,92 +4086,9 @@ SUBROUTINE SUTHERLAND(N,leftv,rightv,VISCL,LAML)
 
       
 
-  END SUBROUTINE SUTHERLAND
+  END SUBROUTINE GET_visc_conduct
   
- SUBROUTINE SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
-!> @brief
-!> This subroutine computes the viscosity according to sutherland's law
-	IMPLICIT NONE
-        REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV,RIGHTV
-        REAL,DIMENSION(1:4),INTENT(INOUT)::VISCL,LAML
-	INTEGER,INTENT(IN)::N
-	REAL::KINETIC,U,V,W,T0L,T1L,T0R,T1R
-	REAL::MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal,GAMMAR
 
-	if ((multispecies.eq.1).or.(real.gas.eq.1))then
-
-	if (multispecies.eq.1)then
-    CALL MULTISPECIES_MIXTURES(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal)
-
-    VISCL(1)=MP_mu_mix
-    LAML(1)=MP_k_mix
-
-
-    CALL MULTISPECIES_MIXTURES(RIGHTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammaR)
-
-    VISCL(2)=MP_mu_mix
-    LAML(2)=MP_k_mix
-
-    end if
-
-
-    if (realgas.eq.1)then
-    CALL MULTISPECIES_MIXTURES_RG(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal)
-
-    VISCL(1)=MP_mu_mix
-    LAML(1)=MP_k_mix
-
-
-    CALL MULTISPECIES_MIXTURES_RG(RIGHTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammaR)
-
-    VISCL(2)=MP_mu_mix
-    LAML(2)=MP_k_mix
-
-
-
-
-    end if
-
-
-
-
-
-	else
-
-
-
-
-
-
-
-
-
-		
-		T1L=LEFTv(4)/(LEFTv(1)*R_gas)
-		T0L=PRES/(RRES*R_gas)
-		
-		
-		T1R=RIGHTv(4)/(RIGHTv(1)*R_gas)
-		T0R=PRES/(RRES*R_gas)
-
-
-
-
-
-	      	
-              VISCL(1)=VISC*((T1L/T0L)**BETAAS)*((T0L+(SUTHER*T0L))/(T1L+(SUTHER*T0L)))
-              VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
-
-	      
-	      LAML(1)=VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1.d0))
-	      LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
-	  
-
-	   end if
-
-      
-
-  END SUBROUTINE SUTHERLAND2d
 
 
   
@@ -3424,9 +4174,8 @@ DO I=1,KMAXE
 
 
 	      LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+		CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
 
 
@@ -3534,7 +4283,7 @@ REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::SRF_SPEEDROT,SRF_SPEED
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
 REAL,INTENT(IN)::ANGLE1,ANGLE2,NX,NY,NZ
 REAL,DIMENSION(TURBULENCEEQUATIONS),INTENT(INOUT)::CTURBL,CTURBR
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
+REAL,DIMENSION(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
 REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3,tempxv
 REAL::SPS,SKINS,IKINS,VEL,vnb
 REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
@@ -3608,7 +4357,7 @@ SELECT CASE(B_CODE)
       
       
 	      IF (TURBULENCEMODEL.EQ.1)THEN
-		  CTURBR(1)=VISC*TURBINIT
+		  CTURBR(1)=VISC*TURBINIT*rightv(1)
 	      END IF
 	      IF (TURBULENCEMODEL.EQ.2)THEN	 
 		CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
@@ -3721,7 +4470,7 @@ SELECT CASE(B_CODE)
 
 
       Else
-
+    rightv(1:nof_Variables)=leftv(1:nof_Variables)
     SUBSON3(5)=subson1(5)
     SUBSON3(1)=SUBSON2(1)+(SUBSON3(5)-SUBSON2(5))/(SPS**2)
     SUBSON3(2)=SUBSON2(2)+(NX*(SUBSON2(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
@@ -3735,6 +4484,7 @@ SELECT CASE(B_CODE)
     SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2)+(SUBSON3(4)**2))
     IKINS=SUBSON3(5)/((GAMMA-1.0d0)*(SUBSON3(1)))
     rightv(5)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
+
 
 
     !end if
@@ -3781,11 +4531,8 @@ SELECT CASE(B_CODE)
                     CRIGHT_ROT(4)=CLEFT_ROT(4)
                     CRIGHT_ROT(5)=CLEFT_ROT(5)
 
-			IF(MULTISPECIES.EQ.1)THEN
-                      CRIGHT_ROT(6)=CLEFT_ROT(6)
-                      CRIGHT_ROT(7)=CLEFT_ROT(7)
-                      CRIGHT_ROT(8)=CLEFT_ROT(8)
-
+                IF((MULTISPECIES.EQ.1).or.(realgas.eq.1))THEN
+                      CRIGHT_ROT(6:nof_Variables)=CLEFT_ROT(6:nof_Variables)
                     END IF
 
 				END IF
@@ -3845,11 +4592,14 @@ SELECT CASE(B_CODE)
                                             -2.0D0*(leftv(2)*SRF_SPEED(2)+leftv(3)*SRF_SPEED(3)+leftv(4)*SRF_SPEED(4))
     
                   ELSE
-                    rightv(1)=leftv(1)
+                    rightv(1:nof_variables)=leftv(1:nof_variables)
                     rightv(2)=-leftv(2)
                     rightv(3)=-leftv(3)
                     rightv(4)=-leftv(4)
-                    rightv(5)=leftv(5)
+
+
+
+
 
 
 
@@ -3953,7 +4703,7 @@ SELECT CASE(B_CODE)
       
       
 	       IF (TURBULENCEMODEL.EQ.1)THEN
-		  CTURBR(1)=VISC*TURBINIT
+		  CTURBR(1)=VISC*TURBINIT*rightv(1)
 	      END IF
 	      IF (TURBULENCEMODEL.EQ.2)THEN	 
 		CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
@@ -4049,7 +4799,7 @@ REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::SRF_SPEEDROT,SRF_SPEED
 REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
 REAL,INTENT(IN)::ANGLE1,ANGLE2,NX,NY,NZ
 REAL,DIMENSION(TURBULENCEEQUATIONS),INTENT(INOUT)::CTURBL,CTURBR
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
+REAL,DIMENSION(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
 REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3,tempxv
 REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
 REAL::SPS,SKINS,IKINS,VEL,vnb,theeta,reeta
@@ -4349,10 +5099,8 @@ SELECT CASE(B_CODE)
 			      CRIGHT_ROT(3)=CLEFT_ROT(3)
 			      CRIGHT_ROT(4)=CLEFT_ROT(4)
 			      
-			      IF(MULTISPECIES.EQ.1)THEN
-                      CRIGHT_ROT(5)=CLEFT_ROT(5)
-                      CRIGHT_ROT(6)=CLEFT_ROT(6)
-                      CRIGHT_ROT(7)=CLEFT_ROT(7)
+			       IF((MULTISPECIES.EQ.1).or.(realgas.eq.1))THEN
+                      CRIGHT_ROT(5:nof_Variables)=CLEFT_ROT(5:nof_Variables)
                     
                     END IF
 			     
@@ -4380,7 +5128,7 @@ SELECT CASE(B_CODE)
 			       CALL ROTATEF2D(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
 			      
 			      
-			      IF (governingequations.EQ.-1)then
+			      IF ((multispecies.EQ.1).or.(realgas.eq.1))then
 			          CRIGHT_ROT(:)=CLEFT_ROT(:)
 			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
 			      
@@ -4411,8 +5159,11 @@ SELECT CASE(B_CODE)
 			    
 			      
 			      ELSE
-    
-			      rightv(1)=leftv(1)
+
+
+                  rightv(1:nof_Variables)=leftv(1:nof_Variables)
+
+
 			      rightv(2)=-leftv(2)
 			      rightv(3)=-leftv(3)
 			      
@@ -4519,7 +5270,7 @@ SELECT CASE(B_CODE)
       
       
 	        IF (TURBULENCEMODEL.EQ.1)THEN
-		  CTURBR(1)=VISC*TURBINIT
+		  CTURBR(1)=VISC*TURBINIT*rightv(1)
 	      END IF
 	     IF (TURBULENCEMODEL.EQ.2)THEN	 
 		CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
@@ -4677,7 +5428,7 @@ REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL,SRF_SPEEDROT
 REAL,INTENT(IN)::GAMMA
 REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES),INTENT(INOUT)::EIGVL
 REAL::RS,US,VS,WS,ES,PS,VVS,AS,HS,GAMMAM1,vsd,PHI,A1,A2,A3,OORS,NX,NY,NZ
-INTEGER::IVGT
+INTEGER::IVGT,i
 
 
 A2=GAMMA-1.0D0
@@ -4710,6 +5461,29 @@ ELSE
 END IF
 
  
+ if (realgas.eq.1)then
+ ! --- Extra equations: 6 = vibrational energy, 7..11 = species densities ---
+! Approximate scalar advection: only diagonal = VVS
+
+  ! zero all extra rows first
+  DO i = 6, NOF_VARIABLES
+    EIGVL(i,1:NOF_VARIABLES) = 0.0D0
+  END DO
+
+  ! vibrational energy equation
+  EIGVL(6,6) = VVS
+
+  ! species equations (5 species -> rows 7..11)
+  DO i = 7, 11
+    EIGVL(i,i) = VVS
+  END DO
+
+
+ end if
+
+
+
+
  
 
 END SUBROUTINE COMPUTE_JACOBIANSE
@@ -4988,8 +5762,8 @@ END SELECT
 		  Viscl(4) = MIN(10000000*visc,VISCL(4))		  
   
 
-	 LAML(3)=( VISCL(3)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1)) )
-	 LAML(4)=( VISCL(4)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1)) )
+	 LAML(3)=( VISCL(3)*R_GAS*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(1)*R_GAS*GAMMA/(PRANDTL*(GAMMA-1)) )
+	 LAML(4)=( VISCL(4)*R_GAS*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(2)*R_GAS*GAMMA/(PRANDTL*(GAMMA-1)) )
 	 VISCL(3)=MAX(0.0D0,VISCL(3))
 	 VISCL(4)=MAX(0.0D0,VISCL(4))
 	 
@@ -5214,8 +5988,8 @@ END SELECT
 		  Viscl(4) = MIN(10000000*visc,VISCL(4))		  
   
 
-	 LAML(3)=( VISCL(3)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1)) )
-	 LAML(4)=( VISCL(4)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1)) )
+	 LAML(3)=( VISCL(3)*R_GAS*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(1)*R_GAS*GAMMA/(PRANDTL*(GAMMA-1)) )
+	 LAML(4)=( VISCL(4)*R_GAS*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(2)*R_GAS*GAMMA/(PRANDTL*(GAMMA-1)) )
 	 VISCL(3)=MAX(0.0D0,VISCL(3))
 	 VISCL(4)=MAX(0.0D0,VISCL(4))
 	 
@@ -5684,17 +6458,46 @@ END SUBROUTINE
 
 SUBROUTINE FLUX2DX(FLUX_TERM_X,LEFTV)
 IMPLICIT NONE
-REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI, IE1, MP_STIFF, MP_DENSITY,GAMMAL,GAMMAR
+REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI, IE1, MP_STIFF, MP_DENSITY,GAMMAL,GAMMAR,sum1,sum2,sum3
 REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+INTEGER::rg_i,rg_j
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::FLUX_TERM_X
+REAL,DIMENSION(NOF_SPECIES)::mp_vft
+
 IF(MULTISPECIES.EQ.1)THEN
 
-MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)  
-MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
-GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
-MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
-MP_DENSITY = LEFTV(5)+LEFTV(6)
+
+            sum1=zero;
+            sum2=zero;
+            sum3=zero
+            do rg_i=1,nof_species
+                sum1=sum1+LEFTV(nof_Variables+rg_i)
+            end do
+            MP_DENSITY=sum1
+            do rg_i=1,nof_SPECIES-1
+            sum2=sum2+LEFTV(DIMENSIONA+2+nof_species+rg_i)
+            MP_AR(rg_i)=LEFTV(DIMENSIONA+2+nof_species+rg_i)/(GAMMA_IN(rg_i)-1.0D0)
+            mp_vft(rg_i)=LEFTV(DIMENSIONA+2+nof_species+rg_i)
+            end do
+            MP_AR(nof_SPECIES)=(1.0d0-sum2)/(GAMMA_IN(nof_SPECIES)-1.0D0)
+            mp_vft(nof_SPECIES)=(1.0d0-sum2)
+            sum3=zero
+            do rg_i=1,nof_SPECIES
+            sum3=sum3+MP_AR(rg_i)
+            end do
+            GAMMAL=(1.0D0/(sum3))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+             sum3=zero
+            do rg_i=1,nof_SPECIES
+            sum3=sum3+(mp_vft(rg_i)*(GAMMA_IN(rg_i)/(GAMMA_IN(rg_i)-1.0D0))*MP_PINF(rg_i))
+            end do
+
+            MP_STIFF=sum3*(GAMMAL-1.0D0)
+             sum2=zero
+            do rg_i=1,nof_SPECIES
+            sum2=sum2+(mp_vft(rg_i)*MP_PINF(rg_i))
+            end do
+
  
 R=MP_DENSITY
 U=LEFTV(2)
@@ -5711,7 +6514,7 @@ FLUX_TERM_X(1)=R*U
 FLUX_TERM_X(2)=(R*(U**2))+P
 FLUX_TERM_X(3)=R*U*V
 FLUX_TERM_X(4)=U*(E+P)
-FLUX_TERM_X(5:7)=LEFTV(5:7)*U
+FLUX_TERM_X(5:NOF_VARIABLES)=LEFTV(5:NOF_VARIABLES)*U
 ELSE
 
 R=LEFTV(1)
@@ -5737,17 +6540,58 @@ END SUBROUTINE
 
 SUBROUTINE FLUX2DY(FLUX_TERM_Y,LEFTV)
 IMPLICIT NONE
-REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI, IE1, MP_STIFF, MP_DENSITY,GAMMAL,GAMMAR
-REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI, IE1, MP_STIFF, MP_DENSITY,GAMMAL,GAMMAR,sum1,sum2,sum3
+REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE,mp_vft
+INTEGER::rg_i,rg_j
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::FLUX_TERM_Y
 IF(MULTISPECIES.EQ.1)THEN
 
-MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)  
-MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
-GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
-MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
-MP_DENSITY = LEFTV(5)+LEFTV(6)
+
+            sum1=zero;
+            sum2=zero;
+            sum3=zero
+            do rg_i=1,nof_species
+                sum1=sum1+LEFTV(nof_Variables+rg_i)
+            end do
+            MP_DENSITY=sum1
+            do rg_i=1,nof_SPECIES-1
+            sum2=sum2+LEFTV(DIMENSIONA+2+nof_species+rg_i)
+            MP_AR(rg_i)=LEFTV(DIMENSIONA+2+nof_species+rg_i)/(GAMMA_IN(rg_i)-1.0D0)
+            mp_vft(rg_i)=LEFTV(DIMENSIONA+2+nof_species+rg_i)
+            end do
+            MP_AR(nof_SPECIES)=(1.0d0-sum2)/(GAMMA_IN(nof_SPECIES)-1.0D0)
+            mp_vft(nof_SPECIES)=(1.0d0-sum2)
+            sum3=zero
+            do rg_i=1,nof_SPECIES
+            sum3=sum3+MP_AR(rg_i)
+            end do
+            GAMMAL=(1.0D0/(sum3))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+             sum3=zero
+            do rg_i=1,nof_SPECIES
+            sum3=sum3+(mp_vft(rg_i)*(GAMMA_IN(rg_i)/(GAMMA_IN(rg_i)-1.0D0))*MP_PINF(rg_i))
+            end do
+
+            MP_STIFF=sum3*(GAMMAL-1.0D0)
+             sum2=zero
+            do rg_i=1,nof_SPECIES
+            sum2=sum2+(mp_vft(rg_i)*MP_PINF(rg_i))
+            end do
+
+
+
+
+
+
+
+
+
+
+! MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
+! MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+! GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+! MP_DENSITY = LEFTV(5)+LEFTV(6)
  
 R=MP_DENSITY
 U=LEFTV(2)
@@ -5797,20 +6641,53 @@ END subroutine
 
 SUBROUTINE FLUX3Dx(FLUX_TERM_X,LEFTV)
 IMPLICIT NONE
-REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI,IE1,MP_STIFF,MP_DENSITY,GAMMAL,GAMMAR
-REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI,IE1,MP_STIFF,MP_DENSITY,GAMMAL,GAMMAR,sum1,sum2,sum3
+REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE,mp_vft
+INTEGER::rg_i,rg_j
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::FLUX_TERM_X
 
 IF(MULTISPECIES.EQ.1)THEN
 
-MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)
-MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
-GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
-MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+ sum1=zero;
+            sum2=zero;
+            sum3=zero
+            do rg_i=1,nof_species
+                sum1=sum1+LEFTV(nof_Variables+rg_i)
+            end do
+            MP_DENSITY=sum1
+            do rg_i=1,nof_SPECIES-1
+            sum2=sum2+LEFTV(DIMENSIONA+2+nof_species+rg_i)
+            MP_AR(rg_i)=LEFTV(DIMENSIONA+2+nof_species+rg_i)/(GAMMA_IN(rg_i)-1.0D0)
+            mp_vft(rg_i)=LEFTV(DIMENSIONA+2+nof_species+rg_i)
+            end do
+            MP_AR(nof_SPECIES)=(1.0d0-sum2)/(GAMMA_IN(nof_SPECIES)-1.0D0)
+            mp_vft(nof_SPECIES)=(1.0d0-sum2)
+            sum3=zero
+            do rg_i=1,nof_SPECIES
+            sum3=sum3+MP_AR(rg_i)
+            end do
+            GAMMAL=(1.0D0/(sum3))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+             sum3=zero
+            do rg_i=1,nof_SPECIES
+            sum3=sum3+(mp_vft(rg_i)*(GAMMA_IN(rg_i)/(GAMMA_IN(rg_i)-1.0D0))*MP_PINF(rg_i))
+            end do
+
+            MP_STIFF=sum3*(GAMMAL-1.0D0)
+             sum2=zero
+            do rg_i=1,nof_SPECIES
+            sum2=sum2+(mp_vft(rg_i)*MP_PINF(rg_i))
+            end do
 
 
-MP_DENSITY = LEFTV(6)+LEFTV(7)
+
+! MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)
+! MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
+! GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+! MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+
+
+! MP_DENSITY = LEFTV(6)+LEFTV(7)
 
 R=MP_DENSITY
 
@@ -5859,20 +6736,59 @@ END SUBROUTINE
 
 SUBROUTINE FLUX3DY(FLUX_TERM_Y,LEFTV)
 IMPLICIT NONE
-REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI,IE1, MP_STIFF,MP_DENSITY,GAMMAL,GAMMAR
-REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI,IE1, MP_STIFF,MP_DENSITY,GAMMAL,GAMMAR,sum1,sum2,sum3
+REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE,mp_vft
+INTEGER::rg_i,rg_j
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::FLUX_TERM_Y
 
 IF(MULTISPECIES.EQ.1)THEN
 
-MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)
-MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
-GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
-MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
 
 
-MP_DENSITY = LEFTV(6)+LEFTV(7)
+ sum1=zero;
+            sum2=zero;
+            sum3=zero
+            do rg_i=1,nof_species
+                sum1=sum1+LEFTV(nof_Variables+rg_i)
+            end do
+            MP_DENSITY=sum1
+            do rg_i=1,nof_SPECIES-1
+            sum2=sum2+LEFTV(DIMENSIONA+2+nof_species+rg_i)
+            MP_AR(rg_i)=LEFTV(DIMENSIONA+2+nof_species+rg_i)/(GAMMA_IN(rg_i)-1.0D0)
+            mp_vft(rg_i)=LEFTV(DIMENSIONA+2+nof_species+rg_i)
+            end do
+            MP_AR(nof_SPECIES)=(1.0d0-sum2)/(GAMMA_IN(nof_SPECIES)-1.0D0)
+            mp_vft(nof_SPECIES)=(1.0d0-sum2)
+            sum3=zero
+            do rg_i=1,nof_SPECIES
+            sum3=sum3+MP_AR(rg_i)
+            end do
+            GAMMAL=(1.0D0/(sum3))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+             sum3=zero
+            do rg_i=1,nof_SPECIES
+            sum3=sum3+(mp_vft(rg_i)*(GAMMA_IN(rg_i)/(GAMMA_IN(rg_i)-1.0D0))*MP_PINF(rg_i))
+            end do
+
+            MP_STIFF=sum3*(GAMMAL-1.0D0)
+             sum2=zero
+            do rg_i=1,nof_SPECIES
+            sum2=sum2+(mp_vft(rg_i)*MP_PINF(rg_i))
+            end do
+
+
+
+
+
+
+
+! MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)
+! MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
+! GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+! MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+!
+!
+! MP_DENSITY = LEFTV(6)+LEFTV(7)
 
 R=MP_DENSITY
 
@@ -5919,21 +6835,63 @@ END SUBROUTINE
 
 SUBROUTINE FLUX3DZ(FLUX_TERM_Z,LEFTV)
 IMPLICIT NONE
-REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI,IE1, MP_STIFF,MP_DENSITY,GAMMAL,GAMMAR
-REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI,IE1, MP_STIFF,MP_DENSITY,GAMMAL,GAMMAR,sum1,sum2,sum3
+REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE,mp_vft
+INTEGER::rg_i,rg_j
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::FLUX_TERM_Z
 
 IF(MULTISPECIES.EQ.1)THEN
 
-MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)
-MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
-GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
-MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
 
-MP_DENSITY = LEFTV(6)+LEFTV(7)
 
-R=MP_DENSITY
+ sum1=zero;
+            sum2=zero;
+            sum3=zero
+            do rg_i=1,nof_species
+                sum1=sum1+LEFTV(nof_Variables+rg_i)
+            end do
+            MP_DENSITY=sum1
+            do rg_i=1,nof_SPECIES-1
+            sum2=sum2+LEFTV(DIMENSIONA+2+nof_species+rg_i)
+            MP_AR(rg_i)=LEFTV(DIMENSIONA+2+nof_species+rg_i)/(GAMMA_IN(rg_i)-1.0D0)
+            mp_vft(rg_i)=LEFTV(DIMENSIONA+2+nof_species+rg_i)
+            end do
+            MP_AR(nof_SPECIES)=(1.0d0-sum2)/(GAMMA_IN(nof_SPECIES)-1.0D0)
+            mp_vft(nof_SPECIES)=(1.0d0-sum2)
+            sum3=zero
+            do rg_i=1,nof_SPECIES
+            sum3=sum3+MP_AR(rg_i)
+            end do
+            GAMMAL=(1.0D0/(sum3))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+             sum3=zero
+            do rg_i=1,nof_SPECIES
+            sum3=sum3+(mp_vft(rg_i)*(GAMMA_IN(rg_i)/(GAMMA_IN(rg_i)-1.0D0))*MP_PINF(rg_i))
+            end do
+
+            MP_STIFF=sum3*(GAMMAL-1.0D0)
+             sum2=zero
+            do rg_i=1,nof_SPECIES
+            sum2=sum2+(mp_vft(rg_i)*MP_PINF(rg_i))
+            end do
+
+
+
+
+
+
+
+
+
+
+! MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)
+! MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
+! GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+! MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+!
+! MP_DENSITY = LEFTV(6)+LEFTV(7)
+!
+ R=MP_DENSITY
 U=LEFTV(2)
 V=LEFTV(3)
 W=LEFTV(4)
@@ -5981,12 +6939,12 @@ END SUBROUTINE
 SUBROUTINE FLUX_VISC2D(FLUX_TERM_X,FLUX_TERM_Y,LEFTV,LEFTV_DER)
 IMPLICIT NONE
 REAL:: U, V, UX, UY, VX, VY, TX, TY, TAUXX, TAUXY, TAUYY
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::LEFTV
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::FLUX_TERM_X,FLUX_TERM_Y
 REAL,DIMENSION(1:4)::VISCL,LAML
 REAL,DIMENSION(1:NOF_VARIABLES,1:DIMENSIONA),INTENT(IN)::LEFTV_DER
 
-    CALL SUTHERLAND2D(N, LEFTV, LEFTV,VISCL,LAML)
+    CALL GET_visc_conduct(N, LEFTV, LEFTV,VISCL,LAML)
 
        U = LEFTV(2)
        V = LEFTV(3)
@@ -6015,13 +6973,13 @@ END SUBROUTINE
 SUBROUTINE FLUX_VISC3D(FLUX_TERM_X,FLUX_TERM_Y,FLUX_TERM_Z,LEFTV,LEFTV_DER)
 IMPLICIT NONE
 REAL:: U, V, UX, UY, VX, VY, TX, TY, TAUXX, TAUXY, TAUYY, W, UZ, VZ, WX, WY, WZ, TZ, TAUXZ, TAUYZ, TAUZZ
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::LEFTV
+REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::LEFTV
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::FLUX_TERM_X,FLUX_TERM_Y,FLUX_TERM_Z
 REAL,DIMENSION(1:NOF_VARIABLES,1:DIMENSIONA),INTENT(IN)::LEFTV_DER
 REAL,DIMENSION(1:4)::VISCL,LAML
 
 
-    CALL SUTHERLAND(N, LEFTV, LEFTV,VISCL,LAML)
+    CALL GET_visc_conduct(N, LEFTV, LEFTV,VISCL,LAML)
 
 ! Variables extrapolated at boundary
        U = LEFTV(2)

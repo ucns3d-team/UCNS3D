@@ -432,6 +432,8 @@ ILOCAL_RECON3(ICONSIDERED)%ULEFT(:,:,:)=ZERO
             divbyzero=ielem(n,iconsidered)%totvolume**2
             else
             divbyzero=10E-12
+
+            if (realgas.eq.1)divbyzero=10E-30
             end if
             POWER=4
 
@@ -467,6 +469,7 @@ END DO
             divbyzero=ielem(n,iconsidered)%totvolume**2
             else
             divbyzero=10E-12
+            if (realgas.eq.1)divbyzero=10E-30
             end if
             POWER=4
 
@@ -768,7 +771,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,RIGHTV
 REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
 REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
-REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
+REAL,DIMENSION(1:nof_variables+turbulenceequations+PASSIVESCALAR)::CRIGHT_ROT,CLEFT_ROT
 INTEGER::IBFC
 
 
@@ -2361,6 +2364,7 @@ INTEGER::I,J,K,L,M,PPP,IEUL,IEX,IHGT,IHGJ,KMAXE,DECOMF,ICNN,IQDR,NVAR,idummy,iqp
 REAL::RAA1,RAA2,PAA1,PAA2,ax,ay,az
 REAL::SOLX
 real,dimension(1:dimensiona)::ugradloc
+REAL,DIMENSION(1:dimensionA,1:dimensionA)::VEXTC
 real,dimension(1:dimensionA,1:dimensionA)::ainvjt
 real,allocatable,dimension(:)::gradtem
 real,allocatable,dimension(:,:)::XXDER,YYDER,ZZDER
@@ -2393,7 +2397,7 @@ DO I=1,kmaxe
 
 ILOCAL_RECON3(I)%ULEFTV(:,:,:,:)=zero;
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-ILOCAL_RECON3(I)%ULEFTTURBV(:,:,:,:)=zero;ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=zero;
+ILOCAL_RECON3(I)%ULEFTTURBV(:,:,:,:)=zero;
 END IF
 
 
@@ -2566,7 +2570,62 @@ END IF
 
                     IF (IELEM(N,ICONSIDERED)%GGS.EQ.0)THEN
 
-                    CALL COMPUTE_GRADIENTS_CENTER(N,ICONSIDERED)
+                     VEXTC(1,1)=IELEM(N,I)%XXC
+                     VEXTC(1,2)=IELEM(N,I)%YYC
+                     if (dimensiona.eq.3)then
+                     VEXTC(1,3)=IELEM(N,I)%ZZC
+                     end if
+
+                        VEXTC(1,1:dimensiona)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXTc(1,1:dimensiona)-ILOCAL_RECON3(I)%VEXT_REF(1:dimensiona))
+
+                        AX=VEXTC(1,1); AY=VEXTC(1,2);
+                        if (dimensiona.eq.3)then
+                        AZ=VEXTC(1,3);
+                        end if
+
+                        ICD=1
+                        if (dimensiona.eq.3)then
+                        DO K=1,IELEM(N,I)%IDEGFREE
+                            IF (POLY.EQ.1) THEN
+                                XXDER(K,ICD)=DFX(AX,AY,AZ,K,i);  YYDER(K,ICD)=DFY(AX,AY,AZ,K,i);  ZZDER(K,ICD)=DFZ(AX,AY,AZ,K,i)
+                            END IF
+                            IF (POLY.EQ.2) THEN
+                                XXDER(K,ICD)=DLX(AX,AY,AZ,K,i);  YYDER(K,ICD)=DLY(AX,AY,AZ,K,i);  ZZDER(K,ICD)=DLZ(AX,AY,AZ,K,i)
+                            END IF
+                            IF (POLY.EQ.4) THEN
+                                XXDER(K,ICD)=TL3DX(AX,AY,AZ,K,i);  YYDER(K,ICD)=TL3DY(AX,AY,AZ,K,i);  ZZDER(K,ICD)=TL3DZ(AX,AY,AZ,K,i)
+                            END IF
+                        END DO
+                        ELSE
+                         DO K=1,IELEM(N,I)%IDEGFREE
+                            IF (POLY.EQ.4)THEN
+							xXDER(K,icd)=TL2dX(AX,AY,K,i);  yYDER(K,icd)=TL2dY(AX,AY,K,i);
+							ELSE
+						    xXDER(K,icd)=DF2dX(AX,AY,K,i);  yYDER(K,icd)=DF2dY(AX,AY,K,i);
+							END IF
+
+                        END DO
+                        end if
+
+
+                      !now viscous gradients
+				  DO IEX=1,nof_Variables-1
+!
+					GRADTEM(1:IELEM(N,I)%IDEGFREE)=ILOCAL_rECON5(ICONSIDERED)%gradf(IEX,1:IELEM(N,I)%IDEGFREE)
+!
+					 UGRADLOC = ZERO
+
+
+                            UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),XXDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                            UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),YYDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                            if (dimensiona.eq.3)then
+                            UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),ZZDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                            end if
+
+
+                            ILOCAL_RECON3(I)%GRADS(iex,1:DIMENSIONA)= MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))*ielem(n,i)%totvolume
+                    end do
+
 
                     END IF
 
@@ -3039,6 +3098,9 @@ jump_cond=0.85
 
 
 
+
+
+
 IF (ITESTCASE.GE.3)THEN
 
 !$OMP DO
@@ -3075,23 +3137,26 @@ IF (ITESTCASE.GE.3)THEN
 						RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
 						CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						
-						
-															IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
-																	REDUCE1=1
-																IELEM(N,I)%REDUCE=1
-															end if
 
-															IF (((ABS(LEFTV(indx)-RIGHTV(indx))).GE.(jump_cond*RIGHTV(indx))))then
-																	REDUCE1=1
-																IELEM(N,I)%REDUCE=1
-															end if
+                                                    DO IEX=1,NOF_VARIABLES
+                                                           IF ((IEX.eq.1).or.(IEX.eq.DIMENSIONA+2)) then
 
-															IF ((LEFTV(indx).LT.0.0).OR.(LEFTV(1).LT.0.0))then
+
+
+                                                            IF (((ABS(LEFTV(IEX)-RIGHTV(IEX))).GE.(jump_cond*RIGHTV(IEX))))then
 																	REDUCE1=1
-																IELEM(N,I)%REDUCE=1
+																IELEM(N,I)%REDUCE=2
 															end if
 
 
+                                                            end if
+
+
+
+
+
+
+                                                    END DO
 				
 					
 				  END DO
@@ -3135,7 +3200,7 @@ real::MP_PINFL,gammal
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
 KMAXE=XMPIELRANK(N)
-jump_cond=0.95
+jump_cond=0.85
 
 
 
@@ -3169,22 +3234,19 @@ IF (ITESTCASE.GE.3)THEN
 												RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
 												CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 
-															IF (((ABS(LEFTV(1)-RIGHTV(1))).GE.(jump_cond*RIGHTV(1))))then
+                                                            DO IEX=1,NOF_VARIABLES
+                                                            IF ((IEX.eq.1).or.(IEX.eq.DIMENSIONA+2)) then
+
+
+                                                            IF (((ABS(LEFTV(IEX)-RIGHTV(IEX))).GE.(jump_cond*RIGHTV(IEX))))then
 																	REDUCE1=1
-																IELEM(N,I)%REDUCE=1
+																IELEM(N,I)%REDUCE=2
 															end if
-
-															IF (((ABS(LEFTV(indx)-RIGHTV(indx))).GE.(jump_cond*RIGHTV(indx))))then
-																	REDUCE1=1
-																IELEM(N,I)%REDUCE=1
-															end if
-
-															IF ((LEFTV(indx).LT.0.0).OR.(LEFTV(1).LT.0.0))then
-																	REDUCE1=1
-																IELEM(N,I)%REDUCE=1
-															end if
+                                                            end if
 
 
+
+                                                            END DO
 
 
 										END DO
@@ -3196,7 +3258,7 @@ IF (ITESTCASE.GE.3)THEN
 					IELEM(N,I)%REDUCE=1
 					end if
 
-					IF (REDUCE1.EQ.1)THEN
+					IF (REDUCE1.GE.1)THEN
 						do iex=1,NOF_VARIABLES
 						ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
 

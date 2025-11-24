@@ -22,7 +22,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	INTEGER::ICONSIDERED, FACEX, POINTX,igoflux
 	INTEGER::B_CODE,srf
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ
-	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
 	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
 real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 	real,dimension(1:nof_Variables)::RIGHTv
@@ -114,7 +114,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -330,11 +331,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 									  
@@ -355,11 +356,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 								  
@@ -395,7 +396,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -695,7 +697,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -899,11 +902,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 									  
@@ -924,11 +927,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 								  
@@ -966,7 +969,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -1154,7 +1158,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
 	INTEGER::FACEX, POINTX,igoflux
 	INTEGER::B_CODE
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ
-	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:nof_Variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
 	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
 real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 	real,dimension(1:nof_Variables)::RIGHTv
@@ -1242,7 +1246,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -1436,11 +1441,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 									  
@@ -1461,11 +1466,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 								  
@@ -1499,7 +1504,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -1764,7 +1770,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -1949,11 +1956,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 									  
@@ -1974,11 +1981,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 								  
@@ -2009,7 +2016,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  mul1=IELEM(N,I)%SURF(L)
@@ -2262,7 +2270,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  
@@ -2426,11 +2435,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 									  
@@ -2455,11 +2464,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 								  
@@ -2497,7 +2506,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  
@@ -2754,7 +2764,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  
@@ -2925,11 +2936,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 									  
@@ -2954,11 +2965,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									IF (FASTEST.EQ.1)THEN
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=SOLCHANGER(IELEM(N,I)%INEIGHN(l))%SOL&
-							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (IELEM(N,i)%Q_FACE(l)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    ELSE
 							     
 							      CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+							      (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 							    END IF
 								    END IF
 								  
@@ -2996,7 +3007,8 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
 						  IF (ITESTCASE.EQ.4)THEN
-						  CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)
+						  CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						  
 						  viscots=(VISCL(1)+VISCL(2))*OO2
 						  

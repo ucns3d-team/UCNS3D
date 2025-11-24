@@ -130,10 +130,16 @@ INTEGER,INTENT(IN)::N
 !COMPONENTS FROM DAT FILE GAMMA,UVEL,WVEL,VVEL,PRES,RRES
 !INITCOND= PROFILE CHOICE FROM DATA FILE
 real,dimension(1:nof_Variables+turbulenceequations+passivescalar),intent(inout)::veccos
-real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
 REAL,DIMENSION(1:NOF_SPECIES)::MP_R,MP_A,MP_IE
-REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL
-integer::u_cond1,u_cond2,u_cond3,u_cond4
+REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,xin,yin,zin
+REAL::rgg,tt1,khi_slope,khi_b,theeta,reeta,RG_VE,RG_TR,RG_CHEM,RG_DENSITY,RG_EV_TOTAL,rg_rmix
+integer::u_cond1,u_cond2,u_cond3,u_cond4,IX,rg_i,rg_j
+real::pr_Radius,pr_beta,pr_machnumberfree,pr_pressurefree,pr_temperaturefree,pr_gammafree,pr_Rgasfree,pr_xcenter,pr_ylength,pr_xlength,pr_ycenter,pr_densityfree,pr_cpconstant,pr_radiusvar,pr_velocityfree,pr_TemperatureVar,drad,rg_tv,rg_Ttr0,rg_Tve0
+real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
+REAL,DIMENSION(1:nof_SPECIES)::RG_CVS
+REAL,DIMENSION(1:nof_SPECIES)::RG_TVSL,RG_EV
+real,dimension(1:nof_Variables)::leftv
+real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1,gammal,mp_pinfl
 
 
 
@@ -175,37 +181,135 @@ VECCOS(4)=R1*W1
 VECCOS(5)=E1
 
 end if
+
+
+IF (REALGAS.EQ.1)THEN
+U1=UVEL
+V1=VVEL
+W1=wvel
+P1=PRES
+R1=RRES
+
+
+!First build mixture gas constant
+rg_rmix=zero
+do rg_i=1,nof_species
+  rg_rmix=rg_rmix+RG_VF(rg_i)/RG_MOLM(rg_i)
+end do
+
+  rg_rmix=RGS_Ru*rg_rmix
+
+
+  rg_ttr0=rg_ttr    !initial temperature ttr
+  rg_tve0=rg_tve    !initial temperature vib
+
+
+
+  ! Translational-rotational internal energy
+rg_tr = 0.0D0
+    do rg_i = 1, nof_species
+      if (rg_i <= 3) then
+        RG_CVS(rg_i) = (5.0D0 / 2.0D0) *  RGS_Ru / RG_MOLM(rg_i)
+      else
+        RG_CVS(rg_i) = (3.0D0 / 2.0D0) *  RGS_Ru / RG_MOLM(rg_i)
+      end if
+      rg_tr = rg_tr + RG_VF(rg_i) * RG_CVS(rg_i) * rg_Ttr0
+    end do
+
+! Vibrational energy
+    RG_EV_TOTAL= 0.0D0
+    do rg_i = 1, 3
+      RG_EV_TOTAL = RG_EV_TOTAL + RG_VF(rg_i)  * (RGS_Ru / RG_MOLM(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/rg_Tve0) - 1.0D0))
+    end do
+
+RG_CHEM=zero
+
+    ! Chemical energy
+ do rg_i=1,nof_species
+        if (rg_hzero(RG_i).gt.1.0e-12)then
+        RG_CHEM=RG_CHEM-(RG_VF(rg_i)*rg_hzero(RG_i)/RG_MOLM(rg_i))
+        end if
+END DO
+
+  !RG_CHEM=zero  !set it to zero for testing
+! Kinetic energy
+
+
+SKIN1=(oo2)*((U1**2)+(V1**2)+(w1**2))
+
+  VECCOS(1)=R1
+  VECCOS(2)=R1*U1
+  VECCOS(3)=R1*V1
+  VECCOS(4)=R1*w1
+  VECCOS(5)=R1*(RG_EV_TOTAL+RG_TR+RG_CHEM+skin1)
+  VECCOS(6)=R1*RG_EV_TOTAL
+
+
+  do rg_i=1,nof_species
+  VECCOS(6+rg_i)=r1 * RG_VF(rg_i)
+  end do
+
+!   leftv(1:nof_Variables)=veccos(1:nof_Variables)
+!
+!   write(280+n,*)"look here", RG_EV_TOTAL
+!   write(280+n,*)"before conservative"
+!   write(280+n,*)leftv(1:nof_Variables)
+!   call cons2prim(n,leftv,mp_pinfl,gammal)
+!   write(280+n,*)"after primitive"
+!   write(280+n,*)leftv(1:nof_Variables)
+!   call prim2cons(n,leftv)
+!   write(280+n,*)"final  conservative"
+!   write(280+n,*)leftv(1:nof_Variables)
+
+
+
+END IF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 IF (TURBULENCE.EQ.1)THEN
 
   IF (TURBULENCEMODEL.EQ.1)THEN
 
-  VECCOS(6)=VISC*TURBINIT
+  VECCOS(NOF_VARIABLES+1)=VISC*TURBINIT*r1
   END IF
   IF (TURBULENCEMODEL.EQ.2)THEN
- 
+
    if (zero_turb_init .eq. 0) then
-    IF (RFRAME.EQ.0) THEN
-        VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
-        VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
-   ELSE
-        VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
-        VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
-   END IF	
+  VECCOS(NOF_VARIABLES+1)=(1.5D0*(I_turb_inlet*ufreestream)**2)*R1
+  VECCOS(NOF_VARIABLES+2)=ufreestream/L_turb_inlet
+ VECCOS(NOF_VARIABLES+2)=(C_MU_INLET**(-0.25D0))*SQRT(veccos(5))&
+			/L_TURB_INLET*r1
   end if
-  
+
   if (zero_turb_init .eq. 1) then
-    IF (RFRAME.EQ.0) THEN
-        VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
-        VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
-   ELSE
-        VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
-        VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
-   END IF		
+  VECCOS(NOF_VARIABLES+1)=ZERO
+  VECCOS(NOF_VARIABLES+2)=ufreestream/L_turb_inlet
   end if
-    
+
   END IF
 
-  
+
 END IF
 IF (PASSIVESCALAR.GT.0)THEN
 
@@ -251,22 +355,26 @@ end if
 
 
 IF (INITCOND.EQ.95)THEN	!TAYLOR GREEN INITIAL PROFILE
- if(boundtype.eq.1)then
+xin=pox(1)-pi
+yin=poy(1)-pi
+zin=poz(1)-pi
+       
+        if(boundtype.eq.1)then
 R1=1.0D0
 W1=0.0D0
-P1=100.0D0+((R1/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
-u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
-v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
+P1=100.0D0+((R1/16.0D0)*((COS(2.0D0*zin))+2.0d0)*((COS(2.0D0*xin))+(COS(2.0D0*yin))))
+u1=sin(xin)*COS(yin)*COS(zin)
+v1=-COS(xin)*SIN(yin)*COS(zin)
 
 
 
 else
 
 W1=0.0D0
-P1=(1.0d0/(gamma*1.25*1.25))+((1.0d0/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
+P1=(1.0d0/(gamma*1.25*1.25))+((1.0d0/16.0D0)*((COS(2.0D0*zin))+2.0d0)*((COS(2.0D0*xin))+(COS(2.0D0*yin))))
 r1=(p1*(gamma*1.25*1.25))
-u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
-v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
+u1=sin(xin)*COS(yin)*COS(zin)
+v1=-COS(xin)*SIN(yin)*COS(zin)
 
 
 end if
@@ -904,12 +1012,16 @@ INTEGER,INTENT(IN)::N
 !COMPONENTS FROM DAT FILE GAMMA,UVEL,WVEL,VVEL,PRES,RRES
 !INITCOND= PROFILE CHOICE FROM DATA FILE
 real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1
-REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1,khi_slope,khi_b,theeta,reeta
-real::pr_Radius,pr_beta,pr_machnumberfree,pr_pressurefree,pr_temperaturefree,pr_gammafree,pr_Rgasfree,pr_xcenter,pr_ylength,pr_xlength,pr_ycenter,pr_densityfree,pr_cpconstant,pr_radiusvar,pr_velocityfree,pr_TemperatureVar,drad
-integer::u_cond1,u_cond2,u_cond3,u_cond4,IX
+REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1,khi_slope,khi_b,theeta,reeta,RG_VE,RG_TR,RG_CHEM,RG_DENSITY,RG_EV_TOTAL,rg_rmix
+real::pr_Radius,pr_beta,pr_machnumberfree,pr_pressurefree,pr_temperaturefree,pr_gammafree,pr_Rgasfree,pr_xcenter,pr_ylength,pr_xlength,pr_ycenter,pr_densityfree,pr_cpconstant,pr_radiusvar,pr_velocityfree,pr_TemperatureVar,drad,rg_tv,rg_Ttr0,rg_Tve0
+integer::u_cond1,u_cond2,u_cond3,u_cond4,IX,rg_i,rg_j
 real,dimension(1:nof_Variables+turbulenceequations+passivescalar),intent(inout)::veccos
+real,dimension(1:nof_variables)::leftv
 real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
 REAL,DIMENSION(1:NOF_SPECIES)::MP_R,MP_A,MP_IE
+REAL,DIMENSION(1:nof_SPECIES)::RG_CVS
+REAL,DIMENSION(1:nof_SPECIES)::RG_TVSL,RG_EV
+real::mp_pinfl,gammal
 VECCOS(:)=ZERO
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -935,24 +1047,109 @@ VECCOS(1)=R1
 VECCOS(2)=R1*U1
 VECCOS(3)=R1*V1
 VECCOS(4)=E1
+
+
+
+
+IF (REALGAS.EQ.1)THEN
+U1=UVEL
+V1=VVEL
+P1=PRES
+R1=RRES
+
+
+!First build mixture gas constant
+rg_rmix=zero
+do rg_i=1,nof_species
+  rg_rmix=rg_rmix+RG_VF(rg_i)/RG_MOLM(rg_i)
+end do
+
+  rg_rmix=RGS_Ru*rg_rmix
+
+
+  rg_ttr0=rg_ttr    !initial temperature ttr
+  rg_tve0=rg_tve    !initial temperature vib
+
+
+
+  ! Translational-rotational internal energy
+rg_tr = 0.0D0
+    do rg_i = 1, nof_species
+      if (rg_i <= 3) then
+        RG_CVS(rg_i) = (5.0D0 / 2.0D0) *  RGS_Ru / RG_MOLM(rg_i)
+      else
+        RG_CVS(rg_i) = (3.0D0 / 2.0D0) *  RGS_Ru / RG_MOLM(rg_i)
+      end if
+      rg_tr = rg_tr + RG_VF(rg_i) * RG_CVS(rg_i) * rg_Ttr0
+    end do
+
+! Vibrational energy
+    RG_EV_TOTAL= 0.0D0
+    do rg_i = 1, 3
+      RG_EV_TOTAL = RG_EV_TOTAL + RG_VF(rg_i)  * (RGS_Ru / RG_MOLM(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/rg_Tve0) - 1.0D0))
+    end do
+
+RG_CHEM=zero
+
+    ! Chemical energy
+ do rg_i=1,nof_species
+        if (rg_hzero(RG_i).gt.1.0e-12)then
+        RG_CHEM=RG_CHEM-(RG_VF(rg_i)*rg_hzero(RG_i)/RG_MOLM(rg_i))
+        end if
+END DO
+
+  !RG_CHEM=zero  !set it to zero for testing
+! Kinetic energy
+
+
+SKIN1=(oo2)*((U1**2)+(V1**2))
+
+  VECCOS(1)=R1
+  VECCOS(2)=R1*U1
+  VECCOS(3)=R1*V1
+  VECCOS(4)=R1*(RG_EV_TOTAL+RG_TR+RG_CHEM+skin1)
+  VECCOS(5)=R1*RG_EV_TOTAL
+
+
+  do rg_i=1,nof_species
+  VECCOS(5+rg_i)=r1 * RG_VF(rg_i)
+  end do
+
+  leftv(1:nof_Variables)=veccos(1:nof_Variables)
+
+!   write(280+n,*)"look here", RG_EV_TOTAL
+!   write(280+n,*)"before conservative"
+!   write(280+n,*)leftv(1:nof_Variables)
+!   call cons2prim(n,leftv,mp_pinfl,gammal)
+!   write(280+n,*)"after primitive"
+!   write(280+n,*)leftv(1:nof_Variables)
+!   call prim2cons(n,leftv)
+!   write(280+n,*)"final  conservative"
+!   write(280+n,*)leftv(1:nof_Variables)
+
+
+
+END IF
+
+
 IF (TURBULENCE.EQ.1)THEN
 
   IF (TURBULENCEMODEL.EQ.1)THEN
 
-  VECCOS(5)=VISC*TURBINIT/R1
+  VECCOS(NOF_VARIABLES+1)=VISC*TURBINIT*r1
   END IF
   IF (TURBULENCEMODEL.EQ.2)THEN
  
    if (zero_turb_init .eq. 0) then
-  VECCOS(5)=(1.5D0*(I_turb_inlet*ufreestream)**2)*R1
-  VECCOS(6)=ufreestream/L_turb_inlet
- VECCOS(6)=(C_MU_INLET**(-0.25D0))*SQRT(veccos(5))&
+  VECCOS(NOF_VARIABLES+1)=(1.5D0*(I_turb_inlet*ufreestream)**2)*R1
+  VECCOS(NOF_VARIABLES+2)=ufreestream/L_turb_inlet
+ VECCOS(NOF_VARIABLES+2)=(C_MU_INLET**(-0.25D0))*SQRT(veccos(5))&
 			/L_TURB_INLET*r1	
   end if
   
   if (zero_turb_init .eq. 1) then
-  VECCOS(5)=ZERO
-  VECCOS(6)=ufreestream/L_turb_inlet
+  VECCOS(NOF_VARIABLES+1)=ZERO
+  VECCOS(NOF_VARIABLES+2)=ufreestream/L_turb_inlet
   end if
     
   END IF
@@ -964,6 +1161,14 @@ IF (PASSIVESCALAR.GT.0)THEN
   VECCOS(4+TURBULENCEEQUATIONS+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=ZERO
 
 END IF
+
+
+
+
+
+
+
+
 
 
 

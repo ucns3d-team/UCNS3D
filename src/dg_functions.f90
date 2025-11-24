@@ -223,7 +223,7 @@ REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
         LEFTV = CLEFT
         RIGHTV = CRIGHT
         CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
-        CALL CONS2DIV(N,rightv,MP_PINFl,gammal)
+        CALL CONS2DIV(N,rightv,MP_PINFr,gammar)
 
 
         DO I_DIM = 1, DIMENSIONA
@@ -445,6 +445,8 @@ REAL::MP_PINFl,gammal
                     CALL FLUX2DX(FLUX_TERM_X,LEFTV)
                     CALL FLUX2DY(FLUX_TERM_Y,LEFTV)
 
+
+                     CALL PRIM2CONS(N,leftv)
                     CALL FLUX_VISC2D(FLUX_TERM_X,FLUX_TERM_Y,LEFTV,LEFTV_DER)
 
                 ELSE
@@ -452,6 +454,7 @@ REAL::MP_PINFl,gammal
                     CALL FLUX3DX(FLUX_TERM_X,LEFTV)
                     CALL FLUX3DY(FLUX_TERM_Y,LEFTV)
                     CALL FLUX3DZ(FLUX_TERM_Z,LEFTV)
+                    CALL PRIM2CONS(N,leftv)
                     CALL FLUX_VISC3D(FLUX_TERM_X,FLUX_TERM_Y,FLUX_TERM_Z,LEFTV,LEFTV_DER)
 
 
@@ -957,9 +960,10 @@ I=ICONSIDERED
 					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
 					  END IF
 
-
-! 					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
-! 					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+                      IF (TURBULENCE.EQ.1)THEN
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+ 					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+ 					  END IF
 					END IF
 
 					IF (ILOCAL_RECON3(I)%MRF.EQ.1)THEN
@@ -1010,9 +1014,11 @@ IF (DG.EQ.1) THEN
 					    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
 					  END IF
 
+                      IF (TURBULENCE.EQ.1)THEN
+                        cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+                        cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
 
-! 					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
-! 					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+                      END IF
 					END IF
 
 
@@ -1109,7 +1115,7 @@ REAL,DIMENSION(turbulenceequations+passivescalar,1:dims)::LCVGRAD_T,RCVGRAD_T
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::CORDS
-INTEGER::I,L,NGP,ITTT,nvar,iex
+INTEGER::I,L,NGP,ITTT,nvar,iex,k
 L=FACEX
 NGP=POINTX
 I=ICONSIDERED
@@ -1196,6 +1202,9 @@ REAL,DIMENSION(turbulenceequations+passivescalar,1:dims)::LCVGRAD_T,RCVGRAD_T
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::CORDS
+REAL,dimension(1:3):: gL,nnt,G
+real::g_n
+INTEGER :: d
 INTEGER::I,L,NGP,ITTT,nvar,iex,kk,N_NODE,k
 INTEGER::IBFC
 
@@ -1259,7 +1268,7 @@ I=ICONSIDERED
 
 
 								   do k=1,dimensiona
-                                    RCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(k,1:nof_Variables-1,IELEM(N,I)%INEIGHN(L),NGP)
+                                    RCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(k,1:nof_Variables-1,IELEM(N,I)%INEIGH(L),NGP)
                                 end do
 
 
@@ -1317,20 +1326,140 @@ I=ICONSIDERED
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 
 
-								    RCVGRAD(:,:)=LCVGRAD(:,:)
-								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
-				  				    end if
-				  				     if (B_CODE.eq.4)then
-				  				    rightv=zero
-				  				    rightv(2:4)=LCVGRAD(4,1:3)
-				  				    leftv=zero
 
-				  				    CALL ROTATEF(N,leftv,rightv,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-								    leftv(2)=-leftv(2)
-								    CALL ROTATEB(N,rightv,leftv,ANGLE1,ANGLE2)
-				  				    RCVGRAD(4,1:3)=rightv(2:4)
-				  				  	end if
+
+
+				  				  	if (b_code.eq.4)then
+
+                                            IF (THERMAL.NE.1)THEN
+
+                                                  do k=1,dimensiona
+                                                  RCVGRAD(1:DIMENSIONA,k)=LCVGRAD(1:DIMENSIONA,k)
+                                                  END DO
+
+
+                                                ! Normal vector (global coords)
+                                                nNT(1) = NX
+                                                nNT(2) = NY
+                                                IF (DIMENSIONA == 3) THEN
+                                                  nNT(3) = NZ
+                                                ELSE
+                                                  nNT(3) = 0.0
+                                                END IF
+                                                do iex=DIMENSIONA+1,NOF_VARIABLES-1
+                                                ! Load left gradient of temperature (global components)
+                                                DO d = 1, DIMENSIONA
+                                                  g(d) = LCVGRAD(iex, d)
+                                                END DO
+                                                IF (DIMENSIONA == 2) g(3) = 0.0
+
+                                                ! Normal component g_n = g · nNT
+                                                g_n = 0.0
+                                                DO d = 1, DIMENSIONA
+                                                  g_n = g_n + g(d)*nNT(d)
+                                                END DO
+
+                                                ! Remove normal component: g_t = g - g_n * nNT
+                                                DO d = 1, DIMENSIONA
+                                                  g(d) = g(d) - g_n*nNT(d)
+                                                END DO
+
+                                                ! Write back into LCVGRAD (this is the gradient used by the interior side)
+                                                DO d = 1, DIMENSIONA
+                                                  LCVGRAD(iex, d) = g(d)
+                                                END DO
+
+                                                ! For consistency with your averaging, set RCVGRAD equal to the same wall gradient
+                                                DO d = 1, DIMENSIONA
+                                                  RCVGRAD(iex, d) = g(d)
+                                                END DO
+                                                END DO
+
+
+
+
+
+                                              IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                                              RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+                                              end if
+
+                                            ELSE
+
+
+                                                  do k=1,dimensiona
+                                                  RCVGRAD(1:nof_Variables-1,k)=LCVGRAD(1:nof_Variables-1,k)
+                                                  END DO
+                                                  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                                                  RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+                                                  end if
+
+                                            END IF
+
+
+
+
+				  				    else
+
+				  				     if ((b_code.ne.5).and.(b_code.gt.0))then
+
+                                            ! Load normal
+                                            nnt(1) = NX
+                                            nnt(2) = NY
+                                            IF (DIMENSIONA == 3) THEN
+                                              nnt(3) = NZ
+                                            ELSE
+                                              nnt(3) = 0.0d0
+                                            END IF
+
+                                            do iex=1,nof_Variables-1
+                                            ! Load left gradient of this variable
+
+                                            DO d = 1, DIMENSIONA
+                                              gL(d) = LCVGRAD(iex, d)
+                                            END DO
+                                            IF (DIMENSIONA == 2) gL(3) = 0.0d0
+
+                                            ! Compute normal component g_n = gL · nnt
+                                            g_n = 0.0d0
+                                            DO d = 1, DIMENSIONA
+                                              g_n = g_n + gL(d)*nnt(d)
+                                            END DO
+
+                                            ! Reflect the normal component: gR = gL - 2*g_n*nnt
+                                            DO d = 1, DIMENSIONA
+                                              RCVGRAD(iex, d) = gL(d) - 2.0*g_n*nnt(d)
+                                            END DO
+
+                                            end do
+
+                                            IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+
+                                            do iex=1,turbulenceequations+passivescalar
+                                            ! Load left gradient of this variable
+
+                                            DO d = 1, DIMENSIONA
+                                              gL(d) = LCVGRAD_t(iex, d)
+                                            END DO
+                                            IF (DIMENSIONA == 2) gL(3) = 0.0d0
+
+                                            ! Compute normal component g_n = gL · nnt
+                                            g_n = 0.0d0
+                                            DO d = 1, DIMENSIONA
+                                              g_n = g_n + gL(d)*nnt(d)
+                                            END DO
+
+                                            ! Reflect the normal component: gR = gL - 2*g_n*nnt
+                                            DO d = 1, DIMENSIONA
+                                              RCVGRAD_t(iex, d) = gL(d) - 2.0*g_n*nnt(d)
+                                            END DO
+
+                                            end do
+
+                                            end if
+                                            end if
+
+				  				    end if
+
 !
 !
 								  END IF
@@ -1511,6 +1640,9 @@ REAL,DIMENSION(turbulenceequations+passivescalar,1:dims)::LCVGRAD_T,RCVGRAD_T
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::CORDS
+REAL,dimension(1:3):: gL,nnt,G
+real::g_n
+INTEGER :: d
 INTEGER::I,L,NGP,ITTT,nvar,iex,N_NODE,k
 INTEGER::IBFC
 L=FACEX
@@ -1556,7 +1688,7 @@ END IF
 
 
 								  do k=1,dimensiona
-                                  RCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(k,1:nof_Variables-1,IELEM(N,I)%INEIGHN(L),NGP)
+                                  RCVGRAD(1:nof_Variables-1,k)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(k,1:nof_Variables-1,IELEM(N,I)%INEIGH(L),NGP)
                                   end do
 
 
@@ -1601,12 +1733,155 @@ END IF
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
 
-								    RCVGRAD(:,:)=LCVGRAD(:,:)
+								   if (b_code.eq.4)then
+
+                                            IF (THERMAL.NE.1)THEN
+
+                                                  do k=1,dimensiona
+                                                  RCVGRAD(1:DIMENSIONA,k)=LCVGRAD(1:DIMENSIONA,k)
+                                                  END DO
 
 
-								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+                                                ! Normal vector (global coords)
+                                                nNT(1) = NX
+                                                nNT(2) = NY
+                                                IF (DIMENSIONA == 3) THEN
+                                                  nNT(3) = NZ
+                                                ELSE
+                                                  nNT(3) = 0.0
+                                                END IF
+                                                do iex=DIMENSIONA+1,NOF_VARIABLES-1
+                                                ! Load left gradient of temperature (global components)
+                                                DO d = 1, DIMENSIONA
+                                                  g(d) = LCVGRAD(iex, d)
+                                                END DO
+                                                IF (DIMENSIONA == 2) g(3) = 0.0
+
+                                                ! Normal component g_n = g · nNT
+                                                g_n = 0.0
+                                                DO d = 1, DIMENSIONA
+                                                  g_n = g_n + g(d)*nNT(d)
+                                                END DO
+
+                                                ! Remove normal component: g_t = g - g_n * nNT
+                                                DO d = 1, DIMENSIONA
+                                                  g(d) = g(d) - g_n*nNT(d)
+                                                END DO
+
+                                                ! Write back into LCVGRAD (this is the gradient used by the interior side)
+                                                DO d = 1, DIMENSIONA
+                                                  LCVGRAD(iex, d) = g(d)
+                                                END DO
+
+                                                ! For consistency with your averaging, set RCVGRAD equal to the same wall gradient
+                                                DO d = 1, DIMENSIONA
+                                                  RCVGRAD(iex, d) = g(d)
+                                                END DO
+                                                END DO
+
+
+
+
+
+                                              IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                                              RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+                                              end if
+
+                                            ELSE
+
+
+                                                  do k=1,dimensiona
+                                                  RCVGRAD(1:nof_Variables-1,k)=LCVGRAD(1:nof_Variables-1,k)
+                                                  END DO
+                                                  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                                                  RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+                                                  end if
+
+                                            END IF
+
+
+
+
+				  				    else
+
+				  				    if ((b_code.ne.5).and.(b_code.gt.0))then
+                                            ! Load normal
+                                            nnt(1) = NX
+                                            nnt(2) = NY
+                                            IF (DIMENSIONA == 3) THEN
+                                              nnt(3) = NZ
+                                            ELSE
+                                              nnt(3) = 0.0d0
+                                            END IF
+
+                                            do iex=1,nof_Variables-1
+                                            ! Load left gradient of this variable
+
+                                            DO d = 1, DIMENSIONA
+                                              gL(d) = LCVGRAD(iex, d)
+                                            END DO
+                                            IF (DIMENSIONA == 2) gL(3) = 0.0d0
+
+                                            ! Compute normal component g_n = gL · nnt
+                                            g_n = 0.0d0
+                                            DO d = 1, DIMENSIONA
+                                              g_n = g_n + gL(d)*nnt(d)
+                                            END DO
+
+                                            ! Reflect the normal component: gR = gL - 2*g_n*nnt
+                                            DO d = 1, DIMENSIONA
+                                              RCVGRAD(iex, d) = gL(d) - 2.0*g_n*nnt(d)
+                                            END DO
+
+                                            end do
+
+                                            IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+
+                                            do iex=1,turbulenceequations+passivescalar
+                                            ! Load left gradient of this variable
+
+                                            DO d = 1, DIMENSIONA
+                                              gL(d) = LCVGRAD_t(iex, d)
+                                            END DO
+                                            IF (DIMENSIONA == 2) gL(3) = 0.0d0
+
+                                            ! Compute normal component g_n = gL · nnt
+                                            g_n = 0.0d0
+                                            DO d = 1, DIMENSIONA
+                                              g_n = g_n + gL(d)*nnt(d)
+                                            END DO
+
+                                            ! Reflect the normal component: gR = gL - 2*g_n*nnt
+                                            DO d = 1, DIMENSIONA
+                                              RCVGRAD_t(iex, d) = gL(d) - 2.0*g_n*nnt(d)
+                                            END DO
+
+                                            end do
+
+                                            end if
+                                            end if
 				  				    end if
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 								  END IF
 							ELSE
@@ -1950,7 +2225,10 @@ I=ICONSIDERED
 							END IF
 					    END IF
 
-
+                         IF (TURBULENCE.EQ.1)THEN
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+ 					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+ 					  END IF
 
 
 
@@ -1965,7 +2243,7 @@ INTEGER,INTENT(IN)::ICONSIDERED, FACEX, POINTX,n
 INTEGER::I,L,NGP,N_nODE
 INTEGER,INTENT(INOUT)::B_CODE
 REAL,INTENT(INOUT)::ANGLE1,ANGLE2,NX,NY,NZ
-real,dimension(1:nof_variables),intent(inout)::cleft,cright,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT
+real,dimension(1:nof_Variables+turbulenceequations+PASSIVESCALAR),intent(inout)::cleft,cright,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT
 real,dimension(1:turbulenceequations+PASSIVESCALAR),intent(inout)::cturbl,cturbr
 real,dimension(1:nof_Variables),intent(inout)::leftv
 real,dimension(1:nof_Variables),intent(inout)::RIGHTv
@@ -2044,6 +2322,11 @@ IF (DG == 1) THEN
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 								    cright(1:nof_Variables)=rightv(1:nof_Variables)
+                                    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+								    CTURBR(1:turbulenceequations+PASSIVESCALAR)=CTURBR(1:turbulenceequations+PASSIVESCALAR)
+
+								    END IF
+
 !
 				  				  	 IKAS=2
 
@@ -2123,6 +2406,10 @@ IF (DG == 1) THEN
 					    END IF
 
 
+                          IF (TURBULENCE.EQ.1)THEN
+					  cleft_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBL(1:turbulenceequations+PASSIVESCALAR)
+ 					  cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
+ 					  END IF
 
 
 
@@ -2209,7 +2496,7 @@ SUBROUTINE ALLOCATE_DG
     IF (DG.EQ.1)THEN
     ALLOCATE(ILOCAL_RECON3(I)%ULEFT_DG(NOF_VARIABLES, IELEM(N,I)%IFCA, NUMBEROFPOINTS2))
     
-     IF((ITESTCASE == 4).or.((governingequations.EQ.-1).AND.(BR2_YN.EQ.1))) THEN !NS
+     IF((ITESTCASE == 4).or.((multispecies.EQ.1).AND.(BR2_YN.EQ.1))) THEN !NS
             ALLOCATE(ILOCAL_RECON3(I)%BR2_AUX_VAR(NOF_VARIABLES, DIMENSIONA, IELEM(N,I)%IFCA, NUMBEROFPOINTS2))
             ALLOCATE(ILOCAL_RECON3(I)%BR2_LOCAL_LIFT(NOF_VARIABLES, DIMENSIONA, IELEM(N,I)%IFCA))
             ILOCAL_RECON3(I)%BR2_AUX_VAR = ZERO

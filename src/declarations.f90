@@ -135,10 +135,10 @@ INTEGER::KDUM1,KDUM2,write_variables,write_variables_av,NODES_PART
 INTEGER::WKDUM1,WKDUM2,write_variables_W,write_variables_av_W,WNODES_PART
 INTEGER::DATATYPEX,DATATYPEy,DATATYPEz,DATATYPEXx,DATATYPEyy,DATATYPEINT
 INTEGER,DIMENSION(1)::KDUM3
-CHARACTER(LEN=25)::Variable_names(15),Variable_names_av(15)
+CHARACTER(LEN=25)::Variable_names(20),Variable_names_av(20)
 INTEGER::WDATATYPEX,WDATATYPEy,WDATATYPEz,WDATATYPEXx,WDATATYPEyy,WDATATYPEINT
 INTEGER,DIMENSION(1)::WKDUM3
-CHARACTER(LEN=25)::Variable_names_W(15),Variable_names_av_W(15)
+CHARACTER(LEN=25)::Variable_names_W(20),Variable_names_av_W(20)
 integer::kloopx,iloopx,totwallsc,IWMAXE
 iNTEGER,ALLOCATABLE,DIMENSION(:)::WALLIT,OFFSETWALL,WALL_NODES,WALLCX,OFFSETWC,OFFSETWC_G,WALLCX_g,WALLSHAPE,WALLSHAPE_G,WALLSHAPE_G2
 iNTEGER,ALLOCATABLE,DIMENSION(:,:)::WALL_L
@@ -164,27 +164,44 @@ REAL,ALLOCATABLE,DIMENSION(:,:)::bleed_start,bleed_end
 REAL,ALLOCATABLE,DIMENSION(:)::BLEED_PLENUM,BLEED_POROSITY
 !------------------END BLEED PARAMETERS-------------------!
 !------------------------REAL GAS EFFECTS SECTION VARIABLES-----------------!
-integer::REALGAS					!FLAG FOR REAL GAS EFFECTS
-INTEGER::RG_NOF_REACTIONS,RG_NOF_Tv_coef, RG_KF_TYPE, RG_RELAX
-REAL::RG_T_INF,RG_T_WALL_INIT, RG_T_REF,RG_Tv_const, RG_ATV
-real::rg_runiv,rg_Ttr,rg_Tve
-REAL,ALLOCATABLE,DIMENSION(:)::RG_VF,RG_MOLM,rg_hzero,rg_thetag !VOLUME FRACTION, MOLAR MASS, FORMATION entropy
-REAL,ALLOCATABLE,DIMENSION(:,:)::RG_Tv_coef !Coefs for Tv
-REAL,ALLOCATABLE,DIMENSION(:)::SOURCE_R !SOURCE TERM
-! REAL,DIMENSION(:,:)::RG_DS !DIFFUSION COEFF (2,NOSPECIS)
-! REAL,DIMENSION(:,:)::RG_HS !species enthalpy (2,NOSPECIS)
+!SPECIES ORDER 'N2', 'O2', 'NO', 'N ', 'O '
+integer::REALGAS			!FLAG FOR REAL GAS EFFECTS
+INTEGER::RG_NOF_REACTIONS	!NUMBER OF REACTIONS
+INTEGER::RG_KF_TYPE		    !TYPE OF REACTION RATE EQUATIONS: 1. Gupta, 2. Candler
+INTEGER::RG_RELAX		    !TYPE of expression for vibrational relaxation time: 1. low T MW, high T Park; 2. sum of MW and Park
+REAL,ALLOCATABLE,DIMENSION(:)::RG_VF	!MASS FRACTION OF EACH SPECIES ([N2, O2, NO, N, O])
+REAL,ALLOCATABLE,DIMENSION(:)::RG_MOLM  !MOLAR MASS OF EACH SPECIES ([N2, O2, NO, N, O])
+REAL,ALLOCATABLE,DIMENSION(:)::rg_hzero !Enthalpy of formation: N2, O2, NO, N, O
+REAL,ALLOCATABLE,DIMENSION(:)::rg_thetag	!Diatomic vibrational characteristic temperatures [K]; atoms 0
+REAL::RG_T_INF								!TEMPERATURE INFINITY (K)
+REAL::RG_T_WALL_INIT										!TEMPERATURE_WALL_INITIAL (K)
+REAL::RG_T_REF								!TEMPERATURE_REFERENCE (K)
+INTEGER::RG_NOF_Tv_coef						!NUMBER OF Tv-T Equation coefficients
+REAL,ALLOCATABLE,DIMENSION(:,:)::RG_Tv_coef	!Tv-T equation coefficients ([N2,O2,NO],[P1, P2, P3, P4]) (NUMBER OF Tv-T Equation coefficients is NOT 0)
+real,parameter :: RGS_Ru = 8.31446261815324	! J/kmol-K	!universal gas constast
+real::rg_Ttr								!TRANSLATIONAL-ROTATIONAL TEMPERATURE
+real::rg_Tve								!VIBRATIONAL TEMPERATURE
+real,ALLOCATABLE,DIMENSION(:)::RGS_Mg 		!RG_MOLM * 1.0e3   ! g/mol for D_ij correlation
+REAL, parameter :: RGS_Pa_per_atm = 101325.0	!pascals per atmosphere	101325.0
+REAL, parameter :: RGS_cm2s_to_m2s = 1.0e-4	!cm2s to m2s 1.0e-4
+REAL, parameter :: RGS_tiny = 1.0e-30 		!tiny number for real gas 1.0e-30
+! Blottner viscosity coefficients (base-10 form)
+real,ALLOCATABLE,DIMENSION(:):: RGS_aB, RGS_bB,RGS_cB
+! Classic Lennard–Jones parameters (σ [Å], ε/k [K])
+real,ALLOCATABLE,DIMENSION(:):: RGS_sigmaA     	!(/ 3.667, 3.467, 3.492, 3.298, 3.050 /)
+real,ALLOCATABLE,DIMENSION(:):: RGS_eps_over_k !(/ 99.8 ,106.7 ,116.7 , 71.4, 80.0  /)
 !-------------------------------------------------------------------------!
 !----------------MULTIPHYSICS-----------------------!
-!----------------Diffusion Coefficients-------------!
 !CONSTANTS READ FROM FILE
-REAL,DIMENSION(1:NOF_SPECIEs):: MP_M
-!---REAL::MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix	!these are local!
-! JANAF coefficients for Cp/R: Cp = R*(a1 + a2*T + a3*T^2 + a4*T^3 + a5*T^4)
-REAL,DIMENSION(1:NOF_SPECIES,1:2,1:5) :: MP_JANAF
-! Brokaw model constants: mu = A*T^B + C
-REAL,DIMENSION(1:NOF_SPECIEs):: MP_BROK_A, MP_BROK_B, MP_BROK_C
-REAL,DIMENSION(1:NOF_SPECIES):: MP_Tlow_in, MP_Thigh_in,MP_Tmid_in
-!--------------------------------------------------------------------------------------------------------------------------!
+integer::MP_modelc	!multispecies mode; 0=allaire (no diffusion of species), 1=multispecies
+real,allocatable,dimension(:)::GAMMA_IN	!gamma for each species
+real,allocatable,dimension(:)::MP_A_IN !volume fraction for each species in the inlet
+real,allocatable,dimension(:)::MP_R_IN !density for each species in the inflow
+real,allocatable,dimension(:)::MP_PINF !p infinity for each species for the stiffened gas EOS
+real,allocatable,dimension(:)::MP_M	!molecular weight kg/mol
+real,allocatable,dimension(:)::MP_BROK_A, MP_BROK_B, MP_BROK_C ! Brokaw model constants: mu = A*T^B + C
+real,allocatable,dimension(:)::MP_Tlow_in, MP_Thigh_in,MP_Tmid_in	!MP_Tlo_in
+real,allocatable,dimension(:,:,:) :: MP_JANAF !JANAF coefficients for Cp/R: Cp = R*(a1 + a2*T + a3*T^2 + a4*T^3 + a5*T^4)
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.2.   INTEGER ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
@@ -281,7 +298,6 @@ REAL::WVEL					!W-VELOCITY
 REAL::PRES					!PRESSURE
 REAL::RRES					!DENSITY
 REAL::SPOS					!SPEED OF SOUND
-REAL::ETOT					!TOTAL ENERGY
 REAL::SPKIN					!SPECIFIC KINETIC ENERGY
 REAL::LAM					!HEAT CONDUCTIVITY (WATT/(MK))
 REAL::VISC					!VISCOSITY
@@ -358,7 +374,6 @@ real:: momentx,momenty,momentz
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.4.   REAL ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
-REAL,ALLOCATABLE,DIMENSION(:)::gamma_IN,MP_R_IN,MP_A_IN,MP_PINF !MULTIPHASE COMPONENTS	
 REAL,ALLOCATABLE,DIMENSION(:)::MODAL_FILTER,ADDA_FILTER_WEAK,ADDA_FILTER_STRONG,MODAL_FILTER_STRONG,MODAL_FILTER_WEAK
 REAL::L1NORM		!L1 NORM OF SOLUTION FOR GRID CONVERGENCE STUDIES OF EULER AND LINEAR ADVECTION EQUATIONS
 REAL::L2NORM		!L2 NORM OF SOLUTION FOR GRID CONVERGENCE STUDIES OF EULER AND LINEAR ADVECTION EQUATIONS

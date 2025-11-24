@@ -1121,25 +1121,25 @@ REAL::EDGEL,DIST
     
  	IELEM(N,I)%MINEDGE=(3.0D0*IELEM(N,I)%TOTVOLUME)/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
 	
-	DO L=1,IELEM(N,I)%IFCA
-	FACEX=L
-
-	 select case (ielem(n,I)%types_faces(facex))
-	      case(5)
-	      N_NODE=4
-	      case(6)
-	      N_NODE=3
-	      end select
-
-
-				  CALL coordinates_face_inner(N,I,facex,vext,NODES_LIST)
-				  
- 				  VEXT(2,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
-				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; VEXT(1,3)=IELEM(N,I)%ZZC
-				  DIST=DISTANCE3(N,VEXT)
-				  
-  				   IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
- 	END DO
+! 	DO L=1,IELEM(N,I)%IFCA
+! 	FACEX=L
+!
+! 	 select case (ielem(n,I)%types_faces(facex))
+! 	      case(5)
+! 	      N_NODE=4
+! 	      case(6)
+! 	      N_NODE=3
+! 	      end select
+!
+!
+! 				  CALL coordinates_face_inner(N,I,facex,vext,NODES_LIST)
+!
+!  				  VEXT(2,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+! 				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; VEXT(1,3)=IELEM(N,I)%ZZC
+! 				  DIST=DISTANCE3(N,VEXT)
+!
+!   				   IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
+!  	END DO
 	
 
 
@@ -1166,20 +1166,20 @@ REAL::EDGEL,DIST
     
 	IELEM(N,I)%MINEDGE=(2.0D0*IELEM(N,I)%TOTVOLUME)/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
 	
-	DO L=1,IELEM(N,I)%IFCA
-	FACEX=L
-	N_NODE=2
-				  CALL coordinates_face_inner2D(N,I,facex,vext,NODES_LIST)
-				  
- 				  VEXT(2,1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
-				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; 
-				  DIST=DISTANCE2(N,VEXT)
-				  
-				  
-				  IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
-				  
-	
-	END DO
+! 	DO L=1,IELEM(N,I)%IFCA
+! 	FACEX=L
+! 	N_NODE=2
+! 				  CALL coordinates_face_inner2D(N,I,facex,vext,NODES_LIST)
+!
+!  				  VEXT(2,1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
+! 				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC;
+! 				  DIST=DISTANCE2(N,VEXT)
+!
+!
+! 				  IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
+!
+!
+! 	END DO
 	
 
 
@@ -4248,11 +4248,12 @@ TRI(4,2)=-sia1		!-SIN(ANGLE1)
 TRI(4,3)=coa1		!COS(ANGLE1)
 TRI(5,5)=1.0d0
 
+ROTVECT(1:nof_Variables)=VECTCO(1:nof_Variables)
 
 ROTVECT(1:5)=MATMUL(TRI(1:5,1:5),VECTCO(1:5))
-IF (MULTISPECIES.EQ.1)THEN
-ROTVECT(6:nof_Variables)=VECTCO(6:nof_Variables)
-END IF
+
+
+
 
 
 END SUBROUTINE ROTATEF
@@ -4296,10 +4297,10 @@ INVTRI(4,2)=coa2!COS(ANGLE2)
 INVTRI(4,3)=-sia2!-SIN(ANGLE2)
 INVTRI(5,5)=1.0d0
 
+ROTVECT(1:nof_Variables)=VECTCO(1:nof_Variables)
+
 ROTVECT(1:5)=MATMUL(INVTRI(1:5,1:5),VECTCO(1:5))
-IF (MULTISPECIES.EQ.1)THEN
-ROTVECT(6:nof_Variables)=VECTCO(6:nof_Variables)
-END IF
+
 
 
 END SUBROUTINE ROTATEB
@@ -4314,14 +4315,18 @@ REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO
 REAL,INTENT(IN)::ANGLE1,ANGLE2
 
+ROTVECT(1:nof_Variables)=VECTCO(1:nof_Variables)
+
+
 ROTVECT(1)=VECTCO(1)
 ROTVECT(2)=(ANGLE1*VECTCO(2))+(ANGLE2*VECTCO(3))
 ROTVECT(3)=-(ANGLE2*VECTCO(2))+(ANGLE1*VECTCO(3))
 ROTVECT(4)=VECTCO(4)
 
-IF (MULTISPECIES.EQ.1)THEN
-ROTVECT(5:nof_Variables)=VECTCO(5:nof_Variables)
-END IF
+
+
+
+
 
 END SUBROUTINE ROTATEF2d
 
@@ -4336,7 +4341,7 @@ REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO
 REAL,INTENT(IN)::ANGLE1,ANGLE2
 
 
-
+ROTVECT(1:nof_Variables)=VECTCO(1:nof_Variables)
 
 !BUILD MATRIX OF ROTATION!
 
@@ -4345,9 +4350,7 @@ ROTVECT(2)=(ANGLE1*VECTCO(2))-(ANGLE2*VECTCO(3))
 ROTVECT(3)=(ANGLE2*VECTCO(2))+(ANGLE1*VECTCO(3))
 ROTVECT(4)=VECTCO(4)
 
-IF (MULTISPECIES.EQ.1)THEN
-ROTVECT(5:nof_Variables)=VECTCO(5:nof_Variables)
-END IF
+
 
 END SUBROUTINE ROTATEB2d
 

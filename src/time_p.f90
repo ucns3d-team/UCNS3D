@@ -74,7 +74,7 @@ KMAXE=XMPIELRANK(N)
 		
 		
 		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		IF (multispecies.eq.1)THEN
+		IF ((multispecies.eq.1).or.(realgas.eq.1))THEN
 		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
 		ELSE
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
@@ -121,10 +121,19 @@ KMAXE=XMPIELRANK(N)
 	!$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+		rightv(1:NOF_vARIABLES)=leftv(1:nof_Variables)
+		CALL GET_visc_conduct(N,leftv,rightv,VISCL,LAML)
+
+        LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
 		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
+		IF ((multispecies.eq.1).or.(realgas.eq.1))THEN
+		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
+		ELSE
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+		END IF
+
+
+
                 
         IF (RFRAME.EQ.0) THEN
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
@@ -219,7 +228,7 @@ KMAXE=XMPIELRANK(N)
 		
 		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 
-       IF (multispecies.eq.1)THEN
+       if ((multispecies.eq.1).OR.(REALGAS.EQ.1))then
 		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
 		ELSE
 		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
@@ -265,11 +274,26 @@ KMAXE=XMPIELRANK(N)
 	IF (ITESTCASE.EQ.4)THEN
 	!$OMP DO
         DO I=1,KMAXE
+
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+		rightv(1:NOF_vARIABLES)=leftv(1:nof_Variables)
+		CALL GET_visc_conduct(N,leftv,rightv,VISCL,LAML)
+
+        LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
 		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
-                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+		IF ((multispecies.eq.1).or.(realgas.eq.1))THEN
+		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
+		ELSE
+		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+		END IF
+
+
+
+
+
+
+
+
         IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
             VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
         END IF
@@ -388,7 +412,7 @@ KMAXE=XMPIELRANK(N)
 		
         
 		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-		IF (multispecies.eq.1)THEN
+		if ((multispecies.eq.1).OR.(REALGAS.EQ.1))then
 		AGRT=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
 		ELSE
 		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
@@ -418,11 +442,20 @@ KMAXE=XMPIELRANK(N)
 	IF (ITESTCASE.EQ.4)THEN
 	!$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
+
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+		rightv(1:NOF_vARIABLES)=leftv(1:nof_Variables)
+		CALL GET_visc_conduct(N,leftv,rightv,VISCL,LAML)
+
+        LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
 		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
+		IF ((multispecies.eq.1).or.(realgas.eq.1))THEN
+		AGRT=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
+		ELSE
 		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
+		END IF
+
+
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
 		IF (TURBULENCE.EQ.1)THEN
 		IF (TURBULENCEMODEL.EQ.1)THEN
@@ -492,8 +525,15 @@ KMAXE=XMPIELRANK(N)
 	!$OMP DO
         DO I=1,KMAXE
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
+		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		IF ((multispecies.eq.1).or.(realgas.eq.1))THEN
+		AGRT=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
+		ELSE
+		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
+		END IF
+
+
+
 		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
 		
@@ -521,10 +561,26 @@ KMAXE=XMPIELRANK(N)
 	!$OMP DO
         DO I=1,KMAXE
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
+		rightv(1:NOF_vARIABLES)=leftv(1:nof_Variables)
+		CALL GET_visc_conduct(N,leftv,rightv,VISCL,LAML)
+
+        LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		IF ((multispecies.eq.1).or.(realgas.eq.1))THEN
+		AGRT=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
+		ELSE
 		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
+		END IF
+
+
+
+
+
+
+
+
+
+
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
 		IF (TURBULENCE.EQ.1)THEN
 		IF (TURBULENCEMODEL.EQ.1)THEN
@@ -1527,7 +1583,6 @@ KMAXE=XMPIELRANK(N)
 CALL CALL_FLUX_SUBROUTINES_2D
 
 
-
 DO I=1,KMAXE
 IF (DG == 1)then
 if((U_C(i)%VALDG(1,1,1).ne. U_C(i)%VALDG(1,1,1))) THEN
@@ -1567,7 +1622,6 @@ DO I=1,KMAXE
   
 END DO
 !$OMP END DO
-
 
 
 
@@ -2258,6 +2312,8 @@ KMAXE=XMPIELRANK(N)
     END IF
 
 
+    if (realgas.eq.1)CALL normalise_species(N)
+
     if (dg.eq.1)then
 
     CALL SOL_INTEG_DG(N) ! Calculates cell average of DG solution for FV
@@ -2432,13 +2488,16 @@ KMAXE=XMPIELRANK(N)
     if ((SOURCE_ACTIVE.EQ.1))then
     call SOURCES_COMPUTATION_ROT(N)
     end if
+    IF ((REALGAS.EQ.1))THEN
+    CALL SOURCES_COMPUTATION(N)
+    END IF
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
     CALL CALCULATE_FLUXESHI_dIFfusive(N)
     if ((SOURCE_ACTIVE.EQ.1))then
     call SOURCES_COMPUTATION_ROT(N)
     end if
-    IF (turbulence.eq.1)THEN
+    IF ((turbulence.eq.1).OR.(REALGAS.EQ.1))THEN
     CALL SOURCES_COMPUTATION(N)
     END IF
 
@@ -2491,9 +2550,40 @@ END SUBROUTINE CALL_FLUX_SUBROUTINES_3D
 
 
 
+subroutine normalise_species(n)
+implicit none
+integer,intent(in)::n
+integer::i,j,rg_i,kmaxe
+
+
+
+KMAXe=XMPIELRANK(N)
+!$OMP DO
+do i=1,kmaxe
+  DO RG_I = 1, nof_species
+     IF (U_C(I)%VAL(1,dimensiona+3+RG_I).LT.0.0D0)THEN
+        U_C(I)%VAL(1,dimensiona+3+RG_I)=0.0D0
+     END IF
+  END DO
+
+
+end do
+!$OMP END DO
+
+
+end subroutine normalise_species
+
+
 SUBROUTINE CALL_FLUX_SUBROUTINES_2D
 IMPLICIT NONE
 INTEGER::I,ICONSIDERED
+
+
+
+
+    if (realgas.eq.1)CALL normalise_species(N)
+
+
 
     if (dg.eq.1)then
     CALL SOL_INTEG_DG(N)
@@ -2562,12 +2652,15 @@ INTEGER::I,ICONSIDERED
     CALL CALCULATE_FLUXESHI2D(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
+     IF ((REALGAS.EQ.1))THEN
+     CALL SOURCES_COMPUTATION2d(N)
+     END IF
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
     CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
+     IF ((turbulence.eq.1).OR.(REALGAS.EQ.1))THEN
+     CALL SOURCES_COMPUTATION2d(N)
+     END IF
     END SELECT
 
 
@@ -2994,7 +3087,7 @@ IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
   do k=1,turbulenceequations+passivescalar
   IF (ispal.eq.1)THEN
   IF (U_CT(I)%VAL(1,k)+IMPDU(I,4+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
+  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,4+k)
    END IF
    ELSE
    U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
@@ -4171,7 +4264,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
                           IF (N.EQ.0)THEN
                           TOTV1=TOTK/((2.0*PI)**3)
                           TOTENS1=TOTENS/(((2.0*PI)**3))
-                          TOTENSx1=TOTENSx/((2.0*PI)**3)
+                          TOTENSx1=4.0*TOTENSx/(3.0*((2.0*PI)**3))
                               IF (it.eq.0)THEN
                               TAYLOR=TOTK
                               TAYLOR_ENS=TOTENS
@@ -4256,7 +4349,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			
 			
 			if (dg.eq.1)call SOL_INTEG_DG(N)
-
+            IF (REALGAS.EQ.1) CALL normalise_species(N)
 			
 			!$OMP BARRIER
 			!$OMP MASTER
@@ -4282,9 +4375,9 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
           END IF
           end if
 
-        !  IF ( mod(it, 100) .eq. 0) THEN
-        !    CALL REDUCED_HISTORY
-        !  END IF
+          IF ( mod(it, 20) .eq. 0) THEN
+            CALL REDUCED_HISTORY
+          END IF
 
 
 
@@ -4342,8 +4435,8 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 
  				IF (N.EQ.0)THEN
                           TOTV2=TOTK/((2.0*PI)**3)
-                          TOTENS2=TOTENS/((2.0*PI)**3)
-                          TOTENSx2=TOTENSx/((2.0*PI)**3)
+                          TOTENS2=TOTENS/(Reynolds*((2.0*PI)**3))
+                          TOTENSx2=4.0*TOTENSx/(3.0*Reynolds*((2.0*PI)**3))
                               IF (it.eq.0)THEN
                               TAYLOR=TOTK
                               TAYLOR_ENS=TOTENS
@@ -4361,7 +4454,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
                           if (boundtype.eq.1)then
                           WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS/TAYLOR_ENS
                           else
-                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS,TOTENSx
+                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTv2,-(TOTV2-TOTV1)/DT,TOTENS2,TOTENSx2
                           end if
                           END IF
                           CLOSE(73)
@@ -4745,6 +4838,8 @@ DO
 
           if (dg.eq.1)call SOL_INTEG_DG(N)
 
+          IF (REALGAS.EQ.1) CALL normalise_species(N)
+
 
 
 ! Increment time
@@ -4767,6 +4862,9 @@ DO
           end if
           END IF
 
+           IF ( mod(it, 20) .eq. 0) THEN
+            CALL REDUCED_HISTORY
+          END IF
 
           IF (mood.gt.0)THEN
           CALL TROUBLED_HISTORY

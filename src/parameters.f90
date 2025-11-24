@@ -13,11 +13,13 @@ SUBROUTINE READ_UCNS3D
 
 	IMPLICIT NONE
 
- 	Integer :: INV,IX,IBLEED
+ 	Integer :: INV,IX,IBLEED,i,j
  	INTEGER :: INV1
  	Real :: angledum
 	CHARACTER(48)::STAMP1,FRAME
 	LOGICAL::HERE1,HERE2,HERE3,HERE5,here,here4,HERE7,HERE8,HERE9,BLEEDIO,here10
+
+	MP_modelc=0	!ALLAIRE BY DEFAULT
 
 
  	
@@ -114,7 +116,7 @@ SUBROUTINE READ_UCNS3D
 	IF (HERE2) THEN
 	OPEN(14,FILE='MULTISPECIES_DIFF.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
 	READ(14,*)
-	READ(14,*)
+	READ(14,*)MP_modelc			!MP model   0=allaire, 1=mp_species
     ALLOCATE(MP_M(1:NOF_SPECIES),MP_BROK_A(1:NOF_SPECIEs), MP_BROK_B(1:NOF_SPECIEs), MP_BROK_C(1:NOF_SPECIEs),MP_Tlow_in(1:NOF_SPECIEs), MP_Thigh_in(1:NOF_SPECIEs),MP_Tmid_in(1:NOF_SPECIEs),MP_JANAF(1:NOF_SPECIES,1:2,1:5))
     READ(14,*)MP_M(1:NOF_SPECIES)
     READ(14,*)MP_BROK_A(1:NOF_SPECIES)
@@ -125,7 +127,7 @@ SUBROUTINE READ_UCNS3D
     READ(14,*)MP_Tmid_in(1:NOF_SPECIES)
     DO I=1,5
     DO J=1,2
-    READ(14,*)MP_JANAF(1:NOF_SPECIES,J,I))
+    READ(14,*)MP_JANAF(1:NOF_SPECIES,J,I)
     END DO
     END DO
     CLOSE(14)
@@ -146,28 +148,46 @@ SUBROUTINE READ_UCNS3D
 	READ(14,*)RG_NOF_REACTIONS
 	READ(14,*)RG_KF_TYPE
 	READ(14,*)RG_RELAX
-    ALLOCATE(RG_VF(1:NOF_SPECIES), RG_MOLM(1:NOF_SPECIES),rg_hzero(1:NOF_SPECIES),rg_thetag(1:3))
+    ALLOCATE(RG_VF(1:NOF_SPECIES), RG_MOLM(1:NOF_SPECIES),rg_hzero(1:NOF_SPECIES),rg_thetag(1:nof_species))
     READ(14,*)RG_VF(1:NOF_SPECIES)
 	READ(14,*)RG_MOLM(1:NOF_SPECIES)
 	READ(14,*)rg_hzero(1:NOF_SPECIES)
-	READ(14,*)rg_thetag(1:3)
-    READ(14,*)rg_ttr
-    READ(14,*)rg_tve
+	READ(14,*)rg_thetag(1:nof_species)
+    READ(14,*)RG_T_INF
+    READ(14,*)RG_T_WALL_INIT
     READ(14,*)RG_T_REF
 	READ(14,*)RG_NOF_Tv_coef
+	rg_ttr=RG_T_INF;	!need to specify initial values for those
+	rg_tve=RG_T_INF;	!need to specify initial values for these as well
 
 
-	rg_runiv=8.3145D0 ! J/kmol-K
+
 
 	if (RG_NOF_Tv_coef.gt.0)then
 		ALLOCATE(RG_Tv_coef(1:3,1:RG_NOF_Tv_coef))
 		READ(14,*)RG_Tv_coef(1,1:RG_NOF_Tv_coef)
 		READ(14,*)RG_Tv_coef(2,1:RG_NOF_Tv_coef)
 		READ(14,*)RG_Tv_coef(3,1:RG_NOF_Tv_coef)
-	else
-		READ(14,*)
-		READ(14,*)RG_Tv_const
 	end if
+
+
+
+
+	allocate(RGS_Mg(1:NOF_SPECIES))
+	RGS_Mg=RG_MOLM * 1.0e3   ! g/mol for D_ij correlation
+
+
+
+
+
+    ALLOCATE(RGS_sigmaA(1:nof_species),RGS_eps_over_k(1:nof_species),RGS_aB(1:nof_species),RGS_bB(1:nof_species),RGS_cB(1:nof_species))
+
+    READ(14,*)RGS_aB(1:nof_species)
+    READ(14,*)RGS_bB(1:nof_species)
+	READ(14,*)RGS_cB(1:nof_species)
+	READ(14,*)RGS_sigmaA(1:nof_species)
+	READ(14,*)RGS_eps_over_k(1:nof_species)
+
     CLOSE(14)
 	ELSE
 	REALGAS=0
@@ -456,8 +476,8 @@ SUBROUTINE READ_UCNS3D
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
 	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=100	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=100	! LIMIT VOLUME CELLS
+	GRIDAR1=100000	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=100000	! LIMIT VOLUME CELLS
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
@@ -784,6 +804,46 @@ SUBROUTINE READ_UCNS3D
 	 
 	 
 	 DES_model=0
+
+
+
+
+
+         CASE (777)  !robust
+
+        LOWMEMORY=0     !MEMORY USAGE: |0: HIGH(FASTER) |1:LOW (SLOWER)||
+        binio=1         !I/O (ASCII=0, BINARY=1)
+        LOWMEM=0        !GLOBAL ARRAYS SETTING (0=WITHOUT BETTER SUITED FOR NON PERIODIC BOUND,1=WITH (LARGE MEMORY FOOTPRINT))
+        reduce_comp=0   !QUADRATURE FREE FLUX=0 NOT TRUE,1 TRUE
+        turbulencemodel=1 !TURBULENCE MODEL SELECTION: |1:Spalart-Allmaras |2:k-w SST
+!       icoupleturb=0   !COUPLING TURBULENCE MODEL: |1:COUPLED | 0: DECOUPLED
+        ihybrid=0       !HYBRID TURBULENCE : |1:ENABLED|0:DISABLED
+        HYBRIDIST=0.0D0 !HYBRID DISTANCE
+        swirl=0         !swirling flow:0 deactivated, 1 activated
+        IADAPT=1        !ADAPTIVE NUMERICAL SCHEME (0 NOT TRUE,1 TRUE)
+    if (initcond.eq.405)iadapt=1
+        ICOMPACT=0      !COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
+        extf=3  !STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
+        WEIGHT_LSQR=0   !WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+        guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
+        FASTEST_Q=1     !STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
+        relax=2         !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+        CFLMAX=30       !CFLMAX:TO BE USED WITH RAMPING
+        CFLRAMP=0       !CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
+        emetis=6        !Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
+        itold=10000     !TOLERANCE=n_iterations
+        GRIDAR1=100000.0    ! 0       5.0    7.0  LIMIT ASPECT RATIO CELLS,
+        GRIDAR2=700000.0     ! LIMIT VOLUME CELLS
+        fastest=0       ! 0                             ||Fastest, no coordinate mapping (1: engaged,0:with transformation)
+        lmach_style=0   !0                      ||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
+        LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0        !LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+        fastmovie=0
+        if (iboundary.eq.1)then
+         LOWMEM=1
+         end if
+
+
+         DES_model=0
 	 
 	 
 	 CASE (91)  !robust WITH Matrix free LU-SGS
@@ -804,13 +864,13 @@ SUBROUTINE READ_UCNS3D
 	WEIGHT_LSQR=1	!WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
 	guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	!STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=3		!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+        relax=3	!RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
 	CFLMAX=30	!CFLMAX:TO BE USED WITH RAMPING
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
 	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=10.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=7.0	! LIMIT VOLUME CELLS
+	GRIDAR1=10000.0	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=70000.0	! LIMIT VOLUME CELLS
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
@@ -1036,13 +1096,13 @@ SUBROUTINE READ_UCNS3D
 	WEIGHT_LSQR=0	 !WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
 	guassianquadra=0 !GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
 	FASTEST_Q=1	 !STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=1		 !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+        relax=2		 !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
 	CFLMAX=30	 !CFLMAX:TO BE USED WITH RAMPING
 	CFLRAMP=0	 !CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	 !Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
 	itold=10000	 !TOLERANCE=n_iterations
-	GRIDAR1=10.0	 ! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=10.0	 ! LIMIT VOLUME CELLS
+	GRIDAR1=1000000.0	 ! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=1000000.0	 ! LIMIT VOLUME CELLS
 	fastest=0	 ! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	 !0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	 !LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
@@ -1161,14 +1221,37 @@ SUBROUTINE READ_UCNS3D
 	      end if
 	      
 	      !multiphase modification starts
-	      IF (governingequations.EQ.-1)THEN
-	      if (dimensiona.eq.3)then
-		      nof_variables=5+NOF_SPECIES+(NOF_SPECIES-1);dims=3
-		  else
-		      nof_variables=4+NOF_SPECIES+(NOF_SPECIES-1);dims=2
-		  end if
+	      IF (multispecies.EQ.1)THEN
+			IF (MP_modelc.EQ.0)THEN
+					if (dimensiona.eq.3)then
+					nof_variables=5+NOF_SPECIES+(NOF_SPECIES-1);dims=3
+					else
+					nof_variables=4+NOF_SPECIES+(NOF_SPECIES-1);dims=2
+					end if
+			ELSE
+					if (dimensiona.eq.3)then
+					nof_variables=5+NOF_SPECIES;dims=3
+					else
+					nof_variables=4+NOF_SPECIES;dims=2
+					end if
+
+
+			END IF
+
 		  END IF
 		  !multiphase modification ends
+
+		  IF (REALGAS.EQ.1)THEN
+					if (dimensiona.eq.3)then
+					nof_variables=DIMENSIONA+3+NOF_SPECIES;dims=3
+					else
+					nof_variables=DIMENSIONA+3+NOF_SPECIES;dims=2
+					end if
+
+		  END IF
+
+
+
 		  
 	    !--------------------------END 2-------------------------!
 
@@ -1251,8 +1334,12 @@ SUBROUTINE READ_UCNS3D
 	  BETAAS=1.5d0
 	  SUTHER=0.412158681d0
 	  uvel=ufreestream
-	  r_gas=287.052874d0
-	  
+          if (uvel.lt.10.0)then
+          r_gas=1.0
+          else
+                  r_gas=287.052874d0
+
+          end if
 	  
 	  if (initcond.eq.977)then
 	  uvel=0.0d0;vvel=0.0d0;

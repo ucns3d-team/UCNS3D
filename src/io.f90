@@ -1192,55 +1192,63 @@ call mpi_barrier(mpi_comm_world,IERROR)
  END IF
  IF (ITESTCASE.EQ.3)THEN
  NVAR1=8+PASSIVESCALAR
-  if (passivescalar.gt.0)then
- if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                    'Density,U,V,W,energy,Pressure,STEN1,STEN2,passivescalar'//NULCHAR, &
-                    out1//NULCHAR, &
-                    '.'//NULCHAR, &
-                    FileType, &
-                    Debug, &
-                    VIsDouble)
+	  if (passivescalar.gt.0)then
+			if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+							'Density,U,V,W,energy,Pressure,STEN1,STEN2,passivescalar'//NULCHAR, &
+							out1//NULCHAR, &
+							'.'//NULCHAR, &
+							FileType, &
+							Debug, &
+							VIsDouble)
      ELSE
      if (multispecies.eq.1)then
      NVAR1=10
 
-     if (dg.eq.1)then
-     NVAR1=10
-     if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                    'Density,U,V,W,energy,Pressure,species1,species2,vfraction,TROUBLED'//NULCHAR, &
-                    out1//NULCHAR, &
-                    '.'//NULCHAR, &
-                    FileType, &
-                    Debug, &
-                    VIsDouble)
+				if (dg.eq.1)then
+						NVAR1=10
+						if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+										'Density,U,V,W,energy,Pressure,species1,species2,vfraction,TROUBLED'//NULCHAR, &
+										out1//NULCHAR, &
+										'.'//NULCHAR, &
+										FileType, &
+										Debug, &
+										VIsDouble)
 
 
 
-     else
+				else
 
-      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                    'Density,U,V,W,energy,Pressure,species1,species2,vfraction,AUX'//NULCHAR, &
-                    out1//NULCHAR, &
-                    '.'//NULCHAR, &
-                    FileType, &
-                    Debug, &
-                    VIsDouble)
+						if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+										'Density,U,V,W,energy,Pressure,species1,species2,vfraction,AUX'//NULCHAR, &
+										out1//NULCHAR, &
+										'.'//NULCHAR, &
+										FileType, &
+										Debug, &
+										VIsDouble)
 
 
-         end if
+				end if
 
      
-     else
-     if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                    'Density,U,V,W,energy,Pressure,STEN1,STEN2'//NULCHAR, &
-                    out1//NULCHAR, &
-                    '.'//NULCHAR, &
-                    FileType, &
-                    Debug, &
-                    VIsDouble)
-     
-     
-     end if
+     else	!no multispecies
+			if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+							'Density,U,V,W,energy,Pressure,STEN1,STEN2'//NULCHAR, &
+							out1//NULCHAR, &
+							'.'//NULCHAR, &
+							FileType, &
+							Debug, &
+							VIsDouble)
+
+
+
+
+
+
+	end if
+
+
+
+
      END IF
  END IF
  IF (ITESTCASE.EQ.4)THEN
@@ -7596,6 +7604,9 @@ IF (ITESTCASE.LE.2)THEN
 						if ((kkd.ge.2).and.(kkd.le.4))then
 						valuess(i)=U_C(IBOUND_T(I))%VAL(1,kkd)/U_C(IBOUND_T(I))%VAL(1,1)
 						end if	
+
+                                               
+
 					  ENDDO
 					  END IF
 		
@@ -7624,6 +7635,16 @@ IF (ITESTCASE.LE.2)THEN
 						leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(1,1:nof_Variables)
 						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 						VALUESS(i)=leftv(5)
+                                                
+                                               ! if (ielem(n,ibound_t(i))%ishape.eq.1)then
+                                                        
+                                                !        valuess(i)=ielem(n,ibound_t(i))%dih(6)
+                                                
+                                                !else
+
+                                                 !       valuess(i)=0.0d0
+                                               ! end if
+
 						
 					  ENDDO
 					  END IF
@@ -7733,8 +7754,10 @@ IF (ITESTCASE.LE.2)THEN
 					 
 					 call SHEAR_X(ICONSIdered,facex,shear_temp)
 					 CASE (2)
+
 					 call SHEAR_y(ICONSIdered,facex,shear_temp)
-					 CASE(3)
+					
+                                        CASE(3)
 					 call SHEAR_z(ICONSIdered,facex,shear_temp)
 					 END SELECT
 				       		VALUESS(i)=SHEAR_TEMP					
@@ -13872,7 +13895,7 @@ SUBROUTINE PARTITION_PREPARATION_WALLv(N)
  		END DO
 			WPART1_end=1
 	eLSE
-		ALLOCATE(WDISPART1(1),WrARRAY_PART1(1,1:WRITE_VARIABLES_W))	!
+		ALLOCATE(WDISPART1(1),WrARRAY_PART1(1,1:varg_max))	!
 		WrARRAY_PART1(1,:)=0
 		WDISPART1(1)=0!
 			WPART1_end=0
@@ -14583,51 +14606,83 @@ if (dimensiona.eq.3)then
 
 
 
-IF (multispecies.EQ.1)THEN
-WRITE_VARIABLES=NOF_VARIABLES+1
-!!specify the name of the variable names!!
+			IF (multispecies.EQ.1)THEN
+			WRITE_VARIABLES=NOF_VARIABLES+1
+			!!specify the name of the variable names!!
 
-Variable_names(1)='density'
-Variable_names(2)='U'
-Variable_names(3)='V'
-Variable_names(4)='W'
-Variable_names(5)='Pressure'
-Variable_names(6)='rho vf1'
-Variable_names(7)='rho vf2'
-Variable_names(8)='volume_fraction'
-Variable_names(9)='Q'
-
-
-Else
-
-WRITE_VARIABLES=NOF_VARIABLES+1+TURBULENCEEQUATIONS+adda
+			Variable_names(1)='Density'
+			Variable_names(2)='U'
+			Variable_names(3)='V'
+			Variable_names(4)='W'
+			Variable_names(5)='Pressure'
+			Variable_names(6)='rho vf1'
+			Variable_names(7)='rho vf2'
+			Variable_names(8)='volume_fraction'
+			Variable_names(9)='Q'
 
 
-!!specify the name of the variable names!!
+			Else
 
-Variable_names(1)='density'
-Variable_names(2)='U'
-Variable_names(3)='V'
-Variable_names(4)='W'
-Variable_names(5)='Pressure'
-Variable_names(6)='Q'
-
-	if (adda.eq.1)then
-	Variable_names(NOF_VARIABLES+1+adda)='ADDA'
-	end if
-
-	if (turbulence.eq.1)then
-	Variable_names(NOF_VARIABLES+1+TURBULENCEEQUATIONS+adda)='turb'
-	end if
-
-	IF (ITESTCASE.EQ.1)THEN
-	Variable_names(1)='solution'
-	Variable_names(2)='aux'
-	end if
+			WRITE_VARIABLES=NOF_VARIABLES+1+TURBULENCEEQUATIONS+adda
 
 
+			!!specify the name of the variable names!!
 
-END IF
+			Variable_names(1)='Density'
+			Variable_names(2)='U'
+			Variable_names(3)='V'
+			Variable_names(4)='W'
+			Variable_names(5)='Pressure'
+			Variable_names(6)='Q'
+
+				if (adda.eq.1)then
+				Variable_names(NOF_VARIABLES+1+adda)='ADDA'
+				end if
+
+				if (turbulence.eq.1)then
+				Variable_names(NOF_VARIABLES+1+TURBULENCEEQUATIONS+adda)='turb'
+				end if
+
+				IF (ITESTCASE.EQ.1)THEN
+				Variable_names(1)='solution'
+				Variable_names(2)='aux'
+				end if
+
+
+
+			END IF
+
+			IF (REALGAS.EQ.1)THEN
+			WRITE_VARIABLES=NOF_VARIABLES+2+TURBULENCEEQUATIONS
+			Variable_names(1)='Density'
+			Variable_names(2)='U'
+			Variable_names(3)='V'
+			Variable_names(4)='W'
+			Variable_names(5)='Ttr'
+			Variable_names(6)='Tvb'
+			Variable_names(7)='N2'
+			Variable_names(8)='O2'
+			Variable_names(9)='NO'
+			Variable_names(10)='N'
+			Variable_names(11)='O'
+			Variable_names(12)='Pressure'
+			Variable_names(13)='Q'
+			if (turbulence.eq.1)then
+				Variable_names(NOF_VARIABLES+2+TURBULENCEEQUATIONS)='turb'
+			end if
+			END IF
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 else
@@ -14635,45 +14690,65 @@ else
 
 
 
-IF (multispecies.EQ.1)THEN
-WRITE_VARIABLES=NOF_VARIABLES+1
-!!specify the name of the variable names!!
+		IF (multispecies.EQ.1)THEN
+		WRITE_VARIABLES=NOF_VARIABLES+1
+		!!specify the name of the variable names!!
 
-Variable_names(1)='density'
-Variable_names(2)='U'
-Variable_names(3)='V'
-Variable_names(4)='Pressure'
-Variable_names(5)='rho vf1'
-Variable_names(6)='rho vf2'
-Variable_names(7)='volume_fraction'
-Variable_names(8)='Q'
-
-
-Else
-
-WRITE_VARIABLES=NOF_VARIABLES+1+TURBULENCEEQUATIONS
-!!specify the name of the variable names!!
-
-Variable_names(1)='density'
-Variable_names(2)='U'
-Variable_names(3)='V'
-Variable_names(4)='Pressure'
-Variable_names(5)='Q'
-if (turbulence.eq.1)then
-Variable_names(6)='turb'
-end if
+		Variable_names(1)='Density'
+		Variable_names(2)='U'
+		Variable_names(3)='V'
+		Variable_names(4)='Pressure'
+		Variable_names(5)='rho vf1'
+		Variable_names(6)='rho vf2'
+		Variable_names(7)='volume_fraction'
+		Variable_names(8)='Q'
 
 
+		Else
 
-IF (ITESTCASE.EQ.1)THEN
-Variable_names(1)='solution'
-Variable_names(2)='aux'
-end if
+		WRITE_VARIABLES=NOF_VARIABLES+1+TURBULENCEEQUATIONS
+		!!specify the name of the variable names!!
+
+		Variable_names(1)='Density'
+		Variable_names(2)='U'
+		Variable_names(3)='V'
+		Variable_names(4)='Pressure'
+		Variable_names(5)='Q'
+		if (turbulence.eq.1)then
+		Variable_names(6)='turb'
+		end if
 
 
 
-end if
+		IF (ITESTCASE.EQ.1)THEN
+		Variable_names(1)='solution'
+		Variable_names(2)='aux'
+		end if
 
+
+
+		end if
+
+
+
+		IF (REALGAS.EQ.1)THEN
+		WRITE_VARIABLES=NOF_VARIABLES+2+TURBULENCEEQUATIONS
+		Variable_names(1)='Density'
+			Variable_names(2)='U'
+			Variable_names(3)='V'
+			Variable_names(4)='Ttr'
+			Variable_names(5)='Tvb'
+			Variable_names(6)='N2'
+			Variable_names(7)='O2'
+			Variable_names(8)='NO'
+			Variable_names(9)='N'
+			Variable_names(10)='O'
+			Variable_names(11)='Pressure'
+			Variable_names(12)='Q'
+		if (turbulence.eq.1)then
+		Variable_names(NOF_VARIABLES+2+TURBULENCEEQUATIONS)='turb'
+		end if
+		END IF
 
 
 end if
@@ -14706,6 +14781,39 @@ Variable_names_AV(9)='UV'
 Variable_names_AV(10)='UW'
 Variable_names_AV(11)='WV'
 
+IF (REALGAS.EQ.1)THEN
+WRITE_VARIABLES_Av=18
+
+
+
+Variable_names_AV(1)='R_mean'
+Variable_names_AV(2)='U_mean'
+Variable_names_AV(3)='V_mean'
+Variable_names_AV(4)='W_mean'
+Variable_names_AV(5)='Ttr_mean'
+Variable_names_AV(6)='Tvb_mean'
+Variable_names_AV(7)='N2_mean'
+Variable_names_AV(8)='O2_mean'
+Variable_names_AV(9)='NO_mean'
+Variable_names_AV(10)='N_mean'
+Variable_names_AV(11)='O_mean'
+Variable_names_AV(12)='P_mean'
+Variable_names_AV(13)='U_rms'
+Variable_names_AV(14)='V_rms'
+Variable_names_AV(15)='W_rms'
+Variable_names_AV(16)='UV'
+Variable_names_AV(17)='UW'
+Variable_names_AV(18)='WV'
+
+
+
+
+
+
+END IF
+
+
+
 WRITE_VARIABLES_Av_w=8
 
 Variable_names_AV_w(1)='R_mean'
@@ -14716,6 +14824,32 @@ Variable_names_AV_w(5)='P_mean'
 Variable_names_AV_w(6)='ssx_mean'
 Variable_names_AV_w(7)='ssy_mean'
 Variable_names_AV_w(8)='ssz_mean'
+
+
+IF (REALGAS.EQ.1)THEN
+WRITE_VARIABLES_Av_w=10
+
+Variable_names_AV_w(1)='R_mean'
+Variable_names_AV_w(2)='U_mean'
+Variable_names_AV_w(3)='V_mean'
+Variable_names_AV_w(4)='W_mean'
+Variable_names_AV_w(5)='Ttr_mean'
+Variable_names_AV_w(6)='Tvb_mean'
+Variable_names_AV_w(7)='P_mean'
+Variable_names_AV_w(8)='ssx_mean'
+Variable_names_AV_w(9)='ssy_mean'
+Variable_names_AV_w(10)='ssz_mean'
+END IF
+
+
+
+
+
+
+
+
+
+
 end if
 end if
 
@@ -14763,7 +14897,7 @@ end if
 
  if (itestcase.eq.4)then
  WRITE_VARIABLES_W=NOF_VARIABLES+5
- Variable_names_W(1)='density'
+ Variable_names_W(1)='Density'
 Variable_names_W(2)='U'
 Variable_names_W(3)='V'
 Variable_names_W(4)='W'
@@ -14774,24 +14908,59 @@ Variable_names_W(8)='ssy'
 Variable_names_W(9)='ssz'
 Variable_names_W(10)='q_heat'
 
+IF (REALGAS.EQ.1)THEN
+
+ WRITE_VARIABLES_W=11
+ Variable_names_W(1)='Density'
+Variable_names_W(2)='U'
+Variable_names_W(3)='V'
+Variable_names_W(4)='W'
+Variable_names_W(5)='Ttr'
+Variable_names_W(6)='Tvb'
+Variable_names_W(7)='Pressure'
+Variable_names_W(8)='ssx'
+Variable_names_W(9)='ssy'
+Variable_names_W(10)='ssz'
+Variable_names_W(11)='q_heat'
 
  end if
 
+ end if
  if (itestcase.eq.3)then
  WRITE_VARIABLES_W=NOF_VARIABLES+1
-Variable_names_W(1)='density'
+Variable_names_W(1)='Density'
 Variable_names_W(2)='U'
 Variable_names_W(3)='V'
 Variable_names_W(4)='W'
 Variable_names_W(5)='Pressure'
 Variable_names_W(6)='Q'
+
+IF (REALGAS.EQ.1)THEN
+
+ WRITE_VARIABLES_W=7
+ Variable_names_W(1)='Density'
+Variable_names_W(2)='U'
+Variable_names_W(3)='V'
+Variable_names_W(4)='W'
+Variable_names_W(5)='Ttr'
+Variable_names_W(6)='Tvb'
+Variable_names_W(7)='Pressure'
+
+ end if
+
+
+
+
+
+
+
  end if
 
 
 
  if (itestcase.eq.-1)then
  WRITE_VARIABLES_W=NOF_VARIABLES+1
- Variable_names_W(1)='density'
+ Variable_names_W(1)='Density'
 Variable_names_W(2)='U'
 Variable_names_W(3)='V'
 Variable_names_W(4)='W'
@@ -14809,7 +14978,7 @@ ELSE
 
 if (itestcase.eq.4)then
  WRITE_VARIABLES_W=NOF_VARIABLES+4
- Variable_names_W(1)='density'
+ Variable_names_W(1)='Density'
 Variable_names_W(2)='U'
 Variable_names_W(3)='V'
 Variable_names_W(4)='Pressure'
@@ -14818,22 +14987,52 @@ Variable_names_W(6)='ssx'
 Variable_names_W(7)='ssy'
 Variable_names_W(8)='q_heat'
 
+IF (REALGAS.EQ.1)THEN
+
+ WRITE_VARIABLES_W=9
+ Variable_names_W(1)='Density'
+Variable_names_W(2)='U'
+Variable_names_W(3)='V'
+Variable_names_W(4)='Ttr'
+Variable_names_W(5)='Tvb'
+Variable_names_W(6)='Pressure'
+Variable_names_W(7)='ssx'
+Variable_names_W(8)='ssy'
+Variable_names_W(9)='q_heat'
+
+ end if
+
+
+
 
  end if
 
  if (itestcase.eq.3)then
  WRITE_VARIABLES_W=NOF_VARIABLES+1
-Variable_names_W(1)='density'
+Variable_names_W(1)='Density'
 Variable_names_W(2)='U'
 Variable_names_W(3)='V'
 Variable_names_W(4)='Pressure'
 Variable_names_W(5)='Q'
+IF (REALGAS.EQ.1)THEN
+
+ WRITE_VARIABLES_W=6
+ Variable_names_W(1)='Density'
+Variable_names_W(2)='U'
+Variable_names_W(3)='V'
+Variable_names_W(4)='Ttr'
+Variable_names_W(5)='Tvb'
+Variable_names_W(6)='Pressure'
+
+ end if
+
+
 
  end if
 
  if (itestcase.eq.-1)then
  WRITE_VARIABLES_W=NOF_VARIABLES+1
- Variable_names_W(1)='density'
+ Variable_names_W(1)='Density'
 Variable_names_W(2)='U'
 Variable_names_W(3)='V'
 Variable_names_W(4)='Pressure'
@@ -14865,14 +15064,14 @@ INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,dip,N_END,ifg,kmaxn_p,
 CHARACTER(LEN=20)::PROC,FILEX,PROC3
 REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
 LOGICAL::HERE1
-REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4,ptemp
 integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
 INTEGER                     :: nbytes,eight
 CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
 CHARACTER(LEN=200)          :: Buffer
 CHARACTER(LEN=1)            :: lf
 character(LEN=:),allocatable::VTU
-real,dimension(1:nof_Variables)::leftv
+real,dimension(1:nof_Variables)::leftv,VECTCO
 real::MP_PINFL,gammal
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
@@ -14929,14 +15128,30 @@ temp_cord=3
 				if (dimensiona.eq.3)then
 				DO I=1,KMAXE
 				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-				call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+				call CONS2PRIM(N,leftv,MP_PINFl,gammal)	!r,u,v,w,p,Y_n2,Y_o2,Y_no,Y_n,Y_o
+
+				if (realgas.eq.1)then
+				ptemp=leftv(dimensiona+2)
+				VECTCO(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)	!r,u,v,w,ttr,tv,Y_n2,Y_o2,Y_no,Y_n,Y_o
+				call CONS2div(N,VECTCO,MP_PINFl,gammal)
+				leftv(1:nof_Variables)=VECTCO(1:nof_Variables)
+				end if
+
+
 					rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
                                         if (multispecies.eq.1)then
 											rARRAY_PART1(i,j)=ielem(n,i)%REDUCE!ielem(n,i)%vortex(1)
                                         else
-
+											if (realgas.eq.1)then
+											if (j.eq.nof_Variables+1)then
+											rARRAY_PART1(i,j)=ptemp
+											else
+											rARRAY_PART1(i,j)=ielem(n,i)%reduce!ielem(n,i)%vortex(1)
+											end if
+											else
 											rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+											end if
 											 if (j.eq.write_variables-TURBULENCEEQUATIONS)then
 											 if (adda.eq.1)then
 											 rARRAY_PART1(i,j)=ielem(n,i)%diss
@@ -14957,7 +15172,14 @@ temp_cord=3
 				if (dimensiona.eq.2)then
 				DO I=1,KMAXE
 				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-				call cons2prim(N,leftv,MP_PINFl,gammal)
+				call CONS2PRIM(N,leftv,MP_PINFl,gammal)	!r,u,v,p,Y_n2,Y_o2,Y_no,Y_n,Y_o
+
+				if (realgas.eq.1)then
+				ptemp=leftv(dimensiona+2)
+				VECTCO(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)	!r,u,v,ttr,tv,Y_n2,Y_o2,Y_no,Y_n,Y_o
+				call CONS2div(N,VECTCO,MP_PINFl,gammal)
+				leftv(1:nof_Variables)=VECTCO(1:nof_Variables)
+				end if
 					rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
 										if (multispecies.eq.1)then
@@ -14970,7 +15192,15 @@ temp_cord=3
 										if (Dg.eq.1)then
 											rARRAY_PART1(i,j)=ielem(n,i)%troubled
 										else
-                                        rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+										if (realgas.eq.1)then
+											if (j.eq.nof_Variables+1)then
+											rARRAY_PART1(i,j)=ptemp
+											else
+											rARRAY_PART1(i,j)=ielem(n,i)%REDUCE!vortex(1)
+											end if
+										else
+											rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+										end if
                                         end if
                                         end if
                                         end if
@@ -15241,10 +15471,10 @@ INTEGER::I,K,KMAXE,J,JK,ICPUID,nvar,IMAXP,DUMG,DUML,jj,fh,dip,N_END,ifg,kmaxn_p,
 CHARACTER(LEN=40)::PROC,FILEX,PROC3
 REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
 LOGICAL::HERE1
-real,dimension(1:nof_Variables)::leftv
+real,dimension(1:nof_Variables)::leftv,VECTCO
 real::MP_PINFL,gammal
 real,dimension(1:nof_Variables)::RIGHTv
-real::MP_PINFR,gammaR
+real::MP_PINFR,gammaR,PTEMP
 REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
 integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
 INTEGER                     :: nbytes,eight
@@ -15314,10 +15544,27 @@ if (rungekutta.eq.4)then
 				DO I=1,KMAXE
 				leftv(1:nof_Variables)=U_C(I)%VAL(ind1,1:NOF_VARIABLES)
 				call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+
+				if (realgas.eq.1)then
+				ptemp=leftv(dimensiona+2)
+				VECTCO(1:nof_Variables)=U_C(I)%VAL(ind1,1:NOF_VARIABLES)	!r,u,v,w,ttr,tv,Y_n2,Y_o2,Y_no,Y_n,Y_o
+				call CONS2div(N,VECTCO,MP_PINFl,gammal)
+				leftv(1:nof_Variables)=VECTCO(1:nof_Variables)
+				end if
+
+
+
 					rARRAY_PART1(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+					IF (REALGAS.EQ.1)THEN
+					rARRAY_PART1(i,NOF_VARIABLES+1)=ptemp
+					do j=1,6
+					rARRAY_PART1(i,NOF_VARIABLES+1+J)=U_C(I)%RMS(J)
+                     end do
+					ELSE
 					do j=nof_Variables+1,write_variables_AV
 					rARRAY_PART1(i,j)=U_C(I)%RMS(J-nof_Variables)
                      end do
+                     END IF
 				END DO
 
 				temp_node=8;temp_dims=3
@@ -15589,14 +15836,14 @@ CHARACTER(LEN=20)::PROC,PROC3,proc5,proc6,proc7
 CHARACTER(LEN=90)::FILEX,filev
 REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
 LOGICAL::HERE1
-REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4,ptemp
 integer:: disp_in_file,procx ,tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
 INTEGER                     :: nbytes,eight
 CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
 CHARACTER(LEN=200)          :: Buffer
 CHARACTER(LEN=1)            :: lf
 character(LEN=:),allocatable::VTU
-real,dimension(1:nof_Variables)::leftv
+real,dimension(1:nof_Variables)::leftv,VECTCO
 real::MP_PINFL,gammal
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
@@ -15651,13 +15898,33 @@ temp_cord=3
 				if (dimensiona.eq.3)then
 				DO I=1,KMAXE
 				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-				call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+				call CONS2PRIM(N,leftv,MP_PINFl,gammal)	!r,u,v,w,p,Y_n2,Y_o2,Y_no,Y_n,Y_o
+
+				if (realgas.eq.1)then
+				ptemp=leftv(dimensiona+2)
+				VECTCO(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)	!r,u,v,w,ttr,tv,Y_n2,Y_o2,Y_no,Y_n,Y_o
+				call CONS2div(N,VECTCO,MP_PINFl,gammal)
+				leftv(1:nof_Variables)=VECTCO(1:nof_Variables)
+				end if
 					sol_vtu(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
                                         if (multispecies.eq.1)then
 										sol_vtu(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
                                         else
-                                        sol_vtu(i,j)=ielem(n,i)%vortex(1)
+                                        if (realgas.eq.1)then
+											if (j.eq.nof_Variables+1)then
+											sol_vtu(i,j)=ptemp
+											else
+											sol_vtu(i,j)=ielem(n,i)%vortex(1)
+											end if
+											else
+											sol_vtu(i,j)=ielem(n,i)%vortex(1)
+											end if
+											 if (j.eq.write_variables-TURBULENCEEQUATIONS)then
+											 if (adda.eq.1)then
+											 sol_vtu(i,j)=ielem(n,i)%diss
+											 end if
+											 end if
                                         end if
                                         end do
                                         IF (TURBULENCEEQUATIONS.GT.0)THEN
@@ -15672,17 +15939,40 @@ temp_cord=3
 				if (dimensiona.eq.2)then
 				DO I=1,KMAXE
 				leftv(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-				call cons2prim(N,leftv,MP_PINFl,gammal)
+				call CONS2PRIM(N,leftv,MP_PINFl,gammal)	!r,u,v,p,Y_n2,Y_o2,Y_no,Y_n,Y_o
+
+				if (realgas.eq.1)then
+				ptemp=leftv(dimensiona+2)
+				VECTCO(1:nof_Variables)=U_C(I)%VAL(1,1:NOF_VARIABLES)	!r,u,v,ttr,tv,Y_n2,Y_o2,Y_no,Y_n,Y_o
+				call CONS2div(N,VECTCO,MP_PINFl,gammal)
+				leftv(1:nof_Variables)=VECTCO(1:nof_Variables)
+				end if
 					sol_vtu(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 										do j=nof_Variables+1,write_variables-TURBULENCEEQUATIONS
                                         if (multispecies.eq.1)then
 
-					sol_vtu(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
+										sol_vtu(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
                                         else
-                                        sol_vtu(i,j)=ielem(n,i)%vortex(1)
+                                        if (mood.eq.1)then
+                                         sol_vtu(i,j)=ielem(n,i)%mood_o
+                                        else
+										if (Dg.eq.1)then
+											sol_vtu(i,j)=ielem(n,i)%troubled
+										else
+										if (realgas.eq.1)then
+											if (j.eq.nof_Variables+1)then
+											sol_vtu(i,j)=ptemp
+											else
+											sol_vtu(i,j)=ielem(n,i)%vortex(1)
+											end if
+										else
+											sol_vtu(i,j)=ielem(n,i)%vortex(1)
+										end if
                                         end if
-                                        end do
-                                        IF (TURBULENCEEQUATIONS.GT.0)THEN
+                                        end if
+                                        end if
+										end do
+										IF (TURBULENCEEQUATIONS.GT.0)THEN
                                         sol_vtu(i,write_variables)=U_CT(I)%VAL(1,1)
                                         END IF
 
@@ -15906,14 +16196,14 @@ CHARACTER(LEN=20)::PROC,PROC3,proc5,proc6,proc7
 CHARACTER(LEN=90)::FILEX,filev
 REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
 LOGICAL::HERE1
-REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4,ptemp
 integer:: disp_in_file,procx ,tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
 INTEGER                     :: nbytes,eight
 CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
 CHARACTER(LEN=200)          :: Buffer
 CHARACTER(LEN=1)            :: lf
 character(LEN=:),allocatable::VTU
-real,dimension(1:nof_Variables)::leftv
+real,dimension(1:nof_Variables)::leftv,vectco
 real::MP_PINFL,gammal
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
@@ -15988,16 +16278,39 @@ temp_cord=3
 
 
 
-					sol_vtu_w(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+								if (realgas.eq.1)then
+								ptemp=leftv(dimensiona+2)
+								VECTCO(1:nof_Variables)=U_C(ICONSIdered)%VAL(1,1:NOF_VARIABLES)	!r,u,v,w,ttr,tv,Y_n2,Y_o2,Y_no,Y_n,Y_o
+								call CONS2div(N,VECTCO,MP_PINFl,gammal)
+								leftv(1:nof_Variables)=VECTCO(1:nof_Variables)
+								end if
 
-					sol_vtu_w(I,NOF_VARIABLES+1:NOF_VARIABLES+1)=IELEM(N,ICONSIdered)%VORTEX(1)
+									IF (REALGAS.EQ.1)THEN
+									sol_vtu_w(I,1:DIMENSIONA+3)=LEFTV(1:DIMENSIONA+3)
+									sol_vtu_w(I,DIMENSIONA+4)=ptemp
+
+									ELSE
+
+
+									!the next variable is always going to be an auxiliary
+									sol_vtu_w(I,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+									sol_vtu_w(I,NOF_VARIABLES+1:NOF_VARIABLES+1)=IELEM(N,ICONSIdered)%VORTEX(1)
+									END IF
+
+
+
 
 
 					KKD_I=NOF_VARIABLES+1
+
+									IF (REALGAS.EQ.1)THEN
+									KKD_I=DIMENSIONA+4
+									END IF
+
 								    IF (ITESTCASE.EQ.4)THEN
 
 										IF (DIMENSIONA.EQ.3)THEN
-											DO KKD=1,3
+											DO KKD=1,4
 
 
 
@@ -16010,6 +16323,11 @@ temp_cord=3
 											call SHEAR_y(ICONSIdered,facex,shear_temp)
 											CASE(3)
 											call SHEAR_z(ICONSIdered,facex,shear_temp)
+
+											case(4)
+
+											call heat_X(ICONSIdered,facex,shear_temp)
+
 											END SELECT
 
 											sol_vtu_w(I,KKD_I+kkd)=SHEAR_TEMP
@@ -16018,7 +16336,7 @@ temp_cord=3
 										END IF
 
 										IF (DIMENSIONA.EQ.2)THEN
-											DO KKD=1,2
+											DO KKD=1,3
 
 
 
@@ -16029,7 +16347,9 @@ temp_cord=3
 											call SHEAR_x2d(ICONSIdered,facex,shear_temp)
 											CASE (2)
 											call SHEAR_y2d(ICONSIdered,facex,shear_temp)
+											case(3)
 
+											call heat_x2d(ICONSIdered,facex,shear_temp)
 											END SELECT
 
 											sol_vtu_w(I,KKD_I+kkd)=SHEAR_TEMP
@@ -16276,8 +16596,8 @@ CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
 CHARACTER(LEN=200)          :: Buffer
 CHARACTER(LEN=1)            :: lf
 character(LEN=:),allocatable::VTU
-real,dimension(1:nof_Variables)::leftv
-real::MP_PINFL,gammal
+real,dimension(1:nof_Variables)::leftv,vectco
+real::MP_PINFL,gammal,ptemp
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
 REAL::SHEAR_TEMP
@@ -16357,13 +16677,34 @@ temp_cord=3
 								END IF
 
 
+								if (realgas.eq.1)then
+								ptemp=leftv(dimensiona+2)
+								VECTCO(1:nof_Variables)=U_C(ICONSIdered)%VAL(ind1,1:NOF_VARIABLES)	!r,u,v,w,ttr,tv,Y_n2,Y_o2,Y_no,Y_n,Y_o
+								call CONS2div(N,VECTCO,MP_PINFl,gammal)
+								leftv(1:nof_Variables)=VECTCO(1:nof_Variables)
+								end if
 
-					sol_vtu_w(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+									IF (REALGAS.EQ.1)THEN
+									sol_vtu_w(I,1:DIMENSIONA+3)=LEFTV(1:DIMENSIONA+3)
+									sol_vtu_w(I,DIMENSIONA+4)=ptemp
+									ELSE
+									sol_vtu_w(I,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+									END IF
+
+
+
+! 					sol_vtu_w(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
 
 
 
 
 					KKD_I=NOF_VARIABLES
+
+									IF (REALGAS.EQ.1)THEN
+									KKD_I=DIMENSIONA+4
+									END IF
+
+
 								    IF (ITESTCASE.EQ.4)THEN
 
 										IF (DIMENSIONA.EQ.3)THEN
@@ -16640,14 +16981,14 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 	CHARACTER(LEN=90)::FILEX,filev
 	REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
 	LOGICAL::HERE1
-	REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+	REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4,ptemp
 	integer:: disp_in_file,procx ,tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
 	INTEGER                     :: nbytes,eight
 	CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
 	CHARACTER(LEN=200)          :: Buffer
 	CHARACTER(LEN=1)            :: lf
 	character(LEN=:),allocatable::VTU
-	real,dimension(1:nof_Variables)::leftv
+	real,dimension(1:nof_Variables)::leftv,vectco
 real::MP_PINFL,gammal
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
@@ -16710,10 +17051,29 @@ real::MP_PINFR,gammaR
 					DO I=1,KMAXE
 					leftv(1:nof_Variables)=U_C(I)%VAL(IND1,1:NOF_VARIABLES)
 					call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+
+					if (realgas.eq.1)then
+					ptemp=leftv(dimensiona+2)
+					VECTCO(1:nof_Variables)=U_C(I)%VAL(IND1,1:NOF_VARIABLES)	!r,u,v,w,ttr,tv,Y_n2,Y_o2,Y_no,Y_n,Y_o
+					call CONS2div(N,VECTCO,MP_PINFl,gammal)
+					leftv(1:nof_Variables)=VECTCO(1:nof_Variables)
+					end if
+
+
 						sol_vtu(i,1:NOF_VARIABLES)=leftv(1:nof_Variables)
+						IF (REALGAS.EQ.1)THEN
+						sol_vtu(i,NOF_VARIABLES+1)=ptemp
+
+						do j=1,6
+							sol_vtu(i,nof_Variables+1+j)=U_C(I)%RMS(j)
+						end do
+
+						ELSE
+
 						do j=nof_Variables+1,write_variables_AV
 							sol_vtu(i,J)=U_C(I)%RMS(J-nof_Variables)
 						end do
+						END IF
 					END DO
 	
 					temp_node=8;temp_dims=3
@@ -16940,14 +17300,14 @@ real::MP_PINFR,gammaR
 		CHARACTER(LEN=20)::PROC,FILEX,PROC3
 		REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
 		LOGICAL::HERE1
-		REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+		REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4,PTEMP
 		integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
 		INTEGER                     :: nbytes,eight
 		CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
 		CHARACTER(LEN=200)          :: Buffer
 		CHARACTER(LEN=1)            :: lf
 		character(LEN=:),allocatable::VTU
-		real,dimension(1:nof_Variables)::leftv
+		real,dimension(1:nof_Variables)::leftv,VECTCO
 real::MP_PINFL,gammal
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
@@ -17020,12 +17380,43 @@ integer::iconsidered,facex
 								temp_node=2;temp_dims=3
 								END IF
 
-									WrARRAY_PART1(I,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+
+
+								if (realgas.eq.1)then
+								ptemp=leftv(dimensiona+2)
+								VECTCO(1:nof_Variables)=U_C(ICONSIdered)%VAL(1,1:NOF_VARIABLES)	!r,u,v,w,ttr,tv,Y_n2,Y_o2,Y_no,Y_n,Y_o
+								call CONS2div(N,VECTCO,MP_PINFl,gammal)
+								leftv(1:nof_Variables)=VECTCO(1:nof_Variables)
+								end if
+
+
+
+
+
+
+
+
+
+
+									IF (REALGAS.EQ.1)THEN
+									WrARRAY_PART1(I,1:DIMENSIONA+3)=LEFTV(1:DIMENSIONA+3)
+									WrARRAY_PART1(I,DIMENSIONA+4)=ptemp
+
+									ELSE
+
 
 									!the next variable is always going to be an auxiliary
+									WrARRAY_PART1(I,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
 									WrARRAY_PART1(I,NOF_VARIABLES+1:NOF_VARIABLES+1)=IELEM(N,ICONSIdered)%VORTEX(1)
+									END IF
 						
 									KKD_I=NOF_VARIABLES+1
+
+									IF (REALGAS.EQ.1)THEN
+									KKD_I=DIMENSIONA+4
+									END IF
+
+
 								    IF (ITESTCASE.EQ.4)THEN
 									
 										IF (DIMENSIONA.EQ.3)THEN
@@ -17374,14 +17765,14 @@ integer::iconsidered,facex
 		CHARACTER(LEN=20)::PROC,FILEX,PROC3
 		REAL,ALLOCATABLE,DIMENSION(:)::ARRAY
 		LOGICAL::HERE1
-		REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4
+		REAL::IN1,iocpt1,iocpt2,iocpt3,iocpt4,PTEMP
 		integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp,disp_init,offset_temp,Bytes,temp_imaxe,temp_imaxn,temp_node,temp_dims,size_of_real,size_of_int
 		INTEGER                     :: nbytes,eight
 		CHARACTER(LEN=35)           :: Offset_stamp,tempstamp1,tempstamp2
 		CHARACTER(LEN=200)          :: Buffer
 		CHARACTER(LEN=1)            :: lf
 		character(LEN=:),allocatable::VTU
-		real,dimension(1:nof_Variables)::leftv
+		real,dimension(1:nof_Variables)::leftv,VECTCO
 real::MP_PINFL,gammal
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
@@ -17402,6 +17793,13 @@ integer::iconsidered,facex
 
 
 		temp_cord=3
+		if (dimensiona.eq.3)then
+ 		temp_node=3;temp_dims=3
+ 		else
+ 		temp_node=2;temp_dims=3
+ 		end if
+
+
 	if (rungekutta.eq.4)then
 	      ind1=7
 	      else
@@ -17433,10 +17831,6 @@ integer::iconsidered,facex
 				END IF
 
 
-
-
-
-
 			  			!LOOP THE CORRECT NUMBER OF ELEMENTS THAT ARE BOUNDED
 			  			IF (ILOOPX.GT.0)THEN
 							do i=1,ILOOPX
@@ -17454,10 +17848,28 @@ integer::iconsidered,facex
 								temp_node=2;temp_dims=3
 								END IF
 
+								if (realgas.eq.1)then
+								ptemp=leftv(dimensiona+2)
+								VECTCO(1:nof_Variables)=U_C(ICONSIdered)%VAL(ind1,1:NOF_VARIABLES)	!r,u,v,w,ttr,tv,Y_n2,Y_o2,Y_no,Y_n,Y_o
+								call CONS2div(N,VECTCO,MP_PINFl,gammal)
+								leftv(1:nof_Variables)=VECTCO(1:nof_Variables)
+								end if
+
+									IF (REALGAS.EQ.1)THEN
+									WrARRAY_PART1(I,1:DIMENSIONA+3)=LEFTV(1:DIMENSIONA+3)
+									WrARRAY_PART1(I,DIMENSIONA+4)=ptemp
+									ELSE
 									WrARRAY_PART1(I,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+									END IF
 
 
 									KKD_I=NOF_VARIABLES
+
+
+									IF (REALGAS.EQ.1)THEN
+									KKD_I=DIMENSIONA+4
+									END IF
+
 								    IF (ITESTCASE.EQ.4)THEN
 
 										IF (DIMENSIONA.EQ.3)THEN
@@ -18837,9 +19249,9 @@ DO I=1,kmaxe
 				  
 				  else
 				  
-				  vortet1(1,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,1,J,IM)
-				  vortet1(2,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,2,J,IM)
-				  vortet1(3,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,3,J,IM)
+				  vortet1(1,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,2,J,IM)
+				  vortet1(2,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,3,J,IM)
+				  vortet1(3,1:3)=ILOCAL_RECON3(i)%ULEFTV(1:3,4,J,IM)
 				  ux = Vortet1(1,1);uy = Vortet1(1,2);uz = Vortet1(1,3)
 				  vx = Vortet1(2,1);vy = Vortet1(2,2);vz = Vortet1(2,3)
 				  wx = Vortet1(3,1);wy = Vortet1(3,2);wz = Vortet1(3,3)
@@ -18864,7 +19276,16 @@ DO I=1,kmaxe
 				    px=leftv(5)
 				    ssp=ssp+(px*WEQUA2D(im))
 				    if (itestcase.eq.4)then
-				    CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+				    IF (DG.EQ.1)THEN
+				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_Variables, J,IM)
+
+
+				  ELSE
+				  LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				  END IF
+				    CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 				  
 				  
 				  TAUXX=(4.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY - (2.0D0/3.0D0)*WZ
@@ -19067,7 +19488,9 @@ DO I=1,kmaxe
 				    
 				    
 				    if (itestcase.eq.4)then
-				    CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+				    LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				  RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				    CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 				  
 				  
 				  TAUXX=2.0d0*ux
@@ -19202,7 +19625,7 @@ IF (TURBULENCE.EQ.1)THEN
 !$OMP DO  REDUCTION(+:ALLRES)
 DO I=1,KMAXE
     ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+((rhs(i)%VAL(1:nof_Variables)*ielem(n,i)%totvolume)**2)
-    ALLRES(6:5+TURBULENCEEQUATIONS)=ALLRES(6:5+TURBULENCEEQUATIONS)+((RHST(I)%VAL(1:TURBULENCEEQUATIONS)*ielem(n,i)%totvolume)**2)
+    ALLRES(nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS)=ALLRES(nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS)+((RHST(I)%VAL(1:TURBULENCEEQUATIONS)*ielem(n,i)%totvolume)**2)
 END DO
 !$OMP END DO
 
@@ -19334,7 +19757,7 @@ IF (TURBULENCE.EQ.1)THEN
 !$OMP DO  REDUCTION(+:ALLRES)
 DO I=1,KMAXE
     ALLRES(1:nof_Variables)=ALLRES(1:nof_Variables)+((rhs(i)%VAL(1:nof_Variables)*ielem(n,i)%totvolume)**2)
-    ALLRES(5:4+TURBULENCEEQUATIONS)=ALLRES(5:4+TURBULENCEEQUATIONS)+((RHST(I)%VAL(1:TURBULENCEEQUATIONS)*ielem(n,i)%totvolume)**2)
+    ALLRES(nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS)=ALLRES(nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS)+((RHST(I)%VAL(1:TURBULENCEEQUATIONS)*ielem(n,i)%totvolume)**2)
 END DO
 !$OMP END DO
 
@@ -22760,7 +23183,7 @@ END SUBROUTINE TROUBLED_HISTORY
 
 
 SUBROUTINE REDUCED_HISTORY
-INTEGER::I,J,K,TRAJ1,TRAJ2,TRAJ3,TRAJ4,kmaxe,writeid,writeconf
+INTEGER::I,J,K,TRAJ1,TRAJ2,TRAJ3,TRAJ4,kmaxe,writeid,writeconf,TEMPINT
 REAL::WIN1,WIN2,WIN3,WIN4,POST,POST1,POST2,POST3,POST4
 real,dimension(1)::pos_l,pos_g
 KMAXE=XMPIELRANK(N)
@@ -22769,7 +23192,11 @@ traj1=0
 pos_l(1)=zero
 pos_G(1)=zero
 DO I=1,KMAXE
-    pos_l(1)=pos_l(1)+IELEM(N,I)%REDUCE
+	TEMPINT=0
+	IF (IELEM(N,I)%REDUCE.GE.1)THEN
+	TEMPINT=1
+	END IF
+    pos_l(1)=pos_l(1)+TEMPINT
 END DO
 
 

@@ -477,6 +477,15 @@ iconsidered=i
 					ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)&
 					*ILOX_VOLUME(ll,iq+1)*WLSQR(ll,iq)
 					end do
+
+
+					if (ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL))then	!prevents non-invertible nan stencils from being deployed
+
+					ielem(n,i)%full=0
+					end if
+
+
+
 		else
 ! 					call DGEMM ('N','T',IDEG,IMAX,IDEG,ALPHA,invmat(1:ideg,1:ideg),IDEG,&
 ! 				stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stenciltc(1:IDEG,1:IMAX,LL),IDEG)
@@ -484,6 +493,11 @@ iconsidered=i
 
 				ILOCAL_RECON3(i)%invmat_stenciltC(1:IDEG,1:IMAX,LL)=MATMUL(invmat(1:ideg,1:ideg),TRANSPOSE(stencil(1:imax,1:ideg)))
 
+
+					if (ILOCAL_RECON3(i)%invmat_stenciltC(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stenciltC(1,1,LL))then	!!prevents non-invertible nan stencils from being deployed
+
+					ielem(n,i)%full=0
+					end if
 
 
 					do iq=1,imax
@@ -1141,6 +1155,11 @@ if((ees.ne.5).OR.(ll.eq.1))then
 			end do
 
 
+			if (ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL))then	!prevents non-invertible nan stencils from being deployed
+
+					ielem(n,i)%full=0
+					end if
+
 
 
 else
@@ -1164,6 +1183,11 @@ else
 			*ILOX_VOLUME(ll,iq+1)*WLSQR(ll,iq)
 			end do
 
+
+			if (ILOCAL_RECON3(i)%invmat_stenciltc(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stenciltc(1,1,LL))then	!prevents non-invertible nan stencils from being deployed
+
+					ielem(n,i)%full=0
+					end if
 
 end if
 
@@ -1476,7 +1500,7 @@ allocate(weff(1:IDEGFREE,1:IDEGFREE))
 i=iconsi
 
 
-
+weff=ZERO
 
 	IMAX=IELEM(N,I)%inumneighbours-1
 	INUM=IELEM(N,I)%inumneighbours
@@ -1618,14 +1642,14 @@ REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_X           !COORDINATES O
 REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Y           !COORDINATES OF EACH NODE IN X
 REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Z           !COORDINATES OF EACH NODE IN X
 REAL,allocatable,DIMENSION(:,:)::WEFF
-allocate(weff(1:IDEGFREE,1:IDEGFREE))
+allocate(weff(1:IDEGFREE2,1:IDEGFREE2))
 i=iconsi
 
 	IMAX=numneighbours2-1
 	INUM=numneighbours2
 	IDEG=iDEGFREE2
 	 INUMO=IORDER2
-	 
+	 weff=ZERO
 	
 	 iconsidered=i
 

@@ -59,7 +59,7 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
     REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
     REAL::ANGLE1,ANGLE2,NX,NY,NZ,NORMALVECT
     INTEGER::facex,POINTX,ICONSIDERED
-    REAL,DIMENSION(1:NOF_VARIABLES)::CLEFT,CRIGHT,HLLCFLUX,RHLLCFLUX
+    REAL,DIMENSION(1:nof_Variables+turbulenceequations+PASSIVESCALAR)::CLEFT,CRIGHT,HLLCFLUX,RHLLCFLUX
     REAL,allocatable,dimension(:,:)::DG_RHS, DG_RHS_VOL_INTEG, DG_RHS_SURF_INTEG
 	KMAXE=XMPIELRANK(N)
 	
@@ -268,7 +268,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
 	 REAL::ANGLE1,ANGLE2,NX,NY,NZ,NORMALVECT
     INTEGER::facex,POINTX,ICONSIDERED
-    REAL,DIMENSION(1:NOF_VARIABLES)::CLEFT,CRIGHT,HLLCFLUX,RHLLCFLUX
+    REAL,DIMENSION(1:nof_Variables+turbulenceequations+PASSIVESCALAR)::CLEFT,CRIGHT,HLLCFLUX,RHLLCFLUX
     REAL,allocatable,dimension(:,:)::DG_RHS, DG_RHS_VOL_INTEG, DG_RHS_SURF_INTEG
 
 
@@ -1518,29 +1518,37 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2,DG_VOL_REC,RHLLCFLUX,HLLCFLUX
 	INTEGER::I,L,NGP,KMAXE,IQP,ii,NVAR,KC,IEX,ITTT,IKAS,igoflux, icaseb,KK,B_CODE,SRF,k
 	REAL::sum_detect,NORMS
-	INTEGER::ICONSIDERED,FACEX,POINTX
+	INTEGER::ICONSIDERED,FACEX,POINTX,RG_I,RG_J,idxY
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ,MP_SOURCE1,MP_SOURCE2,MP_SOURCE3
 	REAL,DIMENSION(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)::CLEFT,CRIGHT,CLEFT_ROT,CRIGHT_ROT
 	REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV,SRF_SPEEDROT,tempx_l,rtempx_l
 	REAL,DIMENSION(1:TURBULENCEEQUATIONS+PASSIVESCALAR)::CTURBL,CTURBR
-	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,RG_SUMFL,RG_SUMFR
 	REAL,DIMENSION(1:NOF_VARIABLES)::SRF_SPEED
 	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP,WEIGHTS_DG
 	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
     REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS2)::QPOINTS2D
     REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
-	REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
+	REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR,RHO12L,RHO12R
 	REAL,DIMENSION(1:4)::VISCL,LAML
 	REAL,DIMENSION(1:2)::TURBMV
     REAL,DIMENSION(1)::ETVM
     REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
     REAL,DIMENSION(1:nof_Variables-1,1:dims)::LCVGRAD,RCVGRAD
 	REAL,DIMENSION(turbulenceequations+passivescalar,1:dims)::LCVGRAD_T,RCVGRAD_T
-	real,dimension(5)::fxv,fyv,fzv,tem_pn,rtem_pn
+	real,dimension(1:nof_Variables)::fxv,fyv,fzv,tem_pn,rtem_pn
+	real,dimension(1:nof_species)::RGS_htr_i, RGS_hvib_i
 	real,dimension(3,3)::taul,taur,TAU
-	REAL,DIMENSION(3)::Q,NNN,nall
+	REAL,DIMENSION(3)::Q,NNN,nall,QVIB
 	REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,RHO12,U12,V12,W12 ,damp,vdamp,TEMPXX 
 	REAL,allocatable,dimension(:,:)::DG_RHS, DG_RHS_VOL_INTEG, DG_RHS_SURF_INTEG
+	REAL::MP_TTR,MP_TV,MP_mu_mix,MP_ktr_mix,MP_kve,MP_LAML,MP_LAMR
+	REAL,DIMENSION(1:NOF_SPECIES)::MP_D_eff,RG_DIFL,RG_DIFR,RG_ENTHL,RG_ENTHR,MP_HTR,MP_Hvib,RG_ENTHVBL,RG_ENTHVBR,mp_mu_i,MP_ktr_i
+	REAL,DIMENSION(1:dimensiona)::rg_sum_tr,rg_sumfr_tr,rg_sumfl_v,rg_sumfr_v,rg_sum_v,gradYL,gradYr,JL,JR,rg_sumfL_tr
+	REAL,DIMENSION(1:2)::qtr,qv
+	real,dimension(1:dimensiona)::rg_sum_htr,rg_sum_hv,gradY,rg_qv,rg_qtr
+	real,dimension(1:nof_species)::RG_DIF_av,RG_ENTH_av,RG_ENTHVB_av
+	real::MP_LAM_av,MP_ktr_mix_av
 
 
     IF (DG.EQ.1)THEN
@@ -1627,48 +1635,43 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 				        if ((realgas.eq.1).or.(multispecies.eq.1))then
 
-					CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+								IF (multispecies.EQ.1)THEN
 
-					IF (REALGAS.EQ.1)THEN
-					 LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
+								CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
-
-					 !WILLIAM LOOK AT  MULTISPECIES_MIXTURES(LEFTV,MP_Temp,MP_mu_mix,MP_k_mix,MP_Cp_mix,gammal)
-					CALL SPECIES_DIFFUSION_CAL(N,LEFTV,RIGHTV,RG_DIFFL,RG_DIFFR,RG_DIFL,RG_DIFR,RG_ENTHL,RG_ENTHR,RG_ENTHVBL,RG_ENTHVBR)
-
-					END IF
+								end if
 
 
 						ELSE
-					CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-					CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+
+								CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
 						END IF
 				     
-					    IF (TURBULENCE.EQ.1)THEN
-						      IF (TURBULENCEMODEL.EQ.1)THEN
-							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-						      END IF
-						      IF (TURBULENCEMODEL.EQ.2)THEN
-							  EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
-							  EDDYFL(4:6)= LCVGRAD(1,1:3);EDDYFL(7:9)=LCVGRAD(2,1:3)
-							  EDDYFL(10:12)=LCVGRAD(3,1:3);EDDYFL(13:15)=LCVGRAD_T(1,1:3)
-							  EDDYFL(16:18)=LCVGRAD_T(2,1:3)
-							    
-							    
-							  EDDYFR(1)=IELEM(N,I)%WALLDIST;EDDYFR(2)=CTURBR(1);EDDYFR(3)=CTURBR(2)
-							  EDDYFR(4:6)= RCVGRAD(1,1:3);EDDYFR(7:9)=RCVGRAD(2,1:3);EDDYFR(10:12)=RCVGRAD(3,1:3)
-							  EDDYFR(13:15)=RCVGRAD_T(1,1:3);EDDYFL(16:18)=RCVGRAD_T(2,1:3)
-							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-						      END IF
-					  END IF
+							IF (TURBULENCE.EQ.1)THEN
+								IF (TURBULENCEMODEL.EQ.1)THEN
+								TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
+								Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+								END IF
+								IF (TURBULENCEMODEL.EQ.2)THEN
+								EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
+								EDDYFL(4:6)= LCVGRAD(1,1:3);EDDYFL(7:9)=LCVGRAD(2,1:3)
+								EDDYFL(10:12)=LCVGRAD(3,1:3);EDDYFL(13:15)=LCVGRAD_T(1,1:3)
+								EDDYFL(16:18)=LCVGRAD_T(2,1:3)
+
+
+								EDDYFR(1)=IELEM(N,I)%WALLDIST;EDDYFR(2)=CTURBR(1);EDDYFR(3)=CTURBR(2)
+								EDDYFR(4:6)= RCVGRAD(1,1:3);EDDYFR(7:9)=RCVGRAD(2,1:3);EDDYFR(10:12)=RCVGRAD(3,1:3)
+								EDDYFR(13:15)=RCVGRAD_T(1,1:3);EDDYFL(16:18)=RCVGRAD_T(2,1:3)
+									Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+								END IF
+						END IF
 				       
 
 
 						TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
 					    FXV=ZERO;FYV=ZERO;FZV=ZERO;RHO12 =ZERO;
-					  U12=ZERO;V12=ZERO;W12=ZERO  
+						U12=ZERO;V12=ZERO;W12=ZERO
 					  
 
 					  
@@ -1676,12 +1679,19 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
                                         nall(1)=nx;nall(2)=ny;nall(3)=nz
 
 
-
+					LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
 					CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
 					CALL CONS2DIV(N,rightv,MP_PINFl,gammar)
+					RHO12 = OO2*(leftv(1)+rightv(1))
+					RHO12L=leftv(1);RHO12R=RIGHTv(1)
+					U12   = OO2*(leftv(2)+rightv(2))
+					  V12   = OO2*(leftv(3)+rightv(3))
+					  W12   = OO2*(leftv(4)+rightv(4))
+
+
 
                     do k=1,nof_Variables-1
-					LCVGRAD(k,1:3)=((LCVGRAD(k,1:3)+rCVGRAD(k,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(k)-leftv(k)))
+					LCVGRAD(k,1:3)=((LCVGRAD(k,1:3)+rCVGRAD(k,1:3))/(2.0d0))!+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(k+1)-leftv(k+1)))
 					end do
 
 
@@ -1690,86 +1700,130 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				      if ((realgas.eq.1).or.(multispecies.eq.1))then
 
 
-							if (realgas.eq.1)then
+									if (realgas.eq.1)then
 
-						!DIFFUSION COEFFICIENT FOR SPECIES RG_DIFFL(1:NOF_SPECIES),RG_DIFFR(1:NOF_SPECIES)
-						!VISCOSITY FOR THE MIXTURE VISCL(1)-LEFT,VISCL(2)-RIGHT
-						!THERMAL CONDUCTIVITY LAML(1)-LEFT,LAML(2)-RIGHT
-						!VIBRATIONAL THERMAL CONDUCTIVITY!LAML(5)-LEFT,LAML(6)-RIGHT
-						!SPECIES DIFFUSION COEFFICIENTS !RG_DIFL(1:NOF_SPECIES),RG_DIFR(1:NOF_SPECIES)
-						!ENTHALPIES FOR SPECIES	!RG_ENTHL(1:NOF_SPECIES),RG_ENTHR(1:NOF_SPECIES)
-						!VIBRATIONAL ENTHALPIES FOR SPECIES !!RG_ENTHVBL(1:NOF_SPECIES),RG_ENTHVBR(1:NOF_SPECIES)
-
-
-								if (turbulence .eq. 1) then
-								Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:3))
-								else
-
-								! this is for energy
-								rg_sumfl(1:dimensiona)=zero
-								rg_sumfr(1:dimensiona)=zero
-								do rg_i=1,nof_species
-									rg_sumfl(1:dimensiona)=rg_sumfl+RG_ENTHL(rg_i)*RG_DIFL(rg_i)*LCVGRAD(nof_Variables-nof_species-1+i,1:dimensiona)
-									rg_sumfr(1:dimensiona)=rg_sumfr+RG_ENTHr(rg_i)*RG_DIFr(rg_i)*rCVGRAD(nof_Variables-nof_species-1+i,1:dimensiona)
-
-								end do
-								rg_sumfl(1:dimensiona)=rg_sumfl(1:dimensiona)*leftv(1)
-								rg_sumfr(1:dimensiona)=rg_sumfr(1:dimensiona)*rightv(1)
+								!DIFFUSION COEFFICIENT FOR SPECIES RG_DIFFL(1:NOF_SPECIES),RG_DIFFR(1:NOF_SPECIES)
+								!VISCOSITY FOR THE MIXTURE VISCL(1)-LEFT,VISCL(2)-RIGHT
+								!THERMAL CONDUCTIVITY mix LAML(1)-LEFT,LAML(2)-RIGHT
+								!VIBRATIONAL THERMAL CONDUCTIVITY!MPLAML-LEFT,MP_LAMR-RIGHT
+								!SPECIES DIFFUSION COEFFICIENTS !RG_DIFL(1:NOF_SPECIES),RG_DIFR(1:NOF_SPECIES)
+								!ENTHALPIES FOR SPECIES	!RG_ENTHL(1:NOF_SPECIES),RG_ENTHR(1:NOF_SPECIES)
+								!VIBRATIONAL ENTHALPIES FOR SPECIES !!RG_ENTHVBL(1:NOF_SPECIES),RG_ENTHVBR(1:NOF_SPECIES)
 
 
 
+								LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
+								CALL MULTISPECIES_MIXTURES_RG(LEFTV,MP_mu_mix,MP_ktr_mix,MP_kve,RG_DIFL,RG_ENTHL,RG_ENTHVBL,GAMMAL)
 
+								MP_LAML=MP_kve
+								LAML(1)=MP_ktr_mix
+								VISCL(1)=MP_mu_mix
 
+								CALL MULTISPECIES_MIXTURES_RG(RIGHTV,MP_mu_mix,MP_ktr_mix,MP_kve,RG_DIFR,RG_ENTHR,RG_ENTHVBR,GAMMAR)
 
-								Q(1:3) =  - ((OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(dimensiona+1,1:3)))&
-								+(OO2* ((LAML(5)+ (LAML(6)))*LCVGRAD(dimensiona+2,1:3)))+(OO2*(rg_sumfl(1:3)+rg_sumfr(1:3))))
+								MP_LAMR=MP_kve
+								LAML(2)=MP_ktr_mix
+								VISCL(2)=MP_mu_mix
 
+								MP_ktr_mix_av  = 0.5d0 * (LAML(2)  + LAML(1))     ! translational conductivity
 
-								! this is for energy
-								rg_sumfl(1:dimensiona)=zero
-								rg_sumfr(1:dimensiona)=zero
-								do rg_i=1,nof_species
-									rg_sumfl(1:dimensiona)=rg_sumfl+RG_ENTHVBL(rg_i)*RG_DIFL(rg_i)*LCVGRAD(nof_Variables-nof_species-1+i,1:dimensiona)
-									rg_sumfr(1:dimensiona)=rg_sumfr+RG_ENTHVBr(rg_i)*RG_DIFr(rg_i)*rCVGRAD(nof_Variables-nof_species-1+i,1:dimensiona)
+								MP_LAM_av  = 0.5d0 * (MP_LAMR  + MP_LAML)     ! ! vibrational conductivity
 
-								end do
-								rg_sumfl(1:dimensiona)=rg_sumfl(1:dimensiona)*leftv(1)
-								rg_sumfr(1:dimensiona)=rg_sumfr(1:dimensiona)*rightv(1)
+								RG_DIF_av=0.5d0 * (RG_DIFR  + RG_DIFL)
 
-								QVIB(1:3) =  - ((OO2* ((LAML(5)+ (LAML(6)))*LCVGRAD(dimensiona+2,1:3)))&
-								+(OO2*(rg_sumfl(1:3)+rg_sumfr(1:3))))
-
-
-								end if
-
-
-
-							FXV(5) = FXV(5) - Q(1);FYV(5) = FYV(5) - Q(2);FZV(5) = FZV(5) - Q(3)
-
-							FXV(6) = FXV(6) - QVIB(1);FYV(6) = FYV(6) - QVIB(2);FZV(6) = FZV(6) - QVIB(3)
-
-							end if
+								RG_ENTH_av=0.5d0 * (RG_ENTHR  + RG_ENTHL)
+								RG_ENTHVB_av=0.5d0*(RG_ENTHVBR +RG_ENTHVBL)
 
 
 
 
 
+											if (turbulence .eq. 1) then
+											Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:3))
+											else
+
+
+													rg_sum_htr(1:dimensiona) = 0.0d0
+													rg_sum_hv(1:dimensiona)  = 0.0d0
+
+													do rg_i = 1, NOF_SPECIES
+													!u,v,ttr,tvib,y1,y2,y3,y4,y5
+													idxY = NOF_VARIABLES - NOF_SPECIES - 1 + rg_i   ! index of Y_k (or similar)
+
+													! Species mass fraction gradients (already left/right averaged)
+													gradY(1:dimensiona) = LCVGRAD(idxY,1:dimensiona)
+
+													! Species diffusion flux J_k (sign is correct)
+													! Species diffusion fluxes J_k = -rho D_k ∇Y_k
+													! (sign will be absorbed consistently into Q below)
+													JL(1:dimensiona) = -RHO12 * RG_DIF_av(rg_i) * gradY(1:dimensiona)
+
+													FXV(DIMENSIONA+3+RG_I)=FXv(DIMENSIONA+3+RG_I)+JL(1)
+													FYV(DIMENSIONA+3+RG_I)=FYv(DIMENSIONA+3+RG_I)+jl(2)
+													FzV(DIMENSIONA+3+RG_I)=Fzv(DIMENSIONA+3+RG_I)+jl(3)
+
+													! Accumulate energy diffusion:
+													! Translational: sum h_tr,k * J_k
+													rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) + RG_ENTH_av(rg_i) * JL(1:dimensiona)
+
+
+													! Vibrational: sum h_v,k * J_k
+													rg_sum_hv(1:dimensiona)  = rg_sum_hv(1:dimensiona)  + RG_ENTHVB_av(rg_i)  * JL(1:dimensiona)
+
+													end do
+
+													! ------------------------------------------------
+													! 4. Conductive heat fluxes (Fourier’s law)
+													! ------------------------------------------------
+													rg_qtr(1:dimensiona) = -MP_ktr_mix_av * lcvgrad(dimensiona+1,1:dimensiona)
+
+													rg_qv(1:dimensiona)  = -MP_LAM_av  * lcvgrad(dimensiona+2,1:dimensiona)
+
+
+													! ------------------------------------------------
+													! 5. Total diffusive fluxes
+													! ------------------------------------------------
+
+													! Total energy:
+													!   q = rg_q_tr + rg_q_v + Σ rg_h_tr,k J_k + Σ rg_h_v,k J_k
+													Q(1:dimensiona) = rg_qtr(1:dimensiona) + rg_qv(1:dimensiona) + &
+																		rg_sum_htr(1:dimensiona) + rg_sum_hv(1:dimensiona)
+
+													! Vibrational energy:
+													!   q_Ev = rg_q_v + Σ rg_h_v,k J_k
+													Qvib(1:dimensiona) = rg_qv(1:dimensiona) + rg_sum_hv(1:dimensiona)
+
+													! ------------------------------------------------
+													! 6. Add to conservative flux vectors
+													! ------------------------------------------------
+													! Total energy equation (ρE)
+													FXV(5) = FXV(5) + Q(1)
+													FYV(5) = FYV(5) + Q(2)
+													FzV(5) = FYV(5) + Q(3)
+
+													! Vibrational energy equation (ρEv)
+													FXV(6) = FXV(6) + Qvib(1)
+													FYV(6) = FYV(6) + Qvib(2)
+													FzV(6) = FzV(6) + Qvib(3)
+
+
+													END IF
+
+								end if	!REAL GAS ENDS
 
 
 
 
-
-							!
-							end if
 
 							if (multispecies.eq.1)then
-							!viscous stress + heat conduction in momentum/energy equation only not on each individual component
+							!viscous stress + heat conduction in momentum/energy equation only not on each individual component on Allaire
 
-								if (turbulence .eq. 1) then
-								Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:3))
-								else
-								Q(1:3) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(dimensiona+1,1:3))
-								end if
+											if (turbulence .eq. 1) then
+											Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:3))
+											else
+											Q(1:3) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(dimensiona+1,1:3))
+											end if
+
 							FXV(5) = FXV(5) - Q(1);FYV(5) = FYV(5) - Q(2);FZV(5) = FZV(5) - Q(3)
 							end if
 
@@ -1837,11 +1891,11 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					      FZV(KC) = FZV(KC) + TAU(3,KC-1)
 					  ENDDO
 
+
+
 					    ! COMPUTE INTERFACE VELOCITIES
-					  RHO12 = OO2*(CLEFT(1)+CRIGHT(1))
-					  U12   = OO2*(CLEFT(2)+CRIGHT(2))/RHO12
-					  V12   = OO2*(CLEFT(3)+CRIGHT(3))/RHO12
-					  W12   = OO2*(CLEFT(4)+CRIGHT(4))/RHO12
+
+
 
 					  
 								   					  
@@ -1849,6 +1903,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					  FXV(5) = FXV(5) + U12*TAU(1,1) + V12*TAU(1,2) + W12*TAU(1,3)
 					  FYV(5) = FYV(5) + U12*TAU(2,1) + V12*TAU(2,2) + W12*TAU(2,3)
 					  FZV(5) = FZV(5) + U12*TAU(3,1) + V12*TAU(3,2) + W12*TAU(3,3)
+
+
+
+
 		
 		
 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)	
@@ -2003,19 +2061,16 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 				        if ((realgas.eq.1).or.(multispecies.eq.1))then
 
-					CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+								IF (multispecies.EQ.1)THEN
 
+								CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
-					IF (REALGAS.EQ.1)THEN
-					 LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
-					CALL SPECIES_DIFFUSION_CAL(N,LEFTV,RIGHTV,RG_DIFFL,RG_DIFFR)
-
-					END IF
+								end if
 
 
 						ELSE
-					CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-					CALL SUTHERLAND(N,LEFTV,RIGHTV,VISCL,LAML)
+
+					CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
 						END IF
 
@@ -2052,24 +2107,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					  damp=zero
  					  end if
 
- 					  if (b_code.eq.4)then	!adiabatic wall
- 					  if (ielem(n,i)%ggs.eq.1)then
- 					  if (thermal.eq.0)then
- 					  tempx_l=0.0d0
- 					  rtempx_l=0.0d0
- 					  tempx_l(2)=lCVGRAD(4,1)
- 					  tempx_l(3)=lCVGRAD(4,2)
- 					  tempx_l(4)=lCVGRAD(4,3)
- 					  CALL ROTATEF(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
- 					  rtempx_l(2)=-rtempx_l(2)
- 					  CALL ROTATEb(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
- 					  lCVGRAD(4,1)=tempx_l(2)
- 					  lCVGRAD(4,2)=tempx_l(3)
-					  lCVGRAD(4,3)=tempx_l(4)
- 					  rCVGRAD(4,1:3)=lCVGRAD(4,1:3)
-					  end if
-					  end if
- 					  end if
+
 
 
 					  
@@ -2079,39 +2117,146 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
                     CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
 					CALL CONS2DIV(N,rightv,MP_PINFl,gammal)
+
+					RHO12 = OO2*(leftv(1)+rightv(1))
+					RHO12L=leftv(1);RHO12R=RIGHTv(1)
+					U12   = OO2*(leftv(2)+rightv(2))
+					  V12   = OO2*(leftv(3)+rightv(3))
+					  W12   = OO2*(leftv(4)+rightv(4))
+
                                          do k=1,nof_Variables-1
-											LCVGRAD(k,1:3)=((LCVGRAD(k,1:3)+rCVGRAD(k,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(k)-leftv(k)))
+											LCVGRAD(k,1:3)=((LCVGRAD(k,1:3)+rCVGRAD(k,1:3))/(2.0d0))!+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(k+1)-leftv(k+1)))
 										 end do
 
 
 					!now compute all the temperature gradients +real gas
 				      if ((realgas.eq.1).or.(multispecies.eq.1))then
 
+								if (realgas.eq.1)then
 
-							if (realgas.eq.1)then
+								!DIFFUSION COEFFICIENT FOR SPECIES RG_DIFFL(1:NOF_SPECIES),RG_DIFFR(1:NOF_SPECIES)
+								!VISCOSITY FOR THE MIXTURE VISCL(1)-LEFT,VISCL(2)-RIGHT
+								!THERMAL CONDUCTIVITY mix LAML(1)-LEFT,LAML(2)-RIGHT
+								!VIBRATIONAL THERMAL CONDUCTIVITY!MPLAML-LEFT,MP_LAMR-RIGHT
+								!SPECIES DIFFUSION COEFFICIENTS !RG_DIFL(1:NOF_SPECIES),RG_DIFR(1:NOF_SPECIES)
+								!ENTHALPIES FOR SPECIES	!RG_ENTHL(1:NOF_SPECIES),RG_ENTHR(1:NOF_SPECIES)
+								!VIBRATIONAL ENTHALPIES FOR SPECIES !!RG_ENTHVBL(1:NOF_SPECIES),RG_ENTHVBR(1:NOF_SPECIES)
 
-							!now we need to compute
-							!mixture viscosity viscl
-							!total translational-rotational thermal conduction laml
-							!, and vibrational thermal conduction kd lam_kl
-							CLEFT, cright,lcvgrad,rCVGRAD,viscl,k_tr_rot,k_vib,
-							!we will need to call a subroutine to compute all these (take as an input the left, rightv vector and compute)
-							!
-							end if
+
+
+								LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
+								CALL MULTISPECIES_MIXTURES_RG(LEFTV,MP_mu_mix,MP_ktr_mix,MP_kve,RG_DIFL,RG_ENTHL,RG_ENTHVBL,GAMMAL)
+
+								MP_LAML=MP_kve
+								LAML(1)=MP_ktr_mix
+								VISCL(1)=MP_mu_mix
+
+								CALL MULTISPECIES_MIXTURES_RG(RIGHTV,MP_mu_mix,MP_ktr_mix,MP_kve,RG_DIFR,RG_ENTHR,RG_ENTHVBR,GAMMAR)
+
+								MP_LAMR=MP_kve
+								LAML(2)=MP_ktr_mix
+								VISCL(2)=MP_mu_mix
+
+								MP_ktr_mix_av  = 0.5d0 * (LAML(2)  + LAML(1))     ! translational conductivity
+
+								MP_LAM_av  = 0.5d0 * (MP_LAMR  + MP_LAML)     ! ! vibrational conductivity
+
+								RG_DIF_av=0.5d0 * (RG_DIFR  + RG_DIFL)
+
+								RG_ENTH_av=0.5d0 * (RG_ENTHR  + RG_ENTHL)
+								RG_ENTHVB_av=0.5d0*(RG_ENTHVBR +RG_ENTHVBL)
+
+
+
+
+
+											if (turbulence .eq. 1) then
+											Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:3))
+											else
+
+
+													rg_sum_htr(1:dimensiona) = 0.0d0
+													rg_sum_hv(1:dimensiona)  = 0.0d0
+
+													do rg_i = 1, NOF_SPECIES
+													!u,v,ttr,tvib,y1,y2,y3,y4,y5
+													idxY = NOF_VARIABLES - NOF_SPECIES - 1 + rg_i   ! index of Y_k (or similar)
+
+													! Species mass fraction gradients (already left/right averaged)
+													gradY(1:dimensiona) = LCVGRAD(idxY,1:dimensiona)
+
+													! Species diffusion flux J_k (sign is correct)
+													! Species diffusion fluxes J_k = -rho D_k ∇Y_k
+													! (sign will be absorbed consistently into Q below)
+													JL(1:dimensiona) = -RHO12 * RG_DIF_av(rg_i) * gradY(1:dimensiona)
+
+													FXV(DIMENSIONA+3+RG_I)=FXv(DIMENSIONA+3+RG_I)+JL(1)
+													FYV(DIMENSIONA+3+RG_I)=FYv(DIMENSIONA+3+RG_I)+jl(2)
+													FzV(DIMENSIONA+3+RG_I)=Fzv(DIMENSIONA+3+RG_I)+jl(3)
+
+													! Accumulate energy diffusion:
+													! Translational: sum h_tr,k * J_k
+													rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) + RG_ENTH_av(rg_i) * JL(1:dimensiona)
+
+
+													! Vibrational: sum h_v,k * J_k
+													rg_sum_hv(1:dimensiona)  = rg_sum_hv(1:dimensiona)  + RG_ENTHVB_av(rg_i)  * JL(1:dimensiona)
+
+													end do
+
+													! ------------------------------------------------
+													! 4. Conductive heat fluxes (Fourier’s law)
+													! ------------------------------------------------
+													rg_qtr(1:dimensiona) = -MP_ktr_mix_av * lcvgrad(dimensiona+1,1:dimensiona)
+
+													rg_qv(1:dimensiona)  = -MP_LAM_av  * lcvgrad(dimensiona+2,1:dimensiona)
+
+
+													! ------------------------------------------------
+													! 5. Total diffusive fluxes
+													! ------------------------------------------------
+
+													! Total energy:
+													!   q = rg_q_tr + rg_q_v + Σ rg_h_tr,k J_k + Σ rg_h_v,k J_k
+													Q(1:dimensiona) = rg_qtr(1:dimensiona) + rg_qv(1:dimensiona) + &
+																		rg_sum_htr(1:dimensiona) + rg_sum_hv(1:dimensiona)
+
+													! Vibrational energy:
+													!   q_Ev = rg_q_v + Σ rg_h_v,k J_k
+													Qvib(1:dimensiona) = rg_qv(1:dimensiona) + rg_sum_hv(1:dimensiona)
+
+													! ------------------------------------------------
+													! 6. Add to conservative flux vectors
+													! ------------------------------------------------
+													! Total energy equation (ρE)
+													FXV(5) = FXV(5) + Q(1)
+													FYV(5) = FYV(5) + Q(2)
+													FzV(5) = FYV(5) + Q(3)
+
+													! Vibrational energy equation (ρEv)
+													FXV(6) = FXV(6) + Qvib(1)
+													FYV(6) = FYV(6) + Qvib(2)
+													FzV(6) = FzV(6) + Qvib(3)
+
+
+													END IF
+
+								end if	!REAL GAS ENDS
+
+
+
+
 
 							if (multispecies.eq.1)then
-							!viscous stress + heat conduction in momentum/energy equation only not on each individual component
+							!viscous stress + heat conduction in momentum/energy equation only not on each individual component on Allaire
 
-								if (turbulence .eq. 1) then
-								Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:3))
-								else
-								Q(1:3) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(dimensiona+1,1:3))
-								end if
+											if (turbulence .eq. 1) then
+											Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:3))
+											else
+											Q(1:3) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(dimensiona+1,1:3))
+											end if
 
-
-
-								FXV(5) = FXV(5) - Q(1);FYV(5) = FYV(5) - Q(2);FZV(5) = FZV(5) - Q(3)
-
+							FXV(5) = FXV(5) - Q(1);FYV(5) = FYV(5) - Q(2);FZV(5) = FZV(5) - Q(3)
 							end if
 
 
@@ -2125,6 +2270,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 							end if
 
 							FXV(5) = FXV(5) - Q(1);FYV(5) = FYV(5) - Q(2);FZV(5) = FZV(5) - Q(3)
+
 				      end if
 				       				  
 
@@ -2177,11 +2323,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					      FZV(KC) = FZV(KC) + TAU(3,KC-1)
 					  ENDDO
 
-					    ! COMPUTE INTERFACE VELOCITIES
-					  RHO12 = OO2*(CLEFT(1)+CRIGHT(1))
-					  U12   = OO2*(CLEFT(2)+CRIGHT(2))/RHO12
-					  V12   = OO2*(CLEFT(3)+CRIGHT(3))/RHO12
-					  W12   = OO2*(CLEFT(4)+CRIGHT(4))/RHO12
+
 
 					  
 								   					  
@@ -2189,6 +2331,14 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					  FXV(5) = FXV(5) + U12*TAU(1,1) + V12*TAU(1,2) + W12*TAU(1,3)
 					  FYV(5) = FYV(5) + U12*TAU(2,1) + V12*TAU(2,2) + W12*TAU(2,3)
 					  FZV(5) = FZV(5) + U12*TAU(3,1) + V12*TAU(3,2) + W12*TAU(3,3)
+
+
+					   IF (REALGAS.EQ.1)THEN		!DIFFUSION COEFFICIENT PER SPECIES NOW
+					  FXV(DIMENSIONA+4:NOF_VARIABLES)=FXv(DIMENSIONA+4:NOF_VARIABLES)+RHO12*LCVGRAD(DIMENSIONA+3:NOF_VARIABLES-1,1)
+					  FYV(DIMENSIONA+4:NOF_VARIABLES)=Fyv(DIMENSIONA+4:NOF_VARIABLES)+RHO12*LCVGRAD(DIMENSIONA+3:NOF_VARIABLES-1,2)
+					  FZV(DIMENSIONA+4:NOF_VARIABLES)=Fzv(DIMENSIONA+4:NOF_VARIABLES)+RHO12*LCVGRAD(DIMENSIONA+3:NOF_VARIABLES-1,3)
+					  END IF
+
 		
 		
 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)	
@@ -2290,29 +2440,37 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2,DG_VOL_REC,RHLLCFLUX,HLLCFLUX
 	INTEGER::I,L,NGP,KMAXE,IQP,ii,NVAR,KC,IEX,ITTT,IKAS,igoflux, icaseb,KK,B_CODE
 	REAL::sum_detect,NORMS
-	INTEGER::ICONSIDERED,FACEX,POINTX
+	INTEGER::ICONSIDERED,FACEX,POINTX,K,RG_I,RG_J,idxY
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ,MP_SOURCE1,MP_SOURCE2,MP_SOURCE3
 	REAL,DIMENSION(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)::CLEFT,CRIGHT,CLEFT_ROT,CRIGHT_ROT
 	REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV,SRF_SPEEDROT,tempx_l,rtempx_l
 	REAL,DIMENSION(1:TURBULENCEEQUATIONS+PASSIVESCALAR)::CTURBL,CTURBR
-	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,RG_SUMFL,RG_SUMFR
 	REAL,DIMENSION(1:NOF_VARIABLES)::SRF_SPEED
 	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP,WEIGHTS_DG
 	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 	REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS2)::QPOINTS2D
 	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
-	REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
+	REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR,RHO12L,RHO12R
 	REAL,DIMENSION(1:4)::VISCL,LAML
+	real,dimension(1:nof_species)::RGS_htr_i, RGS_hvib_i
 	REAL,DIMENSION(1:2)::TURBMV
     REAL,DIMENSION(1)::ETVM
     REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
     REAL,DIMENSION(1:nof_Variables-1,1:dims)::LCVGRAD,RCVGRAD
 	REAL,DIMENSION(turbulenceequations+passivescalar,1:dims)::LCVGRAD_T,RCVGRAD_T
-	real,dimension(4)::fxv,fyv,fzv,tem_pn,rtem_pn
+	real,dimension(1:nof_Variables)::fxv,fyv,fzv,tem_pn,rtem_pn
 	real,dimension(2,2)::taul,taur,TAU
-	REAL,DIMENSION(2)::Q,NALL
+	REAL,DIMENSION(2)::Q,NALL,QVIB
 	REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,RHO12,U12,V12,W12,damp,vdamp  
 	REAL,allocatable,dimension(:,:)::DG_RHS, DG_RHS_VOL_INTEG, DG_RHS_SURF_INTEG
+	REAL::MP_TTR,MP_TV,MP_mu_mix,MP_ktr_mix,MP_kve,MP_LAML,MP_LAMR
+	REAL,DIMENSION(1:NOF_SPECIES)::MP_D_eff,RG_DIFL,RG_DIFR,RG_ENTHL,RG_ENTHR,MP_HTR,MP_Hvib,RG_ENTHVBL,RG_ENTHVBR,mp_mu_i,MP_ktr_i
+	REAL,DIMENSION(1:dimensiona)::rg_sum_tr,rg_sumfr_tr,rg_sumfL_tr,rg_sumfl_v,rg_sumfr_v,rg_sum_v,gradYL,gradYr,JL,JR
+	REAL,DIMENSION(1:2)::qtr,qv
+	real,dimension(1:dimensiona)::rg_sum_htr,rg_sum_hv,gradY,rg_qv,rg_qtr
+	real,dimension(1:nof_species)::RG_DIF_av,RG_ENTH_av,RG_ENTHVB_av
+	real::MP_LAM_av,MP_ktr_mix_av
 
 
     IF (DG.EQ.1)THEN
@@ -2388,17 +2546,16 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 
 				        if ((realgas.eq.1).or.(multispecies.eq.1))then
 
-				        CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+								IF (multispecies.EQ.1)THEN
+
+								CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
+
+								end if
 
 
-				        IF (REALGAS.EQ.1)THEN
-						LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
-						CALL SPECIES_DIFFUSION_CAL(N,LEFTV,RIGHTV,RG_DIFFL,RG_DIFFR)
-
-						END IF
 				        ELSE
-					CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-					CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+
+						CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 						END IF
 				     
 					    IF (TURBULENCE.EQ.1)THEN
@@ -2432,26 +2589,181 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					  
 					  vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
                                         nall(1)=nx;nall(2)=ny
+
+
+
+                               LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
+					CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
+					CALL CONS2DIV(N,rightv,MP_PINFR,gammar)
+					RHO12 = OO2*(leftv(1)+rightv(1))
+					RHO12L=leftv(1);RHO12R=RIGHTv(1)
+					U12   = OO2*(leftv(2)+rightv(2))
+					  V12   = OO2*(leftv(3)+rightv(3))
+
+
+
+
+					do k=1,NOF_VARIABLES-1
+					LCVGRAD(k,1:2)=((LCVGRAD(k,1:2)+rCVGRAD(k,1:2))/(2.0d0))!+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
+					end do
+
+
+
 					  				
-                                      LCVGRAD(1,1:2)=((LCVGRAD(1,1:2)+rCVGRAD(1,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(2)-leftv(2)))
-					   LCVGRAD(2,1:2)=((LCVGRAD(2,1:2)+rCVGRAD(2,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(3)-leftv(3)))
-					  LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/(rightv(1)*R_gas))-(leftv(4)/(leftv(1)*R_gas))))
-                                        
-				       
-					  
+
+                           		    !now compute all the temperature gradients +real gas
+				      if ((realgas.eq.1).or.(multispecies.eq.1))then
+
+
+									if (realgas.eq.1)then
+
+								!DIFFUSION COEFFICIENT FOR SPECIES RG_DIFFL(1:NOF_SPECIES),RG_DIFFR(1:NOF_SPECIES)
+								!VISCOSITY FOR THE MIXTURE VISCL(1)-LEFT,VISCL(2)-RIGHT
+								!THERMAL CONDUCTIVITY mix LAML(1)-LEFT,LAML(2)-RIGHT
+								!VIBRATIONAL THERMAL CONDUCTIVITY!MPLAML-LEFT,MP_LAMR-RIGHT
+								!SPECIES DIFFUSION COEFFICIENTS !RG_DIFL(1:NOF_SPECIES),RG_DIFR(1:NOF_SPECIES)
+								!ENTHALPIES FOR SPECIES	!RG_ENTHL(1:NOF_SPECIES),RG_ENTHR(1:NOF_SPECIES)
+								!VIBRATIONAL ENTHALPIES FOR SPECIES !!RG_ENTHVBL(1:NOF_SPECIES),RG_ENTHVBR(1:NOF_SPECIES)
+
+
+
+								LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
+								CALL MULTISPECIES_MIXTURES_RG(LEFTV,MP_mu_mix,MP_ktr_mix,MP_kve,RG_DIFL,RG_ENTHL,RG_ENTHVBL,GAMMAL)
+
+								MP_LAML=MP_kve
+								LAML(1)=MP_ktr_mix
+								VISCL(1)=MP_mu_mix
+
+								CALL MULTISPECIES_MIXTURES_RG(RIGHTV,MP_mu_mix,MP_ktr_mix,MP_kve,RG_DIFR,RG_ENTHR,RG_ENTHVBR,GAMMAR)
+
+								MP_LAMR=MP_kve
+								LAML(2)=MP_ktr_mix
+								VISCL(2)=MP_mu_mix
+
+
+								MP_ktr_mix_av  = 0.5d0 * (LAML(2)  + LAML(1))     ! translational conductivity
+
+								MP_LAM_av  = 0.5d0 * (MP_LAMR  + MP_LAML)     ! ! vibrational conductivity
+
+								RG_DIF_av=0.5d0 * (RG_DIFR  + RG_DIFL)
+
+								RG_ENTH_av=0.5d0 * (RG_ENTHR  + RG_ENTHL)
+								RG_ENTHVB_av=0.5d0*(RG_ENTHVBR +RG_ENTHVBL)
+
+
+
+
+
+											if (turbulence .eq. 1) then
+											Q(1:2)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:2))
+											else
+
+
+													rg_sum_htr(1:dimensiona) = 0.0d0
+													rg_sum_hv(1:dimensiona)  = 0.0d0
+
+													do rg_i = 1, NOF_SPECIES
+													!u,v,ttr,tvib,y1,y2,y3,y4,y5
+													idxY = NOF_VARIABLES - NOF_SPECIES - 1 + rg_i   ! index of Y_k (or similar)
+
+													! Species mass fraction gradients (already left/right averaged)
+													gradY(1:dimensiona) = LCVGRAD(idxY,1:dimensiona)
+
+													! Species diffusion flux J_k (sign is correct)
+													! Species diffusion fluxes J_k = -rho D_k ∇Y_k
+													! (sign will be absorbed consistently into Q below)
+													JL(1:dimensiona) = -RHO12 * RG_DIF_av(rg_i) * gradY(1:dimensiona)
+
+													FXV(DIMENSIONA+3+RG_I)=FXv(DIMENSIONA+3+RG_I)+JL(1)
+													FYV(DIMENSIONA+3+RG_I)=FYv(DIMENSIONA+3+RG_I)+jl(2)
+
+													! Accumulate energy diffusion:
+													! Translational: sum h_tr,k * J_k
+													rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) + RG_ENTH_av(rg_i) * JL(1:dimensiona)
+
+
+													! Vibrational: sum h_v,k * J_k
+													rg_sum_hv(1:dimensiona)  = rg_sum_hv(1:dimensiona)  + RG_ENTHVB_av(rg_i)  * JL(1:dimensiona)
+
+													end do
+
+													! ------------------------------------------------
+													! 4. Conductive heat fluxes (Fourier’s law)
+													! ------------------------------------------------
+													rg_qtr(1:dimensiona) = -MP_ktr_mix_av * lcvgrad(dimensiona+1,1:dimensiona)
+
+													rg_qv(1:dimensiona)  = -MP_LAM_av  * lcvgrad(dimensiona+2,1:dimensiona)
+
+
+													! ------------------------------------------------
+													! 5. Total diffusive fluxes
+													! ------------------------------------------------
+
+													! Total energy:
+													!   q = rg_q_tr + rg_q_v + Σ rg_h_tr,k J_k + Σ rg_h_v,k J_k
+													Q(1:dimensiona) = rg_qtr(1:dimensiona) + rg_qv(1:dimensiona) + &
+																		rg_sum_htr(1:dimensiona) + rg_sum_hv(1:dimensiona)
+
+													! Vibrational energy:
+													!   q_Ev = rg_q_v + Σ rg_h_v,k J_k
+													Qvib(1:dimensiona) = rg_qv(1:dimensiona) + rg_sum_hv(1:dimensiona)
+
+													! ------------------------------------------------
+													! 6. Add to conservative flux vectors
+													! ------------------------------------------------
+													! Total energy equation (ρE)
+													FXV(4) = FXV(4) + Q(1)
+													FYV(4) = FYV(4) + Q(2)
+
+													! Vibrational energy equation (ρEv)
+													FXV(5) = FXV(5) + Qvib(1)
+													FYV(5) = FYV(5) + Qvib(2)
+
+													END IF
+
+								end if	!REAL GAS ENDS
+
+
+
+
+
+								if (multispecies.eq.1)then
+								!viscous stress + heat conduction in momentum/energy equation only not on each individual component on Allaire
+
+												if (turbulence .eq. 1) then
+												Q(1:2)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:2))
+												else
+												Q(1:2) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(dimensiona+1,1:2))
+												end if
+
+								FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
+								end if
+
+
+
+
+				      else
+
+											if (turbulence .eq. 1) then
+											Q(1:2)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:2))
+											else
+											Q(1:2) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(dimensiona+1,1:2))
+											end if
+							!Q(1:2) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(dimensiona+1,1:2))
+							FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
+
+				      end if
+
+
+
+
+
 					  
 					  
 					  
 					   
 				       				  
-					  if (turbulence .eq. 1) then
-					  Q(1:2)=  - OO2* ((LAML(3) +(LAML(4)))*lCVGRAD(3,1:2))
-					  else
-					  Q(1:2)=  - OO2* ((LAML(1) +(LAML(2)))*lCVGRAD(3,1:2))
-					  end if
-					  
-					  FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
-							
+
 					 
 					  !LEFT STATE DERIVATIVES
 					  UX = LCVGRAD(1,1); UY = LCVGRAD(1,2)
@@ -2484,14 +2796,20 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					      
 					  ENDDO
 
-					    ! COMPUTE INTERFACE VELOCITIES
-					  RHO12 = OO2*(CLEFT(1)+CRIGHT(1))
-					  U12   = OO2*(CLEFT(2)+CRIGHT(2))/RHO12
-					  V12   = OO2*(CLEFT(3)+CRIGHT(3))/RHO12
-					  
+
+					  Q(1:2) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(dimensiona+1,1:2))
+							FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
 
 					  FXV(4) = FXV(4) + U12*TAU(1,1) + V12*TAU(1,2) 
-					  FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2) 
+					  FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2)
+
+
+
+
+
+
+
+
 ! 					 
 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)	
 		
@@ -2622,23 +2940,19 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				      
 				        LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
 
+						if ((realgas.eq.1).or.(multispecies.eq.1))then
 
-				         if ((realgas.eq.1).or.(multispecies.eq.1))then
+								IF (multispecies.EQ.1)THEN
 
-				        CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+								CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
 
-				        IF (REALGAS.EQ.1)THEN
-					 LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
-					CALL SPECIES_DIFFUSION_CAL(N,LEFTV,RIGHTV,RG_DIFFL,RG_DIFFR)
-
-					END IF
-
-					ELSE
-					CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-					CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
+								end if
 
 
-					END IF
+				        ELSE
+
+								CALL GET_visc_conduct(N,LEFTV,RIGHTV,VISCL,LAML)
+						END IF
 				     
 					    IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
@@ -2678,44 +2992,175 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
  					  end if
 
 
- 					  if (b_code.eq.4)then	!adiabatic wall
- 					  if (ielem(n,i)%ggs.eq.1)then
- 					  if (thermal.eq.0)then
- 					  tempx_l=0.0d0
- 					  rtempx_l=0.0d0
- 					  tempx_l(2)=lCVGRAD(3,1)
- 					  tempx_l(3)=lCVGRAD(3,2)
- 					  CALL ROTATEF2d(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
- 					  rtempx_l(2)=-rtempx_l(2)
- 					  CALL ROTATEb2d(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
- 					  lCVGRAD(3,1)=tempx_l(2)
- 					  lCVGRAD(3,2)=tempx_l(3)
 
- 					  rCVGRAD(3,1)=lCVGRAD(3,1)
- 					  rCVGRAD(3,2)=lCVGRAD(3,2)
-					  end if
- 					  end if
- 					  end if
 
 				       
 					   vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
                                         nall(1)=nx;nall(2)=ny
-                                      LCVGRAD(1,1:2)=((LCVGRAD(1,1:2)+rCVGRAD(1,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(2)-leftv(2)))
-					   LCVGRAD(2,1:2)=((LCVGRAD(2,1:2)+rCVGRAD(2,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(3)-leftv(3)))
-					  LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/(rightv(1)*R_gas))-(leftv(4)/(leftv(1)*R_gas))))
-					  
-					  
-					  
-					  
-					   
-				       				  
-					  if (turbulence .eq. 1) then
-					  Q(1:2)=  - OO2* ((LAML(3) +(LAML(4)))*lCVGRAD(3,1:2))
-					  else
-					  Q(1:2)=  - OO2* ((LAML(1) +(LAML(2)))*lCVGRAD(3,1:2))
-					  end if
-					  
-					  FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
+
+
+                                   LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
+					CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
+					CALL CONS2DIV(N,rightv,MP_PINFr,gammar)
+					RHO12 = OO2*(leftv(1)+rightv(1))
+					RHO12L=leftv(1);RHO12R=RIGHTv(1)
+					U12   = OO2*(leftv(2)+rightv(2))
+					  V12   = OO2*(leftv(3)+rightv(3))
+
+
+
+
+						 do k=1,nof_Variables-1	!u,v,t, !tv,y1,y2,y3,y4,...
+					LCVGRAD(k,1:2)=((LCVGRAD(k,1:2)+rCVGRAD(k,1:2))/(2.0d0))!+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
+					end do
+
+
+
+                                  		    !now compute all the temperature gradients +real gas
+				      if ((realgas.eq.1).or.(multispecies.eq.1))then
+
+
+									if (realgas.eq.1)then
+
+								!DIFFUSION COEFFICIENT FOR SPECIES RG_DIFFL(1:NOF_SPECIES),RG_DIFFR(1:NOF_SPECIES)
+								!VISCOSITY FOR THE MIXTURE VISCL(1)-LEFT,VISCL(2)-RIGHT
+								!THERMAL CONDUCTIVITY mix LAML(1)-LEFT,LAML(2)-RIGHT
+								!VIBRATIONAL THERMAL CONDUCTIVITY!MPLAML-LEFT,MP_LAMR-RIGHT
+								!SPECIES DIFFUSION COEFFICIENTS !RG_DIFL(1:NOF_SPECIES),RG_DIFR(1:NOF_SPECIES)
+								!ENTHALPIES FOR SPECIES	!RG_ENTHL(1:NOF_SPECIES),RG_ENTHR(1:NOF_SPECIES)
+								!VIBRATIONAL ENTHALPIES FOR SPECIES !!RG_ENTHVBL(1:NOF_SPECIES),RG_ENTHVBR(1:NOF_SPECIES)
+
+
+
+								LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
+								CALL MULTISPECIES_MIXTURES_RG(LEFTV,MP_mu_mix,MP_ktr_mix,MP_kve,RG_DIFL,RG_ENTHL,RG_ENTHVBL,GAMMAL)
+
+								MP_LAML=MP_kve
+								LAML(1)=MP_ktr_mix
+								VISCL(1)=MP_mu_mix
+
+								CALL MULTISPECIES_MIXTURES_RG(RIGHTV,MP_mu_mix,MP_ktr_mix,MP_kve,RG_DIFR,RG_ENTHR,RG_ENTHVBR,GAMMAR)
+
+								MP_LAMR=MP_kve
+								LAML(2)=MP_ktr_mix
+								VISCL(2)=MP_mu_mix
+
+								MP_ktr_mix_av  = 0.5d0 * (LAML(2)  + LAML(1))     ! translational conductivity
+
+								MP_LAM_av  = 0.5d0 * (MP_LAMR  + MP_LAML)     ! ! vibrational conductivity
+
+								RG_DIF_av=0.5d0 * (RG_DIFR  + RG_DIFL)
+
+								RG_ENTH_av=0.5d0 * (RG_ENTHR  + RG_ENTHL)
+								RG_ENTHVB_av=0.5d0*(RG_ENTHVBR +RG_ENTHVBL)
+
+
+
+
+
+											if (turbulence .eq. 1) then
+											Q(1:2)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:2))
+											else
+
+
+													rg_sum_htr(1:dimensiona) = 0.0d0
+													rg_sum_hv(1:dimensiona)  = 0.0d0
+
+													do rg_i = 1, NOF_SPECIES
+													!u,v,ttr,tvib,y1,y2,y3,y4,y5
+													idxY = NOF_VARIABLES - NOF_SPECIES - 1 + rg_i   ! index of Y_k (or similar)
+
+													! Species mass fraction gradients (already left/right averaged)
+													gradY(1:dimensiona) = LCVGRAD(idxY,1:dimensiona)
+
+													! Species diffusion flux J_k (sign is correct)
+													! Species diffusion fluxes J_k = -rho D_k ∇Y_k
+													! (sign will be absorbed consistently into Q below)
+													JL(1:dimensiona) = -RHO12 * RG_DIF_av(rg_i) * gradY(1:dimensiona)
+
+													FXV(DIMENSIONA+3+RG_I)=FXv(DIMENSIONA+3+RG_I)+JL(1)
+													FYV(DIMENSIONA+3+RG_I)=FYv(DIMENSIONA+3+RG_I)+jl(2)
+
+													! Accumulate energy diffusion:
+													! Translational: sum h_tr,k * J_k
+													rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) + RG_ENTH_av(rg_i) * JL(1:dimensiona)
+
+
+													! Vibrational: sum h_v,k * J_k
+													rg_sum_hv(1:dimensiona)  = rg_sum_hv(1:dimensiona)  + RG_ENTHVB_av(rg_i)  * JL(1:dimensiona)
+
+													end do
+
+													! ------------------------------------------------
+													! 4. Conductive heat fluxes (Fourier’s law)
+													! ------------------------------------------------
+													rg_qtr(1:dimensiona) = -MP_ktr_mix_av * lcvgrad(dimensiona+1,1:dimensiona)
+
+													rg_qv(1:dimensiona)  = -MP_LAM_av  * lcvgrad(dimensiona+2,1:dimensiona)
+
+
+													! ------------------------------------------------
+													! 5. Total diffusive fluxes
+													! ------------------------------------------------
+
+													! Total energy:
+													!   q = rg_q_tr + rg_q_v + Σ rg_h_tr,k J_k + Σ rg_h_v,k J_k
+													Q(1:dimensiona) = rg_qtr(1:dimensiona) + rg_qv(1:dimensiona) + &
+																		rg_sum_htr(1:dimensiona) + rg_sum_hv(1:dimensiona)
+
+													! Vibrational energy:
+													!   q_Ev = rg_q_v + Σ rg_h_v,k J_k
+													Qvib(1:dimensiona) = rg_qv(1:dimensiona) + rg_sum_hv(1:dimensiona)
+
+													! ------------------------------------------------
+													! 6. Add to conservative flux vectors
+													! ------------------------------------------------
+													! Total energy equation (ρE)
+													FXV(4) = FXV(4) + Q(1)
+													FYV(4) = FYV(4) + Q(2)
+
+													! Vibrational energy equation (ρEv)
+													FXV(5) = FXV(5) + Qvib(1)
+													FYV(5) = FYV(5) + Qvib(2)
+
+													END IF
+
+								end if	!REAL GAS ENDS
+
+
+
+
+
+
+							if (multispecies.eq.1)then
+							!viscous stress + heat conduction in momentum/energy equation only not on each individual component on Allaire
+
+											if (turbulence .eq. 1) then
+											Q(1:2)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:2))
+											else
+											Q(1:2) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(dimensiona+1,1:2))
+											end if
+
+							FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
+							end if
+
+
+
+
+				      else
+							if (turbulence .eq. 1) then
+											Q(1:2)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:2))
+											else
+											Q(1:2) =  - OO2* ((LAML(1)+ (LAML(2)))*LCVGRAD(dimensiona+1,1:2))
+											end if
+
+							FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
+
+				      end if
+
+
+
+
 							
 					 
 					  !LEFT STATE DERIVATIVES
@@ -2749,14 +3194,20 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					      
 					  ENDDO
 
-					    ! COMPUTE INTERFACE VELOCITIES
-					  RHO12 = OO2*(CLEFT(1)+CRIGHT(1))
-					  U12   = OO2*(CLEFT(2)+CRIGHT(2))/RHO12
-					  V12   = OO2*(CLEFT(3)+CRIGHT(3))/RHO12
+
 					  
 
 					  FXV(4) = FXV(4) + U12*TAU(1,1) + V12*TAU(1,2) 
 					  FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2) 
+
+
+					   IF (REALGAS.EQ.1)THEN		!DIFFUSION COEFFICIENT PER SPECIES NOW
+					  FXV(DIMENSIONA+4:NOF_VARIABLES)=FXv(DIMENSIONA+4:NOF_VARIABLES)+RHO12*LCVGRAD(DIMENSIONA+3:NOF_VARIABLES-1,1)
+					  FYV(DIMENSIONA+4:NOF_VARIABLES)=Fyv(DIMENSIONA+4:NOF_VARIABLES)+RHO12*LCVGRAD(DIMENSIONA+3:NOF_VARIABLES-1,2)
+
+					  END IF
+
+
 ! 					 
 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)			
 					  

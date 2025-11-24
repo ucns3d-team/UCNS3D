@@ -164,7 +164,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 				     				      
 		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		END IF	
 		
 		B1_imp(1:nof_variables)=B1_imp(1:nof_variables)-MATMUL(IMPoff(i,L,1:nof_variables,1:nof_variables),DU1(1:nof_variables))
@@ -197,7 +197,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    END IF
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 								  					  
@@ -224,7 +224,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    LEFTV(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
@@ -249,7 +249,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    case(2)
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -265,7 +265,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    else
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -283,7 +283,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 							      
@@ -304,7 +304,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
                                 END IF
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 					
@@ -314,7 +314,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 							
@@ -334,7 +334,7 @@ end if
 IMPDU(I,1:nof_variables)=MATMUL(impdiag(i,1:nof_variables,1:nof_variables),b1_imp(1:nof_variables))
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 end if
 END DO	!loop elements
 !$OMP end DO
@@ -389,7 +389,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 				     				      
 		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		END IF	
 		
 		dummy12(1:nof_variables)=dummy12(1:nof_variables)+(matmul(IMPoff(i,l,1:nof_variables,1:nof_variables),du1(1:nof_variables)))
@@ -453,7 +453,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 								  					  
@@ -480,7 +480,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    LEFTV(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
@@ -504,7 +504,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    case(2)
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -520,7 +520,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    else
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -538,7 +538,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 							      
@@ -557,7 +557,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 					
@@ -567,7 +567,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 							
@@ -589,7 +589,7 @@ end if
 IMPDU(I,1:nof_variables)=matmul(impdiag(i,1:nof_variables,1:nof_variables),(b1_imp(1:nof_variables)-dummy12(1:nof_variables)))
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*&
+IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*&
 (b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-dummy12t(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
 
 
@@ -621,7 +621,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 				     				      
 		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		END IF	
 		
 		    dummy12(1:nof_variables)=dummy12(1:nof_variables)+(matmul(IMPoff(i,l,1:nof_variables,1:nof_variables),du1))
@@ -686,7 +686,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 								  					  
@@ -703,7 +703,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 							      
@@ -722,7 +722,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 					
@@ -732,7 +732,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 							
@@ -755,7 +755,7 @@ end if
 IMPDU(I,1:nof_variables)=IMPDU(I,1:nof_variables)-matmul(impdiag(i,1:nof_variables,1:nof_variables),dummy12(1:nof_variables))
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 
-impdu(i,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdu(i,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)-&
+impdu(i,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdu(i,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)-&
 (impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*dummy12t(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
 
 end if
@@ -887,7 +887,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 				     				      
 		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		END IF	
 		
 		B1_imp(1:nof_variables)=B1_imp(1:nof_variables)-MATMUL(IMPoff(1,L,1:nof_variables,1:nof_variables),DU1(1:nof_variables))
@@ -913,7 +913,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 								  					  
@@ -940,7 +940,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    LEFTV(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
@@ -964,7 +964,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    case(2)
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    end select
@@ -977,7 +977,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 							      
@@ -996,7 +996,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 					
@@ -1006,7 +1006,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 							
@@ -1027,7 +1027,7 @@ end if
 IMPDU(I,1:nof_variables)=MATMUL(impdiag(1,1:nof_variables,1:nof_variables),b1_imp(1:nof_variables))
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 end if
 END DO	!loop elements
 !$OMP end DO
@@ -1093,7 +1093,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 				     				      
 		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		END IF	
 		
 		dummy12(1:nof_variables)=dummy12(1:nof_variables)+(matmul(IMPoff(1,l,1:nof_variables,1:nof_variables),du1(1:nof_variables)))
@@ -1122,7 +1122,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 								  					  
@@ -1150,7 +1150,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    LEFTV(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
@@ -1173,7 +1173,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    case(2)
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -1189,7 +1189,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    else
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -1207,7 +1207,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 							      
@@ -1226,7 +1226,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 					
@@ -1236,7 +1236,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 							
@@ -1259,7 +1259,7 @@ end if
 IMPDU(I,1:nof_variables)=matmul(impdiag(1,1:nof_variables,1:nof_variables),(b1_imp(1:nof_variables)-dummy12(1:nof_variables)))
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*&
+IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*&
 (b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-dummy12t(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
 
 
@@ -1313,7 +1313,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 				     				      
 		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		END IF	
 		
 		    dummy12(1:nof_variables)=dummy12(1:nof_variables)+(matmul(IMPoff(1,l,1:nof_variables,1:nof_variables),du1))
@@ -1341,7 +1341,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 								  					  
@@ -1358,7 +1358,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 							      
@@ -1377,7 +1377,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 					
@@ -1387,7 +1387,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 							
@@ -1409,7 +1409,7 @@ end if
 IMPDU(I,1:nof_variables)=IMPDU(I,1:nof_variables)-matmul(impdiag(1,1:nof_variables,1:nof_variables),dummy12(1:nof_variables))
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 
-impdu(1,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(I,6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)&
+impdu(1,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)&
 -((impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*dummy12t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)))
 
 end if
@@ -1524,7 +1524,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 				     				      
 		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		END IF	
 		
 		B1_imp(1:nof_variables)=B1_imp(1:nof_variables)-MATMUL(IMPoff(i,L,1:nof_variables,1:nof_variables),DU1(1:nof_variables))
@@ -1550,7 +1550,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 								  					  
@@ -1571,7 +1571,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    LEFTV(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
@@ -1599,7 +1599,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    case(2)
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -1615,7 +1615,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    else
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -1637,7 +1637,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 							      
@@ -1656,7 +1656,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 					
@@ -1666,7 +1666,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 							
@@ -1685,7 +1685,7 @@ end if
 IMPDU(I,1:nof_variables)=MATMUL(impdiag(i,1:nof_variables,1:nof_variables),b1_imp(1:nof_variables))
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 end if
 	!loop elements
 
@@ -1743,7 +1743,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 				     				      
 		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		END IF	
 		
 		dummy12(1:nof_variables)=dummy12(1:nof_variables)+(matmul(IMPoff(i,l,1:nof_variables,1:nof_variables),du1(1:nof_variables)))
@@ -1807,7 +1807,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 								  					  
@@ -1828,7 +1828,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    LEFTV(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
@@ -1852,7 +1852,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    case(2)
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -1868,7 +1868,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    else
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -1886,7 +1886,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 							      
@@ -1905,7 +1905,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 					
@@ -1915,7 +1915,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 							
@@ -1937,7 +1937,7 @@ end if
 IMPDU(I,1:nof_variables)=matmul(impdiag(i,1:nof_variables,1:nof_variables),(b1_imp(1:nof_variables)-dummy12(1:nof_variables)))
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*&
+IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*&
 (b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-dummy12t(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
 
 
@@ -1969,7 +1969,7 @@ if (ielem(n,i)%interior.eq.0)then
                                         du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
                                                                                             
                                                     IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-                                                    DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+                                                    DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
                                                     END IF	
                                         
                                                                     dummy12(1:nof_variables)=dummy12(1:nof_variables)+(matmul(IMPoff(i,l,1:nof_variables,1:nof_variables),du1))
@@ -2034,7 +2034,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
                                                                                                                             DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
                                                                                                                                 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
                                                                                                                             
-                                                                                                                            DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+                                                                                                                            DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
                                                                                                                                 
                                                                                                                                 end if
                                                                                                                                                                 
@@ -2051,7 +2051,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
                                                                                                                     DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
                                                                                                                                 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
                                                                                                                             
-                                                                                                                            DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+                                                                                                                            DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
                                                                                                                                 
                                                                                                                                 end if
                                                                                                                     
@@ -2070,7 +2070,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
                                                                     
                                                                                                                 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
                                                                                                                 
-                                                                                                                DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+                                                                                                                DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
                                                                                                                 
                                                                                                                 end if
                                                                                         
@@ -2080,7 +2080,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
                                                                     
                                                                                                                 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
                                                                                                                 
-                                                                                                                DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+                                                                                                                DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
                                                                                                                 
                                                                                                                 end if
                                                                                                         
@@ -2108,7 +2108,7 @@ IMPDU(I,1:nof_variables)=IMPDU(I,1:nof_variables)-matmul(impdiag(i,1:nof_variabl
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 
-impdu(i,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdu(i,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)-&
+impdu(i,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdu(i,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)-&
 (impdiagt(i,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*dummy12t(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
 
 end if
@@ -2234,7 +2234,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 				     				      
 		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		END IF	
 		
 		B1_imp(1:nof_variables)=B1_imp(1:nof_variables)-MATMUL(IMPoff(1,L,1:nof_variables,1:nof_variables),DU1(1:nof_variables))
@@ -2260,7 +2260,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 								  					  
@@ -2281,7 +2281,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    LEFTV(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								    
@@ -2304,7 +2304,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    case(2)
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -2320,7 +2320,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    else
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -2338,7 +2338,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 							      
@@ -2357,7 +2357,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 					
@@ -2367,7 +2367,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 							
@@ -2387,7 +2387,7 @@ end if
 IMPDU(I,1:nof_variables)=MATMUL(impdiag(1,1:nof_variables,1:nof_variables),b1_imp(1:nof_variables))
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 end if
 END DO	!loop elements
 !$OMP end DO
@@ -2453,7 +2453,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 				     				      
 		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		END IF	
 		
 		dummy12(1:nof_variables)=dummy12(1:nof_variables)+(matmul(IMPoff(1,l,1:nof_variables,1:nof_variables),du1(1:nof_variables)))
@@ -2482,7 +2482,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 								  					  
@@ -2503,7 +2503,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    
 								    LEFTV(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
 								   
@@ -2526,7 +2526,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    case(2)
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -2542,7 +2542,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    else
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    
 								    
@@ -2560,7 +2560,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 							      
@@ -2579,7 +2579,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 					
@@ -2589,7 +2589,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 							
@@ -2612,7 +2612,7 @@ end if
 IMPDU(I,1:nof_variables)=matmul(impdiag(1,1:nof_variables,1:nof_variables),(b1_imp(1:nof_variables)-dummy12(1:nof_variables)))
 
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*&
+IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*&
 (b1t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-dummy12t(1:TURBULENCEEQUATIONS+PASSIVESCALAR))
 
 
@@ -2666,7 +2666,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 				     				      
 		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)   
+		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		END IF	
 		
 		    dummy12(1:nof_variables)=dummy12(1:nof_variables)+(matmul(IMPoff(1,l,1:nof_variables,1:nof_variables),du1))
@@ -2691,7 +2691,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 								  					  
@@ -2708,7 +2708,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								      
-								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 									
 									end if
 							      
@@ -2727,7 +2727,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 					
@@ -2737,7 +2737,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 	      	      
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								  
-								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								  
 								 end if
 							
@@ -2759,7 +2759,7 @@ end if
 IMPDU(I,1:nof_variables)=IMPDU(I,1:nof_variables)-matmul(impdiag(1,1:nof_variables,1:nof_variables),dummy12(1:nof_variables))
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 
-impdu(1,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(I,5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)&
+impdu(1,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)&
 -((impdiagt(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)*dummy12t(1:TURBULENCEEQUATIONS+PASSIVESCALAR)))
 
 end if

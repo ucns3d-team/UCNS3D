@@ -544,13 +544,13 @@ SOLS2=ZERO
 		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
 		CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
 
-	       SOLS1(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
+	       SOLS1(1:nof_Variables-1)=LEFTV(2:nof_Variables)
 
                DO IQ=1,imax
                 LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
 
 		CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
-	       SOLS2(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
+	       SOLS2(1:nof_Variables-1)=LEFTV(2:nof_Variables)
 
 
   	        MATRIX_1(iq,1:nof_Variables-1)=((SOLS2(1:nof_Variables-1)-SOLS1(1:nof_Variables-1)))
@@ -580,7 +580,7 @@ SOLS2=ZERO
 		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
 		CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
 
-	       SOLS1(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
+	       SOLS1(1:nof_Variables-1)=LEFTV(2:nof_Variables)
 
                DO IQ=1,imax
 		  IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
@@ -592,7 +592,7 @@ SOLS2=ZERO
 
 
 		  CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
-	       SOLS2(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
+	       SOLS2(1:nof_Variables-1)=LEFTV(2:nof_Variables)
 
 
   	        MATRIX_1(iq,1:nof_Variables-1)=((SOLS2(1:nof_Variables-1)-SOLS1(1:nof_Variables-1)))
@@ -1048,7 +1048,7 @@ if (dimensiona.eq.3)then
 
 	    leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 	    call CONS2div(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables-1)=leftv(1:nof_variables-1)
+	  SOLS1(1:nof_variables-1)=leftv(2:nof_variables)
 
 
 DO J=1,IELEM(N,I)%IFCA
@@ -1060,7 +1060,7 @@ DO J=1,IELEM(N,I)%IFCA
 
 			leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
 			call CONS2div(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables-1)=leftv(1:nof_variables-1)
+			SOLS2(1:nof_variables-1)=leftv(2:nof_variables)
 
  			DO K=1,dimensiona
  			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
@@ -1075,7 +1075,7 @@ eLSE
 
 				    leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 	    call cons2div(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables-1)=leftv(1:nof_variables-1)
+	  SOLS1(1:nof_variables-1)=leftv(2:nof_variables)
 
 
 DO J=1,IELEM(N,I)%IFCA
@@ -1086,7 +1086,7 @@ DO J=1,IELEM(N,I)%IFCA
 
 			leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
 			call cons2div(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables-1)=leftv(1:nof_variables-1)
+			SOLS2(1:nof_variables-1)=leftv(2:nof_variables)
 
 			DO K=1,2
 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
@@ -1156,7 +1156,7 @@ SOLS2=ZERO
 		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,1))%VAL(1,1:nof_Variables)
 		CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
 
-	       SOLS1(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
+	       SOLS1(1:nof_Variables-1)=LEFTV(2:nof_Variables)
 ! 	       SOLS1(1)=LEFTV(5)/(leftv(1)*R_gas)
 
 	      DO IQ=1,imax
@@ -1171,8 +1171,8 @@ SOLS2=ZERO
 	      end if
 
 		 CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
-	       SOLS2(1:nof_Variables-1)=LEFTV(1:nof_Variables-1)
-! 	       SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
+	       SOLS2(1:nof_Variables-1)=LEFTV(2:nof_Variables)
+! 	       !SOLS2(1)=LEFTV(5)/(LEFTV(1)*R_gas)
   	        MATRIX_1(1:nof_Variables-1,IQ)=(ILOCAL_RECON3(I)%VOLUME(1,IQ+1)*ilocal_recon3(i)%WEIGHTL(1,iq)*(SOLS2(1:nof_Variables-1)-SOLS1(1:nof_Variables-1)))
 
   	        !VELOCITY GRADIENTS
@@ -1241,7 +1241,7 @@ SOLS2=ZERO
 
 		DO VAR2=1,NOF_VARIABLES-1
 
-		 IF (VAR2.le.dimensiona)THEN
+		 IF (VAR2.le.dimensiona)THEN		!velocity gradients
 		 ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,1:IDEGFREE)=-TOLBIG
 		    IVVM=0
 		    DO TTK=1,NUMBER_OF_DOG
@@ -1293,7 +1293,7 @@ SOLS2=ZERO
 			  DO TTK=1,NUMBER_OF_DOG
 				    IF (TTK.NE.G0) &
 				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)*&
-						    ILOCAL_RECON3(I)%WALLCOEFG(VAR2,TTK)
+						    ILOCAL_RECON3(I)%WALLCOEFG(TTK)
 			  END DO
 			    ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
 			    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,G0)=ATTT
@@ -1302,14 +1302,14 @@ SOLS2=ZERO
 		IF (VAR2.gt.nof_Variables-nof_species-1)then
 		IVVM=0
 		    DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.EQ.G0) CYCLE
+				    IF (TTK.EQ.g0) CYCLE
 					  IVVM=IVVM+1
 					    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)=SOL_M(IVVM,VAR2)
 		    END DO
-		    ATTT=ZERO
+		    ATTT=zero
 
 			  DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.NE.G0) &
+				    IF (TTK.NE.g0) &
 				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)*&
 						    ILOCAL_RECON3(I)%WALLCOEFG(TTK)
 			  END DO
@@ -1355,7 +1355,7 @@ REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
-REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
+REAL,DIMENSION(1:nof_variables+turbulenceequations+PASSIVESCALAR)::CRIGHT_ROT,CLEFT_ROT
 INTEGER::IBFC
 
 
@@ -1425,11 +1425,11 @@ DO J=1,IELEM(N,I)%IFCA
 			      IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
 				  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
 				      IF (FASTEST.EQ.1)THEN
-					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
+					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
 					SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
 				      ELSE
 					SOLS2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
+					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
 					IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
 					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
 				      END IF
@@ -1437,11 +1437,11 @@ DO J=1,IELEM(N,I)%IFCA
 			      ELSE
 
 				      IF (FASTEST.EQ.1)THEN
-					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
+					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
 					SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
 				      ELSE
 					SOLS2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),6:5+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
+					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
 					IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
 					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
 				      END IF
@@ -1490,6 +1490,7 @@ DO J=1,IELEM(N,I)%IFCA
 				  !NOT PERIODIC ONES IN MY CPU
 
 				  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+				  N_NODE=2
 				  CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
 				  Pox(1)=CORDS(1);Poy(1)=CORDS(2);
 
@@ -1518,11 +1519,11 @@ DO J=1,IELEM(N,I)%IFCA
 			      IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
 				  if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5)then	!PERIODIC IN OTHER CPU
 				      IF (FASTEST.EQ.1)THEN
-					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)&
+					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)&
 					/SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
 				      ELSE
 					SOLS2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
+					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
 					IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
 					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
 				      END IF
@@ -1530,11 +1531,11 @@ DO J=1,IELEM(N,I)%IFCA
 			      ELSE
 
 				      IF (FASTEST.EQ.1)THEN
-					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)&
+					SOLS2(1:turbulenceequations+passivescalar)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)&
 					/SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1)
 				      ELSE
 					SOLS2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
+					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)/&
 					IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
 					(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1)
 				      END IF
@@ -1635,7 +1636,7 @@ SOLS2=ZERO
 		sols2(1:turbulenceequations+passivescalar)=U_Ct(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:turbulenceequations+passivescalar)/&
 		U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1)
 	    else
-		sols2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),6:5+turbulenceequations+passivescalar)/&
+		sols2(1:turbulenceequations+passivescalar)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),NOF_VARIABLES+1:NOF_VARIABLES+turbulenceequations+passivescalar)/&
 		IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1)
 	    END IF
 	      end if
@@ -1718,7 +1719,7 @@ REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
-REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
+REAL,DIMENSION(1:nof_variables+turbulenceequations+PASSIVESCALAR)::CRIGHT_ROT,CLEFT_ROT
 INTEGER::IBFC
 
 
@@ -1734,7 +1735,7 @@ OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
 
 	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 	    call CONS2div(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables-1)=leftv(1:nof_variables-1)
+	  SOLS1(1:nof_variables-1)=leftv(2:nof_variables)
 
 
 	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
@@ -1826,7 +1827,7 @@ DO J=1,IELEM(N,I)%IFCA
 
 			  leftv(1:nof_variables)=sols2(1:nof_variables)
 			call CONS2div(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables-1)=leftv(1:nof_variables-1)
+			SOLS2(1:nof_variables-1)=leftv(2:nof_variables)
 
 			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
 				sols2(dimensiona+1:NOF_VARIABLES-NOF_SPECIES-1)=wall_Temp
@@ -1857,7 +1858,7 @@ OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
 
 	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 	    call CONS2div(N,leftv,MP_PINFl,gammal)
-			SOLS1(1:nof_variables-1)=leftv(1:nof_variables-1)
+			SOLS1(1:nof_variables-1)=leftv(2:nof_variables)
 
 
 	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
@@ -1928,7 +1929,7 @@ DO J=1,IELEM(N,I)%IFCA
 
 			  leftv(1:nof_variables)=sols2(1:nof_variables)
 			call CONS2div(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables-1)=leftv(1:nof_variables-1)
+			SOLS2(1:nof_variables-1)=leftv(2:nof_variables)
 
 			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
 				sols2(dimensiona+1:NOF_VARIABLES-NOF_SPECIES-1)=wall_Temp
@@ -2003,7 +2004,7 @@ REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
-REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
+REAL,DIMENSION(1:nof_variables+turbulenceequations+PASSIVESCALAR)::CRIGHT_ROT,CLEFT_ROT
 INTEGER::IBFC
 
 if (rungekutta.eq.4)then
@@ -2026,7 +2027,7 @@ OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
 
 	  leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
 	    call CONS2div(N,leftv,MP_PINFl,gammal)
-	  SOLS1(1:nof_variables-1)=leftv(1:nof_variables-1)
+	  SOLS1(1:nof_variables-1)=leftv(2:nof_variables)
 
 
 
@@ -2113,7 +2114,7 @@ DO J=1,IELEM(N,I)%IFCA
 
 			  leftv(1:nof_variables)=sols2(1:nof_variables)
 			call CONS2div(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables-1)=leftv(1:nof_variables-1)
+			SOLS2(1:nof_variables-1)=leftv(2:nof_variables)
 
 
 			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
@@ -2201,7 +2202,7 @@ DO J=1,IELEM(N,I)%IFCA
 END DO
 
 			DO K=1,dimensiona
-			ILOCAL_RECON3(I)%GRADsav(1:nof_Variables-1,k)=sOLS_F(1:nof_Variables-1,K)
+			ILOCAL_RECON3(I)%GRADsav(1:nof_Variables-1,k)=sOLS_F(2:nof_Variables,K)
 			END DO
 
 

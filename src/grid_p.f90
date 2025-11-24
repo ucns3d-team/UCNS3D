@@ -6849,6 +6849,9 @@ SUBROUTINE ADAPT_CRITERION
 	real::xmin_ad,xmax_ad
 	  KMAXE=XMPIELRANK(N)
 
+          XMax_AD=-TOLbig
+          XMin_AD=TOLBIG
+
 	  if (initcond.eq.405)then
 	  xmin_ad=-0.2d0
 	  xmax_ad=0.2d0
