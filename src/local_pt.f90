@@ -1303,7 +1303,7 @@ i=iconsi
 		      dist1=distance3(n,vext)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
-!  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
+  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 		    end if
 	  end do
       else
@@ -1325,7 +1325,7 @@ i=iconsi
 		      dist1=distance3(n,vext)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1*2.0d0
-! 			IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
+ 			IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 		    end if
 		 end if
 		if ((ielem(n,i)%ineighg(k).gt.0).and.(ielem(n,i)%ibounds(k).eq.0))then	!non periodic boundaries 
@@ -1336,7 +1336,7 @@ i=iconsi
 		      dist1=distance3(n,vext)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
-!  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
+  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 		    end if
 		else						!from another cpu 
 		    DO In1=1,ielem(n,i)%iNUMNEIGHBOURS
@@ -1346,7 +1346,7 @@ i=iconsi
 		    vext(2,1)=ILOX_XXC(1,In1);vext(2,2)=ILOX_yyC(1,In1); vext(2,3)=ILOX_zzC(1,In1)
 		     dist1=distance3(n,vext)
 		    IELEM(N,i)%DIH(K)=dist1
-! 			IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
+ 			IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 				      end if
 			  end if
 		    end do
@@ -1385,7 +1385,7 @@ i=iconsi
 		    dist1=distance3(n,vext)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
-!  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
+  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 		    end if
 		else	!periodic boundaries from another cpu
 		     DO In1=1,ielem(n,i)%iNUMNEIGHBOURS
@@ -1420,7 +1420,7 @@ i=iconsi
 		    END IF
 		    dist1=distance3(n,vext)
 		    IELEM(N,i)%DIH(K)=dist1
-!  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
+  		    IELEM(N,i)%DIH2(K,1:DIMS)=VEXT(2,1:DIMS)-VEXT(1,1:DIMS)
 				end if
 			  end if
 		    end do
@@ -1863,6 +1863,7 @@ i=iconsi
 		      dist1=distance2(n,vext)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
+		     IELEM(N,i)%DIH2(K,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 		    end if
 	  end do
       else
@@ -1879,8 +1880,10 @@ i=iconsi
 		  VEXT(2,1:dims)=cords(1:dims)
 		  
 		      dist1=distance2(n,vext)
+
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1*2.0d0
+		    IELEM(N,i)%DIH2(K,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 		    end if
 		 end if
 		if ((ielem(n,i)%ineighg(k).gt.0).and.(ielem(n,i)%ibounds(k).eq.0))then	!non periodic boundaries 
@@ -1891,6 +1894,7 @@ i=iconsi
 		      dist1=distance2(n,vext)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
+		     IELEM(N,i)%DIH2(K,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 		    end if
 		else						!from another cpu 
 		    DO In1=1,IELEM(N,I)%iNUMNEIGHBOURS
@@ -1900,6 +1904,7 @@ i=iconsi
 		    vext(2,1)=ILOX_XXC(1,In1);vext(2,2)=ILOX_yyC(1,In1)
 		     dist1=distance2(n,vext)
 		    IELEM(N,i)%DIH(K)=dist1
+		    IELEM(N,i)%DIH2(K,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 				      end if
 			  end if
 		    end do
@@ -1920,6 +1925,7 @@ i=iconsi
 		    dist1=distance2(n,vext)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    IELEM(N,i)%DIH(K)=dist1
+		     IELEM(N,i)%DIH2(K,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 		    end if
 		else	!periodic boundaries from another cpu
 		     DO In1=1,IELEM(N,I)%iNUMNEIGHBOURS
@@ -1937,6 +1943,7 @@ i=iconsi
 		    
 		    dist1=distance2(n,vext)
 		    IELEM(N,i)%DIH(K)=dist1
+		    IELEM(N,i)%DIH2(K,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 				end if
 			  end if
 		    end do
@@ -2565,8 +2572,18 @@ tempg1=0.0;
     CALL COMPUTE_CENTRE2d(i,CORDS)
     vext(1,1:dims)=CORDS(1:dims)
       
-      
-      
+ielem(n,i)%inx=0      
+  if (ielem(n,i)%interior.eq.1)then
+        DO j=1,IELEM(N,I)%IFCA
+          if (ielem(n,i)%ibounds(J).gt.0)then
+              if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.1)then
+                
+              ielem(n,i)%inx=1
+
+                end if
+          END IF
+        END DO
+END IF    
      
 
   if (ielem(n,i)%interior.eq.1)then

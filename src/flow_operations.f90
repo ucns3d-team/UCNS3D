@@ -92,13 +92,17 @@ real,intent(inout)::MP_mu_mix,MP_ktr_mix,MP_kve,gammal
 real,dimension(1:nof_species),intent(inout)::MP_HTR,MP_HVIB,MP_D_eff
 real,dimension(1:nof_species)::RGS_htr_i, RGS_hvib_i
 real:: RGS_Ttr, RGS_Tv, RGS_P_pa, RGS_rho,RGS_mu_mix,MP_PINFl
-real, dimension(1:nof_SPECIES):: RGS_x, RGS_Y, RGS_Deff, RGS_mu_i, RGS_ktr_i
+real, dimension(1:nof_SPECIES):: RGS_x, RGS_Y, RGS_Deff, RGS_mu_i, RGS_ktr_i,tmp
 real, dimension(1:nof_SPECIES,1:nof_SPECIES):: RGS_Dij
-real ::RGS_ktr_mix, RGS_kve
+real ::RGS_ktr_mix, RGS_kve,sumx,sumY
 real,dimension(1:nof_variables)::temp_vect1,temp_vect2,temp_vect3,temp_vect4
-integer::rg_i
+integer::rg_i,k
+real, parameter :: epsY = 1.0d-20   ! floor for tiny/negative noise
+real, parameter :: epsx = 1.0d-20   ! floor for tiny/negative noise
+real, parameter :: tiny = 1.0d-300  ! protect against division by zero
 
 temp_vect1=leftv  !copy left vector
+temp_vect2=leftv
 
 CALL CONS2DIV(N,temp_vect1,MP_PINFl,gammal)
 
@@ -107,18 +111,35 @@ CALL CONS2DIV(N,temp_vect1,MP_PINFl,gammal)
 RGS_Ttr=temp_vect1(dimensiona+2)
 RGS_Tv=temp_vect1(dimensiona+3)
 
-RGS_Y(1:nof_SPECIES)=temp_vect1(nof_Variables-nof_species+1:nof_Variables)
+RGS_Y(1:nof_SPECIES)=temp_vect1(dimensiona+4:nof_Variables)
 
 
-!compute this one
-do rg_i=1,nof_species
-RGS_x(rg_i)=leftv(nof_Variables-nof_species+rg_i)/rg_molm(rg_i)
+
+! convert to mole-fraction *proportional* values
+do k = 1, nof_species
+    tmp(k) = RGS_Y(k) / RG_molm(k)
 end do
 
-rgs_x=rgS_x/sum(rgs_x)
+! normalise to get actual mole fractions
+sumx = 0.d0
+do k = 1, nof_species
+    sumx = sumx + tmp(k)
+end do
+
+if (sumx > tiny) then
+    do k = 1, nof_species
+        RGS_x(k) = tmp(k) / sumx
+    end do
+else
+    ! fallback if something is seriously wrong
+    do k = 1, nof_species
+        RGS_x(k) = 1.d0 / nof_species
+    end do
+end if
 
 
-temp_vect2=leftv
+
+
 
 
 call cons2prim(n,temp_Vect2,mp_pinfl,gammal)
@@ -152,106 +173,210 @@ END SUBROUTINE MULTISPECIES_MIXTURES_RG
 
 
 
-  subroutine COMPUTE_REAL_GAS_DIFFUSION(RGS_Ttr, RGS_Tv, RGS_P_pa, RGS_rho, RGS_x, RGS_Y, &
-                                     RGS_Dij, RGS_Deff, RGS_mu_i, RGS_mu_mix, RGS_ktr_i, RGS_ktr_mix, RGS_kve, &
-                                     RGS_htr_i, RGS_hvib_i)
-    implicit none
-    real, intent(in)  :: RGS_Ttr, RGS_Tv, RGS_P_pa, RGS_rho
-    real, intent(in)  :: RGS_x(5), RGS_Y(5)
-    real, intent(out) :: RGS_Dij(5,5), RGS_Deff(5), RGS_mu_i(5), RGS_mu_mix
-    real, intent(out) :: RGS_ktr_i(5), RGS_ktr_mix, RGS_kve
-    real, intent(out) :: RGS_htr_i(5), RGS_hvib_i(5)
-    call compute_binary_diffusion(RGS_Ttr, RGS_P_pa, RGS_Dij)
-    call compute_effective_diffusion(RGS_x, RGS_Dij, RGS_Deff)
-    call blottner_mu_species(RGS_Ttr, RGS_mu_i)
-    call wilke_mixture_viscosity(RGS_x, RGS_mu_i, RGS_mu_mix)
-    call eucken_ktr_species(RGS_mu_i, RGS_ktr_i)
-    call mason_saxena_ktr_mixture(RGS_x, RGS_ktr_i, RGS_ktr_mix)
-    call vibrational_conductivity(RGS_rho, RGS_Y, RGS_Deff, RGS_Tv, RGS_kve)
-    call htr_air5 (RGS_Ttr, RGS_htr_i)
-    call hvib_air5(RGS_Tv , RGS_hvib_i)
-  end subroutine COMPUTE_REAL_GAS_DIFFUSION
+  subroutine COMPUTE_REAL_GAS_DIFFUSION( RGS_Ttr, RGS_Tv, RGS_P_pa, RGS_rho, RGS_x, RGS_Y, &
+                                       RGS_Dij, RGS_Deff, RGS_mu_i, RGS_mu_mix, &
+                                       RGS_ktr_i, RGS_ktr_mix, RGS_kve, &
+                                       RGS_htr_i, RGS_hvib_i )
 
-
-function omega11_neufeld(RGS_Tstar) result(RGS_omega11)
-    implicit none
-    real, intent(in) :: RGS_Tstar
-    real :: RGS_omega11
-    real, parameter :: RGS_A=1.06036, RGS_B=0.15610, RGS_C=0.19300, RGS_D=0.47635, &
-                               RGS_E=1.03587, RGS_F=1.52996, RGS_G=1.76474, RGS_H=3.89411
-    RGS_omega11 = RGS_A / (RGS_Tstar**RGS_B) + RGS_C*exp(-RGS_D*RGS_Tstar) + RGS_E*exp(-RGS_F*RGS_Tstar) + RGS_G*exp(-RGS_H*RGS_Tstar)
-  end function omega11_neufeld
-
-     subroutine compute_binary_diffusion(RGS_T, RGS_P_pa, RGS_Dij)
   implicit none
-    real, intent(in)  :: RGS_T, RGS_P_pa
-    real, intent(out) :: RGS_Dij(5,5)
-    integer :: RGS_i, RGS_j
-    real :: RGS_sig_ij, RGS_epsk_ij, RGS_Tstar, RGS_omega, RGS_P_atm, RGS_denom
-    RGS_Dij = 0.0
-    RGS_P_atm = max(RGS_P_pa / RGS_Pa_per_atm, 1.0e-12)
-    do RGS_i = 1, 5
-      do RGS_j = RGS_i+1, 5
-        RGS_sig_ij  = 0.5*(RGS_sigmaA(RGS_i) + RGS_sigmaA(RGS_j))
-        RGS_epsk_ij = sqrt(RGS_eps_over_k(RGS_i) * RGS_eps_over_k(RGS_j))
-        RGS_Tstar   = max(RGS_T / RGS_epsk_ij, 1.0e-8)
-        RGS_omega   = omega11_neufeld(RGS_Tstar)
-        RGS_denom   = RGS_P_atm * (RGS_sig_ij**2) * RGS_omega * sqrt( 1.0/RGS_Mg(RGS_i) + 1.0/RGS_Mg(RGS_j) )
-        RGS_Dij(RGS_i,RGS_j) = (0.001858 * RGS_T**1.5) / max(RGS_denom,RGS_tiny) * RGS_cm2s_to_m2s
-        RGS_Dij(RGS_j,RGS_i) = RGS_Dij(RGS_i,RGS_j)
-      end do
-    end do
-  end subroutine compute_binary_diffusion
+  real, intent(in)  :: RGS_Ttr, RGS_Tv, RGS_P_pa, RGS_rho
+  real, intent(in)  :: RGS_x(5), RGS_Y(5)
+  real, intent(out) :: RGS_Dij(5,5), RGS_Deff(5)
+  real, intent(out) :: RGS_mu_i(5), RGS_mu_mix
+  real, intent(out) :: RGS_ktr_i(5), RGS_ktr_mix, RGS_kve
+  real, intent(out) :: RGS_htr_i(5), RGS_hvib_i(5)
 
-  subroutine compute_effective_diffusion(RGS_x, RGS_Dij, RGS_Deff)
+  ! ---- Binary diffusion ----
+  call compute_binary_diffusion( RGS_Ttr, RGS_P_pa, RGS_Dij )
+
+  ! ---- Mixture-average diffusion coefficient ----
+  call compute_effective_diffusion( RGS_x, RGS_Dij, RGS_Deff )
+
+  ! ---- Species viscosity (Blottner) ----
+  call blottner_mu_species( RGS_Ttr, RGS_mu_i )
+
+  ! ---- Mixture viscosity (Wilke) ----
+  call wilke_mixture_viscosity( RGS_x, RGS_mu_i, RGS_mu_mix )
+
+  ! ---- Species thermal conductivity (Eucken) ----
+  call eucken_ktr_species( RGS_mu_i, RGS_ktr_i )
+
+  ! ---- Mixture translational conductivity ----
+  call mason_saxena_ktr_mixture( RGS_x, RGS_ktr_i, RGS_ktr_mix )
+
+  ! ---- Vibrational conductivity ----
+  call vibrational_conductivity( RGS_rho, RGS_Y, RGS_Deff, RGS_Tv, RGS_kve )
+
+  ! ---- Species translational and vibrational enthalpy ----
+  call htr_air5 ( RGS_Ttr, RGS_htr_i )
+  call hvib_air5( RGS_Tv , RGS_hvib_i )
+
+end subroutine COMPUTE_REAL_GAS_DIFFUSION
+
+
+
+
+
+  function omega11_neufeld(RGS_Tstar) result(RGS_omega11)
   implicit none
-    real, intent(in)  :: RGS_x(5)
-    real, intent(in)  :: RGS_Dij(5,5)
-    real, intent(out) :: RGS_Deff(5)
-    integer :: RGS_i, RGS_j
-    real :: RGS_sumj
-    do RGS_i = 1, 5
-      RGS_sumj = 0.0
-      do RGS_j = 1, 5
-        if (RGS_j /= RGS_i) RGS_sumj = RGS_sumj + RGS_x(RGS_j) / max(RGS_Dij(RGS_i,RGS_j), RGS_tiny)
-      end do
-      RGS_Deff(RGS_i) = 1.0d0/max(rgs_sumj,1e-30)
-    end do
-  end subroutine compute_effective_diffusion
+  real, intent(in) :: RGS_Tstar
+  real             :: RGS_omega11
+  real, parameter  :: RGS_A=1.06036d0, RGS_B=0.15610d0, RGS_C=0.19300d0, RGS_D=0.47635d0, &
+                      RGS_E=1.03587d0, RGS_F=1.52996d0, RGS_G=1.76474d0, RGS_H=3.89411d0
+  real :: Tstar_eff
+
+  Tstar_eff = max(RGS_Tstar, 1.0d-6)   ! avoid 0^(-B) and tiny T*
+
+  RGS_omega11 = RGS_A / (Tstar_eff**RGS_B)                              &
+              + RGS_C*exp(-RGS_D*Tstar_eff)                             &
+              + RGS_E*exp(-RGS_F*Tstar_eff)                             &
+              + RGS_G*exp(-RGS_H*Tstar_eff)
+
+end function omega11_neufeld
+
+
+
+
+subroutine compute_binary_diffusion(RGS_T, RGS_P_pa, RGS_Dij)
+  implicit none
+  real, intent(in)  :: RGS_T, RGS_P_pa
+  real, intent(out) :: RGS_Dij(5,5)
+
+  integer :: i, j
+  real :: sig_ij, eps_ij, Tstar, omega, P_atm, denom
+  real, parameter :: tiny = 1d-30
+
+  RGS_Dij = 0.0d0
+
+  ! Pressure in atm
+  P_atm = max(RGS_P_pa / RGS_Pa_per_atm, 1d-12)
+
+  do i = 1, 5
+     do j = i+1, 5
+
+        sig_ij = 0.5d0 * (RGS_sigmaA(i) + RGS_sigmaA(j))
+        eps_ij = sqrt( RGS_eps_over_k(i) * RGS_eps_over_k(j) )
+
+        ! Non-dimensional temperature
+        Tstar  = max(RGS_T / eps_ij, 1d-6)
+        omega  = omega11_neufeld(Tstar)
+
+        denom = P_atm * sig_ij**2 * omega * sqrt(1.d0/RGS_Mg(i) + 1.d0/RGS_Mg(j))
+        denom = max(denom, tiny)
+
+        RGS_Dij(i,j) = (0.001858d0 * RGS_T**1.5d0) / denom * RGS_cm2s_to_m2s
+        RGS_Dij(j,i) = RGS_Dij(i,j)
+
+     end do
+  end do
+
+end subroutine compute_binary_diffusion
+
+
+
+
+
+
+
+
+
+
+ subroutine compute_effective_diffusion(RGS_x, RGS_Dij, RGS_Deff)
+  implicit none
+  real, intent(in)  :: RGS_x(5)
+  real, intent(in)  :: RGS_Dij(5,5)
+  real, intent(out) :: RGS_Deff(5)
+
+  integer :: i, j
+  real :: sumj, one_minus_xi, sumx
+  real :: xloc(5)
+  real, parameter :: tiny = 1d-20
+  real, parameter :: Dmin = 1d-10   ! lower bound on diffusivity [m^2/s]
+
+  ! Work on a local copy to enforce positivity and normalisation
+
+
+xloc(:) = RGS_x(:)
+
+! enforce positivity
+do i = 1, 5
+    if (xloc(i) < 0.d0) xloc(i) = 0.d0
+end do
+
+! enforce normalisation
+sumx = sum(xloc)
+if (sumx > tiny) then
+    xloc(:) = xloc(:) / sumx
+else
+    xloc(:) = 1.d0 / 5.d0
+end if
+
+  do i = 1, 5
+     sumj = 0.0d0
+
+     do j = 1, 5
+        if (j /= i) then
+           sumj = sumj + xloc(j) / max(RGS_Dij(i,j), tiny)
+        end if
+     end do
+
+     one_minus_xi = max(1.0d0 - xloc(i), 0.0d0)
+
+     if (one_minus_xi <= tiny .or. sumj <= tiny) then
+        ! Pure or nearly pure gas: use small floor (essentially no diffusive transport)
+        RGS_Deff(i) = Dmin
+     else
+        RGS_Deff(i) = one_minus_xi / sumj
+        RGS_Deff(i) = max(RGS_Deff(i), Dmin)
+     end if
+  end do
+
+end subroutine compute_effective_diffusion
+
+
 
    subroutine blottner_mu_species(RGS_T, RGS_mu)
   implicit none
-    real, intent(in)  :: RGS_T
-    real, intent(out) :: RGS_mu(5)
-    integer :: RGS_i
-    real :: RGS_lt
-    RGS_lt = log10(max(RGS_T,1.0))
-    do RGS_i = 1, 5
-      RGS_mu(RGS_i) = 1.0e-7 * 10.0**( RGS_aB(RGS_i)*RGS_lt*RGS_lt + RGS_bB(RGS_i)*RGS_lt + RGS_cB(RGS_i) )
-    end do
-  end subroutine blottner_mu_species
+  real, intent(in)  :: RGS_T
+  real, intent(out) :: RGS_mu(5)
+  integer :: i
+  real :: Tlog
+
+  Tlog = log10(max(RGS_T, 50.d0))
+
+  do i = 1, 5
+     RGS_mu(i) = 1.d-7 * 10.d0**( RGS_aB(i)*Tlog*Tlog + RGS_bB(i)*Tlog + RGS_cB(i) )
+     RGS_mu(i) = max(RGS_mu(i), 1d-12)
+  end do
+end subroutine blottner_mu_species
 
    subroutine wilke_mixture_viscosity(RGS_x, RGS_mu_i, RGS_mu_mix)
   implicit none
-    real, intent(in)  :: RGS_x(5), RGS_mu_i(5)
-    real, intent(out) :: RGS_mu_mix
-    integer :: RGS_i, RGS_j
-    real :: RGS_phi_ij, RGS_denom
-    RGS_mu_mix = 0.0
-    do RGS_i = 1, 5
-      RGS_denom = 0.0
-      do RGS_j = 1, 5
-        if (RGS_i == RGS_j) then
-          RGS_denom = RGS_denom + RGS_x(RGS_j)
+  real, intent(in)  :: RGS_x(5), RGS_mu_i(5)
+  real, intent(out) :: RGS_mu_mix
+  integer :: i, j
+  real :: phi_ij, denom
+
+  RGS_mu_mix = 0.d0
+
+  do i = 1, 5
+     denom = 0.d0
+
+     do j = 1, 5
+        if (i == j) then
+            denom = denom + RGS_x(j)
         else
-          RGS_phi_ij = ( 1.0 + sqrt(RGS_mu_i(RGS_i)/RGS_mu_i(RGS_j)) * (RG_MOLM(RGS_j)/RG_MOLM(RGS_i))**0.25 )**2 &
-                       / ( sqrt(8.0) * sqrt(1.0 + RG_MOLM(RGS_i)/RG_MOLM(RGS_j)) )
-          RGS_denom = RGS_denom + RGS_x(RGS_j) * RGS_phi_ij
+            phi_ij = ( 1.d0 + sqrt(RGS_mu_i(i)/RGS_mu_i(j)) * (RG_MOLM(j)/RG_MOLM(i))**0.25 )**2 &
+                     / ( sqrt(8.d0) * sqrt(1.d0 + RG_MOLM(i)/RG_MOLM(j)) )
+
+            denom = denom + RGS_x(j) * phi_ij
         end if
-      end do
-      RGS_mu_mix = RGS_mu_mix + RGS_x(RGS_i) * RGS_mu_i(RGS_i) / max(RGS_denom, RGS_tiny)
-    end do
-  end subroutine wilke_mixture_viscosity
+     end do
+
+     RGS_mu_mix = RGS_mu_mix + RGS_x(i) * RGS_mu_i(i) / max(denom, 1d-20)
+  end do
+
+end subroutine wilke_mixture_viscosity
 
    subroutine cp_tr_species(RGS_Cp_tr)
   implicit none
@@ -261,120 +386,143 @@ function omega11_neufeld(RGS_Tstar) result(RGS_omega11)
     do RGS_i = 1, 5
       RGS_Rspec = RGS_Ru / RG_MOLM(RGS_i)
       if (RGS_i <= 3) then
-        RGS_Cp_tr(RGS_i) = 3.5 * RGS_Rspec   ! diatomics: 7/2 R
+        RGS_Cp_tr(RGS_i) = 3.5d0 * RGS_Rspec   ! diatomics: 7/2 R
       else
-        RGS_Cp_tr(RGS_i) = 2.5 * RGS_Rspec   ! atoms:     5/2 R
+        RGS_Cp_tr(RGS_i) = 2.5d0 * RGS_Rspec   ! atoms:     5/2 R
       end if
     end do
   end subroutine cp_tr_species
 
    subroutine eucken_ktr_species(RGS_mu_i, RGS_ktr_i)
-   implicit none
-    real, intent(in)  :: RGS_mu_i(5)
-    real, intent(out) :: RGS_ktr_i(5)
-    integer :: RGS_i
-    real :: RGS_Rspec, RGS_Cp
-    do RGS_i = 1, 5
-      RGS_Rspec = RGS_Ru / RG_MOLM(RGS_i)
-      if (RGS_i <= 3) then
-        RGS_Cp = 3.5 * RGS_Rspec
-      else
-        RGS_Cp = 2.5 * RGS_Rspec
-      end if
-      RGS_ktr_i(RGS_i) = RGS_mu_i(RGS_i) * ( RGS_Cp + 1.25 * RGS_Rspec )
-    end do
-  end subroutine eucken_ktr_species
+  implicit none
+  real, intent(in)  :: RGS_mu_i(5)
+  real, intent(out) :: RGS_ktr_i(5)
 
-   subroutine mason_saxena_ktr_mixture(RGS_x, RGS_ktr_i, RGS_ktr_mix)
-   implicit none
-    real, intent(in)  :: RGS_x(5), RGS_ktr_i(5)
-    real, intent(out) :: RGS_ktr_mix
-    integer :: RGS_i, RGS_j
-    real :: RGS_psi_ij, RGS_denom
-    RGS_ktr_mix = 0.0
-    do RGS_i = 1, 5
-      RGS_denom = 0.0
-      do RGS_j = 1, 5
-        if (RGS_i == RGS_j) then
-          RGS_denom = RGS_denom + RGS_x(RGS_j)
+  integer :: i
+  real :: Rspec, Cp
+
+  do i = 1, 5
+     Rspec = RGS_Ru / RG_MOLM(i)
+
+     if (i <= 3) then
+         Cp = 3.5d0 * Rspec          ! diatomic
+         RGS_ktr_i(i) = RGS_mu_i(i) * (Cp + 1.25d0*Rspec)
+     else
+         Cp = 2.5d0 * Rspec          ! atomic
+         RGS_ktr_i(i) = RGS_mu_i(i) * (Cp + 1.50d0*Rspec)
+     end if
+
+  end do
+
+end subroutine eucken_ktr_species
+
+  subroutine mason_saxena_ktr_mixture(RGS_x, RGS_ktr_i, RGS_ktr_mix)
+  implicit none
+  real, intent(in)  :: RGS_x(5), RGS_ktr_i(5)
+  real, intent(out) :: RGS_ktr_mix
+
+  integer :: i, j
+  real :: psi_ij, denom
+
+  RGS_ktr_mix = 0.d0
+
+  do i = 1, 5
+     denom = 0.d0
+
+     do j = 1, 5
+        if (i == j) then
+            denom = denom + RGS_x(j)
         else
-          RGS_psi_ij = ( 1.0 + sqrt(RGS_ktr_i(RGS_i)/RGS_ktr_i(RGS_j)) * (RG_MOLM(RGS_j)/RG_MOLM(RGS_i))**0.25 )**2 &
-                       / ( sqrt(8.0) * sqrt(1.0 + RG_MOLM(RGS_i)/RG_MOLM(RGS_j)) )
-          RGS_denom = RGS_denom + RGS_x(RGS_j) * RGS_psi_ij
+            psi_ij = (1.d0 + sqrt(RGS_ktr_i(i)/RGS_ktr_i(j)) * (RG_MOLM(j)/RG_MOLM(i))**0.25 )**2 &
+                      / ( sqrt(8.d0) * sqrt(1.d0 + RG_MOLM(i)/RG_MOLM(j)) )
+
+            denom = denom + RGS_x(j) * psi_ij
         end if
-      end do
-      RGS_ktr_mix = RGS_ktr_mix + RGS_x(RGS_i) * RGS_ktr_i(RGS_i) / max(RGS_denom, RGS_tiny)
-    end do
-  end subroutine mason_saxena_ktr_mixture
+     end do
 
-  function RGS_cv_vibrational_diatomic(RGS_Tv, RGS_theta) result(RGS_cv)
+     RGS_ktr_mix = RGS_ktr_mix + RGS_x(i) * RGS_ktr_i(i) / max(denom, 1d-20)
+
+  end do
+
+end subroutine mason_saxena_ktr_mixture
+
+function RGS_cv_vibrational_diatomic(RGS_Tv, RGS_theta) result(RGS_cv)
   implicit none
-    real, intent(in) :: RGS_Tv, RGS_theta
-    real :: RGS_cv, RGS_x
-    if (RGS_Tv <= 1.0 .or. RGS_theta <= 0.0) then
-      RGS_cv = 0.0
+  real, intent(in) :: RGS_Tv, RGS_theta
+  real             :: RGS_cv, RGS_x, ex
+
+  if (RGS_Tv <= 1.0d0 .or. RGS_theta <= 0.0d0) then
+    RGS_cv = 0.0d0
+  else
+    RGS_x = RGS_theta / RGS_Tv
+    if (RGS_x > 60.0d0) then
+      ! Asymptotic form for large x: cv ∝ x^2 e^(-x)
+      RGS_cv = RGS_Ru * (RGS_x*RGS_x) * exp(-RGS_x)
     else
-      RGS_x = RGS_theta / RGS_Tv
-      RGS_cv = RGS_Ru * (RGS_x*RGS_x) * exp(RGS_x) / ( (exp(RGS_x) - 1.0)**2 )   ! J/mol-K
+      ex     = exp(RGS_x)
+      RGS_cv = RGS_Ru * (RGS_x*RGS_x) * ex / ( (ex - 1.0d0)**2 )
     end if
-  end function RGS_cv_vibrational_diatomic
+  end if
+end function RGS_cv_vibrational_diatomic
 
-   function RGS_hvib_species(RGS_Tv, RGS_theta, RGS_Mi) result(RGS_hv)
-   implicit none
-    real, intent(in) :: RGS_Tv, RGS_theta, RGS_Mi
-    real :: RGS_hv, RGS_x, RGS_Ri
-    logical  :: RGS_zpe
-    if (RGS_theta <= 0.0 .or. RGS_Tv <= 1.0) then
-      RGS_hv = 0.0
-      return
-    end if
-    RGS_Ri = RGS_Ru / RGS_Mi
-    RGS_x  = RGS_theta / RGS_Tv
-    RGS_hv = RGS_Ri * RGS_theta / (exp(RGS_x) - 1.0)
 
-  end function RGS_hvib_species
-
-  subroutine hvib_air5(RGS_Tv, RGS_hvib_i)
+function RGS_hvib_species(RGS_Tv, RGS_theta, RGS_Mi) result(RGS_hv)
   implicit none
-    real, intent(in)  :: RGS_Tv
-    real, intent(out) :: RGS_hvib_i(5)     ! J/kg
-    integer :: RGS_i
-    do RGS_i = 1, 5
-      RGS_hvib_i(RGS_i) = RGS_hvib_species(RGS_Tv, RG_thetaG(RGS_i), RG_MOLM(RGS_i))
-    end do
-  end subroutine hvib_air5
+  real, intent(in) :: RGS_Tv, RGS_theta, RGS_Mi
+  real             :: RGS_hv, RGS_x, RGS_Ri, ex
 
-!    subroutine htr_air5(RGS_Ttr, RGS_htr_i)
-!     implicit none
-!     real, intent(in)  :: RGS_Ttr
-!     real, intent(out) :: RGS_htr_i(5)     ! J/kg
-!     real :: RGS_Cp(5)
-!     call cp_tr_species(RGS_Cp)
-!     RGS_htr_i = RGS_Cp * RGS_Ttr
-!   end subroutine htr_air5
+  if (RGS_theta <= 0.0d0 .or. RGS_Tv <= 1.0d0) then
+    RGS_hv = 0.0d0
+    return
+  end if
+
+  RGS_Ri = RGS_Ru / RGS_Mi
+  RGS_x  = RGS_theta / RGS_Tv
+
+  if (RGS_x > 60.0d0) then
+     ! Asymptotic form: h_v ≈ R_i θ e^(-x)
+     RGS_hv = RGS_Ri * RGS_theta * exp(-RGS_x)
+  else
+     ex     = exp(RGS_x)
+     RGS_hv = RGS_Ri * RGS_theta / (ex - 1.0d0)
+  end if
+
+end function RGS_hvib_species
 
 
 
-  subroutine htr_air5(RGS_Ttr, RGS_htr_i)
+
+
+ subroutine hvib_air5(RGS_Tv, RGS_hvib_i)
+  implicit none
+  real, intent(in)  :: RGS_Tv
+  real, intent(out) :: RGS_hvib_i(5)     ! J/kg
+  integer :: RGS_i
+
+  do RGS_i = 1, 5
+    RGS_hvib_i(RGS_i) = RGS_hvib_species(RGS_Tv, RG_thetaG(RGS_i), RG_MOLM(RGS_i))
+  end do
+
+end subroutine hvib_air5
+
+
+
+
+
+
+subroutine htr_air5(RGS_Ttr, RGS_htr_i)
   implicit none
   real, intent(in)  :: RGS_Ttr
   real, intent(out) :: RGS_htr_i(5)
-  real :: RGS_Cp(5)
-  real :: RGS_h0_mass(5)
-  real, parameter :: Tref = 298.15   ! reference temperature (K)
+  real :: Cp(5), h0_mass(5)
   integer :: i
+  real, parameter :: Tref = 298.15d0
 
-  ! --- Compute constant translational Cp (mass basis, J/kg-K)
-  call cp_tr_species(RGS_Cp)
+  call cp_tr_species(Cp)
 
-  ! --- Convert formation enthalpies (J/mol -> J/kg)
   do i = 1, 5
-     RGS_h0_mass(i) = RG_hzero(i) / RG_MOLM(i)
-  end do
-
-  ! --- Species enthalpy = h0 + Cp * (T - Tref)
-  do i = 1, 5
-     RGS_htr_i(i) = RGS_h0_mass(i) + RGS_Cp(i) * (RGS_Ttr - Tref)
+     h0_mass(i)   = RG_hzero(i) / RG_MOLM(i)
+     RGS_htr_i(i) = h0_mass(i) + Cp(i) * (RGS_Ttr - Tref)
   end do
 
 end subroutine htr_air5
@@ -385,6 +533,31 @@ end subroutine htr_air5
 
 
 
+subroutine vibrational_conductivity(RGS_rho, RGS_Y, RGS_Deff, RGS_Tv, RGS_kve)
+  implicit none
+
+  real, intent(in)  :: RGS_rho, RGS_Y(5), RGS_Deff(5), RGS_Tv
+  real, intent(out) :: RGS_kve
+
+  real :: Cv_vib_mass(5)
+  integer :: i
+
+  do i = 1, 5
+     if (RG_thetaG(i) > 0.0d0) then
+        Cv_vib_mass(i) = RGS_cv_vibrational_diatomic(RGS_Tv, RG_thetaG(i)) / RG_MOLM(i)
+     else
+        Cv_vib_mass(i) = 0.0d0
+     end if
+  end do
+
+  RGS_kve = 0.0d0
+  do i = 1, 5
+     RGS_kve = RGS_kve + RGS_rho * RGS_Y(i) * RGS_Deff(i) * Cv_vib_mass(i)
+  end do
+
+  RGS_kve = max(RGS_kve, 0.0d0)
+
+end subroutine vibrational_conductivity
 
 
 
@@ -393,21 +566,6 @@ end subroutine htr_air5
 
 
 
-  subroutine vibrational_conductivity(RGS_rho, RGS_Y, RGS_Deff, RGS_Tv, RGS_kve)
-   implicit none
-    real, intent(in)  :: RGS_rho, RGS_Y(5), RGS_Deff(5), RGS_Tv
-    real, intent(out) :: RGS_kve
-    real :: RGS_cv_ve(5)     ! J/kg-K
-    integer :: RGS_i
-    do RGS_i = 1, 5
-      if (RG_thetaG(RGS_i) > 0.0) then
-        RGS_cv_ve(RGS_i) = RGS_cv_vibrational_diatomic(RGS_Tv, RG_thetaG(RGS_i)) / RG_MOLM(RGS_i)
-      else
-        RGS_cv_ve(RGS_i) = 0.0
-      end if
-    end do
-    RGS_kve = sum( RGS_rho * RGS_Y * RGS_Deff * RGS_cv_ve )
-  end subroutine vibrational_conductivity
 
 
 
@@ -2880,6 +3038,22 @@ OUTFLOW2d(1)=R
 OUTFLOW2d(2)=R*U
 OUTFLOW2d(3)=R*V
 OUTFLOW2d(4)=E
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 END IF
 
 END FUNCTION OUTFLOW2d
@@ -4284,9 +4458,13 @@ REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
 REAL,INTENT(IN)::ANGLE1,ANGLE2,NX,NY,NZ
 REAL,DIMENSION(TURBULENCEEQUATIONS),INTENT(INOUT)::CTURBL,CTURBR
 REAL,DIMENSION(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
-REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3,tempxv
-REAL::SPS,SKINS,IKINS,VEL,vnb
-REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
+REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3,tempxv,TEMPVECT1,TEMPVECT2
+REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR,u,v,w
+REAL::SPS,SKINS,IKINS,VEL,vnb,theeta,reeta
+REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
+REAL::MN,UN,AGRT,rho_g,rg_rmix,Rmix,T_g,Tv_g,rg_tr,RG_EV_TOTAL,RG_CHEM
+REAL,DIMENSION(1:NOF_SPECIES)::rho_s_g1,Y_s_g,RG_CVS
+integer::rg_i
 
 
 
@@ -4389,6 +4567,116 @@ SELECT CASE(B_CODE)
       rightv(1:nof_Variables)=leftv(1:nof_Variables)
       
      else
+
+      if (Realgas.eq.1)then
+
+
+
+                TEMPVECT1=LEFTV
+                 TEMPVECT2=LEFTV
+
+                call CONS2PRIM(N,TEMPVECT1,MP_PINFl,gammal)
+                AGRT=SQRT((TEMPVECT1(5)+MP_PINFL)*GAMMAl/TEMPVECT1(1))
+                U=TEMPVECT1(2)
+                V=TEMPVECT1(3)
+                w=TEMPVECT1(4)
+                un  = U*nx + V*ny +w*nz
+
+
+                call cons2div(N,TEMPVECT2,MP_PINFl,gammal)
+
+
+                if (un.lt.0.0d0)then
+
+                rightv=leftv
+
+
+                else
+
+
+
+                Mn  = un / AGRT
+
+                if (Mn >= 1.0D0) then
+                    ! Supersonic outflow: copy state
+                    rightv(1:nof_Variables)=leftv(1:nof_Variables)
+                else
+                    ! Subsonic pressure outflow
+                    rho_g   = TEMPVECT1(1)
+                    !rho_s_g1(1:nof_SPECIES) = TEMPVECT1(dimensiona+4:nof_Variables)
+                    Y_s_g(1:nof_SPECIES)   = TEMPVECT1(dimensiona+4:nof_Variables)
+
+                  rg_rmix=zero
+                    do rg_i=1,nof_species
+                      rg_rmix=rg_rmix+Y_s_g(rg_i)/RG_MOLM(rg_i)
+                    end do
+
+
+
+              rg_rmix=RGS_Ru*rg_rmix
+
+
+
+
+                    Rmix    = rg_rmix
+                    T_g     = PRES / (rho_g * Rmix)
+
+                    Tv_g    = TEMPVECT2(6)              ! simple extrapolation
+
+                      ! Translational-rotational internal energy
+                    rg_tr = 0.0D0
+                        do rg_i = 1, nof_species
+                          if (rg_i <= 3) then
+                            RG_CVS(rg_i) = (5.0D0 / 2.0D0) *  RGS_Ru / RG_MOLM(rg_i)
+                          else
+                            RG_CVS(rg_i) = (3.0D0 / 2.0D0) *  RGS_Ru / RG_MOLM(rg_i)
+                          end if
+                          rg_tr = rg_tr + Y_s_g(rg_i) * RG_CVS(rg_i) * T_g
+                        end do
+
+                    ! Vibrational energy
+                        RG_EV_TOTAL= 0.0D0
+                        do rg_i = 1, 3
+                          RG_EV_TOTAL = RG_EV_TOTAL + Y_s_g(rg_i)  * (RGS_Ru / RG_MOLM(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/Tv_g) - 1.0D0))
+                        end do
+
+                    RG_CHEM=zero
+
+                        ! Chemical energy
+                    do rg_i=1,nof_species
+                            if (rg_hzero(RG_i).gt.1.0e-12)then
+                            RG_CHEM=RG_CHEM-(Y_s_g(rg_i)*rg_hzero(RG_i)/RG_MOLM(rg_i))
+                            end if
+                    END DO
+
+                      !RG_CHEM=zero  !set it to zero for testing
+                    ! Kinetic energy
+
+
+                    SKIN1=(oo2)*((U**2)+(V**2))
+
+                      RIGHTV(1)=rho_g
+                      RIGHTV(2)=rho_g*U
+                      RIGHTV(3)=rho_g*V
+                      RIGHTV(4)=rho_g*w
+                      RIGHTV(5)=rho_g*(RG_EV_TOTAL+RG_TR+RG_CHEM+skin1)
+                      RIGHTV(6)=rho_g*RG_EV_TOTAL
+
+
+                      do rg_i=1,nof_species
+                      RIGHTV(6+rg_i)=rho_g * Y_s_g(rg_i)
+                      end do
+
+                  end if
+                  end if
+
+
+                  else
+
+
+
+
+
      
      rightv(1:nof_Variables)=OUTFLOW(INITCOND,pox,poy,poz)
      CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
@@ -4426,7 +4714,7 @@ SELECT CASE(B_CODE)
      
     end if
     end if
-
+  end if
     
     
       IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
@@ -4800,10 +5088,15 @@ REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
 REAL,INTENT(IN)::ANGLE1,ANGLE2,NX,NY,NZ
 REAL,DIMENSION(TURBULENCEEQUATIONS),INTENT(INOUT)::CTURBL,CTURBR
 REAL,DIMENSION(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR),INTENT(INOUT)::CRIGHT_ROT,CLEFT_ROT
-REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3,tempxv
-REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
+REAL,DIMENSION(1:NOF_VARIABLES)::SUBSON1,SUBSON2,SUBSON3,tempxv,TEMPVECT1,TEMPVECT2
+REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR,u,v
 REAL::SPS,SKINS,IKINS,VEL,vnb,theeta,reeta
 REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
+REAL::MN,UN,AGRT,rho_g,rg_rmix,Rmix,T_g,Tv_g,rg_tr,RG_EV_TOTAL,RG_CHEM
+REAL,DIMENSION(1:NOF_SPECIES)::rho_s_g1,Y_s_g,RG_CVS
+integer::rg_i
+
+
 
 
 
@@ -4909,40 +5202,147 @@ SELECT CASE(B_CODE)
       
      else
      
-     rightv(1:nof_Variables)=OUTFLOW2d(INITCOND,pox,poy)
-     CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-    
-    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
-    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-     
-     SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
-    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
-     
-    SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
-    
-    CALL PRIM2CONS2(N,LEFTV,RIGHTV)
-    
-    IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
-    rightv(1:nof_Variables)=leftv(1:nof_Variables)
-    
-    
-      Else
-    SUBSON3(4)=SUBSON1(4)
-    SUBSON3(1)=SUBSON2(1)+(SUBSON3(4)-SUBSON2(4))/(SPS**2)
-    SUBSON3(2)=SUBSON2(2)+(NX*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
-    SUBSON3(3)=SUBSON2(3)+(NY*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
-    
-! 							
-    rightv(1)=SUBSON3(1)
-    rightv(2)=SUBSON3(2)*SUBSON3(1)
-    rightv(3)=SUBSON3(3)*SUBSON3(1)
-    
-    SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
-    IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
-    rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
-     
-     
-    end if
+
+
+
+
+                if (Realgas.eq.1)then
+
+
+
+                TEMPVECT1=LEFTV
+                 TEMPVECT2=LEFTV
+
+                call CONS2PRIM(N,TEMPVECT1,MP_PINFl,gammal)
+                AGRT=SQRT((TEMPVECT1(4)+MP_PINFL)*GAMMAl/TEMPVECT1(1))
+                U=TEMPVECT1(2)
+                V=TEMPVECT1(3)
+                un  = U*nx + V*ny
+
+
+                call cons2div(N,TEMPVECT2,MP_PINFl,gammal)
+
+
+                if (un.lt.0.0d0)then
+
+                rightv=leftv
+
+
+                else
+
+
+
+                Mn  = un / AGRT
+
+                if (Mn >= 1.0D0) then
+                    ! Supersonic outflow: copy state
+                    rightv(1:nof_Variables)=leftv(1:nof_Variables)
+                else
+                    ! Subsonic pressure outflow
+                    rho_g   = TEMPVECT1(1)
+                    !rho_s_g1(1:nof_SPECIES) = TEMPVECT1(dimensiona+4:nof_Variables)
+                    Y_s_g(1:nof_SPECIES)   = TEMPVECT1(dimensiona+4:nof_Variables)
+
+                  rg_rmix=zero
+                    do rg_i=1,nof_species
+                      rg_rmix=rg_rmix+Y_s_g(rg_i)/RG_MOLM(rg_i)
+                    end do
+
+
+
+              rg_rmix=RGS_Ru*rg_rmix
+
+
+
+
+                    Rmix    = rg_rmix
+                    T_g     = PRES / (rho_g * Rmix)
+
+                    Tv_g    = TEMPVECT2(5)              ! simple extrapolation
+
+                      ! Translational-rotational internal energy
+                    rg_tr = 0.0D0
+                        do rg_i = 1, nof_species
+                          if (rg_i <= 3) then
+                            RG_CVS(rg_i) = (5.0D0 / 2.0D0) *  RGS_Ru / RG_MOLM(rg_i)
+                          else
+                            RG_CVS(rg_i) = (3.0D0 / 2.0D0) *  RGS_Ru / RG_MOLM(rg_i)
+                          end if
+                          rg_tr = rg_tr + Y_s_g(rg_i) * RG_CVS(rg_i) * T_g
+                        end do
+
+                    ! Vibrational energy
+                        RG_EV_TOTAL= 0.0D0
+                        do rg_i = 1, 3
+                          RG_EV_TOTAL = RG_EV_TOTAL + Y_s_g(rg_i)  * (RGS_Ru / RG_MOLM(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/Tv_g) - 1.0D0))
+                        end do
+
+                    RG_CHEM=zero
+
+                        ! Chemical energy
+                    do rg_i=1,nof_species
+                            if (rg_hzero(RG_i).gt.1.0e-12)then
+                            RG_CHEM=RG_CHEM-(Y_s_g(rg_i)*rg_hzero(RG_i)/RG_MOLM(rg_i))
+                            end if
+                    END DO
+
+                      !RG_CHEM=zero  !set it to zero for testing
+                    ! Kinetic energy
+
+
+                    SKIN1=(oo2)*((U**2)+(V**2))
+
+                      RIGHTV(1)=rho_g
+                      RIGHTV(2)=rho_g*U
+                      RIGHTV(3)=rho_g*V
+                      RIGHTV(4)=rho_g*(RG_EV_TOTAL+RG_TR+RG_CHEM+skin1)
+                      RIGHTV(5)=rho_g*RG_EV_TOTAL
+
+
+                      do rg_i=1,nof_species
+                      RIGHTV(5+rg_i)=rho_g * Y_s_g(rg_i)
+                      end do
+
+                  end if
+                  end if
+
+                  else
+                        rightv(1:nof_Variables)=OUTFLOW2d(INITCOND,pox,poy)
+                        CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+
+                        SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+                        SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
+
+                        SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+                        VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
+
+                        SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+
+                        CALL PRIM2CONS2(N,LEFTV,RIGHTV)
+
+                        IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
+                        rightv(1:nof_Variables)=leftv(1:nof_Variables)
+
+
+                          Else
+                        SUBSON3(4)=SUBSON1(4)
+                        SUBSON3(1)=SUBSON2(1)+(SUBSON3(4)-SUBSON2(4))/(SPS**2)
+                        SUBSON3(2)=SUBSON2(2)+(NX*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+                        SUBSON3(3)=SUBSON2(3)+(NY*(SUBSON2(4)-SUBSON3(4)))/(SPS*SUBSON2(1))
+
+                    !
+                        rightv(1)=SUBSON3(1)
+                        rightv(2)=SUBSON3(2)*SUBSON3(1)
+                        rightv(3)=SUBSON3(3)*SUBSON3(1)
+
+                        SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
+                        IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
+                        rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
+
+
+                        end if
+
+                  end if
     end if
 
     
@@ -5128,18 +5528,18 @@ SELECT CASE(B_CODE)
 			       CALL ROTATEF2D(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
 			      
 			      
-			      IF ((multispecies.EQ.1).or.(realgas.eq.1))then
-			          CRIGHT_ROT(:)=CLEFT_ROT(:)
-			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
-			      
-			      
-			      else
-				 CRIGHT_ROT(:)=CLEFT_ROT(:)
-         		      CRIGHT_ROT(1)=CLEFT_ROT(1)
-			      CRIGHT_ROT(2)=-CLEFT_ROT(2)
-			      CRIGHT_ROT(3)=CLEFT_ROT(3)
-			      CRIGHT_ROT(4)=CLEFT_ROT(4)
-			      end if
+                      IF ((multispecies.EQ.1).or.(realgas.eq.1))then
+                          CRIGHT_ROT(:)=CLEFT_ROT(:)
+                      CRIGHT_ROT(2)=-CLEFT_ROT(2)
+
+
+                      else
+                    CRIGHT_ROT(:)=CLEFT_ROT(:)
+                          CRIGHT_ROT(1)=CLEFT_ROT(1)
+                      CRIGHT_ROT(2)=-CLEFT_ROT(2)
+                      CRIGHT_ROT(3)=CLEFT_ROT(3)
+                      CRIGHT_ROT(4)=CLEFT_ROT(4)
+                      end if
 			     
 			      
 					 
@@ -5168,7 +5568,7 @@ SELECT CASE(B_CODE)
 			      rightv(2)=-leftv(2)
 			      rightv(3)=-leftv(3)
 			      
-			      rightv(4)=leftv(4)
+! 			      rightv(4)=leftv(4)
     
 
     

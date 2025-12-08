@@ -1103,6 +1103,7 @@ END DO
 
 
 SKIN1=(oo2)*((U1**2)+(V1**2))
+r1=p1/(rg_rmix*rg_ttr0)
 
   VECCOS(1)=R1
   VECCOS(2)=R1*U1

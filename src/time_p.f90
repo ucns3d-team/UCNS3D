@@ -534,7 +534,7 @@ KMAXE=XMPIELRANK(N)
 
 
 
-		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
+	        !	AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
 		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
 		
 		
@@ -2553,22 +2553,65 @@ END SUBROUTINE CALL_FLUX_SUBROUTINES_3D
 subroutine normalise_species(n)
 implicit none
 integer,intent(in)::n
-integer::i,j,rg_i,kmaxe
+integer::i,j,rg_i,kmaxe,k
+real::epsY,sumy,rho
+real,dimension(1:nof_species)::rhoY,y
 
 
 
 KMAXe=XMPIELRANK(N)
+
+
+epsY = 1.0d-14   ! small tolerance for sumY
 !$OMP DO
-do i=1,kmaxe
-  DO RG_I = 1, nof_species
-     IF (U_C(I)%VAL(1,dimensiona+3+RG_I).LT.0.0D0)THEN
-        U_C(I)%VAL(1,dimensiona+3+RG_I)=0.0D0
-     END IF
-  END DO
+do I = 1, KMAXE
+
+
+
+    rho = 0.d0
+do k = 1, NOF_SPECIES
+   rho = rho + u_c(i)%val(1,dimensiona+3+k)
+   rhoY(k)=u_c(i)%val(1,dimensiona+3+k)
+end do
+
+
+!if (abs(rho-u_c(i)%val(1,1)).gt.10e-15)then
+!  write(140+n,*)it,ielem(n,i)%ihexgl,abs(rho-u_c(i)%val(1,1))
+
+!end if
+
+! Optionally enforce a floor
+u_c(i)%val(1,1)=rho
+
+! Recompute mass fractions
+sumY = 0.d0
+do k = 1, NOF_SPECIES
+   Y(k) = rhoY(k) / rho
+   if (Y(k) < 0.d0) Y(k) = 0.d0   ! small clip if needed
+   sumY = sumY + Y(k)
+end do
+
+! Optional renormalisation of Y
+if (abs(sumY - 1.d0) > 1.d-8 .and. sumY > 1.d-12) then
+   do k = 1, NOF_SPECIES
+      Y(k) = Y(k)/sumY
+      rhoY(k) = rho * Y(k)
+   end do
+else
+   do k = 1, NOF_SPECIES
+      rhoY(k) = rho * Y(k)
+   end do
+end if
+
+
+do k = 1, NOF_SPECIES
+   u_c(i)%val(1,dimensiona+3+k)=rhoY(k)
+end do
+
 
 
 end do
-!$OMP END DO
+! !$OMP END DO
 
 
 end subroutine normalise_species
@@ -4839,7 +4882,7 @@ DO
           if (dg.eq.1)call SOL_INTEG_DG(N)
 
           IF (REALGAS.EQ.1) CALL normalise_species(N)
-
+          
 
 
 ! Increment time
@@ -4851,7 +4894,16 @@ DO
     ELSE
         T=T+DT
         tz1=tz1+DT
-    END IF
+
+end if    
+     IF (REALGAS.EQ.1)THEN
+                IF (IT.GT.2000)THEN
+                    cfl=0.01
+                END IF
+
+          END IF
+        
+
 
 
           IF (DG.EQ.1)THEN
@@ -4929,7 +4981,15 @@ DO
             END IF
             END IF
 
+        IF (TIMEC4.GE.IEVERY2)THEN
+			    CALL CHECKPOINTING
+			      IF (AVERAGING.EQ.1)THEN
+				CALL CHECKPOINTING_av
+			      END IF
 
+			  CPUT5=MPI_WTIME()
+
+			END IF
 
 
 ! Check end condition

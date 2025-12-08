@@ -1030,10 +1030,10 @@ SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,
 !> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2,dudl,aver1
+REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2,dudl,aver1,phi_f
 REAL,DIMENSION(1:nof_variables,dimensiona)::SOLS_F
-REAL,DIMENSION(3)::NORMAL_ALL
-REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2
+REAL,DIMENSION(3)::NORMAL_ALL,dih_vec,dih,e_ih,Sf
+REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2,Aorth
 INTEGER::I,J,K,L
 real,dimension(1:nof_Variables)::leftv
 
@@ -1084,14 +1084,46 @@ DO J=1,IELEM(N,I)%IFCA
 				NORMAL_ALL(1)=angle1
 				NORMAL_ALL(2)=ANGLE2
 
+
+				dih_vec(1:dimensiona)=IELEM(N,i)%DIH2(j,1:dimensiona)
+				dih=IELEM(N,i)%DIH(j)
+				e_ih(1:dimensiona)=dih_vec(1:dimensiona)/dih
+
 			leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(1,1:nof_variables)
 			call cons2div(N,leftv,MP_PINFl,gammal)
 			SOLS2(1:nof_variables-1)=leftv(2:nof_variables)
 
-			DO K=1,2
-			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+! 			DO K=1,2
+! 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+!
+! 			END DO
 
-			END DO
+
+
+					! Build face area vector
+					DO K = 1, dimensiona
+					Sf(K) = NORMAL_ALL(K) * IELEM(N,I)%SURF(J)
+					END DO
+
+					! Orthogonal projected area along centroid-to-centroid line
+					Aorth = 0.0d0
+					DO K = 1, dimensiona
+					Aorth = Aorth + Sf(K) * e_ih(K)
+					END DO
+
+					! Face value: still simple average here
+					phi_f(1:nof_variables) = OO2*(SOLS1(1:nof_variables) + SOLS2(1:nof_variables))
+
+					! Accumulate orthogonal GG contribution
+					DO K = 1, dimensiona
+					SOLS_F(1:nof_variables,K) = SOLS_F(1:nof_variables,K) + &
+						phi_f(1:nof_variables) * Aorth * e_ih(K) * OOV2
+					END DO
+
+
+
+
+
 END DO
 
 			DO K=1,dimensiona
@@ -1186,6 +1218,11 @@ SOLS2=ZERO
   	        END IF
 
 
+   	        if (CATALYTIC_WALL.EQ.1)THEN
+   	        MATRIX_1(dimensiona+3:nof_Variables-1,IQ)=MATRIX_1(dimensiona+3:nof_Variables-1,IQ)+((SOLs1(dimensiona+3:nof_Variables-1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,k0))/ILOCAL_RECON3(I)%WALLCOEFF(k0))-(((CATaLYTIC_CON(1:NOF_SPECIES))*ILOCAL_RECON3(I)%STENCILS(LL,IQ,k0))/ILOCAL_RECON3(I)%WALLCOEFF(k0))
+   	        END IF
+
+
 
 		END DO
 		matrix_3(:)=zero
@@ -1194,7 +1231,7 @@ SOLS2=ZERO
 
 		DO VAR2=1,nof_Variables-1
 		  MATRIX_2=ZERO
-		  IF (VAR2.le.dimensiona)THEN
+		  IF (VAR2.le.dimensiona)THEN		!velocity gradients
 		  DO IQ=1,imax
 
 		      do lq=1,NUMBER_OF_DOG-1
@@ -1203,7 +1240,7 @@ SOLS2=ZERO
 
 		  END DO
 		  end if
-		  IF ((VAR2.gt.dimensiona).and.(var2.le.nof_Variables-nof_species-1))then
+		  IF ((VAR2.gt.dimensiona).and.(var2.le.nof_Variables-nof_species-1))then	!temperature gradients
 		  DO IQ=1,imax
 		     do lq=1,NUMBER_OF_DOG-1
 		     if (thermal.eq.1)then
@@ -1214,10 +1251,16 @@ SOLS2=ZERO
 		      end do
 		  END DO
 		  end if
-		   IF (VAR2.gt.nof_Variables-nof_species-1)then
+		   IF (VAR2.gt.nof_Variables-nof_species-1)then					!species
 		   DO IQ=1,imax
 		     do lq=1,NUMBER_OF_DOG-1
+
+		     if (CATALYTIC_WALL.eq.1)then
+		      MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%VELLSQ(IQ,LQ)
+		     else
 			MATRIX_2(VAR2,lq)=matrix_2(var2,lq)+MATRIX_1(VAR2,iq)*ILOCAL_RECON3(I)%TEMPSQ(IQ,LQ)
+			end if
+
 		      end do
 		  END DO
 		   end if
@@ -1234,7 +1277,14 @@ SOLS2=ZERO
 		end if
 
 		IF (VAR2.gt.nof_Variables-nof_species-1)then
+
+		if (CATALYTIC_WALL.eq.1)then
+			SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%VELINVLSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
+
+		else
+
 		SOL_M(1:NUMBER_OF_DOG-1,VAR2)=MATMUL(ILOCAL_RECON3(I)%TEMPSQMAT(1:NUMBER_OF_DOG-1,1:NUMBER_OF_DOG-1),MATRIX_2(VAR2,1:NUMBER_OF_DOG-1))
+		end if
 		end if
 
 	     END DO
@@ -1262,7 +1312,7 @@ SOLS2=ZERO
 
 		END IF
 
-		IF ((VAR2.gt.dimensiona).and.(var2.le.nof_Variables-nof_species-1))then
+		IF ((VAR2.gt.dimensiona).and.(var2.le.nof_Variables-nof_species-1))then	!temperature gradients
 		if (thermal.eq.1)then
 		ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,1:IDEGFREE)=-TOLBIG
 		    IVVM=0
@@ -1299,25 +1349,51 @@ SOLS2=ZERO
 			    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,G0)=ATTT
 		END IF
 		END IF
-		IF (VAR2.gt.nof_Variables-nof_species-1)then
-		IVVM=0
+		IF (VAR2.gt.nof_Variables-nof_species-1)then				!species gradients
+
+			if (CATALYTIC_WALL.eq.1)then
+		ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,1:IDEGFREE)=-TOLBIG
+		    IVVM=0
 		    DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.EQ.g0) CYCLE
+				    IF (TTK.EQ.K0) CYCLE
 					  IVVM=IVVM+1
 					    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)=SOL_M(IVVM,VAR2)
-		    END DO
-		    ATTT=zero
-
+		  END DO
+		  ATTT=ZERO
+		  ATTT=CATaLYTIC_CON(var2-dimensiona-2)-SOLS1(VAR2)
 			  DO TTK=1,NUMBER_OF_DOG
-				    IF (TTK.NE.g0) &
+				    IF (TTK.NE.K0) &
 				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)*&
-						    ILOCAL_RECON3(I)%WALLCOEFG(TTK)
+						    ILOCAL_RECON3(I)%WALLCOEFF(TTK)
 			  END DO
-			    ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
-			    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,G0)=ATTT
+			    ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFF(K0)
+			    ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,K0)=ATTT
 
+		ELSE
+
+
+
+			IVVM=0
+				DO TTK=1,NUMBER_OF_DOG
+						IF (TTK.EQ.g0) CYCLE
+						IVVM=IVVM+1
+							ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)=SOL_M(IVVM,VAR2)
+				END DO
+				ATTT=zero
+
+				DO TTK=1,NUMBER_OF_DOG
+						IF (TTK.NE.g0) &
+					ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)*&
+								ILOCAL_RECON3(I)%WALLCOEFG(TTK)
+				END DO
+					ATTT=ATTT/ILOCAL_RECON3(I)%WALLCOEFG(G0)
+					ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,G0)=ATTT
+
+		end if
 
 		END IF
+
+
 		END DO
 
 
@@ -1709,18 +1785,20 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NU
 !> This subroutine computes the gradients of the primitive variables of each non-interior cell using the Green-Gauss algorithm
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
-REAL,DIMENSION(nof_variables)::SOLS1,SOLS2,dudl,aver1
-REAL,DIMENSION(nof_variables,3)::SOLS_F
-REAL,DIMENSION(3)::NORMAL_ALL
-REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2,NX,NY,NZ
+REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2,dudl,aver1
+REAL,DIMENSION(1:nof_variables,3)::SOLS_F
+REAL,DIMENSION(3)::NORMAL_ALL,dih_vec,dih,e_ih,Sf
+REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2,NX,NY,NZ,Aorth
 INTEGER::I,J,K,L,B_CODE,FACEX,N_NODE,imax
-real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,rightv
+real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,rightv,phi_f
 REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
 REAL,DIMENSION(1:nof_variables+turbulenceequations+PASSIVESCALAR)::CRIGHT_ROT,CLEFT_ROT
 INTEGER::IBFC
+
+
 
 
 
@@ -1753,6 +1831,11 @@ DO J=1,IELEM(N,I)%IFCA
 				NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
 				NORMAL_ALL(3)=(COS(ANGLE2))
 				nx=NORMAL_ALL(1);ny=NORMAL_ALL(2);nz=NORMAL_ALL(3)
+
+				dih_vec(1:dimensiona)=IELEM(N,i)%DIH2(j,1:dimensiona)
+				dih=IELEM(N,i)%DIH(j)
+				e_ih(1:dimensiona)=dih_vec(1:dimensiona)/dih
+
 
 			IF (ILOCAL_RECON3(Iconsidered)%MRF.EQ.1)THEN
 			!RETRIEVE ROTATIONAL VELOCITY IN CASE OF ROTATING REFERENCE FRAME TO CALCULATE
@@ -1833,12 +1916,37 @@ DO J=1,IELEM(N,I)%IFCA
 				sols2(dimensiona+1:NOF_VARIABLES-NOF_SPECIES-1)=wall_Temp
 			END IF
 
+			IF ((B_CODE.EQ.4).and.(CATALYTIC_WALL.eq.1))THEN
+				sols2(dimensiona+3:nof_Variables-1)=CATaLYTIC_CON(1:nof_species)
+			END IF
 
 
-			DO K=1,dimensiona
-			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 
-			END DO
+!
+! 			DO K=1,dimensiona
+! 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+!
+! 			END DO
+
+			! Build face area vector
+					DO K = 1, dimensiona
+					Sf(K) = NORMAL_ALL(K) * IELEM(N,I)%SURF(J)
+					END DO
+
+					! Orthogonal projected area along centroid-to-centroid line
+					Aorth = 0.0d0
+					DO K = 1, dimensiona
+					Aorth = Aorth + Sf(K) * e_ih(K)
+					END DO
+
+					! Face value: still simple average here
+					phi_f(1:nof_variables) = OO2*(SOLS1(1:nof_variables) + SOLS2(1:nof_variables))
+
+					! Accumulate orthogonal GG contribution
+					DO K = 1, dimensiona
+					SOLS_F(1:nof_variables,K) = SOLS_F(1:nof_variables,K) + &
+						phi_f(1:nof_variables) * Aorth * e_ih(K) * OOV2
+					END DO
 END DO
 
 
@@ -1861,12 +1969,16 @@ OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
 			SOLS1(1:nof_variables-1)=leftv(2:nof_variables)
 
 
-	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+! 	  leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 
 
 
 
 DO J=1,IELEM(N,I)%IFCA
+
+
+
+
 			 FACEX=J
 
 			 B_CODE=0
@@ -1876,6 +1988,11 @@ DO J=1,IELEM(N,I)%IFCA
 				NORMAL_ALL(1)=angle1
 				NORMAL_ALL(2)=angle2
 				nx=NORMAL_ALL(1);ny=NORMAL_ALL(2)
+
+
+				dih_vec(1:dimensiona)=IELEM(N,i)%DIH2(j,1:dimensiona)
+				dih=IELEM(N,i)%DIH(j)
+				e_ih(1:dimensiona)=dih_vec(1:dimensiona)/dih
 
 
 			IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
@@ -1889,15 +2006,18 @@ DO J=1,IELEM(N,I)%IFCA
 
 
 				  CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
+				  n_node=2
 				  CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
 				  Pox(1)=CORDS(1);Poy(1)=CORDS(2)
 
 
 				  LEFTV(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 				  B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
+
 				  CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 
 				  SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
+
 
 				  END IF
 			    ELSE
@@ -1935,11 +2055,45 @@ DO J=1,IELEM(N,I)%IFCA
 				sols2(dimensiona+1:NOF_VARIABLES-NOF_SPECIES-1)=wall_Temp
 			END IF
 
+			IF ((B_CODE.EQ.4).and.(CATALYTIC_WALL.eq.1))THEN
+				sols2(dimensiona+3:nof_Variables-1)=CATaLYTIC_CON(1:nof_species)
+			END IF
 
-			DO K=1,dimensiona
-			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 
-			END DO
+! 			DO K=1,dimensiona
+! 			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+!
+! 			END DO
+
+
+					! Build face area vector
+					DO K = 1, dimensiona
+					Sf(K) = NORMAL_ALL(K) * IELEM(N,I)%SURF(J)
+					END DO
+
+					! Orthogonal projected area along centroid-to-centroid line
+					Aorth = 0.0d0
+					DO K = 1, dimensiona
+					Aorth = Aorth + Sf(K) * e_ih(K)
+					END DO
+
+					! Face value: still simple average here
+					phi_f(1:nof_variables) = OO2*(SOLS1(1:nof_variables) + SOLS2(1:nof_variables))
+
+					! Accumulate orthogonal GG contribution
+					DO K = 1, dimensiona
+					SOLS_F(1:nof_variables,K) = SOLS_F(1:nof_variables,K) + &
+						phi_f(1:nof_variables) * Aorth * e_ih(K) * OOV2
+					END DO
+
+
+
+
+
+
+
+
+
 END DO
 
 
@@ -2120,7 +2274,9 @@ DO J=1,IELEM(N,I)%IFCA
 			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
 				sols2(dimensiona+1:NOF_VARIABLES-NOF_SPECIES-1)=wall_Temp
 			END IF
-
+			IF ((B_CODE.EQ.4).and.(CATALYTIC_WALL.eq.1))THEN
+				sols2(dimensiona+3:nof_Variables-1)=CATaLYTIC_CON(1:nof_species)
+			END IF
 
 
 

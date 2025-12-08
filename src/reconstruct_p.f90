@@ -3085,7 +3085,7 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,NGP,iqp,iex
 INTEGER::REDUCE1,kmaxe,indx
-real::jump_cond
+real::jump_cond,sumx
 real,dimension(1:nof_Variables)::leftv
 real::MP_PINFL,gammal
 real,dimension(1:nof_Variables)::RIGHTv
@@ -3138,6 +3138,8 @@ IF (ITESTCASE.GE.3)THEN
 						CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						
 
+
+                                                    if (realgas.eq.0)then
                                                     DO IEX=1,NOF_VARIABLES
                                                            IF ((IEX.GE.2).AND.(IEX.LE.DIMENSIONA+1)) CYCLE
 
@@ -3145,10 +3147,47 @@ IF (ITESTCASE.GE.3)THEN
 
                                                             IF (((ABS(LEFTV(IEX)-RIGHTV(IEX))).GE.(jump_cond*RIGHTV(IEX))))then
 																	REDUCE1=1
-																IELEM(N,I)%REDUCE=2
+																IELEM(N,I)%REDUCE=1
+															end if
+
+                                                    end do
+                                                    END if
+                                                     if (realgas.eq.1)then
+                                                    DO IEX=1,dimensiona+2       !loop rho,u,v,w,e,p
+                                                           IF ((IEX.GE.2).AND.(IEX.LE.DIMENSIONA+1)) CYCLE
+
+
+
+                                                            IF (((ABS(LEFTV(IEX)-RIGHTV(IEX))).GE.(jump_cond*RIGHTV(IEX))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=1
 															end if
 
 
+															if (LEFTV(IEX).le.zero)then
+															REDUCE1=1
+																IELEM(N,I)%REDUCE=1
+
+															end if
+                                                    end do
+                                                    sumx=zero
+                                                        do iex=dimensiona+4,nof_Variables   !species
+
+                                                                if (LEFTV(IEX).lt.zero)then
+                                                                REDUCE1=1
+                                                                    IELEM(N,I)%REDUCE=1
+
+                                                                end if
+                                                                sumx=sumx+leftv(iex)
+                                                        end do
+                                                    if (abs(sumx-1.0d0).gt.1.0e-10)then
+                                                                REDUCE1=1
+                                                                    IELEM(N,I)%REDUCE=1
+
+                                                    end if
+
+
+                                                    end if
 
 
 
@@ -3156,7 +3195,9 @@ IF (ITESTCASE.GE.3)THEN
 
 
 
-                                                    END DO
+
+
+
 				
 					
 				  END DO
@@ -3196,7 +3237,7 @@ INTEGER::I,L,NGP,iqp,iex
 INTEGER::REDUCE1,kmaxe,indx
 real::jump_cond
 real,dimension(1:nof_Variables)::leftv
-real::MP_PINFL,gammal
+real::MP_PINFL,gammal,sumx
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
 KMAXE=XMPIELRANK(N)
@@ -3234,19 +3275,55 @@ IF (ITESTCASE.GE.3)THEN
 												RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
 												CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 
-                                                            DO IEX=1,NOF_VARIABLES
-                                                            IF ((IEX.EQ.1).OR.(IEX.EQ.DIMENSIONA+2)) THEN
+                                                            if (realgas.eq.0)then
+                                                    DO IEX=1,NOF_VARIABLES
+                                                           IF ((IEX.GE.2).AND.(IEX.LE.DIMENSIONA+1)) CYCLE
+
 
 
                                                             IF (((ABS(LEFTV(IEX)-RIGHTV(IEX))).GE.(jump_cond*RIGHTV(IEX))))then
 																	REDUCE1=1
 																IELEM(N,I)%REDUCE=2
 															end if
-                                                            END IF
+
+                                                    end do
+                                                    END if
+                                                     if (realgas.eq.1)then
+                                                    DO IEX=1,dimensiona+2       !loop rho,u,v,w,e,p
+                                                           IF ((IEX.GE.2).AND.(IEX.LE.DIMENSIONA+1)) CYCLE
 
 
 
-                                                            END DO
+                                                            IF (((ABS(LEFTV(IEX)-RIGHTV(IEX))).GE.(jump_cond*RIGHTV(IEX))))then
+																	REDUCE1=1
+																IELEM(N,I)%REDUCE=2
+															end if
+
+
+															if (LEFTV(IEX).le.zero)then
+															REDUCE1=1
+																IELEM(N,I)%REDUCE=2
+
+															end if
+                                                    end do
+                                                    sumx=zero
+                                                        do iex=dimensiona+4,nof_Variables   !species
+
+                                                                if (LEFTV(IEX).lt.zero)then
+                                                                REDUCE1=1
+                                                                    IELEM(N,I)%REDUCE=2
+
+                                                                end if
+                                                                sumx=sumx+leftv(iex)
+                                                        end do
+                                                        if (abs(sumx-1.0d0).gt.1.0e-10)then
+                                                                    REDUCE1=1
+                                                                        IELEM(N,I)%REDUCE=2
+
+                                                        end if
+
+
+                                                    end if
 
 
 										END DO
