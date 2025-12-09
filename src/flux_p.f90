@@ -2173,15 +2173,13 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 
 
-								LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES)
+								LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
 								CALL MULTISPECIES_MIXTURES_RG(LEFTV,MP_mu_mix,MP_ktr_mix,MP_kve,RG_DIFL,RG_ENTHL,RG_ENTHVBL,GAMMAL)
 
 								MP_LAML=MP_kve
 								LAML(1)=MP_ktr_mix
 								VISCL(1)=MP_mu_mix
 
-
-								RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
 								CALL MULTISPECIES_MIXTURES_RG(RIGHTV,MP_mu_mix,MP_ktr_mix,MP_kve,RG_DIFR,RG_ENTHR,RG_ENTHVBR,GAMMAR)
 
 								MP_LAMR=MP_kve
@@ -2207,7 +2205,8 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 											end if
 
 
-
+													rg_sum_htr(1:dimensiona) = 0.0d0
+													rg_sum_hv(1:dimensiona)  = 0.0d0
 
 													! =============================================================
 													! 3. Mixture-averaged diffusion fluxes (NO PRESSURE TERMS)
@@ -2234,6 +2233,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 
 
+													if ((b_code.gt.0).and.(catalytic_wall.eq.0))then
 
 													! ---- SECOND LOOP: mass-conserving flux J_k ----
 													do rg_i = 1, NOF_SPECIES
@@ -2317,7 +2317,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 
 
-! 				      end if
+				      end if
 				       if (realgas.eq.0)then
 							if (turbulence .eq. 1) then
 							Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(dimensiona+1,1:3))
@@ -2398,7 +2398,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 					  if (realgas.eq.1)then
 						if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
-						HLLCFLUX(dimensiona+4:nof_Variables)=zero
+						HLLCFLUX(6:nof_Variables)=zero
 						end if
 						end if
 
@@ -3207,7 +3207,8 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 
 
 
-!													if ((b_code.gt.0).and.(catalytic_wall.eq.0))then
+
+
 
 													! ---- SECOND LOOP: mass-conserving flux J_k ----
 													do rg_i = 1, NOF_SPECIES
@@ -3235,7 +3236,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 													end do
 
 
-!													end if
+
 
 
 
@@ -3360,7 +3361,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 
 						if (realgas.eq.1)then
 						if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
-						HLLCFLUX(dimensiona+4:nof_Variables)=zero
+						HLLCFLUX(6:nof_Variables)=zero
 						end if
 						end if
 

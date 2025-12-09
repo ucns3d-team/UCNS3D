@@ -2575,10 +2575,7 @@ do k = 1, NOF_SPECIES
 end do
 
 
-!if (abs(rho-u_c(i)%val(1,1)).gt.10e-15)then
-!  write(140+n,*)it,ielem(n,i)%ihexgl,abs(rho-u_c(i)%val(1,1))
 
-!end if
 
 ! Optionally enforce a floor
 u_c(i)%val(1,1)=rho
