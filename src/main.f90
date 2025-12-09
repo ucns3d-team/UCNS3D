@@ -361,8 +361,6 @@ if (n.eq.0) then
 	WRITE(100+N,*)"TIMEI_6",CPUX3(1)-CPUX1(1)
 end if
 
-
-
 CALL LOCAL_RECONALLOCATION3(N,ILOCAL_RECON3)
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -451,10 +449,8 @@ end if
 !$OMP END MASTER
   
 !$OMP PARALLEL DEFAULT(SHARED)
-	if ((fastest.ne.1).and.(ischeme.ge.2)) call PRESTORE_1(N)
+	if (((fastest.ne.1).and.(ischeme.ge.2)).or.(MESH_MOVEMENT)) call PRESTORE_1(N)
 !$OMP END PARALLEL
-
-
 
 !$OMP MASTER
 	IF (N.EQ.0)THEN
@@ -596,7 +592,9 @@ IF (STATISTICS.EQ.1)THEN
 END IF
  
 IF (FASTEST_Q.EQ.1)THEN
-    CALL MEMORY_FAST(N) 
+    CALL MEMORY_FAST(N)
+	! CALL Allocate_QP_points(N)
+	! CALL Find_QP_positions(N, 1)
 END IF
 
 CALL NEW_ARRAYS(N)
@@ -727,6 +725,19 @@ call local_reconallocation5(n)
 ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 ! CALL ABORT
+
+num_values_to_send_per_node = dimensiona
+my_xper = 0.0
+if (initcond.eq.101) then
+	my_yper = yper
+else
+	my_yper = 0.0
+end if
+my_zper = 0.0
+
+print*,"xper, my_xper, yper, my_yper, zper, my_zper", xper, my_xper, yper, my_yper, zper, my_zper
+
+Call establish_node_neighbours(N)
 
 IF (DIMENSIONA.EQ.3)THEN
     !$OMP PARALLEL DEFAULT(SHARED)

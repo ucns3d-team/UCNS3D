@@ -9,6 +9,7 @@ USE LOCAL
 USE LAPCK
 USE DG_FUNCTIONS
 USE PRESTORE
+USE MPIINFO
 
 IMPLICIT NONE
 
@@ -1267,101 +1268,101 @@ SUBROUTINE  LOCALISE_STENCIL_STEP2_MovingMesh_2D(N, I, ILOX_IHEXG,ILOX_IHEXL,ILO
             end if
 	    	DO J=2,Itarget
 	    		IF(ABS(ILOX_XXC(JJ,J)-ILOX_XXC(JJ,1)).GT.XPER*oo2)THEN
-		    		ILOX_XXC(JJ,J)=ILOX_XXC(JJ,J)+(XPER*SIGN(1.0,ILOX_XXC(JJ,1)-XPER*oo2))
+		    		ILOX_XXC(JJ,J) = ILOX_XXC(JJ,J) + (XPER * SIGN(1.0, ILOX_XXC(JJ,1)-XPER*oo2))
 		    		DO KK=1,4
-		    			ILON_X(JJ,J,KK)=ILON_X(JJ,J,KK)+(XPER*SIGN(1.0,ILOX_XXC(JJ,1)-XPER*oo2))
+		    			ILON_X(JJ,J,KK) = ILON_X(JJ,J,KK) + (XPER * SIGN(1.0, ILOX_XXC(JJ,1)-XPER*oo2))
 		    		END DO
 	    		END IF
 	    		IF(ABS(ILOX_YYC(JJ,J)-ILOX_YYC(JJ,1)).GT.YPER*oo2)THEN
-		    		ILOX_YYC(JJ,J)=ILOX_YYC(JJ,J)+(YPER*SIGN(1.0,ILOX_YYC(JJ,1)-YPER*oo2))
+		    		ILOX_YYC(JJ,J) = ILOX_YYC(JJ,J) + (YPER * SIGN(1.0, ILOX_YYC(JJ,1)-YPER*oo2))
 		    		DO KK=1,4
-		    			ILON_Y(JJ,J,KK)=ILON_Y(JJ,J,KK)+(YPER*SIGN(1.0,ILOX_YYC(JJ,1)-YPER*oo2))
+		    			ILON_Y(JJ,J,KK) = ILON_Y(JJ,J,KK) + (YPER * SIGN(1.0, ILOX_YYC(JJ,1)-YPER*oo2))
 		    		END DO
 	    		END IF
 	    	END DO
 		END DO
 	END IF
 	
-	!$OMP MASTER
+	! !$OMP MASTER
 
-		IF (CODE_PROFILE.EQ.30)THEN
-			DO NJ=1,IELEM(N,I)%nonodes
-				X1X=ILON_x(1,1,NJ)
-				Y1Y=ILON_Y(1,1,NJ)
-				NOJCOUNT(NJ)=0
+	! 	IF ((CODE_PROFILE.EQ.30).or.(MESH_MOVEMENT)) THEN
+	! 		DO NJ=1,IELEM(N,I)%nonodes
+	! 			X1X=ILON_x(1,1,NJ)
+	! 			Y1Y=ILON_Y(1,1,NJ)
+	! 			NOJCOUNT(NJ)=0
 
-				IF (ILOCAL_RECON3(I)%LOCAL.eq.1)then
-					DO L=2,itarget
-						j=(XMPIL(ILOX_IHEXG(1,L)))
-						DO K=1,ielem(n,j)%nonodes    
-							X2X=ILON_x(1,L,K)
-							Y2Y=ILON_y(1,L,K)
+	! 			IF (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+	! 				DO L=2,itarget
+	! 					j=(XMPIL(ILOX_IHEXG(1,L)))
+	! 					DO K=1,ielem(n,j)%nonodes    
+	! 						X2X=ILON_x(1,L,K)
+	! 						Y2Y=ILON_y(1,L,K)
 
-							DISTFD=SQRT(((X1X-X2X)**2)+((Y1Y-Y2Y)**2))
+	! 						DISTFD=SQRT(((X1X-X2X)**2)+((Y1Y-Y2Y)**2))
 
-							IF (DISTFD.LT.TOLSMALL)THEN
-								NOJCOUNT(NJ)=NOJCOUNT(NJ)+1
-								IELEM(N,I)%NODES_NEIGHBOURS(NJ,NOJCOUNT(NJ))=L
-							END IF
-						END DO
-					END DO
-				END IF
-				!---------------------- MIXED----------!
-				IF (ILOCAL_RECON3(I)%LOCAL.NE.1)then
-					DO L=2,itarget
-						IF (ILOX_IHEXB(1,L).EQ.N)THEN
-							j=(XMPIL(ILOX_IHEXG(1,L)))
-							DO K=1,ielem(n,j)%nonodes    
-								X2X=ILON_x(1,L,K)
-								Y2Y=ILON_y(1,L,K)
+	! 						IF (DISTFD.LT.TOLSMALL)THEN
+	! 							NOJCOUNT(NJ)=NOJCOUNT(NJ)+1
+	! 							IELEM(N,I)%NODES_NEIGHBOURS(NJ,NOJCOUNT(NJ))=L
+	! 						END IF
+	! 					END DO
+	! 				END DO
+	! 			END IF
+	! 			!---------------------- MIXED----------!
+	! 			IF (ILOCAL_RECON3(I)%LOCAL.NE.1)then
+	! 				DO L=2,itarget
+	! 					IF (ILOX_IHEXB(1,L).EQ.N)THEN
+	! 						j=(XMPIL(ILOX_IHEXG(1,L)))
+	! 						DO K=1,ielem(n,j)%nonodes    
+	! 							X2X=ILON_x(1,L,K)
+	! 							Y2Y=ILON_y(1,L,K)
 
-								DISTFD=SQRT(((X1X-X2X)**2)+((Y1Y-Y2Y)**2))
+	! 							DISTFD=SQRT(((X1X-X2X)**2)+((Y1Y-Y2Y)**2))
 
-								IF (DISTFD.LT.TOLSMALL)THEN
-									NOJCOUNT(NJ)=NOJCOUNT(NJ)+1
-									IELEM(N,I)%NODES_NEIGHBOURS(NJ,NOJCOUNT(NJ))=L
-								END IF
-							END DO
-						ELSE
-							SELECT CASE(ILOX_ISHAPE(1,L))
-							CASE(5)
-							IN_STEN=4
-							CASE(6)
-							IN_STEN=3
-							END SELECT
-							DO K=1,IN_STEN
-								X2X=ILON_X(1,L,K)
-								Y2Y=ILON_Y(1,L,K)
+	! 							IF (DISTFD.LT.TOLSMALL)THEN
+	! 								NOJCOUNT(NJ)=NOJCOUNT(NJ)+1
+	! 								IELEM(N,I)%NODES_NEIGHBOURS(NJ,NOJCOUNT(NJ))=L
+	! 							END IF
+	! 						END DO
+	! 					ELSE
+	! 						SELECT CASE(ILOX_ISHAPE(1,L))
+	! 						  CASE(5)
+	! 							IN_STEN=4
+	! 						  CASE(6)
+	! 							IN_STEN=3
+	! 						END SELECT
+	! 						DO K=1,IN_STEN
+	! 							X2X=ILON_X(1,L,K)
+	! 							Y2Y=ILON_Y(1,L,K)
 
-								DISTFD=SQRT(((X1X-X2X)**2)+((Y1Y-Y2Y)**2))
+	! 							DISTFD=SQRT(((X1X-X2X)**2)+((Y1Y-Y2Y)**2))
 
-								IF (DISTFD.LT.TOLSMALL)THEN
-									NOJCOUNT(NJ)=NOJCOUNT(NJ)+1
-									IELEM(N,I)%NODES_NEIGHBOURS(NJ,NOJCOUNT(NJ))=L
-								END IF
+	! 							IF (DISTFD.LT.TOLSMALL)THEN
+	! 								NOJCOUNT(NJ)=NOJCOUNT(NJ)+1
+	! 								IELEM(N,I)%NODES_NEIGHBOURS(NJ,NOJCOUNT(NJ))=L
+	! 							END IF
 
-							END DO
-						END IF
-					END DO
-				END IF
+	! 						END DO
+	! 					END IF
+	! 				END DO
+	! 			END IF
 
-			END DO
-			! WRITE(630+N,*)"ELEMENT NUMBER GLOBAL",IELEM(N,I)%IHEXGL
-			! ALLOCATE(IELEM(N,I)%NOJECOUNT(IELEM(N,I)%nonodes))
+	! 		END DO
+	! 		! WRITE(630+N,*)"ELEMENT NUMBER GLOBAL",IELEM(N,I)%IHEXGL
+	! 		! ALLOCATE(IELEM(N,I)%NOJECOUNT(IELEM(N,I)%nonodes))
 			
-			! DO NJ=1,IELEM(N,I)%nonodes
-			! 	WRITE(630+N,*)"NODE NUMBER",NJ
-			! 	IELEM(N,I)%NOJECOUNT(NJ)=NOJCOUNT(NJ)
+	! 		! DO NJ=1,IELEM(N,I)%nonodes
+	! 		! 	WRITE(630+N,*)"NODE NUMBER",NJ
+	! 		! 	IELEM(N,I)%NOJECOUNT(NJ)=NOJCOUNT(NJ)
 
-			! 	DO J=1,NOJCOUNT(NJ)
-			! 	!IF (IELEM(N,I)%NODES_NEIGHBOURS(NJ,J).GT.0)THEN
-			! 		WRITE(630+N,*)J,IELEM(N,I)%NODES_NEIGHBOURS(NJ,J)
-			! 	!END IF
-			! 	END DO
-			! END DO
+	! 		! 	DO J=1,NOJCOUNT(NJ)
+	! 		! 	!IF (IELEM(N,I)%NODES_NEIGHBOURS(NJ,J).GT.0)THEN
+	! 		! 		WRITE(630+N,*)J,IELEM(N,I)%NODES_NEIGHBOURS(NJ,J)
+	! 		! 	!END IF
+	! 		! 	END DO
+	! 		! END DO
 
-		END IF
-	!$OMP END MASTER
+	! 	END IF
+	! !$OMP END MASTER
   
     VEXT=0.0d0
     NODES_LIST=0.0d0
@@ -1464,7 +1465,8 @@ SUBROUTINE  LOCALISE_STENCIL_STEP2_MovingMesh_2D(N, I, ILOX_IHEXG,ILOX_IHEXL,ILO
 		end if
 		DO L=1,Itarget
 			if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
-				ILOX_VOLUME(JJ,L)=(IELEM(N,ILOX_IHEXL(JJ,L))%TOTVOLUME)/ABS(detjc)
+				! ILOX_VOLUME(JJ,L)=(IELEM(N,ILOX_IHEXL(JJ,L))%TOTVOLUME)/ABS(detjc)
+				ILOX_VOLUME(JJ,L)=(IELEM(N,ILOX_IHEXL(JJ,L))%moving_volume(node_position_index))/ABS(detjc)
 				if ((EES.ne.5).or.(jj.eq.1))then
 				 	if (idum.eq.1)then
 						ILOCAL_RECON3(I)%VOLUME(1,L)=ILOX_VOLUME(1,L)
@@ -1481,7 +1483,8 @@ SUBROUTINE  LOCALISE_STENCIL_STEP2_MovingMesh_2D(N, I, ILOX_IHEXG,ILOX_IHEXL,ILO
 				end if
 			Else
 				IF (ILOX_IHEXB(JJ,L).eq.N)THEN
-					ILOX_VOLUME(JJ,L)=(IELEM(N,ILOX_IHEXL(JJ,L))%TOTVOLUME)/ABS(detjc)
+					! ILOX_VOLUME(JJ,L)=(IELEM(N,ILOX_IHEXL(JJ,L))%TOTVOLUME)/ABS(detjc)
+					ILOX_VOLUME(JJ,L)=(IELEM(N,ILOX_IHEXL(JJ,L))%moving_volume(node_position_index))/ABS(detjc)
 				 	if ((EES.ne.5).or.(jj.eq.1))then
 						if (idum.eq.1)then
 							ILOCAL_RECON3(I)%VOLUME(1,L)=ILOX_VOLUME(1,L)
@@ -1552,7 +1555,7 @@ SUBROUTINE  LOCALISE_STENCIL_STEP2_MovingMesh_2D(N, I, ILOX_IHEXG,ILOX_IHEXL,ILO
 	  	vext(1,1:dims)=cords(1:dims)
 	  	do k=1,ielem(n,i)%ifca
 		  	j=IELEM(N,i)%INEIGH(K)
-		  	CALL COMPUTE_CENTRE_MovingMesh_2D(j,cords, node_position_index)
+		  	CALL COMPUTE_CENTRE_MovingMesh_2D(j, cords, node_position_index)
 		    vext(2,1:dims)=cords(1:dims)
 		    dist1=distance2(n,vext)
 		    IF (RUNGEKUTTA.ge.2)THEN
@@ -1560,7 +1563,7 @@ SUBROUTINE  LOCALISE_STENCIL_STEP2_MovingMesh_2D(N, I, ILOX_IHEXG,ILOX_IHEXL,ILO
 		    end if
 	  	end do
     else
-		CALL COMPUTE_CENTRE_MovingMesh_2d(i,cords, node_position_index)
+		CALL COMPUTE_CENTRE_MovingMesh_2d(i, cords, node_position_index)
 		vext(1,1:dims)=cords(1:dims)
 		do k=1,ielem(n,i)%ifca
 			if (ielem(n,i)%ineighg(k).eq.0)then	!boundaries except other cpus and periodics
@@ -1661,6 +1664,220 @@ END SUBROUTINE LOCALISE_STENCIL_STEP2_MovingMesh_2D
 
 
 
+SUBROUTINE EXCH_CORDS_MovingMesh(N, node_position_index)
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N, node_position_index
+	! INTEGER::I,J,K,L,INEEDT,TNEEDT,INDL,TNDL,ICPUID,IXFLAG,ITEE,ITEEDUM,IAVC,IAVT,I_CNT,i_cnt2,i_cnt3,i_cnt4,ixf4,kmaxe,ixfv,i_cnt5
+	! REAL,DIMENSION(1)::DUMTS,RUMTS
+	! integer,dimension(4)::icfv1,icfv2
+	! real::rcfv1,rcfv2
+	integer:: INEEDT, TNEEDT, i_cnt3, i_cnt4
+
+	! kmaxe=xmpielrank(n)
+	! INDL=IEXCHANGER(1)%TOT
+	! TNDL=IEXCHANGES(1)%TOT
+
+	IF (FASTEST.NE.1)THEN
+		INEEDT=IRECEXR(1)%TOT
+		TNEEDT=IRECEXS(1)%TOT
+		! ALLOCATE (IEXCORDR(INEEDT))
+		! ALLOCATE (IEXCORDS(TNEEDT))
+		! ALLOCATE (IEXSOLHIR(INEEDT))
+		! ALLOCATE (IEXSOLHIS(TNEEDT))
+
+		! if (adda.eq.1)then
+		! 	ALLOCATE (IEXSOLHIRd(INEEDT))
+		! 	ALLOCATE (IEXSOLHISd(TNEEDT))
+		! end if
+	END IF
+
+	! ALLOCATE (IEXBOUNDHIR(INDL))
+	! ALLOCATE (IEXBOUNDHIS(TNDL))
+	! ALLOCATE (IEXBOUNDHIRR(INDL))
+	! ALLOCATE (IEXBOUNDHISS(TNDL))
+
+	! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+	if (dimensiona.eq.3)then
+		! i_cnt2=4
+		i_cnt3=3
+		i_cnt4=8
+	else
+		! i_cnt2=2
+		i_cnt3=2
+		i_cnt4=4
+	end if
+	! i_cnt5=i_cnt3*i_cnt4
+
+	! IF (FASTEST.NE.1)THEN
+	! 	DO I=1,INEEDT
+
+	! 		IEXSOLHIR(I)%PROCID=IRECEXR(I)%PROCID
+	! 		IEXCORDR(I)%PROCID=IRECEXR(I)%PROCID
+	! 		ALLOCATE (IEXCORDR(I)%NODECORD(IRECEXR(I)%MUCHINEED(1),i_cnt4,i_cnt3))
+	! 		IEXCORDR(I)%NODECORD(1:IRECEXR(I)%MUCHINEED(1),i_cnt4,i_cnt3)=-tolbig
+
+	! 		ALLOCATE(IEXSOLHIR(I)%SOL(IRECEXR(I)%MUCHINEED(1),nof_variables+turbulenceequations+passivescalar))
+
+	! 		if (adda.eq.1)then
+	! 			ALLOCATE(IEXSOLHIRd(I)%SOL(IRECEXR(I)%MUCHINEED(1),1))
+	! 		end if
+	! 		if (mood.ge.1) then
+	! 			ALLOCATE(IEXSOLHIR(I)%SOL2(IRECEXR(I)%MUCHINEED(1),nof_variables+turbulenceequations+passivescalar))
+	! 			IEXSOLHIR(I)%SOL2(:,:)=0.0d0
+	! 		end if
+	! 		IEXSOLHIR(I)%SOL(:,:)=0.0d0
+	! 	END DO
+	! END IF
+
+	! DO I=1,INDL
+	! 	IEXBOUNDHIR(I)%PROCID=IEXCHANGER(I)%PROCID
+	! 	IEXBOUNDHIRR(I)%PROCID=IEXCHANGER(I)%PROCID
+	! 	IF (ITESTCASE.Le.3)THEN
+	! 		! ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),nof_variables))
+	! 		ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
+	! 	ELSE
+	! 		if (dimensiona.eq.3)then
+	! 			I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
+	! 		else
+	! 			I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
+	! 		end if
+
+	! 		! ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),I_CNT))
+	! 	ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
+	! 	END IF
+
+	! 	! IEXBOUNDHIR(I)%FACESOL(:,:)=0.0d0
+	! 	IEXBOUNDHIRR(I)%vertpp(:,:)=0
+	! END DO
+
+	! IF (FASTEST.NE.1)THEN
+	! 	DO I=1,TNEEDT
+	! 		IEXSOLHIS(I)%PROCID=IRECEXS(I)%PROCID
+
+	! 		IEXCORDS(I)%PROCID=IRECEXS(I)%PROCID
+	! 		ALLOCATE (IEXCORDS(I)%NODECORD(IRECEXS(I)%MUCHTHEYNEED(1),i_cnt4,i_cnt3))
+
+	! 		IEXCORDs(I)%NODECORD(1:IRECEXs(I)%MUCHTHEYNEED(1),1:i_cnt4,1:i_cnt3)=-tolbig
+	! 		ALLOCATE (IEXSOLHIS(I)%SOL(IRECEXS(I)%MUCHTHEYNEED(1),nof_variables+turbulenceequations+passivescalar))
+
+	! 		if (adda.eq.1)then
+	! 			ALLOCATE(IEXSOLHIsd(I)%SOL(IRECEXS(I)%MUCHTHEYNEED(1),1))
+	! 		end if
+
+	! 		IEXSOLHIs(I)%SOL(:,:)=0.0d0
+	! 	END DO
+	! END IF
+	
+	! DO I=1,TNDL
+
+	! 	IEXBOUNDHIs(I)%PROCID=IEXCHANGEs(I)%PROCID
+	! 	IEXBOUNDHIss(I)%PROCID=IEXCHANGEs(I)%PROCID
+	! 	IF (ITESTCASE.Le.3)THEN
+	! 		! ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),nof_variables))
+	! 		ALLOCATE(IEXBOUNDHIss(I)%vertpp(IEXCHANGEs(I)%MUCHTHEYNEED(1),i_cnt2))
+	! 	Else
+	! 		if (dimensiona.eq.3)then
+	! 			I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
+	! 		else
+	! 			I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
+	! 		end if
+	! 		! ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),I_CNT))
+	! 	ALLOCATE(IEXBOUNDHIss(I)%vertpp(IEXCHANGEs(I)%MUCHTHEYNEED(1),i_cnt2))
+	! 	END IF
+	! 	! IEXBOUNDHIs(I)%FACESOL(:,:)=0.0d0
+	! 	IEXBOUNDHIss(I)%vertpp(:,:)=0
+	! END DO
+
+	! print *, n, "EXCH_CORDS_MovingMesh barrier reached"; call flush()
+	! CALL MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+	! cprint *, n, "EXCH_CORDS_MovingMesh barrier passed"; call flush()
+	CALL EXCHANGE_CORDX_MovingMesh(N, INEEDT, TNEEDT, i_cnt4, i_cnt3, node_position_index)
+
+END SUBROUTINE EXCH_CORDS_MovingMesh
+
+
+
+
+
+SUBROUTINE EXCHANGE_CORDX_MovingMesh(N,INEEDT,TNEEDT,i_cnt4,i_cnt3, node_position_index)	!TT need to move to inoder4 if this is during timestepping
+	INTEGER,INTENT(IN)::N, INEEDT, TNEEDT, i_cnt4, i_cnt3, node_position_index
+	INTEGER::I,J,K,L,ICPUID,IXFLAG,ITEE,ITEEDUM,IAVC,IAVT
+	REAL,DIMENSION(1)::DUMTS,RUMTS
+	
+	IF (FASTEST.NE.1)THEN
+
+		! print *, "N, INEEDT, TNEEDT, i_cnt4, i_cnt3, node_position_index", N, INEEDT, TNEEDT, i_cnt4, i_cnt3, node_position_index; call flush()
+	
+		DO I=1,TNEEDT
+			! print *, n, "outer loop count", IRECEXS(I)%MUCHTHEYNEED(1); call flush()
+			DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
+				! print *, n, "inner loop count", ielem(n,IRECEXS(I)%LOCALREF(K))%nonodes; call flush()
+				do j=1,ielem(n,IRECEXS(I)%LOCALREF(K))%nonodes
+					! print *, n; call flush()
+					IEXCORDS(I)%NODECORD(K,j,1:DIMS)=local_nodes(ielem(n,IRECEXS(I)%LOCALREF(K))%nodes(j))%positions(node_position_index, 1:DIMS)
+				end do
+			END DO
+		END DO
+
+		! rint *, n, "first barrier reached"; call flush()
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+		! print *, n, "first barrier passed"; call flush()
+
+		ICPUID=N
+		DUMTS(1:1)=tolsmall
+		! print *, n, "second step loop", ISIZE-1; call flush()
+		DO I=0,ISIZE-1
+			IF (I.NE.N) THEN
+				DO J=1,TNEEDT
+					IAVT=10000
+					IF (IRECEXS(J)%PROCID.EQ.I)THEN
+						IAVT=J
+						GO TO 7001
+					END IF
+				END DO
+				7001 CONTINUE
+				DO K=1,INEEDT
+					IAVC=10000
+					IF (IRECEXR(K)%PROCID.EQ.I) THEN
+						IAVC=K
+						GO TO 8001
+					END IF
+				END DO
+				8001 CONTINUE
+				IF ((IAVT.EQ.10000).AND.(IAVC.NE.10000)) THEN
+					CALL MPI_SENDRECV(DUMTS(1:1),1,MPI_DOUBLE_PRECISION,I,ICPUID,&
+							IEXCORDR(IAVC)%NODECORD(1:IRECEXR(IAVC)%MUCHINEED(1),1:i_cnt4,1:i_cnt3),&
+							IRECEXR(IAVC)%MUCHINEED(1)*i_cnt4*i_cnt3,MPI_DOUBLE_PRECISION,IEXCORDR(IAVC)%PROCID,IEXCORDR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
+					! print *, n, "first sendreceive passed"; call flush()
+				END IF
+				IF ((IAVT.NE.10000).AND.(IAVC.EQ.10000)) THEN
+					!MESSAGE 1
+					CALL MPI_SENDRECV(IEXCORDS(IAVT)%NODECORD(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:i_cnt4,1:i_cnt3),&
+							IRECEXS(IAVT)%MUCHTHEYNEED(1)*i_cnt4*i_cnt3,MPI_DOUBLE_PRECISION,IEXCORDS(IAVT)%PROCID,ICPUID,&
+							DUMTS(1:1),1,MPI_DOUBLE_PRECISION,I,I,MPI_COMM_WORLD,STATUS,IERROR)
+					! print *, n, "second sendreceive passed"; call flush()
+				END IF
+				IF ((IAVT.NE.10000).AND.(IAVC.NE.10000)) THEN
+					!MESSAGE 1
+					CALL MPI_SENDRECV(IEXCORDS(IAVT)%NODECORD(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:i_cnt4,1:i_cnt3),&
+							IRECEXS(IAVT)%MUCHTHEYNEED(1)*i_cnt4*i_cnt3,MPI_DOUBLE_PRECISION,IEXCORDS(IAVT)%PROCID,ICPUID,&
+							IEXCORDR(IAVC)%NODECORD(1:IRECEXR(IAVC)%MUCHINEED(1),1:i_cnt4,1:i_cnt3),IRECEXR(IAVC)%MUCHINEED(1)*i_cnt4*i_cnt3,&
+							MPI_DOUBLE_PRECISION,IEXCORDR(IAVC)%PROCID,IEXCORDR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
+					! print *, n, "third sendreceive passed"; call flush()
+				END IF
+	
+				!	END DO !K
+				!END DO! J
+			END IF	! I.NE.N
+		END DO
+	END IF
+
+	! print *, n, "second barrier passed"; call flush()
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	! print *, n, "second barrier passed"; call flush()
+	
+END SUBROUTINE EXCHANGE_CORDX_MovingMesh
 
 
 

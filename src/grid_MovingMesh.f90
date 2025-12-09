@@ -177,22 +177,24 @@ SUBROUTINE FIND_ROT_ANGLES_MovingMesh_2d(N, I, node_position_index)
 		IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
 			IF ((IELEM(N,I)%INEIGHG(K).GT.0).AND.(IELEM(N,I)%IBOUNDS(K).GT.0))THEN 	!PERIODIC NEIGHBOUR
 
- 			    ! XX=IELEM(N,I)%XXC  ;YY=IELEM(N,I)%YYC; !ZZ=IELEM(N,I)%ZZC
+ 			    XX=IELEM(N,I)%XXC  ;YY=IELEM(N,I)%YYC; !ZZ=IELEM(N,I)%ZZC
 
-				! DO Kk=1,n_node
-				!     IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
-				!        vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:2)
-				!     ELSE
-				! 		vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:2)
-				!     END IF
+				DO Kk=1,n_node
+				    IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
+				       !vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:2)
+						vext(kk,1:2)=local_nodes(ielem(n,i)%NODES_FACES(k,kk))%positions(node_position_index, 1:2)
+				    ELSE
+						!vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:2)
+						vext(kk,1:2)=local_nodes(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%positions(node_position_index, 1:2)
+				    END IF
 
-				!     IF(ABS(vext(kk,1)-xx).GT.XPER*oo2)THEN
-				!       	vext(kk,1)=vext(kk,1)+(XPER*SIGN(1.0d0,xx-XPER/2.0D0))
-				!     end if
-				!     IF(ABS(vext(kk,2)-yy).GT.yPER*oo2)THEN
-				!       	vext(kk,2)=vext(kk,2)+(yPER*SIGN(1.0d0,yy-yPER/2.0D0))
-				!     end if
-			    ! end do
+				    IF(ABS(vext(kk,1)-xx).GT.XPER*oo2)THEN
+				      	vext(kk,1)=vext(kk,1)+(XPER*SIGN(1.0d0,xx-XPER/2.0D0))
+				    end if
+				    IF(ABS(vext(kk,2)-yy).GT.yPER*oo2)THEN
+				      	vext(kk,2)=vext(kk,2)+(yPER*SIGN(1.0d0,yy-yPER/2.0D0))
+				    end if
+			    end do
 			Else
 				DO Kk=1,n_node
 					IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN

@@ -120,6 +120,7 @@ INTEGER:: NPROBES,totwalls,NOF_INTERIOR,NOF_BOUNDED,MRF			!NUMBER OF PROBES FOR 
 INTEGER:: ROT_CORR,D_CORR   !integer for turbulence corrections
 INTEGER::hybridCWENO_MOOD   !hybrid CWENO/MOOD mode - for test purposes only
 logical:: MESH_MOVEMENT
+integer:: moving_mesh_mode
 !--------------------- variables for parallel partitioned output-------!
 INTEGER,ALLOCATABLE,DIMENSION(:)::DISPART1,DISPART2,DISPART3,DISPART4,DISPART5,TYP_NODESN,TYP_NODESN_w
 INTEGER,ALLOCATABLE,DIMENSION(:)::iARRAY_PART1,iARRAY_PART2,iARRAY_PART3,iARRAY_PART4,iARRAY_PART5,i_ARRAY_PART2x
@@ -276,6 +277,7 @@ REAL::EVERY_TIME,EK_TIME					!FINAL TIME TO WRITE OUTPUT FOR UNSTEADY SIMULATION
 REAL::XPER					!PERIODICITY IN X AXIS
 REAL::YPER					!PERIODICITY IN Y AXIS
 REAL::ZPER					!PERIODICITY IN Z AXIS
+real::my_xper,my_yper,my_zper
 REAL::AOA					!ANGLE OF ATTACK	
 REAL::CHARLENGTH				!CHARACTERISTIC LENGTH IF UNDEFINED, AND REYNOLDS UNDEFINED THE FREE STREAM WILL BE USED FOR AIR
 						!TURBULENCE MODEL constants
@@ -338,7 +340,7 @@ real::max_cell_area
 real::cell_size_average
 ! real::max_entropy
 ! real::global_max_entropy
-
+real::mesh_volocity_multiple
 real:: momentx,momenty,momentz
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
@@ -764,15 +766,43 @@ TYPE::NODE_NUMBER	!NAME OF TYPE FOR THE SET OF NODES
 	REAL::Z		!COORDINATES IN Z AXIS
 END TYPE NODE_NUMBER 
 
+type::remote_node_neighhour
+	integer::cpu
+	integer::lower
+	integer::upper
+end type
+
 TYPE::LOCAL_NODE 
 	REAL,ALLOCATABLE,DIMENSION(:,:)::positions
 	REAL,DIMENSION(3)::VELOCITY
 	INTEGER::global_index
 	! INTEGER::local_index
+	! logical::internal
+	INTEGER::Num_Neighbours
+	INTEGER::Num_Local_Neighbours
+	integer::num_cpus
+	integer::boundary ! 0 = internal, >0 = boundary, 2 = periodic boundary
+	INTEGER,ALLOCATABLE,DIMENSION(:)::Local_Neighbours
+	type(remote_node_neighhour),allocatable,dimension(:)::rcv_offsets
+	type(remote_node_neighhour),allocatable,dimension(:)::snd_offsets
 END TYPE LOCAL_NODE
 
 TYPE(LOCAL_NODE),ALLOCATABLE,DIMENSION(:)::LOCAL_NODES ! replacement for INODER4
 
+integer,allocatable,dimension(:)::local_interface_nodes
+
+type::node_buffer
+	real,allocatable,dimension(:)::data
+end type
+
+type(node_buffer),allocatable,dimension(:)::node_snd_buffer
+type(node_buffer),allocatable,dimension(:)::node_rcv_buffer
+integer,allocatable,dimension(:)::node_snd_count ! count of cells, not reals
+integer,allocatable,dimension(:)::node_rcv_count ! count of cells, not reals
+
+integer::my_num_interface_nodes 
+integer::max_num_node_neighbours
+integer::num_values_to_send_per_node
 
 TYPE(NODE_NUMBER),ALLOCATABLE,DIMENSION(:,:)::INODE	  !1-D ARRAY FOR POINTER TYPE FOR NODES
 

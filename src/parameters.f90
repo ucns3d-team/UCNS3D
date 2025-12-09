@@ -1416,6 +1416,13 @@ SUBROUTINE READ_UCNS3D
 			print *, "Moving mesh mode active"
 			print *, "WARNING: this mode is experimental and most things do not work"
 		endif
+
+		OPEN(29,FILE='MovingMesh.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+		read(29,*)
+		read(29,*)moving_mesh_mode
+		if (moving_mesh_mode.eq.1) then
+			read(29,*)mesh_volocity_multiple
+		end if
 	ENDIF
 
 END SUBROUTINE READ_UCNS3D

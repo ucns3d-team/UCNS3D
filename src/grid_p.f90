@@ -11,35 +11,35 @@ IMPLICIT NONE
 CONTAINS
 
 subroutine tolerances
-!> @brief
-!> This subroutine specifies the tolerances and other fixed numbers used throughout the code
-implicit none
+  !> @brief
+  !> This subroutine specifies the tolerances and other fixed numbers used throughout the code
+	implicit none
 
-tolsmall=1.0e-13
-TOLBIG=1.0E+13
-oo2=1.0d0/2.0d0
-zero=0.0d0
-! PI=(ACOS(zero))*2
-PI=4.0D0*ATAN(1.0D0)
-alpha=1.0D0
-BETA=ZERO
+	tolsmall = 1.0e-13
+	TOLBIG = 1.0E+13
+	oo2 = 1.0d0/2.0d0
+	zero = 0.0d0
+	! PI=(ACOS(zero))*2
+	PI = 4.0D0*ATAN(1.0D0)
+	alpha = 1.0D0
+	BETA = ZERO
 
 end subroutine tolerances
 
 
 
 FUNCTION DETERMINA(EIGVL)
-!> @brief
-!> This function computes the determinant of a matrix
-IMPLICIT NONE
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(IN)::EIGVL
-REAL,DIMENSION(5,5)::MATRIX
-REAL::DETERMINA
-INTEGER::I,J,K,L,NN
-REAL::M,TEMP
-LOGICAL :: DetExists = .TRUE.
-matrix=EIGVL
-NN=5
+  !> @brief
+  !> This function computes the determinant of a matrix
+	IMPLICIT NONE
+	REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(IN)::EIGVL
+	REAL,DIMENSION(5,5)::MATRIX
+	REAL::DETERMINA
+	INTEGER::I,J,K,L,NN
+	REAL::M,TEMP
+	LOGICAL :: DetExists = .TRUE.
+	matrix=EIGVL
+	NN=5
     l = 1
     !Convert to upper triangular form
     DO k = 1, nN-1
@@ -94,8 +94,8 @@ END FUNCTION DETERMINA
 ! !---------------------------------------------------------------------------------------------!
 
 SUBROUTINE TIMERS(N,CPUX1,CPUX2,CPUX3,CPUX4,CPUX5,CPUX6,TIMEX1,TIMEX2,TIMEX3,TIMEX4,TIMEX5,TIMEX6)
-	!> @brief
-	!> This subroutine establishes the timers
+  !> @brief
+  !> This subroutine establishes the timers
 	REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::CPUX1,CPUX2,CPUX3,CPUX4,CPUX5,CPUX6
 	REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::TIMEX1,TIMEX2,TIMEX3,TIMEX4,TIMEX5,TIMEX6
 	INTEGER,INTENT(IN)::N
@@ -120,8 +120,8 @@ END SUBROUTINE TIMERS
 
 
 SUBROUTINE XMPIFIND(XMPIE,XMPIN,XMPIELRANK,XMPINRANK,IMAXE,IMAXN,NPROC)
-	!> @brief
-	!> This subroutine finds the number of elements in each process
+  !> @brief
+  !> This subroutine finds the number of elements in each process
 	IMPLICIT NONE
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIE
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIN
@@ -146,273 +146,273 @@ END SUBROUTINE XMPIFIND
 
 
 SUBROUTINE GLOBALIST(N,XMPIE,XMPIL,XMPIELRANK,IMAXE,ISIZE,CENTERR,GLNEIGH,GLNEIGHPER,IELEM)
-!> @brief
-!> This subroutine establishes the connectivity within each process
-IMPLICIT NONE
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIL
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
-TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(IN)::IELEM
-INTEGER,INTENT(IN)::IMAXE,N,ISIZE
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::CENTERR
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH,GLNEIGHPER
-REAL,ALLOCATABLE,DIMENSION(:,:)::CENTERX
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHX
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHTS,GLNEIGHTR
-INTEGER,ALLOCATABLE,DIMENSION(:)::GLNEIGHTOT
-real,ALLOCATABLE,DIMENSION(:,:)::centerTS,centerTR
-INTEGER::I,J,K,KMAXE,ICPUID,KJ,TEMPI,TEMPT
-REAL,DIMENSION(1:DIMENSIONA)::CORDS
-REAL::XV,YC,ZC
+  !> @brief
+  !> This subroutine establishes the connectivity within each process
+	IMPLICIT NONE
+	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE
+	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIL
+	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
+	TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(IN)::IELEM
+	INTEGER,INTENT(IN)::IMAXE,N,ISIZE
+	REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::CENTERR
+	INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::GLNEIGH,GLNEIGHPER
+	REAL,ALLOCATABLE,DIMENSION(:,:)::CENTERX
+	INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHX
+	INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHTS,GLNEIGHTR
+	INTEGER,ALLOCATABLE,DIMENSION(:)::GLNEIGHTOT
+	real,ALLOCATABLE,DIMENSION(:,:)::centerTS,centerTR
+	INTEGER::I,J,K,KMAXE,ICPUID,KJ,TEMPI,TEMPT
+	REAL,DIMENSION(1:DIMENSIONA)::CORDS
+	REAL::XV,YC,ZC
 
-IF (N.EQ.0) then
-	OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-	WRITE(63,*)"global number of elements",imaxe
-	CLOSE(63)
-END IF
-
-IF (DIMENSIONA.EQ.3)THEN
-
-	if ((typesten.gt.1).or.(icompact.ge.1))then
-		ALLOCATE(CENTERR(1:IMAXE,1:3))
-	end if
-	ALLOCATE(GLNEIGH(1:IMAXE,1:6))
-	ALLOCATE(GLNEIGHPER(1:IMAXE,1:6))
-
-	if ((typesten.gt.1).or.(icompact.ge.1))then
-  		CENTERR(:,:)=-TOLBIG
-	end if
-	GLNEIGH(:,:)=0
-	GLNEIGHPER(:,:)=0
-
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-	KMAXE=XMPIELRANK(N)
- 	DO K=1,KMAXE
-		if ((typesten.gt.1).or.(icompact.ge.1))then
-			CALL COMPUTE_CENTRE3d(K,CORDS)
-			CENTERR(IELEM(N,K)%IHEXGL,1)=CORDS(1)
-			CENTERR(IELEM(N,K)%IHEXGL,2)=CORDS(2)
-			CENTERR(IELEM(N,K)%IHEXGL,3)=CORDS(3)
-		end if
- 		DO J=1,IELEM(N,K)%IFCA
- 			GLNEIGH(IELEM(N,K)%IHEXGL,J)=IELEM(N,K)%INEIGHG(J)
-		END DO
-	END DO
-
-	KJ=0
-	do K=1,kmaxe
-		DO J=1,IELEM(N,K)%IFCA
-			IF (IELEM(N,k)%INTERIOR.EQ.0)THEN
-				IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0))THEN
-					KJ=KJ+1
-				END IF
-			ELSE
-				IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0).AND.(IELEM(N,K)%IBOUNDS(J).EQ.0))THEN
-					KJ=KJ+1
-				END IF
-			END IF
-		END DO
-	END DO
-
-	if (n.eq.0)then
+	IF (N.EQ.0) then
 		OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-		WRITE(63,*)KJ,"=NUMBER OF UNKNOWN NEIGHBOURS BEFORE COMMUNICATION"
+		WRITE(63,*)"global number of elements",imaxe
 		CLOSE(63)
-	end if
-	
-	ICPUID=N
+	END IF
 
- 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	IF (DIMENSIONA.EQ.3)THEN
 
-	ALLOCATE(GLNEIGHTOT(2))
-	ALLOCATE(GLNEIGHTS(1:KMAXE,1:7))
-  	if ((typesten.gt.1).or.(icompact.ge.1))then
-   		ALLOCATE(centerts(1:KMAXE,1:3))
-  	end if
-  	GLNEIGHTS(:,:)=0
+		if ((typesten.gt.1).or.(icompact.ge.1))then
+			ALLOCATE(CENTERR(1:IMAXE,1:3))
+		end if
+		ALLOCATE(GLNEIGH(1:IMAXE,1:6))
+		ALLOCATE(GLNEIGHPER(1:IMAXE,1:6))
 
-  	DO K=1,KMAXE
-	  	GLNEIGHTS(K,1)=IELEM(N,K)%IHEXGL
-	  	DO J=1,IELEM(N,K)%IFCA
-	  		GLNEIGHTS(K,1+J)=GLNEIGH(IELEM(N,K)%IHEXGL,J)
-	  	END DO
-	  	if ((typesten.gt.1).or.(icompact.ge.1))then
-	  		centerts(k,1:3)=CENTERR(IELEM(N,K)%IHEXGL,1:3)
-	  	end if
-  	end do
+		if ((typesten.gt.1).or.(icompact.ge.1))then
+			CENTERR(:,:)=-TOLBIG
+		end if
+		GLNEIGH(:,:)=0
+		GLNEIGHPER(:,:)=0
 
-	!first
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-	DO I=0,ISIZE-1
-		IF (I.NE.N)THEN
-			
-			TEMPI=KMAXE
-			CALL MPI_SENDRECV(tempi,1,MPI_INTEGER,I,ICPUID,&
-			tempt,1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-			ALLOCATE(GLNEIGHTR(tempt,1:7))
+		KMAXE=XMPIELRANK(N)
+		DO K=1,KMAXE
 			if ((typesten.gt.1).or.(icompact.ge.1))then
-			  	ALLOCATE(centertR(tempt,1:3))
+				CALL COMPUTE_CENTRE3d(K,CORDS)
+				CENTERR(IELEM(N,K)%IHEXGL,1)=CORDS(1)
+				CENTERR(IELEM(N,K)%IHEXGL,2)=CORDS(2)
+				CENTERR(IELEM(N,K)%IHEXGL,3)=CORDS(3)
 			end if
-			glneightr(:,:)=0
-			if ((typesten.gt.1).or.(icompact.ge.1))then
-				centertR(:,:)=0.0
-			end if
-			TEMPI=KMAXE
-			
-			CALL MPI_SENDRECV(GLNEIGHTS(1:TEMPI,1:7),TEMPI*7,MPI_INTEGER,I,ICPUID,&
-			GLNEIGHTR(1:TEMPT,1:7),TEMPT*7,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
+			DO J=1,IELEM(N,K)%IFCA
+				GLNEIGH(IELEM(N,K)%IHEXGL,J)=IELEM(N,K)%INEIGHG(J)
+			END DO
+		END DO
 
-			if ((typesten.gt.1).or.(icompact.ge.1))then
-				CALL MPI_SENDRECV(CENTERts(1:TEMPI,1:3),TEMPI*3,MPI_DOUBLE_PRECISION,I,ICPUID,&
-				CENTERtr(1:TEMPt,1:3),TEMPt*3,MPI_DOUBLE_PRECISION,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-			end if
+		KJ=0
+		do K=1,kmaxe
+			DO J=1,IELEM(N,K)%IFCA
+				IF (IELEM(N,k)%INTERIOR.EQ.0)THEN
+					IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0))THEN
+						KJ=KJ+1
+					END IF
+				ELSE
+					IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0).AND.(IELEM(N,K)%IBOUNDS(J).EQ.0))THEN
+						KJ=KJ+1
+					END IF
+				END IF
+			END DO
+		END DO
+
+		if (n.eq.0)then
+			OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+			WRITE(63,*)KJ,"=NUMBER OF UNKNOWN NEIGHBOURS BEFORE COMMUNICATION"
+			CLOSE(63)
+		end if
 		
-			do k=1,tempt
-				do j=1,6
-					if (glneightr(k,j+1).gt.0)then
-					    glneigh(glneightr(k,1),j)=glneightr(k,j+1)
-					    if ((typesten.gt.1).or.(icompact.ge.1))then
-					    	centerr(glneightr(k,1),1:3)=CENTERtr(k,1:3)
-					    end if
-					end if
-				end do
-			end do
-			deallocate(GLNEIGHTR)
-			if ((typesten.gt.1).or.(icompact.ge.1))then
-			  	deallocate(centertR)
-			end if
-			
+		ICPUID=N
+
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+		ALLOCATE(GLNEIGHTOT(2))
+		ALLOCATE(GLNEIGHTS(1:KMAXE,1:7))
+		if ((typesten.gt.1).or.(icompact.ge.1))then
+			ALLOCATE(centerts(1:KMAXE,1:3))
 		end if
-	end do
+		GLNEIGHTS(:,:)=0
 
-    deallocate(GLNEIGHTOT)
-  	deallocate(GLNEIGHTS)
-    if ((typesten.gt.1).or.(icompact.ge.1))then
-   		deallocate(centerts)
-    end if
+		DO K=1,KMAXE
+			GLNEIGHTS(K,1)=IELEM(N,K)%IHEXGL
+			DO J=1,IELEM(N,K)%IFCA
+				GLNEIGHTS(K,1+J)=GLNEIGH(IELEM(N,K)%IHEXGL,J)
+			END DO
+			if ((typesten.gt.1).or.(icompact.ge.1))then
+				centerts(k,1:3)=CENTERR(IELEM(N,K)%IHEXGL,1:3)
+			end if
+		end do
 
-END IF
+		!first
 
-IF (DIMENSIONA.EQ.2)THEN
+		DO I=0,ISIZE-1
+			IF (I.NE.N)THEN
+				
+				TEMPI=KMAXE
+				CALL MPI_SENDRECV(tempi,1,MPI_INTEGER,I,ICPUID,&
+				tempt,1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
+				ALLOCATE(GLNEIGHTR(tempt,1:7))
+				if ((typesten.gt.1).or.(icompact.ge.1))then
+					ALLOCATE(centertR(tempt,1:3))
+				end if
+				glneightr(:,:)=0
+				if ((typesten.gt.1).or.(icompact.ge.1))then
+					centertR(:,:)=0.0
+				end if
+				TEMPI=KMAXE
+				
+				CALL MPI_SENDRECV(GLNEIGHTS(1:TEMPI,1:7),TEMPI*7,MPI_INTEGER,I,ICPUID,&
+				GLNEIGHTR(1:TEMPT,1:7),TEMPT*7,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
 
-	if ((typesten.gt.1).or.(icompact.ge.1))then
- 		ALLOCATE(CENTERR(1:IMAXE,1:2))
-	end if
-	ALLOCATE(GLNEIGH(1:IMAXE,1:4))
-	if ((typesten.gt.1).or.(icompact.ge.1))then
-  		CENTERR(:,:)=-TOLBIG
-	end if
- 	GLNEIGH(:,:)=0
+				if ((typesten.gt.1).or.(icompact.ge.1))then
+					CALL MPI_SENDRECV(CENTERts(1:TEMPI,1:3),TEMPI*3,MPI_DOUBLE_PRECISION,I,ICPUID,&
+					CENTERtr(1:TEMPt,1:3),TEMPt*3,MPI_DOUBLE_PRECISION,I,I,MPI_COMM_WORLD,STATUS,IERROR)
+				end if
+			
+				do k=1,tempt
+					do j=1,6
+						if (glneightr(k,j+1).gt.0)then
+							glneigh(glneightr(k,1),j)=glneightr(k,j+1)
+							if ((typesten.gt.1).or.(icompact.ge.1))then
+								centerr(glneightr(k,1),1:3)=CENTERtr(k,1:3)
+							end if
+						end if
+					end do
+				end do
+				deallocate(GLNEIGHTR)
+				if ((typesten.gt.1).or.(icompact.ge.1))then
+					deallocate(centertR)
+				end if
+				
+			end if
+		end do
+
+		deallocate(GLNEIGHTOT)
+		deallocate(GLNEIGHTS)
+		if ((typesten.gt.1).or.(icompact.ge.1))then
+			deallocate(centerts)
+		end if
+
+	END IF
+
+	IF (DIMENSIONA.EQ.2)THEN
+
+		if ((typesten.gt.1).or.(icompact.ge.1))then
+			ALLOCATE(CENTERR(1:IMAXE,1:2))
+		end if
+		ALLOCATE(GLNEIGH(1:IMAXE,1:4))
+		if ((typesten.gt.1).or.(icompact.ge.1))then
+			CENTERR(:,:)=-TOLBIG
+		end if
+		GLNEIGH(:,:)=0
+
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+		KMAXE=XMPIELRANK(N)
+		DO K=1,KMAXE
+			if ((typesten.gt.1).or.(icompact.ge.1))then
+				CALL COMPUTE_CENTRE2d(K,CORDS)
+				CENTERR(IELEM(N,K)%IHEXGL,1)=CORDS(1)
+				CENTERR(IELEM(N,K)%IHEXGL,2)=CORDS(2)
+			end if
+			DO J=1,IELEM(N,K)%IFCA
+				GLNEIGH(IELEM(N,K)%IHEXGL,J)=IELEM(N,K)%INEIGHG(J)
+			end do	
+		END DO
+		KJ=0
+		do K=1,kmaxe
+			DO J=1,IELEM(N,K)%IFCA
+				IF (IELEM(N,k)%INTERIOR.EQ.0)THEN
+					IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0))THEN
+						KJ=KJ+1
+					END IF
+				ELSE
+					IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0).AND.(IELEM(N,K)%IBOUNDS(J).EQ.0))THEN
+						KJ=KJ+1
+					END IF
+				END IF
+			END DO
+		END DO
+
+		if (n.eq.0)then
+			OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+			WRITE(63,*)KJ,"=NUMBER OF UNKNOWN NEIGHBOURS BEFORE COMMUNICATION"
+			CLOSE(63)
+		end if
+		
+		ICPUID=N
+
+		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+		ALLOCATE(GLNEIGHTOT(2))
+		ALLOCATE(GLNEIGHTS(1:KMAXE,1:5))
+		if ((typesten.gt.1).or.(icompact.ge.1))then
+			ALLOCATE(centerts(1:KMAXE,1:2))
+		end if
+		GLNEIGHTS(:,:)=0
+		DO K=1,KMAXE
+			GLNEIGHTS(K,1)=IELEM(N,K)%IHEXGL
+			DO J=1,IELEM(N,K)%IFCA
+				GLNEIGHTS(K,1+J)=GLNEIGH(IELEM(N,K)%IHEXGL,J)
+			END DO
+			if ((typesten.gt.1).or.(icompact.ge.1))then
+				centerts(k,1:2)=CENTERR(IELEM(N,K)%IHEXGL,1:2)
+			end if
+		end do
+
+		!first
+
+		DO I=0,ISIZE-1
+			IF (I.NE.N)THEN
+				
+				TEMPI=KMAXE
+				CALL MPI_SENDRECV(tempi,1,MPI_INTEGER,I,ICPUID,&
+				tempt,1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
+				ALLOCATE(GLNEIGHTR(tempt,1:5))
+				if ((typesten.gt.1).or.(icompact.ge.1))then
+					ALLOCATE(centertR(tempt,1:2))
+				end if
+				glneightr(:,:)=0
+				if ((typesten.gt.1).or.(icompact.ge.1))then
+					centertR(:,:)=0.0
+				end if
+				TEMPI=KMAXE
+				
+				CALL MPI_SENDRECV(GLNEIGHTS(1:TEMPI,1:5),TEMPI*5,MPI_INTEGER,I,ICPUID,&
+				GLNEIGHTR(1:TEMPT,1:5),TEMPT*5,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
+
+				if ((typesten.gt.1).or.(icompact.ge.1))then
+					CALL MPI_SENDRECV(CENTERts(1:TEMPI,1:2),TEMPI*2,MPI_DOUBLE_PRECISION,I,ICPUID,&
+					CENTERtr(1:TEMPt,1:2),TEMPt*2,MPI_DOUBLE_PRECISION,I,I,MPI_COMM_WORLD,STATUS,IERROR)
+				end if
+				
+				do k=1,tempt
+					do j=1,4
+						if (glneightr(k,j+1).gt.0)then
+							glneigh(glneightr(k,1),j)=glneightr(k,j+1)
+							if ((typesten.gt.1).or.(icompact.ge.1))then
+								centerr(glneightr(k,1),1:2)=CENTERtr(k,1:2)
+							end if
+						end if
+					end do     
+				end do
+
+				deallocate(GLNEIGHTR)
+				if ((typesten.gt.1).or.(icompact.ge.1))then
+					deallocate(centertR)
+				end if
+
+			end if
+		end do
+
+		deallocate(GLNEIGHTOT)
+		deallocate(GLNEIGHTS)
+		if ((typesten.gt.1).or.(icompact.ge.1))then
+			deallocate(centerts)
+		end if
+
+	END IF
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-	KMAXE=XMPIELRANK(N)
-	DO K=1,KMAXE
-		if ((typesten.gt.1).or.(icompact.ge.1))then
-			CALL COMPUTE_CENTRE2d(K,CORDS)
-			CENTERR(IELEM(N,K)%IHEXGL,1)=CORDS(1)
-			CENTERR(IELEM(N,K)%IHEXGL,2)=CORDS(2)
-		end if
- 		DO J=1,IELEM(N,K)%IFCA
-			GLNEIGH(IELEM(N,K)%IHEXGL,J)=IELEM(N,K)%INEIGHG(J)
-		end do	
-	END DO
-	KJ=0
-	do K=1,kmaxe
-		DO J=1,IELEM(N,K)%IFCA
-			IF (IELEM(N,k)%INTERIOR.EQ.0)THEN
-				IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0))THEN
-					KJ=KJ+1
-				END IF
-			ELSE
-				IF ((GLNEIGH(IELEM(N,K)%IHEXGL,J).EQ.0).AND.(IELEM(N,K)%IBOUNDS(J).EQ.0))THEN
-					KJ=KJ+1
-				END IF
-			END IF
-		END DO
-	END DO
-
-	if (n.eq.0)then
-		OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-		WRITE(63,*)KJ,"=NUMBER OF UNKNOWN NEIGHBOURS BEFORE COMMUNICATION"
-		CLOSE(63)
-	end if
-	
-	ICPUID=N
-
- 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-	ALLOCATE(GLNEIGHTOT(2))
-	ALLOCATE(GLNEIGHTS(1:KMAXE,1:5))
-	if ((typesten.gt.1).or.(icompact.ge.1))then
-		ALLOCATE(centerts(1:KMAXE,1:2))
-	end if
-	GLNEIGHTS(:,:)=0
-	DO K=1,KMAXE
-		GLNEIGHTS(K,1)=IELEM(N,K)%IHEXGL
-		DO J=1,IELEM(N,K)%IFCA
-			GLNEIGHTS(K,1+J)=GLNEIGH(IELEM(N,K)%IHEXGL,J)
-		END DO
-		if ((typesten.gt.1).or.(icompact.ge.1))then
-			centerts(k,1:2)=CENTERR(IELEM(N,K)%IHEXGL,1:2)
-		end if
-	end do
-
-	!first
-
-	DO I=0,ISIZE-1
-		IF (I.NE.N)THEN
-			
-			TEMPI=KMAXE
-			CALL MPI_SENDRECV(tempi,1,MPI_INTEGER,I,ICPUID,&
-			tempt,1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-			ALLOCATE(GLNEIGHTR(tempt,1:5))
-			if ((typesten.gt.1).or.(icompact.ge.1))then
-				ALLOCATE(centertR(tempt,1:2))
-			end if
-			glneightr(:,:)=0
-			if ((typesten.gt.1).or.(icompact.ge.1))then
-				centertR(:,:)=0.0
-			end if
-			TEMPI=KMAXE
-			
-			CALL MPI_SENDRECV(GLNEIGHTS(1:TEMPI,1:5),TEMPI*5,MPI_INTEGER,I,ICPUID,&
-			GLNEIGHTR(1:TEMPT,1:5),TEMPT*5,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-
-			if ((typesten.gt.1).or.(icompact.ge.1))then
-				CALL MPI_SENDRECV(CENTERts(1:TEMPI,1:2),TEMPI*2,MPI_DOUBLE_PRECISION,I,ICPUID,&
-				CENTERtr(1:TEMPt,1:2),TEMPt*2,MPI_DOUBLE_PRECISION,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-			end if
-			
-			do k=1,tempt
-				do j=1,4
-					if (glneightr(k,j+1).gt.0)then
-					    glneigh(glneightr(k,1),j)=glneightr(k,j+1)
-					    if ((typesten.gt.1).or.(icompact.ge.1))then
-					    	centerr(glneightr(k,1),1:2)=CENTERtr(k,1:2)
-					    end if
-					end if
-				end do     
-			end do
-
-			deallocate(GLNEIGHTR)
-			if ((typesten.gt.1).or.(icompact.ge.1))then
-			  	deallocate(centertR)
-			end if
-
-		end if
-	end do
-
-    deallocate(GLNEIGHTOT)
-  	deallocate(GLNEIGHTS)
-    if ((typesten.gt.1).or.(icompact.ge.1))then
-   		deallocate(centerts)
-    end if
-
-END IF
-
-CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 END SUBROUTINE GLOBALIST
 
@@ -421,8 +421,8 @@ END SUBROUTINE GLOBALIST
 
 
 SUBROUTINE GLOBALIST2(N,XMPIE,XMPIL,XMPIELRANK,IMAXE,ISIZE,CENTERR,GLNEIGH,GLNEIGHPER,IELEM)
-!> @brief
-!> This subroutine establishes the connectivity with elements from other processes
+  !> @brief
+  !> This subroutine establishes the connectivity with elements from other processes
 IMPLICIT NONE
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE
 INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIL
@@ -825,19 +825,19 @@ requests(:)=0
 DO i=0,isize-1
 	IF (cand(i).gt.0)THEN
 		n_requests = n_requests + 1
-		CALL MPI_ISEND(                                                     &
-			    CANDS(I), 								& !sendbuf
-			    1, MPI_INTEGER,       						& !sendcount, sendtype
-			    I, 0,                                       			 & !destination, tag
-			    MPI_COMM_WORLD, requests(n_requests), ierror                       & !communicator, request handle, error
-				)
+		CALL MPI_ISEND(                                       &
+			    CANDS(I), 								      & !sendbuf
+			    1, MPI_INTEGER,       						  & !sendcount, sendtype
+			    I, 0,                                         & !destination, tag
+			    MPI_COMM_WORLD, requests(n_requests), ierror  & !communicator, request handle, error
+			)
 		n_requests = n_requests + 1
-		CALL MPI_IRECV(                                                     &
-				CANDR(I),    & !recvbuf
-				1, MPI_INTEGER,          & !recvcount, recvtype
-				I, 0,                                        & !source, tag
-				MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-			    )
+		CALL MPI_IRECV(                                       &
+				CANDR(I),                                     & !recvbuf
+				1, MPI_INTEGER,                               & !recvcount, recvtype
+				I, 0,                                         & !source, tag
+				MPI_COMM_WORLD, requests(n_requests), ierror  & !communicator, request handle, error
+			)
 	END IF
 END DO
 
@@ -1026,9 +1026,9 @@ END SUBROUTINE GLOBALISTX2
 
 
 SUBROUTINE GLOBALDEA
-!> @brief
-!> This subroutine deallocates the memory used for establishing the connectivity
-IMPLICIT NONE
+  !> @brief
+  !> This subroutine deallocates the memory used for establishing the connectivity
+	IMPLICIT NONE
  	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
     if ((typesten.gt.1).or.(icompact.ge.1))then
 	    IF (LOWMEM.EQ.0) then
@@ -1054,106 +1054,106 @@ END SUBROUTINE GLOBALDEA
 
 
 
-SUBROUTINE XMPILOCAL
-!> @brief
-!> This subroutine establishes the local numbering of the cells
-IMPLICIT NONE
-INTEGER::I,KMAXE,count_block
-INTEGER,ALLOCATABLE,DIMENSION(:)::XMPIC,BIN,VAL
-ALLOCATE(XMPIC(0:isize-1))
+SUBROUTINE XMPILOCAL ! Come back here
+  !> @brief
+  !> This subroutine establishes the local numbering of the cells
+	IMPLICIT NONE
+	INTEGER::I,KMAXE,count_block
+	INTEGER,ALLOCATABLE,DIMENSION(:)::XMPIC,BIN,VAL
+	ALLOCATE(XMPIC(0:isize-1))
 
-XMPIC=0
-KMAXE=XMPIELRANK(N)
+	XMPIC=0
+	KMAXE=XMPIELRANK(N)
 
-ALLOCATE(VAL(1:KMAXE))
-ALLOCATE(XGO(1:KMAXE))
+	ALLOCATE(VAL(1:KMAXE))
+	ALLOCATE(XGO(1:KMAXE))
 
-DO I=1,KMAXE
-	XGO(I)=IELEM(N,I)%IHEXGL
-END DO
+	DO I=1,KMAXE
+		XGO(I)=IELEM(N,I)%IHEXGL
+	END DO
 
-IF (N.EQ.0)THEN
-	ALLOCATE(XMPI_RE(1:IMAXE))
-	xmpi_re=zero
-Else
-	ALLOCATE(XMPI_RE(1))
-end if
+	IF (N.EQ.0)THEN
+		ALLOCATE(XMPI_RE(1:IMAXE))
+		xmpi_re=zero
+	Else
+		ALLOCATE(XMPI_RE(1))
+	end if
 
-DO I=1,KMAXE
-	XMPIL(IELEM(N,I)%IHEXGL)=I
-END DO
-	
-do i=1,imaxe
-      xmpic(xmpie(i))=xmpic(xmpie(i))+1
-      xmpil(i)=xmpic(xmpie(i))
-end do
+	DO I=1,KMAXE
+		XMPIL(IELEM(N,I)%IHEXGL)=I
+	END DO
+		
+	do i=1,imaxe
+		xmpic(xmpie(i))=xmpic(xmpie(i))+1
+		xmpil(i)=xmpic(xmpie(i))
+	end do
 
-deallocate(XMPIC)
+	deallocate(XMPIC)
 
-ALLOCATE(XMPIALL(0:ISIZE-1),OFFSET(0:ISIZE-1))
+	ALLOCATE(XMPIALL(0:ISIZE-1),OFFSET(0:ISIZE-1))
 
-XMPIALL=0
-XMPIALL(N)=KMAXE
+	XMPIALL=0
+	XMPIALL(N)=KMAXE
 
-CALL MPI_ALLGATHER(kmaxe,1,MPI_INTEGER,XMPIALL,1,MPI_INTEGER,MPI_COMM_WORLD,IERROR)
+	CALL MPI_ALLGATHER(kmaxe,1,MPI_INTEGER,XMPIALL,1,MPI_INTEGER,MPI_COMM_WORLD,IERROR)
 
-OFFSET(0)=0
-DO I=1,ISIZE-1
-	OFFSET(I)=OFFSET(I-1)+XMPIALL(I-1)
-END DO
+	OFFSET(0)=0
+	DO I=1,ISIZE-1
+		OFFSET(I)=OFFSET(I-1)+XMPIALL(I-1)
+	END DO
 
-DO I=1,KMAXE
-  	VAL(I)=IELEM(N,I)%IHEXGL
-END DO
+	DO I=1,KMAXE
+		VAL(I)=IELEM(N,I)%IHEXGL
+	END DO
 
-call MPI_GATHERv(val(1:kmaxe),kmaxe,MPI_INTEGER,XMPI_RE,xmpiall,offset,MPI_INTEGER,0,MPI_COMM_WORLD,IERROR)
+	call MPI_GATHERv(val(1:kmaxe),kmaxe,MPI_INTEGER,XMPI_RE,xmpiall,offset,MPI_INTEGER,0,MPI_COMM_WORLD,IERROR)
 
-deallocate(VAL)
+	deallocate(VAL)
 
-! CHUNK_N=0
-! DO I=2,KMAXE
-!     IF (XGO(I).GT.XGO(I-1)+1)THEN
-! 	      CHUNK_N=CHUNK_N+1
-!     END IF
-! END DO
-!   
-! WRITE(100+N,*)CHUNK_N,N,KMAXE
-!   
-! allocate(chunk_size(chunk_n))
-! 
-! CHUNK_N=0
-! count_block=0
-! DO I=2,KMAXE
-!     IF (XGO(I).GT.XGO(I-1)+1)THEN
-! 	      CHUNK_N=CHUNK_N+1
-! 	      chunk_size(chunk_n)=XGO(I)
-!     END IF
-! END DO
-! 
-! do i=1,chunk_n
-!     write(100+n,*)i,chunk_size(i)
-! end do
+	! CHUNK_N=0
+	! DO I=2,KMAXE
+	!     IF (XGO(I).GT.XGO(I-1)+1)THEN
+	! 	      CHUNK_N=CHUNK_N+1
+	!     END IF
+	! END DO
+	!   
+	! WRITE(100+N,*)CHUNK_N,N,KMAXE
+	!   
+	! allocate(chunk_size(chunk_n))
+	! 
+	! CHUNK_N=0
+	! count_block=0
+	! DO I=2,KMAXE
+	!     IF (XGO(I).GT.XGO(I-1)+1)THEN
+	! 	      CHUNK_N=CHUNK_N+1
+	! 	      chunk_size(chunk_n)=XGO(I)
+	!     END IF
+	! END DO
+	! 
+	! do i=1,chunk_n
+	!     write(100+n,*)i,chunk_size(i)
+	! end do
 
-! CHUNK_N=0
-! do i=1,kmaxe-1
-!     if (xgo(i+1).eq.xgo(i)+1)then
-!       
-!     else
-!         CHUNK_N=CHUNK_N+1
-!     end if
-! end do
-! 
-! 
-! allocate(chunk_size(chunk_n))
-! count_block=0
-! do i=1,kmaxe-1
-!     if (xgo(i+1).eq.xgo(i)+1)then
-!         count_block=count_block+1
-!     else
-!         CHUNK_N=CHUNK_N+1
-!         count_block=count_block+1
-!     end if
-! end do
+	! CHUNK_N=0
+	! do i=1,kmaxe-1
+	!     if (xgo(i+1).eq.xgo(i)+1)then
+	!       
+	!     else
+	!         CHUNK_N=CHUNK_N+1
+	!     end if
+	! end do
+	! 
+	! 
+	! allocate(chunk_size(chunk_n))
+	! count_block=0
+	! do i=1,kmaxe-1
+	!     if (xgo(i+1).eq.xgo(i)+1)then
+	!         count_block=count_block+1
+	!     else
+	!         CHUNK_N=CHUNK_N+1
+	!         count_block=count_block+1
+	!     end if
+	! end do
      
 END SUBROUTINE XMPILOCAL
 
@@ -1162,61 +1162,61 @@ END SUBROUTINE XMPILOCAL
 
 
 SUBROUTINE COUNT_WALLS
-!> @brief
-!> This subroutine allocates the appropriate memory for bounded walls indexing for writing files
-IMPLICIT NONE
-INTEGER::I,KMAXE,ILOOP,j
-INTEGER,ALLOCATABLE,DIMENSION(:)::BIN,VAL
-KMAXE=XMPIELRANK(N)
-ILOOP=0
-DO I=1,KMAXE
-  	if (ielem(n,i)%interior.eq.1)then
-		DO j=1,IELEM(N,I)%IFCA
-	  		if (ielem(n,i)%ibounds(J).gt.0)then
-	      		if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
-		  			iloop=iloop+1
-	      		END IF
-	  		end if
-		END DO
-   	end if
-END DO
+  !> @brief
+  !> This subroutine allocates the appropriate memory for bounded walls indexing for writing files
+	IMPLICIT NONE
+	INTEGER::I,KMAXE,ILOOP,j
+	INTEGER,ALLOCATABLE,DIMENSION(:)::BIN,VAL
+	KMAXE=XMPIELRANK(N)
+	ILOOP=0
+	DO I=1,KMAXE
+		if (ielem(n,i)%interior.eq.1)then
+			DO j=1,IELEM(N,I)%IFCA
+				if (ielem(n,i)%ibounds(J).gt.0)then
+					if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
+						iloop=iloop+1
+					END IF
+				end if
+			END DO
+		end if
+	END DO
 
-ALLOCATE(XMPIWALL(0:ISIZE-1),WOFFSET(0:ISIZE-1))
+	ALLOCATE(XMPIWALL(0:ISIZE-1),WOFFSET(0:ISIZE-1))
 
-XMPIWALL=0
-XMPIWALL(N)=ILOOP
-CALL MPI_ALLGATHER(ILOOP,1,MPI_INTEGER,XMPIWALL,1,MPI_INTEGER,MPI_COMM_WORLD,IERROR)
+	XMPIWALL=0
+	XMPIWALL(N)=ILOOP
+	CALL MPI_ALLGATHER(ILOOP,1,MPI_INTEGER,XMPIWALL,1,MPI_INTEGER,MPI_COMM_WORLD,IERROR)
 
-WOFFSET(0)=0
-DO I=1,ISIZE-1
-	WOFFSET(I)=WOFFSET(I-1)+XMPIWALL(I-1)
-END DO
+	WOFFSET(0)=0
+	DO I=1,ISIZE-1
+		WOFFSET(I)=WOFFSET(I-1)+XMPIWALL(I-1)
+	END DO
 
-ALLOCATE(VAL(iloop))
-IF (N.EQ.0)THEN
-	ALLOCATE(XMPI_wRE(1:totwalls))
-ELSe
-	ALLOCATE(XMPI_wRE(1))
-END IF
+	ALLOCATE(VAL(iloop))
+	IF (N.EQ.0)THEN
+		ALLOCATE(XMPI_wRE(1:totwalls))
+	ELSe
+		ALLOCATE(XMPI_wRE(1))
+	END IF
 
-ILOOP=0
+	ILOOP=0
 
-DO I=1,KMAXE
-  	if (ielem(n,i)%interior.eq.1)then
-		DO j=1,IELEM(N,I)%IFCA
-	  		if (ielem(n,i)%ibounds(J).gt.0)then
-	    		if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
-		  			iloop=iloop+1
-		  			VAL(Iloop)=ibound(n,ielem(n,i)%ibounds(j))%inum
-	      		end if
-	  		end if
-		END DO
-   	end if
-END DO
+	DO I=1,KMAXE
+		if (ielem(n,i)%interior.eq.1)then
+			DO j=1,IELEM(N,I)%IFCA
+				if (ielem(n,i)%ibounds(J).gt.0)then
+					if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.99))then
+						iloop=iloop+1
+						VAL(Iloop)=ibound(n,ielem(n,i)%ibounds(j))%inum
+					end if
+				end if
+			END DO
+		end if
+	END DO
 
-call MPI_GATHERv(val(1:iloop),iloop,MPI_INTEGER,XMPI_wRE,xmpiwall,woffset,MPI_INTEGER,0,MPI_COMM_WORLD,IERROR)
+	call MPI_GATHERv(val(1:iloop),iloop,MPI_INTEGER,XMPI_wRE,xmpiwall,woffset,MPI_INTEGER,0,MPI_COMM_WORLD,IERROR)
 
-deallocate(VAL)
+	deallocate(VAL)
 
 END SUBROUTINE COUNT_WALLS
 
@@ -1340,16 +1340,16 @@ END SUBROUTINE LOCALSTALLOCATION
 !!!!!!!!!!!!!!!!!!!KIT IS INITIALLY USED FOR FIRST LEVEL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!NEIGHBOURS AND IT IS GOING TO BE MODIFIED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 SUBROUTINE FIND_SHAPE(N,IMAXE,IESHAPE)
-!> @brief
-!> This subroutine finds the shape of each cell
-IMPLICIT NONE
-INTEGER,INTENT(INOUT)::IMAXE
-integer,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IESHAPE
-INTEGER::I1,I2,I3,I4,I5,I6,I7,I8,I,J,K,L,M,KK,INFO,FH,ll,mm,kn
-CHARACTER(LEN=12)::CELFILE,PROC
-INTEGER,INTENT(IN)::N
-INFO=1
-FH=1
+  !> @brief
+  !> This subroutine finds the shape of each cell
+	IMPLICIT NONE
+	INTEGER,INTENT(INOUT)::IMAXE
+	integer,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IESHAPE
+	INTEGER::I1,I2,I3,I4,I5,I6,I7,I8,I,J,K,L,M,KK,INFO,FH,ll,mm,kn
+	CHARACTER(LEN=12)::CELFILE,PROC
+	INTEGER,INTENT(IN)::N
+	INFO=1
+	FH=1
 
 if (BINIO.EQ.0)THEN
 	if (dimensiona.eq.3)then
@@ -1464,9 +1464,9 @@ IF (N.EQ.0)THEN
 	WRITE(63,*)"------------UNSTRUCTURED FLUID DYNAMICS SOLVER ------------"
 	WRITE(63,*)"-----------------------GRID  TYPE--------------------------"
 	IF (DIMENSIONA.EQ.3 )THEN
-	WRITE(63,*)"-----------------------3D MODE--------------------------"
+		WRITE(63,*)"-----------------------3D MODE--------------------------"
 	ELSE
-	WRITE(63,*)"-----------------------2D MODE--------------------------"
+		WRITE(63,*)"-----------------------2D MODE--------------------------"
 	END IF
 	! IF ((L.GT.0).AND.((K.GT.0).OR.(M.GT.0).OR.(N.GT.0)))THEN
 	WRITE(63,*)K,"HEXAHEDRAL ELEMENTS"
@@ -1515,504 +1515,503 @@ END SUBROUTINE FIX_OFFSETS_LOCAL
 
 
 ! ---------------------------------------------------------------------------------------------!
-SUBROUTINE NEIGHBOURSS(N,IELEM,IMAXE,IMAXN,XMPIE,XMPIN,XMPIELRANK,RESTART,INODEr)
-!> @brief
-!> This subroutine finds the neighbours
-IMPLICIT NONE
-TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
-TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::INODEr
-INTEGER,INTENT(IN)::N,IMAXE,RESTART,IMAXN
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE,XMPIN
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
-INTEGER::I,J,JI,K,LM,IEX,KMAXN,KK,KMAXE,IHAX1,NUMNOD,L,ICN,L2,P,M,Q,IJ,c_n1,c_n2,c_n3,c_n4,d_n1,d_n2,d_n3,d_n4
-INTEGER::IT1,IT2,IT3,IT4,IT5,IT6,IT7,IT8,ITX,INX,ITF,IFG,print_i,I1,I2,I3,I4,I5,I6,I7,I8,IMBG,ICFACE
-REAL::DELTA,CPUER
-CHARACTER(LEN=20)::PROC,NEIBFILE,PROC3
+SUBROUTINE NEIGHBOURSS(N,IELEM,IMAXE,IMAXN,XMPIE,XMPIN,XMPIELRANK,RESTART,INODEr) ! come back here
+  !> @brief
+  !> This subroutine finds the neighbours
+	IMPLICIT NONE
+	TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
+	TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::INODEr
+	INTEGER,INTENT(IN)::N,IMAXE,RESTART,IMAXN
+	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE,XMPIN
+	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
+	INTEGER::I,J,JI,K,LM,IEX,KMAXN,KK,KMAXE,IHAX1,NUMNOD,L,ICN,L2,P,M,Q,IJ,c_n1,c_n2,c_n3,c_n4,d_n1,d_n2,d_n3,d_n4
+	INTEGER::IT1,IT2,IT3,IT4,IT5,IT6,IT7,IT8,ITX,INX,ITF,IFG,print_i,I1,I2,I3,I4,I5,I6,I7,I8,IMBG,ICFACE
+	REAL::DELTA,CPUER
+	CHARACTER(LEN=20)::PROC,NEIBFILE,PROC3
 
-KMAXE=XMPIELRANK(N)
-		
-inoder2(:)%NUMBEROFNEIB=0
-		
-DO I=1,KMAXE
+	KMAXE=XMPIELRANK(N)
+			
+	inoder2(:)%NUMBEROFNEIB=0
+			
+	DO I=1,KMAXE
 	
-	! if (itestcase.eq.4)then
-	allocate(ielem(n,i)%vortex(3)); ielem(n,i)%vortex=zero
-	ALLOCATE(IELEM(N,I)%AVARS(NOF_VARIABLES));
-	! end if
+		! if (itestcase.eq.4)then
+		allocate(ielem(n,i)%vortex(3)); ielem(n,i)%vortex=zero
+		ALLOCATE(IELEM(N,I)%AVARS(NOF_VARIABLES));
+		! end if
 	
-	SELECT CASE (IELEM(N,I)%ISHAPE)
+		SELECT CASE (IELEM(N,I)%ISHAPE)
 
-	  CASE(4) !prism
+		  CASE(4) !prism
 	
-		allocate(IELEM(N,I)%NODES_FACES(5,4))
-		if ((tecplot.eq.5).or.(MESH_MOVEMENT))then
-			allocate(IELEM(N,I)%NODES_FACES_V(5,4))
-			allocate(IELEM(N,I)%NODES_local_FACES(5,4))
-		end if
-		IF (CODE_PROFILE.EQ.30)THEN
-			allocate(IELEM(N,I)%NODES_NEIGHBOURS(5,30))
-			IELEM(N,I)%NODES_NEIGHBOURS=0
-		END IF
-		allocate(IELEM(N,I)%INEIGHG(5))
-		allocate(IELEM(N,I)%TYPES_FACES(5))
-	
-		IELEM(N,I)%TYPES_FACES(1:2)=6; IELEM(N,I)%TYPES_FACES(3:5)=5
-
-		IELEM(N,I)%NODES_FACES(1:5,1:4)=0
+			allocate(IELEM(N,I)%NODES_FACES(5,4))
+			if ((tecplot.eq.5).or.(MESH_MOVEMENT))then
+				allocate(IELEM(N,I)%NODES_FACES_V(5,4))
+				allocate(IELEM(N,I)%NODES_local_FACES(5,4))
+			end if
+			IF ((CODE_PROFILE.EQ.30).or.(MESH_MOVEMENT)) THEN
+				allocate(IELEM(N,I)%NODES_NEIGHBOURS(5,30))
+				IELEM(N,I)%NODES_NEIGHBOURS=0
+			END IF
+			allocate(IELEM(N,I)%INEIGHG(5))
+			allocate(IELEM(N,I)%TYPES_FACES(5))
 		
-		IELEM(N,I)%INEIGHG(1:5)=0
-		IELEM(N,I)%ifca=5; 
-		IELEM(N,I)%VDEC=3
+			IELEM(N,I)%TYPES_FACES(1:2)=6; IELEM(N,I)%TYPES_FACES(3:5)=5
+
+			IELEM(N,I)%NODES_FACES(1:5,1:4)=0
+			
+			IELEM(N,I)%INEIGHG(1:5)=0
+			IELEM(N,I)%ifca=5; 
+			IELEM(N,I)%VDEC=3
+			
+			IELEM(N,I)%TOTVOLUME=0.0;IELEM(N,I)%MINEDGE=0.0;IELEM(N,I)%WALLDIST=0.0
+			!FIRST FACE
+			IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(5)
+			IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(6)
+			IELEM(N,I)%NODES_FACES(1,3)=IELEM(N,I)%NODES(4)
+			
+			!SEC FACE
+			IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(2) 
+			IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(1)
+			IELEM(N,I)%NODES_FACES(2,3)=IELEM(N,I)%NODES(3)
+			
+			!THIRD FACE
+			IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(1)		!125,154
+			IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(2)
+			IELEM(N,I)%NODES_FACES(3,3)=IELEM(N,I)%NODES(5)
+			IELEM(N,I)%NODES_FACES(3,4)=IELEM(N,I)%NODES(4)
+			!FOURTH FACE
+			IELEM(N,I)%NODES_FACES(4,1)=IELEM(N,I)%NODES(2)		!236,265
+			IELEM(N,I)%NODES_FACES(4,2)=IELEM(N,I)%NODES(3)
+			IELEM(N,I)%NODES_FACES(4,3)=IELEM(N,I)%NODES(6)
+			IELEM(N,I)%NODES_FACES(4,4)=IELEM(N,I)%NODES(5)
+
+			IELEM(N,I)%NODES_FACES(5,1)=IELEM(N,I)%NODES(3)		!314,346	
+			IELEM(N,I)%NODES_FACES(5,2)=IELEM(N,I)%NODES(1)
+			IELEM(N,I)%NODES_FACES(5,3)=IELEM(N,I)%NODES(4)
+			IELEM(N,I)%NODES_FACES(5,4)=IELEM(N,I)%NODES(6)
+
+			allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
+			allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
+			if (adda.eq.1)then
+				allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
+				ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
+			end if
+			if (fastest.eq.0)then
+				allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
+			end if
+			if (rungekutta.ge.2)then
+				allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
+				! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
+			end if
+
+		  CASE(1) !HEXAHEDRAL
+
+			allocate(IELEM(N,I)%NODES_FACES(6,4))
+			if ((tecplot.eq.5).or.(MESH_MOVEMENT)) then
+				allocate(IELEM(N,I)%NODES_FACES_V(6,4))
+				allocate(IELEM(N,I)%NODES_local_FACES(6,4))
+			end if
+			IF ((CODE_PROFILE.EQ.30).or.(MESH_MOVEMENT)) THEN
+				allocate(IELEM(N,I)%NODES_NEIGHBOURS(6,30))
+				IELEM(N,I)%NODES_NEIGHBOURS=0
+			END IF
+			allocate(IELEM(N,I)%INEIGHG(6))
+			allocate(IELEM(N,I)%TYPEs_FACES(6))
+
+			IELEM(N,I)%TYPEs_FACES(1:6)=5
+			IELEM(N,I)%VDEC=6
+			IELEM(N,I)%TOTVOLUME=0.0
+			IELEM(N,I)%MINEDGE=0.0
+			IELEM(N,I)%WALLDIST=0.0
+			IELEM(N,I)%NODES_FACES(:,:)=0
+			
+			IELEM(N,I)%INEIGHG=0
+			IELEM(N,I)%ifca=6; 
+			!FIRST FACE
+			IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(2)
+			IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(1)			!DEC214,243
+			IELEM(N,I)%NODES_FACES(1,3)=IELEM(N,I)%NODES(4)
+			IELEM(N,I)%NODES_FACES(1,4)=IELEM(N,I)%NODES(3)
+			!SEC FACE
+			IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(5) 
+			IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(6)				!567,578
+			IELEM(N,I)%NODES_FACES(2,3)=IELEM(N,I)%NODES(7)
+			IELEM(N,I)%NODES_FACES(2,4)=IELEM(N,I)%NODES(8)
+			!THIRD FACE
+			IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(6)
+			IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(2)				!623,637
+			IELEM(N,I)%NODES_FACES(3,3)=IELEM(N,I)%NODES(3)
+			IELEM(N,I)%NODES_FACES(3,4)=IELEM(N,I)%NODES(7)
+			!FOURTH FACE
+			IELEM(N,I)%NODES_FACES(4,1)=IELEM(N,I)%NODES(8)					
+			IELEM(N,I)%NODES_FACES(4,2)=IELEM(N,I)%NODES(4)			!841,815
+			IELEM(N,I)%NODES_FACES(4,3)=IELEM(N,I)%NODES(1)
+			IELEM(N,I)%NODES_FACES(4,4)=IELEM(N,I)%NODES(5)
+			!FIFTH FACE
+			IELEM(N,I)%NODES_FACES(5,1)=IELEM(N,I)%NODES(7)				!734,748
+			IELEM(N,I)%NODES_FACES(5,2)=IELEM(N,I)%NODES(3)
+			IELEM(N,I)%NODES_FACES(5,3)=IELEM(N,I)%NODES(4)
+			IELEM(N,I)%NODES_FACES(5,4)=IELEM(N,I)%NODES(8)
+			!SIXTH FACE
+			IELEM(N,I)%NODES_FACES(6,1)=IELEM(N,I)%NODES(5)		!512,526
+			IELEM(N,I)%NODES_FACES(6,2)=IELEM(N,I)%NODES(1)
+			IELEM(N,I)%NODES_FACES(6,3)=IELEM(N,I)%NODES(2)
+			IELEM(N,I)%NODES_FACES(6,4)=IELEM(N,I)%NODES(6)
+
+			allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
+			allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
+			if (fastest.eq.0)then
+				allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
+			end if
+			if (adda.eq.1)then
+				allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
+				ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
+			end if
+			if (rungekutta.ge.2)then
+				allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
+				! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero  
+			end if
+
+		  CASE(2) !TETRAHEDRAL
+
+			allocate(IELEM(N,I)%NODES_FACES(4,3))
+			if ((tecplot.eq.5).or.(MESH_MOVEMENT)) then
+				allocate(IELEM(N,I)%NODES_FACES_V(4,3))
+				allocate(IELEM(N,I)%NODES_local_FACES(4,3))
+			end if
+			IF ((CODE_PROFILE.EQ.30).or.(MESH_MOVEMENT)) THEN
+				allocate(IELEM(N,I)%NODES_NEIGHBOURS(4,30))
+				IELEM(N,I)%NODES_NEIGHBOURS=0
+			END IF
+			allocate(IELEM(N,I)%INEIGHG(4))
+			allocate(IELEM(N,I)%TYPES_FACES(4))
+			IELEM(N,I)%TYPES_FACES(1:4)=6
+			IELEM(N,I)%NODES_FACES(:,:)=0
+			
+			IELEM(N,I)%INEIGHG=0
+			IELEM(N,I)%VDEC=1
+			IELEM(N,I)%TOTVOLUME=0.0;IELEM(N,I)%MINEDGE=0.0;IELEM(N,I)%WALLDIST=0.0
+			IELEM(N,I)%ifca=4; 
+			!FIRST FACE
+			IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(2)
+			IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(4)
+			IELEM(N,I)%NODES_FACES(1,3)=IELEM(N,I)%NODES(1)
+			
+			!SEC FACE
+			IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(2) 
+			IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(1)
+			IELEM(N,I)%NODES_FACES(2,3)=IELEM(N,I)%NODES(3)
+			
+			!THIRD FACE
+			IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(2)
+			IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(3)
+			IELEM(N,I)%NODES_FACES(3,3)=IELEM(N,I)%NODES(4)
+			
+			!FOURTH FACE
+			IELEM(N,I)%NODES_FACES(4,1)=IELEM(N,I)%NODES(3)
+			IELEM(N,I)%NODES_FACES(4,2)=IELEM(N,I)%NODES(1)
+			IELEM(N,I)%NODES_FACES(4,3)=IELEM(N,I)%NODES(4)
+
+			allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
+			allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
+			if (adda.eq.1)then
+				allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
+				ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
+			end if
+			if (fastest.eq.0)then
+				allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
+			end if
+			if (rungekutta.ge.2)then
+				allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
+				! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
+			end if
+
+		  CASE(3) !pyramidal
+
+			allocate(IELEM(N,I)%NODES_FACES(5,4))
+			if ((tecplot.eq.5).or.(MESH_MOVEMENT)) then
+				allocate(IELEM(N,I)%NODES_FACES_V(5,4))
+				allocate(IELEM(N,I)%NODES_local_FACES(5,4))
+			end if
+			IF ((CODE_PROFILE.EQ.30).or.(MESH_MOVEMENT)) THEN
+				allocate(IELEM(N,I)%NODES_NEIGHBOURS(5,30))
+				IELEM(N,I)%NODES_NEIGHBOURS=0
+			END IF
+			allocate(IELEM(N,I)%INEIGHG(5))
+			allocate(IELEM(N,I)%TYPES_FACES(5))
+
+			IELEM(N,I)%TYPES_FACES(1)=5; IELEM(N,I)%TYPES_FACES(2:5)=6
+			IELEM(N,I)%NODES_FACES(:,:)=0
+			
+			IELEM(N,I)%INEIGHG=0
+			IELEM(N,I)%VDEC=2
+			IELEM(N,I)%TOTVOLUME=0.0;IELEM(N,I)%MINEDGE=0.0;IELEM(N,I)%WALLDIST=0.0
+			IELEM(N,I)%ifca=5; 
+			!FIRST FACE
+			IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(4)		!432,421
+			IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(3)
+			IELEM(N,I)%NODES_FACES(1,3)=IELEM(N,I)%NODES(2)
+			IELEM(N,I)%NODES_FACES(1,4)=IELEM(N,I)%NODES(1)
+			!SEC FACE
+			IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(1) 
+			IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(2)
+			IELEM(N,I)%NODES_FACES(2,3)=IELEM(N,I)%NODES(5)
+			
+			!THIRD FACE
+			IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(2)
+			IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(3)
+			IELEM(N,I)%NODES_FACES(3,3)=IELEM(N,I)%NODES(5)
+			
+			!FOURTH FACE
+			IELEM(N,I)%NODES_FACES(4,1)=IELEM(N,I)%NODES(3)
+			IELEM(N,I)%NODES_FACES(4,2)=IELEM(N,I)%NODES(4)
+			IELEM(N,I)%NODES_FACES(4,3)=IELEM(N,I)%NODES(5)
+
+			IELEM(N,I)%NODES_FACES(5,1)=IELEM(N,I)%NODES(4)
+			IELEM(N,I)%NODES_FACES(5,2)=IELEM(N,I)%NODES(1)
+			IELEM(N,I)%NODES_FACES(5,3)=IELEM(N,I)%NODES(5)
+
+			if (rungekutta.ge.2)then
+				allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
+				! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
+			end if
 		
-		IELEM(N,I)%TOTVOLUME=0.0;IELEM(N,I)%MINEDGE=0.0;IELEM(N,I)%WALLDIST=0.0
-		!FIRST FACE
-		IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(5)
-		IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(6)
-		IELEM(N,I)%NODES_FACES(1,3)=IELEM(N,I)%NODES(4)
+			allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
+			if (adda.eq.1)then
+				allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
+				ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
+			end if
+			allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
+			if (fastest.eq.0)then
+				allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
+			end if
+
+		  CASE(5) !quadrilateral
+
+			IELEM(N,I)%ifca=4; 
+			allocate(IELEM(N,I)%NODES_FACES(4,2))
+			if ((tecplot.eq.5).or.(MESH_MOVEMENT)) then
+				allocate(IELEM(N,I)%NODES_FACES_V(4,2))
+				allocate(IELEM(N,I)%NODES_local_FACES(4,2))
+			end if
+			IF ((CODE_PROFILE.EQ.30).or.(MESH_MOVEMENT)) THEN
+				allocate(IELEM(N,I)%NODES_NEIGHBOURS(4,30))
+				IELEM(N,I)%NODES_NEIGHBOURS=0
+			END IF
+			allocate(IELEM(N,I)%INEIGHG(4))
+
+			IELEM(N,I)%NODES_FACES(:,:)=0
+			IELEM(N,I)%VDEC=2
+			IELEM(N,I)%TOTVOLUME=0.0;IELEM(N,I)%MINEDGE=0.0;IELEM(N,I)%WALLDIST=0.0
+			
+			IELEM(N,I)%INEIGHG=0
+			!FIRST FACE
+			IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(1)
+			IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(2)
+			! IELEM(N,I)%NODES_local_FACES(1,1)=IELEM(N,I)%NODES_local(1)
+			! IELEM(N,I)%NODES_local_FACES(1,2)=IELEM(N,I)%NODES_local(2)
+			
+			!SEC FACE
+			IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(2) 
+			IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(3)
+			
+			!THIRD FACE
+			IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(3)
+			IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(4)
+			
+			!FOURTH FACE
+			IELEM(N,I)%NODES_FACES(4,1)=IELEM(N,I)%NODES(4)
+			IELEM(N,I)%NODES_FACES(4,2)=IELEM(N,I)%NODES(1)
+			allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
+			allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
+			if (fastest.eq.0)then
+				allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
+			end if
+			if (rungekutta.ge.2)then
+				allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
+				! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero  
+			end if
+
+		  CASE(6) !Triangular
+
+			IELEM(N,I)%ifca=3; 
+			allocate(IELEM(N,I)%NODES_FACES(3,2))
+			if ((tecplot.eq.5).or.(MESH_MOVEMENT)) then
+				allocate(IELEM(N,I)%NODES_FACES_V(3,2))
+				allocate(IELEM(N,I)%NODES_local_FACES(3,2))
+			end if
+
+			IF ((CODE_PROFILE.EQ.30).or.(MESH_MOVEMENT)) THEN
+				allocate(IELEM(N,I)%NODES_NEIGHBOURS(3,30))
+				IELEM(N,I)%NODES_NEIGHBOURS=0
+			END IF
+
+			allocate(IELEM(N,I)%INEIGHG(3))
+			IELEM(N,I)%NODES_FACES(:,:)=0
+			IELEM(N,I)%VDEC=1
+			IELEM(N,I)%TOTVOLUME=0.0;IELEM(N,I)%MINEDGE=0.0;IELEM(N,I)%WALLDIST=0.0
+
+			IELEM(N,I)%INEIGHG=0
+			!FIRST FACE
+			IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(1)
+			IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(2)
+			
+			!SEC FACE
+			IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(2) 
+			IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(3)
+			
+			!THIRD FACE
+			IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(3)
+			IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(1)
 		
-		!SEC FACE
-		IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(2) 
-		IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(1)
-		IELEM(N,I)%NODES_FACES(2,3)=IELEM(N,I)%NODES(3)
-		
-		!THIRD FACE
-		IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(1)		!125,154
-		IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(2)
-		IELEM(N,I)%NODES_FACES(3,3)=IELEM(N,I)%NODES(5)
-		IELEM(N,I)%NODES_FACES(3,4)=IELEM(N,I)%NODES(4)
-		!FOURTH FACE
-		IELEM(N,I)%NODES_FACES(4,1)=IELEM(N,I)%NODES(2)		!236,265
-		IELEM(N,I)%NODES_FACES(4,2)=IELEM(N,I)%NODES(3)
-		IELEM(N,I)%NODES_FACES(4,3)=IELEM(N,I)%NODES(6)
-		IELEM(N,I)%NODES_FACES(4,4)=IELEM(N,I)%NODES(5)
+			if (rungekutta.ge.2)then
+				allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
+				! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
+			end if
+			allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
+			allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
+			if (fastest.eq.0)then
+				allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
+			end if
 
-		IELEM(N,I)%NODES_FACES(5,1)=IELEM(N,I)%NODES(3)		!314,346	
-		IELEM(N,I)%NODES_FACES(5,2)=IELEM(N,I)%NODES(1)
-		IELEM(N,I)%NODES_FACES(5,3)=IELEM(N,I)%NODES(4)
-		IELEM(N,I)%NODES_FACES(5,4)=IELEM(N,I)%NODES(6)
-
-		allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
-		allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
-		if (adda.eq.1)then
-			allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
-			ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
-		end if
-		if (fastest.eq.0)then
-			allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
-		end if
-		if (rungekutta.ge.2)then
-			allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-			! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
-		end if
-
-	  CASE(1) !HEXAHEDRAL
-
-		allocate(IELEM(N,I)%NODES_FACES(6,4))
-		if ((tecplot.eq.5).or.(MESH_MOVEMENT)) then
-			allocate(IELEM(N,I)%NODES_FACES_V(6,4))
-			allocate(IELEM(N,I)%NODES_local_FACES(6,4))
-		end if
-		IF (CODE_PROFILE.EQ.30)THEN
-			allocate(IELEM(N,I)%NODES_NEIGHBOURS(6,30))
-			IELEM(N,I)%NODES_NEIGHBOURS=0
-		END IF
-		allocate(IELEM(N,I)%INEIGHG(6))
-		allocate(IELEM(N,I)%TYPEs_FACES(6))
-
-		IELEM(N,I)%TYPEs_FACES(1:6)=5
-		IELEM(N,I)%VDEC=6
-		IELEM(N,I)%TOTVOLUME=0.0
-		IELEM(N,I)%MINEDGE=0.0
-		IELEM(N,I)%WALLDIST=0.0
-		IELEM(N,I)%NODES_FACES(:,:)=0
-		
-		IELEM(N,I)%INEIGHG=0
-		IELEM(N,I)%ifca=6; 
-		!FIRST FACE
-		IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(2)
-		IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(1)			!DEC214,243
-		IELEM(N,I)%NODES_FACES(1,3)=IELEM(N,I)%NODES(4)
-		IELEM(N,I)%NODES_FACES(1,4)=IELEM(N,I)%NODES(3)
-		!SEC FACE
-		IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(5) 
-		IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(6)				!567,578
-		IELEM(N,I)%NODES_FACES(2,3)=IELEM(N,I)%NODES(7)
-		IELEM(N,I)%NODES_FACES(2,4)=IELEM(N,I)%NODES(8)
-		!THIRD FACE
-		IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(6)
-		IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(2)				!623,637
-		IELEM(N,I)%NODES_FACES(3,3)=IELEM(N,I)%NODES(3)
-		IELEM(N,I)%NODES_FACES(3,4)=IELEM(N,I)%NODES(7)
-		!FOURTH FACE
-		IELEM(N,I)%NODES_FACES(4,1)=IELEM(N,I)%NODES(8)					
-		IELEM(N,I)%NODES_FACES(4,2)=IELEM(N,I)%NODES(4)			!841,815
-		IELEM(N,I)%NODES_FACES(4,3)=IELEM(N,I)%NODES(1)
-		IELEM(N,I)%NODES_FACES(4,4)=IELEM(N,I)%NODES(5)
-		!FIFTH FACE
-		IELEM(N,I)%NODES_FACES(5,1)=IELEM(N,I)%NODES(7)				!734,748
-		IELEM(N,I)%NODES_FACES(5,2)=IELEM(N,I)%NODES(3)
-		IELEM(N,I)%NODES_FACES(5,3)=IELEM(N,I)%NODES(4)
-		IELEM(N,I)%NODES_FACES(5,4)=IELEM(N,I)%NODES(8)
-		!SIXTH FACE
-		IELEM(N,I)%NODES_FACES(6,1)=IELEM(N,I)%NODES(5)		!512,526
-		IELEM(N,I)%NODES_FACES(6,2)=IELEM(N,I)%NODES(1)
-		IELEM(N,I)%NODES_FACES(6,3)=IELEM(N,I)%NODES(2)
-		IELEM(N,I)%NODES_FACES(6,4)=IELEM(N,I)%NODES(6)
-
-		allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
-		allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
-		if (fastest.eq.0)then
-			allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
-		end if
-		if (adda.eq.1)then
-			allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
-			ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
-		end if
-		if (rungekutta.ge.2)then
-			allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-			! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero  
-		end if
-
-
-	  CASE(2) !TETRAHEDRAL
-
-		allocate(IELEM(N,I)%NODES_FACES(4,3))
-		if ((tecplot.eq.5).or.(MESH_MOVEMENT)) then
-			allocate(IELEM(N,I)%NODES_FACES_V(4,3))
-			allocate(IELEM(N,I)%NODES_local_FACES(4,3))
-		end if
-		IF (CODE_PROFILE.EQ.30)THEN
-			allocate(IELEM(N,I)%NODES_NEIGHBOURS(4,30))
-			IELEM(N,I)%NODES_NEIGHBOURS=0
-		END IF
-		allocate(IELEM(N,I)%INEIGHG(4))
-		allocate(IELEM(N,I)%TYPES_FACES(4))
-		IELEM(N,I)%TYPES_FACES(1:4)=6
-		IELEM(N,I)%NODES_FACES(:,:)=0
-		
-		IELEM(N,I)%INEIGHG=0
-		IELEM(N,I)%VDEC=1
-		IELEM(N,I)%TOTVOLUME=0.0;IELEM(N,I)%MINEDGE=0.0;IELEM(N,I)%WALLDIST=0.0
-		IELEM(N,I)%ifca=4; 
-		!FIRST FACE
-		IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(2)
-		IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(4)
-		IELEM(N,I)%NODES_FACES(1,3)=IELEM(N,I)%NODES(1)
-		
-		!SEC FACE
-		IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(2) 
-		IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(1)
-		IELEM(N,I)%NODES_FACES(2,3)=IELEM(N,I)%NODES(3)
-		
-		!THIRD FACE
-		IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(2)
-		IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(3)
-		IELEM(N,I)%NODES_FACES(3,3)=IELEM(N,I)%NODES(4)
-		
-		!FOURTH FACE
-		IELEM(N,I)%NODES_FACES(4,1)=IELEM(N,I)%NODES(3)
-		IELEM(N,I)%NODES_FACES(4,2)=IELEM(N,I)%NODES(1)
-		IELEM(N,I)%NODES_FACES(4,3)=IELEM(N,I)%NODES(4)
-
-		allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
-		allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
-		if (adda.eq.1)then
-			allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
-			ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
-		end if
-		if (fastest.eq.0)then
-			allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
-		end if
-		if (rungekutta.ge.2)then
-			allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-			! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
-		end if
-
-	  CASE(3) !pyramidal
-
-		allocate(IELEM(N,I)%NODES_FACES(5,4))
-		if ((tecplot.eq.5).or.(MESH_MOVEMENT)) then
-			allocate(IELEM(N,I)%NODES_FACES_V(5,4))
-			allocate(IELEM(N,I)%NODES_local_FACES(5,4))
-		end if
-		IF (CODE_PROFILE.EQ.30)THEN
-			allocate(IELEM(N,I)%NODES_NEIGHBOURS(5,30))
-			IELEM(N,I)%NODES_NEIGHBOURS=0
-		END IF
-		allocate(IELEM(N,I)%INEIGHG(5))
-		allocate(IELEM(N,I)%TYPES_FACES(5))
-
-		IELEM(N,I)%TYPES_FACES(1)=5; IELEM(N,I)%TYPES_FACES(2:5)=6
-		IELEM(N,I)%NODES_FACES(:,:)=0
-		
-		IELEM(N,I)%INEIGHG=0
-		IELEM(N,I)%VDEC=2
-		IELEM(N,I)%TOTVOLUME=0.0;IELEM(N,I)%MINEDGE=0.0;IELEM(N,I)%WALLDIST=0.0
-		IELEM(N,I)%ifca=5; 
-		!FIRST FACE
-		IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(4)		!432,421
-		IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(3)
-		IELEM(N,I)%NODES_FACES(1,3)=IELEM(N,I)%NODES(2)
-		IELEM(N,I)%NODES_FACES(1,4)=IELEM(N,I)%NODES(1)
-		!SEC FACE
-		IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(1) 
-		IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(2)
-		IELEM(N,I)%NODES_FACES(2,3)=IELEM(N,I)%NODES(5)
-		
-		!THIRD FACE
-		IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(2)
-		IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(3)
-		IELEM(N,I)%NODES_FACES(3,3)=IELEM(N,I)%NODES(5)
-		
-		!FOURTH FACE
-		IELEM(N,I)%NODES_FACES(4,1)=IELEM(N,I)%NODES(3)
-		IELEM(N,I)%NODES_FACES(4,2)=IELEM(N,I)%NODES(4)
-		IELEM(N,I)%NODES_FACES(4,3)=IELEM(N,I)%NODES(5)
-
-		IELEM(N,I)%NODES_FACES(5,1)=IELEM(N,I)%NODES(4)
-		IELEM(N,I)%NODES_FACES(5,2)=IELEM(N,I)%NODES(1)
-		IELEM(N,I)%NODES_FACES(5,3)=IELEM(N,I)%NODES(5)
-
-	  	if (rungekutta.ge.2)then
-	  		allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-			! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
-		end if
-	
-		allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
-		if (adda.eq.1)then
-			allocate(ielem(n,i)%facediss(IELEM(N,I)%ifca))
-			ielem(n,i)%facediss=1.0d0;IELEM(N,I)%DISS=1.0d0
-		end if
-		allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
-		if (fastest.eq.0)then
-			allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
-		end if
-
-	  CASE(5) !quadrilateral
-
-		IELEM(N,I)%ifca=4; 
-		allocate(IELEM(N,I)%NODES_FACES(4,2))
-		if ((tecplot.eq.5).or.(MESH_MOVEMENT)) then
-			allocate(IELEM(N,I)%NODES_FACES_V(4,2))
-			allocate(IELEM(N,I)%NODES_local_FACES(4,2))
-		end if
-		IF (CODE_PROFILE.EQ.30)THEN
-			allocate(IELEM(N,I)%NODES_NEIGHBOURS(4,30))
-			IELEM(N,I)%NODES_NEIGHBOURS=0
-		END IF
-		allocate(IELEM(N,I)%INEIGHG(4))
-
-		IELEM(N,I)%NODES_FACES(:,:)=0
-		IELEM(N,I)%VDEC=2
-		IELEM(N,I)%TOTVOLUME=0.0;IELEM(N,I)%MINEDGE=0.0;IELEM(N,I)%WALLDIST=0.0
-		
-		IELEM(N,I)%INEIGHG=0
-		!FIRST FACE
-		IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(1)
-		IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(2)
-		! IELEM(N,I)%NODES_local_FACES(1,1)=IELEM(N,I)%NODES_local(1)
-		! IELEM(N,I)%NODES_local_FACES(1,2)=IELEM(N,I)%NODES_local(2)
-		
-		!SEC FACE
-		IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(2) 
-		IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(3)
-		
-		!THIRD FACE
-		IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(3)
-		IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(4)
-		
-		!FOURTH FACE
-		IELEM(N,I)%NODES_FACES(4,1)=IELEM(N,I)%NODES(4)
-		IELEM(N,I)%NODES_FACES(4,2)=IELEM(N,I)%NODES(1)
-		allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
-		allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
-		if (fastest.eq.0)then
-			allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
-		end if
-		if (rungekutta.ge.2)then
-			allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-			! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero  
-		end if
-
-	  CASE(6) !Triangular
-
-		IELEM(N,I)%ifca=3; 
-		allocate(IELEM(N,I)%NODES_FACES(3,2))
-		if ((tecplot.eq.5).or.(MESH_MOVEMENT)) then
-			allocate(IELEM(N,I)%NODES_FACES_V(3,2))
-			allocate(IELEM(N,I)%NODES_local_FACES(3,2))
-		end if
-
-		IF (CODE_PROFILE.EQ.30)THEN
-			allocate(IELEM(N,I)%NODES_NEIGHBOURS(3,30))
-			IELEM(N,I)%NODES_NEIGHBOURS=0
-		END IF
-
-		allocate(IELEM(N,I)%INEIGHG(3))
-		IELEM(N,I)%NODES_FACES(:,:)=0
-		IELEM(N,I)%VDEC=1
-		IELEM(N,I)%TOTVOLUME=0.0;IELEM(N,I)%MINEDGE=0.0;IELEM(N,I)%WALLDIST=0.0
-
-		IELEM(N,I)%INEIGHG=0
-		!FIRST FACE
-		IELEM(N,I)%NODES_FACES(1,1)=IELEM(N,I)%NODES(1)
-		IELEM(N,I)%NODES_FACES(1,2)=IELEM(N,I)%NODES(2)
-		
-		!SEC FACE
-		IELEM(N,I)%NODES_FACES(2,1)=IELEM(N,I)%NODES(2) 
-		IELEM(N,I)%NODES_FACES(2,2)=IELEM(N,I)%NODES(3)
-		
-		!THIRD FACE
-		IELEM(N,I)%NODES_FACES(3,1)=IELEM(N,I)%NODES(3)
-		IELEM(N,I)%NODES_FACES(3,2)=IELEM(N,I)%NODES(1)
-	
-		if (rungekutta.ge.2)then
-			allocate(ielem(n,i)%dih(ielem(n,i)%ifca)); ielem(n,i)%dih=zero
-			! allocate(ielem(n,i)%dih2(ielem(n,i)%ifca,DIMS)); ielem(n,i)%dih2=zero
-		end if
-		allocate(ielem(n,i)%faceanglex(IELEM(N,I)%ifca));allocate(ielem(n,i)%faceangley(IELEM(N,I)%ifca));
-		allocate(ielem(n,i)%reorient(IELEM(N,I)%ifca));ielem(n,i)%reorient(:)=0
-		if (fastest.eq.0)then
-			allocate(ielem(n,i)%indexi(ielem(n,i)%ifca));ielem(n,i)%indexi(:)=0
-		end if
-
-	END SELECT
-end do
-
-DO I=1,KMAXE
-	DO J=1,IELEM(N,I)%nonodes
-		K=IELEM(N,I)%nodeS(j)
-		inoder2(K)%NUMBEROFNEIB=inoder2(K)%NUMBEROFNEIB+1
+		END SELECT
 	end do
-END DO
 
-DO I=1,IMAXN
-	if (inoder2(I)%NUMBEROFNEIB.gt.0)then
-		allocate(inoder2(i)%neibids(inoder2(I)%NUMBEROFNEIB))
-		inoder2(i)%neibids(:)=0
-		inoder2(I)%NUMBEROFNEIB=0
+	DO I=1,KMAXE
+		DO J=1,IELEM(N,I)%nonodes
+			K=IELEM(N,I)%nodeS(j)
+			inoder2(K)%NUMBEROFNEIB=inoder2(K)%NUMBEROFNEIB+1
+		end do
+	END DO
+
+	DO I=1,IMAXN
+		if (inoder2(I)%NUMBEROFNEIB.gt.0)then
+			allocate(inoder2(i)%neibids(inoder2(I)%NUMBEROFNEIB))
+			inoder2(i)%neibids(:)=0
+			inoder2(I)%NUMBEROFNEIB=0
+		end if
+	END DO
+	
+	DO I=1,KMAXE
+		DO Ji=1,IELEM(N,I)%nonodes
+			K=IELEM(N,I)%nodeS(ji)
+			inoder2(K)%NUMBEROFNEIB=inoder2(K)%NUMBEROFNEIB+1
+			J=inoder2(K)%NUMBEROFNEIB
+			inoder2(K)%NEIBIDS(J)=I
+		end do		
+	END DO
+		
+	PRINT_I=KMAXE/5
+	OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',position='append')	
+	if (n.eq. 0) then	
+		write(63,*)'Find Neigbours'
 	end if
-END DO
-	
-DO I=1,KMAXE
-	DO Ji=1,IELEM(N,I)%nonodes
-		K=IELEM(N,I)%nodeS(ji)
-		inoder2(K)%NUMBEROFNEIB=inoder2(K)%NUMBEROFNEIB+1
-		J=inoder2(K)%NUMBEROFNEIB
-		inoder2(K)%NEIBIDS(J)=I
-	end do		
-END DO
-	
-PRINT_I=KMAXE/5
-OPEN(63,FILE='history.txt',FORM='FORMATTED',ACTION='WRITE',position='append')	
-if (n.eq. 0) then	
-	write(63,*)'Find Neigbours'
-end if
-CLOSE(63)
+	CLOSE(63)
 
-DO IHAX1=1,KMAXE
-	NUMNOD=IELEM(N,IHAX1)%nonodes
-	NODELIST(1:NUMNOD) = IELEM(N,IHAX1)%nodes(1:NUMNOD)
-	 			
-	LIST(:)=0
-	M=0
-	DO K=1,NUMNOD
-		P=NODELIST(K)
-		if (inoder2(P)%NUMBEROFNEIB.gt.0)then
-			DO Q=1,inoder2(P)%NUMBEROFNEIB
-				J=inoder2(P)%NEIBIDS(Q)
-				ICN=0
-				DO IJ=1,M
-					IF (J.EQ.LIST(IJ))THEN
-						ICN=1
+	DO IHAX1=1,KMAXE
+		NUMNOD = IELEM(N,IHAX1)%nonodes
+		NODELIST(1:NUMNOD) = IELEM(N,IHAX1)%nodes(1:NUMNOD)
+					
+		LIST(:)=0
+		M=0
+		DO K = 1, NUMNOD
+			P = NODELIST(K)
+			if (inoder2(P)%NUMBEROFNEIB.gt.0)then
+				DO Q=1,inoder2(P)%NUMBEROFNEIB
+					J = inoder2(P)%NEIBIDS(Q)
+					ICN = 0
+					DO IJ=1,M
+						IF (J.EQ.LIST(IJ))THEN
+							ICN=1
+						END IF
+					END DO
+					IF ((ICN.EQ.0).AND.(IHAX1.NE.J))THEN
+						M=M+1
+						LIST(M)=J
 					END IF
 				END DO
-				IF ((ICN.EQ.0).AND.(IHAX1.NE.J))THEN
-					M=M+1
-					LIST(M)=J
-				END IF
-			END DO
-		end if
-	END DO
+			end if
+		END DO
 				  
-    DO L=1,IELEM(N,IHAX1)%IFCA
-  		if (dimensiona.eq.3)then
-  			DO P=1,M
-  				J=LIST(P)
-				IF (J.EQ.IHAX1) CYCLE
+		DO L=1,IELEM(N,IHAX1)%IFCA
+			if (dimensiona.eq.3)then
+				DO P=1,M
+					J=LIST(P)
+					IF (J.EQ.IHAX1) CYCLE
 
-				DO L2=1,IELEM(N,J)%IFCA
-					IF (IELEM(N,IHAX1)%TYPES_FACES(L).EQ.IELEM(N,J)%TYPES_FACES(L2))THEN
-						if (IELEM(N,IHAX1)%TYPES_FACES(L).eq.6)then
-							c_n4=0
-							c_n1=ielem(n,ihax1)%NODES_FACES(l,1)
-							c_n2=ielem(n,ihax1)%NODES_FACES(l,2)
-							c_n3=ielem(n,ihax1)%NODES_FACES(l,3)
-							d_n4=0
-							d_n1=ielem(n,j)%NODES_FACES(l2,1)
-							d_n2=ielem(n,j)%NODES_FACES(l2,2)
-							d_n3=ielem(n,j)%NODES_FACES(l2,3)
-							if (((c_n1.eq.d_n1).or.(c_n1.eq.d_n2).or.(c_n1.eq.d_n3)).and.&
-									((c_n2.eq.d_n1).or.(c_n2.eq.d_n2).or.(c_n2.eq.d_n3)).and.&
-									((c_n3.eq.d_n1).or.(c_n3.eq.d_n2).or.(c_n3.eq.d_n3)))then
-								IELEM(N,IHAX1)%INEIGHG(L)=IELEM(N,J)%IHEXGL
-		  						GOTO 101
-		 			 		END IF
-		  				else
-							c_n4=ielem(n,ihax1)%NODES_FACES(l,4)
-							c_n1=ielem(n,ihax1)%NODES_FACES(l,1)
-							c_n2=ielem(n,ihax1)%NODES_FACES(l,2)
-							c_n3=ielem(n,ihax1)%NODES_FACES(l,3)
-							d_n4=ielem(n,j)%NODES_FACES(l2,4)
-							d_n1=ielem(n,j)%NODES_FACES(l2,1)
-							d_n2=ielem(n,j)%NODES_FACES(l2,2)
-							d_n3=ielem(n,j)%NODES_FACES(l2,3)
-		  					if (((c_n1.eq.d_n1).or.(c_n1.eq.d_n2).or.(c_n1.eq.d_n3).or.(c_n1.eq.d_n4)).and.&
-									((c_n2.eq.d_n1).or.(c_n2.eq.d_n2).or.(c_n2.eq.d_n3).or.(c_n2.eq.d_n4)).and.&
-									((c_n3.eq.d_n1).or.(c_n3.eq.d_n2).or.(c_n3.eq.d_n3).or.(c_n3.eq.d_n4)).and.&
-									((c_n4.eq.d_n1).or.(c_n4.eq.d_n2).or.(c_n4.eq.d_n3).or.(c_n4.eq.d_n4)))then
-			  					IELEM(N,IHAX1)%INEIGHG(L)=IELEM(N,J)%IHEXGL
-		  						GOTO 101
-		  					END IF
-		  				end if
+					DO L2=1,IELEM(N,J)%IFCA
+						IF (IELEM(N,IHAX1)%TYPES_FACES(L).EQ.IELEM(N,J)%TYPES_FACES(L2))THEN
+							if (IELEM(N,IHAX1)%TYPES_FACES(L).eq.6)then
+								c_n4=0
+								c_n1=ielem(n,ihax1)%NODES_FACES(l,1)
+								c_n2=ielem(n,ihax1)%NODES_FACES(l,2)
+								c_n3=ielem(n,ihax1)%NODES_FACES(l,3)
+								d_n4=0
+								d_n1=ielem(n,j)%NODES_FACES(l2,1)
+								d_n2=ielem(n,j)%NODES_FACES(l2,2)
+								d_n3=ielem(n,j)%NODES_FACES(l2,3)
+								if (((c_n1.eq.d_n1).or.(c_n1.eq.d_n2).or.(c_n1.eq.d_n3)).and.&
+										((c_n2.eq.d_n1).or.(c_n2.eq.d_n2).or.(c_n2.eq.d_n3)).and.&
+										((c_n3.eq.d_n1).or.(c_n3.eq.d_n2).or.(c_n3.eq.d_n3)))then
+									IELEM(N,IHAX1)%INEIGHG(L)=IELEM(N,J)%IHEXGL
+									GOTO 101
+								END IF
+							else
+								c_n4=ielem(n,ihax1)%NODES_FACES(l,4)
+								c_n1=ielem(n,ihax1)%NODES_FACES(l,1)
+								c_n2=ielem(n,ihax1)%NODES_FACES(l,2)
+								c_n3=ielem(n,ihax1)%NODES_FACES(l,3)
+								d_n4=ielem(n,j)%NODES_FACES(l2,4)
+								d_n1=ielem(n,j)%NODES_FACES(l2,1)
+								d_n2=ielem(n,j)%NODES_FACES(l2,2)
+								d_n3=ielem(n,j)%NODES_FACES(l2,3)
+								if (((c_n1.eq.d_n1).or.(c_n1.eq.d_n2).or.(c_n1.eq.d_n3).or.(c_n1.eq.d_n4)).and.&
+										((c_n2.eq.d_n1).or.(c_n2.eq.d_n2).or.(c_n2.eq.d_n3).or.(c_n2.eq.d_n4)).and.&
+										((c_n3.eq.d_n1).or.(c_n3.eq.d_n2).or.(c_n3.eq.d_n3).or.(c_n3.eq.d_n4)).and.&
+										((c_n4.eq.d_n1).or.(c_n4.eq.d_n2).or.(c_n4.eq.d_n3).or.(c_n4.eq.d_n4)))then
+									IELEM(N,IHAX1)%INEIGHG(L)=IELEM(N,J)%IHEXGL
+									GOTO 101
+								END IF
+							end if
 
-		  			END IF
+						END IF
+					END DO
 				END DO
-  			END DO
-		else ! dimensiona.eq.2
-			DO P=1,M
-				J=LIST(P)
-				IF (J.EQ.IHAX1) CYCLE
+			else ! dimensiona.eq.2
+				DO P=1,M
+					J=LIST(P)
+					IF (J.EQ.IHAX1) CYCLE
 
-				DO L2=1,IELEM(N,J)%IFCA
-					c_n1=ielem(n,ihax1)%NODES_FACES(l,1)
-					c_n2=ielem(n,ihax1)%NODES_FACES(l,2)
-					
-					d_n1=ielem(n,j)%NODES_FACES(l2,1)
-					d_n2=ielem(n,j)%NODES_FACES(l2,2)
+					DO L2=1,IELEM(N,J)%IFCA
+						c_n1=ielem(n,ihax1)%NODES_FACES(l,1)
+						c_n2=ielem(n,ihax1)%NODES_FACES(l,2)
+						
+						d_n1=ielem(n,j)%NODES_FACES(l2,1)
+						d_n2=ielem(n,j)%NODES_FACES(l2,2)
 
-		  			if (((c_n1.eq.d_n1).or.(c_n1.eq.d_n2)).and.&
-		      				((c_n2.eq.d_n1).or.(c_n2.eq.d_n2)))then
-			  			IELEM(N,IHAX1)%INEIGHG(L)=IELEM(N,J)%IHEXGL
-		  				GOTO 101
-		  			END IF
+						if (((c_n1.eq.d_n1).or.(c_n1.eq.d_n2)).and.&
+								((c_n2.eq.d_n1).or.(c_n2.eq.d_n2)))then
+							IELEM(N,IHAX1)%INEIGHG(L)=IELEM(N,J)%IHEXGL
+							GOTO 101
+						END IF
+					END DO
 				END DO
-  			END DO
-  		end if
-  		101 CONTINUE
-	END DO
-END DO	
+			end if
+			101 CONTINUE
+		END DO
+	END DO	
      
-JI=0
-do i=1,kmaxe
-	ielem(n,i)%interior=0
-	DO L=1,IELEM(N,I)%IFCA
-		if (IELEM(N,I)%INEIGHG(l).eq.0)then
-			ielem(n,i)%interior=1
-			JI=JI+1
-		end if
+	JI=0
+	do i=1,kmaxe
+		ielem(n,i)%interior=0
+		DO L=1,IELEM(N,I)%IFCA
+			if (IELEM(N,I)%INEIGHG(l).eq.0)then
+				ielem(n,i)%interior=1
+				JI=JI+1
+			end if
+		end do
 	end do
-end do
      
 END SUBROUTINE NEIGHBOURSS
 
@@ -2021,23 +2020,23 @@ END SUBROUTINE NEIGHBOURSS
 
 
 SUBROUTINE FLAG_NEIGH
-IMPLICIT NONE
-INTEGER::I,J,K,L,FLAG2,kmaxe
-KMAXE=XMPIELRANK(N)
-DO I=1,kmaxe  
-    IELEM(N,I)%HALO=0
-    FLAG2=0
-	if (ielem(n,i)%interior.eq.1)then
-	DO L=1,IELEM(N,I)%IFCA	
-		IF (IELEM(N,I)%INEIGHB(L).NE.N)THEN	
-			FLAG2=1
+	IMPLICIT NONE
+	INTEGER::I,J,K,L,FLAG2,kmaxe
+	KMAXE=XMPIELRANK(N)
+	DO I=1,kmaxe  
+		IELEM(N,I)%HALO=0
+		FLAG2=0
+		if (ielem(n,i)%interior.eq.1)then
+		DO L=1,IELEM(N,I)%IFCA	
+			IF (IELEM(N,I)%INEIGHB(L).NE.N)THEN	
+				FLAG2=1
+			END IF
+			END DO
 		END IF
-        END DO
-    END IF
-    IF (FLAG2.EQ.1)THEN
-    	IELEM(N,I)%HALO=1
-    END IF
-END DO
+		IF (FLAG2.EQ.1)THEN
+			IELEM(N,I)%HALO=1
+		END IF
+	END DO
 
 END SUBROUTINE FLAG_NEIGH
 
@@ -4818,221 +4817,221 @@ END SUBROUTINE STENCIILSX
 
 
 SUBROUTINE STENCIILS(N)
-!> @brief
-!> This subroutine builds all the directional stencils from the large stencil based on various algorithms (suitable for period boundaries)
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:DIMENSIONA)::VG,BC
-INTEGER::IWHICHSTEN,ISHYAPE,ISATISFIED,ICONSI,n_node
-INTEGER::I,J,K,L,M,O,P,KMAXE,ICOUNT,ICPUID,IATRUE,IG,IL,IFG,STNSHA,ITGH,KK,KXK,IX,IFVS,IXCZ,iadd,iadd2,iadd3,ITARGET,IADDX,iaddx1,IFNO
-INTEGER::CANDID,CANDID2
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-REAL,DIMENSION(1:DIMENSIONA)::CORDS
-integer::IS_PERIODIC
-IS_PERIODIC=0
-KMAXE=XMPIELRANK(N)
+  !> @brief
+  !> This subroutine builds all the directional stencils from the large stencil based on various algorithms (suitable for period boundaries)
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	REAL,DIMENSION(1:DIMENSIONA)::VG,BC
+	INTEGER::IWHICHSTEN,ISHYAPE,ISATISFIED,ICONSI,n_node
+	INTEGER::I,J,K,L,M,O,P,KMAXE,ICOUNT,ICPUID,IATRUE,IG,IL,IFG,STNSHA,ITGH,KK,KXK,IX,IFVS,IXCZ,iadd,iadd2,iadd3,ITARGET,IADDX,iaddx1,IFNO
+	INTEGER::CANDID,CANDID2
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+	REAL,DIMENSION(1:DIMENSIONA)::CORDS
+	integer::IS_PERIODIC
+	IS_PERIODIC=0
+	KMAXE=XMPIELRANK(N)
 
-if (dimensiona.eq.3)then
+	if (dimensiona.eq.3)then
 
-	!-------------------FOR DEBUGGING ONLY -----------------------------------------!
+		!-------------------FOR DEBUGGING ONLY -----------------------------------------!
 
-	!-------------------FOR DEBUGGING ONLY -----------------------------------------!
-	!$OMP DO
-	DO I=1,KMAXE 	
-		DO J=1,ielem(n,i)%iNUMNEIGHBOURS 
-			ILOCALSTENCIL(N,I,1,J)=ILOCALALLELG(N,I,1,J)
-			ILOCALSTENCILPER(N,I,1,J)=ILOCALALLELGPER(N,I,1,J)
-		END DO
-	END DO
-	!$OMP END DO
-
-	IF (TYPESTEN.GT.1)THEN
-		ICPUID=N
+		!-------------------FOR DEBUGGING ONLY -----------------------------------------!
 		!$OMP DO
-		DO I=1,KMAXE	!for all elements
-			IF (EES.EQ.5)THEN
-			ITARGET=NUMNEIGHBOURS2
-			ELSE 
-				ITARGET=ielem(n,i)%iNUMNEIGHBOURS
-			END IF                
-			
-			STNSHA=ielem(n,i)%ifca
-
-			call COMPUTE_CENTRE3d(I,CORDS)
-				
-			BC(1)=cords(1);   BC(2)=cords(2);    BC(3)=cords(3)
-			
-			ISHYAPE=IELEM(N,I)%ISHAPE
-			DO IL=1,STNSHA	!for all stencils
-				if (ielem(n,i)%types_faces(il).eq.5)then
-					ifno=4
-				else
-					ifno=3
-				end if
-				
-				if (ifno.eq.3)then
-					vext(2,1:3)=inoder(ielem(n,i)%nodes_faces(il,1))%cord(1:3)
-					vext(3,1:3)=inoder(ielem(n,i)%nodes_faces(il,3))%cord(1:3)
-					vext(4,1:3)=inoder(ielem(n,i)%nodes_faces(il,2))%cord(1:3)
-				else
-					vext(2,1:3)=inoder(ielem(n,i)%nodes_faces(il,1))%cord(1:3)
-					vext(3,1:3)=inoder(ielem(n,i)%nodes_faces(il,2))%cord(1:3)
-					vext(4,1:3)=inoder(ielem(n,i)%nodes_faces(il,3))%cord(1:3)
-					vext(5,1:3)=inoder(ielem(n,i)%nodes_faces(il,1))%cord(1:3)
-					vext(6,1:3)=inoder(ielem(n,i)%nodes_faces(il,2))%cord(1:3)
-					vext(7,1:3)=inoder(ielem(n,i)%nodes_faces(il,3))%cord(1:3)
-					vext(8,1:3)=inoder(ielem(n,i)%nodes_faces(il,4))%cord(1:3)
-				end if
-
-				IF ((IELEM(N,I)%INEIGHG(il).GT.0))THEN
-					IWHICHSTEN=IL
-
-					ILOCALSTENCIL(N,I,IL+1,1)=ILOCALALLELG(N,I,1,1)
-					ITGH=1
-					DO J=2,ISELEMT(N)!for all stencil elements
-						IF ((ILOCALALLELG(N,I,1,J)).GT.0) THEN				
-							ISATISFIED=0
-							IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
-								!DO IFG=1,KMAXE
-								IFG=XMPIL((ILOCALALLELG(N,I,1,J)))
-
-								call COMPUTE_CENTRE3d(IFG,CORDS)
-								VG(1)=cords(1); VG(2)=cords(2); VG(3)=cords(3)
-								n_node=ifno
-								IS_PERIODIC=ILOCALALLELGPER(N,I,1,J)
-								CALL CHECK_CONDITION(N,N_NODE,BC,VG,VEXT,IS_PERIODIC,ISATISFIED)
-								IF (ISATISFIED.EQ.1)THEN
-									if (itgh+1.le.ITARGET)then
-										ITGH=ITGH+1
-										ILOCALSTENCIL(N,I,IL+1,ITGH)=ILOCALALLELG(N,I,1,J)
-										ILOCALSTENCILPER(N,I,IL+1,ITGH)=ILOCALALLELGPER(N,I,1,J)
-									END IF
-								end if
-								IF (ITGH.EQ.ITARGET)THEN
-									EXIT
-								END IF
-							END IF
-							IF (XMPIE(ILOCALALLELG(N,I,1,J)).NE.N)THEN
-								n_node=ifno
-								VG(1)=CENTERR((ILOCALALLELG(N,I,1,J)),1)
-								VG(2)=CENTERR((ILOCALALLELG(N,I,1,J)),2)
-								VG(3)=CENTERR((ILOCALALLELG(N,I,1,J)),3)
-								IS_PERIODIC=ILOCALALLELGPER(N,I,1,J) 
-								CALL CHECK_CONDITION(N,N_NODE,BC,VG,VEXT,IS_PERIODIC,ISATISFIED)
-								IF (ISATISFIED.EQ.1)THEN
-									if (itgh+1.le.ITARGET)then
-										ITGH=ITGH+1
-										ILOCALSTENCIL(N,I,IL+1,ITGH)=ILOCALALLELG(N,I,1,J)
-										ILOCALSTENCILPER(N,I,IL+1,ITGH)=ILOCALALLELGPER(N,I,1,J)
-									END IF
-								end if
-								IF (ITGH.EQ.ITARGET)THEN
-									EXIT
-								END IF	
-							END IF
-						END IF
-							
-					END DO		!elements in stencil
-				end if
-			END DO		!directional stencils
+		DO I=1,KMAXE 	
+			DO J=1,ielem(n,i)%iNUMNEIGHBOURS 
+				ILOCALSTENCIL(N,I,1,J)=ILOCALALLELG(N,I,1,J)
+				ILOCALSTENCILPER(N,I,1,J)=ILOCALALLELGPER(N,I,1,J)
+			END DO
 		END DO
 		!$OMP END DO
-	END IF
 
-end if
-
-if (dimensiona.eq.2)then
-	!-------------------FOR DEBUGGING ONLY -----------------------------------------!
-		
-	!-------------------FOR DEBUGGING ONLY -----------------------------------------!
-	!$OMP DO
-	DO I=1,KMAXE	
-		DO J=1,ielem(n,i)%iNUMNEIGHBOURS
-			ILOCALSTENCIL(N,I,1,J)=ILOCALALLELG(N,I,1,J)
-		END DO
-	END DO
-	!$OMP END DO
-
-	IF (TYPESTEN.GT.1)THEN
-		ICPUID=N
-		!$OMP DO
-		DO I=1,KMAXE	!for all elements
-			
-			IF (EES.EQ.5)THEN
+		IF (TYPESTEN.GT.1)THEN
+			ICPUID=N
+			!$OMP DO
+			DO I=1,KMAXE	!for all elements
+				IF (EES.EQ.5)THEN
 				ITARGET=NUMNEIGHBOURS2
-			ELSE 
-				ITARGET=ielem(n,i)%iNUMNEIGHBOURS
-			END IF
-			STNSHA=ielem(n,i)%ifca
-			iconsi=i
-			call COMPUTE_CENTRE2d(I,CORDS)
+				ELSE 
+					ITARGET=ielem(n,i)%iNUMNEIGHBOURS
+				END IF                
 				
-			BC(1)=cords(1);   BC(2)=cords(2);    !BC(N,3)=cords(3)
-			
-			ISHYAPE=IELEM(N,I)%ISHAPE
-			DO IL=1,STNSHA	!for all stencils
-				ifno=2
+				STNSHA=ielem(n,i)%ifca
 
-				vext(2,1:2)=inoder(ielem(n,i)%nodes_faces(il,1))%cord(1:2)
-				vext(3,1:2)=inoder(ielem(n,i)%nodes_faces(il,2))%cord(1:2)
-
-				IF ((IELEM(N,I)%INEIGHG(il).GT.0))THEN
-					IWHICHSTEN=IL
+				call COMPUTE_CENTRE3d(I,CORDS)
+					
+				BC(1)=cords(1);   BC(2)=cords(2);    BC(3)=cords(3)
 				
-					ILOCALSTENCIL(N,I,IL+1,1)=ILOCALALLELG(N,I,1,1)
-				
-					ITGH=1
-					DO J=2,ISELEMT(N)!for all stencil elements
-						IF ((ILOCALALLELG(N,I,1,J)).GT.0) THEN
-							ISATISFIED=0
-							IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
+				ISHYAPE=IELEM(N,I)%ISHAPE
+				DO IL=1,STNSHA	!for all stencils
+					if (ielem(n,i)%types_faces(il).eq.5)then
+						ifno=4
+					else
+						ifno=3
+					end if
+					
+					if (ifno.eq.3)then
+						vext(2,1:3)=inoder(ielem(n,i)%nodes_faces(il,1))%cord(1:3)
+						vext(3,1:3)=inoder(ielem(n,i)%nodes_faces(il,3))%cord(1:3)
+						vext(4,1:3)=inoder(ielem(n,i)%nodes_faces(il,2))%cord(1:3)
+					else
+						vext(2,1:3)=inoder(ielem(n,i)%nodes_faces(il,1))%cord(1:3)
+						vext(3,1:3)=inoder(ielem(n,i)%nodes_faces(il,2))%cord(1:3)
+						vext(4,1:3)=inoder(ielem(n,i)%nodes_faces(il,3))%cord(1:3)
+						vext(5,1:3)=inoder(ielem(n,i)%nodes_faces(il,1))%cord(1:3)
+						vext(6,1:3)=inoder(ielem(n,i)%nodes_faces(il,2))%cord(1:3)
+						vext(7,1:3)=inoder(ielem(n,i)%nodes_faces(il,3))%cord(1:3)
+						vext(8,1:3)=inoder(ielem(n,i)%nodes_faces(il,4))%cord(1:3)
+					end if
 
-								IFG=XMPIL((ILOCALALLELG(N,I,1,J)))
+					IF ((IELEM(N,I)%INEIGHG(il).GT.0))THEN
+						IWHICHSTEN=IL
 
-								call COMPUTE_CENTRE2d(IFG,CORDS)
-								VG(1)=cords(1) ;VG(2)=cords(2)
-								n_node=ifno
+						ILOCALSTENCIL(N,I,IL+1,1)=ILOCALALLELG(N,I,1,1)
+						ITGH=1
+						DO J=2,ISELEMT(N)!for all stencil elements
+							IF ((ILOCALALLELG(N,I,1,J)).GT.0) THEN				
+								ISATISFIED=0
+								IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
+									!DO IFG=1,KMAXE
+									IFG=XMPIL((ILOCALALLELG(N,I,1,J)))
 
-								CALL CHECK_CONDITION(N,N_NODE,BC,VG,VEXT,IS_PERIODIC,ISATISFIED)
-								IF (ISATISFIED.EQ.1)THEN
-									if (itgh+1.le.ITARGET)then
-										ITGH=ITGH+1
-										ILOCALSTENCIL(N,I,IL+1,ITGH)=ILOCALALLELG(N,I,1,J)
+									call COMPUTE_CENTRE3d(IFG,CORDS)
+									VG(1)=cords(1); VG(2)=cords(2); VG(3)=cords(3)
+									n_node=ifno
+									IS_PERIODIC=ILOCALALLELGPER(N,I,1,J)
+									CALL CHECK_CONDITION(N,N_NODE,BC,VG,VEXT,IS_PERIODIC,ISATISFIED)
+									IF (ISATISFIED.EQ.1)THEN
+										if (itgh+1.le.ITARGET)then
+											ITGH=ITGH+1
+											ILOCALSTENCIL(N,I,IL+1,ITGH)=ILOCALALLELG(N,I,1,J)
+											ILOCALSTENCILPER(N,I,IL+1,ITGH)=ILOCALALLELGPER(N,I,1,J)
+										END IF
 									end if
-								END IF
-	
-								IF (ITGH.EQ.ITARGET)THEN
-									EXIT
-								END IF
-							END IF
-							IF (XMPIE(ILOCALALLELG(N,I,1,J)).NE.N)THEN
-								n_node=ifno
-								VG(1)=CENTERR((ILOCALALLELG(N,I,1,J)),1)
-								VG(2)=CENTERR((ILOCALALLELG(N,I,1,J)),2)
-								! VG(N,3)=CENTERR((ILOCALALLELG(N,I,1,J)),3)
-
-								CALL CHECK_CONDITION(N,N_NODE,BC,VG,VEXT,IS_PERIODIC,ISATISFIED)
-								IF (ISATISFIED.EQ.1)THEN
-									if (itgh+1.le.ITARGET)then
-										ITGH=ITGH+1
-										ILOCALSTENCIL(N,I,IL+1,ITGH)=ILOCALALLELG(N,I,1,J)
+									IF (ITGH.EQ.ITARGET)THEN
+										EXIT
 									END IF
-								end if
-								IF (ITGH.EQ.ITARGET)THEN
-									EXIT
+								END IF
+								IF (XMPIE(ILOCALALLELG(N,I,1,J)).NE.N)THEN
+									n_node=ifno
+									VG(1)=CENTERR((ILOCALALLELG(N,I,1,J)),1)
+									VG(2)=CENTERR((ILOCALALLELG(N,I,1,J)),2)
+									VG(3)=CENTERR((ILOCALALLELG(N,I,1,J)),3)
+									IS_PERIODIC=ILOCALALLELGPER(N,I,1,J) 
+									CALL CHECK_CONDITION(N,N_NODE,BC,VG,VEXT,IS_PERIODIC,ISATISFIED)
+									IF (ISATISFIED.EQ.1)THEN
+										if (itgh+1.le.ITARGET)then
+											ITGH=ITGH+1
+											ILOCALSTENCIL(N,I,IL+1,ITGH)=ILOCALALLELG(N,I,1,J)
+											ILOCALSTENCILPER(N,I,IL+1,ITGH)=ILOCALALLELGPER(N,I,1,J)
+										END IF
+									end if
+									IF (ITGH.EQ.ITARGET)THEN
+										EXIT
+									END IF	
 								END IF
 							END IF
-						END IF
-					END DO		!elements in stencil
-				end if
-			END DO		!directional stencils
-		
-		END DO
-		! end do
-		!$OMP END DO
-	END IF
+								
+						END DO		!elements in stencil
+					end if
+				END DO		!directional stencils
+			END DO
+			!$OMP END DO
+		END IF
 
-end if
+	end if
+
+	if (dimensiona.eq.2)then
+		!-------------------FOR DEBUGGING ONLY -----------------------------------------!
+			
+		!-------------------FOR DEBUGGING ONLY -----------------------------------------!
+		!$OMP DO
+		DO I=1,KMAXE	
+			DO J=1,ielem(n,i)%iNUMNEIGHBOURS
+				ILOCALSTENCIL(N,I,1,J)=ILOCALALLELG(N,I,1,J)
+			END DO
+		END DO
+		!$OMP END DO
+
+		IF (TYPESTEN.GT.1)THEN
+			ICPUID=N
+			!$OMP DO
+			DO I=1,KMAXE	!for all elements
+				
+				IF (EES.EQ.5)THEN
+					ITARGET=NUMNEIGHBOURS2
+				ELSE 
+					ITARGET=ielem(n,i)%iNUMNEIGHBOURS
+				END IF
+				STNSHA=ielem(n,i)%ifca
+				iconsi=i
+				call COMPUTE_CENTRE2d(I,CORDS)
+					
+				BC(1)=cords(1);   BC(2)=cords(2);    !BC(N,3)=cords(3)
+				
+				ISHYAPE=IELEM(N,I)%ISHAPE
+				DO IL=1,STNSHA	!for all stencils
+					ifno=2
+
+					vext(2,1:2)=inoder(ielem(n,i)%nodes_faces(il,1))%cord(1:2)
+					vext(3,1:2)=inoder(ielem(n,i)%nodes_faces(il,2))%cord(1:2)
+
+					IF ((IELEM(N,I)%INEIGHG(il).GT.0))THEN
+						IWHICHSTEN=IL
+					
+						ILOCALSTENCIL(N,I,IL+1,1)=ILOCALALLELG(N,I,1,1)
+					
+						ITGH=1
+						DO J=2,ISELEMT(N)!for all stencil elements
+							IF ((ILOCALALLELG(N,I,1,J)).GT.0) THEN
+								ISATISFIED=0
+								IF (XMPIE(ILOCALALLELG(N,I,1,J)).EQ.N)THEN
+
+									IFG=XMPIL((ILOCALALLELG(N,I,1,J)))
+
+									call COMPUTE_CENTRE2d(IFG,CORDS)
+									VG(1)=cords(1) ;VG(2)=cords(2)
+									n_node=ifno
+
+									CALL CHECK_CONDITION(N,N_NODE,BC,VG,VEXT,IS_PERIODIC,ISATISFIED)
+									IF (ISATISFIED.EQ.1)THEN
+										if (itgh+1.le.ITARGET)then
+											ITGH=ITGH+1
+											ILOCALSTENCIL(N,I,IL+1,ITGH)=ILOCALALLELG(N,I,1,J)
+										end if
+									END IF
+		
+									IF (ITGH.EQ.ITARGET)THEN
+										EXIT
+									END IF
+								END IF
+								IF (XMPIE(ILOCALALLELG(N,I,1,J)).NE.N)THEN
+									n_node=ifno
+									VG(1)=CENTERR((ILOCALALLELG(N,I,1,J)),1)
+									VG(2)=CENTERR((ILOCALALLELG(N,I,1,J)),2)
+									! VG(N,3)=CENTERR((ILOCALALLELG(N,I,1,J)),3)
+
+									CALL CHECK_CONDITION(N,N_NODE,BC,VG,VEXT,IS_PERIODIC,ISATISFIED)
+									IF (ISATISFIED.EQ.1)THEN
+										if (itgh+1.le.ITARGET)then
+											ITGH=ITGH+1
+											ILOCALSTENCIL(N,I,IL+1,ITGH)=ILOCALALLELG(N,I,1,J)
+										END IF
+									end if
+									IF (ITGH.EQ.ITARGET)THEN
+										EXIT
+									END IF
+								END IF
+							END IF
+						END DO		!elements in stencil
+					end if
+				END DO		!directional stencils
+			
+			END DO
+			! end do
+			!$OMP END DO
+		END IF
+
+	end if
 
 END SUBROUTINE STENCIILS
 
@@ -5042,8 +5041,8 @@ END SUBROUTINE STENCIILS
 ! !!!!!!!!!!!!!!!!!!!!!!REQUIRED FOR EACH STENCIL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!FOR VARIOUS ORDER OF ACCURACY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBOURS,IDEGFREE,IMAXDEGFREE,IEXTEND)
-!> @brief
-!> This subroutine determines the degress of freedom, neighbours and polynomial order for each stencil of each cell
+  !> @brief
+  !> This subroutine determines the degress of freedom, neighbours and polynomial order for each stencil of each cell
 	IMPLICIT NONE
 	INTEGER,INTENT(INOUT)::IORDER
 	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ISELEMT
@@ -5349,8 +5348,8 @@ end subroutine
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEIGHBOURS,RESTART)
-!> @brief
-!> This subroutine is establishing which of the stencils are admissible and which cells can use the WENO algorithms
+  !> @brief
+  !> This subroutine is establishing which of the stencils are admissible and which cells can use the WENO algorithms
 	IMPLICIT NONE
 	TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
 	INTEGER,INTENT(IN)::N,IMAXE
@@ -5628,8 +5627,8 @@ END SUBROUTINE STENCILS
 	
 	
 SUBROUTINE STENCILS3(N)
-!> @brief
-!> This subroutine is establishing which of the stencils are admissible under different set of rules and which cells can use the WENO algorithms
+  !> @brief
+  !> This subroutine is establishing which of the stencils are admissible under different set of rules and which cells can use the WENO algorithms
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,J,JI,K,LM,KMAXN,KK,KMAXE,IAA,KX,L,ITRR,ITRX,ITRY
@@ -5658,8 +5657,8 @@ END SUBROUTINE STENCILS3
 
 
 SUBROUTINE ADAPT_CRITERION
-!> @brief
-!> This subroutine is establishing a region for which to use a very high-order discretisation and a lower one outside this region
+  !> @brief
+  !> This subroutine is establishing a region for which to use a very high-order discretisation and a lower one outside this region
 	IMPLICIT NONE
 	INTEGER::KMAXE,I,FC
 	real::xmin_ad,xmax_ad,ymin_ad,ymax_ad

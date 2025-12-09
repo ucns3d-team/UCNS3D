@@ -1428,7 +1428,8 @@ Valuelocation(:)=0
                 		IF (ADDA.EQ.1)THEN
                 			VALUESS(i)=IELEM(N,I)%lwcx2!DISS!IELEM(N,I)%STENCIL_DIST
                 		ELSE
-                			VALUESS(i)=IELEM(N,I)%ggs!WCX(1)!TROUBLED!FILTERED
+                			! VALUESS(i)=IELEM(N,I)%ggs!WCX(1)!TROUBLED!FILTERED
+							VALUESS(i) = N
                 		END IF
                 	END DO
                 END IF
@@ -1898,7 +1899,8 @@ Valuelocation(1:3)=1
 					END DO
 				ELSE
 					DO I=1,KMAXE
-						VALUESS(i)=ielem(n,i)%condition!IELEM(N,I)%STENCIL_DIST
+						! VALUESS(i)=ielem(n,i)%condition!IELEM(N,I)%STENCIL_DIST
+						VALUESS(i)=n
 					END DO
                 END IF
                 
@@ -2313,6 +2315,7 @@ Valuelocation(1:3)=1
                 ELSE
                 	DO I=1,KMAXE
                 		VALUESS(i)=ielem(n,i)%condition!IELEM(N,I)%STENCIL_DIST
+						VALUESS(i)=n
                 	END DO
                 END IF
                 
@@ -3261,131 +3264,120 @@ Valuelocation(:)=0
 
 END SUBROUTINE OUTWRITE3v2d
 
+
+
+
+
 SUBROUTINE OUTWRITE3vb2d
-!> @brief
-!> This subroutine writes only the 2D solution without the grid in tecplot binary format
-use ISO_C_BINDING
-IMPLICIT NONE
+  !> @brief
+  !> This subroutine writes only the 2D solution without the grid in tecplot binary format
+	use ISO_C_BINDING
+	IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+	! EXTERNAL TecIni112
+	! EXTERNAL TecZne112
+	! EXTERNAL TECDAT112
+	! EXTERNAL TECNODE112
+	! EXTERNAL  TECEND112
 
-! 
-real,dimension(1:nof_Variables)::leftv
-real::MP_PINFL,gammal
-real,dimension(1:nof_Variables)::RIGHTv
-real::MP_PINFR,gammaR
-INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
-REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
-REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
-INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD
-REAL,allocatable,DIMENSION(:)::VARIABLES
-REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
-INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
-LOGICAL::HEREV
-REAL,DIMENSION(5)::TOTAL
- CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
-real,allocatable,dimension(:)::xbin,ybin,zbin,xbin2
-real,allocatable,dimension(:,:)::FBIN
-integer,allocatable,dimension(:,:)::icon
-INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
-real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
-character(LEN=:),allocatable::out1
-character*1 NULCHAR
+	real,dimension(1:nof_Variables)::leftv
+	real::MP_PINFL,gammal
+	real,dimension(1:nof_Variables)::RIGHTv
+	real::MP_PINFR,gammaR
+	INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
+	REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
+	REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
+	INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD
+	REAL,allocatable,DIMENSION(:)::VARIABLES
+	REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
+	INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
+	LOGICAL::HEREV
+	REAL,DIMENSION(5)::TOTAL
+	CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
+	integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+	real,allocatable,dimension(:)::xbin,ybin,zbin,xbin2
+	real,allocatable,dimension(:,:)::FBIN
+	integer,allocatable,dimension(:,:)::icon
+	INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
+	real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
+	character(LEN=:),allocatable::out1
+	character*1 NULCHAR
  
-      Integer::   Debug,III,NPts,NElm
-
+    Integer::   Debug,III,NPts,NElm
   
-      Real::    SolTime
-      Integer:: VIsDouble, FileType
-      Integer:: ZoneType,StrandID,ParentZn,IsBlock
-      Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
-      POINTER   (NullPtr,Null)
-      Integer:: Null(*)
-allocate(variables(10))
+	Real::    SolTime
+	Integer:: VIsDouble, FileType
+	Integer:: ZoneType,StrandID,ParentZn,IsBlock
+	Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
+	POINTER   (NullPtr,Null)
+	Integer:: Null(*)
+	allocate(variables(10))
 
-KMAXE=XMPIELRANK(N)
-
-
+	KMAXE=XMPIELRANK(N)
 
 
+	if (n.eq.0)then
 
+ 		NullPtr = 0
+      	Debug   = 0
+      	FileType = 2
+		VIsDouble = 1
 
-if (n.eq.0)then
+		NULCHAR = CHAR(0)
 
+		WRITE(PROC3,FMT='(I10)') IT
+		!proc4=".plt"
+		OUTFILE="OUT_"//TRIM(ADJUSTL(PROC3))//".plt"!//TRIM(ADJUSTL(PROC4))
+		ITGFD=len_trim(OUTFILE)
+		allocate(character(LEN=itgfd) ::out1)
+		out1 = OUTFILE(1:itgfd)
+		! out1 = out1//CHAR(0)
 
+	end if
 
-
-
- NullPtr = 0
-      Debug   = 0
-      FileType = 2
-VIsDouble = 1
-
-NULCHAR = CHAR(0)
-
-WRITE(PROC3,FMT='(I10)') IT
-	!proc4=".plt"
-	OUTFILE="OUT_"//TRIM(ADJUSTL(PROC3))//".plt"!//TRIM(ADJUSTL(PROC4))
-	ITGFD=len_trim(OUTFILE)
-	allocate(character(LEN=itgfd) ::out1)
-	out1=OUTFILE(1:itgfd)
-! 	out1=out1//CHAR(0)
-	
-
-end if
-
- IF (ITESTCASE.LE.2)THEN
-  NVAR1=4
-  if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+ 	IF (ITESTCASE.LE.2)THEN
+  		NVAR1=4
+  		if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'sol1,sol2,STEN1,STEN2'//NULCHAR, &
                     out1//NULCHAR, &
                     '.'//NULCHAR, &
                     FileType, &
                     Debug, &
                     VIsDouble)
-  
-  
-  
- END IF
- IF (ITESTCASE.EQ.3)THEN
- NVAR1=8+PASSIVESCALAR
-  if (passivescalar.gt.0)then
- if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                    'Density,U,V,energy,Pressure,STEN1,STEN2,SLOPE,passivescalar'//NULCHAR, &
-                    out1//NULCHAR, &
-                    '.'//NULCHAR, &
-                    FileType, &
-                    Debug, &
-                    VIsDouble)
-     ELSE
-     if (multispecies.eq.1)then
-     NVAR1=9
-     if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                     'Density,U,V,energy,Pressure,species1,species2,vf,aux'//NULCHAR, &
-                    out1//NULCHAR, &
-                    '.'//NULCHAR, &
-                    FileType, &
-                    Debug, &
-                    VIsDouble)
+ 		END IF
+ 		IF (ITESTCASE.EQ.3)THEN
+ 			NVAR1=8+PASSIVESCALAR
+  			if (passivescalar.gt.0)then
+ 				if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+						'Density,U,V,energy,Pressure,STEN1,STEN2,SLOPE,passivescalar'//NULCHAR, &
+						out1//NULCHAR, &
+						'.'//NULCHAR, &
+						FileType, &
+						Debug, &
+						VIsDouble)
+			ELSE
+     			if (multispecies.eq.1)then
+     				NVAR1=9
+     				if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+                     		'Density,U,V,energy,Pressure,species1,species2,vf,aux'//NULCHAR, &
+							out1//NULCHAR, &
+							'.'//NULCHAR, &
+							FileType, &
+							Debug, &
+							VIsDouble)
      
-     else
-     if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                     'Density,U,V,energy,Pressure,STEN1,STEN2,SLOPE'//NULCHAR, &
-                    out1//NULCHAR, &
-                    '.'//NULCHAR, &
-                    FileType, &
-                    Debug, &
-                    VIsDouble)
-     
-     
-     end if
-     END IF
- END IF
+     			else
+					if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
+							'Density,U,V,energy,Pressure,STEN1,STEN2,SLOPE'//NULCHAR, &
+							out1//NULCHAR, &
+							'.'//NULCHAR, &
+							FileType, &
+							Debug, &
+							VIsDouble)
+
+     				end if
+     			END IF
+ 			END IF
  IF (ITESTCASE.EQ.4)THEN
  NVAR1=9+PASSIVESCALAR+turbulenceequations
 	    if (passivescalar.gt.0)then
@@ -3678,7 +3670,8 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
                 	END DO
                 ELSE
                 	DO I=1,KMAXE
-                		VALUESS(i)=IELEM(N,I)%TROUBLED
+                		! VALUESS(i)=IELEM(N,I)%TROUBLED
+						VALUESS(i)=N
                 	END DO
                 END IF
             end if
@@ -3752,7 +3745,8 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
                 END IF
         	else
                 DO I=1,KMAXE
-                	VALUESS(i)=IELEM(N,I)%REDUCE
+                	! VALUESS(i)=IELEM(N,I)%REDUCE
+					VALUESS(i) = N
                 END DO
                 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
                 IF (N.EQ.0)THEN
@@ -3885,131 +3879,127 @@ SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 	CHARACTER(LEN=12)::PROC,VRTFILE,CELFILE,BNDFILE
 	integer,ALLOCATABLE,dimension(:)::isent
 	INTEGER,INTENT(IN)::N
-		WRITE(PROC,FMT='(I10)') N
-		CELFILE='GRID.cel'
-		VRTFILE='GRID.vrt'
-		BNDFILE='GRID.bnd'
+
+	WRITE(PROC,FMT='(I10)') N
+
+	CELFILE='GRID.cel'
+	VRTFILE='GRID.vrt'
+	BNDFILE='GRID.bnd'
 
 	ALLOCATE(ISENT(3))
 	
 	IF (N.EQ.0)THEN
 	
-	if(binio.eq.0)then
+		if(binio.eq.0)then
 	
-		OPEN(8,FILE=CELFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOS)
-		OPEN(9,FILE=VRTFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOX)
-		OPEN(10,FILE=BNDFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOY)
-	I=0
-	J=0
-	K=0
+			OPEN(8,FILE=CELFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOS)
+			OPEN(9,FILE=VRTFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOX)
+			OPEN(10,FILE=BNDFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOY)
+			I=0
+			J=0
+			K=0
+	
+			DO 
+				READ(8,*,IOSTAT=IOS)I
+				IF (IOS.NE.0) THEN
+					EXIT
+				END IF
+			END DO
+			IMAXE=i
 
-	
-	DO 
-		READ(8,*,IOSTAT=IOS)I
-		IF (IOS.NE.0) THEN
-			EXIT
-		END IF
-		
-	END DO
-		IMAXE=i
-	DO 
-		READ(9,*,IOSTAT=IOX)J
-		IF (IOX.NE.0) THEN
-			EXIT
-		END IF
-		
-	END DO
-		IMAXN=J
-	DO 
-		READ(10,*,IOSTAT=IOY)K
-		IF (IOY.NE.0) THEN
-			EXIT
-		END IF
- 		
-	END DO
+			DO 
+				READ(9,*,IOSTAT=IOX)J
+				IF (IOX.NE.0) THEN
+					EXIT
+				END IF
+			END DO
+			IMAXN=J
+
+			DO 
+				READ(10,*,IOSTAT=IOY)K
+				IF (IOY.NE.0) THEN
+					EXIT
+				END IF
+			END DO
 	 		IMAXB=K
-	else
-	
-	
-		OPEN(8,FILE=CELFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOS)
-		OPEN(9,FILE=VRTFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOX)
-		OPEN(10,FILE=BNDFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOY)
-	I=0
-	J=0
-	K=0
 
-	IF (DIMENSIONA.EQ.3)THEN
-	DO 
-		READ(8,IOSTAT=IOS)I,I1,I2,I3,I4,I5,I6,I7,I8
-		IF (IOS.NE.0) THEN
-			EXIT
-		END IF
-		
-	END DO
+		else
 	
-		IMAXE=i
-		
-	DO 
-		READ(9,IOSTAT=IOX)J,IX1,IX2,IX3
-		IF (IOX.NE.0) THEN
-			EXIT
-		END IF
-		
-	END DO
-		IMAXN=J
-	DO 
-		READ(10,IOSTAT=IOY)K,I1,I2,I3,I4,I5
-		IF (IOY.NE.0) THEN
-			EXIT
-		END IF
- 		
-	END DO
-	 		IMAXB=K
-	END IF
-	
-	IF (DIMENSIONA.EQ.2)THEN
-	DO 
-		READ(8,IOSTAT=IOS)I,I1,I2,I3,I4
-		IF (IOS.NE.0) THEN
-			EXIT
-		END IF
-		
-	END DO
-	
-		IMAXE=i
-		
-	DO 
-		READ(9,IOSTAT=IOX)J,IX1,IX2
-		IF (IOX.NE.0) THEN
-			EXIT
-		END IF
-		
-	END DO
-		IMAXN=J
-	DO 
-		READ(10,IOSTAT=IOY)K,I1,I2,I3,I4,I5
-		IF (IOY.NE.0) THEN
-			EXIT
-		END IF
- 		
-	END DO
-	 		IMAXB=K
-	END IF
-	
-	
-	end if
+			OPEN(8,FILE=CELFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOS)
+			OPEN(9,FILE=VRTFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOX)
+			OPEN(10,FILE=BNDFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOY)
+			I=0
+			J=0
+			K=0
 
-	CLOSE(8)
-	CLOSE(9)
- 	CLOSE(10)
+			IF (DIMENSIONA.EQ.3)THEN
+				DO 
+					READ(8,IOSTAT=IOS)I,I1,I2,I3,I4,I5,I6,I7,I8
+					IF (IOS.NE.0) THEN
+						EXIT
+					END IF
+				END DO
+				IMAXE=i
+				
+				DO 
+					READ(9,IOSTAT=IOX)J,IX1,IX2,IX3
+					IF (IOX.NE.0) THEN
+						EXIT
+					END IF
+					
+				END DO
+				IMAXN=J
 
-	ISENT(1)=IMAXE
-	ISENT(2)=IMAXN
-	ISENT(3)=IMAXB
+				DO 
+					READ(10,IOSTAT=IOY)K,I1,I2,I3,I4,I5
+					IF (IOY.NE.0) THEN
+						EXIT
+					END IF
+				END DO
+				IMAXB=K
 
+			END IF
 	
+			IF (DIMENSIONA.EQ.2)THEN
+				DO 
+					READ(8,IOSTAT=IOS)I,I1,I2,I3,I4
+					IF (IOS.NE.0) THEN
+						EXIT
+					END IF
+				END DO
+				IMAXE=i
+				
+				DO 
+					READ(9,IOSTAT=IOX)J,IX1,IX2
+					IF (IOX.NE.0) THEN
+						EXIT
+					END IF
+				END DO
+				IMAXN=J
+
+				DO 
+					READ(10,IOSTAT=IOY)K,I1,I2,I3,I4,I5
+					IF (IOY.NE.0) THEN
+						EXIT
+					END IF
+				END DO
+				IMAXB=K
+				
+			END IF
+	
+	
+		end if
+
+		CLOSE(8)
+		CLOSE(9)
+		CLOSE(10)
+
+		ISENT(1)=IMAXE
+		ISENT(2)=IMAXN
+		ISENT(3)=IMAXB
 
 	END IF
+
 	call MPI_Bcast( isent, 3, MPI_integer, 0 ,MPI_COMM_WORLD,IERROR )
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -4018,8 +4008,10 @@ SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
 	IMAXB=ISENT(3)
 	deallocate(ISENT)
 	
-	
 END SUBROUTINE OPEN_ARBITRARY
+
+
+
 
 
 SUBROUTINE OPEN_INPUT1(N,ITT)
@@ -4082,8 +4074,8 @@ SUBROUTINE CLOSE_INPUT(N,ITT)
 
 
 SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE,IBOUND,IMAXB,XMPINNUMBER,SCALER,inoder)
-!> @brief
-!> This subroutine reads all the data from the grid files
+  !> @brief
+  !> This subroutine reads all the data from the grid files
 	IMPLICIT NONE
 	TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
 	TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::inoder
@@ -4101,15 +4093,14 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 	INTEGER::IT1,IT2,IT3,IT4,IT5,IT6,IT7,IT8,ITX,INX,IT55,in,out
 	REAL::X,Y,Z
 
-
 	KK=0; I=0; J=0; LM=0 ;kk2=1
 	XMIN(N)=tolbig; YMIN(N)=tolbig; ZMIN(N)=tolbig
 	XMAX(N)=-tolbig; YMAX(N)=-tolbig; ZMAX(N)=-tolbig
+
 	CALL OPEN_INPUT(N,ITT)
     !OPEN(82,FILE="GRID.epart",FORM='FORMATTED',STATUS='OLD',ACTION='READ')
 	KMAXE=XMPIELRANK(N)
 	
-
  	if (dimensiona.eq.3)then
 	
 		! ALLOCATE(XSIZE(0:ISIZE-1))
@@ -4119,7 +4110,6 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		INODER2(1:imaxn)%NUMBEROFNEIB=0
 		INODER(1:imaxn)%ITOR=0
 	
-	
 		IF (BINIO.EQ.0)then
 		
 			DO J=1,IMAXE
@@ -4128,7 +4118,7 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 
 					KK=KK+1
 		
-					rEAD(8,*) ITX,IDV(1),IDV(2),IDV(3),IDV(4),IDV(5),IDV(6),IDV(7),IDV(8)
+					READ(8,*) ITX,IDV(1),IDV(2),IDV(3),IDV(4),IDV(5),IDV(6),IDV(7),IDV(8)
 
 	  				do kxk2=1,8
 	  					inoder(idv(kxk2))%itor=idv(kxk2)
@@ -4243,285 +4233,179 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 		INODER(:)%ITOR=0
 	
 		if (binio.eq.0)then
-	
 			DO J=1,IMAXE
 	
-			if (xmpie(j).eq.n)then
+				if (xmpie(j).eq.n)then
 
-				KK=KK+1
+					KK=KK+1
+		
+					rEAD(8,*) ITX,IDV(1),IDV(2),IDV(3),IDV(4)
+
+					do kxk2=1,4
+						inoder(idv(kxk2))%itor=idv(kxk2)
+					end do
+					ielem(n,kk)%IHEXGL=itx
+					IF ((IDV(3).NE.IDV(4)))THEN !QUADRILATERAL
+						shap=5	;nodal=4	
+						IELEM(N,KK)%ISHAPE=shap
+						IELEM(N,KK)%nonodes=nodal
+						allocate(ielem(n,kk)%nodes(nodal))
+						ielem(n,kk)%ifca=4
+						ielem(n,kk)%nodes(1:nodal)=idv(1:nodal)
+						allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
+					Else !TRIANGULAR
+						shap=6	;nodal=3
+						IELEM(N,KK)%ISHAPE=shap
+						allocate(ielem(n,kk)%nodes(nodal))
+						IELEM(N,KK)%nonodes=nodal
+						ielem(n,kk)%ifca=3
+						ielem(n,kk)%nodes(1:NODAL)=idv(1:nodal)
+						allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
+					END IF
+			
+				else
+					rEAD(8,*)
+				end if 
+			end do
+		else
+			DO J=1,IMAXE
+				if (xmpie(j).eq.n)then
+
+					KK=KK+1
 	
-				rEAD(8,*) ITX,IDV(1),IDV(2),IDV(3),IDV(4)
+					rEAD(8) ITX,IDV(1),IDV(2),IDV(3),IDV(4)
+					do kxk2=1,4
+	  					inoder(idv(kxk2))%itor=idv(kxk2)
+	  				end do
+					ielem(n,kk)%IHEXGL=itx
+					IF ((IDV(3).NE.IDV(4)))THEN !QUADRILATERAL
+						shap=5	;nodal=4	
+						IELEM(N,KK)%ISHAPE=shap
+						IELEM(N,KK)%nonodes=nodal
+						allocate(ielem(n,kk)%nodes(nodal))
+						ielem(n,kk)%ifca=4
+						ielem(n,kk)%nodes(1:nodal)=idv(1:nodal)
+						allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
+					Else !TRIANGULAR
+						shap=6	;nodal=3
+						IELEM(N,KK)%ISHAPE=shap
+						allocate(ielem(n,kk)%nodes(nodal))
+						IELEM(N,KK)%nonodes=nodal
+						ielem(n,kk)%ifca=3
+						ielem(n,kk)%nodes(1:NODAL)=idv(1:nodal)
+						allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
+					END IF
+	  			else
+					rEAD(8)ITX,IDV(1),IDV(2),IDV(3),IDV(4)
+				end if 
+			end do
+		end if
 
-				do kxk2=1,4
-	  				inoder(idv(kxk2))%itor=idv(kxk2)
-	  			end do
-				ielem(n,kk)%IHEXGL=itx
-		IF ((IDV(3).NE.IDV(4)))THEN
-		shap=5	;nodal=4	!QUADRILATERAL
-		IELEM(N,KK)%ISHAPE=shap
-		IELEM(N,KK)%nonodes=nodal
-		allocate(ielem(n,kk)%nodes(nodal))
-		ielem(n,kk)%ifca=4
-		ielem(n,kk)%nodes(1:nodal)=idv(1:nodal)
-		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
-		Else
-		
-		shap=6	;nodal=3!TRIANGULAR
-		IELEM(N,KK)%ISHAPE=shap
-		allocate(ielem(n,kk)%nodes(nodal))
-		IELEM(N,KK)%nonodes=nodal
-		ielem(n,kk)%ifca=3
-		ielem(n,kk)%nodes(1:NODAL)=idv(1:nodal)
-		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
-		
-		END IF
-		
+	end if
 
+	if (dimensiona.eq.3)then
+	      
+	    if (binio.eq.0)then
+	      	DO j=1,IMAXN
 
-	 
+	      		IF (inoder(J)%ITOR.gt.0)THEN
 
-	  else
-	rEAD(8,*)
+					READ(9,*)INX,X,Y,Z
+					x=x/scaler; y=y/scaler;  z=z/scaler
+					XMIN(N)=MIN(XMIN(N),X)
+					YMIN(N)=MIN(YMIN(N),Y)
+					ZMIN(N)=MIN(ZMIN(N),Z)
+					XMAX(N)=MAX(XMAX(N),X)
+					YMAX(N)=MAX(YMAX(N),Y)
+					ZMAX(N)=MAX(ZMAX(N),Z)
+					
+					ALLOCATE(inoder(J)%CORD(1:3))
+					inoder(J)%CORD(1)=X
+					inoder(J)%CORD(2)=Y
+					inoder(J)%CORD(3)=Z
+				else
+					read(9,*)
+				end if
+				! print_out = KMaxE/5
+			END DO
+		else
+		 	DO j=1,IMAXN
+	      		IF (inoder(J)%ITOR.gt.0)THEN
+					READ(9)INX,X,Y,Z
+					x=x/scaler; y=y/scaler;  z=z/scaler
+					XMIN(N)=MIN(XMIN(N),X)
+					YMIN(N)=MIN(YMIN(N),Y)
+					ZMIN(N)=MIN(ZMIN(N),Z)
+					XMAX(N)=MAX(XMAX(N),X)
+					YMAX(N)=MAX(YMAX(N),Y)
+					ZMAX(N)=MAX(ZMAX(N),Z)
+					
+					ALLOCATE(inoder(J)%CORD(1:3))
+					inoder(J)%CORD(1)=X
+					inoder(J)%CORD(2)=Y
+					inoder(J)%CORD(3)=Z
+				else
+					read(9)INX,X,Y,Z
+				end if
+				! print_out = KMaxE/5
+			END DO
+		end if
 
-
-
-	end if 
-	end do
 	else
-	
-	DO J=1,IMAXE
-	
-	if (xmpie(j).eq.n)then
-
-	KK=KK+1
-	
-	
-
-	rEAD(8) ITX,IDV(1),IDV(2),IDV(3),IDV(4)
-	do kxk2=1,4
-	  inoder(idv(kxk2))%itor=idv(kxk2)
-	  
-	  end do
-	ielem(n,kk)%IHEXGL=itx
-		IF ((IDV(3).NE.IDV(4)))THEN
-		shap=5	;nodal=4	!QUADRILATERAL
-		IELEM(N,KK)%ISHAPE=shap
-		IELEM(N,KK)%nonodes=nodal
-		allocate(ielem(n,kk)%nodes(nodal))
-		ielem(n,kk)%ifca=4
-		ielem(n,kk)%nodes(1:nodal)=idv(1:nodal)
-		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
-		Else
-		
-		shap=6	;nodal=3!TRIANGULAR
-		IELEM(N,KK)%ISHAPE=shap
-		allocate(ielem(n,kk)%nodes(nodal))
-		IELEM(N,KK)%nonodes=nodal
-		ielem(n,kk)%ifca=3
-		ielem(n,kk)%nodes(1:NODAL)=idv(1:nodal)
-		allocate(ielem(n,kk)%SURF(ielem(n,kk)%ifca))
-		
-		END IF
-		
-
-
-	 
-
-	  else
-	rEAD(8)ITX,IDV(1),IDV(2),IDV(3),IDV(4)
-
-
-
-	end if 
-	end do
-	
-	
-	
-	
-	end if
-	end if
-
-	
-	
-	
-
-	
-	  
-      
-
-
-	      if (dimensiona.eq.3)then
-	      
-	      
-	      if (binio.eq.0)then
-	      DO j=1,IMAXN
-
-	      IF (inoder(J)%ITOR.gt.0)THEN
-
-
-		READ(9,*)INX,X,Y,Z
-		x=x/scaler; y=y/scaler;  z=z/scaler
-		XMIN(N)=MIN(XMIN(N),X)
-		YMIN(N)=MIN(YMIN(N),Y)
-		ZMIN(N)=MIN(ZMIN(N),Z)
-		XMAX(N)=MAX(XMAX(N),X)
-		YMAX(N)=MAX(YMAX(N),Y)
-		ZMAX(N)=MAX(ZMAX(N),Z)
-		
-		
-		  ALLOCATE(inoder(J)%CORD(1:3))
-		  inoder(J)%CORD(1)=X
-		  inoder(J)%CORD(2)=Y
-		  inoder(J)%CORD(3)=Z
-		  
-		
-		
-		
-		else
-		read(9,*)
-		end if
-		
-		
-		!print_out = KMaxE/5
-
-
-		END DO
-		else
-		 DO j=1,IMAXN
-
-	      IF (inoder(J)%ITOR.gt.0)THEN
-
-
-		READ(9)INX,X,Y,Z
-		x=x/scaler; y=y/scaler;  z=z/scaler
-		XMIN(N)=MIN(XMIN(N),X)
-		YMIN(N)=MIN(YMIN(N),Y)
-		ZMIN(N)=MIN(ZMIN(N),Z)
-		XMAX(N)=MAX(XMAX(N),X)
-		YMAX(N)=MAX(YMAX(N),Y)
-		ZMAX(N)=MAX(ZMAX(N),Z)
-		
-		
-		  ALLOCATE(inoder(J)%CORD(1:3))
-		  inoder(J)%CORD(1)=X
-		  inoder(J)%CORD(2)=Y
-		  inoder(J)%CORD(3)=Z
-		  
-		
-		
-		
-		else
-		read(9)INX,X,Y,Z
-		end if
-		
-		
-		!print_out = KMaxE/5
-
-
-		END DO
-		
-		
-		
-		
-		
-		
-		
-		end if
-		else
 		
 		if (binio.eq.0)then
-		 DO j=1,IMAXN
-
-
-		  IF (inoder(J)%ITOR.gt.0)THEN
-		  
-
-		    
-! -------------------FOR DEBUGGING ONLY -----------------------------------------!
-! 		READ(9,'(I14,1X,3ES16.9)')INX,X,Y,Z
-! -------------------FOR DEBUGGING ONLY -----------------------------------------!
-		READ(9,*)INX,X,Y
-		x=x/scaler; y=y/scaler
-		XMIN(N)=MIN(XMIN(N),X)
-		YMIN(N)=MIN(YMIN(N),Y)
-		
-		XMAX(N)=MAX(XMAX(N),X)
-		YMAX(N)=MAX(YMAX(N),Y)
-		
-		
-		
-		  ALLOCATE(inoder(J)%CORD(1:2))
-		  inoder(J)%CORD(1)=X
-		  inoder(J)%CORD(2)=Y
-		  Else
-
-		  read(9,*)
-		  end if
-		
-		
-		
-		
-		
-		
-		!print_out = KMaxE/5
-
-
-		END DO
+			DO j=1,IMAXN
+				IF (inoder(J)%ITOR.gt.0)THEN
+					! -------------------FOR DEBUGGING ONLY -----------------------------------------!
+					! 		READ(9,'(I14,1X,3ES16.9)')INX,X,Y,Z
+					! -------------------FOR DEBUGGING ONLY -----------------------------------------!
+					READ(9,*)INX,X,Y
+					x=x/scaler; y=y/scaler
+					XMIN(N)=MIN(XMIN(N),X)
+					YMIN(N)=MIN(YMIN(N),Y)
+					
+					XMAX(N)=MAX(XMAX(N),X)
+					YMAX(N)=MAX(YMAX(N),Y)
+					
+					ALLOCATE(inoder(J)%CORD(1:2))
+					inoder(J)%CORD(1)=X
+					inoder(J)%CORD(2)=Y
+				Else
+					read(9,*)
+				end if
+	
+				! print_out = KMaxE/5
+			END DO
 		else
-		 DO j=1,IMAXN
-
-
-		  IF (inoder(J)%ITOR.gt.0)THEN
-		  
-
-		    
-! -------------------FOR DEBUGGING ONLY -----------------------------------------!
-! 		READ(9,'(I14,1X,3ES16.9)')INX,X,Y,Z
-! -------------------FOR DEBUGGING ONLY -----------------------------------------!
-		READ(9)INX,X,Y
-		x=x/scaler; y=y/scaler
-		XMIN(N)=MIN(XMIN(N),X)
-		YMIN(N)=MIN(YMIN(N),Y)
+		 	DO j=1,IMAXN
+		  		IF (inoder(J)%ITOR.gt.0)THEN  
+					! -------------------FOR DEBUGGING ONLY -----------------------------------------!
+					! 		READ(9,'(I14,1X,3ES16.9)')INX,X,Y,Z
+					! -------------------FOR DEBUGGING ONLY -----------------------------------------!
+					READ(9)INX,X,Y
+					x=x/scaler; y=y/scaler
+					XMIN(N)=MIN(XMIN(N),X)
+					YMIN(N)=MIN(YMIN(N),Y)
+					
+					XMAX(N)=MAX(XMAX(N),X)
+					YMAX(N)=MAX(YMAX(N),Y)
+					
+					ALLOCATE(inoder(J)%CORD(1:2))
+					inoder(J)%CORD(1)=X
+					inoder(J)%CORD(2)=Y
+		  		Else
+		  			read(9)INX,X,Y
+		  		end if
 		
-		XMAX(N)=MAX(XMAX(N),X)
-		YMAX(N)=MAX(YMAX(N),Y)
+				! print_out = KMaxE/5
+			END DO
 		
-		
-		
-		  ALLOCATE(inoder(J)%CORD(1:2))
-		  inoder(J)%CORD(1)=X
-		  inoder(J)%CORD(2)=Y
-		  Else
-
-		  read(9)INX,X,Y
-		  end if
-		
-		
-		
-		
-		
-		
-		!print_out = KMaxE/5
-
-
-		END DO
-		
-		
-		
-		
-		
-
-
 		end if
-		end if
+	end if
 	
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	 CALL CLOSE_INPUT(N,ITT)
-
-
-
-
-
+	 
+	CALL CLOSE_INPUT(N,ITT)
 
 	x=xmax(n);CALL MPI_ALLREDUCE(x,XMax,1,MPI_DOUBLE_PRECISION,MPI_Max,MPI_COMM_WORLD,IERROR)
 	x=Ymax(n);CALL MPI_ALLREDUCE(x,ymax,1,MPI_DOUBLE_PRECISION,MPI_Max,MPI_COMM_WORLD,IERROR)
@@ -4530,87 +4414,57 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 	x=ymin(n);CALL MPI_ALLREDUCE(x,yMIN,1,MPI_DOUBLE_PRECISION,MPI_Min,MPI_COMM_WORLD,IERROR)
 	x=zmin(n);CALL MPI_ALLREDUCE(x,zMIN,1,MPI_DOUBLE_PRECISION,MPI_Min,MPI_COMM_WORLD,IERROR)
 		
+	IF (DIMENSIONA.EQ.3)THEN
 		
-	  IF (DIMENSIONA.EQ.3)THEN
-		
+	  	CALL OPEN_INPUT(N,ITT)
+	  	DO j=1,IMAXN
+		  	IF (inoder(J)%ITOR.gt.0)THEN
+		  		ALLOCATE(INODER2(J)%XNE(1));INODER2(J)%XNE(1)=0 
+		  	end if
+	   	END DO
 	  
-	  
-	  
-	  CALL OPEN_INPUT(N,ITT)
-	  DO j=1,IMAXN
+	  	DO J=1,IMAXE
 
+	  		READ(8) ITX,IDV(1),IDV(2),IDV(3),IDV(4),IDV(5),IDV(6),IDV(7),IDV(8)
 
-		  IF (inoder(J)%ITOR.gt.0)THEN
-		  ALLOCATE(INODER2(J)%XNE(1));INODER2(J)%XNE(1)=0 
-		  end if
-		  
-	   END DO
+		  	if ((xmpie(j).NE.n))then
+		      	do kxk2=1,8
+			  		if (inoder(idv(kxk2))%itor.gt.0)then
+						! XSIZE(XMPIE(J))=1
+			  			inoder2(idv(kxk2))%XNE(1)=INODER2(idv(kxk2))%XNE(1)+1
+			  		end if
+		      	end do
+		 	end if
+	 	END DO
 	  
+	  	CALL CLOSE_INPUT(N,ITT)
 	  
-	  DO J=1,IMAXE
+	  	CALL OPEN_INPUT(N,ITT)
+	  	DO j=1,IMAXN
+		  	IF (inoder(J)%ITOR.gt.0)THEN
+		  		IF (inoder2(J)%XNE(1).GT.0)THEN
+		  			ALLOCATE(INODER2(J)%XNEIB(inoder2(J)%XNE(1)));INODER2(J)%XNEIB=0 
+		  			inoder2(J)%XNE(1)=0
+		  		end if
+		  	END IF
+	   	END DO
+	  
+	  	DO J=1,IMAXE
 	
-	
-	  
-	  rEAD(8) ITX,IDV(1),IDV(2),IDV(3),IDV(4),IDV(5),IDV(6),IDV(7),IDV(8)
+	  		rEAD(8) ITX,IDV(1),IDV(2),IDV(3),IDV(4),IDV(5),IDV(6),IDV(7),IDV(8)
 
+		  	if ((xmpie(j).NE.n)) then ! come back here
+		      	do kxk2=1,8
+			  		if (inoder(idv(kxk2))%itor.gt.0)then
+						! XSIZE(XMPIE(J))=1
+			  			inoder2(idv(kxk2))%XNE(1)=INODER2(idv(kxk2))%XNE(1)+1
+			  			INODER2(IDV(KXK2))%XNEIB(inoder2(idv(kxk2))%XNE(1))=J
+			  		end if
+		      	end do
+		  	end if
+	 	END DO
 	  
-	  
-	    
-		  if ((xmpie(j).NE.n))then
-		      do kxk2=1,8
-			  if (inoder(idv(kxk2))%itor.gt.0)then
-! 			  XSIZE(XMPIE(J))=1
-			  inoder2(idv(kxk2))%XNE(1)=INODER2(idv(kxk2))%XNE(1)+1
-			  end if
-		      end do
-		  end if
-	 END DO
-	  
-	  CALL CLOSE_INPUT(N,ITT)
-	  
-	  
-	  
-	  
-	  
-	  
-	  
-	  
-	  CALL OPEN_INPUT(N,ITT)
-	  DO j=1,IMAXN
-
-
-		  IF (inoder(J)%ITOR.gt.0)THEN
-		  IF (inoder2(J)%XNE(1).GT.0)THEN
-		  ALLOCATE(INODER2(J)%XNEIB(inoder2(J)%XNE(1)));INODER2(J)%XNEIB=0 
-		  inoder2(J)%XNE(1)=0
-		  end if
-		  END IF
-	   END DO
-	  
-	  
-	  DO J=1,IMAXE
-	
-	
-	  
-	  rEAD(8) ITX,IDV(1),IDV(2),IDV(3),IDV(4),IDV(5),IDV(6),IDV(7),IDV(8)
-
-	  
-	  
-	    
-		  if ((xmpie(j).NE.n))then
-		      do kxk2=1,8
-			  if (inoder(idv(kxk2))%itor.gt.0)then
-! 			  XSIZE(XMPIE(J))=1
-			  inoder2(idv(kxk2))%XNE(1)=INODER2(idv(kxk2))%XNE(1)+1
-			  INODER2(IDV(KXK2))%XNEIB(inoder2(idv(kxk2))%XNE(1))=J
-			  end if
-		      end do
-		  end if
-	 END DO
-	  
-	  CALL CLOSE_INPUT(N,ITT)
-	  
-	  
+	  	CALL CLOSE_INPUT(N,ITT)
 	  
 	END IF
 	  
@@ -12788,7 +12642,7 @@ END IF
 
 
 	IF (TECPLOT.EQ.4)THEN
-	if (dimensiona.eq.3)then
+		if (dimensiona.eq.3)then
 			call OUTWRITE3vsbav
 		eLSE
 			call OUTWRITE3vsb2Dav
@@ -14103,7 +13957,8 @@ SUBROUTINE PARALLEL_VTK_COMBINE(N)
 						if (Dg.eq.1)then
 							rARRAY_PART1(i,j)=ielem(n,i)%troubled
 						else
-							rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+							! rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+							rARRAY_PART1(i,j) = N
 						end if
 					end if
 				end if
@@ -20424,8 +20279,8 @@ SUBROUTINE FIX_NODES_LOCAL
 	NDLC_COUNT1=0
 	DO I=1,IMAXN
 		IF (INODER(I)%ITOR.GT.0)THEN
-			NDLC_COUNT1=NDLC_COUNT1+1
-			NDLC_ARRAY1(NDLC_COUNT1)=I
+			NDLC_COUNT1 = NDLC_COUNT1+1
+			NDLC_ARRAY1(NDLC_COUNT1) = I
 		END IF
 	END DO
 
