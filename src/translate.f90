@@ -1223,6 +1223,9 @@ do i=1,imaxfglobal
 
 
 
+
+
+
 	end select
 
 
@@ -1715,6 +1718,15 @@ DO I=1,NBOUND
 
 	case(6100)	!periodicity
 	IBXX(i)=5
+
+	case(5051)	!back pressure static
+	IBXX(i)=9
+
+
+	case(5052)	!mach sink
+	IBXX(i)=10
+
+
 
 	end select
 

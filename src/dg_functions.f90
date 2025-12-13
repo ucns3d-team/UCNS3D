@@ -1184,7 +1184,7 @@ real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR),intent(inout):
 real,dimension(1:turbulenceequations+PASSIVESCALAR),intent(inout)::cturbl,cturbr
 real,dimension(1:nof_Variables),intent(inout)::leftv,SRF_SPEEDROT
 real,dimension(1:nof_Variables),intent(inout)::RIGHTv
-REAL,DIMENSION(1:NOF_VARIABLES)::SRF_SPEED
+REAL,DIMENSION(1:NOF_VARIABLES)::SRF_SPEED,tempx_l,rtempx_l
 REAL,DIMENSION(1:DIMENSIONA),INTENT(INOUT)::POX,POY,POZ
 REAL,DIMENSION(1:nof_Variables-1,1:dims)::LCVGRAD,RCVGRAD
 REAL,DIMENSION(turbulenceequations+passivescalar,1:dims)::LCVGRAD_T,RCVGRAD_T
@@ -1193,6 +1193,9 @@ REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::CORDS
 INTEGER::I,L,NGP,ITTT,nvar,iex,kk,N_NODE
 INTEGER::IBFC
+REAL,dimension(1:3):: gL,nnt,G
+real::g_n
+INTEGER :: d,k
 
 L=FACEX
 NGP=POINTX
@@ -1298,16 +1301,57 @@ I=ICONSIDERED
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
 				  				    end if
-				  				     if (B_CODE.eq.4)then
-				  				    rightv=zero
-				  				    rightv(2:4)=LCVGRAD(4,1:3)
-				  				    leftv=zero
 
-				  				    CALL ROTATEF(N,leftv,rightv,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-								    leftv(2)=-leftv(2)
-								    CALL ROTATEB(N,rightv,leftv,ANGLE1,ANGLE2)
-				  				    RCVGRAD(4,1:3)=rightv(2:4)
-				  				  	end if
+				  				     if (b_code.gt.0)then
+                                            if (B_CODE.eq.4)then
+                                                          IF (THERMAL.NE.1)THEN
+
+                                                                      !velocity gradients
+                                                                  do k=1,dimensiona
+                                                                        RCVGRAD(1:DIMENSIONA,k)=LCVGRAD(1:DIMENSIONA,k)
+                                                                        END DO
+
+
+                                                                      do iex=DIMENSIONA+1,NOF_VARIABLES-1
+
+
+                                                                      tempx_l=0.0d0
+                                                                      rtempx_l=0.0d0
+                                                                      tempx_l(2)=lCVGRAD(iex,1)
+                                                                      tempx_l(3)=lCVGRAD(iex,2)
+                                                                      tempx_l(4)=lCVGRAD(iex,3)
+                                                                      CALL ROTATEF(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
+                                                                      rtempx_l(2)=-rtempx_l(2)
+                                                                      CALL ROTATEb(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
+                                                                      rCVGRAD(iex,1)=tempx_l(2)
+                                                                      rCVGRAD(iex,2)=tempx_l(3)
+                                                                      rCVGRAD(iex,3)=tempx_l(4)
+
+                                                                      END DO
+
+
+
+
+
+                                                                    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                                                                    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+                                                                    end if
+
+
+                                                        end if
+                                                  ELSE
+
+
+
+
+
+
+
+
+
+                 !                                 end if
+                                          end if
+                                          end if
 !
 !
 								  END IF
@@ -1473,7 +1517,7 @@ real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR),intent(inout):
 real,dimension(1:turbulenceequations+PASSIVESCALAR),intent(inout)::cturbl,cturbr
 real,dimension(1:nof_Variables),intent(inout)::leftv,SRF_SPEEDROT
 real,dimension(1:nof_Variables),intent(inout)::RIGHTv
-REAL,DIMENSION(1:NOF_VARIABLES)::SRF_SPEED
+REAL,DIMENSION(1:NOF_VARIABLES)::SRF_SPEED,tempx_l,rtempx_l
 REAL,DIMENSION(1:DIMENSIONA),INTENT(INOUT)::POX,POY,POZ
 REAL,DIMENSION(1:nof_Variables-1,1:dims)::LCVGRAD,RCVGRAD
 REAL,DIMENSION(turbulenceequations+passivescalar,1:dims)::LCVGRAD_T,RCVGRAD_T
@@ -1482,6 +1526,9 @@ REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::CORDS
 INTEGER::I,L,NGP,ITTT,nvar,iex,N_NODE
 INTEGER::IBFC
+REAL,dimension(1:3):: gL,nnt,G
+real::g_n
+INTEGER :: d,k
 L=FACEX
 NGP=POINTX
 I=ICONSIDERED
@@ -1567,6 +1614,64 @@ END IF
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
 				  				    end if
+
+				  				     if (b_code.gt.0)then
+                                            if (B_CODE.eq.4)then
+                                                          IF (THERMAL.NE.1)THEN
+
+                                                                          !velocity gradients
+                                                                  do k=1,dimensiona
+                                                                        RCVGRAD(1:DIMENSIONA,k)=LCVGRAD(1:DIMENSIONA,k)
+                                                                        END DO
+
+
+                                                                      do iex=DIMENSIONA+1,NOF_VARIABLES-1
+
+
+                                                                      tempx_l=0.0d0
+                                                                      rtempx_l=0.0d0
+                                                                      tempx_l(2)=lCVGRAD(iex,1)
+                                                                      tempx_l(3)=lCVGRAD(iex,2)
+
+                                                                      CALL ROTATEF2d(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
+                                                                      rtempx_l(2)=-rtempx_l(2)
+                                                                      CALL ROTATEb2d(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
+                                                                      rCVGRAD(iex,1)=tempx_l(2)
+                                                                      rCVGRAD(iex,2)=tempx_l(3)
+
+
+                                                                      END DO
+
+
+
+
+
+                                                                    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                                                                    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+                                                                    end if
+
+
+                                                        end if
+                                                  ELSE
+
+
+
+
+
+
+
+
+
+
+                                          end if
+                                          end if
+
+
+
+
+
+
+
 
 
 

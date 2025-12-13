@@ -2401,13 +2401,22 @@ end do
 ! 	   
 			ielem(n,i)%erx=tempg1
 	    
+                          
 
-              IF (CODE_PROFILE.EQ.88)THEN
+
+              !IF (CODE_PROFILE.EQ.88)THEN
+					  IF (INITCOND.EQ.400)THEN
                       IF ((IELEM(N,I)%ISHAPE.EQ.3)) THEN
-                                        IELEM(N,I)%FULL=0
+                                        IELEM(N,I)%hybrid=1
+                         END IF
                          END IF
 
-              END IF
+
+                         !if (ielem(n,i)%condition.gt.20)then
+                          !               ielem(n,i)%hybrid=1                       
+                         !end if
+
+              !END IF
 
 
 	      IF (TEMPG1.GT.GRIDAR1)THEN
@@ -2456,10 +2465,6 @@ idc2=idc2+1
         END DO
 END IF
 
-IF ((IDC.Gt.1))THEN     !until GE is fully adaptive
-IELEM(N,I)%GGS=1
-
-END IF
 
 
 

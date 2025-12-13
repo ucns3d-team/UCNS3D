@@ -146,7 +146,7 @@ VECCOS(:)=ZERO
 R1=RRES
 P1=PRES
 S1=SQRT((GAMMA*P1)/(R1))
-U1=UVEL
+u1=uvel
 V1=VVEL
 W1=WVEL
 
@@ -212,6 +212,108 @@ IF (PASSIVESCALAR.GT.0)THEN
   VECCOS(5+TURBULENCEEQUATIONS+1:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=ZERO
 
 END IF
+
+
+
+
+IF (INITCOND.EQ.400)THEN
+
+R1=RRES
+P1=PRES
+S1=SQRT((GAMMA*P1)/(R1))
+u1=uvel
+
+
+
+IF (((POX(1).GT.0.472145).AND.(POX(1).LT.0.55193)).AND.((POY(1).GT.-0.1).AND.(POY(1).LT.-0.086)))THEN
+
+U1=80
+
+end if
+
+if ((pox(1).ge.0.472145).and.((poy(1).ge.-0.086).and.(poy(1).le.-0.0080)))then
+u1=200
+P1=PRESS_OUTLET1
+end if
+
+
+
+
+V1=VVEL
+W1=WVEL
+
+!KINETIC ENERGY FIRST!
+SKIN1=(oo2)*((U1**2)+(V1**2)+(W1**2))
+!INTERNAL ENERGY
+
+IE1=((P1)/((GAMMA-1.0D0)*R1))
+
+!TOTAL ENERGY
+E1=R1*(SKIN1+IE1)
+
+!VECTOR OF CONSERVED VARIABLES NOW
+if (mrf.eq.1)then
+VECCOS(1)=R1
+VECCOS(2)=R1*U1+1.0e-15
+VECCOS(3)=R1*V1+1.0e-15
+VECCOS(4)=R1*W1+1.0e-15
+VECCOS(5)=E1
+else
+
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=R1*W1
+VECCOS(5)=E1
+
+end if
+IF (TURBULENCE.EQ.1)THEN
+
+  IF (TURBULENCEMODEL.EQ.1)THEN
+
+  VECCOS(6)=VISC*TURBINIT
+  END IF
+  IF (TURBULENCEMODEL.EQ.2)THEN
+
+   if (zero_turb_init .eq. 0) then
+    IF (RFRAME.EQ.0) THEN
+        VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
+        VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+   ELSE
+        VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
+        VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+   END IF
+  end if
+
+    if (zero_turb_init .eq. 1) then
+      IF (RFRAME.EQ.0) THEN
+          VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
+          VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+    ELSE
+          VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
+          VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+    END IF
+    end if
+
+  END IF
+
+
+END IF
+IF (PASSIVESCALAR.GT.0)THEN
+
+  VECCOS(5+TURBULENCEEQUATIONS+1:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=ZERO
+
+END IF
+
+
+
+
+END IF
+
+
+
+
+
 
 
 
@@ -833,7 +935,7 @@ ELSE
 
 U1=0.0D0
 V1=-3.0
-P1=PRESS_OUTLET
+P1=PRESS_OUTLET1
 END IF
 
 

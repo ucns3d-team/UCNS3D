@@ -1917,24 +1917,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					  damp=zero
  					  end if
 
- 					  if (b_code.eq.4)then	!adiabatic wall
- 					  if (ielem(n,i)%ggs.eq.1)then
- 					  if (thermal.eq.0)then
- 					  tempx_l=0.0d0
- 					  rtempx_l=0.0d0
- 					  tempx_l(2)=lCVGRAD(4,1)
- 					  tempx_l(3)=lCVGRAD(4,2)
- 					  tempx_l(4)=lCVGRAD(4,3)
- 					  CALL ROTATEF(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
- 					  rtempx_l(2)=-rtempx_l(2)
- 					  CALL ROTATEb(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
- 					  lCVGRAD(4,1)=tempx_l(2)
- 					  lCVGRAD(4,2)=tempx_l(3)
-					  lCVGRAD(4,3)=tempx_l(4)
- 					  rCVGRAD(4,1:3)=lCVGRAD(4,1:3)
-					  end if
-					  end if
- 					  end if
+
 
 
 					  
@@ -2470,24 +2453,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
  					  end if
 
 
- 					  if (b_code.eq.4)then	!adiabatic wall
- 					  if (ielem(n,i)%ggs.eq.1)then
- 					  if (thermal.eq.0)then
- 					  tempx_l=0.0d0
- 					  rtempx_l=0.0d0
- 					  tempx_l(2)=lCVGRAD(3,1)
- 					  tempx_l(3)=lCVGRAD(3,2)
- 					  CALL ROTATEF2d(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
- 					  rtempx_l(2)=-rtempx_l(2)
- 					  CALL ROTATEb2d(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
- 					  lCVGRAD(3,1)=tempx_l(2)
- 					  lCVGRAD(3,2)=tempx_l(3)
 
- 					  rCVGRAD(3,1)=lCVGRAD(3,1)
- 					  rCVGRAD(3,2)=lCVGRAD(3,2)
-					  end if
- 					  end if
- 					  end if
 
 				       
 					   vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
