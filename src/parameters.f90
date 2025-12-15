@@ -159,13 +159,24 @@ SUBROUTINE READ_UCNS3D
 	END IF
 			
 	
-	INQUIRE (FILE='OUTLETS.DAT',EXIST=HERE9)
+	INQUIRE (FILE='OUTLETS1.DAT',EXIST=HERE9)
 	IF (HERE9) THEN
-	OPEN(29,FILE='OUTLETS.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+	OPEN(29,FILE='OUTLETS1.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
 	READ(29,*)
-	READ(29,*)PRESS_OUTLET
-	print*,"i am reading the pressure for the outlet vents from the file"
+	READ(29,*)PRESS_OUTLET1
+	print*,"i am reading the pressure1 for the outlet vents from the file"
     CLOSE(29)	
+	END IF
+
+
+
+	INQUIRE (FILE='OUTLETS2.DAT',EXIST=HERE9)
+	IF (HERE9) THEN
+	OPEN(29,FILE='OUTLETS2.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+	READ(29,*)
+	READ(29,*)PRESS_OUTLET2
+	print*,"i am reading the pressure2 for the outlet vents from the file"
+    CLOSE(29)
 	END IF
 
 
@@ -385,8 +396,8 @@ SUBROUTINE READ_UCNS3D
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
 	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=100000	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=100000	! LIMIT VOLUME CELLS
+	GRIDAR1=10000000	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=10000000	! LIMIT VOLUME CELLS
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
@@ -736,21 +747,21 @@ SUBROUTINE READ_UCNS3D
         WEIGHT_LSQR=0   !WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
         guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
         FASTEST_Q=1     !STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=2         !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+        relax=1        !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
         CFLMAX=30       !CFLMAX:TO BE USED WITH RAMPING
         CFLRAMP=0       !CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
         emetis=6        !Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
         itold=10000     !TOLERANCE=n_iterations
-        GRIDAR1=100000.0    ! 0       5.0    7.0  LIMIT ASPECT RATIO CELLS,
-        GRIDAR2=700000.0     ! LIMIT VOLUME CELLS
+        GRIDAR1=10.0    ! 0       5.0    7.0  LIMIT ASPECT RATIO CELLS,
+        GRIDAR2=10.0     ! LIMIT VOLUME CELLS
         fastest=0       ! 0                             ||Fastest, no coordinate mapping (1: engaged,0:with transformation)
         lmach_style=0   !0                      ||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
-        LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0        !LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
+        LAMX=0.0D0;LAMY=1.0D0;LAMZ=1.0D0        !LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
         fastmovie=0
         if (iboundary.eq.1)then
          LOWMEM=1
          end if
-
+			ispal=1
 
          DES_model=0
 	 
@@ -1015,7 +1026,7 @@ SUBROUTINE READ_UCNS3D
 	fastest=0	 ! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	 !0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	 !LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
-	ISPAL=1! 1				||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
+	ISPAL=2! 1				||SPALART ALLMARAS VERSION:| 1:ORIGINAL |2: NEGATIVE MODIFICATION
 	
 	
 	
