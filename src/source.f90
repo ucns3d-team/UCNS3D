@@ -160,7 +160,7 @@ SUBROUTINE SOURCES_realgas(N,ICONSIDERED)
    REAL :: rhoEv_old, rhoEv_new, rhoEv_eq
    REAL :: alpha_v
    REAL :: prod, dest, lambda_k, rhoY_old, rhoY_new
-   REAL :: tau_v_eff
+   REAL :: tau_v_eff,kvt
 
 
   ! ---------------------------------------------------------------------------
@@ -432,13 +432,6 @@ SUBROUTINE SOURCES_realgas(N,ICONSIDERED)
 	END DO
 
 
-! 	sum_sourcex=zero
-! 	DO rg_i = 1, nof_species
-! 		sum_sourcex=sum_sourcex+ RG_DW_S(rg_i)
-! 	END DO
-!
-! 	write(110+n,*)sum_sourcex
-
 
 
   ELSE
@@ -486,29 +479,7 @@ SUBROUTINE SOURCES_realgas(N,ICONSIDERED)
 
   END DO
 
-!   !-----------------------------------------------------------
-!   ! 2) Park (1989) high-temperature correction (number density)
-!   !    tau_Park_s = 1 / ( n_tot * sigma_v * v_th )
-!   !    n_tot = p / (kB T)
-!   !-----------------------------------------------------------
-!   sigma0 = 3.0D-21    ! [m^2]
-!
-!   ! Number density [1/m^3]
-!   n_tot = rg_pressure / (kB * RG_T)
-!
-!   DO RG_I = 1, 3
-!      ! particle mass [kg/particle]
-!      m_s = RG_MOLM(RG_I) / NA
-!
-!      ! effective cross-section (kept as in your original implementation)
-!      sigma_v = sigma0 * (50000/RG_T)**2
-!
-!      ! thermal speed
-!      v_th = SQRT( 8.0D0 * kB * RG_T / (pi * m_s) )
-!
-!      ! tau_Park [s]
-!      tau_Park(RG_I) = 1.0D0 / ( n_tot * sigma_v * v_th )
-!   END DO
+
 
 
   sigma0 = 3.0D-21    ! [m^2]
@@ -594,7 +565,7 @@ END DO
 
   ELSEIF (tauMW >= 1.0D29) THEN
      ! only Park valid
-     tau_tot(RG_I) = max(taupk,5.0e-9)
+     tau_tot(RG_I) = taupk
 
   ELSEIF (tauPk >= 1.0D29) THEN
      ! only MW valid
@@ -602,12 +573,12 @@ END DO
 
   ELSE
      ! both valid: use harmonic sum
-     rggtF = tauMW / tauPk
-      rggtF = MAX(1.0D0, rggtF)
-      rggtF = MIN(20.0D0, rggtF)
-      tau_tot(RG_I) = tauMW / rggtF
-!      tau_tot(RG_I) = 1.0D0 / ( 1.0D0/tauMW + 1.0D0/tauPk )
-!      ! or: tau_tot(RG_I) = MIN(tauMW, tauPk)
+      rggtF = tauMW / tauPk
+       rggtF = MAX(1.0D0, rggtF)
+       rggtF = MIN(10D0, rggtF)
+       tau_tot(RG_I) = tauMW / rggtF
+!        tau_tot(RG_I) = 1.0D0 / ( 1.0D0/tauMW + 1.0D0/tauPk )
+
   END IF
 
 
@@ -758,29 +729,68 @@ END Do
    !   d(rhoEv)/dt = (rhoEv_eq(T) - rhoEv)/tau_v_eff + QW
    ! Relaxation part implicit, QW explicit.
    !
+
+
    rhoEv_old = U_C(I)%VAL(1, dimensiona+3)
 
-   rhoEv_eq = 0.0D0
-   DO rg_i = 1, 3
-      rhoEv_eq = rhoEv_eq + RG_R(rg_i) * RG_EV_EQ(rg_i)
-   END DO
+! equilibrium mixture vib energy at T_tr:
+rhoEv_eq = 0.0D0
+DO rg_i = 1, 3
+  rhoEv_eq = rhoEv_eq + RG_R(rg_i) * RG_EV_EQ(rg_i)
+END DO
 
-   tau_v_eff = 1.0D30
-   DO rg_i = 1, 3
-      IF (RG_R(rg_i) > rho_min .AND. tau_tot(rg_i) < 1.0D29) THEN
-         tau_v_eff = MIN(tau_v_eff, tau_tot(rg_i))
-      END IF
-   END DO
+! stiffness Kvt:
+Kvt = 0.0d0
+DO rg_i = 1, 3
+  IF (RG_R(rg_i) > rho_min .AND. tau_tot(rg_i) < 1.0d29) THEN
+     Kvt = Kvt + RG_R(rg_i) / tau_tot(rg_i)
+  END IF
+END DO
 
-   IF (tau_v_eff < 1.0D29) THEN
-      alpha_v = dt_loc / tau_v_eff
-      rhoEv_new = (rhoEv_old + alpha_v * rhoEv_eq + dt_loc * RG_QW) / (1.0D0 + alpha_v)
-   ELSE
-      rhoEv_new = rhoEv_old + dt_loc * (RG_QTV + RG_QW)
-   END IF
+IF (Kvt > 0.0d0) THEN
+  alpha_v   = dt_loc * Kvt
+  rhoEv_new = (rhoEv_old + dt_loc*(Kvt*rhoEv_eq + RG_QW)) / (1.0d0 + alpha_v)
+ELSE
+  rhoEv_new = rhoEv_old + dt_loc * RG_QW   ! no VT exchange, only reactive vib
+END IF
 
-   IF (rhoEv_new < 0.0D0) rhoEv_new = 0.0D0
-   U_C(I)%VAL(1, dimensiona+3) = rhoEv_new
+IF (rhoEv_new < 0.0d0) rhoEv_new = 0.0d0
+U_C(I)%VAL(1, dimensiona+3) = rhoEv_new
+
+
+
+
+
+!    rhoEv_old = U_C(I)%VAL(1, dimensiona+3)
+!
+!    rhoEv_eq = 0.0D0
+!    DO rg_i = 1, 3
+!       rhoEv_eq = rhoEv_eq + RG_R(rg_i) * RG_EV_EQ(rg_i)
+!    END DO
+
+!    tau_v_eff = 1.0D30
+!    DO rg_i = 1, 3
+!       IF (RG_R(rg_i) > rho_min .AND. tau_tot(rg_i) < 1.0D29) THEN
+!          tau_v_eff = MIN(tau_v_eff, tau_tot(rg_i))
+!       END IF
+!    END DO
+!    IF (tau_v_eff < 1.0D29) THEN
+!       alpha_v = dt_loc / tau_v_eff
+!       rhoEv_new = (rhoEv_old + alpha_v * rhoEv_eq + dt_loc * RG_QW) / (1.0D0 + alpha_v)
+!    ELSE
+!       rhoEv_new = rhoEv_old + dt_loc * (RG_QTV + RG_QW)
+!    END IF
+!
+!    IF (rhoEv_new < 0.0D0) rhoEv_new = 0.0D0
+
+
+
+
+
+
+
+
+
 
    ! ----------------------------
    ! (C) Species: point-implicit, diagonal Patankar/BE style
