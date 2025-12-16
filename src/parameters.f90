@@ -485,12 +485,13 @@ SUBROUTINE READ_UCNS3D
 	CFLRAMP=0	!CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
 	emetis=6    	!Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS 
 	itold=10000	!TOLERANCE=n_iterations
-	GRIDAR1=100000	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
-	GRIDAR2=100000	! LIMIT VOLUME CELLS
+	GRIDAR1=10000000	! 0	  5.0    7.0  LIMIT ASPECT RATIO CELLS,
+	GRIDAR2=10000000	! LIMIT VOLUME CELLS
 	fastest=0	! 0		       		||Fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
 	LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0	!LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)
 	
+
 
 	if (iboundary.eq.1)then
 	 LOWMEM=1
@@ -833,16 +834,16 @@ SUBROUTINE READ_UCNS3D
     if (initcond.eq.405)iadapt=1
         ICOMPACT=0      !COMPACT STENCIL MODE(0 NOT TRUE,1 TRUE)
         extf=3  !STENCILS STABILITY VALUES FROM 1.2 TO 3 (DEFAULT 2)
-        WEIGHT_LSQR=1   !WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
+        WEIGHT_LSQR=0   !WEIGHTED LEAST SQUARES(0 NOT TRUE,1 TRUE)
         guassianquadra=0!GAUSSIAN QUADRATURE RULE (1,2,5,6), DEFAULT 0 WILL USE THE APPROPRIATE NUMBER
         FASTEST_Q=1     !STORE gqp POINTS (1 =YES FASTER, 0= SLOWER)
-        relax=2         !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
+        relax=1         !RELAXATION PARAMETER : |1:BLOCK JACOBI |2: LU-SGS
         CFLMAX=30       !CFLMAX:TO BE USED WITH RAMPING
         CFLRAMP=0       !CFL RAMPING: |0: DEACTIVATED |1:ACTIVATED
         emetis=6        !Metis partitioner : 1: Hybrid metis, 2:adaptive weights for hybrid grids, 3: Uniform metis partionioner,4:NODAL,6=PARMETS
         itold=10000     !TOLERANCE=n_iterations
-        GRIDAR1=100000.0    ! 0       5.0    7.0  LIMIT ASPECT RATIO CELLS,
-        GRIDAR2=700000.0     ! LIMIT VOLUME CELLS
+        GRIDAR1=1000000.0    ! 0       5.0    7.0  LIMIT ASPECT RATIO CELLS,
+        GRIDAR2=7000000.0     ! LIMIT VOLUME CELLS
         fastest=0       ! 0                             ||Fastest, no coordinate mapping (1: engaged,0:with transformation)
         lmach_style=0   !0                      ||LOW MACH TREATMENT (1 ACTIVATE, 0 DISABLE),lmach_style(0=only normal component,1=all components)
         LAMX=1.0D0;LAMY=1.0D0;LAMZ=1.0D0        !LINEAR ADVECTION COEFFICIENTS (LAMX, LAMY,LAMZ)

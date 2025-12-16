@@ -2549,69 +2549,76 @@ END SUBROUTINE CALL_FLUX_SUBROUTINES_3D
 
 
 
-
 subroutine normalise_species(n)
-implicit none
-integer,intent(in)::n
-integer::i,j,rg_i,kmaxe,k
-real::epsY,sumy,rho
-real,dimension(1:nof_species)::rhoY,y
+  implicit none
+  integer, intent(in) :: n
+  integer :: i, k, kmaxe
+  real :: rho, sumRhoY, scale
+  real, parameter :: epsRho = 1.0d-14
+  real, parameter :: epsSum = 1.0d-300
+  real, dimension(1:nof_species) :: rhoY
+  logical :: bad
+
+  kmaxe = XMPIELRANK(n)
+
+  !$OMP DO
+  do i = 1, kmaxe
+
+    rho = u_c(i)%val(1,1)
+
+    ! If rho is nonphysical, keep it from breaking the algebra,
+    ! but DO NOT change the stored rho here (that should be handled elsewhere).
+    if (rho <= epsRho) then
+      rho = max(rho, epsRho)
+      write(400+n,*)"it can happen"
+      do k = 1, nof_species
+        u_c(i)%val(1,dimensiona+3+k) = rho * RG_VF(k)
+      end do
+      cycle
+    end if
+
+    ! 1) Read, NaN/Inf->0, clip negatives, accumulate
+    sumRhoY = 0.0d0
+    do k = 1, nof_species
+      rhoY(k) = u_c(i)%val(1,dimensiona+3+k)
+
+      ! NaN check: (x /= x) is true only for NaN
+      bad = (rhoY(k) /= rhoY(k))
+      ! Inf/huge check (portable enough): treat absurdly large as bad
+      if (.not. bad) bad = (abs(rhoY(k)) > huge(rhoY(k))*0.5d0)
+
+      if (bad) rhoY(k) = 0.0d0
+      if (rhoY(k) < 0.0d0) rhoY(k) = 0.0d0
+      if (bad) write(500+n,*)"it can happen"
+      sumRhoY = sumRhoY + rhoY(k)
 
 
+    end do
 
-KMAXe=XMPIELRANK(N)
+    ! 2) Enforce sum(rhoY)=rho without changing rho
+    if (sumRhoY > epsSum) then
+      scale = rho / sumRhoY
+      do k = 1, nof_species
+        rhoY(k) = rhoY(k) * scale
+      end do
+    else
+      ! everything got wiped out -> reset to reference mixture
+      write(600+n,*)"dangerous"
+      do k = 1, nof_species
+        rhoY(k) = rho * RG_VF(k)
+      end do
+    end if
 
+    ! 3) Write back
+    do k = 1, nof_species
+      u_c(i)%val(1,dimensiona+3+k) = rhoY(k)
+    end do
 
-epsY = 1.0d-14   ! small tolerance for sumY
-!$OMP DO
-do I = 1, KMAXE
-
-
-
-    rho = 0.d0
-do k = 1, NOF_SPECIES
-   rho = rho + u_c(i)%val(1,dimensiona+3+k)
-   rhoY(k)=u_c(i)%val(1,dimensiona+3+k)
-end do
-
-
-
-
-! Optionally enforce a floor
-u_c(i)%val(1,1)=rho
-
-! Recompute mass fractions
-sumY = 0.d0
-do k = 1, NOF_SPECIES
-   Y(k) = rhoY(k) / rho
-   if (Y(k) < 0.d0) Y(k) = 0.d0   ! small clip if needed
-   sumY = sumY + Y(k)
-end do
-
-! Optional renormalisation of Y
-if (abs(sumY - 1.d0) > 1.d-8 .and. sumY > 1.d-12) then
-   do k = 1, NOF_SPECIES
-      Y(k) = Y(k)/sumY
-      rhoY(k) = rho * Y(k)
-   end do
-else
-   do k = 1, NOF_SPECIES
-      rhoY(k) = rho * Y(k)
-   end do
-end if
-
-
-do k = 1, NOF_SPECIES
-   u_c(i)%val(1,dimensiona+3+k)=rhoY(k)
-end do
-
-
-
-end do
-! !$OMP END DO
-
+  end do
+  !$OMP END DO
 
 end subroutine normalise_species
+
 
 
 SUBROUTINE CALL_FLUX_SUBROUTINES_2D
@@ -2915,6 +2922,8 @@ reaL::verysmall
 verysmall = tolsmall
 
 
+if (realgas.eq.1)CALL normalise_species(N)
+
 KMAXE=XMPIELRANK(N)
 IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
@@ -3006,12 +3015,26 @@ END DO
         stop
     END IF
 
+
+if (realgas.eq.1)then
+if (rg_relax.eq.1)then
+!$OMP DO
+DO I=1,KMAXE
+call SOURCES_realgas(N,I)
+END DO
+!$OMP END DO
+end if
+end if
+
+
+
+
 IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
 !$OMP DO
   DO I=1,KMAXE
   do k=1,turbulenceequations+passivescalar
-  IF (U_CT(I)%VAL(1,k)+IMPDU(I,5+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,5+k)
+  IF (U_CT(I)%VAL(1,k)+IMPDU(I,nof_Variables+k).ge.zero)THEN
+  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,nof_Variables+k)
   END IF
   END do
 END DO
@@ -3034,12 +3057,12 @@ SUBROUTINE IMPLICIT_TIMEs_2d(N)
 !> @brief
 !> IMPLICIT APPROXIMATELY FACTORED TIME STEPPING SCHEME 2D
 IMPLICIT NONE
-INTEGER::I,K,KMAXE,kill_nan
+INTEGER::I,K,KMAXE,kill_nan,j
 INTEGER,INTENT(IN)::N
 reaL::verysmall
 verysmall = tolsmall
 
-
+ if (realgas.eq.1)CALL normalise_species(N)
 KMAXE=XMPIELRANK(N)
 IF (FASTEST.EQ.1)THEN
     CALL EXCHANGE_LOWER(N)
@@ -3051,9 +3074,11 @@ IF (FASTEST.EQ.1)THEN
     CALL CALCULATE_FLUXESHI2d(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
+
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
     CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
+
    ! CALL VORTEXCALC2D(N)
     IF (turbulence.eq.1)THEN
     CALL SOURCES_COMPUTATION2d(N)
@@ -3069,9 +3094,11 @@ ELSE
     CALL CALCULATE_FLUXESHI2d(N)
     CASE(3)
     CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
+
     CASE(4)
     CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
     CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
+
     !CALL VORTEXCALC2D(N)
     IF (turbulence.eq.1)THEN
     CALL SOURCES_COMPUTATION2d(N)
@@ -3100,13 +3127,13 @@ END IF
  kill_nan=0
 !$OMP DO
 DO I=1,KMAXE
-
-    IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)))THEN
+    do j=1,nof_Variables
+    IF ((impdu(i,1).ne.impdu(i,1)))THEN
         write(600+n,*)"nan present",ielem(n,i)%ihexgl,ielem(n,i)%ishape,ielem(n,i)%xxc, ielem(n,i)%yyc
         write(600+n,*)ielem(n,i)%dih(:)
         kill_nan=1
     END IF
-
+    end do
     
     
     
@@ -3119,18 +3146,26 @@ END DO
         stop
     END IF
 
-
+if (realgas.eq.1)then
+if (rg_relax.eq.1)then
+!$OMP DO
+DO I=1,KMAXE
+call SOURCES_realgas(N,I)
+END DO
+!$OMP END DO
+end if
+end if
 
 IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
 !$OMP DO
   DO I=1,KMAXE
   do k=1,turbulenceequations+passivescalar
   IF (ispal.eq.1)THEN
-  IF (U_CT(I)%VAL(1,k)+IMPDU(I,4+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,4+k)
+  IF (U_CT(I)%VAL(1,k)+IMPDU(I,nof_Variables+k).ge.zero)THEN
+  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
    END IF
    ELSE
-   U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
+   U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,nof_Variables+k)
    
    END IF
   END do
@@ -4893,12 +4928,7 @@ DO
         tz1=tz1+DT
 
 end if    
-     IF (REALGAS.EQ.1)THEN
-                IF (IT.GT.2000)THEN
-                    cfl=0.01
-                END IF
 
-          END IF
         
 
 

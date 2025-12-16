@@ -2422,17 +2422,17 @@ end do
 	      IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
                 IELEM(N,I)%FULL=0
 			END IF
-	      end if 
+	      end if
    if (fastest.eq.0)then
 	       dxx1=-tolbig; dxx2=tolbig
 	       JJ=1
 	       DO L=1,ielem(n,i)%iNUMNEIGHBOURS
 		       if (ILOCAL_RECON3(i)%VOLUME(JJ,L).lt.dxx2)then
-		      
+
 		       dxx2=ILOCAL_RECON3(i)%VOLUME(JJ,L)
 		       end if
 		       if (ILOCAL_RECON3(i)%VOLUME(JJ,L).gt.dxx1)then
-		      
+
 		       dxx1=ILOCAL_RECON3(i)%VOLUME(JJ,L)
 		       end if
 	       end do
@@ -2444,8 +2444,8 @@ end do
 !                 IELEM(N,I)%FULL=0
 ! 			END IF
 ! 	       end if
-	      
-! ! 	      
+
+! !
  end if
 
 IDC=0
@@ -2463,13 +2463,21 @@ idc2=idc2+1
         END DO
 END IF
 
-IF ((IDC.Gt.1))THEN     !until GE is fully adaptive
-IELEM(N,I)%GGS=1
+! IF ((IDC.Gt.1))THEN     !until GE is fully adaptive
+! IELEM(N,I)%GGS=1
+!
+! END IF
 
+
+IF (REALGAS.EQ.1)THEN
+if (ielem(n,i)%interior.eq.1)then
+	DO j=1,IELEM(N,I)%IFCA
+	  if (ielem(n,i)%ibounds(J).gt.0)then
+	        IELEM(N,I)%HYBRID=1
+	  END IF
+        END DO
 END IF
-
-
-
+END IF
 
 
 
@@ -2698,38 +2706,55 @@ end do
 
         TEMPG1=ielem(n,i)%condition
 
-	    IF (TEMPG1.GT.GRIDAR1)THEN
-	      IELEM(N,I)%GGS=1
 
-	      IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
-                IELEM(N,I)%FULL=0
-			END IF
+IF (REALGAS.EQ.1)THEN
+if (ielem(n,i)%interior.eq.1)then
+	DO j=1,IELEM(N,I)%IFCA
+	  if (ielem(n,i)%ibounds(J).gt.0)then
+	        IELEM(N,I)%HYBRID=1
+	  END IF
+        END DO
+END IF
+END IF
 
-	      end if 
-	      
-	      
-	      
-   if (fastest.eq.0)then
-	       dxx1=-tolbig; dxx2=tolbig
-	       JJ=1
-	       DO L=1,ielem(n,i)%iNUMNEIGHBOURS
-		        if (ILOCAL_RECON3(i)%VOLUME(JJ,L).lt.dxx2)then
 
-		       dxx2=ILOCAL_RECON3(i)%VOLUME(JJ,L)
-		       end if
-		       if (ILOCAL_RECON3(i)%VOLUME(JJ,L).gt.dxx1)then
 
-		       dxx1=ILOCAL_RECON3(i)%VOLUME(JJ,L)
-		       end if
-	       end do
-! 	 TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
-! 	     IF (TEMPG1.GT.GRIDAR2)THEN
-! 	       IELEM(N,I)%GGS=1
-! 	       IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
+
+
+
+
+! 	    IF (TEMPG1.GT.GRIDAR1)THEN
+! 	      IELEM(N,I)%GGS=1
+!
+! 	      IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
 !                 IELEM(N,I)%FULL=0
 ! 			END IF
-! 	       end if
-end if
+!
+! 	      end if
+!
+!
+!
+!    if (fastest.eq.0)then
+! 	       dxx1=-tolbig; dxx2=tolbig
+! 	       JJ=1
+! 	       DO L=1,ielem(n,i)%iNUMNEIGHBOURS
+! 		        if (ILOCAL_RECON3(i)%VOLUME(JJ,L).lt.dxx2)then
+!
+! 		       dxx2=ILOCAL_RECON3(i)%VOLUME(JJ,L)
+! 		       end if
+! 		       if (ILOCAL_RECON3(i)%VOLUME(JJ,L).gt.dxx1)then
+!
+! 		       dxx1=ILOCAL_RECON3(i)%VOLUME(JJ,L)
+! 		       end if
+! 	       end do
+! ! 	 TEMPG1=MAX((DXX1/DXX2),(DXX2/DXX1))
+! ! 	     IF (TEMPG1.GT.GRIDAR2)THEN
+! ! 	       IELEM(N,I)%GGS=1
+! ! 	       IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
+! !                 IELEM(N,I)%FULL=0
+! ! 			END IF
+! ! 	       end if
+! end if
 
 
 END SUBROUTINE CHECKGRADS2d

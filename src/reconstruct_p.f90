@@ -433,8 +433,12 @@ ILOCAL_RECON3(ICONSIDERED)%ULEFT(:,:,:)=ZERO
             else
             divbyzero=10E-12
 
-            if (realgas.eq.1)divbyzero=10E-30
+
             end if
+
+            if (realgas.eq.1)divbyzero=10E-30
+
+
             POWER=4
 
             if (ADDA.EQ.1)THEN
@@ -469,8 +473,12 @@ END DO
             divbyzero=ielem(n,iconsidered)%totvolume**2
             else
             divbyzero=10E-12
-            if (realgas.eq.1)divbyzero=10E-30
+
             end if
+
+            if (realgas.eq.1)divbyzero=10E-30
+
+
             POWER=4
 
             if (ADDA.EQ.1)THEN
@@ -1570,6 +1578,11 @@ REAL::MP_PINFl,gammal
 
                     ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,pointx)=ILOCAL_RECON3(ICONSIDERED)%ULEFT(1:NOF_VARIABLES,FACEX,pointx)&
 				    +((leftv(1:NOF_VARIABLES)+RESSOLUTION(INSTEN,1:NOF_vARIABLES))*WENO(1:NOF_vARIABLES,llx))
+
+
+
+
+
                     else
 											!CONSERVATIVE
 
@@ -3152,8 +3165,8 @@ IF (ITESTCASE.GE.3)THEN
 
                                                     end do
                                                     END if
-                                                     if (realgas.eq.1)then
-                                                    DO IEX=1,dimensiona+2       !loop rho,u,v,w,e,p
+                                                   if (realgas.eq.1)then
+                                                    DO IEX=1,dimensiona+3       !loop rho,u,v,w,e,p
                                                            IF ((IEX.GE.2).AND.(IEX.LE.DIMENSIONA+1)) CYCLE
 
 
@@ -3170,21 +3183,24 @@ IF (ITESTCASE.GE.3)THEN
 
 															end if
                                                     end do
-                                                    sumx=zero
-                                                        do iex=dimensiona+4,nof_Variables   !species
+                                                     sumx=zero
+                                                         do iex=dimensiona+4,nof_Variables   !species
 
-                                                                if (LEFTV(IEX).lt.zero)then
-                                                                REDUCE1=1
-                                                                    IELEM(N,I)%REDUCE=1
+                                                                 if ((LEFTV(IEX).lt.0.0D0))then
+                                                                 REDUCE1=1
+                                                                     IELEM(N,I)%REDUCE=1
 
-                                                                end if
-                                                                sumx=sumx+leftv(iex)
-                                                        end do
-                                                    if (abs(sumx-1.0d0).gt.1.0e-10)then
-                                                                REDUCE1=1
-                                                                    IELEM(N,I)%REDUCE=1
+                                                                 end if
+                                                                 sumx=sumx+leftv(iex)
+                                                         end do
+                                                         if (abs(sumx-1.0d0).gt.1e-5)then
+                                                                     REDUCE1=1
+                                                                         IELEM(N,I)%REDUCE=1
 
-                                                    end if
+                                                         end if
+
+
+
 
 
                                                     end if
@@ -3235,13 +3251,14 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,NGP,iqp,iex
 INTEGER::REDUCE1,kmaxe,indx
-real::jump_cond
+real::jump_cond,sumY
 real,dimension(1:nof_Variables)::leftv
 real::MP_PINFL,gammal,sumx
 real,dimension(1:nof_Variables)::RIGHTv
 real::MP_PINFR,gammaR
+logical::BadY
 KMAXE=XMPIELRANK(N)
-jump_cond=0.85
+jump_cond=0.7
 
 
 
@@ -3289,7 +3306,7 @@ IF (ITESTCASE.GE.3)THEN
                                                     end do
                                                     END if
                                                      if (realgas.eq.1)then
-                                                    DO IEX=1,dimensiona+2       !loop rho,u,v,w,e,p
+                                                    DO IEX=1,dimensiona+3       !loop rho,u,v,w,e,p
                                                            IF ((IEX.GE.2).AND.(IEX.LE.DIMENSIONA+1)) CYCLE
 
 
@@ -3306,21 +3323,24 @@ IF (ITESTCASE.GE.3)THEN
 
 															end if
                                                     end do
-                                                    sumx=zero
-                                                        do iex=dimensiona+4,nof_Variables   !species
+                                                     sumx=zero
+                                                         do iex=dimensiona+4,nof_Variables   !species
 
-                                                                if (LEFTV(IEX).lt.zero)then
-                                                                REDUCE1=1
-                                                                    IELEM(N,I)%REDUCE=2
+                                                                 if ((LEFTV(IEX).lt.0.0D0))then
+                                                                 REDUCE1=1
+                                                                     IELEM(N,I)%REDUCE=2
 
-                                                                end if
-                                                                sumx=sumx+leftv(iex)
-                                                        end do
-                                                        if (abs(sumx-1.0d0).gt.1.0e-10)then
-                                                                    REDUCE1=1
-                                                                        IELEM(N,I)%REDUCE=2
+                                                                 end if
+                                                                 sumx=sumx+leftv(iex)
+                                                         end do
+                                                         if (abs(sumx-1.0d0).gt.1e-3)then
+                                                                     REDUCE1=1
+                                                                         IELEM(N,I)%REDUCE=2
 
-                                                        end if
+                                                         end if
+
+
+
 
 
                                                     end if
@@ -3334,6 +3354,10 @@ IF (ITESTCASE.GE.3)THEN
 					reduce1=1
 					IELEM(N,I)%REDUCE=1
 					end if
+
+
+
+
 
 					IF (REDUCE1.GE.1)THEN
 						do iex=1,NOF_VARIABLES
@@ -3433,7 +3457,7 @@ IEX=ICONS_E
 L=FACEX
 I=ICONSIDERED
 NGP=ICONS_S
-KAPPA_VEN=10.0D0
+KAPPA_VEN=0.25
 psi2=zero
 
 					  D2=USOL(IEX,L,NGP)-UTEMP(1,IEX)
@@ -3451,6 +3475,10 @@ psi2=zero
 
 					      CASE(1)
 					      PSI(iex,L,ngp) = MIN(1.0d0,SFD)		!BARTH AND JESPERSEN
+
+					      CASE(10)
+					      PSI(iex,L,ngp) = MIN(0.6,SFD)		!BARTH AND JESPERSEN super restrictive
+
 					      CASE(2)
 ! 					      
 					      pol_MOG=-((4.0d0/27.0d0)*sfd**3)+sfd
@@ -3703,6 +3731,10 @@ psi2=zero
 
 					    CASE(1)
 					      PSI(iex,L,ngp) = MIN(1.0d0,SFD)				!MINMOD LIMITER
+
+					      CASE(10)
+					      PSI(iex,L,ngp) = MIN(0.6,SFD)		!BARTH AND JESPERSEN super restrictive
+
 					      CASE(2)
 					       pol_MOG=-((4.0d0/27.0d0)*sfd**3)+sfd
 					       

@@ -16,7 +16,7 @@ subroutine RELAXATION(N)
 !> This subroutine solves the linear system for implicit time stepping either through jacobian or LU-SGS in 3D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb,N_NODE,IBFC,SRF
+INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb,N_NODE,IBFC,SRF,j
 real::impres1,impres2,impres3,TEMPXX
 real:: w1,w2,w3,denx
 REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::LSCQM1
@@ -38,7 +38,7 @@ REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::CORDS
 
-SWEEPS=10
+SWEEPS=5
 kmaxe=xmpielrank(n)
 
 impdu(:,:)=zero
@@ -57,11 +57,9 @@ IF (RFRAME.EQ.0) THEN
 !$OMP DO
 do i=1,kmaxe
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(i,1:nof_Variables,1:nof_Variables)
-impdiag(i,1,1)=1.0d0/lscqm1(1,1)
-impdiag(i,2,2)=1.0d0/lscqm1(2,2)
-impdiag(i,3,3)=1.0d0/lscqm1(3,3)
-impdiag(i,4,4)=1.0d0/lscqm1(4,4)
-impdiag(i,5,5)=1.0d0/lscqm1(5,5)
+  do j=1,nof_Variables
+	impdiag(i,j,j)=1.0d0/lscqm1(j,j)
+  end do
 end do
 !$OMP END DO
 end if
@@ -158,25 +156,25 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 			    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 			    DUT1(:)=zero
 			    end if
-				
-				
-	 
+
+
+
 		du1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
-				     				      
-		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+
+		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 		DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-		END IF	
-		
+		END IF
+
 		B1_imp(1:nof_variables)=B1_imp(1:nof_variables)-MATMUL(IMPoff(i,L,1:nof_variables,1:nof_variables),DU1(1:nof_variables))
 		IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 		b1T(:)=b1T(:)-(IMPofft(i,L,:)*DUt1(:))
 		end if
 END DO	!loop f
 
-			
+
 else
 
-DO L=1,IELEM(N,I)%IFCA	!loop3			
+DO L=1,IELEM(N,I)%IFCA	!loop3
 				ANGLE1=IELEM(N,I)%FACEANGLEX(L)
 				ANGLE2=IELEM(N,I)%FACEANGLEY(L)
 				NX=(COS(ANGLE1)*SIN(ANGLE2))
@@ -187,7 +185,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
                     SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
                     CALL ROTATEF(N,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
                 END IF
-	
+
 					IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 						IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN MY CPU
@@ -196,16 +194,16 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
                                         DU1(2:4)=ROTATE_PER_1(DU1(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
 								    END IF
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								      
+
 								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-									
+
 									end if
-								  					  
-								  
-								  
+
+
+
 								  ELSE
 								  !NOT PERIODIC ONES IN MY CPU
-								   
+
 								  facex=l;iconsidered=i
 								  CALL coordinates_face_innerx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
 
@@ -217,113 +215,113 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 
 								    CORDS(1:3)=zero
 								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
-							    
+
 								    Poy(1)=cords(2)
 								    Pox(1)=cords(1)
 								    poz(1)=cords(3)
-								    
+
 								    LEFTV(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								    cturbl(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
 								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
-								    
 
-								    
-								    
+
+
+
 								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
-								    
+
 								    DU1(1:nof_variables)=rightv(1:nof_variables)
 				  				    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								    dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
 								    end if
-								    
-								    
+
+
 								    select case(b_code)
 								    case(1)
 								    du1(:)=zero
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
+
 								    case(2)
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
-								    
-								    
+
+
 								    case(6,9,99)
-								    
+
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
-								    
+
+
 								    else
 								    du1(1:nof_variables)=IMPDU(I,1:nof_variables)
 								    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 								    dut1(1:turbulenceequations+passivescalar)=IMPDU(I,nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
 								    end if
-								    
-								    
-								    
+
+
+
 								    end if
-								    
-								    
+
+
 								    end select
-								    
-								    
-				  				  				  				  
-								    
+
+
+
+
 								  END IF
 							ELSE
 							       DU1(1:nof_variables)=IMPDU(IELEM(N,I)%INEIGH(L),1:nof_variables)
 									IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								      
+
 								      DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IMPDU(IELEM(N,I)%INEIGH(L),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-									
+
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							END IF
 					    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
-					    
-					    
-						
+
+
+
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.50))then	!PERIODIC IN OTHER CPU
-								
+
 								DU1(1:nof_variables)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
                                 IF(PER_ROT.EQ.1)THEN
                                     DU1(2:4)=ROTATE_PER_1(DU1(2:4),ibound(n,ielem(n,i)%ibounds(l))%icode,angle_per)
                                 END IF
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								  
+
 								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-								  
+
 								 end if
-					
+
 								END IF
-							ELSE 			
+							ELSE
 							      DU1(1:nof_variables)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1:nof_variables)
-	      	      
+
 								IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-								  
+
 								  DUt1(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=IEXBOUNDHIRi(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),nof_Variables+1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-								  
+
 								 end if
-							
-								  
-! 								   
+
+
+!
 							END IF
 					    END IF
-	
-	
+
+
 
 B1_imp(1:nof_variables)=B1_imp(1:nof_variables)-MATMUL(IMPoff(i,L,1:nof_variables,1:nof_variables),DU1(1:nof_variables))
 IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
@@ -1437,7 +1435,7 @@ subroutine RELAXATION2d(N)
 !> This subroutine solves the linear system for implicit time stepping either through jacobian or LU-SGS in 2D
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N
-INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb,N_NODE,IBFC
+INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux, icaseb,N_NODE,IBFC,j
 real::impres1,impres2,impres3
 REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES)::LSCQM1
 REAL::B1_imp(1:nof_Variables),DU1(1:nof_Variables),DU2(1:nof_Variables),DUMMY12(1:nof_Variables),C1_imp(1:nof_Variables)
@@ -1458,7 +1456,7 @@ REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::CORDS
 
-SWEEPS=10
+SWEEPS=5
 kmaxe=xmpielrank(n)
 
 impdu(:,:)=zero
@@ -1477,10 +1475,10 @@ call CALCULATE_JACOBIAN_2d(N)
 !$OMP DO
 do i=1,kmaxe
   lscqm1(1:nof_Variables,1:nof_Variables)=impdiag(i,1:nof_Variables,1:nof_Variables)
-impdiag(i,1,1)=1.0d0/lscqm1(1,1)
-impdiag(i,2,2)=1.0d0/lscqm1(2,2)
-impdiag(i,3,3)=1.0d0/lscqm1(3,3)
-impdiag(i,4,4)=1.0d0/lscqm1(4,4)
+  do j=1,nof_Variables
+
+	impdiag(i,j,j)=1.0d0/lscqm1(j,j)
+  end do
 end do
 !$OMP END DO
 

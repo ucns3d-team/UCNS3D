@@ -101,8 +101,13 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						  ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						IF (REALGAS.EQ.0)THEN
+						 ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						  ELSE
+						  ASOUND1=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT((rightV(5)+MP_PINFr)*GAMMAr/rightV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						  END IF
 						  IF (ILOCAL_RECON3(i)%MRF.EQ.1)THEN
                                 !RETRIEVE THE ROTATIONAL VELOCITY (AT THE GAUSSIAN POINT JUST FOR SECOND ORDER)
                                 SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,1,1:3)
@@ -386,8 +391,13 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-                            ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
-                            ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+                            IF (REALGAS.EQ.0)THEN
+						 ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT(RIGHTV(5)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						  ELSE
+						  ASOUND1=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT((rightV(5)+MP_PINFr)*GAMMAr/rightV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						  END IF
                         IF (ILOCAL_RECON3(i)%MRF.EQ.1)THEN
                             ASOUND1=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1)-SRF_SPEEDROT(2))
                             ASOUND2=SQRT(LEFTV(5)*GAMMA/LEFTV(1))+abs(Cright_ROT(2)/Cright_ROT(1)-SRF_SPEEDROT(2))
@@ -603,7 +613,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D(N)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC,K,J
 	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx,VISCOTS
 	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
 	real,dimension(NOF_variables,NOF_variables)::convj,diffj
@@ -630,11 +640,9 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 
 	KMAXE=XMPIELRANK(N)
 	IDENTITY1(:,:)=ZERO
-	IDENTITY1(1,1)=1.0D0
-	IDENTITY1(2,2)=1.0D0
-	IDENTITY1(3,3)=1.0D0
-	IDENTITY1(4,4)=1.0D0
-	
+	do j=1,nof_Variables
+	IDENTITY1(j,j)=1.0D0
+	end do
 		
 
 	!$OMP DO
@@ -643,6 +651,9 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 	ICONSIDERED=I
 		IMPDIAG(i,:,:)=zero
 		IMPOFF(i,:,:,:)=zero
+
+
+
 		if (turbulence.eq.1)then
 		impdiagt(i,:)=zero
 		IMPOFFt(i,:,:)=zero
@@ -691,8 +702,17 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
+
+						  IF (REALGAS.EQ.0)THEN
 						 ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						  ELSE
+						  ASOUND1=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT((rightV(4)+MP_PINFr)*GAMMAr/rightV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						  END IF
+
+
+
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -811,7 +831,7 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 		impdiagt(i,:)=zero
 		IMPOFFt(i,:,:)=zero
 		end if
-		    
+
 		    DO L=1,IELEM(N,I)%IFCA
 				      mul1=IELEM(N,I)%SURF(L)
 				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
@@ -963,8 +983,13 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 						  LEFTV(1:nof_Variables)=CLEFT(1:nof_Variables);RIGHTV(1:nof_Variables)=CRIGHT(1:nof_Variables)						  
 						  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 						  
-						ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						 IF (REALGAS.EQ.0)THEN
+						 ASOUND1=SQRT(LEFTV(4)*GAMMA/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
 						  ASOUND2=SQRT(RIGHTV(4)*GAMMA/RIGHTV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						  ELSE
+						  ASOUND1=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))+abs(CLEFT_ROT(2)/CLEFT_ROT(1))
+						  ASOUND2=SQRT((rightV(4)+MP_PINFr)*GAMMAr/rightV(1))+abs(Cright_ROT(2)/Cright_ROT(1))
+						  END IF
 						  
 						  VPP=MAX(ASOUND1,ASOUND2)
 						  
@@ -1072,30 +1097,65 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 	
 	
 	
-	
+	if (Realgas.eq.0)then
 	IF (RUNGEKUTTA.EQ.10)THEN
+
+
+
 		!$OMP DO
 		do i=1,kmaxe
-				  
-		    IMPDIAG(i,1,1)=IMPDIAG(i,1,1)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    IMPDIAG(i,2,2)=IMPDIAG(i,2,2)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    IMPDIAG(i,3,3)=IMPDIAG(i,3,3)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    IMPDIAG(i,4,4)=IMPDIAG(i,4,4)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
-		    
+				  do j=1,nof_Variables
+
+					IMPDIAG(i,j,j)=IMPDIAG(i,j,j)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
+
+				  end do
 		end do
 		!$OMP END DO
 	  ELSE
 	!$OMP DO
 	  do i=1,kmaxe
-	      IMPDIAG(I,1,1)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,1,1))
-	      IMPDIAG(I,2,2)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,2,2))
-	      IMPDIAG(I,3,3)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,3,3))
-	      IMPDIAG(I,4,4)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,4,4))
-	    
+					do j=1,nof_Variables
+
+
+	      IMPDIAG(I,j,j)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,j,j))
+
+				  end do
 	end do
 	!$OMP END DO
+	end if
+
+
       END IF
 
+
+
+	if (realgas.eq.1)then
+	IF (RUNGEKUTTA.EQ.10)THEN
+	!$OMP DO
+		do i=1,kmaxe
+				  do j=1,nof_Variables
+				  do k=1,nof_variables
+				  if (k.ne.j)cycle
+					IMPDIAG(i,j,k)=IMPDIAG(i,j,k)+(ielem(n,I)%totvolume/ielem(n,I)%dtl)
+				  end do
+				  end do
+		end do
+		!$OMP END DO
+	  ELSE
+	!$OMP DO
+	  do i=1,kmaxe
+					do j=1,nof_Variables
+				  do k=1,nof_variables
+				  if (k.ne.j)cycle
+	      IMPDIAG(I,j,k)=ielem(n,I)%totvolume*((1.0D0/ielem(n,I)%dtl)+(1.5D0/DT))+(IMPDIAG(i,j,k))
+					end do
+				  end do
+	end do
+	!$OMP END DO
+	end if
+
+
+	end if
 
 
 
@@ -1151,7 +1211,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC,j
 	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx,VISCOTS
 	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
 	real,dimension(NOF_variables,NOF_variables)::convj,diffj
@@ -1182,11 +1242,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 
 
 	IDENTITY1(:,:)=ZERO
-	IDENTITY1(1,1)=1.0D0
-	IDENTITY1(2,2)=1.0D0
-	IDENTITY1(3,3)=1.0D0
-	IDENTITY1(4,4)=1.0D0
-	IDENTITY1(5,5)=1.0D0
+
+	IDENTITY1(:,:)=ZERO
+	do j=1,nof_Variables
+	IDENTITY1(j,j)=1.0D0
+	end do
 		
 	IF (IELEM(N,ICONSIDERED)%INTERIOR.EQ.0)THEN
 	
@@ -1679,7 +1739,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC,j
 	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx,VISCOTS
 	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
 	real,dimension(NOF_variables,NOF_variables)::convj,diffj
@@ -1707,11 +1767,11 @@ real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 
 
 
+
 	IDENTITY1(:,:)=ZERO
-	IDENTITY1(1,1)=1.0D0
-	IDENTITY1(2,2)=1.0D0
-	IDENTITY1(3,3)=1.0D0
-	IDENTITY1(4,4)=1.0D0
+	do j=1,nof_Variables
+	IDENTITY1(j,j)=1.0D0
+	end do
 	
 		
 
@@ -2181,7 +2241,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC,KAS
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,nvar,N_NODE,IBFC,KAS,j
 	REAL::sum_detect,NORMS,VPP,ASOUND1,ASOUND2,MUL1,DXB,tempxx,VISCOTS
 	REAL,DIMENSION(NOF_variables,NOF_variables)::IDENTITY1
 	real,dimension(NOF_variables,NOF_variables)::convj,diffj

@@ -1192,15 +1192,15 @@ SOLS2=ZERO
 ! 	       SOLS1(1)=LEFTV(5)/(leftv(1)*R_gas)
 
 	      DO IQ=1,imax
-	      if (ilocal_Recon3(i)%local.eq.1)then
-	       LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-	      else
-		IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
-		LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
-	    else
-		LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
-	    END IF
-	      end if
+			if (ilocal_Recon3(i)%local.eq.1)then
+			LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+			else
+				IF (ILOCAL_RECON3(I)%IHEXB(1,IQ+1).EQ.N)THEN
+				LEFTV(1:nof_Variables)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ+1))%VAL(1,1:nof_Variables)
+				else
+				LEFTV(1:nof_Variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ+1))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ+1),1:nof_Variables)
+				END IF
+			end if
 
 		 CALL CONS2DIV(N,leftv,MP_PINFl,gammal)
 	       SOLS2(1:nof_Variables-1)=LEFTV(2:nof_Variables)
@@ -1220,6 +1220,9 @@ SOLS2=ZERO
 
    	        if (CATALYTIC_WALL.EQ.1)THEN
    	        MATRIX_1(dimensiona+3:nof_Variables-1,IQ)=MATRIX_1(dimensiona+3:nof_Variables-1,IQ)+((SOLs1(dimensiona+3:nof_Variables-1)*ILOCAL_RECON3(I)%STENCILS(LL,IQ,k0))/ILOCAL_RECON3(I)%WALLCOEFF(k0))-(((CATaLYTIC_CON(1:NOF_SPECIES))*ILOCAL_RECON3(I)%STENCILS(LL,IQ,k0))/ILOCAL_RECON3(I)%WALLCOEFF(k0))
+
+
+
    	        END IF
 
 
@@ -1361,6 +1364,8 @@ SOLS2=ZERO
 		  END DO
 		  ATTT=ZERO
 		  ATTT=CATaLYTIC_CON(var2-dimensiona-2)-SOLS1(VAR2)
+
+
 			  DO TTK=1,NUMBER_OF_DOG
 				    IF (TTK.NE.K0) &
 				  ATTT=ATTT-ILOCAL_rECON5(ICONSIDERED)%gradf(VAR2,TTK)*&

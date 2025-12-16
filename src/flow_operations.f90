@@ -1151,31 +1151,14 @@ P_TOL =10E-5
 
                                 TEMPS(:)=0.0d0
 
-                                !first get total density-correct
+                                !first get total density-correct !
+                                ! NOTE:
+                                ! Total density rho is a primary conserved variable from continuity.
+                                ! Do NOT recompute rho as sum(rho_i) here.
+                                ! Species equations are not perfectly conservative numerically and
+                                ! redefining rho severely degrades robustness in hypersonic flows.
 
-!
-!                                 DO RG_I = 1, nof_species
-!                                   IF (leftv(dimensiona+3+RG_I).LT.0.0D0)THEN
-!                                       leftv(dimensiona+3+RG_I)=0.0D0
-!                                   END IF
-!                                 END DO
-
-
-
-
-
-
-
-                                DO RG_I=1,nof_species
-                                TEMPS(1)=temps(1)+leftv(dimensiona+3+RG_I)
-                                END DO
-
-
-
-
-
-
-                                RHO=temps(1)
+                                rho=LEFTV(1)
 
                                 U=LEFTV(2)/rho
                                 v=LEFTV(3)/rho
@@ -1302,6 +1285,9 @@ END IF
 
 
 END SUBROUTINE CONS2PRIM
+
+
+
 
 
 
@@ -1442,33 +1428,18 @@ P_TOL =10E-5
 
               !first get total density-correct
 
-!                                 DO RG_I = 1, nof_species
-!                                   IF (leftv(dimensiona+3+RG_I).LT.0.0D0)THEN
-!                                       leftv(dimensiona+3+RG_I)=0.0D0
-!                                   END IF
-!                                 END DO
-
-
-
-
-
-
-
-
-
-
-
-              DO RG_I=1,nof_species
-              TEMPS(1)=temps(1)+leftv(dimensiona+3+RG_I)
-              END DO
-
-
+               !first get total density-correct !
+               ! NOTE:
+               ! Total density rho is a primary conserved variable from continuity.
+               ! Do NOT recompute rho as sum(rho_i) here.
+               ! Species equations are not perfectly conservative numerically and
+               ! redefining rho severely degrades robustness in hypersonic flows.
 
               ! ============================================================
               ! 1. Unpack conservative variables
               ! ============================================================
 
-              RHO  = TEMPS(1)
+              RHO  = leftv(1)
               U    = LEFTV(2) / RHO
               V    = LEFTV(3) / RHO
               if (dimensiona.eq.3)then
@@ -1736,17 +1707,17 @@ TEMPS(:)=0.0d0
 
 
 
-              DO RG_I=1,nof_species
-              TEMPS(1)=temps(1)+leftv(dimensiona+3+RG_I)
-              END DO
-
+!               DO RG_I=1,nof_species
+!               TEMPS(1)=temps(1)+leftv(dimensiona+3+RG_I)
+!               END DO
+!               RHO  = TEMPS(1)
 
 
               ! ============================================================
               ! 1. Unpack conservative variables
               ! ============================================================
 
-              RHO  = TEMPS(1)
+              RHO  = leftv(1)
               U    = LEFTV(2) / RHO
               V    = LEFTV(3) / RHO
               if (dimensiona.eq.3)then
@@ -4653,7 +4624,7 @@ SELECT CASE(B_CODE)
                     ! Kinetic energy
 
 
-                    SKIN1=(oo2)*((U**2)+(V**2))
+                    SKIN1=(oo2)*((U**2)+(V**2)+(w*w))
 
                       RIGHTV(1)=rho_g
                       RIGHTV(2)=rho_g*U
@@ -4885,7 +4856,13 @@ SELECT CASE(B_CODE)
                     rightv(3)=-leftv(3)
                     rightv(4)=-leftv(4)
 
+                    if (realgas.eq.1)then
+                    if (catalytic_wall.eq.1)then
+                    rightv(dimensiona+4:nof_variables)=CATALYTIC_CON(1:nof_Species)*leftv(1)
 
+
+                    end if
+                    end if
 
 
 
@@ -5568,7 +5545,13 @@ SELECT CASE(B_CODE)
 			      rightv(2)=-leftv(2)
 			      rightv(3)=-leftv(3)
 			      
-! 			      rightv(4)=leftv(4)
+                if (realgas.eq.1)then
+                if (catalytic_wall.eq.1)then
+                rightv(dimensiona+4:nof_variables)=CATALYTIC_CON(1:nof_Species)*leftv(1)
+
+
+                end if
+                end if
     
 
     
@@ -5824,12 +5807,18 @@ SUBROUTINE COMPUTE_JACOBIANSE(N,ICONSIDERED,EIGVL,RVEIGL,GAMMA,ANGLE1,ANGLE2,SRF
 !> This subroutine computes the Jacobians for the implicit time stepping
 IMPLICIT NONE
 INTEGER,INTENT(IN)::N,ICONSIDERED
-REAL,INTENT(IN)::ANGLE1,ANGLE2
+REAL,INTENT(IN)::ANGLE1,ANGLE2,NX,NY,NZ
 REAL,DIMENSION(1:NOF_VARIABLES),INTENT(IN)::RVEIGL,SRF_SPEEDROT
 REAL,INTENT(IN)::GAMMA
 REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES),INTENT(INOUT)::EIGVL
-REAL::RS,US,VS,WS,ES,PS,VVS,AS,HS,GAMMAM1,vsd,PHI,A1,A2,A3,OORS,NX,NY,NZ
+REAL::RS,US,VS,WS,ES,PS,VVS,AS,HS,GAMMAM1,vsd,PHI,A1,A2,A3,OORS,VN
 INTEGER::IVGT,i
+REAL :: EVS, ETR
+REAL :: temps,gammal,MP_PINFl
+INTEGER :: rg_i
+real,dimension(1:nof_variables)::leftv
+
+if (Realgas.eq.0)then
 
 
 A2=GAMMA-1.0D0
@@ -5862,22 +5851,72 @@ ELSE
 END IF
 
  
+
+
+ end if
+
  if (realgas.eq.1)then
- ! --- Extra equations: 6 = vibrational energy, 7..11 = species densities ---
-! Approximate scalar advection: only diagonal = VVS
 
-  ! zero all extra rows first
-  DO i = 6, NOF_VARIABLES
-    EIGVL(i,1:NOF_VARIABLES) = 0.0D0
-  END DO
+ leftv = RVEIGL
+call CONS2PRIM(N, leftv, MP_PINFl, gammal)
 
-  ! vibrational energy equation
-  EIGVL(6,6) = VVS
+! === Extract =================================================
+RS  = RVEIGL(1)
+US  = RVEIGL(2) / RS
+VS  = RVEIGL(3) / RS
+WS  = RVEIGL(4) / RS
+ES  = RVEIGL(5) / RS
+EVS = RVEIGL(6) / RS
 
-  ! species equations (5 species -> rows 7..11)
-  DO i = 7, 11
-    EIGVL(i,i) = VVS
-  END DO
+! Effective translational energy for pressure
+ETR = ES - EVS
+
+A2 = GAMMAl - 1.0D0
+A3 = GAMMAl - 2.0D0
+
+PHI = 0.5D0*A2*(US*US + VS*VS + WS*WS)
+A1  = GAMMAl*ETR - PHI
+
+VN = nx*US + ny*VS + nz*WS
+
+EIGVL(:,:) = 0.0D0
+
+! === 5x5 Euler block (ρ, ρu, ρv, ρw, ρE) =====================
+EIGVL(1,1)=0.0D0;   EIGVL(1,2)=nx;   EIGVL(1,3)=ny;   EIGVL(1,4)=nz;   EIGVL(1,5)=0.0D0
+
+EIGVL(2,1)=nx*PHI - US*VN
+EIGVL(2,2)=VN - A3*nx*US
+EIGVL(2,3)=ny*US - A2*nx*VS
+EIGVL(2,4)=nz*US - A2*nx*WS
+EIGVL(2,5)=A2*nx
+
+EIGVL(3,1)=ny*PHI - VS*VN
+EIGVL(3,2)=nx*VS - A2*ny*US
+EIGVL(3,3)=VN - A3*ny*VS
+EIGVL(3,4)=nz*VS - A2*ny*WS
+EIGVL(3,5)=A2*ny
+
+EIGVL(4,1)=nz*PHI - WS*VN
+EIGVL(4,2)=nx*WS - A2*nz*US
+EIGVL(4,3)=ny*WS - A2*nz*VS
+EIGVL(4,4)=VN - A3*nz*WS
+EIGVL(4,5)=A2*nz
+
+EIGVL(5,1)=VN*(PHI - A1)
+EIGVL(5,2)=nx*A1 - A2*US*VN
+EIGVL(5,3)=ny*A1 - A2*VS*VN
+EIGVL(5,4)=nz*A1 - A2*WS*VN
+EIGVL(5,5)=GAMMAl*VN
+
+! === Vibrational scalar advection (ρEv) ======================
+EIGVL(6,6) = VN
+
+! === Species scalar advection ================================
+do i = 7, nof_Variables
+  EIGVL(i,i) = VN
+end do
+
+
 
 
  end if
@@ -5959,8 +5998,12 @@ REAL,INTENT(IN)::GAMMA
 REAL,DIMENSION(1:NOF_VARIABLES,1:NOF_VARIABLES),INTENT(INOUT)::EIGVL
 REAL::RS,US,VS,ES,PS,VVS,AS,HS,GAMMAM1,vsd,PHI,A1,A2,A3,OORS
 INTEGER::IVGT
+REAL :: EVS, ETR
+REAL :: temps,gammal,MP_PINFl
+INTEGER :: i,rg_i
+real,dimension(1:nof_variables)::leftv
 
-
+if (Realgas.eq.0)then
 A2=GAMMA-1.0D0
 A3=GAMMA-2.0D0
 OORS=1.0D0/RVEIGL(1)
@@ -5982,10 +6025,67 @@ EIGVL(3,1)=NY*PHI-VS*VVS		; EIGVL(3,2)=NX*VS-A2*NY*US	; EIGVL(3,3)=VVS-A3*NY*VS	
 EIGVL(4,1)=VVS*(PHI-A1)	;		 EIGVL(4,2)=NX*A1-A2*US*VVS	; EIGVL(4,3)=NY*A1-A2*VS*VVS	; EIGVL(4,4)=GAMMA*VVS
 
 
- 
+
+end if
+
+if (Realgas.eq.1)then
+leftv=RVEIGL
+
+call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+
+! === Extract ===============================================
+
+
+RS   = RVEIGL(1)
+US   = RVEIGL(2)/RS
+VS   = RVEIGL(3)/RS
+ES   = RVEIGL(4)/RS
+EVS  = RVEIGL(5)/RS
+
+! Effective translational energy for pressure
+ETR = ES - EVS   ! (chemical echem handled in flux elsewhere)
+
+A2 = GAMMAl - 1.0D0
+A3 = GAMMAl - 2.0D0
+
+PHI = 0.5D0*A2*(US*US + VS*VS)
+A1  = GAMMAl*ETR - PHI
+
+VVS = nx*US + ny*VS
+
+EIGVL(:,:) = 0.0D0
+
+! === 4x4 Euler block =======================================
+EIGVL(1,1)=0.0D0;      EIGVL(1,2)=nx;       EIGVL(1,3)=ny;        EIGVL(1,4)=0.0D0
+
+EIGVL(2,1)=nx*PHI-US*VVS
+EIGVL(2,2)=VVS-A3*nx*US
+EIGVL(2,3)=ny*US-A2*nx*VS
+EIGVL(2,4)=A2*nx
+
+EIGVL(3,1)=ny*PHI-VS*VVS
+EIGVL(3,2)=nx*VS-A2*ny*US
+EIGVL(3,3)=VVS-A3*ny*VS
+EIGVL(3,4)=A2*ny
+
+EIGVL(4,1)=VVS*(PHI-A1)
+EIGVL(4,2)=nx*A1-A2*US*VVS
+EIGVL(4,3)=ny*A1-A2*VS*VVS
+EIGVL(4,4)=GAMMAl*VVS
+
+! === Vibrational scalar advection ===========================
+EIGVL(5,5) = VVS
+
+! === Species scalar advection ===============================
+DO i=6,nof_Variables
+  EIGVL(i,i) = VVS
+END DO
+
+end if
  
 
 END SUBROUTINE COMPUTE_JACOBIANSE2D
+
 
 
 

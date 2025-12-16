@@ -1755,6 +1755,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 													rg_sum_htr(1:dimensiona) = 0.0d0
 													rg_sum_hv(1:dimensiona)  = 0.0d0
 
+
+
+													if (RG_RELAX.eq.1)then
+
 													! ---- FIRST LOOP: raw Fick fluxes I_k = -ρ D_k ∇Y_k ----
 													do rg_i = 1, NOF_SPECIES
 
@@ -1795,7 +1799,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
  														rg_sum_hv(1:dimensiona)  = rg_sum_hv(1:dimensiona) &
  																				+ RG_ENTHVB_av(rg_i)*JL(1:dimensiona)
 													end do
-
+													end if
 
 													! =============================================================
 													! 4. Conductive heat fluxes (Fourier)
@@ -2216,6 +2220,9 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 													sumI(1:dimensiona) = 0.0d0    ! Σ I_k
 
+
+													if (RG_RELAX.eq.1)then
+
 													! ---- FIRST LOOP: raw Fick fluxes I_k = -ρ D_k ∇Y_k ----
 													do rg_i = 1, NOF_SPECIES
 
@@ -2233,7 +2240,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 
 
-													if ((b_code.gt.0).and.(catalytic_wall.eq.0))then
+
 
 													! ---- SECOND LOOP: mass-conserving flux J_k ----
 													do rg_i = 1, NOF_SPECIES
@@ -2261,8 +2268,8 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 													end do
 
 
-													end if
 
+													end if
 
 
 
@@ -2398,7 +2405,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 					  if (realgas.eq.1)then
 						if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
-						HLLCFLUX(6:nof_Variables)=zero
+						HLLCFLUX(7:nof_Variables)=zero
 						end if
 						end if
 
@@ -2499,7 +2506,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2,DG_VOL_REC,RHLLCFLUX,HLLCFLUX
 	INTEGER::I,L,NGP,KMAXE,IQP,ii,NVAR,KC,IEX,ITTT,IKAS,igoflux, icaseb,KK,B_CODE
 	REAL::sum_detect,NORMS
-	INTEGER::ICONSIDERED,FACEX,POINTX,K,RG_I,RG_J,idxY
+	INTEGER::ICONSIDERED,FACEX,POINTX,K,RG_I,RG_J,idxY,icompute
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ,MP_SOURCE1,MP_SOURCE2,MP_SOURCE3
 	REAL,DIMENSION(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)::CLEFT,CRIGHT,CLEFT_ROT,CRIGHT_ROT
 	REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV,SRF_SPEEDROT,tempx_l,rtempx_l
@@ -2741,6 +2748,8 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 
 													sumI(1:dimensiona) = 0.0d0    ! Σ I_k
 
+													if (RG_RELAX.eq.1)then
+
 													! ---- FIRST LOOP: raw Fick fluxes I_k = -ρ D_k ∇Y_k ----
 													do rg_i = 1, NOF_SPECIES
 
@@ -2782,7 +2791,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
  																				+ RG_ENTHVB_av(rg_i)*JL(1:dimensiona)
 													end do
 
-
+													end if
 													! =============================================================
 													! 4. Conductive heat fluxes (Fourier)
 													! =============================================================
@@ -3120,7 +3129,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					end do
 
 
-
+					icompute=0
 
 
                            		    !now compute all the temperature gradients +real gas
@@ -3190,6 +3199,13 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 
 													sumI(1:dimensiona) = 0.0d0    ! Σ I_k
 
+													if (RG_RELAX.eq.1)then
+													if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
+														icompute=1
+													end if
+
+													if (icompute.eq.0)then
+
 													! ---- FIRST LOOP: raw Fick fluxes I_k = -ρ D_k ∇Y_k ----
 													do rg_i = 1, NOF_SPECIES
 
@@ -3236,8 +3252,8 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 													end do
 
 
-
-
+													end if
+													end if
 
 
 
