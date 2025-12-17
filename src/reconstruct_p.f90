@@ -3098,13 +3098,13 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,NGP,iqp,iex
 INTEGER::REDUCE1,kmaxe,indx
-real::jump_cond,sumx
-real,dimension(1:nof_Variables)::leftv
-real::MP_PINFL,gammal
+real::jump_cond,jump
+real,dimension(1:nof_Variables)::leftv,tempvectl,tempvectr
+real::MP_PINFL,gammal,sumx
 real,dimension(1:nof_Variables)::RIGHTv
-real::MP_PINFR,gammaR
+real::MP_PINFR,gammaR,temp_scale
 KMAXE=XMPIELRANK(N)
-jump_cond=0.85
+jump_cond=0.8
 
 
 
@@ -3147,9 +3147,11 @@ IF (ITESTCASE.GE.3)THEN
 				  do NGP=1,iqp
 					      
 						LEFTV(1:NOF_VARIABLES)=ILOCAL_RECON3(I)%ULEFT(1:NOF_VARIABLES,L,NGP)
-						RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+												tempvectL(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:NOF_VARIABLES,L,NGP)
+												RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+												tempvectR(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
 						CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-						
+
 
 
                                                     if (realgas.eq.0)then
@@ -3165,45 +3167,44 @@ IF (ITESTCASE.GE.3)THEN
 
                                                     end do
                                                     END if
-                                                   if (realgas.eq.1)then
-                                                    DO IEX=1,dimensiona+3       !loop rho,u,v,w,e,p
+                                                     if (realgas.eq.1)then
+                                                    DO IEX=1,nof_Variables       !loop rho,u,v,w,e,p
                                                            IF ((IEX.GE.2).AND.(IEX.LE.DIMENSIONA+1)) CYCLE
+                                                           jump  = abs(LEFTV(IEX) - RIGHTV(IEX))
+                                                           temp_scale = RIGHTV(IEX)
 
+                                                            if (jump .ge. jump_cond*temp_scale)then
+                                                                    REDUCE1=1
+                                                                    IELEM(N,I)%REDUCE=1
 
+                                                            end if
 
-                                                            IF (((ABS(LEFTV(IEX)-RIGHTV(IEX))).GE.(jump_cond*RIGHTV(IEX))))then
-																	REDUCE1=1
-																IELEM(N,I)%REDUCE=1
-															end if
-
-
-															if (LEFTV(IEX).le.zero)then
-															REDUCE1=1
-																IELEM(N,I)%REDUCE=1
-
-															end if
                                                     end do
-                                                     sumx=zero
+
+                                                        sumx=0.0d0
+
                                                          do iex=dimensiona+4,nof_Variables   !species
-
-                                                                 if ((LEFTV(IEX).lt.0.0D0))then
-                                                                 REDUCE1=1
-                                                                     IELEM(N,I)%REDUCE=1
-
-                                                                 end if
                                                                  sumx=sumx+leftv(iex)
+                                                                 if (leftv(iex).lt.0.0d0)then
+                                                                    REDUCE1=1
+                                                                            IELEM(N,I)%REDUCE=1
+                                                                    end if
                                                          end do
-                                                         if (abs(sumx-1.0d0).gt.1e-5)then
-                                                                     REDUCE1=1
-                                                                         IELEM(N,I)%REDUCE=1
 
+
+                                                         if (abs(sumx-1.0d0).gt.1e-12)then
+                                                            REDUCE1=1
+																IELEM(N,I)%REDUCE=1
                                                          end if
 
 
 
-
-
                                                     end if
+
+
+
+
+
 
 
 
@@ -3251,14 +3252,14 @@ IMPLICIT NONE
 INTEGER,INTENT(IN)::N
 INTEGER::I,L,NGP,iqp,iex
 INTEGER::REDUCE1,kmaxe,indx
-real::jump_cond,sumY
-real,dimension(1:nof_Variables)::leftv
+real::jump_cond,sumY,jump
+real,dimension(1:nof_Variables)::leftv,tempvectl,tempvectr
 real::MP_PINFL,gammal,sumx
 real,dimension(1:nof_Variables)::RIGHTv
-real::MP_PINFR,gammaR
+real::MP_PINFR,gammaR,temp_scale
 logical::BadY
 KMAXE=XMPIELRANK(N)
-jump_cond=0.7
+jump_cond=0.6
 
 
 
@@ -3287,9 +3288,12 @@ IF (ITESTCASE.GE.3)THEN
 										iqp=QP_LINE
 									end if
 										do NGP=1,iqp
+                                                REDUCE1=0
 
 												LEFTV(1:NOF_VARIABLES)=ILOCAL_RECON3(I)%ULEFT(1:NOF_VARIABLES,L,NGP)
+												tempvectL(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:NOF_VARIABLES,L,NGP)
 												RIGHTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+												tempvectR(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
 												CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 
                                                             if (realgas.eq.0)then
@@ -3306,42 +3310,33 @@ IF (ITESTCASE.GE.3)THEN
                                                     end do
                                                     END if
                                                      if (realgas.eq.1)then
-                                                    DO IEX=1,dimensiona+3       !loop rho,u,v,w,e,p
+                                                    DO IEX=1,nof_Variables       !loop rho,u,v,w,e,p
                                                            IF ((IEX.GE.2).AND.(IEX.LE.DIMENSIONA+1)) CYCLE
+                                                           jump  = abs(LEFTV(IEX) - RIGHTV(IEX))
+                                                           temp_scale = RIGHTV(IEX)
 
+                                                            if (jump .ge. jump_cond*temp_scale)then
+                                                                    REDUCE1=1
+                                                                    IELEM(N,I)%REDUCE=2
 
-
-                                                            IF (((ABS(LEFTV(IEX)-RIGHTV(IEX))).GE.(jump_cond*RIGHTV(IEX))))then
-																	REDUCE1=1
-																IELEM(N,I)%REDUCE=2
-															end if
-
-
-															if (LEFTV(IEX).le.zero)then
-															REDUCE1=1
-																IELEM(N,I)%REDUCE=2
-
-															end if
+                                                            end if
                                                     end do
-                                                     sumx=zero
+
+                                                        sumx=0.0d0
+
                                                          do iex=dimensiona+4,nof_Variables   !species
-
-                                                                 if ((LEFTV(IEX).lt.0.0D0))then
-                                                                 REDUCE1=1
-                                                                     IELEM(N,I)%REDUCE=2
-
-                                                                 end if
                                                                  sumx=sumx+leftv(iex)
+                                                                 if (leftv(iex).lt.0.0d0)then
+                                                                    REDUCE1=1
+                                                                            IELEM(N,I)%REDUCE=1
+                                                                    end if
                                                          end do
-                                                         if (abs(sumx-1.0d0).gt.1e-3)then
-                                                                     REDUCE1=1
-                                                                         IELEM(N,I)%REDUCE=2
 
+
+                                                         if (abs(sumx-1.0d0).gt.1e-12)then
+                                                            REDUCE1=1
+																IELEM(N,I)%REDUCE=5
                                                          end if
-
-
-
-
 
                                                     end if
 
@@ -3457,7 +3452,7 @@ IEX=ICONS_E
 L=FACEX
 I=ICONSIDERED
 NGP=ICONS_S
-KAPPA_VEN=0.25
+KAPPA_VEN=0.1
 psi2=zero
 
 					  D2=USOL(IEX,L,NGP)-UTEMP(1,IEX)
@@ -3477,7 +3472,7 @@ psi2=zero
 					      PSI(iex,L,ngp) = MIN(1.0d0,SFD)		!BARTH AND JESPERSEN
 
 					      CASE(10)
-					      PSI(iex,L,ngp) = MIN(0.6,SFD)		!BARTH AND JESPERSEN super restrictive
+					      PSI(iex,L,ngp) = MIN(0.3,SFD)		!BARTH AND JESPERSEN super restrictive
 
 					      CASE(2)
 ! 					      
@@ -3733,7 +3728,7 @@ psi2=zero
 					      PSI(iex,L,ngp) = MIN(1.0d0,SFD)				!MINMOD LIMITER
 
 					      CASE(10)
-					      PSI(iex,L,ngp) = MIN(0.6,SFD)		!BARTH AND JESPERSEN super restrictive
+					      PSI(iex,L,ngp) = MIN(0.3,SFD)		!BARTH AND JESPERSEN super restrictive
 
 					      CASE(2)
 					       pol_MOG=-((4.0d0/27.0d0)*sfd**3)+sfd
