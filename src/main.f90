@@ -728,11 +728,11 @@ call local_reconallocation5(n)
 
 num_values_to_send_per_node = dimensiona
 my_xper = 0.0
-if (initcond.eq.101) then
-	my_yper = yper
-else
+! if (initcond.eq.101) then
+! 	my_yper = yper
+! else
 	my_yper = 0.0
-end if
+! end if
 my_zper = 0.0
 
 print*,"xper, my_xper, yper, my_yper, zper, my_zper", xper, my_xper, yper, my_yper, zper, my_zper

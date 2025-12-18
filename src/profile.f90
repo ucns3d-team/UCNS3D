@@ -732,12 +732,12 @@ END SUBROUTINE INITIALISE_EULER3D
 
 
 
-SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz)
+SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
 IMPLICIT NONE
 !> @brief
 !> This function initialises the solution for EULER and NAVIER-STOKES equations in 2D,
 !> various customisable profiles can be generated and assigned to each initcond code
-INTEGER,INTENT(IN)::N
+INTEGER,INTENT(IN)::N,iconsidered
 !COORDINATES=POX,POY
 !SOLUTION=VECCOS
 !COMPONENTS FROM DAT FILE GAMMA,UVEL,WVEL,VVEL,PRES,RRES
@@ -1003,6 +1003,11 @@ IF ((INITCOND.EQ.101).or.(initcond.eq.103)) THEN	!shock density interaction
         v1=zero
         p1=1
     end if
+
+    ! r1 = 1.0
+    ! u1 = real(ielem(n,iconsidered)%ihexgl)
+    ! v1 = real(ielem(n,iconsidered)%ihexgl)
+    ! p1 = 1.0
     
     !KINETIC ENERGY FIRST!
     SKIN1=(OO2)*((U1**2)+(V1**2))

@@ -210,8 +210,8 @@ subroutine establish_node_neighbours(N)
         end do
         if (i.ne.my_num_interface_nodes) then
             print *, "missmatch in the number of interface nodes on CPU", N
-        ! else
-            ! print *, my_num_interface_nodes, "= num interface nodes on CPU", N
+        else
+            print *, my_num_interface_nodes, "= num interface nodes on CPU", N
         end if
 
         ! do i = 1, my_num_interface_nodes
@@ -354,7 +354,7 @@ subroutine establish_node_neighbours(N)
 
         do iter = 1,my_num_interface_nodes 
             node_index = local_interface_nodes(iter)
-            ! print *, "on CPU", N, "local_nodes(", node_index, ")%num_cpus = ", local_nodes(node_index)%num_cpus
+            print *, "on CPU", N, "local_nodes(", node_index, ")%num_cpus = ", local_nodes(node_index)%num_cpus
             allocate(local_nodes(node_index)%rcv_offsets(local_nodes(node_index)%num_cpus))
             allocate(local_nodes(node_index)%snd_offsets(local_nodes(node_index)%num_cpus))
             local_nodes(node_index)%num_cpus = 0
@@ -555,7 +555,7 @@ SUBROUTINE FirstOrderNodeSolverArithmetic(cell_index, N)
                 VERTEX_NEIGHBOURS_VALS(node_index, J, 1:NOF_VARIABLES) = U_C(ILOCAL_RECON3(cell_index)%IHEXL(1,IELEM(N,cell_index)%NODES_NEIGHBOURS(node_index,J)))%val(1,1:nof_variables)
                 ! ILOCAL_RECON3(I)%IHEXL(1,L)	!LOCAL NUMBERING IN MY CPU
                 ! ILOCAL_RECON3(I)%IHEXG(1,L)	!GLOBAL NUMBERING IN MY CPU
-                ! WRITE(680+N,*) "NODE", node_index, "NODE NEIGHBOUR", J, "LOCAL NUMBER",IELEM(N,cell_index)%NODES_NEIGHBOURS(node_index,J), "VALUES", VERTEX_NEIGHBOURS_VALS(node_index,J,1:NOF_VARIABLES)
+                WRITE(680+N,*) "NODE", node_index, "NODE NEIGHBOUR", J, "LOCAL NUMBER",IELEM(N,cell_index)%NODES_NEIGHBOURS(node_index,J), "VALUES", VERTEX_NEIGHBOURS_VALS(node_index,J,1:NOF_VARIABLES)
             END DO
         ELSE
 			DO J=1,IELEM(N,cell_index)%NOJECOUNT(node_index)
@@ -565,7 +565,7 @@ SUBROUTINE FirstOrderNodeSolverArithmetic(cell_index, N)
 					! write(500+n,*) ILOCAL_RECON3(cell_index)%IHEXN(1,IELEM(N,cell_index)%NODES_NEIGHBOURS(node_index,J)),IELEM(N,cell_index)%NODES_NEIGHBOURS(node_index,J)
 					VERTEX_NEIGHBOURS_VALS(node_index,J,1:NOF_VARIABLES) = IEXSOLHIR(ILOCAL_RECON3(cell_index)%IHEXN(1,IELEM(N,cell_index)%NODES_NEIGHBOURS(node_index,J)))%SOL(ILOCAL_RECON3(cell_index)%IHEXL(1,IELEM(N,cell_index)%NODES_NEIGHBOURS(node_index,J)),1:nof_variables)
 				END IF
-			    ! WRITE(680+N,*) "NODE", node_index, "NODE NEIGHBOUR", J, "LOCAL NUMBER", IELEM(N,cell_index)%NODES_NEIGHBOURS(node_index,J), "VALUES", VERTEX_NEIGHBOURS_VALS(node_index,J,1:NOF_VARIABLES)
+			    WRITE(680+N,*) "NODE", node_index, "NODE NEIGHBOUR", J, "LOCAL NUMBER", IELEM(N,cell_index)%NODES_NEIGHBOURS(node_index,J), "VALUES", VERTEX_NEIGHBOURS_VALS(node_index,J,1:NOF_VARIABLES)
 			END DO
 	    END IF
     END DO
@@ -596,9 +596,10 @@ SUBROUTINE FirstOrderNodeSolverArithmetic(cell_index, N)
             ! local_nodes(node)%velocity(d) = local_nodes(node)%velocity(d) / (real(IELEM(N,cell_index)%NOJECOUNT(node_index) + 1))
             local_nodes(node)%velocity(d) = local_nodes(node)%velocity(d) / real(IELEM(N,cell_index)%NOJECOUNT(node_index))
             local_nodes(node)%velocity(d) = local_nodes(node)%velocity(d) * mesh_volocity_multiple
+            
             if (local_nodes(node)%velocity(d).ne.local_nodes(node)%velocity(d)) then
                 print *, "NaN node velocity in cell", cell_index, "node", node, N
-                call abort
+                ! call abort
             end if
             if (old_node_velocity(d).ne.zero) then
                 if (abs(local_nodes(node)%velocity(d)-old_node_velocity(d)).gt.epsilon) then
@@ -607,6 +608,7 @@ SUBROUTINE FirstOrderNodeSolverArithmetic(cell_index, N)
                 end if
             end if
         end do
+        write(120+n,*),IELEM(N,cell_index)%ihexgl,node_index,local_nodes(node)%velocity(1:dimensiona)
     END DO
 
 END SUBROUTINE FirstOrderNodeSolverArithmetic

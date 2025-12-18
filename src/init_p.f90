@@ -127,10 +127,10 @@ IF (RESTART.EQ.0)THEN
 			pox(1)=IELEM(N,INITIAL)%XXC
 			poy(1)=IELEM(N,INITIAL)%yyC
 			if (dimensiona.eq.3)then
-			poz(1)=IELEM(N,INITIAL)%zzC
-			CALL INITIALISE_EULER3D(N,veccos,pox,poy,poz)
+			    poz(1)=IELEM(N,INITIAL)%zzC
+			    CALL INITIALISE_EULER3D(N,veccos,pox,poy,poz)
 			ELSE
-			CALL INITIALISE_EULER2D(N,veccos,pox,poy,poz)
+			    CALL INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
 			end if
 
 			if ((turbulence .eq. 1).or.(passivescalar.gt.0)) then
@@ -478,7 +478,7 @@ I=ICONSIDERED
 
 
            IF (DIMENSIONA.EQ.2)THEN
-          CALL INITIALISE_EULER2D(N,veccos,pox,poy,poz)
+          CALL INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
           Else
           CALL INITIALISE_EULER3D(N,veccos,pox,poy,poz)
           END IF
