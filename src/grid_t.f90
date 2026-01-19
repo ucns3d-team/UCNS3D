@@ -254,8 +254,8 @@ END SUBROUTINE FIND_ANGLES
 
 
 SUBROUTINE FIND_ROT_ANGLES(N,ICONSI)
-	!> @brief
-	!> This subroutine determines the normal vectors for each face
+  !> @brief
+  !> This subroutine determines the normal vectors for each face
 	IMPLICIT NONE
 	real::Xc1,Yc1,Zc1,Xc2,Yc2,Zc2,Xc3,Yc3,Zc3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz
 	REAL::X5,X6,X7,X8,Y5,Y6,Y7,Y8,Z5,Z6,Z7,Z8,XX,YY,ZZ
@@ -1446,7 +1446,11 @@ subroutine coordinates_face_inner2dx(n,iconsidered,facex,VEXT,NODES_LIST)
 
 	nnd=2   
 	do K=1,nnd
-		NODES_LIST(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:2)
+		if (MESH_MOVEMENT) then
+			NODES_LIST(k,1:2) = local_nodes(IELEM(N,I)%NODES_FACES(facex,K))%positions(global_position_index,1:2)
+		else
+			NODES_LIST(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:2)
+		end if
 		VEXT(K,1:2)=NODES_LIST(k,1:2)
 	END DO
 	        

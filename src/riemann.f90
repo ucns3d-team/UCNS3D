@@ -37,8 +37,8 @@ END SUBROUTINE EXACT_RIEMANN_SOLVER
 
 
 Subroutine HLL_RIEMANN_SOLVER(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
-!> @brief
-!> HLLC Riemann solver in 3D
+  !> @brief
+  !> HLLC Riemann solver in 3D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,k
@@ -850,8 +850,8 @@ END SUBROUTINE tROE_RIEMANN_SOLVER
 
 
 SUBROUTINE rROE_RIEMANN_SOLVER(N,iconsidered,facex,CLEFT,CRIGHT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY,NZ)
-!> @brief
-!> rROE Riemann solver in 3D
+  !> @brief
+  !> rROE Riemann solver in 3D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,iconsidered,facex
 	INTEGER::I,k
@@ -1194,9 +1194,12 @@ real:: eig(4)                         ! Eigenvalues
 END SUBROUTINE rROE_RIEMANN_SOLVER
 
 
+
+
+
 Subroutine RUSANOV_RIEMANN_SOLVER(N,iconsidered,facex,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
-!> @brief
-!> Rusanov Riemann solver in 3D
+  !> @brief
+  !> Rusanov Riemann solver in 3D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,iconsidered,facex
 	INTEGER::I,k
@@ -1217,9 +1220,7 @@ Subroutine RUSANOV_RIEMANN_SOLVER(N,iconsidered,facex,CLEFT_ROT,CRIGHT_ROT,HLLCF
 	REAL,DIMENSION(1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::FL,FR
 	REAL,DIMENSION(TURBULENCEEQUATIONS+PASSIVESCALAR)::RML,RMR
 
-	
-	
-	
+
 	      
 	HLLCFLUX=ZERO
 	ROTVL=ZERO
@@ -1474,9 +1475,11 @@ END SUBROUTINE ESTIMATE_WAVES
 
 
 
-Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
-!> @brief
-!> HLLC Riemann solver in 2D
+
+
+Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT, qp_normal_velocity)
+  !> @brief
+  !> HLLC Riemann solver in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,k,riem_adapt
@@ -1486,7 +1489,7 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_
 	REAL,DIMENSION(1:nof_Variables)::LEFTV,RIGHTV
 	REAL,DIMENSION(1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR),INTENT(INOUT)::HLLCFLUX
 	REAL,DIMENSION(1)::SL,SR,SM
-	REAL,INTENT(INOUT)::MP_SOURCE1
+	REAL,INTENT(INOUT)::MP_SOURCE1, qp_normal_velocity
 	REAL::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
 	REAL::RL,RR,PL,PR,EL,ER,UL,UR,VL,VR,WL,WR,SPED
 	REAL::MUL,MUR,LASTL,LASTR,CC2,UU2,CCL,CCR
@@ -1497,221 +1500,157 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_
 	REAL,DIMENSION(1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::FL,FR
 	REAL,DIMENSION(TURBULENCEEQUATIONS+PASSIVESCALAR)::RML,RMR
 	
-	
-	
 	      
 	HLLCFLUX=ZERO
 	ROTVL=ZERO
 	ROTVR=ZERO
-		TEMPFL=ZERO
-		TEMPFR=ZERO
-		FLSTAR=ZERO
-		FRSTAR=ZERO
-		ULSTAR=ZERO
-		URSTAR=ZERO
-		TEMPUL=ZERO
-		TEMPUR=ZERO
-		FL=ZERO
-		FR=ZERO
-		!CONSERVATIVE VARIABLES TO PRIMITIVE
-		LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables)
-		RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
+	TEMPFL=ZERO
+	TEMPFR=ZERO
+	FLSTAR=ZERO
+	FRSTAR=ZERO
+	ULSTAR=ZERO
+	URSTAR=ZERO
+	TEMPUL=ZERO
+	TEMPUR=ZERO
+	FL=ZERO
+	FR=ZERO
+	!CONSERVATIVE VARIABLES TO PRIMITIVE
+	LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables)
+	RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
+	
+	CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+	
+	ROTVL(1:nof_Variables)=LEFTV(1:nof_Variables)
+	ROTVR(1:nof_Variables)=RIGHTV(1:nof_Variables)
 		
-		CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-		
-		ROTVL(1:nof_Variables)=LEFTV(1:nof_Variables)
-		ROTVR(1:nof_Variables)=RIGHTV(1:nof_Variables)
-		
-		IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-		
+	IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 		ROTVL(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=CLEFT_ROT(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
 		ROTVR(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=CRIGHT_ROT(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+	END IF
 		
-		END IF
+	! CALL ESTIMATE_WAVES2d(N,ROTVL,ROTVR,SL,SM,SR,GAMMA)
 		
-! 		CALL ESTIMATE_WAVES2d(N,ROTVL,ROTVR,SL,SM,SR,GAMMA)
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-			!NOW CONDITIONS BASED ON WAVE SPEEDS!
-			RL=ROTVL(1);UL=ROTVL(2);VL=ROTVL(3);PL=ROTVL(4);EL=CLEFT_ROT(4)
-			RR=ROTVR(1);UR=ROTVR(2);VR=ROTVR(3);PR=ROTVR(4);ER=CRIGHT_ROT(4)
+	!NOW CONDITIONS BASED ON WAVE SPEEDS!
+	RL=ROTVL(1); UL=ROTVL(2); VL=ROTVL(3); PL=ROTVL(4); EL=CLEFT_ROT(4)
+	RR=ROTVR(1); UR=ROTVR(2); VR=ROTVR(3); PR=ROTVR(4); ER=CRIGHT_ROT(4)	
 			
-			
-			
-		IF (MULTISPECIES.EQ.1)THEN
+	IF (MULTISPECIES.EQ.1)THEN
 		CCL=sqrt(gammaL*(pl+MP_PINFl)/rl)
 		CCR=sqrt(gammaR*(pR+MP_PINFR)/rR)
-		ELSE
+	ELSE
 		CCL=sqrt(gamma*pl/rl)
 		CCR=sqrt(gamma*pr/rr)
-		END IF	
+	END IF	
 			
-! 		IF (MULTISPECIES.EQ.1)THEN
-! 		sl(1)=min((ul)-sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)-sqrt(gammaR*(pr+MP_PINFr)/rr))
-! 		sr(1)=max((ul)+sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)+sqrt(gammaR*(pr+MP_PINFr)/rr))	
-! 		ELSE
-!         sl(1)=min((ul)-sqrt(gamma*pl/rl),(ur)-sqrt(gamma*pr/rr))
-! 		sr(1)=max((ul)+sqrt(gamma*pl/rl),(ur)+sqrt(gamma*pr/rr))	
-! 		END IF
-! 		sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))
+	! IF (MULTISPECIES.EQ.1)THEN
+	! 	  sl(1)=min((ul)-sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)-sqrt(gammaR*(pr+MP_PINFr)/rr))
+	! 	  sr(1)=max((ul)+sqrt(gammaL*(pl+MP_PINFl)/rl),(ur)+sqrt(gammaR*(pr+MP_PINFr)/rr))	
+	! ELSE
+	!     sl(1)=min((ul)-sqrt(gamma*pl/rl),(ur)-sqrt(gamma*pr/rr))
+	! 	  sr(1)=max((ul)+sqrt(gamma*pl/rl),(ur)+sqrt(gamma*pr/rr))	
+	! END IF
+	! sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))
+					
+	CC2=SQRT(((((CCL**2)*SQRT(RL))+((CCR**2)*SQRT(RR)))/(SQRT(RL)+SQRT(RR)))+(0.5D0*((SQRT(RL)*SQRT(RR))/((SQRT(RL)+SQRT(RR))**2))*((UR-UL)**2)))
+	UU2=(((UL*SQRT(RL))+(UR*SQRT(RR)))/(SQRT(RL)+SQRT(RR)))
+	SL(1)=MIN(UL-CCL,UU2-CC2);
+	SR(1)=MAX(UR+CCR,UU2+CC2)
+	SL(1)=MIN(SL(1),0.0D0); SR(1)=MAX(SR(1),0.0D0)
+	sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))	
 			
+	IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+		RML(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)=ROTVL(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+		RMR(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)=ROTVR(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
 			
-		CC2=SQRT(((((CCL**2)*SQRT(RL))+((CCR**2)*SQRT(RR)))/(SQRT(RL)+SQRT(RR)))+(0.5D0*((SQRT(RL)*SQRT(RR))/((SQRT(RL)+SQRT(RR))**2))*((UR-UL)**2)))
-		UU2=(((UL*SQRT(RL))+(UR*SQRT(RR)))/(SQRT(RL)+SQRT(RR)))
-		SL(1)=MIN(UL-CCL,UU2-CC2);
-		SR(1)=MAX(UR+CCR,UU2+CC2)
-  		SL(1)=MIN(SL(1),0.0D0); SR(1)=MAX(SR(1),0.0D0)
-		sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))	
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-			
-			RML(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)=ROTVL(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
-			RMR(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)=ROTVR(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)
+		! IF (TURBULENCEMODEL.EQ.2)THEN
+		! 	  PL=PL+((2.0D0/3.0D0)*EDDYFL(2))
+		! 	  PR=PR+((2.0D0/3.0D0)*EDDYFR(2))  
+		! END IF
+	END IF
+
+	FL(1)=RL*UL
+	FL(2)=(RL*(UL**2))+PL
+	FL(3)=RL*UL*VL
+	FL(4)=UL*(EL+PL)
+	
+	FR(1)=RR*UR
+	FR(2)=(RR*(UR**2))+PR
+	FR(3)=RR*UR*VR
+	FR(4)=UR*(ER+PR)
+	
+	IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+		FL(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=RML(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)*UL
+		FR(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=RMR(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)*UR
+	END IF
+	
+	MUL=RL*((SL(1)-UL)/(SL(1)-SM(1)))
+	MUR=RR*((SR(1)-UR)/(SR(1)-SM(1)))
+	LASTL=(EL/RL)+((SM(1)-UL)*(SM(1)+((PL)/(RL*(SL(1)-UL)))))
+	LASTR=(ER/RR)+((SM(1)-UR)*(SM(1)+((PR)/(RR*(SR(1)-UR)))))
+	ULSTAR(1)=MUL
+	ULSTAR(2)=MUL*SM(1)
+	ULSTAR(3)=MUL*VL
+	ULSTAR(4)=MUL*LASTL
+	
+	if (MULTISPECIES.EQ.1)THEN
+		FL(5:7)=ROTVL(5:7)*UL
+		UlSTAR(5:7)=MUl*ROTVl(5:7)/rl
+	END IF
 			
 
-! 			IF (TURBULENCEMODEL.EQ.2)THEN
-! 			PL=PL+((2.0D0/3.0D0)*EDDYFL(2))
-! 			PR=PR+((2.0D0/3.0D0)*EDDYFR(2))  
-! 
-! 			END IF
-			END IF
-
-
-			FL(1)=RL*UL
-			FL(2)=(RL*(UL**2))+PL
-			FL(3)=RL*UL*VL
-			
-			FL(4)=UL*(EL+PL)
-			
-			
-			FR(1)=RR*UR
-			FR(2)=(RR*(UR**2))+PR
-			FR(3)=RR*UR*VR
-			
-			FR(4)=UR*(ER+PR)
-			
-			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-			FL(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=RML(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)*UL
-			FR(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=RMR(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)*UR
-			END IF
-			
-			MUL=RL*((SL(1)-UL)/(SL(1)-SM(1)))
-			MUR=RR*((SR(1)-UR)/(SR(1)-SM(1)))
-			LASTL=(EL/RL)+((SM(1)-UL)*(SM(1)+((PL)/(RL*(SL(1)-UL)))))
-			LASTR=(ER/RR)+((SM(1)-UR)*(SM(1)+((PR)/(RR*(SR(1)-UR)))))
-			ULSTAR(1)=MUL
-			ULSTAR(2)=MUL*SM(1)
-			ULSTAR(3)=MUL*VL
-			
-			ULSTAR(4)=MUL*LASTL
-			
-			if (MULTISPECIES.EQ.1)THEN
-			FL(5:7)=ROTVL(5:7)*UL
-            UlSTAR(5:7)=MUl*ROTVl(5:7)/rl
-			END IF
-			
-			
-
-			
-			URSTAR(1)=MUR
-			URSTAR(2)=MUR*SM(1)
-			URSTAR(3)=MUR*VR
-			
-			URSTAR(4)=MUR*LASTR
-			
-			if (MULTISPECIES.EQ.1)THEN
-			FR(5:7)=ROTVR(5:7)*UR
-            URSTAR(5:7)=MUR*ROTVR(5:7)/rr
-			END IF
-			
-			
-			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-			ULSTAR(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=MUL*RML(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)/rl
-			URSTAR(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=MUR*RMR(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)/rr
-			END IF
-			
-			FLSTAR(:)=FL(:)+SL(1)*(ULSTAR(:)-CLEFT_ROT(:))
-			FRSTAR(:)=FR(:)+SR(1)*(URSTAR(:)-CRIGHT_ROT(:))
-			
-			IF (SL(1).GE.ZERO)THEN
-				HLLCFLUX(:)=FL(:)
-				IF (MULTISPECIES.EQ.1)THEN
-
-                MP_SOURCE1=UL
-
-                END IF
+	URSTAR(1)=MUR
+	URSTAR(2)=MUR*SM(1)
+	URSTAR(3)=MUR*VR
+	URSTAR(4)=MUR*LASTR
+	
+	if (MULTISPECIES.EQ.1)THEN
+		FR(5:7)=ROTVR(5:7)*UR
+		URSTAR(5:7)=MUR*ROTVR(5:7)/rr
+	END IF
+	
+	IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+		ULSTAR(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=MUL*RML(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)/rl
+		URSTAR(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=MUR*RMR(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)/rr
+	END IF
+	
+	FLSTAR(:)=FL(:)+SL(1)*(ULSTAR(:)-CLEFT_ROT(:))
+	FRSTAR(:)=FR(:)+SR(1)*(URSTAR(:)-CRIGHT_ROT(:))
+	
+	IF (SL(1).GE.qp_normal_velocity)THEN
+		HLLCFLUX(:) = FL(:) - qp_normal_velocity*CLEFT_ROT(:)
+		IF (MULTISPECIES.EQ.1)THEN
+			MP_SOURCE1 = UL-qp_normal_velocity
+		END IF
+	ELSE IF (SR(1).LE.ZERO)THEN
+		HLLCFLUX(:) = FR(:) - qp_normal_velocity*CRIGHT_ROT(:)
+		IF (MULTISPECIES.EQ.1)THEN
+			MP_SOURCE1 = UR-qp_normal_velocity
+		END IF
+	ELSE IF ((SL(1).Le.ZERO).AND.(SM(1).GE.ZERO))THEN
+		HLLCFLUX(:) = FLSTAR(:) - qp_normal_velocity*ULSTAR(:)
+		IF (MULTISPECIES.EQ.1)THEN
+			MP_SOURCE1 = (UL+SL(1)*(((SL(1)-UL)/(SL(1)-SM(1)))-1.0D0))-qp_normal_velocity
+		END IF
+	ELSE
+		HLLCFLUX(:) = FRSTAR(:) - qp_normal_velocity*URSTAR(:)
+		IF (MULTISPECIES.EQ.1)THEN
+			MP_SOURCE1 = (UR+SR(1)*(((SR(1)-UR)/(SR(1)-SM(1)))-1.0D0)) -qp_normal_velocity
+		END IF
+	END IF
 				
-			END IF
-			IF (SR(1).LE.ZERO)THEN
-				HLLCFLUX(:)=FR(:)
-				IF (MULTISPECIES.EQ.1)THEN
-                MP_SOURCE1=UR
-                END IF
-			END IF
-			IF ((SL(1).Le.ZERO).AND.(SM(1).GE.ZERO))THEN
-				HLLCFLUX(:)=FLSTAR(:)
-				IF (MULTISPECIES.EQ.1)THEN
-
-
-                MP_SOURCE1=UL+SL(1)*(((SL(1)-UL)/(SL(1)-SM(1)))-1.0D0)
-
-                END IF
-			END IF
-			IF ((SR(1).Ge.ZERO).AND.(SM(1).LE.ZERO))THEN
-				HLLCFLUX(:)=FRSTAR(:)
-				IF (MULTISPECIES.EQ.1)THEN
-
-                MP_SOURCE1=UR+SR(1)*(((SR(1)-UR)/(SR(1)-SM(1)))-1.0D0)
-
-                END IF
-			END IF
-			
-			
-			
-			HLLCFLUX(:)=(((1.0D0+SIGN(1.0D0,SM(1)))/2.0D0)*(FL(:)+SL(1)*(ULSTAR(:)-CLEFT_ROT(:))))+&
-			(((1.0D0-SIGN(1.0D0,SM(1)))/2.0D0)*(FR(:)+SR(1)*(URSTAR(:)-CRIGHT_ROT(:))))
-			
-			
-			
-			!pgrad=abs(pl-pr)/min(pl,pr)
-			!om_p=0.5d0-0.5d0*sign(pgrad-0.2,1.0d0)*(1.0-exp(-100.0d0*abs(pgrad-0.2)))
-			
-			!if(om_p.lt.0.9d0)then
-			
-			!else
-			
-			!sl(1)=abs(ul)+sqrt(gamma*pl/rl)
-			!sr(1)=abs(ur)+sqrt(gamma*pr/rr)
-			!HLLCFLUX(:)=0.5d0*(FL(:)+FR(:))-0.5d0*MAX(ABS(SL(1)),ABS(SR(1)))*(Cright_ROT(:)-Cleft_ROT(:))
-			!end if
+	! HLLCFLUX(:)=(((1.0D0+SIGN(1.0D0,SM(1)))/2.0D0)*(FL(:)+SL(1)*(ULSTAR(:)-CLEFT_ROT(:))))+&
+	! (((1.0D0-SIGN(1.0D0,SM(1)))/2.0D0)*(FR(:)+SR(1)*(URSTAR(:)-CRIGHT_ROT(:))))
+		
 			
 END SUBROUTINE HLLC_RIEMANN_SOLVER2d
 
-
-
+	
 
 
 
 Subroutine HLL_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT, qp_normal_velocity)
-!> @brief
-!> HLLC Riemann solver in 2D
+  !> @brief
+  !> HLL Riemann solver in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,k,riem_adapt
@@ -1796,8 +1735,13 @@ Subroutine HLL_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_S
 	FR(4)=UR*(ER+PR)
 
 	IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-		FL(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=RML(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR) * (UL-qp_normal_velocity)
-		FR(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=RMR(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR) * (UR-qp_normal_velocity)
+		FL(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=RML(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)
+		FR(5:4+TURBULENCEEQUATIONS+PASSIVESCALAR)=RMR(1:0+TURBULENCEEQUATIONS+PASSIVESCALAR)
+	END IF
+
+	if (MULTISPECIES.EQ.1)THEN
+		FL(5:NOF_VARIABLES)=ROTVL(5:NOF_VARIABLES)*UL
+		FR(5:NOF_VARIABLES)=ROTVR(5:NOF_VARIABLES)*UR
 	END IF
 
 	sl(1)=min(ul-ccl,ur-ccr)
@@ -1813,35 +1757,23 @@ Subroutine HLL_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_S
 
 	IF (SL(1).GE.qp_normal_velocity)THEN
 		HLLCFLUX(:) = FL(:) - qp_normal_velocity*CLEFT_ROT(:)
+
+		IF (MULTISPECIES.EQ.1)THEN
+			MP_SOURCE1 = UL - qp_normal_velocity
+		END IF
+	ELSE IF (SR(1).LE.qp_normal_velocity)THEN
+		HLLCFLUX(:) = FR(:) - qp_normal_velocity*CRIGHT_ROT(:)
+		
+		IF (MULTISPECIES.EQ.1)THEN
+			MP_SOURCE1 = UR - qp_normal_velocity
+		END IF
 	ELSE
-		IF (SR(1).LE.qp_normal_velocity)THEN
-			HLLCFLUX(:) = FR(:) - qp_normal_velocity*CRIGHT_ROT(:)
-		ELSE
-			HLLCFLUX(:) = FHLL(:) - qp_normal_velocity*UHLL(:)
+		HLLCFLUX(:) = FHLL(:) - qp_normal_velocity*UHLL(:)
+
+		IF (MULTISPECIES.EQ.1)THEN
+			MP_SOURCE1 = ((UL+UR)*0.5) - qp_normal_velocity
 		END IF
 	END IF
-
-	! IF (SL(1).GE.ZERO)THEN
-	! 	HLLCFLUX(:)=FL(:)
-	! END IF
-	! IF (SR(1).LE.ZERO)THEN
-	! 	HLLCFLUX(:)=FR(:)
-	! END IF
-	! IF ((SL(1).LE.ZERO).AND.(SR(1).GE.ZERO))THEN
-	! 	HLLCFLUX(:)=FHLL(:)
-	! END IF
-
-	!pgrad=abs(pl-pr)/min(pl,pr)
-	!om_p=0.5d0-0.5d0*sign(pgrad-0.2,1.0d0)*(1.0-exp(-100.0d0*abs(pgrad-0.2)))
-
-	!if(om_p.lt.0.9d0)then
-
-	!else
-
-	!sl(1)=abs(ul)+sqrt(gamma*pl/rl)
-	!sr(1)=abs(ur)+sqrt(gamma*pr/rr)
-	!HLLCFLUX(:)=0.5d0*(FL(:)+FR(:))-0.5d0*MAX(ABS(SL(1)),ABS(SR(1)))*(Cright_ROT(:)-Cleft_ROT(:))
-	!end if
 
 END SUBROUTINE HLL_RIEMANN_SOLVER2d
 
@@ -1850,8 +1782,8 @@ END SUBROUTINE HLL_RIEMANN_SOLVER2d
 
 
 SUBROUTINE ROE_RIEMANN_SOLVER2d(N,Cleft,Cright,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT,NX,NY)
-!> @brief
-!> Roe Riemann solver in 2D
+  !> @brief
+  !> Roe Riemann solver in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,k
@@ -2234,8 +2166,8 @@ END SUBROUTINE RROE_RIEMANN_SOLVER2d
 
 
 Subroutine RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_SPEEDROT)
-!> @brief
-!> Rusanov Riemann solver in 2D
+  !> @brief
+  !> Rusanov Riemann solver in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,k
@@ -2346,8 +2278,8 @@ END SUBROUTINE RUSANOV_RIEMANN_SOLVER2d
 
 
 SUBROUTINE ESTIMATE_WAVES2d(N,ROTVL,ROTVR,SL,SM,SR,GAMMA)
-!> @brief
-!> Waves speed estimates in 2D
+  !> @brief
+  !> Waves speed estimates in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,K

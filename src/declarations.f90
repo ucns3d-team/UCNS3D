@@ -121,6 +121,7 @@ INTEGER:: ROT_CORR,D_CORR   !integer for turbulence corrections
 INTEGER::hybridCWENO_MOOD   !hybrid CWENO/MOOD mode - for test purposes only
 logical:: MESH_MOVEMENT
 integer:: moving_mesh_mode
+integer::global_position_index
 !--------------------- variables for parallel partitioned output-------!
 INTEGER,ALLOCATABLE,DIMENSION(:)::DISPART1,DISPART2,DISPART3,DISPART4,DISPART5,TYP_NODESN,TYP_NODESN_w
 INTEGER,ALLOCATABLE,DIMENSION(:)::iARRAY_PART1,iARRAY_PART2,iARRAY_PART3,iARRAY_PART4,iARRAY_PART5,i_ARRAY_PART2x

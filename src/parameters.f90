@@ -1420,8 +1420,10 @@ SUBROUTINE READ_UCNS3D
 		OPEN(29,FILE='MovingMesh.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
 		read(29,*)
 		read(29,*)moving_mesh_mode
-		if (moving_mesh_mode.eq.1) then
+		if ((moving_mesh_mode.eq.1).or.(moving_mesh_mode.eq.4)) then
 			read(29,*)mesh_volocity_multiple
+		else
+			mesh_volocity_multiple = 1.0
 		end if
 	ENDIF
 

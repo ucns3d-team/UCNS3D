@@ -420,32 +420,32 @@ END SUBROUTINE CALCULATE_CFL2D
 SUBROUTINE CALCULATE_CFLL2D(N)
   !> @brief
   !> subroutine for computing the time step size for each cell in 2D
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
-  REAL::SUVI,SUV3,maxU,MINU
-  REAL::CCFL,VELN,AGRT
-  real,dimension(1:nof_Variables)::leftv,rightv
-  real,dimension(1:nof_Variables)::SRF_SPEED
-  reaL::MP_PINFL,gammal,MP_PINFr,gammar
-  REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-  REAL,DIMENSION(1:4)::VISCL,LAML
-  REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-  REAL,DIMENSION(1:2)::TURBMV
-  REAL,DIMENSION(1)::ETVM
-  KMAXE=XMPIELRANK(N)
-       
-  CCFL=(CFL/2.0d0)
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
+    REAL::SUVI,SUV3,maxU,MINU
+    REAL::CCFL,VELN,AGRT
+    real,dimension(1:nof_Variables)::leftv,rightv
+    real,dimension(1:nof_Variables)::SRF_SPEED
+    reaL::MP_PINFL,gammal,MP_PINFr,gammar
+    REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+    REAL,DIMENSION(1:4)::VISCL,LAML
+    REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+    REAL,DIMENSION(1:2)::TURBMV
+    REAL,DIMENSION(1)::ETVM
+    KMAXE=XMPIELRANK(N)
+        
+    CCFL=(CFL/2.0d0)
            
-	IF (ITESTCASE.LT.3)THEN
-	  !$OMP DO
-    DO I=1,KMAXE
-		  VELN=MAX(ABS(LAMx),ABS(LAMy))
-		  IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
-	  END DO
-	  !$OMP END DO
-	END IF
-	
+    IF (ITESTCASE.LT.3)THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            VELN=MAX(ABS(LAMx),ABS(LAMy))
+            IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
+        END DO
+        !$OMP END DO
+    END IF
+    
 	IF (ITESTCASE.EQ.3)THEN
 	  !$OMP DO
     DO I=1,KMAXE
@@ -3836,32 +3836,36 @@ SUBROUTINE TIME_MARCHING2(N)
   EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
 
   !$OMP MASTER
-  CPUT1=CPUX1(1)
-  CPUT4=CPUX1(1)
-  CPUT5=CPUX1(1)
-  CPUT8=CPUX1(1)
+    CPUT1=CPUX1(1)
+    CPUT4=CPUX1(1)
+    CPUT5=CPUX1(1)
+    CPUT8=CPUX1(1)
   !$OMP END MASTER
+
   !$OMP BARRIER
 
   IT=RESTART
   if (dg.eq.1) call SOL_INTEG_DG_init(N)
+
   !$OMP BARRIER
+
   !$OMP MASTER
-  if (tecplot.lt.5)then
-      CALL GRID_WRITE
-  end if
+    if (tecplot.lt.5)then
+        CALL GRID_WRITE
+    end if
 
-  CALL VOLUME_SOLUTION_WRITE
-  IF (outsurf.eq.1)THEN
-      CALL SURF_WRITE
-  END IF
+    CALL VOLUME_SOLUTION_WRITE
+    IF (outsurf.eq.1)THEN
+        CALL SURF_WRITE
+    END IF
 
-  IF ((Average_restart.eq.0).and.(averaging.eq.1)) THEN
-      Tz1=0.0
-  ELSE
-      tz1=t
-  END IF
+    IF ((Average_restart.eq.0).and.(averaging.eq.1)) THEN
+        Tz1=0.0
+    ELSE
+        tz1=t
+    END IF
   !$OMP END MASTER
+
   !$OMP BARRIER
 
   DO
@@ -4033,6 +4037,7 @@ SUBROUTINE TIME_MARCHING2(N)
           end if
 
       !$OMP END MASTER
+
       !$OMP BARRIER
 
       ! Write output
@@ -4146,7 +4151,7 @@ SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
   KMAXE=XMPIELRANK(N)
 
   call EXCHANGE_HIGHER(N)
-  call find_node_velocities(1, N)
+  call find_node_velocities(1, DT, N)
   ! !$OMP BARRIER
   ! if (n.eq.0) then
   !   print *, "find_node_velocities(1) done"
@@ -4182,7 +4187,7 @@ SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
   ! if (n.eq.0) then
   !   print *, "volume recomputed"
   ! end if
-
+  global_position_index = 1
   CALL CALL_FLUX_SUBROUTINES_2D
   ! !$OMP BARRIER
   ! if (n.eq.0) then
@@ -4278,7 +4283,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
 
   call EXCHANGE_HIGHER(N)
 
-  call find_node_velocities(1, N)
+  call find_node_velocities(1, DT, N)
   call Find_QP_velocities(N)
   Call MOVE_NODES(DT,1,2)
 
@@ -4302,6 +4307,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
+  global_position_index = 1
   CALL CALL_FLUX_SUBROUTINES_2D
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -4350,7 +4356,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-  call find_node_velocities(2, N)
+  call find_node_velocities(2, DT, N)
   call Find_QP_velocities(N)
   Call MOVE_NODES(DT,2,3)
   !$omp do
@@ -4376,6 +4382,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
+  global_position_index = 2
   CALL CALL_FLUX_SUBROUTINES_2D
 
   !$OMP DO
@@ -4443,7 +4450,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-  call find_node_velocities(1, N)
+  call find_node_velocities(1, DT, N)
   call Find_QP_velocities(N)
   Call MOVE_NODES(0.5*DT,1,2)
   IF (DIMENSIONA.EQ.3) THEN
@@ -4464,6 +4471,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
+  global_position_index = 1
   CALL CALL_FLUX_SUBROUTINES_2D
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -4515,7 +4523,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-  call find_node_velocities(2, N)
+  call find_node_velocities(2, DT, N)
   call Find_QP_velocities(N)
   Call MOVE_NODES(DT,1,3)
   IF (DIMENSIONA.EQ.3) THEN
@@ -4536,6 +4544,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
+  global_position_index = 1
   CALL CALL_FLUX_SUBROUTINES_2D
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)

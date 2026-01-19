@@ -49,6 +49,8 @@ CALL MPI_INIT_THREAD(MPI_THREAD_FUNNELED,PROVIDED,IERROR)
 CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERROR)
 CALL MPI_COMM_RANK(MPI_COMM_WORLD,N,IERROR)
 
+global_position_index = 0
+
 CALL OPEN_INPUT1(N,ITT) !> Open the input files
 
 CALL TOLERANCES  !> setup the tolerances values
@@ -726,7 +728,13 @@ call local_reconallocation5(n)
 
 ! CALL ABORT
 
-num_values_to_send_per_node = dimensiona
+num_values_to_send_per_node = zero
+if (MESH_MOVEMENT) then
+	num_values_to_send_per_node = dimensiona
+	if (moving_mesh_mode.eq.3) then
+		num_values_to_send_per_node = dimensiona+1
+	end if
+end if
 my_xper = 0.0
 ! if (initcond.eq.101) then
 ! 	my_yper = yper
@@ -735,7 +743,7 @@ my_xper = 0.0
 ! end if
 my_zper = 0.0
 
-print*,"xper, my_xper, yper, my_yper, zper, my_zper", xper, my_xper, yper, my_yper, zper, my_zper
+! print*,"xper, my_xper, yper, my_yper, zper, my_zper", xper, my_xper, yper, my_yper, zper, my_zper
 
 Call establish_node_neighbours(N)
 

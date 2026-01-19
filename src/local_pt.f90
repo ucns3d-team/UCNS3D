@@ -1803,8 +1803,8 @@ end subroutine direct_side
 
 
 subroutine direct_side2d(n)
-	!> @brief
-	!> This subroutine establishes the distance betwen cell centres for each edge
+  !> @brief
+  !> This subroutine establishes the distance betwen cell centres for each edge
 	implicit none
 	integer,intent(in)::n
 	integer::i,j,k,kmaxe,facexx,ixxfff
@@ -2164,8 +2164,8 @@ end subroutine check3
 
 
 SUBROUTINE CHECKGRADS2d(N,ICONSI)
-	!> @brief
-	!> This subroutine assigns the correct viscous gradient approximation flag for each cell based on some additional geometrical characteristics
+  !> @brief
+  !> This subroutine assigns the correct viscous gradient approximation flag for each cell based on some additional geometrical characteristics
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSI
 	REAL::DXX1,dxx2,TEMPG1,dist1,dist2,oo2,surfmin,surfmax

@@ -7,8 +7,8 @@ CONTAINS
 	 
 	 
 SUBROUTINE ALLGRADS_INNER(N,ICONSIDERED)
-	!> @brief
-	!> This subroutine calls the gradient approximation subroutines for every interior cell
+  !> @brief
+  !> This subroutine calls the gradient approximation subroutines for every interior cell
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED
 	INTEGER::I
@@ -151,8 +151,8 @@ END SUBROUTINE ALLGRADS_MIX
 	
 	
 SUBROUTINE ALLGRADS_MIX_AV(N,ICONSIDERED)
-	!> @brief
-	!> This subroutine calls the average gradient approximation subroutines for every non interior cell 
+  !> @brief
+  !> This subroutine calls the average gradient approximation subroutines for every non interior cell 
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED
 	INTEGER::I
@@ -171,8 +171,8 @@ END SUBROUTINE ALLGRADS_MIX_AV
 
 
 SUBROUTINE ALLGRADS_INNER_AV(N,ICONSIDERED)
-	!> @brief
-	!> This subroutine calls the average gradient approximation subroutines for every interior cell 
+  !> @brief
+  !> This subroutine calls the average gradient approximation subroutines for every interior cell 
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED
 	INTEGER::I
@@ -190,8 +190,8 @@ END SUBROUTINE ALLGRADS_INNER_AV
 
 
 SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check all
-	!> @brief
-	!> This subroutine computes the gradients of the conserved variables of each cell using the least-squares
+  !> @brief
+  !> This subroutine computes the gradients of the conserved variables of each cell using the least-squares
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(nof_variables)::SOLS1
@@ -208,7 +208,7 @@ SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
 
 	ALLOCATE(MATRIX_1(NUMBER_OF_NEI-1,nof_variables,IELEM(N,ICONSIDERED)%ADMIS))	
 	ALLOCATE(MATRIX_2(NUMBER_OF_DOG,NOF_VARIABLES,IELEM(N,ICONSIDERED)%ADMIS))	
-	ALLOCATE	(SOL_M(NUMBER_OF_DOG,NOF_VARIABLES,IELEM(N,ICONSIDERED)%ADMIS))	
+	ALLOCATE(SOL_M(NUMBER_OF_DOG,NOF_VARIABLES,IELEM(N,ICONSIDERED)%ADMIS))	
 	
 	IMAX=NUMBER_OF_NEI-1
 	
@@ -393,13 +393,12 @@ SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
 END SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ
 	
 	
-	
 
 
 	
 SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-	!> @brief
-	!> This subroutine computes the gradients of the primitve variables of each interior cell using the least-squares
+  !> @brief
+  !> This subroutine computes the gradients of the primitve variables of each interior cell using the least-squares
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(nof_variables)::SOLS1,SOLS2
@@ -565,8 +564,8 @@ END SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_LSQ_VISCOUS
 	
 	
 SUBROUTINE COMPUTE_GRADIENTS_INNER_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-	!> @brief
-	!> This subroutine computes the gradients of the turbulence variables of each interior cell using the Green-Gauss algorithm
+  !> @brief
+  !> This subroutine computes the gradients of the turbulence variables of each interior cell using the Green-Gauss algorithm
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(turbulenceequations+passivescalar)::SOLS1,SOLS2
@@ -625,8 +624,8 @@ end subroutine COMPUTE_GRADIENTS_INNER_turb_GGS_VISCOUS
 	
 	
 SUBROUTINE COMPUTE_GRADIENTS_TURB_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI) !check_all
-	!> @brief
-	!> This subroutine computes the gradients of the turbulence variables of each cell using the least-squares
+  !> @brief
+  !> This subroutine computes the gradients of the turbulence variables of each cell using the least-squares
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(TURBULENCEEQUATIONS+PASSIVESCALAR)::SOLS1,SOLS2
@@ -738,8 +737,8 @@ END SUBROUTINE COMPUTE_GRADIENTS_TURB_LSQ
 
 
 SUBROUTINE COMPUTE_GRADIENTS_TURB_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-	!> @brief
-	!> This subroutine computes the gradients of the turbulence variables of each interior cell using the least-squares
+  !> @brief
+  !> This subroutine computes the gradients of the turbulence variables of each interior cell using the least-squares
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(TURBULENCEEQUATIONS+PASSIVESCALAR)::SOLS1,SOLS2
@@ -823,8 +822,8 @@ END SUBROUTINE COMPUTE_GRADIENTS_TURB_LSQ_VISCOUS
 
 	
 SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-	!> @brief
-	!> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm
+  !> @brief
+  !> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2,dudl,aver1
@@ -904,8 +903,8 @@ end subroutine COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS
 
 
 SUBROUTINE COMPUTE_GRADIENTS_wall_mean_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check all
-	!> @brief
-	!> This subroutine computes the gradients of the primitive variables of each non-interior cell using the least-squares
+  !> @brief
+  !> This subroutine computes the gradients of the primitive variables of each non-interior cell using the least-squares
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(nof_variables-1)::SOLS1,SOLS2
@@ -1147,8 +1146,8 @@ END SUBROUTINE COMPUTE_GRADIENTS_wall_mean_LSQ_VISCOUS
 	
 	
 SUBROUTINE COMPUTE_GRADIENTS_MIX_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-	!> @brief
-	!> This subroutine computes the gradients of the turbulnece variables of each non-interior cell using the Green-Gauss algorithm
+  !> @brief
+  !> This subroutine computes the gradients of the turbulnece variables of each non-interior cell using the Green-Gauss algorithm
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(turbulenceequations+passivescalar)::SOLS1,SOLS2
@@ -1336,8 +1335,8 @@ end subroutine COMPUTE_GRADIENTS_MIX_turb_GGS_viscous
 	
 	
 SUBROUTINE COMPUTE_GRADIENTS_wall_turb_LSQ_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI) !check_all
-	!> @brief
-	!> This subroutine computes the gradients of the turbulence variables of each non-interior cell using the least-squares
+  !> @brief
+  !> This subroutine computes the gradients of the turbulence variables of each non-interior cell using the least-squares
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(1:turbulenceequations+passivescalar)::SOLS1,SOLS2
@@ -1431,8 +1430,8 @@ END SUBROUTINE COMPUTE_GRADIENTS_wall_turb_LSQ_VISCOUS
 
 
 SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-	!> @brief
-	!> This subroutine computes the gradients of the primitive variables of each non-interior cell using the Green-Gauss algorithm
+  !> @brief
+  !> This subroutine computes the gradients of the primitive variables of each non-interior cell using the Green-Gauss algorithm
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(nof_variables)::SOLS1,SOLS2,dudl,aver1
@@ -1799,8 +1798,8 @@ end subroutine COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV
 
 
 SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-	!> @brief
-	!> This subroutine computes the gradients of the averaged primitive variables of each interior cell using the Green-Gauss algorithm
+  !> @brief
+  !> This subroutine computes the gradients of the averaged primitive variables of each interior cell using the Green-Gauss algorithm
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(nof_variables)::SOLS1,SOLS2,LEFTV
