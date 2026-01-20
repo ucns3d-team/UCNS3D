@@ -341,7 +341,8 @@ real::max_cell_area
 real::cell_size_average
 ! real::max_entropy
 ! real::global_max_entropy
-real::mesh_volocity_multiple
+real::mesh_velocity_multiple, lagrangian_mesh_velocity_multiple, relaxation_mesh_velocity_multiple
+integer::lagrangian_mesh_velocity_multiple_function_type
 real:: momentx,momenty,momentz
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
@@ -776,6 +777,8 @@ end type
 TYPE::LOCAL_NODE 
 	REAL,ALLOCATABLE,DIMENSION(:,:)::positions
 	REAL,DIMENSION(3)::VELOCITY
+	REAL,DIMENSION(3)::lagrangian_velocity
+	rEAL,DIMENSION(3)::relaxation_velocity
 	INTEGER::global_index
 	! INTEGER::local_index
 	! logical::internal

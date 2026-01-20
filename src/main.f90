@@ -731,7 +731,7 @@ call local_reconallocation5(n)
 num_values_to_send_per_node = zero
 if (MESH_MOVEMENT) then
 	num_values_to_send_per_node = dimensiona
-	if (moving_mesh_mode.eq.3) then
+	if ((moving_mesh_mode.eq.3).or.(moving_mesh_mode.eq.6)) then
 		num_values_to_send_per_node = dimensiona+1
 	end if
 end if
@@ -762,6 +762,7 @@ CPUX3(1) = MPI_Wtime()
 ! CALL MPI_ALLREDUCE(max_entropy,global_max_entropy,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
 
 if (n.eq.0)  WRITE(100+N,*)"TOTAL TIME TAKEN=",CPUX3(1)-CPUX2(1),"SECONDS"
+if (n.eq.0)  CLOSE(100+N)
 ! if (n.eq.0)  WRITE(*,*)"MAX ENTROPY =",global_max_entropy
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)

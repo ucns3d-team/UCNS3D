@@ -1420,10 +1420,18 @@ SUBROUTINE READ_UCNS3D
 		OPEN(29,FILE='MovingMesh.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
 		read(29,*)
 		read(29,*)moving_mesh_mode
-		if ((moving_mesh_mode.eq.1).or.(moving_mesh_mode.eq.4)) then
-			read(29,*)mesh_volocity_multiple
-		else
-			mesh_volocity_multiple = 1.0
+		mesh_velocity_multiple = 1.0
+		lagrangian_mesh_velocity_multiple = 1.0
+		relaxation_mesh_velocity_multiple = 1.0
+		if (moving_mesh_mode.eq.1) then
+			read(29,*) lagrangian_mesh_velocity_multiple
+		else if (moving_mesh_mode.eq.4) then
+			read(29,*) mesh_velocity_multiple
+		else if (moving_mesh_mode.eq.5) then
+			read(29,*) lagrangian_mesh_velocity_multiple,               relaxation_mesh_velocity_multiple
+			print *, lagrangian_mesh_velocity_multiple, relaxation_mesh_velocity_multiple
+		else if (moving_mesh_mode.eq.6) then
+			read(29,*) lagrangian_mesh_velocity_multiple_function_type, relaxation_mesh_velocity_multiple
 		end if
 	ENDIF
 
