@@ -1693,8 +1693,19 @@ SUBROUTINE find_node_relaxation_velocity_and_normalized_density_gradient(stage, 
             if (counter.ne.local_nodes(node_index)%num_neighbours) then
                 print *, "something went wrong counter =/= local_nodes(node_index)%num_neighbours"
             end if
-            call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
-
+            if (relaxation_centre_type.eq.1) then
+                call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+            else if (relaxation_centre_type.eq.2) then
+                call pseudoVoronoi_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+                if ((local_nodes(node_index)%velocity(1).le.xmin(n)).or.&
+                        (local_nodes(node_index)%velocity(1).ge.xmax(n)).or.&
+                        (local_nodes(node_index)%velocity(2).le.ymin(n)).or.&
+                        (local_nodes(node_index)%velocity(2).ge.ymax(n))) then
+                    call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+                end if
+            else
+                print*,"invalid centre algorithm in node relaxation velocity"
+            end if
             local_nodes(node_index)%relaxation_velocity(1:dimensiona) = (local_nodes(node_index)%relaxation_velocity(1:dimensiona) - local_nodes(node_index)%positions(position_index,1:dimensiona)) / d_t
 
             local_nodes(node_index)%density_gradient(:) = zero 
