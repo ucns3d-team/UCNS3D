@@ -9,8 +9,8 @@ contains
 
 
 SUBROUTINE OUTWRITEGRIDB
- 	!> @brief
-	!> This subroutine writes the grid file in tecplot binary format
+  !> @brief
+  !> This subroutine writes the grid file in tecplot binary format
 	use ISO_C_BINDING
 	IMPLICIT NONE
 
@@ -176,8 +176,8 @@ END SUBROUTINE OUTWRITEGRIDB
 
 
 SUBROUTINE OUTWRITEGRIDB2D
-	!> @brief
-	!> This subroutine writes the grid file in tecplot binary format in 2D
+  !> @brief
+  !> This subroutine writes the grid file in tecplot binary format in 2D
 	use ISO_C_BINDING
 	IMPLICIT NONE
 
@@ -220,8 +220,6 @@ SUBROUTINE OUTWRITEGRIDB2D
 		if (herev)then
 
 		else
-
-
 			NullPtr = 0
       		Debug   = 0
       		FileType = 1
@@ -242,8 +240,7 @@ SUBROUTINE OUTWRITEGRIDB2D
 			ShrConn = 0
 			NULCHAR = CHAR(0)
 
-
-ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
+			ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     'X Y'//NULCHAR, &
                     'GRID.plt'//NULCHAR, &
                     '.'//NULCHAR, &
@@ -251,8 +248,7 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     Debug, &
                     VIsDouble)
 
-
- ierr= TecZne112('GRID1'//NULCHAR, &
+ 			ierr= TecZne112('GRID1'//NULCHAR, &
                     ZoneType, &
                     IMax, &
                     JMax, &
@@ -274,75 +270,61 @@ ierr =  TecIni112('SIMPLE DATASET'//NULCHAR, &
                     Null, &
                     ShrConn)
 
+			allocate(xbin(imaxn))
+			allocate(ybin(imaxn))
+			IF (BINIO.EQ.0)THEN
+				OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
+				DO I=1,IMAXN
+					READ(96,*)j,x,y
+					xbin(i)=x/scaler
+					ybin(i)=y/scaler
+				END DO
+				CLOSE(96)
+			ELSE
+				OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
+				DO I=1,IMAXN
+					READ(96)j,x,y
+					xbin(i)=x/scaler
+					ybin(i)=y/scaler
+				END DO
+				CLOSE(96)
+			END IF
 
+			ierr = TECDAT112(imaxn,xbin,1)  !!! why not xbin instead of xbin(1) ??
 
+			ierr = TECDAT112(imaxn,ybin,1)
 
-	
-    allocate(xbin(imaxn))
-    allocate(ybin(imaxn))
-	IF (BINIO.EQ.0)THEN
-	OPEN(96,FILE='GRID.vrt',FORM='FORMATTED',STATUS='old',ACTION='read')
-        DO I=1,IMAXN
-	READ(96,*)j,x,y
-	xbin(i)=x/scaler
-	ybin(i)=y/scaler
-	END DO
-	CLOSE(96)
-	ELSE
-	OPEN(96,FILE='GRID.vrt',FORM='UNFORMATTED',STATUS='old',ACTION='read')
-        DO I=1,IMAXN
-	READ(96)j,x,y
-	xbin(i)=x/scaler
-	ybin(i)=y/scaler
-	END DO
-	CLOSE(96)
-	END IF
-
-
-    ierr = TECDAT112(imaxn,xbin,1)  !!! why not xbin instead of xbin(1) ??
-   
-    ierr = TECDAT112(imaxn,ybin,1)
-
+    		deallocate(xbin,YBIN)
     
-   
-    deallocate(xbin,YBIN)
+   	 		IF (BINIO.EQ.0)THEN
     
-    IF (BINIO.EQ.0)THEN
+    			OPEN(98,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
+	  			allocate(icon(4,1))
+    			icon=0
+     			cv=0
+				DO K=1,iMAXE
+ 					read(98,*)i,Icon(1,1),icon(2,1),icon(3,1),icon(4,1)
     
-    OPEN(98,FILE='GRID.cel',FORM='FORMATTED',STATUS='old',ACTION='read')
-	  allocate(icon(4,1))
-    icon=0
-     cv=0
-		DO K=1,iMAXE
-               
- 		read(98,*)i,Icon(1,1),icon(2,1),icon(3,1),icon(4,1)
-    
-		ierr = TECNODE112(4,icon)
-    !cv=cv+4
-        	
-		END DO
- 		close(98)
-		!ierr = TECNOD112(icon)
-		deallocate(icon)
-		
-		
-    ELSE
-	   OPEN(98,FILE='GRID.cel',FORM='UNFORMATTED',STATUS='old',ACTION='read')
-	  allocate(icon(4,1))
-    icon=0
-     cv=0
-		DO K=1,iMAXE
-               
- 		read(98)i,Icon(1:4,1)
-    
-		ierr = TECNODE112(4,icon)
-    !cv=cv+4
-        	
-		END DO
- 		close(98)
-		!ierr = TECNOD112(icon)
+					ierr = TECNODE112(4,icon)
+    				!cv=cv+4
+				END DO
+ 				close(98)
+				!ierr = TECNOD112(icon)
 				deallocate(icon)
+    		ELSE
+	   			OPEN(98,FILE='GRID.cel',FORM='UNFORMATTED',STATUS='old',ACTION='read')
+	  			allocate(icon(4,1))
+   				icon=0
+     			cv=0
+				DO K=1,iMAXE
+ 					read(98)i,Icon(1:4,1)
     
+					ierr = TECNODE112(4,icon)
+    				!cv=cv+4
+				END DO
+ 				close(98)
+				!ierr = TECNOD112(icon)
+				deallocate(icon)
    	 		END IF
          
   			ierr = TECEND112()
@@ -360,50 +342,47 @@ END SUBROUTINE OUTWRITEGRIDB2D
 
 
 SUBROUTINE OUTWRITE3N
- !> @brief
-!> This subroutine is solely for debugging
-use ISO_C_BINDING
-IMPLICIT NONE
+  !> @brief
+  !> This subroutine is solely for debugging
+	use ISO_C_BINDING
+	IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+	! EXTERNAL TecIni112
+	! EXTERNAL TecZne112
+	! EXTERNAL TECDAT112
+	! EXTERNAL TECNODE112
+	! EXTERNAL  TECEND112
 
-! 
-
-INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
-REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
-REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
-INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD
-REAL,allocatable,DIMENSION(:)::VARIABLES
-REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
-INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
-LOGICAL::HEREV
-REAL,DIMENSION(5)::TOTAL
- CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
-real,allocatable,dimension(:)::xbin,ybin,zbin
-real,allocatable,dimension(:,:)::FBIN
-integer,allocatable,dimension(:,:)::icon
-INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
-real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
-character(LEN=:),allocatable::out1
-character*1 NULCHAR
+	INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
+	REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
+	REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
+	INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD
+	REAL,allocatable,DIMENSION(:)::VARIABLES
+	REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
+	INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
+	LOGICAL::HEREV
+	REAL,DIMENSION(5)::TOTAL
+	CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
+	integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+	real,allocatable,dimension(:)::xbin,ybin,zbin
+	real,allocatable,dimension(:,:)::FBIN
+	integer,allocatable,dimension(:,:)::icon
+	INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
+	real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
+	character(LEN=:),allocatable::out1
+	character*1 NULCHAR
  
-      Integer::   Debug,III,NPts,NElm
+	Integer::   Debug,III,NPts,NElm
 
-  
-      Real::    SolTime
-      Integer:: VIsDouble, FileType
-      Integer:: ZoneType,StrandID,ParentZn,IsBlock
-      Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
-      POINTER   (NullPtr,Null)
-      Integer:: Null(*)
+	Real::    SolTime
+	Integer:: VIsDouble, FileType
+	Integer:: ZoneType,StrandID,ParentZn,IsBlock
+	Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
+	POINTER   (NullPtr,Null)
+	Integer:: Null(*)
 
 
-KMAXE=XMPIELRANK(N)
+	KMAXE=XMPIELRANK(N)
 
 
 
@@ -798,8 +777,8 @@ END SUBROUTINE OUTWRITE3N
 
 
 SUBROUTINE MOVIE
-	!> @brief
-	!> This subroutine writes only the 3D solution without the grid in tecplot binary format
+  !> @brief
+  !> This subroutine writes only the 3D solution without the grid in tecplot binary format
 	use ISO_C_BINDING
 	IMPLICIT NONE
 	INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
@@ -869,7 +848,6 @@ SUBROUTINE MOVIE
                     VIsDouble)
 		end if
 	END IF
-
 
 	if (n.eq.0)then
 		allocate (Valuelocation(nvar1))
@@ -964,8 +942,8 @@ END SUBROUTINE MOVIE
 
 
 SUBROUTINE OUTWRITE3vb
-	!> @brief
-	!> This subroutine writes only the 3D solution without the grid in tecplot binary format
+  !> @brief
+  !> This subroutine writes only the 3D solution without the grid in tecplot binary format
 	use ISO_C_BINDING
 	IMPLICIT NONE
 	INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
@@ -1063,21 +1041,20 @@ SUBROUTINE OUTWRITE3vb
 							Debug, &
 							VIsDouble)
 					end if
-     		else
-
-      			if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
-                    'Density,U,V,W,energy,Pressure,species1,species2,vfraction,AUX'//NULCHAR, &
-                    out1//NULCHAR, &
-                    '.'//NULCHAR, &
-                    FileType, &
-                    Debug, &
-                    VIsDouble)
-
-
-         end if
+				else
+					if (n.eq.0) then
+						ierr =  TecIni112('sols'//NULCHAR, &
+								'Density,U,V,W,energy,Pressure,species1,species2,vfraction,AUX'//NULCHAR, &
+								out1//NULCHAR, &
+								'.'//NULCHAR, &
+								FileType, &
+								Debug, &
+								VIsDouble)
+					end if
+				end if
 
      
-     else
+     		else
      if (n.eq.0)ierr =  TecIni112('sols'//NULCHAR, &
                     'Density,U,V,W,energy,Pressure,STEN1,STEN2'//NULCHAR, &
                     out1//NULCHAR, &
@@ -1461,28 +1438,28 @@ Valuelocation(:)=0
             end if  
 		
     
-		  	if (passivescalar.gt.0)then
-		  		DO I=1,KMAXE
-		      		VALUESS(i)=U_CT(I)%VAL(1,turbulenceequations+passivescalar)
-		 		END DO
+		if (passivescalar.gt.0)then
+			DO I=1,KMAXE
+				VALUESS(i)=U_CT(I)%VAL(1,turbulenceequations+passivescalar)
+			END DO
 		  
-		  		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+		  	call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+
 			IF (N.EQ.0)THEN
-			do i=1,imaxe
-		xbin(XMPI_RE(I))=xbin2(I)
-		end do
-			ierr = TECDAT112(imaxe,xbin,1)
+				do i=1,imaxe
+					xbin(XMPI_RE(I))=xbin2(I)
+				end do
+				ierr = TECDAT112(imaxe,xbin,1)
 			END IF
 		  
-		  
-		  end if
+		end if
     
-		  if (itestcase.eq.4)then
-		  DO I=1,KMAXE
-		      VALUESS(i)=ielem(n,i)%VOrtex(1)!%inumneighbours
-		  END DO
+		if (itestcase.eq.4)then
+			DO I=1,KMAXE
+				VALUESS(i)=ielem(n,i)%VOrtex(1)!%inumneighbours
+			END DO
 		  
-			 call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+			call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 			IF (N.EQ.0)THEN
 				do i=1,imaxe
 					xbin(XMPI_RE(I))=xbin2(I)
@@ -1497,16 +1474,15 @@ Valuelocation(:)=0
 					END DO
 			
 		      		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+
 			      	IF (N.EQ.0)THEN
 			      		do i=1,imaxe
 							xbin(XMPI_RE(I))=xbin2(I)
 						end do
 			      		ierr = TECDAT112(imaxe,xbin,1)
 			      	END IF
-
 				end do
 		  	end if
-		  
 		end if
     
     end if
@@ -11101,155 +11077,135 @@ IF (ITESTCASE.LE.2)THEN
 END SUBROUTINE OUTWRITE3vSb2dav
 
 
+
+
+
 SUBROUTINE OUTWRITE3vSav
-!> @brief
-!> This subroutine writes the 3D surface averaged solution file in tecplot ascii format
-use ISO_C_BINDING
-IMPLICIT NONE
+  !> @brief
+  !> This subroutine writes the 3D surface averaged solution file in tecplot ascii format
+	use ISO_C_BINDING
+	IMPLICIT NONE
 
-! EXTERNAL TecIni112
-! EXTERNAL TecZne112
-! EXTERNAL TECDAT112
-! EXTERNAL TECNODE112
-! EXTERNAL  TECEND112
+	! EXTERNAL TecIni112
+	! EXTERNAL TecZne112
+	! EXTERNAL TECDAT112
+	! EXTERNAL TECNODE112
+	! EXTERNAL  TECEND112
 
-! 
-real,dimension(1:nof_Variables)::leftv
-real::MP_PINFL,gammal
-real,dimension(1:nof_Variables)::RIGHTv
-real::MP_PINFR,gammaR
-INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
-REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
-REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
-INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD,im
-REAL,DIMENSION(8)::VARIABLES
-REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
-INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,icount_wall
-LOGICAL::HEREV
-REAL,DIMENSION(5)::TOTAL
- CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
-integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
-real,allocatable,dimension(:)::xbin,ybin,zbin
-real,allocatable,dimension(:,:)::FBIN
-integer,allocatable,dimension(:,:)::icon
-INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
-real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
-character(LEN=:),allocatable::out1
-character*1 NULCHAR
+	real,dimension(1:nof_Variables)::leftv
+	real::MP_PINFL,gammal
+	real,dimension(1:nof_Variables)::RIGHTv
+	real::MP_PINFR,gammaR
+	INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
+	REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM,nx,ny,nz,ssx,ssy,ssz,ssp,tauyx,tauzx,tauzy
+	REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
+	INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD,im
+	REAL,DIMENSION(8)::VARIABLES
+	REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
+	INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1,icount_wall
+	LOGICAL::HEREV
+	REAL,DIMENSION(5)::TOTAL
+	CHARACTER(LEN=20)::PROC,OUTFILE,PROC3,SURFILE,proc4
+	integer::ierr,cv,TecIni112,TecZne112,TECDAT112,TECNOD112,TECEND112,ITGFD
+	real,allocatable,dimension(:)::xbin,ybin,zbin
+	real,allocatable,dimension(:,:)::FBIN
+	integer,allocatable,dimension(:,:)::icon
+	INTEGER,ALLOCATABLE,DIMENSION(:)::Valuelocation,inog,ICELL,ICELLA
+	real,ALLOCATABLE,DIMENSION(:)::valuess,VALUESA
+	character(LEN=:),allocatable::out1
+	character*1 NULCHAR
  
-      Integer::   Debug,III,NPts,NElm
+    Integer::   Debug,III,NPts,NElm
 
-  
-      Real::    SolTime
-      Integer:: VIsDouble, FileType,ILOOP
-      Integer:: ZoneType,StrandID,ParentZn,IsBlock
-      Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
-      POINTER   (NullPtr,Null)
-      Integer:: Null(*)
-integer::iconsidered,facex
-      REAL::SHEAR_TEMP
+	Real::    SolTime
+	Integer:: VIsDouble, FileType,ILOOP
+	Integer:: ZoneType,StrandID,ParentZn,IsBlock
+	Integer:: ICellMax,JCellMax,KCellMax,NFConns,FNMode,ShrConn
+	POINTER   (NullPtr,Null)
+	Integer:: Null(*)
+	integer::iconsidered,facex
+    REAL::SHEAR_TEMP
 
- KMAXE=XMPIELRANK(N)
-! 
-DUMG=TOTIW
-call mpi_barrier(mpi_comm_world,IERROR)
+ 	KMAXE=XMPIELRANK(N)
+ 
+	DUMG=TOTIW
 
-CALL MPI_ALLREDUCE(DUMG,DUML,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
-IMAXP=DUML
+	call mpi_barrier(mpi_comm_world,IERROR)
 
-ALLOCATE(ICELL(IMAXP))
-ICELL=0
+	CALL MPI_ALLREDUCE(DUMG,DUML,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
+	IMAXP=DUML
 
-ILOOP=0
+	ALLOCATE(ICELL(IMAXP))
 
-! IF (TOTIW.GT.0)THEN
-!     
-!    DO I=1,TOTIW
-! 	k=IBOUND_T(I)
-! 	do i1=k,k
-! 	DO J=1,IELEM(N,k)%IFCA
-! 	if (ielem(n,k)%percorg(j).eq.-4)then
-! 	iloop=iloop+1
-! 	ICELL(Iloop)=IELEM(N,IBOUND_T(k))%indexi(j)
-! 	go to 1043
-! 	end if
-! 	end do
-! 	END DO
-! 	1043 continue
-!   ENDDO
-! END IF
-IF (TOTIW.GT.0)THEN
-DO I=1,KMAXE
-  if (ielem(n,i)%interior.eq.1)then
-	DO j=1,IELEM(N,I)%IFCA
-	  if (ielem(n,i)%ibounds(J).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-		  iloop=iloop+1
-		    ICELL(Iloop)=ibound(n,ielem(n,i)%ibounds(j))%inum
-	      END IF
-	  end if
-	END DO
-   end if
-END DO
-end if
+	ICELL=0
+	ILOOP=0
 
-IF (N.EQ.0)THEN
-	ALLOCATE(ICELLA(IMAXP*ISIZE))
-	 ICELLA=0
+	! IF (TOTIW.GT.0)THEN  
+	!     DO I=1,TOTIW
+	! 	      k=IBOUND_T(I)
+	! 	      do i1=k,k
+	! 	          DO J=1,IELEM(N,k)%IFCA
+	! 	              if (ielem(n,k)%percorg(j).eq.-4)then
+	! 	                  iloop=iloop+1
+	! 	                  ICELL(Iloop)=IELEM(N,IBOUND_T(k))%indexi(j)
+	! 	                  go to 1043
+	! 	              end if
+	! 	          end do
+	! 	      END DO
+	! 	      1043 continue
+	!     END DO
+	! END IF
+	IF (TOTIW.GT.0)THEN
+		DO I=1,KMAXE
+			if (ielem(n,i)%interior.eq.1)then
+				DO j=1,IELEM(N,I)%IFCA
+					if (ielem(n,i)%ibounds(J).gt.0)then
+						if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
+							iloop=iloop+1
+							ICELL(Iloop)=ibound(n,ielem(n,i)%ibounds(j))%inum
+						END IF
+					end if
+				END DO
+			end if
+		END DO
+	end if
 
-END IF
+	IF (N.EQ.0)THEN
+		ALLOCATE(ICELLA(IMAXP*ISIZE))
+		ICELLA=0
+	END IF
 
-call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORLD,IERROR)
+	call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORLD,IERROR)
 
-! if (n.eq.0)then
+	call mpi_barrier(mpi_comm_world,IERROR)
 
-! 
-! 
-! end if
+	deallocate (icell)
 
-call mpi_barrier(mpi_comm_world,IERROR)
-deallocate (icell)
+	if (n.eq.0)then
+		NullPtr = 0
+		Debug   = 0
+		FileType = 2
+		VIsDouble = 1
+		NULCHAR = CHAR(0)
 
+		WRITE(PROC3,FMT='(I10)') IT
+		!proc4=".plt"
+		OUTFILE="SURF_av"//TRIM(ADJUSTL(PROC3))//'.plt'
+		ITGFD=len_trim(OUTFILE)
+		allocate(character(LEN=itgfd) ::out1)
+		out1=OUTFILE(1:itgfd)
+		! out1=out1//CHAR(0)
 
+		OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
+	end if
 
-
-if (n.eq.0)then
-
-
-
- NullPtr = 0
-      Debug   = 0
-      FileType = 2
-VIsDouble = 1
-
-NULCHAR = CHAR(0)
-
-WRITE(PROC3,FMT='(I10)') IT
-	!proc4=".plt"
-	OUTFILE="SURF_av"//TRIM(ADJUSTL(PROC3))//'.plt'
-	ITGFD=len_trim(OUTFILE)
-	allocate(character(LEN=itgfd) ::out1)
-	out1=OUTFILE(1:itgfd)
-! 	out1=out1//CHAR(0)
-
-OPEN(97,FILE=OUTFILE,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
-end if
-
-
-
-
-
-
-
-
-		
-   if (n.eq.0)then
-	WRITE(97,*) 'FILETYPE=SOLUTION'
-	WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
-	WRITE(97,*) 'Zone N=',Itotalb,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
-	WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
-	WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
-  end if
+	if (n.eq.0)then
+		WRITE(97,*) 'FILETYPE=SOLUTION'
+		WRITE(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
+		WRITE(97,*) 'Zone N=',Itotalb,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
+		WRITE(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
+		WRITE(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
+	end if
 
 
 
@@ -11614,89 +11570,55 @@ IF (ITESTCASE.LE.2)THEN
 					 call shear_y_av(iconsidered,facex,shear_temp)
 					 CASE(3)
 					 call shear_z_av(iconsidered,facex,shear_temp)
-					 END SELECT
-				       		VALUESS(icount_wall)=SHEAR_TEMP		
+					 		END SELECT
+				       			VALUESS(icount_wall)=SHEAR_TEMP		
 				       
 				  
-				END IF
-		      end do
-		      end if
+							END IF
+		      		end do
+		      	end if
 		  
 				  
-		  call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+		  		call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
-		  IF (N.EQ.0)THEN
-		  do i=1,imaxp*isize
-		      if (icella(i).gt.0)then
-		      xbin(icella(i))=valuesa(i)
-		      end if
-		  end do
-		   WRITE(97,*)XBIN(1:TOTWALLS)
-		  END IF
+		  		IF (N.EQ.0)THEN
+		  			do i=1,imaxp*isize
+		      			if (icella(i).gt.0)then
+		      				xbin(icella(i))=valuesa(i)
+			  			end if
+		  			end do
+		   			WRITE(97,*)XBIN(1:TOTWALLS)
+		  		END IF
 
 		  
-		  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		  end do
-		  end if
+		  		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+		  		end do
+		  	end if
 		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  end if
-    
+		end if
     
     end if
 
+	! END IF
+	! end if
 
-
-
-
-!   END IF
-!    end if
-
-  IF (N.EQ.0)THEN
+  	IF (N.EQ.0)THEN
+  		deallocate(XBIN,VALUESA,VALUELOCATION,ICELLA)
+  		deallocate(out1)
+  	END IF
+  	deallocate (VALUESS)
   
-  deallocate(XBIN,VALUESA,VALUELOCATION,ICELLA)
-  deallocate(out1)
-  END IF
-  deallocate (VALUESS)
-  
-
-
-
-
-
-
-
-
-
-
-
-  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-
-
-
-
-
-
-	
-	
-	
-
-	
-	
+  	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 END SUBROUTINE OUTWRITE3vSav
 
 
+
+
+
 SUBROUTINE OUTWRITE3vS2dav
-!> @brief
-!> This subroutine writes the 2D surface averaged solution file in tecplot ascii format
+  !> @brief
+  !> This subroutine writes the 2D surface averaged solution file in tecplot ascii format
 use ISO_C_BINDING
 IMPLICIT NONE
 
@@ -12300,8 +12222,8 @@ END SUBROUTINE OUTWRITE3vS2dav
 
 
 SUBROUTINE GRID_WRITE
-	!> @brief
-	!> This subroutine calls the appropriate grid writing subroutine based on the settings
+  !> @brief
+  !> This subroutine calls the appropriate grid writing subroutine based on the settings
 	IMPLICIT NONE
 
 
@@ -12389,8 +12311,8 @@ END SUBROUTINE SURF_WRITE
 
 
 SUBROUTINE VOLUME_SOLUTION_WRITE
-	!> @brief
-	!> This subroutine calls the appropriate volume writing subroutine based on the settings
+  !> @brief
+  !> This subroutine calls the appropriate volume writing subroutine based on the settings
 	IMPLICIT NONE
 				  
 	IF (N.EQ.0)THEN
@@ -12483,16 +12405,16 @@ END SUBROUTINE VOLUME_SOLUTION_WRITE
 
 
 SUBROUTINE surface_SOLUTION_WRITE
-	!> @brief
-	!> This subroutine calls the appropriate surface solution writing subroutine based on the settings
+  !> @brief
+  !> This subroutine calls the appropriate surface solution writing subroutine based on the settings
 	IMPLICIT NONE
 
 	IF (TECPLOT.EQ.0)THEN
-		if (dimensiona.eq.3)then
+		if (dimensiona.eq.3) then
 			call OUTWRITE3vs
-		eLSE
+		else
 			call OUTWRITE3vs2D
-		END IF
+		end if
 	END IF
 	IF (TECPLOT.EQ.1)THEN
 		if (dimensiona.eq.3)then
@@ -12540,127 +12462,88 @@ END SUBROUTINE surface_SOLUTION_WRITE
 
 
 SUBROUTINE VOLUME_SOLUTION_WRITE_av
-!> @brief
-!> This subroutine calls the appropriate average volume writing subroutine based on the settings
-IMPLICIT NONE
+  !> @brief
+  !> This subroutine calls the appropriate average volume writing subroutine based on the settings
+	IMPLICIT NONE
 
 	IF (TECPLOT.EQ.1)THEN
-
-
-call OUTWRITE3vbav
-
-END IF
-
-IF (TECPLOT.EQ.0)THEN
-    if (dimensiona.eq.3)then
-
-  call OUTWRITE3vav
-  eLSE
-
-  call OUTWRITE3v2Dav
-  END IF
-
-END IF
-
-
-IF (TECPLOT.EQ.2)THEN
-
-CALL OUTWRITEPARA3Dbav
-
-END IF
-
-
-IF (TECPLOT.EQ.3)THEN
-
-CALL OUTWRITEPARA3DbPav
-
-END IF
-
-
-IF (TECPLOT.EQ.4)THEN		!BINARY PARAVIEW 3D ONLY
-
-  call OUTWRITEtec3DbPav
-  
-end if
-
-IF (TECPLOT.EQ.5)THEN
-	IF (DIMENSIONA.EQ.3)THEN
-	CALL PARALLEL_VTK_COMBINE_AV(N)
+		call OUTWRITE3vbav
 	END IF
-END IF
-
-IF (TECPLOT.EQ.6)THEN
-	IF (DIMENSIONA.EQ.3)THEN
-	CALL PARALLEL_VTK_COMBINE_PARTITIONED_AV(N)
+	IF (TECPLOT.EQ.0)THEN
+		if (dimensiona.eq.3) then
+			call OUTWRITE3vav
+		else
+			call OUTWRITE3v2Dav
+		end if
 	END IF
-END IF
-
-
-
+	IF (TECPLOT.EQ.2)THEN
+		CALL OUTWRITEPARA3Dbav
+	END IF
+	IF (TECPLOT.EQ.3)THEN
+		CALL OUTWRITEPARA3DbPav
+	END IF
+	IF (TECPLOT.EQ.4)THEN		!BINARY PARAVIEW 3D ONLY
+		call OUTWRITEtec3DbPav
+	end if
+	IF (TECPLOT.EQ.5)THEN
+		IF (DIMENSIONA.EQ.3)THEN
+			CALL PARALLEL_VTK_COMBINE_AV(N)
+		END IF
+	END IF
+	IF (TECPLOT.EQ.6)THEN
+		IF (DIMENSIONA.EQ.3)THEN
+			CALL PARALLEL_VTK_COMBINE_PARTITIONED_AV(N)
+		END IF
+	END IF
 
 END SUBROUTINE VOLUME_SOLUTION_WRITE_av
 
 
 
+
+
 SUBROUTINE surface_SOLUTION_WRITE_av
-!> @brief
-!> This subroutine calls the appropriate surface writing subroutine based on the settings
-IMPLICIT NONE
+  !> @brief
+  !> This subroutine calls the appropriate surface writing subroutine based on the settings
+	IMPLICIT NONE
 
-IF (TECPLOT.EQ.1)THEN
-   if (dimensiona.eq.3)then
-
-call OUTWRITE3vsbav
-eLSE
-
-call OUTWRITE3vsb2Dav
-END IF
-END IF
-
-IF (TECPLOT.EQ.0)THEN
-  if (dimensiona.eq.3)then
-
-call OUTWRITE3vsav
-eLSE
-
-call OUTWRITE3vs2Dav
-END IF
-
-END IF
-IF (TECPLOT.eq.2)THEN
-
-CALL OUTWRITEPARA3Dsbav
-
-END IF
-
-IF (TECPLOT.eq.3)THEN
-
-CALL OUTWRITEPARA3Dsbav
-
-END IF
-
-
-
-	IF (TECPLOT.EQ.4)THEN
-		if (dimensiona.eq.3)then
+	IF (TECPLOT.EQ.1) THEN
+   		if (dimensiona.eq.3) then
 			call OUTWRITE3vsbav
-		eLSE
+		else
 			call OUTWRITE3vsb2Dav
-		END IF
+		end if
 	END IF
-
-	IF (TECPLOT.EQ.5)THEN
-		IF (DIMENSIONA.EQ.3)THEN
+	IF (TECPLOT.EQ.0) THEN
+  		if (dimensiona.eq.3) then
+			call OUTWRITE3vsav
+		else
+			call OUTWRITE3vs2Dav
+		end if
+	END IF
+	IF (TECPLOT.eq.2) THEN
+		CALL OUTWRITEPARA3Dsbav
+	END IF
+	IF (TECPLOT.eq.3) THEN
+		CALL OUTWRITEPARA3Dsbav
+	END IF
+	IF (TECPLOT.EQ.4) THEN
+		if (dimensiona.eq.3) then
+			call OUTWRITE3vsbav
+		else
+			call OUTWRITE3vsb2Dav
+		end if
+	END IF
+	IF (TECPLOT.EQ.5) THEN
+		IF (DIMENSIONA.EQ.3) THEN
 			CALL PARALLEL_VTK_COMBINE_WALL_AV(N)
 		END IF
 	END IF
-
-	IF (TECPLOT.EQ.6)THEN
-		IF (DIMENSIONA.EQ.3)THEN
+	IF (TECPLOT.EQ.6) THEN
+		IF (DIMENSIONA.EQ.3) THEN
 			CALL PARALLEL_VTK_COMBINE_partitioned_wall_av(N)
 		END IF
 	END IF
-
 
 END SUBROUTINE surface_SOLUTION_WRITE_av
 
@@ -12669,8 +12552,8 @@ END SUBROUTINE surface_SOLUTION_WRITE_av
 
 
 SUBROUTINE forces
-	!> @brief
-	!> This subroutine calls the appropriate force computation subroutine based on the dimensionality of the problem
+  !> @brief
+  !> This subroutine calls the appropriate force computation subroutine based on the dimensionality of the problem
 	IMPLICIT NONE
 
 	if (dimensiona.eq.3)then
@@ -12684,11 +12567,11 @@ END SUBROUTINE forces
 
 
 SUBROUTINE RESIDUAL_COMPUTE
-	!> @brief
-	!> This subroutine calls the appropriate residual computation subroutine based on the dimensionality of the problem
+  !> @brief
+  !> This subroutine calls the appropriate residual computation subroutine based on the dimensionality of the problem
 	IMPLICIT NONE
 
-   if (dimensiona.eq.3)then
+   	if (dimensiona.eq.3)then
 		call CALCULATE_RESIDUAL(n)
 	eLSE
 		call CALCULATE_RESIDUAL2D(n)
@@ -12717,8 +12600,8 @@ END SUBROUTINE CHECKPOINTING
 
 
 SUBROUTINE CHECKPOINTING_av
-	!> @brief
-	!> This subroutine calls the appropriate averaged checkpointing subroutine based on the dimensionality of the problem
+  !> @brief
+  !> This subroutine calls the appropriate averaged checkpointing subroutine based on the dimensionality of the problem
 	IMPLICIT NONE
 
    if (dimensiona.eq.3)then
@@ -12734,8 +12617,8 @@ END SUBROUTINE CHECKPOINTING_av
 
 
 SUBROUTINE CHECKPOINT(N)
-	!> @brief
-	!> This subroutine uses MPI-IO for writing the checkpointing files
+  !> @brief
+  !> This subroutine uses MPI-IO for writing the checkpointing files
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER,ALLOCATABLE,DIMENSION(:)::dispt
@@ -12757,7 +12640,6 @@ SUBROUTINE CHECKPOINT(N)
 	ICPUID=N
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	!  ioCPt1=MPI_WTIME()
-
 
 	IF (DG.EQ.1)THEN
 		ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1)))
@@ -12797,9 +12679,7 @@ SUBROUTINE CHECKPOINT(N)
         		END DO
 	  		END DO
       	END IF
-      
     else
-      
       	IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 	   	 	K=1
 			DO I=1,KMAXE
@@ -12838,7 +12718,6 @@ SUBROUTINE CHECKPOINT(N)
 	call MPI_file_open(MPI_COMM_WORLD, RESTFILE,MPI_MODE_WRONLY + MPI_MODE_CREATE,MPI_INFO_NULL, fh, ierror)
 	
 	if (n.eq.0)then
-	
 	    if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
 	        call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
 		  	call MPI_file_write(fh, it, 1, MPI_INTEGER, MPI_STATUS_IGNORE,ierror)
@@ -12864,31 +12743,23 @@ SUBROUTINE CHECKPOINT(N)
 	    end if
 	ELSE
 	    if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
-		disp_in_file = disp_in_file + size_of_int 
-		disp_in_file = disp_in_file + size_of_real*(nof_Variables+turbulenceequations)
-	      ELSE
-		  disp_in_file = disp_in_file + size_of_int 
-		  disp_in_file = disp_in_file + size_of_real
-		  if (initcond.eq.95)then
-		  disp_in_file = disp_in_file + size_of_real 
-		  END IF
-	      END IF
-	      
-	      
+			disp_in_file = disp_in_file + size_of_int 
+			disp_in_file = disp_in_file + size_of_real*(nof_Variables+turbulenceequations)
+	    ELSE
+		  	disp_in_file = disp_in_file + size_of_int 
+		  	disp_in_file = disp_in_file + size_of_real
+		  	if (initcond.eq.95)then
+		  		disp_in_file = disp_in_file + size_of_real 
+		  	END IF
+	    END IF
 	END IF
-	
 	
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,datatype, 'native',MPI_INFO_NULL, ierror)
 	call MPI_FILE_WRITE_ALL(fh, ARRAY2, KMAXE*n_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)        
         
-        call MPI_FILE_CLOSE(fh, ierror)
+    call MPI_FILE_CLOSE(fh, ierror)
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
-          
-
-	
-	
-	
 	
 	deallocate(ARRAY,DISPT,ARRAY2)
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
@@ -12954,115 +12825,81 @@ SUBROUTINE PREPARE_SURFACES_V(N)
    		end if
 	END DO
 
-
 	IWMAXE=0
 
 	!NOW FIND ALL THE ELEMENT TYPES AND COPY THEM IN A LOCAL LIST
 
 	CALL MPI_ALLREDUCE(ILOOPX,IWMAXE,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,IERROR)
 
-
-
-
 	ALLOCATE(WALLSHAPE_G(1:IWMAXE));WALLSHAPE_G=0
 
 	IF (ILOOPX.GT.0)then
-	ALLOCATE(WALLSHAPE(1:ILOOPX));WALLSHAPE=0
+		ALLOCATE(WALLSHAPE(1:ILOOPX));WALLSHAPE=0
 
-	DO I=1,ILOOPX
-		IF (WALL_L(I,3).EQ.2)THEN	!LINE
-			WALLSHAPE(I)=3
-		END IF
+		DO I=1,ILOOPX
+			IF (WALL_L(I,3).EQ.2)THEN	!LINE
+				WALLSHAPE(I)=3
+			END IF
 
-		IF (WALL_L(I,3).EQ.3)THEN	!TRIANGULAR
-			WALLSHAPE(I)=5
-		END IF
+			IF (WALL_L(I,3).EQ.3)THEN	!TRIANGULAR
+				WALLSHAPE(I)=5
+			END IF
 
-		IF (WALL_L(I,3).EQ.4)THEN	!QUADRILATERAL
-			WALLSHAPE(I)=9
-		END IF
-	END DO
-
-
-	eLSE
-	ALLOCATE(WALLSHAPE(0:0));WALLSHAPE=0
+			IF (WALL_L(I,3).EQ.4)THEN	!QUADRILATERAL
+				WALLSHAPE(I)=9
+			END IF
+		END DO
+	ELSE
+		ALLOCATE(WALLSHAPE(0:0));WALLSHAPE=0
 	END IF
-
-
 
 	!WE NEED THE TOTAL WITH AN OFFSET
 	ALLOCATE(WALLCX_G(0:ISIZE-1),OFFSETWC_G(0:ISIZE-1))
-WALLCX_G(:)=0
-OFFSETWC_G(0:ISIZE-1)=0
+	WALLCX_G(:)=0
+	OFFSETWC_G(0:ISIZE-1)=0
 
-WALLCX_G(N)=ILOOPX
+	WALLCX_G(N)=ILOOPX
 
-CALL MPI_ALLGATHER(ILOOPX,1,MPI_INTEGER,WALLCX_G,1,MPI_INTEGER,MPI_COMM_WORLD,IERROR)
+	CALL MPI_ALLGATHER(ILOOPX,1,MPI_INTEGER,WALLCX_G,1,MPI_INTEGER,MPI_COMM_WORLD,IERROR)
 
-OFFSETWC_G(0)=0
-DO I=1,ISIZE-1
-		OFFSETWC_G(I)=OFFSETWC_G(I-1)+WALLCX_g(I-1)
-END DO
+	OFFSETWC_G(0)=0
+	DO I=1,ISIZE-1
+			OFFSETWC_G(I)=OFFSETWC_G(I-1)+WALLCX_g(I-1)
+	END DO
 
-
-
-IF (ILOOPX.GT.0)THEN
-WALLSHAPE_G(OFFSETWC_G(N)+1:OFFSETWC_G(N)+WALLCX_g(N))=WALLSHAPE(1:ILOOPX)
-END IF
+	IF (ILOOPX.GT.0)THEN
+		WALLSHAPE_G(OFFSETWC_G(N)+1:OFFSETWC_G(N)+WALLCX_g(N))=WALLSHAPE(1:ILOOPX)
+	END IF
 
 
+	ALLOCATE(WALLSHAPE_G2(1:IWMAXE));WALLSHAPE_G2=0
 
-
-
-
-
-
-
-
-ALLOCATE(WALLSHAPE_G2(1:IWMAXE));WALLSHAPE_G2=0
-
-
-
-
-CALL MPI_ALLREDUCE(WALLSHAPE_G,WALLSHAPE_G2,IWMAXE,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
-
-
-
-
-
-
-
+	CALL MPI_ALLREDUCE(WALLSHAPE_G,WALLSHAPE_G2,IWMAXE,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
 
 	IF (ILOOPX.GT.0)then
-	ALLOCATE(TYP_NODESN_W(1:ILOOPX));TYP_NODESN_w(:)=0
-	eLSE
-	ALLOCATE(TYP_NODESN_W(0:0));TYP_NODESN_W(:)=0
+		ALLOCATE(TYP_NODESN_W(1:ILOOPX));TYP_NODESN_w(:)=0
+	ELSE
+		ALLOCATE(TYP_NODESN_W(0:0));TYP_NODESN_W(:)=0
 	END IF
 	TYP_COUNTN_W=0
 	IF (ILOOPX.GT.0)THEN
-	temp_loop=OFFSETWC_G(N)
-	DO I=1,ILOOPX
-		TYP_COUNTN_W=TYP_COUNTN_w+WALL_L(I,3)
-		temp_loop=temp_loop+1
-		WALL_L(i,4)=temp_loop
+		temp_loop=OFFSETWC_G(N)
+		DO I=1,ILOOPX
+			TYP_COUNTN_W=TYP_COUNTN_w+WALL_L(I,3)
+			temp_loop=temp_loop+1
+			WALL_L(i,4)=temp_loop
 
-		TYP_NODESN_W(I)=WALL_L(I,3)
-	END DO
+			TYP_NODESN_W(I)=WALL_L(I,3)
+		END DO
 	END IF
 
+	allocate(nodes_offsetW(1:IWMAXE),nodes_offsetW2(1:IWMAXE))
 
-allocate(nodes_offsetW(1:IWMAXE),nodes_offsetW2(1:IWMAXE))
+	CALL MPI_ALLREDUCE(TYP_COUNTN_W,TYP_COUNTN_GLOBAL_W,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,IERROR)
 
-
-
-
-
-
-CALL MPI_ALLREDUCE(TYP_COUNTN_W,TYP_COUNTN_GLOBAL_W,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,IERROR)
-
-KN=0
-DO J=1,IWMAXE
-	nodes_offsetW(j)=kn
+	KN=0
+	DO J=1,IWMAXE
+		nodes_offsetW(j)=kn
 		IF (WALLSHAPE_G2(J).EQ.3)THEN
 			KN=KN+2
 		END IF
@@ -13072,32 +12909,23 @@ DO J=1,IWMAXE
 		IF (WALLSHAPE_G2(J).EQ.9)THEN
 			KN=KN+4
 		END IF
-	nodes_offsetW2(j)=kn
+		nodes_offsetW2(j)=kn
+	END DO
 
-END DO
-
-IF (ILOOPX.GT.0)THEN
-	allocate(nodes_offset_localW(1:ILOOPX));nodes_offset_localW=0
-	allocate(nodes_offset_local2W(1:ILOOPX));nodes_offset_local2W=0
-
-
-
-
+	IF (ILOOPX.GT.0)THEN
+		allocate(nodes_offset_localW(1:ILOOPX));nodes_offset_localW=0
+		allocate(nodes_offset_local2W(1:ILOOPX));nodes_offset_local2W=0
 	ELSE
-	Allocate(nodes_offset_localW(0:0));nodes_offset_localW=0
-	allocate(nodes_offset_local2W(0:0));nodes_offset_local2W=0
+		Allocate(nodes_offset_localW(0:0));nodes_offset_localW=0
+		allocate(nodes_offset_local2W(0:0));nodes_offset_local2W=0
 	END IF
 
 	IF (ILOOPX.GT.0)THEN
-	DO I=1,ILOOPX
-	NODES_OFFSET_LOCALW(I)=NODES_OFFSETW(WALL_L(i,4))
-	NODES_OFFSET_LOCAL2W(I)=NODES_OFFSETW2(WALL_L(i,4))
-
-	END DO
+		DO I=1,ILOOPX
+			NODES_OFFSET_LOCALW(I)=NODES_OFFSETW(WALL_L(i,4))
+			NODES_OFFSET_LOCAL2W(I)=NODES_OFFSETW2(WALL_L(i,4))
+		END DO
 	END IF
-
-
-
 
 END SUBROUTINE PREPARE_SURFACES_V
 
@@ -13951,14 +13779,23 @@ SUBROUTINE PARALLEL_VTK_COMBINE(N)
 				if ((mood.eq.1).or.(hybridCWENO_MOOD.gt.0)) then
 					rARRAY_PART1(i,j)=ielem(n,i)%mood_o
 				else
-					if (multispecies.eq.1)then
-						rARRAY_PART1(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
-					else
-						if (Dg.eq.1)then
-							rARRAY_PART1(i,j)=ielem(n,i)%troubled
+					if (MESH_MOVEMENT) then
+						if (moving_mesh_mode.eq.8) then
+							rARRAY_PART1(i,j) = u_c(i)%normalized_gradient
+							! print*,"!"
 						else
-							! rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
 							rARRAY_PART1(i,j) = N
+							! print*,"?"
+						end if
+					else
+						if (multispecies.eq.1)then
+							rARRAY_PART1(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
+						else
+							if (Dg.eq.1)then
+								rARRAY_PART1(i,j)=ielem(n,i)%troubled
+							else
+								rARRAY_PART1(i,j)=ielem(n,i)%vortex(1)
+							end if
 						end if
 					end if
 				end if
@@ -15137,8 +14974,8 @@ END SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_wall
 
 
 SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_wall_av(N)
-	!> @brief
-	!> This subroutine uses MPI-IO for writing the VTK FILES
+  !> @brief
+  !> This subroutine uses MPI-IO for writing the VTK FILES
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,ALLOCATABLE,DIMENSION(:)::array2,ARRAY3,ARRAY4
@@ -15711,10 +15548,7 @@ SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV(N)
 	
 	 END IF
 	
-		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
-	
-	
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	
 END SUBROUTINE PARALLEL_VTK_COMBINE_partitioned_AV
 
@@ -16053,87 +15887,63 @@ SUBROUTINE PARALLEL_VTK_COMBINE_WALL(N)
 
 
 
-						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-		
-						disp_in_file = disp_in_file + size_of_int
+	call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
 
+	disp_in_file = disp_in_file + size_of_int
+	call MPI_FILE_SET_VIEW(fh,disp_in_file,MPI_INTEGER,wDATATYPEy,'native',MPI_INFO_NULL,ierror)
+	call MPI_FILE_WRITE_ALL(fh,WiARRAY_PART2,TYP_COUNTN_W, MPI_INTEGER,STATUS,ierror)
+		
+	disp_in_file=disp_in_file+(size_of_int*TYP_COUNTN_GLOBAL_W)!(temp_imaxe*size_of_int*temp_node)
+	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+		
+	IF (N.EQ.0)THEN
+		BYTES=temp_imaxe*size_of_int
+		nbytes=1
+	Else
+		BYTES=0
+		nbytes=0
+	end if
 
-						call MPI_FILE_SET_VIEW(fh,disp_in_file,MPI_INTEGER,wDATATYPEy,'native',MPI_INFO_NULL,ierror)
+	call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
 
+	disp_in_file = disp_in_file + size_of_int
 
-						call MPI_FILE_WRITE_ALL(fh,WiARRAY_PART2,TYP_COUNTN_W, MPI_INTEGER,STATUS,ierror)
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
+	call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,wDATATYPEXx, 'native',MPI_INFO_NULL, ierror)
+	call MPI_FILE_WRITE_ALL(fh,WiARRAY_PART5,ILOOPX*WPART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
 
-		
-						disp_in_file=disp_in_file+(size_of_int*TYP_COUNTN_GLOBAL_W)!(temp_imaxe*size_of_int*temp_node)
-		
+	disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
 
+	IF (N.EQ.0)THEN
+		BYTES=temp_imaxe*size_of_int
+		nbytes=1
+	Else
+		BYTES=0
+		nbytes=0
+	end if
+		
+	call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
 
+	disp_in_file = disp_in_file + size_of_int
+	call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,wDATATYPEyy, 'native',MPI_INFO_NULL, ierror)
 
-						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
-		
-						IF (N.EQ.0)THEN
-						BYTES=temp_imaxe*size_of_int
-						nbytes=1
-						Else
-						BYTES=0
-						nbytes=0
-						end if
-		
-						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-		
-						disp_in_file = disp_in_file + size_of_int
-		
-		
-						CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	call MPI_FILE_WRITE_ALL(fh, wiARRAY_PART3,iloopx*WPART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
 
-						call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,wDATATYPEXx, 'native',MPI_INFO_NULL, ierror)
+	disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
+	call MPI_FILE_CLOSE(fh, ierror)
 
-						call MPI_FILE_WRITE_ALL(fh,WiARRAY_PART5,ILOOPX*WPART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-		
-						disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
-		
-
-						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
-		
-						IF (N.EQ.0)THEN
-						BYTES=temp_imaxe*size_of_int
-						nbytes=1
-						Else
-						BYTES=0
-						nbytes=0
-						end if
-		
-						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-		
-						disp_in_file = disp_in_file + size_of_int
-		
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 		
 
-
-						call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_INTEGER,wDATATYPEyy, 'native',MPI_INFO_NULL, ierror)
-
-						call MPI_FILE_WRITE_ALL(fh, wiARRAY_PART3,iloopx*WPART1_end, MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-		
-
-
-		
-						disp_in_file=disp_in_file+(temp_imaxe*size_of_INT)
-		
-						call MPI_FILE_CLOSE(fh, ierror)
-						CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		
-		
-		
-		
-		if (n.eq.0)then
+	if (n.eq.0)then
 		OPEN(300,FILE=FILEX,ACCESS='STREAM',position='APPEND')
-		  lf = char(10)
-		  Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
-		  Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
-		  CLOSE(300)
-		end if
-		
+		lf = char(10)
+		Buffer=lf//'  </AppendedData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='</VTKFile>'//lf;WRITE(300) TRIM(Buffer)
+		CLOSE(300)
+	end if
 		
 	deallocate(vTU)	
 		
@@ -16146,8 +15956,8 @@ END SUBROUTINE PARALLEL_VTK_COMBINE_WALL
 
 
 SUBROUTINE PARALLEL_VTK_COMBINE_WALL_AV(N)
-	!> @brief
-	!> This subroutine uses MPI-IO for writing the VTK FILES
+  !> @brief
+  !> This subroutine uses MPI-IO for writing the VTK FILES
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,ALLOCATABLE,DIMENSION(:)::array2,ARRAY3,ARRAY4
@@ -16193,7 +16003,6 @@ SUBROUTINE PARALLEL_VTK_COMBINE_WALL_AV(N)
 	allocate(character(LEN=ITRIMM)::VTU)
 	VTU=FILEX(1:ITRIMM)
 
-
 	IF (MOVEMENT.EQ.1)THEN
 		k=1
 		do i=1,kmaxn_P
@@ -16205,292 +16014,228 @@ SUBROUTINE PARALLEL_VTK_COMBINE_WALL_AV(N)
 		end do
 	END IF
 
+	!LOOP THE CORRECT NUMBER OF ELEMENTS THAT ARE BOUNDED
+	IF (ILOOPX.GT.0)THEN
+		do i=1,ILOOPX
+			facex=WALL_L(I,2)
+			ICONSIdered=WALL_L(I,1)
+			LEFTV(1:NOF_VARIABLES)=U_C(ICONSIdered)%VAL(ind1,1:NOF_VARIABLES)
 
+			IF (DIMENSIONA.EQ.3)THEN
+				CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+				temp_node=3;temp_dims=3
+			ELSE
+				CALL cons2prim(N,leftv,MP_PINFl,gammal)
+				temp_node=2;temp_dims=3
+			END IF
 
+			WrARRAY_PART1(I,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
 
+			KKD_I=NOF_VARIABLES
+			IF (ITESTCASE.EQ.4)THEN
 
+				IF (DIMENSIONA.EQ.3)THEN
+					DO KKD=1,3
+						select case(kkd)
+						  case(1)
+							call shear_x_av(iconsidered,facex,shear_temp)
 
-			  			!LOOP THE CORRECT NUMBER OF ELEMENTS THAT ARE BOUNDED
-			  			IF (ILOOPX.GT.0)THEN
-							do i=1,ILOOPX
-								facex=WALL_L(I,2)
-								ICONSIdered=WALL_L(I,1)
-								LEFTV(1:NOF_VARIABLES)=U_C(ICONSIdered)%VAL(ind1,1:NOF_VARIABLES)
+						  CASE (2)
+							call shear_y_av(iconsidered,facex,shear_temp)
 
+						  CASE(3)
+							call shear_z_av(iconsidered,facex,shear_temp)
+						END SELECT
 
-								IF (DIMENSIONA.EQ.3)THEN
-								CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-								temp_node=3;temp_dims=3
+						WrARRAY_PART1(I,KKD_I+kkd)=SHEAR_TEMP
+					END DO
+				END IF
 
-								ELSE
-								CALL cons2prim(N,leftv,MP_PINFl,gammal)
-								temp_node=2;temp_dims=3
-								END IF
+				IF (DIMENSIONA.EQ.2)THEN
+					DO KKD=1,2
+						select case(kkd)
+						  case(1)
+							call shear_x2d_av(iconsidered,facex,shear_temp)
 
-									WrARRAY_PART1(I,1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
+						  CASE (2)
+							call shear_y2d_av(iconsidered,facex,shear_temp)
+						END SELECT
 
+						WrARRAY_PART1(I,KKD_I+kkd)=SHEAR_TEMP
+					END DO
+				END IF
+			END IF
 
-									KKD_I=NOF_VARIABLES
-								    IF (ITESTCASE.EQ.4)THEN
+		END DO
 
-										IF (DIMENSIONA.EQ.3)THEN
-											DO KKD=1,3
+	END IF
 
+	temp_imaxe=IWMAXE !TOTAL NUMBER OF WALL ELEMENTS IN THE DOMAIN
+	temp_imaxn=imaxn	 !imaxn	!WE NEED THE TOTAL NUMBER OF NODES IN THE DOMAIN
 
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
+	if (n.eq.0)then
 
-										select case(kkd)
-											case(1)
+		!first write the header xml file from one MPI process
 
-											call shear_x_av(iconsidered,facex,shear_temp)
-											CASE (2)
-											call shear_y_av(iconsidered,facex,shear_temp)
-											CASE(3)
-											call shear_z_av(iconsidered,facex,shear_temp)
-											END SELECT
-
-											WrARRAY_PART1(I,KKD_I+kkd)=SHEAR_TEMP
-
-											END DO
-										END IF
-
-										IF (DIMENSIONA.EQ.2)THEN
-											DO KKD=1,2
-
-
-
-
-										select case(kkd)
-											case(1)
-
-											call shear_x2d_av(iconsidered,facex,shear_temp)
-											CASE (2)
-											call shear_y2d_av(iconsidered,facex,shear_temp)
-
-											END SELECT
-
-											WrARRAY_PART1(I,KKD_I+kkd)=SHEAR_TEMP
-
-											END DO
-										END IF
-
-
-
-									END IF
-
-								END DO
-
-							END IF
-
-
-
-
-
-
-		temp_imaxe=IWMAXE !TOTAL NUMBER OF WALL ELEMENTS IN THE DOMAIN
-		temp_imaxn=imaxn	 !imaxn	!WE NEED THE TOTAL NUMBER OF NODES IN THE DOMAIN
-
-		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-
-
-
-		if (n.eq.0)then
-
-			!first write the header xml file from one MPI process
-
-			lf = char(10)
-		   ! Write file name
-			OPEN(300,FILE=VTU,ACCESS='STREAM')
-			! Write header
-			Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
-			! Write unstructured grid type
-			Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
-			! Write solution time type
-			Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
-			 offset_temp=0
-			 WRITE(Offset_stamp,'(I16)')offset_temp
-			Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
-			! Specify field pieces
-			WRITE(tempstamp1,'(I16)')temp_imaxn
-			WRITE(tempstamp2,'(I16)')temp_imaxe
-			Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
-				   &NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
-			! Specify point data
-			Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
-			offset_temp=offset_temp+size_of_int+size_of_real
-			WRITE(Offset_stamp,'(I16)')offset_temp
-			DO i=1,WRITE_VARIABLES_Av_w
-			  Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV_w(i))//'" '// &
+		lf = char(10)
+		! Write file name
+		OPEN(300,FILE=VTU,ACCESS='STREAM')
+		! Write header
+		Buffer='<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf;WRITE(300) TRIM(Buffer)
+		! Write unstructured grid type
+		Buffer='  <UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+		! Write solution time type
+		Buffer='    <FieldData>'//lf;WRITE(300) TRIM(Buffer)
+		offset_temp=0
+		WRITE(Offset_stamp,'(I16)')offset_temp
+		Buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
+							'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='    </FieldData>'//lf;WRITE(300) TRIM(Buffer)
+		! Specify field pieces
+		WRITE(tempstamp1,'(I16)')temp_imaxn
+		WRITE(tempstamp2,'(I16)')temp_imaxe
+		Buffer='    <Piece NumberOfPoints="'//TRIM(ADJUSTL(tempstamp1))//'" &
+				&NumberOfCells="'//TRIM(ADJUSTL(tempstamp2))//'">'//lf;WRITE(300) TRIM(Buffer)
+		! Specify point data
+		Buffer='     <PointData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='     </PointData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='     <CellData>'//lf;WRITE(300) TRIM(Buffer)
+		offset_temp=offset_temp+size_of_int+size_of_real
+		WRITE(Offset_stamp,'(I16)')offset_temp
+		DO i=1,WRITE_VARIABLES_Av_w
+			Buffer='        <DataArray type="Float64" Name="'//TRIM(Variable_names_AV_w(i))//'" '// &
 							   'format="appended" offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			  offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
-			  WRITE(Offset_stamp,'(I16)')offset_temp
-			END DO
-			Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-			offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
+			offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_real
 			WRITE(Offset_stamp,'(I16)')offset_temp
-			Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
-			! Specify necessary cell data
-			Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
-			! Connectivity
-			Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			offset_temp=offset_temp+size_of_int+TYP_COUNTN_GLOBAL_W*size_of_int
-			WRITE(Offset_stamp,'(I16)')offset_temp
-			! Offsets
-			Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
-			WRITE(Offset_stamp,'(I16)')offset_temp
-			! Elem types
-			Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
-							 'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
-			! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
-			Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
-			! Prepare append section
-			Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
-			! Write leading data underscore
-			Buffer='_';WRITE(300) TRIM(Buffer)
-			Bytes = size_of_real
-			close(300)
+		END DO
+		Buffer='     </CellData>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='     <Points>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
+							'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+		offset_temp=offset_temp+size_of_int+temp_dims*temp_imaxn*size_of_real
+		WRITE(Offset_stamp,'(I16)')offset_temp
+		Buffer='     </Points>'//lf;WRITE(300) TRIM(Buffer)
+		! Specify necessary cell data
+		Buffer='      <Cells>'//lf;WRITE(300) TRIM(Buffer)
+		! Connectivity
+		Buffer='        <DataArray type="Int32" Name="connectivity" format="appended" '// &
+							'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		offset_temp=offset_temp+size_of_int+TYP_COUNTN_GLOBAL_W*size_of_int
+		WRITE(Offset_stamp,'(I16)')offset_temp
+		! Offsets
+		Buffer='        <DataArray type="Int32" Name="offsets" format="appended" ' // &
+							'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		offset_temp=offset_temp+size_of_int+temp_imaxe*size_of_int
+		WRITE(Offset_stamp,'(I16)')offset_temp
+		! Elem types
+		Buffer='        <DataArray type="Int32" Name="types" format="appended" '// &
+							'offset="'//TRIM(ADJUSTL(Offset_stamp))//'"/>'//lf;WRITE(300) TRIM(Buffer)
+		! Buffer='        </DataArray>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='      </Cells>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='    </Piece>'//lf;WRITE(300) TRIM(Buffer)
+		Buffer='  </UnstructuredGrid>'//lf;WRITE(300) TRIM(Buffer)
+		! Prepare append section
+		Buffer='  <AppendedData encoding="raw">'//lf;WRITE(300) TRIM(Buffer)
+		! Write leading data underscore
+		Buffer='_';WRITE(300) TRIM(Buffer)
+		Bytes = size_of_real
+		close(300)
+	end if
 
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
+	call MPI_file_open(MPI_COMM_WORLD,VTU,MPI_MODE_WRONLY + MPI_MODE_APPEND,MPI_INFO_NULL, fh, ierror)
+	call MPI_FILE_GET_POSITION(fh, disp_in_file, ierror)
+	disp_init=disp_in_FILE
+
+	!----write time stamp----!
+	IF (N.EQ.0)THEN
+		call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
+		BYTES=size_of_real
+		call MPI_file_write(fh, bytes, nbytes, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
+		disp_in_file = disp_in_file + size_of_int
+		call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
+		call MPI_file_write(fh, T, nbytes, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierror)
+		disp_in_file=disp_in_file+size_of_Real
+	else
+		disp_in_file=disp_in_file+size_of_int+size_of_real
+	end if
+	!end time stamp
+
+	DO I=1,WRITE_VARIABLES_Av_w
+		call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,WDATATYPEINT,'native',MPI_INFO_NULL, ierror)
+
+		IF (N.EQ.0)THEN
+			BYTES=temp_imaxe*size_of_real
+			nbytes=1
+		Else
+			BYTES=0
+			nbytes=0
 		end if
 
+		call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
 
+		disp_in_file = disp_in_file + size_of_int
+		call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,WDATATYPEX,'native',MPI_INFO_NULL, ierror)
+		call MPI_FILE_WRITE_ALL(fh,WrARRAY_PART1(:,i),iloopx*WPART1_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE,ierror)
+		!end write variables---within loop
+		disp_in_file=disp_in_file+temp_imaxe*size_of_real
+		!end loop
+	end do
 
+	! IF (N.EQ.0)print*,"LOCATION2",disp_in_file
 
-		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
 
+	IF (N.EQ.0)THEN
+		BYTES=temp_imaxn*size_of_real*temp_dims
+		nbytes=1
+	Else
+		BYTES=0
+		nbytes=0
+	end if
 
-						call MPI_file_open(MPI_COMM_WORLD,VTU,MPI_MODE_WRONLY + MPI_MODE_APPEND,MPI_INFO_NULL, fh, ierror)
-						call MPI_FILE_GET_POSITION(fh, disp_in_file, ierror)
-						disp_init=disp_in_FILE
+	call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
 
-						!----write time stamp----!
-						IF (N.EQ.0)THEN
-						call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET, ierror)
-						BYTES=size_of_real
-						call MPI_file_write(fh, bytes, nbytes, MPI_INTEGER, MPI_STATUS_IGNORE, ierror)
-						disp_in_file = disp_in_file + size_of_int
-						call MPI_file_seek(fh, disp_in_file, MPI_SEEK_SET,ierror)
-						call MPI_file_write(fh, T, nbytes, MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierror)
-						disp_in_file=disp_in_file+size_of_Real
-						else
-						disp_in_file=disp_in_file+size_of_int+size_of_real
-						end if
-						!end time stamp
+	disp_in_file = disp_in_file + size_of_int
+	call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_DOUBLE_PRECISION,wDATATYPEz,'native',MPI_INFO_NULL, ierror)
+	call MPI_FILE_WRITE_ALL(fh,wrARRAY_PART4,KMAXN_P*wPART4_end,MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
 
+	disp_in_file=disp_in_file+(temp_imaxn*size_of_real*temp_dims)
+	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
 
+	IF (N.EQ.0)THEN
+		BYTES=size_of_int*TYP_COUNTN_GLOBAL_W!temp_imaxe*size_of_int*temp_node
+		nbytes=1
+	Else
+		BYTES=0
+		nbytes=0
+	end if
 
+	call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
 
+	disp_in_file = disp_in_file + size_of_int
+	call MPI_FILE_SET_VIEW(fh,disp_in_file,MPI_INTEGER,wDATATYPEy,'native',MPI_INFO_NULL,ierror)
 
-!
-						DO I=1,WRITE_VARIABLES_Av_w
+	call MPI_FILE_WRITE_ALL(fh,WiARRAY_PART2,TYP_COUNTN_W, MPI_INTEGER,STATUS,ierror)
 
+	disp_in_file=disp_in_file+(size_of_int*TYP_COUNTN_GLOBAL_W)!(temp_imaxe*size_of_int*temp_node)
+	call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
 
+	IF (N.EQ.0)THEN
+		BYTES=temp_imaxe*size_of_int
+		nbytes=1
+	Else
+		BYTES=0
+		nbytes=0
+	end if
 
+	call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
 
-						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,WDATATYPEINT,'native',MPI_INFO_NULL, ierror)
-
-						IF (N.EQ.0)THEN
-						BYTES=temp_imaxe*size_of_real
-						nbytes=1
-						Else
-						BYTES=0
-						nbytes=0
-						end if
-
-						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-
-						disp_in_file = disp_in_file + size_of_int
-
-						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_DOUBLE_PRECISION,WDATATYPEX,'native',MPI_INFO_NULL, ierror)
-						call MPI_FILE_WRITE_ALL(fh,WrARRAY_PART1(:,i),iloopx*WPART1_end, MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE,ierror)
-						!end write variables---within loop
-						disp_in_file=disp_in_file+temp_imaxe*size_of_real
-						!end loop
-						end do
-
-		! 				IF (N.EQ.0)print*,"LOCATION2",disp_in_file
-
-						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
-
-						IF (N.EQ.0)THEN
-						BYTES=temp_imaxn*size_of_real*temp_dims
-						nbytes=1
-						Else
-						BYTES=0
-						nbytes=0
-						end if
-
-						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-
-						disp_in_file = disp_in_file + size_of_int
-
-						call MPI_FILE_SET_VIEW(fh, disp_in_file,MPI_DOUBLE_PRECISION,wDATATYPEz,'native',MPI_INFO_NULL, ierror)
-						call MPI_FILE_WRITE_ALL(fh,wrARRAY_PART4,KMAXN_P*wPART4_end,MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE, ierror)
-
-						disp_in_file=disp_in_file+(temp_imaxn*size_of_real*temp_dims)
-
-
-
-
-						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
-
-						IF (N.EQ.0)THEN
-						BYTES=size_of_int*TYP_COUNTN_GLOBAL_W!temp_imaxe*size_of_int*temp_node
-						nbytes=1
-						Else
-						BYTES=0
-						nbytes=0
-						end if
-
-
-
-
-
-						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-
-						disp_in_file = disp_in_file + size_of_int
-
-
-						call MPI_FILE_SET_VIEW(fh,disp_in_file,MPI_INTEGER,wDATATYPEy,'native',MPI_INFO_NULL,ierror)
-
-
-						call MPI_FILE_WRITE_ALL(fh,WiARRAY_PART2,TYP_COUNTN_W, MPI_INTEGER,STATUS,ierror)
-
-
-
-						disp_in_file=disp_in_file+(size_of_int*TYP_COUNTN_GLOBAL_W)!(temp_imaxe*size_of_int*temp_node)
-
-
-
-
-						call MPI_FILE_SET_VIEW(fh, disp_in_file, MPI_INTEGER,wDATATYPEINT,'native',MPI_INFO_NULL, ierror)
-
-						IF (N.EQ.0)THEN
-						BYTES=temp_imaxe*size_of_int
-						nbytes=1
-						Else
-						BYTES=0
-						nbytes=0
-						end if
-
-						call MPI_FILE_WRITE_ALL(fh,bytes,nbytes,MPI_INTEGER,MPI_STATUS_IGNORE, ierror)
-
-						disp_in_file = disp_in_file + size_of_int
-
+	disp_in_file = disp_in_file + size_of_int
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -16539,8 +16284,8 @@ END SUBROUTINE PARALLEL_VTK_COMBINE_WALL_AV
 
 
 SUBROUTINE CHECKPOINTv2(N)
-	!> @brief
-	!> This subroutine is writing the checkpointing files
+  !> @brief
+  !> This subroutine is writing the checkpointing files
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA
@@ -16667,8 +16412,8 @@ END SUBROUTINE CHECKPOINTv2
 
 
 SUBROUTINE CHECKPOINT2D(N)
-	!> @brief
-	!> This subroutine uses MPI-IO for writing the checkpointing files for 2D
+  !> @brief
+  !> This subroutine uses MPI-IO for writing the checkpointing files for 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA,dispt
@@ -16684,7 +16429,6 @@ SUBROUTINE CHECKPOINT2D(N)
 	tmp=0
 	disp_init=0
 	KMAXE=XMPIELRANK(N)
-
 
 	size_of_int=4
 	size_of_real=8
@@ -16814,8 +16558,8 @@ END SUBROUTINE CHECKPOINT2D
 
 
 SUBROUTINE CHECKPOINTAV(N) 
-	!> @brief
-	!> This subroutine uses MPI-IO for writing the averaged checkpointing files
+  !> @brief
+  !> This subroutine uses MPI-IO for writing the averaged checkpointing files
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA,dispt
@@ -16898,8 +16642,8 @@ END SUBROUTINE CHECKPOINTAV
 
 
 SUBROUTINE REST_READ(N)
-	!> @brief
-	!> This subroutine uses MPI-IO for reading the checkpointing files
+  !> @brief
+  !> This subroutine uses MPI-IO for reading the checkpointing files
 	IMPLICIT NONE
 	integer,INTENT(IN)::N
 	INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA,dispt
@@ -17120,8 +16864,8 @@ END SUBROUTINE REST_READ
 
 
 SUBROUTINE CHECKPOINTAV2d(N)  
-	!> @brief
-	!> This subroutine writes the average checkpointing files in 2D
+  !> @brief
+  !> This subroutine writes the average checkpointing files in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA
@@ -17132,164 +16876,136 @@ SUBROUTINE CHECKPOINTAV2d(N)
 	REAL,ALLOCATABLE,DIMENSION(:)::IGINT,TGINT
 	KMAXE=XMPIELRANK(N)
 
-
-
-ICPUID=N
+	ICPUID=N
 	RESTFILE='RESTARTav.dat'
 	IF (N.EQ.0)THEN
-	OPEN(1086,FILE=RESTFILE,FORM='UNFORMATTED',STATUS='REPLACE',ACTION='WRITE')
-	
-	
+		OPEN(1086,FILE=RESTFILE,FORM='UNFORMATTED',STATUS='REPLACE',ACTION='WRITE')
 	end if
 	
 	KMAXE=XMPIELRANK(N)
     
-DUMG=KMAXE
-call mpi_barrier(mpi_comm_world,IERROR)
+	DUMG=KMAXE
+	call mpi_barrier(mpi_comm_world,IERROR)
 
-CALL MPI_ALLREDUCE(DUMG,DUML,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
-IMAXP=DUML
+	CALL MPI_ALLREDUCE(DUMG,DUML,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,IERROR)
+	IMAXP=DUML
 
-ALLOCATE(ICELL(IMAXP))
-ICELL=0
+	ALLOCATE(ICELL(IMAXP))
+	ICELL=0
+	DO I=1,KMAXE
+  		ICELL(I)=IELEM(N,I)%IHEXGL
+	END DO
 
-DO I=1,KMAXE
-  ICELL(I)=IELEM(N,I)%IHEXGL
-END DO
+	IF (N.EQ.0)THEN
+		ALLOCATE(ICELLA(IMAXP*ISIZE))
+	 	ICELLA=0
+	END IF
+	call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORLD,IERROR)
 
+	call mpi_barrier(mpi_comm_world,IERROR)
+	deallocate (icell)
 
-IF (N.EQ.0)THEN
-	ALLOCATE(ICELLA(IMAXP*ISIZE))
-	 ICELLA=0
+	IF (N.EQ.0) then
+		ALLOCATE(VALUESA(IMAXP*ISIZE))
+ 		allocate(xbin(imaxe,(4+turbulenceequations+passivescalar+3+passivescalar)))
+		VALUESA=0.0
+ 	END IF
+	ALLOCATE(VALUESS(imaxp))
+  	VALUESS=0.0
 
-END IF
+	do jj=1,4+turbulenceequations+passivescalar+3+passivescalar
+ 		DO I=1,KMAXE
+      		if (jj.le.4+turbulenceequations+passivescalar)then
+      			IF (jj.le.4) THEN
+	  				VALUESS(I)=U_C(I)%VAL(5,jj)
+      			Else
+					VALUESS(I)=U_CT(I)%VAL(5,jj-4)
+      			end if
+      		end if
+      		if (jj.gt.4+turbulenceequations+passivescalar)then
+       			VALUESS(I)=U_C(i)%RMS(jj-(4+turbulenceequations+passivescalar))
+      		end if
+ 		END DO
 
-call MPI_GATHER(ICELL,IMAXP,MPI_INTEGER,icella,imaxp,mpi_integer,0,MPI_COMM_WORLD,IERROR)
+    	call MPI_GATHER(VALUESS,imaxp,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
 
+		IF (N.EQ.0)THEN
+			do i=1,imaxp*isize
+				if (icella(i).gt.0)then
+					xbin(icella(i),jj)=valuesa(i)
+				end if
+			end do
+		end if
+ 	end do
 
-call mpi_barrier(mpi_comm_world,IERROR)
-deallocate (icell)
-
-IF (N.EQ.0) then
-ALLOCATE(VALUESA(IMAXP*ISIZE))
-  allocate(xbin(imaxe,(4+turbulenceequations+passivescalar+3+passivescalar)))
-	VALUESA=0.0
-
- END IF
-ALLOCATE(VALUESS(imaxp))
-  VALUESS=0.0
-
-do jj=1,4+turbulenceequations+passivescalar+3+passivescalar
- DO I=1,KMAXE
-      
-      if (jj.le.4+turbulenceequations+passivescalar)then
-      IF (jj.le.4) THEN
-	  VALUESS(I)=U_C(I)%VAL(5,jj)
-		      
-      Else
-
-	VALUESS(I)=U_CT(I)%VAL(5,jj-4)
-
-      end if
-      end if
-      if (jj.gt.4+turbulenceequations+passivescalar)then
-
-       VALUESS(I)=U_C(i)%RMS(jj-(4+turbulenceequations+passivescalar))
-
-      end if
-      
- END DO
-
-    call MPI_GATHER(VALUESS,imaxp,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
     IF (N.EQ.0)THEN
-    do i=1,imaxp*isize
-	if (icella(i).gt.0)then
-	xbin(icella(i),jj)=valuesa(i)
-	end if
-    end do
-    end if
-    
-    
- end do
-CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-    IF (N.EQ.0)THEN
-
-    DO I=1,IMAXE
-     WRITE(1086)I
-!     DO NVAR=1,5+TURBULENCEEQUATIONS+PASSIVESCALAR
-    WRITE(1086)XBIN(xmpi_re(i),1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR+3+PASSIVESCALAR)
-!     END DO
-    END DO
+    	DO I=1,IMAXE
+     		WRITE(1086)I
+			! DO NVAR=1,5+TURBULENCEEQUATIONS+PASSIVESCALAR
+   			WRITE(1086)XBIN(xmpi_re(i),1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR+3+PASSIVESCALAR)
+			! END DO
+    	END DO
       
-    deallocate(XBIN,ICELLA,VALUESA)
+    	deallocate(XBIN,ICELLA,VALUESA)
 
-      close(1086)
+      	close(1086)
     END IF
     
-
-deallocate(VALUESS)
-	
+	deallocate(VALUESS)
 
 END SUBROUTINE CHECKPOINTAV2d
 
 
 SUBROUTINE PROBING
-!> @brief
-!> This subroutine writes the primitve variables at the probe positions
-IMPLICIT NONE
-INTEGER::INV
-CHARACTER(LEN=120)::PROB,PROBFILE,PROC3
-LOGICAL::HERES
-real,dimension(1:nof_Variables)::leftv
-real::MP_PINFL,gammal
-real,dimension(1:nof_Variables)::RIGHTv
-real::MP_PINFR,gammaR
-                    IF (nof_variables.GT.1)THEN
+  !> @brief
+  !> This subroutine writes the primitve variables at the probe positions
+	IMPLICIT NONE
+	INTEGER::INV
+	CHARACTER(LEN=120)::PROB,PROBFILE,PROC3
+	LOGICAL::HERES
+	real,dimension(1:nof_Variables)::leftv
+	real::MP_PINFL,gammal
+	real,dimension(1:nof_Variables)::RIGHTv
+	real::MP_PINFR,gammaR
+    IF (nof_variables.GT.1)THEN
 
-			IF (NPROBES.GT.0)THEN
+		IF (NPROBES.GT.0)THEN
 			    
-			    DO INV=1,NPROBES
+			DO INV=1,NPROBES
 			    IF (PROBEI(N,INV).NE.0) THEN
-			      WRITE(PROB,FMT='(I10)') INV
-			      PROBFILE='PROBE.'//TRIM(ADJUSTL(PROB))
+			      	WRITE(PROB,FMT='(I10)') INV
+			      	PROBFILE='PROBE.'//TRIM(ADJUSTL(PROB))
 
-			      INQUIRE (FILE=PROBFILE,EXIST=HEREs)
-			    IF (HEREs.EQV..TRUE.) THEN
-				OPEN(3000+N,FILE=PROBFILE,FORM='FORMATTED',STATUS='OLD',ACTION='WRITE',POSITION='APPEND')
-				
-				
-				ELSE
-				OPEN(3000+N,FILE=PROBFILE,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
-				
-				END IF
-				IF (PASSIVESCALAR.EQ.0)THEN
-				LEFTV(1:NOF_vARIABLES)=U_C(PROBEI(N,INV))%VAL(1,1:NOF_vARIABLES)
-				CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	WRITE(3000+N,'(1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,LEFTV(1),LEFTV(2),LEFTV(3),LEFTV(4),LEFTV(5)
-				ELSE
-				LEFTV(1:NOF_vARIABLES)=U_C(PROBEI(N,INV))%VAL(1,1:NOF_vARIABLES)
-				CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	WRITE(3000+N,'(1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,LEFTV(1),LEFTV(2),LEFTV(3),LEFTV(4),LEFTV(5)&
-	,U_CT(PROBEI(N,INV))%VAL(1,1)/U_C(PROBEI(N,INV))%VAL(1,1)
-
-
-				END IF
-				CLOSE(3000+N)
-				
-		    
-			      END IF     
-			    END DO
-			  END IF
-			  END IF
+			      	INQUIRE (FILE=PROBFILE,EXIST=HEREs)
+			    	IF (HEREs.EQV..TRUE.) THEN
+						OPEN(3000+N,FILE=PROBFILE,FORM='FORMATTED',STATUS='OLD',ACTION='WRITE',POSITION='APPEND')
+					ELSE
+						OPEN(3000+N,FILE=PROBFILE,FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
+					END IF
+					IF (PASSIVESCALAR.EQ.0)THEN
+						LEFTV(1:NOF_vARIABLES)=U_C(PROBEI(N,INV))%VAL(1,1:NOF_vARIABLES)
+						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+						WRITE(3000+N,'(1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,LEFTV(1),LEFTV(2),LEFTV(3),LEFTV(4),LEFTV(5)
+					ELSE
+						LEFTV(1:NOF_vARIABLES)=U_C(PROBEI(N,INV))%VAL(1,1:NOF_vARIABLES)
+						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+						WRITE(3000+N,'(1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,LEFTV(1),LEFTV(2),LEFTV(3),LEFTV(4),LEFTV(5)&
+								,U_CT(PROBEI(N,INV))%VAL(1,1)/U_C(PROBEI(N,INV))%VAL(1,1)
+					END IF
+					CLOSE(3000+N)
+			    END IF     
+			END DO
+		END IF
+	END IF
 
 END SUBROUTINE PROBING
 
 
 SUBROUTINE PROBING2D
-	!> @brief
-	!> This subroutine writes the primitve variables at the probe positions in 2D
+  !> @brief
+  !> This subroutine writes the primitve variables at the probe positions in 2D
 	IMPLICIT NONE
 	INTEGER::INV
 	CHARACTER(LEN=120)::PROB,PROBFILE,PROC3
@@ -17338,8 +17054,8 @@ END SUBROUTINE PROBING2D
 
 
 SUBROUTINE COMPUTEFORCE(N)
-	!> @brief
-	!> This subroutine computes the forces on the wall
+  !> @brief
+  !> This subroutine computes the forces on the wall
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,K,J,KMAXE,gqi_points,nnd
@@ -17560,8 +17276,8 @@ END SUBROUTINE COMPUTEFORCE
 
 
 SUBROUTINE COMPUTEFORCE2d(N)
-	!> @brief
-	!> This subroutine computes the forces on the wall in 2D
+  !> @brief
+  !> This subroutine computes the forces on the wall in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,K,J,KMAXE,gqi_points,nnd
@@ -17701,8 +17417,8 @@ END SUBROUTINE COMPUTEFORCE2d
 
 
 SUBROUTINE CALCULATE_RESIDUAL(N)
-	!> @brief
-	!> This subroutine computes and writes the residual for 3D
+  !> @brief
+  !> This subroutine computes and writes the residual for 3D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,KMAXE
@@ -17795,8 +17511,8 @@ End Subroutine
 
 
 SUBROUTINE CALCULATE_RESIDUAL2D(N)
-	!> @brief
-	!> This subroutine computes and writes the residual for 2D
+  !> @brief
+  !> This subroutine computes and writes the residual for 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,KMAXE
@@ -17888,8 +17604,8 @@ End Subroutine
 
 
 SUBROUTINE CALCULATE_ERROR(N)
-!> @brief
-!> This subroutine computes and writes the l2,linfinity or l1 norm
+  !> @brief
+  !> This subroutine computes and writes the l2,linfinity or l1 norm
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,K,KMAXE,ind_er

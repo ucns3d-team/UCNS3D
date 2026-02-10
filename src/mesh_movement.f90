@@ -6,7 +6,13 @@ MODULE MESHMOVEMENT_module
     USE FLUXES
     USE TRANSFORM
     USE TRANSFORM_MovingMesh
+    USE PRESTORE_MOVINGMESH
+    USE COMMUNICATIONS
+    USE RECON
+
     IMPLICIT NONE
+
+    real::max_gradient_magnitude
 
 CONTAINS
 
@@ -116,6 +122,119 @@ subroutine polygon_centre(vert_num, vertices, centre)
     ! end if
 
 end subroutine polygon_centre
+
+
+
+
+
+subroutine pseudoVoronoi_centre(vert_num, vertices, centre)
+    ! this function assumes that the polygon is convex
+    implicit none
+    integer::vert_num
+    real,intent(in),dimension(1:vert_num,1:dimensiona)::vertices
+    real,intent(out),dimension(1:dimensiona)::centre
+    real,dimension(1:dimensiona)::temp_centre, helper, v1, v2
+    real,dimension(1:vert_num)::l, r
+    real,dimension(1:vert_num, 1:dimensiona)::J
+    ! real,dimension(1:vert_num, 1:dimensiona)::JtJinvJtt
+    ! real,dimension(1:dimensiona, 1:vert_num)::Jt
+    real,dimension(1:dimensiona, 1:vert_num)::JtJinvJt
+    real,dimension(1:dimensiona, 1:dimensiona)::JtJ
+    real,dimension(1:dimensiona, 1:dimensiona)::JtJinv
+    real,dimension(1:dimensiona)::dl_av
+    real,dimension(1:dimensiona)::delta
+    real::l_av, det
+    real::coord_diff
+    integer::a, b, c, step
+
+    if (dimensiona.ne.2) Then
+        print*, "pseudo-Voronoi mesh is not supported in 3D"
+        call abort()
+    end if
+
+    if (vert_num.le.0) then
+        print*, "trying to find a centre of 0-gon"
+        call abort()
+    end if
+    
+    centre(:) = zero
+    do a = 1, vert_num
+        centre(:) = centre(:) + (vertices(a,:)/real(vert_num))
+    end do
+
+    do step = 1, vert_num - 1
+        l_av = 0
+        dl_av(:) = zero
+        do a = 1, vert_num
+            l(a) = zero
+            do b = 1, dimensiona
+                coord_diff = centre(b) - vertices(a, b)
+                l(a) = l(a) + (coord_diff*coord_diff)
+            end do
+            l(a) = sqrt(l(a))
+            l_av = l_av + (l(a)/real(vert_num))
+
+            do b = 1, dimensiona
+                J(a, b) = (centre(b) - vertices(a, b))/l(a)
+                dl_av(b) = dl_av(b) + (J(a, b)/real(vert_num))
+            end do
+        end do
+        
+        do a = 1, vert_num
+            r(a) = l(a) - l_av
+            J(a, :) = J(a, :) - dl_av(:)
+            ! do b = 1, dimensiona
+                ! J(a, b) = J(a, b) - dl_av(b)
+                ! Jt(b, a) = J(a, b)
+            ! end do
+        end do
+
+        JtJ(:,:) = zero
+        do a = 1, dimensiona
+            do b = 1, dimensiona
+                do c = 1, vert_num
+                    ! JtJ(a, b) = JtJ(a, b) + (Jt(a, c) * J(c, b))
+                    JtJ(a, b) = JtJ(a, b) + (J(c, a) * J(c, b))
+                end do
+            end do
+        end do
+
+        det = (JtJ(1,1)*JtJ(2,2)) - (JtJ(1,2)*JtJ(2,1))
+
+        if (abs(det).lt.0.000000001) then
+            goto 10001
+        end if
+
+        JtJinv(1,1) = JtJ(2,2)/det
+        JtJinv(2,2) = JtJ(1,1)/det
+        JtJinv(1,2) = (-1.0)*JtJ(1,2)/det
+        JtJinv(2,1) = (-1.0)*JtJ(2,1)/det
+
+        JtJinvJt(:,:) = zero 
+        ! JtJinvJtt(:,:) = zero 
+        do a = 1, dimensiona
+            do b = 1, vert_num
+                do c = 1, dimensiona
+                    ! JtJinvJt(a,b) = JtJinvJt(a,b) + (JtJinv(a,c)*Jt(c,b))
+                    JtJinvJt(a,b) = JtJinvJt(a,b) + (JtJinv(a,c)*J(b,c))
+                    ! JtJinvJtt(b,a) = JtJinvJt(b,a) + (JtJinv(a,c)*J(b,c))
+                end do
+            end do
+        end do
+
+        delta(:) = zero
+        do a = 1, dimensiona
+            do b = 1, vert_num
+                delta(a) = delta(a) + (JtJinvJt(a,b)*r(b))
+            end do
+        end do 
+        
+        centre(:) = centre(:) - delta(:)
+    end do
+
+    10001 continue
+
+end subroutine pseudoVoronoi_centre
 
 
 
@@ -538,12 +657,16 @@ subroutine find_node_velocities(position_index, d_t, N)
             call FirstOrderNodeAverage_withVF(1, N)
         else if (moving_mesh_mode.eq.4) then
             call directReALE_node_velocity(1, position_index, d_t, N)
-        else if (moving_mesh_mode.eq.5) then
+        else if ((moving_mesh_mode.eq.5).or.(moving_mesh_mode.eq.7)) then
             call FirstOrderNodeAverage(1, N)
             call find_node_relaxation_velocity(1, position_index, d_t, N)
         else if (moving_mesh_mode.eq.6) then
             call FirstOrderNodeAverage_withVf(1, N)
             call find_node_relaxation_velocity(1, position_index, d_t, N)
+        else if (moving_mesh_mode.eq.8) then
+            call FirstOrderNodeAverage(1, N)
+            call find_node_relaxation_velocity_and_normalized_density_gradient(1, position_index, d_t, N)
+            ! call find_node_relaxation_velocity(1, position_index, d_t, N)
         else
             print *, "invalid moving mesh mode"
             call abort()
@@ -786,7 +909,7 @@ SUBROUTINE FirstOrderNodeAverage(stage, N)
                             print *, "copying too much data from receive buffer from", N, "to", cpu 
                         end if
                         v = node_rcv_buffer(cpu_index)%data(index+k)
-                        local_nodes(node_index)%lagrangian_velocity(k) = local_nodes(node_index+k)%lagrangian_velocity(k) + v
+                        local_nodes(node_index)%lagrangian_velocity(k) = local_nodes(node_index)%lagrangian_velocity(k) + v
                     end do
                     index = index + num_values_to_send_per_node
                 end do
@@ -969,8 +1092,21 @@ SUBROUTINE FirstOrderNodeAverage_withVF(stage, N)
                         else
                             local_mesh_velocity_multiple = 2.0*(1.0-vf_closest_to_half)
                         end if
-                    else
+                    else if (lagrangian_mesh_velocity_multiple_function_type.eq.2) then
                         local_mesh_velocity_multiple = sin(pi*vf_closest_to_half)
+                    else if (lagrangian_mesh_velocity_multiple_function_type.eq.3) then
+                        if ((vf_closest_to_half.lt.0.125).or.(vf_closest_to_half.gt.0.875)) then
+                            local_mesh_velocity_multiple = zero
+                        else if (vf_closest_to_half.lt.0.25) then
+                            local_mesh_velocity_multiple = (vf_closest_to_half-0.125)*8.0
+                        else if (vf_closest_to_half.gt.0.75) then
+                            local_mesh_velocity_multiple = (0.875-vf_closest_to_half)*8.0
+                        else
+                            local_mesh_velocity_multiple = 1.0
+                        end if
+                    else
+                        print*,"invalid lagrangian mesh velocity multiple function type"
+                        call abort()
                     end if
                 else
                     local_mesh_velocity_multiple = 0.0
@@ -1154,11 +1290,22 @@ SUBROUTINE directReALE_node_velocity(stage, position_index, d_t, N)
             if (counter.ne.local_nodes(node_index)%num_neighbours) then
                 print *, "something went wrong counter =/= local_nodes(node_index)%num_neighbours"
             end if
-            call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%velocity(1:dimensiona))
+            if (relaxation_centre_type.eq.1) then
+                call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+            else if (relaxation_centre_type.eq.2) then
+                call pseudoVoronoi_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+                if ((local_nodes(node_index)%velocity(1).le.xmin(n)).or.&
+                        (local_nodes(node_index)%velocity(1).ge.xmax(n)).or.&
+                        (local_nodes(node_index)%velocity(2).le.ymin(n)).or.&
+                        (local_nodes(node_index)%velocity(2).ge.ymax(n))) then
+                    call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+                end if
+            else
+                print*,"invalid centre algorithm in node relaxation velocity"
+            end if
+            local_nodes(node_index)%relaxation_velocity(1:dimensiona) = (local_nodes(node_index)%relaxation_velocity(1:dimensiona) - local_nodes(node_index)%positions(position_index,1:dimensiona)) / d_t
 
-            local_nodes(node_index)%velocity(1:dimensiona) = (local_nodes(node_index)%velocity(1:dimensiona) - local_nodes(node_index)%positions(position_index,1:dimensiona)) / d_t
-
-            local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%velocity(1:dimensiona) * mesh_velocity_multiple
+            ! local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%relaxation_velocity(1:dimensiona) * mesh_velocity_multiple
         end do
     !$omp end do
     
@@ -1185,6 +1332,7 @@ SUBROUTINE find_node_relaxation_velocity(stage, position_index, d_t, N)
     real::dummuy_MP_PINFl, dummy_gammal
     real,dimension(1:dimensiona)::helper_centre_position
     real,dimension(1:max_num_node_neighbours,1:dimensiona)::centre_positions
+    ! real,dimension(1:max_num_node_neighbours)::weights
 
 
     integer,dimension(2*isize)::requests
@@ -1332,7 +1480,19 @@ SUBROUTINE find_node_relaxation_velocity(stage, position_index, d_t, N)
             if (counter.ne.local_nodes(node_index)%num_neighbours) then
                 print *, "something went wrong counter =/= local_nodes(node_index)%num_neighbours"
             end if
-            call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+            if (relaxation_centre_type.eq.1) then
+                call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+            else if (relaxation_centre_type.eq.2) then
+                call pseudoVoronoi_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+                if ((local_nodes(node_index)%velocity(1).le.xmin(n)).or.&
+                        (local_nodes(node_index)%velocity(1).ge.xmax(n)).or.&
+                        (local_nodes(node_index)%velocity(2).le.ymin(n)).or.&
+                        (local_nodes(node_index)%velocity(2).ge.ymax(n))) then
+                    call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+                end if
+            else
+                print*,"invalid centre algorithm in node relaxation velocity"
+            end if
 
             local_nodes(node_index)%relaxation_velocity(1:dimensiona) = (local_nodes(node_index)%relaxation_velocity(1:dimensiona) - local_nodes(node_index)%positions(position_index,1:dimensiona)) / d_t
         end do
@@ -1350,6 +1510,318 @@ END SUBROUTINE find_node_relaxation_velocity
 
 
 
+SUBROUTINE find_node_relaxation_velocity_and_normalized_density_gradient(stage, position_index, d_t, N)
+    implicit none
+    integer,intent(in)::stage, position_index, N
+    real,intent(in)::d_t
+    integer::i, j, k, iter, counter, node_index, cell_index, cpu_index, cpu, index, rho_index
+    integer::num_neighbours
+    integer:: M
+    real::rho, v
+    real,dimension(1:nof_variables)::copy
+    real::dummy_MP_PINFl, dummy_gammal
+    real,dimension(1:dimensiona)::helper_centre_position, node_center
+    real,dimension(1:max_num_node_neighbours,1:dimensiona)::centre_positions
+    real,dimension(1:max_num_node_neighbours)::rho_vector
+    ! real,dimension(1:(dimensiona+1),1:max_num_node_neighbours)::At
+    real,dimension(1:max_num_node_neighbours,1:(dimensiona+1))::A
+    real,dimension(1:(dimensiona+1),1:(dimensiona+1))::AtA
+    real,dimension(1:(dimensiona+1))::At_rho_vector, x
+    real,dimension(1:dimensiona)::coord_diff
+    real::rho_difference, distance2
+    real::swap_helper, factor
+    real::gradient_magnitude, my_max_gradient_magnitude
+    logical::solvable
+
+    integer,dimension(2*isize)::requests
+    integer::num_requests, count
+
+    M = omp_get_thread_num()
+    
+    rho_index = 1
+
+    max_gradient_magnitude = 0.0
+
+    if (num_values_to_send_per_node.lt.(dimensiona+1)) then
+        print *,"something went wrong sorry :("
+        call abort
+    end if
+
+    ! do cpu_index = 0, isize-1
+    !     index = 0
+    !     do i = 1, node_snd_count(cpu_index)
+    !         do j = 1, dimensiona
+    !             index = index +1
+    !             node_snd_buffer(cpu_index)%data(index) = 1000.0
+    !         end do
+    !     end do
+    !     if (index.ne.dimensiona*node_snd_count(cpu_index)) then
+    !         print *, "something went wrong with rezeroing the send buffer"
+    !     else
+    !         print *, "snd_buffer on CPU", N, "thread", M, "to", cpu_index, "reset with", node_snd_count(cpu_index)*dimensiona, "values"
+    !     end if
+    ! end do
+    ! !$omp barrier 
+
+    !$omp do
+        do iter = 1,my_num_interface_nodes 
+            node_index = local_interface_nodes(iter)
+            ! print *, "on CPU", N, "thread", M, "coping data of", node_index, "(", iter, ") to send buffer" 
+            do cpu_index = 1,local_nodes(node_index)%num_cpus
+                cpu = local_nodes(node_index)%snd_offsets(cpu_index)%cpu
+                index = (local_nodes(node_index)%snd_offsets(cpu_index)%lower -1) * num_values_to_send_per_node
+                do j = 1, local_nodes(node_index)%num_local_neighbours
+                    cell_index = local_nodes(node_index)%local_neighbours(j)
+                    copy(:) = u_c(cell_index)%val(stage,1:nof_variables)
+                    call cons2prim(N, copy, dummy_MP_PINFl, dummy_gammal)
+                    rho = copy(rho_index)
+
+                    helper_centre_position(1) = ielem(N, cell_index)%xxc
+                    helper_centre_position(2) = ielem(N, cell_index)%yyc
+                    if (dimensiona.eq.3) then
+                        helper_centre_position(3) = ielem(N, cell_index)%zzc
+                    end if
+                    do k = 1, dimensiona
+                        if ((index+k).gt.node_snd_count(cpu) * num_values_to_send_per_node) then
+                            print *, "copying too much data to send buffer from", N, "to", cpu 
+                        end if
+                        node_snd_buffer(cpu)%data(index+k) = helper_centre_position(k)
+                    end do
+                    if ((index+dimensiona+1).gt.node_snd_count(cpu) * num_values_to_send_per_node) then
+                        print *, "copying too much data to send buffer from", N, "to", cpu 
+                    end if
+                    node_snd_buffer(cpu)%data(index+dimensiona+1) = rho
+                    index = index + num_values_to_send_per_node
+                end do
+            end do
+        end do
+    !$omp end do
+
+    ! do cpu_index = 0, isize-1
+    !     index = 0
+    !     do i = 1, node_rcv_count(cpu_index)
+    !         do j = 1, dimensiona
+    !             index = index +1
+    !             node_rcv_buffer(cpu_index)%data(index) = 1000000.0
+    !         end do
+    !     end do
+    !     if (index.ne.dimensiona*node_rcv_count(cpu_index)) then
+    !         print *, "something went wrong with rezeroing the receive buffer"
+    !     else
+    !         print *, "rcv_buffer on CPU", N, "thread", M, "from", cpu_index, "reset with", node_rcv_count(cpu_index)*dimensiona, "values"
+    !     end if
+    ! end do
+
+    !$omp barrier
+
+    num_requests = 0
+    !$omp master
+        ! print *, "inside send_rcv part on CPU", N
+        do cpu_index = 0, isize-1
+            if (cpu_index.ne.N) then
+                if (node_snd_count(cpu_index).gt.0) then
+                    count = node_snd_count(cpu_index) * num_values_to_send_per_node
+                    num_requests = num_requests + 1
+                    CALL MPI_ISEND(node_snd_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, "sending from", N, "to", cpu_index, count, "values"
+                end if
+                if (node_rcv_count(cpu_index).gt.0) then
+                    count = node_rcv_count(cpu_index) * num_values_to_send_per_node
+                    num_requests = num_requests + 1
+                    CALL MPI_IRECV(node_rcv_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, N, "waiting to receive", count, "values from", cpu_index
+                end if
+            else
+                if (node_snd_count(cpu_index).ne.node_rcv_count(cpu_index)) then
+                    print *,"send receive count missmatch on CPU", n
+                    call abort
+                end if
+                count = node_snd_count(cpu_index) * num_values_to_send_per_node
+                do i = 1, count
+                    node_rcv_buffer(cpu_index)%data(i) = node_snd_buffer(cpu_index)%data(i)
+                end do
+            end if
+        end do
+
+        ! print*,"CPU", n, "witing on", num_requests, "requests"
+        CALL MPI_WAITALL(num_requests, requests, MPI_STATUSES_IGNORE, IERROR)
+
+    !$omp end master
+
+    !$omp barrier
+
+    ! !$omp parallel do reduction(max: max_gradient_magnitude)
+    ! !$omp do reduction(max: max_gradient_magnitude)
+    !$omp do
+        do node_index = 1, kmaxn 
+
+            local_nodes(node_index)%relaxation_velocity(:) = 0.0
+            counter = 0
+
+            do i = 1, local_nodes(node_index)%num_local_neighbours
+                counter = counter + 1
+                cell_index = local_nodes(node_index)%local_neighbours(i)
+                copy(:) = u_c(cell_index)%val(stage,1:nof_variables)
+                call cons2prim(N, copy, dummy_MP_PINFl, dummy_gammal)
+
+                helper_centre_position(1) = ielem(N, cell_index)%xxc
+                helper_centre_position(2) = ielem(N, cell_index)%yyc
+                if (dimensiona.eq.3) then
+                    helper_centre_position(3) = ielem(N, cell_index)%zzc
+                end if
+                centre_positions(counter, :) = helper_centre_position(:)
+
+                rho_vector(counter) = copy(rho_index)
+            end do
+
+            do i = 1, local_nodes(node_index)%num_cpus
+                cpu_index = local_nodes(node_index)%rcv_offsets(i)%cpu
+                index = (local_nodes(node_index)%rcv_offsets(i)%lower - 1)*num_values_to_send_per_node
+                do j = local_nodes(node_index)%rcv_offsets(i)%lower, local_nodes(node_index)%rcv_offsets(i)%upper
+                    counter = counter+1
+                    do k = 1, dimensiona
+                        if ((index+k).gt.node_rcv_count(cpu_index) * num_values_to_send_per_node) then
+                            print *, "copying too much data from receive buffer from", N, "to", cpu 
+                        end if
+                        centre_positions(counter, k) = node_rcv_buffer(cpu_index)%data(index+k)
+                    end do
+                    rho_vector(counter) = node_rcv_buffer(cpu_index)%data(index+dimensiona+1)
+                    ! index = index + num_values_to_send_per_node
+                end do
+            end do
+
+            if (counter.ne.local_nodes(node_index)%num_neighbours) then
+                print *, "something went wrong counter =/= local_nodes(node_index)%num_neighbours"
+            end if
+            call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+
+            local_nodes(node_index)%relaxation_velocity(1:dimensiona) = (local_nodes(node_index)%relaxation_velocity(1:dimensiona) - local_nodes(node_index)%positions(position_index,1:dimensiona)) / d_t
+
+            local_nodes(node_index)%density_gradient(:) = zero 
+            local_nodes(node_index)%normalized_density_gradient_magnitude = zero
+
+            num_neighbours = local_nodes(node_index)%num_neighbours
+            if (num_neighbours.gt.max_num_node_neighbours) then
+                print*,"overfilled matrix"
+            end if
+            solvable = .false.
+            if (num_neighbours.ge.3) then
+                do i = 1, num_neighbours 
+                    A(i, 1) = 1.0
+                    do j = 1, dimensiona
+                        A(i, j+1) = centre_positions(i, j) - local_nodes(node_index)%positions(position_index,j)
+                    end do
+                end do
+
+                At_rho_vector(:) = zero
+                do i = 1, (dimensiona+1)
+                    do j = 1, num_neighbours
+                        ! At(i,j) = A(j,i)
+                        ! At_rho_vector(i) = At_rho_vector(i) + At(i,j)*rho_vector(j)
+                        At_rho_vector(i) = At_rho_vector(i) + A(j, i)*rho_vector(j)
+                    end do
+                end do
+
+                AtA(:,:) = zero
+                do i = 1, (dimensiona+1)
+                    do j = 1, (dimensiona+1)
+                        do  k = 1, num_neighbours
+                            ! AtA(i,j) = At(i,j) + (At(i,k)*A(k,j))
+                            AtA(i,j) = AtA(i,j) + (A(k, i)*A(k, j))
+                        end do
+                    end do
+                end do
+
+                if (AtA(1,1).ne.real(num_neighbours)) then
+                    print *, "linear solver failuer\nAta(1,1)=/=num_neighbours"
+                    call abort()
+                end if
+
+                solvable = linear_solve(1+dimensiona, AtA, At_rho_vector, x)
+
+                if (solvable) then
+                    gradient_magnitude = zero
+                    do i = 1, dimensiona
+                        local_nodes(node_index)%density_gradient(i) = x(i+1)
+                        gradient_magnitude = gradient_magnitude + (x(i+1)*x(i+1))
+                    end do
+                    gradient_magnitude = sqrt(gradient_magnitude)
+                    local_nodes(node_index)%normalized_density_gradient_magnitude = gradient_magnitude
+
+                    ! if (gradient_magnitude.gt.max_gradient_magnitude) then
+                    !     max_gradient_magnitude = gradient_magnitude
+                    ! end if
+                end if
+            end if
+
+            if ((.not.solvable).and.(num_neighbours.ge.2)) then
+
+                rho_difference = rho_vector(2) - rho_vector(1)
+                distance2 = zero
+                coord_diff(:) = centre_positions(2,:) - centre_positions(1,:)
+                do i = 1, dimensiona
+                    distance2 = distance2 + (coord_diff(i)*coord_diff(i))
+                end do
+                gradient_magnitude = abs(rho_difference) / sqrt(distance2)
+
+                local_nodes(node_index)%density_gradient(1:dimensiona) = (coord_diff(1:dimensiona) / sqrt(distance2)) * gradient_magnitude
+                local_nodes(node_index)%normalized_density_gradient_magnitude = gradient_magnitude
+
+                ! if (gradient_magnitude.gt.my_max_gradient_magnitude) then
+                !     my_max_gradient_magnitude = gradient_magnitude
+                ! end if
+
+            else ! num_neighbours.le.1
+                ! print*,"cannot approximate density gradient" ! it should be a corner cell which normally does not move so it shouldn't be an issue
+            end if
+                
+        end do
+    !$omp end do
+    ! !$omp end parallel do
+
+    max_gradient_magnitude = 0.0
+    !$omp barrier
+    
+    !$omp do reduction(max: max_gradient_magnitude)
+        do node_index = 1, kmaxn 
+            if (local_nodes(node_index)%normalized_density_gradient_magnitude.gt.max_gradient_magnitude) then
+                max_gradient_magnitude = local_nodes(node_index)%normalized_density_gradient_magnitude
+            end if
+        end do
+    !$omp end do
+    ! print*, "before", N, M, max_gradient_magnitude
+
+    !$omp barrier
+
+    !$omp master
+        my_max_gradient_magnitude = max_gradient_magnitude
+        CALL MPI_ALLREDUCE(my_max_gradient_magnitude, max_gradient_magnitude, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, IERROR)
+    !$omp end master
+
+    !$omp barrier
+
+    my_max_gradient_magnitude = max_gradient_magnitude
+    ! print*, "after", N, M, my_max_gradient_magnitude
+
+    !$omp do
+    do node_index = 1, kmaxn 
+        local_nodes(node_index)%density_gradient(:) = local_nodes(node_index)%density_gradient(:) / my_max_gradient_magnitude
+        local_nodes(node_index)%normalized_density_gradient_magnitude = local_nodes(node_index)%normalized_density_gradient_magnitude / my_max_gradient_magnitude
+    end do
+    !$omp end do
+    
+    !$omp barrier
+
+    !$omp master
+        call MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+    !$omp end master
+
+END SUBROUTINE find_node_relaxation_velocity_and_normalized_density_gradient
+
+
+
+
+
 subroutine CombineNodeVelocities(N)
     implicit none
     integer,intent(in)::N
@@ -1357,6 +1829,7 @@ subroutine CombineNodeVelocities(N)
     integer::i
     real,dimension(1:dimensiona)::initial_velocity1, initial_velocity2
     real,dimension(1:dimensiona)::option1, option2
+    real::gradient_copy, local_lagrangian_velocity_multiple
 
     initial_velocity1 = zero
     initial_velocity2 = zero
@@ -1368,24 +1841,15 @@ subroutine CombineNodeVelocities(N)
         end do
         !$omp end do
     else if (moving_mesh_mode.eq.2) then
-        if ((governingequations.ne.3).and.(initcond.eq.102)) then
-            initial_velocity2(1) =  8.25*cos(pi/6.0d0)
-            ! initial_velocity2(2) = -8.25*sin(pi/6.0d0)
-        end if
-
-        if ((governingequations.ne.3).and.(initcond.eq.101)) then
-            initial_velocity2(1) = 2.6294d0
-            initial_velocity2(2) = zero
-        end if
-
         !$omp do
         do node_index = 1, kmaxn
-            if ((governingequations.ne.3).and.(initcond.eq.102)) then
-                local_nodes(node_index)%velocity(2) = zero
-                ! print *, "zeroing y node velocity"
+            option1(:) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona)
+            option2(:) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona)
+            option2(1) = option2(1) - uvel
+            option2(2) = option2(2) - vvel
+            if (dimensiona.eq.3) then
+                option2(3) = option2(3) - wvel
             end if
-            option1 = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) - initial_velocity1
-            option2 = initial_velocity2 - local_nodes(node_index)%lagrangian_velocity(1:dimensiona)
             local_nodes(node_index)%velocity(1:dimensiona) = min_abs(option1, option2)
         end do
         !$omp end do
@@ -1393,6 +1857,12 @@ subroutine CombineNodeVelocities(N)
         !$omp do
         do node_index = 1, kmaxn
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona)
+        end do
+        !$omp end do
+    else if (moving_mesh_mode.eq.4) then
+        !$omp do
+        do node_index = 1, kmaxn
+            local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%relaxation_velocity(1:dimensiona)*mesh_velocity_multiple
         end do
         !$omp end do
     else if (moving_mesh_mode.eq.5) then
@@ -1405,16 +1875,174 @@ subroutine CombineNodeVelocities(N)
     else if (moving_mesh_mode.eq.6) then
         !$omp do
         do node_index = 1, kmaxn
-            local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) * lagrangian_mesh_velocity_multiple &
-                                                           + local_nodes(node_index)%relaxation_velocity(1:dimensiona)
+            local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) &
+                                                           + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * relaxation_mesh_velocity_multiple
         end do
         !$omp end do
-    else if (moving_mesh_mode.ne.4) then
+    else if (moving_mesh_mode.eq.7) then
+        !$omp do
+        do node_index = 1, kmaxn
+            option1(:) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona)
+            option2(:) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona)
+            option2(1) = option2(1) - uvel
+            option2(2) = option2(2) - vvel
+            if (dimensiona.eq.3) then
+                option2(3) = option2(3) - wvel
+            end if
+            local_nodes(node_index)%velocity(1:dimensiona) = min_abs(option1, option2) &
+                                                           + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * relaxation_mesh_velocity_multiple
+        end do
+        !$omp end do
+    else if (moving_mesh_mode.eq.8) then
+        !$omp do
+        do node_index = 1, kmaxn
+            ! if (local_nodes(node_index)%num_neighbours.lt.3) then
+            if (local_nodes(node_index)%num_neighbours.lt.2) then
+                local_lagrangian_velocity_multiple = 0.0
+            else
+                gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+                if (gradient_copy.lt.zero) then
+                    print*, "negative desnity gradient magnitude"
+                else if (gradient_copy.lt.gradient_treshold) then
+                    local_lagrangian_velocity_multiple = 0.0
+                else if (gradient_copy.lt.(2.0*gradient_treshold)) then
+                    local_lagrangian_velocity_multiple = (gradient_copy - gradient_treshold) / gradient_treshold
+                else if (gradient_copy.le.1.0) then
+                    local_lagrangian_velocity_multiple = 1.0
+                else
+                    print*, "normalized desnity gradient magnitude above 1.0"
+                end if
+            end if
+
+            if ((local_lagrangian_velocity_multiple.lt.zero).or.(local_lagrangian_velocity_multiple.gt.1.0)) then
+                print *, "invalid local lagrangian velocity multiple"
+            end if
+            local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) * local_lagrangian_velocity_multiple &
+                                                            + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * relaxation_mesh_velocity_multiple
+        end do
+        !$omp end do
+    else
         print *, "invalid moving mesh mode"
     end if
 
-
 end subroutine CombineNodeVelocities
+
+
+
+
+
+! subroutine enforce_node_velocity_BC(position_index, N)
+!     implicit none
+!     integer,intent(in)::position_index, n
+!     real::x, y, epsilon, v2
+!     integer:: node_index
+!     epsilon = 0.000001
+
+!     if (initcond.eq.101) then
+!         !$omp do
+!         do node_index = 1, kmaxn
+!             x = local_nodes(node_index)%positions(position_index,1)
+!             y = local_nodes(node_index)%positions(position_index,2)
+!             v2 = (local_nodes(node_index)%velocity(1)*local_nodes(node_index)%velocity(1)) + (local_nodes(node_index)%velocity(2)*local_nodes(node_index)%velocity(2))
+!             if ((local_nodes(node_index)%velocity(1) .ne. local_nodes(node_index)%velocity(1)) .or. (local_nodes(node_index)%velocity(2) .ne. local_nodes(node_index)%velocity(2))) then
+!                 print *, "NaN node velocity during BC check in node", node_index, local_nodes(node_index)%positions(position_index,:), N
+!             end if
+!             ! if (v2.gt.((5.0*mesh_velocity_multiple)*(5.0*mesh_velocity_multiple))) then
+!             !     print *, "too high node speed^2", v2, "in node", node_index, N
+!             ! end if
+!             if ((y.lt.epsilon).or.(y.gt.(1.0-epsilon))) then
+!                 local_nodes(node_index)%velocity(2) = 0.0
+!             end if
+!             if (y.lt.0.0) then
+!                 local_nodes(node_index)%velocity(2) = (-1.0)*y/dt
+!             end if
+!             if (y.gt.1.0) then
+!                 local_nodes(node_index)%velocity(2) = (y - 1.0)/dt
+!             end if
+!             if (moving_mesh_mode.ge.4) then
+!                 if ((x.le.-4.5+epsilon).or.(x.ge.4.5-epsilon)) then
+!                     local_nodes(node_index)%velocity(1) = 0.0
+!                 end if
+!             end if
+
+!         end do
+!         !$omp end do
+    
+!     else if (initcond.eq.102) then
+!         !$omp do
+!         do node_index = 1, kmaxn
+!             x = local_nodes(node_index)%positions(position_index,1)
+!             y = local_nodes(node_index)%positions(position_index,2)
+!             v2 = (local_nodes(node_index)%velocity(1)*local_nodes(node_index)%velocity(1)) + (local_nodes(node_index)%velocity(2)*local_nodes(node_index)%velocity(2))
+!             if ((local_nodes(node_index)%velocity(1) .ne. local_nodes(node_index)%velocity(1)) .or. (local_nodes(node_index)%velocity(2) .ne. local_nodes(node_index)%velocity(2))) then
+!                 print *, "NaN node velocity during BC check in node", node_index, local_nodes(node_index)%positions(position_index,:), N
+!             end if
+!             ! if (v2.gt.((10.0*mesh_velocity_multiple)*(10.0*mesh_velocity_multiple))) then
+!             !     print *, "too high node speed^2", v2, "in node", node_index, N
+!             ! end if
+!             if (moving_mesh_mode.ge.4) then
+!                 if ((x.le.epsilon).or.(x.ge.4.0-epsilon)) then
+!                     local_nodes(node_index)%velocity(1) = 0.0
+!                 end if
+!                 if ((y.le.epsilon).or.(y.ge.1.0-epsilon)) then
+!                     local_nodes(node_index)%velocity(2) = 0.0
+!                 end if
+!             end if
+
+!         end do
+!         !$omp end do
+
+!     else if (initcond.eq.470) then
+!         !$omp do
+!         do node_index = 1, kmaxn
+!             x = local_nodes(node_index)%positions(position_index,1)
+!             y = local_nodes(node_index)%positions(position_index,2)
+!             v2 = (local_nodes(node_index)%velocity(1)*local_nodes(node_index)%velocity(1)) + (local_nodes(node_index)%velocity(2)*local_nodes(node_index)%velocity(2))
+!             if ((local_nodes(node_index)%velocity(1) .ne. local_nodes(node_index)%velocity(1)) .or. (local_nodes(node_index)%velocity(2) .ne. local_nodes(node_index)%velocity(2))) then
+!                 print *, "NaN node velocity during BC check in node", node_index, local_nodes(node_index)%positions(position_index,:), N
+!             end if
+!             ! if (v2.gt.((10.0*mesh_velocity_multiple)*(10.0*mesh_velocity_multiple))) then
+!             !     print *, "too high node speed^2", v2, "in node", node_index, N
+!             ! end if
+!             if (moving_mesh_mode.ge.4) then
+!                 if ((x.le.epsilon).or.(x.ge.7.0-epsilon)) then
+!                     local_nodes(node_index)%velocity(1) = 0.0
+!                 end if
+!                 if ((y.le.epsilon).or.(y.ge.3.0-epsilon)) then
+!                     local_nodes(node_index)%velocity(2) = 0.0
+!                 end if
+!             end if
+
+!         end do
+!         !$omp end do
+    
+!     else if (initcond.eq.405) then
+!         !$omp do
+!         do node_index = 1, kmaxn
+!             x = local_nodes(node_index)%positions(position_index,1)
+!             y = local_nodes(node_index)%positions(position_index,2)
+!             v2 = (local_nodes(node_index)%velocity(1)*local_nodes(node_index)%velocity(1)) + (local_nodes(node_index)%velocity(2)*local_nodes(node_index)%velocity(2))
+!             if ((local_nodes(node_index)%velocity(1) .ne. local_nodes(node_index)%velocity(1)) .or. (local_nodes(node_index)%velocity(2) .ne. local_nodes(node_index)%velocity(2))) then
+!                 print *, "NaN node velocity during BC check in node", node_index, local_nodes(node_index)%positions(position_index,:), N
+!             end if
+!             ! if (v2.gt.((10.0*mesh_velocity_multiple)*(10.0*mesh_velocity_multiple))) then
+!             !     print *, "too high node speed^2", v2, "in node", node_index, N
+!             ! end if
+!             if (moving_mesh_mode.ge.4) then
+!                 if ((x.le.-0.25+epsilon).or.(x.ge.0.25-epsilon)) then
+!                     local_nodes(node_index)%velocity(1) = 0.0
+!                 end if
+!                 if ((y.le.epsilon).or.(y.ge.0.1-epsilon)) then
+!                     local_nodes(node_index)%velocity(2) = 0.0
+!                 end if
+!             end if
+
+!         end do
+!         !$omp end do
+!     end if
+
+! end subroutine enforce_node_velocity_BC
+
 
 
 
@@ -1423,112 +2051,98 @@ end subroutine CombineNodeVelocities
 subroutine enforce_node_velocity_BC(position_index, N)
     implicit none
     integer,intent(in)::position_index, n
-    real::x, y, epsilon, v2
-    integer:: node_index
-    epsilon = 0.000001
+    integer::i, ii, j, cell_index, edge_index, boundary_index, node_index, node_index_1, node_index_2
+    integer::apply, done
+    real,dimension(1:dimensiona)::edge, normalized
+    real::edge_len, dot, speed
 
-    if (initcond.eq.101) then
-        !$omp do
-        do node_index = 1, kmaxn
-            x = local_nodes(node_index)%positions(position_index,1)
-            y = local_nodes(node_index)%positions(position_index,2)
-            v2 = (local_nodes(node_index)%velocity(1)*local_nodes(node_index)%velocity(1)) + (local_nodes(node_index)%velocity(2)*local_nodes(node_index)%velocity(2))
-            if ((local_nodes(node_index)%velocity(1) .ne. local_nodes(node_index)%velocity(1)) .or. (local_nodes(node_index)%velocity(2) .ne. local_nodes(node_index)%velocity(2))) then
-                print *, "NaN node velocity during BC check in node", node_index, local_nodes(node_index)%positions(position_index,:), N
-            end if
-            ! if (v2.gt.((5.0*mesh_velocity_multiple)*(5.0*mesh_velocity_multiple))) then
-            !     print *, "too high node speed^2", v2, "in node", node_index, N
-            ! end if
-            if ((y.lt.epsilon).or.(y.gt.(1.0-epsilon))) then
-                local_nodes(node_index)%velocity(2) = 0.0
-            end if
-            if (y.lt.0.0) then
-                local_nodes(node_index)%velocity(2) = (-1.0)*y/dt
-            end if
-            if (y.gt.1.0) then
-                local_nodes(node_index)%velocity(2) = (y - 1.0)/dt
-            end if
-            if (moving_mesh_mode.ge.4) then
-                if ((x.le.-4.5+epsilon).or.(x.ge.4.5-epsilon)) then
-                    local_nodes(node_index)%velocity(1) = 0.0
+    !$omp master
+        DO II = 1, NOF_BOUNDED
+            cell_index = EL_BND(II)
+            do edge_index = 1, IELEM(N,cell_index)%ifca
+                
+                if (IELEM(N,cell_index)%INEIGHB(edge_index).ne.N) then
+                    cycle ! it is an interface between CPUs not a domain boundary
                 end if
-            end if
+                if (ielem(n,cell_index)%ibounds(edge_index).eq.0) then
+                    cycle ! not a domian boundary
+                end if
+                node_index_1 = IELEM(N,cell_index)%nodes_faces(edge_index, 1)
+                node_index_2 = IELEM(N,cell_index)%nodes_faces(edge_index, 2)
+                
+                apply = 0
+                if ((moving_mesh_mode.gt.2).and.(relaxation_mesh_velocity_multiple.ne.zero)) then
+                    apply = 1
+                else
+                    if (ibound(n,ielem(n,cell_index)%ibounds(edge_index))%icode.eq.3) then ! symmetry BC
+                        apply = 1
+                    end if
+                    if (ibound(n,ielem(n,cell_index)%ibounds(edge_index))%icode.eq.4) then ! wall BC
+                        apply = 1
+                    end if
+                end if
+                if (apply.gt.0) then
+                    if (dimensiona.eq.3) Then
+                        print*, "moving mesh currently does not support 3D boundary conditions"
+                    else
+                        edge(:) = local_nodes(node_index_2)%positions(position_index,:) - local_nodes(node_index_1)%positions(position_index,:)
 
+                        done = 0
+                        if (initcond.eq.105) Then
+                            local_nodes(node_index_1)%velocity(:) = zero
+                            local_nodes(node_index_2)%velocity(:) = zero
+                        else
+                            if (edge(2).ne.zero) then
+                                local_nodes(node_index_1)%velocity(1) = zero
+                                local_nodes(node_index_2)%velocity(1) = zero
+                                done = 1
+                            end if
+                            if (edge(1).ne.zero) then
+                                local_nodes(node_index_1)%velocity(2) = zero
+                                local_nodes(node_index_2)%velocity(2) = zero
+                                done = 1
+                            end if
+                            if (done.eq.0) then
+                                edge_len = sqrt((edge(1)*edge(1)) + (edge(2)*edge(2)))
+                                ! speed = local_nodes(node_index_1)%velocity(1)*local_nodes(node_index_1)%velocity(1)
+                                ! speed = speed + (local_nodes(node_index_1)%velocity(2)*local_nodes(node_index_1)%velocity(2))
+                                ! speed = sqrt(speed)
+                                dot = local_nodes(node_index_1)%velocity(1) * edge(1)
+                                dot = dot + local_nodes(node_index_1)%velocity(2) * edge(2)
+                                dot = dot / edge_len
+                                local_nodes(node_index_1)%velocity(1) = edge(1) * dot / edge_len
+                                local_nodes(node_index_1)%velocity(2) = edge(2) * dot / edge_len
+                                local_nodes(node_index_1)%velocity(3) = zero
+
+                                ! speed = local_nodes(node_index_2)%velocity(1)*local_nodes(node_index_2)%velocity(1)
+                                ! speed = speed + (local_nodes(node_index_2)%velocity(2)*local_nodes(node_index_2)%velocity(2))
+                                ! speed = sqrt(speed)
+                                dot = local_nodes(node_index_2)%velocity(1) * edge(1)
+                                dot = dot + local_nodes(node_index_2)%velocity(2) * edge(2)
+                                dot = dot / edge_len
+                                local_nodes(node_index_2)%velocity(1) = edge(1) * dot / edge_len
+                                local_nodes(node_index_2)%velocity(2) = edge(2) * dot / edge_len
+                                local_nodes(node_index_2)%velocity(3) = zero
+                            end if
+                        end if
+                    end if
+                end if
+                if (BOUNDARY_MOVEMENT) then
+                    if (ibound(n,ielem(n,cell_index)%ibounds(edge_index))%icode.gt.100) then ! moving wall
+                        boundary_index = ibound(n,ielem(n,cell_index)%ibounds(edge_index))%icode - 100
+                        local_nodes(node_index_1)%velocity(:) = zero
+                        local_nodes(node_index_2)%velocity(:) = zero
+                        if (((initcond.eq.105).and.(t.ge.0.01)).or.(initcond.ne.105)) then
+                            local_nodes(node_index_1)%velocity(1:dimensiona) = boundary_velocity(boundary_index, 1:dimensiona)
+                            local_nodes(node_index_2)%velocity(1:dimensiona) = boundary_velocity(boundary_index, 1:dimensiona)
+                        end if
+                    end if
+                end if
+
+            end do 
         end do
-        !$omp end do
+    !$omp end master
     
-    else if (initcond.eq.102) then
-        !$omp do
-        do node_index = 1, kmaxn
-            x = local_nodes(node_index)%positions(position_index,1)
-            y = local_nodes(node_index)%positions(position_index,2)
-            v2 = (local_nodes(node_index)%velocity(1)*local_nodes(node_index)%velocity(1)) + (local_nodes(node_index)%velocity(2)*local_nodes(node_index)%velocity(2))
-            if ((local_nodes(node_index)%velocity(1) .ne. local_nodes(node_index)%velocity(1)) .or. (local_nodes(node_index)%velocity(2) .ne. local_nodes(node_index)%velocity(2))) then
-                print *, "NaN node velocity during BC check in node", node_index, local_nodes(node_index)%positions(position_index,:), N
-            end if
-            ! if (v2.gt.((10.0*mesh_velocity_multiple)*(10.0*mesh_velocity_multiple))) then
-            !     print *, "too high node speed^2", v2, "in node", node_index, N
-            ! end if
-            if (moving_mesh_mode.ge.4) then
-                if ((x.le.epsilon).or.(x.ge.4.0-epsilon)) then
-                    local_nodes(node_index)%velocity(1) = 0.0
-                end if
-                if ((y.le.epsilon).or.(y.ge.1.0-epsilon)) then
-                    local_nodes(node_index)%velocity(2) = 0.0
-                end if
-            end if
-
-        end do
-        !$omp end do
-
-    else if (initcond.eq.470) then
-        !$omp do
-        do node_index = 1, kmaxn
-            x = local_nodes(node_index)%positions(position_index,1)
-            y = local_nodes(node_index)%positions(position_index,2)
-            v2 = (local_nodes(node_index)%velocity(1)*local_nodes(node_index)%velocity(1)) + (local_nodes(node_index)%velocity(2)*local_nodes(node_index)%velocity(2))
-            if ((local_nodes(node_index)%velocity(1) .ne. local_nodes(node_index)%velocity(1)) .or. (local_nodes(node_index)%velocity(2) .ne. local_nodes(node_index)%velocity(2))) then
-                print *, "NaN node velocity during BC check in node", node_index, local_nodes(node_index)%positions(position_index,:), N
-            end if
-            ! if (v2.gt.((10.0*mesh_velocity_multiple)*(10.0*mesh_velocity_multiple))) then
-            !     print *, "too high node speed^2", v2, "in node", node_index, N
-            ! end if
-            if (moving_mesh_mode.ge.4) then
-                if ((x.le.epsilon).or.(x.ge.7.0-epsilon)) then
-                    local_nodes(node_index)%velocity(1) = 0.0
-                end if
-                if ((y.le.epsilon).or.(y.ge.3.0-epsilon)) then
-                    local_nodes(node_index)%velocity(2) = 0.0
-                end if
-            end if
-
-        end do
-        !$omp end do
-    
-    else if (initcond.eq.405) then
-        !$omp do
-        do node_index = 1, kmaxn
-            x = local_nodes(node_index)%positions(position_index,1)
-            y = local_nodes(node_index)%positions(position_index,2)
-            v2 = (local_nodes(node_index)%velocity(1)*local_nodes(node_index)%velocity(1)) + (local_nodes(node_index)%velocity(2)*local_nodes(node_index)%velocity(2))
-            if ((local_nodes(node_index)%velocity(1) .ne. local_nodes(node_index)%velocity(1)) .or. (local_nodes(node_index)%velocity(2) .ne. local_nodes(node_index)%velocity(2))) then
-                print *, "NaN node velocity during BC check in node", node_index, local_nodes(node_index)%positions(position_index,:), N
-            end if
-            ! if (v2.gt.((10.0*mesh_velocity_multiple)*(10.0*mesh_velocity_multiple))) then
-            !     print *, "too high node speed^2", v2, "in node", node_index, N
-            ! end if
-            if (moving_mesh_mode.ge.4) then
-                if ((x.le.-0.25+epsilon).or.(x.ge.0.25-epsilon)) then
-                    local_nodes(node_index)%velocity(1) = 0.0
-                end if
-                if ((y.le.epsilon).or.(y.ge.0.1-epsilon)) then
-                    local_nodes(node_index)%velocity(2) = 0.0
-                end if
-            end if
-
-        end do
-        !$omp end do
-    end if
 
 end subroutine enforce_node_velocity_BC
 
@@ -2463,9 +3077,486 @@ END SUBROUTINE CALCULATE_FLUXESHI_MovingMesh_2D
 
 
 
-	
 
-  
+! SUBROUTINE FIND_NORMALIZED_DENSITY_GRADIENT_2D(stage, position_index, N)
+!     IMPLICIT NONE
+!     integer::stage, position_index, N
+!     integer::cell_index, iter
+!     integer::my_deg_free
+!     real,dimension(1:((IORDER+1)*(IORDER+2))/2 - 1)::gradient
+!     real::gradient_magnitude, my_max_gradient_magnitude
+
+!     my_deg_free = ((IORDER+1)*(IORDER+2))/2 - 1
+
+!     !$omp master
+!         CALL EXCH_CORDS_MovingMesh(N, 1)
+!     !$omp end master
+!     IF (FASTEST.EQ.1) THEN
+!         CALL EXCHANGE_LOWER(N)
+!     ELSE
+!         CALL EXCHANGE_HIGHER(N)
+!     END IF
+
+!         ! CALL EXCHANGE_LOWER(N)
+!         ! CALL EXCHANGE_HIGHER(N)
+    
+!     CALL LEAST_SQUARES(N)
+
+!     my_max_gradient_magnitude = zero
+
+!     !$omp parallel do reduction(max: max_gradient_magnitude)
+!     DO cell_index = 1, XMPIELRANK(N)
+!         gradient(1:my_deg_free) = ILOCAL_rECON5(cell_index)%GRADIENTS(1,1:my_deg_free,1)
+!         gradient_magnitude = zero
+!         do iter = 1,dimensiona
+!             gradient_magnitude = gradient_magnitude + (gradient(iter)*gradient(iter))
+!         end do
+!         gradient_magnitude = sqrt(gradient_magnitude)
+
+!         u_c(cell_index)%normalized_gradient = gradient_magnitude
+
+!         if (my_max_gradient_magnitude.lt.gradient_magnitude) then
+!             my_max_gradient_magnitude = gradient_magnitude
+!         end if
+!     END DO
+!     !$omp end parallel do
+
+!     ! print *, "first loop done", N, max_gradient_magnitude, my_max_gradient_magnitude
+
+!     !$omp barrier
+
+!     !$omp master
+!        ! CALL MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+!         CALL MPI_ALLREDUCE(my_max_gradient_magnitude, max_gradient_magnitude, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, IERROR)
+!         ! CALL MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+!     !$omp end master
+
+!     !$omp barrier
+!     my_max_gradient_magnitude = max_gradient_magnitude
+
+!     ! print *, "reduction done", N, max_gradient_magnitude
+
+!     !$omp do
+!     DO cell_index = 1, XMPIELRANK(N)
+!         u_c(cell_index)%normalized_gradient = u_c(cell_index)%normalized_gradient / my_max_gradient_magnitude
+!     END DO
+!     !$omp end do
+
+! END SUBROUTINE FIND_NORMALIZED_DENSITY_GRADIENT_2D
+
+
+function linear_solve(n, matrix, rhs, solution)
+    implicit none
+    integer,intent(in)::N
+    real,intent(inout), dimension(1:n,1:n)::matrix
+    real,intent(inout), dimension(1:n)::rhs
+    real,intent(out),dimension(1:n)::solution
+    logical::linear_solve
+    real::swap_helper,factor
+    integer::i,j,k
+
+    linear_solve = .true.
+
+    do i = 1, N-1
+        do j = (i+1), N
+            if (matrix(j,i).ne.zero) then
+                if (matrix(i,i).eq.zero) then
+                    do k = i, N
+                        swap_helper = matrix(i,k)
+                        matrix(i,k) = matrix(j,k)
+                        matrix(j,k) = swap_helper
+                    end do
+
+                    swap_helper = rhs(i)
+                    rhs(i) = rhs(j)
+                    rhs(j) = swap_helper
+                else
+                    factor = matrix(j,i)/matrix(i,i) 
+                    matrix(j,:) = matrix(j,:) - (factor*matrix(i,:))
+                    rhs(j) = rhs(j) - (factor*rhs(i))
+                end if
+            end if
+        end do
+    end do
+
+    do i = N, 1, -1
+        solution(i) = rhs(i)
+        do j = i+1, N
+            solution(i) = solution(i) - (matrix(i,j)*solution(j))
+        end do
+        if (matrix(i,i).eq.zero) then
+            if (solution(i).ne.zero) then
+                print*,"linear solver failure - dividing by zero at (", i, i, ")"
+                ! call abort()
+                linear_solve = .false.
+            end if
+        else
+            solution(i) = solution(i)/matrix(i,i)
+        end if
+    end do
+
+end function linear_solve 
+
+
+
+
+
+SUBROUTINE find_node_density_gradient(stage, position_index, N)
+    implicit none
+    integer,intent(in)::stage, position_index, N
+    ! real,intent(in)::d_t
+    integer::i, j, k, iter, counter, node_index, cell_index, cpu_index, cpu, index, rho_index
+    integer::num_neighbours
+    ! integer:: M
+    real::rho, v
+    real,dimension(1:nof_variables)::copy
+    real::dummuy_MP_PINFl, dummy_gammal
+    real,dimension(1:dimensiona)::helper_centre_position, node_center
+    real,dimension(1:max_num_node_neighbours,1:dimensiona)::centre_positions
+    real,dimension(1:max_num_node_neighbours)::rho_vector
+    real,dimension(1:(dimensiona+1),1:max_num_node_neighbours)::At
+    real,dimension(1:max_num_node_neighbours,1:(dimensiona+1))::A
+    real,dimension(1:(dimensiona+1),1:(dimensiona+1))::AtA
+    real,dimension(1:(dimensiona+1))::At_rho_vector, x
+    real::swap_helper, factor
+    logical::solvable
+
+    integer,dimension(2*isize)::requests
+    integer::num_requests, count
+
+    ! M = omp_get_thread_num()
+    
+    rho_index = 1
+
+    if (num_values_to_send_per_node.lt.(dimensiona+1)) then
+        print *,"something went wrong sorry :("
+        call abort
+    end if
+
+    ! do cpu_index = 0, isize-1
+    !     index = 0
+    !     do i = 1, node_snd_count(cpu_index)
+    !         do j = 1, dimensiona
+    !             index = index +1
+    !             node_snd_buffer(cpu_index)%data(index) = 1000.0
+    !         end do
+    !     end do
+    !     if (index.ne.dimensiona*node_snd_count(cpu_index)) then
+    !         print *, "something went wrong with rezeroing the send buffer"
+    !     else
+    !         print *, "snd_buffer on CPU", N, "thread", M, "to", cpu_index, "reset with", node_snd_count(cpu_index)*dimensiona, "values"
+    !     end if
+    ! end do
+    ! !$omp barrier 
+
+    !$omp do
+        do iter = 1,my_num_interface_nodes 
+            node_index = local_interface_nodes(iter)
+            ! print *, "on CPU", N, "thread", M, "coping data of", node_index, "(", iter, ") to send buffer" 
+            do cpu_index = 1,local_nodes(node_index)%num_cpus
+                cpu = local_nodes(node_index)%snd_offsets(cpu_index)%cpu
+                index = (local_nodes(node_index)%snd_offsets(cpu_index)%lower -1) * num_values_to_send_per_node
+                do j = 1, local_nodes(node_index)%num_local_neighbours
+                    cell_index = local_nodes(node_index)%local_neighbours(j)
+                    rho = u_c(cell_index)%val(stage,rho_index)
+                    helper_centre_position(1) = ielem(N, cell_index)%xxc
+                    helper_centre_position(2) = ielem(N, cell_index)%yyc
+                    if (dimensiona.eq.3) then
+                        helper_centre_position(3) = ielem(N, cell_index)%zzc
+                    end if
+                    do k = 1,dimensiona
+                        if ((index+k).gt.node_snd_count(cpu) * num_values_to_send_per_node) then
+                            print *, "copying too much data to send buffer from", N, "to", cpu 
+                        end if
+                        node_snd_buffer(cpu)%data(index+k) = helper_centre_position(k)
+                    end do
+                    k = dimensiona+1
+                    if ((index+k).gt.node_snd_count(cpu) * num_values_to_send_per_node) then
+                        print *, "copying too much data to send buffer from", N, "to", cpu 
+                    end if
+                    node_snd_buffer(cpu)%data(index+k) = rho
+                    index = index + num_values_to_send_per_node
+                end do
+            end do
+        end do
+    !$omp end do
+
+    ! do cpu_index = 0, isize-1
+    !     index = 0
+    !     do i = 1, node_rcv_count(cpu_index)
+    !         do j = 1, dimensiona
+    !             index = index +1
+    !             node_rcv_buffer(cpu_index)%data(index) = 1000000.0
+    !         end do
+    !     end do
+    !     if (index.ne.dimensiona*node_rcv_count(cpu_index)) then
+    !         print *, "something went wrong with rezeroing the receive buffer"
+    !     else
+    !         print *, "rcv_buffer on CPU", N, "thread", M, "from", cpu_index, "reset with", node_rcv_count(cpu_index)*dimensiona, "values"
+    !     end if
+    ! end do
+
+    !$omp barrier
+
+    num_requests = 0
+    !$omp master
+        ! print *, "inside send_rcv part on CPU", N
+        do cpu_index = 0, isize-1
+            if (cpu_index.ne.N) then
+                if (node_snd_count(cpu_index).gt.0) then
+                    count = node_snd_count(cpu_index) * num_values_to_send_per_node
+                    num_requests = num_requests + 1
+                    CALL MPI_ISEND(node_snd_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, "sending from", N, "to", cpu_index, count, "values"
+                end if
+                if (node_rcv_count(cpu_index).gt.0) then
+                    count = node_rcv_count(cpu_index) * num_values_to_send_per_node
+                    num_requests = num_requests + 1
+                    CALL MPI_IRECV(node_rcv_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, N, "waiting to receive", count, "values from", cpu_index
+                end if
+            else
+                if (node_snd_count(cpu_index).ne.node_rcv_count(cpu_index)) then
+                    print *,"send receive count missmatch on CPU", n
+                    call abort
+                end if
+                count = node_snd_count(cpu_index) * num_values_to_send_per_node
+                do i = 1, count
+                    node_rcv_buffer(cpu_index)%data(i) = node_snd_buffer(cpu_index)%data(i)
+                end do
+            end if
+        end do
+
+        ! print*,"CPU", n, "witing on", num_requests, "requests"
+        CALL MPI_WAITALL(num_requests, requests, MPI_STATUSES_IGNORE, IERROR)
+
+    !$omp end master
+
+    !$omp barrier
+
+    !$omp do
+        do node_index = 1, kmaxn 
+
+            local_nodes(node_index)%relaxation_velocity(:) = 0.0
+            node_center(1:dimensiona) = local_nodes(node_index)%positions(position_index,1:dimensiona)
+            num_neighbours = local_nodes(node_index)%num_neighbours
+            counter = 0
+
+            do i = 1, local_nodes(node_index)%num_local_neighbours
+                counter = counter + 1
+                cell_index = local_nodes(node_index)%local_neighbours(i)
+
+                helper_centre_position(1) = ielem(N, cell_index)%xxc
+                helper_centre_position(2) = ielem(N, cell_index)%yyc
+                if (dimensiona.eq.3) then
+                    helper_centre_position(3) = ielem(N, cell_index)%zzc
+                end if
+
+                centre_positions(counter, :) = helper_centre_position(:)
+                
+                A(counter,1) = 1.0
+                A(counter,2) = helper_centre_position(1) - node_center(1)
+                A(counter,3) = helper_centre_position(2) - node_center(2)
+                if (dimensiona.eq.3) then
+                    A(counter,4) = helper_centre_position(3) - node_center(3)
+                end if
+
+                rho_vector(counter) = u_c(cell_index)%val(stage, rho_index)
+            end do
+
+            do i = 1, local_nodes(node_index)%num_cpus
+                cpu_index = local_nodes(node_index)%rcv_offsets(i)%cpu
+                index = (local_nodes(node_index)%rcv_offsets(i)%lower - 1)*num_values_to_send_per_node
+                do j = local_nodes(node_index)%rcv_offsets(i)%lower, local_nodes(node_index)%rcv_offsets(i)%upper
+                    counter = counter+1
+                    A(counter,1) = 1.0
+                    do k = 1, dimensiona
+                        if ((index+k).gt.node_rcv_count(cpu_index) * num_values_to_send_per_node) then
+                            print *, "copying too much data from receive buffer from", N, "to", cpu 
+                        end if
+                        centre_positions(counter, k) = node_rcv_buffer(cpu_index)%data(index+k)
+                        A(counter,k+1) = centre_positions(counter, k) - node_center(k)
+                    end do
+                    k = dimensiona+1
+                    rho_vector(counter) = node_rcv_buffer(cpu_index)%data(index+k)
+                    index = index + num_values_to_send_per_node
+                end do
+            end do
+
+            local_nodes(node_index)%density_gradient(:) = zero 
+
+            solvable = .false.
+            if (num_neighbours.ge.3) then
+                if (counter.ne.num_neighbours) then
+                    print*,"something went wrong when filling the A matrix"
+                end if
+
+                At_rho_vector = zero
+                do i = 1, (dimensiona+1)
+                    do j = 1, num_neighbours
+                        At(i,j) = A(j,i)
+                        ! At_rho_vector(i) = At_rho_vector(i) + At(i,j)*rho_vector(j)
+                        At_rho_vector(i) = At_rho_vector(i) + A(j, i)*rho_vector(j)
+                    end do
+                end do
+
+                AtA = zero
+                do i = 1, (dimensiona+1)
+                    do j = 1, (dimensiona+1)
+                        do  k = 1, num_neighbours
+                            ! AtA(i,j) = At(i,j) + (At(i,k)*A(k,j))
+                            AtA(i,j) = AtA(i,j) + (A(k, i)*A(k, j))
+                        end do
+                    end do
+                end do
+
+                if (AtA(1,1).ne.real(num_neighbours)) then
+                    print *, "linear solver failuer\nAta(1,1)=/=num_neighbours"
+                    call abort()
+                end if
+
+                solvable = linear_solve(1+dimensiona, AtA, At_rho_vector, x)
+
+                do i = 1, dimensiona
+                    local_nodes(node_index)%density_gradient(i) = x(i+1)
+                end do
+            end if
+                
+        end do
+    !$omp end do
+    
+    !$omp barrier
+
+    !$omp master
+        call MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+    !$omp end master
+
+END SUBROUTINE find_node_density_gradient
+
+
+
+
+
+SUBROUTINE FIND_NORMALIZED_DENSITY_GRADIENT_2D(stage, position_index, N)
+    IMPLICIT NONE
+    integer::stage, position_index, N
+    integer::cell_index, node_index
+    integer::i, iter
+    integer::counter
+    real,dimension(1:dimensiona)::gradient
+    real::gradient_magnitude, my_max_gradient_magnitude
+
+    my_max_gradient_magnitude = zero
+
+    call find_node_density_gradient(stage, position_index, N)
+
+    !$omp parallel do reduction(max: max_gradient_magnitude)
+    DO cell_index = 1, XMPIELRANK(N)
+        counter = 0
+        gradient = zero
+        do i = 1, ielem(n, cell_index)%nonodes
+            node_index = ielem(n, cell_index)%nodes(i)
+            if (local_nodes(node_index)%num_neighbours.ge.3) then 
+                counter = counter+1
+                gradient(1:dimensiona) = gradient(1:dimensiona) + local_nodes(node_index)%density_gradient(1:dimensiona)
+            end if
+        end do
+
+        if (counter.eq.0) then
+            print *, "no valid neighbour for gradient in cell", cell_index
+        end if
+
+        gradient(1:dimensiona) = gradient(1:dimensiona)/counter
+
+        gradient_magnitude = zero
+        do iter = 1,dimensiona
+            gradient_magnitude = gradient_magnitude + (gradient(iter)*gradient(iter))
+        end do
+        gradient_magnitude = sqrt(gradient_magnitude)
+
+        u_c(cell_index)%normalized_gradient = gradient_magnitude
+
+        if (my_max_gradient_magnitude.lt.gradient_magnitude) then
+            my_max_gradient_magnitude = gradient_magnitude
+        end if
+    END DO
+    !$omp end parallel do
+
+    !$omp barrier
+
+    !$omp master
+       ! CALL MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+        CALL MPI_ALLREDUCE(my_max_gradient_magnitude, max_gradient_magnitude, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, IERROR)
+        ! CALL MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+    !$omp end master
+
+    !$omp barrier
+    my_max_gradient_magnitude = max_gradient_magnitude
+
+    ! print *, "reduction done", N, max_gradient_magnitude
+
+    !$omp do
+    DO cell_index = 1, XMPIELRANK(N)
+        u_c(cell_index)%normalized_gradient = u_c(cell_index)%normalized_gradient / my_max_gradient_magnitude
+    END DO
+    !$omp end do
+
+END SUBROUTINE FIND_NORMALIZED_DENSITY_GRADIENT_2D
+
+
+
+
+
+SUBROUTINE FIND_NORMALIZED_DENSITY_GRADIENT_from_precomputed(N)
+    IMPLICIT NONE
+    integer::N
+    integer::cell_index, node_index
+    integer::i, j, iter
+    integer::counter
+    real,dimension(1:dimensiona)::gradient
+    real::gradient_magnitude, factor
+
+    !$omp do
+    DO cell_index = 1, XMPIELRANK(N)
+        counter = 0
+        gradient = zero
+        do i = 1, ielem(n, cell_index)%nonodes
+            node_index = ielem(n, cell_index)%nodes(i)
+            ! if (local_nodes(node_index)%num_neighbours.ge.3) then 
+            if (local_nodes(node_index)%num_neighbours.ge.2) then 
+                if ((local_nodes(node_index)%normalized_density_gradient_magnitude.gt.1.0).or.(local_nodes(node_index)%normalized_density_gradient_magnitude.lt.0.0)) then
+                    print*, "invalid normalized_density gradient in cell", cell_index, n
+                end if 
+                counter = counter+1
+                ! gradient_magnitude = zero
+                ! do j = 1, dimensiona
+                !     gradient_magnitude = gradient_magnitude + (local_nodes(node_index)%density_gradient(j)*local_nodes(node_index)%density_gradient(j))
+                ! end do
+                ! gradient_magnitude = sqrt(gradient_magnitude)
+                ! factor = local_nodes(node_index)%normalized_density_gradient_magnitude / gradient_magnitude
+                ! gradient(1:dimensiona) = gradient(1:dimensiona) + (local_nodes(node_index)%density_gradient(1:dimensiona)*factor)
+                gradient(1:dimensiona) = gradient(1:dimensiona) + local_nodes(node_index)%density_gradient(1:dimensiona)
+            end if
+        end do
+
+        if (counter.eq.0) then
+            print *, "no valid neighbour for gradient in cell", cell_index
+        end if
+
+        gradient(1:dimensiona) = gradient(1:dimensiona)/counter
+
+        gradient_magnitude = zero
+        do iter = 1,dimensiona
+            gradient_magnitude = gradient_magnitude + (gradient(iter)*gradient(iter))
+        end do
+        gradient_magnitude = sqrt(gradient_magnitude)
+
+        u_c(cell_index)%normalized_gradient = gradient_magnitude
+    END DO
+    !$omp end do
+
+END SUBROUTINE FIND_NORMALIZED_DENSITY_GRADIENT_from_precomputed
+
 
 
 

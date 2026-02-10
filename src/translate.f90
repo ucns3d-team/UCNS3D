@@ -64,7 +64,7 @@ Subroutine Drive(interray)
 		INTEGER::IFINDEX
 		INTEGER::IFCOUNTER
 		INTEGER::IFACBTYPE,ishb
-	!     Integer::IFMAXNODE
+		! Integer::IFMAXNODE
 		Integer,allocatable,dimension(:,:):: IFA ! elements id (always two) , nodes id only 1s row
 		INTEGER ::IFShape ! 1 line ! 3 triangle ! 4 quad
 	END TYPE Face_number
@@ -104,536 +104,539 @@ Subroutine Drive(interray)
 		dumc2=dumc(2:3)
 		read(dumc2,*,iostat=ioss)str2int
 		if ((ios .eq. -1))goto 11
+
+		countline=countline+1
+		! print*,'line',countlieq. "(0")ne !,dumc
+		! if (dumc .eq. "(0")  then ! COMMENT CONDITIONS
+		if (dumc .eq. "(0 ")  then ! COMMENT CONDITIONS
+			read(82,*,IOSTAT=ios)
 			countline=countline+1
-			! print*,'line',countlieq. "(0")ne !,dumc
-	     	! if (dumc .eq. "(0")  then ! COMMENT CONDITIONS
-	      	if (dumc .eq. "(0 ")  then ! COMMENT CONDITIONS
-		  		read(82,*,IOSTAT=ios)
-		  		countline=countline+1
-		  		go to 10
-	      	Endif
-			! if (dumc .eq. "(2") then
-			! read(82,*,IOSTAT=IOS)dimen
-	       	if (dumc .eq. "(2 ") then
-       			read(82,'(I1)',IOSTAT=IOS) dimen !changed by holger foysi
-		  		countline=countline+1
-				! print*,'Dimension:',dimen
-	      	end if
-	      	if (dumc .eq. "(10") then
-		      	read(82,'(A)',iostat=ios) gchar
-				countline=countline+1
+			go to 10
+		Endif
+		! if (dumc .eq. "(2") then
+		! read(82,*,IOSTAT=IOS)dimen
+		if (dumc .eq. "(2 ") then
+			read(82,'(I1)',IOSTAT=IOS) dimen !changed by holger foysi
+			countline=countline+1
+			! print*,'Dimension:',dimen
+		end if
+	    if (dumc .eq. "(10") then
+		    read(82,'(A)',iostat=ios) gchar
+			countline=countline+1
 			
-		      	call removebrac(gchar,gchar2)
-				! print*,gchar2!,il
-		      	call string2int (gchar2,interray,intsize)
-		      	if (interray(1) .eq. 0)then
-					! do i=1,intsize
-					! 	  print*,interray(i)
-					! enddo
-			  		imaxnglobal=interray(3) ! set global maximum number of nodes
-			  		allocate(x(imaxnglobal));allocate(y(imaxnglobal))
-					! print*,'Max Number Nodes:',imaxnglobal
-			  		if (dimen.eq.3) allocate(z(imaxnglobal))
-		      	endif
-		      	if (interray(1).ne.0) then 
+			call removebrac(gchar,gchar2)
+			! print*,gchar2!,il
+			call string2int (gchar2,interray,intsize)
+			if (interray(1) .eq. 0)then
+				! do i=1,intsize
+				! 	  print*,interray(i)
+				! enddo
+				imaxnglobal=interray(3) ! set global maximum number of nodes
+				allocate(x(imaxnglobal));allocate(y(imaxnglobal))
+				! print*,'Max Number Nodes:',imaxnglobal
+				if (dimen.eq.3) allocate(z(imaxnglobal))
+			endif
+		    if (interray(1).ne.0) then 
+				read(82,"(A1)",advance='NO',IOSTAT=ios)dumc
+				countline=countline+1
+				if (dumc .eq. "(") then
+					Do i=interray(2),interray(3)
+						if (dimen.eq.2) then
+							read(82,*,IOSTAT=ios)x(i),y(i)
+							countline=countline+1
+						endif
+						if (dimen.eq.3) then
+							read(82,*,IOSTAT=ios)x(i),y(i),z(i)
+							countline=countline+1
+						endif
+					enddo
+				else
+					backspace(82,iostat=ios)
+					Do i=interray(2),interray(3)
+						if (dimen.eq.2) then
+							read(82,*,IOSTAT=ios)x(i),y(i)
+							countline=countline+1
+						endif
+						if (dimen.eq.3) then
+							read (82,*,IOSTAT=ios)x(i),y(i),z(i)
+							countline=countline+1
+						endif
+					enddo
+				endif
+				if (binio.eq.0)OPEN(10,FILE="GRID.vrt",FORM='formatted',ACTION='WRITE',IOSTAT=iosx,position='append')
+				if (binio.eq.1)OPEN(10,FILE="GRID.vrt",FORM='unformatted',ACTION='WRITE',IOSTAT=iosx,position='append')
+				selectcase (dimen)
+				  case(2)
+					Do i=interray(2),interray(3)
+						if (binio.eq.0)write(10,"(5X, I8, 2X,ES21.14,2X,ES21.14)")i,x(i),y(i)
+						if (binio.eq.1)write(10)i,x(i),y(i)
+					end do
+					close(10)
+
+				  case(3)
+					Do i=interray(2),interray(3)
+						if (binio.eq.0)write(10,"(5X,I8,2X,ES21.14,2X,ES21.14,2X,ES21.14)")i,x(i),y(i),z(i)
+						if (binio.eq.1)write(10)i,x(i),y(i),z(i)
+					end do 
+					close(10)
+					deallocate(x,y)
+					if (dimen.eq.3) then
+						deallocate(z)
+					end if                            
+				end select
+			endif
+
+			deallocate(interray)
+			! print*,'Max Number Nodes:',imaxnglobal
+			! if (dimen.eq.3) allocate(z(imaxnglobal))
+	    end if ! (10
+
+	    if (dumc .eq. "(12") then
+			read(82,'(A)',iostat=ios) gchar
+			countline=countline+1
+			call removebrac(gchar,gchar2)
+			! print*,gchar2,"edw1"!,il
+			call string2int (gchar2,interray,intsize)
+			if (interray(1) .eq. 0)then
+				imaxeglobal=interray(3) ! set global maximum number of elements
+				allocate(IELE(imaxeglobal))
+				allocate(ishape(imaxeglobal))
+				! print*,'Max Number Cells:',imaxeglobal
+				iele(1:imaxeglobal)%IECOUNTER=0
+			endif
+             
+			if ((interray(1) .ne. 0))then
+				if (interray(5).ne.0) then 
+					IELE(interray(2):interray(3))%ishape=interray(5)
+					Do i=interray(2),interray(3)
+						iele(i)%ieindex=i
+						SELECT CASE (IELE(I)%ISHAPE)
+						  Case(1)
+							iele(i)%iface=3
+							allocate(iele(i)%faces(1:3,1:2))
+							! allocate(iele(i)%nd(1:44))
+
+						  Case(3)
+							iele(i)%iface=4
+							allocate(iele(i)%faces(1:4,1:2))
+							! allocate(iele(i)%nd(4))
+
+						  Case(2)
+							iele(i)%iface=4
+							allocate(iele(i)%faces(1:4,1:3))
+							! allocate(iele(i)%nd(8))
+
+						  Case(4)
+							iele(i)%iface=6
+							allocate(iele(i)%faces(1:6,1:4))
+							! allocate(iele(i)%nd(8))
+
+						  Case(5)
+							iele(i)%iface=5
+							allocate(iele(i)%faces(1:5,1:4))
+							! allocate(iele(i)%nd(8))
+
+						  Case(6)
+							iele(i)%iface=5
+							allocate(iele(i)%faces(1:5,1:4))
+							! allocate(iele(i)%nd(8))
+
+						End select
+						iele(i)%faces(:,:)=0
+					end do
+				end if
+			end if
+			if ((interray(1) .ne. 0)) then
+				if (interray(5).eq.0) then 
+
 					read(82,"(A1)",advance='NO',IOSTAT=ios)dumc
 					countline=countline+1
-			  		if (dumc .eq. "(") then
-			      		Do i=interray(2),interray(3)
-							if (dimen.eq.2) then
-								read(82,*,IOSTAT=ios)x(i),y(i)
-								countline=countline+1
-							endif
-							if (dimen.eq.3) then
-								read(82,*,IOSTAT=ios)x(i),y(i),z(i)
-								countline=countline+1
-							endif
-			      		enddo
-			  		else
-			    		backspace(82,iostat=ios)
-			  			Do i=interray(2),interray(3)
-							if (dimen.eq.2) then
-								read(82,*,IOSTAT=ios)x(i),y(i)
-								countline=countline+1
-							endif
-							if (dimen.eq.3) then
-								read (82,*,IOSTAT=ios)x(i),y(i),z(i)
-								countline=countline+1
-							endif
-						enddo
-			  		endif
-					if (binio.eq.0)OPEN(10,FILE="GRID.vrt",FORM='formatted',ACTION='WRITE',IOSTAT=iosx,position='append')
-						if (binio.eq.1)OPEN(10,FILE="GRID.vrt",FORM='unformatted',ACTION='WRITE',IOSTAT=iosx,position='append')
-							selectcase (dimen)
-							  case(2)
-								Do i=interray(2),interray(3)
-									if (binio.eq.0)write(10,"(5X, I8, 2X,ES21.14,2X,ES21.14)")i,x(i),y(i)
-									if (binio.eq.1)write(10)i,x(i),y(i)
-								end do
-								close(10)
+					if (dumc .eq. "(") then
+						read(82,*,IOSTAT=ios)Ishape(interray(2):interray(3))!IELE(interray(2):interray(3))%ishape
+						IELE(interray(2):interray(3))%ishape = Ishape(interray(2):interray(3))
+						countline = countline+1
+					else
+						backspace (82,iostat=ios)
+						read(82,*,IOSTAT=ios)Ishape(interray(2):interray(3))!IELE(interray(2):interray(3))%ishape
+						IELE(interray(2):interray(3))%ishape = Ishape(interray(2):interray(3))
+						countline=countline+1
+					endif
 
-							  case(3)
-								Do i=interray(2),interray(3)
-									if (binio.eq.0)write(10,"(5X,I8,2X,ES21.14,2X,ES21.14,2X,ES21.14)")i,x(i),y(i),z(i)
-									if (binio.eq.1)write(10)i,x(i),y(i),z(i)
-								end do 
-								close(10)
-								deallocate(x,y)
-								if (dimen.eq.3) then
-									deallocate(z)
-								end if                            
-							end select
-						endif
+					Do i=interray(2),interray(3)
+			
+						iele(i)%ieindex=i
+						SELECT CASE (IELE(I)%ISHAPE)
+						  Case(1)
+							iele(i)%iface=3
+							allocate(iele(i)%faces(3,2))
+				
+						  Case(3)
+							iele(i)%iface=4
+							allocate(iele(i)%faces(4,2))
+			
+						  Case(2)
+							iele(i)%iface=4
+							allocate(iele(i)%faces(4,3))
+			
+						  Case(4)
+							iele(i)%iface=6
+							allocate(iele(i)%faces(6,4))
+			
+						  Case(5)
+							iele(i)%iface=5
+							allocate(iele(i)%faces(5,4))
+				
+						  Case(6)
+							iele(i)%iface=5
+							allocate(iele(i)%faces(5,4))
+			
+						End select
+
+						iele(i)%faces(:,:)=0
+					end do
+				endif
+			end if
+	
+			deallocate(interray)
+		end if
+
+		if (dumc .eq. "(13") then
+			read(82,'(A)',advance='no',iostat=ios) gchar
+			countline=countline+1
+			call removebrac(gchar,gchar2)
+			call string2int (gchar2,interray,intsize)
+			index1=interray(1); imin=interray(2); imax=interray(3); bctypdum=interray(4)
+			if (index1.ne.0) eltype=interray(5)
+
+			deallocate(interray)
+			if (index1 .eq. 0) then
+				imaxfglobal=imax ! set global maximum number of faces
+				allocate(ifac(imaxfglobal))
+			endif
+			if (index1 .ne. 0) then 
+				
+				read(82,"(A1)",advance='NO',IOSTAT=ios)dumc
+				countline=countline+1
+				! print*,'faces',imin,imax,index1,dumc
+				if (dumc .eq. "(") then
+
+					Do i=imin,imax
+						! if (dimen.eq.2) then
+						read(82,'(A)',advance='no',iostat=ios) gchar
+						countline = countline+1
+						! print*,gchar,'ssss'
+						call string2int (gchar,interray,intsize)
+		
+						select case (dimen)
+						  case (2)! 2d
+							if (eltype.eq.0)then
+								ifac(i)%ishb=2
+								ifac(i)%IFACBTYPE=bctypdum
+								allocate(ifac(i)%ifa(2,2))
+								ifac(i)%ifa(1,1)=interray(2)
+								ifac(i)%ifa(1,2)=interray(3)
+								ifac(i)%ifa(2,1)=interray(4)
+								ifac(i)%ifa(2,2)=interray(5)
+								! if ( ifac(i)%ifa(2,1) .ne. 0) then ! 1st element
+								! 	Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+								! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+								! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+								! end if
+								! if ( ifac(i)%ifa(2,2) .ne. 0) then ! 2nd element
+								! 	Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+								! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,2)
+								! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,1)
+								! endif
+							else
+								ifac(i)%ishb=2
+								ifac(i)%IFACBTYPE=bctypdum
+								allocate(ifac(i)%ifa(2,2))
+								ifac(i)%ifa(1,1)=interray(1)
+								ifac(i)%ifa(1,2)=interray(2)
+								ifac(i)%ifa(2,1)=interray(3)
+								ifac(i)%ifa(2,2)=interray(4)
+								! if ( ifac(i)%ifa(2,1) .ne. 0) then ! 1st element
+								! 	Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+								! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+								! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+								! end if
+								! if ( ifac(i)%ifa(2,2) .ne. 0) then ! 2nd element
+								! 	Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+								! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,2)
+								! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,1)
+								! endif
+							end if
+		
+						  case (3)!3d
+							ifac(i)%IFACBTYPE=bctypdum
+
+							if (eltype.eq.0)then
+								ifac(i)%ishb=Interray(1)
+								select case (Interray(1))
+								  case (3)! triangles
+									allocate(ifac(i)%ifa(2,3))
+									ifac(i)%ifa(1,1)=interray(2)
+									ifac(i)%ifa(1,2)=interray(3)
+									ifac(i)%ifa(1,3)=interray(4)
+									ifac(i)%ifa(2,1)=interray(5)
+									ifac(i)%ifa(2,2)=interray(6)
+									! if ((ifac(i)%ifa(2,1)).ne.0)then ! no wall 
+									! 	Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+									! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+									! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
+									! endif
+									! if ((ifac(i)%ifa(2,2)).ne.0)then
+									! 	Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+									! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,3)
+									! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,1)
+									! endif
+
+								  case(4)! quads
+									allocate(ifac(i)%ifa(2,4))
+									ifac(i)%ifa(1,1)=interray(2)
+									ifac(i)%ifa(1,2)=interray(3)
+									ifac(i)%ifa(1,3)=interray(4)
+									ifac(i)%ifa(1,4)=interray(5)
+									ifac(i)%ifa(2,1)=interray(6)
+									ifac(i)%ifa(2,2)=interray(7)
+									! if ((ifac(i)%ifa(2,1)).ne.0)then
+									! Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+									! Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+									! Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									! Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
+									! Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,4)=ifac(i)%ifa(1,4)
+									! endif
+									! if ((ifac(i)%ifa(2,2)).ne.0)then
+									! Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+									! Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,4)
+									! Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,3)
+									! Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,2)
+									! Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,4)=ifac(i)%ifa(1,1)
+									! endif
+
+								end select
+							else
+								ifac(i)%ishb=eltype
+								select case (eltype)
+								  case (3)! triangles
+									allocate(ifac(i)%ifa(2,3))
+									ifac(i)%ifa(1,1)=interray(1)
+									ifac(i)%ifa(1,2)=interray(2)
+									ifac(i)%ifa(1,3)=interray(3)
+									ifac(i)%ifa(2,1)=interray(4)
+									ifac(i)%ifa(2,2)=interray(5)
+									! if ((ifac(i)%ifa(2,1)).ne.0)then ! no wall 
+									! Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+									! Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+									! Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									! Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
+									! endif
+									! if ((ifac(i)%ifa(2,2)).ne.0)then
+									! Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+									! Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,3)
+									! Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									! Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,1)
+									! endif
+
+								  case(4)! quads
+									allocate(ifac(i)%ifa(2,4))
+									ifac(i)%ifa(1,1)=interray(1)
+									ifac(i)%ifa(1,2)=interray(2)
+									ifac(i)%ifa(1,3)=interray(3)
+									ifac(i)%ifa(1,4)=interray(4)
+									ifac(i)%ifa(2,1)=interray(5)
+									ifac(i)%ifa(2,2)=interray(6)
+									! if ((ifac(i)%ifa(2,1)).ne.0)then
+									! Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+									! Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+									! Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									! Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
+									! Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,4)=ifac(i)%ifa(1,4)
+									! endif
+									! if ((ifac(i)%ifa(2,2)).ne.0)then
+									! Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+									! Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,4)
+									! Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,3)
+									! Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,2)
+									! Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,4)=ifac(i)%ifa(1,1)
+									! endif
+
+								endselect ! quad or triangles faces (3d)
+							end if
+						endselect ! dimensions
+		
+						! endif
+						! if (dimen.eq.3) then
+						! 	  read (82,*)x(i),y(i),z(i)
+						! endif
 
 						deallocate(interray)
-		
-						! print*,'Max Number Nodes:',imaxnglobal
-						! if (dimen.eq.3) allocate(z(imaxnglobal))
-	      			end if ! (10
+					enddo
 
-	      			if (dumc .eq. "(12") then
-						read(82,'(A)',iostat=ios) gchar
-						countline=countline+1
-						call removebrac(gchar,gchar2)
-						! print*,gchar2,"edw1"!,il
-						call string2int (gchar2,interray,intsize)
-						if (interray(1) .eq. 0)then
-							imaxeglobal=interray(3) ! set global maximum number of elements
-							allocate(IELE(imaxeglobal))
-							allocate(ishape(imaxeglobal))
-							! print*,'Max Number Cells:',imaxeglobal
-							iele(1:imaxeglobal)%IECOUNTER=0
-						endif
-             
-			   			if ((interray(1) .ne. 0))then
-			    			if (interray(5).ne.0) then 
-			      				IELE(interray(2):interray(3))%ishape=interray(5)
-			       				Do i=interray(2),interray(3)
-				      				iele(i)%ieindex=i
-				       				SELECT CASE (IELE(I)%ISHAPE)
-									  Case(1)
-										iele(i)%iface=3
-										allocate(iele(i)%faces(1:3,1:2))
-										! allocate(iele(i)%nd(1:44))
-
-									  Case(3)
-										iele(i)%iface=4
-										allocate(iele(i)%faces(1:4,1:2))
-										! allocate(iele(i)%nd(4))
-
-									  Case(2)
-										iele(i)%iface=4
-										allocate(iele(i)%faces(1:4,1:3))
-										! allocate(iele(i)%nd(8))
-
-									  Case(4)
-										iele(i)%iface=6
-										allocate(iele(i)%faces(1:6,1:4))
-										! allocate(iele(i)%nd(8))
-
-									  Case(5)
-										iele(i)%iface=5
-										allocate(iele(i)%faces(1:5,1:4))
-										! allocate(iele(i)%nd(8))
-									  Case(6)
-										iele(i)%iface=5
-										allocate(iele(i)%faces(1:5,1:4))
-										! allocate(iele(i)%nd(8))
-
-				   					End select
-				      				iele(i)%faces(:,:)=0
-				  				end do
-			  				end if
-			  			end if
-			  			if ((interray(1) .ne. 0)) then
-			    			if (interray(5).eq.0) then 
-
-			    				read(82,"(A1)",advance='NO',IOSTAT=ios)dumc
-			    				countline=countline+1
-								if (dumc .eq. "(") then
-									read(82,*,IOSTAT=ios)Ishape(interray(2):interray(3))!IELE(interray(2):interray(3))%ishape
-									IELE(interray(2):interray(3))%ishape = Ishape(interray(2):interray(3))
-									countline = countline+1
-								else
-									backspace (82,iostat=ios)
-									read(82,*,IOSTAT=ios)Ishape(interray(2):interray(3))!IELE(interray(2):interray(3))%ishape
-									IELE(interray(2):interray(3))%ishape = Ishape(interray(2):interray(3))
-									countline=countline+1
-								endif
-
-				  				Do i=interray(2),interray(3)
- 				      
-				      				iele(i)%ieindex=i
-				       				SELECT CASE (IELE(I)%ISHAPE)
-									  Case(1)
-										iele(i)%iface=3
-										allocate(iele(i)%faces(3,2))
-							
-									  Case(3)
-										iele(i)%iface=4
-										allocate(iele(i)%faces(4,2))
-						
-									  Case(2)
-										iele(i)%iface=4
-										allocate(iele(i)%faces(4,3))
-						
-									  Case(4)
-										iele(i)%iface=6
-										allocate(iele(i)%faces(6,4))
-						
-									  Case(5)
-										iele(i)%iface=5
-										allocate(iele(i)%faces(5,4))
-							
-									  Case(6)
-										iele(i)%iface=5
-										allocate(iele(i)%faces(5,4))
-						
-									End select
-
-				      				iele(i)%faces(:,:)=0
-				  				end do
-			  				endif
-			  			end if
- 			  
-			  			deallocate(interray)
-	      			end if
-
-	      			if (dumc .eq. "(13") then
+				else
+			
+					backspace (82,iostat=ios)
+					Do i=imin,imax
+						! if (dimen.eq.2) then
 						read(82,'(A)',advance='no',iostat=ios) gchar
 						countline=countline+1
-						call removebrac(gchar,gchar2)
-						call string2int (gchar2,interray,intsize)
-						index1=interray(1); imin=interray(2); imax=interray(3); bctypdum=interray(4)
-						if (index1.ne.0) eltype=interray(5)
+						! print*,gchar,'ssss'
+						call string2int (gchar,interray,intsize)
+		
+						select case (dimen)
 
-						deallocate(interray)
-						if (index1 .eq. 0) then
-							imaxfglobal=imax ! set global maximum number of faces
-							allocate(ifac(imaxfglobal))
-						endif
-						if (index1 .ne. 0) then 
-							
-							read(82,"(A1)",advance='NO',IOSTAT=ios)dumc
-							countline=countline+1
-							! print*,'faces',imin,imax,index1,dumc
-							if (dumc .eq. "(") then
-   		    
-			  		 			Do i=imin,imax
-									! if (dimen.eq.2) then
-				  					read(82,'(A)',advance='no',iostat=ios) gchar
-				  					countline = countline+1
-									! print*,gchar,'ssss'
-				  					call string2int (gchar,interray,intsize)
-				  
-				  					select case (dimen)
-				    				  case (2)! 2d
-					     				if (eltype.eq.0)then
-											ifac(i)%ishb=2
-											ifac(i)%IFACBTYPE=bctypdum
-											allocate(ifac(i)%ifa(2,2))
-											ifac(i)%ifa(1,1)=interray(2)
-											ifac(i)%ifa(1,2)=interray(3)
-											ifac(i)%ifa(2,1)=interray(4)
-											ifac(i)%ifa(2,2)=interray(5)
-											! if ( ifac(i)%ifa(2,1) .ne. 0) then ! 1st element
-											! 	Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-											! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-											! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-											! end if
-											! if ( ifac(i)%ifa(2,2) .ne. 0) then ! 2nd element
-											! 	Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-											! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,2)
-											! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,1)
-											! endif
-										else
-											ifac(i)%ishb=2
-											ifac(i)%IFACBTYPE=bctypdum
-											allocate(ifac(i)%ifa(2,2))
-											ifac(i)%ifa(1,1)=interray(1)
-											ifac(i)%ifa(1,2)=interray(2)
-											ifac(i)%ifa(2,1)=interray(3)
-											ifac(i)%ifa(2,2)=interray(4)
-											! if ( ifac(i)%ifa(2,1) .ne. 0) then ! 1st element
-											! 	Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-											! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-											! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-											! end if
-											! if ( ifac(i)%ifa(2,2) .ne. 0) then ! 2nd element
-											! 	Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-											! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,2)
-											! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,1)
-											! endif
-					    				end if
-					
-				    				  case (3)!3d
-										ifac(i)%IFACBTYPE=bctypdum
+						  case (2)! 2d
+							ifac(i)%IFACBTYPE=bctypdum
+							if (eltype.eq.0)then
+								ifac(i)%ishb=2
+								ifac(i)%IFACBTYPE=bctypdum
+								allocate(ifac(i)%ifa(2,2))
+								ifac(i)%ifa(1,1)=interray(2)
+								ifac(i)%ifa(1,2)=interray(3)
+								ifac(i)%ifa(2,1)=interray(4)
+								ifac(i)%ifa(2,2)=interray(5)
+								! if ( ifac(i)%ifa(2,1) .ne. 0) then ! 1st element
+								! 	  Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+								! 	  Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+								! 	  Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+								! end if
+								! if ( ifac(i)%ifa(2,2) .ne. 0) then ! 2nd element
+								! 	  Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+								! 	  Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,2)
+								! 	  Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,1)
+								! endif
+							else
+								ifac(i)%ishb=2
+								ifac(i)%IFACBTYPE=bctypdum
+								allocate(ifac(i)%ifa(2,2))
+								ifac(i)%ifa(1,1)=interray(1)
+								ifac(i)%ifa(1,2)=interray(2)
+								ifac(i)%ifa(2,1)=interray(3)
+								ifac(i)%ifa(2,2)=interray(4)
+								! if ( ifac(i)%ifa(2,1) .ne. 0) then ! 1st element
+								!     Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+								!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+								!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+								! end if
+								! if ( ifac(i)%ifa(2,2) .ne. 0) then ! 2nd element
+								!     Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+								!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,2)
+								!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,1)
+								! endif
+							end if
 
-					  					if (eltype.eq.0)then
-											ifac(i)%ishb=Interray(1)
-											select case (Interray(1))
-											  case (3)! triangles
-												allocate(ifac(i)%ifa(2,3))
-												ifac(i)%ifa(1,1)=interray(2)
-												ifac(i)%ifa(1,2)=interray(3)
-												ifac(i)%ifa(1,3)=interray(4)
-												ifac(i)%ifa(2,1)=interray(5)
-												ifac(i)%ifa(2,2)=interray(6)
-												! if ((ifac(i)%ifa(2,1)).ne.0)then ! no wall 
-												! 	Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-												! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-												! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-												! 	Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
-												! endif
-												! if ((ifac(i)%ifa(2,2)).ne.0)then
-												! 	Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-												! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,3)
-												! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-												! 	Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,1)
-												! endif
-					  case(4)! quads
-					      allocate(ifac(i)%ifa(2,4))
-					      ifac(i)%ifa(1,1)=interray(2)
-					      ifac(i)%ifa(1,2)=interray(3)
-					      ifac(i)%ifa(1,3)=interray(4)
-					      ifac(i)%ifa(1,4)=interray(5)
-					      ifac(i)%ifa(2,1)=interray(6)
-					      ifac(i)%ifa(2,2)=interray(7)
-! 					      if ((ifac(i)%ifa(2,1)).ne.0)then
-! 					      Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,4)=ifac(i)%ifa(1,4)
-! 					      endif
-! 					      if ((ifac(i)%ifa(2,2)).ne.0)then
-! 					      Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,4)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,3)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,4)=ifac(i)%ifa(1,1)
-! 					      endif
+						  case (3)!3d
+							ifac(i)%IFACBTYPE=bctypdum
 
-					  end select
-					    else
-					      ifac(i)%ishb=eltype
-					select case (eltype)
-					  case (3)! triangles
-					      allocate(ifac(i)%ifa(2,3))
-					      ifac(i)%ifa(1,1)=interray(1)
-					      ifac(i)%ifa(1,2)=interray(2)
-					      ifac(i)%ifa(1,3)=interray(3)
-					      ifac(i)%ifa(2,1)=interray(4)
-					      ifac(i)%ifa(2,2)=interray(5)
-! 					      if ((ifac(i)%ifa(2,1)).ne.0)then ! no wall 
-! 					      Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
-! 					      endif
-! 					      if ((ifac(i)%ifa(2,2)).ne.0)then
-! 					      Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,3)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,1)
-! 					      endif
-					  case(4)! quads
-					      allocate(ifac(i)%ifa(2,4))
-					      ifac(i)%ifa(1,1)=interray(1)
-					      ifac(i)%ifa(1,2)=interray(2)
-					      ifac(i)%ifa(1,3)=interray(3)
-					      ifac(i)%ifa(1,4)=interray(4)
-					      ifac(i)%ifa(2,1)=interray(5)
-					      ifac(i)%ifa(2,2)=interray(6)
-! 					      if ((ifac(i)%ifa(2,1)).ne.0)then
-! 					      Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,4)=ifac(i)%ifa(1,4)
-! 					      endif
-! 					      if ((ifac(i)%ifa(2,2)).ne.0)then
-! 					      Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,4)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,3)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,4)=ifac(i)%ifa(1,1)
-! 					      endif
+							if (eltype.eq.0)then
+								ifac(i)%ishb=Interray(1)
+								select case (Interray(1))
+								  case (3)! triangles
+									allocate(ifac(i)%ifa(2,3))
+									ifac(i)%ifa(1,1)=interray(2)
+									ifac(i)%ifa(1,2)=interray(3)
+									ifac(i)%ifa(1,3)=interray(4)
+									ifac(i)%ifa(2,1)=interray(5)
+									ifac(i)%ifa(2,2)=interray(6)
+									! if ((ifac(i)%ifa(2,1)).ne.0)then ! no wall 
+									!     Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+									!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+									!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
+									! endif
+									! if ((ifac(i)%ifa(2,2)).ne.0)then
+									!     Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+									!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,3)
+									!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,1)
+									! endif
 
+								  case(4)! quads
+									allocate(ifac(i)%ifa(2,4))
+									ifac(i)%ifa(1,1)=interray(2)
+									ifac(i)%ifa(1,2)=interray(3)
+									ifac(i)%ifa(1,3)=interray(4)
+									ifac(i)%ifa(1,4)=interray(5)
+									ifac(i)%ifa(2,1)=interray(6)
+									ifac(i)%ifa(2,2)=interray(7)
+									! if ((ifac(i)%ifa(2,1)).ne.0)then
+									!     Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+									! 	  Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+									! 	  Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									! 	  Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
+									! 	  Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,4)=ifac(i)%ifa(1,4)
+									! endif
+									! if ((ifac(i)%ifa(2,2)).ne.0)then
+									! 	  Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+									! 	  Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,4)
+									! 	  Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,3)
+									! 	  Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,2)
+									!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,4)=ifac(i)%ifa(1,1)
+									! endif
 
+								end select
+							else
+								ifac(i)%ishb=eltype
+								select case (eltype)
+								  case (3)! triangles
+									ifac(i)%ishb=eltype
+									allocate(ifac(i)%ifa(2,3))
+									ifac(i)%ifa(1,1)=interray(1)
+									ifac(i)%ifa(1,2)=interray(2)
+									ifac(i)%ifa(1,3)=interray(3)
+									ifac(i)%ifa(2,1)=interray(4)
+									ifac(i)%ifa(2,2)=interray(5)
+									! if ((ifac(i)%ifa(2,1)).ne.0)then ! no wall 
+									!     Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+									!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+									!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
+									! endif
+									! if ((ifac(i)%ifa(2,2)).ne.0)then
+									!     Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+									!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,3)
+									!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,1)
+									! endif
 
-					  endselect ! quad or triangles faces (3d)
-		    
-					end if
-					endselect ! dimensions
-					
-! 				endif
-! 				if (dimen.eq.3) then
-! 				read (82,*)x(i),y(i),z(i)
-! 				endif
-				  deallocate(interray)
-			      enddo
-		    else
-!                       
-		      backspace (82,iostat=ios)
-     			   Do i=imin,imax
-! 				if (dimen.eq.2) then
-				  read(82,'(A)',advance='no',iostat=ios) gchar
-				  countline=countline+1
-! 				  print*,gchar,'ssss'
-				  call string2int (gchar,interray,intsize)
-! 				  
-				  select case (dimen)
-				    case (2)! 2d
-					ifac(i)%IFACBTYPE=bctypdum
-					     if (eltype.eq.0)then
- 					ifac(i)%ishb=2
-					ifac(i)%IFACBTYPE=bctypdum
-					allocate(ifac(i)%ifa(2,2))
-					ifac(i)%ifa(1,1)=interray(2)
-					ifac(i)%ifa(1,2)=interray(3)
-					ifac(i)%ifa(2,1)=interray(4)
-					ifac(i)%ifa(2,2)=interray(5)
-! 					if ( ifac(i)%ifa(2,1) .ne. 0) then ! 1st element
-! ! 					Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-! ! 					Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-! ! 					Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! ! 					end if
-! ! 					if ( ifac(i)%ifa(2,2) .ne. 0) then ! 2nd element
-! ! 					Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-! ! 					Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,2)
-! ! 					Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,1)
-! ! 					endif
-					else
-					 ifac(i)%ishb=2
-					    ifac(i)%IFACBTYPE=bctypdum
-					allocate(ifac(i)%ifa(2,2))
-					ifac(i)%ifa(1,1)=interray(1)
-					ifac(i)%ifa(1,2)=interray(2)
-					ifac(i)%ifa(2,1)=interray(3)
-					ifac(i)%ifa(2,2)=interray(4)
-! 					if ( ifac(i)%ifa(2,1) .ne. 0) then ! 1st element
-! 					Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-! 					Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-! 					Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! 					end if
-! 					if ( ifac(i)%ifa(2,2) .ne. 0) then ! 2nd element
-! 					Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-! 					Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,2)
-! 					Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,1)
-! 					endif
+								  case(4)! quads
+									ifac(i)%ishb=eltype
+									allocate(ifac(i)%ifa(2,4))
+									ifac(i)%ifa(1,1)=interray(1)
+									ifac(i)%ifa(1,2)=interray(2)
+									ifac(i)%ifa(1,3)=interray(3)
+									ifac(i)%ifa(1,4)=interray(4)
+									ifac(i)%ifa(2,1)=interray(5)
+									ifac(i)%ifa(2,2)=interray(6)
+									! if ((ifac(i)%ifa(2,1)).ne.0)then
+									!     Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
+									!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
+									!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
+									!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
+									!     Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,4)=ifac(i)%ifa(1,4)
+									! endif
+									! if ((ifac(i)%ifa(2,2)).ne.0)then
+									!     Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
+									!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,4)
+									!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,3)
+									!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,2)
+									!     Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,4)=ifac(i)%ifa(1,1)
+									! endif
 
-
-					    end if
-				    case (3)!3d
-					ifac(i)%IFACBTYPE=bctypdum
-
-					  if (eltype.eq.0)then
-					ifac(i)%ishb=Interray(1)
-					select case (Interray(1))
-					  case (3)! triangles
-					      allocate(ifac(i)%ifa(2,3))
-					      ifac(i)%ifa(1,1)=interray(2)
-					      ifac(i)%ifa(1,2)=interray(3)
-					      ifac(i)%ifa(1,3)=interray(4)
-					      ifac(i)%ifa(2,1)=interray(5)
-					      ifac(i)%ifa(2,2)=interray(6)
-! 					      if ((ifac(i)%ifa(2,1)).ne.0)then ! no wall 
-! 					      Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
-! 					      endif
-! 					      if ((ifac(i)%ifa(2,2)).ne.0)then
-! 					      Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,3)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,1)
-! 					      endif
-					  case(4)! quads
-					      allocate(ifac(i)%ifa(2,4))
-					      ifac(i)%ifa(1,1)=interray(2)
-					      ifac(i)%ifa(1,2)=interray(3)
-					      ifac(i)%ifa(1,3)=interray(4)
-					      ifac(i)%ifa(1,4)=interray(5)
-					      ifac(i)%ifa(2,1)=interray(6)
-					      ifac(i)%ifa(2,2)=interray(7)
-! 					      if ((ifac(i)%ifa(2,1)).ne.0)then
-! 					      Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,4)=ifac(i)%ifa(1,4)
-! 					      endif
-! 					      if ((ifac(i)%ifa(2,2)).ne.0)then
-! 					      Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,4)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,3)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,4)=ifac(i)%ifa(1,1)
-! 					      endif
-					    end select
-					    else
-					      ifac(i)%ishb=eltype
-					select case (eltype)
-					  case (3)! triangles
-						ifac(i)%ishb=eltype
-					      allocate(ifac(i)%ifa(2,3))
-					      ifac(i)%ifa(1,1)=interray(1)
-					      ifac(i)%ifa(1,2)=interray(2)
-					      ifac(i)%ifa(1,3)=interray(3)
-					      ifac(i)%ifa(2,1)=interray(4)
-					      ifac(i)%ifa(2,2)=interray(5)
-! 					      if ((ifac(i)%ifa(2,1)).ne.0)then ! no wall 
-! 					      Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
-! 					      endif
-! 					      if ((ifac(i)%ifa(2,2)).ne.0)then
-! 					      Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,3)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,1)
-! 					      endif
-					  case(4)! quads
-					      ifac(i)%ishb=eltype
-					      allocate(ifac(i)%ifa(2,4))
-					      ifac(i)%ifa(1,1)=interray(1)
-					      ifac(i)%ifa(1,2)=interray(2)
-					      ifac(i)%ifa(1,3)=interray(3)
-					      ifac(i)%ifa(1,4)=interray(4)
-					      ifac(i)%ifa(2,1)=interray(5)
-					      ifac(i)%ifa(2,2)=interray(6)
-! 					      if ((ifac(i)%ifa(2,1)).ne.0)then
-! 					      Iele(ifac(i)%ifa(2,1))%IECOUNTER=Iele(ifac(i)%ifa(2,1))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,1)=ifac(i)%ifa(1,1)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,2)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,3)=ifac(i)%ifa(1,3)
-! 					      Iele(ifac(i)%ifa(2,1))%FACES(Iele(ifac(i)%ifa(2,1))%IECOUNTER,4)=ifac(i)%ifa(1,4)
-! 					      endif
-! 					      if ((ifac(i)%ifa(2,2)).ne.0)then
-! 					      Iele(ifac(i)%ifa(2,2))%IECOUNTER=Iele(ifac(i)%ifa(2,2))%IECOUNTER+1
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,1)=ifac(i)%ifa(1,4)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,2)=ifac(i)%ifa(1,3)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,3)=ifac(i)%ifa(1,2)
-! 					      Iele(ifac(i)%ifa(2,2))%FACES(Iele(ifac(i)%ifa(2,2))%IECOUNTER,4)=ifac(i)%ifa(1,1)
-! 					      endif
-
-
-
-					  			endselect ! quad or triangles faces (3d)
+								endselect ! quad or triangles faces (3d)
 							end if
 						endselect ! dimensions
 						! endif
 						! if (dimen.eq.3) then
 						! 	  read (82,*)x(i),y(i),z(i)
 						! endif
-				  		deallocate(interray)
-			      	enddo
-		     	endif ! brac
-		  	endif! index1
-	    end if !(13 all faces
+						deallocate(interray)
+					enddo
+				endif ! brac
+			endif! index1
+		end if !(13 all faces
 	      
 		! if (dumc .eq. "(39")  return
       
@@ -1084,6 +1087,13 @@ Subroutine Drive(interray)
 			  case(12)!mass flow inlet
 				ibtr=5
 
+			  case(101:) !moving wall
+				if (BOUNDARY_MOVEMENT) then
+					ibtr = ifac(i)%ifacbtype
+				else
+					print*,"this boundary code is reserved for moving boundaries"
+				end if
+
 			end select
 
 	  		countb=countb+1
@@ -1109,17 +1119,12 @@ Subroutine Drive(interray)
 		end if
 	end do
 
-
-
 	close(10)
 
 	deallocate(ifac)
 	deallocate(ishape)
 	deallocate(iele)
 
-
-
-	! 
 	! ! read dimensions
 	! ! read(82,"(A1,I1,1x,i1)",advance='no')braco,dum,dum1
 	! ! if (dum .eq. 2) then
@@ -1134,8 +1139,6 @@ Subroutine Drive(interray)
 	! ! (10 (2 1 81 1 2)
 	! ! (
 	! 
-	! 
-	! 
 	! read(82,"(A1,I2)",advance='NO')braco,dum
 	! ! if comment preceed index = 0
 	! if (dum.eq.0) then
@@ -1143,8 +1146,6 @@ Subroutine Drive(interray)
 	! endif
 	! 
 	! read(82,"(A1,I2,1x,A1,I1,1x,I1,z4)",advance='no')braco,dum,braco,zoneid,in1,imaxn
-	! 
-	! 
 	! ! read(82,"(A1,I1,1x,i1)")braco,dum,dimen!dum,dimen
 	!  print*,braco,dum,dimen
 	! 
@@ -1165,18 +1166,12 @@ Subroutine Drive(interray)
 	! 
 	! read(82,*)
 	! read(82,"(A1,I2,1x,A1,I1,1x,I1,z4)")braco,index10,braco,zoneid,in1,imaxe
-	! 
-	! 
+	!  
 	! ! (12 (0 1 a6 0 0))
 	! ! (12 (3 1 a6 1 0)
 	! 
 	! 
 	! close(82)
-	! 
-	! 
-	! 
-	! 
-	! 
 	! 
 	! ! print*,braco,dum,dimen
 	! print*,index10,zoneid,in1,imaxn
@@ -1270,7 +1265,6 @@ Subroutine Drive(interray)
 	! ! 
 	! !   return
 	! ! end
-
 
 End subroutine drive
 

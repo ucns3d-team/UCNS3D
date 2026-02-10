@@ -74,8 +74,8 @@ END SUBROUTINE ALLGRADS_INNER
 
 
 SUBROUTINE ALLGRADS_MIX(N,ICONSIDERED)
-	!> @brief
-	!> This subroutine calls the gradient approximation subroutines for every non-interior cell
+  !> @brief
+  !> This subroutine calls the gradient approximation subroutines for every non-interior cell
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED
 	INTEGER::I
@@ -221,7 +221,6 @@ SUBROUTINE COMPUTE_GRADIENTS_MEAN_LSQ(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)
 		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		SOLS1(1:NOF_VARIABLES)=LEFTV(1:NOF_VARIABLES)
 	END IF
-	
 
 	loop_start = 1
 	loop_end = IELEM(N,I)%ADMIS
@@ -1646,8 +1645,8 @@ end subroutine COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS
 
 	
 SUBROUTINE COMPUTE_GRADIENTS_CENTER(N,ICONSIDERED)
-	!> @brief
-	!> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm
+  !> @brief
+  !> This subroutine computes the gradients of the primitive variables of each interior cell using the Green-Gauss algorithm
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED
 	REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2,dudl,aver1
@@ -1675,8 +1674,8 @@ END SUBROUTINE COMPUTE_GRADIENTS_CENTER
 
 	
 SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI)!check_all
-	!> @brief
-	!> This subroutine computes the gradients of the averaged primitive variables of each non-interior cell using the Green-Gauss algorithm
+  !> @brief
+  !> This subroutine computes the gradients of the averaged primitive variables of each non-interior cell using the Green-Gauss algorithm
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSIDERED,NUMBER_OF_DOG,NUMBER_OF_NEI
 	REAL,DIMENSION(1:nof_variables)::SOLS1,SOLS2
@@ -1845,7 +1844,6 @@ SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_D
 		ILOCAL_RECON3(I)%GRADsAV(4,k)=sOLS_F(5,K)
 	END DO
 	
-
 end subroutine COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_AV
 	
 	

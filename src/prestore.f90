@@ -3312,8 +3312,8 @@ END SUBROUTINE TL2DH6
 
 
 FUNCTION CALINTBASIS(N,IXX,JXX,KXX,LXX1,number_of_dog,ICOMPWRT,ELTYPE,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-	!> @brief
-	!> This subroutine computes basis functions for each element
+  !> @brief
+  !> This subroutine computes basis functions for each element
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,number_of_dog,ICOMPWRT,ELTYPE
 	INTEGER,INTENT(IN):: IXX,JXX,KXX,LXX1
@@ -3346,8 +3346,8 @@ END FUNCTION
 
 
 FUNCTION COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-	!> @brief
-	!> This subroutine computes basis functions for each element
+  !> @brief
+  !> This subroutine computes basis functions for each element
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,lxx1,jxx,ixx,icompwrt,KXX
 	INTEGER,INTENT(IN)::ELTYPE,number_of_dog
@@ -3604,8 +3604,8 @@ END FUNCTION
 
 
 FUNCTION COMPBASHEX(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
-	!> @brief
-	!> This subroutine computes basis functions for hexahedral
+  !> @brief
+  !> This subroutine computes basis functions for hexahedral
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,number_of_dog,IXX,JXX,KXX,LXX1,icompwrt
 	REAL::VOL

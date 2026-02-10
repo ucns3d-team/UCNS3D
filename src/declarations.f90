@@ -121,7 +121,10 @@ INTEGER:: ROT_CORR,D_CORR   !integer for turbulence corrections
 INTEGER::hybridCWENO_MOOD   !hybrid CWENO/MOOD mode - for test purposes only
 logical:: MESH_MOVEMENT
 integer:: moving_mesh_mode
-integer::global_position_index
+integer::relaxation_centre_type
+integer:: global_position_index
+logical:: BOUNDARY_MOVEMENT
+integer:: num_moving_boundaries
 !--------------------- variables for parallel partitioned output-------!
 INTEGER,ALLOCATABLE,DIMENSION(:)::DISPART1,DISPART2,DISPART3,DISPART4,DISPART5,TYP_NODESN,TYP_NODESN_w
 INTEGER,ALLOCATABLE,DIMENSION(:)::iARRAY_PART1,iARRAY_PART2,iARRAY_PART3,iARRAY_PART4,iARRAY_PART5,i_ARRAY_PART2x
@@ -341,7 +344,7 @@ real::max_cell_area
 real::cell_size_average
 ! real::max_entropy
 ! real::global_max_entropy
-real::mesh_velocity_multiple, lagrangian_mesh_velocity_multiple, relaxation_mesh_velocity_multiple
+real::mesh_velocity_multiple, lagrangian_mesh_velocity_multiple, relaxation_mesh_velocity_multiple, gradient_treshold
 integer::lagrangian_mesh_velocity_multiple_function_type
 real:: momentx,momenty,momentz
 !--------------------------------------------------------------------------------------------------------------------------!
@@ -407,6 +410,8 @@ REAL, allocatable,dimension(:,:,:)::XAND2R
 REAL,ALLOCATABLE,DIMENSION(:)::FLUX_TERM_LEFT_Z,FLUX_TERM_LEFT_X,FLUX_TERM_LEFT_Y
 REAL,ALLOCATABLE,DIMENSION(:)::FLUX_TERM_RIGHT_Z,FLUX_TERM_RIGHT_X,FLUX_TERM_RIGHT_Y
 real,allocatable,dimension(:,:)::SIND1,SIND2,SIND3,SIND4,SIND5,SIND6
+
+real,allocatable,dimension(:,:)::boundary_velocity
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.5.   DATA TYPE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -424,6 +429,7 @@ TYPE::U_CENTRE					!DATA TYPE THAT HOLDS THE CELL CENTER VALUES FOR THE EQUATION
 	REAL,ALLOCATABLE,DIMENSION(:,:,:)::VALDG !ACTUAL VALUES (RK STAGE, VARIABLE NUMBER, CELL-AVERAGED SOLUTION VARIABLES AND EXPANSION COEFFICIENTS)
 	REAL,ALLOCATABLE,DIMENSION(:)::RMS	!RMS VALUES OF THE CONSERVED VECTOR IN CASE OF TRANSIENT SIMULATIONS
 	REAL,ALLOCATABLE,DIMENSION(:,:,:)::BR2_AUX_VAR ! (NUM_DG_DOFS, NOF_VARIABLES, DIMENSIONA)
+	real::normalized_gradient
 END TYPE U_CENTRE
 
 
@@ -778,7 +784,9 @@ TYPE::LOCAL_NODE
 	REAL,ALLOCATABLE,DIMENSION(:,:)::positions
 	REAL,DIMENSION(3)::VELOCITY
 	REAL,DIMENSION(3)::lagrangian_velocity
-	rEAL,DIMENSION(3)::relaxation_velocity
+	REAL,DIMENSION(3)::relaxation_velocity
+	REAL,DIMENSION(3)::density_gradient
+	real::normalized_density_gradient_magnitude
 	INTEGER::global_index
 	! INTEGER::local_index
 	! logical::internal
@@ -807,6 +815,8 @@ integer,allocatable,dimension(:)::node_rcv_count ! count of cells, not reals
 integer::my_num_interface_nodes 
 integer::max_num_node_neighbours
 integer::num_values_to_send_per_node
+
+
 
 TYPE(NODE_NUMBER),ALLOCATABLE,DIMENSION(:,:)::INODE	  !1-D ARRAY FOR POINTER TYPE FOR NODES
 

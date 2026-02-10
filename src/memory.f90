@@ -1124,8 +1124,8 @@ END SUBROUTINE LOCAL_RECONALLOCATION4
 
 
 SUBROUTINE LOCAL_RECONALLOCATION42d(N)
-	!> @brief
-	!> This subroutine allocates memory for reconstruction in 2D
+  !> @brief
+  !> This subroutine allocates memory for reconstruction in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::K,I,J,L,M,IT,KMAXE,IDUM,ICCF,decomf,SVG,points
@@ -1161,11 +1161,9 @@ SUBROUTINE LOCAL_RECONALLOCATION42d(N)
 				
 				if (fastest.ne.1)then
 					ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-				
 					ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
 				else
 					ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-			
 					ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
 				end if
 				

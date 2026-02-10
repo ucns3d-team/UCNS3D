@@ -31,140 +31,139 @@ IMPLICIT NONE
 SUBROUTINE CALCULATE_CFL(N)
   !> @brief
   !> subroutine for computing the global time step size in 3D
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL,SRF
-  REAL::SUVI,SUV3,maxU,MINU
-  REAL::CCFL,VELN,AGRT
-  real,dimension(1:nof_Variables)::leftv,rightv
-  real,dimension(1:nof_Variables)::SRF_SPEED
-  real::MP_PINFL,gammal
-  REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-  REAL,DIMENSION(1:4)::VISCL,LAML
-  REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-  REAL,DIMENSION(1:2)::TURBMV
-  REAL,DIMENSION(1)::ETVM
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL,SRF
+    REAL::SUVI,SUV3,maxU,MINU
+    REAL::CCFL,VELN,AGRT
+    real,dimension(1:nof_Variables)::leftv,rightv
+    real,dimension(1:nof_Variables)::SRF_SPEED
+    real::MP_PINFL,gammal
+    REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+    REAL,DIMENSION(1:4)::VISCL,LAML
+    REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+    REAL,DIMENSION(1:2)::TURBMV
+    REAL,DIMENSION(1)::ETVM
 
-  KMAXE=XMPIELRANK(N)
-       
-  CCFL=(CFL/3.0d0)
+    KMAXE=XMPIELRANK(N)
         
-  DT=tolbig
-	IF (ITESTCASE.LT.3)THEN
-    !$OMP DO REDUCTION (MIN:DT)
-    DO I=1,KMAXE
-      VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
-      
-      if (dg.eq.1)then
-        DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
-      else
-        DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
-      end if
-      
-    END DO
-    !$OMP END DO
-	END IF
-	
-	IF (ITESTCASE.EQ.3) THEN
-	  !$OMP DO REDUCTION (MIN:DT)
-    DO I=1,KMAXE
+    CCFL=(CFL/3.0d0)
         
-		  LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
-		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		  IF (multispecies.eq.1) THEN
-		    AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
-		  ELSE
-		    AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		  END IF
-      IF (RFRAME.eq.0) THEN
-          VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-      END IF
-      IF (SRFG.EQ.1) THEN
-          POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-          POY(1:3)=SRF_VELOCITY
-          SRF_SPEED=ZERO
-          SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-          VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-      END IF
-      IF(MRF.EQ.1)THEN
-        SRF=ILOCAL_RECON3(I)%MRF
-        IF (ILOCAL_RECON3(I)%MRF.EQ.0) THEN
-          VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        ELSE
-          POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-          POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
-          POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
-          SRF_SPEED=ZERO
-          SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-          VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF
-      END IF
-      if (dg.eq.1)then
-        DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
-      else
-        DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
-      END IF
-		
-    END DO
-    !$OMP END DO
-	END IF
+    DT=tolbig
+    IF (ITESTCASE.LT.3)THEN
+        !$OMP DO REDUCTION (MIN:DT)
+        DO I=1,KMAXE
+            VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
+          
+            if (dg.eq.1)then
+                DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
+            else
+                DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+            end if
+        END DO
+        !$OMP END DO
+    END IF
 	
-	IF (ITESTCASE.EQ.4)THEN
-	  !$OMP DO REDUCTION (MIN:DT)
-    DO I=1,KMAXE
-		  LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		  RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		  CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
-		  AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-                
-      IF (RFRAME.EQ.0) THEN
-        VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-      END IF
-      IF(SRFG.EQ.1)THEN
-        POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-        POY(1:3)=SRF_VELOCITY
-        SRF_SPEED=ZERO
-        SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-        VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-      END IF          
-      IF(MRF.EQ.1)THEN
-        SRF=ILOCAL_RECON3(I)%MRF
-        IF (ILOCAL_RECON3(I)%MRF.EQ.0) THEN
-          VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        ELSE
-          POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-          POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
-          POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
-          SRF_SPEED=ZERO
-          SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-          VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF
-      END IF
-      IF (TURBULENCE.EQ.1) THEN
-        IF (TURBULENCEMODEL.EQ.1) THEN
-          TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
-          eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-          CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-          LAML(1)=LAML(1)+LAML(3)
-          VISCL(1)=VISCL(1)+VISCL(3)
-        END IF
-      END IF
+	  IF (ITESTCASE.EQ.3) THEN
+        !$OMP DO REDUCTION (MIN:DT)
+        DO I=1,KMAXE
+          
+            LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+      
+            CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+            IF (multispecies.eq.1) THEN
+                AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
+            ELSE
+                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+            END IF
+            IF (RFRAME.eq.0) THEN
+                VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            END IF
+            IF (SRFG.EQ.1) THEN
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POY(1:3)=SRF_VELOCITY
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF
+            IF(MRF.EQ.1)THEN
+                SRF=ILOCAL_RECON3(I)%MRF
+                IF (ILOCAL_RECON3(I)%MRF.EQ.0) THEN
+                    VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+                ELSE
+                    POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                    POX = POX-ILOCAL_RECON3(I)%MRF_ORIGIN
+                    POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
+                    SRF_SPEED=ZERO
+                    SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                    VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+                END IF
+            END IF
+            if (dg.eq.1)then
+                DT = MIN(DT, CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
+            else
+                DT = MIN(DT, CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+            END IF
+      
+        END DO
+        !$OMP END DO
+	  END IF
+	
+	  IF (ITESTCASE.EQ.4)THEN
+	      !$OMP DO REDUCTION (MIN:DT)
+        DO I=1,KMAXE
+            LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+            CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+            RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
+            CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
+            AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+                      
+            IF (RFRAME.EQ.0) THEN
+                VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            END IF
+            IF(SRFG.EQ.1)THEN
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POY(1:3)=SRF_VELOCITY
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF          
+            IF (MRF.EQ.1) THEN
+                SRF=ILOCAL_RECON3(I)%MRF
+                IF (ILOCAL_RECON3(I)%MRF.EQ.0) THEN
+                    VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+                ELSE
+                    POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                    POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                    POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
+                    SRF_SPEED=ZERO
+                    SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                    VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+                END IF
+            END IF
+            IF (TURBULENCE.EQ.1) THEN
+                IF (TURBULENCEMODEL.EQ.1) THEN
+                    TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+                    eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
+                    CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+                    LAML(1)=LAML(1)+LAML(3)
+                    VISCL(1)=VISCL(1)+VISCL(3)
+                END IF
+            END IF
 
-      if (dg.eq.1)then
-        DT=MIN(DT,(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
-      else
-        IELEM(N,I)%VISCX=VISCL(1)/VISC
-        DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
-        ! DT=MIN(DT,(CCFL)*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*(1.0D0/IELEM(N,I)%MINEDGE)))))
-      end if
-                             
-    END DO
-    !$OMP END DO
-	END IF
+            if (dg.eq.1)then
+                DT = MIN(DT, (CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
+            else
+                IELEM(N,I)%VISCX=VISCL(1)/VISC
+                DT = MIN(DT, CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
+                ! DT = MIN(DT,(CCFL)*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*(1.0D0/IELEM(N,I)%MINEDGE)))))
+            end if
+                              
+        END DO
+        !$OMP END DO
+	  END IF
 	
-  RETURN
+    RETURN
         
 END SUBROUTINE CALCULATE_CFL
 
@@ -175,130 +174,129 @@ END SUBROUTINE CALCULATE_CFL
 SUBROUTINE CALCULATE_CFLL(N)
   !> @brief
   !> subroutine for computing the time step size for each cell in 3D
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL,SRF
-  REAL::SUVI,SUV3,maxU,MINU
-  REAL::CCFL,VELN,AGRT
-  real,dimension(1:nof_Variables)::leftv,rightv
-  real,dimension(1:nof_Variables)::SRF_SPEED
-  real::MP_PINFL,gammal
-  REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-  REAL,DIMENSION(1:4)::VISCL,LAML
-  REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-  REAL,DIMENSION(1:2)::TURBMV
-  REAL,DIMENSION(1)::ETVM
-  KMAXE=XMPIELRANK(N)
-       
-  CCFL=(CFL/3.0d0)
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL,SRF
+    REAL::SUVI,SUV3,maxU,MINU
+    REAL::CCFL,VELN,AGRT
+    real,dimension(1:nof_Variables)::leftv,rightv
+    real,dimension(1:nof_Variables)::SRF_SPEED
+    real::MP_PINFL,gammal
+    REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+    REAL,DIMENSION(1:4)::VISCL,LAML
+    REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+    REAL,DIMENSION(1:2)::TURBMV
+    REAL,DIMENSION(1)::ETVM
+    KMAXE=XMPIELRANK(N)
         
-	IF (ITESTCASE.LT.3)THEN
-	  !$OMP DO
-    DO I=1,KMAXE
-		  VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
-		  IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
-	  END DO
-	  !$OMP END DO
-	END IF
+    CCFL=(CFL/3.0d0)
+        
+    IF (ITESTCASE.LT.3)THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
+            IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
+        END DO
+        !$OMP END DO
+    END IF
 	
-	IF (ITESTCASE.EQ.3)THEN
-	  !$OMP DO
-    DO I=1,KMAXE
-		  LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
-		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+	  IF (ITESTCASE.EQ.3)THEN
+        !$OMP DO
+        DO I=1,KMAXE
+          LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+        
+          CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 
-      IF (multispecies.eq.1)THEN
-		    AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
-		  ELSE
-		    AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		  END IF
-      IF (RFRAME.eq.0) THEN
-        VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-      END IF
-      IF (SRFG.EQ.1) THEN
-        POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-        POY(1:3)=SRF_VELOCITY
-        SRF_SPEED=ZERO
-        SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-        VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-      END IF
-      IF(MRF.EQ.1)THEN
-        SRF=ILOCAL_RECON3(I)%MRF
-        IF (ILOCAL_RECON3(I)%MRF.EQ.1)THEN
-          VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        ELSE
-          POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-          POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
-          POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
-          SRF_SPEED=ZERO
-          SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-          VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF
-      END IF
+          IF (multispecies.eq.1)THEN
+              AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
+          ELSE
+              AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+          END IF
+          IF (RFRAME.eq.0) THEN
+              VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+          END IF
+          IF (SRFG.EQ.1) THEN
+              POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+              POY(1:3)=SRF_VELOCITY
+              SRF_SPEED=ZERO
+              SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+              VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+          END IF
+          IF(MRF.EQ.1)THEN
+              SRF=ILOCAL_RECON3(I)%MRF
+              IF (ILOCAL_RECON3(I)%MRF.EQ.1)THEN
+                  VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+              ELSE
+                  POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                  POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
+                  POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
+                  SRF_SPEED=ZERO
+                  SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                  VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+              END IF
+          END IF
 
-		  if (dg.eq.1)then
-		    IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1))
-		  else
-		    IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
-		  end if
-	  END DO
-	  !$OMP END DO
-	END IF
+            if (dg.eq.1)then
+                IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1))
+            else
+                IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
+            end if
+        END DO
+        !$OMP END DO
+	  END IF
 	
-	IF (ITESTCASE.EQ.4)THEN
-	  !$OMP DO
-    DO I=1,KMAXE
-		  LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		  CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		  RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		  CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
-      AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-      IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
-        VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-      END IF
-      IF(SRFG.EQ.1)THEN
-        POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-        POY(1:3)=SRF_VELOCITY
-        SRF_SPEED=ZERO
-        SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-        VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-      END IF
-      IF(MRF.EQ.1)THEN
-        SRF=ILOCAL_RECON3(I)%MRF
-        IF (ILOCAL_RECON3(I)%MRF.EQ.0)THEN
-          VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        ELSE
-          POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-          POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
-          POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
-          SRF_SPEED=ZERO
-          SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-          VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF
-      END IF
-      IF (TURBULENCE.EQ.1)THEN
-		    IF (TURBULENCEMODEL.EQ.1)THEN
-		      TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
-		      eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-		      CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-		      LAML(1)=LAML(1)+LAML(3)
-		      VISCL(1)=VISCL(1)+VISCL(3)
-		    END IF
-		  END IF
-		
-		  if (dg.eq.1)then
-		    IELEM(N,I)%DTL=(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE))))
-		  else
-		    IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
-		  end if
-		
-	  END DO
-	  !$OMP END DO
-	END IF
+	  IF (ITESTCASE.EQ.4)THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+            CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+            RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
+            CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
+            AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+            IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
+                VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            END IF
+            IF(SRFG.EQ.1)THEN
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POY(1:3)=SRF_VELOCITY
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF
+            IF(MRF.EQ.1)THEN
+                SRF=ILOCAL_RECON3(I)%MRF
+                IF (ILOCAL_RECON3(I)%MRF.EQ.0)THEN
+                    VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+                ELSE
+                    POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                    POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                    POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
+                    SRF_SPEED=ZERO
+                    SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                    VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+                END IF
+            END IF
+            IF (TURBULENCE.EQ.1)THEN
+                IF (TURBULENCEMODEL.EQ.1)THEN
+                    TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+                    eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
+                    CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+                    LAML(1)=LAML(1)+LAML(3)
+                    VISCL(1)=VISCL(1)+VISCL(3)
+                END IF
+            END IF
+        
+            if (dg.eq.1)then
+                IELEM(N,I)%DTL=(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE))))
+            else
+                IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
+            end if
+        
+        END DO
+        !$OMP END DO
+	  END IF
 	
-
-  RETURN
+    RETURN
         
 END SUBROUTINE CALCULATE_CFLL
 
@@ -309,75 +307,75 @@ END SUBROUTINE CALCULATE_CFLL
 SUBROUTINE CALCULATE_CFL2D(N)
   !> @brief
   !> subroutine for computing the global time step size in 2D
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
-  REAL::SUVI,SUV3,maxU,MINU,sum_DT1,sum_dt2
-  REAL::CCFL,VELN,AGRT,lamxl,lamyl
-  real,dimension(1:nof_Variables)::leftv,rightv
-  real,dimension(1:nof_Variables)::SRF_SPEED
-  real::MP_PINFL,gammal
-  REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-  REAL,DIMENSION(1:4)::VISCL,LAML
-  REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-  REAL,DIMENSION(1:2)::TURBMV
-  REAL,DIMENSION(1)::ETVM
-  KMAXE=XMPIELRANK(N)
-       
-  CCFL=(CFL/2.0d0)
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
+    REAL::SUVI,SUV3,maxU,MINU,sum_DT1,sum_dt2
+    REAL::CCFL,VELN,AGRT,lamxl,lamyl
+    real,dimension(1:nof_Variables)::leftv,rightv
+    real,dimension(1:nof_Variables)::SRF_SPEED
+    real::MP_PINFL,gammal
+    REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+    REAL,DIMENSION(1:4)::VISCL,LAML
+    REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
+    REAL,DIMENSION(1:2)::TURBMV
+    REAL,DIMENSION(1)::ETVM
+    KMAXE=XMPIELRANK(N)
+        
+    CCFL=(CFL/2.0d0)
   
-  DT=tolbig
-  
-  !$OMP BARRIER
-        
-	IF (ITESTCASE.LT.3)THEN
-	  !$OMP DO REDUCTION (MIN:DT)
-    DO I=1,KMAXE
-        
-      IF (initcond.eq.3)THEN
-        lamxl=-ielem(n,i)%yyc+0.5d0
-        lamyl=ielem(n,i)%xxc-0.5
-      Else
-        lamxl=lamx
-        lamyl=lamy
-      end if
-        
-		  VELN=MAX(ABS(LAMxl),ABS(LAMyl))
-		
-      if (dg.eq.1)then
-        DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
-      else
+    DT=tolbig
+    
+    !$OMP BARRIER
+          
+    IF (ITESTCASE.LT.3)THEN
+      !$OMP DO REDUCTION (MIN:DT)
+      DO I=1,KMAXE
+          
+        IF (initcond.eq.3)THEN
+          lamxl=-ielem(n,i)%yyc+0.5d0
+          lamyl=ielem(n,i)%xxc-0.5
+        Else
+          lamxl=lamx
+          lamyl=lamy
+        end if
+          
+        VELN=MAX(ABS(LAMxl),ABS(LAMyl))
+      
+        if (dg.eq.1)then
+          DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
+        else
 
-        DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
-      end if
-		
-    END DO
-    !$OMP END DO
-	END IF
+          DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+        end if
+      
+      END DO
+      !$OMP END DO
+    END IF
 	
-	IF (ITESTCASE.EQ.3)THEN
-	  !$OMP DO REDUCTION (MIN:DT)
-    DO I=1,KMAXE
-        
-		  LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
-		  CALL cons2prim(N,leftv,MP_PINFl,gammal)
-      IF (multispecies.eq.1)THEN
-        AGRT=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
-      ELSE
-        AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-      END IF
-      VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
-		
-		  if (dg.eq.1)then
-		    DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
-		  else
-		    DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
-		  end if
+    IF (ITESTCASE.EQ.3)THEN
+      !$OMP DO REDUCTION (MIN:DT)
+      DO I=1,KMAXE
+          
+        LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+      
+        CALL cons2prim(N,leftv,MP_PINFl,gammal)
+        IF (multispecies.eq.1)THEN
+          AGRT=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
+        ELSE
+          AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
+        END IF
+        VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
+      
+        if (dg.eq.1)then
+          DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
+        else
+          DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+        end if
 
-    END DO
-    !$OMP END DO
-	END IF
+      END DO
+      !$OMP END DO
+    END IF
 	
 	
 	IF (ITESTCASE.EQ.4)THEN
@@ -905,48 +903,47 @@ END SUBROUTINE RUNGE_KUTTA3
 SUBROUTINE RUNGE_KUTTA1(N)
   !> @brief
   !> SSP FORWARD EULER SCHEME
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  INTEGER::I,KMAXE,kx
-  REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-  reaL::t1,t2,t3
-  KMAXE=XMPIELRANK(N)
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I,KMAXE,kx
+    REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
+    reaL::t1,t2,t3
+    KMAXE=XMPIELRANK(N)
 
-  CALL CALL_FLUX_SUBROUTINES_3D
+    CALL CALL_FLUX_SUBROUTINES_3D
 
-  DO I=1,KMAXE
-      IF (DG == 1)then
-          if((U_C(i)%VALDG(1,1,1).ne. U_C(i)%VALDG(1,1,1))) THEN
-              IF (N == 0) PRINT*, 'STOPPING BECAUSE NaNs1'
-              STOP ! Stop if NaNs
-          END IF
-      end if
-  end do
+    DO I=1,KMAXE
+        IF (DG == 1)then
+            if((U_C(i)%VALDG(1,1,1).ne. U_C(i)%VALDG(1,1,1))) THEN
+                IF (N == 0) PRINT*, 'STOPPING BECAUSE NaNs1'
+                STOP ! Stop if NaNs
+            END IF
+        end if
+    end do
 
-  !$OMP DO
-  DO I=1,KMAXE
-      OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    
-      IF (DG == 1) THEN
-          U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))!*OOVOLUME   
-      else
-          U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-      end if
-  END DO
-  !$OMP END DO
+    !$OMP DO
+    DO I=1,KMAXE
+        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+        IF (DG == 1) THEN
+            U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))!*OOVOLUME   
+        else
+            U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+        end if
+    END DO
+    !$OMP END DO
 
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-      !$OMP DO
-      DO I=1,KMAXE
-          OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-          U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-      END DO
-      !$OMP END DO
-  END IF
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+        END DO
+        !$OMP END DO
+    END IF
 
-  IF (AVERAGING.EQ.1)THEN
-      CALL AVERAGING_T(N)
-  END IF
+    IF (AVERAGING.EQ.1)THEN
+        CALL AVERAGING_T(N)
+    END IF
 
 END SUBROUTINE RUNGE_KUTTA1
 
@@ -957,69 +954,69 @@ END SUBROUTINE RUNGE_KUTTA1
 SUBROUTINE RUNGE_KUTTA2(N)
   !> @brief
   !> SSP RUNGE KUTTA 2ND-ORDER SCHEME
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  INTEGER::I,KMAXE
-  REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-  KMAXE=XMPIELRANK(N)
-  TO4=3.0D0/4.0D0
-  OO4=1.0D0/4.0D0
-  TO3=2.0D0/3.0D0
-  OO3=1.0D0/3.0D0	
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I,KMAXE
+    REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
+    KMAXE=XMPIELRANK(N)
+    TO4=3.0D0/4.0D0
+    OO4=1.0D0/4.0D0
+    TO3=2.0D0/3.0D0
+    OO3=1.0D0/3.0D0	
 
-  CALL CALL_FLUX_SUBROUTINES_3D
+    CALL CALL_FLUX_SUBROUTINES_3D
 
-  !$OMP DO
-  DO I=1,KMAXE
-    OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-    U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  END DO
-  !$OMP END DO
-
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
     !$OMP DO
     DO I=1,KMAXE
-      OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-      U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-      U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+        U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+        U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
     END DO
     !$OMP END DO
-  END IF
 
-  CALL CALL_FLUX_SUBROUTINES_3D
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+        END DO
+        !$OMP END DO
+    END IF
 
-  !$OMP DO
-  DO I=1,KMAXE
-    OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  END DO
-  !$OMP END DO
+    CALL CALL_FLUX_SUBROUTINES_3D
 
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
     !$OMP DO
     DO I=1,KMAXE
-      OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-      U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(oo2*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(oo2*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(dt*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+       U_C(I)%VAL(1,1:NOF_VARIABLES) = (oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
     END DO
     !$OMP END DO
-  END IF
 
-  IF (AVERAGING.EQ.1)THEN
-    CALL AVERAGING_T(N)
-  END IF
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = (oo2*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(oo2*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(dt*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+        END DO
+        !$OMP END DO
+    END IF
+
+    IF (AVERAGING.EQ.1)THEN
+        CALL AVERAGING_T(N)
+    END IF
                
 END SUBROUTINE RUNGE_KUTTA2
 
 
 SUBROUTINE RUNGE_KUTTA5(N)
-!> @brief
-!> SSP RUNGE KUTTA 2ND-ORDER SCHEME FOR LOCAL TIME STEPPING
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
+  !> @brief
+  !> SSP RUNGE KUTTA 2ND-ORDER SCHEME FOR LOCAL TIME STEPPING
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I,KMAXE
+    REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
+    KMAXE=XMPIELRANK(N)
 
 
 CALL CALL_FLUX_SUBROUTINES_3D
@@ -1162,67 +1159,64 @@ END SUBROUTINE RUNGE_KUTTA5_2D
 SUBROUTINE RUNGE_KUTTA2_2D(N)
   !> @brief
   !> SSP RUNGE KUTTA 2ND-ORDER SCHEME IN 2D
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  INTEGER::I,KMAXE
-  REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-  KMAXE=XMPIELRANK(N)
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I,KMAXE
+    REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
+    KMAXE=XMPIELRANK(N)
 
-  CALL CALL_FLUX_SUBROUTINES_2D
+    CALL CALL_FLUX_SUBROUTINES_2D
 
-  !$OMP DO
-  DO I=1,KMAXE
-    IF (DG == 1) THEN
-      OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-      U_C(I)%VALDG(2,:,:)=U_C(I)%VALDG(1,:,:)
-      U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
-    ELSE
-      OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-      U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-      U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    END IF
-  END DO
-  !$OMP END DO
-
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
     !$OMP DO
     DO I=1,KMAXE
-      OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-      U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-      U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+        IF (DG == 1) THEN
+            OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            U_C(I)%VALDG(2,:,:)=U_C(I)%VALDG(1,:,:)
+            U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
+        ELSE
+            OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+            U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+        END IF
     END DO
     !$OMP END DO
-  END IF
 
-
-  CALL CALL_FLUX_SUBROUTINES_2D
-
-  !$OMP DO
-  DO I=1,KMAXE
-    IF (DG == 1) THEN
-      OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-      U_C(I)%VALDG(1,:,:)=OO2*U_C(I)%VALDG(2,:,:) + OO2*U_C(I)%VALDG(1,:,:) - (OO2*DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
-    ELSE
-      OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-      U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+        END DO
+        !$OMP END DO
     END IF
-  END DO
-  !$OMP END DO
 
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+    CALL CALL_FLUX_SUBROUTINES_2D
+
     !$OMP DO
     DO I=1,KMAXE
-      OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-      U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+        IF (DG == 1) THEN
+            OOVOLUME = 1.0D0/IELEM(N,I)%TOTVOLUME
+            U_C(I)%VALDG(1,:,:) = OO2*U_C(I)%VALDG(2,:,:) + OO2*U_C(I)%VALDG(1,:,:) - (OO2*DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
+        ELSE
+            OOVOLUME = 1.0D0/IELEM(N,I)%TOTVOLUME
+            U_C(I)%VAL(1,1:NOF_VARIABLES) = (oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+        END IF
     END DO
     !$OMP END DO
-  END IF
 
-  IF (AVERAGING.EQ.1)THEN
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+        END DO
+        !$OMP END DO
+    END IF
 
-    CALL AVERAGING_T(N)
-  
-  END IF
+    IF (AVERAGING.EQ.1)THEN
+        CALL AVERAGING_T(N)
+    END IF
                         
 END SUBROUTINE RUNGE_KUTTA2_2D
 
@@ -3960,6 +3954,11 @@ SUBROUTINE TIME_MARCHING2(N)
 
       !$OMP BARRIER
 
+      if (dt.lt.zero) Then
+          print *, "Negative time step"
+          call ABORT
+      end if
+
       SELECT CASE(RUNGEKUTTA)
 
         CASE(1)
@@ -4011,6 +4010,18 @@ SUBROUTINE TIME_MARCHING2(N)
       END SELECT
 
       if (dg.eq.1)call SOL_INTEG_DG(N)
+
+      if (MESH_MOVEMENT) then
+          if (moving_mesh_mode.eq.8) then
+              call FIND_NORMALIZED_DENSITY_GRADIENT_from_precomputed(N)
+          else
+              ! if (dimensiona.eq.2) then
+              !     call FIND_NORMALIZED_DENSITY_GRADIENT_2D(1, 1, N)
+              ! else
+              !     print *, "the function FIND_NORMALIZED_DENSITY_GRADIENT_3D(N) is missing"
+              ! end if
+          end if
+      end if
 
       !$OMP BARRIER
 
@@ -4487,6 +4498,9 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
     ELSE
         U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
         U_C(I)%VAL(1,1:NOF_VARIABLES)= ((U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - ((0.5*dt) * RHS(I)%VAL(1:NOF_VARIABLES))) / IELEM(N,I)%moving_volume(2)
+        if (governingequations.EQ.-1) Then
+            U_C(I)%VAL(1,NOF_VARIABLES)= U_C(I)%VAL(2,NOF_VARIABLES) - ((0.5*dt) * RHS(I)%VAL(NOF_VARIABLES) / IELEM(N,I)%moving_volume(2))
+        end if
     END IF
   END DO
   !$OMP END DO
@@ -4555,9 +4569,10 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
           ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
           ! U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
       ELSE
-          U_C(I)%VAL(1,1:NOF_VARIABLES) = ((U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) &
-                                        - (dt * (RHS(I)%VAL(1:NOF_VARIABLES))))                          &
-                                        / IELEM(N,I)%moving_volume(3)
+          U_C(I)%VAL(1,1:NOF_VARIABLES) = ((U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - (dt * (RHS(I)%VAL(1:NOF_VARIABLES)))) / IELEM(N,I)%moving_volume(3)
+          if (governingequations.EQ.-1) then
+              U_C(I)%VAL(1,NOF_VARIABLES) = U_C(I)%VAL(2,NOF_VARIABLES) - (dt * (RHS(I)%VAL(NOF_VARIABLES)) / IELEM(N,I)%moving_volume(3))
+          end if
       END IF
   END DO
   !$OMP END DO

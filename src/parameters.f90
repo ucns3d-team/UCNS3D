@@ -14,7 +14,7 @@ SUBROUTINE READ_UCNS3D
 	IMPLICIT NONE
 
  	Integer :: INV,IX,IBLEED
- 	INTEGER :: INV1
+ 	INTEGER :: INV1, i
  	Real :: angledum
 	CHARACTER(48)::STAMP1,FRAME
 	LOGICAL::HERE1,HERE2,HERE3,HERE5,here,here4,HERE7,HERE8,HERE9,BLEEDIO,hybridCWENO_MOOD_IO
@@ -1423,16 +1423,59 @@ SUBROUTINE READ_UCNS3D
 		mesh_velocity_multiple = 1.0
 		lagrangian_mesh_velocity_multiple = 1.0
 		relaxation_mesh_velocity_multiple = 1.0
+		gradient_treshold = 0.0
+		relaxation_centre_type = -1
 		if (moving_mesh_mode.eq.1) then
 			read(29,*) lagrangian_mesh_velocity_multiple
 		else if (moving_mesh_mode.eq.4) then
+			read(29,*) relaxation_centre_type
 			read(29,*) mesh_velocity_multiple
 		else if (moving_mesh_mode.eq.5) then
-			read(29,*) lagrangian_mesh_velocity_multiple,               relaxation_mesh_velocity_multiple
+			read(29,*) relaxation_centre_type
+			read(29,*) lagrangian_mesh_velocity_multiple, relaxation_mesh_velocity_multiple
 			print *, lagrangian_mesh_velocity_multiple, relaxation_mesh_velocity_multiple
 		else if (moving_mesh_mode.eq.6) then
+			read(29,*) relaxation_centre_type
 			read(29,*) lagrangian_mesh_velocity_multiple_function_type, relaxation_mesh_velocity_multiple
+		else if (moving_mesh_mode.eq.7) then
+			read(29,*) relaxation_centre_type
+			read(29,*) relaxation_mesh_velocity_multiple
+		else if (moving_mesh_mode.eq.8) then
+			read(29,*) relaxation_centre_type
+			read(29,*) gradient_treshold, relaxation_mesh_velocity_multiple
+		else if ((moving_mesh_mode.ne.2).and.(moving_mesh_mode.ne.3)) then
+			print*, "invalid moving mesh mode"
+			call abort
 		end if
+	ENDIF
+
+	num_moving_boundaries = 0
+	INQUIRE (FILE='MovingBoundary.DAT',EXIST=BOUNDARY_MOVEMENT)
+	IF (BOUNDARY_MOVEMENT) THEN
+		
+		if (n.eq.0) then
+			print *, "Moving boundary detected"
+			print *, "WARNING: this mode is experimental and most things do not work"
+		endif
+
+		if (.not.MESH_MOVEMENT) then
+			if (n.eq.0) then
+				print *, "Moving boundaries require moving mesh mode"
+			end if
+			call abort()
+		end if
+
+		OPEN(30,FILE='MovingBoundary.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+		read(30,*)
+		read(30,*)num_moving_boundaries
+		allocate(boundary_velocity(1:num_moving_boundaries, 1:dimensiona))
+		do i = 1, num_moving_boundaries
+			if (dimensiona.eq.2) then
+				read(30,*) boundary_velocity(i,1), boundary_velocity(i,2)
+			else
+				read(30,*) boundary_velocity(i,1), boundary_velocity(i,2), boundary_velocity(i,3)
+			end if 
+		end do
 	ENDIF
 
 END SUBROUTINE READ_UCNS3D

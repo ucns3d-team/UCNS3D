@@ -12,9 +12,9 @@ IMPLICIT NONE
 contains
 
 SUBROUTINE RENUMBER_NEIGHBOURS(N,IELEM,XMPIE,XMPIELRANK,IEXCHANGER,IEXCHANGES)
-	!> @brief
-	!> This subroutine renumbers the neighbours indexing for cross referencing between different cpus
-	!> It is a process that is performed once the beginning of each run
+  !> @brief
+  !> This subroutine renumbers the neighbours indexing for cross referencing between different cpus
+  !> It is a process that is performed once the beginning of each run
 
 	IMPLICIT NONE
 	TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM

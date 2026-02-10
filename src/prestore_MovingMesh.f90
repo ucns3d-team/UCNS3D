@@ -1103,8 +1103,8 @@ END SUBROUTINE PRESTORE_RECONSTRUCTION_MovingMesh_2D
 
 
 SUBROUTINE LOCALISE_STENCIL_MovingMesh_2D(N,Iconsi,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z,node_position_index)
-	!> @brief
-	!> This subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2D
+  !> @brief
+  !> This subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::n,iconsi,node_position_index
 	INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXG  !GLOBAL INDEX OF CELLS

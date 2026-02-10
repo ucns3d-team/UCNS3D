@@ -7,8 +7,8 @@ IMPLICIT NONE
 CONTAINS
 
 SUBROUTINE EXCH_CORDS(N)
-	!> @brief
-	!> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values
+  !> @brief
+  !> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,J,K,L,INEEDT,TNEEDT,INDL,TNDL,ICPUID,IXFLAG,ITEE,ITEEDUM,IAVC,IAVT,I_CNT,i_cnt2,i_cnt3,i_cnt4,ixf4,kmaxe,ixfv,i_cnt5
@@ -25,7 +25,7 @@ SUBROUTINE EXCH_CORDS(N)
 	INDL=IEXCHANGER(1)%TOT
 	TNDL=IEXCHANGES(1)%TOT
 
-	IF (FASTEST.NE.1)THEN
+	IF (FASTEST.NE.1) THEN
 		INEEDT=IRECEXR(1)%TOT
 		TNEEDT=IRECEXS(1)%TOT
 		ALLOCATE (IEXCORDR(INEEDT))
@@ -33,7 +33,7 @@ SUBROUTINE EXCH_CORDS(N)
 		ALLOCATE (IEXSOLHIR(INEEDT))
 		ALLOCATE (IEXSOLHIS(TNEEDT))
 
-		if (adda.eq.1)then
+		if (adda.eq.1) then
 			ALLOCATE (IEXSOLHIRd(INEEDT))
 			ALLOCATE (IEXSOLHISd(TNEEDT))
 		end if
@@ -46,14 +46,14 @@ SUBROUTINE EXCH_CORDS(N)
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-	if (dimensiona.eq.3)then
+	if (dimensiona.eq.3) then
 		i_cnt2=4;i_cnt3=3;i_cnt4=8
 	else
 		i_cnt2=2;i_cnt3=2;i_cnt4=4
 	end if
 	i_cnt5=i_cnt3*i_cnt4
 
-	IF (FASTEST.NE.1)THEN
+	IF (FASTEST.NE.1) THEN
 		DO I=1,INEEDT
 
 			IEXSOLHIR(I)%PROCID=IRECEXR(I)%PROCID
@@ -63,7 +63,7 @@ SUBROUTINE EXCH_CORDS(N)
 
 			ALLOCATE(IEXSOLHIR(I)%SOL(IRECEXR(I)%MUCHINEED(1),nof_variables+turbulenceequations+passivescalar))
 
-			if (adda.eq.1)then
+			if (adda.eq.1) then
 				ALLOCATE(IEXSOLHIRd(I)%SOL(IRECEXR(I)%MUCHINEED(1),1))
 			end if
 			if (mood.ge.1) then
@@ -81,7 +81,7 @@ SUBROUTINE EXCH_CORDS(N)
 			! ALLOCATE(IEXBOUNDHIR(I)%FACESOL(IEXCHANGER(I)%MUCHINEED(1),nof_variables))
 			ALLOCATE(IEXBOUNDHIRR(I)%vertpp(IEXCHANGER(I)%MUCHINEED(1),i_cnt2))
 		ELSE
-			if (dimensiona.eq.3)then
+			if (dimensiona.eq.3) then
 				I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
 			else
 				I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
@@ -95,7 +95,7 @@ SUBROUTINE EXCH_CORDS(N)
 		IEXBOUNDHIRR(I)%vertpp(:,:)=0
 	END DO
 
-	IF (FASTEST.NE.1)THEN
+	IF (FASTEST.NE.1) THEN
 		DO I=1,TNEEDT
 			IEXSOLHIS(I)%PROCID=IRECEXS(I)%PROCID
 
@@ -105,7 +105,7 @@ SUBROUTINE EXCH_CORDS(N)
 			IEXCORDs(I)%NODECORD(1:IRECEXs(I)%MUCHTHEYNEED(1),1:i_cnt4,1:i_cnt3)=-tolbig
 			ALLOCATE (IEXSOLHIS(I)%SOL(IRECEXS(I)%MUCHTHEYNEED(1),nof_variables+turbulenceequations+passivescalar))
 
-			if (adda.eq.1)then
+			if (adda.eq.1) then
 				ALLOCATE(IEXSOLHIsd(I)%SOL(IRECEXS(I)%MUCHTHEYNEED(1),1))
 			end if
 
@@ -117,11 +117,11 @@ SUBROUTINE EXCH_CORDS(N)
 
 		IEXBOUNDHIs(I)%PROCID=IEXCHANGEs(I)%PROCID
 		IEXBOUNDHIss(I)%PROCID=IEXCHANGEs(I)%PROCID
-		IF (ITESTCASE.Le.3)THEN
+		IF (ITESTCASE.Le.3) THEN
 			! ALLOCATE(IEXBOUNDHIs(I)%FACESOL(IEXCHANGEs(I)%MUCHTHEYNEED(1),nof_variables))
 			ALLOCATE(IEXBOUNDHIss(I)%vertpp(IEXCHANGEs(I)%MUCHTHEYNEED(1),i_cnt2))
 		Else
-			if (dimensiona.eq.3)then
+			if (dimensiona.eq.3) then
 				I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
 			else
 				I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
@@ -146,7 +146,7 @@ SUBROUTINE EXCHANGE_CORDX(N,INEEDT,TNEEDT,i_cnt4,i_cnt3)	!TT need to move to ino
 	INTEGER::I,J,K,L,ICPUID,IXFLAG,ITEE,ITEEDUM,IAVC,IAVT
 	REAL,DIMENSION(1)::DUMTS,RUMTS
 
-	IF (FASTEST.NE.1)THEN
+	IF (FASTEST.NE.1) THEN
 
 		DO I=1,TNEEDT
 			DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
@@ -163,7 +163,7 @@ SUBROUTINE EXCHANGE_CORDX(N,INEEDT,TNEEDT,i_cnt4,i_cnt3)	!TT need to move to ino
 			IF (I.NE.N) THEN
 				DO J=1,TNEEDT
 					IAVT=10000
-					IF (IRECEXS(J)%PROCID.EQ.I)THEN
+					IF (IRECEXS(J)%PROCID.EQ.I) THEN
 						IAVT=J
 						GO TO 7001
 					END IF
@@ -210,9 +210,9 @@ END SUBROUTINE EXCHANGE_CORDX
 
 
 
-sUBROUTINE EXCH_CORDS_opt(N)
-	!> @brief
-	!> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values
+SUBROUTINE EXCH_CORDS_opt(N)
+  !> @brief
+  !> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,J,K,L,INEEDT,TNEEDT,INDL,TNDL,ICPUID,IXFLAG,ITEE,ITEEDUM,IAVC,IAVT,I_CNT,i_cnt2,i_cnt3,i_cnt4,ixf4,kmaxe,ixfv,i_cnt5
@@ -307,8 +307,8 @@ END SUBROUTINE EXCH_CORDS_opt
 
 
 SUBROUTINE EXCH_CORD3(N)
-	!> @brief
-	!> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values and mapping of gaussian quadrature points
+  !> @brief
+  !> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values and mapping of gaussian quadrature points
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,J,K,L,INEEDT,TNEEDT,INDL,TNDL,ICPUID,IXFLAG,ITEE,ITEEDUM,IAVC,IAVT,I_CNT,i_cnt2,i_cnt3,i_cnt4,ixf4,kmaxe,ixfv,i_cnt5
@@ -466,10 +466,9 @@ END SUBROUTINE EXCH_CORD3
 
 
 
-SUBROUTINE EXCH_CORDS2(N,ISIZE,IEXBOUNDHIRi,IEXBOUNDHISi,&
-	ITESTCASE,NUMBEROFPOINTS2,IEXCHANGER,IEXCHANGES)
-	!> @brief
-	!> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values in 2D
+SUBROUTINE EXCH_CORDS2(N,ISIZE,IEXBOUNDHIRi,IEXBOUNDHISi,ITESTCASE,NUMBEROFPOINTS2,IEXCHANGER,IEXCHANGES)
+  !> @brief
+  !> This subroutine establishes and communicates the exchange of coordinates for the boundary extrapolated values in 2D
 	IMPLICIT NONE
 	TYPE(EXCHANGE_BOUNDHI),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXBOUNDHIRi
 	TYPE(EXCHANGE_BOUNDHI),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXBOUNDHISi
@@ -507,8 +506,8 @@ END SUBROUTINE EXCH_CORDS2
 
 
 SUBROUTINE LOCALISE_STENCIL(N,Iconsi,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)	!@switch to INODER4
-	!> @brief
-	!> This subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell
+  !> @brief
+  !> This subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::n,iconsi
 	INTEGER::I,J,l,IXFF,IXSST,ikg,ismp,inv,ineedt,ikg2,IN_STEN,K,itarget
@@ -645,8 +644,8 @@ END SUBROUTINE LOCALISE_STENCIL
 
 
 SUBROUTINE LOCALISE_STENCIL2d(N,Iconsi,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z) !@switch to INODER4
-	!> @brief
-	!> This subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2D
+  !> @brief
+  !> This subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2D
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::n,iconsi
 	INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXG  !GLOBAL INDEX OF CELLS
@@ -764,8 +763,8 @@ END SUBROUTINE LOCALISE_STENCIL2d
 
 
 SUBROUTINE  LOCALISE_STEN2(N,ICONSI,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-	!> @brief
-	!> This subroutine continues expressing all the stencil elements coordinates and volumes with respect to the considered cell
+  !> @brief
+  !> This subroutine continues expressing all the stencil elements coordinates and volumes with respect to the considered cell
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::ICONSI,N
 	INTEGER::I,J,K,L,KK,PRK,JJ,kmaxe,ineedt,jx2,jx,iivd,iivd3,facexx,IXXFFf,in1,itarget,idum,eltype,n_node,ELEM_DEC
@@ -1219,8 +1218,8 @@ END SUBROUTINE LOCALISE_STEN2
 
 
 SUBROUTINE  LOCALISE_STEN2d(N,ICONSI,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-	!> @brief
-	!> This subroutine continues expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2d
+  !> @brief
+  !> This subroutine continues expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2d
 	IMPLICIT NONE
 	INTEGER::I,J,K,L,KK,PRK,JJ,kmaxe,ineedt,jx2,jx,in1,facexx,ixxfff,IHGT,IHGJ,ITARGET,IDUM,IN_STEN,NJ,ELEM_DEC,ELtype
 	INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXG  !GLOBAL INDEX OF CELLS
@@ -1280,7 +1279,8 @@ SUBROUTINE  LOCALISE_STEN2d(N,ICONSI,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN
 	END IF
 	
 	! !$OMP MASTER
-		IF ((CODE_PROFILE.EQ.30).or.(MESH_MOVEMENT)) THEN
+		! IF ((CODE_PROFILE.EQ.30).or.(MESH_MOVEMENT)) THEN
+		IF (CODE_PROFILE.EQ.30) THEN
 			DO NJ=1,IELEM(N,I)%nonodes
 				X1X = ILON_x(1,1,NJ)
 				Y1Y = ILON_Y(1,1,NJ)
@@ -1593,7 +1593,7 @@ SUBROUTINE  LOCALISE_STEN2d(N,ICONSI,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN
 		  	j=IELEM(N,i)%INEIGH(K)
 		  	CALL COMPUTE_CENTRE2d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)
-		    dist1=distance2(n,vext)
+		    dist1 = distance2(n,vext)
 		    IF (RUNGEKUTTA.ge.2)THEN
 		    	IELEM(N,i)%DIH(K)=dist1
 		    end if
@@ -1610,7 +1610,7 @@ SUBROUTINE  LOCALISE_STEN2d(N,ICONSI,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN
 				call COMPUTE_CENTRE2dF(N,iconsi,facexx,IXXFFf,CORDS)
 				VEXT(2,1:dims)=cords(1:dims)
 				
-				dist1=distance2(n,vext)
+				dist1 = distance2(n,vext)
 				IF (RUNGEKUTTA.ge.2)THEN
 					IELEM(N,i)%DIH(K)=dist1*2.0d0
 				end if
@@ -1620,7 +1620,7 @@ SUBROUTINE  LOCALISE_STEN2d(N,ICONSI,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN
 					j=IELEM(N,i)%INEIGH(K)
 					CALL COMPUTE_CENTRE2d(j,cords)
 					vext(2,1:dims)=cords(1:dims)
-					dist1=distance2(n,vext)
+					dist1 = distance2(n,vext)
 					IF (RUNGEKUTTA.ge.2)THEN
 						IELEM(N,i)%DIH(K)=dist1
 					end if
@@ -1630,7 +1630,7 @@ SUBROUTINE  LOCALISE_STEN2d(N,ICONSI,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN
 				  			IELEM(N,i)%INDEXI(K)=In1
 				    		IF (RUNGEKUTTA.ge.2)THEN
 		    					vext(2,1)=ILOX_XXC(1,In1);vext(2,2)=ILOX_yyC(1,In1)
-		     					dist1=distance2(n,vext)
+		     					dist1 = distance2(n, vext)
 		    					IELEM(N,i)%DIH(K)=dist1
 				      		end if
 			  			end if
@@ -1643,13 +1643,13 @@ SUBROUTINE  LOCALISE_STEN2d(N,ICONSI,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN
 					CALL COMPUTE_CENTRE2d(j,cords)
 					vext(2,1:dims)=cords(1:dims)  
 					IF(ABS(vext(2,1)-vext(1,1)).GT.XPER*oo2)THEN
-						vext(2,1)=vext(2,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
+						vext(2,1)=vext(2,1)+(XPER*SIGN(1.0, vext(1,1)-XPER*oo2))
 					end if
 					IF(ABS(vext(2,2)-vext(1,2)).GT.yPER*oo2)THEN
-						vext(2,2)=vext(2,2)+(yPER*SIGN(1.0,vext(1,2)-yPER*oo2))
+						vext(2,2)=vext(2,2)+(yPER*SIGN(1.0, vext(1,2)-yPER*oo2))
 					end if
 		    
-		    		dist1=distance2(n,vext)
+		    		dist1 = distance2(n,vext)
 		    		IF (RUNGEKUTTA.ge.2)THEN
 		    			IELEM(N,i)%DIH(K)=dist1
 		    		end if
@@ -1661,13 +1661,13 @@ SUBROUTINE  LOCALISE_STEN2d(N,ICONSI,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN
 								vext(2,1)=ILOX_XXC(1,In1);vext(2,2)=ILOX_yyC(1,In1);
 								
 								IF(ABS(vext(2,1)-vext(1,1)).GT.XPER*oo2)THEN
-									vext(2,1)=vext(2,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
+									vext(2,1)=vext(2,1)+(XPER*SIGN(1.0, vext(1,1)-XPER*oo2))
 								end if
 								IF(ABS(vext(2,2)-vext(1,2)).GT.yPER*oo2)THEN
-		    						vext(2,2)=vext(2,2)+(yPER*SIGN(1.0,vext(1,2)-yPER*oo2))
+		    						vext(2,2)=vext(2,2)+(yPER*SIGN(1.0, vext(1,2)-yPER*oo2))
 		    					end if
 		    
-		    					dist1=distance2(n,vext)
+		    					dist1 = distance2(n, vext)
 		    					IELEM(N,i)%DIH(K)=dist1
 							end if
 			  			end if
@@ -1701,8 +1701,8 @@ END SUBROUTINE LOCALISE_STEN2d
 
 
 subroutine direct_side(n)
-	!> @brief
-	!> This subroutine establishes the distance betwen cell centres for each face
+  !> @brief
+  !> This subroutine establishes the distance betwen cell centres for each face
 	implicit none
 	integer,intent(in)::n
 	integer::i,j,k,kmaxe,facexx,ixxfff
@@ -1772,7 +1772,7 @@ subroutine direct_side(n)
 						IF (ABS(vext(2,3)-vext(1,3)).GT.zPER*oo2) THEN
 							vext(2,3)=vext(2,3)+(zPER*SIGN(1.0,vext(1,3)-zPER*oo2))
 						END IF
-						dist1=distance3(n,vext)
+						dist1 = distance3(n, vext)
 						IELEM(N,i)%DIH(K)=dist1
 			
 					else	!periodic boundaries from another cpu
@@ -1787,7 +1787,7 @@ subroutine direct_side(n)
 						IF(ABS(vext(2,3)-vext(1,3)).GT.zPER*oo2)THEN
 							vext(2,3)=vext(2,3)+(zPER*SIGN(1.0,vext(1,3)-zPER*oo2))
 						end if
-						dist1=distance3(n,vext)
+						dist1 = distance3(n, vext)
 						IELEM(N,i)%DIH(K)=dist1
 					end if
 				end if
@@ -1827,7 +1827,6 @@ subroutine direct_side2d(n)
 				dist1=distance2(n,vext)
 				IELEM(N,i)%DIH(K)=dist1
 			end do
-		
 		else
 			CALL COMPUTE_CENTRE2d(i,cords)
 			vext(1,1:dims)=cords(1:dims)
@@ -1842,15 +1841,15 @@ subroutine direct_side2d(n)
 					IELEM(N,i)%DIH(K)=dist1*2.0d0
 				end if
 				if ((ielem(n,i)%ineighg(k).gt.0).and.(ielem(n,i)%ibounds(k).eq.0))then	!non periodic boundaries 
-					if (ielem(n,i)%ineighb(k).eq.n)then		!within my cpu
+					if (ielem(n,i)%ineighb(k).eq.n) then		!within my cpu
 						j=IELEM(N,i)%INEIGH(K)
 						CALL COMPUTE_CENTRE2d(j,cords)
 						vext(2,1:dims)=cords(1:dims)
-						dist1=distance2(n,vext)
+						dist1 = distance2(n, vext)
 						IELEM(N,i)%DIH(K)=dist1
 					else						!from another cpu 
 						vext(2,1:dims)=SOLCHANGER(IELEM(N,I)%INEIGHN(k))%CENTRES(IELEM(N,i)%Q_FACE(k)%Q_MAPL(1),1:dims)
-						dist1=distance2(n,vext)
+						dist1 = distance2(n, vext)
 						IELEM(N,i)%DIH(K)=dist1
 					end if
 				end if
@@ -1859,27 +1858,27 @@ subroutine direct_side2d(n)
 						j=IELEM(N,i)%INEIGH(K)
 						CALL COMPUTE_CENTRE2d(j,cords)
 						vext(2,1:dims)=cords(1:dims)  
-						IF(ABS(vext(2,1)-vext(1,1)).GT.XPER/2.d0)THEN
+						IF (ABS(vext(2,1)-vext(1,1)).GT.XPER/2.d0) THEN
 							vext(2,1)=vext(2,1)+(XPER*SIGN(1.0D0,vext(1,1)-XPER/2.D0))
-						end if
-						IF(ABS(vext(2,2)-vext(1,2)).GT.yPER/2.d0)THEN
+						END IF
+						IF (ABS(vext(2,2)-vext(1,2)).GT.yPER/2.d0) THEN
 							vext(2,2)=vext(2,2)+(yPER*SIGN(1.0D0,vext(1,2)-yPER/2.D0))
-						end if
+						END IF
 				
-						dist1=distance2(n,vext)
+						dist1 = distance2(n, vext)
 						IELEM(N,i)%DIH(K)=dist1
 			
 					else	!periodic boundaries from another cpu
 
 						vext(2,1:dims)=SOLCHANGER(IELEM(N,I)%INEIGHN(k))%CENTRES(IELEM(N,i)%Q_FACE(k)%Q_MAPL(1),1:dims) 
-						IF(ABS(vext(2,1)-vext(1,1)).GT.XPER*oo2)THEN
+						IF (ABS(vext(2,1)-vext(1,1)).GT.XPER*oo2) THEN
 							vext(2,1)=vext(2,1)+(XPER*SIGN(1.0D0,vext(1,1)-XPER/2.0D0))
 						END IF
-						IF(ABS(vext(2,2)-vext(1,2)).GT.yPER*oo2)THEN
+						IF (ABS(vext(2,2)-vext(1,2)).GT.yPER*oo2) THEN
 							vext(2,2)=vext(2,2)+(yPER*SIGN(1.0D0,vext(1,2)-yPER/2.0D0))
 						END IF
 						
-						dist1=distance2(n,vext)
+						dist1 = distance2(n, vext)
 						IELEM(N,i)%DIH(K)=dist1
 					end if
 				end if
@@ -1922,8 +1921,8 @@ END SUBROUTINE GRADS_ASSIGN
 
 
 SUBROUTINE CHECKGRADS(N,ICONSI)
-	!> @brief
-	!> This subroutine assigns the correct viscous gradient approximation flag for each cell based on some additional geometrical characteristics
+  !> @brief
+  !> This subroutine assigns the correct viscous gradient approximation flag for each cell based on some additional geometrical characteristics
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,ICONSI
 	REAL::DXX1,dxx2,TEMPG1,dist1,dist2,oo2,surfmin,surfmax
@@ -1999,14 +1998,14 @@ SUBROUTINE CHECKGRADS(N,ICONSI)
 			VEXT(2,1:dims)=cords(1:dims)
 		end if
 		
-	    surfmin=min(surfmin,IELEM(N,I)%SURF(L))
-	    surfmax=max(surfmax,IELEM(N,I)%SURF(L))
+	    surfmin = min(surfmin, IELEM(N,I)%SURF(L))
+	    surfmax = max(surfmax, IELEM(N,I)%SURF(L))
 	      
-		dist1=distance3(n,vext)
-		if (dist1.lt.dxx2)then
+		dist1 = distance3(n,vext)
+		if (dist1.lt.dxx2) then
 			dxx2=dist1
 		end if
-		if (dist1.gt.dxx1)then
+		if (dist1.gt.dxx1) then
 			dxx1=dist1
 		end if
 	end do
@@ -2096,17 +2095,16 @@ END SUBROUTINE CHECKGRADS
 
 
 
-
 SUBROUTINE CHECK3(N,ICONSI)
-!> @brief
-!> This subroutine assigns the ordering for the faces
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER,INTENT(INout)::ICONSI
-REAL::DXX1,dxx2,TEMPG1,dist1,dist2,oo2
-INTEGER::I,J,K,L,jj,icount3,nnd,ixf4
-REAL,dimension(1:dimensiona)::CORDS
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+  !> @brief
+  !> This subroutine assigns the ordering for the faces
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	INTEGER,INTENT(INout)::ICONSI
+	REAL::DXX1,dxx2,TEMPG1,dist1,dist2,oo2
+	INTEGER::I,J,K,L,jj,icount3,nnd,ixf4
+	REAL,dimension(1:dimensiona)::CORDS
+	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 
 	do iconsi=1,xmpielrank(n)
 

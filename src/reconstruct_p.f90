@@ -32,6 +32,7 @@ SUBROUTINE AVERAGE_STRESSES(N)
         CALL ALLGRADS_MIX_AV(N,I)
     END DO	
     !$OMP END DO 	
+
 END SUBROUTINE AVERAGE_STRESSES
 	
 	
@@ -1524,6 +1525,8 @@ SUBROUTINE EXTRAPOLATE_BOUND(RESSOLUTION,varcons,FACEX,pointx,ICONSIDERED,INSTEN
     end if
 
 END SUBROUTINE EXTRAPOLATE_BOUND
+
+
 
 
 
@@ -3948,7 +3951,7 @@ SUBROUTINE ADDA_FILTER(N,iconsidered)
 
     IF (DG.NE.1)THEN
         if (adda_type.eq.1)then
-            AX = 0.0D0;AY = 0.0D0;AZ = 0.0D0
+            AX = 0.0D0; AY = 0.0D0; AZ = 0.0D0
 
             icompwrt=0
 
@@ -4019,7 +4022,6 @@ SUBROUTINE ADDA_FILTER(N,iconsidered)
                 LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(1,1:NOF_vARIABLES)
 
                 ! EN_F_STRONG(1:NOF_VARIABLES)=LEFTV(1:NOF_vARIABLES)
-
                 EN_F_STRONG(1:NOF_VARIABLES)=EN_F_STRONG(1:NOF_VARIABLES)+LEFTV(1:NOF_vARIABLES)*QP_ARRAY(ICONSIDERED)%QP_WEIGHT(ngp)
 
                 do k=1,nof_Variables
@@ -4031,7 +4033,6 @@ SUBROUTINE ADDA_FILTER(N,iconsidered)
                 LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)+RESSOLUTION(1,1:NOF_vARIABLES)
 
                 ! EN_F_WEAK(1:NOF_VARIABLES)=LEFTV(1:NOF_vARIABLES)
-
                 EN_F_WEAK(1:NOF_VARIABLES)=EN_F_WEAK(1:NOF_VARIABLES)+LEFTV(1:NOF_vARIABLES)*QP_ARRAY(ICONSIDERED)%QP_WEIGHT(ngp)
 
             end do
@@ -4054,9 +4055,8 @@ SUBROUTINE ADDA_FILTER(N,iconsidered)
         ielem(n,i)%er2=EX2
 
         ! ielem(n,i)%er1er2=0.0d0
-
         ! if (ielem(n,i)%er2dt.gt.0)then
-            ielem(n,i)%er1er2=abs(ielem(n,i)%er1dt)/ielem(n,i)%er2dt
+        ielem(n,i)%er1er2=abs(ielem(n,i)%er1dt)/ielem(n,i)%er2dt
         ! end if
 
         CALL APPLY_ADDA_FILTER(N,iconsidered)
