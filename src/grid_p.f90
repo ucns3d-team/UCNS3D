@@ -5675,6 +5675,25 @@ SUBROUTINE ADAPT_CRITERION
 			END IF
 		END DO
 	end if
+	if (initcond.eq.405)then
+		ymin_ad=0.01d0
+		ymax_ad=0.09d0
+	end if
+	if (initcond.eq.405) then
+		DO I=1,KMAXE
+			FC=0
+			IF (IELEM(N,I)%YYC.LT.ymin_ad)THEN
+				FC=1
+			END IF
+			IF (IELEM(N,I)%YYC.GT.ymax_ad)THEN
+				FC=1
+			END IF
+			IF (FC.EQ.1)THEN
+				IELEM(N,I)%HYBRID=1
+				IELEM(N,I)%FULL=0
+			END IF
+		END DO
+	end if
 	! if (initcond.eq.101)then
 	! 	ymin_ad=0.1
 	! 	ymax_ad=0.9
