@@ -6,6 +6,16 @@ IMPLICIT NONE
 
  CONTAINS
 
+subroutine swap(a, b)
+	implicit none
+	real,intent(inout)::a, b
+	real::helper
+
+	helper = a
+	a = b
+	b = helper
+
+end subroutine swap
 
 SUBROUTINE READ_UCNS3D
 !> @brief
@@ -1443,6 +1453,15 @@ SUBROUTINE READ_UCNS3D
 		else if (moving_mesh_mode.eq.8) then
 			read(29,*) relaxation_centre_type
 			read(29,*) gradient_treshold, relaxation_mesh_velocity_multiple
+		else if ((moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10)) then
+			read(29,*) relaxation_centre_type
+			read(29,*) lower_gradient_treshold, upper_gradient_treshold, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple
+			if (lower_gradient_treshold.gt.upper_gradient_treshold) then
+				call swap(lower_gradient_treshold, upper_gradient_treshold)
+			end if
+			if (lower_relaxation_mesh_velocity_multiple.gt.upper_relaxation_mesh_velocity_multiple) then
+				call swap(lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple)
+			end if
 		else if ((moving_mesh_mode.ne.2).and.(moving_mesh_mode.ne.3)) then
 			print*, "invalid moving mesh mode"
 			call abort

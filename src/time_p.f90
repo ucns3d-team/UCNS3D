@@ -4012,7 +4012,7 @@ SUBROUTINE TIME_MARCHING2(N)
       if (dg.eq.1)call SOL_INTEG_DG(N)
 
       if (MESH_MOVEMENT) then
-          if (moving_mesh_mode.eq.8) then
+          if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10)) then
               call FIND_NORMALIZED_DENSITY_GRADIENT_from_precomputed(N)
           else
               ! if (dimensiona.eq.2) then
@@ -4499,7 +4499,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
         U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
         U_C(I)%VAL(1,1:NOF_VARIABLES)= ((U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - ((0.5*dt) * RHS(I)%VAL(1:NOF_VARIABLES))) / IELEM(N,I)%moving_volume(2)
         if (governingequations.EQ.-1) Then
-            U_C(I)%VAL(1,NOF_VARIABLES)= U_C(I)%VAL(2,NOF_VARIABLES) - ((0.5*dt) * RHS(I)%VAL(NOF_VARIABLES) / IELEM(N,I)%moving_volume(2))
+            U_C(I)%VAL(1,NOF_VARIABLES)= U_C(I)%VAL(2,NOF_VARIABLES) - ((0.5*dt) * RHS(I)%VAL(NOF_VARIABLES) / (0.5 * (IELEM(N,I)%moving_volume(1) + IELEM(N,I)%moving_volume(2))))
         end if
     END IF
   END DO
@@ -4571,7 +4571,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
       ELSE
           U_C(I)%VAL(1,1:NOF_VARIABLES) = ((U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - (dt * (RHS(I)%VAL(1:NOF_VARIABLES)))) / IELEM(N,I)%moving_volume(3)
           if (governingequations.EQ.-1) then
-              U_C(I)%VAL(1,NOF_VARIABLES) = U_C(I)%VAL(2,NOF_VARIABLES) - (dt * (RHS(I)%VAL(NOF_VARIABLES)) / IELEM(N,I)%moving_volume(3))
+              U_C(I)%VAL(1,NOF_VARIABLES) = U_C(I)%VAL(2,NOF_VARIABLES) - (dt * (RHS(I)%VAL(NOF_VARIABLES)) / (0.5 * (IELEM(N,I)%moving_volume(2)+IELEM(N,I)%moving_volume(3))))
           end if
       END IF
   END DO

@@ -121,7 +121,7 @@ INTEGER:: ROT_CORR,D_CORR   !integer for turbulence corrections
 INTEGER::hybridCWENO_MOOD   !hybrid CWENO/MOOD mode - for test purposes only
 logical:: MESH_MOVEMENT
 integer:: moving_mesh_mode
-integer::relaxation_centre_type
+integer::relaxation_centre_type, lagrangian_mesh_velocity_multiple_function_type
 integer:: global_position_index
 logical:: BOUNDARY_MOVEMENT
 integer:: num_moving_boundaries
@@ -345,7 +345,7 @@ real::cell_size_average
 ! real::max_entropy
 ! real::global_max_entropy
 real::mesh_velocity_multiple, lagrangian_mesh_velocity_multiple, relaxation_mesh_velocity_multiple, gradient_treshold
-integer::lagrangian_mesh_velocity_multiple_function_type
+real::lower_gradient_treshold, upper_gradient_treshold, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple
 real:: momentx,momenty,momentz
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!

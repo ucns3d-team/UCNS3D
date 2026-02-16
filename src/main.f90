@@ -731,7 +731,7 @@ call local_reconallocation5(n)
 num_values_to_send_per_node = zero
 if (MESH_MOVEMENT) then
 	num_values_to_send_per_node = dimensiona
-	if ((moving_mesh_mode.eq.3).or.(moving_mesh_mode.eq.6).or.(moving_mesh_mode.eq.5).or.(moving_mesh_mode.eq.8)) then
+	if ((moving_mesh_mode.eq.3).or.(moving_mesh_mode.eq.6).or.(moving_mesh_mode.eq.5).or.(moving_mesh_mode.ge.8)) then
 		num_values_to_send_per_node = dimensiona+1
 	end if
 end if
