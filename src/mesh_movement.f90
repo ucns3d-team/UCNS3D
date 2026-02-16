@@ -239,6 +239,54 @@ end subroutine pseudoVoronoi_centre
 
 
 
+subroutine cell_centre(vert_num, vertices, centre)
+    implicit none
+    integer::vert_num
+    real,intent(in),dimension(1:dimensiona, 1:vert_num)::vertices
+    real,intent(out),dimension(1:dimensiona)::centre
+    real,dimension(1:dimensiona)::temp_centre, helper, v1, v2
+    real::area, area_sum
+    integer::i, j
+
+    if (.not.((vert_num.eq.3).or.(vert_num.eq.4))) then
+        print *, "invalid cell size"
+        call abort()
+    end if
+    
+    temp_centre = zero
+    do i = 1,vert_num
+        temp_centre(:) = temp_centre(:) + (vertices(:,i)/real(vert_num))
+    end do
+
+    ! if (vert_num.le.3) then
+        centre(1:dimensiona) = temp_centre(1:dimensiona)
+    ! else
+    !     centre = zero
+    !     area_sum = zero
+    !     do i = 1, vert_num
+    !         j = i+1
+    !         if (i.eq.vert_num) then
+    !             j = 1
+    !         end if
+
+    !         v1 = vertices(i,:)
+    !         v2 = vertices(j,:)
+
+    !         helper(:) = ((v1(:) + v2(:) + temp_centre(:)) / 3.0)
+    !         area = trinagle_area(v1(:), v2(:), temp_centre(:))
+
+    !         area_sum = area_sum + area
+    !         centre(:) = centre(:) + (helper(:) * area)
+    !     end do
+
+    !     centre(:) = centre(:) / area_sum
+    ! end if
+
+end subroutine cell_centre
+
+
+
+
 
 subroutine MOVE_NODES(time_step, index_from, index_to)
     implicit NONE
@@ -658,7 +706,8 @@ subroutine find_node_velocities(position_index, d_t, N)
         else if (moving_mesh_mode.eq.10) then
             call FirstOrderNodeAverage(1, N)
             call find_node_normalized_density_gradient(1, position_index, d_t, N)
-            ! call find_moved_node_relaxation_velocity(1, position_index, d_t, N)
+            !$omp barrier
+            call find_moved_node_relaxation_velocity(1, position_index, d_t, N)
         else
             print *, "invalid moving mesh mode"
             call abort()
@@ -1501,6 +1550,200 @@ END SUBROUTINE find_node_relaxation_velocity
 
 
 
+SUBROUTINE find_moved_node_relaxation_velocity(stage, position_index, d_t, N)
+    implicit none
+    integer,intent(in)::stage, position_index, N
+    real,intent(in)::d_t
+    integer::i, j, k, iter, counter, node_index, cell_node_index, cell_index, cpu_index, cpu, index, rho_index
+    integer:: M
+    real::rho, v
+    real,dimension(1:nof_variables)::copy
+    real::dummuy_MP_PINFl, dummy_gammal
+    real,dimension(1:dimensiona)::helper_centre_position
+    real,dimension(1:max_num_node_neighbours,1:dimensiona)::centre_positions
+    real,dimension(1:dimensiona,1:4)::cell_nodes
+    ! real,dimension(1:max_num_node_neighbours)::weights
+
+
+    integer,dimension(2*isize)::requests
+    integer::num_requests, count
+
+    M = omp_get_thread_num()
+    
+    rho_index = 1
+
+    if (num_values_to_send_per_node.lt.dimensiona) then
+        print *,"something went wrong sorry :("
+        call abort
+    end if
+
+    ! do cpu_index = 0, isize-1
+    !     index = 0
+    !     do i = 1, node_snd_count(cpu_index)
+    !         do j = 1, dimensiona
+    !             index = index +1
+    !             node_snd_buffer(cpu_index)%data(index) = 1000.0
+    !         end do
+    !     end do
+    !     if (index.ne.dimensiona*node_snd_count(cpu_index)) then
+    !         print *, "something went wrong with rezeroing the send buffer"
+    !     else
+    !         print *, "snd_buffer on CPU", N, "thread", M, "to", cpu_index, "reset with", node_snd_count(cpu_index)*dimensiona, "values"
+    !     end if
+    ! end do
+    ! !$omp barrier 
+
+    !$omp do
+        do iter = 1,my_num_interface_nodes 
+            node_index = local_interface_nodes(iter)
+            ! print *, "on CPU", N, "thread", M, "coping data of", node_index, "(", iter, ") to send buffer" 
+            do cpu_index = 1,local_nodes(node_index)%num_cpus
+                cpu = local_nodes(node_index)%snd_offsets(cpu_index)%cpu
+                index = (local_nodes(node_index)%snd_offsets(cpu_index)%lower -1) * dimensiona
+                do j = 1, local_nodes(node_index)%num_local_neighbours
+                    cell_index = local_nodes(node_index)%local_neighbours(j)
+                    do k = 1, ielem(N, cell_index)%nonodes
+                        cell_node_index = ielem(N, cell_index)%nodes(k)
+                        cell_nodes(:,k) = local_nodes(cell_node_index)%positions(position_index,:)
+                        cell_nodes(:,k) = cell_nodes(:,k) + (local_nodes(cell_node_index)%velocity(1:dimensiona)*d_t)
+                    end do
+
+                    call cell_centre(ielem(N, cell_index)%nonodes, cell_nodes(:,1:ielem(N, cell_index)%nonodes), helper_centre_position(:))
+
+                    do k = 1,dimensiona
+                        if ((index+k).gt.node_snd_count(cpu) * num_values_to_send_per_node) then
+                            print *, "copying too much data to send buffer from", N, "to", cpu 
+                        end if
+                        node_snd_buffer(cpu)%data(index+k) = helper_centre_position(k)
+                    end do
+                    index = index + dimensiona
+                end do
+            end do
+        end do
+    !$omp end do
+
+    ! do cpu_index = 0, isize-1
+    !     index = 0
+    !     do i = 1, node_rcv_count(cpu_index)
+    !         do j = 1, dimensiona
+    !             index = index +1
+    !             node_rcv_buffer(cpu_index)%data(index) = 1000000.0
+    !         end do
+    !     end do
+    !     if (index.ne.dimensiona*node_rcv_count(cpu_index)) then
+    !         print *, "something went wrong with rezeroing the receive buffer"
+    !     else
+    !         print *, "rcv_buffer on CPU", N, "thread", M, "from", cpu_index, "reset with", node_rcv_count(cpu_index)*dimensiona, "values"
+    !     end if
+    ! end do
+
+    !$omp barrier
+
+    num_requests = 0
+    !$omp master
+        ! print *, "inside send_rcv part on CPU", N
+        do cpu_index = 0, isize-1
+            if (cpu_index.ne.N) then
+                if (node_snd_count(cpu_index).gt.0) then
+                    count = node_snd_count(cpu_index) * dimensiona
+                    num_requests = num_requests + 1
+                    CALL MPI_ISEND(node_snd_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, "sending from", N, "to", cpu_index, count, "values"
+                end if
+                if (node_rcv_count(cpu_index).gt.0) then
+                    count = node_rcv_count(cpu_index) * dimensiona
+                    num_requests = num_requests + 1
+                    CALL MPI_IRECV(node_rcv_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, N, "waiting to receive", count, "values from", cpu_index
+                end if
+            else
+                if (node_snd_count(cpu_index).ne.node_rcv_count(cpu_index)) then
+                    print *,"send receive count missmatch on CPU", n
+                    call abort
+                end if
+                count = node_snd_count(cpu_index) * dimensiona
+                do i = 1, count
+                    node_rcv_buffer(cpu_index)%data(i) = node_snd_buffer(cpu_index)%data(i)
+                end do
+            end if
+        end do
+
+        ! print*,"CPU", n, "witing on", num_requests, "requests"
+        CALL MPI_WAITALL(num_requests, requests, MPI_STATUSES_IGNORE, IERROR)
+
+    !$omp end master
+
+    !$omp barrier
+
+    !$omp do
+        do node_index = 1, kmaxn 
+
+            local_nodes(node_index)%relaxation_velocity(:) = 0.0
+            counter = 0
+
+            do i = 1, local_nodes(node_index)%num_local_neighbours
+                counter = counter + 1
+
+                cell_index = local_nodes(node_index)%local_neighbours(i)
+                do k = 1, ielem(N, cell_index)%nonodes
+                    cell_node_index = ielem(N, cell_index)%nodes(k)
+                    cell_nodes(:,k) = local_nodes(cell_node_index)%positions(position_index,:)
+                    cell_nodes(:,k) = cell_nodes(:,k) + (local_nodes(cell_node_index)%lagrangian_velocity(1:dimensiona)*d_t)
+                end do
+
+                call cell_centre(ielem(N, cell_index)%nonodes, cell_nodes(:,1:ielem(N, cell_index)%nonodes), helper_centre_position(:))
+
+                centre_positions(counter, :) = helper_centre_position(:)
+            end do
+
+            do i = 1, local_nodes(node_index)%num_cpus
+                cpu_index = local_nodes(node_index)%rcv_offsets(i)%cpu
+                index = (local_nodes(node_index)%rcv_offsets(i)%lower - 1)*dimensiona
+                do j = local_nodes(node_index)%rcv_offsets(i)%lower, local_nodes(node_index)%rcv_offsets(i)%upper
+                    counter = counter+1
+                    do k = 1, dimensiona
+                        if ((index+k).gt.node_rcv_count(cpu_index) * num_values_to_send_per_node) then
+                            print *, "copying too much data from receive buffer from", N, "to", cpu 
+                        end if
+                        centre_positions(counter, k) = node_rcv_buffer(cpu_index)%data(index+k)
+                    end do
+                    index = index + dimensiona
+                end do
+            end do
+
+            if (counter.ne.local_nodes(node_index)%num_neighbours) then
+                print *, "something went wrong counter =/= local_nodes(node_index)%num_neighbours"
+            end if
+            if (relaxation_centre_type.eq.1) then
+                call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+            else if (relaxation_centre_type.eq.2) then
+                call pseudoVoronoi_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+                if ((local_nodes(node_index)%velocity(1).le.xmin(n)).or.&
+                        (local_nodes(node_index)%velocity(1).ge.xmax(n)).or.&
+                        (local_nodes(node_index)%velocity(2).le.ymin(n)).or.&
+                        (local_nodes(node_index)%velocity(2).ge.ymax(n))) then
+                    call polygon_centre(local_nodes(node_index)%num_neighbours, centre_positions(1:counter,1:dimensiona), local_nodes(node_index)%relaxation_velocity(1:dimensiona))
+                end if
+            else
+                print*,"invalid centre algorithm in node relaxation velocity"
+            end if
+
+            local_nodes(node_index)%relaxation_velocity(1:dimensiona) = (local_nodes(node_index)%relaxation_velocity(1:dimensiona) - (local_nodes(node_index)%positions(position_index,1:dimensiona)+(local_nodes(node_index)%lagrangian_velocity(1:dimensiona)*d_t))) / d_t
+        end do
+    !$omp end do
+    
+    !$omp barrier
+
+    !$omp master
+        call MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+    !$omp end master
+
+END SUBROUTINE find_moved_node_relaxation_velocity
+
+
+
+
+
 
 SUBROUTINE find_node_relaxation_velocity_and_normalized_density_gradient(stage, position_index, d_t, N)
     implicit none
@@ -2203,7 +2446,7 @@ subroutine CombineNodeVelocities(N)
                                                             + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * relaxation_mesh_velocity_multiple
         end do
         !$omp end do
-    else if (moving_mesh_mode.eq.9) then
+    else if ((moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10)) then
         !$omp do
         do node_index = 1, kmaxn
             ! if (local_nodes(node_index)%num_neighbours.lt.3) then
