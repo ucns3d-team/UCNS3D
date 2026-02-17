@@ -366,7 +366,7 @@ subroutine establish_node_neighbours(N)
     integer::kmaxe
     ! integer,dimension(isize)::num_nodes_to_send
     integer,dimension(0:isize-1)::num_interface_nodes
-    integer,dimension(2*isize)::requests
+    integer,dimension(2*2*isize)::requests
     real::distance, distance2, coord_diff, x_coord_diff, y_coord_diff, z_coord_diff
     real::tolerance
     logical::close_enough, duplicate
@@ -522,14 +522,26 @@ subroutine establish_node_neighbours(N)
         num_requests = 0
         do cpu_index = 0, isize-1
             if (cpu_index.ne.N) then
+                ! num_requests = num_requests + 1
+                ! CALL MPI_ISENDRECV(buff(N)%coords(1:my_num_interface_nodes*dimensiona), my_num_interface_nodes*dimensiona, MPI_DOUBLE_PRECISION, cpu_index, 789,&
+                !         buff(cpu_index)%coords(1:num_interface_nodes(cpu_index)*dimensiona), num_interface_nodes(cpu_index)*dimensiona, MPI_DOUBLE_PRECISION, cpu_index, 789,&
+                !         MPI_COMM_WORLD, requests(num_requests), IERROR)
                 num_requests = num_requests + 1
-                CALL MPI_ISENDRECV(buff(N)%coords(1:my_num_interface_nodes*dimensiona), my_num_interface_nodes*dimensiona, MPI_DOUBLE_PRECISION, cpu_index, 789,&
-                        buff(cpu_index)%coords(1:num_interface_nodes(cpu_index)*dimensiona), num_interface_nodes(cpu_index)*dimensiona, MPI_DOUBLE_PRECISION, cpu_index, 789,&
+                CALL MPI_ISEND(buff(N)%coords(1:my_num_interface_nodes*dimensiona), my_num_interface_nodes*dimensiona, MPI_DOUBLE_PRECISION, cpu_index, 789,&
+                        MPI_COMM_WORLD, requests(num_requests), IERROR)
+                num_requests = num_requests + 1
+                CALL MPI_IRECV(buff(cpu_index)%coords(1:num_interface_nodes(cpu_index)*dimensiona), num_interface_nodes(cpu_index)*dimensiona, MPI_DOUBLE_PRECISION, cpu_index, 789,&
                         MPI_COMM_WORLD, requests(num_requests), IERROR)
 
+                ! num_requests = num_requests + 1
+                ! CALL MPI_ISENDRECV(buff(N)%count(1:my_num_interface_nodes), my_num_interface_nodes, MPI_INTEGER, cpu_index, 987,&
+                !         buff(cpu_index)%count(1:num_interface_nodes(cpu_index)), num_interface_nodes(cpu_index), MPI_INTEGER, cpu_index, 987,&
+                !         MPI_COMM_WORLD, requests(num_requests), IERROR)
                 num_requests = num_requests + 1
-                CALL MPI_ISENDRECV(buff(N)%count(1:my_num_interface_nodes), my_num_interface_nodes, MPI_INTEGER, cpu_index, 987,&
-                        buff(cpu_index)%count(1:num_interface_nodes(cpu_index)), num_interface_nodes(cpu_index), MPI_INTEGER, cpu_index, 987,&
+                CALL MPI_ISEND(buff(N)%count(1:my_num_interface_nodes), my_num_interface_nodes, MPI_INTEGER, cpu_index, 987,&
+                        MPI_COMM_WORLD, requests(num_requests), IERROR)
+                num_requests = num_requests + 1
+                CALL MPI_IRECV(buff(cpu_index)%count(1:num_interface_nodes(cpu_index)), num_interface_nodes(cpu_index), MPI_INTEGER, cpu_index, 987,&
                         MPI_COMM_WORLD, requests(num_requests), IERROR)
             end if
         end do
