@@ -706,7 +706,7 @@ subroutine find_node_velocities(position_index, d_t, N)
             print *, "invalid moving mesh mode"
             call abort()
         end if
-        call CombineNodeVelocities(N)
+        call CombineNodeVelocities(1, position_index, d_t, N)
     endif
 
     !$omp barrier
@@ -2340,9 +2340,10 @@ END SUBROUTINE find_node_normalized_density_gradient
 
 
 
-subroutine CombineNodeVelocities(N)
+subroutine CombineNodeVelocities(stage, position_index, d_t, N)
     implicit none
-    integer,intent(in)::N
+    integer,intent(in)::stage, position_index, N
+    real::d_t
     integer::node_index
     integer::i
     real,dimension(1:dimensiona)::initial_velocity1, initial_velocity2
@@ -2473,7 +2474,336 @@ subroutine CombineNodeVelocities(N)
         print *, "invalid moving mesh mode"
     end if
 
+    call fix_moved_concave_cells(stage, position_index, d_t, N)
+
 end subroutine CombineNodeVelocities
+
+
+
+
+
+subroutine fix_concave_cells(stage, position_index, d_t, N)
+    implicit none
+    integer,intent(in)::N, position_index, stage
+    real,intent(in)::d_t
+    integer::node_index, previous_node_index, next_node_index
+    integer::cell_index, cell_num_nodes
+    integer::cpu, cpu_index
+    integer::i, i_minus, i_plus, j, k, index
+    real,dimension(1:dimensiona)::v1, v2
+    real,dimension(1:dimensiona)::current_node_position, previous_node_position, next_node_position, desired_node_position
+    real::len1, len2, v1_cross_v2
+
+    integer,dimension(2*isize)::requests
+    integer::num_requests, count
+
+    !$omp do
+    do node_index = 1, kmaxn
+        local_nodes(node_index)%relaxation_velocity(:) = zero
+        current_node_position = local_nodes(node_index)%positions(position_index, 1:dimensiona)
+
+        do k = 1, local_nodes(node_index)%num_local_neighbours
+            cell_index = local_nodes(node_index)%local_neighbours(k)
+            cell_num_nodes = ielem(N, cell_index)%nonodes
+            do i = 1, cell_num_nodes
+                if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.node_index) then
+                    exit
+                end if
+            end do
+
+            i_minus = i-1
+            if (i_minus.eq.0) then
+                i_minus = cell_num_nodes
+            end if
+            i_plus = i+1
+            if (i_plus.eq.cell_num_nodes+1) then
+                i_plus = 1
+            end if
+            previous_node_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
+            next_node_index = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
+
+            previous_node_position = local_nodes(previous_node_index)%positions(position_index, 1:dimensiona)
+            next_node_position = local_nodes(next_node_index)%positions(position_index, 1:dimensiona)
+
+            v1(:) = current_node_position(:) - previous_node_position(:)
+		    v2(:) = next_node_position(:) - current_node_position(:)
+
+            len1 = zero
+            len2 = zero
+            do j = 1, dimensiona
+                len1 = len1 + (v1(j)*v1(j))
+                len2 = len2 + (v2(j)*v2(j))
+            end do
+            len1 = sqrt(len1)
+            len2 = sqrt(len2)
+
+            v1_cross_v2 = cross_product_2D(v1, v2)
+
+            if (v1_cross_v2.lt.zero) then ! concave angle
+            ! if (v1_cross_v2.lt.-0.175*len1*len2) then ! too concave angle
+
+                if ((local_nodes(node_index)%relaxation_velocity(1).ne.zero).or.(local_nodes(node_index)%relaxation_velocity(2).ne.zero)) then
+                    print*,"two concave angles before communication"
+                end if
+
+                if (cell_num_nodes.eq.3) then
+                    print*,"inverted triangle not trying to fix"
+                else
+                    print*,"trying to fix a concave angle in a quadrilateral in cell", cell_index
+                    desired_node_position(:) = previous_node_position(:) + (len2/(len1+len2))*(next_node_position(:)-previous_node_position(:))
+
+                    local_nodes(node_index)%relaxation_velocity(1:dimensiona) = (desired_node_position(:)-current_node_position(:))/d_t
+                end if
+            end if
+        end do
+    end do
+    !$omp end do
+
+    !$omp barrier
+
+    !$omp do
+    do i = 1, my_num_interface_nodes 
+        node_index = local_interface_nodes(i)
+        ! print *, "on CPU", N, "thread", M, "coping data of", node_index, "(", iter, ") to send buffer" 
+        do cpu_index = 1,local_nodes(node_index)%num_cpus
+            cpu = local_nodes(node_index)%snd_offsets(cpu_index)%cpu
+            index = (local_nodes(node_index)%snd_offsets(cpu_index)%lower -1) * dimensiona
+            do j = 1, dimensiona
+                node_snd_buffer(cpu)%data(index+j) = local_nodes(node_index)%relaxation_velocity(j)
+            end do
+            do j = dimensiona+1, local_nodes(node_index)%num_local_neighbours*dimensiona
+                node_snd_buffer(cpu)%data(index+j) = zero
+            end do
+        end do
+    end do
+    !$omp end do
+
+    !$omp barrier
+
+    num_requests = 0
+    !$omp master
+        ! print *, "inside send_rcv part on CPU", N
+        do cpu_index = 0, isize-1
+            if (cpu_index.ne.N) then
+                if (node_snd_count(cpu_index).gt.0) then
+                    count = node_snd_count(cpu_index) * dimensiona
+                    num_requests = num_requests + 1
+                    CALL MPI_ISEND(node_snd_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, "sending from", N, "to", cpu_index, count, "values"
+                end if
+                if (node_rcv_count(cpu_index).gt.0) then
+                    count = node_rcv_count(cpu_index) * dimensiona
+                    num_requests = num_requests + 1
+                    CALL MPI_IRECV(node_rcv_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, N, "waiting to receive", count, "values from", cpu_index
+                end if
+            else
+                if (node_snd_count(cpu_index).ne.node_rcv_count(cpu_index)) then
+                    print *,"send receive count missmatch on CPU", n
+                    call abort
+                end if
+                count = node_snd_count(cpu_index) * dimensiona
+                do i = 1, count
+                    node_rcv_buffer(cpu_index)%data(i) = node_snd_buffer(cpu_index)%data(i)
+                end do
+            end if
+        end do
+
+        ! print*,"CPU", n, "witing on", num_requests, "requests"
+        CALL MPI_WAITALL(num_requests, requests, MPI_STATUSES_IGNORE, IERROR)
+
+    !$omp end master
+
+    !$omp barrier
+
+    !$omp do
+    do node_index = 1, kmaxn 
+
+        do i = 1, local_nodes(node_index)%num_cpus
+            cpu_index = local_nodes(node_index)%rcv_offsets(i)%cpu
+            index = (local_nodes(node_index)%rcv_offsets(i)%lower - 1)*dimensiona
+
+            if ((local_nodes(node_index)%relaxation_velocity(1).eq.zero).and.(local_nodes(node_index)%relaxation_velocity(2).eq.zero)) then
+                do j = 1, dimensiona
+                    local_nodes(node_index)%relaxation_velocity(j) = node_rcv_buffer(cpu_index)%data(index+j)
+                end do
+            else
+                if ((node_rcv_buffer(cpu_index)%data(index+1).ne.zero).or.(node_rcv_buffer(cpu_index)%data(index+2).ne.zero)) then
+                    print*,"multiple convex angles after communication"
+                end if
+            end if
+        end do
+
+        local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%velocity(1:dimensiona) + local_nodes(node_index)%relaxation_velocity(1:dimensiona)
+    end do
+    !$omp end do
+
+end subroutine fix_concave_cells
+
+
+
+
+
+subroutine fix_moved_concave_cells(stage, position_index, d_t, N)
+    implicit none
+    integer,intent(in)::N, position_index, stage
+    real,intent(in)::d_t
+    integer::node_index, previous_node_index, next_node_index
+    integer::cell_index, cell_num_nodes
+    integer::cpu, cpu_index
+    integer::i, i_minus, i_plus, j, k, index
+    real,dimension(1:dimensiona)::v1, v2
+    real,dimension(1:dimensiona)::current_node_position, previous_node_position, next_node_position, desired_node_position
+    real::len1, len2, v1_cross_v2
+
+    integer,dimension(2*isize)::requests
+    integer::num_requests, count
+
+    !$omp do
+    do node_index = 1, kmaxn
+        local_nodes(node_index)%relaxation_velocity(:) = zero
+        current_node_position = local_nodes(node_index)%positions(position_index, 1:dimensiona) &
+                              + (local_nodes(node_index)%velocity(1:dimensiona) * d_t)
+
+        do k = 1, local_nodes(node_index)%num_local_neighbours
+            cell_index = local_nodes(node_index)%local_neighbours(k)
+            cell_num_nodes = ielem(N, cell_index)%nonodes
+            do i = 1, cell_num_nodes
+                if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.node_index) then
+                    exit
+                end if
+            end do
+
+            i_minus = i-1
+            if (i_minus.eq.0) then
+                i_minus = cell_num_nodes
+            end if
+            i_plus = i+1
+            if (i_plus.eq.cell_num_nodes+1) then
+                i_plus = 1
+            end if
+            previous_node_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
+            next_node_index = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
+
+            previous_node_position = local_nodes(previous_node_index)%positions(position_index, 1:dimensiona) &
+                                   + (local_nodes(previous_node_index)%velocity(1:dimensiona) * d_t)
+            next_node_position = local_nodes(next_node_index)%positions(position_index, 1:dimensiona) &
+                                   + (local_nodes(next_node_index)%velocity(1:dimensiona) * d_t)
+
+            v1(:) = current_node_position(:) - previous_node_position(:)
+		    v2(:) = next_node_position(:) - current_node_position(:)
+
+            len1 = zero
+            len2 = zero
+            do j = 1, dimensiona
+                len1 = len1 + (v1(j)*v1(j))
+                len2 = len2 + (v2(j)*v2(j))
+            end do
+            len1 = sqrt(len1)
+            len2 = sqrt(len2)
+
+            v1_cross_v2 = cross_product_2D(v1, v2)
+
+            if (v1_cross_v2.lt.zero) then ! concave angle
+            ! if (v1_cross_v2.lt.-0.175*len1*len2) then ! too concave angle
+
+                if ((local_nodes(node_index)%relaxation_velocity(1).ne.zero).or.(local_nodes(node_index)%relaxation_velocity(2).ne.zero)) then
+                    print*,"two concave angles before communication"
+                end if
+
+                if (cell_num_nodes.eq.3) then
+                    print*,"inverted triangle not trying to fix"
+                else
+                    print*,"trying to fix a concave angle in a quadrilateral in cell", cell_index
+                    desired_node_position(:) = previous_node_position(:) + (len2/(len1+len2))*(next_node_position(:)-previous_node_position(:))
+
+                    local_nodes(node_index)%relaxation_velocity(1:dimensiona) = (desired_node_position(:)-current_node_position(:))/d_t
+                end if
+            end if
+        end do
+    end do
+    !$omp end do
+
+    !$omp barrier
+
+    !$omp do
+    do i = 1, my_num_interface_nodes 
+        node_index = local_interface_nodes(i)
+        ! print *, "on CPU", N, "thread", M, "coping data of", node_index, "(", iter, ") to send buffer" 
+        do cpu_index = 1,local_nodes(node_index)%num_cpus
+            cpu = local_nodes(node_index)%snd_offsets(cpu_index)%cpu
+            index = (local_nodes(node_index)%snd_offsets(cpu_index)%lower -1) * dimensiona
+            do j = 1, dimensiona
+                node_snd_buffer(cpu)%data(index+j) = local_nodes(node_index)%relaxation_velocity(j)
+            end do
+            do j = dimensiona+1, local_nodes(node_index)%num_local_neighbours*dimensiona
+                node_snd_buffer(cpu)%data(index+j) = zero
+            end do
+        end do
+    end do
+    !$omp end do
+
+    !$omp barrier
+
+    num_requests = 0
+    !$omp master
+        ! print *, "inside send_rcv part on CPU", N
+        do cpu_index = 0, isize-1
+            if (cpu_index.ne.N) then
+                if (node_snd_count(cpu_index).gt.0) then
+                    count = node_snd_count(cpu_index) * dimensiona
+                    num_requests = num_requests + 1
+                    CALL MPI_ISEND(node_snd_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, "sending from", N, "to", cpu_index, count, "values"
+                end if
+                if (node_rcv_count(cpu_index).gt.0) then
+                    count = node_rcv_count(cpu_index) * dimensiona
+                    num_requests = num_requests + 1
+                    CALL MPI_IRECV(node_rcv_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, N, "waiting to receive", count, "values from", cpu_index
+                end if
+            else
+                if (node_snd_count(cpu_index).ne.node_rcv_count(cpu_index)) then
+                    print *,"send receive count missmatch on CPU", n
+                    call abort
+                end if
+                count = node_snd_count(cpu_index) * dimensiona
+                do i = 1, count
+                    node_rcv_buffer(cpu_index)%data(i) = node_snd_buffer(cpu_index)%data(i)
+                end do
+            end if
+        end do
+
+        ! print*,"CPU", n, "witing on", num_requests, "requests"
+        CALL MPI_WAITALL(num_requests, requests, MPI_STATUSES_IGNORE, IERROR)
+
+    !$omp end master
+
+    !$omp barrier
+
+    !$omp do
+    do node_index = 1, kmaxn 
+
+        do i = 1, local_nodes(node_index)%num_cpus
+            cpu_index = local_nodes(node_index)%rcv_offsets(i)%cpu
+            index = (local_nodes(node_index)%rcv_offsets(i)%lower - 1)*dimensiona
+
+            if ((local_nodes(node_index)%relaxation_velocity(1).eq.zero).and.(local_nodes(node_index)%relaxation_velocity(2).eq.zero)) then
+                do j = 1, dimensiona
+                    local_nodes(node_index)%relaxation_velocity(j) = node_rcv_buffer(cpu_index)%data(index+j)
+                end do
+            else
+                if ((node_rcv_buffer(cpu_index)%data(index+1).ne.zero).or.(node_rcv_buffer(cpu_index)%data(index+2).ne.zero)) then
+                    print*,"multiple convex angles after communication"
+                end if
+            end if
+        end do
+
+        local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%velocity(1:dimensiona) + local_nodes(node_index)%relaxation_velocity(1:dimensiona)
+    end do
+    !$omp end do
+
+end subroutine fix_moved_concave_cells
 
 
 
