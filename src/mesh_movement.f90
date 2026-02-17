@@ -56,8 +56,8 @@ function trinagle_area(a, b, c)
     v2 = Zero
 
     do i = 1, dimensiona
-        v1(i) = a(i) - b(i)
-        v2(i) = a(i) - c(i)
+        v1(i) = b(i) - a(i)
+        v2(i) = c(i) - b(i)
     end do
 
     cross(1) = (v1(2)*v2(3)) - (v1(3)*v2(2))
@@ -74,52 +74,46 @@ end function trinagle_area
 
 
 
+function trinagle_area_2D(a, b, c)
+    implicit none
+    real,dimension(1:dimensiona)::a, b, c
+    real::trinagle_area_2D
+    real,dimension(1:dimensiona)::v1, v2
+    
+    real::cross
+    integer::i
+
+    v1(:) = b(:) - a(:)
+    v2(:) = c(:) - b(:)
+
+    cross = (v1(1)*v2(2)) - (v1(2)*v2(1))
+
+    trinagle_area_2D = cross*0.5
+
+end function trinagle_area_2D
+
+
+
+
+
 subroutine polygon_centre(vert_num, vertices, centre)
     ! this function assumes that the polygon is convex
     implicit none
     integer::vert_num
     real,intent(in),dimension(1:vert_num,1:dimensiona)::vertices
     real,intent(out),dimension(1:dimensiona)::centre
-    real,dimension(1:dimensiona)::temp_centre, helper, v1, v2
-    real::area, area_sum
-    integer::i, j
+    integer::i
 
     if (vert_num.le.0) then
         print *, "trying to find a centre of 0-gon"
         call abort()
     end if
     
-    temp_centre = zero
-    do i = 1,vert_num
-        temp_centre(:) = temp_centre(:) + vertices(i,:)
-    end do
-    do i = 1,dimensiona
-        temp_centre(i) = temp_centre(i) / real(vert_num)
+    centre(:) = zero
+    do i = 1, vert_num
+        centre(:) = centre(:) + (vertices(i,:)/real(vert_num))
     end do
 
-    ! if (vert_num.le.3) then
-        centre(1:dimensiona) = temp_centre(1:dimensiona)
-    ! else
-    !     centre = zero
-    !     area_sum = zero
-    !     do i = 1, vert_num
-    !         j = i+1
-    !         if (i.eq.vert_num) then
-    !             j = 1
-    !         end if
-
-    !         v1 = vertices(i,:)
-    !         v2 = vertices(j,:)
-
-    !         helper(:) = ((v1(:) + v2(:) + temp_centre(:)) / 3.0)
-    !         area = trinagle_area(v1(:), v2(:), temp_centre(:))
-
-    !         area_sum = area_sum + area
-    !         centre(:) = centre(:) + (helper(:) * area)
-    !     end do
-
-    !     centre(:) = centre(:) / area_sum
-    ! end if
 
 end subroutine polygon_centre
 
@@ -128,7 +122,6 @@ end subroutine polygon_centre
 
 
 subroutine pseudoVoronoi_centre(vert_num, vertices, centre)
-    ! this function assumes that the polygon is convex
     implicit none
     integer::vert_num
     real,intent(in),dimension(1:vert_num,1:dimensiona)::vertices
@@ -239,6 +232,7 @@ end subroutine pseudoVoronoi_centre
 
 
 
+
 subroutine cell_centre(vert_num, vertices, centre)
     implicit none
     integer::vert_num
@@ -258,29 +252,29 @@ subroutine cell_centre(vert_num, vertices, centre)
         temp_centre(:) = temp_centre(:) + (vertices(:,i)/real(vert_num))
     end do
 
-    ! if (vert_num.le.3) then
+    if (vert_num.le.3) then
         centre(1:dimensiona) = temp_centre(1:dimensiona)
-    ! else
-    !     centre = zero
-    !     area_sum = zero
-    !     do i = 1, vert_num
-    !         j = i+1
-    !         if (i.eq.vert_num) then
-    !             j = 1
-    !         end if
+    else
+        centre = zero
+        area_sum = zero
+        do i = 1, vert_num
+            j = i+1
+            if (i.eq.vert_num) then
+                j = 1
+            end if
 
-    !         v1 = vertices(i,:)
-    !         v2 = vertices(j,:)
+            v1 = vertices(:,i)
+            v2 = vertices(:,j)
 
-    !         helper(:) = ((v1(:) + v2(:) + temp_centre(:)) / 3.0)
-    !         area = trinagle_area(v1(:), v2(:), temp_centre(:))
+            helper(:) = ((v1(:) + v2(:) + temp_centre(:)) / 3.0)
+            area = trinagle_area_2D(v1(:), v2(:), temp_centre(:))
 
-    !         area_sum = area_sum + area
-    !         centre(:) = centre(:) + (helper(:) * area)
-    !     end do
+            area_sum = area_sum + area
+            centre(:) = centre(:) + (helper(:) * area)
+        end do
 
-    !     centre(:) = centre(:) / area_sum
-    ! end if
+        centre(:) = centre(:) / area_sum
+    end if
 
 end subroutine cell_centre
 
@@ -1603,7 +1597,7 @@ SUBROUTINE find_moved_node_relaxation_velocity(stage, position_index, d_t, N)
                 do j = 1, local_nodes(node_index)%num_local_neighbours
                     cell_index = local_nodes(node_index)%local_neighbours(j)
                     do k = 1, ielem(N, cell_index)%nonodes
-                        cell_node_index = ielem(N, cell_index)%nodes(k)
+                        cell_node_index = ielem(N, cell_index)%nodes_counterclockwise(k)
                         cell_nodes(:,k) = local_nodes(cell_node_index)%positions(position_index,:)
                         cell_nodes(:,k) = cell_nodes(:,k) + (local_nodes(cell_node_index)%velocity(1:dimensiona)*d_t)
                     end do
@@ -1686,7 +1680,7 @@ SUBROUTINE find_moved_node_relaxation_velocity(stage, position_index, d_t, N)
 
                 cell_index = local_nodes(node_index)%local_neighbours(i)
                 do k = 1, ielem(N, cell_index)%nonodes
-                    cell_node_index = ielem(N, cell_index)%nodes(k)
+                    cell_node_index = ielem(N, cell_index)%nodes_counterclockwise(k)
                     cell_nodes(:,k) = local_nodes(cell_node_index)%positions(position_index,:)
                     cell_nodes(:,k) = cell_nodes(:,k) + (local_nodes(cell_node_index)%lagrangian_velocity(1:dimensiona)*d_t)
                 end do

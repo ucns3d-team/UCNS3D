@@ -1,11 +1,24 @@
 MODULE TRANSFORM_MovingMesh
 	USE MPIINFO
+	USE OMP_LIB
 	USE DECLARATION
 	USE TRANSFORM
 
 	IMPLICIT NONE
 
 CONTAINS	
+
+function cross_product_2D(v1, v2)
+	implicit none
+	real,dimension(1:2)::v1, v2
+	real::cross_product_2D
+
+	cross_product_2D = (v1(1)*v2(2)) - (v1(2)*v2(1))
+
+end function
+
+
+
 
 
 SUBROUTINE VOLUME_CALCULATOR_MovingMesh_2D(i, node_position_index)
@@ -256,18 +269,77 @@ END SUBROUTINE FIND_ANGLES_MovingMesh
 
 
 
-SUBROUTINE CENTRE_MovingMesh_2D(iconsidered, node_position_index)
+! SUBROUTINE CENTRE_MovingMesh_2D(iconsidered, node_position_index)
+! 	!> @brief
+! 	!> This subroutine computes the cell centres
+! 	IMPLICIT NONE
+! 	INTEGER,INTENT(IN)::iconsidered, node_position_index
+! 	REAL,DIMENSION(1:DIMENSIONA)::CORDS
+! 	INTEGER::I
+! 	i=iconsidered
+
+!     CALL COMPUTE_CENTRE_MovingMesh_2D(i,CORDS, node_position_index)
+!     IELEM(N,I)%XXC=CORDS(1)
+!     IELEM(N,I)%YYC=CORDS(2)
+
+! END SUBROUTINE CENTRE_MovingMesh_2D
+
+
+
+
+
+SUBROUTINE CENTRE_MovingMesh_2D(cell_index, node_position_index)
 	!> @brief
 	!> This subroutine computes the cell centres
 	IMPLICIT NONE
-	INTEGER,INTENT(IN)::iconsidered, node_position_index
-	REAL,DIMENSION(1:DIMENSIONA)::CORDS
-	INTEGER::I
-	i=iconsidered
+	INTEGER,INTENT(IN)::cell_index, node_position_index
+	REAL,DIMENSION(1:DIMENSIONA)::CORDS, temp_cords, trinagle_centre
+	real,dimension(1:dimensiona)::v1, v2
+	INTEGER::I, j
+	integer::num_nodes, node_index, node_index_1, node_index_2, node_index_3
+	real::area, area_sum
+	
+	cords(:) = zero
 
-    CALL COMPUTE_CENTRE_MovingMesh_2D(i,CORDS, node_position_index)
-    IELEM(N,I)%XXC=CORDS(1)
-    IELEM(N,I)%YYC=CORDS(2)
+	num_nodes = IELEM(N,cell_index)%nonodes
+	do i = 1, num_nodes
+		node_index = ielem(N, cell_index)%nodes_counterclockwise(i)
+		cords(:) = cords(:) + (local_nodes(node_index)%positions(node_position_index, 1:dimensiona)/real(num_nodes))
+	end do
+
+	if (num_nodes.gt.3) then
+		temp_cords(:) = cords(:)
+		cords(:) = zero
+		area_sum = zero
+		do i = 1, num_nodes
+			j = i+1
+			if (j.gt.num_nodes) then
+				j = j - num_nodes
+			end if
+
+			node_index_1 = ielem(N, cell_index)%nodes_counterclockwise(i)
+			node_index_2 = ielem(N, cell_index)%nodes_counterclockwise(j)
+
+			v1(:) = local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona) - local_nodes(node_index_1)%positions(node_position_index, 1:dimensiona)
+			v2(:) = temp_cords(1:dimensiona) - local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona)
+			
+			area = cross_product_2D(v1, v2)*0.5
+			area_sum = area_sum + area
+
+			trinagle_centre(:) = (local_nodes(node_index_1)%positions(node_position_index, 1:dimensiona) &
+							   + local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona) &
+							   + temp_cords(1:dimensiona)) &
+							   / 3.0
+			
+			cords(:) = cords(:) + (trinagle_centre(:)*area)
+		end do
+
+		cords(:) = cords(:)/area_sum
+
+	end if
+
+    IELEM(N, cell_index)%XXC=CORDS(1)
+    IELEM(N, cell_index)%YYC=CORDS(2)
 
 END SUBROUTINE CENTRE_MovingMesh_2D
 
@@ -275,7 +347,77 @@ END SUBROUTINE CENTRE_MovingMesh_2D
 
 
 
-SUBROUTINE COMPUTE_CENTRE_MovingMesh_2dF(N, I, facex,N_NODE,cords, node_position_index)
+SUBROUTINE CENTREandVOLUME_MovingMesh_2D(cell_index, node_position_index)
+	!> @brief
+	!> This subroutine computes the cell centres
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::cell_index, node_position_index
+	REAL,DIMENSION(1:DIMENSIONA)::CORDS, temp_cords, trinagle_centre
+	real,dimension(1:dimensiona)::v1, v2
+	INTEGER::I, j
+	integer::num_nodes, node_index, node_index_1, node_index_2, node_index_3
+	real::area, area_sum
+	
+	cords(:) = zero
+
+	num_nodes = IELEM(N,cell_index)%nonodes
+	do i = 1, num_nodes
+		node_index = ielem(N, cell_index)%nodes_counterclockwise(i)
+		cords(:) = cords(:) + (local_nodes(node_index)%positions(node_position_index, 1:dimensiona)/real(num_nodes))
+	end do
+
+	if (num_nodes.gt.3) then
+		temp_cords(:) = cords(:)
+		cords(:) = zero
+		area_sum = zero
+		do i = 1, num_nodes
+			j = i+1
+			if (j.gt.num_nodes) then
+				j = j - num_nodes
+			end if
+
+			node_index_1 = ielem(N, cell_index)%nodes_counterclockwise(i)
+			node_index_2 = ielem(N, cell_index)%nodes_counterclockwise(j)
+
+			v1(:) = local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona) - local_nodes(node_index_1)%positions(node_position_index, 1:dimensiona)
+			v2(:) = temp_cords(1:dimensiona) - local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona)
+			
+			area = cross_product_2D(v1, v2)*0.5
+			area_sum = area_sum + area
+
+			trinagle_centre(:) = (local_nodes(node_index_1)%positions(node_position_index, 1:dimensiona) &
+							   + local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona) &
+							   + temp_cords(1:dimensiona)) &
+							   / 3.0
+			
+			cords(:) = cords(:) + (trinagle_centre(:)*area)
+		end do
+
+		cords(:) = cords(:)/area_sum
+	else
+		node_index_1 = ielem(N, cell_index)%nodes_counterclockwise(1)
+		node_index_2 = ielem(N, cell_index)%nodes_counterclockwise(2)
+		node_index_3 = ielem(N, cell_index)%nodes_counterclockwise(3)
+			
+		v1(:) = local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona) - local_nodes(node_index_1)%positions(node_position_index, 1:dimensiona)
+		v2(:) = local_nodes(node_index_3)%positions(node_position_index, 1:dimensiona) - local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona)
+
+		area_sum = cross_product_2D(v1, v2)*0.5
+
+	end if
+
+    IELEM(N, cell_index)%XXC=CORDS(1)
+    IELEM(N, cell_index)%YYC=CORDS(2)
+
+	IELEM(N, cell_index)%moving_VOLUME(node_position_index) = area_sum
+
+END SUBROUTINE CENTREandVOLUME_MovingMesh_2D
+
+
+
+
+
+SUBROUTINE COMPUTE_CENTRE_MovingMesh_2dF(N, I, facex, N_NODE, cords, node_position_index)
 	!> @brief
 	!> This subroutine retrieves the nodes of the vertices of edges of 2D elements
 	IMPLICIT NONE
@@ -311,8 +453,10 @@ SUBROUTINE COMPUTE_CENTRE_MovingMesh_2d(Iconsidered, CORDS, node_position_index)
     do K=1,IELEM(N,I)%NONODES
       	! NODES_LIST(k,1:2)=local_nodes(IELEM(N,I)%NODES_local(K))%positions(node_position_index,1:2)
         NODES_LIST(k,1:2)=local_nodes(IELEM(N,I)%NODES(K))%positions(node_position_index,1:2)
+		! NODES_LIST(k,1:2)=local_nodes(IELEM(N,I)%nodes_counterclockwise(K))%positions(node_position_index,1:2)
     END DO
     CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
+	! cords = compute_cell_centre(N_NODE, NODES_LIST)
    
 END SUBROUTINE
 
@@ -342,9 +486,10 @@ SUBROUTINE GEOMETRY_CALC_MovingMesh(n, node_position_index)
 	ELSE
 		!$OMP DO
 		DO I=1,KMAXE
-			CALL VOLUME_CALCULATOR_MovingMesh_2D(I, node_position_index)
+			! CALL VOLUME_CALCULATOR_MovingMesh_2D(I, node_position_index)
 			call SURFACE_CALCULATOR_MovingMesh_2D(I, node_position_index)
-			call CENTRE_MovingMesh_2D(I, node_position_index)
+			! call CENTRE_MovingMesh_2D(I, node_position_index)
+			call CENTREandVOLUME_MovingMesh_2D(I, node_position_index)
 			call EDGE_CALCULATOR_MovingMesh_2D(I, node_position_index)
 		END DO
 		!$OMP END DO 
@@ -361,6 +506,130 @@ SUBROUTINE GEOMETRY_CALC_MovingMesh(n, node_position_index)
 	!$OMP BARRIER 
 
 END SUBROUTINE GEOMETRY_CALC_MovingMesh
+
+
+
+
+
+subroutine reorder_nodes(N)
+	implicit none
+	integer,intent(inout)::N
+	integer:: M
+	integer::cell_index, node_index, my_node_index, previous_node_index, next_node_index, my_edge_index, next_edge_index
+	integer::num_cells_local, num_nodes
+	integer::i, i_minus, i_plus, j, to_fill
+	integer::swap_helper
+	real,dimension(1:dimensiona)::v1, v2
+	real::v1_cross_v2
+
+	num_cells_local = XMPIELRANK(N)
+
+	M = omp_get_thread_num()
+
+	if (dimensiona.ne.2) then
+		print*,"node reoredering supported only in 2D"
+		call abort()
+	end if
+
+	!$omp do
+	do cell_index = 1, num_cells_local
+
+		if (ielem(N, cell_index)%ishape.eq.5) then
+			num_nodes = 4
+		else if (ielem(N, cell_index)%ishape.eq.6) then
+			num_nodes = 3
+		else
+			print*,"invalid cell", cell_index, "on cpu", n, "thread", M
+			call abort()
+		end if
+
+		if (num_nodes.ne.ielem(N, cell_index)%nonodes) then
+			print*,"missmatch between cd in cell", cell_index, "on cpu", n, "thread", M
+		end if
+
+		allocate(ielem(N, cell_index)%nodes_counterclockwise(num_nodes))
+		ielem(N, cell_index)%nodes_counterclockwise(:) = -1
+
+		my_edge_index = 1
+		ielem(N, cell_index)%nodes_counterclockwise(1) = ielem(N, cell_index)%nodes_faces(1,1)
+		ielem(N, cell_index)%nodes_counterclockwise(2) = ielem(N, cell_index)%nodes_faces(1,2)
+		do to_fill = 3, num_nodes
+			do next_edge_index = 1, num_nodes
+				if (next_edge_index.ne.my_edge_index) then
+					if (ielem(N, cell_index)%nodes_faces(next_edge_index,1).eq.ielem(N, cell_index)%nodes_counterclockwise(to_fill-1)) then
+						ielem(N, cell_index)%nodes_counterclockwise(to_fill) = ielem(N, cell_index)%nodes_faces(next_edge_index,2)
+						my_edge_index = next_edge_index
+						exit
+					end if
+					if (ielem(N, cell_index)%nodes_faces(next_edge_index,2).eq.ielem(N, cell_index)%nodes_counterclockwise(to_fill-1)) then
+						ielem(N, cell_index)%nodes_counterclockwise(to_fill) = ielem(N, cell_index)%nodes_faces(next_edge_index,1)
+						my_edge_index = next_edge_index
+						exit
+					end if
+				end if
+			end do
+		end do
+
+		do i = 1, num_nodes
+			if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.-1) then
+				print*, "assembling counterclockwise nodes in cell", cell_index, "on CPU", N, "thread", M, "has failed"
+				call abort()
+			end if
+		end do
+
+		! swap order if needed
+		my_node_index = ielem(N, cell_index)%nodes_counterclockwise(2)
+		previous_node_index = ielem(N, cell_index)%nodes_counterclockwise(1)
+		next_node_index = ielem(N, cell_index)%nodes_counterclockwise(3)
+
+		v1 = local_nodes(my_node_index)%positions(1, 1:dimensiona) - local_nodes(previous_node_index)%positions(1, 1:dimensiona)
+		v2 = local_nodes(next_node_index)%positions(1, 1:dimensiona) - local_nodes(my_node_index)%positions(1, 1:dimensiona)
+
+		v1_cross_v2 = cross_product_2D(v1,v2)
+
+		if (v1_cross_v2.lt.zero) then
+			do i = 1, num_nodes/2
+				j = num_nodes + 1 - i
+				swap_helper = ielem(N, cell_index)%nodes_counterclockwise(j)
+				ielem(N, cell_index)%nodes_counterclockwise(j) = ielem(N, cell_index)%nodes_counterclockwise(i)
+				ielem(N, cell_index)%nodes_counterclockwise(i) = swap_helper
+			end do
+		end if
+
+		do i = 1, num_nodes
+			i_minus = i-1
+			if (i_minus.eq.0) then
+				i_minus = num_nodes
+			end if
+			i_plus = i+1
+			if (i_plus.gt.num_nodes) then
+				i_plus = 1
+			end if
+
+			my_node_index = ielem(N, cell_index)%nodes_counterclockwise(i)
+			previous_node_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
+			next_node_index = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
+
+			v1 = local_nodes(my_node_index)%positions(1, 1:dimensiona) - local_nodes(previous_node_index)%positions(1, 1:dimensiona)
+			v2 = local_nodes(next_node_index)%positions(1, 1:dimensiona) - local_nodes(my_node_index)%positions(1, 1:dimensiona)
+	
+			v1_cross_v2 = cross_product_2D(v1,v2)
+
+			if (v1_cross_v2.lt.zero) then
+				if (num_nodes.eq.3) then
+					print*,"concave triangle cell???", cell_index, "cpu", N, "thread", M
+				else if (num_nodes.eq.4) then
+					print*,"concave quadrilateral cell???", cell_index, "cpu", N, "thread", M
+				else
+					print*,"invalid and concave cell??????"
+				end if
+			end if
+		end do
+
+	end do
+	!$omp end do
+
+end subroutine
 
 
 END MODULE

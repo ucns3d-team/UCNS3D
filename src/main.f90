@@ -746,6 +746,10 @@ my_yper = 0.0
 my_zper = 0.0
 ! print*,"xper, my_xper, yper, my_yper, zper, my_zper", xper, my_xper, yper, my_yper, zper, my_zper
 
+!$OMP PARALLEL DEFAULT(SHARED)
+Call reorder_nodes(N)
+Call GEOMETRY_CALC_MovingMesh(N, 1)
+!$OMP END PARALLEL
 Call establish_node_neighbours(N)
 
 IF (DIMENSIONA.EQ.3)THEN
