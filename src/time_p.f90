@@ -1,548 +1,596 @@
-MODULE ADVANCE
-USE LIBRARY
-USE TRANSFORM
-USE FLUXES
-USE SOURCE
-USE INITIALISATION
-USE BOUNDARY
-USE RECON
-USE LOCAL
-USE FLOW_OPERATIONS
-USE COMMUNICATIONS
-USE implicit_time
-USE implicit_FLUXES
-USE DECLARATION
-USE IO
-USE MOODR
-IMPLICIT NONE
+module advance
+use library
+use transform
+use fluxes
+use source
+use initialisation
+use boundary
+use recon
+use local
+use flow_operations
+use communications
+use implicit_time
+use implicit_fluxes
+use declaration
+use io
+use moodr
+implicit none
 
- CONTAINS
+ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !---------------------------------------------------------------------------------------------!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!SUBROUTINE CALLED TO CALCULATE CFL NUMBER DEPENDING ON THE SCHEME!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!subroutine called to calculate cfl number depending on the scheme!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!EMPLOYED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!employed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-SUBROUTINE CALCULATE_CFL(N)
+subroutine calculate_cfl(n)
 !> @brief
-!> subroutine for computing the global time step size in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL,SRF
-REAL::SUVI,SUV3,maxU,MINU
-REAL::CCFL,VELN,AGRT
-real,dimension(1:nof_Variables)::leftv,rightv
-real,dimension(1:nof_Variables)::SRF_SPEED
-real::MP_PINFL,gammal
-REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-REAL,DIMENSION(1:4)::VISCL,LAML
-REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-REAL,DIMENSION(1:2)::TURBMV
-REAL,DIMENSION(1)::ETVM
+!> subroutine for computing the global time step size in 3d
+implicit none
+integer,intent(in)::n
+integer::i,k,l,kmaxe,j,ingtmax,ingtmin,whgu,whgl,srf
+real::suvi,suv3,maxu,minu
+real::ccfl,veln,agrt
+real,dimension(1:nof_variables)::leftv,rightv
+real,dimension(1:nof_variables)::srf_speed
+real::mp_pinfl,gammal
+real,dimension(1:dimensiona)::pox,poy,poz
+real,dimension(1:4)::viscl,laml
+real,dimension(1:20)::eddyfl,eddyfr
+real,dimension(1:2)::turbmv
+real,dimension(1)::etvm
 
-KMAXE=XMPIELRANK(N)
+kmaxe=xmpielrank(n)
        
-        CCFL=(CFL/3.0d0)
+        ccfl=(cfl/3.0d0)
         
-        DT=tolbig
-	IF (ITESTCASE.LT.3)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
-		VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
+        dt=tolbig
+	if (itestcase.lt.3)then
+	!$omp do reduction (min:dt)
+        do i=1,kmaxe
+		veln=max(abs(lamx),abs(lamy),abs(lamz))
 		
 		if (dg.eq.1)then
 		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
+		dt=min(dt,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
 		
 		else
 		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+		dt=min(dt,ccfl*((ielem_minedge(i))/(abs(veln))))
 		end if
 		
-	END DO
-	!$OMP END DO
-	END IF
+	end do
+	!$omp end do
+	end if
 	
-	IF (ITESTCASE.EQ.3)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
+	if (itestcase.eq.3)then
+	!$omp do reduction (min:dt)
+        do i=1,kmaxe
         
         
         
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		
 		
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		IF (multispecies.eq.1)THEN
-		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
-		ELSE
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		END IF
-        IF (RFRAME.eq.0) THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        END IF
-        IF (SRFG.EQ.1) THEN
-            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-            POY(1:3)=SRF_VELOCITY
-            SRF_SPEED=ZERO
-            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF
-        IF(MRF.EQ.1)THEN
-            SRF=ILOCAL_RECON3(I)%MRF
-            IF (ILOCAL_RECON3(I)%MRF.EQ.0)THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-            ELSE
-                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
-                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
-                SRF_SPEED=ZERO
-                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-            END IF
-        END IF
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(5)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(5)*gamma/leftv(1))
+		end if
+        if (rframe.eq.0) then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+        end if
+        if (srfg.eq.1) then
+            pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+            poy(1:3)=srf_velocity
+            srf_speed=zero
+            srf_speed(2:4)=vect_function(pox,poy)
+            veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+        end if
+        if(mrf.eq.1)then
+            srf=rec_mrf(i)
+            if (rec_mrf(i).eq.0)then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+            else
+                pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+                pox=pox-rec_mrf_origin(1:3,i)
+                poy(1:3)=rec_mrf_velocity(1:3,i)
+                srf_speed=zero
+                srf_speed(2:4)=vect_function(pox,poy)
+                veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+            end if
+        end if
 		if (dg.eq.1)then
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
+		dt=min(dt,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
 		
 		else
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+		dt=min(dt,ccfl*((ielem_minedge(i))/(abs(veln))))
 		
-		END IF
+		end if
 		
 		
-	END DO
-	!$OMP END DO
-	END IF
+	end do
+	!$omp end do
+	end if
 	
 	
 	
-	IF (ITESTCASE.EQ.4)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-                    
+	if (itestcase.eq.4)then
+	!$omp do reduction (min:dt)
+        do i=1,kmaxe
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		rightv(1:nof_variables)=leftv(1:nof_variables)
+		call get_visc_conduct(n,leftv,rightv,viscl,laml)
+
+        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(5)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(5)*gamma/leftv(1))
+		end if
 
 
-		CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
-                if (it.eq.0)then
-                        ielem(n,i)%vortex(4)=viscl(1)
-                end if 
 
-
-                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
                 
-        IF (RFRAME.EQ.0) THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        END IF
-        IF(SRFG.EQ.1)THEN
-            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-            POY(1:3)=SRF_VELOCITY
-            SRF_SPEED=ZERO
-            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF          
-        IF(MRF.EQ.1)THEN
-            SRF=ILOCAL_RECON3(I)%MRF
-            IF (ILOCAL_RECON3(I)%MRF.EQ.0)THEN
-                VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-            ELSE
-                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
-                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
-                SRF_SPEED=ZERO
-                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-            END IF
-        END IF
-		IF (TURBULENCE.EQ.1)THEN
-		IF (TURBULENCEMODEL.EQ.1)THEN
-		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+        if (rframe.eq.0) then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+        end if
+        if(srfg.eq.1)then
+            pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+            poy(1:3)=srf_velocity
+            srf_speed=zero
+            srf_speed(2:4)=vect_function(pox,poy)
+            veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+        end if          
+        if(mrf.eq.1)then
+            srf=rec_mrf(i)
+            if (rec_mrf(i).eq.0)then
+                veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+            else
+                pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+                pox(1:3)=pox(1:3)-rec_mrf_origin(1:3,i)
+                poy(1:3)=rec_mrf_velocity(1:3,i)
+                srf_speed=zero
+                srf_speed(2:4)=vect_function(pox,poy)
+                veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+            end if
+        end if
+		if (turbulence.eq.1)then
+		if (turbulencemodel.eq.1)then
+		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-		CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-		LAML(1)=LAML(1)+LAML(3)
-		VISCL(1)=VISCL(1)+VISCL(3)
-		END IF
-		END IF
+		call eddyvisco(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
+		laml(1)=laml(1)+laml(3)
+		viscl(1)=viscl(1)+viscl(3)
+		end if
+		end if
 
 		if (dg.eq.1)then
 		
 
-		DT=MIN(DT,(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
+		dt=min(dt,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i))))))
 		
 		
 		else
-		IELEM(N,I)%VISCX=VISCL(1)/VISC
-         DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
 
-!          DT=MIN(DT,(CCFL)*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*(1.0D0/IELEM(N,I)%MINEDGE)))))
+         dt=min(dt,ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2))))
+
+!          dt=min(dt,(ccfl)*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*(1.0d0/ielem_minedge(i))))))
 
          end if
                              
-	END DO
-	!$OMP END DO
-	END IF
+	end do
+	!$omp end do
+	end if
 	
 	
-        RETURN
+        return
         
-END SUBROUTINE CALCULATE_CFL
+end subroutine calculate_cfl
 
-SUBROUTINE CALCULATE_CFLL(N)
+subroutine calculate_cfll(n)
 !> @brief
-!> subroutine for computing the time step size for each cell in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL,SRF
-REAL::SUVI,SUV3,maxU,MINU
-REAL::CCFL,VELN,AGRT
-real,dimension(1:nof_Variables)::leftv,rightv
-real,dimension(1:nof_Variables)::SRF_SPEED
-real::MP_PINFL,gammal
-REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-REAL,DIMENSION(1:4)::VISCL,LAML
-REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-REAL,DIMENSION(1:2)::TURBMV
-REAL,DIMENSION(1)::ETVM
-KMAXE=XMPIELRANK(N)
+!> subroutine for computing the time step size for each cell in 3d
+implicit none
+integer,intent(in)::n
+integer::i,k,l,kmaxe,j,ingtmax,ingtmin,whgu,whgl,srf
+real::suvi,suv3,maxu,minu
+real::ccfl,veln,agrt
+real,dimension(1:nof_variables)::leftv,rightv
+real,dimension(1:nof_variables)::srf_speed
+real::mp_pinfl,gammal
+real,dimension(1:dimensiona)::pox,poy,poz
+real,dimension(1:4)::viscl,laml
+real,dimension(1:20)::eddyfl,eddyfr
+real,dimension(1:2)::turbmv
+real,dimension(1)::etvm
+kmaxe=xmpielrank(n)
        
-        CCFL=(CFL/3.0d0)
+        ccfl=(cfl/3.0d0)
         
         
-	IF (ITESTCASE.LT.3)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
-	END DO
-	!$OMP END DO
-	END IF
+	if (itestcase.lt.3)then
+	!$omp do
+        do i=1,kmaxe
+		veln=max(abs(lamx),abs(lamy),abs(lamz))
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))
+	end do
+	!$omp end do
+	end if
 	
-	IF (ITESTCASE.EQ.3)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+	if (itestcase.eq.3)then
+	!$omp do
+        do i=1,kmaxe
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		call cons2prim(n,leftv,mp_pinfl,gammal)
 
-       IF (multispecies.eq.1)THEN
-		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
-		ELSE
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		END IF
-        IF (RFRAME.eq.0) THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        END IF
-        IF (SRFG.EQ.1) THEN
-            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-            POY(1:3)=SRF_VELOCITY
-            SRF_SPEED=ZERO
-            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF
-        IF(MRF.EQ.1)THEN
-            SRF=ILOCAL_RECON3(I)%MRF
-            IF (ILOCAL_RECON3(I)%MRF.EQ.1)THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-            ELSE
-                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
-                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
-                SRF_SPEED=ZERO
-                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-            END IF
-        END IF
+       if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(5)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(5)*gamma/leftv(1))
+		end if
+        if (rframe.eq.0) then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+        end if
+        if (srfg.eq.1) then
+            pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+            poy(1:3)=srf_velocity
+            srf_speed=zero
+            srf_speed(2:4)=vect_function(pox,poy)
+            veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+        end if
+        if(mrf.eq.1)then
+            srf=rec_mrf(i)
+            if (rec_mrf(i).eq.1)then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+            else
+                pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+                pox=pox-rec_mrf_origin(1:3,i)
+                poy(1:3)=rec_mrf_velocity(1:3,i)
+                srf_speed=zero
+                srf_speed(2:4)=vect_function(pox,poy)
+                veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+            end if
+        end if
 		if (dg.eq.1)then
 		
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1))
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1))
 		
 		else
 		
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))
 		
 		end if
-	END DO
-	!$OMP END DO
-	END IF
+	end do
+	!$omp end do
+	end if
 	
 	
 	
-	IF (ITESTCASE.EQ.4)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
-                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-        IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        END IF
-        IF(SRFG.EQ.1)THEN
-            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-            POY(1:3)=SRF_VELOCITY
-            SRF_SPEED=ZERO
-            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF
-        IF(MRF.EQ.1)THEN
-            SRF=ILOCAL_RECON3(I)%MRF
-           IF (ILOCAL_RECON3(I)%MRF.EQ.0)THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-            ELSE
-                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
-                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
-                SRF_SPEED=ZERO
-                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-            END IF
-        END IF
-        IF (TURBULENCE.EQ.1)THEN
-		IF (TURBULENCEMODEL.EQ.1)THEN
-		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+	if (itestcase.eq.4)then
+	!$omp do
+        do i=1,kmaxe
+
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		rightv(1:nof_variables)=leftv(1:nof_variables)
+		call get_visc_conduct(n,leftv,rightv,viscl,laml)
+
+        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(5)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(5)*gamma/leftv(1))
+		end if
+
+
+
+
+
+
+
+
+        if (srfg.eq.0.and.mrf.eq.0) then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+        end if
+        if(srfg.eq.1)then
+            pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+            poy(1:3)=srf_velocity
+            srf_speed=zero
+            srf_speed(2:4)=vect_function(pox,poy)
+            veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+        end if
+        if(mrf.eq.1)then
+            srf=rec_mrf(i)
+           if (rec_mrf(i).eq.0)then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+            else
+                pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+                pox(1:3)=pox(1:3)-rec_mrf_origin(1:3,i)
+                poy(1:3)=rec_mrf_velocity(1:3,i)
+                srf_speed=zero
+                srf_speed(2:4)=vect_function(pox,poy)
+                veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+            end if
+        end if
+        if (turbulence.eq.1)then
+		if (turbulencemodel.eq.1)then
+		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-		CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-		LAML(1)=LAML(1)+LAML(3)
-		VISCL(1)=VISCL(1)+VISCL(3)
-		END IF
-		END IF
+		call eddyvisco(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
+		laml(1)=laml(1)+laml(3)
+		viscl(1)=viscl(1)+viscl(3)
+		end if
+		end if
 		
 
 		if (dg.eq.1)then
 
 
-		IELEM(N,I)%DTL=(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE))))
+		ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i)))))
 
 		
 		else
 		
-		IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
+		ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2)))
 		end if
 		
-	END DO
-	!$OMP END DO
-	END IF
+	end do
+	!$omp end do
+	end if
 	
 	
-        RETURN
+        return
         
-END SUBROUTINE CALCULATE_CFLL
+end subroutine calculate_cfll
 
 
 
-SUBROUTINE CALCULATE_CFL2D(N)
+subroutine calculate_cfl2d(n)
 !> @brief
-!> subroutine for computing the global time step size in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
-REAL::SUVI,SUV3,maxU,MINU,sum_DT1,sum_dt2
-REAL::CCFL,VELN,AGRT,lamxl,lamyl
-real,dimension(1:nof_Variables)::leftv,rightv
-real,dimension(1:nof_Variables)::SRF_SPEED
-real::MP_PINFL,gammal
-REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-REAL,DIMENSION(1:4)::VISCL,LAML
-REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-REAL,DIMENSION(1:2)::TURBMV
-REAL,DIMENSION(1)::ETVM
-KMAXE=XMPIELRANK(N)
+!> subroutine for computing the global time step size in 2d
+implicit none
+integer,intent(in)::n
+integer::i,k,l,kmaxe,j,ingtmax,ingtmin,whgu,whgl
+real::suvi,suv3,maxu,minu,sum_dt1,sum_dt2
+real::ccfl,veln,agrt,lamxl,lamyl
+real,dimension(1:nof_variables)::leftv,rightv
+real,dimension(1:nof_variables)::srf_speed
+real::mp_pinfl,gammal
+real,dimension(1:dimensiona)::pox,poy,poz
+real,dimension(1:4)::viscl,laml
+real,dimension(1:20)::eddyfl,eddyfr
+real,dimension(1:2)::turbmv
+real,dimension(1)::etvm
+kmaxe=xmpielrank(n)
        
-        CCFL=(CFL/2.0d0)
+        ccfl=(cfl/2.0d0)
         
-        DT=tolbig
+        dt=tolbig
         
         
-        !$OMP BARRIER
+        !$omp barrier
         
-	IF (ITESTCASE.LT.3)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
+	if (itestcase.lt.3)then
+	!$omp do reduction (min:dt)
+        do i=1,kmaxe
         
-				IF (initcond.eq.3)THEN
-				  lamxl=-ielem(n,i)%yyc+0.5d0
-				  lamyl=ielem(n,i)%xxc-0.5
-				  Else
+				if (initcond.eq.3)then
+				  lamxl=-ielem_yyc(i)+0.5d0
+				  lamyl=ielem_xxc(i)-0.5
+				  else
 				  lamxl=lamx
 				  lamyl=lamy
                 end if
         
         
-		VELN=MAX(ABS(LAMxl),ABS(LAMyl))
+		veln=max(abs(lamxl),abs(lamyl))
 		
 		if (dg.eq.1)then
 		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
+		dt=min(dt,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
 		
 		else
 		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+		dt=min(dt,ccfl*((ielem_minedge(i))/(abs(veln))))
 		end if
 		
-	END DO
-	!$OMP END DO
-	END IF
+	end do
+	!$omp end do
+	end if
 	
-	IF (ITESTCASE.EQ.3)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
+	if (itestcase.eq.3)then
+	!$omp do reduction (min:dt)
+        do i=1,kmaxe
         
         
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		
         
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-		IF (multispecies.eq.1)THEN
-		AGRT=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
-		ELSE
-		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		END IF
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(4)*gamma/leftv(1))
+		end if
+		veln=max(abs(leftv(2)),abs(leftv(3)))+agrt
 		
 		
 		
 		if (dg.eq.1)then
 		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
+		dt=min(dt,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
 		
 		
 		else
 		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+		dt=min(dt,ccfl*((ielem_minedge(i))/(abs(veln))))
 		end if
 		
 		
 		
-	END DO
-	!$OMP END DO
-	END IF
+	end do
+	!$omp end do
+	end if
 	
 	
 	
-	IF (ITESTCASE.EQ.4)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
-		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
-		IF (TURBULENCE.EQ.1)THEN
-		IF (TURBULENCEMODEL.EQ.1)THEN
-		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+	if (itestcase.eq.4)then
+	!$omp do reduction (min:dt)
+        do i=1,kmaxe
+
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		rightv(1:nof_variables)=leftv(1:nof_variables)
+		call get_visc_conduct(n,leftv,rightv,viscl,laml)
+
+        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(4)*gamma/leftv(1))
+		end if
+
+
+		veln=max(abs(leftv(2)),abs(leftv(3)))+agrt
+		if (turbulence.eq.1)then
+		if (turbulencemodel.eq.1)then
+		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-		CALL EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-		LAML(1)=LAML(1)+LAML(3)
-		VISCL(1)=VISCL(1)+VISCL(3)
-		END IF
-		END IF
+		call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
+		laml(1)=laml(1)+laml(3)
+		viscl(1)=viscl(1)+viscl(3)
+		end if
+		end if
 
 
     if (dg.eq.1)then
 		
 
-      DT=MIN(DT,(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
+      dt=min(dt,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i))))))
       
       
       else
 
 
 		
-		DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
-      END IF
+		dt=min(dt,ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2))))
+      end if
   
-  END DO
-	!$OMP END DO
-	END IF
+  end do
+	!$omp end do
+	end if
 	
 	
-        RETURN
+        return
         
-END SUBROUTINE CALCULATE_CFL2D
+end subroutine calculate_cfl2d
 
 
-SUBROUTINE CALCULATE_CFLL2D(N)
+subroutine calculate_cfll2d(n)
 !> @brief
-!> subroutine for computing the time step size for each cell in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
-REAL::SUVI,SUV3,maxU,MINU
-REAL::CCFL,VELN,AGRT
-real,dimension(1:nof_Variables)::leftv,rightv
-real,dimension(1:nof_Variables)::SRF_SPEED
-reaL::MP_PINFL,gammal,MP_PINFr,gammar
-REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-REAL,DIMENSION(1:4)::VISCL,LAML
-REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-REAL,DIMENSION(1:2)::TURBMV
-REAL,DIMENSION(1)::ETVM
-KMAXE=XMPIELRANK(N)
+!> subroutine for computing the time step size for each cell in 2d
+implicit none
+integer,intent(in)::n
+integer::i,k,l,kmaxe,j,ingtmax,ingtmin,whgu,whgl
+real::suvi,suv3,maxu,minu
+real::ccfl,veln,agrt
+real,dimension(1:nof_variables)::leftv,rightv
+real,dimension(1:nof_variables)::srf_speed
+real::mp_pinfl,gammal,mp_pinfr,gammar
+real,dimension(1:dimensiona)::pox,poy,poz
+real,dimension(1:4)::viscl,laml
+real,dimension(1:20)::eddyfl,eddyfr
+real,dimension(1:2)::turbmv
+real,dimension(1)::etvm
+kmaxe=xmpielrank(n)
        
-        CCFL=(CFL/2.0d0)
+        ccfl=(cfl/2.0d0)
         
         
-	IF (ITESTCASE.LT.3)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		VELN=MAX(ABS(LAMx),ABS(LAMy))
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
-	END DO
-	!$OMP END DO
-	END IF
+	if (itestcase.lt.3)then
+	!$omp do
+        do i=1,kmaxe
+		veln=max(abs(lamx),abs(lamy))
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))
+	end do
+	!$omp end do
+	end if
 	
-	IF (ITESTCASE.EQ.3)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
+	if (itestcase.eq.3)then
+	!$omp do
+        do i=1,kmaxe
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(4)*gamma/leftv(1))
+		end if
+
+
+
+	        !	agrt=sqrt(leftv(4)*gamma/leftv(1))
+		veln=max(abs(leftv(2)),abs(leftv(3)))+agrt
 		
 		
 		if (dg.eq.1)then
 		
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1))
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1))
 		
 		else
 		
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))
 		
 		end if
 		
 		
 		
 		
-	END DO
-	!$OMP END DO
-	END IF
+	end do
+	!$omp end do
+	end if
 	
 	
 	
-	IF (ITESTCASE.EQ.4)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
-		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
-		IF (TURBULENCE.EQ.1)THEN
-		IF (TURBULENCEMODEL.EQ.1)THEN
-		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+	if (itestcase.eq.4)then
+	!$omp do
+        do i=1,kmaxe
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		rightv(1:nof_variables)=leftv(1:nof_variables)
+		call get_visc_conduct(n,leftv,rightv,viscl,laml)
+
+        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(4)*gamma/leftv(1))
+		end if
+
+
+
+
+
+
+
+
+
+
+		veln=max(abs(leftv(2)),abs(leftv(3)))+agrt
+		if (turbulence.eq.1)then
+		if (turbulencemodel.eq.1)then
+		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-		CALL EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-		LAML(1)=LAML(1)+LAML(3)
-		VISCL(1)=VISCL(1)+VISCL(3)
-		END IF
-		END IF
+		call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
+		laml(1)=laml(1)+laml(3)
+		viscl(1)=viscl(1)+viscl(3)
+		end if
+		end if
 
 
 
@@ -552,967 +600,958 @@ KMAXE=XMPIELRANK(N)
 		if (dg.eq.1)then
 
 
-      IELEM(N,I)%DTL=(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE))))
+      ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i)))))
 
 
       else
 		
-		IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
+		ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2)))
 
 
 		end if
-	END DO
-	!$OMP END DO
-	END IF
+	end do
+	!$omp end do
+	end if
 	
 	
-        RETURN
+        return
         
-END SUBROUTINE CALCULATE_CFLL2D
+end subroutine calculate_cfll2d
 
 
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !---------------------------------------------------------------------------------------------!
 ! ! !---------------------------------------------------------------------------------------------!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! ! !!!!!!!!!!!!!!!!!!SUBROUTINE CALLED TO ADVANCE SOLUTION BY ONE TIME STEP SIZE!!!!!!!!!!!!!!!!!!
+! ! !!!!!!!!!!!!!!!!!!subroutine called to advance solution by one time step size!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-SUBROUTINE RUNGE_KUTTA3_MOOD(N)
+subroutine runge_kutta3_mood(n)
 !> @brief
-!> SSP RUNGE KUTTA 3RD-ORDER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::IAVR,nvar,I,KMAXE,inds
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+!> ssp runge kutta 3rd-order scheme
+implicit none
+integer,intent(in)::n
+integer::iavr,nvar,i,kmaxe,inds
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
 
 
-IF (MOOD.EQ.1)THEN
-INDS=4
-ELSE
-INDS=1
-END IF
 
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
+if (mood.eq.1)then
+inds=4
+else
+inds=1
+end if
+
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
     
-    END SELECT
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
+    end select
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
     
-    END SELECT
-END IF
+    end select
+end if
 
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  IF (MOOD.EQ.1)THEN
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  END IF
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-END DO
-!$OMP END DO
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  if (mood.eq.1)then
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  end if
+  u_c_val(inds,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+end do
+!$omp end do
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-END DO
-!$OMP END DO
- END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+end do
+!$omp end do
+ end if
  
- IF (MOOD.EQ.1)THEN
+ if (mood.eq.1)then
  
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
+ call mood_operator_2(n)
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(inds,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+   ielem_mood_o(i)=2
+   end if
+end do
+!$omp end do
 
-CALL MOOD_OPERATOR_1(N)
+call mood_operator_1(n)
 
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+!$omp end do
 
-END IF
+end if
 
  
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-END IF
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+end if
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(inds,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-END DO
-!$OMP END DO
-
-
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(inds,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
+end do
+!$omp end do
 
 
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(TO4*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(OO4*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((OO4))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
 
- IF (MOOD.EQ.1)THEN
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+ end if
+
+ if (mood.eq.1)then
  
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
+ call mood_operator_2(n)
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(inds,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
+   ielem_mood_o(i)=2
+   end if
+end do
+!$omp end do
 
-CALL MOOD_OPERATOR_1(N)
+call mood_operator_1(n)
 
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+!$omp end do
 
-END IF
+end if
  
 
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    CALL VORTEXCALC(N)
-    END SELECT
-END IF
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-   IF (MOOD.EQ.1)THEN
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  END IF
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-END DO
-!$OMP END DO
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    call vortexcalc(n)
+    end select
+end if
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+   if (mood.eq.1)then
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  end if
+  u_c_val(inds,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+end do
+!$omp end do
 
 
-IF (MOOD.EQ.1)THEN
+if (mood.eq.1)then
  
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
+ call mood_operator_2(n)
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(inds,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+   ielem_mood_o(i)=2
+   end if
+end do
+!$omp end do
 
-CALL MOOD_OPERATOR_1(N)
+call mood_operator_1(n)
 
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+!$omp end do
 
-END IF
-
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=((OO3)*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+((TO3)*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(((TO3))*&
-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
+end if
 
 
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
+((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+ end if
 
-IF (AVERAGING.EQ.1)THEN
 
- CALL AVERAGING_T(N)
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
  
-END IF
+end if
 
 
 
 
 
                         
-END SUBROUTINE RUNGE_KUTTA3_MOOD
+end subroutine runge_kutta3_mood
 
 
-SUBROUTINE RUNGE_KUTTA3(N)
+subroutine runge_kutta3(n)
 !> @brief
-!> SSP RUNGE KUTTA 3RD-ORDER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
-
-CALL CALL_FLUX_SUBROUTINES_3D
+!> ssp runge kutta 3rd-order scheme
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
 
 
-!$OMP DO
-DO I=1,KMAXE
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(2,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
+call call_flux_subroutines_3d
+
+
+!$omp do
+do i=1,kmaxe
+  if (dg == 1) then
+        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
         
-         U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
+         u_c_valdg(1,1:nof_variables,:,i)=u_c_valdg(2,1:nof_variables,:,i) - dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
 
 
 
          
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    END IF
-END DO
-!$OMP END DO
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+    end if
+end do
+!$omp end do
 
-        !  IF ((DG.EQ.1).AND.(FILTERING.EQ.1))THEN
+        !  if ((dg.eq.1).and.(filtering.eq.1))then
 
-         !   CALL SOL_INTEG_DGx(N)
-          !  CALL APPLY_FILTER_DG(N)
-          !END IF
-
-
+         !   call sol_integ_dgx(n)
+          !  call apply_filter_dg(n)
+          !end if
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-END DO
-!$OMP END DO
- END IF
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+end do
+!$omp end do
+ end if
  
-CALL CALL_FLUX_SUBROUTINES_3D
+call call_flux_subroutines_3d
 
-!$OMP DO
-DO I=1,KMAXE
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(3,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-         U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=TO4*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + OO4*U_C(I)%VALDG(3,1:NOF_VARIABLES,:) - OO4*DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-
-
-
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-        ((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(TO4*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(OO4*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((OO4))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
+!$omp do
+do i=1,kmaxe
+  if (dg == 1) then
+        u_c_valdg(3,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+         u_c_valdg(1,1:nof_variables,:,i)=to4*u_c_valdg(2,1:nof_variables,:,i) + oo4*u_c_valdg(3,1:nof_variables,:,i) - oo4*dt* transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
 
 
+
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+        ((rhs_val(1:nof_variables,i))*(oovolume))))
+    end if
+end do
+!$omp end do
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+ end if
 
 
 
 
-CALL CALL_FLUX_SUBROUTINES_3D
 
 
-!$OMP DO
-DO I=1,KMAXE
-  IF (DG == 1) THEN
-!         U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=OO3*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + TO3*U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - TO3*DT*TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-
-!         CALL DGEMM('N','N',NUM_DG_DOFS,nof_variables,NUM_DG_DOFS,ALPHA,m_1(i)%val(1:NUM_DG_DOFS,1:NUM_DG_DOFS),NUM_DG_DOFS,&
-! 	  RHS(I)%VALDG(1:NUM_DG_DOFS,1:NOF_VARIABLES),&
-!         NUM_DG_DOFS,BETA,RHS(I)%SOL_MM_DG,NUM_DG_DOFS)
+call call_flux_subroutines_3d
 
 
-        RHS(I)%SOL_MM_DG(1:NUM_DG_DOFS,1:nof_variables)=matmul(m_1(i)%val(1:NUM_DG_DOFS,1:NUM_DG_DOFS),RHS(I)%VALDG(1:NUM_DG_DOFS,1:NOF_VARIABLES))
+!$omp do
+do i=1,kmaxe
+  if (dg == 1) then
+!         u_c_valdg(1,1:nof_variables,:,i)=oo3*u_c_valdg(2,1:nof_variables,:,i) + to3*u_c_valdg(1,1:nof_variables,:,i) - to3*dt*transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
+
+!         call dgemm('n','n',num_dg_dofs,nof_variables,num_dg_dofs,alpha,m_1_val(1:num_dg_dofs,1:num_dg_dofs,i),num_dg_dofs,&
+! 	  rhs_valdg(1:num_dg_dofs,1:nof_variables,i),&
+!         num_dg_dofs,beta,rhs_sol_mm_dg(:,:,i),num_dg_dofs)
+
+
+        rhs_sol_mm_dg(1:num_dg_dofs,1:nof_variables,i)=matmul(m_1_val(1:num_dg_dofs,1:num_dg_dofs,i),rhs_valdg(1:num_dg_dofs,1:nof_variables,i))
 
         
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=OO3*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + TO3*U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - TO3*DT * TRANSPOSE(RHS(I)%SOL_MM_DG)
+        u_c_valdg(1,1:nof_variables,:,i)=oo3*u_c_valdg(2,1:nof_variables,:,i) + to3*u_c_valdg(1,1:nof_variables,:,i) - to3*dt * transpose(rhs_sol_mm_dg(:,:,i))
 
 
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-        ((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    END IF
-END DO
-!$OMP END DO
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        u_c_val(1,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+        ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+    end if
+end do
+!$omp end do
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=((OO3)*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+((TO3)*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(((TO3))*&
-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
-
-
-
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
+((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+ end if
 
 
 
 
-IF (AVERAGING.EQ.1)THEN
 
- CALL AVERAGING_T(N)
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
  
-END IF
+end if
 
 
 
 
 
                         
-END SUBROUTINE RUNGE_KUTTA3
+end subroutine runge_kutta3
 
 
 
 
-SUBROUTINE RUNGE_KUTTA1(N)
+subroutine runge_kutta1(n)
 !> @brief
-!> SSP FORWARD EULER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,kx
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-reaL::t1,t2,t3
-KMAXE=XMPIELRANK(N)
+!> ssp forward euler scheme
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe,kx
+real::avrgs,oovolume
+real::t1,t2,t3
+kmaxe=xmpielrank(n)
 
 
 
 
-CALL CALL_FLUX_SUBROUTINES_3D
+call call_flux_subroutines_3d
 
-DO I=1,KMAXE
-IF (DG == 1)then
-if((U_C(i)%VALDG(1,1,1).ne. U_C(i)%VALDG(1,1,1))) THEN
-    IF (N == 0) PRINT*, 'STOPPING BECAUSE NaNs1'
-    STOP ! Stop if NaNs
-END IF
+do i=1,kmaxe
+if (dg == 1)then
+if((u_c_valdg(1,1,1,i).ne. u_c_valdg(1,1,1,i))) then
+    if (n == 0) print*, 'stopping because nans1'
+    stop ! stop if nans
+end if
 
 end if
 end do
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
   
- IF (DG == 1) THEN
+ if (dg == 1) then
         
         
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))!*OOVOLUME
+        u_c_valdg(1,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i) - dt* transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))!*oovolume
         
         
   else
   
   
   
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
   end if
   
-END DO
-!$OMP END DO
+end do
+!$omp end do
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-END DO
-!$OMP END DO
- END IF
-
-
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+end do
+!$omp end do
+ end if
 
 
-IF (AVERAGING.EQ.1)THEN
 
- CALL AVERAGING_T(N)
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
  
-END IF
+end if
 
 
 
 
 
                         
-END SUBROUTINE RUNGE_KUTTA1
+end subroutine runge_kutta1
 
 
 
-SUBROUTINE RUNGE_KUTTA2(N)
+subroutine runge_kutta2(n)
 !> @brief
-!> SSP RUNGE KUTTA 2ND-ORDER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
-
-CALL CALL_FLUX_SUBROUTINES_3D
+!> ssp runge kutta 2nd-order scheme
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
 
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+call call_flux_subroutines_3d
+
+
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
   
-END DO
-!$OMP END DO
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-END DO
-!$OMP END DO
- END IF
+end do
+!$omp end do
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+end do
+!$omp end do
+ end if
 
 
 
-CALL CALL_FLUX_SUBROUTINES_3D
+call call_flux_subroutines_3d
 
-!$OMP DO
-DO I=1,KMAXE
- OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-END DO
-!$OMP END DO
+!$omp do
+do i=1,kmaxe
+ oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-(dt*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+end do
+!$omp end do
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(oo2*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(oo2*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(dt*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
-
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(dt*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+!$omp end do
+ end if
 
 
 
 
 
-IF (AVERAGING.EQ.1)THEN
 
- CALL AVERAGING_T(N)
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
  
-END IF
+end if
 
 
 
 
 
                         
-END SUBROUTINE RUNGE_KUTTA2
+end subroutine runge_kutta2
 
 
-SUBROUTINE RUNGE_KUTTA5(N)
+subroutine runge_kutta5(n)
 !> @brief
-!> SSP RUNGE KUTTA 2ND-ORDER SCHEME FOR LOCAL TIME STEPPING
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
+!> ssp runge kutta 2nd-order scheme for local time stepping
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
 
 
-CALL CALL_FLUX_SUBROUTINES_3D
-
-
-
+call call_flux_subroutines_3d
 
 
 
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+
+
+
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
   
   
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(2,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
+  if (dg == 1) then
+        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
         
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - ielem(n,i)%dtl * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
+        u_c_valdg(1,1:nof_variables,:,i)=u_c_valdg(2,1:nof_variables,:,i) - ielem_dtl(i) * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
          
-    ELSE
+    else
     
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(ielem(n,i)%dtl*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(ielem(n,i)%dtl*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
-
-CALL CALL_FLUX_SUBROUTINES_3D
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  
-  IF (DG == 1) THEN
-        
-        
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=(oo2*U_C(I)%VALDG(2,1:NOF_VARIABLES,:)) +(oo2*U_C(I)%VALDG(1,1:NOF_VARIABLES,:))- (ielem(n,i)%dtl *oo2* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES))))
-         
-    ELSE
-  
-  
-  
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(ielem(n,i)%dtl*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(ielem_dtl(i)*(rhs_val(1:nof_variables,i)*oovolume))
   end if
-END DO
-!$OMP END DO
+end do
+!$omp end do
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(oo2*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(oo2*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(ielem(n,i)%dtl*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(ielem_dtl(i)*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+!$omp end do
+ end if
 
 
-IF (AVERAGING.EQ.1)THEN
+call call_flux_subroutines_3d
 
- CALL AVERAGING_T(N)
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  
+  if (dg == 1) then
+        
+        
+        u_c_valdg(1,1:nof_variables,:,i)=(oo2*u_c_valdg(2,1:nof_variables,:,i)) +(oo2*u_c_valdg(1,1:nof_variables,:,i))- (ielem_dtl(i) *oo2* transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i))))
+         
+    else
+  
+  
+  
+  u_c_val(1,1:nof_variables,i)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-(ielem_dtl(i)*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+  end if
+end do
+!$omp end do
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(ielem_dtl(i)*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+!$omp end do
+ end if
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
  
-END IF
+end if
 
 
 
 
 
                         
-END SUBROUTINE RUNGE_KUTTA5
+end subroutine runge_kutta5
 
-SUBROUTINE RUNGE_KUTTA5_2D(N)
+subroutine runge_kutta5_2d(n)
 !> @brief
-!> SSP RUNGE KUTTA 2ND-ORDER SCHEME FOR LOCAL TIME STEPPING IN 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
+!> ssp runge kutta 2nd-order scheme for local time stepping in 2d
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
 
 
-CALL CALL_FLUX_SUBROUTINES_2D
+call call_flux_subroutines_2d
 
 
-!$OMP DO
-DO I=1,KMAXE
+!$omp do
+do i=1,kmaxe
 
-  IF (DG == 1) THEN
-OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VALDG(2,:,:)=U_C(I)%VALDG(1,:,:)
-        U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (ielem(n,i)%dtl* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
-    ELSE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(ielem(n,i)%dtl*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  END IF
+  if (dg == 1) then
+oovolume=1.0d0/ielem_totvolume(i)
+        u_c_valdg(2,:,:,i)=u_c_valdg(1,:,:,i)
+        u_c_valdg(1,:,:,i)=u_c_valdg(2,:,:,i) - (ielem_dtl(i)* transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,:,i))))!*oovolume
+    else
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(ielem_dtl(i)*(rhs_val(1:nof_variables,i)*oovolume))
+  end if
 
 
 
   
-END DO
-!$OMP END DO
+end do
+!$omp end do
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(ielem(n,i)%dtl*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
-
-
-CALL CALL_FLUX_SUBROUTINES_2D
-
-!$OMP DO
-DO I=1,KMAXE
-
-   IF (DG == 1) THEN
-OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VALDG(1,:,:)=(oo2*U_C(I)%VALdg(2,:,:))+(oo2*U_C(I)%VALDG(1,:,:))-(ielem(n,i)%dtl* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))
-    ELSE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(ielem(n,i)%dtl*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-
-  END IF
-
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(oo2*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(oo2*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(ielem(n,i)%dtl*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(ielem_dtl(i)*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+!$omp end do
+ end if
 
 
 
-IF (AVERAGING.EQ.1)THEN
+call call_flux_subroutines_2d
 
- CALL AVERAGING_T(N)
+!$omp do
+do i=1,kmaxe
+
+   if (dg == 1) then
+oovolume=1.0d0/ielem_totvolume(i)
+        u_c_valdg(1,:,:,i)=(oo2*u_c_valdg(2,:,:,i))+(oo2*u_c_valdg(1,:,:,i))-(ielem_dtl(i)* transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,:,i))))
+    else
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-(ielem_dtl(i)*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+
+  end if
+
+end do
+!$omp end do
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(ielem_dtl(i)*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+!$omp end do
+ end if
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
  
-END IF
+end if
 
 
 
 
 
                         
-END SUBROUTINE RUNGE_KUTTA5_2D
+end subroutine runge_kutta5_2d
 
 
-SUBROUTINE RUNGE_KUTTA2_2D(N)
+subroutine runge_kutta2_2d(n)
 !> @brief
-!> SSP RUNGE KUTTA 2ND-ORDER SCHEME IN 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
+!> ssp runge kutta 2nd-order scheme in 2d
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
 
 
-CALL CALL_FLUX_SUBROUTINES_2D
+call call_flux_subroutines_2d
 
 
-!$OMP DO
-DO I=1,KMAXE
-IF (DG == 1) THEN
-OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VALDG(2,:,:)=U_C(I)%VALDG(1,:,:)
-        U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
-    ELSE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  END IF
-END DO
-!$OMP END DO
+!$omp do
+do i=1,kmaxe
+if (dg == 1) then
+oovolume=1.0d0/ielem_totvolume(i)
+        u_c_valdg(2,:,:,i)=u_c_valdg(1,:,:,i)
+        u_c_valdg(1,:,:,i)=u_c_valdg(2,:,:,i) - (dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,:,i))))!*oovolume
+    else
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  end if
+end do
+!$omp end do
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+!$omp end do
+ end if
 
 
-CALL CALL_FLUX_SUBROUTINES_2D
+call call_flux_subroutines_2d
 
-!$OMP DO
-DO I=1,KMAXE
-IF (DG == 1) THEN
-OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VALDG(1,:,:)=OO2*U_C(I)%VALDG(2,:,:) + OO2*U_C(I)%VALDG(1,:,:) - (OO2*DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
-    ELSE
- OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  END IF
-END DO
-!$OMP END DO
+!$omp do
+do i=1,kmaxe
+if (dg == 1) then
+oovolume=1.0d0/ielem_totvolume(i)
+        u_c_valdg(1,:,:,i)=oo2*u_c_valdg(2,:,:,i) + oo2*u_c_valdg(1,:,:,i) - (oo2*dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,:,i))))!*oovolume
+    else
+ oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-(dt*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+  end if
+end do
+!$omp end do
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(u_ct_val(2,1:turbulenceequations+passivescalar,i))-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+!$omp end do
+ end if
 
 
 
-IF (AVERAGING.EQ.1)THEN
+if (averaging.eq.1)then
 
- CALL AVERAGING_T(N)
+ call averaging_t(n)
  
-END IF
+end if
 
 
 
 
 
                         
-END SUBROUTINE RUNGE_KUTTA2_2D
+end subroutine runge_kutta2_2d
 
 
 
-SUBROUTINE SOL_INTEG_DG(N)
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL,DIMENSION(1:NOF_VARIABLES)::SOLUTION_INTEG2
+subroutine sol_integ_dg(n)
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real,dimension(1:nof_variables)::solution_integ2
 
   
-KMAXE=XMPIELRANK(N)
-!$OMP DO
-DO I=1,KMAXE
-  call SOLUTION_INTEG(I,SOLUTION_INTEG2)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=SOLUTION_INTEG2(1:NOF_VARIABLES)
-END DO
-!$OMP END DO
+kmaxe=xmpielrank(n)
+!$omp do
+do i=1,kmaxe
+  call solution_integ(i,solution_integ2)
+  u_c_val(1,1:nof_variables,i)=solution_integ2(1:nof_variables)
+end do
+!$omp end do
 
  
 
 
-END SUBROUTINE SOL_INTEG_DG
+end subroutine sol_integ_dg
 
 
-SUBROUTINE SOL_INTEG_DGx(N)
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,iconsidered
-REAL,DIMENSION(1:NOF_VARIABLES)::SOLUTION_INTEG2
-REAL,DIMENSION(1:NOF_VARIABLES)::SOLUTION_INTEG_WEAK
-REAL,DIMENSION(1:NOF_VARIABLES)::SOLUTION_INTEG_STRONG
+subroutine sol_integ_dgx(n)
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe,iconsidered
+real,dimension(1:nof_variables)::solution_integ2
+real,dimension(1:nof_variables)::solution_integ_weak
+real,dimension(1:nof_variables)::solution_integ_strong
 
 
-KMAXE=XMPIELRANK(N)
-!$OMP DO
-DO I=1,KMAXE
-ICONSIDERED=I
-
-
-
-  call SOLUTION_INTEG(I,SOLUTION_INTEG2)
-  U_C(I)%VAL(1,:)=SOLUTION_INTEG2(1:NOF_VARIABLES)
+kmaxe=xmpielrank(n)
+!$omp do
+do i=1,kmaxe
+iconsidered=i
 
 
 
-  if (FILTERING.EQ.1)THEN
-  call SOLUTION_INTEG_S(I,SOLUTION_INTEG_STRONG)
-  call SOLUTION_INTEG_W(I,SOLUTION_INTEG_WEAK)
-
-  U_CS(I)%VAL(1,:)=SOLUTION_INTEG_STRONG(1:NOF_VARIABLES)
-  U_CW(I)%VAL(1,:)=SOLUTION_INTEG_WEAK(1:NOF_VARIABLES)
-  END IF
-
-
-END DO
-!$OMP END DO
+  call solution_integ(i,solution_integ2)
+  u_c_val(1,:,i)=solution_integ2(1:nof_variables)
 
 
 
+  if (filtering.eq.1)then
+  call solution_integ_s(i,solution_integ_strong)
+  call solution_integ_w(i,solution_integ_weak)
 
-END SUBROUTINE SOL_INTEG_DGx
+  u_cs_val(1,:,i)=solution_integ_strong(1:nof_variables)
+  u_cw_val(1,:,i)=solution_integ_weak(1:nof_variables)
+  end if
 
-SUBROUTINE SOL_INTEG_DG_init(N)
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL,DIMENSION(1:NOF_VARIABLES)::SOLUTION_INTEG2
+
+end do
+!$omp end do
+
+
+
+
+end subroutine sol_integ_dgx
+
+subroutine sol_integ_dg_init(n)
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real,dimension(1:nof_variables)::solution_integ2
  
-KMAXE=XMPIELRANK(N)
-!$OMP DO
-DO I=1,KMAXE
+kmaxe=xmpielrank(n)
+!$omp do
+do i=1,kmaxe
 
-  call SOLUTION_INTEG(I,SOLUTION_INTEG2)
-  U_C(I)%VAL(1,:)=SOLUTION_INTEG2(1:NOF_VARIABLES)
-  U_e(I)%VAL(1,:)=U_C(I)%VAL(1,:)
-
- 
-END DO
-!$OMP END DO
+  call solution_integ(i,solution_integ2)
+  u_c_val(1,:,i)=solution_integ2(1:nof_variables)
+  u_e_val(1,:,i)=u_c_val(1,:,i)
 
  
+end do
+!$omp end do
+
+ 
 
 
 
 
-END SUBROUTINE SOL_INTEG_DG_init
+end subroutine sol_integ_dg_init
 
 
 
@@ -1520,88 +1559,86 @@ END SUBROUTINE SOL_INTEG_DG_init
 
 
 
-SUBROUTINE RUNGE_KUTTA1_2D(N)
+subroutine runge_kutta1_2d(n)
 !> @brief
-!> SSP FORWARD EULER SCHEME IN 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,kx
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-REAL,DIMENSION(NOF_VARIABLES)::TEMPSOL
-KMAXE=XMPIELRANK(N)
+!> ssp forward euler scheme in 2d
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe,kx
+real::avrgs,oovolume
+real,dimension(nof_variables)::tempsol
+kmaxe=xmpielrank(n)
 
 
 
-CALL CALL_FLUX_SUBROUTINES_2D
+call call_flux_subroutines_2d
 
 
-
-DO I=1,KMAXE
-IF (DG == 1)then
-if((U_C(i)%VALDG(1,1,1).ne. U_C(i)%VALDG(1,1,1))) THEN
-    IF (N == 0) PRINT*, 'STOPPING BECAUSE NaNs1'
-    STOP ! Stop if NaNs
-END IF
+do i=1,kmaxe
+if (dg == 1)then
+if((u_c_valdg(1,1,1,i).ne. u_c_valdg(1,1,1,i))) then
+    if (n == 0) print*, 'stopping because nans1'
+    stop ! stop if nans
+end if
 
 end if
 end do
 
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
   
   
-  IF (DG == 1) THEN
+  if (dg == 1) then
         
         
         
         
         
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
+        u_c_valdg(1,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i) - dt* transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
         
   else
   
   
   
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
   end if
   
   
   
   
-!   WRITE(200+N,*)I,TEMPSOL,U_C(I)%VALDG(1,1:NOF_VARIABLES,1)
+!   write(200+n,*)i,tempsol,u_c_valdg(1,1:nof_variables,1,i)
   
   
-END DO
-!$OMP END DO
+end do
+!$omp end do
 
 
 
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+!$omp end do
+ end if
 
 
-IF (AVERAGING.EQ.1)THEN
 
- CALL AVERAGING_T(N)
+if (averaging.eq.1)then
+
+ call averaging_t(n)
  
-END IF
+end if
 
 
 
 
 
                         
-END SUBROUTINE RUNGE_KUTTA1_2D
+end subroutine runge_kutta1_2d
 
 
 
@@ -1609,435 +1646,424 @@ END SUBROUTINE RUNGE_KUTTA1_2D
 
 
 
-SUBROUTINE RUNGE_KUTTA3_2D(N)
+subroutine runge_kutta3_2d(n)
 !> @brief
-!> SSP RUNGE KUTTA 3RD-ORDER SCHEME IN 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+!> ssp runge kutta 3rd-order scheme in 2d
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
 
-CALL CALL_FLUX_SUBROUTINES_2D
 
-!$OMP DO
-DO I=1,KMAXE
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(2,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
+call call_flux_subroutines_2d
+
+!$omp do
+do i=1,kmaxe
+    if (dg == 1) then
+        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
         
 
         
-          U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
+          u_c_valdg(1,1:nof_variables,:,i)=u_c_valdg(2,1:nof_variables,:,i) - dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
          
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    END IF
-END DO
-!$OMP END DO
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+    end if
+end do
+!$omp end do
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+!$omp end do
+ end if
 
 
-CALL CALL_FLUX_SUBROUTINES_2D
+call call_flux_subroutines_2d
 
-!$OMP DO
-DO I=1,KMAXE
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(3,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
+!$omp do
+do i=1,kmaxe
+    if (dg == 1) then
+        u_c_valdg(3,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
         
         
-          U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=TO4*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + OO4*U_C(I)%VALDG(3,1:NOF_VARIABLES,:) - OO4*DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-        ((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    END IF
-END DO
-!$OMP END DO
+          u_c_valdg(1,1:nof_variables,:,i)=to4*u_c_valdg(2,1:nof_variables,:,i) + oo4*u_c_valdg(3,1:nof_variables,:,i) - oo4*dt* transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+        ((rhs_val(1:nof_variables,i))*(oovolume))))
+    end if
+end do
+!$omp end do
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(TO4*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(OO4*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((OO4))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-  END DO
-!$OMP END DO
- END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  end do
+!$omp end do
+ end if
 
-CALL CALL_FLUX_SUBROUTINES_2D
+call call_flux_subroutines_2d
 
-!$OMP DO
-DO I=1,KMAXE
-    IF (DG == 1) THEN
+!$omp do
+do i=1,kmaxe
+    if (dg == 1) then
     
 
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=OO3*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + TO3*U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - TO3*DT*TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-        ((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    END IF
-END DO
-!$OMP END DO
+        u_c_valdg(1,1:nof_variables,:,i)=oo3*u_c_valdg(2,1:nof_variables,:,i) + to3*u_c_valdg(1,1:nof_variables,:,i) - to3*dt*transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        u_c_val(1,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+        ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+    end if
+end do
+!$omp end do
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=((OO3)*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+((TO3)*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(((TO3))*&
-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-  END DO
-!$OMP END DO
- END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
+((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  end do
+!$omp end do
+ end if
 
 
 
 
-IF (AVERAGING.EQ.1)THEN
+if (averaging.eq.1)then
 
- CALL AVERAGING_T(N)
+ call averaging_t(n)
  
-END IF
+end if
 
 
-END SUBROUTINE RUNGE_KUTTA3_2D
+end subroutine runge_kutta3_2d
 
-SUBROUTINE RUNGE_KUTTA3_2D_MOOD(N)
+subroutine runge_kutta3_2d_mood(n)
 !> @brief
-!> SSP RUNGE KUTTA 3RD-ORDER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,INDS
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+!> ssp runge kutta 3rd-order scheme
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe,inds
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
 
 
-IF (MOOD.EQ.1)THEN
-INDS=4
-ELSE
-INDS=1
-END IF
+if (mood.eq.1)then
+inds=4
+else
+inds=1
+end if
 
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
     
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
     
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-END IF
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+end if
 
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  IF (MOOD.EQ.1)THEN
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  END IF
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-END DO
-!$OMP END DO
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  if (mood.eq.1)then
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  end if
+  u_c_val(inds,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+end do
+!$omp end do
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-END DO
-!$OMP END DO
- END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+end do
+!$omp end do
+ end if
  
- IF (MOOD.EQ.1)THEN
+ if (mood.eq.1)then
  
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
+ call mood_operator_2(n)
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(inds,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+   ielem_mood_o(i)=2
+   end if
+end do
+!$omp end do
 
-CALL MOOD_OPERATOR_1(N)
+call mood_operator_1(n)
 
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+!$omp end do
 
-END IF
+end if
 
- 
-
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-END IF
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(inds,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-END DO
-!$OMP END DO
-
-
-
-
-
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(TO4*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(OO4*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((OO4))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
-
- IF (MOOD.EQ.1)THEN
- 
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
-
-CALL MOOD_OPERATOR_1(N)
-
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
-
-END IF
  
 
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    CALL VORTEXCALC2D(N)
-    END SELECT
-END IF
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-   IF (MOOD.EQ.1)THEN
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  END IF
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-END DO
-!$OMP END DO
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+end if
+
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(inds,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
+end do
+!$omp end do
 
 
-IF (MOOD.EQ.1)THEN
+
+
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+ end if
+
+ if (mood.eq.1)then
  
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
+ call mood_operator_2(n)
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(inds,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
+   ielem_mood_o(i)=2
+   end if
+end do
+!$omp end do
 
-CALL MOOD_OPERATOR_1(N)
+call mood_operator_1(n)
 
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+!$omp end do
 
-END IF
-
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=((OO3)*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+((TO3)*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(((TO3))*&
-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
-
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
+end if
  
-END IF
 
-END SUBROUTINE RUNGE_KUTTA3_2D_MOOD
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    call vortexcalc2d(n)
+    end select
+end if
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+   if (mood.eq.1)then
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  end if
+  u_c_val(inds,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+end do
+!$omp end do
+
+
+if (mood.eq.1)then
+ 
+ call mood_operator_2(n)
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(inds,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+   ielem_mood_o(i)=2
+   end if
+end do
+!$omp end do
+
+call mood_operator_1(n)
+
+   !$omp do
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+!$omp end do
+
+end if
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
+((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+ end if
 
 
 
-SUBROUTINE RUNGE_KUTTA4(N)
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+ 
+end if
+
+end subroutine runge_kutta3_2d_mood
+
+
+
+subroutine runge_kutta4(n)
 !> @brief
-!> SSP RUNGE KUTTA 4TH-ORDER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-REAL::DUMPRACEIN,DUMPRACEOUT,flops_count
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+!> ssp runge kutta 4th-order scheme
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::avrgs,oovolume
+real::dumpracein,dumpraceout,flops_count
+kmaxe=xmpielrank(n)
 
 
 
 
-CALL CALL_FLUX_SUBROUTINES_3D
+call call_flux_subroutines_3d
 
 
 
@@ -2048,246 +2074,248 @@ CALL CALL_FLUX_SUBROUTINES_3D
 
 
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(2,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - DT * 0.391752226571890 * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))!*OOVOLUME
-    ELSE
-        U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*0.391752226571890*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    END IF
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  if (dg == 1) then
+        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(1,1:nof_variables,:,i)=u_c_valdg(2,1:nof_variables,:,i) - dt * 0.391752226571890 * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))!*oovolume
+    else
+        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*0.391752226571890*(rhs_val(1:nof_variables,i)*oovolume))
+    end if
   
-END DO
-!$OMP END DO
+end do
+!$omp end do
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*0.391752226571890*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*0.391752226571890*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+!$omp end do
+ end if
  
  
  
  
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER 
-    !$OMP MASTER
-    pr_t8=MPI_Wtime()
+    if (statistics.eq.1)then
+    !$omp barrier 
+    !$omp master
+    pr_t8=mpi_wtime()
     prace_t7=pr_t8-pr_t7
     
 
 
    
-   DUMPRACEIN=PRACE_t1
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t1=DUMPRACEOUT
-   DUMPRACEIN=PRACE_t2
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t2=DUMPRACEOUT
-   DUMPRACEIN=PRACE_t3
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t3=DUMPRACEOUT
-   DUMPRACEIN=PRACE_t4
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t4=DUMPRACEOUT
-   DUMPRACEIN=PRACE_t5
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t5=DUMPRACEOUT
+   dumpracein=prace_t1
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t1=dumpraceout
+   dumpracein=prace_t2
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t2=dumpraceout
+   dumpracein=prace_t3
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t3=dumpraceout
+   dumpracein=prace_t4
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t4=dumpraceout
+   dumpracein=prace_t5
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t5=dumpraceout
 
-   DUMPRACEIN=PRACE_t6
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t6=DUMPRACEOUT
+   dumpracein=prace_t6
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t6=dumpraceout
 
-   DUMPRACEIN=PRACE_t7
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t7=DUMPRACEOUT
+   dumpracein=prace_t7
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t7=dumpraceout
 
-   PRACE_TX1=PRACE_T2+PRACE_T4
-   PRACE_TX2=PRACE_T1+PRACE_T3+PRACE_T5+PRACE_T6+PRACE_T7
-   PRACE_TX3=PRACE_TX1+PRACE_TX2
+   prace_tx1=prace_t2+prace_t4
+   prace_tx2=prace_t1+prace_t3+prace_t5+prace_t6+prace_t7
+   prace_tx3=prace_tx1+prace_tx2
 
 
 
 
    
-    IF (N.EQ.0)THEN
-    OPEN(133,FILE=STATFILE,FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-    WRITE(133,'(I6,1X,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4)')it,PRACE_TX3,PRACE_TX1,PRACE_TX2,PRACE_T1,PRACE_T2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7
-    CLOSE(133)
-    END IF
+    if (n.eq.0)then
+    open(133,file=statfile,form='formatted',status='old',action='write',position='append')
+    write(133,'(i6,1x,e11.4,e11.4,e11.4,e11.4,e11.4,e11.4,e11.4,e11.4,e11.4,e11.4)')it,prace_tx3,prace_tx1,prace_tx2,prace_t1,prace_t2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7
+    close(133)
+    end if
     
     
-    !$OMP END MASTER
-     !$OMP BARRIER
+    !$omp end master
+     !$omp barrier
     
-    END IF
+    end if
 
-                call CALL_FLUX_SUBROUTINES_3D
-
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(3,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.444370493651235 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.555629506348765 * U_C(I)%VALDG(3,1:NOF_VARIABLES,:) - 0.368410593050371 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=(0.444370493651235 * U_C(I)%VAL(2,1:NOF_VARIABLES)) + (0.555629506348765 * U_C(I)%VAL(3,1:NOF_VARIABLES)) - 0.368410593050371 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.444370493651235*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.555629506348765*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((0.368410593050371))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
+                call call_flux_subroutines_3d
 
 
-            call CALL_FLUX_SUBROUTINES_3D
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  if (dg == 1) then
+        u_c_valdg(3,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(1,1:nof_variables,:,i) = 0.444370493651235 * u_c_valdg(2,1:nof_variables,:,i) + 0.555629506348765 * u_c_valdg(3,1:nof_variables,:,i) - 0.368410593050371 * dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))! * oovolume
+    else
+        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=(0.444370493651235 * u_c_val(2,1:nof_variables,i)) + (0.555629506348765 * u_c_val(3,1:nof_variables,i)) - 0.368410593050371 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+!$omp end do
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+    u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.444370493651235*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.555629506348765*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((0.368410593050371))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+ end if
 
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-   IF (DG == 1) THEN
-        U_C(I)%VALDG(4,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.620101851488403 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.379898148511597 * U_C(I)%VALDG(4,1:NOF_VARIABLES,:) - 0.251891774271694 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(4,1:NOF_VARIABLES) = U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = 0.620101851488403 * U_C(I)%VAL(2,1:NOF_VARIABLES) + 0.379898148511597 * U_C(I)%VAL(4,1:NOF_VARIABLES) - 0.251891774271694 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
+            call call_flux_subroutines_3d
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.620101851488403*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.379898148511597*U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar))-(((0.251891774271694))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
-
-            call CALL_FLUX_SUBROUTINES_3D
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(5,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(6,1:NOF_VARIABLES,:) = - DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.178079954393132 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.821920045606868 * U_C(I)%VALDG(5,1:NOF_VARIABLES,:) - 0.544974750228521 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-    ELSE
-        U_C(I)%VAL(5,1:NOF_VARIABLES) = U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(6,1:NOF_VARIABLES) = - DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = 0.178079954393132 * U_C(I)%VAL(2,1:NOF_VARIABLES) + 0.821920045606868 * U_C(I)%VAL(5,1:NOF_VARIABLES) - 0.544974750228521 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(6,1:turbulenceequations+passivescalar)=-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME)))
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.178079954393132*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.821920045606868*U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar))-(((0.544974750228521))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+   if (dg == 1) then
+        u_c_valdg(4,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(1,1:nof_variables,:,i) = 0.620101851488403 * u_c_valdg(2,1:nof_variables,:,i) + 0.379898148511597 * u_c_valdg(4,1:nof_variables,:,i) - 0.251891774271694 * dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))! * oovolume
+    else
+        u_c_val(4,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i) = 0.620101851488403 * u_c_val(2,1:nof_variables,i) + 0.379898148511597 * u_c_val(4,1:nof_variables,i) - 0.251891774271694 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+!$omp end do
 
 
-    call CALL_FLUX_SUBROUTINES_3D
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(4,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.620101851488403*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.379898148511597*u_ct_val(4,1:turbulenceequations+passivescalar,i))-(((0.251891774271694))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+ end if
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = (0.00683325884039 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:)) + (0.517231671970585 * U_C(I)%VALDG(4,1:NOF_VARIABLES,:)) + (0.12759831133288 * U_C(I)%VALDG(5,1:NOF_VARIABLES,:)) + (0.34833675773694 * U_C(I)%VALDG(1,1:NOF_VARIABLES,:)) + (0.08460416338212 * U_C(I)%VALDG(6,1:NOF_VARIABLES,:)) - 0.22600748319395 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = (0.00683325884039 * U_C(I)%VAL(2,1:NOF_VARIABLES)) + (0.517231671970585 * U_C(I)%VAL(4,1:NOF_VARIABLES)) +  (0.12759831133288 * U_C(I)%VAL(5,1:NOF_VARIABLES)) + (0.34833675773694 * U_C(I)%VAL(1,1:NOF_VARIABLES)) + (0.08460416338212 * U_C(I)%VAL(6,1:NOF_VARIABLES)) - (0.22600748319395 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME)
-    END IF
-END DO
-!$OMP END DO
+            call call_flux_subroutines_3d
+
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  if (dg == 1) then
+        u_c_valdg(5,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(6,1:nof_variables,:,i) = - dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))! * oovolume
+        u_c_valdg(1,1:nof_variables,:,i) = 0.178079954393132 * u_c_valdg(2,1:nof_variables,:,i) + 0.821920045606868 * u_c_valdg(5,1:nof_variables,:,i) - 0.544974750228521 * dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
+    else
+        u_c_val(5,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
+        u_c_val(6,1:nof_variables,i) = - dt * rhs_val(1:nof_variables,i) * oovolume
+        u_c_val(1,1:nof_variables,i) = 0.178079954393132 * u_c_val(2,1:nof_variables,i) + 0.821920045606868 * u_c_val(5,1:nof_variables,i) - 0.544974750228521 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+!$omp end do
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+    u_ct_val(5,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(6,1:turbulenceequations+passivescalar,i)=-((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.178079954393132*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.821920045606868*u_ct_val(5,1:turbulenceequations+passivescalar,i))-(((0.544974750228521))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+ end if
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-   U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.00683325884039*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.517231671970585*U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar))+&
-				(0.12759831133288*U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar))+(0.34833675773694*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))+&
-				(0.08460416338212*U_Ct(I)%VAL(6,1:turbulenceequations+passivescalar))-(0.22600748319395*(DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME)))
-END DO
-!$OMP END DO
- END IF
+    call call_flux_subroutines_3d
+
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  if (dg == 1) then
+        u_c_valdg(1,1:nof_variables,:,i) = (0.00683325884039 * u_c_valdg(2,1:nof_variables,:,i)) + (0.517231671970585 * u_c_valdg(4,1:nof_variables,:,i)) + (0.12759831133288 * u_c_valdg(5,1:nof_variables,:,i)) + (0.34833675773694 * u_c_valdg(1,1:nof_variables,:,i)) + (0.08460416338212 * u_c_valdg(6,1:nof_variables,:,i)) - 0.22600748319395 * dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))! * oovolume
+    else
+        u_c_val(1,1:nof_variables,i) = (0.00683325884039 * u_c_val(2,1:nof_variables,i)) + (0.517231671970585 * u_c_val(4,1:nof_variables,i)) +  (0.12759831133288 * u_c_val(5,1:nof_variables,i)) + (0.34833675773694 * u_c_val(1,1:nof_variables,i)) + (0.08460416338212 * u_c_val(6,1:nof_variables,i)) - (0.22600748319395 * dt * rhs_val(1:nof_variables,i) * oovolume)
+    end if
+end do
+!$omp end do
 
 
-IF (AVERAGING.EQ.1)THEN
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.00683325884039*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.517231671970585*u_ct_val(4,1:turbulenceequations+passivescalar,i))+&
+				(0.12759831133288*u_ct_val(5,1:turbulenceequations+passivescalar,i))+(0.34833675773694*u_ct_val(1,1:turbulenceequations+passivescalar,i))+&
+				(0.08460416338212*u_ct_val(6,1:turbulenceequations+passivescalar,i))-(0.22600748319395*(dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
+end do
+!$omp end do
+ end if
 
- CALL AVERAGING_T(N)
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
  
-END IF
+end if
 
 
-END SUBROUTINE RUNGE_KUTTA4
+end subroutine runge_kutta4
 
 
-SUBROUTINE CALL_FLUX_SUBROUTINES_3D
-IMPLICIT NONE
-REAL::DUMPRACEIN,DUMPRACEOUT
-INTEGER::KMAXE,i
-KMAXE=XMPIELRANK(N)
+subroutine call_flux_subroutines_3d
+implicit none
+real::dumpracein,dumpraceout
+integer::kmaxe,i
+kmaxe=xmpielrank(n)
 
 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_T1=MPI_Wtime()
-     !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t1=mpi_wtime()
+     !$omp end master
+     !$omp barrier
+    end if
 
+
+    if (realgas.eq.1)call normalise_species(n)
 
     if (dg.eq.1)then
 
-    CALL SOL_INTEG_DG(N) ! Calculates cell average of DG solution for FV
+    call sol_integ_dg(n) ! calculates cell average of dg solution for fv
 
-    END IF
+    end if
 
-      IF (DG.EQ.1)THEN
-       !$OMP DO
-        DO I=1,KMAXE
-        ielem(n,i)%filtered=0
+      if (dg.eq.1)then
+       !$omp do
+        do i=1,kmaxe
+        ielem_filtered(i)=0
         
-        END DO
-        !$OMP END DO
-    END IF
+        end do
+        !$omp end do
+    end if
 
 
 
-	IF ((DG.EQ.1).AND.(FILTERING.EQ.1))THEN
+	if ((dg.eq.1).and.(filtering.eq.1))then
 	
-            CALL SOL_INTEG_DGx(N)
-            CALL APPLY_FILTER_DG(N)
-          END IF
+            call sol_integ_dgx(n)
+            call apply_filter_dg(n)
+          end if
 
 
 
@@ -2296,180 +2324,183 @@ KMAXE=XMPIELRANK(N)
 
 
 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t2=MPI_Wtime()
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t2=mpi_wtime()
     prace_t1=pr_t2-pr_t1
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
+    !$omp end master
+     !$omp barrier
+    end if
 
-    IF (FASTEST.EQ.1) THEN
-        CALL EXCHANGE_LOWER(N)
-    ELSE
-        CALL EXCHANGE_HIGHER(N)
-    END IF
+    if (fastest.eq.1) then
+        call exchange_lower(n)
+    else
+        call exchange_higher(n)
+    end if
         
 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t3=MPI_Wtime()
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t3=mpi_wtime()
     prace_t2=pr_t3-pr_t2
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
+    !$omp end master
+     !$omp barrier
+    end if
 
 
-    IF (DG == 1) THEN
+    if (dg == 1) then
 
-        CALL RECONSTRUCT_DG(N) ! Extrapolates solution to faces
-        IF(MULTISPECIES.EQ.1)THEN
-          IF (BOUND_LIM == 1) THEN
-            CALL VFBP_LIMITER
-          END IF
-        END IF
+        call reconstruct_dg(n) ! extrapolates solution to faces
+        if(multispecies.eq.1)then
+          if (bound_lim == 1) then
+            call vfbp_limiter
+          end if
+        end if
 
-        CALL TROUBLE_INDICATOR1 ! Checks for troubled cells
+        call trouble_indicator1 ! checks for troubled cells
         
-    END IF
+    end if
     
-    CALL ARBITRARY_ORDER(N)
+    call arbitrary_order(n)
     
     
-    IF (DG == 1) THEN
+    if (dg == 1) then
         
-        CALL TROUBLE_INDICATOR2 ! Changes DG to FV
+        call trouble_indicator2 ! changes dg to fv
 
     end if
 
-    CALL EXHBOUNDHIGHER(N)
+    call exhboundhigher(n)
 
 
 
     if (dg.eq.1)then
 
-        CALL EXHBOUNDHIGHER_DG(N)
+        call exhboundhigher_dg(n)
 
-        IF (ITESTCASE.EQ.4)THEN
+        if (itestcase.eq.4)then
 
-          IF( BR2_YN.eq.2) then
+          if( br2_yn.eq.2) then
 
-          CALL RECONSTRUCT_BR2_DG
+          call reconstruct_br2_dg
 
-          CALL EXHBOUNDHIGHER_DG2(N)
+          call exhboundhigher_dg2(n)
 
-          END IF
+          end if
 
-          IF( BR2_YN.eq.0) then
-          CALL VISCOUS_DG_GGS(N)
-          END IF
+          if( br2_yn.eq.0) then
+          call viscous_dg_ggs(n)
+          end if
 
 
 
-        END IF
+        end if
 
     end if
     
-     IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t4=MPI_Wtime()
+     if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t4=mpi_wtime()
     prace_t3=pr_t4-pr_t3
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
+    !$omp end master
+     !$omp barrier
+    end if
 
 
 
 
 
 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t5=MPI_Wtime()
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t5=mpi_wtime()
     prace_t4=pr_t5-pr_t4
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
+    !$omp end master
+     !$omp barrier
+    end if
 
 
     if (adda.eq.1)then
 
-    IF (RUNGEKUTTA.EQ.11)THEN
+    if (rungekutta.eq.11)then
 
-    IF (ISCOUN.EQ.1)THEN
+    if (iscoun.eq.1)then
     call fix_dissipation(n)
-    call EXCHANGE_ADDA_DISS(N)
+    call exchange_adda_diss(n)
     call fix_dissipation2(n)
-    END IF
-    ELSE
+    end if
+    else
     call fix_dissipation(n)
-    call EXCHANGE_ADDA_DISS(N)
+    call exchange_adda_diss(n)
     call fix_dissipation2(n)
-    END IF
+    end if
 
 
     end if
 
 
 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t6=MPI_Wtime()
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t6=mpi_wtime()
     prace_t5=pr_t6-pr_t5
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
-
-
-    
-    !Modifies RHS
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    
-    
-    
-    
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
+    !$omp end master
+     !$omp barrier
     end if
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive(N)
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
+
+
+    
+    !modifies rhs
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    
+    
+    
+    
+    if ((source_active.eq.1))then
+    call sources_computation_rot(n)
     end if
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
+    if ((realgas.eq.1))then
+    call sources_computation(n)
+    end if
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if ((source_active.eq.1))then
+    call sources_computation_rot(n)
+    end if
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
+    call sources_computation(n)
+    end if
 
-      CALL VORTEXCALC(N)
+      call vortexcalc(n)
 
-    END SELECT
+    end select
 
 	
 
-    IF (INITCOND.EQ.95)THEN
+    if (initcond.eq.95)then
     
-    CALL  ENSTROPHY_CALC(N)
-    END IF
+    call  enstrophy_calc(n)
+    end if
 
 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t7=MPI_Wtime()
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t7=mpi_wtime()
     prace_t6=pr_t7-pr_t6
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
+    !$omp end master
+     !$omp barrier
+    end if
 
 
 
@@ -2477,421 +2508,546 @@ KMAXE=XMPIELRANK(N)
 
 
 
-    !SOL INTEGRATION TIME=PRACE_T1
-    !COMMUNICATION TIME OF HALO CELLS=prace_t2
-    !RECONSTRUCTION TIME=prace_t3
-    !COMMUNICATION TIME OF EXBOUNDHIGHER=prace_t4
-    !ADDA=prace_t5
-    !FLUXES=PRACE_T6
+    !sol integration time=prace_t1
+    !communication time of halo cells=prace_t2
+    !reconstruction time=prace_t3
+    !communication time of exboundhigher=prace_t4
+    !adda=prace_t5
+    !fluxes=prace_t6
 
-    !UPDATE OF SOLUTION=prace_t7
-    !TOTAL COMMUNICATION TIME=PRACE_T2+PRACE_T4=PRACE_TX1
-    !TOTAL COMPUTATIONALS TIME=PRACE_T1+PRACE_T3+PRACE_T5+PRACE_T6+PRACE_T7=PRACE_TX2
-    !TOTAL TIME=TOTAL COMMUNICATION TIME+TOTAL COMPUTATIONALS TIME=PRACE_TX3
+    !update of solution=prace_t7
+    !total communication time=prace_t2+prace_t4=prace_tx1
+    !total computationals time=prace_t1+prace_t3+prace_t5+prace_t6+prace_t7=prace_tx2
+    !total time=total communication time+total computationals time=prace_tx3
 
 
 
 
 
         
-END SUBROUTINE CALL_FLUX_SUBROUTINES_3D
+end subroutine call_flux_subroutines_3d
+
+
+
+subroutine normalise_species(n)
+  implicit none
+  integer, intent(in) :: n
+  integer :: i, k, kmaxe
+  real :: rho, sumrhoy, scale,mismatch,rel_err,rhoy_old_n2
+  real, parameter :: epsrho = 1.0d-14
+  real, parameter :: epssum = 1.0d-300
+  real,parameter::tol_mass_closure = 1.0d-12
+  real, dimension(1:nof_species) :: rhoy
+  real,dimension(1:nof_variables)::leftv
+  logical :: bad
+
+  kmaxe = xmpielrank(n)
+
+  !$omp do
+  do i = 1, kmaxe
+
+
+    leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+    call fix_conservative_state(leftv)
+    u_c_val(1,1:nof_variables,i)=leftv(1:nof_variables)
+
+    rho = u_c_val(1,1,i)
 
 
 
 
-SUBROUTINE CALL_FLUX_SUBROUTINES_2D
-IMPLICIT NONE
-INTEGER::I,ICONSIDERED
+
+    ! if rho is nonphysical, keep it from breaking the algebra,
+    ! but do not change the stored rho here (that should be handled elsewhere).
+    if (rho <= epsrho) then
+      rho = max(rho, epsrho)
+      do k = 1, nof_species
+        u_c_val(1,dimensiona+3+k,i) = rho * rg_vf(k)
+      end do
+      cycle
+    end if
+
+    ! 1) read, nan/inf->0, clip negatives, accumulate
+    sumrhoy = 0.0d0
+    do k = 1, nof_species
+      rhoy(k) = u_c_val(1,dimensiona+3+k,i)
+
+      ! nan check: (x /= x) is true only for nan
+      bad = (rhoy(k) /= rhoy(k))
+      ! inf/huge check (portable enough): treat absurdly large as bad
+      if (.not. bad) bad = (abs(rhoy(k)) > huge(rhoy(k))*0.5d0)
+
+      if (bad) rhoy(k) = 0.0d0
+      if (rhoy(k) < 0.0d0) rhoy(k) = 0.0d0
+
+      sumrhoy = sumrhoy + rhoy(k)
+
+
+    end do
+
+    ! 2) enforce sum(rhoy)=rho without changing rho
+    if (sumrhoy > epssum) then
+
+
+      scale = rho / sumrhoy
+      do k = 1, nof_species
+        rhoy(k) = rhoy(k) * scale
+      end do
+      do k = 1, nof_species
+      u_c_val(1,dimensiona+3+k,i) = rhoy(k)
+    end do
+
+    else
+      ! everything got wiped out -> reset to reference mixture
+
+      do k = 1, nof_species
+        rhoy(k) = rho * rg_vf(k)
+      end do
+      do k = 1, nof_species
+      u_c_val(1,dimensiona+3+k,i) = rhoy(k)
+    end do
+
+    end if
+
+    ! 3) write back
+
+
+  end do
+  !$omp end do
+
+
+
+
+
+
+
+
+
+end subroutine normalise_species
+
+
+
+subroutine call_flux_subroutines_2d
+implicit none
+integer::i,iconsidered
+
+
+
+
+    if (realgas.eq.1)call normalise_species(n)
+
+
 
     if (dg.eq.1)then
-    CALL SOL_INTEG_DG(N)
-    END IF
+    call sol_integ_dg(n)
+    end if
 
-    IF (FASTEST.EQ.1) THEN
-        CALL EXCHANGE_LOWER(N)
-    ELSE
-        CALL EXCHANGE_HIGHER(N)
-    END IF
+    if (fastest.eq.1) then
+        call exchange_lower(n)
+    else
+        call exchange_higher(n)
+    end if
     
     
-    IF (DG == 1) THEN
+    if (dg == 1) then
         
-        CALL RECONSTRUCT_DG(N)
-        CALL TROUBLE_INDICATOR1
+        call reconstruct_dg(n)
+        call trouble_indicator1
         
-    END IF
+    end if
     
     
         
-        CALL ARBITRARY_ORDER(N)
+        call arbitrary_order(n)
     
     
-    IF (DG == 1) THEN
+    if (dg == 1) then
         
-        CALL TROUBLE_INDICATOR2
+        call trouble_indicator2
 
     end if
     
-    IF (BOUND_LIM == 1) THEN
-            CALL VFBP_LIMITER
-          END IF
+    if (bound_lim == 1) then
+            call vfbp_limiter
+          end if
     
     
-    CALL EXHBOUNDHIGHER(N)
+    call exhboundhigher(n)
     
     if (dg.eq.1)then
-    call EXHBOUNDHIGHER_dg(N)
+    call exhboundhigher_dg(n)
 
-    IF (ITESTCASE.EQ.4)THEN
+    if (itestcase.eq.4)then
 
-          IF( BR2_YN.eq.2) then
+          if( br2_yn.eq.2) then
 
-          CALL RECONSTRUCT_BR2_DG
+          call reconstruct_br2_dg
 
-          CALL EXHBOUNDHIGHER_DG2(N)
+          call exhboundhigher_dg2(n)
 
-          END IF
+          end if
 
-          IF( BR2_YN.eq.0) then
-          CALL VISCOUS_DG_GGS(N)
-          END IF
+          if( br2_yn.eq.0) then
+          call viscous_dg_ggs(n)
+          end if
 
 
 
-        END IF
+        end if
 
 
 
     end if
     
-    !Modifies RHS
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
+    !modifies rhs
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    if (realgas.eq.1)then
+    if (rg_relax.eq.2)then
+    call sources_computation2d(n)
+    end if
+    end if
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+     if ((turbulence.eq.1).or.(realgas.eq.1))then
+     call sources_computation2d(n)
+     end if
 
 
-    !FOR TEST ONLY EXPERIMENTAL
-!     IF (CODE_PROFILE.EQ.30)THEN
+
+    end select
+
+
+    !for test only experimental
+!     if (code_profile.eq.30)then
 !
-!         IF (PROBEI(N,1).gt.0) THEN
-!           DO I=1,XMPIELRANK(N)
-!             IF (IELEM(N,I)%IHEXGL.EQ.PROBEI(N,1))THEN
-!             ICONSIDERED=i
-!             END IF
-!           END DO
-!         CALL VERTEX_NEIGHBOURS_VALUES(N)
-!         END IF
-!     END IF
-    !END TEST
+!         if (probei(n,1).gt.0) then
+!           do i=1,xmpielrank(n)
+!             if (ielem_ihexgl(i).eq.probei(n,1))then
+!             iconsidered=i
+!             end if
+!           end do
+!         call vertex_neighbours_values(n)
+!         end if
+!     end if
+    !end test
 
 
         
-END SUBROUTINE CALL_FLUX_SUBROUTINES_2D
+end subroutine call_flux_subroutines_2d
 
 
-SUBROUTINE RUNGE_KUTTA4_2D(N)
+subroutine runge_kutta4_2d(n)
 !> @brief
-!> SSP RUNGE KUTTA 4TH-ORDER SCHEME IN 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,RK_STAGE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0
-RK_STAGE = 0
+!> ssp runge kutta 4th-order scheme in 2d
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe,rk_stage
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
 
-CALL CALL_FLUX_SUBROUTINES_2D
+rk_stage = 0
 
-!$OMP DO
-DO I=1,KMAXE
-    OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+call call_flux_subroutines_2d
 
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(2,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - DT * 0.391752226571890 * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))!*OOVOLUME
-    ELSE
-        U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*0.391752226571890*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    END IF
-END DO
-!$OMP END DO
+!$omp do
+do i=1,kmaxe
+    oovolume=1.0d0/ielem_totvolume(i)
 
-RK_STAGE = RK_STAGE + 1
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*0.391752226571890*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
-CALL CALL_FLUX_SUBROUTINES_2D
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(3,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.444370493651235 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.555629506348765 * U_C(I)%VALDG(3,1:NOF_VARIABLES,:) - 0.368410593050371 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=(0.444370493651235 * U_C(I)%VAL(2,1:NOF_VARIABLES)) + (0.555629506348765 * U_C(I)%VAL(3,1:NOF_VARIABLES)) - 0.368410593050371 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
-
-RK_STAGE = RK_STAGE + 1
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.444370493651235*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.555629506348765*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((0.368410593050371))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
-
-CALL CALL_FLUX_SUBROUTINES_2D
-
-!$OMP DO
-DO I=1,KMAXE
-    OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(4,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.620101851488403 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.379898148511597 * U_C(I)%VALDG(4,1:NOF_VARIABLES,:) - 0.251891774271694 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(4,1:NOF_VARIABLES) = U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = 0.620101851488403 * U_C(I)%VAL(2,1:NOF_VARIABLES) + 0.379898148511597 * U_C(I)%VAL(4,1:NOF_VARIABLES) - 0.251891774271694 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
-
-RK_STAGE = RK_STAGE + 1
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.620101851488403*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.379898148511597*U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar))-(((0.251891774271694))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
- 
-CALL CALL_FLUX_SUBROUTINES_2D
-
-!$OMP DO
-DO I=1,KMAXE
-    OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(5,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(6,1:NOF_VARIABLES,:) = - DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.178079954393132 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.821920045606868 * U_C(I)%VALDG(5,1:NOF_VARIABLES,:) - 0.544974750228521 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-    ELSE
-        U_C(I)%VAL(5,1:NOF_VARIABLES) = U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(6,1:NOF_VARIABLES) = - DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = 0.178079954393132 * U_C(I)%VAL(2,1:NOF_VARIABLES) + 0.821920045606868 * U_C(I)%VAL(5,1:NOF_VARIABLES) - 0.544974750228521 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
-
-RK_STAGE = RK_STAGE + 1
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(6,1:turbulenceequations+passivescalar)=-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME)))
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.178079954393132*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.821920045606868*U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar))-(((0.544974750228521))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
-END IF
-
-CALL CALL_FLUX_SUBROUTINES_2D
-IF (FASTEST /= 1)THEN
-    IF (ITESTCASE.EQ.4)THEN
-        CALL VORTEXCALC2D(N)
-    END IF
-END IF
-
-!$OMP DO
-DO I=1,KMAXE
-    OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = (0.00683325884039 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:)) + (0.517231671970585 * U_C(I)%VALDG(4,1:NOF_VARIABLES,:)) + (0.12759831133288 * U_C(I)%VALDG(5,1:NOF_VARIABLES,:)) + (0.34833675773694 * U_C(I)%VALDG(1,1:NOF_VARIABLES,:)) + (0.08460416338212 * U_C(I)%VALDG(6,1:NOF_VARIABLES,:)) - 0.22600748319395 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = (0.00683325884039 * U_C(I)%VAL(2,1:NOF_VARIABLES)) + (0.517231671970585 * U_C(I)%VAL(4,1:NOF_VARIABLES)) +  (0.12759831133288 * U_C(I)%VAL(5,1:NOF_VARIABLES)) + (0.34833675773694 * U_C(I)%VAL(1,1:NOF_VARIABLES)) + (0.08460416338212 * U_C(I)%VAL(6,1:NOF_VARIABLES)) - (0.22600748319395 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME)
-    END IF
-END DO
-!$OMP END DO
-
-RK_STAGE = RK_STAGE + 1
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-   U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.00683325884039*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.517231671970585*U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar))+&
-				(0.12759831133288*U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar))+(0.34833675773694*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))+&
-				(0.08460416338212*U_Ct(I)%VAL(6,1:turbulenceequations+passivescalar))-(0.22600748319395*(DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME)))
-END DO
-!$OMP END DO
- END IF
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-IF (DG == 1 )then
-if (ALL(U_C(1)%VALDG(1,:,:) /= U_C(1)%VALDG(1,:,:))) THEN
-    IF (N == 0) PRINT*, 'STOPPING BECAUSE NaNs'
-    STOP ! Stop if NaNs
+    if (dg == 1) then
+        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(1,1:nof_variables,:,i)=u_c_valdg(2,1:nof_variables,:,i) - dt * 0.391752226571890 * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))!*oovolume
+    else
+        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*0.391752226571890*(rhs_val(1:nof_variables,i)*oovolume))
     end if
-END IF
+end do
+!$omp end do
 
-END SUBROUTINE RUNGE_KUTTA4_2D
+rk_stage = rk_stage + 1
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*0.391752226571890*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+!$omp end do
+ end if
+
+call call_flux_subroutines_2d
+
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  
+    if (dg == 1) then
+        u_c_valdg(3,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(1,1:nof_variables,:,i) = 0.444370493651235 * u_c_valdg(2,1:nof_variables,:,i) + 0.555629506348765 * u_c_valdg(3,1:nof_variables,:,i) - 0.368410593050371 * dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))! * oovolume
+    else
+        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=(0.444370493651235 * u_c_val(2,1:nof_variables,i)) + (0.555629506348765 * u_c_val(3,1:nof_variables,i)) - 0.368410593050371 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+!$omp end do
+
+rk_stage = rk_stage + 1
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+    u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.444370493651235*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.555629506348765*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((0.368410593050371))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+ end if
+
+call call_flux_subroutines_2d
+
+!$omp do
+do i=1,kmaxe
+    oovolume=1.0d0/ielem_totvolume(i)
+    
+    if (dg == 1) then
+        u_c_valdg(4,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(1,1:nof_variables,:,i) = 0.620101851488403 * u_c_valdg(2,1:nof_variables,:,i) + 0.379898148511597 * u_c_valdg(4,1:nof_variables,:,i) - 0.251891774271694 * dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))! * oovolume
+    else
+        u_c_val(4,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i) = 0.620101851488403 * u_c_val(2,1:nof_variables,i) + 0.379898148511597 * u_c_val(4,1:nof_variables,i) - 0.251891774271694 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+!$omp end do
+
+rk_stage = rk_stage + 1
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(4,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.620101851488403*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.379898148511597*u_ct_val(4,1:turbulenceequations+passivescalar,i))-(((0.251891774271694))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+ end if
+ 
+call call_flux_subroutines_2d
+
+!$omp do
+do i=1,kmaxe
+    oovolume=1.0d0/ielem_totvolume(i)
+    
+    if (dg == 1) then
+        u_c_valdg(5,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(6,1:nof_variables,:,i) = - dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))! * oovolume
+        u_c_valdg(1,1:nof_variables,:,i) = 0.178079954393132 * u_c_valdg(2,1:nof_variables,:,i) + 0.821920045606868 * u_c_valdg(5,1:nof_variables,:,i) - 0.544974750228521 * dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
+    else
+        u_c_val(5,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
+        u_c_val(6,1:nof_variables,i) = - dt * rhs_val(1:nof_variables,i) * oovolume
+        u_c_val(1,1:nof_variables,i) = 0.178079954393132 * u_c_val(2,1:nof_variables,i) + 0.821920045606868 * u_c_val(5,1:nof_variables,i) - 0.544974750228521 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+!$omp end do
+
+rk_stage = rk_stage + 1
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+    u_ct_val(5,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(6,1:turbulenceequations+passivescalar,i)=-((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.178079954393132*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.821920045606868*u_ct_val(5,1:turbulenceequations+passivescalar,i))-(((0.544974750228521))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+!$omp end do
+end if
+
+call call_flux_subroutines_2d
+if (fastest /= 1)then
+    if (itestcase.eq.4)then
+        call vortexcalc2d(n)
+    end if
+end if
+
+!$omp do
+do i=1,kmaxe
+    oovolume=1.0d0/ielem_totvolume(i)
+    
+    if (dg == 1) then
+        u_c_valdg(1,1:nof_variables,:,i) = (0.00683325884039 * u_c_valdg(2,1:nof_variables,:,i)) + (0.517231671970585 * u_c_valdg(4,1:nof_variables,:,i)) + (0.12759831133288 * u_c_valdg(5,1:nof_variables,:,i)) + (0.34833675773694 * u_c_valdg(1,1:nof_variables,:,i)) + (0.08460416338212 * u_c_valdg(6,1:nof_variables,:,i)) - 0.22600748319395 * dt * transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))! * oovolume
+    else
+        u_c_val(1,1:nof_variables,i) = (0.00683325884039 * u_c_val(2,1:nof_variables,i)) + (0.517231671970585 * u_c_val(4,1:nof_variables,i)) +  (0.12759831133288 * u_c_val(5,1:nof_variables,i)) + (0.34833675773694 * u_c_val(1,1:nof_variables,i)) + (0.08460416338212 * u_c_val(6,1:nof_variables,i)) - (0.22600748319395 * dt * rhs_val(1:nof_variables,i) * oovolume)
+    end if
+end do
+!$omp end do
+
+rk_stage = rk_stage + 1
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+!$omp do
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.00683325884039*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.517231671970585*u_ct_val(4,1:turbulenceequations+passivescalar,i))+&
+				(0.12759831133288*u_ct_val(5,1:turbulenceequations+passivescalar,i))+(0.34833675773694*u_ct_val(1,1:turbulenceequations+passivescalar,i))+&
+				(0.08460416338212*u_ct_val(6,1:turbulenceequations+passivescalar,i))-(0.22600748319395*(dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
+end do
+!$omp end do
+ end if
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+ 
+end if
+
+if (dg == 1 )then
+if (all(u_c_valdg(1,:,:,1) /= u_c_valdg(1,:,:,1))) then
+    if (n == 0) print*, 'stopping because nans'
+    stop ! stop if nans
+    end if
+end if
+
+end subroutine runge_kutta4_2d
 
 
 
 
-SUBROUTINE IMPLICIT_TIMEs(N)
+subroutine implicit_times(n)
 !> @brief
-!> IMPLICIT APPROXIMATELY FACTORED TIME STEPPING SCHEME
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,kill_nan
-INTEGER,INTENT(IN)::N
-reaL::verysmall
+!> implicit approximately factored time stepping scheme
+implicit none
+integer::i,k,kmaxe,kill_nan
+integer,intent(in)::n
+real::verysmall
 verysmall = tolsmall
 
 
-KMAXE=XMPIELRANK(N)
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
-    end if
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_diffusive(N)
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
-    end if
-    call VORTEXCALC(N)
-    if (turbulence.eq.1)then
-    call SOURCES_COMPUTATION(N)
-    end if
-    END SELECT
-    
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
-    end if
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_diffusive(N)
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
-    end if
-    call VORTEXCALC(N)
-    if (turbulence.eq.1)then
-    call SOURCES_COMPUTATION(N)
-    end if
-    END SELECT
-END IF
+if (realgas.eq.1)call normalise_species(n)
 
-IF (RELAX.EQ.3)THEN
+kmaxe=xmpielrank(n)
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    if ((source_active.eq.1))then
+    call sources_computation_rot(n)
+    end if
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if ((source_active.eq.1))then
+    call sources_computation_rot(n)
+    end if
+    call vortexcalc(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+    
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    if ((source_active.eq.1))then
+    call sources_computation_rot(n)
+    end if
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if ((source_active.eq.1))then
+    call sources_computation_rot(n)
+    end if
+    call vortexcalc(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+end if
+
+if (relax.eq.3)then
  
- CALL RELAXATION_LUMFREE(N)
+ call relaxation_lumfree(n)
  
- ELSE
+ else
   
-IF (lowmemory.eq.0)THEN
+if (lowmemory.eq.0)then
    
- CALL RELAXATION(N)
+ call relaxation(n)
    
- ELSE
+ else
  
- CALL RELAXATION_lm(N)
+ call relaxation_lm(n)
  
- END IF
+ end if
    
-  END IF
+  end if
 
  kill_nan=0
  
-!$OMP DO
-DO I=1,KMAXE
-    IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))THEN
-        write(600+n,*)"nan present",ielem(n,i)%ihexgl,ielem(n,i)%ishape,ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
-        write(600+n,*)ielem(n,i)%dih(:)
-        write(500+n,'(3es14.6)')ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
-        if(MRF.EQ.1)then
-        write(700+n,*)'SRF -diagonal', ILOCAL_RECON3(I)%MRF ,I
-         write(700+n,'(3es14.6)')ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
+!$omp do
+do i=1,kmaxe
+    if ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))then
+        write(600+n,*)"nan present",ielem_ihexgl(i),ielem_ishape(i),ielem_xxc(i), ielem_yyc(i),ielem_zzc(i)
+        write(600+n,*)ielem_dih(:,i)
+        write(500+n,'(3es14.6)')ielem_xxc(i), ielem_yyc(i),ielem_zzc(i)
+        if(mrf.eq.1)then
+        write(700+n,*)'srf -diagonal', rec_mrf(i) ,i
+         write(700+n,'(3es14.6)')ielem_xxc(i), ielem_yyc(i),ielem_zzc(i)
         write(700+n,*)impdu(i,1),impdu(i,2),impdu(i,3),impdu(i,4),impdu(i,5)
         end if
         kill_nan=1
-    END IF
-  U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-END DO
-!$OMP END DO
-    IF (kill_nan.eq.1)THEN
+    end if
+  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+end do
+!$omp end do
+    if (kill_nan.eq.1)then
         stop
-    END IF
+    end if
 
-IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
-!$OMP DO
-  DO I=1,KMAXE
+
+if (realgas.eq.1)then
+if (rg_relax.eq.1)then
+!$omp do
+do i=1,kmaxe
+call sources_realgas_pi(n,i)
+end do
+!$omp end do
+end if
+end if
+
+
+
+
+if ((passivescalar.gt.0).or.(turbulence.gt.0))then
+!$omp do
+  do i=1,kmaxe
   do k=1,turbulenceequations+passivescalar
-  IF (U_CT(I)%VAL(1,k)+IMPDU(I,5+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,5+k)
-  END IF
-  END do
-END DO
-!$OMP END DO
-END IF
+  if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+0.4*impdu(i,nof_variables+k)
+  end if
+  end do
+end do
+!$omp end do
+end if
 
 
 
@@ -2902,123 +3058,145 @@ END IF
 
 
   
-END SUBROUTINE IMPLICIT_TIMEs
+end subroutine implicit_times
 
 
-SUBROUTINE IMPLICIT_TIMEs_2d(N) 
+subroutine implicit_times_2d(n) 
 !> @brief
-!> IMPLICIT APPROXIMATELY FACTORED TIME STEPPING SCHEME 2D
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,kill_nan
-INTEGER,INTENT(IN)::N
-reaL::verysmall
+!> implicit approximately factored time stepping scheme 2d
+implicit none
+integer::i,k,kmaxe,kill_nan,j
+integer,intent(in)::n
+real::verysmall
 verysmall = tolsmall
 
-
-KMAXE=XMPIELRANK(N)
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
+ if (realgas.eq.1)call normalise_species(n)
+kmaxe=xmpielrank(n)
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
     
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2d(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-   ! CALL VORTEXCALC2D(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    if (realgas.eq.1)then
+    call sources_computation2d(n)
+
+    end if
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+
+   ! call vortexcalc2d(n)
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
+    call sources_computation2d(n)
+    end if
+    end select
     
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2d(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    !CALL VORTEXCALC2D(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-END IF
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    if (realgas.eq.1)then
+    call sources_computation2d(n)
+    end if
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+
+
+    !call vortexcalc2d(n)
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
+    call sources_computation2d(n)
+    end if
+    end select
+end if
 
 
 
- IF (RELAX.EQ.3)THEN
+ if (relax.eq.3)then
  
- CALL RELAXATION_LUMFREE(N)
+ call relaxation_lumfree(n)
  
- ELSE
- IF (lowmemory.eq.0)THEN
+ else
+ if (lowmemory.eq.0)then
    
- CALL RELAXATION2d(N)
+ call relaxation2d(n)
    
- ELSE
+ else
  
- CALL RELAXATION_lm2d(N)
+ call relaxation_lm2d(n)
  
- END IF
-  END IF
+ end if
+  end if
 
  kill_nan=0
-!$OMP DO
-DO I=1,KMAXE
-
-    IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)))THEN
-        write(600+n,*)"nan present",ielem(n,i)%ihexgl,ielem(n,i)%ishape,ielem(n,i)%xxc, ielem(n,i)%yyc
-        write(600+n,*)ielem(n,i)%dih(:)
+!$omp do
+do i=1,kmaxe
+    do j=1,nof_variables
+    if ((impdu(i,1).ne.impdu(i,1)))then
+        write(600+n,*)"nan present",ielem_ihexgl(i),ielem_ishape(i),ielem_xxc(i), ielem_yyc(i)
+        write(600+n,*)ielem_dih(:,i)
         kill_nan=1
-    END IF
-
+    end if
+    end do
     
     
     
 
-  U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-END DO
-!$OMP END DO
+  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+end do
+!$omp end do
 
-    IF (kill_nan.eq.1)THEN
+    if (kill_nan.eq.1)then
         stop
-    END IF
+    end if
 
 
+if (realgas.eq.1)call normalise_species(n)
 
-IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
-!$OMP DO
-  DO I=1,KMAXE
+
+if (realgas.eq.1)then
+if (rg_relax.eq.1)then
+!$omp do
+do i=1,kmaxe
+call sources_realgas_pi(n,i)
+end do
+!$omp end do
+end if
+end if
+
+if ((passivescalar.gt.0).or.(turbulence.gt.0))then
+!$omp do
+  do i=1,kmaxe
   do k=1,turbulenceequations+passivescalar
-  IF (ispal.eq.1)THEN
-  IF (U_CT(I)%VAL(1,k)+IMPDU(I,4+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,4+k)
-   END IF
-   ELSE
-   U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
+  if (ispal.eq.1)then
+  if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+   end if
+   else
+   u_ct_val(1,k,i)=u_ct_val(1,k,i)+0.4*impdu(i,nof_variables+k)
    
-   END IF
-  END do
-END DO
-!$OMP END DO
+   end if
+  end do
+end do
+!$omp end do
 
-!   IF (kill_nan.eq.2)THEN
+!   if (kill_nan.eq.2)then
 !         stop
-!     END IF
+!     end if
 
 
 
-END IF
+end if
 
 
 
@@ -3029,43 +3207,43 @@ END IF
 
 
   
-END SUBROUTINE IMPLICIT_TIMEs_2d
+end subroutine implicit_times_2d
 
 
-SUBROUTINE DUAL_TIME(N)
+subroutine dual_time(n)
 !> @brief
-!> DUAL TIME STEPPING
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,jj,kill_nan
-INTEGER,INTENT(IN)::N
-reaL::verysmall
+!> dual time stepping
+implicit none
+integer::i,k,kmaxe,jj,kill_nan
+integer,intent(in)::n
+real::verysmall
 real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
 verysmall = tolsmall
 
 inner_tol=reslimit
 
-KMAXE=XMPIELRANK(N)
+kmaxe=xmpielrank(n)
 
 
-IF (IT.EQ.RESTART)THEN
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  END IF
-END DO
-!$OMP END DO
-END IF
+if (it.eq.restart)then
+!$omp do
+do i=1,kmaxe 
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(1,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  end if
+end do
+!$omp end do
+end if
 
 
 
 
 
 firsti=0.0d0
-DO JJ=1,upperlimit
+do jj=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero; 
    if (jj.eq.1)then
     iscoun=1
@@ -3076,56 +3254,52 @@ DO JJ=1,upperlimit
       
 
       
-CALL CALL_FLUX_SUBROUTINES_3D
+call call_flux_subroutines_3d
 
 
-IF (relax.eq.3)THEN
+if (relax.eq.3)then
 
 
 
-CALL RELAXATION_LUMFREE(N)
+call relaxation_lumfree(n)
 
 
-ELSE
+else
 
 
-IF (lowmemory.eq.0)THEN
+if (lowmemory.eq.0)then
    
- CALL RELAXATION(N)
+ call relaxation(n)
    
- ELSE
+ else
  
- CALL RELAXATION_lm(N)
+ call relaxation_lm(n)
  
- END IF
- END IF
+ end if
+ end if
 
  
  kill_nan=0
  
-!$OMP BARRIER 
-!$OMP DO  REDUCTION(+:allresdt)
-DO I=1,KMAXE
-      rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2)+((IMPDU(I,5))**2))
-      allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)
+!$omp barrier 
+!$omp do  reduction(+:allresdt)
+do i=1,kmaxe
+      rsumfacei=sqrt(((impdu(i,1))**2)+((impdu(i,2))**2)+((impdu(i,3))**2)+((impdu(i,4))**2)+((impdu(i,5))**2))
+      allresdt=allresdt+(rsumfacei*ielem_totvolume(i))
       
-      IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))THEN
+      if ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))then
       kill_nan=1
-      END IF
-END do
-!$OMP END DO
+      end if
+end do
+!$omp end do
 
 
-!$OMP BARRIER 
-
-     IF (kill_nan.eq.1)THEN
+!$omp barrier 
+     if (kill_nan.eq.1)then
         stop
-    END IF
-
-
-
-!$OMP MASTER
-DUMMY3I=zero
+    end if
+!$omp master
+dummy3i=zero
 
 
 
@@ -3133,560 +3307,591 @@ DUMMY3I=zero
 
 
 
-CALL MPI_ALLREDUCE(allresdt,DUMMY3i,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-allresdt=dummy3i/TOTALVOLUME
+call mpi_allreduce(allresdt,dummy3i,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+allresdt=dummy3i/totalvolume
 
-IF (allresdt.gt.firsti)THEN
+if (allresdt.gt.firsti)then
 firsti=allresdt
-END IF
+end if
 
 allresdt=allresdt/firsti
 
 
-IF (n.eq.0)THEN
-				  OPEN(77,FILE='res1.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-				  WRITE(77,*)allresdt,jj,it
-				  CLOSE(77)
+if (n.eq.0)then
+				  open(77,file='res1.txt',form='formatted',action='write',position='append')
+				  write(77,*)allresdt,jj,it
+				  close(77)
 
-END IF
+end if
 
-!$OMP END MASTER
-!$OMP BARRIER 
+!$omp end master
+!$omp barrier 
 
 
 
-  IF ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))THEN
- !$OMP DO
-  DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+  if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
+ !$omp do
+  do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
     do k=1,turbulenceequations+passivescalar
-	IF (U_CT(I)%VAL(1,k)+IMPDU(I,nof_Variables+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-	END IF
-    END do
-    END IF
-  END DO
-!$OMP END DO
+	if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+	end if
+    end do
+    end if
+  end do
+!$omp end do
+
+if (realgas.eq.1)then
+if (rg_relax.eq.1)then
+!$omp do
+do i=1,kmaxe
+call sources_realgas_pi(n,i)
+end do
+!$omp end do
+end if
+end if
+
+
+
+
+
+
+
+
+
+
   exit
 
-ELSE
- !$OMP DO
- DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+else
+ !$omp do
+ do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
     do k=1,turbulenceequations+passivescalar
-	IF (U_CT(I)%VAL(1,k)+IMPDU(I,nof_Variables+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-	END IF
-    END do
-    END IF
-  END DO
-!$OMP END DO
-
-END IF
+	if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+	end if
+    end do
+    end if
+  end do
+!$omp end do
 
 
-END DO
+if (realgas.eq.1)then
+if (rg_relax.eq.1)then
+!$omp do
+do i=1,kmaxe
+call sources_realgas_pi(n,i)
+end do
+!$omp end do
+end if
+end if
 
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  !U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
+end if
+
+
+end do
+
+!$omp do
+do i=1,kmaxe 
+  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  !u_c_val(1,1:nof_variables,i)=2.0*u_c_val(2,1:nof_variables,i)-u_c_val(3,1:nof_variables,i)
   
-  
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  !U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
-  end if
-END DO
-!$OMP END DO
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-
-
-
-
-
-
-  
-END SUBROUTINE dual_time
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-SUBROUTINE DUAL_TIME_EX(N)
-!> @brief
-!> DUAL TIME STEPPING 2D
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,jj
-INTEGER,INTENT(IN)::N
-reaL::verysmall
-real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
-verysmall = tolsmall
-
-inner_tol=reslimit
-
-KMAXE=XMPIELRANK(N)
-
-
-IF (IT.EQ.RESTART)THEN
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  END IF
-END DO
-!$OMP END DO
-END IF
-
-
-
-
-
-firsti=0.0d0
-DO JJ=1,upperlimit
-      rsumfacei=zero;allresdt=zero;dummy3i=zero; 
-      
-      
-      
-      
-      
-      
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive(N)
-    CALL VORTEXCALC(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-    
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive(N)
-    CALL VORTEXCALC(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-END IF
-
-
-CALL RELAXATION_EX(N)
-
-
-
-
-
-!$OMP BARRIER 
-!$OMP DO  REDUCTION(+:allresdt)
-DO I=1,KMAXE
-      rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2)+((IMPDU(I,5))**2))
-      allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)
-END do
-!$OMP END DO
-
-!$OMP BARRIER 
-!$OMP MASTER
-DUMMY3I=zero
-
-CALL MPI_ALLREDUCE(allresdt,DUMMY3i,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-allresdt=dummy3i/TOTALVOLUME
-
-
-
-IF (allresdt.gt.firsti)THEN
-firsti=allresdt
-END IF
-
-allresdt=allresdt/firsti
-
-
-    IF (n.eq.0)THEN
-    write(777,*)allresdt,jj,it
-    END IF
-
-
-!$OMP END MASTER
-!$OMP BARRIER 
-
-    
-  IF ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))THEN
- !$OMP DO
-  DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-    END do
-    END IF
-  END DO
-!$OMP END DO
-  exit
-
-ELSE
- !$OMP DO
- DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-    END do
-    END IF
-  END DO
-!$OMP END DO
-
-END IF
-
-
-
-
-
-
-END DO
-
-
-
-
-
-
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
-  
-  
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
-  END IF
-END DO
-!$OMP END DO
-
-
-
-
-
-
-
-
-
-
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-END SUBROUTINE DUAL_TIME_EX
-
-
-
-
-
-SUBROUTINE DUAL_TIME_EX_2D(N)
-!> @brief
-!> DUAL TIME STEPPING 2D
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,jj
-INTEGER,INTENT(IN)::N
-reaL::verysmall
-real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
-verysmall = tolsmall
-
-inner_tol=reslimit
-
-KMAXE=XMPIELRANK(N)
-
-
-IF (IT.EQ.RESTART)THEN
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  END IF
-END DO
-!$OMP END DO
-END IF
-
-
-
-
-
-firsti=0.0d0
-DO JJ=1,upperlimit
-      rsumfacei=zero;allresdt=zero;dummy3i=zero; 
-      
-      
-      
-      
-      
-      
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2d(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    CALL VORTEXCALC2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-    
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2d(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    CALL VORTEXCALC2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-END IF
-
-
-CALL RELAXATION_EX(N)
-
-
-
-
-
-!$OMP BARRIER 
-!$OMP DO  REDUCTION(+:allresdt)
-DO I=1,KMAXE
-      rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2))
-      allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)
-END do
-!$OMP END DO
-
-!$OMP BARRIER 
-!$OMP MASTER
-DUMMY3I=zero
-
-CALL MPI_ALLREDUCE(allresdt,DUMMY3i,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-allresdt=dummy3i/TOTALVOLUME
-
-
-
-IF (allresdt.gt.firsti)THEN
-firsti=allresdt
-END IF
-
-allresdt=allresdt/firsti
-
-
-    IF (n.eq.0)THEN
-    write(777,*)allresdt,jj,it
-    END IF
-
-
-!$OMP END MASTER
-!$OMP BARRIER 
-
-    
-  IF ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))THEN
- !$OMP DO
-  DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-    END do
-    END IF
-  END DO
-!$OMP END DO
-  exit
-
-ELSE
- !$OMP DO
- DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-    END do
-    END IF
-  END DO
-!$OMP END DO
-
-END IF
-
-
-
-
-
-
-END DO
-
-
-
-
-
-
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
-  
-  
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
-  END IF
-END DO
-!$OMP END DO
-
-
-
-
-
-
-
-
-
-
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-  
-END SUBROUTINE dual_time_ex_2d
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-SUBROUTINE DUAL_TIME_2d(N)
-!> @brief
-!> DUAL TIME STEPPING 2D
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,nvar,jj,kill_nan
-INTEGER,INTENT(IN)::N
-reaL::verysmall
-real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
-verysmall = tolsmall
-
-inner_tol=reslimit
-
-KMAXE=XMPIELRANK(N)
-
- 
-IF (IT.EQ.RESTART)THEN
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
   
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  
+  u_ct_val(3,:,i)=u_ct_val(2,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  !u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
   end if
-END DO
-!$OMP END DO
-END IF
+end do
+!$omp end do
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+ 
+end if
+
+
+
+
+
+
+
+
+
+
+  
+end subroutine dual_time
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+subroutine dual_time_ex(n)
+!> @brief
+!> dual time stepping 2d
+implicit none
+integer::i,k,kmaxe,jj
+integer,intent(in)::n
+real::verysmall
+real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
+verysmall = tolsmall
+
+inner_tol=reslimit
+
+kmaxe=xmpielrank(n)
+
+
+if (it.eq.restart)then
+!$omp do
+do i=1,kmaxe 
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(1,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  end if
+end do
+!$omp end do
+end if
+
+
 
 
 
 firsti=0.0d0
-DO JJ=1,upperlimit
+do jj=1,upperlimit
+      rsumfacei=zero;allresdt=zero;dummy3i=zero; 
+      
+      
+      
+      
+      
+      
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    call vortexcalc(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+    
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    call vortexcalc(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+end if
+
+
+call relaxation_ex(n)
+
+
+
+
+
+!$omp barrier 
+!$omp do  reduction(+:allresdt)
+do i=1,kmaxe
+      rsumfacei=sqrt(((impdu(i,1))**2)+((impdu(i,2))**2)+((impdu(i,3))**2)+((impdu(i,4))**2)+((impdu(i,5))**2))
+      allresdt=allresdt+(rsumfacei*ielem_totvolume(i))
+end do
+!$omp end do
+
+!$omp barrier 
+!$omp master
+dummy3i=zero
+
+call mpi_allreduce(allresdt,dummy3i,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+allresdt=dummy3i/totalvolume
+
+
+
+if (allresdt.gt.firsti)then
+firsti=allresdt
+end if
+
+allresdt=allresdt/firsti
+
+
+    if (n.eq.0)then
+    write(777,*)allresdt,jj,it
+    end if
+
+
+!$omp end master
+!$omp barrier 
+
+    
+  if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
+ !$omp do
+  do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+    do k=1,turbulenceequations+passivescalar
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+    end do
+    end if
+  end do
+!$omp end do
+  exit
+
+else
+ !$omp do
+ do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+    do k=1,turbulenceequations+passivescalar
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+    end do
+    end if
+  end do
+!$omp end do
+
+end if
+
+
+
+
+
+
+end do
+
+
+
+
+
+
+!$omp do
+do i=1,kmaxe 
+  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(1,1:nof_variables,i)=2.0*u_c_val(2,1:nof_variables,i)-u_c_val(3,1:nof_variables,i)
+  
+  
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(2,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
+  end if
+end do
+!$omp end do
+
+
+
+
+
+
+
+
+
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+ 
+end if
+
+
+
+end subroutine dual_time_ex
+
+
+
+
+
+subroutine dual_time_ex_2d(n)
+!> @brief
+!> dual time stepping 2d
+implicit none
+integer::i,k,kmaxe,jj
+integer,intent(in)::n
+real::verysmall
+real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
+verysmall = tolsmall
+
+inner_tol=reslimit
+
+kmaxe=xmpielrank(n)
+
+
+if (it.eq.restart)then
+!$omp do
+do i=1,kmaxe 
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(1,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  end if
+end do
+!$omp end do
+end if
+
+
+
+
+
+firsti=0.0d0
+do jj=1,upperlimit
+      rsumfacei=zero;allresdt=zero;dummy3i=zero; 
+      
+      
+      
+      
+      
+      
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    call vortexcalc2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+    
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    call vortexcalc2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+end if
+
+
+call relaxation_ex(n)
+
+
+
+
+
+!$omp barrier 
+!$omp do  reduction(+:allresdt)
+do i=1,kmaxe
+      rsumfacei=sqrt(((impdu(i,1))**2)+((impdu(i,2))**2)+((impdu(i,3))**2)+((impdu(i,4))**2))
+      allresdt=allresdt+(rsumfacei*ielem_totvolume(i))
+end do
+!$omp end do
+
+!$omp barrier 
+!$omp master
+dummy3i=zero
+
+call mpi_allreduce(allresdt,dummy3i,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+allresdt=dummy3i/totalvolume
+
+
+
+if (allresdt.gt.firsti)then
+firsti=allresdt
+end if
+
+allresdt=allresdt/firsti
+
+
+    if (n.eq.0)then
+    write(777,*)allresdt,jj,it
+    end if
+
+
+!$omp end master
+!$omp barrier 
+
+    
+  if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
+ !$omp do
+  do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+    do k=1,turbulenceequations+passivescalar
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+    end do
+    end if
+  end do
+!$omp end do
+  exit
+
+else
+ !$omp do
+ do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+    do k=1,turbulenceequations+passivescalar
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+    end do
+    end if
+  end do
+!$omp end do
+
+end if
+
+
+
+
+
+
+end do
+
+
+
+
+
+
+!$omp do
+do i=1,kmaxe 
+  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(1,1:nof_variables,i)=2.0*u_c_val(2,1:nof_variables,i)-u_c_val(3,1:nof_variables,i)
+  
+  
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(2,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
+  end if
+end do
+!$omp end do
+
+
+
+
+
+
+
+
+
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+ 
+end if
+
+
+
+
+  
+end subroutine dual_time_ex_2d
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+subroutine dual_time_2d(n)
+!> @brief
+!> dual time stepping 2d
+implicit none
+integer::i,k,kmaxe,nvar,jj,kill_nan
+integer,intent(in)::n
+real::verysmall
+real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
+verysmall = tolsmall
+
+inner_tol=reslimit
+
+kmaxe=xmpielrank(n)
+
+ 
+if (it.eq.restart)then
+!$omp do
+do i=1,kmaxe 
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(1,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  
+  end if
+end do
+!$omp end do
+end if
+
+
+
+firsti=0.0d0
+do jj=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero; 
       if (jj.eq.1)then
     iscoun=1
@@ -3696,157 +3901,178 @@ DO JJ=1,upperlimit
       
 
       
-CALL CALL_FLUX_SUBROUTINES_2D
+call call_flux_subroutines_2d
 
 
-IF (relax.eq.3)THEN
-
-
-
-CALL RELAXATION_LUMFREE(N)
-
-
-ELSE
+if (relax.eq.3)then
 
 
 
-IF (lowmemory.eq.0)THEN
+call relaxation_lumfree(n)
+
+
+else
+
+
+
+if (lowmemory.eq.0)then
    
- CALL RELAXATION2d(N)
+ call relaxation2d(n)
    
- ELSE
+ else
  
- CALL RELAXATION_lm2d(N)
+ call relaxation_lm2d(n)
  
- END IF
+ end if
  
-END IF
+end if
 
-!$OMP BARRIER 
-!$OMP DO  REDUCTION(+:allresdt)
-DO I=1,KMAXE
-      rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2))
-      allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)
+!$omp barrier 
+!$omp do  reduction(+:allresdt)
+do i=1,kmaxe
+      rsumfacei=sqrt(((impdu(i,1))**2)+((impdu(i,2))**2)+((impdu(i,3))**2)+((impdu(i,4))**2))
+      allresdt=allresdt+(rsumfacei*ielem_totvolume(i))
 
 
-      IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)))THEN
+      if ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)))then
       kill_nan=1
-      END IF
+      end if
 
-END do
-!$OMP END DO
+end do
+!$omp end do
 
-!$OMP BARRIER 
+!$omp barrier 
 
 
- IF (kill_nan.eq.1)THEN
+ if (kill_nan.eq.1)then
         stop
-    END IF
+    end if
 
 
 
-!$OMP MASTER
-DUMMY3I=zero
+!$omp master
+dummy3i=zero
 
-CALL MPI_ALLREDUCE(allresdt,DUMMY3i,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-allresdt=dummy3i/TOTALVOLUME
+call mpi_allreduce(allresdt,dummy3i,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+allresdt=dummy3i/totalvolume
 
 
 
-IF (allresdt.gt.firsti)THEN
+if (allresdt.gt.firsti)then
 firsti=allresdt
-END IF
+end if
 
 allresdt=allresdt/firsti
 
-IF (n.eq.0)THEN
-				  OPEN(77,FILE='res1.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-				  WRITE(77,*)allresdt,jj,it
-				  CLOSE(77)
+if (n.eq.0)then
+				  open(77,file='res1.txt',form='formatted',action='write',position='append')
+				  write(77,*)allresdt,jj,it
+				  close(77)
 
-END IF
-
-
-!$OMP END MASTER
-!$OMP BARRIER 
+end if
 
 
+!$omp end master
+!$omp barrier 
 
 
-  IF ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))THEN
- !$OMP DO
-  DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+
+
+  if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
+ !$omp do
+  do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
     do k=1,turbulenceequations+passivescalar
-	IF (U_CT(I)%VAL(1,k)+IMPDU(I,nof_Variables+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-	END IF
-    END do
-    END IF
-  END DO
-!$OMP END DO
+	if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+	end if
+    end do
+    end if
+  end do
+!$omp end do
+if (realgas.eq.1)then
+if (rg_relax.eq.1)then
+!$omp do
+do i=1,kmaxe
+call sources_realgas_pi(n,i)
+end do
+!$omp end do
+end if
+end if
+
+
   exit
 
-ELSE
- !$OMP DO
- DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+else
+ !$omp do
+ do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
     do k=1,turbulenceequations+passivescalar
-	IF (U_CT(I)%VAL(1,k)+IMPDU(I,nof_Variables+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-	END IF
-    END do
-    END IF
-  END DO
-!$OMP END DO
+	if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+	end if
+    end do
+    end if
+  end do
+!$omp end do
 
-END IF
+if (realgas.eq.1)then
+if (rg_relax.eq.1)then
+!$omp do
+do i=1,kmaxe
+call sources_realgas_pi(n,i)
+end do
+!$omp end do
+end if
+end if
+
+end if
 
 
-END DO
+end do
 
 
 
 
 
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  !U_C(I)%VAL(1,1:nof_variables)=(2.0*U_C(I)%VAL(2,1:nof_variables))-U_C(I)%VAL(3,1:nof_variables)
+!$omp do
+do i=1,kmaxe 
+  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  !u_c_val(1,1:nof_variables,i)=(2.0*u_c_val(2,1:nof_variables,i))-u_c_val(3,1:nof_variables,i)
   
   
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  !U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(2,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  !u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
   end if
-END DO
-!$OMP END DO
+end do
+!$omp end do
 
 
 
 
 
-IF (AVERAGING.EQ.1)THEN
+if (averaging.eq.1)then
 
- CALL AVERAGING_T(N)
+ call averaging_t(n)
  
-END IF
+end if
 
-END SUBROUTINE dual_time_2d
-
-
+end subroutine dual_time_2d
 
 
-SUBROUTINE RELAXATION_EX(N)
-IMPLICIT NONE
+
+
+subroutine relaxation_ex(n)
+implicit none
 !> @brief
-!> This subroutine solves the linear system for implicit time stepping either through MATRIX FREE LU-SGS low memory footprint
-INTEGER,INTENT(IN)::N
-INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux,icaseb,INDT1,INDT2,INDT3,IJK
+!> this subroutine solves the linear system for implicit time stepping either through matrix free lu-sgs low memory footprint
+integer,intent(in)::n
+integer::i,l,k,ii,sweeps,kmaxe,nvar,igoflux,icaseb,indt1,indt2,indt3,ijk
 real::dt1,dtau
 
 
@@ -3855,554 +4081,554 @@ kmaxe=xmpielrank(n)
 
 impdu(:,:)=zero
 
-INDT1=NOF_VARIABLES+1
-INDT2=NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR
-INDT3=TURBULENCEEQUATIONS+PASSIVESCALAR
+indt1=nof_variables+1
+indt2=nof_variables+turbulenceequations+passivescalar
+indt3=turbulenceequations+passivescalar
 
 
 
-!$OMP DO
-DO I=1,KMAXE
-dt1=ielem(n,i)%totvolume/dt
-IMPDU(I,1:nof_variables)=DT1*(1.5D0*U_C(I)%VAL(1,1:nof_Variables)-2.0D0*U_C(I)%VAL(2,1:nof_Variables)+0.5D0*U_C(I)%VAL(3,1:nof_Variables))+RHS(I)%VAL(1:nof_variables)
+!$omp do
+do i=1,kmaxe
+dt1=ielem_totvolume(i)/dt
+impdu(i,1:nof_variables)=dt1*(1.5d0*u_c_val(1,1:nof_variables,i)-2.0d0*u_c_val(2,1:nof_variables,i)+0.5d0*u_c_val(3,1:nof_variables,i))+rhs_val(1:nof_variables,i)
 
-IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-impdu(I,INDT1:INDT2)=DT1*(1.5D0*U_CT(I)%VAL(1,1:INDT3)-2.0D0*U_CT(I)%VAL(2,1:INDT3)+0.5D0*U_CT(I)%VAL(3,1:INDT3))+RHST(I)%VAL(1:INDT3)
-END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+impdu(i,indt1:indt2)=dt1*(1.5d0*u_ct_val(1,1:indt3,i)-2.0d0*u_ct_val(2,1:indt3,i)+0.5d0*u_ct_val(3,1:indt3,i))+rhst_val(1:indt3,i)
+end if
 
-END DO
-!$OMP END DO 
+end do
+!$omp end do 
 
 
-!$OMP DO
-DO I=1,KMAXE
-dtau=(ielem(n,i)%dtl/IELEM(N,I)%TOTVOLUME)*(1.0d0/(1.0D0+1.5D0*(ielem(n,i)%dtl/DT)))
-IMPDU(I,1:nof_variables)=-IMPDU(I,1:nof_variables)*dtau
-IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-impdu(I,INDT1:INDT2)=-impdu(I,INDT1:INDT2)*dtau
-END IF
-END DO
-!$OMP END DO 
+!$omp do
+do i=1,kmaxe
+dtau=(ielem_dtl(i)/ielem_totvolume(i))*(1.0d0/(1.0d0+1.5d0*(ielem_dtl(i)/dt)))
+impdu(i,1:nof_variables)=-impdu(i,1:nof_variables)*dtau
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+impdu(i,indt1:indt2)=-impdu(i,indt1:indt2)*dtau
+end if
+end do
+!$omp end do 
 
                                        
-END SUBROUTINE RELAXATION_EX
+end subroutine relaxation_ex
 
 
 
 
 
-SUBROUTINE AVERAGING_T(N)
+subroutine averaging_t(n)
 !> @brief
-!> TEMPORAL AVERAGING FOR UNSTEADY SIMULATIONS
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,nvar
+!> temporal averaging for unsteady simulations
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe,nvar
 integer::ind1
-KMAXE=XMPIELRANK(N)
+kmaxe=xmpielrank(n)
 
 
 
-IF (DIMENSIONA.EQ.3)THEN
-IF (rungekutta.eq.4)THEN
+if (dimensiona.eq.3)then
+if (rungekutta.eq.4)then
 ind1=7
-ELSE
+else
 ind1=5
-END IF
+end if
 
-  IF (tz1.gt.zero)THEN
- !$OMP DO
-  DO I=1,KMAXE
-    U_C(I)%val(ind1,:)=(((Tz1-dt)/(Tz1))*U_C(I)%val(ind1,:))+((dt*U_C(I)%VAL(1,:))/Tz1)
-      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-    DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+  if (tz1.gt.zero)then
+ !$omp do
+  do i=1,kmaxe
+    u_c_val(ind1,:,i)=(((tz1-dt)/(tz1))*u_c_val(ind1,:,i))+((dt*u_c_val(1,:,i))/tz1)
+      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+    do nvar=1,turbulenceequations+passivescalar
     
-    U_CT(I)%val(ind1,NVAR)=(((Tz1-dt)/(Tz1))*U_CT(I)%val(ind1,NVAR))+((dt*U_CT(I)%VAL(1,NVAR))/(Tz1*U_C(I)%val(ind1,1)))
+    u_ct_val(ind1,nvar,i)=(((tz1-dt)/(tz1))*u_ct_val(ind1,nvar,i))+((dt*u_ct_val(1,nvar,i))/(tz1*u_c_val(ind1,1,i)))
     
-    END DO
-    END IF
-    !U,V,W,UV,UW,WV,PS
-    U_C(I)%RMS(1)=SQRT(abs(((U_C(I)%RMS(1)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1)-U_C(I)%val(ind1,2)/U_C(I)%val(ind1,1))**2)*dt/Tz1)))
-    U_C(I)%RMS(2)=SQRT(abs(((U_C(I)%RMS(2)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1)-U_C(I)%val(ind1,3)/U_C(I)%val(ind1,1))**2)*dt/Tz1)))
-    U_C(I)%RMS(3)=SQRT(abs(((U_C(I)%RMS(3)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1)-U_C(I)%val(ind1,4)/U_C(I)%val(ind1,1))**2)*dt/Tz1)))
+    end do
+    end if
+    !u,v,w,uv,uw,wv,ps
+    u_c_rms(1,i)=sqrt(abs(((u_c_rms(1,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,2,i)/u_c_val(1,1,i)-u_c_val(ind1,2,i)/u_c_val(ind1,1,i))**2)*dt/tz1)))
+    u_c_rms(2,i)=sqrt(abs(((u_c_rms(2,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,3,i)/u_c_val(1,1,i)-u_c_val(ind1,3,i)/u_c_val(ind1,1,i))**2)*dt/tz1)))
+    u_c_rms(3,i)=sqrt(abs(((u_c_rms(3,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,4,i)/u_c_val(1,1,i)-u_c_val(ind1,4,i)/u_c_val(ind1,1,i))**2)*dt/tz1)))
     
     
     
     
    
-    U_C(I)%RMS(4)=(((U_C(I)%RMS(4))*((Tz1-DT)/(Tz1)))+&
-(((((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,2)/U_C(I)%val(ind1,1)))*((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,3)/U_C(I)%val(ind1,1)))))*DT/Tz1))
-    U_C(I)%RMS(5)=(((U_C(I)%RMS(5))*((Tz1-DT)/(Tz1)))+&
-(((((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,2)/U_C(I)%val(ind1,1)))*((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,4)/U_C(I)%val(ind1,1)))))*DT/Tz1))
-    U_C(I)%RMS(6)=(((U_C(I)%RMS(6))*((Tz1-DT)/(Tz1)))+&
-(((((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,3)/U_C(I)%val(ind1,1)))*((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,4)/U_C(I)%val(ind1,1)))))*DT/Tz1))
-    IF ((PASSIVESCALAR.GT.0))THEN
-    U_C(I)%RMS(7)=SQRT(abs(((U_C(I)%RMS(7)**2)*((Tz1-DT)/(Tz1)))+(((U_CT(I)%VAL(1,TURBULENCEEQUATIONS+1)&
--U_CT(I)%val(ind1,TURBULENCEEQUATIONS+1))**2)*DT/Tz1)))
-    END IF
+    u_c_rms(4,i)=(((u_c_rms(4,i))*((tz1-dt)/(tz1)))+&
+(((((u_c_val(1,2,i)/u_c_val(1,1,i))-(u_c_val(ind1,2,i)/u_c_val(ind1,1,i)))*((u_c_val(1,3,i)/u_c_val(1,1,i))-(u_c_val(ind1,3,i)/u_c_val(ind1,1,i)))))*dt/tz1))
+    u_c_rms(5,i)=(((u_c_rms(5,i))*((tz1-dt)/(tz1)))+&
+(((((u_c_val(1,2,i)/u_c_val(1,1,i))-(u_c_val(ind1,2,i)/u_c_val(ind1,1,i)))*((u_c_val(1,4,i)/u_c_val(1,1,i))-(u_c_val(ind1,4,i)/u_c_val(ind1,1,i)))))*dt/tz1))
+    u_c_rms(6,i)=(((u_c_rms(6,i))*((tz1-dt)/(tz1)))+&
+(((((u_c_val(1,3,i)/u_c_val(1,1,i))-(u_c_val(ind1,3,i)/u_c_val(ind1,1,i)))*((u_c_val(1,4,i)/u_c_val(1,1,i))-(u_c_val(ind1,4,i)/u_c_val(ind1,1,i)))))*dt/tz1))
+    if ((passivescalar.gt.0))then
+    u_c_rms(7,i)=sqrt(abs(((u_c_rms(7,i)**2)*((tz1-dt)/(tz1)))+(((u_ct_val(1,turbulenceequations+1,i)&
+-u_ct_val(ind1,turbulenceequations+1,i))**2)*dt/tz1)))
+    end if
    
    
    
     
-  END DO
-  !$OMP END DO
-  ELSE
-  !$OMP DO
-  DO I=1,KMAXE
-    U_C(I)%val(ind1,:)=ZERO;U_C(I)%RMS=zero
-    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+  end do
+  !$omp end do
+  else
+  !$omp do
+  do i=1,kmaxe
+    u_c_val(ind1,:,i)=zero;u_c_rms(:,i)=zero
+    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
     
     
-    U_CT(I)%val(ind1,:)=ZERO
+    u_ct_val(ind1,:,i)=zero
     
     
-    END IF
+    end if
   
-  END DO
-  !$OMP END DO
-  END IF
+  end do
+  !$omp end do
+  end if
 
-ELSE
-IF (t.gt.0.0)THEN
-  !$OMP DO
-  DO I=1,KMAXE
-    U_C(I)%val(ind1,:)=(((Tz1-dt)/(Tz1))*U_C(I)%val(ind1,:))+((dt*U_C(I)%VAL(1,:))/Tz1)
-      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-    DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+else
+if (t.gt.0.0)then
+  !$omp do
+  do i=1,kmaxe
+    u_c_val(ind1,:,i)=(((tz1-dt)/(tz1))*u_c_val(ind1,:,i))+((dt*u_c_val(1,:,i))/tz1)
+      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+    do nvar=1,turbulenceequations+passivescalar
     
-    U_CT(I)%val(ind1,NVAR)=(((Tz1-dt)/(Tz1))*U_CT(I)%val(ind1,NVAR))+((dt*U_CT(I)%VAL(1,NVAR))/(Tz1*U_C(I)%val(ind1,1)))
+    u_ct_val(ind1,nvar,i)=(((tz1-dt)/(tz1))*u_ct_val(ind1,nvar,i))+((dt*u_ct_val(1,nvar,i))/(tz1*u_c_val(ind1,1,i)))
     
-    END DO
-    END IF
-    !U,V,UV,PS
-    U_C(I)%RMS(1)=SQRT(abs(((U_C(I)%RMS(1)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,2)-U_C(I)%val(ind1,2))**2)*dt/Tz1)))/U_C(I)%val(ind1,1)
-    U_C(I)%RMS(2)=SQRT(abs(((U_C(I)%RMS(2)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,3)-U_C(I)%val(ind1,3))**2)*dt/Tz1)))/U_C(I)%val(ind1,1)
+    end do
+    end if
+    !u,v,uv,ps
+    u_c_rms(1,i)=sqrt(abs(((u_c_rms(1,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,2,i)-u_c_val(ind1,2,i))**2)*dt/tz1)))/u_c_val(ind1,1,i)
+    u_c_rms(2,i)=sqrt(abs(((u_c_rms(2,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,3,i)-u_c_val(ind1,3,i))**2)*dt/tz1)))/u_c_val(ind1,1,i)
     
    
-    U_C(I)%RMS(3)=(((U_C(I)%RMS(4))*((Tz1-dt)/(Tz1)))+&
-((((U_C(I)%VAL(1,2)-U_C(I)%val(ind1,2))*(U_C(I)%VAL(1,3)-U_C(I)%val(ind1,3))))*dt/Tz1))/U_C(I)%val(ind1,1)
+    u_c_rms(3,i)=(((u_c_rms(4,i))*((tz1-dt)/(tz1)))+&
+((((u_c_val(1,2,i)-u_c_val(ind1,2,i))*(u_c_val(1,3,i)-u_c_val(ind1,3,i))))*dt/tz1))/u_c_val(ind1,1,i)
     
-    IF ((PASSIVESCALAR.GT.0))THEN
-    U_C(I)%RMS(4)=SQRT(abs(((U_C(I)%RMS(4)**2)*((Tz1-dt)/(Tz1)))+(((U_CT(I)%VAL(1,TURBULENCEEQUATIONS+1)&
--U_CT(I)%val(ind1,TURBULENCEEQUATIONS+1))**2)*dt/Tz1)))/U_C(I)%val(ind1,1)
-    END IF
+    if ((passivescalar.gt.0))then
+    u_c_rms(4,i)=sqrt(abs(((u_c_rms(4,i)**2)*((tz1-dt)/(tz1)))+(((u_ct_val(1,turbulenceequations+1,i)&
+-u_ct_val(ind1,turbulenceequations+1,i))**2)*dt/tz1)))/u_c_val(ind1,1,i)
+    end if
     
-  END DO
-  !$OMP END DO
-  ELSE
-  !$OMP DO
-  DO I=1,KMAXE
-    U_C(I)%val(ind1,:)=ZERO
-    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-    
-    
-    U_CT(I)%val(ind1,:)=ZERO
+  end do
+  !$omp end do
+  else
+  !$omp do
+  do i=1,kmaxe
+    u_c_val(ind1,:,i)=zero
+    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
     
     
-    END IF
+    u_ct_val(ind1,:,i)=zero
+    
+    
+    end if
   
-  END DO
-  !$OMP END DO
-  END IF
- END IF
+  end do
+  !$omp end do
+  end if
+ end if
 
 
    
-   IF (OUTSURF.EQ.1)THEN
-   CALL EXCHANGE_HIGHER_AV(N)
-   CALL AVERAGE_STRESSES(N)
-   END IF
+   if (outsurf.eq.1)then
+   call exchange_higher_av(n)
+   call average_stresses(n)
+   end if
    
-END SUBROUTINE AVERAGING_T
+end subroutine averaging_t
 
 
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !---------------------------------------------------------------------------------------------!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! ! !!!!!!!!!!!!!!!!!!SUBROUTINE CALLED TO ADVANCE SOLUTION BY ONE TIME STEP SIZE!!!!!!!!!!!!!!!!!!
+! ! !!!!!!!!!!!!!!!!!!subroutine called to advance solution by one time step size!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE TIME_MARCHING(N)
+subroutine time_marching(n)
 !> @brief
-!> TIME MARCHING SUBROUTINE 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-real,dimension(1:5)::DUMMYOUT,DUMMYIN
-INTEGER::I,KMAXE,TTIME
+!> time marching subroutine 3d
+implicit none
+integer,intent(in)::n
+real,dimension(1:5)::dummyout,dummyin
+integer::i,kmaxe,ttime
 real::dtiv
-REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK,TZX1,TZX2,resolx,totens,totens1,totens2,totensx,totensx1,totensx2
+real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv1,totv2,dumetg1,dumetg2,totk,tzx1,tzx2,resolx,totens,totens1,totens2,totensx,totensx1,totensx2
       kill=0
-      T=RES_TIME
+      t=res_time
       resolx=0.01
       iscoun=1
-      kmaxe=XMPIELRANK(n)
-      EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
+      kmaxe=xmpielrank(n)
+      every_time=((idnint(t/output_freq)) * output_freq)+output_freq
 
-      TOTV1=0.0
+      totv1=0.0
 
-!$OMP BARRIER
-!$OMP MASTER 
-    IF (INITCOND.eq.95)THEN                    
-    CALL CHECKPOINTv3(N)
+!$omp barrier
+!$omp master 
+    if (initcond.eq.95)then                    
+    call checkpointv3(n)
     end if
-	CPUT1=CPUX1(1)
-	CPUT4=CPUX1(1)
-	CPUT5=CPUX1(1)
-	CPUT8=CPUX1(1)
-!$OMP END MASTER 
-!$OMP BARRIER
+	cput1=cpux1(1)
+	cput4=cpux1(1)
+	cput5=cpux1(1)
+	cput8=cpux1(1)
+!$omp end master 
+!$omp barrier
       
 	      			
-	IT=RESTART
-	if (dg.eq.1)call SOL_INTEG_DG_init(N)
+	it=restart
+	if (dg.eq.1)call sol_integ_dg_init(n)
       
-!$OMP BARRIER
-!$OMP MASTER 
+!$omp barrier
+!$omp master 
       if (tecplot.lt.5)then
-        CALL GRID_WRITE
-        IF (outsurf.eq.1)THEN
-        CALL SURF_WRITE
-        END IF
+        call grid_write
+        if (outsurf.eq.1)then
+        call surf_write
+        end if
       end if
-      IF ((Average_restart.eq.0).and.(averaging.eq.1)) THEN
-				Tz1=0.0
-				ELSE
+      if ((average_restart.eq.0).and.(averaging.eq.1)) then
+				tz1=0.0
+				else
 				tz1=t
-		END IF
+		end if
       
       
-!$OMP END MASTER 
-!$OMP BARRIER
+!$omp end master 
+!$omp barrier
       
 
 
-!$OMP BARRIER
-!$OMP MASTER
-	CALL VOLUME_SOLUTION_WRITE
-	IF (OUTSURF.EQ.1)THEN
-	CALL surface_SOLUTION_WRITE
-	END IF
-!$OMP END MASTER
-!$OMP BARRIER
+!$omp barrier
+!$omp master
+	call volume_solution_write
+	if (outsurf.eq.1)then
+	call surface_solution_write
+	end if
+!$omp end master
+!$omp barrier
       
 
 
 
       if ((it.eq.0).and.(initcond.eq.95))then
-        call EXCHANGE_HIGHER(N)
-        call ARBITRARY_ORDER(N)
-        call ENSTROPHY_CALC(N)
+        call exchange_higher(n)
+        call arbitrary_order(n)
+        call enstrophy_calc(n)
 
-        
+
       end if
       
-     DO 
+     do 
             
-		    CALL CALCULATE_CFL(N)
+		    call calculate_cfl(n)
 		    
-		    IF (RUNGEKUTTA.GE.5)CALL CALCULATE_CFLL(N)
+		    if (rungekutta.ge.5)call calculate_cfll(n)
 		    
 		    
-		    IF (DG.EQ.1)THEN
-         DO I=1,KMAXE
-         ielem(n,i)%condition=0
-         IELEM(N,I)%TROUBLED=0
-         END DO
-     END IF
+		    if (dg.eq.1)then
+         do i=1,kmaxe
+         ielem_condition(i)=0
+         ielem_troubled(i)=0
+         end do
+     end if
 
 
 
 
-		    !$OMP BARRIER
-			!$OMP MASTER
-			DUMMYOUT(1)=DT
-			CPUT2=MPI_WTIME()
-			TIMEC8=CPUT2-CPUT8
-			TIMEC1=CPUT2-CPUT1
-		        dummyout(2)=TIMEC1
-			DUMMYIN=0.0
+		    !$omp barrier
+			!$omp master
+			dummyout(1)=dt
+			cput2=mpi_wtime()
+			timec8=cput2-cput8
+			timec1=cput2-cput1
+		        dummyout(2)=timec1
+			dummyin=0.0
 			timec3=cput2-cput4
-			dummyout(3)=TIMEC3
-			TIMEC4=CPUT2-CPUT5
-			dummyout(4)=TIMEC4
-			DUMMYOUT(5)=TIMEC8
+			dummyout(3)=timec3
+			timec4=cput2-cput5
+			dummyout(4)=timec4
+			dummyout(5)=timec8
 			
-			CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-			dtiv=DUMMYIN(1)
-			DT=DUMMYIN(1)
-			TIMEC1=DUMMYIN(2)
-			TIMEC3=DUMMYIN(3)
-			TIMEC4=DUMMYIN(4)
-			TIMEC8=DUMMYIN(5)
-				   IF (N.EQ.0)THEN
-				  OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-				  WRITE(63,*)DT,it,"TIME STEP SIZE",T
-				  CLOSE(63)
-				  END IF
+			call mpi_allreduce(dummyout,dummyin,5,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
+			dtiv=dummyin(1)
+			dt=dummyin(1)
+			timec1=dummyin(2)
+			timec3=dummyin(3)
+			timec4=dummyin(4)
+			timec8=dummyin(5)
+				   if (n.eq.0)then
+				  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
+				  write(63,*)dt,it,"time step size",t
+				  close(63)
+				  end if
 					
 					
-                              IF (INITCOND.eq.95)THEN
-                          TOTK=0;TOTENS=0;totensx=0.0d0
-                          DO I=1,xmpielrank(n)
+                              if (initcond.eq.95)then
+                          totk=0;totens=0;totensx=0.0d0
+                          do i=1,xmpielrank(n)
 
-                              TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-          (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
+                              totk=totk+ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+          (((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2)+((u_c_val(1,4,i)/u_c_val(1,1,i))**2))
 
-                              if (BOUNDTYPE.eq.1)then
+                              if (boundtype.eq.1)then
 
-                              TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-                              IELEM(N,I)%VORTEX(2))
+                              totens=totens+(ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+                              ielem_vortex(2,i))
                               else
 
-                              TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
-                              TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
+                              totens=totens+(ielem_vortex(2,i))
+                              totensx=totensx+(ielem_vortex(3,i))
                               end if
 
-                          END DO
+                          end do
           !
-                          DUMEtg1=TOTK
-                          DUMEtg2=0.0
-                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-                          TOTK=DUMEtg2
-                          DUMEtg1=TOTENS
-                          DUMEtg2=0.0
-                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-                          TOTENS=DUMEtg2
-                          DUMEtg1=TOTENSx
-                          DUMEtg2=0.0
-                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-                          TOTENSx=DUMEtg2
-                          IF (N.EQ.0)THEN
-                          TOTV1=TOTK/((2.0*PI)**3)
-                          TOTENS1=TOTENS/(((2.0*PI)**3))
-                          TOTENSx1=4.0*TOTENSx/(3.0*((2.0*PI)**3))
-                              IF (it.eq.0)THEN
-                              TAYLOR=TOTK
-                              TAYLOR_ENS=TOTENS
-                              TAYLOR_ENSx=TOTENSx
-                              END IF
+                          dumetg1=totk
+                          dumetg2=0.0
+                          call mpi_barrier(mpi_comm_world,ierror)
+                          call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+                          totk=dumetg2
+                          dumetg1=totens
+                          dumetg2=0.0
+                          call mpi_barrier(mpi_comm_world,ierror)
+                          call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+                          totens=dumetg2
+                          dumetg1=totensx
+                          dumetg2=0.0
+                          call mpi_barrier(mpi_comm_world,ierror)
+                          call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+                          totensx=dumetg2
+                          if (n.eq.0)then
+                          totv1=totk/((2.0*pi)**3)
+                          totens1=totens/(((2.0*pi)**3))
+                          totensx1=4.0*totensx/(3.0*((2.0*pi)**3))
+                              if (it.eq.0)then
+                              taylor=totk
+                              taylor_ens=totens
+                              taylor_ensx=totensx
+                              end if
 
 
 
-                          END IF
+                          end if
 
 
 
 
  				
 
-			    END IF
+			    end if
 			
 			
-			IF (rungekutta.GE.11)THEN
+			if (rungekutta.ge.11)then
 			dt=timestep
-			IF (INITCOND.eq.95)THEN 
-			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-			ELSE
-			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-			END IF
+			if (initcond.eq.95)then 
+			dt=min(dt,out_time-t,every_time-t)
 			else
-			IF (INITCOND.eq.95)THEN
-			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-			ELSE
-			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-			END IF
+			dt=min(dt,out_time-t,every_time-t)
+			end if
+			else
+			if (initcond.eq.95)then
+			dt=min(dt,out_time-t,every_time-t)
+			else
+			dt=min(dt,out_time-t,every_time-t)
+			end if
 			end if
 
 
-			IF (DG.EQ.1)then
+			if (dg.eq.1)then
 			if (filtering.gt.0)then
-			call filter(n)
+			call apply_filter_dg(n)
 			end if
 			end if
 			
 
 
 
-			!$OMP END MASTER 
-			!$OMP BARRIER	
+			!$omp end master 
+			!$omp barrier	
 			
-			SELECT CASE(RUNGEKUTTA)
+			select case(rungekutta)
 			
-			CASE(1)
-			CALL RUNGE_KUTTA1(N)
+			case(1)
+			call runge_kutta1(n)
 			
-			CASE(2)
-			CALL RUNGE_KUTTA2(N)
+			case(2)
+			call runge_kutta2(n)
 			
-			CASE(3)
+			case(3)
 			
-			IF (MOOD.EQ.1)THEN
-			CALL RUNGE_KUTTA3_MOOD(N)
-			ELSE
-			CALL RUNGE_KUTTA3(N)
-			END IF
+			if (mood.eq.1)then
+			call runge_kutta3_mood(n)
+			else
+			call runge_kutta3(n)
+			end if
 			
-			CASE(4)
-			CALL RUNGE_KUTTA4(N)
+			case(4)
+			call runge_kutta4(n)
 			
-			CASE(5)
-			CALL RUNGE_KUTTA5(N)
+			case(5)
+			call runge_kutta5(n)
 			
 			case(10)
-			CALL IMPLICIT_TIMEs(N)
+			call implicit_times(n)
 			
 			
 			case(11)
-			CALL dual_TIME(N)
+			call dual_time(n)
 			
 			
 			case(12)
-			CALL dual_TIME_EX(N)
+			call dual_time_ex(n)
 			
 			
-			END SELECT
+			end select
 			
 			
-			if (dg.eq.1)call SOL_INTEG_DG(N)
+			if (dg.eq.1)call sol_integ_dg(n)
+            if (realgas.eq.1) call normalise_species(n)
+			
+			!$omp barrier
+			!$omp master
+			
+			if (rungekutta.ge.11)then
+ 			 t=t+(dt)
+ 			  tz1=tz1+(dt)
 
-			
-			!$OMP BARRIER
-			!$OMP MASTER
-			
-			IF (rungekutta.GE.11)THEN
- 			 T=T+(DT)
- 			  Tz1=Tz1+(DT)
-
-			ELSE
-                       T=T+DT
-			tz1=tz1+DT
-			  END IF
+			else
+                       t=t+dt
+			tz1=tz1+dt
+			  end if
 			  
 			
-				IF (DG.EQ.1)THEN
-          IF (CODE_PROFILE.ne.102)THEN
-          IF ( mod(it, 100) .eq. 0) THEN
-            CALL TROUBLED_HISTORY
-          END IF
+				if (dg.eq.1)then
+          if (code_profile.ne.102)then
+          if ( mod(it, 100) .eq. 0) then
+            call troubled_history
           end if
-          IF ( filtering .eq. 1) THEN
-            CALL FILTERED_HISTORY
-          END IF
+          end if
+          if ( filtering .eq. 1) then
+            call filtered_history
+          end if
           end if
 
-        !  IF ( mod(it, 100) .eq. 0) THEN
-        !    CALL REDUCED_HISTORY
-        !  END IF
+          if ( mod(it, 20) .eq. 0) then
+            call reduced_history
+          end if
 
 
 
 
 			
 			
-			IF (INITCOND.eq.95)THEN                    
- 				TOTK=0; TOTENS=0.0; totensx=0.0d0
- 				DO I=1,xmpielrank(n)
+			if (initcond.eq.95)then                    
+ 				totk=0; totens=0.0; totensx=0.0d0
+ 				do i=1,xmpielrank(n)
  				
                    
-                    TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-(((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
+                    totk=totk+ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+(((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2)+((u_c_val(1,4,i)/u_c_val(1,1,i))**2))
                     
 
 
 
 
 
-                              if (BOUNDTYPE.eq.1)then
+                              if (boundtype.eq.1)then
 
-                              TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-                              IELEM(N,I)%VORTEX(2))
+                              totens=totens+(ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+                              ielem_vortex(2,i))
                               else
 
-                              TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
-                               TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
+                              totens=totens+(ielem_vortex(2,i))
+                               totensx=totensx+(ielem_vortex(3,i))
                               end if
 
 
 
 
 
-				END DO
+				end do
 ! 				
- 				DUMEtg1=TOTK
- 				DUMEtg2=0.0
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
- 				TOTK=DUMEtg2
+ 				dumetg1=totk
+ 				dumetg2=0.0
+ 				call mpi_barrier(mpi_comm_world,ierror)
+ 				call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+ 				totk=dumetg2
 
- 				DUMEtg1=TOTENS
- 				DUMEtg2=0.0
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
- 				TOTENS=DUMEtg2
+ 				dumetg1=totens
+ 				dumetg2=0.0
+ 				call mpi_barrier(mpi_comm_world,ierror)
+ 				call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+ 				totens=dumetg2
 
 
 
- 				DUMEtg1=TOTENSx
- 				DUMEtg2=0.0
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
- 				TOTENSx=DUMEtg2
+ 				dumetg1=totensx
+ 				dumetg2=0.0
+ 				call mpi_barrier(mpi_comm_world,ierror)
+ 				call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+ 				totensx=dumetg2
 
- 				IF (N.EQ.0)THEN
-                          TOTV2=TOTK/((2.0*PI)**3)
-                          TOTENS2=TOTENS/(Reynolds*((2.0*PI)**3))
-                          TOTENSx2=4.0*TOTENSx/(3.0*Reynolds*((2.0*PI)**3))
-                              IF (it.eq.0)THEN
-                              TAYLOR=TOTK
-                              TAYLOR_ENS=TOTENS
-                              TAYLOR_ENSx=TOTENSx
-                              END IF
+ 				if (n.eq.0)then
+                          totv2=totk/((2.0*pi)**3)
+                          totens2=totens/(reynolds*((2.0*pi)**3))
+                          totensx2=4.0*totensx/(3.0*reynolds*((2.0*pi)**3))
+                              if (it.eq.0)then
+                              taylor=totk
+                              taylor_ens=totens
+                              taylor_ensx=totensx
+                              end if
 
-                          IF (IT.EQ.0)THEN
-                          OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-                          ELSE
-                          OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-                          END IF
-                          IF (DG.EQ.1)THEN
-                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT
-                          ELSE
-                          if (boundtype.eq.1)then
-                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS/TAYLOR_ENS
+                          if (it.eq.0)then
+                          open(73,file='energy.dat',form='formatted',status='new',action='write',position='append')
                           else
-                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTv2,-(TOTV2-TOTV1)/DT,TOTENS2,TOTENSx2
+                          open(73,file='energy.dat',form='formatted',status='old',action='write',position='append')
                           end if
-                          END IF
-                          CLOSE(73)
-				END IF
+                          if (dg.eq.1)then
+                          write(73,'(e14.7,1x,e14.7,1x,e14.7)')t,totk/taylor,-(totv2-totv1)/dt
+                          else
+                          if (boundtype.eq.1)then
+                          write(73,'(e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,totk/taylor,-(totv2-totv1)/dt,totens/taylor_ens
+                          else
+                          write(73,'(e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,totv2,-(totv2-totv1)/dt,totens2,totensx2
+                          end if
+                          end if
+                          close(73)
+				end if
  				
  				
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+ 				call mpi_barrier(mpi_comm_world,ierror)
  				
 
- 				IF (ADDA.EQ.1)THEN
-                          TOTK=0
-                          DO I=1,xmpielrank(n)
+ 				if (adda.eq.1)then
+                          totk=0
+                          do i=1,xmpielrank(n)
 
-                              TOTK=TOTK+IELEM(N,I)%ER
-
-
-                          END DO
-                          DUMEtg1=TOTK
-                          DUMEtg2=0.0
-                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+                              totk=totk+ielem_er(i)
 
 
+                          end do
+                          dumetg1=totk
+                          dumetg2=0.0
+                          call mpi_barrier(mpi_comm_world,ierror)
+                          call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 
-                        IF (N.EQ.0)THEN
-                        TOTK=DUMEtg2/IMAXE
-                                          IF (IT.EQ.0)THEN
-                                OPEN(123,FILE='ER.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-                                ELSE
-                                OPEN(123,FILE='ER.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-                                END IF
-                                WRITE(123,*)T,TOTK
-                                CLOSE(123)
+
+
+                        if (n.eq.0)then
+                        totk=dumetg2/imaxe
+                                          if (it.eq.0)then
+                                open(123,file='er.dat',form='formatted',status='new',action='write',position='append')
+                                else
+                                open(123,file='er.dat',form='formatted',status='old',action='write',position='append')
+                                end if
+                                write(123,*)t,totk
+                                close(123)
 
                         end if
 
@@ -4412,42 +4638,42 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 
 
 
-                   END IF
+                   end if
 
 
 
-                  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+                  call mpi_barrier(mpi_comm_world,ierror)
 
 
 
 
-! 				END IF
-			    END IF
+! 				end if
+			    end if
            
- 			    IF ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411).or.(initcond.eq.157))THEN
-! 			    IF ( mod(it, 1) .eq. 0)THEN
-                                 CALL TRAJECTORIES
-! 			    END IF
- 			    END IF
+ 			    if ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411).or.(initcond.eq.157))then
+! 			    if ( mod(it, 1) .eq. 0)then
+                                 call trajectories
+! 			    end if
+ 			    end if
 			
 			
 			
-			!$OMP END MASTER 
-			!$OMP BARRIER
+			!$omp end master 
+			!$omp barrier
 			
-			IF ( mod(it, IForce) .eq. 0) THEN
-			IF (OUTSURF.EQ.1) THEN   
+			if ( mod(it, iforce) .eq. 0) then
+			if (outsurf.eq.1) then   
 			
-				  CALL forces
-			END IF
-			END IF
+				  call forces
+			end if
+			end if
 			
-			IF ((rungekutta.ge.5).and.(rungekutta.lt.11))THEN
-			IF ( mod(it, residualfreq) .eq. 0) THEN
+			if ((rungekutta.ge.5).and.(rungekutta.lt.11))then
+			if ( mod(it, residualfreq) .eq. 0) then
 			
-                               CALL RESIDUAL_COMPUTE
-			END IF
-			END IF
+                               call residual_compute
+			end if
+			end if
 			
 			
 			
@@ -4455,457 +4681,487 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			
 			
 			
-			!$OMP MASTER
-			IF (NPROBES.GT.0) CALL PROBING
+			!$omp master
+			if (nprobes.gt.0) call probing
 					
 			
-			IF (TIMEC1.GE.IEVERY)THEN
+			if (timec1.ge.ievery)then
 			
-			    CALL VOLUME_SOLUTION_WRITE
-			     IF (outsurf.eq.1)THEN
-			    CALL surface_SOLUTION_WRITE
-			    END IF
-			CPUT1=MPI_WTIME()
-			END IF
-			
-			IF (INITCOND.eq.95)THEN           
-			if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
-			
-                CALL VOLUME_SOLUTION_WRITE
+			    call volume_solution_write
 			     if (outsurf.eq.1)then
-			    call surface_SOLUTION_WRITE
+			    call surface_solution_write
 			    end if
-			    IF (INITCOND.eq.95)THEN                    
-			    CALL CHECKPOINTv4(N)
-			    END IF
-			EVERY_TIME=EVERY_TIME+output_freq
-            END IF
-
-            ELSE
-
-
-            IF (CODE_PROFILE.EQ.-1)THEN
-			if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
-
-                CALL VOLUME_SOLUTION_WRITE
+			cput1=mpi_wtime()
+			end if
+			
+			if (initcond.eq.95)then           
+			if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
+			
+                call volume_solution_write
 			     if (outsurf.eq.1)then
-			    call surface_SOLUTION_WRITE
+			    call surface_solution_write
 			    end if
-			EVERY_TIME=EVERY_TIME+output_freq
-            END IF
-            END IF
+			    if (initcond.eq.95)then                    
+			    call checkpointv4(n)
+			    end if
+			every_time=every_time+output_freq
+            end if
 
-            END IF
+            else
+
+
+            if (code_profile.eq.-1)then
+			if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
+
+                call volume_solution_write
+			     if (outsurf.eq.1)then
+			    call surface_solution_write
+			    end if
+			every_time=every_time+output_freq
+            end if
+            end if
+
+            end if
 			
 			
 			
 			
-			IF (TIMEC8.GE.IEVERYAV)THEN
-			IF (AVERAGING.EQ.1)THEN
-			CALL VOLUME_SOLUTION_WRITE_av
-			   IF (outsurf.eq.1)THEN
-			  CALL surface_SOLUTION_WRITE_av
-			  END IF
-			END IF
-			CPUT8=MPI_WTIME()
-			END IF
+			if (timec8.ge.ieveryav)then
+			if (averaging.eq.1)then
+			call volume_solution_write_av
+			   if (outsurf.eq.1)then
+			  call surface_solution_write_av
+			  end if
+			end if
+			cput8=mpi_wtime()
+			end if
 			
 			
 			
-			IF (TIMEC4.GE.IEVERY2)THEN
-			    CALL CHECKPOINTING
-			      IF (AVERAGING.EQ.1)THEN
-				CALL CHECKPOINTING_av
-			      END IF
+			if (timec4.ge.ievery2)then
+			    call checkpointing
+			      if (averaging.eq.1)then
+				call checkpointing_av
+			      end if
 	
-			  CPUT5=MPI_WTIME()
+			  cput5=mpi_wtime()
 			  
-			END IF
+			end if
 			  
 			
-			!$OMP END MASTER 
-			!$OMP BARRIER
+			!$omp end master 
+			!$omp barrier
 			
 			
 			
-			!$OMP MASTER
-			IT=IT+1
+			!$omp master
+			it=it+1
 			
-			IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC).OR.(DTiv.GT.OUT_TIME))THEN
-			 KILL=1
-			END IF
+			if ((it.eq.ntmax).or.(timec3.ge.wallc).or.(dtiv.gt.out_time))then
+			 kill=1
+			end if
 			
-			IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
-			IF ((T.GE.OUT_TIME).OR.(DTiv.GT.OUT_TIME))THEN
-			KILL=1
-			END IF
-			END IF
-			!$OMP END MASTER 
-			!$OMP BARRIER
+			if ((rungekutta.lt.5).or.(rungekutta.ge.11))then
+			if ((t.ge.out_time).or.(dtiv.gt.out_time))then
+			kill=1
+			end if
+			end if
+			!$omp end master 
+			!$omp barrier
            
             
             
             
 			  
-			!$OMP MASTER
-			IF (kill.eq.1)THEN
+			!$omp master
+			if (kill.eq.1)then
 			
-			    CALL VOLUME_SOLUTION_WRITE
-			      IF (outsurf.eq.1)THEN
-			      CALL surface_SOLUTION_WRITE
-			      END IF
-			    CALL CHECKPOINTING
-			      IF (AVERAGING.EQ.1)THEN
-			      CALL VOLUME_SOLUTION_WRITE_av
-				IF (outsurf.eq.1)THEN
-				  CALL surface_SOLUTION_WRITE_av
-				END IF	    
-				CALL CHECKPOINTING_av
-			      END IF
-			END IF
+			    call volume_solution_write
+			      if (outsurf.eq.1)then
+			      call surface_solution_write
+			      end if
+			    call checkpointing
+			      if (averaging.eq.1)then
+			      call volume_solution_write_av
+				if (outsurf.eq.1)then
+				  call surface_solution_write_av
+				end if	    
+				call checkpointing_av
+			      end if
+			end if
 			
-			!$OMP END MASTER
-			!$OMP BARRIER
+			!$omp end master
+			!$omp barrier
 			
-			IF (kill.eq.1)THEN
-			IF (itestcase.le.3)THEN  
+			if (kill.eq.1)then
+			if (itestcase.le.3)then  
 			
-			CALL CALCULATE_ERROR(n)
-			END IF			  
+			call calculate_error(n)
+			end if			  
 			  
 			return
-			END IF
-END do
+			end if
+end do
 		      
-END SUBROUTINE TIME_MARCHING
+end subroutine time_marching
 
 
 
-SUBROUTINE TIME_MARCHING2(N)
+subroutine time_marching2(n)
 !> @brief
-!> TIME MARCHING SUBROUTINE 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-real,dimension(1:5)::DUMMYOUT,DUMMYIN
-INTEGER::I,KMAXE
-REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK
+!> time marching subroutine 2d
+implicit none
+integer,intent(in)::n
+real,dimension(1:5)::dummyout,dummyin
+integer::i,kmaxe
+real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv1,totv2,dumetg1,dumetg2,totk
 real::dtiv,flort
-kmaxe=XMPIELRANK(n)
+kmaxe=xmpielrank(n)
 kill=0
-T=res_time
+t=res_time
 iscoun=1
 
-EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
+every_time=((idnint(t/output_freq)) * output_freq)+output_freq
 
 
 
 
-!$OMP MASTER
-CPUT1=CPUX1(1)
-CPUT4=CPUX1(1)
-CPUT5=CPUX1(1)
-CPUT8=CPUX1(1)
-!$OMP END MASTER
-!$OMP BARRIER
+!$omp master
+cput1=cpux1(1)
+cput4=cpux1(1)
+cput5=cpux1(1)
+cput8=cpux1(1)
+!$omp end master
+!$omp barrier
 
 
-IT=RESTART
-if (dg.eq.1)call SOL_INTEG_DG_init(N)
-!$OMP BARRIER
-!$OMP MASTER
+it=restart
+if (dg.eq.1)call sol_integ_dg_init(n)
+!$omp barrier
+!$omp master
 if (tecplot.lt.5)then
-  CALL GRID_WRITE
+  call grid_write
 end if
 
 
-CALL VOLUME_SOLUTION_WRITE
-IF (outsurf.eq.1)THEN
-    CALL SURF_WRITE
-END IF
+call volume_solution_write
+if (outsurf.eq.1)then
+    call surf_write
+end if
 
-IF ((Average_restart.eq.0).and.(averaging.eq.1)) THEN
-    Tz1=0.0
-ELSE
+if ((average_restart.eq.0).and.(averaging.eq.1)) then
+    tz1=0.0
+else
     tz1=t
-END IF
-!$OMP END MASTER
-!$OMP BARRIER
+end if
+!$omp end master
+!$omp barrier
 
-DO
-    CALL CALCULATE_CFL2D(N)
-    IF (RUNGEKUTTA.GE.5) CALL CALCULATE_CFLL2d(N)
+do
+    call calculate_cfl2d(n)
+    if (rungekutta.ge.5) call calculate_cfll2d(n)
 
-    IF (DG.EQ.1)THEN
-        DO I=1,KMAXE
-        ielem(n,i)%condition=0
-        IELEM(N,I)%TROUBLED=0
-        END DO
-    END IF
-
-
-    !$OMP MASTER
-    DUMMYOUT(1)=DT
-    CPUT2=MPI_WTIME()
-    TIMEC8=CPUT2-CPUT8
-    TIMEC1=CPUT2-CPUT1
-    DUMMYOUT(2)=TIMEC1
-    DUMMYIN=0.0d0
-    TIMEC3=CPUT2-CPUT4
-    DUMMYOUT(3)=TIMEC3
-    TIMEC4=CPUT2-CPUT5
-    DUMMYOUT(4)=TIMEC4
-    DUMMYOUT(5)=TIMEC8
-
-    CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-    DTIV=DUMMYIN(1)
-    DT=DUMMYIN(1)
-    TIMEC1=DUMMYIN(2)
-    TIMEC3=DUMMYIN(3)
-    TIMEC4=DUMMYIN(4)
-    TIMEC8=DUMMYIN(5)
-    IF (N.EQ.0)THEN
-        OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-        WRITE(63,*)DT,it,"TIME STEP SIZE",T
-        CLOSE(63)
-    END IF
+    if (dg.eq.1)then
+        do i=1,kmaxe
+        ielem_condition(i)=0
+        ielem_troubled(i)=0
+        end do
+    end if
 
 
+    !$omp master
+    dummyout(1)=dt
+    cput2=mpi_wtime()
+    timec8=cput2-cput8
+    timec1=cput2-cput1
+    dummyout(2)=timec1
+    dummyin=0.0d0
+    timec3=cput2-cput4
+    dummyout(3)=timec3
+    timec4=cput2-cput5
+    dummyout(4)=timec4
+    dummyout(5)=timec8
 
-    IF (INITCOND.eq.95)THEN
-        TOTK=0
-        DO I=1,KMAXE
-            TOTK=TOTK+IELEM(N,I)%TOTVOLUME*(1.0/2.0)*&
-                (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2))
-        END DO
+    call mpi_allreduce(dummyout,dummyin,5,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
+    dtiv=dummyin(1)
+    dt=dummyin(1)
+    timec1=dummyin(2)
+    timec3=dummyin(3)
+    timec4=dummyin(4)
+    timec8=dummyin(5)
+    if (n.eq.0)then
+        open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
+        write(63,*)dt,it,"time step size",t
+        close(63)
+    end if
+
+
+
+    if (initcond.eq.95)then
+        totk=0
+        do i=1,kmaxe
+            totk=totk+ielem_totvolume(i)*(1.0/2.0)*&
+                (((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2))
+        end do
 !
-        DUMEtg1=TOTK
-        DUMEtg2=0.0
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-        CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-        TOTK=DUMEtg2
-        IF (N.EQ.0)THEN
-!  				TOTV2=TOTK/((2.0*PI)**3)
-! 					IF (it.eq.0)THEN
-! 					TAYLOR=TOTK
-! 					END IF
-            IF (IT.EQ.0)THEN
-                OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-            ELSE
-                OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-            END IF
-            WRITE(73,*)T,TOTK
-            CLOSE(73)
-        END IF
+        dumetg1=totk
+        dumetg2=0.0
+        call mpi_barrier(mpi_comm_world,ierror)
+        call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+        totk=dumetg2
+        if (n.eq.0)then
+!  				totv2=totk/((2.0*pi)**3)
+! 					if (it.eq.0)then
+! 					taylor=totk
+! 					end if
+            if (it.eq.0)then
+                open(73,file='energy.dat',form='formatted',status='new',action='write',position='append')
+            else
+                open(73,file='energy.dat',form='formatted',status='old',action='write',position='append')
+            end if
+            write(73,*)t,totk
+            close(73)
+        end if
 
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    END IF
+        call mpi_barrier(mpi_comm_world,ierror)
+    end if
 
-     IF ((MULTISPECIES.EQ.1))THEN
-         IF((initcond.eq.405).or.(initcond.eq.411))THEN
-            ! IF ( mod(it, 20) .eq. 0)THEN
-                 CALL TRAJECTORIES
-            ! END IF
-         END IF
-     END IF
+     if ((multispecies.eq.1))then
+         if((initcond.eq.405).or.(initcond.eq.411))then
+            ! if ( mod(it, 20) .eq. 0)then
+                 call trajectories
+            ! end if
+         end if
+     end if
 
-    IF (rungekutta.GE.11)THEN
+    if (rungekutta.ge.11)then
         dt=timestep
-        DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-    ELSE
-        DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-    END IF
+        dt=min(dt,out_time-t,every_time-t)
+    else
+        dt=min(dt,out_time-t,every_time-t)
+    end if
 
 
-    !$OMP END MASTER
-    !$OMP BARRIER
+    !$omp end master
+    !$omp barrier
 
-                SELECT CASE(RUNGEKUTTA)
+                select case(rungekutta)
 
-                    CASE(1)
-                        CALL RUNGE_KUTTA1_2d(N)
+                    case(1)
+                        call runge_kutta1_2d(n)
 
-                    CASE(2)
-                        CALL RUNGE_KUTTA2_2d(N)
+                    case(2)
+                        call runge_kutta2_2d(n)
 
-                    CASE(3)
-                        IF (MOOD.EQ.1)THEN
-                            CALL RUNGE_KUTTA3_2D_MOOD(N)
-                        ELSE
-                            CALL RUNGE_KUTTA3_2D(N)
-                        END IF
+                    case(3)
+                        if (mood.eq.1)then
+                            call runge_kutta3_2d_mood(n)
+                        else
+                            call runge_kutta3_2d(n)
+                        end if
 
-                    CASE(4)
-                        CALL RUNGE_KUTTA4_2D(N)
+                    case(4)
+                        call runge_kutta4_2d(n)
 
-                    CASE(5)
-                        CALL RUNGE_KUTTA5_2D(N)
+                    case(5)
+                        call runge_kutta5_2d(n)
 
-                    CASE(10)
-                        CALL IMPLICIT_TIMEs_2d(N)
+                    case(10)
+                        call implicit_times_2d(n)
 
-                    CASE(11)
-                        CALL dual_TIME_2d(N)
+                    case(11)
+                        call dual_time_2d(n)
 
-                    CASE(12)
-                        CALL dual_TIME_EX_2D(N)
+                    case(12)
+                        call dual_time_ex_2d(n)
 
-                END SELECT
+                end select
 
-          if (dg.eq.1)call SOL_INTEG_DG(N)
+          if (dg.eq.1)call sol_integ_dg(n)
 
+          if (rungekutta.eq.3)then
+          if  (realgas.eq.1)then
+          if (rg_relax.eq.1)then
+          !$omp do
+          do i=1,kmaxe
+          call sources_realgas_pi(n,i)
 
-
-! Increment time
-    !$OMP BARRIER
-    !$OMP MASTER
-    IF (rungekutta.GE.11)THEN
-        T=T+(DT)
-        Tz1=Tz1+(DT)
-    ELSE
-        T=T+DT
-        tz1=tz1+DT
-    END IF
-
-
-          IF (DG.EQ.1)THEN
-          IF (CODE_PROFILE.ne.102)THEN
-          IF ( mod(it, 100) .eq. 0) THEN
-            CALL TROUBLED_HISTORY
-          END IF
+          end do
+          !$omp end do
           end if
-          END IF
-
-
-          IF (mood.gt.0)THEN
-          CALL TROUBLED_HISTORY
+          end if
           end if
 
+!           if (realgas.eq.1) call normalise_species(n)
+          
+
+
+! increment time
+    !$omp barrier
+    !$omp master
+    if (rungekutta.ge.11)then
+        t=t+(dt)
+        tz1=tz1+(dt)
+    else
+        t=t+dt
+        tz1=tz1+dt
+
+end if    
+
+        
 
 
 
-! Write output
+          if (dg.eq.1)then
+          if (code_profile.ne.102)then
+          if ( mod(it, 100) .eq. 0) then
+            call troubled_history
+          end if
+          end if
+          end if
 
-    !$OMP END MASTER
-    !$OMP BARRIER
-    IF ( mod(it, IForce) .eq. 0) THEN
-        IF (OUTSURF.EQ.1) THEN
+           if ( mod(it, 20) .eq. 0) then
+            call reduced_history
+          end if
 
-            CALL forces
-        END IF
-    END IF
-
-    IF ((rungekutta.ge.5).and.(rungekutta.lt.11))THEN
-        IF ( mod(it, residualfreq) .eq. 0) THEN
-
-            CALL RESIDUAL_COMPUTE
-        END IF
-    END IF
+          if (mood.gt.0)then
+          call troubled_history
+          end if
 
 
-    !$OMP MASTER
-    IF (NPROBES.GT.0) CALL PROBING2D
 
-    IF (TIMEC1.GE.IEVERY)THEN
+
+! write output
+
+    !$omp end master
+    !$omp barrier
+    if ( mod(it, iforce) .eq. 0) then
+        if (outsurf.eq.1) then
+
+            call forces
+        end if
+    end if
+
+    if ((rungekutta.ge.5).and.(rungekutta.lt.11))then
+        if ( mod(it, residualfreq) .eq. 0) then
+
+            call residual_compute
+        end if
+    end if
+
+
+    !$omp master
+    if (nprobes.gt.0) call probing2d
+
+    if (timec1.ge.ievery)then
 !
-        CALL VOLUME_SOLUTION_WRITE
-        IF (outsurf.eq.1)THEN
-            CALL surface_SOLUTION_WRITE
-        END IF
-    CPUT1=MPI_WTIME()
-    END IF
+        call volume_solution_write
+        if (outsurf.eq.1)then
+            call surface_solution_write
+        end if
+    cput1=mpi_wtime()
+    end if
 
 
-    IF (TIMEC8.GE.IEVERYAV)THEN
-        IF (AVERAGING.EQ.1)THEN
-            CALL VOLUME_SOLUTION_WRITE_av
-            IF (outsurf.eq.1)THEN
-                CALL surface_SOLUTION_WRITE_av
-            END IF
-        END IF
-        CPUT8=MPI_WTIME()
-    END IF
+    if (timec8.ge.ieveryav)then
+        if (averaging.eq.1)then
+            call volume_solution_write_av
+            if (outsurf.eq.1)then
+                call surface_solution_write_av
+            end if
+        end if
+        cput8=mpi_wtime()
+    end if
 
-            IF (CODE_PROFILE.EQ.-1)THEN
+            if (code_profile.eq.-1)then
 
 
 
-			if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
+			if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
 
-                CALL VOLUME_SOLUTION_WRITE
+                call volume_solution_write
 			     if (outsurf.eq.1)then
-			    call surface_SOLUTION_WRITE
+			    call surface_solution_write
 			    end if
-			EVERY_TIME=EVERY_TIME+output_freq
-            END IF
-            END IF
+			every_time=every_time+output_freq
+            end if
+            end if
+
+        if (timec4.ge.ievery2)then
+			    call checkpointing
+			      if (averaging.eq.1)then
+				call checkpointing_av
+			      end if
+
+			  cput5=mpi_wtime()
+
+			end if
+
+
+! check end condition
+
+    !$omp end master
+    !$omp barrier
 
 
 
+          !$omp master
+			it=it+1
 
-! Check end condition
+			if ((it.eq.ntmax).or.(timec3.ge.wallc).or.(dtiv.gt.out_time))then
+			 kill=1
+			end if
 
-    !$OMP END MASTER
-    !$OMP BARRIER
-
-
-
-          !$OMP MASTER
-			IT=IT+1
-
-			IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC).OR.(DTiv.GT.OUT_TIME))THEN
-			 KILL=1
-			END IF
-
-			IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
-			IF ((T.GE.OUT_TIME).OR.(DTiv.GT.OUT_TIME))THEN
-			KILL=1
-			END IF
-			END IF
-			!$OMP END MASTER
-			!$OMP BARRIER
+			if ((rungekutta.lt.5).or.(rungekutta.ge.11))then
+			if ((t.ge.out_time).or.(dtiv.gt.out_time))then
+			kill=1
+			end if
+			end if
+			!$omp end master
+			!$omp barrier
 
 
-        !$OMP MASTER
-			IF (kill.eq.1)THEN
+        !$omp master
+			if (kill.eq.1)then
 
-			    CALL VOLUME_SOLUTION_WRITE
-			      IF (outsurf.eq.1)THEN
-			      CALL surface_SOLUTION_WRITE
-			      END IF
-			    CALL CHECKPOINTING
-			      IF (AVERAGING.EQ.1)THEN
-			      CALL VOLUME_SOLUTION_WRITE_av
-				IF (outsurf.eq.1)THEN
-				  CALL surface_SOLUTION_WRITE_av
-				END IF
-				CALL CHECKPOINTING_av
-			      END IF
-			END IF
+			    call volume_solution_write
+			      if (outsurf.eq.1)then
+			      call surface_solution_write
+			      end if
+			    call checkpointing
+			      if (averaging.eq.1)then
+			      call volume_solution_write_av
+				if (outsurf.eq.1)then
+				  call surface_solution_write_av
+				end if
+				call checkpointing_av
+			      end if
+			end if
 
-			!$OMP END MASTER
-			!$OMP BARRIER
+			!$omp end master
+			!$omp barrier
 
-			IF (kill.eq.1)THEN
-			IF (itestcase.le.3)THEN
+			if (kill.eq.1)then
+			if (itestcase.le.3)then
 
-			CALL CALCULATE_ERROR(n)
-			END IF
+			call calculate_error(n)
+			end if
 
 			return
-			END IF
+			end if
 
 
 
 
 
 
-END DO
+end do
 
-END SUBROUTINE TIME_MARCHING2
+end subroutine time_marching2
 
 
 
 
 
 !---------------------------------------------------------------------------------------------!
-END MODULE ADVANCE
+end module advance

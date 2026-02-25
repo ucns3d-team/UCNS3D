@@ -1,206 +1,206 @@
- MODULE LAPCK
- USE MPIINFO
- USE DECLARATION
-  IMPLICIT NONE
+ module lapck
+ use mpiinfo
+ use declaration
+  implicit none
 
-  CONTAINS
+  contains
  
-  REAL FUNCTION LXNORM(XQR,PDIM)
-  IMPLICIT NONE
-   INTEGER, INTENT(IN) :: PDIM
-   REAL,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XQR
-   INTEGER I
+  real function lxnorm(xqr,pdim)
+  implicit none
+   integer, intent(in) :: pdim
+   real,allocatable,dimension(:),intent(in)::xqr
+   integer i
  
-    LXNORM = 0.0d0
-    DO I=1,PDIM
-     LXNORM = LXNORM + XQR(I)**2
-    ENDDO
-    LXNORM = SQRT(LXNORM)
-  END FUNCTION
+    lxnorm = 0.0d0
+    do i=1,pdim
+     lxnorm = lxnorm + xqr(i)**2
+    enddo
+    lxnorm = sqrt(lxnorm)
+  end function
   
   
-  ! CONSTRUCT A HOUSEHOLDER VECTOR V THAT 
-  ! ANNIHILATES ALL BUT THE FIRST COMPONENT OF X
-  SUBROUTINE HOUSE(XQR,VQR1,PDIM)
-	IMPLICIT NONE
-    INTEGER, INTENT(IN) :: PDIM
-    REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XQR
-    REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::VQR1
+  ! construct a householder vector v that 
+  ! annihilates all but the first component of x
+  subroutine house(xqr,vqr1,pdim)
+	implicit none
+    integer, intent(in) :: pdim
+    real,allocatable,dimension(:),intent(inout)::xqr
+    real,allocatable,dimension(:),intent(inout)::vqr1
 
-    VQR1 = XQR
-    VQR1(1) = XQR(1) + SIGN(1.0,XQR(1))*LXNORM(XQR,PDIM)
+    vqr1 = xqr
+    vqr1(1) = xqr(1) + sign(1.0,xqr(1))*lxnorm(xqr,pdim)
     
-  END SUBROUTINE
+  end subroutine
 
 
-  ! CONSTRUCT A HOUSEHOLDER REFLECTION MATRIX
-  ! FROM A HOUSEHOLDER VECTOR V 
-  SUBROUTINE COMPUTEHOUSEMATRIX(PQR,VQR,IDEG)
-	IMPLICIT NONE
-    INTEGER, INTENT(IN) :: IDEG
-    REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::PQR
-    REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::VQR
-    REAL ::VNORM
-    INTEGER:: I,J
+  ! construct a householder reflection matrix
+  ! from a householder vector v 
+  subroutine computehousematrix(pqr,vqr,ideg)
+	implicit none
+    integer, intent(in) :: ideg
+    real,allocatable,dimension(:,:),intent(inout)::pqr
+    real,allocatable,dimension(:),intent(inout)::vqr
+    real ::vnorm
+    integer:: i,j
 
-    PQR = 0.0d0
-    DO I=1,IDEG
-      PQR(I,I) = 1.0D0
-    ENDDO
+    pqr = 0.0d0
+    do i=1,ideg
+      pqr(i,i) = 1.0d0
+    enddo
    
-    VNORM = LXNORM(VQR,ideg)
-    VQR = VQR/VNORM
+    vnorm = lxnorm(vqr,ideg)
+    vqr = vqr/vnorm
     
-    DO I=1,IDEG
-    DO J=1,IDEG
-      PQR(I,J) = PQR(I,J) - 2.0d0*VQR(I)*VQR(J)
-    ENDDO
-    ENDDO
+    do i=1,ideg
+    do j=1,ideg
+      pqr(i,j) = pqr(i,j) - 2.0d0*vqr(i)*vqr(j)
+    enddo
+    enddo
     
-  END SUBROUTINE
+  end subroutine
 
  !%%%%%%%%%%%%%%%%%%
-  SUBROUTINE TRANSPOSEMATRIX(QFF,QTFF,IDEG)
-	IMPLICIT NONE
-    INTEGER, INTENT(IN) :: IDEG
-    REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(IN) :: QFF
-    REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT) :: QTFF
-    INTEGER I,J
-    DO I=1,IDEG
-    DO J=1,IDEG
-      QTFF (I,J) = QFF(J,I)
-    ENDDO
-    ENDDO
-  END SUBROUTINE
+  subroutine transposematrix(qff,qtff,ideg)
+	implicit none
+    integer, intent(in) :: ideg
+    real,allocatable,dimension(:,:),intent(in) :: qff
+    real,allocatable,dimension(:,:),intent(inout) :: qtff
+    integer i,j
+    do i=1,ideg
+    do j=1,ideg
+      qtff (i,j) = qff(j,i)
+    enddo
+    enddo
+  end subroutine
   
   
   
-  SUBROUTINE TRANSPOSEMATRIX_DG(QFF_DG,QTFF_DG,IDEG)
-	IMPLICIT NONE
-    INTEGER, INTENT(IN) :: IDEG
-    REAL,allocatable,DIMENSION(:,:),INTENT(IN) :: QFF_DG
-    REAL,allocatable,DIMENSION(:,:),INTENT(INOUT) :: QTFF_DG
-    INTEGER I,J
-    DO I=1,IDEG
-    DO J=1,IDEG
-      QTFF_DG (I,J) = QFF_DG(J,I)
-    ENDDO
-    ENDDO
-  END SUBROUTINE
+  subroutine transposematrix_dg(qff_dg,qtff_dg,ideg)
+	implicit none
+    integer, intent(in) :: ideg
+    real,allocatable,dimension(:,:),intent(in) :: qff_dg
+    real,allocatable,dimension(:,:),intent(inout) :: qtff_dg
+    integer i,j
+    do i=1,ideg
+    do j=1,ideg
+      qtff_dg (i,j) = qff_dg(j,i)
+    enddo
+    enddo
+  end subroutine
 
 
-  ! QR DECOMPOSITION
-  SUBROUTINE  QRDECOMPOSITION(LSCQM,QFF,RFF,IDEG)
-	IMPLICIT NONE
-    INTEGER, INTENT(IN) :: IDEG
-    REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(IN) :: LSCQM
-    REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT) ::  QFF,RFF
-    REAL::IDENTITY(IDEG,IDEG)
-    REAL:: TEST(IDEG)
-    INTEGER:: I,J,L,pdim
-    REAL,ALLOCATABLE,DIMENSION(:)::XQR
-    REAL,ALLOCATABLE,DIMENSION(:,:)::PQR
-    REAL,ALLOCATABLE,DIMENSION(:)::VQR
-    REAL,ALLOCATABLE,DIMENSION(:)::VQR1
+  ! qr decomposition
+  subroutine  qrdecomposition(lscqm,qff,rff,ideg)
+	implicit none
+    integer, intent(in) :: ideg
+    real,allocatable,dimension(:,:),intent(in) :: lscqm
+    real,allocatable,dimension(:,:),intent(inout) ::  qff,rff
+    real::identity(ideg,ideg)
+    real:: test(ideg)
+    integer:: i,j,l,pdim
+    real,allocatable,dimension(:)::xqr
+    real,allocatable,dimension(:,:)::pqr
+    real,allocatable,dimension(:)::vqr
+    real,allocatable,dimension(:)::vqr1
     
-    IDENTITY(1:IDEG,1:IDEG) = 0.0d0
-    QFF(1:IDEG,1:IDEG)=0.0D0
-    RFF(1:IDEG,1:IDEG)=0.0D0
-    DO I=1,IDEG
-      IDENTITY(I,I) = 1.0D0
-    ENDDO
+    identity(1:ideg,1:ideg) = 0.0d0
+    qff(1:ideg,1:ideg)=0.0d0
+    rff(1:ideg,1:ideg)=0.0d0
+    do i=1,ideg
+      identity(i,i) = 1.0d0
+    enddo
 
     
-    QFF(1:IDEG,1:IDEG) = IDENTITY(1:IDEG,1:IDEG)
-    RFF(1:IDEG,1:IDEG) = LSCQM(1:IDEG,1:IDEG)
+    qff(1:ideg,1:ideg) = identity(1:ideg,1:ideg)
+    rff(1:ideg,1:ideg) = lscqm(1:ideg,1:ideg)
     
-    ALLOCATE(PQR(1:IDEG,1:IDEG),VQR(1:IDEG));PQR=0.0D0;VQR=0.0D0
+    allocate(pqr(1:ideg,1:ideg),vqr(1:ideg));pqr=0.0d0;vqr=0.0d0
 
-    DO L=1,IDEG
-     ! ALLOCATE VECTOR AND REFLECTION MATRIX
-     PDIM = IDEG-L+1
-     ALLOCATE(VQR1(1:PDIM),XQR(1:PDIM)) 
-     XQR = RFF(L:IDEG,L)
-     ! COMPUTE THE PARTIAL VECTOR    
-     CALL HOUSE(XQR,VQR1,PDIM)
-     VQR(1:IDEG) = 0.0d0
-     VQR(L:IDEG) = VQR1
+    do l=1,ideg
+     ! allocate vector and reflection matrix
+     pdim = ideg-l+1
+     allocate(vqr1(1:pdim),xqr(1:pdim)) 
+     xqr = rff(l:ideg,l)
+     ! compute the partial vector    
+     call house(xqr,vqr1,pdim)
+     vqr(1:ideg) = 0.0d0
+     vqr(l:ideg) = vqr1
     
      
      
-     ! COMPUTE THE REFLECTION MATRIX
-     CALL COMPUTEHOUSEMATRIX(PQR,VQR,IDEG)
-     ! CONSTRUCT THE Q(L) MATRIX
+     ! compute the reflection matrix
+     call computehousematrix(pqr,vqr,ideg)
+     ! construct the q(l) matrix
      
-     RFF(1:IDEG,1:IDEG) = MATMUL(PQR(1:IDEG,1:IDEG),RFF(1:IDEG,1:IDEG))
-     QFF(1:IDEG,1:IDEG) = MATMUL(QFF(1:IDEG,1:IDEG),PQR(1:IDEG,1:IDEG))
+     rff(1:ideg,1:ideg) = matmul(pqr(1:ideg,1:ideg),rff(1:ideg,1:ideg))
+     qff(1:ideg,1:ideg) = matmul(qff(1:ideg,1:ideg),pqr(1:ideg,1:ideg))
     
-     DEALLOCATE(VQR1,XQR)
-    ENDDO
+     deallocate(vqr1,xqr)
+    enddo
 
-    DEALLOCATE(PQR,VQR)
+    deallocate(pqr,vqr)
 
 
 
  
-  END SUBROUTINE
+  end subroutine
   
   
   
-  SUBROUTINE  QRDECOMPOSITION_DG(LSCQM_DG,QFF_DG,RFF_DG,IDEG)
-	IMPLICIT NONE
-    INTEGER, INTENT(IN) :: IDEG
-    REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(IN) :: LSCQM_DG
-    REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT) ::  QFF_DG,RFF_DG
-    REAL::IDENTITY(IDEG,IDEG)
-    REAL:: TEST(IDEG)
-    INTEGER:: I,J,L,pdim
-    REAL,ALLOCATABLE,DIMENSION(:)::XQR
-    REAL,ALLOCATABLE,DIMENSION(:,:)::PQR
-    REAL,ALLOCATABLE,DIMENSION(:)::VQR
-    REAL,ALLOCATABLE,DIMENSION(:)::VQR1
+  subroutine  qrdecomposition_dg(lscqm_dg,qff_dg,rff_dg,ideg)
+	implicit none
+    integer, intent(in) :: ideg
+    real,allocatable,dimension(:,:),intent(in) :: lscqm_dg
+    real,allocatable,dimension(:,:),intent(inout) ::  qff_dg,rff_dg
+    real::identity(ideg,ideg)
+    real:: test(ideg)
+    integer:: i,j,l,pdim
+    real,allocatable,dimension(:)::xqr
+    real,allocatable,dimension(:,:)::pqr
+    real,allocatable,dimension(:)::vqr
+    real,allocatable,dimension(:)::vqr1
 
     
-    IDENTITY(1:IDEG,1:IDEG) = 0.0d0
-    QFF_dG(1:IDEG,1:IDEG)=0.0D0
-    RFF_DG(1:IDEG,1:IDEG)=0.0D0
-    DO I=1,IDEG
-      IDENTITY(I,I) = 1.0D0
-    ENDDO
+    identity(1:ideg,1:ideg) = 0.0d0
+    qff_dg(1:ideg,1:ideg)=0.0d0
+    rff_dg(1:ideg,1:ideg)=0.0d0
+    do i=1,ideg
+      identity(i,i) = 1.0d0
+    enddo
 
     
-    QFF_DG(1:IDEG,1:IDEG) = IDENTITY(1:IDEG,1:IDEG)
-    RFF_DG(1:IDEG,1:IDEG) = LSCQM_DG(1:IDEG,1:IDEG)
+    qff_dg(1:ideg,1:ideg) = identity(1:ideg,1:ideg)
+    rff_dg(1:ideg,1:ideg) = lscqm_dg(1:ideg,1:ideg)
     
-    ALLOCATE(PQR(1:IDEG,1:IDEG),VQR(1:IDEG));PQR=0.0D0;VQR=0.0D0
+    allocate(pqr(1:ideg,1:ideg),vqr(1:ideg));pqr=0.0d0;vqr=0.0d0
 
-    DO L=1,IDEG
-     ! ALLOCATE VECTOR AND REFLECTION MATRIX
-     PDIM = IDEG-L+1
-     ALLOCATE(VQR1(1:PDIM),XQR(1:PDIM)) 
-     XQR = RFF_DG(L:IDEG,L)
-     ! COMPUTE THE PARTIAL VECTOR    
-     CALL HOUSE(XQR,VQR1,PDIM)
-     VQR(1:IDEG) = 0.0d0
-     VQR(L:IDEG) = VQR1
+    do l=1,ideg
+     ! allocate vector and reflection matrix
+     pdim = ideg-l+1
+     allocate(vqr1(1:pdim),xqr(1:pdim)) 
+     xqr = rff_dg(l:ideg,l)
+     ! compute the partial vector    
+     call house(xqr,vqr1,pdim)
+     vqr(1:ideg) = 0.0d0
+     vqr(l:ideg) = vqr1
     
      
      
-     ! COMPUTE THE REFLECTION MATRIX
-     CALL COMPUTEHOUSEMATRIX(PQR,VQR,IDEG)
-     ! CONSTRUCT THE Q(L) MATRIX
+     ! compute the reflection matrix
+     call computehousematrix(pqr,vqr,ideg)
+     ! construct the q(l) matrix
      
-     RFF_DG(1:IDEG,1:IDEG) = MATMUL(PQR(1:IDEG,1:IDEG),RFF_DG(1:IDEG,1:IDEG))
-     QFF_DG(1:IDEG,1:IDEG) = MATMUL(QFF_DG(1:IDEG,1:IDEG),PQR(1:IDEG,1:IDEG))
+     rff_dg(1:ideg,1:ideg) = matmul(pqr(1:ideg,1:ideg),rff_dg(1:ideg,1:ideg))
+     qff_dg(1:ideg,1:ideg) = matmul(qff_dg(1:ideg,1:ideg),pqr(1:ideg,1:ideg))
     
-     DEALLOCATE(VQR1,XQR)
-    ENDDO
+     deallocate(vqr1,xqr)
+    enddo
 
-    DEALLOCATE(PQR,VQR)
+    deallocate(pqr,vqr)
 
 
 
  
-  END SUBROUTINE
+  end subroutine
 
- END MODULE
+ end module

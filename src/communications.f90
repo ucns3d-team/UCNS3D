@@ -1,44 +1,40 @@
-MODULE COMMUNICATIONS
+module communications
 !> @brief
-!> This module includes all the subroutines related to the MPI communications for various procedures
+!> this module includes all the subroutines related to the mpi communications for various procedures
 !> including exchange of halo cells from stencils, direct-side neighbours, and the boundary extrapolated
-!> values for the conserved variables and their gradients at each surface/edge Gaussian quadrature point
+!> values for the conserved variables and their gradients at each surface/edge gaussian quadrature point
 
-USE MPIINFO
-USE DECLARATION
-USE TRANSFORM
-IMPLICIT NONE
+use mpiinfo
+use declaration
+use transform
+implicit none
 
 contains
 
-SUBROUTINE RENUMBER_NEIGHBOURS(N,IELEM,XMPIE,XMPIELRANK,IEXCHANGER,IEXCHANGES)
+subroutine renumber_neighbours(n,xmpie,xmpielrank,diexchanger,diexchanges)
 !> @brief
-!> This subroutine renumbers the neighbours indexing for cross referencing between different cpus
-!> It is a process that is performed once the beginning of each run
+!> this subroutine renumbers the neighbours indexing for cross referencing between different cpus
+!> it is a process that is performed once the beginning of each run
 
-IMPLICIT NONE
-TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
-INTEGER,INTENT(IN)::N
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
-TYPE(EXCHANGE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXCHANGER,IEXCHANGES
-INTEGER::I,J,K,L,M,E,KMAXE,INEEDT,TNEEDT,IX1,IX2,CNBT,IVT,itax,inum_points,inn,jjj,kk,itogg,ifdn,ifdn2,ifdn3,iii,iouf,JJ1
+implicit none
+integer,intent(in)::n
+integer,allocatable,dimension(:),intent(in)::xmpie
+integer,allocatable,dimension(:),intent(in)::xmpielrank
+type(aexchange),allocatable,dimension(:),intent(inout)::diexchanger,diexchanges
+integer::i,j,k,l,m,e,kmaxe,ineedt,tneedt,ix1,ix2,cnbt,ivt,itax,inum_points,inn,jjj,kk,itogg,ifdn,ifdn2,ifdn3,iii,iouf,jj1
 integer::c_n1,c_n2,c_n3,c_n4,d_n1,d_n2,d_n3,d_n4,kvf,itor4
-INEEDT=IEXCHANGER(1)%TOT
-TNEEDT=IEXCHANGES(1)%TOT
-KMAXE=XMPIELRANK(N)
-DO I=1,KMAXE
-	if (ielem(n,i)%interior.eq.1)then
-	allocate(ielem(n,i)%ineighn(ielem(n,i)%ifca))
-	allocate(ielem(n,i)%ineighb(ielem(n,i)%ifca))
-	allocate(ielem(n,i)%ineigh(ielem(n,i)%ifca))
-	ielem(n,i)%ineigh(:)=0;ielem(n,i)%ineighn(:)=0;ielem(n,i)%ineighb(:)=n
+ineedt=diexchanger(1)%tot
+tneedt=diexchanges(1)%tot
+kmaxe=xmpielrank(n)
+do i=1,kmaxe
+	if (ielem_interior(i).eq.1)then
+
+	ielem_ineigh(:,i)=0;ielem_ineighn(:,i)=0;ielem_ineighb(:,i)=n
 	else
-	allocate(ielem(n,i)%ineighn(ielem(n,i)%ifca))
-	allocate(ielem(n,i)%ineigh(ielem(n,i)%ifca))
-	ielem(n,i)%ineighn(:)=0;ielem(n,i)%ineigh(:)=0;
+
+	ielem_ineighn(:,i)=0;ielem_ineigh(:,i)=0;
 	end if
-END DO
+end do
 
 
 if (dimensiona.eq.3)then
@@ -48,27 +44,27 @@ else
 end if
 
 
-DO I=1,KMAXE
-      if (ielem(n,i)%interior.eq.0)then
-	DO J=1,IELEM(N,I)%IFCA
-		IF (IELEM(N,I)%INEIGHG(J).GT.0)THEN
-			IF (XMPIE(IELEM(N,I)%INEIGHG(J)).EQ.N)THEN
+do i=1,kmaxe
+      if (ielem_interior(i).eq.0)then
+	do j=1,ielem_ifca(i)
+		if (ielem_ineighg(j,i).gt.0)then
+			if (xmpie(ielem_ineighg(j,i)).eq.n)then
 			
-			K=xmpil(IELEM(N,I)%INEIGHG(J))
-			do ivt=1,ielem(n,K)%ifca
-							IF (IELEM(N,K)%INEIGHG(IVT).EQ.IELEM(N,I)%IHEXGL) THEN
-							IELEM(N,I)%INEIGH(J)=xmpil(IELEM(N,I)%INEIGHG(J))
-							IELEM(N,I)%INEIGHN(J)=IVT
+			k=xmpil(ielem_ineighg(j,i))
+			do ivt=1,ielem_ifca(k)
+							if (ielem_ineighg(ivt,k).eq.ielem_ihexgl(i)) then
+							ielem_ineigh(j,i)=xmpil(ielem_ineighg(j,i))
+							ielem_ineighn(j,i)=ivt
 							go to 101
-							END IF
+							end if
 			end do
-			END IF
-		END IF
+			end if
+		end if
 	101 continue
 		
-	END DO
+	end do
       end if
-END DO
+end do
 
 
 
@@ -76,24 +72,24 @@ END DO
 
 
 do i=1,kmaxe
-if (ielem(n,i)%interior.eq.1)then
-DO J=1,IELEM(N,I)%IFCA
+if (ielem_interior(i).eq.1)then
+do j=1,ielem_ifca(i)
 itax=0
-	IF ((IELEM(N,I)%INEIGHG(J).GT.0))then
-	    if(XMPIE(IELEM(N,I)%INEIGHG(J)).NE.N)THEN
-	      IELEM(N,I)%INEIGHB(J)=XMPIE(IELEM(N,I)%INEIGHG(J))
+	if ((ielem_ineighg(j,i).gt.0))then
+	    if(xmpie(ielem_ineighg(j,i)).ne.n)then
+	      ielem_ineighb(j,i)=xmpie(ielem_ineighg(j,i))
 	     
-	    eLSE
+	    else
 			      
-				    K=xmpil(IELEM(N,I)%INEIGHG(J))
+				    k=xmpil(ielem_ineighg(j,i))
     ! 				  
-				    do ivt=1,ielem(n,K)%ifca
-							  IF (IELEM(N,K)%INEIGHG(IVT).EQ.IELEM(N,i)%Ihexgl) THEN
+				    do ivt=1,ielem_ifca(k)
+							  if (ielem_ineighg(ivt,k).eq.ielem_ihexgl(i)) then
     ! 							
-							    IELEM(N,I)%INEIGH(J)=k
-							    IELEM(N,I)%INEIGHN(J)=IVT
-							    IELEM(N,I)%INEIGHb(J)=n
-							    END IF
+							    ielem_ineigh(j,i)=k
+							    ielem_ineighn(j,i)=ivt
+							    ielem_ineighb(j,i)=n
+							    end if
 			    
 				    end do  
 
@@ -114,48 +110,53 @@ end do
 
 
 
-JJ1=0
-DO K=1,INEEDT
-DO IX1=1,TNEEDT
-DO E=1,IEXCHANGER(K)%MUCHINEED(1)
-DO IX2=1,IEXCHANGES(IX1)%MUCHTHEYNEED(1)
-IF ((IEXCHANGES1(IX1)%WHATTHEYNEED(IX2).EQ.IEXCHANGER1(K)%SIDEINEEDN(E)).AND.&
-(IEXCHANGES1(IX1)%SIDETHEYNEEDN(IX2).EQ.IEXCHANGER1(K)%WHATINEED(E)))then
+jj1=0
+do k=1,ineedt
+do ix1=1,tneedt
+do e=1,diexchanger(k)%muchineed(1)
+do ix2=1,diexchanges(ix1)%muchtheyneed(1)
 
-I=xmpil(IEXCHANGER1(K)%sideineedn(E))
+
+if ((diexchanges1(ix1)%whattheyneed(ix2).eq.diexchanger1(k)%sideineedn(e)).and.&
+(diexchanges1(ix1)%sidetheyneedn(ix2).eq.diexchanger1(k)%whatineed(e)))then		!if 1
+
+i=xmpil(diexchanger1(k)%sideineedn(e))
 ! do i=1,kmaxe
-  if (ielem(n,i)%interior.eq.1)then
-    DO J=1,IELEM(N,I)%IFCA
-	  if (ielem(n,i)%ineighb(j).ne.n)then
+  if (ielem_interior(i).eq.1)then												!if 2
+    do j=1,ielem_ifca(i)
+	  if (ielem_ineighb(j,i).ne.n)then										!if 3
 	  
-	    if (ielem(n,i)%ibounds(J).gt.0)then
-		if ((ibound(n,ielem(n,i)%ibounds(j))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(j))%icode.eq.50))then
-		    if (dimensiona.eq.3)then
-			IF ( IELEM(N,i)%TYPEs_FACES(J).EQ.5)THEN
-			    INUM_POINTS=QP_QUAD_n
-			  ELSE
-			    INUM_POINTS=QP_TRIANGLE_n
-			 End if
-		    else
-			    INUM_POINTS=QP_LINE_n
-		    END IF
+	    if (ielem_ibounds(j,i).gt.0)then										!if 4
+		if ((ibound_icode(ielem_ibounds(j,i)).eq.5).or.(ibound_icode(ielem_ibounds(j,i)).eq.50))then		!if 5
+		    if (dimensiona.eq.3)then											!if 6
+				if ( ielem_types_faces(j,i).eq.5)then							!if 7
+					inum_points=qp_quad_n
+				else
+					inum_points=qp_triangle_n
+				end if
+			else
+					inum_points=qp_line_n
+			end if																!end if6
 		    
 		   
 		    
 
 
 
-IF ((IEXCHANGER(K)%PROCID.EQ.IELEM(N,I)%ineighb(J)).and. (IEXCHANGES(IX1)%PROCID.EQ.IELEM(N,I)%ineighb(J)))THEN
-if ((IEXCHANGES1(IX1)%SIDETHEYNEEDN(IX2).EQ.IELEM(N,I)%ineighg(J)).AND.&
-(IELEM(N,I)%ineighg(J).EQ.IEXCHANGER1(K)%WHATINEED(E)))then
+if ((diexchanger(k)%procid.eq.ielem_ineighb(j,i)).and. (diexchanges(ix1)%procid.eq.ielem_ineighb(j,i)))then		!if
+if ((diexchanges1(ix1)%sidetheyneedn(ix2).eq.ielem_ineighg(j,i)).and.&
+(ielem_ineighg(j,i).eq.diexchanger1(k)%whatineed(e)))then
  do inn=1,inum_points
-IF ((IEXCHANGES1(IX1)%WHATTHEYNEED(IX2).EQ.IELEM(N,I)%IHEXGL).and.(IEXCHANGES1(IX1)%QTHEYNEED(IX2).EQ.IEXCHANGER1(K)%QINEED(E)).and.(inn.eq.IEXCHANGES1(IX1)%QTHEYNEED(IX2)))then
-IELEM(N,I)%Q_FACE(J)%Q_MAPL(INN)=E
-IELEM(N,I)%INEIGHN(J)=K
-IEXCHANGEs(ix1)%SIDEtheyNEED(ix2)=j
+if ((diexchanges1(ix1)%whattheyneed(ix2).eq.ielem_ihexgl(i)).and.(diexchanges1(ix1)%qtheyneed(ix2).eq.diexchanger1(k)%qineed(e)).and.(inn.eq.diexchanges1(ix1)%qtheyneed(ix2)))then
 
-JJ1=JJ1+1
-END IF
+ielem_qface(j,inn,ielem_inter_id(ielem_indexf(i)))=e
+
+! ielem_q_face_q_mapl(inn,j,i)=e
+ielem_ineighn(j,i)=k
+diexchanges(ix1)%sidetheyneed(ix2)=j
+
+jj1=jj1+1
+end if
 end do
 end if
 end if
@@ -169,44 +170,47 @@ end if
 else
 
 if (dimensiona.eq.3)then
-			IF ( IELEM(N,i)%TYPEs_FACES(J).EQ.5)THEN
-			    INUM_POINTS=QP_QUAD_n
-			  ELSE
-			    INUM_POINTS=QP_TRIANGLE_n
-			 End if
+			if ( ielem_types_faces(j,i).eq.5)then
+			    inum_points=qp_quad_n
+			  else
+			    inum_points=qp_triangle_n
+			 end if
 		    else
-			    INUM_POINTS=QP_LINE_n
-		    END IF
+			    inum_points=qp_line_n
+		    end if
 		    
 		    
 
 
 
-IF ((IEXCHANGER(K)%PROCID.EQ.IELEM(N,I)%INEIGHB(J)).and. (IEXCHANGES(IX1)%PROCID.EQ.IELEM(N,I)%INEIGHB(J)))THEN
-if ((IEXCHANGES1(IX1)%SIDETHEYNEEDN(IX2).EQ.IELEM(N,I)%INEIGHG(J)).AND.&
-(IELEM(N,I)%INEIGHG(J).EQ.IEXCHANGER1(K)%WHATINEED(E)))then
+if ((diexchanger(k)%procid.eq.ielem_ineighb(j,i)).and. (diexchanges(ix1)%procid.eq.ielem_ineighb(j,i)))then
+if ((diexchanges1(ix1)%sidetheyneedn(ix2).eq.ielem_ineighg(j,i)).and.&
+(ielem_ineighg(j,i).eq.diexchanger1(k)%whatineed(e)))then
 do inn=1,inum_points
-IF ((IEXCHANGES1(IX1)%WHATTHEYNEED(IX2).EQ.IELEM(N,I)%IHEXGL).and.(IEXCHANGES1(IX1)%QTHEYNEED(IX2).EQ.IEXCHANGER1(K)%QINEED(E)).and.(inn.eq.IEXCHANGES1(IX1)%QTHEYNEED(IX2)))then
-IELEM(N,I)%Q_FACE(J)%Q_MAPL(INN)=E
-IELEM(N,I)%INEIGHN(J)=K
-IEXCHANGES(IX1)%SIDETHEYNEED(IX2)=J
+if ((diexchanges1(ix1)%whattheyneed(ix2).eq.ielem_ihexgl(i)).and.(diexchanges1(ix1)%qtheyneed(ix2).eq.diexchanger1(k)%qineed(e)).and.(inn.eq.diexchanges1(ix1)%qtheyneed(ix2)))then
 
-END IF
+ielem_qface(j,inn,ielem_inter_id(ielem_indexf(i)))=e
+
+! ielem_q_face_q_mapl(inn,j,i)=e
+ielem_ineighn(j,i)=k
+diexchanges(ix1)%sidetheyneed(ix2)=j
+
+end if
 end do
 end if
 end if
 
 
 end if
-end if
+end if				!if 3
 
 
 end do
-end if
+end if					!if 2
 
 
 ! end do
-end if
+end if			!if 1
 end do
 end do
 end do
@@ -216,120 +220,119 @@ end do
 
 
 
-END SUBROUTINE RENUMBER_NEIGHBOURS
+end subroutine renumber_neighbours
 
 
 
-SUBROUTINE SOLEX_ALLOC(N)
+subroutine solex_alloc(n)
 !> @brief
-!> This subroutine allocates the memory for the halo cells of the direct side neighbours only
+!> this subroutine allocates the memory for the halo cells of the direct side neighbours only
 !> and is therefore used for lower-order schemes 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,M,E,KMAXE,INEEDT,TNEEDT,ICPUID
+implicit none
+integer,intent(in)::n
+integer::i,j,k,l,m,e,kmaxe,ineedt,tneedt,icpuid
 real,dimension(1:dimensiona)::cords
-INEEDT=IEXCHANGER(1)%TOT
-TNEEDT=IEXCHANGES(1)%TOT
-ALLOCATE(SOLCHANGER(INEEDT))
-ALLOCATE(SOLCHANGES(TNEEDT))
-! SOLCHANGER(:)=0
-! SOLCHANGES(:)=0
-DO I=1,INEEDT
-	SOLCHANGER(I)%PROCID=IEXCHANGER(I)%PROCID
-	ALLOCATE (SOLCHANGER(I)%CENTRES(IEXCHANGER(I)%MUCHINEED(1),dims))
+ineedt=diexchanger(1)%tot
+tneedt=diexchanges(1)%tot
+allocate(dsolchanger(ineedt))
+allocate(dsolchanges(tneedt))
+! dsolchanger(:)=0
+! dsolchanges(:)=0
+do i=1,ineedt
+	dsolchanger(i)%procid=diexchanger(i)%procid
+	allocate (dsolchanger(i)%centres(diexchanger(i)%muchineed(1),dims))
 	
-	SOLCHANGER(I)%CENTRES(:,:)=0.d0
+	dsolchanger(i)%centres(:,:)=0.d0
 	
-	ALLOCATE (SOLCHANGER(I)%SOL(IEXCHANGER(I)%MUCHINEED(1),nof_variables+turbulenceequations+passivescalar))
-	SOLCHANGER(I)%SOL(:,:)=0.0d0
-END DO
-DO I=1,TNEEDT
-	SOLCHANGES(I)%PROCID=IEXCHANGES(I)%PROCID
-	ALLOCATE (SOLCHANGES(I)%CENTRES(IEXCHANGES(I)%MUCHTHEYNEED(1),dims))
+	allocate (dsolchanger(i)%sol(diexchanger(i)%muchineed(1),nof_variables+turbulenceequations+passivescalar))
+	dsolchanger(i)%sol(:,:)=0.0d0
+end do
+do i=1,tneedt
+	dsolchanges(i)%procid=diexchanges(i)%procid
+	allocate (dsolchanges(i)%centres(diexchanges(i)%muchtheyneed(1),dims))
 	
-	SOLCHANGES(I)%CENTRES(:,:)=0.0d0
+	dsolchanges(i)%centres(:,:)=0.0d0
 	
-	ALLOCATE (SOLCHANGES(I)%SOL(IEXCHANGES(I)%MUCHTHEYNEED(1),nof_variables+turbulenceequations+passivescalar))
-	SOLCHANGES(I)%SOL(:,:)=0.0d0
-END DO
+	allocate (dsolchanges(i)%sol(diexchanges(i)%muchtheyneed(1),nof_variables+turbulenceequations+passivescalar))
+	dsolchanges(i)%sol(:,:)=0.0d0
+end do
 
-!-------------------FOR DEBUGGING ONLY -----------------------------------------!
+!-------------------for debugging only -----------------------------------------!
 
-!-------------------FOR DEBUGGING ONLY -----------------------------------------!
-DO I=1,TNEEDT
-	DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-		j=IEXCHANGES(I)%LOCALREF(K)
+!-------------------for debugging only -----------------------------------------!
+do i=1,tneedt
+	do k=1,diexchanges(i)%muchtheyneed(1)
+		j=diexchanges(i)%localref(k)
 		    if (dimensiona.eq.3)then
-		    CALL COMPUTE_CENTRE3d(j,CORDS)
+		    call compute_centre3d(j,cords)
 		    else
-		     CALL COMPUTE_CENTRE2d(j,CORDS)
+		     call compute_centre2d(j,cords)
 		    end if
-	SOLCHANGES(I)%CENTRES(K,1:dims)=cords(1:dims)
-	END DO
-END DO
-CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-ICPUID=N
-DO I=1,INEEDT
-		DO K=1,TNEEDT
-		IF (SOLCHANGER(I)%PROCID.EQ.SOLCHANGES(K)%PROCID)THEN
-		CALL MPI_SENDRECV(SOLCHANGES(K)%CENTRES(1:IEXCHANGES(K)%MUCHTHEYNEED(1),1:dims),&
-IEXCHANGES(K)%MUCHTHEYNEED(1)*dims,MPI_DOUBLE_PRECISION,SOLCHANGER(I)%PROCID,&
-		SOLCHANGES(K)%PROCID,SOLCHANGER(I)%CENTRES(1:IEXCHANGER(I)%MUCHINEED(1),1:dims),&
-IEXCHANGER(I)%MUCHINEED(1)*dims,MPI_DOUBLE_PRECISION,&
-		SOLCHANGER(I)%PROCID,ICPUID,MPI_COMM_WORLD,STATUS,IERROR)
-		END IF
-		END DO
-END DO
+	dsolchanges(i)%centres(k,1:dims)=cords(1:dims)
+	end do
+end do
+call mpi_barrier(mpi_comm_world,ierror)
+icpuid=n
+do i=1,ineedt
+		do k=1,tneedt
+		if (dsolchanger(i)%procid.eq.dsolchanges(k)%procid)then
+		call mpi_sendrecv(dsolchanges(k)%centres(1:diexchanges(k)%muchtheyneed(1),1:dims),&
+diexchanges(k)%muchtheyneed(1)*dims,mpi_double_precision,dsolchanger(i)%procid,&
+		dsolchanges(k)%procid,dsolchanger(i)%centres(1:diexchanger(i)%muchineed(1),1:dims),&
+diexchanger(i)%muchineed(1)*dims,mpi_double_precision,&
+		dsolchanger(i)%procid,icpuid,mpi_comm_world,status,ierror)
+		end if
+		end do
+end do
 
-END SUBROUTINE SOLEX_ALLOC
-
-
+end subroutine solex_alloc
 
 
-SUBROUTINE ESTABEXHANGE(N,IELEM,IMAXE,XMPIE,XMPIN,XMPIELRANK,ILOCALSTENCIL,IEXCHANGER,&
-IEXCHANGES,IRECEXR,IRECEXS,NUMNEIGHBOURS,ISCHEME,ISIZE,IPERIODICITY,TYPESTEN,XMPIL)
+
+
+subroutine estabexhange(n,imaxe,xmpie,xmpin,xmpielrank,ilocalstencil,diexchanger,&
+diexchanges,direcexr,direcexs,numneighbours,ischeme,isize,iperiodicity,typesten,xmpil)
 !> @brief
-!> This subroutine is establishing the communication patterns for all the MPI processes and in particular for
+!> this subroutine is establishing the communication patterns for all the mpi processes and in particular for
 !> the halo cells of the reconstruction stencils and it must be noted that each cell can have a different number of stencils
 !> of different size
 
-	IMPLICIT NONE
-	TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
-	INTEGER,INTENT(IN)::N,IMAXE,ISIZE,IPERIODICITY,TYPESTEN
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE,XMPIN,XMPIL
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
-	TYPE(EXCHANGE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXCHANGES
-	TYPE(EXCHANGE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXCHANGER
-	INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),INTENT(IN)::ILOCALSTENCIL
-	INTEGER,INTENT(IN)::NUMNEIGHBOURS,ISCHEME
-	TYPE(RECEX),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IRECEXR		!RECEIVE ELEMENTS DUE TO STENCILS
-	TYPE(RECEX),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IRECEXS	
-	INTEGER,ALLOCATABLE,DIMENSION(:)::TOTSTENC,TOTSTENC2
-	INTEGER,ALLOCATABLE,DIMENSION(:)::STENRED
-	INTEGER,ALLOCATABLE,DIMENSION(:)::STENREDPROC
-	TYPE LISTSTENCILS
-	INTEGER::PROCID
-	INTEGER,ALLOCATABLE,DIMENSION(:)::LISTSARRAY
-	END TYPE LISTSTENCILS
-	INTEGER,DIMENSION(0:ISIZE-1)::SENDWH
-	INTEGER,DIMENSION(0:ISIZE-1)::LISTOFPR
-	INTEGER,DIMENSION(0:ISIZE-1)::SENDSTWH
-	TYPE:: LISTGOG
-	INTEGER::PROCID,IMUCH,IAVC,IAVT
-	INTEGER,ALLOCATABLE,DIMENSION(:)::GLOBARRAY
+	implicit none
+	integer,intent(in)::n,imaxe,isize,iperiodicity,typesten
+	integer,allocatable,dimension(:),intent(in)::xmpie,xmpin,xmpil
+	integer,allocatable,dimension(:),intent(in)::xmpielrank
+	type(aexchange),allocatable,dimension(:),intent(inout)::diexchanges
+	type(aexchange),allocatable,dimension(:),intent(inout)::diexchanger
+	integer,allocatable,dimension(:,:,:,:),intent(in)::ilocalstencil
+	integer,intent(in)::numneighbours,ischeme
+	type(arecex),allocatable,dimension(:),intent(inout)::direcexr		!receive elements due to stencils
+	type(arecex),allocatable,dimension(:),intent(inout)::direcexs
+	integer,allocatable,dimension(:)::totstenc,totstenc2
+	integer,allocatable,dimension(:)::stenred
+	integer,allocatable,dimension(:)::stenredproc
+	type aliststencils
+	integer::procid
+	integer,allocatable,dimension(:)::listsarray
+	end type aliststencils
+	integer,dimension(0:isize-1)::sendwh
+	integer,dimension(0:isize-1)::listofpr
+	integer,dimension(0:isize-1)::sendstwh
+	type:: alistgog
+	integer::procid,imuch,iavc,iavt
+	integer,allocatable,dimension(:)::globarray
 	integer,allocatable,dimension(:,:)::nodex
-	END TYPE LISTGOG
-	TYPE(LISTSTENCILS),ALLOCATABLE,DIMENSION(:)::ILISTSTEN
-	TYPE(LISTGOG),ALLOCATABLE,DIMENSION(:)::ILISTGOG,ILISTSIDE,ILISTGLO,ILISTQ
-	INTEGER::HOWMANY,ITEE,SOURCE,TAG,CPUIDREC,ICPUID,IXFLAG,ITEEDUM,IAVC,IAVT
-	INTEGER,DIMENSION(1:1)::RUMTS,SUMTS
-	REAL,DIMENSION(1:1)::DUMTS
-	INTEGER::STENCOUNTER,STENCOUNTER2,STENSAME,IIFLAG,TEMPSTEN2,IIFLAG2,KXK,IX,ICX,ICF,ifdn,ifdn2
-	INTEGER,DIMENSION(0:ISIZE-1)::IHMSTE
-	INTEGER::I,J,JI,K,LM,KMAXN,KK,KMAXE,IAA,L,INGT,IK,TEMPINT,TEMP2,ITARGET,ISTY5,i86,I87,I65,INUM_POINTS,IIN
-	KMAXE=XMPIELRANK(N)
-	LISTOFPR(:)=0
-	I65=0
+	end type alistgog
+	type(aliststencils),allocatable,dimension(:)::diliststen
+	type(alistgog),allocatable,dimension(:)::dilistgog,dilistside,dilistglo,dilistq
+	integer::howmany,itee,source,tag,cpuidrec,icpuid,ixflag,iteedum,iavc,iavt
+	integer,dimension(1:1)::rumts,sumts
+	real,dimension(1:1)::dumts
+	integer::stencounter,stencounter2,stensame,iiflag,tempsten2,iiflag2,kxk,ix,icx,icf,ifdn,ifdn2,INDEX_INT
+	integer,dimension(0:isize-1)::ihmste
+	integer::i,j,ji,k,lm,kmaxn,kk,kmaxe,iaa,l,ingt,ik,tempint,temp2,itarget,isty5,i86,i87,i65,inum_points,iin
+	kmaxe=xmpielrank(n)
+	listofpr(:)=0
+	i65=0
 	if (dimensiona.eq.3)then
 	ifdn=4
 	
@@ -337,404 +340,428 @@ IEXCHANGES,IRECEXR,IRECEXS,NUMNEIGHBOURS,ISCHEME,ISIZE,IPERIODICITY,TYPESTEN,XMP
 
 	ifdn=2
 	end if
-	DO K=1,KMAXE
-	      IF (IELEM(N,K)%INTERIOR.EQ.1)THEN
-	      ALLOCATE(IELEM(N,K)%Q_FACE(IELEM(N,K)%IFCA))
-	      DO L=1,IELEM(N,K)%IFCA
+	index_int=0
+	do k=1,kmaxe
+	      if (ielem_interior(k).eq.1)then
+	      index_int=index_int+1
+		  ielem_indexf(k)=index_int
+	      end if
+	end do
+
+	allocate(ielem_inter_id(index_int));ielem_inter_id=0
+
+
+
+
+
+
+	if (dimensiona.eq.3)then
+	allocate(ielem_qface(max_faces,numberofpoints2,index_int));ielem_qface=0
+	else
+	allocate(ielem_qface(max_faces,numberofpoints2,index_int));ielem_qface=0
+	end if
+
+	index_int=0
+	do k=1,kmaxe
+	      if (ielem_interior(k).eq.1)then
+	      index_int=index_int+1
+	      ielem_inter_id(ielem_indexf(k))=index_int
+
+	      end if
+	end do
+
+
+
+
+
+
+
+	do k=1,kmaxe
+		if (ielem_interior(k).eq.1)then
+			do l=1,ielem_ifca(k)
+				    if (ielem_ineighg(l,k).gt.0)then
+					    if (xmpie(ielem_ineighg(l,k)).ne.n)then
+
+
+
+
+
 					    if (dimensiona.eq.3)then
-					    IF ( IELEM(N,K)%TYPEs_FACES(L).EQ.5)THEN
-					    INUM_POINTS=QP_QUAD_n
-					    ELSE
-					    INUM_POINTS=QP_TRIANGLE_n
-					    End if
-					    else
-					    INUM_POINTS=QP_LINE_n
-					    END IF
-	      ALLOCATE(IELEM(N,K)%Q_FACE(L)%Q_MAPL(INUM_POINTS))
-	      IELEM(N,K)%Q_FACE(L)%Q_MAPL(:)=0
-	      END DO
-	      END IF
-	END DO
+									if ( ielem_types_faces(l,k).eq.5)then
+									inum_points=qp_quad_n;
+									else
+									inum_points=qp_triangle_n ;
+									end if
+								else
+								inum_points=qp_line_n;
+								end if
 
 
 
-	DO K=1,KMAXE
-		IF (IELEM(N,K)%INTERIOR.EQ.1)THEN
-			DO L=1,IELEM(N,K)%IFCA
-				    IF (IELEM(N,K)%INEIGHG(L).GT.0)THEN
-					    IF (XMPIE(IELEM(N,K)%INEIGHG(L)).NE.N)THEN
-					    if (dimensiona.eq.3)then
-					    IF ( IELEM(N,K)%TYPEs_FACES(L).EQ.5)THEN
-					    INUM_POINTS=QP_QUAD_n
-					    ELSE
-					    INUM_POINTS=QP_TRIANGLE_n
-					    End if
-					    else
-					    INUM_POINTS=QP_LINE_n
-					    END IF
+
 					    
 					   
 					      
-					    LISTOFPR(XMPIE(IELEM(N,K)%INEIGHG(L)))=LISTOFPR(XMPIE(IELEM(N,K)%INEIGHG(L)))+INUM_POINTS
-					    END IF
-				    END IF
-			  END DO
+					    listofpr(xmpie(ielem_ineighg(l,k)))=listofpr(xmpie(ielem_ineighg(l,k)))+inum_points
+					    end if
+				    end if
+			  end do
 		
-		END IF
-	END DO
+		end if
+	end do
 
-	HOWMANY=0
-	DO K=0,ISIZE-1
-		IF (LISTOFPR(K).GT.0)THEN
-		HOWMANY=HOWMANY+1
-		END IF
-	END DO
-	ALLOCATE (ILISTGOG(HOWMANY))
-	ALLOCATE (ILISTSIDE(HOWMANY))
-	ALLOCATE (ILISTQ(HOWMANY))
-	ALLOCATE (ILISTGLO(HOWMANY))
+	howmany=0
+	do k=0,isize-1
+		if (listofpr(k).gt.0)then
+		howmany=howmany+1
+		end if
+	end do
+	allocate (dilistgog(howmany))
+	allocate (dilistside(howmany))
+	allocate (dilistq(howmany))
+	allocate (dilistglo(howmany))
 	
-! 	ILISTGOG(:)=0
-! 	ILISTSIDE(:)=0
-	KK=0
-	DO K=0,ISIZE-1
-		IF (LISTOFPR(K).GT.0)THEN
-		KK=KK+1
-		ILISTGOG(KK)%PROCID=K
-		ILISTGOG(KK)%IMUCH=LISTOFPR(K)
-		ILISTSIDE(KK)%PROCID=K
-		ILISTSIDE(KK)%IMUCH=LISTOFPR(K)
-		ILISTQ(KK)%PROCID=K
-		ILISTQ(KK)%IMUCH=LISTOFPR(K)
-		ALLOCATE(ILISTGOG(KK)%GLOBARRAY(LISTOFPR(K)))
-		ALLOCATE(ILISTSIDE(KK)%GLOBARRAY(LISTOFPR(K)))
-		ALLOCATE(ILISTSIDE(KK)%nodex(LISTOFPR(K),ifdn))
-		ALLOCATE(ILISTGLO(KK)%GLOBARRAY(LISTOFPR(K)))
-		ALLOCATE(ILISTQ(KK)%GLOBARRAY(LISTOFPR(K)))
-		ILISTGOG(KK)%GLOBARRAY(:)=0
-		ILISTSIDE(KK)%GLOBARRAY(:)=0;ILISTSIDE(KK)%nodex(:,:)=0
-		ILISTGLO(KK)%GLOBARRAY(:)=0
-		ILISTQ(KK)%GLOBARRAY(:)=0
-		END IF
-	END DO
-	KK=0
-	DO INGT=0,ISIZE-1
-		IF (LISTOFPR(INGT).GT.0)THEN
+! 	dilistgog(:)=0
+! 	dilistside(:)=0
+	kk=0
+	do k=0,isize-1
+		if (listofpr(k).gt.0)then
+		kk=kk+1
+		dilistgog(kk)%procid=k
+		dilistgog(kk)%imuch=listofpr(k)
+		dilistside(kk)%procid=k
+		dilistside(kk)%imuch=listofpr(k)
+		dilistq(kk)%procid=k
+		dilistq(kk)%imuch=listofpr(k)
+		allocate(dilistgog(kk)%globarray(listofpr(k)))
+		allocate(dilistside(kk)%globarray(listofpr(k)))
+		allocate(dilistside(kk)%nodex(listofpr(k),ifdn))
+		allocate(dilistglo(kk)%globarray(listofpr(k)))
+		allocate(dilistq(kk)%globarray(listofpr(k)))
+		dilistgog(kk)%globarray(:)=0
+		dilistside(kk)%globarray(:)=0;dilistside(kk)%nodex(:,:)=0
+		dilistglo(kk)%globarray(:)=0
+		dilistq(kk)%globarray(:)=0
+		end if
+	end do
+	kk=0
+	do ingt=0,isize-1
+		if (listofpr(ingt).gt.0)then
 ! 		
-		KK=KK+1
-		IAA=0
-		DO K=1,KMAXE
-		      IF (IELEM(N,K)%INTERIOR.EQ.1)THEN
-			DO L=1,IELEM(N,K)%IFCA
-				    IF (IELEM(N,K)%INEIGHG(L).GT.0)THEN
-					    IF (XMPIE(IELEM(N,K)%INEIGHG(L)).NE.N)THEN
-						IF (XMPIE(IELEM(N,K)%INEIGHG(L)).EQ.ILISTGOG(KK)%PROCID)THEN
+		kk=kk+1
+		iaa=0
+		do k=1,kmaxe
+		      if (ielem_interior(k).eq.1)then
+			do l=1,ielem_ifca(k)
+				    if (ielem_ineighg(l,k).gt.0)then
+					    if (xmpie(ielem_ineighg(l,k)).ne.n)then
+						if (xmpie(ielem_ineighg(l,k)).eq.dilistgog(kk)%procid)then
 						     if (dimensiona.eq.3)then
-					    IF ( IELEM(N,K)%TYPEs_FACES(L).EQ.5)THEN
-					    INUM_POINTS=QP_QUAD_n; ifdn2=4
-					    ELSE
-					    INUM_POINTS=QP_TRIANGLE_n ; ifdn2=3
-					    End if
-					    else
-					    INUM_POINTS=QP_LINE_n; ifdn2=2
-					    END IF
+									if ( ielem_types_faces(l,k).eq.5)then
+									inum_points=qp_quad_n; ifdn2=4
+									else
+									inum_points=qp_triangle_n ; ifdn2=3
+									end if
+								else
+								inum_points=qp_line_n; ifdn2=2
+								end if
 						 
-							    DO IIN=IAA+1,IAA+INUM_POINTS
-							    ILISTGOG(KK)%GLOBARRAY(IIN)=(IELEM(N,K)%INEIGHG(L))
-							    ILISTGLO(KK)%GLOBARRAY(IIN)=(IELEM(N,K)%IHEXGL)
-							    ILISTSIDE(KK)%GLOBARRAY(IIN)=L
-							    ILISTQ(KK)%GLOBARRAY(IIN)=IIN-IAA
-							    ILISTSIDE(KK)%nodex(iin,1:ifdn2)=ielem(n,k)%nodes_faces(l,1:ifdn2)
+							    do iin=iaa+1,iaa+inum_points
+							    dilistgog(kk)%globarray(iin)=(ielem_ineighg(l,k))
+							    dilistglo(kk)%globarray(iin)=(ielem_ihexgl(k))
+							    dilistside(kk)%globarray(iin)=l
+							    dilistq(kk)%globarray(iin)=iin-iaa
+							    dilistside(kk)%nodex(iin,1:ifdn2)=ielem_nodes_faces(l,1:ifdn2,k)
 							    
-							    END DO
-							    IAA=IAA+INUM_POINTS
+							    end do
+							    iaa=iaa+inum_points
 						      
-						  END IF
-					    END IF
-				      END IF
-			END DO
-		      END IF
-		END DO
+						  end if
+					    end if
+				      end if
+			end do
+		      end if
+		end do
 
-	      END IF
-	  END DO
+	      end if
+	  end do
 	      
 
 
-	SENDWH(:)=0	
-	ALLOCATE (IEXCHANGER(HOWMANY))
-	ALLOCATE (IEXCHANGER1(HOWMANY))
-! 	IEXCHANGER(:)=0
-	IEXCHANGER(:)%TOT=HOWMANY
-	IEXCHANGER1(:)%TOT=HOWMANY
+	sendwh(:)=0	
+	allocate (diexchanger(howmany))
+	allocate (diexchanger1(howmany))
+! 	diexchanger(:)=0
+	diexchanger(:)%tot=howmany
+	diexchanger1(:)%tot=howmany
 
-	KK=0
-	DO K=0,ISIZE-1
-		IF (LISTOFPR(K).GT.0)THEN
-		KK=KK+1
-		IEXCHANGER(KK)%PROCID=K
-		END IF
-	END DO
+	kk=0
+	do k=0,isize-1
+		if (listofpr(k).gt.0)then
+		kk=kk+1
+		diexchanger(kk)%procid=k
+		end if
+	end do
 	
-	DO I=1,HOWMANY
-		IF (IEXCHANGER(I)%PROCID.NE.N)THEN
-		ALLOCATE(IEXCHANGER(I)%MUCHINEED(1))
-		IEXCHANGER(I)%MUCHINEED(:)=0
-		IEXCHANGER(I)%MUCHINEED(1)=LISTOFPR(IEXCHANGER(I)%PROCID)
-		ALLOCATE(IEXCHANGER1(I)%WHATINEED(IEXCHANGER(I)%MUCHINEED(1)))	!ELEMENT NUMBER GLOBAL
-		ALLOCATE(IEXCHANGER1(I)%LOCALREF(IEXCHANGER(I)%MUCHINEED(1)))
-		ALLOCATE(IEXCHANGER1(I)%SIDEINEED(IEXCHANGER(I)%MUCHINEED(1)))
-		ALLOCATE(IEXCHANGER1(I)%nodex(IEXCHANGER(I)%MUCHINEED(1),ifdn))
-		ALLOCATE(IEXCHANGER1(I)%QINEED(IEXCHANGER(I)%MUCHINEED(1)))
-		ALLOCATE(IEXCHANGER1(I)%SIDEINEEDN(IEXCHANGER(I)%MUCHINEED(1)))
-! 		ALLOCATE(IEXCHANGER1(I)%QINEED(IEXCHANGER(I)%MUCHINEED(1)))
-		IEXCHANGER1(I)%WHATINEED(:)=0	!ELEMENT NUMBER GLOBAL
-		IEXCHANGER1(I)%LOCALREF(:)=0
-		IEXCHANGER1(I)%SIDEINEED(:)=0;IEXCHANGER1(I)%nodex(:,:)=0
-		IEXCHANGER1(I)%SIDEINEEDN(:)=0
- 		IEXCHANGER1(I)%QINEED(:)=0
+	do i=1,howmany
+		if (diexchanger(i)%procid.ne.n)then
+		allocate(diexchanger(i)%muchineed(1))
+		diexchanger(i)%muchineed(:)=0
+		diexchanger(i)%muchineed(1)=listofpr(diexchanger(i)%procid)
+		allocate(diexchanger1(i)%whatineed(diexchanger(i)%muchineed(1)))	!element number global
+		allocate(diexchanger1(i)%localref(diexchanger(i)%muchineed(1)))
+		allocate(diexchanger1(i)%sideineed(diexchanger(i)%muchineed(1)))
+		allocate(diexchanger1(i)%nodex(diexchanger(i)%muchineed(1),ifdn))
+		allocate(diexchanger1(i)%qineed(diexchanger(i)%muchineed(1)))
+		allocate(diexchanger1(i)%sideineedn(diexchanger(i)%muchineed(1)))
+! 		allocate(diexchanger1(i)%qineed(diexchanger(i)%muchineed(1)))
+		diexchanger1(i)%whatineed(:)=0	!element number global
+		diexchanger1(i)%localref(:)=0
+		diexchanger1(i)%sideineed(:)=0;diexchanger1(i)%nodex(:,:)=0
+		diexchanger1(i)%sideineedn(:)=0
+ 		diexchanger1(i)%qineed(:)=0
 		
-		END IF
-	END DO
-	TEMPINT=0
+		end if
+	end do
+	tempint=0
 ! 	
-	DO I=1,HOWMANY
-		IF (IEXCHANGER(I)%PROCID.NE.N)THEN
-		TEMPINT=TEMPINT+1
-		IF (IEXCHANGER(I)%PROCID.EQ.ILISTGOG(TEMPINT)%PROCID)THEN
-		IEXCHANGER1(I)%WHATINEED(:)=ILISTGOG(TEMPINT)%GLOBARRAY(:)
-		IEXCHANGER1(I)%SIDEINEEDN(:)=ILISTGLO(TEMPINT)%GLOBARRAY(:)
-		IEXCHANGER1(I)%nodex(1:IEXCHANGER(I)%MUCHINEED(1),1:ifdn)=ILISTside(TEMPINT)%nodex(1:IEXCHANGER(I)%MUCHINEED(1),1:ifdn)
-		IEXCHANGER1(I)%QINEED(1:IEXCHANGER(I)%MUCHINEED(1))=ILISTq(TEMPINT)%GLOBARRAY(1:IEXCHANGER(I)%MUCHINEED(1))
+	do i=1,howmany
+		if (diexchanger(i)%procid.ne.n)then
+		tempint=tempint+1
+		if (diexchanger(i)%procid.eq.dilistgog(tempint)%procid)then
+		diexchanger1(i)%whatineed(:)=dilistgog(tempint)%globarray(:)
+		diexchanger1(i)%sideineedn(:)=dilistglo(tempint)%globarray(:)
+		diexchanger1(i)%nodex(1:diexchanger(i)%muchineed(1),1:ifdn)=dilistside(tempint)%nodex(1:diexchanger(i)%muchineed(1),1:ifdn)
+		diexchanger1(i)%qineed(1:diexchanger(i)%muchineed(1))=dilistq(tempint)%globarray(1:diexchanger(i)%muchineed(1))
 
 
 		
 		
-		END IF
-		END IF
-	END DO
-	DEALLOCATE(ILISTGOG)
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	ICPUID=N
-	DO I=1,HOWMANY
-		IF (IEXCHANGER(I)%PROCID.NE.N)THEN
-		CALL MPI_SENDRECV(IEXCHANGER(I)%MUCHINEED(1),1,MPI_INTEGER,IEXCHANGER(I)%PROCID,IEXCHANGER(I)%PROCID,&
-		ITEE,1,MPI_INTEGER,IEXCHANGER(I)%PROCID,ICPUID,MPI_COMM_WORLD,STATUS,IERROR)
-		SENDWH(IEXCHANGER(I)%PROCID)=ITEE
-		END IF
-	END DO
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	TEMP2=0
-	DO I=0,ISIZE-1
-		IF (SENDWH(I).GT.0)THEN
-		TEMP2=TEMP2+1
-		END IF
-	END DO
+		end if
+		end if
+	end do
+	deallocate(dilistgog)
+	call mpi_barrier(mpi_comm_world,ierror)
+	icpuid=n
+	do i=1,howmany
+		if (diexchanger(i)%procid.ne.n)then
+		call mpi_sendrecv(diexchanger(i)%muchineed(1),1,mpi_integer,diexchanger(i)%procid,diexchanger(i)%procid,&
+		itee,1,mpi_integer,diexchanger(i)%procid,icpuid,mpi_comm_world,status,ierror)
+		sendwh(diexchanger(i)%procid)=itee
+		end if
+	end do
+	call mpi_barrier(mpi_comm_world,ierror)
+	temp2=0
+	do i=0,isize-1
+		if (sendwh(i).gt.0)then
+		temp2=temp2+1
+		end if
+	end do
 	
 ! 
-	ALLOCATE (IEXCHANGES(TEMP2))
-	ALLOCATE (IEXCHANGES1(TEMP2))
-! 	IEXCHANGES(:)=0
-	IEXCHANGES(:)%TOT=TEMP2
-	KK=0
-	DO I=0,ISIZE-1
-		IF (SENDWH(I).GT.0)THEN
-		KK=KK+1
-		IEXCHANGES(KK)%PROCID=I
-		ALLOCATE(IEXCHANGES(KK)%MUCHTHEYNEED(1))
-		IEXCHANGES(KK)%MUCHTHEYNEED(:)=0
-		IEXCHANGES(KK)%MUCHTHEYNEED(1)=SENDWH(I)
-		ALLOCATE(IEXCHANGES1(KK)%WHATTHEYNEED(IEXCHANGES(KK)%MUCHTHEYNEED(1)))
-		ALLOCATE(IEXCHANGES(KK)%LOCALREF(IEXCHANGES(KK)%MUCHTHEYNEED(1)))
-		ALLOCATE(IEXCHANGES(KK)%SIDETHEYNEED(IEXCHANGES(KK)%MUCHTHEYNEED(1)))
+	allocate (diexchanges(temp2))
+	allocate (diexchanges1(temp2))
+! 	diexchanges(:)=0
+	diexchanges(:)%tot=temp2
+	kk=0
+	do i=0,isize-1
+		if (sendwh(i).gt.0)then
+		kk=kk+1
+		diexchanges(kk)%procid=i
+		allocate(diexchanges(kk)%muchtheyneed(1))
+		diexchanges(kk)%muchtheyneed(:)=0
+		diexchanges(kk)%muchtheyneed(1)=sendwh(i)
+		allocate(diexchanges1(kk)%whattheyneed(diexchanges(kk)%muchtheyneed(1)))
+		allocate(diexchanges(kk)%localref(diexchanges(kk)%muchtheyneed(1)))
+		allocate(diexchanges(kk)%sidetheyneed(diexchanges(kk)%muchtheyneed(1)))
 
 		
-		ALLOCATE(IEXCHANGES1(KK)%SIDETHEYNEEDN(IEXCHANGES(KK)%MUCHTHEYNEED(1)))
-		ALLOCATE(IEXCHANGES1(KK)%nodex(IEXCHANGES(KK)%MUCHTHEYNEED(1),ifdn))
-		ALLOCATE(IEXCHANGES1(KK)%qtheyneed(IEXCHANGES(KK)%MUCHTHEYNEED(1)))
-		ALLOCATE(IEXCHANGES(KK)%qtheyneed(IEXCHANGES(KK)%MUCHTHEYNEED(1)))
-		IEXCHANGES1(KK)%WHATTHEYNEED(:)=0
-		IEXCHANGES(KK)%LOCALREF(:)=0
-		IEXCHANGES(KK)%SIDETHEYNEED(:)=0
-		IEXCHANGES1(KK)%SIDETHEYNEEDN(:)=0;IEXCHANGES1(KK)%nodex(:,:)=0
-		IEXCHANGES1(KK)%qtheyneed(:)=0
-		IEXCHANGES(KK)%qtheyneed(:)=0
-		END IF
-	END DO
+		allocate(diexchanges1(kk)%sidetheyneedn(diexchanges(kk)%muchtheyneed(1)))
+		allocate(diexchanges1(kk)%nodex(diexchanges(kk)%muchtheyneed(1),ifdn))
+		allocate(diexchanges1(kk)%qtheyneed(diexchanges(kk)%muchtheyneed(1)))
+		allocate(diexchanges(kk)%qtheyneed(diexchanges(kk)%muchtheyneed(1)))
+		diexchanges1(kk)%whattheyneed(:)=0
+		diexchanges(kk)%localref(:)=0
+		diexchanges(kk)%sidetheyneed(:)=0
+		diexchanges1(kk)%sidetheyneedn(:)=0;diexchanges1(kk)%nodex(:,:)=0
+		diexchanges1(kk)%qtheyneed(:)=0
+		diexchanges(kk)%qtheyneed(:)=0
+		end if
+	end do
 !
-	DO I=1,HOWMANY
-		DO K=1,TEMP2
-		IF (IEXCHANGES(K)%PROCID.EQ.ILISTSIDE(I)%PROCID)THEN
-		IEXCHANGES(K)%SIDETHEYNEED(:)=ILISTSIDE(I)%GLOBARRAY(:)
-!  		IEXCHANGES(K)%QTHEYNEED(:)=ILISTQ(I)%GLOBARRAY(:)
-		END IF
-		END DO
-	END DO
- 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	do i=1,howmany
+		do k=1,temp2
+		if (diexchanges(k)%procid.eq.dilistside(i)%procid)then
+		diexchanges(k)%sidetheyneed(:)=dilistside(i)%globarray(:)
+!  		diexchanges(k)%qtheyneed(:)=dilistq(i)%globarray(:)
+		end if
+		end do
+	end do
+ 	call mpi_barrier(mpi_comm_world,ierror)
 
-	DO I=1,HOWMANY
-		DO K=1,TEMP2
-		IF (IEXCHANGER(I)%PROCID.EQ.IEXCHANGES(K)%PROCID)THEN
-		CALL MPI_SENDRECV(IEXCHANGER1(I)%WHATINEED(1:IEXCHANGER(I)%MUCHINEED(1)),&
-IEXCHANGER(I)%MUCHINEED(1),MPI_INTEGER,IEXCHANGER(I)%PROCID,&
-		IEXCHANGER(I)%PROCID,IEXCHANGES1(K)%WHATTHEYNEED(1:IEXCHANGES(K)%MUCHTHEYNEED(1)),&
-IEXCHANGES(K)%MUCHTHEYNEED(1),MPI_INTEGER,IEXCHANGER(I)%PROCID,&
-		ICPUID,MPI_COMM_WORLD,STATUS,IERROR)
-		END IF
-		END DO
-	END DO
-	DO I=1,HOWMANY
-		DO K=1,TEMP2
-		IF (IEXCHANGER(I)%PROCID.EQ.IEXCHANGES(K)%PROCID)THEN
-		CALL MPI_SENDRECV(IEXCHANGER1(I)%nodex(1:IEXCHANGER(I)%MUCHINEED(1),1:ifdn),&
-IEXCHANGER(I)%MUCHINEED(1)*ifdn,MPI_INTEGER,IEXCHANGER(I)%PROCID,&
-		IEXCHANGER(I)%PROCID,IEXCHANGES1(K)%nodex(1:IEXCHANGES(K)%MUCHTHEYNEED(1),1:ifdn),&
-IEXCHANGES(K)%MUCHTHEYNEED(1)*ifdn,MPI_INTEGER,IEXCHANGER(I)%PROCID,&
-		ICPUID,MPI_COMM_WORLD,STATUS,IERROR)
-		END IF
-		END DO
-	END DO
-	DO I=1,HOWMANY
-		DO K=1,TEMP2
-		IF (IEXCHANGER(I)%PROCID.EQ.IEXCHANGES(K)%PROCID)THEN
-		CALL MPI_SENDRECV(IEXCHANGER1(I)%qineed(1:IEXCHANGER(I)%MUCHINEED(1)),&
-IEXCHANGER(I)%MUCHINEED(1),MPI_INTEGER,IEXCHANGER(I)%PROCID,&
-		IEXCHANGER(I)%PROCID,IEXCHANGES1(K)%qtheyneed(1:IEXCHANGES(K)%MUCHTHEYNEED(1)),&
-IEXCHANGES(K)%MUCHTHEYNEED(1),MPI_INTEGER,IEXCHANGER(I)%PROCID,&
-		ICPUID,MPI_COMM_WORLD,STATUS,IERROR)
-		IEXCHANGES(K)%qtheyneed(1:IEXCHANGES(K)%MUCHTHEYNEED(1))=IEXCHANGES1(K)%qtheyneed(1:IEXCHANGES(K)%MUCHTHEYNEED(1))
+	do i=1,howmany
+		do k=1,temp2
+		if (diexchanger(i)%procid.eq.diexchanges(k)%procid)then
+		call mpi_sendrecv(diexchanger1(i)%whatineed(1:diexchanger(i)%muchineed(1)),&
+diexchanger(i)%muchineed(1),mpi_integer,diexchanger(i)%procid,&
+		diexchanger(i)%procid,diexchanges1(k)%whattheyneed(1:diexchanges(k)%muchtheyneed(1)),&
+diexchanges(k)%muchtheyneed(1),mpi_integer,diexchanger(i)%procid,&
+		icpuid,mpi_comm_world,status,ierror)
+		end if
+		end do
+	end do
+	do i=1,howmany
+		do k=1,temp2
+		if (diexchanger(i)%procid.eq.diexchanges(k)%procid)then
+		call mpi_sendrecv(diexchanger1(i)%nodex(1:diexchanger(i)%muchineed(1),1:ifdn),&
+diexchanger(i)%muchineed(1)*ifdn,mpi_integer,diexchanger(i)%procid,&
+		diexchanger(i)%procid,diexchanges1(k)%nodex(1:diexchanges(k)%muchtheyneed(1),1:ifdn),&
+diexchanges(k)%muchtheyneed(1)*ifdn,mpi_integer,diexchanger(i)%procid,&
+		icpuid,mpi_comm_world,status,ierror)
+		end if
+		end do
+	end do
+	do i=1,howmany
+		do k=1,temp2
+		if (diexchanger(i)%procid.eq.diexchanges(k)%procid)then
+		call mpi_sendrecv(diexchanger1(i)%qineed(1:diexchanger(i)%muchineed(1)),&
+diexchanger(i)%muchineed(1),mpi_integer,diexchanger(i)%procid,&
+		diexchanger(i)%procid,diexchanges1(k)%qtheyneed(1:diexchanges(k)%muchtheyneed(1)),&
+diexchanges(k)%muchtheyneed(1),mpi_integer,diexchanger(i)%procid,&
+		icpuid,mpi_comm_world,status,ierror)
+		diexchanges(k)%qtheyneed(1:diexchanges(k)%muchtheyneed(1))=diexchanges1(k)%qtheyneed(1:diexchanges(k)%muchtheyneed(1))
 		
 		
-		END IF
-		END DO
-	END DO
+		end if
+		end do
+	end do
 
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	DO I=1,HOWMANY
-		DO K=1,TEMP2
-		IF (IEXCHANGER(I)%PROCID.EQ.IEXCHANGES(K)%PROCID)THEN
-		CALL MPI_SENDRECV(IEXCHANGER1(I)%SIDEINEEDN(1:IEXCHANGER(I)%MUCHINEED(1)),&
-IEXCHANGER(I)%MUCHINEED(1),MPI_INTEGER,IEXCHANGER(I)%PROCID,&
-		IEXCHANGER(I)%PROCID,IEXCHANGES1(K)%SIDETHEYNEEDN(1:IEXCHANGES(K)%MUCHTHEYNEED(1)),&
-IEXCHANGES(K)%MUCHTHEYNEED(1),MPI_INTEGER,IEXCHANGER(I)%PROCID,&
-		ICPUID,MPI_COMM_WORLD,STATUS,IERROR)
-		END IF
-		END DO
-	END DO
+	call mpi_barrier(mpi_comm_world,ierror)
+	do i=1,howmany
+		do k=1,temp2
+		if (diexchanger(i)%procid.eq.diexchanges(k)%procid)then
+		call mpi_sendrecv(diexchanger1(i)%sideineedn(1:diexchanger(i)%muchineed(1)),&
+diexchanger(i)%muchineed(1),mpi_integer,diexchanger(i)%procid,&
+		diexchanger(i)%procid,diexchanges1(k)%sidetheyneedn(1:diexchanges(k)%muchtheyneed(1)),&
+diexchanges(k)%muchtheyneed(1),mpi_integer,diexchanger(i)%procid,&
+		icpuid,mpi_comm_world,status,ierror)
+		end if
+		end do
+	end do
 !make the ones below q_points!
- 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	DO I=1,HOWMANY
-		DO K=1,TEMP2
-		IF (IEXCHANGER(I)%PROCID.EQ.IEXCHANGES(K)%PROCID)THEN
-		CALL MPI_SENDRECV(IEXCHANGES(K)%SIDETHEYNEED(1:IEXCHANGES(K)%MUCHTHEYNEED(1)),&
-IEXCHANGES(K)%MUCHTHEYNEED(1),MPI_INTEGER,IEXCHANGES(K)%PROCID,&
-		IEXCHANGES(K)%PROCID,IEXCHANGER1(I)%SIDEINEED(1:IEXCHANGER(I)%MUCHINEED(1)),&
-IEXCHANGER(I)%MUCHINEED(1),MPI_INTEGER,IEXCHANGES(K)%PROCID,&
-		ICPUID,MPI_COMM_WORLD,STATUS,IERROR)
+ 	call mpi_barrier(mpi_comm_world,ierror)
+	do i=1,howmany
+		do k=1,temp2
+		if (diexchanger(i)%procid.eq.diexchanges(k)%procid)then
+		call mpi_sendrecv(diexchanges(k)%sidetheyneed(1:diexchanges(k)%muchtheyneed(1)),&
+diexchanges(k)%muchtheyneed(1),mpi_integer,diexchanges(k)%procid,&
+		diexchanges(k)%procid,diexchanger1(i)%sideineed(1:diexchanger(i)%muchineed(1)),&
+diexchanger(i)%muchineed(1),mpi_integer,diexchanges(k)%procid,&
+		icpuid,mpi_comm_world,status,ierror)
 
 		
-		END IF
-		END DO
-	END DO
+		end if
+		end do
+	end do
       
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	call mpi_barrier(mpi_comm_world,ierror)
 	
 	
       
 	
 
-	DEALLOCATE(ILISTSIDE,ILISTQ)
-	DO I=1,TEMP2
-		DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1) 			
+	deallocate(dilistside,dilistq)
+	do i=1,temp2
+		do k=1,diexchanges(i)%muchtheyneed(1)
 
- 			IF (XMPIE(IEXCHANGES1(I)%WHATTHEYNEED(K)).EQ.N)THEN
+ 			if (xmpie(diexchanges1(i)%whattheyneed(k)).eq.n)then
 
- 			IEXCHANGES(I)%LOCALREF(K)=xmpil(IEXCHANGES1(I)%WHATTHEYNEED(K))
+ 			diexchanges(i)%localref(k)=xmpil(diexchanges1(i)%whattheyneed(k))
    			end if
 
 			
-		END DO
-	END DO
-	DO I=1,HOWMANY
-		DO K=1,TEMP2
-		IF (IEXCHANGER(I)%PROCID.EQ.IEXCHANGES(K)%PROCID)THEN
-		CALL MPI_SENDRECV(IEXCHANGES(K)%LOCALREF(1:IEXCHANGES(K)%MUCHTHEYNEED(1)),&
-IEXCHANGES(K)%MUCHTHEYNEED(1),MPI_INTEGER,IEXCHANGES(K)%PROCID,&
-		IEXCHANGES(K)%PROCID,IEXCHANGER1(I)%LOCALREF(1:IEXCHANGER(I)%MUCHINEED(1)),&
-IEXCHANGER(I)%MUCHINEED(1),MPI_INTEGER,IEXCHANGER(I)%PROCID,&
-		ICPUID,MPI_COMM_WORLD,STATUS,IERROR)
-		END IF
-		END DO
-	END DO
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+		end do
+	end do
+	do i=1,howmany
+		do k=1,temp2
+		if (diexchanger(i)%procid.eq.diexchanges(k)%procid)then
+		call mpi_sendrecv(diexchanges(k)%localref(1:diexchanges(k)%muchtheyneed(1)),&
+diexchanges(k)%muchtheyneed(1),mpi_integer,diexchanges(k)%procid,&
+		diexchanges(k)%procid,diexchanger1(i)%localref(1:diexchanger(i)%muchineed(1)),&
+diexchanger(i)%muchineed(1),mpi_integer,diexchanger(i)%procid,&
+		icpuid,mpi_comm_world,status,ierror)
+		end if
+		end do
+	end do
+	call mpi_barrier(mpi_comm_world,ierror)
 
 	
-	IF (ISCHEME.GT.1)THEN
-	STENCOUNTER=0
+	if (ischeme.gt.1)then
+	stencounter=0
 !
   	
-	ALLOCATE(TOTSTENC2(imaxe))
+	allocate(totstenc2(imaxe))
 	totstenc2=0
 	
 
-	DO I=1,KMAXE
-		DO K=1,TYPESTEN
-			ISTY5=0
-			IF ((K.EQ.1).OR.(EES.NE.5))THEN
-			ITARGET=ielem(n,i)%iNUMNEIGHBOURS
-			ELSE
-			ITARGET=NUMNEIGHBOURS2
-			END IF
+	do i=1,kmaxe
+		do k=1,typesten
+			isty5=0
+			if ((k.eq.1).or.(ees.ne.5))then
+			itarget=ielem_inumneighbours(i)
+			else
+			itarget=numneighbours2
+			end if
 			
 			
-			DO KK=1,ITARGET
-				IF(ILOCALSTENCIL(N,I,K,KK).GT.0)THEN
-				ISTY5=ISTY5+1
-				END IF
-			END DO
-			IF (ISTY5.EQ.ITARGET)THEN
-			DO KK=1,ITARGET
+			do kk=1,itarget
+				if(ilocalstencil(n,i,k,kk).gt.0)then
+				isty5=isty5+1
+				end if
+			end do
+			if (isty5.eq.itarget)then
+			do kk=1,itarget
 					
-				IIFLAG=0
+				iiflag=0
 
-					IF (XMPIE(ILOCALSTENCIL(N,I,K,KK)).EQ.N) THEN
+					if (xmpie(ilocalstencil(n,i,k,kk)).eq.n) then
 
-						IIFLAG=1
-					END IF
+						iiflag=1
+					end if
 
 					
-					IF (IIFLAG.EQ.0)THEN
-					totstenc2((ILOCALSTENCIL(N,I,K,KK)))=ILOCALSTENCIL(N,I,K,KK)
-					END IF
-			END DO
-			END IF
-		END DO
-	END DO
+					if (iiflag.eq.0)then
+					totstenc2((ilocalstencil(n,i,k,kk)))=ilocalstencil(n,i,k,kk)
+					end if
+			end do
+			end if
+		end do
+	end do
 
 	
 	
 	
-	KXK=0
-	DO I=1,imaxe
-		IF (TOTSTENC2(I).GT.0)THEN
-		KXK=KXK+1
-		END IF
-	END DO
+	kxk=0
+	do i=1,imaxe
+		if (totstenc2(i).gt.0)then
+		kxk=kxk+1
+		end if
+	end do
 
-	ALLOCATE (STENRED(KXK))
-	ALLOCATE (STENREDPROC(KXK))
+	allocate (stenred(kxk))
+	allocate (stenredproc(kxk))
 
 	stencounter=kxk
 
 	allocate(totstenc(stencounter))
 	totstenc=0
-	KXK=0
-	DO I=1,imaxe
-		IF (TOTSTENC2(I).GT.0)THEN
-		KXK=KXK+1
-		totstenc(kxk)=TOTSTENC2(I)
-		END IF
-	END DO
+	kxk=0
+	do i=1,imaxe
+		if (totstenc2(i).gt.0)then
+		kxk=kxk+1
+		totstenc(kxk)=totstenc2(i)
+		end if
+	end do
 
 
 
@@ -743,488 +770,555 @@ IEXCHANGER(I)%MUCHINEED(1),MPI_INTEGER,IEXCHANGER(I)%PROCID,&
 
 
 
-	STENRED=0
-	STENREDPROC=0
-	IHMSTE=0
-	KXK=0
-	DO I=1,STENCOUNTER
-		IF (TOTSTENC(I).GT.0)THEN
-		KXK=KXK+1
-		STENRED(KXK)=TOTSTENC(I)
-		END IF
-	END DO
-	DEALLOCATE (TOTSTENC)
+	stenred=0
+	stenredproc=0
+	ihmste=0
+	kxk=0
+	do i=1,stencounter
+		if (totstenc(i).gt.0)then
+		kxk=kxk+1
+		stenred(kxk)=totstenc(i)
+		end if
+	end do
+	deallocate (totstenc)
 
 
 
 
-	DO I=1,KXK
-		STENREDPROC(I)=XMPIE(STENRED(I))
-	END DO
-	DO I=0,ISIZE-1
-		IHMSTE(I)=0
-		IF (I.NE.N)THEN
-		DO IX=1,KXK
-		IF(STENREDPROC(IX).EQ.I)THEN
-		IHMSTE(I)=IHMSTE(I)+1
-		END IF
-		END DO
-		END IF
+	do i=1,kxk
+		stenredproc(i)=xmpie(stenred(i))
+	end do
+	do i=0,isize-1
+		ihmste(i)=0
+		if (i.ne.n)then
+		do ix=1,kxk
+		if(stenredproc(ix).eq.i)then
+		ihmste(i)=ihmste(i)+1
+		end if
+		end do
+		end if
 ! 		
-	END DO
-	IX=0
-	DO I=0,ISIZE-1
-		IF (I.NE.N)THEN
-		IF (IHMSTE(I).GT.0)THEN
-		IX=IX+1
-		END IF
-		END IF
-	END DO
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	ALLOCATE (ILISTSTEN(IX))
-! 	ILISTSTEN(:)=0
-	IX=0
-	DO I=0,ISIZE-1
-		IF (I.NE.N)THEN
-		IF (IHMSTE(I).GT.0)THEN
-		IX=IX+1
-		ILISTSTEN(IX)%PROCID=I
-		ALLOCATE (ILISTSTEN(IX)%LISTSARRAY(IHMSTE(I)))
-		ILISTSTEN(IX)%LISTSARRAY(:)=0
-		ICF=0
-		DO ICX=1,kxk
-		IF (STENREDPROC(ICX).EQ.I)THEN
-		ICF=ICF+1
-		ILISTSTEN(IX)%LISTSARRAY(ICF)=STENRED(ICX)
-		END IF
-		END DO
+	end do
+	ix=0
+	do i=0,isize-1
+		if (i.ne.n)then
+		if (ihmste(i).gt.0)then
+		ix=ix+1
+		end if
+		end if
+	end do
+	call mpi_barrier(mpi_comm_world,ierror)
+	allocate (diliststen(ix))
+! 	diliststen(:)=0
+	ix=0
+	do i=0,isize-1
+		if (i.ne.n)then
+		if (ihmste(i).gt.0)then
+		ix=ix+1
+		diliststen(ix)%procid=i
+		allocate (diliststen(ix)%listsarray(ihmste(i)))
+		diliststen(ix)%listsarray(:)=0
+		icf=0
+		do icx=1,kxk
+		if (stenredproc(icx).eq.i)then
+		icf=icf+1
+		diliststen(ix)%listsarray(icf)=stenred(icx)
+		end if
+		end do
 
-		END IF
-		END IF
-	END DO
-	ALLOCATE (IRECEXR(IX))
-	ALLOCATE (IRECEXR1(IX))
-! 	IRECEXR(:)=0
-	IRECEXR(:)%TOT=0
-	IRECEXR(:)%TOT=IX
-	ICX=0
-	DO I=0,ISIZE-1
-		IF (IHMSTE(I).GT.0)THEN
-		ICX=ICX+1
-		IRECEXR(ICX)%PROCID=I
-		ALLOCATE(IRECEXR(ICX)%MUCHINEED(1))
-		IRECEXR(ICX)%MUCHINEED(:)=0
-		IRECEXR(ICX)%MUCHINEED(1)=IHMSTE(I)
-		ALLOCATE(IRECEXR1(ICX)%WHATINEED(IRECEXR(ICX)%MUCHINEED(1)))
-		ALLOCATE(IRECEXR1(ICX)%LOCALREF(IRECEXR(ICX)%MUCHINEED(1)))
-		ALLOCATE(IRECEXR1(ICX)%ISHAPE(IRECEXR(ICX)%MUCHINEED(1)))
-		IRECEXR1(ICX)%WHATINEED(:)=0
-		IRECEXR1(ICX)%LOCALREF(:)=0
-		IRECEXR1(ICX)%ISHAPE(:)=0
+		end if
+		end if
+	end do
+	allocate (direcexr(ix))
+	allocate (direcexr1(ix))
+! 	direcexr(:)=0
+	direcexr(:)%tot=0
+	direcexr(:)%tot=ix
+	icx=0
+	do i=0,isize-1
+		if (ihmste(i).gt.0)then
+		icx=icx+1
+		direcexr(icx)%procid=i
+		allocate(direcexr(icx)%muchineed(1))
+		direcexr(icx)%muchineed(:)=0
+		direcexr(icx)%muchineed(1)=ihmste(i)
+		allocate(direcexr1(icx)%whatineed(direcexr(icx)%muchineed(1)))
+		allocate(direcexr1(icx)%localref(direcexr(icx)%muchineed(1)))
+		allocate(direcexr1(icx)%ishape(direcexr(icx)%muchineed(1)))
+		direcexr1(icx)%whatineed(:)=0
+		direcexr1(icx)%localref(:)=0
+		direcexr1(icx)%ishape(:)=0
 ! 		
-		DO ICF=1,IX
-		IF (ILISTSTEN(ICF)%PROCID.EQ.IRECEXR(ICX)%PROCID)THEN
-		IRECEXR1(ICX)%WHATINEED(:)=ILISTSTEN(ICF)%LISTSARRAY(:)
+		do icf=1,ix
+		if (diliststen(icf)%procid.eq.direcexr(icx)%procid)then
+		direcexr1(icx)%whatineed(:)=diliststen(icf)%listsarray(:)
 ! 		
-		END IF
-		END DO
-		END IF
-	END DO
+		end if
+		end do
+		end if
+	end do
 	
 
 	
-	SENDSTWH(:)=0
-	ICPUID=N
-	DO K=0,ISIZE-1
-		IXFLAG=0
-		ITEEDUM=0
-		ITEE=0
-		IF (K.NE.N)THEN
-		DO I=1,ICX
-			IF (IRECEXR(I)%PROCID.EQ.K)THEN
-			CALL MPI_SENDRECV(IRECEXR(I)%MUCHINEED(1),1,MPI_INTEGER,IRECEXR(I)%PROCID,ICPUID,&
-			ITEE,1,MPI_INTEGER,IRECEXR(I)%PROCID,IRECEXR(I)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-			SENDSTWH(IRECEXR(I)%PROCID)=ITEE
-			IXFLAG=1
-			END IF
-		END DO
-		IF (IXFLAG.EQ.0)THEN
-			CALL MPI_SENDRECV(ITEEDUM,1,MPI_INTEGER,K,ICPUID,&
-			ITEE,1,MPI_INTEGER,K,K,MPI_COMM_WORLD,STATUS,IERROR)
-			SENDSTWH(K)=ITEE
-		END IF
-		END IF
-	END DO	
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	TEMP2=0
-	DO I=0,ISIZE-1
-		IF (SENDSTWH(I).GT.0)THEN
-		TEMP2=TEMP2+1
-		END IF
-	END DO
+	sendstwh(:)=0
+	icpuid=n
+	do k=0,isize-1
+		ixflag=0
+		iteedum=0
+		itee=0
+		if (k.ne.n)then
+		do i=1,icx
+			if (direcexr(i)%procid.eq.k)then
+			call mpi_sendrecv(direcexr(i)%muchineed(1),1,mpi_integer,direcexr(i)%procid,icpuid,&
+			itee,1,mpi_integer,direcexr(i)%procid,direcexr(i)%procid,mpi_comm_world,status,ierror)
+			sendstwh(direcexr(i)%procid)=itee
+			ixflag=1
+			end if
+		end do
+		if (ixflag.eq.0)then
+			call mpi_sendrecv(iteedum,1,mpi_integer,k,icpuid,&
+			itee,1,mpi_integer,k,k,mpi_comm_world,status,ierror)
+			sendstwh(k)=itee
+		end if
+		end if
+	end do	
+	call mpi_barrier(mpi_comm_world,ierror)
+	temp2=0
+	do i=0,isize-1
+		if (sendstwh(i).gt.0)then
+		temp2=temp2+1
+		end if
+	end do
 
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	ALLOCATE (IRECEXS(TEMP2))
-	ALLOCATE (IRECEXS1(TEMP2))
-! 	IRECEXS(:)=0
-	IRECEXS(:)%TOT=TEMP2
-	KK=0
-	
-
-	
-	DO I=0,ISIZE-1
-		IF (SENDSTWH(I).GT.0)THEN
-		KK=KK+1
-		IRECEXS(KK)%PROCID=I
-		ALLOCATE(IRECEXS(KK)%MUCHTHEYNEED(1))
-		IRECEXS(KK)%MUCHTHEYNEED(:)=0
-		IRECEXS(KK)%MUCHTHEYNEED(1)=SENDSTWH(I)
-		ALLOCATE(IRECEXS1(KK)%WHATTHEYNEED(IRECEXS(KK)%MUCHTHEYNEED(1)))
-		ALLOCATE(IRECEXS(KK)%LOCALREF(IRECEXS(KK)%MUCHTHEYNEED(1)))
-		ALLOCATE(IRECEXS1(KK)%ISHAPE(IRECEXS(KK)%MUCHTHEYNEED(1)))
-		IRECEXS1(KK)%WHATTHEYNEED(:)=0
-		IRECEXS(KK)%LOCALREF(:)=0
-		IRECEXS1(KK)%ISHAPE(:)=0
-		END IF
-	END DO
-	
-			RUMTS(1:1)=0
-	
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
+	call mpi_barrier(mpi_comm_world,ierror)
+	allocate (direcexs(temp2))
+	allocate (direcexs1(temp2))
+! 	direcexs(:)=0
+	direcexs(:)%tot=temp2
+	kk=0
 	
 
 	
-	DO I=0,ISIZE-1
-			IF (I.NE.N) THEN
-				DO J=1,TEMP2
-					IAVT=10000
-					IF (IRECEXS(J)%PROCID.EQ.I)THEN
-					IAVT=J 
-					GO TO 7001
-					END IF
-				END DO
-				7001 CONTINUE
-				DO K=1,ICX
-					IAVC=10000
-					IF (IRECEXR(K)%PROCID.EQ.I) THEN
-					IAVC=K
-					GO TO 8001
-					END IF
-				END DO
-				8001 CONTINUE
-IF ((IAVC.EQ.10000).AND.(IAVT.NE.10000)) THEN
-CALL MPI_SENDRECV(SUMTS(1:1),1,MPI_INTEGER,I,ICPUID,&
-IRECEXS1(IAVT)%WHATTHEYNEED(1:IRECEXS(IAVT)%MUCHTHEYNEED(1)),IRECEXS(IAVT)%MUCHTHEYNEED(1),&
-MPI_INTEGER,IRECEXS(IAVT)%PROCID,IRECEXS(IAVT)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-END IF
-IF ((IAVC.EQ.10000).AND.(IAVT.EQ.10000)) THEN
-CALL MPI_SENDRECV(SUMTS(1:1),1,MPI_INTEGER,I,ICPUID,&
-RUMTS(1:1),1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-END IF
- IF ((IAVC.NE.10000).AND.(IAVT.EQ.10000)) THEN
- CALL MPI_SENDRECV(IRECEXR1(IAVC)%WHATINEED(1:IRECEXR(IAVC)%MUCHINEED(1)),IRECEXR(IAVC)%MUCHINEED(1),&
- MPI_INTEGER,IRECEXR(IAVC)%PROCID,ICPUID,RUMTS(1:1),1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
- END IF
-IF ((IAVC.NE.10000).AND.(IAVT.NE.10000)) THEN
-CALL MPI_SENDRECV(IRECEXR1(IAVC)%WHATINEED(1:IRECEXR(IAVC)%MUCHINEED(1)),IRECEXR(IAVC)%MUCHINEED(1),&
-MPI_INTEGER,IRECEXR(IAVC)%PROCID,ICPUID,&
-IRECEXS1(IAVT)%WHATTHEYNEED(1:IRECEXS(IAVT)%MUCHTHEYNEED(1)),IRECEXS(IAVT)%MUCHTHEYNEED(1),MPI_INTEGER,&
-IRECEXS(IAVT)%PROCID,IRECEXS(IAVT)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-END IF
-			!	END DO !K
-			!END DO! J
-			END IF	! I.NE.N
-	END DO
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	do i=0,isize-1
+		if (sendstwh(i).gt.0)then
+		kk=kk+1
+		direcexs(kk)%procid=i
+		allocate(direcexs(kk)%muchtheyneed(1))
+		direcexs(kk)%muchtheyneed(:)=0
+		direcexs(kk)%muchtheyneed(1)=sendstwh(i)
+		allocate(direcexs1(kk)%whattheyneed(direcexs(kk)%muchtheyneed(1)))
+		allocate(direcexs(kk)%localref(direcexs(kk)%muchtheyneed(1)))
+		allocate(direcexs1(kk)%ishape(direcexs(kk)%muchtheyneed(1)))
+		direcexs1(kk)%whattheyneed(:)=0
+		direcexs(kk)%localref(:)=0
+		direcexs1(kk)%ishape(:)=0
+		end if
+	end do
+	
+			rumts(1:1)=0
+	
+	call mpi_barrier(mpi_comm_world,ierror)
+	
+	
+
+	
+	do i=0,isize-1
+			if (i.ne.n) then
+				do j=1,temp2
+					iavt=10000
+					if (direcexs(j)%procid.eq.i)then
+					iavt=j 
+					go to 7001
+					end if
+				end do
+				7001 continue
+				do k=1,icx
+					iavc=10000
+					if (direcexr(k)%procid.eq.i) then
+					iavc=k
+					go to 8001
+					end if
+				end do
+				8001 continue
+if ((iavc.eq.10000).and.(iavt.ne.10000)) then
+call mpi_sendrecv(sumts(1:1),1,mpi_integer,i,icpuid,&
+direcexs1(iavt)%whattheyneed(1:direcexs(iavt)%muchtheyneed(1)),direcexs(iavt)%muchtheyneed(1),&
+mpi_integer,direcexs(iavt)%procid,direcexs(iavt)%procid,mpi_comm_world,status,ierror)
+end if
+if ((iavc.eq.10000).and.(iavt.eq.10000)) then
+call mpi_sendrecv(sumts(1:1),1,mpi_integer,i,icpuid,&
+rumts(1:1),1,mpi_integer,i,i,mpi_comm_world,status,ierror)
+end if
+ if ((iavc.ne.10000).and.(iavt.eq.10000)) then
+ call mpi_sendrecv(direcexr1(iavc)%whatineed(1:direcexr(iavc)%muchineed(1)),direcexr(iavc)%muchineed(1),&
+ mpi_integer,direcexr(iavc)%procid,icpuid,rumts(1:1),1,mpi_integer,i,i,mpi_comm_world,status,ierror)
+ end if
+if ((iavc.ne.10000).and.(iavt.ne.10000)) then
+call mpi_sendrecv(direcexr1(iavc)%whatineed(1:direcexr(iavc)%muchineed(1)),direcexr(iavc)%muchineed(1),&
+mpi_integer,direcexr(iavc)%procid,icpuid,&
+direcexs1(iavt)%whattheyneed(1:direcexs(iavt)%muchtheyneed(1)),direcexs(iavt)%muchtheyneed(1),mpi_integer,&
+direcexs(iavt)%procid,direcexs(iavt)%procid,mpi_comm_world,status,ierror)
+end if
+			!	end do !k
+			!end do! j
+			end if	! i.ne.n
+	end do
+	call mpi_barrier(mpi_comm_world,ierror)
 ! 	
 	   	
-	DO I=1,TEMP2
-		DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
-			!DO J=1,KMAXE
-			IF (XMPIE(IRECEXS1(I)%WHATTHEYNEED(K)).EQ.N) THEN
-			J=XMPIL(IRECEXS1(I)%WHATTHEYNEED(K))
-			!IF (IRECEXS(I)%WHATTHEYNEED(K).EQ.IELEM(N,J)%IHEXGL)THEN
-			IRECEXS(I)%LOCALREF(K)=j
-			IRECEXS1(I)%ISHAPE(K)=IELEM(N,J)%ISHAPE
+	do i=1,temp2
+		do k=1,direcexs(i)%muchtheyneed(1)
+			!do j=1,kmaxe
+			if (xmpie(direcexs1(i)%whattheyneed(k)).eq.n) then
+			j=xmpil(direcexs1(i)%whattheyneed(k))
+			!if (direcexs(i)%whattheyneed(k).eq.ielem_ihexgl(j))then
+			direcexs(i)%localref(k)=j
+			direcexs1(i)%ishape(k)=ielem_ishape(j)
 			
-			END IF
-			!END DO
-		END DO
-	END DO
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-		DO I=0,ISIZE-1
-			RUMTS=0
-			SUMTS=0
-			IF (I.NE.N) THEN
-				DO J=1,TEMP2
-					IAVT=10000
-					IF (IRECEXS(J)%PROCID.EQ.I)THEN
-					IAVT=J 
-					GO TO 9001
-					END IF
-				END DO
-				9001 CONTINUE
-				DO K=1,ICX
-					IAVC=10000
-					IF (IRECEXR(K)%PROCID.EQ.I) THEN
-					IAVC=K
-					GO TO 10001
-					END IF
-				END DO
-				10001 CONTINUE
+			end if
+			!end do
+		end do
+	end do
+	call mpi_barrier(mpi_comm_world,ierror)
+		do i=0,isize-1
+			rumts=0
+			sumts=0
+			if (i.ne.n) then
+				do j=1,temp2
+					iavt=10000
+					if (direcexs(j)%procid.eq.i)then
+					iavt=j 
+					go to 9001
+					end if
+				end do
+				9001 continue
+				do k=1,icx
+					iavc=10000
+					if (direcexr(k)%procid.eq.i) then
+					iavc=k
+					go to 10001
+					end if
+				end do
+				10001 continue
 			
-  IF ((IAVT.EQ.10000).AND.(IAVC.NE.10000)) THEN
-  CALL MPI_SENDRECV(SUMTS(1:1),1,MPI_INTEGER,I,ICPUID,&
-  IRECEXR1(IAVC)%LOCALREF(1:IRECEXR(IAVC)%MUCHINEED(1)),IRECEXR(IAVC)%MUCHINEED(1),&
-MPI_INTEGER,IRECEXR(IAVC)%PROCID,IRECEXR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-  CALL MPI_SENDRECV(SUMTS(1:1),1,MPI_INTEGER,I,ICPUID,&
-  IRECEXR1(IAVC)%ISHAPE(1:IRECEXR(IAVC)%MUCHINEED(1)),IRECEXR(IAVC)%MUCHINEED(1),&
-MPI_INTEGER,IRECEXR(IAVC)%PROCID,IRECEXR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-  END IF
-   IF ((IAVT.EQ.10000).AND.(IAVC.EQ.10000)) THEN
-   CALL MPI_SENDRECV(SUMTS(1:1),1,MPI_INTEGER,I,ICPUID,&
-   RUMTS(1:1),1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-   CALL MPI_SENDRECV(SUMTS(1:1),1,MPI_INTEGER,I,ICPUID,&
-   RUMTS(1:1),1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-   END IF
-  IF ((IAVT.NE.10000).AND.(IAVC.EQ.10000)) THEN
-  CALL MPI_SENDRECV(IRECEXS(IAVT)%LOCALREF(1:IRECEXS(IAVT)%MUCHTHEYNEED(1)),&
-IRECEXS(IAVT)%MUCHTHEYNEED(1),MPI_INTEGER,IRECEXS(IAVT)%PROCID,ICPUID,&
-  RUMTS(1:1),1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-  CALL MPI_SENDRECV(IRECEXS1(IAVT)%ISHAPE(1:IRECEXS(IAVT)%MUCHTHEYNEED(1)),&
-  IRECEXS(IAVT)%MUCHTHEYNEED(1),MPI_INTEGER,IRECEXS(IAVT)%PROCID,ICPUID,&
-  RUMTS(1:1),1,MPI_INTEGER,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-  END IF
-  IF ((IAVT.NE.10000).AND.(IAVC.NE.10000)) THEN
-  CALL MPI_SENDRECV(IRECEXS(IAVT)%LOCALREF(1:IRECEXS(IAVT)%MUCHTHEYNEED(1)),&
-IRECEXS(IAVT)%MUCHTHEYNEED(1),MPI_INTEGER,IRECEXS(IAVT)%PROCID,ICPUID,IRECEXR1(IAVC)%LOCALREF(1:IRECEXR(IAVC)%MUCHINEED(1)),&
-IRECEXR(IAVC)%MUCHINEED(1),MPI_INTEGER,IRECEXR(IAVC)%PROCID,IRECEXR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-  CALL MPI_SENDRECV(IRECEXS1(IAVT)%ISHAPE(1:IRECEXS(IAVT)%MUCHTHEYNEED(1)),IRECEXS(IAVT)%MUCHTHEYNEED(1),&
-  MPI_INTEGER,IRECEXS(IAVT)%PROCID,ICPUID,IRECEXR1(IAVC)%ISHAPE(1:IRECEXR(IAVC)%MUCHINEED(1)),IRECEXR(IAVC)%MUCHINEED(1)&
-  ,MPI_INTEGER,IRECEXR(IAVC)%PROCID,IRECEXR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-  END IF
+  if ((iavt.eq.10000).and.(iavc.ne.10000)) then
+  call mpi_sendrecv(sumts(1:1),1,mpi_integer,i,icpuid,&
+  direcexr1(iavc)%localref(1:direcexr(iavc)%muchineed(1)),direcexr(iavc)%muchineed(1),&
+mpi_integer,direcexr(iavc)%procid,direcexr(iavc)%procid,mpi_comm_world,status,ierror)
+  call mpi_sendrecv(sumts(1:1),1,mpi_integer,i,icpuid,&
+  direcexr1(iavc)%ishape(1:direcexr(iavc)%muchineed(1)),direcexr(iavc)%muchineed(1),&
+mpi_integer,direcexr(iavc)%procid,direcexr(iavc)%procid,mpi_comm_world,status,ierror)
+  end if
+   if ((iavt.eq.10000).and.(iavc.eq.10000)) then
+   call mpi_sendrecv(sumts(1:1),1,mpi_integer,i,icpuid,&
+   rumts(1:1),1,mpi_integer,i,i,mpi_comm_world,status,ierror)
+   call mpi_sendrecv(sumts(1:1),1,mpi_integer,i,icpuid,&
+   rumts(1:1),1,mpi_integer,i,i,mpi_comm_world,status,ierror)
+   end if
+  if ((iavt.ne.10000).and.(iavc.eq.10000)) then
+  call mpi_sendrecv(direcexs(iavt)%localref(1:direcexs(iavt)%muchtheyneed(1)),&
+direcexs(iavt)%muchtheyneed(1),mpi_integer,direcexs(iavt)%procid,icpuid,&
+  rumts(1:1),1,mpi_integer,i,i,mpi_comm_world,status,ierror)
+  call mpi_sendrecv(direcexs1(iavt)%ishape(1:direcexs(iavt)%muchtheyneed(1)),&
+  direcexs(iavt)%muchtheyneed(1),mpi_integer,direcexs(iavt)%procid,icpuid,&
+  rumts(1:1),1,mpi_integer,i,i,mpi_comm_world,status,ierror)
+  end if
+  if ((iavt.ne.10000).and.(iavc.ne.10000)) then
+  call mpi_sendrecv(direcexs(iavt)%localref(1:direcexs(iavt)%muchtheyneed(1)),&
+direcexs(iavt)%muchtheyneed(1),mpi_integer,direcexs(iavt)%procid,icpuid,direcexr1(iavc)%localref(1:direcexr(iavc)%muchineed(1)),&
+direcexr(iavc)%muchineed(1),mpi_integer,direcexr(iavc)%procid,direcexr(iavc)%procid,mpi_comm_world,status,ierror)
+  call mpi_sendrecv(direcexs1(iavt)%ishape(1:direcexs(iavt)%muchtheyneed(1)),direcexs(iavt)%muchtheyneed(1),&
+  mpi_integer,direcexs(iavt)%procid,icpuid,direcexr1(iavc)%ishape(1:direcexr(iavc)%muchineed(1)),direcexr(iavc)%muchineed(1)&
+  ,mpi_integer,direcexr(iavc)%procid,direcexr(iavc)%procid,mpi_comm_world,status,ierror)
+  end if
 			
-			END IF	! I.NE.N
-		END DO
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	deALLOCATE (STENRED)
-	deALLOCATE (STENREDPROC)
-	DEALLOCATE (ILISTSTEN)
-	END IF	
+			end if	! i.ne.n
+		end do
+	call mpi_barrier(mpi_comm_world,ierror)
+	deallocate (stenred)
+	deallocate (stenredproc)
+	deallocate (diliststen)
+	end if	
       
 	
-	deALLOCATE (ILISTGLO)
+	deallocate (dilistglo)
 	
 
 
 
 
-	!TEMPORARY ALLOCATE
+	!temporary allocate
 
 	
-END SUBROUTINE ESTABEXHANGE
+end subroutine estabexhange
 
-SUBROUTINE EXCHANGE_LOWER(N)
+subroutine exchange_lower(n)
 !> @brief
-!> This subroutine is exchanging the variables of all the halo cells for direct side neighbours only
+!> this subroutine is exchanging the variables of all the halo cells for direct side neighbours only
 !> and is primarily used by lower order schemes
 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,K,INEEDT,TNEEDT,ICPUID,ITEST
-INEEDT=IEXCHANGER(1)%TOT
-TNEEDT=IEXCHANGES(1)%TOT
+implicit none
+integer,intent(in)::n
+integer::i,k,ineedt,tneedt,icpuid,itest
+ineedt=diexchanger(1)%tot
+tneedt=diexchanges(1)%tot
 
-  ITEST=NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR
+  itest=nof_variables+turbulenceequations+passivescalar
 
   
-If (( turbulence .GT. 0 ).or.(passivescalar.GT.0)) then
-!$OMP DO
-DO I=1,TNEEDT
-	DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-	      SOLCHANGES(I)%SOL(K,1:NOF_VARIABLES)=U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(1,1:NOF_VARIABLES)
-	      SOLCHANGES(I)%SOL(K,NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IEXCHANGES(I)%LOCALREF(K))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-	END DO
-END DO
-!$OMP END DO
+if (( turbulence .gt. 0 ).or.(passivescalar.gt.0)) then
+!$omp do
+do i=1,tneedt
+	do k=1,diexchanges(i)%muchtheyneed(1)
+	      dsolchanges(i)%sol(k,1:nof_variables)=u_c_val(1,1:nof_variables,diexchanges(i)%localref(k))
+	      dsolchanges(i)%sol(k,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,diexchanges(i)%localref(k))
+	end do
+end do
+!$omp end do
 
-ELSE
-!$OMP DO
-DO I=1,TNEEDT
-	DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-	      SOLCHANGES(I)%SOL(K,1:NOF_VARIABLES)=U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(1,1:NOF_VARIABLES)
-	END DO
-END DO
-!$OMP END DO
-END IF
+else
+!$omp do
+do i=1,tneedt
+	do k=1,diexchanges(i)%muchtheyneed(1)
+	      dsolchanges(i)%sol(k,1:nof_variables)=u_c_val(1,1:nof_variables,diexchanges(i)%localref(k))
+	end do
+end do
+!$omp end do
+end if
 
 
 
 
  
-!$OMP BARRIER
-!$OMP MASTER
-ICPUID=N
-DO I=1,INEEDT
-		DO K=1,TNEEDT
-		IF (SOLCHANGER(I)%PROCID.EQ.SOLCHANGES(K)%PROCID)THEN
-		CALL MPI_SENDRECV(SOLCHANGES(K)%SOL(1:IEXCHANGES(K)%MUCHTHEYNEED(1),1:ITEST),&
-IEXCHANGES(K)%MUCHTHEYNEED(1)*ITEST,MPI_DOUBLE_PRECISION,SOLCHANGER(I)%PROCID,&
-		SOLCHANGES(K)%PROCID,SOLCHANGER(I)%SOL(1:IEXCHANGER(I)%MUCHINEED(1),1:ITEST),&
-IEXCHANGER(I)%MUCHINEED(1)*ITEST,MPI_DOUBLE_PRECISION,&
-		SOLCHANGER(I)%PROCID,ICPUID,MPI_COMM_WORLD,STATUS,IERROR)
-		END IF
-		END DO
-END DO
-!$OMP END MASTER 
-!$OMP BARRIER
+!$omp barrier
+!$omp master
+icpuid=n
+do i=1,ineedt
+		do k=1,tneedt
+		if (dsolchanger(i)%procid.eq.dsolchanges(k)%procid)then
+		call mpi_sendrecv(dsolchanges(k)%sol(1:diexchanges(k)%muchtheyneed(1),1:itest),&
+diexchanges(k)%muchtheyneed(1)*itest,mpi_double_precision,dsolchanger(i)%procid,&
+		dsolchanges(k)%procid,dsolchanger(i)%sol(1:diexchanger(i)%muchineed(1),1:itest),&
+diexchanger(i)%muchineed(1)*itest,mpi_double_precision,&
+		dsolchanger(i)%procid,icpuid,mpi_comm_world,status,ierror)
+		end if
+		end do
+end do
+!$omp end master 
+!$omp barrier
 
-END SUBROUTINE EXCHANGE_LOWER
+end subroutine exchange_lower
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-SUBROUTINE EXCHANGE_HIGHER(N)
+subroutine exchange_higher(n)
 !> @brief
-!> This subroutine is exchanging the variables of all the halo cells for all the reconstruction stencils
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITEST,ITEE,ITEEDUM,ITEMP1,ITEMP2,IAVC,IAVT
-REAL,DIMENSION(1:1)::DUMTS,RUMTS
-integer:: n_requests
+!> this subroutine is exchanging the variables of all the halo cells for all the reconstruction stencils
+implicit none
+integer,intent(in)::n
+integer::i,j,k,l,m,o,p,q,ineedt,tneedt,indl,tndl,icpuid,itest,itee,iteedum,itemp1,itemp2,iavc,iavt,r0,r1,s0,s1,rb,sb
+real,dimension(1:1)::dumts,rumts
+integer:: n_requests,cell,baseS,baseR,v
 integer, dimension(:), allocatable:: requests
 
 
 
 	
-ITEST=nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR
+itest=nof_variables+turbulenceequations+passivescalar
 
 
-INEEDT=IRECEXR(1)%TOT
-TNEEDT=IRECEXS(1)%TOT
+! ineedt=ineedhalo!direcexr(1)%tot
+! tneedt=ineedhalos!direcexs(1)%tot
 
-If (( turbulence .GT. 0).or.(passivescalar.GT.0)) then
-!$OMP DO
-DO I=1,TNEEDT
-	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
-		  IEXSOLHIS(I)%SOL(K,1:nof_Variables)=U_C(IRECEXS(I)%LOCALREF(K))%VAL(1,1:nof_Variables)
-		  IEXSOLHIS(I)%SOL(K,NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IRECEXS(I)%LOCALREF(K))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-		  
-	END DO
-END DO
-!$OMP END DO
+if (( turbulence .gt. 0).or.(passivescalar.gt.0)) then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,halos_total
+	solhis(i,1:nof_variables)=u_c_val(1,1:nof_variables,solhi_loc(i))
+	solhis(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,solhi_loc(i))
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 else
 
 
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,halos_total
+	solhis(i,1:nof_variables)=u_c_val(1,1:nof_variables,solhi_loc(i))
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
-
-
-
-
-
-
-!$OMP DO
-DO I=1,TNEEDT
-	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
-		  IEXSOLHIS(I)%SOL(K,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=U_C(IRECEXS(I)%LOCALREF(K))%VAL(1,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-	END DO
-END DO
-!$OMP END DO
 end if
 
+#ifdef gpu
+!$omp target teams distribute parallel do private(itest)
+#else
+!$omp do
+#endif
+do cell = 1, halos_total
+	itest=nof_variables+turbulenceequations+passivescalar
+  do v = 1, itest
+    solhis_flat((cell-1)*itest + v) = solhis(cell, v)
+  end do
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 
-!$OMP BARRIER
-!$OMP MASTER
+
+! !$omp barrier
+!$omp master
 n_requests = 0
 
 allocate(requests(jtotal*2))
 requests(:)=0
-ICPUID=N
+icpuid=n
 
 do k=1,jtotal
         
 
-        if ((jtot(k,1).eq.-1).AND.(jtot(k,2).NE.-1))then
+        if ((jtot(k,1).eq.-1).and.(jtot(k,2).ne.-1))then
         
         
         
           n_requests = n_requests + 1
-        iavC=jtot(k,2)
+        iavc=jtot(k,2)
 !        
-        CALL MPI_ISEND(                                                     &
-      DUMTS(1:1), & !sendbuf
-      1, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      JTOT(K,3), 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        call mpi_isend(                                                     &
+      dumts(1:1), & !sendbuf
+      1, mpi_double_precision,       & !sendcount, sendtype
+      jtot(k,3), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
 
 
          n_requests = n_requests + 1
-         iavC=jtot(k,2)
-         
-   CALL MPI_IRECV(                                                     &
-      IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),    & !recvbuf
-      IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-     IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+         iavc=jtot(k,2)
+         r0=halo_offset(iavc)
+         baseR = (r0-1)*itest + 1
+         rb=halo_len(iavc)
+
+#ifdef gpu
+		!$omp target data use_device_ptr(solhir_flat)
+#endif
+   call mpi_irecv(                                                     &
+      solhir_flat(baseR), rb*itest,    & !recvbuf
+       mpi_double_precision,          & !recvcount, recvtype
+     halo_proc(iavc), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-        END IF
+#ifdef gpu
+		!$omp end target data
+#endif
+
+
+        end if
         
-       if ((jtot(k,1).NE.-1).AND.(jtot(k,2).EQ.-1))then
+       if ((jtot(k,1).ne.-1).and.(jtot(k,2).eq.-1))then
         
         n_requests = n_requests + 1
-        iavT=jtot(k,1)
-!         
-        CALL MPI_ISEND(                                                     &
-      IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST), & !sendbuf
-      IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
-
-
-         n_requests = n_requests + 1
-         iavT=jtot(k,1)
-   CALL MPI_IRECV(                                                     &
-      DUMTS(1:1),    & !recvbuf
-      1, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-     jtot(k,3), 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
-        
-        
-        
-        END IF
-        
-        
-        
-        if ((jtot(k,1).NE.-1).AND.(jtot(k,2).NE.-1))then
-        
-       
-       
-        
-        
-         n_requests = n_requests + 1
         iavt=jtot(k,1)
-         iavC=jtot(k,2)
-!          
-        CALL MPI_ISEND(                                                     &
-      IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST), & !sendbuf
-      IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+!         
+		s0=halos_offset(iavt)
+		baseS = (s0-1)*itest + 1
+		sb=halos_len(iavt)
+
+#ifdef gpu
+		!$omp target data use_device_ptr(solhis_flat)
+#endif
+        call mpi_isend(                                                     &
+      solhis_flat(baseS), sb*itest, & !sendbuf
+      mpi_double_precision,       & !sendcount, sendtype
+      halos_proc(iavt), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
+#ifdef gpu
+		!$omp end target data
+#endif
+
+
+
 
 
          n_requests = n_requests + 1
-         iavC=jtot(k,2)
-   CALL MPI_IRECV(                                                     &
-      IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),    & !recvbuf
-      IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-     IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+         iavt=jtot(k,1)
+   call mpi_irecv(                                                     &
+      dumts(1:1),    & !recvbuf
+      1, mpi_double_precision,          & !recvcount, recvtype
+     jtot(k,3), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
         
+        
+        
+        end if
+        
+        
+        
+        if ((jtot(k,1).ne.-1).and.(jtot(k,2).ne.-1))then
+        
+       
+       
+        
+        
+         n_requests = n_requests + 1
+		 iavt=jtot(k,1)
+		 s0=halos_offset(iavt)
+		baseS = (s0-1)*itest + 1
+		sb=halos_len(iavt)
+
+!          
+#ifdef gpu
+		!$omp target data use_device_ptr(solhis_flat)
+#endif
+        call mpi_isend(                                                     &
+      solhis_flat(baseS), sb*itest, & !sendbuf
+      mpi_double_precision,       & !sendcount, sendtype
+      halos_proc(iavt), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+#ifdef gpu
+		!$omp end target data
+#endif
+
+
+         n_requests = n_requests + 1
+         iavc=jtot(k,2)
+         r0=halo_offset(iavc)
+         baseR = (r0-1)*itest + 1
+         rb=halo_len(iavc)
+
+
+
+
+#ifdef gpu
+		!$omp target data use_device_ptr(solhir_flat)
+#endif
+   call mpi_irecv(                                                     &
+      solhir_flat(baseR), rb*itest,   & !recvbuf
+       mpi_double_precision,          & !recvcount, recvtype
+     halo_proc(iavc), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+#ifdef gpu
+		!$omp end target data
+#endif
         
         
         
@@ -1234,41 +1328,60 @@ end do
 
        
 
-CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
+call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
 
 deallocate(requests)
 
-!$OMP END MASTER 
-!$OMP BARRIER
-	
 
 
-END SUBROUTINE EXCHANGE_HIGHER
+!$omp end master
+! !$omp barrier
+
+#ifdef gpu
+!$omp target teams distribute parallel do private(itest)
+#else
+!$omp do
+#endif
+do cell = 1, halo_total
+	itest=nof_variables+turbulenceequations+passivescalar
+  do v = 1, itest
+    solhir(cell, v) = solhir_flat((cell-1)*itest + v)
+  end do
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 
 
 
-SUBROUTINE EXCHANGE_ADDA_DISS(N)
+
+
+end subroutine exchange_higher
+
+
+
+
+subroutine exchange_adda_diss(n)
 !> @brief
-!> This subroutine is exchanging the variables of all the halo cells for all the reconstruction stencils
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITEST,ITEE,ITEEDUM,ITEMP1,ITEMP2,IAVC,IAVT
-REAL,DIMENSION(1:1)::DUMTS,RUMTS
-integer:: n_requests
+!> this subroutine is exchanging the variables of all the halo cells for all the reconstruction stencils
+implicit none
+integer,intent(in)::n
+integer::i,j,k,l,m,o,p,q,ineedt,tneedt,indl,tndl,icpuid,itest,itee,iteedum,itemp1,itemp2,iavc,iavt,r0,r1,s0,s1,rb,sb
+real,dimension(1:1)::dumts,rumts
+integer:: n_requests,baseR,baseS,cell,v
 integer, dimension(:), allocatable:: requests
 
 
 
 
-ITEST=1
+itest=1
 
 
-INEEDT=IRECEXR(1)%TOT
-TNEEDT=IRECEXS(1)%TOT
-
-
-
+! ineedt=direcexr(1)%tot
+! tneedt=direcexs(1)%tot
 
 
 
@@ -1277,109 +1390,128 @@ TNEEDT=IRECEXS(1)%TOT
 
 
 
-!$OMP DO
-DO I=1,TNEEDT
-	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
-		  IEXSOLHISD(I)%SOL(K,1)=IELEM(N,IRECEXS(I)%LOCALREF(K))%DISS
-	END DO
-END DO
-!$OMP END DO
+
+
+
+!$omp do
+do i=1,halos_total
+	solhisd(i)=ielem_diss(solhi_loc(i))
+end do
+!$omp end do
 
 
 
 
-!$OMP BARRIER
-!$OMP MASTER
+!$omp barrier
+!$omp master
 n_requests = 0
 
 allocate(requests(jtotal*2))
 requests(:)=0
-ICPUID=N
+icpuid=n
 
 do k=1,jtotal
 
 
-        if ((jtot(k,1).eq.-1).AND.(jtot(k,2).NE.-1))then
+        if ((jtot(k,1).eq.-1).and.(jtot(k,2).ne.-1))then
 
 
 
           n_requests = n_requests + 1
-        iavC=jtot(k,2)
+        iavc=jtot(k,2)
 !
-        CALL MPI_ISEND(                                                     &
-      DUMTS(1:1), & !sendbuf
-      1, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      JTOT(K,3), 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        call mpi_isend(                                                     &
+      dumts(1:1), & !sendbuf
+      1, mpi_double_precision,       & !sendcount, sendtype
+      jtot(k,3), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
 
 
          n_requests = n_requests + 1
-         iavC=jtot(k,2)
+         iavc=jtot(k,2)
 
-   CALL MPI_IRECV(                                                     &
-      IEXSOLHIRD(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1),    & !recvbuf
-      IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-     IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+	r0=halo_offset(iavc)
+         r1=halo_offset(iavc)+halo_len(iavc)-1
+         rb=halo_len(iavc)
+
+
+   call mpi_irecv(                                                     &
+      solhird(r0:r1),    & !recvbuf
+      rb, mpi_double_precision,          & !recvcount, recvtype
+     halo_proc(iavc), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-        END IF
 
-       if ((jtot(k,1).NE.-1).AND.(jtot(k,2).EQ.-1))then
+        end if
+
+       if ((jtot(k,1).ne.-1).and.(jtot(k,2).eq.-1))then
 
         n_requests = n_requests + 1
-        iavT=jtot(k,1)
-!
-        CALL MPI_ISEND(                                                     &
-      IEXSOLHISD(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1), & !sendbuf
-      IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
-
-
-         n_requests = n_requests + 1
-         iavT=jtot(k,1)
-   CALL MPI_IRECV(                                                     &
-      DUMTS(1:1),    & !recvbuf
-      1, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-     jtot(k,3), 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
-
-
-
-        END IF
-
-
-
-        if ((jtot(k,1).NE.-1).AND.(jtot(k,2).NE.-1))then
-
-
-
-
-
-         n_requests = n_requests + 1
         iavt=jtot(k,1)
-         iavC=jtot(k,2)
 !
-        CALL MPI_ISEND(                                                     &
-      IEXSOLHISD(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST), & !sendbuf
-      IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+       s0=halos_offset(iavt)
+         s1=halos_offset(iavt)+halos_len(iavt)-1
+         sb=halos_len(iavt)
+
+!
+        call mpi_isend(                                                     &
+      solhisd(s0:s1), sb, & !sendbuf
+      mpi_double_precision,       & !sendcount, sendtype
+      halos_proc(iavt), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
 
 
          n_requests = n_requests + 1
-         iavC=jtot(k,2)
-   CALL MPI_IRECV(                                                     &
-      IEXSOLHIRD(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),    & !recvbuf
-      IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-     IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+         iavt=jtot(k,1)
+   call mpi_irecv(                                                     &
+      dumts(1:1),    & !recvbuf
+      1, mpi_double_precision,          & !recvcount, recvtype
+     jtot(k,3), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
 
+
+
+        end if
+
+
+
+        if ((jtot(k,1).ne.-1).and.(jtot(k,2).ne.-1))then
+
+
+
+
+
+         n_requests = n_requests + 1
+		 iavt=jtot(k,1)
+         s0=halos_offset(iavt)
+         s1=halos_offset(iavt)+halos_len(iavt)-1
+         sb=halos_len(iavt)
+
+!
+        call mpi_isend(                                                     &
+      solhisd(s0:s1), sb, & !sendbuf
+      mpi_double_precision,       & !sendcount, sendtype
+      halos_proc(iavt), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+         n_requests = n_requests + 1
+         iavc=jtot(k,2)
+         r0=halo_offset(iavc)
+         r1=halo_offset(iavc)+halo_len(iavc)-1
+         rb=halo_len(iavc)
+
+
+   call mpi_irecv(                                                     &
+      solhird(r0:r1),    & !recvbuf
+      rb, mpi_double_precision,          & !recvcount, recvtype
+     halo_proc(iavc), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
 
 
 
@@ -1389,26 +1521,27 @@ end do
 
 
 
-CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
+call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
 
 deallocate(requests)
 
-!$OMP END MASTER
-!$OMP BARRIER
+
+!$omp end master
+!$omp barrier
 
 
 
-END SUBROUTINE EXCHANGE_ADDA_DISS
+end subroutine exchange_adda_diss
 
 
-SUBROUTINE EXCHANGE_HIGHER_av(N)
+subroutine exchange_higher_av(n)
 !> @brief
-!> This subroutine is exchanging the averaged variables of all the halo cells for all the reconstruction stencils
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITEST,ITEE,ITEEDUM,ITEMP1,ITEMP2,IAVC,IAVT
-REAL,DIMENSION(1:1)::DUMTS,RUMTS
-integer:: n_requests,ind1
+!> this subroutine is exchanging the averaged variables of all the halo cells for all the reconstruction stencils
+implicit none
+integer,intent(in)::n
+integer::i,j,k,l,m,o,p,q,ineedt,tneedt,indl,tndl,icpuid,itest,itee,iteedum,itemp1,itemp2,iavc,iavt,r0,r1,rb,s0,s1,sb
+real,dimension(1:1)::dumts,rumts
+integer:: n_requests,ind1,baseR,baseS,cell,v
 integer, dimension(:), allocatable:: requests
 if (rungekutta.eq.4)then
 ind1=7
@@ -1417,241 +1550,286 @@ ind1=5
 end if
 
 
-ITEST=nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR
+itest=nof_variables+turbulenceequations+passivescalar
 
-INEEDT=IRECEXR(1)%TOT
-TNEEDT=IRECEXS(1)%TOT
+! ineedt=direcexr(1)%tot
+! tneedt=direcexs(1)%tot
 
-If (( turbulence .GT. 0).or.(passivescalar.GT.0)) then
-!$OMP DO
-DO I=1,TNEEDT
-	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
-		  IEXSOLHIS(I)%SOL(K,1:nof_Variables)=U_C(IRECEXS(I)%LOCALREF(K))%VAL(ind1,1:nof_Variables)
-		  IEXSOLHIS(I)%SOL(K,NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IRECEXS(I)%LOCALREF(K))%VAL(ind1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-		  
-	END DO
-END DO
-!$OMP END DO
+if (( turbulence .gt. 0).or.(passivescalar.gt.0)) then
+!$omp do
+do i=1,halos_total
+	solhis(i,1:nof_variables)=u_c_val(ind1,1:nof_variables,solhi_loc(i))
+	solhis(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(ind1,1:turbulenceequations+passivescalar,solhi_loc(i))
+end do
+!$omp end do
+
+
 
 else
-!  SOLCHANGES(I)%SOL(K,1:NOF_VARIABLES)=U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(1,1:NOF_VARIABLES)
-!$OMP DO
-DO I=1,TNEEDT
-	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
-		  IEXSOLHIS(I)%SOL(K,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=U_C(IRECEXS(I)%LOCALREF(K))%VAL(ind1,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-	END DO
-END DO
-!$OMP END DO
+!$omp do
+do i=1,halos_total
+	solhis(i,1:nof_variables)=u_c_val(ind1,1:nof_variables,solhi_loc(i))
+end do
+!$omp end do
+
+
+
+
+
 end if
 
 
-!$OMP BARRIER
-!$OMP MASTER
+!$omp do	!flat now
+do cell = 1, halos_total
+  do v = 1, itest
+    solhis_flat((cell-1)*itest + v) = solhis(cell, v)
+  end do
+end do
+!$omp end do
+
+
+
+!$omp barrier
+!$omp master
 n_requests = 0
 
 allocate(requests(jtotal*2))
 requests(:)=0
-ICPUID=N
+icpuid=n
 
 do k=1,jtotal
-        
 
-        if ((jtot(k,1).eq.-1).AND.(jtot(k,2).NE.-1))then
-        
-        
-        
+
+        if ((jtot(k,1).eq.-1).and.(jtot(k,2).ne.-1))then
+
+
+
           n_requests = n_requests + 1
-        iavC=jtot(k,2)
-!        
-        CALL MPI_ISEND(                                                     &
-      DUMTS(1:1), & !sendbuf
-      1, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      JTOT(K,3), 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+        iavc=jtot(k,2)
+!
+        call mpi_isend(                                                     &
+      dumts(1:1), & !sendbuf
+      1, mpi_double_precision,       & !sendcount, sendtype
+      jtot(k,3), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
 
 
          n_requests = n_requests + 1
-         iavC=jtot(k,2)
-         
-   CALL MPI_IRECV(                                                     &
-      IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),    & !recvbuf
-      IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-     IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+         iavc=jtot(k,2)
+         r0=halo_offset(iavc)
+         baseR = (r0-1)*itest + 1
+         rb=halo_len(iavc)
+
+
+   call mpi_irecv(                                                     &
+      solhir_flat(baseR), rb*itest,    & !recvbuf
+       mpi_double_precision,          & !recvcount, recvtype
+     halo_proc(iavc), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-        END IF
-        
-       if ((jtot(k,1).NE.-1).AND.(jtot(k,2).EQ.-1))then
-        
+
+
+
+        end if
+
+       if ((jtot(k,1).ne.-1).and.(jtot(k,2).eq.-1))then
+
         n_requests = n_requests + 1
-        iavT=jtot(k,1)
-!         
-        CALL MPI_ISEND(                                                     &
-      IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST), & !sendbuf
-      IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
-
-
-         n_requests = n_requests + 1
-         iavT=jtot(k,1)
-   CALL MPI_IRECV(                                                     &
-      DUMTS(1:1),    & !recvbuf
-      1, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-     jtot(k,3), 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
-        
-        
-        
-        END IF
-        
-        
-        
-        if ((jtot(k,1).NE.-1).AND.(jtot(k,2).NE.-1))then
-        
-       
-       
-        
-        
-         n_requests = n_requests + 1
         iavt=jtot(k,1)
-         iavC=jtot(k,2)
-!          
-        CALL MPI_ISEND(                                                     &
-      IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST), & !sendbuf
-      IRECEXS(IAVT)%MUCHTHEYNEED(1)*ITEST, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      IEXSOLHIS(IAVT)%PROCID, 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+!
+		s0=halos_offset(iavt)
+		baseS = (s0-1)*itest + 1
+		sb=halos_len(iavt)
+
+!
+        call mpi_isend(                                                     &
+      solhis_flat(baseS), sb*itest, & !sendbuf
+      mpi_double_precision,       & !sendcount, sendtype
+      halos_proc(iavt), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+
+         n_requests = n_requests + 1
+         iavt=jtot(k,1)
+   call mpi_irecv(                                                     &
+      dumts(1:1),    & !recvbuf
+      1, mpi_double_precision,          & !recvcount, recvtype
+     jtot(k,3), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+
+        end if
+
+
+
+        if ((jtot(k,1).ne.-1).and.(jtot(k,2).ne.-1))then
+
+
+
+
+
+         n_requests = n_requests + 1
+		 iavt=jtot(k,1)
+		 s0=halos_offset(iavt)
+		baseS = (s0-1)*itest + 1
+		sb=halos_len(iavt)
+
+!
+        call mpi_isend(                                                     &
+      solhis_flat(baseS), sb*itest, & !sendbuf
+      mpi_double_precision,       & !sendcount, sendtype
+      halos_proc(iavt), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
 
 
          n_requests = n_requests + 1
-         iavC=jtot(k,2)
-   CALL MPI_IRECV(                                                     &
-      IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),    & !recvbuf
-      IRECEXR(iavc)%MUCHINEED(1)*ITEST, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-     IEXSOLHIR(IAVC)%PROCID, 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+         iavc=jtot(k,2)
+         r0=halo_offset(iavc)
+         baseR = (r0-1)*itest + 1
+         rb=halo_len(iavc)
+
+
+
+
+
+   call mpi_irecv(                                                     &
+      solhir_flat(baseR), rb*itest,   & !recvbuf
+       mpi_double_precision,          & !recvcount, recvtype
+     halo_proc(iavc), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-        
-        
-        
-        
+
+
+
+
        end if
-       
+
 end do
 
-       
 
-CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
+
+call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
 
 deallocate(requests)
 
-!$OMP END MASTER 
-!$OMP BARRIER
+
+
+!$omp end master
+!$omp barrier
+
+!$omp do	!unflat now
+do cell = 1, halo_total
+  do v = 1, itest
+    solhir(cell, v) = solhir_flat((cell-1)*itest + v)
+  end do
+end do
+!$omp end do
 	
 
 
-END SUBROUTINE EXCHANGE_HIGHER_Av
+end subroutine exchange_higher_av
 
 
 
-SUBROUTINE EXCHANGE_HIGHER_pre(N)
+subroutine exchange_higher_pre(n)
 !> @brief
-!> This subroutine is establishing the communication pattern and allocating the appropriate memory for 
+!> this subroutine is establishing the communication pattern and allocating the appropriate memory for 
 !> exchanging the variables of all the halo cells for all the reconstruction stencils
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITEST,ITEE,ITEEDUM,ITEMP1,ITEMP2,IAVC,IAVT
-REAL,DIMENSION(1:1)::DUMTS,RUMTS
+implicit none
+integer,intent(in)::n
+integer::i,j,k,l,m,o,p,q,ineedt,tneedt,indl,tndl,icpuid,itest,itee,iteedum,itemp1,itemp2,iavc,iavt
+real,dimension(1:1)::dumts,rumts
 
 	
-ITEST=nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR
+itest=nof_variables+turbulenceequations+passivescalar
 
-INEEDT=IRECEXR(1)%TOT
-TNEEDT=IRECEXS(1)%TOT
+ineedt=direcexr(1)%tot
+tneedt=direcexs(1)%tot
 
-If (( turbulence .GT. 0).or.(passivescalar.GT.0)) then
-!$OMP DO
-DO I=1,TNEEDT
-	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
-		  IEXSOLHIS(I)%SOL(K,1:nof_Variables)=U_C(IRECEXS(I)%LOCALREF(K))%VAL(1,1:nof_Variables)
-		  IEXSOLHIS(I)%SOL(K,NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=U_CT(IRECEXS(I)%LOCALREF(K))%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+if (( turbulence .gt. 0).or.(passivescalar.gt.0)) then
+!$omp do
+do i=1,tneedt
+	do k=1,direcexs(i)%muchtheyneed(1)
+		  diexsolhis(i)%sol(k,1:nof_variables)=u_c_val(1,1:nof_variables,direcexs(i)%localref(k))
+		  diexsolhis(i)%sol(k,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,direcexs(i)%localref(k))
 		  
-	END DO
-END DO
-!$OMP END DO
+	end do
+end do
+!$omp end do
 
 else
-!  SOLCHANGES(I)%SOL(K,1:NOF_VARIABLES)=U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(1,1:NOF_VARIABLES)
-!$OMP DO
-DO I=1,TNEEDT
-	DO K=1,IRECEXS(I)%MUCHTHEYNEED(1)
-		  IEXSOLHIS(I)%SOL(K,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)=U_C(IRECEXS(I)%LOCALREF(K))%VAL(1,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-	END DO
-END DO
-!$OMP END DO
+!  dsolchanges(i)%sol(k,1:nof_variables)=u_c_val(1,1:nof_variables,diexchanges(i)%localref(k))
+!$omp do
+do i=1,tneedt
+	do k=1,direcexs(i)%muchtheyneed(1)
+		  diexsolhis(i)%sol(k,1:nof_variables+turbulenceequations+passivescalar)=u_c_val(1,1:nof_variables+turbulenceequations+passivescalar,direcexs(i)%localref(k))
+	end do
+end do
+!$omp end do
 end if
 
-!$OMP BARRIER
-!$OMP MASTER
+!$omp barrier
+!$omp master
 
 jtotal=0;jtotal1=0;jtotal2=0;jtotal3=0
-ICPUID=N
- DUMTS=ZERO
-		DO I=0,ISIZE-1
-			IF (I.NE.N) THEN
-				DO J=1,TNEEDT
-					IAVT=10000
-					IF (IRECEXS(J)%PROCID.EQ.I)THEN
-					ITEMP1=IRECEXS(J)%MUCHTHEYNEED(1)*ITEST
-					IAVT=J 
-					GO TO 7001
+icpuid=n
+ dumts=zero
+		do i=0,isize-1
+			if (i.ne.n) then
+				do j=1,tneedt
+					iavt=10000
+					if (direcexs(j)%procid.eq.i)then
+					itemp1=direcexs(j)%muchtheyneed(1)*itest
+					iavt=j 
+					go to 7001
                                    
-					END IF
-				END DO
-				7001 CONTINUE
-				DO K=1,INEEDT
-					IAVC=10000
-					IF (IRECEXR(K)%PROCID.EQ.I) THEN
-					IAVC=K
-					ITEMP2=IRECEXR(K)%MUCHINEED(1)*ITEST
-					GO TO 8001
+					end if
+				end do
+				7001 continue
+				do k=1,ineedt
+					iavc=10000
+					if (direcexr(k)%procid.eq.i) then
+					iavc=k
+					itemp2=direcexr(k)%muchineed(1)*itest
+					go to 8001
 					
-					END IF
-				END DO
-				8001 CONTINUE
-				IF ((IAVT.EQ.10000).AND.(IAVC.NE.10000)) THEN
-				!MESSAGE 1
+					end if
+				end do
+				8001 continue
+				if ((iavt.eq.10000).and.(iavc.ne.10000)) then
+				!message 1
 ! 				
 				jtotal1=jtotal1+1
-				CALL MPI_SENDRECV(DUMTS(1:1),1,MPI_DOUBLE_PRECISION,I,ICPUID,&
-				IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),&
-			      ITEMP2,MPI_DOUBLE_PRECISION,IEXSOLHIR(IAVC)%PROCID,IEXSOLHIR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)			
-				END IF
-				IF ((IAVT.NE.10000).AND.(IAVC.EQ.10000)) THEN
-				!MESSAGE 1
+				call mpi_sendrecv(dumts(1:1),1,mpi_double_precision,i,icpuid,&
+				diexsolhir(iavc)%sol(1:direcexr(iavc)%muchineed(1),1:itest),&
+			      itemp2,mpi_double_precision,diexsolhir(iavc)%procid,diexsolhir(iavc)%procid,mpi_comm_world,status,ierror)
+				end if
+				if ((iavt.ne.10000).and.(iavc.eq.10000)) then
+				!message 1
 ! 			
 				jtotal2=jtotal2+1
-				CALL MPI_SENDRECV(IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST),ITEMP1,&
-			      MPI_DOUBLE_PRECISION,IEXSOLHIS(IAVT)%PROCID,ICPUID,&
-				DUMTS(1:1),1,MPI_DOUBLE_PRECISION,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-				END IF
-				IF ((IAVT.NE.10000).AND.(IAVC.NE.10000)) THEN
-				!MESSAGE 1
+				call mpi_sendrecv(diexsolhis(iavt)%sol(1:direcexs(iavt)%muchtheyneed(1),1:itest),itemp1,&
+			      mpi_double_precision,diexsolhis(iavt)%procid,icpuid,&
+				dumts(1:1),1,mpi_double_precision,i,i,mpi_comm_world,status,ierror)
+				end if
+				if ((iavt.ne.10000).and.(iavc.ne.10000)) then
+				!message 1
 				jtotal3=jtotal3+1
 ! 				
 				
-				CALL MPI_SENDRECV(IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST),ITEMP1,&
-			      MPI_DOUBLE_PRECISION,IEXSOLHIS(IAVT)%PROCID,ICPUID,&
-				IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),ITEMP2,MPI_DOUBLE_PRECISION,&
-			      IEXSOLHIR(IAVC)%PROCID,IEXSOLHIR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-				END IF		
-			END IF	
-		END DO
+				call mpi_sendrecv(diexsolhis(iavt)%sol(1:direcexs(iavt)%muchtheyneed(1),1:itest),itemp1,&
+			      mpi_double_precision,diexsolhis(iavt)%procid,icpuid,&
+				diexsolhir(iavc)%sol(1:direcexr(iavc)%muchineed(1),1:itest),itemp2,mpi_double_precision,&
+			      diexsolhir(iavc)%procid,diexsolhir(iavc)%procid,mpi_comm_world,status,ierror)
+				end if		
+			end if	
+		end do
 		
 		
 		allocate(jtot1(jtotal1,3),jtot2(jtotal2,3),jtot3(jtotal3,3),jtot(jtotal1+jtotal2+jtotal3,3))
@@ -1659,32 +1837,32 @@ ICPUID=N
 !  		
 		jtotal=0;jtotal1=0;jtotal2=0;jtotal3=0
 		
-ICPUID=N
- DUMTS=ZERO
-		DO I=0,ISIZE-1
-			IF (I.NE.N) THEN
-				DO J=1,TNEEDT
-					IAVT=10000
-					IF (IRECEXS(J)%PROCID.EQ.I)THEN
-					ITEMP1=IRECEXS(J)%MUCHTHEYNEED(1)*ITEST
-					IAVT=J 
-					GO TO 10001
+icpuid=n
+ dumts=zero
+		do i=0,isize-1
+			if (i.ne.n) then
+				do j=1,tneedt
+					iavt=10000
+					if (direcexs(j)%procid.eq.i)then
+					itemp1=direcexs(j)%muchtheyneed(1)*itest
+					iavt=j 
+					go to 10001
                                    
-					END IF
-				END DO
-				10001 CONTINUE
-				DO K=1,INEEDT
-					IAVC=10000
-					IF (IRECEXR(K)%PROCID.EQ.I) THEN
-					IAVC=K
-					ITEMP2=IRECEXR(K)%MUCHINEED(1)*ITEST
-					GO TO 11001
+					end if
+				end do
+				10001 continue
+				do k=1,ineedt
+					iavc=10000
+					if (direcexr(k)%procid.eq.i) then
+					iavc=k
+					itemp2=direcexr(k)%muchineed(1)*itest
+					go to 11001
 					
-					END IF
-				END DO
-				11001 CONTINUE
-				IF ((IAVT.EQ.10000).AND.(IAVC.NE.10000)) THEN
-				!MESSAGE 1
+					end if
+				end do
+				11001 continue
+				if ((iavt.eq.10000).and.(iavc.ne.10000)) then
+				!message 1
 ! 				jtotal1=jtotal1+1
 ! 				jtot1(jtotal1,1)=-1
 ! 				jtot1(jtotal1,2)=j
@@ -1693,12 +1871,12 @@ ICPUID=N
 				jtot(jtotal,1)=-1
 				jtot(jtotal,2)=k
 				jtot(jtotal,3)=i
-				CALL MPI_SENDRECV(DUMTS(1:1),1,MPI_DOUBLE_PRECISION,I,ICPUID,&
-				IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),&
-			      ITEMP2,MPI_DOUBLE_PRECISION,IEXSOLHIR(IAVC)%PROCID,IEXSOLHIR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)			
-				END IF
-				IF ((IAVT.NE.10000).AND.(IAVC.EQ.10000)) THEN
-				!MESSAGE 1
+				call mpi_sendrecv(dumts(1:1),1,mpi_double_precision,i,icpuid,&
+				diexsolhir(iavc)%sol(1:direcexr(iavc)%muchineed(1),1:itest),&
+			      itemp2,mpi_double_precision,diexsolhir(iavc)%procid,diexsolhir(iavc)%procid,mpi_comm_world,status,ierror)
+				end if
+				if ((iavt.ne.10000).and.(iavc.eq.10000)) then
+				!message 1
 ! 				jtotal2=jtotal2+1
 ! 				jtot1(jtotal2,1)=k
 ! 				jtot1(jtotal2,2)=-1
@@ -1706,33 +1884,33 @@ ICPUID=N
 				jtot(jtotal,1)=j
 				jtot(jtotal,2)=-1
 				jtot(jtotal,3)=i
-				CALL MPI_SENDRECV(IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST),ITEMP1,&
-			      MPI_DOUBLE_PRECISION,IEXSOLHIS(IAVT)%PROCID,ICPUID,&
-				DUMTS(1:1),1,MPI_DOUBLE_PRECISION,I,I,MPI_COMM_WORLD,STATUS,IERROR)
-				END IF
-				IF ((IAVT.NE.10000).AND.(IAVC.NE.10000)) THEN
-				!MESSAGE 1
+				call mpi_sendrecv(diexsolhis(iavt)%sol(1:direcexs(iavt)%muchtheyneed(1),1:itest),itemp1,&
+			      mpi_double_precision,diexsolhis(iavt)%procid,icpuid,&
+				dumts(1:1),1,mpi_double_precision,i,i,mpi_comm_world,status,ierror)
+				end if
+				if ((iavt.ne.10000).and.(iavc.ne.10000)) then
+				!message 1
 ! 				jtotal3=jtotal3+1
 ! 				jtot3(jtotal3,1)=j
 ! 				jtot3(jtotal3,2)=k
 				jtotal=jtotal+1
 				jtot(jtotal,1)=j
 				jtot(jtotal,2)=k
-				CALL MPI_SENDRECV(IEXSOLHIS(IAVT)%SOL(1:IRECEXS(IAVT)%MUCHTHEYNEED(1),1:ITEST),ITEMP1,&
-			      MPI_DOUBLE_PRECISION,IEXSOLHIS(IAVT)%PROCID,ICPUID,&
-				IEXSOLHIR(IAVC)%SOL(1:IRECEXR(IAVC)%MUCHINEED(1),1:ITEST),ITEMP2,MPI_DOUBLE_PRECISION,&
-			      IEXSOLHIR(IAVC)%PROCID,IEXSOLHIR(IAVC)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-				END IF		
-			END IF	
-		END DO
+				call mpi_sendrecv(diexsolhis(iavt)%sol(1:direcexs(iavt)%muchtheyneed(1),1:itest),itemp1,&
+			      mpi_double_precision,diexsolhis(iavt)%procid,icpuid,&
+				diexsolhir(iavc)%sol(1:direcexr(iavc)%muchineed(1),1:itest),itemp2,mpi_double_precision,&
+			      diexsolhir(iavc)%procid,diexsolhir(iavc)%procid,mpi_comm_world,status,ierror)
+				end if		
+			end if	
+		end do
 		
 		
-!$OMP END MASTER 
-!$OMP BARRIER
+!$omp end master 
+!$omp barrier
 	
 !                                
 
-END SUBROUTINE EXCHANGE_HIGHER_pre
+end subroutine exchange_higher_pre
 
 
 
@@ -1742,20 +1920,18 @@ END SUBROUTINE EXCHANGE_HIGHER_pre
 
 
 
-SUBROUTINE EXHBOUNDHIGHER(N)
+subroutine exhboundhigher(n)
 !> @brief
-!> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
-!> for the Gaussian quadrature points of direct-side neighbours between MPI processes 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
-INTEGER::ITEE,ITEEDUM,JK,JJK,JJK4,JJK12,IMULTI2,ICPE,JMNB,J76,J78,J79,J80,IMULTI3,I_CNT,cinout2
-integer:: n_requests 
+!> this subroutine is communicating the boundary extrapolated values for the variables and their gradients
+!> for the gaussian quadrature points of direct-side neighbours between mpi processes 
+implicit none
+integer,intent(in)::n
+integer::i,j,k,l,m,o,p,q,ineedt,tneedt,indl,tndl,icpuid,ittt,iex,imulti,k_cnt,nvar,r0,r1,rb,s0,s1,sb
+integer::itee,iteedum,jk,jjk,jjk4,jjk12,imulti2,icpe,jmnb,j76,j78,j79,j80,imulti3,i_cnt,cinout2
+integer:: n_requests,baseR,baseS,cell,v
 integer, dimension(:), allocatable:: requests
 real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
  cinout2=0
-INDL=IEXCHANGER(1)%TOT
-TNDL=IEXCHANGES(1)%TOT
 
 pr_t31=zero
 pr_t32=zero
@@ -1765,359 +1941,839 @@ pr_t35=zero
 temp_prin=zero
 temp_prout=zero
 
+indl=ineedbound
+tndl=ineedbounds
+
+if (dimensiona.eq.3)then
 
 
-! 
-!     if (statistics.eq.1)then
-!     
-!     !$OMP MASTER
-!     pr_t31=MPI_Wtime()
-! !     prace_t1=pr_t2-pr_t1
-!     !$OMP END MASTER
-!      
-!     end if
+if( itestcase.eq.4)then
+i_cnt=(nof_variables+turbulenceequations+passivescalar)+(((nof_variables-1)+turbulenceequations+passivescalar)*3)
+else
 
+i_cnt=nof_variables
+end if
+else
+if( itestcase.eq.4)then
+i_cnt=(nof_variables+turbulenceequations+passivescalar)+(((nof_variables-1)+turbulenceequations+passivescalar)*2)
+else
 
-
-if(indl .ne. tndl) then
-   write (*, *) "exhbounhigher: INDL and TNDL are supposed to be equal; INDL=", INDL, "TNDL=", TNDL
-   call MPI_ABORT(MPI_COMM_WORLD, 1, IERROR)
+i_cnt=nof_variables
+end if
 end if
 
-IF (DIMENSIONA.EQ.3)THEN
+
+if (itestcase.le.3) then
+!$omp do
+    do i=1,bounds_total
+			boundhis(i,1:nof_variables)=rec_uleft(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+    end do
+!$omp end do
+end  if
 
 
-IF( ITESTCASE.EQ.4)THEN
-I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
-ELSE
+if (itestcase.eq.4) then
 
-I_CNT=nof_variables
-END IF
-ELSE
-IF( ITESTCASE.EQ.4)THEN
-I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
-ELSE
+if (turbulence.ne.1)then
+!$omp do
+do i=1,bounds_total
+			boundhis(i,1:nof_variables)=rec_uleft(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+			ittt=0
+			do iex=1,nof_variables-1
+			do nvar=1,dims
+			ittt=ittt+1
+			boundhis(i,nof_variables+ittt)=rec_uleftv(nvar, iex, &
+             need_side(i), need_q(i), need_loc(i))
+			end do
+			end do
 
-I_CNT=nof_variables
-END IF
-END IF
+end do
+!$omp end do
 
+else
+!$omp do
+do i=1,bounds_total
+			boundhis(i,1:nof_variables)=rec_uleft(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+			boundhis(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,need_side(i),need_q(i),need_loc(i))
+			ittt=0
+			do iex=1,nof_variables-1
+			do nvar=1,dims
+			ittt=ittt+1
+			boundhis(i,nof_variables+ittt)=rec_uleftv(nvar, iex, &
+             need_side(i), need_q(i), need_loc(i))
+			end do
+			end do
+			do iex=1,turbulenceequations+passivescalar
+			do nvar=1,dims
+			ittt=ittt+1
+			boundhis(i,nof_variables+turbulenceequations+passivescalar+ittt)=rec_uleftturbv(nvar, iex, &
+             need_side(i), need_q(i), need_loc(i))
+			end do
+			end do
+end do
+!$omp end do
 
-IF (ITESTCASE.LE.3) THEN
-!$OMP DO
-    DO I=1,TNDL
-        DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-                IEXBOUNDHIS(I)%FACESOL(K,1:NOF_VARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT(1:NOF_VARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+end if
+end  if
 
-        END DO
-    END DO
-!$OMP END DO
-END  IF
-
-
-IF (ITESTCASE.EQ.4) THEN
-
-IF (TURBULENCE.NE.1)THEN
-!$OMP DO
-DO I=1,TNDL
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-IEXBOUNDHIS(I)%FACESOL(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
-ITTT=0
-DO IEX=1,NOF_VARIABLES-1
-      DO nvar=1,DIMS
-      ITTT=ITTT+1
-		  IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
-      END DO
-END DO
-END DO
-END DO
-!$OMP END DO
-
-ELSE
-!$OMP DO
-DO I=1,TNDL
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-IEXBOUNDHIS(I)%FACESOL(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+1:NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+!$omp do	!flat now
+do cell = 1, bounds_total
+  do v = 1, i_cnt
+    boundhis_flat((cell-1)*i_cnt + v) = boundhis(cell, v)
+  end do
+end do
+!$omp end do
 
 
-ITTT=0
-DO IEX=1,NOF_VARIABLES-1
-      DO nvar=1,DIMS
-      ITTT=ITTT+1
-		  IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-      END DO
-END DO
-DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-      DO nvar=1,DIMS
-      ITTT=ITTT+1
-	IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTTURBV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-      END DO
-END DO
-END DO
-END DO
-!$OMP END DO
-
-END IF
-END  IF
-
-!$OMP BARRIER
 
 
-!-------------------FOR DEBUGGING ONLY -----------------------------------------!
+!$omp barrier
 
-!-------------------FOR DEBUGGING ONLY -----------------------------------------!
 
-!$OMP MASTER
-!CALL MPI_BARRIER(mpi_comm_world,ierror)
+!-------------------for debugging only -----------------------------------------!
+
+!-------------------for debugging only -----------------------------------------!
+
+!$omp master
+!call mpi_barrier(mpi_comm_world,ierror)
 
 n_requests = 0
 allocate(requests(2*indl))
 requests(:)=0
-ICPUID=N
+icpuid=n
 
 
 
-!     if (statistics.eq.1)then
-!     
-!     !$OMP MASTER
-!     pr_t32=MPI_Wtime()
-! !     prace_t33=pr_t32-pr_t31
-!     !$OMP END MASTER
-!     
-!     end if
+do k=1,indl
 
-
-
-
-
-
-
-
-DO K=1,INDL
-
-   ! Search unique J such that (IEXBOUNDHIR(K)%PROCID .EQ. IEXBOUNDHIS(J)%PROCID)
-   J = 1
-   DO WHILE(IEXBOUNDHIR(K)%PROCID .NE. IEXBOUNDHIS(J)%PROCID)
-      J = J + 1
-   END DO
+   ! search unique j such
+   j = 1
+   do while(bound_proc(k) .ne. bounds_proc(j))
+      j = j + 1
+   end do
 
    ! non-blocking send
    n_requests = n_requests + 1
-   CALL MPI_ISEND(                                                     &
-      IEXBOUNDHIS(J)%FACESOL(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
-      IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      IEXBOUNDHIS(J)%PROCID, 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+
+   s0 = bounds_offset(j)
+	baseS=(s0-1)*i_cnt + 1
+	sb= bounds_len(j)
+
+
+
+
+   call mpi_isend(                                                     &
+      boundhis_flat(baseS), & !sendbuf
+      sb*i_cnt, mpi_double_precision,       & !sendcount, sendtype
+      bounds_proc(j), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
 
    ! non-blocking receive
    n_requests = n_requests + 1
-   CALL MPI_IRECV(                                                     &
-      IEXBOUNDHIR(K)%FACESOL(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
-      IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-      IEXBOUNDHIR(K)%PROCID, 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
+
+    r0 = bound_offset(k)
+    baseR =(r0-1)*i_cnt + 1
+	rb= bound_len(k)
+
+   call mpi_irecv(                                                     &
+      boundhir_flat(baseR),    & !recvbuf
+      rb*i_cnt, mpi_double_precision,          & !recvcount, recvtype
+      bound_proc(k), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
 
 
-END DO
+end do
 
-CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
-
-! if (statistics.eq.1)then
-!     
-!    
-!     pr_t33=MPI_Wtime()
-! !     prace_t33=pr_t32-pr_t31
-!         pr_t34=pr_t33-pr_t32
-!         pr_t35=pr_t32-pr_t31
-!         
-! !       
-! 
-!     
-!      
-!     end if
-
-
-
+call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
 
 deallocate(requests)
-!$OMP END MASTER
-!$OMP BARRIER
-
-END SUBROUTINE EXHBOUNDHIGHER
 
 
+!$omp end master
+!$omp barrier
 
 
-SUBROUTINE EXHBOUNDHIGHER2(N)
+!$omp do	!unflat now
+do cell = 1, bound_total
+  do v = 1, i_cnt
+    boundhir(cell, v) = boundhir_flat((cell-1)*i_cnt + v)
+  end do
+end do
+!$omp end do
+
+
+end subroutine exhboundhigher
+
+
+
+
+subroutine exhboundhigher2(n)
 !> @brief
-!> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
-!> for the Gaussian quadrature points of direct-side neighbours between MPI processes for the Implicit Time stepping
+!> this subroutine is communicating the boundary extrapolated values for the variables and their gradients
+!> for the gaussian quadrature points of direct-side neighbours between mpi processes for the implicit time stepping
 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
-INTEGER::ITEE,ITEEDUM,JK,JJK,JJK4,JJK12,IMULTI2,ICPE,JMNB,J76,J78,J79,J80,IMULTI3
-INDL=IEXCHANGER(1)%TOT
-TNDL=IEXCHANGES(1)%TOT
+implicit none
+integer,intent(in)::n
+integer::i,j,k,l,m,o,p,q,ineedt,tneedt,indl,tndl,icpuid,ittt,iex,imulti,k_cnt,nvar,r0,r1,rb,s0,s1,sb
+integer::itee,iteedum,jk,jjk,jjk4,jjk12,imulti2,icpe,jmnb,j76,j78,j79,j80,imulti3,n_requests,cell,baseS,baseR,v
+integer, dimension(:), allocatable:: requests
+indl=ineedbound
+tndl=ineedbounds
 
-IF (ITESTCASE.LT.3)THEN
-	IEX=1
-      IMULTI=IEX
-      IMULTI2=IEX
-END IF
-IF (ITESTCASE.EQ.3)THEN
-	IEX=nof_variables
-    IMULTI2=IEX
-END IF
-IF (ITESTCASE.EQ.4)THEN
-    K_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-      iex = (nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-       IMULTI2=K_CNT
-       IMULTI3=K_CNT
-END IF
-
-
-
-
-
-
-
-IMULTI=IEX
-
-
-IF (ITESTCASE.LE.3) THEN
-!$OMP DO
-DO I=1,TNDL
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-
-if (relax.eq.3)then
-if (iscoun.eq.1)then
-IEXBOUNDHISI(I)%FACESOL(K,1:iex)=-rhs(IEXCHANGES(I)%LOCALREF(K))%val(1:iex)/IMPDIAG_MF(IEXCHANGES(I)%LOCALREF(K))	
-else
-IEXBOUNDHISI(I)%FACESOL(K,1:iex)=-(RHS(IEXCHANGES(I)%LOCALREF(K))%VAL(1:nof_variables)+((((1.5*U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(1,1:nof_Variables))-(2.0d0*U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(2,1:nof_Variables))+(0.5d0*U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(3,1:nof_Variables)))/(dt))*IELEM(N,IEXCHANGES(I)%LOCALREF(K))%TOTVOLUME))/IMPDIAG_MF(IEXCHANGES(I)%LOCALREF(K))	
+if (itestcase.lt.3)then
+	iex=1
+      imulti=iex
+      imulti2=iex
 end if
-
-
-else
-IEXBOUNDHISI(I)%FACESOL(K,1:iex)=IMPDU(IEXCHANGES(I)%LOCALREF(K),1:iex)
+if (itestcase.eq.3)then
+	iex=nof_variables
+    imulti2=iex
+end if
+if (itestcase.eq.4)then
+    k_cnt=(nof_variables+turbulenceequations+passivescalar)
+      iex = (nof_variables+turbulenceequations+passivescalar)
+       imulti2=k_cnt
+       imulti3=k_cnt
 end if
 
 
 
-	
-		
-		
-		
 
-END DO
-END DO
-!$OMP END DO
-END  IF
 
-IF (ITESTCASE.EQ.4) THEN
-!$OMP DO
-DO I=1,TNDL
-  DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
 
-      IF ((TURBULENCE.GT.0).or.(passivescalar.gt.0))THEN
-	DO JJK=1,nof_variables
-	  if (relax.eq.3)then
-	  if (iscoun.eq.1)then
-	IEXBOUNDHISI(I)%FACESOL(K,jjk)=-rhs(IEXCHANGES(I)%LOCALREF(K))%val(jjk)/IMPDIAG_MF(IEXCHANGES(I)%LOCALREF(K))	
-      else
-      IEXBOUNDHISI(I)%FACESOL(K,jjk)=-(RHS(IEXCHANGES(I)%LOCALREF(K))%VAL(jjk)+((((1.5*U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(1,jjk))-(2.0d0*U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(2,jjk))+(0.5d0*U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(3,jjk)))/(dt))*IELEM(N,IEXCHANGES(I)%LOCALREF(K))%TOTVOLUME))/IMPDIAG_MF(IEXCHANGES(I)%LOCALREF(K))	
-      end if
-	
+
+imulti=iex
+
+
+if (itestcase.le.3) then
+!$omp do
+do i=1,bounds_total
+	if (relax.eq.3)then
+		if (iscoun.eq.1)then
+		boundhisi(i,1:iex)=-rhs_val(1:iex,need_loc(i))/impdiag_mf(need_loc(i))
+		else
+		boundhisi(i,1:iex)=-(rhs_val(1:nof_variables,need_loc(i))+((((1.5*u_c_val(1,1:nof_variables,need_loc(i)))-(2.0d0*u_c_val(2,1:nof_variables,need_loc(i)))+(0.5d0*u_c_val(3,1:nof_variables,need_loc(i))))/(dt))*ielem_totvolume(need_loc(i))))/impdiag_mf(need_loc(i))
+		end if
 	else
-	  IEXBOUNDHISI(I)%FACESOL(K,JJK)=&
-	  IMPDU(IEXCHANGES(I)%LOCALREF(K),JJK)
-	  end if
-	END DO
+		boundhisi(i,1:iex)=impdu(need_loc(i),1:iex)
+	end if
+end do
+!$omp end do
+end  if
+
+
+
+if (itestcase.eq.4) then
+!$omp do
+do i=1,bounds_total
+	if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+		if (relax.eq.3)then
+			if (iscoun.eq.1)then
+			boundhisi(i,1:nof_variables)=-rhs_val(1:nof_variables,need_loc(i))/impdiag_mf(need_loc(i))
+			boundhisi(i,nof_variables:nof_variables+turbulenceequations+passivescalar)=-rhst_val(:,need_loc(i))/impdiagt(:,need_loc(i))
+			else
+			boundhisi(i,1:nof_variables)=-(rhs_val(1:nof_variables,need_loc(i))+((((1.5*u_c_val(1,1:nof_variables,need_loc(i)))-(2.0d0*u_c_val(2,1:nof_variables,need_loc(i)))+(0.5d0*u_c_val(3,1:nof_variables,need_loc(i))))/(dt))*ielem_totvolume(need_loc(i))))/impdiag_mf(need_loc(i))
+			boundhisi(i,nof_variables:nof_variables+turbulenceequations+passivescalar)=-(rhst_val(:,need_loc(i))+((((1.5*u_ct_val(1,:,need_loc(i)))-(2.0d0*u_ct_val(2,:,need_loc(i)))+(0.5d0*u_ct_val(3,:,need_loc(i))))/(dt))*ielem_totvolume(need_loc(i))))/impdiagt(:,need_loc(i))
+
+			end if
+		else
+			boundhisi(i,:)=impdu(need_loc(i),:)
+		end if
+	end if
+	if ((turbulence.eq.0).or.(passivescalar.eq.0))then
+			if (relax.eq.3)then
+			if (iscoun.eq.1)then
+			boundhisi(i,1:iex)=-rhs_val(1:iex,need_loc(i))/impdiag_mf(need_loc(i))
+
+			else
+			boundhisi(i,1:iex)=-(rhs_val(1:nof_variables,need_loc(i))+((((1.5*u_c_val(1,1:nof_variables,need_loc(i)))-(2.0d0*u_c_val(2,1:nof_variables,need_loc(i)))+(0.5d0*u_c_val(3,1:nof_variables,need_loc(i))))/(dt))*ielem_totvolume(need_loc(i))))/impdiag_mf(need_loc(i))
+			end if
+		else
+			boundhisi(i,1:iex)=impdu(need_loc(i),1:iex)
+		end if
+	end if
+end do
+!$omp end do
+
+end if
+
+
+
+!$omp do	!flat now
+do cell = 1, bounds_total
+  do v = 1, imulti2
+    boundhisi_flat((cell-1)*imulti2 + v) = boundhisi(cell, v)
+  end do
+end do
+!$omp end do
+
+
+!$omp barrier
+!$omp master
+n_requests = 0
+ allocate(requests(2*indl))
+requests(:)=0
+icpuid=n
+
+
+
+
+!!$omp target data use_device_ptr(boundhisi, boundhiri)
+
+do k=1,indl
+
+   j = 1
+   do while(bound_proc(k) .ne. bounds_proc(j))
+      j = j + 1
+   end do
+
+   ! non-blocking send
+   n_requests = n_requests + 1
+
+    s0 = bounds_offset(j)
+	baseS=(s0-1)*imulti2 + 1
+	sb= bounds_len(j)
+
+   call mpi_isend(                                                     &
+      boundhisi_flat(baseS), & !sendbuf
+      sb*imulti2, mpi_double_precision,       & !sendcount, sendtype
+      bounds_proc(j), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+   ! non-blocking receive
+   n_requests = n_requests + 1
+    r0 = bound_offset(k)
+    baseR =(r0-1)*imulti2 + 1
+	rb= bound_len(k)
+
+   call mpi_irecv(                                                     &
+      boundhiri_flat(baseR),    & !recvbuf
+      rb*imulti2, mpi_double_precision,          & !recvcount, recvtype
+      bound_proc(k), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+end do
+
+call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
+!!$omp end target data
+ deallocate(requests)
+
+!$omp end master 
+!$omp barrier
+
+
+!$omp do	!unflat now
+do cell = 1, bound_total
+  do v = 1, imulti2
+    boundhiri(cell, v) = boundhiri_flat((cell-1)*imulti2 + v)
+  end do
+end do
+!$omp end do
+
+
+
+
+end subroutine exhboundhigher2
+
+
+
+subroutine exhboundhigherlu(n)
+!> @brief
+!> this subroutine is communicating the boundary extrapolated values for the variables and their gradients
+!> for the gaussian quadrature points of direct-side neighbours between mpi processes for the implicit time stepping
+
+implicit none
+integer,intent(in)::n
+integer::i,j,k,l,m,o,p,q,ineedt,tneedt,indl,tndl,icpuid,ittt,iex,imulti,k_cnt,nvar,n_requests,r0,r1,rb,s0,s1,sb
+integer::itee,iteedum,jk,jjk,jjk4,jjk12,imulti2,icpe,jmnb,j76,j78,j79,j80,imulti3
+integer::cell,baseR,baseS,v
+integer, dimension(:), allocatable:: requests
+indl=ineedbound
+tndl=ineedbounds
+
+if (itestcase.lt.3)then
+	iex=1
+      imulti=iex
+      imulti2=iex
+end if
+if (itestcase.eq.3)then
+	iex=nof_variables
+    imulti2=iex
+end if
+if (itestcase.eq.4)then
+    k_cnt=(nof_variables+turbulenceequations+passivescalar)
+      iex = (nof_variables+turbulenceequations+passivescalar)
+       imulti2=k_cnt
+       imulti3=k_cnt
+end if
+
+
+
+
+
+
+
+imulti=iex
+
+
+if (itestcase.le.3) then
+!$omp do
+do i=1,bounds_total
+boundhisi(i,1:iex)=impdu(need_loc(i),1:iex)
+end do
+!$omp end do
+end  if
+
+if (itestcase.eq.4) then
+!$omp do
+do i=1,bounds_total
+      if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	  boundhisi(i,1:nof_variables)=impdu(need_loc(i),1:nof_variables)
 	
 	do nvar=1,0+turbulenceequations+passivescalar
-	if (relax.eq.3)then
-	if (iscoun.eq.1)then
-	IEXBOUNDHISI(I)%FACESOL(K,nof_variables+nvar)=-rhst(IEXCHANGES(I)%LOCALREF(K))%val(nvar)/IMPDIAGt(IEXCHANGES(I)%LOCALREF(K),nvar)	
-	else
-	IEXBOUNDHISI(I)%FACESOL(K,nof_variables+nvar)=-(RHSt(IEXCHANGES(I)%LOCALREF(K))%VAL(nvar)+((((1.5*U_Ct(IEXCHANGES(I)%LOCALREF(K))%VAL(1,nvar))-(2.0d0*U_Ct(IEXCHANGES(I)%LOCALREF(K))%VAL(2,nvar))+(0.5d0*U_Ct(IEXCHANGES(I)%LOCALREF(K))%VAL(3,nvar)))/(dt))*IELEM(N,IEXCHANGES(I)%LOCALREF(K))%TOTVOLUME))/IMPDIAGt(IEXCHANGES(I)%LOCALREF(K),nvar)		
-	
-	end if
-	else
-	IEXBOUNDHISI(I)%FACESOL(K,nof_variables+nvar)=&
-	IMPDU(IEXCHANGES(I)%LOCALREF(K),nof_variables+nvar)
-	end if
-	
-	
-	
-	
-	
-	
+	boundhisi(i,nof_variables+nvar)=impdu(need_loc(i),nof_variables+nvar)
 	end do
       end if
 !     
     if ((turbulence .eq. 0).and.(passivescalar.eq.0)) then
+	   boundhisi(i,1:nof_variables)=impdu(need_loc(i),1:nof_variables)
+    end if ! turbulence
 
-    DO JJK=1,IEX
-	if (relax.eq.3)then
-	if (iscoun.eq.1)then
-	IEXBOUNDHISI(I)%FACESOL(K,jjk)=-rhs(IEXCHANGES(I)%LOCALREF(K))%val(jjk)/IMPDIAG_MF(IEXCHANGES(I)%LOCALREF(K))	
+end do 
+!$omp end do
+end if
+
+!$omp do	!flat now
+do cell = 1, bounds_total
+  do v = 1, imulti2
+    boundhisi_flat((cell-1)*imulti2 + v) = boundhisi(cell, v)
+  end do
+end do
+!$omp end do
+
+
+
+
+!$omp barrier
+!$omp master
+n_requests = 0
+allocate(requests(2*indl))
+requests(:)=0
+icpuid=n
+
+
+do k=1,indl
+
+   j = 1
+   do while(bound_proc(k) .ne. bounds_proc(j))
+      j = j + 1
+   end do
+
+   ! non-blocking send
+   n_requests = n_requests + 1
+
+    s0 = bounds_offset(j)
+	baseS=(s0-1)*imulti2 + 1
+	sb= bounds_len(j)
+
+   call mpi_isend(                                                     &
+      boundhisi_flat(baseS), & !sendbuf
+      sb*imulti2, mpi_double_precision,       & !sendcount, sendtype
+      bounds_proc(j), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+   ! non-blocking receive
+   n_requests = n_requests + 1
+    r0 = bound_offset(k)
+    baseR =(r0-1)*imulti2 + 1
+	rb= bound_len(k)
+
+   call mpi_irecv(                                                     &
+      boundhiri_flat(baseR),    & !recvbuf
+      rb*imulti2, mpi_double_precision,          & !recvcount, recvtype
+      bound_proc(k), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+end do
+
+call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
+!!$omp end target data
+ deallocate(requests)
+
+!$omp end master
+!$omp barrier
+
+
+!$omp do	!unflat now
+do cell = 1, bound_total
+  do v = 1, imulti2
+    boundhiri(cell, v) = boundhiri_flat((cell-1)*imulti2 + v)
+  end do
+end do
+!$omp end do
+
+
+
+
+
+
+
+end subroutine exhboundhigherlu
+
+subroutine exhboundhigher_mood(n)
+implicit none
+integer,intent(in)::n
+integer::i,j,k,l,m,o,p,q,ineedt,tneedt,indl,tndl,icpuid,ittt,iex,imulti,k_cnt,nvar,r0,r1,rb,s0,s1,sb
+integer::itee,iteedum,jk,jjk,jjk4,jjk12,imulti2,icpe,jmnb,j76,j78,j79,j80,imulti3,i_cnt,cinout2
+integer:: n_requests,cell,baseR,baseS,v
+integer, dimension(:), allocatable:: requests
+real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
+ cinout2=0
+indl=ineedbound
+tndl=ineedbounds
+
+pr_t31=zero
+pr_t32=zero
+pr_t33=zero
+pr_t34=zero
+pr_t35=zero
+temp_prin=zero
+temp_prout=zero
+
+
+
+
+if (dimensiona.eq.3)then
+
+
+            if( itestcase.eq.4)then
+            i_cnt=1
+            else
+
+            i_cnt=1
+            end if
+else
+        if( itestcase.eq.4)then
+        i_cnt=1
+        else
+
+        i_cnt=1
+        end if
+end if
+
+
+
+!$omp do
+do i=1,bounds_total
+			boundhism(i)=ielem_mood(need_loc(i))
+end do
+!$omp end do
+
+
+!$omp barrier
+!$omp master
+
+
+n_requests = 0
+allocate(requests(2*indl))
+
+icpuid=n
+
+
+
+do k=1,indl
+
+   j = 1
+   do while(bound_proc(k) .ne. bounds_proc(j))
+      j = j + 1
+   end do
+
+   ! non-blocking send
+   n_requests = n_requests + 1
+   s0 = bounds_offset(j)
+	s1 = bounds_offset(j) + bounds_len(j) - 1
+	sb= bounds_len(j)
+
+   call mpi_isend(                                                     &
+      boundhism(s0:s1), & !sendbuf
+      sb, mpi_double_precision,       & !sendcount, sendtype
+      bounds_proc(j), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+   ! non-blocking receive
+   n_requests = n_requests + 1
+   r0 = bound_offset(k)
+   r1 = bound_offset(k) + bound_len(k) - 1
+   rb= bound_len(k)
+   call mpi_irecv(                                                     &
+      boundhirm(r0:r1),    & !recvbuf
+      rb, mpi_double_precision,          & !recvcount, recvtype
+      bound_proc(k), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+end do
+
+call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
+
+
+
+deallocate(requests)
+
+!$omp end master
+!$omp barrier
+
+end subroutine exhboundhigher_mood
+
+
+
+
+
+subroutine exhboundhigher_dg(n)
+!> @brief
+!> this subroutine is communicating the boundary extrapolated values for the variables and their gradients
+!> for the gaussian quadrature points of direct-side neighbours between mpi processes
+implicit none
+integer,intent(in)::n
+integer::i,j,k,l,m,o,p,q,ineedt,tneedt,indl,tndl,icpuid,ittt,iex,imulti,k_cnt,nvar,r0,r1,rb,s0,s1,sb
+integer::itee,iteedum,jk,jjk,jjk4,jjk12,imulti2,icpe,jmnb,j76,j78,j79,j80,imulti3,i_cnt,cinout2
+integer:: n_requests,cell,baseR,baseS,v
+integer, dimension(:), allocatable:: requests
+real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
+ cinout2=0
+indl=ineedbound
+tndl=ineedbounds
+
+pr_t31=zero
+pr_t32=zero
+pr_t33=zero
+pr_t34=zero
+pr_t35=zero
+temp_prin=zero
+temp_prout=zero
+
+
+
+
+if( itestcase.eq.4)then
+i_cnt=(nof_variables+turbulenceequations+passivescalar)+(((nof_variables-1)+turbulenceequations+passivescalar)*dimensiona)
+else
+
+i_cnt=nof_variables
+end if
+
+
+
+if (itestcase.le.3)then
+!$omp do
+    do i=1,bounds_total
+			boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+    end do
+!$omp end do
+end if
+if (itestcase.eq.4) then
+!$omp do
+		do i=1,bounds_total
+				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+				ittt=0
+				do iex=1,nof_variables-4
+					do nvar=1,dims
+					ittt=ittt+1
+					boundhis_dg(i,nof_variables+ittt)=rec_uleftv(nvar, iex, &
+             need_side(i), need_q(i), need_loc(i))
+					end do
+				end do
+		end do
+	!$omp end do
+end  if
+
+
+
+!$omp do	!flat now
+do cell = 1, bounds_total
+  do v = 1, i_cnt
+    boundhis_dgflat((cell-1)*i_cnt + v) = boundhis_dg(cell, v)
+  end do
+end do
+!$omp end do
+
+
+
+!$omp barrier
+
+!$omp master
+!call mpi_barrier(mpi_comm_world,ierror)
+
+n_requests = 0
+allocate(requests(2*indl))
+requests(:)=0
+icpuid=n
+
+
+
+
+do k=1,indl
+
+
+   j = 1
+   do while(bound_proc(k) .ne. bounds_proc(j))
+      j = j + 1
+   end do
+
+   ! non-blocking send
+   n_requests = n_requests + 1
+  s0 = bounds_offset(j)
+	baseS=(s0-1)*i_cnt + 1
+	sb= bounds_len(j)
+
+
+
+   call mpi_isend(                                                     &
+      boundhis_dgflat(baseS), & !sendbuf
+      sb*i_cnt, mpi_double_precision,       & !sendcount, sendtype
+      bounds_proc(j), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+   ! non-blocking receive
+   n_requests = n_requests + 1
+   r0 = bound_offset(k)
+    baseR =(r0-1)*i_cnt + 1
+	rb= bound_len(k)
+
+   call mpi_irecv(                                                     &
+      boundhir_flat(baseR),    & !recvbuf
+      rb*i_cnt, mpi_double_precision,          & !recvcount, recvtype
+      bound_proc(k), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+end do
+
+call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
+
+deallocate(requests)
+
+!$omp end master
+!$omp barrier
+
+!$omp do	!unflat now
+do cell = 1, bound_total
+  do v = 1, i_cnt
+    boundhir_dg(cell, v) = boundhir_dgflat((cell-1)*i_cnt + v)
+  end do
+end do
+!$omp end do
+
+
+
+
+end subroutine exhboundhigher_dg
+
+
+
+
+
+subroutine exhboundhigher_dg2(n)
+!> @brief
+!> this subroutine is communicating the boundary extrapolated values for the variables and their gradients
+!> for the gaussian quadrature points of direct-side neighbours between mpi processes
+implicit none
+integer,intent(in)::n
+integer::i,j,k,l,m,o,p,q,ineedt,tneedt,indl,tndl,icpuid,ittt,iex,imulti,k_cnt,nvar
+integer::itee,iteedum,jk,jjk,jjk4,jjk12,imulti2,icpe,jmnb,j76,j78,j79,j80,imulti3,i_cnt,cinout2,r0,r1,rb,s0,s1,sb
+integer:: n_requests,cell,baseR,baseS,v
+integer, dimension(:), allocatable:: requests
+real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
+ cinout2=0
+indl=ineedbound
+tndl=ineedbounds
+
+pr_t31=zero
+pr_t32=zero
+pr_t33=zero
+pr_t34=zero
+pr_t35=zero
+temp_prin=zero
+temp_prout=zero
+
+
+
+
+
+if (dimensiona.eq.3)then
+
+
+if( itestcase.eq.4)then
+i_cnt=(nof_variables+turbulenceequations+passivescalar)+(((nof_variables-1)+turbulenceequations+passivescalar)*dimensiona)
+else
+
+i_cnt=nof_variables
+end if
+
+else
+if( itestcase.eq.4)then
+i_cnt=(nof_variables+turbulenceequations+passivescalar)+(((nof_variables-1)+turbulenceequations+passivescalar)*dimensiona)
+else
+	i_cnt=nof_variables
+end if
+end if
+
+
+if (itestcase.le.3) then
+	if((multispecies.eq.1).and.(br2_yn.eq.1)) then
+	!$omp do
+		do i=1,bounds_total
+				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+				ittt=0
+				do iex=1,nof_variables-4
+					do nvar=1,dims
+					ittt=ittt+1
+					boundhis_dg(i,nof_variables+ittt)=rec_br2_aux_var(iex,nvar,need_side(i),need_q(i),need_loc(i))
+					end do
+				end do
+		end do
+	!$omp end do
+
 	else
-	IEXBOUNDHISI(I)%FACESOL(K,jjk)=-(RHS(IEXCHANGES(I)%LOCALREF(K))%VAL(jjk)+((((1.5*U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(1,jjk))-(2.0d0*U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(2,jjk))+(0.5d0*U_C(IEXCHANGES(I)%LOCALREF(K))%VAL(3,jjk)))/(dt))*IELEM(N,IEXCHANGES(I)%LOCALREF(K))%TOTVOLUME))/IMPDIAG_mf(IEXCHANGES(I)%LOCALREF(K))	
+
+	!$omp do
+		do i=1,bounds_total
+				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+		end do
+	!$omp end do
 	end if
-	else
-	  IEXBOUNDHISI(I)%FACESOL(K,JJK)=&
-	  IMPDU(IEXCHANGES(I)%LOCALREF(K),JJK)
-	  end if
-    END DO
-    end if ! turbulence
-
-END DO 
-END DO
-!$OMP END DO
-END IF
-
-!$OMP BARRIER
-!$OMP MASTER
-ICPUID=N
-IF (ITESTCASE.LE.3) THEN
-DO K=1,INDL
-DO J=1,TNDL
-      IF (IEXBOUNDHIRi(K)%PROCID.EQ.IEXBOUNDHISi(J)%PROCID)THEN
-      CALL MPI_SENDRECV(IEXBOUNDHISI(J)%FACESOL(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:IEX)&
-,IEXCHANGES(J)%MUCHTHEYNEED(1)*IMULTI2,MPI_DOUBLE_PRECISION,IEXBOUNDHISI(J)%PROCID,&
-      ICPUID,IEXBOUNDHIRI(K)%FACESOL(1:IEXCHANGER(K)%MUCHINEED(1),1:IEX),&
-IEXCHANGER(K)%MUCHINEED(1)*IMULTI2,MPI_DOUBLE_PRECISION,IEXBOUNDHIRI(K)%PROCID,&
-      IEXBOUNDHIRI(K)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-    
-      END IF
-END DO
-END DO
-END IF
+end  if
 
 
-
-IF (ITESTCASE.EQ.4) THEN
-
-DO K=1,INDL
-DO J=1,TNDL
-      IF (IEXBOUNDHIRi(K)%PROCID.EQ.IEXBOUNDHISi(J)%PROCID)THEN
-      CALL MPI_SENDRECV(IEXBOUNDHISI(J)%FACESOL(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:IMULTI3),&
-IEXCHANGES(J)%MUCHTHEYNEED(1)*IMULTI2,MPI_DOUBLE_PRECISION,IEXBOUNDHISI(J)%PROCID,&
-      ICPUID,IEXBOUNDHIRI(K)%FACESOL(1:IEXCHANGER(K)%MUCHINEED(1),1:IMULTI3),&
-IEXCHANGER(K)%MUCHINEED(1)*IMULTI2,MPI_DOUBLE_PRECISION,IEXBOUNDHIRI(K)%PROCID,&
-      IEXBOUNDHIRI(K)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-
-      END IF
-END DO
-END DO
-END IF
-!$OMP END MASTER 
-!$OMP BARRIER
+if (itestcase.eq.4) then
+!$omp do
+		do i=1,bounds_total
+				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+				ittt=0
+				do iex=1,nof_variables-4
+					do nvar=1,dims
+					ittt=ittt+1
+					boundhis_dg(i,nof_variables+ittt)=rec_uleftv(nvar, iex, &
+             need_side(i), need_q(i), need_loc(i))
+					end do
+				end do
+		end do
+	!$omp end do
+end  if
 
 
 
@@ -2125,37 +2781,30 @@ END IF
 
 
 
-END SUBROUTINE EXHBOUNDHIGHER2
+!$omp do	!flat now
+do cell = 1, bounds_total
+  do v = 1, i_cnt
+    boundhis_dgflat((cell-1)*i_cnt + v) = boundhis_dg(cell, v)
+  end do
+end do
+!$omp end do
 
 
 
-SUBROUTINE EXHBOUNDHIGHERlu(N)
-!> @brief
-!> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
-!> for the Gaussian quadrature points of direct-side neighbours between MPI processes for the Implicit Time stepping
+!$omp barrier
 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
-INTEGER::ITEE,ITEEDUM,JK,JJK,JJK4,JJK12,IMULTI2,ICPE,JMNB,J76,J78,J79,J80,IMULTI3
-INDL=IEXCHANGER(1)%TOT
-TNDL=IEXCHANGES(1)%TOT
 
-IF (ITESTCASE.LT.3)THEN
-	IEX=1
-      IMULTI=IEX
-      IMULTI2=IEX
-END IF
-IF (ITESTCASE.EQ.3)THEN
-	IEX=nof_variables
-    IMULTI2=IEX
-END IF
-IF (ITESTCASE.EQ.4)THEN
-    K_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-      iex = (nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)
-       IMULTI2=K_CNT
-       IMULTI3=K_CNT
-END IF
+!-------------------for debugging only -----------------------------------------!
+
+!-------------------for debugging only -----------------------------------------!
+
+!$omp master
+!call mpi_barrier(mpi_comm_world,ierror)
+
+n_requests = 0
+allocate(requests(2*indl))
+requests(:)=0
+icpuid=n
 
 
 
@@ -2163,699 +2812,266 @@ END IF
 
 
 
-IMULTI=IEX
+do k=1,indl
 
 
-IF (ITESTCASE.LE.3) THEN
-!$OMP DO
-DO I=1,TNDL
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+   j = 1
+   do while(bound_proc(k) .ne. bounds_proc(j))
+      j = j + 1
+   end do
+
+   ! non-blocking send
+   n_requests = n_requests + 1
+  s0 = bounds_offset(j)
+	baseS=(s0-1)*i_cnt + 1
+	sb= bounds_len(j)
 
 
-IEXBOUNDHISI(I)%FACESOL(K,1:iex)=IMPDU(IEXCHANGES(I)%LOCALREF(K),1:iex)
+
+   call mpi_isend(                                                     &
+      boundhis_dgflat(baseS), & !sendbuf
+      sb*i_cnt, mpi_double_precision,       & !sendcount, sendtype
+      bounds_proc(j), 0,                                        & !destination, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+   ! non-blocking receive
+   n_requests = n_requests + 1
+   r0 = bound_offset(k)
+    baseR =(r0-1)*i_cnt + 1
+	rb= bound_len(k)
+
+   call mpi_irecv(                                                     &
+      boundhir_flat(baseR),    & !recvbuf
+      rb*i_cnt, mpi_double_precision,          & !recvcount, recvtype
+      bound_proc(k), 0,                                        & !source, tag
+      mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
+   )
+
+
+end do
+
+call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
+
+deallocate(requests)
+
+!$omp end master
+!$omp barrier
+
+!$omp do	!unflat now
+do cell = 1, bound_total
+  do v = 1, i_cnt
+    boundhir_dg(cell, v) = boundhir_dgflat((cell-1)*i_cnt + v)
+  end do
+end do
+!$omp end do
 
 
 
 
-	
-		
-		
-		
 
-END DO
-END DO
-!$OMP END DO
-END  IF
+end subroutine exhboundhigher_dg2
 
-IF (ITESTCASE.EQ.4) THEN
-!$OMP DO
-DO I=1,TNDL
-  DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
 
-      IF ((TURBULENCE.GT.0).or.(passivescalar.gt.0))THEN
-	DO JJK=1,nof_variables
-	  
-	
-	
-	  IEXBOUNDHISI(I)%FACESOL(K,JJK)=&
-	  IMPDU(IEXCHANGES(I)%LOCALREF(K),JJK)
-	 
-	END DO
-	
-	do nvar=1,0+turbulenceequations+passivescalar
-	
-	
-	IEXBOUNDHISI(I)%FACESOL(K,nof_variables+nvar)=&
-	IMPDU(IEXCHANGES(I)%LOCALREF(K),nof_variables+nvar)
-	
-	
-	
-	
-	
-	
-	
+subroutine flat_comm(n)
+implicit none
+integer,intent(in)::n
+integer::i,j,k,row
+
+
+
+ineedhalo=direcexr(1)%tot
+ineedbound=diexchanger(1)%tot
+
+ineedhalos=direcexs(1)%tot
+ineedbounds=diexchanges(1)%tot
+
+
+
+if (itestcase.eq.4)then
+ilength1=(nof_variables+turbulenceequations+passivescalar)
+ilength2=(nof_variables+turbulenceequations+passivescalar)+(((nof_variables-1)+turbulenceequations+passivescalar)*dimensiona)
+else
+ilength1=nof_variables
+ilength2=nof_variables
+end if
+
+
+
+
+
+
+
+!first allocate memory for high-order solution exchanges
+allocate(halo_len(1:ineedhalo),halo_offset(1:ineedhalo),halo_proc(1:ineedhalo))
+allocate(halos_len(1:ineedhalos),halos_offset(1:ineedhalos),halos_proc(1:ineedhalos))
+do i=1,ineedhalo
+      halo_len(i)=direcexr(i)%muchineed(1)  !store the number of elements needed per cpu
+      halo_proc(i)=direcexr(i)%procid
+end do
+do i=1,ineedhalos
+      halos_len(i)=direcexs(i)%muchtheyneed(1)  !store the number of elements needed per cpu
+	  halos_proc(i)=direcexs(i)%procid
+end do
+
+
+
+
+halo_offset(1)=1                             !start computing the entries for each one of them
+
+do j=2,ineedhalo
+   halo_offset(j)=halo_offset(j-1)+halo_len(j-1)
+!    write(140+n,*)"receive offset",halo_offset(j)
+end do
+
+
+halos_offset(1)=1                             !start computing the entries for each one of them
+
+do j=2,ineedhalos
+   halos_offset(j)=halos_offset(j-1)+halos_len(j-1)
+!    write(140+n,*)"send offset",halos_offset(j)
+end do
+
+
+
+
+halo_total = halo_offset(ineedhalo) + halo_len(ineedhalo) - 1
+halos_total = halos_offset(ineedhalos) + halos_len(ineedhalos) - 1
+
+allocate(solhir(halo_total,1:ilength1));solhir=zero
+allocate(solhis(halos_total,1:ilength1));solhis=zero
+
+allocate(solhir_flat(1:halo_total*ilength1));solhir_flat=zero
+allocate(solhis_flat(1:halos_total*ilength1));solhis_flat=zero
+
+
+
+
+
+allocate(solhi_loc(halos_total))
+
+do i=1,ineedhalos
+	do k=1,halos_len(i)
+		row=halos_offset(i)+k-1
+		solhi_loc(row)=direcexs(i)%localref(k)
 	end do
-      end if
-!     
-    if ((turbulence .eq. 0).and.(passivescalar.eq.0)) then
+end do
 
-    DO JJK=1,IEX
-	
-	  IEXBOUNDHISI(I)%FACESOL(K,JJK)=&
-	  IMPDU(IEXCHANGES(I)%LOCALREF(K),JJK)
-	  
-    END DO
-    end if ! turbulence
 
-END DO 
-END DO
-!$OMP END DO
-END IF
 
-!$OMP BARRIER
-!$OMP MASTER
-ICPUID=N
-IF (ITESTCASE.LE.3) THEN
-DO K=1,INDL
-DO J=1,TNDL
-      IF (IEXBOUNDHIRi(K)%PROCID.EQ.IEXBOUNDHISi(J)%PROCID)THEN
-      CALL MPI_SENDRECV(IEXBOUNDHISI(J)%FACESOL(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:IEX)&
-,IEXCHANGES(J)%MUCHTHEYNEED(1)*IMULTI2,MPI_DOUBLE_PRECISION,IEXBOUNDHISI(J)%PROCID,&
-      ICPUID,IEXBOUNDHIRI(K)%FACESOL(1:IEXCHANGER(K)%MUCHINEED(1),1:IEX),&
-IEXCHANGER(K)%MUCHINEED(1)*IMULTI2,MPI_DOUBLE_PRECISION,IEXBOUNDHIRI(K)%PROCID,&
-      IEXBOUNDHIRI(K)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-    
-      END IF
-END DO
-END DO
-END IF
 
 
 
-IF (ITESTCASE.EQ.4) THEN
 
-DO K=1,INDL
-DO J=1,TNDL
-      IF (IEXBOUNDHIRi(K)%PROCID.EQ.IEXBOUNDHISi(J)%PROCID)THEN
-      CALL MPI_SENDRECV(IEXBOUNDHISI(J)%FACESOL(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:IMULTI3),&
-IEXCHANGES(J)%MUCHTHEYNEED(1)*IMULTI2,MPI_DOUBLE_PRECISION,IEXBOUNDHISI(J)%PROCID,&
-      ICPUID,IEXBOUNDHIRI(K)%FACESOL(1:IEXCHANGER(K)%MUCHINEED(1),1:IMULTI3),&
-IEXCHANGER(K)%MUCHINEED(1)*IMULTI2,MPI_DOUBLE_PRECISION,IEXBOUNDHIRI(K)%PROCID,&
-      IEXBOUNDHIRI(K)%PROCID,MPI_COMM_WORLD,STATUS,IERROR)
-
-      END IF
-END DO
-END DO
-END IF
-!$OMP END MASTER 
-!$OMP BARRIER
-
-
-
-
-
-
-
-END SUBROUTINE EXHBOUNDHIGHERlu
-
-SUBROUTINE EXHBOUNDHIGHER_MOOD(N)
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
-INTEGER::ITEE,ITEEDUM,JK,JJK,JJK4,JJK12,IMULTI2,ICPE,JMNB,J76,J78,J79,J80,IMULTI3,I_CNT,cinout2
-integer:: n_requests
-integer, dimension(:), allocatable:: requests
-real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
- cinout2=0
-INDL=IEXCHANGER(1)%TOT
-TNDL=IEXCHANGES(1)%TOT
-
-pr_t31=zero
-pr_t32=zero
-pr_t33=zero
-pr_t34=zero
-pr_t35=zero
-temp_prin=zero
-temp_prout=zero
-
-
-
-
-
-if(indl .ne. tndl) then
-   write (*, *) "exhbounhigher: INDL and TNDL are supposed to be equal; INDL=", INDL, "TNDL=", TNDL
-   call MPI_ABORT(MPI_COMM_WORLD, 1, IERROR)
-end if
-
-IF (DIMENSIONA.EQ.3)THEN
-
-
-            IF( ITESTCASE.EQ.4)THEN
-            I_CNT=1
-            ELSE
-
-            I_CNT=1
-            END IF
-ELSE
-        IF( ITESTCASE.EQ.4)THEN
-        I_CNT=1
-        ELSE
-
-        I_CNT=1
-        END IF
-END IF
-
-
-IF (ITESTCASE.LE.3) THEN
-!$OMP DO
-DO I=1,TNDL
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-  IEXBOUNDHIS(I)%FACESOL_m(K,1)=Ielem(n,(IEXCHANGES(I)%LOCALREF(K)))%mood
-
-END DO
-END DO
-!$OMP END DO
-END  IF
-
-
-IF (ITESTCASE.EQ.4) THEN
-
-IF (TURBULENCE.NE.1)THEN
-!$OMP DO
-DO I=1,TNDL
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-IEXBOUNDHIS(I)%FACESOL(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
-ITTT=0
-DO IEX=1,NOF_VARIABLES-1
-      DO nvar=1,DIMS
-      ITTT=ITTT+1
-		  IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
-      END DO
-END DO
-END DO
-END DO
-!$OMP END DO
-
-ELSE
-!$OMP DO
-DO I=1,TNDL
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-IEXBOUNDHIS(I)%FACESOL(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+1:NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
-
-ITTT=0
-DO IEX=1,NOF_VARIABLES-1
-      DO nvar=1,DIMS
-      ITTT=ITTT+1
-		  IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-      END DO
-END DO
-DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-      DO nvar=1,DIMS
-      ITTT=ITTT+1
-	IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTTURBV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-      END DO
-END DO
-END DO
-END DO
-!$OMP END DO
-
-END IF
-END  IF
-
-
-
-
-!$OMP BARRIER
-!$OMP MASTER
-
-
-n_requests = 0
-allocate(requests(2*indl))
-
-ICPUID=N
-
-
-
-
-
-
-
-
-
-
-DO K=1,INDL
-
-   ! Search unique J such that (IEXBOUNDHIR(K)%PROCID .EQ. IEXBOUNDHIS(J)%PROCID)
-   J = 1
-   DO WHILE(IEXBOUNDHIR(K)%PROCID .NE. IEXBOUNDHIS(J)%PROCID)
-      J = J + 1
-   END DO
-
-   ! non-blocking send
-   n_requests = n_requests + 1
-   CALL MPI_ISEND(                                                     &
-      IEXBOUNDHIS(J)%FACESOL_m(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
-      IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      IEXBOUNDHIS(J)%PROCID, 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
-
-   ! non-blocking receive
-   n_requests = n_requests + 1
-   CALL MPI_IRECV(                                                     &
-      IEXBOUNDHIR(K)%FACESOL_m(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
-      IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-      IEXBOUNDHIR(K)%PROCID, 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
-
-!   CALL MPI_SENDRECV(                                                  &
-!      IEXBOUNDHIS(J)%FACESOL(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
-!      IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-!      IEXBOUNDHIS(J)%PROCID, ICPUID,                                   & !destination, tag
-!      IEXBOUNDHIR(K)%FACESOL(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
-!      IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-!      IEXBOUNDHIR(K)%PROCID, IEXBOUNDHIR(K)%PROCID,                    & !source, tag
-!      MPI_COMM_WORLD,STATUS,IERROR                                     & !communicator, status, error
-!   )
-END DO
-
-CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
-
-
-
-
-
-deallocate(requests)
-!$OMP END MASTER
-!$OMP BARRIER
-
-END SUBROUTINE EXHBOUNDHIGHER_MOOD
-
-
-
-
-
-SUBROUTINE EXHBOUNDHIGHER_dg(N)
-!> @brief
-!> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
-!> for the Gaussian quadrature points of direct-side neighbours between MPI processes
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
-INTEGER::ITEE,ITEEDUM,JK,JJK,JJK4,JJK12,IMULTI2,ICPE,JMNB,J76,J78,J79,J80,IMULTI3,I_CNT,cinout2
-integer:: n_requests
-integer, dimension(:), allocatable:: requests
-real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
- cinout2=0
-INDL=IEXCHANGER(1)%TOT
-TNDL=IEXCHANGES(1)%TOT
-
-pr_t31=zero
-pr_t32=zero
-pr_t33=zero
-pr_t34=zero
-pr_t35=zero
-temp_prin=zero
-temp_prout=zero
-
-
-
-!
-!     if (statistics.eq.1)then
-!
-!     !$OMP MASTER
-!     pr_t31=MPI_Wtime()
-! !     prace_t1=pr_t2-pr_t1
-!     !$OMP END MASTER
-!
-!     end if
-
-
-
-if(indl .ne. tndl) then
-   write (*, *) "exhbounhigher: INDL and TNDL are supposed to be equal; INDL=", INDL, "TNDL=", TNDL
-   call MPI_ABORT(MPI_COMM_WORLD, 1, IERROR)
+if (adda.eq.1)then
+allocate(solhird(halo_total));solhird=zero
+allocate(solhisd(halos_total));solhisd=zero
 end if
 
 
 
-I_CNT=nof_variables
 
+allocate(bound_len(ineedbound), bound_offset(ineedbound),bound_proc(ineedbound))
 
 
+allocate(bounds_len(ineedbounds), bounds_offset(ineedbounds),bounds_proc(ineedbounds))
 
+do i = 1, ineedbound
+  bound_len(i) = diexchanger(i)%muchineed(1)
+  bound_proc(i) = diexchanger(i)%procid
+end do
 
 
-!$OMP DO
-    DO I=1,TNDL
-        DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+do i = 1, ineedbounds
+  bounds_len(i) = diexchanges(i)%muchtheyneed(1)
+  bounds_proc(i) = diexchanges(i)%procid
+end do
 
 
-                IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_VARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_VARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+  bound_offset(1) = 1
+  do j = 2, ineedbound
+    bound_offset(j) = bound_offset(j-1) + bound_len(j-1)
+  end do
 
-        END DO
-    END DO
-!$OMP END DO
+  bound_total = bound_offset(ineedbound) + bound_len(ineedbound) - 1
 
 
+   bounds_offset(1) = 1
+  do j = 2, ineedbounds
+    bounds_offset(j) = bounds_offset(j-1) + bounds_len(j-1)
+  end do
 
+  bound_total = bound_offset(ineedbound) + bound_len(ineedbound) - 1
+  bounds_total = bounds_offset(ineedbounds) + bounds_len(ineedbounds) - 1
 
-!$OMP BARRIER
 
+  allocate(need_side(bounds_total),need_q(bounds_total),need_loc(bound_total))
 
-!-------------------FOR DEBUGGING ONLY -----------------------------------------!
+  ! Flat per-neighbor k-lists into a single row-based list
+  do i = 1, ineedbounds
+  do k = 1, bounds_len(i)
+    row = bounds_offset(i) + k - 1
+    need_side(row) = diexchanges(i)%sidetheyneed(k)
+    need_q(row)    = diexchanges(i)%qtheyneed(k)
+    need_loc(row)  = diexchanges(i)%localref(k)
+  end do
+end do
 
-!-------------------FOR DEBUGGING ONLY -----------------------------------------!
 
-!$OMP MASTER
-!CALL MPI_BARRIER(mpi_comm_world,ierror)
 
-n_requests = 0
-allocate(requests(2*indl))
-requests(:)=0
-ICPUID=N
+  allocate(boundhir(bound_total,1:ilength2));boundhir=zero
+  allocate(boundhis(bounds_total,1:ilength2));boundhis=zero
+  allocate(boundhir_flat(1:bound_total*ilength2));boundhir_flat=zero
+  allocate(boundhis_flat(1:bounds_total*ilength2));boundhis_flat=zero
+  if (dg.eq.1)then
+  allocate(boundhir_dg(bound_total,1:ilength2)); boundhir_dg=zero
+  allocate(boundhis_dg(bounds_total,1:ilength2)); boundhis_dg=zero
+  allocate(boundhir_dgflat(1:bound_total*ilength2));boundhir_dgflat=zero
+  allocate(boundhis_dgflat(1:bounds_total*ilength2));boundhis_dgflat=zero
+  end if
 
+  if (mood.eq.1)then
+  allocate(boundhirm(bound_total)); boundhirm=zero
+   allocate(boundhism(bounds_total));boundhism=zero
+  end if
 
+  if ((rungekutta.ge.10))then
+  allocate(boundhiri(bound_total,1:ilength1)); boundhiri=zero
+  allocate(boundhisi(bounds_total,1:ilength1)); boundhisi=zero
+  allocate(boundhiri_flat(1:bound_total*ilength1)); boundhiri_flat=zero
+  allocate(boundhisi_flat(1:bounds_total*ilength1)); boundhisi_flat=zero
+  end if
 
-!     if (statistics.eq.1)then
-!
-!     !$OMP MASTER
-!     pr_t32=MPI_Wtime()
-! !     prace_t33=pr_t32-pr_t31
-!     !$OMP END MASTER
-!
-!     end if
 
 
 
+!these are for the mpi net
 
 
 
 
+if (allocated(diexboundhir))  deallocate(diexboundhir)
+if (allocated(diexboundhirr)) deallocate(diexboundhirr)
+if (allocated(diexboundhiri)) deallocate(diexboundhiri)
+if (allocated(diexboundhis))  deallocate(diexboundhis)
+if (allocated(diexboundhiss)) deallocate(diexboundhiss)
+if (allocated(diexboundhisi)) deallocate(diexboundhisi)
+if (allocated(diexsolhir))    deallocate(diexsolhir)
+if (allocated(diexsolhis))    deallocate(diexsolhis)
+if (allocated(diexsolhird))   deallocate(diexsolhird)
+if (allocated(diexsolhisd))   deallocate(diexsolhisd)
+if (allocated(diexcordr))     deallocate(diexcordr)
+if (allocated(diexcords))     deallocate(diexcords)
+if (allocated(diexchanger))   deallocate(diexchanger)
+if (allocated(diexchanges))   deallocate(diexchanges)
 
-DO K=1,INDL
 
-   ! Search unique J such that (IEXBOUNDHIR(K)%PROCID .EQ. IEXBOUNDHIS(J)%PROCID)
-   J = 1
-   DO WHILE(IEXBOUNDHIR(K)%PROCID .NE. IEXBOUNDHIS(J)%PROCID)
-      J = J + 1
-   END DO
 
-   ! non-blocking send
-   n_requests = n_requests + 1
-   CALL MPI_ISEND(                                                     &
-      IEXBOUNDHIS(J)%FACESOL_dg(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
-      IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      IEXBOUNDHIS(J)%PROCID, 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
 
-   ! non-blocking receive
-   n_requests = n_requests + 1
-   CALL MPI_IRECV(                                                     &
-      IEXBOUNDHIR(K)%FACESOL_dg(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
-      IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-      IEXBOUNDHIR(K)%PROCID, 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
 
 
-END DO
 
-CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
+end subroutine
 
-! if (statistics.eq.1)then
-!
-!
-!     pr_t33=MPI_Wtime()
-! !     prace_t33=pr_t32-pr_t31
-!         pr_t34=pr_t33-pr_t32
-!         pr_t35=pr_t32-pr_t31
-!
-! !
-!
-!
-!
-!     end if
 
-
-
-
-deallocate(requests)
-!$OMP END MASTER
-!$OMP BARRIER
-
-END SUBROUTINE EXHBOUNDHIGHER_dg
-
-
-
-
-
-SUBROUTINE EXHBOUNDHIGHER_dg2(N)
-!> @brief
-!> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
-!> for the Gaussian quadrature points of direct-side neighbours between MPI processes
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
-INTEGER::ITEE,ITEEDUM,JK,JJK,JJK4,JJK12,IMULTI2,ICPE,JMNB,J76,J78,J79,J80,IMULTI3,I_CNT,cinout2
-integer:: n_requests
-integer, dimension(:), allocatable:: requests
-real::pr_t31,pr_t32,pr_t33,pr_t34,pr_t35,temp_prin,temp_prout
- cinout2=0
-INDL=IEXCHANGER(1)%TOT
-TNDL=IEXCHANGES(1)%TOT
-
-pr_t31=zero
-pr_t32=zero
-pr_t33=zero
-pr_t34=zero
-pr_t35=zero
-temp_prin=zero
-temp_prout=zero
-
-
-
-!
-!     if (statistics.eq.1)then
-!
-!     !$OMP MASTER
-!     pr_t31=MPI_Wtime()
-! !     prace_t1=pr_t2-pr_t1
-!     !$OMP END MASTER
-!
-!     end if
-
-
-
-if(indl .ne. tndl) then
-   write (*, *) "exhbounhigher: INDL and TNDL are supposed to be equal; INDL=", INDL, "TNDL=", TNDL
-   call MPI_ABORT(MPI_COMM_WORLD, 1, IERROR)
-end if
-
-IF (DIMENSIONA.EQ.3)THEN
-
-
-IF( ITESTCASE.EQ.4)THEN
-I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
-ELSE
-
-I_CNT=nof_variables
-END IF
-
-ELSE
-IF( ITESTCASE.EQ.4)THEN
-I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
-ELSE
-	I_CNT=nof_variables
-END IF
-END IF
-
-
-IF (ITESTCASE.LE.3) THEN
-
-
-IF((GOVERNINGEQUATIONS.EQ.-1).AND.(BR2_YN.EQ.1)) THEN
-!$OMP DO
-DO I=1,TNDL
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
-ITTT=0
-DO IEX=1,NOF_VARIABLES-4
-      DO nvar=1,DIMS
-      ITTT=ITTT+1
-	  	!IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-		IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%BR2_AUX_VAR(IEX,NVAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
-      END DO
-END DO
-END DO
-END DO
-!$OMP END DO
-
-ELSE
-
-!$OMP DO
-    DO I=1,TNDL
-        DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-
-
-                IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_VARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_VARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
-        END DO
-    END DO
-!$OMP END DO
-
-END IF
-END  IF
-
-
-IF (ITESTCASE.EQ.4) THEN
-
-IF (TURBULENCE.NE.1)THEN
-!$OMP DO
-DO I=1,TNDL
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
-ITTT=0
-DO IEX=1,NOF_VARIABLES-1
-      DO nvar=1,DIMS
-      ITTT=ITTT+1
-	  	!IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-		IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%BR2_AUX_VAR(IEX+1,NVAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
-      END DO
-END DO
-END DO
-END DO
-!$OMP END DO
-
-ELSE
-!$OMP DO
-DO I=1,TNDL
-DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+1:NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTTURB(1:TURBULENCEEQUATIONS+PASSIVESCALAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
-
-ITTT=0
-DO IEX=1,NOF_VARIABLES-1
-      DO nvar=1,DIMS
-      ITTT=ITTT+1
-		  IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-      END DO
-END DO
-DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-      DO nvar=1,DIMS
-      ITTT=ITTT+1
-	IEXBOUNDHIS(I)%FACESOL(K,NOF_vARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTTURBV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-      END DO
-END DO
-END DO
-END DO
-!$OMP END DO
-
-END IF
-END  IF
-
-!$OMP BARRIER
-
-
-!-------------------FOR DEBUGGING ONLY -----------------------------------------!
-
-!-------------------FOR DEBUGGING ONLY -----------------------------------------!
-
-!$OMP MASTER
-!CALL MPI_BARRIER(mpi_comm_world,ierror)
-
-n_requests = 0
-allocate(requests(2*indl))
-requests(:)=0
-ICPUID=N
-
-
-
-!     if (statistics.eq.1)then
-!
-!     !$OMP MASTER
-!     pr_t32=MPI_Wtime()
-! !     prace_t33=pr_t32-pr_t31
-!     !$OMP END MASTER
-!
-!     end if
-
-
-
-
-
-
-
-
-DO K=1,INDL
-
-   ! Search unique J such that (IEXBOUNDHIR(K)%PROCID .EQ. IEXBOUNDHIS(J)%PROCID)
-   J = 1
-   DO WHILE(IEXBOUNDHIR(K)%PROCID .NE. IEXBOUNDHIS(J)%PROCID)
-      J = J + 1
-   END DO
-
-   ! non-blocking send
-   n_requests = n_requests + 1
-   CALL MPI_ISEND(                                                     &
-      IEXBOUNDHIS(J)%FACESOL_dg(1:IEXCHANGES(J)%MUCHTHEYNEED(1),1:I_CNT), & !sendbuf
-      IEXCHANGES(J)%MUCHTHEYNEED(1)*I_CNT, MPI_DOUBLE_PRECISION,       & !sendcount, sendtype
-      IEXBOUNDHIS(J)%PROCID, 0,                                        & !destination, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
-
-   ! non-blocking receive
-   n_requests = n_requests + 1
-   CALL MPI_IRECV(                                                     &
-      IEXBOUNDHIR(K)%FACESOL_dg(1:IEXCHANGER(K)%MUCHINEED(1),1:I_CNT),    & !recvbuf
-      IEXCHANGER(K)%MUCHINEED(1)*I_CNT, MPI_DOUBLE_PRECISION,          & !recvcount, recvtype
-      IEXBOUNDHIR(K)%PROCID, 0,                                        & !source, tag
-      MPI_COMM_WORLD, requests(n_requests), ierror                     & !communicator, request handle, error
-   )
-
-
-END DO
-
-CALL MPI_WAITALL(n_requests, requests, MPI_STATUSES_IGNORE, ierror)
-
-! if (statistics.eq.1)then
-!
-!
-!     pr_t33=MPI_Wtime()
-! !     prace_t33=pr_t32-pr_t31
-!         pr_t34=pr_t33-pr_t32
-!         pr_t35=pr_t32-pr_t31
-!
-! !
-!
-!
-!
-!     end if
-
-
-
-
-deallocate(requests)
-!$OMP END MASTER
-!$OMP BARRIER
-
-END SUBROUTINE EXHBOUNDHIGHER_dg2
-
-
-
-
-
-
-
-END MODULE COMMUNICATIONS
+end module communications

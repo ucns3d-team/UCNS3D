@@ -1,27 +1,27 @@
-MODULE SVD
+module svd
 
-  USE MPIINFO
-	IMPLICIT NONE
+  use mpiinfo
+	implicit none
 
-CONTAINS
+contains
 
 
 
-SUBROUTINE svdcmp(a,m,n,mp,np,w,v)
+subroutine svdcmp(a,m,n,mp,np,w,v)
 
 implicit none
-INTEGER,INTENT(IN):: m,mp,n,np
-INTEGER::NMAX
-REAL,INTENT(INOUT):: a(1:mp,1:np),v(1:np,1:np),w(1:np)
-PARAMETER (NMAX=300) !Maximum anticipated value of n.
- !USES pythag
-!Given a matrix a(1:m,1:n), with physical dimensions mp by np, this routine computes its
-!singular value decomposition, A = U W  V T. The matrix U replaces a on output. The
-!diagonal matrix of singular values W is output as a vector w(1:n). The matrix V (not the
-!transpose V T ) is output as v(1:n,1:n).
-INTEGER:: i,its,j,jj,k,l,nm
-REAL:: anorm,c,f,g,h,s,scale,x,y,z,rv1(NMAX)
-g=0.0 !Householder reduction to bidiagonal form.
+integer,intent(in):: m,mp,n,np
+integer::nmax
+real,intent(inout):: a(1:mp,1:np),v(1:np,1:np),w(1:np)
+parameter (nmax=300) !maximum anticipated value of n.
+ !uses pythag
+!given a matrix a(1:m,1:n), with physical dimensions mp by np, this routine computes its
+!singular value decomposition, a = u w  v t. the matrix u replaces a on output. the
+!diagonal matrix of singular values w is output as a vector w(1:n). the matrix v (not the
+!transpose v t ) is output as v(1:n,1:n).
+integer:: i,its,j,jj,k,l,nm
+real:: anorm,c,f,g,h,s,scale,x,y,z,rv1(nmax)
+g=0.0 !householder reduction to bidiagonal form.
 scale=0.0
 anorm=0.0
 do  i=1,n
@@ -94,10 +94,10 @@ endif
 endif
 anorm=max(anorm,(abs(w(i))+abs(rv1(i))))
 enddo 
-do  i=n,1,-1 !Accumulation of right-hand transformations.
+do  i=n,1,-1 !accumulation of right-hand transformations.
 if(i.lt.n)then
 if(g.ne.0.0)then
-do  j=l,n !Double division to avoid possible underflow.
+do  j=l,n !double division to avoid possible underflow.
 v(j,i)=(a(i,j)/a(i,l))/g
 enddo 
 do  j=l,n
@@ -147,15 +147,15 @@ enddo
 endif
 a(i,i)=a(i,i)+1.0
 enddo 
-do k=n,1,-1 !Diagonalization of the bidiagonal form: Loop over
+do k=n,1,-1 !diagonalization of the bidiagonal form: loop over
 !singular values, and over 
 do  its=1,30 !allowed iterations.
-do  l=k,1,-1 !Test for splitting.
-nm=l-1 !Note that rv1(1) is always zero.
+do  l=k,1,-1 !test for splitting.
+nm=l-1 !note that rv1(1) is always zero.
 if((abs(rv1(l))+anorm).eq.anorm) goto 2
 if((abs(w(nm))+anorm).eq.anorm) goto 1
 enddo 
-1 c=0.0 !Cancellation of rv1(l), if l > 1.
+1 c=0.0 !cancellation of rv1(l), if l > 1.
 s=1.0
 do  i=l,k
 f=s*rv1(i)
@@ -175,8 +175,8 @@ a(j,i)=-(y*s)+(z*c)
 enddo 
 enddo 
 2 z=w(k)
-if(l.eq.k)then !Convergence.
-if(z.lt.0.0)then !Singular value is made nonnegative.
+if(l.eq.k)then !convergence.
+if(z.lt.0.0)then !singular value is made nonnegative.
 w(k)=-z
 do  j=1,n
 v(j,k)=-v(j,k)
@@ -185,7 +185,7 @@ endif
 goto 3
 endif
 if(its.eq.30) stop! 'no convergence in svdcmp'
-x=w(l) !Shift from bottom 2-by-2 minor.
+x=w(l) !shift from bottom 2-by-2 minor.
 nm=k-1
 y=w(nm)
 g=rv1(nm)
@@ -193,7 +193,7 @@ h=rv1(k)
 f=((y-z)*(y+z)+(g-h)*(g+h))/(2.0*h*y)
 g=pythag(f,1.0)
 f=((x-z)*(x+z)+h*((y/(f+sign(g,f)))-h))/x
- c=1.0 !Next QR transformation:
+ c=1.0 !next qr transformation:
 s=1.0
 do  j=l,nm
 i=j+1
@@ -237,41 +237,41 @@ w(k)=x
 enddo 
 3 continue
 enddo 
-END subroutine svdcmp
+end subroutine svdcmp
 
-SUBROUTINE svbksb(u,w,v,m,n,mp,np,b,x)
-INTEGER m,mp,n,np,NMAX
-REAL b(mp),u(mp,np),v(np,np),w(np),x(np)
-PARAMETER (NMAX=500) !Maximum anticipated value of n.
-!Solves A X = B for a vector X, where A is specied by the arrays u, w, v as returned by
+subroutine svbksb(u,w,v,m,n,mp,np,b,x)
+integer m,mp,n,np,nmax
+real b(mp),u(mp,np),v(np,np),w(np),x(np)
+parameter (nmax=500) !maximum anticipated value of n.
+!solves a x = b for a vector x, where a is specied by the arrays u, w, v as returned by
 !svdcmp. m and n are the logical dimensions of a, and will be equal for square matrices. mp
 !and np are the physical dimensions of a. b(1:m) is the input right-hand side. x(1:n) is
-!the output solution vector. No input quantities are destroyed, so the routine may be called
+!the output solution vector. no input quantities are destroyed, so the routine may be called
 !sequentially with dierent b's.
-INTEGER:: i,j,jj
-REAL:: s,tmp(NMAX)
-do  j=1,n !Calculate UTB.
+integer:: i,j,jj
+real:: s,tmp(nmax)
+do  j=1,n !calculate utb.
 s=0.
-if(w(j).ne.0.)then !Nonzero result only if wj is nonzero.
+if(w(j).ne.0.)then !nonzero result only if wj is nonzero.
 do  i=1,m
 s=s+u(i,j)*b(i)
 enddo 
-s=s/w(j) !This is the divide by wj .
+s=s/w(j) !this is the divide by wj .
 endif
 tmp(j)=s
 enddo 
-do  j=1,n !Matrix multiply by V to get answer.
+do  j=1,n !matrix multiply by v to get answer.
 s=0.
 do  jj=1,n
 s=s+v(j,jj)*tmp(jj)
 enddo 
 x(j)=s
 enddo 
-END subroutine
+end subroutine
 
-FUNCTION pythag(a,b)
-REAL:: a,b,pythag
-REAL:: absa,absb
+function pythag(a,b)
+real:: a,b,pythag
+real:: absa,absb
 absa=abs(a)
 absb=abs(b)
 if(absa.gt.absb)then
@@ -284,6 +284,6 @@ pythag=absb*sqrt(1.+(absa/absb)**2)
 endif
 endif
 
-END function 
+end function 
 
-END MODULE
+end module

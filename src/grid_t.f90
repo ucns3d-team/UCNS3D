@@ -1,76 +1,105 @@
-MODULE TRANSFORM
-USE MPIINFO
-USE DECLARATION
+module transform
+use mpiinfo
+use declaration
 
 
-IMPLICIT NONE
+implicit none
 
- CONTAINS
+ contains
 ! ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine alloc_weights(n)
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona)::vext
+real,dimension(1:dimensiona,1:numberofpoints2)::qpoints2d
+real,dimension(1:numberofpoints2)::wequa2d
+
+
+
+if( dimensiona == 3) then
+	allocate(weights_q(1:numberofpoints2),weights_t(1:numberofpoints2))
+    call quadraturequad3d(n,igqrules,vext,qpoints2d,wequa2d)
+      weights_q(1:qp_quad)=wequa2d(1:qp_quad)
+
+    call quadraturetriang(n,igqrules,vext,qpoints2d,wequa2d)
+      weights_t(1:qp_triangle)=wequa2d(1:qp_triangle)
+else
+	allocate(weights_l(1:numberofpoints2))
+    call quadratureline(n,igqrules,vext,qpoints2d,wequa2d)
+      weights_l(1:qp_line_n)=wequa2d(1:qp_line_n)
+end if
+
+end subroutine alloc_weights
+
 ! ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- REAL FUNCTION TRIANGLEAREA(N,VEXT)
+ real function trianglearea(n,vext)
 !> @brief
-!> This function computes the area of a triangle in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:3,1:3)::VVA
-REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD,VVJACOBSURF
-	VVB(1:3)=VEXT(1,1:3)
-	VVC(1:3)=VEXT(2,1:3)
-	VVD(1:3)=VEXT(3,1:3)
+!> this function computes the area of a triangle in 3d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:3,1:3)::vva
+real,dimension(1:3)::vvb,vvc,vve,vvd,vvjacobsurf
+	vvb(1:3)=vext(1,1:3)
+	vvc(1:3)=vext(2,1:3)
+	vvd(1:3)=vext(3,1:3)
 	
-	VVA(1,1)=VVB(2);VVA(2,1)=VVC(2);VVA(3,1)=VVD(2)
-	VVA(1,2)=VVB(3);VVA(2,2)=VVC(3);VVA(3,2)=VVD(3)
-	VVA(1,3)=1.0d0;VVA(2,3)=1.0d0;VVA(3,3)=1.0D0
-		VVJACOBSURF(1)=VVA(1,1)*((VVA(3,3)*VVA(2,2))-(VVA(3,2)*VVA(2,3)))-VVA(2,1)*&
-((VVA(3,3)*VVA(1,2))-(VVA(3,2)*VVA(1,3)))+VVA(3,1)*((VVA(2,3)*VVA(1,2))-(VVA(2,2)*VVA(1,3)))
-	VVA(1,1)=VVB(3);VVA(2,1)=VVC(3);VVA(3,1)=VVD(3)
-	VVA(1,2)=VVB(1);VVA(2,2)=VVC(1);VVA(3,2)=VVD(1)
-	VVA(1,3)=1.0d0;VVA(2,3)=1.0d0;VVA(3,3)=1.0D0
-		VVJACOBSURF(2)=VVA(1,1)*((VVA(3,3)*VVA(2,2))-(VVA(3,2)*VVA(2,3)))-VVA(2,1)*&
-((VVA(3,3)*VVA(1,2))-(VVA(3,2)*VVA(1,3)))+VVA(3,1)*((VVA(2,3)*VVA(1,2))-(VVA(2,2)*VVA(1,3)))
-	VVA(1,1)=VVB(1);VVA(2,1)=VVC(1);VVA(3,1)=VVD(1)
-	VVA(1,2)=VVB(2);VVA(2,2)=VVC(2);VVA(3,2)=VVD(2)
-	VVA(1,3)=1.0d0; VVA(2,3)=1.0d0;	VVA(3,3)=1.0D0
-		VVJACOBSURF(3)=VVA(1,1)*((VVA(3,3)*VVA(2,2))-(VVA(3,2)*VVA(2,3)))-VVA(2,1)*&
-((VVA(3,3)*VVA(1,2))-(VVA(3,2)*VVA(1,3)))+VVA(3,1)*((VVA(2,3)*VVA(1,2))-(VVA(2,2)*VVA(1,3)))
-		TRIANGLEAREA=((OO2)*(SQRT((VVJACOBSURF(1)**2)+(VVJACOBSURF(2)**2)+(VVJACOBSURF(3)**2))))
+	vva(1,1)=vvb(2);vva(2,1)=vvc(2);vva(3,1)=vvd(2)
+	vva(1,2)=vvb(3);vva(2,2)=vvc(3);vva(3,2)=vvd(3)
+	vva(1,3)=1.0d0;vva(2,3)=1.0d0;vva(3,3)=1.0d0
+		vvjacobsurf(1)=vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3)))
+	vva(1,1)=vvb(3);vva(2,1)=vvc(3);vva(3,1)=vvd(3)
+	vva(1,2)=vvb(1);vva(2,2)=vvc(1);vva(3,2)=vvd(1)
+	vva(1,3)=1.0d0;vva(2,3)=1.0d0;vva(3,3)=1.0d0
+		vvjacobsurf(2)=vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3)))
+	vva(1,1)=vvb(1);vva(2,1)=vvc(1);vva(3,1)=vvd(1)
+	vva(1,2)=vvb(2);vva(2,2)=vvc(2);vva(3,2)=vvd(2)
+	vva(1,3)=1.0d0; vva(2,3)=1.0d0;	vva(3,3)=1.0d0
+		vvjacobsurf(3)=vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3)))
+		trianglearea=((oo2)*(sqrt((vvjacobsurf(1)**2)+(vvjacobsurf(2)**2)+(vvjacobsurf(3)**2))))
 
-END FUNCTION TRIANGLEAREA
+end function trianglearea
 
 
 
- REAL FUNCTION QUADAREA(N,VEXT)
+ real function quadarea(n,vext)
  !> @brief
-!> This function computes the area of a quadrilateral in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:3)::VVE,VVD
+!> this function computes the area of a quadrilateral in 3d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:3)::vve,vvd
 	
-	VVE(1:3)=VEXT(4,1:3)-VEXT(2,1:3)
-	VVD(1:3)=VEXT(3,1:3)-VEXT(1,1:3)
+	vve(1:3)=vext(4,1:3)-vext(2,1:3)
+	vvd(1:3)=vext(3,1:3)-vext(1,1:3)
 	
 	
-	QUADAREA=OO2*sqrt((((VVE(2)*VVD(3))-(VVE(3)*VVD(2)))**2)+(((VVE(3)*VVD(1))-(VVE(1)*VVD(3)))**2)+(((VVE(1)*VVD(2))-(VVE(2)*VVD(1)))**2))
+	quadarea=oo2*sqrt((((vve(2)*vvd(3))-(vve(3)*vvd(2)))**2)+(((vve(3)*vvd(1))-(vve(1)*vvd(3)))**2)+(((vve(1)*vvd(2))-(vve(2)*vvd(1)))**2))
 	
 	
 
-END FUNCTION QUADAREA
+end function quadarea
 
 
- REAL FUNCTION LINEAREA(N,VEXT)
+ real function linearea(n,vext)
  !> @brief
-!> This function computes the length of an edge in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:3)::VVE
+!> this function computes the length of an edge in 2d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:3)::vve
 	
 	
-	VVE(1:2)=VEXT(2,1:2)-VEXT(1,1:2)
+	vve(1:2)=vext(2,1:2)-vext(1,1:2)
 	
 	
 	
@@ -78,249 +107,254 @@ REAL,DIMENSION(1:3)::VVE
 	
 	
 
-END FUNCTION LINEAREA
+end function linearea
 
-REAL FUNCTION QUADVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+real function quadvolume(n,vext,qpoints,wequa3d)
 !> @brief
-!> This function computes the area of quad in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+!> this function computes the area of quad in 2d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
 real::s,tx,r,vol
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-REAL,DIMENSION(1:4)::VVXI,VVeta,VVnallx,VVnally,VVNXI,VVNETA
-REAL,DIMENSION(1:3,1:3)::VVA,VVA1
-REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
-REAL,DIMENSION(1)::DETA
-integer::kK,II
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+real,dimension(1:4)::vvxi,vveta,vvnallx,vvnally,vvnxi,vvneta
+real,dimension(1:3,1:3)::vva,vva1
+real,dimension(1:3)::vvb,vvc,vve,vvd
+real,dimension(1)::deta
+integer::kk,ii
 	
-VVXI(1)=-1.0d0; VVeta(1)=-1.0d0;
-VVXI(2)=1.0d0; VVeta(2)=-1.0d0;
-VVXI(3)=1.0d0; VVeta(3)=1.0d0; 
-VVXI(4)=-1.0d0; VVeta(4)=1.0d0; 
+vvxi(1)=-1.0d0; vveta(1)=-1.0d0;
+vvxi(2)=1.0d0; vveta(2)=-1.0d0;
+vvxi(3)=1.0d0; vveta(3)=1.0d0; 
+vvxi(4)=-1.0d0; vveta(4)=1.0d0; 
 
 
 
-VVnallx(:)=0.0d0;VVnally(:)=0.0
+vvnallx(:)=0.0d0;vvnally(:)=0.0
 
 
-do Kk=1,qp_QUAD
-r=QPOINTS(1,Kk)
-s=QPOINTS(2,Kk)
+do kk=1,qp_quad
+r=qpoints(1,kk)
+s=qpoints(2,kk)
 
 
-do iI=1,4
-VVNXI(1)=-(0.25D0)*(1.0D0-s); VVNETA(1)=-(0.25D0)*(1.D0-r);
-VVNXI(2)=(0.25D0)*(1.0D0-s); VVNETA(2)=-(0.25D0)*(1.D0+r);
-VVNXI(3)=(0.25D0)*(1.0D0+s); VVNETA(3)=(0.25D0)*(1.D0+r); 
-VVNXI(4)=-(0.25D0)*(1.0D0+s); VVNETA(4)=(0.25D0)*(1.D0-r); 
+do ii=1,4
+vvnxi(1)=-(0.25d0)*(1.0d0-s); vvneta(1)=-(0.25d0)*(1.d0-r);
+vvnxi(2)=(0.25d0)*(1.0d0-s); vvneta(2)=-(0.25d0)*(1.d0+r);
+vvnxi(3)=(0.25d0)*(1.0d0+s); vvneta(3)=(0.25d0)*(1.d0+r); 
+vvnxi(4)=-(0.25d0)*(1.0d0+s); vvneta(4)=(0.25d0)*(1.d0-r); 
 
 
-VVnallx(ii)=VVnallx(ii)+(VVNXI(ii)*WEQUA3D(Kk))
-VVnally(ii)=VVnally(ii)+(VVNETA(ii)*WEQUA3D(Kk))
+vvnallx(ii)=vvnallx(ii)+(vvnxi(ii)*wequa3d(kk))
+vvnally(ii)=vvnally(ii)+(vvneta(ii)*wequa3d(kk))
 
 end do
 end do
 
 
 
-VVa=0.0d0
-VVa1=0.0d0
+vva=0.0d0
+vva1=0.0d0
 
-do iI=1,4
+do ii=1,4
 
-VVnxi(ii)=VVnallx(ii)
-VVneta(ii)=VVnally(ii)
+vvnxi(ii)=vvnallx(ii)
+vvneta(ii)=vvnally(ii)
 
-    VVa(1,1)=VVa(1,1)+VVnxi(ii)*vext(ii,1); VVa(1,2)=VVa(1,2)+VVnxi(ii)*vext(ii,2)
-    VVa(2,1)=VVa(2,1)+VVneta(ii)*vext(ii,1); VVa(2,2)=VVa(2,2)+VVneta(ii)*vext(ii,2)
+    vva(1,1)=vva(1,1)+vvnxi(ii)*vext(ii,1); vva(1,2)=vva(1,2)+vvnxi(ii)*vext(ii,2)
+    vva(2,1)=vva(2,1)+vvneta(ii)*vext(ii,1); vva(2,2)=vva(2,2)+vvneta(ii)*vext(ii,2)
     
 end do
 
-DETA(1)=(VVA(1,1)*VVA(2,2))-(VVA(1,2)*VVA(2,1))
+deta(1)=(vva(1,1)*vva(2,2))-(vva(1,2)*vva(2,1))
 
-VVA1(1,1)=(VVA(2,2))
-VVA1(1,2)=-(VVA(1,2))
-VVA1(2,1)=-(VVA(2,1))
-VVA1(2,2)=(VVA(1,1))
+vva1(1,1)=(vva(2,2))
+vva1(1,2)=-(vva(1,2))
+vva1(2,1)=-(vva(2,1))
+vva1(2,2)=(vva(1,1))
 
-vol=DETA(1)*4.0d0
-VVa1=VVa1/DETA(1)
-
-
-quadvolume=VOL
+vol=deta(1)*4.0d0
+vva1=vva1/deta(1)
 
 
-
-END FUNCTION QUADVOLUME
+quadvolume=vol
 
 
 
-REAL FUNCTION TRIANGLEVOLUME(N,VEXT)
+end function quadvolume
+
+
+
+real function trianglevolume(n,vext)
 !> @brief
-!> This function computes the area of triangle in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+!> this function computes the area of triangle in 2d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
 real::s,tx,r,vol
-REAL,DIMENSION(1:3,1:3)::VVA,VVA1
-REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
-REAL,DIMENSION(1)::DETA
+real,dimension(1:3,1:3)::vva,vva1
+real,dimension(1:3)::vvb,vvc,vve,vvd
+real,dimension(1)::deta
 vol=0.0d0
 
-VVA(1,1)=VEXT(1,1)-VEXT(3,1)
-VVA(1,2)=VEXT(1,2)-VEXT(3,2)
-VVA(2,1)=VEXT(2,1)-VEXT(3,1)
-VVA(2,2)=VEXT(2,2)-VEXT(3,2)	
-VOL=(VVA(1,1)*VVA(2,2))-(VVA(2,1)*VVA(1,2))
+vva(1,1)=vext(1,1)-vext(3,1)
+vva(1,2)=vext(1,2)-vext(3,2)
+vva(2,1)=vext(2,1)-vext(3,1)
+vva(2,2)=vext(2,2)-vext(3,2)	
+vol=(vva(1,1)*vva(2,2))-(vva(2,1)*vva(1,2))
 
 
-VVA1(1,1)=(VVA(2,2))
-VVA1(1,2)=-(VVA(1,2))
-VVA1(2,1)=-(VVA(2,1))
-VVA1(2,2)=(VVA(1,1))
+vva1(1,1)=(vva(2,2))
+vva1(1,2)=-(vva(1,2))
+vva1(2,1)=-(vva(2,1))
+vva1(2,2)=(vva(1,1))
 vol=vol*0.50d0
-VVA1=VVA1/VOL
-Deta(1)=vol
-TRIANGLEVOLUME=VOL
+vva1=vva1/vol
+deta(1)=vol
+trianglevolume=vol
 
 
 
-END FUNCTION TRIANGLEVOLUME
+end function trianglevolume
 
 
 ! ! ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-REAL FUNCTION TETRAVOLUME(N,vext)
+real function tetravolume(n,vext)
 !> @brief
-!> This function computes the volume of a tetrahedrals 
+!> this function computes the volume of a tetrahedrals 
 
-IMPLICIT NONE
-!!$OMP THREADPRIVATE(TETRAVOLUME)
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:3,1:3)::VVA
-REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
-REAL,DIMENSION(1:4)::VVJACOBVOLUME
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+!!$omp threadprivate(tetravolume)
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:3,1:3)::vva
+real,dimension(1:3)::vvb,vvc,vve,vvd
+real,dimension(1:4)::vvjacobvolume
 
 
 
-	VVB(1:3)=VEXT(1,1:3)
-	VVC(1:3)=VEXT(2,1:3)
-	VVD(1:3)=VEXT(3,1:3)
-	VVE(1:3)=vext(4,1:3)
+	vvb(1:3)=vext(1,1:3)
+	vvc(1:3)=vext(2,1:3)
+	vvd(1:3)=vext(3,1:3)
+	vve(1:3)=vext(4,1:3)
 	
 	
 
-	VVA(1,1)=VVC(2);VVA(2,1)=VVD(2);VVA(3,1)=VVE(2)
-	VVA(1,2)=VVC(3);VVA(2,2)=VVD(3);VVA(3,2)=VVE(3)
-	VVA(1,3)=1.0d0;VVA(2,3)=1.0d0;VVA(3,3)=1.0d0
-	VVJACOBVOLUME(1)=VVB(1)*(VVA(1,1)*((VVA(3,3)*VVA(2,2))-(VVA(3,2)*VVA(2,3)))-VVA(2,1)*&
-((VVA(3,3)*VVA(1,2))-(VVA(3,2)*VVA(1,3)))+VVA(3,1)*((VVA(2,3)*VVA(1,2))-(VVA(2,2)*VVA(1,3))))
-	VVA(1,1)=VVC(1);VVA(2,1)=VVD(1);VVA(3,1)=VVE(1)
-	VVA(1,2)=VVC(3);VVA(2,2)=VVD(3);VVA(3,2)=VVE(3)
-	VVA(1,3)=1.0d0;VVA(2,3)=1.0d0;VVA(3,3)=1.0d0
-	VVJACOBVOLUME(2)=(-VVB(2))*(VVA(1,1)*((VVA(3,3)*VVA(2,2))-(VVA(3,2)*VVA(2,3)))-VVA(2,1)*&
-((VVA(3,3)*VVA(1,2))-(VVA(3,2)*VVA(1,3)))+VVA(3,1)*((VVA(2,3)*VVA(1,2))-(VVA(2,2)*VVA(1,3))))
-	VVA(1,1)=VVC(1);VVA(2,1)=VVD(1);VVA(3,1)=VVE(1)
-	VVA(1,2)=VVC(2);VVA(2,2)=VVD(2);VVA(3,2)=VVE(2)
-	VVA(1,3)=1.0d0;VVA(2,3)=1.0d0;VVA(3,3)=1.0
-	VVJACOBVOLUME(3)=VVB(3)*(VVA(1,1)*((VVA(3,3)*VVA(2,2))-(VVA(3,2)*VVA(2,3)))-VVA(2,1)*&
-((VVA(3,3)*VVA(1,2))-(VVA(3,2)*VVA(1,3)))+VVA(3,1)*((VVA(2,3)*VVA(1,2))-(VVA(2,2)*VVA(1,3))))
-	VVA(1,1)=VVC(1);VVA(2,1)=VVD(1);VVA(3,1)=VVE(1)
-	VVA(1,2)=VVC(2);VVA(2,2)=VVD(2);VVA(3,2)=VVE(2)
-	VVA(1,3)=VVC(3);VVA(2,3)=VVD(3);VVA(3,3)=VVE(3)
-	VVJACOBVOLUME(4)=(-1.0)*(VVA(1,1)*((VVA(3,3)*VVA(2,2))-(VVA(3,2)*VVA(2,3)))-VVA(2,1)*&
-((VVA(3,3)*VVA(1,2))-(VVA(3,2)*VVA(1,3)))+VVA(3,1)*((VVA(2,3)*VVA(1,2))-(VVA(2,2)*VVA(1,3))))
+	vva(1,1)=vvc(2);vva(2,1)=vvd(2);vva(3,1)=vve(2)
+	vva(1,2)=vvc(3);vva(2,2)=vvd(3);vva(3,2)=vve(3)
+	vva(1,3)=1.0d0;vva(2,3)=1.0d0;vva(3,3)=1.0d0
+	vvjacobvolume(1)=vvb(1)*(vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3))))
+	vva(1,1)=vvc(1);vva(2,1)=vvd(1);vva(3,1)=vve(1)
+	vva(1,2)=vvc(3);vva(2,2)=vvd(3);vva(3,2)=vve(3)
+	vva(1,3)=1.0d0;vva(2,3)=1.0d0;vva(3,3)=1.0d0
+	vvjacobvolume(2)=(-vvb(2))*(vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3))))
+	vva(1,1)=vvc(1);vva(2,1)=vvd(1);vva(3,1)=vve(1)
+	vva(1,2)=vvc(2);vva(2,2)=vvd(2);vva(3,2)=vve(2)
+	vva(1,3)=1.0d0;vva(2,3)=1.0d0;vva(3,3)=1.0
+	vvjacobvolume(3)=vvb(3)*(vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3))))
+	vva(1,1)=vvc(1);vva(2,1)=vvd(1);vva(3,1)=vve(1)
+	vva(1,2)=vvc(2);vva(2,2)=vvd(2);vva(3,2)=vve(2)
+	vva(1,3)=vvc(3);vva(2,3)=vvd(3);vva(3,3)=vve(3)
+	vvjacobvolume(4)=(-1.0)*(vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3))))
 
-	TETRAVOLUME=abs((0.166666666666666)*(VVJACOBVOLUME(1)+VVJACOBVOLUME(2)+VVJACOBVOLUME(3)+VVJACOBVOLUME(4)))
+	tetravolume=abs((0.166666666666666)*(vvjacobvolume(1)+vvjacobvolume(2)+vvjacobvolume(3)+vvjacobvolume(4)))
 
 	
 	
-END FUNCTION TETRAVOLUME
+end function tetravolume
 
 
 
-SUBROUTINE FIND_ANGLES(N)
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,jj,KMAXE
+subroutine find_angles(n)
+integer,intent(in)::n
+integer::i,j,k,l,jj,kmaxe
 
-KMAXE=XMPIELRANK(N)
+kmaxe=xmpielrank(n)
 
-IF (DIMENSIONA.EQ.3)THEN
+if (dimensiona.eq.3)then
 
-!$OMP DO
+!$omp do
 do i=1,kmaxe
-	CALL FIND_ROT_ANGLES(N,I)
+	call find_rot_angles(n,i)
 end do
-!$OMP END DO
+!$omp end do
 
-Else
+else
 
-!$OMP DO
+!$omp do
 do i=1,kmaxe
-	CALL FIND_ROT_ANGLES2D(N,I)
+	call find_rot_angles2d(n,i)
 end do
-!$OMP END DO
+!$omp end do
 
-END IF
-
-
+end if
 
 
-END SUBROUTINE FIND_ANGLES
 
 
-SUBROUTINE FIND_ROT_ANGLES(N,ICONSI)
+end subroutine find_angles
+
+
+subroutine find_rot_angles(n,iconsi)
 !> @brief
-!> This subroutine determines the normal vectors for each face
-IMPLICIT NONE
-real::Xc1,Yc1,Zc1,Xc2,Yc2,Zc2,Xc3,Yc3,Zc3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz
-REAL::X5,X6,X7,X8,Y5,Y6,Y7,Y8,Z5,Z6,Z7,Z8,XX,YY,ZZ
-REAL::DELXA,DELXB,DELYA,DELYB,DELZA,DELZB,L_ANGLE1,L_ANGLE2,lNX,LNY,LNZ,A_ROT,B_ROT,C_ROT,ROOT_ROT,ANGLEFACEX,ANGLEFACEY
-INTEGER::K,KMAXE,I,J,kk,kk2,ixf4,IXFV,N_NODE
-INTEGER,INTENT(IN)::N,ICONSI
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-REAL:: tempxx
-KMAXE=XMPIELRANK(N)
+!> this subroutine determines the normal vectors for each face
+implicit none
+real::xc1,yc1,zc1,xc2,yc2,zc2,xc3,yc3,zc3,delxya,delyza,delzxa,delxyb,delyzb,delzxb,delxyc,delyzc,delzxc,nx,ny,nz
+real::x5,x6,x7,x8,y5,y6,y7,y8,z5,z6,z7,z8,xx,yy,zz
+real::delxa,delxb,delya,delyb,delza,delzb,l_angle1,l_angle2,lnx,lny,lnz,a_rot,b_rot,c_rot,root_rot,anglefacex,anglefacey
+integer::k,kmaxe,i,j,kk,kk2,ixf4,ixfv,n_node
+integer,intent(in)::n,iconsi
+real,dimension(1:8,1:dimensiona)::vext
+real:: tempxx
+kmaxe=xmpielrank(n)
 
 i=iconsi
 
-			DO K=1,IELEM(N,I)%IFCA
-			       if (ielem(n,i)%types_faces(k).eq.5)then
+			do k=1,ielem_ifca(i)
+			       if (ielem_types_faces(k,i).eq.5)then
 				    kk2=4;n_node=kk2
 			      else
 				    kk2=3;n_node=kk2
 			      end if
-			    IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
-			    IF ((IELEM(N,I)%INEIGHG(K).GT.0).AND.(IELEM(N,I)%IBOUNDS(K).GT.0))THEN 	!PERIODIC NEIGHBOUR
+			    if (ielem_interior(i).eq.1)then
+			    if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).gt.0))then 	!periodic neighbour
 
-			    XX=IELEM(N,I)%XXC  ;YY=IELEM(N,I)%YYC; ZZ=IELEM(N,I)%ZZC
+			    xx=ielem_xxc(i)  ;yy=ielem_yyc(i); zz=ielem_zzc(i)
 
-				    DO Kk=1,n_node
-				       IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
-				       vext(kk,1:3)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:3)
-				       ELSE
+				    do kk=1,n_node
+				       if (ielem_reorient(k,i).eq.0)then
+				       vext(kk,1:3)=dinoder(ielem_nodes_faces(k,kk,i))%cord(1:3)
+				       else
 
 
 
-					vext(kk,1:3)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:3)
+					vext(kk,1:3)=dinoder(ielem_nodes_faces(k,n_node-kk+1,i))%cord(1:3)
 !
-				       END IF
-                    IF(PER_ROT.EQ.0)THEN
-				      IF(ABS(vext(kk,1)-xx).GT.XPER*oo2)THEN
-				      vext(kk,1)=vext(kk,1)+(XPER*SIGN(1.0,xx-XPER*oo2))
+				       end if
+                    if(per_rot.eq.0)then
+				      if(abs(vext(kk,1)-xx).gt.xper*oo2)then
+				      vext(kk,1)=vext(kk,1)+(xper*sign(1.0,xx-xper*oo2))
 				      end if
-				      IF(ABS(vext(kk,2)-yy).GT.yPER*oo2)THEN
-				      vext(kk,2)=vext(kk,2)+(yPER*SIGN(1.0,yy-yPER*oo2))
+				      if(abs(vext(kk,2)-yy).gt.yper*oo2)then
+				      vext(kk,2)=vext(kk,2)+(yper*sign(1.0,yy-yper*oo2))
 				      end if
-				      IF(ABS(vext(kk,3)-zz).GT.zPER*oo2)THEN
-				      vext(kk,3)=vext(kk,3)+(zPER*SIGN(1.0,zz-zPER*oo2))
+				      if(abs(vext(kk,3)-zz).gt.zper*oo2)then
+				      vext(kk,3)=vext(kk,3)+(zper*sign(1.0,zz-zper*oo2))
 				      end if
 
-                    ELSE
-                        if (IELEM(N,I)%REORIENT(K).EQ.1) then
-                            if (ibound(n,ielem(n,i)%ibounds(K))%icode.eq.5) then
+                    else
+                        if (ielem_reorient(k,i).eq.1) then
+                            if (ibound_icode(ielem_ibounds(k,i)).eq.5) then
                                 tempxx=vext(kk,1)
                                 vext(kk,1)=tempxx*cos(-angle_per)-sin(-angle_per)*vext(kk,2)
                                 vext(kk,2)=tempxx*sin(-angle_per)+cos(-angle_per)*vext(kk,2)
@@ -331,78 +365,78 @@ i=iconsi
                                 vext(kk,2)=tempxx*sin(angle_per)+cos(angle_per)*vext(kk,2)
                             end if
 				      end if
-				    END IF
+				    end if
 
 			      end do
 
-			    Else
-				  DO Kk=1,n_node
-					 IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
-				       vext(kk,1:3)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:3)
-				       ELSE
-					vext(KK,1:3)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:3)
-				       END IF
-				  END DO
+			    else
+				  do kk=1,n_node
+					 if (ielem_reorient(k,i).eq.0)then
+				       vext(kk,1:3)=dinoder(ielem_nodes_faces(k,kk,i))%cord(1:3)
+				       else
+					vext(kk,1:3)=dinoder(ielem_nodes_faces(k,n_node-kk+1,i))%cord(1:3)
+				       end if
+				  end do
 
-			    END IF
-			    ELSE
-				   DO Kk=1,n_node
-					 IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
-				       vext(kk,1:3)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:3)
-				       ELSE
-					vext(KK,1:3)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:3)
-				       END IF
-				  END DO
-
-
+			    end if
+			    else
+				   do kk=1,n_node
+					 if (ielem_reorient(k,i).eq.0)then
+				       vext(kk,1:3)=dinoder(ielem_nodes_faces(k,kk,i))%cord(1:3)
+				       else
+					vext(kk,1:3)=dinoder(ielem_nodes_faces(k,n_node-kk+1,i))%cord(1:3)
+				       end if
+				  end do
 
 
-			    END IF
-					IF (KK2.EQ.3)THEN
-					Xc1=veXt(1,1); Xc2=veXt(2,1); Xc3=veXt(3,1);
-					Yc1=veXt(1,2);Yc2=veXt(2,2); Yc3=veXt(3,2);
-					Zc1=veXt(1,3); Zc2=veXt(2,3); Zc3=veXt(3,3);
-					DELXYA=(xc1-xc2)*(yc1+yc2);DELyzA=(yc1-yc2)*(zc1+zc2);DELzxA=(zc1-zc2)*(xc1+xc2)
-					DELXYb=(xc2-xc3)*(yc2+yc3);DELyzb=(yc2-yc3)*(zc2+zc3);DELzxb=(zc2-zc3)*(xc2+xc3)
-					DELXYc=(xc3-xc1)*(yc3+yc1);DELyzc=(yc3-yc1)*(zc3+zc1);DELzxc=(zc3-zc1)*(xc3+xc1)
+
+
+			    end if
+					if (kk2.eq.3)then
+					xc1=vext(1,1); xc2=vext(2,1); xc3=vext(3,1);
+					yc1=vext(1,2);yc2=vext(2,2); yc3=vext(3,2);
+					zc1=vext(1,3); zc2=vext(2,3); zc3=vext(3,3);
+					delxya=(xc1-xc2)*(yc1+yc2);delyza=(yc1-yc2)*(zc1+zc2);delzxa=(zc1-zc2)*(xc1+xc2)
+					delxyb=(xc2-xc3)*(yc2+yc3);delyzb=(yc2-yc3)*(zc2+zc3);delzxb=(zc2-zc3)*(xc2+xc3)
+					delxyc=(xc3-xc1)*(yc3+yc1);delyzc=(yc3-yc1)*(zc3+zc1);delzxc=(zc3-zc1)*(xc3+xc1)
 					nx=(delyza+delyzb+delyzc)
 					ny=(delzxa+delzxb+delzxc)
 					nz=(delxya+delxyb+delxyc)
-					ROOT_ROT=SQRT((nx**2)+(ny**2)+(nz**2))
-					nx=nx/root_ROT; ny=ny/root_ROT; nz=nz/root_ROT
-					root_ROT=1.0D0
-					a_ROT=nx
-					b_ROT=ny
-					c_ROT=nz
+					root_rot=sqrt((nx**2)+(ny**2)+(nz**2))
+					nx=nx/root_rot; ny=ny/root_rot; nz=nz/root_rot
+					root_rot=1.0d0
+					a_rot=nx
+					b_rot=ny
+					c_rot=nz
 
-					CALL ANGLEX(A_ROT,B_ROT,ANGLEFACEX)
-					CALL ANGLEY(C_ROT,ROOT_rot,ANGLEFACEY)
-					IELEM(N,I)%FACEANGLEX(K)=anglefacex
-					IELEM(N,I)%FACEANGLEY(K)=anglefacey
+					call anglex(a_rot,b_rot,anglefacex)
+					call angley(c_rot,root_rot,anglefacey)
+					ielem_faceanglex(k,i)=anglefacex
+					ielem_faceangley(k,i)=anglefacey
 
-					ELSE
-
-
+					else
 
 
 
-					DELXA=VEXT(4,1)-VEXT(2,1)
-					DELXB=VEXT(3,1)-VEXT(1,1)
-					DELYA=VEXT(4,2)-VEXT(2,2)
-					DELYB=VEXT(3,2)-VEXT(1,2)
-					DELZA=VEXT(4,3)-VEXT(2,3)
-					DELZB=VEXT(3,3)-VEXT(1,3)
 
 
-					NX=-0.50D0*((DELYA*DELZB)-(DELZA*DELYB))
-					NY=-0.50D0*((DELZA*DELXB)-(DELXA*DELZB))
-					NZ=-0.50D0*((DELXA*DELYB)-(DELYA*DELXB))
+					delxa=vext(4,1)-vext(2,1)
+					delxb=vext(3,1)-vext(1,1)
+					delya=vext(4,2)-vext(2,2)
+					delyb=vext(3,2)-vext(1,2)
+					delza=vext(4,3)-vext(2,3)
+					delzb=vext(3,3)-vext(1,3)
+
+
+					nx=-0.50d0*((delya*delzb)-(delza*delyb))
+					ny=-0.50d0*((delza*delxb)-(delxa*delzb))
+					nz=-0.50d0*((delxa*delyb)-(delya*delxb))
 
 
 
 					!newells method
 
-					NX=ZERO;NY=ZERO;NZ=ZERO;ROOT_ROT=ZERO
+					nx=zero;ny=zero;nz=zero;root_rot=zero
  					do kk=1,n_node
  					if (kk.ne.n_node)then
  					nx=nx+(vext(kk,2)-vext(kk+1,2))*(vext(kk,3)+vext(kk+1,3))
@@ -420,90 +454,90 @@ i=iconsi
 
 
 !
-					root_ROT=SQRT((nx**2)+(ny**2)+(nz**2))
-					nx=nx/root_ROT; ny=ny/root_ROT; nz=nz/root_ROT
-					root_ROT=1.0D0
-					a_ROT=nx
-					b_ROT=ny
-					c_ROT=nz
-					CALL ANGLEX(A_ROT,B_ROT,ANGLEFACEX)
-					CALL ANGLEY(C_ROT,ROOT_rot,ANGLEFACEY)
+					root_rot=sqrt((nx**2)+(ny**2)+(nz**2))
+					nx=nx/root_rot; ny=ny/root_rot; nz=nz/root_rot
+					root_rot=1.0d0
+					a_rot=nx
+					b_rot=ny
+					c_rot=nz
+					call anglex(a_rot,b_rot,anglefacex)
+					call angley(c_rot,root_rot,anglefacey)
 
 
-					IELEM(N,I)%FACEANGLEX(K)=anglefacex
-					IELEM(N,I)%FACEANGLEY(K)=anglefacey
-					END IF
-                    IELEM(N,I)%LUMP=0
-                    if (ielem(n,i)%ishape.eq.2)then
-                    L_ANGLE1=IELEM(N,I)%FACEANGLEX(K);L_ANGLE2=IELEM(N,I)%FACEANGLEY(K)
-                    LNX=COS(L_ANGLE1)*SIN(L_ANGLE2)
-                    LNY=SIN(L_ANGLE1)*SIN(L_ANGLE2)
-                    LNZ=COS(L_ANGLE2)
-                    if ((abs(LNX-1.0d0).le.10e-16).OR.(abs(LNY-1.0d0).le.10e-16).OR.(abs(LNZ-1.0d0).le.10e-16))THEN
-                    IELEM(N,I)%LUMP=100
+					ielem_faceanglex(k,i)=anglefacex
+					ielem_faceangley(k,i)=anglefacey
+					end if
+
+                    if (ielem_ishape(i).eq.2)then
+                    l_angle1=ielem_faceanglex(k,i);l_angle2=ielem_faceangley(k,i)
+                    lnx=cos(l_angle1)*sin(l_angle2)
+                    lny=sin(l_angle1)*sin(l_angle2)
+                    lnz=cos(l_angle2)
+                    if ((abs(lnx-1.0d0).le.10e-16).or.(abs(lny-1.0d0).le.10e-16).or.(abs(lnz-1.0d0).le.10e-16))then
+
                     end if
-                    END IF
+                    end if
 
 
-			    END DO
-
-
-
+			    end do
 
 
 
 
-END SUBROUTINE FIND_ROT_ANGLES
 
 
 
-SUBROUTINE FIND_ROT_ANGLES2d(N,ICONSI)
+end subroutine find_rot_angles
+
+
+
+subroutine find_rot_angles2d(n,iconsi)
 !> @brief
-!> This subroutine determines the normal vectors for each edge
-IMPLICIT NONE
-real::Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz,ANGLEFACEX,ANGLEFACEY
-REAL::X5,X6,X7,X8,Y5,Y6,Y7,Y8,Z5,Z6,Z7,Z8,XX,YY,ZZ
-REAL::DELXA,DELXB,DELYA,DELYB,DELZA,DELZB
-INTEGER::K,KMAXE,I,J,kk,kk2,ixf4,IXFV,n_node
-INTEGER,INTENT(IN)::N,ICONSI
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+!> this subroutine determines the normal vectors for each edge
+implicit none
+real::y1,z1,x2,y2,z2,x3,y3,z3,delxya,delyza,delzxa,delxyb,delyzb,delzxb,delxyc,delyzc,delzxc,nx,ny,nz,anglefacex,anglefacey
+real::x5,x6,x7,x8,y5,y6,y7,y8,z5,z6,z7,z8,xx,yy,zz
+real::delxa,delxb,delya,delyb,delza,delzb
+integer::k,kmaxe,i,j,kk,kk2,ixf4,ixfv,n_node
+integer,intent(in)::n,iconsi
+real,dimension(1:8,1:dimensiona)::vext
 
 i=iconsi
 
 
 	i=iconsi
 
-			DO K=1,IELEM(N,I)%IFCA
-! 			       if (ielem(n,i)%types_faces(k).eq.5)then
+			do k=1,ielem_ifca(i)
+! 			       if (ielem_types_faces(k,i).eq.5)then
 				    kk2=2;n_node=kk2
 ! 			      else
 ! 				    kk2=3;n_node=kk2
 ! 			      end if
-			    IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
-			    IF ((IELEM(N,I)%INEIGHG(K).GT.0).AND.(IELEM(N,I)%IBOUNDS(K).GT.0))THEN 	!PERIODIC NEIGHBOUR
+			    if (ielem_interior(i).eq.1)then
+			    if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).gt.0))then 	!periodic neighbour
 
- 			    XX=IELEM(N,I)%XXC  ;YY=IELEM(N,I)%YYC; !ZZ=IELEM(N,I)%ZZC
+ 			    xx=ielem_xxc(i)  ;yy=ielem_yyc(i); !zz=ielem_zzc(i)
 
-				    DO Kk=1,n_node
-				       IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
-				       vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:2)
-				       ELSE
-
-!
-					vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:2)
+				    do kk=1,n_node
+				       if (ielem_reorient(k,i).eq.0)then
+				       vext(kk,1:2)=dinoder(ielem_nodes_faces(k,kk,i))%cord(1:2)
+				       else
 
 !
-				       END IF
+					vext(kk,1:2)=dinoder(ielem_nodes_faces(k,n_node-kk+1,i))%cord(1:2)
+
+!
+				       end if
 
 
 
 
 
-				      IF(ABS(vext(kk,1)-xx).GT.XPER*oo2)THEN
-				      vext(kk,1)=vext(kk,1)+(XPER*SIGN(1.0d0,xx-XPER/2.0D0))
+				      if(abs(vext(kk,1)-xx).gt.xper*oo2)then
+				      vext(kk,1)=vext(kk,1)+(xper*sign(1.0d0,xx-xper/2.0d0))
 				      end if
-				      IF(ABS(vext(kk,2)-yy).GT.yPER*oo2)THEN
-				      vext(kk,2)=vext(kk,2)+(yPER*SIGN(1.0d0,yy-yPER/2.0D0))
+				      if(abs(vext(kk,2)-yy).gt.yper*oo2)then
+				      vext(kk,2)=vext(kk,2)+(yper*sign(1.0d0,yy-yper/2.0d0))
 				      end if
 
 
@@ -513,259 +547,268 @@ i=iconsi
 
 			      end do
 
-			    Else
-				  DO Kk=1,n_node
-					 IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
-				       vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:2)
-				       ELSE
-					vext(KK,1:2)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:2)
-				       END IF
-				  END DO
+			    else
+				  do kk=1,n_node
+					 if (ielem_reorient(k,i).eq.0)then
+				       vext(kk,1:2)=dinoder(ielem_nodes_faces(k,kk,i))%cord(1:2)
+				       else
+					vext(kk,1:2)=dinoder(ielem_nodes_faces(k,n_node-kk+1,i))%cord(1:2)
+				       end if
+				  end do
 
-			    END IF
-			    ELSE
-				   DO Kk=1,n_node
-					 IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
-				       vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:2)
-				       ELSE
-					vext(KK,1:2)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:2)
-				       END IF
-				  END DO
-
-
-
-
-			    END IF
+			    end if
+			    else
+				   do kk=1,n_node
+					 if (ielem_reorient(k,i).eq.0)then
+				       vext(kk,1:2)=dinoder(ielem_nodes_faces(k,kk,i))%cord(1:2)
+				       else
+					vext(kk,1:2)=dinoder(ielem_nodes_faces(k,n_node-kk+1,i))%cord(1:2)
+				       end if
+				  end do
 
 
 
-					CALL ANGLE2D(VEXT,ANGLEFACEX,ANGLEFACEY)
+
+			    end if
+
+
+
+					call angle2d(vext,anglefacex,anglefacey)
 
 
 !
-					IELEM(N,I)%FACEANGLEX(K)=anglefacex
-					IELEM(N,I)%FACEANGLEY(K)=anglefacey
-
-!
-
-
-
-
-			    END DO
-
-
-
-
-
-
-
-
-
-
-
-
+					ielem_faceanglex(k,i)=anglefacex
+					ielem_faceangley(k,i)=anglefacey
 
 !
 
 
 
 
+			    end do
 
 
 
-END SUBROUTINE FIND_ROT_ANGLES2d
 
 
 
 
-SUBROUTINE COMPUTEJACOBIANS(N,VEXT,VVA1,DETA)
+
+
+
+
+
+
+!
+
+
+
+
+
+
+
+end subroutine find_rot_angles2d
+
+
+
+
+subroutine computejacobians(n,vext,vva1,deta)
 !> @brief
-!> This function computes the jacobian of a tetrahedral
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:3,1:3)::VVA
-REAL,DIMENSION(1:3,1:3),INTENT(INOUT)::VVA1
-REAL,DIMENSION(1),INTENT(INOUT)::DETA
+!> this function computes the jacobian of a tetrahedral
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:3,1:3)::vva
+real,dimension(1:3,1:3),intent(inout)::vva1
+real,dimension(1),intent(inout)::deta
 
 
      vva(:,1) = vext(2,:)-vext(1,:)
      vva(:,2) = vext(3,:)-vext(1,:)
      vva(:,3) = vext(4,:)-vext(1,:)
-	 Deta(1) =  vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3))) & 
-            - vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3))) &
-			+ vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3)))
+	 deta(1) =  vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3))) - vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3))) + vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3)))
 
 
-	 vva1(1,1) =  VVA(3,3)*VVA(2,2) - VVA(3,2)*VVA(2,3)
-	 vva1(1,2) = -(VVA(3,3)*VVA(1,2) - VVA(3,2)*VVA(1,3))
-	 vva1(1,3) =  VVA(2,3)*VVA(1,2) - VVA(2,2)*VVA(1,3)
+	 vva1(1,1) =  vva(3,3)*vva(2,2) - vva(3,2)*vva(2,3)
+	 vva1(1,2) = -(vva(3,3)*vva(1,2) - vva(3,2)*vva(1,3))
+	 vva1(1,3) =  vva(2,3)*vva(1,2) - vva(2,2)*vva(1,3)
 
-	 vva1(2,1) = -(VVA(3,3)*VVA(2,1)-VVA(3,1)*VVA(2,3) )   
-	 vva1(2,2) = VVA(3,3)*VVA(1,1) -VVA(3,1)*VVA(1,3)
-	 vva1(2,3) = -(VVA(2,3)*VVA(1,1)-VVA(2,1)*VVA(1,3)) 
+	 vva1(2,1) = -(vva(3,3)*vva(2,1)-vva(3,1)*vva(2,3) )   
+	 vva1(2,2) = vva(3,3)*vva(1,1) -vva(3,1)*vva(1,3)
+	 vva1(2,3) = -(vva(2,3)*vva(1,1)-vva(2,1)*vva(1,3)) 
 
-	 vva1(3,1) = VVA(3,2)*VVA(2,1)-VVA(3,1)*VVA(2,2)
-	 vva1(3,2) =  -(VVA(3,2)*VVA(1,1)-VVA(3,1)*VVA(1,2))
-	 vva1(3,3) =   VVA(2,2)*VVA(1,1)-VVA(2,1)*VVA(1,2)
+	 vva1(3,1) = vva(3,2)*vva(2,1)-vva(3,1)*vva(2,2)
+	 vva1(3,2) =  -(vva(3,2)*vva(1,1)-vva(3,1)*vva(1,2))
+	 vva1(3,3) =   vva(2,2)*vva(1,1)-vva(2,1)*vva(1,2)
 
-	 vva1 = vva1/Deta(1)
+	 vva1 = vva1/deta(1)
 
 	
 	
-END SUBROUTINE COMPUTEJACOBIANs
+end subroutine computejacobians
 
-SUBROUTINE COMPUTeJACOBIANS2(N,VEXT,VVA1,DETA)
+subroutine computejacobians2(n,vext,vva1,deta)
 !> @brief
-!> This function computes the volume of a triangle
+!> this function computes the volume of a triangle
 implicit none
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:2,1:2)::VVA
-REAL,DIMENSION(1:2,1:2),INTENT(INOUT)::VVA1
-REAL,DIMENSION(1),INTENT(INOUT)::DETA
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:2,1:2)::vva
+real,dimension(1:2,1:2),intent(inout)::vva1
+real,dimension(1),intent(inout)::deta
 
-VVA(1,1) = VEXT(2,1) - VEXT(1,1); 	 VVA(1,2) = VEXT(3,1) - VEXT(1,1)
-	  VVA(2,1) = VEXT(2,2) - VEXT(1,2); 	 VVA(2,2) = VEXT(3,2) - VEXT(1,2)
-      DeTA(1) = VVA(1,1)*VVA(2,2) - VVA(1,2)*VVA(2,1)
-	  VVA1(1,1) = VEXT(3,2) - Vext(1,2);  VVA1(1,2) = -(VEXT(3,1) - VEXT(1,1))
-	  VVA1(2,1) = -(VEXT(2,2) - Vext(1,2));   VVA1(2,2) = VEXT(2,1) - VEXT(1,1)
-      VVA1(:,:) = VVA1(:,:)/DETA(1)
-
-
-
-
-END SUBROUTINE COMPUTEJACOBIANS2
+vva(1,1) = vext(2,1) - vext(1,1); 	 vva(1,2) = vext(3,1) - vext(1,1)
+	  vva(2,1) = vext(2,2) - vext(1,2); 	 vva(2,2) = vext(3,2) - vext(1,2)
+      deta(1) = vva(1,1)*vva(2,2) - vva(1,2)*vva(2,1)
+	  vva1(1,1) = vext(3,2) - vext(1,2);  vva1(1,2) = -(vext(3,1) - vext(1,1))
+	  vva1(2,1) = -(vext(2,2) - vext(1,2));   vva1(2,2) = vext(2,1) - vext(1,1)
+      vva1(:,:) = vva1(:,:)/deta(1)
 
 
 
-REAL FUNCTION hexaVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+
+end subroutine computejacobians2
+
+
+
+real function hexavolume(n,vext,qpoints,wequa3d)
 !> @brief
-!> This function computes the volume of a hexahedral
-IMPLICIT NONE
-!!$OMP THREADPRIVATE(hexaVOLUME)
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+!> this function computes the volume of a hexahedral
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+!!$omp threadprivate(hexavolume)
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
 real::s,tx,r,vol
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-REAL,DIMENSION(1:8)::VVXI,VVeta,VVzeta,VVnallx,VVnally,VVnallz,VVNXI,VVNETA,VVNzeta
-REAL,DIMENSION(1:3,1:3)::VVA,VVA1
-REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
-REAL,DIMENSION(1)::DETA
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+real,dimension(1:8)::vvxi,vveta,vvzeta,vvnallx,vvnally,vvnallz,vvnxi,vvneta,vvnzeta
+real,dimension(1:3,1:3)::vva,vva1
+real,dimension(1:3)::vvb,vvc,vve,vvd
+real,dimension(1)::deta
 
 
-integer::kk,Ii
+integer::kk,ii
 
 
 	
-VVXI(1)=-1.0d0; VVeta(1)=-1.0d0; VVzeta(1)=-1.0d0
-VVXI(2)=1.0d0; VVeta(2)=-1.0d0; VVzeta(2)=-1.0d0
-VVXI(3)=1.0d0; VVeta(3)=1.0d0; VVzeta(3)=-1.0d0
-VVXI(4)=-1.0d0; VVeta(4)=1.0d0; VVzeta(4)=-1.0d0
-VVXI(5)=-1.0d0; VVeta(5)=-1.0d0; VVzeta(5)=1.0d0
-VVXI(6)=1.0d0; VVeta(6)=-1.0d0; VVzeta(6)=1.0d0
-VVXI(7)=1.0d0; VVeta(7)=1.0d0; VVzeta(7)=1.0d0
-VVXI(8)=-1.0d0; VVeta(8)=1.0d0; VVzeta(8)=1.0d0
+vvxi(1)=-1.0d0; vveta(1)=-1.0d0; vvzeta(1)=-1.0d0
+vvxi(2)=1.0d0; vveta(2)=-1.0d0; vvzeta(2)=-1.0d0
+vvxi(3)=1.0d0; vveta(3)=1.0d0; vvzeta(3)=-1.0d0
+vvxi(4)=-1.0d0; vveta(4)=1.0d0; vvzeta(4)=-1.0d0
+vvxi(5)=-1.0d0; vveta(5)=-1.0d0; vvzeta(5)=1.0d0
+vvxi(6)=1.0d0; vveta(6)=-1.0d0; vvzeta(6)=1.0d0
+vvxi(7)=1.0d0; vveta(7)=1.0d0; vvzeta(7)=1.0d0
+vvxi(8)=-1.0d0; vveta(8)=1.0d0; vvzeta(8)=1.0d0
 
 
-VVnallx(:)=0.0d0;VVnally(:)=0.0d0;VVnallz(:)=0.0d0
+vvnallx(:)=0.0d0;vvnally(:)=0.0d0;vvnallz(:)=0.0d0
 
 
 do kk=1,qp_hexa
-r=QPOINTS(1,Kk)
-s=QPOINTS(2,Kk)
-tx=QPOINTS(3,Kk)
+r=qpoints(1,kk)
+s=qpoints(2,kk)
+tx=qpoints(3,kk)
 
 do ii=1,8
-VVNXI(1)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); VVNETA(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-Tx); VVNZETA(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
-VVNXI(2)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); VVNETA(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-Tx); VVNZETA(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
-VVNXI(3)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); VVNETA(3)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-Tx); VVNZETA(3)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
-VVNXI(4)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); VVNETA(4)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-Tx); VVNZETA(4)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
-VVNXI(5)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0+tx); VVNETA(5)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+tx); VVNZETA(5)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
-VVNXI(6)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0+tx); VVNETA(6)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+tx); VVNZETA(6)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
-VVNXI(7)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0+tx); VVNETA(7)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+tx); VVNZETA(7)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
-VVNXI(8)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0+tx); VVNETA(8)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+tx); VVNZETA(8)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
+vvnxi(1)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); vvneta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-tx); vvnzeta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
+vvnxi(2)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); vvneta(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-tx); vvnzeta(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
+vvnxi(3)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); vvneta(3)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-tx); vvnzeta(3)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
+vvnxi(4)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); vvneta(4)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-tx); vvnzeta(4)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
+vvnxi(5)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0+tx); vvneta(5)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+tx); vvnzeta(5)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
+vvnxi(6)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0+tx); vvneta(6)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+tx); vvnzeta(6)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
+vvnxi(7)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0+tx); vvneta(7)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+tx); vvnzeta(7)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
+vvnxi(8)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0+tx); vvneta(8)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+tx); vvnzeta(8)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
 
-VVnallx(ii)=VVnallx(ii)+(VVNXI(ii)*WEQUA3D(kk))
-VVnally(ii)=VVnally(ii)+(VVNETA(ii)*WEQUA3D(kk))
-VVnallz(ii)=VVnallz(ii)+(VVNZETA(ii)*WEQUA3D(kk))
+vvnallx(ii)=vvnallx(ii)+(vvnxi(ii)*wequa3d(kk))
+vvnally(ii)=vvnally(ii)+(vvneta(ii)*wequa3d(kk))
+vvnallz(ii)=vvnallz(ii)+(vvnzeta(ii)*wequa3d(kk))
 end do
 end do
 
 
 
-VVa=0.0d0
-VVa1=0.0d0
+vva=0.0d0
+vva1=0.0d0
 
 do ii=1,8
 
 !  r=xi(ii)
 !  s=eta(ii)
 !  t=zeta(ii)
-VVnxi(ii)=VVnallx(ii)
-VVneta(ii)=VVnally(ii)
-VVnzeta(ii)=VVnallz(ii)
+vvnxi(ii)=vvnallx(ii)
+vvneta(ii)=vvnally(ii)
+vvnzeta(ii)=vvnallz(ii)
 
 
 
 
 
-    VVa(1,1)=VVa(1,1)+VVnxi(ii)*vext(ii,1); VVa(1,2)=VVa(1,2)+VVnxi(ii)*vext(ii,2); VVa(1,3)=VVa(1,3)+VVnxi(ii)*vext(ii,3)
-    VVa(2,1)=VVa(2,1)+VVneta(ii)*vext(ii,1); VVa(2,2)=VVa(2,2)+VVneta(ii)*vext(ii,2); VVa(2,3)=VVa(2,3)+VVneta(ii)*vext(ii,3)
-    VVa(3,1)=VVa(3,1)+VVnzeta(ii)*vext(ii,1); VVa(3,2)=VVa(3,2)+VVnzeta(ii)*vext(ii,2); VVa(3,3)=VVa(3,3)+VVnzeta(ii)*vext(ii,3)
+    vva(1,1)=vva(1,1)+vvnxi(ii)*vext(ii,1); vva(1,2)=vva(1,2)+vvnxi(ii)*vext(ii,2); vva(1,3)=vva(1,3)+vvnxi(ii)*vext(ii,3)
+    vva(2,1)=vva(2,1)+vvneta(ii)*vext(ii,1); vva(2,2)=vva(2,2)+vvneta(ii)*vext(ii,2); vva(2,3)=vva(2,3)+vvneta(ii)*vext(ii,3)
+    vva(3,1)=vva(3,1)+vvnzeta(ii)*vext(ii,1); vva(3,2)=vva(3,2)+vvnzeta(ii)*vext(ii,2); vva(3,3)=vva(3,3)+vvnzeta(ii)*vext(ii,3)
 end do
 
-vol=(VVA(1,1)*VVA(2,2)*VVA(3,3))-(VVA(1,1)*VVA(2,3)*VVA(3,2))-(VVA(1,2)*VVA(2,1)*VVA(3,3))+&
-      (VVA(1,2)*VVA(2,3)*VVA(3,1))+(VVA(1,3)*VVA(2,1)*VVA(3,2))-(VVA(1,3)*VVA(2,2)*VVA(3,1))
+vol=(vva(1,1)*vva(2,2)*vva(3,3))-(vva(1,1)*vva(2,3)*vva(3,2))-(vva(1,2)*vva(2,1)*vva(3,3))+(vva(1,2)*vva(2,3)*vva(3,1))+(vva(1,3)*vva(2,1)*vva(3,2))-(vva(1,3)*vva(2,2)*vva(3,1))
 
 ! vol=vol*8.0d0
 
 
 
 
- VVA1(1,1)=(VVA(2,2)*VVA(3,3))-(VVA(2,3)*VVA(3,2));VVA1(1,2)=((VVA(1,3)*VVA(3,2))-(VVA(3,3)*VVA(1,2)));VVA1(1,3)=(VVA(1,2)*VVA(2,3))-(VVA(2,2)*VVA(1,3));
-VVA1(2,1)=((VVA(2,3)*VVA(3,1))-(VVA(3,3)*VVA(2,1)));VVA1(2,2)=((VVA(1,1)*VVA(3,3))-(VVA(3,1)*VVA(1,3)));VVA1(2,3)=((VVA(1,3)*VVA(2,1))-(VVA(2,3)*VVA(1,1)));
-VVA1(3,1)=(VVA(2,1)*VVA(3,2))-(VVA(3,1)*VVA(2,2));VVA1(3,2)=((VVA(1,2)*VVA(3,1))-(VVA(3,2)*VVA(1,1)));VVA1(3,3)=(VVA(1,1)*VVA(2,2))-(VVA(2,1)*VVA(1,2));
+ vva1(1,1)=(vva(2,2)*vva(3,3))-(vva(2,3)*vva(3,2));vva1(1,2)=((vva(1,3)*vva(3,2))-(vva(3,3)*vva(1,2)));vva1(1,3)=(vva(1,2)*vva(2,3))-(vva(2,2)*vva(1,3));
+vva1(2,1)=((vva(2,3)*vva(3,1))-(vva(3,3)*vva(2,1)));vva1(2,2)=((vva(1,1)*vva(3,3))-(vva(3,1)*vva(1,3)));vva1(2,3)=((vva(1,3)*vva(2,1))-(vva(2,3)*vva(1,1)));
+vva1(3,1)=(vva(2,1)*vva(3,2))-(vva(3,1)*vva(2,2));vva1(3,2)=((vva(1,2)*vva(3,1))-(vva(3,2)*vva(1,1)));vva1(3,3)=(vva(1,1)*vva(2,2))-(vva(2,1)*vva(1,2));
 
 
 
 
 
-deta(1)=(VVA(1,1)*VVA1(1,1))+(VVA(1,2)*VVA1(2,1))+(VVA(1,3)*VVA1(3,1))
+deta(1)=(vva(1,1)*vva1(1,1))+(vva(1,2)*vva1(2,1))+(vva(1,3)*vva1(3,1))
 
 
-VOL=DETA(1)*8.0D0
+vol=deta(1)*8.0d0
 deta(1)=deta(1)
 
-VVa1=VVa1/DETA(1)
+vva1=vva1/deta(1)
 
 
 
 
-HEXAVOLUME=VOL
+hexavolume=vol
 
 
 
 
-END FUNCTION hexaVOLUME
+end function hexavolume
 
 
 
-REAL FUNCTION PYRAVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+real function pyravolume(n,vext,qpoints,wequa3d)
 !> @brief
-!> This function computes the volume of a pyramid 
-IMPLICIT NONE
-!!$OMP THREADPRIVATE(PYRAVOLUME)
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+!> this function computes the volume of a pyramid 
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+!!$omp threadprivate(pyravolume)
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
 real::s,tx,r,vol
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-REAL,DIMENSION(1:8)::VVXI,VVeta,VVzeta,VVnallx,VVnally,VVnallz,VVNXI,VVNETA,VVNzeta
-REAL,DIMENSION(1:3,1:3)::VVA,VVA1
-REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
-REAL,DIMENSION(1)::DETA
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+real,dimension(1:8)::vvxi,vveta,vvzeta,vvnallx,vvnally,vvnallz,vvnxi,vvneta,vvnzeta
+real,dimension(1:3,1:3)::vva,vva1
+real,dimension(1:3)::vvb,vvc,vve,vvd
+real,dimension(1)::deta
 integer::kk,ii
 
 	
@@ -780,10 +823,10 @@ vvxi(5)=0.0d0; vveta(5)=0.0d0; vvzeta(5)=1.0d0
 vvnallx(:)=0.0d0;vvnally(:)=0.0d0;vvnallz(:)=0.0d0
 
 
-do kk=1,qp_PYRA
-r=QPOINTS(1,kk)
-s=QPOINTS(2,kk)
-tx=QPOINTS(3,kk)
+do kk=1,qp_pyra
+r=qpoints(1,kk)
+s=qpoints(2,kk)
+tx=qpoints(3,kk)
 
 do ii=1,5
 vvnxi(1)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); vvneta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-tx); vvnzeta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
@@ -793,9 +836,9 @@ vvnxi(4)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); vvneta(4)=(1.0d0/8.0d0)*(1.0d0-r)*(1
 vvnxi(5)=0.0d0; vvneta(5)=0.0d0; vvnzeta(5)=0.5d0;
 
 
-vvnallx(ii)=vvnallx(ii)+(vvnxi(ii)*WEQUA3D(kk))
-vvnally(ii)=vvnally(ii)+(vvneta(ii)*WEQUA3D(kk))
-vvnallz(ii)=vvnallz(ii)+(vvnzeta(ii)*WEQUA3D(kk))
+vvnallx(ii)=vvnallx(ii)+(vvnxi(ii)*wequa3d(kk))
+vvnally(ii)=vvnally(ii)+(vvneta(ii)*wequa3d(kk))
+vvnallz(ii)=vvnallz(ii)+(vvnzeta(ii)*wequa3d(kk))
 end do
 end do
 
@@ -819,25 +862,23 @@ vvnzeta(ii)=vvnallz(ii)
 end do
 
 
- VVA1(1,1)=(VVA(2,2)*VVA(3,3))-(VVA(2,3)*VVA(3,2));VVA1(1,2)=((VVA(1,3)*VVA(3,2))-(VVA(3,3)*VVA(1,2)));VVA1(1,3)=(VVA(1,2)*VVA(2,3))-(VVA(2,2)*VVA(1,3));
-VVA1(2,1)=((VVA(2,3)*VVA(3,1))-(VVA(3,3)*VVA(2,1)));VVA1(2,2)=((VVA(1,1)*VVA(3,3))-(VVA(3,1)*VVA(1,3)));VVA1(2,3)=((VVA(1,3)*VVA(2,1))-(VVA(2,3)*VVA(1,1)));
-VVA1(3,1)=(VVA(2,1)*VVA(3,2))-(VVA(3,1)*VVA(2,2));VVA1(3,2)=((VVA(1,2)*VVA(3,1))-(VVA(3,2)*VVA(1,1)));VVA1(3,3)=(VVA(1,1)*VVA(2,2))-(VVA(2,1)*VVA(1,2));
+ vva1(1,1)=(vva(2,2)*vva(3,3))-(vva(2,3)*vva(3,2));vva1(1,2)=((vva(1,3)*vva(3,2))-(vva(3,3)*vva(1,2)));vva1(1,3)=(vva(1,2)*vva(2,3))-(vva(2,2)*vva(1,3));
+vva1(2,1)=((vva(2,3)*vva(3,1))-(vva(3,3)*vva(2,1)));vva1(2,2)=((vva(1,1)*vva(3,3))-(vva(3,1)*vva(1,3)));vva1(2,3)=((vva(1,3)*vva(2,1))-(vva(2,3)*vva(1,1)));
+vva1(3,1)=(vva(2,1)*vva(3,2))-(vva(3,1)*vva(2,2));vva1(3,2)=((vva(1,2)*vva(3,1))-(vva(3,2)*vva(1,1)));vva1(3,3)=(vva(1,1)*vva(2,2))-(vva(2,1)*vva(1,2));
 
 
 
 
 
-deta(1)=(VVA(1,1)*VVA1(1,1))+(VVA(1,2)*VVA1(2,1))+(VVA(1,3)*VVA1(3,1))
+deta(1)=(vva(1,1)*vva1(1,1))+(vva(1,2)*vva1(2,1))+(vva(1,3)*vva1(3,1))
 
-DETA(1)=DETA(1)
+deta(1)=deta(1)
 
-VVa1=VVa1/DETA(1)
+vva1=vva1/deta(1)
 
-VOL=DETA(1)
+vol=deta(1)
 
-PYRAVOLUME=VOL
-
-
+pyravolume=vol
 
 
 
@@ -846,22 +887,27 @@ PYRAVOLUME=VOL
 
 
 
-END FUNCTION PYRAVOLUME
 
 
-REAL FUNCTION PRISMVOLUME(N,vext,qpoints,WEQUA3D)
+end function pyravolume
+
+
+real function prismvolume(n,vext,qpoints,wequa3d)
 !> @brief
-!> This function computes the volume of a prism 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+!> this function computes the volume of a prism 
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
 real::s,tx,r,vol
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-REAL,DIMENSION(1:8)::VVXI,VVeta,VVzeta,VVnallx,VVnally,VVnallz,VVNXI,VVNETA,VVNzeta
-REAL,DIMENSION(1:3,1:3)::VVA,VVA1
-REAL,DIMENSION(1:3)::VVB,VVC,VVE,VVD
-REAL,DIMENSION(1)::DETA
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+real,dimension(1:8)::vvxi,vveta,vvzeta,vvnallx,vvnally,vvnallz,vvnxi,vvneta,vvnzeta
+real,dimension(1:3,1:3)::vva,vva1
+real,dimension(1:3)::vvb,vvc,vve,vvd
+real,dimension(1)::deta
 integer::kk,ii
 
 
@@ -894,9 +940,9 @@ vvnxi(5)=0.0d0; vvneta(5)=0.5d0*(1.0d0+tx); vvnzeta(5)=0.5d0*s;
 vvnxi(6)=-0.5d0*(1.0d0+tx); vvneta(6)=-0.5d0*(1.0d0+tx); vvnzeta(6)=0.5d0*(1.0-r-s);
 
 
-vvnallx(ii)=vvnallx(ii)+(vvnxi(ii)*WEQUA3D(kk))
-vvnally(ii)=vvnally(ii)+(vvneta(ii)*WEQUA3D(kk))
-vvnallz(ii)=vvnallz(ii)+(vvnzeta(ii)*WEQUA3D(kk))
+vvnallx(ii)=vvnallx(ii)+(vvnxi(ii)*wequa3d(kk))
+vvnally(ii)=vvnally(ii)+(vvneta(ii)*wequa3d(kk))
+vvnallz(ii)=vvnallz(ii)+(vvnzeta(ii)*wequa3d(kk))
 end do
 end do
 
@@ -918,62 +964,65 @@ vvnzeta(ii)=vvnallz(ii)
 
 
 
-    VVA(1,1)=VVA(1,1)+vvnxi(ii)*vext(ii,1); VVA(1,2)=VVA(1,2)+vvnxi(ii)*vext(ii,2); VVA(1,3)=VVA(1,3)+vvnxi(ii)*vext(ii,3)
-    VVA(2,1)=VVA(2,1)+vvneta(ii)*vext(ii,1); VVA(2,2)=VVA(2,2)+vvneta(ii)*vext(ii,2); VVA(2,3)=VVA(2,3)+vvneta(ii)*vext(ii,3)
-    VVA(3,1)=VVA(3,1)+vvnzeta(ii)*vext(ii,1); VVA(3,2)=VVA(3,2)+vvnzeta(ii)*vext(ii,2); VVA(3,3)=VVA(3,3)+vvnzeta(ii)*vext(ii,3)
+    vva(1,1)=vva(1,1)+vvnxi(ii)*vext(ii,1); vva(1,2)=vva(1,2)+vvnxi(ii)*vext(ii,2); vva(1,3)=vva(1,3)+vvnxi(ii)*vext(ii,3)
+    vva(2,1)=vva(2,1)+vvneta(ii)*vext(ii,1); vva(2,2)=vva(2,2)+vvneta(ii)*vext(ii,2); vva(2,3)=vva(2,3)+vvneta(ii)*vext(ii,3)
+    vva(3,1)=vva(3,1)+vvnzeta(ii)*vext(ii,1); vva(3,2)=vva(3,2)+vvnzeta(ii)*vext(ii,2); vva(3,3)=vva(3,3)+vvnzeta(ii)*vext(ii,3)
 end do
 
 
- VVA1(1,1)=(VVA(2,2)*VVA(3,3))-(VVA(2,3)*VVA(3,2));VVA1(1,2)=((VVA(1,3)*VVA(3,2))-(VVA(3,3)*VVA(1,2)));VVA1(1,3)=(VVA(1,2)*VVA(2,3))-(VVA(2,2)*VVA(1,3));
-VVA1(2,1)=((VVA(2,3)*VVA(3,1))-(VVA(3,3)*VVA(2,1)));VVA1(2,2)=((VVA(1,1)*VVA(3,3))-(VVA(3,1)*VVA(1,3)));VVA1(2,3)=((VVA(1,3)*VVA(2,1))-(VVA(2,3)*VVA(1,1)));
-VVA1(3,1)=(VVA(2,1)*VVA(3,2))-(VVA(3,1)*VVA(2,2));VVA1(3,2)=((VVA(1,2)*VVA(3,1))-(VVA(3,2)*VVA(1,1)));VVA1(3,3)=(VVA(1,1)*VVA(2,2))-(VVA(2,1)*VVA(1,2));
+ vva1(1,1)=(vva(2,2)*vva(3,3))-(vva(2,3)*vva(3,2));vva1(1,2)=((vva(1,3)*vva(3,2))-(vva(3,3)*vva(1,2)));vva1(1,3)=(vva(1,2)*vva(2,3))-(vva(2,2)*vva(1,3));
+vva1(2,1)=((vva(2,3)*vva(3,1))-(vva(3,3)*vva(2,1)));vva1(2,2)=((vva(1,1)*vva(3,3))-(vva(3,1)*vva(1,3)));vva1(2,3)=((vva(1,3)*vva(2,1))-(vva(2,3)*vva(1,1)));
+vva1(3,1)=(vva(2,1)*vva(3,2))-(vva(3,1)*vva(2,2));vva1(3,2)=((vva(1,2)*vva(3,1))-(vva(3,2)*vva(1,1)));vva1(3,3)=(vva(1,1)*vva(2,2))-(vva(2,1)*vva(1,2));
 
 
 
 
 
-deta(1)=(VVA(1,1)*VVA1(1,1))+(VVA(1,2)*VVA1(2,1))+(VVA(1,3)*VVA1(3,1))
+deta(1)=(vva(1,1)*vva1(1,1))+(vva(1,2)*vva1(2,1))+(vva(1,3)*vva1(3,1))
 
-DETA(1)=DETA(1)
+deta(1)=deta(1)
 
-VVa1=VVa1/DETA(1)
+vva1=vva1/deta(1)
 
-VOL=DETA(1)
-
-
-
-
-PRISMVOLUME=VOL
+vol=deta(1)
 
 
 
-END FUNCTION PRISMVOLUME
+
+prismvolume=vol
 
 
- FUNCTION CORDINATES3(N,NODES_LIST,N_NODE)
+
+end function prismvolume
+
+
+ function cordinates3(n,nodes_list,n_node)
  !> @brief
-!> This function computes the centre of 3d element 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,N_NODE
- REAL,DIMENSION(3)::CORDINATES3
+!> this function computes the centre of 3d element 
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n,n_node
+ real,dimension(3)::cordinates3
 real::rnode
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(in)::NODES_LIST
+real,dimension(1:8,1:dimensiona),intent(in)::nodes_list
   rnode=n_node
- CORDINATES3(1)=sum(nodes_list(1:n_node,1))/rnode
- CORDINATES3(2)=sum(nodes_list(1:n_node,2))/rnode
- CORDINATES3(3)=sum(nodes_list(1:n_node,3))/rnode
+ cordinates3(1)=sum(nodes_list(1:n_node,1))/rnode
+ cordinates3(2)=sum(nodes_list(1:n_node,2))/rnode
+ cordinates3(3)=sum(nodes_list(1:n_node,3))/rnode
 
 
-end function CORDINATES3
+end function cordinates3
 
 
- FUNCTION distance3(N,vext)
+ function distance3(n,vext)
  !> @brief
-!> This function computes the distance between two points in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
- REAL::distance3
+!> this function computes the distance between two points in 3d
+implicit none
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+ real::distance3
 real::rnode
 
   distance3=sqrt(((vext(1,1)-vext(2,1))**2)+((vext(1,2)-vext(2,2))**2)+((vext(1,3)-vext(2,3))**2))
@@ -981,13 +1030,13 @@ real::rnode
 
 end function distance3
 
- FUNCTION distance2(N,vext)
+ function distance2(n,vext)
  !> @brief
-!> This function computes the distance between two points in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
- REAL::distance2
+!> this function computes the distance between two points in 2d
+implicit none
+integer,intent(in)::n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+ real::distance2
 real::rnode
 
   distance2=sqrt(((vext(1,1)-vext(2,1))**2)+((vext(1,2)-vext(2,2))**2))
@@ -995,468 +1044,477 @@ real::rnode
 
 end function distance2
 
- FUNCTION CORDINATES2(N,NODES_LIST,N_NODE)
+ function cordinates2(n,nodes_list,n_node)
   !> @brief
-!> This function computes the centre of 2d element 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,N_NODE
- REAL,DIMENSION(2)::CORDINATES2
-real::rnode
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(in)::NODES_LIST
-  rnode=n_node
- CORDINATES2(1)=sum(nodes_list(1:n_node,1))/rnode
- CORDINATES2(2)=sum(nodes_list(1:n_node,2))/rnode
- 
-
-
-end function CORDINATES2
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-SUBROUTINE DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
- !> @brief
-!> This function decomposes element into tetrahedrals (counterclockwise numbering)
-IMPLICIT NONE
-integer,intent(in)::n,eltype
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(in)::NODES_LIST
-REAL,DIMENSION(1:6,1:4,1:DIMENSIONA),INTENT(inout)::ELEM_LISTD
-
-
-ELEM_LISTD(:,:,:)=zero
-
-
-SELECT CASE(ELTYPE)
-    
-    CASE(1)
-      ELEM_LISTD(1,1,:)=NODES_LIST(1,:);ELEM_LISTD(1,2,:)=NODES_LIST(6,:);ELEM_LISTD(1,3,:)=NODES_LIST(8,:);ELEM_LISTD(1,4,:)=NODES_LIST(5,:)
-      ELEM_LISTD(2,1,:)=NODES_LIST(1,:);ELEM_LISTD(2,2,:)=NODES_LIST(2,:);ELEM_LISTD(2,3,:)=NODES_LIST(8,:);ELEM_LISTD(2,4,:)=NODES_LIST(6,:)
-      ELEM_LISTD(3,1,:)=NODES_LIST(2,:);ELEM_LISTD(3,2,:)=NODES_LIST(7,:);ELEM_LISTD(3,3,:)=NODES_LIST(8,:);ELEM_LISTD(3,4,:)=NODES_LIST(6,:)
-      ELEM_LISTD(4,1,:)=NODES_LIST(1,:);ELEM_LISTD(4,2,:)=NODES_LIST(8,:);ELEM_LISTD(4,3,:)=NODES_LIST(3,:);ELEM_LISTD(4,4,:)=NODES_LIST(4,:)
-      ELEM_LISTD(5,1,:)=NODES_LIST(1,:);ELEM_LISTD(5,2,:)=NODES_LIST(8,:);ELEM_LISTD(5,3,:)=NODES_LIST(2,:);ELEM_LISTD(5,4,:)=NODES_LIST(3,:)
-      ELEM_LISTD(6,1,:)=NODES_LIST(2,:);ELEM_LISTD(6,2,:)=NODES_LIST(8,:);ELEM_LISTD(6,3,:)=NODES_LIST(7,:);ELEM_LISTD(6,4,:)=NODES_LIST(3,:)
-
-    CASE(2)
-      ELEM_LISTD(1,1,1:3)=NODES_LIST(1,1:3);ELEM_LISTD(1,2,1:3)=NODES_LIST(2,1:3);ELEM_LISTD(1,3,1:3)=NODES_LIST(3,1:3);ELEM_LISTD(1,4,1:3)=NODES_LIST(4,1:3)
-    CASE(3)
-      ELEM_LISTD(1,1,:)=NODES_LIST(1,:);ELEM_LISTD(1,2,:)=NODES_LIST(2,:);ELEM_LISTD(1,3,:)=NODES_LIST(3,:);ELEM_LISTD(1,4,:)=NODES_LIST(5,:)
-      ELEM_LISTD(2,1,:)=NODES_LIST(1,:);ELEM_LISTD(2,2,:)=NODES_LIST(3,:);ELEM_LISTD(2,3,:)=NODES_LIST(4,:);ELEM_LISTD(2,4,:)=NODES_LIST(5,:)
-     
-
-    CASE(4)
-    
-    
-    
-
-      ELEM_LISTD(1,1,:)=NODES_LIST(1,:);ELEM_LISTD(1,2,:)=NODES_LIST(2,:);ELEM_LISTD(1,3,:)=NODES_LIST(3,:);ELEM_LISTD(1,4,:)=NODES_LIST(6,:)
-      ELEM_LISTD(2,1,:)=NODES_LIST(1,:);ELEM_LISTD(2,2,:)=NODES_LIST(2,:);ELEM_LISTD(2,3,:)=NODES_LIST(6,:);ELEM_LISTD(2,4,:)=NODES_LIST(5,:)
-      ELEM_LISTD(3,1,:)=NODES_LIST(1,:);ELEM_LISTD(3,2,:)=NODES_LIST(5,:);ELEM_LISTD(3,3,:)=NODES_LIST(6,:);ELEM_LISTD(3,4,:)=NODES_LIST(4,:)
-     
- 
-
-
-  END SELECT
-
-
-
- 
-
-end SUBROUTINE DECOMPOSE3
-
-
-
-subroutine DECOMPOSE2(n,eltype,NODES_LIST,ELEM_LISTD)
- !> @brief
-!> This function writes decomposed triangle element nodes into ELEM_LISTD from NODES_LIST (counterclockwise numbering)
+!> this function computes the centre of 2d element 
 implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n,n_node
+ real,dimension(2)::cordinates2
+real::rnode
+real,dimension(1:8,1:dimensiona),intent(in)::nodes_list
+  rnode=n_node
+ cordinates2(1)=sum(nodes_list(1:n_node,1))/rnode
+ cordinates2(2)=sum(nodes_list(1:n_node,2))/rnode
+ 
+
+
+end function cordinates2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+subroutine decompose3(n,eltype,nodes_list,elem_listd)
+ !> @brief
+!> this function decomposes element into tetrahedrals (counterclockwise numbering)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
 integer,intent(in)::n,eltype
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(in)::NODES_LIST
-REAL,DIMENSION(1:6,1:4,1:DIMENSIONA),INTENT(inout)::ELEM_LISTD
+real,dimension(1:8,1:dimensiona),intent(in)::nodes_list
+real,dimension(1:6,1:4,1:dimensiona),intent(inout)::elem_listd
 
 
+elem_listd(:,:,:)=zero
 
 
- SELECT CASE(ELTYPE)
+select case(eltype)
     
-    CASE(5)
-      ELEM_LISTD(1,1,1:2)=NODES_LIST(1,1:2);ELEM_LISTD(1,2,1:2)=NODES_LIST(2,1:2);ELEM_LISTD(1,3,1:2)=NODES_LIST(3,1:2)
-      ELEM_LISTD(2,1,1:2)=NODES_LIST(1,1:2);ELEM_LISTD(2,2,1:2)=NODES_LIST(3,1:2);ELEM_LISTD(2,3,1:2)=NODES_LIST(4,1:2)
+    case(1)
+      elem_listd(1,1,:)=nodes_list(1,:);elem_listd(1,2,:)=nodes_list(6,:);elem_listd(1,3,:)=nodes_list(8,:);elem_listd(1,4,:)=nodes_list(5,:)
+      elem_listd(2,1,:)=nodes_list(1,:);elem_listd(2,2,:)=nodes_list(2,:);elem_listd(2,3,:)=nodes_list(8,:);elem_listd(2,4,:)=nodes_list(6,:)
+      elem_listd(3,1,:)=nodes_list(2,:);elem_listd(3,2,:)=nodes_list(7,:);elem_listd(3,3,:)=nodes_list(8,:);elem_listd(3,4,:)=nodes_list(6,:)
+      elem_listd(4,1,:)=nodes_list(1,:);elem_listd(4,2,:)=nodes_list(8,:);elem_listd(4,3,:)=nodes_list(3,:);elem_listd(4,4,:)=nodes_list(4,:)
+      elem_listd(5,1,:)=nodes_list(1,:);elem_listd(5,2,:)=nodes_list(8,:);elem_listd(5,3,:)=nodes_list(2,:);elem_listd(5,4,:)=nodes_list(3,:)
+      elem_listd(6,1,:)=nodes_list(2,:);elem_listd(6,2,:)=nodes_list(8,:);elem_listd(6,3,:)=nodes_list(7,:);elem_listd(6,4,:)=nodes_list(3,:)
+
+    case(2)
+      elem_listd(1,1,1:3)=nodes_list(1,1:3);elem_listd(1,2,1:3)=nodes_list(2,1:3);elem_listd(1,3,1:3)=nodes_list(3,1:3);elem_listd(1,4,1:3)=nodes_list(4,1:3)
+    case(3)
+      elem_listd(1,1,:)=nodes_list(1,:);elem_listd(1,2,:)=nodes_list(2,:);elem_listd(1,3,:)=nodes_list(3,:);elem_listd(1,4,:)=nodes_list(5,:)
+      elem_listd(2,1,:)=nodes_list(1,:);elem_listd(2,2,:)=nodes_list(3,:);elem_listd(2,3,:)=nodes_list(4,:);elem_listd(2,4,:)=nodes_list(5,:)
      
 
-    CASE(6)
-      ELEM_LISTD(1,1,1:2)=NODES_LIST(1,1:2);ELEM_LISTD(1,2,1:2)=NODES_LIST(2,1:2);ELEM_LISTD(1,3,1:2)=NODES_LIST(3,1:2)
+    case(4)
+    
+    
+    
+
+      elem_listd(1,1,:)=nodes_list(1,:);elem_listd(1,2,:)=nodes_list(2,:);elem_listd(1,3,:)=nodes_list(3,:);elem_listd(1,4,:)=nodes_list(6,:)
+      elem_listd(2,1,:)=nodes_list(1,:);elem_listd(2,2,:)=nodes_list(2,:);elem_listd(2,3,:)=nodes_list(6,:);elem_listd(2,4,:)=nodes_list(5,:)
+      elem_listd(3,1,:)=nodes_list(1,:);elem_listd(3,2,:)=nodes_list(5,:);elem_listd(3,3,:)=nodes_list(6,:);elem_listd(3,4,:)=nodes_list(4,:)
+     
+ 
+
+
+  end select
+
+
+
+ 
+
+end subroutine decompose3
+
+
+
+subroutine decompose2(n,eltype,nodes_list,elem_listd)
+ !> @brief
+!> this function writes decomposed triangle element nodes into elem_listd from nodes_list (counterclockwise numbering)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n,eltype
+real,dimension(1:8,1:dimensiona),intent(in)::nodes_list
+real,dimension(1:6,1:4,1:dimensiona),intent(inout)::elem_listd
+
+
+
+
+ select case(eltype)
+    
+    case(5)
+      elem_listd(1,1,1:2)=nodes_list(1,1:2);elem_listd(1,2,1:2)=nodes_list(2,1:2);elem_listd(1,3,1:2)=nodes_list(3,1:2)
+      elem_listd(2,1,1:2)=nodes_list(1,1:2);elem_listd(2,2,1:2)=nodes_list(3,1:2);elem_listd(2,3,1:2)=nodes_list(4,1:2)
+     
+
+    case(6)
+      elem_listd(1,1,1:2)=nodes_list(1,1:2);elem_listd(1,2,1:2)=nodes_list(2,1:2);elem_listd(1,3,1:2)=nodes_list(3,1:2)
    
      
  
 
 
-  END SELECT
+  end select
 
 
-end subroutine DECOMPOSE2
+end subroutine decompose2
 
 
-SUBROUTINE EDGE_CALCULATOR3d(ICONSIDERED)
+subroutine edge_calculator3d(iconsidered)
  !> @brief
-!> This subroutine computes the radius of inscribed sphere or circle
-IMPLICIT NONE
-INTEGER,INTENT(IN)::ICONSIDERED
-INTEGER::I,L,FACEX,N_NODE
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
-REAL::EDGEL,DIST
+!> this subroutine computes the radius of inscribed sphere or circle
+implicit none
+integer,intent(in)::iconsidered
+integer::i,l,facex,n_node
+real,dimension(1:8,1:dimensiona)::vext
+real,dimension(1:8,1:dimensiona)::nodes_list
+real::edgel,dist
 
-	I=ICONSIDERED
+	i=iconsidered
 
     
- 	IELEM(N,I)%MINEDGE=(3.0D0*IELEM(N,I)%TOTVOLUME)/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
+ 	ielem_minedge(i)=(3.0d0*ielem_totvolume(i))/(sum(ielem_surf(1:ielem_ifca(i),i)))
 	
-	DO L=1,IELEM(N,I)%IFCA
-	FACEX=L
+	do l=1,ielem_ifca(i)
+	facex=l
 
-	 select case (ielem(n,I)%types_faces(facex))
+	 select case (ielem_types_faces(facex,i))
 	      case(5)
-	      N_NODE=4
+	      n_node=4
 	      case(6)
-	      N_NODE=3
+	      n_node=3
 	      end select
 
 
-				  CALL coordinates_face_inner(N,I,facex,vext,NODES_LIST)
+				  call coordinates_face_inner(n,i,facex,vext,nodes_list)
 
- 				  VEXT(2,1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
-				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; VEXT(1,3)=IELEM(N,I)%ZZC
-				  DIST=DISTANCE3(N,VEXT)
+ 				  vext(2,1:3)=cordinates3(n,nodes_list,n_node)
+				  vext(1,1)=ielem_xxc(i);vext(1,2)=ielem_yyc(i); vext(1,3)=ielem_zzc(i)
+				  dist=distance3(n,vext)
 
-  				   IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
- 	END DO
+  				   ielem_minedge(i)=min(dist,ielem_minedge(i))
+ 	end do
 	
 
 
-END SUBROUTINE EDGE_CALCULATOR3d
+end subroutine edge_calculator3d
 
 
 
 
 
 
-SUBROUTINE EDGE_CALCULATOR2d(ICONSIDERED)
+subroutine edge_calculator2d(iconsidered)
  !> @brief
-!> This subroutine computes the radius of inscribed sphere or circle
-IMPLICIT NONE
-INTEGER,INTENT(IN)::ICONSIDERED
-INTEGER::I,L,FACEX,N_NODE
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
-REAL::EDGEL,DIST
+!> this subroutine computes the radius of inscribed sphere or circle
+implicit none
+integer,intent(in)::iconsidered
+integer::i,l,facex,n_node
+real,dimension(1:8,1:dimensiona)::vext
+real,dimension(1:8,1:dimensiona)::nodes_list
+real::edgel,dist
 
 
 
-    I=Iconsidered
+    i=iconsidered
     
-	IELEM(N,I)%MINEDGE=(2.0D0*IELEM(N,I)%TOTVOLUME)/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
+	ielem_minedge(i)=(2.0d0*ielem_totvolume(i))/(sum(ielem_surf(1:ielem_ifca(i),i)))
 	
-	DO L=1,IELEM(N,I)%IFCA
-	FACEX=L
-	N_NODE=2
-				  CALL coordinates_face_inner2D(N,I,facex,vext,NODES_LIST)
+	do l=1,ielem_ifca(i)
+	facex=l
+	n_node=2
+				  call coordinates_face_inner2d(n,i,facex,vext,nodes_list)
 
- 				  VEXT(2,1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
-				  VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC;
-				  DIST=DISTANCE2(N,VEXT)
-
-
-				  IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
+ 				  vext(2,1:2)=cordinates2(n,nodes_list,n_node)
+				  vext(1,1)=ielem_xxc(i);vext(1,2)=ielem_yyc(i);
+				  dist=distance2(n,vext)
 
 
-	END DO
+				  ielem_minedge(i)=min(dist,ielem_minedge(i))
+
+
+	end do
 	
 
 
 
 
 
-END SUBROUTINE EDGE_CALCULATOR2d
+end subroutine edge_calculator2d
 
 
-SUBROUTINE GEOMETRY_CALC
+subroutine geometry_calc
  !> @brief
-!> This subroutine computes the volume, surface, centre and min edge for each element
-IMPLICIT NONE
-INTEGER::KMAXE,i
-real::DUMV5
+!> this subroutine computes the volume, surface, centre and min edge for each element
+implicit none
+integer::kmaxe,i
+real::dumv5
 
-KMAXE=XMPIELRANK(N)
-
-
-if (DIMENSIONA.EQ.3)THEN
-
-!$OMP DO 
-DO I=1,KMAXE
-
-	CALL VOLUME_CALCULATOR3(I)
-	call SURFACE_CALCULATOR3(i)
-	CALL CENTRE3D(i)
-	call EDGE_CALCULATOR3d(i)
-END DO
-!$OMP END DO
-
-ELSE
-!$OMP DO
-DO I=1,KMAXE
-	CALL VOLUME_CALCULATOR2(I)
-	call SURFACE_CALCULATOR2(i)
-	call CENTRE2D(i)
-	call EDGE_CALCULATOR2d(i)
-END DO
-!$OMP END DO 
-
-END IF
+kmaxe=xmpielrank(n)
 
 
+if (dimensiona.eq.3)then
 
+!$omp do 
+do i=1,kmaxe
 
+	call volume_calculator3(i)
+	call surface_calculator3(i)
+	call centre3d(i)
+	call edge_calculator3d(i)
+end do
+!$omp end do
 
-!$OMP BARRIER 
-!$OMP MASTER
-DUMV5=ZERO
-DO I=1,KMAXE
-    DUMV5=DUMV5+IELEM(N,I)%TOTVOLUME
-END DO
- CALL MPI_ALLREDUCE(DUMV5,TOTALVOLUME,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-!$OMP END MASTER
-!$OMP BARRIER 
+else
+!$omp do
+do i=1,kmaxe
+	call volume_calculator2(i)
+	call surface_calculator2(i)
+	call centre2d(i)
+	call edge_calculator2d(i)
+end do
+!$omp end do 
 
-
-
-END SUBROUTINE GEOMETRY_CALC
+end if
 
 
 
 
-SUBROUTINE VOLUME_CALCULATOR3(ICONSIDERED)
+
+!$omp barrier 
+!$omp master
+dumv5=zero
+do i=1,kmaxe
+    dumv5=dumv5+ielem_totvolume(i)
+end do
+ call mpi_allreduce(dumv5,totalvolume,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+!$omp end master
+!$omp barrier 
+
+
+
+end subroutine geometry_calc
+
+
+
+
+subroutine volume_calculator3(iconsidered)
  !> @brief
-!> This subroutine computes the volume of elements
-IMPLICIT NONE
-INTEGER,INTENT(IN)::ICONSIDERED
-INTEGER::I,K,KMAXE,jx,JX2,ELTYPE,ELEM_DEC
-real::DUMV1,DUMV2,dumv3,DUMV5
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
-REAL,DIMENSION(1:6,1:4,1:DIMENSIONA)::ELEM_LISTD
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
+!> this subroutine computes the volume of elements
+implicit none
+integer,intent(in)::iconsidered
+integer::i,k,kmaxe,jx,jx2,eltype,elem_dec
+real::dumv1,dumv2,dumv3,dumv5
+real,dimension(1:8,1:dimensiona)::vext
+real,dimension(1:8,1:dimensiona)::nodes_list
+real,dimension(1:6,1:4,1:dimensiona)::elem_listd
+real,dimension(1:dimensiona,1:numberofpoints)::qpoints
+real,dimension(1:numberofpoints)::wequa3d
 
 
 
  	i=iconsidered
 
     
-    VEXT=0.0d0
-    NODES_LIST=0.0d0
-    ELTYPE=IELEM(N,I)%ISHAPE
-    ELEM_DEC=IELEM(N,I)%VDEC
-    ELEM_LISTD=0.0d0
-     IELEM(N,I)%TOTVOLUME=0.0d0
-      jx=IELEM(N,I)%NONODES
+    vext=0.0d0
+    nodes_list=0.0d0
+    eltype=ielem_ishape(i)
+    elem_dec=ielem_vdec(i)
+    elem_listd=0.0d0
+     ielem_totvolume(i)=0.0d0
+      jx=ielem_nonodes(i)
       
-	  do K=1,jx
-	    JX2=IELEM(N,I)%NODES(k)
-	    NODES_LIST(k,:)=inoder(JX2)%CORD(:)
-	    VEXT(K,:)=NODES_LIST(k,:)
-	  END DO
-	  CALL DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
+	  do k=1,jx
+	    jx2=ielem_nodes(k,i)
+	    nodes_list(k,:)=dinoder(jx2)%cord(:)
+	    vext(k,:)=nodes_list(k,:)
+	  end do
+	  call decompose3(n,eltype,nodes_list,elem_listd)
 
 
 
 
     
-      SELECT CASE(ielem(n,i)%ishape)
+      select case(ielem_ishape(i))
 
-      CASE(1)	!hexa
-      CALL QUADRATUREHEXA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+      case(1)	!hexa
+      call quadraturehexa(n,igqrules,vext,qpoints,wequa3d)
       
-      DUMV1=HEXAVOLUME(N,VEXT,QPOINTS,WEQUA3D)
-      DUMV2=0.0d0
-       do K=1,ELEM_DEC
-		VEXT(1:4,1:3)=ELEM_LISTD(k,1:4,1:3)
+      dumv1=hexavolume(n,vext,qpoints,wequa3d)
+      dumv2=0.0d0
+       do k=1,elem_dec
+		vext(1:4,1:3)=elem_listd(k,1:4,1:3)
 
-	  DUMV2=DUMV2+TETRAVOLUME(N,vext)
+	  dumv2=dumv2+tetravolume(n,vext)
 	
-		END DO
+		end do
 	
-! 		IF (ABS(DUMV2-DUMV1).LE.(0.001d0*ABS(DUMV2)))THEN
-! 		IELEM(N,I)%TOTVOLUME=DUMV1
-! 		IELEM(N,I)%MODE=0
-! 		ELSE
-! 		IELEM(N,I)%TOTVOLUME=DUMV2
-! 		IELEM(N,I)%MODE=1
-! 		END IF
+! 		if (abs(dumv2-dumv1).le.(0.001d0*abs(dumv2)))then
+! 		ielem_totvolume(i)=dumv1
+! 		ielem_mode(i)=0
+! 		else
+! 		ielem_totvolume(i)=dumv2
+! 		ielem_mode(i)=1
+! 		end if
 !
-! 		IF (DUMV1.LE.ZERO)THEN
-! 		IELEM(N,I)%MODE=1
-! 		IELEM(N,I)%TOTVOLUME=DUMV2
-! 		END IF
+! 		if (dumv1.le.zero)then
+! 		ielem_mode(i)=1
+! 		ielem_totvolume(i)=dumv2
+! 		end if
 	
-		ielem(n,i)%mode=1
-		IELEM(N,I)%TOTVOLUME=DUMV2
+		ielem_mode(i)=1
+		ielem_totvolume(i)=dumv2
 
-      CASE(2)	!tetra
-      VEXT(1:4,1:3)=ELEM_LISTD(1,1:4,1:3)
+      case(2)	!tetra
+      vext(1:4,1:3)=elem_listd(1,1:4,1:3)
 	
-		IELEM(N,I)%TOTVOLUME=TETRAVOLUME(N,VEXT)
-		IELEM(N,I)%MODE=1
+		ielem_totvolume(i)=tetravolume(n,vext)
+		ielem_mode(i)=1
 	
     
-      CASE(3)	!pyramid
+      case(3)	!pyramid
       
-      CALL QUADRATUREPYRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      DUMV1=PYRAVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+      call quadraturepyra(n,igqrules,vext,qpoints,wequa3d)
+      dumv1=pyravolume(n,vext,qpoints,wequa3d)
     
-      DUMV2=0.0d0
-       do K=1,ELEM_DEC
-		VEXT(1:4,1:3)=ELEM_LISTD(k,1:4,1:3)
-        dumv3=TETRAVOLUME(N,VEXT)     
-	  DUMV2=DUMV2+TETRAVOLUME(N,VEXT)
-		END DO
-		IELEM(N,I)%TOTVOLUME=DUMV2
-		IELEM(N,I)%MODE=1
+      dumv2=0.0d0
+       do k=1,elem_dec
+		vext(1:4,1:3)=elem_listd(k,1:4,1:3)
+        dumv3=tetravolume(n,vext)     
+	  dumv2=dumv2+tetravolume(n,vext)
+		end do
+		ielem_totvolume(i)=dumv2
+		ielem_mode(i)=1
 
 	
-       CASE(4)	!prism
-      CALL QUADRATUREPRISM(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+       case(4)	!prism
+      call quadratureprism(n,igqrules,vext,qpoints,wequa3d)
       
-      DUMV1=PRISMVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+      dumv1=prismvolume(n,vext,qpoints,wequa3d)
 
-      DUMV2=0.0d0
-       do K=1,ELEM_DEC
-		VEXT(1:4,1:3)=ELEM_LISTD(k,1:4,1:3)
-				dumv3=TETRAVOLUME(N,VEXT)
+      dumv2=0.0d0
+       do k=1,elem_dec
+		vext(1:4,1:3)=elem_listd(k,1:4,1:3)
+				dumv3=tetravolume(n,vext)
 
-		DUMV2=DUMV2+TETRAVOLUME(N,VEXT)
+		dumv2=dumv2+tetravolume(n,vext)
 		
-		END DO
+		end do
 
-! 	IF (ABS(DUMV2-DUMV1).LE.(0.001d0*ABS(DUMV2)))THEN
-! 	IELEM(N,I)%TOTVOLUME=DUMV1
-! 	IELEM(N,I)%MODE=0
-! 	ELSE
-! 	IELEM(N,I)%TOTVOLUME=DUMV2
-! 	IELEM(N,I)%MODE=1
-! 	END IF
-! 	IF (DUMV1.LE.ZERO)THEN
-! 	IELEM(N,I)%MODE=1
-! 	END IF
+! 	if (abs(dumv2-dumv1).le.(0.001d0*abs(dumv2)))then
+! 	ielem_totvolume(i)=dumv1
+! 	ielem_mode(i)=0
+! 	else
+! 	ielem_totvolume(i)=dumv2
+! 	ielem_mode(i)=1
+! 	end if
+! 	if (dumv1.le.zero)then
+! 	ielem_mode(i)=1
+! 	end if
 	
  	
- 	IELEM(N,I)%MODE=1
-        IELEM(N,I)%TOTVOLUME=DUMV2
+ 	ielem_mode(i)=1
+        ielem_totvolume(i)=dumv2
 
-      END SELECT
+      end select
    
    
     
 
 
-END SUBROUTINE VOLUME_CALCULATOR3
+end subroutine volume_calculator3
 
 
 
-SUBROUTINE VOLUME_CALCULATOR2(iconsidered)
+subroutine volume_calculator2(iconsidered)
  !> @brief
-!> This subroutine computes the volume of elements in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::iconsidered
-!$ integer::OMP_IN_PARALLEL,OMP_GET_THREAD_NUM
-INTEGER::I,K,KMAXE,jx,JX2,ELTYPE,ELEM_DEC
-real::DUMV1,DUMV2,dumv3,DUMV5
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
-REAL,DIMENSION(1:6,1:4,1:DIMENSIONA)::ELEM_LISTD
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
+!> this subroutine computes the volume of elements in 2d
+implicit none
+integer,intent(in)::iconsidered
+!$ integer::omp_in_parallel,omp_get_thread_num
+integer::i,k,kmaxe,jx,jx2,eltype,elem_dec
+real::dumv1,dumv2,dumv3,dumv5
+real,dimension(1:8,1:dimensiona)::vext
+real,dimension(1:8,1:dimensiona)::nodes_list
+real,dimension(1:6,1:4,1:dimensiona)::elem_listd
+real,dimension(1:dimensiona,1:numberofpoints)::qpoints
+real,dimension(1:numberofpoints)::wequa3d
 
 i=iconsidered
 
 
-    ELTYPE=IELEM(N,I)%ISHAPE
-    ELEM_DEC=IELEM(N,I)%VDEC
-     IELEM(N,I)%TOTVOLUME=0.0d0
-	  do K=1,IELEM(N,I)%NONODES
-	    NODES_LIST(k,1:2)=inoder(IELEM(N,I)%NODES(K))%CORD(1:2)
-	    vext(k,1:2)=NODES_LIST(k,1:2)
-	  END DO
-	 call DECOMPOSE2(n,eltype,NODES_LIST,ELEM_LISTD)
+    eltype=ielem_ishape(i)
+    elem_dec=ielem_vdec(i)
+     ielem_totvolume(i)=0.0d0
+	  do k=1,ielem_nonodes(i)
+	    nodes_list(k,1:2)=dinoder(ielem_nodes(k,i))%cord(1:2)
+	    vext(k,1:2)=nodes_list(k,1:2)
+	  end do
+	 call decompose2(n,eltype,nodes_list,elem_listd)
 
 	
-	    SELECT CASE(ielem(n,i)%ishape)
+	    select case(ielem_ishape(i))
 
-      CASE(5)
+      case(5)
 
-      CALL QUADRATUREQUAD(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      DUMV1=QUADVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+      call quadraturequad(n,igqrules,vext,qpoints,wequa3d)
+      dumv1=quadvolume(n,vext,qpoints,wequa3d)
 
-      
-
-      
-      DUMV2=0.0d0
       
 
       
+      dumv2=0.0d0
       
-       do K=1,ELEM_DEC
-	VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
-	  DUMV2=DUMV2+TRIANGLEVOLUME(N,VEXT)
+
+      
+      
+       do k=1,elem_dec
+	vext(1:3,1:2)=elem_listd(k,1:3,1:2)
+	  dumv2=dumv2+trianglevolume(n,vext)
     
-	END DO
+	end do
 
 
-! 	IF (ABS(DUMV2-DUMV1).LE.(0.001*DUMV2))THEN
-! 	IELEM(N,I)%TOTVOLUME=DUMV1
-! 	IELEM(N,I)%MODE=0
-! 	ELSE
-! 	IELEM(N,I)%TOTVOLUME=DUMV2
-! 	IELEM(N,I)%MODE=1
-! 	END IF
+! 	if (abs(dumv2-dumv1).le.(0.001*dumv2))then
+! 	ielem_totvolume(i)=dumv1
+! 	ielem_mode(i)=0
+! 	else
+! 	ielem_totvolume(i)=dumv2
+! 	ielem_mode(i)=1
+! 	end if
 
 
 
- 	IELEM(N,I)%MODE=1
- 	IELEM(N,I)%TOTVOLUME=DUMV2
+ 	ielem_mode(i)=1
+ 	ielem_totvolume(i)=dumv2
      
-      CASE(6)
+      case(6)
 
-      DUMV1=TRIANGLEVOLUME(N,VEXT)
+      dumv1=trianglevolume(n,vext)
 
       
 
-      DUMV2=0.0d0
-       do K=1,ELEM_DEC
-	VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
-	  DUMV2=DUMV2+TRIANGLEVOLUME(N,VEXT)
+      dumv2=0.0d0
+       do k=1,elem_dec
+	vext(1:3,1:2)=elem_listd(k,1:3,1:2)
+	  dumv2=dumv2+trianglevolume(n,vext)
     
-	END DO
-! 	IF (ABS(DUMV2-DUMV1).LE.(0.001d0*DUMV2))THEN
-! 	IELEM(N,I)%TOTVOLUME=DUMV1
-! 	IELEM(N,I)%MODE=0
-! 	ELSE
-! 	IELEM(N,I)%TOTVOLUME=DUMV2
-! 	IELEM(N,I)%MODE=1
-! 	END IF
-        IELEM(N,I)%MODE=1
- 	IELEM(N,I)%TOTVOLUME=DUMV2
+	end do
+! 	if (abs(dumv2-dumv1).le.(0.001d0*dumv2))then
+! 	ielem_totvolume(i)=dumv1
+! 	ielem_mode(i)=0
+! 	else
+! 	ielem_totvolume(i)=dumv2
+! 	ielem_mode(i)=1
+! 	end if
+        ielem_mode(i)=1
+ 	ielem_totvolume(i)=dumv2
      
-    END SELECT
+    end select
    
     
 
@@ -1465,47 +1523,47 @@ i=iconsidered
     
 
 
-END SUBROUTINE VOLUME_CALCULATOR2
+end subroutine volume_calculator2
 
 
 
 
-SUBROUTINE SURFACE_CALCULATOR3(iconsidered)
+subroutine surface_calculator3(iconsidered)
  !> @brief
-!> This subroutine computes the surface area of elements in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::iconsidered
-INTEGER::I,K,KMAXE,jx,JX2,ELTYPE,ELEM_DEC,nnd,J
-real::DUMV1,DUMV2,dumv3,DUMV5
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+!> this subroutine computes the surface area of elements in 3d
+implicit none
+integer,intent(in)::iconsidered
+integer::i,k,kmaxe,jx,jx2,eltype,elem_dec,nnd,j
+real::dumv1,dumv2,dumv3,dumv5
+real,dimension(1:8,1:dimensiona)::vext
 
 
 	i=iconsidered
 
 
     
-    DO J=1,IELEM(N,I)%IFCA
-				select case(ielem(n,i)%types_faces(j))
+    do j=1,ielem_ifca(i)
+				select case(ielem_types_faces(j,i))
 				case (5)
 					 
-					  NND=4
-				      do K=1,nnd
-					VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
-				      END DO
+					  nnd=4
+				      do k=1,nnd
+					vext(k,1:dims)=dinoder(ielem_nodes_faces(j,k,i))%cord(1:dims)
+				      end do
 					  
 					  
-					  IELEM(N,I)%surf(J)=QUADAREA(N,VEXT)
+					  ielem_surf(j,i)=quadarea(n,vext)
 					  
 				  
 				case(6)
 					
-					NND=3
-					do K=1,nnd
-					  VEXT(k,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
-					END DO
+					nnd=3
+					do k=1,nnd
+					  vext(k,1:dims)=dinoder(ielem_nodes_faces(j,k,i))%cord(1:dims)
+					end do
 					    
 					
- 					    IELEM(N,I)%surf(J)=TRIANGLEAREA(N,VEXT)
+ 					    ielem_surf(j,i)=trianglearea(n,vext)
  					    
  					    
 					  
@@ -1513,80 +1571,77 @@ REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
     
     
     
-    END DO
+    end do
     
     
     
-    DO J=1,IELEM(N,I)%IFCA
-				select case(ielem(n,i)%types_faces(j))
+    do j=1,ielem_ifca(i)
+				select case(ielem_types_faces(j,i))
                         case (5)
-                                DUMV2=ZERO
+                                dumv2=zero
 				
 					 
 					
 				     
-					VEXT(1,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,1))%CORD(1:dims)
-					VEXT(2,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,2))%CORD(1:dims)
-					VEXT(3,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,3))%CORD(1:dims)
+					vext(1,1:dims)=dinoder(ielem_nodes_faces(j,1,i))%cord(1:dims)
+					vext(2,1:dims)=dinoder(ielem_nodes_faces(j,2,i))%cord(1:dims)
+					vext(3,1:dims)=dinoder(ielem_nodes_faces(j,3,i))%cord(1:dims)
 				     
 					  
 					  
-					  DUMV2=DUMV2+TRIANGLEAREA(N,VEXT)
+					  dumv2=dumv2+trianglearea(n,vext)
 					  
-					  VEXT(1,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,1))%CORD(1:dims)
-					VEXT(2,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,3))%CORD(1:dims)
-					VEXT(3,1:dims)=inoder(IELEM(N,I)%NODES_FACES(J,4))%CORD(1:dims)
-					  DUMV2=DUMV2+TRIANGLEAREA(N,VEXT)
+					  vext(1,1:dims)=dinoder(ielem_nodes_faces(j,1,i))%cord(1:dims)
+					vext(2,1:dims)=dinoder(ielem_nodes_faces(j,3,i))%cord(1:dims)
+					vext(3,1:dims)=dinoder(ielem_nodes_faces(j,4,i))%cord(1:dims)
+					  dumv2=dumv2+trianglearea(n,vext)
 					  
-					  if (abs((DUMV2-IELEM(N,I)%surf(J))/IELEM(N,I)%surf(J))*100.0d0.gt.10.0d0)then
+					  if (abs((dumv2-ielem_surf(j,i))/ielem_surf(j,i))*100.0d0.gt.10.0d0)then
 ! 					  
 					  
 					  
-					  IELEM(N,I)%surf(J)=dumv2
+					  ielem_surf(j,i)=dumv2
 						end if
                                           
                                           
 
     
     end select
-    END DO
+    end do
     
     
 
     
 
 
-END SUBROUTINE SURFACE_CALCULATOR3
+end subroutine surface_calculator3
 
 
 
-SUBROUTINE SURFACE_CALCULATOR2(iconsidered)
+subroutine surface_calculator2(iconsidered)
  !> @brief
-!> This subroutine computes the length of edges of elements in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::iconsidered
-INTEGER::I,K,jx,JX2,ELTYPE,ELEM_DEC,nnd,j
-real::DUMV1,DUMV2,dumv3,DUMV5,DUMR
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+!> this subroutine computes the length of edges of elements in 2d
+implicit none
+integer,intent(in)::iconsidered
+integer::i,k,jx,jx2,eltype,elem_dec,nnd,j
+real::dumv1,dumv2,dumv3,dumv5,dumr
+real,dimension(1:8,1:dimensiona)::vext
 
 
 
 i=iconsidered
-    DO J=1,IELEM(N,I)%IFCA
-        NND=2
+    do j=1,ielem_ifca(i)
+        nnd=2
         
-        DO K=1,NND
-            VEXT(K,1:DIMS)=INODER(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:DIMS)
-        END DO
+        do k=1,nnd
+            vext(k,1:dims)=dinoder(ielem_nodes_faces(j,k,i))%cord(1:dims)
+        end do
         
-        IELEM(N,I)%SURF(J)=LINEAREA(N,vext)
-    END DO
+        ielem_surf(j,i)=linearea(n,vext)
+    end do
 
 
-END SUBROUTINE SURFACE_CALCULATOR2
-
-
-
+end subroutine surface_calculator2
 
 
 
@@ -1595,44 +1650,47 @@ END SUBROUTINE SURFACE_CALCULATOR2
 
 
 
-SUBROUTINE COMPUTE_CENTRE3dF(N,Iconsidered,facex,N_NODE,cords)
+
+
+
+subroutine compute_centre3df(n,iconsidered,facex,n_node,cords)
  !> @brief
-!> This subroutine retrieve the nodes of faces of elements in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,Iconsidered,facex
-INTEGER,INTENT(INOUT)::N_NODE
-REAL,dimension(1:dimensiona),INTENT(INOUT)::CORDS
-REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+!> this subroutine retrieve the nodes of faces of elements in 3d
+implicit none
+integer,intent(in)::n,iconsidered,facex
+integer,intent(inout)::n_node
+real,dimension(1:dimensiona),intent(inout)::cords
+real,dimension(1:8,1:dimensiona)::nodes_list
 integer::k,i
 
 i=iconsidered
   
-    do K=1,N_NODE
+    do k=1,n_node
 
-      NODES_LIST(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:3)
-    END DO
+      nodes_list(k,1:3)=dinoder(ielem_nodes_faces(facex,k,i))%cord(1:3)
+    end do
    
 
-    CORDS=CORDINATES3(N,NODES_LIST,N_NODE)
+    cords=cordinates3(n,nodes_list,n_node)
    
 
 
-END SUBROUTINE
+end subroutine
 
 
-subroutine coordinates_face_inner(n,iconsidered,facex,VEXT,NODES_LIST)
+subroutine coordinates_face_inner(n,iconsidered,facex,vext,nodes_list)
  !> @brief
-!> This subroutine retrieve the nodes of interior faces of elements in 3D
-IMPLICIT NONE
+!> this subroutine retrieve the nodes of interior faces of elements in 3d
+implicit none
 integer,intent(in)::n,iconsidered,facex
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
+real,dimension(1:8,1:dimensiona),intent(inout)::vext
+real,dimension(1:8,1:dimensiona),intent(inout)::nodes_list
 integer::nnd
 integer::i,k
 i=iconsidered
 
 
-	      select case (ielem(n,I)%types_faces(facex))
+	      select case (ielem_types_faces(facex,i))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -1640,10 +1698,10 @@ i=iconsidered
 	      end select
 	      
 	      
-	      do K=1,nnd
-		  NODES_LIST(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:3)
-		  VEXT(K,1:3)=NODES_LIST(k,1:3)
-	      END DO
+	      do k=1,nnd
+		  nodes_list(k,1:3)=dinoder(ielem_nodes_faces(facex,k,i))%cord(1:3)
+		  vext(k,1:3)=nodes_list(k,1:3)
+	      end do
 	      
 	      
 
@@ -1652,13 +1710,13 @@ i=iconsidered
 end subroutine coordinates_face_inner
 
 
-subroutine coordinates_face_inner2d(n,iconsidered,facex,VEXT,NODES_LIST)
+subroutine coordinates_face_inner2d(n,iconsidered,facex,vext,nodes_list)
  !> @brief
-!> This subroutine retrieves the nodes of edges of elements in 2D
-IMPLICIT NONE
+!> this subroutine retrieves the nodes of edges of elements in 2d
+implicit none
 integer,intent(in)::n,iconsidered,facex
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
+real,dimension(1:8,1:dimensiona),intent(inout)::vext
+real,dimension(1:8,1:dimensiona),intent(inout)::nodes_list
 integer::nnd
 integer::i,k
 i=iconsidered
@@ -1667,10 +1725,10 @@ i=iconsidered
 	      nnd=2
 	      
 	      
-	      do K=1,nnd
-		  NODES_LIST(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:2)
-		  VEXT(K,1:2)=NODES_LIST(k,1:2)
-	      END DO
+	      do k=1,nnd
+		  nodes_list(k,1:2)=dinoder(ielem_nodes_faces(facex,k,i))%cord(1:2)
+		  vext(k,1:2)=nodes_list(k,1:2)
+	      end do
 	      
 	      
 	      
@@ -1678,19 +1736,22 @@ i=iconsidered
 end subroutine coordinates_face_inner2d
 
 
-subroutine coordinates_face_innerx(n,iconsidered,facex,VEXT,NODES_LIST)
+subroutine coordinates_face_innerx(n,iconsidered,facex,vext,nodes_list)
  !> @brief
-!> This subroutine retrieve the nodes of interior faces of elements in 3D
-IMPLICIT NONE
+!> this subroutine retrieve the nodes of interior faces of elements in 3d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
 integer,intent(in)::n,iconsidered,facex
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
+real,dimension(1:8,1:dimensiona),intent(inout)::vext
+real,dimension(1:8,1:dimensiona),intent(inout)::nodes_list
 integer::nnd
 integer::i,k
 
 
 i=iconsidered
-	      select case (ielem(n,i)%types_faces(facex))
+	      select case (ielem_types_faces(facex,i))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -1698,23 +1759,26 @@ i=iconsidered
 	      end select
 	      
 	      
-	      do K=1,nnd
-		  NODES_LIST(k,1:3)=inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:3)
-		  VEXT(K,1:3)=NODES_LIST(k,1:3)
-	      END DO
+	      do k=1,nnd
+		  nodes_list(k,1:3)=inoder4_cord(1:3,ielem_nodes_faces(facex,k,i))
+		  vext(k,1:3)=nodes_list(k,1:3)
+	      end do
 	      
 	      
 	     
 end subroutine coordinates_face_innerx
 
 
-subroutine coordinates_face_inner2dx(n,iconsidered,facex,VEXT,NODES_LIST)
+subroutine coordinates_face_inner2dx(n,iconsidered,facex,vext,nodes_list)
  !> @brief
-!> This subroutine retrieves the nodes of edges of elements in 2D
-IMPLICIT NONE
+!> this subroutine retrieves the nodes of edges of elements in 2d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
 integer,intent(in)::n,iconsidered,facex
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
+real,dimension(1:8,1:dimensiona),intent(inout)::vext
+real,dimension(1:8,1:dimensiona),intent(inout)::nodes_list
 integer::nnd
 integer::i,k
 
@@ -1724,10 +1788,10 @@ i=iconsidered
 	      nnd=2
 	      
 	      
-	      do K=1,nnd
-		  NODES_LIST(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:2)
-		  VEXT(K,1:2)=NODES_LIST(k,1:2)
-	      END DO
+	      do k=1,nnd
+		  nodes_list(k,1:2)=inoder4_cord(1:2,ielem_nodes_faces(facex,k,i))
+		  vext(k,1:2)=nodes_list(k,1:2)
+	      end do
 	      
 	      
 
@@ -1736,75 +1800,75 @@ i=iconsidered
 end subroutine coordinates_face_inner2dx
 
 
-subroutine coordinates_face_PERIOD1(n,iconsidered,facex,VEXT,NODES_LIST)
+subroutine coordinates_face_period1(n,iconsidered,facex,vext,nodes_list)
  !> @brief
-!> This subroutine retrieve the nodes of periodic faces of elements in 3D
-IMPLICIT NONE
+!> this subroutine retrieve the nodes of periodic faces of elements in 3d
+implicit none
 integer,intent(in)::n,iconsidered,facex
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
+real,dimension(1:8,1:dimensiona),intent(inout)::vext
+real,dimension(1:8,1:dimensiona),intent(inout)::nodes_list
 integer::nnd
 integer::i,k
 real::tempxx
 i=iconsidered
 
 
-	      select case (ielem(n,i)%types_faces(facex))
+	      select case (ielem_types_faces(facex,i))
 	      case(5)
 	      nnd=4
 	      case(6)
 	      nnd=3
 	      end select
 	      
-	      VEXT(1,1)=IELEM(N,I)%XXC
-	      VEXT(1,2)=IELEM(N,I)%YYC
-	      VEXT(1,3)=IELEM(N,I)%ZZC
+	      vext(1,1)=ielem_xxc(i)
+	      vext(1,2)=ielem_yyc(i)
+	      vext(1,3)=ielem_zzc(i)
 	      
-			do K=1,nnd
-			  NODES_LIST(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(FACEX,K))%CORD(1:dims)
-			END DO
-			do K=1,nnd
-			IF(PER_ROT.EQ.0)THEN
-			IF(ABS(NODES_LIST(k,1)-vext(1,1)).GT.XPER*oo2)THEN
-			NODES_LIST(k,1)=NODES_LIST(k,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
+			do k=1,nnd
+			  nodes_list(k,1:3)=dinoder(ielem_nodes_faces(facex,k,i))%cord(1:dims)
+			end do
+			do k=1,nnd
+			if(per_rot.eq.0)then
+			if(abs(nodes_list(k,1)-vext(1,1)).gt.xper*oo2)then
+			nodes_list(k,1)=nodes_list(k,1)+(xper*sign(1.0,vext(1,1)-xper*oo2))
 			end if
-			IF(ABS(NODES_LIST(k,2)-vext(1,2)).GT.yPER*oo2)THEN
-			NODES_LIST(k,2)=NODES_LIST(k,2)+(yPER*SIGN(1.0,vext(1,2)-yPER*oo2))
+			if(abs(nodes_list(k,2)-vext(1,2)).gt.yper*oo2)then
+			nodes_list(k,2)=nodes_list(k,2)+(yper*sign(1.0,vext(1,2)-yper*oo2))
 			end if
-			IF(ABS(NODES_LIST(k,3)-vext(1,3)).GT.zPER*oo2)THEN
-			NODES_LIST(k,3)=NODES_LIST(k,3)+(zPER*SIGN(1.0,vext(1,3)-zPER*oo2))
+			if(abs(nodes_list(k,3)-vext(1,3)).gt.zper*oo2)then
+			nodes_list(k,3)=nodes_list(k,3)+(zper*sign(1.0,vext(1,3)-zper*oo2))
 			end if
-			ELSE
-                if (IELEM(n,i)%reorient(facex).eq.1) then
-                    if (ibound(n,ielem(n,i)%ibounds(facex))%icode.eq.5) then
-                        tempxx=NODES_LIST(k,1)
-                        NODES_LIST(k,1)=tempxx*cos(-angle_per)-sin(-angle_per)*NODES_LIST(k,2)
-                        NODES_LIST(k,2)=tempxx*sin(-angle_per)+cos(-angle_per)*NODES_LIST(k,2)
+			else
+                if (ielem_reorient(facex,i).eq.1) then
+                    if (ibound_icode(ielem_ibounds(facex,i)).eq.5) then
+                        tempxx=nodes_list(k,1)
+                        nodes_list(k,1)=tempxx*cos(-angle_per)-sin(-angle_per)*nodes_list(k,2)
+                        nodes_list(k,2)=tempxx*sin(-angle_per)+cos(-angle_per)*nodes_list(k,2)
                     else
-                        tempxx=NODES_LIST(k,1)
-                        NODES_LIST(k,1)=tempxx*cos(angle_per)-sin(angle_per)*NODES_LIST(k,2)
-                        NODES_LIST(k,2)=tempxx*sin(angle_per)+cos(angle_per)*NODES_LIST(k,2)
+                        tempxx=nodes_list(k,1)
+                        nodes_list(k,1)=tempxx*cos(angle_per)-sin(angle_per)*nodes_list(k,2)
+                        nodes_list(k,2)=tempxx*sin(angle_per)+cos(angle_per)*nodes_list(k,2)
                     end if
                 end if
-			END IF
-			END DO
+			end if
+			end do
 	      
 	      
-	      do K=1,nnd
-		  VEXT(K,1:3)=NODES_LIST(k,1:3)
-	      END DO
+	      do k=1,nnd
+		  vext(k,1:3)=nodes_list(k,1:3)
+	      end do
 	      
 
-end subroutine coordinates_face_PERIOD1
+end subroutine coordinates_face_period1
 
 
-subroutine coordinates_face_PERIOD2d1(n,iconsidered,facex,VEXT,NODES_LIST)
+subroutine coordinates_face_period2d1(n,iconsidered,facex,vext,nodes_list)
  !> @brief
-!> This subroutine retrieve the nodes of periodic edges of elements in 2D
-IMPLICIT NONE
+!> this subroutine retrieve the nodes of periodic edges of elements in 2d
+implicit none
 integer,intent(in)::n,iconsidered,facex
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
+real,dimension(1:8,1:dimensiona),intent(inout)::vext
+real,dimension(1:8,1:dimensiona),intent(inout)::nodes_list
 integer::nnd
 integer::i,k
 i=iconsidered
@@ -1812,102 +1876,102 @@ i=iconsidered
 
 	     nnd=2
 	      
-	      VEXT(1,1)=IELEM(N,I)%XXC
-	      VEXT(1,2)=IELEM(N,I)%YYC
+	      vext(1,1)=ielem_xxc(i)
+	      vext(1,2)=ielem_yyc(i)
 	      
 	      
-			do K=1,nnd
-			  NODES_LIST(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(FACEX,K))%CORD(1:dims)
-			END DO
-			do K=1,nnd
-			IF(ABS(NODES_LIST(k,1)-vext(1,1)).GT.XPER*oo2)THEN
-			NODES_LIST(k,1)=NODES_LIST(k,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
+			do k=1,nnd
+			  nodes_list(k,1:2)=dinoder(ielem_nodes_faces(facex,k,i))%cord(1:dims)
+			end do
+			do k=1,nnd
+			if(abs(nodes_list(k,1)-vext(1,1)).gt.xper*oo2)then
+			nodes_list(k,1)=nodes_list(k,1)+(xper*sign(1.0,vext(1,1)-xper*oo2))
 			end if
-			IF(ABS(NODES_LIST(k,2)-vext(1,2)).GT.yPER*oo2)THEN
-			NODES_LIST(k,2)=NODES_LIST(k,2)+(yPER*SIGN(1.0,vext(1,2)-yPER*oo2))
+			if(abs(nodes_list(k,2)-vext(1,2)).gt.yper*oo2)then
+			nodes_list(k,2)=nodes_list(k,2)+(yper*sign(1.0,vext(1,2)-yper*oo2))
 			end if
-			END DO
+			end do
 	      
 	      
-	      do K=1,nnd
-		  VEXT(K,1:2)=NODES_LIST(k,1:2)
-	      END DO
+	      do k=1,nnd
+		  vext(k,1:2)=nodes_list(k,1:2)
+	      end do
 	      
 
-end subroutine coordinates_face_PERIOD2d1
+end subroutine coordinates_face_period2d1
 
 
 
-subroutine coordinates_face_PERIOD(n,iconsidered,facex,VEXT,NODES_LIST)
+subroutine coordinates_face_period(n,iconsidered,facex,vext,nodes_list)
  !> @brief
-!> This subroutine retrieve the nodes of periodic faces of elements in 3D
-IMPLICIT NONE
+!> this subroutine retrieve the nodes of periodic faces of elements in 3d
+implicit none
 integer,intent(in)::n,iconsidered,facex
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
+real,dimension(1:8,1:dimensiona),intent(inout)::vext
+real,dimension(1:8,1:dimensiona),intent(inout)::nodes_list
 integer::nnd
 integer::i,k
 real::tempxx
 i=iconsidered
 
 
-	      select case (ielem(n,i)%types_faces(facex))
+	      select case (ielem_types_faces(facex,i))
 	      case(5)
 	      nnd=4
 	      case(6)
 	      nnd=3
 	      end select
 	      
-	      VEXT(1,1)=IELEM(N,I)%XXC
-	      VEXT(1,2)=IELEM(N,I)%YYC
-	      VEXT(1,3)=IELEM(N,I)%ZZC
+	      vext(1,1)=ielem_xxc(i)
+	      vext(1,2)=ielem_yyc(i)
+	      vext(1,3)=ielem_zzc(i)
 	      
-			do K=1,nnd
-			  NODES_LIST(k,1:3)=inoder(IELEM(N,I)%NODES_FACES(FACEX,K))%CORD(1:dims)
-			END DO
-            IF(PER_ROT.EQ.0)THEN
-			do K=1,nnd
-			IF(ABS(NODES_LIST(k,1)-vext(1,1)).GT.XPER*oo2)THEN
-			NODES_LIST(k,1)=NODES_LIST(k,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
+			do k=1,nnd
+			  nodes_list(k,1:3)=dinoder(ielem_nodes_faces(facex,k,i))%cord(1:dims)
+			end do
+            if(per_rot.eq.0)then
+			do k=1,nnd
+			if(abs(nodes_list(k,1)-vext(1,1)).gt.xper*oo2)then
+			nodes_list(k,1)=nodes_list(k,1)+(xper*sign(1.0,vext(1,1)-xper*oo2))
 			end if
-			IF(ABS(NODES_LIST(k,2)-vext(1,2)).GT.yPER*oo2)THEN
-			NODES_LIST(k,2)=NODES_LIST(k,2)+(yPER*SIGN(1.0,vext(1,2)-yPER*oo2))
+			if(abs(nodes_list(k,2)-vext(1,2)).gt.yper*oo2)then
+			nodes_list(k,2)=nodes_list(k,2)+(yper*sign(1.0,vext(1,2)-yper*oo2))
 			end if
-			IF(ABS(NODES_LIST(k,3)-vext(1,3)).GT.zPER*oo2)THEN
-			NODES_LIST(k,3)=NODES_LIST(k,3)+(zPER*SIGN(1.0,vext(1,3)-zPER*oo2))
+			if(abs(nodes_list(k,3)-vext(1,3)).gt.zper*oo2)then
+			nodes_list(k,3)=nodes_list(k,3)+(zper*sign(1.0,vext(1,3)-zper*oo2))
 			end if
-			END DO
-			ELSE
-                if (IELEM(n,i)%reorient(facex).eq.1) then
-                do K=1,nnd
-                    if (ibound(n,ielem(n,i)%ibounds(facex))%icode.eq.5) then
-                        tempxx=NODES_LIST(k,1)
-                        NODES_LIST(k,1)=tempxx*cos(-angle_per)-sin(-angle_per)*NODES_LIST(k,2)
-                        NODES_LIST(k,2)=tempxx*sin(-angle_per)+cos(-angle_per)*NODES_LIST(k,2)
+			end do
+			else
+                if (ielem_reorient(facex,i).eq.1) then
+                do k=1,nnd
+                    if (ibound_icode(ielem_ibounds(facex,i)).eq.5) then
+                        tempxx=nodes_list(k,1)
+                        nodes_list(k,1)=tempxx*cos(-angle_per)-sin(-angle_per)*nodes_list(k,2)
+                        nodes_list(k,2)=tempxx*sin(-angle_per)+cos(-angle_per)*nodes_list(k,2)
                     else
-                        tempxx=NODES_LIST(k,1)
-                        NODES_LIST(k,1)=tempxx*cos(angle_per)-sin(angle_per)*NODES_LIST(k,2)
-                        NODES_LIST(k,2)=tempxx*sin(angle_per)+cos(angle_per)*NODES_LIST(k,2)
+                        tempxx=nodes_list(k,1)
+                        nodes_list(k,1)=tempxx*cos(angle_per)-sin(angle_per)*nodes_list(k,2)
+                        nodes_list(k,2)=tempxx*sin(angle_per)+cos(angle_per)*nodes_list(k,2)
                     end if
-                END DO
+                end do
                 end if
-			END IF
+			end if
 	      
 	      
-	      do K=1,nnd
-		  VEXT(K,1:3)=NODES_LIST(k,1:3)
-	      END DO
+	      do k=1,nnd
+		  vext(k,1:3)=nodes_list(k,1:3)
+	      end do
 	      
-end subroutine coordinates_face_PERIOD
+end subroutine coordinates_face_period
 
 
-subroutine coordinates_face_PERIOD2d(n,iconsidered,facex,VEXT,NODES_LIST)
+subroutine coordinates_face_period2d(n,iconsidered,facex,vext,nodes_list)
  !> @brief
-!> This subroutine retrieve the nodes of periodic edges of elements in 2D
-IMPLICIT NONE
+!> this subroutine retrieve the nodes of periodic edges of elements in 2d
+implicit none
 integer,intent(in)::n,iconsidered,facex
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::VEXT
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(INOUT)::NODES_LIST
+real,dimension(1:8,1:dimensiona),intent(inout)::vext
+real,dimension(1:8,1:dimensiona),intent(inout)::nodes_list
 integer::nnd
 integer::i,k
 i=iconsidered
@@ -1915,216 +1979,219 @@ i=iconsidered
 
 	     nnd=2
 	      
-	      VEXT(1,1)=IELEM(N,I)%XXC
-	      VEXT(1,2)=IELEM(N,I)%YYC
+	      vext(1,1)=ielem_xxc(i)
+	      vext(1,2)=ielem_yyc(i)
 	      
 	      
-			do K=1,nnd
-			  NODES_LIST(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(FACEX,K))%CORD(1:dims)
-			END DO
-			do K=1,nnd
-			IF(ABS(NODES_LIST(k,1)-vext(1,1)).GT.XPER*oo2)THEN
-			NODES_LIST(k,1)=NODES_LIST(k,1)+(XPER*SIGN(1.0,vext(1,1)-XPER*oo2))
+			do k=1,nnd
+			  nodes_list(k,1:2)=dinoder(ielem_nodes_faces(facex,k,i))%cord(1:2)
+			end do
+			do k=1,nnd
+			if(abs(nodes_list(k,1)-vext(1,1)).gt.xper*oo2)then
+			nodes_list(k,1)=nodes_list(k,1)+(xper*sign(1.0,vext(1,1)-xper*oo2))
 			end if
-			IF(ABS(NODES_LIST(k,2)-vext(1,2)).GT.yPER*oo2)THEN
-			NODES_LIST(k,2)=NODES_LIST(k,2)+(yPER*SIGN(1.0,vext(1,2)-yPER*oo2))
+			if(abs(nodes_list(k,2)-vext(1,2)).gt.yper*oo2)then
+			nodes_list(k,2)=nodes_list(k,2)+(yper*sign(1.0,vext(1,2)-yper*oo2))
 			end if
-			END DO
+			end do
 	      
 	      
-	      do K=1,nnd
-		  VEXT(K,1:2)=NODES_LIST(k,1:2)
-	      END DO
+	      do k=1,nnd
+		  vext(k,1:2)=nodes_list(k,1:2)
+	      end do
 	      
 
-end subroutine coordinates_face_PERIOD2d
+end subroutine coordinates_face_period2d
 
 
 
-SUBROUTINE COMPUTE_CENTRE2dF(N,Iconsidered,facex,N_NODE,cords)
+subroutine compute_centre2df(n,iconsidered,facex,n_node,cords)
  !> @brief
-!> This subroutine retrieves the nodes of the vertices of edges of 2D elements
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,Iconsidered,facex
-INTEGER,INTENT(INOUT)::N_NODE
-REAL,dimension(1:dimensiona),INTENT(INOUT)::CORDS
-REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+!> this subroutine retrieves the nodes of the vertices of edges of 2d elements
+implicit none
+integer,intent(in)::n,iconsidered,facex
+integer,intent(inout)::n_node
+real,dimension(1:dimensiona),intent(inout)::cords
+real,dimension(1:8,1:dimensiona)::nodes_list
 integer::k,i
 i=iconsidered
 
     
-    do K=1,N_NODE
-      NODES_LIST(k,1:2)=inoder(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:2)
-    END DO
-    CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
+    do k=1,n_node
+      nodes_list(k,1:2)=dinoder(ielem_nodes_faces(facex,k,i))%cord(1:2)
+    end do
+    cords=cordinates2(n,nodes_list,n_node)
    
 
 
-END SUBROUTINE
+end subroutine
 
 
 
-SUBROUTINE COMPUTE_CENTRE3d(iconsidered,CORDS)
+subroutine compute_centre3d(iconsidered,cords)
  !> @brief
-!> This subroutine computes the cell centre of elements in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::Iconsidered
+!> this subroutine computes the cell centre of elements in 3d
+implicit none
+integer,intent(in)::iconsidered
 integer::k,i,j,n_node
-real,dimension(1:dimensiona),INTENT(INOUT)::cords
-REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+real,dimension(1:dimensiona),intent(inout)::cords
+real,dimension(1:8,1:dimensiona)::nodes_list
 
 
 i=iconsidered
 
-    N_NODE=IELEM(N,i)%NONODES
-    do K=1,IELEM(N,I)%NONODES
-      NODES_LIST(k,1:3)=inoder(IELEM(N,i)%NODES(K))%CORD(1:3)
-    END DO
-    CORDS=CORDINATES3(N,NODES_LIST,N_NODE)
+    n_node=ielem_nonodes(i)
+    do k=1,ielem_nonodes(i)
+      nodes_list(k,1:3)=dinoder(ielem_nodes(k,i))%cord(1:3)
+    end do
+    cords=cordinates3(n,nodes_list,n_node)
 
 
 
 
-END SUBROUTINE
+end subroutine
 
 
 
-SUBROUTINE COMPUTE_CENTRE2d(Iconsidered,CORDS)
+subroutine compute_centre2d(iconsidered,cords)
  !> @brief
-!> This subroutine retrieves the nodes of the vertices of 2D elements
-IMPLICIT NONE
-INTEGER,INTENT(IN)::Iconsidered
+!> this subroutine retrieves the nodes of the vertices of 2d elements
+implicit none
+integer,intent(in)::iconsidered
 integer::k,i,j,n_node
-real,dimension(1:dimensiona),INTENT(INOUT)::cords
-REAL,DIMENSION(1:8,1:dimensiona)::NODES_LIST
+real,dimension(1:dimensiona),intent(inout)::cords
+real,dimension(1:8,1:dimensiona)::nodes_list
 
 
 i=iconsidered
 
-    N_NODE=IELEM(N,I)%NONODES
-    do K=1,IELEM(N,I)%NONODES
-      NODES_LIST(k,1:2)=inoder(IELEM(N,I)%NODES(K))%CORD(1:2)
-    END DO
-    CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
+    n_node=ielem_nonodes(i)
+    do k=1,ielem_nonodes(i)
+      nodes_list(k,1:2)=dinoder(ielem_nodes(k,i))%cord(1:2)
+    end do
+    cords=cordinates2(n,nodes_list,n_node)
    
 
 
-END SUBROUTINE
+end subroutine
 
 
-SUBROUTINE CENTRE3D(iconsidered)
+subroutine centre3d(iconsidered)
  !> @brief
-!> This subroutine computes the cell centres
-IMPLICIT NONE
-INTEGER,INTENT(IN)::iconsidered
-REAL,DIMENSION(1:DIMENSIONA)::CORDS
-INTEGER::I
+!> this subroutine computes the cell centres
+implicit none
+integer,intent(in)::iconsidered
+real,dimension(1:dimensiona)::cords
+integer::i
 i=iconsidered
 
 
 
-    CALL COMPUTE_CENTRE3d(i,CORDS)
-    IELEM(N,I)%XXC=CORDS(1);IELEM(N,I)%YYC=CORDS(2);IELEM(N,I)%ZZC=CORDS(3);
+    call compute_centre3d(i,cords)
+    ielem_xxc(i)=cords(1);ielem_yyc(i)=cords(2);ielem_zzc(i)=cords(3);
 
 
 
 
 
-END SUBROUTINE CENTRE3D
+end subroutine centre3d
 
 
-SUBROUTINE CENTRE2D(iconsidered)
+subroutine centre2d(iconsidered)
  !> @brief
-!> This subroutine computes the cell centres
-IMPLICIT NONE
-INTEGER,INTENT(IN)::iconsidered
-REAL,DIMENSION(1:DIMENSIONA)::CORDS
-INTEGER::I
+!> this subroutine computes the cell centres
+implicit none
+integer,intent(in)::iconsidered
+real,dimension(1:dimensiona)::cords
+integer::i
 i=iconsidered
 
 
-    CALL COMPUTE_CENTRE2d(i,CORDS)
-    IELEM(N,I)%XXC=CORDS(1);IELEM(N,I)%YYC=CORDS(2)
+    call compute_centre2d(i,cords)
+    ielem_xxc(i)=cords(1);ielem_yyc(i)=cords(2)
 
 
 
 
-END SUBROUTINE CENTRE2D
+end subroutine centre2d
 
-SUBROUTINE QUADRATURETRIANG(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+subroutine quadraturetriang(n,igqrules,vext,qpoints2d,wequa2d)
  !> @brief
-!> This subroutine computes the quadrature points and weights for triangle in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::IGQRULES,N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2),INTENT(INOUT)::QPOINTS2D
-REAL,DIMENSION(1:NUMBEROFPOINTS2),INTENT(INOUT)::WEQUA2D
-real,dimension(1:DIMENSIONA,1:DIMENSIONA)::VVA,VVA1
-REAL,dimension(1)::DETA
-REAL,DIMENSION(1:4)::VVNXI
-real,dimension(1:ALLS)::VVwg
-real,dimension(1:ALLS)::VVR1,VVR2,VVR3
-INTEGER::Kk
+!> this subroutine computes the quadrature points and weights for triangle in 3d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::igqrules,n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints2),intent(inout)::qpoints2d
+real,dimension(1:numberofpoints2),intent(inout)::wequa2d
+real,dimension(1:dimensiona,1:dimensiona)::vva,vva1
+real,dimension(1)::deta
+real,dimension(1:4)::vvnxi
+real,dimension(1:alls)::vvwg
+real,dimension(1:alls)::vvr1,vvr2,vvr3
+integer::kk
 
-WEQUA2D=0.0d0
-QPOINTS2D=0.0d0
+wequa2d=0.0d0
+qpoints2d=0.0d0
 
 
-SELECT CASE(IGQRULES)
+select case(igqrules)
 
 case(1)
 		
 	    vvwg(1) = 1.0d0
-	    VVR1(1)=1.0d0/3.0d0;	VVR2(1)=1.0d0/3.0d0;	VVR3(1)=1.0d0/3.0d0
+	    vvr1(1)=1.0d0/3.0d0;	vvr2(1)=1.0d0/3.0d0;	vvr3(1)=1.0d0/3.0d0
 case(2)
 		vvwg(1)=0.33333333333333333333
   		vvwg(2)=0.33333333333333333333
   		vvwg(3)=0.33333333333333333333
 
-		VVR1(1)=0.666666666666667 ;VVR2(1)=0.166666666666667 ;VVR3(1)=0.166666666666667 
-		VVR1(2)=0.166666666666667 ;VVR2(2)=0.666666666666667 ;VVR3(2)=0.166666666666667 
-		VVR1(3)=0.166666666666667 ;VVR2(3)=0.166666666666667 ;VVR3(3)=0.666666666666667 
+		vvr1(1)=0.666666666666667 ;vvr2(1)=0.166666666666667 ;vvr3(1)=0.166666666666667 
+		vvr1(2)=0.166666666666667 ;vvr2(2)=0.666666666666667 ;vvr3(2)=0.166666666666667 
+		vvr1(3)=0.166666666666667 ;vvr2(3)=0.166666666666667 ;vvr3(3)=0.666666666666667 
 
 
 case(3)
-		VVR1(1)=0.816847572980440 ;VVR2(1)=0.091576213509780 ;VVR3(1)=0.091576213509780 ;vvwg(1)=0.109951743655333
-		VVR1(2)=0.091576213509780 ;VVR2(2)=0.816847572980440 ;VVR3(2)=0.091576213509780 ;vvwg(2)=0.109951743655333
-		VVR1(3)=0.091576213509780 ;VVR2(3)=0.091576213509780 ;VVR3(3)=0.816847572980440 ;vvwg(3)=0.109951743655333
-		VVR1(4)=0.445948490915964 ;VVR2(4)=0.445948490915964 ;VVR3(4)=0.108103018168071 ;vvwg(4)=0.223381589678000
-		VVR1(5)=0.445948490915964 ;VVR2(5)=0.108103018168071 ;VVR3(5)=0.445948490915964 ;vvwg(5)=0.223381589678000
-		VVR1(6)=0.108103018168071 ;VVR2(6)=0.445948490915964 ;VVR3(6)=0.445948490915964 ;vvwg(6)=0.223381589678000
+		vvr1(1)=0.816847572980440 ;vvr2(1)=0.091576213509780 ;vvr3(1)=0.091576213509780 ;vvwg(1)=0.109951743655333
+		vvr1(2)=0.091576213509780 ;vvr2(2)=0.816847572980440 ;vvr3(2)=0.091576213509780 ;vvwg(2)=0.109951743655333
+		vvr1(3)=0.091576213509780 ;vvr2(3)=0.091576213509780 ;vvr3(3)=0.816847572980440 ;vvwg(3)=0.109951743655333
+		vvr1(4)=0.445948490915964 ;vvr2(4)=0.445948490915964 ;vvr3(4)=0.108103018168071 ;vvwg(4)=0.223381589678000
+		vvr1(5)=0.445948490915964 ;vvr2(5)=0.108103018168071 ;vvr3(5)=0.445948490915964 ;vvwg(5)=0.223381589678000
+		vvr1(6)=0.108103018168071 ;vvr2(6)=0.445948490915964 ;vvr3(6)=0.445948490915964 ;vvwg(6)=0.223381589678000
 
 case(4)
 		
-VVR1(1)=0.888871894660413 ;VVR2(1)=0.055564052669793 ;VVR3(1)=0.055564052669793 ;vvwg(1)=0.041955512996649
-VVR1(2)=0.055564052669793 ;VVR2(2)=0.888871894660413 ;VVR3(2)=0.055564052669793 ;vvwg(2)=0.041955512996649
-VVR1(3)=0.055564052669793 ;VVR2(3)=0.055564052669793 ;VVR3(3)=0.888871894660413 ;vvwg(3)=0.041955512996649
-VVR1(4)=0.295533711735893 ;VVR2(4)=0.634210747745723 ;VVR3(4)=0.070255540518384 ;vvwg(4)=0.112098412070887
-VVR1(5)=0.295533711735893 ;VVR2(5)=0.070255540518384 ;VVR3(5)=0.634210747745723 ;vvwg(5)=0.112098412070887
-VVR1(6)=0.070255540518384 ;VVR2(6)=0.295533711735893 ;VVR3(6)=0.634210747745723 ;vvwg(6)=0.112098412070887
-VVR1(7)=0.634210747745723 ;VVR2(7)=0.295533711735893 ;VVR3(7)=0.070255540518384 ;vvwg(7)=0.112098412070887
-VVR1(8)=0.634210747745723 ;VVR2(8)=0.070255540518384 ;VVR3(8)=0.295533711735893 ;vvwg(8)=0.112098412070887
-VVR1(9)=0.070255540518384 ;VVR2(9)=0.634210747745723 ;VVR3(9)=0.295533711735893 ;vvwg(9)=0.112098412070887
-VVR1(10)=0.333333333333333 ;VVR2(10)=0.333333333333333 ;VVR3(10)=0.333333333333333 ;vvwg(10)=0.201542988584730
+vvr1(1)=0.888871894660413 ;vvr2(1)=0.055564052669793 ;vvr3(1)=0.055564052669793 ;vvwg(1)=0.041955512996649
+vvr1(2)=0.055564052669793 ;vvr2(2)=0.888871894660413 ;vvr3(2)=0.055564052669793 ;vvwg(2)=0.041955512996649
+vvr1(3)=0.055564052669793 ;vvr2(3)=0.055564052669793 ;vvr3(3)=0.888871894660413 ;vvwg(3)=0.041955512996649
+vvr1(4)=0.295533711735893 ;vvr2(4)=0.634210747745723 ;vvr3(4)=0.070255540518384 ;vvwg(4)=0.112098412070887
+vvr1(5)=0.295533711735893 ;vvr2(5)=0.070255540518384 ;vvr3(5)=0.634210747745723 ;vvwg(5)=0.112098412070887
+vvr1(6)=0.070255540518384 ;vvr2(6)=0.295533711735893 ;vvr3(6)=0.634210747745723 ;vvwg(6)=0.112098412070887
+vvr1(7)=0.634210747745723 ;vvr2(7)=0.295533711735893 ;vvr3(7)=0.070255540518384 ;vvwg(7)=0.112098412070887
+vvr1(8)=0.634210747745723 ;vvr2(8)=0.070255540518384 ;vvr3(8)=0.295533711735893 ;vvwg(8)=0.112098412070887
+vvr1(9)=0.070255540518384 ;vvr2(9)=0.634210747745723 ;vvr3(9)=0.295533711735893 ;vvwg(9)=0.112098412070887
+vvr1(10)=0.333333333333333 ;vvr2(10)=0.333333333333333 ;vvr3(10)=0.333333333333333 ;vvwg(10)=0.201542988584730
 
 
 case(5)
 
-VVR1(1)=0.928258244608533;VVR2(1)= 0.035870877695734 ;VVR3(1)=0.035870877695734 ;vvwg(1)=0.017915455012303
-VVR1(2)=0.035870877695734;VVR2(2)= 0.928258244608533 ;VVR3(2)=0.035870877695734 ;vvwg(2)=0.017915455012303
-VVR1(3)=0.035870877695734;VVR2(3)= 0.035870877695734 ;VVR3(3)=0.928258244608533 ;vvwg(3)=0.017915455012303
-VVR1(4)=0.516541208464066;VVR2(4)= 0.241729395767967 ;VVR3(4)=0.241729395767967 ;vvwg(4)=0.127712195881265
-VVR1(5)=0.241729395767967;VVR2(5)= 0.516541208464066 ;VVR3(5)=0.241729395767967 ;vvwg(5)=0.127712195881265
-VVR1(6)=0.241729395767967;VVR2(6)= 0.241729395767967 ;VVR3(6)=0.516541208464066 ;vvwg(6)=0.127712195881265
-VVR1(7)=0.474308787777079;VVR2(7)= 0.474308787777079 ;VVR3(7)=0.051382424445843 ;vvwg(7)=0.076206062385535
-VVR1(8)=0.474308787777079;VVR2(8)= 0.051382424445843 ;VVR3(8)=0.474308787777079 ;vvwg(8)=0.076206062385535
-VVR1(9)=0.051382424445843;VVR2(9)= 0.474308787777079 ;VVR3(9)=0.474308787777079 ;vvwg(9)=0.076206062385535
-VVR1(10)=0.201503881881800;VVR2(10)= 0.751183631106484 ;VVR3(10)=0.047312487011716 ;vvwg(10)=0.055749810027115
-VVR1(11)=0.201503881881800;VVR2(11)= 0.047312487011716 ;VVR3(11)=0.751183631106484 ;vvwg(11)=0.055749810027115
-VVR1(12)=0.047312487011716;VVR2(12)= 0.201503881881800 ;VVR3(12)=0.751183631106484 ;vvwg(12)=0.055749810027115
-VVR1(13)=0.751183631106484;VVR2(13)= 0.201503881881800 ;VVR3(13)=0.047312487011716 ;vvwg(13)=0.055749810027115
-VVR1(14)=0.751183631106484;VVR2(14)= 0.047312487011716 ;VVR3(14)=0.201503881881800 ;vvwg(14)=0.055749810027115
-VVR1(15)=0.047312487011716;VVR2(15)= 0.751183631106484 ;VVR3(15)=0.201503881881800 ;vvwg(15)=0.055749810027115
+vvr1(1)=0.928258244608533;vvr2(1)= 0.035870877695734 ;vvr3(1)=0.035870877695734 ;vvwg(1)=0.017915455012303
+vvr1(2)=0.035870877695734;vvr2(2)= 0.928258244608533 ;vvr3(2)=0.035870877695734 ;vvwg(2)=0.017915455012303
+vvr1(3)=0.035870877695734;vvr2(3)= 0.035870877695734 ;vvr3(3)=0.928258244608533 ;vvwg(3)=0.017915455012303
+vvr1(4)=0.516541208464066;vvr2(4)= 0.241729395767967 ;vvr3(4)=0.241729395767967 ;vvwg(4)=0.127712195881265
+vvr1(5)=0.241729395767967;vvr2(5)= 0.516541208464066 ;vvr3(5)=0.241729395767967 ;vvwg(5)=0.127712195881265
+vvr1(6)=0.241729395767967;vvr2(6)= 0.241729395767967 ;vvr3(6)=0.516541208464066 ;vvwg(6)=0.127712195881265
+vvr1(7)=0.474308787777079;vvr2(7)= 0.474308787777079 ;vvr3(7)=0.051382424445843 ;vvwg(7)=0.076206062385535
+vvr1(8)=0.474308787777079;vvr2(8)= 0.051382424445843 ;vvr3(8)=0.474308787777079 ;vvwg(8)=0.076206062385535
+vvr1(9)=0.051382424445843;vvr2(9)= 0.474308787777079 ;vvr3(9)=0.474308787777079 ;vvwg(9)=0.076206062385535
+vvr1(10)=0.201503881881800;vvr2(10)= 0.751183631106484 ;vvr3(10)=0.047312487011716 ;vvwg(10)=0.055749810027115
+vvr1(11)=0.201503881881800;vvr2(11)= 0.047312487011716 ;vvr3(11)=0.751183631106484 ;vvwg(11)=0.055749810027115
+vvr1(12)=0.047312487011716;vvr2(12)= 0.201503881881800 ;vvr3(12)=0.751183631106484 ;vvwg(12)=0.055749810027115
+vvr1(13)=0.751183631106484;vvr2(13)= 0.201503881881800 ;vvr3(13)=0.047312487011716 ;vvwg(13)=0.055749810027115
+vvr1(14)=0.751183631106484;vvr2(14)= 0.047312487011716 ;vvr3(14)=0.201503881881800 ;vvwg(14)=0.055749810027115
+vvr1(15)=0.047312487011716;vvr2(15)= 0.751183631106484 ;vvr3(15)=0.201503881881800 ;vvwg(15)=0.055749810027115
 
 
 
@@ -2135,148 +2202,148 @@ VVR1(15)=0.047312487011716;VVR2(15)= 0.751183631106484 ;VVR3(15)=0.2015038818818
 
 case(6)
 
-VVR1(1)=0.943774095634672   ;VVR2(1)=0.028112952182664  ;VVR3(1)=0.028112952182664 ;vvwg(1)=0.010359374696538
-VVR1(2)=0.028112952182664   ;VVR2(2)=0.943774095634672  ;VVR3(2)=0.028112952182664 ;vvwg(2)=0.010359374696538
-VVR1(3)=0.028112952182664   ;VVR2(3)=0.028112952182664  ;VVR3(3)=0.943774095634672 ;vvwg(3)=0.010359374696538
-VVR1(4)=0.645721803061365   ;VVR2(4)=0.177139098469317  ;VVR3(4)=0.177139098469317 ;vvwg(4)=0.075394884326738
-VVR1(5)=0.177139098469317   ;VVR2(5)=0.645721803061365  ;VVR3(5)=0.177139098469317 ;vvwg(5)=0.075394884326738
-VVR1(6)=0.177139098469317   ;VVR2(6)=0.177139098469317  ;VVR3(6)=0.645721803061365 ;vvwg(6)=0.075394884326738
-VVR1(7)=0.405508595867433   ;VVR2(7)=0.405508595867433  ;VVR3(7)=0.188982808265134 ;vvwg(7)=0.097547802373242
-VVR1(8)=0.405508595867433   ;VVR2(8)=0.188982808265134  ;VVR3(8)=0.405508595867433 ;vvwg(8)=0.097547802373242
-VVR1(9)=0.188982808265134   ;VVR2(9)=0.405508595867433  ;VVR3(9)=0.405508595867433 ;vvwg(9)=0.097547802373242
-VVR1(10)=0.148565812270887 ;VVR2(10)=0.817900980028499 ;VVR3(10)=0.033533207700614 ;vvwg(10)=0.028969269372473
-VVR1(11)=0.148565812270887 ;VVR2(11)=0.033533207700614 ;VVR3(11)=0.817900980028499 ;vvwg(11)=0.028969269372473
-VVR1(12)=0.033533207700614 ;VVR2(12)=0.148565812270887 ;VVR3(12)=0.817900980028499 ;vvwg(12)=0.028969269372473
-VVR1(13)=0.817900980028499 ;VVR2(13)=0.148565812270887 ;VVR3(13)=0.033533207700614 ;vvwg(13)=0.028969269372473
-VVR1(14)=0.817900980028499 ;VVR2(14)=0.033533207700614 ;VVR3(14)=0.148565812270887 ;vvwg(14)=0.028969269372473
-VVR1(15)=0.033533207700614 ;VVR2(15)=0.817900980028499 ;VVR3(15)=0.148565812270887 ;vvwg(15)=0.028969269372473
-VVR1(16)=0.357196298615681 ;VVR2(16)=0.604978911775132 ;VVR3(16)=0.037824789609186 ;vvwg(16)=0.046046366595935
-VVR1(17)=0.357196298615681 ;VVR2(17)=0.037824789609186 ;VVR3(17)=0.604978911775132 ;vvwg(17)=0.046046366595935
-VVR1(18)=0.037824789609186 ;VVR2(18)=0.357196298615681 ;VVR3(18)=0.604978911775132 ;vvwg(18)=0.046046366595935
-VVR1(19)=0.604978911775132 ;VVR2(19)=0.357196298615681 ;VVR3(19)=0.037824789609186 ;vvwg(19)=0.046046366595935
-VVR1(20)=0.604978911775132 ;VVR2(20)=0.037824789609186 ;VVR3(20)=0.357196298615681 ;vvwg(20)=0.046046366595935
-VVR1(21)=0.037824789609186 ;VVR2(21)=0.604978911775132 ;VVR3(21)=0.357196298615681 ;vvwg(21)=0.046046366595935
+vvr1(1)=0.943774095634672   ;vvr2(1)=0.028112952182664  ;vvr3(1)=0.028112952182664 ;vvwg(1)=0.010359374696538
+vvr1(2)=0.028112952182664   ;vvr2(2)=0.943774095634672  ;vvr3(2)=0.028112952182664 ;vvwg(2)=0.010359374696538
+vvr1(3)=0.028112952182664   ;vvr2(3)=0.028112952182664  ;vvr3(3)=0.943774095634672 ;vvwg(3)=0.010359374696538
+vvr1(4)=0.645721803061365   ;vvr2(4)=0.177139098469317  ;vvr3(4)=0.177139098469317 ;vvwg(4)=0.075394884326738
+vvr1(5)=0.177139098469317   ;vvr2(5)=0.645721803061365  ;vvr3(5)=0.177139098469317 ;vvwg(5)=0.075394884326738
+vvr1(6)=0.177139098469317   ;vvr2(6)=0.177139098469317  ;vvr3(6)=0.645721803061365 ;vvwg(6)=0.075394884326738
+vvr1(7)=0.405508595867433   ;vvr2(7)=0.405508595867433  ;vvr3(7)=0.188982808265134 ;vvwg(7)=0.097547802373242
+vvr1(8)=0.405508595867433   ;vvr2(8)=0.188982808265134  ;vvr3(8)=0.405508595867433 ;vvwg(8)=0.097547802373242
+vvr1(9)=0.188982808265134   ;vvr2(9)=0.405508595867433  ;vvr3(9)=0.405508595867433 ;vvwg(9)=0.097547802373242
+vvr1(10)=0.148565812270887 ;vvr2(10)=0.817900980028499 ;vvr3(10)=0.033533207700614 ;vvwg(10)=0.028969269372473
+vvr1(11)=0.148565812270887 ;vvr2(11)=0.033533207700614 ;vvr3(11)=0.817900980028499 ;vvwg(11)=0.028969269372473
+vvr1(12)=0.033533207700614 ;vvr2(12)=0.148565812270887 ;vvr3(12)=0.817900980028499 ;vvwg(12)=0.028969269372473
+vvr1(13)=0.817900980028499 ;vvr2(13)=0.148565812270887 ;vvr3(13)=0.033533207700614 ;vvwg(13)=0.028969269372473
+vvr1(14)=0.817900980028499 ;vvr2(14)=0.033533207700614 ;vvr3(14)=0.148565812270887 ;vvwg(14)=0.028969269372473
+vvr1(15)=0.033533207700614 ;vvr2(15)=0.817900980028499 ;vvr3(15)=0.148565812270887 ;vvwg(15)=0.028969269372473
+vvr1(16)=0.357196298615681 ;vvr2(16)=0.604978911775132 ;vvr3(16)=0.037824789609186 ;vvwg(16)=0.046046366595935
+vvr1(17)=0.357196298615681 ;vvr2(17)=0.037824789609186 ;vvr3(17)=0.604978911775132 ;vvwg(17)=0.046046366595935
+vvr1(18)=0.037824789609186 ;vvr2(18)=0.357196298615681 ;vvr3(18)=0.604978911775132 ;vvwg(18)=0.046046366595935
+vvr1(19)=0.604978911775132 ;vvr2(19)=0.357196298615681 ;vvr3(19)=0.037824789609186 ;vvwg(19)=0.046046366595935
+vvr1(20)=0.604978911775132 ;vvr2(20)=0.037824789609186 ;vvr3(20)=0.357196298615681 ;vvwg(20)=0.046046366595935
+vvr1(21)=0.037824789609186 ;vvr2(21)=0.604978911775132 ;vvr3(21)=0.357196298615681 ;vvwg(21)=0.046046366595935
 
 
 
 
 case(7,8,9)
 
-VVR1(1)=0.957657154441070
-VVR1(2)=0.021171422779465
-VVR1(3)=0.021171422779465
-VVR1(4)=0.798831205208225
-VVR1(5)=0.100584397395888
-VVR1(6)=0.100584397395888
-VVR1(7)=0.457923384576135
-VVR1(8)=0.271038307711932
-VVR1(9)=0.271038307711932
-VVR1(10)=0.440191258403832
-VVR1(11)=0.440191258403832
-VVR1(12)=0.119617483192335
-VVR1(13)=0.101763679498021
-VVR1(14)=0.101763679498021
-VVR1(15)=0.018256679074748
-VVR1(16)=0.879979641427232
-VVR1(17)=0.879979641427232
-VVR1(18)=0.018256679074748
-VVR1(19)=0.394033271669987
-VVR1(20)=0.394033271669987
-VVR1(21)=0.023404705466341
-VVR1(22)=0.582562022863673
-VVR1(23)=0.582562022863673
-VVR1(24)=0.023404705466341
-VVR1(25)=0.226245530909229
-VVR1(26)=0.226245530909229
-VVR1(27)=0.022223854547989
-VVR1(28)=0.751530614542782
-VVR1(29)=0.751530614542782
-VVR1(30)=0.022223854547989
-VVR1(31)=0.635737183263105
-VVR1(32)=0.635737183263105
-VVR1(33)=0.115183589115563
-VVR1(34)=0.249079227621332
-VVR1(35)=0.249079227621332
-VVR1(36)=0.115183589115563
+vvr1(1)=0.957657154441070
+vvr1(2)=0.021171422779465
+vvr1(3)=0.021171422779465
+vvr1(4)=0.798831205208225
+vvr1(5)=0.100584397395888
+vvr1(6)=0.100584397395888
+vvr1(7)=0.457923384576135
+vvr1(8)=0.271038307711932
+vvr1(9)=0.271038307711932
+vvr1(10)=0.440191258403832
+vvr1(11)=0.440191258403832
+vvr1(12)=0.119617483192335
+vvr1(13)=0.101763679498021
+vvr1(14)=0.101763679498021
+vvr1(15)=0.018256679074748
+vvr1(16)=0.879979641427232
+vvr1(17)=0.879979641427232
+vvr1(18)=0.018256679074748
+vvr1(19)=0.394033271669987
+vvr1(20)=0.394033271669987
+vvr1(21)=0.023404705466341
+vvr1(22)=0.582562022863673
+vvr1(23)=0.582562022863673
+vvr1(24)=0.023404705466341
+vvr1(25)=0.226245530909229
+vvr1(26)=0.226245530909229
+vvr1(27)=0.022223854547989
+vvr1(28)=0.751530614542782
+vvr1(29)=0.751530614542782
+vvr1(30)=0.022223854547989
+vvr1(31)=0.635737183263105
+vvr1(32)=0.635737183263105
+vvr1(33)=0.115183589115563
+vvr1(34)=0.249079227621332
+vvr1(35)=0.249079227621332
+vvr1(36)=0.115183589115563
 
 
 
-VVR2(1)=0.021171422779465
-VVR2(2)=0.957657154441070
-VVR2(3)=0.021171422779465
-VVR2(4)=0.100584397395888
-VVR2(5)=0.798831205208225
-VVR2(6)=0.100584397395888
-VVR2(7)=0.271038307711932
-VVR2(8)=0.457923384576135
-VVR2(9)=0.271038307711932
-VVR2(10)=0.440191258403832
-VVR2(11)=0.119617483192335
-VVR2(12)=0.440191258403832
-VVR2(13)=0.879979641427232
-VVR2(14)=0.018256679074748
-VVR2(15)=0.101763679498021
-VVR2(16)=0.101763679498021
-VVR2(17)=0.018256679074748
-VVR2(18)=0.879979641427232
-VVR2(19)=0.582562022863673
-VVR2(20)=0.023404705466341
-VVR2(21)=0.394033271669987
-VVR2(22)=0.394033271669987
-VVR2(23)=0.023404705466341
-VVR2(24)=0.582562022863673
-VVR2(25)=0.751530614542782
-VVR2(26)=0.022223854547989
-VVR2(27)=0.226245530909229
-VVR2(28)=0.226245530909229
-VVR2(29)=0.022223854547989
-VVR2(30)=0.751530614542782
-VVR2(31)=0.249079227621332
-VVR2(32)=0.115183589115563
-VVR2(33)=0.635737183263105
-VVR2(34)=0.635737183263105
-VVR2(35)=0.115183589115563
-VVR2(36)=0.249079227621332
+vvr2(1)=0.021171422779465
+vvr2(2)=0.957657154441070
+vvr2(3)=0.021171422779465
+vvr2(4)=0.100584397395888
+vvr2(5)=0.798831205208225
+vvr2(6)=0.100584397395888
+vvr2(7)=0.271038307711932
+vvr2(8)=0.457923384576135
+vvr2(9)=0.271038307711932
+vvr2(10)=0.440191258403832
+vvr2(11)=0.119617483192335
+vvr2(12)=0.440191258403832
+vvr2(13)=0.879979641427232
+vvr2(14)=0.018256679074748
+vvr2(15)=0.101763679498021
+vvr2(16)=0.101763679498021
+vvr2(17)=0.018256679074748
+vvr2(18)=0.879979641427232
+vvr2(19)=0.582562022863673
+vvr2(20)=0.023404705466341
+vvr2(21)=0.394033271669987
+vvr2(22)=0.394033271669987
+vvr2(23)=0.023404705466341
+vvr2(24)=0.582562022863673
+vvr2(25)=0.751530614542782
+vvr2(26)=0.022223854547989
+vvr2(27)=0.226245530909229
+vvr2(28)=0.226245530909229
+vvr2(29)=0.022223854547989
+vvr2(30)=0.751530614542782
+vvr2(31)=0.249079227621332
+vvr2(32)=0.115183589115563
+vvr2(33)=0.635737183263105
+vvr2(34)=0.635737183263105
+vvr2(35)=0.115183589115563
+vvr2(36)=0.249079227621332
 
 
 
 
-VVR3(1)=0.021171422779465
-VVR3(2)=0.021171422779465
-VVR3(3)=0.957657154441070
-VVR3(4)=0.100584397395888
-VVR3(5)=0.100584397395888
-VVR3(6)=0.798831205208225
-VVR3(7)=0.271038307711932
-VVR3(8)=0.271038307711932
-VVR3(9)=0.457923384576135
-VVR3(10)=0.119617483192335
-VVR3(11)=0.440191258403832
-VVR3(12)=0.440191258403832
-VVR3(13)=0.018256679074748
-VVR3(14)=0.879979641427232
-VVR3(15)=0.879979641427232
-VVR3(16)=0.018256679074748
-VVR3(17)=0.101763679498021
-VVR3(18)=0.101763679498021
-VVR3(19)=0.023404705466341
-VVR3(20)=0.582562022863673
-VVR3(21)=0.582562022863673
-VVR3(22)=0.023404705466341
-VVR3(23)=0.394033271669987
-VVR3(24)=0.394033271669987
-VVR3(25)=0.022223854547989
-VVR3(26)=0.751530614542782
-VVR3(27)=0.751530614542782
-VVR3(28)=0.022223854547989
-VVR3(29)=0.226245530909229
-VVR3(30)=0.226245530909229
-VVR3(31)=0.115183589115563
-VVR3(32)=0.249079227621332
-VVR3(33)=0.249079227621332
-VVR3(34)=0.115183589115563
-VVR3(35)=0.635737183263105
-VVR3(36)=0.635737183263105
+vvr3(1)=0.021171422779465
+vvr3(2)=0.021171422779465
+vvr3(3)=0.957657154441070
+vvr3(4)=0.100584397395888
+vvr3(5)=0.100584397395888
+vvr3(6)=0.798831205208225
+vvr3(7)=0.271038307711932
+vvr3(8)=0.271038307711932
+vvr3(9)=0.457923384576135
+vvr3(10)=0.119617483192335
+vvr3(11)=0.440191258403832
+vvr3(12)=0.440191258403832
+vvr3(13)=0.018256679074748
+vvr3(14)=0.879979641427232
+vvr3(15)=0.879979641427232
+vvr3(16)=0.018256679074748
+vvr3(17)=0.101763679498021
+vvr3(18)=0.101763679498021
+vvr3(19)=0.023404705466341
+vvr3(20)=0.582562022863673
+vvr3(21)=0.582562022863673
+vvr3(22)=0.023404705466341
+vvr3(23)=0.394033271669987
+vvr3(24)=0.394033271669987
+vvr3(25)=0.022223854547989
+vvr3(26)=0.751530614542782
+vvr3(27)=0.751530614542782
+vvr3(28)=0.022223854547989
+vvr3(29)=0.226245530909229
+vvr3(30)=0.226245530909229
+vvr3(31)=0.115183589115563
+vvr3(32)=0.249079227621332
+vvr3(33)=0.249079227621332
+vvr3(34)=0.115183589115563
+vvr3(35)=0.635737183263105
+vvr3(36)=0.635737183263105
 
 
 
@@ -2332,95 +2399,98 @@ vvwg(36)=0.044326238118914
 
 
 		
-END select
+end select
 
 
 
-		DO Kk=1,qp_triangle
-			WEQUA2D(kK)=vvwg(Kk)
-			QPOINTS2D(:,kk)=(VVR1(kk)*VEXT(1,:))+(VVR2(kk)*VEXT(2,:))+(VVR3(kk)*VEXT(3,:))
+		do kk=1,qp_triangle
+			wequa2d(kk)=vvwg(kk)
+			qpoints2d(:,kk)=(vvr1(kk)*vext(1,:))+(vvr2(kk)*vext(2,:))+(vvr3(kk)*vext(3,:))
 			
-		END DO
+		end do
 
 
 
 
-END SUBROUTINE QUADRATURETRIANG
+end subroutine quadraturetriang
 
-SUBROUTINE QUADRATURETRIANGLE(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+subroutine quadraturetriangle(n,igqrules,vext,qpoints,wequa3d)
 !> @brief
-!> This subroutine computes the quadrature points and weights for triangle in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::IGQRULES,N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
-real,dimension(1:DIMENSIONA,1:DIMENSIONA)::VVA,VVA1
-REAL,dimension(1)::DETA
-REAL,DIMENSION(1:4)::VVNXI
-real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3
+!> this subroutine computes the quadrature points and weights for triangle in 2d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::igqrules,n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints),intent(inout)::qpoints
+real,dimension(1:numberofpoints),intent(inout)::wequa3d
+real,dimension(1:dimensiona,1:dimensiona)::vva,vva1
+real,dimension(1)::deta
+real,dimension(1:4)::vvnxi
+real,dimension(1:alls)::vvwg,vvr1,vvr2,vvr3
 real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
-INTEGER::Kk
+integer::kk
 
-WEQUA3D=0.0d0
-QPOINTS=0.0d0
+wequa3d=0.0d0
+qpoints=0.0d0
 
-select case(IGQRULES)
+select case(igqrules)
 
 
 case(1)
 		
 	    vvwg(1) = 1.0d0
-	    VVR1(1)=1.0d0/3.0d0;	VVR2(1)=1.0d0/3.0d0;	VVR3(1)=1.0d0/3.0d0
+	    vvr1(1)=1.0d0/3.0d0;	vvr2(1)=1.0d0/3.0d0;	vvr3(1)=1.0d0/3.0d0
 
 case(2)
 		vvwg(1)=0.33333333333333333333
   		vvwg(2)=0.33333333333333333333
   		vvwg(3)=0.33333333333333333333
 
-		VVR1(1)=0.666666666666667 ;VVR2(1)=0.166666666666667 ;VVR3(1)=0.166666666666667 
-		VVR1(2)=0.166666666666667 ;VVR2(2)=0.666666666666667 ;VVR3(2)=0.166666666666667 
-		VVR1(3)=0.166666666666667 ;VVR2(3)=0.166666666666667 ;VVR3(3)=0.666666666666667 
+		vvr1(1)=0.666666666666667 ;vvr2(1)=0.166666666666667 ;vvr3(1)=0.166666666666667 
+		vvr1(2)=0.166666666666667 ;vvr2(2)=0.666666666666667 ;vvr3(2)=0.166666666666667 
+		vvr1(3)=0.166666666666667 ;vvr2(3)=0.166666666666667 ;vvr3(3)=0.666666666666667 
 
 case(3)
-		VVR1(1)=0.816847572980440 ;VVR2(1)=0.091576213509780 ;VVR3(1)=0.091576213509780 ;vvwg(1)=0.109951743655333
-		VVR1(2)=0.091576213509780 ;VVR2(2)=0.816847572980440 ;VVR3(2)=0.091576213509780 ;vvwg(2)=0.109951743655333
-		VVR1(3)=0.091576213509780 ;VVR2(3)=0.091576213509780 ;VVR3(3)=0.816847572980440 ;vvwg(3)=0.109951743655333
-		VVR1(4)=0.445948490915964 ;VVR2(4)=0.445948490915964 ;VVR3(4)=0.108103018168071 ;vvwg(4)=0.223381589678000
-		VVR1(5)=0.445948490915964 ;VVR2(5)=0.108103018168071 ;VVR3(5)=0.445948490915964 ;vvwg(5)=0.223381589678000
-		VVR1(6)=0.108103018168071 ;VVR2(6)=0.445948490915964 ;VVR3(6)=0.445948490915964 ;vvwg(6)=0.223381589678000
+		vvr1(1)=0.816847572980440 ;vvr2(1)=0.091576213509780 ;vvr3(1)=0.091576213509780 ;vvwg(1)=0.109951743655333
+		vvr1(2)=0.091576213509780 ;vvr2(2)=0.816847572980440 ;vvr3(2)=0.091576213509780 ;vvwg(2)=0.109951743655333
+		vvr1(3)=0.091576213509780 ;vvr2(3)=0.091576213509780 ;vvr3(3)=0.816847572980440 ;vvwg(3)=0.109951743655333
+		vvr1(4)=0.445948490915964 ;vvr2(4)=0.445948490915964 ;vvr3(4)=0.108103018168071 ;vvwg(4)=0.223381589678000
+		vvr1(5)=0.445948490915964 ;vvr2(5)=0.108103018168071 ;vvr3(5)=0.445948490915964 ;vvwg(5)=0.223381589678000
+		vvr1(6)=0.108103018168071 ;vvr2(6)=0.445948490915964 ;vvr3(6)=0.445948490915964 ;vvwg(6)=0.223381589678000
 
 case(4)
 		
-VVR1(1)=0.888871894660413 ;VVR2(1)=0.055564052669793 ;VVR3(1)=0.055564052669793 ;vvwg(1)=0.041955512996649
-VVR1(2)=0.055564052669793 ;VVR2(2)=0.888871894660413 ;VVR3(2)=0.055564052669793 ;vvwg(2)=0.041955512996649
-VVR1(3)=0.055564052669793 ;VVR2(3)=0.055564052669793 ;VVR3(3)=0.888871894660413 ;vvwg(3)=0.041955512996649
-VVR1(4)=0.295533711735893 ;VVR2(4)=0.634210747745723 ;VVR3(4)=0.070255540518384 ;vvwg(4)=0.112098412070887
-VVR1(5)=0.295533711735893 ;VVR2(5)=0.070255540518384 ;VVR3(5)=0.634210747745723 ;vvwg(5)=0.112098412070887
-VVR1(6)=0.070255540518384 ;VVR2(6)=0.295533711735893 ;VVR3(6)=0.634210747745723 ;vvwg(6)=0.112098412070887
-VVR1(7)=0.634210747745723 ;VVR2(7)=0.295533711735893 ;VVR3(7)=0.070255540518384 ;vvwg(7)=0.112098412070887
-VVR1(8)=0.634210747745723 ;VVR2(8)=0.070255540518384 ;VVR3(8)=0.295533711735893 ;vvwg(8)=0.112098412070887
-VVR1(9)=0.070255540518384 ;VVR2(9)=0.634210747745723 ;VVR3(9)=0.295533711735893 ;vvwg(9)=0.112098412070887
-VVR1(10)=0.333333333333333 ;VVR2(10)=0.333333333333333 ;VVR3(10)=0.333333333333333 ;vvwg(10)=0.201542988584730
+vvr1(1)=0.888871894660413 ;vvr2(1)=0.055564052669793 ;vvr3(1)=0.055564052669793 ;vvwg(1)=0.041955512996649
+vvr1(2)=0.055564052669793 ;vvr2(2)=0.888871894660413 ;vvr3(2)=0.055564052669793 ;vvwg(2)=0.041955512996649
+vvr1(3)=0.055564052669793 ;vvr2(3)=0.055564052669793 ;vvr3(3)=0.888871894660413 ;vvwg(3)=0.041955512996649
+vvr1(4)=0.295533711735893 ;vvr2(4)=0.634210747745723 ;vvr3(4)=0.070255540518384 ;vvwg(4)=0.112098412070887
+vvr1(5)=0.295533711735893 ;vvr2(5)=0.070255540518384 ;vvr3(5)=0.634210747745723 ;vvwg(5)=0.112098412070887
+vvr1(6)=0.070255540518384 ;vvr2(6)=0.295533711735893 ;vvr3(6)=0.634210747745723 ;vvwg(6)=0.112098412070887
+vvr1(7)=0.634210747745723 ;vvr2(7)=0.295533711735893 ;vvr3(7)=0.070255540518384 ;vvwg(7)=0.112098412070887
+vvr1(8)=0.634210747745723 ;vvr2(8)=0.070255540518384 ;vvr3(8)=0.295533711735893 ;vvwg(8)=0.112098412070887
+vvr1(9)=0.070255540518384 ;vvr2(9)=0.634210747745723 ;vvr3(9)=0.295533711735893 ;vvwg(9)=0.112098412070887
+vvr1(10)=0.333333333333333 ;vvr2(10)=0.333333333333333 ;vvr3(10)=0.333333333333333 ;vvwg(10)=0.201542988584730
 
 
 case(5)
 
-VVR1(1)=0.928258244608533;VVR2(1)= 0.035870877695734 ;VVR3(1)=0.035870877695734 ;vvwg(1)=0.017915455012303
-VVR1(2)=0.035870877695734;VVR2(2)= 0.928258244608533 ;VVR3(2)=0.035870877695734 ;vvwg(2)=0.017915455012303
-VVR1(3)=0.035870877695734;VVR2(3)= 0.035870877695734 ;VVR3(3)=0.928258244608533 ;vvwg(3)=0.017915455012303
-VVR1(4)=0.516541208464066;VVR2(4)= 0.241729395767967 ;VVR3(4)=0.241729395767967 ;vvwg(4)=0.127712195881265
-VVR1(5)=0.241729395767967;VVR2(5)= 0.516541208464066 ;VVR3(5)=0.241729395767967 ;vvwg(5)=0.127712195881265
-VVR1(6)=0.241729395767967;VVR2(6)= 0.241729395767967 ;VVR3(6)=0.516541208464066 ;vvwg(6)=0.127712195881265
-VVR1(7)=0.474308787777079;VVR2(7)= 0.474308787777079 ;VVR3(7)=0.051382424445843 ;vvwg(7)=0.076206062385535
-VVR1(8)=0.474308787777079;VVR2(8)= 0.051382424445843 ;VVR3(8)=0.474308787777079 ;vvwg(8)=0.076206062385535
-VVR1(9)=0.051382424445843;VVR2(9)= 0.474308787777079 ;VVR3(9)=0.474308787777079 ;vvwg(9)=0.076206062385535
-VVR1(10)=0.201503881881800;VVR2(10)= 0.751183631106484 ;VVR3(10)=0.047312487011716 ;vvwg(10)=0.055749810027115
-VVR1(11)=0.201503881881800;VVR2(11)= 0.047312487011716 ;VVR3(11)=0.751183631106484 ;vvwg(11)=0.055749810027115
-VVR1(12)=0.047312487011716;VVR2(12)= 0.201503881881800 ;VVR3(12)=0.751183631106484 ;vvwg(12)=0.055749810027115
-VVR1(13)=0.751183631106484;VVR2(13)= 0.201503881881800 ;VVR3(13)=0.047312487011716 ;vvwg(13)=0.055749810027115
-VVR1(14)=0.751183631106484;VVR2(14)= 0.047312487011716 ;VVR3(14)=0.201503881881800 ;vvwg(14)=0.055749810027115
-VVR1(15)=0.047312487011716;VVR2(15)= 0.751183631106484 ;VVR3(15)=0.201503881881800 ;vvwg(15)=0.055749810027115
+vvr1(1)=0.928258244608533;vvr2(1)= 0.035870877695734 ;vvr3(1)=0.035870877695734 ;vvwg(1)=0.017915455012303
+vvr1(2)=0.035870877695734;vvr2(2)= 0.928258244608533 ;vvr3(2)=0.035870877695734 ;vvwg(2)=0.017915455012303
+vvr1(3)=0.035870877695734;vvr2(3)= 0.035870877695734 ;vvr3(3)=0.928258244608533 ;vvwg(3)=0.017915455012303
+vvr1(4)=0.516541208464066;vvr2(4)= 0.241729395767967 ;vvr3(4)=0.241729395767967 ;vvwg(4)=0.127712195881265
+vvr1(5)=0.241729395767967;vvr2(5)= 0.516541208464066 ;vvr3(5)=0.241729395767967 ;vvwg(5)=0.127712195881265
+vvr1(6)=0.241729395767967;vvr2(6)= 0.241729395767967 ;vvr3(6)=0.516541208464066 ;vvwg(6)=0.127712195881265
+vvr1(7)=0.474308787777079;vvr2(7)= 0.474308787777079 ;vvr3(7)=0.051382424445843 ;vvwg(7)=0.076206062385535
+vvr1(8)=0.474308787777079;vvr2(8)= 0.051382424445843 ;vvr3(8)=0.474308787777079 ;vvwg(8)=0.076206062385535
+vvr1(9)=0.051382424445843;vvr2(9)= 0.474308787777079 ;vvr3(9)=0.474308787777079 ;vvwg(9)=0.076206062385535
+vvr1(10)=0.201503881881800;vvr2(10)= 0.751183631106484 ;vvr3(10)=0.047312487011716 ;vvwg(10)=0.055749810027115
+vvr1(11)=0.201503881881800;vvr2(11)= 0.047312487011716 ;vvr3(11)=0.751183631106484 ;vvwg(11)=0.055749810027115
+vvr1(12)=0.047312487011716;vvr2(12)= 0.201503881881800 ;vvr3(12)=0.751183631106484 ;vvwg(12)=0.055749810027115
+vvr1(13)=0.751183631106484;vvr2(13)= 0.201503881881800 ;vvr3(13)=0.047312487011716 ;vvwg(13)=0.055749810027115
+vvr1(14)=0.751183631106484;vvr2(14)= 0.047312487011716 ;vvr3(14)=0.201503881881800 ;vvwg(14)=0.055749810027115
+vvr1(15)=0.047312487011716;vvr2(15)= 0.751183631106484 ;vvr3(15)=0.201503881881800 ;vvwg(15)=0.055749810027115
 
 
 
@@ -2431,145 +2501,145 @@ VVR1(15)=0.047312487011716;VVR2(15)= 0.751183631106484 ;VVR3(15)=0.2015038818818
 
 case(6)
 
-VVR1(1)=0.943774095634672 ;VVR2(1)=0.028112952182664 ;VVR3(1)=0.028112952182664 ;vvwg(1)=0.010359374696538
-VVR1(2)=0.028112952182664 ;VVR2(2)=0.943774095634672 ;VVR3(2)=0.028112952182664 ;vvwg(2)=0.010359374696538
-VVR1(3)=0.028112952182664 ;VVR2(3)=0.028112952182664 ;VVR3(3)=0.943774095634672 ;vvwg(3)=0.010359374696538
-VVR1(4)=0.645721803061365 ;VVR2(4)=0.177139098469317 ;VVR3(4)=0.177139098469317 ;vvwg(4)=0.075394884326738
-VVR1(5)=0.177139098469317 ;VVR2(5)=0.645721803061365 ;VVR3(5)=0.177139098469317 ;vvwg(5)=0.075394884326738
-VVR1(6)=0.177139098469317 ;VVR2(6)=0.177139098469317 ;VVR3(6)=0.645721803061365 ;vvwg(6)=0.075394884326738
-VVR1(7)=0.405508595867433 ;VVR2(7)=0.405508595867433 ;VVR3(7)=0.188982808265134 ;vvwg(7)=0.097547802373242
-VVR1(8)=0.405508595867433 ;VVR2(8)=0.188982808265134 ;VVR3(8)=0.405508595867433 ;vvwg(8)=0.097547802373242
-VVR1(9)=0.188982808265134 ;VVR2(9)=0.405508595867433 ;VVR3(9)=0.405508595867433 ;vvwg(9)=0.097547802373242
-VVR1(10)=0.148565812270887 ;VVR2(10)=0.817900980028499 ;VVR3(10)=0.033533207700614 ;vvwg(10)=0.028969269372473
-VVR1(11)=0.148565812270887 ;VVR2(11)=0.033533207700614 ;VVR3(11)=0.817900980028499 ;vvwg(11)=0.028969269372473
-VVR1(12)=0.033533207700614 ;VVR2(12)=0.148565812270887 ;VVR3(12)=0.817900980028499 ;vvwg(12)=0.028969269372473
-VVR1(13)=0.817900980028499 ;VVR2(13)=0.148565812270887 ;VVR3(13)=0.033533207700614 ;vvwg(13)=0.028969269372473
-VVR1(14)=0.817900980028499 ;VVR2(14)=0.033533207700614 ;VVR3(14)=0.148565812270887 ;vvwg(14)=0.028969269372473
-VVR1(15)=0.033533207700614 ;VVR2(15)=0.817900980028499 ;VVR3(15)=0.148565812270887 ;vvwg(15)=0.028969269372473
-VVR1(16)=0.357196298615681 ;VVR2(16)=0.604978911775132 ;VVR3(16)=0.037824789609186 ;vvwg(16)=0.046046366595935
-VVR1(17)=0.357196298615681 ;VVR2(17)=0.037824789609186 ;VVR3(17)=0.604978911775132 ;vvwg(17)=0.046046366595935
-VVR1(18)=0.037824789609186 ;VVR2(18)=0.357196298615681 ;VVR3(18)=0.604978911775132 ;vvwg(18)=0.046046366595935
-VVR1(19)=0.604978911775132 ;VVR2(19)=0.357196298615681 ;VVR3(19)=0.037824789609186 ;vvwg(19)=0.046046366595935
-VVR1(20)=0.604978911775132 ;VVR2(20)=0.037824789609186 ;VVR3(20)=0.357196298615681 ;vvwg(20)=0.046046366595935
-VVR1(21)=0.037824789609186 ;VVR2(21)=0.604978911775132 ;VVR3(21)=0.357196298615681 ;vvwg(21)=0.046046366595935
+vvr1(1)=0.943774095634672 ;vvr2(1)=0.028112952182664 ;vvr3(1)=0.028112952182664 ;vvwg(1)=0.010359374696538
+vvr1(2)=0.028112952182664 ;vvr2(2)=0.943774095634672 ;vvr3(2)=0.028112952182664 ;vvwg(2)=0.010359374696538
+vvr1(3)=0.028112952182664 ;vvr2(3)=0.028112952182664 ;vvr3(3)=0.943774095634672 ;vvwg(3)=0.010359374696538
+vvr1(4)=0.645721803061365 ;vvr2(4)=0.177139098469317 ;vvr3(4)=0.177139098469317 ;vvwg(4)=0.075394884326738
+vvr1(5)=0.177139098469317 ;vvr2(5)=0.645721803061365 ;vvr3(5)=0.177139098469317 ;vvwg(5)=0.075394884326738
+vvr1(6)=0.177139098469317 ;vvr2(6)=0.177139098469317 ;vvr3(6)=0.645721803061365 ;vvwg(6)=0.075394884326738
+vvr1(7)=0.405508595867433 ;vvr2(7)=0.405508595867433 ;vvr3(7)=0.188982808265134 ;vvwg(7)=0.097547802373242
+vvr1(8)=0.405508595867433 ;vvr2(8)=0.188982808265134 ;vvr3(8)=0.405508595867433 ;vvwg(8)=0.097547802373242
+vvr1(9)=0.188982808265134 ;vvr2(9)=0.405508595867433 ;vvr3(9)=0.405508595867433 ;vvwg(9)=0.097547802373242
+vvr1(10)=0.148565812270887 ;vvr2(10)=0.817900980028499 ;vvr3(10)=0.033533207700614 ;vvwg(10)=0.028969269372473
+vvr1(11)=0.148565812270887 ;vvr2(11)=0.033533207700614 ;vvr3(11)=0.817900980028499 ;vvwg(11)=0.028969269372473
+vvr1(12)=0.033533207700614 ;vvr2(12)=0.148565812270887 ;vvr3(12)=0.817900980028499 ;vvwg(12)=0.028969269372473
+vvr1(13)=0.817900980028499 ;vvr2(13)=0.148565812270887 ;vvr3(13)=0.033533207700614 ;vvwg(13)=0.028969269372473
+vvr1(14)=0.817900980028499 ;vvr2(14)=0.033533207700614 ;vvr3(14)=0.148565812270887 ;vvwg(14)=0.028969269372473
+vvr1(15)=0.033533207700614 ;vvr2(15)=0.817900980028499 ;vvr3(15)=0.148565812270887 ;vvwg(15)=0.028969269372473
+vvr1(16)=0.357196298615681 ;vvr2(16)=0.604978911775132 ;vvr3(16)=0.037824789609186 ;vvwg(16)=0.046046366595935
+vvr1(17)=0.357196298615681 ;vvr2(17)=0.037824789609186 ;vvr3(17)=0.604978911775132 ;vvwg(17)=0.046046366595935
+vvr1(18)=0.037824789609186 ;vvr2(18)=0.357196298615681 ;vvr3(18)=0.604978911775132 ;vvwg(18)=0.046046366595935
+vvr1(19)=0.604978911775132 ;vvr2(19)=0.357196298615681 ;vvr3(19)=0.037824789609186 ;vvwg(19)=0.046046366595935
+vvr1(20)=0.604978911775132 ;vvr2(20)=0.037824789609186 ;vvr3(20)=0.357196298615681 ;vvwg(20)=0.046046366595935
+vvr1(21)=0.037824789609186 ;vvr2(21)=0.604978911775132 ;vvr3(21)=0.357196298615681 ;vvwg(21)=0.046046366595935
 
 case(7,8,9)
 
-VVR1(1)=0.957657154441070
-VVR1(2)=0.021171422779465
-VVR1(3)=0.021171422779465
-VVR1(4)=0.798831205208225
-VVR1(5)=0.100584397395888
-VVR1(6)=0.100584397395888
-VVR1(7)=0.457923384576135
-VVR1(8)=0.271038307711932
-VVR1(9)=0.271038307711932
-VVR1(10)=0.440191258403832
-VVR1(11)=0.440191258403832
-VVR1(12)=0.119617483192335
-VVR1(13)=0.101763679498021
-VVR1(14)=0.101763679498021
-VVR1(15)=0.018256679074748
-VVR1(16)=0.879979641427232
-VVR1(17)=0.879979641427232
-VVR1(18)=0.018256679074748
-VVR1(19)=0.394033271669987
-VVR1(20)=0.394033271669987
-VVR1(21)=0.023404705466341
-VVR1(22)=0.582562022863673
-VVR1(23)=0.582562022863673
-VVR1(24)=0.023404705466341
-VVR1(25)=0.226245530909229
-VVR1(26)=0.226245530909229
-VVR1(27)=0.022223854547989
-VVR1(28)=0.751530614542782
-VVR1(29)=0.751530614542782
-VVR1(30)=0.022223854547989
-VVR1(31)=0.635737183263105
-VVR1(32)=0.635737183263105
-VVR1(33)=0.115183589115563
-VVR1(34)=0.249079227621332
-VVR1(35)=0.249079227621332
-VVR1(36)=0.115183589115563
+vvr1(1)=0.957657154441070
+vvr1(2)=0.021171422779465
+vvr1(3)=0.021171422779465
+vvr1(4)=0.798831205208225
+vvr1(5)=0.100584397395888
+vvr1(6)=0.100584397395888
+vvr1(7)=0.457923384576135
+vvr1(8)=0.271038307711932
+vvr1(9)=0.271038307711932
+vvr1(10)=0.440191258403832
+vvr1(11)=0.440191258403832
+vvr1(12)=0.119617483192335
+vvr1(13)=0.101763679498021
+vvr1(14)=0.101763679498021
+vvr1(15)=0.018256679074748
+vvr1(16)=0.879979641427232
+vvr1(17)=0.879979641427232
+vvr1(18)=0.018256679074748
+vvr1(19)=0.394033271669987
+vvr1(20)=0.394033271669987
+vvr1(21)=0.023404705466341
+vvr1(22)=0.582562022863673
+vvr1(23)=0.582562022863673
+vvr1(24)=0.023404705466341
+vvr1(25)=0.226245530909229
+vvr1(26)=0.226245530909229
+vvr1(27)=0.022223854547989
+vvr1(28)=0.751530614542782
+vvr1(29)=0.751530614542782
+vvr1(30)=0.022223854547989
+vvr1(31)=0.635737183263105
+vvr1(32)=0.635737183263105
+vvr1(33)=0.115183589115563
+vvr1(34)=0.249079227621332
+vvr1(35)=0.249079227621332
+vvr1(36)=0.115183589115563
 
 
 
-VVR2(1)=0.021171422779465
-VVR2(2)=0.957657154441070
-VVR2(3)=0.021171422779465
-VVR2(4)=0.100584397395888
-VVR2(5)=0.798831205208225
-VVR2(6)=0.100584397395888
-VVR2(7)=0.271038307711932
-VVR2(8)=0.457923384576135
-VVR2(9)=0.271038307711932
-VVR2(10)=0.440191258403832
-VVR2(11)=0.119617483192335
-VVR2(12)=0.440191258403832
-VVR2(13)=0.879979641427232
-VVR2(14)=0.018256679074748
-VVR2(15)=0.101763679498021
-VVR2(16)=0.101763679498021
-VVR2(17)=0.018256679074748
-VVR2(18)=0.879979641427232
-VVR2(19)=0.582562022863673
-VVR2(20)=0.023404705466341
-VVR2(21)=0.394033271669987
-VVR2(22)=0.394033271669987
-VVR2(23)=0.023404705466341
-VVR2(24)=0.582562022863673
-VVR2(25)=0.751530614542782
-VVR2(26)=0.022223854547989
-VVR2(27)=0.226245530909229
-VVR2(28)=0.226245530909229
-VVR2(29)=0.022223854547989
-VVR2(30)=0.751530614542782
-VVR2(31)=0.249079227621332
-VVR2(32)=0.115183589115563
-VVR2(33)=0.635737183263105
-VVR2(34)=0.635737183263105
-VVR2(35)=0.115183589115563
-VVR2(36)=0.249079227621332
+vvr2(1)=0.021171422779465
+vvr2(2)=0.957657154441070
+vvr2(3)=0.021171422779465
+vvr2(4)=0.100584397395888
+vvr2(5)=0.798831205208225
+vvr2(6)=0.100584397395888
+vvr2(7)=0.271038307711932
+vvr2(8)=0.457923384576135
+vvr2(9)=0.271038307711932
+vvr2(10)=0.440191258403832
+vvr2(11)=0.119617483192335
+vvr2(12)=0.440191258403832
+vvr2(13)=0.879979641427232
+vvr2(14)=0.018256679074748
+vvr2(15)=0.101763679498021
+vvr2(16)=0.101763679498021
+vvr2(17)=0.018256679074748
+vvr2(18)=0.879979641427232
+vvr2(19)=0.582562022863673
+vvr2(20)=0.023404705466341
+vvr2(21)=0.394033271669987
+vvr2(22)=0.394033271669987
+vvr2(23)=0.023404705466341
+vvr2(24)=0.582562022863673
+vvr2(25)=0.751530614542782
+vvr2(26)=0.022223854547989
+vvr2(27)=0.226245530909229
+vvr2(28)=0.226245530909229
+vvr2(29)=0.022223854547989
+vvr2(30)=0.751530614542782
+vvr2(31)=0.249079227621332
+vvr2(32)=0.115183589115563
+vvr2(33)=0.635737183263105
+vvr2(34)=0.635737183263105
+vvr2(35)=0.115183589115563
+vvr2(36)=0.249079227621332
 
 
 
 
-VVR3(1)=0.021171422779465
-VVR3(2)=0.021171422779465
-VVR3(3)=0.957657154441070
-VVR3(4)=0.100584397395888
-VVR3(5)=0.100584397395888
-VVR3(6)=0.798831205208225
-VVR3(7)=0.271038307711932
-VVR3(8)=0.271038307711932
-VVR3(9)=0.457923384576135
-VVR3(10)=0.119617483192335
-VVR3(11)=0.440191258403832
-VVR3(12)=0.440191258403832
-VVR3(13)=0.018256679074748
-VVR3(14)=0.879979641427232
-VVR3(15)=0.879979641427232
-VVR3(16)=0.018256679074748
-VVR3(17)=0.101763679498021
-VVR3(18)=0.101763679498021
-VVR3(19)=0.023404705466341
-VVR3(20)=0.582562022863673
-VVR3(21)=0.582562022863673
-VVR3(22)=0.023404705466341
-VVR3(23)=0.394033271669987
-VVR3(24)=0.394033271669987
-VVR3(25)=0.022223854547989
-VVR3(26)=0.751530614542782
-VVR3(27)=0.751530614542782
-VVR3(28)=0.022223854547989
-VVR3(29)=0.226245530909229
-VVR3(30)=0.226245530909229
-VVR3(31)=0.115183589115563
-VVR3(32)=0.249079227621332
-VVR3(33)=0.249079227621332
-VVR3(34)=0.115183589115563
-VVR3(35)=0.635737183263105
-VVR3(36)=0.635737183263105
+vvr3(1)=0.021171422779465
+vvr3(2)=0.021171422779465
+vvr3(3)=0.957657154441070
+vvr3(4)=0.100584397395888
+vvr3(5)=0.100584397395888
+vvr3(6)=0.798831205208225
+vvr3(7)=0.271038307711932
+vvr3(8)=0.271038307711932
+vvr3(9)=0.457923384576135
+vvr3(10)=0.119617483192335
+vvr3(11)=0.440191258403832
+vvr3(12)=0.440191258403832
+vvr3(13)=0.018256679074748
+vvr3(14)=0.879979641427232
+vvr3(15)=0.879979641427232
+vvr3(16)=0.018256679074748
+vvr3(17)=0.101763679498021
+vvr3(18)=0.101763679498021
+vvr3(19)=0.023404705466341
+vvr3(20)=0.582562022863673
+vvr3(21)=0.582562022863673
+vvr3(22)=0.023404705466341
+vvr3(23)=0.394033271669987
+vvr3(24)=0.394033271669987
+vvr3(25)=0.022223854547989
+vvr3(26)=0.751530614542782
+vvr3(27)=0.751530614542782
+vvr3(28)=0.022223854547989
+vvr3(29)=0.226245530909229
+vvr3(30)=0.226245530909229
+vvr3(31)=0.115183589115563
+vvr3(32)=0.249079227621332
+vvr3(33)=0.249079227621332
+vvr3(34)=0.115183589115563
+vvr3(35)=0.635737183263105
+vvr3(36)=0.635737183263105
 
 
 
@@ -2611,50 +2681,53 @@ vvwg(35)=0.044326238118914
 vvwg(36)=0.044326238118914
 		
 		
-END select
+end select
 
 
 
-		DO Kk=1,qp_triangle
-			WEQUA3D(kk)=vvwg(kk)
-			QPOINTS(:,kk)=(VVR1(kk)*VEXT(1,:))+(VVR2(kk)*VEXT(2,:))+(VVR3(kk)*VEXT(3,:))
+		do kk=1,qp_triangle
+			wequa3d(kk)=vvwg(kk)
+			qpoints(:,kk)=(vvr1(kk)*vext(1,:))+(vvr2(kk)*vext(2,:))+(vvr3(kk)*vext(3,:))
 			
-		END DO
+		end do
 
 
 
 
-END SUBROUTINE QUADRATURETRIANGLE
+end subroutine quadraturetriangle
 
 
-SUBROUTINE QUADRATUREQUAD(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+subroutine quadraturequad(n,igqrules,vext,qpoints,wequa3d)
  !> @brief
-!> This subroutine computes the quadrature points and weights for quadrilateral in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::IGQRULES,N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
-real,dimension(1:2,1:2)::VVA,VVA1
-REAL,dimension(1)::DETA
-REAL,DIMENSION(1:4)::VVNXI
-real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3
+!> this subroutine computes the quadrature points and weights for quadrilateral in 2d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::igqrules,n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints),intent(inout)::qpoints
+real,dimension(1:numberofpoints),intent(inout)::wequa3d
+real,dimension(1:2,1:2)::vva,vva1
+real,dimension(1)::deta
+real,dimension(1:4)::vvnxi
+real,dimension(1:alls)::vvwg,vvr1,vvr2,vvr3
 real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
-REAL::R,S,TX,a,b,c,d,e,f
-REAL::a1,b1,c1,d1,e1,f1
-INTEGER::Kk,J,ii,ij,ik,count1
+real::r,s,tx,a,b,c,d,e,f
+real::a1,b1,c1,d1,e1,f1
+integer::kk,j,ii,ij,ik,count1
 
 
- WEQUA3D=0.0d0
-  QPOINTS=0.0d0
+ wequa3d=0.0d0
+  qpoints=0.0d0
 
-SELECT CASE(IGQRULES)
+select case(igqrules)
  
 
  case(1)
 
 		vvwg(1) = 4.0d0
-	    VVR1(1)=0.0d0	;VVR2(1)=0.0d0	
+	    vvr1(1)=0.0d0	;vvr2(1)=0.0d0	
 
 
  case(2)
@@ -2677,7 +2750,7 @@ SELECT CASE(IGQRULES)
     do ij=1,2
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) 
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)
       
     end do
@@ -2686,7 +2759,7 @@ end do
 
 
   	
- CASE(3)
+ case(3)
   a=0.0d0
   b=-0.7745966692414834
   c=0.7745966692414834
@@ -2704,7 +2777,7 @@ end do
     do ij=1,3
      
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) 
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)
       
     end do
@@ -2712,7 +2785,7 @@ end do
  
 
 			
- CASE(4)
+ case(4)
   a=-0.3399810435848563
   b=0.3399810435848563
   c=-0.8611363115940526
@@ -2732,7 +2805,7 @@ end do
     do ij=1,4
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) 
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)
      
     end do
@@ -2740,7 +2813,7 @@ end do
 
 
 			
-CASE(5)
+case(5)
 
   a=0.0d0
   b=-0.5384693101056831
@@ -2751,7 +2824,7 @@ CASE(5)
   b1=0.4786286704993665
   c1=0.4786286704993665
   d1=0.2369268850561891
-  E1=0.2369268850561891
+  e1=0.2369268850561891
   vvnpox(1)=a	;vvnpox(2)=b	;vvnpox(3)=c ;vvnpox(4)=d ;vvnpox(5)=e
   vvnpoy(1)= a	;vvnpoy(2)=b	;vvnpoy(3)=c ;vvnpoy(4)=d ;vvnpoy(5)=e
   vvnpoz(1)= a	;vvnpoz(2)=b	;vvnpoz(3)=c ;vvnpoz(4)=d ;vvnpoz(5)=e
@@ -2763,27 +2836,27 @@ CASE(5)
     do ij=1,5
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) 
 	vvwg(count1)=(vvwpox(ii)*vvwpox(ij))
       
     end do
 end do
 	
 			
-CASE(6,7,8,9)
+case(6,7,8,9)
 
   a=0.6612093864662645
   b=-0.6612093864662645
   c=-0.2386191860831969
   d=0.2386191860831969
   e=-0.9324695142031521
-  F=0.9324695142031521
+  f=0.9324695142031521
   a1=0.3607615730481386
   b1=0.3607615730481386
   c1=0.4679139345726910
   d1=0.4679139345726910
   e1=0.1713244923791704
-  F1=0.1713244923791704
+  f1=0.1713244923791704
   vvnpox(1)=a	;vvnpox(2)=b	;vvnpox(3)=c ;vvnpox(4)=d ;vvnpox(5)=e;vvnpox(6)=f
   vvnpoy(1)= a	;vvnpoy(2)=b	;vvnpoy(3)=c ;vvnpoy(4)=d ;vvnpoy(5)=e;vvnpoy(6)=f
   vvnpoz(1)= a	;vvnpoz(2)=b	;vvnpoz(3)=c ;vvnpoz(4)=d ;vvnpoz(5)=e;vvnpoz(6)=f
@@ -2795,72 +2868,75 @@ CASE(6,7,8,9)
     do ij=1,6
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) 
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)
       
     end do
 end do
 	
 			
-END SELECT
-		QPOINTS(:,:)=0.0d0
+end select
+		qpoints(:,:)=0.0d0
 		
 		  vvwg(:)=vvwg(:)*0.25d0
-! 		  WEQUA3D(:)=vvwg(:)
+! 		  wequa3d(:)=vvwg(:)
 		do kk=1,qp_quad
-			 WEQUA3D(kk)=vvwg(kk)
-			R=VVR1(kk); S=VVR2(kk);
-			VVnxi(1)=(0.25d0)*(1.0d0-R)*(1.0d0-s)
-			VVnxi(2)=(0.25d0)*(1.0d0+R)*(1.0d0-s)
-			VVnxi(3)=(0.25d0)*(1.0d0+R)*(1.0d0+s)
-			VVnxi(4)=(0.25d0)*(1.0d0-R)*(1.0d0+s)
+			 wequa3d(kk)=vvwg(kk)
+			r=vvr1(kk); s=vvr2(kk);
+			vvnxi(1)=(0.25d0)*(1.0d0-r)*(1.0d0-s)
+			vvnxi(2)=(0.25d0)*(1.0d0+r)*(1.0d0-s)
+			vvnxi(3)=(0.25d0)*(1.0d0+r)*(1.0d0+s)
+			vvnxi(4)=(0.25d0)*(1.0d0-r)*(1.0d0+s)
 			
-			DO J=1,4
-			QPOINTS(1:2,kk)=QPOINTS(1:2,kk)+(VVNXI(j)*VEXT(j,1:2))
-			END DO
+			do j=1,4
+			qpoints(1:2,kk)=qpoints(1:2,kk)+(vvnxi(j)*vext(j,1:2))
+			end do
 ! 			
 
-		END DO
+		end do
 		
 
 
 
 
-END SUBROUTINE QUADRATUREQUAD
+end subroutine quadraturequad
 
 
 
 
-SUBROUTINE QUADRATUREQUAD3D(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+subroutine quadraturequad3d(n,igqrules,vext,qpoints2d,wequa2d)
  !> @brief
-!> This subroutine computes the quadrature points and weights for quadrilateral in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,IGQRULES
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS2),INTENT(INOUT)::QPOINTS2D
-REAL,DIMENSION(1:NUMBEROFPOINTS2),INTENT(INOUT)::WEQUA2D
-real,dimension(1:3,1:3)::VVA,VVA1
-REAL,dimension(1)::DETA
-REAL,DIMENSION(1:4)::VVNXI
-real,dimension(1:ALLS)::VVwg
-real,dimension(1:ALLS)::VVR1,VVR2,VVR3
+!> this subroutine computes the quadrature points and weights for quadrilateral in 3d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n,igqrules
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints2),intent(inout)::qpoints2d
+real,dimension(1:numberofpoints2),intent(inout)::wequa2d
+real,dimension(1:3,1:3)::vva,vva1
+real,dimension(1)::deta
+real,dimension(1:4)::vvnxi
+real,dimension(1:alls)::vvwg
+real,dimension(1:alls)::vvr1,vvr2,vvr3
 real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
-REAL::R,S,a,b,c,d,e,f
-REAL::a1,b1,c1,d1,e1,f1
-INTEGER::Kk,J,ii,ij,ik,count1
+real::r,s,a,b,c,d,e,f
+real::a1,b1,c1,d1,e1,f1
+integer::kk,j,ii,ij,ik,count1
 
 
 
- WEQUA2D=0.0d0
-  QPOINTS2D=0.0d0
+ wequa2d=0.0d0
+  qpoints2d=0.0d0
 
-SELECT CASE(IGQRULES)
+select case(igqrules)
  
 
  case(1)
 
 		vvwg(1) = 4.0d0
-	    VVR1(1)=0.0d0	;VVR2(1)=0.0d0	
+	    vvr1(1)=0.0d0	;vvr2(1)=0.0d0	
 
 
  case(2)
@@ -2883,7 +2959,7 @@ SELECT CASE(IGQRULES)
     do ij=1,2
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) 
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)
       
     end do
@@ -2892,7 +2968,7 @@ end do
 
 
   	
- CASE(3)
+ case(3)
   a=0.0d0
   b=-0.7745966692414834
   c=0.7745966692414834
@@ -2910,7 +2986,7 @@ end do
     do ij=1,3
      
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) 
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)
       
     end do
@@ -2918,7 +2994,7 @@ end do
  
 
 			
- CASE(4)
+ case(4)
   a=-0.3399810435848563
   b=0.3399810435848563
   c=-0.8611363115940526
@@ -2938,7 +3014,7 @@ end do
     do ij=1,4
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) 
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)
      
     end do
@@ -2946,7 +3022,7 @@ end do
 
 
 			
-CASE(5)
+case(5)
 
   a=0.0d0
   b=-0.5384693101056831
@@ -2957,7 +3033,7 @@ CASE(5)
   b1=0.4786286704993665
   c1=0.4786286704993665
   d1=0.2369268850561891
-  E1=0.2369268850561891
+  e1=0.2369268850561891
   vvnpox(1)=a	;vvnpox(2)=b	;vvnpox(3)=c ;vvnpox(4)=d ;vvnpox(5)=e
   vvnpoy(1)= a	;vvnpoy(2)=b	;vvnpoy(3)=c ;vvnpoy(4)=d ;vvnpoy(5)=e
   vvnpoz(1)= a	;vvnpoz(2)=b	;vvnpoz(3)=c ;vvnpoz(4)=d ;vvnpoz(5)=e
@@ -2969,27 +3045,27 @@ CASE(5)
     do ij=1,5
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) 
 	vvwg(count1)=(vvwpox(ii)*vvwpox(ij))
       
     end do
 end do
 	
 			
-CASE(6,7,8,9)
+case(6,7,8,9)
 
   a=0.6612093864662645
   b=-0.6612093864662645
   c=-0.2386191860831969
   d=0.2386191860831969
   e=-0.9324695142031521
-  F=0.9324695142031521
+  f=0.9324695142031521
   a1=0.3607615730481386
   b1=0.3607615730481386
   c1=0.4679139345726910
   d1=0.4679139345726910
   e1=0.1713244923791704
-  F1=0.1713244923791704
+  f1=0.1713244923791704
   vvnpox(1)=a	;vvnpox(2)=b	;vvnpox(3)=c ;vvnpox(4)=d ;vvnpox(5)=e;vvnpox(6)=f
   vvnpoy(1)= a	;vvnpoy(2)=b	;vvnpoy(3)=c ;vvnpoy(4)=d ;vvnpoy(5)=e;vvnpoy(6)=f
   vvnpoz(1)= a	;vvnpoz(2)=b	;vvnpoz(3)=c ;vvnpoz(4)=d ;vvnpoz(5)=e;vvnpoz(6)=f
@@ -3001,70 +3077,73 @@ CASE(6,7,8,9)
     do ij=1,6
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) 
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)
       
     end do
 end do
 	
 			
-END SELECT
-		QPOINTS2D(:,:)=0.0d0
+end select
+		qpoints2d(:,:)=0.0d0
 		
 		  vvwg(:)=vvwg(:)*0.25d0
-! 		  WEQUA2D(:)=vvwg(:)
+! 		  wequa2d(:)=vvwg(:)
 		do kk=1,qp_quad
-			WEQUA2D(kk)=vvwg(kk)
-			R=VVR1(kk); S=VVR2(kk);
-			VVnxi(1)=(0.25d0)*(1.0d0-R)*(1.0d0-s)
-			VVnxi(2)=(0.25d0)*(1.0d0+R)*(1.0d0-s)
-			VVnxi(3)=(0.25d0)*(1.0d0+R)*(1.0d0+s)
-			VVnxi(4)=(0.25d0)*(1.0d0-R)*(1.0d0+s)
+			wequa2d(kk)=vvwg(kk)
+			r=vvr1(kk); s=vvr2(kk);
+			vvnxi(1)=(0.25d0)*(1.0d0-r)*(1.0d0-s)
+			vvnxi(2)=(0.25d0)*(1.0d0+r)*(1.0d0-s)
+			vvnxi(3)=(0.25d0)*(1.0d0+r)*(1.0d0+s)
+			vvnxi(4)=(0.25d0)*(1.0d0-r)*(1.0d0+s)
 			
-			DO J=1,4
-			QPOINTS2D(1:3,kk)=QPOINTS2D(1:3,kk)+(VVNXI(j)*VEXT(j,1:3))
-			END DO
+			do j=1,4
+			qpoints2d(1:3,kk)=qpoints2d(1:3,kk)+(vvnxi(j)*vext(j,1:3))
+			end do
 ! 			
 
-		END DO
+		end do
 		
 
 
 
 
-END SUBROUTINE QUADRATUREQUAD3D
+end subroutine quadraturequad3d
 
 
-SUBROUTINE QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+subroutine quadratureline(n,igqrules,vext,qpoints2d,wequa2d)
  !> @brief
-!> This subroutine computes the quadrature points for a line and returns it in QPOINTS2D(DIM,QP)
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,IGQRULES
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS2),INTENT(INOUT)::QPOINTS2D
-REAL,DIMENSION(1:NUMBEROFPOINTS2),INTENT(INOUT)::WEQUA2D
-real,dimension(1:2,1:2)::VVA,VVA1
-REAL,dimension(1)::DETA
-REAL,DIMENSION(1:4)::VVNXI
-real,dimension(1:ALLS)::VVwg
-real,dimension(1:ALLS)::VVR1,VVR2,VVR3
+!> this subroutine computes the quadrature points for a line and returns it in qpoints2d(dim,qp)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n,igqrules
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints2),intent(inout)::qpoints2d
+real,dimension(1:numberofpoints2),intent(inout)::wequa2d
+real,dimension(1:2,1:2)::vva,vva1
+real,dimension(1)::deta
+real,dimension(1:4)::vvnxi
+real,dimension(1:alls)::vvwg
+real,dimension(1:alls)::vvr1,vvr2,vvr3
 real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
-REAL::R,S,TX,a,b,c,d,e,f,G,H,K
-REAL::a1,b1,c1,d1,e1,f1,G1,H1,K1
-INTEGER::Kk,J,ii,ij,ik,count1
+real::r,s,tx,a,b,c,d,e,f,g,h,k
+real::a1,b1,c1,d1,e1,f1,g1,h1,k1
+integer::kk,j,ii,ij,ik,count1
 
 
 
- WEQUA2D=0.0d0
-  QPOINTS2D=0.0d0
+ wequa2d=0.0d0
+  qpoints2d=0.0d0
 
-SELECT CASE(IGQRULES)
+select case(igqrules)
  
 
  case(1)
 
 		vvwg(1) = 2.0d0
-	    VVR1(1)=0.0d0	;VVR2(1)=0.0d0	
+	    vvr1(1)=0.0d0	;vvr2(1)=0.0d0	
 
 
  case(2)
@@ -3084,7 +3163,7 @@ SELECT CASE(IGQRULES)
  do ii=1,2
          
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii)
+	vvr1(count1)=vvnpox(ii)
 	vvwg(count1)=vvwpox(ii)
       
     
@@ -3093,7 +3172,7 @@ end do
 
 
   	
- CASE(3)
+ case(3)
   a=0.0d0
   b=-0.7745966692414834
   c=0.7745966692414834
@@ -3109,7 +3188,7 @@ end do
     
      
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii)
+	vvr1(count1)=vvnpox(ii)
 	vvwg(count1)=vvwpox(ii)
       
     
@@ -3117,7 +3196,7 @@ end do
  
 
 			
- CASE(4)
+ case(4)
   a=-0.3399810435848563
   b=0.3399810435848563
   c=-0.8611363115940526
@@ -3135,7 +3214,7 @@ end do
    
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii)
+	vvr1(count1)=vvnpox(ii)
 	vvwg(count1)=vvwpox(ii)
      
    
@@ -3143,7 +3222,7 @@ end do
 
 
 			
-CASE(5)
+case(5)
 
   a=0.0d0
   b=-0.5384693101056831
@@ -3154,7 +3233,7 @@ CASE(5)
   b1=0.4786286704993665
   c1=0.4786286704993665
   d1=0.2369268850561891
-  E1=0.2369268850561891
+  e1=0.2369268850561891
   vvnpox(1)=a	;vvnpox(2)=b	;vvnpox(3)=c ;vvnpox(4)=d ;vvnpox(5)=e
  
   vvwpox(1)=a1	;vvwpox(2)=b1	;vvwpox(3)=c1 ;vvwpox(4)=d1 ;vvwpox(5)=e1
@@ -3164,27 +3243,27 @@ CASE(5)
    
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii)
+	vvr1(count1)=vvnpox(ii)
 	vvwg(count1)=(vvwpox(ii))
       
     
 end do
 	
 			
-CASE(6)
+case(6)
 
   a=0.6612093864662645
   b=-0.6612093864662645
   c=-0.2386191860831969
   d=0.2386191860831969
   e=-0.9324695142031521
-  F=0.9324695142031521
+  f=0.9324695142031521
   a1=0.3607615730481386
   b1=0.3607615730481386
   c1=0.4679139345726910
   d1=0.4679139345726910
   e1=0.1713244923791704
-  F1=0.1713244923791704
+  f1=0.1713244923791704
   vvnpox(1)=a	;vvnpox(2)=b	;vvnpox(3)=c ;vvnpox(4)=d ;vvnpox(5)=e;vvnpox(6)=f
   
   vvwpox(1)=a1	;vvwpox(2)=b1	;vvwpox(3)=c1 ;vvwpox(4)=d1 ;vvwpox(5)=e1 ;vvwpox(6)=f1
@@ -3194,7 +3273,7 @@ CASE(6)
     
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii)
+	vvr1(count1)=vvnpox(ii)
 	vvwg(count1)=vvwpox(ii)
       
    
@@ -3202,35 +3281,35 @@ end do
 	
 	
 	
-CASE(7,8,9)
+case(7,8,9)
 
   
   
-  A1=0.3302393550012598	         ;a=0.0000000000000000
-	B1=0.1806481606948574	;b=-0.8360311073266358
-	C1=0.1806481606948574	;C=0.8360311073266358
-	D1=0.0812743883615744	;D=-0.9681602395076261
-	E1=0.0812743883615744	;E=0.9681602395076261
-	F1=0.3123470770400029	;F=-0.3242534234038089
-	G1=0.3123470770400029	;G=0.3242534234038089
-	H1=0.2606106964029354	;H=-0.6133714327005904
-	K1=0.2606106964029354	;K=0.6133714327005904
+  a1=0.3302393550012598	         ;a=0.0000000000000000
+	b1=0.1806481606948574	;b=-0.8360311073266358
+	c1=0.1806481606948574	;c=0.8360311073266358
+	d1=0.0812743883615744	;d=-0.9681602395076261
+	e1=0.0812743883615744	;e=0.9681602395076261
+	f1=0.3123470770400029	;f=-0.3242534234038089
+	g1=0.3123470770400029	;g=0.3242534234038089
+	h1=0.2606106964029354	;h=-0.6133714327005904
+	k1=0.2606106964029354	;k=0.6133714327005904
   
   
   
   
   
   
-  vvnpox(1)=a	;vvnpox(2)=b	;vvnpox(3)=c ;vvnpox(4)=d ;vvnpox(5)=e; vvnpox(6)=f ; vvnpox(7)=G ; vvnpox(8)=H ; vvnpox(9)=K
+  vvnpox(1)=a	;vvnpox(2)=b	;vvnpox(3)=c ;vvnpox(4)=d ;vvnpox(5)=e; vvnpox(6)=f ; vvnpox(7)=g ; vvnpox(8)=h ; vvnpox(9)=k
   
-  vvwpox(1)=a1	;vvwpox(2)=b1	;vvwpox(3)=c1 ;vvwpox(4)=d1 ;vvwpox(5)=e1 ;vvwpox(6)=f1 ;vvwpox(7)=G1 ;vvwpox(8)=H1 ;vvwpox(9)=K1
+  vvwpox(1)=a1	;vvwpox(2)=b1	;vvwpox(3)=c1 ;vvwpox(4)=d1 ;vvwpox(5)=e1 ;vvwpox(6)=f1 ;vvwpox(7)=g1 ;vvwpox(8)=h1 ;vvwpox(9)=k1
   
   count1=0
  do ii=1,9
     
       
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii)
+	vvr1(count1)=vvnpox(ii)
 	vvwg(count1)=vvwpox(ii)
       
    
@@ -3238,84 +3317,87 @@ end do
 	
 	
 			
-END SELECT
-		QPOINTS2D(:,:)=0.0d0
+end select
+		qpoints2d(:,:)=0.0d0
 		
 		  vvwg(:)=vvwg(:)*0.5d0
 
-		do kk=1,qp_LINE
-			WEQUA2D(kk)=vvwg(kk)
-			R=VVR1(kk); 
+		do kk=1,qp_line
+			wequa2d(kk)=vvwg(kk)
+			r=vvr1(kk); 
 				
 			
 			
-			QPOINTS2D(:,kk)=((VEXT(1,1:2)+VEXT(2,1:2))/2.0D0)+(R*(VEXT(2,1:2)-VEXT(1,1:2))/2.0D0)
+			qpoints2d(:,kk)=((vext(1,1:2)+vext(2,1:2))/2.0d0)+(r*(vext(2,1:2)-vext(1,1:2))/2.0d0)
 			
 			
 ! 		
-		END DO
+		end do
 		
 
 
 
 
-END SUBROUTINE QUADRATURELINE
+end subroutine quadratureline
 
 
 
-SUBROUTINE QUADRATURETETRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+subroutine quadraturetetra(n,igqrules,vext,qpoints,wequa3d)
  !> @brief
-!> This subroutine computes the quadrature points and weights for a tetrahedral
-IMPLICIT NONE
-INTEGER,INTENT(IN)::IGQRULES,N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
-INTEGER::Kk
-real,dimension(1:3,1:3)::VVA,VVA1
-REAL,dimension(1)::DETA
-REAL,DIMENSION(1:8)::VVNXI
-real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3,VVR4
+!> this subroutine computes the quadrature points and weights for a tetrahedral
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::igqrules,n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints),intent(inout)::qpoints
+real,dimension(1:numberofpoints),intent(inout)::wequa3d
+integer::kk
+real,dimension(1:3,1:3)::vva,vva1
+real,dimension(1)::deta
+real,dimension(1:8)::vvnxi
+real,dimension(1:alls)::vvwg,vvr1,vvr2,vvr3,vvr4
 real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
 
 
 
-WEQUA3D=0.0d0
-QPOINTS=0.0d0
+wequa3d=0.0d0
+qpoints=0.0d0
 
 
-select case(IGQRULES)
+select case(igqrules)
 case(1)
 
 		vvwg(1) = 1.0d0
-	    VVR1(1)=0.25d0	;VVR2(1)=0.25d0	;VVR3(1)=0.25d0; VVR4(1)=0.25d0
+	    vvr1(1)=0.25d0	;vvr2(1)=0.25d0	;vvr3(1)=0.25d0; vvr4(1)=0.25d0
 case(2)
 	
   	
 
-VVR1(1)=0.5854101966249680 ;VVR2(1)=0.1381966011250110 ;VVR3(1)=0.1381966011250110 ;VVR4(1)=0.1381966011250110 ;vvwg(1)=0.2500000000000000
-VVR1(2)=0.1381966011250110 ;VVR2(2)=0.5854101966249680 ;VVR3(2)=0.1381966011250110 ;VVR4(2)=0.1381966011250110 ;vvwg(2)=0.2500000000000000
-VVR1(3)=0.1381966011250110 ;VVR2(3)=0.1381966011250110 ;VVR3(3)=0.5854101966249680 ;VVR4(3)=0.1381966011250110 ;vvwg(3)=0.2500000000000000
-VVR1(4)=0.1381966011250110 ;VVR2(4)=0.1381966011250110 ;VVR3(4)=0.1381966011250110 ;VVR4(4)=0.5854101966249680 ;vvwg(4)=0.2500000000000000
+vvr1(1)=0.5854101966249680 ;vvr2(1)=0.1381966011250110 ;vvr3(1)=0.1381966011250110 ;vvr4(1)=0.1381966011250110 ;vvwg(1)=0.2500000000000000
+vvr1(2)=0.1381966011250110 ;vvr2(2)=0.5854101966249680 ;vvr3(2)=0.1381966011250110 ;vvr4(2)=0.1381966011250110 ;vvwg(2)=0.2500000000000000
+vvr1(3)=0.1381966011250110 ;vvr2(3)=0.1381966011250110 ;vvr3(3)=0.5854101966249680 ;vvr4(3)=0.1381966011250110 ;vvwg(3)=0.2500000000000000
+vvr1(4)=0.1381966011250110 ;vvr2(4)=0.1381966011250110 ;vvr3(4)=0.1381966011250110 ;vvr4(4)=0.5854101966249680 ;vvwg(4)=0.2500000000000000
 
   	
 case(3)
 
   
-VVR1( 1)= 0.3108859192633006E+00;VVR2( 1)= 0.3108859192633006E+00;VVR3( 1)= 0.6734224221009816E-01;VVR4( 1)= 0.3108859192633006E+00;VVWG( 1)= 0.1126879257180159E+00
-VVR1( 2)= 0.3108859192633006E+00;VVR2( 2)= 0.6734224221009816E-01;VVR3( 2)= 0.3108859192633006E+00;VVR4( 2)= 0.3108859192633005E+00;VVWG( 2)= 0.1126879257180159E+00
-VVR1( 3)= 0.6734224221009816E-01;VVR2( 3)= 0.3108859192633006E+00;VVR3( 3)= 0.3108859192633006E+00;VVR4( 3)= 0.3108859192633005E+00;VVWG( 3)= 0.1126879257180159E+00
-VVR1( 4)= 0.3108859192633006E+00;VVR2( 4)= 0.3108859192633006E+00;VVR3( 4)= 0.3108859192633006E+00;VVR4( 4)= 0.6734224221009810E-01;VVWG( 4)= 0.1126879257180159E+00
-VVR1( 5)= 0.9273525031089125E-01;VVR2( 5)= 0.9273525031089125E-01;VVR3( 5)= 0.7217942490673264E+00;VVR4( 5)= 0.9273525031089114E-01;VVWG( 5)= 0.7349304311636196E-01
-VVR1( 6)= 0.9273525031089125E-01;VVR2( 6)= 0.7217942490673264E+00;VVR3( 6)= 0.9273525031089125E-01;VVR4( 6)= 0.9273525031089114E-01;VVWG( 6)= 0.7349304311636196E-01
-VVR1( 7)= 0.7217942490673264E+00;VVR2( 7)= 0.9273525031089125E-01;VVR3( 7)= 0.9273525031089125E-01;VVR4( 7)= 0.9273525031089114E-01;VVWG( 7)= 0.7349304311636196E-01
-VVR1( 8)= 0.9273525031089125E-01;VVR2( 8)= 0.9273525031089125E-01;VVR3( 8)= 0.9273525031089125E-01;VVR4( 8)= 0.7217942490673263E+00;VVWG( 8)= 0.7349304311636196E-01
-VVR1( 9)= 0.4550370412564964E-01;VVR2( 9)= 0.4544962958743504E+00;VVR3( 9)= 0.4544962958743504E+00;VVR4( 9)= 0.4550370412564964E-01;VVWG( 9)= 0.4254602077708147E-01
-VVR1(10)= 0.4544962958743504E+00;VVR2(10)= 0.4550370412564964E-01;VVR3(10)= 0.4544962958743504E+00;VVR4(10)= 0.4550370412564964E-01;VVWG(10)= 0.4254602077708147E-01
-VVR1(11)= 0.4550370412564964E-01;VVR2(11)= 0.4550370412564964E-01;VVR3(11)= 0.4544962958743504E+00;VVR4(11)= 0.4544962958743504E+00;VVWG(11)= 0.4254602077708147E-01
-VVR1(12)= 0.4550370412564964E-01;VVR2(12)= 0.4544962958743504E+00;VVR3(12)= 0.4550370412564964E-01;VVR4(12)= 0.4544962958743504E+00;VVWG(12)= 0.4254602077708147E-01
-VVR1(13)= 0.4544962958743504E+00;VVR2(13)= 0.4550370412564964E-01;VVR3(13)= 0.4550370412564964E-01;VVR4(13)= 0.4544962958743504E+00;VVWG(13)= 0.4254602077708147E-01
-VVR1(14)= 0.4544962958743504E+00;VVR2(14)= 0.4544962958743504E+00;VVR3(14)= 0.4550370412564964E-01;VVR4(14)= 0.4550370412564964E-01;VVWG(14)= 0.4254602077708147E-01
+vvr1( 1)= 0.3108859192633006e+00;vvr2( 1)= 0.3108859192633006e+00;vvr3( 1)= 0.6734224221009816e-01;vvr4( 1)= 0.3108859192633006e+00;vvwg( 1)= 0.1126879257180159e+00
+vvr1( 2)= 0.3108859192633006e+00;vvr2( 2)= 0.6734224221009816e-01;vvr3( 2)= 0.3108859192633006e+00;vvr4( 2)= 0.3108859192633005e+00;vvwg( 2)= 0.1126879257180159e+00
+vvr1( 3)= 0.6734224221009816e-01;vvr2( 3)= 0.3108859192633006e+00;vvr3( 3)= 0.3108859192633006e+00;vvr4( 3)= 0.3108859192633005e+00;vvwg( 3)= 0.1126879257180159e+00
+vvr1( 4)= 0.3108859192633006e+00;vvr2( 4)= 0.3108859192633006e+00;vvr3( 4)= 0.3108859192633006e+00;vvr4( 4)= 0.6734224221009810e-01;vvwg( 4)= 0.1126879257180159e+00
+vvr1( 5)= 0.9273525031089125e-01;vvr2( 5)= 0.9273525031089125e-01;vvr3( 5)= 0.7217942490673264e+00;vvr4( 5)= 0.9273525031089114e-01;vvwg( 5)= 0.7349304311636196e-01
+vvr1( 6)= 0.9273525031089125e-01;vvr2( 6)= 0.7217942490673264e+00;vvr3( 6)= 0.9273525031089125e-01;vvr4( 6)= 0.9273525031089114e-01;vvwg( 6)= 0.7349304311636196e-01
+vvr1( 7)= 0.7217942490673264e+00;vvr2( 7)= 0.9273525031089125e-01;vvr3( 7)= 0.9273525031089125e-01;vvr4( 7)= 0.9273525031089114e-01;vvwg( 7)= 0.7349304311636196e-01
+vvr1( 8)= 0.9273525031089125e-01;vvr2( 8)= 0.9273525031089125e-01;vvr3( 8)= 0.9273525031089125e-01;vvr4( 8)= 0.7217942490673263e+00;vvwg( 8)= 0.7349304311636196e-01
+vvr1( 9)= 0.4550370412564964e-01;vvr2( 9)= 0.4544962958743504e+00;vvr3( 9)= 0.4544962958743504e+00;vvr4( 9)= 0.4550370412564964e-01;vvwg( 9)= 0.4254602077708147e-01
+vvr1(10)= 0.4544962958743504e+00;vvr2(10)= 0.4550370412564964e-01;vvr3(10)= 0.4544962958743504e+00;vvr4(10)= 0.4550370412564964e-01;vvwg(10)= 0.4254602077708147e-01
+vvr1(11)= 0.4550370412564964e-01;vvr2(11)= 0.4550370412564964e-01;vvr3(11)= 0.4544962958743504e+00;vvr4(11)= 0.4544962958743504e+00;vvwg(11)= 0.4254602077708147e-01
+vvr1(12)= 0.4550370412564964e-01;vvr2(12)= 0.4544962958743504e+00;vvr3(12)= 0.4550370412564964e-01;vvr4(12)= 0.4544962958743504e+00;vvwg(12)= 0.4254602077708147e-01
+vvr1(13)= 0.4544962958743504e+00;vvr2(13)= 0.4550370412564964e-01;vvr3(13)= 0.4550370412564964e-01;vvr4(13)= 0.4544962958743504e+00;vvwg(13)= 0.4254602077708147e-01
+vvr1(14)= 0.4544962958743504e+00;vvr2(14)= 0.4544962958743504e+00;vvr3(14)= 0.4550370412564964e-01;vvr4(14)= 0.4550370412564964e-01;vvwg(14)= 0.4254602077708147e-01
 
 
 
@@ -3337,30 +3419,30 @@ VVR1(14)= 0.4544962958743504E+00;VVR2(14)= 0.4544962958743504E+00;VVR3(14)= 0.45
 
 			
 case(4)
-VVR1( 1)= 0.4067395853461137E-01;VVR2( 1)= 0.4067395853461137E-01;VVR3( 1)= 0.8779781243961660E+00;VVR4( 1)= 0.4067395853461120E-01;VVWG( 1)= 0.1007721105532064E-01
-VVR1( 2)= 0.4067395853461137E-01;VVR2( 2)= 0.8779781243961660E+00;VVR3( 2)= 0.4067395853461137E-01;VVR4( 2)= 0.4067395853461125E-01;VVWG( 2)= 0.1007721105532064E-01
-VVR1( 3)= 0.8779781243961660E+00;VVR2( 3)= 0.4067395853461137E-01;VVR3( 3)= 0.4067395853461137E-01;VVR4( 3)= 0.4067395853461131E-01;VVWG( 3)= 0.1007721105532064E-01
-VVR1( 4)= 0.4067395853461137E-01;VVR2( 4)= 0.4067395853461137E-01;VVR3( 4)= 0.4067395853461137E-01;VVR4( 4)= 0.8779781243961657E+00;VVWG( 4)= 0.1007721105532064E-01
-VVR1( 5)= 0.3223378901422755E+00;VVR2( 5)= 0.3223378901422755E+00;VVR3( 5)= 0.3298632957317349E-01;VVR4( 5)= 0.3223378901422754E+00;VVWG( 5)= 0.5535718154365472E-01
-VVR1( 6)= 0.3223378901422755E+00;VVR2( 6)= 0.3298632957317349E-01;VVR3( 6)= 0.3223378901422755E+00;VVR4( 6)= 0.3223378901422754E+00;VVWG( 6)= 0.5535718154365472E-01
-VVR1( 7)= 0.3298632957317349E-01;VVR2( 7)= 0.3223378901422755E+00;VVR3( 7)= 0.3223378901422755E+00;VVR4( 7)= 0.3223378901422754E+00;VVWG( 7)= 0.5535718154365472E-01
-VVR1( 8)= 0.3223378901422755E+00;VVR2( 8)= 0.3223378901422755E+00;VVR3( 8)= 0.3223378901422755E+00;VVR4( 8)= 0.3298632957317338E-01;VVWG( 8)= 0.5535718154365472E-01
-VVR1( 9)= 0.2146028712591520E+00;VVR2( 9)= 0.2146028712591520E+00;VVR3( 9)= 0.3561913862225439E+00;VVR4( 9)= 0.2146028712591521E+00;VVWG( 9)= 0.3992275025816749E-01
-VVR1(10)= 0.2146028712591520E+00;VVR2(10)= 0.3561913862225439E+00;VVR3(10)= 0.2146028712591520E+00;VVR4(10)= 0.2146028712591521E+00;VVWG(10)= 0.3992275025816749E-01
-VVR1(11)= 0.3561913862225439E+00;VVR2(11)= 0.2146028712591520E+00;VVR3(11)= 0.2146028712591520E+00;VVR4(11)= 0.2146028712591521E+00;VVWG(11)= 0.3992275025816749E-01
-VVR1(12)= 0.2146028712591520E+00;VVR2(12)= 0.2146028712591520E+00;VVR3(12)= 0.2146028712591520E+00;VVR4(12)= 0.3561913862225440E+00;VVWG(12)= 0.3992275025816749E-01
-VVR1(13)= 0.6030056647916491E+00;VVR2(13)= 0.6366100187501750E-01;VVR3(13)= 0.2696723314583158E+00;VVR4(13)= 0.6366100187501761E-01;VVWG(13)= 0.4821428571428571E-01
-VVR1(14)= 0.6030056647916491E+00;VVR2(14)= 0.6366100187501750E-01;VVR3(14)= 0.6366100187501750E-01;VVR4(14)= 0.2696723314583159E+00;VVWG(14)= 0.4821428571428571E-01
-VVR1(15)= 0.6366100187501750E-01;VVR2(15)= 0.6366100187501750E-01;VVR3(15)= 0.6030056647916491E+00;VVR4(15)= 0.2696723314583160E+00;VVWG(15)= 0.4821428571428571E-01
-VVR1(16)= 0.2696723314583158E+00;VVR2(16)= 0.6030056647916491E+00;VVR3(16)= 0.6366100187501750E-01;VVR4(16)= 0.6366100187501761E-01;VVWG(16)= 0.4821428571428571E-01
-VVR1(17)= 0.6366100187501750E-01;VVR2(17)= 0.2696723314583158E+00;VVR3(17)= 0.6030056647916491E+00;VVR4(17)= 0.6366100187501766E-01;VVWG(17)= 0.4821428571428571E-01
-VVR1(18)= 0.6366100187501750E-01;VVR2(18)= 0.6030056647916491E+00;VVR3(18)= 0.6366100187501750E-01;VVR4(18)= 0.2696723314583160E+00;VVWG(18)= 0.4821428571428571E-01
-VVR1(19)= 0.2696723314583158E+00;VVR2(19)= 0.6366100187501750E-01;VVR3(19)= 0.6030056647916491E+00;VVR4(19)= 0.6366100187501766E-01;VVWG(19)= 0.4821428571428571E-01
-VVR1(20)= 0.6366100187501750E-01;VVR2(20)= 0.2696723314583158E+00;VVR3(20)= 0.6366100187501750E-01;VVR4(20)= 0.6030056647916493E+00;VVWG(20)= 0.4821428571428571E-01
-VVR1(21)= 0.6366100187501750E-01;VVR2(21)= 0.6366100187501750E-01;VVR3(21)= 0.2696723314583158E+00;VVR4(21)= 0.6030056647916493E+00;VVWG(21)= 0.4821428571428571E-01
-VVR1(22)= 0.6366100187501750E-01;VVR2(22)= 0.6030056647916491E+00;VVR3(22)= 0.2696723314583158E+00;VVR4(22)= 0.6366100187501766E-01;VVWG(22)= 0.4821428571428571E-01
-VVR1(23)= 0.2696723314583158E+00;VVR2(23)= 0.6366100187501750E-01;VVR3(23)= 0.6366100187501750E-01;VVR4(23)= 0.6030056647916493E+00;VVWG(23)= 0.4821428571428571E-01
-VVR1(24)= 0.6030056647916491E+00;VVR2(24)= 0.2696723314583158E+00;VVR3(24)= 0.6366100187501750E-01;VVR4(24)= 0.6366100187501761E-01;VVWG(24)= 0.4821428571428571E-01
+vvr1( 1)= 0.4067395853461137e-01;vvr2( 1)= 0.4067395853461137e-01;vvr3( 1)= 0.8779781243961660e+00;vvr4( 1)= 0.4067395853461120e-01;vvwg( 1)= 0.1007721105532064e-01
+vvr1( 2)= 0.4067395853461137e-01;vvr2( 2)= 0.8779781243961660e+00;vvr3( 2)= 0.4067395853461137e-01;vvr4( 2)= 0.4067395853461125e-01;vvwg( 2)= 0.1007721105532064e-01
+vvr1( 3)= 0.8779781243961660e+00;vvr2( 3)= 0.4067395853461137e-01;vvr3( 3)= 0.4067395853461137e-01;vvr4( 3)= 0.4067395853461131e-01;vvwg( 3)= 0.1007721105532064e-01
+vvr1( 4)= 0.4067395853461137e-01;vvr2( 4)= 0.4067395853461137e-01;vvr3( 4)= 0.4067395853461137e-01;vvr4( 4)= 0.8779781243961657e+00;vvwg( 4)= 0.1007721105532064e-01
+vvr1( 5)= 0.3223378901422755e+00;vvr2( 5)= 0.3223378901422755e+00;vvr3( 5)= 0.3298632957317349e-01;vvr4( 5)= 0.3223378901422754e+00;vvwg( 5)= 0.5535718154365472e-01
+vvr1( 6)= 0.3223378901422755e+00;vvr2( 6)= 0.3298632957317349e-01;vvr3( 6)= 0.3223378901422755e+00;vvr4( 6)= 0.3223378901422754e+00;vvwg( 6)= 0.5535718154365472e-01
+vvr1( 7)= 0.3298632957317349e-01;vvr2( 7)= 0.3223378901422755e+00;vvr3( 7)= 0.3223378901422755e+00;vvr4( 7)= 0.3223378901422754e+00;vvwg( 7)= 0.5535718154365472e-01
+vvr1( 8)= 0.3223378901422755e+00;vvr2( 8)= 0.3223378901422755e+00;vvr3( 8)= 0.3223378901422755e+00;vvr4( 8)= 0.3298632957317338e-01;vvwg( 8)= 0.5535718154365472e-01
+vvr1( 9)= 0.2146028712591520e+00;vvr2( 9)= 0.2146028712591520e+00;vvr3( 9)= 0.3561913862225439e+00;vvr4( 9)= 0.2146028712591521e+00;vvwg( 9)= 0.3992275025816749e-01
+vvr1(10)= 0.2146028712591520e+00;vvr2(10)= 0.3561913862225439e+00;vvr3(10)= 0.2146028712591520e+00;vvr4(10)= 0.2146028712591521e+00;vvwg(10)= 0.3992275025816749e-01
+vvr1(11)= 0.3561913862225439e+00;vvr2(11)= 0.2146028712591520e+00;vvr3(11)= 0.2146028712591520e+00;vvr4(11)= 0.2146028712591521e+00;vvwg(11)= 0.3992275025816749e-01
+vvr1(12)= 0.2146028712591520e+00;vvr2(12)= 0.2146028712591520e+00;vvr3(12)= 0.2146028712591520e+00;vvr4(12)= 0.3561913862225440e+00;vvwg(12)= 0.3992275025816749e-01
+vvr1(13)= 0.6030056647916491e+00;vvr2(13)= 0.6366100187501750e-01;vvr3(13)= 0.2696723314583158e+00;vvr4(13)= 0.6366100187501761e-01;vvwg(13)= 0.4821428571428571e-01
+vvr1(14)= 0.6030056647916491e+00;vvr2(14)= 0.6366100187501750e-01;vvr3(14)= 0.6366100187501750e-01;vvr4(14)= 0.2696723314583159e+00;vvwg(14)= 0.4821428571428571e-01
+vvr1(15)= 0.6366100187501750e-01;vvr2(15)= 0.6366100187501750e-01;vvr3(15)= 0.6030056647916491e+00;vvr4(15)= 0.2696723314583160e+00;vvwg(15)= 0.4821428571428571e-01
+vvr1(16)= 0.2696723314583158e+00;vvr2(16)= 0.6030056647916491e+00;vvr3(16)= 0.6366100187501750e-01;vvr4(16)= 0.6366100187501761e-01;vvwg(16)= 0.4821428571428571e-01
+vvr1(17)= 0.6366100187501750e-01;vvr2(17)= 0.2696723314583158e+00;vvr3(17)= 0.6030056647916491e+00;vvr4(17)= 0.6366100187501766e-01;vvwg(17)= 0.4821428571428571e-01
+vvr1(18)= 0.6366100187501750e-01;vvr2(18)= 0.6030056647916491e+00;vvr3(18)= 0.6366100187501750e-01;vvr4(18)= 0.2696723314583160e+00;vvwg(18)= 0.4821428571428571e-01
+vvr1(19)= 0.2696723314583158e+00;vvr2(19)= 0.6366100187501750e-01;vvr3(19)= 0.6030056647916491e+00;vvr4(19)= 0.6366100187501766e-01;vvwg(19)= 0.4821428571428571e-01
+vvr1(20)= 0.6366100187501750e-01;vvr2(20)= 0.2696723314583158e+00;vvr3(20)= 0.6366100187501750e-01;vvr4(20)= 0.6030056647916493e+00;vvwg(20)= 0.4821428571428571e-01
+vvr1(21)= 0.6366100187501750e-01;vvr2(21)= 0.6366100187501750e-01;vvr3(21)= 0.2696723314583158e+00;vvr4(21)= 0.6030056647916493e+00;vvwg(21)= 0.4821428571428571e-01
+vvr1(22)= 0.6366100187501750e-01;vvr2(22)= 0.6030056647916491e+00;vvr3(22)= 0.2696723314583158e+00;vvr4(22)= 0.6366100187501766e-01;vvwg(22)= 0.4821428571428571e-01
+vvr1(23)= 0.2696723314583158e+00;vvr2(23)= 0.6366100187501750e-01;vvr3(23)= 0.6366100187501750e-01;vvr4(23)= 0.6030056647916493e+00;vvwg(23)= 0.4821428571428571e-01
+vvr1(24)= 0.6030056647916491e+00;vvr2(24)= 0.2696723314583158e+00;vvr3(24)= 0.6366100187501750e-01;vvr4(24)= 0.6366100187501761e-01;vvwg(24)= 0.4821428571428571e-01
 
 
 
@@ -3369,102 +3451,102 @@ VVR1(24)= 0.6030056647916491E+00;VVR2(24)= 0.2696723314583158E+00;VVR3(24)= 0.63
 case(5)
 
 
-VVR1( 1)= 0.2500000000000000E+00;VVR2( 1)= 0.2500000000000000E+00;VVR3( 1)= 0.2500000000000000E+00;VVR4( 1)= 0.2500000000000000E+00;VVWG( 1)= 0.9548528946413085E-01
-VVR1( 2)= 0.3157011497782028E+00;VVR2( 2)= 0.3157011497782028E+00;VVR3( 2)= 0.5289655066539162E-01;VVR4( 2)= 0.3157011497782028E+00;VVWG( 2)= 0.4232958120996703E-01
-VVR1( 3)= 0.3157011497782028E+00;VVR2( 3)= 0.5289655066539162E-01;VVR3( 3)= 0.3157011497782028E+00;VVR4( 3)= 0.3157011497782029E+00;VVWG( 3)= 0.4232958120996703E-01
-VVR1( 4)= 0.5289655066539162E-01;VVR2( 4)= 0.3157011497782028E+00;VVR3( 4)= 0.3157011497782028E+00;VVR4( 4)= 0.3157011497782029E+00;VVWG( 4)= 0.4232958120996703E-01
-VVR1( 5)= 0.3157011497782028E+00;VVR2( 5)= 0.3157011497782028E+00;VVR3( 5)= 0.3157011497782028E+00;VVR4( 5)= 0.5289655066539167E-01;VVWG( 5)= 0.4232958120996703E-01
-VVR1( 6)= 0.5048982259839635E-01;VVR2( 6)= 0.4495101774016036E+00;VVR3( 6)= 0.4495101774016036E+00;VVR4( 6)= 0.5048982259839652E-01;VVWG( 6)= 0.3189692783285758E-01
-VVR1( 7)= 0.4495101774016036E+00;VVR2( 7)= 0.5048982259839635E-01;VVR3( 7)= 0.4495101774016036E+00;VVR4( 7)= 0.5048982259839641E-01;VVWG( 7)= 0.3189692783285758E-01
-VVR1( 8)= 0.5048982259839635E-01;VVR2( 8)= 0.5048982259839635E-01;VVR3( 8)= 0.4495101774016036E+00;VVR4( 8)= 0.4495101774016038E+00;VVWG( 8)= 0.3189692783285758E-01
-VVR1( 9)= 0.5048982259839635E-01;VVR2( 9)= 0.4495101774016036E+00;VVR3( 9)= 0.5048982259839635E-01;VVR4( 9)= 0.4495101774016038E+00;VVWG( 9)= 0.3189692783285758E-01
-VVR1(10)= 0.4495101774016036E+00;VVR2(10)= 0.5048982259839635E-01;VVR3(10)= 0.5048982259839635E-01;VVR4(10)= 0.4495101774016036E+00;VVWG(10)= 0.3189692783285758E-01
-VVR1(11)= 0.4495101774016036E+00;VVR2(11)= 0.4495101774016036E+00;VVR3(11)= 0.5048982259839635E-01;VVR4(11)= 0.5048982259839646E-01;VVWG(11)= 0.3189692783285758E-01
-VVR1(12)= 0.5751716375870000E+00;VVR2(12)= 0.1888338310260010E+00;VVR3(12)= 0.4716070036099790E-01;VVR4(12)= 0.1888338310260011E+00;VVWG(12)= 0.3720713072833462E-01
-VVR1(13)= 0.5751716375870000E+00;VVR2(13)= 0.1888338310260010E+00;VVR3(13)= 0.1888338310260010E+00;VVR4(13)= 0.4716070036099795E-01;VVWG(13)= 0.3720713072833462E-01
-VVR1(14)= 0.1888338310260010E+00;VVR2(14)= 0.1888338310260010E+00;VVR3(14)= 0.5751716375870000E+00;VVR4(14)= 0.4716070036099795E-01;VVWG(14)= 0.3720713072833462E-01
-VVR1(15)= 0.4716070036099790E-01;VVR2(15)= 0.5751716375870000E+00;VVR3(15)= 0.1888338310260010E+00;VVR4(15)= 0.1888338310260010E+00;VVWG(15)= 0.3720713072833462E-01
-VVR1(16)= 0.1888338310260010E+00;VVR2(16)= 0.4716070036099790E-01;VVR3(16)= 0.5751716375870000E+00;VVR4(16)= 0.1888338310260012E+00;VVWG(16)= 0.3720713072833462E-01
-VVR1(17)= 0.1888338310260010E+00;VVR2(17)= 0.5751716375870000E+00;VVR3(17)= 0.1888338310260010E+00;VVR4(17)= 0.4716070036099795E-01;VVWG(17)= 0.3720713072833462E-01
-VVR1(18)= 0.4716070036099790E-01;VVR2(18)= 0.1888338310260010E+00;VVR3(18)= 0.5751716375870000E+00;VVR4(18)= 0.1888338310260010E+00;VVWG(18)= 0.3720713072833462E-01
-VVR1(19)= 0.1888338310260010E+00;VVR2(19)= 0.4716070036099790E-01;VVR3(19)= 0.1888338310260010E+00;VVR4(19)= 0.5751716375870001E+00;VVWG(19)= 0.3720713072833462E-01
-VVR1(20)= 0.1888338310260010E+00;VVR2(20)= 0.1888338310260010E+00;VVR3(20)= 0.4716070036099790E-01;VVR4(20)= 0.5751716375870000E+00;VVWG(20)= 0.3720713072833462E-01
-VVR1(21)= 0.1888338310260010E+00;VVR2(21)= 0.5751716375870000E+00;VVR3(21)= 0.4716070036099790E-01;VVR4(21)= 0.1888338310260011E+00;VVWG(21)= 0.3720713072833462E-01
-VVR1(22)= 0.4716070036099790E-01;VVR2(22)= 0.1888338310260010E+00;VVR3(22)= 0.1888338310260010E+00;VVR4(22)= 0.5751716375870000E+00;VVWG(22)= 0.3720713072833462E-01
-VVR1(23)= 0.5751716375870000E+00;VVR2(23)= 0.4716070036099790E-01;VVR3(23)= 0.1888338310260010E+00;VVR4(23)= 0.1888338310260011E+00;VVWG(23)= 0.3720713072833462E-01
-VVR1(24)= 0.8108302410985486E+00;VVR2(24)= 0.2126547254148325E-01;VVR3(24)= 0.1466388138184849E+00;VVR4(24)= 0.2126547254148320E-01;VVWG(24)= 0.8110770829903342E-02
-VVR1(25)= 0.8108302410985486E+00;VVR2(25)= 0.2126547254148325E-01;VVR3(25)= 0.2126547254148325E-01;VVR4(25)= 0.1466388138184849E+00;VVWG(25)= 0.8110770829903342E-02
-VVR1(26)= 0.2126547254148325E-01;VVR2(26)= 0.2126547254148325E-01;VVR3(26)= 0.8108302410985486E+00;VVR4(26)= 0.1466388138184849E+00;VVWG(26)= 0.8110770829903342E-02
-VVR1(27)= 0.1466388138184849E+00;VVR2(27)= 0.8108302410985486E+00;VVR3(27)= 0.2126547254148325E-01;VVR4(27)= 0.2126547254148325E-01;VVWG(27)= 0.8110770829903342E-02
-VVR1(28)= 0.2126547254148325E-01;VVR2(28)= 0.1466388138184849E+00;VVR3(28)= 0.8108302410985486E+00;VVR4(28)= 0.2126547254148314E-01;VVWG(28)= 0.8110770829903342E-02
-VVR1(29)= 0.2126547254148325E-01;VVR2(29)= 0.8108302410985486E+00;VVR3(29)= 0.2126547254148325E-01;VVR4(29)= 0.1466388138184849E+00;VVWG(29)= 0.8110770829903342E-02
-VVR1(30)= 0.1466388138184849E+00;VVR2(30)= 0.2126547254148325E-01;VVR3(30)= 0.8108302410985486E+00;VVR4(30)= 0.2126547254148325E-01;VVWG(30)= 0.8110770829903342E-02
-VVR1(31)= 0.2126547254148325E-01;VVR2(31)= 0.1466388138184849E+00;VVR3(31)= 0.2126547254148325E-01;VVR4(31)= 0.8108302410985485E+00;VVWG(31)= 0.8110770829903342E-02
-VVR1(32)= 0.2126547254148325E-01;VVR2(32)= 0.2126547254148325E-01;VVR3(32)= 0.1466388138184849E+00;VVR4(32)= 0.8108302410985486E+00;VVWG(32)= 0.8110770829903342E-02
-VVR1(33)= 0.2126547254148325E-01;VVR2(33)= 0.8108302410985486E+00;VVR3(33)= 0.1466388138184849E+00;VVR4(33)= 0.2126547254148320E-01;VVWG(33)= 0.8110770829903342E-02
-VVR1(34)= 0.1466388138184849E+00;VVR2(34)= 0.2126547254148325E-01;VVR3(34)= 0.2126547254148325E-01;VVR4(34)= 0.8108302410985486E+00;VVWG(34)= 0.8110770829903342E-02
-VVR1(35)= 0.8108302410985486E+00;VVR2(35)= 0.1466388138184849E+00;VVR3(35)= 0.2126547254148325E-01;VVR4(35)= 0.2126547254148320E-01;VVWG(35)= 0.8110770829903342E-02
+vvr1( 1)= 0.2500000000000000e+00;vvr2( 1)= 0.2500000000000000e+00;vvr3( 1)= 0.2500000000000000e+00;vvr4( 1)= 0.2500000000000000e+00;vvwg( 1)= 0.9548528946413085e-01
+vvr1( 2)= 0.3157011497782028e+00;vvr2( 2)= 0.3157011497782028e+00;vvr3( 2)= 0.5289655066539162e-01;vvr4( 2)= 0.3157011497782028e+00;vvwg( 2)= 0.4232958120996703e-01
+vvr1( 3)= 0.3157011497782028e+00;vvr2( 3)= 0.5289655066539162e-01;vvr3( 3)= 0.3157011497782028e+00;vvr4( 3)= 0.3157011497782029e+00;vvwg( 3)= 0.4232958120996703e-01
+vvr1( 4)= 0.5289655066539162e-01;vvr2( 4)= 0.3157011497782028e+00;vvr3( 4)= 0.3157011497782028e+00;vvr4( 4)= 0.3157011497782029e+00;vvwg( 4)= 0.4232958120996703e-01
+vvr1( 5)= 0.3157011497782028e+00;vvr2( 5)= 0.3157011497782028e+00;vvr3( 5)= 0.3157011497782028e+00;vvr4( 5)= 0.5289655066539167e-01;vvwg( 5)= 0.4232958120996703e-01
+vvr1( 6)= 0.5048982259839635e-01;vvr2( 6)= 0.4495101774016036e+00;vvr3( 6)= 0.4495101774016036e+00;vvr4( 6)= 0.5048982259839652e-01;vvwg( 6)= 0.3189692783285758e-01
+vvr1( 7)= 0.4495101774016036e+00;vvr2( 7)= 0.5048982259839635e-01;vvr3( 7)= 0.4495101774016036e+00;vvr4( 7)= 0.5048982259839641e-01;vvwg( 7)= 0.3189692783285758e-01
+vvr1( 8)= 0.5048982259839635e-01;vvr2( 8)= 0.5048982259839635e-01;vvr3( 8)= 0.4495101774016036e+00;vvr4( 8)= 0.4495101774016038e+00;vvwg( 8)= 0.3189692783285758e-01
+vvr1( 9)= 0.5048982259839635e-01;vvr2( 9)= 0.4495101774016036e+00;vvr3( 9)= 0.5048982259839635e-01;vvr4( 9)= 0.4495101774016038e+00;vvwg( 9)= 0.3189692783285758e-01
+vvr1(10)= 0.4495101774016036e+00;vvr2(10)= 0.5048982259839635e-01;vvr3(10)= 0.5048982259839635e-01;vvr4(10)= 0.4495101774016036e+00;vvwg(10)= 0.3189692783285758e-01
+vvr1(11)= 0.4495101774016036e+00;vvr2(11)= 0.4495101774016036e+00;vvr3(11)= 0.5048982259839635e-01;vvr4(11)= 0.5048982259839646e-01;vvwg(11)= 0.3189692783285758e-01
+vvr1(12)= 0.5751716375870000e+00;vvr2(12)= 0.1888338310260010e+00;vvr3(12)= 0.4716070036099790e-01;vvr4(12)= 0.1888338310260011e+00;vvwg(12)= 0.3720713072833462e-01
+vvr1(13)= 0.5751716375870000e+00;vvr2(13)= 0.1888338310260010e+00;vvr3(13)= 0.1888338310260010e+00;vvr4(13)= 0.4716070036099795e-01;vvwg(13)= 0.3720713072833462e-01
+vvr1(14)= 0.1888338310260010e+00;vvr2(14)= 0.1888338310260010e+00;vvr3(14)= 0.5751716375870000e+00;vvr4(14)= 0.4716070036099795e-01;vvwg(14)= 0.3720713072833462e-01
+vvr1(15)= 0.4716070036099790e-01;vvr2(15)= 0.5751716375870000e+00;vvr3(15)= 0.1888338310260010e+00;vvr4(15)= 0.1888338310260010e+00;vvwg(15)= 0.3720713072833462e-01
+vvr1(16)= 0.1888338310260010e+00;vvr2(16)= 0.4716070036099790e-01;vvr3(16)= 0.5751716375870000e+00;vvr4(16)= 0.1888338310260012e+00;vvwg(16)= 0.3720713072833462e-01
+vvr1(17)= 0.1888338310260010e+00;vvr2(17)= 0.5751716375870000e+00;vvr3(17)= 0.1888338310260010e+00;vvr4(17)= 0.4716070036099795e-01;vvwg(17)= 0.3720713072833462e-01
+vvr1(18)= 0.4716070036099790e-01;vvr2(18)= 0.1888338310260010e+00;vvr3(18)= 0.5751716375870000e+00;vvr4(18)= 0.1888338310260010e+00;vvwg(18)= 0.3720713072833462e-01
+vvr1(19)= 0.1888338310260010e+00;vvr2(19)= 0.4716070036099790e-01;vvr3(19)= 0.1888338310260010e+00;vvr4(19)= 0.5751716375870001e+00;vvwg(19)= 0.3720713072833462e-01
+vvr1(20)= 0.1888338310260010e+00;vvr2(20)= 0.1888338310260010e+00;vvr3(20)= 0.4716070036099790e-01;vvr4(20)= 0.5751716375870000e+00;vvwg(20)= 0.3720713072833462e-01
+vvr1(21)= 0.1888338310260010e+00;vvr2(21)= 0.5751716375870000e+00;vvr3(21)= 0.4716070036099790e-01;vvr4(21)= 0.1888338310260011e+00;vvwg(21)= 0.3720713072833462e-01
+vvr1(22)= 0.4716070036099790e-01;vvr2(22)= 0.1888338310260010e+00;vvr3(22)= 0.1888338310260010e+00;vvr4(22)= 0.5751716375870000e+00;vvwg(22)= 0.3720713072833462e-01
+vvr1(23)= 0.5751716375870000e+00;vvr2(23)= 0.4716070036099790e-01;vvr3(23)= 0.1888338310260010e+00;vvr4(23)= 0.1888338310260011e+00;vvwg(23)= 0.3720713072833462e-01
+vvr1(24)= 0.8108302410985486e+00;vvr2(24)= 0.2126547254148325e-01;vvr3(24)= 0.1466388138184849e+00;vvr4(24)= 0.2126547254148320e-01;vvwg(24)= 0.8110770829903342e-02
+vvr1(25)= 0.8108302410985486e+00;vvr2(25)= 0.2126547254148325e-01;vvr3(25)= 0.2126547254148325e-01;vvr4(25)= 0.1466388138184849e+00;vvwg(25)= 0.8110770829903342e-02
+vvr1(26)= 0.2126547254148325e-01;vvr2(26)= 0.2126547254148325e-01;vvr3(26)= 0.8108302410985486e+00;vvr4(26)= 0.1466388138184849e+00;vvwg(26)= 0.8110770829903342e-02
+vvr1(27)= 0.1466388138184849e+00;vvr2(27)= 0.8108302410985486e+00;vvr3(27)= 0.2126547254148325e-01;vvr4(27)= 0.2126547254148325e-01;vvwg(27)= 0.8110770829903342e-02
+vvr1(28)= 0.2126547254148325e-01;vvr2(28)= 0.1466388138184849e+00;vvr3(28)= 0.8108302410985486e+00;vvr4(28)= 0.2126547254148314e-01;vvwg(28)= 0.8110770829903342e-02
+vvr1(29)= 0.2126547254148325e-01;vvr2(29)= 0.8108302410985486e+00;vvr3(29)= 0.2126547254148325e-01;vvr4(29)= 0.1466388138184849e+00;vvwg(29)= 0.8110770829903342e-02
+vvr1(30)= 0.1466388138184849e+00;vvr2(30)= 0.2126547254148325e-01;vvr3(30)= 0.8108302410985486e+00;vvr4(30)= 0.2126547254148325e-01;vvwg(30)= 0.8110770829903342e-02
+vvr1(31)= 0.2126547254148325e-01;vvr2(31)= 0.1466388138184849e+00;vvr3(31)= 0.2126547254148325e-01;vvr4(31)= 0.8108302410985485e+00;vvwg(31)= 0.8110770829903342e-02
+vvr1(32)= 0.2126547254148325e-01;vvr2(32)= 0.2126547254148325e-01;vvr3(32)= 0.1466388138184849e+00;vvr4(32)= 0.8108302410985486e+00;vvwg(32)= 0.8110770829903342e-02
+vvr1(33)= 0.2126547254148325e-01;vvr2(33)= 0.8108302410985486e+00;vvr3(33)= 0.1466388138184849e+00;vvr4(33)= 0.2126547254148320e-01;vvwg(33)= 0.8110770829903342e-02
+vvr1(34)= 0.1466388138184849e+00;vvr2(34)= 0.2126547254148325e-01;vvr3(34)= 0.2126547254148325e-01;vvr4(34)= 0.8108302410985486e+00;vvwg(34)= 0.8110770829903342e-02
+vvr1(35)= 0.8108302410985486e+00;vvr2(35)= 0.1466388138184849e+00;vvr3(35)= 0.2126547254148325e-01;vvr4(35)= 0.2126547254148320e-01;vvwg(35)= 0.8110770829903342e-02
 
 
 	
 	
-CASE(6,7,8,9)
-VVR1( 1)= 0.9551438045408220E+00;VVR2( 1)= 0.1495206515305920E-01;VVR3( 1)= 0.1495206515305920E-01;VVR4( 1)= 0.1495206515305920E-01;VVWG( 1)= 0.1037311233614000E-02
-VVR1( 2)= 0.1495206515305920E-01;VVR2( 2)= 0.9551438045408220E+00;VVR3( 2)= 0.1495206515305920E-01;VVR4( 2)= 0.1495206515305920E-01;VVWG( 2)= 0.1037311233614000E-02
-VVR1( 3)= 0.1495206515305920E-01;VVR2( 3)= 0.1495206515305920E-01;VVR3( 3)= 0.9551438045408220E+00;VVR4( 3)= 0.1495206515305920E-01;VVWG( 3)= 0.1037311233614000E-02
-VVR1( 4)= 0.1495206515305920E-01;VVR2( 4)= 0.1495206515305920E-01;VVR3( 4)= 0.1495206515305920E-01;VVR4( 4)= 0.9551438045408220E+00;VVWG( 4)= 0.1037311233614000E-02
-VVR1( 5)= 0.7799760084415400E+00;VVR2( 5)= 0.1518319491659370E+00;VVR3( 5)= 0.3409602119626150E-01;VVR4( 5)= 0.3409602119626150E-01;VVWG( 5)= 0.9601664539948001E-02
-VVR1( 6)= 0.1518319491659370E+00;VVR2( 6)= 0.7799760084415400E+00;VVR3( 6)= 0.3409602119626150E-01;VVR4( 6)= 0.3409602119626150E-01;VVWG( 6)= 0.9601664539948001E-02
-VVR1( 7)= 0.7799760084415400E+00;VVR2( 7)= 0.3409602119626150E-01;VVR3( 7)= 0.1518319491659370E+00;VVR4( 7)= 0.3409602119626150E-01;VVWG( 7)= 0.9601664539948001E-02
-VVR1( 8)= 0.1518319491659370E+00;VVR2( 8)= 0.3409602119626150E-01;VVR3( 8)= 0.7799760084415400E+00;VVR4( 8)= 0.3409602119626150E-01;VVWG( 8)= 0.9601664539948001E-02
-VVR1( 9)= 0.7799760084415400E+00;VVR2( 9)= 0.3409602119626150E-01;VVR3( 9)= 0.3409602119626150E-01;VVR4( 9)= 0.1518319491659370E+00;VVWG( 9)= 0.9601664539948001E-02
-VVR1(10)= 0.1518319491659370E+00;VVR2(10)= 0.3409602119626150E-01;VVR3(10)= 0.3409602119626150E-01;VVR4(10)= 0.7799760084415400E+00;VVWG(10)= 0.9601664539948001E-02
-VVR1(11)= 0.3409602119626150E-01;VVR2(11)= 0.7799760084415400E+00;VVR3(11)= 0.1518319491659370E+00;VVR4(11)= 0.3409602119626150E-01;VVWG(11)= 0.9601664539948001E-02
-VVR1(12)= 0.3409602119626150E-01;VVR2(12)= 0.1518319491659370E+00;VVR3(12)= 0.7799760084415400E+00;VVR4(12)= 0.3409602119626150E-01;VVWG(12)= 0.9601664539948001E-02
-VVR1(13)= 0.3409602119626150E-01;VVR2(13)= 0.7799760084415400E+00;VVR3(13)= 0.3409602119626150E-01;VVR4(13)= 0.1518319491659370E+00;VVWG(13)= 0.9601664539948001E-02
-VVR1(14)= 0.3409602119626150E-01;VVR2(14)= 0.1518319491659370E+00;VVR3(14)= 0.3409602119626150E-01;VVR4(14)= 0.7799760084415400E+00;VVWG(14)= 0.9601664539948001E-02
-VVR1(15)= 0.3409602119626150E-01;VVR2(15)= 0.3409602119626150E-01;VVR3(15)= 0.7799760084415400E+00;VVR4(15)= 0.1518319491659370E+00;VVWG(15)= 0.9601664539948001E-02
-VVR1(16)= 0.3409602119626150E-01;VVR2(16)= 0.3409602119626150E-01;VVR3(16)= 0.1518319491659370E+00;VVR4(16)= 0.7799760084415400E+00;VVWG(16)= 0.9601664539948001E-02
-VVR1(17)= 0.3549340560639790E+00;VVR2(17)= 0.5526556431060170E+00;VVR3(17)= 0.4620515041500170E-01;VVR4(17)= 0.4620515041500170E-01;VVWG(17)= 0.1644939767982320E-01
-VVR1(18)= 0.5526556431060170E+00;VVR2(18)= 0.3549340560639790E+00;VVR3(18)= 0.4620515041500170E-01;VVR4(18)= 0.4620515041500170E-01;VVWG(18)= 0.1644939767982320E-01
-VVR1(19)= 0.3549340560639790E+00;VVR2(19)= 0.4620515041500170E-01;VVR3(19)= 0.5526556431060170E+00;VVR4(19)= 0.4620515041500170E-01;VVWG(19)= 0.1644939767982320E-01
-VVR1(20)= 0.5526556431060170E+00;VVR2(20)= 0.4620515041500170E-01;VVR3(20)= 0.3549340560639790E+00;VVR4(20)= 0.4620515041500170E-01;VVWG(20)= 0.1644939767982320E-01
-VVR1(21)= 0.3549340560639790E+00;VVR2(21)= 0.4620515041500170E-01;VVR3(21)= 0.4620515041500170E-01;VVR4(21)= 0.5526556431060170E+00;VVWG(21)= 0.1644939767982320E-01
-VVR1(22)= 0.5526556431060170E+00;VVR2(22)= 0.4620515041500170E-01;VVR3(22)= 0.4620515041500170E-01;VVR4(22)= 0.3549340560639790E+00;VVWG(22)= 0.1644939767982320E-01
-VVR1(23)= 0.4620515041500170E-01;VVR2(23)= 0.3549340560639790E+00;VVR3(23)= 0.5526556431060170E+00;VVR4(23)= 0.4620515041500170E-01;VVWG(23)= 0.1644939767982320E-01
-VVR1(24)= 0.4620515041500170E-01;VVR2(24)= 0.5526556431060170E+00;VVR3(24)= 0.3549340560639790E+00;VVR4(24)= 0.4620515041500170E-01;VVWG(24)= 0.1644939767982320E-01
-VVR1(25)= 0.4620515041500170E-01;VVR2(25)= 0.3549340560639790E+00;VVR3(25)= 0.4620515041500170E-01;VVR4(25)= 0.5526556431060170E+00;VVWG(25)= 0.1644939767982320E-01
-VVR1(26)= 0.4620515041500170E-01;VVR2(26)= 0.5526556431060170E+00;VVR3(26)= 0.4620515041500170E-01;VVR4(26)= 0.3549340560639790E+00;VVWG(26)= 0.1644939767982320E-01
-VVR1(27)= 0.4620515041500170E-01;VVR2(27)= 0.4620515041500170E-01;VVR3(27)= 0.3549340560639790E+00;VVR4(27)= 0.5526556431060170E+00;VVWG(27)= 0.1644939767982320E-01
-VVR1(28)= 0.4620515041500170E-01;VVR2(28)= 0.4620515041500170E-01;VVR3(28)= 0.5526556431060170E+00;VVR4(28)= 0.3549340560639790E+00;VVWG(28)= 0.1644939767982320E-01
-VVR1(29)= 0.5381043228880020E+00;VVR2(29)= 0.2281904610687610E+00;VVR3(29)= 0.2281904610687610E+00;VVR4(29)= 0.5514754974477500E-02;VVWG(29)= 0.1537477665133100E-01
-VVR1(30)= 0.2281904610687610E+00;VVR2(30)= 0.5381043228880020E+00;VVR3(30)= 0.2281904610687610E+00;VVR4(30)= 0.5514754974477500E-02;VVWG(30)= 0.1537477665133100E-01
-VVR1(31)= 0.2281904610687610E+00;VVR2(31)= 0.2281904610687610E+00;VVR3(31)= 0.5381043228880020E+00;VVR4(31)= 0.5514754974477500E-02;VVWG(31)= 0.1537477665133100E-01
-VVR1(32)= 0.5381043228880020E+00;VVR2(32)= 0.2281904610687610E+00;VVR3(32)= 0.5514754974477500E-02;VVR4(32)= 0.2281904610687610E+00;VVWG(32)= 0.1537477665133100E-01
-VVR1(33)= 0.2281904610687610E+00;VVR2(33)= 0.5381043228880020E+00;VVR3(33)= 0.5514754974477500E-02;VVR4(33)= 0.2281904610687610E+00;VVWG(33)= 0.1537477665133100E-01
-VVR1(34)= 0.2281904610687610E+00;VVR2(34)= 0.2281904610687610E+00;VVR3(34)= 0.5514754974477500E-02;VVR4(34)= 0.5381043228880020E+00;VVWG(34)= 0.1537477665133100E-01
-VVR1(35)= 0.5381043228880020E+00;VVR2(35)= 0.5514754974477500E-02;VVR3(35)= 0.2281904610687610E+00;VVR4(35)= 0.2281904610687610E+00;VVWG(35)= 0.1537477665133100E-01
-VVR1(36)= 0.2281904610687610E+00;VVR2(36)= 0.5514754974477500E-02;VVR3(36)= 0.5381043228880020E+00;VVR4(36)= 0.2281904610687610E+00;VVWG(36)= 0.1537477665133100E-01
-VVR1(37)= 0.2281904610687610E+00;VVR2(37)= 0.5514754974477500E-02;VVR3(37)= 0.2281904610687610E+00;VVR4(37)= 0.5381043228880020E+00;VVWG(37)= 0.1537477665133100E-01
-VVR1(38)= 0.5514754974477500E-02;VVR2(38)= 0.5381043228880020E+00;VVR3(38)= 0.2281904610687610E+00;VVR4(38)= 0.2281904610687610E+00;VVWG(38)= 0.1537477665133100E-01
-VVR1(39)= 0.5514754974477500E-02;VVR2(39)= 0.2281904610687610E+00;VVR3(39)= 0.5381043228880020E+00;VVR4(39)= 0.2281904610687610E+00;VVWG(39)= 0.1537477665133100E-01
-VVR1(40)= 0.5514754974477500E-02;VVR2(40)= 0.2281904610687610E+00;VVR3(40)= 0.2281904610687610E+00;VVR4(40)= 0.5381043228880020E+00;VVWG(40)= 0.1537477665133100E-01
-VVR1(41)= 0.1961837595745600E+00;VVR2(41)= 0.3523052600879940E+00;VVR3(41)= 0.3523052600879940E+00;VVR4(41)= 0.9920572024945300E-01;VVWG(41)= 0.2935201183752300E-01
-VVR1(42)= 0.3523052600879940E+00;VVR2(42)= 0.1961837595745600E+00;VVR3(42)= 0.3523052600879940E+00;VVR4(42)= 0.9920572024945300E-01;VVWG(42)= 0.2935201183752300E-01
-VVR1(43)= 0.3523052600879940E+00;VVR2(43)= 0.3523052600879940E+00;VVR3(43)= 0.1961837595745600E+00;VVR4(43)= 0.9920572024945300E-01;VVWG(43)= 0.2935201183752300E-01
-VVR1(44)= 0.1961837595745600E+00;VVR2(44)= 0.3523052600879940E+00;VVR3(44)= 0.9920572024945300E-01;VVR4(44)= 0.3523052600879940E+00;VVWG(44)= 0.2935201183752300E-01
-VVR1(45)= 0.3523052600879940E+00;VVR2(45)= 0.1961837595745600E+00;VVR3(45)= 0.9920572024945300E-01;VVR4(45)= 0.3523052600879940E+00;VVWG(45)= 0.2935201183752300E-01
-VVR1(46)= 0.3523052600879940E+00;VVR2(46)= 0.3523052600879940E+00;VVR3(46)= 0.9920572024945300E-01;VVR4(46)= 0.1961837595745600E+00;VVWG(46)= 0.2935201183752300E-01
-VVR1(47)= 0.1961837595745600E+00;VVR2(47)= 0.9920572024945300E-01;VVR3(47)= 0.3523052600879940E+00;VVR4(47)= 0.3523052600879940E+00;VVWG(47)= 0.2935201183752300E-01
-VVR1(48)= 0.3523052600879940E+00;VVR2(48)= 0.9920572024945300E-01;VVR3(48)= 0.1961837595745600E+00;VVR4(48)= 0.3523052600879940E+00;VVWG(48)= 0.2935201183752300E-01
-VVR1(49)= 0.3523052600879940E+00;VVR2(49)= 0.9920572024945300E-01;VVR3(49)= 0.3523052600879940E+00;VVR4(49)= 0.1961837595745600E+00;VVWG(49)= 0.2935201183752300E-01
-VVR1(50)= 0.9920572024945300E-01;VVR2(50)= 0.1961837595745600E+00;VVR3(50)= 0.3523052600879940E+00;VVR4(50)= 0.3523052600879940E+00;VVWG(50)= 0.2935201183752300E-01
-VVR1(51)= 0.9920572024945300E-01;VVR2(51)= 0.3523052600879940E+00;VVR3(51)= 0.1961837595745600E+00;VVR4(51)= 0.3523052600879940E+00;VVWG(51)= 0.2935201183752300E-01
-VVR1(52)= 0.9920572024945300E-01;VVR2(52)= 0.3523052600879940E+00;VVR3(52)= 0.3523052600879940E+00;VVR4(52)= 0.1961837595745600E+00;VVWG(52)= 0.2935201183752300E-01
-VVR1(53)= 0.5965649956210169E+00;VVR2(53)= 0.1344783347929940E+00;VVR3(53)= 0.1344783347929940E+00;VVR4(53)= 0.1344783347929940E+00;VVWG(53)= 0.3662913664051080E-01
-VVR1(54)= 0.1344783347929940E+00;VVR2(54)= 0.5965649956210169E+00;VVR3(54)= 0.1344783347929940E+00;VVR4(54)= 0.1344783347929940E+00;VVWG(54)= 0.3662913664051080E-01
-VVR1(55)= 0.1344783347929940E+00;VVR2(55)= 0.1344783347929940E+00;VVR3(55)= 0.5965649956210169E+00;VVR4(55)= 0.1344783347929940E+00;VVWG(55)= 0.3662913664051080E-01
-VVR1(56)= 0.1344783347929940E+00;VVR2(56)= 0.1344783347929940E+00;VVR3(56)= 0.1344783347929940E+00;VVR4(56)= 0.5965649956210169E+00;VVWG(56)= 0.3662913664051080E-01
+case(6,7,8,9)
+vvr1( 1)= 0.9551438045408220e+00;vvr2( 1)= 0.1495206515305920e-01;vvr3( 1)= 0.1495206515305920e-01;vvr4( 1)= 0.1495206515305920e-01;vvwg( 1)= 0.1037311233614000e-02
+vvr1( 2)= 0.1495206515305920e-01;vvr2( 2)= 0.9551438045408220e+00;vvr3( 2)= 0.1495206515305920e-01;vvr4( 2)= 0.1495206515305920e-01;vvwg( 2)= 0.1037311233614000e-02
+vvr1( 3)= 0.1495206515305920e-01;vvr2( 3)= 0.1495206515305920e-01;vvr3( 3)= 0.9551438045408220e+00;vvr4( 3)= 0.1495206515305920e-01;vvwg( 3)= 0.1037311233614000e-02
+vvr1( 4)= 0.1495206515305920e-01;vvr2( 4)= 0.1495206515305920e-01;vvr3( 4)= 0.1495206515305920e-01;vvr4( 4)= 0.9551438045408220e+00;vvwg( 4)= 0.1037311233614000e-02
+vvr1( 5)= 0.7799760084415400e+00;vvr2( 5)= 0.1518319491659370e+00;vvr3( 5)= 0.3409602119626150e-01;vvr4( 5)= 0.3409602119626150e-01;vvwg( 5)= 0.9601664539948001e-02
+vvr1( 6)= 0.1518319491659370e+00;vvr2( 6)= 0.7799760084415400e+00;vvr3( 6)= 0.3409602119626150e-01;vvr4( 6)= 0.3409602119626150e-01;vvwg( 6)= 0.9601664539948001e-02
+vvr1( 7)= 0.7799760084415400e+00;vvr2( 7)= 0.3409602119626150e-01;vvr3( 7)= 0.1518319491659370e+00;vvr4( 7)= 0.3409602119626150e-01;vvwg( 7)= 0.9601664539948001e-02
+vvr1( 8)= 0.1518319491659370e+00;vvr2( 8)= 0.3409602119626150e-01;vvr3( 8)= 0.7799760084415400e+00;vvr4( 8)= 0.3409602119626150e-01;vvwg( 8)= 0.9601664539948001e-02
+vvr1( 9)= 0.7799760084415400e+00;vvr2( 9)= 0.3409602119626150e-01;vvr3( 9)= 0.3409602119626150e-01;vvr4( 9)= 0.1518319491659370e+00;vvwg( 9)= 0.9601664539948001e-02
+vvr1(10)= 0.1518319491659370e+00;vvr2(10)= 0.3409602119626150e-01;vvr3(10)= 0.3409602119626150e-01;vvr4(10)= 0.7799760084415400e+00;vvwg(10)= 0.9601664539948001e-02
+vvr1(11)= 0.3409602119626150e-01;vvr2(11)= 0.7799760084415400e+00;vvr3(11)= 0.1518319491659370e+00;vvr4(11)= 0.3409602119626150e-01;vvwg(11)= 0.9601664539948001e-02
+vvr1(12)= 0.3409602119626150e-01;vvr2(12)= 0.1518319491659370e+00;vvr3(12)= 0.7799760084415400e+00;vvr4(12)= 0.3409602119626150e-01;vvwg(12)= 0.9601664539948001e-02
+vvr1(13)= 0.3409602119626150e-01;vvr2(13)= 0.7799760084415400e+00;vvr3(13)= 0.3409602119626150e-01;vvr4(13)= 0.1518319491659370e+00;vvwg(13)= 0.9601664539948001e-02
+vvr1(14)= 0.3409602119626150e-01;vvr2(14)= 0.1518319491659370e+00;vvr3(14)= 0.3409602119626150e-01;vvr4(14)= 0.7799760084415400e+00;vvwg(14)= 0.9601664539948001e-02
+vvr1(15)= 0.3409602119626150e-01;vvr2(15)= 0.3409602119626150e-01;vvr3(15)= 0.7799760084415400e+00;vvr4(15)= 0.1518319491659370e+00;vvwg(15)= 0.9601664539948001e-02
+vvr1(16)= 0.3409602119626150e-01;vvr2(16)= 0.3409602119626150e-01;vvr3(16)= 0.1518319491659370e+00;vvr4(16)= 0.7799760084415400e+00;vvwg(16)= 0.9601664539948001e-02
+vvr1(17)= 0.3549340560639790e+00;vvr2(17)= 0.5526556431060170e+00;vvr3(17)= 0.4620515041500170e-01;vvr4(17)= 0.4620515041500170e-01;vvwg(17)= 0.1644939767982320e-01
+vvr1(18)= 0.5526556431060170e+00;vvr2(18)= 0.3549340560639790e+00;vvr3(18)= 0.4620515041500170e-01;vvr4(18)= 0.4620515041500170e-01;vvwg(18)= 0.1644939767982320e-01
+vvr1(19)= 0.3549340560639790e+00;vvr2(19)= 0.4620515041500170e-01;vvr3(19)= 0.5526556431060170e+00;vvr4(19)= 0.4620515041500170e-01;vvwg(19)= 0.1644939767982320e-01
+vvr1(20)= 0.5526556431060170e+00;vvr2(20)= 0.4620515041500170e-01;vvr3(20)= 0.3549340560639790e+00;vvr4(20)= 0.4620515041500170e-01;vvwg(20)= 0.1644939767982320e-01
+vvr1(21)= 0.3549340560639790e+00;vvr2(21)= 0.4620515041500170e-01;vvr3(21)= 0.4620515041500170e-01;vvr4(21)= 0.5526556431060170e+00;vvwg(21)= 0.1644939767982320e-01
+vvr1(22)= 0.5526556431060170e+00;vvr2(22)= 0.4620515041500170e-01;vvr3(22)= 0.4620515041500170e-01;vvr4(22)= 0.3549340560639790e+00;vvwg(22)= 0.1644939767982320e-01
+vvr1(23)= 0.4620515041500170e-01;vvr2(23)= 0.3549340560639790e+00;vvr3(23)= 0.5526556431060170e+00;vvr4(23)= 0.4620515041500170e-01;vvwg(23)= 0.1644939767982320e-01
+vvr1(24)= 0.4620515041500170e-01;vvr2(24)= 0.5526556431060170e+00;vvr3(24)= 0.3549340560639790e+00;vvr4(24)= 0.4620515041500170e-01;vvwg(24)= 0.1644939767982320e-01
+vvr1(25)= 0.4620515041500170e-01;vvr2(25)= 0.3549340560639790e+00;vvr3(25)= 0.4620515041500170e-01;vvr4(25)= 0.5526556431060170e+00;vvwg(25)= 0.1644939767982320e-01
+vvr1(26)= 0.4620515041500170e-01;vvr2(26)= 0.5526556431060170e+00;vvr3(26)= 0.4620515041500170e-01;vvr4(26)= 0.3549340560639790e+00;vvwg(26)= 0.1644939767982320e-01
+vvr1(27)= 0.4620515041500170e-01;vvr2(27)= 0.4620515041500170e-01;vvr3(27)= 0.3549340560639790e+00;vvr4(27)= 0.5526556431060170e+00;vvwg(27)= 0.1644939767982320e-01
+vvr1(28)= 0.4620515041500170e-01;vvr2(28)= 0.4620515041500170e-01;vvr3(28)= 0.5526556431060170e+00;vvr4(28)= 0.3549340560639790e+00;vvwg(28)= 0.1644939767982320e-01
+vvr1(29)= 0.5381043228880020e+00;vvr2(29)= 0.2281904610687610e+00;vvr3(29)= 0.2281904610687610e+00;vvr4(29)= 0.5514754974477500e-02;vvwg(29)= 0.1537477665133100e-01
+vvr1(30)= 0.2281904610687610e+00;vvr2(30)= 0.5381043228880020e+00;vvr3(30)= 0.2281904610687610e+00;vvr4(30)= 0.5514754974477500e-02;vvwg(30)= 0.1537477665133100e-01
+vvr1(31)= 0.2281904610687610e+00;vvr2(31)= 0.2281904610687610e+00;vvr3(31)= 0.5381043228880020e+00;vvr4(31)= 0.5514754974477500e-02;vvwg(31)= 0.1537477665133100e-01
+vvr1(32)= 0.5381043228880020e+00;vvr2(32)= 0.2281904610687610e+00;vvr3(32)= 0.5514754974477500e-02;vvr4(32)= 0.2281904610687610e+00;vvwg(32)= 0.1537477665133100e-01
+vvr1(33)= 0.2281904610687610e+00;vvr2(33)= 0.5381043228880020e+00;vvr3(33)= 0.5514754974477500e-02;vvr4(33)= 0.2281904610687610e+00;vvwg(33)= 0.1537477665133100e-01
+vvr1(34)= 0.2281904610687610e+00;vvr2(34)= 0.2281904610687610e+00;vvr3(34)= 0.5514754974477500e-02;vvr4(34)= 0.5381043228880020e+00;vvwg(34)= 0.1537477665133100e-01
+vvr1(35)= 0.5381043228880020e+00;vvr2(35)= 0.5514754974477500e-02;vvr3(35)= 0.2281904610687610e+00;vvr4(35)= 0.2281904610687610e+00;vvwg(35)= 0.1537477665133100e-01
+vvr1(36)= 0.2281904610687610e+00;vvr2(36)= 0.5514754974477500e-02;vvr3(36)= 0.5381043228880020e+00;vvr4(36)= 0.2281904610687610e+00;vvwg(36)= 0.1537477665133100e-01
+vvr1(37)= 0.2281904610687610e+00;vvr2(37)= 0.5514754974477500e-02;vvr3(37)= 0.2281904610687610e+00;vvr4(37)= 0.5381043228880020e+00;vvwg(37)= 0.1537477665133100e-01
+vvr1(38)= 0.5514754974477500e-02;vvr2(38)= 0.5381043228880020e+00;vvr3(38)= 0.2281904610687610e+00;vvr4(38)= 0.2281904610687610e+00;vvwg(38)= 0.1537477665133100e-01
+vvr1(39)= 0.5514754974477500e-02;vvr2(39)= 0.2281904610687610e+00;vvr3(39)= 0.5381043228880020e+00;vvr4(39)= 0.2281904610687610e+00;vvwg(39)= 0.1537477665133100e-01
+vvr1(40)= 0.5514754974477500e-02;vvr2(40)= 0.2281904610687610e+00;vvr3(40)= 0.2281904610687610e+00;vvr4(40)= 0.5381043228880020e+00;vvwg(40)= 0.1537477665133100e-01
+vvr1(41)= 0.1961837595745600e+00;vvr2(41)= 0.3523052600879940e+00;vvr3(41)= 0.3523052600879940e+00;vvr4(41)= 0.9920572024945300e-01;vvwg(41)= 0.2935201183752300e-01
+vvr1(42)= 0.3523052600879940e+00;vvr2(42)= 0.1961837595745600e+00;vvr3(42)= 0.3523052600879940e+00;vvr4(42)= 0.9920572024945300e-01;vvwg(42)= 0.2935201183752300e-01
+vvr1(43)= 0.3523052600879940e+00;vvr2(43)= 0.3523052600879940e+00;vvr3(43)= 0.1961837595745600e+00;vvr4(43)= 0.9920572024945300e-01;vvwg(43)= 0.2935201183752300e-01
+vvr1(44)= 0.1961837595745600e+00;vvr2(44)= 0.3523052600879940e+00;vvr3(44)= 0.9920572024945300e-01;vvr4(44)= 0.3523052600879940e+00;vvwg(44)= 0.2935201183752300e-01
+vvr1(45)= 0.3523052600879940e+00;vvr2(45)= 0.1961837595745600e+00;vvr3(45)= 0.9920572024945300e-01;vvr4(45)= 0.3523052600879940e+00;vvwg(45)= 0.2935201183752300e-01
+vvr1(46)= 0.3523052600879940e+00;vvr2(46)= 0.3523052600879940e+00;vvr3(46)= 0.9920572024945300e-01;vvr4(46)= 0.1961837595745600e+00;vvwg(46)= 0.2935201183752300e-01
+vvr1(47)= 0.1961837595745600e+00;vvr2(47)= 0.9920572024945300e-01;vvr3(47)= 0.3523052600879940e+00;vvr4(47)= 0.3523052600879940e+00;vvwg(47)= 0.2935201183752300e-01
+vvr1(48)= 0.3523052600879940e+00;vvr2(48)= 0.9920572024945300e-01;vvr3(48)= 0.1961837595745600e+00;vvr4(48)= 0.3523052600879940e+00;vvwg(48)= 0.2935201183752300e-01
+vvr1(49)= 0.3523052600879940e+00;vvr2(49)= 0.9920572024945300e-01;vvr3(49)= 0.3523052600879940e+00;vvr4(49)= 0.1961837595745600e+00;vvwg(49)= 0.2935201183752300e-01
+vvr1(50)= 0.9920572024945300e-01;vvr2(50)= 0.1961837595745600e+00;vvr3(50)= 0.3523052600879940e+00;vvr4(50)= 0.3523052600879940e+00;vvwg(50)= 0.2935201183752300e-01
+vvr1(51)= 0.9920572024945300e-01;vvr2(51)= 0.3523052600879940e+00;vvr3(51)= 0.1961837595745600e+00;vvr4(51)= 0.3523052600879940e+00;vvwg(51)= 0.2935201183752300e-01
+vvr1(52)= 0.9920572024945300e-01;vvr2(52)= 0.3523052600879940e+00;vvr3(52)= 0.3523052600879940e+00;vvr4(52)= 0.1961837595745600e+00;vvwg(52)= 0.2935201183752300e-01
+vvr1(53)= 0.5965649956210169e+00;vvr2(53)= 0.1344783347929940e+00;vvr3(53)= 0.1344783347929940e+00;vvr4(53)= 0.1344783347929940e+00;vvwg(53)= 0.3662913664051080e-01
+vvr1(54)= 0.1344783347929940e+00;vvr2(54)= 0.5965649956210169e+00;vvr3(54)= 0.1344783347929940e+00;vvr4(54)= 0.1344783347929940e+00;vvwg(54)= 0.3662913664051080e-01
+vvr1(55)= 0.1344783347929940e+00;vvr2(55)= 0.1344783347929940e+00;vvr3(55)= 0.5965649956210169e+00;vvr4(55)= 0.1344783347929940e+00;vvwg(55)= 0.3662913664051080e-01
+vvr1(56)= 0.1344783347929940e+00;vvr2(56)= 0.1344783347929940e+00;vvr3(56)= 0.1344783347929940e+00;vvr4(56)= 0.5965649956210169e+00;vvwg(56)= 0.3662913664051080e-01
  	
 	
 	
@@ -3472,49 +3554,52 @@ VVR1(56)= 0.1344783347929940E+00;VVR2(56)= 0.1344783347929940E+00;VVR3(56)= 0.13
 	
 	
 			
-END select
+end select
 
 
 
 		do kk=1,qp_tetra
-			WEQUA3D(kk)=vvwg(kk)
-			QPOINTS(:,kk)=(VVR1(kk)*VEXT(1,:))+(VVR2(kk)*VEXT(2,:))+(VVR3(kk)*VEXT(3,:))+(VVR4(kk)*VEXT(4,:))
+			wequa3d(kk)=vvwg(kk)
+			qpoints(:,kk)=(vvr1(kk)*vext(1,:))+(vvr2(kk)*vext(2,:))+(vvr3(kk)*vext(3,:))+(vvr4(kk)*vext(4,:))
 			
 		
-		END DO
+		end do
 
 
-END SUBROUTINE QUADRATURETETRA
+end subroutine quadraturetetra
 
-SUBROUTINE QUADRATUREPRISM(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+subroutine quadratureprism(n,igqrules,vext,qpoints,wequa3d)
  !> @brief
-!> This subroutine computes the quadrature points and weights for a prism
-IMPLICIT NONE
-INTEGER,INTENT(IN)::IGQRULES,N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
-real,dimension(1:3,1:3)::VVA,VVA1
-REAL,dimension(1)::DETA
-REAL,DIMENSION(1:8)::VVNXI
-real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3
+!> this subroutine computes the quadrature points and weights for a prism
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::igqrules,n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints),intent(inout)::qpoints
+real,dimension(1:numberofpoints),intent(inout)::wequa3d
+real,dimension(1:3,1:3)::vva,vva1
+real,dimension(1)::deta
+real,dimension(1:8)::vvnxi
+real,dimension(1:alls)::vvwg,vvr1,vvr2,vvr3
 real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
-REAL::R,S,TX,a,b,c,d,e,f
-REAL::a1,b1,c1,d1,e1,f1,sumwe
-INTEGER::Kk,J,ii,ij,ik,count1
+real::r,s,tx,a,b,c,d,e,f
+real::a1,b1,c1,d1,e1,f1,sumwe
+integer::kk,j,ii,ij,ik,count1
 
 
 
 
  
- WEQUA3D=0.0d0
-  QPOINTS=0.0d0
+ wequa3d=0.0d0
+  qpoints=0.0d0
 sumwe=0.0d0
 
-SELECT CASE(IGQRULES)
+select case(igqrules)
  
   case(1)
-		VVR1(1)=0.666666666666667/2.0d0 ;VVR2(1)=0.666666666666667/2.0d0 ;VVR3(1)=0.0d0
+		vvr1(1)=0.666666666666667/2.0d0 ;vvr2(1)=0.666666666666667/2.0d0 ;vvr3(1)=0.0d0
 		
 		  vvwg(1)=2.0d0
 
@@ -3526,12 +3611,12 @@ SELECT CASE(IGQRULES)
 
  
  case(2)
-		VVR1(1)=0.666666666666667 ;VVR2(1)=0.166666666666667 ;VVR3(1)=0.5773502691896257;vvwg(1)=0.33333333333333333333*1.0d0
-		VVR1(2)=0.166666666666667 ;VVR2(2)=0.666666666666667 ;VVR3(2)=0.5773502691896257;vvwg(2)=0.33333333333333333333*1.0d0
-		VVR1(3)=0.166666666666667 ;VVR2(3)=0.166666666666667 ;VVR3(3)=0.5773502691896257;vvwg(3)=0.33333333333333333333*1.0d0
-		VVR1(4)=0.666666666666667 ;VVR2(4)=0.166666666666667 ;VVR3(4)=-0.5773502691896257;vvwg(4)=0.33333333333333333333*1.0d0
-		VVR1(5)=0.166666666666667 ;VVR2(5)=0.666666666666667 ;VVR3(5)=-0.5773502691896257;vvwg(5)=0.33333333333333333333*1.0d0
-		VVR1(6)=0.166666666666667 ;VVR2(6)=0.166666666666667 ;VVR3(6)=-0.5773502691896257;vvwg(6)=0.33333333333333333333*1.0d0
+		vvr1(1)=0.666666666666667 ;vvr2(1)=0.166666666666667 ;vvr3(1)=0.5773502691896257;vvwg(1)=0.33333333333333333333*1.0d0
+		vvr1(2)=0.166666666666667 ;vvr2(2)=0.666666666666667 ;vvr3(2)=0.5773502691896257;vvwg(2)=0.33333333333333333333*1.0d0
+		vvr1(3)=0.166666666666667 ;vvr2(3)=0.166666666666667 ;vvr3(3)=0.5773502691896257;vvwg(3)=0.33333333333333333333*1.0d0
+		vvr1(4)=0.666666666666667 ;vvr2(4)=0.166666666666667 ;vvr3(4)=-0.5773502691896257;vvwg(4)=0.33333333333333333333*1.0d0
+		vvr1(5)=0.166666666666667 ;vvr2(5)=0.666666666666667 ;vvr3(5)=-0.5773502691896257;vvwg(5)=0.33333333333333333333*1.0d0
+		vvr1(6)=0.166666666666667 ;vvr2(6)=0.166666666666667 ;vvr3(6)=-0.5773502691896257;vvwg(6)=0.33333333333333333333*1.0d0
  
 
  
@@ -3539,7 +3624,7 @@ SELECT CASE(IGQRULES)
 
 
   	
- CASE(3)
+ case(3)
   a=0.0d0
   b=-0.7745966692414834
   c=0.7745966692414834
@@ -3548,24 +3633,24 @@ SELECT CASE(IGQRULES)
   c1=0.5555555555555556
  
 
-		VVR1(1)=0.816847572980440 ;VVR2(1)=0.091576213509780 ;VVR3(1)=0.0 ;vvwg(1)=0.109951743655333*0.8888888888888888
-		VVR1(2)=0.091576213509780 ;VVR2(2)=0.816847572980440 ;VVR3(2)=0.0 ;vvwg(2)=0.109951743655333*0.8888888888888888
-		VVR1(3)=0.091576213509780 ;VVR2(3)=0.091576213509780 ;VVR3(3)=0.0 ;vvwg(3)=0.109951743655333*0.8888888888888888
-		VVR1(4)=0.445948490915964 ;VVR2(4)=0.445948490915964 ;VVR3(4)=0.0 ;vvwg(4)=0.223381589678000*0.8888888888888888
-		VVR1(5)=0.445948490915964 ;VVR2(5)=0.108103018168071 ;VVR3(5)=0.0 ;vvwg(5)=0.223381589678000*0.8888888888888888
-		VVR1(6)=0.108103018168071 ;VVR2(6)=0.445948490915964 ;VVR3(6)=0.0 ;vvwg(6)=0.223381589678000*0.8888888888888888
-		VVR1(7)=0.816847572980440 ;VVR2(7)=0.091576213509780 ;VVR3(7)=-0.7745966692414834 ;vvwg(7)=0.109951743655333*0.5555555555555556
-		VVR1(8)=0.091576213509780 ;VVR2(8)=0.816847572980440 ;VVR3(8)=-0.7745966692414834 ;vvwg(8)=0.109951743655333*0.5555555555555556
-		VVR1(9)=0.091576213509780 ;VVR2(9)=0.091576213509780 ;VVR3(9)=-0.7745966692414834 ;vvwg(9)=0.109951743655333*0.5555555555555556
-		VVR1(10)=0.445948490915964 ;VVR2(10)=0.445948490915964 ;VVR3(10)=-0.7745966692414834 ;vvwg(10)=0.223381589678000*0.5555555555555556
-		VVR1(11)=0.445948490915964 ;VVR2(11)=0.108103018168071 ;VVR3(11)=-0.7745966692414834 ;vvwg(11)=0.223381589678000*0.5555555555555556
-		VVR1(12)=0.108103018168071 ;VVR2(12)=0.445948490915964 ;VVR3(12)=-0.7745966692414834 ;vvwg(12)=0.223381589678000*0.5555555555555556
-		VVR1(13)=0.816847572980440 ;VVR2(13)=0.091576213509780 ;VVR3(13)=0.7745966692414834 ;vvwg(13)=0.109951743655333*0.5555555555555556
-		VVR1(14)=0.091576213509780 ;VVR2(14)=0.816847572980440 ;VVR3(14)=0.7745966692414834 ;vvwg(14)=0.109951743655333*0.5555555555555556
-		VVR1(15)=0.091576213509780 ;VVR2(15)=0.091576213509780 ;VVR3(15)=0.7745966692414834 ;vvwg(15)=0.109951743655333*0.5555555555555556
-		VVR1(16)=0.445948490915964 ;VVR2(16)=0.445948490915964 ;VVR3(16)=0.7745966692414834 ;vvwg(16)=0.223381589678000*0.5555555555555556
-		VVR1(17)=0.445948490915964 ;VVR2(17)=0.108103018168071 ;VVR3(17)=0.7745966692414834 ;vvwg(17)=0.223381589678000*0.5555555555555556
-		VVR1(18)=0.108103018168071 ;VVR2(18)=0.445948490915964 ;VVR3(18)=0.7745966692414834 ;vvwg(18)=0.223381589678000*0.5555555555555556
+		vvr1(1)=0.816847572980440 ;vvr2(1)=0.091576213509780 ;vvr3(1)=0.0 ;vvwg(1)=0.109951743655333*0.8888888888888888
+		vvr1(2)=0.091576213509780 ;vvr2(2)=0.816847572980440 ;vvr3(2)=0.0 ;vvwg(2)=0.109951743655333*0.8888888888888888
+		vvr1(3)=0.091576213509780 ;vvr2(3)=0.091576213509780 ;vvr3(3)=0.0 ;vvwg(3)=0.109951743655333*0.8888888888888888
+		vvr1(4)=0.445948490915964 ;vvr2(4)=0.445948490915964 ;vvr3(4)=0.0 ;vvwg(4)=0.223381589678000*0.8888888888888888
+		vvr1(5)=0.445948490915964 ;vvr2(5)=0.108103018168071 ;vvr3(5)=0.0 ;vvwg(5)=0.223381589678000*0.8888888888888888
+		vvr1(6)=0.108103018168071 ;vvr2(6)=0.445948490915964 ;vvr3(6)=0.0 ;vvwg(6)=0.223381589678000*0.8888888888888888
+		vvr1(7)=0.816847572980440 ;vvr2(7)=0.091576213509780 ;vvr3(7)=-0.7745966692414834 ;vvwg(7)=0.109951743655333*0.5555555555555556
+		vvr1(8)=0.091576213509780 ;vvr2(8)=0.816847572980440 ;vvr3(8)=-0.7745966692414834 ;vvwg(8)=0.109951743655333*0.5555555555555556
+		vvr1(9)=0.091576213509780 ;vvr2(9)=0.091576213509780 ;vvr3(9)=-0.7745966692414834 ;vvwg(9)=0.109951743655333*0.5555555555555556
+		vvr1(10)=0.445948490915964 ;vvr2(10)=0.445948490915964 ;vvr3(10)=-0.7745966692414834 ;vvwg(10)=0.223381589678000*0.5555555555555556
+		vvr1(11)=0.445948490915964 ;vvr2(11)=0.108103018168071 ;vvr3(11)=-0.7745966692414834 ;vvwg(11)=0.223381589678000*0.5555555555555556
+		vvr1(12)=0.108103018168071 ;vvr2(12)=0.445948490915964 ;vvr3(12)=-0.7745966692414834 ;vvwg(12)=0.223381589678000*0.5555555555555556
+		vvr1(13)=0.816847572980440 ;vvr2(13)=0.091576213509780 ;vvr3(13)=0.7745966692414834 ;vvwg(13)=0.109951743655333*0.5555555555555556
+		vvr1(14)=0.091576213509780 ;vvr2(14)=0.816847572980440 ;vvr3(14)=0.7745966692414834 ;vvwg(14)=0.109951743655333*0.5555555555555556
+		vvr1(15)=0.091576213509780 ;vvr2(15)=0.091576213509780 ;vvr3(15)=0.7745966692414834 ;vvwg(15)=0.109951743655333*0.5555555555555556
+		vvr1(16)=0.445948490915964 ;vvr2(16)=0.445948490915964 ;vvr3(16)=0.7745966692414834 ;vvwg(16)=0.223381589678000*0.5555555555555556
+		vvr1(17)=0.445948490915964 ;vvr2(17)=0.108103018168071 ;vvr3(17)=0.7745966692414834 ;vvwg(17)=0.223381589678000*0.5555555555555556
+		vvr1(18)=0.108103018168071 ;vvr2(18)=0.445948490915964 ;vvr3(18)=0.7745966692414834 ;vvwg(18)=0.223381589678000*0.5555555555555556
 
 
 
@@ -3578,7 +3663,7 @@ SELECT CASE(IGQRULES)
 
 
 			
- CASE(4)
+ case(4)
   a=-0.3399810435848563
   b=0.3399810435848563
   c=-0.8611363115940526
@@ -3588,34 +3673,34 @@ SELECT CASE(IGQRULES)
   c1=0.3478548451374538
   d1=0.3478548451374538
  
-		VVR1(1)=0.816847572980440 ;VVR2(1)=0.091576213509780 ;VVR3(1)=-0.3399810435848563 ;vvwg(1)=0.109951743655333*0.6521451548625461
-		VVR1(2)=0.091576213509780 ;VVR2(2)=0.816847572980440 ;VVR3(2)=-0.3399810435848563 ;vvwg(2)=0.109951743655333*0.6521451548625461
-		VVR1(3)=0.091576213509780 ;VVR2(3)=0.091576213509780 ;VVR3(3)=-0.3399810435848563 ;vvwg(3)=0.109951743655333*0.6521451548625461
-		VVR1(4)=0.445948490915964 ;VVR2(4)=0.445948490915964 ;VVR3(4)=-0.3399810435848563 ;vvwg(4)=0.223381589678000*0.6521451548625461
-		VVR1(5)=0.445948490915964 ;VVR2(5)=0.108103018168071 ;VVR3(5)=-0.3399810435848563 ;vvwg(5)=0.223381589678000*0.6521451548625461
-		VVR1(6)=0.108103018168071 ;VVR2(6)=0.445948490915964 ;VVR3(6)=-0.3399810435848563 ;vvwg(6)=0.223381589678000*0.6521451548625461
-		VVR1(7)=0.816847572980440 ;VVR2(7)=0.091576213509780 ;VVR3(7)=0.3399810435848563 ;vvwg(7)=0.109951743655333*0.6521451548625461
-		VVR1(8)=0.091576213509780 ;VVR2(8)=0.816847572980440 ;VVR3(8)=0.3399810435848563 ;vvwg(8)=0.109951743655333*0.6521451548625461
-		VVR1(9)=0.091576213509780 ;VVR2(9)=0.091576213509780 ;VVR3(9)=0.3399810435848563 ;vvwg(9)=0.109951743655333*0.6521451548625461
-		VVR1(10)=0.445948490915964 ;VVR2(10)=0.445948490915964 ;VVR3(10)=0.3399810435848563 ;vvwg(10)=0.223381589678000*0.6521451548625461
-		VVR1(11)=0.445948490915964 ;VVR2(11)=0.108103018168071 ;VVR3(11)=0.3399810435848563 ;vvwg(11)=0.223381589678000*0.6521451548625461
-		VVR1(12)=0.108103018168071 ;VVR2(12)=0.445948490915964 ;VVR3(12)=0.3399810435848563 ;vvwg(12)=0.223381589678000*0.6521451548625461
-		VVR1(13)=0.816847572980440 ;VVR2(13)=0.091576213509780 ;VVR3(13)=-0.8611363115940526 ;vvwg(13)=0.109951743655333*0.3478548451374538
-		VVR1(14)=0.091576213509780 ;VVR2(14)=0.816847572980440 ;VVR3(14)=-0.8611363115940526 ;vvwg(14)=0.109951743655333*0.3478548451374538
-		VVR1(15)=0.091576213509780 ;VVR2(15)=0.091576213509780 ;VVR3(15)=-0.8611363115940526 ;vvwg(15)=0.109951743655333*0.3478548451374538
-		VVR1(16)=0.445948490915964 ;VVR2(16)=0.445948490915964 ;VVR3(16)=-0.8611363115940526 ;vvwg(16)=0.223381589678000*0.3478548451374538
-		VVR1(17)=0.445948490915964 ;VVR2(17)=0.108103018168071 ;VVR3(17)=-0.8611363115940526 ;vvwg(17)=0.223381589678000*0.3478548451374538
-		VVR1(18)=0.108103018168071 ;VVR2(18)=0.445948490915964 ;VVR3(18)=-0.8611363115940526 ;vvwg(18)=0.223381589678000*0.3478548451374538
-		VVR1(19)=0.816847572980440 ;VVR2(19)=0.091576213509780 ;VVR3(19)=0.8611363115940526 ;vvwg(19)=0.109951743655333*0.3478548451374538
-		VVR1(20)=0.091576213509780 ;VVR2(20)=0.816847572980440 ;VVR3(20)=0.8611363115940526 ;vvwg(20)=0.109951743655333*0.3478548451374538
-		VVR1(21)=0.091576213509780 ;VVR2(21)=0.091576213509780 ;VVR3(21)=0.8611363115940526 ;vvwg(21)=0.109951743655333*0.3478548451374538
-		VVR1(22)=0.445948490915964 ;VVR2(22)=0.445948490915964 ;VVR3(22)=0.8611363115940526 ;vvwg(22)=0.223381589678000*0.3478548451374538
-		VVR1(23)=0.445948490915964 ;VVR2(23)=0.108103018168071 ;VVR3(23)=0.8611363115940526 ;vvwg(23)=0.223381589678000*0.3478548451374538
-		VVR1(24)=0.108103018168071 ;VVR2(24)=0.445948490915964 ;VVR3(24)=0.8611363115940526 ;vvwg(24)=0.223381589678000*0.3478548451374538
+		vvr1(1)=0.816847572980440 ;vvr2(1)=0.091576213509780 ;vvr3(1)=-0.3399810435848563 ;vvwg(1)=0.109951743655333*0.6521451548625461
+		vvr1(2)=0.091576213509780 ;vvr2(2)=0.816847572980440 ;vvr3(2)=-0.3399810435848563 ;vvwg(2)=0.109951743655333*0.6521451548625461
+		vvr1(3)=0.091576213509780 ;vvr2(3)=0.091576213509780 ;vvr3(3)=-0.3399810435848563 ;vvwg(3)=0.109951743655333*0.6521451548625461
+		vvr1(4)=0.445948490915964 ;vvr2(4)=0.445948490915964 ;vvr3(4)=-0.3399810435848563 ;vvwg(4)=0.223381589678000*0.6521451548625461
+		vvr1(5)=0.445948490915964 ;vvr2(5)=0.108103018168071 ;vvr3(5)=-0.3399810435848563 ;vvwg(5)=0.223381589678000*0.6521451548625461
+		vvr1(6)=0.108103018168071 ;vvr2(6)=0.445948490915964 ;vvr3(6)=-0.3399810435848563 ;vvwg(6)=0.223381589678000*0.6521451548625461
+		vvr1(7)=0.816847572980440 ;vvr2(7)=0.091576213509780 ;vvr3(7)=0.3399810435848563 ;vvwg(7)=0.109951743655333*0.6521451548625461
+		vvr1(8)=0.091576213509780 ;vvr2(8)=0.816847572980440 ;vvr3(8)=0.3399810435848563 ;vvwg(8)=0.109951743655333*0.6521451548625461
+		vvr1(9)=0.091576213509780 ;vvr2(9)=0.091576213509780 ;vvr3(9)=0.3399810435848563 ;vvwg(9)=0.109951743655333*0.6521451548625461
+		vvr1(10)=0.445948490915964 ;vvr2(10)=0.445948490915964 ;vvr3(10)=0.3399810435848563 ;vvwg(10)=0.223381589678000*0.6521451548625461
+		vvr1(11)=0.445948490915964 ;vvr2(11)=0.108103018168071 ;vvr3(11)=0.3399810435848563 ;vvwg(11)=0.223381589678000*0.6521451548625461
+		vvr1(12)=0.108103018168071 ;vvr2(12)=0.445948490915964 ;vvr3(12)=0.3399810435848563 ;vvwg(12)=0.223381589678000*0.6521451548625461
+		vvr1(13)=0.816847572980440 ;vvr2(13)=0.091576213509780 ;vvr3(13)=-0.8611363115940526 ;vvwg(13)=0.109951743655333*0.3478548451374538
+		vvr1(14)=0.091576213509780 ;vvr2(14)=0.816847572980440 ;vvr3(14)=-0.8611363115940526 ;vvwg(14)=0.109951743655333*0.3478548451374538
+		vvr1(15)=0.091576213509780 ;vvr2(15)=0.091576213509780 ;vvr3(15)=-0.8611363115940526 ;vvwg(15)=0.109951743655333*0.3478548451374538
+		vvr1(16)=0.445948490915964 ;vvr2(16)=0.445948490915964 ;vvr3(16)=-0.8611363115940526 ;vvwg(16)=0.223381589678000*0.3478548451374538
+		vvr1(17)=0.445948490915964 ;vvr2(17)=0.108103018168071 ;vvr3(17)=-0.8611363115940526 ;vvwg(17)=0.223381589678000*0.3478548451374538
+		vvr1(18)=0.108103018168071 ;vvr2(18)=0.445948490915964 ;vvr3(18)=-0.8611363115940526 ;vvwg(18)=0.223381589678000*0.3478548451374538
+		vvr1(19)=0.816847572980440 ;vvr2(19)=0.091576213509780 ;vvr3(19)=0.8611363115940526 ;vvwg(19)=0.109951743655333*0.3478548451374538
+		vvr1(20)=0.091576213509780 ;vvr2(20)=0.816847572980440 ;vvr3(20)=0.8611363115940526 ;vvwg(20)=0.109951743655333*0.3478548451374538
+		vvr1(21)=0.091576213509780 ;vvr2(21)=0.091576213509780 ;vvr3(21)=0.8611363115940526 ;vvwg(21)=0.109951743655333*0.3478548451374538
+		vvr1(22)=0.445948490915964 ;vvr2(22)=0.445948490915964 ;vvr3(22)=0.8611363115940526 ;vvwg(22)=0.223381589678000*0.3478548451374538
+		vvr1(23)=0.445948490915964 ;vvr2(23)=0.108103018168071 ;vvr3(23)=0.8611363115940526 ;vvwg(23)=0.223381589678000*0.3478548451374538
+		vvr1(24)=0.108103018168071 ;vvr2(24)=0.445948490915964 ;vvr3(24)=0.8611363115940526 ;vvwg(24)=0.223381589678000*0.3478548451374538
 
 
 			
-CASE(5)
+case(5)
 
   a=0.0d0
   b=-0.5384693101056831
@@ -3626,198 +3711,201 @@ CASE(5)
   b1=0.4786286704993665
   c1=0.4786286704993665
   d1=0.2369268850561891
-  E1=0.2369268850561891
-				VVR1(1)=0.888871894660413 ;VVR2(1)=0.055564052669793 ;VVR3(1)=0.0 ;vvwg(1)=0.041955512996649*0.5688888888888889
-				VVR1(2)=0.055564052669793 ;VVR2(2)=0.888871894660413 ;VVR3(2)=0.0 ;vvwg(2)=0.041955512996649*0.5688888888888889
-				VVR1(3)=0.055564052669793 ;VVR2(3)=0.055564052669793 ;VVR3(3)=0.0 ;vvwg(3)=0.041955512996649*0.5688888888888889
-				VVR1(4)=0.295533711735893 ;VVR2(4)=0.634210747745723 ;VVR3(4)=0.0 ;vvwg(4)=0.112098412070887*0.5688888888888889
-				VVR1(5)=0.295533711735893 ;VVR2(5)=0.070255540518384 ;VVR3(5)=0.0 ;vvwg(5)=0.112098412070887*0.5688888888888889
-				VVR1(6)=0.070255540518384 ;VVR2(6)=0.295533711735893 ;VVR3(6)=0.0 ;vvwg(6)=0.112098412070887*0.5688888888888889
-				VVR1(7)=0.634210747745723 ;VVR2(7)=0.295533711735893 ;VVR3(7)=0.0 ;vvwg(7)=0.112098412070887*0.5688888888888889
-				VVR1(8)=0.634210747745723 ;VVR2(8)=0.070255540518384 ;VVR3(8)=0.0 ;vvwg(8)=0.112098412070887*0.5688888888888889
-				VVR1(9)=0.070255540518384 ;VVR2(9)=0.634210747745723 ;VVR3(9)=0.0 ;vvwg(9)=0.112098412070887*0.5688888888888889
-				VVR1(10)=0.333333333333333 ;VVR2(10)=0.333333333333333 ;VVR3(10)=0.0 ;vvwg(10)=0.201542988584730*0.5688888888888889
-				VVR1(11)=0.888871894660413 ;VVR2(11)=0.055564052669793 ;VVR3(11)=-0.5384693101056831 ;vvwg(11)=0.041955512996649*0.4786286704993665
-				VVR1(12)=0.055564052669793 ;VVR2(12)=0.888871894660413 ;VVR3(12)=-0.5384693101056831 ;vvwg(12)=0.041955512996649*0.4786286704993665
-				VVR1(13)=0.055564052669793 ;VVR2(13)=0.055564052669793 ;VVR3(13)=-0.5384693101056831 ;vvwg(13)=0.041955512996649*0.4786286704993665
-				VVR1(14)=0.295533711735893 ;VVR2(14)=0.634210747745723 ;VVR3(14)=-0.5384693101056831 ;vvwg(14)=0.112098412070887*0.4786286704993665
-				VVR1(15)=0.295533711735893 ;VVR2(15)=0.070255540518384 ;VVR3(15)=-0.5384693101056831 ;vvwg(15)=0.112098412070887*0.4786286704993665
-				VVR1(16)=0.070255540518384 ;VVR2(16)=0.295533711735893 ;VVR3(16)=-0.5384693101056831 ;vvwg(16)=0.112098412070887*0.4786286704993665
-				VVR1(17)=0.634210747745723 ;VVR2(17)=0.295533711735893 ;VVR3(17)=-0.53846931010568314 ;vvwg(17)=0.112098412070887*0.4786286704993665
-				VVR1(18)=0.634210747745723 ;VVR2(18)=0.070255540518384 ;VVR3(18)=-0.5384693101056831 ;vvwg(18)=0.112098412070887*0.4786286704993665
-				VVR1(19)=0.070255540518384 ;VVR2(19)=0.634210747745723 ;VVR3(19)=-0.5384693101056831 ;vvwg(19)=0.112098412070887*0.4786286704993665
-				VVR1(20)=0.333333333333333 ;VVR2(20)=0.333333333333333 ;VVR3(20)=-0.5384693101056831 ;vvwg(20)=0.201542988584730*0.4786286704993665
-				VVR1(21)=0.888871894660413 ;VVR2(21)=0.055564052669793 ;VVR3(21)=0.5384693101056831 ;vvwg(21)=0.041955512996649*0.4786286704993665
-				VVR1(22)=0.055564052669793 ;VVR2(22)=0.888871894660413 ;VVR3(22)=0.5384693101056831 ;vvwg(22)=0.041955512996649*0.4786286704993665
-				VVR1(23)=0.055564052669793 ;VVR2(23)=0.055564052669793 ;VVR3(23)=0.5384693101056831 ;vvwg(23)=0.041955512996649*0.4786286704993665
-				VVR1(24)=0.295533711735893 ;VVR2(24)=0.634210747745723 ;VVR3(24)=0.5384693101056831;vvwg(24)=0.112098412070887*0.4786286704993665
-				VVR1(25)=0.295533711735893 ;VVR2(25)=0.070255540518384 ;VVR3(25)=0.5384693101056831 ;vvwg(25)=0.112098412070887*0.4786286704993665
-				VVR1(26)=0.070255540518384 ;VVR2(26)=0.295533711735893 ;VVR3(26)=0.5384693101056831 ;vvwg(26)=0.112098412070887*0.4786286704993665
-				VVR1(27)=0.634210747745723 ;VVR2(27)=0.295533711735893 ;VVR3(27)=0.5384693101056831 ;vvwg(27)=0.112098412070887*0.4786286704993665
-				VVR1(28)=0.634210747745723 ;VVR2(28)=0.070255540518384 ;VVR3(28)=0.5384693101056831 ;vvwg(28)=0.112098412070887*0.4786286704993665
-				VVR1(29)=0.070255540518384 ;VVR2(29)=0.634210747745723 ;VVR3(29)=0.5384693101056831 ;vvwg(29)=0.112098412070887*0.4786286704993665
-				VVR1(30)=0.333333333333333 ;VVR2(30)=0.333333333333333 ;VVR3(30)=0.5384693101056831 ;vvwg(30)=0.201542988584730*0.4786286704993665
-				VVR1(31)=0.888871894660413 ;VVR2(31)=0.055564052669793 ;VVR3(31)=-0.9061798459386640 ;vvwg(31)=0.041955512996649*0.2369268850561891
-				VVR1(32)=0.055564052669793 ;VVR2(32)=0.888871894660413 ;VVR3(32)=-0.9061798459386640 ;vvwg(32)=0.041955512996649*0.2369268850561891
-				VVR1(33)=0.055564052669793 ;VVR2(33)=0.055564052669793 ;VVR3(33)=-0.9061798459386640 ;vvwg(33)=0.041955512996649*0.2369268850561891
-				VVR1(34)=0.295533711735893 ;VVR2(34)=0.634210747745723 ;VVR3(34)=-0.9061798459386640 ;vvwg(34)=0.112098412070887*0.2369268850561891
-				VVR1(35)=0.295533711735893 ;VVR2(35)=0.070255540518384 ;VVR3(35)=-0.9061798459386640 ;vvwg(35)=0.112098412070887*0.2369268850561891
-				VVR1(36)=0.070255540518384 ;VVR2(36)=0.295533711735893 ;VVR3(36)=-0.9061798459386640 ;vvwg(36)=0.112098412070887*0.2369268850561891
-				VVR1(37)=0.634210747745723 ;VVR2(37)=0.295533711735893 ;VVR3(37)=-0.9061798459386640 ;vvwg(37)=0.112098412070887*0.2369268850561891
-				VVR1(38)=0.634210747745723 ;VVR2(38)=0.070255540518384 ;VVR3(38)=-0.9061798459386640 ;vvwg(38)=0.112098412070887*0.2369268850561891
-				VVR1(39)=0.070255540518384 ;VVR2(39)=0.634210747745723 ;VVR3(39)=-0.9061798459386640 ;vvwg(39)=0.112098412070887*0.2369268850561891
-				VVR1(40)=0.333333333333333 ;VVR2(40)=0.333333333333333 ;VVR3(40)=-0.9061798459386640 ;vvwg(40)=0.201542988584730*0.2369268850561891
-				VVR1(41)=0.888871894660413 ;VVR2(41)=0.055564052669793 ;VVR3(41)=0.9061798459386640 ;vvwg(41)=0.041955512996649*0.2369268850561891
-				VVR1(42)=0.055564052669793 ;VVR2(42)=0.888871894660413 ;VVR3(42)=0.9061798459386640;vvwg(42)=0.041955512996649*0.2369268850561891
-				VVR1(43)=0.055564052669793 ;VVR2(43)=0.055564052669793 ;VVR3(43)=0.9061798459386640 ;vvwg(43)=0.041955512996649*0.2369268850561891
-				VVR1(44)=0.295533711735893 ;VVR2(44)=0.634210747745723 ;VVR3(44)=0.9061798459386640;vvwg(44)=0.112098412070887*0.2369268850561891
-				VVR1(45)=0.295533711735893 ;VVR2(45)=0.070255540518384 ;VVR3(45)=0.9061798459386640 ;vvwg(45)=0.112098412070887*0.2369268850561891
-				VVR1(46)=0.070255540518384 ;VVR2(46)=0.295533711735893 ;VVR3(46)=0.9061798459386640 ;vvwg(46)=0.112098412070887*0.2369268850561891
-				VVR1(47)=0.634210747745723 ;VVR2(47)=0.295533711735893 ;VVR3(47)=0.9061798459386640 ;vvwg(47)=0.112098412070887*0.2369268850561891
-				VVR1(48)=0.634210747745723 ;VVR2(48)=0.070255540518384 ;VVR3(48)=0.9061798459386640 ;vvwg(48)=0.112098412070887*0.2369268850561891
-				VVR1(49)=0.070255540518384 ;VVR2(49)=0.634210747745723 ;VVR3(49)=0.9061798459386640 ;vvwg(49)=0.112098412070887*0.2369268850561891
-				VVR1(50)=0.333333333333333 ;VVR2(50)=0.333333333333333 ;VVR3(50)=0.9061798459386640 ;vvwg(50)=0.201542988584730*0.2369268850561891
+  e1=0.2369268850561891
+				vvr1(1)=0.888871894660413 ;vvr2(1)=0.055564052669793 ;vvr3(1)=0.0 ;vvwg(1)=0.041955512996649*0.5688888888888889
+				vvr1(2)=0.055564052669793 ;vvr2(2)=0.888871894660413 ;vvr3(2)=0.0 ;vvwg(2)=0.041955512996649*0.5688888888888889
+				vvr1(3)=0.055564052669793 ;vvr2(3)=0.055564052669793 ;vvr3(3)=0.0 ;vvwg(3)=0.041955512996649*0.5688888888888889
+				vvr1(4)=0.295533711735893 ;vvr2(4)=0.634210747745723 ;vvr3(4)=0.0 ;vvwg(4)=0.112098412070887*0.5688888888888889
+				vvr1(5)=0.295533711735893 ;vvr2(5)=0.070255540518384 ;vvr3(5)=0.0 ;vvwg(5)=0.112098412070887*0.5688888888888889
+				vvr1(6)=0.070255540518384 ;vvr2(6)=0.295533711735893 ;vvr3(6)=0.0 ;vvwg(6)=0.112098412070887*0.5688888888888889
+				vvr1(7)=0.634210747745723 ;vvr2(7)=0.295533711735893 ;vvr3(7)=0.0 ;vvwg(7)=0.112098412070887*0.5688888888888889
+				vvr1(8)=0.634210747745723 ;vvr2(8)=0.070255540518384 ;vvr3(8)=0.0 ;vvwg(8)=0.112098412070887*0.5688888888888889
+				vvr1(9)=0.070255540518384 ;vvr2(9)=0.634210747745723 ;vvr3(9)=0.0 ;vvwg(9)=0.112098412070887*0.5688888888888889
+				vvr1(10)=0.333333333333333 ;vvr2(10)=0.333333333333333 ;vvr3(10)=0.0 ;vvwg(10)=0.201542988584730*0.5688888888888889
+				vvr1(11)=0.888871894660413 ;vvr2(11)=0.055564052669793 ;vvr3(11)=-0.5384693101056831 ;vvwg(11)=0.041955512996649*0.4786286704993665
+				vvr1(12)=0.055564052669793 ;vvr2(12)=0.888871894660413 ;vvr3(12)=-0.5384693101056831 ;vvwg(12)=0.041955512996649*0.4786286704993665
+				vvr1(13)=0.055564052669793 ;vvr2(13)=0.055564052669793 ;vvr3(13)=-0.5384693101056831 ;vvwg(13)=0.041955512996649*0.4786286704993665
+				vvr1(14)=0.295533711735893 ;vvr2(14)=0.634210747745723 ;vvr3(14)=-0.5384693101056831 ;vvwg(14)=0.112098412070887*0.4786286704993665
+				vvr1(15)=0.295533711735893 ;vvr2(15)=0.070255540518384 ;vvr3(15)=-0.5384693101056831 ;vvwg(15)=0.112098412070887*0.4786286704993665
+				vvr1(16)=0.070255540518384 ;vvr2(16)=0.295533711735893 ;vvr3(16)=-0.5384693101056831 ;vvwg(16)=0.112098412070887*0.4786286704993665
+				vvr1(17)=0.634210747745723 ;vvr2(17)=0.295533711735893 ;vvr3(17)=-0.53846931010568314 ;vvwg(17)=0.112098412070887*0.4786286704993665
+				vvr1(18)=0.634210747745723 ;vvr2(18)=0.070255540518384 ;vvr3(18)=-0.5384693101056831 ;vvwg(18)=0.112098412070887*0.4786286704993665
+				vvr1(19)=0.070255540518384 ;vvr2(19)=0.634210747745723 ;vvr3(19)=-0.5384693101056831 ;vvwg(19)=0.112098412070887*0.4786286704993665
+				vvr1(20)=0.333333333333333 ;vvr2(20)=0.333333333333333 ;vvr3(20)=-0.5384693101056831 ;vvwg(20)=0.201542988584730*0.4786286704993665
+				vvr1(21)=0.888871894660413 ;vvr2(21)=0.055564052669793 ;vvr3(21)=0.5384693101056831 ;vvwg(21)=0.041955512996649*0.4786286704993665
+				vvr1(22)=0.055564052669793 ;vvr2(22)=0.888871894660413 ;vvr3(22)=0.5384693101056831 ;vvwg(22)=0.041955512996649*0.4786286704993665
+				vvr1(23)=0.055564052669793 ;vvr2(23)=0.055564052669793 ;vvr3(23)=0.5384693101056831 ;vvwg(23)=0.041955512996649*0.4786286704993665
+				vvr1(24)=0.295533711735893 ;vvr2(24)=0.634210747745723 ;vvr3(24)=0.5384693101056831;vvwg(24)=0.112098412070887*0.4786286704993665
+				vvr1(25)=0.295533711735893 ;vvr2(25)=0.070255540518384 ;vvr3(25)=0.5384693101056831 ;vvwg(25)=0.112098412070887*0.4786286704993665
+				vvr1(26)=0.070255540518384 ;vvr2(26)=0.295533711735893 ;vvr3(26)=0.5384693101056831 ;vvwg(26)=0.112098412070887*0.4786286704993665
+				vvr1(27)=0.634210747745723 ;vvr2(27)=0.295533711735893 ;vvr3(27)=0.5384693101056831 ;vvwg(27)=0.112098412070887*0.4786286704993665
+				vvr1(28)=0.634210747745723 ;vvr2(28)=0.070255540518384 ;vvr3(28)=0.5384693101056831 ;vvwg(28)=0.112098412070887*0.4786286704993665
+				vvr1(29)=0.070255540518384 ;vvr2(29)=0.634210747745723 ;vvr3(29)=0.5384693101056831 ;vvwg(29)=0.112098412070887*0.4786286704993665
+				vvr1(30)=0.333333333333333 ;vvr2(30)=0.333333333333333 ;vvr3(30)=0.5384693101056831 ;vvwg(30)=0.201542988584730*0.4786286704993665
+				vvr1(31)=0.888871894660413 ;vvr2(31)=0.055564052669793 ;vvr3(31)=-0.9061798459386640 ;vvwg(31)=0.041955512996649*0.2369268850561891
+				vvr1(32)=0.055564052669793 ;vvr2(32)=0.888871894660413 ;vvr3(32)=-0.9061798459386640 ;vvwg(32)=0.041955512996649*0.2369268850561891
+				vvr1(33)=0.055564052669793 ;vvr2(33)=0.055564052669793 ;vvr3(33)=-0.9061798459386640 ;vvwg(33)=0.041955512996649*0.2369268850561891
+				vvr1(34)=0.295533711735893 ;vvr2(34)=0.634210747745723 ;vvr3(34)=-0.9061798459386640 ;vvwg(34)=0.112098412070887*0.2369268850561891
+				vvr1(35)=0.295533711735893 ;vvr2(35)=0.070255540518384 ;vvr3(35)=-0.9061798459386640 ;vvwg(35)=0.112098412070887*0.2369268850561891
+				vvr1(36)=0.070255540518384 ;vvr2(36)=0.295533711735893 ;vvr3(36)=-0.9061798459386640 ;vvwg(36)=0.112098412070887*0.2369268850561891
+				vvr1(37)=0.634210747745723 ;vvr2(37)=0.295533711735893 ;vvr3(37)=-0.9061798459386640 ;vvwg(37)=0.112098412070887*0.2369268850561891
+				vvr1(38)=0.634210747745723 ;vvr2(38)=0.070255540518384 ;vvr3(38)=-0.9061798459386640 ;vvwg(38)=0.112098412070887*0.2369268850561891
+				vvr1(39)=0.070255540518384 ;vvr2(39)=0.634210747745723 ;vvr3(39)=-0.9061798459386640 ;vvwg(39)=0.112098412070887*0.2369268850561891
+				vvr1(40)=0.333333333333333 ;vvr2(40)=0.333333333333333 ;vvr3(40)=-0.9061798459386640 ;vvwg(40)=0.201542988584730*0.2369268850561891
+				vvr1(41)=0.888871894660413 ;vvr2(41)=0.055564052669793 ;vvr3(41)=0.9061798459386640 ;vvwg(41)=0.041955512996649*0.2369268850561891
+				vvr1(42)=0.055564052669793 ;vvr2(42)=0.888871894660413 ;vvr3(42)=0.9061798459386640;vvwg(42)=0.041955512996649*0.2369268850561891
+				vvr1(43)=0.055564052669793 ;vvr2(43)=0.055564052669793 ;vvr3(43)=0.9061798459386640 ;vvwg(43)=0.041955512996649*0.2369268850561891
+				vvr1(44)=0.295533711735893 ;vvr2(44)=0.634210747745723 ;vvr3(44)=0.9061798459386640;vvwg(44)=0.112098412070887*0.2369268850561891
+				vvr1(45)=0.295533711735893 ;vvr2(45)=0.070255540518384 ;vvr3(45)=0.9061798459386640 ;vvwg(45)=0.112098412070887*0.2369268850561891
+				vvr1(46)=0.070255540518384 ;vvr2(46)=0.295533711735893 ;vvr3(46)=0.9061798459386640 ;vvwg(46)=0.112098412070887*0.2369268850561891
+				vvr1(47)=0.634210747745723 ;vvr2(47)=0.295533711735893 ;vvr3(47)=0.9061798459386640 ;vvwg(47)=0.112098412070887*0.2369268850561891
+				vvr1(48)=0.634210747745723 ;vvr2(48)=0.070255540518384 ;vvr3(48)=0.9061798459386640 ;vvwg(48)=0.112098412070887*0.2369268850561891
+				vvr1(49)=0.070255540518384 ;vvr2(49)=0.634210747745723 ;vvr3(49)=0.9061798459386640 ;vvwg(49)=0.112098412070887*0.2369268850561891
+				vvr1(50)=0.333333333333333 ;vvr2(50)=0.333333333333333 ;vvr3(50)=0.9061798459386640 ;vvwg(50)=0.201542988584730*0.2369268850561891
 	
 			
-CASE(6,7,8,9)
+case(6,7,8,9)
 
   a=0.6612093864662645
   b=-0.6612093864662645
   c=-0.2386191860831969
   d=0.2386191860831969
   e=-0.9324695142031521
-  F=0.9324695142031521
+  f=0.9324695142031521
   a1=0.3607615730481386
   b1=0.3607615730481386
   c1=0.4679139345726910
   d1=0.4679139345726910
   e1=0.1713244923791704
-  F1=0.1713244923791704
+  f1=0.1713244923791704
  
-			      VVR1(1)=0.888871894660413 ;VVR2(1)=0.055564052669793 ;VVR3(1)=0.6612093864662645 ;vvwg(1)=0.041955512996649*0.3607615730481386
-				VVR1(2)=0.055564052669793 ;VVR2(2)=0.888871894660413 ;VVR3(2)=0.6612093864662645 ;vvwg(2)=0.041955512996649*0.3607615730481386
-				VVR1(3)=0.055564052669793 ;VVR2(3)=0.055564052669793 ;VVR3(3)=0.6612093864662645 ;vvwg(3)=0.041955512996649*0.3607615730481386
-				VVR1(4)=0.295533711735893 ;VVR2(4)=0.634210747745723 ;VVR3(4)=0.6612093864662645 ;vvwg(4)=0.112098412070887*0.3607615730481386
-				VVR1(5)=0.295533711735893 ;VVR2(5)=0.070255540518384 ;VVR3(5)=0.6612093864662645 ;vvwg(5)=0.112098412070887*0.3607615730481386
-				VVR1(6)=0.070255540518384 ;VVR2(6)=0.295533711735893 ;VVR3(6)=0.6612093864662645 ;vvwg(6)=0.112098412070887*0.3607615730481386
-				VVR1(7)=0.634210747745723 ;VVR2(7)=0.295533711735893 ;VVR3(7)=0.6612093864662645 ;vvwg(7)=0.112098412070887*0.3607615730481386
-				VVR1(8)=0.634210747745723 ;VVR2(8)=0.070255540518384 ;VVR3(8)=0.6612093864662645 ;vvwg(8)=0.112098412070887*0.3607615730481386
-				VVR1(9)=0.070255540518384 ;VVR2(9)=0.634210747745723 ;VVR3(9)=0.6612093864662645 ;vvwg(9)=0.112098412070887*0.3607615730481386
-				VVR1(10)=0.333333333333333 ;VVR2(10)=0.333333333333333 ;VVR3(10)=0.6612093864662645 ;vvwg(10)=0.201542988584730*0.3607615730481386
-				VVR1(11)=0.888871894660413 ;VVR2(11)=0.055564052669793 ;VVR3(11)=-0.6612093864662645 ;vvwg(11)=0.041955512996649*0.3607615730481386
-				VVR1(12)=0.055564052669793 ;VVR2(12)=0.888871894660413 ;VVR3(12)=-0.6612093864662645 ;vvwg(12)=0.041955512996649*0.3607615730481386
-				VVR1(13)=0.055564052669793 ;VVR2(13)=0.055564052669793 ;VVR3(13)=-0.6612093864662645 ;vvwg(13)=0.041955512996649*0.3607615730481386
-				VVR1(14)=0.295533711735893 ;VVR2(14)=0.634210747745723 ;VVR3(14)=-0.6612093864662645 ;vvwg(14)=0.112098412070887*0.3607615730481386
-				VVR1(15)=0.295533711735893 ;VVR2(15)=0.070255540518384 ;VVR3(15)=-0.6612093864662645 ;vvwg(15)=0.112098412070887*0.3607615730481386
-				VVR1(16)=0.070255540518384 ;VVR2(16)=0.295533711735893 ;VVR3(16)=-0.6612093864662645;vvwg(16)=0.112098412070887*0.3607615730481386
-				VVR1(17)=0.634210747745723 ;VVR2(17)=0.295533711735893 ;VVR3(17)=-0.6612093864662645 ;vvwg(17)=0.112098412070887*0.3607615730481386
-				VVR1(18)=0.634210747745723 ;VVR2(18)=0.070255540518384 ;VVR3(18)=-0.6612093864662645;vvwg(18)=0.112098412070887*0.3607615730481386
-				VVR1(19)=0.070255540518384 ;VVR2(19)=0.634210747745723 ;VVR3(19)=-0.6612093864662645 ;vvwg(19)=0.112098412070887*0.3607615730481386
-				VVR1(20)=0.333333333333333 ;VVR2(20)=0.333333333333333 ;VVR3(20)=-0.6612093864662645 ;vvwg(20)=0.201542988584730*0.3607615730481386
-				VVR1(21)=0.888871894660413 ;VVR2(21)=0.055564052669793 ;VVR3(21)=-0.2386191860831969 ;vvwg(21)=0.041955512996649*0.4679139345726910
-				VVR1(22)=0.055564052669793 ;VVR2(22)=0.888871894660413 ;VVR3(22)=-0.2386191860831969 ;vvwg(22)=0.041955512996649*0.4679139345726910
-				VVR1(23)=0.055564052669793 ;VVR2(23)=0.055564052669793 ;VVR3(23)=-0.2386191860831969;vvwg(23)=0.041955512996649*0.4679139345726910
-				VVR1(24)=0.295533711735893 ;VVR2(24)=0.634210747745723 ;VVR3(24)=-0.2386191860831969;vvwg(24)=0.112098412070887*0.4679139345726910
-				VVR1(25)=0.295533711735893 ;VVR2(25)=0.070255540518384 ;VVR3(25)=-0.2386191860831969 ;vvwg(25)=0.112098412070887*0.4679139345726910
-				VVR1(26)=0.070255540518384 ;VVR2(26)=0.295533711735893 ;VVR3(26)=-0.2386191860831969 ;vvwg(26)=0.112098412070887*0.4679139345726910
-				VVR1(27)=0.634210747745723 ;VVR2(27)=0.295533711735893 ;VVR3(27)=-0.2386191860831969 ;vvwg(27)=0.112098412070887*0.4679139345726910
-				VVR1(28)=0.634210747745723 ;VVR2(28)=0.070255540518384 ;VVR3(28)=-0.2386191860831969 ;vvwg(28)=0.112098412070887*0.4679139345726910
-				VVR1(29)=0.070255540518384 ;VVR2(29)=0.634210747745723 ;VVR3(29)=-0.2386191860831969 ;vvwg(29)=0.112098412070887*0.4679139345726910
-				VVR1(30)=0.333333333333333 ;VVR2(30)=0.333333333333333 ;VVR3(30)=-0.2386191860831969 ;vvwg(30)=0.201542988584730*0.4679139345726910
-				VVR1(31)=0.888871894660413 ;VVR2(31)=0.055564052669793 ;VVR3(31)=0.2386191860831969 ;vvwg(31)=0.041955512996649*0.4679139345726910
-				VVR1(32)=0.055564052669793 ;VVR2(32)=0.888871894660413 ;VVR3(32)=0.2386191860831969 ;vvwg(32)=0.041955512996649*0.4679139345726910
-				VVR1(33)=0.055564052669793 ;VVR2(33)=0.055564052669793 ;VVR3(33)=0.2386191860831969 ;vvwg(33)=0.041955512996649*0.4679139345726910
-				VVR1(34)=0.295533711735893 ;VVR2(34)=0.634210747745723 ;VVR3(34)=0.2386191860831969 ;vvwg(34)=0.112098412070887*0.4679139345726910
-				VVR1(35)=0.295533711735893 ;VVR2(35)=0.070255540518384 ;VVR3(35)=0.2386191860831969 ;vvwg(35)=0.112098412070887*0.4679139345726910
-				VVR1(36)=0.070255540518384 ;VVR2(36)=0.295533711735893 ;VVR3(36)=0.2386191860831969 ;vvwg(36)=0.112098412070887*0.4679139345726910
-				VVR1(37)=0.634210747745723 ;VVR2(37)=0.295533711735893 ;VVR3(37)=0.2386191860831969 ;vvwg(37)=0.112098412070887*0.4679139345726910
-				VVR1(38)=0.634210747745723 ;VVR2(38)=0.070255540518384 ;VVR3(38)=0.2386191860831969 ;vvwg(38)=0.112098412070887*0.4679139345726910
-				VVR1(39)=0.070255540518384 ;VVR2(39)=0.634210747745723 ;VVR3(39)=0.2386191860831969 ;vvwg(39)=0.112098412070887*0.4679139345726910
-				VVR1(40)=0.333333333333333 ;VVR2(40)=0.333333333333333 ;VVR3(40)=0.2386191860831969 ;vvwg(40)=0.201542988584730*0.4679139345726910
-				VVR1(41)=0.888871894660413 ;VVR2(41)=0.055564052669793 ;VVR3(41)=-0.9324695142031521 ;vvwg(41)=0.041955512996649*0.1713244923791704
-				VVR1(42)=0.055564052669793 ;VVR2(42)=0.888871894660413 ;VVR3(42)=-0.9324695142031521;vvwg(42)=0.041955512996649*0.1713244923791704
-				VVR1(43)=0.055564052669793 ;VVR2(43)=0.055564052669793 ;VVR3(43)=-0.9324695142031521 ;vvwg(43)=0.041955512996649*0.1713244923791704
-				VVR1(44)=0.295533711735893 ;VVR2(44)=0.634210747745723 ;VVR3(44)=-0.9324695142031521;vvwg(44)=0.112098412070887*0.1713244923791704
-				VVR1(45)=0.295533711735893 ;VVR2(45)=0.070255540518384 ;VVR3(45)=-0.9324695142031521 ;vvwg(45)=0.112098412070887*0.1713244923791704
-				VVR1(46)=0.070255540518384 ;VVR2(46)=0.295533711735893 ;VVR3(46)=-0.9324695142031521 ;vvwg(46)=0.112098412070887*0.1713244923791704
-				VVR1(47)=0.634210747745723 ;VVR2(47)=0.295533711735893 ;VVR3(47)=-0.9324695142031521 ;vvwg(47)=0.112098412070887*0.1713244923791704
-				VVR1(48)=0.634210747745723 ;VVR2(48)=0.070255540518384 ;VVR3(48)=-0.9324695142031521 ;vvwg(48)=0.112098412070887*0.1713244923791704
-				VVR1(49)=0.070255540518384 ;VVR2(49)=0.634210747745723 ;VVR3(49)=-0.9324695142031521 ;vvwg(49)=0.112098412070887*0.1713244923791704
-				VVR1(50)=0.333333333333333 ;VVR2(50)=0.333333333333333 ;VVR3(50)=-0.9324695142031521 ;vvwg(50)=0.201542988584730*0.1713244923791704
-				VVR1(51)=0.888871894660413 ;VVR2(51)=0.055564052669793 ;VVR3(51)=0.9324695142031521 ;vvwg(51)=0.041955512996649*0.1713244923791704
-				VVR1(52)=0.055564052669793 ;VVR2(52)=0.888871894660413 ;VVR3(52)=0.9324695142031521;vvwg(52)=0.041955512996649*0.1713244923791704
-				VVR1(53)=0.055564052669793 ;VVR2(53)=0.055564052669793 ;VVR3(53)=0.9324695142031521 ;vvwg(53)=0.041955512996649*0.1713244923791704
-				VVR1(54)=0.295533711735893 ;VVR2(54)=0.634210747745723 ;VVR3(54)=0.9324695142031521;vvwg(54)=0.112098412070887*0.1713244923791704
-				VVR1(55)=0.295533711735893 ;VVR2(55)=0.070255540518384 ;VVR3(55)=0.9324695142031521 ;vvwg(55)=0.112098412070887*0.1713244923791704
-				VVR1(56)=0.070255540518384 ;VVR2(56)=0.295533711735893 ;VVR3(56)=0.9324695142031521 ;vvwg(56)=0.112098412070887*0.1713244923791704
-				VVR1(57)=0.634210747745723 ;VVR2(57)=0.295533711735893 ;VVR3(57)=0.9324695142031521 ;vvwg(57)=0.112098412070887*0.1713244923791704
-				VVR1(58)=0.634210747745723 ;VVR2(58)=0.070255540518384 ;VVR3(58)=0.9324695142031521 ;vvwg(58)=0.112098412070887*0.1713244923791704
-				VVR1(59)=0.070255540518384 ;VVR2(59)=0.634210747745723 ;VVR3(59)=0.9324695142031521 ;vvwg(59)=0.112098412070887*0.1713244923791704
-				VVR1(60)=0.333333333333333 ;VVR2(60)=0.333333333333333 ;VVR3(60)=0.9324695142031521 ;vvwg(60)=0.201542988584730*0.1713244923791704
+			      vvr1(1)=0.888871894660413 ;vvr2(1)=0.055564052669793 ;vvr3(1)=0.6612093864662645 ;vvwg(1)=0.041955512996649*0.3607615730481386
+				vvr1(2)=0.055564052669793 ;vvr2(2)=0.888871894660413 ;vvr3(2)=0.6612093864662645 ;vvwg(2)=0.041955512996649*0.3607615730481386
+				vvr1(3)=0.055564052669793 ;vvr2(3)=0.055564052669793 ;vvr3(3)=0.6612093864662645 ;vvwg(3)=0.041955512996649*0.3607615730481386
+				vvr1(4)=0.295533711735893 ;vvr2(4)=0.634210747745723 ;vvr3(4)=0.6612093864662645 ;vvwg(4)=0.112098412070887*0.3607615730481386
+				vvr1(5)=0.295533711735893 ;vvr2(5)=0.070255540518384 ;vvr3(5)=0.6612093864662645 ;vvwg(5)=0.112098412070887*0.3607615730481386
+				vvr1(6)=0.070255540518384 ;vvr2(6)=0.295533711735893 ;vvr3(6)=0.6612093864662645 ;vvwg(6)=0.112098412070887*0.3607615730481386
+				vvr1(7)=0.634210747745723 ;vvr2(7)=0.295533711735893 ;vvr3(7)=0.6612093864662645 ;vvwg(7)=0.112098412070887*0.3607615730481386
+				vvr1(8)=0.634210747745723 ;vvr2(8)=0.070255540518384 ;vvr3(8)=0.6612093864662645 ;vvwg(8)=0.112098412070887*0.3607615730481386
+				vvr1(9)=0.070255540518384 ;vvr2(9)=0.634210747745723 ;vvr3(9)=0.6612093864662645 ;vvwg(9)=0.112098412070887*0.3607615730481386
+				vvr1(10)=0.333333333333333 ;vvr2(10)=0.333333333333333 ;vvr3(10)=0.6612093864662645 ;vvwg(10)=0.201542988584730*0.3607615730481386
+				vvr1(11)=0.888871894660413 ;vvr2(11)=0.055564052669793 ;vvr3(11)=-0.6612093864662645 ;vvwg(11)=0.041955512996649*0.3607615730481386
+				vvr1(12)=0.055564052669793 ;vvr2(12)=0.888871894660413 ;vvr3(12)=-0.6612093864662645 ;vvwg(12)=0.041955512996649*0.3607615730481386
+				vvr1(13)=0.055564052669793 ;vvr2(13)=0.055564052669793 ;vvr3(13)=-0.6612093864662645 ;vvwg(13)=0.041955512996649*0.3607615730481386
+				vvr1(14)=0.295533711735893 ;vvr2(14)=0.634210747745723 ;vvr3(14)=-0.6612093864662645 ;vvwg(14)=0.112098412070887*0.3607615730481386
+				vvr1(15)=0.295533711735893 ;vvr2(15)=0.070255540518384 ;vvr3(15)=-0.6612093864662645 ;vvwg(15)=0.112098412070887*0.3607615730481386
+				vvr1(16)=0.070255540518384 ;vvr2(16)=0.295533711735893 ;vvr3(16)=-0.6612093864662645;vvwg(16)=0.112098412070887*0.3607615730481386
+				vvr1(17)=0.634210747745723 ;vvr2(17)=0.295533711735893 ;vvr3(17)=-0.6612093864662645 ;vvwg(17)=0.112098412070887*0.3607615730481386
+				vvr1(18)=0.634210747745723 ;vvr2(18)=0.070255540518384 ;vvr3(18)=-0.6612093864662645;vvwg(18)=0.112098412070887*0.3607615730481386
+				vvr1(19)=0.070255540518384 ;vvr2(19)=0.634210747745723 ;vvr3(19)=-0.6612093864662645 ;vvwg(19)=0.112098412070887*0.3607615730481386
+				vvr1(20)=0.333333333333333 ;vvr2(20)=0.333333333333333 ;vvr3(20)=-0.6612093864662645 ;vvwg(20)=0.201542988584730*0.3607615730481386
+				vvr1(21)=0.888871894660413 ;vvr2(21)=0.055564052669793 ;vvr3(21)=-0.2386191860831969 ;vvwg(21)=0.041955512996649*0.4679139345726910
+				vvr1(22)=0.055564052669793 ;vvr2(22)=0.888871894660413 ;vvr3(22)=-0.2386191860831969 ;vvwg(22)=0.041955512996649*0.4679139345726910
+				vvr1(23)=0.055564052669793 ;vvr2(23)=0.055564052669793 ;vvr3(23)=-0.2386191860831969;vvwg(23)=0.041955512996649*0.4679139345726910
+				vvr1(24)=0.295533711735893 ;vvr2(24)=0.634210747745723 ;vvr3(24)=-0.2386191860831969;vvwg(24)=0.112098412070887*0.4679139345726910
+				vvr1(25)=0.295533711735893 ;vvr2(25)=0.070255540518384 ;vvr3(25)=-0.2386191860831969 ;vvwg(25)=0.112098412070887*0.4679139345726910
+				vvr1(26)=0.070255540518384 ;vvr2(26)=0.295533711735893 ;vvr3(26)=-0.2386191860831969 ;vvwg(26)=0.112098412070887*0.4679139345726910
+				vvr1(27)=0.634210747745723 ;vvr2(27)=0.295533711735893 ;vvr3(27)=-0.2386191860831969 ;vvwg(27)=0.112098412070887*0.4679139345726910
+				vvr1(28)=0.634210747745723 ;vvr2(28)=0.070255540518384 ;vvr3(28)=-0.2386191860831969 ;vvwg(28)=0.112098412070887*0.4679139345726910
+				vvr1(29)=0.070255540518384 ;vvr2(29)=0.634210747745723 ;vvr3(29)=-0.2386191860831969 ;vvwg(29)=0.112098412070887*0.4679139345726910
+				vvr1(30)=0.333333333333333 ;vvr2(30)=0.333333333333333 ;vvr3(30)=-0.2386191860831969 ;vvwg(30)=0.201542988584730*0.4679139345726910
+				vvr1(31)=0.888871894660413 ;vvr2(31)=0.055564052669793 ;vvr3(31)=0.2386191860831969 ;vvwg(31)=0.041955512996649*0.4679139345726910
+				vvr1(32)=0.055564052669793 ;vvr2(32)=0.888871894660413 ;vvr3(32)=0.2386191860831969 ;vvwg(32)=0.041955512996649*0.4679139345726910
+				vvr1(33)=0.055564052669793 ;vvr2(33)=0.055564052669793 ;vvr3(33)=0.2386191860831969 ;vvwg(33)=0.041955512996649*0.4679139345726910
+				vvr1(34)=0.295533711735893 ;vvr2(34)=0.634210747745723 ;vvr3(34)=0.2386191860831969 ;vvwg(34)=0.112098412070887*0.4679139345726910
+				vvr1(35)=0.295533711735893 ;vvr2(35)=0.070255540518384 ;vvr3(35)=0.2386191860831969 ;vvwg(35)=0.112098412070887*0.4679139345726910
+				vvr1(36)=0.070255540518384 ;vvr2(36)=0.295533711735893 ;vvr3(36)=0.2386191860831969 ;vvwg(36)=0.112098412070887*0.4679139345726910
+				vvr1(37)=0.634210747745723 ;vvr2(37)=0.295533711735893 ;vvr3(37)=0.2386191860831969 ;vvwg(37)=0.112098412070887*0.4679139345726910
+				vvr1(38)=0.634210747745723 ;vvr2(38)=0.070255540518384 ;vvr3(38)=0.2386191860831969 ;vvwg(38)=0.112098412070887*0.4679139345726910
+				vvr1(39)=0.070255540518384 ;vvr2(39)=0.634210747745723 ;vvr3(39)=0.2386191860831969 ;vvwg(39)=0.112098412070887*0.4679139345726910
+				vvr1(40)=0.333333333333333 ;vvr2(40)=0.333333333333333 ;vvr3(40)=0.2386191860831969 ;vvwg(40)=0.201542988584730*0.4679139345726910
+				vvr1(41)=0.888871894660413 ;vvr2(41)=0.055564052669793 ;vvr3(41)=-0.9324695142031521 ;vvwg(41)=0.041955512996649*0.1713244923791704
+				vvr1(42)=0.055564052669793 ;vvr2(42)=0.888871894660413 ;vvr3(42)=-0.9324695142031521;vvwg(42)=0.041955512996649*0.1713244923791704
+				vvr1(43)=0.055564052669793 ;vvr2(43)=0.055564052669793 ;vvr3(43)=-0.9324695142031521 ;vvwg(43)=0.041955512996649*0.1713244923791704
+				vvr1(44)=0.295533711735893 ;vvr2(44)=0.634210747745723 ;vvr3(44)=-0.9324695142031521;vvwg(44)=0.112098412070887*0.1713244923791704
+				vvr1(45)=0.295533711735893 ;vvr2(45)=0.070255540518384 ;vvr3(45)=-0.9324695142031521 ;vvwg(45)=0.112098412070887*0.1713244923791704
+				vvr1(46)=0.070255540518384 ;vvr2(46)=0.295533711735893 ;vvr3(46)=-0.9324695142031521 ;vvwg(46)=0.112098412070887*0.1713244923791704
+				vvr1(47)=0.634210747745723 ;vvr2(47)=0.295533711735893 ;vvr3(47)=-0.9324695142031521 ;vvwg(47)=0.112098412070887*0.1713244923791704
+				vvr1(48)=0.634210747745723 ;vvr2(48)=0.070255540518384 ;vvr3(48)=-0.9324695142031521 ;vvwg(48)=0.112098412070887*0.1713244923791704
+				vvr1(49)=0.070255540518384 ;vvr2(49)=0.634210747745723 ;vvr3(49)=-0.9324695142031521 ;vvwg(49)=0.112098412070887*0.1713244923791704
+				vvr1(50)=0.333333333333333 ;vvr2(50)=0.333333333333333 ;vvr3(50)=-0.9324695142031521 ;vvwg(50)=0.201542988584730*0.1713244923791704
+				vvr1(51)=0.888871894660413 ;vvr2(51)=0.055564052669793 ;vvr3(51)=0.9324695142031521 ;vvwg(51)=0.041955512996649*0.1713244923791704
+				vvr1(52)=0.055564052669793 ;vvr2(52)=0.888871894660413 ;vvr3(52)=0.9324695142031521;vvwg(52)=0.041955512996649*0.1713244923791704
+				vvr1(53)=0.055564052669793 ;vvr2(53)=0.055564052669793 ;vvr3(53)=0.9324695142031521 ;vvwg(53)=0.041955512996649*0.1713244923791704
+				vvr1(54)=0.295533711735893 ;vvr2(54)=0.634210747745723 ;vvr3(54)=0.9324695142031521;vvwg(54)=0.112098412070887*0.1713244923791704
+				vvr1(55)=0.295533711735893 ;vvr2(55)=0.070255540518384 ;vvr3(55)=0.9324695142031521 ;vvwg(55)=0.112098412070887*0.1713244923791704
+				vvr1(56)=0.070255540518384 ;vvr2(56)=0.295533711735893 ;vvr3(56)=0.9324695142031521 ;vvwg(56)=0.112098412070887*0.1713244923791704
+				vvr1(57)=0.634210747745723 ;vvr2(57)=0.295533711735893 ;vvr3(57)=0.9324695142031521 ;vvwg(57)=0.112098412070887*0.1713244923791704
+				vvr1(58)=0.634210747745723 ;vvr2(58)=0.070255540518384 ;vvr3(58)=0.9324695142031521 ;vvwg(58)=0.112098412070887*0.1713244923791704
+				vvr1(59)=0.070255540518384 ;vvr2(59)=0.634210747745723 ;vvr3(59)=0.9324695142031521 ;vvwg(59)=0.112098412070887*0.1713244923791704
+				vvr1(60)=0.333333333333333 ;vvr2(60)=0.333333333333333 ;vvr3(60)=0.9324695142031521 ;vvwg(60)=0.201542988584730*0.1713244923791704
 
 
 
 
 	
 			
-END SELECT
-		QPOINTS(:,:)=0.0d0
+end select
+		qpoints(:,:)=0.0d0
 ! 		
-! 		  WEQUA3D(:)=vvwg(:)*0.5d0
+! 		  wequa3d(:)=vvwg(:)*0.5d0
 		do kk=1,qp_prism
-			WEQUA3D(kk)=vvwg(kk)*0.5d0
+			wequa3d(kk)=vvwg(kk)*0.5d0
 			
-			R=VVR1(kk); S=VVR2(kk); TX=VVR3(kk)
-			VVnxi(1)=(0.5d0)*r*(1.0d0-tX)
-			VVnxi(2)=(0.5d0)*(s)*(1.0d0-tX)
-			VVnxi(3)=(0.5d0)*(1.0-R-s)*(1.0d0-tX)
-			VVnxi(4)=(0.5d0)*r*(1.0d0+tX)
-			VVnxi(5)=(0.5d0)*(s)*(1.0d0+tX)
-			VVnxi(6)=(0.5d0)*(1.0-R-s)*(1.0d0+tX)
+			r=vvr1(kk); s=vvr2(kk); tx=vvr3(kk)
+			vvnxi(1)=(0.5d0)*r*(1.0d0-tx)
+			vvnxi(2)=(0.5d0)*(s)*(1.0d0-tx)
+			vvnxi(3)=(0.5d0)*(1.0-r-s)*(1.0d0-tx)
+			vvnxi(4)=(0.5d0)*r*(1.0d0+tx)
+			vvnxi(5)=(0.5d0)*(s)*(1.0d0+tx)
+			vvnxi(6)=(0.5d0)*(1.0-r-s)*(1.0d0+tx)
 			
-			DO J=1,6
-			QPOINTS(:,kk)=QPOINTS(:,kk)+(VVNXI(j)*VEXT(j,:))
-			END DO
+			do j=1,6
+			qpoints(:,kk)=qpoints(:,kk)+(vvnxi(j)*vext(j,:))
+			end do
 		    
 ! 			
 
-		END DO
+		end do
 ! 		
 
 
 
-END SUBROUTINE QUADRATUREPRISM
+end subroutine quadratureprism
 
 
-SUBROUTINE QUADRATUREPYRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+subroutine quadraturepyra(n,igqrules,vext,qpoints,wequa3d)
  !> @brief
-!> This subroutine computes the quadrature points and weights for a pyramid
-IMPLICIT NONE
-INTEGER,INTENT(IN)::IGQRULES,N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
-REAL::R,S,TX,a,b,c,d,e,f,g
-REAL::a1,b1,c1,d1,e1,f1,sumwe
-INTEGER::Kk,J,ii,ij,ik,count1
-real,dimension(1:3,1:3)::VVA,VVA1
-REAL,dimension(1)::DETA
-REAL,DIMENSION(1:8)::VVNXI
-real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3
+!> this subroutine computes the quadrature points and weights for a pyramid
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::igqrules,n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints),intent(inout)::qpoints
+real,dimension(1:numberofpoints),intent(inout)::wequa3d
+real::r,s,tx,a,b,c,d,e,f,g
+real::a1,b1,c1,d1,e1,f1,sumwe
+integer::kk,j,ii,ij,ik,count1
+real,dimension(1:3,1:3)::vva,vva1
+real,dimension(1)::deta
+real,dimension(1:8)::vvnxi
+real,dimension(1:alls)::vvwg,vvr1,vvr2,vvr3
 real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
 
 
 
 
  
- WEQUA3D=0.0d0
-  QPOINTS=0.0d0
+ wequa3d=0.0d0
+  qpoints=0.0d0
 sumwe=0.0d0
 
-SELECT CASE(IGQRULES)
+select case(igqrules)
  
   case(1)
-		VVR1(1)=0.0d0 ;VVR2(1)=0.0d0 ;VVR3(1)=-0.5d0
+		vvr1(1)=0.0d0 ;vvr2(1)=0.0d0 ;vvr3(1)=-0.5d0
 		
 		  vvwg(1)=8.0d0
 
@@ -3829,11 +3917,11 @@ SELECT CASE(IGQRULES)
 
  
  case(2)
-		VVR1(1)=-0.584237394672177188;VVR2(1)=-0.58423739467217718 ;VVR3(1)=-0.6666666666666666;vvwg(1)=0.81
-		VVR1(2)=0.58423739467217718 ;VVR2(2)=-0.58423739467217718 ;VVR3(2)=-0.6666666666666666;vvwg(2)=0.81
-		VVR1(3)=0.58423739467217718 ;VVR2(3)=0.58423739467217718 ;VVR3(3)=-0.6666666666666666;vvwg(3)=0.81
-		VVR1(4)=-0.58423739467217718 ;VVR2(4)=0.58423739467217718 ;VVR3(4)=-0.6666666666666666;vvwg(4)=0.81
-		VVR1(5)=0.0d0 ;VVR2(5)=0.0d0 ;VVR3(5)=0.4d0;vvwg(5)=3.76d0
+		vvr1(1)=-0.584237394672177188;vvr2(1)=-0.58423739467217718 ;vvr3(1)=-0.6666666666666666;vvwg(1)=0.81
+		vvr1(2)=0.58423739467217718 ;vvr2(2)=-0.58423739467217718 ;vvr3(2)=-0.6666666666666666;vvwg(2)=0.81
+		vvr1(3)=0.58423739467217718 ;vvr2(3)=0.58423739467217718 ;vvr3(3)=-0.6666666666666666;vvwg(3)=0.81
+		vvr1(4)=-0.58423739467217718 ;vvr2(4)=0.58423739467217718 ;vvr3(4)=-0.6666666666666666;vvwg(4)=0.81
+		vvr1(5)=0.0d0 ;vvr2(5)=0.0d0 ;vvr3(5)=0.4d0;vvwg(5)=3.76d0
 		
  
 
@@ -3842,7 +3930,7 @@ SELECT CASE(IGQRULES)
 
 
   	
- CASE(3)
+ case(3)
   a=0.673931986207731726
   b=0.610639618865075532
   c=0.580939660561084423
@@ -3858,19 +3946,19 @@ SELECT CASE(IGQRULES)
  
 
 
-		VVR1(1)=-a ;VVR2(1)=-a ;VVR3(1)=d ;vvwg(1)=a1
-		VVR1(2)=a ;VVR2(2)=-a ;VVR3(2)=d ;vvwg(2)=a1
-		VVR1(3)=a ;VVR2(3)=a ;VVR3(3)=d ;vvwg(3)=a1
-		VVR1(4)=-a ;VVR2(4)=a ;VVR3(4)=d ;vvwg(4)=a1
-		VVR1(5)=-b ;VVR2(5)=0.0 ;VVR3(5)=e ;vvwg(5)=b1
-		VVR1(6)=b ;VVR2(6)=0.0 ;VVR3(6)=e ;vvwg(6)=b1
-		VVR1(7)=0.0 ;VVR2(7)=-b ;VVR3(7)=e ;vvwg(7)=b1
-		VVR1(8)=0.0 ;VVR2(8)=b ;VVR3(8)=e ;vvwg(8)=b1
-		VVR1(9)=0.0 ;VVR2(9)=0.0 ;VVR3(9)=f ;vvwg(9)=c1
-		VVR1(10)=-c ;VVR2(10)=-c ;VVR3(10)=g ;vvwg(10)=d1
-		VVR1(11)=c ;VVR2(11)=-c ;VVR3(11)=g ;vvwg(11)=d1
-		VVR1(12)=c ;VVR2(12)=c ;VVR3(12)=g ;vvwg(12)=d1
-		VVR1(13)=-c ;VVR2(13)=c ;VVR3(13)=g ;vvwg(13)=d1
+		vvr1(1)=-a ;vvr2(1)=-a ;vvr3(1)=d ;vvwg(1)=a1
+		vvr1(2)=a ;vvr2(2)=-a ;vvr3(2)=d ;vvwg(2)=a1
+		vvr1(3)=a ;vvr2(3)=a ;vvr3(3)=d ;vvwg(3)=a1
+		vvr1(4)=-a ;vvr2(4)=a ;vvr3(4)=d ;vvwg(4)=a1
+		vvr1(5)=-b ;vvr2(5)=0.0 ;vvr3(5)=e ;vvwg(5)=b1
+		vvr1(6)=b ;vvr2(6)=0.0 ;vvr3(6)=e ;vvwg(6)=b1
+		vvr1(7)=0.0 ;vvr2(7)=-b ;vvr3(7)=e ;vvwg(7)=b1
+		vvr1(8)=0.0 ;vvr2(8)=b ;vvr3(8)=e ;vvwg(8)=b1
+		vvr1(9)=0.0 ;vvr2(9)=0.0 ;vvr3(9)=f ;vvwg(9)=c1
+		vvr1(10)=-c ;vvr2(10)=-c ;vvr3(10)=g ;vvwg(10)=d1
+		vvr1(11)=c ;vvr2(11)=-c ;vvr3(11)=g ;vvwg(11)=d1
+		vvr1(12)=c ;vvr2(12)=c ;vvr3(12)=g ;vvwg(12)=d1
+		vvr1(13)=-c ;vvr2(13)=c ;vvr3(13)=g ;vvwg(13)=d1
 
 
 
@@ -3882,7 +3970,7 @@ SELECT CASE(IGQRULES)
 
 
 			
- CASE(4)
+ case(4)
   a=0.673931986207731726
   b=0.610639618865075532
   c=0.580939660561084423
@@ -3898,23 +3986,23 @@ SELECT CASE(IGQRULES)
  
 
 
-		VVR1(1)=-a ;VVR2(1)=-a ;VVR3(1)=d ;vvwg(1)=a1
-		VVR1(2)=a ;VVR2(2)=-a ;VVR3(2)=d ;vvwg(2)=a1
-		VVR1(3)=a ;VVR2(3)=a ;VVR3(3)=d ;vvwg(3)=a1
-		VVR1(4)=-a ;VVR2(4)=a ;VVR3(4)=d ;vvwg(4)=a1
-		VVR1(5)=-b ;VVR2(5)=0.0 ;VVR3(5)=e ;vvwg(5)=b1
-		VVR1(6)=b ;VVR2(6)=0.0 ;VVR3(6)=e ;vvwg(6)=b1
-		VVR1(7)=0.0 ;VVR2(7)=-b ;VVR3(7)=e ;vvwg(7)=b1
-		VVR1(8)=0.0 ;VVR2(8)=b ;VVR3(8)=e ;vvwg(8)=b1
-		VVR1(9)=0.0 ;VVR2(9)=0.0 ;VVR3(9)=f ;vvwg(9)=c1
-		VVR1(10)=-c ;VVR2(10)=-c ;VVR3(10)=g ;vvwg(10)=d1
-		VVR1(11)=c ;VVR2(11)=-c ;VVR3(11)=g ;vvwg(11)=d1
-		VVR1(12)=c ;VVR2(12)=c ;VVR3(12)=g ;vvwg(12)=d1
-		VVR1(13)=-c ;VVR2(13)=c ;VVR3(13)=g ;vvwg(13)=d1
+		vvr1(1)=-a ;vvr2(1)=-a ;vvr3(1)=d ;vvwg(1)=a1
+		vvr1(2)=a ;vvr2(2)=-a ;vvr3(2)=d ;vvwg(2)=a1
+		vvr1(3)=a ;vvr2(3)=a ;vvr3(3)=d ;vvwg(3)=a1
+		vvr1(4)=-a ;vvr2(4)=a ;vvr3(4)=d ;vvwg(4)=a1
+		vvr1(5)=-b ;vvr2(5)=0.0 ;vvr3(5)=e ;vvwg(5)=b1
+		vvr1(6)=b ;vvr2(6)=0.0 ;vvr3(6)=e ;vvwg(6)=b1
+		vvr1(7)=0.0 ;vvr2(7)=-b ;vvr3(7)=e ;vvwg(7)=b1
+		vvr1(8)=0.0 ;vvr2(8)=b ;vvr3(8)=e ;vvwg(8)=b1
+		vvr1(9)=0.0 ;vvr2(9)=0.0 ;vvr3(9)=f ;vvwg(9)=c1
+		vvr1(10)=-c ;vvr2(10)=-c ;vvr3(10)=g ;vvwg(10)=d1
+		vvr1(11)=c ;vvr2(11)=-c ;vvr3(11)=g ;vvwg(11)=d1
+		vvr1(12)=c ;vvr2(12)=c ;vvr3(12)=g ;vvwg(12)=d1
+		vvr1(13)=-c ;vvr2(13)=c ;vvr3(13)=g ;vvwg(13)=d1
 
 
 			
-CASE(5)
+case(5)
 
  a=0.673931986207731726
   b=0.610639618865075532
@@ -3931,22 +4019,22 @@ CASE(5)
  
 
 
-		VVR1(1)=-a ;VVR2(1)=-a ;VVR3(1)=d ;vvwg(1)=a1
-		VVR1(2)=a ;VVR2(2)=-a ;VVR3(2)=d ;vvwg(2)=a1
-		VVR1(3)=a ;VVR2(3)=a ;VVR3(3)=d ;vvwg(3)=a1
-		VVR1(4)=-a ;VVR2(4)=a ;VVR3(4)=d ;vvwg(4)=a1
-		VVR1(5)=-b ;VVR2(5)=0.0 ;VVR3(5)=e ;vvwg(5)=b1
-		VVR1(6)=b ;VVR2(6)=0.0 ;VVR3(6)=e ;vvwg(6)=b1
-		VVR1(7)=0.0 ;VVR2(7)=-b ;VVR3(7)=e ;vvwg(7)=b1
-		VVR1(8)=0.0 ;VVR2(8)=b ;VVR3(8)=e ;vvwg(8)=b1
-		VVR1(9)=0.0 ;VVR2(9)=0.0 ;VVR3(9)=f ;vvwg(9)=c1
-		VVR1(10)=-c ;VVR2(10)=-c ;VVR3(10)=g ;vvwg(10)=d1
-		VVR1(11)=c ;VVR2(11)=-c ;VVR3(11)=g ;vvwg(11)=d1
-		VVR1(12)=c ;VVR2(12)=c ;VVR3(12)=g ;vvwg(12)=d1
-		VVR1(13)=-c ;VVR2(13)=c ;VVR3(13)=g ;vvwg(13)=d1
+		vvr1(1)=-a ;vvr2(1)=-a ;vvr3(1)=d ;vvwg(1)=a1
+		vvr1(2)=a ;vvr2(2)=-a ;vvr3(2)=d ;vvwg(2)=a1
+		vvr1(3)=a ;vvr2(3)=a ;vvr3(3)=d ;vvwg(3)=a1
+		vvr1(4)=-a ;vvr2(4)=a ;vvr3(4)=d ;vvwg(4)=a1
+		vvr1(5)=-b ;vvr2(5)=0.0 ;vvr3(5)=e ;vvwg(5)=b1
+		vvr1(6)=b ;vvr2(6)=0.0 ;vvr3(6)=e ;vvwg(6)=b1
+		vvr1(7)=0.0 ;vvr2(7)=-b ;vvr3(7)=e ;vvwg(7)=b1
+		vvr1(8)=0.0 ;vvr2(8)=b ;vvr3(8)=e ;vvwg(8)=b1
+		vvr1(9)=0.0 ;vvr2(9)=0.0 ;vvr3(9)=f ;vvwg(9)=c1
+		vvr1(10)=-c ;vvr2(10)=-c ;vvr3(10)=g ;vvwg(10)=d1
+		vvr1(11)=c ;vvr2(11)=-c ;vvr3(11)=g ;vvwg(11)=d1
+		vvr1(12)=c ;vvr2(12)=c ;vvr3(12)=g ;vvwg(12)=d1
+		vvr1(13)=-c ;vvr2(13)=c ;vvr3(13)=g ;vvwg(13)=d1
 	
 			
-CASE(6,7,8,9)
+case(6,7,8,9)
 
  a=0.673931986207731726
   b=0.610639618865075532
@@ -3963,82 +4051,85 @@ CASE(6,7,8,9)
  
 
 
-		VVR1(1)=-a ;VVR2(1)=-a ;VVR3(1)=d ;vvwg(1)=a1
-		VVR1(2)=a ;VVR2(2)=-a ;VVR3(2)=d ;vvwg(2)=a1
-		VVR1(3)=a ;VVR2(3)=a ;VVR3(3)=d ;vvwg(3)=a1
-		VVR1(4)=-a ;VVR2(4)=a ;VVR3(4)=d ;vvwg(4)=a1
-		VVR1(5)=-b ;VVR2(5)=0.0 ;VVR3(5)=e ;vvwg(5)=b1
-		VVR1(6)=b ;VVR2(6)=0.0 ;VVR3(6)=e ;vvwg(6)=b1
-		VVR1(7)=0.0 ;VVR2(7)=-b ;VVR3(7)=e ;vvwg(7)=b1
-		VVR1(8)=0.0 ;VVR2(8)=b ;VVR3(8)=e ;vvwg(8)=b1
-		VVR1(9)=0.0 ;VVR2(9)=0.0 ;VVR3(9)=f ;vvwg(9)=c1
-		VVR1(10)=-c ;VVR2(10)=-c ;VVR3(10)=g ;vvwg(10)=d1
-		VVR1(11)=c ;VVR2(11)=-c ;VVR3(11)=g ;vvwg(11)=d1
-		VVR1(12)=c ;VVR2(12)=c ;VVR3(12)=g ;vvwg(12)=d1
-		VVR1(13)=-c ;VVR2(13)=c ;VVR3(13)=g ;vvwg(13)=d1
+		vvr1(1)=-a ;vvr2(1)=-a ;vvr3(1)=d ;vvwg(1)=a1
+		vvr1(2)=a ;vvr2(2)=-a ;vvr3(2)=d ;vvwg(2)=a1
+		vvr1(3)=a ;vvr2(3)=a ;vvr3(3)=d ;vvwg(3)=a1
+		vvr1(4)=-a ;vvr2(4)=a ;vvr3(4)=d ;vvwg(4)=a1
+		vvr1(5)=-b ;vvr2(5)=0.0 ;vvr3(5)=e ;vvwg(5)=b1
+		vvr1(6)=b ;vvr2(6)=0.0 ;vvr3(6)=e ;vvwg(6)=b1
+		vvr1(7)=0.0 ;vvr2(7)=-b ;vvr3(7)=e ;vvwg(7)=b1
+		vvr1(8)=0.0 ;vvr2(8)=b ;vvr3(8)=e ;vvwg(8)=b1
+		vvr1(9)=0.0 ;vvr2(9)=0.0 ;vvr3(9)=f ;vvwg(9)=c1
+		vvr1(10)=-c ;vvr2(10)=-c ;vvr3(10)=g ;vvwg(10)=d1
+		vvr1(11)=c ;vvr2(11)=-c ;vvr3(11)=g ;vvwg(11)=d1
+		vvr1(12)=c ;vvr2(12)=c ;vvr3(12)=g ;vvwg(12)=d1
+		vvr1(13)=-c ;vvr2(13)=c ;vvr3(13)=g ;vvwg(13)=d1
 
 
 
 	
 			
-END SELECT
-		QPOINTS(:,:)=0.0d0
+end select
+		qpoints(:,:)=0.0d0
 
 
 		do kk=1,qp_pyra
-			WEQUA3D(kk)=vvwg(kk)*0.1250000000000
+			wequa3d(kk)=vvwg(kk)*0.1250000000000
 			
-			R=VVR1(kk); S=VVR2(kk); TX=VVR3(kk)
-			VVnxi(1)=(0.1250000000000)*(1.0-R)*(1.0d0-s)*(1.0d0-tX)
-			VVnxi(2)=(0.1250000000000)*(1.0+R)*(1.0d0-s)*(1.0d0-tX)
-			VVnxi(3)=(0.1250000000000)*(1.0+R)*(1.0d0+s)*(1.0d0-tX)
-			VVnxi(4)=(0.1250000000000)*(1.0-R)*(1.0d0+s)*(1.0d0-tX)
-			VVnxi(5)=0.5d0*(1.0d0+tX)
+			r=vvr1(kk); s=vvr2(kk); tx=vvr3(kk)
+			vvnxi(1)=(0.1250000000000)*(1.0-r)*(1.0d0-s)*(1.0d0-tx)
+			vvnxi(2)=(0.1250000000000)*(1.0+r)*(1.0d0-s)*(1.0d0-tx)
+			vvnxi(3)=(0.1250000000000)*(1.0+r)*(1.0d0+s)*(1.0d0-tx)
+			vvnxi(4)=(0.1250000000000)*(1.0-r)*(1.0d0+s)*(1.0d0-tx)
+			vvnxi(5)=0.5d0*(1.0d0+tx)
 			
 
-			DO J=1,5
-			QPOINTS(:,kk)=QPOINTS(:,kk)+(VVNXI(j)*VEXT(j,:))
-			END DO
+			do j=1,5
+			qpoints(:,kk)=qpoints(:,kk)+(vvnxi(j)*vext(j,:))
+			end do
 		    
 			
 
-		END DO
+		end do
 
 
 
 
-END SUBROUTINE QUADRATUREPYRA
+end subroutine quadraturepyra
 
 
-SUBROUTINE QUADRATUREHEXA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+subroutine quadraturehexa(n,igqrules,vext,qpoints,wequa3d)
  !> @brief
-!> This subroutine computes the quadrature points and weights for a hexahedral
-IMPLICIT NONE
-INTEGER,INTENT(IN)::IGQRULES,N
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(INOUT)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(INOUT)::WEQUA3D
-REAL::R,S,TX,a,b,c,d,e,f
-REAL::a1,b1,c1,d1,e1,f1
-INTEGER::Kk,J,ii,ij,ik,count1
-real,dimension(1:3,1:3)::VVA,VVA1
-REAL,dimension(1)::DETA
-REAL,DIMENSION(1:8)::VVNXI
-real,dimension(1:ALLS)::VVwg,VVR1,VVR2,VVR3
+!> this subroutine computes the quadrature points and weights for a hexahedral
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::igqrules,n
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints),intent(inout)::qpoints
+real,dimension(1:numberofpoints),intent(inout)::wequa3d
+real::r,s,tx,a,b,c,d,e,f
+real::a1,b1,c1,d1,e1,f1
+integer::kk,j,ii,ij,ik,count1
+real,dimension(1:3,1:3)::vva,vva1
+real,dimension(1)::deta
+real,dimension(1:8)::vvnxi
+real,dimension(1:alls)::vvwg,vvr1,vvr2,vvr3
 real,dimension(1:igqrules)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
 
 
 
- WEQUA3D=0.0d0
-  QPOINTS=0.0d0
+ wequa3d=0.0d0
+  qpoints=0.0d0
 
-SELECT CASE(IGQRULES)
+select case(igqrules)
  
 
  case(1)
 
 		vvwg(1) = 8.0d0
-	    VVR1(1)=0.0d0	;VVR2(1)=0.0d0	;VVR3(1)=0.0d0
+	    vvr1(1)=0.0d0	;vvr2(1)=0.0d0	;vvr3(1)=0.0d0
 
 
  case(2)
@@ -4061,7 +4152,7 @@ SELECT CASE(IGQRULES)
     do ij=1,2
       do ik=1,2
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) ;VVR3(count1)=vvnpoz(ik)   
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) ;vvr3(count1)=vvnpoz(ik)   
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)*vvwpox(ik)
       end do
     end do
@@ -4069,7 +4160,7 @@ end do
   	
 
   	
- CASE(3)
+ case(3)
   a=0.0d0
   b=-0.7745966692414834
   c=0.7745966692414834
@@ -4087,7 +4178,7 @@ end do
     do ij=1,3
       do ik=1,3
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) ;VVR3(count1)=vvnpoz(ik)   
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) ;vvr3(count1)=vvnpoz(ik)   
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)*vvwpox(ik)
       end do
     end do
@@ -4095,7 +4186,7 @@ end do
  
 
 			
- CASE(4)
+ case(4)
   a=-0.3399810435848563
   b=0.3399810435848563
   c=-0.8611363115940526
@@ -4115,7 +4206,7 @@ end do
     do ij=1,4
       do ik=1,4
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) ;VVR3(count1)=vvnpoz(ik)  
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) ;vvr3(count1)=vvnpoz(ik)  
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)*vvwpox(ik)
       end do
     end do
@@ -4123,7 +4214,7 @@ end do
 
 
 			
-CASE(5)
+case(5)
 
   a=0.0d0
   b=-0.5384693101056831
@@ -4134,7 +4225,7 @@ CASE(5)
   b1=0.4786286704993665
   c1=0.4786286704993665
   d1=0.2369268850561891
-  E1=0.2369268850561891
+  e1=0.2369268850561891
   vvnpox(1)=a	;vvnpox(2)=b	;vvnpox(3)=c ;vvnpox(4)=d ;vvnpox(5)=e
   vvnpoy(1)= a	;vvnpoy(2)=b	;vvnpoy(3)=c ;vvnpoy(4)=d ;vvnpoy(5)=e
   vvnpoz(1)= a	;vvnpoz(2)=b	;vvnpoz(3)=c ;vvnpoz(4)=d ;vvnpoz(5)=e
@@ -4146,27 +4237,27 @@ CASE(5)
     do ij=1,5
       do ik=1,5
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) ;VVR3(count1)=vvnpoz(ik) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) ;vvr3(count1)=vvnpoz(ik) 
 	vvwg(count1)=(vvwpox(ii)*vvwpox(ij)*vvwpox(ik))
       end do
     end do
 end do
 	
 			
-CASE(6,7,8,9)
+case(6,7,8,9)
 
   a=0.6612093864662645
   b=-0.6612093864662645
   c=-0.2386191860831969
   d=0.2386191860831969
   e=-0.9324695142031521
-  F=0.9324695142031521
+  f=0.9324695142031521
   a1=0.3607615730481386
   b1=0.3607615730481386
   c1=0.4679139345726910
   d1=0.4679139345726910
   e1=0.1713244923791704
-  F1=0.1713244923791704
+  f1=0.1713244923791704
   vvnpox(1)=a	;vvnpox(2)=b	;vvnpox(3)=c ;vvnpox(4)=d ;vvnpox(5)=e;vvnpox(6)=f
   vvnpoy(1)= a	;vvnpoy(2)=b	;vvnpoy(3)=c ;vvnpoy(4)=d ;vvnpoy(5)=e;vvnpoy(6)=f
   vvnpoz(1)= a	;vvnpoz(2)=b	;vvnpoz(3)=c ;vvnpoz(4)=d ;vvnpoz(5)=e;vvnpoz(6)=f
@@ -4178,99 +4269,106 @@ CASE(6,7,8,9)
     do ij=1,6
       do ik=1,6
 	count1=count1+1
-	VVR1(count1)=vvnpox(ii);VVR2(count1)=vvnpoy(ij) ;VVR3(count1)=vvnpoz(ik) 
+	vvr1(count1)=vvnpox(ii);vvr2(count1)=vvnpoy(ij) ;vvr3(count1)=vvnpoz(ik) 
 	vvwg(count1)=vvwpox(ii)*vvwpox(ij)*vvwpox(ik)
       end do
     end do
 end do
 	
 			
-END SELECT
-		QPOINTS(:,:)=0.0d0
+end select
+		qpoints(:,:)=0.0d0
 		
 		  vvwg(:)=vvwg(:)*0.125d0
 		do kk=1,qp_hexa
-			WEQUA3D(kk)=vvwg(kk)
-			R=VVR1(kk); S=VVR2(kk); Tx=VVR3(kk)
-			VVnxi(1)=(0.125d0)*(1.0d0-R)*(1.0d0-s)*(1.0d0-tx)
-			VVnxi(2)=(0.125d0)*(1.0d0+R)*(1.0d0-s)*(1.0d0-tx)
-			VVnxi(3)=(0.125d0)*(1.0d0+R)*(1.0d0+s)*(1.0d0-tx)
-			VVnxi(4)=(0.125d0)*(1.0d0-R)*(1.0d0+s)*(1.0d0-tx)
-			VVnxi(5)=(0.125d0)*(1.0d0-R)*(1.0d0-s)*(1.0d0+tx)
-			VVnxi(6)=(0.125d0)*(1.0d0+R)*(1.0d0-s)*(1.0d0+tx)
-			VVnxi(7)=(0.125d0)*(1.0d0+R)*(1.0d0+s)*(1.0d0+tx)
-			VVnxi(8)=(0.125d0)*(1.0d0-R)*(1.0d0+s)*(1.0d0+tx)
-			DO J=1,8
-			QPOINTS(:,kk)=QPOINTS(:,kk)+(VVNXI(j)*VEXT(j,:))
-			END DO
+			wequa3d(kk)=vvwg(kk)
+			r=vvr1(kk); s=vvr2(kk); tx=vvr3(kk)
+			vvnxi(1)=(0.125d0)*(1.0d0-r)*(1.0d0-s)*(1.0d0-tx)
+			vvnxi(2)=(0.125d0)*(1.0d0+r)*(1.0d0-s)*(1.0d0-tx)
+			vvnxi(3)=(0.125d0)*(1.0d0+r)*(1.0d0+s)*(1.0d0-tx)
+			vvnxi(4)=(0.125d0)*(1.0d0-r)*(1.0d0+s)*(1.0d0-tx)
+			vvnxi(5)=(0.125d0)*(1.0d0-r)*(1.0d0-s)*(1.0d0+tx)
+			vvnxi(6)=(0.125d0)*(1.0d0+r)*(1.0d0-s)*(1.0d0+tx)
+			vvnxi(7)=(0.125d0)*(1.0d0+r)*(1.0d0+s)*(1.0d0+tx)
+			vvnxi(8)=(0.125d0)*(1.0d0-r)*(1.0d0+s)*(1.0d0+tx)
+			do j=1,8
+			qpoints(:,kk)=qpoints(:,kk)+(vvnxi(j)*vext(j,:))
+			end do
 			
 
-		END DO
+		end do
 
 
 
 
  
 
-END SUBROUTINE QUADRATUREHEXA
+end subroutine quadraturehexa
 
-SUBROUTINE ROTATEF(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
+subroutine rotatef(n,rotvect,vectco,angle1,angle2)
  !> @brief
-!> This subroutine rotates the vector of fluxes in the directions normal to the face in 3D 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:5,1:5)::TRI
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO
-REAL,INTENT(IN)::ANGLE1,ANGLE2
-REAL::sia1,coa1,coa2,sia2
+!> this subroutine rotates the vector of fluxes in the directions normal to the face in 3d 
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:5,1:5)::tri
+real,dimension(1:nof_variables),intent(inout)::rotvect
+real,dimension(1:nof_variables),intent(inout)::vectco
+real,intent(in)::angle1,angle2
+real::sia1,coa1,coa2,sia2
 
 
-!BUILD MATRIX OF ROTATION!
- coa1=COS(ANGLE1)
+!build matrix of rotation!
+ coa1=cos(angle1)
  sia1=sin(angle1)
  coa2=cos(angle2)
  sia2=sin(angle2)
  
 tri=zero
 
-TRI(1,1)=1.0d0
+tri(1,1)=1.0d0
 
-TRI(2,2)=coa1*sia2	!COS(ANGLE1)*SIN(ANGLE2)
-TRI(2,3)=sia1*sia2	!SIN(ANGLE1)*SIN(ANGLE2)
-TRI(2,4)=coa2		!COS(ANGLE2)
+tri(2,2)=coa1*sia2	!cos(angle1)*sin(angle2)
+tri(2,3)=sia1*sia2	!sin(angle1)*sin(angle2)
+tri(2,4)=coa2		!cos(angle2)
 
-TRI(3,2)=coa1*coa2	!COS(ANGLE1)*COS(ANGLE2)
-TRI(3,3)=sia1*coa2	!SIN(ANGLE1)*COS(ANGLE2)
-TRI(3,4)=-sia2		!-SIN(ANGLE2)
+tri(3,2)=coa1*coa2	!cos(angle1)*cos(angle2)
+tri(3,3)=sia1*coa2	!sin(angle1)*cos(angle2)
+tri(3,4)=-sia2		!-sin(angle2)
 
-TRI(4,2)=-sia1		!-SIN(ANGLE1)
-TRI(4,3)=coa1		!COS(ANGLE1)
-TRI(5,5)=1.0d0
+tri(4,2)=-sia1		!-sin(angle1)
+tri(4,3)=coa1		!cos(angle1)
+tri(5,5)=1.0d0
 
+rotvect(1:nof_variables)=vectco(1:nof_variables)
 
-ROTVECT(1:5)=MATMUL(TRI(1:5,1:5),VECTCO(1:5))
-IF (MULTISPECIES.EQ.1)THEN
-ROTVECT(6:nof_Variables)=VECTCO(6:nof_Variables)
-END IF
+rotvect(1:5)=matmul(tri(1:5,1:5),vectco(1:5))
 
 
-END SUBROUTINE ROTATEF
 
 
-SUBROUTINE ROTATEB(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
+
+end subroutine rotatef
+
+
+subroutine rotateb(n,rotvect,vectco,angle1,angle2)
  !> @brief
-!> This subroutine rotates back the vector of fluxes from the directions normal to the face to cartesian coordinates
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:5,1:5)::INVTRI
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO
-REAL,INTENT(IN)::ANGLE1,ANGLE2
-REAL::sia1,coa1,coa2,sia2
+!> this subroutine rotates back the vector of fluxes from the directions normal to the face to cartesian coordinates
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:5,1:5)::invtri
+real,dimension(1:nof_variables),intent(inout)::rotvect
+real,dimension(1:nof_variables),intent(inout)::vectco
+real,intent(in)::angle1,angle2
+real::sia1,coa1,coa2,sia2
 
-!BUILD MATRIX OF ROTATION!
- coa1=COS(ANGLE1)
+!build matrix of rotation!
+ coa1=cos(angle1)
  sia1=sin(angle1)
  coa2=cos(angle2)
  sia2=sin(angle2)
@@ -4281,249 +4379,264 @@ REAL::sia1,coa1,coa2,sia2
 invtri=zero
 
 
-!BUILD MATRIX OF ROTATION!
-INVTRI(1,1)=1.0d0
+!build matrix of rotation!
+invtri(1,1)=1.0d0
 
-INVTRI(2,2)=coa1*sia2!COS(ANGLE1)*SIN(ANGLE2)
-INVTRI(2,3)=coa1*coa2!COS(ANGLE1)*COS(ANGLE2)
-INVTRI(2,4)=-sia1!-SIN(ANGLE1)
+invtri(2,2)=coa1*sia2!cos(angle1)*sin(angle2)
+invtri(2,3)=coa1*coa2!cos(angle1)*cos(angle2)
+invtri(2,4)=-sia1!-sin(angle1)
 
-INVTRI(3,2)=sia1*sia2!SIN(ANGLE1)*SIN(ANGLE2)
-INVTRI(3,3)=sia1*coa2!SIN(ANGLE1)*COS(ANGLE2)
-INVTRI(3,4)=coa1!COS(ANGLE1)
+invtri(3,2)=sia1*sia2!sin(angle1)*sin(angle2)
+invtri(3,3)=sia1*coa2!sin(angle1)*cos(angle2)
+invtri(3,4)=coa1!cos(angle1)
 
-INVTRI(4,2)=coa2!COS(ANGLE2)
-INVTRI(4,3)=-sia2!-SIN(ANGLE2)
-INVTRI(5,5)=1.0d0
+invtri(4,2)=coa2!cos(angle2)
+invtri(4,3)=-sia2!-sin(angle2)
+invtri(5,5)=1.0d0
 
-ROTVECT(1:5)=MATMUL(INVTRI(1:5,1:5),VECTCO(1:5))
-IF (MULTISPECIES.EQ.1)THEN
-ROTVECT(6:nof_Variables)=VECTCO(6:nof_Variables)
-END IF
+rotvect(1:nof_variables)=vectco(1:nof_variables)
 
-
-END SUBROUTINE ROTATEB
+rotvect(1:5)=matmul(invtri(1:5,1:5),vectco(1:5))
 
 
-SUBROUTINE ROTATEF2d(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
+
+end subroutine rotateb
+
+
+subroutine rotatef2d(n,rotvect,vectco,angle1,angle2)
  !> @brief
-!> This subroutine rotates the vector of fluxes in the directions normal to the edge in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO
-REAL,INTENT(IN)::ANGLE1,ANGLE2
+!> this subroutine rotates the vector of fluxes in the directions normal to the edge in 2d
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:nof_variables),intent(inout)::rotvect
+real,dimension(1:nof_variables),intent(inout)::vectco
+real,intent(in)::angle1,angle2
 
-ROTVECT(1)=VECTCO(1)
-ROTVECT(2)=(ANGLE1*VECTCO(2))+(ANGLE2*VECTCO(3))
-ROTVECT(3)=-(ANGLE2*VECTCO(2))+(ANGLE1*VECTCO(3))
-ROTVECT(4)=VECTCO(4)
-
-IF (MULTISPECIES.EQ.1)THEN
-ROTVECT(5:nof_Variables)=VECTCO(5:nof_Variables)
-END IF
-
-END SUBROUTINE ROTATEF2d
+rotvect(1:nof_variables)=vectco(1:nof_variables)
 
 
-SUBROUTINE ROTATEB2d(N,ROTVECT,VECTCO,ANGLE1,ANGLE2)
+rotvect(1)=vectco(1)
+rotvect(2)=(angle1*vectco(2))+(angle2*vectco(3))
+rotvect(3)=-(angle2*vectco(2))+(angle1*vectco(3))
+rotvect(4)=vectco(4)
+
+
+
+
+
+
+end subroutine rotatef2d
+
+
+subroutine rotateb2d(n,rotvect,vectco,angle1,angle2)
  !> @brief
-!> This subroutine rotates back the vector of fluxes from the directions normal to the edge to cartesian coordinates
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::ROTVECT
-REAL,DIMENSION(1:NOF_VARIABLES),INTENT(INOUT)::VECTCO
-REAL,INTENT(IN)::ANGLE1,ANGLE2
+!> this subroutine rotates back the vector of fluxes from the directions normal to the edge to cartesian coordinates
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:nof_variables),intent(inout)::rotvect
+real,dimension(1:nof_variables),intent(inout)::vectco
+real,intent(in)::angle1,angle2
+
+
+rotvect(1:nof_variables)=vectco(1:nof_variables)
+
+!build matrix of rotation!
+
+rotvect(1)=vectco(1)
+rotvect(2)=(angle1*vectco(2))-(angle2*vectco(3))
+rotvect(3)=(angle2*vectco(2))+(angle1*vectco(3))
+rotvect(4)=vectco(4)
+
+
+
+end subroutine rotateb2d
 
 
 
 
-!BUILD MATRIX OF ROTATION!
-
-ROTVECT(1)=VECTCO(1)
-ROTVECT(2)=(ANGLE1*VECTCO(2))-(ANGLE2*VECTCO(3))
-ROTVECT(3)=(ANGLE2*VECTCO(2))+(ANGLE1*VECTCO(3))
-ROTVECT(4)=VECTCO(4)
-
-IF (MULTISPECIES.EQ.1)THEN
-ROTVECT(5:nof_Variables)=VECTCO(5:nof_Variables)
-END IF
-
-END SUBROUTINE ROTATEB2d
-
-
-
-
-SUBROUTINE PROBEPOS(N,PROBEI)
+subroutine probepos(n,probei)
  !> @brief
-!> This subroutine establishes the cells where the probe positions belong to
-IMPLICIT NONE
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::PROBEI
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,L,KMAXE,INV
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-REAL::dist
-REAL::DUMIN,DUMOUT,DELTA
-REAL,DIMENSION(1:DIMENSIONA)::CORDS
+!> this subroutine establishes the cells where the probe positions belong to
+implicit none
+integer,allocatable,dimension(:,:),intent(inout)::probei
+integer,intent(in)::n
+integer::i,j,k,l,kmaxe,inv
+real,dimension(1:8,1:dimensiona)::vext
+real::dist
+real::dumin,dumout,delta
+real,dimension(1:dimensiona)::cords
 
-ALLOCATE (PROBEI(N:N,NPROBES))
+allocate (probei(n:n,nprobes))
 
 
-PROBEI(N:N,:)=0
+probei(n:n,:)=0
 
-KMAXE=XMPIELRANK(N)
+kmaxe=xmpielrank(n)
 
 	if (dimensiona.eq.3)then
-	DO INV=1,NPROBES
-	DELTA=TOLBIG
-	DO I=1,KMAXE
+	do inv=1,nprobes
+	delta=tolbig
+	do i=1,kmaxe
 
 		
 		
 		
-		call COMPUTE_CENTRE3d(I,CORDS)
+		call compute_centre3d(i,cords)
 		vext(1,1:3)=cords(1:3)
-		vext(2,1:3)=PROBEC(inv,1:3)
-		dist=distance3(n,VEXT)
+		vext(2,1:3)=probec(inv,1:3)
+		dist=distance3(n,vext)
 		
 		
-		IF (dist.LT.DELTA) THEN
-			DELTA=dist
-			L=I
-		END IF
-	END DO
+		if (dist.lt.delta) then
+			delta=dist
+			l=i
+		end if
+	end do
 	
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	DUMOUT=DELTA
-		DUMIN=0.0d0
-		CALL MPI_ALLREDUCE(DUMOUT,DUMIN,1,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	IF (abs(DUMIN-DELTA).le.1.0E-15) THEN
-	PROBEI(N,INV)=L
-	END IF
-	END DO
+	call mpi_barrier(mpi_comm_world,ierror)
+	dumout=delta
+		dumin=0.0d0
+		call mpi_allreduce(dumout,dumin,1,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
+		call mpi_barrier(mpi_comm_world,ierror)
+	if (abs(dumin-delta).le.1.0e-15) then
+	probei(n,inv)=l
+	end if
+	end do
 
 	else
-      	DO INV=1,NPROBES
-	DELTA=TOLBIG
-	DO I=1,KMAXE
+      	do inv=1,nprobes
+	delta=tolbig
+	do i=1,kmaxe
 
 		
-		call COMPUTE_CENTRE2d(i,cords)
+		call compute_centre2d(i,cords)
 		vext(1,1:2)=cords(1:2)
-		vext(2,1:2)=PROBEC(inv,1:2)
-		dist=distance2(n,VEXT)
+		vext(2,1:2)=probec(inv,1:2)
+		dist=distance2(n,vext)
 		
 		
-		IF (dist.Le.DELTA) THEN
-			DELTA=dist
-			L=I
-		END IF
-	END DO
+		if (dist.le.delta) then
+			delta=dist
+			l=i
+		end if
+	end do
 	
-	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	call mpi_barrier(mpi_comm_world,ierror)
 	
-	DUMOUT=DELTA
-		DUMIN=0.0d0
-		CALL MPI_ALLREDUCE(DUMOUT,DUMIN,1,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	IF (abs(DUMIN-DELTA).le.1.0E-15) THEN
-	PROBEI(N,INV)=L
+	dumout=delta
+		dumin=0.0d0
+		call mpi_allreduce(dumout,dumin,1,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
+		call mpi_barrier(mpi_comm_world,ierror)
+	if (abs(dumin-delta).le.1.0e-15) then
+	probei(n,inv)=l
 	
-	END IF
-	END DO
+	end if
+	end do
 	end if
 
 	
-END SUBROUTINE PROBEPOS
+end subroutine probepos
 
 
-SUBROUTINE  ANGLEX(A_ROT,B_ROT,ANGLEFACEX)
+subroutine  anglex(a_rot,b_rot,anglefacex)
  !> @brief
-!> This subroutine computes the angles according to the quadrant sign
-IMPLICIT NONE
-REAL,INTENT(INOUT)::ANGLEFACEX
-REAL,INTENT(IN)::A_ROT,B_ROT
+!> this subroutine computes the angles according to the quadrant sign
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+real,intent(inout)::anglefacex
+real,intent(in)::a_rot,b_rot
 
-IF ((A_rot.NE.zero).AND.(b_rot.NE.zero))THEN
-	IF ((A_rot.GT.zero).AND.(b_rot.GT.zero))THEN
-		ANGLEFACEX=ATAN(b_rot/A_rot)
-	END IF
-	IF ((A_rot.LT.zero).AND.(b_rot.GT.zero))THEN
-		ANGLEFACEX=PI+(ATAN(b_rot/A_rot))
-	END IF
-	IF ((A_rot.LT.zero).AND.(b_rot.LT.zero))THEN
-		ANGLEFACEX=PI+(ATAN(b_rot/A_rot))
-	END IF
-	IF ((A_rot.GT.zero).AND.(b_rot.LT.zero))THEN
-		ANGLEFACEX=(2.0d0*PI)+(ATAN(b_rot/A_rot))
-	END IF
-END IF
-IF ((A_rot.EQ.zero).AND.(b_rot.NE.zero))THEN
-	IF (B_rot.GT.zero) THEN
-		ANGLEFACEX=(PI/2.0d0)
-	END IF
-	IF (B_rot.LT.zero) THEN
-		ANGLEFACEX=3.0d0*(PI/2.0d0)
-	END IF
-END IF
-IF ((A_rot.NE.zero).AND.(b_rot.EQ.zero))THEN
-	IF (A_rot.GT.zero) THEN
-		ANGLEFACEX=zero
-	END IF
-	IF (A_rot.LT.zero) THEN
-		ANGLEFACEX=PI
-	END IF
-END IF
-END SUBROUTINE ANGLEX
+if ((a_rot.ne.zero).and.(b_rot.ne.zero))then
+	if ((a_rot.gt.zero).and.(b_rot.gt.zero))then
+		anglefacex=atan(b_rot/a_rot)
+	end if
+	if ((a_rot.lt.zero).and.(b_rot.gt.zero))then
+		anglefacex=pi+(atan(b_rot/a_rot))
+	end if
+	if ((a_rot.lt.zero).and.(b_rot.lt.zero))then
+		anglefacex=pi+(atan(b_rot/a_rot))
+	end if
+	if ((a_rot.gt.zero).and.(b_rot.lt.zero))then
+		anglefacex=(2.0d0*pi)+(atan(b_rot/a_rot))
+	end if
+end if
+if ((a_rot.eq.zero).and.(b_rot.ne.zero))then
+	if (b_rot.gt.zero) then
+		anglefacex=(pi/2.0d0)
+	end if
+	if (b_rot.lt.zero) then
+		anglefacex=3.0d0*(pi/2.0d0)
+	end if
+end if
+if ((a_rot.ne.zero).and.(b_rot.eq.zero))then
+	if (a_rot.gt.zero) then
+		anglefacex=zero
+	end if
+	if (a_rot.lt.zero) then
+		anglefacex=pi
+	end if
+end if
+end subroutine anglex
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! !---------------------------------------------------------------------------------------------!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! !---------------------------------------------------------------------------------------------!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! !!!!!!!!!!!!!!!!!!FUNCTION TO CALCULATE THE ANGLES BASED ON THE COORDINATES !!!!!!!!!!!!!!!!!!!
+! !!!!!!!!!!!!!!!!!!function to calculate the angles based on the coordinates !!!!!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!OF THE NORMAL PLANE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!of the normal plane!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!!!!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-SUBROUTINE ANGLEY(C_ROT,ROOT_rot,ANGLEFACEY)
+subroutine angley(c_rot,root_rot,anglefacey)
  !> @brief
-!> This subroutine computes the angles according to the quadrant sign
-IMPLICIT NONE
-REAL,INTENT(INOUT)::ANGLEFACEY
-REAL,INTENT(IN)::C_ROT,ROOT_rot
+!> this subroutine computes the angles according to the quadrant sign
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+real,intent(inout)::anglefacey
+real,intent(in)::c_rot,root_rot
 
-IF (C_rot.EQ.zero)THEN
-	ANGLEFACEY=ACOS(zero)
-END IF
-IF (C_rot.NE.zero)THEN
-	IF (C_rot.GT.zero)THEN
-		ANGLEFACEY=ACOS(C_rot/ROOT_rot)
-	END IF
-	IF (C_rot.LT.zero)THEN
-		ANGLEFACEY=ACOS(C_rot/ROOT_rot)
-	END IF
-END IF
-END SUBROUTINE ANGLEY
+if (c_rot.eq.zero)then
+	anglefacey=acos(zero)
+end if
+if (c_rot.ne.zero)then
+	if (c_rot.gt.zero)then
+		anglefacey=acos(c_rot/root_rot)
+	end if
+	if (c_rot.lt.zero)then
+		anglefacey=acos(c_rot/root_rot)
+	end if
+end if
+end subroutine angley
 
 
-SUBROUTINE ANGLE2D(VEXT,ANGLEFACEX,ANGLEFACEY)
-IMPLICIT NONE
-REAL,INTENT(INOUT)::ANGLEFACEX,ANGLEFACEY
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
+subroutine angle2d(vext,anglefacex,anglefacey)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+real,intent(inout)::anglefacex,anglefacey
+real,dimension(1:8,1:dimensiona),intent(in)::vext
 real::length
 
-length=distance2(N,VEXT)
+length=distance2(n,vext)
 
-ANGLEFACEX=(vext(2,2)-vext(1,2))/length
-ANGLEFACEy=-(vext(2,1)-vext(1,1))/length
-
-
-
-END SUBROUTINE ANGLE2D
+anglefacex=(vext(2,2)-vext(1,2))/length
+anglefacey=-(vext(2,1)-vext(1,1))/length
 
 
+
+end subroutine angle2d
 
 
 
@@ -4532,4 +4645,6 @@ END SUBROUTINE ANGLE2D
 
 
 
-END MODULE TRANSFORM
+
+
+end module transform
