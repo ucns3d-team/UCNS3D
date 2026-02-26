@@ -657,8 +657,8 @@ end subroutine walls_higher
 
 
 SUBROUTINE PRESTORE_RECONSTRUCTION2(N,iconsi,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-	!> @brief
-	!> This subroutine prestores the pseudoinverse reconstruction least square matrices in 2d
+  !> @brief
+  !> This subroutine prestores the pseudoinverse reconstruction least square matrices in 2d
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,iconsi
 	INTEGER::I,J,K,llco,ll,ii,igf,IGF2,IFD2,idum,idum2,iq,jq,lq,IHGT,IHGJ,iqp,iqp2,NND,k0,g0,lcou,lcc,iqqq,ICOND1,ICOND2,N_NODE
@@ -1128,8 +1128,8 @@ END SUBROUTINE PRESTORE_RECONSTRUCTION2
 
 
 SUBROUTINE INDICATORMATRIX(N,iconsi,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-	!> @brief
-	!> This subroutine computes the indicator matrices for weno reconstructions
+  !> @brief
+  !> This subroutine computes the indicator matrices for weno reconstructions
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N,iconsi
 	INTEGER::I,J,K,L,M,jx,jx2,IMAX,INUM,IDEG,INUMO,ELTYPE,ELEM_DEC,inump,ICONSIDERED

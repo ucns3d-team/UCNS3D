@@ -121,7 +121,7 @@ INTEGER:: ROT_CORR,D_CORR   !integer for turbulence corrections
 INTEGER::hybridCWENO_MOOD   !hybrid CWENO/MOOD mode - for test purposes only
 logical:: MESH_MOVEMENT
 integer:: moving_mesh_mode
-integer::relaxation_centre_type, lagrangian_mesh_velocity_multiple_function_type
+integer::node_solver_type, relaxation_centre_type, lagrangian_mesh_velocity_multiple_function_type
 integer:: global_position_index
 logical:: BOUNDARY_MOVEMENT
 integer:: num_moving_boundaries
@@ -526,6 +526,7 @@ TYPE LOCAL_RECON3
 	INTEGER,ALLOCATABLE,DIMENSION(:,:)::PERIODICFLAG
 	REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::BR2_AUX_VAR ! (VAR, DIM, I_FACE, I_QP)
 	REAL,ALLOCATABLE,DIMENSION(:,:,:)::BR2_LOCAL_LIFT ! (VAR, DIM, I_FACE)
+	real,allocatable,dimension(:,:,:)::node_values
 END TYPE LOCAL_RECON3
 
 TYPE::NEIXX
@@ -794,7 +795,8 @@ TYPE::LOCAL_NODE
 	INTEGER::Num_Neighbours
 	INTEGER::Num_Local_Neighbours
 	integer::num_cpus
-	integer::boundary ! 0 = internal, >0 = boundary, 2 = periodic boundary
+	integer::boundary ! 0 = internal, >0 = boundary, 2 = periodic boundary, >100 = index of the moving boundary
+	integer::communication
 	INTEGER,ALLOCATABLE,DIMENSION(:)::Local_Neighbours
 	type(remote_node_neighhour),allocatable,dimension(:)::rcv_offsets
 	type(remote_node_neighhour),allocatable,dimension(:)::snd_offsets
@@ -803,6 +805,8 @@ END TYPE LOCAL_NODE
 TYPE(LOCAL_NODE),ALLOCATABLE,DIMENSION(:)::LOCAL_NODES ! replacement for INODER4
 
 integer,allocatable,dimension(:)::local_interface_nodes
+integer,allocatable,dimension(:)::local_boundary_nodes
+integer,allocatable,dimension(:)::local_moving_nodes
 
 type::node_buffer
 	real,allocatable,dimension(:)::data
@@ -814,6 +818,8 @@ integer,allocatable,dimension(:)::node_snd_count ! count of cells, not reals
 integer,allocatable,dimension(:)::node_rcv_count ! count of cells, not reals
 
 integer::my_num_interface_nodes 
+integer::my_num_boundary_nodes 
+integer::my_num_moving_nodes 
 integer::max_num_node_neighbours
 integer::num_values_to_send_per_node
 

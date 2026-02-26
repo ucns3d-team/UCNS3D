@@ -1113,6 +1113,9 @@ SUBROUTINE LOCAL_RECONALLOCATION4(N)
 			ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
 		end if
 		ILOCAL_RECON3(I)%ULEFT=zero
+
+		allocate(ilocal_recon3(i)%node_values(it,ielem(n,i)%ifca,4))
+		ilocal_recon3(i)%node_values(:,:,:)=zero
 		
 	END DO
 
@@ -1181,7 +1184,10 @@ SUBROUTINE LOCAL_RECONALLOCATION42d(N)
 		else
 			ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
 		end if
-		ILOCAL_RECON3(I)%ULEFT=zero
+		ILOCAL_RECON3(I)%ULEFT(:,:,:)=zero
+
+		allocate(ilocal_recon3(i)%node_values(it,ielem(n,i)%ifca,2))
+		ilocal_recon3(i)%node_values(:,:,:)=zero
 		
 	END DO
 

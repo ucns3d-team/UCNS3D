@@ -347,6 +347,7 @@ end subroutine Allocate_QP_points
 
 
 
+
 SUBROUTINE EXTRAPOLATE_BOUND_LINEAR(USOL,varcons,FACEX,pointx,ICONSIDERED)
   !> @brief
   !> Subroutine for extrapolating the reconstructed solution at the cell interfaces for linear advection equation
@@ -406,6 +407,38 @@ SUBROUTINE EXTRAPOLATE_BOUND_MUSCL(USOL,varcons,FACEX,pointx,ICONSIDERED,SLOPE)
     END IF
 
 END SUBROUTINE EXTRAPOLATE_BOUND_MUSCL
+
+
+
+
+
+SUBROUTINE EXTRAPOLATE_BOUND_NODE_MUSCL(USOL_NODES,varcons,face_index,face_node_index,cell_index,SLOPE)
+  !> @brief
+  !> Subroutine for extrapolating the reconstructed solution at the cell interfaces
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::varcons, face_index, face_node_index, cell_index
+    real,dimension(1:nof_Variables)::leftv
+    REAL,allocatable,dimension(:),INTENT(IN)::SLOPE
+    REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(IN)::USOL_NODES
+    REAL::MP_PINFl,gammal
+
+
+    if (WENWRT.EQ.3)THEN
+        LEFTV(1:NOF_VARIABLES) = U_C(cell_index)%VAL(1,1:nof_Variables)
+        CALL cons2prim(N,leftv,MP_PINFl,gammal)
+        LEFTV(1:NOF_VARIABLES) = LEFTV(1:NOF_VARIABLES)+USOL_NODES(1:nof_Variables,face_index,face_node_index)*SLOPE(1:nof_Variables)
+        CALL PRIM2CONS(N,LEFTV)
+        ILOCAL_RECON3(cell_index)%node_values(1:nof_Variables,face_index,face_node_index) = ILOCAL_RECON3(cell_index)%node_values(1:nof_Variables,face_index,face_node_index) + LEFTV(1:NOF_VARIABLES)
+    ELSE
+        ILOCAL_RECON3(cell_index)%node_values(1:nof_Variables,face_index,face_node_index) = ILOCAL_RECON3(cell_index)%node_values(1:nof_Variables,face_index,face_node_index) &
+            + (U_C(cell_index)%VAL(1,1:nof_Variables)+(USOL_NODES(1:nof_Variables,face_index,face_node_index)*SLOPE(1:nof_Variables)))
+    END IF
+  
+    IF (TURBULENCEEQUATIONS.GE.1)THEN
+        print*,"node reconstruction not supported with turbulence"
+    END IF
+  
+  END SUBROUTINE EXTRAPOLATE_BOUND_NODE_MUSCL
 
 
 
@@ -633,13 +666,22 @@ SUBROUTINE CHARACTERISTIC_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
     real::LWCx1,tau_Weno,ax,ay,az
     real::SUMOMEGATILDE(1:nof_Variables)
     real,allocatable,dimension(:)::LAMC
-    real,allocatable,dimension(:,:)::LIMITEDDW,CONSMATRIX,CONSMATRIXC,RESSOLUTION
+    real,allocatable,dimension(:,:)::LIMITEDDW, CONSMATRIX, CONSMATRIXC, RESSOLUTION
     real,allocatable,dimension(:,:,:)::LIMITEDDW_CHAR,GRADCHARV
     real,allocatable,dimension(:,:,:,:)::LAMBDA,SMOOTHINDICATOR,omegatilde,omega,wenoos,FINDW
     real,allocatable,dimension(:,:,:,:,:)::FINDW_CHAR
 
+    integer::N_NODES, num_nodes_in_face
+    ! integer::face_node_index, node_index, cell_index, write_index
+    ! real,allocatable,dimension(:)::CONSMATRIX_NODES, CONSMATRIXC_NODES, RESSOLUTION_NODES
+    ! real,allocatable,dimension(:)::copy
+    ! real,allocatable,dimension(:,:)::nodes_coords
+    ! real::delta
+    ! logical::first_time
+
     IADMIS=IELEM(N,ICONSIDERED)%ADMIS
     N_FACES=IELEM(N,ICONSIDERED)%IFCA
+    N_NODES=IELEM(N,ICONSIDERED)%NONODES
 
     ALLOCATE(LAMC(1:IADMIS))
     ALLOCATE(LAMBDA(1:nof_Variables,1:IADMIS,1:N_FACES,1:2))
@@ -657,8 +699,20 @@ SUBROUTINE CHARACTERISTIC_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
     ALLOCATE(RESSOLUTION(1:NUMBEROFPOINTS2*N_FACES,1:Nof_Variables))
     allocate(eigvl(1:nof_Variables,1:nof_Variables),EIGVR(1:nof_Variables,1:nof_Variables))
 
+    ! ALLOCATE(CONSMATRIX_NODES(1:IDEGFREE))
+    ! ALLOCATE(CONSMATRIXC_NODES(1:IDEGFREE))
+    ! ALLOCATE(RESSOLUTION_NODES(1:Nof_Variables))
+    ! ALLOCATE(copy(1:Nof_Variables))
+    ! if (dimensiona.eq.3) then
+    !     allocate(nodes_coords(1:4,1:dimensiona))
+    ! else
+    !     allocate(nodes_coords(1:4,1:dimensiona))
+    ! end if
+
     I=ICONSIDERED
     lwcx1=ielem(n,i)%LINC
+
+    ! ILOCAL_RECON3(I)%node_values(1:nof_Variables,1:n_nodes) = zero
 
     DO L=1,IELEM(N,I)%IFCA  !LOOP FACES
         !DEFINE
@@ -747,7 +801,6 @@ SUBROUTINE CHARACTERISTIC_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
 
         END DO       !FINISHED THE LOOP FOR ALL THE VARIABLES
 
-
         LIMITEDDW(:,:)=ZERO
         IF (EES.EQ.5)THEN
             LIMITEDDW_CHAR(:,:,:)=ZERO
@@ -782,11 +835,14 @@ SUBROUTINE CHARACTERISTIC_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
         IF (DIMENSIONA.EQ.3)THEN
             if (ielem(n,i)%types_faces(L).eq.5)then
                 iqp=qp_quad
+                num_nodes_in_face = 4
             else
                 iqp=qp_triangle
+                num_nodes_in_face = 3
             end if
         ELSE
             iqp=qp_LINE
+            num_nodes_in_face = 2
         END IF
 
         icd=0
@@ -812,7 +868,6 @@ SUBROUTINE CHARACTERISTIC_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
                 ELSE
                     CONSMATRIXC(icd,1:IDEGFREE2)=BASIS_REC2D(N,AX,AY,IORDER2,I,IDEGFREE2,icompwrt)
                 END IF
-
                 iCOMPWRT=0
             end if
         END DO
@@ -829,12 +884,13 @@ SUBROUTINE CHARACTERISTIC_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
             ! FINDW_char(1:nof_variables,1:IELEM(N,I)%IDEGFREE,L,1,1),nof_variables,&
             ! BETA,RESSOLUTION(1:ICD,1:NOF_vARIABLES),Icd)
 
-            RESSOLUTION(1:ICD,1:NOF_vARIABLES)=matmul(consmatrix(1:icd,1:ielem(n,i)%idegfree),transpose(FINDW_char(1:nof_variables,1:IELEM(N,I)%IDEGFREE,L,1,1)))
+            RESSOLUTION(1:ICD,1:NOF_vARIABLES) = matmul(consmatrix(1:icd,1:ielem(n,i)%idegfree),transpose(FINDW_char(1:nof_variables,1:IELEM(N,I)%IDEGFREE,L,1,1)))
 
             icd=0;
-            do NGP=1,iqp;icd=icd+1
-                ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)&
-                    +RESSOLUTION(icd,1:NOF_vARIABLES)
+            do NGP=1, iqp
+                icd = icd+1
+                ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP) = ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP) &
+                                                              + RESSOLUTION(icd,1:NOF_vARIABLES)
             END DO
 
         Else
@@ -846,18 +902,93 @@ SUBROUTINE CHARACTERISTIC_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
             ! FINDW(1:nof_variables,1:IELEM(N,I)%IDEGFREE,L,1),nof_variables,&
             ! BETA,RESSOLUTION(1:ICD,1:NOF_vARIABLES),Icd)
 
-            RESSOLUTION(1:ICD,1:NOF_vARIABLES)=matmul(consmatrix(1:icd,1:ielem(n,i)%idegfree),transpose(FINDW(1:nof_variables,1:IELEM(N,I)%IDEGFREE,L,1)))
+            RESSOLUTION(1:ICD,1:NOF_vARIABLES) = matmul(consmatrix(1:icd,1:ielem(n,i)%idegfree),transpose(FINDW(1:nof_variables,1:IELEM(N,I)%IDEGFREE,L,1)))
 
             icd=0;
             do NGP=1,iqp;
-                icd=icd+1
-                ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)&
-                    +RESSOLUTION(icd,1:NOF_vARIABLES)
+                icd = icd+1
+                ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP) = ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP) &
+                                                              + RESSOLUTION(icd,1:NOF_vARIABLES)
             END DO
-        end if   
+        end if
+
+        ! do face_node_index = 1, num_nodes_in_face
+        !     node_index = ielem(n,i)%nodes_faces(L, face_node_index)
+        !     nodes_coords(face_node_index,:) = local_nodes(node_index)%positions(global_position_index,:)
+        ! end do
+        ! nodes_coords(face_node_index,:) = MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:), nodes_coords(face_node_index,:)-ILOCAL_RECON3(I)%VEXT_REF(1:dimensiona))
+
+        ! do face_node_index = 1, num_nodes_in_face
+        !     node_index = ielem(n,i)%nodes_faces(L, face_node_index)
+
+        !     do write_index = 1, ielem(n,i)%nonodes+1
+        !         if (ielem(n,i)%nodes_counterclockwise(write_index).eq.node_index) then
+        !             exit
+        !         end if
+        !     end do
+        !     if ((write_index.lt.1).or.(write_index.gt.ielem(n,i)%nonodes)) then
+        !         print*,"filed to find write index"
+        !     else
+        !         print*,"found write index"
+        !     end if 
+        !     copy(:) = ilocal_recon3(i)%node_values(:,write_index)
+
+        !     AX = nodes_coords(face_node_index,1)
+        !     AY = nodes_coords(face_node_index,2)
+        !     IF (DIMENSIONA.EQ.3)THEN
+        !         AZ = nodes_coords(face_node_index,3)
+        !     END IF
+
+        !     IF (DIMENSIONA.EQ.3)THEN
+        !         CONSMATRIX_NODES(1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,0)
+        !     ELSE
+        !         CONSMATRIX_NODES(1:IELEM(N,I)%IDEGFREE)=BASIS_REC2D(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,0)
+        !     END IF
+        !     if (ees.eq.5)then
+        !         IF (DIMENSIONA.EQ.3)THEN
+        !             CONSMATRIXC_NODES(1:IDEGFREE2)=BASIS_REC(N,AX,AY,AZ,IORDER2,I,IDEGFREE2,1)
+        !         ELSE
+        !             CONSMATRIXC_NODES(1:IDEGFREE2)=BASIS_REC2D(N,AX,AY,IORDER2,I,IDEGFREE2,1)
+        !         END IF
+        !     end if
+
+        !     if (ees.eq.5) then
+        !         ILOCAL_RECON3(I)%node_values(1:nof_Variables,write_index) = FINDW_char(1:nof_Variables,0,L,1,1) 
+
+        !         RESSOLUTION_NODES(1:NOF_vARIABLES) = matmul(CONSMATRIX_NODES(1:ielem(n,i)%idegfree),transpose(FINDW_char(1:nof_variables,1:IELEM(N,I)%IDEGFREE,L,1,1)))
+
+        !         ILOCAL_RECON3(I)%node_values(1:nof_Variables,write_index) = ILOCAL_RECON3(I)%node_values(1:nof_Variables,write_index) &
+        !                                                                   + RESSOLUTION_NODES(1:NOF_vARIABLES)
+        !     Else
+        !         ILOCAL_RECON3(I)%node_values(1:nof_Variables,write_index) = FINDW(1:nof_Variables,0,L,1) 
+
+        !         RESSOLUTION_NODES(1:NOF_vARIABLES) = matmul(CONSMATRIX_NODES(1:ielem(n,i)%idegfree),transpose(FINDW(1:nof_variables,1:IELEM(N,I)%IDEGFREE,L,1)))
+
+        !         ILOCAL_RECON3(I)%node_values(1:nof_Variables,write_index) = ILOCAL_RECON3(I)%node_values(1:nof_Variables,write_index) &
+        !                                                                   + RESSOLUTION_NODES(1:NOF_vARIABLES)
+        !     end if
+
+        !     first_time = .true.
+        !     do i = 1, nof_variables
+        !         if (copy(i).ne.zero) then
+        !             first_time = .false.
+        !             exit
+        !         end if
+        !     end do
+
+        !     if (.not.first_time) then
+        !         do i = 1, nof_variables
+        !             delta = abs(ILOCAL_RECON3(I)%node_values(i,write_index) - copy(i))
+        !             if (delta.gt.(0.001*abs(copy(i)))) then
+        !                 print *, "suspiciously large change when recomputing reconstruced value at node", node_index, "in cell", i
+        !             end if
+        !         end do
+        !     end if
+        ! end do
     END DO			!FACES
 
     deallocate(LAMC,LAMBDA,SMOOTHINDICATOR,OMEGATILDE,OMEGA,WENOOS,LIMITEDDW,LIMITEDDW_CHAR,GRADCHARV,FINDW,FINDW_CHAR,RESSOLUTION,CONSMATRIX,CONSMATRIXC,eigvl,eigvr)
+    ! DEALLOCATE(CONSMATRIX_NODES, CONSMATRIXC_NODES, RESSOLUTION_NODES, copy, nodes_coords)
 
 END SUBROUTINE CHARACTERISTIC_RECONSTRUCTION
 
@@ -1008,13 +1139,18 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
     integer,intent(in)::iconsidered,POWER
     integer,intent(inOUT)::IDUMMY
     REAL,INTENT(IN)::DIVBYZERO
-    integer::facex,KKD,l,i,ITARGET,iqp,ngp,iCOMPWRT,IEX,LL,IADMIS,N_FACES
+    integer::facex, KKD, l, i, ITARGET, iqp, ngp, iCOMPWRT, IEX, LL, IADMIS, N_FACES
     real::LWCx1,ax,ay,az,tau_weno,SUMOMEGAATILDEL
     INTEGER::ICD
     real,dimension(1:nof_Variables)::leftv,rightv
     REAL,ALLOCATABLE,DIMENSION(:)::GRAD1AL,INDICATEMATRIXAL,GRAD3AL
     REAL,ALLOCATABLE,DIMENSION(:)::LAMBDAAL,OMEGAATILDEL,SMOOTHINDICATORAL,LAMC,OMEGAAL
     REAL,ALLOCATABLE,DIMENSION(:,:)::CONSMATRIX,CONSMATRIXC,GRAD5ALc,GRADSSL,WENO,RESSOLUTION
+    REAL,ALLOCATABLE,DIMENSION(:,:)::CONSMATRIX_NODES, CONSMATRIXC_NODES, RESSOLUTION_NODES
+    ! real,allocatable,dimension(:,:)::node_coords
+    real,dimension(1:dimensiona)::node_coords
+    integer::face_num_nodes, face_node_index, face_node_counter, node_index
+
 
     IADMIS=IELEM(N,ICONSIDERED)%ADMIS
     N_FACES=IELEM(N,ICONSIDERED)%IFCA
@@ -1026,6 +1162,18 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
     ALLOCATE(GRAD5ALc(1:IDEGFREE,1:NOF_VARIABLES),GRADSSL(1:IDEGFREE,1:NOF_VARIABLES))
     ALLOCATE(WENO(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR,1:IADMIS))
     ALLOCATE(RESSOLUTION(1:NUMBEROFPOINTS2*N_FACES,1:NOF_vARIABLES))
+
+    if (dimensiona.eq.3) then
+        allocate(RESSOLUTION_NODES(1:(N_FACES*4),1:NOF_vARIABLES))
+        allocate(CONSMATRIX_NODES(1:(N_FACES*4),1:idegfree))
+        allocate(CONSMATRIXC_NODES(1:(N_FACES*4),1:idegfree))
+        ! allocate(node_coords(1:4,1:dimensiona))
+    else
+        allocate(RESSOLUTION_NODES(1:(N_FACES*2),1:NOF_vARIABLES))
+        allocate(CONSMATRIX_NODES(1:(N_FACES*2),1:idegfree))
+        allocate(CONSMATRIXC_NODES(1:(N_FACES*2),1:idegfree))
+        ! allocate(node_coords(1:2,1:dimensiona))
+    end if
 
     I=ICONSIDERED
 
@@ -1124,16 +1272,20 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
         END DO
     END DO
 
-    icd=0
+    icd = 0
+    face_node_counter = 0
     DO L=1,IELEM(N,I)%IFCA	!FACES
         IF (DIMENSIONA.EQ.3)THEN
             if (ielem(n,i)%types_faces(L).eq.5)then
                 iqp=qp_quad
+                face_num_nodes = 4
             else
                 iqp=qp_triangle
+                face_num_nodes = 3
             end if
         ELSE
             iqp=qp_LINE
+            face_num_nodes = 1
         END IF
 
         do NGP=1,iqp			!for gqp
@@ -1144,8 +1296,8 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
             IF (DIMENSIONA.EQ.3)THEN
                 AZ = ILOCAL_RECON3(I)%QPOINTS(L,NGP,3)
             END IF
-            Icompwrt=0
 
+            Icompwrt=0
             IF (DIMENSIONA.EQ.3)THEN
                 CONSMATRIX(icd,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,Icompwrt)
             ELSE
@@ -1154,7 +1306,6 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
 
             if (ees.eq.5)then
                 Icompwrt=1
-
                 IF (DIMENSIONA.EQ.3)THEN
                     CONSMATRIXC(icd,1:IDEGFREE2)=BASIS_REC(N,AX,AY,AZ,IORDER2,I,IDEGFREE2,Icompwrt)
                 ELSE
@@ -1163,9 +1314,32 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
                 Icompwrt=0
             END IF
         end do
+        
+        do face_node_index = 1, face_num_nodes
+            face_node_counter = face_node_counter + 1
+
+            node_index = ielem(n,i)%nodes_faces(L, face_node_index)
+            node_coords(1:dimensiona) = local_nodes(node_index)%positions(global_position_index,1:dimensiona)
+            node_coords(1:dimensiona) = MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),node_coords(1:dimensiona)-ILOCAL_RECON3(I)%VEXT_REF(1:dimensiona))
+
+            IF (DIMENSIONA.EQ.3)THEN
+                CONSMATRIX_nodes(face_node_counter,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,node_coords(1),node_coords(2),node_coords(3),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,0)
+            ELSE
+                CONSMATRIX_nodes(face_node_counter,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2D(N,node_coords(1),node_coords(2),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,0)
+            END IF
+
+            if (ees.eq.5)then
+                IF (DIMENSIONA.EQ.3)THEN
+                    CONSMATRIXC_nodes(face_node_counter,1:IDEGFREE2)=BASIS_REC(N,node_coords(1),node_coords(2),node_coords(3),IORDER2,I,IDEGFREE2,1)
+                ELSE
+                    CONSMATRIXC_nodes(face_node_counter,1:IDEGFREE2)=BASIS_REC2D(N,node_coords(1),node_coords(2),IORDER2,I,IDEGFREE2,1)
+                END IF
+            END IF
+        end do
     END DO	!FACES
 
     ILOCAL_RECON3(I)%ULEFT(:,:,:)=ZERO
+    ILOCAL_RECON3(I)%node_values(:,:,:)=ZERO
 
     IF (DG.EQ.1)THEN
         ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,:)=ZERO
@@ -1176,50 +1350,55 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
         IF (EES.EQ.5)THEN
             IF (LL.EQ.1)THEN
                 GRADSSL(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=GRAD5ALc(1:IELEM(N,I)%IDEGFREE,1:nof_variables)
-
                 ! CALL DGEMM('N','N',ICD,nof_variables,IELEM(N,I)%IDEGFREE,ALPHA,&
                 !     CONSMATRIX(1:ICD,1:IELEM(N,I)%IDEGFREE),ICD,&
                 !     GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES),&
                 !     IELEM(N,I)%IDEGFREE,BETA,RESSOLUTION(1:ICD,1:NOF_vARIABLES),ICD)
-
                 RESSOLUTION(1:ICD,1:NOF_vARIABLES)=matmul(CONSMATRIX(1:ICD,1:IELEM(N,I)%IDEGFREE),GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES))
-
+                RESSOLUTION_NODES(1:face_node_counter,1:NOF_vARIABLES)=matmul(CONSMATRIX_NODES(1:face_node_counter,1:IELEM(N,I)%IDEGFREE),GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES))
             ELSE
                 GRADSSL(1:Idegfree2,1:nof_variables)=ILOCAL_rECON5(ICONSIDERED)%GRADIENTSc(LL,1:idegfree2,1:nof_variables)
-
                 ! CALL DGEMM('N','N',ICD,nof_variables,idegfree2,ALPHA,&
                 !     CONSMATRIXc(1:ICD,1:IDEGFREE2),ICD,&
                 !     GRADSSL(1:IDEGFREE2,1:NOF_vARIABLES),&
                 !     IDEGFREE2,BETA,RESSOLUTION(1:ICD,1:NOF_vARIABLES),ICD)
-
                 RESSOLUTION(1:ICD,1:NOF_vARIABLES)=matmul(CONSMATRIXc(1:ICD,1:IDEGFREE2),GRADSSL(1:IDEGFREE2,1:NOF_vARIABLES))
+                RESSOLUTION_NODES(1:face_node_counter,1:NOF_vARIABLES)=matmul(CONSMATRIXc_NODES(1:face_node_counter,1:IDEGFREE2),GRADSSL(1:IDEGFREE2,1:NOF_vARIABLES))
             END IF
         ELSE
             GRADSSL(1:IELEM(N,I)%IDEGFREE,1:nof_variables)=ILOCAL_rECON5(ICONSIDERED)%GRADIENTS(LL,1:IELEM(N,I)%IDEGFREE,1:nof_variables)
-
             ! CALL DGEMM('N','N',ICD,nof_variables,IELEM(N,I)%IDEGFREE,ALPHA,&
             !     CONSMATRIX(1:ICD,1:IELEM(N,I)%IDEGFREE),ICD,&
             !     GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES),&
             !     IELEM(N,I)%IDEGFREE,BETA,RESSOLUTION(1:ICD,1:NOF_vARIABLES),ICD)
-
             RESSOLUTION(1:ICD,1:NOF_vARIABLES)=matmul(CONSMATRIX(1:ICD,1:IELEM(N,I)%IDEGFREE),GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES))
+            RESSOLUTION_NODES(1:face_node_counter,1:NOF_vARIABLES)=matmul(CONSMATRIX_NODES(1:face_node_counter,1:IELEM(N,I)%IDEGFREE),GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES))
         END IF
 
-        ICD=0
+        ICD = 0
+        face_node_counter = 0
         DO L=1,IELEM(N,I)%IFCA
             IF (DIMENSIONA.EQ.3)THEN
                 if (ielem(n,i)%types_faces(L).eq.5)then
-                    iqp=qp_quad;
+                    iqp = qp_quad
+                    face_num_nodes = 4
                 else
-                    iqp=qp_triangle;
+                    iqp = qp_triangle
+                    face_num_nodes = 3
                 end if
             ELSE
-                iqp=qp_LINE;
+                iqp = qp_LINE
+                face_num_nodes = 2
             END IF
 
             do NGP=1,iqp
                 ICD=ICD+1
                 CALL EXTRAPOLATE_BOUND(RESSOLUTION,IEX,L,NGP,I,ICD,LL,WENO)
+            end do
+
+            do face_node_index = 1, face_num_nodes
+                face_node_counter = face_node_counter + 1
+                call EXTRAPOLATE_BOUND_NODE(RESSOLUTION_NODES,IEX,L,face_node_index,I,face_node_counter,LL,WENO)
             end do
         END DO
 
@@ -1232,7 +1411,7 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
                         ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE2,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE2,IEX)+(GRADSSL(1:Idegfree2,IEX)*WENO(IEX,LL))
                     END IF
                 ELSE
-                        ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,IEX)*WENO(IEX,LL))
+                    ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,IEX)*WENO(IEX,LL))
                 END IF
             END IF
         END DO
@@ -1242,18 +1421,27 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
         DO L=1,IELEM(N,I)%IFCA
             IF (DIMENSIONA.EQ.3)THEN
                 if (ielem(n,i)%types_faces(L).eq.5)then
-                    iqp=qp_quad;
+                    iqp = qp_quad
+                    face_num_nodes = 4
                 else
-                    iqp=qp_triangle;
+                    iqp = qp_triangle
+                    face_num_nodes = 3
                 end if
             ELSE
-                iqp=qp_LINE
+                iqp = qp_LINE
+                face_num_nodes = 2
             END IF
 
             do NGP=1,iqp
                 leftv(1:nof_variables)=ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)
                 call PRIM2CONS(N,leftv)
                 ILOCAL_RECON3(I)%ULEFT(1:NOF_vARIABLES,l,ngp)=leftv(1:nof_variables)
+            end do
+
+            do face_node_index = 1, face_num_nodes
+                leftv(1:nof_variables) = ILOCAL_RECON3(I)%node_values(1:NOF_vARIABLES,l,face_node_index)
+                call PRIM2CONS(N,leftv)
+                ILOCAL_RECON3(I)%node_values(1:NOF_vARIABLES,l,face_node_index) = leftv(1:nof_variables)
             end do
         END DO
     end if
@@ -1263,6 +1451,8 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
     deallocate(CONSMATRIX,CONSMATRIXC,GRAD5ALc,GRADSSL)
     deallocate(WENO)
     deallocate(RESSOLUTION)
+    deallocate(CONSMATRIX_NODES, CONSMATRIXC_NODES, RESSOLUTION_NODES)
+    ! deallocate(node_coords)
 
 END SUBROUTINE CP_RECONSTRUCTION
 
@@ -1524,6 +1714,34 @@ SUBROUTINE EXTRAPOLATE_BOUND(RESSOLUTION,varcons,FACEX,pointx,ICONSIDERED,INSTEN
     end if
 
 END SUBROUTINE EXTRAPOLATE_BOUND
+
+
+
+
+
+SUBROUTINE EXTRAPOLATE_BOUND_NODE(RESSOLUTION_NODES,varcons,face_index,node_in_face_index,cell_index,read_index,stencil,WENO)
+  !> @brief
+  !> Subroutine for extrapolating the reconstructed solution at the cell interfaces to the nodes
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::varcons, face_index, node_in_face_index, cell_index, read_index, stencil
+    REAL,allocatable,dimension(:,:),INTENT(IN)::WENO
+    REAL,ALLOCATABLE,DIMENSION(:,:),intent(in)::RESSOLUTION_NODES
+    real,dimension(1:nof_Variables)::leftv
+    REAL::MP_PINFl, gammal
+  
+    if (WENWRT.EQ.3)THEN	!PRIMITIVE
+        LEFTV(1:NOF_VARIABLES)=U_C(cell_index)%VAL(1,1:nof_Variables)
+        call CONS2PRIM(N,leftv,MP_PINFl,gammal)
+  
+        ILOCAL_RECON3(cell_index)%node_values(1:NOF_VARIABLES,face_index,node_in_face_index) = ILOCAL_RECON3(cell_index)%node_values(1:NOF_VARIABLES,face_index,node_in_face_index) &
+                                                            + ((leftv(1:NOF_VARIABLES) + RESSOLUTION_NODES(read_index,1:NOF_vARIABLES))*WENO(1:NOF_vARIABLES,stencil))
+    else   !CONSERVATIVE
+        ILOCAL_RECON3(cell_index)%node_values(1:NOF_VARIABLES,face_index,node_in_face_index) = ILOCAL_RECON3(cell_index)%node_values(1:NOF_VARIABLES,face_index,node_in_face_index)&
+                                                            + (U_C(cell_index)%VAL(1,1:NOF_VARIABLES) + RESSOLUTION_NODES(read_index,1:NOF_vARIABLES))*WENO(1:NOF_vARIABLES,stencil)
+    end if
+  
+END SUBROUTINE EXTRAPOLATE_BOUND_NODE
+  
 
 
 
@@ -1904,6 +2122,14 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
     REAL,ALLOCATABLE,DIMENSION(:,:)::CONSMATRIX,GRADSSL,RESSOLUTION,GRADSSL2,RESSOLUTION2
     REAL,allocatable,dimension(:)::SLOPE
 
+    REAL,ALLOCATABLE,DIMENSION(:,:,:)::USOL_NODES
+    REAL,ALLOCATABLE,DIMENSION(:,:)::CONSMATRIX_NODES, RESSOLUTION_NODES
+    ! real,allocatable,dimension(:,:)::node_coords
+    real,dimension(1:dimensiona)::node_coords
+    integer::num_faces, face_num_nodes, face_node_index, node_index, face_node_counter
+
+    num_faces = IELEM(N,ICONSIDERED)%IFCA
+
     I=ICONSIDERED
     ILOCAL_RECON3(ICONSIDERED)%ULEFT(:,:,:)=ZERO
 
@@ -1919,20 +2145,37 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
         ALLOCATE(RESSOLUTION2(1:6*NUMBEROFPOINTS2,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
     END IF
 
+    if (dimensiona.eq.3) then
+        ALLOCATE(CONSMATRIX_NODES(1:(num_faces*4),1:IDEGFREE))
+        ALLOCATE(RESSOLUTION_NODES(1:(num_faces*4),1:NOF_VARIABLES))
+        ALLOCATE(USOL_NODES(1:nof_variables,1:num_faces,1:4))
+        ! allocate(node_coords(1:4,1:dimensiona))
+    else
+        ALLOCATE(CONSMATRIX_NODES(1:(num_faces*2),1:IDEGFREE))
+        ALLOCATE(RESSOLUTION_NODES(1:(num_faces*2),1:NOF_VARIABLES))
+        ALLOCATE(USOL_NODES(1:nof_variables,1:num_faces,1:2))
+        ! allocate(node_coords(1:2,1:dimensiona))
+    end if
+
     iCOMPWRT=0
 
     USOL(:,:,:)=ZERO
-    PSI=ZERO
+    USOL_NODES(:,:,:)=ZERO
+    PSI(:,:,:)=ZERO
     icd=0
+    face_node_counter = 0
     DO L=1,IELEM(N,I)%IFCA	!faces2
         if (DIMENSIONA.eq.3)then
             if (ielem(n,i)%types_faces(L).eq.5)then
                 iqp = qp_quad
+                face_num_nodes = 4
             else
                 iqp = qp_triangle
+                face_num_nodes = 3
             end if
         else
             iqp = qp_LINE
+            face_num_nodes = 2
         end if 
 
         do NGP = 1, iqp			!for gqp
@@ -1943,11 +2186,24 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
             end if
 
             icd = icd+1
-
             if (DIMENSIONA.eq.3) then
                 CONSMATRIX(icd,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,ICOMPWRT)
             else
                 CONSMATRIX(icd,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2D(N,AX,AY,IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,ICOMPWRT)
+            end if
+        end do
+
+        do face_node_index = 1, face_num_nodes
+            face_node_counter = face_node_counter+1
+
+            node_index = ielem(n,i)%nodes_faces(L,face_node_index)
+            node_coords(1:dimensiona) = local_nodes(node_index)%positions(global_position_index,1:dimensiona)
+            node_coords(1:dimensiona) = MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),node_coords(1:dimensiona)-ILOCAL_RECON3(I)%VEXT_REF(1:dimensiona))
+
+            if (DIMENSIONA.eq.3) then
+                CONSMATRIX_NODES(face_node_counter,1:IELEM(N,I)%IDEGFREE) = BASIS_REC(N,node_coords(1),node_coords(2),node_coords(3),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,ICOMPWRT)
+            else
+                CONSMATRIX_NODES(face_node_counter,1:IELEM(N,I)%IDEGFREE) = BASIS_REC2D(N,node_coords(1),node_coords(2),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,ICOMPWRT)
             end if
         end do
     end do
@@ -1958,6 +2214,7 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
     !                     GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES),&
     !                     IELEM(N,I)%IDEGFREE,BETA,RESSOLUTION(1:ICD,1:NOF_vARIABLES),ICD)
     RESSOLUTION(1:ICD,1:NOF_vARIABLES)=matmul(CONSMATRIX(1:ICD,1:IELEM(N,I)%IDEGFREE),GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES))
+    RESSOLUTION_NODES(1:face_node_counter,1:NOF_vARIABLES) = matmul(CONSMATRIX_NODES(1:face_node_counter,1:IELEM(N,I)%IDEGFREE),GRADSSL(1:IELEM(N,I)%IDEGFREE,1:NOF_vARIABLES))
 
     IF (TURBULENCEEQUATIONS.GE.1)THEN
         GRADSSL2(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=ILOCAL_rECON5(ICONSIDERED)%GRADIENTS2(1,1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR)
@@ -1968,17 +2225,20 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
         RESSOLUTION2(1:ICD,1:TURBULENCEEQUATIONS+PASSIVESCALAR)=matmul(CONSMATRIX(1:ICD,1:IELEM(N,I)%IDEGFREE),GRADSSL2(1:IELEM(N,I)%IDEGFREE,1:TURBULENCEEQUATIONS+PASSIVESCALAR))
     END IF
 
-    ICD=0              !initialise counter
+    ICD = 0; face_node_counter = 0              !initialise counter
     DO L=1,IELEM(N,I)%IFCA     !loop all faces
         if (DIMENSIONA.eq.3)then
             if (ielem(n,i)%types_faces(L).eq.5)then
                 iqp = qp_quad
+                face_num_nodes = 4
             else
                 iqp = qp_triangle
+                face_num_nodes = 3
             end if
         else
-            iqp=qp_LINE
-        end if
+            iqp = qp_LINE
+            face_num_nodes = 2
+        end if 
 
         do NGP=1,iqp        !all gaussian quadrature points
             ICD = ICD+1
@@ -1995,6 +2255,21 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
                 USOL(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR,L,Ngp)=((U_CT(I)%VAL(1,1:TURBULENCEEQUATIONS+PASSIVESCALAR)+RESSOLUTION2(icd,1:TURBULENCEEQUATIONS+PASSIVESCALAR)))
             END IF
         END DO
+
+        do face_node_index = 1, face_num_nodes
+            face_node_counter = face_node_counter + 1
+            IF (WENWRT.EQ.3)THEN
+                LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:nof_Variables)
+                CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+                USOL_NODES(1:NOF_VARIABLES,L,face_node_index) = ((LEFTV(1:NOF_VARIABLES) + RESSOLUTION_NODES(face_node_counter,1:NOF_VARIABLES)))
+            ELSE
+                USOL_NODES(1:NOF_VARIABLES,L,face_node_index) = ((U_C(I)%VAL(1,1:NOF_VARIABLES) + RESSOLUTION_NODES(face_node_counter,1:NOF_VARIABLES)))
+            END IF
+
+            IF (TURBULENCEEQUATIONS.GE.1)THEN
+                print*,"turbulence is not supported with node reconstruction"
+            END IF
+        end do
     END DO
 
     DO L=1,IELEM(N,I)%IFCA	!faces2
@@ -2051,16 +2326,18 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
     DO L=1,IELEM(N,I)%IFCA	!faces2
         if (DIMENSIONA.eq.3)then
             if (ielem(n,i)%types_faces(L).eq.5)then
-                iqp=qp_quad
+                iqp = qp_quad
+                face_num_nodes = 4
             else
-                iqp=qp_triangle
+                iqp = qp_triangle
+                face_num_nodes = 3
             end if
         else
-            iqp=qp_LINE
-        end if
+            iqp = qp_LINE
+            face_num_nodes = 2
+        end if 
 
         do NGP=1,iqp
-
             IF (WENWRT.EQ.3)THEN
                 LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:nof_Variables)
                 CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
@@ -2075,6 +2352,21 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
 
             CALL EXTRAPOLATE_BOUND_MUSCL(USOL,IEX,L,NGP,I,SLOPE)
         END DO
+
+        do face_node_index = 1, face_num_nodes
+            IF (WENWRT.EQ.3)THEN
+                LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(1,1:nof_Variables)
+                CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+                USOL_NODES(1:nof_Variables,l,face_node_index) = USOL_NODES(1:nof_Variables,l,face_node_index)-LEFTV(1:NOF_VARIABLES)
+            ELSE
+                USOL_NODES(1:nof_Variables,l,face_node_index) = USOL_NODES(1:nof_Variables,l,face_node_index)-LEFTV(1:NOF_VARIABLES)
+            END IF
+            IF (TURBULENCEEQUATIONS.GE.1)THEN
+                print*,"turbulence is not supported with node reconstruction"
+            END IF
+
+            CALL EXTRAPOLATE_BOUND_NODE_MUSCL(USOL_NODES,IEX,L,face_node_index,I,SLOPE)
+        END DO
     END DO
 
     deallocate(SLOPE)
@@ -2088,6 +2380,9 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
         deallocate(GRADSSL2)
         deallocate(RESSOLUTION2)
     END IF
+
+    deallocate(USOL_NODES, CONSMATRIX_NODES, RESSOLUTION_NODES)
+    ! deallocate(node_coords)
 
 END subroutine COMPUTE_MUSCL_RECONSTRUCTION
 

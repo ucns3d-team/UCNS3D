@@ -1091,7 +1091,7 @@ Subroutine Drive(interray)
 				if (BOUNDARY_MOVEMENT) then
 					ibtr = ifac(i)%ifacbtype
 				else
-					print*,"this boundary code is reserved for moving boundaries"
+					! print*,"this boundary code is reserved for moving boundaries"
 				end if
 
 			end select

@@ -2216,6 +2216,90 @@ END SUBROUTINE CALL_FLUX_SUBROUTINES_2D
 
 
 
+SUBROUTINE CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+  IMPLICIT NONE
+  INTEGER::I,ICONSIDERED
+  if (dg.eq.1)then
+      CALL SOL_INTEG_DG(N)
+  END IF
+
+  IF (FASTEST.EQ.1) THEN
+      CALL EXCHANGE_LOWER(N)
+  ELSE
+      CALL EXCHANGE_HIGHER(N)
+  END IF
+
+  IF (DG == 1) THEN 
+      CALL RECONSTRUCT_DG(N)
+      CALL TROUBLE_INDICATOR1
+  END IF
+    
+  CALL ARBITRARY_ORDER(N)
+
+  IF (DG == 1) THEN
+      CALL TROUBLE_INDICATOR2
+  end if
+
+  IF (BOUND_LIM == 1) THEN
+      CALL VFBP_LIMITER
+  END IF
+
+  CALL EXHBOUNDHIGHER(N)
+    
+  if (dg.eq.1)then
+      call EXHBOUNDHIGHER_dg(N)
+
+      IF (ITESTCASE.EQ.4)THEN
+          IF( BR2_YN.eq.2) then
+              CALL RECONSTRUCT_BR2_DG
+
+              CALL EXHBOUNDHIGHER_DG2(N)
+          END IF
+
+          IF( BR2_YN.eq.0) then
+              CALL VISCOUS_DG_GGS(N)
+          END IF
+      END IF
+  end if
+
+END SUBROUTINE CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+
+
+
+
+
+SUBROUTINE CALL_FLUX_SUBROUTINES_MovingMesh_2D
+  IMPLICIT NONE
+  INTEGER::I,ICONSIDERED
+  
+  !Modifies RHS
+  SELECT CASE(ITESTCASE)
+    CASE(1,2)
+      if (MESH_MOVEMENT) then
+          CALL CALCULATE_FLUXESHI_MovingMesh_2D(N)
+      else
+          CALL CALCULATE_FLUXESHI2D(N)
+      end if
+
+    CASE(3)
+      CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
+
+
+    CASE(4)
+      CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
+      CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
+      IF (turbulence.eq.1)THEN
+          CALL SOURCES_COMPUTATION2d(N)
+      END IF
+
+  END SELECT
+
+END SUBROUTINE CALL_FLUX_SUBROUTINES_MovingMesh_2D
+
+
+
+
+
 SUBROUTINE RUNGE_KUTTA4_2D(N)
   !> @brief
   !> SSP RUNGE KUTTA 4TH-ORDER SCHEME IN 2D
@@ -4161,7 +4245,9 @@ SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
   
   KMAXE=XMPIELRANK(N)
 
-  call EXCHANGE_HIGHER(N)
+  global_position_index = 1
+  call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+
   call find_node_velocities(1, DT, N)
   ! !$OMP BARRIER
   ! if (n.eq.0) then
@@ -4198,8 +4284,8 @@ SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
   ! if (n.eq.0) then
   !   print *, "volume recomputed"
   ! end if
-  global_position_index = 1
-  CALL CALL_FLUX_SUBROUTINES_2D
+  ! global_position_index = 1
+  CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
   ! !$OMP BARRIER
   ! if (n.eq.0) then
   !   print *, "fluxes computed"
@@ -4292,7 +4378,8 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
   REAL::AVRGS, OOVOLUME, TO4, OO4, TO3, OO3
   KMAXE=XMPIELRANK(N)
 
-  call EXCHANGE_HIGHER(N)
+  global_position_index = 1
+  call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
 
   call find_node_velocities(1, DT, N)
   call Find_QP_velocities(N)
@@ -4318,8 +4405,8 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-  global_position_index = 1
-  CALL CALL_FLUX_SUBROUTINES_2D
+  ! global_position_index = 1
+  CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -4363,7 +4450,8 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-  call EXCHANGE_HIGHER(N)
+  global_position_index = 2
+  call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -4393,8 +4481,8 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
 
   CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-  global_position_index = 2
-  CALL CALL_FLUX_SUBROUTINES_2D
+  ! global_position_index = 2
+  CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
 
   !$OMP DO
   DO I=1,KMAXE
@@ -4457,7 +4545,9 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-  call EXCHANGE_HIGHER(N)
+  global_position_index = 1
+  call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+  ! call EXCHANGE_HIGHER(N)
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -4481,9 +4571,8 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
   END IF
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-  global_position_index = 1
-  CALL CALL_FLUX_SUBROUTINES_2D
+  
+  CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -4532,8 +4621,9 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
   Call RE_PRESTORE_1(N, 2)
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-  call EXCHANGE_HIGHER(N)
+  global_position_index = 2
+  call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+  ! call EXCHANGE_HIGHER(N)
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
@@ -4558,8 +4648,8 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
-  global_position_index = 1
-  CALL CALL_FLUX_SUBROUTINES_2D
+  ! global_position_index = 2
+  CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
 
   ! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
