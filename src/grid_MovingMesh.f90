@@ -21,70 +21,70 @@ end function
 
 
 
-SUBROUTINE VOLUME_CALCULATOR_MovingMesh_2D(i, node_position_index)
-	!> @brief
-	!> This subroutine computes the volume of elements in 2D
-	IMPLICIT NONE
-	INTEGER,INTENT(IN)::i, node_position_index
-	!$ integer::OMP_IN_PARALLEL,OMP_GET_THREAD_NUM
-	INTEGER::K,KMAXE,jx,JX2,ELTYPE,ELEM_DEC
-	real::DUMV1,DUMV2,dumv3,DUMV5
-	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-	REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
-	REAL,DIMENSION(1:6,1:4,1:DIMENSIONA)::ELEM_LISTD
-	REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
-	REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
+! SUBROUTINE VOLUME_CALCULATOR_MovingMesh_2D(i, node_position_index)
+! 	!> @brief
+! 	!> This subroutine computes the volume of elements in 2D
+! 	IMPLICIT NONE
+! 	INTEGER,INTENT(IN)::i, node_position_index
+! 	!$ integer::OMP_IN_PARALLEL,OMP_GET_THREAD_NUM
+! 	INTEGER::K,KMAXE,jx,JX2,ELTYPE,ELEM_DEC
+! 	real::DUMV1,DUMV2,dumv3,DUMV5
+! 	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
+! 	REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
+! 	REAL,DIMENSION(1:6,1:4,1:DIMENSIONA)::ELEM_LISTD
+! 	REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
+! 	REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
 
-    ! print *, "I am inside VOLUME_CALCULATOR_MovingMesh_2D for", i, "current volume", IELEM(N,I)%moving_VOLUME(node_position_index)
+!     ! print *, "I am inside VOLUME_CALCULATOR_MovingMesh_2D for", i, "current volume", IELEM(N,I)%moving_VOLUME(node_position_index)
 
-	ELTYPE=IELEM(N,I)%ISHAPE
-	ELEM_DEC=IELEM(N,I)%VDEC
-	! IELEM(N,I)%TOTVOLUME=0.0d0
+! 	ELTYPE=IELEM(N,I)%ISHAPE
+! 	ELEM_DEC=IELEM(N,I)%VDEC
+! 	! IELEM(N,I)%TOTVOLUME=0.0d0
 
-	do K=1,IELEM(N,I)%NONODES
-        !print *, "trying to access local_node", IELEM(N,I)%NODES_local(K)
-		! NODES_LIST(k,1:2)=LOCAL_NODES(IELEM(N,I)%NODES_local(K))%positions(node_position_index,1:2)
-        ! print *, "trying to access local_node", IELEM(N,I)%NODES(K)
-		NODES_LIST(k,1:2)=LOCAL_NODES(IELEM(N,I)%NODES(K))%positions(node_position_index,1:2)
-        ! print *, k, "node position copied"
-		vext(k,1:2)=NODES_LIST(k,1:2)
-	END DO
+! 	do K=1,IELEM(N,I)%NONODES
+!         !print *, "trying to access local_node", IELEM(N,I)%NODES_local(K)
+! 		! NODES_LIST(k,1:2)=LOCAL_NODES(IELEM(N,I)%NODES_local(K))%positions(node_position_index,1:2)
+!         ! print *, "trying to access local_node", IELEM(N,I)%NODES(K)
+! 		NODES_LIST(k,1:2)=LOCAL_NODES(IELEM(N,I)%NODES(K))%positions(node_position_index,1:2)
+!         ! print *, k, "node position copied"
+! 		vext(k,1:2)=NODES_LIST(k,1:2)
+! 	END DO
 
-    ! print *, "node positions copied"
+!     ! print *, "node positions copied"
 
-	call DECOMPOSE2(n,eltype,NODES_LIST,ELEM_LISTD)
+! 	call DECOMPOSE2(n,eltype,NODES_LIST,ELEM_LISTD)
 
-	SELECT CASE(ielem(n,i)%ishape)
+! 	SELECT CASE(ielem(n,i)%ishape)
 
-	  CASE(5)
+! 	  CASE(5)
 
-		CALL QUADRATUREQUAD(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-		DUMV1=QUADVOLUME(N,VEXT,QPOINTS,WEQUA3D)
-		DUMV2=0.0d0
+! 		CALL QUADRATUREQUAD(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+! 		DUMV1=QUADVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+! 		DUMV2=0.0d0
 		
-		do K=1,ELEM_DEC
-			VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
-			DUMV2=DUMV2+TRIANGLEVOLUME(N,VEXT)
-		END DO
+! 		do K=1,ELEM_DEC
+! 			VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
+! 			DUMV2=DUMV2+TRIANGLEVOLUME(N,VEXT)
+! 		END DO
 
-		IELEM(N,I)%Moving_VOLUME(node_position_index)=DUMV2
+! 		IELEM(N,I)%Moving_VOLUME(node_position_index)=DUMV2
      
-	  CASE(6)
+! 	  CASE(6)
 
-		DUMV1=TRIANGLEVOLUME(N,VEXT)
-		DUMV2=0.0d0
-		do K=1,ELEM_DEC
-			VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
-			DUMV2=DUMV2+TRIANGLEVOLUME(N,VEXT)
-		END DO
+! 		DUMV1=TRIANGLEVOLUME(N,VEXT)
+! 		DUMV2=0.0d0
+! 		do K=1,ELEM_DEC
+! 			VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
+! 			DUMV2=DUMV2+TRIANGLEVOLUME(N,VEXT)
+! 		END DO
 
-		IELEM(N,I)%moving_VOLUME(node_position_index)=DUMV2
+! 		IELEM(N,I)%moving_VOLUME(node_position_index)=DUMV2
      
-	END SELECT
+! 	END SELECT
 
-    ! print *, "volume = ", IELEM(N,I)%moving_VOLUME(node_position_index)
+!     ! print *, "volume = ", IELEM(N,I)%moving_VOLUME(node_position_index)
 
-END SUBROUTINE VOLUME_CALCULATOR_MovingMesh_2D
+! END SUBROUTINE VOLUME_CALCULATOR_MovingMesh_2D
 
 
 
@@ -342,6 +342,64 @@ SUBROUTINE CENTRE_MovingMesh_2D(cell_index, node_position_index)
     IELEM(N, cell_index)%YYC=CORDS(2)
 
 END SUBROUTINE CENTRE_MovingMesh_2D
+
+
+
+
+
+SUBROUTINE VOLUME_CALCULATOR_MovingMesh_2D(cell_index, node_position_index)
+	!> @brief
+	!> This subroutine computes the cell centres
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::cell_index, node_position_index
+	REAL,DIMENSION(1:DIMENSIONA)::temp_cords
+	real,dimension(1:dimensiona)::v1, v2
+	INTEGER::I, j
+	integer::num_nodes, node_index, node_index_1, node_index_2, node_index_3
+	real::area, area_sum
+	
+
+	num_nodes = IELEM(N,cell_index)%nonodes
+
+	if (num_nodes.gt.3) then
+		temp_cords(:) = zero
+		do i = 1, num_nodes
+			node_index = ielem(N, cell_index)%nodes_counterclockwise(i)
+			temp_cords(:) = temp_cords(:) + (local_nodes(node_index)%positions(node_position_index, 1:dimensiona)/real(num_nodes))
+		end do
+
+		area_sum = zero
+		do i = 1, num_nodes
+			j = i+1
+			if (j.gt.num_nodes) then
+				j = j - num_nodes
+			end if
+
+			node_index_1 = ielem(N, cell_index)%nodes_counterclockwise(i)
+			node_index_2 = ielem(N, cell_index)%nodes_counterclockwise(j)
+
+			v1(:) = local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona) - local_nodes(node_index_1)%positions(node_position_index, 1:dimensiona)
+			v2(:) = temp_cords(1:dimensiona) - local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona)
+			
+			area = cross_product_2D(v1, v2)*0.5
+			area_sum = area_sum + area
+		end do
+
+	else
+		node_index_1 = ielem(N, cell_index)%nodes_counterclockwise(1)
+		node_index_2 = ielem(N, cell_index)%nodes_counterclockwise(2)
+		node_index_3 = ielem(N, cell_index)%nodes_counterclockwise(3)
+			
+		v1(:) = local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona) - local_nodes(node_index_1)%positions(node_position_index, 1:dimensiona)
+		v2(:) = local_nodes(node_index_3)%positions(node_position_index, 1:dimensiona) - local_nodes(node_index_2)%positions(node_position_index, 1:dimensiona)
+
+		area_sum = cross_product_2D(v1, v2)*0.5
+
+	end if
+
+	IELEM(N, cell_index)%moving_VOLUME(node_position_index) = area_sum
+
+END SUBROUTINE VOLUME_CALCULATOR_MovingMesh_2D
 
 
 

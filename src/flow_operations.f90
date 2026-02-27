@@ -285,6 +285,156 @@ END SUBROUTINE CONS2PRIM
 
 
 
+! SUBROUTINE CONS2PRIM(N,leftv,MP_PINFl,gammal) ! with debug warnings about unphysical values
+!   !> @brief
+!   !> This subroutine transforms one vector of conservative variables to primitive variables
+!     IMPLICIT NONE
+!     INTEGER,INTENT(IN)::N
+!     REAL,DIMENSION(1:NOF_VARIABLES)::TEMPS
+!     real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
+!     real,INTENT(INOUT)::MP_PINFL,gammal
+!     REAL::OODENSITY,MP_DENSITY,MP_STIFF
+!     REAL::P_SAT,P_TOL, RHO_G,RHO_L, SS_G, SS_L, PP, P_GL, VOID_FRAC,p_temp
+!     REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+
+!     if (nof_Variables.gt.1)then
+
+!         IF (DIMENSIONA.EQ.3)THEN
+
+!             P_SAT =2000
+!             P_TOL =10E-5
+
+!             IF (governingequations.EQ.-1) then
+    
+!                 MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
+!                 MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
+!                 MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
+!                 GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+!                 OODENSITY=1.0D0/MP_DENSITY
+                
+                
+!                 TEMPS(1)=MP_DENSITY
+!                 TEMPS(2)=LEFTV(2)*OODENSITY
+!                 TEMPS(3)=LEFTV(3)*OODENSITY
+!                 TEMPS(4)=LEFTV(4)*OODENSITY
+!                 MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+!                 MP_PINFL=(LEFTV(8)*MP_PINF(1))+((1.0D0-LEFTV(8))*MP_PINF(2))
+!                 TEMPS(5)=(((GAMMAL-1.0D0))*((LEFTV(5))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2))))-MP_STIFF
+!                 TEMPS(6)=LEFTV(6)
+!                 TEMPS(7)=LEFTV(7)
+!                 TEMPS(8)=LEFTV(8)
+    
+!                 IF(CAVITATION.EQ.1)THEN
+!                     RHO_G = LEFTV(6)/LEFTV(8)
+!                     RHO_L = LEFTV(7)/LEFTV(8)
+!                     SS_G = sqrt(GAMMA_IN(1)*(TEMPS(5)+MP_PINF(1))/RHO_G)
+!                     SS_L = sqrt(GAMMA_IN(2)*(TEMPS(5)+MP_PINF(2))/RHO_L)
+
+!                     P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
+!                     VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(LEFTV(8)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-LEFTV(8)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
+
+!                     P_tEMP=TEMPS(5)
+
+!                     if ((TEMPS(5).GT.P_TOL).AND.(TEMPS(5).LT.P_SAT))THEN
+!                         p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
+!                     END IF
+
+!                     IF (TEMPS(5).LT.P_TOL)THEN
+!                         p_temp=P_TOL
+!                     end if
+!                     TEMPS(5)=p_temp
+
+!                 end if
+
+!                 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+    
+!             ELSE
+    
+!                 OODENSITY=1.0D0/LEFTV(1)
+
+!                 TEMPS(1)=LEFTV(1)
+!                 TEMPS(2)=LEFTV(2)*OODENSITY
+!                 TEMPS(3)=LEFTV(3)*OODENSITY
+!                 TEMPS(4)=LEFTV(4)*OODENSITY
+!                 TEMPS(5)=((GAMMA-1.0D0))*((LEFTV(5))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)+((TEMPS(4))**2)))
+
+!                 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+!             END IF
+
+!         ELSE
+
+!             P_SAT =2000
+!             P_TOL =10E-5
+
+!             IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
+
+!                 MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
+!                 MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
+!                 MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+!                 GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+!                 OODENSITY=1.0D0/MP_DENSITY
+
+!                 TEMPS(1)=MP_DENSITY
+!                 TEMPS(2)=LEFTV(2)*OODENSITY
+!                 TEMPS(3)=LEFTV(3)*OODENSITY
+!                 ! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
+!                 ! MP_PINFL=(LEFTV(7)*MP_PINF(1))+((LEFTV(7)-1.0D0)*MP_PINF(2))
+
+!                 MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+
+!                 MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
+!                 TEMPS(4)=(((GAMMAL-1.0D0))*((LEFTV(4))-OO2*TEMPS(1)*(((TEMPS(2))**2)+((TEMPS(3))**2))))-MP_STIFF
+
+!                 TEMPS(5)=LEFTV(5)
+!                 TEMPS(6)=LEFTV(6)
+!                 TEMPS(7)=LEFTV(7)
+
+!                 IF(CAVITATION.EQ.1)THEN
+!                     RHO_G = LEFTV(5)/LEFTV(7)
+!                     RHO_L = LEFTV(6)/LEFTV(7)
+!                     SS_G = sqrt(GAMMA_IN(1)*(TEMPS(4)+MP_PINF(1))/RHO_G)
+!                     SS_L = sqrt(GAMMA_IN(2)*(TEMPS(4)+MP_PINF(2))/RHO_L)
+
+!                     P_GL=RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_G-RHO_l)/((RHO_G*RHO_G*SS_G*SS_G)-(RHO_l*RHO_l*SS_l*SS_l))
+!                     VOID_FRAC=(RHO_G*SS_G*SS_G*RHO_L*SS_L*SS_L*(RHO_L+(LEFTV(7)*(RHO_G-RHO_l))))/(RHO_l*((RHO_G*SS_G*SS_G)-LEFTV(7)*((RHO_G*SS_G*SS_G)-(RHO_L*SS_L*SS_L))))
+
+!                     P_tEMP=TEMPS(4)
+
+!                     if ((TEMPS(4).GT.P_TOL).AND.(TEMPS(4).LT.P_SAT))THEN
+!                         p_temp=P_SAT+P_GL*LOG(VOID_FRAC)
+!                     END IF
+!                     IF (TEMPS(4).LT.P_TOL)THEN
+!                         p_temp=P_TOL
+!                     end if
+!                     TEMPS(4)=p_temp
+!                 end if
+
+!                 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+
+!             ELSE
+!                 if (LEFTV(1).lt.zero) print*,"density<0"
+!                 if (LEFTV(1).eq.zero) print*,"density=0"
+!                 OODENSITY=1.0D0/LEFTV(1)
+
+!                 TEMPS(1)=LEFTV(1)
+!                 TEMPS(2)=LEFTV(2)*OODENSITY
+!                 TEMPS(3)=LEFTV(3)*OODENSITY
+!                 TEMPS(4)=((GAMMA-1.0D0))*((LEFTV(4))-OO2*LEFTV(1)*(((TEMPS(2))**2)+((TEMPS(3))**2)))
+!                 if (TEMPS(4).lt.zero) print*,"pressure<0"
+!                 if (TEMPS(4).eq.zero) print*,"pressure=0"
+!                 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+!             END IF
+
+!         END IF
+
+!     end if
+  
+! END SUBROUTINE CONS2PRIM
+
+
+
+
 
 SUBROUTINE CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
   !> @brief
@@ -350,8 +500,6 @@ SUBROUTINE CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
     
                 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
      
-
-
                 MP_DENSITY=(rightV(6)+rightV(7)) !TOTAL DENSITY OF MIXTURE
                 MP_AR(1)=rightV(8)/(GAMMA_IN(1)-1.0D0)  
                 MP_AR(2)=(1.0D0-rightV(8))/(GAMMA_IN(2)-1.0D0)
@@ -404,7 +552,7 @@ SUBROUTINE CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
                 LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
 
                 
-                
+
                 OODENSITY=1.0D0/rightv(1)
                 
                 TEMPS(1)=rightv(1)
@@ -1247,6 +1395,9 @@ FUNCTION INFLOW2d(INITCOND,POX,POY)
     ENDIF
 
 END FUNCTION INFLOW2d
+
+
+
 
 
 FUNCTION OUTFLOW2d(INITCOND,POX,POY)

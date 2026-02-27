@@ -1466,6 +1466,10 @@ SUBROUTINE READ_UCNS3D
 			if (lower_relaxation_mesh_velocity_multiple.gt.upper_relaxation_mesh_velocity_multiple) then
 				call swap(lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple)
 			end if
+		else if (moving_mesh_mode.eq.12) then
+			read(29,*) node_solver_type
+			read(29,*) relaxation_centre_type
+			read(29,*) upper_relaxation_mesh_velocity_multiple
 		else if ((moving_mesh_mode.ne.2).and.(moving_mesh_mode.ne.3)) then
 			print*, "invalid moving mesh mode"
 			call abort

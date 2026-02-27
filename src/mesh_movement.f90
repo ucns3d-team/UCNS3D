@@ -781,6 +781,23 @@ subroutine find_node_velocities(position_index, d_t, N)
             call find_node_normalized_density_gradient(1, position_index, d_t, N)
             !$omp barrier
             call find_moved_node_relaxation_velocity(1, position_index, d_t, N)
+        else if (moving_mesh_mode.eq.12) then
+            if (node_solver_type.eq.1) then
+                call FirstOrderNodeAverage(1, N)
+            else if (node_solver_type.eq.2) then
+                call FirstOrderNodeMassWeightedAverage(1, position_index, N)
+            else if (node_solver_type.eq.3) then
+                call HighOrderNodeAverage(1, position_index, N)
+            else if (node_solver_type.eq.4) then
+                call HighOrderNodeMassWeightedAverage(1, position_index, N)
+            else if (node_solver_type.eq.5) then
+                call HighOrderUpstreamNodeAverage(1, position_index, N)
+            else
+                print*, "invalid node solver"
+            end if
+            call find_node_volume_ratio(1, position_index, N)
+            call find_node_normalized_density_gradient(1, position_index, d_t, N)
+            call find_node_relaxation_velocity(1, position_index, d_t, N)
         else
             print *, "invalid moving mesh mode"
             call abort()
@@ -3224,9 +3241,17 @@ SUBROUTINE find_node_normalized_density_gradient(stage, position_index, d_t, N)
     !$omp barrier
     
     !$omp do reduction(max: max_gradient_magnitude)
-        do node_index = 1, kmaxn 
-            if (local_nodes(node_index)%normalized_density_gradient_magnitude.gt.max_gradient_magnitude) then
-                max_gradient_magnitude = local_nodes(node_index)%normalized_density_gradient_magnitude
+        do node_index = 1, kmaxn
+            if (initcond.eq.102) then
+                if (.not.((local_nodes(node_index)%positions(position_index,1).lt.5.0*t).and.(local_nodes(node_index)%positions(position_index,2).lt.0.05))) then
+                    if (local_nodes(node_index)%normalized_density_gradient_magnitude.gt.max_gradient_magnitude) then
+                        max_gradient_magnitude = local_nodes(node_index)%normalized_density_gradient_magnitude
+                    end if
+                end if
+            else
+                if (local_nodes(node_index)%normalized_density_gradient_magnitude.gt.max_gradient_magnitude) then
+                    max_gradient_magnitude = local_nodes(node_index)%normalized_density_gradient_magnitude
+                end if
             end if
         end do
     !$omp end do
@@ -3258,6 +3283,134 @@ SUBROUTINE find_node_normalized_density_gradient(stage, position_index, d_t, N)
     !$omp end master
 
 END SUBROUTINE find_node_normalized_density_gradient
+
+
+
+
+SUBROUTINE find_node_volume_ratio(stage, node_position_index, N)
+    implicit none
+    integer,intent(in)::stage, node_position_index, N
+    integer::i, j, k, iter, node_index, cell_index, cpu_index, cpu, index
+    ! integer:: M
+    real::volume, min_volume, max_volume
+
+    integer,dimension(2*isize)::requests
+    integer::num_requests, count
+
+    ! M = omp_get_thread_num()
+
+    if (num_values_to_send_per_node.lt.1) then
+        print *,"something went wrong sorry :("
+        call abort
+    end if
+
+    !$omp do
+        do iter = 1, my_num_interface_nodes 
+            node_index = local_interface_nodes(iter)
+            do cpu_index = 1, local_nodes(node_index)%num_cpus
+                cpu = local_nodes(node_index)%snd_offsets(cpu_index)%cpu
+                index = (local_nodes(node_index)%snd_offsets(cpu_index)%lower -1) * 1
+                do j = 1, local_nodes(node_index)%num_local_neighbours
+                    cell_index = local_nodes(node_index)%local_neighbours(j)
+                    volume = ielem(n, cell_index)%moving_volume(node_position_index)
+                    index = index + 1
+                    node_snd_buffer(cpu)%data(index) = volume
+                end do
+            end do
+        end do
+    !$omp end do
+
+    !$omp barrier
+
+    num_requests = 0
+    !$omp master
+        ! print *, "inside send_rcv part on CPU", N
+        do cpu_index = 0, isize-1
+            if (cpu_index.ne.N) then
+                if (node_snd_count(cpu_index).gt.0) then
+                    count = node_snd_count(cpu_index) * 1
+                    num_requests = num_requests + 1
+                    CALL MPI_ISEND(node_snd_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, "sending from", N, "to", cpu_index, count, "values"
+                end if
+                if (node_rcv_count(cpu_index).gt.0) then
+                    count = node_rcv_count(cpu_index) * 1
+                    num_requests = num_requests + 1
+                    CALL MPI_IRECV(node_rcv_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, N, "waiting to receive", count, "values from", cpu_index
+                end if
+            else
+                if (node_snd_count(cpu_index).ne.node_rcv_count(cpu_index)) then
+                    print *,"send receive count missmatch on CPU", n
+                    call abort
+                end if
+                count = node_snd_count(cpu_index) * 1
+                do i = 1, count
+                    node_rcv_buffer(cpu_index)%data(i) = node_snd_buffer(cpu_index)%data(i)
+                end do
+            end if
+        end do
+
+        ! print*,"CPU", n, "witing on", num_requests, "requests"
+        CALL MPI_WAITALL(num_requests, requests, MPI_STATUSES_IGNORE, IERROR)
+
+    !$omp end master
+
+    !$omp barrier
+
+    !$omp do
+        do node_index = 1, kmaxn 
+
+            local_nodes(node_index)%volume_ratio = 1.0
+            min_volume = 10000000000.0
+            max_volume = 0.0
+
+            do i = 1, local_nodes(node_index)%num_local_neighbours
+                cell_index = local_nodes(node_index)%local_neighbours(i)
+
+                volume = ielem(n, cell_index)%moving_volume(node_position_index)
+                if (volume.lt.min_volume) then
+                    min_volume = volume
+                end if
+                if (volume.gt.max_volume) then
+                    max_volume = volume
+                end if
+            end do
+
+            do i = 1, local_nodes(node_index)%num_cpus
+                cpu_index = local_nodes(node_index)%rcv_offsets(i)%cpu
+                index = (local_nodes(node_index)%rcv_offsets(i)%lower - 1) * 1
+                do j = local_nodes(node_index)%rcv_offsets(i)%lower, local_nodes(node_index)%rcv_offsets(i)%upper
+                    index = index+1
+                    volume = node_rcv_buffer(cpu_index)%data(index)
+                    if (volume.lt.min_volume) then
+                        min_volume = volume
+                    end if
+                    if (volume.gt.max_volume) then
+                        max_volume = volume
+                    end if
+                end do
+            end do
+
+            if (max_volume.lt.min_volume) then
+                print*,"max_volume < min_volume", max_volume, min_volume
+            end if
+            if (min_volume.eq.zero) then
+                print*,"min_volume = 0"
+            end if
+
+            local_nodes(node_index)%volume_ratio = max_volume / min_volume
+
+        end do
+    !$omp end do
+    
+    !$omp barrier
+
+    !$omp master
+        call MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+    !$omp end master
+
+END SUBROUTINE find_node_volume_ratio
 
 
 
@@ -3442,6 +3595,27 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
             end if
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%velocity(1:dimensiona) + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple
         
+        end do
+        !$omp end do
+    else if (moving_mesh_mode.eq.12) then
+        !$omp do
+        do node_index = 1, kmaxn
+            ! if (local_nodes(node_index)%num_neighbours.lt.3) then
+            if (local_nodes(node_index)%volume_ratio.lt.1.0) then
+                print*,"local_nodes(node_index)%volume_ratio < 1.0"
+            end if
+            if (local_nodes(node_index)%num_neighbours.lt.2) then
+                local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
+            else
+                gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+                local_relaxation_velocity_multiple = (1.0 - gradient_copy)*(1.0 - gradient_copy) * local_nodes(node_index)%volume_ratio * upper_relaxation_mesh_velocity_multiple
+            end if
+            if (local_relaxation_velocity_multiple.gt.1.0) then
+                local_relaxation_velocity_multiple = 1.0
+            end if
+
+            local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) &
+                                                           + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple
         end do
         !$omp end do
     else
