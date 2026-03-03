@@ -493,7 +493,7 @@ subroutine read_ucns3d
 	gridar2=10000	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=0.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
 	
 
 

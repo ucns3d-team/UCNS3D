@@ -2266,7 +2266,7 @@ close(63)
   do p=1,m
   j=list(p)
 	  if (j.eq.ihax1) cycle
-	do l2=1,ielem_ifca(ihax1)
+	do l2=1,ielem_ifca(j)
 		  c_n1=ielem_nodes_faces(l,1,ihax1)
 		  c_n2=ielem_nodes_faces(l,2,ihax1)
 		  
@@ -2306,9 +2306,11 @@ close(63)
 	      if (ielem_ineighg(l,i).eq.0)then
 	      ielem_interior(i)=1
 	      ji=ji+1
+
 	       end if
 	    end do
       end do
+
      
       
 		

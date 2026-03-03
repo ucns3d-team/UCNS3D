@@ -288,7 +288,7 @@ end if
 
 if (itl.gt.0)then
 
-print*,"itl",itl
+
 
 allocate(ibound_inum(itl));ibound_inum=0
 allocate(ibound_icode(itl));ibound_icode=0

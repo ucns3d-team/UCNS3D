@@ -140,8 +140,8 @@ subroutine sumflux_allocation(n)
 	
 
 	if (dg.eq.1)then
-	allocate(RHS_VALDG(NUM_DG_DOFS, NOF_VARIABLES,kmaxe))
-
+	allocate(rhs_valdg(num_dg_dofs, nof_variables,kmaxe))
+    allocate(rhs_sol_mm_dg(1:num_dg_dofs,1:nof_variables,kmaxe))
 	end if
 
 	
@@ -720,6 +720,11 @@ subroutine local_reconallocation3(n)
   allocate(rec_grads(nof_variables-1+turbulenceequations+passivescalar,1:dimensiona,1:kmaxe)); rec_grads = zero
   allocate(rec_uleft(1:nof_variables,idx,1:numberofpoints2,1:kmaxe));           rec_uleft = zero
 
+  if (dg.eq.1)then
+  allocate(rec_uleft_dg(1:nof_variables,idx,1:numberofpoints2,1:kmaxe)); rec_uleft_dg=zero
+  end if
+
+
    if ((turbulenceequations > 0) .or. (passivescalar > 0)) then
   allocate(rec_uleftturb(1:turbulenceequations+passivescalar,idx,1:numberofpoints2,1:kmaxe)); rec_uleftturb = zero
   end if
@@ -999,7 +1004,7 @@ subroutine u_c_allocation(n, xmpielrank, itestcase)
     max_ideg = idegfree
 
     if (.not. allocated(u_c_valdg)) then
-      allocate(u_c_valdg(max_ideg+1, max_ideg+1, nof_variables, kmaxe)); u_c_valdg = zero
+      allocate(u_c_valdg(istage,nof_variables, max_ideg+1, kmaxe)); u_c_valdg = zero
     end if
 
     if (.not. allocated(m_1_val)) then
@@ -1031,10 +1036,10 @@ subroutine u_c_allocation(n, xmpielrank, itestcase)
 
     if (dg == 1) then
       if (.not. allocated(u_cs_valdg)) then
-        allocate(u_cs_valdg(max_ideg+1, max_ideg+1, nof_variables, kmaxe)); u_cs_valdg = zero
+        allocate(u_cs_valdg(1, nof_variables, max_ideg+1, kmaxe)); u_cs_valdg = zero
       end if
       if (.not. allocated(u_cw_valdg)) then
-        allocate(u_cw_valdg(max_ideg+1, max_ideg+1, nof_variables, kmaxe)); u_cw_valdg = zero
+        allocate(u_cw_valdg(1, nof_variables, max_ideg+1, kmaxe)); u_cw_valdg = zero
       end if
     end if
   end if

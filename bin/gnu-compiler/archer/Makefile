@@ -29,7 +29,7 @@ OFLAGS=
 FFLAGS= -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none -flto -fcray-pointer -Ofast -march=native -Wno-lto-type-mismatch -fallow-argument-mismatch
 
 #for reproducibility use the following option
-FFLAGS= -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none  -O2 -march=native -fcray-pointer -fno-lto -fno-tree-sra -Wno-lto-type-mismatch -fallow-argument-mismatch
+FFLAGS= -fdefault-real-8 -cpp -fdefault-double-8 -fbackslash -fopenmp -ffree-line-length-none -finit-local-zero -fimplicit-none  -O2 -march=native -fcray-pointer -fno-lto -fno-tree-sra -Wno-lto-type-mismatch -fallow-argument-mismatch
 
 
 

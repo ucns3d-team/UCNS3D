@@ -1351,7 +1351,7 @@ p_tol =10e-5
                   sum2=zero;
                   sum3=zero
                   do rg_i=1,nof_species
-                      sum1=sum1+leftv(nof_variables+rg_i)
+                      sum1=sum1+leftv(dimensiona+2+rg_i)
                   end do
                   mp_density=sum1
 
@@ -1602,7 +1602,7 @@ p_tol =10e-5
             sum2=zero;
             sum3=zero
             do rg_i=1,nof_species
-                sum1=sum1+leftv(nof_variables+rg_i)
+                sum1=sum1+leftv(dimensiona+2+rg_i)
             end do
             mp_density=sum1
 
@@ -1892,7 +1892,7 @@ if ((multispecies.eq.1)) then
             sum2=zero;
             sum3=zero
             do rg_i=1,nof_species
-                sum1=sum1+leftv(nof_variables+rg_i)
+                sum1=sum1+leftv(dimensiona+2+rg_i)
             end do
             mp_density=sum1
 
@@ -2495,7 +2495,7 @@ if (multispecies.eq.1) then
             sum2=zero;
             sum3=zero
             do rg_i=1,nof_species
-                sum1=sum1+leftv(nof_variables+rg_i)
+                sum1=sum1+leftv(dimensiona+2+rg_i)
             end do
             mp_density=sum1
 
@@ -2775,10 +2775,10 @@ vect_in(4)=w
 vect_in(5)=p
 
 do rg_i=1,nof_species
-vect_in(6+rg_i)=mp_r_in(rg_i)*mp_a_in(rg_i)
+vect_in(5+rg_i)=mp_r_in(rg_i)*mp_a_in(rg_i)
 end do
 do rg_i=1,nof_species-1
-vect_in(6+nof_species+rg_i)=mp_a_in(rg_i)
+vect_in(5+nof_species+rg_i)=mp_a_in(rg_i)
 end do
 
    call prim2cons(n,vect_in)
@@ -3074,10 +3074,10 @@ vect_in(2)=u
 vect_in(3)=v
 vect_in(4)=p
 do rg_i=1,nof_species
-vect_in(5+rg_i)=mp_r_in(rg_i)*mp_a_in(rg_i)
+vect_in(4+rg_i)=mp_r_in(rg_i)*mp_a_in(rg_i)
 end do
 do rg_i=1,nof_species-1
-vect_in(5+nof_species+rg_i)=mp_a_in(rg_i)
+vect_in(4+nof_species+rg_i)=mp_a_in(rg_i)
 end do
 
    call prim2cons(n,vect_in)
@@ -4929,134 +4929,172 @@ select case(b_code)
                 call cons2div(n,tempvect2,mp_pinfl,gammal)
 
 
-                if (un.lt.0.0d0)then
+                                    if (un.lt.0.0d0)then
 
-                rightv=leftv
-
-
-                else
+                                    rightv=leftv
 
 
-
-                mn  = un / agrt
-
-                if (mn >= 1.0d0) then
-                    ! supersonic outflow: copy state
-                    rightv(1:nof_variables)=leftv(1:nof_variables)
-                else
-                    ! subsonic pressure outflow
-                    rho_g   = tempvect1(1)
-                    !rho_s_g1(1:nof_species) = tempvect1(dimensiona+4:nof_variables)
-                    y_s_g(1:nof_species)   = tempvect1(dimensiona+4:nof_variables)
-
-                  rg_rmix=zero
-                    do rg_i=1,nof_species
-                      rg_rmix=rg_rmix+y_s_g(rg_i)/rg_molm(rg_i)
-                    end do
+                                    else
 
 
 
-              rg_rmix=rgs_ru*rg_rmix
+                                                mn  = un / agrt
+
+                                                if (mn >= 1.0d0) then
+                                                    ! supersonic outflow: copy state
+                                                    rightv(1:nof_variables)=leftv(1:nof_variables)
+                                                else
+                                                    ! subsonic pressure outflow
+                                                    rho_g   = tempvect1(1)
+                                                    !rho_s_g1(1:nof_species) = tempvect1(dimensiona+4:nof_variables)
+                                                    y_s_g(1:nof_species)   = tempvect1(dimensiona+4:nof_variables)
+
+                                                  rg_rmix=zero
+                                                    do rg_i=1,nof_species
+                                                      rg_rmix=rg_rmix+y_s_g(rg_i)/rg_molm(rg_i)
+                                                    end do
+
+
+
+                                              rg_rmix=rgs_ru*rg_rmix
 
 
 
 
-                    rmix    = rg_rmix
-                    t_g     = pres / (rho_g * rmix)
+                                                    rmix    = rg_rmix
+                                                    t_g     = pres / (rho_g * rmix)
 
-                    tv_g    = tempvect2(6)              ! simple extrapolation
+                                                    tv_g    = tempvect2(6)              ! simple extrapolation
 
-                      ! translational-rotational internal energy
-                    rg_tr = 0.0d0
-                        do rg_i = 1, nof_species
-                          if (rg_i <= 3) then
-                            rg_cvs(rg_i) = (5.0d0 / 2.0d0) *  rgs_ru / rg_molm(rg_i)
-                          else
-                            rg_cvs(rg_i) = (3.0d0 / 2.0d0) *  rgs_ru / rg_molm(rg_i)
-                          end if
-                          rg_tr = rg_tr + y_s_g(rg_i) * rg_cvs(rg_i) * t_g
-                        end do
+                                                      ! translational-rotational internal energy
+                                                    rg_tr = 0.0d0
+                                                        do rg_i = 1, nof_species
+                                                          if (rg_i <= 3) then
+                                                            rg_cvs(rg_i) = (5.0d0 / 2.0d0) *  rgs_ru / rg_molm(rg_i)
+                                                          else
+                                                            rg_cvs(rg_i) = (3.0d0 / 2.0d0) *  rgs_ru / rg_molm(rg_i)
+                                                          end if
+                                                          rg_tr = rg_tr + y_s_g(rg_i) * rg_cvs(rg_i) * t_g
+                                                        end do
 
-                    ! vibrational energy
-                        rg_ev_total= 0.0d0
-                        do rg_i = 1, 3
-                          rg_ev_total = rg_ev_total + y_s_g(rg_i)  * (rgs_ru / rg_molm(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/tv_g) - 1.0d0))
-                        end do
+                                                    ! vibrational energy
+                                                        rg_ev_total= 0.0d0
+                                                        do rg_i = 1, 3
+                                                          rg_ev_total = rg_ev_total + y_s_g(rg_i)  * (rgs_ru / rg_molm(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/tv_g) - 1.0d0))
+                                                        end do
 
-                    rg_chem=zero
+                                                    rg_chem=zero
 
-                        ! chemical energy
-                    do rg_i=1,nof_species
-                            if (rg_hzero(rg_i).gt.1.0e-12)then
-                            rg_chem=rg_chem-(y_s_g(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
-                            end if
-                    end do
+                                                        ! chemical energy
+                                                    do rg_i=1,nof_species
+                                                            if (rg_hzero(rg_i).gt.1.0e-12)then
+                                                            rg_chem=rg_chem-(y_s_g(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
+                                                            end if
+                                                    end do
 
-                      !rg_chem=zero  !set it to zero for testing
-                    ! kinetic energy
-
-
-                    skin1=(oo2)*((u**2)+(v**2)+(w*w))
-
-                      rightv(1)=rho_g
-                      rightv(2)=rho_g*u
-                      rightv(3)=rho_g*v
-                      rightv(4)=rho_g*w
-                      rightv(5)=rho_g*(rg_ev_total+rg_tr+rg_chem+skin1)
-                      rightv(6)=rho_g*rg_ev_total
+                                                      !rg_chem=zero  !set it to zero for testing
+                                                    ! kinetic energy
 
 
-                      do rg_i=1,nof_species
-                      rightv(6+rg_i)=rho_g * y_s_g(rg_i)
-                      end do
+                                                    skin1=(oo2)*((u**2)+(v**2)+(w*w))
 
-                  end if
-                  end if
+                                                      rightv(1)=rho_g
+                                                      rightv(2)=rho_g*u
+                                                      rightv(3)=rho_g*v
+                                                      rightv(4)=rho_g*w
+                                                      rightv(5)=rho_g*(rg_ev_total+rg_tr+rg_chem+skin1)
+                                                      rightv(6)=rho_g*rg_ev_total
 
 
-                  else
+                                                      do rg_i=1,nof_species
+                                                      rightv(6+rg_i)=rho_g * y_s_g(rg_i)
+                                                      end do
+
+                                                  end if      !mn
+                                      end if  !un<a0
+
+
+                  else  !realgas
+
+                                    ! ------------------------------------------------------------
+                                    ! Build a reference/outlet state (used for prescribed pressure,
+                                    ! and for backflow if it happens)
+                                    ! ------------------------------------------------------------
+                                    rightv(1:nof_variables) = outflow(initcond,pox,poy,poz)
+
+                                    ! Convert interior/exterior to primitive for BC logic
+                                    call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
+
+                                    subson2(1:nof_variables) = leftv(1:nof_variables)   ! interior primitive
+                                    subson1(1:nof_variables) = rightv(1:nof_variables)  ! "target" primitive (from outflow)
+
+                                    ! Speed of sound from interior
+                                    sps = sqrt( (gamma*subson2(5)) / (subson2(1) + tolsmall) )
+
+                                    ! Normal velocity from interior
+                                    vel = subson2(2)*nx + subson2(3)*ny + subson2(4)*nz
+
+                                    ! ------------------------------------------------------------
+                                    ! Decide boundary type
+                                    ! ------------------------------------------------------------
+
+                                    ! 1) Backflow / inflow at outlet: treat as inflow (use reference state)
+                                    if (vel .le. 0.0d0) then
+
+                                      ! Keep the primitive outlet state from outflow() (subson1)
+                                      subson3(1:nof_variables) = subson1(1:nof_variables)
+
+                                    else
+
+                                      ! 2) Outflow: check normal Mach number
+                                      if ( vel/(sps + tolsmall) .gt. 1.0d0 ) then
+                                          ! Supersonic outflow: extrapolate (copy interior primitive)
+                                          subson3(1:nof_variables) = subson2(1:nof_variables)
+
+                                      else
+                                          ! Subsonic outflow: impose pressure (from reference state),
+                                          ! correct rho and velocity using linearized characteristics
+                                          subson3(1:nof_variables) = subson2(1:nof_variables)
+
+                                          subson3(5) = subson1(5)   ! prescribed outlet static pressure (e.g. p_inf)
+
+                                          subson3(1) = subson2(1) + (subson3(5) - subson2(5)) / (sps*sps + tolsmall)
+
+                                          subson3(2) = subson2(2) + (nx*(subson2(5) - subson3(5))) / ((sps + tolsmall)*(subson2(1) + tolsmall))
+                                          subson3(3) = subson2(3) + (ny*(subson2(5) - subson3(5))) / ((sps + tolsmall)*(subson2(1) + tolsmall))
+                                          subson3(4) = subson2(4) + (nz*(subson2(5) - subson3(5))) / ((sps + tolsmall)*(subson2(1) + tolsmall))
+
+                                      end if
+                                    end if
+
+                                    ! ------------------------------------------------------------
+                                    ! Convert primitive subson3 -> conservative rightv
+                                    ! ------------------------------------------------------------
+                                    rightv(1) = subson3(1)
+                                    rightv(2) = subson3(2)*subson3(1)
+                                    rightv(3) = subson3(3)*subson3(1)
+                                    rightv(4) = subson3(4)*subson3(1)
+
+                                    skins = oo2 * ( (subson3(2)**2) + (subson3(3)**2) + (subson3(4)**2) )
+                                    ikins = subson3(5) / ( (gamma - 1.0d0) * (subson3(1) + tolsmall) )
+
+                                    rightv(5) = (subson3(1)*ikins) + (subson3(1)*skins)
 
 
 
 
 
      
-     rightv(1:nof_variables)=outflow(initcond,pox,poy,poz)
-     call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-    
-    subson1(1:nof_variables)=rightv(1:nof_variables)
-    subson2(1:nof_variables)=leftv(1:nof_variables)
-     
-     sps=sqrt((gamma*subson2(5))/(subson2(1)))
-    vel=sqrt(subson2(2)**2+subson2(3)**2+subson2(4)**2)
-     
-    sps=sqrt((gamma*subson2(5))/(subson2(1)))
-    
-    call prim2cons2(n,leftv,rightv)
-    
-    if (vel/(sps+tolsmall).gt.1.0d0)then	!supersonic
-    call prim2cons2(n,leftv,rightv)
-    rightv(1:nof_variables)=leftv(1:nof_variables)
-    
-    
-      else
-    subson3(5)=subson1(5)
-    subson3(1)=subson2(1)+(subson3(5)-subson2(5))/(sps**2)
-    subson3(2)=subson2(2)+(nx*(subson2(5)-subson3(5)))/(sps*subson2(1))
-    subson3(3)=subson2(3)+(ny*(subson2(5)-subson3(5)))/(sps*subson2(1))
-    subson3(4)=subson2(4)+(nz*(subson2(5)-subson3(5)))/(sps*subson2(1))
-! 							
-    rightv(1)=subson3(1)
-    rightv(2)=subson3(2)*subson3(1)
-    rightv(3)=subson3(3)*subson3(1)
-    rightv(4)=subson3(4)*subson3(1)
-    skins=oo2*((subson3(2)**2)+(subson3(3)**2)+(subson3(4)**2))
-    ikins=subson3(5)/((gamma-1.0d0)*(subson3(1)))
-    rightv(5)=(subson3(1)*(ikins))+(subson3(1)*skins)
-     
-     
-    end if
-    end if
+
+
+
+
+
+
+
+
+
+                end if
   end if
     
     
@@ -5289,7 +5327,7 @@ select case(b_code)
 	    subson1(1:nof_variables)=rightv(1:nof_variables)
 	    subson2(1:nof_variables)=leftv(1:nof_variables)
 	    sps=sqrt((gamma*subson2(5))/(subson2(1)))
-	    vel=sqrt(subson2(2)**2+subson2(3)**2+subson2(4)**2)
+	    vel = sqrt(subson2(2)**2+subson2(3)**2+subson2(4)**2)
 	  
 	    call prim2cons2(n,leftv,rightv)
 
@@ -5666,7 +5704,8 @@ select case(b_code)
                         subson2(1:nof_variables)=leftv(1:nof_variables)
 
                         sps=sqrt((gamma*subson2(4))/(subson2(1)))
-                        vel=sqrt(subson2(2)**2+subson2(3)**2)
+                        vel=subson2(2)*nx + subson2(3)*ny
+!                         sqrt(subson2(2)**2+subson2(3)**2)
 
                         sps=sqrt((gamma*subson2(4))/(subson2(1)))
 
@@ -7394,7 +7433,7 @@ if(multispecies.eq.1)then
             sum2=zero;
             sum3=zero
             do rg_i=1,nof_species
-                sum1=sum1+leftv(nof_variables+rg_i)
+                sum1=sum1+leftv(dimensiona+2+rg_i)
             end do
             mp_density=sum1
             do rg_i=1,nof_species-1
@@ -7477,7 +7516,7 @@ if(multispecies.eq.1)then
             sum2=zero;
             sum3=zero
             do rg_i=1,nof_species
-                sum1=sum1+leftv(nof_variables+rg_i)
+                sum1=sum1+leftv(dimensiona+2+rg_i)
             end do
             mp_density=sum1
             do rg_i=1,nof_species-1
@@ -7581,7 +7620,7 @@ if(multispecies.eq.1)then
             sum2=zero;
             sum3=zero
             do rg_i=1,nof_species
-                sum1=sum1+leftv(nof_variables+rg_i)
+                sum1=sum1+leftv(dimensiona+2+rg_i)
             end do
             mp_density=sum1
             do rg_i=1,nof_species-1
@@ -7681,7 +7720,7 @@ if(multispecies.eq.1)then
             sum2=zero;
             sum3=zero
             do rg_i=1,nof_species
-                sum1=sum1+leftv(nof_variables+rg_i)
+                sum1=sum1+leftv(dimensiona+2+rg_i)
             end do
             mp_density=sum1
             do rg_i=1,nof_species-1
@@ -7783,7 +7822,7 @@ if(multispecies.eq.1)then
             sum2=zero;
             sum3=zero
             do rg_i=1,nof_species
-                sum1=sum1+leftv(nof_variables+rg_i)
+                sum1=sum1+leftv(dimensiona+2+rg_i)
             end do
             mp_density=sum1
             do rg_i=1,nof_species-1

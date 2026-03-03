@@ -20,7 +20,7 @@ implicit none
 !> @brief
 !> this function returns the dg solution at a given point (x_in, y_in)\n
 !> requires: x_in, y_in: coordinates of the point where the solution is requested, num_variables: number of solution variables, num_dofs: number of basis terms
-real,dimension(1:55)::basis_temp
+real,dimension(1:idegfree)::basis_temp
 integer,intent(in)::n,iconsidered
 integer::i_dof, i_var,icompwrt,number_of_dog,number,k
 real,dimension(1:nof_variables)::dg_sol
@@ -71,7 +71,7 @@ implicit none
 !> @brief
 !> this function returns the dg solution at a given surface point (x_in, y_in)\n
 !> requires: x_in, y_in: coordinates of the point where the solution is requested, num_variables: number of solution variables, num_dofs: number of basis terms
-real,dimension(1:55)::basis_temp
+real,dimension(1:idegfree)::basis_temp
 integer::i_dof, i_var,icompwrt,k
 integer,intent(in)::n,facex,pointx,iconsidered,number_of_dog
 real,dimension(1:nof_variables)::dg_solface
@@ -131,8 +131,8 @@ implicit none
     integer,intent(in)::number_of_dog,iconsidered
     real::tempdp
     real,intent(in)::x1,y1,z1
-    real,dimension(1:55,1:dimensiona)::basis_temp
-    real,dimension(1:55)::basis_t
+    real,dimension(1:idegfree,1:dimensiona)::basis_temp
+    real,dimension(1:idegfree)::basis_t
     real,dimension(1:nof_variables,1:dimensiona)::dg_sol_der
 
     icompwrt=-2
@@ -239,7 +239,7 @@ real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv,srf_speedrot
 real::mp_pinfr,gammar
-real,dimension(1:55)::basis_temp
+real,dimension(1:idegfree)::basis_temp
  real::x1,y1,z1
 integer::b_code,pointx,number
 real::nx,ny,nz
@@ -614,7 +614,7 @@ real::ph,integ
 real::x1,y1,z1,tempdp
 integer::number,number_of_dog
 real,dimension(1:nof_variables)::dg_sol2
-real,dimension(1:55)::basis_temp
+real,dimension(1:idegfree)::basis_temp
 
 
 
@@ -702,7 +702,7 @@ real::ph,integ
 real::x1,y1,z1,tempdp
 integer::number,number_of_dog
 real,dimension(1:nof_variables)::dg_sol2
-real,dimension(1:55)::basis_temp
+real,dimension(1:idegfree)::basis_temp
 
 
 
@@ -798,7 +798,7 @@ real::ph,integ
 real::x1,y1,z1,tempdp
 integer::number,number_of_dog
 real,dimension(1:nof_variables)::dg_sol2
-real,dimension(1:55)::basis_temp
+real,dimension(1:idegfree)::basis_temp
 
 
 
@@ -1343,9 +1343,10 @@ real,dimension(1:8,1:dimensiona)::vext
 real,dimension(1:8,1:dimensiona)::nodes_list
 real,dimension(1:dimensiona)::cords
 real,dimension(1:3):: gl,nnt,g
+real,dimension(1:3,1:3)::a,b,c,r
 real::g_n
 integer :: d
-integer::i,l,ngp,ittt,nvar,iex,kk,n_node,k,nfx,lfx,rowfx
+integer::i,l,ngp,ittt,nvar,iex,kk,n_node,k,nfx,lfx,rowfx,j
 integer::ibfc
 
 l=facex
@@ -1539,62 +1540,110 @@ i=iconsidered
 
 				  				    else
 
-				  				     if ((b_code.ne.5).and.(b_code.gt.0))then
+                                                  do k=1,dimensiona
+                                                  rcvgrad(1:nof_variables-1,k)=lcvgrad(1:nof_variables-1,k)
+                                                  end do
+                                                  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+                                                  rcvgrad_t(:,:)=lcvgrad_t(:,:)
+                                                  end if
 
-                                            ! load normal
-                                            nnt(1) = nx
-                                            nnt(2) = ny
-                                            if (dimensiona == 3) then
-                                              nnt(3) = nz
-                                            else
-                                              nnt(3) = 0.0d0
-                                            end if
 
-                                            do iex=1,nof_variables-1
-                                            ! load left gradient of this variable
 
-                                            do d = 1, dimensiona
-                                              gl(d) = lcvgrad(iex, d)
-                                            end do
-                                            if (dimensiona == 2) gl(3) = 0.0d0
+				  				     if ((b_code.eq.3))then
 
-                                            ! compute normal component g_n = gl · nnt
-                                            g_n = 0.0d0
-                                            do d = 1, dimensiona
-                                              g_n = g_n + gl(d)*nnt(d)
-                                            end do
+                                         ! normal vector (global coords)
+                                              nnt(1)=nx
+                                              nnt(2)=ny
+                                              if (dimensiona == 3) then
+                                                nnt(3)=nz
+                                              else
+                                                nnt(3)=0.0
+                                              end if
 
-                                            ! reflect the normal component: gr = gl - 2*g_n*nnt
-                                            do d = 1, dimensiona
-                                              rcvgrad(iex, d) = gl(d) - 2.0*g_n*nnt(d)
-                                            end do
+                                              do iex = dimensiona+1, nof_variables-1   ! temperature variable(s)
+                                                ! g = grad(T)^- from left
+                                                g_n = 0.0
+                                                do d=1,dimensiona
+                                                  g(d) = lcvgrad(iex,d)
+                                                  g_n  = g_n + g(d)*nnt(d)
+                                                end do
+                                                if (dimensiona == 2) g(3)=0.0
 
-                                            end do
+                                                ! symmetry ghost gradient: grad^+ = grad^- - 2 (grad^-·n) n
+                                                do d=1,dimensiona
+                                                  rcvgrad(iex,d) = lcvgrad(iex,d) - 2.0*g_n*nnt(d)
+                                                end do
+                                              end do
 
-                                            if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 
-                                            do iex=1,turbulenceequations+passivescalar
-                                            ! load left gradient of this variable
 
-                                            do d = 1, dimensiona
-                                              gl(d) = lcvgrad_t(iex, d)
-                                            end do
-                                            if (dimensiona == 2) gl(3) = 0.0d0
 
-                                            ! compute normal component g_n = gl · nnt
-                                            g_n = 0.0d0
-                                            do d = 1, dimensiona
-                                              g_n = g_n + gl(d)*nnt(d)
-                                            end do
 
-                                            ! reflect the normal component: gr = gl - 2*g_n*nnt
-                                            do d = 1, dimensiona
-                                              rcvgrad_t(iex, d) = gl(d) - 2.0*g_n*nnt(d)
-                                            end do
+                                              if (dimensiona == 3) then
+                                                ! Build R = I - 2 n n^T (3x3)
+                                                do i=1,3
+                                                  do j=1,3
+                                                    R(i,j)=0.0
+                                                  end do
+                                                  R(i,i)=1.0
+                                                end do
+                                                do i=1,3
+                                                  do j=1,3
+                                                    R(i,j) = R(i,j) - 2.0*nnt(i)*nnt(j)
+                                                  end do
+                                                end do
 
-                                            end do
+                                                ! A = grad(u)^- tensor from left: A(i,j)=d u_i / d x_j
+                                                A(1,1)=lcvgrad(1,1); A(1,2)=lcvgrad(1,2); A(1,3)=lcvgrad(1,3)
+                                                A(2,1)=lcvgrad(2,1); A(2,2)=lcvgrad(2,2); A(2,3)=lcvgrad(2,3)
+                                                A(3,1)=lcvgrad(3,1); A(3,2)=lcvgrad(3,2); A(3,3)=lcvgrad(3,3)
 
-                                            end if
+                                                ! C = R*A
+                                                do i=1,3
+                                                  do j=1,3
+                                                    C(i,j)=0.0
+                                                    do k=1,3
+                                                      C(i,j)=C(i,j)+R(i,k)*A(k,j)
+                                                    end do
+                                                  end do
+                                                end do
+
+                                                ! B = C*R
+                                                do i=1,3
+                                                  do j=1,3
+                                                    B(i,j)=0.0
+                                                    do k=1,3
+                                                      B(i,j)=B(i,j)+C(i,k)*R(k,j)
+                                                    end do
+                                                  end do
+                                                end do
+
+                                                ! Store ghost gradients (rcvgrad) for velocity components iex=1..3
+                                                do d=1,3
+                                                  rcvgrad(1,d)=B(1,d)
+                                                  rcvgrad(2,d)=B(2,d)
+                                                  rcvgrad(3,d)=B(3,d)
+                                                end do
+                                              end if
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                                             end if
 
 				  				    end if
@@ -1852,9 +1901,10 @@ real,dimension(1:8,1:dimensiona)::vext
 real,dimension(1:8,1:dimensiona)::nodes_list
 real,dimension(1:dimensiona)::cords
 real,dimension(1:3):: gl,nnt,g,grad
+real,dimension(1:2,1:2)::a,b,c,r
 real::g_n
 integer :: d
-integer::i,l,ngp,ittt,nvar,iex,n_node,k,nfx,lfx,rowfx
+integer::i,l,ngp,ittt,nvar,iex,n_node,k,nfx,lfx,rowfx,j
 integer::ibfc
 l=facex
 ngp=pointx
@@ -2015,14 +2065,92 @@ end if
 
 				  				    else
 
-                                                      if ((b_code.ne.5).and.(b_code.gt.0))then
+                                                      if (b_code.eq.3)then
+                                                       ! normal vector (global coords)
+                                                      nnt(1)=nx
+                                                      nnt(2)=ny
+                                                      if (dimensiona == 3) then
+                                                        nnt(3)=nz
+                                                      else
+                                                        nnt(3)=0.0
+                                                      end if
 
-                                                                    do k=1,dimensiona
-                                                                    rcvgrad(1:nof_variables-1,k)=lcvgrad(1:nof_variables-1,k)
-                                                                    end do
-                                                                    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-                                                                    rcvgrad_t(:,:)=lcvgrad_t(:,:)
-                                                                    end if
+                                                      do iex = dimensiona+1, nof_variables-1   ! temperature variable(s)
+                                                        ! g = grad(T)^- from left
+                                                        g_n = 0.0
+                                                        do d=1,dimensiona
+                                                          g(d) = lcvgrad(iex,d)
+                                                          g_n  = g_n + g(d)*nnt(d)
+                                                        end do
+                                                        if (dimensiona == 2) g(3)=0.0
+
+                                                        ! symmetry ghost gradient: grad^+ = grad^- - 2 (grad^-·n) n
+                                                        do d=1,dimensiona
+                                                          rcvgrad(iex,d) = lcvgrad(iex,d) - 2.0*g_n*nnt(d)
+                                                        end do
+                                                      end do
+
+
+
+
+
+
+
+
+
+                                                          ! --- Build reflection matrix R = I - 2 n n^T ---
+
+                                                          R(1,1) = 1.0 - 2.0*nx*nx
+                                                          R(1,2) =      - 2.0*nx*ny
+                                                          R(2,1) =      - 2.0*ny*nx
+                                                          R(2,2) = 1.0 - 2.0*ny*ny
+
+                                                          ! --- Build left gradient tensor A ---
+                                                          ! A(i,j) = d u_i / d x_j
+
+                                                          A(1,1) = lcvgrad(1,1)   ! du/dx
+                                                          A(1,2) = lcvgrad(1,2)   ! du/dy
+                                                          A(2,1) = lcvgrad(2,1)   ! dv/dx
+                                                          A(2,2) = lcvgrad(2,2)   ! dv/dy
+
+                                                          ! --- Compute C = R * A ---
+                                                          do i=1,2
+                                                            do j=1,2
+                                                              C(i,j) = 0.0
+                                                              do k=1,2
+                                                                C(i,j) = C(i,j) + R(i,k)*A(k,j)
+                                                              end do
+                                                            end do
+                                                          end do
+
+                                                          ! --- Compute B = C * R ---
+                                                          do i=1,2
+                                                            do j=1,2
+                                                              B(i,j) = 0.0
+                                                              do k=1,2
+                                                                B(i,j) = B(i,j) + C(i,k)*R(k,j)
+                                                              end do
+                                                            end do
+                                                          end do
+
+                                                          ! --- Store ghost gradients into rcvgrad ---
+                                                          rcvgrad(1,1) = B(1,1)
+                                                          rcvgrad(1,2) = B(1,2)
+                                                          rcvgrad(2,1) = B(2,1)
+                                                          rcvgrad(2,2) = B(2,2)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

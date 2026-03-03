@@ -388,19 +388,19 @@ subroutine cp_reconstruction_cweno(iconsidered)
   integer :: ideg_max
   real    :: lwcx1, ax, ay, az
   real    :: tau_weno, sumomega
-  real    :: lamc(1:7), lambdaal(1:7), omegaatilde(1:7), omegaal(1:7)
-  real    :: smooth(1:7)
-  real    :: resvec(1:11)
-  real    :: leftv(1:11)
+  real    :: lamc(1:typesten), lambdaal(1:typesten), omegaatilde(1:typesten), omegaal(1:typesten)
+  real    :: smooth(1:typesten)
+  real    :: resvec(1:nof_variables)
+  real    :: leftv(1:nof_variables)
   real    :: inv_lamc1
 
-  real :: phi(1:55)
+  real :: phi(1:idegfree)
 
   ! grad0 scratch
-  real :: grad0(1:55)
+  real :: grad0(1:idegfree)
 
   ! WENO weights needed later
-  real :: weno(1:11, 1:7)
+  real :: weno(1:nof_variables, 1:typesten)
 
   ! -------------------------
   ! Setup
@@ -491,15 +491,14 @@ subroutine cp_reconstruction_cweno(iconsidered)
       weno(iex,ll)  = omegaal(ll)
     end do
 
-!     if (iex .eq. 1)
-    ielem_wcx(i) = weno(1,1)
+     if (iex .eq. 1)ielem_wcx(i) = weno(1,1)
 
   end do
 
   ! -------------------------
   ! Reconstruction
   ! -------------------------
-  rec_uleft(:,:,:,i) = 0.0d0
+  rec_uleft(:,:,:,iconsidered) = 0.0d0
    if (dg .eq. 1) dg2fv(1:ideg_local,:,i) = 0.0d0
 
   do ll = 1, iadmis
@@ -567,7 +566,7 @@ subroutine cp_reconstruction_cweno(iconsidered)
 
         end if
 
-        call extrapolate_bound(resvec, l, ngp, i, ll, weno)
+        call extrapolate_bound(resvec, l, ngp, iconsidered, ll, weno)
 
       end do
     end do
@@ -664,10 +663,10 @@ subroutine cp_reconstruction_cweno_turb(iconsidered)
   real    :: leftv(1:turbulenceequations+passivescalar)
   real    :: inv_lamc1
 
-  real :: phi(1:55)
+  real :: phi(1:idegfree)
 
   ! grad0 scratch
-  real :: grad0(1:55)
+  real :: grad0(1:idegfree)
 
   ! WENO weights needed later
   real :: weno(1:turbulenceequations+passivescalar, 1:7)
@@ -875,7 +874,7 @@ subroutine cp_reconstruction_weno_turb(iconsidered)
   real    :: leftv(1:turbulenceequations+passivescalar)
   real    :: weno(1:turbulenceequations+passivescalar,1:7)
 
-  real :: phi(1:55)
+  real :: phi(1:idegfree)
 
   i          = iconsidered
   iadmis     = ielem_admis(i)
@@ -1001,11 +1000,11 @@ subroutine cp_reconstruction_weno(iconsidered)
   real    :: sumomega
   real    :: lambdaal(1:7), omegaatilde(1:7), omegaal(1:7)
   real    :: smooth(1:7)
-  real    :: resvec(1:11)
-  real    :: leftv(1:11)
-  real    :: weno(1:11,1:7)
+  real    :: resvec(1:nof_variables)
+  real    :: leftv(1:nof_variables)
+  real    :: weno(1:nof_variables,1:7)
 
-  real :: phi(1:55)
+  real :: phi(1:idegfree)
 
   i          = iconsidered
   iadmis     = ielem_admis(i)
@@ -1291,30 +1290,29 @@ implicit none
 !$omp declare target
 #endif
 integer,intent(in)::facex,pointx,iconsidered,llx
-real,intent(in) :: weno(1:11,1:7)
-real,intent(in) :: resvec(1:11)
-real,dimension(1:11)::leftv
+real,intent(in) :: weno(1:nof_variables,1:7)
+real,intent(in) :: resvec(1:nof_variables)
+real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 
 
-					if (wenwrt.eq.3)then	!primitive
-					leftv(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)
-                   call cons2prim(n,leftv,mp_pinfl,gammal)
-
-                   rec_uleft(1:nof_variables,facex,pointx,iconsidered)=rec_uleft(1:nof_variables,facex,pointx,iconsidered)&
-				    +((leftv(1:nof_variables)+resvec(1:nof_variables))*weno(1:nof_variables,llx))
 
 
+				    if (wenwrt.eq.3) then  ! primitive accumulation, but increments are in conservative space
+                    leftv(1:nof_variables) = u_c_val(1,1:nof_variables,iconsidered)
+                    call cons2prim(n,leftv,mp_pinfl,gammal)
+
+                    rec_uleft(1:nof_variables,facex,pointx,iconsidered) = &
+                      rec_uleft(1:nof_variables,facex,pointx,iconsidered) + ((leftv(1:nof_variables)+resvec(1:nof_variables)) * weno(1:nof_variables,llx))
+
+                  else
+                    rec_uleft(1:nof_variables,facex,pointx,iconsidered) = &
+                      rec_uleft(1:nof_variables,facex,pointx,iconsidered) + &
+                      (u_c_val(1,1:nof_variables,iconsidered) + resvec(1:nof_variables)) * weno(1:nof_variables,llx)
+                  end if
 
 
 
-                   else
-											!conservative
-
-				     rec_uleft(1:nof_variables,facex,pointx,iconsidered)=rec_uleft(1:nof_variables,facex,pointx,iconsidered)&
-				     +(u_c_val(1,1:nof_variables,iconsidered)+resvec(1:nof_variables))*weno(1:nof_variables,llx)
-
-				    end if
 
 
 
@@ -1435,8 +1433,8 @@ real    :: veigl(nof_variables), veigr(nof_variables), rveigl(nof_variables), rv
 real    :: eigvl(nof_variables,nof_variables), eigvr(nof_variables,nof_variables)
 
 real    :: lamc(typesten), inv_lamc1
-real    :: limiteddw_c(0:55)
-real    :: phi(1:55)
+real    :: limiteddw_c(0:idegfree)
+real    :: phi(1:idegfree)
 real    :: s
 
 
@@ -1559,8 +1557,8 @@ real    :: angle1, angle2, nx, ny, nz, lwcx1, ax, ay, az
 real    :: veigl(nof_variables), veigr(nof_variables), rveigl(nof_variables), rveigr(nof_variables)
 real    :: eigvl(nof_variables,nof_variables), eigvr(nof_variables,nof_variables)
 
-real    :: limiteddw_c(0:55)
-real    :: phi(1:55)
+real    :: limiteddw_c(0:idegfree)
+real    :: phi(1:idegfree)
 real    :: s
 
 i      = iconsidered
@@ -1669,12 +1667,12 @@ implicit none
 integer, intent(in) :: i, iadmis, ideg, c, power
 real,    intent(in) :: lamc(typesten), inv_lamc1, divbyzero
 real,    intent(in) :: eigvl(nof_variables,nof_variables)
-real,    intent(out):: limiteddw_c(0:55)
+real,    intent(out):: limiteddw_c(0:idegfree)
 
 integer :: ll, ll2, k, j, itarget, kdot
 real    :: smooth_c(typesten), omega_c(typesten), omegat(typesten)
 real    :: tau_weno, sumomegat
-real    :: a(55), tmp(55)
+real    :: a(idegfree), tmp(idegfree)
 real    :: corr, gkj
 
 limiteddw_c(0:ideg) = 0.0d0
@@ -1821,12 +1819,12 @@ implicit none
 integer, intent(in) :: i, iadmis, ideg, c, power
 real,    intent(in) :: lwcx1, divbyzero
 real,    intent(in) :: eigvl(nof_variables,nof_variables)
-real,    intent(out):: limiteddw_c(0:55)
+real,    intent(out):: limiteddw_c(0:idegfree)
 
 integer :: ll, k, j, kdot
 real    :: smooth_c(typesten), omega_c(typesten), omegat(typesten)
 real    :: sumomegat, lambda_ll
-real    :: a(55), tmp(55)
+real    :: a(idegfree), tmp(idegfree)
 
 limiteddw_c(0:ideg) = 0.0d0
 smooth_c(1:iadmis)  = 0.0d0
@@ -2262,7 +2260,7 @@ subroutine compute_muscl_reconstruction(iconsidered,utmin,utmax)
   integer :: i,l,ngp,iex,iqp,k,ideg
   real :: ax,ay,az,mp_pinfl,gammal,limvbg,rat,u0
   real,dimension(1:nof_variables) :: leftv,slope_d,candid_lim,delta
-  real :: phi(1:55)
+  real :: phi(1:idegfree)
   real :: slope(1:nof_variables+turbulenceequations+passivescalar)
   real :: psi_min(1:nof_variables+turbulenceequations+passivescalar)
   real :: usol1(1:nof_variables+turbulenceequations+passivescalar)
@@ -3037,7 +3035,7 @@ subroutine compute_linear_reconstruction(iconsidered)
   integer :: NVTOT
   integer :: i,l,ngp,iqp,k,ideg
   real :: ax,ay,az
-  real :: phi(1:55)
+  real :: phi(1:idegfree)
   real :: du(1:nof_variables + turbulenceequations + passivescalar)
   NVTOT = nof_variables + turbulenceequations + passivescalar
 
@@ -4462,7 +4460,7 @@ real::mp_pinfl,gammal
 
             do iex=1,nof_variables
                 if ((usol(iex).lt.(utmin(iex)-nad_dg_el(iex))).or.(usol(iex).gt.(utmax(iex)+nad_dg_el(iex))))then
-                    ielem_condx(iconsidered)=1
+                    ielem_condition(iconsidered)=1
                 end if
             end do
 
@@ -4776,7 +4774,7 @@ subroutine adda_filter(n,iconsidered)
   real    :: val_unf, val_str, val_weak
   real    :: mp_pinfl, mp_pinfr, gammal, gammar
   real    :: energy_ratio
-  real    :: phi(1:55)
+  real    :: phi(1:idegfree)
 
   i    = iconsidered
   ideg = ielem_idegfree(i)

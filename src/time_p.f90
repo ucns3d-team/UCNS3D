@@ -2300,7 +2300,7 @@ kmaxe=xmpielrank(n)
 
     end if
 
-      if (dg.eq.1)then
+      if ((dg.eq.1).and.(filtering.eq.1))then
        !$omp do
         do i=1,kmaxe
         ielem_filtered(i)=0

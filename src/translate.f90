@@ -13,8 +13,8 @@ implicit none
 logical::heres,heref,hereu
  character(len=20)::proc,ucns3dfile,fluentfile,ugridfile
  	ucns3dfile='GRID.bnd'
- 	fluentfile='GRID.msh'
- 	ugridfile='GRID.ugrid'
+ 	fluentfile='grid.msh'
+ 	ugridfile='grid.ugrid'
 	
 	inquire (file=ucns3dfile,exist=heres)
 	if (heres) then

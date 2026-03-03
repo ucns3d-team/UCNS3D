@@ -181,7 +181,7 @@ call mpi_barrier(mpi_comm_world,ierror)
    write(120+n,*)"timei_2",cpux3(1)-cpux1(1)   !> write in file the total wall clock time taken so far
 end if
    
-
+!$omp barrier
 !$omp parallel default(shared)
 
   call geometry_calc
@@ -993,14 +993,14 @@ call omp_map_first(n)
 #endif
 !   do intxgt = 1, 10
 !  	call exchange_higher(n)
- 	call least_squares(n)
-     call wenoweights_cons(n)
-     call checksol(n)
-     call muscl(n)
- 	call checksolx(n)
-  	if (itestcase.eq.4)then
-  	call solutiontriav2(n)
-  	end if
+!  	call least_squares(n)
+!      call wenoweights_cons(n)
+!      call checksol(n)
+!      call muscl(n)
+!  	call checksolx(n)
+!   	if (itestcase.eq.4)then
+!   	call solutiontriav2(n)
+!   	end if
 !   end do
 #ifdef gpu
 
@@ -1039,7 +1039,7 @@ call omp_map_first(n)
  call mpi_barrier(mpi_comm_world,ierror)
 
 
-  call writethem(n)
+!   call writethem(n)
                                   
                                   
                                   
@@ -1053,7 +1053,7 @@ call omp_map_first(n)
                                   
                                   
                                   
-                                   call mpi_finalize(ierror)
+!                                    call mpi_finalize(ierror)
 
 
 

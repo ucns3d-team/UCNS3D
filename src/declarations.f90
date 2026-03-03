@@ -881,7 +881,7 @@ integer, allocatable :: ibound_cpun(:,:)    !local number and cpu for each bound
 !$omp declare target (numneighbours, numneighbours2, oo2, outsurf, passivescalar, pi, poly, prandtl, pres, prevres)
 !$omp declare target (prtu, qrde, realgas, relax, required, rescounter, rescountert, residualfreq, reslimit, resmax)
 !$omp declare target (resmaxt, restart, reynolds, rframe, rhc1, rhc2, rhc3, rhc4, rres, rungekutta)
-!$omp declare target (scaler, sht, sigma spatialorder, spatiladiscret, spkin, spos, srfg)
+!$omp declare target (scaler, sht, sigma,spatialorder, spatiladiscret, spkin, spos, srfg)
 !$omp declare target (statfile, statistics, stennorm, subdiv, surfshear, suther, swirl, t, taylor, tecplot)
 !$omp declare target (temporder, thermal, timestep, tolbig, tolsmall, totalvolume, totiw, totwalls, totwallsc, turbinit)
 !$omp declare target (turbulence, turbulenceequations, turbulencemodel, twall, typesten, tz1, ufreestream, unwou, upperlimit, upturblimit)

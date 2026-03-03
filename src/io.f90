@@ -19170,6 +19170,9 @@ real,dimension(1:8,1:dimensiona)::vext
 real,dimension(1:dimensiona,1:numberofpoints2)::qpoints2d
 real,dimension(1:numberofpoints2)::wequa2d
 real,dimension(1:4)::viscl,laml
+real::fxr,fyr,fzr,mome_xcc,mome_ycc,mome_zcc,origin(1:3)
+
+
 forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
  cd=zero
  cl=zero
@@ -19315,9 +19318,19 @@ do i=1,kmaxe
 				  forcey=forcey+(((ssp)*(surface_temp)*ny))+((ssy)*surface_temp)
 				  forcez=forcez+(((ssp)*(surface_temp)*nz))+((ssz)*surface_temp)
 
-				  momentx=momentx+(((ssp)*(surface_temp)*nz))*ielem_yyc(i)-(((ssp)*(surface_temp)*ny))*ielem_zzc(i)
-				  momenty=momenty+ (((ssp)*(surface_temp)*nx))*ielem_zzc(i)-(((ssp)*(surface_temp)*nz))*ielem_xxc(i)	
-				  momentz=momentz+(((ssp)*(surface_temp)*ny))*ielem_xxc(i)-(((ssp)*(surface_temp)*nx))*ielem_yyc(i)
+				  fxr=(((ssp)*(surface_temp)*nx))+((ssx)*surface_temp)
+				  fyr=(((ssp)*(surface_temp)*ny))+((ssy)*surface_temp)
+				  fzr=(((ssp)*(surface_temp)*nz))+((ssz)*surface_temp)
+
+				  mome_xcc=ielem_xxc(i)-origin(1)
+				  mome_ycc=ielem_yyc(i)-origin(2)
+				  mome_zcc=ielem_zzc(i)-origin(3)
+
+
+				  momentx=momentx+(fzr*mome_ycc)-(fyr*mome_zcc)
+				  momenty=momenty+(fxr*mome_zcc)-(fzr*mome_xcc)
+				  momentz=momentz+(fyr*mome_xcc)-(fxr*mome_ycc)
+
 					    
 			end if
 		      end if
@@ -19325,7 +19338,7 @@ do i=1,kmaxe
 		end if !mysurface
 		end if
 
-			
+
 		
 end do					 
 !$omp end do
@@ -19352,6 +19365,16 @@ end do
 	call mpi_allreduce(co(1:2),ci(1:2),2,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 	cl=ci(1)
 	cd=ci(2)
+		co(1)=momentx
+        co(2)=momenty
+        co(3)=momentz
+        call mpi_allreduce(co(1:3),ci(1:3),3,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+        mx=ci(1)
+        my=ci(2)
+        mz=ci(3)
+
+
+
 	else
         co(1)=forcex
         co(2)=forcey
@@ -19383,7 +19406,7 @@ end do
 		end if	
 	if(rframe.eq.0)then	
 	write(50+n,'(i14,1x,e14.7,1x,e14.7,1x,e14.7)')it,t,cl,cd
-	write(500+n,'(i14,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')it,t,fx,fy,fz
+	write(500+n,'(i14,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')it,t,mx,my,mz
 	else
 	write(50+n,'(i14,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')it,t,fx,fy,fz
 	write(500+n,'(i14,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')it,t,mx,my,mz
@@ -23084,7 +23107,7 @@ end do
 
 
 
-!   call mpi_barrier(mpi_comm_world,ierror)
+   call mpi_barrier(mpi_comm_world,ierror)
 
     if (n.eq.0)then
 
@@ -23102,7 +23125,7 @@ end do
     
 deallocate(valuess)
 
-
+call mpi_barrier(mpi_comm_world,ierror) !not needed
 
 
 

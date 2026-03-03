@@ -1181,8 +1181,7 @@ end do
 #endif
 
 
-
-! !$omp barrier
+!$omp barrier
 !$omp master
 n_requests = 0
 
@@ -1335,7 +1334,7 @@ deallocate(requests)
 
 
 !$omp end master
-! !$omp barrier
+!$omp barrier
 
 #ifdef gpu
 !$omp target teams distribute parallel do private(itest)
@@ -2654,7 +2653,7 @@ do k=1,indl
 	rb= bound_len(k)
 
    call mpi_irecv(                                                     &
-      boundhir_flat(baseR),    & !recvbuf
+      boundhir_dgflat(baseR),    & !recvbuf
       rb*i_cnt, mpi_double_precision,          & !recvcount, recvtype
       bound_proc(k), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error

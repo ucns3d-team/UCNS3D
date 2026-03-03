@@ -271,10 +271,10 @@ subroutine compute_gradients_mean_lsq(n,iconsidered,number_of_dog,number_of_nei)
 !$omp declare target
 #endif
    integer,intent(in)::n,iconsidered,number_of_dog,number_of_nei
-   real,dimension(nof_variables)::sols1
-   real,dimension(nof_variables,typesten)::sols2
+   real,dimension(1:nof_variables)::sols1
+   real,dimension(1:nof_variables,1:typesten)::sols2
    real,dimension(1:numneighbours-1,1:nof_variables,1:typesten)::matrix_1
-   real,dimension(1:idegfree,1:nof_variables,1:typesten)::sol_m
+   real,dimension(1:idegfree,1:nof_variables,1:7)::sol_m
    real,dimension(1:nof_variables)::leftv,rightv
    real::mp_pinfl,gammal
    integer::i,var2,iq,ll,imax,nf,lf,rowf
@@ -1206,8 +1206,8 @@ implicit none
 integer,intent(in)::n,iconsidered,number_of_dog,number_of_nei
 real,dimension(nof_variables-1)::sols1,sols2
 real,dimension(1:nof_variables,1:numneighbours-1)::matrix_1
-real,dimension(1:nof_variables,1:55)::matrix_2
-real,dimension(1:55,1:nof_variables)::sol_m
+real,dimension(1:nof_variables,1:idegfree)::matrix_2
+real,dimension(1:idegfree,1:nof_variables)::sol_m
 real,dimension(1:nof_variables)::matrix_3
 integer::i,var2,ii,k0,g0,ttk,ivvm,iq,lq,irg
 real::attt
@@ -1748,8 +1748,8 @@ implicit none
 integer,intent(in)::n,iconsidered,number_of_dog,number_of_nei
 real,dimension(1:turbulenceequations+passivescalar)::sols1,sols2
 real,dimension(1:turbulenceequations+passivescalar,1:numneighbours-1)::matrix_1
-real,dimension(1:turbulenceequations+passivescalar,1:55)::matrix_2
-real,dimension(1:55,1:turbulenceequations+passivescalar)::sol_m
+real,dimension(1:turbulenceequations+passivescalar,1:idegfree)::matrix_2
+real,dimension(1:idegfree,1:turbulenceequations+passivescalar)::sol_m
 real,dimension(1:turbulenceequations+passivescalar)::matrix_3
 integer::i,var2,ii,k0,g0,ttk,ivvm,iq,lq,imax
 real::attt
@@ -2600,9 +2600,9 @@ subroutine example1x(n)
   integer :: ii, i, m
 
 #ifdef gpu
-  !$omp target teams distribute parallel do collapse(2) private(i) thread_limit(256)
+  !$omp target teams distribute parallel do private(i)
 #else
-  !$omp parallel do collapse(2) private(i)
+  !$omp parallel do private(i)
 #endif
   do ii = 1, nof_interior
     do m = 1, ielem_idegfree(el_int(ii))   ! typically 35
@@ -2630,7 +2630,7 @@ subroutine example1xy(n)
   !$omp target teams distribute parallel do schedule (static) &
   !$omp& private(i,ll,c,k,imax,cellnbr,sols1,sum)
 #else
-  !$omp parallel do collapse(2) private(i,ll,c,k,imax,cellnbr,sols1,sum)
+  !$omp parallel do  private(i,ll,c,k,imax,cellnbr,sols1,sum)
 #endif
   do ii = 1, nof_interior
     do m = 1, ielem_idegfree(el_int(ii))   ! typically 35
