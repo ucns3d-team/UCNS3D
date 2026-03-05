@@ -1754,7 +1754,7 @@ subroutine calculate_fluxeshi_diffusive(n)
 
 					leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 					call cons2div(n,leftv,mp_pinfl,gammal)
-					call cons2div(n,rightv,mp_pinfl,gammar)
+					call cons2div(n,rightv,mp_pinfr,gammar)
 					rho12 = oo2*(leftv(1)+rightv(1))
 					rho12l=leftv(1);rho12r=rightv(1)
 					u12   = oo2*(leftv(2)+rightv(2))

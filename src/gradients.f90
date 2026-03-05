@@ -1092,7 +1092,10 @@ real,dimension(1:nof_variables)::leftv
 
 
 i=iconsidered
-sols_f=zero
+sols_f=zero;sols1=zero;sols2=zero
+
+rec_grads(:,:,i)=zero
+
 oov2=1.0d0/ielem_totvolume(i)
 
 
@@ -1905,7 +1908,10 @@ integer::ibfc
 if (dimensiona.eq.3)then
 
 i=iconsidered
-sols_f=zero
+sols_f=zero;sols1=zero;sols2=zero
+
+rec_grads(:,:,i)=zero
+
 oov2=1.0d0/ielem_totvolume(i)
 
 
