@@ -1575,6 +1575,24 @@ i=iconsidered
                                                 end do
                                               end do
 
+                                              if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+                                              do iex = 1,turbulenceequations+passivescalar
+                                                  !rcvgrad_t(:,:)=lcvgrad_t(:,:)
+                                                  g_n = 0.0
+                                                do d=1,dimensiona
+                                                  g(d) = lcvgrad_t(iex,d)
+                                                  g_n  = g_n + g(d)*nnt(d)
+                                                end do
+                                                if (dimensiona == 2) g(3)=0.0
+
+                                                ! symmetry ghost gradient: grad^+ = grad^- - 2 (grad^-·n) n
+                                                do d=1,dimensiona
+                                                  rcvgrad_t(iex,d) = lcvgrad_t(iex,d) - 2.0*g_n*nnt(d)
+                                                end do
+
+
+                                                  end do
+                                                  end if
 
 
 
@@ -2089,6 +2107,25 @@ end if
                                                           rcvgrad(iex,d) = lcvgrad(iex,d) - 2.0*g_n*nnt(d)
                                                         end do
                                                       end do
+
+                                                      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+                                              do iex = 1,turbulenceequations+passivescalar
+                                                  !rcvgrad_t(:,:)=lcvgrad_t(:,:)
+                                                  g_n = 0.0
+                                                do d=1,dimensiona
+                                                  g(d) = lcvgrad_t(iex,d)
+                                                  g_n  = g_n + g(d)*nnt(d)
+                                                end do
+                                                if (dimensiona == 2) g(3)=0.0
+
+                                                ! symmetry ghost gradient: grad^+ = grad^- - 2 (grad^-·n) n
+                                                do d=1,dimensiona
+                                                  rcvgrad_t(iex,d) = lcvgrad_t(iex,d) - 2.0*g_n*nnt(d)
+                                                end do
+
+
+                                                  end do
+                                                  end if
 
 
 

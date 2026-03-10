@@ -1164,25 +1164,26 @@ end do
 end if
 
 #ifdef gpu
-!$omp target teams distribute parallel do private(itest)
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
 do cell = 1, halos_total
-	itest=nof_variables+turbulenceequations+passivescalar
-  do v = 1, itest
-    solhis_flat((cell-1)*itest + v) = solhis(cell, v)
+
+  do v = 1, ilength1
+    solhis_flat((cell-1)*ilength1 + v) = solhis(cell, v)
   end do
 end do
 #ifdef gpu
 !$omp end target teams distribute parallel do
 #else
 !$omp end do
+!$omp barrier
+!$omp master
 #endif
 
 
-!$omp barrier
-!$omp master
+
 n_requests = 0
 
 allocate(requests(jtotal*2))
@@ -1333,18 +1334,18 @@ deallocate(requests)
 
 
 
-!$omp end master
-!$omp barrier
+
 
 #ifdef gpu
-!$omp target teams distribute parallel do private(itest)
+!$omp target teams distribute parallel do
 #else
+!$omp end master
+!$omp barrier
 !$omp do
 #endif
 do cell = 1, halo_total
-	itest=nof_variables+turbulenceequations+passivescalar
-  do v = 1, itest
-    solhir(cell, v) = solhir_flat((cell-1)*itest + v)
+  do v = 1, ilength1
+    solhir(cell, v) = solhir_flat((cell-1)*ilength1 + v)
   end do
 end do
 #ifdef gpu
@@ -1379,8 +1380,6 @@ integer, dimension(:), allocatable:: requests
 itest=1
 
 
-! ineedt=direcexr(1)%tot
-! tneedt=direcexs(1)%tot
 
 
 
@@ -1391,18 +1390,26 @@ itest=1
 
 
 
-
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,halos_total
 	solhisd(i)=ielem_diss(solhi_loc(i))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
-
-
-
-
 !$omp barrier
 !$omp master
+#endif
+
+
+
+
+
 n_requests = 0
 
 allocate(requests(jtotal*2))
@@ -1434,14 +1441,18 @@ do k=1,jtotal
          r1=halo_offset(iavc)+halo_len(iavc)-1
          rb=halo_len(iavc)
 
-
+#ifdef gpu
+		!$omp target data use_device_ptr(solhird)
+#endif
    call mpi_irecv(                                                     &
       solhird(r0:r1),    & !recvbuf
       rb, mpi_double_precision,          & !recvcount, recvtype
      halo_proc(iavc), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
         end if
 
        if ((jtot(k,1).ne.-1).and.(jtot(k,2).eq.-1))then
@@ -1454,12 +1465,18 @@ do k=1,jtotal
          sb=halos_len(iavt)
 
 !
+#ifdef gpu
+		!$omp target data use_device_ptr(solhisd)
+#endif
         call mpi_isend(                                                     &
       solhisd(s0:s1), sb, & !sendbuf
       mpi_double_precision,       & !sendcount, sendtype
       halos_proc(iavt), 0,                                        & !destination, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
+#ifdef gpu
+		!$omp end target data
+#endif
 
 
          n_requests = n_requests + 1
@@ -1490,13 +1507,18 @@ do k=1,jtotal
          sb=halos_len(iavt)
 
 !
+#ifdef gpu
+		!$omp target data use_device_ptr(solhisd)
+#endif
         call mpi_isend(                                                     &
       solhisd(s0:s1), sb, & !sendbuf
       mpi_double_precision,       & !sendcount, sendtype
       halos_proc(iavt), 0,                                        & !destination, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
          n_requests = n_requests + 1
          iavc=jtot(k,2)
@@ -1504,14 +1526,18 @@ do k=1,jtotal
          r1=halo_offset(iavc)+halo_len(iavc)-1
          rb=halo_len(iavc)
 
-
+#ifdef gpu
+		!$omp target data use_device_ptr(solhird)
+#endif
    call mpi_irecv(                                                     &
       solhird(r0:r1),    & !recvbuf
       rb, mpi_double_precision,          & !recvcount, recvtype
      halo_proc(iavc), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
 
        end if
@@ -1524,9 +1550,13 @@ call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
 
 deallocate(requests)
 
+#ifdef gpu
 
+#else
 !$omp end master
 !$omp barrier
+#endif
+
 
 
 
@@ -1551,25 +1581,40 @@ end if
 
 itest=nof_variables+turbulenceequations+passivescalar
 
-! ineedt=direcexr(1)%tot
-! tneedt=direcexs(1)%tot
+
 
 if (( turbulence .gt. 0).or.(passivescalar.gt.0)) then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,halos_total
 	solhis(i,1:nof_variables)=u_c_val(ind1,1:nof_variables,solhi_loc(i))
 	solhis(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(ind1,1:turbulenceequations+passivescalar,solhi_loc(i))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
 else
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,halos_total
 	solhis(i,1:nof_variables)=u_c_val(ind1,1:nof_variables,solhi_loc(i))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
@@ -1578,18 +1623,27 @@ end do
 end if
 
 
-!$omp do	!flat now
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
 do cell = 1, halos_total
-  do v = 1, itest
-    solhis_flat((cell-1)*itest + v) = solhis(cell, v)
+  do v = 1, ilength1
+    solhis_flat((cell-1)*ilength1 + v) = solhis(cell, v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
-
-
-
 !$omp barrier
 !$omp master
+#endif
+
+
+
+
 n_requests = 0
 
 allocate(requests(jtotal*2))
@@ -1620,14 +1674,18 @@ do k=1,jtotal
          baseR = (r0-1)*itest + 1
          rb=halo_len(iavc)
 
-
+#ifdef gpu
+		!$omp target data use_device_ptr(solhir_flat)
+#endif
    call mpi_irecv(                                                     &
       solhir_flat(baseR), rb*itest,    & !recvbuf
        mpi_double_precision,          & !recvcount, recvtype
      halo_proc(iavc), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
 
         end if
@@ -1642,13 +1700,18 @@ do k=1,jtotal
 		sb=halos_len(iavt)
 
 !
+#ifdef gpu
+		!$omp target data use_device_ptr(solhis_flat)
+#endif
         call mpi_isend(                                                     &
       solhis_flat(baseS), sb*itest, & !sendbuf
       mpi_double_precision,       & !sendcount, sendtype
       halos_proc(iavt), 0,                                        & !destination, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
 
          n_requests = n_requests + 1
@@ -1679,13 +1742,18 @@ do k=1,jtotal
 		sb=halos_len(iavt)
 
 !
+#ifdef gpu
+		!$omp target data use_device_ptr(solhis_flat)
+#endif
         call mpi_isend(                                                     &
       solhis_flat(baseS), sb*itest, & !sendbuf
       mpi_double_precision,       & !sendcount, sendtype
       halos_proc(iavt), 0,                                        & !destination, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
          n_requests = n_requests + 1
          iavc=jtot(k,2)
@@ -1695,7 +1763,9 @@ do k=1,jtotal
 
 
 
-
+#ifdef gpu
+		!$omp target data use_device_ptr(solhir_flat)
+#endif
 
    call mpi_irecv(                                                     &
       solhir_flat(baseR), rb*itest,   & !recvbuf
@@ -1703,7 +1773,9 @@ do k=1,jtotal
      halo_proc(iavc), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
 
 
@@ -1719,16 +1791,23 @@ deallocate(requests)
 
 
 
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp end master
 !$omp barrier
-
-!$omp do	!unflat now
+!$omp do
+#endif
 do cell = 1, halo_total
-  do v = 1, itest
-    solhir(cell, v) = solhir_flat((cell-1)*itest + v)
+  do v = 1, ilength1
+    solhir(cell, v) = solhir_flat((cell-1)*ilength1 + v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 	
 
 
@@ -1963,18 +2042,30 @@ end if
 
 
 if (itestcase.le.3) then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
     do i=1,bounds_total
 			boundhis(i,1:nof_variables)=rec_uleft(1:nof_variables,need_side(i),need_q(i),need_loc(i))
     end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end  if
 
 
 if (itestcase.eq.4) then
 
 if (turbulence.ne.1)then
+#ifdef gpu
+!$omp target teams distribute parallel do private(ittt)
+#else
 !$omp do
+#endif
 do i=1,bounds_total
 			boundhis(i,1:nof_variables)=rec_uleft(1:nof_variables,need_side(i),need_q(i),need_loc(i))
 			ittt=0
@@ -1987,10 +2078,18 @@ do i=1,bounds_total
 			end do
 
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 else
+#ifdef gpu
+!$omp target teams distribute parallel do private(ittt)
+#else
 !$omp do
+#endif
 do i=1,bounds_total
 			boundhis(i,1:nof_variables)=rec_uleft(1:nof_variables,need_side(i),need_q(i),need_loc(i))
 			boundhis(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,need_side(i),need_q(i),need_loc(i))
@@ -1998,7 +2097,7 @@ do i=1,bounds_total
 			do iex=1,nof_variables-1
 			do nvar=1,dims
 			ittt=ittt+1
-			boundhis(i,nof_variables+ittt)=rec_uleftv(nvar, iex, &
+			boundhis(i,nof_variables+turbulenceequations+passivescalar+ittt)=rec_uleftv(nvar, iex, &
              need_side(i), need_q(i), need_loc(i))
 			end do
 			end do
@@ -2010,31 +2109,39 @@ do i=1,bounds_total
 			end do
 			end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 end if
 end  if
 
-!$omp do	!flat now
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
 do cell = 1, bounds_total
-  do v = 1, i_cnt
-    boundhis_flat((cell-1)*i_cnt + v) = boundhis(cell, v)
+  do v = 1, ilength2
+    boundhis_flat((cell-1)*ilength2 + v) = boundhis(cell, v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
-
-
-
-
 !$omp barrier
-
-
-!-------------------for debugging only -----------------------------------------!
-
-!-------------------for debugging only -----------------------------------------!
-
 !$omp master
-!call mpi_barrier(mpi_comm_world,ierror)
+#endif
+
+
+
+
+
+
+
 
 n_requests = 0
 allocate(requests(2*indl))
@@ -2059,7 +2166,9 @@ do k=1,indl
 	sb= bounds_len(j)
 
 
-
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhis_flat)
+#endif
 
    call mpi_isend(                                                     &
       boundhis_flat(baseS), & !sendbuf
@@ -2067,6 +2176,9 @@ do k=1,indl
       bounds_proc(j), 0,                                        & !destination, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
+#ifdef gpu
+		!$omp end target data
+#endif
 
    ! non-blocking receive
    n_requests = n_requests + 1
@@ -2074,14 +2186,18 @@ do k=1,indl
     r0 = bound_offset(k)
     baseR =(r0-1)*i_cnt + 1
 	rb= bound_len(k)
-
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhir_flat)
+#endif
    call mpi_irecv(                                                     &
       boundhir_flat(baseR),    & !recvbuf
       rb*i_cnt, mpi_double_precision,          & !recvcount, recvtype
       bound_proc(k), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
 end do
 
@@ -2090,17 +2206,23 @@ call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
 deallocate(requests)
 
 
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp end master
 !$omp barrier
-
-
-!$omp do	!unflat now
+!$omp do
+#endif
 do cell = 1, bound_total
-  do v = 1, i_cnt
-    boundhir(cell, v) = boundhir_flat((cell-1)*i_cnt + v)
+  do v = 1, ilength2
+    boundhir(cell, v) = boundhir_flat((cell-1)*ilength2 + v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 end subroutine exhboundhigher
@@ -2147,7 +2269,11 @@ imulti=iex
 
 
 if (itestcase.le.3) then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,bounds_total
 	if (relax.eq.3)then
 		if (iscoun.eq.1)then
@@ -2159,13 +2285,21 @@ do i=1,bounds_total
 		boundhisi(i,1:iex)=impdu(need_loc(i),1:iex)
 	end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end  if
 
 
 
 if (itestcase.eq.4) then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,bounds_total
 	if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 		if (relax.eq.3)then
@@ -2194,23 +2328,36 @@ do i=1,bounds_total
 		end if
 	end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 end if
 
 
 
-!$omp do	!flat now
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
 do cell = 1, bounds_total
-  do v = 1, imulti2
-    boundhisi_flat((cell-1)*imulti2 + v) = boundhisi(cell, v)
+  do v = 1, ilength1
+    boundhisi_flat((cell-1)*ilength1 + v) = boundhisi(cell, v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
-
-
 !$omp barrier
 !$omp master
+#endif
+
+
+
 n_requests = 0
  allocate(requests(2*indl))
 requests(:)=0
@@ -2219,7 +2366,7 @@ icpuid=n
 
 
 
-!!$omp target data use_device_ptr(boundhisi, boundhiri)
+
 
 do k=1,indl
 
@@ -2234,46 +2381,61 @@ do k=1,indl
     s0 = bounds_offset(j)
 	baseS=(s0-1)*imulti2 + 1
 	sb= bounds_len(j)
-
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhisi_flat)
+#endif
    call mpi_isend(                                                     &
       boundhisi_flat(baseS), & !sendbuf
       sb*imulti2, mpi_double_precision,       & !sendcount, sendtype
       bounds_proc(j), 0,                                        & !destination, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
    ! non-blocking receive
    n_requests = n_requests + 1
     r0 = bound_offset(k)
     baseR =(r0-1)*imulti2 + 1
 	rb= bound_len(k)
-
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhiri_flat)
+#endif
    call mpi_irecv(                                                     &
       boundhiri_flat(baseR),    & !recvbuf
       rb*imulti2, mpi_double_precision,          & !recvcount, recvtype
       bound_proc(k), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
 end do
 
 call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
-!!$omp end target data
+
  deallocate(requests)
 
-!$omp end master 
+
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp end master
 !$omp barrier
-
-
-!$omp do	!unflat now
+!$omp do
+#endif
 do cell = 1, bound_total
-  do v = 1, imulti2
-    boundhiri(cell, v) = boundhiri_flat((cell-1)*imulti2 + v)
+  do v = 1, ilength1
+    boundhiri(cell, v) = boundhiri_flat((cell-1)*ilength1 + v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
@@ -2322,15 +2484,27 @@ imulti=iex
 
 
 if (itestcase.le.3) then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,bounds_total
-boundhisi(i,1:iex)=impdu(need_loc(i),1:iex)
+boundhisi(i,1:iex)=impdu(need_loc(i),1:length1)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end  if
 
 if (itestcase.eq.4) then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,bounds_total
       if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	  boundhisi(i,1:nof_variables)=impdu(need_loc(i),1:nof_variables)
@@ -2345,22 +2519,35 @@ do i=1,bounds_total
     end if ! turbulence
 
 end do 
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 
-!$omp do	!flat now
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
 do cell = 1, bounds_total
-  do v = 1, imulti2
-    boundhisi_flat((cell-1)*imulti2 + v) = boundhisi(cell, v)
+  do v = 1, ilength1
+    boundhisi_flat((cell-1)*ilength1 + v) = boundhisi(cell, v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
-
-
-
-
 !$omp barrier
 !$omp master
+#endif
+
+
+
+
+
 n_requests = 0
 allocate(requests(2*indl))
 requests(:)=0
@@ -2380,28 +2567,36 @@ do k=1,indl
     s0 = bounds_offset(j)
 	baseS=(s0-1)*imulti2 + 1
 	sb= bounds_len(j)
-
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhisi_flat)
+#endif
    call mpi_isend(                                                     &
       boundhisi_flat(baseS), & !sendbuf
       sb*imulti2, mpi_double_precision,       & !sendcount, sendtype
       bounds_proc(j), 0,                                        & !destination, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
    ! non-blocking receive
    n_requests = n_requests + 1
     r0 = bound_offset(k)
     baseR =(r0-1)*imulti2 + 1
 	rb= bound_len(k)
-
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhiri_flat)
+#endif
    call mpi_irecv(                                                     &
       boundhiri_flat(baseR),    & !recvbuf
       rb*imulti2, mpi_double_precision,          & !recvcount, recvtype
       bound_proc(k), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
 end do
 
@@ -2409,17 +2604,23 @@ call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
 !!$omp end target data
  deallocate(requests)
 
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp end master
 !$omp barrier
-
-
-!$omp do	!unflat now
+!$omp do
+#endif
 do cell = 1, bound_total
-  do v = 1, imulti2
-    boundhiri(cell, v) = boundhiri_flat((cell-1)*imulti2 + v)
+  do v = 1, ilength1
+    boundhiri(cell, v) = boundhiri_flat((cell-1)*ilength1 + v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
@@ -2472,15 +2673,24 @@ end if
 
 
 
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,bounds_total
 			boundhism(i)=ielem_mood(need_loc(i))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
-
-
 !$omp barrier
 !$omp master
+#endif
+
+
+
 
 
 n_requests = 0
@@ -2502,26 +2712,36 @@ do k=1,indl
    s0 = bounds_offset(j)
 	s1 = bounds_offset(j) + bounds_len(j) - 1
 	sb= bounds_len(j)
-
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhism)
+#endif
    call mpi_isend(                                                     &
       boundhism(s0:s1), & !sendbuf
       sb, mpi_double_precision,       & !sendcount, sendtype
       bounds_proc(j), 0,                                        & !destination, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
+#ifdef gpu
+		!$omp end target data
+#endif
 
    ! non-blocking receive
    n_requests = n_requests + 1
    r0 = bound_offset(k)
    r1 = bound_offset(k) + bound_len(k) - 1
    rb= bound_len(k)
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhism)
+#endif
    call mpi_irecv(                                                     &
       boundhirm(r0:r1),    & !recvbuf
       rb, mpi_double_precision,          & !recvcount, recvtype
       bound_proc(k), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
 end do
 
@@ -2531,8 +2751,12 @@ call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
 
 deallocate(requests)
 
+#ifdef gpu
+
+#else
 !$omp end master
 !$omp barrier
+#endif
 
 end subroutine exhboundhigher_mood
 
@@ -2576,18 +2800,30 @@ end if
 
 
 if (itestcase.le.3)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
     do i=1,bounds_total
 			boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
     end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 if (itestcase.eq.4) then
+#ifdef gpu
+!$omp target teams distribute parallel do private(ittt)
+#else
 !$omp do
+#endif
 		do i=1,bounds_total
 				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
 				ittt=0
-				do iex=1,nof_variables-4
+				do iex=1,nof_variables-1
 					do nvar=1,dims
 					ittt=ittt+1
 					boundhis_dg(i,nof_variables+ittt)=rec_uleftv(nvar, iex, &
@@ -2595,24 +2831,36 @@ if (itestcase.eq.4) then
 					end do
 				end do
 		end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 end  if
 
 
 
-!$omp do	!flat now
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
 do cell = 1, bounds_total
-  do v = 1, i_cnt
-    boundhis_dgflat((cell-1)*i_cnt + v) = boundhis_dg(cell, v)
+  do v = 1, ilength1
+    boundhis_dgflat((cell-1)*ilength1 + v) = boundhis_dg(cell, v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
-
-
-
 !$omp barrier
-
 !$omp master
+#endif
+
+
+
+
 !call mpi_barrier(mpi_comm_world,ierror)
 
 n_requests = 0
@@ -2638,27 +2886,35 @@ do k=1,indl
 	sb= bounds_len(j)
 
 
-
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhis_dgflat)
+#endif
    call mpi_isend(                                                     &
       boundhis_dgflat(baseS), & !sendbuf
       sb*i_cnt, mpi_double_precision,       & !sendcount, sendtype
       bounds_proc(j), 0,                                        & !destination, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
    ! non-blocking receive
    n_requests = n_requests + 1
    r0 = bound_offset(k)
     baseR =(r0-1)*i_cnt + 1
 	rb= bound_len(k)
-
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhir_dgflat)
+#endif
    call mpi_irecv(                                                     &
       boundhir_dgflat(baseR),    & !recvbuf
       rb*i_cnt, mpi_double_precision,          & !recvcount, recvtype
       bound_proc(k), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
 end do
 
@@ -2666,16 +2922,23 @@ call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
 
 deallocate(requests)
 
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp end master
 !$omp barrier
-
-!$omp do	!unflat now
+!$omp do
+#endif
 do cell = 1, bound_total
-  do v = 1, i_cnt
-    boundhir_dg(cell, v) = boundhir_dgflat((cell-1)*i_cnt + v)
+  do v = 1, ilength2
+    boundhir_dg(cell, v) = boundhir_dgflat((cell-1)*ilength2 + v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
@@ -2734,36 +2997,56 @@ end if
 
 if (itestcase.le.3) then
 	if((multispecies.eq.1).and.(br2_yn.eq.1)) then
-	!$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do private (ittt)
+#else
+!$omp do
+#endif
 		do i=1,bounds_total
 				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
 				ittt=0
-				do iex=1,nof_variables-4
+				do iex=1,nof_variables-1
 					do nvar=1,dims
 					ittt=ittt+1
 					boundhis_dg(i,nof_variables+ittt)=rec_br2_aux_var(iex,nvar,need_side(i),need_q(i),need_loc(i))
 					end do
 				end do
 		end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 	else
 
-	!$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
 		do i=1,bounds_total
 				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
 		end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 end  if
 
 
 if (itestcase.eq.4) then
+#ifdef gpu
+!$omp target teams distribute parallel do private (ittt)
+#else
 !$omp do
+#endif
 		do i=1,bounds_total
 				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
 				ittt=0
-				do iex=1,nof_variables-4
+				do iex=1,nof_variables-1
 					do nvar=1,dims
 					ittt=ittt+1
 					boundhis_dg(i,nof_variables+ittt)=rec_uleftv(nvar, iex, &
@@ -2771,7 +3054,11 @@ if (itestcase.eq.4) then
 					end do
 				end do
 		end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 end  if
 
 
@@ -2780,25 +3067,28 @@ end  if
 
 
 
-!$omp do	!flat now
+#ifdef gpu
+!$omp target teams distribute parallel do private
+#else
+!$omp do
+#endif
 do cell = 1, bounds_total
-  do v = 1, i_cnt
-    boundhis_dgflat((cell-1)*i_cnt + v) = boundhis_dg(cell, v)
+  do v = 1, ilength2
+    boundhis_dgflat((cell-1)*ilength2 + v) = boundhis_dg(cell, v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
-
-
-
 !$omp barrier
-
-
-!-------------------for debugging only -----------------------------------------!
-
-!-------------------for debugging only -----------------------------------------!
-
 !$omp master
-!call mpi_barrier(mpi_comm_world,ierror)
+#endif
+
+
+
+
+
 
 n_requests = 0
 allocate(requests(2*indl))
@@ -2827,26 +3117,35 @@ do k=1,indl
 
 
 
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhis_dgflat)
+#endif
    call mpi_isend(                                                     &
       boundhis_dgflat(baseS), & !sendbuf
       sb*i_cnt, mpi_double_precision,       & !sendcount, sendtype
       bounds_proc(j), 0,                                        & !destination, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
    ! non-blocking receive
    n_requests = n_requests + 1
    r0 = bound_offset(k)
     baseR =(r0-1)*i_cnt + 1
 	rb= bound_len(k)
-
+#ifdef gpu
+		!$omp target data use_device_ptr(boundhir_flat)
+#endif
    call mpi_irecv(                                                     &
       boundhir_flat(baseR),    & !recvbuf
       rb*i_cnt, mpi_double_precision,          & !recvcount, recvtype
       bound_proc(k), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
-
+#ifdef gpu
+		!$omp end target data
+#endif
 
 end do
 
@@ -2854,16 +3153,23 @@ call mpi_waitall(n_requests, requests, mpi_statuses_ignore, ierror)
 
 deallocate(requests)
 
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp end master
 !$omp barrier
-
-!$omp do	!unflat now
+!$omp do
+#endif
 do cell = 1, bound_total
-  do v = 1, i_cnt
-    boundhir_dg(cell, v) = boundhir_dgflat((cell-1)*i_cnt + v)
+  do v = 1, ilength2
+    boundhir_dg(cell, v) = boundhir_dgflat((cell-1)*ilength2 + v)
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 

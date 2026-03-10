@@ -1025,7 +1025,7 @@ ideg=ielem_idegfree(i)
                do iq=1,imax
 		  if (rec_ihexb(1,iq+1,rec_local(i)).eq.n)then
 		  sols2(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,rec_ihexl(1,iq+1,i))&
-		/u_c_val(1,1,rec_ihexl(1,1,i))
+		/u_c_val(1,1,rec_ihexl(1,iq+1,i))
 
 		  else
 ! 		  sols2(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,iq+1,i))%sol(rec_ihexl(1,iq+1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)/&
@@ -1085,8 +1085,8 @@ implicit none
 integer,intent(in)::n,iconsidered,number_of_dog,number_of_nei
 real,dimension(1:nof_variables)::sols1,sols2,dudl,aver1,phi_f
 real,dimension(1:nof_variables,dimensiona)::sols_f
-real,dimension(3)::normal_all,dih_vec,dih,e_ih,sf
-real::oov2,titj,mp_pinfl,gammal,angle1,angle2,aorth
+real,dimension(3)::normal_all,dih_vec,e_ih,sf
+real::oov2,titj,mp_pinfl,gammal,angle1,angle2,aorth,dih
 integer::i,j,k,l
 real,dimension(1:nof_variables)::leftv
 
@@ -1890,8 +1890,8 @@ implicit none
 integer,intent(in)::n,iconsidered,number_of_dog,number_of_nei
 real,dimension(1:nof_variables)::sols1,sols2,dudl,aver1
 real,dimension(1:nof_variables,3)::sols_f
-real,dimension(3)::normal_all,dih_vec,dih,e_ih,sf
-real::oov2,titj,mp_pinfl,gammal,angle1,angle2,nx,ny,nz,aorth
+real,dimension(3)::normal_all,dih_vec,e_ih,sf
+real::oov2,titj,mp_pinfl,gammal,angle1,angle2,nx,ny,nz,aorth,dih
 integer::i,j,k,l,b_code,facex,n_node,imax,nf,lf,rowf
 real,dimension(1:nof_variables)::leftv,srf_speed,srf_speedrot,rightv,phi_f
 real,dimension(1:dimensiona)::pox,poy,poz,cords

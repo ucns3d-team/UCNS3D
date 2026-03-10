@@ -4821,7 +4821,9 @@ select case(b_code)
     
     rightv(1:nof_variables)=inflow(initcond,pox,poy,poz)
     
-    
+          if (turbulencemodel.eq.1)then
+		  cturbr(1)=visc*turbinit*rightv(1)
+	      end if
     
         
     
@@ -4841,6 +4843,10 @@ select case(b_code)
       
       
       rightv(1:nof_variables)=inflow(initcond,pox,poy,poz)
+
+       if (turbulencemodel.eq.1)then
+		  cturbr(1)=visc*turbinit*rightv(1)
+	      end if
       
       
       
@@ -5498,7 +5504,9 @@ select case(b_code)
     
     rightv(1:nof_variables)=inflow2d(initcond,pox,poy)
     
-    
+     if (turbulencemodel.eq.1)then
+		  cturbr(1)=visc*turbinit*rightv(1)
+	      end if
     
         
     
