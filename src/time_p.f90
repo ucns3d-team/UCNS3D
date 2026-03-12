@@ -31,7 +31,7 @@ implicit none
 integer,intent(in)::n
 integer::i,k,l,kmaxe,j,ingtmax,ingtmin,whgu,whgl,srf
 real::suvi,suv3,maxu,minu
-real::ccfl,veln,agrt
+real::veln,agrt
 real,dimension(1:nof_variables)::leftv,rightv
 real,dimension(1:nof_variables)::srf_speed
 real::mp_pinfl,gammal
@@ -43,11 +43,21 @@ real,dimension(1)::etvm
 
 kmaxe=xmpielrank(n)
        
-        ccfl=(cfl/3.0d0)
-        
-        dt=tolbig
+#ifdef gpu
+!$omp target map(present: dt)
+#endif
+  dt = tolbig
+#ifdef gpu
+!$omp end target
+#endif
 	if (itestcase.lt.3)then
+#ifdef gpu
+	!$omp target teams distribute parallel do map(present: dt) &
+    !$omp& reduction(min: dt) private(veln)
+#else
+    !$omp barrier
 	!$omp do reduction (min:dt)
+#endif
         do i=1,kmaxe
 		veln=max(abs(lamx),abs(lamy),abs(lamz))
 		
@@ -61,11 +71,21 @@ kmaxe=xmpielrank(n)
 		end if
 		
 	end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	if (itestcase.eq.3)then
+#ifdef gpu
+	!$omp target teams distribute parallel do map(present: dt) &
+    !$omp& reduction(min: dt) private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz,srf_speed,srf)
+#else
+    !$omp barrier
 	!$omp do reduction (min:dt)
+#endif
         do i=1,kmaxe
         
         
@@ -112,13 +132,24 @@ kmaxe=xmpielrank(n)
 		
 		
 	end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	
 	
 	if (itestcase.eq.4)then
+#ifdef gpu
+	!$omp target teams distribute parallel do map(present: dt) &
+    !$omp& reduction(min: dt) private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz,srf_speed,srf,&
+    !$omp&  viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+#else
+    !$omp barrier
 	!$omp do reduction (min:dt)
+#endif
         do i=1,kmaxe
 		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		rightv(1:nof_variables)=leftv(1:nof_variables)
@@ -178,12 +209,16 @@ kmaxe=xmpielrank(n)
 
          dt=min(dt,ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2))))
 
-!          dt=min(dt,(ccfl)*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*(1.0d0/ielem_minedge(i))))))
+
 
          end if
                              
 	end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	
@@ -198,7 +233,7 @@ implicit none
 integer,intent(in)::n
 integer::i,k,l,kmaxe,j,ingtmax,ingtmin,whgu,whgl,srf
 real::suvi,suv3,maxu,minu
-real::ccfl,veln,agrt
+real::veln,agrt
 real,dimension(1:nof_variables)::leftv,rightv
 real,dimension(1:nof_variables)::srf_speed
 real::mp_pinfl,gammal
@@ -209,20 +244,35 @@ real,dimension(1:2)::turbmv
 real,dimension(1)::etvm
 kmaxe=xmpielrank(n)
        
-        ccfl=(cfl/3.0d0)
+
         
         
 	if (itestcase.lt.3)then
+#ifdef gpu
+	!$omp target teams distribute parallel do private (veln)
+#else
+    !$omp barrier
 	!$omp do
+#endif
         do i=1,kmaxe
 		veln=max(abs(lamx),abs(lamy),abs(lamz))
 		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))
 	end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	if (itestcase.eq.3)then
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz,srf_speed,srf)
+#else
+    !$omp barrier
 	!$omp do
+#endif
         do i=1,kmaxe
 		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		
@@ -266,13 +316,24 @@ kmaxe=xmpielrank(n)
 		
 		end if
 	end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	
 	
 	if (itestcase.eq.4)then
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz,srf_speed,srf,&
+    !$omp&  viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+#else
+    !$omp barrier
 	!$omp do
+#endif
         do i=1,kmaxe
 
 		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
@@ -340,7 +401,11 @@ kmaxe=xmpielrank(n)
 		end if
 		
 	end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	
@@ -357,7 +422,7 @@ implicit none
 integer,intent(in)::n
 integer::i,k,l,kmaxe,j,ingtmax,ingtmin,whgu,whgl
 real::suvi,suv3,maxu,minu,sum_dt1,sum_dt2
-real::ccfl,veln,agrt,lamxl,lamyl
+real::veln,agrt,lamxl,lamyl
 real,dimension(1:nof_variables)::leftv,rightv
 real,dimension(1:nof_variables)::srf_speed
 real::mp_pinfl,gammal
@@ -368,15 +433,27 @@ real,dimension(1:2)::turbmv
 real,dimension(1)::etvm
 kmaxe=xmpielrank(n)
        
-        ccfl=(cfl/2.0d0)
+
         
-        dt=tolbig
+#ifdef gpu
+!$omp target map(present: dt)
+#endif
+  dt = tolbig
+#ifdef gpu
+!$omp end target
+#endif
         
         
-        !$omp barrier
+
         
 	if (itestcase.lt.3)then
+#ifdef gpu
+	!$omp target teams distribute parallel do map(present: dt) &
+    !$omp& reduction(min: dt) private(veln,lamxl,lamyl)
+#else
+    !$omp barrier
 	!$omp do reduction (min:dt)
+#endif
         do i=1,kmaxe
         
 				if (initcond.eq.3)then
@@ -400,11 +477,21 @@ kmaxe=xmpielrank(n)
 		end if
 		
 	end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	if (itestcase.eq.3)then
+#ifdef gpu
+	!$omp target teams distribute parallel do map(present: dt) &
+    !$omp& reduction(min: dt) private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz)
+#else
+    !$omp barrier
 	!$omp do reduction (min:dt)
+#endif
         do i=1,kmaxe
         
         
@@ -434,13 +521,24 @@ kmaxe=xmpielrank(n)
 		
 		
 	end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	
 	
 	if (itestcase.eq.4)then
+#ifdef gpu
+	!$omp target teams distribute parallel do map(present: dt) &
+    !$omp& reduction(min: dt) private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz,&
+    !$omp&  viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+#else
+    !$omp barrier
 	!$omp do reduction (min:dt)
+#endif
         do i=1,kmaxe
 
 		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
@@ -482,7 +580,11 @@ kmaxe=xmpielrank(n)
       end if
   
   end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	
@@ -498,7 +600,7 @@ implicit none
 integer,intent(in)::n
 integer::i,k,l,kmaxe,j,ingtmax,ingtmin,whgu,whgl
 real::suvi,suv3,maxu,minu
-real::ccfl,veln,agrt
+real::veln,agrt
 real,dimension(1:nof_variables)::leftv,rightv
 real,dimension(1:nof_variables)::srf_speed
 real::mp_pinfl,gammal,mp_pinfr,gammar
@@ -509,20 +611,35 @@ real,dimension(1:2)::turbmv
 real,dimension(1)::etvm
 kmaxe=xmpielrank(n)
        
-        ccfl=(cfl/2.0d0)
+
         
         
 	if (itestcase.lt.3)then
+#ifdef gpu
+	!$omp target teams distribute parallel do private (veln)
+#else
+    !$omp barrier
 	!$omp do
+#endif
         do i=1,kmaxe
 		veln=max(abs(lamx),abs(lamy))
 		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))
 	end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	if (itestcase.eq.3)then
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz)
+#else
+    !$omp barrier
 	!$omp do
+#endif
         do i=1,kmaxe
 		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		call cons2prim(n,leftv,mp_pinfl,gammal)
@@ -552,13 +669,24 @@ kmaxe=xmpielrank(n)
 		
 		
 	end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	
 	
 	if (itestcase.eq.4)then
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz,&
+    !$omp&  viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+#else
+    !$omp barrier
 	!$omp do
+#endif
         do i=1,kmaxe
 		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		rightv(1:nof_variables)=leftv(1:nof_variables)
@@ -610,7 +738,11 @@ kmaxe=xmpielrank(n)
 
 		end if
 	end do
-	!$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 	end if
 	
 	
@@ -638,11 +770,11 @@ kmaxe=xmpielrank(n)
 
 
 
-if (mood.eq.1)then
-inds=4
-else
-inds=1
-end if
+! if (mood.eq.1)then
+! inds=4
+! else
+! inds=1
+! end if
 
 if (fastest.eq.1)then
     call exchange_lower(n)
@@ -681,43 +813,75 @@ else
 end if
 
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
   if (mood.eq.1)then
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
   end if
-  u_c_val(inds,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
  
  if (mood.eq.1)then
  
  call mood_operator_2(n)
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(inds,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
    ielem_mood_o(i)=2
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 call mood_operator_1(n)
 
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
@@ -727,7 +891,11 @@ do i=1,kmaxe
    u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 end if
 
@@ -766,14 +934,23 @@ else
     end select
 end if
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(inds,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
 ((rhs_val(1:nof_variables,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
@@ -781,33 +958,56 @@ end do
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
 ((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
  if (mood.eq.1)then
  
  call mood_operator_2(n)
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(inds,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
 ((rhs_val(1:nof_variables,i))*(oovolume))))
    ielem_mood_o(i)=2
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 call mood_operator_1(n)
 
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
@@ -818,7 +1018,11 @@ do i=1,kmaxe
    u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 end if
  
@@ -857,35 +1061,58 @@ else
     call vortexcalc(n)
     end select
 end if
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
    if (mood.eq.1)then
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
   end if
-  u_c_val(inds,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
 ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 if (mood.eq.1)then
  
  call mood_operator_2(n)
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(inds,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
 ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
    ielem_mood_o(i)=2
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 call mood_operator_1(n)
 
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
@@ -896,19 +1123,32 @@ do i=1,kmaxe
    u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 end if
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
 u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
 ((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -940,7 +1180,12 @@ kmaxe=xmpielrank(n)
 call call_flux_subroutines_3d
 
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   if (dg == 1) then
         u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
@@ -956,30 +1201,43 @@ do i=1,kmaxe
         u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
-        !  if ((dg.eq.1).and.(filtering.eq.1))then
-
-         !   call sol_integ_dgx(n)
-          !  call apply_filter_dg(n)
-          !end if
 
 
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
  
 call call_flux_subroutines_3d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   if (dg == 1) then
         u_c_valdg(3,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
@@ -994,17 +1252,30 @@ do i=1,kmaxe
         ((rhs_val(1:nof_variables,i))*(oovolume))))
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
 ((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -1015,14 +1286,15 @@ end do
 call call_flux_subroutines_3d
 
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   if (dg == 1) then
-!         u_c_valdg(1,1:nof_variables,:,i)=oo3*u_c_valdg(2,1:nof_variables,:,i) + to3*u_c_valdg(1,1:nof_variables,:,i) - to3*dt*transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
 
-!         call dgemm('n','n',num_dg_dofs,nof_variables,num_dg_dofs,alpha,m_1_val(1:num_dg_dofs,1:num_dg_dofs,i),num_dg_dofs,&
-! 	  rhs_valdg(1:num_dg_dofs,1:nof_variables,i),&
-!         num_dg_dofs,beta,rhs_sol_mm_dg(:,:,i),num_dg_dofs)
 
 
         rhs_sol_mm_dg(1:num_dg_dofs,1:nof_variables,i)=matmul(m_1_val(1:num_dg_dofs,1:num_dg_dofs,i),rhs_valdg(1:num_dg_dofs,1:nof_variables,i))
@@ -1037,16 +1309,29 @@ do i=1,kmaxe
         ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
 u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
 ((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -1086,17 +1371,14 @@ kmaxe=xmpielrank(n)
 
 call call_flux_subroutines_3d
 
-do i=1,kmaxe
-if (dg == 1)then
-if((u_c_valdg(1,1,1,i).ne. u_c_valdg(1,1,1,i))) then
-    if (n == 0) print*, 'stopping because nans1'
-    stop ! stop if nans
-end if
 
-end if
-end do
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   
@@ -1114,15 +1396,28 @@ do i=1,kmaxe
   end if
   
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -1156,42 +1451,78 @@ kmaxe=xmpielrank(n)
 call call_flux_subroutines_3d
 
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
   u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
   
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
 
 call call_flux_subroutines_3d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
  oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(1,1:nof_variables,i)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-(dt*oo2*(rhs_val(1:nof_variables,i)*oovolume))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(dt*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -1232,7 +1563,12 @@ call call_flux_subroutines_3d
 
 
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   
@@ -1248,22 +1584,40 @@ do i=1,kmaxe
   u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(ielem_dtl(i)*(rhs_val(1:nof_variables,i)*oovolume))
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(ielem_dtl(i)*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
 call call_flux_subroutines_3d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   
@@ -1279,15 +1633,28 @@ do i=1,kmaxe
   u_c_val(1,1:nof_variables,i)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-(ielem_dtl(i)*oo2*(rhs_val(1:nof_variables,i)*oovolume))
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(ielem_dtl(i)*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -1317,7 +1684,12 @@ kmaxe=xmpielrank(n)
 call call_flux_subroutines_2d
 
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
 
   if (dg == 1) then
@@ -1334,23 +1706,41 @@ oovolume=1.0d0/ielem_totvolume(i)
 
   
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(ielem_dtl(i)*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
 
 call call_flux_subroutines_2d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
 
    if (dg == 1) then
@@ -1363,15 +1753,28 @@ oovolume=1.0d0/ielem_totvolume(i)
   end if
 
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(ielem_dtl(i)*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -1403,7 +1806,12 @@ kmaxe=xmpielrank(n)
 call call_flux_subroutines_2d
 
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
 if (dg == 1) then
 oovolume=1.0d0/ielem_totvolume(i)
@@ -1415,23 +1823,41 @@ oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
 call call_flux_subroutines_2d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
 if (dg == 1) then
 oovolume=1.0d0/ielem_totvolume(i)
@@ -1441,15 +1867,28 @@ oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(1,1:nof_variables,i)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-(dt*oo2*(rhs_val(1:nof_variables,i)*oovolume))
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(u_ct_val(2,1:turbulenceequations+passivescalar,i))-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -1477,12 +1916,21 @@ real,dimension(1:nof_variables)::solution_integ2
 
   
 kmaxe=xmpielrank(n)
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(solution_integ2)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   call solution_integ(i,solution_integ2)
   u_c_val(1,1:nof_variables,i)=solution_integ2(1:nof_variables)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
  
 
@@ -1493,16 +1941,21 @@ end subroutine sol_integ_dg
 subroutine sol_integ_dgx(n)
 implicit none
 integer,intent(in)::n
-integer::i,kmaxe,iconsidered
+integer::i,kmaxe
 real,dimension(1:nof_variables)::solution_integ2
 real,dimension(1:nof_variables)::solution_integ_weak
 real,dimension(1:nof_variables)::solution_integ_strong
 
 
 kmaxe=xmpielrank(n)
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(solution_integ2,solution_integ_weak,solution_integ_strong)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
-iconsidered=i
+
 
 
 
@@ -1521,7 +1974,11 @@ iconsidered=i
 
 
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
@@ -1535,7 +1992,12 @@ integer::i,kmaxe
 real,dimension(1:nof_variables)::solution_integ2
  
 kmaxe=xmpielrank(n)
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(solution_integ2)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
 
   call solution_integ(i,solution_integ2)
@@ -1544,7 +2006,11 @@ do i=1,kmaxe
 
  
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
  
 
@@ -1574,55 +2040,54 @@ kmaxe=xmpielrank(n)
 call call_flux_subroutines_2d
 
 
-do i=1,kmaxe
-if (dg == 1)then
-if((u_c_valdg(1,1,1,i).ne. u_c_valdg(1,1,1,i))) then
-    if (n == 0) print*, 'stopping because nans1'
-    stop ! stop if nans
-end if
-
-end if
-end do
 
 
-!$omp do
+
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   
   
   if (dg == 1) then
         
-        
-        
-        
-        
         u_c_valdg(1,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i) - dt* transpose(matmul(m_1_val(:,:,i), rhs_valdg(:,1:nof_variables,i)))
         
   else
   
-  
-  
   u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
   end if
   
-  
-  
-  
-!   write(200+n,*)i,tempsol,u_c_valdg(1,1:nof_variables,1,i)
-  
-  
+
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -1658,7 +2123,12 @@ kmaxe=xmpielrank(n)
 
 call call_flux_subroutines_2d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (dg == 1) then
         u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
@@ -1673,22 +2143,40 @@ do i=1,kmaxe
         u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
 call call_flux_subroutines_2d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (dg == 1) then
         u_c_valdg(3,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
@@ -1702,22 +2190,40 @@ do i=1,kmaxe
         ((rhs_val(1:nof_variables,i))*(oovolume))))
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
 ((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 call call_flux_subroutines_2d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (dg == 1) then
     
@@ -1729,17 +2235,30 @@ do i=1,kmaxe
         ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
 ((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -1764,11 +2283,6 @@ real::avrgs,oovolume
 kmaxe=xmpielrank(n)
 
 
-if (mood.eq.1)then
-inds=4
-else
-inds=1
-end if
 
 if (fastest.eq.1)then
     call exchange_lower(n)
@@ -1807,43 +2321,75 @@ else
 end if
 
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
   if (mood.eq.1)then
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
   end if
-  u_c_val(inds,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
  
  if (mood.eq.1)then
  
  call mood_operator_2(n)
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(inds,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
    ielem_mood_o(i)=2
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 call mood_operator_1(n)
 
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
@@ -1853,7 +2399,11 @@ do i=1,kmaxe
    u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 end if
 
@@ -1893,14 +2443,23 @@ else
     end select
 end if
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(inds,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
 ((rhs_val(1:nof_variables,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
@@ -1908,33 +2467,56 @@ end do
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
 ((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
  if (mood.eq.1)then
  
  call mood_operator_2(n)
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(inds,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
 ((rhs_val(1:nof_variables,i))*(oovolume))))
    ielem_mood_o(i)=2
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 call mood_operator_1(n)
 
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
@@ -1945,7 +2527,11 @@ do i=1,kmaxe
    u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 end if
  
@@ -1984,35 +2570,58 @@ else
     call vortexcalc2d(n)
     end select
 end if
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
    if (mood.eq.1)then
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
   end if
-  u_c_val(inds,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
 ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 if (mood.eq.1)then
  
  call mood_operator_2(n)
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(inds,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
 ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
    ielem_mood_o(i)=2
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 call mood_operator_1(n)
 
-   !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
@@ -2023,19 +2632,32 @@ do i=1,kmaxe
    u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
    end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 end if
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
 u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
 ((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -2074,7 +2696,12 @@ call call_flux_subroutines_3d
 
 
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   if (dg == 1) then
@@ -2086,23 +2713,36 @@ do i=1,kmaxe
     end if
   
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*0.391752226571890*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
  
  
  
  
     if (statistics.eq.1)then
-    !$omp barrier 
+
     !$omp master
     pr_t8=mpi_wtime()
     prace_t7=pr_t8-pr_t7
@@ -2150,14 +2790,19 @@ do i=1,kmaxe
     
     
     !$omp end master
-     !$omp barrier
+
     
     end if
 
                 call call_flux_subroutines_3d
 
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   if (dg == 1) then
@@ -2168,24 +2813,42 @@ do i=1,kmaxe
         u_c_val(1,1:nof_variables,i)=(0.444370493651235 * u_c_val(2,1:nof_variables,i)) + (0.555629506348765 * u_c_val(3,1:nof_variables,i)) - 0.368410593050371 * dt * rhs_val(1:nof_variables,i) * oovolume
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
     u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.444370493651235*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.555629506348765*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((0.368410593050371))*((dt)*&
 ((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
             call call_flux_subroutines_3d
 
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
    if (dg == 1) then
@@ -2196,23 +2859,41 @@ do i=1,kmaxe
         u_c_val(1,1:nof_variables,i) = 0.620101851488403 * u_c_val(2,1:nof_variables,i) + 0.379898148511597 * u_c_val(4,1:nof_variables,i) - 0.251891774271694 * dt * rhs_val(1:nof_variables,i) * oovolume
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(4,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.620101851488403*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.379898148511597*u_ct_val(4,1:turbulenceequations+passivescalar,i))-(((0.251891774271694))*((dt)*&
 ((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
             call call_flux_subroutines_3d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   if (dg == 1) then
@@ -2225,10 +2906,19 @@ do i=1,kmaxe
         u_c_val(1,1:nof_variables,i) = 0.178079954393132 * u_c_val(2,1:nof_variables,i) + 0.821920045606868 * u_c_val(5,1:nof_variables,i) - 0.544974750228521 * dt * rhs_val(1:nof_variables,i) * oovolume
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
     u_ct_val(5,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
@@ -2236,13 +2926,22 @@ do i=1,kmaxe
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.178079954393132*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.821920045606868*u_ct_val(5,1:turbulenceequations+passivescalar,i))-(((0.544974750228521))*((dt)*&
 ((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
     call call_flux_subroutines_3d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   if (dg == 1) then
@@ -2251,18 +2950,31 @@ do i=1,kmaxe
         u_c_val(1,1:nof_variables,i) = (0.00683325884039 * u_c_val(2,1:nof_variables,i)) + (0.517231671970585 * u_c_val(4,1:nof_variables,i)) +  (0.12759831133288 * u_c_val(5,1:nof_variables,i)) + (0.34833675773694 * u_c_val(1,1:nof_variables,i)) + (0.08460416338212 * u_c_val(6,1:nof_variables,i)) - (0.22600748319395 * dt * rhs_val(1:nof_variables,i) * oovolume)
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do &
+    !$omp& private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
    u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.00683325884039*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.517231671970585*u_ct_val(4,1:turbulenceequations+passivescalar,i))+&
 				(0.12759831133288*u_ct_val(5,1:turbulenceequations+passivescalar,i))+(0.34833675773694*u_ct_val(1,1:turbulenceequations+passivescalar,i))+&
 				(0.08460416338212*u_ct_val(6,1:turbulenceequations+passivescalar,i))-(0.22600748319395*(dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 
@@ -2284,11 +2996,11 @@ kmaxe=xmpielrank(n)
 
 
     if (statistics.eq.1)then
-    !$omp barrier
+
     !$omp master
     pr_t1=mpi_wtime()
      !$omp end master
-     !$omp barrier
+
     end if
 
 
@@ -2301,12 +3013,19 @@ kmaxe=xmpielrank(n)
     end if
 
       if ((dg.eq.1).and.(filtering.eq.1))then
-       !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do
+#else
+	!$omp do
+#endif
         do i=1,kmaxe
         ielem_filtered(i)=0
-        
         end do
-        !$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
     end if
 
 
@@ -2325,12 +3044,12 @@ kmaxe=xmpielrank(n)
 
 
     if (statistics.eq.1)then
-    !$omp barrier
+
     !$omp master
     pr_t2=mpi_wtime()
     prace_t1=pr_t2-pr_t1
     !$omp end master
-     !$omp barrier
+
     end if
 
     if (fastest.eq.1) then
@@ -2341,12 +3060,12 @@ kmaxe=xmpielrank(n)
         
 
     if (statistics.eq.1)then
-    !$omp barrier
+
     !$omp master
     pr_t3=mpi_wtime()
     prace_t2=pr_t3-pr_t2
     !$omp end master
-     !$omp barrier
+
     end if
 
 
@@ -2401,12 +3120,12 @@ kmaxe=xmpielrank(n)
     end if
     
      if (statistics.eq.1)then
-    !$omp barrier
+
     !$omp master
     pr_t4=mpi_wtime()
     prace_t3=pr_t4-pr_t3
     !$omp end master
-     !$omp barrier
+
     end if
 
 
@@ -2415,12 +3134,12 @@ kmaxe=xmpielrank(n)
 
 
     if (statistics.eq.1)then
-    !$omp barrier
+
     !$omp master
     pr_t5=mpi_wtime()
     prace_t4=pr_t5-pr_t4
     !$omp end master
-     !$omp barrier
+
     end if
 
 
@@ -2445,12 +3164,12 @@ kmaxe=xmpielrank(n)
 
 
     if (statistics.eq.1)then
-    !$omp barrier
+
     !$omp master
     pr_t6=mpi_wtime()
     prace_t5=pr_t6-pr_t5
     !$omp end master
-     !$omp barrier
+
     end if
 
 
@@ -2494,12 +3213,12 @@ kmaxe=xmpielrank(n)
 
 
     if (statistics.eq.1)then
-    !$omp barrier
+
     !$omp master
     pr_t7=mpi_wtime()
     prace_t6=pr_t7-pr_t6
     !$omp end master
-     !$omp barrier
+
     end if
 
 
@@ -2507,18 +3226,6 @@ kmaxe=xmpielrank(n)
 
 
 
-
-    !sol integration time=prace_t1
-    !communication time of halo cells=prace_t2
-    !reconstruction time=prace_t3
-    !communication time of exboundhigher=prace_t4
-    !adda=prace_t5
-    !fluxes=prace_t6
-
-    !update of solution=prace_t7
-    !total communication time=prace_t2+prace_t4=prace_tx1
-    !total computationals time=prace_t1+prace_t3+prace_t5+prace_t6+prace_t7=prace_tx2
-    !total time=total communication time+total computationals time=prace_tx3
 
 
 
@@ -2543,7 +3250,11 @@ subroutine normalise_species(n)
 
   kmaxe = xmpielrank(n)
 
-  !$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do private(rho,sumrhoy,scale,mismatch,rel_err,rhoy_old_n2,rhoy,leftv,k)
+#else
+	!$omp do
+#endif
   do i = 1, kmaxe
 
 
@@ -2554,11 +3265,6 @@ subroutine normalise_species(n)
     rho = u_c_val(1,1,i)
 
 
-
-
-
-    ! if rho is nonphysical, keep it from breaking the algebra,
-    ! but do not change the stored rho here (that should be handled elsewhere).
     if (rho <= epsrho) then
       rho = max(rho, epsrho)
       do k = 1, nof_species
@@ -2613,7 +3319,11 @@ subroutine normalise_species(n)
 
 
   end do
-  !$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 
 
@@ -2722,19 +3432,7 @@ integer::i,iconsidered
     end select
 
 
-    !for test only experimental
-!     if (code_profile.eq.30)then
-!
-!         if (probei(n,1).gt.0) then
-!           do i=1,xmpielrank(n)
-!             if (ielem_ihexgl(i).eq.probei(n,1))then
-!             iconsidered=i
-!             end if
-!           end do
-!         call vertex_neighbours_values(n)
-!         end if
-!     end if
-    !end test
+
 
 
         
@@ -2746,15 +3444,19 @@ subroutine runge_kutta4_2d(n)
 !> ssp runge kutta 4th-order scheme in 2d
 implicit none
 integer,intent(in)::n
-integer::i,kmaxe,rk_stage
+integer::i,kmaxe
 real::avrgs,oovolume
 kmaxe=xmpielrank(n)
 
-rk_stage = 0
+
 
 call call_flux_subroutines_2d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     oovolume=1.0d0/ielem_totvolume(i)
 
@@ -2766,23 +3468,39 @@ do i=1,kmaxe
         u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*0.391752226571890*(rhs_val(1:nof_variables,i)*oovolume))
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
-rk_stage = rk_stage + 1
+
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*0.391752226571890*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 call call_flux_subroutines_2d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   
@@ -2794,24 +3512,40 @@ do i=1,kmaxe
         u_c_val(1,1:nof_variables,i)=(0.444370493651235 * u_c_val(2,1:nof_variables,i)) + (0.555629506348765 * u_c_val(3,1:nof_variables,i)) - 0.368410593050371 * dt * rhs_val(1:nof_variables,i) * oovolume
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
-rk_stage = rk_stage + 1
+
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
     u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.444370493651235*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.555629506348765*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((0.368410593050371))*((dt)*&
 ((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 call call_flux_subroutines_2d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     oovolume=1.0d0/ielem_totvolume(i)
     
@@ -2823,24 +3557,40 @@ do i=1,kmaxe
         u_c_val(1,1:nof_variables,i) = 0.620101851488403 * u_c_val(2,1:nof_variables,i) + 0.379898148511597 * u_c_val(4,1:nof_variables,i) - 0.251891774271694 * dt * rhs_val(1:nof_variables,i) * oovolume
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
-rk_stage = rk_stage + 1
+
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_ct_val(4,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.620101851488403*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.379898148511597*u_ct_val(4,1:turbulenceequations+passivescalar,i))-(((0.251891774271694))*((dt)*&
 ((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
  
 call call_flux_subroutines_2d
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     oovolume=1.0d0/ielem_totvolume(i)
     
@@ -2854,12 +3604,20 @@ do i=1,kmaxe
         u_c_val(1,1:nof_variables,i) = 0.178079954393132 * u_c_val(2,1:nof_variables,i) + 0.821920045606868 * u_c_val(5,1:nof_variables,i) - 0.544974750228521 * dt * rhs_val(1:nof_variables,i) * oovolume
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
-rk_stage = rk_stage + 1
+
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
     u_ct_val(5,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
@@ -2867,7 +3625,11 @@ do i=1,kmaxe
   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.178079954393132*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.821920045606868*u_ct_val(5,1:turbulenceequations+passivescalar,i))-(((0.544974750228521))*((dt)*&
 ((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 
 call call_flux_subroutines_2d
@@ -2877,7 +3639,11 @@ if (fastest /= 1)then
     end if
 end if
 
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
     oovolume=1.0d0/ielem_totvolume(i)
     
@@ -2887,19 +3653,31 @@ do i=1,kmaxe
         u_c_val(1,1:nof_variables,i) = (0.00683325884039 * u_c_val(2,1:nof_variables,i)) + (0.517231671970585 * u_c_val(4,1:nof_variables,i)) +  (0.12759831133288 * u_c_val(5,1:nof_variables,i)) + (0.34833675773694 * u_c_val(1,1:nof_variables,i)) + (0.08460416338212 * u_c_val(6,1:nof_variables,i)) - (0.22600748319395 * dt * rhs_val(1:nof_variables,i) * oovolume)
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
-rk_stage = rk_stage + 1
+
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do private(oovolume)
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
    u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.00683325884039*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.517231671970585*u_ct_val(4,1:turbulenceequations+passivescalar,i))+&
 				(0.12759831133288*u_ct_val(5,1:turbulenceequations+passivescalar,i))+(0.34833675773694*u_ct_val(1,1:turbulenceequations+passivescalar,i))+&
 				(0.08460416338212*u_ct_val(6,1:turbulenceequations+passivescalar,i))-(0.22600748319395*(dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
  end if
 
 if (averaging.eq.1)then
@@ -2908,12 +3686,7 @@ if (averaging.eq.1)then
  
 end if
 
-if (dg == 1 )then
-if (all(u_c_valdg(1,:,:,1) /= u_c_valdg(1,:,:,1))) then
-    if (n == 0) print*, 'stopping because nans'
-    stop ! stop if nans
-    end if
-end if
+
 
 end subroutine runge_kutta4_2d
 
@@ -3003,22 +3776,24 @@ if (lowmemory.eq.0)then
 
  kill_nan=0
  
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do map(tofrom:kill_nan) reduction(max:kill_nan)
+#else
+	!$omp do reduction(max:kill_nan)
+#endif
 do i=1,kmaxe
     if ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))then
-        write(600+n,*)"nan present",ielem_ihexgl(i),ielem_ishape(i),ielem_xxc(i), ielem_yyc(i),ielem_zzc(i)
-        write(600+n,*)ielem_dih(:,i)
-        write(500+n,'(3es14.6)')ielem_xxc(i), ielem_yyc(i),ielem_zzc(i)
-        if(mrf.eq.1)then
-        write(700+n,*)'srf -diagonal', rec_mrf(i) ,i
-         write(700+n,'(3es14.6)')ielem_xxc(i), ielem_yyc(i),ielem_zzc(i)
-        write(700+n,*)impdu(i,1),impdu(i,2),impdu(i,3),impdu(i,4),impdu(i,5)
-        end if
         kill_nan=1
     end if
   u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
+
+
     if (kill_nan.eq.1)then
         stop
     end if
@@ -3026,11 +3801,19 @@ end do
 
 if (realgas.eq.1)then
 if (rg_relax.eq.1)then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do
+#else
+	!$omp do
+#endif
 do i=1,kmaxe
 call sources_realgas_pi(n,i)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 end if
 
@@ -3038,7 +3821,11 @@ end if
 
 
 if ((passivescalar.gt.0).or.(turbulence.gt.0))then
-!$omp do
+#ifdef gpu
+	!$omp target teams distribute parallel do
+#else
+	!$omp do
+#endif
   do i=1,kmaxe
   do k=1,turbulenceequations+passivescalar
   if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
@@ -3046,7 +3833,11 @@ if ((passivescalar.gt.0).or.(turbulence.gt.0))then
   end if
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 
 
@@ -3139,22 +3930,25 @@ end if
   end if
 
  kill_nan=0
-!$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do map(tofrom:kill_nan) reduction(max:kill_nan)
+#else
+!$omp do reduction(max:kill_nan)
+#endif
 do i=1,kmaxe
     do j=1,nof_variables
-    if ((impdu(i,1).ne.impdu(i,1)))then
-        write(600+n,*)"nan present",ielem_ihexgl(i),ielem_ishape(i),ielem_xxc(i), ielem_yyc(i)
-        write(600+n,*)ielem_dih(:,i)
+    if ((impdu(i,j).ne.impdu(i,j)))then
+
         kill_nan=1
     end if
     end do
-    
-    
-    
-
   u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
     if (kill_nan.eq.1)then
         stop
@@ -3166,16 +3960,28 @@ if (realgas.eq.1)call normalise_species(n)
 
 if (realgas.eq.1)then
 if (rg_relax.eq.1)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe
 call sources_realgas_pi(n,i)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 end if
 
 if ((passivescalar.gt.0).or.(turbulence.gt.0))then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
   do i=1,kmaxe
   do k=1,turbulenceequations+passivescalar
   if (ispal.eq.1)then
@@ -3188,12 +3994,11 @@ if ((passivescalar.gt.0).or.(turbulence.gt.0))then
    end if
   end do
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
-
-!   if (kill_nan.eq.2)then
-!         stop
-!     end if
-
+#endif
 
 
 end if
@@ -3226,7 +4031,11 @@ kmaxe=xmpielrank(n)
 
 
 if (it.eq.restart)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe 
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
@@ -3235,7 +4044,11 @@ do i=1,kmaxe
   u_ct_val(2,:,i)=u_ct_val(1,:,i)
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 
 
@@ -3252,7 +4065,7 @@ do jj=1,upperlimit
       end if    
     
       
-
+!$omp target update to(iscoun)
       
 call call_flux_subroutines_3d
 
@@ -3279,25 +4092,44 @@ if (lowmemory.eq.0)then
  end if
 
  
- kill_nan=0
- 
-!$omp barrier 
-!$omp do  reduction(+:allresdt)
-do i=1,kmaxe
-      rsumfacei=sqrt(((impdu(i,1))**2)+((impdu(i,2))**2)+((impdu(i,3))**2)+((impdu(i,4))**2)+((impdu(i,5))**2))
-      allresdt=allresdt+(rsumfacei*ielem_totvolume(i))
-      
-      if ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))then
-      kill_nan=1
-      end if
-end do
-!$omp end do
+kill_nan=0
+allresdt = 0.0d0
 
 
-!$omp barrier 
-     if (kill_nan.eq.1)then
-        stop
+#ifdef gpu
+!$omp target teams distribute parallel do          &
+!$omp& private(rsumfacei)                          &
+!$omp& reduction(+:allresdt)                       &
+!$omp& reduction(max:kill_nan)                     &
+!$omp& map(tofrom: allresdt, kill_nan)             &
+#else
+!$omp do private(rsumfacei) reduction(+:allresdt) reduction(max:kill_nan)
+#endif
+do i = 1, kmaxe
+    rsumfacei = sqrt( impdu(i,1)**2 + impdu(i,2)**2 + impdu(i,3)**2 + &
+                      impdu(i,4)**2 + impdu(i,5)**2 )
+
+    allresdt = allresdt + rsumfacei * ielem_totvolume(i)
+
+    if ( (impdu(i,1) /= impdu(i,1)) .or. &
+         (impdu(i,2) /= impdu(i,2)) .or. &
+         (impdu(i,3) /= impdu(i,3)) .or. &
+         (impdu(i,4) /= impdu(i,4)) .or. &
+         (impdu(i,5) /= impdu(i,5)) ) then
+        kill_nan = 1
     end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if (kill_nan == 1) then
+    stop
+end if
+
+
 !$omp master
 dummy3i=zero
 
@@ -3325,12 +4157,16 @@ if (n.eq.0)then
 end if
 
 !$omp end master
-!$omp barrier 
+
 
 
 
   if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
- !$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
   do i=1,kmaxe
  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
@@ -3341,15 +4177,27 @@ end if
     end do
     end if
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if (realgas.eq.1)then
 if (rg_relax.eq.1)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe
 call sources_realgas_pi(n,i)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 end if
 
@@ -3365,7 +4213,11 @@ end if
   exit
 
 else
- !$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
  do i=1,kmaxe
  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
@@ -3376,16 +4228,28 @@ else
     end do
     end if
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 if (realgas.eq.1)then
 if (rg_relax.eq.1)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe
 call sources_realgas_pi(n,i)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 end if
 
@@ -3394,7 +4258,11 @@ end if
 
 end do
 
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe 
   u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
@@ -3407,7 +4275,11 @@ do i=1,kmaxe
   !u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if (averaging.eq.1)then
 
@@ -3462,7 +4334,11 @@ kmaxe=xmpielrank(n)
 
 
 if (it.eq.restart)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe 
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
@@ -3471,7 +4347,11 @@ do i=1,kmaxe
   u_ct_val(2,:,i)=u_ct_val(1,:,i)
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 
 
@@ -3532,16 +4412,24 @@ call relaxation_ex(n)
 
 
 
-!$omp barrier 
-!$omp do  reduction(+:allresdt)
+#ifdef gpu
+!$omp target teams distribute parallel do          &
+!$omp& private(rsumfacei)                          &
+!$omp& reduction(+:allresdt)                       &
+!$omp& map(tofrom: allresdt)             &
+#else
+!$omp do private(rsumfacei) reduction(+:allresdt)
+#endif
 do i=1,kmaxe
       rsumfacei=sqrt(((impdu(i,1))**2)+((impdu(i,2))**2)+((impdu(i,3))**2)+((impdu(i,4))**2)+((impdu(i,5))**2))
       allresdt=allresdt+(rsumfacei*ielem_totvolume(i))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
-!$omp barrier 
-!$omp master
 dummy3i=zero
 
 call mpi_allreduce(allresdt,dummy3i,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
@@ -3555,18 +4443,22 @@ end if
 
 allresdt=allresdt/firsti
 
-
+!$omp master
     if (n.eq.0)then
     write(777,*)allresdt,jj,it
     end if
 
 
 !$omp end master
-!$omp barrier 
+
 
     
   if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
- !$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
   do i=1,kmaxe
  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
@@ -3575,11 +4467,19 @@ allresdt=allresdt/firsti
     end do
     end if
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
   exit
 
 else
- !$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
  do i=1,kmaxe
  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
@@ -3588,7 +4488,11 @@ else
     end do
     end if
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 end if
 
@@ -3604,7 +4508,11 @@ end do
 
 
 
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe 
   u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
@@ -3617,7 +4525,11 @@ do i=1,kmaxe
   u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
@@ -3660,7 +4572,11 @@ kmaxe=xmpielrank(n)
 
 
 if (it.eq.restart)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe 
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
@@ -3669,7 +4585,11 @@ do i=1,kmaxe
   u_ct_val(2,:,i)=u_ct_val(1,:,i)
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 
 
@@ -3730,16 +4650,24 @@ call relaxation_ex(n)
 
 
 
-!$omp barrier 
-!$omp do  reduction(+:allresdt)
+#ifdef gpu
+!$omp target teams distribute parallel do          &
+!$omp& private(rsumfacei)                          &
+!$omp& reduction(+:allresdt)                       &
+!$omp& map(tofrom: allresdt)             &
+#else
+!$omp do private(rsumfacei) reduction(+:allresdt)
+#endif
 do i=1,kmaxe
       rsumfacei=sqrt(((impdu(i,1))**2)+((impdu(i,2))**2)+((impdu(i,3))**2)+((impdu(i,4))**2))
       allresdt=allresdt+(rsumfacei*ielem_totvolume(i))
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
-!$omp barrier 
-!$omp master
 dummy3i=zero
 
 call mpi_allreduce(allresdt,dummy3i,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
@@ -3753,18 +4681,22 @@ end if
 
 allresdt=allresdt/firsti
 
-
+!$omp master
     if (n.eq.0)then
     write(777,*)allresdt,jj,it
     end if
 
 
 !$omp end master
-!$omp barrier 
+
 
     
   if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
- !$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
   do i=1,kmaxe
  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
@@ -3773,11 +4705,19 @@ allresdt=allresdt/firsti
     end do
     end if
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
   exit
 
 else
- !$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
  do i=1,kmaxe
  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
@@ -3786,7 +4726,11 @@ else
     end do
     end if
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 end if
 
@@ -3802,7 +4746,11 @@ end do
 
 
 
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe 
   u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
@@ -3815,7 +4763,11 @@ do i=1,kmaxe
   u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
@@ -3874,7 +4826,11 @@ kmaxe=xmpielrank(n)
 
  
 if (it.eq.restart)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe 
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
@@ -3885,7 +4841,11 @@ do i=1,kmaxe
   
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 
 
@@ -3899,7 +4859,7 @@ do jj=1,upperlimit
       iscoun=2
       end if
       
-
+!$omp target update to(iscoun)
       
 call call_flux_subroutines_2d
 
@@ -3927,8 +4887,15 @@ if (lowmemory.eq.0)then
  
 end if
 
-!$omp barrier 
-!$omp do  reduction(+:allresdt)
+#ifdef gpu
+!$omp target teams distribute parallel do          &
+!$omp& private(rsumfacei)                          &
+!$omp& reduction(+:allresdt)                       &
+!$omp& reduction(max:kill_nan)                     &
+!$omp& map(tofrom: allresdt, kill_nan)             &
+#else
+!$omp do private(rsumfacei) reduction(+:allresdt) reduction(max:kill_nan)
+#endif
 do i=1,kmaxe
       rsumfacei=sqrt(((impdu(i,1))**2)+((impdu(i,2))**2)+((impdu(i,3))**2)+((impdu(i,4))**2))
       allresdt=allresdt+(rsumfacei*ielem_totvolume(i))
@@ -3939,9 +4906,11 @@ do i=1,kmaxe
       end if
 
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
-
-!$omp barrier 
+#endif
 
 
  if (kill_nan.eq.1)then
@@ -3973,13 +4942,17 @@ end if
 
 
 !$omp end master
-!$omp barrier 
+
 
 
 
 
   if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
- !$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
   do i=1,kmaxe
  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
@@ -3990,14 +4963,26 @@ end if
     end do
     end if
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 if (realgas.eq.1)then
 if (rg_relax.eq.1)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe
 call sources_realgas_pi(n,i)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 end if
 
@@ -4005,7 +4990,11 @@ end if
   exit
 
 else
- !$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
  do i=1,kmaxe
  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
@@ -4016,15 +5005,27 @@ else
     end do
     end if
   end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 if (realgas.eq.1)then
 if (rg_relax.eq.1)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe
 call sources_realgas_pi(n,i)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 end if
 end if
 
@@ -4037,7 +5038,11 @@ end do
 
 
 
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
 !$omp do
+#endif
 do i=1,kmaxe 
   u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
@@ -4050,7 +5055,11 @@ do i=1,kmaxe
   !u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
   end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
@@ -4072,14 +5081,14 @@ implicit none
 !> @brief
 !> this subroutine solves the linear system for implicit time stepping either through matrix free lu-sgs low memory footprint
 integer,intent(in)::n
-integer::i,l,k,ii,sweeps,kmaxe,nvar,igoflux,icaseb,indt1,indt2,indt3,ijk
+integer::i,l,k,ii,sweeps,kmaxe,nvar,igoflux,icaseb,indt1,indt2,indt3,ijk,j
 real::dt1,dtau
 
 
 
 kmaxe=xmpielrank(n)
 
-impdu(:,:)=zero
+
 
 indt1=nof_variables+1
 indt2=nof_variables+turbulenceequations+passivescalar
@@ -4087,28 +5096,79 @@ indt3=turbulenceequations+passivescalar
 
 
 
-!$omp do
-do i=1,kmaxe
-dt1=ielem_totvolume(i)/dt
-impdu(i,1:nof_variables)=dt1*(1.5d0*u_c_val(1,1:nof_variables,i)-2.0d0*u_c_val(2,1:nof_variables,i)+0.5d0*u_c_val(3,1:nof_variables,i))+rhs_val(1:nof_variables,i)
 
-if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-impdu(i,indt1:indt2)=dt1*(1.5d0*u_ct_val(1,1:indt3,i)-2.0d0*u_ct_val(2,1:indt3,i)+0.5d0*u_ct_val(3,1:indt3,i))+rhst_val(1:indt3,i)
-end if
+!
+!
+
+!===========================================================
+! Loop 1: build impdu
+!===========================================================
+#ifdef gpu
+!$omp target teams distribute parallel do private(dt1,j)
+#else
+!$omp do private(dt1,j)
+#endif
+do i = 1, kmaxe
+
+    dt1 = ielem_totvolume(i) / dt
+
+    impdu(i,:) = zero
+
+    do j = 1, nof_variables
+        impdu(i,j) = dt1 * ( &
+             1.5d0 * u_c_val(1,j,i) &
+           - 2.0d0 * u_c_val(2,j,i) &
+           + 0.5d0 * u_c_val(3,j,i) ) &
+           + rhs_val(j,i)
+    end do
+
+    if ( (turbulence.gt.0) .or. (passivescalar.gt.0) ) then
+        do j = 1, turbulenceequations+passivescalar
+            impdu(i,nof_variables+j) = dt1 * ( &
+                 1.5d0 * u_ct_val(1,j,i) &
+               - 2.0d0 * u_ct_val(2,j,i) &
+               + 0.5d0 * u_ct_val(3,j,i) ) &
+               + rhst_val(j,i)
+        end do
+    end if
 
 end do
-!$omp end do 
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 
-!$omp do
-do i=1,kmaxe
-dtau=(ielem_dtl(i)/ielem_totvolume(i))*(1.0d0/(1.0d0+1.5d0*(ielem_dtl(i)/dt)))
-impdu(i,1:nof_variables)=-impdu(i,1:nof_variables)*dtau
-if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-impdu(i,indt1:indt2)=-impdu(i,indt1:indt2)*dtau
-end if
+!===========================================================
+! Loop 2: scale impdu by dtau
+!===========================================================
+#ifdef gpu
+!$omp target teams distribute parallel do private(dtau,j)
+#else
+!$omp do private(dtau,j)
+#endif
+do i = 1, kmaxe
+
+    dtau = (ielem_dtl(i) / ielem_totvolume(i)) * &
+           (1.0d0 / (1.0d0 + 1.5d0 * (ielem_dtl(i) / dt)))
+
+    do j = 1, nof_variables
+        impdu(i,j) = -impdu(i,j) * dtau
+    end do
+
+    if ( (turbulence.gt.0) .or. (passivescalar.gt.0) ) then
+        do j = 1, turbulenceequations+passivescalar
+            impdu(i,nof_variables+j) = -impdu(i,nof_variables+j) * dtau
+        end do
+    end if
+
 end do
-!$omp end do 
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
                                        
 end subroutine relaxation_ex
@@ -4123,20 +5183,23 @@ subroutine averaging_t(n)
 implicit none
 integer,intent(in)::n
 integer::i,kmaxe,nvar
-integer::ind1
+
 kmaxe=xmpielrank(n)
 
 
 
 if (dimensiona.eq.3)then
-if (rungekutta.eq.4)then
-ind1=7
-else
-ind1=5
-end if
+
+
+
+
 
   if (tz1.gt.zero)then
- !$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
   do i=1,kmaxe
     u_c_val(ind1,:,i)=(((tz1-dt)/(tz1))*u_c_val(ind1,:,i))+((dt*u_c_val(1,:,i))/tz1)
       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
@@ -4170,9 +5233,17 @@ end if
    
     
   end do
-  !$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
   else
-  !$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
   do i=1,kmaxe
     u_c_val(ind1,:,i)=zero;u_c_rms(:,i)=zero
     if ((turbulence.eq.1).or.(passivescalar.gt.0))then
@@ -4184,12 +5255,20 @@ end if
     end if
   
   end do
-  !$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
   end if
 
 else
 if (t.gt.0.0)then
-  !$omp do
+#ifdef gpu
+!$omp  target teams distribute parallel do private(nvar)
+#else
+!$omp  do
+#endif
   do i=1,kmaxe
     u_c_val(ind1,:,i)=(((tz1-dt)/(tz1))*u_c_val(ind1,:,i))+((dt*u_c_val(1,:,i))/tz1)
       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
@@ -4213,9 +5292,17 @@ if (t.gt.0.0)then
     end if
     
   end do
-  !$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
   else
-  !$omp do
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp  do
+#endif
   do i=1,kmaxe
     u_c_val(ind1,:,i)=zero
     if ((turbulence.eq.1).or.(passivescalar.gt.0))then
@@ -4227,7 +5314,11 @@ if (t.gt.0.0)then
     end if
   
   end do
-  !$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
   end if
  end if
 
@@ -4267,8 +5358,13 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 
       totv1=0.0
 
-!$omp barrier
-!$omp master 
+
+
+#ifdef gpu
+		    !$omp target update to(kill,iscoun)
+#endif
+
+!$omp single
     if (initcond.eq.95)then                    
     call checkpointv3(n)
     end if
@@ -4276,15 +5372,15 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 	cput4=cpux1(1)
 	cput5=cpux1(1)
 	cput8=cpux1(1)
-!$omp end master 
-!$omp barrier
+!$omp end single
+
       
 	      			
 	it=restart
 	if (dg.eq.1)call sol_integ_dg_init(n)
       
-!$omp barrier
-!$omp master 
+
+!$omp single
       if (tecplot.lt.5)then
         call grid_write
         if (outsurf.eq.1)then
@@ -4292,25 +5388,24 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
         end if
       end if
       if ((average_restart.eq.0).and.(averaging.eq.1)) then
-				tz1=0.0
+				tz1=0.0d0
 				else
 				tz1=t
 		end if
       
       
-!$omp end master 
-!$omp barrier
+!$omp end single
+
       
 
 
-!$omp barrier
-!$omp master
+!$omp single
 	call volume_solution_write
 	if (outsurf.eq.1)then
 	call surface_solution_write
 	end if
-!$omp end master
-!$omp barrier
+!$omp end single
+
       
 
 
@@ -4326,22 +5421,34 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
      do 
             
 		    call calculate_cfl(n)
-		    
+#ifdef gpu
+		    !$omp target update from(dt)
+#endif
 		    if (rungekutta.ge.5)call calculate_cfll(n)
 		    
 		    
 		    if (dg.eq.1)then
-         do i=1,kmaxe
-         ielem_condition(i)=0
-         ielem_troubled(i)=0
-         end do
-     end if
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp  do
+#endif
+              do i=1,kmaxe
+              ielem_condition(i)=0
+              ielem_troubled(i)=0
+              end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+            end if
 
 
 
 
-		    !$omp barrier
-			!$omp master
+
+			!$omp single
 			dummyout(1)=dt
 			cput2=mpi_wtime()
 			timec8=cput2-cput8
@@ -4363,13 +5470,23 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			timec8=dummyin(5)
 				   if (n.eq.0)then
 				  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
-				  write(63,*)dt,it,"time step size",t
+				  write(63,*)it,dt,t
 				  close(63)
 				  end if
-					
+				!$omp end single
 					
                               if (initcond.eq.95)then
                           totk=0;totens=0;totensx=0.0d0
+
+
+#ifdef GPU
+                          !$omp target teams distribute parallel do          &
+                          !$omp& map(tofrom: totk, totens, totensx)          &
+                          !$omp& reduction(+:totk,totens,totensx)
+#else
+                          !$omp do reduction(+:totk,totens,totensx)
+#endif
+
                           do i=1,xmpielrank(n)
 
                               totk=totk+ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
@@ -4386,7 +5503,13 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
                               end if
 
                           end do
-          !
+#ifdef gpu
+                          !$omp end target teams distribute parallel do
+#else
+                          !$omp end do
+#endif
+
+                          !$omp single
                           dumetg1=totk
                           dumetg2=0.0
                           call mpi_barrier(mpi_comm_world,ierror)
@@ -4415,15 +5538,14 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 
 
                           end if
-
+                          !$omp end single
 
 
 
  				
 
 			    end if
-			
-			
+             !$omp single
 			if (rungekutta.ge.11)then
 			dt=timestep
 			if (initcond.eq.95)then 
@@ -4438,8 +5560,10 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			dt=min(dt,out_time-t,every_time-t)
 			end if
 			end if
-
-
+           !$omp end single
+#ifdef gpu
+			!$omp target update to(dt)
+#endif
 			if (dg.eq.1)then
 			if (filtering.gt.0)then
 			call apply_filter_dg(n)
@@ -4448,9 +5572,6 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			
 
 
-
-			!$omp end master 
-			!$omp barrier	
 			
 			select case(rungekutta)
 			
@@ -4492,8 +5613,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			if (dg.eq.1)call sol_integ_dg(n)
             if (realgas.eq.1) call normalise_species(n)
 			
-			!$omp barrier
-			!$omp master
+			!$omp single
+
 			
 			if (rungekutta.ge.11)then
  			 t=t+(dt)
@@ -4503,30 +5624,58 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
                        t=t+dt
 			tz1=tz1+dt
 			  end if
-			  
-			
-				if (dg.eq.1)then
-          if (code_profile.ne.102)then
-          if ( mod(it, 100) .eq. 0) then
-            call troubled_history
-          end if
-          end if
-          if ( filtering .eq. 1) then
-            call filtered_history
-          end if
-          end if
+			  !$omp end single
 
-          if ( mod(it, 20) .eq. 0) then
+#ifdef gpu
+			!$omp target update to(tz1,t)
+#endif
+
+
+
+			!$omp single
+				if (dg.eq.1)then
+                      if (code_profile.ne.102)then
+                          if ( mod(it, 100) .eq. 0) then
+#ifdef gpu
+                      !$omp target update from(ielem_condition,ielem_mood_o)
+#endif
+                            call troubled_history
+                          end if
+                      end if
+                      if ( filtering .eq. 1) then
+                        if ( mod(it, 100) .eq. 0) then
+#ifdef gpu
+                    !$omp target update from(ielem_filtered,ielem_er,ielem_er1,ielem_er2)
+#endif
+                          call filtered_history
+                        end if
+                      end if
+                end if
+
+          if ( mod(it, 100) .eq. 0) then
+#ifdef gpu
+          !$omp target update from(ielem_reduce)
+#endif
             call reduced_history
           end if
 
-
+          !$omp end single
 
 
 			
 			
 			if (initcond.eq.95)then                    
  				totk=0; totens=0.0; totensx=0.0d0
+
+
+#ifdef GPU
+                          !$omp target teams distribute parallel do          &
+                          !$omp& map(tofrom: totk, totens, totensx)          &
+                          !$omp& reduction(+:totk,totens,totensx)
+#else
+                          !$omp  do reduction(+:totk,totens,totensx)
+#endif
+
  				do i=1,xmpielrank(n)
  				
                    
@@ -4553,7 +5702,13 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 
 
 				end do
-! 				
+#ifdef gpu
+                          !$omp end target teams distribute parallel do
+#else
+                          !$omp end do
+#endif
+
+                !$omp single
  				dumetg1=totk
  				dumetg2=0.0
  				call mpi_barrier(mpi_comm_world,ierror)
@@ -4600,66 +5755,72 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
                           end if
                           close(73)
 				end if
- 				
- 				
- 				call mpi_barrier(mpi_comm_world,ierror)
+ 				!$omp end single
  				
 
- 				if (adda.eq.1)then
-                          totk=0
-                          do i=1,xmpielrank(n)
+ 				
 
-                              totk=totk+ielem_er(i)
+          if (adda.eq.1) then
 
+          totk = 0.0d0
 
-                          end do
-                          dumetg1=totk
-                          dumetg2=0.0
-                          call mpi_barrier(mpi_comm_world,ierror)
-                          call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+#ifdef GPU
+        !$omp target teams distribute parallel do     &
+        !$omp& map(to: ielem_er)               &
+        !$omp& map(tofrom: totk)                &
+        !$omp& reduction(+:totk)
+          do i = 1, xmpielrank(n)
+              totk = totk + ielem_er(i)
+          end do
+        !$omp end target teams distribute parallel do
+#else
+        !$omp do reduction(+:totk)
+          do i = 1, xmpielrank(n)
+              totk = totk + ielem_er(i)
+          end do
+        !$omp end do
+#endif
 
+        !$omp single
+          dumetg1 = totk
+          dumetg2 = 0.0d0
+          call mpi_allreduce(dumetg1, dumetg2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
 
+          if (n.eq.0) then
+              totk = dumetg2 / imaxe
 
-                        if (n.eq.0)then
-                        totk=dumetg2/imaxe
-                                          if (it.eq.0)then
-                                open(123,file='er.dat',form='formatted',status='new',action='write',position='append')
-                                else
-                                open(123,file='er.dat',form='formatted',status='old',action='write',position='append')
-                                end if
-                                write(123,*)t,totk
-                                close(123)
+              if (it.eq.0) then
+                open(123,file='er.dat',form='formatted',status='new',action='write',position='append')
+              else
+                open(123,file='er.dat',form='formatted',status='old',action='write',position='append')
+              end if
 
-                        end if
+              write(123,*) t, totk
+              close(123)
+          end if
+        !$omp end single
 
-
-
-
-
-
-
-                   end if
-
-
-
-                  call mpi_barrier(mpi_comm_world,ierror)
+        end if
 
 
 
 
 ! 				end if
 			    end if
-           
+                !$omp single
  			    if ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411).or.(initcond.eq.157))then
-! 			    if ( mod(it, 1) .eq. 0)then
+ 			    if ( mod(it, 100) .eq. 0)then
+#ifdef gpu
+                  !$omp target update from(u_c_val)
+#endif
                                  call trajectories
-! 			    end if
+ 			    end if
  			    end if
 			
 			
 			
-			!$omp end master 
-			!$omp barrier
+			!$omp end single
+
 			
 			if ( mod(it, iforce) .eq. 0) then
 			if (outsurf.eq.1) then   
@@ -4681,14 +5842,40 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			
 			
 			
-			!$omp master
-			if (nprobes.gt.0) call probing
+			!$omp single
+			if (nprobes.gt.0) then
+			if ( mod(it, 100) .eq. 0) then
+#ifdef gpu
+                  !$omp target update from(u_c_val)
+#endif
+			call probing
+
+			end if
+			end if
 					
 			
 			if (timec1.ge.ievery)then
-			
+#ifdef gpu
+                  !$omp target update from(u_c_val)
+                   if (allocated(u_ct_val)) then
+                  !$omp target update from(u_ct_val)
+                  end if
+                  if (allocated(ielem_vortex)) then
+                  !$omp target update from(ielem_vortex)
+                  end if
+                  if (allocated(ielem_troubled)) then
+                  !$omp target update from(ielem_troubled)
+                  end if
+                   if (allocated(ielem_mood_o)) then
+                  !$omp target update from(ielem_mood_o)
+                  end if
+#endif
 			    call volume_solution_write
 			     if (outsurf.eq.1)then
+#ifdef gpu
+			     !$omp target update from(rec_grads)
+#endif
+
 			    call surface_solution_write
 			    end if
 			cput1=mpi_wtime()
@@ -4696,9 +5883,26 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			
 			if (initcond.eq.95)then           
 			if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
-			
+#ifdef gpu
+                  !$omp target update from(u_c_val)
+                   if (allocated(u_ct_val)) then
+                  !$omp target update from(u_ct_val)
+                  end if
+                  if (allocated(ielem_vortex)) then
+                  !$omp target update from(ielem_vortex)
+                  end if
+                  if (allocated(ielem_troubled)) then
+                  !$omp target update from(ielem_troubled)
+                  end if
+                   if (allocated(ielem_mood_o)) then
+                  !$omp target update from(ielem_mood_o)
+                  end if
+#endif
                 call volume_solution_write
 			     if (outsurf.eq.1)then
+#ifdef gpu
+			     !$omp target update from(rec_grads)
+#endif
 			    call surface_solution_write
 			    end if
 			    if (initcond.eq.95)then                    
@@ -4712,9 +5916,26 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 
             if (code_profile.eq.-1)then
 			if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
-
+#ifdef gpu
+                  !$omp target update from(u_c_val)
+                   if (allocated(u_ct_val)) then
+                  !$omp target update from(u_ct_val)
+                  end if
+                  if (allocated(ielem_vortex)) then
+                  !$omp target update from(ielem_vortex)
+                  end if
+                  if (allocated(ielem_troubled)) then
+                  !$omp target update from(ielem_troubled)
+                  end if
+                   if (allocated(ielem_mood_o)) then
+                  !$omp target update from(ielem_mood_o)
+                  end if
+#endif
                 call volume_solution_write
 			     if (outsurf.eq.1)then
+#ifdef gpu
+			     !$omp target update from(rec_grads)
+#endif
 			    call surface_solution_write
 			    end if
 			every_time=every_time+output_freq
@@ -4749,12 +5970,12 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			end if
 			  
 			
-			!$omp end master 
-			!$omp barrier
+			!$omp end single
+
 			
 			
 			
-			!$omp master
+			!$omp single
 			it=it+1
 			
 			if ((it.eq.ntmax).or.(timec3.ge.wallc).or.(dtiv.gt.out_time))then
@@ -4766,14 +5987,14 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			kill=1
 			end if
 			end if
-			!$omp end master 
-			!$omp barrier
+			!$omp end single
+
            
             
             
             
 			  
-			!$omp master
+			!$omp single
 			if (kill.eq.1)then
 			
 			    call volume_solution_write
@@ -4790,8 +6011,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			      end if
 			end if
 			
-			!$omp end master
-			!$omp barrier
+			!$omp end single
+
 			
 			if (kill.eq.1)then
 			if (itestcase.le.3)then  

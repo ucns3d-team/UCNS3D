@@ -9599,7 +9599,7 @@ real,allocatable,dimension(:)::ifint,tfint,ndr,nds
 integer::ineedt,jj,ix,ix1,i1,i2,i3,i4,i5,decomf,kd
 real,allocatable,dimension(:)::variables
 real,dimension(3,3)::avort,tvort,svort,ovort
-integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1,ind1
+integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1
 logical::herev
 real,dimension(5)::total
  character(len=20)::proc,outfile,proc3,surfile,proc4
@@ -9738,11 +9738,7 @@ valuelocation(:)=0
   valuess=zero
     
    
-	      if (rungekutta.eq.4)then
-	      ind1=7
-	      else
-	      ind1=5
-	      end if
+
 	      
 	      
 
@@ -9849,7 +9845,7 @@ real,allocatable,dimension(:)::ifint,tfint,ndr,nds
 integer::ineedt,jj,ix,ix1,i1,i2,i3,i4,i5,decomf,kd
 real,allocatable,dimension(:)::variables
 real,dimension(3,3)::avort,tvort,svort,ovort
-integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1,ind1
+integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1
 logical::herev
 real,dimension(5)::total
  character(len=20)::proc,outfile,proc3,surfile,proc4
@@ -10017,11 +10013,7 @@ valuelocation(:)=0
   allocate(valuess(imaxp))
   valuess=zero
     
-	      if (rungekutta.eq.4)then
-	      ind1=7
-	      else
-	      ind1=5
-	      end if
+
 	      
 
 
@@ -10382,7 +10374,7 @@ real,allocatable,dimension(:)::ifint,tfint,ndr,nds
 integer::ineedt,jj,ix,ix1,i1,i2,i3,i4,i5,decomf,kd
 real,allocatable,dimension(:)::variables
 real,dimension(3,3)::avort,tvort,svort,ovort
-integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1,ind1
+integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1
 logical::herev
 real,dimension(5)::total
  character(len=20)::proc,outfile,proc3,surfile,proc4
@@ -10654,7 +10646,7 @@ real,allocatable,dimension(:)::ifint,tfint,ndr,nds
 integer::ineedt,jj,ix,ix1,i1,i2,i3,i4,i5,decomf,kd,im
 real,dimension(8)::variables
 real,dimension(3,3)::avort,tvort,svort,ovort
-integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1,icount_wall,ind1
+integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1,icount_wall
 logical::herev
 real,dimension(5)::total
  character(len=20)::proc,outfile,proc3,surfile,proc4
@@ -10902,14 +10894,7 @@ valuelocation(:)=0
 !   if (xmpiwall(n).gt.0)then
   allocate(valuess(xmpiwall(n)))
 !   end if
-    if (rungekutta.eq.4)then
-    ind1=7
-    
-    
-    else
-    ind1=5
-    
-    end if
+
    
 if (itestcase.le.2)then
 
@@ -15475,7 +15460,7 @@ subroutine parallel_vtk_combine_av(n)
 implicit none
 integer,intent(in)::n
 real,allocatable,dimension(:)::array2,array3,array4
-integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,fh,dip,n_end,ifg,kmaxn_p,itrimm,temp_cord,ind1
+integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,fh,dip,n_end,ifg,kmaxn_p,itrimm,temp_cord
 character(len=40)::proc,filex,proc3
 real,allocatable,dimension(:)::array
 logical::here1
@@ -15507,11 +15492,7 @@ kmaxn_p=xmpiall_v(n)
 temp_cord=3
 
 
-if (rungekutta.eq.4)then
-	      ind1=7
-	      else
-	      ind1=5
-	      end if
+
 
 
 
@@ -16592,7 +16573,7 @@ subroutine parallel_vtk_combine_partitioned_wall_av(n)
 implicit none
 integer,intent(in)::n
 real,allocatable,dimension(:)::array2,array3,array4
-integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,fh,dip,n_end,ifg,kmaxn_p,itrimm,temp_cord,kkd_i,kkd,ind1
+integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,fh,dip,n_end,ifg,kmaxn_p,itrimm,temp_cord,kkd_i,kkd
 character(len=20)::proc,proc3,proc5,proc6,proc7
 character(len=90)::filex,filev
 real,allocatable,dimension(:)::array
@@ -16621,11 +16602,7 @@ disp_in_file=0
 tmp=0
 disp_init=0
 
-if (rungekutta.eq.4)then
-	      ind1=7
-	      else
-	      ind1=5
-	      end if
+
 
 
 
@@ -16984,7 +16961,7 @@ subroutine parallel_vtk_combine_partitioned_av(n)
 	implicit none
 	integer,intent(in)::n
 	real,allocatable,dimension(:)::array2,array3,array4
-	integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,fh,dip,n_end,ifg,kmaxn_p,itrimm,temp_cord,ind1
+	integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,fh,dip,n_end,ifg,kmaxn_p,itrimm,temp_cord
 	character(len=20)::proc,proc3,proc5,proc6,proc7
 	character(len=90)::filex,filev
 	real,allocatable,dimension(:)::array
@@ -17017,11 +16994,7 @@ real::mp_pinfr,gammar
 	temp_cord=3
 	
 
-	if (rungekutta.eq.4)then
-		ind1=7
-		else
-		ind1=5
-		end if
+
 
 	
 	
@@ -17769,7 +17742,7 @@ integer::iconsidered,facex
 		implicit none
 		integer,intent(in)::n
 		real,allocatable,dimension(:)::array2,array3,array4
-		integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,fh,dip,n_end,ifg,kmaxn_p,itrimm,temp_cord,kkd_i,kkd,typ_countn_global,ind1
+		integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,fh,dip,n_end,ifg,kmaxn_p,itrimm,temp_cord,kkd_i,kkd,typ_countn_global
 		character(len=20)::proc,filex,proc3
 		real,allocatable,dimension(:)::array
 		logical::here1
@@ -17808,11 +17781,7 @@ integer::iconsidered,facex
  		end if
 
 
-	if (rungekutta.eq.4)then
-	      ind1=7
-	      else
-	      ind1=5
-	      end if
+
 
 
 
@@ -18550,7 +18519,7 @@ integer,intent(in)::n
 integer,allocatable,dimension(:)::icell,icella,dispt
 real,allocatable,dimension(:)::valuesa,valuess,array2
 real,allocatable,dimension(:,:)::xbin
-integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,ind1,fh,size_of_real,size_of_int,dip,ista,iend,n_end,datatype
+integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,fh,size_of_real,size_of_int,dip,ista,iend,n_end,datatype
  character(len=20)::proc,restfile,proc3
  real,allocatable,dimension(:)::igint,tgint,array
  integer(kind=mpi_offset_kind) :: disp_in_file, tmp,disp_init
@@ -18570,11 +18539,7 @@ size_of_real=8
 icpuid=n
 call mpi_barrier(mpi_comm_world,ierror)
  
-if (rungekutta.eq.4)then
-ind1=7
-else
-ind1=5
-end if
+
 
 
 	
@@ -18656,7 +18621,7 @@ integer,allocatable,dimension(:)::icell,icella,dispt
 real,allocatable,dimension(:)::valuesa,valuess,array2
 real,allocatable,dimension(:)::rg,arg
 character(len=20)::proc,restfile,proc3
-integer:: prev_turbequation,initial,iii,i,k,j,jx,qqp,inc,kmaxe,jkn,ki,iterr,jx2,ind1,fh,size_of_real,size_of_int,dip,n_end,datatype
+integer:: prev_turbequation,initial,iii,i,k,j,jx,qqp,inc,kmaxe,jkn,ki,iterr,jx2,fh,size_of_real,size_of_int,dip,n_end,datatype
 real,allocatable,dimension(:)::igint,tgint,array
 integer(kind=mpi_offset_kind) :: disp_in_file, tmp
 logical::here
@@ -18665,11 +18630,7 @@ tmp=0
 
 kmaxe=xmpielrank(n)
 
-if (rungekutta.eq.4)then
-ind1=7
-else
-ind1=5
-end if
+
 prev_turbequation=0
 if (prev_turbmodel.eq.1) then
 prev_turbequation=1
@@ -19166,11 +19127,9 @@ real::ux,uy,uz,vx,vy,vz,wx,wy,wz,angle1,angle2,nx,ny,nz
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
-real,dimension(1:8,1:dimensiona)::vext
-real,dimension(1:dimensiona,1:numberofpoints2)::qpoints2d
-real,dimension(1:numberofpoints2)::wequa2d
+real,dimension(1:numberofpoints2)::weights_temp
 real,dimension(1:4)::viscl,laml
-real::fxr,fyr,fzr,mome_xcc,mome_ycc,mome_zcc,origin(1:3)
+real::fxr,fyr,fzr,mome_xcc,mome_ycc,mome_zcc
 
 
 forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
@@ -19189,8 +19148,17 @@ forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
  momentx=zero
  kmaxe=xmpielrank(n)
  
-!$omp barrier 
-!$omp do  reduction(+:forcex,forcey,forcez,momentx,momenty,momentz)
+#ifdef GPU
+
+!$omp target teams distribute parallel do                              &
+!$omp& private (mysurface, j, k, im, nnd, gqi_points,&
+!$omp& angle1, angle2, nx, ny, nz,ssx, ssy, ssz, ssp, surface_temp, &
+!$omp& ux, uy, uz, vx, vy, vz, wx, wy, wz, px,tauxx, tauyy, tauzz, tauyx, tauzx, tauzy &
+!$omp& fxr, fyr, fzr,mome_xcc, mome_ycc, mome_zcc, vortet1,leftv,rightv,viscl,laml,weights_temp)&
+!$omp& reduction(+:forcex,forcey,forcez,momentx,momenty,momentz)
+#else
+!$omp do reduction(+:forcex,forcey,forcez,momentx,momenty,momentz)
+#endif
 do i=1,kmaxe
 		if (ielem_interior(i).eq.1)then
 			if(mrf.eq.1)then
@@ -19212,35 +19180,14 @@ do i=1,kmaxe
 			  
 				select case(ielem_types_faces(j,i))
 				case (5)
-					  gqi_points=qp_quad_n
-					
-					  
-					  
-					  if(reduce_comp.eq.1)then
-					  wequa2d=1.0d0;
-					  else
-					    nnd=4
-				      do k=1,nnd
-					vext(k,1:dims)=inoder4_cord(1:dims,ielem_nodes_faces(j,k,i))
-				      end do
-					  call  quadraturequad3d(n,igqrules,vext,qpoints2d,wequa2d)
-					  end if
+					  gqi_points=qp_quad
+					  weights_temp(1:gqi_points)=weights_q(1:gqi_points)
 					  surface_temp=ielem_surf(j,i)
 					  
 				  
 				case(6)
-					gqi_points=qp_triangle_n
-					
-					    
-					if(reduce_comp.eq.1)then
-					  wequa2d=1.0d0;
-					  else
-					  nnd=3
-					do k=1,nnd
-					  vext(k,1:dims)=inoder4_cord(1:dims,ielem_nodes_faces(j,k,i))
-					end do
-					call quadraturetriang(n,igqrules,vext,qpoints2d,wequa2d)
-					end if
+					gqi_points=qp_triangle
+					weights_temp(1:gqi_points)=weights_t(1:gqi_points)
  					    surface_temp=ielem_surf(j,i)
  					    
  					    
@@ -19285,7 +19232,7 @@ do i=1,kmaxe
 				  
 				    call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 				    px=leftv(5)
-				    ssp=ssp+(px*wequa2d(im))
+				    ssp=ssp+(px*weights_temp(im))
 				    if (itestcase.eq.4)then
 				    if (dg.eq.1)then
 				  leftv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
@@ -19305,9 +19252,9 @@ do i=1,kmaxe
 				  tauyx=(uy + vx)
 				  tauzx=(wx + uz)
 				  tauzy=(vz + wy)
-				  ssx=ssx-((viscl(1)*((nx*tauxx)+(ny*tauyx)+(nz*tauzx)))*wequa2d(im))
-				  ssy=ssy-((viscl(1)*((nx*tauyx)+(ny*tauyy)+(nz*tauzy)))*wequa2d(im))
-				  ssz=ssz-((viscl(1)*((nx*tauzx)+(ny*tauzy)+(nz*tauzz)))*wequa2d(im))
+				  ssx=ssx-((viscl(1)*((nx*tauxx)+(ny*tauyx)+(nz*tauzx)))*weights_temp(im))
+				  ssy=ssy-((viscl(1)*((nx*tauyx)+(ny*tauyy)+(nz*tauzy)))*weights_temp(im))
+				  ssz=ssz-((viscl(1)*((nx*tauzx)+(ny*tauzy)+(nz*tauzz)))*weights_temp(im))
 				 end if
 				   end do
 				   
@@ -19341,14 +19288,18 @@ do i=1,kmaxe
 
 		
 end do					 
+#ifdef GPU
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 	
 
 		
 	
 	
-!$omp barrier 
-!$omp master 
+
+!$omp single
 	forcex=forcex*vectorx
 	forcey=forcey*vectory
 	forcez=forcez*vectorz
@@ -19414,11 +19365,11 @@ end do
 	close(50+n)
 	close(500+n)
 	end if		
-	call mpi_barrier(mpi_comm_world,ierror)
+
 	
 	
-!$omp end master 
-!$omp barrier 
+!$omp end single
+
 	
 	
 	
@@ -19448,9 +19399,7 @@ real::ux,uy,uz,vx,vy,vz,wx,wy,wz,nx,ny,angle1,angle2
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
-real,dimension(1:8,1:dimensiona)::vext
-real,dimension(1:dimensiona,1:numberofpoints2)::qpoints2d
-real,dimension(1:numberofpoints2)::wequa2d
+real,dimension(1:numberofpoints2)::weights_temp
 real,dimension(1:4)::viscl,laml
 forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
  cd=zero
@@ -19459,8 +19408,16 @@ forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
  co(:)=zero
  kmaxe=xmpielrank(n)
  
-!$omp barrier 
-!$omp do  reduction(+:forcex,forcey,forcez)
+#ifdef GPU
+!$omp target teams distribute parallel do                              &
+!$omp& private (mysurface, j, k, im, nnd, gqi_points,&
+!$omp& angle1, angle2, nx, ny, nz,ssx, ssy, ssz, ssp, surface_temp, &
+!$omp& ux, uy, uz, vx, vy, vz, wx, wy, wz, px,tauxx, tauyy, tauzz, tauyx, tauzx, tauzy &
+!$omp& fxr, fyr, fzr,mome_xcc, mome_ycc, mome_zcc, vortet1,leftv,rightv,viscl,laml,weights_temp)&
+!$omp& reduction(+:forcex,forcey,forcez)
+#else
+!$omp do reduction(+:forcex,forcey,forcez)
+#endif
 do i=1,kmaxe
 		if (ielem_interior(i).eq.1)then	
 		    do j=1,ielem_ifca(i)
@@ -19474,16 +19431,7 @@ do i=1,kmaxe
 			  
 				
 					  gqi_points=qp_line_n
-					   if(reduce_comp.eq.1)then
-					  wequa2d=1.0d0;
-					  else
-					  nnd=2
-				      do k=1,nnd
-					vext(k,1:dims)=inoder4_cord(1:dims,ielem_nodes_faces(j,k,i))
-				      end do
-					  
-					  call  quadratureline(n,igqrules,vext,qpoints2d,wequa2d)
-					  end if
+					  weights_temp(1:qp_line) = weights_l(1:qp_line)
 					  surface_temp=ielem_surf(j,i)
 					  
 				  
@@ -19528,10 +19476,10 @@ do i=1,kmaxe
 				  tauyy=2.0d0*vy
 				  tauyx=(uy + vx)
 				  
-				  ssx=ssx-((viscl(1)*((ny*tauyx)))*wequa2d(im))
-				  ssy=ssy-((viscl(1)*((nx*tauyx)))*wequa2d(im))
+				  ssx=ssx-((viscl(1)*((ny*tauyx)))*weights_temp(im))
+				  ssy=ssy-((viscl(1)*((nx*tauyx)))*weights_temp(im))
 				  end if
-				  ssp=ssp+(px*wequa2d(im))
+				  ssp=ssp+(px*weights_temp(im))
 				   end do
 				   
 				   
@@ -19551,14 +19499,18 @@ do i=1,kmaxe
 			
 		
 end do					 
+#ifdef GPU
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 	
 
 		
 	
 	
-!$omp barrier 
-!$omp master 
+
+!$omp single
 	forcex=forcex*vectorx
 	forcey=forcey*vectory
 	
@@ -19589,8 +19541,7 @@ end do
 	call mpi_barrier(mpi_comm_world,ierror)
 	
 	
-!$omp end master 
-!$omp barrier 
+!$omp end single
 	
 	
 	
@@ -19615,8 +19566,12 @@ allres(:)=zero
 
 
 if ((itestcase.le.4).and.(turbulence.ne.1))then
-!$omp barrier 
-!$omp do  reduction(+:allres)
+#ifdef GPU
+!$omp target teams distribute parallel do                              &
+!$omp& reduction(+:allres)
+#else
+!$omp do reduction(+:allres)
+#endif
 do i=1,kmaxe
 	if (dg.eq.1)then
     allres(1:nof_variables)=allres(1:nof_variables)+((rhs_valdg(1,1:nof_variables,i)*ielem_totvolume(i))**2)
@@ -19625,9 +19580,13 @@ do i=1,kmaxe
 
     end if
 end do
+#ifdef GPU
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
-!$omp master
+!$omp single
 do i=1,5
 suml3=allres(i)
 dum_resi=zero
@@ -19644,7 +19603,7 @@ end if
 allres(i)=allres(i)/initialres(i)
 
 end do
-!$omp end master
+!$omp end single
 
 
 
@@ -19652,15 +19611,23 @@ end do
 end if
 
 if (turbulence.eq.1)then
-!$omp barrier 
-!$omp do  reduction(+:allres)
+#ifdef GPU
+!$omp target teams distribute parallel do                              &
+!$omp& reduction(+:allres)
+#else
+!$omp do reduction(+:allres)
+#endif
 do i=1,kmaxe
     allres(1:nof_variables)=allres(1:nof_variables)+((rhs_val(1:nof_variables,i)*ielem_totvolume(i))**2)
     allres(nof_variables+1:nof_variables+turbulenceequations)=allres(nof_variables+1:nof_variables+turbulenceequations)+((rhst_val(1:turbulenceequations,i)*ielem_totvolume(i))**2)
 end do
+#ifdef GPU
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
-!$omp master
+!$omp single
 do i=1,7
 suml3=allres(i)
 dum_resi=zero
@@ -19680,13 +19647,13 @@ allres(i)=allres(i)/initialres(i)
 end do
 
 if (turbulenceequations.eq.1) allres(7)=1.0d0
-!$omp end master
+!$omp end single
 
 end if
 
 
 
-!$omp master
+!$omp single
 if (n.eq.0)then
 if ((itestcase.le.4).and.(turbulence.ne.1))then
 
@@ -19713,7 +19680,7 @@ if ((allres(1).lt.reslimit).and.(allres(2).lt.reslimit).and.(allres(3).lt.reslim
 
 
 
-!$omp end master
+!$omp end single
 
  
 
@@ -19741,8 +19708,12 @@ allres(:)=zero
 
 
 if ((itestcase.le.4).and.(turbulence.ne.1))then
-!$omp barrier 
-!$omp do  reduction(+:allres)
+#ifdef GPU
+!$omp target teams distribute parallel do                              &
+!$omp& reduction(+:allres)
+#else
+!$omp do reduction(+:allres)
+#endif
 do i=1,kmaxe
 
     if (dg.eq.1)then
@@ -19752,12 +19723,16 @@ do i=1,kmaxe
 
     end if
 end do
+#ifdef GPU
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
 
 
-!$omp barrier
-!$omp master
+
+!$omp single
 
 do i=1,4
 suml3=allres(i)
@@ -19776,7 +19751,7 @@ allres(i)=allres(i)/initialres(i)
 
 end do
 
-!$omp end master
+!$omp end single
 
 
 
@@ -19784,15 +19759,23 @@ end do
 end if
 
 if (turbulence.eq.1)then
-!$omp barrier 
-!$omp do  reduction(+:allres)
+#ifdef GPU
+!$omp target teams distribute parallel do                              &
+!$omp& reduction(+:allres)
+#else
+!$omp do reduction(+:allres)
+#endif
 do i=1,kmaxe
     allres(1:nof_variables)=allres(1:nof_variables)+((rhs_val(1:nof_variables,i)*ielem_totvolume(i))**2)
     allres(nof_variables+1:nof_variables+turbulenceequations)=allres(nof_variables+1:nof_variables+turbulenceequations)+((rhst_val(1:turbulenceequations,i)*ielem_totvolume(i))**2)
 end do
+#ifdef GPU
+!$omp end target teams distribute parallel do
+#else
 !$omp end do
+#endif
 
-!$omp master
+!$omp single
 do i=1,nof_variables+turbulenceequations
 suml3=allres(i)
 dum_resi=zero
@@ -19810,13 +19793,13 @@ end if
 allres(i)=allres(i)/initialres(i)
 
 end do
-!$omp end master
+!$omp end single
 
 end if
 
 
 
-!$omp master
+!$omp single
 if (n.eq.0)then
 if ((itestcase.le.4).and.(turbulence.ne.1))then
 
@@ -19841,7 +19824,7 @@ end if
  kill=1
  end if
 
-!$omp end master
+!$omp end single
 
 
 
@@ -21294,7 +21277,7 @@ subroutine outwritepara3dbpav
 !> this subroutine writes the solution and the grid file in binary vtk format
 use iso_c_binding
 implicit none
-integer::kmaxe,ind1
+integer::kmaxe
 real::x,y,z,denominator,tuy,tvx,twx,tuz,tvz,twy,snorm,onorm
 real,dimension(3,3)::avort,tvort,svort,ovort
 integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1,j1,j2,j3,j4,j5,j6,j7,j8
@@ -21325,11 +21308,6 @@ real,dimension(1:4)::viscl,laml
 kmaxe=xmpielrank(n)
 
 
-if (rungekutta.eq.4)then
-	      ind1=7
-	      else
-	      ind1=5
-	      end if
 
 
 allocate(xbin(kmaxe))
@@ -21884,7 +21862,7 @@ real,allocatable,dimension(:)::ifint,tfint,ndr,nds
 integer::ineedt,jj,ix,ix1,i1,i2,i3,i4,i5,decomf,kd
 real,allocatable,dimension(:)::variables
 real,dimension(3,3)::avort,tvort,svort,ovort
-integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1,j1,j2,j3,j4,j5,j6,j7,j8,ind1
+integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1,j1,j2,j3,j4,j5,j6,j7,j8
 logical::herev
 real,dimension(5)::total
  character(len=30)::proc,outfile,proc3,surfile,proc4,proc5
@@ -21912,11 +21890,7 @@ allocate(variables(12))
 nvar1=2
 kmaxe=xmpielrank(n)
 
-if (rungekutta.eq.4)then
-	      ind1=7
-	      else
-	      ind1=5
-	      end if
+
 
 
 if (n.eq.0)then
@@ -22176,7 +22150,7 @@ real,allocatable,dimension(:)::ifint,tfint,ndr,nds
 integer::ineedt,jj,ix,ix1,i1,i2,i3,i4,i5,decomf,kd
 real,allocatable,dimension(:)::variables
 real,dimension(3,3)::avort,tvort,svort,ovort
-integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1,ind1,j1,j2,j3,j4,j5,j6,j7,j8,icount_wall
+integer::inx,i,k,j,m,o,p,q,jk,imax,jmax,kmax,igf,igf2,dumg,duml,imaxp,nvar1,j1,j2,j3,j4,j5,j6,j7,j8,icount_wall
 logical::herev
 real,dimension(5)::total
  character(len=30)::proc,outfile,proc3,surfile,proc4,proc5
@@ -22203,11 +22177,7 @@ character(len=15)  :: str1,str2
 allocate(variables(12))
 nvar1=2
 
-if (rungekutta.eq.4)then
-	      ind1=7
-	      else
-	      ind1=5
-	      end if
+
 
 
 

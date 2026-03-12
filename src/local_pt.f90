@@ -2510,8 +2510,6 @@ end if
 !
 ! end if
 
-
-!if (realgas.eq.1)then
 if (code_profile.eq.888)then
 if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
@@ -2523,7 +2521,6 @@ if (ielem_interior(i).eq.1)then
         end do
 end if
 end if
-!end if
 
 
 

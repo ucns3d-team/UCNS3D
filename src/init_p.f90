@@ -18,7 +18,7 @@ IMPLICIT NONE
 integer,INTENT(IN)::N
 REAL,allocatable,DIMENSION(:)::RG,ARG
 CHARACTER(LEN=20)::PROC,RESTFILE,PROC3
-INTEGER::prev_turbequation,INITIAL,III,i,k,jx,QQP,INC,kmaxe,jkn,ki,iterr,JX2,ind1,KX,icompwrt,ICONSIDERED
+INTEGER::prev_turbequation,INITIAL,III,i,k,jx,QQP,INC,kmaxe,jkn,ki,iterr,JX2,KX,icompwrt,ICONSIDERED
 INTEGER::ELTYPE,ELEM_DEC,COUNT_1
 REAL::VOLTEMP
 real,dimension(1:nof_Variables+turbulenceequations+passivescalar)::veccos
@@ -31,11 +31,7 @@ REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
 
 
 
-if (rungekutta.eq.4)then
-ind1=7
-else
-ind1=5
-end if
+
 
 
 IF (LAMPS.EQ.1)THEN

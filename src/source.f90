@@ -2096,7 +2096,7 @@ onorm=sqrt(2.0d0*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+(ovort(1,3)*ov
 omega=onorm
 
 
-divnorm=ux+uy+uz  !careful with the sign. if it becomes very big, it can produce negative production
+divnorm=ux+vy+wz  !careful with the sign. if it becomes very big, it can produce negative production
 
 usss=sqrt((2.0*((ux*ux)+(vy*vy)+(wz*wz)))&
 	+((uy+vx)*(uy+vx)+(uz+wx)*(uz+wx)+(wy+vz)*(wy+vz))&
@@ -2439,7 +2439,7 @@ onorm=sqrt(2.0d0*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+(ovort(1,3)*ov
 omega=onorm
 
 
-divnorm=ux+uy+uz  !careful with the sign. if it becomes very big, it can produce negative production
+divnorm=ux+vy+wz  !careful with the sign. if it becomes very big, it can produce negative production
 
 usss=sqrt((2.0*((ux*ux)+(vy*vy)+(wz*wz)))&
 	+((uy+vx)*(uy+vx)+(uz+wx)*(uz+wx)+(wy+vz)*(wy+vz))&
@@ -2893,7 +2893,7 @@ onorm=sqrt(2.0d0*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+&
 omega=onorm
 
 
-divnorm=ux+uy+uz  !careful with the sign. if it becomes very big, it can produce negative production
+divnorm=ux+vy+wz  !careful with the sign. if it becomes very big, it can produce negative production
 
 usss=sqrt((2.0*((ux*ux)+(vy*vy)))&
 	+((uy+vx)*(uy+vx))&
@@ -3236,7 +3236,7 @@ onorm=sqrt(2.0d0*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+&
 omega=onorm
 
 
-divnorm=ux+uy !careful with the sign. if it becomes very big, it can produce negative production
+divnorm=ux+vy !careful with the sign. if it becomes very big, it can produce negative production
 
 usss=sqrt((2.0*((ux*ux)+(vy*vy)))&
 	+((uy+vx)*(uy+vx))&

@@ -15,7 +15,7 @@ implicit none
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
 
-integer::cascade,mood,mood_mode,kmaxn,multispecies,nof_species,dimensiona,lowmem,binio,nof_variables,chunk_n,dims,ires_turb,code_profile,ires_unsteady,lamps,itotalb,totiw,icompact,ees,iscoun,itold,lmach_style,weight_lsqr	!dimensions of problem
+integer::cascade,mood,mood_mode,kmaxn,multispecies,nof_species,dimensiona,lowmem,binio,nof_variables,chunk_n,dims,ires_turb,ind1,code_profile,ires_unsteady,lamps,itotalb,totiw,icompact,ees,iscoun,itold,lmach_style,weight_lsqr	!dimensions of problem
 integer::governingequations,filtering,guassianquadra,temporder,iboundary,wenocnschar,required,nodes_i,swirl,iadapt,tecplot,stencil_io,surfshear,issf,n_boundaries,fastest_q,statistics,adda,alls
 integer,allocatable,dimension(:,:)::jtot1,jtot2,jtot3,jtot,el_connect
 integer::jtotal,jtotal1,jtotal2,jtotal3,fastmovie,movement,typ_countn_global,typ_countn,typ_countn_global_w,typ_countn_w
@@ -37,6 +37,7 @@ integer::ibside					! index for which side of cell is bounded
 integer::cfw					!index for determining from the which section the boundary subroutine is called
 integer::dg, br2_yn                     ! flag for dg discretisation
 real:: br2_damping
+real::ccfl
 real::r_gas						!specific gas constant
 real,allocatable,dimension(:):: weights_q,weights_t,weights_l
 integer::lowmemory				! memory usage flag
@@ -150,7 +151,7 @@ integer::kloopx,iloopx,totwallsc,iwmaxe
 integer,allocatable,dimension(:)::wallit,offsetwall,wall_nodes,wallcx,offsetwc,offsetwc_g,wallcx_g,wallshape,wallshape_g,wallshape_g2
 integer,allocatable,dimension(:,:)::wall_l
 !--------------------- end of variables for parallel partitioned output-------!
-real,dimension(3)::srf_origin,srf_velocity
+real,dimension(3)::srf_origin,srf_velocity,origin
 real::press_outlet
 integer::rframe,source_active
 real::per_rot,angle_per,v_ref,kinit_srf,srfg,tol_per
@@ -854,7 +855,7 @@ integer, allocatable :: ibound_cpun(:,:)    !local number and cpu for each bound
 !$omp declare target (u_e_val, v_ref, variable_names, variable_names_av, variable_names_av_w, variable_names_w, viscous_s, vort_model, wall_temp, weight_lsqr)
 !$omp declare target (wnodes_part, wpart1_end, wpart2_end, wpart3_end, wpart4_end, wpart5_end, write_variables, write_variables_av, write_variables_av_w, write_variables_w)
 !$omp declare target (zero_turb_init, zeta_star, adda, allnodesgloball, allres, allresdt, alls, alpha, aoa, averaging)
-!$omp declare target (beta, betaas, binio, bleed, boundtype, cascade, cavitation)
+!$omp declare target (beta, betaas, binio, bleed, boundtype, cascade, cavitation,origin)
 !----mpi comm
 !$omp declare target (halo_len,halos_len,halo_offset,halos_offset,ineedbound,ineedbounds)
 !$omp declare target (bound_len,bounds_len,need_side,need_q,need_loc,halo_proc,halos_proc)
@@ -889,7 +890,7 @@ integer, allocatable :: ibound_cpun(:,:)    !local number and cpu for each bound
 !$omp declare target (wdatatypex, wdatatypexx, wdatatypey, wdatatypeyy, wdatatypez, wenocentralweight, wenocnschar, wenoz, wenwrt, wkdum1)
 !$omp declare target (wkdum2, wkdum3, wvel, xmpielrank, xper, yper, zero, zper)
 !$omp declare target (indicator_par1, indicator_par2, indicator_par3)
-!$omp declare target (solhir_flat,solhis_flat,boundhir_flat,boundhis_flat,boundhir_dgflat,boundhis_dgflat,boundhiri_flat,boundhisi_flat,weights_t,weights_q,weights_l)
+!$omp declare target (solhir_flat,solhis_flat,boundhir_flat,boundhis_flat,boundhir_dgflat,boundhis_dgflat,boundhiri_flat,boundhisi_flat,weights_t,weights_q,weights_l,ilength1,ilength2,ccfl,ind1)
 
 #endif
 

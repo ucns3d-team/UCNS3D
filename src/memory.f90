@@ -1083,8 +1083,8 @@ subroutine omp_map_first(n)
   !$omp target update to(cw1, cw2, cw3, d_corr, datatypeint, datatypex, datatypexx, datatypey, datatypeyy)
   !$omp target enter data map(alloc: datatypez, des_model, dg, dimensiona, dims, dt, ees, ek_time, emetis, eta2_sas)
   !$omp target update to(datatypez, des_model, dg, dimensiona, dims, dt, ees, ek_time, emetis, eta2_sas)
-  !$omp target enter data map(alloc: every_time, extended_bounds, extf, fastest, fastest_q)
-  !$omp target update to(every_time, extended_bounds, extf, fastest, fastest_q)
+  !$omp target enter data map(alloc: every_time, extended_bounds, extf, fastest, fastest_q,ind1,origin)
+  !$omp target update to(every_time, extended_bounds, extf, fastest, fastest_q,ind1,origin)
 
   !$omp target enter data map(alloc: fastmovie, fil_alpha, fil_nc, fil_s, filter_type, filtering, firstorder, firstrese)
   !$omp target update to(fastmovie, fil_alpha, fil_nc, fil_s, filter_type, filtering, firstorder, firstrese)
@@ -1134,8 +1134,8 @@ subroutine omp_map_first(n)
   !$omp target update to(pr_t3, pr_t4, pr_t5, pr_t6, pr_t7, pr_t8, prace_t1, prace_t2, prace_t3, prace_t4)
   !$omp target enter data map(alloc: prace_t5, prace_t6, prace_t7, prace_t8, prace_t9, prace_tx1, prace_tx2, prace_tx3)
   !$omp target update to(prace_t5, prace_t6, prace_t7, prace_t8, prace_t9, prace_tx1, prace_tx2, prace_tx3)
-  !$omp target enter data map(alloc: prandtl, pres, press_outlet, prev_turbmodel, prevres, prtu, qp_hexa, qp_line)
-  !$omp target update to(prandtl, pres, press_outlet, prev_turbmodel, prevres, prtu, qp_hexa, qp_line)
+  !$omp target enter data map(alloc: ccfl,prandtl, pres, press_outlet, prev_turbmodel, prevres, prtu, qp_hexa, qp_line)
+  !$omp target update to(ccfl,prandtl, pres, press_outlet, prev_turbmodel, prevres, prtu, qp_hexa, qp_line)
   !$omp target enter data map(alloc: qp_line_n, qp_prism, qp_pyra, qp_quad, qp_quad_n, qp_tetra, qp_triangle)
   !$omp target update to(qp_line_n, qp_prism, qp_pyra, qp_quad, qp_quad_n, qp_tetra, qp_triangle)
   !$omp target enter data map(alloc: qp_triangle_n, qrde, qsas_model, r_beta, r_gas, r_k_sst, r_om_sst, realgas)
@@ -2118,8 +2118,8 @@ subroutine omp_map_first(n)
 
 
 
-    !$omp target enter data map(alloc: ineedhalo, ineedhalos,ineedbound,ineedbounds,bound_total,bounds_total, halo_total,halos_total)
-    !$omp target update to(ineedhalo, ineedhalos,ineedbound,ineedbounds,bound_total,bounds_total, halo_total,halos_total)
+    !$omp target enter data map(alloc: ineedhalo, ineedhalos,ineedbound,ineedbounds,bound_total,bounds_total, halo_total,halos_total,ilength1,ilength2)
+    !$omp target update to(ineedhalo, ineedhalos,ineedbound,ineedbounds,bound_total,bounds_total, halo_total,halos_total,ilength1,ilength2)
 
 !----------------------------
 ! Integers

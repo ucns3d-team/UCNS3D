@@ -4135,14 +4135,14 @@ real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
 real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
- integer::ind1
+
  
  
- if (rungekutta.eq.4)then
-	      ind1=7
-	      else
-	      ind1=5
-	      end if
+!  if (rungekutta.eq.4)then
+! 	      ind1=7
+! 	      else
+! 	      ind1=5
+! 	      end if
 
 vortet1(1:3,1:3) = rec_gradsav(1:3,1:3,iconsidered)
 
@@ -4201,15 +4201,7 @@ real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
 real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
- integer::ind1
 
- 
- 
- if (rungekutta.eq.4)then
-	      ind1=7
-	      else
-	      ind1=5
-	      end if
  
 vortet1(1:3,1:3) = rec_gradsav(1:3,1:3,iconsidered)
 
@@ -4267,14 +4259,7 @@ real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
 real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
- integer::ind1
- 
- 
- if (rungekutta.eq.4)then
-	      ind1=7
-	      else
-	      ind1=5
-	      end if
+
  
 vortet1(1:3,1:3) = rec_gradsav(1:3,1:3,iconsidered)
 
@@ -4330,7 +4315,7 @@ real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
 real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
- integer::ind1
+
 integer::gqi_points,im
 real,dimension(1:8,1:dimensiona)::vext
 	real,dimension(1:dimensiona,1:numberofpoints2)::qpoints2d
@@ -4402,7 +4387,6 @@ real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
 real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
- integer::ind1
 integer::gqi_points,im
 real,dimension(1:8,1:dimensiona)::vext
 	real,dimension(1:dimensiona,1:numberofpoints2)::qpoints2d
@@ -7157,12 +7141,12 @@ do i=1,kmaxe
         end if
     end if
     else
-    if (u_c_val(1,7,i).ge.0.1d0)then
+    if (u_c_val(1,7,i).ge.0.4d0)then
         if (ielem_xxc(i).le.post1)then
             post1=ielem_xxc(i)
             traj1=i
         end if
-        if (((ielem_yyc(i).le.0.0515).and.(ielem_yyc(i).ge.0.0485)))then
+        if (((ielem_yyc(i).le.0.055).and.(ielem_yyc(i).ge.0.045)))then
             if(ielem_xxc(i).le.post2)then
                 post2=ielem_xxc(i)
                 traj2=i

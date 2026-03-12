@@ -2284,7 +2284,7 @@ real,dimension(1:nof_variables)::sols1,sols2
 real,dimension(1:nof_variables,3)::sols_f
 real,dimension(3)::normal_all,temp_vert
 real::oov2,titj,mp_pinfl,gammal,angle1,angle2,nx,ny,nz
-integer::i,j,k,l,var2,b_code,facex,n_node,ind1,nf,lf,rowf
+integer::i,j,k,l,var2,b_code,facex,n_node,nf,lf,rowf
 real,dimension(1:nof_variables)::leftv,srf_speed,srf_speedrot,rightv
 real,dimension(1:dimensiona)::pox,poy,poz,cords
 real,dimension(1:8,1:dimensiona)::vext
@@ -2293,11 +2293,7 @@ real,dimension(turbulenceequations)::cturbl,cturbr
 real,dimension(1:nof_variables+turbulenceequations+passivescalar)::cright_rot,cleft_rot
 integer::ibfc
 
-if (rungekutta.eq.4)then
-ind1=7
-else
-ind1=5
-end if
+
 
 
 
@@ -2457,13 +2453,7 @@ real,dimension(nof_variables)::sols1,sols2,leftv
 real,dimension(nof_variables,3)::sols_f
 real,dimension(3)::normal_all
 real::oov2,mp_pinfl,gammal,angle1,angle2
-integer::i,j,k,l,ind1
-
-if (rungekutta.eq.4)then
-ind1=7
-else
-ind1=5
-end if
+integer::i,j,k,l
 
 
 i=iconsidered

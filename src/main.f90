@@ -907,7 +907,7 @@ call omp_map_first(n)
 
 
 
-	if (n.eq.0)print*,ees,wenwrt,idegfree,idegfree2,nof_Variables
+
 
 
 #ifdef gpu
@@ -927,8 +927,8 @@ call omp_map_first(n)
 !$omp& inwhichel, iorder, iorder2, ioverst, ioverto, iperiodicity, ires_turb, ires_unsteady, iriemann, irs, ischeme, &
 !$omp& iscoun, iselem, ispal, isplit, issf, istn, it, itestcase, itold, itotalb, itt, ivortex, iweightlsqr, iweno, iwmaxe, &
 !$omp& jk, jtotal, jtotal1, jtotal2, jtotal3, jump_cond1, jump_cond2, jump_cond3, kappa, kappa_sst, kdum1, kdum2, kdum3, &
-!$omp& kill, kinit_srf, kloopx, kmaxn, l0norm, l1norm, l2norm, l_turb_inlet, lam, lamps, lamx, lamy, lamz, limiter, lmach, &
-!$omp& lmach_style, lowmem, lowmemory, lwci1, m_t0, modeio, momentx, momenty, momentz, mood, mood_mode, mood_var1, &
+!$omp& kill, kinit_srf, kloopx, kmaxn, l0norm, l1norm, l2norm, l_turb_inlet, lam, lamps, ccfl,lamx, lamy, lamz, limiter, lmach, &
+!$omp& lmach_style, lowmem, lowmemory, lwci1, m_t0, modeio,  mood, mood_mode, mood_var1, &
 !$omp& mood_var2, mood_var3, mood_var4, movement, mp_modelc, mrf, multispecies, n_boundaries, nderivative, nodes_i, &
 !$omp& nodes_part, nof_bounded, nof_bubbles, nof_interior, nof_species, nof_variables, nprobes, nproc, nrotors, ntmax, &
 !$omp& num_dg_dofs, num_dg_reconstruct_dofs, numberofpoints, numberofpoints2, numneighbours, numneighbours2, oo2, out_time, &
@@ -961,7 +961,7 @@ call omp_map_first(n)
 !$omp& rg_hzero, rg_molm, rg_thetag, rg_tv_coef, rg_vf, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_sol_mm_dg, rhs_val, rhs_valdg, rhst_val, sht, sht_rg, nodelist, xmpielrank, dg2fv, &
 !$omp& u_c_br2_aux_var, u_c_rms, u_c_val, u_c_valdg, u_cs_val, u_cs_valdg, u_ct_val, u_cw_val, u_cw_valdg, u_e_val, &
 !$omp& solhir, solhis, solhird, solhisd, solhi_loc, solhir_flat, solhis_flat, boundhiri, boundhisi, boundhir, boundhis, boundhirm, boundhism, boundhir_flat, boundhis_flat, boundhir_dgflat, boundhis_dgflat, boundhiri_flat, boundhisi_flat, &
-!$omp& ineedhalo, ineedhalos, ineedbound, ineedbounds, bound_total, bounds_total, halo_total, halos_total, need_side, need_q, need_loc, bound_proc, bounds_proc,weights_t,weights_l,weights_q)
+!$omp& ineedhalo, ineedhalos, ineedbound, ineedbounds, bound_total, bounds_total, halo_total,ilength1,ilength2, halos_total, need_side, need_q, need_loc, bound_proc, bounds_proc,weights_t,weights_l,weights_q)
 
 #endif
 
@@ -1026,7 +1026,7 @@ call omp_map_first(n)
 #ifdef gpu
 	!$omp target update from(rec_uleft,wenwrt,idegfree,idegfree2,nof_Variables,ees)
 #endif
-	if (n.eq.0)print*,ees,wenwrt,idegfree,idegfree2,nof_Variables
+
 
 #ifdef gpu
 !$omp end target data

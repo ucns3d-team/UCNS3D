@@ -1570,13 +1570,9 @@ implicit none
 integer,intent(in)::n
 integer::i,j,k,l,m,o,p,q,ineedt,tneedt,indl,tndl,icpuid,itest,itee,iteedum,itemp1,itemp2,iavc,iavt,r0,r1,rb,s0,s1,sb
 real,dimension(1:1)::dumts,rumts
-integer:: n_requests,ind1,baseR,baseS,cell,v
+integer:: n_requests,baseR,baseS,cell,v
 integer, dimension(:), allocatable:: requests
-if (rungekutta.eq.4)then
-ind1=7
-else
-ind1=5
-end if
+
 
 
 itest=nof_variables+turbulenceequations+passivescalar
@@ -2490,7 +2486,7 @@ if (itestcase.le.3) then
 !$omp do
 #endif
 do i=1,bounds_total
-boundhisi(i,1:iex)=impdu(need_loc(i),1:length1)
+boundhisi(i,1:iex)=impdu(need_loc(i),1:ilength1)
 end do
 #ifdef gpu
 !$omp end target teams distribute parallel do

@@ -96,6 +96,7 @@ subroutine read_ucns3d
 
 
 
+
 	
 	inquire (file='MULTISPECIES.DAT',exist=here2)
 	if (here2) then
@@ -389,6 +390,17 @@ subroutine read_ucns3d
 	read(15,*)
 
 	    
+	if (dimensiona.eq.3)then
+		ccfl=(cfl/3.0d0)
+	else
+		ccfl=(cfl/2.0d0)
+	end if
+	if (rungekutta.eq.4)then
+ 	      ind1=7
+	else
+ 	      ind1=5
+	end if
+	origin(1:3)=0.0d0
 
 
 	fastmovie=0
@@ -417,7 +429,7 @@ subroutine read_ucns3d
 			twall=0! 0				|| wall temperature (kelvin) leave 0 for adiabatic (q_wall =0 <=> dt/dn=0)
 			turbinit=3.0 ! 3.0	  			|| initial value for turbulence parameter (multiplyied by the freestream viscosity from given re)
 			upturblimit=1000000! 1000000				|| upper limit for turbulence
-			residualfreq=10! 10				|| residual compute every
+			residualfreq=100! 10				|| residual compute every
 			irs=0! 0				||implicit residual smoothing (doubles cfl)
 			c_des_sa=0.61	! 0.61				||c_des_sa
 			! =============================================================================
@@ -464,7 +476,7 @@ subroutine read_ucns3d
 	    select case(code_profile)
 	
 	
-	case (0,888)       
+	case (0)       
 	
 	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)|| 
 	binio=1	    	!i/o (ascii=0, binary=1) 
