@@ -5364,7 +5364,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 		    !$omp target update to(kill,iscoun)
 #endif
 
-!$omp single
+!$omp barrier
+!$omp master 
     if (initcond.eq.95)then                    
     call checkpointv3(n)
     end if
@@ -5372,15 +5373,16 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 	cput4=cpux1(1)
 	cput5=cpux1(1)
 	cput8=cpux1(1)
-!$omp end single
+!$omp end master 
+!$omp barrier
 
       
 	      			
 	it=restart
 	if (dg.eq.1)call sol_integ_dg_init(n)
       
-
-!$omp single
+!$omp barrier
+!$omp master 
       if (tecplot.lt.5)then
         call grid_write
         if (outsurf.eq.1)then
@@ -5394,18 +5396,19 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 		end if
       
       
-!$omp end single
-
+!$omp end master 
+!$omp barrier
       
 
 
-!$omp single
+!$omp barrier
+!$omp master
 	call volume_solution_write
 	if (outsurf.eq.1)then
 	call surface_solution_write
 	end if
-!$omp end single
-
+!$omp end master
+!$omp barrier
       
 
 
@@ -5447,8 +5450,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 
 
 
-
-			!$omp single
+			!$omp barrier
+			!$omp master
 			dummyout(1)=dt
 			cput2=mpi_wtime()
 			timec8=cput2-cput8
@@ -5473,7 +5476,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 				  write(63,*)it,dt,t
 				  close(63)
 				  end if
-				!$omp end single
+			!$omp end master 
+			!$omp barrier
 					
                               if (initcond.eq.95)then
                           totk=0;totens=0;totensx=0.0d0
@@ -5509,7 +5513,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
                           !$omp end do
 #endif
 
-                          !$omp single
+                         !$omp barrier
+			!$omp master
                           dumetg1=totk
                           dumetg2=0.0
                           call mpi_barrier(mpi_comm_world,ierror)
@@ -5538,14 +5543,16 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 
 
                           end if
-                          !$omp end single
+                        !$omp end master 
+			!$omp barrier
 
 
 
  				
 
 			    end if
-             !$omp single
+               !$omp barrier
+			!$omp master
 			if (rungekutta.ge.11)then
 			dt=timestep
 			if (initcond.eq.95)then 
@@ -5560,7 +5567,7 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			dt=min(dt,out_time-t,every_time-t)
 			end if
 			end if
-           !$omp end single
+            		
 #ifdef gpu
 			!$omp target update to(dt)
 #endif
@@ -5572,7 +5579,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			
 
 
-			
+			!$omp end master 
+			!$omp barrier
 			select case(rungekutta)
 			
 			case(1)
@@ -5612,8 +5620,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			
 			if (dg.eq.1)call sol_integ_dg(n)
             if (realgas.eq.1) call normalise_species(n)
-			
-			!$omp single
+			!$omp barrier
+			!$omp master
 
 			
 			if (rungekutta.ge.11)then
@@ -5624,15 +5632,16 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
                        t=t+dt
 			tz1=tz1+dt
 			  end if
-			  !$omp end single
+			 !$omp end master 
+			!$omp barrier
 
 #ifdef gpu
 			!$omp target update to(tz1,t)
 #endif
 
 
-
-			!$omp single
+			!$omp barrier
+			!$omp master
 				if (dg.eq.1)then
                       if (code_profile.ne.102)then
                           if ( mod(it, 100) .eq. 0) then
@@ -5659,7 +5668,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
             call reduced_history
           end if
 
-          !$omp end single
+           		!$omp end master 
+			!$omp barrier
 
 
 			
@@ -5708,7 +5718,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
                           !$omp end do
 #endif
 
-                !$omp single
+               		 !$omp barrier
+			!$omp master
  				dumetg1=totk
  				dumetg2=0.0
  				call mpi_barrier(mpi_comm_world,ierror)
@@ -5755,9 +5766,10 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
                           end if
                           close(73)
 				end if
- 				!$omp end single
+ 				!$omp end master 
+			!$omp barrier
  				
-
+			call mpi_barrier(mpi_comm_world,ierror)
  				
 
           if (adda.eq.1) then
@@ -5781,7 +5793,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
         !$omp end do
 #endif
 
-        !$omp single
+         !$omp barrier
+			!$omp master
           dumetg1 = totk
           dumetg2 = 0.0d0
           call mpi_allreduce(dumetg1, dumetg2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
@@ -5798,7 +5811,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
               write(123,*) t, totk
               close(123)
           end if
-        !$omp end single
+       	!$omp end master 
+			!$omp barrier
 
         end if
 
@@ -5807,7 +5821,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 
 ! 				end if
 			    end if
-                !$omp single
+                	!$omp barrier
+			!$omp master
  			    if ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411).or.(initcond.eq.157))then
  			    if ( mod(it, 100) .eq. 0)then
 #ifdef gpu
@@ -5819,7 +5834,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			
 			
 			
-			!$omp end single
+			!$omp end master
+			!$omp barrier
 
 			
 			if ( mod(it, iforce) .eq. 0) then
@@ -5841,8 +5857,7 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 		
 			
 			
-			
-			!$omp single
+			!$omp master
 			if (nprobes.gt.0) then
 			if ( mod(it, 100) .eq. 0) then
 #ifdef gpu
@@ -5970,12 +5985,12 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			end if
 			  
 			
-			!$omp end single
-
+			!$omp end master
+			!$omp barrier
 			
 			
 			
-			!$omp single
+			!$omp master
 			it=it+1
 			
 			if ((it.eq.ntmax).or.(timec3.ge.wallc).or.(dtiv.gt.out_time))then
@@ -5987,14 +6002,14 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			kill=1
 			end if
 			end if
-			!$omp end single
-
+			!$omp end master
+			!$omp barrier
            
             
             
             
 			  
-			!$omp single
+			!$omp master
 			if (kill.eq.1)then
 			
 			    call volume_solution_write
@@ -6011,8 +6026,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			      end if
 			end if
 			
-			!$omp end single
-
+			!$omp end master
+			!$omp barrier
 			
 			if (kill.eq.1)then
 			if (itestcase.le.3)then  
