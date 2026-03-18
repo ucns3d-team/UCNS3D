@@ -986,6 +986,108 @@ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
         VECCOS(4)=E1
     END IF
 
+    IF (INITCOND.EQ.51) THEN ! TORO test 1
+        if (pox(1).lt.0.5)then
+            r1=1.0
+            u1=zero
+            v1=zero
+            p1=1.0
+        else
+            r1=0.125
+            u1=zero
+            v1=zero
+            p1=0.1
+        end if
+
+        !KINETIC ENERGY FIRST!
+        SKIN1=(OO2)*((U1**2)+(V1**2))
+        !INTERNAL ENERGY 
+        IE1=((P1)/((GAMMA-1.0D0)*R1))
+        !TOTAL ENERGY
+        E1=(P1/(GAMMA-1))+(R1*SKIN1)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=E1
+    END IF
+
+    IF (INITCOND.EQ.52) THEN ! TORO test 2
+        r1=1.0
+        u1=zero
+        v1=zero
+        p1=0.4
+        if (pox(1).lt.0.5)then
+            u1 = -2.0
+        else
+            u1 = 2.0
+        end if
+
+        !KINETIC ENERGY FIRST!
+        SKIN1=(OO2)*((U1**2)+(V1**2))
+        !INTERNAL ENERGY 
+        IE1=((P1)/((GAMMA-1.0D0)*R1))
+        !TOTAL ENERGY
+        E1=(P1/(GAMMA-1))+(R1*SKIN1)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=E1
+    END IF
+
+    IF (INITCOND.EQ.53) THEN ! TORO test 3
+        if (pox(1).lt.0.5)then
+            r1=1.0
+            u1=zero
+            v1=zero
+            p1=1000.0
+        else
+            r1=0.125
+            u1=zero
+            v1=zero
+            p1=0.01
+        end if
+
+        !KINETIC ENERGY FIRST!
+        SKIN1=(OO2)*((U1**2)+(V1**2))
+        !INTERNAL ENERGY 
+        IE1=((P1)/((GAMMA-1.0D0)*R1))
+        !TOTAL ENERGY
+        E1=(P1/(GAMMA-1))+(R1*SKIN1)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=E1
+    END IF
+
+    IF (INITCOND.EQ.54) THEN ! TORO test 4
+        if (pox(1).lt.0.5)then
+            r1=1.0
+            u1=zero
+            v1=zero
+            p1=0.1
+        else
+            r1=0.125
+            u1=zero
+            v1=zero
+            p1=100.0
+        end if
+
+        !KINETIC ENERGY FIRST!
+        SKIN1=(OO2)*((U1**2)+(V1**2))
+        !INTERNAL ENERGY 
+        IE1=((P1)/((GAMMA-1.0D0)*R1))
+        !TOTAL ENERGY
+        E1=(P1/(GAMMA-1))+(R1*SKIN1)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=E1
+    END IF
+
     IF ((INITCOND.EQ.101).or.(initcond.eq.103)) THEN	!shock density interaction
         if (pox(1).lt.-4.0d0)then
             r1=3.8571d0

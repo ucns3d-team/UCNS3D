@@ -1456,7 +1456,7 @@ SUBROUTINE READ_UCNS3D
 		else if (moving_mesh_mode.eq.8) then
 			read(29,*) relaxation_centre_type
 			read(29,*) gradient_treshold, relaxation_mesh_velocity_multiple
-		else if ((moving_mesh_mode.ge.9).and.(moving_mesh_mode.le.11)) then
+		else if (((moving_mesh_mode.ge.9).and.(moving_mesh_mode.le.11)).or.(moving_mesh_mode.eq.13)) then
 			read(29,*) node_solver_type
 			read(29,*) relaxation_centre_type
 			read(29,*) lower_gradient_treshold, upper_gradient_treshold, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple

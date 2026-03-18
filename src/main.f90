@@ -305,6 +305,7 @@ IF (ISCHEME.GT.1)THEN
 
 	CALL STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEIGHBOURS,RESTART)
 	IF (IADAPT.EQ.1)THEN
+		! print*,imaxe
 		CALL ADAPT_CRITERION
 	END IF
 END IF
@@ -733,6 +734,9 @@ if (MESH_MOVEMENT) then
 	num_values_to_send_per_node = dimensiona
 	if ((moving_mesh_mode.eq.3).or.(moving_mesh_mode.eq.6).or.(moving_mesh_mode.eq.5).or.(moving_mesh_mode.ge.8)) then
 		num_values_to_send_per_node = dimensiona+1
+	end if
+	if (relaxation_centre_type.eq.5) then
+		num_values_to_send_per_node = max(2*dimensiona, num_values_to_send_per_node)
 	end if
 end if
 print *, "num_values_to_send_per_node", num_values_to_send_per_node

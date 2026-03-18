@@ -787,9 +787,11 @@ TYPE::LOCAL_NODE
 	REAL,DIMENSION(3)::VELOCITY
 	REAL,DIMENSION(3)::lagrangian_velocity
 	REAL,DIMENSION(3)::relaxation_velocity
-	REAL,DIMENSION(3)::density_gradient
+	! REAL,DIMENSION(3)::density_gradient
 	real::normalized_density_gradient_magnitude
+	real::normalized_vf_gradient_magnitude
 	real::volume_ratio
+	real::JacobiCondNumber
 	INTEGER::global_index
 	! INTEGER::local_index
 	! logical::internal

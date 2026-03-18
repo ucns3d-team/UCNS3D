@@ -422,11 +422,10 @@ SUBROUTINE EXTRAPOLATE_BOUND_NODE_MUSCL(USOL_NODES,varcons,face_index,face_node_
     REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(IN)::USOL_NODES
     REAL::MP_PINFl,gammal
 
-
     if (WENWRT.EQ.3)THEN
         LEFTV(1:NOF_VARIABLES) = U_C(cell_index)%VAL(1,1:nof_Variables)
         CALL cons2prim(N,leftv,MP_PINFl,gammal)
-        LEFTV(1:NOF_VARIABLES) = LEFTV(1:NOF_VARIABLES)+USOL_NODES(1:nof_Variables,face_index,face_node_index)*SLOPE(1:nof_Variables)
+        LEFTV(1:NOF_VARIABLES) = LEFTV(1:NOF_VARIABLES) + (USOL_NODES(1:nof_Variables,face_index,face_node_index)*SLOPE(1:nof_Variables))
         CALL PRIM2CONS(N,LEFTV)
         ILOCAL_RECON3(cell_index)%node_values(1:nof_Variables,face_index,face_node_index) = ILOCAL_RECON3(cell_index)%node_values(1:nof_Variables,face_index,face_node_index) + LEFTV(1:NOF_VARIABLES)
     ELSE
@@ -1148,7 +1147,7 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
     REAL,ALLOCATABLE,DIMENSION(:,:)::CONSMATRIX,CONSMATRIXC,GRAD5ALc,GRADSSL,WENO,RESSOLUTION
     REAL,ALLOCATABLE,DIMENSION(:,:)::CONSMATRIX_NODES, CONSMATRIXC_NODES, RESSOLUTION_NODES
     ! real,allocatable,dimension(:,:)::node_coords
-    real,dimension(1:dimensiona)::node_coords
+    real,dimension(1,1:dimensiona)::node_coords
     integer::face_num_nodes, face_node_index, face_node_counter, node_index
 
 
@@ -1285,7 +1284,7 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
             end if
         ELSE
             iqp=qp_LINE
-            face_num_nodes = 1
+            face_num_nodes = 2
         END IF
 
         do NGP=1,iqp			!for gqp
@@ -1319,20 +1318,20 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
             face_node_counter = face_node_counter + 1
 
             node_index = ielem(n,i)%nodes_faces(L, face_node_index)
-            node_coords(1:dimensiona) = local_nodes(node_index)%positions(global_position_index,1:dimensiona)
-            node_coords(1:dimensiona) = MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),node_coords(1:dimensiona)-ILOCAL_RECON3(I)%VEXT_REF(1:dimensiona))
+            node_coords(1,1:dimensiona) = local_nodes(node_index)%positions(global_position_index,1:dimensiona)
+            node_coords(1,1:dimensiona) = MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),node_coords(1,1:dimensiona)-ILOCAL_RECON3(I)%VEXT_REF(1:dimensiona))
 
             IF (DIMENSIONA.EQ.3)THEN
-                CONSMATRIX_nodes(face_node_counter,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,node_coords(1),node_coords(2),node_coords(3),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,0)
+                CONSMATRIX_nodes(face_node_counter,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,node_coords(1,1),node_coords(1,2),node_coords(1,3),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,0)
             ELSE
-                CONSMATRIX_nodes(face_node_counter,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2D(N,node_coords(1),node_coords(2),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,0)
+                CONSMATRIX_nodes(face_node_counter,1:IELEM(N,I)%IDEGFREE)=BASIS_REC2D(N,node_coords(1,1),node_coords(1,2),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,0)
             END IF
 
             if (ees.eq.5)then
                 IF (DIMENSIONA.EQ.3)THEN
-                    CONSMATRIXC_nodes(face_node_counter,1:IDEGFREE2)=BASIS_REC(N,node_coords(1),node_coords(2),node_coords(3),IORDER2,I,IDEGFREE2,1)
+                    CONSMATRIXC_nodes(face_node_counter,1:IDEGFREE2)=BASIS_REC(N,node_coords(1,1),node_coords(1,2),node_coords(1,3),IORDER2,I,IDEGFREE2,1)
                 ELSE
-                    CONSMATRIXC_nodes(face_node_counter,1:IDEGFREE2)=BASIS_REC2D(N,node_coords(1),node_coords(2),IORDER2,I,IDEGFREE2,1)
+                    CONSMATRIXC_nodes(face_node_counter,1:IDEGFREE2)=BASIS_REC2D(N,node_coords(1,1),node_coords(1,2),IORDER2,I,IDEGFREE2,1)
                 END IF
             END IF
         end do
@@ -1974,7 +1973,6 @@ SUBROUTINE FIND_BOUNDS(ICONSIDERED,MAXVARS,AVER_VARS,SUMVARS,UTMIN,UTMAX,UTEMP)
         END IF
 
         K=1
-
         IF (IELEM(N,I)%INTERIOR.EQ.0) THEN
             DO L = 1, IELEM(N,I)%IFCA
                 K=K+1
@@ -2125,13 +2123,14 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
     REAL,ALLOCATABLE,DIMENSION(:,:,:)::USOL_NODES
     REAL,ALLOCATABLE,DIMENSION(:,:)::CONSMATRIX_NODES, RESSOLUTION_NODES
     ! real,allocatable,dimension(:,:)::node_coords
-    real,dimension(1:dimensiona)::node_coords
+    real,dimension(1,1:dimensiona)::node_coords
     integer::num_faces, face_num_nodes, face_node_index, node_index, face_node_counter
 
     num_faces = IELEM(N,ICONSIDERED)%IFCA
 
     I=ICONSIDERED
     ILOCAL_RECON3(ICONSIDERED)%ULEFT(:,:,:)=ZERO
+    ILOCAL_RECON3(ICONSIDERED)%node_values(:,:,:)=ZERO
 
     ALLOCATE(SLOPE(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR))
     ALLOCATE(USOL(1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR,1:6,1:NUMBEROFPOINTS2))
@@ -2197,13 +2196,13 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
             face_node_counter = face_node_counter+1
 
             node_index = ielem(n,i)%nodes_faces(L,face_node_index)
-            node_coords(1:dimensiona) = local_nodes(node_index)%positions(global_position_index,1:dimensiona)
-            node_coords(1:dimensiona) = MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),node_coords(1:dimensiona)-ILOCAL_RECON3(I)%VEXT_REF(1:dimensiona))
+            node_coords(1, 1:dimensiona) = local_nodes(node_index)%positions(global_position_index,1:dimensiona)
+            node_coords(1, 1:dimensiona) = MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),node_coords(1, 1:dimensiona)-ILOCAL_RECON3(I)%VEXT_REF(1:dimensiona))
 
             if (DIMENSIONA.eq.3) then
-                CONSMATRIX_NODES(face_node_counter,1:IELEM(N,I)%IDEGFREE) = BASIS_REC(N,node_coords(1),node_coords(2),node_coords(3),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,ICOMPWRT)
+                CONSMATRIX_NODES(face_node_counter,1:IELEM(N,I)%IDEGFREE) = BASIS_REC(N,node_coords(1,1),node_coords(1,2),node_coords(1,3),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,ICOMPWRT)
             else
-                CONSMATRIX_NODES(face_node_counter,1:IELEM(N,I)%IDEGFREE) = BASIS_REC2D(N,node_coords(1),node_coords(2),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,ICOMPWRT)
+                CONSMATRIX_NODES(face_node_counter,1:IELEM(N,I)%IDEGFREE) = BASIS_REC2D(N,node_coords(1,1),node_coords(1,2),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,ICOMPWRT)
             end if
         end do
     end do

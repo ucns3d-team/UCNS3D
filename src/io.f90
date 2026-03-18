@@ -13780,13 +13780,13 @@ SUBROUTINE PARALLEL_VTK_COMBINE(N)
 					rARRAY_PART1(i,j)=ielem(n,i)%mood_o
 				else
 					if (MESH_MOVEMENT) then
-						if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10)) then
-							rARRAY_PART1(i,j) = u_c(i)%normalized_gradient
-							! print*,"!"
-						else
+						! if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13)) then
+						! 	rARRAY_PART1(i,j) = u_c(i)%normalized_gradient
+						! 	! print*,"!"
+						! else
 							rARRAY_PART1(i,j) = N
 							! print*,"?"
-						end if
+						! end if
 					else
 						if (multispecies.eq.1)then
 							rARRAY_PART1(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)

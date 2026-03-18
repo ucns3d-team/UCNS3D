@@ -1532,22 +1532,22 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_
 	IF (SL(1).GE.qp_normal_velocity)THEN
 		HLLCFLUX(:) = FL(:) - qp_normal_velocity*CLEFT_ROT(:)
 		IF (MULTISPECIES.EQ.1)THEN
-			MP_SOURCE1 = UL-qp_normal_velocity
+			MP_SOURCE1 = UL ! - qp_normal_velocity
 		END IF
 	ELSE IF (SR(1).LE.ZERO)THEN
 		HLLCFLUX(:) = FR(:) - qp_normal_velocity*CRIGHT_ROT(:)
 		IF (MULTISPECIES.EQ.1)THEN
-			MP_SOURCE1 = UR-qp_normal_velocity
+			MP_SOURCE1 = UR ! - qp_normal_velocity
 		END IF
 	ELSE IF ((SL(1).Le.ZERO).AND.(SM(1).GE.ZERO))THEN
 		HLLCFLUX(:) = FLSTAR(:) - qp_normal_velocity*ULSTAR(:)
 		IF (MULTISPECIES.EQ.1)THEN
-			MP_SOURCE1 = (UL+SL(1)*(((SL(1)-UL)/(SL(1)-SM(1)))-1.0D0))-qp_normal_velocity
+			MP_SOURCE1 = (UL+SL(1)*(((SL(1)-UL)/(SL(1)-SM(1)))-1.0D0)) ! - qp_normal_velocity
 		END IF
 	ELSE
 		HLLCFLUX(:) = FRSTAR(:) - qp_normal_velocity*URSTAR(:)
 		IF (MULTISPECIES.EQ.1)THEN
-			MP_SOURCE1 = (UR+SR(1)*(((SR(1)-UR)/(SR(1)-SM(1)))-1.0D0)) -qp_normal_velocity
+			MP_SOURCE1 = (UR+SR(1)*(((SR(1)-UR)/(SR(1)-SM(1)))-1.0D0)) ! - qp_normal_velocity
 		END IF
 	END IF
 				
@@ -1671,19 +1671,19 @@ Subroutine HLL_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_S
 		HLLCFLUX(:) = FL(:) - qp_normal_velocity*CLEFT_ROT(:)
 
 		IF (MULTISPECIES.EQ.1)THEN
-			MP_SOURCE1 = UL - qp_normal_velocity
+			MP_SOURCE1 = UL ! - qp_normal_velocity
 		END IF
 	ELSE IF (SR(1).LE.qp_normal_velocity)THEN
 		HLLCFLUX(:) = FR(:) - qp_normal_velocity*CRIGHT_ROT(:)
 		
 		IF (MULTISPECIES.EQ.1)THEN
-			MP_SOURCE1 = UR - qp_normal_velocity
+			MP_SOURCE1 = UR ! - qp_normal_velocity
 		END IF
 	ELSE
 		HLLCFLUX(:) = FHLL(:) - qp_normal_velocity*UHLL(:)
 
 		IF (MULTISPECIES.EQ.1)THEN
-			MP_SOURCE1 = ((UL+UR)*0.5) - qp_normal_velocity
+			MP_SOURCE1 = ((UL+UR)*0.5) ! - qp_normal_velocity
 		END IF
 	END IF
 

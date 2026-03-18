@@ -348,8 +348,8 @@ END SUBROUTINE CENTRE_MovingMesh_2D
 
 
 SUBROUTINE VOLUME_CALCULATOR_MovingMesh_2D(cell_index, node_position_index)
-	!> @brief
-	!> This subroutine computes the cell centres
+  !> @brief
+  !> This subroutine computes the cell centres
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::cell_index, node_position_index
 	REAL,DIMENSION(1:DIMENSIONA)::temp_cords
@@ -358,7 +358,6 @@ SUBROUTINE VOLUME_CALCULATOR_MovingMesh_2D(cell_index, node_position_index)
 	integer::num_nodes, node_index, node_index_1, node_index_2, node_index_3
 	real::area, area_sum
 	
-
 	num_nodes = IELEM(N,cell_index)%nonodes
 
 	if (num_nodes.gt.3) then
