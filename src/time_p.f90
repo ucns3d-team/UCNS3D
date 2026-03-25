@@ -451,12 +451,11 @@ SUBROUTINE CALCULATE_CFLL2D(N)
 		
 		  CALL cons2prim(N,leftv,MP_PINFl,gammal)
 		  AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		  VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
+		  ! VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
+      VELN = SQRT((LEFTV(2)**2)+(LEFTV(3)**2)) + AGRT
 		  if (dg.eq.1)then
-		
 		    IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1))
 		  else
-		
 		    IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
 		  end if
 		
@@ -3961,6 +3960,9 @@ SUBROUTINE TIME_MARCHING2(N)
       END IF
 
       !$OMP MASTER
+          if (IT.lt.10) then
+              DT = real(IT+1)*0.1*DT
+          end if
           DUMMYOUT(1)=DT
           CPUT2=MPI_WTIME()
           TIMEC8=CPUT2-CPUT8
@@ -4063,14 +4065,18 @@ SUBROUTINE TIME_MARCHING2(N)
           end if
 
         CASE(3)
-          IF (hybridCWENO_MOOD.gt.0) then
-              IWENO=0
-              CALL RUNGE_KUTTA3_2D_hybridCWENO_MOOD(N)
-          ELSE IF (MOOD.EQ.1)THEN
-              CALL RUNGE_KUTTA3_2D_MOOD(N)
-          ELSE
-              CALL RUNGE_KUTTA3_2D(N)
-          END IF
+          if (MESH_MOVEMENT) then
+            Call RUNGE_KUTTA3_MovingMesh_2D(N)
+          else
+            IF (hybridCWENO_MOOD.gt.0) then
+                IWENO=0
+                CALL RUNGE_KUTTA3_2D_hybridCWENO_MOOD(N)
+            ELSE IF (MOOD.EQ.1)THEN
+                CALL RUNGE_KUTTA3_2D_MOOD(N)
+            ELSE
+                CALL RUNGE_KUTTA3_2D(N)
+            END IF
+          end if
 
         CASE(4)
           CALL RUNGE_KUTTA4_2D(N)
@@ -4099,7 +4105,7 @@ SUBROUTINE TIME_MARCHING2(N)
       if (dg.eq.1)call SOL_INTEG_DG(N)
 
       if (MESH_MOVEMENT) then
-          if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10)) then
+          if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13)) then
               call FIND_NORMALIZED_DENSITY_GRADIENT_from_precomputed(N)
           else
               ! if (dimensiona.eq.2) then
@@ -4242,30 +4248,38 @@ SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
   !> SSP FORWARD EULER SCHEME IN 2D
   IMPLICIT NONE
   INTEGER,INTENT(IN)::N
-  INTEGER::I,KMAXE,kx
-  REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
+  INTEGER::I, KMAXE, kx, node_index
+  REAL::AVRGS
   REAL,DIMENSION(NOF_VARIABLES)::TEMPSOL
   
   KMAXE=XMPIELRANK(N)
 
+  !$omp barrier
+  Call GEOMETRY_CALC_MovingMesh(N, 1)
+  !$omp barrier
+  !$OMP MASTER
+      Call EXCH_CORDS_MovingMesh(N, 1)
+  !$OMP END MASTER
+  !$omp barrier
+  CAll Find_QP_positions(N, 1)
+  !$omp barrier
+  Call RE_PRESTORE_1(N, 1)
+  !$omp barrier
   global_position_index = 1
   call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
-
+  ! call EXCHANGE_HIGHER(N)
+  !$omp barrier
   call find_node_velocities(1, DT, N)
-  ! !$OMP BARRIER
-  ! if (n.eq.0) then
-  !   print *, "find_node_velocities(1) done"
-  ! end if
+  
   call Find_QP_velocities(N)
-  ! !$OMP BARRIER
-  ! if (n.eq.0) then
-  !   print *, "find_QP_velocities done"
-  ! end if
-  Call MOVE_NODES(DT,1,2)
-  ! !$OMP BARRIER
-  ! if (n.eq.0) then
-  !   print *, "Nodes moved"
-  ! end if
+  !$omp do
+  do node_index=1,kmaxn 
+      local_nodes(node_index)%positions(2,1:dimensiona) = local_nodes(node_index)%positions(1,1:dimensiona) &
+                                                          + DT * local_nodes(node_index)%velocity(1:dimensiona)
+  end do
+  !$omp end do
+
+  !$omp barrier
 
   if (DIMENSIONA.EQ.3)THEN
       !$OMP DO 
@@ -4283,32 +4297,17 @@ SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
       !$OMP END DO 
   END IF
 
-  ! !$OMP BARRIER
-  ! if (n.eq.0) then
-  !   print *, "volume recomputed"
-  ! end if
   ! global_position_index = 1
   CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
-  ! !$OMP BARRIER
-  ! if (n.eq.0) then
-  !   print *, "fluxes computed"
-  ! end if
 
-  ! DO I=1,KMAXE
-  !     IF (DG == 1)then
-  !         if((U_C(i)%VALDG(1,1,1).ne. U_C(i)%VALDG(1,1,1))) THEN
-              ! IF (N == 0) PRINT*, 'STOPPING BECAUSE NaNs1'
-              ! STOP ! Stop if NaNs
-  !         END IF
-  !     end if
-  ! end do
+  !$omp barrier
 
   !$OMP DO
   DO I=1,KMAXE
-      ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-      IF (IELEM(N,I)%moving_volume(2) .eq. ZERO) print *, "dividing by zero volume"
-
-      IF (DG == 1) THEN    
+      ! IF (IELEM(N,I)%moving_volume(2) .eq. ZERO) print *, "dividing by zero volume"
+      IF (DG == 1) THEN   
+          print *, "Moving mesh does not support DG yet"
+          call abort 
           ! U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))  
       else
           U_C(I)%VAL(1,1:NOF_VARIABLES)= ((U_C(I)%VAL(1,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - (dt * RHS(I)%VAL(1:NOF_VARIABLES))) / IELEM(N,I)%moving_volume(2)
@@ -4316,55 +4315,22 @@ SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
       ! WRITE(200+N,*)I,TEMPSOL,U_C(I)%VALDG(1,1:NOF_VARIABLES,1)
   END DO
   !$OMP END DO
-  ! !$OMP BARRIER
-  ! if (n.eq.0) then
-  !     print *, "cell value update done"
-  ! end if
 
   IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
       !$OMP DO
       DO I=1,KMAXE
-          ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-          ! U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+          U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) * IELEM(N,I)%moving_volume(1)) - (dt * RHSt(I)%VAL(1:turbulenceequations+passivescalar))) / IELEM(N,I)%moving_volume(2)
       END DO
       !$OMP END DO
   END IF
 
   IF (AVERAGING.EQ.1)THEN
-     ! CALL AVERAGING_T(N)
-  END IF
+    print *, "Moving mesh does not support averaging yet"
+    call abort
+    ! CALL AVERAGING_T(N)
+END IF
 
   Call COPY_BACK_LOCAL_NODES(2, 1)
-  ! !$OMP BARRIER
-  ! if (n.eq.0) then
-  !   print *, "node positions copied back"
-  ! end if
-
-  Call GEOMETRY_CALC_MovingMesh(N, 1)
-  ! !$OMP BARRIER
-  ! if (n.eq.0) then
-  !   print *, "geometric properties recomputed"
-  ! end if
-  !1 EXCHANGE OPT AND EXCHANGE CORDS (BECAREFUL WITH MEMORY ALLOCATIONS-BETTER PUT THEM SOMEWHERE INODER4)
-  
-  !$OMP MASTER
-  Call EXCH_CORDS_MovingMesh(N, 1)
-  !$OMP END MASTER
-  ! !$OMP BARRIER
-  ! if (n.eq.0) then
-  !   print *, "Coordinates exchanged"
-  ! end if
-  CAll Find_QP_positions(N, 1)
-  ! !$OMP BARRIER
-  ! if (n.eq.0) then
-  !   print *, "Quadrature points recomputed"
-  ! end if
-  !NEED TO COMPUTE THE LOCATION OF THE NEW QUADRATURE POINTS THROUGH MEMORY FAST
-  Call RE_PRESTORE_1(N, 1)
-  ! !$OMP BARRIER
-  ! if (n.eq.0) then
-  !   print *, "reconstruction polynomials recomputed"
-  ! end if
       
 END SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D
 
@@ -4375,161 +4341,163 @@ END SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D
 SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
   !> @brief
   !> SSP RUNGE KUTTA 2ND-ORDER SCHEME IN 2D
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  INTEGER::I, KMAXE, node_index
-  REAL::AVRGS, OOVOLUME, TO4, OO4, TO3, OO3
-  KMAXE=XMPIELRANK(N)
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I, KMAXE, node_index
+    REAL::AVRGS, OOVOLUME, TO4, OO4, TO3, OO3
+    KMAXE=XMPIELRANK(N)
 
-  global_position_index = 1
-  call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+    !$omp barrier
+    Call GEOMETRY_CALC_MovingMesh(N, 1)
+    !$omp barrier
+    !$OMP MASTER
+        Call EXCH_CORDS_MovingMesh(N, 1)
+    !$OMP END MASTER
+    !$omp barrier
+    CAll Find_QP_positions(N, 1)
+    !$omp barrier
+    Call RE_PRESTORE_1(N, 1)
+    !$omp barrier
+    global_position_index = 1
+    call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+    ! call EXCHANGE_HIGHER(N)
+    !$omp barrier
+    call find_node_velocities(1, DT, N)
 
-  call find_node_velocities(1, DT, N)
-  call Find_QP_velocities(N)
-  Call MOVE_NODES(DT,1,2)
+    call Find_QP_velocities(N)
+    !$omp do
+    do node_index=1,kmaxn 
+        local_nodes(node_index)%positions(2,1:dimensiona) = local_nodes(node_index)%positions(1,1:dimensiona) &
+                                                            + DT * local_nodes(node_index)%velocity(1:dimensiona)
+    end do
+    !$omp end do
 
-  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+    !$omp barrier
 
-  IF (DIMENSIONA.EQ.3) THEN
-    !$OMP DO 
-    DO I=1,KMAXE
-        ! CALL VOLUME_CALCULATOR_MovingMesh_3D(I,2)
-        print *, "Moving mesh in 3D not implemented yet"
-        call abort
-    END DO
-    !$OMP END DO
-  ELSE
-    !$OMP DO
-    DO I=1,KMAXE
-        CALL VOLUME_CALCULATOR_MovingMesh_2D(I,2)
-    END DO
-    !$OMP END DO 
-  END IF
-
-  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-  ! global_position_index = 1
-  CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
-
-  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-  !$OMP DO
-  DO I=1,KMAXE
-    IF (DG == 1) THEN
-        print *, "Moving mesh does not support DG yet"
-        call abort
-      ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-      ! U_C(I)%VALDG(2,:,:)=U_C(I)%VALDG(1,:,:)
-      ! U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
+    IF (DIMENSIONA.EQ.3) THEN
+        ! !$OMP DO 
+        ! DO I=1,KMAXE
+            ! CALL VOLUME_CALCULATOR_MovingMesh_3D(I,2)
+            print *, "Moving mesh in 3D not implemented yet"
+            call abort
+        ! END DO
+        ! !$OMP END DO
     ELSE
-        U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        ! U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-        U_C(I)%VAL(1,1:NOF_VARIABLES)= ((U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - (dt * RHS(I)%VAL(1:NOF_VARIABLES))) / IELEM(N,I)%moving_volume(2)
+        !$OMP DO
+        DO I=1,KMAXE
+            CALL VOLUME_CALCULATOR_MovingMesh_2D(I,2)
+        END DO
+        !$OMP END DO 
     END IF
-  END DO
-  !$OMP END DO
 
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+    ! global_position_index = 1
+    CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
+
+    !$omp barrier
+
     !$OMP DO
     DO I=1,KMAXE
-        U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-        ! U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-        U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)  * IELEM(N,I)%moving_volume(1)) - (dt * (RHSt(I)%VAL(1:turbulenceequations+passivescalar)))) / IELEM(N,I)%moving_volume(2)
+        IF (DG == 1) THEN
+            print *, "Moving mesh does not support DG yet"
+            call abort
+            ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            ! U_C(I)%VALDG(2,:,:)=U_C(I)%VALDG(1,:,:)
+            ! U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
+        ELSE
+            U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+            ! U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+            U_C(I)%VAL(1,1:NOF_VARIABLES)= ((U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - (dt * RHS(I)%VAL(1:NOF_VARIABLES))) / IELEM(N,I)%moving_volume(2)
+        END IF
     END DO
     !$OMP END DO
-  END IF
 
-  Call GEOMETRY_CALC_MovingMesh(N, 2)
-  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-  !$OMP MASTER
-      Call EXCH_CORDS_MovingMesh(N, 2)
-  !$OMP END MASTER
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+            ! U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)  * IELEM(N,I)%moving_volume(1)) - (dt * (RHSt(I)%VAL(1:turbulenceequations+passivescalar)))) / IELEM(N,I)%moving_volume(2)
+        END DO
+        !$OMP END DO
+    END IF
 
-  !$OMP BARRIER
-  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+    Call GEOMETRY_CALC_MovingMesh(N, 2)
+    !$omp barrier
+    !$OMP MASTER
+        Call EXCH_CORDS_MovingMesh(N, 2)
+    !$OMP END MASTER
+    !$omp barrier
+    CAll Find_QP_positions(N, 2)
+    !$omp barrier
+    Call RE_PRESTORE_1(N, 2)
+    !$omp barrier
 
-  CAll Find_QP_positions(N, 2)
-  Call RE_PRESTORE_1(N, 2)
+    global_position_index = 2
+    call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+    ! call EXCHANGE_HIGHER(N)
+    !$omp barrier
+    call find_node_velocities(2, DT, N)
+    !$omp barrier
+    call Find_QP_velocities(N)
+    !$omp do
+    do node_index=1,kmaxn 
+        local_nodes(node_index)%positions(3,1:dimensiona) = (0.5*local_nodes(node_index)%positions(1,1:dimensiona)) + &
+                0.5*(local_nodes(node_index)%positions(2,1:dimensiona) + (DT * local_nodes(node_index)%velocity(1:dimensiona)))
+    end do
+    !$omp end do
+    !$omp barrier
+    IF (DIMENSIONA.EQ.3) THEN
+        ! !$OMP DO 
+        ! DO I=1,KMAXE
+        !     ! CALL VOLUME_CALCULATOR_MovingMesh_3D(I,2)
+            print *, "Moving mesh in 3D not implemented yet"
+            call abort
+        ! END DO
+        ! !$OMP END DO
+    ELSE
+        !$OMP DO
+        DO I=1,KMAXE
+            CALL VOLUME_CALCULATOR_MovingMesh_2D(I,3)
+        END DO
+        !$OMP END DO 
+    END IF
 
-  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+    ! global_position_index = 2
+    CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
 
-  global_position_index = 2
-  call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
-
-  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-  call find_node_velocities(2, DT, N)
-  call Find_QP_velocities(N)
-  Call MOVE_NODES(DT,2,3)
-  !$omp do
-  do node_index=1,kmaxn 
-      local_nodes(node_index)%positions(3,1:dimensiona) = (local_nodes(node_index)%positions(1,1:dimensiona) + local_nodes(node_index)%positions(3,1:dimensiona))*0.5
-  end do
-  !$omp end do
-  IF (DIMENSIONA.EQ.3) THEN
-    !$OMP DO 
+    !$OMP DO
     DO I=1,KMAXE
-        ! CALL VOLUME_CALCULATOR_MovingMesh_3D(I,2)
-        print *, "Moving mesh in 3D not implemented yet"
+        IF (DG == 1) THEN
+            ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            ! U_C(I)%VALDG(1,:,:)=OO2*U_C(I)%VALDG(2,:,:) + OO2*U_C(I)%VALDG(1,:,:) - (OO2*DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
+        ELSE
+            ! U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+            U_C(I)%VAL(1,1:NOF_VARIABLES) = ((0.5 * U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) &
+                                          + (0.5* ((U_C(I)%VAL(1,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(2)) - (DT * RHS(I)%VAL(1:NOF_VARIABLES))))) &
+                                          / IELEM(N,I)%moving_volume(3)
+        END IF
+    END DO
+    !$OMP END DO
+
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            ! U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar) * IELEM(N,I)%moving_volume(1)) &
+                                                              - (dt * (RHSt(I)%VAL(1:turbulenceequations+passivescalar))))                           &
+                                                              /  IELEM(N,I)%moving_volume(3)
+        END DO
+        !$OMP END DO
+    END IF
+
+    IF (AVERAGING.EQ.1)THEN
+        print *, "Moving mesh does not support averaging yet"
         call abort
-    END DO
-    !$OMP END DO
-  ELSE
-    !$OMP DO
-    DO I=1,KMAXE
-        CALL VOLUME_CALCULATOR_MovingMesh_2D(I,3)
-    END DO
-    !$OMP END DO 
-  END IF
-
-  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-  ! global_position_index = 2
-  CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
-
-  !$OMP DO
-  DO I=1,KMAXE
-      IF (DG == 1) THEN
-          ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-          ! U_C(I)%VALDG(1,:,:)=OO2*U_C(I)%VALDG(2,:,:) + OO2*U_C(I)%VALDG(1,:,:) - (OO2*DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
-      ELSE
-          ! U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-          U_C(I)%VAL(1,1:NOF_VARIABLES) = ((oo2 * U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) &
-                                        + (oo2 * U_C(I)%VAL(1,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(2))  &
-                                        - (dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES))))                              &
-                                        / IELEM(N,I)%moving_volume(3)
-      END IF
-  END DO
-  !$OMP END DO
-
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-      !$OMP DO
-      DO I=1,KMAXE
-          ! U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-          U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar) * IELEM(N,I)%moving_volume(1)) &
-                                                             - (dt * (RHSt(I)%VAL(1:turbulenceequations+passivescalar))))                          &
-                                                             /  IELEM(N,I)%moving_volume(3)
-      END DO
-      !$OMP END DO
-  END IF
-
-  IF (AVERAGING.EQ.1)THEN
-      print *, "Moving mesh does not support averaging yet"
-      call abort
-      ! CALL AVERAGING_T(N)
-  END IF
+        ! CALL AVERAGING_T(N)
+    END IF
 
   Call COPY_BACK_LOCAL_NODES(3, 1)
-  Call GEOMETRY_CALC_MovingMesh(N, 1)
-  !$OMP MASTER
-      Call EXCH_CORDS_MovingMesh(N, 1)
-  !$OMP END MASTER
 
-  !$OMP BARRIER
-  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-  CAll Find_QP_positions(N, 1)
-  Call RE_PRESTORE_1(N, 1)
           
 END SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0
 
@@ -4540,146 +4508,387 @@ END SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0
 SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
   !> @brief
   !> SSP RUNGE KUTTA 2ND-ORDER SCHEME IN 2D
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  INTEGER::I, KMAXE, node_index
-  REAL::AVRGS, OOVOLUME, TO4, OO4, TO3, OO3
-  KMAXE=XMPIELRANK(N)
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I, KMAXE, node_index
+    REAL::AVRGS, OOVOLUME, TO4, OO4, TO3, OO3
+    KMAXE=XMPIELRANK(N)
 
-  global_position_index = 1
-
-  Call GEOMETRY_CALC_MovingMesh(N, 1)
-  !$OMP MASTER
-      Call EXCH_CORDS_MovingMesh(N, 1)
-  !$OMP END MASTER
-
-
-  CAll Find_QP_positions(N, 1)
-  Call RE_PRESTORE_1(N, 1)
-
-  call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
-  ! call EXCHANGE_HIGHER(N)
-
-  call find_node_velocities(1, DT, N)
-  call Find_QP_velocities(N)
-  Call MOVE_NODES(0.5*DT,1,2)
-  IF (DIMENSIONA.EQ.3) THEN
-    !$OMP DO 
-    DO I=1,KMAXE
-        ! CALL VOLUME_CALCULATOR_MovingMesh_3D(I,2)
+    !$omp barrier
+    Call GEOMETRY_CALC_MovingMesh(N, 1)
+    !$omp barrier
+    !$OMP MASTER
+        Call EXCH_CORDS_MovingMesh(N, 1)
+    !$OMP END MASTER
+    !$omp barrier
+    CAll Find_QP_positions(N, 1)
+    !$omp barrier
+    Call RE_PRESTORE_1(N, 1)
+    !$omp barrier
+    global_position_index = 1
+    call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+    ! call EXCHANGE_HIGHER(N)
+    !$omp barrier
+    call find_node_velocities(1, DT, N)
+    call Find_QP_velocities(N)
+    Call MOVE_NODES(0.5*DT,1,2)
+    !$omp barrier
+    IF (DIMENSIONA.EQ.3) THEN
         print *, "Moving mesh in 3D not implemented yet"
         call abort
-    END DO
-    !$OMP END DO
-  ELSE
-    !$OMP DO
-    DO I=1,KMAXE
-        CALL VOLUME_CALCULATOR_MovingMesh_2D(I,2)
-    END DO
-    !$OMP END DO 
-  END IF
-  
-  CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
-
-  !$OMP DO
-  DO I=1,KMAXE
-    IF (DG == 1) THEN
-        print *, "Moving mesh does not support DG yet"
-        call abort
-      ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-      ! U_C(I)%VALDG(2,:,:)=U_C(I)%VALDG(1,:,:)
-      ! U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (0.5*DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
+        ! !$OMP DO 
+        ! DO I=1,KMAXE
+        !     ! CALL VOLUME_CALCULATOR_MovingMesh_3D(I,2)
+        ! END DO
+        ! !$OMP END DO
     ELSE
-        U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)= ((U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - ((0.5*dt) * RHS(I)%VAL(1:NOF_VARIABLES))) / IELEM(N,I)%moving_volume(2)
-        if (governingequations.EQ.-1) Then
-            U_C(I)%VAL(1,NOF_VARIABLES)= U_C(I)%VAL(2,NOF_VARIABLES) - ((0.5*dt) * RHS(I)%VAL(NOF_VARIABLES) / (0.5 * (IELEM(N,I)%moving_volume(1) + IELEM(N,I)%moving_volume(2))))
-        end if
+        !$OMP DO
+        DO I=1,KMAXE
+            CALL VOLUME_CALCULATOR_MovingMesh_2D(I,2)
+        END DO
+        !$OMP END DO 
     END IF
-  END DO
-  !$OMP END DO
-
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+    
+    CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
+    !$omp barrier
     !$OMP DO
     DO I=1,KMAXE
-        U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-        U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)  * IELEM(N,I)%moving_volume(1)) - ((0.5*dt) * (RHSt(I)%VAL(1:turbulenceequations+passivescalar)))) / IELEM(N,I)%moving_volume(2)
+        IF (DG == 1) THEN
+            print *, "Moving mesh does not support DG yet"
+            call abort
+            ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            ! U_C(I)%VALDG(2,:,:)=U_C(I)%VALDG(1,:,:)
+            ! U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (0.5*DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
+        ELSE
+            U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+            U_C(I)%VAL(1,1:NOF_VARIABLES)= ((U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - ((0.5*dt) * RHS(I)%VAL(1:NOF_VARIABLES))) / IELEM(N,I)%moving_volume(2)
+            ! if (governingequations.EQ.-1) Then
+            !     U_C(I)%VAL(1,NOF_VARIABLES)= U_C(I)%VAL(2,NOF_VARIABLES) - (((0.5*dt) * RHS(I)%VAL(NOF_VARIABLES)) / (0.5*(IELEM(N,I)%moving_volume(1)+IELEM(N,I)%moving_volume(2))))
+            ! end if
+        END IF
     END DO
     !$OMP END DO
-  END IF
 
-  Call GEOMETRY_CALC_MovingMesh(N, 2)
-
-  !$OMP MASTER
-      Call EXCH_CORDS_MovingMesh(N, 2)
-  !$OMP END MASTER
-
-
-  CAll Find_QP_positions(N, 2)
-  Call RE_PRESTORE_1(N, 2)
-
-
-  global_position_index = 2
-  call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
-  ! call EXCHANGE_HIGHER(N)
-
-  call find_node_velocities(2, DT, N)
-  call Find_QP_velocities(N)
-  Call MOVE_NODES(DT,1,3)
-  IF (DIMENSIONA.EQ.3) THEN
-    !$OMP DO 
-    DO I=1,KMAXE
-        ! CALL VOLUME_CALCULATOR_MovingMesh_3D(I,2)
-        print *, "Moving mesh in 3D not implemented yet"
-        call abort
-    END DO
-    !$OMP END DO
-  ELSE
-    !$OMP DO
-    DO I=1,KMAXE
-        CALL VOLUME_CALCULATOR_MovingMesh_2D(I,3)
-    END DO
-    !$OMP END DO 
-  END IF
-
-  ! global_position_index = 2
-  CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
-
-  !$OMP DO
-  DO I=1,KMAXE
-      IF (DG == 1) THEN
-          ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-          ! U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
-      ELSE
-          U_C(I)%VAL(1,1:NOF_VARIABLES) = ((U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - (dt * (RHS(I)%VAL(1:NOF_VARIABLES)))) / IELEM(N,I)%moving_volume(3)
-          if (governingequations.EQ.-1) then
-              U_C(I)%VAL(1,NOF_VARIABLES) = U_C(I)%VAL(2,NOF_VARIABLES) - (dt * (RHS(I)%VAL(NOF_VARIABLES)) / (0.5 * (IELEM(N,I)%moving_volume(2)+IELEM(N,I)%moving_volume(3))))
-          end if
-      END IF
-  END DO
-  !$OMP END DO
-
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
       !$OMP DO
       DO I=1,KMAXE
-          ! U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-          U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar) * IELEM(N,I)%moving_volume(1)) &
-                                                             - (dt * (RHSt(I)%VAL(1:turbulenceequations+passivescalar))))                          &
-                                                             /  IELEM(N,I)%moving_volume(3)
+          U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+          U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)  * IELEM(N,I)%moving_volume(1)) - ((0.5*dt) * (RHSt(I)%VAL(1:turbulenceequations+passivescalar)))) / IELEM(N,I)%moving_volume(2)
       END DO
       !$OMP END DO
-  END IF
+    END IF
 
+    Call GEOMETRY_CALC_MovingMesh(N, 2)
+    !$omp barrier
+    !$OMP MASTER
+        Call EXCH_CORDS_MovingMesh(N, 2)
+    !$OMP END MASTER
+    !$omp barrier
+    CAll Find_QP_positions(N, 2)
+    !$omp barrier
+    Call RE_PRESTORE_1(N, 2)
+    !$omp barrier
+    global_position_index = 2
+    call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+    ! call EXCHANGE_HIGHER(N)
+    !$omp barrier
+    call find_node_velocities(2, DT, N)
+    call Find_QP_velocities(N)
+    Call MOVE_NODES(DT,1,3)
+    !$omp barrier
+    IF (DIMENSIONA.EQ.3) THEN
+        print *, "Moving mesh in 3D not implemented yet"
+        call abort
+      ! !$OMP DO 
+      ! DO I=1,KMAXE
+      !     ! CALL VOLUME_CALCULATOR_MovingMesh_3D(I,2)
+      !     
+      ! END DO
+      ! !$OMP END DO
+    ELSE
+        !$OMP DO
+        DO I=1,KMAXE
+            CALL VOLUME_CALCULATOR_MovingMesh_2D(I,3)
+        END DO
+        !$OMP END DO 
+    END IF
 
-  IF (AVERAGING.EQ.1)THEN
-      print *, "Moving mesh does not support averaging yet"
-      call abort
-      ! CALL AVERAGING_T(N)
-  END IF
+    CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
+    !$omp barrier
+    !$OMP DO
+    DO I=1,KMAXE
+        IF (DG == 1) THEN
+            ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            ! U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
+        ELSE
+            U_C(I)%VAL(1,1:NOF_VARIABLES) = ((U_C(I)%VAL(2,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - (dt * (RHS(I)%VAL(1:NOF_VARIABLES)))) / IELEM(N,I)%moving_volume(3)
+            ! if (governingequations.EQ.-1) then
+            !     U_C(I)%VAL(1,NOF_VARIABLES) = U_C(I)%VAL(2,NOF_VARIABLES) - ((dt * RHS(I)%VAL(NOF_VARIABLES)) / (0.5*(IELEM(N,I)%moving_volume(2) + IELEM(N,I)%moving_volume(3))))
+            ! end if
+        END IF
+    END DO
+    !$OMP END DO
 
-  Call COPY_BACK_LOCAL_NODES(3, 1)
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            ! U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar) * IELEM(N,I)%moving_volume(1)) &
+                                                               - (dt * (RHSt(I)%VAL(1:turbulenceequations+passivescalar))))                          &
+                                                               /  IELEM(N,I)%moving_volume(3)
+        END DO
+        !$OMP END DO
+    END IF
+
+    IF (AVERAGING.EQ.1)THEN
+        print *, "Moving mesh does not support averaging yet"
+        call abort
+        ! CALL AVERAGING_T(N)
+    END IF
+
+    Call COPY_BACK_LOCAL_NODES(3, 1)
           
 END SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1
+
+
+
+
+
+
+SUBROUTINE RUNGE_KUTTA3_MovingMesh_2D(N)
+  !> @brief
+  !> SSP RUNGE KUTTA 3RD-ORDER SCHEME IN 2D
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I, KMAXE, node_index
+    REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
+    KMAXE=XMPIELRANK(N)
+    TO4=3.0D0/4.0D0
+    OO4=1.0D0/4.0D0
+    TO3=2.0D0/3.0D0
+    OO3=1.0D0/3.0D0	
+
+    !$omp barrier
+    Call GEOMETRY_CALC_MovingMesh(N, 1)
+    !$omp barrier
+    !$OMP MASTER
+        Call EXCH_CORDS_MovingMesh(N, 1)
+    !$OMP END MASTER
+    !$omp barrier
+    CAll Find_QP_positions(N, 1)
+    !$omp barrier
+    Call RE_PRESTORE_1(N, 1)
+    !$omp barrier
+    global_position_index = 1
+    call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+    ! call EXCHANGE_HIGHER(N)
+    !$omp barrier
+    call find_node_velocities(1, DT, N)
+    
+    call Find_QP_velocities(N)
+    Call MOVE_NODES(DT,1,2)
+    !$omp barrier
+    IF (DIMENSIONA.EQ.3) THEN
+        print *, "Moving mesh in 3D not implemented yet"
+        call abort
+        ! !$OMP DO 
+        ! DO I=1,KMAXE
+        !     CALL VOLUME_CALCULATOR_MovingMesh_3D(I,2) 
+        ! END DO
+        ! !$OMP END DO
+    ELSE
+        !$OMP DO
+        DO I=1,KMAXE
+            CALL VOLUME_CALCULATOR_MovingMesh_2D(I,2)
+        END DO
+        !$OMP END DO 
+    END IF
+    !$omp barrier
+    CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
+    !$omp barrier
+    !$OMP DO
+    DO I=1,KMAXE
+        IF (DG == 1) THEN
+            print *, "Moving mesh does not support DG yet"
+            call abort
+            ! U_C(I)%VALDG(2,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
+            ! U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES))) 
+        ELSE
+            ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            U_C(I)%VAL(2,1:NOF_VARIABLES) = U_C(I)%VAL(1,1:NOF_VARIABLES)
+            U_C(I)%VAL(1,1:NOF_VARIABLES) = ((U_C(I)%VAL(2,1:NOF_VARIABLES)*IELEM(N,I)%moving_volume(1))-(DT*RHS(I)%VAL(1:NOF_VARIABLES))) / IELEM(N,I)%moving_volume(2)
+        END IF
+    END DO
+    !$OMP END DO
+
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        print *, "Moving mesh does not support turbulence and passive scalars yet"
+        call abort
+        !$OMP DO
+        DO I=1,KMAXE
+            OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar) = U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = (U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)*IELEM(N,I)%moving_volume(1)-(DT*RHSt(I)%VAL(1:turbulenceequations+passivescalar))) / IELEM(N,I)%moving_volume(2)
+        END DO
+        !$OMP END DO
+    END IF
+
+    Call GEOMETRY_CALC_MovingMesh(N, 2)
+    !$omp barrier
+    !$OMP MASTER
+        Call EXCH_CORDS_MovingMesh(N, 2)
+    !$OMP END MASTER
+    !$omp barrier
+    CAll Find_QP_positions(N, 2)
+    !$omp barrier
+    Call RE_PRESTORE_1(N, 2)
+    !$omp barrier
+    global_position_index = 2
+    call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+    ! call EXCHANGE_HIGHER(N)
+    
+    call find_node_velocities(2, DT, N)
+    
+    call Find_QP_velocities(N)
+    !$omp do
+    do node_index=1,kmaxn 
+        local_nodes(node_index)%positions(3,1:dimensiona) = (TO4*local_nodes(node_index)%positions(1,1:dimensiona)) + &
+                OO4*(local_nodes(node_index)%positions(2,1:dimensiona) + (DT * local_nodes(node_index)%velocity(1:dimensiona)))
+    end do
+    !$omp end do
+    !$omp barrier
+    IF (DIMENSIONA.EQ.3) THEN
+        print *, "Moving mesh in 3D not implemented yet"
+        call abort
+        ! !$OMP DO 
+        ! DO I=1,KMAXE
+        !     CALL VOLUME_CALCULATOR_MovingMesh_3D(I,3) 
+        ! END DO
+        ! !$OMP END DO
+    ELSE
+        !$OMP DO
+        DO I=1,KMAXE
+            CALL VOLUME_CALCULATOR_MovingMesh_2D(I,3)
+        END DO
+        !$OMP END DO 
+    END IF
+    !$omp barrier
+    ! global_position_index = 2
+    CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
+    !$omp barrier
+    !$OMP DO
+    DO I=1,KMAXE
+        IF (DG == 1) THEN
+            print *, "Moving mesh does not support DG yet"
+            call abort
+            ! U_C(I)%VALDG(3,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
+            ! U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=TO4*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + OO4*U_C(I)%VALDG(3,1:NOF_VARIABLES,:) - OO4*DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
+        ELSE
+            ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            U_C(I)%VAL(3,1:NOF_VARIABLES) = U_C(I)%VAL(1,1:NOF_VARIABLES)
+            ! U_C(I)%VAL(1,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
+            !   ((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
+            U_C(I)%VAL(1,1:NOF_VARIABLES) = ((TO4*U_C(I)%VAL(2,1:NOF_VARIABLES)*IELEM(N,I)%moving_volume(1)) &
+                                          + (OO4*((U_C(I)%VAL(3,1:NOF_VARIABLES)*IELEM(N,I)%moving_volume(2)) - (DT * RHS(I)%VAL(1:NOF_VARIABLES))))) &
+                                          / IELEM(N,I)%moving_volume(3)
+        END IF
+    END DO
+    !$OMP END DO
+
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar) = U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((TO4 * U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)*IELEM(N,I)%moving_volume(1)) &
+                                                               + (OO4*((U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)*IELEM(N,I)%moving_volume(2)) & 
+                                                                       - (DT * RHSt(I)%VAL(1:turbulenceequations+passivescalar))))) &
+                                                               / IELEM(N,I)%moving_volume(3)
+        END DO
+        !$OMP END DO
+    END IF
+
+    Call GEOMETRY_CALC_MovingMesh(N, 3)
+    !$omp barrier
+    !$OMP MASTER
+        Call EXCH_CORDS_MovingMesh(N, 3)
+    !$OMP END MASTER
+    !$omp barrier
+    CAll Find_QP_positions(N, 3)
+    !$omp barrier
+    Call RE_PRESTORE_1(N, 3)
+    !$omp barrier
+    global_position_index = 3
+    call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+    ! call EXCHANGE_HIGHER(N)
+    
+    call find_node_velocities(3, DT, N)
+  
+    call Find_QP_velocities(N)
+    !$omp do
+    do node_index=1,kmaxn 
+        local_nodes(node_index)%positions(4,1:dimensiona) = (OO3*local_nodes(node_index)%positions(1,1:dimensiona)) + &
+                TO3*(local_nodes(node_index)%positions(3,1:dimensiona) + (DT * local_nodes(node_index)%velocity(1:dimensiona)))
+    end do
+    !$omp end do
+    !$omp barrier
+    IF (DIMENSIONA.EQ.3) THEN
+        print *, "Moving mesh in 3D not implemented yet"
+        call abort
+        ! !$OMP DO 
+        ! DO I=1,KMAXE
+        !     CALL VOLUME_CALCULATOR_MovingMesh_3D(I,4) 
+        ! END DO
+        ! !$OMP END DO
+    ELSE
+        !$OMP DO
+        DO I=1,KMAXE
+            CALL VOLUME_CALCULATOR_MovingMesh_2D(I,4)
+        END DO
+        !$OMP END DO 
+    END IF
+    !$omp barrier
+    ! global_position_index = 3
+    CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
+    !$omp barrier
+    !$OMP DO
+    DO I=1,KMAXE
+        IF (DG == 1) THEN
+            print *, "Moving mesh does not support DG yet"
+            call abort
+            ! U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=OO3*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + TO3*U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - TO3*DT*TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
+        ELSE
+            ! OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+            ! U_C(I)%VAL(1,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
+            !   ((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
+            U_C(I)%VAL(1,1:NOF_VARIABLES) = ((OO3*U_C(I)%VAL(2,1:NOF_VARIABLES)*IELEM(N,I)%moving_volume(1)) &
+                                          + (TO3*((U_C(I)%VAL(1,1:NOF_VARIABLES)*IELEM(N,I)%moving_volume(3)) & 
+                                              - (DT*RHS(I)%VAL(1:NOF_VARIABLES))))) &
+                                          / IELEM(N,I)%moving_volume(4)
+        END IF
+    END DO
+    !$OMP END DO
+
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((OO3*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)*IELEM(N,I)%moving_volume(1)) &
+                                                               + (TO3 * ((U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)*IELEM(N,I)%moving_volume(3)) & 
+                                                                  - (DT*RHSt(I)%VAL(1:turbulenceequations+passivescalar))))) & 
+                                                               / IELEM(N,I)%moving_volume(4)   
+        END DO
+        !$OMP END DO
+    END IF
+
+    IF (AVERAGING.EQ.1)THEN
+        print *, "Moving mesh does not support averaging yet"
+        call abort
+        ! CALL AVERAGING_T(N)
+    END IF
+
+    Call COPY_BACK_LOCAL_NODES(4, 1)
+
+END SUBROUTINE RUNGE_KUTTA3_MovingMesh_2D
 
 
 

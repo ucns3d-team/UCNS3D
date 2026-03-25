@@ -274,7 +274,6 @@ end function
 
 
 
-
 function compute_relaxation_gradient(num_point_pairs, points, p, result)
     implicit none
     integer,intent(in)::num_point_pairs
@@ -283,12 +282,34 @@ function compute_relaxation_gradient(num_point_pairs, points, p, result)
     real,dimension(1:dimensiona),intent(out)::result
     logical::compute_relaxation_gradient
 
+    if (relaxation_centre_type.eq.5) then
+        compute_relaxation_gradient = compute_JacobiCondNumber_gradient(num_point_pairs, points, p, result)
+    else if (relaxation_centre_type.eq.7) then
+        compute_relaxation_gradient = compute_OddyMetric_gradient(num_point_pairs, points, p, result)
+    else
+        print*,"invalid relaxation_centre_type"
+    end if
+
+end function compute_relaxation_gradient
+
+
+
+
+
+function compute_JacobiCondNumber_gradient(num_point_pairs, points, p, result)
+    implicit none
+    integer,intent(in)::num_point_pairs
+    real,dimension(1:dimensiona,1:2*num_point_pairs),intent(in)::points
+    real,dimension(1:dimensiona),intent(in)::p
+    real,dimension(1:dimensiona),intent(out)::result
+    logical::compute_JacobiCondNumber_gradient
+
     real::area, len2_plus, len2_minus
     integer::pair, minus_index, plus_index, i, other_i
     real,dimension(1:dimensiona)::p_plus, p_minus
 
     result(:) = zero
-    compute_relaxation_gradient = .true.
+    compute_JacobiCondNumber_gradient = .true.
 
     if (dimensiona.eq.2) then
         do pair = 1, num_point_pairs
@@ -301,11 +322,11 @@ function compute_relaxation_gradient(num_point_pairs, points, p, result)
 
             area = ((p(1)-p_plus(1))*(p(2)-p_minus(2))) - ((p(2)-p_plus(2))*(p(1)-p_minus(1)))
             if (area.lt.zero) then
-                print*,"negative area in compute_relaxation_gradient"
-                compute_relaxation_gradient = .false.
+                print*,"negative area in compute_JacobiCondNumber_gradient"
+                compute_JacobiCondNumber_gradient = .false.
             else if (area.eq.zero) then
-                print*,"area = 0 in compute_relaxation_gradient"
-                compute_relaxation_gradient = .false.
+                print*,"area = 0 in compute_JacobiCondNumber_gradient"
+                compute_JacobiCondNumber_gradient = .false.
             end if
             do i = 1, dimensiona
                 len2_minus = len2_minus + ((p(i)-p_minus(i))**2)
@@ -316,11 +337,60 @@ function compute_relaxation_gradient(num_point_pairs, points, p, result)
             result(2) = result(2) + (((2.0*p(2)) - p_minus(2) - p_plus(2))/area) + (((len2_plus+len2_minus)/(2.0*(area**2)))*(p_plus(1) - p_minus(1)))
         end do
     else
-        print*,"3D is not supported in compute_relaxation_gradient in meshquality module"
+        print*,"3D is not supported in compute_JacobiCondNumber_gradient in meshquality module"
     end if
 
-end function compute_relaxation_gradient
+end function compute_JacobiCondNumber_gradient
 
+
+
+
+
+function compute_OddyMetric_gradient(num_point_pairs, points, p, result)
+    implicit none
+    integer,intent(in)::num_point_pairs
+    real,dimension(1:dimensiona,1:2*num_point_pairs),intent(in)::points
+    real,dimension(1:dimensiona),intent(in)::p
+    real,dimension(1:dimensiona),intent(out)::result
+    logical::compute_OddyMetric_gradient
+
+    real::area, len2_plus, len2_minus
+    integer::pair, minus_index, plus_index, i, other_i
+    real,dimension(1:dimensiona)::p_plus, p_minus
+
+    result(:) = zero
+    compute_OddyMetric_gradient = .true.
+
+    if (dimensiona.eq.2) then
+        do pair = 1, num_point_pairs
+            plus_index = 2*pair
+            minus_index = plus_index-1 
+            p_plus(:) = points(:,plus_index)
+            p_minus(:) = points(:,minus_index)
+            len2_plus = zero
+            len2_minus  = zero
+
+            area = ((p(1)-p_plus(1))*(p(2)-p_minus(2))) - ((p(2)-p_plus(2))*(p(1)-p_minus(1)))
+            if (area.lt.zero) then
+                print*,"negative area in compute_OddyMetric_gradient"
+                compute_OddyMetric_gradient = .false.
+            else if (area.eq.zero) then
+                print*,"area = 0 in compute_OddyMetric_gradient"
+                compute_OddyMetric_gradient = .false.
+            end if
+            do i = 1, dimensiona
+                len2_minus = len2_minus + ((p(i)-p_minus(i))**2)
+                len2_plus = len2_plus + ((p(i)-p_plus(i))**2)
+            end do
+
+            result(1) = result(1) + ((2.0*((2.0*p(1)) - p_minus(1) - p_plus(1))*(len2_plus+len2_minus))/(area**2)) + ((((len2_plus+len2_minus)**2)/(area**3))*(p_minus(2) - p_plus(2)))
+            result(2) = result(2) + ((2.0*((2.0*p(2)) - p_minus(2) - p_plus(2))*(len2_plus+len2_minus))/(area**2)) + ((((len2_plus+len2_minus)**2)/(area**3))*(p_plus(1) - p_minus(1)))
+        end do
+    else
+        print*,"3D is not supported in compute_OddyMetric_gradient in meshquality module"
+    end if
+
+end function compute_OddyMetric_gradient
 
 
 
@@ -333,12 +403,34 @@ function compute_relaxation_hessian(num_point_pairs, points, p, result)
     real,dimension(1:dimensiona,1:dimensiona),intent(out)::result
     logical::compute_relaxation_hessian
 
+    if (relaxation_centre_type.eq.5) then
+        compute_relaxation_hessian = compute_JacobiCondNumber_hessian(num_point_pairs, points, p, result)
+    else if (relaxation_centre_type.eq.7) then
+        compute_relaxation_hessian = compute_OddyMetric_hessian(num_point_pairs, points, p, result)
+    else
+        print*,"invalid relaxation_centre_type"
+    end if
+
+end function compute_relaxation_hessian
+
+
+
+
+
+function compute_JacobiCondNumber_hessian(num_point_pairs, points, p, result)
+    implicit none
+    integer,intent(in)::num_point_pairs
+    real,dimension(1:dimensiona,1:2*num_point_pairs),intent(in)::points
+    real,dimension(1:dimensiona),intent(in)::p
+    real,dimension(1:dimensiona,1:dimensiona),intent(out)::result
+    logical::compute_JacobiCondNumber_hessian
+
     real::area, len2_plus, len2_minus
     integer::pair, minus_index, plus_index, i, other_i
     real,dimension(1:dimensiona)::p_plus, p_minus
 
     result(:,:) = zero
-    compute_relaxation_hessian = .true.
+    compute_JacobiCondNumber_hessian = .true.
 
     if (dimensiona.eq.2) then
         do pair = 1, num_point_pairs
@@ -351,11 +443,11 @@ function compute_relaxation_hessian(num_point_pairs, points, p, result)
 
             area = ((p(1)-p_plus(1))*(p(2)-p_minus(2))) - ((p(2)-p_plus(2))*(p(1)-p_minus(1)))
             if (area.lt.zero) then
-                print*,"negative area in compute_relaxation_hessian"
-                compute_relaxation_hessian = .false.
+                print*,"negative area in compute_JacobiCondNumber_hessian"
+                compute_JacobiCondNumber_hessian = .false.
             else if (area.eq.zero) then
-                print*,"area = 0 in compute_relaxation_hessian"
-                compute_relaxation_hessian = .false.
+                print*,"area = 0 in compute_JacobiCondNumber_hessian"
+                compute_JacobiCondNumber_hessian = .false.
             end if
             do i = 1, dimensiona
                 len2_minus = len2_minus + ((p(i)-p_minus(i))**2)
@@ -375,10 +467,73 @@ function compute_relaxation_hessian(num_point_pairs, points, p, result)
         end do
         result(2,1) = result(1,2)
     else
-        print*,"3D is not supported in compute_relaxation_gradient in meshquality module"
+        print*,"3D is not supported in compute_JacobiCondNumber_gradient in meshquality module"
     end if
 
-end function compute_relaxation_hessian
+end function compute_JacobiCondNumber_hessian
+
+
+
+
+
+function compute_OddyMetric_hessian(num_point_pairs, points, p, result)
+    implicit none
+    integer,intent(in)::num_point_pairs
+    real,dimension(1:dimensiona,1:2*num_point_pairs),intent(in)::points
+    real,dimension(1:dimensiona),intent(in)::p
+    real,dimension(1:dimensiona,1:dimensiona),intent(out)::result
+    logical::compute_OddyMetric_hessian
+
+    real::area, len2_plus, len2_minus
+    integer::pair, minus_index, plus_index, i, other_i
+    real,dimension(1:dimensiona)::p_plus, p_minus
+
+    result(:,:) = zero
+    compute_OddyMetric_hessian = .true.
+
+    if (dimensiona.eq.2) then
+        do pair = 1, num_point_pairs
+            plus_index = 2*pair
+            minus_index = plus_index-1 
+            p_plus(:) = points(:,plus_index)
+            p_minus(:) = points(:,minus_index)
+            len2_plus = zero
+            len2_minus  = zero
+
+            area = ((p(1)-p_plus(1))*(p(2)-p_minus(2))) - ((p(2)-p_plus(2))*(p(1)-p_minus(1)))
+            if (area.lt.zero) then
+                print*,"negative area in compute_OddyMetric_hessian"
+                compute_OddyMetric_hessian = .false.
+            else if (area.eq.zero) then
+                print*,"area = 0 in compute_OddyMetric_hessian"
+                compute_OddyMetric_hessian = .false.
+            end if
+            do i = 1, dimensiona
+                len2_minus = len2_minus + ((p(i)-p_minus(i))**2)
+                len2_plus = len2_plus + ((p(i)-p_plus(i))**2)
+            end do
+
+            result(1,1) = result(1,1) + ((4.0*(((2.0*p(1)) - p_minus(1) - p_plus(1))**2))/(area**2))
+            result(1,1) = result(1,1) + ((4.0*(len2_plus+len2_minus))/(area**2))
+            result(1,1) = result(1,1) - ((4.0*(len2_plus+len2_minus)*((2.0*p(1))-p_minus(1)-p_plus(1))*(p_plus(2)-p_minus(2)))/(area**3))
+            result(1,1) = result(1,1) + ((3.0*((len2_plus+len2_minus)**2)*((p_plus(2)-p_minus(2))**2))/(area**4))
+
+            result(2,2) = result(2,2) + ((4.0*(((2.0*p(2)) - p_minus(2) - p_plus(2))**2))/(area**2))
+            result(2,2) = result(2,2) + ((4.0*(len2_plus+len2_minus))/(area**2))
+            result(2,2) = result(2,2) - ((4.0*(len2_plus+len2_minus)*((2.0*p(2))-p_minus(2)-p_plus(2))*(p_minus(1)-p_plus(1)))/(area**3))
+            result(2,2) = result(2,2) + ((3.0*((len2_plus+len2_minus)**2)*((p_minus(1)-p_plus(1))**2))/(area**4))
+            
+            result(1,2) = result(1,2) + ((4.0*((2.0*p(1)) - p_minus(1) - p_plus(1))*((2.0*p(2)) - p_minus(2) - p_plus(2)))/(area**2))
+            result(1,2) = result(1,2) - ((2.0*(len2_plus+len2_minus)*((2.0*p(1))-p_minus(1)-p_plus(1))*(p_minus(1)-p_plus(1)))/(area**3))
+            result(1,2) = result(1,2) - ((2.0*(len2_plus+len2_minus)*((2.0*p(2))-p_minus(2)-p_plus(2))*(p_plus(2)-p_minus(2)))/(area**3))
+            result(1,2) = result(1,2) + ((3.0*((len2_plus+len2_minus)**2)*(p_minus(1)-p_plus(1))*(p_plus(2)-p_minus(2)))/(area**4))
+        end do
+        result(2,1) = result(1,2)
+    else
+        print*,"3D is not supported in compute_OddyMetric_gradient in meshquality module"
+    end if
+
+end function compute_OddyMetric_hessian
 
 
 
@@ -405,6 +560,8 @@ function invert_mat(size, input, output)
         if (det.eq.zero) then
             invert_mat = .false.
             print*,"dividing by zero in invert_mat"
+        else if (det.lt.zero) Then
+            print*,"negative determinant in invert_mat"
         end if
         output(1,1) = input(2,2)/det
         output(2,2) = input(1,1)/det
@@ -544,6 +701,9 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
     do node_index = 1, kmaxn 
         local_nodes(node_index)%JacobiCondNumber = zero
         node_num_neighbours = local_nodes(node_index)%num_neighbours
+
+        local_nodes(node_index)%relaxation_velocity(:) = zero
+
         p(:) = local_nodes(node_index)%positions(position_index,:)
         if (moved.ne.0) then
             p(1:dimensiona) = p(1:dimensiona) + (local_nodes(node_index)%lagrangian_velocity(1:dimensiona)*d_t)
@@ -628,15 +788,15 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
             print*,"wrong number of points in find_node_Jacobi_relaxation_velocity"
         end if
 
-        if (valid) then
-            relaxed_point(:) = p(:)
-        else
-            print*,"alternative starting point in node", node_index
+        !if (valid) then
+        !     relaxed_point(:) = p(:)
+        ! else
+        !     print*,"alternative starting point in node", node_index
             relaxed_point(:) = zero
             do i = 1, 2*node_num_neighbours
                 relaxed_point(:) = relaxed_point(:) + (points(:,i)/real(2*node_num_neighbours))
             end do
-        end if
+        ! end if
         change_len2 = 10000.0
 
         ! change_len2 = 1000.0
@@ -674,7 +834,7 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
             end if
 
             counter = 0
-            do while ((change_len2.gt.treshold2).and.(valid).and.(counter.lt.1))
+            do while ((change_len2.gt.treshold2).and.(valid).and.(counter.lt.20))
                 multiple = 1.0
 
                 107 continue
@@ -725,7 +885,7 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
             direction(:) = direction(:)/direction_len
             ! print*,"p(:) =", p(1), p(2), "direction(:) =", direction(1), direction(2)
 
-            if (.not.valid) then
+            ! if (.not.valid) then
                 change(:) = relaxed_point(:) - p(:)
                 change_dot = zero
                 do i = 1, dimensiona
@@ -733,7 +893,7 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
                 end do
                 change(:) = change_dot * direction(:)
                 relaxed_point(:) = p(:) + change(:)
-            end if
+            ! end if
 
             valid1 = compute_relaxation_gradient(node_num_neighbours, points(:,:), relaxed_point(:), relaxation_gradient(:))
             valid2 = compute_relaxation_hessian(node_num_neighbours, points(:,:), relaxed_point(:), relaxation_hessian(:,:))
@@ -754,7 +914,7 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
             end if
 
             counter = 0
-            do while ((change_len2.gt.treshold2).and.(valid).and.(counter.lt.1))
+            do while ((change_len2.gt.treshold2).and.(valid).and.(counter.lt.20))
                 multiple = 1.0
 
                 207 continue

@@ -13548,8 +13548,9 @@ SUBROUTINE SPECIFY_WRITE_VARIABLES(N)
 		END IF
 	else
 		IF (multispecies.EQ.1)THEN
+			
 			WRITE_VARIABLES=NOF_VARIABLES+1
-
+			
 			!!specify the name of the variable names!!
 			Variable_names(1)='density'
 			Variable_names(2)='U'
@@ -13559,6 +13560,12 @@ SUBROUTINE SPECIFY_WRITE_VARIABLES(N)
 			Variable_names(6)='rho vf2'
 			Variable_names(7)='volume_fraction'
 			Variable_names(8)='Q'
+			if (MESH_MOVEMENT) then
+				WRITE_VARIABLES = WRITE_VARIABLES+1
+				Variable_names(8)='cpu'
+				Variable_names(9)='normalized gradient'
+			end if
+
 		Else
 			WRITE_VARIABLES=NOF_VARIABLES+1+TURBULENCEEQUATIONS
 
@@ -13567,7 +13574,11 @@ SUBROUTINE SPECIFY_WRITE_VARIABLES(N)
 			Variable_names(2)='U'
 			Variable_names(3)='V'
 			Variable_names(4)='Pressure'
-			Variable_names(5)='Q'
+			if (MESH_MOVEMENT) then
+				WRITE_VARIABLES = WRITE_VARIABLES+1
+				Variable_names(5)='cpu'
+				Variable_names(6)='normalized gradient'
+			end if
 
 			if (turbulence.eq.1)then
 				Variable_names(6)='turb'
@@ -13780,13 +13791,11 @@ SUBROUTINE PARALLEL_VTK_COMBINE(N)
 					rARRAY_PART1(i,j)=ielem(n,i)%mood_o
 				else
 					if (MESH_MOVEMENT) then
-						! if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13)) then
-						! 	rARRAY_PART1(i,j) = u_c(i)%normalized_gradient
-						! 	! print*,"!"
-						! else
+						if (j.eq.(nof_Variables+1)) then
 							rARRAY_PART1(i,j) = N
-							! print*,"?"
-						! end if
+					 	else
+							rARRAY_PART1(i,j) = u_c(i)%normalized_gradient
+						end if
 					else
 						if (multispecies.eq.1)then
 							rARRAY_PART1(i,j)=IELEM(N,I)%REDUCE!ielem(n,i)%vortex(1)
@@ -14374,8 +14383,8 @@ END SUBROUTINE PARALLEL_VTK_COMBINE_AV
 
 
 SUBROUTINE PARALLEL_VTK_COMBINE_partitioned(N)
-	!> @brief
-	!> This subroutine uses MPI-IO for writing the VTK FILES
+  !> @brief
+  !> This subroutine uses MPI-IO for writing the VTK FILES
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,ALLOCATABLE,DIMENSION(:)::array2,ARRAY3,ARRAY4

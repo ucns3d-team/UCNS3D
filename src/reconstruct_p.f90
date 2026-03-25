@@ -1321,6 +1321,7 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
             node_coords(1,1:dimensiona) = local_nodes(node_index)%positions(global_position_index,1:dimensiona)
             node_coords(1,1:dimensiona) = MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),node_coords(1,1:dimensiona)-ILOCAL_RECON3(I)%VEXT_REF(1:dimensiona))
 
+            Icompwrt=0
             IF (DIMENSIONA.EQ.3)THEN
                 CONSMATRIX_nodes(face_node_counter,1:IELEM(N,I)%IDEGFREE)=BASIS_REC(N,node_coords(1,1),node_coords(1,2),node_coords(1,3),IELEM(N,I)%IORDER,I,IELEM(N,I)%IDEGFREE,0)
             ELSE
@@ -1328,11 +1329,13 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
             END IF
 
             if (ees.eq.5)then
+                Icompwrt=1
                 IF (DIMENSIONA.EQ.3)THEN
                     CONSMATRIXC_nodes(face_node_counter,1:IDEGFREE2)=BASIS_REC(N,node_coords(1,1),node_coords(1,2),node_coords(1,3),IORDER2,I,IDEGFREE2,1)
                 ELSE
                     CONSMATRIXC_nodes(face_node_counter,1:IDEGFREE2)=BASIS_REC2D(N,node_coords(1,1),node_coords(1,2),IORDER2,I,IDEGFREE2,1)
                 END IF
+                Icompwrt=0
             END IF
         end do
     END DO	!FACES
@@ -1735,8 +1738,8 @@ SUBROUTINE EXTRAPOLATE_BOUND_NODE(RESSOLUTION_NODES,varcons,face_index,node_in_f
         ILOCAL_RECON3(cell_index)%node_values(1:NOF_VARIABLES,face_index,node_in_face_index) = ILOCAL_RECON3(cell_index)%node_values(1:NOF_VARIABLES,face_index,node_in_face_index) &
                                                             + ((leftv(1:NOF_VARIABLES) + RESSOLUTION_NODES(read_index,1:NOF_vARIABLES))*WENO(1:NOF_vARIABLES,stencil))
     else   !CONSERVATIVE
-        ILOCAL_RECON3(cell_index)%node_values(1:NOF_VARIABLES,face_index,node_in_face_index) = ILOCAL_RECON3(cell_index)%node_values(1:NOF_VARIABLES,face_index,node_in_face_index)&
-                                                            + (U_C(cell_index)%VAL(1,1:NOF_VARIABLES) + RESSOLUTION_NODES(read_index,1:NOF_vARIABLES))*WENO(1:NOF_vARIABLES,stencil)
+        ILOCAL_RECON3(cell_index)%node_values(1:NOF_VARIABLES,face_index,node_in_face_index) = ILOCAL_RECON3(cell_index)%node_values(1:NOF_VARIABLES,face_index,node_in_face_index) &
+                                                            + ((U_C(cell_index)%VAL(1,1:NOF_VARIABLES) + RESSOLUTION_NODES(read_index,1:NOF_vARIABLES))*WENO(1:NOF_vARIABLES,stencil))
     end if
   
 END SUBROUTINE EXTRAPOLATE_BOUND_NODE
@@ -2318,6 +2321,7 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
     end do
 
     ILOCAL_RECON3(I)%ULEFT(:,:,:)=ZERO
+    ILOCAL_RECON3(I)%node_values(:,:,:)=ZERO
     IF (TURBULENCEEQUATIONS.GE.1)THEN
         ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=ZERO
     END IF
@@ -2358,7 +2362,7 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
                 CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
                 USOL_NODES(1:nof_Variables,l,face_node_index) = USOL_NODES(1:nof_Variables,l,face_node_index)-LEFTV(1:NOF_VARIABLES)
             ELSE
-                USOL_NODES(1:nof_Variables,l,face_node_index) = USOL_NODES(1:nof_Variables,l,face_node_index)-LEFTV(1:NOF_VARIABLES)
+                USOL_NODES(1:nof_Variables,l,face_node_index) = USOL_NODES(1:nof_Variables,l,face_node_index)-U_C(I)%VAL(1,1:nof_Variables)
             END IF
             IF (TURBULENCEEQUATIONS.GE.1)THEN
                 print*,"turbulence is not supported with node reconstruction"
@@ -2870,9 +2874,13 @@ SUBROUTINE ARBITRARY_ORDER(N)
     SELECT CASE(IWENO)
     
       CASE(1)
+        !$omp barrier 
         CALL WENOWEIGHTS(N)
+        !$omp barrier 
         CALL CHECKSOL(N)
+        !$omp barrier 
         CALL MUSCL(N)
+        !$omp barrier 
         CALL CHECKSOLX(N)
 
       CASE(-1)
@@ -3108,6 +3116,7 @@ SUBROUTINE CHECKSOLX(N)
                 IF (REDUCE1.EQ.1)THEN
                     do iex=1,NOF_VARIABLES
                         ILOCAL_RECON3(I)%ULEFT(iex,:,:)=u_c(i)%val(1,iex)
+                        ILOCAL_RECON3(I)%node_values(iex,:,:)=u_c(i)%val(1,iex)
                     end do
 
                     if (dg.eq.1)then

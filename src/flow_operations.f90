@@ -3020,6 +3020,7 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
     REAl::MP_PINFL,MP_PINFR,GAMMAL,GAMMAR
     REAL::SPS,SKINS,IKINS,VEL,vnb,theeta,reeta
     REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL,rgg,tt1
+    real::dot,radius
 
     SELECT CASE(B_CODE)
 
@@ -3027,7 +3028,18 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
       CASE(1)!INFLOW SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
 
         if (boundtype.eq.0)then	!SUPERSONIC
-            RIGHTV(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
+            if (initcond.ne.61) then
+                RIGHTV(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
+            else
+                RIGHTV(1:nof_Variables)=LEFTV(1:nof_Variables)
+                CALL cons2prim(N,RIGHTV,MP_PINFL,GAMMAL)
+                ! radius  = sqrt((pox(1)**2)+(poy(1)**2))
+                ! dot = (rightv(2)*pox(1)/radius) + (rightv(3)*pox(2)/radius)
+                ! rightv(2) = 2.0*dot*pox(1)/radius - rightv(2) ! invert tangent component
+                ! rightv(3) = 2.0*dot*poy(1)/radius - rightv(3) ! invert tangent component
+                rightv(4) = pres
+                call PRIM2CONS(n,rightv)
+            end if
         ELSE		!SUBSONIC
             RIGHTV(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
 
@@ -3056,9 +3068,7 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
                 SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2))
                 IKINS=SUBSON3(4)/((GAMMA-1.0d0)*(SUBSON3(1)))
                 rightv(4)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
-            
             END IF
-
         END IF
           
         IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN

@@ -11,27 +11,27 @@ CONTAINS
  
  
 REAL FUNCTION LINEAR_INIT3D(n,pox,poy,poz)
-!> @brief
-!> This function initialises the solution for linear advection in 3D,
-!> various customisable profiles can be generated and assigned to each initcond code
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
+  !> @brief
+  !> This function initialises the solution for linear advection in 3D,
+  !> various customisable profiles can be generated and assigned to each initcond code
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
 
 
-!COORDINATES=POX(1),POY(1),POZ(1)
+    !COORDINATES=POX(1),POY(1),POZ(1)
 
-IF (INITCOND.EQ.0)THEN
-    IF(((POX(1).GE.0.25D0).AND.(POX(1).LE.0.75D0)).AND.((POZ(1).GE.0.25D0).AND.(POZ(1).LE.0.75D0)))THEN
-	      LINEAR_INIT3d=1.0D0
-    ELSE
-	      LINEAR_INIT3d=1.0D0
+    IF (INITCOND.EQ.0)THEN
+        IF(((POX(1).GE.0.25D0).AND.(POX(1).LE.0.75D0)).AND.((POZ(1).GE.0.25D0).AND.(POZ(1).LE.0.75D0)))THEN
+            LINEAR_INIT3d=1.0D0
+        ELSE
+            LINEAR_INIT3d=1.0D0
+        END IF
     END IF
-END IF
-IF (INITCOND.EQ.2)THEN
-    LINEAR_INIT3d=(SIN((2.0D0*PI)*(POX(1))))*&
-        (SIN((2.0D0*PI)*(POY(1))))*(SIN((2.0D0*PI)*(POZ(1))))
-END IF
+    IF (INITCOND.EQ.2)THEN
+        LINEAR_INIT3d=(SIN((2.0D0*PI)*(POX(1))))*&
+            (SIN((2.0D0*PI)*(POY(1))))*(SIN((2.0D0*PI)*(POZ(1))))
+    END IF
 
 END FUNCTION LINEAR_INIT3D
 
@@ -39,658 +39,100 @@ END FUNCTION LINEAR_INIT3D
 
 
 REAL FUNCTION LINEAR_INIT2D(n,pox,poy,poz)
-!> @brief
-!> This function initialises the solution for linear advection in 2D,
-!> various customisable profiles can be generated and assigned to each initcond code
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
-REAL::AADX,AADY,SUMF,rd
-integer::ixg
-!COORDINATES=POX(1),POY(1),POZ(1)
+  !> @brief
+  !> This function initialises the solution for linear advection in 2D,
+  !> various customisable profiles can be generated and assigned to each initcond code
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
+    REAL::AADX,AADY,SUMF,rd
+    integer::ixg
+    !COORDINATES=POX(1),POY(1),POZ(1)
 
-
-SUMF=zero
-IF (INITCOND.EQ.1)THEN
-    IF(((POX(1).GE.0.25D0).AND.(POX(1).LE.0.75D0)).AND.((POy(1).GE.0.25D0).AND.(POy(1).LE.0.75D0)))THEN
- 	     LINEAR_INIT2d=1.0D0
-    ELSE
-	      LINEAR_INIT2d=0.0D0
-    END IF
-end if
-
-
-IF (INITCOND.EQ.3)THEN
-    LINEAR_INIT2d=0.0d0
-    if (sqrt(((pox(1)-0.25d0)**2)+((poy(1)-0.5d0)**2)).le.0.15)then
-        rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.25d0)**2)+((poy(1)-0.5d0)**2))
-
-        LINEAR_INIT2d=0.25d0*(1.0d0+cos(pi*min(rd,1.0d0)))
+    SUMF=zero
+    IF (INITCOND.EQ.1)THEN
+        IF(((POX(1).GE.0.25D0).AND.(POX(1).LE.0.75D0)).AND.((POy(1).GE.0.25D0).AND.(POy(1).LE.0.75D0)))THEN
+            LINEAR_INIT2d=1.0D0
+        ELSE
+            LINEAR_INIT2d=0.0D0
+        END IF
     end if
 
-    if (sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.25d0)**2)).le.0.15)then
+    IF (INITCOND.EQ.3)THEN
+        LINEAR_INIT2d=0.0d0
+        if (sqrt(((pox(1)-0.25d0)**2)+((poy(1)-0.5d0)**2)).le.0.15)then
+            rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.25d0)**2)+((poy(1)-0.5d0)**2))
 
-        rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.25d0)**2))
-        LINEAR_INIT2d=1.0d0-rd
+            LINEAR_INIT2d=0.25d0*(1.0d0+cos(pi*min(rd,1.0d0)))
+        end if
+
+        if (sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.25d0)**2)).le.0.15)then
+
+            rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.25d0)**2))
+            LINEAR_INIT2d=1.0d0-rd
+        end if
+
+        if (sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.75d0)**2)).le.0.15)then
+            rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.75d0)**2))
+            if ((abs(pox(1)-0.5).GE.0.025d0).or.(poy(1).gt.0.85))then
+                LINEAR_INIT2d=1.0d0
+            else
+                LINEAR_INIT2d=0.0d0
+            end if
+        end if
     end if
 
-    if (sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.75d0)**2)).le.0.15)then
-        rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.75d0)**2))
-	      if ((abs(pox(1)-0.5).GE.0.025d0).or.(poy(1).gt.0.85))then
-	          LINEAR_INIT2d=1.0d0
-	      else
-	          LINEAR_INIT2d=0.0d0
-	      end if
+    IF (INITCOND.EQ.5)THEN
+        LINEAR_INIT2d=0.0d0
+        if ((sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.5d0)**2)).gt.0.25).and.(sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.5d0)**2)).lt.0.35))then
+            LINEAR_INIT2d=1.0
+        else
+            LINEAR_INIT2d=0.0
+        end if
     end if
-end if
 
-
-
-IF (INITCOND.EQ.5)THEN
-
-    LINEAR_INIT2d=0.0d0
-    if ((sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.5d0)**2)).gt.0.25).and.(sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.5d0)**2)).lt.0.35))then
-        LINEAR_INIT2d=1.0
-    else
-        LINEAR_INIT2d=0.0
+    IF (INITCOND.EQ.2)THEN
+        LINEAR_INIT2d=(SIN((2.0D0*PI)*(POX(1))))*(SIN((2.0D0*PI)*(POY(1))))
+        !linear_init2d=1.0d0
     end if
-end if
-
-
-IF (INITCOND.EQ.2)THEN
-    LINEAR_INIT2d=(SIN((2.0D0*PI)*(POX(1))))*(SIN((2.0D0*PI)*(POY(1))))
- 
-    !linear_init2d=1.0d0
-end if
-
 
 END FUNCTION LINEAR_INIT2D
  
  
+
+
+
 SUBROUTINE INITIALISE_EULER3D(N,veccos,pox,poy,poz)
-IMPLICIT NONE
-!> @brief
-!> This function initialises the solution for EULER and NAVIER-STOKES equations in 3D,
-!> various customisable profiles can be generated and assigned to each initcond code
-INTEGER,INTENT(IN)::N
-!COORDINATES=POX,POY,POZ
-!SOLUTION=VECCOS
-!COMPONENTS FROM DAT FILE GAMMA,UVEL,WVEL,VVEL,PRES,RRES
-!INITCOND= PROFILE CHOICE FROM DATA FILE
-real,dimension(1:nof_Variables+turbulenceequations+passivescalar),intent(inout)::veccos
-real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
-REAL,DIMENSION(1:NOF_SPECIES)::MP_R,MP_A,MP_IE
-REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL
-integer::u_cond1,u_cond2,u_cond3,u_cond4
-
-
-
-
-VECCOS(:)=ZERO
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! READ INITIAL VALUES FROM DAT FILE
-R1=RRES
-P1=PRES
-S1=SQRT((GAMMA*P1)/(R1))
-U1=UVEL
-V1=VVEL
-W1=WVEL
-
-!KINETIC ENERGY FIRST!
-SKIN1=(oo2)*((U1**2)+(V1**2)+(W1**2))
-!INTERNAL ENERGY 
-
-IE1=((P1)/((GAMMA-1.0D0)*R1))
-
-!TOTAL ENERGY
-E1=R1*(SKIN1+IE1)
-
-!VECTOR OF CONSERVED VARIABLES NOW
-if (mrf.eq.1)then
-    VECCOS(1)=R1
-    VECCOS(2)=R1*U1+1.0e-15
-    VECCOS(3)=R1*V1+1.0e-15
-    VECCOS(4)=R1*W1+1.0e-15
-    VECCOS(5)=E1
-else
-    VECCOS(1)=R1
-    VECCOS(2)=R1*U1
-    VECCOS(3)=R1*V1
-    VECCOS(4)=R1*W1
-    VECCOS(5)=E1
-end if
-IF (TURBULENCE.EQ.1)THEN
-
-    IF (TURBULENCEMODEL.EQ.1)THEN
-
-        VECCOS(6)=VISC*TURBINIT
-    END IF
-    IF (TURBULENCEMODEL.EQ.2)THEN
- 
-        if (zero_turb_init .eq. 0) then
-            IF (RFRAME.EQ.0) THEN
-                VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
-                VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
-            ELSE
-                VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
-                VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
-            END IF	
-        end if
-  
-        if (zero_turb_init .eq. 1) then
-            IF (RFRAME.EQ.0) THEN
-                VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
-                VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
-            ELSE
-                VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
-                VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
-            END IF		
-        end if
-    END IF
-END IF
-
-IF (PASSIVESCALAR.GT.0)THEN
-    VECCOS(5+TURBULENCEEQUATIONS+1:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=ZERO
-END IF
-
-
-
-
-IF (INITCOND.EQ.10000)THEN	!shock density interaction
-    r1=0.5D0
-    P1=0.4127
-    u1=0.0
-    v1=0.0
-    w1=0.0
-
-    SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-    !INTERNAL ENERGY
-    IE1=((P1)/((GAMMA-1.0D0)*R1))
-    !TOTAL ENERGY
-    E1=(P1/(GAMMA-1))+(R1*SKIN1)
-    !VECTOR OF CONSERVED VARIABLES NOW
-    VECCOS(1)=R1
-    VECCOS(2)=R1*U1
-    VECCOS(3)=R1*V1
-    VECCOS(4)=R1*W1
-    VECCOS(5)=E1
-
-end if
-
-
-IF (INITCOND.EQ.95)THEN	!TAYLOR GREEN INITIAL PROFILE
-    if(boundtype.eq.1)then
-        R1=1.0D0
-        W1=0.0D0
-        P1=100.0D0+((R1/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
-        u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
-        v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
-
-    else
-
-        W1=0.0D0
-        P1=(1.0d0/(gamma*1.25*1.25))+((1.0d0/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
-        r1=(p1*(gamma*1.25*1.25))
-        u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
-        v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
-
-
-    end if
-    SKIN1=(OO2)*((U1**2)+(V1**2)+(W1**2))
-    !INTERNAL ENERGY 
-    IE1=((P1)/((GAMMA-1.0D0)*R1))
-    !TOTAL ENERGY
-    E1=(P1/(GAMMA-1))+(R1*SKIN1)
-    !VECTOR OF CONSERVED VARIABLES NOW
-    VECCOS(1)=R1
-    VECCOS(2)=R1*U1
-    VECCOS(3)=R1*V1
-    VECCOS(4)=R1*W1
-    VECCOS(5)=E1
-END IF
-
-IF (INITCOND.EQ.101)THEN	!shock density interaction
-    if (pox(1).lt.-4.0d0)then
-        r1=3.8571d0
-        u1=2.6294d0
-        v1=zero
-        w1=zero
-        p1=10.333d0
-    else
-        r1=(1.0d0+0.2d0*sin(5.0d0*pox(1)))
-        u1=zero
-        v1=zero
-        w1=zero
-        p1=1
-    end if
-    SKIN1=(OO2)*((U1**2)+(V1**2)+(W1**2))
-    !INTERNAL ENERGY 
-    IE1=((P1)/((GAMMA-1.0D0)*R1))
-    !TOTAL ENERGY
-    E1=(P1/(GAMMA-1))+(R1*SKIN1)
-    !VECTOR OF CONSERVED VARIABLES NOW
-    VECCOS(1)=R1
-    VECCOS(2)=R1*U1
-    VECCOS(3)=R1*V1
-    VECCOS(4)=R1*W1
-    VECCOS(5)=E1
-end if
-
-
-IF (INITCOND.EQ.405)THEN
-    !TEST CASE 4.5 OF CORALIC & COLONIUS
-    
-    IF (POX(1).LT.-0.1D0)THEN
-        MP_R(1)=0.166315789d0
-        MP_R(2)=1.658d0
-        MP_A(1)=0.0D0
-        MP_A(2)=1.0D0
-        U1=114.49D0
-        V1= 0.0D0
-        w1=0.0D0
-        P1=159060.0d0
-        ! SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-        R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-        MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-        MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-        IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-        SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-        E1=(R1*SKIN1)+IE1
-        
-        !VECTOR OF CONSERVED VARIABLES NOW
-    ELSE
-    
-        !FIRST WITHIN BUBBLE REGION
-        if (sqrt(((pox(1)+0.05d0)**2)+((poy(1)-0.05d0)**2)+((poz(1)-0.05d0)**2)).LE.0.025d0)then
-            MP_R(1)=0.166315789d0
-            MP_R(2)=1.204D0
-            MP_A(1)=0.95d0
-            MP_A(2)=0.05D0
-            U1=0.0D0
-            V1=0.0D0
-            w1=0.0d0
-            P1=101325
-            
-            ! SKIN1=(OO2)*((U1**2)+(V1**2))
-            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-            E1=(R1*SKIN1)+IE1
-
-            !VECTOR OF CONSERVED VARIABLES NOW
-        else
-            MP_R(1)=0.166315789d0
-            MP_R(2)=1.204D0
-            MP_A(1)=0.0D0
-            MP_A(2)=1.0D0
-            U1=0.0D0
-            V1=0.0D0
-            w1=0.0d0
-            P1=101325
-            
-            
-            ! SKIN1=(OO2)*((U1**2)+(V1**2))
-            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-            E1=(R1*SKIN1)+IE1
-            
-            !VECTOR OF CONSERVED VARIABLES NOW
-        end if
-
-    END IF
-    
-    VECCOS(1)=R1
-    VECCOS(2)=R1*U1
-    VECCOS(3)=R1*V1
-    VECCOS(4)=R1*w1
-    VECCOS(5)=E1
-    VECCOS(6)=MP_R(1)*MP_A(1)
-    VECCOS(7)=MP_R(2)*MP_A(2)
-    VECCOS(8)=MP_A(1)
-     
-END IF
-
-IF (INITCOND.EQ.470)THEN
-
-    IF (POx(1).Le.1.0)THEN   !Post shock concidions
-        MP_R(2)=1.0d0 	    ! Water density
-        MP_R(1)=1.0d0 		! Air density
-        MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
-        MP_A(1)=1.0D0 		! Air volume fraction
-        U1=0.0	  	          ! m/s
-        V1=0.0
-        w1=0.0
-        P1=1.0      		! Pa
-
-
-        R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-        MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-        MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-        IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-        SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-        E1=(R1*SKIN1)+IE1
-        !VECTOR OF CONSERVED VARIABLES NOW
-
-    ELSE
-        IF (sqrt(POy(1)**2+poz(1)**2).ge.1.5d0) THEN
-
-            MP_R(2)=1.0d0 	! Water density
-            MP_R(1)=0.125d0 		! Air density
-            MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
-            MP_A(1)=1.0D0 		! Air volume fraction
-            U1=0.0	  	          ! m/s
-            V1=0.0
-            w1=0.0
-            P1=0.1      		! Pa
-
-            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-            E1=(R1*SKIN1)+IE1
-            !VECTOR OF CONSERVED VARIABLES NOW
-
-        ELSE
-
-            MP_R(2)=1.0d0 	! Water density
-            MP_R(1)=0.125d0 		! Air density
-            MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
-            MP_A(1)=0.0D0 		! Air volume fraction
-            U1=0.0	  	          ! m/s
-            V1=0.0
-            w1=0.0
-            P1=0.1      		! Pa
-
-            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-            E1=(R1*SKIN1)+IE1
-            !VECTOR OF CONSERVED VARIABLES NOW
-
-        end if
-    end if
-
-    VECCOS(1)=R1
-    VECCOS(2)=R1*U1
-    VECCOS(3)=R1*V1
-    VECCOS(4)=R1*w1
-    VECCOS(5)=E1
-    VECCOS(6)=MP_R(1)*MP_A(1)
-    VECCOS(7)=MP_R(2)*MP_A(2)
-    VECCOS(8)=MP_A(1)
-
-end if
-
-
-IF (INITCOND.EQ.157)THEN
-    !TEST CASE 4.5 OF CORALIC & COLONIUS
-    if (sqrt(((pox(1)-200.0e-6)**2)+((poy(1)-150.0e-6)**2)+((poz(1)-150.0e-6)**2)).LE.50.0e-6)then
-        MP_R(1)=1.225
-        MP_R(2)=1000.0
-        MP_A(1)=1.0D0
-        MP_A(2)=0.0D0
-        U1=0.0
-        V1=0.0D0
-        w1=0.0
-        P1=100000.0d0
-
-        ! SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-
-        R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-        MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-        MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-        IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-        SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-        E1=(R1*SKIN1)+IE1
-
-        ! VECTOR OF CONSERVED VARIABLES NOW
-
-    ELSE
-
-        !FIRST WITHIN BUBBLE REGION
-        if (pox(1).le.100.0e-6)then
-            P1=35e6
-            MP_R(1)=1.225
-            MP_R(2)=1000.0
-            MP_A(1)=0.0D0
-            MP_A(2)=1.0D0
-            U1=1647.0
-            V1=0.0D0
-            w1=0.0d0
-        else
-            MP_R(1)=1.225
-            MP_R(2)=1000.0
-            MP_A(1)=0.0D0
-            MP_A(2)=1.0D0
-            U1=0.0
-            V1=0.0D0
-            w1=0.0d0
-            P1=100000.0d0
-        end if
-
-        ! SKIN1=(OO2)*((U1**2)+(V1**2))
-        R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-        MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-        MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-        IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-        SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-        E1=(R1*SKIN1)+IE1
-
-        !VECTOR OF CONSERVED VARIABLES NOW
-    end if
-
-    VECCOS(1)=R1
-    VECCOS(2)=R1*U1
-    VECCOS(3)=R1*V1
-    VECCOS(4)=R1*w1
-    VECCOS(5)=E1
-    VECCOS(6)=MP_R(1)*MP_A(1)
-    VECCOS(7)=MP_R(2)*MP_A(2)
-    VECCOS(8)=MP_A(1)
-
-END IF
-
-IF (INITCOND.EQ.411)THEN
-    !EXAMPLE VI Paper5.pdf
-
-    !GAMMA_IN(1) = 4.4 ! Water
-    !GAMMA_IN(2) = 1.4  ! Air
-    !MP_PINF(1) = 6e8 !Water from Coralic and Colonius or 2.218e8(abgrall203)
-    !MP_PINF(2) = 0 ! Air
-
-    IF (POX(1).LE.0.0066D0)THEN
-        MP_R(2)=1323.65d0 	! Water density
-        MP_R(1)=1d0 		! Air density
-        MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
-        MP_A(1)=0.0D0 		! Air volume fraction
-        U1=681.058D0	  	! m/s
-        V1= 0.0D0
-        w1=0.0d0
-        P1=1.9e9      		! Pa
-
-        R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-        MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-        MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-        IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-        SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-        E1=(R1*SKIN1)+IE1
-        !VECTOR OF CONSERVED VARIABLES NOW
-    ELSE
-
-        !FIRST WITHIN BUBBLE REGION
-        if (sqrt(((pox(1)-0.012)**2)+((poy(1)-0.012)**2)+((poz(1)-0.012)**2)).LE.0.003d0)then
-            MP_R(2)=1000.00d0 	! Water density
-            MP_R(1)=1d0 		! Air density
-            MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
-            MP_A(1)=1.0D0 		! Air volume fraction
-            U1= 0.0D0	  		! m/s
-            V1= 0.0D0
-            w1=0.0d0
-            P1= 100000    			! Pa
-
-            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-            E1=(R1*SKIN1)+IE1
-            !VECTOR OF CONSERVED VARIABLES NOW
-
-        else
-
-            MP_R(2)=1000.0d0 	! Water density
-            MP_R(1)=1d0 		! Air density
-            MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
-            MP_A(1)=0.0D0 		! Air volume fraction
-            U1= 0.0D0	  		! m/s
-            V1= 0.0D0
-            w1=0.0d0
-            P1= 100000    			! Pa
-
-            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-            E1=(R1*SKIN1)+IE1
-
-            !VECTOR OF CONSERVED VARIABLES NOW
-        end if
-
-    END IF
-
-    VECCOS(1)=R1
-    VECCOS(2)=R1*U1
-    VECCOS(3)=R1*V1
-    VECCOS(4)=R1*w1
-    VECCOS(5)=E1
-    VECCOS(6)=MP_R(1)*MP_A(1)
-    VECCOS(7)=MP_R(2)*MP_A(2)
-    VECCOS(8)=MP_A(1)
-
-END IF
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-IF (INITCOND.EQ.408)THEN
-    !TEST CASE 4.5 OF CORALIC & COLONIUS
-
-    IF (POX(1).GT.0.10D0)THEN
-        MP_R(1)=6.03
-        MP_R(2)=1.658d0
-        MP_A(1)=0.0D0
-        MP_A(2)=1.0D0
-        U1=-114.49D0
-        V1= 0.0D0
-        w1=0.0D0
-        P1=159060.0d0
-
-        ! SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-        R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-        MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-        MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-        IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-        SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-        E1=(R1*SKIN1)+IE1
-        !VECTOR OF CONSERVED VARIABLES NOW
-
-    ELSE
-
-        !FIRST WITHIN BUBBLE REGION
-        if (sqrt(((pox(1)-0.079d0)**2)+((poy(1)-0.035d0)**2)+((poz(1)-0.035d0)**2)).LE.(0.0325d0/2.0d0))then
-            MP_R(1)=6.03
-            MP_R(2)=1.204D0
-            MP_A(1)=1.0d0
-            MP_A(2)=0.0D0
-            U1=0.0D0
-            V1=0.0D0
-            w1=0.0d0
-            P1=101325
-
-            ! SKIN1=(OO2)*((U1**2)+(V1**2))
-            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-            E1=(R1*SKIN1)+IE1
-            !VECTOR OF CONSERVED VARIABLES NOW
-        else
-
-            MP_R(1)=6.03
-            MP_R(2)=1.204D0
-            MP_A(1)=0.0D0
-            MP_A(2)=1.0D0
-            U1=0.0D0
-            V1=0.0D0
-            w1=0.0d0
-            P1=101325
-
-            ! SKIN1=(OO2)*((U1**2)+(V1**2))
-            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
-            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
-            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
-            E1=(R1*SKIN1)+IE1
-
-            !VECTOR OF CONSERVED VARIABLES NOW
-        end if
-    END IF
-
-    VECCOS(1)=R1
-    VECCOS(2)=R1*U1
-    VECCOS(3)=R1*V1
-    VECCOS(4)=R1*w1
-    VECCOS(5)=E1
-    VECCOS(6)=MP_R(1)*MP_A(1)
-    VECCOS(7)=MP_R(2)*MP_A(2)
-    VECCOS(8)=MP_A(1)
-
-END IF
-
-
-
-IF (INITCOND.EQ.103)THEN
-
+  !> @brief
+  !> This function initialises the solution for EULER and NAVIER-STOKES equations in 3D,
+  !> various customisable profiles can be generated and assigned to each initcond code
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    !COORDINATES=POX,POY,POZ
+    !SOLUTION=VECCOS
+    !COMPONENTS FROM DAT FILE GAMMA,UVEL,WVEL,VVEL,PRES,RRES
+    !INITCOND= PROFILE CHOICE FROM DATA FILE
+    real,dimension(1:nof_Variables+turbulenceequations+passivescalar),intent(inout)::veccos
+    real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
+    REAL,DIMENSION(1:NOF_SPECIES)::MP_R,MP_A,MP_IE
+    REAL::INTENERGY,R1,U1,V1,W1,ET1,S1,IE1,P1,SKIN1,E1,RS,US,VS,WS,KHX,VHX,AMP,DVEL
+    integer::u_cond1,u_cond2,u_cond3,u_cond4
+
+    VECCOS(:)=ZERO
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! READ INITIAL VALUES FROM DAT FILE
     R1=RRES
     P1=PRES
     S1=SQRT((GAMMA*P1)/(R1))
+    U1=UVEL
     V1=VVEL
     W1=WVEL
-    IF (POY(1).GT.0.0D0)THEN
-        U1=UVEL
-    ELSE
-
-        U1=0.0D0
-        V1=-3.0
-        P1=PRESS_OUTLET
-    END IF
 
     !KINETIC ENERGY FIRST!
     SKIN1=(oo2)*((U1**2)+(V1**2)+(W1**2))
-    !INTERNAL ENERGY
+    !INTERNAL ENERGY 
 
     IE1=((P1)/((GAMMA-1.0D0)*R1))
 
@@ -698,24 +140,45 @@ IF (INITCOND.EQ.103)THEN
     E1=R1*(SKIN1+IE1)
 
     !VECTOR OF CONSERVED VARIABLES NOW
-    VECCOS(1)=R1
-    VECCOS(2)=R1*U1
-    VECCOS(3)=R1*V1
-    VECCOS(4)=R1*W1
-    VECCOS(5)=E1
+    if (mrf.eq.1)then
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1+1.0e-15
+        VECCOS(3)=R1*V1+1.0e-15
+        VECCOS(4)=R1*W1+1.0e-15
+        VECCOS(5)=E1
+    else
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=R1*W1
+        VECCOS(5)=E1
+    end if
     IF (TURBULENCE.EQ.1)THEN
+
         IF (TURBULENCEMODEL.EQ.1)THEN
+
             VECCOS(6)=VISC*TURBINIT
         END IF
         IF (TURBULENCEMODEL.EQ.2)THEN
+    
             if (zero_turb_init .eq. 0) then
-                VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
-                VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+                IF (RFRAME.EQ.0) THEN
+                    VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
+                    VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
+                ELSE
+                    VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
+                    VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+                END IF	
             end if
-
+    
             if (zero_turb_init .eq. 1) then
-                VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
-                VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+                IF (RFRAME.EQ.0) THEN
+                    VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
+                    VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
+                ELSE
+                    VECCOS(6)=(1.5D0*I_turb_inlet*(V_REF**2))*R1
+                    VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)	
+                END IF		
             end if
         END IF
     END IF
@@ -724,11 +187,483 @@ IF (INITCOND.EQ.103)THEN
         VECCOS(5+TURBULENCEEQUATIONS+1:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=ZERO
     END IF
 
-end if
+    IF (INITCOND.EQ.10000)THEN	!shock density interaction
+        r1=0.5D0
+        P1=0.4127
+        u1=0.0
+        v1=0.0
+        w1=0.0
+
+        SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+        !INTERNAL ENERGY
+        IE1=((P1)/((GAMMA-1.0D0)*R1))
+        !TOTAL ENERGY
+        E1=(P1/(GAMMA-1))+(R1*SKIN1)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=R1*W1
+        VECCOS(5)=E1
+    end if
+
+    IF (INITCOND.EQ.95)THEN	!TAYLOR GREEN INITIAL PROFILE
+        if(boundtype.eq.1)then
+            R1=1.0D0
+            W1=0.0D0
+            P1=100.0D0+((R1/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
+            u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
+            v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
+        else
+            W1=0.0D0
+            P1=(1.0d0/(gamma*1.25*1.25))+((1.0d0/16.0D0)*((COS(2.0D0*POZ(1)))+2.0d0)*((COS(2.0D0*POX(1)))+(COS(2.0D0*POY(1)))))
+            r1=(p1*(gamma*1.25*1.25))
+            u1=sin(POX(1))*COS(POY(1))*COS(POZ(1))
+            v1=-COS(POX(1))*SIN(POY(1))*COS(POZ(1))
+        end if
+        SKIN1=(OO2)*((U1**2)+(V1**2)+(W1**2))
+        !INTERNAL ENERGY 
+        IE1=((P1)/((GAMMA-1.0D0)*R1))
+        !TOTAL ENERGY
+        E1=(P1/(GAMMA-1))+(R1*SKIN1)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=R1*W1
+        VECCOS(5)=E1
+    END IF
+
+    IF (INITCOND.EQ.101)THEN	!shock density interaction
+        if (pox(1).lt.-4.0d0)then
+            r1=3.8571d0
+            u1=2.6294d0
+            v1=zero
+            w1=zero
+            p1=10.333d0
+        else
+            r1=(1.0d0+0.2d0*sin(5.0d0*pox(1)))
+            u1=zero
+            v1=zero
+            w1=zero
+            p1=1
+        end if
+        SKIN1=(OO2)*((U1**2)+(V1**2)+(W1**2))
+        !INTERNAL ENERGY 
+        IE1=((P1)/((GAMMA-1.0D0)*R1))
+        !TOTAL ENERGY
+        E1=(P1/(GAMMA-1))+(R1*SKIN1)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=R1*W1
+        VECCOS(5)=E1
+    end if
+
+    IF (INITCOND.EQ.405)THEN
+        !TEST CASE 4.5 OF CORALIC & COLONIUS
+        
+        IF (POX(1).LT.-0.1D0)THEN
+            MP_R(1)=0.166315789d0
+            MP_R(2)=1.658d0
+            MP_A(1)=0.0D0
+            MP_A(2)=1.0D0
+            U1=114.49D0
+            V1= 0.0D0
+            w1=0.0D0
+            P1=159060.0d0
+            ! SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+            E1=(R1*SKIN1)+IE1
+            !VECTOR OF CONSERVED VARIABLES NOW
+        ELSE
+            !FIRST WITHIN BUBBLE REGION
+            if (sqrt(((pox(1)+0.05d0)**2)+((poy(1)-0.05d0)**2)+((poz(1)-0.05d0)**2)).LE.0.025d0)then
+                MP_R(1)=0.166315789d0
+                MP_R(2)=1.204D0
+                MP_A(1)=0.95d0
+                MP_A(2)=0.05D0
+                U1=0.0D0
+                V1=0.0D0
+                w1=0.0d0
+                P1=101325
+                
+                ! SKIN1=(OO2)*((U1**2)+(V1**2))
+                R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+                MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+                MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+                IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+                SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+                E1=(R1*SKIN1)+IE1
+                !VECTOR OF CONSERVED VARIABLES NOW
+            else
+                MP_R(1)=0.166315789d0
+                MP_R(2)=1.204D0
+                MP_A(1)=0.0D0
+                MP_A(2)=1.0D0
+                U1=0.0D0
+                V1=0.0D0
+                w1=0.0d0
+                P1=101325
+                
+                ! SKIN1=(OO2)*((U1**2)+(V1**2))
+                R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+                MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+                MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+                IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+                SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+                E1=(R1*SKIN1)+IE1
+                !VECTOR OF CONSERVED VARIABLES NOW
+            end if
+        END IF
+        
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=R1*w1
+        VECCOS(5)=E1
+        VECCOS(6)=MP_R(1)*MP_A(1)
+        VECCOS(7)=MP_R(2)*MP_A(2)
+        VECCOS(8)=MP_A(1) 
+    END IF
+
+    IF (INITCOND.EQ.470)THEN
+        IF (POx(1).Le.1.0)THEN   !Post shock concidions
+            MP_R(2)=1.0d0 	    ! Water density
+            MP_R(1)=1.0d0 		! Air density
+            MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
+            MP_A(1)=1.0D0 		! Air volume fraction
+            U1=0.0	  	          ! m/s
+            V1=0.0
+            w1=0.0
+            P1=1.0      		! Pa
+
+            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+            E1=(R1*SKIN1)+IE1
+            !VECTOR OF CONSERVED VARIABLES NOW
+        ELSE
+            IF (sqrt(POy(1)**2+poz(1)**2).ge.1.5d0) THEN
+
+                MP_R(2)=1.0d0 	! Water density
+                MP_R(1)=0.125d0 		! Air density
+                MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
+                MP_A(1)=1.0D0 		! Air volume fraction
+                U1=0.0	  	          ! m/s
+                V1=0.0
+                w1=0.0
+                P1=0.1      		! Pa
+
+                R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+                MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+                MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+                IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+                SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+                E1=(R1*SKIN1)+IE1
+                !VECTOR OF CONSERVED VARIABLES NOW
+            ELSE
+                MP_R(2)=1.0d0 	! Water density
+                MP_R(1)=0.125d0 		! Air density
+                MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
+                MP_A(1)=0.0D0 		! Air volume fraction
+                U1=0.0	  	          ! m/s
+                V1=0.0
+                w1=0.0
+                P1=0.1      		! Pa
+
+                R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+                MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+                MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+                IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+                SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+                E1=(R1*SKIN1)+IE1
+                !VECTOR OF CONSERVED VARIABLES NOW
+            end if
+        end if
+
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=R1*w1
+        VECCOS(5)=E1
+        VECCOS(6)=MP_R(1)*MP_A(1)
+        VECCOS(7)=MP_R(2)*MP_A(2)
+        VECCOS(8)=MP_A(1)
+    end if
+
+    IF (INITCOND.EQ.157)THEN
+        !TEST CASE 4.5 OF CORALIC & COLONIUS
+        if (sqrt(((pox(1)-200.0e-6)**2)+((poy(1)-150.0e-6)**2)+((poz(1)-150.0e-6)**2)).LE.50.0e-6)then
+            MP_R(1)=1.225
+            MP_R(2)=1000.0
+            MP_A(1)=1.0D0
+            MP_A(2)=0.0D0
+            U1=0.0
+            V1=0.0D0
+            w1=0.0
+            P1=100000.0d0
+
+            ! SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+
+            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+            E1=(R1*SKIN1)+IE1
+            ! VECTOR OF CONSERVED VARIABLES NOW
+        ELSE
+            !FIRST WITHIN BUBBLE REGION
+            if (pox(1).le.100.0e-6)then
+                P1=35e6
+                MP_R(1)=1.225
+                MP_R(2)=1000.0
+                MP_A(1)=0.0D0
+                MP_A(2)=1.0D0
+                U1=1647.0
+                V1=0.0D0
+                w1=0.0d0
+            else
+                MP_R(1)=1.225
+                MP_R(2)=1000.0
+                MP_A(1)=0.0D0
+                MP_A(2)=1.0D0
+                U1=0.0
+                V1=0.0D0
+                w1=0.0d0
+                P1=100000.0d0
+            end if
+
+            ! SKIN1=(OO2)*((U1**2)+(V1**2))
+            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+            E1=(R1*SKIN1)+IE1
+            !VECTOR OF CONSERVED VARIABLES NOW
+        end if
+
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=R1*w1
+        VECCOS(5)=E1
+        VECCOS(6)=MP_R(1)*MP_A(1)
+        VECCOS(7)=MP_R(2)*MP_A(2)
+        VECCOS(8)=MP_A(1)
+    END IF
+
+    IF (INITCOND.EQ.411)THEN
+        !EXAMPLE VI Paper5.pdf
+
+        !GAMMA_IN(1) = 4.4 ! Water
+        !GAMMA_IN(2) = 1.4  ! Air
+        !MP_PINF(1) = 6e8 !Water from Coralic and Colonius or 2.218e8(abgrall203)
+        !MP_PINF(2) = 0 ! Air
+
+        IF (POX(1).LE.0.0066D0)THEN
+            MP_R(2)=1323.65d0 	! Water density
+            MP_R(1)=1d0 		! Air density
+            MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
+            MP_A(1)=0.0D0 		! Air volume fraction
+            U1=681.058D0	  	! m/s
+            V1= 0.0D0
+            w1=0.0d0
+            P1=1.9e9      		! Pa
+
+            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+            E1=(R1*SKIN1)+IE1
+            !VECTOR OF CONSERVED VARIABLES NOW
+        ELSE
+            !FIRST WITHIN BUBBLE REGION
+            if (sqrt(((pox(1)-0.012)**2)+((poy(1)-0.012)**2)+((poz(1)-0.012)**2)).LE.0.003d0)then
+                MP_R(2)=1000.00d0 	! Water density
+                MP_R(1)=1d0 		! Air density
+                MP_A(2)=0.0D0 		! Water volume fraction (everything is water here)
+                MP_A(1)=1.0D0 		! Air volume fraction
+                U1= 0.0D0	  		! m/s
+                V1= 0.0D0
+                w1=0.0d0
+                P1= 100000    			! Pa
+
+                R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+                MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+                MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+                IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+                SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+                E1=(R1*SKIN1)+IE1
+                !VECTOR OF CONSERVED VARIABLES NOW
+            else
+                MP_R(2)=1000.0d0 	! Water density
+                MP_R(1)=1d0 		! Air density
+                MP_A(2)=1.0D0 		! Water volume fraction (everything is water here)
+                MP_A(1)=0.0D0 		! Air volume fraction
+                U1= 0.0D0	  		! m/s
+                V1= 0.0D0
+                w1=0.0d0
+                P1= 100000    			! Pa
+
+                R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+                MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+                MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+                IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+                SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+                E1=(R1*SKIN1)+IE1
+                !VECTOR OF CONSERVED VARIABLES NOW
+            end if
+        END IF
+
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=R1*w1
+        VECCOS(5)=E1
+        VECCOS(6)=MP_R(1)*MP_A(1)
+        VECCOS(7)=MP_R(2)*MP_A(2)
+        VECCOS(8)=MP_A(1)
+    END IF
+
+    IF (INITCOND.EQ.408)THEN
+        !TEST CASE 4.5 OF CORALIC & COLONIUS
+
+        IF (POX(1).GT.0.10D0)THEN
+            MP_R(1)=6.03
+            MP_R(2)=1.658d0
+            MP_A(1)=0.0D0
+            MP_A(2)=1.0D0
+            U1=-114.49D0
+            V1= 0.0D0
+            w1=0.0D0
+            P1=159060.0d0
+
+            ! SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+            R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+            MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+            MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+            IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+            SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+            E1=(R1*SKIN1)+IE1
+            !VECTOR OF CONSERVED VARIABLES NOW
+        ELSE
+            !FIRST WITHIN BUBBLE REGION
+            if (sqrt(((pox(1)-0.079d0)**2)+((poy(1)-0.035d0)**2)+((poz(1)-0.035d0)**2)).LE.(0.0325d0/2.0d0))then
+                MP_R(1)=6.03
+                MP_R(2)=1.204D0
+                MP_A(1)=1.0d0
+                MP_A(2)=0.0D0
+                U1=0.0D0
+                V1=0.0D0
+                w1=0.0d0
+                P1=101325
+
+                ! SKIN1=(OO2)*((U1**2)+(V1**2))
+                R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+                MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+                MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+                IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+                SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+                E1=(R1*SKIN1)+IE1
+                !VECTOR OF CONSERVED VARIABLES NOW
+            else
+                MP_R(1)=6.03
+                MP_R(2)=1.204D0
+                MP_A(1)=0.0D0
+                MP_A(2)=1.0D0
+                U1=0.0D0
+                V1=0.0D0
+                w1=0.0d0
+                P1=101325
+
+                ! SKIN1=(OO2)*((U1**2)+(V1**2))
+                R1=(MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+                MP_IE(1)=((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+                MP_IE(2)=((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+                IE1=(MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+                SKIN1=(OO2)*((U1**2)+(V1**2)+(w1**2))
+                E1=(R1*SKIN1)+IE1
+                !VECTOR OF CONSERVED VARIABLES NOW
+            end if
+        END IF
+
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=R1*w1
+        VECCOS(5)=E1
+        VECCOS(6)=MP_R(1)*MP_A(1)
+        VECCOS(7)=MP_R(2)*MP_A(2)
+        VECCOS(8)=MP_A(1)
+    END IF
+
+    IF (INITCOND.EQ.103)THEN
+        R1=RRES
+        P1=PRES
+        S1=SQRT((GAMMA*P1)/(R1))
+        V1=VVEL
+        W1=WVEL
+        IF (POY(1).GT.0.0D0)THEN
+            U1=UVEL
+        ELSE
+            U1=0.0D0
+            V1=-3.0
+            P1=PRESS_OUTLET
+        END IF
+
+        !KINETIC ENERGY FIRST!
+        SKIN1=(oo2)*((U1**2)+(V1**2)+(W1**2))
+        !INTERNAL ENERGY
+
+        IE1=((P1)/((GAMMA-1.0D0)*R1))
+
+        !TOTAL ENERGY
+        E1=R1*(SKIN1+IE1)
+
+        !VECTOR OF CONSERVED VARIABLES NOW
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=R1*W1
+        VECCOS(5)=E1
+        IF (TURBULENCE.EQ.1)THEN
+            IF (TURBULENCEMODEL.EQ.1)THEN
+                VECCOS(6)=VISC*TURBINIT
+            END IF
+            IF (TURBULENCEMODEL.EQ.2)THEN
+                if (zero_turb_init .eq. 0) then
+                    VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
+                    VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+                end if
+
+                if (zero_turb_init .eq. 1) then
+                    VECCOS(6)=(1.5D0*I_turb_inlet*(ufreestream**2))*R1
+                    VECCOS(7)=R1*veccos(6)/(10.0e-5*visc)
+                end if
+            END IF
+        END IF
+
+        IF (PASSIVESCALAR.GT.0)THEN
+            VECCOS(5+TURBULENCEEQUATIONS+1:5+TURBULENCEEQUATIONS+PASSIVESCALAR)=ZERO
+        END IF
+    end if
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 END SUBROUTINE INITIALISE_EULER3D
+
+
 
 
 
@@ -749,6 +684,7 @@ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
     real,dimension(1:nof_Variables+turbulenceequations+passivescalar),intent(inout)::veccos
     real,dimension(1:DIMENSIONA),intent(in)::pox,poy,poz
     REAL,DIMENSION(1:NOF_SPECIES)::MP_R,MP_A,MP_IE
+    real::helper,centre
     VECCOS(:)=ZERO
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -987,7 +923,8 @@ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
     END IF
 
     IF (INITCOND.EQ.51) THEN ! TORO test 1
-        if (pox(1).lt.0.5)then
+        centre = 0.5*(xmax(n)+xmin(n))
+        if (pox(1).lt.centre)then
             r1=1.0
             u1=zero
             v1=zero
@@ -1017,7 +954,8 @@ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
         u1=zero
         v1=zero
         p1=0.4
-        if (pox(1).lt.0.5)then
+        centre = 0.5*(xmax(n)+xmin(n))
+        if (pox(1).lt.centre)then
             u1 = -2.0
         else
             u1 = 2.0
@@ -1037,7 +975,8 @@ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
     END IF
 
     IF (INITCOND.EQ.53) THEN ! TORO test 3
-        if (pox(1).lt.0.5)then
+        centre = 0.5*(xmax(n)+xmin(n))
+        if (pox(1).lt.centre)then
             r1=1.0
             u1=zero
             v1=zero
@@ -1063,7 +1002,8 @@ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
     END IF
 
     IF (INITCOND.EQ.54) THEN ! TORO test 4
-        if (pox(1).lt.0.5)then
+        centre = 0.5*(xmax(n)+xmin(n))
+        if (pox(1).lt.centre)then
             r1=1.0
             u1=zero
             v1=zero
@@ -1119,6 +1059,30 @@ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
         VECCOS(4)=E1
     end if
 
+    IF (INITCOND.EQ.61) THEN ! NOH test
+        r1 = rres
+        p1 = pres
+        rcp = sqrt((pox(1)**2)+(poy(1)**2))
+        if (rcp.ne.zero) then
+            u1 = (-1.0)*pox(1)/rcp
+            v1 = (-1.0)*poy(1)/rcp
+        else
+            u1 = zero
+            v1 = zero
+        end if
+
+        !KINETIC ENERGY FIRST!
+        SKIN1=(OO2)*((U1**2)+(V1**2))
+        !INTERNAL ENERGY 
+        IE1=((P1)/((GAMMA-1.0D0)*R1))
+        !TOTAL ENERGY
+        E1=(P1/(GAMMA-1))+(R1*SKIN1)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=E1
+    END IF
 
     IF (INITCOND.EQ.102)THEN	!shock density interaction
         if (pox(1).lt.((1.0d0/6.0d0)+(poy(1)/(sqrt(3.0d0)))))then
@@ -1297,7 +1261,6 @@ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
         pr_radiusvar = sqrt( (POX(1)-pr_xcenter)**2 + (POY(1)-pr_ycenter)**2 )/ pr_Radius
 
         pr_velocityfree = pr_machnumberfree * sqrt(pr_gammafree*pr_Rgasfree*pr_temperaturefree)
-
 
         u1 = pr_velocityfree * (1.0 - (pr_beta* ((POY(1)-pr_ycenter)/pr_Radius )*exp((-pr_radiusvar**2)/2)  ) )
         v1 = pr_velocityfree * ((pr_beta* ((POY(1)-pr_ycenter)/pr_Radius )*exp((-pr_radiusvar**2)/2)  ) )
