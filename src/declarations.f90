@@ -791,7 +791,8 @@ TYPE::LOCAL_NODE
 	real::normalized_density_gradient_magnitude
 	real::normalized_vf_gradient_magnitude
 	real::volume_ratio
-	real::JacobiCondNumber
+	real::mesh_quality_before
+	real::mesh_quality_after
 	INTEGER::global_index
 	! INTEGER::local_index
 	! logical::internal

@@ -14,11 +14,34 @@ MODULE MESHQULITY_module
 
 CONTAINS
 
-function JacobiCondNumber2D(p_minus, p, p_plus, valid)
+function NodeMeshQuality(p_minus, p, p_plus, result)
     implicit none
     real,dimension(1:2),intent(in)::p_minus, p, p_plus
-    logical,intent(inout)::valid
-    real::JacobiCondNumber2D
+    real,intent(out)::result
+    logical::NodeMeshQuality
+
+    if (dimensiona.eq.2) then
+        if (relaxation_centre_type.eq.5) then
+            NodeMeshQuality = JacobiCondNumber2D(p_minus, p, p_plus, result)
+        else if (relaxation_centre_type.eq.7) then
+            NodeMeshQuality = OddyMetric2D(p_minus, p, p_plus, result)
+        else
+            print*,"invalid node relaxation type in NodeMeshQuality"
+        end if
+    else
+        print*,"invalid node relaxation type in NodeMeshQuality"
+    end if 
+end function NodeMeshQuality
+
+
+
+
+
+function JacobiCondNumber2D(p_minus, p, p_plus, result)
+    implicit none
+    real,dimension(1:2),intent(in)::p_minus, p, p_plus
+    real,intent(out)::result
+    logical::JacobiCondNumber2D
 
     real::area, len_minus2, len_plus2
     integer::i
@@ -33,12 +56,44 @@ function JacobiCondNumber2D(p_minus, p, p_plus, valid)
 
     area = ((p(1)-p_plus(1))*(p(2)-p_minus(2))) - ((p(2)-p_plus(2))*(p(1)-p_minus(1)))
     if (area.le.zero) Then
-        valid = .false.
+        JacobiCondNumber2D = .false.
     else
-        valid = .true.
+        JacobiCondNumber2D = .true.
     end if
 
-    JacobiCondNumber2D = (len_minus2 + len_plus2)/(2.0*area)
+    result = (len_minus2 + len_plus2)/(2.0*area)
+
+end function
+
+
+
+
+
+function OddyMetric2D(p_minus, p, p_plus, result)
+    implicit none
+    real,dimension(1:2),intent(in)::p_minus, p, p_plus
+    real,intent(out)::result
+    logical::OddyMetric2D
+
+    real::area, len_minus2, len_plus2
+    integer::i
+
+    len_minus2 = zero
+    len_plus2 = zero
+
+    do i=1, 2
+        len_minus2 = len_minus2 + ((p_minus(i) - p(i))**2)
+        len_plus2  = len_plus2  + ((p_plus(i)  - p(i))**2)
+    end do
+
+    area = ((p(1)-p_plus(1))*(p(2)-p_minus(2))) - ((p(2)-p_plus(2))*(p(1)-p_minus(1)))
+    if (area.le.zero) Then
+        OddyMetric2D = .false.
+    else
+        OddyMetric2D = .true.
+    end if
+
+    result = 0.5*(((len_minus2 + len_plus2)**2)/(area**2) - 2.0)
 
 end function
 
@@ -204,7 +259,7 @@ end function
 !                 i_plus = 1
 !             end if
 !             i_minus = i-1
-!             if (i_minus.lt.1) then
+!             if (i_minus.lt.1) thenO2D(p_minus, p, 
 !                 i_minus = cell_num_nodes
 !             end if
 !             node_plus_index  = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
@@ -585,10 +640,9 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
     ! integer M
     integer::node_index, node_plus_index, node_minus_index, cell_index, index, node_num_neighbours, cell_num_nodes
     integer::cpu_index, cpu
-    integer::iter, i, j, k, i_plus, i_minus, counter
+    integer::iter, i, j, k, i_plus, i_minus, counter, pair
     real,dimension(1:dimensiona)::p, p_minus, p_plus
-    real::val, change_len2, treshold2, multiple, direction_len, first_derivative, second_derivative, change_dot
-    integer::power
+    real::val, change_len2, treshold2, multiple, direction_len, first_derivative, second_derivative, change_dot, helper 
     real,dimension(1:dimensiona,1:(2*max_num_node_neighbours))::points
     real,dimension(1:dimensiona)::relaxed_point, new_relaxed, change, relaxation_gradient, direction
     real,dimension(1:dimensiona, 1:dimensiona)::relaxation_hessian, relaxation_hessian_inverse
@@ -603,7 +657,6 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
         call abort
     end if
 
-    power = 1
     ! treshold = 0.0001
     treshold2 = ((xmax(n)-xmin(n))*(ymax(n)-ymin(n))/imaxe)*0.0001
     ! print*,"treshold2 =", treshold2
@@ -699,7 +752,7 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
 
     !$omp do
     do node_index = 1, kmaxn 
-        local_nodes(node_index)%JacobiCondNumber = zero
+        local_nodes(node_index)%mesh_quality_before = zero
         node_num_neighbours = local_nodes(node_index)%num_neighbours
 
         local_nodes(node_index)%relaxation_velocity(:) = zero
@@ -736,15 +789,19 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
                 p_minus(1:dimensiona) = p_minus(1:dimensiona) + (local_nodes(node_minus_index)%lagrangian_velocity(1:dimensiona)*d_t)
             end if
 
-            if (dimensiona.eq.2) then
-                val = JacobiCondNumber2D(p_minus(:), p(:), p_plus(:), valid_helper)
-                valid = valid.and.valid_helper
+            valid = valid.and.NodeMeshQuality(p_minus(:), p(:), p_plus(:), helper)
+            if (valid) then
+                local_nodes(node_index)%mesh_quality_before = local_nodes(node_index)%mesh_quality_before + helper
             else
-                print*,"not implemented yet"
-                call abort
+                local_nodes(node_index)%mesh_quality_before = -1.0*(abs(local_nodes(node_index)%mesh_quality_before) + abs(helper))
             end if
-
-            local_nodes(node_index)%JacobiCondNumber = local_nodes(node_index)%JacobiCondNumber + (val**power)
+            ! if (dimensiona.eq.2) then
+            !     val = JacobiCondNumber2D(p_minus(:), p(:), p_plus(:), valid_helper)
+            !     valid = valid.and.valid_helper
+            ! else
+            !     print*,"not implemented yet"
+            !     call abort
+            ! end if
 
             counter = counter+1
             points(:,counter) = p_minus(:)
@@ -759,14 +816,27 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
                 if (dimensiona.eq.2) then
                     p_minus(:) = node_rcv_buffer(cpu_index)%data(index+1              : index+dimensiona)
                     p_plus(:)  = node_rcv_buffer(cpu_index)%data(index+(dimensiona+1) : index+(2*dimensiona))
-
-                    val = JacobiCondNumber2D(p_minus(:), p(:), p_plus(:), valid_helper)
-                    valid = valid.and.valid_helper
                 else
                     print*,"not implemented yet"
                     call abort
                 end if
-                local_nodes(node_index)%JacobiCondNumber = local_nodes(node_index)%JacobiCondNumber + (val**power)
+                valid = valid.and.NodeMeshQuality(p_minus(:), p(:), p_plus(:), helper)
+                if (valid) then
+                    local_nodes(node_index)%mesh_quality_before = local_nodes(node_index)%mesh_quality_before + helper
+                else
+                    local_nodes(node_index)%mesh_quality_before = -1.0*(abs(local_nodes(node_index)%mesh_quality_before) + abs(helper))
+                end if
+                ! if (dimensiona.eq.2) then
+                !     p_minus(:) = node_rcv_buffer(cpu_index)%data(index+1              : index+dimensiona)
+                !     p_plus(:)  = node_rcv_buffer(cpu_index)%data(index+(dimensiona+1) : index+(2*dimensiona))
+
+                !     val = JacobiCondNumber2D(p_minus(:), p(:), p_plus(:), valid_helper)
+                !     valid = valid.and.valid_helper
+                ! else
+                !     print*,"not implemented yet"
+                !     call abort
+                ! end if
+                ! local_nodes(node_index)%JacobiCondNumber = local_nodes(node_index)%JacobiCondNumber + (val**power)
 
                 counter = counter+1
                 points(:,counter) = p_minus(:)
@@ -777,12 +847,12 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
             end do
         end do
 
-        local_nodes(node_index)%JacobiCondNumber = local_nodes(node_index)%JacobiCondNumber / real(local_nodes(node_index)%num_neighbours)
-        if (power.eq.2) then
-            local_nodes(node_index)%JacobiCondNumber = sqrt(local_nodes(node_index)%JacobiCondNumber)
-        else if (power.gt.2) Then
-            local_nodes(node_index)%JacobiCondNumber = local_nodes(node_index)%JacobiCondNumber**(1.0/real(power))
-        end if
+        ! local_nodes(node_index)%JacobiCondNumber = local_nodes(node_index)%JacobiCondNumber / real(local_nodes(node_index)%num_neighbours)
+        ! if (power.eq.2) then
+        !     local_nodes(node_index)%JacobiCondNumber = sqrt(local_nodes(node_index)%JacobiCondNumber)
+        ! else if (power.gt.2) Then
+        !     local_nodes(node_index)%JacobiCondNumber = local_nodes(node_index)%JacobiCondNumber**(1.0/real(power))
+        ! end if
 
         if (counter.ne.(2*node_num_neighbours)) Then
             print*,"wrong number of points in find_node_Jacobi_relaxation_velocity"
@@ -964,6 +1034,21 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
         end if
         local_nodes(node_index)%relaxation_velocity(1:dimensiona) = (relaxed_point(1:dimensiona) - p(1:dimensiona))/d_t
 
+        local_nodes(node_index)%mesh_quality_after = zero
+        valid = .true.
+        do pair = 1, node_num_neighbours
+            i_plus = 2*pair
+            i_minus = i_plus-1 
+            p_plus(:) = points(:,i_plus)
+            p_minus(:) = points(:,i_minus)
+            
+            valid = valid.or.NodeMeshQuality(p_minus(:), relaxed_point(:), p_plus(:), helper)
+            if (valid) then
+                local_nodes(node_index)%mesh_quality_after = local_nodes(node_index)%mesh_quality_after + helper
+            else
+                local_nodes(node_index)%mesh_quality_after = -1.0*(abs(local_nodes(node_index)%mesh_quality_after) + abs(helper))
+            end if
+        end do
     end do
     !$omp end do
     
