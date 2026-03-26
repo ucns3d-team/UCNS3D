@@ -507,7 +507,7 @@ subroutine establish_node_neighbours(N)
         allocate(local_interface_nodes(my_num_interface_nodes))
         allocate(local_boundary_nodes(my_num_boundary_nodes))
         allocate(local_moving_nodes(my_num_moving_nodes))
-        print*,N,"my_num_interface_nodes =", my_num_interface_nodes, "\n", N, "my_num_boundary_nodes =", my_num_boundary_nodes,"\n", N, "my_num_moving_nodes =", my_num_moving_nodes
+        ! print*,N,"my_num_interface_nodes =", my_num_interface_nodes, "\n", N, "my_num_boundary_nodes =", my_num_boundary_nodes,"\n", N, "my_num_moving_nodes =", my_num_moving_nodes
         index1 = 0
         index2 = 0
         index3 = 0
@@ -5231,6 +5231,14 @@ subroutine enforce_node_velocity_BC(position_index, d_t, N)
             local_nodes(node_index)%velocity(3) = zero
         end if
 
+        if (initcond.eq.102) then
+            if (p(2).eq.zero) then
+                if (abs(p(1)-0.166667).le.0.0001) then
+                    local_nodes(node_index)%velocity(1) = zero
+                end if
+            end if
+        end if
+
     end do
     !$omp end do
     
@@ -5452,6 +5460,14 @@ subroutine enforce_node_lagrangian_velocity_BC(position_index, d_t, N)
             local_nodes(node_index)%lagrangian_velocity(1) = dot * total_direction(1) / total_direction_len2
             local_nodes(node_index)%lagrangian_velocity(2) = dot * total_direction(2) / total_direction_len2
             local_nodes(node_index)%lagrangian_velocity(3) = zero
+        end if
+
+        if (initcond.eq.102) then
+            if (p(2).eq.zero) then
+                if (abs(p(1)-0.166667).le.0.0001) then
+                    local_nodes(node_index)%lagrangian_velocity(1) = zero
+                end if
+            end if
         end if
 
     end do
