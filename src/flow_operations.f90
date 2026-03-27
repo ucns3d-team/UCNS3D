@@ -2768,15 +2768,21 @@ v=vvel
 w=wvel
 
 
-vect_in(1)=r
+! vect_in(1)=r
 vect_in(2)=u
 vect_in(3)=v
 vect_in(4)=w
 vect_in(5)=p
-
+sum3=0.0d0
 do rg_i=1,nof_species
 vect_in(5+rg_i)=mp_r_in(rg_i)*mp_a_in(rg_i)
+sum3=sum3+mp_r_in(rg_i)*mp_a_in(rg_i)
 end do
+
+
+vect_in(1)=sum3
+
+
 do rg_i=1,nof_species-1
 vect_in(5+nof_species+rg_i)=mp_a_in(rg_i)
 end do
@@ -3047,7 +3053,7 @@ real::rg_tv,rg_ttr0,rg_tve0
 if (multispecies.eq.1) then
 
 
-
+r=rres
 p=pres
 u=uvel
 v=vvel
@@ -3069,13 +3075,16 @@ end if
 
 
 
-vect_in(1)=r
+! vect_in(1)=r
 vect_in(2)=u
 vect_in(3)=v
 vect_in(4)=p
+sum3=0.0d0
 do rg_i=1,nof_species
 vect_in(4+rg_i)=mp_r_in(rg_i)*mp_a_in(rg_i)
+sum3=sum3+mp_r_in(rg_i)*mp_a_in(rg_i)
 end do
+vect_in(1)=sum3
 do rg_i=1,nof_species-1
 vect_in(4+nof_species+rg_i)=mp_a_in(rg_i)
 end do

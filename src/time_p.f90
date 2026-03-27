@@ -2742,7 +2742,7 @@ do i=1,kmaxe
  
  
     if (statistics.eq.1)then
-
+    !$omp barrier
     !$omp master
     pr_t8=mpi_wtime()
     prace_t7=pr_t8-pr_t7
@@ -2790,6 +2790,7 @@ do i=1,kmaxe
     
     
     !$omp end master
+    !$omp barrier
 
     
     end if
@@ -2996,10 +2997,11 @@ kmaxe=xmpielrank(n)
 
 
     if (statistics.eq.1)then
-
+    !$omp barrier
     !$omp master
     pr_t1=mpi_wtime()
      !$omp end master
+     !$omp barrier
 
     end if
 
@@ -3044,11 +3046,12 @@ kmaxe=xmpielrank(n)
 
 
     if (statistics.eq.1)then
-
+    !$omp barrier
     !$omp master
     pr_t2=mpi_wtime()
     prace_t1=pr_t2-pr_t1
     !$omp end master
+    !$omp barrier
 
     end if
 
@@ -3060,11 +3063,12 @@ kmaxe=xmpielrank(n)
         
 
     if (statistics.eq.1)then
-
+    !$omp barrier
     !$omp master
     pr_t3=mpi_wtime()
     prace_t2=pr_t3-pr_t2
     !$omp end master
+    !$omp barrier
 
     end if
 
@@ -3120,12 +3124,12 @@ kmaxe=xmpielrank(n)
     end if
     
      if (statistics.eq.1)then
-
+    !$omp barrier
     !$omp master
     pr_t4=mpi_wtime()
     prace_t3=pr_t4-pr_t3
     !$omp end master
-
+    !$omp barrier
     end if
 
 
@@ -3134,12 +3138,12 @@ kmaxe=xmpielrank(n)
 
 
     if (statistics.eq.1)then
-
+    !$omp barrier
     !$omp master
     pr_t5=mpi_wtime()
     prace_t4=pr_t5-pr_t4
     !$omp end master
-
+    !$omp barrier
     end if
 
 
@@ -3164,12 +3168,12 @@ kmaxe=xmpielrank(n)
 
 
     if (statistics.eq.1)then
-
+    !$omp barrier
     !$omp master
     pr_t6=mpi_wtime()
     prace_t5=pr_t6-pr_t5
     !$omp end master
-
+    !$omp barrier
     end if
 
 
@@ -3213,12 +3217,12 @@ kmaxe=xmpielrank(n)
 
 
     if (statistics.eq.1)then
-
+    !$omp barrier
     !$omp master
     pr_t7=mpi_wtime()
     prace_t6=pr_t7-pr_t6
     !$omp end master
-
+    !$omp barrier
     end if
 
 
@@ -3697,7 +3701,7 @@ subroutine implicit_times(n)
 !> @brief
 !> implicit approximately factored time stepping scheme
 implicit none
-integer::i,k,kmaxe,kill_nan
+integer::i,k,kmaxe
 integer,intent(in)::n
 real::verysmall
 verysmall = tolsmall
@@ -3856,7 +3860,7 @@ subroutine implicit_times_2d(n)
 !> @brief
 !> implicit approximately factored time stepping scheme 2d
 implicit none
-integer::i,k,kmaxe,kill_nan,j
+integer::i,k,kmaxe,j
 integer,intent(in)::n
 real::verysmall
 verysmall = tolsmall
@@ -4019,7 +4023,7 @@ subroutine dual_time(n)
 !> @brief
 !> dual time stepping
 implicit none
-integer::i,k,kmaxe,jj,kill_nan
+integer::i,k,kmaxe,jj
 integer,intent(in)::n
 real::verysmall
 real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
@@ -4814,7 +4818,7 @@ subroutine dual_time_2d(n)
 !> @brief
 !> dual time stepping 2d
 implicit none
-integer::i,k,kmaxe,nvar,jj,kill_nan
+integer::i,k,kmaxe,nvar,jj
 integer,intent(in)::n
 real::verysmall
 real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
@@ -5348,7 +5352,7 @@ integer,intent(in)::n
 real,dimension(1:5)::dummyout,dummyin
 integer::i,kmaxe,ttime
 real::dtiv
-real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv1,totv2,dumetg1,dumetg2,totk,tzx1,tzx2,resolx,totens,totens1,totens2,totensx,totensx1,totensx2
+real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv1,totv2,dumetg1,dumetg2,tzx1,tzx2,resolx,totens1,totens2,totensx1,totensx2
       kill=0
       t=res_time
       resolx=0.01
@@ -5471,10 +5475,12 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			timec3=dummyin(3)
 			timec4=dummyin(4)
 			timec8=dummyin(5)
+                   if ( mod(it, 100) .eq. 0) then
 				   if (n.eq.0)then
 				  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
-				  write(63,*)it,dt,t
+				  write(63,'(I10,2ES20.10)') it, dt, t
 				  close(63)
+				  end if
 				  end if
 			!$omp end master 
 			!$omp barrier
@@ -5514,7 +5520,7 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 #endif
 
                          !$omp barrier
-			!$omp master
+                          !$omp master
                           dumetg1=totk
                           dumetg2=0.0
                           call mpi_barrier(mpi_comm_world,ierror)
@@ -5668,7 +5674,7 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
             call reduced_history
           end if
 
-           		!$omp end master 
+            !$omp end master
 			!$omp barrier
 
 
@@ -5718,7 +5724,7 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
                           !$omp end do
 #endif
 
-               		 !$omp barrier
+             !$omp barrier
 			!$omp master
  				dumetg1=totk
  				dumetg2=0.0
@@ -5750,26 +5756,28 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
                               taylor_ensx=totensx
                               end if
 
-                          if (it.eq.0)then
-                          open(73,file='energy.dat',form='formatted',status='new',action='write',position='append')
-                          else
-                          open(73,file='energy.dat',form='formatted',status='old',action='write',position='append')
-                          end if
-                          if (dg.eq.1)then
-                          write(73,'(e14.7,1x,e14.7,1x,e14.7)')t,totk/taylor,-(totv2-totv1)/dt
-                          else
-                          if (boundtype.eq.1)then
-                          write(73,'(e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,totk/taylor,-(totv2-totv1)/dt,totens/taylor_ens
-                          else
-                          write(73,'(e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,totv2,-(totv2-totv1)/dt,totens2,totensx2
-                          end if
-                          end if
+                            if (it.eq.0)then
+                            open(73,file='energy.dat',form='formatted',status='new',action='write',position='append')
+                            else
+                            open(73,file='energy.dat',form='formatted',status='old',action='write',position='append')
+                            end if
+                            if (dg.eq.1)then
+                            write(73,'(e14.7,1x,e14.7,1x,e14.7)')t,totk/taylor,-(totv2-totv1)/dt
+                            else
+                              if (boundtype.eq.1)then
+                              write(73,'(e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,totk/taylor,-(totv2-totv1)/dt,totens/taylor_ens
+                              else
+                              write(73,'(e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,totv2,-(totv2-totv1)/dt,totens2,totensx2
+                              end if
+                            end if
                           close(73)
 				end if
- 				!$omp end master 
-			!$omp barrier
+
  				
+
 			call mpi_barrier(mpi_comm_world,ierror)
+			!$omp end master
+			!$omp barrier
  				
 
           if (adda.eq.1) then
@@ -5794,7 +5802,7 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 #endif
 
          !$omp barrier
-			!$omp master
+		!$omp master
           dumetg1 = totk
           dumetg2 = 0.0d0
           call mpi_allreduce(dumetg1, dumetg2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
@@ -6050,7 +6058,7 @@ implicit none
 integer,intent(in)::n
 real,dimension(1:5)::dummyout,dummyin
 integer::i,kmaxe
-real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv1,totv2,dumetg1,dumetg2,totk
+real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv1,totv2,dumetg1,dumetg2
 real::dtiv,flort
 kmaxe=xmpielrank(n)
 kill=0
@@ -6387,7 +6395,7 @@ end if
 			end if
 
 
-
+            !$omp barrier
 
 
 

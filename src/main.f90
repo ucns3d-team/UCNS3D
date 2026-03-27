@@ -630,22 +630,18 @@ call mpi_barrier(mpi_comm_world,ierror)
 
 
 
-
-
-				
-  
   if (turbulence.eq.1)then
     if (dimensiona.eq.3)then
-    call walldistance(n,imaxe,xmpielrank)
+    call walldistancex(n,imaxe,xmpielrank)
     else
     call walldistance2d(n,imaxe,xmpielrank)
     end if
   end if
 
-  
-
 
 call mpi_barrier(mpi_comm_world,ierror)
+
+
 
 
 				  !$omp master
@@ -782,7 +778,7 @@ end if
     write(st_n_threads,fmt='(i10)') thread_n
     statfile="stats_mpi_"//trim(adjustl(st_n_cpu))//"_threads_"//trim(adjustl(st_n_threads))//".txt"
     open(133,file=statfile,form='formatted',status='replace',action='write')
-    write(133,'(5x,a2,1x,a11,a11,a11,a11,a11,a11,a11,a11,a11,a11)')"it","t_time","t_comm","t_comp","t_dgint","t_halo","t_recon","t_bound","t_adda","t_flux","t_update"
+    write(133,'(5x,a2,1x,a11,a11,a11,a11,a11,a11,a11,a11,a11,a11)')"#it","t_time","t_comm","t_comp","t_dgint","t_halo","t_recon","t_bound","t_adda","t_flux","t_update"
     close(133)
   
   end if
@@ -950,7 +946,7 @@ call omp_map_first(n)
 !$omp& wdatatypez, weight_lsqr, wenocentralweight, wenocnschar, wenoz, wenwrt, wkdum1, wkdum2, wkdum3, wnodes_part, &
 !$omp& wpart1_end, wpart2_end, wpart3_end, wpart4_end, wpart5_end, write_variables, write_variables_av, write_variables_av_w, &
 !$omp& write_variables_w, wvel, xper, yper, zero, zero_turb_init, zeta_star, zper, indicator_par1, indicator_par2, indicator_par3, jtot, adda_filter_strong, adda_filter_weak, bleed_end, bleed_plenum, bleed_porosity, bleed_start, bound_len, bound_offset, boundhir_dg, boundhis_dg, catalytic_con, el_bnd, el_int, gamma_in, &
-!$omp& halo_len, halos_len, halo_offset, halos_offset, halo_proc, halos_proc, ibound_cpun, ibound_face, ibound_ibid, ibound_ibl, ibound_icode, ibound_inum, ibound_ishape, ibound_localn, ibound_nibl, ibound_nlocal, ibound_t, ibound_t2, ibound_which, &
+!$omp& halo_len, halos_len, halo_offset, halos_offset, halo_proc, halos_proc, ibound_cpun, ibound_face, ibound_ibid, ibound_ibl, ibound_icode, ibound_inum, ibound_ishape, ibound_localn, ibound_nibl, ibound_nlocal, ibound_t, ibound_t2, ibound_which, totk,totens,totensx,kill_nan, &
 !$omp& ielem_admis, ielem_avars, ielem_bleedn, ielem_condition, ielem_condx, ielem_dih, ielem_dih2, ielem_diss, ielem_dtl, ielem_er, ielem_er1, ielem_er1dt, ielem_er1er2, ielem_er2, ielem_er2dt, ielem_erx, ielem_faceanglex, ielem_faceangley, ielem_facediss, &
 !$omp& ielem_filtered, ielem_full, ielem_ggs, ielem_hybrid, ielem_ibounds, ielem_idegfree, ielem_ifca, ielem_ihex, ielem_ihexgl, ielem_indexf, ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_ineighg, ielem_ineighn, ielem_inter_id, ielem_interior, ielem_inumneighbours, ielem_iorder, ielem_ishape, ielem_itotalpoints, ielem_linc, ielem_lwcx2, ielem_minedge, ielem_mode, ielem_mood, ielem_mood_o, &
 !$omp& ielem_nodes, ielem_nodes_faces, ielem_nodes_faces_v, ielem_nodes_neighbours, ielem_nodes_v, ielem_nofbc, ielem_nojecount, ielem_nonodes, ielem_q_face_q_mapl, ielem_qface, ielem_recalc, ielem_reduce, ielem_reorient, ielem_stencil_dist, ielem_surf, ielem_totvolume, ielem_troubled, ielem_types_faces, ielem_vdec, ielem_viscx, ielem_vortex, ielem_walldist, ielem_walls, ielem_wcx, ielem_xxc, ielem_yyc, ielem_zzc, &
@@ -1073,12 +1069,23 @@ else
     !$omp end parallel
 end if
 
+
+
 call mpi_barrier(mpi_comm_world,ierror)
+
+
 cpux3(1) = mpi_wtime()
 
-if (n.eq.0)  write(120+n,*)"total time taken=",cpux3(1)-cpux2(1),"seconds"
+
+if (n.eq.0)  then
+write(120+n,*)"total time taken=",cpux3(1)-cpux2(1),"seconds"
+end if
+
+
 
 call mpi_barrier(mpi_comm_world,ierror)
+
+
 call mpi_finalize(ierror)
 
 if (n.eq.0) print*,"ucns3d finished running"

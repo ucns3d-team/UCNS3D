@@ -5581,6 +5581,7 @@ integer :: countwall,kmaxe,countwallglobal,i,l,icpu,doyouhavewall,howmanyhavewal
 integer :: counterall2,wall1,wall2,wall3,wall4,wall5,wall6,ioy,wl1,wl2,wl3,wl4,k
 real,allocatable,dimension(:,:) :: wallelemarraycord,wallelemarraycordglobal
 real :: distance
+real :: xc,yc,zc,dx,dy,dz,mind2,d2
 character(len=12)::bndfile,vrtfile
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 type :: awallboundary
@@ -5686,7 +5687,7 @@ end do
 ! find distance from element barycenter to the nearest wall for this block.
 kmaxe=xmpielrank(n)
 do i=1,kmaxe
-    distance=tolbig 
+    distance=tolbig
 	do k = 1,countwallglobal
 	      if ( distance .gt. (sqrt(((dwallbnd(k)%wallx-ielem_xxc(i))**2) &
 				     + ((dwallbnd(k)%wally-ielem_yyc(i))**2)&
@@ -5698,15 +5699,501 @@ do i=1,kmaxe
 		 if (ielem_walldist(i).lt.hybridist)then
 		    ielem_hybrid(i)=1
 		 end if
-		
+
 	      end if
 	end do
 end do
+
+
+
+
+
+
+
+
 
 deallocate(dwallbnd)
 deallocate(dwallvrt)
 
 end subroutine
+
+
+
+subroutine walldistancex(n, imaxe, xmpielrank)
+!> establish wall distance for every cell in 3D
+!> rewritten with flat arrays + spatial bins + OpenMP
+
+implicit none
+
+integer, allocatable, dimension(:), intent(in) :: xmpielrank
+integer, intent(in) :: n, imaxe
+
+!-----------------------------
+! basic integers
+!-----------------------------
+integer :: i, j, k, l, p
+integer :: kmaxe, ioy, ibin
+integer :: countwall, countwallglobal
+integer :: wall1, wall2, wall3, wall4, wall5, wall6
+integer :: wl1, wl2, wl3, wl4
+
+character(len=12) :: bndfile, vrtfile
+
+!-----------------------------
+! flat arrays for wall faces
+!-----------------------------
+integer, allocatable :: wbid(:), wb1(:), wb2(:), wb3(:), wb4(:)
+
+!-----------------------------
+! flat arrays for wall centers
+!-----------------------------
+real, allocatable :: wallx(:), wally(:), wallz(:)
+
+!-----------------------------
+! flat arrays for nodes
+!-----------------------------
+integer, allocatable :: vid(:)
+real, allocatable :: vx(:), vy(:), vz(:)
+
+!-----------------------------
+! bin data
+!-----------------------------
+integer, allocatable :: bincount(:), binstart(:), binfill(:), binlist(:)
+integer :: nx, ny, nz, nbins
+integer :: ix, iy, iz
+integer :: target_walls_per_bin
+integer :: shellmax
+integer :: ic, jc, kc, shell
+integer :: ilo, ihi, jlo, jhi, klo, khi
+integer :: ii, jj, kk, b
+integer :: p1, p2
+
+!-----------------------------
+! reals
+!-----------------------------
+real :: xc, yc, zc
+real :: dx, dy, dz, d2, mind2
+real :: xminw, xmaxw, yminw, ymaxw, zminw, zmaxw
+real :: xrange, yrange, zrange, volbox
+real :: hbin, dxbin, dybin, dzbin
+real :: x0, x1, y0, y1, z0, z1
+real :: dbox2, lower2
+real :: leftd, rightd, backd, frontd, botd, topd
+real :: hybridist2
+real, parameter :: tinybin = 1.0e-20
+
+!------------------------------------------------------------
+! count local wall faces from local mesh info
+!------------------------------------------------------------
+kmaxe = xmpielrank(n)
+
+countwall = 0
+do i = 1, kmaxe
+    if (ielem_interior(i) .eq. 1) then
+        do l = 1, ielem_ifca(i)
+            if (ielem_ibounds(l,i) .gt. 0) then
+                if (ibound_icode(ielem_ibounds(l,i)) .eq. 4) then
+                    countwall = countwall + 1
+                end if
+            end if
+        end do
+    end if
+end do
+
+call mpi_allreduce(countwall, countwallglobal, 1, mpi_integer, mpi_sum, mpi_comm_world, ierror)
+call mpi_barrier(mpi_comm_world, ierror)
+
+!------------------------------------------------------------
+! allocate flat arrays
+!------------------------------------------------------------
+allocate(wbid(countwallglobal))
+allocate(wb1(countwallglobal))
+allocate(wb2(countwallglobal))
+allocate(wb3(countwallglobal))
+allocate(wb4(countwallglobal))
+
+allocate(wallx(countwallglobal))
+allocate(wally(countwallglobal))
+allocate(wallz(countwallglobal))
+
+allocate(vid(imaxn))
+allocate(vx(imaxn))
+allocate(vy(imaxn))
+allocate(vz(imaxn))
+
+bndfile = 'GRID.bnd'
+vrtfile = 'GRID.vrt'
+
+!------------------------------------------------------------
+! read boundary file
+!------------------------------------------------------------
+if (binio .eq. 0) open(10, file=bndfile, form='formatted',   status='old', action='read', iostat=ioy)
+if (binio .eq. 1) open(10, file=bndfile, form='unformatted', status='old', action='read', iostat=ioy)
+
+if (ioy /= 0) then
+    print *, 'Error opening ', trim(bndfile), ' on rank ', n
+    call mpi_abort(mpi_comm_world, 1, ierror)
+end if
+
+countwall = 0
+
+if (binio .eq. 0) then
+    do i = 1, imaxb
+        read(10,*) wall1, wall2, wall3, wall4, wall5, wall6
+        if (wall6 .eq. 4) then
+            countwall       = countwall + 1
+            wbid(countwall) = wall1
+            wb1(countwall)  = wall2
+            wb2(countwall)  = wall3
+            wb3(countwall)  = wall4
+            wb4(countwall)  = wall5
+        end if
+    end do
+else
+    do i = 1, imaxb
+        read(10) wall1, wall2, wall3, wall4, wall5, wall6
+        if (wall6 .eq. 4) then
+            countwall       = countwall + 1
+            wbid(countwall) = wall1
+            wb1(countwall)  = wall2
+            wb2(countwall)  = wall3
+            wb3(countwall)  = wall4
+            wb4(countwall)  = wall5
+        end if
+    end do
+end if
+
+close(10)
+
+if (countwall /= countwallglobal) then
+    print *, 'Mismatch in wall counts on rank ', n, ': file=', countwall, ' global=', countwallglobal
+    call mpi_abort(mpi_comm_world, 2, ierror)
+end if
+
+!------------------------------------------------------------
+! read vertex file
+!------------------------------------------------------------
+if (binio .eq. 0) open(11, file=vrtfile, form='formatted',   status='old', action='read', iostat=ioy)
+if (binio .eq. 1) open(11, file=vrtfile, form='unformatted', status='old', action='read', iostat=ioy)
+
+if (ioy /= 0) then
+    print *, 'Error opening ', trim(vrtfile), ' on rank ', n
+    call mpi_abort(mpi_comm_world, 3, ierror)
+end if
+
+if (binio .eq. 0) then
+    do i = 1, imaxn
+        read(11,*) vid(i), vx(i), vy(i), vz(i)
+        vx(i) = vx(i) / scaler
+        vy(i) = vy(i) / scaler
+        vz(i) = vz(i) / scaler
+    end do
+else
+    do i = 1, imaxn
+        read(11) vid(i), vx(i), vy(i), vz(i)
+        vx(i) = vx(i) / scaler
+        vy(i) = vy(i) / scaler
+        vz(i) = vz(i) / scaler
+    end do
+end if
+
+close(11)
+
+!------------------------------------------------------------
+! compute wall-face centers
+!------------------------------------------------------------
+do i = 1, countwallglobal
+
+    wl1 = wb1(i)
+    wl2 = wb2(i)
+    wl3 = wb3(i)
+    wl4 = wb4(i)
+
+    if (wl1 < 1 .or. wl1 > imaxn .or. &
+        wl2 < 1 .or. wl2 > imaxn .or. &
+        wl3 < 1 .or. wl3 > imaxn .or. &
+        wl4 < 1 .or. wl4 > imaxn) then
+        print *, 'Wall node index out of range on rank ', n, ' at face ', i
+        print *, 'wl1,wl2,wl3,wl4 = ', wl1, wl2, wl3, wl4
+        call mpi_abort(mpi_comm_world, 4, ierror)
+    end if
+
+    if (wl4 .eq. wl3) then
+        wallx(i) = (vx(wl1) + vx(wl2) + vx(wl3)) / 3.0
+        wally(i) = (vy(wl1) + vy(wl2) + vy(wl3)) / 3.0
+        wallz(i) = (vz(wl1) + vz(wl2) + vz(wl3)) / 3.0
+    else
+        wallx(i) = (vx(wl1) + vx(wl2) + vx(wl3) + vx(wl4)) / 4.0
+        wally(i) = (vy(wl1) + vy(wl2) + vy(wl3) + vy(wl4)) / 4.0
+        wallz(i) = (vz(wl1) + vz(wl2) + vz(wl3) + vz(wl4)) / 4.0
+    end if
+
+end do
+
+!------------------------------------------------------------
+! build 3D spatial bins for wall centers
+!------------------------------------------------------------
+xminw = minval(wallx)
+xmaxw = maxval(wallx)
+yminw = minval(wally)
+ymaxw = maxval(wally)
+zminw = minval(wallz)
+zmaxw = maxval(wallz)
+
+xrange = max(xmaxw - xminw, tinybin)
+yrange = max(ymaxw - yminw, tinybin)
+zrange = max(zmaxw - zminw, tinybin)
+
+! tune this if needed: 16, 32, 64, 128
+target_walls_per_bin = 64
+
+volbox = xrange * yrange * zrange
+hbin   = (volbox * real(target_walls_per_bin) / real(countwallglobal)) ** (1.0 / 3.0)
+hbin   = max(hbin, tinybin)
+
+dxbin = hbin
+dybin = hbin
+dzbin = hbin
+
+nx = int(xrange / dxbin) + 1
+ny = int(yrange / dybin) + 1
+nz = int(zrange / dzbin) + 1
+nbins = nx * ny * nz
+
+allocate(bincount(nbins))
+allocate(binstart(nbins+1))
+allocate(binfill(nbins))
+allocate(binlist(countwallglobal))
+
+bincount = 0
+
+!------------------------------------------------------------
+! first pass: count walls in each bin
+!------------------------------------------------------------
+do k = 1, countwallglobal
+
+    ix = int((wallx(k) - xminw) / dxbin) + 1
+    iy = int((wally(k) - yminw) / dybin) + 1
+    iz = int((wallz(k) - zminw) / dzbin) + 1
+
+    if (ix < 1) ix = 1
+    if (ix > nx) ix = nx
+    if (iy < 1) iy = 1
+    if (iy > ny) iy = ny
+    if (iz < 1) iz = 1
+    if (iz > nz) iz = nz
+
+    ibin = ix + (iy-1)*nx + (iz-1)*nx*ny
+    bincount(ibin) = bincount(ibin) + 1
+end do
+
+!------------------------------------------------------------
+! prefix sum
+!------------------------------------------------------------
+binstart(1) = 1
+do b = 1, nbins
+    binstart(b+1) = binstart(b) + bincount(b)
+end do
+
+binfill = binstart(1:nbins)
+
+!------------------------------------------------------------
+! second pass: fill packed wall-index list
+!------------------------------------------------------------
+do k = 1, countwallglobal
+
+    ix = int((wallx(k) - xminw) / dxbin) + 1
+    iy = int((wally(k) - yminw) / dybin) + 1
+    iz = int((wallz(k) - zminw) / dzbin) + 1
+
+    if (ix < 1) ix = 1
+    if (ix > nx) ix = nx
+    if (iy < 1) iy = 1
+    if (iy > ny) iy = ny
+    if (iz < 1) iz = 1
+    if (iz > nz) iz = nz
+
+    ibin = ix + (iy-1)*nx + (iz-1)*nx*ny
+
+    p = binfill(ibin)
+    binlist(p) = k
+    binfill(ibin) = p + 1
+end do
+
+shellmax   = max(nx, max(ny, nz))
+hybridist2 = hybridist * hybridist
+kmaxe      = xmpielrank(n)
+
+! optional diagnostics
+! print *, 'rank=', n, ' countwallglobal=', countwallglobal
+! print *, 'rank=', n, ' nx,ny,nz=', nx, ny, nz, ' nbins=', nbins
+! print *, 'rank=', n, ' avg walls/bin=', real(countwallglobal)/real(nbins)
+
+!------------------------------------------------------------
+! nearest-wall search using expanding bin shells + OpenMP
+!------------------------------------------------------------
+!$omp parallel do default(none) &
+!$omp shared(kmaxe,ielem_xxc,ielem_yyc,ielem_zzc,ielem_walldist,ielem_hybrid, &
+!$omp        wallx,wally,wallz,xminw,yminw,zminw,dxbin,dybin,dzbin, &
+!$omp        nx,ny,nz,binstart,binlist,hybridist2,tolbig,shellmax) &
+!$omp private(i,xc,yc,zc,ic,jc,kc,mind2,shell,ilo,ihi,jlo,jhi,klo,khi, &
+!$omp         ii,jj,kk,b,p1,p2,p,k,x0,x1,y0,y1,z0,z1,dbox2,dx,dy,dz,d2, &
+!$omp         leftd,rightd,backd,frontd,botd,topd,lower2) &
+!$omp schedule(static)
+do i = 1, kmaxe
+
+    xc = ielem_xxc(i)
+    yc = ielem_yyc(i)
+    zc = ielem_zzc(i)
+
+    ic = int((xc - xminw) / dxbin) + 1
+    jc = int((yc - yminw) / dybin) + 1
+    kc = int((zc - zminw) / dzbin) + 1
+
+    if (ic < 1) ic = 1
+    if (ic > nx) ic = nx
+    if (jc < 1) jc = 1
+    if (jc > ny) jc = ny
+    if (kc < 1) kc = 1
+    if (kc > nz) kc = nz
+
+    mind2 = tolbig * tolbig
+    ielem_hybrid(i) = 0
+
+    do shell = 0, shellmax
+
+        ilo = max(1,  ic - shell)
+        ihi = min(nx, ic + shell)
+        jlo = max(1,  jc - shell)
+        jhi = min(ny, jc + shell)
+        klo = max(1,  kc - shell)
+        khi = min(nz, kc + shell)
+
+        ! search only the outer surface of the shell
+        do kk = klo, khi
+            do jj = jlo, jhi
+                do ii = ilo, ihi
+
+                    if (shell > 0) then
+                        if (ii > ilo .and. ii < ihi .and. &
+                            jj > jlo .and. jj < jhi .and. &
+                            kk > klo .and. kk < khi) cycle
+                    end if
+
+                    b = ii + (jj-1)*nx + (kk-1)*nx*ny
+
+                    ! empty bin
+                    if (binstart(b) == binstart(b+1)) cycle
+
+                    ! point-to-bin-box lower bound
+                    x0 = xminw + real(ii-1) * dxbin
+                    x1 = xminw + real(ii  ) * dxbin
+                    y0 = yminw + real(jj-1) * dybin
+                    y1 = yminw + real(jj  ) * dybin
+                    z0 = zminw + real(kk-1) * dzbin
+                    z1 = zminw + real(kk  ) * dzbin
+
+                    if (xc < x0) then
+                        dx = x0 - xc
+                    else if (xc > x1) then
+                        dx = xc - x1
+                    else
+                        dx = 0.0
+                    end if
+
+                    if (yc < y0) then
+                        dy = y0 - yc
+                    else if (yc > y1) then
+                        dy = yc - y1
+                    else
+                        dy = 0.0
+                    end if
+
+                    if (zc < z0) then
+                        dz = z0 - zc
+                    else if (zc > z1) then
+                        dz = zc - z1
+                    else
+                        dz = 0.0
+                    end if
+
+                    dbox2 = dx*dx + dy*dy + dz*dz
+                    if (dbox2 >= mind2) cycle
+
+                    p1 = binstart(b)
+                    p2 = binstart(b+1) - 1
+
+                    do p = p1, p2
+                        k = binlist(p)
+
+                        dx = wallx(k) - xc
+                        dy = wally(k) - yc
+                        dz = wallz(k) - zc
+
+                        d2 = dx*dx + dy*dy + dz*dz
+
+                        if (d2 < mind2) mind2 = d2
+                    end do
+
+                end do
+            end do
+        end do
+
+        ! exact stopping rule:
+        ! if the nearest possible point outside the searched box
+        ! is already farther than current best, stop
+        lower2 = tolbig * tolbig
+
+        if (ilo > 1) then
+            leftd  = xc - (xminw + real(ilo-1) * dxbin)
+            lower2 = min(lower2, leftd*leftd)
+        end if
+
+        if (ihi < nx) then
+            rightd = (xminw + real(ihi) * dxbin) - xc
+            lower2 = min(lower2, rightd*rightd)
+        end if
+
+        if (jlo > 1) then
+            backd  = yc - (yminw + real(jlo-1) * dybin)
+            lower2 = min(lower2, backd*backd)
+        end if
+
+        if (jhi < ny) then
+            frontd = (yminw + real(jhi) * dybin) - yc
+            lower2 = min(lower2, frontd*frontd)
+        end if
+
+        if (klo > 1) then
+            botd   = zc - (zminw + real(klo-1) * dzbin)
+            lower2 = min(lower2, botd*botd)
+        end if
+
+        if (khi < nz) then
+            topd   = (zminw + real(khi) * dzbin) - zc
+            lower2 = min(lower2, topd*topd)
+        end if
+
+        if (mind2 <= lower2) exit
+
+    end do
+
+    ielem_walldist(i) = sqrt(mind2)
+    if (mind2 < hybridist2) ielem_hybrid(i) = 1
+
+end do
+!$omp end parallel do
+
+!------------------------------------------------------------
+! cleanup
+!------------------------------------------------------------
+deallocate(wbid, wb1, wb2, wb3, wb4)
+deallocate(wallx, wally, wallz)
+deallocate(vid, vx, vy, vz)
+deallocate(bincount, binstart, binfill, binlist)
+
+end subroutine
+
 
 
 subroutine walldistance2d(n,imaxe,xmpielrank)
@@ -15179,23 +15666,23 @@ temp_cord=3
 
 										rarray_part1(i,j)=ielem_reduce(i)!ielem_vortex(1,i)
                                         else
-                                        if (mood.eq.1)then
-                                         rarray_part1(i,j)=ielem_mood_o(i)
-                                        else
-										if (dg.eq.1)then
-											rarray_part1(i,j)=ielem_troubled(i)
-										else
-										if (realgas.eq.1)then
-											if (j.eq.nof_variables+1)then
-											rarray_part1(i,j)=ptemp
+											if (mood.eq.1)then
+											rarray_part1(i,j)=ielem_mood_o(i)
 											else
-											rarray_part1(i,j)=ielem_reduce(i)!vortex(1)
+												if (dg.eq.1)then
+													rarray_part1(i,j)=ielem_troubled(i)
+												else
+													if (realgas.eq.1)then
+														if (j.eq.nof_variables+1)then
+														rarray_part1(i,j)=ptemp
+														else
+														rarray_part1(i,j)=ielem_reduce(i)!vortex(1)
+														end if
+													else
+														rarray_part1(i,j)=ielem_reduce(i)
+													end if
+												end if
 											end if
-										else
-											rarray_part1(i,j)=ielem_reduce(i)
-										end if
-                                        end if
-                                        end if
                                         end if
 										end do
 										if (turbulenceequations.gt.0)then
@@ -19299,7 +19786,7 @@ end do
 	
 	
 
-!$omp single
+!$omp master
 	forcex=forcex*vectorx
 	forcey=forcey*vectory
 	forcez=forcez*vectorz
@@ -19368,7 +19855,7 @@ end do
 
 	
 	
-!$omp end single
+!$omp end master
 
 	
 	
@@ -19510,7 +19997,7 @@ end do
 	
 	
 
-!$omp single
+!$omp master
 	forcex=forcex*vectorx
 	forcey=forcey*vectory
 	
@@ -19541,7 +20028,7 @@ end do
 	call mpi_barrier(mpi_comm_world,ierror)
 	
 	
-!$omp end single
+!$omp end master
 	
 	
 	
@@ -19586,7 +20073,7 @@ end do
 !$omp end do
 #endif
 
-!$omp single
+!$omp master
 do i=1,5
 suml3=allres(i)
 dum_resi=zero
@@ -19603,7 +20090,7 @@ end if
 allres(i)=allres(i)/initialres(i)
 
 end do
-!$omp end single
+!$omp end master
 
 
 
@@ -19627,7 +20114,7 @@ end do
 !$omp end do
 #endif
 
-!$omp single
+!$omp master
 do i=1,7
 suml3=allres(i)
 dum_resi=zero
@@ -19647,13 +20134,13 @@ allres(i)=allres(i)/initialres(i)
 end do
 
 if (turbulenceequations.eq.1) allres(7)=1.0d0
-!$omp end single
+!$omp end master
 
 end if
 
 
 
-!$omp single
+!$omp master
 if (n.eq.0)then
 if ((itestcase.le.4).and.(turbulence.ne.1))then
 
@@ -19680,7 +20167,7 @@ if ((allres(1).lt.reslimit).and.(allres(2).lt.reslimit).and.(allres(3).lt.reslim
 
 
 
-!$omp end single
+!$omp end master
 
  
 
@@ -19732,7 +20219,7 @@ end do
 
 
 
-!$omp single
+!$omp master
 
 do i=1,4
 suml3=allres(i)
@@ -19751,7 +20238,7 @@ allres(i)=allres(i)/initialres(i)
 
 end do
 
-!$omp end single
+!$omp end master
 
 
 
@@ -19775,7 +20262,7 @@ end do
 !$omp end do
 #endif
 
-!$omp single
+!$omp master
 do i=1,nof_variables+turbulenceequations
 suml3=allres(i)
 dum_resi=zero
@@ -19793,13 +20280,13 @@ end if
 allres(i)=allres(i)/initialres(i)
 
 end do
-!$omp end single
+!$omp end master
 
 end if
 
 
 
-!$omp single
+!$omp master
 if (n.eq.0)then
 if ((itestcase.le.4).and.(turbulence.ne.1))then
 
@@ -19824,7 +20311,7 @@ end if
  kill=1
  end if
 
-!$omp end single
+!$omp end master
 
 
 
@@ -19947,7 +20434,10 @@ subroutine calculate_error(n)
  			!$omp end do 
  			end if
 			
- 			
+ 			!$omp master
+			call mpi_barrier(mpi_comm_world,ierror)
+			!$omp end master
+			!$omp barrier
  			
  			
  			!$omp master
@@ -19980,28 +20470,36 @@ subroutine calculate_error(n)
  			
  			
  			end if
- 			
+
  			
  			cpux3(1) = mpi_wtime()
  			if (n.eq.0)then
 			open(30,file='errors.dat',form='formatted',action='write',position='append')
-			if (initcond.eq.1)then
-			write(30,'(i9,1x,e14.7,1x,i4,1x,e14.7,1x,e14.7)')imaxe,t,spatiladiscret,l0norm,stennorm/imaxe
-			
-			else
-			if (initcond.ne.3)then
-			
-			write(30,'(i9,1x,i4,1x,i4,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')imaxe,iorder,spatiladiscret,l0norm,sqrt(l1norm/totalvolume),stennorm/imaxe,(cpux3(1)-cpux2(1))*isize
-			else
-			write(30,'(i9,1x,i4,1x,i4,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')imaxe,iorder,spatiladiscret,l0norm,l1norm,stennorm/imaxe,(cpux3(1)-cpux2(1))*isize
-			
-			end if
-			end if
+				if (initcond.eq.1)then
+				write(30,'(i9,1x,e14.7,1x,i4,1x,e14.7,1x,e14.7)')imaxe,t,spatiladiscret,l0norm,stennorm/imaxe
+
+				else
+					if (initcond.ne.3)then
+
+					write(30,'(i9,1x,i4,1x,i4,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')imaxe,iorder,spatiladiscret,l0norm,sqrt(l1norm/totalvolume),stennorm/imaxe,(cpux3(1)-cpux2(1))*isize
+					else
+					write(30,'(i9,1x,i4,1x,i4,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')imaxe,iorder,spatiladiscret,l0norm,l1norm,stennorm/imaxe,(cpux3(1)-cpux2(1))*isize
+
+					end if
+				end if
 ! 			write(30,'(i9,1x,i4,1x,i4,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')imaxe,iorder,spatiladiscret,l0norm,sqrt(l1norm/totalvolume),stennorm/imaxe,(cpux3(1)-cpux2(1))*isize
 			close(30)
 			end if
 			!$omp end master
 			!$omp barrier
+
+
+			!$omp master
+			call mpi_barrier(mpi_comm_world,ierror)
+			!$omp end master
+			!$omp barrier
+
+
 
 end subroutine calculate_error
 

@@ -38,6 +38,8 @@ integer::cfw					!index for determining from the which section the boundary subr
 integer::dg, br2_yn                     ! flag for dg discretisation
 real:: br2_damping
 real::ccfl
+real::totk,totens,totensx		!totk,totens,totensx,kill_nan
+integer::kill_nan
 real::r_gas						!specific gas constant
 real,allocatable,dimension(:):: weights_q,weights_t,weights_l
 integer::lowmemory				! memory usage flag
@@ -889,7 +891,7 @@ integer, allocatable :: ibound_cpun(:,:)    !local number and cpu for each bound
 !$omp declare target (uvel, vectorx, vectory, vectorz, visc, voll, vorder, vvel, wallc, wdatatypeint)
 !$omp declare target (wdatatypex, wdatatypexx, wdatatypey, wdatatypeyy, wdatatypez, wenocentralweight, wenocnschar, wenoz, wenwrt, wkdum1)
 !$omp declare target (wkdum2, wkdum3, wvel, xmpielrank, xper, yper, zero, zper)
-!$omp declare target (indicator_par1, indicator_par2, indicator_par3)
+!$omp declare target (indicator_par1, indicator_par2, indicator_par3,totk,totens,totensx,kill_nan)
 !$omp declare target (solhir_flat,solhis_flat,boundhir_flat,boundhis_flat,boundhir_dgflat,boundhis_dgflat,boundhiri_flat,boundhisi_flat,weights_t,weights_q,weights_l,ilength1,ilength2,ccfl,ind1)
 
 #endif

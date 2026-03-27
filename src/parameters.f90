@@ -476,7 +476,7 @@ subroutine read_ucns3d
 	    select case(code_profile)
 	
 	
-	case (0,888)       
+	case (0)       
 	
 	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)|| 
 	binio=1	    	!i/o (ascii=0, binary=1) 
@@ -1648,4 +1648,3 @@ subroutine read_ucns3d
 	
 	
 end module parameters
-
