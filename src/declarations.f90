@@ -346,6 +346,7 @@ real::cell_size_average
 ! real::global_max_entropy
 real::mesh_velocity_multiple, lagrangian_mesh_velocity_multiple, relaxation_mesh_velocity_multiple, gradient_treshold
 real::lower_gradient_treshold, upper_gradient_treshold, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple
+real::quality_treshold, scaling
 real:: momentx,momenty,momentz
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!

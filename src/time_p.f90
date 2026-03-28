@@ -4105,7 +4105,7 @@ SUBROUTINE TIME_MARCHING2(N)
       if (dg.eq.1)call SOL_INTEG_DG(N)
 
       if (MESH_MOVEMENT) then
-          if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13)) then
+          if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13).or.(moving_mesh_mode.eq.14)) then
               call FIND_NORMALIZED_DENSITY_GRADIENT_from_precomputed(N)
           else
               ! if (dimensiona.eq.2) then
@@ -4275,7 +4275,7 @@ SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
   !$omp do
   do node_index=1,kmaxn 
       local_nodes(node_index)%positions(2,1:dimensiona) = local_nodes(node_index)%positions(1,1:dimensiona) &
-                                                          + DT * local_nodes(node_index)%velocity(1:dimensiona)
+                                                          + (DT * local_nodes(node_index)%velocity(1:dimensiona))
   end do
   !$omp end do
 
@@ -4328,7 +4328,7 @@ SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
     print *, "Moving mesh does not support averaging yet"
     call abort
     ! CALL AVERAGING_T(N)
-END IF
+  END IF
 
   Call COPY_BACK_LOCAL_NODES(2, 1)
       

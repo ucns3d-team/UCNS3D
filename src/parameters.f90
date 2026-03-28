@@ -1438,25 +1438,29 @@ SUBROUTINE READ_UCNS3D
 		gradient_treshold = 0.0
 		relaxation_centre_type = -1
 		node_solver_type = 1
-		if (moving_mesh_mode.eq.1) then
+		select case(moving_mesh_mode)
+		  case(1)
 			read(29,*) lagrangian_mesh_velocity_multiple
-		else if (moving_mesh_mode.eq.4) then
+		  case(2, 3)
+
+		  case(4)
 			read(29,*) relaxation_centre_type
 			read(29,*) mesh_velocity_multiple
-		else if (moving_mesh_mode.eq.5) then
+		  case(5)
 			read(29,*) relaxation_centre_type
 			read(29,*) lagrangian_mesh_velocity_multiple, relaxation_mesh_velocity_multiple
 			print *, lagrangian_mesh_velocity_multiple, relaxation_mesh_velocity_multiple
-		else if (moving_mesh_mode.eq.6) then
+		  case(6)
 			read(29,*) relaxation_centre_type
 			read(29,*) lagrangian_mesh_velocity_multiple_function_type, relaxation_mesh_velocity_multiple
-		else if (moving_mesh_mode.eq.7) then
+		  case(7)
 			read(29,*) relaxation_centre_type
 			read(29,*) relaxation_mesh_velocity_multiple
-		else if (moving_mesh_mode.eq.8) then
+		  case(8)
 			read(29,*) relaxation_centre_type
 			read(29,*) gradient_treshold, relaxation_mesh_velocity_multiple
-		else if (((moving_mesh_mode.ge.9).and.(moving_mesh_mode.le.11)).or.(moving_mesh_mode.eq.13)) then
+
+		  case(9, 10, 11, 13)
 			read(29,*) node_solver_type
 			read(29,*) relaxation_centre_type
 			read(29,*) lower_gradient_treshold, upper_gradient_treshold, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple
@@ -1466,14 +1470,21 @@ SUBROUTINE READ_UCNS3D
 			if (lower_relaxation_mesh_velocity_multiple.gt.upper_relaxation_mesh_velocity_multiple) then
 				call swap(lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple)
 			end if
-		else if (moving_mesh_mode.eq.12) then
+
+		  case(12)
 			read(29,*) node_solver_type
 			read(29,*) relaxation_centre_type
 			read(29,*) upper_relaxation_mesh_velocity_multiple
-		else if ((moving_mesh_mode.ne.2).and.(moving_mesh_mode.ne.3)) then
+
+		  case(14)
+			read(29,*) node_solver_type
+			read(29,*) relaxation_centre_type
+			read(29,*) quality_treshold, upper_gradient_treshold, scaling, upper_relaxation_mesh_velocity_multiple
+
+		  case DEFAULT
 			print*, "invalid moving mesh mode"
 			call abort
-		end if
+		end select
 	ENDIF
 
 	num_moving_boundaries = 0

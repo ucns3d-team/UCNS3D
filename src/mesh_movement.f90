@@ -46,6 +46,27 @@ end function
 
 
 
+subroutine clamp(x, bottom, top)
+    implicit none
+    real, intent(in)::bottom, top
+    real, intent(inout)::x
+
+    if (top.lt.bottom) then
+        print*,"invalid clamp", bottom, ">", top
+    end if
+    if (x.lt.bottom) then
+        x = bottom
+    end if
+    if (x.gt.top) then
+        x = top
+    end if
+
+end subroutine clamp
+
+
+
+
+
 function trinagle_area(a, b, c)
     implicit none
     real,dimension(1:dimensiona)::a, b, c
@@ -704,6 +725,28 @@ subroutine establish_node_neighbours(N)
 end subroutine establish_node_neighbours
 
 
+subroutine find_node_lagrangian_velocity(stage, position_index, N)
+    implicit none
+    integer,intent(in)::stage, position_index, N
+
+    select case(node_solver_type)
+      case (1)
+        call FirstOrderNodeAverage(stage, N)
+      case(2)
+        call FirstOrderNodeMassWeightedAverage(stage, position_index, N)
+      case(3)
+        call HighOrderNodeAverage(stage, position_index, N)
+      case(4)
+        call HighOrderNodeMassWeightedAverage(stage, position_index, N)
+      case(5)
+        call HighOrderUpstreamNodeAverage(stage, position_index, N)
+      case default
+        print*, "invalid node solver"
+    end select
+
+end subroutine find_node_lagrangian_velocity
+
+
 
 
 
@@ -734,37 +777,26 @@ subroutine find_node_velocities(position_index, d_t, N)
         end do
         !$omp end do
     else
-        if ((moving_mesh_mode.eq.1).or.(moving_mesh_mode.eq.2)) then
-            call FirstOrderNodeAverage(1, N)
-        else if (moving_mesh_mode.eq.3) then
+        select case (moving_mesh_mode)
+          case(1, 2)
+            call find_node_lagrangian_velocity(1, position_index, N)
+          case(3)
             call FirstOrderNodeAverage_withVF(1, N)
-        else if (moving_mesh_mode.eq.4) then
+          case(4)
             call directReALE_node_velocity(1, position_index, d_t, N)
-        else if ((moving_mesh_mode.eq.5).or.(moving_mesh_mode.eq.7)) then
-            call FirstOrderNodeAverage(1, N)
+          case(5, 7)
+            call find_node_lagrangian_velocity(1, position_index, N)
             call find_node_relaxation_velocity(1, position_index, d_t, N)
-        else if (moving_mesh_mode.eq.6) then
+          case(6)
             call FirstOrderNodeAverage_withVf(1, N)
             call find_node_relaxation_velocity(1, position_index, d_t, N)
-        else if (moving_mesh_mode.eq.8) then
-            call FirstOrderNodeAverage(1, N)
+          case(8)
+            call find_node_lagrangian_velocity(1, position_index, N)
             ! call find_node_relaxation_velocity_and_normalized_density_gradient(1, position_index, d_t, N)
             call find_node_normalized_density_gradient(1, position_index, d_t, N)
             call find_node_relaxation_velocity(1, position_index, d_t, N)
-        else if ((moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.11)) then
-            if (node_solver_type.eq.1) then
-                call FirstOrderNodeAverage(1, N)
-            else if (node_solver_type.eq.2) then
-                call FirstOrderNodeMassWeightedAverage(1, position_index, N)
-            else if (node_solver_type.eq.3) then
-                call HighOrderNodeAverage(1, position_index, N)
-            else if (node_solver_type.eq.4) then
-                call HighOrderNodeMassWeightedAverage(1, position_index, N)
-            else if (node_solver_type.eq.5) then
-                call HighOrderUpstreamNodeAverage(1, position_index, N)
-            else
-                print*, "invalid node solver"
-            end if
+          case(9, 11)
+            call find_node_lagrangian_velocity(1, position_index, N)
             call find_node_normalized_density_gradient(1, position_index, d_t, N)
             if (relaxation_centre_type.le.3) then
                 call find_node_relaxation_velocity(1, position_index, d_t, N)
@@ -775,20 +807,9 @@ subroutine find_node_velocities(position_index, d_t, N)
             else
                 print*,"invalid node relaxation algorithm"
             end if
-        else if ((moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13))then
-            if (node_solver_type.eq.1) then
-                call FirstOrderNodeAverage(1, N)
-            else if (node_solver_type.eq.2) then
-                call FirstOrderNodeMassWeightedAverage(1, position_index, N)
-            else if (node_solver_type.eq.3) then
-                call HighOrderNodeAverage(1, position_index, N)
-            else if (node_solver_type.eq.4) then
-                call HighOrderNodeMassWeightedAverage(1, position_index, N)
-            else if (node_solver_type.eq.5) then
-                call HighOrderUpstreamNodeAverage(1, position_index, N)
-            else
-                print*,"invalid node solver"
-            end if
+
+          case(10, 13)
+            call find_node_lagrangian_velocity(1, position_index, N)
             call find_node_normalized_density_gradient(1, position_index, d_t, N)
             if (moving_mesh_mode.eq.13) then
                 call find_node_normalized_vf_gradient(1, position_index, d_t, N)
@@ -805,27 +826,36 @@ subroutine find_node_velocities(position_index, d_t, N)
             else
                 print*,"invalid node relaxation algorithm"
             end if
-        else if (moving_mesh_mode.eq.12) then
-            if (node_solver_type.eq.1) then
-                call FirstOrderNodeAverage(1, N)
-            else if (node_solver_type.eq.2) then
-                call FirstOrderNodeMassWeightedAverage(1, position_index, N)
-            else if (node_solver_type.eq.3) then
-                call HighOrderNodeAverage(1, position_index, N)
-            else if (node_solver_type.eq.4) then
-                call HighOrderNodeMassWeightedAverage(1, position_index, N)
-            else if (node_solver_type.eq.5) then
-                call HighOrderUpstreamNodeAverage(1, position_index, N)
-            else
-                print*, "invalid node solver"
+
+          case(14)
+            call find_node_lagrangian_velocity(1, position_index, N)
+            call find_node_normalized_density_gradient(1, position_index, d_t, N)
+            if (governingequations.eq.-1) then
+                call find_node_normalized_vf_gradient(1, position_index, d_t, N)
             end if
+            !$omp barrier
+            call enforce_node_lagrangian_velocity_BC(position_index, d_t, N)
+            !$omp barrier
+            if (relaxation_centre_type.le.3) then
+                call find_moved_node_relaxation_velocity(1, position_index, d_t, N)
+            else if (relaxation_centre_type.eq.4) then
+                call find_moved_node_centre_relaxation_velocity(1, position_index, d_t, N)
+            else if ((relaxation_centre_type.eq.5).or.(relaxation_centre_type.eq.7)) then
+                call find_node_Jacobi_relaxation_velocity(1, position_index, d_t, N)
+            else
+                print*,"invalid node relaxation algorithm"
+            end if
+
+          case(12)
+            call find_node_lagrangian_velocity(1, position_index, N)
             call find_node_volume_ratio(1, position_index, N)
             call find_node_normalized_density_gradient(1, position_index, d_t, N)
             call find_node_relaxation_velocity(1, position_index, d_t, N)
-        else
+
+         case DEFAULT
             print *, "invalid moving mesh mode"
             call abort()
-        end if
+        end select
         !$omp barrier
         call CombineNodeVelocities(1, position_index, d_t, N)
     endif
@@ -837,7 +867,7 @@ subroutine find_node_velocities(position_index, d_t, N)
     !$omp barrier
 
     ! call clamp_node_velocity_to_CFL(position_index, d_t, N)
-    call clamp_node_velocity_to_fraction(position_index, d_t, N)
+    ! call clamp_node_velocity_to_fraction(position_index, d_t, N)
 
     !$omp barrier
 
@@ -4054,20 +4084,23 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
     integer::i
     real,dimension(1:dimensiona)::initial_velocity1, initial_velocity2
     real,dimension(1:dimensiona)::option1, option2
-    real::gradient_copy, fraction, free_stream, val1, val2
+    real::gradient_copy, fraction, free_stream, val1, val2, gradient_term
     real::local_lagrangian_velocity_multiple, local_relaxation_velocity_multiple
     real::local_lagrangian_velocity_magnitude, local_relaxation_velocity_magnitude
+
 
     initial_velocity1 = zero
     initial_velocity2 = zero
     
-    if (moving_mesh_mode.eq.1) then
+    select case(moving_mesh_mode)
+      case(1)
         !$omp do
         do node_index = 1, kmaxn
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) * lagrangian_mesh_velocity_multiple
         end do
         !$omp end do
-    else if (moving_mesh_mode.eq.2) then
+
+      case(2)
         !$omp do
         do node_index = 1, kmaxn
             option1(:) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona)
@@ -4080,33 +4113,38 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
             local_nodes(node_index)%velocity(1:dimensiona) = min_abs(option1, option2)
         end do
         !$omp end do
-    else if (moving_mesh_mode.eq.3) then
+
+      case(3)
         !$omp do
         do node_index = 1, kmaxn
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona)
         end do
         !$omp end do
-    else if (moving_mesh_mode.eq.4) then
+
+      case(4)
         !$omp do
         do node_index = 1, kmaxn
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%relaxation_velocity(1:dimensiona)*mesh_velocity_multiple
         end do
         !$omp end do
-    else if (moving_mesh_mode.eq.5) then
+
+      case(5)
         !$omp do
         do node_index = 1, kmaxn
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) * lagrangian_mesh_velocity_multiple &
                                                            + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * relaxation_mesh_velocity_multiple
         end do
         !$omp end do
-    else if (moving_mesh_mode.eq.6) then
+
+      case(6)
         !$omp do
         do node_index = 1, kmaxn
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) &
                                                            + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * relaxation_mesh_velocity_multiple
         end do
         !$omp end do
-    else if (moving_mesh_mode.eq.7) then
+
+      case(7)
         !$omp do
         do node_index = 1, kmaxn
             option1(:) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona)
@@ -4120,14 +4158,14 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
                                                            + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * relaxation_mesh_velocity_multiple
         end do
         !$omp end do
-    else if (moving_mesh_mode.eq.8) then
+
+      case(8)
         !$omp do
         do node_index = 1, kmaxn
             ! if (local_nodes(node_index)%num_neighbours.lt.3) then
             if (local_nodes(node_index)%num_neighbours.lt.2) then
                 local_lagrangian_velocity_multiple = 0.0
             else
-                gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
                 if (gradient_copy.lt.zero) then
                     print*, "negative desnity gradient magnitude"
                 else if (gradient_copy.lt.gradient_treshold) then
@@ -4148,7 +4186,8 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
                                                             + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * relaxation_mesh_velocity_multiple
         end do
         !$omp end do
-    else if ((moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10)) then
+
+      case(9, 10)
         !$omp do
         do node_index = 1, kmaxn
             
@@ -4201,7 +4240,8 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
                                                            + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple
         end do
         !$omp end do
-    else if (moving_mesh_mode.eq.11) then
+
+      case(11)
         !$omp do
         do node_index = 1, kmaxn
             option1(:) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona)
@@ -4250,10 +4290,10 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
                 print *, "invalid local lagrangian velocity multiple"
             end if
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%velocity(1:dimensiona) + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple
-        
         end do
         !$omp end do
-    else if (moving_mesh_mode.eq.12) then
+
+      case(12)
         !$omp do
         do node_index = 1, kmaxn
             ! if (local_nodes(node_index)%num_neighbours.lt.3) then
@@ -4274,7 +4314,8 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
                                                            + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple
         end do
         !$omp end do
-    else if (moving_mesh_mode.eq.13) then
+
+      case(13)
         !$omp do
         do node_index = 1, kmaxn
             
@@ -4309,9 +4350,46 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
                                                            + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple
         end do
         !$omp end do
-    else
+
+      case(14)
+        !$omp do
+        do node_index = 1, kmaxn
+            if (local_nodes(node_index)%mesh_quality_after.lt.zero) then
+                local_relaxation_velocity_multiple = zero
+            else
+                if (local_nodes(node_index)%mesh_quality_before.lt.zero) then
+                    local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
+                else
+                    if (governingequations.eq.-1) then
+                        gradient_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
+                    else
+                        gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+                    end if
+
+                    if (gradient_copy.ge.upper_gradient_treshold) then
+                        gradient_term = 1.0
+                    else
+                        gradient_term = gradient_copy/upper_gradient_treshold
+                    end if
+
+                    local_relaxation_velocity_multiple = (local_nodes(node_index)%mesh_quality_before / real(local_nodes(node_index)%num_neighbours)) - 1.0
+                    local_relaxation_velocity_multiple = local_relaxation_velocity_multiple - ((quality_treshold - 1.0)*gradient_copy)
+                    local_lagrangian_velocity_multiple = local_lagrangian_velocity_multiple * scaling
+                    
+                end if
+            end if
+            call clamp(local_relaxation_velocity_multiple, 0.0, upper_relaxation_mesh_velocity_multiple)
+            ! if ((local_lagrangian_velocity_multiple.lt.zero).or.(local_lagrangian_velocity_multiple.gt.1.0)) then
+            !     print *, "invalid local lagrangian velocity multiple"
+            ! end if
+            local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) &
+                                                           + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple
+        end do
+        !$omp end do
+
+      case default
         print *, "invalid moving mesh mode"
-    end if
+    end select
 
     !$omp barrier
 
