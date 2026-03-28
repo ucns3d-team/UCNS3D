@@ -5581,7 +5581,6 @@ integer :: countwall,kmaxe,countwallglobal,i,l,icpu,doyouhavewall,howmanyhavewal
 integer :: counterall2,wall1,wall2,wall3,wall4,wall5,wall6,ioy,wl1,wl2,wl3,wl4,k
 real,allocatable,dimension(:,:) :: wallelemarraycord,wallelemarraycordglobal
 real :: distance
-real :: xc,yc,zc,dx,dy,dz,mind2,d2
 character(len=12)::bndfile,vrtfile
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 type :: awallboundary
@@ -5687,7 +5686,7 @@ end do
 ! find distance from element barycenter to the nearest wall for this block.
 kmaxe=xmpielrank(n)
 do i=1,kmaxe
-    distance=tolbig
+    distance=tolbig 
 	do k = 1,countwallglobal
 	      if ( distance .gt. (sqrt(((dwallbnd(k)%wallx-ielem_xxc(i))**2) &
 				     + ((dwallbnd(k)%wally-ielem_yyc(i))**2)&
@@ -5699,24 +5698,15 @@ do i=1,kmaxe
 		 if (ielem_walldist(i).lt.hybridist)then
 		    ielem_hybrid(i)=1
 		 end if
-
+		
 	      end if
 	end do
 end do
-
-
-
-
-
-
-
-
 
 deallocate(dwallbnd)
 deallocate(dwallvrt)
 
 end subroutine
-
 
 
 subroutine walldistancex(n, imaxe, xmpielrank)
@@ -6193,7 +6183,6 @@ deallocate(vid, vx, vy, vz)
 deallocate(bincount, binstart, binfill, binlist)
 
 end subroutine
-
 
 
 subroutine walldistance2d(n,imaxe,xmpielrank)

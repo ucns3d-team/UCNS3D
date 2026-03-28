@@ -7155,7 +7155,7 @@ do i=1,kmaxe
             post1=ielem_xxc(i)
             traj1=i
         end if
-        if (((ielem_yyc(i).le.0.055).and.(ielem_yyc(i).ge.0.045)))then
+        if (((ielem_yyc(i).le.0.053).and.(ielem_yyc(i).ge.0.048)))then
             if(ielem_xxc(i).le.post2)then
                 post2=ielem_xxc(i)
                 traj2=i

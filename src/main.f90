@@ -630,6 +630,10 @@ call mpi_barrier(mpi_comm_world,ierror)
 
 
 
+
+
+				
+  
   if (turbulence.eq.1)then
     if (dimensiona.eq.3)then
     call walldistancex(n,imaxe,xmpielrank)
@@ -638,10 +642,10 @@ call mpi_barrier(mpi_comm_world,ierror)
     end if
   end if
 
+  
+
 
 call mpi_barrier(mpi_comm_world,ierror)
-
-
 
 
 				  !$omp master
@@ -935,7 +939,7 @@ call omp_map_first(n)
 !$omp& qrde, qsas_model, r_beta, r_gas, r_k_sst, r_om_sst, realgas, reduce_comp, relax, required, res_time, rescounter, &
 !$omp& rescountert, residualfreq, reslimit, resmax, resmaxt, restart, reynolds, rframe, rg_kf_type, rg_nof_reactions, &
 !$omp& rg_nof_tv_coef, rg_relax, rg_t_inf, rg_t_ref, rg_t_wall_init, rg_ttr, rg_tve, rhc1, rhc2, rhc3, rhc4, rot_corr, rres, &
-!$omp& rungekutta, scaler, schmidt_lam, schmidt_turb, sigma, sigma_k1, sigma_k2, sigma_om1, sigma_om2, sigma_phi, &
+!$omp& rungekutta, scaler, schmidt_lam, schmidt_turb, sigma, sigma_k1, sigma_k2, sigma_om1, sigma_om2, sigma_phi,a405,nof_perturbations405, &
 !$omp& source_active, spatialorder, spatiladiscret, spkin, spos, srf_origin, srf_velocity, srfg, st_n_cpu, st_n_threads, &
 !$omp& statfile, statistics, stencil_io, stennorm, subdiv, surfshear, suther, swirl, t, taylor, taylor_ens, taylor_ensx, &
 !$omp& tecplot, temp_model, temporder, thermal, thread_n, timestep, tol_per, tolbig, tolsmall, totalvolume, totiw, totwalls, &

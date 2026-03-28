@@ -22,6 +22,7 @@ integer::jtotal,jtotal1,jtotal2,jtotal3,fastmovie,movement,typ_countn_global,typ
 integer::filter_type,fil_nc,fil_s,fil_alpha		!filter values
 integer::adda_type,adda_alpha_1,adda_alpha_2,adda_1_s,adda_2_s,adda_1,adda_2		!filter values
 integer::kill			 ! flag for killing a simulation
+integer::nof_perturbations405	!number of perturbations
 integer::nderivative		  	! index of the numbering of the component of the polynomials 
 real::output_freq				!output frequency in simulation time
 integer::extended_bounds		!bounds strict or relaxed
@@ -167,6 +168,7 @@ integer::viscous_s,jump_cond1,jump_cond2,jump_cond3
 integer::cavitation
 real::indicator_par1,indicator_par2,indicator_par3, bound_lim  !troubled indicator parameters
 real::rhc1,rhc2,rhc3,rhc4
+real::a405   !perturbations amplitude
 real::prace_t1,prace_t2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7,prace_t8,prace_t9,pr_t1,pr_t2,pr_t3,pr_t4,pr_t5,pr_t6,pr_t7,pr_t8,prace_tx1,prace_tx2,prace_tx3
 !------------------start bleed parameters-------------------!
 integer::bleed_number,bleed,bleed_type
@@ -830,7 +832,7 @@ integer, allocatable :: ibound_cpun(:,:)    !local number and cpu for each bound
 !$omp declare target (ielem_ishape, ielem_itotalpoints, ielem_linc, ielem_lwcx2, ielem_minedge, ielem_mode, ielem_mood, ielem_mood_o, ielem_nodes, ielem_nodes_faces)
 !$omp declare target (ielem_nodes_faces_v, ielem_nodes_neighbours, ielem_nodes_v, ielem_nofbc, ielem_nojecount, ielem_nonodes, ielem_q_face_q_mapl, ielem_qface, ielem_recalc, ielem_reduce)
 !$omp declare target (ielem_reorient, ielem_stencil_dist, ielem_surf, ielem_totvolume, ielem_troubled, ielem_types_faces, ielem_vdec, ielem_viscx, ielem_vortex, ielem_walldist)
-!$omp declare target (ielem_walls, ielem_wcx, ielem_xxc, ielem_yyc, ielem_zzc, impdiag_mf, impoff_mf, indicator_type, init_mu_ratio, inoder4_bct)
+!$omp declare target (ielem_walls, a405, nof_perturbations405, ielem_wcx, ielem_xxc, ielem_yyc, ielem_zzc, impdiag_mf, impoff_mf, indicator_type, init_mu_ratio, inoder4_bct)
 !$omp declare target (inoder4_cord, inoder4_itor, integ_basis_dg_value, integ_basis_value, integ_basis_valuec, ires_turb, ires_unsteady, jump_cond1, jump_cond2, jump_cond3)
 !$omp declare target (kappa_sst, kinit_srf, l_turb_inlet, lmach_style, m_1_val, m_t0, max_faces, max_fnodes, max_nodes, modal_filter)
 !$omp declare target (modal_filter_strong, modal_filter_weak, mood_mode, mood_var1, mood_var2, mood_var3, mood_var4, mp_a_in, mp_brok_a, mp_brok_b)

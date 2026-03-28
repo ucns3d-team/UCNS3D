@@ -115,6 +115,7 @@ subroutine read_ucns3d
 	multispecies=0
 	end if
 
+
 	inquire (file='MULTISPECIES_DIFF.DAT',exist=here2)
 	if (here2) then
 	open(14,file='MULTISPECIES_DIFF.DAT',form='formatted',status='old',action='read')
@@ -138,7 +139,14 @@ subroutine read_ucns3d
 
 	end if
 
-
+	inquire (file='405.DAT',exist=here2)
+	if (here2) then
+	open(14,file='405.DAT',form='formatted',status='old',action='read')
+	read(14,*)
+	read(14,*)a405			!perturbations amplitude	0.002d0 (radius 0.025d0)
+	read(14,*)nof_perturbations405	!number of perturbations	start with 8
+    close(14)
+	end if
 
 
 	inquire (file='REALGAS.DAT',exist=here10)

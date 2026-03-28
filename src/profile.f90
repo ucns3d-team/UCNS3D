@@ -1011,7 +1011,7 @@ integer,intent(in)::n
 !solution=veccos
 !components from dat file gamma,uvel,wvel,vvel,pres,rres
 !initcond= profile choice from data file
-real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1
+real::acp,mscp,mvcp,vmcp,bcp,rcp,tcp,vfr,theta1,theta405
 real::intenergy,r1,u1,v1,w1,et1,s1,ie1,p1,skin1,e1,rs,us,vs,ws,khx,vhx,amp,dvel,rgg,tt1,khi_slope,khi_b,theeta,reeta,rg_ve,rg_tr,rg_chem,rg_density,rg_ev_total,rg_rmix
 real::pr_radius,pr_beta,pr_machnumberfree,pr_pressurefree,pr_temperaturefree,pr_gammafree,pr_rgasfree,pr_xcenter,pr_ylength,pr_xlength,pr_ycenter,pr_densityfree,pr_cpconstant,pr_radiusvar,pr_velocityfree,pr_temperaturevar,drad,rg_tv,rg_ttr0,rg_tve0
 integer::u_cond1,u_cond2,u_cond3,u_cond4,ix,rg_i,rg_j
@@ -1939,6 +1939,10 @@ if (initcond.eq.405)then
 
 drad=sqrt(((pox(1)+0.05d0)**2)+((poy(1)-0.05d0)**2))
 
+theta405 = atan2(poy(1)-0.05d0, pox(1)+0.05d0)
+
+
+
 if (pox(1).lt.-0.1d0)then
 mp_r(1)=0.166315789
 mp_r(2)=1.658
@@ -1961,9 +1965,9 @@ else
 
 !first within bubble region
 
+if (drad .le. (0.025d0 + A405*cos(dble(nof_perturbations405)*theta405 + 0.0d0))) then
 
 
-if (drad.le.0.025d0)then
 mp_r(1)=0.166315789d0
 mp_r(2)=1.204d0
 mp_a(1)=0.95d0
