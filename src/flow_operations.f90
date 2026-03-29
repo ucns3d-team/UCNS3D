@@ -794,90 +794,83 @@ END SUBROUTINE LMACHT
 SUBROUTINE LMACHT2D(N,LEFTV,RIGHTV)
   !> @brief
   !> This subroutine applies the low-Mach number correction to two vectors of conserved variables 2D
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
-  real::MP_PINFL,gammal
-  real,dimension(1:nof_Variables),INTENT(INOUT)::RIGHTv
-  real::MP_PINFR,gammaR
-  REAL::Q2L,Q2R,UUL,UUR,VVL,VVR,WWR,WWL,RHOL,RHOR,ETAL,ETAR,DUU,DVV,DWW
-  REAL::MACH2,MACH,CMA,DUS,DVS,DWS,DIFF,C1o2,SSL,SSR,ppl,ppr,eel,eer,TOLE,MLM
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
+    real::MP_PINFL,gammal
+    real,dimension(1:nof_Variables),INTENT(INOUT)::RIGHTv
+    real::MP_PINFR,gammaR
+    REAL::Q2L,Q2R,UUL,UUR,VVL,VVR,WWR,WWL,RHOL,RHOR,ETAL,ETAR,DUU,DVV,DWW
+    REAL::MACH2,MACH,CMA,DUS,DVS,DWS,DIFF,C1o2,SSL,SSR,ppl,ppr,eel,eer,TOLE,MLM
 
-  TOLE=tolsmall
+    TOLE=tolsmall
 
-  EEL=LEFTV(4)
-  EER=RIGHTV(4)
+    EEL=LEFTV(4)
+    EER=RIGHTV(4)
 
-  CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+    CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 
-  C1o2=0.5D0
-  RHOL=LEFTV(1)
-  UUL=LEFTV(2)
-  VVL=LEFTV(3)
-  PPL=LEFTV(4)
-    
-  RHOR=RIGHTV(1)
-  UUR=RIGHTV(2)
-  VVR=RIGHTV(3)
-  PPR=RIGHTV(4)
+    C1o2=0.5D0
+    RHOL=LEFTV(1)
+    UUL=LEFTV(2)
+    VVL=LEFTV(3)
+    PPL=LEFTV(4)
+        
+    RHOR=RIGHTV(1)
+    UUR=RIGHTV(2)
+    VVR=RIGHTV(3)
+    PPR=RIGHTV(4)
 
-  Q2L=(UUL*uul)+(vvl*vvl)
-  Q2R=(uur*uur)+(vvr*vvr)
+    Q2L=(UUL*uul)+(vvl*vvl)
+    Q2R=(uur*uur)+(vvr*vvr)
       
-      
-      
-  if (multispecies.eq.1)then
-		  SSL=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
-		  Ssr=SQRT((rightV(4)+MP_PINFr)*GAMMAr/rightV(1))
+    if (multispecies.eq.1)then
+		SSL=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
+		Ssr=SQRT((rightV(4)+MP_PINFr)*GAMMAr/rightV(1))
 	else
-      SSL=((GAMMA*PPL)/(RHOL))
-      SSR=((GAMMA*PPR)/(RHOR))
-  end if
+        SSL=((GAMMA*PPL)/(RHOL))
+        SSR=((GAMMA*PPR)/(RHOR))
+    end if
 
-      CMA=1.0D0
+    CMA=1.0D0
 
-      DUU=UUR-UUL
-      DVV=VVR-VVL
+    DUU=UUR-UUL
+    DVV=VVR-VVL
       
+    ! IF(LMACH.EQ.1) THEN !Standard proportional to du^2
+        MACH2=MAX(Q2L/SSL,Q2R/SSR)
+        MACH=sqrt(MACH2)
+        MACH=MIN(CMA*MACH,1.0D0)
+    ! END IF
+
+    DUS=UUR+UUL
+    DVS=VVR+VVL
+
+    !UL+ZUL+UR-ZUR=(UL+UR)-Z(UR-UL))
+    DUU=MACH*DUU
+    DVV=MACH*DVV
       
-
-!       IF(LMACH.EQ.1) THEN !Standard proportional to du^2
-         MACH2=MAX(Q2L/SSL,Q2R/SSR)
-         MACH=sqrt(MACH2)
-         MACH=MIN(CMA*MACH,1.0D0)
-!       END IF
-
-      DUS=UUR+UUL
-      DVS=VVR+VVL
-     
-
-       !UL+ZUL+UR-ZUR=(UL+UR)-Z(UR-UL))
-      DUU=MACH*DUU
-      DVV=MACH*DVV
-      
-
-
-      DIFF=C1O2*DUU
+    DIFF=C1O2*DUU
 	! if (uul*uur.gt.tole)then
 	
-  UUL=(DUS*C1O2)-DIFF
-  UUR=(DUS*C1O2)+DIFF
+    UUL=(DUS*C1O2)-DIFF
+    UUR=(DUS*C1O2)+DIFF
       
-  if (lmach_style.eq.1)then
-      DIFF=C1O2*DVV
-      VVL=(DVS*C1O2-DIFF)
-      VVR=(DVS*C1O2+DIFF)
-  end if
+    if (lmach_style.eq.1)then
+        DIFF=C1O2*DVV
+        VVL=(DVS*C1O2-DIFF)
+        VVR=(DVS*C1O2+DIFF)
+    end if
 	
-  LEFTV(1)=RHOL
-  LEFTV(2)=UUL*RHOL
-  LEFTV(3)=VVL*RHOL
-  LEFTV(4)=EEL
+    LEFTV(1)=RHOL
+    LEFTV(2)=UUL*RHOL
+    LEFTV(3)=VVL*RHOL
+    LEFTV(4)=EEL
 
-  RIGHTV(1)=RHOR 	
-  RIGHTV(2)=UUR*RHOR
-  RIGHTV(3)=VVR*RHOR
-  RIGHTV(4)=EER
+    RIGHTV(1)=RHOR 	
+    RIGHTV(2)=UUR*RHOR
+    RIGHTV(3)=VVR*RHOR
+    RIGHTV(4)=EER
 
 END SUBROUTINE LMACHT2D
 
@@ -886,107 +879,88 @@ END SUBROUTINE LMACHT2D
 
 
 SUBROUTINE PRIM2CONS(N,leftv)
-!> @brief
-! !> This subroutine transforms one vector of primitive variables to conservative variables
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,DIMENSION(1:nof_Variables)::TEMPS
-REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
-real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
-real::MP_PINFL,gammal
-REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+  !> @brief
+  !> This subroutine transforms one vector of primitive variables to conservative variables
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    REAL,DIMENSION(1:nof_Variables)::TEMPS
+    REAL::OODENSITY,skin1,ie1,MP_DENSITY,mp_stiff
+    real,dimension(1:nof_Variables),INTENT(INOUT)::leftv
+    real::MP_PINFL,gammal
+    REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
 
-if (nof_Variables.gt.1)then
+    if (nof_Variables.gt.1)then
+        if (dimensiona.eq.3)then
+            IF (governingequations.EQ.-1) then
+                MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
+                MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
+                MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
+                GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
+                
+                TEMPS(1)=MP_DENSITY
+                TEMPS(2)=LEFTV(2)*TEMPS(1)
+                TEMPS(3)=LEFTV(3)*TEMPS(1)
+                TEMPS(4)=LEFTV(4)*TEMPS(1)
+                skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
+                !MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(8)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
+                MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
 
-if (dimensiona.eq.3)then
+                ie1=((leftv(5)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
+                TEMPS(5)=TEMPS(1)*(ie1+skin1)
+                TEMPS(6:8)=LEFTV(6:8)
 
-IF (governingequations.EQ.-1) then
+                LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+            else
+                skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
+                ie1=((leftv(5))/((GAMMA-1.0D0)*leftv(1)))
 
- 
- MP_DENSITY=(LEFTV(6)+LEFTV(7)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=LEFTV(8)/(GAMMA_IN(1)-1.0D0)  
- MP_AR(2)=(1.0D0-LEFTV(8))/(GAMMA_IN(2)-1.0D0)
- GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
- 
-TEMPS(1)=MP_DENSITY
-TEMPS(2)=LEFTV(2)*TEMPS(1)
-TEMPS(3)=LEFTV(3)*TEMPS(1)
-TEMPS(4)=LEFTV(4)*TEMPS(1)
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
-!MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(8)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
-MP_STIFF=((LEFTV(8)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(8))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
+                OODENSITY=1.0D0/LEFTV(1)
 
-ie1=((leftv(5)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
-TEMPS(5)=TEMPS(1)*(ie1+skin1)
-TEMPS(6:8)=LEFTV(6:8)
- LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
- 
- 
- 
- else
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2)+(leftv(4)**2))
-ie1=((leftv(5))/((GAMMA-1.0D0)*leftv(1)))
+                TEMPS(1)=LEFTV(1)
+                TEMPS(2)=LEFTV(2)*LEFTV(1)
+                TEMPS(3)=LEFTV(3)*LEFTV(1)
+                TEMPS(4)=LEFTV(4)*LEFTV(1)
+                TEMPS(5)=leftv(1)*(ie1+skin1)
 
-OODENSITY=1.0D0/LEFTV(1)
+                LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+            end if
+        ELSE
+            IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
+                MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
+                MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
+                MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
+                GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
 
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*LEFTV(1)
-TEMPS(3)=LEFTV(3)*LEFTV(1)
-TEMPS(4)=LEFTV(4)*LEFTV(1)
-TEMPS(5)=leftv(1)*(ie1+skin1)
+                TEMPS(1)=MP_DENSITY
+                TEMPS(2)=LEFTV(2)*TEMPS(1)
+                TEMPS(3)=LEFTV(3)*TEMPS(1)
+                skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
+                ! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
+                MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
 
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+                MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
+                ie1=((leftv(4)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
+                TEMPS(4)=TEMPS(1)*(ie1+skin1)
+                TEMPS(5:7)=LEFTV(5:7)
 
-end if
+                LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+            else
+                skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
+                ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
 
+                OODENSITY=1.0D0/LEFTV(1)
 
-ELSE
+                TEMPS(1)=LEFTV(1)
+                TEMPS(2)=LEFTV(2)*LEFTV(1)
+                TEMPS(3)=LEFTV(3)*LEFTV(1)
+                TEMPS(4)=leftv(1)*(ie1+skin1)
 
-IF ((governingequations.EQ.-1).and.(VISCOUS_S.ne.1)) then
+                LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
+            end if
 
+        end if
 
- MP_DENSITY=(LEFTV(5)+LEFTV(6)) !TOTAL DENSITY OF MIXTURE
- MP_AR(1)=LEFTV(7)/(GAMMA_IN(1)-1.0D0)
- MP_AR(2)=(1.0D0-LEFTV(7))/(GAMMA_IN(2)-1.0D0)
- GAMMAL=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTIO
-
-TEMPS(1)=MP_DENSITY
-TEMPS(2)=LEFTV(2)*TEMPS(1)
-TEMPS(3)=LEFTV(3)*TEMPS(1)
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-! MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((LEFTV(7)-1.0D0)*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))/(GAMMAL-1.0D0)
-MP_STIFF=((LEFTV(7)*(GAMMA_IN(1)/(GAMMA_IN(1)-1.0D0))*MP_PINF(1))+((1.0D0-LEFTV(7))*(GAMMA_IN(2)/(GAMMA_IN(2)-1.0D0))*MP_PINF(2)))*(GAMMAL-1.0D0)
-
-
-
-
-MP_PINFL=(LEFTV(7)*MP_PINF(1))+((1.0D0-LEFTV(7))*MP_PINF(2))
-ie1=((leftv(4)+mp_stiff)/((GAMMAL-1.0D0)*TEMPS(1)))
-TEMPS(4)=TEMPS(1)*(ie1+skin1)
-TEMPS(5:7)=LEFTV(5:7)
- LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
- else
-
-
-
-skin1=(oo2)*((leftv(2)**2)+(leftv(3)**2))
-ie1=((leftv(4))/((GAMMA-1.0D0)*leftv(1)))
-
-OODENSITY=1.0D0/LEFTV(1)
-
-TEMPS(1)=LEFTV(1)
-TEMPS(2)=LEFTV(2)*LEFTV(1)
-TEMPS(3)=LEFTV(3)*LEFTV(1)
-TEMPS(4)=leftv(1)*(ie1+skin1)
-
-LEFTV(1:nof_Variables)=TEMPS(1:nof_Variables)
-
-end if
-
-      end if
-
-  end if
+    end if
 
 END SUBROUTINE PRIM2CONS
 
@@ -1157,119 +1131,119 @@ END SUBROUTINE PRIM2CONS2
 FUNCTION INFLOW(INITCOND,POX,POY,POZ)
   !> @brief
   !> This function applies a prescribed boundary condition to  the inflow in 3D
-  IMPLICIT NONE
-  REAL,DIMENSION(1:nof_Variables)::INFLOW
-  INTEGER,INTENT(IN)::INITCOND
-  REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
-  REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
-  REAL::XF,YF,ZF
-  REAL:: Theta_0,vtang, vradial,GAMMAR
-  REAL::MP_DENSITY,MP_STIFF
-  REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+    IMPLICIT NONE
+    REAL,DIMENSION(1:nof_Variables)::INFLOW
+    INTEGER,INTENT(IN)::INITCOND
+    REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY,POZ
+    REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
+    REAL::XF,YF,ZF
+    REAL:: Theta_0,vtang, vradial,GAMMAR
+    REAL::MP_DENSITY,MP_STIFF
+    REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
 
-  IF (governingequations.EQ.-1) then
+    IF (governingequations.EQ.-1) then
 
-      P=PRES
-      U=uvel
-      V=vvel
-      w=wvel
-      MP_AR(1)=MP_A_IN(1)/(GAMMA_IN(1)-1.0D0)  
-      MP_AR(2)=MP_A_IN(2)/(GAMMA_IN(2)-1.0D0)
-      GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
-      GM=GAMMAR
+        P=PRES
+        U=uvel
+        V=vvel
+        w=wvel
+        MP_AR(1)=MP_A_IN(1)/(GAMMA_IN(1)-1.0D0)  
+        MP_AR(2)=MP_A_IN(2)/(GAMMA_IN(2)-1.0D0)
+        GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+        GM=GAMMAR
 
-      R=(MP_R_IN(1)*MP_A_IN(1))+(MP_R_IN(2)*MP_A_IN(2))
-      MP_IE(1)=((P+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-      MP_IE(2)=((P+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+        R=(MP_R_IN(1)*MP_A_IN(1))+(MP_R_IN(2)*MP_A_IN(2))
+        MP_IE(1)=((P+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+        MP_IE(2)=((P+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
 
-      IEn=(MP_IE(1)*MP_A_IN(1))+(MP_IE(2)*MP_A_IN(2))
-      ! !KINETIC ENERGY FIRST!
-      SKIN=(OO2)*((U**2)+(V**2)+(w**2))
-      ! !TOTAL ENERGY
-      E=(R*SKIN)+IEN
+        IEn=(MP_IE(1)*MP_A_IN(1))+(MP_IE(2)*MP_A_IN(2))
+        ! !KINETIC ENERGY FIRST!
+        SKIN=(OO2)*((U**2)+(V**2)+(w**2))
+        ! !TOTAL ENERGY
+        E=(R*SKIN)+IEN
 
-      !VECTOR OF CONSERVED VARIABLES NOW
-      INFLOW(1)=R
-      INFLOW(2)=R*U
-      INFLOW(3)=R*V
-      INFLOW(4)=R*w
-      INFLOW(5)=E
-      INFLOW(6)=MP_R_IN(1)*MP_A_IN(1)
-      INFLOW(7)=MP_R_IN(2)*MP_A_IN(2)
-      INFLOW(8)=MP_A_IN(1)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        INFLOW(1)=R
+        INFLOW(2)=R*U
+        INFLOW(3)=R*V
+        INFLOW(4)=R*w
+        INFLOW(5)=E
+        INFLOW(6)=MP_R_IN(1)*MP_A_IN(1)
+        INFLOW(7)=MP_R_IN(2)*MP_A_IN(2)
+        INFLOW(8)=MP_A_IN(1)
 
-  ELSE
-      R=RRES
-      GM=GAMMA
-      P=PRES
-      U=uvel
-      V=vvel
-      W=wvel
+    ELSE
+        R=RRES
+        GM=GAMMA
+        P=PRES
+        U=uvel
+        V=vvel
+        W=wvel
 
-      if (initcond.eq.10000)then
-          if (sqrt(((poy(1)-0.0)**2)+((poz(1)-0.5)**2)).le.0.05)then
-              !if (((poy(1).ge.-0.05).and.(poy(1).le.0.05)).and.((poz(1).ge.-0.05).and.(poz(1).le.0.05)))then
-              p=0.4127
-              R=5
-              u=30.0
-              v=0.0d0
-              w=0.0d0
-          end if
-      end if
+        if (initcond.eq.10000)then
+            if (sqrt(((poy(1)-0.0)**2)+((poz(1)-0.5)**2)).le.0.05)then
+                !if (((poy(1).ge.-0.05).and.(poy(1).le.0.05)).and.((poz(1).ge.-0.05).and.(poz(1).le.0.05)))then
+                p=0.4127
+                R=5
+                u=30.0
+                v=0.0d0
+                w=0.0d0
+            end if
+        end if
 
-      !KINETIC ENERGY FIRST!
-      SKIN=(OO2)*((U**2)+(V**2)+(W**2))
-      !INTERNAL ENERGY 
-      IEN=((P)/((GM-1.0D0)*R))
-      !TOTAL ENERGY
-      E=R*(SKIN+IEN)
-      !VECTOR OF CONSERVED VARIABLES NOW
-      INFLOW(1)=R
-      INFLOW(2)=R*U
-      INFLOW(3)=R*V
-      INFLOW(4)=R*W
-      INFLOW(5)=E
+        !KINETIC ENERGY FIRST!
+        SKIN=(OO2)*((U**2)+(V**2)+(W**2))
+        !INTERNAL ENERGY 
+        IEN=((P)/((GM-1.0D0)*R))
+        !TOTAL ENERGY
+        E=R*(SKIN+IEN)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        INFLOW(1)=R
+        INFLOW(2)=R*U
+        INFLOW(3)=R*V
+        INFLOW(4)=R*W
+        INFLOW(5)=E
 
-  end if
+    end if
 
-  IF (SWIRL.EQ.1)THEN
+    IF (SWIRL.EQ.1)THEN
 
-      IF (POX(1).LT.-0.03)THEN
-          XF=POX(1)
-          YF=POY(1)
-          ZF=POZ(1)
-          Theta_0=atan2(ZF,YF)
-          Vtang=18.0375D0
-          Vradial=-12.63D0
-          U=0.0D0
+        IF (POX(1).LT.-0.03)THEN
+            XF=POX(1)
+            YF=POY(1)
+            ZF=POZ(1)
+            Theta_0=atan2(ZF,YF)
+            Vtang=18.0375D0
+            Vradial=-12.63D0
+            U=0.0D0
 
-          V=-Vtang*sin(Theta_0)+Vradial*cos(Theta_0)
-          W=Vtang*cos(Theta_0)+Vradial*sin(Theta_0)
-      ELSE
-          U=70.06D0
-          V=0.0D0
-          W=0.0D0
-      END IF
+            V=-Vtang*sin(Theta_0)+Vradial*cos(Theta_0)
+            W=Vtang*cos(Theta_0)+Vradial*sin(Theta_0)
+        ELSE
+            U=70.06D0
+            V=0.0D0
+            W=0.0D0
+        END IF
 
-      R=RRES
-      GM=GAMMA
-      P=PRES
-      S=SQRT((GM*P)/(R))
-  
-      !KINETIC ENERGY FIRST!
-      SKIN=(OO2)*((U**2)+(V**2)+(W**2))
-      !INTERNAL ENERGY 
-      IEN=((P)/((GM-1.0D0)*R))
-      !TOTAL ENERGY
-      E=R*(SKIN+IEN)
-      !VECTOR OF CONSERVED VARIABLES NOW
-      INFLOW(1)=R
-      INFLOW(2)=R*U
-      INFLOW(3)=R*V
-      INFLOW(4)=R*W
-      INFLOW(5)=E  
-  
-  END IF
+        R=RRES
+        GM=GAMMA
+        P=PRES
+        S=SQRT((GM*P)/(R))
+    
+        !KINETIC ENERGY FIRST!
+        SKIN=(OO2)*((U**2)+(V**2)+(W**2))
+        !INTERNAL ENERGY 
+        IEN=((P)/((GM-1.0D0)*R))
+        !TOTAL ENERGY
+        E=R*(SKIN+IEN)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        INFLOW(1)=R
+        INFLOW(2)=R*U
+        INFLOW(3)=R*V
+        INFLOW(4)=R*W
+        INFLOW(5)=E  
+    
+    END IF
 
 END FUNCTION INFLOW
 
@@ -1280,13 +1254,13 @@ END FUNCTION INFLOW
 FUNCTION VECT_FUNCTION(POX,POY)
   !> @brief
   !> This makes a multipliciation between two vectors
-  IMPLICIT NONE
-  REAL,DIMENSION(3)::VECT_FUNCTION
-  REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY
+    IMPLICIT NONE
+    REAL,DIMENSION(3)::VECT_FUNCTION
+    REAL,DIMENSION(1:dimensiona),INTENT(IN)::POX,POY
 
-  VECT_FUNCTION(1)=(POY(2)*POX(3))-(POY(3)*POX(2))
-  VECT_FUNCTION(2)=(POY(3)*POX(1))-(POY(1)*POX(3))
-  VECT_FUNCTION(3)=(POY(1)*POX(2))-(POY(2)*POX(1))
+    VECT_FUNCTION(1)=(POY(2)*POX(3))-(POY(3)*POX(2))
+    VECT_FUNCTION(2)=(POY(3)*POX(1))-(POY(1)*POX(3))
+    VECT_FUNCTION(3)=(POY(1)*POX(2))-(POY(2)*POX(1))
 
 END FUNCTION VECT_FUNCTION
 
@@ -1403,60 +1377,60 @@ END FUNCTION INFLOW2d
 FUNCTION OUTFLOW2d(INITCOND,POX,POY)
   !> @brief
   !> This function applies a prescribed boundary condition to  the outflow in 2D
-  IMPLICIT NONE
-  REAL,DIMENSION(1:nof_Variables)::OUTFLOW2d
-  INTEGER,INTENT(IN)::INITCOND
-  REAL,DIMENSION(1:2),INTENT(IN)::POX,POY
-  REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
-  REAL::XF,YF,ZF,GAMMAR
-  REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
+    IMPLICIT NONE
+    REAL,DIMENSION(1:nof_Variables)::OUTFLOW2d
+    INTEGER,INTENT(IN)::INITCOND
+    REAL,DIMENSION(1:2),INTENT(IN)::POX,POY
+    REAL::P,U,V,W,E,R,S,GM,SKIN,IEN,PI
+    REAL::XF,YF,ZF,GAMMAR
+    REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
 
-  IF (governingequations.EQ.-1) then
-      P=PRES
-      U=uvel
-      V=vvel
-      MP_AR(1)=MP_A_IN(1)/(GAMMA_IN(1)-1.0D0)  
-      MP_AR(2)=MP_A_IN(2)/(GAMMA_IN(2)-1.0D0)
-      GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
-      GM=GAMMAR
+    IF (governingequations.EQ.-1) then
+        P=PRES
+        U=uvel
+        V=vvel
+        MP_AR(1)=MP_A_IN(1)/(GAMMA_IN(1)-1.0D0)  
+        MP_AR(2)=MP_A_IN(2)/(GAMMA_IN(2)-1.0D0)
+        GAMMAR=(1.0D0/(MP_AR(1)+MP_AR(2)))+1.0D0    !MIXTURE GAMMA ISOBARIC ASSUMPTION
+        GM=GAMMAR
 
-      R=(MP_R_IN(1)*MP_A_IN(1))+(MP_R_IN(2)*MP_A_IN(2))
-      MP_IE(1)=((P+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
-      MP_IE(2)=((P+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
-      IEn=(MP_IE(1)*MP_A_IN(1))+(MP_IE(2)*MP_A_IN(2))
-      ! !KINETIC ENERGY FIRST!
-      SKIN=(OO2)*((U**2)+(V**2))
-      ! !TOTAL ENERGY
-      E=(R*SKIN)+IEn
+        R=(MP_R_IN(1)*MP_A_IN(1))+(MP_R_IN(2)*MP_A_IN(2))
+        MP_IE(1)=((P+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+        MP_IE(2)=((P+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+        IEn=(MP_IE(1)*MP_A_IN(1))+(MP_IE(2)*MP_A_IN(2))
+        ! !KINETIC ENERGY FIRST!
+        SKIN=(OO2)*((U**2)+(V**2))
+        ! !TOTAL ENERGY
+        E=(R*SKIN)+IEn
 
-      !VECTOR OF CONSERVED VARIABLES NOW
-      OUTFLOW2d(1)=R
-      OUTFLOW2d(2)=R*U
-      OUTFLOW2d(3)=R*V
-      OUTFLOW2d(4)=E
-      OUTFLOW2d(5)=MP_R_IN(1)*MP_A_IN(1)
-      OUTFLOW2d(6)=MP_R_IN(2)*MP_A_IN(2)
-      OUTFLOW2d(7)=MP_A_IN(1)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        OUTFLOW2d(1)=R
+        OUTFLOW2d(2)=R*U
+        OUTFLOW2d(3)=R*V
+        OUTFLOW2d(4)=E
+        OUTFLOW2d(5)=MP_R_IN(1)*MP_A_IN(1)
+        OUTFLOW2d(6)=MP_R_IN(2)*MP_A_IN(2)
+        OUTFLOW2d(7)=MP_A_IN(1)
 
-  ELSE
-      R=RRES
-      GM=GAMMA
-      P=PRES
-      U=uvel
-      V=vvel
+    ELSE
+        R=RRES
+        GM=GAMMA
+        P=PRES
+        U=uvel
+        V=vvel
 
-      !KINETIC ENERGY FIRST!
-      SKIN=(OO2)*((U**2)+(V**2))
-      !INTERNAL ENERGY 
-      IEN=((P)/((GM-1.0D0)*R))
-      !TOTAL ENERGY
-      E=R*(SKIN+IEN)
-      !VECTOR OF CONSERVED VARIABLES NOW
-      OUTFLOW2d(1)=R
-      OUTFLOW2d(2)=R*U
-      OUTFLOW2d(3)=R*V
-      OUTFLOW2d(4)=E
-  END IF
+        !KINETIC ENERGY FIRST!
+        SKIN=(OO2)*((U**2)+(V**2))
+        !INTERNAL ENERGY 
+        IEN=((P)/((GM-1.0D0)*R))
+        !TOTAL ENERGY
+        E=R*(SKIN+IEN)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        OUTFLOW2d(1)=R
+        OUTFLOW2d(2)=R*U
+        OUTFLOW2d(3)=R*V
+        OUTFLOW2d(4)=E
+    END IF
 
 END FUNCTION OUTFLOW2d
 
@@ -1476,7 +1450,6 @@ FUNCTION OUTFLOW(INITCOND,POX,POY,POZ)
     REAL,DIMENSION(NOF_SPECIES)::MP_AR,MP_IE
 
     IF (governingequations.EQ.-1) then
-
         P=PRES
         U=uvel
         V=vvel
@@ -1504,17 +1477,13 @@ FUNCTION OUTFLOW(INITCOND,POX,POY,POZ)
         OUTFLOW(6)=MP_R_IN(1)*MP_A_IN(1)
         OUTFLOW(7)=MP_R_IN(2)*MP_A_IN(2)
         OUTFLOW(8)=MP_A_IN(1)
-
     ELSE
-
         R=RRES
         GM=GAMMA
         P=PRES
-
         if (initcond.eq.977)then
             p=101325
         end if 
-
         U=uvel
         V=vvel
         W=wvel
@@ -1753,7 +1722,6 @@ SUBROUTINE SHEAR_X(ICONSIDERED,FACEX,SHEAR_TEMP)
     END IF
 
 END SUBROUTINE SHEAR_X
-
 
 
 SUBROUTINE SHEAR_Y(ICONSIDERED,FACEX,SHEAR_TEMP)
@@ -2018,9 +1986,6 @@ SUBROUTINE HEAT_X2D(ICONSIDERED,FACEX,SHEAR_TEMP)
   
 END SUBROUTINE HEAT_X2D
   
-  
-  
-
 
 SUBROUTINE HEAT_Y2D(ICONSIDERED,FACEX,SHEAR_TEMP)
   !> @brief
@@ -2130,9 +2095,6 @@ SUBROUTINE SHEAR_X_av(ICONSIDERED,FACEX,SHEAR_TEMP)
 END SUBROUTINE SHEAR_X_av
 
 
-
-
-
 SUBROUTINE SHEAR_Y_av(ICONSIDERED,FACEX,SHEAR_TEMP)
   !> @brief
   !> This subroutine computes the AVERAGE shear stresses in Y-axis
@@ -2187,9 +2149,6 @@ SUBROUTINE SHEAR_Y_av(ICONSIDERED,FACEX,SHEAR_TEMP)
     SHEAR_TEMP=-SSY/(0.5*rres*ufreestream*ufreestream)
 
 END SUBROUTINE SHEAR_Y_av
-
-
-
 
 
 SUBROUTINE SHEAR_Z_av(ICONSIDERED,FACEX,SHEAR_TEMP)
@@ -2314,9 +2273,6 @@ SUBROUTINE SHEAR_X2d(ICONSIDERED,FACEX,SHEAR_TEMP)
 END SUBROUTINE SHEAR_X2d
 
 
-
-
-
 SUBROUTINE SHEAR_Y2d(ICONSIDERED,FACEX,SHEAR_TEMP)
   !> @brief
   !> This subroutine computes the shear stresses in Y-axis
@@ -2393,9 +2349,6 @@ SUBROUTINE SHEAR_X2d_av(ICONSIDERED,FACEX,SHEAR_TEMP)
     SHEAR_TEMP=0.0D0
 
 END SUBROUTINE SHEAR_X2d_av
-
-
-
 
 
 SUBROUTINE SHEAR_Y2d_av(ICONSIDERED,FACEX,SHEAR_TEMP)

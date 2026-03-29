@@ -472,6 +472,196 @@ END SUBROUTINE CENTREandVOLUME_MovingMesh_2D
 
 
 
+SUBROUTINE QUADRATURELINE_WeightsOnly(N,IGQRULES,WEQUA2D)
+  !> @brief
+  !> This subroutine computes the quadrature points for a line and returns it in QPOINTS2D(DIM,QP)
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N,IGQRULES
+	REAL,DIMENSION(1:NUMBEROFPOINTS2),INTENT(INOUT)::WEQUA2D
+	! real,dimension(1:2,1:2)::VVA,VVA1
+	! REAL,dimension(1)::DETA
+	! REAL,DIMENSION(1:4)::VVNXI
+	real,dimension(1:ALLS)::VVwg
+	! real,dimension(1:ALLS)::VVR1,VVR2,VVR3
+	real,dimension(1:igqrules)::vvwpox ! ,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
+	REAL::R,S,TX,a,b,c,d,e,f,G,H,K
+	REAL::a1,b1,c1,d1,e1,f1,G1,H1,K1
+	INTEGER::Kk,J,ii,ij,ik,count1
+
+	WEQUA2D=0.0d0
+	! QPOINTS2D=0.0d0
+
+	SELECT CASE(IGQRULES)
+	  
+	  case(1)
+		vvwg(1) = 2.0d0
+		! VVR1(1)=0.0d0
+		! VVR2(1)=0.0d0	
+  
+	  case(2)
+		a=-0.5773502691896257
+		b=0.5773502691896257
+		a1=1.0d0
+		b1=1.0d0
+		
+		! vvnpox(1)=a	;  vvnpox(2)=b	
+		vvwpox(1)=a1 ; vvwpox(2)=b1	
+	
+		count1=0
+		do ii=1,2
+			count1=count1+1
+			! VVR1(count1)=vvnpox(ii)
+			vvwg(count1)=vvwpox(ii)
+		end do
+		
+	  CASE(3)
+		a=0.0d0
+		b=-0.7745966692414834
+		c=0.7745966692414834
+		a1=0.8888888888888888
+		b1=0.5555555555555556
+		c1=0.5555555555555556
+
+		! vvnpox(1)=a	;  vvnpox(2)=b ;  vvnpox(3)=c
+		vvwpox(1)=a1 ; vvwpox(2)=b1	; vvwpox(3)=c1
+		
+		count1=0
+		do ii=1,3
+			count1=count1+1
+			! VVR1(count1)=vvnpox(ii)
+			vvwg(count1)=vvwpox(ii)
+		end do
+		   
+	  CASE(4)
+		a=-0.3399810435848563
+		b=0.3399810435848563
+		c=-0.8611363115940526
+		d=0.8611363115940526
+		a1=0.6521451548625461
+		b1=0.6521451548625461
+		c1=0.3478548451374538
+		d1=0.3478548451374538
+
+		! vvnpox(1)=a	;  vvnpox(2)=b ;  vvnpox(3)=c ;  vvnpox(4)=d
+		vvwpox(1)=a1 ; vvwpox(2)=b1	; vvwpox(3)=c1 ; vvwpox(4)=d1
+		
+		count1=0
+		do ii=1,4
+			count1=count1+1
+			! VVR1(count1)=vvnpox(ii)
+			vvwg(count1)=vvwpox(ii)
+		end do
+			  
+	  CASE(5)
+		a=0.0d0
+		b=-0.5384693101056831
+		c=0.5384693101056831
+		d=-0.9061798459386640
+		e=0.9061798459386640
+		a1=0.5688888888888889
+		b1=0.4786286704993665
+		c1=0.4786286704993665
+		d1=0.2369268850561891
+		E1=0.2369268850561891
+
+		! vvnpox(1)=a	;  vvnpox(2)=b ;   vvnpox(3)=c ;  vvnpox(4)=d ;  vvnpox(5)=e
+		vvwpox(1)=a1 ; vvwpox(2)=b1	;  vvwpox(3)=c1 ; vvwpox(4)=d1 ; vvwpox(5)=e1
+		
+		count1=0
+		do ii=1,5
+			count1=count1+1
+			! VVR1(count1)=vvnpox(ii)
+			vvwg(count1)=(vvwpox(ii))
+		end do
+	  
+	  CASE(6)
+		a=0.6612093864662645
+		b=-0.6612093864662645
+		c=-0.2386191860831969
+		d=0.2386191860831969
+		e=-0.9324695142031521
+		F=0.9324695142031521
+		a1=0.3607615730481386
+		b1=0.3607615730481386
+		c1=0.4679139345726910
+		d1=0.4679139345726910
+		e1=0.1713244923791704
+		F1=0.1713244923791704
+
+		! vvnpox(1)=a	;  vvnpox(2)=b ;  vvnpox(3)=c ;  vvnpox(4)=d ;  vvnpox(5)=e ;  vvnpox(6)=f
+		vvwpox(1)=a1 ; vvwpox(2)=b1	; vvwpox(3)=c1 ; vvwpox(4)=d1 ; vvwpox(5)=e1 ; vvwpox(6)=f1
+		
+		count1=0
+		do ii=1,6
+			count1=count1+1
+			! VVR1(count1)=vvnpox(ii)
+			vvwg(count1)=vvwpox(ii)
+		end do
+  
+	  CASE(7,8,9)
+		A1=0.3302393550012598	;a=0.0000000000000000
+		B1=0.1806481606948574	;b=-0.8360311073266358
+		C1=0.1806481606948574	;C=0.8360311073266358
+		D1=0.0812743883615744	;D=-0.9681602395076261
+		E1=0.0812743883615744	;E=0.9681602395076261
+		F1=0.3123470770400029	;F=-0.3242534234038089
+		G1=0.3123470770400029	;G=0.3242534234038089
+		H1=0.2606106964029354	;H=-0.6133714327005904
+		K1=0.2606106964029354	;K=0.6133714327005904
+	
+		! vvnpox(1)=a	;  vvnpox(2)=b ;  vvnpox(3)=c ;  vvnpox(4)=d ;  vvnpox(5)=e ;  vvnpox(6)=f ;  vvnpox(7)=G ;  vvnpox(8)=H ;  vvnpox(9)=K
+		vvwpox(1)=a1 ; vvwpox(2)=b1	; vvwpox(3)=c1 ; vvwpox(4)=d1 ; vvwpox(5)=e1 ; vvwpox(6)=f1 ; vvwpox(7)=G1 ; vvwpox(8)=H1 ; vvwpox(9)=K1
+	
+		count1=0
+		do ii=1,9
+			count1=count1+1
+			! VVR1(count1)=vvnpox(ii)
+			vvwg(count1)=vvwpox(ii)
+		end do	
+			  
+	END SELECT
+  
+	vvwg(:)=vvwg(:)*0.5d0
+  
+	do kk=1,qp_LINE
+		WEQUA2D(kk)=vvwg(kk)	
+	END DO
+  
+END SUBROUTINE QUADRATURELINE_WeightsOnly
+
+
+
+
+
+function VolumeChangeFromVelocity_2D(N, cell_index, d_t, qp_weights)
+	implicit none
+	integer,intent(in)::N, cell_index
+	real,intent(in)::d_t
+	real,dimension(1:qp_line_n),intent(in)::qp_weights
+	real::VolumeChangeFromVelocity_2D
+
+	integer::face_index, qp_index, num_qp
+	real,dimension(1:dimensiona)::qp_velocity
+	real::nx, ny, qp_normal_velocity
+
+	num_qp = qp_line_n
+	VolumeChangeFromVelocity_2D = zero
+
+	do face_index = 1, IELEM(N,cell_index)%IFCA
+		nx = IELEM(N,cell_index)%FACEANGLEX(face_index)
+        NY = IELEM(N,cell_index)%FACEANGLEY(face_index)
+		do qp_index = 1, num_qp
+			qp_velocity(:) = ILOCAL_RECON3(cell_index)%QPOINTS_velocity(face_index, qp_index, 1:dimensiona)
+			qp_normal_velocity = (nx*qp_velocity(1)) + (ny*qp_velocity(2))
+
+			VolumeChangeFromVelocity_2D = VolumeChangeFromVelocity_2D + ((qp_normal_velocity*d_t)*qp_weights(qp_index)*IELEM(N,cell_index)%SURF(face_index))
+		end do
+	end do	
+
+end function
+
+
+
 
 
 SUBROUTINE COMPUTE_CENTRE_MovingMesh_2dF(N, I, facex, N_NODE, cords, node_position_index)
@@ -563,6 +753,55 @@ SUBROUTINE GEOMETRY_CALC_MovingMesh(n, node_position_index)
 	!$OMP BARRIER 
 
 END SUBROUTINE GEOMETRY_CALC_MovingMesh
+
+
+
+
+
+SUBROUTINE GEOMETRY_CALC_MovingMesh_v2(n, node_position_index)
+	!> @brief
+	!> This subroutine computes the volume, surface, centre and min edge for each element
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::n, node_position_index
+	INTEGER::KMAXE,i
+	real::DUMV5
+
+	KMAXE=XMPIELRANK(N)
+
+	!$OMP BARRIER 
+
+	if (DIMENSIONA.EQ.3)THEN
+		!$OMP DO 
+		DO I=1,KMAXE
+			! CALL VOLUME_CALCULATOR3(I)
+			! call SURFACE_CALCULATOR3(i)
+			! CALL CENTRE3D(i)
+			! call EDGE_CALCULATOR3d(i)
+		END DO
+		!$OMP END DO
+	ELSE
+		!$OMP DO
+		DO I=1,KMAXE
+			! CALL VOLUME_CALCULATOR_MovingMesh_2D(I, node_position_index)
+			call SURFACE_CALCULATOR_MovingMesh_2D(I, node_position_index)
+			call CENTRE_MovingMesh_2D(I, node_position_index)
+			! call CENTREandVOLUME_MovingMesh_2D(I, node_position_index)
+			call EDGE_CALCULATOR_MovingMesh_2D(I, node_position_index)
+		END DO
+		!$OMP END DO 
+	END IF
+
+	!$OMP BARRIER 
+	!$OMP MASTER
+		DUMV5=ZERO
+		DO I=1,KMAXE
+			DUMV5=DUMV5+IELEM(N,I)%moving_volume(node_position_index)
+		END DO
+		CALL MPI_ALLREDUCE(DUMV5,Moving_TOTALVOLUME(node_position_index),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+	!$OMP END MASTER
+	!$OMP BARRIER 
+
+END SUBROUTINE GEOMETRY_CALC_MovingMesh_v2
 
 
 

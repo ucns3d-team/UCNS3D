@@ -377,7 +377,7 @@ function compute_JacobiCondNumber_gradient(num_point_pairs, points, p, result)
 
             area = ((p(1)-p_plus(1))*(p(2)-p_minus(2))) - ((p(2)-p_plus(2))*(p(1)-p_minus(1)))
             if (area.lt.zero) then
-                print*,"negative area in compute_JacobiCondNumber_gradient"
+                ! print*,"negative area in compute_JacobiCondNumber_gradient"
                 compute_JacobiCondNumber_gradient = .false.
             else if (area.eq.zero) then
                 print*,"area = 0 in compute_JacobiCondNumber_gradient"
@@ -427,7 +427,7 @@ function compute_OddyMetric_gradient(num_point_pairs, points, p, result)
 
             area = ((p(1)-p_plus(1))*(p(2)-p_minus(2))) - ((p(2)-p_plus(2))*(p(1)-p_minus(1)))
             if (area.lt.zero) then
-                print*,"negative area in compute_OddyMetric_gradient"
+                ! print*,"negative area in compute_OddyMetric_gradient"
                 compute_OddyMetric_gradient = .false.
             else if (area.eq.zero) then
                 print*,"area = 0 in compute_OddyMetric_gradient"
@@ -498,7 +498,7 @@ function compute_JacobiCondNumber_hessian(num_point_pairs, points, p, result)
 
             area = ((p(1)-p_plus(1))*(p(2)-p_minus(2))) - ((p(2)-p_plus(2))*(p(1)-p_minus(1)))
             if (area.lt.zero) then
-                print*,"negative area in compute_JacobiCondNumber_hessian"
+                ! print*,"negative area in compute_JacobiCondNumber_hessian"
                 compute_JacobiCondNumber_hessian = .false.
             else if (area.eq.zero) then
                 print*,"area = 0 in compute_JacobiCondNumber_hessian"
@@ -557,7 +557,7 @@ function compute_OddyMetric_hessian(num_point_pairs, points, p, result)
 
             area = ((p(1)-p_plus(1))*(p(2)-p_minus(2))) - ((p(2)-p_plus(2))*(p(1)-p_minus(1)))
             if (area.lt.zero) then
-                print*,"negative area in compute_OddyMetric_hessian"
+                ! print*,"negative area in compute_OddyMetric_hessian"
                 compute_OddyMetric_hessian = .false.
             else if (area.eq.zero) then
                 print*,"area = 0 in compute_OddyMetric_hessian"
@@ -693,14 +693,14 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
                     p_minus(1:dimensiona) = p_minus(1:dimensiona)  + (local_nodes(node_minus_index)%lagrangian_velocity(1:dimensiona)*d_t)
                 end if
 
-                do k = 1,dimensiona
+                do k = 1, dimensiona
                     index = index +1
                     if (index.gt.node_snd_count(cpu) * (2*dimensiona)) then
                         print *, "copying too much data to send buffer from", N, "to", cpu, "find_node_Jacobi_relaxation_velocity"
                     end if
                     node_snd_buffer(cpu)%data(index) = p_minus(k)
                 end do
-                do k = 1,dimensiona
+                do k = 1, dimensiona
                     index = index +1
                     if (index.gt.node_snd_count(cpu) * (2*dimensiona)) then
                         print *, "copying too much data to send buffer from", N, "to", cpu, "find_node_Jacobi_relaxation_velocity"
@@ -722,13 +722,13 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
                 if (node_snd_count(cpu_index).gt.0) then
                     count = node_snd_count(cpu_index) * (2*dimensiona)
                     num_requests = num_requests + 1
-                    CALL MPI_ISEND(node_snd_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    CALL MPI_ISEND(node_snd_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 19+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
                     ! print *, "sending from", N, "to", cpu_index, count, "values"
                 end if
                 if (node_rcv_count(cpu_index).gt.0) then
                     count = node_rcv_count(cpu_index) * (2*dimensiona)
                     num_requests = num_requests + 1
-                    CALL MPI_IRECV(node_rcv_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    CALL MPI_IRECV(node_rcv_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 19+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
                     ! print *, N, "waiting to receive", count, "values from", cpu_index
                 end if
             else
@@ -826,17 +826,6 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
                 else
                     local_nodes(node_index)%mesh_quality_before = -1.0*(abs(local_nodes(node_index)%mesh_quality_before) + abs(helper))
                 end if
-                ! if (dimensiona.eq.2) then
-                !     p_minus(:) = node_rcv_buffer(cpu_index)%data(index+1              : index+dimensiona)
-                !     p_plus(:)  = node_rcv_buffer(cpu_index)%data(index+(dimensiona+1) : index+(2*dimensiona))
-
-                !     val = JacobiCondNumber2D(p_minus(:), p(:), p_plus(:), valid_helper)
-                !     valid = valid.and.valid_helper
-                ! else
-                !     print*,"not implemented yet"
-                !     call abort
-                ! end if
-                ! local_nodes(node_index)%JacobiCondNumber = local_nodes(node_index)%JacobiCondNumber + (val**power)
 
                 counter = counter+1
                 points(:,counter) = p_minus(:)
@@ -846,13 +835,6 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
                 index = index + (2*dimensiona)
             end do
         end do
-
-        ! local_nodes(node_index)%JacobiCondNumber = local_nodes(node_index)%JacobiCondNumber / real(local_nodes(node_index)%num_neighbours)
-        ! if (power.eq.2) then
-        !     local_nodes(node_index)%JacobiCondNumber = sqrt(local_nodes(node_index)%JacobiCondNumber)
-        ! else if (power.gt.2) Then
-        !     local_nodes(node_index)%JacobiCondNumber = local_nodes(node_index)%JacobiCondNumber**(1.0/real(power))
-        ! end if
 
         if (counter.ne.(2*node_num_neighbours)) Then
             print*,"wrong number of points in find_node_Jacobi_relaxation_velocity"

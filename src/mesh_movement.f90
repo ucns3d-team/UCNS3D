@@ -325,12 +325,36 @@ end subroutine
 
 subroutine COPY_BACK_LOCAL_NODES(index_from, index_to)
     implicit NONE
-    integer,intent(in)::index_from,index_to
+    integer,intent(in)::index_from, index_to
     integer::node_index
 
     !$omp do
-    do node_index=1,kmaxn 
+    do node_index=1, kmaxn 
         local_nodes(node_index)%positions(index_to,1:dimensiona) = local_nodes(node_index)%positions(index_from,1:dimensiona)
+    end do
+    !$omp end do
+
+end subroutine
+
+
+
+
+
+subroutine COPY_BACK_LOCAL_NODES_and_Volumes(N, index_from, index_to)
+    implicit NONE
+    integer,intent(in)::N, index_from, index_to
+    integer::node_index, cell_index, kmaxe
+    kmaxe = xmpielrank(N)
+
+    !$omp do
+    do node_index=1, kmaxn 
+        local_nodes(node_index)%positions(index_to,1:dimensiona) = local_nodes(node_index)%positions(index_from,1:dimensiona)
+    end do
+    !$omp end do
+
+    !$omp do
+    do cell_index=1, kmaxe
+        ielem(N, cell_index)%moving_volume(index_to) = ielem(N, cell_index)%moving_volume(index_from)
     end do
     !$omp end do
 
@@ -867,7 +891,7 @@ subroutine find_node_velocities(position_index, d_t, N)
     !$omp barrier
 
     ! call clamp_node_velocity_to_CFL(position_index, d_t, N)
-    ! call clamp_node_velocity_to_fraction(position_index, d_t, N)
+    call clamp_node_velocity_to_fraction(position_index, d_t, N)
 
     !$omp barrier
 
@@ -1519,7 +1543,7 @@ SUBROUTINE HighOrderNodeAverage(stage, node_position_index, N)
                                 else
                                     do k = 1, nof_variables
                                         delta = abs(copy(k) - ilocal_recon3(cell_index)%node_values(k, face_index, face_node_index))
-                                        if (delta.gt.(0.01*abs(copy(k)))) then
+                                        if (delta.gt.(0.001*abs(copy(k)))) then
                                             print*,"suspeciously large change", copy(k), "vs", ilocal_recon3(cell_index)%node_values(k, face_index, face_node_index), "in reconstruced value", k, "before send in node", node_index, "(", local_nodes(node_index)%positions(node_position_index,1), local_nodes(node_index)%positions(node_position_index,2), ") in cell", cell_index, "on CPU", N
                                         end if
                                     end do
@@ -1618,7 +1642,7 @@ SUBROUTINE HighOrderNodeAverage(stage, node_position_index, N)
                             else
                                 do k = 1, nof_variables
                                     delta = abs(copy(k) - ilocal_recon3(cell_index)%node_values(k, face_index, face_node_index))
-                                    if (delta.gt.(0.01*abs(copy(k)))) then
+                                    if (delta.gt.(0.001*abs(copy(k)))) then
                                         print*,"suspeciously large change", copy(k), "vs", ilocal_recon3(cell_index)%node_values(k, face_index, face_node_index), "in reconstruced value", k, "in node", node_index, "(", local_nodes(node_index)%positions(node_position_index,1), local_nodes(node_index)%positions(node_position_index,2), ") in cell", cell_index, "on CPU", N
                                     end if
                                 end do
@@ -1734,7 +1758,7 @@ SUBROUTINE HighOrderNodeMassWeightedAverage(stage, node_position_index, N)
                                 else
                                     do k = 1, nof_variables
                                         delta = abs(copy(k) - ilocal_recon3(cell_index)%node_values(k, face_index, face_node_index))
-                                        if (delta.gt.(0.01*abs(copy(k)))) then
+                                        if (delta.gt.(0.001*abs(copy(k)))) then
                                             print*,"suspeciously large change in reconstruced value in node", node_index, "(", local_nodes(node_index)%positions(node_position_index,1), local_nodes(node_index)%positions(node_position_index,2), ") in cell", cell_index, "on CPU", N
                                         end if
                                     end do
@@ -3619,7 +3643,7 @@ SUBROUTINE find_node_normalized_density_gradient(stage, position_index, d_t, N)
     !$omp do reduction(max: max_gradient_magnitude)
         do node_index = 1, kmaxn
             if (initcond.eq.102) then
-                if (.not.((local_nodes(node_index)%positions(position_index,1).lt.(5.0*t+0.125)).and.(local_nodes(node_index)%positions(position_index,2).lt.0.15))) then
+                if (.not.((local_nodes(node_index)%positions(position_index,1).lt.(9.5*t+0.1)).and.(local_nodes(node_index)%positions(position_index,2).lt.0.1))) then
                     if (local_nodes(node_index)%normalized_density_gradient_magnitude.gt.max_gradient_magnitude) then
                         max_gradient_magnitude = local_nodes(node_index)%normalized_density_gradient_magnitude
                     end if
@@ -4366,14 +4390,16 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
                         gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
                     end if
 
-                    if (gradient_copy.ge.upper_gradient_treshold) then
+                    if ((gradient_copy.gt.1.0).or.(local_nodes(node_index)%num_neighbours.lt.3)) then
+                        gradient_term = zero
+                    else if (gradient_copy.ge.upper_gradient_treshold) then
                         gradient_term = 1.0
                     else
                         gradient_term = gradient_copy/upper_gradient_treshold
                     end if
 
                     local_relaxation_velocity_multiple = (local_nodes(node_index)%mesh_quality_before / real(local_nodes(node_index)%num_neighbours)) - 1.0
-                    local_relaxation_velocity_multiple = local_relaxation_velocity_multiple - ((quality_treshold - 1.0)*gradient_copy)
+                    local_relaxation_velocity_multiple = local_relaxation_velocity_multiple - ((quality_treshold - 1.0)*gradient_term)
                     local_lagrangian_velocity_multiple = local_lagrangian_velocity_multiple * scaling
                     
                 end if
@@ -5310,10 +5336,9 @@ subroutine enforce_node_velocity_BC(position_index, d_t, N)
         end if
 
         if (initcond.eq.102) then
-            if (p(2).eq.zero) then
-                if (abs(p(1)-0.166667).le.0.0001) then
-                    local_nodes(node_index)%velocity(1) = zero
-                end if
+            if (((local_nodes(node_index)%positions(position_index,1).le.0.2).or.(local_nodes(node_index)%positions(1,1).le.0.2)).and. &
+                ((local_nodes(node_index)%positions(position_index,2).le.0.001).or.(local_nodes(node_index)%positions(1,2).le.0.001))) then
+                local_nodes(node_index)%velocity(:) = zero
             end if
         end if
 
@@ -5541,10 +5566,9 @@ subroutine enforce_node_lagrangian_velocity_BC(position_index, d_t, N)
         end if
 
         if (initcond.eq.102) then
-            if (p(2).eq.zero) then
-                if (abs(p(1)-0.166667).le.0.0001) then
-                    local_nodes(node_index)%lagrangian_velocity(1) = zero
-                end if
+            if (((local_nodes(node_index)%positions(position_index,1).le.0.2).or.(local_nodes(node_index)%positions(1,1).le.0.2)).and. &
+                ((local_nodes(node_index)%positions(position_index,2).le.0.001).or.(local_nodes(node_index)%positions(1,2).le.0.001))) then
+                local_nodes(node_index)%lagrangian_velocity(:) = zero
             end if
         end if
 
@@ -5730,7 +5754,7 @@ subroutine clamp_node_velocity_to_CFL(position_index, d_t, N)
     !$omp end master
     !$omp barrier
 
-end subroutine
+end subroutine clamp_node_velocity_to_CFL
 
 
 
@@ -5744,7 +5768,7 @@ subroutine clamp_node_velocity_to_fraction(position_index, d_t, N)
     ! integer:: M
     real::volume, area, lengthscale, min_lengthscale, velocity_magnitude, max_velocity
 
-    real, parameter::fraction = 0.5
+    real, parameter::fraction = 0.75
 
     integer,dimension(2*isize)::requests
     integer::num_requests, count
@@ -5901,7 +5925,7 @@ subroutine clamp_node_velocity_to_fraction(position_index, d_t, N)
     !$omp end master
     !$omp barrier
 
-end subroutine
+end subroutine clamp_node_velocity_to_fraction
 
 
 
