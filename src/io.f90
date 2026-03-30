@@ -13574,6 +13574,7 @@ SUBROUTINE SPECIFY_WRITE_VARIABLES(N)
 			Variable_names(2)='U'
 			Variable_names(3)='V'
 			Variable_names(4)='Pressure'
+			Variable_names(5)='Q'
 			if (MESH_MOVEMENT) then
 				WRITE_VARIABLES = WRITE_VARIABLES+1
 				Variable_names(5)='cpu'
