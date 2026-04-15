@@ -444,7 +444,7 @@ real,dimension(idegfree+1,nof_variables)::dg_vol_integral
 real,dimension(1:nof_variables)::leftv
 real,dimension(1:nof_variables)::flux_term_x,flux_term_y,flux_term_z
 real,dimension(1:nof_variables,1:dimensiona)::leftv_der
-real::x1,y1,z1
+real::x1,y1,z1,lamxl,lamyl,lamzl
 real::mp_pinfl,gammal
 
 
@@ -463,7 +463,13 @@ real::mp_pinfl,gammal
     dg_vol_integral(:,:) = 0.0d0
 
 
-
+   if (initcond.eq.3)then
+            lamxl=-ielem_yyc(iconsidered)+0.5d0
+            lamyl=ielem_xxc(iconsidered)-0.5d0
+        else
+			lamxl=lamx
+			lamyl=lamy
+		end if
 
     do i=1,number_of_dog
 
@@ -476,9 +482,9 @@ real::mp_pinfl,gammal
             end if
 
             if (itestcase.lt.3) then ! linear advection
-                flux_term_x=dg_sol(n,iconsidered,x1,y1,z1)*lamx !flux in x-axis of linear advection in 2d (lamx*sol), &
+                flux_term_x=dg_sol(n,iconsidered,x1,y1,z1)*lamxl !flux in x-axis of linear advection in 2d (lamx*sol), &
      !& where lamx is the wave speed for x axis, and sol is the solution
-                flux_term_y=dg_sol(n,iconsidered,x1,y1,z1)*lamy !flux in y-axis of linear advection in 2d (lamy*sol), &
+                flux_term_y=dg_sol(n,iconsidered,x1,y1,z1)*lamyl !flux in y-axis of linear advection in 2d (lamy*sol), &
     ! & where lamy is the wave speed for y axis, and sol is the solution
 
                 if (dimensiona.eq.3)then

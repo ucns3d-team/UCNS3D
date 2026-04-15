@@ -4161,6 +4161,7 @@ if (n.eq.0)then
 end if
 
 !$omp end master
+!$omp barrier
 
 
 
@@ -4454,7 +4455,7 @@ allresdt=allresdt/firsti
 
 
 !$omp end master
-
+!$omp barrier
 
     
   if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
@@ -4692,7 +4693,7 @@ allresdt=allresdt/firsti
 
 
 !$omp end master
-
+!$omp barrier
 
     
   if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
@@ -4891,6 +4892,10 @@ if (lowmemory.eq.0)then
  
 end if
 
+kill_nan=0
+allresdt = 0.0d0
+
+
 #ifdef gpu
 !$omp target teams distribute parallel do          &
 !$omp& private(rsumfacei)                          &
@@ -4946,7 +4951,7 @@ end if
 
 
 !$omp end master
-
+!$omp barrier
 
 
 
@@ -5475,10 +5480,10 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			timec3=dummyin(3)
 			timec4=dummyin(4)
 			timec8=dummyin(5)
-                   if ( mod(it, 100) .eq. 0) then
+                   if ( mod(it, 10) .eq. 0) then
 				   if (n.eq.0)then
 				  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
-				  write(63,'(I10,2ES20.10)') it, dt, t
+				  write(63,'(A,I10,A,ES20.10,A,ES20.10)') 'it=', it, ' dt=', dt, ' t=', t
 				  close(63)
 				  end if
 				  end if
@@ -5937,7 +5942,7 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
             else
 
 
-            if (code_profile.eq.-1)then
+            if ((code_profile.lt.0).or.(code_profile.eq.100).or.(code_profile.eq.101).or.(code_profile.eq.102))then
 			if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
 #ifdef gpu
                   !$omp target update from(u_c_val)
@@ -6133,11 +6138,13 @@ do
     timec3=dummyin(3)
     timec4=dummyin(4)
     timec8=dummyin(5)
-    if (n.eq.0)then
-        open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
-        write(63,*)dt,it,"time step size",t
-        close(63)
-    end if
+                  if ( mod(it, 10) .eq. 0) then
+				   if (n.eq.0)then
+				  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
+				 write(63,'(A,I10,A,ES20.10,A,ES20.10)') 'it=', it, ' dt=', dt, ' t=', t
+				  close(63)
+				  end if
+				  end if
 
 
 
@@ -6317,7 +6324,7 @@ end if
         cput8=mpi_wtime()
     end if
 
-            if (code_profile.eq.-1)then
+           if ((code_profile.lt.0).or.(code_profile.eq.100).or.(code_profile.eq.101).or.(code_profile.eq.102))then
 
 
 

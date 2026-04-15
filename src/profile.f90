@@ -1312,31 +1312,40 @@ end if
 
 
 
-if (initcond.eq.65)then	!taylor green initial profile
-khi_slope=15.0d0
-khi_b=tanh(khi_slope*(poy(1)-1)+7.5d0)-tanh(khi_slope*(poy(1)-1)-7.5d0)
 
 
-r1=0.5d0+0.75d0*khi_b
-u1=0.5*(khi_b-1.d0)
-v1=0.1*sin(2.0d0*pi*(pox(1)-1.0d0))
+
+IF (initcond.eq.65)THEN	!vortex evolution
+
+
+
+r1=1.0D0
+u1=uvel
+v1=vvel
 p1=1.0d0
+!rgg=((pox(1)**2)+(poy(1)**2))
+rgg=(((pox(1)-5.0d0)**2)+((poy(1)-5.0d0)**2))
+u1=u1+(((5.0d0/(2.0d0*pi)))*(exp(((1.0d0-rgg)/(2.0d0))))*(5.0d0-poy(1)))
+v1=v1+(((5.0d0/(2.0d0*pi)))*(exp(((1.0d0-rgg)/(2.0d0))))*(pox(1)-5.0d0))
+tt1=1.0d0-(((gamma-1)*(25.0d0/(8.0d0*pi**2*gamma)))*exp(1.0d0-rgg))
+r1=tt1**(1.0d0/(gamma-1.0d0))
+P1=R1*tt1
 
 
 
-    
-!kinetic energy first!
-skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
-ie1=((p1)/((gamma-1.0d0)*r1))
-!total energy
-e1=(p1/(gamma-1))+(r1*skin1)
-!vector of conserved variables now
-veccos(1)=r1
-veccos(2)=r1*u1
-veccos(3)=r1*v1
-veccos(4)=e1
-end if
+!KINETIC ENERGY FIRST!
+SKIN1=(OO2)*((U1**2)+(V1**2))
+!INTERNAL ENERGY
+IE1=((P1)/((GAMMA-1.0D0)*R1))
+!TOTAL ENERGY
+E1=(P1/(GAMMA-1))+(R1*SKIN1)
+!VECTOR OF CONSERVED VARIABLES NOW
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+END IF
+
 
 
 

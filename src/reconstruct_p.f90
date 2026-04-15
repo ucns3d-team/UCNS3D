@@ -3762,6 +3762,9 @@ if (itestcase.ge.3)then
 
 
 		end if
+
+
+
 	end do
 #ifdef gpu
 !$omp end target teams distribute parallel do
@@ -4390,6 +4393,12 @@ real::mp_pinfl,gammal
 
 
 
+                                                if (ielem_hybrid(i).eq.1)then
+                                                   ielem_troubled(i)=1
+                                                end if
+
+
+
 
 
 end subroutine
@@ -4461,6 +4470,8 @@ real::mp_pinfl,gammal
             do iex=1,nof_variables
                 if ((usol(iex).lt.(utmin(iex)-nad_dg_el(iex))).or.(usol(iex).gt.(utmax(iex)+nad_dg_el(iex))))then
                     ielem_condition(iconsidered)=1
+                     ielem_troubled(iconsidered)=1;
+
                 end if
             end do
 
@@ -4529,11 +4540,11 @@ real::mp_pinfl,gammal
 			end do
 			leftv(1:nof_variables)=usol(1:nof_variables)
 
-			if (dimensiona.eq.2)then
-			call cons2prim(n,leftv,mp_pinfl,gammal)
-			else
-			call cons2prim(n,leftv,mp_pinfl,gammal)
-			end if
+! 			if (dimensiona.eq.2)then
+! 			call cons2prim(n,leftv,mp_pinfl,gammal)
+! 			else
+! 			call cons2prim(n,leftv,mp_pinfl,gammal)
+! 			end if
 
             do iex=1,nof_variables
             if ((iex.eq.1).or.(iex.eq.img))then

@@ -373,7 +373,7 @@ subroutine read_ucns3d
 	read(15,*)out_time,ntmax,wallc
 	read(15,*)
 	read(15,*)
-	if (code_profile.lt.0)then
+	if ((code_profile.lt.0).or.(code_profile.eq.100).or.(code_profile.eq.101).or.(code_profile.eq.102))then
 	read(15,*)tecplot,output_freq,ievery2,ieveryav,stencil_io
 		ievery=10e15
 	else					!steady state
@@ -1002,6 +1002,7 @@ subroutine read_ucns3d
 	hybridist=0.0d0 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
+	if (initcond.eq.101)iadapt=1
 	icompact=0	!compact stencil mode(0 not true,1 true)
 	extf=3		!stencils stability values from 1.2 to 3 (default 2)
 	weight_lsqr=0	!weighted least squares(0 not true,1 true)
@@ -1044,6 +1045,7 @@ subroutine read_ucns3d
 	hybridist=0.0d0 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
+	if (initcond.eq.101)iadapt=1
 	icompact=0	!compact stencil mode(0 not true,1 true)
 	extf=2		!stencils stability values from 1.2 to 3 (default 2)
 	weight_lsqr=0	!weighted least squares(0 not true,1 true)
@@ -1084,6 +1086,7 @@ subroutine read_ucns3d
 	hybridist=0.0d0 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
+	if (initcond.eq.101)iadapt=1
 	icompact=0	!compact stencil mode(0 not true,1 true)
 	extf=2		!stencils stability values from 1.2 to 3 (default 2)
 	weight_lsqr=0	!weighted least squares(0 not true,1 true)
@@ -1125,6 +1128,7 @@ subroutine read_ucns3d
 	hybridist=0.0d0  !hybrid distance
 	swirl=0		 !swirling flow:0 deactivated, 1 activated
 	iadapt=0	 !adaptive numerical scheme (0 not true,1 true)
+	if (initcond.eq.101)iadapt=1
 	icompact=0	 !compact stencil mode(0 not true,1 true)
 	extf=3		 !stencils stability values from 1.2 to 3 (default 2)
 	weight_lsqr=0	 !weighted least squares(0 not true,1 true)

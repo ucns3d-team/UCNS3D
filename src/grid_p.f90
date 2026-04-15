@@ -6705,6 +6705,12 @@ subroutine adapt_criterion
 
 	  end if
 
+	  if (initcond.eq.101)then
+	  xmin_ad=-4.2d0
+	  xmax_ad=4.2d0
+
+	  end if
+
 	  do i=1,kmaxe
 	      fc=0
 
