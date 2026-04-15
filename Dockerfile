@@ -1,5 +1,5 @@
 # Start from the official Focal Fossa (20.04 LTS) image
-ARG BASE_IMAGE=ubuntu:20.04
+ARG BASE_IMAGE=ubuntu:22.04
 FROM ${BASE_IMAGE}
 
 RUN apt-get update && \
