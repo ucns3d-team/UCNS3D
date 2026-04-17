@@ -20038,7 +20038,11 @@ real::suml3,dum_resi
 
 kmaxe=xmpielrank(n)
 
+!$omp master
 allres(:)=zero
+
+!$omp end master
+!$omp barrier
 
 
 if ((itestcase.le.4).and.(turbulence.ne.1))then
