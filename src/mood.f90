@@ -121,10 +121,22 @@ if (itestcase.ge.3)then
                 
                 k=0
 			    utemp(1,1:nof_variables)=u_c_val(3,1:nof_variables,i)
+
+
+			    leftv(1:nof_variables)=utemp(1,1:nof_variables)
+			    call cons2prim(n,leftv,mp_pinfl,gammal)
+			    utemp(1,1:nof_variables)=leftv(1:nof_variables)
+
 			    k=1
 			    do l=1,ielem_ifca(i)
                 k=k+1
                 utemp(k,1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+
+                leftv(1:nof_variables)=utemp(k,1:nof_variables)
+			    call cons2prim(n,leftv,mp_pinfl,gammal)
+			    utemp(k,1:nof_variables)=leftv(1:nof_variables)
+
+
                 end do
 			    
 
@@ -149,19 +161,30 @@ if (itestcase.ge.3)then
                         nad_true=0
                         !6 specify relaxed or original mood pattern
                         if (mood_mode.gt.0)then
+
+                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        call cons2prim(n,leftv,mp_pinfl,gammal)
+
                         do iex=1,nof_variables
                         
                         if ((iex.eq.1).or.(iex.eq.nof_variables))then
-                         if ((u_c_val(4,iex,i).lt.(utmin(iex)-nad_delta1(iex))).or.(u_c_val(4,iex,i).gt.(utmax(iex)+nad_delta1(iex))))then
+                         if ((leftv(iex).lt.(utmin(iex)-nad_delta1(iex))).or.(leftv(iex).gt.(utmax(iex)+nad_delta1(iex))))then
                             nad_true=1
                         end if
                         endif
                         
                         end do
                         else
+
+                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        call cons2prim(n,leftv,mp_pinfl,gammal)
+
                         do iex=1,nof_variables
+
+
+
                          if ((iex.eq.1).or.(iex.eq.nof_variables))then
-                        if ((u_c_val(4,iex,i).lt.(utmin(iex))).or.(u_c_val(4,iex,i).gt.(utmax(iex))))then
+                        if ((leftv(iex).lt.(utmin(iex))).or.(leftv(iex).gt.(utmax(iex))))then
                             nad_true=1
                         end if
                         end if
@@ -233,6 +256,11 @@ if (itestcase.ge.3)then
 		utemp=zero
                             k=0
 			    utemp(1,1:nof_variables)=u_c_val(3,1:nof_variables,i)
+			     leftv(1:nof_variables)=utemp(1,1:nof_variables)
+			    call cons2prim(n,leftv,mp_pinfl,gammal)
+			    utemp(1,1:nof_variables)=leftv(1:nof_variables)
+
+
 			    k=1
                             
 			    
@@ -289,6 +317,14 @@ if (itestcase.ge.3)then
                                                                 
                                                             end if
                                         end if
+
+
+                                        leftv(1:nof_variables)=utemp(k,1:nof_variables)
+                                        call cons2prim(n,leftv,mp_pinfl,gammal)
+                                        utemp(k,1:nof_variables)=leftv(1:nof_variables)
+
+
+
                                 end do
                 
                             
@@ -307,19 +343,26 @@ if (itestcase.ge.3)then
                         
                         
                         if (mood_mode.gt.0)then
+                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        call cons2prim(n,leftv,mp_pinfl,gammal)
+
+
                         do iex=1,nof_variables
                         
                          if ((iex.eq.1).or.(iex.eq.nof_variables))then
-                         if ((u_c_val(4,iex,i).lt.(utmin(iex)-nad_delta1(iex))).or.(u_c_val(4,iex,i).gt.(utmax(iex)+nad_delta1(iex))))then
+                         if ((leftv(iex).lt.(utmin(iex)-nad_delta1(iex))).or.(leftv(iex).gt.(utmax(iex)+nad_delta1(iex))))then
                             nad_true=1
                         end if
                         end if
                         
                         end do
                         else
+                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        call cons2prim(n,leftv,mp_pinfl,gammal)
+
                         do iex=1,nof_variables
                          if ((iex.eq.1).or.(iex.eq.nof_variables))then
-                        if ((u_c_val(4,iex,i).lt.(utmin(iex))).or.(u_c_val(4,iex,i).gt.(utmax(iex))))then
+                        if ((leftv(iex).lt.(utmin(iex))).or.(leftv(iex).gt.(utmax(iex))))then
                             nad_true=1
                         end if
                         end if
