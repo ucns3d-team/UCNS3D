@@ -1529,17 +1529,17 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_
 	FLSTAR(:)=FL(:)+SL(1)*(ULSTAR(:)-CLEFT_ROT(:))
 	FRSTAR(:)=FR(:)+SR(1)*(URSTAR(:)-CRIGHT_ROT(:))
 	
-	IF (SL(1).GE.qp_normal_velocity)THEN
+	IF (SL(1).GT.qp_normal_velocity)THEN
 		HLLCFLUX(:) = FL(:) - qp_normal_velocity*CLEFT_ROT(:)
 		IF (MULTISPECIES.EQ.1)THEN
 			MP_SOURCE1 = UL ! - qp_normal_velocity
 		END IF
-	ELSE IF (SR(1).LE.ZERO)THEN
+	ELSE IF (SR(1).LT.qp_normal_velocity)THEN
 		HLLCFLUX(:) = FR(:) - qp_normal_velocity*CRIGHT_ROT(:)
 		IF (MULTISPECIES.EQ.1)THEN
 			MP_SOURCE1 = UR ! - qp_normal_velocity
 		END IF
-	ELSE IF ((SL(1).Le.ZERO).AND.(SM(1).GE.ZERO))THEN
+	ELSE IF ((SL(1).LE.qp_normal_velocity).AND.(SM(1).GE.qp_normal_velocity))THEN
 		HLLCFLUX(:) = FLSTAR(:) - qp_normal_velocity*ULSTAR(:)
 		IF (MULTISPECIES.EQ.1)THEN
 			MP_SOURCE1 = (UL+SL(1)*(((SL(1)-UL)/(SL(1)-SM(1)))-1.0D0)) ! - qp_normal_velocity
@@ -1584,7 +1584,6 @@ Subroutine HLL_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_S
 	REAL,DIMENSION(TURBULENCEEQUATIONS+PASSIVESCALAR)::RML,RMR
 	real,dimension(1:nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::FHLL,UHLL
 	real,intent(in)::qp_normal_velocity
-
 
 	HLLCFLUX=ZERO
 	ROTVL=ZERO
@@ -1667,13 +1666,13 @@ Subroutine HLL_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_S
 		call abort
 	end if
 
-	IF (SL(1).GE.qp_normal_velocity)THEN
+	IF (SL(1).GT.qp_normal_velocity) THEN
 		HLLCFLUX(:) = FL(:) - qp_normal_velocity*CLEFT_ROT(:)
 
 		IF (MULTISPECIES.EQ.1)THEN
 			MP_SOURCE1 = UL ! - qp_normal_velocity
 		END IF
-	ELSE IF (SR(1).LE.qp_normal_velocity)THEN
+	ELSE IF (SR(1).LT.qp_normal_velocity)THEN
 		HLLCFLUX(:) = FR(:) - qp_normal_velocity*CRIGHT_ROT(:)
 		
 		IF (MULTISPECIES.EQ.1)THEN
