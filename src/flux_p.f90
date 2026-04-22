@@ -4011,6 +4011,7 @@ subroutine calculate_fluxeshi_convective_mood(n)
 									  nfx  = ielem_ineighn(l,i)
 									  lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									  rowfx = bound_offset(nfx) + lfx - 1
+									  cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
 
                                     if ((cascade.eq.2).and.(boundhirm(rowfx).gt.0.5))then
 
@@ -4056,6 +4057,8 @@ subroutine calculate_fluxeshi_convective_mood(n)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
+
+								  cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
 
 								  
 								  if ((cascade.eq.2).and.(boundhirm(rowfx).gt.0.5))then
@@ -4647,7 +4650,7 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 									  lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									  rowfx = bound_offset(nfx) + lfx - 1
 
-									  
+									  cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
 									  
 									  if ((cascade.eq.2).and.(boundhirm(rowfx).gt.0.5))then
 !                                     cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
@@ -4697,6 +4700,7 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 								  lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 ! 								  cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
+								  cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
  								  
  								  
  								   if ((cascade.eq.2).and.(boundhirm(rowfx).gt.0.5))then
