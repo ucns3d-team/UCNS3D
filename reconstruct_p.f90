@@ -1,0 +1,5371 @@
+module recon
+use declaration
+use derivatives
+use library
+use transform
+use local
+use lapck
+use gradients
+use basis
+implicit none
+
+
+ contains
+
+
+
+
+
+
+
+
+subroutine average_stresses(n)
+implicit none
+!> @brief
+!> subroutine for calling the computation of the average shear stresses
+integer,intent(in)::n
+integer::ii,i,iconsidered
+#ifdef gpu
+!!$omp target teams distribute parallel do &
+!!$omp& private(iconsidered,i)
+#else
+!$omp do
+#endif
+do ii=1,nof_interior;i=el_int(ii);iconsidered=i
+      call allgrads_inner_av(n,i)
+end do
+#ifdef gpu
+!!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+#ifdef gpu
+!!$omp target teams distribute parallel do &
+!!$omp& private(iconsidered,i)
+#else
+!$omp do
+#endif
+	do ii=1,nof_bounded
+	i=el_bnd(ii)
+	iconsidered=i
+	call allgrads_mix_av(n,i)
+end do	
+#ifdef gpu
+!!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end subroutine average_stresses
+	
+subroutine memory_fast(n)
+  !> @brief
+  !> subroutine for storing the gaussian quadrature points at the cell interfaces
+  implicit none
+  integer, intent(in) :: n
+  integer :: i, k, kmaxe, idummy, l, nnd, iqp, ngp, iex
+  integer :: iconsidered, facex, pointx
+  real, dimension(1:dimensiona,1:numberofpoints2) :: qpoints2d
+  real, dimension(1:numberofpoints2) :: wequa2d
+  real, dimension(1:8,1:dimensiona) :: vext, nodes_list
+  real, dimension(1:dimensiona) :: pox, poy, poz
+
+  kmaxe = xmpielrank(n)
+
+  allocate(rec_qpoints(max_faces,numberofpoints2,1:dimensiona,1:kmaxe)); rec_qpoints = zero
+  allocate(rec_mrf(1:kmaxe)); rec_mrf = 0
+  if (srfg == 1) then
+    allocate(rec_rpoints(max_faces,numberofpoints2,1:dimensiona,1:kmaxe)); rec_rpoints = zero
+    allocate(rec_rotvel(max_faces,numberofpoints2,1:dimensiona,1:kmaxe));  rec_rotvel  = zero
+  end if
+  if (mrf == 1) then
+    ! keep both; your original code allocated them under mrf too
+    if (.not. allocated(rec_rpoints)) then
+      allocate(rec_rpoints(max_faces,numberofpoints2,1:dimensiona,1:kmaxe)); rec_rpoints = zero
+    end if
+    if (.not. allocated(rec_rotvel)) then
+      allocate(rec_rotvel(max_faces,numberofpoints2,1:dimensiona,1:kmaxe));  rec_rotvel  = zero
+    end if
+    allocate(rec_mrf_origin(1:3,1:kmaxe));   rec_mrf_origin   = zero
+    allocate(rec_mrf_velocity(1:3,1:kmaxe)); rec_mrf_velocity = zero
+  end if
+
+  if (dimensiona == 3) then
+
+    do i = 1, kmaxe
+      iconsidered = i
+
+      do l = 1, ielem_ifca(i)
+        idummy = 0
+
+        if ((iperiodicity == 1) .and. (ielem_interior(i) == 1)) then
+          if (ielem_ibounds(l,i) > 0) then
+            if ((ibound_icode(ielem_ibounds(l,i)) == 5) .or. (ibound_icode(ielem_ibounds(l,i)) == 50)) then
+              idummy = 1
+            end if
+          end if
+
+          if (ielem_types_faces(l,i) == 5) then
+            iqp = qp_quad
+            nnd = 4
+            if (idummy == 0) then
+              do k = 1, nnd
+                vext(k,1:3) = dinoder(ielem_nodes_faces(l,k,i))%cord(1:dims)
+              end do
+            else
+              facex = l
+              call coordinates_face_period1(n, iconsidered, facex, vext, nodes_list)
+            end if
+            call quadraturequad3d(n, igqrules, vext, qpoints2d, wequa2d)
+          else
+            iqp = qp_triangle
+            nnd = 3
+            if (idummy == 0) then
+              do k = 1, nnd
+                vext(k,1:3) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+              end do
+            else
+              facex = l
+              call coordinates_face_period1(n, iconsidered, facex, vext, nodes_list)
+            end if
+            call quadraturetriang(n, igqrules, vext, qpoints2d, wequa2d)
+          end if
+
+        else
+          if (ielem_types_faces(l,i) == 5) then
+            iqp = qp_quad
+            nnd = 4
+            do k = 1, nnd
+              vext(k,1:3) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+            end do
+            call quadraturequad3d(n, igqrules, vext, qpoints2d, wequa2d)
+          else
+            iqp = qp_triangle
+            nnd = 3
+            do k = 1, nnd
+              vext(k,1:3) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+            end do
+            call quadraturetriang(n, igqrules, vext, qpoints2d, wequa2d)
+          end if
+        end if
+
+        do ngp = 1, iqp
+          if (srfg == 1) then
+            rec_rpoints(l,ngp,1:3,i) = qpoints2d(1:3,ngp)
+            pox(1:3) = rec_rpoints(l,ngp,1:3,i) - srf_origin(1:3)
+            poy(1:3) = srf_velocity(1:3)
+            rec_rotvel(l,ngp,1:3,i) = vect_function(pox,poy)
+          end if
+
+          if (mrf == 1) then
+            rec_rpoints(l,ngp,1:3,i) = qpoints2d(1:3,ngp)
+            pox(1) = ielem_xxc(i); pox(2) = ielem_yyc(i); pox(3) = ielem_zzc(i)
+            poy(1:3) = rec_rpoints(l,ngp,1:3,i)
+            facex  = l
+            pointx = ngp
+            call mrfswitch(n, iconsidered, facex, pointx, pox, poy)
+          end if
+        end do
+      end do
+
+      ! --- store qpoints in reference space ---
+      do l = 1, ielem_ifca(i)
+        idummy = 0
+
+        if ((iperiodicity == 1) .and. (ielem_interior(i) == 1)) then
+          if (ielem_ibounds(l,i) > 0) then
+            if ((ibound_icode(ielem_ibounds(l,i)) == 5) .or. (ibound_icode(ielem_ibounds(l,i)) == 50)) then
+              idummy = 1
+            end if
+          end if
+
+          if (ielem_types_faces(l,i) == 5) then
+            iqp = qp_quad
+            nnd = 4
+            if (idummy == 0) then
+              do k = 1, nnd
+                vext(k,1:3) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+                vext(k,1:3) = matmul(rec_invccjac(:,:,i), vext(k,1:3) - rec_vext_ref(1:3,i))
+              end do
+            else
+              facex = l
+              call coordinates_face_period1(n, iconsidered, facex, vext, nodes_list)
+              do k = 1, nnd
+                vext(k,1:3) = matmul(rec_invccjac(:,:,i), vext(k,1:3) - rec_vext_ref(1:3,i))
+              end do
+            end if
+            call quadraturequad3d(n, igqrules, vext, qpoints2d, wequa2d)
+          else
+            iqp = qp_triangle
+            nnd = 3
+            if (idummy == 0) then
+              do k = 1, nnd
+                vext(k,1:3) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+                vext(k,1:3) = matmul(rec_invccjac(:,:,i), vext(k,1:3) - rec_vext_ref(1:3,i))
+              end do
+            else
+              facex = l
+              call coordinates_face_period1(n, iconsidered, facex, vext, nodes_list)
+              do k = 1, nnd
+                vext(k,1:3) = matmul(rec_invccjac(:,:,i), vext(k,1:3) - rec_vext_ref(1:3,i))
+              end do
+            end if
+            call quadraturetriang(n, igqrules, vext, qpoints2d, wequa2d)
+          end if
+
+        else
+          if (ielem_types_faces(l,i) == 5) then
+            iqp = qp_quad
+            nnd = 4
+            do k = 1, nnd
+              vext(k,1:3) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+              vext(k,1:3) = matmul(rec_invccjac(:,:,i), vext(k,1:3) - rec_vext_ref(1:3,i))
+            end do
+            call quadraturequad3d(n, igqrules, vext, qpoints2d, wequa2d)
+          else
+            iqp = qp_triangle
+            nnd = 3
+            do k = 1, nnd
+              vext(k,1:3) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+              vext(k,1:3) = matmul(rec_invccjac(:,:,i), vext(k,1:3) - rec_vext_ref(1:3,i))
+            end do
+            call quadraturetriang(n, igqrules, vext, qpoints2d, wequa2d)
+          end if
+        end if
+
+        do ngp = 1, iqp
+          rec_qpoints(l,ngp,1:3,i) = qpoints2d(1:3,ngp)
+        end do
+      end do
+    end do
+
+  else
+    ! ------------------- 2d -------------------
+    do i = 1, kmaxe
+      iconsidered = i
+
+      do l = 1, ielem_ifca(i)
+        idummy = 0
+
+        if ((iperiodicity == 1) .and. (ielem_interior(i) == 1)) then
+          if (ielem_ibounds(l,i) > 0) then
+            if ((ibound_icode(ielem_ibounds(l,i)) == 5) .or. (ibound_icode(ielem_ibounds(l,i)) == 50)) then
+              idummy = 1
+            end if
+          end if
+
+          iqp = qp_line
+          nnd = 2
+          if (idummy == 0) then
+            do k = 1, nnd
+              vext(k,1:2) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+              vext(k,1:2) = matmul(rec_invccjac(:,:,i), vext(k,1:2) - rec_vext_ref(1:2,i))
+            end do
+          else
+            facex = l
+            call coordinates_face_period2d1(n, iconsidered, facex, vext, nodes_list)
+            do k = 1, nnd
+              vext(k,1:2) = matmul(rec_invccjac(:,:,i), vext(k,1:2) - rec_vext_ref(1:2,i))
+            end do
+          end if
+          call quadratureline(n, igqrules, vext, qpoints2d, wequa2d)
+
+        else
+          iqp = qp_line
+          nnd = 2
+          do k = 1, nnd
+            vext(k,1:2) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+            vext(k,1:2) = matmul(rec_invccjac(:,:,i), vext(k,1:2) - rec_vext_ref(1:2,i))
+          end do
+          call quadratureline(n, igqrules, vext, qpoints2d, wequa2d)
+        end if
+
+        do ngp = 1, iqp
+          rec_qpoints(l,ngp,1:2,i) = qpoints2d(1:2,ngp)
+        end do
+      end do
+    end do
+  end if
+
+end subroutine memory_fast
+
+
+
+
+
+subroutine extrapolate_bound_linear(du,facex,pointx,iconsidered)
+  implicit none
+!> @brief
+!> Pointwise extrapolation for the linear reconstruction using a single increment vector.
+#ifdef gpu
+!$omp declare target
+#endif
+  integer,intent(in) :: facex,pointx,iconsidered
+  real,intent(in)    :: du(1:nof_variables+turbulenceequations+passivescalar)   ! size = NVTOT
+  real :: mp_pinfl,gammal
+  real,dimension(1:nof_variables) :: leftv
+
+  if (wenwrt.eq.3) then
+    leftv(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)
+    call cons2prim(n,leftv,mp_pinfl,gammal)
+    leftv(1:nof_variables)=leftv(1:nof_variables)+du(1:nof_variables)
+    call prim2cons(n,leftv)
+    rec_uleft(1:nof_variables,facex,pointx,iconsidered)=rec_uleft(1:nof_variables,facex,pointx,iconsidered)+leftv(1:nof_variables)
+  else
+    rec_uleft(1:nof_variables,facex,pointx,iconsidered)=(u_c_val(1,1:nof_variables,iconsidered) + du(1:nof_variables))
+  end if
+
+  if (turbulenceequations.ge.1) then
+    rec_uleftturb(1:turbulenceequations+passivescalar,facex,pointx,iconsidered) = &
+      (u_ct_val(1,1:turbulenceequations+passivescalar,iconsidered) + &
+       du(nof_variables+1:nof_variables+turbulenceequations+passivescalar))
+  end if
+
+end subroutine extrapolate_bound_linear
+
+
+
+
+subroutine extrapolate_bound_muscl(du,facex,pointx,iconsidered,slope)
+  implicit none
+!> @brief
+!> Pointwise MUSCL extrapolation using a single increment vector (no usol/psi storage).
+#ifdef gpu
+!$omp declare target
+#endif
+  integer,intent(in) :: facex,pointx,iconsidered
+  real,intent(in)    :: du(1:nof_variables+turbulenceequations+passivescalar)      ! size = nvtot (cons + turb + passive)
+  real,intent(in)    :: slope(1:nof_variables+turbulenceequations+passivescalar)   ! same size as du
+  real,dimension(1:nof_variables) :: leftv
+  real :: mp_pinfl,gammal
+
+  if (wenwrt.eq.3) then
+    leftv(1:nof_variables) = u_c_val(1,1:nof_variables,iconsidered)
+    call cons2prim(n,leftv,mp_pinfl,gammal)
+    leftv(1:nof_variables) = leftv(1:nof_variables) + du(1:nof_variables) * slope(1:nof_variables)
+    call prim2cons(n,leftv)
+    rec_uleft(1:nof_variables,facex,pointx,iconsidered) =  leftv(1:nof_variables)
+  else
+    rec_uleft(1:nof_variables,facex,pointx,iconsidered) = &
+      (u_c_val(1,1:nof_variables,iconsidered) + du(1:nof_variables) * slope(1:nof_variables))
+  end if
+
+  if (turbulenceequations.ge.1) then
+    rec_uleftturb(1:turbulenceequations+passivescalar,facex,pointx,iconsidered) = &
+      (u_ct_val(1,1:turbulenceequations+passivescalar,iconsidered) + &
+       du(nof_variables+1:nof_variables+turbulenceequations+passivescalar) * &
+       slope(nof_variables+1:nof_variables+turbulenceequations+passivescalar))
+  end if
+
+end subroutine extrapolate_bound_muscl
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+subroutine cp_reconstruction_cweno(iconsidered)
+  implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+
+  integer, intent(in)  :: iconsidered
+  real    :: divbyzero
+  integer :: power
+
+  integer :: i, l, ngp, iqp, ll, ll2, k, j, iex
+  integer :: iadmis, n_faces, ideg_local, icompwrt
+  integer :: ideg_max
+  real    :: lwcx1, ax, ay, az
+  real    :: tau_weno, sumomega
+  real    :: lamc(1:typesten), lambdaal(1:typesten), omegaatilde(1:typesten), omegaal(1:typesten)
+  real    :: smooth(1:typesten)
+  real    :: resvec(1:nof_variables)
+  real    :: leftv(1:nof_variables)
+  real    :: inv_lamc1
+
+  real :: phi(1:idegfree)
+
+  ! grad0 scratch
+  real :: grad0(1:idegfree)
+
+  ! WENO weights needed later
+  real :: weno(1:nof_variables, 1:typesten)
+
+  ! -------------------------
+  ! Setup
+  ! -------------------------
+  i          = iconsidered
+  iadmis     = ielem_admis(i)
+  n_faces    = ielem_ifca(i)
+  ideg_local = idegfree
+  lwcx1      = ielem_linc(i)
+  divbyzero  = 1.0e-6
+  power      = 4
+
+  ! Linear weights (lamc) depend only on element, not variable
+  lamc(1) = (1.0d0 - (1.0d0 / lwcx1))
+  if (iadmis > 1) then
+    lamc(2:iadmis) = (1.0d0 - lamc(1)) / real(iadmis-1)
+  end if
+  inv_lamc1 = 1.0d0 / lamc(1)
+
+
+
+
+  ! -------------------------
+  ! Compute WENO weights per variable
+  ! -------------------------
+  do iex = 1, nof_variables
+
+    smooth(1:iadmis)      = 0.0d0
+    omegaatilde(1:iadmis) = 0.0d0
+    omegaal(1:iadmis)     = 0.0d0
+
+    ! ---- build grad0(:)  ----
+    ! grad0 = inv_lamc1 * ( rec_gradients(1) - sum_{m=2..iadmis} lamc(m)*rec_gradientsc(m) )
+    grad0(1:ideg_local) = rec_gradients(1, 1:ideg_local, iex, i)
+    do ll = 2, iadmis
+      do k = 1, idegfree2
+        grad0(k) = grad0(k) - lamc(ll) * rec_gradientsc(ll, k, iex, i)
+      end do
+    end do
+    grad0(1:ideg_local) = inv_lamc1 * grad0(1:ideg_local)
+
+    ! ---- smoothness indicator for ll=1  ----
+    smooth(1) = 0.0d0
+    do j = 1, ideg_local
+      do k = 1, ideg_local
+        smooth(1) = smooth(1) + grad0(j) * rec_indicator(j,k,i) * grad0(k)
+      end do
+    end do
+
+    ! ---- smoothness indicators for ll>=2  ----
+    do ll = 2, iadmis
+      smooth(ll) = 0.0d0
+      do j = 1, idegfree2
+        do k = 1, idegfree2
+          smooth(ll) = smooth(ll) + rec_gradientsc(ll,j,iex,i) * rec_indicatorc(j,k,i) * rec_gradientsc(ll,k,iex,i)
+        end do
+      end do
+    end do
+
+    ! ---- lambda ----
+    lambdaal(1:iadmis) = lamc(1:iadmis)
+
+    ! ---- omega tilde ----
+    if (wenoz .eq. 1) then
+      tau_weno = 0.0d0
+      do ll = 1, iadmis
+        tau_weno = tau_weno + abs(smooth(1) - smooth(ll))
+      end do
+      if (iadmis > 1) tau_weno = tau_weno / real(iadmis-1)
+
+      do ll = 1, iadmis
+        omegaatilde(ll) = lambdaal(ll) * (1.0d0 + (tau_weno / (divbyzero + smooth(ll)))**power)
+      end do
+    else
+      do ll = 1, iadmis
+        omegaatilde(ll) = lambdaal(ll) / ((divbyzero + smooth(ll))**power)
+      end do
+    end if
+
+    ! ---- normalize ----
+    sumomega = 0.0d0
+    do ll = 1, iadmis
+      sumomega = sumomega + omegaatilde(ll)
+    end do
+
+    do ll = 1, iadmis
+      omegaal(ll)   = omegaatilde(ll) / sumomega
+      weno(iex,ll)  = omegaal(ll)
+    end do
+
+     if (iex .eq. 1)ielem_wcx(i) = weno(1,1)
+
+  end do
+
+  ! -------------------------
+  ! Reconstruction
+  ! -------------------------
+  rec_uleft(:,:,:,iconsidered) = 0.0d0
+   if (dg .eq. 1) dg2fv(1:ideg_local,:,i) = 0.0d0
+
+  do ll = 1, iadmis
+
+    do l = 1, n_faces
+
+      if (dimensiona .eq. 3) then
+        if (ielem_types_faces(l,i) .eq. 5) then
+          iqp = qp_quad
+        else
+          iqp = qp_triangle
+        end if
+      else
+        iqp = qp_line
+      end if
+
+      do ngp = 1, iqp
+
+        ax = rec_qpoints(l,ngp,1,i)
+        ay = rec_qpoints(l,ngp,2,i)
+         if (dimensiona .eq. 3)az = rec_qpoints(l,ngp,3,i)
+
+        resvec(:) = 0.0d0
+
+        if (ll .ne. 1) then
+          ! ---- low-order basis (degree idegfree2) -> phi(1:idegfree2) ----
+
+          if (dimensiona .eq. 3) then
+            phi(1:idegfree2) = basis_rec(n, ax, ay, az, iorder2, i, idegfree2, 1)
+          else
+            phi(1:idegfree2) = basis_rec2d(n, ax, ay, iorder2, i, idegfree2, 1)
+          end if
+
+          do k = 1, idegfree2
+            do iex = 1, nof_variables
+              resvec(iex) = resvec(iex) + phi(k) * rec_gradientsc(ll, k, iex, i)
+            end do
+          end do
+
+        else
+          ! ---- full-order basis (degree ideg_local) -> phi(1:ideg_local) ----
+
+          if (dimensiona .eq. 3) then
+            phi(1:ideg_local) = basis_rec(n, ax, ay, az, ielem_iorder(i), i, ideg_local, 0)
+          else
+            phi(1:ideg_local) = basis_rec2d(n, ax, ay, ielem_iorder(i), i, ideg_local, 0)
+          end if
+
+          ! resvec(iex) = inv_lamc1 * ( dot(phi, rec_gradients(1,:,iex)) - sum_{m=2..iadmis} lamc(m)*dot(phi, rec_gradientsc(m,:,iex)) )
+          do iex = 1, nof_variables
+            ! dot(phi, rec_gradients(1))
+            do k = 1, ideg_local
+              resvec(iex) = resvec(iex) + phi(k) * rec_gradients(1, k, iex, i)
+            end do
+
+            ! subtract lamc(m)*dot(phi, rec_gradientsc(m))
+            do ll2 = 2, iadmis
+              do k = 1, idegfree2
+                resvec(iex) = resvec(iex) - lamc(ll2) * phi(k) * rec_gradientsc(ll2, k, iex, i)
+              end do
+            end do
+
+            resvec(iex) = inv_lamc1 * resvec(iex)
+          end do
+
+        end if
+
+        call extrapolate_bound(resvec, l, ngp, iconsidered, ll, weno)
+
+      end do
+    end do
+
+    ! -------------------------
+    ! DG accumulation (on-the-fly; ll==1 uses grad0 scratch per variable)
+    ! -------------------------
+    if (dg .eq. 1) then
+      if (ll .eq. 1) then
+        do iex = 1, nof_variables
+          grad0(1:ideg_local) = rec_gradients(1, 1:ideg_local, iex, i)
+          do ll2 = 2, iadmis
+            do k = 1, idegfree2
+              grad0(k) = grad0(k) - lamc(ll2) * rec_gradientsc(ll2, k, iex, i)
+            end do
+          end do
+          grad0(1:ideg_local) = inv_lamc1 * grad0(1:ideg_local)
+
+          dg2fv(1:ideg_local,iex,i) = dg2fv(1:ideg_local,iex,i) + grad0(1:ideg_local) * weno(iex,1)
+        end do
+      else
+        do iex = 1, nof_variables
+          dg2fv(1:idegfree2,iex,i) = dg2fv(1:idegfree2,iex,i) + rec_gradientsc(ll,1:idegfree2,iex,i) * weno(iex,ll)
+        end do
+      end if
+    end if
+
+  end do
+
+  ! -------------------------
+  ! Convert to conservative if requested
+  ! -------------------------
+  if (wenwrt .eq. 3) then
+    do l = 1, n_faces
+      if (dimensiona .eq. 3) then
+        if (ielem_types_faces(l,i) .eq. 5) then
+          iqp = qp_quad
+        else
+          iqp = qp_triangle
+        end if
+      else
+        iqp = qp_line
+      end if
+
+      do ngp = 1, iqp
+        leftv(1:nof_variables) = rec_uleft(1:nof_variables,l,ngp,i)
+        call prim2cons(n,leftv)
+        rec_uleft(1:nof_variables,l,ngp,i) = leftv(1:nof_variables)
+      end do
+    end do
+  end if
+
+
+
+end subroutine cp_reconstruction_cweno
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+subroutine cp_reconstruction_cweno_turb(iconsidered)
+  implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+
+  integer, intent(in)  :: iconsidered
+  real    :: divbyzero
+  integer :: power
+
+  integer :: i, l, ngp, iqp, ll, ll2, k, j, iex
+  integer :: iadmis, n_faces, ideg_local, icompwrt
+  integer :: ideg_max
+  real    :: lwcx1, ax, ay, az
+  real    :: tau_weno, sumomega
+  real    :: lamc(1:7), lambdaal(1:7), omegaatilde(1:7), omegaal(1:7)
+  real    :: smooth(1:7)
+  real    :: resvec(1:turbulenceequations+passivescalar)
+  real    :: leftv(1:turbulenceequations+passivescalar)
+  real    :: inv_lamc1
+
+  real :: phi(1:idegfree)
+
+  ! grad0 scratch
+  real :: grad0(1:idegfree)
+
+  ! WENO weights needed later
+  real :: weno(1:turbulenceequations+passivescalar, 1:7)
+
+  ! -------------------------
+  ! Setup
+  ! -------------------------
+  i          = iconsidered
+  iadmis     = ielem_admis(i)
+  n_faces    = ielem_ifca(i)
+  ideg_local = idegfree
+  lwcx1      = ielem_linc(i)
+
+  divbyzero  = 1.0e-6
+  power      = 4
+
+  ! Linear weights (lamc) depend only on element, not variable
+  lamc(1) = (1.0d0 - (1.0d0 / lwcx1))
+  if (iadmis > 1) then
+    lamc(2:iadmis) = (1.0d0 - lamc(1)) / real(iadmis-1)
+  end if
+  inv_lamc1 = 1.0d0 / lamc(1)
+
+
+
+
+  ! -------------------------
+  ! Compute WENO weights per variable
+  ! -------------------------
+  do iex = 1, turbulenceequations+passivescalar
+
+    smooth(1:iadmis)      = 0.0d0
+    omegaatilde(1:iadmis) = 0.0d0
+    omegaal(1:iadmis)     = 0.0d0
+
+    ! ---- build grad0(:)  ----
+    ! grad0 = inv_lamc1 * ( rec_gradients(1) - sum_{m=2..iadmis} lamc(m)*rec_gradientsc(m) )
+    grad0(1:ideg_local) = rec_gradients2(1, 1:ideg_local, iex, i)
+    do ll = 2, iadmis
+      do k = 1, idegfree2
+        grad0(k) = grad0(k) - lamc(ll) * rec_gradientsc2(ll, k, iex, i)
+      end do
+    end do
+    grad0(1:ideg_local) = inv_lamc1 * grad0(1:ideg_local)
+
+    ! ---- smoothness indicator for ll=1  ----
+    smooth(1) = 0.0d0
+    do j = 1, ideg_local
+      do k = 1, ideg_local
+        smooth(1) = smooth(1) + grad0(j) * rec_indicator(j,k,i) * grad0(k)
+      end do
+    end do
+
+    ! ---- smoothness indicators for ll>=2  ----
+    do ll = 2, iadmis
+      smooth(ll) = 0.0d0
+      do j = 1, idegfree2
+        do k = 1, idegfree2
+          smooth(ll) = smooth(ll) + rec_gradientsc2(ll,j,iex,i) * rec_indicatorc(j,k,i) * rec_gradientsc2(ll,k,iex,i)
+        end do
+      end do
+    end do
+
+    ! ---- lambda ----
+    lambdaal(1:iadmis) = lamc(1:iadmis)
+
+    ! ---- omega tilde ----
+    if (wenoz .eq. 1) then
+      tau_weno = 0.0d0
+      do ll = 1, iadmis
+        tau_weno = tau_weno + abs(smooth(1) - smooth(ll))
+      end do
+      if (iadmis > 1) tau_weno = tau_weno / real(iadmis-1)
+
+      do ll = 1, iadmis
+        omegaatilde(ll) = lambdaal(ll) * (1.0d0 + (tau_weno / (divbyzero + smooth(ll)))**power)
+      end do
+    else
+      do ll = 1, iadmis
+        omegaatilde(ll) = lambdaal(ll) / ((divbyzero + smooth(ll))**power)
+      end do
+    end if
+
+    ! ---- normalize ----
+    sumomega = 0.0d0
+    do ll = 1, iadmis
+      sumomega = sumomega + omegaatilde(ll)
+    end do
+
+    do ll = 1, iadmis
+      omegaal(ll)   = omegaatilde(ll) / sumomega
+      weno(iex,ll)  = omegaal(ll)
+    end do
+
+    if (iex .eq. 1) ielem_wcx(i) = weno(1,1)
+
+  end do
+
+  ! -------------------------
+  ! Reconstruction
+  ! -------------------------
+  rec_uleftturb(:,:,:,i) = 0.0d0
+!   if (dg .eq. 1) dg2fv(1:ideg_local,:,i) = 0.0d0
+
+  do ll = 1, iadmis
+
+    do l = 1, n_faces
+
+      if (dimensiona .eq. 3) then
+        if (ielem_types_faces(l,i) .eq. 5) then
+          iqp = qp_quad
+        else
+          iqp = qp_triangle
+        end if
+      else
+        iqp = qp_line
+      end if
+
+      do ngp = 1, iqp
+
+        ax = rec_qpoints(l,ngp,1,i)
+        ay = rec_qpoints(l,ngp,2,i)
+        if (dimensiona .eq. 3) az = rec_qpoints(l,ngp,3,i)
+
+        resvec(:) = 0.0d0
+
+        if (ll .ne. 1) then
+          ! ---- low-order basis (degree idegfree2) -> phi(1:idegfree2) ----
+
+          if (dimensiona .eq. 3) then
+            phi(1:idegfree2) = basis_rec(n, ax, ay, az, iorder2, i, idegfree2, 1)
+          else
+            phi(1:idegfree2) = basis_rec2d(n, ax, ay, iorder2, i, idegfree2, 1)
+          end if
+
+          do k = 1, idegfree2
+            do iex = 1, turbulenceequations+passivescalar
+              resvec(iex) = resvec(iex) + phi(k) * rec_gradientsc2(ll, k, iex, i)
+            end do
+          end do
+
+        else
+          ! ---- full-order basis (degree ideg_local) -> phi(1:ideg_local) ----
+
+          if (dimensiona .eq. 3) then
+            phi(1:ideg_local) = basis_rec(n, ax, ay, az, ielem_iorder(i), i, ideg_local, 0)
+          else
+            phi(1:ideg_local) = basis_rec2d(n, ax, ay, ielem_iorder(i), i, ideg_local, 0)
+          end if
+
+          ! resvec(iex) = inv_lamc1 * ( dot(phi, rec_gradients(1,:,iex)) - sum_{m=2..iadmis} lamc(m)*dot(phi, rec_gradientsc(m,:,iex)) )
+          do iex = 1, turbulenceequations+passivescalar
+            ! dot(phi, rec_gradients(1))
+            do k = 1, ideg_local
+              resvec(iex) = resvec(iex) + phi(k) * rec_gradients2(1, k, iex, i)
+            end do
+
+            ! subtract lamc(m)*dot(phi, rec_gradientsc(m))
+            do ll2 = 2, iadmis
+              do k = 1, idegfree2
+                resvec(iex) = resvec(iex) - lamc(ll2) * phi(k) * rec_gradientsc2(ll2, k, iex, i)
+              end do
+            end do
+
+            resvec(iex) = inv_lamc1 * resvec(iex)
+          end do
+
+        end if
+
+        call extrapolate_boundt(resvec, l, ngp, i, ll, weno)
+
+      end do
+    end do
+
+
+
+  end do
+
+
+
+
+
+
+end subroutine cp_reconstruction_cweno_turb
+
+
+
+subroutine cp_reconstruction_weno_turb(iconsidered)
+  implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+
+  integer, intent(in)  :: iconsidered
+  real    :: divbyzero
+  integer:: power
+
+  integer :: i, l, ngp, iqp, ll, k, j, iex
+  integer :: iadmis, n_faces, ideg_local, icompwrt
+  real    :: lwcx1, ax, ay, az
+  real    :: sumomega
+  real    :: lambdaal(1:7), omegaatilde(1:7), omegaal(1:7)
+  real    :: smooth(1:7)
+  real    :: resvec(1:turbulenceequations+passivescalar)
+  real    :: leftv(1:turbulenceequations+passivescalar)
+  real    :: weno(1:turbulenceequations+passivescalar,1:7)
+
+  real :: phi(1:idegfree)
+
+  i          = iconsidered
+  iadmis     = ielem_admis(i)
+  n_faces    = ielem_ifca(i)
+  ideg_local = idegfree
+  lwcx1      = ielem_linc(i)
+
+  divbyzero  = 1.0e-6
+  power      = 4
+
+
+  ! -------------------------
+  ! WENO weights per variable (quadratic form on-the-fly)
+  ! -------------------------
+  do iex = 1, turbulenceequations+passivescalar
+
+    smooth(1:iadmis)      = 0.0d0
+    omegaatilde(1:iadmis) = 0.0d0
+    omegaal(1:iadmis)     = 0.0d0
+
+    do ll = 1, iadmis
+      smooth(ll) = 0.0d0
+      do j = 1, ideg_local
+        do k = 1, ideg_local
+          smooth(ll) = smooth(ll) + rec_gradients(ll,j,iex,i) * rec_indicator(j,k,i) * rec_gradients2(ll,k,iex,i)
+        end do
+      end do
+    end do
+
+    lambdaal(1:iadmis) = 1.0d0
+    lambdaal(1)        = lwcx1
+
+    do ll = 1, iadmis
+      omegaatilde(ll) = lambdaal(ll) / ((divbyzero + smooth(ll))**power)
+    end do
+
+    sumomega = 0.0d0
+    do ll = 1, iadmis
+      sumomega = sumomega + omegaatilde(ll)
+    end do
+
+    do ll = 1, iadmis
+      omegaal(ll)  = omegaatilde(ll) / sumomega
+      weno(iex,ll) = omegaal(ll)
+    end do
+
+    if (iex .eq. 1) ielem_wcx(i) = weno(1,1)
+
+  end do
+
+  ! -------------------------
+  ! Reconstruction (reuse phi)
+  ! -------------------------
+  rec_uleftturb(:,:,:,i) = 0.0d0
+
+
+  do ll = 1, iadmis
+
+    do l = 1, n_faces
+
+      if (dimensiona .eq. 3) then
+        if (ielem_types_faces(l,i) .eq. 5) then
+          iqp = qp_quad
+        else
+          iqp = qp_triangle
+        end if
+      else
+        iqp = qp_line
+      end if
+
+      do ngp = 1, iqp
+
+        ax = rec_qpoints(l,ngp,1,i)
+        ay = rec_qpoints(l,ngp,2,i)
+        if (dimensiona .eq. 3) az = rec_qpoints(l,ngp,3,i)
+
+        icompwrt = 0
+        if (dimensiona .eq. 3) then
+          phi(1:ideg_local) = basis_rec(n, ax, ay, az, ielem_iorder(i), i, ideg_local, icompwrt)
+        else
+          phi(1:ideg_local) = basis_rec2d(n, ax, ay, ielem_iorder(i), i, ideg_local, icompwrt)
+        end if
+
+        resvec(:) = 0.0d0
+        do k = 1, ideg_local
+          do iex = 1, turbulenceequations+passivescalar
+            resvec(iex) = resvec(iex) + phi(k) * rec_gradients2(ll,k,iex,i)
+          end do
+        end do
+
+        call extrapolate_boundt(resvec, l, ngp, i, ll, weno)
+
+      end do
+    end do
+
+
+
+  end do
+
+
+
+
+end subroutine cp_reconstruction_weno_turb
+
+
+
+
+
+
+subroutine cp_reconstruction_weno(iconsidered)
+  implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+
+  integer, intent(in)  :: iconsidered
+  real    :: divbyzero
+  integer:: power
+
+  integer :: i, l, ngp, iqp, ll, k, j, iex
+  integer :: iadmis, n_faces, ideg_local, icompwrt
+  real    :: lwcx1, ax, ay, az
+  real    :: sumomega
+  real    :: lambdaal(1:7), omegaatilde(1:7), omegaal(1:7)
+  real    :: smooth(1:7)
+  real    :: resvec(1:nof_variables)
+  real    :: leftv(1:nof_variables)
+  real    :: weno(1:nof_variables,1:7)
+
+  real :: phi(1:idegfree)
+
+  i          = iconsidered
+  iadmis     = ielem_admis(i)
+  n_faces    = ielem_ifca(i)
+  ideg_local = ielem_idegfree(i)
+  lwcx1      = ielem_linc(i)
+
+  divbyzero  = 1.0e-6
+  power      = 4
+
+
+  ! -------------------------
+  ! WENO weights per variable (quadratic form on-the-fly)
+  ! -------------------------
+  do iex = 1, nof_variables
+
+    smooth(1:iadmis)      = 0.0d0
+    omegaatilde(1:iadmis) = 0.0d0
+    omegaal(1:iadmis)     = 0.0d0
+
+    do ll = 1, iadmis
+      smooth(ll) = 0.0d0
+      do j = 1, ideg_local
+        do k = 1, ideg_local
+          smooth(ll) = smooth(ll) + rec_gradients(ll,j,iex,i) * rec_indicator(j,k,i) * rec_gradients(ll,k,iex,i)
+        end do
+      end do
+    end do
+
+    lambdaal(1:iadmis) = 1.0d0
+    lambdaal(1)        = lwcx1
+
+    do ll = 1, iadmis
+      omegaatilde(ll) = lambdaal(ll) / ((divbyzero + smooth(ll))**power)
+    end do
+
+    sumomega = 0.0d0
+    do ll = 1, iadmis
+      sumomega = sumomega + omegaatilde(ll)
+    end do
+
+    do ll = 1, iadmis
+      omegaal(ll)  = omegaatilde(ll) / sumomega
+      weno(iex,ll) = omegaal(ll)
+    end do
+
+    if (iex .eq. 1) ielem_wcx(i) = weno(1,1)
+
+  end do
+
+  ! -------------------------
+  ! Reconstruction (reuse phi)
+  ! -------------------------
+  rec_uleft(:,:,:,i) = 0.0d0
+  if (dg .eq. 1) dg2fv(1:ideg_local,:,i) = 0.0d0
+
+  do ll = 1, iadmis
+
+    do l = 1, n_faces
+
+      if (dimensiona .eq. 3) then
+       if (ielem_types_faces(l,i) .eq. 5) then
+          iqp = qp_quad
+       else
+         iqp = qp_triangle
+       end if
+     else
+       iqp = qp_line
+     end if
+
+      do ngp = 1, iqp
+
+        ax = rec_qpoints(l,ngp,1,i)
+        ay = rec_qpoints(l,ngp,2,i)
+        if (dimensiona .eq. 3) az = rec_qpoints(l,ngp,3,i)
+
+        icompwrt = 0
+        if (dimensiona .eq. 3) then
+          phi(1:ideg_local) = basis_rec(n, ax, ay, az, ielem_iorder(i), i, ideg_local, icompwrt)
+        else
+          phi(1:ideg_local) = basis_rec2d(n, ax, ay, ielem_iorder(i), i, ideg_local, icompwrt)
+        end if
+
+        resvec(:) = 0.0d0
+        do k = 1, ideg_local
+          do iex = 1, nof_variables
+            resvec(iex) = resvec(iex) + phi(k) * rec_gradients(ll,k,iex,i)
+          end do
+        end do
+
+        call extrapolate_bound(resvec, l, ngp, i, ll, weno)
+
+      end do
+    end do
+
+   if (dg .eq. 1) then
+     do iex = 1, nof_variables
+       dg2fv(1:ideg_local,iex,i) = dg2fv(1:ideg_local,iex,i) + rec_gradients(ll,1:ideg_local,iex,i) * weno(iex,ll)
+     end do
+   end if
+
+  end do
+
+  ! -------------------------
+  ! Convert to conservative
+  ! -------------------------
+  if (wenwrt .eq. 3) then
+   do l = 1, n_faces
+     if (dimensiona .eq. 3) then
+       if (ielem_types_faces(l,i) .eq. 5) then
+         iqp = qp_quad
+       else
+         iqp = qp_triangle
+       end if
+     else
+       iqp = qp_line
+     end if
+
+     do ngp = 1, iqp
+       leftv(1:nof_variables) = rec_uleft(1:nof_variables,l,ngp,i)
+       call prim2cons(n,leftv)
+       rec_uleft(1:nof_variables,l,ngp,i) = leftv(1:nof_variables)
+     end do
+   end do
+  end if
+
+
+
+end subroutine cp_reconstruction_weno
+
+
+
+
+
+
+
+
+
+
+subroutine wenoweights_cons(n)
+implicit none
+!> @brief
+!> subroutine for weno type reconstruction in 3d
+integer,intent(in)::n
+integer::i,ii
+integer::kmaxe
+kmaxe=xmpielrank(n)
+
+if (ees.eq.5)then
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+ielem_linc(i)=lwci1
+            if (adda.eq.1) call adda_filter(n,i)
+
+               call cp_reconstruction_cweno(i)
+
+
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+else
+
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+ielem_linc(i)=lwci1
+                 if (adda.eq.1) call adda_filter(n,i)
+
+                call cp_reconstruction_weno(i)
+
+
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+
+end if
+
+
+
+
+
+
+
+
+end subroutine wenoweights_cons
+
+
+
+subroutine wenoweights_turb(n)
+implicit none
+!> @brief
+!> subroutine for weno type reconstruction in 3d
+integer,intent(in)::n
+integer::i
+integer::iconsidered,kmaxe
+kmaxe=xmpielrank(n)
+
+if (ees.eq.5)then
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(iconsidered)
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+iconsidered=i
+ielem_linc(i)=lwci1
+
+
+                call cp_reconstruction_cweno_turb(iconsidered)
+
+
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+else
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(iconsidered)
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+iconsidered=i
+ielem_linc(i)=lwci1
+
+
+                call cp_reconstruction_weno_turb(iconsidered)
+
+
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+
+end if
+
+
+
+end subroutine wenoweights_turb
+
+
+
+subroutine extrapolate_bound(resvec,facex,pointx,iconsidered,llx,weno)
+implicit none
+!> @brief
+!> subroutine for extrapolating the reconstructed solution at the cell interfaces
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::facex,pointx,iconsidered,llx
+real,intent(in) :: weno(1:nof_variables,1:7)
+real,intent(in) :: resvec(1:nof_variables)
+real,dimension(1:nof_variables)::leftv
+real::mp_pinfl,gammal
+
+
+
+
+				    if (wenwrt.eq.3) then  ! primitive accumulation, but increments are in conservative space
+                    leftv(1:nof_variables) = u_c_val(1,1:nof_variables,iconsidered)
+                    call cons2prim(n,leftv,mp_pinfl,gammal)
+
+                    rec_uleft(1:nof_variables,facex,pointx,iconsidered) = &
+                      rec_uleft(1:nof_variables,facex,pointx,iconsidered) + ((leftv(1:nof_variables)+resvec(1:nof_variables)) * weno(1:nof_variables,llx))
+
+                  else
+                    rec_uleft(1:nof_variables,facex,pointx,iconsidered) = &
+                      rec_uleft(1:nof_variables,facex,pointx,iconsidered) + &
+                      (u_c_val(1,1:nof_variables,iconsidered) + resvec(1:nof_variables)) * weno(1:nof_variables,llx)
+                  end if
+
+
+
+
+
+
+end subroutine extrapolate_bound
+
+
+
+subroutine extrapolate_boundt(resvec,facex,pointx,iconsidered,llx,weno)
+implicit none
+!> @brief
+!> subroutine for extrapolating the reconstructed solution at the cell interfaces
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::facex,pointx,iconsidered,llx
+real,intent(in) :: weno(turbulenceequations+passivescalar,typesten)
+real,intent(in) :: resvec(turbulenceequations+passivescalar)
+real::mp_pinfl,gammal
+
+
+				     rec_uleftturb(1:turbulenceequations+passivescalar,facex,pointx,iconsidered)=rec_uleftturb(1:turbulenceequations+passivescalar,facex,pointx,iconsidered)&
+				     +(u_ct_val(1,1:turbulenceequations+passivescalar,iconsidered)+resvec(1:turbulenceequations+passivescalar))*weno(1:turbulenceequations+passivescalar,llx)
+
+
+
+
+
+end subroutine extrapolate_boundt
+
+
+subroutine wenoweights_char(n)
+implicit none
+!> @brief
+!> subroutine for weno type reconstruction in 3d
+integer,intent(in)::n
+integer :: ii, i, iconsidered,kmaxe
+kmaxe=xmpielrank(n)
+
+if (ees.eq.5)then
+
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(iconsidered)
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+iconsidered=i
+
+ielem_linc(i)=lwci1
+
+                call characteristic_reconstruction_cweno(iconsidered)
+
+
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+else
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(iconsidered)
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+iconsidered=i
+
+ielem_linc(i)=lwci1
+
+
+
+                call characteristic_reconstruction_weno(iconsidered)
+
+
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+end if
+
+
+
+
+end subroutine wenoweights_char
+
+
+
+
+
+subroutine characteristic_reconstruction_cweno(iconsidered)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)    :: iconsidered
+integer               ::  power
+real                  :: divbyzero
+
+integer :: i, l, ngp, iqp, icompwrt, k, j, c
+integer :: iadmis, n_faces, ideg
+real    :: angle1, angle2, nx, ny, nz, lwcx1, ax, ay, az
+real    :: veigl(nof_variables), veigr(nof_variables), rveigl(nof_variables), rveigr(nof_variables)
+real    :: eigvl(nof_variables,nof_variables), eigvr(nof_variables,nof_variables)
+
+real    :: lamc(typesten), inv_lamc1
+real    :: limiteddw_c(0:idegfree)
+real    :: phi(1:idegfree)
+real    :: s
+
+
+
+divbyzero  = 1.0e-6
+power      = 4
+
+i      = iconsidered
+iadmis = ielem_admis(i)
+n_faces= ielem_ifca(i)
+ideg   = idegfree
+lwcx1  = ielem_linc(i)
+
+! linear weights for EES=5 (depend only on element)
+lamc(:) = 0.0d0
+lamc(1) = (1.0d0 - (1.0d0/lwcx1))
+if (iadmis > 1) lamc(2:iadmis) = (1.0d0 - lamc(1)) / real(iadmis-1)
+inv_lamc1 = 1.0d0 / lamc(1)
+
+do l=1,n_faces
+
+  angle1 = ielem_faceanglex(l,i)
+  angle2 = ielem_faceangley(l,i)
+
+  if (dimensiona.eq.3) then
+    nx = cos(angle1)*sin(angle2)
+    ny = sin(angle1)*sin(angle2)
+    nz = cos(angle2)
+  else
+    nx = angle1
+    ny = angle2
+    nz = 0.0d0
+  end if
+
+  veigl(:) = u_c_val(1,1:nof_variables,i)
+
+  if (dimensiona.eq.3) then
+    call rotatef(n,rveigl,veigl,angle1,angle2)
+  else
+    call rotatef2d(n,rveigl,veigl,angle1,angle2)
+  end if
+
+  call weno_neighbour(i,l,veigl,veigr,nx,ny,nz,angle1,angle2)
+
+  if (dimensiona.eq.3) then
+    call rotatef(n,rveigr,veigr,angle1,angle2)
+    call compute_eigenvectors(n,rveigl,rveigr,eigvl,eigvr,gamma)
+  else
+    call rotatef2d(n,rveigr,veigr,angle1,angle2)
+    call compute_eigenvectors2d(n,rveigl,rveigr,eigvl,eigvr,gamma)
+  end if
+
+  ! quadrature points on this face
+  if (dimensiona.eq.3) then
+    if (ielem_types_faces(l,i).eq.5) then
+      iqp = qp_quad
+    else
+      iqp = qp_triangle
+    end if
+  else
+    iqp = qp_line
+  end if
+
+  ! initialize output on this face for accumulating over characteristic components)
+  do ngp=1,iqp
+    rec_uleft(1:nof_variables,l,ngp,i) = 0.0d0
+  end do
+
+  ! loop characteristic component-by-component
+  do c = 1, nof_variables
+
+    call char_build_limiteddw_cweno(i, iadmis, ideg, lamc, inv_lamc1, eigvl, c, divbyzero, power, limiteddw_c)
+
+    do ngp=1,iqp
+
+      ax = rec_qpoints(l,ngp,1,i)
+      ay = rec_qpoints(l,ngp,2,i)
+      if (dimensiona.eq.3) az = rec_qpoints(l,ngp,3,i)
+
+      icompwrt = 0
+      if (ideg > 0) then
+        if (dimensiona.eq.3) then
+          phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,0)
+        else
+          phi(1:ideg) = basis_rec2d(n,ax,ay,ielem_iorder(i),i,ideg,0)
+        end if
+      end if
+
+      s = limiteddw_c(0)
+      do k = 1, ideg
+        s = s + phi(k) * limiteddw_c(k)
+      end do
+
+      do j = 1, nof_variables
+        rec_uleft(j,l,ngp,i) = rec_uleft(j,l,ngp,i) + eigvr(j,c) * s
+      end do
+
+    end do ! ngp
+
+  end do ! c
+
+end do  ! faces
+
+end subroutine characteristic_reconstruction_cweno
+
+
+
+subroutine characteristic_reconstruction_weno(iconsidered)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)    :: iconsidered
+integer               :: power
+real                  :: divbyzero
+
+integer :: i, l, ngp, iqp, icompwrt, k, j, c
+integer :: iadmis, n_faces, ideg
+real    :: angle1, angle2, nx, ny, nz, lwcx1, ax, ay, az
+real    :: veigl(nof_variables), veigr(nof_variables), rveigl(nof_variables), rveigr(nof_variables)
+real    :: eigvl(nof_variables,nof_variables), eigvr(nof_variables,nof_variables)
+
+real    :: limiteddw_c(0:idegfree)
+real    :: phi(1:idegfree)
+real    :: s
+
+i      = iconsidered
+iadmis = ielem_admis(i)
+n_faces= ielem_ifca(i)
+ideg   = idegfree
+lwcx1  = ielem_linc(i)
+
+divbyzero  = 1.0e-6
+power      = 4
+
+
+
+do l=1,n_faces
+
+  angle1 = ielem_faceanglex(l,i)
+  angle2 = ielem_faceangley(l,i)
+
+  if (dimensiona.eq.3) then
+    nx = cos(angle1)*sin(angle2)
+    ny = sin(angle1)*sin(angle2)
+    nz = cos(angle2)
+  else
+    nx = angle1
+    ny = angle2
+    nz = 0.0d0
+  end if
+
+  veigl(:) = u_c_val(1,1:nof_variables,i)
+
+  if (dimensiona.eq.3) then
+    call rotatef(n,rveigl,veigl,angle1,angle2)
+  else
+    call rotatef2d(n,rveigl,veigl,angle1,angle2)
+  end if
+
+  call weno_neighbour(i,l,veigl,veigr,nx,ny,nz,angle1,angle2)
+
+  if (dimensiona.eq.3) then
+    call rotatef(n,rveigr,veigr,angle1,angle2)
+    call compute_eigenvectors(n,rveigl,rveigr,eigvl,eigvr,gamma)
+  else
+    call rotatef2d(n,rveigr,veigr,angle1,angle2)
+    call compute_eigenvectors2d(n,rveigl,rveigr,eigvl,eigvr,gamma)
+  end if
+
+  ! quadrature points on this face
+  if (dimensiona.eq.3) then
+    if (ielem_types_faces(l,i).eq.5) then
+      iqp = qp_quad
+    else
+      iqp = qp_triangle
+    end if
+  else
+    iqp = qp_line
+  end if
+
+  ! initialize output on this face  to accumulate  characteristic components
+  do ngp=1,iqp
+    rec_uleft(1:nof_variables,l,ngp,i) = 0.0d0
+  end do
+
+  do c = 1, nof_variables
+
+    call char_build_limiteddw_weno(i, iadmis, ideg, lwcx1, eigvl, c, divbyzero, power, limiteddw_c)
+
+    do ngp=1,iqp
+
+      ax = rec_qpoints(l,ngp,1,i)
+      ay = rec_qpoints(l,ngp,2,i)
+      if (dimensiona.eq.3) az = rec_qpoints(l,ngp,3,i)
+
+      icompwrt = 0
+      if (ideg > 0) then
+        if (dimensiona.eq.3) then
+          phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,0)
+        else
+          phi(1:ideg) = basis_rec2d(n,ax,ay,ielem_iorder(i),i,ideg,0)
+        end if
+      end if
+
+      s = limiteddw_c(0)
+      do k = 1, ideg
+        s = s + phi(k) * limiteddw_c(k)
+      end do
+
+      do j = 1, nof_variables
+        rec_uleft(j,l,ngp,i) = rec_uleft(j,l,ngp,i) + eigvr(j,c) * s
+      end do
+
+    end do ! ngp
+
+  end do ! c
+
+end do  ! faces
+
+end subroutine characteristic_reconstruction_weno
+
+
+
+subroutine char_build_limiteddw_cweno(i, iadmis, ideg, lamc, inv_lamc1, eigvl, c, divbyzero, power, limiteddw_c)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer, intent(in) :: i, iadmis, ideg, c, power
+real,    intent(in) :: lamc(typesten), inv_lamc1, divbyzero
+real,    intent(in) :: eigvl(nof_variables,nof_variables)
+real,    intent(out):: limiteddw_c(0:idegfree)
+
+integer :: ll, ll2, k, j, itarget, kdot
+real    :: smooth_c(typesten), omega_c(typesten), omegat(typesten)
+real    :: tau_weno, sumomegat
+real    :: a(idegfree), tmp(idegfree)
+real    :: corr, gkj
+
+limiteddw_c(0:ideg) = 0.0d0
+smooth_c(1:iadmis)  = 0.0d0
+
+!----------------------------
+! PASS 1: smoothness indicators for this characteristic component
+!----------------------------
+do ll = 1, iadmis
+
+  if (ll .eq. 1) then
+    itarget = ideg
+
+    do k = 1, itarget
+      a(k) = 0.0d0
+      do j = 1, nof_variables
+        corr = 0.0d0
+        if (k.le.idegfree2)then
+        do ll2 = 2, iadmis
+          corr = corr + lamc(ll2) * rec_gradientsc(ll2, k, j, i)
+        end do
+        end if
+
+        gkj  = inv_lamc1 * (rec_gradients(1, k, j, i) - corr)
+        a(k) = a(k) + eigvl(c,j) * gkj
+      end do
+    end do
+
+    tmp(1:itarget) = 0.0d0
+    do k = 1, itarget
+      do j = 1, itarget
+        tmp(k) = tmp(k) + rec_indicator(k,j,i) * a(j)
+      end do
+    end do
+
+    smooth_c(ll) = 0.0d0
+    do kdot = 1, itarget
+      smooth_c(ll) = smooth_c(ll) + a(kdot) * tmp(kdot)
+    end do
+
+  else
+    itarget = idegfree2
+
+    do k = 1, itarget
+      a(k) = 0.0d0
+      do j = 1, nof_variables
+        a(k) = a(k) + eigvl(c,j) * rec_gradientsc(ll, k, j, i)
+      end do
+    end do
+
+    tmp(1:itarget) = 0.0d0
+    do k = 1, itarget
+      do j = 1, itarget
+        tmp(k) = tmp(k) + rec_indicatorc(k,j,i) * a(j)
+      end do
+    end do
+
+    smooth_c(ll) = 0.0d0
+    do kdot = 1, itarget
+      smooth_c(ll) = smooth_c(ll) + a(kdot) * tmp(kdot)
+    end do
+  end if
+
+end do
+
+!----------------------------
+! nonlinear weights omega_c
+!----------------------------
+sumomegat = 0.0d0
+
+if (wenoz .eq. 1) then
+  tau_weno = 0.0d0
+  do ll = 1, iadmis
+    tau_weno = tau_weno + abs(smooth_c(1) - smooth_c(ll))
+  end do
+  if (iadmis > 1) tau_weno = tau_weno / real(iadmis-1)
+
+  do ll = 1, iadmis
+    omegat(ll) = lamc(ll) * (1.0d0 + (tau_weno/(divbyzero+smooth_c(ll)))**power)
+    sumomegat  = sumomegat + omegat(ll)
+  end do
+else
+  do ll = 1, iadmis
+    omegat(ll) = lamc(ll) / ((divbyzero+smooth_c(ll))**power)
+    sumomegat  = sumomegat + omegat(ll)
+  end do
+end if
+
+do ll = 1, iadmis
+  omega_c(ll) = omegat(ll) / sumomegat
+end do
+
+!----------------------------
+! PASS 2: build limiteddw_c(k)
+!----------------------------
+do ll = 1, iadmis
+
+  ! degree 0 in characteristic space (cell average)
+  a(1) = 0.0d0
+  do j = 1, nof_variables
+    a(1) = a(1) + eigvl(c,j) * u_c_val(1,j,i)
+  end do
+  limiteddw_c(0) = limiteddw_c(0) + omega_c(ll) * a(1)
+
+  if (ll .eq. 1) then
+    itarget = ideg
+    do k = 1, itarget
+      a(k) = 0.0d0
+      do j = 1, nof_variables
+        corr = 0.0d0
+         if (k.le.idegfree2)then
+        do ll2 = 2, iadmis
+          corr = corr + lamc(ll2) * rec_gradientsc(ll2, k, j, i)
+        end do
+        end if
+        gkj  = inv_lamc1 * (rec_gradients(1, k, j, i) - corr)
+        a(k) = a(k) + eigvl(c,j) * gkj
+      end do
+      limiteddw_c(k) = limiteddw_c(k) + omega_c(ll) * a(k)
+    end do
+  else
+    itarget = idegfree2
+    do k = 1, itarget
+      a(k) = 0.0d0
+      do j = 1, nof_variables
+        a(k) = a(k) + eigvl(c,j) * rec_gradientsc(ll, k, j, i)
+      end do
+      limiteddw_c(k) = limiteddw_c(k) + omega_c(ll) * a(k)
+    end do
+  end if
+
+end do
+
+end subroutine char_build_limiteddw_cweno
+
+
+
+
+subroutine char_build_limiteddw_weno(i, iadmis, ideg, lwcx1, eigvl, c, divbyzero, power, limiteddw_c)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer, intent(in) :: i, iadmis, ideg, c, power
+real,    intent(in) :: lwcx1, divbyzero
+real,    intent(in) :: eigvl(nof_variables,nof_variables)
+real,    intent(out):: limiteddw_c(0:idegfree)
+
+integer :: ll, k, j, kdot
+real    :: smooth_c(typesten), omega_c(typesten), omegat(typesten)
+real    :: sumomegat, lambda_ll
+real    :: a(idegfree), tmp(idegfree)
+
+limiteddw_c(0:ideg) = 0.0d0
+smooth_c(1:iadmis)  = 0.0d0
+
+!----------------------------
+! PASS 1: smoothness indicators
+!----------------------------
+do ll = 1, iadmis
+
+  do k = 1, ideg
+    a(k) = 0.0d0
+    do j = 1, nof_variables
+      a(k) = a(k) + eigvl(c,j) * rec_gradients(ll, k, j, i)
+    end do
+  end do
+
+  tmp(1:ideg) = 0.0d0
+  do k = 1, ideg
+    do j = 1, ideg
+      tmp(k) = tmp(k) + rec_indicator(k,j,i) * a(j)
+    end do
+  end do
+
+  smooth_c(ll) = 0.0d0
+  do kdot = 1, ideg
+    smooth_c(ll) = smooth_c(ll) + a(kdot) * tmp(kdot)
+  end do
+
+end do
+
+!----------------------------
+! nonlinear weights omega_c
+!----------------------------
+sumomegat = 0.0d0
+do ll = 1, iadmis
+  lambda_ll = 1.0d0
+  if (ll .eq. 1) lambda_ll = lwcx1
+  omegat(ll) = lambda_ll / ((divbyzero + smooth_c(ll))**power)
+  sumomegat  = sumomegat + omegat(ll)
+end do
+
+do ll = 1, iadmis
+  omega_c(ll) = omegat(ll) / sumomegat
+end do
+
+!----------------------------
+! PASS 2: build limiteddw_c(k)
+!----------------------------
+do ll = 1, iadmis
+
+  a(1) = 0.0d0
+  do j = 1, nof_variables
+    a(1) = a(1) + eigvl(c,j) * u_c_val(1,j,i)
+  end do
+  limiteddw_c(0) = limiteddw_c(0) + omega_c(ll) * a(1)
+
+  do k = 1, ideg
+    a(k) = 0.0d0
+    do j = 1, nof_variables
+      a(k) = a(k) + eigvl(c,j) * rec_gradients(ll, k, j, i)
+    end do
+    limiteddw_c(k) = limiteddw_c(k) + omega_c(ll) * a(k)
+  end do
+
+end do
+
+end subroutine char_build_limiteddw_weno
+
+
+
+subroutine weno_neighbour(iconsidered,facex,veigl,veigr,nx,ny,nz,angle1,angle2)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+real,dimension(1:nof_variables),intent(inout)::veigr
+real,dimension(1:nof_variables),intent(inout)::veigl
+real,intent(in)::nx,ny,nz,angle1,angle2
+integer,intent(in)::iconsidered,facex
+integer::idummy
+real::mp_pinfl,gammal
+integer::i,j,k,l,var2,b_code,n_node,nf,lf,rowf
+real,dimension(1:nof_variables)::leftv,srf_speed,srf_speedrot,rightv
+real,dimension(1:dimensiona)::pox,poy,poz,cords
+real,dimension(1:8,1:dimensiona)::vext,nodes_list
+real,dimension(turbulenceequations)::cturbl,cturbr
+real,dimension(1:nof_variables)::cright_rot,cleft_rot
+integer::ibfc
+
+
+
+if (dimensiona.eq.3)then
+
+l=facex
+i=iconsidered
+
+
+ if (ielem_interior(i).eq.0)then
+     veigr(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i));
+
+ else
+
+
+                if (rec_mrf(i).eq.1)then
+					srf_speed(2:4)=rec_rotvel(l,1,1:3,i)
+					call rotatef(n,srf_speedrot,srf_speed,angle1,angle2)
+                end if
+				if (ielem_ineighb(l,i).eq.n)then	!my cpu only
+				      if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+					  if ((ibound_icode(ielem_ibounds(l,i)).eq.5).or.(ibound_icode(ielem_ibounds(l,i)).eq.50))then	!periodic in my cpu
+					  veigr(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
+					  idummy=1
+					  if(per_rot.eq.1)then
+                        veigr(2:4)=rotate_per_1(veigr(2:4),ibound_icode(ielem_ibounds(l,i)),angle_per)
+					  end if
+					  else
+					  !not periodic ones in my cpu
+
+					   call coordinates_face_innerx(n,iconsidered,facex,vext,nodes_list)
+
+
+					    if (ielem_types_faces(facex,iconsidered).eq.5)then
+                                            n_node=4
+                                    else
+                                            n_node=3
+                                    end if
+
+				  cords(1:3)=zero
+ 				  cords(1:3)=cordinates3(n,nodes_list,n_node)
+
+				  poy(1)=cords(2)
+				  pox(1)=cords(1)
+				  poz(1)=cords(3)
+
+ 				  leftv(1:nof_variables)=veigl(1:nof_variables)
+				  b_code=ibound_icode(ielem_ibounds(l,i))
+ 				 call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+
+				  veigr(1:nof_variables)=rightv(1:nof_variables)
+				      	  end if
+				      else
+				      !fluid neighbour
+				      veigr(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
+				      end if
+				else
+			      !other my cpu
+				    if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+					  if ((ibound_icode(ielem_ibounds(l,i)).eq.5).or.(ibound_icode(ielem_ibounds(l,i)).eq.50))then	!periodic in other cpu
+					!  veigr(1:nof_variables)=(iexsolhir(rec_ihexn(1,ielem_indexi(l,i),i))%sol&
+					!(rec_ihexl(1,ielem_indexi(l,i),i),1:nof_variables))
+
+					 nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
+                     lf=rec_ihexl(1,ielem_indexi(L,i),i)
+                     rowf=halo_offset(nf) + lf - 1
+                     veigr(1:nof_variables)=solhir(rowf,1:nof_variables)
+
+
+
+					  idummy=1
+					  if(per_rot.eq.1)then
+                        veigr(2:4)=rotate_per_1(veigr(2:4),ibound_icode(ielem_ibounds(l,i)),angle_per)
+					  end if
+					  end if
+				    else
+
+! 				      veigr(1:nof_variables)=(iexsolhir(rec_ihexn(1,ielem_indexi(l,i),i))%sol&
+! 					(rec_ihexl(1,ielem_indexi(l,i),i),1:nof_variables))
+
+
+                     nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
+                     lf=rec_ihexl(1,ielem_indexi(L,i),i)
+                     rowf=halo_offset(nf) + lf - 1
+                     veigr(1:nof_variables)=solhir(rowf,1:nof_variables)
+
+				    end if
+
+				end if
+
+
+
+ end if
+
+else
+
+l=facex
+i=iconsidered
+
+
+ if (ielem_interior(i).eq.0)then
+     veigr(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i));
+
+ else
+
+ if (ielem_ineighb(l,i).eq.n)then	!my cpu only
+				      if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+					  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
+					  veigr(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
+					  idummy=1
+					  else
+					  !not periodic ones in my cpu
+
+					   call coordinates_face_inner2dx(n,iconsidered,facex,vext,nodes_list)
+					   n_node=2
+				  cords(1:2)=zero
+ 				  cords(1:2)=cordinates2(n,nodes_list,n_node)
+
+
+				  pox(1)=cords(1)
+                  poy(1)=cords(2)
+
+ 				  leftv(1:nof_variables)=veigl(1:nof_variables)
+				  b_code=ibound_icode(ielem_ibounds(l,i))
+ 				  call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+
+				  veigr(1:nof_variables)=rightv(1:nof_variables)
+				      	  end if
+				      else
+				      !fluid neighbour
+				      veigr(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
+				      end if
+				else
+			      !other my cpu
+				    if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+					  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+! 					  veigr(1:nof_variables)=(iexsolhir(rec_ihexn(1,ielem_indexi(l,i),i))%sol&
+! 					(rec_ihexl(1,ielem_indexi(l,i),i),1:nof_variables))
+                     nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
+                     lf=rec_ihexl(1,ielem_indexi(L,i),i)
+                     rowf=halo_offset(nf) + lf - 1
+                     veigr(1:nof_variables)=solhir(rowf,1:nof_variables)
+
+
+					  idummy=1
+					  end if
+				    else
+
+! 				      veigr(1:nof_variables)=(iexsolhir(rec_ihexn(1,ielem_indexi(l,i),i))%sol&
+! 					(rec_ihexl(1,ielem_indexi(l,i),i),1:nof_variables))
+
+                     nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
+                     lf=rec_ihexl(1,ielem_indexi(L,i),i)
+                     rowf=halo_offset(nf) + lf - 1
+                     veigr(1:nof_variables)=solhir(rowf,1:nof_variables)
+
+				    end if
+
+				end if
+
+ end if
+
+
+end if
+
+end subroutine weno_neighbour
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+subroutine find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+implicit none
+!> @brief
+!> Compute local bounds and variation measures for MUSCL limiting WITHOUT storing neighbor states.
+!> Fills:
+!>   utmin, utmax  : component-wise min/max over stencil
+!>   aver_vars     : component-wise average over stencil
+!>   sumvars       : sum of abs differences to reference state (first stencil entry)
+!>   maxvars       : max absolute value over stencil
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in) :: iconsidered
+real,dimension(1:nof_variables+turbulenceequations+passivescalar),intent(inout) :: maxvars,aver_vars,sumvars,utmin,utmax
+
+integer :: i,l,iq,k,j,nf,lf,rowf
+integer:: nvtot
+real :: mp_pinfl,gammal
+real,dimension(1:nof_variables) :: leftv
+real,dimension(1:nof_variables+turbulenceequations+passivescalar) :: uvec, uref
+
+i = iconsidered
+nvtot=nof_variables+turbulenceequations+passivescalar
+
+! init outputs
+aver_vars = 0.0d0
+sumvars  = 0.0d0
+maxvars  = 0.0d0
+utmin    = huge(1.0)
+utmax    = -huge(1.0)
+
+k = 0
+
+! -----------------------
+! Build stencil on-the-fly
+! -----------------------
+
+uref(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+uref(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,i)
+end if
+
+if (extended_bounds.eq.0) then
+  ! strict bounds: center + (some) face neighbors
+
+  uvec = zero
+  uvec(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+
+  if (turbulenceequations.ge.1) then
+    uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  end if
+  call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+
+  if (ielem_interior(i).eq.0) then
+    do l=1,ielem_ifca(i)
+      uvec(1:nof_variables) = u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
+      if (turbulenceequations.ge.1) then
+        uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
+      end if
+      call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+    end do
+
+  else
+    do l=1,ielem_ifca(i)
+
+      if (ielem_ineighb(l,i).eq.n) then
+        ! neighbor on my cpu
+        if (ielem_ibounds(l,i).gt.0) then
+          ! boundary: only periodic contributes
+          if (ibound_icode(ielem_ibounds(l,i)).eq.5) then
+            uvec(1:nof_variables) = u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
+            if (turbulenceequations.ge.1) then
+              uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
+            end if
+            call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+          end if
+        else
+          ! fluid neighbor
+          uvec(1:nof_variables) = u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
+          if (turbulenceequations.ge.1) then
+            uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
+          end if
+          call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+        end if
+
+      else
+        ! neighbor on other cpu: only periodic or mpi neighbor (halo)
+        if (ielem_ibounds(l,i).gt.0) then
+          if (ibound_icode(ielem_ibounds(l,i)).eq.5) then
+            nf   = rec_ihexn(1,ielem_indexi(l,i),rec_local(i))
+            lf   = rec_ihexl(1,ielem_indexi(l,i),i)
+            rowf = halo_offset(nf) + lf - 1
+            uvec(1:nof_variables) = solhir(rowf,1:nof_variables)
+            if (turbulenceequations.ge.1) then
+              uvec(nof_variables+1:nvtot) = solhir(rowf,nof_variables+1:nvtot)
+            end if
+            call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+          end if
+        else
+          nf   = rec_ihexn(1,ielem_indexi(l,i),rec_local(i))
+          lf   = rec_ihexl(1,ielem_indexi(l,i),i)
+          rowf = halo_offset(nf) + lf - 1
+          uvec(1:nof_variables) = solhir(rowf,1:nof_variables)
+          if (turbulenceequations.ge.1) then
+            uvec(nof_variables+1:nvtot) = solhir(rowf,nof_variables+1:nvtot)
+          end if
+          call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+        end if
+      end if
+
+    end do
+  end if
+
+else
+  ! extended bounds: use rec_ihexl / rec_ihexb neighbor lists
+  do iq=1,ielem_inumneighbours(i)
+
+    if (rec_local(i).eq.0) then
+      uvec(1:nof_variables) = u_c_val(1,1:nof_variables,rec_ihexl(1,iq,i))
+      if (turbulenceequations.ge.1) then
+        uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,rec_ihexl(1,iq,i))
+      end if
+      call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+
+    else
+      if (rec_ihexb(1,iq,rec_local(i)).eq.n) then
+        uvec(1:nof_variables) = u_c_val(1,1:nof_variables,rec_ihexl(1,iq,i))
+        if (turbulenceequations.ge.1) then
+          uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,rec_ihexl(1,iq,i))
+        end if
+        call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+      else
+        nf   = rec_ihexn(1,iq,i)
+        lf   = rec_ihexl(1,iq,i)
+        rowf = halo_offset(nf) + lf - 1
+        uvec(1:nof_variables) = solhir(rowf,1:nof_variables)
+        if (turbulenceequations.ge.1) then
+          uvec(nof_variables+1:nvtot) = solhir(rowf,nof_variables+1:nvtot)
+        end if
+        call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+      end if
+    end if
+
+  end do
+end if
+
+if (k > 0) aver_vars = aver_vars / real(k)
+end subroutine find_bounds
+
+
+
+
+subroutine compute_muscl_reconstruction(iconsidered,utmin,utmax)
+  implicit none
+!> @brief
+!> subroutine for computing limited MUSCL reconstructed solution (on-the-fly per GP; minimal storage)
+#ifdef gpu
+!$omp declare target
+#endif
+  integer,intent(in)::iconsidered
+  integer:: nvtot
+  real,intent(in) :: utmin(1:nof_variables+turbulenceequations+passivescalar),utmax(1:nof_variables+turbulenceequations+passivescalar)
+  integer :: i,l,ngp,iex,iqp,k,ideg
+  real :: ax,ay,az,mp_pinfl,gammal,limvbg,rat,u0
+  real,dimension(1:nof_variables) :: leftv,slope_d,candid_lim,delta
+  real :: phi(1:idegfree)
+  real :: slope(1:nof_variables+turbulenceequations+passivescalar)
+  real :: psi_min(1:nof_variables+turbulenceequations+passivescalar)
+  real :: usol1(1:nof_variables+turbulenceequations+passivescalar)
+  real :: psi1 (1:nof_variables+turbulenceequations+passivescalar)
+  real :: du   (1:nof_variables+turbulenceequations+passivescalar)
+  nvtot=nof_variables+turbulenceequations+passivescalar
+  i = iconsidered
+  ideg = idegfree
+
+  rec_uleft(:,:,:,i) = zero
+  if (turbulenceequations.ge.1) rec_uleftturb(:,:,:,i) = zero
+
+  psi_min(:) = tolbig
+
+  ! --- compute psi_min directly (no storage of usol/psi over faces/GP) ---
+  do l=1,ielem_ifca(i)
+
+    if (dimensiona.eq.3) then
+      if (ielem_types_faces(l,i).eq.5) then
+        iqp = qp_quad
+      else
+        iqp = qp_triangle
+      end if
+    else
+      iqp = qp_line
+    end if
+
+    do ngp=1,iqp
+      ax = rec_qpoints(l,ngp,1,i)
+      ay = rec_qpoints(l,ngp,2,i)
+      if (dimensiona.eq.3) az = rec_qpoints(l,ngp,3,i)
+
+      if (dimensiona.eq.3) then
+        phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,0)
+      else
+        phi(1:ideg) = basis_rec2d(n,ax,ay,ielem_iorder(i),i,ideg,0)
+      end if
+
+      ! unlimited reconstructed state at this GP (stored only in usol1(:))
+      delta(:) = zero
+      do k=1,ideg
+        delta(:) = delta(:) + phi(k) * rec_gradients(1,k,1:nof_variables,i)
+      end do
+
+      if (wenwrt.eq.3) then
+        leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+        call cons2prim(n,leftv,mp_pinfl,gammal)
+        usol1(1:nof_variables) = leftv(1:nof_variables) + delta(:)
+      else
+        usol1(1:nof_variables) = u_c_val(1,1:nof_variables,i) + delta(:)
+      end if
+
+      if (turbulenceequations.ge.1) then
+        usol1(nof_variables+1:NVTOT) = u_ct_val(1,1:turbulenceequations+passivescalar,i)
+        do k=1,ideg
+          usol1(nof_variables+1:NVTOT) = usol1(nof_variables+1:NVTOT) + &
+            phi(k) * rec_gradients2(1,k,1:turbulenceequations+passivescalar,i)
+        end do
+      end if
+      ! compute psi(:) at this GP (new 1D limiter interface) and accumulate minimum
+      call slope_limiters(n,i,utmin,utmax,usol1,psi1)
+      psi_min(:) = min(psi_min(:), psi1(:))
+    end do
+  end do
+
+  slope(:) = psi_min(:)
+  ielem_wcx(i) = slope(1)
+  if (dg.eq.1) then
+    do iex = 1, nvtot
+
+
+
+      dg2fv(1:ideg,iex,i) = rec_gradients(1,ideg,iex,i) * slope(iex)
+    end do
+  end if
+
+  ! --- extra positivity limiter branch kept as in original ---
+  if (limiter.eq.1) then
+    if (realgas.eq.1) then
+      slope_d(:) = 1.0d0
+
+      do l=1,ielem_ifca(i)
+        if (dimensiona.eq.3) then
+          if (ielem_types_faces(l,i).eq.5) then
+            iqp = qp_quad
+          else
+            iqp = qp_triangle
+          end if
+        else
+          iqp = qp_line
+        end if
+
+        do ngp=1,iqp
+          ! recompute unlimited state at this GP (no stored usol)
+          ax = rec_qpoints(l,ngp,1,i)
+          ay = rec_qpoints(l,ngp,2,i)
+          if (dimensiona.eq.3) az = rec_qpoints(l,ngp,3,i)
+
+          if (dimensiona.eq.3) then
+            phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,0)
+          else
+            phi(1:ideg) = basis_rec2d(n,ax,ay,ielem_iorder(i),i,ideg,0)
+          end if
+
+          delta(:) = zero
+          do k=1,ideg
+            delta(:) = delta(:) + phi(k) * rec_gradients(1,k,1:nof_variables,i)
+          end do
+
+          candid_lim(1:nof_variables) = u_c_val(1,1:nof_variables,i) + (delta(:) * slope(1:nof_variables))
+
+          do iex=1,nof_variables
+            if ((iex.ge.2).and.(iex.lt.dimensiona+3)) cycle
+
+            if (u_c_val(1,iex,i) .gt. zero) then
+              if (candid_lim(iex) .lt. zero) then
+                rat = u_c_val(1,iex,i) / (u_c_val(1,iex,i) - candid_lim(iex))
+                rat = max(0.0d0, min(1.0d0, rat))
+                slope_d(iex) = min(slope_d(iex), rat)
+              end if
+            else
+              slope_d(iex) = zero
+            end if
+          end do
+        end do
+      end do
+
+      do iex=1,nof_variables
+        if ((iex.ge.2).and.(iex.lt.dimensiona+3)) cycle
+        slope(iex) = slope(iex) * slope_d(iex)
+      end do
+    end if
+  end if
+
+  ! --- apply slopes: convert usol to increments and extrapolate at faces ---
+  do l=1,ielem_ifca(i)
+
+    if (dimensiona.eq.3) then
+      if (ielem_types_faces(l,i).eq.5) then
+        iqp = qp_quad
+      else
+        iqp = qp_triangle
+      end if
+    else
+      iqp = qp_line
+    end if
+
+    do ngp=1,iqp
+      ! recompute du at this GP (unlimited increment relative to cell average)
+      ax = rec_qpoints(l,ngp,1,i)
+      ay = rec_qpoints(l,ngp,2,i)
+      if (dimensiona.eq.3) az = rec_qpoints(l,ngp,3,i)
+
+      if (dimensiona.eq.3) then
+        phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,0)
+      else
+        phi(1:ideg) = basis_rec2d(n,ax,ay,ielem_iorder(i),i,ideg,0)
+      end if
+
+      delta(:) = zero
+      do k=1,ideg
+        delta(:) = delta(:) + phi(k) * rec_gradients(1,k,1:nof_variables,i)
+      end do
+
+      if (wenwrt.eq.3) then
+        ! du in primitive variables (consistent with extrapolate_bound_muscl_point)
+        du(1:nof_variables) = delta(:)
+      else
+        du(1:nof_variables) = delta(:)
+      end if
+
+      if (turbulenceequations.ge.1) then
+        du(nof_variables+1:NVTOT) = zero
+        do k=1,ideg
+          du(nof_variables+1:NVTOT) = du(nof_variables+1:NVTOT) + &
+            phi(k) * rec_gradients2(1,k,1:turbulenceequations+passivescalar,i)
+        end do
+      end if
+
+      call extrapolate_bound_muscl(du,l,ngp,i,slope)
+    end do
+  end do
+
+end subroutine compute_muscl_reconstruction
+
+
+
+
+
+subroutine muscl(n)
+  implicit none
+!> @brief
+!> subroutine for muscl type reconstruction
+  integer,intent(in)::n
+  integer :: i, ii, iconsidered
+  real,dimension(1:nof_variables+turbulenceequations+passivescalar) :: maxvars, aver_vars, sumvars, utmin, utmax
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(i,iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+#else
+!$omp do
+#endif
+  do ii=1,nof_interior
+    i=el_int(ii)
+    iconsidered=i
+    if (((ielem_troubled(i).eq.1).and.(ielem_reduce(i).eq.1)).or.((ielem_full(i).eq.0).and.(ielem_troubled(i).eq.1)))then
+      if (ielem_recalc(i).gt.0)then
+        if (adda.eq.1) call adda_filter(n,iconsidered)
+
+        call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+        call compute_muscl_reconstruction(iconsidered,utmin,utmax)
+      end if
+    end if
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(i,iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+#else
+!$omp do
+#endif
+  do ii=1,nof_bounded
+    i=el_bnd(ii)
+    iconsidered=i
+
+
+
+    if (((ielem_troubled(i).eq.1).and.(ielem_reduce(i).eq.1)).or.((ielem_full(i).eq.0).and.(ielem_troubled(i).eq.1)))then
+      if (ielem_recalc(i).gt.0)then
+        if (adda.eq.1) call adda_filter(n,iconsidered)
+
+        call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+        call compute_muscl_reconstruction(iconsidered,utmin,utmax)
+      end if
+    end if
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+end subroutine muscl
+
+
+
+
+
+subroutine solutiontriav2(n)
+  implicit none
+!> @brief
+!> subroutine for extrapolating the unlimited reconstructed values for diffusive fluxes in 3d
+  integer,intent(in) :: n
+
+  integer :: i,l,iex,nvar,ngp
+  integer :: k,ideg,nfaces,ggs,iqp
+  integer :: ihgt,ihgj
+  real    :: ax,ay,az
+  real,dimension(1:dimensiona) :: ugradloc
+  real,dimension(1:dimensiona,1:dimensiona) :: ainvjt
+  real,dimension(1:dimensiona,1:dimensiona) :: vextc
+  real :: dx,dy,dz,gk
+  real :: mp_pinfl,gammal
+  real,dimension(1:nof_variables) :: leftv
+
+  integer :: kmaxe
+
+  kmaxe=xmpielrank(n)
+
+
+
+#ifdef gpu
+  !$omp target teams distribute parallel do &
+  !$omp& private(l,iex,nvar,ngp, &
+  !$omp&         k,ideg,nfaces,ggs,iqp, &
+  !$omp&         ihgt,ihgj, ax,ay,az,ugradloc,ainvjt,vextc, &
+  !$omp&         dx,dy,dz,gk,mp_pinfl, gammal, leftv)
+#else
+  !$omp do
+#endif
+  do i = 1, xmpielrank(n)
+
+    rec_uleftv(:,:,:,:,i) = zero
+    if ((turbulence.gt.0).or.(passivescalar.gt.0)) then
+      rec_uleftturbv(:,:,:,:,i) = zero
+    end if
+
+    ! inv Jacobian transpose (your original transpose fill)
+    do ihgt=1,dimensiona
+      do ihgj=1,dimensiona
+        ainvjt(ihgt,ihgj) = rec_invccjac(ihgj,ihgt,i)
+      end do
+    end do
+
+    ideg   = ielem_idegfree(i)
+    nfaces = ielem_ifca(i)
+    ggs    = ielem_ggs(i)
+
+    do l = 1, nfaces
+
+      if (dimensiona.eq.3) then
+        if (ielem_types_faces(l,i).eq.5) then
+          iqp = qp_quad
+        else
+          iqp = qp_triangle
+        end if
+      else
+        iqp = qp_line
+      end if
+
+      select case (ggs)
+
+      case (0)
+        ! ------------------------------------------
+        ! GGS=0 : compute gradients using basis derivs
+        ! ------------------------------------------
+        do ngp = 1, iqp
+          ax = rec_qpoints(l,ngp,1,i)
+          ay = rec_qpoints(l,ngp,2,i)
+          if (dimensiona.eq.3) az = rec_qpoints(l,ngp,3,i)
+
+          ! turbulence/passive first
+          if ((turbulence.gt.0).or.(passivescalar.gt.0)) then
+
+            if (icoupleturb.eq.0) then
+              do nvar=1,turbulenceequations+passivescalar
+                rec_uleftturb(nvar,l,ngp,i) = u_ct_val(1,nvar,i)
+              end do
+            end if
+
+            do nvar=1,turbulenceequations+passivescalar
+
+              ugradloc = zero
+
+              if (dimensiona.eq.3) then
+                select case (poly)
+                case (1)
+                  do k=1,ideg
+                    dx = dfx(ax,ay,az,k,i); dy = dfy(ax,ay,az,k,i); dz = dfz(ax,ay,az,k,i)
+                    gk = rec_gradientsturb(1,k,nvar,i)
+                    ugradloc(1)=ugradloc(1)+gk*dx
+                    ugradloc(2)=ugradloc(2)+gk*dy
+                    ugradloc(3)=ugradloc(3)+gk*dz
+                  end do
+                case (2)
+                  do k=1,ideg
+                    dx = dlx(ax,ay,az,k,i); dy = dly(ax,ay,az,k,i); dz = dlz(ax,ay,az,k,i)
+                    gk = rec_gradientsturb(1,k,nvar,i)
+                    ugradloc(1)=ugradloc(1)+gk*dx
+                    ugradloc(2)=ugradloc(2)+gk*dy
+                    ugradloc(3)=ugradloc(3)+gk*dz
+                  end do
+                case (4)
+                  do k=1,ideg
+                    dx = tl3dx(ax,ay,az,k,i); dy = tl3dy(ax,ay,az,k,i); dz = tl3dz(ax,ay,az,k,i)
+                    gk = rec_gradientsturb(1,k,nvar,i)
+                    ugradloc(1)=ugradloc(1)+gk*dx
+                    ugradloc(2)=ugradloc(2)+gk*dy
+                    ugradloc(3)=ugradloc(3)+gk*dz
+                  end do
+                end select
+              else
+                if (poly.eq.4) then
+                  do k=1,ideg
+                    dx = tl2dx(ax,ay,k,i); dy = tl2dy(ax,ay,k,i)
+                    gk = rec_gradientsturb(1,k,nvar,i)
+                    ugradloc(1)=ugradloc(1)+gk*dx
+                    ugradloc(2)=ugradloc(2)+gk*dy
+                  end do
+                else
+                  do k=1,ideg
+                    dx = df2dx(ax,ay,k,i); dy = df2dy(ax,ay,k,i)
+                    gk = rec_gradientsturb(1,k,nvar,i)
+                    ugradloc(1)=ugradloc(1)+gk*dx
+                    ugradloc(2)=ugradloc(2)+gk*dy
+                  end do
+                end if
+              end if
+
+              rec_uleftturbv(1:dimensiona,nvar,l,ngp,i) = matmul(ainvjt(1:dimensiona,1:dimensiona), ugradloc(1:dimensiona))
+            end do
+          end if
+
+          ! viscous gradients (mean flow)
+          do iex = 1, nof_variables-1
+
+            ugradloc = zero
+
+            if (dimensiona.eq.3) then
+              select case (poly)
+              case (1)
+                do k=1,ideg
+                  dx = dfx(ax,ay,az,k,i); dy = dfy(ax,ay,az,k,i); dz = dfz(ax,ay,az,k,i)
+                  gk = rec_gradf(iex,k,i)
+                  ugradloc(1)=ugradloc(1)+gk*dx
+                  ugradloc(2)=ugradloc(2)+gk*dy
+                  ugradloc(3)=ugradloc(3)+gk*dz
+                end do
+              case (2)
+                do k=1,ideg
+                  dx = dlx(ax,ay,az,k,i); dy = dly(ax,ay,az,k,i); dz = dlz(ax,ay,az,k,i)
+                  gk = rec_gradf(iex,k,i)
+                  ugradloc(1)=ugradloc(1)+gk*dx
+                  ugradloc(2)=ugradloc(2)+gk*dy
+                  ugradloc(3)=ugradloc(3)+gk*dz
+                end do
+              case (4)
+                do k=1,ideg
+                  dx = tl3dx(ax,ay,az,k,i); dy = tl3dy(ax,ay,az,k,i); dz = tl3dz(ax,ay,az,k,i)
+                  gk = rec_gradf(iex,k,i)
+                  ugradloc(1)=ugradloc(1)+gk*dx
+                  ugradloc(2)=ugradloc(2)+gk*dy
+                  ugradloc(3)=ugradloc(3)+gk*dz
+                end do
+              end select
+            else
+              if (poly.eq.4) then
+                do k=1,ideg
+                  dx = tl2dx(ax,ay,k,i); dy = tl2dy(ax,ay,k,i)
+                  gk = rec_gradf(iex,k,i)
+                  ugradloc(1)=ugradloc(1)+gk*dx
+                  ugradloc(2)=ugradloc(2)+gk*dy
+                end do
+              else
+                do k=1,ideg
+                  dx = df2dx(ax,ay,k,i); dy = df2dy(ax,ay,k,i)
+                  gk = rec_gradf(iex,k,i)
+                  ugradloc(1)=ugradloc(1)+gk*dx
+                  ugradloc(2)=ugradloc(2)+gk*dy
+                end do
+              end if
+            end if
+
+            rec_uleftv(1:dimensiona,iex,l,ngp,i) = matmul(ainvjt(1:dimensiona,1:dimensiona), ugradloc(1:dimensiona))
+          end do
+
+        end do  ! ngp
+
+      case (1)
+        ! ------------------------------------------
+        ! GGS=1 : gradients already stored in rec_grads
+        ! ------------------------------------------
+        do ngp=1,iqp
+
+          if ((turbulence.gt.0).or.(passivescalar.gt.0)) then
+            if (icoupleturb.eq.0) then
+              do nvar=1,turbulenceequations+passivescalar
+                rec_uleftturb(nvar,l,ngp,i)=u_ct_val(1,nvar,i)
+              end do
+            end if
+            do nvar=1,turbulenceequations+passivescalar
+              rec_uleftturbv(1:dimensiona,nvar,l,ngp,i) = rec_grads(dimensiona+1+nvar,1:dimensiona,i)
+            end do
+          end if
+
+          do iex=1,nof_variables-1
+            rec_uleftv(1:dimensiona,iex,l,ngp,i) = rec_grads(iex,1:dimensiona,i)
+          end do
+
+        end do
+
+      end select
+
+    end do  ! faces
+
+    ! ----  final "element center gradient" part, compute derivs on-the-fly ----
+    if (ggs.eq.0) then
+
+      vextc(1,1) = ielem_xxc(i)
+      vextc(1,2) = ielem_yyc(i)
+      if (dimensiona.eq.3) vextc(1,3) = ielem_zzc(i)
+
+      vextc(1,1:dimensiona) = matmul(rec_invccjac(:,:,i), vextc(1,1:dimensiona) - rec_vext_ref(1:dimensiona,i))
+
+      ax = vextc(1,1)
+      ay = vextc(1,2)
+      if (dimensiona.eq.3) az = vextc(1,3)
+
+      do iex=1,nof_variables-1
+
+        ugradloc = zero
+
+        if (dimensiona.eq.3) then
+          select case (poly)
+          case (1)
+            do k=1,ideg
+              dx = dfx(ax,ay,az,k,i); dy = dfy(ax,ay,az,k,i); dz = dfz(ax,ay,az,k,i)
+              gk = rec_gradf(iex,k,i)
+              ugradloc(1)=ugradloc(1)+gk*dx
+              ugradloc(2)=ugradloc(2)+gk*dy
+              ugradloc(3)=ugradloc(3)+gk*dz
+            end do
+          case (2)
+            do k=1,ideg
+              dx = dlx(ax,ay,az,k,i); dy = dly(ax,ay,az,k,i); dz = dlz(ax,ay,az,k,i)
+              gk = rec_gradf(iex,k,i)
+              ugradloc(1)=ugradloc(1)+gk*dx
+              ugradloc(2)=ugradloc(2)+gk*dy
+              ugradloc(3)=ugradloc(3)+gk*dz
+            end do
+          case (4)
+            do k=1,ideg
+              dx = tl3dx(ax,ay,az,k,i); dy = tl3dy(ax,ay,az,k,i); dz = tl3dz(ax,ay,az,k,i)
+              gk = rec_gradf(iex,k,i)
+              ugradloc(1)=ugradloc(1)+gk*dx
+              ugradloc(2)=ugradloc(2)+gk*dy
+              ugradloc(3)=ugradloc(3)+gk*dz
+            end do
+          end select
+        else
+          if (poly.eq.4) then
+            do k=1,ideg
+              dx = tl2dx(ax,ay,k,i); dy = tl2dy(ax,ay,k,i)
+              gk = rec_gradf(iex,k,i)
+              ugradloc(1)=ugradloc(1)+gk*dx
+              ugradloc(2)=ugradloc(2)+gk*dy
+            end do
+          else
+            do k=1,ideg
+              dx = df2dx(ax,ay,k,i); dy = df2dy(ax,ay,k,i)
+              gk = rec_gradf(iex,k,i)
+              ugradloc(1)=ugradloc(1)+gk*dx
+              ugradloc(2)=ugradloc(2)+gk*dy
+            end do
+          end if
+        end if
+
+        rec_grads(iex,1:dimensiona,i) = matmul(ainvjt(1:dimensiona,1:dimensiona), ugradloc(1:dimensiona)) * ielem_totvolume(i)
+      end do
+
+      if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+        do iex=1,turbulenceequations+passivescalar
+
+        ugradloc = zero
+
+        if (dimensiona.eq.3) then
+          select case (poly)
+          case (1)
+            do k=1,ideg
+              dx = dfx(ax,ay,az,k,i); dy = dfy(ax,ay,az,k,i); dz = dfz(ax,ay,az,k,i)
+              gk = rec_gradientsturb(1,k,iex,i)
+              ugradloc(1)=ugradloc(1)+gk*dx
+              ugradloc(2)=ugradloc(2)+gk*dy
+              ugradloc(3)=ugradloc(3)+gk*dz
+            end do
+          case (2)
+            do k=1,ideg
+              dx = dlx(ax,ay,az,k,i); dy = dly(ax,ay,az,k,i); dz = dlz(ax,ay,az,k,i)
+              gk = rec_gradientsturb(1,k,iex,i)
+              ugradloc(1)=ugradloc(1)+gk*dx
+              ugradloc(2)=ugradloc(2)+gk*dy
+              ugradloc(3)=ugradloc(3)+gk*dz
+            end do
+          case (4)
+            do k=1,ideg
+              dx = tl3dx(ax,ay,az,k,i); dy = tl3dy(ax,ay,az,k,i); dz = tl3dz(ax,ay,az,k,i)
+              gk = rec_gradientsturb(1,k,iex,i)
+              ugradloc(1)=ugradloc(1)+gk*dx
+              ugradloc(2)=ugradloc(2)+gk*dy
+              ugradloc(3)=ugradloc(3)+gk*dz
+            end do
+          end select
+        else
+          if (poly.eq.4) then
+            do k=1,ideg
+              dx = tl2dx(ax,ay,k,i); dy = tl2dy(ax,ay,k,i)
+              gk = rec_gradientsturb(1,k,iex,i)
+              ugradloc(1)=ugradloc(1)+gk*dx
+              ugradloc(2)=ugradloc(2)+gk*dy
+            end do
+          else
+            do k=1,ideg
+              dx = df2dx(ax,ay,k,i); dy = df2dy(ax,ay,k,i)
+             gk = rec_gradientsturb(1,k,iex,i)
+              ugradloc(1)=ugradloc(1)+gk*dx
+              ugradloc(2)=ugradloc(2)+gk*dy
+            end do
+          end if
+        end if
+
+        rec_grads(nof_variables-1+iex,1:dimensiona,i) = matmul(ainvjt(1:dimensiona,1:dimensiona), ugradloc(1:dimensiona)) * ielem_totvolume(i)
+      end do
+
+
+      end if
+
+    end if
+
+  end do
+#ifdef gpu
+  !$omp end target teams distribute parallel do
+#else
+  !$omp end do
+#endif
+
+end subroutine solutiontriav2
+
+
+
+
+
+
+
+
+
+
+subroutine least_squares(n)
+  implicit none
+  integer, intent(in) :: n
+  integer :: ii, i
+
+#ifdef gpu
+!$omp target teams distribute parallel do private(i)
+#else
+  !$omp do
+#endif
+  do ii = 1, nof_interior
+     i = el_int(ii)
+     call allgrads_inner(n, i)
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+  !$omp end do
+#endif
+
+#ifdef gpu
+!$omp target teams distribute parallel do private(i)
+#else
+!$omp  do
+#endif
+  do ii = 1, nof_bounded
+     i = el_bnd(ii)
+     call allgrads_mix(n, i)
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end  do
+#endif
+
+end subroutine
+
+
+
+
+
+
+
+! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! !---------------------------------------------------------------------------------------------!
+! !---------------------------------------------------------------------------------------------!
+! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! !!!!!!!!!!!!!!!!!!subroutine called to employ the least sqares linear interpolation!!!!!!!!!!!!
+! !!!!!!!!!!!!!!!!!!!!!!!for determining the slopes of each cell in each direction!!!!!!!!!!!!!!!
+! !!!!!!!!!!!!!!!!in a weighted average way with the inverse distance !!!!!!!!!!!!!!!!!!!!!!!!!!!
+! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine piecewise_constant(n)
+implicit none
+!> @brief
+!> subroutine for first-order scheme
+integer,intent(in)::n
+integer :: i, iex
+integer::kmaxe
+kmaxe=xmpielrank(n)
+
+
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(iex)
+#else
+!$omp do
+#endif
+	do i=1,kmaxe
+    do iex=1,nof_variables
+ 	rec_uleft(iex,:,:,i)=u_c_val(1,iex,i)
+    end do
+	
+	if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+    do iex=1,turbulenceequations+passivescalar
+	rec_uleftturb(iex,:,:,i)=u_ct_val(1,iex,i)
+    end do
+	end if
+	end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ 
+end subroutine piecewise_constant
+
+
+
+
+
+
+subroutine linear_scheme(n)
+ implicit none
+!> @brief
+!> subroutine for linear type reconstruction
+ integer,intent(in)::n
+integer::i,ii,iconsidered
+integer::kmaxe
+kmaxe=xmpielrank(n)
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(i,iconsidered)
+#else
+!$omp do
+#endif
+	do ii=1,nof_interior
+	i=el_int(ii)
+	iconsidered=i
+
+					call compute_linear_reconstruction(iconsidered)
+    end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(i,iconsidered)
+#else
+!$omp do
+#endif
+do ii=1,nof_bounded
+	i=el_bnd(ii)
+	iconsidered=i
+
+                    call compute_linear_reconstruction(iconsidered)
+
+      end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+end subroutine linear_scheme
+
+
+
+
+
+
+
+subroutine compute_linear_reconstruction(iconsidered)
+  implicit none
+!> @brief
+!> subroutine for computing unlimited reconstructed solution (on-the-fly basis; stack only)
+#ifdef gpu
+!$omp declare target
+#endif
+  integer,intent(in)::iconsidered
+  integer :: NVTOT
+  integer :: i,l,ngp,iqp,k,ideg
+  real :: ax,ay,az
+  real :: phi(1:idegfree)
+  real :: du(1:nof_variables + turbulenceequations + passivescalar)
+  NVTOT = nof_variables + turbulenceequations + passivescalar
+
+  i = iconsidered
+  ideg = idegfree
+
+  rec_uleft(:,:,:,i)=zero
+  if (turbulenceequations.ge.1) rec_uleftturb(:,:,:,i)=zero
+
+  do l=1,ielem_ifca(i)
+
+    if (dimensiona.eq.3) then
+      if (ielem_types_faces(l,i).eq.5) then
+        iqp = qp_quad
+      else
+        iqp = qp_triangle
+      end if
+    else
+      iqp = qp_line
+    end if
+
+    do ngp=1,iqp
+      ax = rec_qpoints(l,ngp,1,i)
+      ay = rec_qpoints(l,ngp,2,i)
+      if (dimensiona.eq.3) az = rec_qpoints(l,ngp,3,i)
+
+      if (dimensiona.eq.3) then
+        phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,0)
+      else
+        phi(1:ideg) = basis_rec2d(n,ax,ay,ielem_iorder(i),i,ideg,0)
+      end if
+
+      du(1:nof_variables) = zero
+      do k=1,ideg
+        du(1:nof_variables) = du(1:nof_variables) + phi(k) * rec_gradients(1,k,1:nof_variables,i)
+      end do
+
+      if (turbulenceequations.ge.1) then
+        du(nof_variables+1:NVTOT) = zero
+        do k=1,ideg
+          du(nof_variables+1:NVTOT) = du(nof_variables+1:NVTOT) + &
+              phi(k) * rec_gradients2(1,k,1:turbulenceequations+passivescalar,i)
+        end do
+      end if
+
+      call extrapolate_bound_linear(du,l,ngp,i)
+    end do
+  end do
+
+end subroutine compute_linear_reconstruction
+
+
+
+
+
+
+
+
+subroutine arbitrary_order(n)
+implicit none
+!> @brief
+!> subroutine controlling the reconstruction in 3d
+integer,intent(in)::n
+integer::kmaxe,i
+
+
+kmaxe=xmpielrank(n)
+ielem_reduce(1:kmaxe)=0
+
+
+
+  call least_squares(n)
+
+	
+ select case(iweno)
+ 
+ 
+  case(1)
+
+  if (wenwrt.eq.2)then
+  call wenoweights_char(n)
+  else
+  call wenoweights_cons(n)
+  end if
+  if (((turbulence.eq.1).or.(passivescalar.gt.0)) .and. (icoupleturb.eq.1)) then
+  call wenoweights_turb(n)
+  end if
+
+  call checksol(n)
+  call muscl(n)
+  call checksolx(n)
+
+  case(-1)
+
+  call muscl(n)		
+  call checksolx(n)
+
+ 
+ 
+	case(0)
+	if (firstorder.eq.1)then
+	call piecewise_constant(n)
+	else
+
+	call linear_scheme(n)
+! 	call checksolx(n)
+	end if
+
+
+
+	end select
+
+
+
+
+	if (itestcase.eq.4)then
+
+	call solutiontriav2(n)
+	end if
+
+
+ 
+
+ 
+ 
+ 
+
+end subroutine arbitrary_order
+
+
+
+subroutine viscous_dg_ggs(n)
+implicit none
+!> @brief
+!> subroutine controlling the reconstruction in 3d
+integer,intent(in)::n
+integer::i,iex,l,ngp,iqp,iconsidered
+integer::kmaxe
+kmaxe=xmpielrank(n)
+
+
+
+
+if (dimensiona.eq.3)then
+#ifdef gpu
+!!$omp target teams distribute parallel do &
+!!$omp& private(iconsidered,iex,l,iqp,ngp)
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+iconsidered=i
+
+
+			do l=1,ielem_ifca(i)
+
+						if (ielem_types_faces(l,i).eq.5)then
+							iqp=qp_quad
+						else
+							iqp=qp_triangle
+						end if
+
+						do ngp=1,iqp
+							rec_uleftv(1:3,1:nof_variables-1,l,ngp,i) = rec_grads(1:nof_variables-1,1:3,i)
+						end do
+			end do
+
+
+
+
+end do
+#ifdef gpu
+!!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+else
+#ifdef gpu
+!!$omp target teams distribute parallel do &
+!!$omp& private(iconsidered,iex,l,iqp,ngp)
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+iconsidered=i
+
+
+
+		do l=1,ielem_ifca(i)
+
+                iqp=qp_line_n
+
+                do ngp=1,iqp
+
+
+
+			rec_uleftv(1:2,1:nof_variables-1,l,ngp,i) = rec_grads(1:nof_variables-1,1:2,i)
+
+				end do
+				end do
+
+
+
+end do
+#ifdef gpu
+!!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+end if
+
+
+end subroutine viscous_dg_ggs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+subroutine checksol(n)
+implicit none
+!> @brief
+!> subroutine for checking the reconstructed solution
+integer,intent(in)::n
+integer :: i,l,ngp,iqp,iex
+integer :: reduce1,kmaxe
+real    :: jump_cond,jump,rhol,rscale,templ
+real    :: mp_pinfl,gammal,sumx
+real    :: mp_pinfr,gammar,temp_scale
+real,dimension(1:nof_variables) :: leftv,rightv,tempvectl,tempvectr
+kmaxe=xmpielrank(n)
+
+
+
+
+
+
+
+
+
+
+
+if (itestcase.ge.3)then
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(l,ngp,iqp,iex,reduce1,jump,rhol,rscale,templ, &
+!$omp&         mp_pinfl,mp_pinfr,gammal,gammar,sumx,temp_scale, &
+!$omp&         leftv,rightv,tempvectl,tempvectr,jump_cond)
+#else
+!$omp do
+#endif
+	do i=1,kmaxe	!all elements
+
+        ielem_reduce(i)=0;reduce1=0
+        jump_cond=0.9
+
+
+        if (ielem_troubled(i).eq.1)then
+
+        if (ielem_full(i).eq.0)then
+			ielem_reduce(i)=1
+        end if
+
+
+        if (ielem_full(i).eq.1)then
+		
+		  do l=1,ielem_ifca(i)	!faces2
+				  if (dimensiona.eq.3)then
+
+			      if (ielem_types_faces(l,i).eq.5)then
+				    iqp=qp_quad
+			      else
+				    iqp=qp_triangle
+			      end if
+			      else
+
+					 iqp=qp_line
+			      end if
+
+				  do ngp=1,iqp
+					      
+						leftv(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
+												tempvectl(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
+												rightv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+												tempvectr(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+						call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
+
+
+
+
+                                                    if (realgas.eq.0)then
+                                                    do iex=1,nof_variables
+                                                           if ((iex.ge.2).and.(iex.le.dimensiona+1)) cycle
+
+
+
+                                                            if (((abs(leftv(iex)-rightv(iex))).ge.(jump_cond*rightv(iex))))then
+																	reduce1=1
+																ielem_reduce(i)=1
+															end if
+
+                                                    end do
+                                                    end if
+                                                      if (realgas.eq.1)then
+
+                                                     call cons2div(n,tempvectl,mp_pinfl,gammal)
+                                                     call cons2div(n,tempvectr,mp_pinfr,gammar)
+
+
+                                                    do iex=1,nof_variables       !loop rho,u,v,w,e,p
+                                                           if ((iex.ge.2).and.(iex.le.dimensiona+1)) cycle
+
+
+                                                           jump  = abs(tempvectl(iex) - tempvectr(iex))
+                                                           temp_scale = tempvectr(iex)
+
+                                                            if ((jump .ge. jump_cond*temp_scale).or.(tempvectl(iex).lt.0.0d0))then
+                                                                    reduce1=1
+                                                                    ielem_reduce(i)=2     !jump from not species
+
+                                                            end if
+
+                                                    end do
+
+                                                    do iex=dimensiona+2, dimensiona+2
+                                                            jump  = abs(leftv(iex) - rightv(iex))
+                                                           temp_scale = rightv(iex)
+
+                                                            if ((jump .ge. jump_cond*temp_scale).or.(leftv(iex).lt.0.0d0))then
+                                                                    reduce1=1
+                                                                    ielem_reduce(i)=3 !jump from species
+
+                                                            end if
+
+
+                                                    end do
+
+
+                                                    rhol = rec_uleft(1, l, ngp,i)
+
+                                                            sumx = 0.0d0
+                                                            do iex = dimensiona+4, nof_variables
+
+                                                            templ=rec_uleft(iex,l,ngp,i)
+                                                            ! work directly on rhoyk, clip negatives
+                                                            if (templ < 0.0d0) then
+                                                                templ = 0.0d0
+                                                            end if
+
+                                                            sumx = sumx + templ
+                                                            end do
+
+                                                            if (sumx > 1.0d-14) then
+                                                            ! renormalise so that sum_k (rhoyk) = rho
+
+
+                                                            ! keep 2nd order; do not set reduce1 here
+                                                            else
+                                                            ! truly broken state → fall back
+                                                            reduce1 = 1
+                                                            ielem_reduce(i) = 5
+                                                            end if
+
+
+
+
+
+
+
+
+
+
+
+
+                                                    end if
+
+
+
+
+
+
+
+
+
+
+
+				
+					
+				  end do
+		end do	
+		
+		
+		if (ielem_hybrid(i).eq.1)then
+		reduce1=1
+		ielem_reduce(i)=1
+		end if
+		
+                                                            if (realgas.eq.1)then
+                                                            if (reduce1.eq.0)then
+
+
+                                                             do l=1,ielem_ifca(i)	!faces2
+                                                                if (dimensiona.eq.3)then
+
+                                                                if (ielem_types_faces(l,i).eq.5)then
+                                                                    iqp=qp_quad
+                                                                else
+                                                                    iqp=qp_triangle
+                                                                end if
+                                                                else
+
+                                                                    iqp=qp_line
+                                                                end if
+
+                                                                do ngp=1,iqp
+
+
+
+
+
+
+                                                            rhol = rec_uleft(1, l, ngp,i)
+
+                                                            sumx = 0.0d0
+                                                            do iex = dimensiona+4, nof_variables
+                                                            ! work directly on rhoyk, clip negatives
+                                                            if (rec_uleft(iex,l,ngp,i) < 0.0d0) then
+                                                                rec_uleft(iex,l,ngp,i) = 0.0d0
+                                                            end if
+
+                                                            sumx = sumx + rec_uleft(iex,l,ngp,i)
+                                                            end do
+
+                                                            if (sumx > 1.0d-14) then
+                                                            ! renormalise so that sum_k (rhoyk) = rho
+                                                            rscale = rhol / sumx
+
+                                                            do iex = dimensiona+4, nof_variables
+                                                                rec_uleft(iex,l,ngp,i) = rec_uleft(iex,l,ngp,i) * rscale
+                                                            end do
+
+
+                                                            end if
+
+                                                            end do
+                                                            end do
+                                                            end if
+                                                           end if
+
+		
+		
+		end if
+		
+		
+		end if
+	end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+		
+
+		
+end if		
+		
+		
+
+end subroutine checksol
+
+ 
+subroutine checksolx(n)
+implicit none
+!> @brief
+!> subroutine for checking the reconstructed solution
+integer,intent(in)::n
+integer::i,l,ngp,iqp,iex
+integer::reduce1,kmaxe
+real::jump_cond,jump,rhol,rscale
+real,dimension(1:nof_variables)::leftv,tempvectl,tempvectr
+real::mp_pinfl,gammal,sumx
+real,dimension(1:nof_variables)::rightv
+real::mp_pinfr,gammar,temp_scale
+
+kmaxe=xmpielrank(n)
+
+
+
+
+
+
+if (itestcase.ge.3)then
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(l,ngp,iqp,iex,reduce1,jump,rhol,rscale,mp_pinfl,mp_pinfr,gammal,gammar,sumx,temp_scale, &
+!$omp&         leftv,rightv,tempvectl,tempvectr,jump_cond)
+#else
+!$omp do
+#endif
+	do i=1,kmaxe
+            jump_cond=0.7
+
+			reduce1=0
+
+        if (ielem_troubled(i).eq.1)then
+        
+
+						do l=1,ielem_ifca(i)	!faces2
+								if (dimensiona.eq.3)then
+
+									if (ielem_types_faces(l,i).eq.5)then
+										iqp=qp_quad
+									else
+										iqp=qp_triangle
+									end if
+									else
+
+										iqp=qp_line
+									end if
+										do ngp=1,iqp
+
+
+												leftv(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
+												tempvectl(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
+												rightv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+												tempvectr(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+												call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
+
+                                                            if (realgas.eq.0)then
+                                                    do iex=1,nof_variables
+                                                           if ((iex.ge.2).and.(iex.le.dimensiona+1)) cycle
+
+
+
+                                                            if (((abs(leftv(iex)-rightv(iex))).ge.(jump_cond*rightv(iex))))then
+																	reduce1=1
+																ielem_reduce(i)=2
+															end if
+
+                                                    end do
+                                                    end if
+                                                     if (realgas.eq.1)then
+
+                                                      call cons2div(n,tempvectl,mp_pinfl,gammal)
+                                                      call cons2div(n,tempvectr,mp_pinfr,gammar)
+
+
+                                                    do iex=1,nof_variables       !loop rho,u,v,w,e,p
+                                                           if ((iex.ge.2).and.(iex.le.dimensiona+1)) cycle
+
+
+                                                           jump  = abs(tempvectl(iex) - tempvectr(iex))
+                                                           temp_scale = tempvectr(iex)
+
+                                                            if ((jump .ge. jump_cond*temp_scale).or.(tempvectl(iex).lt.0.0d0))then
+                                                                    reduce1=1
+                                                                    ielem_reduce(i)=10+iex    !jump from not species
+
+                                                            end if
+
+                                                    end do
+
+                                                    do iex=dimensiona+2, dimensiona+2
+                                                            jump  = abs(leftv(iex) - rightv(iex))
+                                                           temp_scale = rightv(iex)
+
+                                                            if ((jump .ge. jump_cond*temp_scale).or.(leftv(iex).lt.0.0d0))then
+                                                                    reduce1=1
+                                                                    ielem_reduce(i)=3 !jump from species
+
+                                                            end if
+
+
+                                                    end do
+
+
+                                                            if (code_profile.ne.777)then
+                                                            rhol = rec_uleft(1, l, ngp,i)
+
+                                                            sumx = 0.0d0
+                                                            do iex = dimensiona+4, nof_variables
+                                                            ! work directly on rhoyk, clip negatives
+                                                            if (rec_uleft(iex,l,ngp,i) < 0.0d0) then
+                                                                rec_uleft(iex,l,ngp,i) = 0.0d0
+                                                            end if
+
+                                                            sumx = sumx + rec_uleft(iex,l,ngp,i)
+                                                            end do
+
+                                                            if (sumx > 1.0d-14) then
+                                                            ! renormalise so that sum_k (rhoyk) = rho
+                                                            rscale = rhol / sumx
+
+                                                            do iex = dimensiona+4, nof_variables
+                                                                rec_uleft(iex,l,ngp,i) = rec_uleft(iex,l,ngp,i) * rscale
+                                                            end do
+
+                                                            ! keep 2nd order; do not set reduce1 here
+                                                            else
+                                                            ! truly broken state → fall back
+                                                            reduce1 = 1
+                                                            ielem_reduce(i) = 5
+                                                            end if
+
+
+
+                                                            end if
+
+
+
+
+
+                                                    end if
+
+
+										end do
+						end do
+
+
+					if (ielem_hybrid(i).eq.1)then
+					reduce1=1
+					ielem_reduce(i)=1
+					end if
+
+
+
+
+
+					if (reduce1.ge.1)then
+						do iex=1,nof_variables
+						rec_uleft(iex,:,:,i)=u_c_val(1,iex,i)
+
+						end do
+
+
+
+
+
+						if (dg.eq.1)then
+						dg2fv(1:ielem_idegfree(i),:,i)=zero
+
+						end if
+
+					end if
+
+
+					if (turbulence.eq.1)then
+							if (icoupleturb.eq.1)then
+							reduce1=0
+								do l=1,ielem_ifca(i)	!faces2
+
+										if (dimensiona.eq.3)then
+
+										if (ielem_types_faces(l,i).eq.5)then
+											iqp=qp_quad
+										else
+											iqp=qp_triangle
+										end if
+										else
+
+											iqp=qp_line
+										end if
+
+										do ngp=1,iqp
+											leftv(1)=rec_uleftturb(1,l,ngp,i)
+											rightv(1)=u_ct_val(1,1,i)
+												if (((abs(leftv(1)-rightv(1))).ge.(0.6*rightv(1))).or.(leftv(1).le.zero)) then
+													reduce1=1
+												end if
+										end do
+								end do
+
+								if (ielem_hybrid(i).eq.1)then
+								reduce1=1
+								ielem_reduce(i)=1
+								end if
+
+								if (reduce1.eq.1)then
+								do iex=1,1
+								rec_uleftturb(1,:,:,i)=u_ct_val(1,1,i)
+								end do
+								end if
+							end if
+					end if
+
+
+
+
+
+		end if
+
+
+
+	end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+end if
+
+
+
+end subroutine checksolx
+ 
+ 
+subroutine slope_limiters(n,iconsidered,utmin,utmax,usol,psi)
+implicit none
+!> @brief
+!> Pointwise MUSCL slope limiter evaluated at a single quadrature point.
+!> Inputs:
+!>   usol(:)     : unlimited reconstructed values at the current quadrature point
+!>   utmin/utmax : min/max bounds for element iconsidered (per variable)
+!> Output:
+!>   psi(:)      : limiter factors in [0,1] (or as defined by selected limiter), per variable
+#ifdef gpu
+!$omp declare target
+#endif
+integer, intent(in) :: n, iconsidered
+real,    intent(in) :: utmin(1:nof_variables+turbulenceequations+passivescalar), utmax(1:nof_variables+turbulenceequations+passivescalar)
+real,    intent(in) :: usol(1:nof_variables+turbulenceequations+passivescalar)
+real,    intent(out):: psi(1:nof_variables+turbulenceequations+passivescalar)
+integer :: i, iex, nvtot
+real :: u0, d2, sfd, epsi2, dmin, dplus, kappa_ven, psi2, sig_1, delu, y_fun, s_y, pol_mog
+
+i = iconsidered
+nvtot = nof_variables+turbulenceequations+passivescalar
+
+kappa_ven = 0.1
+
+do iex = 1, nvtot
+
+  ! cell-centered value for this variable (no utemp storage)
+  if (iex <= nof_variables) then
+    u0 = u_c_val(1,iex,i)
+  else
+    u0 = u_ct_val(1,iex-nof_variables,i)
+  end if
+
+  psi2 = zero
+  d2 = usol(iex) - u0
+
+  if (abs(d2) <= zero) then
+    psi(iex) = 1.0d0
+
+  else if (d2 > zero) then
+    sfd = (utmax(iex) - u0) / d2
+
+    select case (limiter)
+
+    case (1)
+      psi(iex) = min(1.0d0, sfd)                 ! Barth-Jespersen
+
+    case (10)
+      psi(iex) = min(0.3d0, sfd)                 ! very restrictive BJ
+
+    case (2)
+      pol_mog = -((4.0d0/27.0d0)*sfd**3) + sfd
+      if (sfd < 1.5d0) then
+        psi(iex) = pol_mog
+      else
+        psi(iex) = 1.0d0
+      end if
+
+      ! BJ Michalak blending
+      delu = utmax(iex) - utmin(iex)
+      if (delu**2 <= ((kappa_ven*ielem_minedge(i))**3)) then
+        sig_1 = 1.0d0
+      else if ( ((kappa_ven*ielem_minedge(i))**3) < delu**2 .and. delu**2 < 2.0d0*((kappa_ven*ielem_minedge(i))**3) ) then
+        y_fun = (delu**2 - (kappa_ven*ielem_minedge(i))**3) / ((kappa_ven*ielem_minedge(i))**3)
+        s_y   = (2.0d0*y_fun**3) - (3.0d0*y_fun**2) + 1.0d0
+        sig_1 = s_y
+      else
+        sig_1 = 0.0d0
+      end if
+
+      psi2 = sig_1 + (1.0d0 - sig_1)*psi(iex)
+      psi(iex) = psi2
+
+    case (9)
+      pol_mog = -((4.0d0/27.0d0)*sfd**3) + sfd
+      if (sfd < 1.5d0) then
+        psi(iex) = pol_mog
+      else
+        psi(iex) = 1.0d0
+      end if
+
+      ! same blending as case(2)
+      delu = utmax(iex) - utmin(iex)
+      if (delu**2 <= ((kappa_ven*ielem_minedge(i))**3)) then
+        sig_1 = 1.0d0
+      else if ( ((kappa_ven*ielem_minedge(i))**3) < delu**2 .and. delu**2 < 2.0d0*((kappa_ven*ielem_minedge(i))**3) ) then
+        y_fun = (delu**2 - (kappa_ven*ielem_minedge(i))**3) / ((kappa_ven*ielem_minedge(i))**3)
+        s_y   = (2.0d0*y_fun**3) - (3.0d0*y_fun**2) + 1.0d0
+        sig_1 = s_y
+      else
+        sig_1 = 0.0d0
+      end if
+
+      psi2 = sig_1 + (1.0d0 - sig_1)*psi(iex)
+      psi(iex) = psi2
+
+    case (3)
+      pol_mog = -((4.0d0/27.0d0)*sfd**3) + sfd
+      if (sfd < 1.5d0) then
+        psi(iex) = pol_mog
+      else
+        psi(iex) = 1.0d0
+      end if
+
+      ! extended-stencil blending
+      delu = utmax(iex) - utmin(iex)
+      if (delu**2 <= ((kappa_ven*ielem_minedge(i))**3)) then
+        sig_1 = 1.0d0
+      else if ( ((kappa_ven*ielem_minedge(i))**3) < delu**2 .and. delu**2 < 2.0d0*((kappa_ven*ielem_minedge(i))**3) ) then
+        y_fun = (delu**2 - (kappa_ven*ielem_minedge(i))**3) / ((kappa_ven*ielem_minedge(i))**3)
+        s_y   = 2.0d0*y_fun**3 - 3.0d0*y_fun**2 + 1.0d0
+        sig_1 = s_y
+      else
+        sig_1 = 0.0d0
+      end if
+
+      psi2 = sig_1 + (1.0d0 - sig_1)*psi(iex)
+      psi(iex) = psi2
+
+    case (4)    ! VKM + blending
+      dmin = usol(iex) - u0
+      dmin = sign(1.0d0, dmin) * (abs(dmin) + tolsmall)
+      dplus = utmax(iex) - u0
+      epsi2 = (kappa_ven*ielem_minedge(i))**3
+      psi(iex) = (1.0d0/dmin) * ( (((dplus**2)+epsi2)*dmin + (2.0d0*(dmin**2)*dplus)) / ((dplus**2) + (2.0d0*dmin**2) + (dmin*dplus) + epsi2) )
+
+      delu = utmax(iex) - utmin(iex)
+      if (delu**2 <= ((kappa_ven*ielem_minedge(i))**3)) then
+        sig_1 = 1.0d0
+      else if ( ((kappa_ven*ielem_minedge(i))**3) < delu**2 .and. delu**2 < 2.0d0*((kappa_ven*ielem_minedge(i))**3) ) then
+        y_fun = (delu**2 - (kappa_ven*ielem_minedge(i))**3) / ((kappa_ven*ielem_minedge(i))**3)
+        s_y   = 2.0d0*y_fun**3 - 3.0d0*y_fun**2 + 1.0d0
+        sig_1 = s_y
+      else
+        sig_1 = 0.0d0
+      end if
+
+      psi2 = sig_1 + (1.0d0 - sig_1)*psi(iex)
+      psi(iex) = psi2
+
+    case (5)
+      psi(iex) = (sfd**2 + sfd) / (sfd**2 + 1.0d0)   ! Van Albada
+
+    case (6)
+      psi(iex) = 2.0d0*sfd / (sfd + 1.0d0)           ! Van Leer
+
+    case (7)    ! Venkatakrishnan
+      dmin  = usol(iex) - u0
+      dmin  = sign(1.0d0, dmin) * (abs(dmin) + tolsmall)
+      dplus = utmax(iex) - u0
+      epsi2 = (kappa_ven*ielem_minedge(i))**3
+      psi(iex) = (1.0d0/dmin) * ( (((dplus**2)+epsi2)*dmin + (2.0d0*(dmin**2)*dplus)) / ((dplus**2) + (2.0d0*dmin**2) + (dmin*dplus) + epsi2) )
+
+    case (8)    ! Venkatakrishnan + blending
+      dmin  = usol(iex) - u0
+      dmin  = sign(1.0d0, dmin) * (abs(dmin) + tolsmall)
+      dplus = utmax(iex) - u0
+      epsi2 = (kappa_ven*ielem_minedge(i))**3
+      psi(iex) = (1.0d0/dmin) * ( (((dplus**2)+epsi2)*dmin + (2.0d0*(dmin**2)*dplus)) / ((dplus**2) + (2.0d0*dmin**2) + (dmin*dplus) + epsi2) )
+
+      delu = utmax(iex) - utmin(iex)
+      if (delu**2 <= ((kappa_ven*ielem_minedge(i))**3)) then
+        sig_1 = 1.0d0
+      else if ( ((kappa_ven*ielem_minedge(i))**3) < delu**2 .and. delu**2 < 2.0d0*((kappa_ven*ielem_minedge(i))**3) ) then
+        y_fun = (delu**2 - (kappa_ven*ielem_minedge(i))**3) / ((kappa_ven*ielem_minedge(i))**3)
+        s_y   = 2.0d0*y_fun**3 - 3.0d0*y_fun**2 + 1.0d0
+        sig_1 = s_y
+      else
+        sig_1 = 0.0d0
+      end if
+
+      psi2 = sig_1 + (1.0d0 - sig_1)*psi(iex)
+      psi(iex) = psi2
+
+    end select
+
+  else
+    sfd = (utmin(iex) - u0) / d2
+
+    select case (limiter)
+
+    case (1)
+      psi(iex) = min(1.0d0, sfd)
+
+    case (10)
+      psi(iex) = min(0.3d0, sfd)
+
+    case (2)
+      pol_mog = -((4.0d0/27.0d0)*sfd**3) + sfd
+      if (sfd < 1.5d0) then
+        psi(iex) = pol_mog
+      else
+        psi(iex) = 1.0d0
+      end if
+
+      delu = utmax(iex) - utmin(iex)
+      if (delu**2 <= ((kappa_ven*ielem_minedge(i))**3)) then
+        sig_1 = 1.0d0
+      else if ( ((kappa_ven*ielem_minedge(i))**3) < delu**2 .and. delu**2 < 2.0d0*((kappa_ven*ielem_minedge(i))**3) ) then
+        y_fun = (delu**2 - (kappa_ven*ielem_minedge(i))**3) / ((kappa_ven*ielem_minedge(i))**3)
+        s_y   = 2.0d0*y_fun**3 - 3.0d0*y_fun**2 + 1.0d0
+        sig_1 = s_y
+      else
+        sig_1 = 0.0d0
+      end if
+
+      psi2 = sig_1 + (1.0d0 - sig_1)*psi(iex)
+      psi(iex) = psi2
+
+    case (9)
+      pol_mog = -((4.0d0/27.0d0)*sfd**3) + sfd
+      if (sfd < 1.5d0) then
+        psi(iex) = pol_mog
+      else
+        psi(iex) = 1.0d0
+      end if
+
+      delu = utmax(iex) - utmin(iex)
+      if (delu**2 <= ((kappa_ven*ielem_minedge(i))**3)) then
+        sig_1 = 1.0d0
+      else if ( ((kappa_ven*ielem_minedge(i))**3) < delu**2 .and. delu**2 < 2.0d0*((kappa_ven*ielem_minedge(i))**3) ) then
+        y_fun = (delu**2 - (kappa_ven*ielem_minedge(i))**3) / ((kappa_ven*ielem_minedge(i))**3)
+        s_y   = 2.0d0*y_fun**3 - 3.0d0*y_fun**2 + 1.0d0
+        sig_1 = s_y
+      else
+        sig_1 = 0.0d0
+      end if
+
+      psi2 = sig_1 + (1.0d0 - sig_1)*psi(iex)
+      psi(iex) = psi2
+
+    case (3)
+      pol_mog = -((4.0d0/27.0d0)*sfd**3) + sfd
+      if (sfd < 1.5d0) then
+        psi(iex) = pol_mog
+      else
+        psi(iex) = 1.0d0
+      end if
+
+      delu = utmax(iex) - utmin(iex)
+      if (delu**2 <= ((kappa_ven*ielem_minedge(i))**3)) then
+        sig_1 = 1.0d0
+      else if ( ((kappa_ven*ielem_minedge(i))**3) < delu**2 .and. delu**2 < 2.0d0*((kappa_ven*ielem_minedge(i))**3) ) then
+        y_fun = (delu**2 - (kappa_ven*ielem_minedge(i))**3) / ((kappa_ven*ielem_minedge(i))**3)
+        s_y   = 2.0d0*y_fun**3 - 3.0d0*y_fun**2 + 1.0d0
+        sig_1 = s_y
+      else
+        sig_1 = 0.0d0
+      end if
+
+      psi2 = sig_1 + (1.0d0 - sig_1)*psi(iex)
+      psi(iex) = psi2
+
+    case (4)
+      dmin  = usol(iex) - u0
+      dmin  = sign(1.0d0, dmin) * (abs(dmin) + tolsmall)
+      dplus = utmin(iex) - u0
+      epsi2 = (kappa_ven*ielem_minedge(i))**3
+      psi(iex) = (1.0d0/dmin) * ( (((dplus**2)+epsi2)*dmin + (2.0d0*(dmin**2)*dplus)) / ((dplus**2) + (2.0d0*dmin**2) + (dmin*dplus) + epsi2) )
+
+      delu = utmax(iex) - utmin(iex)
+      if (delu**2 <= ((kappa_ven*ielem_minedge(i))**3)) then
+        sig_1 = 1.0d0
+      else if ( ((kappa_ven*ielem_minedge(i))**3) < delu**2 .and. delu**2 < 2.0d0*((kappa_ven*ielem_minedge(i))**3) ) then
+        y_fun = (delu**2 - (kappa_ven*ielem_minedge(i))**3) / ((kappa_ven*ielem_minedge(i))**3)
+        s_y   = 2.0d0*y_fun**3 - 3.0d0*y_fun**2 + 1.0d0
+        sig_1 = s_y
+      else
+        sig_1 = 0.0d0
+      end if
+
+      psi2 = sig_1 + (1.0d0 - sig_1)*psi(iex)
+      psi(iex) = psi2
+
+    case (5)
+      psi(iex) = (sfd**2 + sfd) / (sfd**2 + 1.0d0)
+
+    case (6)
+      psi(iex) = 2.0d0*sfd / (sfd + 1.0d0)
+
+    case (7)
+      dmin  = usol(iex) - u0
+      dmin  = sign(1.0d0, dmin) * (abs(dmin) + tolsmall)
+      dplus = utmin(iex) - u0
+      epsi2 = (kappa_ven*ielem_minedge(i))**3
+      psi(iex) = (1.0d0/dmin) * ( (((dplus**2)+epsi2)*dmin + (2.0d0*(dmin**2)*dplus)) / ((dplus**2) + (2.0d0*dmin**2) + (dmin*dplus) + epsi2) )
+
+    case (8)
+      dmin  = usol(iex) - u0
+      dmin  = sign(1.0d0, dmin) * (abs(dmin) + tolsmall)
+      dplus = utmin(iex) - u0
+      epsi2 = (kappa_ven*ielem_minedge(i))**3
+      psi(iex) = (1.0d0/dmin) * ( (((dplus**2)+epsi2)*dmin + (2.0d0*(dmin**2)*dplus)) / ((dplus**2) + (2.0d0*dmin**2) + (dmin*dplus) + epsi2) )
+
+      delu = utmax(iex) - utmin(iex)
+      if (delu**2 <= ((kappa_ven*ielem_minedge(i))**3)) then
+        sig_1 = 1.0d0
+      else if ( ((kappa_ven*ielem_minedge(i))**3) < delu**2 .and. delu**2 < 2.0d0*((kappa_ven*ielem_minedge(i))**3) ) then
+        y_fun = (delu**2 - (kappa_ven*ielem_minedge(i))**3) / ((kappa_ven*ielem_minedge(i))**3)
+        s_y   = 2.0d0*y_fun**3 - 3.0d0*y_fun**2 + 1.0d0
+        sig_1 = s_y
+      else
+        sig_1 = 0.0d0
+      end if
+
+      psi2 = sig_1 + (1.0d0 - sig_1)*psi(iex)
+      psi(iex) = psi2
+
+    end select
+
+  end if
+
+end do
+
+end subroutine slope_limiters
+
+
+
+
+
+subroutine process_state(uin,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+  implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+  integer::nvtot
+  real,    intent(in)    :: uin(nof_variables+turbulenceequations+passivescalar),uref(nof_variables+turbulenceequations+passivescalar)
+  integer, intent(inout) :: k
+  real,    intent(inout) :: utmin(nof_variables+turbulenceequations+passivescalar), utmax(nof_variables+turbulenceequations+passivescalar)
+  real,    intent(inout) :: sumvars(nof_variables+turbulenceequations+passivescalar), aver_vars(nof_variables+turbulenceequations+passivescalar), maxvars(nof_variables+turbulenceequations+passivescalar)
+  ! locals
+  integer :: j
+  real :: mp_pinfl, gammal
+  real :: uwork(nof_variables+turbulenceequations+passivescalar)
+  real :: leftv(1:nof_variables)
+  nvtot=nof_variables+turbulenceequations+passivescalar
+  uwork(:) = uin(:)
+
+  ! Convert conservative->primitive for flow variables if requested
+  if (wenwrt == 3) then
+    leftv(1:nof_variables) = uwork(1:nof_variables)
+    call cons2prim(n, leftv, mp_pinfl, gammal)
+    uwork(1:nof_variables) = leftv(1:nof_variables)
+  end if
+
+  k = k + 1
+
+
+    do j = 1, nvtot
+      sumvars(j) = sumvars(j) + abs(uwork(j) - uref(j))
+    end do
+
+
+  do j = 1, nvtot
+    utmin(j)     = min(utmin(j), uwork(j))
+    utmax(j)     = max(utmax(j), uwork(j))
+    aver_vars(j) = aver_vars(j) + uwork(j)
+    maxvars(j)   = max(maxvars(j), abs(uwork(j)))
+  end do
+
+end subroutine process_state
+
+
+
+
+subroutine trouble_indicator1
+implicit none
+integer::i,l,j,k,kmaxe,iqp,ngp,iex
+integer::trouble
+integer::iconsidered,facex,pointx
+real,dimension(1:nof_variables)::leftv,rightv
+real,dimension(1:nof_variables)::maxvars,aver_vars,sumvars,utmin,utmax
+real :: usol(1:nof_variables)
+
+
+
+
+if (code_profile.ne.102)then
+
+#ifdef gpu
+! !$omp target teams distribute parallel do &
+! !$omp& private(maxvars,aver_vars,sumvars,utmin,utmax,leftv,rightv,usol,iconsidered,facex,pointx,trouble,l,j,k,iqp,ngp,iex)
+#else
+!$omp do
+#endif
+do i = 1, xmpielrank(n)
+iconsidered=i
+
+
+
+
+
+    call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+
+    do l = 1, ielem_ifca(i)
+
+            if (dimensiona.eq.2)then
+
+            iqp=qp_line_n
+            else
+                if (ielem_types_faces(l,i).eq.5)then
+					iqp=qp_quad
+				  else
+					iqp=qp_triangle
+				  end if
+            end if
+
+                do ngp = 1,iqp!
+                    facex=l
+                    pointx=ngp
+                    usol(:)=rec_uleft_dg(1:nof_variables,facex,pointx,iconsidered)
+                    leftv(:)=usol(:)
+                    call pad_dg(iconsidered,leftv)
+                    call nad_dg(iconsidered,facex,pointx,leftv,rightv,usol,maxvars,aver_vars,sumvars,utmin,utmax)
+                end do
+
+    end do
+
+
+
+
+
+
+
+end do
+#ifdef gpu
+! !$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+end if
+
+
+
+
+end subroutine
+
+
+
+subroutine trouble_indicator2
+implicit none
+integer::i,l,j,k,kmaxe,iqp,ngp,iex,ndof
+integer::trouble, ifree,i_deg
+integer::iconsidered,facex,pointx
+
+kmaxe=xmpielrank(n)
+
+if (code_profile.ne.102)then
+
+
+#ifdef gpu
+! !$omp target teams distribute parallel do &
+! !$omp& private(l,j,k,iqp,ngp,iex,ndof,trouble, ifree,i_deg,iconsidered,facex,pointx)
+#else
+!$omp do
+#endif
+do i = 1, xmpielrank(n)
+iconsidered=i
+
+
+
+    if (ielem_troubled(i).eq.1)then
+
+    do l = 1, ielem_ifca(i)
+
+            if (dimensiona.eq.2)then
+
+            iqp=qp_line_n
+            else
+                if (ielem_types_faces(l,i).eq.5)then
+					iqp=qp_quad
+				  else
+					iqp=qp_triangle
+				  end if
+            end if
+
+                do ngp = 1,iqp!
+                    facex=l
+                    pointx=ngp
+                    rec_uleft_dg(:, facex,pointx,iconsidered)=rec_uleft(:, facex,pointx,iconsidered)
+                end do
+
+    end do
+
+      do iex=1,nof_variables
+
+!
+      u_c_valdg(1,iex,2:idegfree+1,iconsidered)=dg2fv(1:idegfree,iex,iconsidered)
+
+      end do
+
+
+
+
+ end if
+
+end do
+#ifdef gpu
+! !$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+end if
+
+
+
+end subroutine
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+subroutine pad_dg(iconsidered,leftv)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer::i,l,j,k,kmaxe,iqp,ngp,iex
+integer::trouble
+integer,intent(in)::iconsidered
+real,dimension(1:nof_variables),intent(inout)::leftv
+real::mp_pinfl,gammal
+
+    i=iconsidered
+                                                if (itestcase.ge.3)then
+														if (dimensiona.eq.3)then
+
+                                                    call cons2prim(n,leftv,mp_pinfl,gammal)
+
+
+                                                    if(multispecies.eq.1)then
+
+															if ((leftv(1).le.zero).or.(leftv(1).ne.leftv(1)))then
+																ielem_troubled(i)=1;ielem_condition(i)=1
+															end if
+															if ((leftv(5).le.zero).or.(leftv(5).ne.leftv(5)))then
+																ielem_troubled(i)=1;ielem_condition(i)=1
+															end if
+	! 														if ((leftv(5).le.-mp_pinf(1)).or.(leftv(5).le.-mp_pinf(2)))then
+	! 															ielem_troubled(i)=1;ielem_condition(i)=1
+	!                                                         end if
+
+
+														!	if((leftv(nof_variables).lt.-0.05).or.leftv(nof_variables).ne.leftv(8)) then
+														!		ielem_troubled(i) =1; ielem_condition(i)=1
+														!	end if
+													else
+
+						!
+															if ((leftv(1).le.zero).or.(leftv(1).ne.leftv(1)))then
+															ielem_troubled(i)=1;ielem_condition(i)=1
+
+
+															end if
+															if ((leftv(5).le.zero).or.(leftv(5).ne.leftv(5)))then
+															ielem_troubled(i)=1;ielem_condition(i)=1
+															end if
+													end if
+                                                else
+												call cons2prim(n,leftv,mp_pinfl,gammal)
+                                                if (multispecies.eq.1)then
+
+													if ((leftv(1).le.zero).or.(leftv(1).ne.leftv(1)))then
+														ielem_troubled(i)=1;ielem_condition(i)=1
+													end if
+													if ((leftv(4).le.zero))then
+														ielem_troubled(i)=1;ielem_condition(i)=1
+													end if
+													if ((leftv(4).ne.leftv(4)))then
+														ielem_troubled(i)=1;ielem_condition(i)=1
+													end if
+
+! if ((leftv(4).le.zero).or.(leftv(4).ne.leftv(4)))then
+! 														ielem_troubled(i)=1;ielem_condition(i)=1
+! 													end if
+
+													if((leftv(nof_variables).lt.zero).or.leftv(nof_variables).gt.1.0d0) then
+														ielem_troubled(i) =1; ielem_condition(i)=1
+													end if
+
+
+
+
+
+                                                else
+
+                                                        if ((leftv(1).le.zero).or.(leftv(1).ne.leftv(1)))then
+                                                        ielem_troubled(i)=1;ielem_condition(i)=1
+                                                        end if
+                                                        if ((leftv(4).le.zero).or.(leftv(4).ne.leftv(4)))then
+                                                        ielem_troubled(i)=1;ielem_condition(i)=1
+                                                        end if
+
+                                                end if
+
+                                                end if
+                                                end if
+
+
+
+                                                if (ielem_hybrid(i).eq.1)then
+                                                   ielem_troubled(i)=1
+                                                end if
+
+
+
+
+
+end subroutine
+
+
+subroutine nad_dg(iconsidered,facex,pointx,leftv,rightv,usol,maxvars,aver_vars,sumvars,utmin,utmax)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer::i,l,j,k,kmaxe,iqp,ngp,iex
+integer::trouble,img
+integer,intent(in)::iconsidered,facex,pointx
+real::par1,par2,d2,minb,maxb
+real,dimension(1:nof_variables)::nad_dg_el
+real,dimension(1:nof_variables),intent(inout)::leftv,rightv
+real,dimension(1:nof_variables),intent(in)::maxvars,aver_vars,sumvars,utmin,utmax
+real,dimension(1:nof_variables),intent(in) :: usol
+real::mp_pinfl,gammal
+
+
+
+
+! par1=1e-4
+! par2=4e-1
+
+        if (dimensiona.eq.3)then
+
+        img=5
+    else
+
+        img=4
+    end if
+
+
+
+       select case(indicator_type)
+
+
+             case(1)       !mood indicator
+
+            do iex=1,nof_variables
+			nad_dg_el(iex)=max(indicator_par1,(indicator_par2)*(utmax(iex)-utmin(iex)))
+			end do
+			leftv(1:nof_variables)=usol(1:nof_variables)
+
+
+			if (dimensiona.eq.2)then
+			call cons2prim(n,leftv,mp_pinfl,gammal)
+			else
+			call cons2prim(n,leftv,mp_pinfl,gammal)
+			end if
+
+            do iex=1,nof_variables
+                if ((leftv(iex).lt.(utmin(iex)-nad_dg_el(iex))).or.(leftv(iex).gt.(utmax(iex)+nad_dg_el(iex))))then
+                    ielem_troubled(iconsidered)=1;ielem_condition(iconsidered)=1
+                end if
+            end do
+
+
+
+             case(11)       !mood indicator
+
+            do iex=1,nof_variables
+			nad_dg_el(iex)=max(indicator_par1,(indicator_par2)*(utmax(iex)-utmin(iex)))
+			end do
+
+
+            do iex=1,nof_variables
+                if ((usol(iex).lt.(utmin(iex)-nad_dg_el(iex))).or.(usol(iex).gt.(utmax(iex)+nad_dg_el(iex))))then
+                    ielem_condition(iconsidered)=1
+                     ielem_troubled(iconsidered)=1;
+
+                end if
+            end do
+
+
+            case(2)         !shu indicator
+
+                        do iex=1,nof_variables
+
+
+                         if ((sumvars(iex)/maxvars(iex)).gt.indicator_par1)then
+                            ielem_troubled(iconsidered)=1;ielem_condition(iconsidered)=1
+                        end if
+
+                        end do
+
+             case(22)         !shock detector, indicator (only density and energy)
+
+                        do iex=1,nof_variables
+
+                        if ((iex.eq.1).or.(iex.eq.img))then
+                         if ((sumvars(iex)/maxvars(iex)).gt.indicator_par1)then
+                            ielem_troubled(iconsidered)=1;ielem_condition(iconsidered)=1
+                        end if
+                        end if
+
+                        end do
+
+             case(3)         !dmp
+
+                        do iex=1,nof_variables
+
+
+                         if ((usol(iex).gt.(utmax(iex))).or.(usol(iex).lt.(utmin(iex))))then
+                            ielem_troubled(iconsidered)=1;ielem_condition(iconsidered)=1
+                        end if
+
+                        end do
+
+
+
+             case(4)    !minmod
+                        do iex=1,nof_variables
+
+
+
+                         if ((iex.eq.1).or.(iex.eq.img))then
+                        if (abs(usol(iex)-u_c_val(1,iex,iconsidered)).gt.(indicator_par1*u_c_val(1,iex,iconsidered)))then
+                        ielem_troubled(iconsidered)=1;ielem_condition(iconsidered)=1
+                        end if
+                        end if
+                        end do
+
+
+             case(5)    !all troubled
+
+
+                        ielem_troubled(iconsidered)=1;ielem_condition(iconsidered)=1
+
+
+              case(6)       !mood indicator only density & energy
+
+            do iex=1,nof_variables
+            if ((iex.eq.1).or.(iex.eq.img))then
+			nad_dg_el(iex)=max(indicator_par1,(indicator_par2)*(utmax(iex)-utmin(iex)))
+			end if
+			end do
+			leftv(1:nof_variables)=usol(1:nof_variables)
+
+! 			if (dimensiona.eq.2)then
+! 			call cons2prim(n,leftv,mp_pinfl,gammal)
+! 			else
+! 			call cons2prim(n,leftv,mp_pinfl,gammal)
+! 			end if
+
+            do iex=1,nof_variables
+            if ((iex.eq.1).or.(iex.eq.img))then
+
+                if ((leftv(iex).lt.(utmin(iex)-nad_dg_el(iex))).or.(leftv(iex).gt.(utmax(iex)+nad_dg_el(iex))))then
+                    ielem_troubled(iconsidered)=1;ielem_condition(iconsidered)=1
+                end if
+                end if
+            end do
+
+
+			case(9)       !mood indicator only density & energy
+
+			 if (ielem_filtered(iconsidered).eq.1)then
+				ielem_troubled(iconsidered)=1;ielem_condition(iconsidered)=1
+			end if
+
+
+
+
+
+
+
+
+            end select
+
+
+end subroutine nad_dg
+
+
+
+
+
+
+
+
+
+subroutine apply_filter(n)
+    implicit none
+    integer,intent(in) :: n
+    integer :: i, j, k, kmaxe
+
+!     kmaxe = xmpielrank(n)
+
+#ifdef gpu
+! !$omp target teams distribute parallel do private(j,k)
+#else
+!$omp do
+#endif
+    do i = 1, xmpielrank(n)
+      if (ielem_filtered(i) == 1) then
+        do j = 1, nof_variables
+          do k = 1, idegfree
+            rhs_valdg(k+1, j, i) = rhs_valdg(k+1, j, i) * modal_filter_weak(k)
+          end do
+        end do
+      end if
+    end do
+#ifdef gpu
+! !$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+  end subroutine apply_filter
+
+
+subroutine apply_filter_dg(n)
+    implicit none
+    integer,intent(in) :: n
+    integer :: i, kmaxe
+    real    :: ex1, ex2, energy_ratio
+    real    :: u2, u3, u4, ws2, ws3, ws4, ww2, ww3, ww4
+
+
+
+#ifdef gpu
+! !$omp target teams distribute parallel do private(ex1,ex2,energy_ratio,u2,u3,u4,ws2,ws3,ws4,ww2,ww3,ww4)
+#else
+!$omp do
+#endif
+    do i = 1, xmpielrank(n)
+      ielem_filtered(i) = 0
+
+      u2  = u_c_val (1,2,i);  u3  = u_c_val (1,3,i);  u4  = u_c_val (1,4,i)
+      ws2 = u_cs_val(1,2,i);  ws3 = u_cs_val(1,3,i);  ws4 = u_cs_val(1,4,i)
+      ww2 = u_cw_val(1,2,i);  ww3 = u_cw_val(1,3,i);  ww4 = u_cw_val(1,4,i)
+
+      ex2 = (u2-ww2)*(u2-ww2) + (u3-ww3)*(u3-ww3) + (u4-ww4)*(u4-ww4)
+      ex1 = (u2-ws2)*(u2-ws2) + (u3-ws3)*(u3-ws3) + (u4-ws4)*(u4-ws4)
+
+      energy_ratio = (ex2 + 1.0d-31) / (ex1 + 1.0d-31)
+
+      ielem_er1dt(i) = (ielem_er1(i) - ex1) / dt
+      ielem_er2dt(i) = (ielem_er2(i) - ex2) / dt
+
+      ielem_er (i) = energy_ratio
+      ielem_er1(i) = ex1
+      ielem_er2(i) = ex2
+
+      if (ielem_er(i) > 1.15d0) then
+        ielem_filtered(i) = 1
+      end if
+    end do
+#ifdef gpu
+! !$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+  end subroutine apply_filter_dg
+
+
+
+  subroutine apply_filter1(n)
+    implicit none
+    integer,intent(in) :: n
+    integer :: i, j, k, kmaxe
+
+
+
+#ifdef gpu
+! !$omp target teams distribute parallel do private(j,k)
+#else
+!$omp do
+#endif
+    do i = 1, xmpielrank(n)
+      do j = 1, nof_variables
+        do k = 1, idegfree
+          u_c_valdg(1, j, k+1, i) = u_c_valdg(1, j, k+1, i) * modal_filter(k)
+        end do
+      end do
+    end do
+#ifdef gpu
+! !$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+  end subroutine apply_filter1
+
+
+  subroutine apply_filter2(n)
+    implicit none
+    integer,intent(in) :: n
+    integer :: i, j, k, kmaxe
+
+    ! Equivalent to your original apply_filter2 but with NO temp array.
+!     kmaxe = xmpielrank(n)
+
+#ifdef gpu
+! !$omp target teams distribute parallel do private(j,k)
+#else
+!$omp do
+#endif
+    do i = 1, xmpielrank(n)
+      do j = 1, nof_variables
+        do k = 1, idegfree
+          rhs_valdg(k+1, j, i) = rhs_valdg(k+1, j, i) * modal_filter(k)
+        end do
+      end do
+    end do
+#ifdef gpu
+! !$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+  end subroutine apply_filter2
+
+
+
+
+
+subroutine filter_init(n)
+    implicit none
+    integer,intent(in) :: n
+    integer :: fil_i, j
+    integer :: last, curr
+    real    :: xorder, rfil_alpha, rfil_nc, rfil_s, rfil_i
+    real    :: filx, coeff
+
+    ! Defensive init
+    modal_filter(1:idegfree)        = 1.0d0
+    modal_filter_weak(1:idegfree)   = 1.0d0
+    modal_filter_strong(1:idegfree) = 1.0d0
+
+    last = 0
+    xorder = real(iorder, kind=8)
+
+      ! Weak/strong step filters:
+      ! Weak
+      last = 0
+      do fil_i = 1, iorder
+        curr = (((fil_i+1)*(fil_i+2)*(fil_i+3))/6) - 1
+        if (fil_i < iorder) then
+          coeff = 1.0d0
+        else
+          coeff = 0.0d0
+        end if
+        do j = last+1, curr
+          if (j >= 1 .and. j <= idegfree) modal_filter_weak(j) = coeff
+        end do
+        last = curr
+      end do
+
+      ! Strong
+      last = 0
+      do fil_i = 1, iorder
+        curr = (((fil_i+1)*(fil_i+2)*(fil_i+3))/6) - 1
+        if (fil_i < iorder-1) then
+          coeff = 1.0d0
+        else
+          coeff = 0.0d0
+        end if
+        do j = last+1, curr
+          if (j >= 1 .and. j <= idegfree) modal_filter_strong(j) = coeff
+        end do
+        last = curr
+      end do
+
+
+
+  end subroutine filter_init
+
+
+
+
+
+
+
+subroutine adda_filter(n,iconsidered)
+  implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+  integer,intent(in) :: n, iconsidered
+  integer :: i, j, k, ngp, ideg, icompwrt
+  real    :: ax, ay, az, wgt
+  real    :: ex1, ex2
+  real    :: s_unf, s_str, s_weak
+  real    :: val_unf, val_str, val_weak
+  real    :: mp_pinfl, mp_pinfr, gammal, gammar
+  real    :: energy_ratio
+  real    :: phi(1:idegfree)
+
+  i    = iconsidered
+  ideg = ielem_idegfree(i)
+
+  if (dg.eq.1) return
+
+  ex1 = 0.0d0
+  ex2 = 0.0d0
+
+  icompwrt = 0
+
+  if (adda_type.eq.1) then
+    ! single evaluation at element center
+    ax = 0.0d0; ay = 0.0d0; az = 0.0d0
+
+    phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,icompwrt)
+
+    do k = 2, 4
+      s_unf  = 0.0d0
+      s_str  = 0.0d0
+      s_weak = 0.0d0
+
+      do j = 1, ideg
+        s_unf  = s_unf  + phi(j) * rec_gradients(1,j,k,i)
+        s_str  = s_str  + phi(j) * rec_gradients(1,j,k,i) * adda_filter_strong(j)
+        s_weak = s_weak + phi(j) * rec_gradients(1,j,k,i) * adda_filter_weak(j)
+      end do
+
+      val_unf  = u_c_val(1,k,i) + s_unf
+      val_str  = u_c_val(1,k,i) + s_str
+      val_weak = u_c_val(1,k,i) + s_weak
+
+      ex1 = ex1 + (val_unf - val_str )*(val_unf - val_str )
+      ex2 = ex2 + (val_unf - val_weak)*(val_unf - val_weak)
+    end do
+
+  else if (adda_type.eq.2) then
+    ! quadrature average
+    do ngp = 1, ielem_itotalpoints(i)
+      ax  = qp_array_x(ngp,i)
+      ay  = qp_array_y(ngp,i)
+      az  = qp_array_z(ngp,i)
+      wgt = qp_array_qp_weight(ngp,i)
+
+      phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,icompwrt)
+
+      do k = 2, 4
+        s_unf  = 0.0d0
+        s_str  = 0.0d0
+        s_weak = 0.0d0
+
+        do j = 1, ideg
+          s_unf  = s_unf  + phi(j) * rec_gradients(1,j,k,i)
+          s_str  = s_str  + phi(j) * rec_gradients(1,j,k,i) * adda_filter_strong(j)
+          s_weak = s_weak + phi(j) * rec_gradients(1,j,k,i) * adda_filter_weak(j)
+        end do
+
+        val_unf  = u_c_val(1,k,i) + s_unf
+        val_str  = u_c_val(1,k,i) + s_str
+        val_weak = u_c_val(1,k,i) + s_weak
+
+        ex1 = ex1 + (val_unf - val_str )*(val_unf - val_str ) * wgt
+        ex2 = ex2 + (val_unf - val_weak)*(val_unf - val_weak) * wgt
+      end do
+    end do
+
+  else
+    ex1 = 0.0d0
+    ex2 = 0.0d0
+  end if
+
+  energy_ratio = (ex2 + 1.0d-31) / (ex1 + 1.0d-31)
+
+  ielem_er1dt(i) = (ielem_er1(i) - ex1) / dt
+  ielem_er2dt(i) = (ielem_er2(i) - ex2) / dt
+
+  ielem_er (i) = energy_ratio
+  ielem_er1(i) = ex1
+  ielem_er2(i) = ex2
+
+  ielem_er1er2(i) = abs(ielem_er1dt(i)) / ielem_er2dt(i)
+
+  call apply_adda_filter(n,i)
+
+end subroutine adda_filter
+
+
+
+
+
+subroutine apply_adda_filter(n,iconsidered)
+  implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+  integer,intent(in) :: n, iconsidered
+  integer :: i
+  real    :: lwcx1
+
+  i = iconsidered
+  lwcx1 = lwci1
+
+  if (rungekutta.eq.11) then
+    if (iscoun.eq.1) then
+      lwcx1 = lwci1
+      if (ielem_er(i).gt.1.2)  lwcx1 = 10.0d0
+      if (ielem_er(i).le.0.95) lwcx1 = 1000.0d0
+      ielem_lwcx2(i) = lwcx1
+    else
+      lwcx1 = ielem_lwcx2(i)
+    end if
+  else
+    if (ielem_er(i).gt.1.2)  lwcx1 = 10.0d0
+    if (ielem_er(i).le.0.95) lwcx1 = 1000.0d0
+    ielem_lwcx2(i) = lwcx1
+  end if
+
+  if (ielem_full(i).eq.0) then
+    ielem_lwcx2(i) = -10.0d0
+  end if
+
+  ielem_linc(i) = lwcx1
+
+end subroutine apply_adda_filter
+
+
+
+
+subroutine fix_dissipation(n)
+implicit none
+real::check1
+real::check
+integer::i,j,k,l
+integer,intent(in)::n
+integer::kmaxe
+kmaxe=xmpielrank(n)
+
+
+#ifdef gpu
+! !$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+
+	if (ielem_full(i).eq.1)then
+	!1)reduce dissipation
+	if (ielem_lwcx2(i).gt.10)then
+		if (ielem_wcx(i).ge.0.999)then
+		ielem_diss(i)=max(ielem_diss(i)-0.1,0.5d0)	!reduce dissipation even more
+		else
+		ielem_diss(i)=1.0d0							!increase dissipation if shock
+		end if
+	else
+	!2) increase dissipation
+		if (ielem_wcx(i).ge.0.999)then
+		ielem_diss(i)=min(ielem_diss(i)+0.1,1.0d0)	!increase dissipation even more
+		else
+		ielem_diss(i)=1.0d0							!increase dissipation if shock
+		end if
+	end if
+	end if
+
+end do
+#ifdef gpu
+! !$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+end subroutine fix_dissipation
+
+
+
+
+subroutine fix_dissipation2(n)
+implicit none
+real::check1
+real::check
+integer::i,j,k,l,iconsidered
+integer,intent(in)::n
+integer::kmaxe
+kmaxe=xmpielrank(n)
+
+
+
+#ifdef gpu
+! !$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+	iconsidered=i
+
+	call find_bounds_diss(iconsidered)
+
+end do
+#ifdef gpu
+! !$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+end subroutine fix_dissipation2
+
+
+
+
+
+
+subroutine find_bounds_diss(iconsidered)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer::i,l,j,k,kmaxe,iqp,ngp,iex,ik,iq,nf,lf,rowf
+integer,intent(in)::iconsidered
+real,dimension(1:6,1)::utemp
+
+i=iconsidered
+
+
+utemp(:,:)=1.0d0
+
+
+
+		ielem_facediss(:,i)=1.0d0
+
+
+            if (ielem_interior(i).eq.0)then
+                do l = 1, ielem_ifca(i)
+
+                    utemp(l,1)=ielem_diss(ielem_ineigh(l,i))
+                end do
+            end if
+
+            if (ielem_interior(i).eq.1)then
+			    do l=1,ielem_ifca(i)
+                    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
+                            if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+                                if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
+
+                                utemp(l,1)=ielem_diss(ielem_ineigh(l,i))
+                                else
+                                !not periodic ones in my cpu
+                                end if
+                            else
+
+                                utemp(l,1)=ielem_diss(ielem_ineigh(l,i))
+                            end if
+                    else	!in other cpus they can only be periodic or mpi neighbours
+
+                        if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+                            if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+
+!                             utemp(l,1)=iexsolhird(rec_ihexn(1,ielem_indexi(l,i),i))%sol&
+!                             (rec_ihexl(1,ielem_indexi(l,i),i),1)
+
+                            nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
+								lf=rec_ihexl(1,ielem_indexi(L,i),i)
+								rowf=halo_offset(nf) + lf - 1
+								utemp(l,1)=solhird(rowf)
+
+
+                            end if
+                        else
+
+
+
+
+!                         utemp(l,1)=iexsolhird(rec_ihexn(1,ielem_indexi(l,i),i))%sol&
+!                         (rec_ihexl(1,ielem_indexi(l,i),i),1)
+
+
+                        nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
+								lf=rec_ihexl(1,ielem_indexi(L,i),i)
+								rowf=halo_offset(nf) + lf - 1
+								utemp(l,1)=solhird(rowf)
+
+
+
+
+                        end if
+
+                    end if
+
+			  end do
+         end if
+
+
+
+
+
+            if (ielem_interior(i).eq.0)then
+                do l = 1, ielem_ifca(i)
+                    ielem_facediss(l,i)=max(utemp(l,1),ielem_diss(i))
+
+                end do
+            end if
+
+            if (ielem_interior(i).eq.1)then
+			    do l=1,ielem_ifca(i)
+                    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
+                            if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+                                if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
+                                ielem_facediss(l,i)=max(utemp(l,1),ielem_diss(i))
+!                                 utemp(l,1)=ielem_diss(ielem_ineigh(l,i))
+                                else
+                                !not periodic ones in my cpu
+                                end if
+                            else
+                                ielem_facediss(l,i)=max(utemp(l,1),ielem_diss(i))
+
+                            end if
+                    else	!in other cpus they can only be periodic or mpi neighbours
+
+                        if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+                            if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+
+                            ielem_facediss(l,i)=max(utemp(l,1),ielem_diss(i))
+                            end if
+                        else
+
+
+                        ielem_facediss(l,i)=max(utemp(l,1),ielem_diss(i))
+                        end if
+
+                    end if
+
+			  end do
+         end if
+
+
+
+
+
+
+
+
+end subroutine find_bounds_diss
+
+
+
+ subroutine vfbp_limiter
+implicit none
+
+real::vf_qpsol, vf_avsol, lthresh, hthresh,scaling,scaling1,scaling2, pd1_qpsol, pd1_avsol,pd2_qpsol, pd2_avsol
+integer::i,ii,icd,k,number_of_nei,idummy,l,nnd,ngp, iqp,i_elem,i_face, img1,img2
+real, dimension(1:numberofpoints2)::scaling_f,scaling_f1,scaling_f2
+integer::facex,pointx,iconsidered,number_of_dog
+
+ !iqp=qp_line_n
+
+
+
+
+
+#ifdef gpu
+! !$omp target teams distribute parallel do &
+! !$omp& private(vf_qpsol, vf_avsol, lthresh, hthresh,scaling,scaling1,&
+! !$omp& scaling2, pd1_qpsol, pd1_avsol,pd2_qpsol, pd2_avsol,&
+! !$omp& ii,icd,k,number_of_nei,idummy,l,nnd,ngp, iqp,i_elem,i_face, img1,img2,&
+! !$omp& facex,pointx,iconsidered,number_of_dog,&
+! !$omp& scaling_f,scaling_f1,scaling_f2)
+#else
+!$omp do
+#endif
+do i = 1, xmpielrank(n)
+    lthresh = 1.0e-16
+    hthresh = 1.0d0-lthresh
+
+
+    do l = 1, ielem_ifca(i)
+
+
+
+    if (dimensiona.eq.2)then
+
+            iqp=qp_line_n
+            img1=5
+            img2=6
+            else
+            img1=6
+            img2=7
+                if (ielem_types_faces(l,i).eq.5)then
+					iqp=qp_quad
+				  else
+					iqp=qp_triangle
+
+				  end if
+            end if
+
+ !compute scaling factors at each face and each qp
+
+     do ngp = 1,iqp! qp_line_n
+
+                facex=l
+                pointx=ngp
+                iconsidered=i
+                number_of_dog=ielem_idegfree(i)
+
+                vf_qpsol = rec_uleft_dg(nof_variables, facex, pointx,iconsidered)
+                vf_avsol = u_c_valdg(1,nof_variables,1,i)
+
+                pd1_qpsol = rec_uleft_dg(img1, facex, pointx,iconsidered)
+                pd1_avsol = u_c_valdg(1,img1,1,i)
+
+                pd2_qpsol = rec_uleft_dg(img2, facex, pointx,iconsidered)
+                pd2_avsol = u_c_valdg(1,img2,1,i)
+
+
+
+        !volume fraction
+                if (vf_qpsol.lt.lthresh) then
+
+                    scaling_f(ngp) = (vf_avsol - lthresh)/(vf_avsol - vf_qpsol)
+
+                else if ((vf_qpsol.gt.lthresh).and.(vf_qpsol.lt.hthresh)) then
+
+                    scaling_f(ngp) = 1.0d0
+
+                else if (vf_qpsol.gt.hthresh) then
+
+                    scaling_f(ngp) = (hthresh - vf_avsol)/(vf_qpsol - vf_avsol)
+
+                end if
+
+
+
+
+        !partial densities
+                if (pd1_qpsol.lt.lthresh) then
+
+                    scaling_f1(ngp) = (pd1_avsol - lthresh)/(pd1_avsol - pd1_qpsol)
+                else
+
+                    scaling_f1(ngp) = 1.0d0
+
+                end if
+
+
+
+                if (pd2_qpsol.lt.lthresh) then
+
+                    scaling_f2(ngp) = (pd2_avsol - lthresh)/(pd2_avsol - pd2_qpsol)
+
+                else
+
+                    scaling_f2(ngp) = 1.0d0
+
+                end if
+
+
+
+            end do
+
+
+
+            scaling = minval(scaling_f(:))
+            scaling1 = minval(scaling_f1(:))
+            scaling2 = minval(scaling_f2(:))
+
+
+
+
+
+            do ngp = 1,iqp! qp_line_n
+
+                facex=l
+                pointx=ngp
+                iconsidered=i
+                number_of_dog=ielem_idegfree(i)
+
+                vf_qpsol = rec_uleft_dg(nof_variables, facex, pointx,iconsidered)
+                vf_avsol = u_c_valdg(1,nof_variables,1,i)
+
+                pd1_qpsol = rec_uleft_dg(img1, facex, pointx,iconsidered)
+                pd1_avsol = u_c_valdg(1,img1,1,i)
+
+                pd2_qpsol = rec_uleft_dg(img2, facex, pointx,iconsidered)
+                pd2_avsol = u_c_valdg(1,img2,1,i)
+
+
+            !volume fraction scaling at qps
+                if((scaling.gt.0.0d0).and.(scaling.lt.1.0d0)) then
+                    rec_uleft_dg(nof_variables, facex, pointx,iconsidered) = vf_avsol + scaling*(vf_qpsol - vf_avsol)
+
+                end if
+
+            !partial densities scaling at qps
+
+                if((scaling1.gt.0.0d0).and.(scaling1.lt.1.0d0)) then
+                    rec_uleft_dg(img1, facex, pointx,iconsidered) = pd1_avsol + scaling1*(pd1_qpsol - pd1_avsol)
+
+                end if
+
+                if((scaling2.gt.0.0d0).and.(scaling2.lt.1.0d0)) then
+                    rec_uleft_dg(img2, facex, pointx,iconsidered) = pd2_avsol + scaling2*(pd2_qpsol - pd2_avsol)
+
+                end if
+
+
+
+
+            end do
+
+
+
+
+
+    end do
+
+end do
+#ifdef gpu
+! !$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+end subroutine vfbp_limiter
+
+
+
+subroutine adda_filter_init(n)
+  implicit none
+  integer,intent(in)::n
+  integer :: fil_i, j
+  integer :: last, curr
+  real    :: f2, f3
+
+  ! Strong/weak filters depend only on iorder and idegfree
+
+  adda_filter_strong(1:idegfree) = 0.0d0
+  adda_filter_weak  (1:idegfree) = 0.0d0
+
+  last = 0
+  do fil_i = 1, iorder
+    curr = (((fil_i+1)*(fil_i+2)*(fil_i+3))/6) - 1
+
+    ! ---- strong filter coefficient for this "order band"
+    if (iorder == 2) then
+      f2 = 0.0d0
+    else
+      if (fil_i < 2) then
+        f2 = 1.0d0
+      else
+        f2 = 0.0d0
+      end if
+    end if
+
+    ! ---- weak filter coefficient for this "order band"
+    if (fil_i <= 2) then
+      f3 = 1.0d0
+    else
+      f3 = 0.0d0
+    end if
+
+    do j = last+1, curr
+      if (j >= 1 .and. j <= idegfree) then
+        adda_filter_strong(j) = f2
+        adda_filter_weak  (j) = f3
+      end if
+    end do
+
+    last = curr
+  end do
+
+end subroutine adda_filter_init
+
+
+
+
+
+
+
+! ! ---------------------------------------------------------------------------------------------!
+
+! ! !---------------------------------------------------------------------------------------------!
+! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+end module recon
