@@ -21,13 +21,15 @@ function NodeMeshQuality(p_minus, p, p_plus, result)
     logical::NodeMeshQuality
 
     if (dimensiona.eq.2) then
-        if (relaxation_centre_type.eq.5) then
+        select case (relaxation_centre_type)
+        case (5)
             NodeMeshQuality = JacobiCondNumber2D(p_minus, p, p_plus, result)
-        else if (relaxation_centre_type.eq.7) then
+        case (7)
             NodeMeshQuality = OddyMetric2D(p_minus, p, p_plus, result)
-        else
-            print*,"invalid node relaxation type in NodeMeshQuality"
-        end if
+        case DEFAULT
+            ! print*,"invalid node relaxation type in NodeMeshQuality"
+            NodeMeshQuality = OddyMetric2D(p_minus, p, p_plus, result)
+        end select
     else
         print*,"invalid node relaxation type in NodeMeshQuality"
     end if 
@@ -1044,6 +1046,433 @@ subroutine find_node_Jacobi_relaxation_velocity(moved, position_index, d_t, N)
 
 end subroutine find_node_Jacobi_relaxation_velocity
 
+
+
+
+
+subroutine find_mesh_quality_before_relaxation(moved, position_index, d_t, N)
+    implicit none
+    integer,intent(in)::moved, position_index, N
+    real,intent(in)::d_t
+
+    ! integer M
+    integer::node_index, node_plus_index, node_minus_index, cell_index, index, node_num_neighbours, cell_num_nodes
+    integer::cpu_index, cpu
+    integer::iter, i, j, k, i_plus, i_minus, counter
+    real::helper
+    logical::valid
+    real,dimension(1:dimensiona)::p, p_minus, p_plus
+    real,dimension(1:dimensiona,1:(2*max_num_node_neighbours))::points
+    
+    integer,dimension(2*isize)::requests
+    integer::num_requests, count
+
+    ! M = omp_get_thread_num()
+    if (num_values_to_send_per_node.lt.(2*dimensiona)) then
+        print *,"something went wrong sorry :("
+        call abort
+    end if
+
+    !$omp do
+    do iter = 1,my_num_interface_nodes 
+        node_index = local_interface_nodes(iter)
+        ! print *, "on CPU", N, "thread", M, "coping data of", node_index, "(", iter, ") to send buffer" 
+        do cpu_index = 1,local_nodes(node_index)%num_cpus
+            cpu = local_nodes(node_index)%snd_offsets(cpu_index)%cpu
+            index = (local_nodes(node_index)%snd_offsets(cpu_index)%lower -1) * (2*dimensiona)
+            do j = 1, local_nodes(node_index)%num_local_neighbours
+                cell_index = local_nodes(node_index)%local_neighbours(j)
+                cell_num_nodes = ielem(N, cell_index)%nonodes
+                do i = 1, cell_num_nodes
+                    if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.node_index) then
+                        exit
+                    end if
+                end do
+                i_plus = i+1
+                if (i_plus.gt.cell_num_nodes) then
+                    i_plus = 1
+                end if
+                i_minus = i-1
+                if (i_minus.lt.1) then
+                    i_minus = cell_num_nodes
+                end if
+                node_plus_index  = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
+                node_minus_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
+                p_plus(:)  = local_nodes(node_plus_index )%positions(position_index, :)
+                p_minus(:) = local_nodes(node_minus_index)%positions(position_index, :)
+                if (moved.ne.0) then
+                    p_plus(1:dimensiona)  = p_plus(1:dimensiona)   + (local_nodes(node_plus_index)%lagrangian_velocity(1:dimensiona)*d_t)
+                    p_minus(1:dimensiona) = p_minus(1:dimensiona)  + (local_nodes(node_minus_index)%lagrangian_velocity(1:dimensiona)*d_t)
+                end if
+
+                do k = 1, dimensiona
+                    index = index +1
+                    if (index.gt.node_snd_count(cpu) * (2*dimensiona)) then
+                        print *, "copying too much data to send buffer from", N, "to", cpu, "find_mesh_quality_before_relaxation"
+                    end if
+                    node_snd_buffer(cpu)%data(index) = p_minus(k)
+                end do
+                do k = 1, dimensiona
+                    index = index +1
+                    if (index.gt.node_snd_count(cpu) * (2*dimensiona)) then
+                        print *, "copying too much data to send buffer from", N, "to", cpu, "find_mesh_quality_before_relaxation"
+                    end if
+                    node_snd_buffer(cpu)%data(index) = p_plus(k)
+                end do
+            end do
+        end do
+    end do
+    !$omp end do
+
+    !$omp barrier
+
+    num_requests = 0
+    !$omp master
+        ! print *, "inside send_rcv part on CPU", N
+        do cpu_index = 0, isize-1
+            if (cpu_index.ne.N) then
+                if (node_snd_count(cpu_index).gt.0) then
+                    count = node_snd_count(cpu_index) * (2*dimensiona)
+                    num_requests = num_requests + 1
+                    CALL MPI_ISEND(node_snd_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 19+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, "sending from", N, "to", cpu_index, count, "values"
+                end if
+                if (node_rcv_count(cpu_index).gt.0) then
+                    count = node_rcv_count(cpu_index) * (2*dimensiona)
+                    num_requests = num_requests + 1
+                    CALL MPI_IRECV(node_rcv_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 19+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, N, "waiting to receive", count, "values from", cpu_index
+                end if
+            else
+                if (node_snd_count(cpu_index).ne.node_rcv_count(cpu_index)) then
+                    print *,"send receive count missmatch on CPU", n
+                    call abort
+                end if
+                count = node_snd_count(cpu_index) * (2*dimensiona)
+                do i = 1, count
+                    node_rcv_buffer(cpu_index)%data(i) = node_snd_buffer(cpu_index)%data(i)
+                end do
+            end if
+        end do
+
+        ! print*,"CPU", n, "witing on", num_requests, "requests"
+        CALL MPI_WAITALL(num_requests, requests, MPI_STATUSES_IGNORE, IERROR)
+
+    !$omp end master
+
+    !$omp barrier
+
+    !$omp do
+    do node_index = 1, kmaxn 
+        local_nodes(node_index)%mesh_quality_before = zero
+        node_num_neighbours = local_nodes(node_index)%num_neighbours
+
+        p(:) = local_nodes(node_index)%positions(position_index,:)
+        if (moved.ne.0) then
+            p(1:dimensiona) = p(1:dimensiona) + (local_nodes(node_index)%lagrangian_velocity(1:dimensiona)*d_t)
+        end if
+
+        counter = 0
+        valid = .true.
+        do iter = 1, local_nodes(node_index)%num_local_neighbours
+            cell_index = local_nodes(node_index)%local_neighbours(iter)
+            cell_num_nodes = ielem(N, cell_index)%nonodes
+            do i = 1, cell_num_nodes
+                if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.node_index) then
+                    exit
+                end if
+            end do
+            i_plus = i+1
+            if (i_plus.gt.cell_num_nodes) then
+                i_plus = 1
+            end if
+            i_minus = i-1
+            if (i_minus.lt.1) then
+                i_minus = cell_num_nodes
+            end if
+            node_plus_index  = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
+            node_minus_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
+            p_plus(:)  = local_nodes(node_plus_index )%positions(position_index, :)
+            p_minus(:) = local_nodes(node_minus_index)%positions(position_index, :)
+            if (moved.ne.0) then
+                p_plus(1:dimensiona)  = p_plus(1:dimensiona)  + (local_nodes(node_plus_index)%lagrangian_velocity(1:dimensiona)*d_t)
+                p_minus(1:dimensiona) = p_minus(1:dimensiona) + (local_nodes(node_minus_index)%lagrangian_velocity(1:dimensiona)*d_t)
+            end if
+
+            valid = valid.and.NodeMeshQuality(p_minus(:), p(:), p_plus(:), helper)
+            if (valid) then
+                local_nodes(node_index)%mesh_quality_before = local_nodes(node_index)%mesh_quality_before + helper
+            else
+                local_nodes(node_index)%mesh_quality_before = -1.0*(abs(local_nodes(node_index)%mesh_quality_before) + abs(helper))
+            end if
+            ! if (dimensiona.eq.2) then
+            !     val = JacobiCondNumber2D(p_minus(:), p(:), p_plus(:), valid_helper)
+            !     valid = valid.and.valid_helper
+            ! else
+            !     print*,"not implemented yet"
+            !     call abort
+            ! end if
+
+            counter = counter+1
+            points(:,counter) = p_minus(:)
+            counter = counter+1
+            points(:,counter) = p_plus(:)
+        end do
+
+        do iter = 1, local_nodes(node_index)%num_cpus
+            cpu_index = local_nodes(node_index)%rcv_offsets(iter)%cpu
+            index = (local_nodes(node_index)%rcv_offsets(iter)%lower - 1)*(2*dimensiona)
+            do j = local_nodes(node_index)%rcv_offsets(iter)%lower, local_nodes(node_index)%rcv_offsets(iter)%upper
+                if (dimensiona.eq.2) then
+                    p_minus(:) = node_rcv_buffer(cpu_index)%data(index+1              : index+dimensiona)
+                    p_plus(:)  = node_rcv_buffer(cpu_index)%data(index+(dimensiona+1) : index+(2*dimensiona))
+                else
+                    print*,"not implemented yet"
+                    call abort
+                end if
+                valid = valid.and.NodeMeshQuality(p_minus(:), p(:), p_plus(:), helper)
+                if (valid) then
+                    local_nodes(node_index)%mesh_quality_before = local_nodes(node_index)%mesh_quality_before + helper
+                else
+                    local_nodes(node_index)%mesh_quality_before = -1.0*(abs(local_nodes(node_index)%mesh_quality_before) + abs(helper))
+                end if
+
+                counter = counter+1
+                points(:,counter) = p_minus(:)
+                counter = counter+1
+                points(:,counter) = p_plus(:)
+
+                index = index + (2*dimensiona)
+            end do
+        end do
+
+        if (counter.ne.(2*node_num_neighbours)) Then
+            print*,"wrong number of points in find_mesh_quality_before_relaxation"
+        end if
+    end do
+    !$omp end do
+    
+    !$omp barrier
+
+    !$omp master
+        CALL MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+    !$omp end master
+
+    !$omp barrier
+
+end subroutine find_mesh_quality_before_relaxation
+
+
+
+
+
+subroutine find_mesh_quality_after_relaxation(moved, position_index, d_t, relaxation_timescale, N)
+    implicit none
+    integer,intent(in)::moved, position_index, N
+    real,intent(in)::d_t, relaxation_timescale
+
+    ! integer M
+    integer::node_index, node_plus_index, node_minus_index, cell_index, index, node_num_neighbours, cell_num_nodes
+    integer::cpu_index, cpu
+    integer::iter, i, j, k, i_plus, i_minus, counter
+    real::helper
+    logical::valid
+    real,dimension(1:dimensiona)::p, p_minus, p_plus
+    real,dimension(1:dimensiona,1:(2*max_num_node_neighbours))::points
+    
+    integer,dimension(2*isize)::requests
+    integer::num_requests, count
+
+    ! M = omp_get_thread_num()
+    if (num_values_to_send_per_node.lt.(2*dimensiona)) then
+        print *,"something went wrong sorry :("
+        call abort
+    end if
+
+    !$omp do
+    do iter = 1,my_num_interface_nodes 
+        node_index = local_interface_nodes(iter)
+        ! print *, "on CPU", N, "thread", M, "coping data of", node_index, "(", iter, ") to send buffer" 
+        do cpu_index = 1,local_nodes(node_index)%num_cpus
+            cpu = local_nodes(node_index)%snd_offsets(cpu_index)%cpu
+            index = (local_nodes(node_index)%snd_offsets(cpu_index)%lower -1) * (2*dimensiona)
+            do j = 1, local_nodes(node_index)%num_local_neighbours
+                cell_index = local_nodes(node_index)%local_neighbours(j)
+                cell_num_nodes = ielem(N, cell_index)%nonodes
+                do i = 1, cell_num_nodes
+                    if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.node_index) then
+                        exit
+                    end if
+                end do
+                i_plus = i+1
+                if (i_plus.gt.cell_num_nodes) then
+                    i_plus = 1
+                end if
+                i_minus = i-1
+                if (i_minus.lt.1) then
+                    i_minus = cell_num_nodes
+                end if
+                node_plus_index  = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
+                node_minus_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
+                p_plus(:)  = local_nodes(node_plus_index )%positions(position_index, :)
+                p_minus(:) = local_nodes(node_minus_index)%positions(position_index, :)
+                if (moved.ne.0) then
+                    p_plus(1:dimensiona)  = p_plus(1:dimensiona)   + (local_nodes(node_plus_index)%lagrangian_velocity(1:dimensiona)*d_t)
+                    p_minus(1:dimensiona) = p_minus(1:dimensiona)  + (local_nodes(node_minus_index)%lagrangian_velocity(1:dimensiona)*d_t)
+                end if
+                p_plus(1:dimensiona)  = p_plus(1:dimensiona)   + (local_nodes(node_plus_index)%relaxation_velocity(1:dimensiona)*relaxation_timescale)
+                p_minus(1:dimensiona) = p_minus(1:dimensiona)  + (local_nodes(node_minus_index)%relaxation_velocity(1:dimensiona)*relaxation_timescale)
+
+                do k = 1, dimensiona
+                    index = index +1
+                    if (index.gt.node_snd_count(cpu) * (2*dimensiona)) then
+                        print *, "copying too much data to send buffer from", N, "to", cpu, "find_mesh_quality_before_relaxation"
+                    end if
+                    node_snd_buffer(cpu)%data(index) = p_minus(k)
+                end do
+                do k = 1, dimensiona
+                    index = index +1
+                    if (index.gt.node_snd_count(cpu) * (2*dimensiona)) then
+                        print *, "copying too much data to send buffer from", N, "to", cpu, "find_mesh_quality_before_relaxation"
+                    end if
+                    node_snd_buffer(cpu)%data(index) = p_plus(k)
+                end do
+            end do
+        end do
+    end do
+    !$omp end do
+
+    !$omp barrier
+
+    num_requests = 0
+    !$omp master
+        ! print *, "inside send_rcv part on CPU", N
+        do cpu_index = 0, isize-1
+            if (cpu_index.ne.N) then
+                if (node_snd_count(cpu_index).gt.0) then
+                    count = node_snd_count(cpu_index) * (2*dimensiona)
+                    num_requests = num_requests + 1
+                    CALL MPI_ISEND(node_snd_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 19+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, "sending from", N, "to", cpu_index, count, "values"
+                end if
+                if (node_rcv_count(cpu_index).gt.0) then
+                    count = node_rcv_count(cpu_index) * (2*dimensiona)
+                    num_requests = num_requests + 1
+                    CALL MPI_IRECV(node_rcv_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 19+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, N, "waiting to receive", count, "values from", cpu_index
+                end if
+            else
+                if (node_snd_count(cpu_index).ne.node_rcv_count(cpu_index)) then
+                    print *,"send receive count missmatch on CPU", n
+                    call abort
+                end if
+                count = node_snd_count(cpu_index) * (2*dimensiona)
+                do i = 1, count
+                    node_rcv_buffer(cpu_index)%data(i) = node_snd_buffer(cpu_index)%data(i)
+                end do
+            end if
+        end do
+
+        ! print*,"CPU", n, "witing on", num_requests, "requests"
+        CALL MPI_WAITALL(num_requests, requests, MPI_STATUSES_IGNORE, IERROR)
+
+    !$omp end master
+
+    !$omp barrier
+
+    !$omp do
+    do node_index = 1, kmaxn 
+        local_nodes(node_index)%mesh_quality_after = zero
+        node_num_neighbours = local_nodes(node_index)%num_neighbours
+
+        p(:) = local_nodes(node_index)%positions(position_index,:)
+        if (moved.ne.0) then
+            p(1:dimensiona) = p(1:dimensiona) + (local_nodes(node_index)%lagrangian_velocity(1:dimensiona)*d_t)
+        end if
+        p(1:dimensiona) = p(1:dimensiona) + (local_nodes(node_index)%relaxation_velocity(1:dimensiona)*relaxation_timescale) 
+
+        counter = 0
+        valid = .true.
+        do iter = 1, local_nodes(node_index)%num_local_neighbours
+            cell_index = local_nodes(node_index)%local_neighbours(iter)
+            cell_num_nodes = ielem(N, cell_index)%nonodes
+            do i = 1, cell_num_nodes
+                if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.node_index) then
+                    exit
+                end if
+            end do
+            i_plus = i+1
+            if (i_plus.gt.cell_num_nodes) then
+                i_plus = 1
+            end if
+            i_minus = i-1
+            if (i_minus.lt.1) then
+                i_minus = cell_num_nodes
+            end if
+            node_plus_index  = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
+            node_minus_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
+            p_plus(:)  = local_nodes(node_plus_index )%positions(position_index, :)
+            p_minus(:) = local_nodes(node_minus_index)%positions(position_index, :)
+            if (moved.ne.0) then
+                p_plus(1:dimensiona)  = p_plus(1:dimensiona)  + (local_nodes(node_plus_index)%lagrangian_velocity(1:dimensiona)*d_t)
+                p_minus(1:dimensiona) = p_minus(1:dimensiona) + (local_nodes(node_minus_index)%lagrangian_velocity(1:dimensiona)*d_t)
+            end if
+
+            valid = valid.and.NodeMeshQuality(p_minus(:), p(:), p_plus(:), helper)
+            if (valid) then
+                local_nodes(node_index)%mesh_quality_after = local_nodes(node_index)%mesh_quality_after + helper
+            else
+                local_nodes(node_index)%mesh_quality_after = -1.0*(abs(local_nodes(node_index)%mesh_quality_after) + abs(helper))
+            end if
+
+            counter = counter+1
+            points(:,counter) = p_minus(:)
+            counter = counter+1
+            points(:,counter) = p_plus(:)
+        end do
+
+        do iter = 1, local_nodes(node_index)%num_cpus
+            cpu_index = local_nodes(node_index)%rcv_offsets(iter)%cpu
+            index = (local_nodes(node_index)%rcv_offsets(iter)%lower - 1)*(2*dimensiona)
+            do j = local_nodes(node_index)%rcv_offsets(iter)%lower, local_nodes(node_index)%rcv_offsets(iter)%upper
+                if (dimensiona.eq.2) then
+                    p_minus(:) = node_rcv_buffer(cpu_index)%data(index+1              : index+dimensiona)
+                    p_plus(:)  = node_rcv_buffer(cpu_index)%data(index+(dimensiona+1) : index+(2*dimensiona))
+                else
+                    print*,"not implemented yet"
+                    call abort
+                end if
+                valid = valid.and.NodeMeshQuality(p_minus(:), p(:), p_plus(:), helper)
+                if (valid) then
+                    local_nodes(node_index)%mesh_quality_after = local_nodes(node_index)%mesh_quality_after + helper
+                else
+                    local_nodes(node_index)%mesh_quality_after = -1.0*(abs(local_nodes(node_index)%mesh_quality_after) + abs(helper))
+                end if
+
+                counter = counter+1
+                points(:,counter) = p_minus(:)
+                counter = counter+1
+                points(:,counter) = p_plus(:)
+
+                index = index + (2*dimensiona)
+            end do
+        end do
+
+        if (counter.ne.(2*node_num_neighbours)) Then
+            print*,"wrong number of points in find_mesh_quality_before_relaxation"
+        end if
+    end do
+    !$omp end do
+    
+    !$omp barrier
+
+    !$omp master
+        CALL MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+    !$omp end master
+
+    !$omp barrier
+
+end subroutine find_mesh_quality_after_relaxation
 
 
 

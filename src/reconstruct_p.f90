@@ -503,7 +503,8 @@ SUBROUTINE WENOWEIGHTS(N)
         if (poly.eq.4)then
             divbyzero=ielem(n,iconsidered)%totvolume**2
         else
-            divbyzero=10E-12
+            divbyzero=10E-12 ! too sensitive on poor quality mesh
+            ! divbyzero=10E-6
         end if
         POWER=4
 
@@ -535,7 +536,8 @@ SUBROUTINE WENOWEIGHTS(N)
         if (poly.eq.4)then
             divbyzero=ielem(n,iconsidered)%totvolume**2
         else
-            divbyzero=10E-12
+            divbyzero=10E-12 ! too sensitive on poor quality mesh
+            ! divbyzero=10E-6
         end if
         POWER=4
 

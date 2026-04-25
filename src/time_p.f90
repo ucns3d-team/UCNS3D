@@ -4104,7 +4104,7 @@ SUBROUTINE TIME_MARCHING2(N)
       if (dg.eq.1)call SOL_INTEG_DG(N)
 
       if (MESH_MOVEMENT) then
-          if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13).or.(moving_mesh_mode.eq.14)) then
+          if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13).or.(moving_mesh_mode.eq.14).or.(moving_mesh_mode.eq.15)) then
               call FIND_NORMALIZED_DENSITY_GRADIENT_from_precomputed(N)
           else
               ! if (dimensiona.eq.2) then

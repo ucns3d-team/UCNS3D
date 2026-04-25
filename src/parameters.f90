@@ -1481,6 +1481,16 @@ SUBROUTINE READ_UCNS3D
 			read(29,*) relaxation_centre_type
 			read(29,*) quality_treshold, upper_gradient_treshold, scaling, upper_relaxation_mesh_velocity_multiple
 
+          case(15)
+			read(29,*) node_solver_type
+			read(29,*) relaxation_centre_type
+			read(29,*) quality_treshold, upper_gradient_treshold, quality_coeff, gradient_coeff, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple
+
+ 		  case(16)
+			read(29,*) node_solver_type
+			read(29,*) relaxation_centre_type
+			read(29,*) quality_treshold, upper_gradient_treshold, gradient_coeff, quality_coeff, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple
+			
 		  case DEFAULT
 			print*, "invalid moving mesh mode"
 			call abort

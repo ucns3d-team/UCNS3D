@@ -1469,7 +1469,7 @@ Subroutine HLLC_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,MP_SOURCE1,SRF_
 	UU2=(((UL*SQRT(RL))+(UR*SQRT(RR)))/(SQRT(RL)+SQRT(RR)))
 	SL(1)=MIN(UL-CCL,UU2-CC2);
 	SR(1)=MAX(UR+CCR,UU2+CC2)
-	SL(1)=MIN(SL(1),0.0D0); SR(1)=MAX(SR(1),0.0D0)
+	! SL(1)=MIN(SL(1),0.0D0); SR(1)=MAX(SR(1),0.0D0)
 	sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))	
 			
 	IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
