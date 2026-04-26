@@ -4420,34 +4420,31 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
       case(15)
         !$omp do
         do node_index = 1, kmaxn
-            ! if (local_nodes(node_index)%mesh_quality_after.lt.zero) then
-            !     local_relaxation_velocity_multiple = zero
-            ! else
-                if (local_nodes(node_index)%mesh_quality_before.lt.zero) then
-                    local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
-                else
-                    if (governingequations.eq.-1) then
-                        gradient_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
-                    else
-                        gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
-                    end if
 
-                    if ((gradient_copy.gt.1.0).or.(local_nodes(node_index)%num_neighbours.lt.3)) then
-                        gradient_term = 1.0
-                    else if (gradient_copy.ge.upper_gradient_treshold) then
-                        gradient_term = zero
-                    else
-                        gradient_term = 1.0 - (gradient_copy/upper_gradient_treshold)
-                    end if
+            if (governingequations.eq.-1) then
+                gradient_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
+            else
+                gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+            end if
 
-                    quality_term = (local_nodes(node_index)%mesh_quality_before / real(local_nodes(node_index)%num_neighbours)) - quality_treshold
-                    if (quality_term.lt.zero) then
-                        quality_term = zero
-                    end if
+            if ((gradient_copy.gt.1.0).or.(local_nodes(node_index)%num_neighbours.lt.3)) then
+                gradient_term = 1.0
+            else if (gradient_copy.ge.upper_gradient_treshold) then
+                gradient_term = zero
+            else
+                gradient_term = 1.0 - (gradient_copy/upper_gradient_treshold)
+            end if
 
-                    local_relaxation_velocity_multiple = (quality_coeff * quality_term) + (gradient_term * gradient_coeff)
-                end if
-            ! end if
+            quality_term = 1.0 - ((real(local_nodes(node_index)%num_neighbours)*quality_treshold) / local_nodes(node_index)%mesh_quality_before)
+            if (quality_term.gt.1.0) then
+                quality_term = 1.0
+            end if
+            if (quality_term.lt.zero) then
+                quality_term = 0.0
+            end if
+
+            local_relaxation_velocity_multiple = (quality_coeff * quality_term) + (gradient_term * gradient_coeff)
+
             call clamp(local_relaxation_velocity_multiple, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple)
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) &
                                                            + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple
