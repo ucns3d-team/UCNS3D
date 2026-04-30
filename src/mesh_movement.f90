@@ -413,7 +413,7 @@ subroutine establish_node_neighbours(N)
     integer::kmaxe
     ! integer,dimension(isize)::num_nodes_to_send
     integer,dimension(0:isize-1)::num_interface_nodes
-    integer,dimension(2*2*isize)::requests
+    integer,dimension(2*3*isize)::requests
     real::distance, distance2, coord_diff, x_coord_diff, y_coord_diff, z_coord_diff
     real::tolerance
     logical::close_enough, duplicate
@@ -422,7 +422,7 @@ subroutine establish_node_neighbours(N)
 
     type exchange_type
         real,allocatable,dimension(:)::coords
-        integer,allocatable,dimension(:)::count
+        integer,allocatable,dimension(:)::count,boundary
     end type
 
     type(exchange_type),dimension(0:isize-1)::buff
@@ -536,55 +536,55 @@ subroutine establish_node_neighbours(N)
         end do
   
         my_num_interface_nodes = 0
-        my_num_boundary_nodes = 0
-        my_num_moving_nodes = 0
+        ! my_num_boundary_nodes = 0
+        ! my_num_moving_nodes = 0
         do node_index=1,kmaxn 
             if ((local_nodes(node_index)%communication.gt.0).or.(local_nodes(node_index)%num_local_neighbours.eq.0)) then
                 my_num_interface_nodes = my_num_interface_nodes + 1
             end if
-            if (local_nodes(node_index)%boundary.gt.0) then
-                my_num_boundary_nodes = my_num_boundary_nodes + 1
-            end if
-            if (local_nodes(node_index)%boundary.gt.100) then
-                my_num_moving_nodes = my_num_moving_nodes + 1
-            end if
+            ! if (local_nodes(node_index)%boundary.gt.0) then
+            !     my_num_boundary_nodes = my_num_boundary_nodes + 1
+            ! end if
+            ! if (local_nodes(node_index)%boundary.gt.100) then
+            !     my_num_moving_nodes = my_num_moving_nodes + 1
+            ! end if
         end do
         allocate(local_interface_nodes(my_num_interface_nodes))
-        allocate(local_boundary_nodes(my_num_boundary_nodes))
-        allocate(local_moving_nodes(my_num_moving_nodes))
-        ! print*,N,"my_num_interface_nodes =", my_num_interface_nodes, "\n", N, "my_num_boundary_nodes =", my_num_boundary_nodes,"\n", N, "my_num_moving_nodes =", my_num_moving_nodes
+        ! allocate(local_boundary_nodes(my_num_boundary_nodes))
+        ! allocate(local_moving_nodes(my_num_moving_nodes))
+        ! print*,N,"my_num_interface_nodes =", my_num_interface_nodes, "\n"!, N, "my_num_boundary_nodes =", my_num_boundary_nodes,"\n", N, "my_num_moving_nodes =", my_num_moving_nodes
         index1 = 0
-        index2 = 0
-        index3 = 0
+        ! index2 = 0
+        ! index3 = 0
         do node_index=1,kmaxn
             if ((local_nodes(node_index)%communication.gt.0).or.(local_nodes(node_index)%num_local_neighbours.eq.0)) then
                 index1 = index1 + 1
                 local_interface_nodes(index1) = node_index
             end if
-            if (local_nodes(node_index)%boundary.gt.0) then
-                index2 = index2 + 1
-                local_boundary_nodes(index2) = node_index
-            end if
-            if (local_nodes(node_index)%boundary.gt.100) then
-                index3 = index3 + 1
-                local_moving_nodes(index3) = node_index
-            end if
+            ! if (local_nodes(node_index)%boundary.gt.0) then
+            !     index2 = index2 + 1
+            !     local_boundary_nodes(index2) = node_index
+            ! end if
+            ! if (local_nodes(node_index)%boundary.gt.100) then
+            !     index3 = index3 + 1
+            !     local_moving_nodes(index3) = node_index
+            ! end if
         end do
         if (index1.ne.my_num_interface_nodes) then
             print *, "missmatch in the number of interface nodes on CPU", N
         ! else
         !     print *, my_num_interface_nodes, "= num interface nodes on CPU", N
         end if
-        if (index2.ne.my_num_boundary_nodes) then
-            print *, "missmatch in the number of boundary nodes on CPU", N
-        ! else
-        !     print *, my_num_boundary_nodes, "= num boundary nodes on CPU", N
-        end if
-        if (index3.ne.my_num_moving_nodes) then
-            print *, "missmatch in the number of moving nodes on CPU", N
-        ! else
-        !     print *, my_num_moving_nodes, "= num moving nodes on CPU", N
-        end if
+        ! if (index2.ne.my_num_boundary_nodes) then
+        !     print *, "missmatch in the number of boundary nodes on CPU", N
+        ! ! else
+        ! !     print *, my_num_boundary_nodes, "= num boundary nodes on CPU", N
+        ! end if
+        ! if (index3.ne.my_num_moving_nodes) then
+        !     print *, "missmatch in the number of moving nodes on CPU", N
+        ! ! else
+        ! !     print *, my_num_moving_nodes, "= num moving nodes on CPU", N
+        ! end if
 
         Call MPI_ALLGATHER(my_num_interface_nodes, 1, MPI_INT, num_interface_nodes, 1, MPI_INT, MPI_COMM_WORLD, IERROR)
 
@@ -593,6 +593,7 @@ subroutine establish_node_neighbours(N)
         do cpu_index = 0, isize-1
             allocate(buff(cpu_index)%coords(dimensiona*num_interface_nodes(cpu_index)))
             allocate(buff(cpu_index)%count(num_interface_nodes(cpu_index)))
+            allocate(buff(cpu_index)%boundary(num_interface_nodes(cpu_index)))
         end do
 
         do i = 1, my_num_interface_nodes 
@@ -602,6 +603,7 @@ subroutine establish_node_neighbours(N)
                 buff(N)%coords(dimensiona*(i-1)+j) = local_nodes(node_index)%positions(1,j)
             end do
             buff(N)%count(i) = local_nodes(node_index)%Num_Local_Neighbours
+            buff(N)%boundary(i) = local_nodes(node_index)%boundary
 
             ! print *, "on CPU", N, i, "th interface node has coordinates", local_nodes(node_index)%positions(1,:), "and", local_nodes(node_index)%Num_Local_Neighbours, "local cell neighbours"
         end do
@@ -630,6 +632,12 @@ subroutine establish_node_neighbours(N)
                 num_requests = num_requests + 1
                 CALL MPI_IRECV(buff(cpu_index)%count(1:num_interface_nodes(cpu_index)), num_interface_nodes(cpu_index), MPI_INTEGER, cpu_index, 987,&
                         MPI_COMM_WORLD, requests(num_requests), IERROR)
+                num_requests = num_requests + 1
+                CALL MPI_ISEND(buff(N)%boundary(1:my_num_interface_nodes), my_num_interface_nodes, MPI_INTEGER, cpu_index, 9876,&
+                        MPI_COMM_WORLD, requests(num_requests), IERROR)
+                num_requests = num_requests + 1
+                CALL MPI_IRECV(buff(cpu_index)%boundary(1:num_interface_nodes(cpu_index)), num_interface_nodes(cpu_index), MPI_INTEGER, cpu_index, 9876,&
+                        MPI_COMM_WORLD, requests(num_requests), IERROR)
             end if
         end do
 
@@ -642,6 +650,7 @@ subroutine establish_node_neighbours(N)
                 buff(N)%coords(dimensiona*(i-1)+j) = local_nodes(node_index)%positions(1,j)
             end do
             buff(N)%count(i) = local_nodes(node_index)%Num_Local_Neighbours
+            buff(N)%boundary(i) = local_nodes(node_index)%boundary
         end do
        
         do cpu_index = 0, isize-1
@@ -663,12 +672,50 @@ subroutine establish_node_neighbours(N)
                                 max_num_node_neighbours = local_nodes(node_index)%num_neighbours
                             end if
                             local_nodes(node_index)%num_cpus = local_nodes(node_index)%num_cpus + 1
+                            local_nodes(node_index)%boundary = max(local_nodes(node_index)%boundary,buff(cpu_index)%boundary(i))
                             ! print *, "on CPU", N, node_index, "matched with", i, "th node from", cpu_index 
                         end if
                     end if
                 end do
             end do
         end do
+
+        my_num_boundary_nodes = 0
+        my_num_moving_nodes = 0
+        do node_index=1,kmaxn 
+            if (local_nodes(node_index)%boundary.gt.0) then
+                my_num_boundary_nodes = my_num_boundary_nodes + 1
+            end if
+            if (local_nodes(node_index)%boundary.gt.100) then
+                my_num_moving_nodes = my_num_moving_nodes + 1
+            end if
+        end do
+        allocate(local_boundary_nodes(my_num_boundary_nodes))
+        allocate(local_moving_nodes(my_num_moving_nodes))
+        ! print*,N, "my_num_boundary_nodes =", my_num_boundary_nodes,"\n", N, "my_num_moving_nodes =", my_num_moving_nodes
+        index2 = 0
+        index3 = 0
+        do node_index=1,kmaxn
+            if (local_nodes(node_index)%boundary.gt.0) then
+                index2 = index2 + 1
+                local_boundary_nodes(index2) = node_index
+            end if
+            if (local_nodes(node_index)%boundary.gt.100) then
+                index3 = index3 + 1
+                local_moving_nodes(index3) = node_index
+            end if
+        end do
+        if (index2.ne.my_num_boundary_nodes) then
+            print *, "missmatch in the number of boundary nodes on CPU", N
+        ! else
+        !     print *, my_num_boundary_nodes, "= num boundary nodes on CPU", N
+        end if
+        if (index3.ne.my_num_moving_nodes) then
+            print *, "missmatch in the number of moving nodes on CPU", N
+        ! else
+        !     print *, my_num_moving_nodes, "= num moving nodes on CPU", N
+        end if
+
 
         do iter = 1,my_num_interface_nodes 
             node_index = local_interface_nodes(iter)
@@ -895,7 +942,9 @@ subroutine find_node_velocities(position_index, d_t, N)
     !$omp barrier
 
     ! call clamp_node_velocity_to_CFL(position_index, d_t, N)
+    ! if (.not.(initcond.eq.105)) then
     call clamp_node_velocity_to_fraction(position_index, d_t, N)
+    ! end if
 
     !$omp barrier
 
@@ -4695,69 +4744,72 @@ subroutine fix_moved_concave_cells(stage, position_index, d_t, N)
     !$omp do
     do node_index = 1, kmaxn
         local_nodes(node_index)%relaxation_velocity(:) = zero
-        current_node_position = local_nodes(node_index)%positions(position_index, 1:dimensiona) &
-                              + (local_nodes(node_index)%velocity(1:dimensiona) * d_t)
+        
+        if (local_nodes(node_index)%boundary.eq.0) then
+            current_node_position = local_nodes(node_index)%positions(position_index, 1:dimensiona) &
+                                + (local_nodes(node_index)%velocity(1:dimensiona) * d_t)
 
-        do k = 1, local_nodes(node_index)%num_local_neighbours
-            cell_index = local_nodes(node_index)%local_neighbours(k)
-            cell_num_nodes = ielem(N, cell_index)%nonodes
-            do i = 1, cell_num_nodes
-                if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.node_index) then
-                    exit
-                end if
-            end do
-
-            i_minus = i-1
-            if (i_minus.eq.0) then
-                i_minus = cell_num_nodes
-            end if
-            i_plus = i+1
-            if (i_plus.eq.cell_num_nodes+1) then
-                i_plus = 1
-            end if
-            previous_node_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
-            next_node_index = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
-
-            previous_node_position = local_nodes(previous_node_index)%positions(position_index, 1:dimensiona) &
-                                   + (local_nodes(previous_node_index)%velocity(1:dimensiona) * d_t)
-            next_node_position = local_nodes(next_node_index)%positions(position_index, 1:dimensiona) &
-                                   + (local_nodes(next_node_index)%velocity(1:dimensiona) * d_t)
-
-            v1(:) = current_node_position(:) - previous_node_position(:)
-		    v2(:) = next_node_position(:) - current_node_position(:)
-
-            len1 = zero
-            len2 = zero
-            do j = 1, dimensiona
-                len1 = len1 + (v1(j)*v1(j))
-                len2 = len2 + (v2(j)*v2(j))
-            end do
-            len1 = sqrt(len1)
-            len2 = sqrt(len2)
-
-            v1_cross_v2 = cross_product_2D(v1, v2)
-
-            if (v1_cross_v2.lt.zero) then ! concave angle
-            ! if (v1_cross_v2.lt.-0.175*len1*len2) then ! too concave angle
-
-                if ((local_nodes(node_index)%relaxation_velocity(1).ne.zero).or.(local_nodes(node_index)%relaxation_velocity(2).ne.zero)) then
-                    print*,"two concave angles before communication"
-                end if
-
-                if (cell_num_nodes.eq.3) then
-                    print*,"inverted triangle not trying to fix"
-                else
-                    if (dimensiona.eq.3) then
-                        print*,"trying to fix a concave angle in a quadrilateral in cell", cell_index, ielem(n,cell_index)%xxc, ielem(n,cell_index)%yyc, ielem(n,cell_index)%zzc
-                    else
-                        print*,"trying to fix a concave angle in a quadrilateral in cell", cell_index, ielem(n,cell_index)%xxc, ielem(n,cell_index)%yyc
+            do k = 1, local_nodes(node_index)%num_local_neighbours
+                cell_index = local_nodes(node_index)%local_neighbours(k)
+                cell_num_nodes = ielem(N, cell_index)%nonodes
+                do i = 1, cell_num_nodes
+                    if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.node_index) then
+                        exit
                     end if
-                    desired_node_position(:) = previous_node_position(:) + (len2/(len1+len2))*(next_node_position(:)-previous_node_position(:))
+                end do
 
-                    local_nodes(node_index)%relaxation_velocity(1:dimensiona) = (desired_node_position(:)-current_node_position(:))/d_t
+                i_minus = i-1
+                if (i_minus.eq.0) then
+                    i_minus = cell_num_nodes
                 end if
-            end if
-        end do
+                i_plus = i+1
+                if (i_plus.eq.cell_num_nodes+1) then
+                    i_plus = 1
+                end if
+                previous_node_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
+                next_node_index = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
+
+                previous_node_position = local_nodes(previous_node_index)%positions(position_index, 1:dimensiona) &
+                                    + (local_nodes(previous_node_index)%velocity(1:dimensiona) * d_t)
+                next_node_position = local_nodes(next_node_index)%positions(position_index, 1:dimensiona) &
+                                    + (local_nodes(next_node_index)%velocity(1:dimensiona) * d_t)
+
+                v1(:) = current_node_position(:) - previous_node_position(:)
+                v2(:) = next_node_position(:) - current_node_position(:)
+
+                len1 = zero
+                len2 = zero
+                do j = 1, dimensiona
+                    len1 = len1 + (v1(j)*v1(j))
+                    len2 = len2 + (v2(j)*v2(j))
+                end do
+                len1 = sqrt(len1)
+                len2 = sqrt(len2)
+
+                v1_cross_v2 = cross_product_2D(v1, v2)
+
+                if (v1_cross_v2.lt.zero) then ! concave angle
+                ! if (v1_cross_v2.lt.-0.175*len1*len2) then ! too concave angle
+
+                    if ((local_nodes(node_index)%relaxation_velocity(1).ne.zero).or.(local_nodes(node_index)%relaxation_velocity(2).ne.zero)) then
+                        print*,"two concave angles before communication"
+                    end if
+
+                    if (cell_num_nodes.eq.3) then
+                        print*,"inverted triangle not trying to fix"
+                    else
+                        if (dimensiona.eq.3) then
+                            print*,"trying to fix a concave angle in a quadrilateral in cell", cell_index, ielem(n,cell_index)%xxc, ielem(n,cell_index)%yyc, ielem(n,cell_index)%zzc
+                        else
+                            print*,"trying to fix a concave angle in a quadrilateral in cell", cell_index, ielem(n,cell_index)%xxc, ielem(n,cell_index)%yyc
+                        end if
+                        desired_node_position(:) = previous_node_position(:) + (len2/(len1+len2))*(next_node_position(:)-previous_node_position(:))
+
+                        local_nodes(node_index)%relaxation_velocity(1:dimensiona) = (desired_node_position(:)-current_node_position(:))/d_t
+                    end if
+                end if
+            end do
+        end if
     end do
     !$omp end do
 
@@ -5214,7 +5266,7 @@ subroutine enforce_node_velocity_BC(position_index, d_t, N)
     real,intent(in)::d_t
 
     ! integer M
-    integer::node_index, node_plus_index, node_minus_index, cell_index, index, node_num_neighbours, cell_num_nodes
+    integer::node_index, node_plus_index, node_minus_index, cell_index, index, node_num_neighbours, cell_num_nodes, boundary_index
     integer::cpu_index, cpu
     integer::iter, i, ii, j, k, i_plus, i_minus, counter
     real,dimension(1:dimensiona)::p, p_minus, p_plus
@@ -5229,6 +5281,26 @@ subroutine enforce_node_velocity_BC(position_index, d_t, N)
     if (num_values_to_send_per_node.lt.(2*dimensiona)) then
         print *,"something went wrong sorry :("
         call abort
+    end if
+
+    if (BOUNDARY_MOVEMENT) then
+        !$omp barrier
+
+        !$omp do
+        do i = 1, my_num_moving_nodes
+            node_index = local_moving_nodes(i)
+
+            if (local_nodes(node_index)%boundary.lt.100) then
+                print*,"something went wrong with local_nodes(node_index)%boundary"
+            end if
+            boundary_index = local_nodes(node_index)%boundary-100
+            if (.not.((initcond.eq.105).and.(t.ge.(2.0*0.7/uvel)))) then
+                local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%velocity(1:dimensiona) - boundary_velocity(boundary_index, 1:dimensiona)
+            end if
+        end do
+        !$omp end do
+
+        !$omp barrier
     end if
 
     !$omp do
@@ -5423,6 +5495,24 @@ subroutine enforce_node_velocity_BC(position_index, d_t, N)
 
     end do
     !$omp end do
+
+    if (BOUNDARY_MOVEMENT) then
+        !$omp barrier
+
+        !$omp do
+        do i = 1, my_num_moving_nodes
+            node_index = local_moving_nodes(i)
+
+            if (local_nodes(node_index)%boundary.lt.100) then
+                print*,"something went wrong with local_nodes(node_index)%boundary"
+            end if
+            boundary_index = local_nodes(node_index)%boundary-100
+            if (.not.((initcond.eq.105).and.(t.ge.(2.0*0.7/uvel)))) then
+                local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%velocity(1:dimensiona) + boundary_velocity(boundary_index, 1:dimensiona)
+            end if
+        end do
+        !$omp end do
+    end if
     
     !$omp barrier
 
@@ -5444,7 +5534,7 @@ subroutine enforce_node_lagrangian_velocity_BC(position_index, d_t, N)
     real,intent(in)::d_t
 
     ! integer M
-    integer::node_index, node_plus_index, node_minus_index, cell_index, index, node_num_neighbours, cell_num_nodes
+    integer::node_index, node_plus_index, node_minus_index, cell_index, index, node_num_neighbours, cell_num_nodes, boundary_index
     integer::cpu_index, cpu
     integer::iter, i, ii, j, k, i_plus, i_minus, counter
     real,dimension(1:dimensiona)::p, p_minus, p_plus
@@ -5653,6 +5743,24 @@ subroutine enforce_node_lagrangian_velocity_BC(position_index, d_t, N)
 
     end do
     !$omp end do
+
+    if (BOUNDARY_MOVEMENT) then
+        !$omp barrier
+
+        !$omp do
+        do i = 1, my_num_moving_nodes
+            node_index = local_moving_nodes(i)
+
+            if (local_nodes(node_index)%boundary.lt.100) then
+                print*,"something went wrong with local_nodes(node_index)%boundary"
+            end if
+            boundary_index = local_nodes(node_index)%boundary-100
+            if (.not.((initcond.eq.105).and.(t.ge.(2.0*0.7/uvel)))) then
+                local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) + boundary_velocity(boundary_index, 1:dimensiona)
+            end if
+        end do
+        !$omp end do
+    end if
     
     !$omp barrier
 
