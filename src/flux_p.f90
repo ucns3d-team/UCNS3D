@@ -2227,7 +2227,7 @@ subroutine calculate_fluxeshi_diffusive(n)
 
 
 
-					   if (nof_species.GT.0)then
+					 if (nof_species.gt.0)then
 					  do rg_i=1,nof_species
 					  idxy = dimensiona+3 + rg_i
 					  y_av(rg_i)=0.5d0*(leftv(idxy)+rightv(idxy))
@@ -2750,6 +2750,8 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 					u12   = oo2*(leftv(2)+rightv(2))
 					  v12   = oo2*(leftv(3)+rightv(3))
 
+
+					  if (nof_species.GT.0)then
 					  do rg_i=1,nof_species
 					  idxy = dimensiona+3 + rg_i
 					  y_av(rg_i)=0.5d0*(leftv(idxy)+rightv(idxy))
@@ -2758,13 +2760,14 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 					  end do
+					  end if
 
 
 
 
 
 					do k=1,nof_variables-1
-					lcvgrad(k,1:2)=((lcvgrad(k,1:2)+rcvgrad(k,1:2))/(2.0d0))!+damp*((vdamp/abs(ielem_dih(l,i)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
+					lcvgrad(k,1:2)=((lcvgrad(k,1:2)+rcvgrad(k,1:2))/(2.0d0))+damp*((vdamp/abs(ielem_dih(l,i)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
 					end do
 
 
@@ -2825,8 +2828,11 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 													! =============================================================
 													! 3. mixture-averaged diffusion fluxes (no pressure terms)
 													! =============================================================
+
+
 													rg_sum_htr(1:dimensiona) = 0.0d0
 													rg_sum_hv(1:dimensiona)  = 0.0d0
+													rg_qtr=0.0d0; rg_qv=0.0d0
 
 													sumi(1:dimensiona) = 0.0d0    ! σ i_k
 
@@ -2873,12 +2879,15 @@ subroutine calculate_fluxeshi_diffusive2d(n)
  																				+ rg_enthvb_av(rg_i)*jl(1:dimensiona)
 													end do
 
-													end if
+
 													! =============================================================
 													! 4. conductive heat fluxes (fourier)
 													! =============================================================
 													rg_qtr(1:dimensiona) = -mp_ktr_mix_av * lcvgrad(dimensiona+1,1:dimensiona)
 													rg_qv (1:dimensiona) = -mp_lam_av     * lcvgrad(dimensiona+2,1:dimensiona)
+
+
+													end if
 
 													! =============================================================
 													! 5. total diffusive fluxes
@@ -3203,6 +3212,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 					u12   = oo2*(leftv(2)+rightv(2))
 					  v12   = oo2*(leftv(3)+rightv(3))
 
+					  if (nof_species.GT.0)then
 					  do rg_i=1,nof_species
 					  idxy = dimensiona+3 + rg_i
 					  y_av(rg_i)=0.5d0*(leftv(idxy)+rightv(idxy))
@@ -3211,6 +3221,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 					  end do
+					  end if
 
 
 
@@ -3218,7 +3229,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 					do k=1,nof_variables-1
-					lcvgrad(k,1:2)=((lcvgrad(k,1:2)+rcvgrad(k,1:2))/(2.0d0))!+damp*((vdamp/abs(ielem_dih(l,i)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
+					lcvgrad(k,1:2)=((lcvgrad(k,1:2)+rcvgrad(k,1:2))/(2.0d0))+damp*((vdamp/abs(ielem_dih(l,i)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
 					end do
 
 
@@ -3289,16 +3300,17 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 													! =============================================================
 													rg_sum_htr(1:dimensiona) = 0.0d0
 													rg_sum_hv(1:dimensiona)  = 0.0d0
+													rg_qtr=0.0d0; rg_qv=0.0d0
 
 													sumi(1:dimensiona) = 0.0d0    ! σ i_k
 
 													if (rg_relax.ge.1)then
-													if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
-														icompute=1
-													end if
-													if ((b_code.eq.1).or.(b_code.eq.2))then
-														icompute=1
-													end if
+															if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
+																icompute=1
+															end if
+															if ((b_code.eq.1).or.(b_code.eq.2))then
+																icompute=1
+															end if
 
 													if (icompute.eq.0)then
 
@@ -3349,7 +3361,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 													end if
-													end if
+! 													end if
 
 
 
@@ -3358,6 +3370,9 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 													! =============================================================
 													rg_qtr(1:dimensiona) = -mp_ktr_mix_av * lcvgrad(dimensiona+1,1:dimensiona)
 													rg_qv (1:dimensiona) = -mp_lam_av     * lcvgrad(dimensiona+2,1:dimensiona)
+
+
+													end if
 
 													! =============================================================
 													! 5. total diffusive fluxes
@@ -3648,14 +3663,14 @@ subroutine calculate_fluxeshi_convective_mood(n)
 				  do ngp=1,iqp	!for all the gaussian quadrature points
                     
 				      cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)	!left mean flow state
-				      if ((cascade.eq.2).and.(ielem_mood(i).eq.1))then
+				      if ((cascade.eq.2).and.(ielem_mood(i).ge.1))then
 				      cleft(1:nof_variables)=u_c_val(3,1:nof_variables,i)
 				      end if
 				      
 				      
 				      cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
 
-				       if ((cascade.eq.2).and.(ielem_mood(ielem_ineighn(l,i)).eq.1))then
+				       if ((cascade.eq.2).and.(ielem_mood(ielem_ineighn(l,i)).ge.1))then
 				      cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
 				      end if
 				      
@@ -3886,7 +3901,7 @@ subroutine calculate_fluxeshi_convective_mood(n)
 				      
 				      
 				      cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
-				     if ((cascade.eq.2).and.(ielem_mood(i).eq.1))then
+				     if ((cascade.eq.2).and.(ielem_mood(i).ge.1))then
 				     cleft(1:nof_variables)=u_c_val(3,1:nof_variables,i)
 				     
 				     end if
@@ -3916,7 +3931,7 @@ subroutine calculate_fluxeshi_convective_mood(n)
 								  
 
 								  
-								  if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).eq.1))then
+								  if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).ge.1))then
 								   cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
 								  
 								  end if
@@ -3977,7 +3992,7 @@ subroutine calculate_fluxeshi_convective_mood(n)
 							
                                   
 							      cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
-							      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).eq.1))then
+							      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).ge.1))then
 							      cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
 							      
 							      end if
@@ -4013,7 +4028,7 @@ subroutine calculate_fluxeshi_convective_mood(n)
 									  rowfx = bound_offset(nfx) + lfx - 1
 									  cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
 
-                                    if ((cascade.eq.2).and.(boundhirm(rowfx).gt.0.5))then
+                                    if ((cascade.eq.2).and.(boundhirm(rowfx).ge.1))then
 
 
                                     nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
@@ -4061,7 +4076,7 @@ subroutine calculate_fluxeshi_convective_mood(n)
 								  cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
 
 								  
-								  if ((cascade.eq.2).and.(boundhirm(rowfx).gt.0.5))then
+								  if ((cascade.eq.2).and.(boundhirm(rowfx).ge.1))then
 
 								     nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
 								lf=rec_ihexl(1,ielem_indexi(L,i),i)
@@ -4338,13 +4353,13 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 				  do ngp=1,iqp	!for all the gaussian quadrature points
 				      cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)	!left mean flow state
 				      
-				       if ((cascade.eq.2).and.(ielem_mood(i).eq.1))then
+				       if ((cascade.eq.2).and.(ielem_mood(i).ge.1))then
 				      cleft(1:nof_variables)=u_c_val(3,1:nof_variables,i)
 				      end if
 				      
 				      cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i)) !right mean flow state
 				      
-				      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).eq.1))then
+				      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).ge.1))then
 				      cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
 				      end if
 				      
@@ -4548,7 +4563,7 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 				  do ngp=1,iqp
 				      cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
 				      
-				      if ((cascade.eq.2).and.(ielem_mood(i).eq.1))then
+				      if ((cascade.eq.2).and.(ielem_mood(i).ge.1))then
 				     cleft(1:nof_variables)=u_c_val(3,1:nof_variables,i)
 				     
 				     end if
@@ -4569,7 +4584,7 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								  cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
 								  
-								   if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).eq.1))then
+								   if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).ge.1))then
 								   cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
 								  
 								  end if
@@ -4615,7 +4630,7 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 							else
 							      cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
  							     
- 							      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).eq.1))then
+ 							      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).ge.1))then
 							      cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
 							      
 							      end if
@@ -4652,7 +4667,7 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 
 									  cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
 									  
-									  if ((cascade.eq.2).and.(boundhirm(rowfx).gt.0.5))then
+									  if ((cascade.eq.2).and.(boundhirm(rowfx).ge.1))then
 !                                     cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 					(rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 
@@ -4703,7 +4718,7 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 								  cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
  								  
  								  
- 								   if ((cascade.eq.2).and.(boundhirm(rowfx).gt.0.5))then
+ 								   if ((cascade.eq.2).and.(boundhirm(rowfx).ge.1))then
 !                                     cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 					(rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 

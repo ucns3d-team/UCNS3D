@@ -1810,14 +1810,14 @@ i=iconsi
 				if (ilox_ihexb(jj,l).eq.n)then
 				ilox_volume(jj,l)=(ielem_totvolume(ilox_ihexl(jj,l)))/abs(detjc)
 				 if ((ees.ne.5).or.(jj.eq.1))then
-				if (idum.eq.1)then
-				if (itestcase.eq.4)then
-				if (greengo.eq.0)rec_volume_w(1,l,rec_wall(i))=ilox_volume(1,l)
-				end if
-				rec_volume(1,1,i)=ilox_volume(1,1)
-				else
-				rec_volume(1,1,i)=ilox_volume(1,1)
-				end if
+						if (idum.eq.1)then
+								if (itestcase.eq.4)then
+								if (greengo.eq.0)rec_volume_w(1,l,rec_wall(i))=ilox_volume(1,l)
+								end if
+						rec_volume(1,1,i)=ilox_volume(1,1)
+						else
+						rec_volume(1,1,i)=ilox_volume(1,1)
+						end if
 				rec_ihexg(jj,l,i)=ilox_ihexg(jj,l)
 				rec_ihexl(jj,l,i)=ilox_ihexl(jj,l)
 				rec_ihexb(jj,l,rec_local(i))=ilox_ihexb(jj,l)
@@ -2459,7 +2459,7 @@ end do
 
 
 	      if (tempg1.gt.gridar1)then
-	      ielem_ggs(i)=1
+! 	      ielem_ggs(i)=1
 	      if ((iadapt.eq.1).or.(code_profile.eq.88).or.(code_profile.eq.98))then
                 ielem_full(i)=0
 			end if

@@ -822,9 +822,7 @@ end if
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  if (mood.eq.1)then
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  end if
   u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
 end do
 #ifdef gpu
@@ -865,7 +863,7 @@ do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
-   ielem_mood_o(i)=2
+    ielem_mood_o(i)=2
    end if
 end do
 #ifdef gpu
@@ -873,7 +871,7 @@ end do
 #else
 !$omp end do
 #endif
-
+!
 call mood_operator_1(n)
 
 #ifdef gpu
@@ -987,11 +985,11 @@ end do
 	!$omp do
 #endif
 do i=1,kmaxe
-    if (ielem_recalc(i).eq.1)then
+     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
 ((rhs_val(1:nof_variables,i))*(oovolume))))
-   ielem_mood_o(i)=2
+    ielem_mood_o(i)=2
    end if
 end do
 #ifdef gpu
@@ -999,7 +997,7 @@ end do
 #else
 !$omp end do
 #endif
-
+!
 call mood_operator_1(n)
 
 #ifdef gpu
@@ -1069,9 +1067,7 @@ end if
 #endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
-   if (mood.eq.1)then
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  end if
   u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
 ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
 end do
@@ -1092,11 +1088,11 @@ if (mood.eq.1)then
 	!$omp do
 #endif
 do i=1,kmaxe
-    if (ielem_recalc(i).eq.1)then
+     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
 ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
-   ielem_mood_o(i)=2
+    ielem_mood_o(i)=2
    end if
 end do
 #ifdef gpu
@@ -2330,9 +2326,7 @@ end if
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  if (mood.eq.1)then
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  end if
   u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
 end do
 #ifdef gpu
@@ -2373,7 +2367,7 @@ do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
-   ielem_mood_o(i)=2
+    ielem_mood_o(i)=2
    end if
 end do
 #ifdef gpu
@@ -2404,8 +2398,8 @@ end do
 #else
 !$omp end do
 #endif
-
-end if
+!
+ end if
 
  
 
@@ -2496,11 +2490,11 @@ end do
 	!$omp do
 #endif
 do i=1,kmaxe
-    if (ielem_recalc(i).eq.1)then
+     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
   u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
 ((rhs_val(1:nof_variables,i))*(oovolume))))
-   ielem_mood_o(i)=2
+    ielem_mood_o(i)=2
    end if
 end do
 #ifdef gpu
@@ -2508,7 +2502,7 @@ end do
 #else
 !$omp end do
 #endif
-
+!
 call mood_operator_1(n)
 
 #ifdef gpu
@@ -2578,10 +2572,8 @@ end if
 #endif
 do i=1,kmaxe
   oovolume=1.0d0/ielem_totvolume(i)
-   if (mood.eq.1)then
   u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  end if
-  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
 ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
 end do
 #ifdef gpu
@@ -2601,11 +2593,11 @@ if (mood.eq.1)then
 	!$omp do
 #endif
 do i=1,kmaxe
-    if (ielem_recalc(i).eq.1)then
+     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
 ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
-   ielem_mood_o(i)=2
+    ielem_mood_o(i)=2
    end if
 end do
 #ifdef gpu
@@ -2613,7 +2605,7 @@ end do
 #else
 !$omp end do
 #endif
-
+!
 call mood_operator_1(n)
 
 #ifdef gpu
@@ -2625,7 +2617,7 @@ call mood_operator_1(n)
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
   oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(1,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+  u_c_val(1,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
 ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
     ielem_mood_o(i)=1
    else
@@ -3328,7 +3320,7 @@ subroutine normalise_species(n)
 #else
 !$omp end do
 #endif
-
+!
 
 
 
@@ -3701,9 +3693,9 @@ subroutine implicit_times(n)
 !> @brief
 !> implicit approximately factored time stepping scheme
 implicit none
-integer::i,k,kmaxe
+integer::i,k,kmaxe,kill_nan_global
 integer,intent(in)::n
-real::verysmall
+real::verysmall,du,uold, umin, dumax, unew
 verysmall = tolsmall
 
 
@@ -3798,13 +3790,27 @@ end do
 #endif
 
 
+    !$omp barrier
+    !$omp master
+    kill_nan_global = 0
+    call mpi_allreduce(kill_nan,kill_nan_global,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    kill_nan = kill_nan_global
     if (kill_nan.eq.1)then
-        stop
+        kill=1
+        if (n.eq.0)then
+      print*,"killed due to divergence in implicit time stepping"
+    end if
     end if
 
+    !$omp end master
+    !$omp barrier
+
+    if (kill_nan.eq.1)then
+        return
+    end if
 
 if (realgas.eq.1)then
-if (rg_relax.eq.1)then
+if (rg_relax.eq.2)then
 #ifdef gpu
 	!$omp target teams distribute parallel do
 #else
@@ -3826,15 +3832,38 @@ end if
 
 if ((passivescalar.gt.0).or.(turbulence.gt.0))then
 #ifdef gpu
-	!$omp target teams distribute parallel do
+	!$omp target teams distribute parallel do private (du,uold,umin,dumax,unew)
 #else
 	!$omp do
 #endif
-  do i=1,kmaxe
+!   do i=1,kmaxe
+!   do k=1,turbulenceequations+passivescalar
+!   if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+!   u_ct_val(1,k,i)=u_ct_val(1,k,i)+0.4*impdu(i,nof_variables+k)
+!   end if
+!   end do
+! end do
+
+do i=1,kmaxe
   do k=1,turbulenceequations+passivescalar
-  if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
-  u_ct_val(1,k,i)=u_ct_val(1,k,i)+0.4*impdu(i,nof_variables+k)
-  end if
+
+    du   = 0.2d0*impdu(i,nof_variables+k)
+    uold = u_ct_val(1,k,i)
+    umin = 1.0d-12   !  floor
+
+    ! optional relative limiter
+    dumax = 0.25d0*max(abs(uold), umin)
+    if (du.gt. dumax) du =  dumax
+    if (du.lt.-dumax) du = -dumax
+
+    unew = uold + du
+
+    if (unew.lt.umin) then
+      unew = umin
+    end if
+
+    u_ct_val(1,k,i) = unew
+
   end do
 end do
 #ifdef gpu
@@ -3860,9 +3889,9 @@ subroutine implicit_times_2d(n)
 !> @brief
 !> implicit approximately factored time stepping scheme 2d
 implicit none
-integer::i,k,kmaxe,j
+integer::i,k,kmaxe,j,kill_nan_global
 integer,intent(in)::n
-real::verysmall
+real::verysmall,du,uold, umin, dumax, unew
 verysmall = tolsmall
 
  if (realgas.eq.1)call normalise_species(n)
@@ -3954,8 +3983,22 @@ end do
 !$omp end do
 #endif
 
+    !$omp barrier
+    !$omp master
+    kill_nan_global = 0
+    call mpi_allreduce(kill_nan,kill_nan_global,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    kill_nan = kill_nan_global
     if (kill_nan.eq.1)then
-        stop
+        kill=1
+        if (n.eq.0)then
+      print*,"killed due to divergence in implicit time stepping"
+    end if
+    end if
+    !$omp end master
+    !$omp barrier
+
+    if (kill_nan.eq.1)then
+        return
     end if
 
 
@@ -3963,7 +4006,7 @@ if (realgas.eq.1)call normalise_species(n)
 
 
 if (realgas.eq.1)then
-if (rg_relax.eq.1)then
+if (rg_relax.eq.2)then
 #ifdef gpu
 !$omp target teams distribute parallel do
 #else
@@ -3982,20 +4025,30 @@ end if
 
 if ((passivescalar.gt.0).or.(turbulence.gt.0))then
 #ifdef gpu
-!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do private (du,uold,umin,dumax,unew)
 #else
 !$omp do
 #endif
-  do i=1,kmaxe
+do i=1,kmaxe
   do k=1,turbulenceequations+passivescalar
-  if (ispal.eq.1)then
-  if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
-  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
-   end if
-   else
-   u_ct_val(1,k,i)=u_ct_val(1,k,i)+0.4*impdu(i,nof_variables+k)
-   
-   end if
+
+    du   = 0.2d0*impdu(i,nof_variables+k)
+    uold = u_ct_val(1,k,i)
+    umin = 1.0d-12   !  floor
+
+    ! optional relative limiter
+    dumax = 0.25d0*max(abs(uold), umin)
+    if (du.gt. dumax) du =  dumax
+    if (du.lt.-dumax) du = -dumax
+
+    unew = uold + du
+
+    if (unew.lt.umin) then
+      unew = umin
+    end if
+
+    u_ct_val(1,k,i) = unew
+
   end do
 end do
 #ifdef gpu
@@ -4023,7 +4076,7 @@ subroutine dual_time(n)
 !> @brief
 !> dual time stepping
 implicit none
-integer::i,k,kmaxe,jj
+integer::i,k,kmaxe,jj,kill_nan_global
 integer,intent(in)::n
 real::verysmall
 real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
@@ -4129,9 +4182,23 @@ end do
 !$omp end do
 #endif
 
-if (kill_nan == 1) then
-    stop
-end if
+    !$omp barrier
+    !$omp master
+    kill_nan_global = 0
+    call mpi_allreduce(kill_nan,kill_nan_global,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    kill_nan = kill_nan_global
+    if (kill_nan.eq.1)then
+        kill=1
+        if (n.eq.0)then
+      print*,"killed due to divergence in implicit time stepping"
+    end if
+    end if
+    !$omp end master
+    !$omp barrier
+
+    if (kill_nan.eq.1)then
+        return
+    end if
 
 
 !$omp master
@@ -4189,7 +4256,7 @@ end if
 #endif
 
 if (realgas.eq.1)then
-if (rg_relax.eq.1)then
+if (rg_relax.eq.2)then
 #ifdef gpu
 !$omp target teams distribute parallel do
 #else
@@ -4241,7 +4308,7 @@ else
 
 
 if (realgas.eq.1)then
-if (rg_relax.eq.1)then
+if (rg_relax.eq.2)then
 #ifdef gpu
 !$omp target teams distribute parallel do
 #else
@@ -4819,7 +4886,7 @@ subroutine dual_time_2d(n)
 !> @brief
 !> dual time stepping 2d
 implicit none
-integer::i,k,kmaxe,nvar,jj
+integer::i,k,kmaxe,nvar,jj,kill_nan_global
 integer,intent(in)::n
 real::verysmall
 real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
@@ -4922,8 +4989,22 @@ end do
 #endif
 
 
- if (kill_nan.eq.1)then
-        stop
+  !$omp barrier
+    !$omp master
+    kill_nan_global = 0
+    call mpi_allreduce(kill_nan,kill_nan_global,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    kill_nan = kill_nan_global
+    if (kill_nan.eq.1)then
+        kill=1
+        if (n.eq.0)then
+      print*,"killed due to divergence in implicit time stepping"
+    end if
+    end if
+    !$omp end master
+    !$omp barrier
+
+    if (kill_nan.eq.1)then
+        return
     end if
 
 
@@ -4978,7 +5059,7 @@ end if
 !$omp end do
 #endif
 if (realgas.eq.1)then
-if (rg_relax.eq.1)then
+if (rg_relax.eq.2)then
 #ifdef gpu
 !$omp target teams distribute parallel do
 #else
@@ -5021,7 +5102,7 @@ else
 #endif
 
 if (realgas.eq.1)then
-if (rg_relax.eq.1)then
+if (rg_relax.eq.2)then
 #ifdef gpu
 !$omp target teams distribute parallel do
 #else

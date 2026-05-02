@@ -1324,7 +1324,7 @@ real,dimension(1:nof_species)::rg_cvs,rg_cps
 real,dimension(1:nof_species)::rg_tvsl,rg_ev
 real::rg_ve,rg_tr,rg_chem,rg_density,rg_ev_total,rg_rmix,rg_kin,rg_cvt,rg_cpt
 integer::rg_iter,rg_maxiter
-real::rgf_vib,rgdf_vib,rg_tol,tve,ttr,rg_f,rg_df,sum1,sum2,sum3,u,v,w
+real::rgf_vib,rgdf_vib,tve,ttr,rg_f,rg_df,sum1,sum2,sum3,u,v,w
 real:: rhoe, rhoev
 real,dimension(1:nof_species):: rho_i,y
 real:: ke, etot, echem, rmix,evib
@@ -1570,7 +1570,7 @@ real,dimension(1:nof_species)::rg_cvs
 real,dimension(1:nof_species)::rg_tvsl,rg_ev
 real::rg_ve,rg_tr,rg_chem,rg_density,rg_ev_total,rg_rmix,rg_kin
 integer::rg_iter,rg_maxiter
-real::rgf_vib,rgdf_vib,rg_tol,tve,ttr,rg_f,rg_df,sum1,sum2,sum3,cv_i
+real::rgf_vib,rgdf_vib,tve,ttr,rg_f,rg_df,sum1,sum2,sum3,cv_i
 real:: rhoe, rhoev, ke, etot, ev, u,v,w,cv_mix
 real:: g, f, df, theta, ei, dei
 real, dimension(1:nof_species) :: rho_i,  cv_s
@@ -1788,7 +1788,7 @@ p_tol =10e-5
               rg_tv = rg_ttr2   ! <-- use ttr as initial guess for tv
               rg_tv = max(rg_t_lo, min(rg_t_hi, rg_tv))
 
-              do iter=1,200
+              do iter=1,40
                 g  = 0.0d0
                 df = 0.0d0
 
@@ -1803,7 +1803,7 @@ p_tol =10e-5
                     ! overflow-safe asymptotic form
                     tmpexp = exp(-ei)
                     g  = g  + y(i)*(rgs_ru/rg_molm(i))*theta*tmpexp
-                    df = df - y(i)*(rgs_ru/rg_molm(i))*theta*(ei/rg_tv)*tmpexp
+                    df = df + y(i)*(rgs_ru/rg_molm(i))*theta*(ei/rg_tv)*tmpexp
                   else
                     tmpexp = exp(ei)
                     denom  = tmpexp - 1.0d0
@@ -1814,7 +1814,7 @@ p_tol =10e-5
 
                 g = g - ev        ! target equation ev(tv) - ev_known = 0
 
-                if (abs(g) < rg_tol) exit
+                if (abs(g) < 1.0d-12 * max(1.0d0, abs(ev))) exit
                 if (abs(df) < 1d-20) exit
 
                 rg_tv = rg_tv - g/df
@@ -2068,7 +2068,7 @@ temps(:)=0.0d0
               rg_tv = rg_ttr2   ! <-- use ttr as initial guess for tv
               rg_tv = max(rg_t_lo, min(rg_t_hi, rg_tv))
 
-              do iter=1,200
+              do iter=1,40
                 g  = 0.0d0
                 df = 0.0d0
 
@@ -2083,7 +2083,7 @@ temps(:)=0.0d0
                     ! overflow-safe asymptotic form
                     tmpexp = exp(-ei)
                     g  = g  + y(i)*(rgs_ru/rg_molm(i))*theta*tmpexp
-                    df = df - y(i)*(rgs_ru/rg_molm(i))*theta*(ei/rg_tv)*tmpexp
+                    df = df + y(i)*(rgs_ru/rg_molm(i))*theta*(ei/rg_tv)*tmpexp
                   else
                     tmpexp = exp(ei)
                     denom  = tmpexp - 1.0d0
@@ -2094,7 +2094,7 @@ temps(:)=0.0d0
 
                 g = g - ev        ! target equation ev(tv) - ev_known = 0
 
-                if (abs(g) < rg_tol) exit
+                if (abs(g) < 1.0d-12 * max(1.0d0, abs(ev))) exit
                 if (abs(df) < 1d-20) exit
 
                 rg_tv = rg_tv - g/df
@@ -2568,7 +2568,7 @@ if (multispecies.eq.1) then
                                 end do
 
 
-
+              rmix = 0.0d0
 
              do i = 1, nof_species
               rmix = rmix + y(i) / rg_molm(i)

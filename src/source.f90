@@ -2138,6 +2138,8 @@ turbmv(2)=turbmv(1)
     nu  = viscl(1) / rho
     nu_tilde = turbmv(1) / rho      ! convert φ = ρ ν~  →  ν~
 
+     nu_tilde = max(nu_tilde, 1.0d-12 * visc)
+
     ! χ = ν~/ν
     tch_x = nu_tilde / nu
     tch_x3 = tch_x*tch_x*tch_x
@@ -2150,6 +2152,7 @@ turbmv(2)=turbmv(1)
 
     ! physical wall distance
     ddw = ielem_walldist(i)
+    ddw= max(ddw, 10e-12)
 
     ! --- des correction ---
     if (des_model .eq. 1) then
@@ -2170,7 +2173,7 @@ turbmv(2)=turbmv(1)
 
     ! --- stilde ---
     prodterm1 = (nu_tilde) / (kappa*kappa*ddw*ddw)
-    stild = max( omega + tch_fv2*prodterm1 , 0.3d0 * omega )
+    stild = max( omega + tch_fv2*prodterm1 , 0.3d0 * omega)
 
     ! --- production term ---
     prodtermfinal = cb1 * rho * nu_tilde * stild
@@ -2473,7 +2476,7 @@ turbmv(2)=turbmv(1)
     rho = leftv(1)
     nu = viscl(1) / rho
     nu_tilde = turbmv(1) / rho       ! convert φ=ρν~ → ν~
-
+    nu_tilde = max(nu_tilde, 1.0d-12 * visc)
     ! χ
     tch_x = nu_tilde / nu
     tch_x3 = tch_x*tch_x*tch_x
@@ -2482,6 +2485,7 @@ turbmv(2)=turbmv(1)
     tch_fv2 = 1.0d0 - tch_x / (1.0d0 + tch_x*tch_fv1)
 
     ddw = ielem_walldist(i)
+    ddw= max(ddw, 10e-12)
 
     ! ----- des corrections -----
     if (des_model .eq. 1) then
@@ -2939,6 +2943,7 @@ turbmv(2)=turbmv(1)
     rho = leftv(1)
     nu  = viscl(1) / rho
     nu_tilde = turbmv(1) / rho      ! convert φ = ρ ν~  →  ν~
+    nu_tilde= max(nu_tilde, 1.0d-12 * visc)
 
     ! χ = ν~/ν
     tch_x = nu_tilde / nu
@@ -2952,6 +2957,7 @@ turbmv(2)=turbmv(1)
 
     ! physical wall distance
     ddw = ielem_walldist(i)
+    ddw= max(ddw, 10e-12)
 
     ! --- des correction ---
     if (des_model .eq. 1) then
@@ -3269,6 +3275,7 @@ turbmv(2)=turbmv(1)
     rho = leftv(1)
     nu = viscl(1) / rho
     nu_tilde = turbmv(1) / rho       ! convert φ=ρν~ → ν~
+    nu_tilde = max(nu_tilde, 1.0d-12 * visc)
 
     ! χ
     tch_x = nu_tilde / nu
@@ -3278,6 +3285,7 @@ turbmv(2)=turbmv(1)
     tch_fv2 = 1.0d0 - tch_x / (1.0d0 + tch_x*tch_fv1)
 
     ddw = ielem_walldist(i)
+    ddw= max(ddw, 10e-12)
 
     ! ----- des corrections -----
     if (des_model .eq. 1) then

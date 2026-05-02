@@ -2713,7 +2713,7 @@ do k=1,indl
 #endif
    call mpi_isend(                                                     &
       boundhism(s0:s1), & !sendbuf
-      sb, mpi_double_precision,       & !sendcount, sendtype
+      sb, mpi_integer,       & !sendcount, sendtype
       bounds_proc(j), 0,                                        & !destination, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )
@@ -2731,7 +2731,7 @@ do k=1,indl
 #endif
    call mpi_irecv(                                                     &
       boundhirm(r0:r1),    & !recvbuf
-      rb, mpi_double_precision,          & !recvcount, recvtype
+      rb, mpi_integer,          & !recvcount, recvtype
       bound_proc(k), 0,                                        & !source, tag
       mpi_comm_world, requests(n_requests), ierror                     & !communicator, request handle, error
    )

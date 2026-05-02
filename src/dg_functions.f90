@@ -1973,7 +1973,7 @@ end if
 
 
 								  do k=1,dimensiona
-                                  rcvgrad(1:nof_variables-1,k)=rec_uleftv(k,1:nof_variables-1,ielem_ineigh(l,i),ngp,ielem_ineigh(l,i))
+                                  rcvgrad(1:nof_variables-1,k)=rec_uleftv(k,1:nof_variables-1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
                                   end do
 
 
@@ -2088,6 +2088,18 @@ end if
                                                   end if !thermal
 
 				  				    else
+
+                                                     do k=1,dimensiona
+                                                  rcvgrad(1:nof_variables-1,k)=lcvgrad(1:nof_variables-1,k)
+                                                  end do
+                                                  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+                                                  rcvgrad_t(:,:)=lcvgrad_t(:,:)
+                                                  end if
+
+
+
+
+
 
                                                       if (b_code.eq.3)then
                                                        ! normal vector (global coords)
@@ -2394,6 +2406,10 @@ end if
 										      end if
 										end do
 									  end do
+
+
+
+
 
 
 

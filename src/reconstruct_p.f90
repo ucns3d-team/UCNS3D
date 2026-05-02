@@ -2468,13 +2468,28 @@ subroutine muscl(n)
   do ii=1,nof_interior
     i=el_int(ii)
     iconsidered=i
-    if (((ielem_troubled(i).eq.1).and.(ielem_reduce(i).eq.1)).or.((ielem_full(i).eq.0).and.(ielem_troubled(i).eq.1)))then
-      if (ielem_recalc(i).gt.0)then
-        if (adda.eq.1) call adda_filter(n,iconsidered)
+     if (((ielem_troubled(i).eq.1).and.(ielem_reduce(i).eq.1)).or.((ielem_full(i).eq.0).and.(ielem_troubled(i).eq.1)))then
 
-        call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
-        call compute_muscl_reconstruction(iconsidered,utmin,utmax)
-      end if
+        if (mood.eq.1)then
+              if (ielem_mood(i).gt.0)then
+                  if (adda.eq.1) call adda_filter(n,iconsidered)
+
+                call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+                call compute_muscl_reconstruction(iconsidered,utmin,utmax)
+              end if
+
+
+        else
+
+            if (adda.eq.1) call adda_filter(n,iconsidered)
+
+              call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+              call compute_muscl_reconstruction(iconsidered,utmin,utmax)
+
+
+        end if
+
+
     end if
   end do
 #ifdef gpu
@@ -2495,14 +2510,32 @@ subroutine muscl(n)
 
 
 
-    if (((ielem_troubled(i).eq.1).and.(ielem_reduce(i).eq.1)).or.((ielem_full(i).eq.0).and.(ielem_troubled(i).eq.1)))then
-      if (ielem_recalc(i).gt.0)then
-        if (adda.eq.1) call adda_filter(n,iconsidered)
+     if (((ielem_troubled(i).eq.1).and.(ielem_reduce(i).eq.1)).or.((ielem_full(i).eq.0).and.(ielem_troubled(i).eq.1)))then
 
-        call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
-        call compute_muscl_reconstruction(iconsidered,utmin,utmax)
-      end if
-    end if
+
+      if (mood.eq.1)then
+              if (ielem_mood(i).gt.0)then
+                  if (adda.eq.1) call adda_filter(n,iconsidered)
+
+                call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+                call compute_muscl_reconstruction(iconsidered,utmin,utmax)
+              end if
+
+
+        else
+
+          if (adda.eq.1) call adda_filter(n,iconsidered)
+
+            call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+            call compute_muscl_reconstruction(iconsidered,utmin,utmax)
+
+
+        end if
+
+
+
+
+     end if
   end do
 #ifdef gpu
 !$omp end target teams distribute parallel do
@@ -2702,6 +2735,10 @@ subroutine solutiontriav2(n)
             end if
 
             rec_uleftv(1:dimensiona,iex,l,ngp,i) = matmul(ainvjt(1:dimensiona,1:dimensiona), ugradloc(1:dimensiona))
+
+
+
+
           end do
 
         end do  ! ngp
@@ -3141,7 +3178,7 @@ ielem_reduce(1:kmaxe)=0
 	else
 
 	call linear_scheme(n)
-	call checksolx(n)
+ 	call checksolx(n)
 	end if
 
 
@@ -3648,37 +3685,37 @@ if (itestcase.ge.3)then
                                                     end do
 
 
-                                                            if (code_profile.ne.777)then
-                                                            rhol = rec_uleft(1, l, ngp,i)
-
-                                                            sumx = 0.0d0
-                                                            do iex = dimensiona+4, nof_variables
-                                                            ! work directly on rhoyk, clip negatives
-                                                            if (rec_uleft(iex,l,ngp,i) < 0.0d0) then
-                                                                rec_uleft(iex,l,ngp,i) = 0.0d0
-                                                            end if
-
-                                                            sumx = sumx + rec_uleft(iex,l,ngp,i)
-                                                            end do
-
-                                                            if (sumx > 1.0d-14) then
-                                                            ! renormalise so that sum_k (rhoyk) = rho
-                                                            rscale = rhol / sumx
-
-                                                            do iex = dimensiona+4, nof_variables
-                                                                rec_uleft(iex,l,ngp,i) = rec_uleft(iex,l,ngp,i) * rscale
-                                                            end do
-
-                                                            ! keep 2nd order; do not set reduce1 here
-                                                            else
-                                                            ! truly broken state → fall back
-                                                            reduce1 = 1
-                                                            ielem_reduce(i) = 5
-                                                            end if
-
-
-
-                                                            end if
+!                                                             if (code_profile.ne.777)then
+!                                                             rhol = rec_uleft(1, l, ngp,i)
+!
+!                                                             sumx = 0.0d0
+!                                                             do iex = dimensiona+4, nof_variables
+!                                                             ! work directly on rhoyk, clip negatives
+!                                                             if (rec_uleft(iex,l,ngp,i) < 0.0d0) then
+!                                                                 rec_uleft(iex,l,ngp,i) = 0.0d0
+!                                                             end if
+!
+!                                                             sumx = sumx + rec_uleft(iex,l,ngp,i)
+!                                                             end do
+!
+!                                                             if (sumx > 1.0d-14) then
+!                                                             ! renormalise so that sum_k (rhoyk) = rho
+!                                                             rscale = rhol / sumx
+!
+!                                                             do iex = dimensiona+4, nof_variables
+!                                                                 rec_uleft(iex,l,ngp,i) = rec_uleft(iex,l,ngp,i) * rscale
+!                                                             end do
+!
+!                                                             ! keep 2nd order; do not set reduce1 here
+!                                                             else
+!                                                             ! truly broken state → fall back
+!                                                             reduce1 = 1
+!                                                             ielem_reduce(i) = 5
+!                                                             end if
+!
+!
+!
+!                                                             end if
 
 
 

@@ -266,6 +266,9 @@ real,parameter ::to4=3.0d0/4.0d0
 real,parameter ::oo4=1.0d0/4.0d0
 real,parameter ::to3=2.0d0/3.0d0
 real,parameter ::oo3=1.0d0/3.0d0
+real,parameter :: turb_diag_floor_frac=5.0d-2
+real,parameter :: turb_source_cap_frac=5.0d-1
+real,parameter :: turb_diag_abs_floor=1.0d-30
 real::reynolds					!reynolds number
 real::cflmax					!maximum number of allowable cfl to be used only with implicit
 real::prevres					!previous residual in order to determine ramping strategy
@@ -452,7 +455,7 @@ real,allocatable::solhird(:),solhisd(:)			!receiving flat array for halo cells a
 real,allocatable::boundhiri(:,:),boundhisi(:,:)		!receiving flat array for boundary cells implicit time stepping
 real,allocatable::boundhir(:,:),boundhis(:,:)			!receiving flat array for boundary cells gradients and solutions
 real,allocatable::boundhir_dg(:,:),boundhis_dg(:,:)		!receiving flat array for boundary cells gradients and solutions for dg
-real,allocatable::boundhirm(:),boundhism(:)		!receiving flat array for mood states
+integer,allocatable::boundhirm(:),boundhism(:)		!receiving flat array for mood states
 real,allocatable::solhir_flat(:),solhis_flat(:),boundhir_flat(:),boundhis_flat(:)
 real,allocatable::boundhir_dgflat(:),boundhis_dgflat(:), boundhiri_flat(:), boundhisi_flat(:)
 integer::bound_total,bounds_total, halo_total, halos_total,ilength1,ilength2

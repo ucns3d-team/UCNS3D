@@ -550,14 +550,7 @@ real,dimension(1:nof_variables)::leftv
 
 
 
-
-
-
-
-
-
-
-imax=number_of_nei-1
+imax=numneighbours-1
 
 
 i=iconsidered
@@ -565,7 +558,7 @@ sols1=zero;
 sols2=zero
 
 
-
+sol_m=zero; matrix_1=zero;
 
 
 
@@ -583,8 +576,13 @@ sols2=zero
                do iq=1,imax
                 leftv(1:nof_variables)=u_c_val(1,1:nof_variables,rec_ihexl(1,iq+1,i))
 
+
+
 		call cons2div(n,leftv,mp_pinfl,gammal)
 	       sols2(1:nof_variables-1)=leftv(2:nof_variables)
+
+
+
 
 
   	        matrix_1(iq,1:nof_variables-1)=((sols2(1:nof_variables-1)-sols1(1:nof_variables-1)))
@@ -599,12 +597,15 @@ sols2=zero
 ! imax,beta,sol_m(1:ielem_idegfree(i),1:nof_variables),ielem_idegfree(i))
 
 
-		sol_m(1:ielem_idegfree(i),1:nof_variables-1)=matmul(rec_invmat_stencilt(1:idegfree,1:imax,ll,i),matrix_1(1:imax,1:nof_variables-1))
+		sol_m(1:idegfree,1:nof_variables-1)=matmul(rec_invmat_stencilt(1:idegfree,1:imax,1,i),matrix_1(1:imax,1:nof_variables-1))
 
 
 		do var2=1,nof_variables-1
-		rec_gradf(var2,1:number_of_dog,iconsidered)=sol_m(1:number_of_dog,var2)
+		rec_gradf(var2,1:idegfree,iconsidered)=sol_m(1:idegfree,var2)
+
 		end do
+
+
 
 
 
@@ -620,17 +621,23 @@ sols2=zero
 		  if (rec_ihexb(1,iq+1,rec_local(i)).eq.n)then
 		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,rec_ihexl(1,iq+1,i))
 
+
+
 		  else
 ! 		  leftv(1:nof_variables)=iexsolhir(rec_ihexn(1,iq+1,rec_local(i)))%sol(rec_ihexl(1,iq+1,i),1:nof_variables)
 
 		  nf=rec_ihexn(1,iq+1,rec_local(i))
           lf=rec_ihexl(1,iq+1,i)
           rowf=halo_offset(nf) + lf - 1
-          leftv(1:nof_variables)=solhir(rowf, 1:nof_variables)
+          leftv(1:nof_variables)=solhir(rowf,1:nof_variables)
 
 
 
 		  end if
+
+
+
+
 
 
 		  call cons2div(n,leftv,mp_pinfl,gammal)
@@ -647,14 +654,18 @@ sols2=zero
 !          ielem_idegfree(i),matrix_1(1:imax,1:nof_variables),&
 ! imax,beta,sol_m(1:ielem_idegfree(i),1:nof_variables),ielem_idegfree(i))
 
-			sol_m(1:ielem_idegfree(i),1:nof_variables-1)=matmul(rec_invmat_stencilt(1:idegfree,1:imax,ll,i),matrix_1(1:imax,1:nof_variables-1))
+			sol_m(1:idegfree,1:nof_variables-1)=matmul(rec_invmat_stencilt(1:idegfree,1:imax,1,i),matrix_1(1:imax,1:nof_variables-1))
 
 
 
 
 		do var2=1,nof_variables-1
-		rec_gradf(var2,1:number_of_dog,iconsidered)=sol_m(1:number_of_dog,var2)
+		rec_gradf(var2,1:idegfree,iconsidered)=sol_m(1:idegfree,var2)
 		end do
+
+
+
+
 
 		end if
 

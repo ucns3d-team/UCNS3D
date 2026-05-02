@@ -167,11 +167,11 @@ if (itestcase.ge.3)then
 
                         do iex=1,nof_variables
                         
-                        if ((iex.eq.1).or.(iex.eq.nof_variables))then
+!                          if ((iex.eq.1).or.(iex.eq.nof_variables))then
                          if ((leftv(iex).lt.(utmin(iex)-nad_delta1(iex))).or.(leftv(iex).gt.(utmax(iex)+nad_delta1(iex))))then
                             nad_true=1
-                        end if
-                        endif
+                         end if
+!                         endif
                         
                         end do
                         else
@@ -183,10 +183,10 @@ if (itestcase.ge.3)then
 
 
 
-                         if ((iex.eq.1).or.(iex.eq.nof_variables))then
+!                          if ((iex.eq.1).or.(iex.eq.nof_variables))then
                         if ((leftv(iex).lt.(utmin(iex))).or.(leftv(iex).gt.(utmax(iex))))then
                             nad_true=1
-                        end if
+!                         end if
                         end if
                         end do
                         
@@ -349,10 +349,10 @@ if (itestcase.ge.3)then
 
                         do iex=1,nof_variables
                         
-                         if ((iex.eq.1).or.(iex.eq.nof_variables))then
+!                           if ((iex.eq.1).or.(iex.eq.nof_variables))then
                          if ((leftv(iex).lt.(utmin(iex)-nad_delta1(iex))).or.(leftv(iex).gt.(utmax(iex)+nad_delta1(iex))))then
                             nad_true=1
-                        end if
+!                          end if
                         end if
                         
                         end do
@@ -361,10 +361,10 @@ if (itestcase.ge.3)then
                         call cons2prim(n,leftv,mp_pinfl,gammal)
 
                         do iex=1,nof_variables
-                         if ((iex.eq.1).or.(iex.eq.nof_variables))then
+!                          if ((iex.eq.1).or.(iex.eq.nof_variables))then
                         if ((leftv(iex).lt.(utmin(iex))).or.(leftv(iex).gt.(utmax(iex))))then
                             nad_true=1
-                        end if
+!                         end if
                         end if
                         end do
                         
@@ -529,7 +529,7 @@ end do
 !$omp do
 #endif
 do i=1,kmaxe
-    if (ielem_mood(i).eq.1)then
+    if (ielem_mood(i).ge.1)then
     ielem_mood_o(i)=1     ! only first order solution admissible
     end if
 end do
@@ -549,7 +549,7 @@ subroutine fix_list(n)
 	real::godflux2,sum_detect
 	integer::i,l,ngp,kmaxe,iqp,nfx,lfx,rowfx
 	real,dimension(numberofpoints2)::weights_temp
-	real,dimension(1)::cright
+	integer,dimension(1)::mright
 	kmaxe=xmpielrank(n)
 	
 #ifdef gpu
@@ -559,19 +559,19 @@ subroutine fix_list(n)
 #endif
 	do i=1,kmaxe
                 ielem_recalc(i)=0
-		if (ielem_mood(i).eq.1)then
+		if (ielem_mood(i).ge.1)then
 		
                     ielem_recalc(i)=1
                 else
 		if (ielem_interior(i).eq.0)then
-		    cright(1)=zero
+		    mright(1)=zero
 		    
 		    do l=1,ielem_ifca(i)
 				 
 				 
-				      cright(1)=ielem_mood(ielem_ineigh(l,i)) 
+				      mright(1)=ielem_mood(ielem_ineigh(l,i))
 				      
-				  if (cright(1).gt.0.5)then
+				  if (mright(1).ge.1)then
                                     ielem_recalc(i)=1
                                     end if	    
 
@@ -580,7 +580,7 @@ subroutine fix_list(n)
 		
 		
 		if (ielem_interior(i).eq.1)then
-		    cright(1)=zero
+		    mright(1)=zero
 		    
 		    do l=1,ielem_ifca(i)
 				      
@@ -590,38 +590,38 @@ subroutine fix_list(n)
 					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
-								  cright(1)=ielem_mood(ielem_ineigh(l,i))
+								 mright(1)=ielem_mood(ielem_ineigh(l,i))
  								     
 								  else
                                                                         
 								  end if
 							else
-							      cright(1)=ielem_mood(ielem_ineigh(l,i))
+							      mright(1)=ielem_mood(ielem_ineigh(l,i))
 !  							       
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
 						
-							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-! 									  cright(1)=iexboundhir(ielem_ineighn(l,i))%facesol_m(ielem_qface(l,1,i),1)
-									  nfx  = ielem_ineighn(l,i)
-									  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
-									  rowfx = bound_offset(nfx) + lfx - 1
-									  cright(1) = boundhirm(rowfx)
-    									 
-								end if
-							else 								
-! 								  cright(1)=iexboundhir(ielem_ineighn(l,i))%facesol_m(ielem_qface(l,1,i),1)
-								  nfx  = ielem_ineighn(l,i)
-								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
-								  rowfx = bound_offset(nfx) + lfx - 1
-								  cright(1) = boundhirm(rowfx)
-  									
-! 								
-							end if
+                                if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+                                    if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+    ! 									  cright(1)=iexboundhir(ielem_ineighn(l,i))%facesol_m(ielem_qface(l,1,i),1)
+                                        nfx  = ielem_ineighn(l,i)
+                                        lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
+                                        rowfx = bound_offset(nfx) + lfx - 1
+                                        mright(1) = boundhirm(rowfx)
+
+                                    end if
+                                else
+    ! 								  cright(1)=iexboundhir(ielem_ineighn(l,i))%facesol_m(ielem_qface(l,1,i),1)
+                                    nfx  = ielem_ineighn(l,i)
+                                    lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
+                                    rowfx = bound_offset(nfx) + lfx - 1
+                                    mright(1) = boundhirm(rowfx)
+
+    !
+                                end if
 					    end if
 				      
-				     	  if (cright(1).gt.0.5)then
+				     	  if (mright(1).ge.1)then
                                     ielem_recalc(i)=1
                                     end if	    
 !  				      

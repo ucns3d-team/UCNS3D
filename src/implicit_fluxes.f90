@@ -8,6 +8,7 @@ use flow_operations
 use source
 implicit none
 
+
 contains
 subroutine calculate_jacobian(n)
 	implicit none
@@ -639,7 +640,8 @@ if (rungekutta.eq.10)then
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
-    impdiagt(i,nvar)=impdiagt(i,nvar)+(ielem_totvolume(i)/(ielem_dtl(i)))-sht(i,nvar)
+    sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/(ielem_dtl(i)))))
+    impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/(ielem_dtl(i)))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/(ielem_dtl(i))),turb_diag_abs_floor))
     end do
     end if
     if (passivescalar.gt.0)then
@@ -663,7 +665,8 @@ do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
 
-    impdiagt(i,nvar)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(i,nvar))-sht(i,nvar)
+    sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))))
+    impdiagt(i,nvar)=max((ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(i,nvar))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))),turb_diag_abs_floor))
     end do
     end if
     if (passivescalar.gt.0)then
@@ -1281,7 +1284,8 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		do i=1,kmaxe
 				  do j=1,nof_variables
 
-					impdiag(i,j,j)=impdiag(i,j,j)+(ielem_totvolume(i)/ielem_dtl(i))-sht_rg(i,j)
+					sht_rg(i,j)=min(max(sht_rg(i,j),0.0d0),turb_source_cap_frac*(impdiag(i,j,j)+(ielem_totvolume(i)/ielem_dtl(i))))
+					impdiag(i,j,j)=max((impdiag(i,j,j)+(ielem_totvolume(i)/ielem_dtl(i))-sht_rg(i,j)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor))
 
 				  end do
 		end do
@@ -1299,7 +1303,8 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 	  do i=1,kmaxe
 					do j=1,nof_variables
 
-	      impdiag(i,j,j)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(i,j,j))-sht_rg(i,j)
+	      sht_rg(i,j)=min(max(sht_rg(i,j),0.0d0),turb_source_cap_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(i,j,j))))
+	      impdiag(i,j,j)=max((ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(i,j,j))-sht_rg(i,j)),max(turb_diag_floor_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))),turb_diag_abs_floor))
 
 				  end do
 	end do
@@ -1886,7 +1891,8 @@ if (rungekutta.eq.10)then
 
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
-    impdiagt(1,nvar)=impdiagt(1,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)
+    sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(1,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
+    impdiagt(1,nvar)=max((impdiagt(1,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor))
     end do
     end if
     if (passivescalar.gt.0)then
@@ -1899,7 +1905,8 @@ else
 
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
-    impdiagt(1,nvar)=(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+((1.5d0/dt)*impdiagt(1,nvar))))-sht(i,nvar)
+    sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+((1.5d0/dt)*impdiagt(1,nvar)))))
+    impdiagt(1,nvar)=max(((ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+((1.5d0/dt)*impdiagt(1,nvar))))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+((1.5d0/dt)*impdiagt(1,nvar)))),turb_diag_abs_floor))
     end do
     end if
     if (passivescalar.gt.0)then
@@ -2402,7 +2409,8 @@ if (rungekutta.eq.10)then
 
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
-    impdiagt(1,nvar)=impdiagt(1,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)
+    sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(1,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
+    impdiagt(1,nvar)=max((impdiagt(1,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor))
     end do
     end if
     if (passivescalar.gt.0)then
@@ -2416,7 +2424,8 @@ else
 
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
-    impdiagt(1,nvar)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(1,1))-sht(i,nvar)
+    sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(1,1))))
+    impdiagt(1,nvar)=max((ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(1,1))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))),turb_diag_abs_floor))
     
     end do
     end if
@@ -2937,12 +2946,14 @@ if (rungekutta.eq.10)then
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
-   impdiagt(i,nvar)=impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar) 
+   sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
     end do
     end if
     if (passivescalar.gt.0)then
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
-     impdiagt(i,nvar)=impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar) 
+     sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
     end do
     end if
 end do
@@ -2961,12 +2972,14 @@ do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
 !    
-     impdiagt(i,nvar)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(i,nvar))-sht(i,nvar)
+     sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))))
+    impdiagt(i,nvar)=max((ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(i,nvar))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))),turb_diag_abs_floor))
     end do
     end if
     if (passivescalar.gt.0)then
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
-     impdiagt(i,nvar)=impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar) 
+     sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
     end do
     end if
 
@@ -3494,12 +3507,14 @@ if (rungekutta.eq.10)then
 do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
-   impdiagt(i,nvar)=impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar) 
+   sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
     end do
     end if
     if (passivescalar.gt.0)then
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
-     impdiagt(i,nvar)=impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar) 
+     sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
     end do
     end if
 end do
@@ -3518,12 +3533,14 @@ do i=1,kmaxe
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
 !    
-     impdiagt(i,nvar)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(i,nvar))-sht(i,nvar)
+     sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))))
+    impdiagt(i,nvar)=max((ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(i,nvar))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))),turb_diag_abs_floor))
     end do
     end if
     if (passivescalar.gt.0)then
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
-     impdiagt(i,nvar)=impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar) 
+     sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
     end do
     end if
 

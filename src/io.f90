@@ -19607,6 +19607,7 @@ real,dimension(1:numberofpoints2)::weights_temp
 real,dimension(1:4)::viscl,laml
 real::fxr,fyr,fzr,mome_xcc,mome_ycc,mome_zcc
 
+!$omp master
 
 forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
  cd=zero
@@ -19622,6 +19623,10 @@ forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
  momenty=zero 
  momentz=zero
  momentx=zero
+ !$omp end master
+!$omp barrier
+
+
  kmaxe=xmpielrank(n)
  
 #ifdef GPU
@@ -19877,11 +19882,19 @@ real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
 real,dimension(1:numberofpoints2)::weights_temp
 real,dimension(1:4)::viscl,laml
+
+
+!$omp master
 forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
  cd=zero
  cl=zero
  ci(:)=zero
  co(:)=zero
+
+ !$omp end master
+!$omp barrier
+
+
  kmaxe=xmpielrank(n)
  
 #ifdef GPU
@@ -20071,7 +20084,7 @@ do i=1,5
 suml3=allres(i)
 dum_resi=zero
 call mpi_allreduce(suml3,dum_resi,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
-allres(i)=dum_resi/totalvolume
+allres(i)=sqrt(dum_resi/totalvolume)
 
 end do
 
@@ -20112,7 +20125,7 @@ do i=1,7
 suml3=allres(i)
 dum_resi=zero
 call mpi_allreduce(suml3,dum_resi,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
-allres(i)=dum_resi/totalvolume
+allres(i)=sqrt(dum_resi/totalvolume)
 
 end do
 
@@ -20184,7 +20197,11 @@ integer::i,kmaxe
 real::suml3,dum_resi
 kmaxe=xmpielrank(n)
 
+
+!$omp master
 allres(:)=zero
+!$omp end master
+!$omp barrier
 
 
 if ((itestcase.le.4).and.(turbulence.ne.1))then
@@ -20218,7 +20235,7 @@ do i=1,4
 suml3=allres(i)
 dum_resi=zero
 call mpi_allreduce(suml3,dum_resi,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
-allres(i)=dum_resi/totalvolume
+allres(i)=sqrt(dum_resi/totalvolume)
 
 end do
 
@@ -20260,14 +20277,14 @@ do i=1,nof_variables+turbulenceequations
 suml3=allres(i)
 dum_resi=zero
 call mpi_allreduce(suml3,dum_resi,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
-allres(i)=dum_resi/totalvolume
+allres(i)=sqrt(dum_resi/totalvolume)
 
 end do
 
 
 
 do i=1,nof_variables+turbulenceequations
-if (initialres(i).le.allres(i))then
+ if (initialres(i).le.allres(i))then
 initialres(i)=allres(i)
 end if
 allres(i)=allres(i)/initialres(i)

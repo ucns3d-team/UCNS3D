@@ -152,7 +152,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 !$omp do
 #endif
 do i=1,kmaxe
-impdiagt(i,1:turbulenceequations+passivescalar)=1.0d0/impdiagt(i,1:turbulenceequations+passivescalar)
+impdiagt(i,1:turbulenceequations+passivescalar)=1.0d0/max(impdiagt(i,1:turbulenceequations+passivescalar),1.0d-30)
 end do
 #ifdef gpu
 !!$omp end target teams distribute parallel do
@@ -955,7 +955,7 @@ impdiag(1,5,5)=1.0d0/lscqm1(5,5)
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/impdiagt(1,1:turbulenceequations+passivescalar)
+impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/max(impdiagt(1,1:turbulenceequations+passivescalar),1.0d-30)
 end if
 
 if (iscoun.ne.1)then
@@ -1181,7 +1181,7 @@ impdiag(1,5,5)=1.0d0/lscqm1(5,5)
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/impdiagt(1,1:turbulenceequations+passivescalar)
+impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/max(impdiagt(1,1:turbulenceequations+passivescalar),1.0d-30)
 end if
 
 
@@ -1435,7 +1435,7 @@ impdiag(1,5,5)=1.0d0/lscqm1(5,5)
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/impdiagt(1,1:turbulenceequations+passivescalar)
+impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/max(impdiagt(1,1:turbulenceequations+passivescalar),1.0d-30)
 end if
 
 
@@ -1669,7 +1669,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 !$omp do
 #endif
 do i=1,kmaxe
-impdiagt(i,1:turbulenceequations+passivescalar)=1.0d0/impdiagt(i,1:turbulenceequations+passivescalar)
+impdiagt(i,1:turbulenceequations+passivescalar)=1.0d0/max(impdiagt(i,1:turbulenceequations+passivescalar),1.0d-30)
 end do
 #ifdef gpu
 !!$omp end target teams distribute parallel do
@@ -2457,7 +2457,7 @@ impdiag(1,4,4)=1.0d0/lscqm1(4,4)
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/impdiagt(1,1:turbulenceequations+passivescalar)
+impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/max(impdiagt(1,1:turbulenceequations+passivescalar),1.0d-30)
 end if
 
 if (iscoun.ne.1)then
@@ -2696,7 +2696,7 @@ impdiag(1,4,4)=1.0d0/lscqm1(4,4)
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/impdiagt(1,1:turbulenceequations+passivescalar)
+impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/max(impdiagt(1,1:turbulenceequations+passivescalar),1.0d-30)
 end if
 
 
@@ -2943,7 +2943,7 @@ impdiag(1,4,4)=1.0d0/lscqm1(4,4)
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/impdiagt(1,1:turbulenceequations+passivescalar)
+impdiagt(1,1:turbulenceequations+passivescalar)=1.0d0/max(impdiagt(1,1:turbulenceequations+passivescalar),1.0d-30)
 end if
 
 

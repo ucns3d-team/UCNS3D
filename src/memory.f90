@@ -708,7 +708,19 @@ subroutine local_reconallocation3(n)
       end do
     end if
     int_wall = int_wall + idum
+
+    if (idum.eq.1)then
+
     rec_wall(i) = int_wall
+
+    else
+
+    rec_wall(i) =0
+    end if
+
+
+
+
   end do
 
   if (dimensiona == 3) then
@@ -809,13 +821,13 @@ subroutine local_reconallocation3(n)
 
   if (int_local > 0) then
     if (ees == 5) then
-      allocate(rec_ihexb(1,1:numneighbours,1:int_local));                rec_ihexb = 0
-      allocate(rec_ihexn(1,1:numneighbours,1:int_local));                rec_ihexn = 0
-      allocate(rec_ihexbc(2:typesten,numneighbours2,1:int_local));       rec_ihexbc = 0
-      allocate(rec_ihexnc(2:typesten,numneighbours2,1:int_local));       rec_ihexnc = 0
+      allocate(rec_ihexb(1,1:numneighbours,1:int_local));                rec_ihexb = -100
+      allocate(rec_ihexn(1,1:numneighbours,1:int_local));                rec_ihexn = -100
+      allocate(rec_ihexbc(2:typesten,numneighbours2,1:int_local));       rec_ihexbc = -100
+      allocate(rec_ihexnc(2:typesten,numneighbours2,1:int_local));       rec_ihexnc = -100
     else
-      allocate(rec_ihexb(1:typesten,1:numneighbours,1:int_local));       rec_ihexb = 0
-      allocate(rec_ihexn(1:typesten,1:numneighbours,1:int_local));       rec_ihexn = 0
+      allocate(rec_ihexb(1:typesten,1:numneighbours,1:int_local));       rec_ihexb = -100
+      allocate(rec_ihexn(1:typesten,1:numneighbours,1:int_local));       rec_ihexn = -100
     end if
   end if
 
