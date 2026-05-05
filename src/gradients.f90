@@ -686,7 +686,7 @@ implicit none
 #endif
 integer,intent(in)::n,iconsidered,number_of_dog,number_of_nei
 real,dimension(turbulenceequations+passivescalar)::sols1,sols2
-real,dimension(turbulenceequations+passivescalar,nof_variables)::sols_f
+real,dimension(turbulenceequations+passivescalar,1:dimensiona)::sols_f
 real,dimension(dimensiona)::normal_all
 real::oov2,angle1,angle2
 integer::i,j,k,l,var2
