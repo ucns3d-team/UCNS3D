@@ -1890,7 +1890,7 @@ subroutine calculate_fluxeshi_diffusive(n)
 													! total energy equation (ρe)
 													fxv(5) = fxv(5) + q(1)
 													fyv(5) = fyv(5) + q(2)
-													fzv(5) = fyv(5) + q(3)
+													fzv(5) = fzv(5) + q(3)
 
 													! vibrational energy equation (ρev)
 													fxv(6) = fxv(6) + qvib(1)
@@ -2370,9 +2370,9 @@ subroutine calculate_fluxeshi_diffusive(n)
 													! 6. add to conservative flux vectors
 													! ------------------------------------------------
 													! total energy equation (ρe)
-													fxv(5) = fxv(5) + q(1)
-													fyv(5) = fyv(5) + q(2)
-													fzv(5) = fyv(5) + q(3)
+													fxv(5) = fxv(5) - q(1)
+													fyv(5) = fyv(5) - q(2)
+													fzv(5) = fyv(5) - q(3)
 
 													! vibrational energy equation (ρev)
 													fxv(6) = fxv(6) + qvib(1)
@@ -2598,7 +2598,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 	real,dimension(1:8,1:dimensiona)::vext
 	real::mp_pinfl,mp_pinfr,gammal,gammar,rho12l,rho12r
 	real,dimension(1:4)::viscl,laml
-	real,dimension(1:nof_species)::rgs_htr_i, rgs_hvib_i
+	real,dimension(1:nof_species)::rgs_htr_i, rgs_hvib_i,y_av,x_av
 	real,dimension(1:2)::turbmv
     real,dimension(1)::etvm
     real,dimension(1:20)::eddyfl,eddyfr
@@ -2610,14 +2610,15 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 	real::ux,uy,uz,vx,vy,vz,wx,wy,wz,rho12,u12,v12,w12,damp,vdamp,y_face
 	real,dimension(1:idegfree+1,1:nof_variables)::dg_rhs, dg_rhs_vol_integ, dg_rhs_surf_integ
 	real::mp_ttr,mp_tv,mp_mu_mix,mp_ktr_mix,mp_kve,mp_laml,mp_lamr
-	real,dimension(1:nof_species)::mp_d_eff,rg_difl,rg_difr,rg_enthl,rg_enthr,mp_htr,mp_hvib,rg_enthvbl,rg_enthvbr,mp_mu_i,mp_ktr_i,y_av
+	real,dimension(1:nof_species)::mp_d_eff,rg_difl,rg_difr,rg_enthl,rg_enthr,mp_htr,mp_hvib,rg_enthvbl,rg_enthvbr,mp_mu_i,mp_ktr_i
 	real,dimension(1:dimensiona)::rg_sum_tr,rg_sumfr_tr,rg_sumfl_tr,rg_sumfl_v,rg_sumfr_v,rg_sum_v,gradyl,gradyr,jl,jr
 	real,dimension(1:2)::qtr,qv
 	real,dimension(1:dimensiona)::rg_sum_htr,rg_sum_hv,grady,rg_qv,rg_qtr
 	real,dimension(1:nof_species)::rg_dif_av,rg_enth_av,rg_enthvb_av
 	real::mp_lam_av,mp_ktr_mix_av,sum_y1,sum_y2
-	real,dimension(1:dimensiona):: sumi
+	real,dimension(1:dimensiona):: sumi,gradx,grad_a
 	real,dimension(1:dimensiona,1:nof_species) :: i_raw
+	real :: molar_sum, mbar
 
 
     
@@ -2722,7 +2723,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 							    
 							  eddyfr(1)=ielem_walldist(i);eddyfr(2)=cturbr(1);eddyfr(3)=cturbr(2)
 							  eddyfr(4:5)= rcvgrad(1,1:2);eddyfr(6:7)=rcvgrad(2,1:2)
-							  eddyfr(8:9)=rcvgrad_t(1,1:2);eddyfl(10:11)=rcvgrad_t(2,1:2)
+							  eddyfr(8:9)=rcvgrad_t(1,1:2);eddyfr(10:11)=rcvgrad_t(2,1:2)
 							    call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
 					  end if
@@ -2737,7 +2738,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 				       
 ! 				      
 					  
-					  vdamp=0.05!(4.0/3.0)!*(( (viscl(1))+(viscl(2)))))
+					  vdamp=(4.0/3.0)!*(( (viscl(1))+(viscl(2)))))
                                         nall(1)=nx;nall(2)=ny
 
 
@@ -2839,23 +2840,71 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 													if (rg_relax.ge.1)then
 
 													! ---- first loop: raw fick fluxes i_k = -ρ d_k ∇y_k ----
-													do rg_i = 1, nof_species
+! 													do rg_i = 1, nof_species
+!
+! 														idxy = dimensiona + 2 + rg_i     ! index of y_k at face
+!
+! 														!u,v,ttr,tvib,
+!
+! 														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
+!
+!
+!
+!
+! 														! raw mixture-averaged diffusion flux
+! 														i_raw(1:dimensiona,rg_i) = -rho12 * rg_dif_av(rg_i) * grady(1:dimensiona)
+!
+!
+!
+!
+!
+! 														sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona,rg_i)
+! 													end do
 
-														idxy = dimensiona + 2 + rg_i     ! index of y_k at face
+													sumi(1:dimensiona) = 0.0d0
+													i_raw(1:dimensiona,1:nof_species) = 0.0d0
 
+													! compute face mole fractions from face mass fractions
+													molar_sum = 0.0d0
+													do rg_j = 1, nof_species
+														molar_sum = molar_sum + max(y_av(rg_j),0.0d0) / rg_molm(rg_j)
+													end do
+
+													molar_sum = max(molar_sum,1.0d-30)
+													mbar = 1.0d0 / molar_sum
+
+													do rg_j = 1, nof_species
+														x_av(rg_j) = (max(y_av(rg_j),0.0d0) / rg_molm(rg_j)) / molar_sum
+													end do
+
+													! grad_a = grad(sum_k Y_k/M_k)
+													grad_a(1:dimensiona) = 0.0d0
+
+													do rg_j = 1, nof_species
+														idxy = dimensiona + 2 + rg_j
 														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
 
+														grad_a(1:dimensiona) = grad_a(1:dimensiona) + &
+															grady(1:dimensiona) / rg_molm(rg_j)
+													end do
 
+													! raw mixture-averaged flux:
+													! J_i_raw = -rho * D_i * (M_i/Mmix) * grad(X_i)
+													do rg_i = 1, nof_species
 
+														idxy = dimensiona + 2 + rg_i
+														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
 
-														! raw mixture-averaged diffusion flux
-														i_raw(1:dimensiona,rg_i) = -rho12 * rg_dif_av(rg_i) * grady(1:dimensiona)
+														gradx(1:dimensiona) = &
+															( grady(1:dimensiona) / rg_molm(rg_i) * molar_sum &
+															- (max(y_av(rg_i),0.0d0) / rg_molm(rg_i)) * grad_a(1:dimensiona) ) &
+															/ (molar_sum * molar_sum)
 
-
-
-
+														i_raw(1:dimensiona,rg_i) = &
+															-rho12 * rg_dif_av(rg_i) * (rg_molm(rg_i) / mbar) * gradx(1:dimensiona)
 
 														sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona,rg_i)
+
 													end do
 
 
@@ -3177,7 +3226,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 							    
 							  eddyfr(1)=ielem_walldist(i);eddyfr(2)=cturbr(1);eddyfr(3)=cturbr(2)
 							  eddyfr(4:5)= rcvgrad(1,1:2);eddyfr(6:7)=rcvgrad(2,1:2)
-							  eddyfr(8:9)=rcvgrad_t(1,1:2);eddyfl(10:11)=rcvgrad_t(2,1:2)
+							  eddyfr(8:9)=rcvgrad_t(1,1:2);eddyfr(10:11)=rcvgrad_t(2,1:2)
 							    call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
 					  end if
@@ -3200,7 +3249,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 				       
-					   vdamp=0.05!(4.0/3.0)!*(( (viscl(1))+(viscl(2)))))
+					   vdamp=(4.0/3.0)!*(( (viscl(1))+(viscl(2)))))
                                         nall(1)=nx;nall(2)=ny
 
 
@@ -3308,25 +3357,71 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 															if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
 																icompute=1
 															end if
-															if ((b_code.eq.1).or.(b_code.eq.2))then
-																icompute=1
-															end if
+! 															if ((b_code.eq.1).or.(b_code.eq.2))then
+! 																icompute=1
+! 															end if
 
 													if (icompute.eq.0)then
 
 													! ---- first loop: raw fick fluxes i_k = -ρ d_k ∇y_k ----
-													do rg_i = 1, nof_species
+! 													do rg_i = 1, nof_species
+!
+! 														idxy = dimensiona + 2 + rg_i     ! index of y_k at face
+!
+! 														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
+!
+! 														! raw mixture-averaged diffusion flux
+! 														i_raw(1:dimensiona,rg_i) = -rho12 * rg_dif_av(rg_i) * grady(1:dimensiona)
+!
+!
+!
+! 														sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona,rg_i)
+! 													end do
 
-														idxy = dimensiona + 2 + rg_i     ! index of y_k at face
+													sumi(1:dimensiona) = 0.0d0
+													i_raw(1:dimensiona,1:nof_species) = 0.0d0
 
+													! compute face mole fractions from face mass fractions
+													molar_sum = 0.0d0
+													do rg_j = 1, nof_species
+														molar_sum = molar_sum + max(y_av(rg_j),0.0d0) / rg_molm(rg_j)
+													end do
+
+													molar_sum = max(molar_sum,1.0d-30)
+													mbar = 1.0d0 / molar_sum
+
+													do rg_j = 1, nof_species
+														x_av(rg_j) = (max(y_av(rg_j),0.0d0) / rg_molm(rg_j)) / molar_sum
+													end do
+
+													! grad_a = grad(sum_k Y_k/M_k)
+													grad_a(1:dimensiona) = 0.0d0
+
+													do rg_j = 1, nof_species
+														idxy = dimensiona + 2 + rg_j
 														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
 
-														! raw mixture-averaged diffusion flux
-														i_raw(1:dimensiona,rg_i) = -rho12 * rg_dif_av(rg_i) * grady(1:dimensiona)
+														grad_a(1:dimensiona) = grad_a(1:dimensiona) + &
+															grady(1:dimensiona) / rg_molm(rg_j)
+													end do
 
+													! raw mixture-averaged flux:
+													! J_i_raw = -rho * D_i * (M_i/Mmix) * grad(X_i)
+													do rg_i = 1, nof_species
 
+														idxy = dimensiona + 2 + rg_i
+														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
+
+														gradx(1:dimensiona) = &
+															( grady(1:dimensiona) / rg_molm(rg_i) * molar_sum &
+															- (max(y_av(rg_i),0.0d0) / rg_molm(rg_i)) * grad_a(1:dimensiona) ) &
+															/ (molar_sum * molar_sum)
+
+														i_raw(1:dimensiona,rg_i) = &
+															-rho12 * rg_dif_av(rg_i) * (rg_molm(rg_i) / mbar) * gradx(1:dimensiona)
 
 														sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona,rg_i)
+
 													end do
 
 

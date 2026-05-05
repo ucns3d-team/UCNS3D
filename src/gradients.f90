@@ -1516,11 +1516,16 @@ real,dimension(1:nof_variables+turbulenceequations+passivescalar)::cright_rot,cl
 integer::ibfc
 
 
-if (dimensiona.eq.3)then
 
 i=iconsidered
 sols_f=zero
 oov2=1.0d0/ielem_totvolume(i)
+
+
+
+if (dimensiona.eq.3)then
+
+
 
 	  sols1(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)/u_c_val(1,1,i)
 
@@ -1914,16 +1919,15 @@ integer::ibfc
 
 
 
+i=iconsidered
+sols_f=zero;sols1=zero;sols2=zero
+oov2=1.0d0/ielem_totvolume(i)
+
+rec_grads(:,:,i)=zero
 
 
 if (dimensiona.eq.3)then
 
-i=iconsidered
-sols_f=zero;sols1=zero;sols2=zero
-
-rec_grads(:,:,i)=zero
-
-oov2=1.0d0/ielem_totvolume(i)
 
 
 
@@ -2088,9 +2092,7 @@ end do
 
 	else
 
-	i=iconsidered
-sols_f=zero
-oov2=1.0d0/ielem_totvolume(i)
+
 
 
 	  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
@@ -2198,7 +2200,7 @@ do j=1,ielem_ifca(i)
 
 
  			do k=1,dimensiona
- 			sols_f(1:nof_variables,k)=sols_f(1:nof_variables,k)+((oo2*(sols2(1:nof_variables)+sols1(1:nof_variables)))*normal_all(k)*ielem_surf(j,i)*oov2)
+ 			sols_f(1:nof_variables-1,k)=sols_f(1:nof_variables-1,k)+((oo2*(sols2(1:nof_variables-1)+sols1(1:nof_variables-1)))*normal_all(k)*ielem_surf(j,i)*oov2)
 
  			end do
 
@@ -2514,187 +2516,7 @@ end subroutine compute_gradients_inner_mean_ggs_viscous_av
 
 
 
-subroutine example12(iconsidered)
-!> @brief
-!> this subroutine computes the gradients of the conserved variables of each cell using the least-squares
-   implicit none
-#ifdef gpu
-!$omp declare target
-#endif
-   integer,intent(in)::iconsidered
-   !real,dimension(1:5)::sols1
-   !real,dimension(1:5)::sols2
-   real,dimension(1:71,1:5)::matrix_1
-   !real,dimension(1:35,1:5,1:7)::sol_m
-   !real,dimension(1:5)::leftv,rightv
-   !real::mp_pinfl,gammal
-   integer::i,idegx,var2,iq,ll,imax,nf,lf,rowf,varx,eesxg,c,k,m
-   !real::tempxx,sum
-	 i=iconsidered
-	varx=5
-   imax=ielem_inumneighbours(i)-1
-   idegx=ielem_idegfree(i)
-   !sols1(1:varx)=u_c_val(1,1:varx,rec_ihexl(1,1,i))
-   if (rec_local(i).eq.0)then
 
-				do ll=1,ielem_admis(i);
-						do iq=1,imax
-                                                        
-				                        matrix_1(iq,1:varx)=u_c_val(1,1:varx,rec_ihexl(ll,iq+1,i))-u_c_val(1,1:varx,i)
-					!	matrix_1(iq,1:varx)=(sols2(1:varx)-sols1(1:varx))
-		                                end do
-                                        rec_gradients(ll,1:idegx,1:5,i)=matmul(rec_invmat_stencilt(1:idegx,1:imax,ll,i),matrix_1(1:imax,1:5))
-				end do
-
-                        end if
-!					do ll=1,ielem_admis(i);
-!					rec_gradients(ll,1:ielem_idegfree(i),1:5,iconsidered)=sol_m(1:ielem_idegfree(i),1:5,ll)
-
-!					end do
-!                        do ll = 1, ielem_admis(i)
-!                                 do c = 1, 5
-!                                        do m = 1, ielem_idegfree(i)
-!                                             sum = 0.0d0
-!                                            do k = 1, imax
-!                                                                 sum = sum + rec_invmat_stencilt(m,k,ll,i) * matrix_1(k,c,ll)
-!                                             end do
-!                                                 rec_gradients(ll,m,c,iconsider
-
-
-
-
-
-
-
-end subroutine example12
-
-
-subroutine example12_row(iconsidered, m_in)
-  implicit none
-#ifdef gpu
-!$omp declare target
-#endif
-  integer, intent(in) :: iconsidered, m_in
-  integer :: i, ll, c, k, imax, cellnbr
-  real :: sols1(5)
-  real :: sum
-
-  i    = iconsidered
-  imax = ielem_inumneighbours(i) - 1
-
-  if (rec_local(i) .ne. 0) return
-
-  ! Center cell values
-  sols1(1:5) = u_c_val(1, 1:5, rec_ihexl(1,1,i))
-
-  do ll = 1, ielem_admis(i)
-    do c = 1, 5
-      sum = 0.0d0
-      do k = 1, imax
-        cellnbr = rec_ihexl(ll, k+1, i)
-        sum = sum + rec_invmat_stencilt(m_in, k, ll, i) * (u_c_val(1, c, cellnbr) - sols1(c))
-      end do
-      rec_gradients(ll, m_in, c, iconsidered) = sum
-    end do
-  end do
-
-end subroutine example12_row
-
-
-subroutine example1x(n)
-  implicit none
-  integer, intent(in) :: n
-  integer :: ii, i, m
-
-#ifdef gpu
-  !$omp target teams distribute parallel do private(i)
-#else
-  !$omp parallel do private(i)
-#endif
-  do ii = 1, nof_interior
-    do m = 1, ielem_idegfree(el_int(ii))   ! typically 35
-      i = el_int(ii)
-      call example12_row(i, m)
-    end do
-  end do
-#ifdef gpu
-  !$omp end target teams distribute parallel do
-#else
-  !$omp end parallel do
-#endif
-
-end subroutine example1x
-
-subroutine example1xy(n)
-  implicit none
-  integer, intent(in) :: n
-  integer :: ii, i, m
-  integer :: ll, c, k, imax, cellnbr
-  real:: sols1(5)
-  real :: sum
-
-#ifdef gpu
-  !$omp target teams distribute parallel do schedule (static) &
-  !$omp& private(i,ll,c,k,imax,cellnbr,sols1,sum)
-#else
-  !$omp parallel do  private(i,ll,c,k,imax,cellnbr,sols1,sum)
-#endif
-  do ii = 1, nof_interior
-    do m = 1, ielem_idegfree(el_int(ii))   ! typically 35
-
-      i = el_int(ii)
-
-      if (rec_local(i) .ne. 0) cycle
-
-      imax = ielem_inumneighbours(i) - 1
-
-      ! Center cell values (5 vars)
-      sols1(1:5) = u_c_val(1, 1:5, rec_ihexl(1,1,i))
-
-      do ll = 1, ielem_admis(i)
-        do c = 1, 5
-          sum = 0.0d0
-          do k = 1, imax
-            cellnbr = rec_ihexl(ll, k+1, i)
-            sum = sum + rec_invmat_stencilt(m, k, ll, i) * (u_c_val(1, c, cellnbr) - sols1(c))
-          end do
-          rec_gradients(ll, m, c, i) = sum
-        end do
-      end do
-
-    end do
-  end do
-#ifdef gpu
-  !$omp end target teams distribute parallel do
-#else
-  !$omp end parallel do
-#endif
-
-end subroutine example1xy
-
-subroutine example1(n)
-  implicit none
-  integer, intent(in) :: n
-  integer :: ii, i
-
-#ifdef gpu
-!$omp target teams distribute parallel do private(i) schedule(static)
-#else
-!$omp do
-#endif
-  do ii = 1,nof_interior
-    i = el_int(ii)
-     call example12(i)
-  end do
-#ifdef gpu
-!$omp end target teams distribute parallel do
-#else
-  !$omp end do
-#endif
-
-
-
-end subroutine example1
 
 
 

@@ -3099,7 +3099,7 @@ kmaxe=xmpielrank(n)
 
           if( br2_yn.eq.2) then
 
-          call reconstruct_br2_dg
+          call reconstruct_br2_dg(n)
 
           call exhboundhigher_dg2(n)
 
@@ -3232,104 +3232,241 @@ end subroutine call_flux_subroutines_3d
 
 
 
+! subroutine normalise_species(n)
+!   implicit none
+!   integer, intent(in) :: n
+!   integer :: i, k, kmaxe
+!   real :: rho, sumrhoy, scale,mismatch,rel_err,rhoy_old_n2
+!   real, parameter :: epsrho = 1.0d-14
+!   real, parameter :: epssum = 1.0d-300
+!   real,parameter::tol_mass_closure = 1.0d-12
+!   real, dimension(1:nof_species) :: rhoy
+!   real,dimension(1:nof_variables)::leftv
+!   logical :: bad
+!
+!   kmaxe = xmpielrank(n)
+!
+! #ifdef gpu
+! 	!$omp target teams distribute parallel do private(rho,sumrhoy,scale,mismatch,rel_err,rhoy_old_n2,rhoy,leftv,k)
+! #else
+! 	!$omp do
+! #endif
+!   do i = 1, kmaxe
+!
+!
+!     leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+!     call fix_conservative_state(leftv)
+!     u_c_val(1,1:nof_variables,i)=leftv(1:nof_variables)
+!
+!     rho = u_c_val(1,1,i)
+!
+!
+!     if (rho <= epsrho) then
+!       rho = max(rho, epsrho)
+!       do k = 1, nof_species
+!         u_c_val(1,dimensiona+3+k,i) = rho * rg_vf(k)
+!       end do
+!       cycle
+!     end if
+!
+!     ! 1) read, nan/inf->0, clip negatives, accumulate
+!     sumrhoy = 0.0d0
+!     do k = 1, nof_species
+!       rhoy(k) = u_c_val(1,dimensiona+3+k,i)
+!
+!       ! nan check: (x /= x) is true only for nan
+!       bad = (rhoy(k) /= rhoy(k))
+!       ! inf/huge check (portable enough): treat absurdly large as bad
+!       if (.not. bad) bad = (abs(rhoy(k)) > huge(rhoy(k))*0.5d0)
+!
+!       if (bad) rhoy(k) = 0.0d0
+!       if (rhoy(k) < 0.0d0) rhoy(k) = 0.0d0
+!
+!       sumrhoy = sumrhoy + rhoy(k)
+!
+!
+!     end do
+!
+!     ! 2) enforce sum(rhoy)=rho without changing rho
+!     if (sumrhoy > epssum) then
+!
+!
+!       scale = rho / sumrhoy
+!       do k = 1, nof_species
+!         rhoy(k) = rhoy(k) * scale
+!       end do
+!       do k = 1, nof_species
+!       u_c_val(1,dimensiona+3+k,i) = rhoy(k)
+!     end do
+!
+!     else
+!       ! everything got wiped out -> reset to reference mixture
+!
+!       do k = 1, nof_species
+!         rhoy(k) = rho * rg_vf(k)
+!       end do
+!       do k = 1, nof_species
+!       u_c_val(1,dimensiona+3+k,i) = rhoy(k)
+!     end do
+!
+!     end if
+!
+!     ! 3) write back
+!
+!
+!   end do
+! #ifdef gpu
+! !$omp end target teams distribute parallel do
+! #else
+! !$omp end do
+! #endif
+! !
+!
+!
+!
+!
+!
+!
+!
+!
+! end subroutine normalise_species
+
+
 subroutine normalise_species(n)
   implicit none
+
   integer, intent(in) :: n
   integer :: i, k, kmaxe
-  real :: rho, sumrhoy, scale,mismatch,rel_err,rhoy_old_n2
+  integer, parameter :: is_closure = 1   ! usually N2
+
+  real :: rho, sumrhoy, scale, mismatch, rel_err
   real, parameter :: epsrho = 1.0d-14
   real, parameter :: epssum = 1.0d-300
-  real,parameter::tol_mass_closure = 1.0d-12
+  real, parameter :: tol_mass_closure = 1.0d-12
+  real, parameter :: tol_negative = 1.0d-14
+
   real, dimension(1:nof_species) :: rhoy
-  real,dimension(1:nof_variables)::leftv
-  logical :: bad
+  real, dimension(1:nof_variables) :: leftv
+  logical :: bad, need_repair
 
   kmaxe = xmpielrank(n)
 
 #ifdef gpu
-	!$omp target teams distribute parallel do private(rho,sumrhoy,scale,mismatch,rel_err,rhoy_old_n2,rhoy,leftv,k)
+  !$omp target teams distribute parallel do private(i,k,rho,sumrhoy,scale,mismatch,rel_err,rhoy,leftv,bad,need_repair)
 #else
-	!$omp do
+  !$omp do private(i,k,rho,sumrhoy,scale,mismatch,rel_err,rhoy,leftv,bad,need_repair)
 #endif
   do i = 1, kmaxe
 
-
-    leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+    leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
     call fix_conservative_state(leftv)
-    u_c_val(1,1:nof_variables,i)=leftv(1:nof_variables)
+    u_c_val(1,1:nof_variables,i) = leftv(1:nof_variables)
 
     rho = u_c_val(1,1,i)
 
+    if (rho <= epsrho .or. rho /= rho) then
+      rho = epsrho
+      u_c_val(1,1,i) = rho
 
-    if (rho <= epsrho) then
-      rho = max(rho, epsrho)
       do k = 1, nof_species
         u_c_val(1,dimensiona+3+k,i) = rho * rg_vf(k)
       end do
+
       cycle
     end if
 
-    ! 1) read, nan/inf->0, clip negatives, accumulate
+    ! Read species densities and remove NaN/Inf.
+    need_repair = .false.
     sumrhoy = 0.0d0
+
     do k = 1, nof_species
+
       rhoy(k) = u_c_val(1,dimensiona+3+k,i)
 
-      ! nan check: (x /= x) is true only for nan
       bad = (rhoy(k) /= rhoy(k))
-      ! inf/huge check (portable enough): treat absurdly large as bad
       if (.not. bad) bad = (abs(rhoy(k)) > huge(rhoy(k))*0.5d0)
 
-      if (bad) rhoy(k) = 0.0d0
-      if (rhoy(k) < 0.0d0) rhoy(k) = 0.0d0
+      if (bad) then
+        rhoy(k) = 0.0d0
+        need_repair = .true.
+      end if
+
+      ! Only clip meaningful negatives.
+      ! Tiny negatives are treated as roundoff.
+      if (rhoy(k) < -tol_negative*rho) then
+        rhoy(k) = 0.0d0
+        need_repair = .true.
+      elseif (rhoy(k) < 0.0d0) then
+        rhoy(k) = 0.0d0
+      end if
 
       sumrhoy = sumrhoy + rhoy(k)
 
-
     end do
 
-    ! 2) enforce sum(rhoy)=rho without changing rho
-    if (sumrhoy > epssum) then
+    mismatch = rho - sumrhoy
+    rel_err = abs(mismatch) / max(rho, epsrho)
 
+    if (rel_err > tol_mass_closure) need_repair = .true.
 
-      scale = rho / sumrhoy
+    if (need_repair) then
+
+      ! Preferred repair:
+      ! keep all non-closure species unchanged and put the mass mismatch
+      ! into the dominant background species, usually N2.
+      sumrhoy = 0.0d0
       do k = 1, nof_species
-        rhoy(k) = rhoy(k) * scale
+        if (k /= is_closure) then
+          rhoy(k) = max(rhoy(k), 0.0d0)
+          sumrhoy = sumrhoy + rhoy(k)
+        end if
       end do
-      do k = 1, nof_species
-      u_c_val(1,dimensiona+3+k,i) = rhoy(k)
-    end do
 
-    else
-      ! everything got wiped out -> reset to reference mixture
+      rhoy(is_closure) = rho - sumrhoy
 
-      do k = 1, nof_species
-        rhoy(k) = rho * rg_vf(k)
-      end do
-      do k = 1, nof_species
-      u_c_val(1,dimensiona+3+k,i) = rhoy(k)
-    end do
+      ! Fallback: if closure species becomes negative, use proportional scaling.
+      if (rhoy(is_closure) < 0.0d0) then
+
+        sumrhoy = 0.0d0
+        do k = 1, nof_species
+          rhoy(k) = max(rhoy(k), 0.0d0)
+          sumrhoy = sumrhoy + rhoy(k)
+        end do
+
+        if (sumrhoy > epssum) then
+          scale = rho / sumrhoy
+
+          do k = 1, nof_species
+            rhoy(k) = rhoy(k) * scale
+          end do
+
+        else
+
+          do k = 1, nof_species
+            rhoy(k) = rho * rg_vf(k)
+          end do
+
+        end if
+
+      end if
 
     end if
 
-    ! 3) write back
-
+    ! Final write-back.
+    do k = 1, nof_species
+      u_c_val(1,dimensiona+3+k,i) = rhoy(k)
+    end do
 
   end do
+
 #ifdef gpu
-!$omp end target teams distribute parallel do
+  !$omp end target teams distribute parallel do
 #else
-!$omp end do
+  !$omp end do
 #endif
-!
-
-
-
-
-
-
-
 
 end subroutine normalise_species
+
 
 
 
@@ -3387,7 +3524,7 @@ integer::i,iconsidered
 
           if( br2_yn.eq.2) then
 
-          call reconstruct_br2_dg
+          call reconstruct_br2_dg(n)
 
           call exhboundhigher_dg2(n)
 

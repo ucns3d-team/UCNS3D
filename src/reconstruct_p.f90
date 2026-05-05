@@ -2337,63 +2337,63 @@ subroutine compute_muscl_reconstruction(iconsidered,utmin,utmax)
     end do
   end if
 
-  ! --- extra positivity limiter branch kept as in original ---
-  if (limiter.eq.1) then
-    if (realgas.eq.1) then
-      slope_d(:) = 1.0d0
-
-      do l=1,ielem_ifca(i)
-        if (dimensiona.eq.3) then
-          if (ielem_types_faces(l,i).eq.5) then
-            iqp = qp_quad
-          else
-            iqp = qp_triangle
-          end if
-        else
-          iqp = qp_line
-        end if
-
-        do ngp=1,iqp
-          ! recompute unlimited state at this GP (no stored usol)
-          ax = rec_qpoints(l,ngp,1,i)
-          ay = rec_qpoints(l,ngp,2,i)
-          if (dimensiona.eq.3) az = rec_qpoints(l,ngp,3,i)
-
-          if (dimensiona.eq.3) then
-            phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,0)
-          else
-            phi(1:ideg) = basis_rec2d(n,ax,ay,ielem_iorder(i),i,ideg,0)
-          end if
-
-          delta(:) = zero
-          do k=1,ideg
-            delta(:) = delta(:) + phi(k) * rec_gradients(1,k,1:nof_variables,i)
-          end do
-
-          candid_lim(1:nof_variables) = u_c_val(1,1:nof_variables,i) + (delta(:) * slope(1:nof_variables))
-
-          do iex=1,nof_variables
-            if ((iex.ge.2).and.(iex.lt.dimensiona+3)) cycle
-
-            if (u_c_val(1,iex,i) .gt. zero) then
-              if (candid_lim(iex) .lt. zero) then
-                rat = u_c_val(1,iex,i) / (u_c_val(1,iex,i) - candid_lim(iex))
-                rat = max(0.0d0, min(1.0d0, rat))
-                slope_d(iex) = min(slope_d(iex), rat)
-              end if
-            else
-              slope_d(iex) = zero
-            end if
-          end do
-        end do
-      end do
-
-      do iex=1,nof_variables
-        if ((iex.ge.2).and.(iex.lt.dimensiona+3)) cycle
-        slope(iex) = slope(iex) * slope_d(iex)
-      end do
-    end if
-  end if
+!   ! --- extra positivity limiter branch kept as in original ---
+!   if (limiter.eq.1) then
+!     if (realgas.eq.1) then
+!       slope_d(:) = 1.0d0
+!
+!       do l=1,ielem_ifca(i)
+!         if (dimensiona.eq.3) then
+!           if (ielem_types_faces(l,i).eq.5) then
+!             iqp = qp_quad
+!           else
+!             iqp = qp_triangle
+!           end if
+!         else
+!           iqp = qp_line
+!         end if
+!
+!         do ngp=1,iqp
+!           ! recompute unlimited state at this GP (no stored usol)
+!           ax = rec_qpoints(l,ngp,1,i)
+!           ay = rec_qpoints(l,ngp,2,i)
+!           if (dimensiona.eq.3) az = rec_qpoints(l,ngp,3,i)
+!
+!           if (dimensiona.eq.3) then
+!             phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,0)
+!           else
+!             phi(1:ideg) = basis_rec2d(n,ax,ay,ielem_iorder(i),i,ideg,0)
+!           end if
+!
+!           delta(:) = zero
+!           do k=1,ideg
+!             delta(:) = delta(:) + phi(k) * rec_gradients(1,k,1:nof_variables,i)
+!           end do
+!
+!           candid_lim(1:nof_variables) = u_c_val(1,1:nof_variables,i) + (delta(:) * slope(1:nof_variables))
+!
+!           do iex=1,nof_variables
+!             if ((iex.ge.2).and.(iex.lt.dimensiona+3)) cycle
+!
+!             if (u_c_val(1,iex,i) .gt. zero) then
+!               if (candid_lim(iex) .lt. zero) then
+!                 rat = u_c_val(1,iex,i) / (u_c_val(1,iex,i) - candid_lim(iex))
+!                 rat = max(0.0d0, min(1.0d0, rat))
+!                 slope_d(iex) = min(slope_d(iex), rat)
+!               end if
+!             else
+!               slope_d(iex) = zero
+!             end if
+!           end do
+!         end do
+!       end do
+!
+!       do iex=1,nof_variables
+!         if ((iex.ge.2).and.(iex.lt.dimensiona+3)) cycle
+!         slope(iex) = slope(iex) * slope_d(iex)
+!       end do
+!     end if
+!   end if
 
   ! --- apply slopes: convert usol to increments and extrapolate at faces ---
   do l=1,ielem_ifca(i)
@@ -3609,7 +3609,7 @@ if (itestcase.ge.3)then
 !$omp do
 #endif
 	do i=1,kmaxe
-            jump_cond=0.7
+            jump_cond=0.5
 
 			reduce1=0
 
@@ -3641,8 +3641,6 @@ if (itestcase.ge.3)then
                                                     do iex=1,nof_variables
                                                            if ((iex.ge.2).and.(iex.le.dimensiona+1)) cycle
 
-
-
                                                             if (((abs(leftv(iex)-rightv(iex))).ge.(jump_cond*rightv(iex))))then
 																	reduce1=1
 																ielem_reduce(i)=2
@@ -3657,13 +3655,13 @@ if (itestcase.ge.3)then
 
 
                                                     do iex=1,nof_variables       !loop rho,u,v,w,e,p
-                                                           if ((iex.ge.2).and.(iex.le.dimensiona+1)) cycle
+                                                             if ((iex.ge.2).and.(iex.le.dimensiona+1)) cycle
 
 
                                                            jump  = abs(tempvectl(iex) - tempvectr(iex))
                                                            temp_scale = tempvectr(iex)
 
-                                                            if ((jump .ge. jump_cond*temp_scale).or.(tempvectl(iex).lt.0.0d0))then
+                                                            if ((jump .ge. jump_cond*(temp_scale)).or.(tempvectl(iex).lt.0.0d0))then
                                                                     reduce1=1
                                                                     ielem_reduce(i)=10+iex    !jump from not species
 
@@ -3671,7 +3669,7 @@ if (itestcase.ge.3)then
 
                                                     end do
 
-                                                    do iex=dimensiona+2, dimensiona+2
+                                                    do iex=dimensiona+2, nof_variables
                                                             jump  = abs(leftv(iex) - rightv(iex))
                                                            temp_scale = rightv(iex)
 
@@ -4962,7 +4960,7 @@ kmaxe=xmpielrank(n)
 
 
 #ifdef gpu
-! !$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif

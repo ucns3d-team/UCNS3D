@@ -129,125 +129,125 @@ subroutine fix_conservative_state(leftv)
   idxe  = dimensiona + 2
   idxev = dimensiona + 3
 
-  ! ------------------------
-  ! 1) density floor
-  ! ------------------------
-  rho = leftv(1)
-  if (rho < rho_floor) then
-    rho = rho_floor
-    leftv(1) = rho
-  end if
-
-  ! ------------------------
-  ! 2) vib energy floor
-  ! ------------------------
-  rhoev = leftv(idxev)
-  if (rhoev < 0.0d0) then
-    rhoev = 0.0d0
-    leftv(idxev) = rhoev
-  end if
-
-  ! ------------------------
-  ! 3) species positivity + normalization: enforce sum rhoy = rho
-  ! ------------------------
-  sumrhoy = 0.0d0
-  do k = 1, nof_species
-    if (leftv(idxev + k) < 0.0d0) leftv(idxev + k) = 0.0d0
-    sumrhoy = sumrhoy + leftv(idxev + k)
-  end do
-
-  if (sumrhoy > 0.0d0) then
-    scale = rho / sumrhoy
-    do k = 1, nof_species
-      leftv(idxev + k) = leftv(idxev + k) * scale
-      y(k) = leftv(idxev + k) / rho
-    end do
-  else
-    ! pathological: assign all mass to species 1
-    leftv(idxev + 1) = rho
-    y(1) = 1.0d0
-    do k = 2, nof_species
-      leftv(idxev + k) = 0.0d0
-      y(k) = 0.0d0
-    end do
-  end if
-
-  ! ------------------------
-  ! 4) cap vib energy to avoid tv spikes (composition-compatible)
-  !     if rhoev too large for available vib species, reduce it and
-  !     add the removed energy back into rhoe (conserve total).
-  ! ------------------------
-  rhoe  = leftv(idxe)
-  rhoev = leftv(idxev)
-
-  sum_viby = 0.0d0
-  do k = 1, 3
-    sum_viby = sum_viby + y(k)
-  end do
-
-  if (sum_viby < 1.0d-12) then
-    ! no vib-capable mass: force rhoev -> 0, return energy to rhoe
-    dev   = rhoev
-    rhoev = 0.0d0
-    rhoe  = rhoe + dev
-  else
-    ! cap corresponding to tv_max using your same oscillator formula
-    rhoev_cap = 0.0d0
-    do k = 1, 3
-      if (y(k) > 0.0d0) then
-        rhoev_cap = rhoev_cap + rho * y(k) * (rgs_ru / rg_molm(k)) * &
-                    (rg_thetag(k) / (exp(rg_thetag(k)/tv_max) - 1.0d0))
-      end if
-    end do
-
-    if (rhoev > rhoev_cap) then
-      dev   = rhoev - rhoev_cap
-      rhoev = rhoev_cap
-      rhoe  = rhoe + dev   ! conserve energy by moving excess vib -> total
-    end if
-  end if
-
-  leftv(idxev) = rhoev
-  leftv(idxe)  = rhoe
-
-  ! ------------------------
-  ! 5) enforce tmin on translational energy via rhoe floor
-  !     rhoe >= rho*(cv_mix*tmin + echem + ke) + rhoev
-  ! ------------------------
-
-  ! velocities + ke (note: ke here is per-mass)
-  u = leftv(2) / rho
-  v = leftv(3) / rho
-  if (dimensiona == 3) then
-    w = leftv(4) / rho
-  else
-    w = 0.0d0
-  end if
-  ke = 0.5d0 * (u*u + v*v + w*w)
-
-  ! chemical energy per mass
-  echem = 0.0d0
-  do k = 1, nof_species
-    if (rg_hzero(k) > 0.0d0) then
-      echem = echem - y(k) * (rg_hzero(k) / rg_molm(k))
-    end if
-  end do
-
-  ! cv_mix per mass
-  cv_mix = 0.0d0
-  do k = 1, nof_species
-    if (k <= 3) then
-      cv_mix = cv_mix + y(k) * (5.0d0/2.0d0) * (rgs_ru / rg_molm(k))
-    else
-      cv_mix = cv_mix + y(k) * (3.0d0/2.0d0) * (rgs_ru / rg_molm(k))
-    end if
-  end do
-  if (cv_mix < tiny) cv_mix = tiny
-
-  etr_min  = cv_mix * tmin
-  rhoe_min = rho * (etr_min + echem + ke) + rhoev
-
-  if (leftv(idxe) < rhoe_min) leftv(idxe) = rhoe_min
+!   ! ------------------------
+!   ! 1) density floor
+!   ! ------------------------
+!   rho = leftv(1)
+!   if (rho < rho_floor) then
+!     rho = rho_floor
+!     leftv(1) = rho
+!   end if
+!
+!   ! ------------------------
+!   ! 2) vib energy floor
+!   ! ------------------------
+!   rhoev = leftv(idxev)
+!   if (rhoev < 0.0d0) then
+!     rhoev = 0.0d0
+!     leftv(idxev) = rhoev
+!   end if
+!
+!   ! ------------------------
+!   ! 3) species positivity + normalization: enforce sum rhoy = rho
+!   ! ------------------------
+!   sumrhoy = 0.0d0
+!   do k = 1, nof_species
+!     if (leftv(idxev + k) < 0.0d0) leftv(idxev + k) = 0.0d0
+!     sumrhoy = sumrhoy + leftv(idxev + k)
+!   end do
+!
+!   if (sumrhoy > 0.0d0) then
+!     scale = rho / sumrhoy
+!     do k = 1, nof_species
+!       leftv(idxev + k) = leftv(idxev + k) * scale
+!       y(k) = leftv(idxev + k) / rho
+!     end do
+!   else
+!     ! pathological: assign all mass to species 1
+!     leftv(idxev + 1) = rho
+!     y(1) = 1.0d0
+!     do k = 2, nof_species
+!       leftv(idxev + k) = 0.0d0
+!       y(k) = 0.0d0
+!     end do
+!   end if
+!
+!   ! ------------------------
+!   ! 4) cap vib energy to avoid tv spikes (composition-compatible)
+!   !     if rhoev too large for available vib species, reduce it and
+!   !     add the removed energy back into rhoe (conserve total).
+!   ! ------------------------
+!   rhoe  = leftv(idxe)
+!   rhoev = leftv(idxev)
+!
+!   sum_viby = 0.0d0
+!   do k = 1, 3
+!     sum_viby = sum_viby + y(k)
+!   end do
+!
+!   if (sum_viby < 1.0d-12) then
+!     ! no vib-capable mass: force rhoev -> 0, return energy to rhoe
+!     dev   = rhoev
+!     rhoev = 0.0d0
+!     rhoe  = rhoe + dev
+!   else
+!     ! cap corresponding to tv_max using your same oscillator formula
+!     rhoev_cap = 0.0d0
+!     do k = 1, 3
+!       if (y(k) > 0.0d0) then
+!         rhoev_cap = rhoev_cap + rho * y(k) * (rgs_ru / rg_molm(k)) * &
+!                     (rg_thetag(k) / (exp(rg_thetag(k)/tv_max) - 1.0d0))
+!       end if
+!     end do
+!
+!     if (rhoev > rhoev_cap) then
+!       dev   = rhoev - rhoev_cap
+!       rhoev = rhoev_cap
+!       rhoe  = rhoe + dev   ! conserve energy by moving excess vib -> total
+!     end if
+!   end if
+!
+!   leftv(idxev) = rhoev
+!   leftv(idxe)  = rhoe
+!
+!   ! ------------------------
+!   ! 5) enforce tmin on translational energy via rhoe floor
+!   !     rhoe >= rho*(cv_mix*tmin + echem + ke) + rhoev
+!   ! ------------------------
+!
+!   ! velocities + ke (note: ke here is per-mass)
+!   u = leftv(2) / rho
+!   v = leftv(3) / rho
+!   if (dimensiona == 3) then
+!     w = leftv(4) / rho
+!   else
+!     w = 0.0d0
+!   end if
+!   ke = 0.5d0 * (u*u + v*v + w*w)
+!
+!   ! chemical energy per mass
+!   echem = 0.0d0
+!   do k = 1, nof_species
+!     if (rg_hzero(k) > 0.0d0) then
+!       echem = echem - y(k) * (rg_hzero(k) / rg_molm(k))
+!     end if
+!   end do
+!
+!   ! cv_mix per mass
+!   cv_mix = 0.0d0
+!   do k = 1, nof_species
+!     if (k <= 3) then
+!       cv_mix = cv_mix + y(k) * (5.0d0/2.0d0) * (rgs_ru / rg_molm(k))
+!     else
+!       cv_mix = cv_mix + y(k) * (3.0d0/2.0d0) * (rgs_ru / rg_molm(k))
+!     end if
+!   end do
+!   if (cv_mix < tiny) cv_mix = tiny
+!
+!   etr_min  = cv_mix * tmin
+!   rhoe_min = rho * (etr_min + echem + ke) + rhoev
+!
+!   if (leftv(idxe) < rhoe_min) leftv(idxe) = rhoe_min
 
 
 
@@ -1407,7 +1407,7 @@ p_tol =10e-5
 
 
 
-                                call fix_conservative_state(leftv)
+!                                 call fix_conservative_state(leftv)
 
                                 !first get total density-correct !
                                 ! note:
@@ -1687,7 +1687,7 @@ p_tol =10e-5
 
               temps(:)=0.0d0
 
-              call fix_conservative_state(leftv)
+!               call fix_conservative_state(leftv)
               !first get total density-correct
 
                !first get total density-correct !
@@ -1956,7 +1956,7 @@ if (realgas.eq.1)then
 
 temps(:)=0.0d0
 
-          call fix_conservative_state(leftv)
+!           call fix_conservative_state(leftv)
 
               !first get total density-correct
 

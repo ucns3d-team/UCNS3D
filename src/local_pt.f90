@@ -2514,9 +2514,9 @@ if (code_profile.eq.888)then
 if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
 	  if (ielem_ibounds(j,i).gt.0)then
-                  if (ibound_icode(ielem_ibounds(j,i)).ne.4)then
+!                   if (ibound_icode(ielem_ibounds(j,i)).ne.4)then
 	                ielem_hybrid(i)=1
-                  end if
+!                   end if
 	  end if
         end do
 end if

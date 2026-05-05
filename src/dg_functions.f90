@@ -939,8 +939,9 @@ end do
 end subroutine reconstruct_dg
 
 
-subroutine reconstruct_br2_dg
+subroutine reconstruct_br2_dg(n)
 implicit none
+integer,intent(in)::n
 integer::i_face, i_elem, i_qp, iqp,j,k,iconsidered,facex,pointx,number_of_dog,number
 real,dimension(1:8,1:dimensiona)::vext
 real,dimension(1:numberofpoints2)::weights_temp
@@ -1352,7 +1353,7 @@ real,dimension(1:3):: gl,nnt,g
 real,dimension(1:3,1:3)::a,b,c,r
 real::g_n
 integer :: d
-integer::i,l,ngp,ittt,nvar,iex,kk,n_node,k,nfx,lfx,rowfx,j
+integer::i,l,ngp,ittt,nvar,iex,kk,n_node,k,nfx,lfx,rowfx,j,ii
 integer::ibfc
 
 l=facex
@@ -1605,15 +1606,15 @@ i=iconsidered
 
                                               if (dimensiona == 3) then
                                                 ! Build R = I - 2 n n^T (3x3)
-                                                do i=1,3
+                                                do ii=1,3
                                                   do j=1,3
-                                                    R(i,j)=0.0
+                                                    R(ii,j)=0.0
                                                   end do
-                                                  R(i,i)=1.0
+                                                  R(ii,ii)=1.0
                                                 end do
-                                                do i=1,3
+                                                do ii=1,3
                                                   do j=1,3
-                                                    R(i,j) = R(i,j) - 2.0*nnt(i)*nnt(j)
+                                                    R(ii,j) = R(ii,j) - 2.0*nnt(ii)*nnt(j)
                                                   end do
                                                 end do
 
@@ -1623,21 +1624,21 @@ i=iconsidered
                                                 A(3,1)=lcvgrad(3,1); A(3,2)=lcvgrad(3,2); A(3,3)=lcvgrad(3,3)
 
                                                 ! C = R*A
-                                                do i=1,3
+                                                do ii=1,3
                                                   do j=1,3
-                                                    C(i,j)=0.0
+                                                    C(ii,j)=0.0
                                                     do k=1,3
-                                                      C(i,j)=C(i,j)+R(i,k)*A(k,j)
+                                                      C(ii,j)=C(ii,j)+R(ii,k)*A(k,j)
                                                     end do
                                                   end do
                                                 end do
 
                                                 ! B = C*R
-                                                do i=1,3
+                                                do ii=1,3
                                                   do j=1,3
-                                                    B(i,j)=0.0
+                                                    B(ii,j)=0.0
                                                     do k=1,3
-                                                      B(i,j)=B(i,j)+C(i,k)*R(k,j)
+                                                      B(ii,j)=B(ii,j)+C(ii,k)*R(k,j)
                                                     end do
                                                   end do
                                                 end do
@@ -1928,7 +1929,7 @@ real,dimension(1:3):: gl,nnt,g,grad
 real,dimension(1:2,1:2)::a,b,c,r
 real::g_n
 integer :: d
-integer::i,l,ngp,ittt,nvar,iex,n_node,k,nfx,lfx,rowfx,j
+integer::i,l,ngp,ittt,nvar,iex,n_node,k,nfx,lfx,rowfx,j,ii
 integer::ibfc
 l=facex
 ngp=pointx
@@ -2169,21 +2170,21 @@ end if
                                                           A(2,2) = lcvgrad(2,2)   ! dv/dy
 
                                                           ! --- Compute C = R * A ---
-                                                          do i=1,2
+                                                          do ii=1,2
                                                             do j=1,2
-                                                              C(i,j) = 0.0
+                                                              C(ii,j) = 0.0
                                                               do k=1,2
-                                                                C(i,j) = C(i,j) + R(i,k)*A(k,j)
+                                                                C(ii,j) = C(ii,j) + R(ii,k)*A(k,j)
                                                               end do
                                                             end do
                                                           end do
 
                                                           ! --- Compute B = C * R ---
-                                                          do i=1,2
+                                                          do ii=1,2
                                                             do j=1,2
-                                                              B(i,j) = 0.0
+                                                              B(ii,j) = 0.0
                                                               do k=1,2
-                                                                B(i,j) = B(i,j) + C(i,k)*R(k,j)
+                                                                B(ii,j) = B(ii,j) + C(ii,k)*R(k,j)
                                                               end do
                                                             end do
                                                           end do
