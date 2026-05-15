@@ -1511,7 +1511,7 @@ real,dimension(1:nof_variables)::leftv,srf_speed,srf_speedrot,rightv
 real,dimension(1:dimensiona)::pox,poy,poz,cords
 real,dimension(1:8,1:dimensiona)::vext
 real,dimension(1:8,1:dimensiona)::nodes_list
-real,dimension(turbulenceequations)::cturbl,cturbr
+real,dimension(1:turbulenceequations+passivescalar)::cturbl,cturbr
 real,dimension(1:nof_variables+turbulenceequations+passivescalar)::cright_rot,cleft_rot
 integer::ibfc
 
@@ -1913,7 +1913,7 @@ real,dimension(1:nof_variables)::leftv,srf_speed,srf_speedrot,rightv,phi_f
 real,dimension(1:dimensiona)::pox,poy,poz,cords
 real,dimension(1:8,1:dimensiona)::vext
 real,dimension(1:8,1:dimensiona)::nodes_list
-real,dimension(turbulenceequations)::cturbl,cturbr
+real,dimension(1:turbulenceequations+passivescalar)::cturbl,cturbr
 real,dimension(1:nof_variables+turbulenceequations+passivescalar)::cright_rot,cleft_rot
 integer::ibfc
 
@@ -2302,7 +2302,7 @@ real,dimension(1:nof_variables)::leftv,srf_speed,srf_speedrot,rightv
 real,dimension(1:dimensiona)::pox,poy,poz,cords
 real,dimension(1:8,1:dimensiona)::vext
 real,dimension(1:8,1:dimensiona)::nodes_list
-real,dimension(turbulenceequations)::cturbl,cturbr
+real,dimension(1:turbulenceequations+passivescalar)::cturbl,cturbr
 real,dimension(1:nof_variables+turbulenceequations+passivescalar)::cright_rot,cleft_rot
 integer::ibfc
 

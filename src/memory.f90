@@ -1116,8 +1116,8 @@ subroutine omp_map_first(n)
   !$omp target update to(indicator_type, init_mu_ratio, initcond, initialres, inum2, inwhichel, iorder)
   !$omp target enter data map(alloc: iorder2, ioverst, ioverto, iperiodicity, ires_turb, ires_unsteady, iriemann, irs)
   !$omp target update to(iorder2, ioverst, ioverto, iperiodicity, ires_turb, ires_unsteady, iriemann, irs)
-  !$omp target enter data map(alloc: ischeme, iscoun, iselem, ispal, isplit, issf)
-  !$omp target update to(ischeme, iscoun, iselem, ispal, isplit, issf)
+  !$omp target enter data map(alloc: ischeme, iscoun, iselem, ispal, isplit, issf,pos_l,pos_g,ipos_l,ipos_g)
+  !$omp target update to(ischeme, iscoun, iselem, ispal, isplit, issf,pos_l,pos_g,ipos_l,ipos_g)
 
   !$omp target enter data map(alloc: istn, it, itestcase, itold, itotalb, itt, ivortex, iweightlsqr, iweno, iwmaxe, jk)
   !$omp target update to(istn, it, itestcase, itold, itotalb, itt, ivortex, iweightlsqr, iweno, iwmaxe, jk)
@@ -1877,6 +1877,11 @@ subroutine omp_map_first(n)
     !$omp target enter data map(alloc: rec_qpoints)
     !$omp target update to(rec_qpoints)
   end if
+   if (allocated(rec_qpoints_p)) then
+    !$omp target enter data map(alloc: rec_qpoints_p)
+    !$omp target update to(rec_qpoints_p)
+  end if
+
   if (allocated(rec_rotvel)) then
     !$omp target enter data map(alloc: rec_rotvel)
     !$omp target update to(rec_rotvel)
@@ -2203,11 +2208,6 @@ if (allocated(bounds_offset)  .and. size(bounds_offset)  > 0) then
   !$omp target update to(bounds_offset)
 end if
 
-
-if (allocated(bounds_offset)  .and. size(bounds_offset)  > 0) then
-  !$omp target enter data map(alloc: bounds_offset)
-  !$omp target update to(bounds_offset)
-end if
 
 !----------------------------
 ! Reals (2D halo arrays)

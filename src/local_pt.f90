@@ -812,6 +812,19 @@ i=iconsi
 				end if
 				end do
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 end subroutine localise_stencil
 
 
@@ -932,7 +945,12 @@ i=iconsi
 				end if
 				end do
 
-				
+! 				if (initcond.gt.100000)then
+! 				write(200+n,*)"#element number",ielem_ihexgl,i,itarget
+! 				do l=1,itarget
+! 				write(200+n,*)ilox_xxc(1,l),ilox_yyc(1,l)
+! 				end do
+! 				end if
 
 				
 

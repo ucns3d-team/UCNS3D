@@ -3064,7 +3064,7 @@ end  if
 
 
 #ifdef gpu
-!$omp target teams distribute parallel do private
+!$omp target teams distribute parallel do private (cell, v)
 #else
 !$omp do
 #endif

@@ -116,6 +116,47 @@ linear_init2d=(sin((2.0d0*pi)*(pox(1))))*(sin((2.0d0*pi)*(poy(1))))
 end if
 
 
+
+
+if (initcond.eq.100001)then
+linear_init2d=1.0
+end if
+
+if (initcond.eq.100002)then
+linear_init2d=(sin((2.0d0*pi)*(pox(1))))*(sin((2.0d0*pi)*(poy(1))))
+end if
+
+if (initcond.eq.100003)then
+linear_init2d=0.0d0
+if (sqrt(((pox(1)-0.25d0)**2)+((poy(1)-0.5d0)**2)).le.0.15)then
+rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.25d0)**2)+((poy(1)-0.5d0)**2))
+
+linear_init2d=0.25d0*(1.0d0+cos(pi*min(rd,1.0d0)))
+end if
+
+if (sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.25d0)**2)).le.0.15)then
+
+rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.25d0)**2))
+linear_init2d=1.0d0-rd
+end if
+
+    if (sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.75d0)**2)).le.0.15)then
+
+    rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.75d0)**2))
+	  if ((abs(pox(1)-0.5).ge.0.025d0).or.(poy(1).gt.0.85))then
+
+	  linear_init2d=1.0d0
+	  else
+
+	  linear_init2d=0.0d0
+
+	  end if
+    end if
+end if
+
+
+
+
 end function linear_init2d
  
  

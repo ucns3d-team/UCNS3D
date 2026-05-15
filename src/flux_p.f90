@@ -76,7 +76,11 @@ subroutine calculate_fluxeshi(n)
 
 
 #ifdef gpu
-! !$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, godflux2, sum_detect, l, ngp, iqp, weights_temp, vext, &
+!$omp&         angle1, angle2, nx, ny, nz, normalvect, facex, pointx, &
+!$omp&         iconsidered, nfx, lfx, rowfx, cleft, cright, hllcflux, &
+!$omp&         rhllcflux, dg_rhs, dg_rhs_vol_integ, dg_rhs_surf_integ)
 #else
 !$omp barrier
 !$omp do
@@ -262,7 +266,7 @@ subroutine calculate_fluxeshi(n)
 
 	end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -296,7 +300,12 @@ subroutine calculate_fluxeshi2d(n)
 
 
 #ifdef gpu
-! !$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, godflux2, sum_detect, lamxl, lamyl, l, k, ngp, iqp, &
+!$omp&         neighbor_index, neighbor_face_index, vext, angle1, angle2, &
+!$omp&         nx, ny, nz, normalvect, facex, pointx, iconsidered, nfx, &
+!$omp&         lfx, rowfx, weights_temp, cleft, cright, hllcflux, &
+!$omp&         rhllcflux, dg_rhs, dg_rhs_vol_integ, dg_rhs_surf_integ)
 #else
 !$omp barrier
 !$omp do
@@ -503,7 +512,7 @@ subroutine calculate_fluxeshi2d(n)
 
 	end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -539,11 +548,15 @@ subroutine calculate_fluxeshi_convective(n)
 
 
 #ifdef gpu
-! !$omp target teams distribute parallel do private(i,&
-! !$omp godflux2, dg_vol_rec,rhllcflux,hllcflux,l,ngp,iqp,ikas,igoflux, icaseb,jx,jx2,b_code,&
-! !$omp srf,sum_detect,norms,tempxx,weights_temp,iconsidered,facex,pointx,nfx,lfx,rowfx,&
-! !$omp angle1,angle2,nx,ny,nz,mp_source1,mp_source2,mp_source3,cleft,cright,cleft_rot,cright_rot,&
-! !$omp leftv,rightv,srf_speedrot,cturbl,srf_speed,cturbr,pox,poy,poz,vext,x1,y1,z1,dg_rhs, dg_rhs_vol_integ, dg_rhs_surf_integ)
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, godflux2, dg_vol_rec, rhllcflux, hllcflux, l, ngp, &
+!$omp&         iqp, ikas, igoflux, icaseb, jx, jx2, b_code, srf, &
+!$omp&         sum_detect, norms, tempxx, weights_temp, iconsidered, &
+!$omp&         facex, pointx, nfx, lfx, rowfx, angle1, angle2, nx, ny, &
+!$omp&         nz, mp_source1, mp_source2, mp_source3, cleft, cright, &
+!$omp&         cleft_rot, cright_rot, leftv, rightv, srf_speedrot, &
+!$omp&         cturbl, cturbr, pox, poy, poz, srf_speed, vext, x1, y1, &
+!$omp&         z1, dg_rhs, dg_rhs_vol_integ, dg_rhs_surf_integ)
 #else
 !$omp barrier
 !$omp do
@@ -779,7 +792,7 @@ subroutine calculate_fluxeshi_convective(n)
 
 	end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -788,11 +801,15 @@ subroutine calculate_fluxeshi_convective(n)
 
 
 #ifdef gpu
-! ! !$omp target teams distribute parallel do private(i,&
-! ! !$omp godflux2, dg_vol_rec,rhllcflux,hllcflux,l,ngp,iqp,ikas,igoflux, icaseb,jx,jx2,b_code,&
-! ! !$omp srf,sum_detect,norms,tempxx,weights_temp,iconsidered,facex,pointx,nfx,lfx,rowfx,&
-! ! !$omp angle1,angle2,nx,ny,nz,mp_source1,mp_source2,mp_source3,cleft,cright,cleft_rot,cright_rot,&
-! ! !$omp leftv,rightv,srf_speedrot,cturbl,srf_speed,cturbr,pox,poy,poz,vext,x1,y1,z1,dg_rhs, dg_rhs_vol_integ, dg_rhs_surf_integ)
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, godflux2, dg_vol_rec, rhllcflux, hllcflux, l, ngp, &
+!$omp&         iqp, ikas, igoflux, icaseb, jx, jx2, b_code, srf, &
+!$omp&         sum_detect, norms, tempxx, weights_temp, iconsidered, &
+!$omp&         facex, pointx, nfx, lfx, rowfx, angle1, angle2, nx, ny, &
+!$omp&         nz, mp_source1, mp_source2, mp_source3, cleft, cright, &
+!$omp&         cleft_rot, cright_rot, leftv, rightv, srf_speedrot, &
+!$omp&         cturbl, cturbr, pox, poy, poz, srf_speed, vext, x1, y1, &
+!$omp&         z1, dg_rhs, dg_rhs_vol_integ, dg_rhs_surf_integ)
 #else
 !$omp barrier
 !$omp do
@@ -1069,7 +1086,7 @@ subroutine calculate_fluxeshi_convective(n)
 
 	end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1111,16 +1128,16 @@ subroutine calculate_fluxeshi_convective2d(n)
 	
 
 
-	
-
-
-
-
-
-
-
 #ifdef gpu
-! !$omp target teams distribute parallel do private(i)
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, godflux2, dg_vol_rec, rhllcflux, hllcflux, l, ngp, &
+!$omp&         iqp, ikas, igoflux, icaseb, kxk, b_code, sum_detect, &
+!$omp&         norms, weights_temp, iconsidered, facex, pointx, angle1, &
+!$omp&         angle2, nx, ny, nz, mp_source1, mp_source2, mp_source3, &
+!$omp&         cleft, cright, cleft_rot, cright_rot, leftv, rightv, &
+!$omp&         srf_speedrot, cturbl, cturbr, pox, poy, poz, x1, y1, z1, &
+!$omp&         srf_speed, vext, dg_rhs, dg_rhs_vol_integ, &
+!$omp&         dg_rhs_surf_integ)
 #else
 !$omp barrier
 !$omp do
@@ -1177,11 +1194,11 @@ subroutine calculate_fluxeshi_convective2d(n)
 						  call rotatef2d(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  
 						  !realgas state
-						  if (realgas.eq.1)then
-						  call fix_conservative_state(cleft_rot)
-						  call fix_conservative_state(cright_rot)
-
-						  end if
+! 						  if (realgas.eq.1)then
+! 						  call fix_conservative_state(cleft_rot)
+! 						  call fix_conservative_state(cright_rot)
+!
+! 						  end if
 						  
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
@@ -1332,7 +1349,7 @@ subroutine calculate_fluxeshi_convective2d(n)
 
 	end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1340,7 +1357,15 @@ subroutine calculate_fluxeshi_convective2d(n)
 
 	
 #ifdef gpu
-! !$omp target teams distribute parallel do private(i)
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, godflux2, dg_vol_rec, rhllcflux, hllcflux, l, ngp, &
+!$omp&         iqp, ikas, igoflux, icaseb, kxk, b_code, sum_detect, &
+!$omp&         norms, weights_temp, iconsidered, facex, pointx, angle1, &
+!$omp&         angle2, nx, ny, nz, mp_source1, mp_source2, mp_source3, &
+!$omp&         cleft, cright, cleft_rot, cright_rot, leftv, rightv, &
+!$omp&         srf_speedrot, cturbl, cturbr, pox, poy, poz, x1, y1, z1, &
+!$omp&         srf_speed, vext, dg_rhs, dg_rhs_vol_integ, &
+!$omp&         dg_rhs_surf_integ)
 #else
 !$omp barrier
 !$omp do
@@ -1416,11 +1441,11 @@ subroutine calculate_fluxeshi_convective2d(n)
 				      
 				      
 				      !realgas state
-						  if (realgas.eq.1)then
-						  call fix_conservative_state(cleft_rot)
-						  call fix_conservative_state(cright_rot)
-
-						  end if
+! 						  if (realgas.eq.1)then
+! 						  call fix_conservative_state(cleft_rot)
+! 						  call fix_conservative_state(cright_rot)
+!
+! 						  end if
 
 
 
@@ -1575,7 +1600,7 @@ subroutine calculate_fluxeshi_convective2d(n)
 
 	end do
 #ifdef gpu
-! !!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1613,7 +1638,7 @@ subroutine calculate_fluxeshi_diffusive(n)
     real,dimension(1:nof_variables-1,1:dims)::lcvgrad,rcvgrad
 	real,dimension(turbulenceequations+passivescalar,1:dims)::lcvgrad_t,rcvgrad_t
 	real,dimension(1:nof_variables)::fxv,fyv,fzv,tem_pn,rtem_pn
-	real,dimension(1:nof_species)::rgs_htr_i, rgs_hvib_i,y_av
+	real,dimension(1:nof_species)::rgs_htr_i, rgs_hvib_i,y_av,y_corr
 	real,dimension(3,3)::taul,taur,tau
 	real,dimension(3)::q,nnn,nall,qvib
 	real::ux,uy,uz,vx,vy,vz,wx,wy,wz,rho12,u12,v12,w12 ,damp,vdamp,tempxx 
@@ -1624,22 +1649,39 @@ subroutine calculate_fluxeshi_diffusive(n)
 	real,dimension(1:2)::qtr,qv
 	real,dimension(1:dimensiona)::rg_sum_htr,rg_sum_hv,grady,rg_qv,rg_qtr
 	real,dimension(1:nof_species)::rg_dif_av,rg_enth_av,rg_enthvb_av
-	real::mp_lam_av,mp_ktr_mix_av,sum_y1,sum_y2
-	real,dimension(1:dimensiona):: sumi
-	real,dimension(1:dimensiona,1:nof_species) :: i_raw
-
-
-
-
+	real::mp_lam_av,mp_ktr_mix_av,sum_y1,sum_y2,sumY_face,molar_sum,mbar
+	real,dimension(1:dimensiona):: sumi,gradx,grad_a,sumJ,sumGradY
+	real,dimension(1:dimensiona,1:nof_species) :: i_raw,gradY_all
 
 	kmaxe=xmpielrank(n)
 	
-
-	
-
-
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, nvar, kc, iex, ittt, ikas, igoflux, &
+!$omp&         icaseb, kk, b_code, srf, k, godflux2, dg_vol_rec, &
+!$omp&         rhllcflux, hllcflux, sum_detect, norms, iconsidered, &
+!$omp&         facex, pointx, rg_i, rg_j, idxy, angle1, angle2, nx, ny, &
+!$omp&         nz, mp_source1, mp_source2, mp_source3, cleft, cright, &
+!$omp&         cleft_rot, cright_rot, leftv, rightv, srf_speedrot, &
+!$omp&         tempx_l, rtempx_l, cturbl, cturbr, pox, poy, poz, &
+!$omp&         rg_sumfl, rg_sumfr, srf_speed, weights_temp, vext, &
+!$omp&         mp_pinfl, mp_pinfr, gammal, gammar, rho12l, rho12r, &
+!$omp&         viscl, laml, turbmv, etvm, eddyfl, eddyfr, lcvgrad, &
+!$omp&         rcvgrad, lcvgrad_t, rcvgrad_t, fxv, fyv, fzv, tem_pn, &
+!$omp&         rtem_pn, rgs_htr_i, rgs_hvib_i, y_av, y_corr, taul, &
+!$omp&         taur, tau, q, nnn, nall, qvib, ux, uy, uz, vx, vy, vz, &
+!$omp&         wx, wy, wz, rho12, u12, v12, w12, damp, vdamp, tempxx, &
+!$omp&         dg_rhs, dg_rhs_vol_integ, dg_rhs_surf_integ, mp_ttr, &
+!$omp&         mp_tv, mp_mu_mix, mp_ktr_mix, mp_kve, mp_laml, mp_lamr, &
+!$omp&         y_face, mp_d_eff, rg_difl, rg_difr, rg_enthl, rg_enthr, &
+!$omp&         mp_htr, mp_hvib, rg_enthvbl, rg_enthvbr, mp_mu_i, &
+!$omp&         mp_ktr_i, rg_sum_tr, rg_sumfr_tr, rg_sumfl_v, &
+!$omp&         rg_sumfr_v, rg_sum_v, gradyl, gradyr, jl, jr, &
+!$omp&         rg_sumfl_tr, qtr, qv, rg_sum_htr, rg_sum_hv, grady, &
+!$omp&         rg_qv, rg_qtr, rg_dif_av, rg_enth_av, rg_enthvb_av, &
+!$omp&         mp_lam_av, mp_ktr_mix_av, sum_y1, sum_y2, sumY_face, &
+!$omp&         molar_sum, mbar, sumi, gradx, grad_a, sumJ, sumGradY, &
+!$omp&         i_raw, gradY_all)
 #else
 !$omp barrier
 !$omp do
@@ -1828,49 +1870,85 @@ subroutine calculate_fluxeshi_diffusive(n)
 
 													if (rg_relax.ge.1)then
 
-													! ---- first loop: raw fick fluxes i_k = -ρ d_k ∇y_k ----
+													sumi(1:dimensiona) = 0.0d0
+													sumJ(1:dimensiona) = 0.0d0
+													i_raw(1:dimensiona,1:nof_species) = 0.0d0
+
+													! normalise face mass fractions used by correction velocity
+													sumY_face = 0.0d0
+													do rg_j = 1, nof_species
+														y_corr(rg_j) = max(y_av(rg_j),0.0d0)
+														sumY_face = sumY_face + y_corr(rg_j)
+													end do
+
+													if (sumY_face .gt. 1.0d-30) then
+														do rg_j = 1, nof_species
+															y_corr(rg_j) = y_corr(rg_j) / sumY_face
+														end do
+													else
+														do rg_j = 1, nof_species
+															y_corr(rg_j) = 1.0d0 / dble(nof_species)
+														end do
+													end if
+
+													! mixture molar sum from corrected face mass fractions
+													molar_sum = 0.0d0
+													do rg_j = 1, nof_species
+														molar_sum = molar_sum + y_corr(rg_j) / rg_molm(rg_j)
+													end do
+													molar_sum = max(molar_sum,1.0d-30)
+													mbar = 1.0d0 / molar_sum
+
+													! project species gradients so sum_k grad(Y_k)=0
+													sumGradY(1:dimensiona) = 0.0d0
+													do rg_j = 1, nof_species
+														idxy = dimensiona + 2 + rg_j
+														gradY_all(1:dimensiona,rg_j) = lcvgrad(idxy,1:dimensiona)
+														sumGradY(1:dimensiona) = sumGradY(1:dimensiona) + gradY_all(1:dimensiona,rg_j)
+													end do
+													do rg_j = 1, nof_species
+														gradY_all(1:dimensiona,rg_j) = gradY_all(1:dimensiona,rg_j) - &
+															y_corr(rg_j) * sumGradY(1:dimensiona)
+													end do
+
+													grad_a(1:dimensiona) = 0.0d0
+													do rg_j = 1, nof_species
+														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_j)
+														grad_a(1:dimensiona) = grad_a(1:dimensiona) + grady(1:dimensiona) / rg_molm(rg_j)
+													end do
+
+													! raw mixture-averaged flux from grad(X_i)
 													do rg_i = 1, nof_species
+														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_i)
+														gradx(1:dimensiona) = &
+															( grady(1:dimensiona) / rg_molm(rg_i) * molar_sum &
+															- (y_corr(rg_i) / rg_molm(rg_i)) * grad_a(1:dimensiona) ) &
+															/ (molar_sum * molar_sum)
 
-														idxy = dimensiona + 2 + rg_i     ! index of y_k at face
-
-														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
-
-
-
-
-														! raw mixture-averaged diffusion flux
-														i_raw(1:dimensiona,rg_i) = -rho12 * rg_dif_av(rg_i) * grady(1:dimensiona)
-
-
-
-
-
+														i_raw(1:dimensiona,rg_i) = &
+															-rho12 * rg_dif_av(rg_i) * (rg_molm(rg_i) / mbar) * gradx(1:dimensiona)
 														sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona,rg_i)
 													end do
 
-
-													! ---- second loop: mass-conserving flux j_k ----
+													! corrected species flux, conservative because sum(y_corr)=1
 													do rg_i = 1, nof_species
-
-														! face-averaged mass fraction (must match your reconstruction)
-														y_face = y_av(rg_i)
-
-														! mass-conserving diffusion flux
+														y_face = y_corr(rg_i)
 														jl(1:dimensiona) = i_raw(1:dimensiona,rg_i) - y_face * sumi(1:dimensiona)
+														sumJ(1:dimensiona) = sumJ(1:dimensiona) + jl(1:dimensiona)
 
-														! add species diffusion fluxes into fxv / fyv
 														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) + jl(1)
 														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) + jl(2)
+														fzv(dimensiona+3+rg_i) = fzv(dimensiona+3+rg_i) + jl(3)
 
-! 														! energy diffusion accumulation
- 														rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) &
- 																				+ rg_enth_av(rg_i)*jl(1:dimensiona)
- 														rg_sum_hv(1:dimensiona)  = rg_sum_hv(1:dimensiona) &
- 																				+ rg_enthvb_av(rg_i)*jl(1:dimensiona)
+														rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) &
+															+ rg_enth_av(rg_i)*jl(1:dimensiona)
+														rg_sum_hv(1:dimensiona)  = rg_sum_hv(1:dimensiona) &
+															+ rg_enthvb_av(rg_i)*jl(1:dimensiona)
 													end do
+
 													end if
 
-													! =============================================================
+																										! =============================================================
 													! 4. conductive heat fluxes (fourier)
 													! =============================================================
 													rg_qtr(1:dimensiona) = -mp_ktr_mix_av * lcvgrad(dimensiona+1,1:dimensiona)
@@ -2071,7 +2149,7 @@ subroutine calculate_fluxeshi_diffusive(n)
 
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2079,7 +2157,32 @@ subroutine calculate_fluxeshi_diffusive(n)
 
 	
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, nvar, kc, iex, ittt, ikas, igoflux, &
+!$omp&         icaseb, kk, b_code, srf, k, godflux2, dg_vol_rec, &
+!$omp&         rhllcflux, hllcflux, sum_detect, norms, iconsidered, &
+!$omp&         facex, pointx, rg_i, rg_j, idxy, angle1, angle2, nx, ny, &
+!$omp&         nz, mp_source1, mp_source2, mp_source3, cleft, cright, &
+!$omp&         cleft_rot, cright_rot, leftv, rightv, srf_speedrot, &
+!$omp&         tempx_l, rtempx_l, cturbl, cturbr, pox, poy, poz, &
+!$omp&         rg_sumfl, rg_sumfr, srf_speed, weights_temp, vext, &
+!$omp&         mp_pinfl, mp_pinfr, gammal, gammar, rho12l, rho12r, &
+!$omp&         viscl, laml, turbmv, etvm, eddyfl, eddyfr, lcvgrad, &
+!$omp&         rcvgrad, lcvgrad_t, rcvgrad_t, fxv, fyv, fzv, tem_pn, &
+!$omp&         rtem_pn, rgs_htr_i, rgs_hvib_i, y_av, y_corr, taul, &
+!$omp&         taur, tau, q, nnn, nall, qvib, ux, uy, uz, vx, vy, vz, &
+!$omp&         wx, wy, wz, rho12, u12, v12, w12, damp, vdamp, tempxx, &
+!$omp&         dg_rhs, dg_rhs_vol_integ, dg_rhs_surf_integ, mp_ttr, &
+!$omp&         mp_tv, mp_mu_mix, mp_ktr_mix, mp_kve, mp_laml, mp_lamr, &
+!$omp&         y_face, mp_d_eff, rg_difl, rg_difr, rg_enthl, rg_enthr, &
+!$omp&         mp_htr, mp_hvib, rg_enthvbl, rg_enthvbr, mp_mu_i, &
+!$omp&         mp_ktr_i, rg_sum_tr, rg_sumfr_tr, rg_sumfl_v, &
+!$omp&         rg_sumfr_v, rg_sum_v, gradyl, gradyr, jl, jr, &
+!$omp&         rg_sumfl_tr, qtr, qv, rg_sum_htr, rg_sum_hv, grady, &
+!$omp&         rg_qv, rg_qtr, rg_dif_av, rg_enth_av, rg_enthvb_av, &
+!$omp&         mp_lam_av, mp_ktr_mix_av, sum_y1, sum_y2, sumY_face, &
+!$omp&         molar_sum, mbar, sumi, gradx, grad_a, sumJ, sumGradY, &
+!$omp&         i_raw, gradY_all)
 #else
 !$omp barrier
 !$omp do
@@ -2302,55 +2405,85 @@ subroutine calculate_fluxeshi_diffusive(n)
 
 													if (rg_relax.ge.1)then
 
-													! ---- first loop: raw fick fluxes i_k = -ρ d_k ∇y_k ----
+													sumi(1:dimensiona) = 0.0d0
+													sumJ(1:dimensiona) = 0.0d0
+													i_raw(1:dimensiona,1:nof_species) = 0.0d0
+
+													! normalise face mass fractions used by correction velocity
+													sumY_face = 0.0d0
+													do rg_j = 1, nof_species
+														y_corr(rg_j) = max(y_av(rg_j),0.0d0)
+														sumY_face = sumY_face + y_corr(rg_j)
+													end do
+
+													if (sumY_face .gt. 1.0d-30) then
+														do rg_j = 1, nof_species
+															y_corr(rg_j) = y_corr(rg_j) / sumY_face
+														end do
+													else
+														do rg_j = 1, nof_species
+															y_corr(rg_j) = 1.0d0 / dble(nof_species)
+														end do
+													end if
+
+													! mixture molar sum from corrected face mass fractions
+													molar_sum = 0.0d0
+													do rg_j = 1, nof_species
+														molar_sum = molar_sum + y_corr(rg_j) / rg_molm(rg_j)
+													end do
+													molar_sum = max(molar_sum,1.0d-30)
+													mbar = 1.0d0 / molar_sum
+
+													! project species gradients so sum_k grad(Y_k)=0
+													sumGradY(1:dimensiona) = 0.0d0
+													do rg_j = 1, nof_species
+														idxy = dimensiona + 2 + rg_j
+														gradY_all(1:dimensiona,rg_j) = lcvgrad(idxy,1:dimensiona)
+														sumGradY(1:dimensiona) = sumGradY(1:dimensiona) + gradY_all(1:dimensiona,rg_j)
+													end do
+													do rg_j = 1, nof_species
+														gradY_all(1:dimensiona,rg_j) = gradY_all(1:dimensiona,rg_j) - &
+															y_corr(rg_j) * sumGradY(1:dimensiona)
+													end do
+
+													grad_a(1:dimensiona) = 0.0d0
+													do rg_j = 1, nof_species
+														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_j)
+														grad_a(1:dimensiona) = grad_a(1:dimensiona) + grady(1:dimensiona) / rg_molm(rg_j)
+													end do
+
+													! raw mixture-averaged flux from grad(X_i)
 													do rg_i = 1, nof_species
+														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_i)
+														gradx(1:dimensiona) = &
+															( grady(1:dimensiona) / rg_molm(rg_i) * molar_sum &
+															- (y_corr(rg_i) / rg_molm(rg_i)) * grad_a(1:dimensiona) ) &
+															/ (molar_sum * molar_sum)
 
-														idxy = dimensiona + 2 + rg_i     ! index of y_k at face
-
-														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
-
-														! raw mixture-averaged diffusion flux
-														i_raw(1:dimensiona,rg_i) = -rho12 * rg_dif_av(rg_i) * grady(1:dimensiona)
-
-
-
+														i_raw(1:dimensiona,rg_i) = &
+															-rho12 * rg_dif_av(rg_i) * (rg_molm(rg_i) / mbar) * gradx(1:dimensiona)
 														sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona,rg_i)
 													end do
 
-
-
-
-
-													! ---- second loop: mass-conserving flux j_k ----
+													! corrected species flux, conservative because sum(y_corr)=1
 													do rg_i = 1, nof_species
-
-														! face-averaged mass fraction (must match your reconstruction)
-														y_face = y_av(rg_i)
-
-														! mass-conserving diffusion flux
+														y_face = y_corr(rg_i)
 														jl(1:dimensiona) = i_raw(1:dimensiona,rg_i) - y_face * sumi(1:dimensiona)
+														sumJ(1:dimensiona) = sumJ(1:dimensiona) + jl(1:dimensiona)
 
-
-
-														! add species diffusion fluxes into fxv / fyv
 														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) + jl(1)
 														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) + jl(2)
+														fzv(dimensiona+3+rg_i) = fzv(dimensiona+3+rg_i) + jl(3)
 
-
-
-
-														! energy diffusion accumulation
 														rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) &
-																				+ rg_enth_av(rg_i)*jl(1:dimensiona)
+															+ rg_enth_av(rg_i)*jl(1:dimensiona)
 														rg_sum_hv(1:dimensiona)  = rg_sum_hv(1:dimensiona) &
-																				+ rg_enthvb_av(rg_i)*jl(1:dimensiona)
+															+ rg_enthvb_av(rg_i)*jl(1:dimensiona)
 													end do
-
-
 
 													end if
 
-
+													
 
 													! =============================================================
 													! 4. conductive heat fluxes (fourier)
@@ -2565,7 +2698,7 @@ subroutine calculate_fluxeshi_diffusive(n)
 
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2618,24 +2751,48 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 	real::mp_lam_av,mp_ktr_mix_av,sum_y1,sum_y2
 	real,dimension(1:dimensiona):: sumi,gradx,grad_a
 	real,dimension(1:dimensiona,1:nof_species) :: i_raw
+	 real :: sumY_face
+	real :: y_corr(nof_species)
+	real :: sumJ(1:dimensiona)
+	real,dimension(1:dimensiona)::sumGradY
+	real,dimension(1:dimensiona,1:nof_species)::gradY_all
 	real :: molar_sum, mbar
 
-
-    
-	
-	
-	
 	kmaxe=xmpielrank(n)
-	
 
-	
-	weights_temp(1:qp_line_n)=weights_l(1:qp_line_n)
 
-	
+
+
+
+
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, nvar, kc, iex, ittt, ikas, igoflux, &
+!$omp&         icaseb, kk, b_code, sum_detect, norms, iconsidered, &
+!$omp&         facex, pointx, k, rg_i, rg_j, idxy, icompute, angle1, &
+!$omp&         angle2, nx, ny, nz, mp_source1, mp_source2, mp_source3, &
+!$omp&         godflux2, dg_vol_rec, rhllcflux, hllcflux, cleft, cright, &
+!$omp&         cleft_rot, cright_rot, leftv, rightv, srf_speedrot, &
+!$omp&         tempx_l, rtempx_l, cturbl, cturbr, pox, poy, poz, &
+!$omp&         rg_sumfl, rg_sumfr, srf_speed, weights_temp, vext, &
+!$omp&         mp_pinfl, mp_pinfr, gammal, gammar, rho12l, rho12r, &
+!$omp&         viscl, laml, rgs_htr_i, rgs_hvib_i, y_av, x_av, turbmv, &
+!$omp&         etvm, eddyfl, eddyfr, lcvgrad, rcvgrad, jtmp, lcvgrad_t, &
+!$omp&         rcvgrad_t, fxv, fyv, fzv, tem_pn, rtem_pn, taul, taur, &
+!$omp&         tau, q, nall, qvib, ux, uy, uz, vx, vy, vz, wx, wy, wz, &
+!$omp&         rho12, u12, v12, w12, damp, vdamp, y_face, dg_rhs, &
+!$omp&         dg_rhs_vol_integ, dg_rhs_surf_integ, mp_ttr, mp_tv, &
+!$omp&         mp_mu_mix, mp_ktr_mix, mp_kve, mp_laml, mp_lamr, &
+!$omp&         mp_d_eff, rg_difl, rg_difr, rg_enthl, rg_enthr, mp_htr, &
+!$omp&         mp_hvib, rg_enthvbl, rg_enthvbr, mp_mu_i, mp_ktr_i, &
+!$omp&         rg_sum_tr, rg_sumfr_tr, rg_sumfl_tr, rg_sumfl_v, &
+!$omp&         rg_sumfr_v, rg_sum_v, gradyl, gradyr, jl, jr, qtr, qv, &
+!$omp&         rg_sum_htr, rg_sum_hv, grady, rg_qv, rg_qtr, rg_dif_av, &
+!$omp&         rg_enth_av, rg_enthvb_av, mp_lam_av, mp_ktr_mix_av, &
+!$omp&         sum_y1, sum_y2, sumi, gradx, grad_a, i_raw, sumY_face, &
+!$omp&         y_corr, sumJ, sumGradY, gradY_all, molar_sum, mbar)
 #else
 !$omp barrier
 !$omp do
@@ -2643,7 +2800,9 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 	do ii=1,nof_interior	!for all the interior elements
 	i=el_int(ii)
 	iconsidered=i
-		   
+
+	weights_temp(1:qp_line_n)=weights_l(1:qp_line_n)
+
 			if (dg.eq.1) then
 				dg_rhs = zero
 				dg_rhs_surf_integ = zero
@@ -2659,17 +2818,17 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 !                 if (ielem_reorient(l,i).eq.0)then
                     damp=lamx
                     if( br2_yn == 2) damp = 0.0d0
-                    
+
 				  godflux2=zero
  				  angle1=ielem_faceanglex(l,i)
  				  angle2=ielem_faceangley(l,i)
  				  nx=angle1
 				  ny=angle2
-				 
-				  
+
+
 					iqp=qp_line_n
-				
-				  
+
+
 				  do ngp=1,iqp	!for all the gaussian quadrature points
 				  facex=l
 				  pointx=ngp
@@ -2679,8 +2838,8 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 
-			
-					
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  call rotatef2d(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef2d(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
@@ -2690,8 +2849,8 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 						  call rotateb2d(n,cleft,cleft_rot,angle1,angle2)
 						  call rotateb2d(n,cright,cright_rot,angle1,angle2)
 						  end if
-						  
-				      
+
+
 				        leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 
 
@@ -2708,7 +2867,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 								call get_visc_conduct(n,leftv,rightv,viscl,laml)
 						end if
-				     
+
 					    if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -2719,25 +2878,25 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 							  eddyfl(4:5)= lcvgrad(1,1:2);eddyfl(6:7)=lcvgrad(2,1:2)
 							  eddyfl(8:9)=lcvgrad_t(1,1:2)
 							  eddyfl(10:11)=lcvgrad_t(2,1:2)
-							    
-							    
+
+
 							  eddyfr(1)=ielem_walldist(i);eddyfr(2)=cturbr(1);eddyfr(3)=cturbr(2)
 							  eddyfr(4:5)= rcvgrad(1,1:2);eddyfr(6:7)=rcvgrad(2,1:2)
 							  eddyfr(8:9)=rcvgrad_t(1,1:2);eddyfr(10:11)=rcvgrad_t(2,1:2)
 							    call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
 					  end if
-				       
-				       
+
+
 
 
 
                                      taul = zero;tau=zero;taur=zero;q=zero;ux=zero;uy=zero;uz=zero;vx=zero;vy=zero;vz=zero;wx=zero;wy=zero;wz=zero;
 					    fxv=zero;fyv=zero;fzv=zero;rho12 =zero;
-					  u12=zero;v12=zero;w12=zero 
-				       
-! 				      
-					  
+					  u12=zero;v12=zero;w12=zero
+
+!
+
 					  vdamp=(4.0/3.0)!*(( (viscl(1))+(viscl(2)))))
                                         nall(1)=nx;nall(2)=ny
 
@@ -2773,7 +2932,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 
-					  				
+
 
                            		    !now compute all the temperature gradients +real gas
 				      if ((realgas.eq.1).or.(multispecies.eq.1))then
@@ -2829,75 +2988,98 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 													! =============================================================
 													! 3. mixture-averaged diffusion fluxes (no pressure terms)
 													! =============================================================
-
-
 													rg_sum_htr(1:dimensiona) = 0.0d0
 													rg_sum_hv(1:dimensiona)  = 0.0d0
 													rg_qtr=0.0d0; rg_qv=0.0d0
 
-													sumi(1:dimensiona) = 0.0d0    ! σ i_k
+													sumi(1:dimensiona) = 0.0d0
 
 													if (rg_relax.ge.1)then
 
-													! ---- first loop: raw fick fluxes i_k = -ρ d_k ∇y_k ----
-! 													do rg_i = 1, nof_species
-!
-! 														idxy = dimensiona + 2 + rg_i     ! index of y_k at face
-!
-! 														!u,v,ttr,tvib,
-!
-! 														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
-!
-!
-!
-!
-! 														! raw mixture-averaged diffusion flux
-! 														i_raw(1:dimensiona,rg_i) = -rho12 * rg_dif_av(rg_i) * grady(1:dimensiona)
-!
-!
-!
-!
-!
-! 														sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona,rg_i)
-! 													end do
 
 													sumi(1:dimensiona) = 0.0d0
+													sumJ(1:dimensiona) = 0.0d0
 													i_raw(1:dimensiona,1:nof_species) = 0.0d0
 
-													! compute face mole fractions from face mass fractions
+													! -------------------------------------------------------------
+													! Normalise face mass fractions used in diffusion correction.
+													! This is essential because:
+													! sum(J_k) = sum(i_raw_k) - sum(Y_k)*sum(i_raw_k)
+													! so conservation requires sum(Y_k)=1 at the face.
+													! -------------------------------------------------------------
+													sumY_face = 0.0d0
+
+													do rg_j = 1, nof_species
+														y_corr(rg_j) = max(y_av(rg_j), 0.0d0)
+														sumY_face = sumY_face + y_corr(rg_j)
+													end do
+
+													if (sumY_face .gt. 1.0d-30) then
+														do rg_j = 1, nof_species
+															y_corr(rg_j) = y_corr(rg_j) / sumY_face
+														end do
+													else
+														do rg_j = 1, nof_species
+															y_corr(rg_j) = 1.0d0 / dble(nof_species)
+														end do
+													end if
+
+													! -------------------------------------------------------------
+													! Compute face mole fractions from corrected face mass fractions
+													! -------------------------------------------------------------
 													molar_sum = 0.0d0
 													do rg_j = 1, nof_species
-														molar_sum = molar_sum + max(y_av(rg_j),0.0d0) / rg_molm(rg_j)
+														molar_sum = molar_sum + y_corr(rg_j) / rg_molm(rg_j)
 													end do
 
 													molar_sum = max(molar_sum,1.0d-30)
 													mbar = 1.0d0 / molar_sum
 
 													do rg_j = 1, nof_species
-														x_av(rg_j) = (max(y_av(rg_j),0.0d0) / rg_molm(rg_j)) / molar_sum
+														x_av(rg_j) = (y_corr(rg_j) / rg_molm(rg_j)) / molar_sum
 													end do
 
-													! grad_a = grad(sum_k Y_k/M_k)
-													grad_a(1:dimensiona) = 0.0d0
+													! -------------------------------------------------------------
+													! Project species gradients so that sum_k grad(Y_k) = 0.
+													! This removes a conservative but noisy pairwise diffusion mode
+													! which can enter rhoEv through sum_k(hvib_k*J_k).
+													! -------------------------------------------------------------
+													sumGradY(1:dimensiona) = 0.0d0
 
 													do rg_j = 1, nof_species
 														idxy = dimensiona + 2 + rg_j
-														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
+														gradY_all(1:dimensiona,rg_j) = lcvgrad(idxy,1:dimensiona)
+														sumGradY(1:dimensiona) = sumGradY(1:dimensiona) + gradY_all(1:dimensiona,rg_j)
+													end do
+
+													do rg_j = 1, nof_species
+														gradY_all(1:dimensiona,rg_j) = gradY_all(1:dimensiona,rg_j) - &
+															y_corr(rg_j) * sumGradY(1:dimensiona)
+													end do
+
+													! -------------------------------------------------------------
+													! grad_a = grad(sum_k Y_k/M_k), using projected grad(Y_k).
+													! -------------------------------------------------------------
+													grad_a(1:dimensiona) = 0.0d0
+
+													do rg_j = 1, nof_species
+														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_j)
 
 														grad_a(1:dimensiona) = grad_a(1:dimensiona) + &
 															grady(1:dimensiona) / rg_molm(rg_j)
 													end do
 
-													! raw mixture-averaged flux:
-													! J_i_raw = -rho * D_i * (M_i/Mmix) * grad(X_i)
+													! -------------------------------------------------------------
+													! Raw mixture-averaged flux:
+													! i_raw_i = -rho * D_i * (M_i/Mmix) * grad(X_i)
+													! -------------------------------------------------------------
 													do rg_i = 1, nof_species
 
-														idxy = dimensiona + 2 + rg_i
-														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
+														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_i)
 
 														gradx(1:dimensiona) = &
 															( grady(1:dimensiona) / rg_molm(rg_i) * molar_sum &
-															- (max(y_av(rg_i),0.0d0) / rg_molm(rg_i)) * grad_a(1:dimensiona) ) &
+															- (y_corr(rg_i) / rg_molm(rg_i)) * grad_a(1:dimensiona) ) &
 															/ (molar_sum * molar_sum)
 
 														i_raw(1:dimensiona,rg_i) = &
@@ -2907,26 +3089,34 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 													end do
 
-
-													! ---- second loop: mass-conserving flux j_k ----
+													! -------------------------------------------------------------
+													! Mass-conserving corrected species diffusion flux:
+													! J_i = i_raw_i - Y_i * sum_k(i_raw_k)
+													! using corrected Y_i with sum(Y_i)=1.
+													! -------------------------------------------------------------
 													do rg_i = 1, nof_species
 
-														! face-averaged mass fraction (must match your reconstruction)
-														y_face = y_av(rg_i)
+														y_face = y_corr(rg_i)
 
-														! mass-conserving diffusion flux
-														jl(1:dimensiona) = i_raw(1:dimensiona,rg_i) - y_face * sumi(1:dimensiona)
+														jl(1:dimensiona) = i_raw(1:dimensiona,rg_i) - &
+																		  y_face * sumi(1:dimensiona)
 
-														! add species diffusion fluxes into fxv / fyv
+														sumJ(1:dimensiona) = sumJ(1:dimensiona) + jl(1:dimensiona)
+
 														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) + jl(1)
 														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) + jl(2)
 
-! 														! energy diffusion accumulation
- 														rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) &
- 																				+ rg_enth_av(rg_i)*jl(1:dimensiona)
- 														rg_sum_hv(1:dimensiona)  = rg_sum_hv(1:dimensiona) &
- 																				+ rg_enthvb_av(rg_i)*jl(1:dimensiona)
+														rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) &
+																				+ rg_enth_av(rg_i)*jl(1:dimensiona)
+
+														rg_sum_hv(1:dimensiona)  = rg_sum_hv(1:dimensiona) &
+																				+ rg_enthvb_av(rg_i)*jl(1:dimensiona)
+
 													end do
+
+
+
+
 
 
 													! =============================================================
@@ -3001,30 +3191,30 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 
-					  
-					  
-					  
-					   
-				       				  
 
-					 
+
+
+
+
+
+
 					  !left state derivatives
 					  ux = lcvgrad(1,1); uy = lcvgrad(1,2)
 					  vx = lcvgrad(2,1); vy = lcvgrad(2,2)
 					  ! determine taul!!
-					 
+
 
 					  ! tau_xx
-					  taul(1,1) = (4.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy 
+					  taul(1,1) = (4.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy
 					  ! tau_yy
-					  taul(2,2) = (4.0d0/3.0d0)*vy - (2.0d0/3.0d0)*ux 
+					  taul(2,2) = (4.0d0/3.0d0)*vy - (2.0d0/3.0d0)*ux
 					  ! tau_zz
-					 
+
 
 					  ! tau_xy
 					  taul(1,2) = (uy + vx);taul(2,1) = taul(1,2)
 
-					  
+
 					 ! average and multiplay by viscosity
 					  if ( turbulence .eq. 1) then
 					    tau = oo2*(( (viscl(1)+viscl(3)))+( (viscl(2)+viscl(4))))*taul
@@ -3036,14 +3226,14 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 					  do kc=2,3
 					      fxv(kc) = fxv(kc) + tau(1,kc-1)
 					      fyv(kc) = fyv(kc) + tau(2,kc-1)
-					      
+
 					  enddo
 
 
 
 
 
-					  fxv(4) = fxv(4) + u12*tau(1,1) + v12*tau(1,2) 
+					  fxv(4) = fxv(4) + u12*tau(1,1) + v12*tau(1,2)
 					  fyv(4) = fyv(4) + u12*tau(2,1) + v12*tau(2,2)
 
 
@@ -3053,21 +3243,21 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 
-! 					 
-					  hllcflux(1:nof_variables)=(nx*fxv+ny*fyv)	
-		
+!
+					  hllcflux(1:nof_variables)=(nx*fxv+ny*fyv)
+
 					  if (dg.eq.1)then
 
 					  rhllcflux(1:nof_variables)=hllcflux(1:nof_variables)
-						
+
 						dg_rhs_surf_integ = dg_rhs_surf_integ + dg_surf_flux(n,iconsidered,facex,pointx,weights_temp,rhllcflux)
-  
+
 						else
-					  
+
 				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(hllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(l,i)))
 						end if
-				     
-				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 					  if (turbulence.eq.1)then
 					  hllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar) =&
 					  ((oo2*(viscl(1)+viscl(2)))+(oo2*(viscl(3)+viscl(4))))*&
@@ -3078,21 +3268,21 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 					  ((oo2*(viscl(1)+viscl(2))))*&
 		    (((lcvgrad_t(1:turbulenceequations+passivescalar,1)+rcvgrad_t(1:turbulenceequations+passivescalar,1))*oo2*nx)+&
 		    ((lcvgrad_t(1:turbulenceequations+passivescalar,2)+rcvgrad_t(1:turbulenceequations+passivescalar,2))*oo2*ny))
-					  
+
 					  end if
 						if (turbulencemodel.eq.1)then
 						hllcflux(5)=hllcflux(5)/sigma
-						end if					  
+						end if
 					  godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)+&
 					  (hllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(l,i)))
 				      end if
-				      
-				      
+
+
 				  end do
-				  
+
 				    rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)-godflux2(1:nof_variables)
 
-				    
+
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 				    rhst_val(1:turbulenceequations+passivescalar,i)=rhst_val(1:turbulenceequations+passivescalar,i)-&
 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
@@ -3106,7 +3296,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 				dg_rhs = dg_rhs_surf_integ
 
-				
+
 
 				rhs_valdg(:,:,i) = rhs_valdg(:,:,i) - dg_rhs
 
@@ -3121,23 +3311,54 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
-	
 
 
-	
+
+
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, nvar, kc, iex, ittt, ikas, igoflux, &
+!$omp&         icaseb, kk, b_code, sum_detect, norms, iconsidered, &
+!$omp&         facex, pointx, k, rg_i, rg_j, idxy, icompute, angle1, &
+!$omp&         angle2, nx, ny, nz, mp_source1, mp_source2, mp_source3, &
+!$omp&         godflux2, dg_vol_rec, rhllcflux, hllcflux, cleft, cright, &
+!$omp&         cleft_rot, cright_rot, leftv, rightv, srf_speedrot, &
+!$omp&         tempx_l, rtempx_l, cturbl, cturbr, pox, poy, poz, &
+!$omp&         rg_sumfl, rg_sumfr, srf_speed, weights_temp, vext, &
+!$omp&         mp_pinfl, mp_pinfr, gammal, gammar, rho12l, rho12r, &
+!$omp&         viscl, laml, rgs_htr_i, rgs_hvib_i, y_av, x_av, turbmv, &
+!$omp&         etvm, eddyfl, eddyfr, lcvgrad, rcvgrad, jtmp, lcvgrad_t, &
+!$omp&         rcvgrad_t, fxv, fyv, fzv, tem_pn, rtem_pn, taul, taur, &
+!$omp&         tau, q, nall, qvib, ux, uy, uz, vx, vy, vz, wx, wy, wz, &
+!$omp&         rho12, u12, v12, w12, damp, vdamp, y_face, dg_rhs, &
+!$omp&         dg_rhs_vol_integ, dg_rhs_surf_integ, mp_ttr, mp_tv, &
+!$omp&         mp_mu_mix, mp_ktr_mix, mp_kve, mp_laml, mp_lamr, &
+!$omp&         mp_d_eff, rg_difl, rg_difr, rg_enthl, rg_enthr, mp_htr, &
+!$omp&         mp_hvib, rg_enthvbl, rg_enthvbr, mp_mu_i, mp_ktr_i, &
+!$omp&         rg_sum_tr, rg_sumfr_tr, rg_sumfl_tr, rg_sumfl_v, &
+!$omp&         rg_sumfr_v, rg_sum_v, gradyl, gradyr, jl, jr, qtr, qv, &
+!$omp&         rg_sum_htr, rg_sum_hv, grady, rg_qv, rg_qtr, rg_dif_av, &
+!$omp&         rg_enth_av, rg_enthvb_av, mp_lam_av, mp_ktr_mix_av, &
+!$omp&         sum_y1, sum_y2, sumi, gradx, grad_a, i_raw, sumY_face, &
+!$omp&         y_corr, sumJ, sumGradY, gradY_all, molar_sum, mbar)
 #else
 !$omp barrier
 !$omp do
 #endif
 	do ii=1,nof_bounded
 	i=el_bnd(ii)
-	iconsidered=i	
+	iconsidered=i
+
+			weights_temp(1:qp_line_n)=weights_l(1:qp_line_n)
+
+
+
+
+
 			if (dg.eq.1) then
 				dg_rhs = zero
 				dg_rhs_surf_integ = zero
@@ -3146,8 +3367,8 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 				end if
-		    
-		    
+
+
 		    do l=1,ielem_ifca(i)
                 damp=lamx
                 if( br2_yn == 2) damp = 0.0d0
@@ -3157,14 +3378,14 @@ subroutine calculate_fluxeshi_diffusive2d(n)
  				  angle2=ielem_faceangley(l,i)
  				  nx=angle1
 				  ny=angle2
-				 
-				  
+
+
 					iqp=qp_line_n
-				
-				  
-				 
-								  
-				  
+
+
+
+
+
 				  do ngp=1,iqp
 
 
@@ -3177,10 +3398,10 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 
-				      
-				    
-			
-					
+
+
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  call rotatef2d(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef2d(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
@@ -3190,8 +3411,8 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 						  call rotateb2d(n,cleft,cleft_rot,angle1,angle2)
 						  call rotateb2d(n,cright,cright_rot,angle1,angle2)
 						  end if
-						  
-				      
+
+
 				        leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 
 						if ((realgas.eq.1).or.(multispecies.eq.1))then
@@ -3207,7 +3428,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 								call get_visc_conduct(n,leftv,rightv,viscl,laml)
 						end if
-				     
+
 					    if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -3222,25 +3443,25 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 							  eddyfl(4:5)= lcvgrad(1,1:2);eddyfl(6:7)=lcvgrad(2,1:2)
 							  eddyfl(8:9)=lcvgrad_t(1,1:2)
 							  eddyfl(10:11)=lcvgrad_t(2,1:2)
-							    
-							    
+
+
 							  eddyfr(1)=ielem_walldist(i);eddyfr(2)=cturbr(1);eddyfr(3)=cturbr(2)
 							  eddyfr(4:5)= rcvgrad(1,1:2);eddyfr(6:7)=rcvgrad(2,1:2)
 							  eddyfr(8:9)=rcvgrad_t(1,1:2);eddyfr(10:11)=rcvgrad_t(2,1:2)
 							    call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
 					  end if
-				       
-				       
-				       
-				       
+
+
+
+
 
 
 
                                           taul = zero;tau=zero;taur=zero;q=zero;ux=zero;uy=zero;uz=zero;vx=zero;vy=zero;vz=zero;wx=zero;wy=zero;wz=zero;
 					    fxv=zero;fyv=zero;fzv=zero;rho12 =zero;
-					  u12=zero;v12=zero;w12=zero 
-				       
+					  u12=zero;v12=zero;w12=zero
+
 				      if ((b_code.gt.0))then
 					  damp=zero
  					  end if
@@ -3248,7 +3469,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 
-				       
+
 					   vdamp=(4.0/3.0)!*(( (viscl(1))+(viscl(2)))))
                                         nall(1)=nx;nall(2)=ny
 
@@ -3344,6 +3565,17 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 													end if
 
+
+
+
+
+
+
+
+
+
+
+
 													! =============================================================
 													! 3. mixture-averaged diffusion fluxes (no pressure terms)
 													! =============================================================
@@ -3351,70 +3583,98 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 													rg_sum_hv(1:dimensiona)  = 0.0d0
 													rg_qtr=0.0d0; rg_qv=0.0d0
 
-													sumi(1:dimensiona) = 0.0d0    ! σ i_k
+													sumi(1:dimensiona) = 0.0d0
 
 													if (rg_relax.ge.1)then
 															if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
 																icompute=1
 															end if
-! 															if ((b_code.eq.1).or.(b_code.eq.2))then
-! 																icompute=1
-! 															end if
 
 													if (icompute.eq.0)then
 
-													! ---- first loop: raw fick fluxes i_k = -ρ d_k ∇y_k ----
-! 													do rg_i = 1, nof_species
-!
-! 														idxy = dimensiona + 2 + rg_i     ! index of y_k at face
-!
-! 														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
-!
-! 														! raw mixture-averaged diffusion flux
-! 														i_raw(1:dimensiona,rg_i) = -rho12 * rg_dif_av(rg_i) * grady(1:dimensiona)
-!
-!
-!
-! 														sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona,rg_i)
-! 													end do
-
 													sumi(1:dimensiona) = 0.0d0
+													sumJ(1:dimensiona) = 0.0d0
 													i_raw(1:dimensiona,1:nof_species) = 0.0d0
 
-													! compute face mole fractions from face mass fractions
+													! -------------------------------------------------------------
+													! Normalise face mass fractions used in diffusion correction.
+													! This is essential because:
+													! sum(J_k) = sum(i_raw_k) - sum(Y_k)*sum(i_raw_k)
+													! so conservation requires sum(Y_k)=1 at the face.
+													! -------------------------------------------------------------
+													sumY_face = 0.0d0
+
+													do rg_j = 1, nof_species
+														y_corr(rg_j) = max(y_av(rg_j), 0.0d0)
+														sumY_face = sumY_face + y_corr(rg_j)
+													end do
+
+													if (sumY_face .gt. 1.0d-30) then
+														do rg_j = 1, nof_species
+															y_corr(rg_j) = y_corr(rg_j) / sumY_face
+														end do
+													else
+														do rg_j = 1, nof_species
+															y_corr(rg_j) = 1.0d0 / dble(nof_species)
+														end do
+													end if
+
+													! -------------------------------------------------------------
+													! Compute face mole fractions from corrected face mass fractions
+													! -------------------------------------------------------------
 													molar_sum = 0.0d0
 													do rg_j = 1, nof_species
-														molar_sum = molar_sum + max(y_av(rg_j),0.0d0) / rg_molm(rg_j)
+														molar_sum = molar_sum + y_corr(rg_j) / rg_molm(rg_j)
 													end do
 
 													molar_sum = max(molar_sum,1.0d-30)
 													mbar = 1.0d0 / molar_sum
 
 													do rg_j = 1, nof_species
-														x_av(rg_j) = (max(y_av(rg_j),0.0d0) / rg_molm(rg_j)) / molar_sum
+														x_av(rg_j) = (y_corr(rg_j) / rg_molm(rg_j)) / molar_sum
 													end do
 
-													! grad_a = grad(sum_k Y_k/M_k)
-													grad_a(1:dimensiona) = 0.0d0
+													! -------------------------------------------------------------
+													! Project species gradients so that sum_k grad(Y_k) = 0.
+													! This removes a conservative but noisy pairwise diffusion mode
+													! which can enter rhoEv through sum_k(hvib_k*J_k).
+													! -------------------------------------------------------------
+													sumGradY(1:dimensiona) = 0.0d0
 
 													do rg_j = 1, nof_species
 														idxy = dimensiona + 2 + rg_j
-														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
+														gradY_all(1:dimensiona,rg_j) = lcvgrad(idxy,1:dimensiona)
+														sumGradY(1:dimensiona) = sumGradY(1:dimensiona) + gradY_all(1:dimensiona,rg_j)
+													end do
+
+													do rg_j = 1, nof_species
+														gradY_all(1:dimensiona,rg_j) = gradY_all(1:dimensiona,rg_j) - &
+															y_corr(rg_j) * sumGradY(1:dimensiona)
+													end do
+
+													! -------------------------------------------------------------
+													! grad_a = grad(sum_k Y_k/M_k), using projected grad(Y_k).
+													! -------------------------------------------------------------
+													grad_a(1:dimensiona) = 0.0d0
+
+													do rg_j = 1, nof_species
+														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_j)
 
 														grad_a(1:dimensiona) = grad_a(1:dimensiona) + &
 															grady(1:dimensiona) / rg_molm(rg_j)
 													end do
 
-													! raw mixture-averaged flux:
-													! J_i_raw = -rho * D_i * (M_i/Mmix) * grad(X_i)
+													! -------------------------------------------------------------
+													! Raw mixture-averaged flux:
+													! i_raw_i = -rho * D_i * (M_i/Mmix) * grad(X_i)
+													! -------------------------------------------------------------
 													do rg_i = 1, nof_species
 
-														idxy = dimensiona + 2 + rg_i
-														grady(1:dimensiona) = lcvgrad(idxy,1:dimensiona)
+														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_i)
 
 														gradx(1:dimensiona) = &
 															( grady(1:dimensiona) / rg_molm(rg_i) * molar_sum &
-															- (max(y_av(rg_i),0.0d0) / rg_molm(rg_i)) * grad_a(1:dimensiona) ) &
+															- (y_corr(rg_i) / rg_molm(rg_i)) * grad_a(1:dimensiona) ) &
 															/ (molar_sum * molar_sum)
 
 														i_raw(1:dimensiona,rg_i) = &
@@ -3424,36 +3684,37 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 													end do
 
-
-
-
-
-
-													! ---- second loop: mass-conserving flux j_k ----
+													! -------------------------------------------------------------
+													! Mass-conserving corrected species diffusion flux:
+													! J_i = i_raw_i - Y_i * sum_k(i_raw_k)
+													! using corrected Y_i with sum(Y_i)=1.
+													! -------------------------------------------------------------
 													do rg_i = 1, nof_species
 
-														! face-averaged mass fraction (must match your reconstruction)
-														y_face = y_av(rg_i)
+														y_face = y_corr(rg_i)
 
-														! mass-conserving diffusion flux
-														jl(1:dimensiona) = i_raw(1:dimensiona,rg_i) - y_face * sumi(1:dimensiona)
+														jl(1:dimensiona) = i_raw(1:dimensiona,rg_i) - &
+																		  y_face * sumi(1:dimensiona)
 
+														sumJ(1:dimensiona) = sumJ(1:dimensiona) + jl(1:dimensiona)
 
-
-														! add species diffusion fluxes into fxv / fyv
 														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) + jl(1)
 														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) + jl(2)
 
-
-
-
-														! energy diffusion accumulation
 														rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) &
 																				+ rg_enth_av(rg_i)*jl(1:dimensiona)
+
 														rg_sum_hv(1:dimensiona)  = rg_sum_hv(1:dimensiona) &
 																				+ rg_enthvb_av(rg_i)*jl(1:dimensiona)
+
 													end do
 
+													! Optional diagnostic
+													if (maxval(abs(sumJ(1:dimensiona))) .gt. 1.0d-10) then
+														write(*,*) 'BAD species diffusion conservation: sumJ=', &
+																   sumJ(1:dimensiona), ' sumY_face=', sumY_face, &
+																   ' b_code=', b_code
+													end if
 
 													end if
 ! 													end if
@@ -3535,25 +3796,25 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 
-							
-					 
+
+
 					  !left state derivatives
 					  ux = lcvgrad(1,1); uy = lcvgrad(1,2)
 					  vx = lcvgrad(2,1); vy = lcvgrad(2,2)
 					  ! determine taul!!
-					 
+
 
 					  ! tau_xx
-					  taul(1,1) = (4.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy 
+					  taul(1,1) = (4.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy
 					  ! tau_yy
-					  taul(2,2) = (4.0d0/3.0d0)*vy - (2.0d0/3.0d0)*ux 
+					  taul(2,2) = (4.0d0/3.0d0)*vy - (2.0d0/3.0d0)*ux
 					  ! tau_zz
-					 
+
 
 					  ! tau_xy
 					  taul(1,2) = (uy + vx);taul(2,1) = taul(1,2)
 
-					  
+
 					 ! average and multiplay by viscosity
 					  if ( turbulence .eq. 1) then
 					    tau = oo2*(( (viscl(1)+viscl(3)))+( (viscl(2)+viscl(4))))*taul
@@ -3565,21 +3826,21 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 					  do kc=2,3
 					      fxv(kc) = fxv(kc) + tau(1,kc-1)
 					      fyv(kc) = fyv(kc) + tau(2,kc-1)
-					      
+
 					  enddo
 
 
-					  
-
-					  fxv(4) = fxv(4) + u12*tau(1,1) + v12*tau(1,2) 
-					  fyv(4) = fyv(4) + u12*tau(2,1) + v12*tau(2,2) 
 
 
+					  fxv(4) = fxv(4) + u12*tau(1,1) + v12*tau(1,2)
+					  fyv(4) = fyv(4) + u12*tau(2,1) + v12*tau(2,2)
 
 
 
-! 					 
-					  hllcflux(1:nof_variables)=(nx*fxv+ny*fyv)			
+
+
+!
+					  hllcflux(1:nof_variables)=(nx*fxv+ny*fyv)
 
 						if (realgas.eq.1)then
 						if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
@@ -3596,7 +3857,7 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 
-					  
+
 					  if (dg.eq.1)then
 
 					   rhllcflux(1:nof_variables)=hllcflux(1:nof_variables)
@@ -3607,18 +3868,18 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 
 
-  
+
 						else
-		
 
 
 
 
-			      
+
+
 				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(hllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(l,i)))
 						end if
-				     
-				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 					  if (turbulence.eq.1)then
 					  hllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar) =&
 					  ((oo2*(viscl(1)+viscl(2)))+(oo2*(viscl(3)+viscl(4))))*&
@@ -3629,30 +3890,30 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 					  ((oo2*(viscl(1)+viscl(2))))*&
 		    (((lcvgrad_t(1:turbulenceequations+passivescalar,1)+rcvgrad_t(1:turbulenceequations+passivescalar,1))*oo2*nx)+&
 		    ((lcvgrad_t(1:turbulenceequations+passivescalar,2)+rcvgrad_t(1:turbulenceequations+passivescalar,2))*oo2*ny))
-					  
+
 					  end if
 						if (turbulencemodel.eq.1)then
 						hllcflux(5)=hllcflux(5)/sigma
-						end if			
-						
+						end if
+
 						if ((b_code.eq.3))then
 					  hllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
-					  
+
 					  end if
-						
-						
-						
-						
+
+
+
+
 					  godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)+&
 					  (hllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(l,i)))
 				      end if
-				      
-				      
+
+
 				  end do
-				  
-				    
+
+
 				     rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)-godflux2(1:nof_variables)
-				    
+
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 				    rhst_val(1:turbulenceequations+passivescalar,i)=rhst_val(1:turbulenceequations+passivescalar,i)-&
 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
@@ -3680,11 +3941,11 @@ subroutine calculate_fluxeshi_diffusive2d(n)
 
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
-	
+
 
 
 
@@ -3715,19 +3976,24 @@ subroutine calculate_fluxeshi_convective_mood(n)
 	integer::ibfc,nfx,lfx,rowfx,nf,lf,rowf
 	kmaxe=xmpielrank(n)
 	
-	kmaxe=xmpielrank(n)
 
 
-        do i=1,xmpielrank(n)
-            if (ielem_recalc(i).eq.1)then
-            rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero 
-            end if
-        end do
+
+
 
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, ikas, igoflux, icaseb, jx, jx2, &
+!$omp&         b_code, sum_detect, norms, tempxx, weights_temp, &
+!$omp&         iconsidered, facex, pointx, n_node, angle1, angle2, &
+!$omp&         nx, ny, nz, mp_source1, mp_source2, mp_source3, &
+!$omp&         godflux2, dg_vol_rec, rhllcflux, hllcflux, cleft, &
+!$omp&         cright, cleft_rot, cright_rot, leftv, rightv, &
+!$omp&         srf_speedrot, cturbl, cturbr, pox, poy, poz, &
+!$omp&         srf_speed, vext, nodes_list, cords, ibfc, nfx, lfx, &
+!$omp&         rowfx, nf, lf, rowf)
 #else
 !$omp barrier
 !$omp do
@@ -3735,6 +4001,11 @@ subroutine calculate_fluxeshi_convective_mood(n)
 	do ii=1,nof_interior	!for all the interior elements
 	i=el_int(ii)
 	iconsidered=i
+	if (ielem_recalc(i).eq.1)then
+            rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero
+            end if
+
+
             mp_source3=zero        
 		    b_code=0
 		    if (ielem_recalc(i).eq.1)then 
@@ -3919,7 +4190,7 @@ subroutine calculate_fluxeshi_convective_mood(n)
             end if
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -3927,7 +4198,16 @@ subroutine calculate_fluxeshi_convective_mood(n)
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, ikas, igoflux, icaseb, jx, jx2, &
+!$omp&         b_code, sum_detect, norms, tempxx, weights_temp, &
+!$omp&         iconsidered, facex, pointx, n_node, angle1, angle2, &
+!$omp&         nx, ny, nz, mp_source1, mp_source2, mp_source3, &
+!$omp&         godflux2, dg_vol_rec, rhllcflux, hllcflux, cleft, &
+!$omp&         cright, cleft_rot, cright_rot, leftv, rightv, &
+!$omp&         srf_speedrot, cturbl, cturbr, pox, poy, poz, &
+!$omp&         srf_speed, vext, nodes_list, cords, ibfc, nfx, lfx, &
+!$omp&         rowfx, nf, lf, rowf)
 #else
 !$omp barrier
 !$omp do
@@ -3935,6 +4215,13 @@ subroutine calculate_fluxeshi_convective_mood(n)
 	do ii=1,nof_bounded
 	i=el_bnd(ii)
 	iconsidered=i	
+
+			if (ielem_recalc(i).eq.1)then
+            rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero
+            end if
+
+
+
 		 mp_source3=zero		
 		   if (ielem_recalc(i).eq.1)then
 		    
@@ -4378,7 +4665,7 @@ subroutine calculate_fluxeshi_convective_mood(n)
                 end if
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -4409,25 +4696,30 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 	kmaxe=xmpielrank(n)
 	
 
-	weights_temp(1:qp_line_n) = weights_l(1:qp_line_n)
-
-
-	
-	do i=1,kmaxe
-	if (ielem_recalc(i).eq.1)then
-	rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero 
-	end if
-	end do
-	
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, ikas, igoflux, icaseb, kxk, b_code, &
+!$omp&         sum_detect, norms, weights_temp, iconsidered, facex, &
+!$omp&         pointx, n_node, angle1, angle2, nx, ny, nz, mp_source1, &
+!$omp&         mp_source2, mp_source3, godflux2, dg_vol_rec, rhllcflux, &
+!$omp&         hllcflux, cleft, cright, cleft_rot, cright_rot, leftv, &
+!$omp&         rightv, srf_speedrot, cturbl, cturbr, pox, poy, poz, &
+!$omp&         srf_speed, vext, nodes_list, cords, ibfc, nfx, lfx, &
+!$omp&         rowfx, nf, lf, rowf)
 #else
 !$omp barrier
 !$omp do
 #endif
 	do ii=1,nof_interior	!for all the interior elements
 	i=el_int(ii)
+
+	if (ielem_recalc(i).eq.1)then
+	rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero
+	end if
+	weights_temp(1:qp_line_n) = weights_l(1:qp_line_n)
+
+
 	iconsidered=i
 ! 		    rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero 
           if (ielem_recalc(i).eq.1)then             
@@ -4597,14 +4889,22 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
             end if     
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 	
 	
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, ikas, igoflux, icaseb, kxk, b_code, &
+!$omp&         sum_detect, norms, weights_temp, iconsidered, facex, &
+!$omp&         pointx, n_node, angle1, angle2, nx, ny, nz, mp_source1, &
+!$omp&         mp_source2, mp_source3, godflux2, dg_vol_rec, rhllcflux, &
+!$omp&         hllcflux, cleft, cright, cleft_rot, cright_rot, leftv, &
+!$omp&         rightv, srf_speedrot, cturbl, cturbr, pox, poy, poz, &
+!$omp&         srf_speed, vext, nodes_list, cords, ibfc, nfx, lfx, &
+!$omp&         rowfx, nf, lf, rowf)
 #else
 !$omp barrier
 !$omp do
@@ -4612,6 +4912,14 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
 	do ii=1,nof_bounded
 	i=el_bnd(ii)
 	iconsidered=i	
+
+	if (ielem_recalc(i).eq.1)then
+	rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero
+	end if
+	weights_temp(1:qp_line_n) = weights_l(1:qp_line_n)
+
+
+
 	mp_source3=zero  
 		 if (ielem_recalc(i).eq.1)then	
 
@@ -5013,7 +5321,7 @@ subroutine calculate_fluxeshi_convective2d_mood(n)
                  end if
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif

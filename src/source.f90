@@ -20,7 +20,8 @@ subroutine sources_computation(n)
 	
 	kmaxe=xmpielrank(n)
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, iconsidered, source_t)
 #else
 !$omp do
 #endif
@@ -36,7 +37,7 @@ subroutine sources_computation(n)
 
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -56,7 +57,8 @@ subroutine sources_computation_rot(n)
 	kmaxe=xmpielrank(n)
 	if(srfg.eq.1)then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, source_t2,srf,oodensity,pox,poy,poz)
 #else
 !$omp do
 #endif
@@ -77,14 +79,15 @@ subroutine sources_computation_rot(n)
 		
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 	end if
 	if(mrf.eq.1)then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, source_t2,srf,oodensity,pox,poy,poz)
 #else
 !$omp do
 #endif
@@ -105,7 +108,7 @@ subroutine sources_computation_rot(n)
 		end if
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -188,6 +191,7 @@ subroutine sources_realgas(n,iconsidered,source_r,src_jac_diag)
    real :: alpha_v
    real :: prod, dest, lambda_k, rhoy_old, rhoy_new
    real :: tau_v_eff,kvt,rhoy_n2,rho,sumrhoy
+   real :: rho_vib, b_v, lambda_v
 
 
   ! ---------------------------------------------------------------------------
@@ -1056,6 +1060,7 @@ subroutine sources_realgas_pi(n,iconsidered)
    real :: alpha_v
    real :: prod, dest, lambda_k, rhoy_old, rhoy_new
    real :: tau_v_eff,kvt,rhoy_n2,rho,sumrhoy
+   real :: rho_vib, b_v, lambda_v
 
 
   ! ---------------------------------------------------------------------------
@@ -1772,29 +1777,39 @@ end do
 
    rhoev_old = u_c_val(1,dimensiona+3,i)
 
-! equilibrium mixture vib energy at t_tr:
-rhoev_eq = 0.0d0
-do rg_i = 1, 3
-  rhoev_eq = rhoev_eq + rg_r(rg_i) * rg_ev_eq(rg_i)
-end do
+   ! Backward-Euler scalar approximation to
+   !   d(rhoev)/dt = sum_s rho_s * (ev_eq_s - ev_s) / tau_s + rg_qw
+   ! with the mixture vibrational specific energy approximated as
+   !   ev_mix = rhoev / rho_vib,
+   ! where rho_vib = sum_s rho_s over vibrating species.
+   ! This gives
+   !   d(rhoev)/dt = b_v - lambda_v * rhoev + rg_qw
+   ! where
+   !   b_v      = sum_s rho_s * ev_eq_s / tau_s
+   !   lambda_v = (sum_s rho_s / tau_s) / rho_vib
 
-! stiffness kvt:
-kvt = 0.0d0
-do rg_i = 1, 3
-  if (rg_r(rg_i) > rho_min .and. tau_tot(rg_i) < 1.0d29) then
-     kvt = kvt + rg_r(rg_i) / tau_tot(rg_i)
-  end if
-end do
+   rho_vib = 0.0d0
+   b_v     = 0.0d0
+   kvt     = 0.0d0
 
-if (kvt > 0.0d0) then
-  alpha_v   = dt_loc * kvt
-  rhoev_new = (rhoev_old + dt_loc*(kvt*rhoev_eq + rg_qw)) / (1.0d0 + alpha_v)
-else
-  rhoev_new = rhoev_old + dt_loc * rg_qw   ! no vt exchange, only reactive vib
-end if
+   do rg_i = 1, 3
+      if (rg_r(rg_i) > rho_min .and. tau_tot(rg_i) < 1.0d29) then
+         rho_vib = rho_vib + rg_r(rg_i)
+         b_v     = b_v     + rg_r(rg_i) * rg_ev_eq(rg_i) / tau_tot(rg_i)
+         kvt     = kvt     + rg_r(rg_i) / tau_tot(rg_i)
+      end if
+   end do
 
-if (rhoev_new < 0.0d0) rhoev_new = 0.0d0
-u_c_val(1,dimensiona+3,i) = rhoev_new
+   if (rho_vib > rho_min .and. kvt > 0.0d0) then
+      lambda_v  = kvt / rho_vib
+      alpha_v   = dt_loc * lambda_v
+      rhoev_new = (rhoev_old + dt_loc * (b_v + rg_qw)) / (1.0d0 + alpha_v)
+   else
+      rhoev_new = rhoev_old + dt_loc * rg_qw   ! no vt exchange, only reactive vib
+   end if
+
+   if (rhoev_new < 0.0d0) rhoev_new = 0.0d0
+   u_c_val(1,dimensiona+3,i) = rhoev_new
 
 
 
@@ -2005,7 +2020,8 @@ subroutine sources_derivatives_computation(n)
 	
 	kmaxe=xmpielrank(n)
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, iconsidered, source_t)
 #else
 !$omp do
 #endif
@@ -2015,7 +2031,7 @@ subroutine sources_derivatives_computation(n)
 		sht(i,1:turbulenceequations)=(source_t(1:turbulenceequations)*ielem_totvolume(i))
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2758,7 +2774,8 @@ subroutine sources_computation2d(n)
 	
 	
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, iconsidered, source_t, source_r, src_jac_diag)
 #else
 !$omp do
 #endif
@@ -2782,7 +2799,7 @@ subroutine sources_computation2d(n)
 
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2801,7 +2818,8 @@ subroutine sources_derivatives_computation2d(n)
 	
 	kmaxe=xmpielrank(n)
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, iconsidered, source_t)
 #else
 !$omp do
 #endif
@@ -2811,7 +2829,7 @@ subroutine sources_derivatives_computation2d(n)
 		sht(i,1:turbulenceequations)=(source_t(1:turbulenceequations)*ielem_totvolume(i))
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif

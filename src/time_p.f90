@@ -44,7 +44,7 @@ real,dimension(1)::etvm
 kmaxe=xmpielrank(n)
        
 #ifdef gpu
-!$omp target map(present: dt)
+!$omp target map(present, to: dt)
 #endif
   dt = tolbig
 #ifdef gpu
@@ -52,7 +52,7 @@ kmaxe=xmpielrank(n)
 #endif
 	if (itestcase.lt.3)then
 #ifdef gpu
-	!$omp target teams distribute parallel do map(present: dt) &
+	!$omp target teams distribute parallel do map(present,to: dt) &
     !$omp& reduction(min: dt) private(veln)
 #else
     !$omp barrier
@@ -80,7 +80,7 @@ kmaxe=xmpielrank(n)
 	
 	if (itestcase.eq.3)then
 #ifdef gpu
-	!$omp target teams distribute parallel do map(present: dt) &
+	!$omp target teams distribute parallel do map(present,to: dt) &
     !$omp& reduction(min: dt) private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz,srf_speed,srf)
 #else
     !$omp barrier
@@ -143,7 +143,7 @@ kmaxe=xmpielrank(n)
 	
 	if (itestcase.eq.4)then
 #ifdef gpu
-	!$omp target teams distribute parallel do map(present: dt) &
+	!$omp target teams distribute parallel do map(present,to: dt) &
     !$omp& reduction(min: dt) private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz,srf_speed,srf,&
     !$omp&  viscl,laml,turbmv,etvm,eddyfl,eddyfr)
 #else
@@ -436,7 +436,7 @@ kmaxe=xmpielrank(n)
 
         
 #ifdef gpu
-!$omp target map(present: dt)
+!$omp target map(present,to : dt)
 #endif
   dt = tolbig
 #ifdef gpu
@@ -448,7 +448,7 @@ kmaxe=xmpielrank(n)
         
 	if (itestcase.lt.3)then
 #ifdef gpu
-	!$omp target teams distribute parallel do map(present: dt) &
+	!$omp target teams distribute parallel do map(present,to: dt) &
     !$omp& reduction(min: dt) private(veln,lamxl,lamyl)
 #else
     !$omp barrier
@@ -486,7 +486,7 @@ kmaxe=xmpielrank(n)
 	
 	if (itestcase.eq.3)then
 #ifdef gpu
-	!$omp target teams distribute parallel do map(present: dt) &
+	!$omp target teams distribute parallel do map(present,to: dt) &
     !$omp& reduction(min: dt) private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz)
 #else
     !$omp barrier
@@ -532,7 +532,7 @@ kmaxe=xmpielrank(n)
 	
 	if (itestcase.eq.4)then
 #ifdef gpu
-	!$omp target teams distribute parallel do map(present: dt) &
+	!$omp target teams distribute parallel do map(present,to: dt) &
     !$omp& reduction(min: dt) private(veln,leftv,mp_pinfl,gammal,agrt,veln,pox,poy,poz,&
     !$omp&  viscl,laml,turbmv,etvm,eddyfl,eddyfr)
 #else
@@ -3332,39 +3332,190 @@ end subroutine call_flux_subroutines_3d
 ! end subroutine normalise_species
 
 
+
+
+
+
+
+
+! subroutine normalise_species(n)
+!   implicit none
+!
+!   integer, intent(in) :: n
+!   integer :: i, k, kmaxe
+!   integer, parameter :: is_closure = 1   ! usually N2
+!
+!   real :: rho, sumrhoy, scale, mismatch, rel_err
+!   real, parameter :: epsrho = 1.0d-30
+!   real, parameter :: epssum = 1.0d-300
+!   real, parameter :: tol_mass_closure = 1.0d-30
+!   real, parameter :: tol_negative = 1.0d-100
+!
+!   real, dimension(1:nof_species) :: rhoy
+!   real, dimension(1:nof_variables) :: leftv
+!   logical :: bad, need_repair
+!
+!   kmaxe = xmpielrank(n)
+!
+! #ifdef gpu
+!   !$omp target teams distribute parallel do private(i,k,rho,sumrhoy,scale,mismatch,rel_err,rhoy,leftv,bad,need_repair)
+! #else
+!   !$omp do private(i,k,rho,sumrhoy,scale,mismatch,rel_err,rhoy,leftv,bad,need_repair)
+! #endif
+!   do i = 1, kmaxe
+!
+!     leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+!     call fix_conservative_state(leftv)
+!     u_c_val(1,1:nof_variables,i) = leftv(1:nof_variables)
+!
+!     rho = u_c_val(1,1,i)
+!
+!     if (rho <= epsrho .or. rho /= rho) then
+!       rho = epsrho
+!       u_c_val(1,1,i) = rho
+!
+!       do k = 1, nof_species
+!         u_c_val(1,dimensiona+3+k,i) = rho * rg_vf(k)
+!       end do
+!
+!       cycle
+!     end if
+!
+!     ! Read species densities and remove NaN/Inf.
+!     need_repair = .false.
+!     sumrhoy = 0.0d0
+!
+!     do k = 1, nof_species
+!
+!       rhoy(k) = u_c_val(1,dimensiona+3+k,i)
+!
+!       bad = (rhoy(k) /= rhoy(k))
+!       if (.not. bad) bad = (abs(rhoy(k)) > huge(rhoy(k))*0.5d0)
+!
+!       if (bad) then
+!         rhoy(k) = 0.0d0
+!         need_repair = .true.
+!       end if
+!
+!       ! Only clip meaningful negatives.
+!       ! Tiny negatives are treated as roundoff.
+!       if (rhoy(k) < -tol_negative*rho) then
+!         rhoy(k) = 0.0d0
+!         need_repair = .true.
+!       elseif (rhoy(k) < 0.0d0) then
+!         rhoy(k) = 0.0d0
+!       end if
+!
+!       sumrhoy = sumrhoy + rhoy(k)
+!
+!     end do
+!
+!     mismatch = rho - sumrhoy
+!     rel_err = abs(mismatch) / max(rho, epsrho)
+!
+!     if (rel_err > tol_mass_closure) need_repair = .true.
+!
+!     if (need_repair) then
+!
+!       ! Preferred repair:
+!       ! keep all non-closure species unchanged and put the mass mismatch
+!       ! into the dominant background species, usually N2.
+!       sumrhoy = 0.0d0
+!       do k = 1, nof_species
+!         if (k /= is_closure) then
+!           rhoy(k) = max(rhoy(k), 0.0d0)
+!           sumrhoy = sumrhoy + rhoy(k)
+!         end if
+!       end do
+!
+!       rhoy(is_closure) = rho - sumrhoy
+!
+!       ! Fallback: if closure species becomes negative, use proportional scaling.
+!       if (rhoy(is_closure) < 0.0d0) then
+!
+!         sumrhoy = 0.0d0
+!         do k = 1, nof_species
+!           rhoy(k) = max(rhoy(k), 0.0d0)
+!           sumrhoy = sumrhoy + rhoy(k)
+!         end do
+!
+!         if (sumrhoy > epssum) then
+!           scale = rho / sumrhoy
+!
+!           do k = 1, nof_species
+!             rhoy(k) = rhoy(k) * scale
+!           end do
+!
+!         else
+!
+!           do k = 1, nof_species
+!             rhoy(k) = rho * rg_vf(k)
+!           end do
+!
+!         end if
+!
+!       end if
+!
+!     end if
+!
+!     ! Final write-back.
+!     do k = 1, nof_species
+!       u_c_val(1,dimensiona+3+k,i) = rhoy(k)
+!     end do
+!
+!   end do
+!
+! #ifdef gpu
+!   !$omp end target teams distribute parallel do
+! #else
+!   !$omp end do
+! #endif
+!
+! end subroutine normalise_species
+
+
 subroutine normalise_species(n)
   implicit none
 
   integer, intent(in) :: n
   integer :: i, k, kmaxe
-  integer, parameter :: is_closure = 1   ! usually N2
 
-  real :: rho, sumrhoy, scale, mismatch, rel_err
+  real :: rho, sumrhoy, scale, rel_err
+  real :: min_allowed
+!   real, parameter :: epsrho = 1.0d-18
+!   real, parameter :: epssum = 1.0d-300
+!
+!   ! Much larger than roundoff, but still numerically tiny.
+!   real, parameter :: tol_mass_closure = 1.0d-12
+!   real, parameter :: tol_negative     = 1.0d-12
+
   real, parameter :: epsrho = 1.0d-14
-  real, parameter :: epssum = 1.0d-300
-  real, parameter :: tol_mass_closure = 1.0d-12
-  real, parameter :: tol_negative = 1.0d-14
+real, parameter :: epssum = 1.0d-300
+real, parameter :: tol_mass_closure = 1.0d-12
+real, parameter :: tol_negative     = 1.0d-13
 
-  real, dimension(1:nof_species) :: rhoy
+  real, dimension(1:nof_species)   :: rhoy
   real, dimension(1:nof_variables) :: leftv
   logical :: bad, need_repair
 
   kmaxe = xmpielrank(n)
 
 #ifdef gpu
-  !$omp target teams distribute parallel do private(i,k,rho,sumrhoy,scale,mismatch,rel_err,rhoy,leftv,bad,need_repair)
+  !$omp target teams distribute parallel do private(i,k,rho,sumrhoy,scale,rel_err,min_allowed,rhoy,leftv,bad,need_repair)
 #else
-  !$omp do private(i,k,rho,sumrhoy,scale,mismatch,rel_err,rhoy,leftv,bad,need_repair)
+  !$omp do private(i,k,rho,sumrhoy,scale,rel_err,min_allowed,rhoy,leftv,bad,need_repair)
 #endif
   do i = 1, kmaxe
 
+    ! First make the full conservative state sane.
     leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
-    call fix_conservative_state(leftv)
+!     call fix_conservative_state(leftv)
     u_c_val(1,1:nof_variables,i) = leftv(1:nof_variables)
 
     rho = u_c_val(1,1,i)
 
-    if (rho <= epsrho .or. rho /= rho) then
+    if (rho <= epsrho .or. rho /= rho .or. abs(rho) > huge(rho)*0.5d0) then
+
       rho = epsrho
       u_c_val(1,1,i) = rho
 
@@ -3372,12 +3523,17 @@ subroutine normalise_species(n)
         u_c_val(1,dimensiona+3+k,i) = rho * rg_vf(k)
       end do
 
+      leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+!       call fix_conservative_state(leftv)
+      u_c_val(1,1:nof_variables,i) = leftv(1:nof_variables)
+
       cycle
+
     end if
 
-    ! Read species densities and remove NaN/Inf.
     need_repair = .false.
     sumrhoy = 0.0d0
+    min_allowed = -tol_negative * rho !0.0d0
 
     do k = 1, nof_species
 
@@ -3389,73 +3545,58 @@ subroutine normalise_species(n)
       if (bad) then
         rhoy(k) = 0.0d0
         need_repair = .true.
-      end if
-
-      ! Only clip meaningful negatives.
-      ! Tiny negatives are treated as roundoff.
-      if (rhoy(k) < -tol_negative*rho) then
+      elseif (rhoy(k) < min_allowed) then
         rhoy(k) = 0.0d0
         need_repair = .true.
       elseif (rhoy(k) < 0.0d0) then
+        ! Roundoff-level negative: clip, but also repair closure.
         rhoy(k) = 0.0d0
+        need_repair = .true.
       end if
 
       sumrhoy = sumrhoy + rhoy(k)
 
     end do
 
-    mismatch = rho - sumrhoy
-    rel_err = abs(mismatch) / max(rho, epsrho)
+    rel_err = abs(sumrhoy - rho) / max(abs(rho), epsrho)
 
     if (rel_err > tol_mass_closure) need_repair = .true.
 
     if (need_repair) then
 
-      ! Preferred repair:
-      ! keep all non-closure species unchanged and put the mass mismatch
-      ! into the dominant background species, usually N2.
       sumrhoy = 0.0d0
       do k = 1, nof_species
-        if (k /= is_closure) then
-          rhoy(k) = max(rhoy(k), 0.0d0)
-          sumrhoy = sumrhoy + rhoy(k)
-        end if
+        rhoy(k) = max(rhoy(k), 0.0d0)
+        sumrhoy = sumrhoy + rhoy(k)
       end do
 
-      rhoy(is_closure) = rho - sumrhoy
+      if (sumrhoy > epssum) then
 
-      ! Fallback: if closure species becomes negative, use proportional scaling.
-      if (rhoy(is_closure) < 0.0d0) then
+        ! Smoothest conservative repair: preserve composition ratios.
+        scale = rho / sumrhoy
 
-        sumrhoy = 0.0d0
         do k = 1, nof_species
-          rhoy(k) = max(rhoy(k), 0.0d0)
-          sumrhoy = sumrhoy + rhoy(k)
+          rhoy(k) = rhoy(k) * scale
         end do
 
-        if (sumrhoy > epssum) then
-          scale = rho / sumrhoy
+      else
 
-          do k = 1, nof_species
-            rhoy(k) = rhoy(k) * scale
-          end do
-
-        else
-
-          do k = 1, nof_species
-            rhoy(k) = rho * rg_vf(k)
-          end do
-
-        end if
+        ! Completely broken species state: reset to reference mass fractions.
+        print*,"species broken completely"
+        stop
 
       end if
 
     end if
 
-    ! Final write-back.
     do k = 1, nof_species
       u_c_val(1,dimensiona+3+k,i) = rhoy(k)
     end do
+
+    ! Final full-state repair after species have changed.
+    leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+    call fix_conservative_state(leftv)
+    u_c_val(1,1:nof_variables,i) = leftv(1:nof_variables)
 
   end do
 
@@ -3465,10 +3606,8 @@ subroutine normalise_species(n)
   !$omp end do
 #endif
 
+
 end subroutine normalise_species
-
-
-
 
 subroutine call_flux_subroutines_2d
 implicit none
@@ -3477,7 +3616,7 @@ integer::i,iconsidered
 
 
 
-    if (realgas.eq.1)call normalise_species(n)
+     if (realgas.eq.1)call normalise_species(n)
 
 
 
@@ -4031,7 +4170,7 @@ integer,intent(in)::n
 real::verysmall,du,uold, umin, dumax, unew
 verysmall = tolsmall
 
- if (realgas.eq.1)call normalise_species(n)
+  if (realgas.eq.1)call normalise_species(n)
 kmaxe=xmpielrank(n)
 if (fastest.eq.1)then
     call exchange_lower(n)
@@ -4139,7 +4278,7 @@ end do
     end if
 
 
-if (realgas.eq.1)call normalise_species(n)
+ if (realgas.eq.1)call normalise_species(n)
 
 
 if (realgas.eq.1)then
@@ -4259,7 +4398,9 @@ do jj=1,upperlimit
       end if    
     
       
+#ifdef gpu
 !$omp target update to(iscoun)
+#endif
       
 call call_flux_subroutines_3d
 
@@ -4295,7 +4436,7 @@ allresdt = 0.0d0
 !$omp& private(rsumfacei)                          &
 !$omp& reduction(+:allresdt)                       &
 !$omp& reduction(max:kill_nan)                     &
-!$omp& map(tofrom: allresdt, kill_nan)             &
+!$omp& map(tofrom: allresdt, kill_nan)
 #else
 !$omp do private(rsumfacei) reduction(+:allresdt) reduction(max:kill_nan)
 #endif
@@ -4625,7 +4766,7 @@ call relaxation_ex(n)
 !$omp target teams distribute parallel do          &
 !$omp& private(rsumfacei)                          &
 !$omp& reduction(+:allresdt)                       &
-!$omp& map(tofrom: allresdt)             &
+!$omp& map(tofrom: allresdt)
 #else
 !$omp do private(rsumfacei) reduction(+:allresdt)
 #endif
@@ -4863,7 +5004,7 @@ call relaxation_ex(n)
 !$omp target teams distribute parallel do          &
 !$omp& private(rsumfacei)                          &
 !$omp& reduction(+:allresdt)                       &
-!$omp& map(tofrom: allresdt)             &
+!$omp& map(tofrom: allresdt)
 #else
 !$omp do private(rsumfacei) reduction(+:allresdt)
 #endif
@@ -5068,7 +5209,9 @@ do jj=1,upperlimit
       iscoun=2
       end if
       
+#ifdef gpu
 !$omp target update to(iscoun)
+#endif
       
 call call_flux_subroutines_2d
 
@@ -5105,7 +5248,7 @@ allresdt = 0.0d0
 !$omp& private(rsumfacei)                          &
 !$omp& reduction(+:allresdt)                       &
 !$omp& reduction(max:kill_nan)                     &
-!$omp& map(tofrom: allresdt, kill_nan)             &
+!$omp& map(tofrom: allresdt, kill_nan)
 #else
 !$omp do private(rsumfacei) reduction(+:allresdt) reduction(max:kill_nan)
 #endif
@@ -5423,7 +5566,7 @@ if (dimensiona.eq.3)then
 
   if (tz1.gt.zero)then
 #ifdef gpu
-!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do private(nvar)
 #else
 !$omp do
 #endif
@@ -5712,7 +5855,7 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
                           totk=0;totens=0;totensx=0.0d0
 
 
-#ifdef GPU
+#ifdef gpu
                           !$omp target teams distribute parallel do          &
                           !$omp& map(tofrom: totk, totens, totensx)          &
                           !$omp& reduction(+:totk,totens,totensx)
@@ -5870,34 +6013,25 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 
 
 			!$omp barrier
-			!$omp master
+
 				if (dg.eq.1)then
                       if (code_profile.ne.102)then
                           if ( mod(it, 100) .eq. 0) then
-#ifdef gpu
-                      !$omp target update from(ielem_condition,ielem_mood_o)
-#endif
                             call troubled_history
                           end if
                       end if
                       if ( filtering .eq. 1) then
                         if ( mod(it, 100) .eq. 0) then
-#ifdef gpu
-                    !$omp target update from(ielem_filtered,ielem_er,ielem_er1,ielem_er2)
-#endif
                           call filtered_history
                         end if
                       end if
                 end if
 
           if ( mod(it, 100) .eq. 0) then
-#ifdef gpu
-          !$omp target update from(ielem_reduce)
-#endif
             call reduced_history
           end if
 
-            !$omp end master
+
 			!$omp barrier
 
 
@@ -5907,14 +6041,13 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
  				totk=0; totens=0.0; totensx=0.0d0
 
 
-#ifdef GPU
+#ifdef gpu
                           !$omp target teams distribute parallel do          &
                           !$omp& map(tofrom: totk, totens, totensx)          &
                           !$omp& reduction(+:totk,totens,totensx)
 #else
                           !$omp  do reduction(+:totk,totens,totensx)
 #endif
-
  				do i=1,xmpielrank(n)
  				
                    
@@ -6007,7 +6140,7 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 
           totk = 0.0d0
 
-#ifdef GPU
+#ifdef gpu
         !$omp target teams distribute parallel do     &
         !$omp& map(to: ielem_er)               &
         !$omp& map(tofrom: totk)                &
@@ -6101,26 +6234,9 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 					
 			
 			if (timec1.ge.ievery)then
-#ifdef gpu
-                  !$omp target update from(u_c_val)
-                   if (allocated(u_ct_val)) then
-                  !$omp target update from(u_ct_val)
-                  end if
-                  if (allocated(ielem_vortex)) then
-                  !$omp target update from(ielem_vortex)
-                  end if
-                  if (allocated(ielem_troubled)) then
-                  !$omp target update from(ielem_troubled)
-                  end if
-                   if (allocated(ielem_mood_o)) then
-                  !$omp target update from(ielem_mood_o)
-                  end if
-#endif
+
 			    call volume_solution_write
 			     if (outsurf.eq.1)then
-#ifdef gpu
-			     !$omp target update from(rec_grads)
-#endif
 
 			    call surface_solution_write
 			    end if
@@ -6129,26 +6245,9 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 			
 			if (initcond.eq.95)then           
 			if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
-#ifdef gpu
-                  !$omp target update from(u_c_val)
-                   if (allocated(u_ct_val)) then
-                  !$omp target update from(u_ct_val)
-                  end if
-                  if (allocated(ielem_vortex)) then
-                  !$omp target update from(ielem_vortex)
-                  end if
-                  if (allocated(ielem_troubled)) then
-                  !$omp target update from(ielem_troubled)
-                  end if
-                   if (allocated(ielem_mood_o)) then
-                  !$omp target update from(ielem_mood_o)
-                  end if
-#endif
+
                 call volume_solution_write
 			     if (outsurf.eq.1)then
-#ifdef gpu
-			     !$omp target update from(rec_grads)
-#endif
 			    call surface_solution_write
 			    end if
 			    if (initcond.eq.95)then                    
@@ -6162,26 +6261,8 @@ real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv
 
             if ((code_profile.lt.0).or.(code_profile.eq.100).or.(code_profile.eq.101).or.(code_profile.eq.102))then
 			if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
-#ifdef gpu
-                  !$omp target update from(u_c_val)
-                   if (allocated(u_ct_val)) then
-                  !$omp target update from(u_ct_val)
-                  end if
-                  if (allocated(ielem_vortex)) then
-                  !$omp target update from(ielem_vortex)
-                  end if
-                  if (allocated(ielem_troubled)) then
-                  !$omp target update from(ielem_troubled)
-                  end if
-                   if (allocated(ielem_mood_o)) then
-                  !$omp target update from(ielem_mood_o)
-                  end if
-#endif
                 call volume_solution_write
 			     if (outsurf.eq.1)then
-#ifdef gpu
-			     !$omp target update from(rec_grads)
-#endif
 			    call surface_solution_write
 			    end if
 			every_time=every_time+output_freq
@@ -6291,7 +6372,9 @@ iscoun=1
 every_time=((idnint(t/output_freq)) * output_freq)+output_freq
 
 
-
+#ifdef gpu
+		    !$omp target update to(kill,iscoun)
+#endif
 
 !$omp master
 cput1=cpux1(1)
@@ -6324,8 +6407,33 @@ end if
 !$omp end master
 !$omp barrier
 
+
+
+if (initcond.gt.100000)then
+it=100000
+call exchange_higher(n)
+call arbitrary_order(n)
+call writesols(n)
+call volume_solution_write
+
+
+else
+
+
+
+
 do
+
+
+
+
     call calculate_cfl2d(n)
+
+#ifdef gpu
+		    !$omp target update from(dt)
+#endif
+
+
     if (rungekutta.ge.5) call calculate_cfll2d(n)
 
     if (dg.eq.1)then
@@ -6334,6 +6442,8 @@ do
         ielem_troubled(i)=0
         end do
     end if
+
+
 
 
     !$omp master
@@ -6366,38 +6476,12 @@ do
 
 
 
-    if (initcond.eq.95)then
-        totk=0
-        do i=1,kmaxe
-            totk=totk+ielem_totvolume(i)*(1.0/2.0)*&
-                (((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2))
-        end do
-!
-        dumetg1=totk
-        dumetg2=0.0
-        call mpi_barrier(mpi_comm_world,ierror)
-        call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
-        totk=dumetg2
-        if (n.eq.0)then
-!  				totv2=totk/((2.0*pi)**3)
-! 					if (it.eq.0)then
-! 					taylor=totk
-! 					end if
-            if (it.eq.0)then
-                open(73,file='energy.dat',form='formatted',status='new',action='write',position='append')
-            else
-                open(73,file='energy.dat',form='formatted',status='old',action='write',position='append')
-            end if
-            write(73,*)t,totk
-            close(73)
-        end if
-
-        call mpi_barrier(mpi_comm_world,ierror)
-    end if
 
      if ((multispecies.eq.1))then
          if((initcond.eq.405).or.(initcond.eq.411))then
-            ! if ( mod(it, 20) .eq. 0)then
+#ifdef gpu
+                                !$omp target update from(u_c_val)
+#endif
                  call trajectories
             ! end if
          end if
@@ -6413,6 +6497,10 @@ do
 
     !$omp end master
     !$omp barrier
+
+#ifdef gpu
+			!$omp target update to(dt)
+#endif
 
                 select case(rungekutta)
 
@@ -6450,18 +6538,30 @@ do
 
           if (rungekutta.eq.3)then
           if  (realgas.eq.1)then
-          if (rg_relax.eq.1)then
-          !$omp do
+          if (rg_relax.eq.2)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp  do
+#endif
           do i=1,kmaxe
           call sources_realgas_pi(n,i)
 
           end do
-          !$omp end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
           end if
           end if
           end if
 
-!           if (realgas.eq.1) call normalise_species(n)
+
+           if (realgas.eq.1) then
+!            call diagnose_species_before_norm(IT)
+           call normalise_species(n)
+           end if
           
 
 
@@ -6478,9 +6578,15 @@ do
 end if    
 
         
+      !$omp end master
+    !$omp barrier
+
+#ifdef gpu
+			!$omp target update to(tz1,t)
+#endif
 
 
-
+          !$omp barrier
           if (dg.eq.1)then
           if (code_profile.ne.102)then
           if ( mod(it, 100) .eq. 0) then
@@ -6497,13 +6603,12 @@ end if
           call troubled_history
           end if
 
-
+        !$omp barrier
 
 
 ! write output
 
-    !$omp end master
-    !$omp barrier
+
     if ( mod(it, iforce) .eq. 0) then
         if (outsurf.eq.1) then
 
@@ -6625,6 +6730,9 @@ end if
 
 
 end do
+
+
+end if
 
 end subroutine time_marching2
 

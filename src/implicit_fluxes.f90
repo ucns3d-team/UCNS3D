@@ -47,7 +47,16 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, ngp, iqp, nvar, n_node, ibfc, godflux2, &
+!$omp&         sum_detect, norms, vpp, asound1, asound2, mul1, dxb, &
+!$omp&         tempxx, viscots, convj, diffj, iconsidered, facex, &
+!$omp&         pointx, igoflux, b_code, srf, nf, lf, rowf, angle1, &
+!$omp&         angle2, nx, ny, nz, cleft, cright, cright_rot, &
+!$omp&         cleft_rot, cturbl, cturbr, leftv, srf_speedrot, &
+!$omp&         srf_speed, rightv, pox, poy, poz, vext, nodes_list, &
+!$omp&         cords, viscl, laml, turbmv, etvm, eddyfl, eddyfr, &
+!$omp&         mp_pinfl, gammal, mp_pinfr, gammar, eigvl)
 #else
 !$omp do
 #endif
@@ -221,14 +230,23 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		    end do
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 	
 	
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, ngp, iqp, nvar, n_node, ibfc, godflux2, &
+!$omp&         sum_detect, norms, vpp, asound1, asound2, mul1, dxb, &
+!$omp&         tempxx, viscots, convj, diffj, iconsidered, facex, &
+!$omp&         pointx, igoflux, b_code, srf, nf, lf, rowf, angle1, &
+!$omp&         angle2, nx, ny, nz, cleft, cright, cright_rot, &
+!$omp&         cleft_rot, cturbl, cturbr, leftv, srf_speedrot, &
+!$omp&         srf_speed, rightv, pox, poy, poz, vext, nodes_list, &
+!$omp&         cords, viscl, laml, turbmv, etvm, eddyfl, eddyfr, &
+!$omp&         mp_pinfl, gammal, mp_pinfr, gammar, eigvl)
 #else
 !$omp do
 #endif
@@ -536,7 +554,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		    end do
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -544,7 +562,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
     !add the contribution of the source term to the jacobian of the diagonal matrix
         if (srfg.eq.1) then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -557,14 +575,14 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
                 impdiag(i,4,3)=srf_velocity(1)*ielem_totvolume(i)
             end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
         end if	
         if (mrf.eq.1) then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do private(srf)
 #else
 !$omp do
 #endif
@@ -581,7 +599,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 				srf=0
             end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -591,7 +609,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 	
 	if (rungekutta.eq.10)then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -601,13 +619,13 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		    end do
 		end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 	  else
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -618,7 +636,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 	    end do
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -633,7 +651,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
  if (turbulence.eq.1)call sources_derivatives_computation(n)
 if (rungekutta.eq.10)then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -651,13 +669,13 @@ do i=1,kmaxe
     end if
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 else
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -676,7 +694,7 @@ do i=1,kmaxe
     end if
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -728,7 +746,16 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, nvar, n_node, ibfc, k, j, godflux2, &
+!$omp&         sum_detect, norms, vpp, asound1, asound2, mul1, dxb, &
+!$omp&         tempxx, viscots, convj, diffj, iconsidered, facex, &
+!$omp&         pointx, igoflux, kas, b_code, nf, lf, rowf, angle1, &
+!$omp&         angle2, nx, ny, nz, cleft, cright, cright_rot, cleft_rot, &
+!$omp&         cturbl, cturbr, leftv, srf_speedrot, srf_speed, rightv, &
+!$omp&         pox, poy, poz, vext, nodes_list, cords, viscl, laml, &
+!$omp&         turbmv, etvm, eddyfl, eddyfr, mp_pinfl, gammal, mp_pinfr, &
+!$omp&         gammar, eigvl)
 #else
 !$omp do
 #endif
@@ -912,14 +939,23 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		    end do
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 	
 	
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, nvar, n_node, ibfc, k, j, godflux2, &
+!$omp&         sum_detect, norms, vpp, asound1, asound2, mul1, dxb, &
+!$omp&         tempxx, viscots, convj, diffj, iconsidered, facex, &
+!$omp&         pointx, igoflux, kas, b_code, nf, lf, rowf, angle1, &
+!$omp&         angle2, nx, ny, nz, cleft, cright, cright_rot, cleft_rot, &
+!$omp&         cturbl, cturbr, leftv, srf_speedrot, srf_speed, rightv, &
+!$omp&         pox, poy, poz, vext, nodes_list, cords, viscl, laml, &
+!$omp&         turbmv, etvm, eddyfl, eddyfr, mp_pinfl, gammal, mp_pinfr, &
+!$omp&         gammar, eigvl)
 #else
 !$omp do
 #endif
@@ -1217,7 +1253,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		    end do
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1232,7 +1268,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -1244,13 +1280,13 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 				  end do
 		end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 	  else
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -1263,7 +1299,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 				  end do
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1277,7 +1313,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 	if (realgas.eq.1)then
 	if (rungekutta.eq.10)then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -1290,13 +1326,13 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 				  end do
 		end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 	  else
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -1309,7 +1345,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 				  end do
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1327,7 +1363,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
  if (turbulence.eq.1)call sources_derivatives_computation2d(n)
 if (rungekutta.eq.10)then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -1345,13 +1381,13 @@ do i=1,kmaxe
     end if
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 else
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -1370,7 +1406,7 @@ do i=1,kmaxe
     end if
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2476,7 +2512,16 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 	
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, nvar, n_node, ibfc, kas, j, godflux2, &
+!$omp&         sum_detect, norms, vpp, asound1, asound2, mul1, dxb, &
+!$omp&         tempxx, viscots, identity1, convj, diffj, iconsidered, &
+!$omp&         facex, pointx, igoflux, b_code, nf, lf, rowf, angle1, &
+!$omp&         angle2, nx, ny, nz, cleft, cright, cright_rot, cleft_rot, &
+!$omp&         cturbl, cturbr, leftv, srf_speedrot, srf_speed, rightv, &
+!$omp&         pox, poy, poz, vext, nodes_list, cords, viscl, laml, &
+!$omp&         turbmv, etvm, eddyfl, eddyfr, mp_pinfl, gammal, mp_pinfr, &
+!$omp&         gammar, eigvl)
 #else
 !$omp do
 #endif
@@ -2595,14 +2640,23 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		    end do
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 	
 	
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, nvar, n_node, ibfc, kas, j, godflux2, &
+!$omp&         sum_detect, norms, vpp, asound1, asound2, mul1, dxb, &
+!$omp&         tempxx, viscots, identity1, convj, diffj, iconsidered, &
+!$omp&         facex, pointx, igoflux, b_code, nf, lf, rowf, angle1, &
+!$omp&         angle2, nx, ny, nz, cleft, cright, cright_rot, cleft_rot, &
+!$omp&         cturbl, cturbr, leftv, srf_speedrot, srf_speed, rightv, &
+!$omp&         pox, poy, poz, vext, nodes_list, cords, viscl, laml, &
+!$omp&         turbmv, etvm, eddyfl, eddyfr, mp_pinfl, gammal, mp_pinfr, &
+!$omp&         gammar, eigvl)
 #else
 !$omp do
 #endif
@@ -2887,7 +2941,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		    end do
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2899,7 +2953,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 	
 	if (rungekutta.eq.10)then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -2909,13 +2963,13 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		    
 		end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 	  else
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -2923,7 +2977,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
             impdiag_mf(i)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag_mf(i))
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2939,7 +2993,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
  if (turbulence.eq.1)call sources_derivatives_computation2d(n)
 if (rungekutta.eq.10)then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -2958,13 +3012,13 @@ do i=1,kmaxe
     end if
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 else
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -2985,7 +3039,7 @@ do i=1,kmaxe
 
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -3031,7 +3085,16 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 	
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, nvar, n_node, ibfc, kas, godflux2, &
+!$omp&         sum_detect, norms, vpp, asound1, asound2, mul1, dxb, &
+!$omp&         tempxx, viscots, identity1, convj, diffj, iconsidered, &
+!$omp&         facex, pointx, igoflux, nf, lf, rowf, b_code, angle1, &
+!$omp&         angle2, nx, ny, nz, cleft, cright, cright_rot, cleft_rot, &
+!$omp&         cturbl, cturbr, leftv, srf_speedrot, srf_speed, rightv, &
+!$omp&         pox, poy, poz, vext, nodes_list, viscl, laml, turbmv, &
+!$omp&         etvm, eddyfl, eddyfr, cords, mp_pinfl, gammal, mp_pinfr, &
+!$omp&         gammar, eigvl)
 #else
 !$omp do
 #endif
@@ -3150,14 +3213,23 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		    end do
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 	
 	
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, nvar, n_node, ibfc, kas, godflux2, &
+!$omp&         sum_detect, norms, vpp, asound1, asound2, mul1, dxb, &
+!$omp&         tempxx, viscots, identity1, convj, diffj, iconsidered, &
+!$omp&         facex, pointx, igoflux, nf, lf, rowf, b_code, angle1, &
+!$omp&         angle2, nx, ny, nz, cleft, cright, cright_rot, cleft_rot, &
+!$omp&         cturbl, cturbr, leftv, srf_speedrot, srf_speed, rightv, &
+!$omp&         pox, poy, poz, vext, nodes_list, viscl, laml, turbmv, &
+!$omp&         etvm, eddyfl, eddyfr, cords, mp_pinfl, gammal, mp_pinfr, &
+!$omp&         gammar, eigvl)
 #else
 !$omp do
 #endif
@@ -3448,7 +3520,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		    end do
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -3460,7 +3532,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 	
 	if (rungekutta.eq.10)then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -3470,13 +3542,13 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
 		    
 		end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 	  else
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -3484,7 +3556,7 @@ real,dimension(1:nof_variables)::leftv,srf_speedrot,srf_speed
             impdiag_mf(i)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag_mf(i))
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -3500,7 +3572,7 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
  if (turbulence.eq.1)call sources_derivatives_computation(n)
 if (rungekutta.eq.10)then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -3519,13 +3591,13 @@ do i=1,kmaxe
     end if
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 else
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -3546,7 +3618,7 @@ do i=1,kmaxe
 
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif

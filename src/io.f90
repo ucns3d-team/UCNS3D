@@ -13489,6 +13489,15 @@ subroutine volume_solution_write
 !> @brief
 !> this subroutine calls the appropriate volume writing subroutine based on the settings
 implicit none
+
+
+#ifdef gpu
+				call gpu_to_host_vol
+#endif
+
+
+
+
 				  
 
 				  if (n.eq.0)then
@@ -13615,6 +13624,13 @@ subroutine surface_solution_write
 !> this subroutine calls the appropriate surface solution writing subroutine based on the settings
 implicit none
 
+
+
+#ifdef gpu
+call gpu_to_host_surf
+#endif
+
+
 if (tecplot.eq.1)then
     if (dimensiona.eq.3)then
 
@@ -13689,6 +13705,12 @@ subroutine volume_solution_write_av
 !> this subroutine calls the appropriate average volume writing subroutine based on the settings
 implicit none
 
+#ifdef gpu
+call gpu_to_host_vol_av
+#endif
+
+
+
 if (tecplot.eq.1)then
 
 
@@ -13751,6 +13773,11 @@ subroutine surface_solution_write_av
 !> @brief
 !> this subroutine calls the appropriate surface writing subroutine based on the settings
 implicit none
+
+
+#ifdef gpu
+call gpu_to_host_surf_av
+#endif
 
 if (tecplot.eq.1)then
    if (dimensiona.eq.3)then
@@ -13861,6 +13888,16 @@ subroutine checkpointing
 implicit none
 
 
+#ifdef gpu
+				if (allocated(u_c_val)) then
+                  !$omp target update from(u_c_val(1,1:nof_variables,1:xmpielrank(n)))
+                  end if
+				 if (allocated(u_ct_val)) then
+                  !$omp target update from(u_ct_val(ind1,1,1:xmpielrank(n)))
+                  end if
+#endif
+
+
    if (dimensiona.eq.3)then
 
 call checkpoint(n)
@@ -13876,6 +13913,11 @@ subroutine checkpointing_av
 !> @brief
 !> this subroutine calls the appropriate averaged checkpointing subroutine based on the dimensionality of the problem
 implicit none
+
+
+#ifdef gpu
+call gpu_to_host_vol_av
+#endif
 
 
    if (dimensiona.eq.3)then
@@ -15640,7 +15682,10 @@ temp_cord=3
 
 				if (dimensiona.eq.2)then
 				do i=1,kmaxe
+
 				leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+
+
 				call cons2prim(n,leftv,mp_pinfl,gammal)	!r,u,v,p,y_n2,y_o2,y_no,y_n,y_o
 
 				if (realgas.eq.1)then
@@ -15668,13 +15713,21 @@ temp_cord=3
 														rarray_part1(i,j)=ielem_reduce(i)!vortex(1)
 														end if
 													else
-														rarray_part1(i,j)=ielem_reduce(i)
+														if (initcond.gt.100000)then
+															rarray_part1(i,j)=u_e_val(1,1,i)
+														else
+															rarray_part1(i,j)=ielem_reduce(i)
+														end if
+
 													end if
 												end if
 											end if
                                         end if
 										end do
 										if (turbulenceequations.gt.0)then
+
+
+
                                         rarray_part1(i,write_variables)=u_ct_val(1,1,i)
                                         end if
 				end do
@@ -19629,14 +19682,15 @@ forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
 
  kmaxe=xmpielrank(n)
  
-#ifdef GPU
-
+#ifdef gpu
 !$omp target teams distribute parallel do                              &
-!$omp& private (mysurface, j, k, im, nnd, gqi_points,&
-!$omp& angle1, angle2, nx, ny, nz,ssx, ssy, ssz, ssp, surface_temp, &
-!$omp& ux, uy, uz, vx, vy, vz, wx, wy, wz, px,tauxx, tauyy, tauzz, tauyx, tauzx, tauzy &
-!$omp& fxr, fyr, fzr,mome_xcc, mome_ycc, mome_zcc, vortet1,leftv,rightv,viscl,laml,weights_temp)&
-!$omp& reduction(+:forcex,forcey,forcez,momentx,momenty,momentz)
+!$omp& map(tofrom:forcex, forcey, forcez, momentx, momenty, momentz)    &
+!$omp& private(mysurface, j, k, im, nnd, gqi_points,                   &
+!$omp& angle1, angle2, nx, ny, nz, ssx, ssy, ssz, ssp, surface_temp,   &
+!$omp& ux, uy, uz, vx, vy, vz, wx, wy, wz, px, tauxx, tauyy, tauzz,    &
+!$omp& tauyx, tauzx, tauzy, fxr, fyr, fzr, mome_xcc, mome_ycc,         &
+!$omp& mome_zcc, vortet1, leftv, rightv, viscl, laml, weights_temp)    &
+!$omp& reduction(+:forcex, forcey, forcez, momentx, momenty, momentz)
 #else
 !$omp do reduction(+:forcex,forcey,forcez,momentx,momenty,momentz)
 #endif
@@ -19769,7 +19823,7 @@ do i=1,kmaxe
 
 		
 end do					 
-#ifdef GPU
+#ifdef gpu
 !$omp end target teams distribute parallel do
 #else
 !$omp end do
@@ -19850,7 +19904,7 @@ end do
 	
 	
 !$omp end master
-
+!$omp barrier
 	
 	
 	
@@ -19870,7 +19924,7 @@ integer::i,k,j,kmaxe,gqi_points,nnd
 character(len=12)::proc,restfile,proc3
 real::drag,lift,cd,cl,rx,px,ex,surface_temp,rtemp
 real::forcexfr,ssx,cdf,liftf,dragf,frictionf,tauyx,tauzx,tauzy,ssy,ssz,cf,tauxx,tauyy,tauzz
-real::ux,uy,uz,vx,vy,vz,wx,wy,wz,nx,ny,angle1,angle2
+real::ux,uy,uz,vx,vy,vz,wx,wy,wz,nx,ny,nz,angle1,angle2
  real,dimension(2)::ci,co
  logical::heref
  integer::im
@@ -19897,15 +19951,15 @@ forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
 
  kmaxe=xmpielrank(n)
  
-#ifdef GPU
-!$omp target teams distribute parallel do                              &
-!$omp& private (mysurface, j, k, im, nnd, gqi_points,&
-!$omp& angle1, angle2, nx, ny, nz,ssx, ssy, ssz, ssp, surface_temp, &
-!$omp& ux, uy, uz, vx, vy, vz, wx, wy, wz, px,tauxx, tauyy, tauzz, tauyx, tauzx, tauzy &
-!$omp& fxr, fyr, fzr,mome_xcc, mome_ycc, mome_zcc, vortet1,leftv,rightv,viscl,laml,weights_temp)&
-!$omp& reduction(+:forcex,forcey,forcez)
+#ifdef gpu
+!$omp target teams distribute parallel do map(tofrom:forcex,forcey) &
+!$omp& private(j, k, im, nnd, gqi_points, angle1, angle2, nx, ny, nz, &
+!$omp&         ssx, ssy, ssz, ssp, surface_temp, ux, uy, uz, vx, vy, vz, &
+!$omp&         wx, wy, wz, px, tauxx, tauyy, tauzz, tauyx, tauzx, tauzy, &
+!$omp&         vortet1, leftv, rightv, viscl, laml, weights_temp) &
+!$omp& reduction(+:forcex,forcey)
 #else
-!$omp do reduction(+:forcex,forcey,forcez)
+!$omp do reduction(+:forcex,forcey)
 #endif
 do i=1,kmaxe
 		if (ielem_interior(i).eq.1)then	
@@ -19988,7 +20042,7 @@ do i=1,kmaxe
 			
 		
 end do					 
-#ifdef GPU
+#ifdef gpu
 !$omp end target teams distribute parallel do
 #else
 !$omp end do
@@ -20031,7 +20085,7 @@ end do
 	
 	
 !$omp end master
-	
+!$omp barrier
 	
 	
 	
@@ -20059,11 +20113,11 @@ allres(:)=zero
 
 
 if ((itestcase.le.4).and.(turbulence.ne.1))then
-#ifdef GPU
-!$omp target teams distribute parallel do                              &
-!$omp& reduction(+:allres)
+#ifdef gpu
+!$omp target teams distribute parallel do map(tofrom:allres(1:nof_variables)) &
+!$omp& reduction(+:allres(1:nof_variables))
 #else
-!$omp do reduction(+:allres)
+!$omp do reduction(+:allres(1:nof_variables))
 #endif
 do i=1,kmaxe
 	if (dg.eq.1)then
@@ -20073,7 +20127,7 @@ do i=1,kmaxe
 
     end if
 end do
-#ifdef GPU
+#ifdef gpu
 !$omp end target teams distribute parallel do
 #else
 !$omp end do
@@ -20104,17 +20158,17 @@ end do
 end if
 
 if (turbulence.eq.1)then
-#ifdef GPU
-!$omp target teams distribute parallel do                              &
-!$omp& reduction(+:allres)
+#ifdef gpu
+!$omp target teams distribute parallel do map(tofrom:allres(1:nof_variables)) &
+!$omp& reduction(+:allres(1:nof_variables))
 #else
-!$omp do reduction(+:allres)
+!$omp do reduction(+:allres(1:nof_variables))
 #endif
 do i=1,kmaxe
     allres(1:nof_variables)=allres(1:nof_variables)+((rhs_val(1:nof_variables,i)*ielem_totvolume(i))**2)
     allres(nof_variables+1:nof_variables+turbulenceequations)=allres(nof_variables+1:nof_variables+turbulenceequations)+((rhst_val(1:turbulenceequations,i)*ielem_totvolume(i))**2)
 end do
-#ifdef GPU
+#ifdef gpu
 !$omp end target teams distribute parallel do
 #else
 !$omp end do
@@ -20205,11 +20259,11 @@ allres(:)=zero
 
 
 if ((itestcase.le.4).and.(turbulence.ne.1))then
-#ifdef GPU
-!$omp target teams distribute parallel do                              &
-!$omp& reduction(+:allres)
+#ifdef gpu
+!$omp target teams distribute parallel do map(tofrom:allres(1:nof_variables)) &
+!$omp& reduction(+:allres(1:nof_variables))
 #else
-!$omp do reduction(+:allres)
+!$omp do reduction(+:allres(1:nof_variables))
 #endif
 do i=1,kmaxe
 
@@ -20220,7 +20274,7 @@ do i=1,kmaxe
 
     end if
 end do
-#ifdef GPU
+#ifdef gpu
 !$omp end target teams distribute parallel do
 #else
 !$omp end do
@@ -20256,17 +20310,17 @@ end do
 end if
 
 if (turbulence.eq.1)then
-#ifdef GPU
-!$omp target teams distribute parallel do                              &
-!$omp& reduction(+:allres)
+#ifdef gpu
+!$omp target teams distribute parallel do map(tofrom:allres(1:nof_variables)) &
+!$omp& reduction(+:allres(1:nof_variables))
 #else
-!$omp do reduction(+:allres)
+!$omp do reduction(+:allres(1:nof_variables))
 #endif
 do i=1,kmaxe
     allres(1:nof_variables)=allres(1:nof_variables)+((rhs_val(1:nof_variables,i)*ielem_totvolume(i))**2)
     allres(nof_variables+1:nof_variables+turbulenceequations)=allres(nof_variables+1:nof_variables+turbulenceequations)+((rhst_val(1:turbulenceequations,i)*ielem_totvolume(i))**2)
 end do
-#ifdef GPU
+#ifdef gpu
 !$omp end target teams distribute parallel do
 #else
 !$omp end do
@@ -23401,6 +23455,12 @@ real,allocatable,dimension(:)::igint,tgint
  kmaxe=xmpielrank(n)
 igfs=t
 
+
+
+#ifdef gpu
+                  !$omp target update from(u_c_val(1,1:nof_variables,1:xmpielrank(n)))
+#endif
+
 write(proc3,fmt='(i10)') igfs
 	restfile="REST_"//trim(adjustl(proc3))//".dat"!//trim(adjustl(proc4))
 	
@@ -23613,30 +23673,51 @@ end subroutine checkpointv3
 
 
 subroutine troubled_history
+implicit none
 integer::i,j,k,traj1,traj2,traj3,traj4,kmaxe,writeid,writeconf
 real::win1,win2,win3,win4,post,post1,post2,post3,post4
-real,dimension(3)::pos_l,pos_g
-integer,dimension(3)::ipos_l,ipos_g
+
+
+
 kmaxe=xmpielrank(n)
+
+!$omp barrier
+!$omp master
 post1=0
 traj1=0
-pos_l(1)=zero
-pos_g(1)=zero
+pos_l(:)=zero
+pos_g(:)=zero
 ipos_l(:)=0
 ipos_g(:)=0
+!$omp end master
+!$omp barrier
 
 if (mood.gt.0)then
 
+#ifdef gpu
+!$omp target teams distribute parallel do map(tofrom:ipos_l(1:2)) &
+!$omp& private(i) reduction(+:ipos_l(1), ipos_l(2))
+#else
+!$omp do reduction(+:ipos_l(1), ipos_l(2))
+#endif
 do i=1,kmaxe
-	if (ielem_mood_o(i).lt.(iorder+1))then
-    ipos_l(1)=ipos_l(1)+1		!number of cells
+    if (ielem_mood_o(i).lt.(iorder+1))then
+        ipos_l(1)=ipos_l(1)+1
     end if
     if (ielem_mood_o(i).eq.1)then
-    ipos_l(2)=ipos_l(2)+1
+        ipos_l(2)=ipos_l(2)+1
     end if
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 
+
+!$omp barrier
+!$omp master
 call mpi_allreduce(ipos_l(1:2),ipos_g(1:2),2,mpi_integer,mpi_sum,mpi_comm_world,ierror)
 
 pos_g(1)=ipos_g(1)
@@ -23645,219 +23726,336 @@ pos_g(1)=(pos_g(1)/imaxe)*100
 pos_g(2)=(pos_g(2)/imaxe)*100
 
 if (n.eq.0)then
-
-open(70,file='troubled.dat',form='formatted',action='write',position='append')
-write(70,'(e14.7,1x,e14.7,1x,e14.7)')t,pos_g(1),pos_g(2)
-close(70)
-
+    open(70,file='troubled.dat',form='formatted',action='write',position='append')
+    write(70,'(e14.7,1x,e14.7,1x,e14.7)')t,pos_g(1),pos_g(2)
+    close(70)
 end if
 
 call mpi_barrier(mpi_comm_world,ierror)
-
-
-
-
-
+!$omp end master
+!$omp barrier
 
 else
 
+#ifdef gpu
+!$omp target teams distribute parallel do map(tofrom:pos_l(1)) &
+!$omp& private(i) reduction(+:pos_l(1))
+#else
+!$omp do reduction(+:pos_l(1))
+#endif
 do i=1,kmaxe
     pos_l(1)=pos_l(1)+ielem_condition(i)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
-  
+
+!$omp barrier
+!$omp master
+
 call mpi_allreduce(pos_l(1),pos_g(1),1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 
 if (n.eq.0)then
-
-open(70,file='troubled.dat',form='formatted',action='write',position='append')
-write(70,'(e14.7,1x,e14.7,1x,e14.7)')t,(pos_g(1)/imaxe)*100.0
-close(70)
-
+    open(70,file='troubled.dat',form='formatted',action='write',position='append')
+    write(70,'(e14.7,1x,e14.7,1x,e14.7)')t,(pos_g(1)/imaxe)*100.0
+    close(70)
 end if
 
 call mpi_barrier(mpi_comm_world,ierror)
-
+!$omp end master
+!$omp barrier
 
 end if
-
-  
-
-
-
-
-
 
 end subroutine troubled_history
 
 
 subroutine reduced_history
+implicit none
 integer::i,j,k,traj1,traj2,traj3,traj4,kmaxe,writeid,writeconf,tempint
 real::win1,win2,win3,win4,post,post1,post2,post3,post4
-real,dimension(1)::pos_l,pos_g
+
+
 kmaxe=xmpielrank(n)
+!$omp barrier
+!$omp master
 post1=0
 traj1=0
 pos_l(1)=zero
 pos_g(1)=zero
+!$omp end master
+!$omp barrier
+
+#ifdef gpu
+!$omp target teams distribute parallel do map(tofrom:pos_l(1)) &
+!$omp& private(i,tempint) reduction(+:pos_l(1))
+#else
+!$omp do private(tempint) reduction(+:pos_l(1))
+#endif
 do i=1,kmaxe
-	tempint=0
-	if (ielem_reduce(i).ge.1)then
-	tempint=1
-	end if
+    tempint=0
+    if (ielem_reduce(i).ge.1)then
+        tempint=1
+    end if
     pos_l(1)=pos_l(1)+tempint
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
+
+!$omp barrier
+!$omp master
 
 call mpi_allreduce(pos_l(1),pos_g(1),1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 
 if (n.eq.0)then
-
-open(70,file='reduced.dat',form='formatted',action='write',position='append')
-write(70,'(e14.7,1x,e14.7,1x,e14.7)')t,(pos_g(1)/imaxe)*100.0
-close(70)
-
+    open(70,file='reduced.dat',form='formatted',action='write',position='append')
+    write(70,'(e14.7,1x,e14.7,1x,e14.7)')t,(pos_g(1)/imaxe)*100.0
+    close(70)
 end if
 
 call mpi_barrier(mpi_comm_world,ierror)
 
 
+!$omp end master
+!$omp barrier
 
 end subroutine reduced_history
 
 
 subroutine filtered_history
+implicit none
 integer::i,j,k,traj1,traj2,traj3,traj4,kmaxe,writeid,writeconf,countfd
 real::win1,win2,win3,win4,post,post1,post2,post3,post4
-real,dimension(5)::pos_l,pos_g
+
+
 kmaxe=xmpielrank(n)
+
+!$omp barrier
+!$omp master
 post1=0
 traj1=0
 pos_l(:)=zero
 pos_g(:)=zero
-! pos_l(2)=10e20
-! pos_g(2)=0
-! pos_l(3)=0.0d0
-! pos_g(3)=0
-! pos_l(4)=-10e20
-! pos_g(4)=0
-! countfd=0
+!$omp end master
+!$omp barrier
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do map(tofrom:pos_l) &
+!$omp& private(i) reduction(+:pos_l)
+#else
+!$omp do reduction(+:pos_l)
+#endif
 do i=1,kmaxe
-
     pos_l(1)=pos_l(1)+ielem_filtered(i)
-
-!     if (ielem_er2dt(i).gt.0)then
-!
-!
-! 			if (ielem_er1er2(i).gt.1)then
-!
-!
-! 			countfd=countfd+1
-!
-! 			pos_l(2)=min(pos_l(2),ielem_er1er2(i))
-!
-! 			pos_l(3)=ielem_er1er2(i)+pos_l(3)
-!
-!
-!
-!
-!
-! 			end if
-
-
-
-
-
-
-
-
-! 	end if
-
-
-! 	if (ielem_er2dt(i).lt.0.0)then
-! 			pos_l(4)=max(pos_l(4),ielem_er2dt(i))
-!
-! 			end if
-
-
-
-
-!
-!
-!
-!
-!  			countfd=countfd+1
-!
-
-!
- 			pos_l(3)=ielem_er(i)+pos_l(3)
-
-
-
-
-!  			if (ielem_er(i).gt.0)then
-
- 			pos_l(2)=ielem_er1(i)+pos_l(2)
-!
- 			pos_l(4)=ielem_er2(i)+pos_l(4)
-
-!  			end if
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    pos_l(3)=pos_l(3)+ielem_er(i)
+    pos_l(2)=pos_l(2)+ielem_er1(i)
+    pos_l(4)=pos_l(4)+ielem_er2(i)
 end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
-! pos_l(3)=pos_l(3)/countfd
 
+!$omp barrier
+!$omp master
 
 call mpi_allreduce(pos_l(1),pos_g(1),1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
-
-
 post1=(pos_g(1)/imaxe)*100.0
 
 call mpi_allreduce(pos_l(2),pos_g(2),1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
-
-
-
 post2=(pos_g(2)/imaxe)
 
 call mpi_allreduce(pos_l(3),pos_g(3),1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
-
-
 post3=(pos_g(3)/imaxe)
 
 call mpi_allreduce(pos_l(4),pos_g(4),1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
-
 post4=(pos_g(4)/imaxe)
 
-
-
 if (n.eq.0)then
-
-open(70,file='filtered.dat',form='formatted',action='write',position='append')
-write(70,'(e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,post1,post2,post3,post4
-close(70)
-
+    open(70,file='filtered.dat',form='formatted',action='write',position='append')
+    write(70,'(e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,post1,post2,post3,post4
+    close(70)
 end if
 
 call mpi_barrier(mpi_comm_world,ierror)
 
 
+!$omp end master
+!$omp barrier
 
 end subroutine filtered_history
+
+
+
+subroutine writesols(n)
+implicit none
+integer,intent(in)::n
+integer::i,j,k,facex,ngp
+real::pix
+real:: leftv(1)
+real::coord_gqp(1:2),rd
+
+  pix=4.0d0*atan(1.0d0)
+
+  do i=1,xmpielrank(n)
+	write(500+n,*)"element id",ielem_ihexgl(i)
+	do facex=1,ielem_ifca(i)
+	write(500+n,*)"face",facex
+		do ngp=1,qp_line
+		write(500+n,*)"gqp",ngp
+			!get gqp coords
+			coord_gqp(1:2)= rec_qpoints_p(facex,ngp,1:2,i)
+
+
+
+			!compute function
+
+			    leftv(1)=0.0d0
+if (sqrt(((coord_gqp(1)-0.25d0)**2)+((coord_gqp(2)-0.5d0)**2)).le.0.15)then
+rd=(1.0d0/0.15d0)*sqrt(((coord_gqp(1)-0.25d0)**2)+((coord_gqp(2)-0.5d0)**2))
+
+leftv(1)=0.25d0*(1.0d0+cos(pix*min(rd,1.0d0)))
+end if
+
+if (sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.25d0)**2)).le.0.15)then
+
+rd=(1.0d0/0.15d0)*sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.25d0)**2))
+leftv(1)=1.0d0-rd
+end if
+
+    if (sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.75d0)**2)).le.0.15)then
+
+    rd=(1.0d0/0.15d0)*sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.75d0)**2))
+	  if ((abs(coord_gqp(1)-0.5).ge.0.025d0).or.(coord_gqp(2).gt.0.85))then
+
+	 leftv(1)=1.0d0
+	  else
+
+	  leftv(1)=0.0d0
+
+	  end if
+    end if
+
+			write(500+n,*)leftv(1),rec_uleft(1,facex,ngp,i)
+			u_e_val(1,1,i)=leftv(1)
+			u_c_val(1,1,i)=rec_uleft(1,facex,ngp,i)
+
+			end do
+		end do
+	end do
+
+
+
+
+
+
+
+
+
+
+
+end subroutine writesols
+
+
+
+
+
+
+
+
+subroutine gpu_to_host_vol
+implicit none
+#ifdef gpu
+                  if (allocated(u_ct_val)) then
+                  !$omp target update from(u_ct_val(1,:,:))
+                  end if
+                  if (allocated(u_c_val)) then
+                  !$omp target update from(u_c_val(1,:,:))
+                  end if
+                  if (allocated(ielem_mood_o)) then
+                  !$omp target update from(ielem_mood_o)
+                  end if
+                  if (allocated(ielem_reduce)) then
+                  !$omp target update from(ielem_reduce)
+                  end if
+                  if (allocated(ielem_troubled)) then
+                  !$omp target update from(ielem_troubled)
+                  end if
+                  if (allocated(ielem_vortex)) then
+                  !$omp target update from(ielem_vortex)
+                  end if
+                  if (allocated(ielem_wcx)) then
+                  !$omp target update from(ielem_wcx)
+                  end if
+
+
+#endif
+
+
+end subroutine gpu_to_host_vol
+
+subroutine gpu_to_host_vol_av
+implicit none
+#ifdef gpu
+                  if (allocated(u_ct_val)) then
+                  !$omp target update from(u_ct_val(ind1,:,:))
+                  end if
+                  if (allocated(u_c_val)) then
+                  !$omp target update from(u_c_val(ind1,:,:))
+                  end if
+                  if (allocated(u_c_rms)) then
+                  !$omp target update from(u_c_rms)
+                  end if
+
+#endif
+end subroutine gpu_to_host_vol_av
+
+subroutine gpu_to_host_surf
+implicit none
+
+#ifdef gpu
+                  if (allocated(rec_grads)) then
+                  !$omp target update from(rec_grads)
+                  end if
+                  if (itestcase.eq.4)then
+                  if (allocated(rec_uleft)) then
+                  !$omp target update from(rec_uleft)
+                  end if
+                  if (allocated(rec_uleft_dg)) then
+                  !$omp target update from(rec_uleft_dg)
+                  end if
+                  if (allocated(rec_uleftturb)) then
+                  !$omp target update from(rec_uleftturb)
+                  end if
+                  end if
+
+#endif
+
+end subroutine gpu_to_host_surf
+
+subroutine gpu_to_host_surf_av
+implicit none
+
+#ifdef gpu
+                  if (allocated(rec_gradsav)) then
+                  !$omp target update from(rec_gradsav)
+                  end if
+
+#endif
+
+end subroutine gpu_to_host_surf_av
+
+
 
 
 

@@ -26,8 +26,8 @@ implicit none
 integer,intent(in)::n
 integer::ii,i,iconsidered
 #ifdef gpu
-!!$omp target teams distribute parallel do &
-!!$omp& private(iconsidered,i)
+!$omp target teams distribute parallel do &
+!$omp& private(iconsidered,i)
 #else
 !$omp do
 #endif
@@ -35,14 +35,14 @@ do ii=1,nof_interior;i=el_int(ii);iconsidered=i
       call allgrads_inner_av(n,i)
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 
 #ifdef gpu
-!!$omp target teams distribute parallel do &
-!!$omp& private(iconsidered,i)
+!$omp target teams distribute parallel do &
+!$omp& private(iconsidered,i)
 #else
 !$omp do
 #endif
@@ -52,7 +52,7 @@ end do
 	call allgrads_mix_av(n,i)
 end do	
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -73,6 +73,9 @@ subroutine memory_fast(n)
   kmaxe = xmpielrank(n)
 
   allocate(rec_qpoints(max_faces,numberofpoints2,1:dimensiona,1:kmaxe)); rec_qpoints = zero
+
+!   if (initcond.gt.100000)allocate(rec_qpoints_p(max_faces,numberofpoints2,1:dimensiona,1:kmaxe)); rec_qpoints = zero
+
   allocate(rec_mrf(1:kmaxe)); rec_mrf = 0
   if (srfg == 1) then
     allocate(rec_rpoints(max_faces,numberofpoints2,1:dimensiona,1:kmaxe)); rec_rpoints = zero
@@ -244,7 +247,13 @@ subroutine memory_fast(n)
     do i = 1, kmaxe
       iconsidered = i
 
+!       if (initcond.gt.100000)write(300+n,*)"element quadratures, el id",ielem_ihexgl(i)
+
       do l = 1, ielem_ifca(i)
+
+
+!        if (initcond.gt.100000)write(300+n,*)"face",l
+
         idummy = 0
 
         if ((iperiodicity == 1) .and. (ielem_interior(i) == 1)) then
@@ -257,27 +266,55 @@ subroutine memory_fast(n)
           iqp = qp_line
           nnd = 2
           if (idummy == 0) then
-            do k = 1, nnd
-              vext(k,1:2) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
-              vext(k,1:2) = matmul(rec_invccjac(:,:,i), vext(k,1:2) - rec_vext_ref(1:2,i))
-            end do
+                do k = 1, nnd
+                  vext(k,1:2) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+                  vext(k,1:2) = matmul(rec_invccjac(:,:,i), vext(k,1:2) - rec_vext_ref(1:2,i))
+                end do
           else
-            facex = l
-            call coordinates_face_period2d1(n, iconsidered, facex, vext, nodes_list)
-            do k = 1, nnd
-              vext(k,1:2) = matmul(rec_invccjac(:,:,i), vext(k,1:2) - rec_vext_ref(1:2,i))
-            end do
+                facex = l
+                call coordinates_face_period2d1(n, iconsidered, facex, vext, nodes_list)
+                    do k = 1, nnd
+                      vext(k,1:2) = matmul(rec_invccjac(:,:,i), vext(k,1:2) - rec_vext_ref(1:2,i))
+                    end do
           end if
           call quadratureline(n, igqrules, vext, qpoints2d, wequa2d)
 
         else
           iqp = qp_line
           nnd = 2
-          do k = 1, nnd
-            vext(k,1:2) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
-            vext(k,1:2) = matmul(rec_invccjac(:,:,i), vext(k,1:2) - rec_vext_ref(1:2,i))
-          end do
-          call quadratureline(n, igqrules, vext, qpoints2d, wequa2d)
+
+!               if (initcond.gt.100000)then
+!
+!
+!               do k = 1, nnd
+!                 vext(k,1:2) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+! !                 vext(k,1:2) = matmul(rec_invccjac(:,:,i), vext(k,1:2) - rec_vext_ref(1:2,i))
+!               end do
+!               call quadratureline(n, igqrules, vext, qpoints2d, wequa2d)
+!
+!
+!               write(300+n,*)qpoints2d(1:2,ngp)
+!               do ngp = 1, iqp
+!               rec_qpoints_p(l,ngp,1:2,i) = qpoints2d(1:2,ngp)
+!             end do
+
+
+
+
+
+              do k = 1, nnd
+                vext(k,1:2) = dinoder(ielem_nodes_faces(l,k,i))%CORD(1:dims)
+                vext(k,1:2) = matmul(rec_invccjac(:,:,i), vext(k,1:2) - rec_vext_ref(1:2,i))
+              end do
+              call quadratureline(n, igqrules, vext, qpoints2d, wequa2d)
+
+
+
+
+
+
+
+
         end if
 
         do ngp = 1, iqp
@@ -1910,7 +1947,7 @@ integer::i,j,k,l,var2,b_code,n_node,nf,lf,rowf
 real,dimension(1:nof_variables)::leftv,srf_speed,srf_speedrot,rightv
 real,dimension(1:dimensiona)::pox,poy,poz,cords
 real,dimension(1:8,1:dimensiona)::vext,nodes_list
-real,dimension(turbulenceequations)::cturbl,cturbr
+real,dimension(1:turbulenceequations+passivescalar)::cturbl,cturbr
 real,dimension(1:nof_variables)::cright_rot,cleft_rot
 integer::ibfc
 
@@ -2258,7 +2295,7 @@ subroutine compute_muscl_reconstruction(iconsidered,utmin,utmax)
   integer:: nvtot
   real,intent(in) :: utmin(1:nof_variables+turbulenceequations+passivescalar),utmax(1:nof_variables+turbulenceequations+passivescalar)
   integer :: i,l,ngp,iex,iqp,k,ideg
-  real :: ax,ay,az,mp_pinfl,gammal,limvbg,rat,u0
+  real :: ax,ay,az,mp_pinfl,gammal,limvbg,rat,u0,slope_species
   real,dimension(1:nof_variables) :: leftv,slope_d,candid_lim,delta
   real :: phi(1:idegfree)
   real :: slope(1:nof_variables+turbulenceequations+passivescalar)
@@ -2323,10 +2360,34 @@ subroutine compute_muscl_reconstruction(iconsidered,utmin,utmax)
       ! compute psi(:) at this GP (new 1D limiter interface) and accumulate minimum
       call slope_limiters(n,i,utmin,utmax,usol1,psi1)
       psi_min(:) = min(psi_min(:), psi1(:))
+
+
+
+
+
     end do
   end do
 
   slope(:) = psi_min(:)
+
+  if (realgas.eq.1)then
+  slope_species = 1.0d0
+
+        do l = 1, nof_species
+          iex = dimensiona + 3 + l
+          slope_species = min(slope_species, slope(iex))
+        end do
+
+        do l = 1, nof_species
+          iex = dimensiona + 3 + l
+          slope(iex) = slope(iex) * slope_species
+        end do
+
+  end if
+
+
+
+
   ielem_wcx(i) = slope(1)
   if (dg.eq.1) then
     do iex = 1, nvtot
@@ -3218,8 +3279,8 @@ kmaxe=xmpielrank(n)
 
 if (dimensiona.eq.3)then
 #ifdef gpu
-!!$omp target teams distribute parallel do &
-!!$omp& private(iconsidered,iex,l,iqp,ngp)
+!$omp target teams distribute parallel do &
+!$omp& private(iconsidered,iex,l,iqp,ngp)
 #else
 !$omp do
 #endif
@@ -3245,7 +3306,7 @@ iconsidered=i
 
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -3254,8 +3315,8 @@ end do
 
 else
 #ifdef gpu
-!!$omp target teams distribute parallel do &
-!!$omp& private(iconsidered,iex,l,iqp,ngp)
+!$omp target teams distribute parallel do &
+!$omp& private(iconsidered,iex,l,iqp,ngp)
 #else
 !$omp do
 #endif
@@ -3281,7 +3342,7 @@ iconsidered=i
 
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -3364,6 +3425,8 @@ if (itestcase.ge.3)then
         ielem_reduce(i)=0;reduce1=0
         jump_cond=0.9
 
+        if (realgas==1) jump_cond=0.3
+
 
         if (ielem_troubled(i).eq.1)then
 
@@ -3412,76 +3475,23 @@ if (itestcase.ge.3)then
                                                     end do
                                                     end if
                                                       if (realgas.eq.1)then
-
-                                                     call cons2div(n,tempvectl,mp_pinfl,gammal)
-                                                     call cons2div(n,tempvectr,mp_pinfr,gammar)
-
-
-                                                    do iex=1,nof_variables       !loop rho,u,v,w,e,p
-                                                           if ((iex.ge.2).and.(iex.le.dimensiona+1)) cycle
+                                                              do iex=1,nof_variables       !loop rho,u,v,w,e,p
+                                                                    if ((iex.ge.2).and.(iex.le.dimensiona+1)) cycle
 
 
-                                                           jump  = abs(tempvectl(iex) - tempvectr(iex))
-                                                           temp_scale = tempvectr(iex)
+                                                                      jump  = abs(leftv(iex) - rightv(iex))
+                                                                      temp_scale = rightv(iex)
 
-                                                            if ((jump .ge. jump_cond*temp_scale).or.(tempvectl(iex).lt.0.0d0))then
-                                                                    reduce1=1
-                                                                    ielem_reduce(i)=2     !jump from not species
+                                                                      if (abs(temp_scale).gt.10e-300)then
+                                                                        if ((jump .ge. jump_cond*(temp_scale)).or.(rightv(iex).lt.0.0d0))then
+                                                                                reduce1=1
+                                                                                ielem_reduce(i)=1    !jump from not species
+                                                                                exit
 
-                                                            end if
+                                                                        end if
+                                                                      end if
 
-                                                    end do
-
-                                                    do iex=dimensiona+2, dimensiona+2
-                                                            jump  = abs(leftv(iex) - rightv(iex))
-                                                           temp_scale = rightv(iex)
-
-                                                            if ((jump .ge. jump_cond*temp_scale).or.(leftv(iex).lt.0.0d0))then
-                                                                    reduce1=1
-                                                                    ielem_reduce(i)=3 !jump from species
-
-                                                            end if
-
-
-                                                    end do
-
-
-                                                    rhol = rec_uleft(1, l, ngp,i)
-
-                                                            sumx = 0.0d0
-                                                            do iex = dimensiona+4, nof_variables
-
-                                                            templ=rec_uleft(iex,l,ngp,i)
-                                                            ! work directly on rhoyk, clip negatives
-                                                            if (templ < 0.0d0) then
-                                                                templ = 0.0d0
-                                                            end if
-
-                                                            sumx = sumx + templ
-                                                            end do
-
-                                                            if (sumx > 1.0d-14) then
-                                                            ! renormalise so that sum_k (rhoyk) = rho
-
-
-                                                            ! keep 2nd order; do not set reduce1 here
-                                                            else
-                                                            ! truly broken state → fall back
-                                                            reduce1 = 1
-                                                            ielem_reduce(i) = 5
-                                                            end if
-
-
-
-
-
-
-
-
-
-
-
-
+                                                              end do
                                                     end if
 
 
@@ -3505,57 +3515,7 @@ if (itestcase.ge.3)then
 		ielem_reduce(i)=1
 		end if
 		
-                                                            if (realgas.eq.1)then
-                                                            if (reduce1.eq.0)then
 
-
-                                                             do l=1,ielem_ifca(i)	!faces2
-                                                                if (dimensiona.eq.3)then
-
-                                                                if (ielem_types_faces(l,i).eq.5)then
-                                                                    iqp=qp_quad
-                                                                else
-                                                                    iqp=qp_triangle
-                                                                end if
-                                                                else
-
-                                                                    iqp=qp_line
-                                                                end if
-
-                                                                do ngp=1,iqp
-
-
-
-
-
-
-                                                            rhol = rec_uleft(1, l, ngp,i)
-
-                                                            sumx = 0.0d0
-                                                            do iex = dimensiona+4, nof_variables
-                                                            ! work directly on rhoyk, clip negatives
-                                                            if (rec_uleft(iex,l,ngp,i) < 0.0d0) then
-                                                                rec_uleft(iex,l,ngp,i) = 0.0d0
-                                                            end if
-
-                                                            sumx = sumx + rec_uleft(iex,l,ngp,i)
-                                                            end do
-
-                                                            if (sumx > 1.0d-14) then
-                                                            ! renormalise so that sum_k (rhoyk) = rho
-                                                            rscale = rhol / sumx
-
-                                                            do iex = dimensiona+4, nof_variables
-                                                                rec_uleft(iex,l,ngp,i) = rec_uleft(iex,l,ngp,i) * rscale
-                                                            end do
-
-
-                                                            end if
-
-                                                            end do
-                                                            end do
-                                                            end if
-                                                           end if
 
 		
 		
@@ -3563,6 +3523,10 @@ if (itestcase.ge.3)then
 		
 		
 		end if
+
+
+
+
 	end do
 #ifdef gpu
 !$omp end target teams distribute parallel do
@@ -3609,7 +3573,9 @@ if (itestcase.ge.3)then
 !$omp do
 #endif
 	do i=1,kmaxe
-            jump_cond=0.5
+            jump_cond=0.8
+
+            if (Realgas.eq.1)jump_cond=0.2
 
 			reduce1=0
 
@@ -3632,9 +3598,9 @@ if (itestcase.ge.3)then
 
 
 												leftv(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
-												tempvectl(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
+
 												rightv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-												tempvectr(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+
 												call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 
                                                             if (realgas.eq.0)then
@@ -3649,76 +3615,23 @@ if (itestcase.ge.3)then
                                                     end do
                                                     end if
                                                      if (realgas.eq.1)then
-
-                                                      call cons2div(n,tempvectl,mp_pinfl,gammal)
-                                                      call cons2div(n,tempvectr,mp_pinfr,gammar)
-
-
-                                                    do iex=1,nof_variables       !loop rho,u,v,w,e,p
-                                                             if ((iex.ge.2).and.(iex.le.dimensiona+1)) cycle
+                                                              do iex=1,nof_variables       !loop rho,u,v,w,e,p
+                                                                    if ((iex.ge.2).and.(iex.le.dimensiona+1)) cycle
 
 
-                                                           jump  = abs(tempvectl(iex) - tempvectr(iex))
-                                                           temp_scale = tempvectr(iex)
+                                                                      jump  = abs(leftv(iex) - rightv(iex))
+                                                                      temp_scale = rightv(iex)
 
-                                                            if ((jump .ge. jump_cond*(temp_scale)).or.(tempvectl(iex).lt.0.0d0))then
-                                                                    reduce1=1
-                                                                    ielem_reduce(i)=10+iex    !jump from not species
+                                                                      if (abs(temp_scale).gt.10e-300)then
+                                                                        if ((jump .ge. jump_cond*(temp_scale)).or.(rightv(iex).lt.0.0d0))then
+                                                                                reduce1=1
+                                                                                ielem_reduce(i)=iex    !jump from not species
+                                                                                exit
 
-                                                            end if
+                                                                        end if
+                                                                      end if
 
-                                                    end do
-
-                                                    do iex=dimensiona+2, nof_variables
-                                                            jump  = abs(leftv(iex) - rightv(iex))
-                                                           temp_scale = rightv(iex)
-
-                                                            if ((jump .ge. jump_cond*temp_scale).or.(leftv(iex).lt.0.0d0))then
-                                                                    reduce1=1
-                                                                    ielem_reduce(i)=3 !jump from species
-
-                                                            end if
-
-
-                                                    end do
-
-
-!                                                             if (code_profile.ne.777)then
-!                                                             rhol = rec_uleft(1, l, ngp,i)
-!
-!                                                             sumx = 0.0d0
-!                                                             do iex = dimensiona+4, nof_variables
-!                                                             ! work directly on rhoyk, clip negatives
-!                                                             if (rec_uleft(iex,l,ngp,i) < 0.0d0) then
-!                                                                 rec_uleft(iex,l,ngp,i) = 0.0d0
-!                                                             end if
-!
-!                                                             sumx = sumx + rec_uleft(iex,l,ngp,i)
-!                                                             end do
-!
-!                                                             if (sumx > 1.0d-14) then
-!                                                             ! renormalise so that sum_k (rhoyk) = rho
-!                                                             rscale = rhol / sumx
-!
-!                                                             do iex = dimensiona+4, nof_variables
-!                                                                 rec_uleft(iex,l,ngp,i) = rec_uleft(iex,l,ngp,i) * rscale
-!                                                             end do
-!
-!                                                             ! keep 2nd order; do not set reduce1 here
-!                                                             else
-!                                                             ! truly broken state → fall back
-!                                                             reduce1 = 1
-!                                                             ielem_reduce(i) = 5
-!                                                             end if
-!
-!
-!
-!                                                             end if
-
-
-
-
-
+                                                              end do
                                                     end if
 
 
@@ -4197,8 +4110,10 @@ real :: usol(1:nof_variables)
 if (code_profile.ne.102)then
 
 #ifdef gpu
-! !$omp target teams distribute parallel do &
-! !$omp& private(maxvars,aver_vars,sumvars,utmin,utmax,leftv,rightv,usol,iconsidered,facex,pointx,trouble,l,j,k,iqp,ngp,iex)
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, j, k, iqp, ngp, iex, trouble, iconsidered, facex, &
+!$omp&         pointx, leftv, rightv, maxvars, aver_vars, sumvars, &
+!$omp&         utmin, utmax, usol)
 #else
 !$omp do
 #endif
@@ -4243,7 +4158,7 @@ iconsidered=i
 
 end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -4269,8 +4184,9 @@ if (code_profile.ne.102)then
 
 
 #ifdef gpu
-! !$omp target teams distribute parallel do &
-! !$omp& private(l,j,k,iqp,ngp,iex,ndof,trouble, ifree,i_deg,iconsidered,facex,pointx)
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, j, k, iqp, ngp, iex, ndof, trouble, ifree, i_deg, &
+!$omp&         iconsidered, facex, pointx)
 #else
 !$omp do
 #endif
@@ -4316,7 +4232,7 @@ iconsidered=i
 
 end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -4625,7 +4541,7 @@ subroutine apply_filter(n)
 !     kmaxe = xmpielrank(n)
 
 #ifdef gpu
-! !$omp target teams distribute parallel do private(j,k)
+!$omp target teams distribute parallel do private(j,k)
 #else
 !$omp do
 #endif
@@ -4639,7 +4555,7 @@ subroutine apply_filter(n)
       end if
     end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -4656,7 +4572,7 @@ subroutine apply_filter_dg(n)
 
 
 #ifdef gpu
-! !$omp target teams distribute parallel do private(ex1,ex2,energy_ratio,u2,u3,u4,ws2,ws3,ws4,ww2,ww3,ww4)
+!$omp target teams distribute parallel do private(ex1,ex2,energy_ratio,u2,u3,u4,ws2,ws3,ws4,ww2,ww3,ww4)
 #else
 !$omp do
 #endif
@@ -4684,7 +4600,7 @@ subroutine apply_filter_dg(n)
       end if
     end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -4700,7 +4616,7 @@ subroutine apply_filter_dg(n)
 
 
 #ifdef gpu
-! !$omp target teams distribute parallel do private(j,k)
+!$omp target teams distribute parallel do private(j,k)
 #else
 !$omp do
 #endif
@@ -4712,7 +4628,7 @@ subroutine apply_filter_dg(n)
       end do
     end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -4728,7 +4644,7 @@ subroutine apply_filter_dg(n)
 !     kmaxe = xmpielrank(n)
 
 #ifdef gpu
-! !$omp target teams distribute parallel do private(j,k)
+!$omp target teams distribute parallel do private(j,k)
 #else
 !$omp do
 #endif
@@ -4740,7 +4656,7 @@ subroutine apply_filter_dg(n)
       end do
     end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -4986,7 +4902,7 @@ do i=1,kmaxe
 
 end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -5009,7 +4925,8 @@ kmaxe=xmpielrank(n)
 
 
 #ifdef gpu
-! !$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, iconsidered)
 #else
 !$omp do
 #endif
@@ -5020,7 +4937,7 @@ do i=1,kmaxe
 
 end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -5166,27 +5083,22 @@ end subroutine find_bounds_diss
 
 
 
- subroutine vfbp_limiter
+subroutine vfbp_limiter
 implicit none
-
 real::vf_qpsol, vf_avsol, lthresh, hthresh,scaling,scaling1,scaling2, pd1_qpsol, pd1_avsol,pd2_qpsol, pd2_avsol
 integer::i,ii,icd,k,number_of_nei,idummy,l,nnd,ngp, iqp,i_elem,i_face, img1,img2
 real, dimension(1:numberofpoints2)::scaling_f,scaling_f1,scaling_f2
 integer::facex,pointx,iconsidered,number_of_dog
 
- !iqp=qp_line_n
-
-
-
-
 
 #ifdef gpu
-! !$omp target teams distribute parallel do &
-! !$omp& private(vf_qpsol, vf_avsol, lthresh, hthresh,scaling,scaling1,&
-! !$omp& scaling2, pd1_qpsol, pd1_avsol,pd2_qpsol, pd2_avsol,&
-! !$omp& ii,icd,k,number_of_nei,idummy,l,nnd,ngp, iqp,i_elem,i_face, img1,img2,&
-! !$omp& facex,pointx,iconsidered,number_of_dog,&
-! !$omp& scaling_f,scaling_f1,scaling_f2)
+!$omp target teams distribute parallel do  &
+!$omp& private(i, vf_qpsol, vf_avsol, lthresh, hthresh, scaling, &
+!$omp&         scaling1, scaling2, pd1_qpsol, pd1_avsol, pd2_qpsol, &
+!$omp&         pd2_avsol, ii, icd, k, number_of_nei, idummy, l, nnd, &
+!$omp&         ngp, iqp, i_elem, i_face, img1, img2, facex, pointx, &
+!$omp&         iconsidered, number_of_dog, scaling_f, scaling_f1, &
+!$omp&         scaling_f2)
 #else
 !$omp do
 #endif
@@ -5337,7 +5249,7 @@ do i = 1, xmpielrank(n)
 
 end do
 #ifdef gpu
-! !$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif

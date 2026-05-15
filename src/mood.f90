@@ -68,7 +68,11 @@ end if
 if (itestcase.ge.3)then
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, iex, k, iconsidered, reduce1, nf, &
+!$omp&         lf, rowf, nad_delta1, pad_true, nad_true, leftv, &
+!$omp&         mp_pinfl, gammal, rightv, mp_pinfr, gammar, utemp, &
+!$omp&         utmin, utmax)
 #else
 !$omp do
 #endif
@@ -204,14 +208,18 @@ if (itestcase.ge.3)then
 		 
         end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(ii, i, l, ngp, iqp, iex, k, iconsidered, reduce1, nf, &
+!$omp&         lf, rowf, nad_delta1, pad_true, nad_true, leftv, &
+!$omp&         mp_pinfl, gammal, rightv, mp_pinfr, gammar, utemp, &
+!$omp&         utmin, utmax)
 #else
 !$omp do
 #endif
@@ -391,7 +399,7 @@ if (itestcase.ge.3)then
         end do
         
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -417,7 +425,7 @@ kmaxe=xmpielrank(n)
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -426,7 +434,7 @@ do i=1,kmaxe
   ielem_mood(i)=0
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -457,7 +465,7 @@ end do
  
  
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -469,7 +477,7 @@ do i=1,kmaxe
     end if
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -488,7 +496,7 @@ kmaxe=xmpielrank(n)
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -497,7 +505,7 @@ do i=1,kmaxe
   ielem_mood(i)=0
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -524,7 +532,7 @@ end do
  
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -534,7 +542,7 @@ do i=1,kmaxe
     end if
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -553,7 +561,9 @@ subroutine fix_list(n)
 	kmaxe=xmpielrank(n)
 	
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, godflux2, sum_detect, l, ngp, iqp, nfx, lfx, rowfx, &
+!$omp&         weights_temp, mright)
 #else
 !$omp do
 #endif
@@ -632,7 +642,7 @@ subroutine fix_list(n)
  		end if		
 	end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif

@@ -949,7 +949,7 @@ call omp_map_first(n)
 !$omp& voll, vorder, vort_model, vvel, wall_temp, wallc, wdatatypeint, wdatatypex, wdatatypexx, wdatatypey, wdatatypeyy, &
 !$omp& wdatatypez, weight_lsqr, wenocentralweight, wenocnschar, wenoz, wenwrt, wkdum1, wkdum2, wkdum3, wnodes_part, &
 !$omp& wpart1_end, wpart2_end, wpart3_end, wpart4_end, wpart5_end, write_variables, write_variables_av, write_variables_av_w, &
-!$omp& write_variables_w, wvel, xper, yper, zero, zero_turb_init, zeta_star, zper, indicator_par1, indicator_par2, indicator_par3, jtot, adda_filter_strong, adda_filter_weak, bleed_end, bleed_plenum, bleed_porosity, bleed_start, bound_len, bound_offset, boundhir_dg, boundhis_dg, catalytic_con, el_bnd, el_int, gamma_in, &
+!$omp& write_variables_w, wvel, xper, pos_l,pos_g,ipos_l,ipos_g, yper, zero, zero_turb_init, zeta_star, zper, indicator_par1, indicator_par2, indicator_par3, jtot, adda_filter_strong, adda_filter_weak, bleed_end, bleed_plenum, bleed_porosity, bleed_start, bound_len, bound_offset, boundhir_dg, boundhis_dg, catalytic_con, el_bnd, el_int, gamma_in, &
 !$omp& halo_len, halos_len, halo_offset, halos_offset, halo_proc, halos_proc, ibound_cpun, ibound_face, ibound_ibid, ibound_ibl, ibound_icode, ibound_inum, ibound_ishape, ibound_localn, ibound_nibl, ibound_nlocal, ibound_t, ibound_t2, ibound_which, totk,totens,totensx,kill_nan, &
 !$omp& ielem_admis, ielem_avars, ielem_bleedn, ielem_condition, ielem_condx, ielem_dih, ielem_dih2, ielem_diss, ielem_dtl, ielem_er, ielem_er1, ielem_er1dt, ielem_er1er2, ielem_er2, ielem_er2dt, ielem_erx, ielem_faceanglex, ielem_faceangley, ielem_facediss, &
 !$omp& ielem_filtered, ielem_full, ielem_ggs, ielem_hybrid, ielem_ibounds, ielem_idegfree, ielem_ifca, ielem_ihex, ielem_ihexgl, ielem_indexf, ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_ineighg, ielem_ineighn, ielem_inter_id, ielem_interior, ielem_inumneighbours, ielem_iorder, ielem_ishape, ielem_itotalpoints, ielem_linc, ielem_lwcx2, ielem_minedge, ielem_mode, ielem_mood, ielem_mood_o, &
@@ -957,7 +957,7 @@ call omp_map_first(n)
 !$omp& impdiag_mf, impoff_mf, impdiag, impdiagt, impdu, impoff, impofft, inoder4_bct, inoder4_cord, inoder4_itor, integ_basis_dg_value, integ_basis_value, integ_basis_valuec, m_1_val, modal_filter, modal_filter_strong, modal_filter_weak, &
 !$omp& mp_a_in, mp_brok_a, mp_brok_b, mp_brok_c, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in, mrf_rot_gl, point1_gl, point2_gl, qp_array_qp_weight, qp_array_x, qp_array_y, qp_array_z, radius_gl, &
 !$omp& rec_br2_aux_var, rec_br2_local_lift, rec_cgradientstemp, rec_cond, rec_findw, rec_g0, rec_gradf, rec_gradients, rec_gradients2, rec_gradientsc, rec_gradientsc2, rec_gradientstemp, rec_gradientstemp_wall, rec_gradientsturb, rec_gradientsturb_wall, rec_grads, rec_gradsav, &
-!$omp& rec_ihexb, rec_ihexbc, rec_ihexg, rec_ihexgc, rec_ihexl, rec_ihexlc, rec_ihexn, rec_ihexnc, rec_indicator, rec_indicatorc, rec_invccjac, rec_invctjac, rec_invmat_stencilt, rec_invmat_stenciltc, rec_k0, rec_local, rec_mrf, rec_mrf_origin, rec_mrf_velocity, rec_periodicflag, rec_qpoints, rec_rotvel, rec_rpoints, rec_stencils, rec_stencilsc, rec_surf_qpoints, rec_tempsq, rec_tempsqmat, rec_uleft, rec_uleft_dg, rec_uleftturb, rec_uleftturbv, rec_uleftv, rec_uleftx, rec_velinvlsqmat, rec_vellsq, rec_velocitydof_wall, rec_vext_ref, rec_volume, rec_volume_w, rec_volumec, rec_wall, rec_wallcoeff, rec_wallcoefg, rec_weightl, rec_weno, rec_weno2, rec_wenos, &
+!$omp& rec_ihexb, rec_ihexbc, rec_ihexg, rec_ihexgc, rec_ihexl, rec_ihexlc, rec_ihexn, rec_ihexnc, rec_indicator, rec_indicatorc, rec_invccjac, rec_invctjac, rec_invmat_stencilt, rec_invmat_stenciltc, rec_k0, rec_local, rec_mrf, rec_mrf_origin, rec_mrf_velocity, rec_periodicflag, rec_qpoints, rec_qpoints_p, rec_rotvel, rec_rpoints, rec_stencils, rec_stencilsc, rec_surf_qpoints, rec_tempsq, rec_tempsqmat, rec_uleft, rec_uleft_dg, rec_uleftturb, rec_uleftturbv, rec_uleftv, rec_uleftx, rec_velinvlsqmat, rec_vellsq, rec_velocitydof_wall, rec_vext_ref, rec_volume, rec_volume_w, rec_volumec, rec_wall, rec_wallcoeff, rec_wallcoefg, rec_weightl, rec_weno, rec_weno2, rec_wenos, &
 !$omp& rg_hzero, rg_molm, rg_thetag, rg_tv_coef, rg_vf, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_sol_mm_dg, rhs_val, rhs_valdg, rhst_val, sht, sht_rg, nodelist, xmpielrank, dg2fv, &
 !$omp& u_c_br2_aux_var, u_c_rms, u_c_val, u_c_valdg, u_cs_val, u_cs_valdg, u_ct_val, u_cw_val, u_cw_valdg, u_e_val, &
 !$omp& solhir, solhis, solhird, solhisd, solhi_loc, solhir_flat, solhis_flat, boundhiri, boundhisi, boundhir, boundhis, boundhirm, boundhism, boundhir_flat, boundhis_flat, boundhir_dgflat, boundhis_dgflat, boundhiri_flat, boundhisi_flat, &
@@ -986,94 +986,38 @@ call omp_map_first(n)
 
 
 
+
+
+if (dimensiona.eq.3)then
+
 #ifdef gpu
 
 #else
-!$omp parallel default(shared)
+    !$omp parallel default(shared)
 #endif
-!   do intxgt = 1, 10
-!  	call exchange_higher(n)
-!  	call least_squares(n)
-!      call wenoweights_cons(n)
-!      call checksol(n)
-!      call muscl(n)
-!  	call checksolx(n)
-!   	if (itestcase.eq.4)then
-!   	call solutiontriav2(n)
-!   	end if
-!   end do
+    call time_marching(n)
 #ifdef gpu
 
 #else
-!$omp end parallel
+    !$omp end parallel
 #endif
-
-
-					 call mpi_barrier(mpi_comm_world,ierror)
-				!$omp master
-				  if (n.eq.0)then
-				  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
-				  write(63,*)"GPU time"
-				  cpux4(1) = mpi_wtime()
-				  write(63,*)"time taken (s)=",cpux4(1)-cpux3(1)
-				  close(63)
-				  cpux3(1) = mpi_wtime()
-				  end if
-				  !$omp end master
-				  call mpi_barrier(mpi_comm_world,ierror)
-
-
+else
 #ifdef gpu
-	!$omp target update from(rec_uleft,wenwrt,idegfree,idegfree2,nof_Variables,ees)
-#endif
 
+#else
+    !$omp parallel default(shared)
+#endif
+    call time_marching2(n)
+#ifdef gpu
+
+#else
+    !$omp end parallel
+#endif
+end if
 
 #ifdef gpu
 !$omp end target data
 #endif
-
-
-
-
-
- call mpi_barrier(mpi_comm_world,ierror)
-
-
-!   call writethem(n)
-                                  
-                                  
-                                  
-                                  
- call mpi_barrier(mpi_comm_world,ierror)                                 
-                                  
-                                  
-                                  
-                                  
-                                  
-                                  
-                                  
-                                  
-!                                    call mpi_finalize(ierror)
-
-
-
-
-
-
-
-
-if (dimensiona.eq.3)then
-    !$omp parallel default(shared)
-
-    call time_marching(n)
-    !$omp end parallel
-else
-    !$omp parallel default(shared)
-    call time_marching2(n)
-    !$omp end parallel
-end if
-
-
 
 call mpi_barrier(mpi_comm_world,ierror)
 
@@ -1093,6 +1037,11 @@ call mpi_barrier(mpi_comm_world,ierror)
 call mpi_finalize(ierror)
 
 if (n.eq.0) print*,"ucns3d finished running"
+
+
+
+
+!time 3d to time 2d fix
 
 
 END PROGRAM UCNS3D

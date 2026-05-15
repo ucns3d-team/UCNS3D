@@ -41,6 +41,8 @@ real:: br2_damping
 real::ccfl
 real::totk,totens,totensx		!totk,totens,totensx,kill_nan
 integer::kill_nan
+real,dimension(5)::pos_l,pos_g
+integer,dimension(3)::ipos_l,ipos_g
 real::r_gas						!specific gas constant
 real,allocatable,dimension(:):: weights_q,weights_t,weights_l
 integer::lowmemory				! memory usage flag
@@ -776,6 +778,7 @@ real, allocatable :: rec_invmat_stenciltc(:,:,:,:)    !pseudo inverse matrix for
 real, allocatable :: rec_mrf_origin(:,:)
 real, allocatable :: rec_mrf_velocity(:,:)
 real, allocatable :: rec_qpoints(:,:,:,:)    !quadrature points
+real, allocatable :: rec_qpoints_p(:,:,:,:)    !quadrature points physical only for AI training
 real, allocatable :: rec_rotvel(:,:,:,:)    !radius of qpoints, rotational velocity
 real, allocatable :: rec_rpoints(:,:,:,:)    !radius of qpoints, rotational velocity
 real, allocatable :: rec_stencils(:,:,:,:)    !stencils entries for matrix a (usually stored only for wall bounded cells)
@@ -850,7 +853,7 @@ integer, allocatable :: ibound_cpun(:,:)    !local number and cpu for each bound
 !$omp declare target (rec_findw, rec_g0, rec_gradf, rec_gradients, rec_gradients2, rec_gradientsc, rec_gradientsc2, rec_gradientstemp, rec_gradientstemp_wall, rec_gradientsturb)
 !$omp declare target (rec_gradientsturb_wall, rec_grads, rec_gradsav, rec_ihexb, rec_ihexbc, rec_ihexg, rec_ihexgc, rec_ihexl, rec_ihexlc, rec_ihexn)
 !$omp declare target (rec_ihexnc, rec_indicator, rec_indicatorc, rec_invccjac, rec_invctjac, rec_invmat_stencilt, rec_invmat_stenciltc, rec_k0, rec_local, rec_mrf)
-!$omp declare target (rec_mrf_origin, rec_mrf_velocity, rec_periodicflag, rec_qpoints, rec_rotvel, rec_rpoints, rec_stencils, rec_stencilsc, rec_surf_qpoints, rec_tempsq)
+!$omp declare target (rec_mrf_origin, rec_mrf_velocity, rec_periodicflag, rec_qpoints, rec_qpoints_p, rec_rotvel, rec_rpoints, rec_stencils, rec_stencilsc, rec_surf_qpoints, rec_tempsq)
 !$omp declare target (rec_tempsqmat, rec_uleft, rec_uleft_dg, rec_uleftturb, rec_uleftturbv, rec_uleftv, rec_uleftx, rec_velinvlsqmat, rec_vellsq, rec_velocitydof_wall)
 !$omp declare target (rec_vext_ref, rec_volume, rec_volume_w, rec_volumec, rec_wall, rec_wallcoeff, rec_wallcoefg, rec_weightl, rec_weno, rec_weno2)
 !$omp declare target (rec_wenos, reduce_comp, res_time, rg_hzero, rg_kf_type, rg_molm, rg_nof_reactions, rg_nof_tv_coef, rg_relax, rg_t_inf)
@@ -893,7 +896,7 @@ integer, allocatable :: ibound_cpun(:,:)    !local number and cpu for each bound
 !$omp declare target (statfile, statistics, stennorm, subdiv, surfshear, suther, swirl, t, taylor, tecplot)
 !$omp declare target (temporder, thermal, timestep, tolbig, tolsmall, totalvolume, totiw, totwalls, totwallsc, turbinit)
 !$omp declare target (turbulence, turbulenceequations, turbulencemodel, twall, typesten, tz1, ufreestream, unwou, upperlimit, upturblimit)
-!$omp declare target (uvel, vectorx, vectory, vectorz, visc, voll, vorder, vvel, wallc, wdatatypeint)
+!$omp declare target (uvel, vectorx, pos_l,pos_g,ipos_l,ipos_g, vectory, vectorz, visc, voll, vorder, vvel, wallc, wdatatypeint)
 !$omp declare target (wdatatypex, wdatatypexx, wdatatypey, wdatatypeyy, wdatatypez, wenocentralweight, wenocnschar, wenoz, wenwrt, wkdum1)
 !$omp declare target (wkdum2, wkdum3, wvel, xmpielrank, xper, yper, zero, zper)
 !$omp declare target (indicator_par1, indicator_par2, indicator_par3,totk,totens,totensx,kill_nan)

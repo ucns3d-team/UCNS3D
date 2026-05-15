@@ -41,21 +41,14 @@ real,dimension(1:dimensiona)::cords
 sweeps=10
 kmaxe=xmpielrank(n)
 
-impdu(:,:)=zero
-
-
-du1=zero
-b1_imp=zero
-lscqm1=zero
-dur=zero; dul=zero
-durr=zero; dulr=zero
+impdu(:,:)=0.0d0;
 
 
 
 call calculate_jacobian(n)
 if (rframe.eq.0) then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -66,14 +59,14 @@ do i=1,kmaxe
   end do
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 end if
 if (srfg.eq.1)then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do private(lscqm1,w1,w2,w3,denx)
 #else
 !$omp do
 #endif
@@ -97,7 +90,7 @@ do i=1,kmaxe
     impdiag(i,5,5)=1.0d0/lscqm1(5,5)
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -105,7 +98,7 @@ end if
 if(mrf.eq.1)then
  srf=0
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do private(srf,lscqm1,w1,w2,w3,denx)
 #else
 !$omp do
 #endif
@@ -139,7 +132,7 @@ do i=1,kmaxe
     end if
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -147,7 +140,7 @@ end if
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -155,7 +148,7 @@ do i=1,kmaxe
 impdiagt(i,1:turbulenceequations+passivescalar)=1.0d0/max(impdiagt(i,1:turbulenceequations+passivescalar),1.0d-30)
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -165,11 +158,24 @@ end if
 if (relax.eq.1)then
 do ii=1,sweeps	!loop1
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, igoflux, icaseb, n_node, ibfc, srf, j, &
+!$omp&         impres1, impres2, impres3, tempxx, w1, w2, w3, denx, &
+!$omp&         lscqm1, b1_imp, du1, du2, dummy12, c1_imp, dur, dul, &
+!$omp&         durr, dulr, dut1, b1t, dummy12t, iconsidered, facex, &
+!$omp&         pointx, ngp, b_code, nfx, lfx, rowfx, angle1, angle2, &
+!$omp&         nx, ny, nz, cleft, cright, cright_rot, cleft_rot, &
+!$omp&         cturbl, cturbr, leftv, srf_speedrot, srf_speed, rightv, &
+!$omp&         pox, poy, poz, vext, nodes_list, cords)
 #else
 !$omp do
 #endif
 do i=1,kmaxe	!loop2
+ du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
+
+
+
+
     if(mrf.eq.1)then
         srf=rec_mrf(i)
     end if
@@ -388,7 +394,7 @@ impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdiag
 end if
 end do	!loop elements
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -404,11 +410,20 @@ else
 
 do ii=1,sweeps	!loop1
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, igoflux, icaseb, n_node, ibfc, srf, j, &
+!$omp&         impres1, impres2, impres3, tempxx, w1, w2, w3, denx, &
+!$omp&         lscqm1, b1_imp, du1, du2, dummy12, c1_imp, dur, dul, &
+!$omp&         durr, dulr, dut1, b1t, dummy12t, iconsidered, facex, &
+!$omp&         pointx, ngp, b_code, nfx, lfx, rowfx, angle1, angle2, &
+!$omp&         nx, ny, nz, cleft, cright, cright_rot, cleft_rot, &
+!$omp&         cturbl, cturbr, leftv, srf_speedrot, srf_speed, rightv, &
+!$omp&         pox, poy, poz, vext, nodes_list, cords)
 #else
 !$omp do
 #endif
 do i=1,kmaxe	!loop2
+ du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
 dummy12(:)=zero
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 dummy12t(:)=zero
@@ -670,7 +685,7 @@ impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdiag
 end if
 end do	!loop elements
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -680,11 +695,20 @@ end do	!loop elements
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, igoflux, icaseb, n_node, ibfc, srf, j, &
+!$omp&         impres1, impres2, impres3, tempxx, w1, w2, w3, denx, &
+!$omp&         lscqm1, b1_imp, du1, du2, dummy12, c1_imp, dur, dul, &
+!$omp&         durr, dulr, dut1, b1t, dummy12t, iconsidered, facex, &
+!$omp&         pointx, ngp, b_code, nfx, lfx, rowfx, angle1, angle2, &
+!$omp&         nx, ny, nz, cleft, cright, cright_rot, cleft_rot, &
+!$omp&         cturbl, cturbr, leftv, srf_speedrot, srf_speed, rightv, &
+!$omp&         pox, poy, poz, vext, nodes_list, cords)
 #else
 !$omp do
 #endif
 do i=1,kmaxe,-1	!loop2
+ du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
 dummy12(:)=zero
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 dummy12t(:)=zero
@@ -859,7 +883,7 @@ impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdu(i
 end if
 end do	!loop elements
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -920,14 +944,10 @@ real::impoff(1,6,1:nof_variables,1:nof_variables)
 sweeps=10
 kmaxe=xmpielrank(n)
 
-impdu(iconsidered,:)=zero
+impdu(:,:)=0.0d0;
 
 
-du1=zero
-b1_imp=zero
-lscqm1=zero
-dur=zero; dul=zero
-durr=zero; dulr=zero
+
 
 
 
@@ -938,11 +958,20 @@ durr=zero; dulr=zero
 if (relax.eq.1)then
 do ii=1,sweeps	!loop1
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, ibfc, igoflux, impres1, impres2, &
+!$omp&         impres3, lscqm1, b1_imp, du1, du2, dummy12, c1_imp, &
+!$omp&         dur, dul, durr, dulr, dut1, b1t, dummy12t, &
+!$omp&         iconsidered, facex, pointx, ngp, n_node, b_code, &
+!$omp&         nfx, lfx, rowfx, angle1, angle2, nx, ny, nz, cleft, &
+!$omp&         cright, cright_rot, cleft_rot, cturbl, cturbr, leftv, &
+!$omp&         srf_speedrot, srf_speed, rightv, pox, poy, poz, vext, &
+!$omp&         nodes_list, cords, impdiagt, impdiag, impofft, impoff)
 #else
 !$omp do
 #endif
 do i=1,kmaxe	!loop2
+du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
 iconsidered=i
 call calculate_jacobianlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)
@@ -1148,7 +1177,7 @@ impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdiag
 end if
 end do	!loop elements
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1164,11 +1193,20 @@ else
 
 do ii=1,sweeps	!loop1
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, ibfc, igoflux, impres1, impres2, &
+!$omp&         impres3, lscqm1, b1_imp, du1, du2, dummy12, c1_imp, &
+!$omp&         dur, dul, durr, dulr, dut1, b1t, dummy12t, &
+!$omp&         iconsidered, facex, pointx, ngp, n_node, b_code, &
+!$omp&         nfx, lfx, rowfx, angle1, angle2, nx, ny, nz, cleft, &
+!$omp&         cright, cright_rot, cleft_rot, cturbl, cturbr, leftv, &
+!$omp&         srf_speedrot, srf_speed, rightv, pox, poy, poz, vext, &
+!$omp&         nodes_list, cords, impdiagt, impdiag, impofft, impoff)
 #else
 !$omp do
 #endif
 do i=1,kmaxe	!loop2
+du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
 iconsidered=i
 call calculate_jacobianlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)
@@ -1407,7 +1445,7 @@ impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdiag
 end if
 end do	!loop elements
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1417,11 +1455,20 @@ end do	!loop elements
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, ibfc, igoflux, impres1, impres2, &
+!$omp&         impres3, lscqm1, b1_imp, du1, du2, dummy12, c1_imp, &
+!$omp&         dur, dul, durr, dulr, dut1, b1t, dummy12t, &
+!$omp&         iconsidered, facex, pointx, ngp, n_node, b_code, &
+!$omp&         nfx, lfx, rowfx, angle1, angle2, nx, ny, nz, cleft, &
+!$omp&         cright, cright_rot, cleft_rot, cturbl, cturbr, leftv, &
+!$omp&         srf_speedrot, srf_speed, rightv, pox, poy, poz, vext, &
+!$omp&         nodes_list, cords, impdiagt, impdiag, impofft, impoff)
 #else
 !$omp do
 #endif
 do i=1,kmaxe,-1	!loop2
+du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
 
 iconsidered=i
 call calculate_jacobianlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
@@ -1574,13 +1621,13 @@ end if
 impdu(i,1:nof_variables)=impdu(i,1:nof_variables)-matmul(impdiag(1,1:nof_variables,1:nof_variables),dummy12(1:nof_variables))
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 
-impdu(1,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)&
+impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)&
 -((impdiagt(1,1:turbulenceequations+passivescalar)*dummy12t(1:turbulenceequations+passivescalar)))
 
 end if
 end do	!loop elements
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1633,18 +1680,14 @@ kmaxe=xmpielrank(n)
 impdu(:,:)=zero
 
 
-du1=zero
-b1_imp=zero
-lscqm1=zero
-dur=zero; dul=zero
-durr=zero; dulr=zero
+
 
 
 
 call calculate_jacobian_2d(n)
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do private (lscqm1)
 #else
 !$omp do
 #endif
@@ -1656,7 +1699,7 @@ do i=1,kmaxe
   end do
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1664,7 +1707,7 @@ end do
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do
 #else
 !$omp do
 #endif
@@ -1672,7 +1715,7 @@ do i=1,kmaxe
 impdiagt(i,1:turbulenceequations+passivescalar)=1.0d0/max(impdiagt(i,1:turbulenceequations+passivescalar),1.0d-30)
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1682,12 +1725,20 @@ end if
 if (relax.eq.1)then
 do ii=1,sweeps	!loop1
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, igoflux, icaseb, n_node, ibfc, j, &
+!$omp&         impres1, impres2, impres3, lscqm1, b1_imp, du1, du2, &
+!$omp&         dummy12, c1_imp, dur, dul, durr, dulr, dut1, b1t, &
+!$omp&         dummy12t, iconsidered, facex, pointx, ngp, b_code, &
+!$omp&         nfx, lfx, rowfx, angle1, angle2, nx, ny, nz, cleft, &
+!$omp&         cright, cright_rot, cleft_rot, cturbl, cturbr, leftv, &
+!$omp&         srf_speedrot, srf_speed, rightv, pox, poy, poz, vext, &
+!$omp&         nodes_list, cords)
 #else
 !$omp do
 #endif
 do i=1,kmaxe	!loop2
-
+du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
 if (iscoun.ne.1)then
 b1_imp(1:nof_variables)=-(rhs_val(1:nof_variables,i)+((((1.5*u_c_val(1,1:nof_variables,i))-(2.0d0*u_c_val(2,1:nof_variables,i))+(0.5d0*u_c_val(3,1:nof_variables,i)))/(dt))*ielem_totvolume(i)))
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
@@ -1896,7 +1947,7 @@ end if
 
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -1913,11 +1964,20 @@ else
 
 do ii=1,sweeps	!loop1
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, igoflux, icaseb, n_node, ibfc, j, &
+!$omp&         impres1, impres2, impres3, lscqm1, b1_imp, du1, du2, &
+!$omp&         dummy12, c1_imp, dur, dul, durr, dulr, dut1, b1t, &
+!$omp&         dummy12t, iconsidered, facex, pointx, ngp, b_code, &
+!$omp&         nfx, lfx, rowfx, angle1, angle2, nx, ny, nz, cleft, &
+!$omp&         cright, cright_rot, cleft_rot, cturbl, cturbr, leftv, &
+!$omp&         srf_speedrot, srf_speed, rightv, pox, poy, poz, vext, &
+!$omp&         nodes_list, cords)
 #else
 !$omp do
 #endif
 do i=1,kmaxe	!loop2
+du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
 dummy12(:)=zero
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 dummy12t(:)=zero
@@ -2173,7 +2233,7 @@ impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdiag
 end if
 end do	!loop elements
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2183,11 +2243,20 @@ end do	!loop elements
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, igoflux, icaseb, n_node, ibfc, j, &
+!$omp&         impres1, impres2, impres3, lscqm1, b1_imp, du1, du2, &
+!$omp&         dummy12, c1_imp, dur, dul, durr, dulr, dut1, b1t, &
+!$omp&         dummy12t, iconsidered, facex, pointx, ngp, b_code, &
+!$omp&         nfx, lfx, rowfx, angle1, angle2, nx, ny, nz, cleft, &
+!$omp&         cright, cright_rot, cleft_rot, cturbl, cturbr, leftv, &
+!$omp&         srf_speedrot, srf_speed, rightv, pox, poy, poz, vext, &
+!$omp&         nodes_list, cords)
 #else
 !$omp do
 #endif
 do i=1,kmaxe	!loop2
+du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
 dummy12(:)=zero
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 dummy12t(:)=zero
@@ -2367,7 +2436,7 @@ impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdu(i
 end if
 end do	!loop elements
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2423,14 +2492,10 @@ real::impoff(1,4,1:nof_variables,1:nof_variables)
 sweeps=10
 kmaxe=xmpielrank(n)
 
-impdu(iconsidered,:)=zero
+impdu(:,:)=zero
 
 
-du1=zero
-b1_imp=zero
-lscqm1=zero
-dur=zero; dul=zero
-durr=zero; dulr=zero
+
 
 
 
@@ -2441,11 +2506,20 @@ durr=zero; dulr=zero
 if (relax.eq.1)then
 do ii=1,sweeps	!loop1
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, ibfc, igoflux, impres1, impres2, &
+!$omp&         impres3, lscqm1, b1_imp, du1, du2, dummy12, c1_imp, &
+!$omp&         dur, dul, durr, dulr, dut1, b1t, dummy12t, &
+!$omp&         iconsidered, facex, pointx, n_node, ngp, b_code, &
+!$omp&         nfx, lfx, rowfx, angle1, angle2, nx, ny, nz, cleft, &
+!$omp&         cright, cright_rot, cleft_rot, cturbl, cturbr, leftv, &
+!$omp&         srf_speedrot, srf_speed, rightv, pox, poy, poz, vext, &
+!$omp&         nodes_list, cords, impdiagt, impdiag, impofft, impoff)
 #else
 !$omp do
 #endif
 do i=1,kmaxe	!loop2
+du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
 iconsidered=i
 call calculate_jacobian_2dlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)
@@ -2663,7 +2737,7 @@ impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdiag
 end if
 end do	!loop elements
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2679,11 +2753,20 @@ else
 
 do ii=1,sweeps	!loop1
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, ibfc, igoflux, impres1, impres2, &
+!$omp&         impres3, lscqm1, b1_imp, du1, du2, dummy12, c1_imp, &
+!$omp&         dur, dul, durr, dulr, dut1, b1t, dummy12t, &
+!$omp&         iconsidered, facex, pointx, n_node, ngp, b_code, &
+!$omp&         nfx, lfx, rowfx, angle1, angle2, nx, ny, nz, cleft, &
+!$omp&         cright, cright_rot, cleft_rot, cturbl, cturbr, leftv, &
+!$omp&         srf_speedrot, srf_speed, rightv, pox, poy, poz, vext, &
+!$omp&         nodes_list, cords, impdiagt, impdiag, impofft, impoff)
 #else
 !$omp do
 #endif
 do i=1,kmaxe	!loop2
+du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
 iconsidered=i
 call calculate_jacobian_2dlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)
@@ -2915,7 +2998,7 @@ impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdiag
 end if
 end do	!loop elements
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2925,11 +3008,20 @@ end do	!loop elements
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, ibfc, igoflux, impres1, impres2, &
+!$omp&         impres3, lscqm1, b1_imp, du1, du2, dummy12, c1_imp, &
+!$omp&         dur, dul, durr, dulr, dut1, b1t, dummy12t, &
+!$omp&         iconsidered, facex, pointx, n_node, ngp, b_code, &
+!$omp&         nfx, lfx, rowfx, angle1, angle2, nx, ny, nz, cleft, &
+!$omp&         cright, cright_rot, cleft_rot, cturbl, cturbr, leftv, &
+!$omp&         srf_speedrot, srf_speed, rightv, pox, poy, poz, vext, &
+!$omp&         nodes_list, cords, impdiagt, impdiag, impofft, impoff)
 #else
 !$omp do
 #endif
 do i=1,kmaxe,-1	!loop2
+du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.0d0
 
 iconsidered=i
 call calculate_jacobian_2dlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
@@ -3079,13 +3171,13 @@ end if
 impdu(i,1:nof_variables)=impdu(i,1:nof_variables)-matmul(impdiag(1,1:nof_variables,1:nof_variables),dummy12(1:nof_variables))
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 
-impdu(1,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)&
+impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)&
 -((impdiagt(1,1:turbulenceequations+passivescalar)*dummy12t(1:turbulenceequations+passivescalar)))
 
 end if
 end do	!loop elements
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -3161,7 +3253,14 @@ du1=zero
 call exhboundhigher2(n)
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, igoflux, icaseb,  modeu, lscqm1, &
+!$omp&         b1_imp, du1, du2, dummy12, c1_imp, dur, dul, durr, &
+!$omp&         dulr, dut1, b1t, dummy12t, iconsidered, facex, pointx, &
+!$omp&         ngp, b_code, nfx, lfx, rowfx, angle1, angle2, nx, ny, &
+!$omp&         nz, cleft, cright, cright_rot, cleft_rot, srf_speedrot, &
+!$omp&         cturbl, cturbr, leftv, rightv, pox, poy, poz, vext, &
+!$omp&         nodes_list, cords)
 #else
 !$omp do
 #endif
@@ -3208,7 +3307,7 @@ b1_imp(1:nof_variables)=-(rhs_val(1:nof_variables,i)+((((1.5*u_c_val(1,1:nof_var
                   
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -3216,7 +3315,14 @@ end do
  call exhboundhigherlu(n)
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, l, k, ii, nvar, igoflux, icaseb,  modeu, lscqm1, &
+!$omp&         b1_imp, du1, du2, dummy12, c1_imp, dur, dul, durr, &
+!$omp&         dulr, dut1, b1t, dummy12t, iconsidered, facex, pointx, &
+!$omp&         ngp, b_code, nfx, lfx, rowfx, angle1, angle2, nx, ny, &
+!$omp&         nz, cleft, cright, cright_rot, cleft_rot, srf_speedrot, &
+!$omp&         cturbl, cturbr, leftv, rightv, pox, poy, poz, vext, &
+!$omp&         nodes_list, cords)
 #else
 !$omp do
 #endif
@@ -3248,7 +3354,7 @@ iconsidered=i
                  
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -3265,6 +3371,9 @@ subroutine lusgs_interior(n,iconsidered,modeu,b1_imp,b1t)
 implicit none
 !> @brief
 !> this subroutine solves the linear system for implicit time stepping either through matrix free lu-sgs low memory footprint
+#ifdef gpu
+!$omp declare target
+#endif
 integer,intent(in)::n,iconsidered,modeu
 integer::i,l,k,ii,inds
 real::impres1,impres2,impres3
@@ -3360,6 +3469,9 @@ subroutine lusgs_out(n,iconsidered,modeu,b1_imp,b1t)
 implicit none
 !> @brief
 !> this subroutine solves the linear system for implicit time stepping either through matrix free lu-sgs low memory footprint
+#ifdef gpu
+!$omp declare target
+#endif
 integer,intent(in)::n,iconsidered,modeu
 integer::i,l,k,ii,inds,interfaces,n_node
 real,intent(inout)::b1_imp(1:nof_variables),b1t(turbulenceequations+passivescalar)
@@ -3678,6 +3790,9 @@ end subroutine lusgs_out
 
 subroutine deltafx(iconsidered,facex,deltaf,velnormal)
 implicit none
+#ifdef gpu
+!$omp declare target
+#endif
 integer,intent(in)::iconsidered,facex
 real::uul,uur,angle1,angle2
 real,dimension(1:nof_variables)::cdx1,cdx2

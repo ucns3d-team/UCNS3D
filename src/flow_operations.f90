@@ -97,7 +97,60 @@ end subroutine mrfswitch
 
 
 
+subroutine gqp_sol(n,leftv,iconsidered)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+  real, intent(inout) :: leftv(1:nof_variables)
+  real::coord_gqp(1:2),rd
+  real::pi
+  integer,intent(in)::iconsidered,n
+  integer::i,j,k,facex,ngp
 
+  pi=4.0d0*atan(1.0d0)
+  i=iconsidered
+  facex=1
+  ngp=1
+  coord_gqp(1:2)= rec_qpoints(facex,ngp,1:2,i)
+
+  write(150+n,*)i,rec_qpoints(facex,ngp,1:2,i)
+
+
+    leftv(1)=0.0d0
+if (sqrt(((coord_gqp(1)-0.25d0)**2)+((coord_gqp(2)-0.5d0)**2)).le.0.15)then
+rd=(1.0d0/0.15d0)*sqrt(((coord_gqp(1)-0.25d0)**2)+((coord_gqp(2)-0.5d0)**2))
+
+leftv(1)=0.25d0*(1.0d0+cos(pi*min(rd,1.0d0)))
+end if
+
+if (sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.25d0)**2)).le.0.15)then
+
+rd=(1.0d0/0.15d0)*sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.25d0)**2))
+leftv(1)=1.0d0-rd
+end if
+
+    if (sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.75d0)**2)).le.0.15)then
+
+    rd=(1.0d0/0.15d0)*sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.75d0)**2))
+	  if ((abs(coord_gqp(1)-0.5).ge.0.025d0).or.(coord_gqp(2).gt.0.85))then
+
+	 leftv(1)=1.0d0
+	  else
+
+	  leftv(1)=0.0d0
+
+	  end if
+    end if
+
+
+
+
+
+
+
+
+end subroutine gqp_sol
 
 
 subroutine fix_conservative_state(leftv)
@@ -117,10 +170,10 @@ subroutine fix_conservative_state(leftv)
   real :: tmin, tv_max
   real :: echem, cv_mix, etr_min, rhoe_min
   real :: rhoev_cap, sum_viby
-
-  ! ------------------------
-  ! tunable constants
-  ! ------------------------
+!
+!   ------------------------
+!   tunable constants
+!   ------------------------
   rho_floor = 1.0d-14
   tiny      = 1.0d-30
   tmin      = 200.0d0      ! translational temperature floor
@@ -129,125 +182,125 @@ subroutine fix_conservative_state(leftv)
   idxe  = dimensiona + 2
   idxev = dimensiona + 3
 
-!   ! ------------------------
-!   ! 1) density floor
-!   ! ------------------------
-!   rho = leftv(1)
-!   if (rho < rho_floor) then
-!     rho = rho_floor
-!     leftv(1) = rho
-!   end if
-!
-!   ! ------------------------
-!   ! 2) vib energy floor
-!   ! ------------------------
-!   rhoev = leftv(idxev)
-!   if (rhoev < 0.0d0) then
-!     rhoev = 0.0d0
-!     leftv(idxev) = rhoev
-!   end if
-!
-!   ! ------------------------
-!   ! 3) species positivity + normalization: enforce sum rhoy = rho
-!   ! ------------------------
-!   sumrhoy = 0.0d0
-!   do k = 1, nof_species
-!     if (leftv(idxev + k) < 0.0d0) leftv(idxev + k) = 0.0d0
-!     sumrhoy = sumrhoy + leftv(idxev + k)
-!   end do
-!
-!   if (sumrhoy > 0.0d0) then
-!     scale = rho / sumrhoy
-!     do k = 1, nof_species
-!       leftv(idxev + k) = leftv(idxev + k) * scale
-!       y(k) = leftv(idxev + k) / rho
-!     end do
-!   else
-!     ! pathological: assign all mass to species 1
-!     leftv(idxev + 1) = rho
-!     y(1) = 1.0d0
-!     do k = 2, nof_species
-!       leftv(idxev + k) = 0.0d0
-!       y(k) = 0.0d0
-!     end do
-!   end if
-!
-!   ! ------------------------
-!   ! 4) cap vib energy to avoid tv spikes (composition-compatible)
-!   !     if rhoev too large for available vib species, reduce it and
-!   !     add the removed energy back into rhoe (conserve total).
-!   ! ------------------------
-!   rhoe  = leftv(idxe)
-!   rhoev = leftv(idxev)
-!
-!   sum_viby = 0.0d0
-!   do k = 1, 3
-!     sum_viby = sum_viby + y(k)
-!   end do
-!
-!   if (sum_viby < 1.0d-12) then
-!     ! no vib-capable mass: force rhoev -> 0, return energy to rhoe
-!     dev   = rhoev
-!     rhoev = 0.0d0
-!     rhoe  = rhoe + dev
-!   else
-!     ! cap corresponding to tv_max using your same oscillator formula
-!     rhoev_cap = 0.0d0
-!     do k = 1, 3
-!       if (y(k) > 0.0d0) then
-!         rhoev_cap = rhoev_cap + rho * y(k) * (rgs_ru / rg_molm(k)) * &
-!                     (rg_thetag(k) / (exp(rg_thetag(k)/tv_max) - 1.0d0))
-!       end if
-!     end do
-!
-!     if (rhoev > rhoev_cap) then
-!       dev   = rhoev - rhoev_cap
-!       rhoev = rhoev_cap
-!       rhoe  = rhoe + dev   ! conserve energy by moving excess vib -> total
-!     end if
-!   end if
-!
-!   leftv(idxev) = rhoev
-!   leftv(idxe)  = rhoe
-!
-!   ! ------------------------
-!   ! 5) enforce tmin on translational energy via rhoe floor
-!   !     rhoe >= rho*(cv_mix*tmin + echem + ke) + rhoev
-!   ! ------------------------
-!
-!   ! velocities + ke (note: ke here is per-mass)
-!   u = leftv(2) / rho
-!   v = leftv(3) / rho
-!   if (dimensiona == 3) then
-!     w = leftv(4) / rho
-!   else
-!     w = 0.0d0
-!   end if
-!   ke = 0.5d0 * (u*u + v*v + w*w)
-!
-!   ! chemical energy per mass
-!   echem = 0.0d0
-!   do k = 1, nof_species
-!     if (rg_hzero(k) > 0.0d0) then
-!       echem = echem - y(k) * (rg_hzero(k) / rg_molm(k))
-!     end if
-!   end do
-!
-!   ! cv_mix per mass
-!   cv_mix = 0.0d0
-!   do k = 1, nof_species
-!     if (k <= 3) then
-!       cv_mix = cv_mix + y(k) * (5.0d0/2.0d0) * (rgs_ru / rg_molm(k))
-!     else
-!       cv_mix = cv_mix + y(k) * (3.0d0/2.0d0) * (rgs_ru / rg_molm(k))
-!     end if
-!   end do
-!   if (cv_mix < tiny) cv_mix = tiny
-!
-!   etr_min  = cv_mix * tmin
-!   rhoe_min = rho * (etr_min + echem + ke) + rhoev
-!
-!   if (leftv(idxe) < rhoe_min) leftv(idxe) = rhoe_min
+  ! ------------------------
+  ! 1) density floor
+  ! ------------------------
+  rho = leftv(1)
+  if (rho < rho_floor) then
+    rho = rho_floor
+    leftv(1) = rho
+  end if
+
+  ! ------------------------
+  ! 2) vib energy floor
+  ! ------------------------
+  rhoev = leftv(idxev)
+  if (rhoev < 0.0d0) then
+    rhoev = 0.0d0
+    leftv(idxev) = rhoev
+  end if
+
+  ! ------------------------
+  ! 3) species positivity + normalization: enforce sum rhoy = rho
+  ! ------------------------
+  sumrhoy = 0.0d0
+  do k = 1, nof_species
+    if (leftv(idxev + k) < 0.0d0) leftv(idxev + k) = 0.0d0
+    sumrhoy = sumrhoy + leftv(idxev + k)
+  end do
+
+  if (sumrhoy > 0.0d0) then
+    scale = rho / sumrhoy
+    do k = 1, nof_species
+      leftv(idxev + k) = leftv(idxev + k) * scale
+      y(k) = leftv(idxev + k) / rho
+    end do
+  else
+    ! pathological: assign all mass to species 1
+    leftv(idxev + 1) = rho
+    y(1) = 1.0d0
+    do k = 2, nof_species
+      leftv(idxev + k) = 0.0d0
+      y(k) = 0.0d0
+    end do
+  end if
+
+  ! ------------------------
+  ! 4) cap vib energy to avoid tv spikes (composition-compatible)
+  !     if rhoev too large for available vib species, reduce it and
+  !     add the removed energy back into rhoe (conserve total).
+  ! ------------------------
+  rhoe  = leftv(idxe)
+  rhoev = leftv(idxev)
+
+  sum_viby = 0.0d0
+  do k = 1, 3
+    sum_viby = sum_viby + y(k)
+  end do
+
+  if (sum_viby < 1.0d-12) then
+    ! no vib-capable mass: force rhoev -> 0, return energy to rhoe
+    dev   = rhoev
+    rhoev = 0.0d0
+    rhoe  = rhoe + dev
+  else
+    ! cap corresponding to tv_max using your same oscillator formula
+    rhoev_cap = 0.0d0
+    do k = 1, 3
+      if (y(k) > 0.0d0) then
+        rhoev_cap = rhoev_cap + rho * y(k) * (rgs_ru / rg_molm(k)) * &
+                    (rg_thetag(k) / (exp(rg_thetag(k)/tv_max) - 1.0d0))
+      end if
+    end do
+
+    if (rhoev > rhoev_cap) then
+      dev   = rhoev - rhoev_cap
+      rhoev = rhoev_cap
+      rhoe  = rhoe + dev   ! conserve energy by moving excess vib -> total
+    end if
+  end if
+
+  leftv(idxev) = rhoev
+  leftv(idxe)  = rhoe
+
+  ! ------------------------
+  ! 5) enforce tmin on translational energy via rhoe floor
+  !     rhoe >= rho*(cv_mix*tmin + echem + ke) + rhoev
+  ! ------------------------
+
+  ! velocities + ke (note: ke here is per-mass)
+  u = leftv(2) / rho
+  v = leftv(3) / rho
+  if (dimensiona == 3) then
+    w = leftv(4) / rho
+  else
+    w = 0.0d0
+  end if
+  ke = 0.5d0 * (u*u + v*v + w*w)
+
+  ! chemical energy per mass
+  echem = 0.0d0
+  do k = 1, nof_species
+    if (rg_hzero(k) > 0.0d0) then
+      echem = echem - y(k) * (rg_hzero(k) / rg_molm(k))
+    end if
+  end do
+
+  ! cv_mix per mass
+  cv_mix = 0.0d0
+  do k = 1, nof_species
+    if (k <= 3) then
+      cv_mix = cv_mix + y(k) * (5.0d0/2.0d0) * (rgs_ru / rg_molm(k))
+    else
+      cv_mix = cv_mix + y(k) * (3.0d0/2.0d0) * (rgs_ru / rg_molm(k))
+    end if
+  end do
+  if (cv_mix < tiny) cv_mix = tiny
+
+  etr_min  = cv_mix * tmin
+  rhoe_min = rho * (etr_min + echem + ke) + rhoev
+
+  if (leftv(idxe) < rhoe_min) leftv(idxe) = rhoe_min
 
 
 
@@ -1407,7 +1460,7 @@ p_tol =10e-5
 
 
 
-!                                 call fix_conservative_state(leftv)
+!                                  call fix_conservative_state(leftv)
 
                                 !first get total density-correct !
                                 ! note:
@@ -1687,7 +1740,7 @@ p_tol =10e-5
 
               temps(:)=0.0d0
 
-!               call fix_conservative_state(leftv)
+! !                call fix_conservative_state(leftv)
               !first get total density-correct
 
                !first get total density-correct !
@@ -1956,7 +2009,7 @@ if (realgas.eq.1)then
 
 temps(:)=0.0d0
 
-!           call fix_conservative_state(leftv)
+!            call fix_conservative_state(leftv)
 
               !first get total density-correct
 
@@ -4589,7 +4642,8 @@ real,dimension(1:3,1:3)::vortet1
  	 kmaxe=xmpielrank(n)
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, ihgt, ihgj, snorm, onorm, tvort, svort, ovort, vortet1)
 #else
 !$omp do
 #endif
@@ -4613,7 +4667,7 @@ do i=1,kmaxe
 		
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -4646,7 +4700,12 @@ real,dimension(1:4)::viscl,laml
 
  	 kmaxe=xmpielrank(n)
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, ihgt, ihgj, snorm, onorm, tvort, svort, ovort, &
+!$omp&         taul, taur, tau, q, nnn, nall, ux, uy, uz, vx, vy, vz, &
+!$omp&         wx, wy, wz, rho12, u12, v12, w12, damp, vdamp, tempxx, &
+!$omp&         vortet1, leftv, mp_pinfl, gammal, rightv, mp_pinfr, &
+!$omp&         gammar, angle1, angle2, nx, ny, nz, viscl, laml)
 #else
 !$omp do
 #endif
@@ -4721,7 +4780,7 @@ do i=1,kmaxe
 end do
 
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -4744,7 +4803,8 @@ real,dimension(1:dims,1:dims)::vortet1
  	 kmaxe=xmpielrank(n)
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i, ihgt, ihgj, snorm, onorm, tvort, svort, ovort, vortet1)
 #else
 !$omp do
 #endif
@@ -4766,7 +4826,7 @@ do i=1,kmaxe
 		
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -4792,7 +4852,7 @@ integer,intent(inout)::ibfc
 real,dimension(1:nof_variables),intent(in)::srf_speedrot,srf_speed
 real,dimension(1:dimensiona),intent(in)::pox,poy,poz
 real,intent(in)::angle1,angle2,nx,ny,nz
-real,dimension(turbulenceequations),intent(inout)::cturbl,cturbr
+real,dimension(1:turbulenceequations+passivescalar),intent(inout)::cturbl,cturbr
 real,dimension(1:nof_variables+turbulenceequations+passivescalar),intent(inout)::cright_rot,cleft_rot
 real,dimension(1:nof_variables)::subson1,subson2,subson3,tempxv,tempvect1,tempvect2
 real::mp_pinfl,mp_pinfr,gammal,gammar,u,v,w
@@ -5475,7 +5535,7 @@ real,dimension(1:nof_variables),intent(inout)::leftv,rightv
 real,dimension(1:nof_variables),intent(in)::srf_speedrot,srf_speed
 real,dimension(1:dimensiona),intent(in)::pox,poy,poz
 real,intent(in)::angle1,angle2,nx,ny,nz
-real,dimension(turbulenceequations),intent(inout)::cturbl,cturbr
+real,dimension(1:turbulenceequations+passivescalar),intent(inout)::cturbl,cturbr
 real,dimension(1:nof_variables+turbulenceequations+passivescalar),intent(inout)::cright_rot,cleft_rot
 real,dimension(1:nof_variables)::subson1,subson2,subson3,tempxv,tempvect1,tempvect2
 real::mp_pinfl,mp_pinfr,gammal,gammar,u,v
@@ -6985,14 +7045,13 @@ end if
 
 
   
-  
+
   
 
 subroutine trajectories
 implicit none
 integer::i,j,k,traj1,traj2,traj3,traj4,kmaxe,writeid,writeconf,num_vg
 real::win1,win2,win3,win4,post,post1,post2,post3,post4
-real,dimension(1:4)::pos_l,pos_g
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 kmaxe=xmpielrank(n)
@@ -8035,16 +8094,6 @@ integer:: i_dim, i_var
     end do
 
 end subroutine dcons2dprim
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -891,7 +891,7 @@ integer::facex,pointx,iconsidered,number_of_dog
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do private (i_face, i_elem, i_qp,iqp,icompwrt,facex,pointx,iconsidered,number_of_dog)
 #else
 !$omp do
 #endif
@@ -931,7 +931,7 @@ do i_elem = 1, xmpielrank(n)
 
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -956,7 +956,10 @@ real::x1,y1,z1
 
 
 #ifdef gpu
-!!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do  &
+!$omp& private(i_face, i_elem, i_qp, iqp, j, k, iconsidered, facex, pointx, &
+!$omp&         number_of_dog, number, vext, weights_temp, leftv_der, leftv, &
+!$omp&         x1, y1, z1)
 #else
 !$omp do
 #endif
@@ -1013,7 +1016,7 @@ do i_elem = 1, xmpielrank(n)
 
 end do
 #ifdef gpu
-!!$omp end target teams distribute parallel do
+!$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
@@ -2099,7 +2102,42 @@ end if
 
 
 
+                                                    if (b_code.eq.2) then
 
+
+                                                  do k = 1, dimensiona
+                                                    rcvgrad(1:dimensiona,k) = lcvgrad(1:dimensiona,k)
+                                                  end do
+
+                                                  ! Enforce zero normal gradient for scalar thermochemical variables:
+                                                  ! T, Tv, species
+                                                  do iex = dimensiona+1, nof_variables-1
+
+                                                    tempx_l  = 0.0d0
+                                                    rtempx_l = 0.0d0
+
+                                                    ! gradient vector of scalar iex
+                                                    tempx_l(2) = lcvgrad(iex,1)
+                                                    tempx_l(3) = lcvgrad(iex,2)
+
+                                                    ! rotate to local face coordinates
+                                                    call rotatef2d(n,rtempx_l,tempx_l,angle1,angle2)
+
+                                                    ! reflect normal component only
+                                                    rtempx_l(2) = -rtempx_l(2)
+
+                                                    ! keep tangential component unchanged:
+                                                    ! rtempx_l(3) = rtempx_l(3)
+
+                                                    ! rotate back to Cartesian
+                                                    call rotateb2d(n,tempx_l,rtempx_l,angle1,angle2)
+
+                                                    rcvgrad(iex,1) = tempx_l(2)
+                                                    rcvgrad(iex,2) = tempx_l(3)
+
+                                                  end do
+
+                                                end if
 
 
                                                       if (b_code.eq.3)then
