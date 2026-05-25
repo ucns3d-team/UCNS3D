@@ -702,33 +702,6 @@ call local_reconallocation5(n)
 ! cell_size_average = size_sum / IMAXE
 ! if (n.eq.0)  WRITE(*,*)"Total cell size =", size_sum, "number of cells =", IMAXE, "average cell size =", cell_size_average
 
-! call abort()
-
-! CALL VOLUME_SOLUTION_WRITE
-! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-! if (n.eq.0) then
-! 	write (*,*) "first ouptut done"
-! endif
-
-! CALL NodeSwapXY(n)
-! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-! if (n.eq.0) then
-! 	write (*,*) "swap done"
-! endif
-! T = 1.0
-! IT = 7
-! movement = 1
-
-! CALL PRESTORE_1(N)
-! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-! write (*,*) "Prestore1 re_done"
-
-! CALL VOLUME_SOLUTION_WRITE
-! CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-! CALL ABORT
-
 num_values_to_send_per_node = zero
 if (MESH_MOVEMENT) then
 	num_values_to_send_per_node = 2*dimensiona

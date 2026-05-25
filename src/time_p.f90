@@ -4245,91 +4245,96 @@ END SUBROUTINE TIME_MARCHING2
 SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
   !> @brief
   !> SSP FORWARD EULER SCHEME IN 2D
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  INTEGER::I, KMAXE, kx, node_index
-  REAL::AVRGS
-  REAL,DIMENSION(NOF_VARIABLES)::TEMPSOL
-  
-  KMAXE=XMPIELRANK(N)
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    INTEGER::I, KMAXE, kx, node_index, bounary_index
+    REAL::AVRGS
+    REAL,DIMENSION(NOF_VARIABLES)::TEMPSOL
+    
+    KMAXE=XMPIELRANK(N)
 
-  !$omp barrier
-  Call GEOMETRY_CALC_MovingMesh(N, 1)
-  !$omp barrier
-  !$OMP MASTER
-      Call EXCH_CORDS_MovingMesh(N, 1)
-  !$OMP END MASTER
-  !$omp barrier
-  CAll Find_QP_positions(N, 1)
-  !$omp barrier
-  Call RE_PRESTORE_1(N, 1)
-  !$omp barrier
-  global_position_index = 1
-  call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
-  ! call EXCHANGE_HIGHER(N)
-  !$omp barrier
-  call find_node_velocities(1, DT, N)
-  
-  call Find_QP_velocities(N)
-  !$omp do
-  do node_index=1,kmaxn 
-      local_nodes(node_index)%positions(2,1:dimensiona) = local_nodes(node_index)%positions(1,1:dimensiona) &
-                                                          + (DT * local_nodes(node_index)%velocity(1:dimensiona))
-  end do
-  !$omp end do
+    !$omp barrier
+    Call GEOMETRY_CALC_MovingMesh(N, 1)
+    !$omp barrier
+    !$OMP MASTER
+        Call EXCH_CORDS_MovingMesh(N, 1)
+    !$OMP END MASTER
+    !$omp barrier
+    CAll Find_QP_positions(N, 1)
+    !$omp barrier
+    Call RE_PRESTORE_1(N, 1)
+    !$omp barrier
+    global_position_index = 1
+    call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
+    ! call EXCHANGE_HIGHER(N)
+    !$omp barrier
+    call find_node_velocities(1, DT, N)
+    
+    call Find_QP_velocities(N)
+    !$omp do
+    do node_index=1,kmaxn 
+        local_nodes(node_index)%positions(2,1:dimensiona) = local_nodes(node_index)%positions(1,1:dimensiona) &
+                                                            + (DT * local_nodes(node_index)%velocity(1:dimensiona))
+    end do
+    !$omp end do
+    !$omp master
+    do bounary_index=1, num_moving_boundaries
+        moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,2) = moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,1) + &
+                (dt * moving_boundaries(bounary_index)%velocity(1:dimensiona))
+    end do
+    !$omp end master
+    !$omp barrier
 
-  !$omp barrier
+    if (DIMENSIONA.EQ.3)THEN
+        !$OMP DO 
+        DO I=1,KMAXE
+            ! CALL VOLUME_CALCULATOR_MovingMesh_3D(I,2)
+            print *, "Moving mesh in 3D not implemented yet"
+            call abort
+        END DO
+        !$OMP END DO
+    ELSE
+        !$OMP DO
+        DO I=1,KMAXE
+            CALL VOLUME_CALCULATOR_MovingMesh_2D(I,2)
+        END DO
+        !$OMP END DO 
+    END IF
 
-  if (DIMENSIONA.EQ.3)THEN
-      !$OMP DO 
-      DO I=1,KMAXE
-          ! CALL VOLUME_CALCULATOR_MovingMesh_3D(I,2)
-          print *, "Moving mesh in 3D not implemented yet"
-          call abort
-      END DO
-      !$OMP END DO
-  ELSE
-      !$OMP DO
-      DO I=1,KMAXE
-          CALL VOLUME_CALCULATOR_MovingMesh_2D(I,2)
-      END DO
-      !$OMP END DO 
-  END IF
+    ! global_position_index = 1
+    CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
 
-  ! global_position_index = 1
-  CALL CALL_FLUX_SUBROUTINES_MovingMesh_2D
+    !$omp barrier
 
-  !$omp barrier
+    !$OMP DO
+    DO I=1,KMAXE
+        ! IF (IELEM(N,I)%moving_volume(2) .eq. ZERO) print *, "dividing by zero volume"
+        IF (DG == 1) THEN   
+            print *, "Moving mesh does not support DG yet"
+            call abort 
+            ! U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))  
+        else
+            U_C(I)%VAL(1,1:NOF_VARIABLES)= ((U_C(I)%VAL(1,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - (dt * RHS(I)%VAL(1:NOF_VARIABLES))) / IELEM(N,I)%moving_volume(2)
+        end if
+        ! WRITE(200+N,*)I,TEMPSOL,U_C(I)%VALDG(1,1:NOF_VARIABLES,1)
+    END DO
+    !$OMP END DO
 
-  !$OMP DO
-  DO I=1,KMAXE
-      ! IF (IELEM(N,I)%moving_volume(2) .eq. ZERO) print *, "dividing by zero volume"
-      IF (DG == 1) THEN   
-          print *, "Moving mesh does not support DG yet"
-          call abort 
-          ! U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))  
-      else
-          U_C(I)%VAL(1,1:NOF_VARIABLES)= ((U_C(I)%VAL(1,1:NOF_VARIABLES) * IELEM(N,I)%moving_volume(1)) - (dt * RHS(I)%VAL(1:NOF_VARIABLES))) / IELEM(N,I)%moving_volume(2)
-      end if
-      ! WRITE(200+N,*)I,TEMPSOL,U_C(I)%VALDG(1,1:NOF_VARIABLES,1)
-  END DO
-  !$OMP END DO
+    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
+        !$OMP DO
+        DO I=1,KMAXE
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) * IELEM(N,I)%moving_volume(1)) - (dt * RHSt(I)%VAL(1:turbulenceequations+passivescalar))) / IELEM(N,I)%moving_volume(2)
+        END DO
+        !$OMP END DO
+    END IF
 
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-      !$OMP DO
-      DO I=1,KMAXE
-          U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) * IELEM(N,I)%moving_volume(1)) - (dt * RHSt(I)%VAL(1:turbulenceequations+passivescalar))) / IELEM(N,I)%moving_volume(2)
-      END DO
-      !$OMP END DO
-  END IF
+    IF (AVERAGING.EQ.1)THEN
+        print *, "Moving mesh does not support averaging yet"
+        call abort
+        ! CALL AVERAGING_T(N)
+    END IF
 
-  IF (AVERAGING.EQ.1)THEN
-    print *, "Moving mesh does not support averaging yet"
-    call abort
-    ! CALL AVERAGING_T(N)
-  END IF
-
-  Call COPY_BACK_LOCAL_NODES(2, 1)
+    Call COPY_BACK_LOCAL_NODES(2, 1)
       
 END SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D
 
@@ -4342,7 +4347,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
   !> SSP RUNGE KUTTA 2ND-ORDER SCHEME IN 2D
     IMPLICIT NONE
     INTEGER,INTENT(IN)::N
-    INTEGER::I, KMAXE, node_index
+    INTEGER::I, KMAXE, node_index, bounary_index
     REAL::AVRGS, OOVOLUME, TO4, OO4, TO3, OO3
     KMAXE=XMPIELRANK(N)
 
@@ -4370,7 +4375,12 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
                                                             + DT * local_nodes(node_index)%velocity(1:dimensiona)
     end do
     !$omp end do
-
+    !$omp master
+    do bounary_index=1, num_moving_boundaries
+        moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,2) = moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,1) + &
+                (dt * moving_boundaries(bounary_index)%velocity(1:dimensiona))
+    end do
+    !$omp end master
     !$omp barrier
 
     IF (DIMENSIONA.EQ.3) THEN
@@ -4444,6 +4454,12 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
                 0.5*(local_nodes(node_index)%positions(2,1:dimensiona) + (DT * local_nodes(node_index)%velocity(1:dimensiona)))
     end do
     !$omp end do
+    !$omp master
+    do bounary_index=1, num_moving_boundaries
+        moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,3) = (0.5*moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,1)) + &
+                0.5*(moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,1) + (dt * moving_boundaries(bounary_index)%velocity(1:dimensiona)))
+    end do
+    !$omp end master
     !$omp barrier
     IF (DIMENSIONA.EQ.3) THEN
         ! !$OMP DO 
@@ -4509,7 +4525,7 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
   !> SSP RUNGE KUTTA 2ND-ORDER SCHEME IN 2D
     IMPLICIT NONE
     INTEGER,INTENT(IN)::N
-    INTEGER::I, KMAXE, node_index
+    INTEGER::I, KMAXE, node_index, bounary_index
     REAL::AVRGS, OOVOLUME, TO4, OO4, TO3, OO3
     KMAXE=XMPIELRANK(N)
 
@@ -4531,6 +4547,12 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
     call find_node_velocities(1, DT, N)
     call Find_QP_velocities(N)
     Call MOVE_NODES(0.5*DT,1,2)
+    !$omp master
+    do bounary_index=1, num_moving_boundaries
+        moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,2) = moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,1) + &
+                (0.5*dt * moving_boundaries(bounary_index)%velocity(1:dimensiona))
+    end do
+    !$omp end master
     !$omp barrier
     IF (DIMENSIONA.EQ.3) THEN
         print *, "Moving mesh in 3D not implemented yet"
@@ -4594,6 +4616,12 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
     call find_node_velocities(2, DT, N)
     call Find_QP_velocities(N)
     Call MOVE_NODES(DT,1,3)
+    !$omp master
+    do bounary_index=1, num_moving_boundaries
+        moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,3) = moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,1) + &
+                (dt * moving_boundaries(bounary_index)%velocity(1:dimensiona))
+    end do
+    !$omp end master
     !$omp barrier
     IF (DIMENSIONA.EQ.3) THEN
         print *, "Moving mesh in 3D not implemented yet"
@@ -4659,7 +4687,7 @@ SUBROUTINE RUNGE_KUTTA3_MovingMesh_2D(N)
   !> SSP RUNGE KUTTA 3RD-ORDER SCHEME IN 2D
     IMPLICIT NONE
     INTEGER,INTENT(IN)::N
-    INTEGER::I, KMAXE, node_index
+    INTEGER::I, KMAXE, node_index, bounary_index
     REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
     KMAXE=XMPIELRANK(N)
     TO4=3.0D0/4.0D0
@@ -4686,6 +4714,12 @@ SUBROUTINE RUNGE_KUTTA3_MovingMesh_2D(N)
     
     call Find_QP_velocities(N)
     Call MOVE_NODES(DT,1,2)
+    !$omp master
+    do bounary_index=1, num_moving_boundaries
+        moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,2) = moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,1) + &
+                (dt * moving_boundaries(bounary_index)%velocity(1:dimensiona))
+    end do
+    !$omp end master
     !$omp barrier
     IF (DIMENSIONA.EQ.3) THEN
         print *, "Moving mesh in 3D not implemented yet"
@@ -4755,6 +4789,12 @@ SUBROUTINE RUNGE_KUTTA3_MovingMesh_2D(N)
                 OO4*(local_nodes(node_index)%positions(2,1:dimensiona) + (DT * local_nodes(node_index)%velocity(1:dimensiona)))
     end do
     !$omp end do
+    !$omp master
+    do bounary_index=1, num_moving_boundaries
+        moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,3) = TO4*moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,1) + &
+                OO4*(moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,2)  + (dt * moving_boundaries(bounary_index)%velocity(1:dimensiona)))
+    end do
+    !$omp end master
     !$omp barrier
     IF (DIMENSIONA.EQ.3) THEN
         print *, "Moving mesh in 3D not implemented yet"
@@ -4830,6 +4870,12 @@ SUBROUTINE RUNGE_KUTTA3_MovingMesh_2D(N)
                 TO3*(local_nodes(node_index)%positions(3,1:dimensiona) + (DT * local_nodes(node_index)%velocity(1:dimensiona)))
     end do
     !$omp end do
+    !$omp master
+    do bounary_index=1, num_moving_boundaries
+        moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,4) = OO3*moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,1) + &
+                TO3*(moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,3)  + (dt * moving_boundaries(bounary_index)%velocity(1:dimensiona)))
+    end do
+    !$omp end master
     !$omp barrier
     IF (DIMENSIONA.EQ.3) THEN
         print *, "Moving mesh in 3D not implemented yet"

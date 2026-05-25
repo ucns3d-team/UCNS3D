@@ -3799,55 +3799,53 @@ END SUBROUTINE OUTWRITE3vb2d
 
 
 SUBROUTINE CHECKRES
-!> @brief
-!> This subroutine checks the presence of restart file
-IMPLICIT NONE
-LOGICAL::HERE
-INTEGER::I,J,K,L,ITER,DIP
- CHARACTER(LEN=20)::PROC,RESTFILE
+  !> @brief
+  !> This subroutine checks the presence of restart file
+	IMPLICIT NONE
+	LOGICAL::HERE
+	INTEGER::I,J,K,L,ITER,DIP
+ 	CHARACTER(LEN=20)::PROC,RESTFILE
 
  	RESTFILE='RESTART.dat'
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 	INQUIRE (FILE=RESTFILE,EXIST=HERE)
 	IF (HERE) THEN
-	OPEN(1083+N,FILE=RESTFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',access='stream')
-	DIP=1
-	if (IRES_UNSTEADY.eq.1)then
-	READ(1083+N,pos=dip)ITER
-
-
-	dip=dip+4
-	READ(1083+N,pos=dip)RES_TIME
-	dip=dip+8
-	    if (initcond.eq.95)then
-	    READ(1083+N,pos=dip)taylor
-	    end if
-	else
-	  READ(1083+N,pos=dip)ITER
-	end if
-	RESTART=ITER
-	CLOSE(1083+N)
+		OPEN(1083+N,FILE=RESTFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',access='stream')
+		DIP=1
+		if (IRES_UNSTEADY.eq.1)then
+			READ(1083+N,pos=dip)ITER
+			dip=dip+4
+			READ(1083+N,pos=dip)RES_TIME
+			dip=dip+8
+	    	if (initcond.eq.95)then
+	    		READ(1083+N,pos=dip)taylor
+	    	end if
+		else
+	  		READ(1083+N,pos=dip)ITER
+		end if
+		RESTART=ITER
+		CLOSE(1083+N)
 	ELSE
-	RESTART=0
+		RESTART=0
         average_restart=0
-	RES_TIME=0.0d0
+		RES_TIME=0.0d0
 	END IF
-
 
 	IF (N.EQ.0)THEN
-	PRINT*,"RESTARTING",ITER,RES_TIME,RESTART
-
+		PRINT*,"RESTARTING",ITER,RES_TIME,RESTART
 	END IF
-	
 
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
 END SUBROUTINE CHECKRES
 
 
+
+
+
 SUBROUTINE OPEN_ARBITRARY(N,IMAXE,IMAXN,IMAXB)
-!> @brief
-!> This subroutine opens the grid files and establishes the number of cells, nodes, boundary conditions
+  !> @brief
+  !> This subroutine opens the grid files and establishes the number of cells, nodes, boundary conditions
 	IMPLICIT NONE
 	INTEGER,INTENT(INOUT)::IMAXE,IMAXN,IMAXB
 	INTEGER::I,J,K,IOS,IOX,IOZ,I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11,IOY

@@ -345,7 +345,7 @@ SUBROUTINE INITIALISE(N)
 
     !$OMP BARRIER
  
-deallocate(rg)
+    deallocate(rg)
 
 END SUBROUTINE INITIALISE
 

@@ -412,7 +412,6 @@ REAL,ALLOCATABLE,DIMENSION(:)::FLUX_TERM_LEFT_Z,FLUX_TERM_LEFT_X,FLUX_TERM_LEFT_
 REAL,ALLOCATABLE,DIMENSION(:)::FLUX_TERM_RIGHT_Z,FLUX_TERM_RIGHT_X,FLUX_TERM_RIGHT_Y
 real,allocatable,dimension(:,:)::SIND1,SIND2,SIND3,SIND4,SIND5,SIND6
 
-real,allocatable,dimension(:,:)::boundary_velocity
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.5.   DATA TYPE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -835,5 +834,13 @@ TYPE(NODE_NUMBER),ALLOCATABLE,DIMENSION(:,:)::INODE	  !1-D ARRAY FOR POINTER TYP
 TYPE(NODE_NUMBER)::ITEMP				  !TEMPORARY POINTER NODE ITERATION
 
 INTEGER,ALLOCATABLE,DIMENSION(:)::NODE_INDEXING_global_to_local
+
+type::moving_boundary
+	real,dimension(1:3)::velocity
+	real::omega
+	real,dimension(1:3,1:5)::rotation_centre
+end type
+
+type(moving_boundary),allocatable,dimension(:)::moving_boundaries
 
 END MODULE DECLARATION

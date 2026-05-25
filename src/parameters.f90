@@ -1437,7 +1437,7 @@ SUBROUTINE READ_UCNS3D
 		relaxation_mesh_velocity_multiple = 1.0
 		gradient_treshold = 0.0
 		relaxation_centre_type = -1
-		node_solver_type = 1
+		node_solver_type = -1
 		select case(moving_mesh_mode)
 		  case(1)
 			read(29,*) lagrangian_mesh_velocity_multiple
@@ -1502,21 +1502,41 @@ SUBROUTINE READ_UCNS3D
 		endif
 
 		if (.not.MESH_MOVEMENT) then
+			MESH_MOVEMENT = .true.
 			if (n.eq.0) then
-				print *, "Moving boundaries require moving mesh mode"
+				print *, "Selecting the default configuration of the Moving Mesh mode for Moving Boundaries"
 			end if
-			call abort()
+			node_solver_type = 0 ! No Lagrangian node movement
+			relaxation_centre_type = 7 ! Oddy metric optimisation
+			quality_treshold = 1.0
+			upper_gradient_treshold = 1.0
+			gradient_coeff = 0.0
+			quality_coeff = 1.0
+			lower_relaxation_mesh_velocity_multiple = 0.1
+			upper_relaxation_mesh_velocity_multiple = 1.0
 		end if
 
 		OPEN(30,FILE='MovingBoundary.DAT',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
 		read(30,*)
 		read(30,*)num_moving_boundaries
-		allocate(boundary_velocity(1:num_moving_boundaries, 1:dimensiona))
+		allocate(moving_boundaries(1:num_moving_boundaries))
 		do i = 1, num_moving_boundaries
+			moving_boundaries(i)%velocity(:) = zero
+			moving_boundaries(i)%rotation_centre(:,:) = zero
 			if (dimensiona.eq.2) then
-				read(30,*) boundary_velocity(i,1), boundary_velocity(i,2)
+				read(30,*) moving_boundaries(i)%velocity(1), &
+				 		   moving_boundaries(i)%velocity(2), &
+						   moving_boundaries(i)%omega, &
+						   moving_boundaries(i)%rotation_centre(1,1), &
+						   moving_boundaries(i)%rotation_centre(2,1)
 			else
-				read(30,*) boundary_velocity(i,1), boundary_velocity(i,2), boundary_velocity(i,3)
+				read(30,*) moving_boundaries(i)%velocity(1), &
+				 		   moving_boundaries(i)%velocity(2), &
+						   moving_boundaries(i)%velocity(3), &
+						   moving_boundaries(i)%omega, &
+						   moving_boundaries(i)%rotation_centre(1,1), &
+						   moving_boundaries(i)%rotation_centre(2,1), &
+						   moving_boundaries(i)%rotation_centre(3,1)
 			end if 
 		end do
 	ENDIF
