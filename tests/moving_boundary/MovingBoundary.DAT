@@ -1,0 +1,3 @@
+! moving boundary file
+1 ! num moving boundaries
+-10.0 10.0 50.0 0.57 0.04 ! velocity    omega    rotation centre

@@ -1506,6 +1506,7 @@ SUBROUTINE READ_UCNS3D
 			if (n.eq.0) then
 				print *, "Selecting the default configuration of the Moving Mesh mode for Moving Boundaries"
 			end if
+			moving_mesh_mode = 15
 			node_solver_type = 0 ! No Lagrangian node movement
 			relaxation_centre_type = 7 ! Oddy metric optimisation
 			quality_treshold = 1.0
