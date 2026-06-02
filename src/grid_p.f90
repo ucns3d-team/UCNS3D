@@ -5380,13 +5380,13 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
 		END DO
 
 		IELEM(N,I)%ADMIS=KX
-		IF ((EES.EQ.0))THEN           
+		IF (EES.EQ.0) THEN           
             if ((initcond.eq.101).or.(initcond.eq.102).or.(initcond.eq.103))then                
-                IF (IELEM(N,I)%ADMIS.eq.ielem(n,i)%ifca+1)THEN
+                IF (IELEM(N,I)%ADMIS.eq.ielem(n,i)%ifca+1) THEN
                     IELEM(N,I)%FULL=1          
                 end if             
             else
-				IF (IELEM(N,I)%ADMIS.Gt.GE.ielem(n,i)%ifca+1)THEN
+				IF (IELEM(N,I)%ADMIS.GE.ielem(n,i)%ifca+1) THEN
 					IELEM(N,I)%FULL=1
 				END IF                
             end if
@@ -5612,6 +5612,8 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
 END SUBROUTINE STENCILS
 
 	
+
+
 	
 SUBROUTINE STENCILS3(N)
   !> @brief

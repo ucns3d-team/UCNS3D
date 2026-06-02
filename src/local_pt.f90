@@ -2051,38 +2051,16 @@ SUBROUTINE CHECKGRADS(N,ICONSI)
             IELEM(N,I)%FULL=0
 		END IF
 	END IF
-   	if (fastest.eq.0) then
-	    dxx1=-tolbig; dxx2=tolbig
+
+   	if (fastest.eq.0)then
+	    dxx1 = -tolbig
+		dxx2 = tolbig
 	    JJ=1
 	    DO L=1,ielem(n,i)%iNUMNEIGHBOURS
-		    if (ILOCAL_RECON3(i)%VOLUME(JJ,L).lt.dxx2)then
-		       	dxx2=ILOCAL_RECON3(i)%VOLUME(JJ,L)
-		    end if
-		    ! if (ILOCAL_RECON3(i)%VOLUME(JJ,L).gt.dxx1)then
-
-                         !if (ielem(n,i)%condition.gt.20)then
-                          !               ielem(n,i)%hybrid=1                       
-                         !end if
-
-              !END IF
-
-
-	      IF (TEMPG1.GT.GRIDAR1)THEN
-	      IELEM(N,I)%GGS=1
-	      IF ((IADAPT.EQ.1).or.(code_profile.eq.88).or.(code_profile.eq.98))THEN
-                IELEM(N,I)%FULL=0
-			END IF
-	      end if 
-   if (fastest.eq.0)then
-	       dxx1=-tolbig; dxx2=tolbig
-	       JJ=1
-	       DO L=1,ielem(n,i)%iNUMNEIGHBOURS
-		       if (ILOCAL_RECON3(i)%VOLUME(JJ,L).lt.dxx2)then
-		      
+		    if (ILOCAL_RECON3(i)%VOLUME(JJ,L).lt.dxx2) then
 		       dxx2=ILOCAL_RECON3(i)%VOLUME(JJ,L)
-		       end if
-		       if (ILOCAL_RECON3(i)%VOLUME(JJ,L).gt.dxx1)then
-		      
+		    end if
+		    if (ILOCAL_RECON3(i)%VOLUME(JJ,L).gt.dxx1) then
 		       dxx1=ILOCAL_RECON3(i)%VOLUME(JJ,L)
 		    end if
 	    end do
@@ -2108,13 +2086,7 @@ SUBROUTINE CHECKGRADS(N,ICONSI)
 				end if
 	  		end if 
         END DO
-END IF
-
-
-
-
-
-
+	END IF
 
 
 END SUBROUTINE CHECKGRADS
