@@ -98,12 +98,11 @@ end function trinagle_area
 
 function trinagle_area_2D(a, b, c)
     implicit none
-    real,dimension(1:dimensiona)::a, b, c
+    real,dimension(1:2)::a, b, c
     real::trinagle_area_2D
-    real,dimension(1:dimensiona)::v1, v2
-    
+
+    real,dimension(1:2)::v1, v2
     real::cross
-    integer::i
 
     v1(:) = b(:) - a(:)
     v2(:) = c(:) - b(:)
@@ -835,6 +834,7 @@ subroutine find_node_velocities(position_index, d_t, N)
     real,intent(in)::d_t
     real::x,y
     integer::node_index, cell_index, kmaxe
+    real::gradient_magnitude_copy, gradient_term
 
     KMAXE=XMPIELRANK(N)
 
@@ -856,7 +856,7 @@ subroutine find_node_velocities(position_index, d_t, N)
         end do
         !$omp end do
     else
-        select case (moving_mesh_mode)
+        select case(moving_mesh_mode)
           case(1, 2)
             call find_node_lagrangian_velocity(1, position_index, N)
           case(3)
@@ -909,6 +909,12 @@ subroutine find_node_velocities(position_index, d_t, N)
                 print*,"invalid node relaxation algorithm"
             end select
 
+          case(12)
+            call find_node_lagrangian_velocity(1, position_index, N)
+            call find_node_volume_ratio(1, position_index, N)
+            call find_node_normalized_density_gradient(1, position_index, d_t, N)
+            call find_node_relaxation_velocity(1, position_index, d_t, N)
+
           case(14, 15, 16)
             call find_node_lagrangian_velocity(1, position_index, N)
             call find_node_normalized_density_gradient(1, position_index, d_t, N)
@@ -936,11 +942,52 @@ subroutine find_node_velocities(position_index, d_t, N)
             !$omp barrier
             call find_mesh_quality_after_relaxation(1, position_index, d_t, d_t, N)
 
-          case(12)
+          case(17,18)
             call find_node_lagrangian_velocity(1, position_index, N)
-            call find_node_volume_ratio(1, position_index, N)
             call find_node_normalized_density_gradient(1, position_index, d_t, N)
-            call find_node_relaxation_velocity(1, position_index, d_t, N)
+            if (governingequations.eq.-1) then
+                call find_node_normalized_vf_gradient(1, position_index, d_t, N)
+            end if
+            !$omp barrier
+            call enforce_node_lagrangian_velocity_BC(position_index, d_t, N)
+            !$omp barrier
+            !$omp do
+            do node_index = 1, kmaxn
+                if (governingequations.eq.-1) then
+                    ! gradient_magnitude_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
+                    gradient_magnitude_copy = local_nodes(node_index)%normalized_vf_gradient_magnitude
+                else
+                    gradient_magnitude_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+                end if
+
+                if ((local_nodes(node_index)%num_neighbours.lt.3).or.(gradient_magnitude_copy.le.zero)) then
+                    gradient_term = zero
+                else if (gradient_magnitude_copy.ge.upper_gradient_treshold) then
+                    gradient_term = 1.0
+                else
+                    gradient_term = gradient_magnitude_copy/upper_gradient_treshold
+                end if
+
+                local_nodes(node_index)%lagrangian_velocity(1:dimensiona) = (local_nodes(node_index)%lagrangian_velocity(1:dimensiona) * gradient_term)
+            end do
+            !$omp end do
+            select case (relaxation_centre_type)
+            case (1, 2)
+                call find_mesh_quality_before_relaxation(1, position_index, d_t, N)
+                call find_moved_node_relaxation_velocity(1, position_index, d_t, N)
+            case (3)
+                call find_mesh_quality_before_relaxation(1, position_index, d_t, N)
+                call find_node_vertex_centre_relaxation_velocity(1, position_index, d_t, N)
+            ! case (4)
+            !     call find_mesh_quality_before_relaxation(1, position_index, d_t, N)
+            !     call find_moved_node_centre_relaxation_velocity(1, position_index, d_t, N)
+            case (5, 7)
+                call find_node_Jacobi_relaxation_velocity(1, position_index, d_t, N)
+            case DEFAULT
+                print*,"invalid node relaxation algorithm"
+            end select
+            !$omp barrier
+            ! call find_mesh_quality_after_relaxation(1, position_index, d_t, d_t, N)
 
          case DEFAULT
             print *, "invalid moving mesh mode"
@@ -3875,7 +3922,7 @@ SUBROUTINE find_node_normalized_density_gradient(stage, position_index, d_t, N)
                 print *, "something went wrong counter =/= local_nodes(node_index)%num_neighbours"
             end if
 
-            ! local_nodes(node_index)%density_gradient(:) = zero 
+            local_nodes(node_index)%density_gradient(:) = zero 
             local_nodes(node_index)%normalized_density_gradient_magnitude = zero
 
             num_neighbours = local_nodes(node_index)%num_neighbours
@@ -3920,8 +3967,9 @@ SUBROUTINE find_node_normalized_density_gradient(stage, position_index, d_t, N)
                 if (solvable) then
                     gradient_magnitude = zero
                     do i = 1, dimensiona
-                        ! local_nodes(node_index)%density_gradient(i) = x(i+1)
+                        local_nodes(node_index)%density_gradient(i) = x(i+1)
                         gradient_magnitude = gradient_magnitude + (x(i+1)*x(i+1))
+
                     end do
                     gradient_magnitude = sqrt(gradient_magnitude)
                     local_nodes(node_index)%normalized_density_gradient_magnitude = gradient_magnitude
@@ -4213,6 +4261,7 @@ SUBROUTINE find_node_normalized_vf_gradient(stage, position_index, d_t, N)
                     do i = 1, dimensiona
                         ! local_nodes(node_index)%density_gradient(i) = x(i+1)
                         gradient_magnitude = gradient_magnitude + (x(i+1)*x(i+1))
+                        local_nodes(node_index)%vf_gradient(i) = x(i+1)
                     end do
                     gradient_magnitude = sqrt(gradient_magnitude)
                     local_nodes(node_index)%normalized_vf_gradient_magnitude = gradient_magnitude
@@ -4226,6 +4275,7 @@ SUBROUTINE find_node_normalized_vf_gradient(stage, position_index, d_t, N)
             end if
 
             if ((.not.solvable).and.(num_neighbours.ge.2)) then
+                local_nodes(node_index)%vf_gradient(:) = zero
                 vf_difference = vf_vector(2) - vf_vector(1)
                 distance2 = zero
                 coord_diff(:) = centre_positions(2,:) - centre_positions(1,:)
@@ -4429,7 +4479,8 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
     integer::i
     real,dimension(1:dimensiona)::initial_velocity1, initial_velocity2
     real,dimension(1:dimensiona)::option1, option2
-    real::gradient_copy, fraction, free_stream, val1, val2, gradient_term, quality_term
+    real,dimension(1:dimensiona)::gradient_copy, normal_relaxation_velocity
+    real::gradient_magnitude_copy, magnitude, fraction, free_stream, val1, val2, gradient_term, quality_term
     real::local_lagrangian_velocity_multiple, local_relaxation_velocity_multiple
     real::local_lagrangian_velocity_magnitude, local_relaxation_velocity_magnitude
 
@@ -4511,13 +4562,14 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
             if (local_nodes(node_index)%num_neighbours.lt.2) then
                 local_lagrangian_velocity_multiple = 0.0
             else
-                if (gradient_copy.lt.zero) then
+                gradient_magnitude_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+                if (gradient_magnitude_copy.lt.zero) then
                     print*, "negative desnity gradient magnitude"
-                else if (gradient_copy.lt.gradient_treshold) then
+                else if (gradient_magnitude_copy.lt.gradient_treshold) then
                     local_lagrangian_velocity_multiple = 0.0
-                else if (gradient_copy.lt.(2.0*gradient_treshold)) then
-                    local_lagrangian_velocity_multiple = (gradient_copy - gradient_treshold) / gradient_treshold
-                else if (gradient_copy.le.1.0) then
+                else if (gradient_magnitude_copy.lt.(2.0*gradient_treshold)) then
+                    local_lagrangian_velocity_multiple = (gradient_magnitude_copy - gradient_treshold) / gradient_treshold
+                else if (gradient_magnitude_copy.le.1.0) then
                     local_lagrangian_velocity_multiple = 1.0
                 else
                     print*, "normalized desnity gradient magnitude above 1.0"
@@ -4543,15 +4595,15 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
                 if (local_nodes(node_index)%num_neighbours.lt.2) then
                     local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
                 else
-                    gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
-                    if (gradient_copy.lt.zero) then
+                    gradient_magnitude_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+                    if (gradient_magnitude_copy.lt.zero) then
                         print*, "negative desnity gradient magnitude"
-                    else if (gradient_copy.lt.lower_gradient_treshold) then
+                    else if (gradient_magnitude_copy.lt.lower_gradient_treshold) then
                         local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
-                    else if (gradient_copy.le.upper_gradient_treshold) then
-                        fraction = (gradient_copy - lower_gradient_treshold) / (upper_gradient_treshold - lower_gradient_treshold)
+                    else if (gradient_magnitude_copy.le.upper_gradient_treshold) then
+                        fraction = (gradient_magnitude_copy - lower_gradient_treshold) / (upper_gradient_treshold - lower_gradient_treshold)
                         local_relaxation_velocity_multiple =  (fraction * (lower_relaxation_mesh_velocity_multiple - upper_relaxation_mesh_velocity_multiple)) + upper_relaxation_mesh_velocity_multiple
-                    else if (gradient_copy.le.1.0) then
+                    else if (gradient_magnitude_copy.le.1.0) then
                         local_relaxation_velocity_multiple = lower_relaxation_mesh_velocity_multiple
                     else
                         local_relaxation_velocity_multiple = 1.0
@@ -4615,15 +4667,15 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
             if (local_nodes(node_index)%num_neighbours.lt.2) then
                 local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
             else
-                gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
-                if (gradient_copy.lt.zero) then
+                gradient_magnitude_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+                if (gradient_magnitude_copy.lt.zero) then
                     print*, "negative desnity gradient magnitude"
-                else if (gradient_copy.lt.lower_gradient_treshold) then
+                else if (gradient_magnitude_copy.lt.lower_gradient_treshold) then
                     local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
-                else if (gradient_copy.le.upper_gradient_treshold) then
-                    fraction = (gradient_copy - lower_gradient_treshold) / (upper_gradient_treshold - lower_gradient_treshold)
+                else if (gradient_magnitude_copy.le.upper_gradient_treshold) then
+                    fraction = (gradient_magnitude_copy - lower_gradient_treshold) / (upper_gradient_treshold - lower_gradient_treshold)
                     local_relaxation_velocity_multiple =  (fraction * (lower_relaxation_mesh_velocity_multiple - upper_relaxation_mesh_velocity_multiple)) + upper_relaxation_mesh_velocity_multiple
-                else if (gradient_copy.le.1.0) then
+                else if (gradient_magnitude_copy.le.1.0) then
                     local_relaxation_velocity_multiple = lower_relaxation_mesh_velocity_multiple
                 else
                     local_relaxation_velocity_multiple = 1.0
@@ -4648,8 +4700,8 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
             if (local_nodes(node_index)%num_neighbours.lt.2) then
                 local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
             else
-                gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
-                local_relaxation_velocity_multiple = (1.0 - gradient_copy)*(1.0 - gradient_copy) * local_nodes(node_index)%volume_ratio * upper_relaxation_mesh_velocity_multiple
+                gradient_magnitude_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+                local_relaxation_velocity_multiple = (1.0 - gradient_magnitude_copy)*(1.0 - gradient_magnitude_copy) * local_nodes(node_index)%volume_ratio * upper_relaxation_mesh_velocity_multiple
             end if
             if (local_relaxation_velocity_multiple.gt.1.0) then
                 local_relaxation_velocity_multiple = 1.0
@@ -4671,15 +4723,15 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
                 if (local_nodes(node_index)%num_neighbours.lt.2) then
                     local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
                 else
-                    gradient_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
-                    if (gradient_copy.lt.zero) then
+                    gradient_magnitude_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
+                    if (gradient_magnitude_copy.lt.zero) then
                         print*, "negative desnity gradient magnitude"
-                    else if (gradient_copy.lt.lower_gradient_treshold) then
+                    else if (gradient_magnitude_copy.lt.lower_gradient_treshold) then
                         local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
-                    else if (gradient_copy.le.upper_gradient_treshold) then
-                        fraction = (gradient_copy - lower_gradient_treshold) / (upper_gradient_treshold - lower_gradient_treshold)
+                    else if (gradient_magnitude_copy.le.upper_gradient_treshold) then
+                        fraction = (gradient_magnitude_copy - lower_gradient_treshold) / (upper_gradient_treshold - lower_gradient_treshold)
                         local_relaxation_velocity_multiple =  (fraction * (lower_relaxation_mesh_velocity_multiple - upper_relaxation_mesh_velocity_multiple)) + upper_relaxation_mesh_velocity_multiple
-                    else if (gradient_copy.le.1.0) then
+                    else if (gradient_magnitude_copy.le.1.0) then
                         local_relaxation_velocity_multiple = lower_relaxation_mesh_velocity_multiple
                     else
                         local_relaxation_velocity_multiple = 1.0
@@ -4706,17 +4758,17 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
                     local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
                 else
                     if (governingequations.eq.-1) then
-                        gradient_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
+                        gradient_magnitude_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
                     else
-                        gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+                        gradient_magnitude_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
                     end if
 
-                    if ((gradient_copy.gt.1.0).or.(local_nodes(node_index)%num_neighbours.lt.3)) then
+                    if ((gradient_magnitude_copy.gt.1.0).or.(local_nodes(node_index)%num_neighbours.lt.3)) then
                         gradient_term = zero
-                    else if (gradient_copy.ge.upper_gradient_treshold) then
+                    else if (gradient_magnitude_copy.ge.upper_gradient_treshold) then
                         gradient_term = 1.0
                     else
-                        gradient_term = gradient_copy/upper_gradient_treshold
+                        gradient_term = gradient_magnitude_copy/upper_gradient_treshold
                     end if
 
                     local_relaxation_velocity_multiple = (local_nodes(node_index)%mesh_quality_before / real(local_nodes(node_index)%num_neighbours)) - 1.0
@@ -4739,17 +4791,17 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
         do node_index = 1, kmaxn
 
             if (governingequations.eq.-1) then
-                gradient_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
+                gradient_magnitude_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
             else
-                gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+                gradient_magnitude_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
             end if
 
-            if ((gradient_copy.gt.1.0).or.(local_nodes(node_index)%num_neighbours.lt.3)) then
+            if ((gradient_magnitude_copy.gt.1.0).or.(local_nodes(node_index)%num_neighbours.lt.2)) then
                 gradient_term = 1.0
-            else if (gradient_copy.ge.upper_gradient_treshold) then
+            else if (gradient_magnitude_copy.ge.upper_gradient_treshold) then
                 gradient_term = zero
             else
-                gradient_term = 1.0 - (gradient_copy/upper_gradient_treshold)
+                gradient_term = 1.0 - (gradient_magnitude_copy/upper_gradient_treshold)
             end if
 
             quality_term = 1.0 - ((real(local_nodes(node_index)%num_neighbours)*quality_treshold) / local_nodes(node_index)%mesh_quality_before)
@@ -4768,46 +4820,91 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
         end do
         !$omp end do
 
-      case(16)
+     case(17)
         !$omp do
         do node_index = 1, kmaxn
-            ! if (local_nodes(node_index)%mesh_quality_after.lt.zero) then
-            !     local_relaxation_velocity_multiple = zero
-            ! else
-                ! if (local_nodes(node_index)%mesh_quality_before.lt.zero) then
-                !     local_relaxation_velocity_multiple = upper_relaxation_mesh_velocity_multiple
-                ! else
-                    if (governingequations.eq.-1) then
-                        gradient_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
-                    else
-                        gradient_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
-                    end if
+            if (governingequations.eq.-1) then
+                ! gradient_magnitude_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
+                ! gradient_copy(1:dimensiona) = 0.5*(local_nodes(node_index)%density_gradient(1:dimensiona) + local_nodes(node_index)%vf_gradient(1:dimensiona))
+                gradient_magnitude_copy = local_nodes(node_index)%normalized_vf_gradient_magnitude
+                gradient_copy(1:dimensiona) = local_nodes(node_index)%vf_gradient(1:dimensiona)
+            else
+                gradient_magnitude_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+                gradient_copy(1:dimensiona) = local_nodes(node_index)%density_gradient(1:dimensiona)
+            end if
 
-                    if ((gradient_copy.gt.1.0).or.(local_nodes(node_index)%num_neighbours.lt.3)) then
-                        gradient_term = 1.0
-                    else if (gradient_copy.ge.upper_gradient_treshold) then
-                        gradient_term = zero
-                    else
-                        gradient_term = 1.0 - ((gradient_copy/upper_gradient_treshold)*(gradient_copy/upper_gradient_treshold))
-                    end if
+            magnitude = 0.0
+            do i=1, dimensiona
+                magnitude = magnitude + (gradient_copy(i)**2)
+            end do
+            magnitude = sqrt(magnitude)
+            if (magnitude.ge.0.000001) then
+                do i = 1, dimensiona
+                    normal_relaxation_velocity(i) = local_nodes(node_index)%relaxation_velocity(i)*gradient_copy(i) / magnitude
+                end do
+            else
+                normal_relaxation_velocity(:) = zero
+            end if
 
-                    quality_term = 1.0 - ((real(local_nodes(node_index)%num_neighbours)*quality_treshold) / local_nodes(node_index)%mesh_quality_before)
-                    if (quality_term.gt.1.0) then
-                        quality_term = 1.0
-                    end if
-                    if (quality_term.lt.zero) then
-                        quality_term = 0.0
-                    end if
+            if ((local_nodes(node_index)%num_neighbours.lt.3).or.(gradient_magnitude_copy.le.zero)) then
+                gradient_term = zero
+            else if (gradient_magnitude_copy.ge.upper_gradient_treshold) then
+                gradient_term = 1.0
+            else
+                gradient_term = gradient_magnitude_copy/upper_gradient_treshold
+            end if
 
-                    local_relaxation_velocity_multiple = (quality_coeff * quality_term) + (gradient_term * gradient_coeff)
-                ! end if
-            ! end if
+            quality_term = 1.0 - ((real(local_nodes(node_index)%num_neighbours)*quality_treshold) / local_nodes(node_index)%mesh_quality_before)
+            if (quality_term.gt.1.0) then
+                quality_term = 1.0
+            end if
+            if (quality_term.lt.zero) then
+                quality_term = 0.0
+            end if
+
+            local_relaxation_velocity_multiple = (1.0 - gradient_term) + (quality_coeff * quality_term)
             call clamp(local_relaxation_velocity_multiple, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple)
+
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) &
-                                                           + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple
+                                                           + (normal_relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple) &
+                                                           + (local_nodes(node_index)%relaxation_velocity(1:dimensiona) - normal_relaxation_velocity(1:dimensiona))
         end do
         !$omp end do
 
+      case(18)
+        !$omp do
+        do node_index = 1, kmaxn
+            if (governingequations.eq.-1) then
+                ! gradient_magnitude_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
+                gradient_magnitude_copy = local_nodes(node_index)%normalized_vf_gradient_magnitude
+            else
+                gradient_magnitude_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+            end if
+
+            if ((local_nodes(node_index)%num_neighbours.lt.3).or.(gradient_magnitude_copy.le.zero)) then
+                gradient_term = zero
+            else if (gradient_magnitude_copy.ge.upper_gradient_treshold) then
+                gradient_term = 1.0
+            else
+                gradient_term = gradient_magnitude_copy/upper_gradient_treshold
+            end if
+
+            quality_term = 1.0 - ((real(local_nodes(node_index)%num_neighbours)*quality_treshold) / local_nodes(node_index)%mesh_quality_before)
+            if (quality_term.gt.1.0) then
+                quality_term = 1.0
+            end if
+            if (quality_term.lt.zero) then
+                quality_term = 0.0
+            end if
+
+            local_relaxation_velocity_multiple = (1.0 - gradient_term) + (quality_coeff * quality_term)
+            call clamp(local_relaxation_velocity_multiple, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple)
+
+            local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) &
+                                                           + (local_nodes(node_index)%relaxation_velocity(1:dimensiona)  * local_relaxation_velocity_multiple)
+        end do
+        !$omp end do
+     
       case default
         print *, "invalid moving mesh mode"
 
