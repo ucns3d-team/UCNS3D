@@ -2823,20 +2823,15 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
 
 			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 				IF (TURBULENCEMODEL.NE.2)THEN
-					CTURBR(:)=-CTURBL(:)
-
+					CTURBR(:) = -CTURBL(:)
 					if (passivescalar.gt.0)then
-					    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						        -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
-
+					    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR) = -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 					end if
 				ELSE
-					CTURBR(1)=-CTURBL(1)
-					CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
-
+					CTURBR(1) = -CTURBL(1)
+					CTURBR(2) = 60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
 					if (passivescalar.gt.0)then
-					    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						        -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR) = -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 					end if
 				END IF
 			END IF
@@ -2977,7 +2972,6 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
 
     SELECT CASE(B_CODE)
 
-    
       CASE(1)!INFLOW SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
 
         if (boundtype.eq.0)then	!SUPERSONIC
@@ -3187,9 +3181,7 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
 			end if
 			      
 		else
-			       
 			CALL ROTATEF2d(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-			      
             CRIGHT_ROT(1)=CLEFT_ROT(1)
             CRIGHT_ROT(2)=-CLEFT_ROT(2)
             CRIGHT_ROT(3)=CLEFT_ROT(3)
@@ -3202,19 +3194,16 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
             END IF
 			     
 			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-				CTURBR(:)=CTURBL(:)
-
+				CTURBR(:) = CTURBL(:)
 				if (passivescalar.gt.0)then
-					cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						    ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR) = ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 				end if
 			END IF
 				
 			CALL ROTATEb2d(N,rightv,Cright_ROT,ANGLE1,ANGLE2)
-
         end if
     
-      CASE(4)!WALL
+      CASE(4) ! WALL
     
 		IF (ITESTCASE.EQ.3)THEN
 			      
@@ -3231,11 +3220,9 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
 			end if
 			     	 
 			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-				CTURBR(:)=CTURBL(:)
-
-				if (passivescalar.gt.0)then
-					cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						    ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				CTURBR(:) = CTURBL(:)
+				if (passivescalar.gt.0) then
+					cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR) = ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 				end if
 			END IF
 					
@@ -3250,19 +3237,68 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
 
 			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 				IF (TURBULENCEMODEL.NE.2)THEN
-					CTURBR(:)=-CTURBL(:)
+					CTURBR(:) = -CTURBL(:)
 
 					if (passivescalar.gt.0)then
-					    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						        -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR) = -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 					end if
 				ELSE
-					CTURBR(1)=-CTURBL(1)
-					CTURBR(2)=60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
+					CTURBR(1) = -CTURBL(1)
+					CTURBR(2) = 60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
 
 					if (passivescalar.gt.0)then
-					    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						        -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR) = -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					end if
+				END IF
+			END IF
+    
+	    END IF
+
+      CASE(101:) ! Moving WALL
+    
+		IF (ITESTCASE.EQ.3)THEN
+			      
+			CALL ROTATEF2D(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
+			      
+			IF (governingequations.EQ.-1)then
+			    CRIGHT_ROT(:)=CLEFT_ROT(:)
+			    CRIGHT_ROT(2)=-CLEFT_ROT(2)
+			else
+         		CRIGHT_ROT(1)=CLEFT_ROT(1)
+			    CRIGHT_ROT(2)=-CLEFT_ROT(2)
+			    CRIGHT_ROT(3)=CLEFT_ROT(3)
+			    CRIGHT_ROT(4)=CLEFT_ROT(4)
+			end if
+			     	 
+			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+				CTURBR(:) = CTURBL(:)
+				if (passivescalar.gt.0) then
+					cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR) = ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				end if
+			END IF
+					
+			CALL ROTATEb2D(N,rightv,Cright_ROT,ANGLE1,ANGLE2)	    
+			      
+		ELSE
+    
+            rightv(1) = leftv(1)
+            rightv(2) = -leftv(2) + 2.0*srf_speed(2)*leftv(1)
+            rightv(3) = -leftv(3) + 2.0*srf_speed(3)*leftv(1)
+            rightv(4) = leftv(4) + 2.0*leftv(1)*(SRF_SPEED(2)**2+SRF_SPEED(3)**2) - 2.0*(leftv(2)*SRF_SPEED(2)+leftv(3)*SRF_SPEED(3))
+
+			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+				IF (TURBULENCEMODEL.NE.2)THEN
+					CTURBR(:) = -CTURBL(:)
+
+					if (passivescalar.gt.0)then
+					    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR) = -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+					end if
+				ELSE
+					CTURBR(1) = -CTURBL(1)
+					CTURBR(2) = 60.0D0*VISC/(BETA_I1*(IELEM(N,ICONSIDERED)%WallDist**2))
+
+					if (passivescalar.gt.0)then
+					    cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR) = -ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 					end if
 				END IF
 			END IF
@@ -3272,26 +3308,26 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
       CASE(6)!FARFIELD INFLOW OR OUTFLOW, SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
 
 	    CALL ROTATEF2d(N,Cleft_ROT,leftV,ANGLE1,ANGLE2)
-	    vnb=cleft_rot(2)/CLEFT_ROT(1)
+	    vnb = cleft_rot(2)/CLEFT_ROT(1)
 	    CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
     
-	    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
-	    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-	    SPS=SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
-	    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
+	    SUBSON1(1:nof_Variables) = RIGHTV(1:nof_Variables)
+	    SUBSON2(1:nof_Variables) = LEFTV(1:nof_Variables)
+	    SPS = SQRT((GAMMA*SUBSON2(4))/(SUBSON2(1)))
+	    VEL = sqrt(SUBSON2(2)**2+SUBSON2(3)**2)
 	  
 	    CALL PRIM2CONS2(N,LEFTV,RIGHTV)
 
         if ((initcond.ge.51).and.(initcond.le.55)) then ! Toro test cases
-            rightv(1:nof_Variables)=leftv(1:nof_Variables)
+            rightv(1:nof_Variables) = leftv(1:nof_Variables)
         else
             if (vnb.le.0.0d0)then		!inflow
-                ibfc=-1
+                ibfc = -1
                 if ((abs(vnb)).ge.sps) then  ! supersonic
-                    rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
+                    rightv(1:nof_Variables) = INFLOW2d(INITCOND,POX,POY)
                         
                 else ! subsonic
-                    rightv(1:nof_Variables)=INFLOW2d(INITCOND,POX,POY)
+                    rightv(1:nof_Variables) = INFLOW2d(INITCOND,POX,POY)
                     CALL cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
                 
                     SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
@@ -3316,22 +3352,21 @@ SUBROUTINE BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE
                 END IF
             
                 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-            
                     IF (TURBULENCEMODEL.EQ.1)THEN
                         CTURBR(1)=VISC*TURBINIT
                     END IF
                     IF (TURBULENCEMODEL.EQ.2)THEN	 
-                        CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
-                        CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
+                        CTURBR(1) = (1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
+                        CTURBR(2) = RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
                     END IF
     
                     IF (PASSIVESCALAR.GT.0)THEN
-                        CTURBR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=PASS_INLET2d(INITCOND,POX,POY)*RIGHTV(1)
+                        CTURBR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR) = PASS_INLET2d(INITCOND,POX,POY)*RIGHTV(1)
                     END IF
                 END IF
             
             else ! outflow
-                ibfc=-2
+                ibfc = -2
                 if ((abs(vnb)).ge.sps) then ! supersonic
                     rightv(1:nof_Variables)=leftv(1:nof_Variables)
 
@@ -3774,8 +3809,10 @@ SUBROUTINE EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 	tolepsma = TOLSMALL
 	
 	IF (TURBULENCE.EQ.0)THEN
-	    VISCL(4)=ZERO;VISCL(3)=ZERO
-	    LAML(4)=ZERO;LAML(3)=ZERO
+        VISCL(3)=ZERO
+	    VISCL(4)=ZERO
+        LAML(3) =ZERO
+	    LAML(4) =ZERO
 	ELSE
         !Modified on 19/6/2013
         SELECT CASE(TURBULENCEMODEL)
@@ -3785,7 +3822,7 @@ SUBROUTINE EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 	            TURBMV(1)=EDDYFL(2)
 	            TURBMV(2)=EDDYFR(2)  
 	  
-	            chi = abs ((TURBMV(1)) / (VISCL(1)))
+	            chi = abs((TURBMV(1)) / (VISCL(1)))
                 ! chi = abs ( max(TURBMV(1),tolepsma) / max(VISCL(1),tolepsma))
                 chipow3 = chi * chi * chi
                 fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
@@ -3799,12 +3836,12 @@ SUBROUTINE EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
                 TURBMV(1)=EDDYFL(2)
 	            TURBMV(2)=EDDYFR(2)  
 	
-                chi = abs ( max(TURBMV(1),tolepsma) / max(VISCL(1),tolepsma))
+                chi = abs(max(TURBMV(1), tolepsma) / max(VISCL(1), tolepsma))
                 chipow3 = chi * chi * chi
                 fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
 	            VISCL(3) = TURBMV(1)*fv1
                 ! chi = abs ((TURBMV(2)) / (VISCL(2)))
- 	            chi = abs ( max(TURBMV(2),tolepsma) / max(VISCL(2),tolepsma))
+ 	            chi = abs(max(TURBMV(2), tolepsma) / max(VISCL(2), tolepsma))
                 chipow3 = chi * chi * chi
                 fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
 		        VISCL(4) = TURBMV(2)*fv1
@@ -3821,104 +3858,106 @@ SUBROUTINE EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
             
             DO IHGT=1,2
                 DO IHGJ=1,2
-                    TVORT(IHGT,IHGJ)=VORTET(IHGJ,IHGT)
+                    TVORT(IHGT,IHGJ) = VORTET(IHGJ,IHGT)
                 END DO
             END DO
 
-            sVORT=0.5*(VORTET+TVORT)
-            SNORM=SQRT(2.0*((SVORT(1,1)*SVORT(1,1))+(SVORT(1,2)*SVORT(1,2))+(SVORT(2,1)*SVORT(2,1))+(SVORT(2,2)*SVORT(2,2))))
+            sVORT = 0.5*(VORTET+TVORT)
+            SNORM = SQRT(2.0*((SVORT(1,1)*SVORT(1,1))+(SVORT(1,2)*SVORT(1,2))+(SVORT(2,1)*SVORT(2,1))+(SVORT(2,2)*SVORT(2,2))))
                     
-            wally=EDDYFL(1)
-            rho_0=LEFTV(1)
-            k_0=MAX(tolepsma,EDDYFL(2)/LEFTV(1))
-            om_0=max(EDDYFL(3)/LEFTV(1),ufreestream/charlength/10.0)
+            wally = EDDYFL(1)
+            rho_0 = LEFTV(1)
+            k_0 = MAX(tolepsma, EDDYFL(2)/LEFTV(1))
+            om_0= max(EDDYFL(3)/LEFTV(1), ufreestream/charlength/10.0)
 
-            dervk_dervom=(EDDYFL(8)*EDDYFL(10))+(EDDYFL(9)*EDDYFL(11))
+            dervk_dervom = (EDDYFL(8)*EDDYFL(10))+(EDDYFL(9)*EDDYFL(11))
             
-            D_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    
-            phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*VISCL(1)/(rho_0*wally*wally*om_0))
-            phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*D_omplus*wally*wally)) 
+            D_omplus = max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    
+            phi_2 = max(sqrt(k_0)/(0.09*om_0*wally),500.0*VISCL(1)/(rho_0*wally*wally*om_0))
+            phi_1 = min(phi_2, 4.0*rho_0*k_0/(sigma_om2*D_omplus*wally*wally)) 
 
-            F_1=tanh(phi_1**4)
-            F_2=tanh(phi_2**2)
-            RE_T_SST=RHO_0*K_0/(VISCL(1)*OM_0)
-            beta_i=F_1*beta_i1+(1.0-F_1)*beta_i2
-            alpha_star0=beta_i/3.0    
-            alpha_inf=F_1*alpha_inf1+(1.0-F_1)*alpha_inf2
-            alpha_star=alpha_starinf*(alpha_star0+Re_t_SST/R_k_SST)/(1.0+Re_t_SST/R_k_SST)
+            F_1 = tanh(phi_1**4)
+            F_2 = tanh(phi_2**2)
+            RE_T_SST = RHO_0*K_0/(VISCL(1)*OM_0)
+            beta_i = F_1*beta_i1+(1.0-F_1)*beta_i2
+            alpha_star0 = beta_i/3.0    
+            alpha_inf = F_1*alpha_inf1+(1.0-F_1)*alpha_inf2
+            alpha_star= alpha_starinf*(alpha_star0+Re_t_SST/R_k_SST)/(1.0+Re_t_SST/R_k_SST)
 
-            VISCL(3)=rho_0*k_0/om_0/max(1.0/alpha_star,SNORM*F_2/(aa_1*om_0))
+            VISCL(3) = rho_0*k_0/om_0/max(1.0/alpha_star, SNORM*F_2/(aa_1*om_0))
 
             !Added 20/6/2013
-            sigma_k_l=sigma_k1/F_1+sigma_k2/F_2
-            sigma_om_l=sigma_om1/F_1+sigma_om2/F_2
+            sigma_k_l = sigma_k1/F_1 + sigma_k2/F_2
+            sigma_om_l= sigma_om1/F_1+ sigma_om2/F_2
 
             IF (EDDYFR(1).GT.0.0)THEN
                 VORTET(1,1:2) = EDDYFL(4:5)
                 VORTET(2,1:2) = EDDYFL(6:7) 
                 
-                ux = Vortet(1,1);uy = Vortet(1,2)
-                vx = Vortet(2,1);vy = Vortet(2,2)
+                ux = Vortet(1,1)
+                uy = Vortet(1,2)
+                vx = Vortet(2,1)
+                vy = Vortet(2,2)
     
                 DO IHGT=1,2
                     DO IHGJ=1,2
-                        TVORT(IHGT,IHGJ)=VORTET(IHGJ,IHGT)
+                        TVORT(IHGT,IHGJ) = VORTET(IHGJ,IHGT)
                     END DO
                 END DO
 
-                sVORT=0.5*(VORTET+TVORT)
-                SNORM=SQRT(2.0*((SVORT(1,1)*SVORT(1,1))+(SVORT(1,2)*SVORT(1,2))+(SVORT(2,1)*SVORT(2,1))+(SVORT(2,2)*SVORT(2,2))))
+                sVORT = 0.5*(VORTET+TVORT)
+                SNORM = SQRT(2.0*((SVORT(1,1)*SVORT(1,1))+(SVORT(1,2)*SVORT(1,2))+(SVORT(2,1)*SVORT(2,1))+(SVORT(2,2)*SVORT(2,2))))
             
-                wally=EDDYFR(1)
-                rho_0=RIGHTV(1)
-                k_0=EDDYFR(2)/RIGHTV(1)
-                om_0=max(EDDYFR(3)/RIGHTV(1),1.0e-6)
+                wally = EDDYFR(1)
+                rho_0 = RIGHTV(1)
+                k_0 = EDDYFR(2)/RIGHTV(1)
+                om_0= max(EDDYFR(3)/RIGHTV(1), 1.0e-6)
 
                 ! EDDYFL(13:15)=ILOCAL_RECON3(K)%GRADS(4,1:3)
-                !EDDYFL(16:18)=ILOCAL_RECON3(K)%GRADS(5,1:3)
+                ! EDDYFL(16:18)=ILOCAL_RECON3(K)%GRADS(5,1:3)
 
-                dervk_dervom=(EDDYFL(8)*EDDYFL(10))+(EDDYFL(9)*EDDYFL(11))
+                dervk_dervom = (EDDYFL(8)*EDDYFL(10))+(EDDYFL(9)*EDDYFL(11))
                         
-                D_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    !I need derivative of k
-                phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*VISCL(2)/(rho_0*wally*wally*om_0))
-                phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*D_omplus*wally*wally)) 
+                D_omplus = max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    !I need derivative of k
+                phi_2 = max(sqrt(k_0)/(0.09*om_0*wally) ,500.0*VISCL(2)/(rho_0*wally*wally*om_0))
+                phi_1 = min(phi_2, 4.0*rho_0*k_0/(sigma_om2*D_omplus*wally*wally)) 
 
-                F_1=tanh(phi_1**4)
-                F_2=tanh(phi_2**2)
-                RE_T_SST=RHO_0*K_0/(VISCL(2)*OM_0)
-                beta_i=F_1*beta_i1+(1.0-F_1)*beta_i2
-                alpha_star0=beta_i/3.0    
-                alpha_inf=F_1*alpha_inf1+(1.0-F_1)*alpha_inf2
-                alpha_star=alpha_starinf*(alpha_star0+Re_t_SST/R_k_SST)/(1.0+Re_t_SST/R_k_SST)
+                F_1 = tanh(phi_1**4)
+                F_2 = tanh(phi_2**2)
+                RE_T_SST = RHO_0*K_0/(VISCL(2)*OM_0)
+                beta_i = F_1*beta_i1+(1.0-F_1)*beta_i2
+                alpha_star0 = beta_i/3.0    
+                alpha_inf = F_1*alpha_inf1+(1.0-F_1)*alpha_inf2
+                alpha_star = alpha_starinf*(alpha_star0+Re_t_SST/R_k_SST)/(1.0+Re_t_SST/R_k_SST)
 
-                VISCL(4)=rho_0*k_0/om_0/max(1.0/alpha_star,SNORM*F_2/(aa_1*om_0))
+                VISCL(4) = rho_0*k_0/om_0/max(1.0/alpha_star, SNORM*F_2/(aa_1*om_0))
 
                 !Added 20/6/2013
-                sigma_k_r=sigma_k1/F_1+sigma_k2/F_2
-                sigma_om_r=sigma_om1/F_1+sigma_om2/F_2
+                sigma_k_r = sigma_k1/F_1 + sigma_k2/F_2
+                sigma_om_r= sigma_om1/F_1+ sigma_om2/F_2
 
             ELSE
-                VISCL(4)=-VISCL(3)
-                SIGMA_K_R=SIGMA_K_L
-                SIGMA_OM_R=SIGMA_OM_L
+                VISCL(4) = -VISCL(3)
+                SIGMA_K_R = SIGMA_K_L
+                SIGMA_OM_R= SIGMA_OM_L
             END IF
 
         END SELECT
 		  
-		Viscl(3) = MIN(10000000*visc,VISCL(3))  
-		Viscl(4) = MIN(10000000*visc,VISCL(4))		  
+		Viscl(3) = MIN(10000000*visc, VISCL(3))  
+		Viscl(4) = MIN(10000000*visc, VISCL(4))		  
   
-        LAML(3)=( VISCL(3)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1)) )
-        LAML(4)=( VISCL(4)*GAMMA/(PRTU*(GAMMA-1)) ) + ( VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1)) )
-        VISCL(3)=MAX(0.0D0,VISCL(3))
-        VISCL(4)=MAX(0.0D0,VISCL(4))
+        LAML(3) = (VISCL(3)*GAMMA/(PRTU*(GAMMA-1))) + (VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1)))
+        LAML(4) = (VISCL(4)*GAMMA/(PRTU*(GAMMA-1))) + (VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1)))
+        VISCL(3) = MAX(0.0D0, VISCL(3))
+        VISCL(4) = MAX(0.0D0, VISCL(4))
         
         IF ((TURBMV(1).LT.ZERO).OR.(TURBMV(2).LT.ZERO))THEN
-            VISCL(3)=0.0D0
-            VISCL(4)=0.0D0
+            VISCL(3) = 0.0D0
+            VISCL(4) = 0.0D0
         END IF
         
-	    ETVM(1) = ( 0.5*(VISCL(1)+VISCL(2)) ) +  ( 0.5*(VISCL(3)+VISCL(4)) )
+	    ETVM(1) = (0.5*(VISCL(1)+VISCL(2))) + (0.5*(VISCL(3)+VISCL(4)))
 
         !Added on 20/6/2013---------------------------------------------------------------
         !After limiting these variables, we compute the diffusion for the turbulent variables
@@ -3926,11 +3965,11 @@ SUBROUTINE EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
             !--------EDDYFL/R(19)=GAMMA_k_L/R
             !--------EDDYFL/R(20)=GAMMA_om_L/R  
 
-            EDDYFL(12)=VISCL(1)+VISCL(3)/sigma_k_l
-            EDDYFR(13)=VISCL(2)+VISCL(4)/sigma_k_r
+            EDDYFL(12) = VISCL(1)+VISCL(3)/sigma_k_l
+            EDDYFR(13) = VISCL(2)+VISCL(4)/sigma_k_r
 
-            EDDYFL(12)=VISCL(1)+VISCL(3)/sigma_om_l
-            EDDYFR(13)=VISCL(2)+VISCL(4)/sigma_om_r
+            EDDYFL(12) = VISCL(1)+VISCL(3)/sigma_om_l
+            EDDYFR(13) = VISCL(2)+VISCL(4)/sigma_om_r
         end if
     END IF
 
@@ -4000,12 +4039,12 @@ SUBROUTINE TRAJECTORIES
         DO I=1,KMAXE
             IF (U_C(I)%VAL(1,7).GT.0.1D0)THEN   !VOLUME FRACTION OF GAS to be used for lowest location tracking
                 IF (IELEM(N,I)%YYC.Le.POST3)THEN
-                    POST3=IELEM(N,I)%YYC
-                    TRAJ1=I
+                    POST3 = IELEM(N,I)%YYC
+                    TRAJ1 = I
                 END IF
             END IF   
             IF (U_C(I)%VAL(1,7).GT.0.0D0)THEN  !total volume of gas evolution
-                pos_l(2)=pos_l(2)+U_C(I)%VAL(1,7)*ielem(n,i)%totvolume
+                pos_l(2) = pos_l(2) + U_C(I)%VAL(1,7)*ielem(n,i)%totvolume
             end if
         END Do
 

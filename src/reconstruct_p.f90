@@ -434,7 +434,7 @@ SUBROUTINE EXTRAPOLATE_BOUND_NODE_MUSCL(USOL_NODES,varcons,face_index,face_node_
     END IF
   
     IF (TURBULENCEEQUATIONS.GE.1)THEN
-        print*,"node reconstruction not supported with turbulence"
+        ! print*,"node reconstruction not supported with turbulence"
     END IF
   
   END SUBROUTINE EXTRAPOLATE_BOUND_NODE_MUSCL
@@ -1005,9 +1005,9 @@ SUBROUTINE WENO_NEIGHBOUR(ICONSIDERED,FACEX,VEIGL,VEIGR,NX,NY,NZ,ANGLE1,ANGLE2,I
     INTEGER,INTENT(IN)::ICONSIDERED,FACEX
     INTEGER,INTENT(INOUT)::IDUMMY
     REAL::MP_PINFl,gammal
-    INTEGER::I,J,K,L,var2,B_CODE,N_NODE
+    INTEGER::I,J,K,L,var2,B_CODE, mb_code, N_NODE
     real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,RIGHTV
-    REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
+    REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS, radius, normal
     REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
     REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
     REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
@@ -1071,9 +1071,7 @@ SUBROUTINE WENO_NEIGHBOUR(ICONSIDERED,FACEX,VEIGL,VEIGR,NX,NY,NZ,ANGLE1,ANGLE2,I
                         END IF
                     end if
                 else
-
-                    VEIGR(1:nof_variables)=(IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL&
-                        (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_variables))
+                    VEIGR(1:nof_variables) = (IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(l)))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(l)),1:nof_variables))
                 end if
             end if
         END IF
@@ -1085,7 +1083,6 @@ SUBROUTINE WENO_NEIGHBOUR(ICONSIDERED,FACEX,VEIGL,VEIGR,NX,NY,NZ,ANGLE1,ANGLE2,I
 
         IF (ielem(n,i)%interior.EQ.0)THEN
             VEIGR(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables);
-
         ELSE
 
             IF (IELEM(N,I)%INEIGHB(l).EQ.N)THEN	!MY CPU ONLY
@@ -1105,6 +1102,21 @@ SUBROUTINE WENO_NEIGHBOUR(ICONSIDERED,FACEX,VEIGL,VEIGR,NX,NY,NZ,ANGLE1,ANGLE2,I
 
                         LEFTV(1:nof_variables)=VEIGL(1:nof_variables)
                         B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
+
+                        SRF_SPEED(:) = zero
+                        if (BOUNDARY_MOVEMENT) then
+                            if (b_code.gt.100) then
+                                mb_code = b_code-100
+                                SRF_SPEED(2:3) = moving_boundaries(mb_code)%velocity(1:2)
+                                if (moving_boundaries(mb_code)%omega.ne.zero) then
+                                    radius(1:dimensiona) = pox(1:dimensiona) - moving_boundaries(mb_code)%rotation_centre(1:dimensiona,global_position_index)
+                                    normal(1) = radius(2)
+                                    normal(2) = -radius(1)
+                                    SRF_SPEED(2:3) = SRF_SPEED(2:3) + normal(1:2)*moving_boundaries(mb_code)%omega
+                                end if
+                            end if
+                        end if
+
                         CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 
                         VEIGR(1:nof_variables)=RIGHTV(1:nof_variables)
@@ -2271,7 +2283,7 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
             END IF
 
             IF (TURBULENCEEQUATIONS.GE.1)THEN
-                print*,"turbulence is not supported with node reconstruction"
+                ! print*,"turbulence is not supported with node reconstruction"
             END IF
         end do
     END DO
@@ -2367,7 +2379,7 @@ subroutine COMPUTE_MUSCL_RECONSTRUCTION(ICONSIDERED,UTMIN,UTMAX,UTEMP)
                 USOL_NODES(1:nof_Variables,l,face_node_index) = USOL_NODES(1:nof_Variables,l,face_node_index)-U_C(I)%VAL(1,1:nof_Variables)
             END IF
             IF (TURBULENCEEQUATIONS.GE.1)THEN
-                print*,"turbulence is not supported with node reconstruction"
+                ! print*,"turbulence is not supported with node reconstruction"
             END IF
 
             CALL EXTRAPOLATE_BOUND_NODE_MUSCL(USOL_NODES,IEX,L,face_node_index,I,SLOPE)
@@ -2473,7 +2485,6 @@ SUBROUTINE SOLUTIONTRIAV2(N)
     real,allocatable,dimension(:)::gradtem
     real,allocatable,dimension(:,:)::XXDER,YYDER,ZZDER
 
-
     KMAXE=XMPIELRANK(N);
 
     allocate(xxder(1:idegfree,1:NUMBEROFPOINTS2))
@@ -2486,14 +2497,15 @@ SUBROUTINE SOLUTIONTRIAV2(N)
     DO I=1,kmaxe
         ICONSIDERED=I
 
-        ILOCAL_RECON3(I)%ULEFTV(:,:,:,:)=zero;
+        ILOCAL_RECON3(I)%ULEFTV(:,:,:,:)=zero
         IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-            ILOCAL_RECON3(I)%ULEFTTURBV(:,:,:,:)=zero;ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=zero;
+            ILOCAL_RECON3(I)%ULEFTTURBV(:,:,:,:)=zero
+            ! ILOCAL_RECON3(I)%ULEFTTURB(:,:,:)=zero
         END IF
 
-        DO IHGT=1,DIMENSIONA
+        DO IHGT=1, DIMENSIONA
             DO IHGJ=1,DIMENSIONA
-                AINVJT(IHGT,IHGJ)=ILOCAL_RECON3(I)%INVCCJAC(IHGJ,IHGT)
+                AINVJT(IHGT,IHGJ) = ILOCAL_RECON3(I)%INVCCJAC(IHGJ,IHGT)
             END DO
         END DO
 
@@ -2508,7 +2520,7 @@ SUBROUTINE SOLUTIONTRIAV2(N)
                 iqp=qp_LINE;
             END IF
             ICD=0
-            do NGP=1,iqp			!for gqp
+            do NGP=1, iqp			!for gqp
 
                 AX = ILOCAL_RECON3(I)%QPOINTS(L,NGP,1);
                 AY = ILOCAL_RECON3(I)%QPOINTS(L,NGP,2);
@@ -2532,9 +2544,11 @@ SUBROUTINE SOLUTIONTRIAV2(N)
                 ELSE
                     DO K=1,IELEM(N,I)%IDEGFREE
                         IF (POLY.EQ.4)THEN
-                        xXDER(K,icd)=TL2dX(AX,AY,K,i);  yYDER(K,icd)=TL2dY(AX,AY,K,i);
+                            xXDER(K,icd) = TL2dX(AX,AY,K,i)
+                            yYDER(K,icd) = TL2dY(AX,AY,K,i);
                         ELSE
-                        xXDER(K,icd)=DF2dX(AX,AY,K,i);  yYDER(K,icd)=DF2dY(AX,AY,K,i);
+                            xXDER(K,icd) = DF2dX(AX,AY,K,i)
+                            yYDER(K,icd) = DF2dY(AX,AY,K,i);
                         END IF
 
                     END DO
@@ -2559,13 +2573,13 @@ SUBROUTINE SOLUTIONTRIAV2(N)
                         end if
 
                         DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-                            GRADTEM(1:IELEM(N,I)%IDEGFREE)=ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:IELEM(N,I)%IDEGFREE,NVAR)
+                            GRADTEM(1:IELEM(N,I)%IDEGFREE) = ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTURB(1,1:IELEM(N,I)%IDEGFREE,NVAR)
 
                             UGRADLOC = ZERO
-                            UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),XXDER(1:IELEM(N,I)%IDEGFREE,ICD))
-                            UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),YYDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                            UGRADLOC(1) = DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),XXDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                            UGRADLOC(2) = DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),YYDER(1:IELEM(N,I)%IDEGFREE,ICD))
                             if (dimensiona.eq.3)then
-                                UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),ZZDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                                UGRADLOC(3) = DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),ZZDER(1:IELEM(N,I)%IDEGFREE,ICD))
                             end if
 
                             ILOCAL_RECON3(I)%ULEFTTURBV(1:dimensiona,NVAR,L,NGP) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
@@ -2590,10 +2604,10 @@ SUBROUTINE SOLUTIONTRIAV2(N)
                         GRADTEM(1:IELEM(N,I)%IDEGFREE)=ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(IEX,1:IELEM(N,I)%IDEGFREE)
 
                         UGRADLOC = ZERO
-                        UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),XXDER(1:IELEM(N,I)%IDEGFREE,ICD))
-                        UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),YYDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                        UGRADLOC(1) = DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),XXDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                        UGRADLOC(2) = DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),YYDER(1:IELEM(N,I)%IDEGFREE,ICD))
                         if (dimensiona.eq.3)then
-                            UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),ZZDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                            UGRADLOC(3) = DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),ZZDER(1:IELEM(N,I)%IDEGFREE,ICD))
                         end if
 
                         ILOCAL_RECON3(I)%ULEFTV(1:dimensiona,IEX+1,L,NGP) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
@@ -3172,7 +3186,11 @@ SUBROUTINE CHECKSOLX(N)
             DO L=1,IELEM(N,I)%IFCA	!faces2
                 do NGP=1,iqp 
                     if (ILOCAL_RECON3(I)%ULEFT(1,L,NGP).ne.ILOCAL_RECON3(I)%ULEFT(1,L,NGP)) then
-                        print*,"NaN in ChecksolX"
+                        if (dimensiona.eq.2) then
+                            print*,"NaN in ChecksolX in cell", I, "cpu", N, "cell centre", IELEM(N,I)%XXC, IELEM(N,I)%YYC
+                        else
+                            print*,"NaN in ChecksolX in cell", I, "cpu", N, "cell centre", IELEM(N,I)%XXC, IELEM(N,I)%YYC, IELEM(N,I)%ZZC
+                        end if
                     end if
                 end do
             end do
@@ -3184,7 +3202,11 @@ SUBROUTINE CHECKSOLX(N)
             DO L=1,IELEM(N,I)%IFCA	!faces2
                 do NGP=1,iqp 
                     if (ILOCAL_RECON3(I)%ULEFT(1,L,NGP).ne.ILOCAL_RECON3(I)%ULEFT(1,L,NGP)) then
-                        print*,"NaN in ChecksolX"
+                        if (dimensiona.eq.2) then
+                            print*,"NaN in ChecksolX in cell", I, "cpu", N, "cell centre", IELEM(N,I)%XXC, IELEM(N,I)%YYC
+                        else
+                            print*,"NaN in ChecksolX in cell", I, "cpu", N, "cell centre", IELEM(N,I)%XXC, IELEM(N,I)%YYC, IELEM(N,I)%ZZC
+                        end if
                     end if
                 end do
             end do

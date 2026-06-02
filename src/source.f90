@@ -202,7 +202,7 @@ SUBROUTINE SOURCES(N,ICONSIDERED,SOURCE_T)
         	OMEGA = OMEGA + 2.0d0*min(0.0d0,SNORM-ONORM)
     	end if
     
-      	if (ISPAL .eq.1) then
+      	if (ISPAL.eq.1) then
 			eddyfl(2)=turbmv(1)
 			eddyfr(2)=turbmv(2)
 				
@@ -220,29 +220,27 @@ SUBROUTINE SOURCES(N,ICONSIDERED,SOURCE_T)
 				TCH_FV1 = TCH_X3/(TCH_X3+(CV1*CV1*CV1))
 				TCH_fv2   = 1.0D0 - (TCH_X/(1.0D0 + TCH_X*TCH_fv1)) 
 
-
 				ddw=IELEM(N,I)%WallDist
 				
-				if (DES_model .eq. 1) then
-					CELL_VOLUME=IELEM(N,I)%TOTVOLUME
-					Delta_cell=Cell_volume**0.333333333333333
-					ddw=min(ddw,C_DES_SA*Delta_cell)
+				if (DES_model.eq.1) then
+					CELL_VOLUME = IELEM(N,I)%TOTVOLUME
+					Delta_cell = Cell_volume**0.333333333333333
+					ddw = min(ddw,C_DES_SA*Delta_cell)
 				end if
-				
-				if (DES_model .eq. 2) then
-					CELL_VOLUME=IELEM(N,I)%TOTVOLUME
-					Delta_cell=Cell_volume**0.333333333333333
-					r_DES=min(10.0, (viscl(1)+viscl(3))/(SNORM*(KAPPA*ddw)**2+1e-16)) 
+				if (DES_model.eq.2) then
+					CELL_VOLUME = IELEM(N,I)%TOTVOLUME
+					Delta_cell = Cell_volume**0.333333333333333
+					r_DES = min(10.0, (viscl(1)+viscl(3))/(SNORM*(KAPPA*ddw)**2 + 1e-16)) 
 					!Previous limiter is just for numerical reasons regarding tanh
-					f_DES=1-tanh((8.0*r_DES)**3)
-					ddw=max(ddw-f_DES*max(ddw-C_DES_SA*Delta_cell,1e-16),10.0e-16)
+					f_DES = 1-tanh((8.0*r_DES)**3)
+					ddw = max(ddw-f_DES*max(ddw-C_DES_SA*Delta_cell, 1e-16), 10.0e-16)
 				end if
 
 				ProdTerm1 = (TURBMV(1))/(leftv(1)* KAPPA * KAPPA * ddw * ddw)
-				Stild = max ( OMEGA + (TCH_fv2*ProdTerm1), 0.3*OMEGA)
-				Prodtermfinal=Stild*turbmv(1)*cb1
+				Stild = max(OMEGA + (TCH_fv2*ProdTerm1), 0.3*OMEGA)
+				Prodtermfinal = Stild*turbmv(1)*cb1
 
-				RR=MIN((TURBMV(1)/(((LEFTV(1)*STILD*KAPPA * KAPPA * (ddw) * (ddw)))+0.000000001)),10.0)
+				RR = MIN((TURBMV(1)/(((LEFTV(1)*STILD*KAPPA * KAPPA * (ddw) * (ddw)))+0.000000001)),10.0)
 
 				!cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
 
@@ -978,7 +976,6 @@ SUBROUTINE SOURCES2d(N,ICONSIDERED,SOURCE_T)
  
 	  CASE(1) !!SPALART ALMARAS MODEL	
 
-    
       	if (ISPAL .eq.1) then
 			eddyfl(2)=turbmv(1)
 			eddyfr(2)=turbmv(2)

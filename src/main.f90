@@ -478,9 +478,19 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
   
 IF (TURBULENCE.EQ.1)THEN
     if (dimensiona.eq.3)then
-    	call WallDistance(N,ielem,imaxe,XMPIELRANK)
+		if (MESH_MOVEMENT) then
+			! call Initialise_WallDistance(N,ielem,imaxe,XMPIELRANK)
+			print*,"not implemented yet"
+			call abort()
+		else
+			call WallDistance(N,ielem,imaxe,XMPIELRANK)
+		end if
     else
-    	call WallDistance2d(N,ielem,imaxe,XMPIELRANK)
+    	if (MESH_MOVEMENT) then
+			call Initialise_WallDistance2d(N,ielem,imaxe,XMPIELRANK)
+		else
+			call WallDistance2d(N,ielem,imaxe,XMPIELRANK)
+		end if
     end if
 END IF
 
@@ -722,6 +732,8 @@ Call reorder_nodes(N)
 Call GEOMETRY_CALC_MovingMesh(N, 1)
 !$OMP END PARALLEL
 Call establish_node_neighbours(N)
+
+WallDistReinitialisationFrequency = 1
 
 IF (DIMENSIONA.EQ.3)THEN
     !$OMP PARALLEL DEFAULT(SHARED)

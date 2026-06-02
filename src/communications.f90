@@ -1770,7 +1770,6 @@ END  IF
 		! end if
 
 		DO K=1,INDL
-
 			! Search unique J such that (IEXBOUNDHIR(K)%PROCID .EQ. IEXBOUNDHIS(J)%PROCID)
 			J = 1
 			DO WHILE(IEXBOUNDHIR(K)%PROCID .NE. IEXBOUNDHIS(J)%PROCID)
@@ -1896,10 +1895,7 @@ SUBROUTINE EXHBOUNDHIGHER2(N)
 							IMPDU(IEXCHANGES(I)%LOCALREF(K),nof_variables+nvar)
 						end if
 					end do
-				end if
-		
-				if ((turbulence .eq. 0).and.(passivescalar.eq.0)) then
-
+				else
 					DO JJK=1,IEX
 						if (relax.eq.3)then
 							if (iscoun.eq.1)then
@@ -2168,14 +2164,12 @@ SUBROUTINE EXHBOUNDHIGHER_MOOD(N)
 	!$OMP BARRIER
 
 	!$OMP MASTER
-
 		n_requests = 0
 		allocate(requests(2*indl))
 
 		ICPUID=N
 
 		DO K=1,INDL
-
 			! Search unique J such that (IEXBOUNDHIR(K)%PROCID .EQ. IEXBOUNDHIS(J)%PROCID)
 			J = 1
 			DO WHILE(IEXBOUNDHIR(K)%PROCID .NE. IEXBOUNDHIS(J)%PROCID)
@@ -2225,9 +2219,9 @@ END SUBROUTINE EXHBOUNDHIGHER_MOOD
 
 
 SUBROUTINE EXHBOUNDHIGHER_dg(N)
-	!> @brief
-	!> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
-	!> for the Gaussian quadrature points of direct-side neighbours between MPI processes
+  !> @brief
+  !> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
+  !> for the Gaussian quadrature points of direct-side neighbours between MPI processes
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
@@ -2277,7 +2271,6 @@ SUBROUTINE EXHBOUNDHIGHER_dg(N)
 
 	!$OMP MASTER
 		!CALL MPI_BARRIER(mpi_comm_world,ierror)
-
 		n_requests = 0
 		allocate(requests(2*indl))
 		requests(:)=0
@@ -2337,9 +2330,9 @@ END SUBROUTINE EXHBOUNDHIGHER_dg
 
 
 SUBROUTINE EXHBOUNDHIGHER_dg2(N)
-	!> @brief
-	!> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
-	!> for the Gaussian quadrature points of direct-side neighbours between MPI processes
+  !> @brief
+  !> This subroutine is communicating the boundary extrapolated values for the variables and their gradients
+  !> for the Gaussian quadrature points of direct-side neighbours between MPI processes
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	INTEGER::I,J,K,L,M,O,P,Q,INEEDT,TNEEDT,INDL,TNDL,ICPUID,ITTT,IEX,IMULTI,K_CNT,nvar
@@ -2366,24 +2359,22 @@ SUBROUTINE EXHBOUNDHIGHER_dg2(N)
 	!     !$OMP END MASTER
 	! end if
 
-
 	if(indl .ne. tndl) then
 		write (*, *) "exhbounhigher: INDL and TNDL are supposed to be equal; INDL=", INDL, "TNDL=", TNDL
 		call MPI_ABORT(MPI_COMM_WORLD, 1, IERROR)
 	end if
 
 	IF (DIMENSIONA.EQ.3)THEN
-
 		IF( ITESTCASE.EQ.4)THEN
-			I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
+			I_CNT = (nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((4+TURBULENCEEQUATIONS+PASSIVESCALAR)*3)
 		ELSE
-			I_CNT=nof_variables
+			I_CNT = nof_variables
 		END IF
 	ELSE
 		IF( ITESTCASE.EQ.4)THEN
-			I_CNT=(nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
+			I_CNT = (nof_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)+((3+TURBULENCEEQUATIONS+PASSIVESCALAR)*2)
 		ELSE
-			I_CNT=nof_variables
+			I_CNT = nof_variables
 		END IF
 	END IF
 
@@ -2397,7 +2388,7 @@ SUBROUTINE EXHBOUNDHIGHER_dg2(N)
 					ITTT=0
 					DO IEX=1,NOF_VARIABLES-4
 						DO nvar=1,DIMS
-							ITTT=ITTT+1
+							ITTT = ITTT+1
 							! IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
 							IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%BR2_AUX_VAR(IEX,NVAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
 						END DO
@@ -2407,10 +2398,9 @@ SUBROUTINE EXHBOUNDHIGHER_dg2(N)
 			!$OMP END DO
 		ELSE
 			!$OMP DO
-			DO I=1,TNDL
-				DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
+			DO I=1, TNDL
+				DO K=1, IEXCHANGES(I)%MUCHTHEYNEED(1)
 					IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_VARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_VARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-
 				END DO
 			END DO
 			!$OMP END DO
@@ -2420,16 +2410,16 @@ SUBROUTINE EXHBOUNDHIGHER_dg2(N)
 	IF (ITESTCASE.EQ.4) THEN
 		IF (TURBULENCE.NE.1)THEN
 			!$OMP DO
-			DO I=1,TNDL
-				DO K=1,IEXCHANGES(I)%MUCHTHEYNEED(1)
-					IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_vARIABLES)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+			DO I=1, TNDL
+				DO K=1, IEXCHANGES(I)%MUCHTHEYNEED(1)
+					IEXBOUNDHIS(I)%FACESOL_dg(K,1:NOF_vARIABLES) = ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFT_dg(1:NOF_vARIABLES,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
 
 					ITTT=0
 					DO IEX=1,NOF_VARIABLES-1
-						DO nvar=1,DIMS
-							ITTT=ITTT+1
+						DO nvar=1, DIMS
+							ITTT = ITTT+1
 							! IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%ULEFTV(NVAR,IEX,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
-							IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT)=ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%BR2_AUX_VAR(IEX+1,NVAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
+							IEXBOUNDHIS(I)%FACESOL_dg(K,NOF_vARIABLES+ITTT) = ILOCAL_RECON3(IEXCHANGES(I)%LOCALREF(K))%BR2_AUX_VAR(IEX+1,NVAR,IEXCHANGEs(I)%SIDEtheyNEED(K),IEXCHANGES(I)%QTHEYNEED(k))
 						END DO
 					END DO
 				END DO

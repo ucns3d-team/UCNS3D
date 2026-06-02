@@ -2242,16 +2242,17 @@ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
 
         IF (POY(1).ge.zero) THEN ! Shock tube
             ! if (((pox(1)+0.045+0.077)**2 + (poy(1)-0.0445)**2).lt.(0.089**2)) then ! front bubble
-            !     MP_R(1) = 3.7785714285714285
-            !     U1 = 525.4654714181646
-            !     V1 = 0.0D0
-            !     P1 = 600500.0
-            ! else
+            if (pox(1).lt.-0.035) then
+                MP_R(1) = 3.7785714285714285
+                U1 = 262.7327357090823
+                V1 = 0.0D0
+                P1 = 150125.0
+            else
                 MP_R(1) = 1.225
                 U1 = 0.0D0
                 V1 = 0.0D0
                 P1 = 25000.0
-            ! end if
+            end if
 
             MP_R(2) = 1000.0
             MP_A(1) = 1.0D0
@@ -2337,6 +2338,63 @@ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
             !VECTOR OF CONSERVED VARIABLES NOW
         END IF
 
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=E1
+        VECCOS(5)=MP_R(1)*MP_A(1)
+        VECCOS(6)=MP_R(2)*MP_A(2)
+        VECCOS(7)=MP_A(1)
+    END IF
+
+    IF (INITCOND.EQ.503) THEN ! Debugging 501 and 502
+
+        if (pox(1).lt.0.35) then
+            R1 = 3.7785714285714285
+            U1 = 262.7327357090823
+            V1 = 0.0D0
+            P1 = 150125.0
+        else
+            R1 = 1.225
+            U1 = 0.0D0
+            V1 = 0.0D0
+            P1 = 25000.0
+        end if
+
+        E1 = (P1/(GAMMA-1))+(0.5*R1*((U1**2)+(V1**2)))
+
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=E1
+    END IF
+
+    IF (INITCOND.EQ.504) THEN ! Debugging 501 and 502
+
+        if (pox(1).lt.0.35) then
+            MP_R(1) = 3.7785714285714285
+            U1 = 262.7327357090823
+            V1 = 0.0D0
+            P1 = 150125.0
+        else
+            MP_R(1) = 1.225
+            U1 = 0.0D0
+            V1 = 0.0D0
+            P1 = 25000.0
+        end if
+
+        MP_R(2) = 1000.0
+        MP_A(1) = 1.0D0
+        MP_A(2) = 0.0D0
+
+        R1 = (MP_R(1)*MP_A(1))+(MP_R(2)*MP_A(2))
+        MP_IE(1) = ((P1+(GAMMA_IN(1)*MP_PINF(1)))/((GAMMA_IN(1)-1.0D0)))
+        MP_IE(2) = ((P1+(GAMMA_IN(2)*MP_PINF(2)))/((GAMMA_IN(2)-1.0D0)))
+        IE1 = (MP_IE(1)*MP_A(1))+(MP_IE(2)*MP_A(2))
+        SKIN1 = 0.5*((U1**2)+(V1**2))
+        E1 = (R1*SKIN1)+IE1
+
+        !VECTOR OF CONSERVED VARIABLES NOW
         VECCOS(1)=R1
         VECCOS(2)=R1*U1
         VECCOS(3)=R1*V1

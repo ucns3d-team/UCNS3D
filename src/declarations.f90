@@ -125,10 +125,14 @@ integer::node_solver_type, relaxation_centre_type, lagrangian_mesh_velocity_mult
 integer:: global_position_index
 logical:: BOUNDARY_MOVEMENT
 integer:: num_moving_boundaries
+integer::global_wall_count
+integer,allocatable,dimension(:)::NumWallsPerCPU, WallCommOffsets
+integer::WallDistReinitialisationFrequency
+real::LastWallDistReinitialization
 !--------------------- variables for parallel partitioned output-------!
-INTEGER,ALLOCATABLE,DIMENSION(:)::DISPART1,DISPART2,DISPART3,DISPART4,DISPART5,TYP_NODESN,TYP_NODESN_w
+INTEGER,ALLOCATABLE,DIMENSION(:)::DISPART1,DISPART2,DISPART3,DISPART4,DISPART5,DISPART5_node,TYP_NODESN,TYP_NODESN_w
 INTEGER,ALLOCATABLE,DIMENSION(:)::iARRAY_PART1,iARRAY_PART2,iARRAY_PART3,iARRAY_PART4,iARRAY_PART5,i_ARRAY_PART2x
-REAL,ALLOCATABLE,DIMENSION(:)::rARRAY_PART4,rARRAY_PART2,rARRAY_PART3,rARRAY_PART5
+REAL,ALLOCATABLE,DIMENSION(:)::rARRAY_PART4,rARRAY_PART2,rARRAY_PART3
 INTEGER,ALLOCATABLE,DIMENSION(:)::WDISPART1,WDISPART2,WDISPART3,WDISPART4,WDISPART5,WALLCOUNT_CPU_L,WALLCOUNT_CPU_G
 INTEGER,ALLOCATABLE,DIMENSION(:)::WiARRAY_PART1,WiARRAY_PART2,WiARRAY_PART3,WiARRAY_PART4,WiARRAY_PART5
 INTEGER,ALLOCATABLE,DIMENSION(:)::offset_vtu,connect_vtu,type_vtu,offset_vtu_W,connect_vtu_W,type_vtu_W
@@ -136,13 +140,14 @@ REAL,ALLOCATABLE,DIMENSION(:,:)::sol_vtu,sol_vtu_W
 REAL,ALLOCATABLE,DIMENSION(:)::nodes_vtu,nodes_vtu_W
 REAL,ALLOCATABLE,DIMENSION(:)::WrARRAY_PART4,WrARRAY_PART2,WrARRAY_PART3,WrARRAY_PART5
 REAL,ALLOCATABLE,DIMENSION(:,:)::rARRAY_PART1,WrARRAY_PART1
+REAL,ALLOCATABLE,DIMENSION(:,:)::rARRAY_PART5
 INTEGER::PART1_end,PART2_end,PART3_end,PART4_end,PART5_end
 INTEGER::WPART1_end,WPART2_end,WPART3_end,WPART4_end,WPART5_end
-INTEGER::KDUM1,KDUM2,write_variables,write_variables_av,NODES_PART
+INTEGER::KDUM1,KDUM2,write_variables,write_variables_av,NODES_PART,write_node_variables
 INTEGER::WKDUM1,WKDUM2,write_variables_W,write_variables_av_W,WNODES_PART
-INTEGER::DATATYPEX,DATATYPEy,DATATYPEz,DATATYPEXx,DATATYPEyy,DATATYPEINT
+INTEGER::DATATYPEX,DATATYPEy,DATATYPEz,DATATYPEXx,DATATYPEyy,DATATYPEINT,DATATYPE_nodeData
 INTEGER,DIMENSION(1)::KDUM3
-CHARACTER(LEN=25)::Variable_names(15),Variable_names_av(15)
+CHARACTER(LEN=25)::Variable_names(15),Variable_names_av(15),Node_variable_names(15)
 INTEGER::WDATATYPEX,WDATATYPEy,WDATATYPEz,WDATATYPEXx,WDATATYPEyy,WDATATYPEINT
 INTEGER,DIMENSION(1)::WKDUM3
 CHARACTER(LEN=25)::Variable_names_W(15),Variable_names_av_W(15)
@@ -725,6 +730,8 @@ TYPE::ELEMENT_NUMBER
 	REAL,ALLOCATABLE,DIMENSION(:)::vortex,AVARS  !Q CRITERION
 	REAL,ALLOCATABLE,DIMENSION(:)::SURF    !SURFACE AREA
 	REAL,ALLOCATABLE,DIMENSION(:)::DELTA_XYZ ! 0.5(X_MAX - X_MIN),  0.5(Y_MAX - Y_MIN),  0.5(Z_MAX - Z_MIN)
+	real,dimension(3)::InitNearestWall
+	integer::InitWallCode
 	integer::condx
 END TYPE ELEMENT_NUMBER
 
@@ -787,12 +794,10 @@ TYPE::LOCAL_NODE
 	REAL,DIMENSION(3)::VELOCITY
 	REAL,DIMENSION(3)::lagrangian_velocity
 	REAL,DIMENSION(3)::relaxation_velocity
-	! REAL,DIMENSION(3)::density_gradient
-	real::normalized_density_gradient_magnitude
-	real::normalized_vf_gradient_magnitude
+	REAL,DIMENSION(3)::density_gradient, vf_gradient
+	real::normalized_density_gradient_magnitude, normalized_vf_gradient_magnitude
 	real::volume_ratio
-	real::mesh_quality_before
-	real::mesh_quality_after
+	real::mesh_quality_before, mesh_quality_after
 	INTEGER::global_index
 	! INTEGER::local_index
 	! logical::internal

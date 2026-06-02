@@ -1883,5 +1883,317 @@ END SUBROUTINE EXCHANGE_CORDX_MovingMesh
 
 
 
+Subroutine Initialise_WallDistance2d(N,ielem,imaxe,XMPIELRANK)
+  !> @brief
+  !> This subroutine establishes the wall distance for every cell in 2D
+
+	Implicit None
+
+	TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
+	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK !,XMPINRANK
+	INTEGER,INTENT(IN)::N,IMAXE
+	Integer :: countwall, KmaxE, i, l, icpu, doyouhavewall, howmanyhavewall, counterall,j
+	Integer :: counterall2,wall1,wall2,wall3,wall4,wall5,wall6,IOY,wl1,wl2,wl3,wl4,k
+	Real,allocatable,dimension(:,:) :: WallElemArrayCord,WallElemArrayCordGlobal
+	Real :: Distance, MinDistance
+	CHARACTER(LEN=12)::BNDFILE,VRTFILE
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	Type :: Wallboundary
+	    Integer :: GlobalID,wbid,wb1,wb2,wb3,wb4,NumNodes,code!,wbdescr
+	    Real :: Wallx,Wally,Wallz
+	End Type
+	Type(Wallboundary),Allocatable,Dimension(:):: Wallbnd
+
+	Type :: NodesWall
+	    Integer :: ID
+	    Real :: wnx,wny,wnz
+	End Type
+	Type(NodesWall),Allocatable,Dimension(:):: Wallvrt
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	! How many element for this block have wall
+	KMAXE=XMPIELRANK(N)
+	countwall = 0
+	Do i=1,KmaxE
+		if (ielem(n,i)%interior.eq.1)then
+			Do l=1, IELEM(N,I)%IFCA
+				if (ielem(n,i)%ibounds(l).gt.0)then
+					if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.99).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.gt.100)) then
+						countwall = countwall + 1
+					end if
+				end If
+    		End Do
+    	end if
+	End Do
+	! How many for all cpu blocks
+	allocate(NumWallsPerCPU(0:isize-1))
+	CALL MPI_ALLGATHER(countwall,1,MPI_INTEGER, NumWallsPerCPU,1,MPI_INTEGER, MPI_COMM_WORLD,IERROR)
+	! CALL MPI_ALLREDUCE(countwall,Countwallglobal,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,IERROR)
+	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+	global_wall_count = NumWallsPerCPU(0)
+	WallCommOffsets(0) =1
+	do i=1, isize-1
+		global_wall_count = global_wall_count + NumWallsPerCPU(i)
+		WallCommOffsets(i) = WallCommOffsets(i-1) + NumWallsPerCPU(i-1)
+	end do
+
+	Allocate(Wallbnd(global_wall_count))
+
+	BNDFILE='GRID.bnd'
+	VRTFILE='GRID.vrt'
+	IF (BINIO.EQ.0)OPEN(10,FILE=BNDFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOY)
+	IF (BINIO.EQ.1)OPEN(10,FILE=BNDFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=IOY)
+	! Find the nodes id of the wall globally from the bnd file
+	countwall = 0
+	IF (BINIO.EQ.0)THEN
+		DO I=1,IMAXB
+			READ(10,*)wall1,wall2,wall3,wall4,wall5,wall6
+			If ((wall6.eq.4).or.(wall6.gt.100)) then	! wall face or moving wall face 
+				countwall = countwall + 1
+				Wallbnd(countwall)%wbid = wall1
+				Wallbnd(countwall)%wb1 = wall2
+				Wallbnd(countwall)%wb2 = wall3 
+				Wallbnd(countwall)%wb3 = wall4
+				Wallbnd(countwall)%wb4 = wall5  
+				Wallbnd(countwall)%code = wall6
+			End If
+		END DO
+	ELSE
+		DO I=1,IMAXB
+			READ(10)wall1,wall2,wall3,wall4,wall5,wall6
+			If ((wall6.eq.4).or.(wall6.gt.100)) then	! wall face or moving wall face 
+				countwall = countwall + 1
+				Wallbnd(countwall)%wbid = wall1
+				Wallbnd(countwall)%wb1 = wall2 
+				Wallbnd(countwall)%wb2 = wall3 
+				Wallbnd(countwall)%wb3 = wall4
+				Wallbnd(countwall)%wb4 = wall5  
+				Wallbnd(countwall)%code = wall6
+			End If
+		END DO
+	END IF
+ 	CLOSE(10)
+
+	Allocate(Wallvrt(IMAXN))
+	IF (BINIO.EQ.0)OPEN(11,FILE=VRTFILE,FORM='FORMATTED',STATUS='OLD',ACTION='READ')
+	IF (BINIO.EQ.1)OPEN(11,FILE=VRTFILE,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ')
+	! Read Node coordinates and store
+	IF (BINIO.EQ.0)THEN
+		Do i = 1,imaxn
+			Read(11,*)Wallvrt(i)%ID,Wallvrt(i)%wnx,Wallvrt(i)%wny
+		End Do
+	ELSE
+		Do i = 1,imaxn
+			Read(11)Wallvrt(i)%ID,Wallvrt(i)%wnx,Wallvrt(i)%wny
+		End Do
+	END IF
+	Close(11)
+
+	! Compute and store wall face centers globally
+	Do i = 1, global_wall_count 
+		wl1 = Wallbnd(i)%wb1
+		wl2 = Wallbnd(i)%wb2
+		wl3 = Wallbnd(i)%wb3
+		wl4 = Wallbnd(i)%wb4
+	
+		WALLBND(I)%WALLX = (wallvrt(wl1)%wnx+Wallvrt(wl2)%wnx)/2.0
+		wallbnd(i)%wally = (wallvrt(wl1)%wny+wallvrt(wl2)%wny)/2.0
+	End Do
+
+	! Find distance from element barycenter to the nearest wall for this block.
+	KMAXE = XMPIELRANK(N)
+	Do i=1, KmaxE
+    	MinDistance = TOLBIG 
+		Do k=1, global_wall_count 
+			Distance = (sqrt(((Wallbnd(k)%Wallx-Ielem(N,i)%xxc)**2) + ((Wallbnd(k)%Wally-Ielem(N,i)%yyc)**2)))
+	      	If (MinDistance .gt. Distance) Then
+				Ielem(N,i)%WallDist = Distance
+		 		IF (IELEM(N,I)%WALLDIST.LT.HYBRIDIST)THEN
+		    		IELEM(N,I)%HYBRID=1
+		 		END IF
+				Ielem(N,i)%InitNearestWall(1) = Wallbnd(k)%Wallx
+				Ielem(N,i)%InitNearestWall(2) = Wallbnd(k)%Wally
+				Ielem(N,i)%InitNearestWall(3) = zero
+				Ielem(N,i)%InitWallCode = Wallbnd(k)%code
+	      	End If
+		End Do
+	End Do
+
+	deallocate(Wallbnd)
+	deallocate(Wallvrt)
+
+End Subroutine Initialise_WallDistance2D
+
+
+
+
+Subroutine Reinitialise_WallDistance(N, node_position_index)
+  !> @brief
+  !> This subroutine establishes the wall distance for every cell in 2D
+
+	Implicit None
+	INTEGER,INTENT(IN)::N, node_position_index
+	Integer:: KmaxE, i, j, k, l
+	integer:: cell_index, face_index, centre_write_index, code_write_index, node_index1, node_index2
+	integer:: num_faces, num_cpus
+	!Real,allocatable,dimension(:,:) :: WallElemArrayCord,WallElemArrayCordGlobal
+	Real :: Distance, MinDistance
+	real,dimension(1:dimensiona)::wall_centre
+	real,allocatable,dimension(:)::Wall_centres
+	integer,allocatable,dimension(:)::Wall_codes
+
+	KMAXE=XMPIELRANK(N)
+	num_cpus = isize
+
+	Allocate(Wall_centres(1:global_wall_count*dimensiona))
+	Allocate(Wall_codes(1:global_wall_count))
+
+	!$omp master
+		centre_write_index = WallCommOffsets(N)*dimensiona
+		code_write_index = WallCommOffsets(N)
+		DO I=1, NOF_BOUNDED
+			cell_index = EL_BND(I)
+			if (dimensiona.eq.2) then
+				if (ielem(n,i)%ishape.eq.5) then
+					num_faces = 4
+				else
+					num_faces = 3
+				end if
+			else
+				print*,"not implemented yet"
+				call abort()
+			end if
+			do face_index=1, num_faces
+				if (ielem(n,cell_index)%ibounds(face_index).gt.0) then
+					if ((ibound(n,ielem(n,cell_index)%ibounds(face_index))%icode.eq.4) & ! wall
+					.or.(ibound(n,ielem(n,cell_index)%ibounds(face_index))%icode.gt.100)) then ! moving wall
+						if (dimensiona.eq.2) Then
+							node_index1 = ielem(n,cell_index)%nodes_faces(face_index,1)
+							node_index2 = ielem(n,cell_index)%nodes_faces(face_index,2)
+							wall_centre(1:dimensiona) = 0.5*(local_nodes(node_index1)%positions(node_position_index,1:dimensiona) &
+															+local_nodes(node_index2)%positions(node_position_index,1:dimensiona))
+						else
+							print*,"not implemented yet"
+							call abort()
+						end if
+						do j=1, dimensiona
+							wall_centres(centre_write_index) = wall_centre(j)
+							centre_write_index = centre_write_index+1
+						end do
+						wall_codes(code_write_index) = ibound(n,ielem(n,cell_index)%ibounds(face_index))%icode
+						code_write_index = code_write_index+1
+					end if
+				end if
+			end do
+		end do
+		if (centre_write_index.ne.((WallCommOffsets(N)+NumWallsPerCPU(N))*dimensiona)) then
+			print*,"something went wrong when filling wall_centres in Reinitialise_WallDistance on CPU", n
+		end if
+		if (code_write_index.ne.(WallCommOffsets(N)+NumWallsPerCPU(N))) then
+			print*,"something went wrong when filling wall_centres in Reinitialise_WallDistance on CPU", n
+		end if
+		CALL MPI_ALLGATHERV(MPI_IN_PLACE, NumWallsPerCPU(N)*dimensiona, MPI_DOUBLE_PRECISION, &
+							wall_centres(1:global_wall_count*dimensiona), NumWallsPerCPU(0:num_cpus-1)*dimensiona, WallCommOffsets(0:num_cpus-1)*dimensiona, MPI_DOUBLE_PRECISION, &
+							MPI_COMM_WORLD, IERROR)
+		CALL MPI_ALLGATHERV(MPI_IN_PLACE, NumWallsPerCPU(N), MPI_INTEGER, &
+							wall_codes(1:global_wall_count), NumWallsPerCPU(0:num_cpus-1), WallCommOffsets(0:num_cpus-1), MPI_DOUBLE_PRECISION, &
+							MPI_COMM_WORLD, IERROR)
+	!$omp end master
+
+	!$omp barrier
+
+	! Find distance from element barycenter to the nearest wall for this block.
+	!$omp do
+	Do i=1, KmaxE
+    	MinDistance = TOLBIG 
+		Do j=1, global_wall_count
+			if (dimensiona.eq.2) then
+				distance = sqrt(((wall_centres(dimensiona*j+1) - Ielem(N,i)%xxc)**2) & 
+							   +((wall_centres(dimensiona*j+2) - Ielem(N,i)%yyc)**2))
+			else
+				distance = sqrt(((wall_centres(dimensiona*j+1) - Ielem(N,i)%xxc)**2) & 
+							   +((wall_centres(dimensiona*j+2) - Ielem(N,i)%yyc)**2) &
+							   +((wall_centres(dimensiona*j+3) - Ielem(N,i)%zzc)**2))
+			end if
+
+	      	If (MinDistance .gt. Distance) Then
+				Ielem(N,i)%WallDist = Distance
+				Ielem(N,i)%InitNearestWall(:) = zero
+				do k=1, dimensiona
+					Ielem(N,i)%InitNearestWall(k) = wall_centres(dimensiona*(j-1)+k)
+				end do
+				Ielem(N,i)%InitWallCode = wall_codes(j)
+	      	End If
+		End Do
+		IF (IELEM(N,I)%WALLDIST.LT.HYBRIDIST)THEN
+			IELEM(N,I)%HYBRID=1
+		END IF
+	End Do
+	!$omp end do
+
+	deallocate(wall_centres)
+	deallocate(wall_codes)
+
+End Subroutine Reinitialise_WallDistance
+
+
+
+
+
+Subroutine Approximate_WallDistance(N, node_position_index, time_since_reinitialization)
+  !> @brief
+  !> This subroutine approximates the wall distance for every cell in 2D
+
+	Implicit None
+	INTEGER,INTENT(IN)::N, node_position_index
+	real,intent(in)::time_since_reinitialization
+	integer::kmaxe, cell_index, boundary_index
+	real,dimension(1:dimensiona)::temp, wall_centre_now
+	real::distance, angle, angle_sin, angle_cos
+
+	KMAXE=XMPIELRANK(N)
+
+	!$omp do
+	do cell_index=1, kmaxe
+		if (Ielem(N,cell_index)%InitWallCode.gt.100) then
+			boundary_index = Ielem(N,cell_index)%InitWallCode-100
+
+			wall_centre_now(1:dimensiona) = Ielem(N,cell_index)%InitNearestWall(1:dimensiona) &
+										  + (moving_boundaries(boundary_index)%velocity(1:dimensiona) * time_since_reinitialization)
+
+			if (moving_boundaries(boundary_index)%omega.ne.zero) then
+				if (dimensiona.eq.2) then					  
+					angle = moving_boundaries(boundary_index)%omega * time_since_reinitialization
+					angle_sin = sin(angle)
+					angle_cos = cos(angle)
+
+					temp(1:dimensiona) = wall_centre_now(1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona, node_position_index)
+					wall_centre_now(1) = angle_cos*temp(1) + angle_sin*temp(2) + moving_boundaries(boundary_index)%rotation_centre(1, node_position_index)
+					wall_centre_now(2) = angle_cos*temp(2) - angle_sin*temp(1) + moving_boundaries(boundary_index)%rotation_centre(2, node_position_index)
+				else
+					print*,"not implemented yet"
+					call abort()
+				end if
+			end if
+
+			if (dimensiona.eq.2) then
+				distance = sqrt(((wall_centre_now(1) - Ielem(N,cell_index)%xxc)**2) & 
+							   +((wall_centre_now(2) - Ielem(N,cell_index)%yyc)**2))
+			else
+				distance = sqrt(((wall_centre_now(1) - Ielem(N,cell_index)%xxc)**2) & 
+							   +((wall_centre_now(2) - Ielem(N,cell_index)%yyc)**2) &
+							   +((wall_centre_now(3) - Ielem(N,cell_index)%zzc)**2))
+			end if
+
+			Ielem(N,cell_index)%WallDist = Distance
+		end if
+	end do
+	!$omp end do
+
+
+end subroutine Approximate_WallDistance
+
+
+
+
 
 END MODULE PRESTORE_MOVINGMESH

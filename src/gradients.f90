@@ -1153,9 +1153,9 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NU
 	REAL,DIMENSION(turbulenceequations+passivescalar,3)::SOLS_F
 	REAL,DIMENSION(3)::NORMAL_ALL,TEMP_VERT
 	REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2,NX,NY,NZ
-	INTEGER::I,J,K,L,var2,B_CODE,FACEX,N_NODe,imax
+	INTEGER::I,J,K,L,var2,B_CODE,mb_code,FACEX,N_NODe,imax
 	real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,rightv
-	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS, radius, normal
 	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 	REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 	REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
@@ -1272,13 +1272,29 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_turb_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NU
 					ELSE	! NOT PERIODIC ONES IN MY CPU
 
 						CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
-						CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
-						Pox(1)=CORDS(1);Poy(1)=CORDS(2);
+						CORDS = CORDINATES2(N,NODES_LIST,N_NODE)
+						Pox(1)= CORDS(1)
+						Poy(1)= CORDS(2)
 
 						LEFTV(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-
 						cturbl(1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+
 						B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
+
+						SRF_SPEED(:) = zero
+                        if (BOUNDARY_MOVEMENT) then
+                            if (b_code.gt.100) then
+                                mb_code = b_code-100
+                                SRF_SPEED(2:3) = moving_boundaries(mb_code)%velocity(1:2)
+                                if (moving_boundaries(mb_code)%omega.ne.zero) then
+                                    radius(1:dimensiona) = pox(1:dimensiona) - moving_boundaries(mb_code)%rotation_centre(1:dimensiona,global_position_index)
+                                    normal(1) = radius(2)
+                                    normal(2) = -radius(1)
+                                    SRF_SPEED(2:3) = SRF_SPEED(2:3) + normal(1:2)*moving_boundaries(mb_code)%omega
+                                end if
+                            end if
+                        end if
+
 						CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 		
 						SOLS2(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)/RIGHTV(1)
@@ -1437,9 +1453,9 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NU
 	REAL,DIMENSION(nof_variables,3)::SOLS_F
 	REAL,DIMENSION(3)::NORMAL_ALL
 	REAL::OOV2,titj,MP_PINFl,gammal,angle1,angle2,NX,NY,NZ
-	INTEGER::I,J,K,L,B_CODE,FACEX,N_NODE,imax
+	INTEGER::I,J,K,L,B_CODE,mb_code,FACEX,N_NODE,imax
 	real,dimension(1:nof_Variables)::leftv,SRF_SPEED,SRF_SPEEDROT,rightv
-	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS
+	REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS, radius, normal
 	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
 	REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 	REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
@@ -1448,9 +1464,9 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NU
 	
 	IF (DIMENSIONA.EQ.3)THEN
 	
-		I=ICONSIDERED
-		SOLS_F=zero
-		OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
+		I = ICONSIDERED
+		SOLS_F = zero
+		OOV2 = 1.0D0/IELEM(N,I)%TOTVOLUME
 	
 		leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
 		call CONS2PRIM(N,leftv,MP_PINFl,gammal)
@@ -1519,63 +1535,62 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NU
 								(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
 						END IF
 						IF (PER_ROT.EQ.1)THEN
-							Sols2(2:4)=Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
+							Sols2(2:4) = Rotate_per_1(sols2(2:4),ibound(n,ielem(n,i)%ibounds(j))%icode,angle_per)
 						END IF
 					END IF
 				ELSE
 					IF (FASTEST.EQ.1)THEN
-						SOLS2(1:nof_variables)=SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
+						SOLS2(1:nof_variables) = SOLCHANGER(IELEM(N,I)%INEIGHN(J))%SOL(IELEM(N,i)%Q_FACE(j)%Q_MAPL(1),1:nof_variables)
 					ELSE
-						SOLS2(1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL&
-							(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
+						SOLS2(1:nof_variables) = IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(J)))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(J)),1:nof_variables)
 					END IF
 				END IF
 			END IF
 	
-			leftv(1:nof_variables)=sols2(1:nof_variables)
+			leftv(1:nof_variables) = sols2(1:nof_variables)
 			call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-			SOLS2(1:nof_variables)=leftv(1:nof_variables)
-			sols2(5)=leftv(5)/(leftv(1)*R_gas)
-			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
-				sols2(5)=wall_Temp
+			SOLS2(1:nof_variables) = leftv(1:nof_variables)
+			sols2(5) = leftv(5)/(leftv(1)*R_gas)
+			IF (((B_CODE.EQ.4).or.(b_code.gt.100)).and.(thermal.eq.1))THEN
+				sols2(5) = wall_Temp
 			ELSE
-				sols2(5)=leftv(5)/(leftv(1)*R_gas)
+				sols2(5) = leftv(5)/(leftv(1)*R_gas)
 			END IF
 	
 			DO K=1,3
-				SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+				SOLS_F(1:nof_variables,K) = SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 			END DO
 		END DO
 
 		DO K=1,3
-			ILOCAL_RECON3(I)%GRADs(1:3,k)=sOLS_F(2:4,K)
-			ILOCAL_RECON3(I)%GRADs(4,k)=sOLS_F(5,K)
+			ILOCAL_RECON3(I)%GRADs(1:3,k) = sOLS_F(2:4,K)
+			ILOCAL_RECON3(I)%GRADs(4,k)   = sOLS_F(5,K)
 		END DO
 	
-	eLSE
+	ELSE
 	
-		I=ICONSIDERED
-		SOLS_F=zero
-		OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
+		I = ICONSIDERED
+		SOLS_F = zero
+		OOV2 = 1.0D0/IELEM(N,I)%TOTVOLUME
 	
-	
-		leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+		leftv(1:nof_variables) = U_C(I)%VAL(1,1:nof_variables)
 		call cons2prim(N,leftv,MP_PINFl,gammal)
-		SOLS1(1:nof_variables)=leftv(1:nof_variables)
-		sols1(4)=leftv(4)/(leftv(1)*R_gas)
+		SOLS1(1:nof_variables) = leftv(1:nof_variables)
+		sols1(4) = leftv(4)/(leftv(1)*R_gas)
 	
-		leftv(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
+		leftv(1:nof_variables) = U_C(I)%VAL(1,1:nof_variables)
 	
 		DO J=1,IELEM(N,I)%IFCA
 
 			FACEX=J
 			B_CODE=0
 
-			ANGLE1=IELEM(N,I)%FACEANGLEX(J)
-			ANGLE2=IELEM(N,I)%FACEANGLEY(J)
+			ANGLE1 = IELEM(N,I)%FACEANGLEX(J)
+			ANGLE2 = IELEM(N,I)%FACEANGLEY(J)
 			NORMAL_ALL(1)=angle1
 			NORMAL_ALL(2)=angle2
-			nx=NORMAL_ALL(1);ny=NORMAL_ALL(2)
+			nx = NORMAL_ALL(1)
+			ny = NORMAL_ALL(2)
 	
 			IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
 				IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
@@ -1584,11 +1599,28 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NU
 					ELSE	! NOT PERIODIC ONES IN MY CPU
 	
 					  	CALL coordinates_face_inner2dx(N,ICONSIDERED,FACEX,VEXT,NODES_LIST)
-					  	CORDS=CORDINATES2(N,NODES_LIST,N_NODE)
-					  	Pox(1)=CORDS(1);Poy(1)=CORDS(2)
+					  	CORDS = CORDINATES2(N,NODES_LIST,N_NODE)
+					  	Pox(1)= CORDS(1)
+						Poy(1)= CORDS(2)
 	
-					  	LEFTV(1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-					  	B_CODE=ibound(n,ielem(n,i)%ibounds(j))%icode
+					  	LEFTV(1:nof_variables) = U_C(I)%VAL(1,1:nof_variables)
+
+					  	B_CODE = ibound(n,ielem(n,i)%ibounds(j))%icode
+
+						SRF_SPEED(:) = zero
+                        if (BOUNDARY_MOVEMENT) then
+                            if (b_code.gt.100) then
+                                mb_code = b_code-100
+                                SRF_SPEED(2:3) = moving_boundaries(mb_code)%velocity(1:2)
+                                if (moving_boundaries(mb_code)%omega.ne.zero) then
+                                    radius(1:dimensiona) = pox(1:dimensiona) - moving_boundaries(mb_code)%rotation_centre(1:dimensiona,global_position_index)
+                                    normal(1) = radius(2)
+                                    normal(2) = -radius(1)
+                                    SRF_SPEED(2:3) = SRF_SPEED(2:3) + normal(1:2)*moving_boundaries(mb_code)%omega
+                                end if
+                            end if
+                        end if
+
 					  	CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
 	
 					  	SOLS2(1:nof_variables)=RIGHTV(1:nof_variables)
@@ -1620,20 +1652,20 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS(N,ICONSIDERED,NUMBER_OF_DOG,NU
 			call cons2prim(N,leftv,MP_PINFl,gammal)
 			SOLS2(1:nof_variables)=leftv(1:nof_variables)
 	
-			IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
-				sols2(4)=wall_Temp
+			IF (((B_CODE.EQ.4).or.(b_code.gt.100)).and.(thermal.eq.1)) THEN
+				sols2(4) = wall_Temp
 			ELSE
-				sols2(4)=leftv(4)/(leftv(1)*R_gas)
+				sols2(4) = leftv(4)/(leftv(1)*R_gas)
 			END IF
 	
 			DO K=1,2
-				SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+				SOLS_F(1:nof_variables,K) = SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 			END DO
 		END DO
 	
 		DO K=1,2
-			ILOCAL_RECON3(I)%GRADs(1:2,k)=sOLS_F(2:3,K)
-			ILOCAL_RECON3(I)%GRADs(3,k)=sOLS_F(4,K)
+			ILOCAL_RECON3(I)%GRADs(1:2,k) = sOLS_F(2:3,K)
+			ILOCAL_RECON3(I)%GRADs(3,k)   = sOLS_F(4,K)
 		END DO
 	
 	END IF
@@ -1656,14 +1688,14 @@ SUBROUTINE COMPUTE_GRADIENTS_CENTER(N,ICONSIDERED)
 	
 	IF (DIMENSIONA.EQ.3)THEN
 		DO IEX=1,3
-			ILOCAL_RECON3(I)%GRADS(IEX,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,IEX+1,1,1)
+			ILOCAL_RECON3(I)%GRADS(IEX,1:3) = ILOCAL_RECON3(I)%ULEFTV(1:3,IEX+1,1,1)
 		END DO
-		ILOCAL_RECON3(I)%GRADS(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,1,1)
+		ILOCAL_RECON3(I)%GRADS(4,1:3) = ILOCAL_RECON3(I)%ULEFTV(1:3,1,1,1)
 	ELSE
 		DO IEX=1,2
-			ILOCAL_RECON3(I)%GRADS(IEX,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,IEX+1,1,1)
+			ILOCAL_RECON3(I)%GRADS(IEX,1:2) = ILOCAL_RECON3(I)%ULEFTV(1:2,IEX+1,1,1)
 		END DO
-		ILOCAL_RECON3(I)%GRADS(3,1:2)=ILOCAL_RECON3(I)%ULEFTV(1:2,1,1,1)
+		ILOCAL_RECON3(I)%GRADS(3,1:2) = ILOCAL_RECON3(I)%ULEFTV(1:2,1,1,1)
 	
 	END IF
 	
@@ -1701,23 +1733,25 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG
 	SOLS_F=zero
 	OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
 	
-	leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
+	leftv(1:nof_variables) = U_C(I)%VAL(IND1,1:nof_variables)
 	call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	sols1(5)=leftv(5)/(leftv(1)*R_gas)
+	SOLS1(1:nof_variables) = leftv(1:nof_variables)
+	sols1(5)               = leftv(5)/(leftv(1)*R_gas)
 	
-	leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
+	leftv(1:nof_variables) = U_C(I)%VAL(IND1,1:nof_variables)
 	
 	DO J=1,IELEM(N,I)%IFCA
 		FACEX=J
 		b_code=0
 
-		ANGLE1=IELEM(N,I)%FACEANGLEX(J)
-		ANGLE2=IELEM(N,I)%FACEANGLEY(J)
+		ANGLE1 = IELEM(N,I)%FACEANGLEX(J)
+		ANGLE2 = IELEM(N,I)%FACEANGLEY(J)
 		NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
 		NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
 		NORMAL_ALL(3)=(COS(ANGLE2))
-		nx=NORMAL_ALL(1);ny=NORMAL_ALL(2);nz=NORMAL_ALL(3)
+		nx = NORMAL_ALL(1)
+		ny = NORMAL_ALL(2)
+		nz = NORMAL_ALL(3)
 	
 		IF (IELEM(N,I)%INEIGHB(J).EQ.N)THEN	!MY CPU ONLY
 			IF (IELEM(N,I)%IBOUNDS(J).GT.0)THEN	!CHECK FOR BOUNDARIES
@@ -1735,7 +1769,6 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG
 	
 					CORDS(1:3)=zero
 					CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
-	
 					Poy(1)=cords(2)
 					Pox(1)=cords(1)
 					Poz(1)=cords(3)
@@ -1774,20 +1807,20 @@ SUBROUTINE COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_DOG
 		leftv(1:nof_variables)=sols2(1:nof_variables)
 		call CONS2PRIM(N,leftv,MP_PINFl,gammal)
 		SOLS2(1:nof_variables)=leftv(1:nof_variables)
-		IF ((B_CODE.EQ.4).and.(thermal.eq.1))THEN
-			sols2(5)=wall_temp
+		IF (((B_CODE.EQ.4).or.(b_code.gt.100)).and.(thermal.eq.1))THEN
+			sols2(5) = wall_temp
 		ELSE
-			sols2(5)=leftv(5)/(leftv(1)*R_gas)
+			sols2(5) = leftv(5)/(leftv(1)*R_gas)
 		end if
 	
 		DO K=1,3
-			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+			SOLS_F(1:nof_variables,K) = SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 		END DO
 	END DO
 	
 	DO K=1,3
-		ILOCAL_RECON3(I)%GRADsAV(1:3,k)=sOLS_F(2:4,K)
-		ILOCAL_RECON3(I)%GRADsAV(4,k)=sOLS_F(5,K)
+		ILOCAL_RECON3(I)%GRADsAV(1:3,k) = sOLS_F(2:4,K)
+		ILOCAL_RECON3(I)%GRADsAV(4,k)   = sOLS_F(5,K)
 	END DO
 	
 end subroutine COMPUTE_GRADIENTS_MIX_MEAN_GGS_VISCOUS_AV
@@ -1817,31 +1850,31 @@ SUBROUTINE COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_AV(N,ICONSIDERED,NUMBER_OF_D
 	SOLS_F=zero
 	OOV2=1.0D0/IELEM(N,I)%TOTVOLUME
 	
-	leftv(1:nof_variables)=U_C(I)%VAL(IND1,1:nof_variables)
+	leftv(1:nof_variables) = U_C(I)%VAL(IND1,1:nof_variables)
 	call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-	SOLS1(1:nof_variables)=leftv(1:nof_variables)
-	sols1(5)=leftv(5)/(leftv(1)*R_gas)
+	SOLS1(1:nof_variables) = leftv(1:nof_variables)
+	sols1(5)               = leftv(5)/(leftv(1)*R_gas)
 	
 	DO J=1,IELEM(N,I)%IFCA
-		ANGLE1=IELEM(N,I)%FACEANGLEX(J)
-		ANGLE2=IELEM(N,I)%FACEANGLEY(J)
+		ANGLE1 = IELEM(N,I)%FACEANGLEX(J)
+		ANGLE2 = IELEM(N,I)%FACEANGLEY(J)
 		NORMAL_ALL(1)=(COS(ANGLE1)*SIN(ANGLE2))
 		NORMAL_ALL(2)=(SIN(ANGLE1)*SIN(ANGLE2))
 		NORMAL_ALL(3)=(COS(ANGLE2))
 	
-		leftv(1:nof_variables)=U_C(IELEM(N,I)%INEIGH(J))%VAL(IND1,1:nof_variables)
+		leftv(1:nof_variables) = U_C(IELEM(N,I)%INEIGH(J))%VAL(IND1,1:nof_variables)
 		call CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		SOLS2(1:nof_variables)=leftv(1:nof_variables)
-		sols2(5)=leftv(5)/(leftv(1)*R_gas) 
+		SOLS2(1:nof_variables) = leftv(1:nof_variables)
+		sols2(5)               = leftv(5)/(leftv(1)*R_gas) 
 
 		DO K=1,3
-			SOLS_F(1:nof_variables,K)=SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
+			SOLS_F(1:nof_variables,K) = SOLS_F(1:nof_variables,K)+((OO2*(SOLS2(1:nof_variables)+SOLS1(1:nof_variables)))*NORMAL_ALL(K)*IELEM(N,I)%SURF(J)*OOV2)
 		END DO
 	END DO
 	
 	DO K=1,3
-		ILOCAL_RECON3(I)%GRADsAV(1:3,k)=sOLS_F(2:4,K)
-		ILOCAL_RECON3(I)%GRADsAV(4,k)=sOLS_F(5,K)
+		ILOCAL_RECON3(I)%GRADsAV(1:3,k) = sOLS_F(2:4,K)
+		ILOCAL_RECON3(I)%GRADsAV(4,k)   = sOLS_F(5,K)
 	END DO
 	
 end subroutine COMPUTE_GRADIENTS_INNER_MEAN_GGS_VISCOUS_AV

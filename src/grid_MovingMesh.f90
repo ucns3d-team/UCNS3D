@@ -102,13 +102,12 @@ SUBROUTINE SURFACE_CALCULATOR_MovingMesh_2D(iconsidered, node_position_index)
 	i=iconsidered
     DO J=1,IELEM(N,I)%IFCA
         NND=2
-        
-        DO K=1,NND
+        DO K=1, NND
             ! VEXT(K,1:DIMS) = LOCAL_NODES(IELEM(N,I)%NODES_local_FACES(J,K))%positions(node_position_index, 1:DIMS)
             VEXT(K,1:DIMS) = LOCAL_NODES(IELEM(N,I)%NODES_FACES(J,K))%positions(node_position_index, 1:DIMS)
         END DO
         
-        IELEM(N,I)%SURF(J)=LINEAREA(N,vext)
+        IELEM(N,I)%SURF(J) = LINEAREA(N,vext)
     END DO
 
 END SUBROUTINE SURFACE_CALCULATOR_MovingMesh_2D
@@ -128,8 +127,7 @@ subroutine coordinates_face_inner_MovingMesh_2D(n, i, facex, VEXT, NODES_LIST, n
 	integer::k
 
 	nnd=2
-	       
-	do K=1,nnd
+	do K=1, nnd
 		NODES_LIST(k,1:2)=local_nodes(IELEM(N,I)%NODES_FACES(facex,K))%positions(node_position_index, 1:2)
 		VEXT(K,1:2)=NODES_LIST(k,1:2)
 	END DO
@@ -150,18 +148,19 @@ SUBROUTINE EDGE_CALCULATOR_MovingMesh_2D(I, node_position_index)
 	REAL,DIMENSION(1:8,1:DIMENSIONA)::NODES_LIST
 	REAL::EDGEL,DIST
 
-	IELEM(N,I)%MINEDGE=(2.0D0*IELEM(N,I)%moving_volume(node_position_index))/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
+	IELEM(N,I)%MINEDGE = (2.0D0*IELEM(N,I)%moving_volume(node_position_index))/(SUM(IELEM(N,I)%SURF(1:IELEM(N,I)%IFCA)))
 	
-	DO L=1,IELEM(N,I)%IFCA
+	DO L=1, IELEM(N,I)%IFCA
 		FACEX=L
 		N_NODE=2
 		CALL coordinates_face_inner_MovingMesh_2D(N,I,facex,vext,NODES_LIST, node_position_index)
 		
-		VEXT(2,1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
-		VEXT(1,1)=IELEM(N,I)%XXC;VEXT(1,2)=IELEM(N,I)%YYC; 
-		DIST=DISTANCE2(N,VEXT)
+		VEXT(2,1:2)= CORDINATES2(N,NODES_LIST,N_NODE)
+		VEXT(1,1)  = IELEM(N,I)%XXC
+		VEXT(1,2)  = IELEM(N,I)%YYC; 
+		DIST = DISTANCE2(N,VEXT)
 		
-		IELEM(N,I)%MINEDGE=MIN(DIST,IELEM(N,I)%MINEDGE)
+		IELEM(N,I)%MINEDGE = MIN(DIST, IELEM(N,I)%MINEDGE)
 	END DO
 	
 END SUBROUTINE EDGE_CALCULATOR_MovingMesh_2D
@@ -190,43 +189,45 @@ SUBROUTINE FIND_ROT_ANGLES_MovingMesh_2d(N, I, node_position_index)
 		IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
 			IF ((IELEM(N,I)%INEIGHG(K).GT.0).AND.(IELEM(N,I)%IBOUNDS(K).GT.0))THEN 	!PERIODIC NEIGHBOUR
 
- 			    XX=IELEM(N,I)%XXC  ;YY=IELEM(N,I)%YYC; !ZZ=IELEM(N,I)%ZZC
+ 			    XX = IELEM(N,I)%XXC
+				YY = IELEM(N,I)%YYC
+				! ZZ = IELEM(N,I)%ZZC
 
 				DO Kk=1,n_node
 				    IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
 				       !vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,kk))%CORD(1:2)
-						vext(kk,1:2)=local_nodes(ielem(n,i)%NODES_FACES(k,kk))%positions(node_position_index, 1:2)
+						vext(kk,1:2) = local_nodes(ielem(n,i)%NODES_FACES(k,kk))%positions(node_position_index, 1:2)
 				    ELSE
 						!vext(kk,1:2)=inoder(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%CORD(1:2)
-						vext(kk,1:2)=local_nodes(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%positions(node_position_index, 1:2)
+						vext(kk,1:2) = local_nodes(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%positions(node_position_index, 1:2)
 				    END IF
 
 				    IF(ABS(vext(kk,1)-xx).GT.XPER*oo2)THEN
-				      	vext(kk,1)=vext(kk,1)+(XPER*SIGN(1.0d0,xx-XPER/2.0D0))
+				      	vext(kk,1) = vext(kk,1)+(XPER*SIGN(1.0d0,xx-XPER/2.0D0))
 				    end if
 				    IF(ABS(vext(kk,2)-yy).GT.yPER*oo2)THEN
-				      	vext(kk,2)=vext(kk,2)+(yPER*SIGN(1.0d0,yy-yPER/2.0D0))
+				      	vext(kk,2) = vext(kk,2)+(yPER*SIGN(1.0d0,yy-yPER/2.0D0))
 				    end if
 			    end do
 			Else
-				DO Kk=1,n_node
+				DO Kk=1, n_node
 					IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
 				        ! vext(kk,1:2)=local_nodes(ielem(n,i)%NODES_local_FACES(k,kk))%positions(node_position_index,1:2
-                        vext(kk,1:2)=local_nodes(ielem(n,i)%NODES_FACES(k,kk))%positions(node_position_index,1:2)
+                        vext(kk,1:2) = local_nodes(ielem(n,i)%NODES_FACES(k,kk))%positions(node_position_index,1:2)
 				    ELSE
 						! vext(KK,1:2)=local_nodes(ielem(n,i)%NODES_local_FACES(k,n_node-KK+1))%positions(node_position_index,1:2)
-                        vext(KK,1:2)=local_nodes(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%positions(node_position_index,1:2)
+                        vext(KK,1:2) = local_nodes(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%positions(node_position_index,1:2)
 				    END IF
 				END DO
 			END IF
 		ELSE
-			DO Kk=1,n_node
+			DO Kk=1, n_node
 				IF (IELEM(N,I)%REORIENT(K).EQ.0)THEN
 				    ! vext(kk,1:2)=local_nodes(ielem(n,i)%NODES_local_FACES(k,kk))%positions(node_position_index,1:2)
-                    vext(kk,1:2)=local_nodes(ielem(n,i)%NODES_FACES(k,kk))%positions(node_position_index,1:2)
+                    vext(kk,1:2) = local_nodes(ielem(n,i)%NODES_FACES(k,kk))%positions(node_position_index,1:2)
 				ELSE
 					! vext(KK,1:2)=local_nodes(ielem(n,i)%NODES_local_FACES(k,n_node-KK+1))%positions(node_position_index,1:2)
-                    vext(KK,1:2)=local_nodes(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%positions(node_position_index,1:2)
+                    vext(KK,1:2) = local_nodes(ielem(n,i)%NODES_FACES(k,n_node-KK+1))%positions(node_position_index,1:2)
 				END IF
 			END DO
 		END IF
@@ -251,13 +252,15 @@ SUBROUTINE FIND_ANGLES_MovingMesh(N, node_position_index)
 
 	IF (DIMENSIONA.EQ.3)THEN
 		!$OMP DO
-		do i=1,kmaxe
-			! CALL FIND_ROT_ANGLES(N,I)
+		do i=1, kmaxe
+			print*,"IND_ROT_ANGLES_MovingMesh_3D not implemented yet!"
+			call abort()
+			! CALL FIND_ROT_ANGLES_MovingMesh_3D(N, I, node_position_index)
 		end do
 		!$OMP END DO
 	Else
 		!$OMP DO
-		do i=1,kmaxe
+		do i=1, kmaxe
 			CALL FIND_ROT_ANGLES_MovingMesh_2D(N, I, node_position_index)
 		end do
 		!$OMP END DO
@@ -723,7 +726,9 @@ SUBROUTINE GEOMETRY_CALC_MovingMesh(n, node_position_index)
 
 	if (DIMENSIONA.EQ.3)THEN
 		!$OMP DO 
-		DO I=1,KMAXE
+		DO I=1, KMAXE
+			print*,"3D part of GEOMETRY_CALC_MovingMesh not implemented yet"
+			call abort()
 			! CALL VOLUME_CALCULATOR3(I)
 			! call SURFACE_CALCULATOR3(i)
 			! CALL CENTRE3D(i)
@@ -732,7 +737,7 @@ SUBROUTINE GEOMETRY_CALC_MovingMesh(n, node_position_index)
 		!$OMP END DO
 	ELSE
 		!$OMP DO
-		DO I=1,KMAXE
+		DO I=1, KMAXE
 			! CALL VOLUME_CALCULATOR_MovingMesh_2D(I, node_position_index)
 			call SURFACE_CALCULATOR_MovingMesh_2D(I, node_position_index)
 			! call CENTRE_MovingMesh_2D(I, node_position_index)
@@ -744,9 +749,9 @@ SUBROUTINE GEOMETRY_CALC_MovingMesh(n, node_position_index)
 
 	!$OMP BARRIER 
 	!$OMP MASTER
-		DUMV5=ZERO
-		DO I=1,KMAXE
-			DUMV5=DUMV5+IELEM(N,I)%moving_volume(node_position_index)
+		DUMV5 = ZERO
+		DO I=1, KMAXE
+			DUMV5 = DUMV5+IELEM(N,I)%moving_volume(node_position_index)
 		END DO
 		CALL MPI_ALLREDUCE(DUMV5,Moving_TOTALVOLUME(node_position_index),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
 	!$OMP END MASTER
@@ -759,8 +764,8 @@ END SUBROUTINE GEOMETRY_CALC_MovingMesh
 
 
 SUBROUTINE GEOMETRY_CALC_MovingMesh_v2(n, node_position_index)
-	!> @brief
-	!> This subroutine computes the volume, surface, centre and min edge for each element
+  !> @brief
+  !> This subroutine computes the volume, surface, centre and min edge for each element
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::n, node_position_index
 	INTEGER::KMAXE,i
@@ -773,6 +778,8 @@ SUBROUTINE GEOMETRY_CALC_MovingMesh_v2(n, node_position_index)
 	if (DIMENSIONA.EQ.3)THEN
 		!$OMP DO 
 		DO I=1,KMAXE
+			print*,"3D part of GEOMETRY_CALC_MovingMesh_2 not implemented yet"
+			call abort()
 			! CALL VOLUME_CALCULATOR3(I)
 			! call SURFACE_CALCULATOR3(i)
 			! CALL CENTRE3D(i)
@@ -794,8 +801,8 @@ SUBROUTINE GEOMETRY_CALC_MovingMesh_v2(n, node_position_index)
 	!$OMP BARRIER 
 	!$OMP MASTER
 		DUMV5=ZERO
-		DO I=1,KMAXE
-			DUMV5=DUMV5+IELEM(N,I)%moving_volume(node_position_index)
+		DO I=1, KMAXE
+			DUMV5 = DUMV5+IELEM(N,I)%moving_volume(node_position_index)
 		END DO
 		CALL MPI_ALLREDUCE(DUMV5,Moving_TOTALVOLUME(node_position_index),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
 	!$OMP END MASTER

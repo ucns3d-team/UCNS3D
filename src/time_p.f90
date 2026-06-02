@@ -116,29 +116,37 @@ SUBROUTINE CALCULATE_CFL(N)
             CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
             RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
             CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
-            AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+            if (it.eq.0)then
+                ielem(n,i)%vortex(4)=viscl(1)
+            end if 
+
+            AGRT = SQRT(LEFTV(5)*GAMMA/LEFTV(1))
                       
             IF (RFRAME.EQ.0) THEN
-                VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+                VELN = MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
             END IF
-            IF(SRFG.EQ.1)THEN
-                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POY(1:3)=SRF_VELOCITY
-                SRF_SPEED=ZERO
-                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            IF (SRFG.EQ.1) THEN
+                POX(1) = IELEM(N,I)%XXC
+                POX(2) = IELEM(N,I)%YYC
+                POX(3) = IELEM(N,I)%ZZC
+                POY(1:3) = SRF_VELOCITY
+                SRF_SPEED = ZERO
+                SRF_SPEED(2:4) = VECT_FUNCTION(POX,POY)
+                VELN = MAX(ABS(LEFTV(2)-SRF_SPEED(2)), ABS(LEFTV(3)-SRF_SPEED(3)), ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
             END IF          
             IF (MRF.EQ.1) THEN
-                SRF=ILOCAL_RECON3(I)%MRF
+                SRF = ILOCAL_RECON3(I)%MRF
                 IF (ILOCAL_RECON3(I)%MRF.EQ.0) THEN
-                    VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+                    VELN = MAX(ABS(LEFTV(2)), ABS(LEFTV(3)), ABS(LEFTV(4)))+AGRT
                 ELSE
-                    POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                    POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
-                    POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
-                    SRF_SPEED=ZERO
-                    SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                    VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+                    POX(1) = IELEM(N,I)%XXC
+                    POX(2) = IELEM(N,I)%YYC
+                    POX(3) = IELEM(N,I)%ZZC
+                    POX(1:3) = POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                    POY(1:3) = ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
+                    SRF_SPEED = ZERO
+                    SRF_SPEED(2:4) = VECT_FUNCTION(POX,POY)
+                    VELN = MAX(ABS(LEFTV(2)-SRF_SPEED(2)), ABS(LEFTV(3)-SRF_SPEED(3)), ABS(LEFTV(4)-SRF_SPEED(4))) + AGRT
                 END IF
             END IF
             IF (TURBULENCE.EQ.1) THEN
@@ -355,22 +363,22 @@ SUBROUTINE CALCULATE_CFL2D(N)
 	
     IF (ITESTCASE.EQ.3)THEN
       !$OMP DO REDUCTION (MIN:DT)
-      DO I=1,KMAXE
+      DO I=1, KMAXE
           
-        LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+        LEFTV(1:NOF_vARIABLES) = U_C(I)%VAL(1,1:NOF_vARIABLES)
       
         CALL cons2prim(N,leftv,MP_PINFl,gammal)
         IF (multispecies.eq.1)THEN
-          AGRT=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
+          AGRT = SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
         ELSE
-          AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
+          AGRT = SQRT(LEFTV(4)*GAMMA/LEFTV(1))
         END IF
-        VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
+        VELN = MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
       
         if (dg.eq.1)then
-          DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
+          DT = MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
         else
-          DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+          DT = MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
         end if
 
       END DO
@@ -379,35 +387,37 @@ SUBROUTINE CALCULATE_CFL2D(N)
 	
 	
 	IF (ITESTCASE.EQ.4)THEN
-	  !$OMP DO REDUCTION (MIN:DT)
-    DO I=1,KMAXE
-      LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-      CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-      RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-      CALL SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
-      AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-      VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
-      IF (TURBULENCE.EQ.1) THEN
-        IF (TURBULENCEMODEL.EQ.1) THEN
-          TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
-          eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-          CALL EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-          LAML(1)=LAML(1)+LAML(3)
-          VISCL(1)=VISCL(1)+VISCL(3)
-        END IF
-      END IF
+	    !$OMP DO REDUCTION (MIN:DT)
+        DO I=1,KMAXE
+            LEFTV(1:NOF_vARIABLES) = U_C(I)%VAL(1,1:NOF_vARIABLES)
+            CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+            RIGHTV(1:NOF_vARIABLES) = LEFTV(1:NOF_vARIABLES)
+            CALL SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
+            AGRT = SQRT(LEFTV(4)*GAMMA/LEFTV(1))
+            VELN = MAX(ABS(LEFTV(2)), ABS(LEFTV(3)))+AGRT
+            IF (TURBULENCE.EQ.1) THEN
+                IF (TURBULENCEMODEL.EQ.1) THEN
+                    TURBMV(1) = U_CT(I)%VAL(1,1)
+                    TURBMV(2) = U_CT(I)%VAL(1,1)
+                    eddyfl(2) = turbmv(1)
+                    eddyfr(2) = turbmv(2)
+                    CALL EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+                    LAML(1) = LAML(1)+LAML(3)
+                    VISCL(1) = VISCL(1)+VISCL(3)
+                END IF
+            END IF
 
-      if (dg.eq.1)then
-        DT=MIN(DT,(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
-      else
-		    DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
-      END IF
-  
-    END DO
-    !$OMP END DO
+            if (dg.eq.1)then
+                DT = MIN(DT, (CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
+            else
+                DT = MIN(DT, CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE)))+(0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
+            END IF
+        
+        END DO
+        !$OMP END DO
 	END IF
 	
-  RETURN
+    RETURN
         
 END SUBROUTINE CALCULATE_CFL2D
 
@@ -438,49 +448,48 @@ SUBROUTINE CALCULATE_CFLL2D(N)
     IF (ITESTCASE.LT.3)THEN
         !$OMP DO
         DO I=1,KMAXE
-            VELN=MAX(ABS(LAMx),ABS(LAMy))
-            IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
+            VELN = MAX(ABS(LAMx), ABS(LAMy))
+            IELEM(N,I)%DTL = CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
         END DO
         !$OMP END DO
     END IF
     
 	IF (ITESTCASE.EQ.3)THEN
-	  !$OMP DO
-    DO I=1,KMAXE
-		  LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+	    !$OMP DO
+        DO I=1,KMAXE
+		    LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
 		
-		  CALL cons2prim(N,leftv,MP_PINFl,gammal)
-		  AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		  ! VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
-      VELN = SQRT((LEFTV(2)**2)+(LEFTV(3)**2)) + AGRT
-		  if (dg.eq.1)then
-		    IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1))
-		  else
-		    IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
-		  end if
-		
-	  END DO
-	  !$OMP END DO
+		    CALL cons2prim(N,leftv,MP_PINFl,gammal)
+		    AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
+		    ! VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
+            VELN = SQRT((LEFTV(2)**2)+(LEFTV(3)**2)) + AGRT
+		    if (dg.eq.1)then
+		        IELEM(N,I)%DTL = CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1))
+		    else
+		        IELEM(N,I)%DTL = CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
+		    end if
+	    END DO
+	    !$OMP END DO
 	END IF
 	
 	IF (ITESTCASE.EQ.4)THEN
-	  !$OMP DO
-    DO I=1,KMAXE
-		  LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		  CALL cons2prim(N,leftv,MP_PINFl,gammal)
-		  RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		  CALL SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
-		  AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		  VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
-		  IF (TURBULENCE.EQ.1)THEN
-		    IF (TURBULENCEMODEL.EQ.1)THEN
-		      TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
-		      eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-		      CALL EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-		      LAML(1)=LAML(1)+LAML(3)
-		      VISCL(1)=VISCL(1)+VISCL(3)
-		    END IF
-		  END IF
+	  ! $OMP DO
+        DO I=1,KMAXE
+		    LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+            CALL cons2prim(N,leftv,MP_PINFl,gammal)
+            RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
+            CALL SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
+            AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
+            IF (TURBULENCE.EQ.1)THEN
+                IF (TURBULENCEMODEL.EQ.1)THEN
+                    TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+                    eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
+                    CALL EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+                    LAML(1) = LAML(1)+LAML(3)
+                    VISCL(1) = VISCL(1)+VISCL(3)
+                END IF
+            END IF
 
 		  if (dg.eq.1)then
         IELEM(N,I)%DTL=(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE))))
@@ -3574,20 +3583,21 @@ DO
         CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
         TOTENSx=DUMEtg2
         IF (N.EQ.0)THEN
-            TOTV1=TOTK/((2.0*PI)**3)
-            TOTENS1=TOTENS/(((2.0*PI)**3))
-            TOTENSx1=TOTENSx/((2.0*PI)**3)
+            TOTV1 = TOTK/((2.0*PI)**3)
+            TOTENS1 = TOTENS/(((2.0*PI)**3))
+            ! TOTENSx1=TOTENSx/((2.0*PI)**3)
+            TOTENSx1 = 4.0*TOTENSx/(3.0*Reynolds*((2.0*PI)**3))
             IF (it.eq.0)THEN
-                TAYLOR=TOTK
-                TAYLOR_ENS=TOTENS
-                TAYLOR_ENSx=TOTENSx
+                TAYLOR = TOTK
+                TAYLOR_ENS = TOTENS
+                TAYLOR_ENSx= TOTENSx
             END IF
         END IF
 
 		END IF
 			
     IF (rungekutta.GE.11)THEN
-        dt=timestep
+        dt = timestep
         IF (INITCOND.eq.95)THEN 
             DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
         ELSE
@@ -3900,342 +3910,350 @@ END SUBROUTINE TIME_MARCHING
 SUBROUTINE TIME_MARCHING2(N)
   !> @brief
   !> TIME MARCHING SUBROUTINE 2D
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::N
-  real,dimension(1:5)::DUMMYOUT,DUMMYIN
-  INTEGER::I,KMAXE
-  REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK
-  real::dtiv,flort
-  integer:: NumStepsToOutput1, NumStepsToOutput2
-  kmaxe=XMPIELRANK(n)
-  kill=0
-  T=res_time
-  iscoun=1
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)::N
+    real,dimension(1:5)::DUMMYOUT,DUMMYIN
+    INTEGER::I,KMAXE
+    REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK
+    real::dtiv,flort
+    integer:: NumStepsToOutput1, NumStepsToOutput2
+    kmaxe=XMPIELRANK(n)
+    kill=0
+    T = res_time
+    iscoun=1
 
-  EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
+    EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
 
-  !$OMP MASTER
-    CPUT1=CPUX1(1)
-    CPUT4=CPUX1(1)
-    CPUT5=CPUX1(1)
-    CPUT8=CPUX1(1)
-  !$OMP END MASTER
+    !$OMP MASTER
+        CPUT1=CPUX1(1)
+        CPUT4=CPUX1(1)
+        CPUT5=CPUX1(1)
+        CPUT8=CPUX1(1)
+    !$OMP END MASTER
 
-  !$OMP BARRIER
+    !$OMP BARRIER
 
-  IT=RESTART
-  if (dg.eq.1) call SOL_INTEG_DG_init(N)
+    IT=RESTART
+    if (dg.eq.1) call SOL_INTEG_DG_init(N)
 
-  !$OMP BARRIER
+    !$OMP BARRIER
 
-  !$OMP MASTER
-    if (tecplot.lt.5)then
-        CALL GRID_WRITE
-    end if
+    !$OMP MASTER
+        if (tecplot.lt.5)then
+            CALL GRID_WRITE
+        end if
 
-    CALL VOLUME_SOLUTION_WRITE
-    IF (outsurf.eq.1)THEN
-        CALL SURF_WRITE
-    END IF
+        CALL VOLUME_SOLUTION_WRITE
+        IF (outsurf.eq.1)THEN
+            CALL SURF_WRITE
+        END IF
 
-    IF ((Average_restart.eq.0).and.(averaging.eq.1)) THEN
-        Tz1=0.0
-    ELSE
-        tz1=t
-    END IF
-  !$OMP END MASTER
+        IF ((Average_restart.eq.0).and.(averaging.eq.1)) THEN
+            Tz1=0.0
+        ELSE
+            tz1=t
+        END IF
+    !$OMP END MASTER
 
-  !$OMP BARRIER
+    !$OMP BARRIER
 
-  DO
-      CALL CALCULATE_CFL2D(N)
-      IF (RUNGEKUTTA.GE.5) CALL CALCULATE_CFLL2d(N)
+    lastWallDistReinitialization = T
 
-      IF (DG.EQ.1)THEN
-          DO I=1,KMAXE
-              ielem(n,i)%condition=0
-              IELEM(N,I)%TROUBLED=0
-          END DO
-      END IF
+    DO
+        CALL CALCULATE_CFL2D(N)
+        IF (RUNGEKUTTA.GE.5) CALL CALCULATE_CFLL2d(N)
 
-      !$OMP MASTER
-          if (IT.lt.10) then
-              DT = real(IT+1)*0.1*DT
-          end if
-          DUMMYOUT(1)=DT
-          CPUT2=MPI_WTIME()
-          TIMEC8=CPUT2-CPUT8
-          TIMEC1=CPUT2-CPUT1
-          DUMMYOUT(2)=TIMEC1
-          DUMMYIN=0.0d0
-          TIMEC3=CPUT2-CPUT4
-          DUMMYOUT(3)=TIMEC3
-          TIMEC4=CPUT2-CPUT5
-          DUMMYOUT(4)=TIMEC4
-          DUMMYOUT(5)=TIMEC8
+        IF (DG.EQ.1)THEN
+            DO I=1,KMAXE
+                ielem(n,i)%condition=0
+                IELEM(N,I)%TROUBLED=0
+            END DO
+        END IF
 
-          CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-          DTIV=DUMMYIN(1)
-          DT=DUMMYIN(1)
-          TIMEC1=DUMMYIN(2)
-          TIMEC3=DUMMYIN(3)
-          TIMEC4=DUMMYIN(4)
-          TIMEC8=DUMMYIN(5)
-          IF (N.EQ.0)THEN
-              OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-              WRITE(63,*)DT,it,"TIME STEP SIZE",T
-              CLOSE(63)
-          END IF
+        IF (MESH_MOVEMENT.and.(TURBULENCE.EQ.1)) THEN
+            IF (modulo(IT,WallDistReinitialisationFrequency).eq.0) then
+                call Reinitialise_WallDistance(N,1)
+                lastWallDistReinitialization = T
+            else
+                call Approximate_WallDistance(N, 1, T-lastWallDistReinitialization)
+            end if
+        end if
 
-          IF (INITCOND.eq.95)THEN
-              TOTK=0
-              DO I=1,KMAXE
-                  TOTK=TOTK+IELEM(N,I)%TOTVOLUME*(1.0/2.0)*&
-                      (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2))
-              END DO
+        !$OMP MASTER
+            ! if (IT.lt.10) then
+            !     DT = real(IT+1)*0.1*DT
+            ! end if
+            DUMMYOUT(1)=DT
+            CPUT2=MPI_WTIME()
+            TIMEC8=CPUT2-CPUT8
+            TIMEC1=CPUT2-CPUT1
+            DUMMYOUT(2)=TIMEC1
+            DUMMYIN=0.0d0
+            TIMEC3=CPUT2-CPUT4
+            DUMMYOUT(3)=TIMEC3
+            TIMEC4=CPUT2-CPUT5
+            DUMMYOUT(4)=TIMEC4
+            DUMMYOUT(5)=TIMEC8
 
-              DUMEtg1=TOTK
-              DUMEtg2=0.0
-              CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-              CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-              TOTK=DUMEtg2
-              IF (N.EQ.0)THEN
-                  ! TOTV2=TOTK/((2.0*PI)**3)
-                  ! IF (it.eq.0)THEN
-                  ! 		TAYLOR=TOTK
-                  ! END IF
-                  IF (IT.EQ.0)THEN
-                      OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-                  ELSE
-                      OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-                  END IF
-                  WRITE(73,*)T,TOTK
-                  CLOSE(73)
-              END IF
-
-              CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-          END IF
-
-          ! IF ((MULTISPECIES.EQ.1))THEN
-          !     IF ((initcond.eq.405).or.(initcond.eq.411))THEN
-          !         IF ( mod(it, 20) .eq. 0)THEN
-          !             CALL TRAJECTORIES
-          !         END IF
-          !     END IF
-          ! END IF
-
-          IF (rungekutta.GE.11)THEN
-              dt=timestep
-              DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-          ELSE
-              ! DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-              NumStepsToOutput1 = ceiling((OUT_TIME-T)/DT)
-              NumStepsToOutput2 = ceiling((EVERY_TIME-T)/DT)
-              if (NumStepsToOutput1 <= 8) then
-                dt = min(dt, (OUT_TIME-T) / NumStepsToOutput1)
-              endif
-              if (NumStepsToOutput2 <= 8) then
-                dt = min(dt, (EVERY_TIME-T) / NumStepsToOutput2)
-              endif
-          END IF
-      !$OMP END MASTER
-
-      !$OMP BARRIER
-
-      if (dt.lt.zero) Then
-          print *, "Negative time step"
-          call ABORT
-      end if
-
-      SELECT CASE(RUNGEKUTTA)
-
-        CASE(1)
-          if (MESH_MOVEMENT) then
-            Call RUNGE_KUTTA1_MovingMesh_2D(N)
-          else
-            CALL RUNGE_KUTTA1_2d(N)
-          end if
-
-        CASE(2)
-          if (MESH_MOVEMENT) then
-            Call RUNGE_KUTTA2_MovingMesh_2D_v1(N)
-          else
-            CALL RUNGE_KUTTA2_2d(N)
-          end if
-
-        CASE(3)
-          if (MESH_MOVEMENT) then
-            Call RUNGE_KUTTA3_MovingMesh_2D(N)
-          else
-            IF (hybridCWENO_MOOD.gt.0) then
-                IWENO=0
-                CALL RUNGE_KUTTA3_2D_hybridCWENO_MOOD(N)
-            ELSE IF (MOOD.EQ.1)THEN
-                CALL RUNGE_KUTTA3_2D_MOOD(N)
-            ELSE
-                CALL RUNGE_KUTTA3_2D(N)
+            CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
+            DTIV=DUMMYIN(1)
+            DT=DUMMYIN(1)
+            TIMEC1=DUMMYIN(2)
+            TIMEC3=DUMMYIN(3)
+            TIMEC4=DUMMYIN(4)
+            TIMEC8=DUMMYIN(5)
+            IF (N.EQ.0)THEN
+                OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
+                WRITE(63,*)DT,it,"TIME STEP SIZE",T
+                CLOSE(63)
             END IF
-          end if
 
-        CASE(4)
-          CALL RUNGE_KUTTA4_2D(N)
-          ! IF ((MULTISPECIES.EQ.1))THEN
-          !     IF((initcond.eq.405).or.(initcond.eq.411))THEN
-          !         ! IF ( mod(it, 20) .eq. 0)THEN
-          !             CALL TRAJECTORIES
-          !         ! END IF
-          !     END IF
-          ! END IF
+            IF (INITCOND.eq.95)THEN
+                TOTK=0
+                DO I=1,KMAXE
+                    TOTK=TOTK+IELEM(N,I)%TOTVOLUME*(1.0/2.0)*&
+                        (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2))
+                END DO
 
-        CASE(5)
-          CALL RUNGE_KUTTA5_2D(N)
+                DUMEtg1=TOTK
+                DUMEtg2=0.0
+                CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+                CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+                TOTK=DUMEtg2
+                IF (N.EQ.0)THEN
+                    ! TOTV2=TOTK/((2.0*PI)**3)
+                    ! IF (it.eq.0)THEN
+                    ! 		TAYLOR=TOTK
+                    ! END IF
+                    IF (IT.EQ.0)THEN
+                        OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
+                    ELSE
+                        OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
+                    END IF
+                    WRITE(73,*)T,TOTK
+                    CLOSE(73)
+                END IF
 
-        CASE(10)
-          CALL IMPLICIT_TIMEs_2d(N)
+                CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+            END IF
 
-        CASE(11)
-          CALL dual_TIME_2d(N)
+            ! IF ((MULTISPECIES.EQ.1))THEN
+            !     IF ((initcond.eq.405).or.(initcond.eq.411))THEN
+            !         IF ( mod(it, 20) .eq. 0)THEN
+            !             CALL TRAJECTORIES
+            !         END IF
+            !     END IF
+            ! END IF
 
-        CASE(12)
-          CALL dual_TIME_EX_2D(N)
+            IF (rungekutta.GE.11)THEN
+                dt=timestep
+                DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+            ELSE
+                ! DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+                NumStepsToOutput1 = ceiling((OUT_TIME-T)/DT)
+                NumStepsToOutput2 = ceiling((EVERY_TIME-T)/DT)
+                if (NumStepsToOutput1 <= 8) then
+                    dt = min(dt, (OUT_TIME-T) / NumStepsToOutput1)
+                endif
+                if (NumStepsToOutput2 <= 8) then
+                    dt = min(dt, (EVERY_TIME-T) / NumStepsToOutput2)
+                endif
+            END IF
+        !$OMP END MASTER
 
-      END SELECT
+        !$OMP BARRIER
 
-      if (dg.eq.1)call SOL_INTEG_DG(N)
+        if (dt.lt.zero) Then
+            print *, "Negative time step"
+            call ABORT
+        end if
 
-      if (MESH_MOVEMENT) then
-          if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13).or.(moving_mesh_mode.eq.14).or.(moving_mesh_mode.eq.15)) then
-              call FIND_NORMALIZED_DENSITY_GRADIENT_from_precomputed(N)
-          else
-              ! if (dimensiona.eq.2) then
-              !     call FIND_NORMALIZED_DENSITY_GRADIENT_2D(1, 1, N)
-              ! else
-              !     print *, "the function FIND_NORMALIZED_DENSITY_GRADIENT_3D(N) is missing"
-              ! end if
-          end if
-      end if
+        SELECT CASE(RUNGEKUTTA)
+          CASE(1)
+            if (MESH_MOVEMENT) then
+                Call RUNGE_KUTTA1_MovingMesh_2D(N)
+            else
+                CALL RUNGE_KUTTA1_2d(N)
+            end if
 
-      !$OMP BARRIER
+          CASE(2)
+            if (MESH_MOVEMENT) then
+                Call RUNGE_KUTTA2_MovingMesh_2D_v1(N)
+            else
+                CALL RUNGE_KUTTA2_2d(N)
+            end if
 
-      ! Increment time
-      !$OMP MASTER
-          IF (rungekutta.GE.11)THEN
-              T=T+(DT)
-              Tz1=Tz1+(DT)
-          ELSE
-              T=T+DT
-              tz1=tz1+DT
-          END IF
+          CASE(3)
+            if (MESH_MOVEMENT) then
+                Call RUNGE_KUTTA3_MovingMesh_2D(N)
+            else
+                IF (hybridCWENO_MOOD.gt.0) then
+                    IWENO=0
+                    CALL RUNGE_KUTTA3_2D_hybridCWENO_MOOD(N)
+                ELSE IF (MOOD.EQ.1)THEN
+                    CALL RUNGE_KUTTA3_2D_MOOD(N)
+                ELSE
+                    CALL RUNGE_KUTTA3_2D(N)
+                END IF
+            end if
 
-          IF (DG.EQ.1)THEN
-              IF (CODE_PROFILE.ne.102)THEN
-                  IF ( mod(it, 100) .eq. 0) THEN
-                      CALL TROUBLED_HISTORY
-                  END IF
-              END IF
-          END IF
+          CASE(4)
+            CALL RUNGE_KUTTA4_2D(N)
+            ! IF ((MULTISPECIES.EQ.1))THEN
+            !     IF((initcond.eq.405).or.(initcond.eq.411))THEN
+            !         ! IF ( mod(it, 20) .eq. 0)THEN
+            !             CALL TRAJECTORIES
+            !         ! END IF
+            !     END IF
+            ! END IF
 
-          IF ((mood.gt.0).or.(hybridCWENO_MOOD.gt.0)) THEN
-              CALL TROUBLED_HISTORY
-          end if
+          CASE(5)
+            CALL RUNGE_KUTTA5_2D(N)
 
-      !$OMP END MASTER
+          CASE(10)
+            CALL IMPLICIT_TIMEs_2d(N)
 
-      !$OMP BARRIER
+          CASE(11)
+            CALL dual_TIME_2d(N)
 
-      ! Write output
-      IF ( mod(it, IForce) .eq. 0) THEN
-          IF (OUTSURF.EQ.1) THEN
-              CALL forces
-          END IF
-      END IF
+          CASE(12)
+            CALL dual_TIME_EX_2D(N)
 
-      IF ((rungekutta.ge.5).and.(rungekutta.lt.11))THEN
-          IF ( mod(it, residualfreq) .eq. 0) THEN
-              CALL RESIDUAL_COMPUTE
-          END IF
-      END IF
+        END SELECT
 
-      !$OMP MASTER
-          IF (NPROBES.GT.0) CALL PROBING2D
+        if (dg.eq.1)call SOL_INTEG_DG(N)
 
-          IF (TIMEC1.GE.IEVERY)THEN
-              CALL VOLUME_SOLUTION_WRITE
-              IF (outsurf.eq.1)THEN
-                  CALL surface_SOLUTION_WRITE
-              END IF
-              CPUT1=MPI_WTIME()
-          END IF
+        if (MESH_MOVEMENT) then
+            if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13).or.(moving_mesh_mode.eq.14).or.(moving_mesh_mode.eq.15)) then
+                call FIND_NORMALIZED_DENSITY_GRADIENT_from_precomputed(N)
+            else
+                ! if (dimensiona.eq.2) then
+                !     call FIND_NORMALIZED_DENSITY_GRADIENT_2D(1, 1, N)
+                ! else
+                !     print *, "the function FIND_NORMALIZED_DENSITY_GRADIENT_3D(N) is missing"
+                ! end if
+            end if
+        end if
 
-          IF (TIMEC8.GE.IEVERYAV)THEN
-              IF (AVERAGING.EQ.1)THEN
-                  CALL VOLUME_SOLUTION_WRITE_av
-                  IF (outsurf.eq.1) THEN
-                      CALL surface_SOLUTION_WRITE_av
-                  END IF
-              END IF
-              CPUT8=MPI_WTIME()
-          END IF
+        !$OMP BARRIER
 
-          IF (CODE_PROFILE.EQ.-1)THEN
-              if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
+        ! Increment time
+        !$OMP MASTER
+            IF (rungekutta.GE.11)THEN
+                T = T+(DT)
+                Tz1=Tz1+(DT)
+            ELSE
+                T = T+DT
+                tz1=tz1+DT
+            END IF
 
-                  CALL VOLUME_SOLUTION_WRITE
-                  if (outsurf.eq.1)then
-                      call surface_SOLUTION_WRITE
-                  end if
-                  EVERY_TIME=EVERY_TIME+output_freq
-              END IF
-          END IF
+            IF (DG.EQ.1)THEN
+                IF (CODE_PROFILE.ne.102)THEN
+                    IF ( mod(it, 100) .eq. 0) THEN
+                        CALL TROUBLED_HISTORY
+                    END IF
+                END IF
+            END IF
 
-      !$OMP END MASTER
-      !$OMP BARRIER
+            IF ((mood.gt.0).or.(hybridCWENO_MOOD.gt.0)) THEN
+                CALL TROUBLED_HISTORY
+            end if
+        !$OMP END MASTER
 
-      !$OMP MASTER
-      IT=IT+1
+        !$OMP BARRIER
 
-      ! Check end condition
-      IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC).OR.(DTiv.GT.OUT_TIME))THEN
-          KILL=1
-      END IF
+        ! Write output
+        IF ( mod(it, IForce) .eq. 0) THEN
+            IF (OUTSURF.EQ.1) THEN
+                CALL forces
+            END IF
+        END IF
 
-      IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
-          IF ((T.GE.OUT_TIME).OR.(DTiv.GT.OUT_TIME))THEN
-              KILL=1
-          END IF
-      END IF
-      !$OMP END MASTER
-      !$OMP BARRIER
+        IF ((rungekutta.ge.5).and.(rungekutta.lt.11))THEN
+            IF ( mod(it, residualfreq) .eq. 0) THEN
+                CALL RESIDUAL_COMPUTE
+            END IF
+        END IF
 
-      !$OMP MASTER
-      IF (kill.eq.1)THEN
+        !$OMP MASTER
+            IF (NPROBES.GT.0) CALL PROBING2D
 
-          CALL VOLUME_SOLUTION_WRITE
-          IF (outsurf.eq.1)THEN
-              CALL surface_SOLUTION_WRITE
-          END IF
-          CALL CHECKPOINTING
-          IF (AVERAGING.EQ.1)THEN
-              CALL VOLUME_SOLUTION_WRITE_av
-              IF (outsurf.eq.1)THEN
-                  CALL surface_SOLUTION_WRITE_av
-              END IF
-              CALL CHECKPOINTING_av
-          END IF
-      END IF
+            IF (TIMEC1.GE.IEVERY)THEN
+                CALL VOLUME_SOLUTION_WRITE
+                IF (outsurf.eq.1)THEN
+                    CALL surface_SOLUTION_WRITE
+                END IF
+                CPUT1=MPI_WTIME()
+            END IF
 
-      !$OMP END MASTER
-      !$OMP BARRIER
+            IF (TIMEC8.GE.IEVERYAV)THEN
+                IF (AVERAGING.EQ.1)THEN
+                    CALL VOLUME_SOLUTION_WRITE_av
+                    IF (outsurf.eq.1) THEN
+                        CALL surface_SOLUTION_WRITE_av
+                    END IF
+                END IF
+                CPUT8=MPI_WTIME()
+            END IF
 
-      IF (kill.eq.1)THEN
-          ! IF (itestcase.le.3)THEN
-          !     CALL CALCULATE_ERROR(n)
-          ! END IF
+            IF (CODE_PROFILE.EQ.-1)THEN
+                if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
 
-          return
-      END IF
+                    CALL VOLUME_SOLUTION_WRITE
+                    if (outsurf.eq.1)then
+                        call surface_SOLUTION_WRITE
+                    end if
+                    EVERY_TIME=EVERY_TIME+output_freq
+                END IF
+            END IF
+        !$OMP END MASTER
 
-  END DO
+        !$OMP BARRIER
+
+        !$OMP MASTER
+            IT=IT+1
+
+            ! Check end condition
+            IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC).OR.(DTiv.GT.OUT_TIME))THEN
+                KILL=1
+            END IF
+
+            IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
+                IF ((T.GE.OUT_TIME).OR.(DTiv.GT.OUT_TIME))THEN
+                    KILL=1
+                END IF
+            END IF
+        !$OMP END MASTER
+
+        !$OMP BARRIER
+
+        !$OMP MASTER
+            IF (kill.eq.1)THEN
+
+                CALL VOLUME_SOLUTION_WRITE
+                IF (outsurf.eq.1) THEN
+                    CALL surface_SOLUTION_WRITE
+                END IF
+                CALL CHECKPOINTING
+                IF (AVERAGING.EQ.1) THEN
+                    CALL VOLUME_SOLUTION_WRITE_av
+                    IF (outsurf.eq.1) THEN
+                        CALL surface_SOLUTION_WRITE_av
+                    END IF
+                    CALL CHECKPOINTING_av
+                END IF
+            END IF
+        !$OMP END MASTER
+
+        !$OMP BARRIER
+
+        IF (kill.eq.1)THEN
+            ! IF (itestcase.le.3)THEN
+            !     CALL CALCULATE_ERROR(n)
+            ! END IF
+            return
+        END IF
+    END DO
 
 END SUBROUTINE TIME_MARCHING2
 
@@ -4323,7 +4341,9 @@ SUBROUTINE RUNGE_KUTTA1_MovingMesh_2D(N)
     IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
         !$OMP DO
         DO I=1,KMAXE
-            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) * IELEM(N,I)%moving_volume(1)) - (dt * RHSt(I)%VAL(1:turbulenceequations+passivescalar))) / IELEM(N,I)%moving_volume(2)
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) * IELEM(N,I)%moving_volume(1)) &
+                                                               - (dt * RHSt(I)%VAL(1:turbulenceequations+passivescalar))) &
+                                                               / IELEM(N,I)%moving_volume(2)
         END DO
         !$OMP END DO
     END IF
@@ -4424,8 +4444,9 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
         !$OMP DO
         DO I=1,KMAXE
             U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-            ! U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)  * IELEM(N,I)%moving_volume(1)) - (dt * (RHSt(I)%VAL(1:turbulenceequations+passivescalar)))) / IELEM(N,I)%moving_volume(2)
+            U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)*IELEM(N,I)%moving_volume(1)) &
+                                                               - (dt * (RHSt(I)%VAL(1:turbulenceequations+passivescalar)))) & 
+                                                               / IELEM(N,I)%moving_volume(2)
         END DO
         !$OMP END DO
     END IF
@@ -4440,7 +4461,9 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v0(N)
     !$omp barrier
     Call RE_PRESTORE_1(N, 2)
     !$omp barrier
-
+    if (TURBULENCE.eq.1) Then
+        call Approximate_WallDistance(N, 2, T+DT-lastWallDistReinitialization)
+    end if
     global_position_index = 2
     call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
     ! call EXCHANGE_HIGHER(N)
@@ -4593,8 +4616,10 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
     IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
       !$OMP DO
       DO I=1,KMAXE
-          U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-          U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)  * IELEM(N,I)%moving_volume(1)) - ((0.5*dt) * (RHSt(I)%VAL(1:turbulenceequations+passivescalar)))) / IELEM(N,I)%moving_volume(2)
+          U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar) = U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
+          U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar) = ((U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)*IELEM(N,I)%moving_volume(1)) &
+                                                             - ((0.5*dt)*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)))) &
+                                                             / IELEM(N,I)%moving_volume(2)
       END DO
       !$OMP END DO
     END IF
@@ -4609,6 +4634,9 @@ SUBROUTINE RUNGE_KUTTA2_MovingMesh_2D_v1(N)
     !$omp barrier
     Call RE_PRESTORE_1(N, 2)
     !$omp barrier
+    if (TURBULENCE.eq.1) Then
+        call Approximate_WallDistance(N, 2, T+(0.5*DT)-lastWallDistReinitialization)
+    end if
     global_position_index = 2
     call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
     ! call EXCHANGE_HIGHER(N)
@@ -4755,8 +4783,8 @@ SUBROUTINE RUNGE_KUTTA3_MovingMesh_2D(N)
     !$OMP END DO
 
     IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-        print *, "Moving mesh does not support turbulence and passive scalars yet"
-        call abort
+        ! print *, "Moving mesh does not support turbulence and passive scalars yet"
+        ! call abort
         !$OMP DO
         DO I=1,KMAXE
             OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
@@ -4776,6 +4804,9 @@ SUBROUTINE RUNGE_KUTTA3_MovingMesh_2D(N)
     !$omp barrier
     Call RE_PRESTORE_1(N, 2)
     !$omp barrier
+    if (TURBULENCE.eq.1) Then
+        call Approximate_WallDistance(N, 2, T+DT-lastWallDistReinitialization)
+    end if
     global_position_index = 2
     call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
     ! call EXCHANGE_HIGHER(N)
@@ -4857,6 +4888,9 @@ SUBROUTINE RUNGE_KUTTA3_MovingMesh_2D(N)
     !$omp barrier
     Call RE_PRESTORE_1(N, 3)
     !$omp barrier
+    if (TURBULENCE.eq.1) Then
+        call Approximate_WallDistance(N, 3, T+(0.5*DT)-lastWallDistReinitialization)
+    end if
     global_position_index = 3
     call CALL_POLYNOMIAL_RECONSTRUCTION_MovingMesh_2D
     ! call EXCHANGE_HIGHER(N)
