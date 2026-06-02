@@ -112,52 +112,44 @@ SUBROUTINE CALCULATE_CFL(N)
 	  IF (ITESTCASE.EQ.4)THEN
 	      !$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
-            LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-            CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-            RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-            CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
-            if (it.eq.0)then
-                ielem(n,i)%vortex(4)=viscl(1)
-            end if 
-
-            AGRT = SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-                      
-            IF (RFRAME.EQ.0) THEN
-                VELN = MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
+		CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
+		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+                
+        IF (RFRAME.EQ.0) THEN
+            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+        END IF
+        IF(SRFG.EQ.1)THEN
+            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+            POY(1:3)=SRF_VELOCITY
+            SRF_SPEED=ZERO
+            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+        END IF          
+        IF(MRF.EQ.1)THEN
+            SRF=ILOCAL_RECON3(I)%MRF
+            IF (ILOCAL_RECON3(I)%MRF.EQ.0)THEN
+                VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+            ELSE
+                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
+                SRF_SPEED=ZERO
+                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
             END IF
-            IF (SRFG.EQ.1) THEN
-                POX(1) = IELEM(N,I)%XXC
-                POX(2) = IELEM(N,I)%YYC
-                POX(3) = IELEM(N,I)%ZZC
-                POY(1:3) = SRF_VELOCITY
-                SRF_SPEED = ZERO
-                SRF_SPEED(2:4) = VECT_FUNCTION(POX,POY)
-                VELN = MAX(ABS(LEFTV(2)-SRF_SPEED(2)), ABS(LEFTV(3)-SRF_SPEED(3)), ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-            END IF          
-            IF (MRF.EQ.1) THEN
-                SRF = ILOCAL_RECON3(I)%MRF
-                IF (ILOCAL_RECON3(I)%MRF.EQ.0) THEN
-                    VELN = MAX(ABS(LEFTV(2)), ABS(LEFTV(3)), ABS(LEFTV(4)))+AGRT
-                ELSE
-                    POX(1) = IELEM(N,I)%XXC
-                    POX(2) = IELEM(N,I)%YYC
-                    POX(3) = IELEM(N,I)%ZZC
-                    POX(1:3) = POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
-                    POY(1:3) = ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
-                    SRF_SPEED = ZERO
-                    SRF_SPEED(2:4) = VECT_FUNCTION(POX,POY)
-                    VELN = MAX(ABS(LEFTV(2)-SRF_SPEED(2)), ABS(LEFTV(3)-SRF_SPEED(3)), ABS(LEFTV(4)-SRF_SPEED(4))) + AGRT
-                END IF
-            END IF
-            IF (TURBULENCE.EQ.1) THEN
-                IF (TURBULENCEMODEL.EQ.1) THEN
-                    TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
-                    eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-                    CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-                    LAML(1)=LAML(1)+LAML(3)
-                    VISCL(1)=VISCL(1)+VISCL(3)
-                END IF
-            END IF
+        END IF
+		IF (TURBULENCE.EQ.1)THEN
+		IF (TURBULENCEMODEL.EQ.1)THEN
+		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
+		CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+		LAML(1)=LAML(1)+LAML(3)
+		VISCL(1)=VISCL(1)+VISCL(3)
+		END IF
+		END IF
 
             if (dg.eq.1)then
                 DT = MIN(DT, (CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
@@ -2680,17 +2672,18 @@ END IF
 IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
   !$OMP DO
   DO I=1,KMAXE
-    do k=1,turbulenceequations+passivescalar
-      IF (ispal.eq.1)THEN
-        IF (U_CT(I)%VAL(1,k)+IMPDU(I,4+k).ge.zero)THEN
-          U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
-        END IF
-      ELSE
-        U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
-      END IF
-    END do
-  END DO
-  !$OMP END DO
+  do k=1,turbulenceequations+passivescalar
+  IF (ispal.eq.1)THEN
+  IF (U_CT(I)%VAL(1,k)+IMPDU(I,4+k).ge.zero)THEN
+  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
+   END IF
+   ELSE
+   U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
+   
+   END IF
+  END do
+END DO
+!$OMP END DO
 
   ! IF (kill_nan.eq.2)THEN
   !   stop
@@ -3501,11 +3494,13 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 !$OMP END MASTER
 !$OMP BARRIER
 
-if ((it.eq.0).and.(initcond.eq.95))then
-    call EXCHANGE_HIGHER(N)
-    call ARBITRARY_ORDER(N)
-    call ENSTROPHY_CALC(N)
-end if
+      if ((it.eq.0).and.(initcond.eq.95))then
+        call EXCHANGE_HIGHER(N)
+        call ARBITRARY_ORDER(N)
+        call ENSTROPHY_CALC(N)
+
+
+      end if
       
 DO 
             
@@ -3562,37 +3557,40 @@ DO
                 IELEM(N,I)%VORTEX(2))
             else
 
-                TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
-                TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
-            end if
-        END DO
+                              TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
+                              TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
+                              end if
 
-        DUMEtg1=TOTK
-        DUMEtg2=0.0
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-        CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-        TOTK=DUMEtg2
-        DUMEtg1=TOTENS
-        DUMEtg2=0.0
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-        CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-        TOTENS=DUMEtg2
-        DUMEtg1=TOTENSx
-        DUMEtg2=0.0
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-        CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-        TOTENSx=DUMEtg2
-        IF (N.EQ.0)THEN
-            TOTV1 = TOTK/((2.0*PI)**3)
-            TOTENS1 = TOTENS/(((2.0*PI)**3))
-            ! TOTENSx1=TOTENSx/((2.0*PI)**3)
-            TOTENSx1 = 4.0*TOTENSx/(3.0*Reynolds*((2.0*PI)**3))
-            IF (it.eq.0)THEN
-                TAYLOR = TOTK
-                TAYLOR_ENS = TOTENS
-                TAYLOR_ENSx= TOTENSx
-            END IF
-        END IF
+                          END DO
+          !
+                          DUMEtg1=TOTK
+                          DUMEtg2=0.0
+                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+                          TOTK=DUMEtg2
+                          DUMEtg1=TOTENS
+                          DUMEtg2=0.0
+                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+                          TOTENS=DUMEtg2
+                          DUMEtg1=TOTENSx
+                          DUMEtg2=0.0
+                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+                          TOTENSx=DUMEtg2
+                          IF (N.EQ.0)THEN
+                          TOTV1=TOTK/((2.0*PI)**3)
+                          TOTENS1=TOTENS/(((2.0*PI)**3))
+                          TOTENSx1=TOTENSx/((2.0*PI)**3)
+                              IF (it.eq.0)THEN
+                              TAYLOR=TOTK
+                              TAYLOR_ENS=TOTENS
+                              TAYLOR_ENSx=TOTENSx
+                              END IF
+
+
+
+                          END IF
 
 		END IF
 			
@@ -3719,43 +3717,48 @@ DO
  				TOTENSx=DUMEtg2
 
  				IF (N.EQ.0)THEN
-            TOTV2=TOTK/((2.0*PI)**3)
-            TOTENS2=TOTENS/((2.0*PI)**3)
-            TOTENSx2=TOTENSx/((2.0*PI)**3)
-            IF (it.eq.0)THEN
-                TAYLOR=TOTK
-                TAYLOR_ENS=TOTENS
-                TAYLOR_ENSx=TOTENSx
-            END IF
+                          TOTV2=TOTK/((2.0*PI)**3)
+                          TOTENS2=TOTENS/((2.0*PI)**3)
+                          TOTENSx2=TOTENSx/((2.0*PI)**3)
+                              IF (it.eq.0)THEN
+                              TAYLOR=TOTK
+                              TAYLOR_ENS=TOTENS
+                              TAYLOR_ENSx=TOTENSx
+                              END IF
 
-                IF (IT.EQ.0)THEN
-                    OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-                ELSE
-                    OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-                END IF
-                IF (DG.EQ.1)THEN
-                    WRITE(73,'(E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT
-                ELSE
-                    if (boundtype.eq.1)then
-                        WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS/TAYLOR_ENS
-                    else
-                        WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS,TOTENSx
-                    end if
-                END IF
-                CLOSE(73)
-            END IF
-            
-            CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-            
-            IF (ADDA.EQ.1)THEN
-                TOTK=0
-                DO I=1,xmpielrank(n)
-                    TOTK=TOTK+IELEM(N,I)%ER
-                END DO
-                DUMEtg1=TOTK
-                DUMEtg2=0.0
-                CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-                CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+                          IF (IT.EQ.0)THEN
+                          OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
+                          ELSE
+                          OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
+                          END IF
+                          IF (DG.EQ.1)THEN
+                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT
+                          ELSE
+                          if (boundtype.eq.1)then
+                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS/TAYLOR_ENS
+                          else
+                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS,TOTENSx
+                          end if
+                          END IF
+                          CLOSE(73)
+				END IF
+ 				
+ 				
+ 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+ 				
+
+ 				IF (ADDA.EQ.1)THEN
+                          TOTK=0
+                          DO I=1,xmpielrank(n)
+
+                              TOTK=TOTK+IELEM(N,I)%ER
+
+
+                          END DO
+                          DUMEtg1=TOTK
+                          DUMEtg2=0.0
+                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
 
                 IF (N.EQ.0)THEN
                     TOTK=DUMEtg2/IMAXE

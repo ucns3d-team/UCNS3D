@@ -6534,6 +6534,9 @@ IF (ITESTCASE.LE.2)THEN
 						if ((kkd.ge.2).and.(kkd.le.4))then
 						valuess(i)=U_C(IBOUND_T(I))%VAL(1,kkd)/U_C(IBOUND_T(I))%VAL(1,1)
 						end if	
+
+                                               
+
 					  ENDDO
 					  END IF
 		
@@ -6562,6 +6565,16 @@ IF (ITESTCASE.LE.2)THEN
 						leftv(1:nof_Variables)=U_C(IBOUND_T(I))%VAL(1,1:nof_Variables)
 						CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 						VALUESS(i)=leftv(5)
+                                                
+                                               ! if (ielem(n,ibound_t(i))%ishape.eq.1)then
+                                                        
+                                                !        valuess(i)=ielem(n,ibound_t(i))%dih(6)
+                                                
+                                                !else
+
+                                                 !       valuess(i)=0.0d0
+                                               ! end if
+
 						
 					  ENDDO
 					  END IF
@@ -6671,8 +6684,10 @@ IF (ITESTCASE.LE.2)THEN
 					 
 					 call SHEAR_X(ICONSIdered,facex,shear_temp)
 					 CASE (2)
+
 					 call SHEAR_y(ICONSIdered,facex,shear_temp)
-					 CASE(3)
+					
+                                        CASE(3)
 					 call SHEAR_z(ICONSIdered,facex,shear_temp)
 					 END SELECT
 				       		VALUESS(i)=SHEAR_TEMP					
@@ -11821,7 +11836,7 @@ SUBROUTINE PARTITION_PREPARATION_WALLv(N)
  		END DO
 		WPART1_end=1
 	eLSE
-		ALLOCATE(WDISPART1(1),WrARRAY_PART1(1,1:WRITE_VARIABLES_W))	!
+		ALLOCATE(WDISPART1(1),WrARRAY_PART1(1,1:varg_max))	!
 		WrARRAY_PART1(1,:)=0
 		WDISPART1(1)=0!
 		WPART1_end=0
@@ -14781,7 +14796,14 @@ SUBROUTINE PARALLEL_VTK_COMBINE_WALL_AV(N)
 	KMAXE=XMPIELRANK(N)
 	KMAXN_P=XMPIALL_v(N)
 
-	temp_cord=3
+		temp_cord=3
+		if (dimensiona.eq.3)then
+ 		temp_node=3;temp_dims=3
+ 		else
+ 		temp_node=2;temp_dims=3
+ 		end if
+
+
 	if (rungekutta.eq.4)then
 	    ind1=7
 	else

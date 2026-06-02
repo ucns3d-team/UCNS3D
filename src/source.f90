@@ -140,7 +140,7 @@ SUBROUTINE SOURCES(N,ICONSIDERED,SOURCE_T)
 	REAL:: k_0, om_0, wally
 	REAL:: dervk_dervom, dervom2, dervk2, u_lapl !Generalization of the velocity Laplacian
 	REAL:: L_sas, L_vk, Delta_cell, Cell_volume, Q_sas1, Q_sas2
-	REAL:: kx,ky,kz,omx,omy,omz
+	REAL:: kx,ky,kz,omx,omy,omz,rho,nu,nu_tilde,DifTerm,Prod
 	REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV
 	REAL::MP_PINFl,GAMMAL
 	REAL,DIMENSION(1:4)::VISCL,LAML
@@ -196,124 +196,78 @@ SUBROUTINE SOURCES(N,ICONSIDERED,SOURCE_T)
 	TURBMV(2)=TURBMV(1)
 
  	SELECT CASE(TURBULENCEMODEL)
+
  
-	  CASE(1) !!SPALART ALMARAS MODEL	
-        if (ROT_CORR.EQ.1) then
-        	OMEGA = OMEGA + 2.0d0*min(0.0d0,SNORM-ONORM)
-    	end if
-    
-      	if (ISPAL.eq.1) then
-			eddyfl(2)=turbmv(1)
-			eddyfr(2)=turbmv(2)
-				
-			onesix = 1.0D0/6.0D0
+ CASE(1)   !! SPALART–ALMARAS MODEL (compressible ρν~ formulation)
 
-	    	CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-			cw1 = cb1 / (kappa*kappa)
-			cw1 = cw1 + (1.0 + cb2) /sigma
-			TCH_X=   TURBMV(1) / VISCL(1) 
-	      
-			if (TCH_X .lt. Verysmall) then
-				SOURCE_T(1) = ZERO
-			else
-				TCH_X3 = (TCH_X)*(TCH_X)*(TCH_X)
-				TCH_FV1 = TCH_X3/(TCH_X3+(CV1*CV1*CV1))
-				TCH_fv2   = 1.0D0 - (TCH_X/(1.0D0 + TCH_X*TCH_fv1)) 
+    ! Optional rotation/curvature correction
+    IF (ROT_CORR .EQ. 1) THEN
+        OMEGA = OMEGA + 2.0D0 * MIN(0.0D0, SNORM - ONORM)
+    END IF
 
-				ddw=IELEM(N,I)%WallDist
-				
-				if (DES_model.eq.1) then
-					CELL_VOLUME = IELEM(N,I)%TOTVOLUME
-					Delta_cell = Cell_volume**0.333333333333333
-					ddw = min(ddw,C_DES_SA*Delta_cell)
-				end if
-				if (DES_model.eq.2) then
-					CELL_VOLUME = IELEM(N,I)%TOTVOLUME
-					Delta_cell = Cell_volume**0.333333333333333
-					r_DES = min(10.0, (viscl(1)+viscl(3))/(SNORM*(KAPPA*ddw)**2 + 1e-16)) 
-					!Previous limiter is just for numerical reasons regarding tanh
-					f_DES = 1-tanh((8.0*r_DES)**3)
-					ddw = max(ddw-f_DES*max(ddw-C_DES_SA*Delta_cell, 1e-16), 10.0e-16)
-				end if
+    eddyfl(2) = turbmv(1)
+    eddyfr(2) = turbmv(1)
 
-				ProdTerm1 = (TURBMV(1))/(leftv(1)* KAPPA * KAPPA * ddw * ddw)
-				Stild = max(OMEGA + (TCH_fv2*ProdTerm1), 0.3*OMEGA)
-				Prodtermfinal = Stild*turbmv(1)*cb1
+    CALL EDDYVISCO(N, VISCL, LAML, TURBMV, ETVM, EDDYFL, EDDYFR, LEFTV, RIGHTV)
 
-				RR = MIN((TURBMV(1)/(((LEFTV(1)*STILD*KAPPA * KAPPA * (ddw) * (ddw)))+0.000000001)),10.0)
+    rho = leftv(1)
+    nu  = viscl(1) / rho
+    nu_tilde = TURBMV(1) / rho      ! convert φ = ρ ν~  →  ν~
 
-				!cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
+    ! χ = ν~/ν
+    TCH_X = nu_tilde / nu
+    TCH_X3 = TCH_X*TCH_X*TCH_X
 
-				gg = rr +  ( CW2 * (rr**6 - rr) )
-				Fw = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
+    ! fv1
+    TCH_FV1 = TCH_X3 / (TCH_X3 + (CV1*CV1*CV1))
 
-				!  Destruction term
-			    destterm  = cw1 * fw * ((( TURBMV(1) )/(leftv(1)*(ddw)))**2)
+    ! fv2
+    TCH_FV2 = 1.0D0 - TCH_X / (1.0D0 + TCH_X * TCH_FV1)
 
-			    !  First order diffusion term
-			    fodt  =   cb2 * SQUARET/ SIGMA
-			      
-			    if (D_CORR.EQ.0) then
-					SOURCE_T(1) = ProdTermfinal + fodt - destterm
-            	else 
-					SOURCE_T(1) = ProdTermfinal + (fodt - destterm)*leftv(1)
-            	end if
-			END IF
+    ! physical wall distance
+    ddw = IELEM(N,I)%WallDist
 
-	 	eLSE
+    ! --- DES correction ---
+    IF (DES_model .EQ. 1) THEN
+        cell_volume = IELEM(N,I)%TOTVOLUME
+        delta_cell  = cell_volume**0.333333333333333D0
+        ddw = MIN(ddw, C_DES_SA * delta_cell)
+    END IF
 
-		    CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-			TCH_X = TURBMV(1) / VISCL(1) 
-			if (tch_x.gt.10.0D0)then	
-			    tch_x = tch_x	
-			ELSE
-				tch_x=0.05D0*log(1.0D0+exp(20.0D0*(tch_x)))			
-			end if
-			ddw=IELEM(N,I)%WallDist
-			  
-			if (DES_model .eq. 1) then
-				CELL_VOLUME=IELEM(N,I)%TOTVOLUME
-				Delta_cell=Cell_volume**0.333333333333333
-				ddw=min(ddw,C_DES_SA*Delta_cell)
-			end if
-			  
-			if (DES_model .eq. 2) then
-				CELL_VOLUME=IELEM(N,I)%TOTVOLUME
-				Delta_cell=Cell_volume**0.333333333333333
-				r_DES=min(10.0D0, (viscl(1)+viscl(3))/(SNORM*(KAPPA*ddw)**2+1e-16)) 
-				!Previous limiter is just for numerical reasons regarding tanh
-				f_DES=1-tanh((8.0D0*r_DES)**3)
-				ddw=max(ddw-f_DES*max(ddw-C_DES_SA*Delta_cell,1e-16),10.0e-16)
-			end if
+    IF (DES_model .EQ. 2) THEN
+        cell_volume = IELEM(N,I)%TOTVOLUME
+        delta_cell  = cell_volume**0.333333333333333D0
 
-		  	TCH_X3 = (TCH_X)*(TCH_X)*(TCH_X)
-		    TCH_FV1 = TCH_X3/(TCH_X3+(CV1*CV1*CV1))
-			TCH_fv2   = 1.0D0 - (TCH_X/(1.0D0 + TCH_X*TCH_fv1)) 
-			ProdTerm1 = (TCH_fv2*tch_x*(TURBMV(1)))/( leftv(1)*KAPPA * KAPPA * (ddw) * (ddw))
-				
-			IF (PRODTERM1.GE.(-0.7D0*OMEGA))THEN
-				Stild =  OMEGA + ProdTerm1
-			END IF
-			IF (PRODTERM1.LT.(-0.7D0*OMEGA))THEN
-				Stild =  OMEGA + ((OMEGA*(((0.7D0*0.7D0)*(OMEGA))+(0.9*PRODTERM1)))/(((0.9-1.4)*OMEGA)-PRODTERM1))
-			END IF
+        r_DES = MIN(10.0D0, (viscl(1)+viscl(3)) / (SNORM*(KAPPA*ddw)**2 + 1.0D-16))
+        f_DES = 1.0D0 - TANH((8.0D0*r_DES)**3)
 
-			Prodtermfinal=Stild*turbmv(1)*cb1*tch_x
-			
-			RR=((TURBMV(1)*TCH_X/(LEFTV(1)*Stild*KAPPA * KAPPA * (ddw) * (ddw))))
+        ddw = MAX(ddw - f_DES*MAX(ddw - C_DES_SA*delta_cell, 1.0D-16), 1.0D-16)
+    END IF
 
-			cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
-			gg	= rr +  ( CW2 * (rr**6 - rr) )
-			Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
+    ! --- Stilde ---
+    ProdTerm1 = (nu_tilde) / (KAPPA*KAPPA*ddw*ddw)
+    Stild = MAX( OMEGA + TCH_FV2*ProdTerm1 , 0.3D0 * OMEGA )
 
-			!  Destruction term
-		  	destterm  = cw1 * fw *leftv(1)* (((turbmv(1)*tch_x/leftv(1))/(ddw))**2)
+    ! --- Production term ---
+    ProdTermFinal = cb1 * rho * nu_tilde * Stild
 
-			!  First order diffusion term
-			fodt  =   LEFTV(1)*cb2 * SQUARET / SIGMA
-			SOURCE_T(1)= ProdTermfinal + fodt - destterm
+    ! --- Destruction term ---
+    RR = (nu_tilde) / (KAPPA*KAPPA*ddw*ddw*Stild + 1.0D-20)
+    RR = MIN(RR, 10.0D0)
 
-	 	END IF
+    gg = RR + CW2 * (RR**6 - RR)
+    FW = gg * (((1.0D0 + CW3**6) / (gg**6 + CW3**6))**(1.0D0/6.0D0))
+
+    DestTerm = cw1 * FW * rho * (nu_tilde/ddw)**2
+
+    ! --- Diffusion model ---
+    ! 1/sigma * [ (mu+ρν~) laplacian(nu~)  +  cb2 ρ |grad(nu~)|² ]
+    ! Here SQUARET = |grad(nu~)|²  (your notation)
+
+    DifTerm = (cb2 * rho * SQUARET) / sigma
+
+    ! total source:
+    SOURCE_T(1) = ProdTermFinal + DifTerm - DestTerm
 
 
 	  CASE(2)		!K OMEGA SST
@@ -500,8 +454,8 @@ SUBROUTINE SOURCES_DERIVATIVES(N,ICONSIDERED,SOURCE_t)
 	REAL:: beta_stari, beta_i, beta_raw, beta_star
 	REAL:: k_0, om_0, wally
 	REAL:: dervk_dervom, dervom2, dervk2, u_lapl !Generalization of the velocity Laplacian
-	REAL:: L_sas, L_vk, Delta_cell, Cell_volume, Q_sas1, Q_sas2
-	REAL:: kx,ky,kz,omx,omy,omz
+	REAL:: L_sas, L_vk, Delta_cell, Cell_volume, Q_sas1, Q_sas2,rho,nu,nu_tilde,DifTerm,Prod,dStild_dnuT,Dest,dFW_dgg
+	REAL:: kx,ky,kz,omx,omy,omz,dProd_dnuT,dDif_dnuT,dDest_dnuT,Dif, dRR_dnuT ,dFW_dRR,dgg_dRR
 	REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV
 	REAL::MP_PINFl,GAMMAL
 	REAL,DIMENSION(1:4)::VISCL,LAML
@@ -557,129 +511,117 @@ SUBROUTINE SOURCES_DERIVATIVES(N,ICONSIDERED,SOURCE_t)
 
  	SELECT CASE(TURBULENCEMODEL)
  
-	  CASE(1) !!SPALART ALMARAS MODEL	
+ CASE(1) !!SPALART ALMARAS MODEL	
 
-      	if (ISPAL .eq.1) then
-			eddyfl(2)=turbmv(1)
-			eddyfr(2)=turbmv(2)
-				
-			onesix = 1.0D0/6.0D0
+    ! (compressible ρν~ formulation)
 
-			CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-			cw1 = cb1 / (kappa*kappa)
-			cw1 = cw1 + (1.0 + cb2) /sigma
-			TCH_X=   TURBMV(1) / VISCL(1) 
-	      
-			if (TCH_X .lt. Verysmall) then
-				SOURCE_T(1) = ZERO
-			else
-				TCH_X3 = (TCH_X)*(TCH_X)*(TCH_X)
-				TCH_FV1 = TCH_X3/(TCH_X3+(CV1*CV1*CV1))
-				TCH_fv2   = 1.0D0 - (TCH_X/(1.0D0 + TCH_X*TCH_fv1)) 
+    rho = LEFTV(1)
+    nu = VISCL(1) / rho
+    nu_tilde = TURBMV(1) / rho       ! convert φ=ρν~ → ν~
 
-				ddw=IELEM(N,I)%WallDist
-			
-				if (DES_model .eq. 1) then
-					CELL_VOLUME=IELEM(N,I)%TOTVOLUME
-					Delta_cell=Cell_volume**0.333333333333333
-					ddw=min(ddw,C_DES_SA*Delta_cell)
-				end if
-				
-				if (DES_model .eq. 2) then
-					CELL_VOLUME=IELEM(N,I)%TOTVOLUME
-					Delta_cell=Cell_volume**0.333333333333333
-					r_DES=min(10.0, (viscl(1)+viscl(3))/(SNORM*(KAPPA*ddw)**2+1e-16)) 
-					!Previous limiter is just for numerical reasons regarding tanh
-					f_DES=1-tanh((8.0*r_DES)**3)
-					ddw=max(ddw-f_DES*max(ddw-C_DES_SA*Delta_cell,1e-16),10.0e-16)
-				end if
+    ! χ
+    TCH_X = nu_tilde / nu
+    TCH_X3 = TCH_X*TCH_X*TCH_X
 
-				ProdTerm1 = (TURBMV(1))/(leftv(1)* KAPPA * KAPPA * ddw * ddw)
-				Stild = max(OMEGA + (TCH_fv2*ProdTerm1), 0.3*OMEGA)
-				Prodtermfinal=Stild*turbmv(1)*cb1/leftv(1)
+    TCH_FV1 = TCH_X3 / (TCH_X3 + CV1*CV1*CV1)
+    TCH_FV2 = 1.0D0 - TCH_X / (1.0D0 + TCH_X*TCH_FV1)
 
-				RR=MIN((TURBMV(1)/(((LEFTV(1)*STILD*KAPPA * KAPPA * (ddw) * (ddw)))+0.000000001)),10.0)
-				!cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
+    ddw = IELEM(N,I)%WallDist
 
-				gg = rr +  ( CW2 * (rr**6 - rr) )
-				Fw = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
+    ! ----- DES CORRECTIONS -----
+    IF (DES_MODEL .EQ. 1) THEN
+        cell_volume = IELEM(N,I)%TOTVOLUME
+        delta_cell = cell_volume**0.333333333333333D0
+        ddw = MIN(ddw, C_DES_SA*delta_cell)
+    END IF
 
-				!  Destruction term
-			    destterm  = cw1 * fw * ((( TURBMV(1) ) /( leftv(1)*(ddw)))**2)
+    IF (DES_MODEL .EQ. 2) THEN
+        cell_volume = IELEM(N,I)%TOTVOLUME
+        delta_cell = cell_volume**0.333333333333333D0
 
-			    ! First order diffusion term
-			    fodt  =   cb2 * SQUARET / SIGMA
-			        
-			    Prodtermfinal=Stild*cb1
-			         
-				destterm  = 2.0* cw1 * fw * (TURBMV(1)/(LEFTV(1)*DDW**2))
-				fodt  =   2.0* cb2 * (SQRT(SQUARET)) / SIGMA
-			      		      
-			    SOURCE_T(1) = min(ProdTermfinal + fodt - destterm,ZERO)
+        r_DES = MIN(10.0D0, (VISCL(1)+VISCL(3)) /&
+        (SNORM*(KAPPA*ddw)**2 + 1.0D-16) )
+        f_DES = 1.0D0 - TANH((8.0D0*r_DES)**3)
 
-			END IF
+        ddw = MAX(ddw - f_DES*MAX(ddw - C_DES_SA*delta_cell,1.0D-16),&
+        1.0D-16)
+    END IF
 
-	 	eLSE
+    ! ----- STILDE -----
+    ProdTerm1 = nu_tilde / (KAPPA*KAPPA*ddw*ddw)
 
-		    CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-			TCH_X = TURBMV(1) / VISCL(1) 
-			if (tch_x.gt.10.0D0)then
-				tch_x=tch_x
-			ELSE	
-				tch_x=0.05D0*log(1.0D0+exp(20.0D0*(tch_x)))		
-			end if
+    Stild = MAX(OMEGA + TCH_FV2*ProdTerm1, 0.3D0*OMEGA)
 
-			ddw=IELEM(N,I)%WallDist
-			  
-			if (DES_model .eq. 1) then
-				CELL_VOLUME=IELEM(N,I)%TOTVOLUME
-				Delta_cell=Cell_volume**0.333333333333333
-				ddw=min(ddw,C_DES_SA*Delta_cell)
-			end if
-			  
-			if (DES_model .eq. 2) then
-				CELL_VOLUME=IELEM(N,I)%TOTVOLUME
-				Delta_cell=Cell_volume**0.333333333333333
-				r_DES=min(10.0D0, (viscl(1)+viscl(3))/(SNORM*(KAPPA*ddw)**2+1e-16)) 
-				!Previous limiter is just for numerical reasons regarding tanh
-				f_DES=1-tanh((8.0D0*r_DES)**3)
-				ddw=max(ddw-f_DES*max(ddw-C_DES_SA*Delta_cell,1e-16),10.0e-16)
-			end if
+    !--------------------------
+    !       PRODUCTION
+    !--------------------------
+    Prod = cb1 * rho * nu_tilde * Stild
 
-		  	TCH_X3 = (TCH_X)*(TCH_X)*(TCH_X)
-		    TCH_FV1 = TCH_X3/(TCH_X3+(CV1*CV1*CV1))
-			TCH_fv2   = 1.0D0 - (TCH_X/(1.0D0 + TCH_X*TCH_fv1)) 
-			ProdTerm1 = (TCH_fv2*tch_x*(TURBMV(1)))/( leftv(1)*KAPPA * KAPPA * (ddw) * (ddw))
-		    
-			IF (PRODTERM1.GE.(-0.7D0*OMEGA))THEN
-				Stild =  OMEGA + ProdTerm1
-			END IF
-			IF (PRODTERM1.LT.(-0.7D0*OMEGA))THEN
-				Stild =  OMEGA + ((OMEGA*(((0.7D0*0.7D0)*(OMEGA))+(0.9*PRODTERM1)))/(((0.9-1.4)*OMEGA)-PRODTERM1))
-			END IF
+    ! d(Prod)/d(ρν~)
+    dStild_dnuT =&
+    TCH_FV2 / (KAPPA*KAPPA*ddw*ddw)   ! only active if Stild=Ω+fv2*ProdTerm1
 
-			Prodtermfinal=Stild*turbmv(1)*cb1*tch_x
-			
-			RR=((TURBMV(1)*TCH_X/(LEFTV(1)*Stild*KAPPA * KAPPA * (ddw) * (ddw))))
-			!	cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
+    if (Stild .eq. 0.3D0*OMEGA) dStild_dnuT = 0.0D0
 
-			gg	= rr +  ( CW2 * (rr**6 - rr) )
-			Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
+    dProd_dnuT =&
+    cb1 * ( Stild + nu_tilde*dStild_dnuT )
 
-			!  Destruction term
-			destterm  = cw1 * fw *leftv(1)* (((turbmv(1)*tch_x/leftv(1))/(ddw))**2)
+    !--------------------------
+    !       DESTRUCTION
+    !--------------------------
+    RR = nu_tilde / (KAPPA*KAPPA*ddw*ddw*Stild + 1.0D-20)
+    RR = MIN(RR, 10.0D0)
 
-			!  First order diffusion term
-			fodt  =   LEFTV(1)*cb2 * SQUARET / SIGMA
-					      		      
-			Prodtermfinal=Stild*cb1*tch_x
-			         
-			destterm  = 2.0* cw1 * fw * (TURBMV(1)/(LEFTV(1)*DDW**2))
-			fodt  =   2.0* cb2 * (SQRT(SQUARET)) / SIGMA
-						
-			SOURCE_T(1)=  min(ProdTermfinal + fodt - destterm,ZERO)
+    gg = RR + CW2*(RR**6 - RR)
+    FW = gg*((1.0D0+CW3**6)/(gg**6+CW3**6))**(1.0D0/6.0D0)
+
+    Dest = cw1 * FW * rho * (nu_tilde/ddw)**2
+
+    ! d(FW)/d(RR)
+    dgg_dRR = 1.0D0 + CW2*(6.0D0*RR**5 - 1.0D0)
+
+    dFW_dgg =&
+    ((1.0D0+CW3**6)/(gg**6+CW3**6))**(1.0D0/6.0D0)&
+    * (1.0D0 - (gg**6/(gg**6+CW3**6)))
+
+    dFW_dRR = dFW_dgg * dgg_dRR
+
+
+
+
+    ! dRR/d(ρν~)
+    dRR_dnuT =&
+    (KAPPA*KAPPA*ddw*ddw*Stild - nu_tilde*KAPPA*KAPPA*ddw*ddw*dStild_dnuT)&
+    /(KAPPA*KAPPA*ddw*ddw*Stild + 1.0D-20)**2
+
+    ! Destruction derivative
+    dDest_dnuT =&
+    cw1*( dFW_dRR*dRR_dnuT * rho*(nu_tilde/ddw)**2&
+    + FW*rho*2.0D0*(nu_tilde/ddw**2) / ddw )
+
+    !--------------------------
+    !       DIFFUSION
+    !--------------------------
+    ! Your model:  Dif = cb2*rho*|∇ν~|² / σ
+    Dif = cb2 * rho * SQUARET / sigma
+
+
+    ! Jacobian:
+    ! d(|grad(ν~)|²) / d(ρν~) = 0  (no dependence on ν~ itself)
+    dDif_dnuT = 0.0D0
+
+    !--------------------------
+    !     TOTAL JACOBIAN
+    !--------------------------
+    SOURCE_T(1) = dProd_dnuT + dDif_dnuT - dDest_dnuT
+
+
+			      
+
 		  
-	 	END IF
+	 
+
+
 
 	  CASE(2)		!K OMEGA SST
 
@@ -921,7 +863,7 @@ SUBROUTINE SOURCES2d(N,ICONSIDERED,SOURCE_T)
 	REAL:: k_0, om_0, wally
 	REAL:: dervk_dervom, dervom2, dervk2, u_lapl !Generalization of the velocity Laplacian
 	REAL:: L_sas, L_vk, Delta_cell, Cell_volume, Q_sas1, Q_sas2
-	REAL:: kx,ky,kz,omx,omy,omz
+	REAL:: kx,ky,kz,omx,omy,omz,rho,nu,nu_tilde,DifTerm,Prod
 	REAL,DIMENSION(1:NOF_VARIABLES)::LEFTV,RIGHTV
 	REAL::MP_PINFl,GAMMAL,MP_PINFR,GAMMAR
 	REAL,DIMENSION(1:4)::VISCL,LAML
@@ -973,115 +915,82 @@ SUBROUTINE SOURCES2d(N,ICONSIDERED,SOURCE_T)
 	TURBMV(2)=TURBMV(1)
 
  	SELECT CASE(TURBULENCEMODEL)
+
  
-	  CASE(1) !!SPALART ALMARAS MODEL	
 
-      	if (ISPAL .eq.1) then
-			eddyfl(2)=turbmv(1)
-			eddyfr(2)=turbmv(2)
-				
-			onesix = 1.0D0/6.0D0
 
-			CALL EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-			cw1 = cb1 / (kappa*kappa)
-			cw1 = cw1 + (1.0 + cb2) /sigma
-			TCH_X=   TURBMV(1) / VISCL(1) 
-	      
-			if (TCH_X .lt. Verysmall) then
-				SOURCE_T(1) = ZERO
-			else
-				TCH_X3 = (TCH_X)*(TCH_X)*(TCH_X)
-				TCH_FV1 = TCH_X3/(TCH_X3+(CV1*CV1*CV1))
-				TCH_fv2   = 1.0D0 - (TCH_X/(1.0D0 + TCH_X*TCH_fv1)) 
+    
+      CASE(1)   !! SPALART–ALMARAS MODEL (compressible ρν~ formulation)
 
-				ddw=IELEM(N,I)%WallDist
-				
-				if (DES_model .eq. 1) then
-					CELL_VOLUME=IELEM(N,I)%TOTVOLUME
-					Delta_cell=Cell_volume**0.333333333333333
-					ddw=min(ddw,C_DES_SA*Delta_cell)
-				end if
-			
-				if (DES_model .eq. 2) then
-					CELL_VOLUME = IELEM(N,I)%TOTVOLUME
-					Delta_cell = Cell_volume**0.333333333333333
-					r_DES = min(10.0, (viscl(1)+viscl(3))/(SNORM*(KAPPA*ddw)**2+1e-16)) 
-					!Previous limiter is just for numerical reasons regarding tanh
-					f_DES = 1.0-tanh((8.0*r_DES)**3)
-					ddw = max(ddw-f_DES*max(ddw-C_DES_SA*Delta_cell, 1e-16), 10.0e-16)
-				end if
+    ! Optional rotation/curvature correction
+    IF (ROT_CORR .EQ. 1) THEN
+        OMEGA = OMEGA + 2.0D0 * MIN(0.0D0, SNORM - ONORM)
+    END IF
 
-				ProdTerm1 = (TURBMV(1))/(leftv(1)* KAPPA * KAPPA * ddw * ddw)
-				Stild = max(OMEGA + (TCH_fv2*ProdTerm1), 0.3*OMEGA)
-				Prodtermfinal=Stild*turbmv(1)*cb1
+    eddyfl(2) = turbmv(1)
+    eddyfr(2) = turbmv(1)
 
-				RR = MIN((TURBMV(1)/(((LEFTV(1)*STILD*KAPPA * KAPPA * (ddw) * (ddw)))+0.000000001)), 10.0)
+    CALL EDDYVISCO2d(N, VISCL, LAML, TURBMV, ETVM, EDDYFL, EDDYFR, LEFTV, RIGHTV)
 
-				!cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
-				gg = rr + (CW2 * (rr**6 - rr) )
-				Fw = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
-				!  Destruction term
-				destterm  = cw1 * fw * ((( TURBMV(1) )/(leftv(1)*(ddw)))**2)
-				!  First order diffusion term
-				fodt  =   cb2 * SQUARET/ SIGMA
-				SOURCE_T(1) = ProdTermfinal + fodt - destterm
-			     
-			END IF
 
-	 	eLSE
+    rho = leftv(1)
+    nu  = viscl(1) / rho
+    nu_tilde = TURBMV(1) / rho      ! convert φ = ρ ν~  →  ν~
 
-		    CALL EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-			TCH_X=   TURBMV(1) / VISCL(1) 
-			if (tch_x.gt.10.0D0)then		
-			    tch_x=tch_x	
-			ELSE			
-				tch_x=0.05D0*log(1.0D0+exp(20.0D0*(tch_x)))	
-			end if
+    ! χ = ν~/ν
+    TCH_X = nu_tilde / nu
+    TCH_X3 = TCH_X*TCH_X*TCH_X
 
-			ddw=IELEM(N,I)%WallDist
-			  
-			if (DES_model .eq. 1) then
-				CELL_VOLUME=IELEM(N,I)%TOTVOLUME
-				Delta_cell=Cell_volume**0.333333333333333
-				ddw=min(ddw,C_DES_SA*Delta_cell)
-			end if
-			  
-			if (DES_model .eq. 2) then
-				CELL_VOLUME=IELEM(N,I)%TOTVOLUME
-				Delta_cell=Cell_volume**0.333333333333333
-				r_DES=min(10.0D0, (viscl(1)+viscl(3))/(SNORM*(KAPPA*ddw)**2+1e-16)) 
-				!Previous limiter is just for numerical reasons regarding tanh
-				f_DES=1-tanh((8.0D0*r_DES)**3)
-				ddw=max(ddw-f_DES*max(ddw-C_DES_SA*Delta_cell,1e-16),10.0e-16)
-			end if
+    ! fv1
+    TCH_FV1 = TCH_X3 / (TCH_X3 + (CV1*CV1*CV1))
 
-			TCH_X3 = (TCH_X)*(TCH_X)*(TCH_X)
-			TCH_FV1 = TCH_X3/(TCH_X3+(CV1*CV1*CV1))
-			TCH_fv2   = 1.0D0 - (TCH_X/(1.0D0 + TCH_X*TCH_fv1)) 
-			ProdTerm1 = (TCH_fv2*tch_x*(TURBMV(1)))/( leftv(1)*KAPPA * KAPPA * (ddw) * (ddw))
-				
-			IF (PRODTERM1.GE.(-0.7D0*OMEGA))THEN
-				Stild =  OMEGA + ProdTerm1
-			END IF
-			IF (PRODTERM1.LT.(-0.7D0*OMEGA))THEN
-				Stild =  OMEGA + ((OMEGA*(((0.7D0*0.7D0)*(OMEGA))+(0.9*PRODTERM1)))/(((0.9-1.4)*OMEGA)-PRODTERM1))
-			END IF
+    ! fv2
+    TCH_FV2 = 1.0D0 - TCH_X / (1.0D0 + TCH_X * TCH_FV1)
 
-			Prodtermfinal=Stild*turbmv(1)*cb1*tch_x
-			 
-			RR=((TURBMV(1)*TCH_X/(LEFTV(1)*Stild*KAPPA * KAPPA * (ddw) * (ddw))))
+    ! physical wall distance
+    ddw = IELEM(N,I)%WallDist
 
-			cw2=0.21+(1.5/((1.0+(TCH_X/40))**2))
-			gg	= rr +  ( CW2 * (rr**6 - rr) )
-			Fw    = gg * (((1.0 + cw3**6) / (gg**6 + cw3**6))**onesix)
+    ! --- DES correction ---
+    IF (DES_model .EQ. 1) THEN
+        cell_volume = IELEM(N,I)%TOTVOLUME
+        delta_cell  = cell_volume**0.333333333333333D0
+        ddw = MIN(ddw, C_DES_SA * delta_cell)
+    END IF
 
-			!  Destruction term
-			destterm  = cw1 * fw *leftv(1)* (((turbmv(1)*tch_x/leftv(1))/(ddw))**2)
-			!  First order diffusion term
-			fodt  =   LEFTV(1)*cb2 * SQUARET / SIGMA
-			SOURCE_T(1)= ProdTermfinal + fodt - destterm
-	 
-	 	END IF
+    IF (DES_model .EQ. 2) THEN
+        cell_volume = IELEM(N,I)%TOTVOLUME
+        delta_cell  = cell_volume**0.333333333333333D0
+
+        r_DES = MIN(10.0D0, (viscl(1)+viscl(3)) / (SNORM*(KAPPA*ddw)**2 + 1.0D-16))
+        f_DES = 1.0D0 - TANH((8.0D0*r_DES)**3)
+
+        ddw = MAX(ddw - f_DES*MAX(ddw - C_DES_SA*delta_cell, 1.0D-16), 1.0D-16)
+    END IF
+
+    ! --- Stilde ---
+    ProdTerm1 = (nu_tilde) / (KAPPA*KAPPA*ddw*ddw)
+    Stild = MAX( OMEGA + TCH_FV2*ProdTerm1 , 0.3D0 * OMEGA )
+
+    ! --- Production term ---
+    ProdTermFinal = cb1 * rho * nu_tilde * Stild
+
+    ! --- Destruction term ---
+    RR = (nu_tilde) / (KAPPA*KAPPA*ddw*ddw*Stild + 1.0D-20)
+    RR = MIN(RR, 10.0D0)
+
+    gg = RR + CW2 * (RR**6 - RR)
+    FW = gg * (((1.0D0 + CW3**6) / (gg**6 + CW3**6))**(1.0D0/6.0D0))
+
+    DestTerm = cw1 * FW * rho * (nu_tilde/ddw)**2
+
+    ! --- Diffusion model ---
+    ! 1/sigma * [ (mu+ρν~) laplacian(nu~)  +  cb2 ρ |grad(nu~)|² ]
+    ! Here SQUARET = |grad(nu~)|²  (your notation)
+
+    DifTerm = (cb2 * rho * SQUARET) / sigma
+
+    ! total source:
+    SOURCE_T(1) = ProdTermFinal + DifTerm - DestTerm
 
 	  CASE(2)		!K OMEGA SST
 
