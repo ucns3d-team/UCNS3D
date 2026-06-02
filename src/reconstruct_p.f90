@@ -1010,7 +1010,7 @@ SUBROUTINE WENO_NEIGHBOUR(ICONSIDERED,FACEX,VEIGL,VEIGR,NX,NY,NZ,ANGLE1,ANGLE2,I
     REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ,CORDS, radius, normal
     REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
     REAL,DIMENSION(TURBULENCEEQUATIONS)::CTURBL,CTURBR
-    REAL,DIMENSION(1:NOF_VARIABLES)::CRIGHT_ROT,CLEFT_ROT
+    REAL,DIMENSION(1:nof_variables+turbulenceequations+PASSIVESCALAR)::CRIGHT_ROT,CLEFT_ROT
     INTEGER::IBFC
 
     IF (DIMENSIONA.EQ.3) THEN
@@ -2481,6 +2481,7 @@ SUBROUTINE SOLUTIONTRIAV2(N)
     REAL::RAA1,RAA2,PAA1,PAA2,ax,ay,az
     REAL::SOLX
     real,dimension(1:dimensiona)::ugradloc
+    REAL,DIMENSION(1:3,1:3)::VEXTC
     real,dimension(1:dimensionA,1:dimensionA)::ainvjt
     real,allocatable,dimension(:)::gradtem
     real,allocatable,dimension(:,:)::XXDER,YYDER,ZZDER
@@ -2641,12 +2642,99 @@ SUBROUTINE SOLUTIONTRIAV2(N)
             END DO
         END DO
 
-        IF (IELEM(N,ICONSIDERED)%GGS.EQ.0)THEN
-            CALL COMPUTE_GRADIENTS_CENTER(N,ICONSIDERED)
-        END IF
+                    IF (IELEM(N,ICONSIDERED)%GGS.EQ.0)THEN
 
-    end do
-    !$OMP END DO
+
+
+                     VEXTC(1,1)=IELEM(N,I)%XXC
+                     VEXTC(1,2)=IELEM(N,I)%YYC
+                     VEXTC(1,3)=IELEM(N,I)%ZZC
+
+                        VEXTC(1,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXTc(1,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+
+                        AX=VEXTC(1,1); AY=VEXTC(1,2); AZ=VEXTC(1,3);
+
+                        ICD=1
+                        if (dimensiona.eq.3)then
+                        DO K=1,IELEM(N,I)%IDEGFREE
+                            IF (POLY.EQ.1) THEN
+                                XXDER(K,ICD)=DFX(AX,AY,AZ,K,i);  YYDER(K,ICD)=DFY(AX,AY,AZ,K,i);  ZZDER(K,ICD)=DFZ(AX,AY,AZ,K,i)
+                            END IF
+                            IF (POLY.EQ.2) THEN
+                                XXDER(K,ICD)=DLX(AX,AY,AZ,K,i);  YYDER(K,ICD)=DLY(AX,AY,AZ,K,i);  ZZDER(K,ICD)=DLZ(AX,AY,AZ,K,i)
+                            END IF
+                            IF (POLY.EQ.4) THEN
+                                XXDER(K,ICD)=TL3DX(AX,AY,AZ,K,i);  YYDER(K,ICD)=TL3DY(AX,AY,AZ,K,i);  ZZDER(K,ICD)=TL3DZ(AX,AY,AZ,K,i)
+                            END IF
+                        END DO
+                        ELSE
+                         DO K=1,IELEM(N,I)%IDEGFREE
+                            IF (POLY.EQ.4)THEN
+							xXDER(K,icd)=TL2dX(AX,AY,K,i);  yYDER(K,icd)=TL2dY(AX,AY,K,i);
+							ELSE
+						    xXDER(K,icd)=DF2dX(AX,AY,K,i);  yYDER(K,icd)=DF2dY(AX,AY,K,i);
+							END IF
+
+                        END DO
+                        end if
+
+
+                        !now temperature
+					GRADTEM(1:IELEM(N,I)%IDEGFREE)=ILOCAL_rECON5(ICONSIDERED)%GRADIENTSTEMP(1:IELEM(N,I)%IDEGFREE)
+!
+					UGRADLOC = ZERO
+
+
+
+
+
+
+                UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),XXDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),YYDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                 if (dimensiona.eq.3)then
+                UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),ZZDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                end if
+
+                    ILOCAL_RECON3(I)%GRADS(DIMENSIONA+1,1:DIMENSIONA)= MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))*ielem(n,i)%totvolume
+
+
+                    !now velocities
+				  DO IEX=1,dimensiona
+!
+					GRADTEM(1:IELEM(N,I)%IDEGFREE)=ILOCAL_rECON5(ICONSIDERED)%VELOCITYDOF(IEX,1:IELEM(N,I)%IDEGFREE)
+!
+					 UGRADLOC = ZERO
+
+
+					     UGRADLOC(1)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),XXDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                UGRADLOC(2)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),YYDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                if (dimensiona.eq.3)then
+                UGRADLOC(3)=DOT_PRODUCT(GRADTEM(1:IELEM(N,I)%IDEGFREE),ZZDER(1:IELEM(N,I)%IDEGFREE,ICD))
+                end if
+
+
+					   ILOCAL_RECON3(I)%GRADS(IEX,1:dimensionA) = MATMUL(AINVJT(1:dimensiona,1:dimensiona),UGRADLOC(1:dimensiona))
+
+
+
+
+
+!
+				  END DO
+
+
+
+
+                    END IF
+
+
+
+
+
+
+
+	  end do
+!$OMP END DO
 
     deallocate(xxder)
     deallocate(yyder)
@@ -3034,6 +3122,22 @@ SUBROUTINE CHECKSOL(N)
                                 REDUCE1=1
                                 IELEM(N,I)%REDUCE=1
                             end if
+                                                                                                                        if  (multispecies.eq.1)then
+                                                                                                                       
+                                                                                                                        IF (((ABS(LEFTV(NOF_VARIABLES)-RIGHTV(NOF_VARIABLES))).GE.(jump_cond*RIGHTV(NOF_VARIABLES))))then
+                                                                                                                                        REDUCE1=1
+                                                                                                                                   IELEM(N,I)%REDUCE=1
+                                                                                                                        end if
+                                                                                                                        if ((leftv(nof_variables).lt.-tolsmall).or.(leftv(nof_variables).gt.1.0d0+tolsmall))then
+                                                                                                                                REDUCE1=1
+                                                                                                                                IELEM(N,I)%REDUCE=1
+                                                                                                                        end if
+
+                                                                                                                        end if
+
+
+
+
                         END DO
                     END DO	
             
@@ -3115,14 +3219,16 @@ SUBROUTINE CHECKSOLX(N)
                             REDUCE1=1
                             IELEM(N,I)%REDUCE=1
                         end if
-
                         IF ((LEFTV(indx).LT.0.0).OR.(LEFTV(1).LT.0.0))then
-                            REDUCE1=1
+                                REDUCE1=1
                             IELEM(N,I)%REDUCE=1
                         end if
 
-                    END DO
-                END DO
+
+
+
+										END DO
+						END DO
 
                 if (ielem(n,i)%hybrid.eq.1)then
                     reduce1=1

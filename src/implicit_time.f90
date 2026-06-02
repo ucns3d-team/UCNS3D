@@ -38,7 +38,7 @@ REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
 REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
 REAL,DIMENSION(1:DIMENSIONA)::CORDS
 
-SWEEPS=10
+SWEEPS=5
 kmaxe=xmpielrank(n)
 
 impdu(:,:)=zero
@@ -253,7 +253,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6,9,99)
+								    case(6,9,99,10)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -508,7 +508,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6,9,99)
+								    case(6,9,99,10)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -1177,7 +1177,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6,9,99)
+								    case(6,9,99,10)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -1603,7 +1603,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6,9,99)
+								    case(6,9,99,10)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero
@@ -1856,7 +1856,7 @@ DO L=1,IELEM(N,I)%IFCA	!loop3
 								    end if
 								    
 								    
-								    case(6,9,99)
+								    case(6,9,99,10)
 								    
 								    if (ibfc.eq.-1)then
 								   du1(:)=zero

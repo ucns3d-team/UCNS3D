@@ -5380,13 +5380,13 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
 		END DO
 
 		IELEM(N,I)%ADMIS=KX
-		IF ((EES.EQ.0))THEN           
+		IF (EES.EQ.0) THEN           
             if ((initcond.eq.101).or.(initcond.eq.102).or.(initcond.eq.103))then                
-                IF (IELEM(N,I)%ADMIS.eq.ielem(n,i)%ifca+1)THEN
+                IF (IELEM(N,I)%ADMIS.eq.ielem(n,i)%ifca+1) THEN
                     IELEM(N,I)%FULL=1          
                 end if             
             else
-				IF (IELEM(N,I)%ADMIS.Gt.3)THEN
+				IF (IELEM(N,I)%ADMIS.GE.ielem(n,i)%ifca+1) THEN
 					IELEM(N,I)%FULL=1
 				END IF                
             end if
@@ -5397,9 +5397,9 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
                     IELEM(N,I)%FULL=1
                 end if            
             else
-                IF (IELEM(N,I)%ADMIS.eq.ielem(n,i)%ifca+1)THEN
+                IF (IELEM(N,I)%ADMIS.ge.ielem(n,i)%ifca+1)THEN
                     IELEM(N,I)%FULL=1
-                END IF            
+                END IF
             end if
 		END IF
 		IF (EES.EQ.1)THEN
@@ -5612,6 +5612,8 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
 END SUBROUTINE STENCILS
 
 	
+
+
 	
 SUBROUTINE STENCILS3(N)
   !> @brief
@@ -5649,7 +5651,11 @@ SUBROUTINE ADAPT_CRITERION
 	IMPLICIT NONE
 	INTEGER::KMAXE,I,FC
 	real::xmin_ad,xmax_ad,ymin_ad,ymax_ad,avg_cell_size
+
 	KMAXE=XMPIELRANK(N)
+
+    XMax_AD=-TOLbig
+    XMin_AD=TOLBIG
 
 	if (initcond.eq.405)then
 		xmin_ad=-0.2d0

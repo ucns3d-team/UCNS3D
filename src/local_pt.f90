@@ -2037,9 +2037,11 @@ SUBROUTINE CHECKGRADS(N,ICONSI)
 	TEMPG1=ielem(n,i)%condition!MAX((DXX1/DXX2),(DXX2/DXX1))	   
 	ielem(n,i)%erx=tempg1
 	    
-    IF (CODE_PROFILE.EQ.88)THEN
+    ! IF (CODE_PROFILE.EQ.88)THEN
+	IF (INITCOND.EQ.400)THEN
         IF ((IELEM(N,I)%ISHAPE.EQ.3)) THEN
-			IELEM(N,I)%FULL=0
+			! IELEM(N,I)%FULL=0
+			IELEM(N,I)%hybrid=1
 		END IF
 	END IF
 
@@ -2049,14 +2051,16 @@ SUBROUTINE CHECKGRADS(N,ICONSI)
             IELEM(N,I)%FULL=0
 		END IF
 	END IF
-   	if (fastest.eq.0) then
-	    dxx1=-tolbig; dxx2=tolbig
+
+   	if (fastest.eq.0)then
+	    dxx1 = -tolbig
+		dxx2 = tolbig
 	    JJ=1
 	    DO L=1,ielem(n,i)%iNUMNEIGHBOURS
-		    if (ILOCAL_RECON3(i)%VOLUME(JJ,L).lt.dxx2)then
-		       	dxx2=ILOCAL_RECON3(i)%VOLUME(JJ,L)
+		    if (ILOCAL_RECON3(i)%VOLUME(JJ,L).lt.dxx2) then
+		       dxx2=ILOCAL_RECON3(i)%VOLUME(JJ,L)
 		    end if
-		    if (ILOCAL_RECON3(i)%VOLUME(JJ,L).gt.dxx1)then
+		    if (ILOCAL_RECON3(i)%VOLUME(JJ,L).gt.dxx1) then
 		       dxx1=ILOCAL_RECON3(i)%VOLUME(JJ,L)
 		    end if
 	    end do
@@ -2079,15 +2083,11 @@ SUBROUTINE CHECKGRADS(N,ICONSI)
 					IDC=IDC+1
 				Else
 					idc2=idc2+1
-
 				end if
 	  		end if 
         END DO
-    end if
-
-	IF ((IDC.Gt.1))THEN     !until GE is fully adaptive
-		IELEM(N,I)%GGS=1
 	END IF
+
 
 END SUBROUTINE CHECKGRADS
 

@@ -22,7 +22,7 @@ SUBROUTINE CALCULATE_JACOBIAN(N)
 	INTEGER::ICONSIDERED, FACEX, POINTX,igoflux
 	INTEGER::B_CODE,srf
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ
-	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
 	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
 real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 	real,dimension(1:nof_Variables)::RIGHTv
@@ -1148,7 +1148,7 @@ SUBROUTINE CALCULATE_JACOBIANLM(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT)
 	INTEGER::FACEX, POINTX,igoflux
 	INTEGER::B_CODE
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ
-	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:nof_Variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
 	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
 real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 	real,dimension(1:nof_Variables)::RIGHTv
@@ -1674,7 +1674,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2DLM(N,ICONSIDERED,impdiag,IMPDIAGT,IMPOFF,IMPOFFT
 	INTEGER::FACEX, POINTX,igoflux
 	INTEGER::B_CODE
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ
-	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:nof_Variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
 	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
 real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 	real,dimension(1:nof_Variables)::RIGHTv
@@ -2174,7 +2174,7 @@ SUBROUTINE CALCULATE_JACOBIAN_2D_MF(N)
 	INTEGER::ICONSIDERED, FACEX, POINTX,igoflux
 	INTEGER::B_CODE
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ
-	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:nof_Variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
 	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
 real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 	real,dimension(1:nof_Variables)::RIGHTv
@@ -2666,7 +2666,7 @@ SUBROUTINE CALCULATE_JACOBIAN_3D_MF(N)
 	INTEGER::ICONSIDERED, FACEX, POINTX,igoflux
 	INTEGER::B_CODE
 	REAL::ANGLE1,ANGLE2,NX,NY,NZ
-	real,dimension(1:nof_variables)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
+	real,dimension(1:nof_Variables+turbulenceequations+PASSIVESCALAR)::cleft,cright,CRIGHT_ROT,CLEFT_ROT
 	real,dimension(1:turbulenceequations+PASSIVESCALAR)::cturbl,cturbr
 real,dimension(1:nof_Variables)::leftv,SRF_SPEEDROT,SRF_SPEED
 	real,dimension(1:nof_Variables)::RIGHTv
