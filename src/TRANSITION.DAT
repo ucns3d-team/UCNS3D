@@ -1,0 +1,6 @@
+transition header
+model axis direction location ramp type
+1
+1 1
+0.35 0.05
+2

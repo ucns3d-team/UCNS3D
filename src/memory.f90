@@ -450,6 +450,7 @@ allocate( ielem_totvolume(kmaxe) )          ; ielem_totvolume = 0.0
 allocate( ielem_dtl(kmaxe) )                ; ielem_dtl = 0.0
 allocate( ielem_minedge(kmaxe) )            ; ielem_minedge = 0.0
 allocate( ielem_walldist(kmaxe) )           ; ielem_walldist = 0.0
+allocate( ielem_walltrans(kmaxe) )          ; ielem_walltrans = 0.0
 allocate( ielem_xxc(kmaxe), ielem_yyc(kmaxe), ielem_zzc(kmaxe) )
 ielem_xxc = 0.0                             ; ielem_yyc = 0.0                             ; ielem_zzc = 0.0
 allocate( ielem_condition(kmaxe) )          ; ielem_condition = 0.0
@@ -1165,6 +1166,8 @@ subroutine omp_map_first(n)
   !$omp target update to(schmidt_turb, sigma, sigma_k1, sigma_k2, sigma_om1, sigma_om2, sigma_phi)
   !$omp target enter data map(alloc: source_active, spatialorder, spatiladiscret, spkin, spos, srf_origin, srf_velocity)
   !$omp target update to(source_active, spatialorder, spatiladiscret, spkin, spos, srf_origin, srf_velocity)
+  !$omp target enter data map(alloc: transition_model, transition_axis, transition_direction, transition_ramp_type, transition_location, transition_ramp_length)
+  !$omp target update to(transition_model, transition_axis, transition_direction, transition_ramp_type, transition_location, transition_ramp_length)
   !$omp target enter data map(alloc: srfg, st_n_cpu, st_n_threads, statfile, statistics, stencil_io, stennorm, subdiv)
   !$omp target update to(srfg, st_n_cpu, st_n_threads, statfile, statistics, stencil_io, stennorm, subdiv)
   !$omp target enter data map(alloc: surfshear, suther, swirl, t, taylor, taylor_ens, taylor_ensx, tecplot, temp_model)
@@ -1580,6 +1583,10 @@ subroutine omp_map_first(n)
   if (allocated(ielem_walldist)) then
     !$omp target enter data map(alloc: ielem_walldist)
     !$omp target update to(ielem_walldist)
+  end if
+  if (allocated(ielem_walltrans)) then
+    !$omp target enter data map(alloc: ielem_walltrans)
+    !$omp target update to(ielem_walltrans)
   end if
   if (allocated(ielem_walls)) then
     !$omp target enter data map(alloc: ielem_walls)

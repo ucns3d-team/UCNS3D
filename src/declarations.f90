@@ -124,6 +124,7 @@ integer::zero_turb_init				!flag for type of initialization for k-omega
 integer::des_model 				!integer switches for sst
 integer:: nprobes,totwalls,nof_interior,nof_bounded,mrf			!number of probes for transient data
 integer:: rot_corr,d_corr   !integer for turbulence corrections
+integer:: transition_model,transition_axis,transition_direction,transition_ramp_type
 integer::max_faces
 integer::max_fnodes
 integer::max_nodes
@@ -171,6 +172,7 @@ integer::cavitation
 real::indicator_par1,indicator_par2,indicator_par3, bound_lim  !troubled indicator parameters
 real::rhc1,rhc2,rhc3,rhc4
 real::a405   !perturbations amplitude
+real::transition_location,transition_ramp_length
 real::prace_t1,prace_t2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7,prace_t8,prace_t9,pr_t1,pr_t2,pr_t3,pr_t4,pr_t5,pr_t6,pr_t7,pr_t8,prace_tx1,prace_tx2,prace_tx3
 !------------------start bleed parameters-------------------!
 integer::bleed_number,bleed,bleed_type
@@ -726,6 +728,7 @@ real, allocatable :: ielem_totvolume(:)  ! (kmaxe)  volume of element
 real, allocatable :: ielem_viscx(:)  ! (kmaxe)  local time step size
 real, allocatable :: ielem_vortex(:,:)  ! (1:3,kmaxe)  q criterion
 real, allocatable :: ielem_walldist(:)  ! (kmaxe)  wall distance
+real, allocatable :: ielem_walltrans(:)  ! (kmaxe)  signed nearest-wall distance from transition location
 real, allocatable :: ielem_wcx(:)                    ! (kmaxe)
 real, allocatable :: ielem_xxc(:)  ! (kmaxe)  cell centre coordinates in x
 real, allocatable :: ielem_yyc(:)  ! (kmaxe)  cell centre coordinates in y
@@ -837,7 +840,7 @@ integer, allocatable :: ibound_cpun(:,:)    !local number and cpu for each bound
 !$omp declare target (ielem_indexf, ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_ineighg, ielem_ineighn, ielem_inter_id, ielem_interior, ielem_inumneighbours, ielem_iorder)
 !$omp declare target (ielem_ishape, ielem_itotalpoints, ielem_linc, ielem_lwcx2, ielem_minedge, ielem_mode, ielem_mood, ielem_mood_o, ielem_nodes, ielem_nodes_faces)
 !$omp declare target (ielem_nodes_faces_v, ielem_nodes_neighbours, ielem_nodes_v, ielem_nofbc, ielem_nojecount, ielem_nonodes, ielem_q_face_q_mapl, ielem_qface, ielem_recalc, ielem_reduce)
-!$omp declare target (ielem_reorient, ielem_stencil_dist, ielem_surf, ielem_totvolume, ielem_troubled, ielem_types_faces, ielem_vdec, ielem_viscx, ielem_vortex, ielem_walldist)
+!$omp declare target (ielem_reorient, ielem_stencil_dist, ielem_surf, ielem_totvolume, ielem_troubled, ielem_types_faces, ielem_vdec, ielem_viscx, ielem_vortex, ielem_walldist, ielem_walltrans)
 !$omp declare target (ielem_walls, a405, nof_perturbations405, ielem_wcx, ielem_xxc, ielem_yyc, ielem_zzc, impdiag_mf, impoff_mf, indicator_type, init_mu_ratio, inoder4_bct)
 !$omp declare target (inoder4_cord, inoder4_itor, integ_basis_dg_value, integ_basis_value, integ_basis_valuec, ires_turb, ires_unsteady, jump_cond1, jump_cond2, jump_cond3)
 !$omp declare target (kappa_sst, kinit_srf, l_turb_inlet, lmach_style, m_1_val, m_t0, max_faces, max_fnodes, max_nodes, modal_filter)
@@ -865,6 +868,7 @@ integer, allocatable :: ibound_cpun(:,:)    !local number and cpu for each bound
 !$omp declare target (u_e_val, v_ref, variable_names, variable_names_av, variable_names_av_w, variable_names_w, viscous_s, vort_model, wall_temp, weight_lsqr)
 !$omp declare target (wnodes_part, wpart1_end, wpart2_end, wpart3_end, wpart4_end, wpart5_end, write_variables, write_variables_av, write_variables_av_w, write_variables_w)
 !$omp declare target (zero_turb_init, zeta_star, adda, allnodesgloball, allres, allresdt, alls, alpha, aoa, averaging)
+!$omp declare target (transition_model, transition_axis, transition_direction, transition_ramp_type, transition_location, transition_ramp_length)
 !$omp declare target (beta, betaas, binio, bleed, boundtype, cascade, cavitation,origin)
 !----mpi comm
 !$omp declare target (halo_len,halos_len,halo_offset,halos_offset,ineedbound,ineedbounds)

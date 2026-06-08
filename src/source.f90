@@ -2038,6 +2038,37 @@ subroutine sources_derivatives_computation(n)
 end subroutine sources_derivatives_computation
 
 
+real function transition_source_factor(iconsidered)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::iconsidered
+real::xtr
+
+transition_source_factor=1.0d0
+if (transition_model.ne.1)return
+
+xtr=real(transition_direction)*ielem_walltrans(iconsidered)
+
+if (transition_ramp_length.le.0.0d0)then
+  if (xtr.lt.0.0d0)transition_source_factor=0.0d0
+else
+  xtr=xtr/transition_ramp_length
+  if (xtr.le.0.0d0)then
+    transition_source_factor=0.0d0
+  else if (xtr.ge.1.0d0)then
+    transition_source_factor=1.0d0
+  else if (transition_ramp_type.eq.2)then
+    transition_source_factor=xtr*xtr*(3.0d0-2.0d0*xtr)
+  else
+    transition_source_factor=xtr
+  end if
+end if
+
+end function transition_source_factor
+
+
 
 subroutine sources(n,iconsidered,source_t)
 implicit none
@@ -2210,7 +2241,7 @@ turbmv(2)=turbmv(1)
     difterm = (cb2 * rho * squaret) / sigma
 
     ! total source:
-    source_t(1) = prodtermfinal + difterm - destterm
+    source_t(1) = transition_source_factor(i)*(prodtermfinal + difterm - destterm)
 
 
 
@@ -2588,7 +2619,7 @@ turbmv(2)=turbmv(1)
     !--------------------------
     !     total jacobian
     !--------------------------
-    source_t(1) = dprod_dnut + ddif_dnut - ddest_dnut
+    source_t(1) = transition_source_factor(i)*(dprod_dnut + ddif_dnut - ddest_dnut)
 
 
   case(2)		!k omega sst
@@ -3017,7 +3048,7 @@ turbmv(2)=turbmv(1)
     difterm = (cb2 * rho * squaret) / sigma
 
     ! total source:
-    source_t(1) = prodtermfinal + difterm - destterm
+    source_t(1) = transition_source_factor(i)*(prodtermfinal + difterm - destterm)
 
 
   case(2)		!k omega sst
@@ -3390,7 +3421,7 @@ turbmv(2)=turbmv(1)
     !--------------------------
     !     total jacobian
     !--------------------------
-    source_t(1) = dprod_dnut + ddif_dnut - ddest_dnut
+    source_t(1) = transition_source_factor(i)*(dprod_dnut + ddif_dnut - ddest_dnut)
 
 
   case(2)		!k omega sst

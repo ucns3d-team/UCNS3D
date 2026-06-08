@@ -17,7 +17,7 @@ subroutine read_ucns3d
  	integer :: inv1
  	real :: angledum
 	character(48)::stamp1,frame
-	logical::here1,here2,here3,here5,here,here4,here7,here8,here9,bleedio,here10
+	logical::here1,here2,here3,here5,here,here4,here7,here8,here9,bleedio,here10,here11
 	character(len=8)  :: date_w
 	character(len=10) :: time_w
 
@@ -31,8 +31,14 @@ subroutine read_ucns3d
 	average_restart=1
 	else
 	average_restart=0
-	end if
-	source_active=0
+		end if
+		source_active=0
+		transition_model=0
+		transition_axis=1
+		transition_direction=1
+		transition_location=0.0d0
+		transition_ramp_length=0.0d0
+		transition_ramp_type=1
 
 
 	movement=0
@@ -139,14 +145,35 @@ subroutine read_ucns3d
 
 	end if
 
-	inquire (file='405.DAT',exist=here2)
-	if (here2) then
-	open(14,file='405.DAT',form='formatted',status='old',action='read')
-	read(14,*)
-	read(14,*)a405			!perturbations amplitude	0.002d0 (radius 0.025d0)
-	read(14,*)nof_perturbations405	!number of perturbations	start with 8
-    close(14)
-	end if
+		inquire (file='405.DAT',exist=here2)
+		if (here2) then
+		open(14,file='405.DAT',form='formatted',status='old',action='read')
+		read(14,*)
+		read(14,*)a405			!perturbations amplitude	0.002d0 (radius 0.025d0)
+		read(14,*)nof_perturbations405	!number of perturbations	start with 8
+	    close(14)
+		end if
+
+		inquire (file='TRANSITION.DAT',exist=here11)
+		if (here11) then
+		open(32,file='TRANSITION.DAT',form='formatted',status='old',action='read')
+		read(32,*)
+		read(32,*)
+		read(32,*)transition_model
+		read(32,*)transition_axis,transition_direction
+		read(32,*)transition_location,transition_ramp_length
+		read(32,*)transition_ramp_type
+		close(32)
+		transition_model=max(0,min(1,transition_model))
+		transition_axis=max(1,min(3,transition_axis))
+		if (transition_direction.ge.0)then
+		    transition_direction=1
+		else
+		    transition_direction=-1
+		end if
+		transition_ramp_length=max(0.0d0,transition_ramp_length)
+		if ((transition_ramp_type.ne.0).and.(transition_ramp_type.ne.2))transition_ramp_type=1
+		end if
 
 
 	inquire (file='REALGAS.DAT',exist=here10)

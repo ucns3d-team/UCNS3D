@@ -5585,7 +5585,7 @@ character(len=12)::bndfile,vrtfile
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 type :: awallboundary
 	    integer :: globalid,wbid,wb1,wb2,wb3,wb4,numnodes!,wbdescr
-	    real :: wallx,wally,wallz
+	    real :: wallx,wally,wallz,walltrans
 end type
 type(awallboundary),allocatable,dimension(:):: dwallbnd
 type :: anodeswall
@@ -5668,9 +5668,9 @@ end do
 end if
   close(11)
 ! compute and store wall face centers globally
-do i = 1,countwallglobal
+	do i = 1,countwallglobal
 
-	wl1 = dwallbnd(i)%wb1 ;wl2 = dwallbnd(i)%wb2 ;wl3 = dwallbnd(i)%wb3 ;wl4 = dwallbnd(i)%wb4 ;
+		wl1 = dwallbnd(i)%wb1 ;wl2 = dwallbnd(i)%wb2 ;wl3 = dwallbnd(i)%wb3 ;wl4 = dwallbnd(i)%wb4 ;
 	if (wl4.eq.wl3)then
 	dwallbnd(i)%wallx=(dwallvrt(wl1)%wnx+dwallvrt(wl2)%wnx+dwallvrt(wl3)%wnx)/3.0
 	dwallbnd(i)%wally=(dwallvrt(wl1)%wny+dwallvrt(wl2)%wny+dwallvrt(wl3)%wny)/3.0
@@ -5680,22 +5680,35 @@ do i = 1,countwallglobal
 	else
 	dwallbnd(i)%wallx = (dwallvrt(wl1)%wnx + dwallvrt(wl2)%wnx + dwallvrt(wl3)%wnx + dwallvrt(wl4)%wnx)/4.0
 	dwallbnd(i)%wally = (dwallvrt(wl1)%wny + dwallvrt(wl2)%wny + dwallvrt(wl3)%wny + dwallvrt(wl4)%wny)/4.0
-	dwallbnd(i)%wallz = (dwallvrt(wl1)%wnz + dwallvrt(wl2)%wnz + dwallvrt(wl3)%wnz + dwallvrt(wl4)%wnz)/4.0
-	end if
-end do
+		dwallbnd(i)%wallz = (dwallvrt(wl1)%wnz + dwallvrt(wl2)%wnz + dwallvrt(wl3)%wnz + dwallvrt(wl4)%wnz)/4.0
+		end if
+		if (transition_model.eq.1)then
+		    if (transition_axis.eq.2)then
+			dwallbnd(i)%walltrans=dwallbnd(i)%wally-transition_location
+		    else if (transition_axis.eq.3)then
+			dwallbnd(i)%walltrans=dwallbnd(i)%wallz-transition_location
+		    else
+			dwallbnd(i)%walltrans=dwallbnd(i)%wallx-transition_location
+		    end if
+		else
+		    dwallbnd(i)%walltrans=0.0
+		end if
+	end do
 ! find distance from element barycenter to the nearest wall for this block.
 kmaxe=xmpielrank(n)
-do i=1,kmaxe
-    distance=tolbig 
-	do k = 1,countwallglobal
-	      if ( distance .gt. (sqrt(((dwallbnd(k)%wallx-ielem_xxc(i))**2) &
+	do i=1,kmaxe
+	    distance=tolbig 
+	    ielem_walltrans(i)=0.0
+		do k = 1,countwallglobal
+		      if ( distance .gt. (sqrt(((dwallbnd(k)%wallx-ielem_xxc(i))**2) &
 				     + ((dwallbnd(k)%wally-ielem_yyc(i))**2)&
 				     + ((dwallbnd(k)%wallz-ielem_zzc(i))**2)))) then
 		distance = sqrt(((dwallbnd(k)%wallx-ielem_xxc(i))**2)&
 			       +((dwallbnd(k)%wally-ielem_yyc(i))**2)&
 			       +((dwallbnd(k)%wallz-ielem_zzc(i))**2))
-		ielem_walldist(i) = distance
-		 if (ielem_walldist(i).lt.hybridist)then
+			ielem_walldist(i) = distance
+			ielem_walltrans(i) = dwallbnd(k)%walltrans
+			 if (ielem_walldist(i).lt.hybridist)then
 		    ielem_hybrid(i)=1
 		 end if
 		
@@ -5737,7 +5750,7 @@ integer, allocatable :: wbid(:), wb1(:), wb2(:), wb3(:), wb4(:)
 !-----------------------------
 ! flat arrays for wall centers
 !-----------------------------
-real, allocatable :: wallx(:), wally(:), wallz(:)
+real, allocatable :: wallx(:), wally(:), wallz(:), walltr(:)
 
 !-----------------------------
 ! flat arrays for nodes
@@ -5756,7 +5769,7 @@ integer :: shellmax
 integer :: ic, jc, kc, shell
 integer :: ilo, ihi, jlo, jhi, klo, khi
 integer :: ii, jj, kk, b
-integer :: p1, p2
+integer :: p1, p2, bestwall
 
 !-----------------------------
 ! reals
@@ -5805,6 +5818,7 @@ allocate(wb4(countwallglobal))
 allocate(wallx(countwallglobal))
 allocate(wally(countwallglobal))
 allocate(wallz(countwallglobal))
+allocate(walltr(countwallglobal))
 
 allocate(vid(imaxn))
 allocate(vx(imaxn))
@@ -5918,9 +5932,21 @@ do i = 1, countwallglobal
         wallz(i) = (vz(wl1) + vz(wl2) + vz(wl3) + vz(wl4)) / 4.0
     end if
 
-end do
+	end do
 
-!------------------------------------------------------------
+	if (transition_model .eq. 1) then
+	    if (transition_axis .eq. 2) then
+	        walltr(1:countwallglobal) = wally(1:countwallglobal) - transition_location
+	    else if (transition_axis .eq. 3) then
+	        walltr(1:countwallglobal) = wallz(1:countwallglobal) - transition_location
+	    else
+	        walltr(1:countwallglobal) = wallx(1:countwallglobal) - transition_location
+	    end if
+	else
+	    walltr(1:countwallglobal) = 0.0
+	end if
+
+	!------------------------------------------------------------
 ! build 3D spatial bins for wall centers
 !------------------------------------------------------------
 xminw = minval(wallx)
@@ -6023,12 +6049,12 @@ kmaxe      = xmpielrank(n)
 ! nearest-wall search using expanding bin shells + OpenMP
 !------------------------------------------------------------
 !$omp parallel do default(none) &
-!$omp shared(kmaxe,ielem_xxc,ielem_yyc,ielem_zzc,ielem_walldist,ielem_hybrid, &
-!$omp        wallx,wally,wallz,xminw,yminw,zminw,dxbin,dybin,dzbin, &
-!$omp        nx,ny,nz,binstart,binlist,hybridist2,tolbig,shellmax) &
-!$omp private(i,xc,yc,zc,ic,jc,kc,mind2,shell,ilo,ihi,jlo,jhi,klo,khi, &
-!$omp         ii,jj,kk,b,p1,p2,p,k,x0,x1,y0,y1,z0,z1,dbox2,dx,dy,dz,d2, &
-!$omp         leftd,rightd,backd,frontd,botd,topd,lower2) &
+	!$omp shared(kmaxe,ielem_xxc,ielem_yyc,ielem_zzc,ielem_walldist,ielem_walltrans,ielem_hybrid, &
+	!$omp        wallx,wally,wallz,xminw,yminw,zminw,dxbin,dybin,dzbin, &
+	!$omp        nx,ny,nz,binstart,binlist,walltr,hybridist2,tolbig,shellmax) &
+	!$omp private(i,xc,yc,zc,ic,jc,kc,mind2,shell,ilo,ihi,jlo,jhi,klo,khi, &
+	!$omp         ii,jj,kk,b,p1,p2,p,k,x0,x1,y0,y1,z0,z1,dbox2,dx,dy,dz,d2, &
+	!$omp         leftd,rightd,backd,frontd,botd,topd,lower2,bestwall) &
 !$omp schedule(static)
 do i = 1, kmaxe
 
@@ -6047,8 +6073,10 @@ do i = 1, kmaxe
     if (kc < 1) kc = 1
     if (kc > nz) kc = nz
 
-    mind2 = tolbig * tolbig
-    ielem_hybrid(i) = 0
+	    mind2 = tolbig * tolbig
+	    bestwall = 0
+	    ielem_hybrid(i) = 0
+	    ielem_walltrans(i) = 0.0
 
     do shell = 0, shellmax
 
@@ -6122,7 +6150,10 @@ do i = 1, kmaxe
 
                         d2 = dx*dx + dy*dy + dz*dz
 
-                        if (d2 < mind2) mind2 = d2
+	                        if (d2 < mind2) then
+	                            mind2 = d2
+	                            bestwall = k
+	                        end if
                     end do
 
                 end do
@@ -6168,8 +6199,9 @@ do i = 1, kmaxe
 
     end do
 
-    ielem_walldist(i) = sqrt(mind2)
-    if (mind2 < hybridist2) ielem_hybrid(i) = 1
+	    ielem_walldist(i) = sqrt(mind2)
+	    if (bestwall .gt. 0) ielem_walltrans(i) = walltr(bestwall)
+	    if (mind2 < hybridist2) ielem_hybrid(i) = 1
 
 end do
 !$omp end parallel do
@@ -6178,7 +6210,7 @@ end do
 ! cleanup
 !------------------------------------------------------------
 deallocate(wbid, wb1, wb2, wb3, wb4)
-deallocate(wallx, wally, wallz)
+deallocate(wallx, wally, wallz, walltr)
 deallocate(vid, vx, vy, vz)
 deallocate(bincount, binstart, binfill, binlist)
 
@@ -6200,7 +6232,7 @@ character(len=12)::bndfile,vrtfile
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 type :: awallboundary
 	    integer :: globalid,wbid,wb1,wb2,wb3,wb4,numnodes!,wbdescr
-	    real :: wallx,wally,wallz
+	    real :: wallx,wally,wallz,walltrans
 end type
 type(awallboundary),allocatable,dimension(:):: dwallbnd
 type :: anodeswall
@@ -6283,6 +6315,15 @@ do i = 1,countwallglobal
 	
 	dwallbnd(i)%wallx=(dwallvrt(wl1)%wnx+dwallvrt(wl2)%wnx)/2.0
 	dwallbnd(i)%wally=(dwallvrt(wl1)%wny+dwallvrt(wl2)%wny)/2.0
+	if (transition_model.eq.1)then
+	    if (transition_axis.eq.2)then
+		dwallbnd(i)%walltrans=dwallbnd(i)%wally-transition_location
+	    else
+		dwallbnd(i)%walltrans=dwallbnd(i)%wallx-transition_location
+	    end if
+	else
+	    dwallbnd(i)%walltrans=0.0
+	end if
 	
 
 
@@ -6294,12 +6335,14 @@ end do
 kmaxe=xmpielrank(n)
 do i=1,kmaxe
     distance=tolbig 
+    ielem_walltrans(i)=0.0
 	do k = 1,countwallglobal
 	      if ( distance .gt. (sqrt(((dwallbnd(k)%wallx-ielem_xxc(i))**2) &
 				     + ((dwallbnd(k)%wally-ielem_yyc(i))**2)))) then
 		distance = sqrt(((dwallbnd(k)%wallx-ielem_xxc(i))**2)&
-			       +((dwallbnd(k)%wally-ielem_yyc(i))**2))
+		       +((dwallbnd(k)%wally-ielem_yyc(i))**2))
 		ielem_walldist(i) = distance
+		ielem_walltrans(i) = dwallbnd(k)%walltrans
 		
 		 if (ielem_walldist(i).lt.hybridist)then
 		    ielem_hybrid(i)=1
