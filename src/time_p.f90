@@ -33,13 +33,12 @@ SUBROUTINE CALCULATE_CFL(N)
   !> subroutine for computing the global time step size in 3D
     IMPLICIT NONE
     INTEGER,INTENT(IN)::N
-    INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL,SRF
-    REAL::SUVI,SUV3,maxU,MINU
+    INTEGER::I, KMAXE, SRF
     REAL::CCFL,VELN,AGRT
     real,dimension(1:nof_Variables)::leftv,rightv
     real,dimension(1:nof_Variables)::SRF_SPEED
     real::MP_PINFL,gammal
-    REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
+    REAL,DIMENSION(1:DIMENSIONA)::POX,POY
     REAL,DIMENSION(1:4)::VISCL,LAML
     REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
     REAL,DIMENSION(1:2)::TURBMV
@@ -52,19 +51,19 @@ SUBROUTINE CALCULATE_CFL(N)
     DT=tolbig
     IF (ITESTCASE.LT.3)THEN
         !$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
-            VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
+        DO I=1, KMAXE
+            VELN = MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
           
             if (dg.eq.1)then
-                DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
+                DT = MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
             else
-                DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+                DT = MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
             end if
         END DO
         !$OMP END DO
     END IF
 	
-	  IF (ITESTCASE.EQ.3) THEN
+	IF (ITESTCASE.EQ.3) THEN
         !$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
           
@@ -72,31 +71,35 @@ SUBROUTINE CALCULATE_CFL(N)
       
             CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
             IF (multispecies.eq.1) THEN
-                AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
+                AGRT = SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
             ELSE
-                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+                AGRT = SQRT(LEFTV(5)*GAMMA/LEFTV(1))
             END IF
             IF (RFRAME.eq.0) THEN
-                VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+                VELN = MAX(ABS(LEFTV(2)), ABS(LEFTV(3)), ABS(LEFTV(4)))+AGRT
             END IF
             IF (SRFG.EQ.1) THEN
-                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POY(1:3)=SRF_VELOCITY
-                SRF_SPEED=ZERO
-                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+                POX(1) = IELEM(N,I)%XXC
+                POX(2) = IELEM(N,I)%YYC
+                POX(3) = IELEM(N,I)%ZZC
+                POY(1:3) = SRF_VELOCITY
+                SRF_SPEED = ZERO
+                SRF_SPEED(2:4) = VECT_FUNCTION(POX,POY)
+                VELN = MAX(ABS(LEFTV(2)-SRF_SPEED(2)), ABS(LEFTV(3)-SRF_SPEED(3)), ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
             END IF
             IF(MRF.EQ.1)THEN
-                SRF=ILOCAL_RECON3(I)%MRF
+                SRF = ILOCAL_RECON3(I)%MRF
                 IF (ILOCAL_RECON3(I)%MRF.EQ.0) THEN
-                    VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+                    VELN = MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
                 ELSE
-                    POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                    POX(1) = IELEM(N,I)%XXC
+                    POX(2) = IELEM(N,I)%YYC
+                    POX(3) = IELEM(N,I)%ZZC
                     POX = POX-ILOCAL_RECON3(I)%MRF_ORIGIN
-                    POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
-                    SRF_SPEED=ZERO
-                    SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                    VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+                    POY(1:3) = ILOCAL_RECON3(I)%MRF_VELOCITY
+                    SRF_SPEED = ZERO
+                    SRF_SPEED(2:4) = VECT_FUNCTION(POX,POY)
+                    VELN = MAX(ABS(LEFTV(2)-SRF_SPEED(2)), ABS(LEFTV(3)-SRF_SPEED(3)), ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
                 END IF
             END IF
             if (dg.eq.1)then
@@ -107,49 +110,51 @@ SUBROUTINE CALCULATE_CFL(N)
       
         END DO
         !$OMP END DO
-	  END IF
+	END IF
 	
-	  IF (ITESTCASE.EQ.4)THEN
-	      !$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-                
-        IF (RFRAME.EQ.0) THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        END IF
-        IF(SRFG.EQ.1)THEN
-            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-            POY(1:3)=SRF_VELOCITY
-            SRF_SPEED=ZERO
-            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF          
-        IF(MRF.EQ.1)THEN
-            SRF=ILOCAL_RECON3(I)%MRF
-            IF (ILOCAL_RECON3(I)%MRF.EQ.0)THEN
+	IF (ITESTCASE.EQ.4)THEN
+	    !$OMP DO REDUCTION (MIN:DT)
+        DO I=1, KMAXE
+            LEFTV(1:NOF_vARIABLES) = U_C(I)%VAL(1,1:NOF_vARIABLES)
+            CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+            RIGHTV(1:NOF_vARIABLES) = LEFTV(1:NOF_vARIABLES)
+            CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
+            AGRT = SQRT(LEFTV(5)*GAMMA/LEFTV(1))
+                    
+            IF (RFRAME.EQ.0) THEN
                 VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-            ELSE
+            END IF
+            IF(SRFG.EQ.1)THEN
                 POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
-                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
+                POY(1:3)=SRF_VELOCITY
                 SRF_SPEED=ZERO
                 SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
                 VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+            END IF          
+            IF(MRF.EQ.1)THEN
+                SRF=ILOCAL_RECON3(I)%MRF
+                IF (ILOCAL_RECON3(I)%MRF.EQ.0)THEN
+                    VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
+                ELSE
+                    POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
+                    POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
+                    POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
+                    SRF_SPEED=ZERO
+                    SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
+                    VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
+                END IF
             END IF
-        END IF
-		IF (TURBULENCE.EQ.1)THEN
-		IF (TURBULENCEMODEL.EQ.1)THEN
-		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
-		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-		CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-		LAML(1)=LAML(1)+LAML(3)
-		VISCL(1)=VISCL(1)+VISCL(3)
-		END IF
-		END IF
+            IF (TURBULENCE.EQ.1)THEN
+                IF (TURBULENCEMODEL.EQ.1)THEN
+                    TURBMV(1) = U_CT(I)%VAL(1,1)
+                    TURBMV(2) = U_CT(I)%VAL(1,1);
+                    eddyfl(2) = turbmv(1)
+                    eddyfr(2) = turbmv(2)
+                    CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
+                    LAML(1) = LAML(1)+LAML(3)
+                    VISCL(1) = VISCL(1)+VISCL(3)
+                END IF
+            END IF
 
             if (dg.eq.1)then
                 DT = MIN(DT, (CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
@@ -160,8 +165,8 @@ SUBROUTINE CALCULATE_CFL(N)
             end if
                               
         END DO
-        !$OMP END DO
-	  END IF
+        !$OMP END DO  
+    END IF
 	
     RETURN
         
@@ -189,21 +194,21 @@ SUBROUTINE CALCULATE_CFLL(N)
     REAL,DIMENSION(1)::ETVM
     KMAXE=XMPIELRANK(N)
         
-    CCFL=(CFL/3.0d0)
+    CCFL = (CFL/3.0d0)
         
     IF (ITESTCASE.LT.3)THEN
         !$OMP DO
         DO I=1,KMAXE
-            VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
-            IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
+            VELN = MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
+            IELEM(N,I)%DTL = CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
         END DO
         !$OMP END DO
     END IF
 	
-	  IF (ITESTCASE.EQ.3)THEN
+	IF (ITESTCASE.EQ.3)THEN
         !$OMP DO
-        DO I=1,KMAXE
-          LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
+        DO I=1, KMAXE
+          LEFTV(1:NOF_vARIABLES) = U_C(I)%VAL(1,1:NOF_vARIABLES)
         
           CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
 
@@ -3521,30 +3526,29 @@ SUBROUTINE TIME_MARCHING(N)
                 TOTK=0
                 TOTENS=0
                 totensx=0.0d0
-                DO I=1,mxmpielrank(n)
-                    TOTK = TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*(((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
+                DO I=1, xmpielrank(n)
+                    TOTK = TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*0.5*(((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
 
                     if (BOUNDTYPE.eq.1)then
-                        TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-                        IELEM(N,I)%VORTEX(2))
+                        TOTENS = TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*0.5*IELEM(N,I)%VORTEX(2))
                     else
-                        TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
-                        TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
+                        TOTENS = TOTENS+(IELEM(N,I)%VORTEX(2))
+                        TOTENSx= TOTENSx+(IELEM(N,I)%VORTEX(3))
                     end if
                 END DO
           
-                DUMEtg1=TOTK
-                DUMEtg2=0.0
+                DUMEtg1 = TOTK
+                DUMEtg2 = 0.0
                 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
                 CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-                TOTK=DUMEtg2
-                DUMEtg1=TOTENS
-                DUMEtg2=0.0
+                TOTK = DUMEtg2
+                DUMEtg1 = TOTENS
+                DUMEtg2 = 0.0
                 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
                 CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-                TOTENS=DUMEtg2
-                DUMEtg1=TOTENSx
-                DUMEtg2=0.0
+                TOTENS = DUMEtg2
+                DUMEtg1 = TOTENSx
+                DUMEtg2 = 0.0
                 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
                 CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
                 TOTENSx=DUMEtg2
@@ -3565,15 +3569,15 @@ SUBROUTINE TIME_MARCHING(N)
             IF (rungekutta.GE.11)THEN
                 dt = timestep
                 IF (INITCOND.eq.95)THEN 
-                    DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+                    DT = MIN(DT, OUT_TIME-T, EVERY_TIME-T)
                 ELSE
-                    DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+                    DT = MIN(DT, OUT_TIME-T, EVERY_TIME-T)
                 END IF
             else
                 IF (INITCOND.eq.95)THEN
-                    DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+                    DT = MIN(DT, OUT_TIME-T, EVERY_TIME-T)
                 ELSE
-                    DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
+                    DT = MIN(DT, OUT_TIME-T, EVERY_TIME-T)
                 END IF
             end if
 
@@ -3626,16 +3630,16 @@ SUBROUTINE TIME_MARCHING(N)
 		!$OMP MASTER
 			
             IF (rungekutta.GE.11)THEN
-                T=T+(DT)
-                Tz1=Tz1+(DT)
+                T = T+DT
+                Tz1 = Tz1+DT
             ELSE
-                T=T+DT
-                tz1=tz1+DT
+                T = T+DT
+                tz1 = tz1+DT
             END IF
                 
             IF (DG.EQ.1)THEN
                 IF (CODE_PROFILE.ne.102)THEN
-                    IF ( mod(it, 100) .eq. 0) THEN
+                    IF (mod(it, 100).eq.0) THEN
                         CALL TROUBLED_HISTORY
                     END IF
                 end if
@@ -3644,21 +3648,22 @@ SUBROUTINE TIME_MARCHING(N)
                 END IF
             end if
 
-            ! IF ( mod(it, 100) .eq. 0) THEN
+            ! IF (mod(it, 100).eq.0) THEN
             !     CALL REDUCED_HISTORY
             ! END IF
 
-            IF (INITCOND.eq.95)THEN                    
-                TOTK=0; TOTENS=0.0; totensx=0.0d0
-                DO I=1,xmpielrank(n)
-                    TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*(((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
+            IF (INITCOND.eq.95) THEN                    
+                TOTK=0
+                TOTENS=0.0
+                totensx=0.0d0
+                DO I=1, xmpielrank(n)
+                    TOTK = TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*0.5*(((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
 
                     if (BOUNDTYPE.eq.1)then
-                        TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-                        IELEM(N,I)%VORTEX(2))
+                        TOTENS = TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*0.5*IELEM(N,I)%VORTEX(2))
                     else
-                        TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
-                        TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
+                        TOTENS = TOTENS+(IELEM(N,I)%VORTEX(2))
+                        TOTENSx= TOTENSx+(IELEM(N,I)%VORTEX(3))
                     end if
 				END DO
  				
@@ -3711,8 +3716,8 @@ SUBROUTINE TIME_MARCHING(N)
  				
  				IF (ADDA.EQ.1)THEN
                     TOTK=0
-                    DO I=1,xmpielrank(n)
-                        TOTK=TOTK+IELEM(N,I)%ER
+                    DO I=1, xmpielrank(n)
+                        TOTK = TOTK+IELEM(N,I)%ER
                     END DO
                     DUMEtg1=TOTK
                     DUMEtg2=0.0
@@ -3747,14 +3752,14 @@ SUBROUTINE TIME_MARCHING(N)
 
         !$OMP BARRIER
                 
-        IF ( mod(it, IForce) .eq. 0) THEN
+        IF ( mod(it, IForce).eq.0) THEN
             IF (OUTSURF.EQ.1) THEN   
                 CALL forces
             END IF
         END IF
             
         IF ((rungekutta.ge.5).and.(rungekutta.lt.11))THEN
-            IF ( mod(it, residualfreq) .eq. 0) THEN
+            IF (mod(it, residualfreq).eq.0) THEN
                 CALL RESIDUAL_COMPUTE
             END IF
         END IF
@@ -4808,7 +4813,7 @@ SUBROUTINE RUNGE_KUTTA3_MovingMesh_2D(N)
     !$omp barrier
     !$OMP DO
     DO I=1,KMAXE
-        IF (DG == 1) THEN
+        IF (DG.eq.1) THEN
             print *, "Moving mesh does not support DG yet"
             call abort
             ! U_C(I)%VALDG(3,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
@@ -4865,10 +4870,10 @@ SUBROUTINE RUNGE_KUTTA3_MovingMesh_2D(N)
     end do
     !$omp end do
     !$omp master
-    do bounary_index=1, num_moving_boundaries
-        moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,4) = OO3*moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,1) + &
-                TO3*(moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,3)  + (dt * moving_boundaries(bounary_index)%velocity(1:dimensiona)))
-    end do
+        do bounary_index=1, num_moving_boundaries
+            moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,4) = OO3*moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,1) + &
+                    TO3*(moving_boundaries(bounary_index)%rotation_centre(1:dimensiona,3)  + (dt * moving_boundaries(bounary_index)%velocity(1:dimensiona)))
+        end do
     !$omp end master
     !$omp barrier
     IF (DIMENSIONA.EQ.3) THEN

@@ -147,7 +147,6 @@ subroutine pseudoVoronoi_centre(vert_num, vertices, centre)
     integer::vert_num
     real,intent(in),dimension(1:vert_num,1:dimensiona)::vertices
     real,intent(out),dimension(1:dimensiona)::centre
-    real,dimension(1:dimensiona)::temp_centre, helper, v1, v2
     real,dimension(1:vert_num)::l, r
     real,dimension(1:vert_num, 1:dimensiona)::J
     ! real,dimension(1:vert_num, 1:dimensiona)::JtJinvJtt
@@ -188,7 +187,7 @@ subroutine pseudoVoronoi_centre(vert_num, vertices, centre)
             l(a) = sqrt(l(a))
             l_av = l_av + (l(a)/real(vert_num))
 
-            do b = 1, dimensiona
+            do b=1, dimensiona
                 J(a, b) = (centre(b) - vertices(a, b))/l(a)
                 dl_av(b) = dl_av(b) + (J(a, b)/real(vert_num))
             end do
@@ -237,8 +236,8 @@ subroutine pseudoVoronoi_centre(vert_num, vertices, centre)
         end do
 
         delta(:) = zero
-        do a = 1, dimensiona
-            do b = 1, vert_num
+        do a =1, dimensiona
+            do b =1, vert_num
                 delta(a) = delta(a) + (JtJinvJt(a,b)*r(b))
             end do
         end do 
@@ -4813,8 +4812,8 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
             end if
 
             local_relaxation_velocity_multiple = (quality_coeff * quality_term) + (gradient_term * gradient_coeff)
-
             call clamp(local_relaxation_velocity_multiple, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple)
+            
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) &
                                                            + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple
         end do

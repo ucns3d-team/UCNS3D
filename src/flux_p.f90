@@ -888,7 +888,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				if (MESH_MOVEMENT) then
 					if ((iRiemann.ne.9).and.(iRiemann.ne.1)) then
 						print *, "Moving mesh currently supports only HLL and HLLC fluxes"
-						call abort
+						call abort()
 					end if
 				end if
 				      
@@ -1026,7 +1026,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 
 				if (b_code.eq.4) then ! fixed wall
 					if (abs(qp_normal_velocity).gt.0.0000000001) then
-						print*,"non-zero normal velocity at a wall"
+						! print*,"non-zero normal velocity at a wall"
 					end if
 					qp_normal_velocity = zero
 				end if

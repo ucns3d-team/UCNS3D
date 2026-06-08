@@ -65,10 +65,10 @@ SUBROUTINE hybridCWENO_MOOD_OPERATOR(N)
             CALL CALCULATE_FLUXESHI_CONVECTIVE2D_MOOD(N)
         END IF
     ELSE
-        if (n.eq.0) then
+        ! if (n.eq.0) then
             write (*,*) "This mode does not support 3D simulations (yet)"
-        end if
-        call abort
+        ! end if
+        call abort()
     END IF
 
     !$OMP DO

@@ -1373,7 +1373,7 @@ SUBROUTINE  LOCALISE_STEN2d(N,ICONSI,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN
 			WRITE(630+N,*)"ELEMENT NUMBER GLOBAL",IELEM(N,I)%IHEXGL
 			if ((IELEM(N,I)%nonodes).eq.0) then 
 				print*,"error allocating 0 cells"
-				call abort
+				call abort()
 			end if
 			ALLOCATE(IELEM(N,I)%NOJECOUNT(IELEM(N,I)%nonodes))
 			

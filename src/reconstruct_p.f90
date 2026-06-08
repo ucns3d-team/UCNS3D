@@ -1327,7 +1327,7 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
                 Icompwrt=0
             END IF
         end do
-        
+
         do face_node_index = 1, face_num_nodes
             face_node_counter = face_node_counter + 1
 
@@ -1352,6 +1352,7 @@ SUBROUTINE CP_RECONSTRUCTION(ICONSIDERED,IDUMMY,DIVBYZERO,POWER)
                 Icompwrt=0
             END IF
         end do
+
     END DO	!FACES
 
     ILOCAL_RECON3(I)%ULEFT(:,:,:)=ZERO
@@ -2513,12 +2514,12 @@ SUBROUTINE SOLUTIONTRIAV2(N)
         DO l=1,IELEM(N,I)%IFCA;IDUMMY=0
             IF (DIMENSIONA.EQ.3)THEN
                 if (ielem(n,i)%types_faces(L).eq.5)then
-                    iqp=qp_quad;
+                    iqp = qp_quad;
                 else
-                    iqp=qp_triangle;
+                    iqp = qp_triangle;
                 end if
             ELSE
-                iqp=qp_LINE;
+                iqp = qp_LINE;
             END IF
             ICD=0
             do NGP=1, iqp			!for gqp

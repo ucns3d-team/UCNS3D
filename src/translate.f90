@@ -103,7 +103,7 @@ Subroutine Drive(interray)
 		read(82,"(A3)",advance='NO',IOSTAT=ios)dumc
 		dumc2=dumc(2:3)
 		read(dumc2,*,iostat=ioss)str2int
-		if ((ios .eq. -1))goto 11
+		if ((ios.eq.-1)) goto 11
 
 		countline=countline+1
 		! print*,'line',countlieq. "(0")ne !,dumc
@@ -1478,7 +1478,7 @@ end subroutine removebrac
 
 subroutine TRANSUGRID
 	IMPLICIT NONE
-	INTEGER::I,J,K,L,N,I1,I2,I3,I4,I5,I6,I7,I8,IOS,IOX,IOY,IMAXEu,IMAXBu,IMAXNu,ICG,KX,NBOUND,DIP
+	INTEGER::I, J, IMAXEu,IMAXBu,IMAXNu,KX,NBOUND
 	INTEGER::afnnodesg ! = number of nodes
 	INTEGER::afntface  ! = number of boundary triangles
 	INTEGER::afnqface  ! = number of boundary quads
@@ -1501,27 +1501,27 @@ subroutine TRANSUGRID
 	imaxbu=afntface+afnqface
 	imaxnu=afnnodesg
 
-	do i=1,afnnodesg;read(180)x(i),y(i),z(i);end do
+	do i=1,afnnodesg; read(180)x(i),y(i),z(i); end do
 
-	do i=1,afntface;do j=1,3;read(180)if2nt(j,i); end do;end do
+	do i=1,afntface; do j=1,3; read(180)if2nt(j,i); end do; end do
 	print*,"2"
 
-	do i=1,afnqface;do j=1,4;read(180)if2nq(j,i); end do;end do
+	do i=1,afnqface;do j=1,4;read(180)if2nq(j,i); end do; end do
 	print*,"3"
 
-	do i=1,afntface+afnqface;read(180)ifacetag(i);end do
+	do i=1,afntface+afnqface;read(180)ifacetag(i); end do
 	print*,"4"
 
-	do i=1,afntet; do j=1,4; read(180)ic2nt(j,i);end do; end do
+	do i=1,afntet; do j=1,4; read(180)ic2nt(j,i); end do; end do
 	print*,"5"
 
-	do i=1,afnpyr; do j=1,5; read(180)ic2np(j,i);end do; end do
+	do i=1,afnpyr; do j=1,5; read(180)ic2np(j,i); end do; end do
 	print*,"6"
 
-	do i=1,afnprz; do j=1,6; read(180)ic2nz(j,i);end do; end do
+	do i=1,afnprz; do j=1,6; read(180)ic2nz(j,i); end do; end do
 	print*,"7"
 
-	do i=1,afnhex; do j=1,8; read(180)ic2nh(j,i);end do; end do
+	do i=1,afnhex; do j=1,8; read(180)ic2nh(j,i); end do; end do
 	print*,"8"
 
 	close(180)
@@ -1547,13 +1547,10 @@ subroutine TRANSUGRID
 			IBXX(i)=1
 		  case(6100)	!periodicity
 			IBXX(i)=5
-
 		  case(5051)	!back pressure static
 			IBXX(i)=9
-
 		  case(5052)	!mach sink
 			IBXX(i)=10
-
 		end select
 	end do
 
@@ -1569,51 +1566,43 @@ subroutine TRANSUGRID
 	!write elements now
 	kx=0
 	OPEN(11,FILE="GRID.cel",FORM='unformatted',ACTION='WRITE')
-
 	!tetra: 1 2 3 3 4 4 4 4
-	do i=1,afntet
-		kx=kx+1
+	do i=1, afntet
+		kx = kx+1
 		! write(150,"(9I10)")kx,ic2nt(1,i),ic2nt(2,i),ic2nt(3,i),ic2nt(3,i),ic2nt(4,i),ic2nt(4,i),ic2nt(4,i),ic2nt(4,i)
 		write(11)kx,ic2nt(1,i),ic2nt(2,i),ic2nt(3,i),ic2nt(3,i),ic2nt(4,i),ic2nt(4,i),ic2nt(4,i),ic2nt(4,i)
 	end do
-
 	!pyramid: 1 2 3 4 5 5 5 5
-	do i=1,afnpyr
-		kx=kx+1
+	do i=1, afnpyr
+		kx = kx+1
  		! write(150,*)kx,ic2np(1,i),ic2np(2,i),ic2np(5,i),ic2np(4,i),ic2np(3,i),ic2np(3,i),ic2np(3,i),ic2np(3,i)
 		! write(150,"(9I10)")kx,ic2np(1,i),ic2np(4,i),ic2np(5,i),ic2np(2,i),ic2np(3,i),ic2np(3,i),ic2np(3,i),ic2np(3,i)
 		write(11)kx,ic2np(1,i),ic2np(4,i),ic2np(5,i),ic2np(2,i),ic2np(3,i),ic2np(3,i),ic2np(3,i),ic2np(3,i)
 	end do
+	!prism: 1 2 3 3 4 5 6 6
+	do i=1,afnprz
+		kx=kx+1
+		!write(11,"(9I10)")kx,ic2nz(1,i),ic2nz(2,i),ic2nz(3,i),ic2nz(3,i),ic2nz(4,i),ic2nz(5,i),ic2nz(6,i),ic2nz(6,i)
+		write(11)kx,ic2nz(1,i),ic2nz(2,i),ic2nz(3,i),ic2nz(3,i),ic2nz(4,i),ic2nz(5,i),ic2nz(6,i),ic2nz(6,i)
+	end do
+	!hexa: 1 2 3 4 5 6 7 8
+	do i=1,afnhex
+		kx = kx+1
+		! write(150,"(9I10)")kx,ic2nh(1,i),ic2nh(2,i),ic2nh(3,i),ic2nh(4,i),ic2nh(5,i),ic2nh(6,i),ic2nh(7,i),ic2nh(8,i)
+		write(11)kx,ic2nh(1,i),ic2nh(2,i),ic2nh(3,i),ic2nh(4,i),ic2nh(5,i),ic2nh(6,i),ic2nh(7,i),ic2nh(8,i)
+	end do
+	close(11)
+	!end writing elements
 
-			 !prism: 1 2 3 3 4 5 6 6
-
-
-
-
-
-			 do i=1,afnprz
-			    kx=kx+1
- 			    !write(11,"(9I10)")kx,ic2nz(1,i),ic2nz(2,i),ic2nz(3,i),ic2nz(3,i),ic2nz(4,i),ic2nz(5,i),ic2nz(6,i),ic2nz(6,i)
-				write(11)kx,ic2nz(1,i),ic2nz(2,i),ic2nz(3,i),ic2nz(3,i),ic2nz(4,i),ic2nz(5,i),ic2nz(6,i),ic2nz(6,i)
-			 end do
-			 !hexa: 1 2 3 4 5 6 7 8
-			  do i=1,afnhex
-			    kx=kx+1
-! 			    write(150,"(9I10)")kx,ic2nh(1,i),ic2nh(2,i),ic2nh(3,i),ic2nh(4,i),ic2nh(5,i),ic2nh(6,i),ic2nh(7,i),ic2nh(8,i)
-				write(11)kx,ic2nh(1,i),ic2nh(2,i),ic2nh(3,i),ic2nh(4,i),ic2nh(5,i),ic2nh(6,i),ic2nh(7,i),ic2nh(8,i)
-			 end do
-			 close(11)
-			 !end writing elements
-
-			 !now write the boundary file
-			 OPEN(10,FILE="GRID.bnd",FORM='unformatted',ACTION='WRITE')
-			 kx=0
-			 !triangle: 1 2 3 3
-			  do i=1,afntface
-			    kx=kx+1
-! 			    write(1000,"(6I12)")kx,if2nt(1,i),if2nt(2,i),if2nt(3,i),if2nt(3,i),ibxx(ifacetag(kx))
-			   write(10)kx,if2nt(1,i),if2nt(2,i),if2nt(3,i),if2nt(3,i),ibxx(ifacetag(kx))
-			 end do
+	!now write the boundary file
+	OPEN(10,FILE="GRID.bnd",FORM='unformatted',ACTION='WRITE')
+	kx=0
+	!triangle: 1 2 3 3
+	do i=1,afntface
+		kx = kx+1
+		! write(1000,"(6I12)")kx,if2nt(1,i),if2nt(2,i),if2nt(3,i),if2nt(3,i),ibxx(ifacetag(kx))
+		write(10)kx,if2nt(1,i),if2nt(2,i),if2nt(3,i),if2nt(3,i),ibxx(ifacetag(kx))
+	end do
 	!quad: 1 2 3 4
 	do i=1,afnqface
 		kx=kx+1
@@ -1624,7 +1613,6 @@ subroutine TRANSUGRID
 	close(10)
 
 	deallocate(IBID,IBX,IBXX, x,y,z, if2nt,if2nq,ifacetag,ic2nt,ic2np,ic2nz,ic2nh)
-
 
 END SUBROUTINE
 

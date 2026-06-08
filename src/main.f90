@@ -38,9 +38,6 @@ USE MESHMOVEMENT_module
 
 IMPLICIT NONE
 
-integer::iterator,cell_index, i, l
-real::my_size_sum,size_sum,cell_area,cell_size
-
 EXTERNAL METIS_PartMeshDual
 EXTERNAL ParMETIS_V3_PartMeshKway
 !CALL MPI_INIT(IERROR)
@@ -712,18 +709,14 @@ call local_reconallocation5(n)
 ! cell_size_average = size_sum / IMAXE
 ! if (n.eq.0)  WRITE(*,*)"Total cell size =", size_sum, "number of cells =", IMAXE, "average cell size =", cell_size_average
 
-num_values_to_send_per_node = zero
+num_values_to_send_per_node = 0
 if (MESH_MOVEMENT) then
 	num_values_to_send_per_node = 2*dimensiona
 end if
 print *, "num_values_to_send_per_node", num_values_to_send_per_node
 
 my_xper = 0.0
-! if (initcond.eq.101) then
-! 	my_yper = yper
-! else
 my_yper = 0.0
-! end if
 my_zper = 0.0
 ! print*,"xper, my_xper, yper, my_yper, zper, my_zper", xper, my_xper, yper, my_yper, zper, my_zper
 
@@ -749,14 +742,13 @@ CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 CPUX3(1) = MPI_Wtime()
 ! CALL MPI_ALLREDUCE(max_entropy,global_max_entropy,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
 
-if (n.eq.0)  WRITE(100+N,*)"TOTAL TIME TAKEN=",CPUX3(1)-CPUX2(1),"SECONDS"
-if (n.eq.0)  CLOSE(100+N)
+if (n.eq.0) WRITE(100+N,*) "TOTAL TIME TAKEN=", CPUX3(1)-CPUX2(1), "SECONDS"
+if (n.eq.0) CLOSE(100+N)
 ! if (n.eq.0)  WRITE(*,*)"MAX ENTROPY =",global_max_entropy
 
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 CALL MPI_FINALIZE(IERROR)
 
 if (n.eq.0) print*,"UCNS3D finished running"
-
 
 END PROGRAM UCNS3D
