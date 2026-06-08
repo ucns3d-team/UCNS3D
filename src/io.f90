@@ -12471,7 +12471,7 @@ SUBROUTINE SPECIFY_WRITE_VARIABLES(N)
 			end if
 
 			if (turbulence.eq.1)then
-				Variable_names(6)='turb'
+				Variable_names(WRITE_VARIABLES)='turb'
 			end if
 			IF (ITESTCASE.EQ.1)THEN
 				Variable_names(1)='solution'
@@ -18733,6 +18733,7 @@ SUBROUTINE FIX_NODES_LOCAL
 
 		allocate(local_nodes(i)%positions(1:RUNGEKUTTA+1,1:dimensiona))
 	end do
+	global_position_index = 1
 
 	allocate(my_nodesl(1:COUNTFNODES),my_nodesg(COUNTFNODES))
 	COUNTFNODES=0

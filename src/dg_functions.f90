@@ -1713,7 +1713,7 @@ SUBROUTINE  GET_STATES_BOUNDS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIGHTV,P
     INTEGER,INTENT(INOUT)::B_CODE
     REAL,INTENT(INOUT)::ANGLE1,ANGLE2,NX,NY,NZ
     INTEGER::I,L,NGP,N_nODE, mb_code
-    real,dimension(1:nof_variables),intent(inout)::cleft,cright,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT
+    real,dimension(1:nof_variables+turbulenceequations+PASSIVESCALAR),intent(inout)::cleft,cright,CRIGHT_ROT,CLEFT_ROT,SRF_SPEEDROT
     real,dimension(1:turbulenceequations+PASSIVESCALAR),intent(inout)::cturbl,cturbr
     real,dimension(1:nof_Variables),intent(inout)::leftv
     real,dimension(1:nof_Variables),intent(inout)::RIGHTv

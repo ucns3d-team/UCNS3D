@@ -2510,6 +2510,24 @@ SUBROUTINE INITIALISE_EULER2D(N,veccos,pox,poy,poz,iconsidered)
         VECCOS(7)=MP_A(1)
     END IF
 
+    IF (INITCOND.EQ.106)THEN	! debugging initcond 105 William's moving body test problem
+        r1 = 1.0
+        P1 = r1/gamma
+        u1 = 0.0
+        v1 = 0.0
+
+        SKIN1 = 0.5*((U1**2)+(V1**2))
+        !INTERNAL ENERGY
+        IE1 = (P1/((GAMMA-1.0D0)*R1))
+        !TOTAL ENERGY
+        E1 = (P1/(GAMMA-1.0D0))+(R1*SKIN1)
+        !VECTOR OF CONSERVED VARIABLES NOW
+        VECCOS(1)=R1
+        VECCOS(2)=R1*U1
+        VECCOS(3)=R1*V1
+        VECCOS(4)=E1
+    end if
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

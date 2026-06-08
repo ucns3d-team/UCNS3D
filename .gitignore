@@ -12,9 +12,9 @@
 *.pch
 
 # Compiled Dynamic libraries
-# *.so
-# *.dylib
-# *.dll
+*.so
+*.dylib
+*.dll
 
 # Fortran module files
 *.mod
@@ -29,6 +29,8 @@
 *.exe
 *.out
 *.app
+src/ucns3d_p
+src/ucns3d_p*
 
 # tmp directory
 
@@ -37,3 +39,9 @@ tmp/
 .vscode/settings.json
 .vscode/targets.log
 .vscode/dryrun.log
+
+my_tests
+TimingTestsOnArcher2
+src/Makefile
+.DS_Store
+

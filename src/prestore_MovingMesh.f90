@@ -1912,25 +1912,32 @@ Subroutine Initialise_WallDistance2d(N,ielem,imaxe,XMPIELRANK)
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	! How many element for this block have wall
 	KMAXE=XMPIELRANK(N)
+
+	allocate(WallCommOffsets(0:isize-1))
+
 	countwall = 0
 	Do i=1,KmaxE
 		if (ielem(n,i)%interior.eq.1)then
 			Do l=1, IELEM(N,I)%IFCA
 				if (ielem(n,i)%ibounds(l).gt.0)then
-					if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.4).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.99).or.(ibound(n,ielem(n,i)%ibounds(l))%icode.gt.100)) then
+					if ((ibound(n,ielem(n,i)%ibounds(l))%icode.eq.4) &
+					    .or.(ibound(n,ielem(n,i)%ibounds(l))%icode.eq.99) & 
+						.or.(ibound(n,ielem(n,i)%ibounds(l))%icode.gt.100)) then
 						countwall = countwall + 1
 					end if
 				end If
     		End Do
     	end if
 	End Do
+	print*, N, "walls counted"
 	! How many for all cpu blocks
 	allocate(NumWallsPerCPU(0:isize-1))
 	CALL MPI_ALLGATHER(countwall,1,MPI_INTEGER, NumWallsPerCPU,1,MPI_INTEGER, MPI_COMM_WORLD,IERROR)
 	! CALL MPI_ALLREDUCE(countwall,Countwallglobal,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,IERROR)
 	CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
 	global_wall_count = NumWallsPerCPU(0)
-	WallCommOffsets(0) =1
+	WallCommOffsets(0) = 1
 	do i=1, isize-1
 		global_wall_count = global_wall_count + NumWallsPerCPU(i)
 		WallCommOffsets(i) = WallCommOffsets(i-1) + NumWallsPerCPU(i-1)
@@ -2048,7 +2055,7 @@ Subroutine Reinitialise_WallDistance(N, node_position_index)
 	Allocate(Wall_codes(1:global_wall_count))
 
 	!$omp master
-		centre_write_index = WallCommOffsets(N)*dimensiona
+		centre_write_index = (WallCommOffsets(N)-1)*dimensiona
 		code_write_index = WallCommOffsets(N)
 		DO I=1, NOF_BOUNDED
 			cell_index = EL_BND(I)
@@ -2076,8 +2083,8 @@ Subroutine Reinitialise_WallDistance(N, node_position_index)
 							call abort()
 						end if
 						do j=1, dimensiona
-							wall_centres(centre_write_index) = wall_centre(j)
 							centre_write_index = centre_write_index+1
+							wall_centres(centre_write_index) = wall_centre(j)
 						end do
 						wall_codes(code_write_index) = ibound(n,ielem(n,cell_index)%ibounds(face_index))%icode
 						code_write_index = code_write_index+1
@@ -2085,18 +2092,19 @@ Subroutine Reinitialise_WallDistance(N, node_position_index)
 				end if
 			end do
 		end do
-		if (centre_write_index.ne.((WallCommOffsets(N)+NumWallsPerCPU(N))*dimensiona)) then
+		if (centre_write_index.ne.((WallCommOffsets(N)+NumWallsPerCPU(N)-1)*dimensiona)) then
 			print*,"something went wrong when filling wall_centres in Reinitialise_WallDistance on CPU", n
 		end if
 		if (code_write_index.ne.(WallCommOffsets(N)+NumWallsPerCPU(N))) then
-			print*,"something went wrong when filling wall_centres in Reinitialise_WallDistance on CPU", n
+			print*,"something went wrong when filling wall_codes in Reinitialise_WallDistance on CPU", n
 		end if
 		CALL MPI_ALLGATHERV(MPI_IN_PLACE, NumWallsPerCPU(N)*dimensiona, MPI_DOUBLE_PRECISION, &
 							wall_centres(1:global_wall_count*dimensiona), NumWallsPerCPU(0:num_cpus-1)*dimensiona, WallCommOffsets(0:num_cpus-1)*dimensiona, MPI_DOUBLE_PRECISION, &
 							MPI_COMM_WORLD, IERROR)
 		CALL MPI_ALLGATHERV(MPI_IN_PLACE, NumWallsPerCPU(N), MPI_INTEGER, &
-							wall_codes(1:global_wall_count), NumWallsPerCPU(0:num_cpus-1), WallCommOffsets(0:num_cpus-1), MPI_DOUBLE_PRECISION, &
+							wall_codes(1:global_wall_count), NumWallsPerCPU(0:num_cpus-1), WallCommOffsets(0:num_cpus-1), MPI_INTEGER, &
 							MPI_COMM_WORLD, IERROR)
+		! print*,N,"mpi_allgatherv done"
 	!$omp end master
 
 	!$omp barrier
@@ -2107,12 +2115,12 @@ Subroutine Reinitialise_WallDistance(N, node_position_index)
     	MinDistance = TOLBIG 
 		Do j=1, global_wall_count
 			if (dimensiona.eq.2) then
-				distance = sqrt(((wall_centres(dimensiona*j+1) - Ielem(N,i)%xxc)**2) & 
-							   +((wall_centres(dimensiona*j+2) - Ielem(N,i)%yyc)**2))
+				distance = sqrt(((wall_centres(dimensiona*(j-1)+1) - Ielem(N,i)%xxc)**2) & 
+							   +((wall_centres(dimensiona*(j-1)+2) - Ielem(N,i)%yyc)**2))
 			else
-				distance = sqrt(((wall_centres(dimensiona*j+1) - Ielem(N,i)%xxc)**2) & 
-							   +((wall_centres(dimensiona*j+2) - Ielem(N,i)%yyc)**2) &
-							   +((wall_centres(dimensiona*j+3) - Ielem(N,i)%zzc)**2))
+				distance = sqrt(((wall_centres(dimensiona*(j-1)+1) - Ielem(N,i)%xxc)**2) & 
+							   +((wall_centres(dimensiona*(j-1)+2) - Ielem(N,i)%yyc)**2) &
+							   +((wall_centres(dimensiona*(j-1)+3) - Ielem(N,i)%zzc)**2))
 			end if
 
 	      	If (MinDistance .gt. Distance) Then

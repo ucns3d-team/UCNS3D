@@ -970,6 +970,7 @@ subroutine find_node_velocities(position_index, d_t, N)
                 local_nodes(node_index)%lagrangian_velocity(1:dimensiona) = (local_nodes(node_index)%lagrangian_velocity(1:dimensiona) * gradient_term)
             end do
             !$omp end do
+            !$omp barrier
             select case (relaxation_centre_type)
             case (1, 2)
                 call find_mesh_quality_before_relaxation(1, position_index, d_t, N)
@@ -1003,7 +1004,7 @@ subroutine find_node_velocities(position_index, d_t, N)
     !$omp barrier
 
     ! call clamp_node_velocity_to_CFL(position_index, d_t, N)
-    if (.not.(initcond.eq.105)) then
+    if (.not.((initcond.eq.105).or.(initcond.eq.106))) then
         call clamp_node_velocity_to_fraction(position_index, d_t, N)
     end if
 
