@@ -33,7 +33,7 @@ SUBROUTINE CALCULATE_CFL(N)
   !> subroutine for computing the global time step size in 3D
     IMPLICIT NONE
     INTEGER,INTENT(IN)::N
-    INTEGER::I, KMAXE, SRF
+    INTEGER::I, KMAXE, SRF, node_index, boundary_index
     REAL::CCFL,VELN,AGRT
     real,dimension(1:nof_Variables)::leftv,rightv
     real,dimension(1:nof_Variables)::SRF_SPEED
@@ -42,7 +42,9 @@ SUBROUTINE CALCULATE_CFL(N)
     REAL,DIMENSION(1:4)::VISCL,LAML
     REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
     REAL,DIMENSION(1:2)::TURBMV
+    real,dimension(1:3)::boundary_velocity, radius, normal
     REAL,DIMENSION(1)::ETVM
+    real::boundary_speed
 
     KMAXE=XMPIELRANK(N)
         
@@ -167,6 +169,34 @@ SUBROUTINE CALCULATE_CFL(N)
         END DO
         !$OMP END DO  
     END IF
+
+    if (MESH_MOVEMENT) then
+        print*,"3D Moving Mesh CFL timestep computation not implemented yet"
+        ! !$OMP DO REDUCTION (MIN:DT)
+        ! do i = 1, my_num_moving_nodes
+        !     node_index = local_moving_nodes(i)
+        !     if (local_nodes(node_index)%boundary.lt.100) then
+        !         print*,"something went wrong with local_nodes(node_index)%boundary"
+        !     end if
+        !     boundary_index = local_nodes(node_index)%boundary-100
+
+        !     boundary_velocity(1:dimensiona) = moving_boundaries(boundary_index)%velocity(1:dimensiona)
+        !     if (moving_boundaries(boundary_index)%omega.ne.zero) then
+        !         radius(:) = local_nodes(node_index)%positions(position_index,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona,position_index)
+        !         print*,"Rotation in 3D not implemented yet"
+        !         call abort()
+        !         boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega * normal(1:dimensiona))
+        !     end if
+        !     boundary_speed = sqrt((boundary_velocity(1)**2) + (boundary_velocity(2)**2) + (boundary_velocity(3)**2))
+
+        !    do j = local_nodes(node_index)%num_local_neighbours
+        !         cell_index = local_nodes(node_index)%local_neighbours(j)
+        !         DT = MIN(DT, CCFL*IELEM(N,cell_index)%MINEDGE/boundary_speed)
+        !     end do
+        ! 
+        ! END DO
+        ! !$OMP END DO
+    end if
 	
     RETURN
         
@@ -314,7 +344,7 @@ SUBROUTINE CALCULATE_CFL2D(N)
   !> subroutine for computing the global time step size in 2D
     IMPLICIT NONE
     INTEGER,INTENT(IN)::N
-    INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
+    INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL, node_index, cell_index, boundary_index
     REAL::SUVI,SUV3,maxU,MINU,sum_DT1,sum_dt2
     REAL::CCFL,VELN,AGRT,lamxl,lamyl
     real,dimension(1:nof_Variables)::leftv,rightv
@@ -324,9 +354,12 @@ SUBROUTINE CALCULATE_CFL2D(N)
     REAL,DIMENSION(1:4)::VISCL,LAML
     REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
     REAL,DIMENSION(1:2)::TURBMV
+    real,dimension(1:2)::boundary_velocity, radius, normal
     REAL,DIMENSION(1)::ETVM
+    real::boundary_speed
+
     KMAXE=XMPIELRANK(N)
-        
+    
     CCFL=(CFL/2.0d0)
   
     DT=tolbig
@@ -382,7 +415,6 @@ SUBROUTINE CALCULATE_CFL2D(N)
       !$OMP END DO
     END IF
 	
-	
 	IF (ITESTCASE.EQ.4)THEN
 	    !$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
@@ -413,6 +445,32 @@ SUBROUTINE CALCULATE_CFL2D(N)
         END DO
         !$OMP END DO
 	END IF
+
+    if (MESH_MOVEMENT) then
+        !$OMP DO REDUCTION (MIN:DT)
+        do i = 1, my_num_moving_nodes
+            node_index = local_moving_nodes(i)
+            ! if (local_nodes(node_index)%boundary.lt.100) then
+            !     print*,"something went wrong with local_nodes(node_index)%boundary"
+            ! end if
+            boundary_index = local_nodes(node_index)%boundary-100
+
+            boundary_velocity(1:dimensiona) = moving_boundaries(boundary_index)%velocity(1:dimensiona)
+            if (moving_boundaries(boundary_index)%omega.ne.zero) then
+                radius(:) = local_nodes(node_index)%positions(1,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona,1)
+                normal(1) = radius(2)
+                normal(2) = -1.0*radius(1)
+                boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega * normal(1:dimensiona))
+            end if
+            boundary_speed = sqrt((boundary_velocity(1)**2) + (boundary_velocity(2)**2))
+
+            do j=1, local_nodes(node_index)%num_local_neighbours
+                cell_index = local_nodes(node_index)%local_neighbours(j)
+                DT = MIN(DT, CCFL*IELEM(N,cell_index)%MINEDGE/boundary_speed)
+            end do
+        END DO
+        !$OMP END DO
+    end if
 	
     RETURN
         

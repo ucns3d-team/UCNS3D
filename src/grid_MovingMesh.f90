@@ -800,9 +800,9 @@ SUBROUTINE GEOMETRY_CALC_MovingMesh_v2(n, node_position_index)
 
 	!$OMP BARRIER 
 	!$OMP MASTER
-		DUMV5=ZERO
+		DUMV5 = ZERO
 		DO I=1, KMAXE
-			DUMV5 = DUMV5+IELEM(N,I)%moving_volume(node_position_index)
+			DUMV5 = DUMV5 + IELEM(N,I)%moving_volume(node_position_index)
 		END DO
 		CALL MPI_ALLREDUCE(DUMV5,Moving_TOTALVOLUME(node_position_index),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
 	!$OMP END MASTER
