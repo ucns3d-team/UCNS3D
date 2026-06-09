@@ -638,10 +638,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 			NZ=(COS(ANGLE2))
 				
 			if (ielem(n,i)%types_faces(L).eq.5)then
-				iqp=qp_quad_n
+				iqp = qp_quad_n
 				WEIGHTS_TEMP(1:IQP)=WEIGHTS_Q(1:IQP)
 			else
-				iqp=QP_TRIANGLE_n
+				iqp = QP_TRIANGLE_n
 				WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
 			end if
 				
@@ -1463,9 +1463,11 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
 					CALL ROTATEF(N,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
 					CALL ROTATEF(N,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-					LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
+					LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables)
+					RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
 					CALL LMACHT(N,LEFTV,RIGHTV)
-					CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
+					CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables)
+					CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
 					CALL ROTATEB(N,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
 					CALL ROTATEB(N,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2)
 				END IF		  
@@ -1476,7 +1478,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				     
 				IF (TURBULENCE.EQ.1)THEN
 					IF (TURBULENCEMODEL.EQ.1)THEN
-						TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
+						TURBMV(1)=CTURBL(1)
+						TURBMV(2)=CTURBR(1)
+						eddyfl(2)=turbmv(1)
+						eddyfr(2)=turbmv(2)
 						Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 					END IF
 					IF (TURBULENCEMODEL.EQ.2)THEN
@@ -1608,7 +1613,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				! TAU_ZZ
 				TAUL(3,3) = (4.0D0/3.0D0)*WZ - (2.0D0/3.0D0)*UX - (2.0D0/3.0D0)*VY
 
-				HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)	
+				HLLCFLUX(1:nof_Variables) = (NX*FXV + NY*FYV + NZ*FZV)	
 
 				if (dg.eq.1)then
 					RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
@@ -1707,7 +1712,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 		allocate(DG_RHS(1:NUM_DG_DOFS,1:NOF_VARIABLES), DG_RHS_VOL_INTEG(1:NUM_DG_DOFS,1:NOF_VARIABLES), DG_RHS_SURF_INTEG(1:NUM_DG_DOFS,1:NOF_VARIABLES))
 	END IF
 			
-	KMAXE=XMPIELRANK(N)
+	KMAXE = XMPIELRANK(N)
 		
 	CALL QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
 	WEIGHTS_temp(1:QP_line_n)=WEQUA2D(1:QP_line_n)
@@ -1717,8 +1722,8 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 		
 	!$OMP DO
 	DO II=1,NOF_INTERIOR	!for all the interior elements
-		I=EL_INT(II)
-		ICONSIDERED=I
+		I = EL_INT(II)
+		ICONSIDERED = I
 			   
 		IF (DG.EQ.1) THEN
 			DG_RHS = ZERO
@@ -1765,40 +1770,51 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 						Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 					END IF
 					IF (TURBULENCEMODEL.EQ.2)THEN
-						EDDYFL(1)=IELEM(N,I)%WALLDIST;EDDYFL(2)=CTURBL(1);EDDYFL(3)=CTURBL(2)
-						EDDYFL(4:5)= LCVGRAD(1,1:2);EDDYFL(6:7)=LCVGRAD(2,1:2)
-						EDDYFL(8:9)=LCVGRAD_T(1,1:2)
-						EDDYFL(10:11)=LCVGRAD_T(2,1:2)
+						EDDYFL(1) = IELEM(N,I)%WALLDIST
+						EDDYFL(2) = CTURBL(1)
+						EDDYFL(3) = CTURBL(2)
+						EDDYFL(4:5) = LCVGRAD(1,1:2)
+						EDDYFL(6:7) = LCVGRAD(2,1:2)
+						EDDYFL(8:9) = LCVGRAD_T(1,1:2)
+						EDDYFL(10:11) = LCVGRAD_T(2,1:2)
 							
-						EDDYFR(1)=IELEM(N,I)%WALLDIST;EDDYFR(2)=CTURBR(1);EDDYFR(3)=CTURBR(2)
-						EDDYFR(4:5)= RCVGRAD(1,1:2);EDDYFR(6:7)=RCVGRAD(2,1:2)
-						EDDYFR(8:9)=RCVGRAD_T(1,1:2);EDDYFL(10:11)=RCVGRAD_T(2,1:2)
+						EDDYFR(1) = IELEM(N,I)%WALLDIST
+						EDDYFR(2) = CTURBR(1)
+						EDDYFR(3) = CTURBR(2)
+						EDDYFR(4:5) = RCVGRAD(1,1:2)
+						EDDYFR(6:7) = RCVGRAD(2,1:2)
+						EDDYFR(8:9) = RCVGRAD_T(1,1:2)
+						EDDYFL(10:11) = RCVGRAD_T(2,1:2)
 						Call EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
 					END IF
 				END IF
 						
-				TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
+				TAUL=ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
 				FXV=ZERO;FYV=ZERO;FZV=ZERO;RHO12 =ZERO;
 				U12=ZERO;V12=ZERO;W12=ZERO 
 						     
 				vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
-				nall(1)=nx;nall(2)=ny
+				nall(1)=nx
+				nall(2)=ny
 				
 				LCVGRAD(1,1:2)=((LCVGRAD(1,1:2)+rCVGRAD(1,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(2)-leftv(2)))
 				LCVGRAD(2,1:2)=((LCVGRAD(2,1:2)+rCVGRAD(2,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*(rightv(3)-leftv(3)))
 				LCVGRAD(3,1:2)=((LCVGRAD(3,1:2)+rCVGRAD(3,1:2))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:2)*((rightv(4)/(rightv(1)*R_gas))-(leftv(4)/(leftv(1)*R_gas))))
 						   			
-				if (turbulence .eq. 1) then
-					Q(1:2)=  - OO2* ((LAML(3) +(LAML(4)))*lCVGRAD(3,1:2))
+				if (turbulence.eq.1) then
+					Q(1:2) = -OO2 * ((LAML(3)+(LAML(4)))*lCVGRAD(3,1:2))
 				else
-					Q(1:2)=  - OO2* ((LAML(1) +(LAML(2)))*lCVGRAD(3,1:2))
+					Q(1:2) = -OO2 * ((LAML(1)+(LAML(2)))*lCVGRAD(3,1:2))
 				end if
 				
-				FXV(4) = FXV(4) - Q(1);FYV(4) = FYV(4) - Q(2)
+				FXV(4) = FXV(4) - Q(1)
+				FYV(4) = FYV(4) - Q(2)
 					
 				!LEFT STATE DERIVATIVES
-				UX = LCVGRAD(1,1); UY = LCVGRAD(1,2)
-				VX = LCVGRAD(2,1); VY = LCVGRAD(2,2)
+				UX = LCVGRAD(1,1)
+				UY = LCVGRAD(1,2)
+				VX = LCVGRAD(2,1)
+				VY = LCVGRAD(2,2)
 				! DETERMINE TAUL!!
 				
 				! TAU_XX
@@ -1809,14 +1825,14 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				TAUL(1,2) = (UY + VX);TAUL(2,1) = TAUL(1,2)
 		  
 				! AVERAGE AND MULTIPLAY BY VISCOSITY
-				if ( turbulence .eq. 1) then
-					TAU = OO2*(( (VISCL(1)+VISCL(3)))+( (VISCL(2)+VISCL(4))))*taul
+				if (turbulence.eq.1) then
+					TAU = OO2*(((VISCL(1)+VISCL(3)))+((VISCL(2)+VISCL(4))))*taul
 				else
 					TAU = OO2*((VISCL(1))+(VISCL(2)))*taul
 				end if
 
 				! NOW ADDITION INTO MOMENTUM FLUXES
-				DO KC=2,3
+				DO KC=2, 3
 					FXV(KC) = FXV(KC) + TAU(1,KC-1)
 					FYV(KC) = FYV(KC) + TAU(2,KC-1)
 				ENDDO
@@ -1829,7 +1845,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				FXV(4) = FXV(4) + U12*TAU(1,1) + V12*TAU(1,2) 
 				FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2) 
 	 					 
-				HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)	
+				HLLCFLUX(1:nof_Variables) = (NX*FXV) + (NY*FYV)	
 			
 				if (dg.eq.1)then
 					RHLLCFLUX(1:nof_Variables)=HLLCFLUX(1:nof_Variables)
@@ -1935,7 +1951,6 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 						EDDYFL(8:9)=LCVGRAD_T(1,1:2)
 						EDDYFL(10:11)=LCVGRAD_T(2,1:2)
 						
-						
 						EDDYFR(1)=IELEM(N,I)%WALLDIST;EDDYFR(2)=CTURBR(1);EDDYFR(3)=CTURBR(2)
 						EDDYFR(4:5)= RCVGRAD(1,1:2);EDDYFR(6:7)=RCVGRAD(2,1:2)
 						EDDYFR(8:9)=RCVGRAD_T(1,1:2);EDDYFL(10:11)=RCVGRAD_T(2,1:2)
@@ -2019,7 +2034,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					
 				FXV(4) = FXV(4) + U12*TAU(1,1) + V12*TAU(1,2) 
 				FYV(4) = FYV(4) + U12*TAU(2,1) + V12*TAU(2,2)  					 
-				HLLCFLUX(1:nof_Variables) = (NX*FXV+NY*FYV)			
+				HLLCFLUX(1:nof_Variables) = (NX*FXV) + (NY*FYV)			
 						  
 				if (dg.eq.1)then
 					RHLLCFLUX(1:nof_Variables) = HLLCFLUX(1:nof_Variables)

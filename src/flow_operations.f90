@@ -2471,7 +2471,6 @@ SUBROUTINE VORTEXCALC(N)
     REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
 
  	KMAXE=XMPIELRANK(N)
-
     !$OMP DO
     DO I=1,KMAXE     
 	    
@@ -2520,9 +2519,9 @@ SUBROUTINE ENSTROPHY_CALC(N)
     real::angle1,angle2,nx,ny,nz
     real,dimension(1:4)::viscl,laml
 
- 	KMAXE=XMPIELRANK(N)
+ 	KMAXE = XMPIELRANK(N)
     !$OMP DO
-    DO I=1,KMAXE
+    DO I=1, KMAXE
 
         VORTET1(1:3,1:3)=ILOCAL_RECON3(I)%GRADS(1:3,1:3)
 
@@ -2645,20 +2644,20 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
     
             CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
             
-            SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
-            SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-            SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
-            VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
+            SUBSON1(1:nof_Variables) = RIGHTV(1:nof_Variables)
+            SUBSON2(1:nof_Variables) = LEFTV(1:nof_Variables)
+            SPS = SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+            VEL = sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
             CALL PRIM2CONS2(N,LEFTV,RIGHTV)
             
-            IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
-            
+            IF (VEL/(SPS+TOLSMALL).GT.1.0D0) THEN ! SUPERSONIC
+
                 RIGHTV(1:nof_Variables)=INFLOW(INITCOND,POX,POY,POZ)
     
-            ELSE		!SUBSONIC
+            ELSE ! SUBSONIC
       
-                SUBSON3(5)=0.5*((SUBSON1(5))+(SUBSON2(5))-(SUBSON2(1)*SPS*((NX*(SUBSON1(2)-SUBSON2(2)))+(NY*(SUBSON1(3)-SUBSON2(3)))&
-                        +(NZ*(SUBSON1(4)-SUBSON2(4))))))
+                SUBSON3(5) = 0.5*((SUBSON1(5))+(SUBSON2(5))-(SUBSON2(1)*SPS*((NX*(SUBSON1(2)-SUBSON2(2)))+(NY*(SUBSON1(3)-SUBSON2(3))) &
+                           + (NZ*(SUBSON1(4)-SUBSON2(4))))))
                 SUBSON3(1)=SUBSON1(1)+(SUBSON3(5)-SUBSON1(5))/(SPS**2)
                 SUBSON3(2)=SUBSON1(2)-(NX*(SUBSON1(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
                 SUBSON3(3)=SUBSON1(3)-(NY*(SUBSON1(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
@@ -2668,51 +2667,31 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
                 rightv(2)=SUBSON3(2)*SUBSON3(1)
                 rightv(3)=SUBSON3(3)*SUBSON3(1)
                 rightv(4)=SUBSON3(4)*SUBSON3(1)
-                SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2)+(SUBSON3(4)**2))
-                IKINS=SUBSON3(5)/((GAMMA-1.0d0)*(SUBSON3(1)))
-                rightv(5)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
+                SKINS = oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2)+(SUBSON3(4)**2))
+                IKINS = SUBSON3(5)/((GAMMA-1.0d0)*(SUBSON3(1)))
+                rightv(5) = (SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
       
-      
-      
-      END IF
+            END IF
 
+            IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                IF (TURBULENCEMODEL.EQ.1)THEN
+                    CTURBR(1)=VISC*TURBINIT*rightv(1)
+                END IF
+                IF (TURBULENCEMODEL.EQ.2)THEN	 
+                    CTURBR(1) = (1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
+                    CTURBR(2) = RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
+                    IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
+                        CTURBR(1) = (1.5D0*I_turb_inlet*(KINIT_SRF**2))*RIGHTV(1)!K INITIALIZATION
+                        CTURBR(2) = RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
+                    END IF
+                END IF
+
+                IF (PASSIVESCALAR.GT.0)THEN
+                    CTURBR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=PASS_INLET(INITCOND,POX,POY,POZ)*RIGHTV(1)
+                END IF
+            END IF
       
-      
-      
-      
-      
-      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-	      
-      
-      
-      
-	      IF (TURBULENCEMODEL.EQ.1)THEN
-		  CTURBR(1)=VISC*TURBINIT*rightv(1)
-	      END IF
-	      IF (TURBULENCEMODEL.EQ.2)THEN	 
-		CTURBR(1)=(1.5D0*I_turb_inlet*(ufreestream**2))*RIGHTV(1)!K INITIALIZATION
-		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
-        IF (ILOCAL_RECON3(ICONSIDERED)%MRF.EQ.1)THEN
-        CTURBR(1)=(1.5D0*I_turb_inlet*(KINIT_SRF**2))*RIGHTV(1)!K INITIALIZATION
-		CTURBR(2)=RIGHTV(1)*CTURBR(1)/(10.0e-5*visc)!OMEGA INITIALIZATION
         END IF
-	      END IF
- 
-	      IF (PASSIVESCALAR.GT.0)THEN
-	      CTURBR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=PASS_INLET(INITCOND,POX,POY,POZ)*RIGHTV(1)
-	      END IF
-      END IF
-      
-      
-      
-      
-      
-      
-      
-      
-    
-    END IF
-
     
       CASE(2)!OUTFLOW SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
         if (boundtype.eq.0)then
@@ -2726,9 +2705,9 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
             SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
             SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
             
-            SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
-            VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
-            SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+            SPS = SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+            VEL = sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
+            SPS = SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
             
             CALL PRIM2CONS2(N,LEFTV,RIGHTV)
             
@@ -2755,76 +2734,58 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
         IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 		    CTURBR(:)=CTURBL(:)
         END IF
+
     
-    
-    
-    
-    
-    
-    
-    
-    
-    CASE(10)!OUTLETS SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
-    ! if (boundtype.eq.0)then
-     ! rightv(1:nof_Variables)=leftv(1:nof_Variables)
+      CASE(10)!OUTLETS SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
+        ! if (boundtype.eq.0)then
+        !     rightv(1:nof_Variables)=leftv(1:nof_Variables)
+        ! else
 
-     !else
+        rightv(1:nof_Variables)=OUTFLOW3(INITCOND,pox,poy,poz)
+        CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 
-     rightv(1:nof_Variables)=OUTFLOW3(INITCOND,pox,poy,poz)
-     CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
+        SUBSON1(1:nof_Variables) = RIGHTV(1:nof_Variables)
+        SUBSON2(1:nof_Variables) = LEFTV(1:nof_Variables)
 
-    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
+        SPS = SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+        VEL = sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
 
+        SPS = SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
 
-    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
+        CALL PRIM2CONS2(N,LEFTV,RIGHTV)
 
-     SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
-    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
-
-    SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
-
-    CALL PRIM2CONS2(N,LEFTV,RIGHTV)
-
-    IF (VEL/(SPS+TOLSMALL).GT.1.0D0)THEN	!SUPERSONIC
-    CALL PRIM2CONS2(N,LEFTV,RIGHTV)
-    rightv(1:nof_Variables)=leftv(1:nof_Variables)
+        IF (VEL/(SPS+TOLSMALL).GT.1.0D0) THEN ! SUPERSONIC
+            CALL PRIM2CONS2(N,LEFTV,RIGHTV)
+            rightv(1:nof_Variables) = leftv(1:nof_Variables)
 
 
-      Else
+        Else
 
-    SUBSON3(5)=subson1(5)
-    SUBSON3(1)=SUBSON2(1)+(SUBSON3(5)-SUBSON2(5))/(SPS**2)
-    SUBSON3(2)=SUBSON2(2)+(NX*(SUBSON2(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
-    SUBSON3(3)=SUBSON2(3)+(NY*(SUBSON2(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
-    SUBSON3(4)=SUBSON2(4)+(NZ*(SUBSON2(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
-!
-    rightv(1)=SUBSON3(1)
-    rightv(2)=SUBSON3(2)*SUBSON3(1)
-    rightv(3)=SUBSON3(3)*SUBSON3(1)
-    rightv(4)=SUBSON3(4)*SUBSON3(1)
-    SKINS=oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2)+(SUBSON3(4)**2))
-    IKINS=SUBSON3(5)/((GAMMA-1.0d0)*(SUBSON3(1)))
-    rightv(5)=(SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
+            SUBSON3(5)=subson1(5)
+            SUBSON3(1)=SUBSON2(1)+(SUBSON3(5)-SUBSON2(5))/(SPS**2)
+            SUBSON3(2)=SUBSON2(2)+(NX*(SUBSON2(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
+            SUBSON3(3)=SUBSON2(3)+(NY*(SUBSON2(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
+            SUBSON3(4)=SUBSON2(4)+(NZ*(SUBSON2(5)-SUBSON3(5)))/(SPS*SUBSON2(1))
+        
+            rightv(1)=SUBSON3(1)
+            rightv(2)=SUBSON3(2)*SUBSON3(1)
+            rightv(3)=SUBSON3(3)*SUBSON3(1)
+            rightv(4)=SUBSON3(4)*SUBSON3(1)
+            SKINS = oo2*((SUBSON3(2)**2)+(SUBSON3(3)**2)+(SUBSON3(4)**2))
+            IKINS = SUBSON3(5)/((GAMMA-1.0d0)*(SUBSON3(1)))
+            rightv(5) = (SUBSON3(1)*(IKINS))+(SUBSON3(1)*SKINS)
 
+            !end if
+        end if
 
-    !end if
-    end if
-
-
-
-      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-
-		  CTURBR(:)=CTURBL(:)
-
-      END IF
-
-
+        IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+            CTURBR(:)=CTURBL(:)
+        END IF
 
        CASE(9)!OUTLETS SUBSONIC OR SUPERSONIC WILL BE CHOSEN BASED ON MACH NUMBER
-    ! if (boundtype.eq.0)then
-     ! rightv(1:nof_Variables)=leftv(1:nof_Variables)
-
-     !else
+        ! if (boundtype.eq.0)then
+        !     rightv(1:nof_Variables)=leftv(1:nof_Variables)
+        !else
 
         rightv(1:nof_Variables)=OUTFLOW2(INITCOND,pox,poy,poz)
         CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
@@ -2832,15 +2793,15 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
         SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
         SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
 
-        SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
-        VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
-        SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+        SPS = SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+        VEL = sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
+        SPS = SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
 
         CALL PRIM2CONS2(N,LEFTV,RIGHTV)
 
         IF (VEL/(SPS+TOLSMALL).GT.1.0D0) THEN	!SUPERSONIC
             CALL PRIM2CONS2(N,LEFTV,RIGHTV)
-            rightv(1:nof_Variables)=leftv(1:nof_Variables)
+            rightv(1:nof_Variables) = leftv(1:nof_Variables)
         Else
             SUBSON3(5)=subson1(5)
             SUBSON3(1)=SUBSON2(1)+(SUBSON3(5)-SUBSON2(5))/(SPS**2)
@@ -2863,7 +2824,7 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
     
       CASE(99)    !BLEED BOUNDARY
 
-        rightv(1:nof_Variables)=BLEED3D(Iconsidered,facex,pox,poy,poz)
+        rightv(1:nof_Variables) = BLEED3D(Iconsidered,facex,pox,poy,poz)
 
         IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) THEN
 		    CTURBR(:)=CTURBL(:)
@@ -2896,8 +2857,7 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
 			CTURBR(:)=CTURBL(:)
 
 			if (passivescalar.gt.0)then
-				cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)=&
-						ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
+				cturbR(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR) = ctURBL(TURBULENCEEQUATIONS+1:TURBULENCEEQUATIONS+PASSIVESCALAR)
 			end if
 		END IF
 				
@@ -2971,14 +2931,15 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
     
 	    SUBSON1(1:nof_Variables)=RIGHTV(1:nof_Variables)
 	    SUBSON2(1:nof_Variables)=LEFTV(1:nof_Variables)
-	    SPS=SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
-	    VEL=sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
+	    SPS = SQRT((GAMMA*SUBSON2(5))/(SUBSON2(1)))
+	    VEL = sqrt(SUBSON2(2)**2+SUBSON2(3)**2+SUBSON2(4)**2)
 	  
 	    CALL PRIM2CONS2(N,LEFTV,RIGHTV)
 
-	    if (vnb.le.0.0d0)then		!inflow
+	    if (vnb.le.0.0d0) then ! inflow
+
 			ibfc=-1
-	
+
 		    if ((abs(vnb)).ge.sps) then ! supersonic
 				rightv=INFLOW(INITCOND,POX,POY,POZ)
 		    else ! subsonic
@@ -3028,9 +2989,7 @@ SUBROUTINE BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,
                 END IF
 		    END IF
 		  
-	    else
-      
-	        !outflow
+	    else! outflow
 	
 	        ibfc=-2
 		    if ((abs(vnb)).ge.sps)then

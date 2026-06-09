@@ -173,8 +173,8 @@ SUBROUTINE CALCULATE_CFL(N)
     if (MESH_MOVEMENT) then
         print*,"3D Moving Mesh CFL timestep computation not implemented yet"
         ! !$OMP DO REDUCTION (MIN:DT)
-        ! do i = 1, my_num_moving_nodes
-        !     node_index = local_moving_nodes(i)
+        ! do i = 1, my_num_moving_boundary_nodes
+        !     node_index = local_moving_boundary_nodes(i)
         !     if (local_nodes(node_index)%boundary.lt.100) then
         !         print*,"something went wrong with local_nodes(node_index)%boundary"
         !     end if
@@ -415,7 +415,7 @@ SUBROUTINE CALCULATE_CFL2D(N)
       !$OMP END DO
     END IF
 	
-	IF (ITESTCASE.EQ.4)THEN
+	IF (ITESTCASE.EQ.4) THEN
 	    !$OMP DO REDUCTION (MIN:DT)
         DO I=1,KMAXE
             LEFTV(1:NOF_vARIABLES) = U_C(I)%VAL(1,1:NOF_vARIABLES)
@@ -447,20 +447,22 @@ SUBROUTINE CALCULATE_CFL2D(N)
 	END IF
 
     if (MESH_MOVEMENT) then
+        !$OMP BARRIER
+
         !$OMP DO REDUCTION (MIN:DT)
-        do i = 1, my_num_moving_nodes
-            node_index = local_moving_nodes(i)
+        do i = 1, my_num_moving_boundary_nodes
+            node_index = local_moving_boundary_nodes(i)
             ! if (local_nodes(node_index)%boundary.lt.100) then
             !     print*,"something went wrong with local_nodes(node_index)%boundary"
             ! end if
             boundary_index = local_nodes(node_index)%boundary-100
 
-            boundary_velocity(1:dimensiona) = moving_boundaries(boundary_index)%velocity(1:dimensiona)
+            boundary_velocity(1:2) = moving_boundaries(boundary_index)%velocity(1:2)
             if (moving_boundaries(boundary_index)%omega.ne.zero) then
-                radius(:) = local_nodes(node_index)%positions(1,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona,1)
+                radius(:) = local_nodes(node_index)%positions(1,1:2) - moving_boundaries(boundary_index)%rotation_centre(1:2,1)
                 normal(1) = radius(2)
                 normal(2) = -1.0*radius(1)
-                boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega * normal(1:dimensiona))
+                boundary_velocity(1:2) = boundary_velocity(1:2) + (moving_boundaries(boundary_index)%omega * normal(1:2))
             end if
             boundary_speed = sqrt((boundary_velocity(1)**2) + (boundary_velocity(2)**2))
 

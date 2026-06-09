@@ -373,7 +373,6 @@ function point_distance(point1, point2)
     real,dimension(dimensiona),intent(inout)::point1, point2
     real::point_distance
     real::x_coord_diff, y_coord_diff, z_coord_diff
-    real::x1,x2,y1,y2,z1,z2
     real::distance2
 
     x_coord_diff = abs(point1(1) - point2(1))
@@ -555,8 +554,8 @@ subroutine establish_node_neighbours(N)
         end do
         allocate(local_interface_nodes(my_num_interface_nodes))
         ! allocate(local_boundary_nodes(my_num_boundary_nodes))
-        ! allocate(local_moving_nodes(my_num_moving_nodes))
-        ! print*,N,"my_num_interface_nodes =", my_num_interface_nodes, "\n"!, N, "my_num_boundary_nodes =", my_num_boundary_nodes,"\n", N, "my_num_moving_nodes =", my_num_moving_nodes
+        ! allocate(local_moving_boundary_nodes(my_num_moving_boundary_nodes))
+        ! print*,N,"my_num_interface_nodes =", my_num_interface_nodes, "\n"!, N, "my_num_boundary_nodes =", my_num_boundary_nodes,"\n", N, "my_num_moving_boundary_nodes =", my_num_moving_boundary_nodes
         index1 = 0
         ! index2 = 0
         ! index3 = 0
@@ -571,7 +570,7 @@ subroutine establish_node_neighbours(N)
             ! end if
             ! if (local_nodes(node_index)%boundary.gt.100) then
             !     index3 = index3 + 1
-            !     local_moving_nodes(index3) = node_index
+            !     local_moving_boundary_nodes(index3) = node_index
             ! end if
         end do
         if (index1.ne.my_num_interface_nodes) then
@@ -584,10 +583,10 @@ subroutine establish_node_neighbours(N)
         ! ! else
         ! !     print *, my_num_boundary_nodes, "= num boundary nodes on CPU", N
         ! end if
-        ! if (index3.ne.my_num_moving_nodes) then
+        ! if (index3.ne.my_num_moving_boundary_nodes) then
         !     print *, "missmatch in the number of moving nodes on CPU", N
         ! ! else
-        ! !     print *, my_num_moving_nodes, "= num moving nodes on CPU", N
+        ! !     print *, my_num_moving_boundary_nodes, "= num moving nodes on CPU", N
         ! end if
 
         Call MPI_ALLGATHER(my_num_interface_nodes, 1, MPI_INT, num_interface_nodes, 1, MPI_INT, MPI_COMM_WORLD, IERROR)
@@ -685,18 +684,18 @@ subroutine establish_node_neighbours(N)
         end do
 
         my_num_boundary_nodes = 0
-        my_num_moving_nodes = 0
+        my_num_moving_boundary_nodes = 0
         do node_index=1,kmaxn 
             if (local_nodes(node_index)%boundary.gt.0) then
                 my_num_boundary_nodes = my_num_boundary_nodes + 1
             end if
             if (local_nodes(node_index)%boundary.gt.100) then
-                my_num_moving_nodes = my_num_moving_nodes + 1
+                my_num_moving_boundary_nodes = my_num_moving_boundary_nodes + 1
             end if
         end do
         allocate(local_boundary_nodes(my_num_boundary_nodes))
-        allocate(local_moving_nodes(my_num_moving_nodes))
-        print*,N, "my_num_boundary_nodes =", my_num_boundary_nodes,"\n", N, "my_num_moving_nodes =", my_num_moving_nodes
+        allocate(local_moving_boundary_nodes(my_num_moving_boundary_nodes))
+        print*,N, "my_num_boundary_nodes =", my_num_boundary_nodes,"\n", N, "my_num_moving_boundary_nodes =", my_num_moving_boundary_nodes
         index2 = 0
         index3 = 0
         do node_index=1,kmaxn
@@ -706,7 +705,7 @@ subroutine establish_node_neighbours(N)
             end if
             if (local_nodes(node_index)%boundary.gt.100) then
                 index3 = index3 + 1
-                local_moving_nodes(index3) = node_index
+                local_moving_boundary_nodes(index3) = node_index
             end if
         end do
         if (index2.ne.my_num_boundary_nodes) then
@@ -714,10 +713,10 @@ subroutine establish_node_neighbours(N)
         ! else
         !     print *, my_num_boundary_nodes, "= num boundary nodes on CPU", N
         end if
-        if (index3.ne.my_num_moving_nodes) then
-            print *, "missmatch in the number of moving nodes on CPU", N
+        if (index3.ne.my_num_moving_boundary_nodes) then
+            print *, "missmatch in the number of moving boundary nodes on CPU", N
         ! else
-        !     print *, my_num_moving_nodes, "= num moving nodes on CPU", N
+        !     print *, my_num_moving_boundary_nodes, "= num moving nodes on CPU", N
         end if
 
 
@@ -800,13 +799,311 @@ subroutine establish_node_neighbours(N)
 end subroutine establish_node_neighbours
 
 
+
+
+
+subroutine find_nodes_near_moving_walls(N, max_edge_count)
+    implicit none
+    integer,intent(in)::N, max_edge_count
+    integer:: M
+    integer::i, i_plus, i_minus, j, k, iter, node_index, node_plus_index, node_minus_index, cell_index, cpu_index, cpu, index, counter
+    integer::cell_num_nodes
+    integer,allocatable,dimension(:)::old_num_edges_to_boundary, old_nearest_boundary
+    integer,allocatable,dimension(:)::new_num_edges_to_boundary, new_nearest_boundary
+
+    integer,dimension(2*isize)::requests
+    integer::num_requests, count
+
+    type::node_int_buffer
+        integer,allocatable,dimension(:)::data
+    end type
+
+    type(node_int_buffer),allocatable,dimension(:)::node_snd_int_buffer
+    type(node_int_buffer),allocatable,dimension(:)::node_rcv_int_buffer
+
+    M = omp_get_thread_num()
+
+    if (num_values_to_send_per_node.lt.1) then
+        print *,"something went wrong sorry :("
+        call abort
+    end if
+
+    allocate(old_num_edges_to_boundary(1:kmaxn), old_nearest_boundary(1:kmaxn))
+    allocate(new_num_edges_to_boundary(1:kmaxn), new_nearest_boundary(1:kmaxn))
+
+    allocate(node_rcv_int_buffer(0:isize-1))
+    allocate(node_snd_int_buffer(0:isize-1))
+    do cpu_index = 0, isize-1
+        allocate(node_snd_int_buffer(cpu_index)%data(node_snd_count(cpu_index)*2))
+        allocate(node_rcv_int_buffer(cpu_index)%data(node_rcv_count(cpu_index)*2))
+    end do
+
+    !$omp do
+    do node_index=1, kmaxn 
+        if (local_nodes(node_index)%boundary.gt.100) then
+            old_num_edges_to_boundary(node_index) = 0
+            old_nearest_boundary(node_index) = local_nodes(node_index)%boundary
+            new_num_edges_to_boundary(node_index) = 0
+            new_nearest_boundary(node_index) = local_nodes(node_index)%boundary
+        else
+            old_num_edges_to_boundary(node_index) = max_edge_count+1
+            old_nearest_boundary(node_index) = 0
+            new_num_edges_to_boundary(node_index) = max_edge_count+1
+            new_nearest_boundary(node_index) = 0
+        end if
+    end do
+    !$omp end do
+
+    !$omp do
+    do iter=1, my_num_interface_nodes 
+        node_index = local_interface_nodes(iter)
+        ! print *, "on CPU", N, "thread", M, "coping data of", node_index, "(", iter, ") to send buffer" 
+        do cpu_index = 1,local_nodes(node_index)%num_cpus
+            cpu = local_nodes(node_index)%snd_offsets(cpu_index)%cpu
+            index = (local_nodes(node_index)%snd_offsets(cpu_index)%lower -1) * 2
+            do j = 1, local_nodes(node_index)%num_local_neighbours
+                index = index+1
+                if (index.gt.node_snd_count(cpu)*2) then
+                    print *, "copying too much data to send buffer from", N, "to", cpu 
+                end if
+                node_snd_int_buffer(cpu)%data(index) = new_num_edges_to_boundary(node_index)
+                index = index+1
+                if (index.gt.node_snd_count(cpu)*2) then
+                    print *, "copying too much data to send buffer from", N, "to", cpu 
+                end if
+                node_snd_int_buffer(cpu)%data(index) = new_nearest_boundary(node_index)
+            end do
+        end do
+    end do
+    !$omp end do
+
+    !$omp barrier
+
+    num_requests = 0
+    !$omp master
+        ! print *, "inside send_rcv part on CPU", N
+        do cpu_index = 0, isize-1
+            if (node_snd_count(cpu_index).gt.0) then
+                count = node_snd_count(cpu_index) * 2
+                num_requests = num_requests + 1
+                CALL MPI_ISEND(node_snd_int_buffer(cpu_index)%data(1:count), count, MPI_INTEGER, cpu_index, 11+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                ! print *, "sending from", N, "to", cpu_index, count, "values"
+            end if
+            if (node_rcv_count(cpu_index).gt.0) then
+                count = node_rcv_count(cpu_index) * 2
+                num_requests = num_requests + 1
+                CALL MPI_IRECV(node_rcv_int_buffer(cpu_index)%data(1:count), count, MPI_INTEGER, cpu_index, 11+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                ! print *, N, "waiting to receive", count, "values from", cpu_index
+            end if
+        end do
+
+        ! print*,"CPU", n, "witing on", num_requests, "requests"
+        CALL MPI_WAITALL(num_requests, requests, MPI_STATUSES_IGNORE, IERROR)
+    !$omp end master
+
+    !$omp barrier
+    
+    !$omp do
+    do iter=1, my_num_interface_nodes 
+        node_index = local_interface_nodes(iter)
+        do i = 1, local_nodes(node_index)%num_cpus
+            cpu_index = local_nodes(node_index)%rcv_offsets(i)%cpu
+            index = (local_nodes(node_index)%rcv_offsets(i)%lower - 1)*2
+            do j = local_nodes(node_index)%rcv_offsets(i)%lower, local_nodes(node_index)%rcv_offsets(i)%upper
+                if ((index+1).gt.node_rcv_count(cpu_index) * 2) then
+                    print *, "copying too much data from int receive buffer from", N, "to", cpu 
+                end if
+                if ((index+2).gt.node_rcv_count(cpu_index) * 2) then
+                    print *, "copying too much data from int receive buffer from", N, "to", cpu 
+                end if
+                if (node_rcv_int_buffer(cpu_index)%data(index+1).lt.new_num_edges_to_boundary(node_index)) then
+                    new_num_edges_to_boundary(node_index) = node_rcv_int_buffer(cpu_index)%data(index+1)
+                    new_nearest_boundary(node_index) = node_rcv_int_buffer(cpu_index)%data(index+2)
+                end if
+                index = index + 2
+            end do
+        end do
+    end do
+    !$omp end do
+
+    do counter=1, max_edge_count
+        !$omp do
+        do node_index = 1, kmaxn 
+            do j = 1, local_nodes(node_index)%num_local_neighbours
+                cell_index = local_nodes(node_index)%local_neighbours(j)
+                cell_num_nodes = ielem(N, cell_index)%nonodes
+                do i = 1, cell_num_nodes
+                    if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.node_index) then
+                        exit
+                    end if
+                end do
+                i_plus = i+1
+                if (i_plus.gt.cell_num_nodes) then
+                    i_plus = 1
+                end if
+                i_minus = i-1
+                if (i_minus.lt.1) then
+                    i_minus = cell_num_nodes
+                end if
+                node_plus_index  = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
+                node_minus_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
+
+                if ((old_num_edges_to_boundary(node_plus_index)+1).lt.new_num_edges_to_boundary(node_index)) Then
+                    new_num_edges_to_boundary(node_index) = old_num_edges_to_boundary(node_plus_index)+1
+                    new_nearest_boundary(node_index) = old_nearest_boundary(node_plus_index)
+                end if
+                if ((old_num_edges_to_boundary(node_minus_index)+1).lt.new_num_edges_to_boundary(node_index)) Then
+                    new_num_edges_to_boundary(node_index) = old_num_edges_to_boundary(node_minus_index)+1
+                    new_nearest_boundary(node_index) = old_nearest_boundary(node_minus_index)
+                end if
+            end do
+        end do
+        !$omp end do
+
+        !$omp barrier
+
+        !$omp do
+        do iter=1, my_num_interface_nodes 
+            node_index = local_interface_nodes(iter)
+            ! print *, "on CPU", N, "thread", M, "coping data of", node_index, "(", iter, ") to send buffer" 
+            do cpu_index = 1,local_nodes(node_index)%num_cpus
+                cpu = local_nodes(node_index)%snd_offsets(cpu_index)%cpu
+                index = (local_nodes(node_index)%snd_offsets(cpu_index)%lower -1) * 2
+                do j = 1, local_nodes(node_index)%num_local_neighbours
+                    index = index+1
+                    if (index.gt.node_snd_count(cpu)*2) then
+                        print *, "copying too much data to send buffer from", N, "to", cpu 
+                    end if
+                    node_snd_int_buffer(cpu)%data(index) = new_num_edges_to_boundary(node_index)
+                    index = index+1
+                    if (index.gt.node_snd_count(cpu)*2) then
+                        print *, "copying too much data to send buffer from", N, "to", cpu 
+                    end if
+                    node_snd_int_buffer(cpu)%data(index) = new_nearest_boundary(node_index)
+                end do
+            end do
+        end do
+        !$omp end do
+
+        !$omp barrier
+
+        num_requests = 0
+        !$omp master
+            ! print *, "inside send_rcv part on CPU", N
+            do cpu_index = 0, isize-1
+                if (node_snd_count(cpu_index).gt.0) then
+                    count = node_snd_count(cpu_index) * 2
+                    num_requests = num_requests + 1
+                    CALL MPI_ISEND(node_snd_int_buffer(cpu_index)%data(1:count), count, MPI_INTEGER, cpu_index, 11+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, "sending from", N, "to", cpu_index, count, "values"
+                end if
+                if (node_rcv_count(cpu_index).gt.0) then
+                    count = node_rcv_count(cpu_index) * 2
+                    num_requests = num_requests + 1
+                    CALL MPI_IRECV(node_rcv_int_buffer(cpu_index)%data(1:count), count, MPI_INTEGER, cpu_index, 11+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, N, "waiting to receive", count, "values from", cpu_index
+                end if
+            end do
+
+            ! print*,"CPU", n, "witing on", num_requests, "requests"
+            CALL MPI_WAITALL(num_requests, requests, MPI_STATUSES_IGNORE, IERROR)
+        !$omp end master
+
+        !$omp barrier
+    
+        !$omp do
+        do iter=1, my_num_interface_nodes 
+            node_index = local_interface_nodes(iter)
+            do i = 1, local_nodes(node_index)%num_cpus
+                cpu_index = local_nodes(node_index)%rcv_offsets(i)%cpu
+                index = (local_nodes(node_index)%rcv_offsets(i)%lower - 1)*2
+                do j = local_nodes(node_index)%rcv_offsets(i)%lower, local_nodes(node_index)%rcv_offsets(i)%upper
+                    if ((index+1).gt.node_rcv_count(cpu_index) * 2) then
+                        print *, "copying too much data from int receive buffer from", N, "to", cpu 
+                    end if
+                    if ((index+2).gt.node_rcv_count(cpu_index) * 2) then
+                        print *, "copying too much data from int receive buffer from", N, "to", cpu 
+                    end if
+                    if (node_rcv_int_buffer(cpu_index)%data(index+1).lt.new_num_edges_to_boundary(node_index)) then
+                        new_num_edges_to_boundary(node_index) = node_rcv_int_buffer(cpu_index)%data(index+1)
+                        new_nearest_boundary(node_index) = node_rcv_int_buffer(cpu_index)%data(index+2)
+                    end if
+                    index = index + 2
+                end do
+            end do
+        end do
+        !$omp end do
+
+        !$omp barrier
+
+        !$omp do
+        do node_index = 1, kmaxn 
+            old_num_edges_to_boundary(node_index) = new_num_edges_to_boundary(node_index)
+            old_nearest_boundary(node_index) = new_nearest_boundary(node_index)
+        end do
+        !$omp end do
+
+        !$omp barrier
+    end do
+
+    deallocate(old_num_edges_to_boundary, old_nearest_boundary)
+
+    my_num_moving_nodes = 0
+    !$omp do reduction(+:my_num_moving_nodes)
+    do node_index = 1, kmaxn
+        if (new_num_edges_to_boundary(node_index).le.max_edge_count) Then
+            my_num_moving_nodes = my_num_moving_nodes +1
+        end if
+    end do
+    !$omp end do
+    !$omp barrier
+
+    allocate(local_moving_nodes(my_num_moving_nodes))
+
+    !$omp master
+        index = 0
+        do node_index = 1, kmaxn
+            if (new_num_edges_to_boundary(node_index).le.max_edge_count) Then
+                index = index+1
+                local_moving_nodes(index) = node_index
+                local_nodes(node_index)%nearest_boundary = new_nearest_boundary(node_index)
+                local_nodes(node_index)%boundary_fraction = 1.0 - (real(new_num_edges_to_boundary(node_index))/real(max_edge_count+1))
+            else
+                local_nodes(node_index)%nearest_boundary = 0
+                local_nodes(node_index)%boundary_fraction = 0.0
+            end if
+            if (local_nodes(node_index)%boundary.gt.100) then
+                if (local_nodes(node_index)%nearest_boundary.ne.local_nodes(node_index)%boundary) then
+                    print*,"Something went wrong in find_nodes_near_moving_walls and a moving boundary is not closest to itself"
+                end if
+                if (local_nodes(node_index)%boundary_fraction.ne.1.0) then
+                    print*,"Something went wrong in find_nodes_near_moving_walls and a moving boundary is not movinh with its own speed"
+                end if
+            end if
+        end do
+    !$omp end master 
+
+    do cpu_index = 0, isize-1
+        deallocate(node_snd_int_buffer(cpu_index)%data)
+        deallocate(node_rcv_int_buffer(cpu_index)%data)
+    end do
+    deallocate(node_rcv_int_buffer)
+    deallocate(node_snd_int_buffer)
+    deallocate(new_num_edges_to_boundary, new_nearest_boundary)
+
+end subroutine find_nodes_near_moving_walls
+
+
+
+
+
 subroutine find_node_lagrangian_velocity(stage, position_index, N)
     implicit none
     integer,intent(in)::stage, position_index, N
 
     select case(node_solver_type)
       case (0)
-        ! do nothing
+        call NearBoundaryVelocity(stage, position_index, N)
       case (1)
         call FirstOrderNodeAverage(stage, N)
       case(2)
@@ -1094,6 +1391,46 @@ end subroutine
 !     END DO
 
 ! END SUBROUTINE FirstOrderNodeSolverArithmetic
+
+
+
+
+
+SUBROUTINE NearBoundaryVelocity(stage, node_position_index, N)
+    implicit none
+    integer,intent(in)::stage, node_position_index, N
+    integer::i, j, k, iter, node_index, cell_index, boundary_index
+    integer:: M
+    real,dimension(1:dimensiona)::radius, normal, boundary_velocity
+
+    !$omp do
+        do iter = 1, my_num_moving_nodes
+            node_index = local_moving_nodes(iter)
+
+            if (local_nodes(node_index)%nearest_boundary.le.100) then
+                print*,"something went wrong with local_nodes(node_index)%boundary"
+            end if
+            boundary_index = local_nodes(node_index)%nearest_boundary-100
+            boundary_velocity(1:dimensiona) = moving_boundaries(boundary_index)%velocity(1:dimensiona)
+            if (moving_boundaries(boundary_index)%omega.ne.zero) then
+                radius(:) = local_nodes(node_index)%positions(node_position_index,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona, node_position_index)
+                if (dimensiona.eq.2) then
+                    normal(1) = radius(2)
+                    normal(2) = -1.0*radius(1)
+                else
+                    print*,"Rotation in 3D not implemented yet"
+                    call abort()
+                end if
+                boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega * normal(1:dimensiona))
+            end if
+
+            local_nodes(node_index)%lagrangian_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) * local_nodes(node_index)%boundary_fraction
+        end do
+    !$omp end do
+    
+    !$omp barrier
+
+END SUBROUTINE NearBoundaryVelocity
 
 
 
@@ -4814,7 +5151,7 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
 
             local_relaxation_velocity_multiple = (quality_coeff * quality_term) + (gradient_term * gradient_coeff)
             call clamp(local_relaxation_velocity_multiple, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple)
-            
+
             local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) &
                                                            + local_nodes(node_index)%relaxation_velocity(1:dimensiona) * local_relaxation_velocity_multiple
         end do
@@ -5603,8 +5940,8 @@ end subroutine fix_moved_concave_cells
 
 !     if (BOUNDARY_MOVEMENT) then
 !         !$omp do
-!         do i = 1, my_num_moving_nodes
-!             node_index = local_moving_nodes(i)
+!         do i = 1, my_num_moving_boundary_nodes
+!             node_index = local_moving_boundary_nodes(i)
 
 !             if (local_nodes(node_index)%boundary.lt.100) then
 !                 print*,"something went wrong with local_nodes(node_index)%boundary"
@@ -5653,8 +5990,8 @@ subroutine enforce_node_velocity_BC(position_index, d_t, N)
         !$omp barrier
 
         !$omp do
-        do i = 1, my_num_moving_nodes
-            node_index = local_moving_nodes(i)
+        do i = 1, my_num_moving_boundary_nodes
+            node_index = local_moving_boundary_nodes(i)
 
             if (local_nodes(node_index)%boundary.lt.100) then
                 print*,"something went wrong with local_nodes(node_index)%boundary"
@@ -5877,11 +6214,11 @@ subroutine enforce_node_velocity_BC(position_index, d_t, N)
     if (BOUNDARY_MOVEMENT) then
         !$omp barrier
 
-        if ((n.eq.0).and.(my_num_moving_nodes.gt.0)) print*,"Moving Boundaries BC"
+        ! if ((n.eq.0).and.(my_num_moving_boundary_nodes.gt.0)) print*,"Moving Boundaries BC"
 
         !$omp do
-        do i = 1, my_num_moving_nodes
-            node_index = local_moving_nodes(i)
+        do i = 1, my_num_moving_boundary_nodes
+            node_index = local_moving_boundary_nodes(i)
 
             if (local_nodes(node_index)%boundary.lt.100) then
                 print*,"something went wrong with local_nodes(node_index)%boundary"
@@ -6141,8 +6478,8 @@ subroutine enforce_node_lagrangian_velocity_BC(position_index, d_t, N)
         !$omp barrier
 
         !$omp do
-        do i = 1, my_num_moving_nodes
-            node_index = local_moving_nodes(i)
+        do i = 1, my_num_moving_boundary_nodes
+            node_index = local_moving_boundary_nodes(i)
 
             if (local_nodes(node_index)%boundary.lt.100) then
                 print*,"something went wrong with local_nodes(node_index)%boundary"

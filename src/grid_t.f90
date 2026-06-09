@@ -1445,16 +1445,19 @@ subroutine coordinates_face_inner2dx(n,iconsidered,facex,VEXT,NODES_LIST)
 	i=iconsidered
 
 	nnd=2   
-	do K=1,nnd
+	do K=1, nnd
 		if (MESH_MOVEMENT) then
 			NODES_LIST(k,1:2) = local_nodes(IELEM(N,I)%NODES_FACES(facex,K))%positions(global_position_index,1:2)
 		else
-			NODES_LIST(k,1:2)=inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:2)
+			NODES_LIST(k,1:2) = inoder4(IELEM(N,I)%NODES_FACES(facex,K))%CORD(1:2)
 		end if
-		VEXT(K,1:2)=NODES_LIST(k,1:2)
+		VEXT(K,1:2) = NODES_LIST(k,1:2)
 	END DO
 	        
 end subroutine coordinates_face_inner2dx
+
+
+
 
 
 subroutine coordinates_face_PERIOD1(n,iconsidered,facex,VEXT,NODES_LIST)

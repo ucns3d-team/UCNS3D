@@ -173,7 +173,7 @@ FUNCTION BR2_LOCAL_LIFT(N, N_QP,facex,iconsidered,WEQUA2D)
 
     allocate(BASIS_TEMP(1:NUMBER_OF_DOG))
 
-	IF (DIMENSIONA == 3) THEN
+	IF (DIMENSIONA.eq.3) THEN
         ANGLE1=IELEM(N,I)%FACEANGLEX(L)
         ANGLE2=IELEM(N,I)%FACEANGLEY(L)
         NNN(1)=(COS(ANGLE1)*SIN(ANGLE2))
@@ -185,7 +185,7 @@ FUNCTION BR2_LOCAL_LIFT(N, N_QP,facex,iconsidered,WEQUA2D)
     END IF
 
     BR2_LOCAL_LIFT = 0.0D0
-    DO NGP = 1, N_QP
+    DO NGP=1, N_QP
 
         POINTX = NGP
 
@@ -914,7 +914,7 @@ SUBROUTINE CALCULATE_INTERIOR_VISCOUS(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RI
     END IF
 
     IF (ILOCAL_RECON3(I)%MRF.EQ.1)THEN
-        SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
+        SRF_SPEED(2:4) = ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
         CALL ROTATEF(N,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
     END IF
 
@@ -977,12 +977,13 @@ SUBROUTINE CALCULATE_INTERIOR_VISCOUS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,
         cright_rot(nof_Variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)=CTURBr(1:turbulenceequations+PASSIVESCALAR)
 
         do nvar=1,turbulenceequations+passivescalar
-            RCVGRAD_T(nvar,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURBV(1:2,nvar,IELEM(N,I)%INEIGHN(L),NGP)
+            RCVGRAD_T(nvar,1:2) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURBV(1:2,nvar,IELEM(N,I)%INEIGHN(L),NGP)
             LCVGRAD_T(nvar,1:2)=ILOCAL_RECON3(I)%ULEFTTURBV(1:2,nvar,L,NGP)
         end do
     END IF
 
 END SUBROUTINE CALCULATE_INTERIOR_VISCOUS2D
+
 
 
 
@@ -1022,7 +1023,7 @@ SUBROUTINE CALCULATE_BOUNDED_VISCOUS(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIG
     LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
 
     IF (ILOCAL_RECON3(I)%MRF.EQ.1)THEN
-        SRF_SPEED(2:4)=ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
+        SRF_SPEED(2:4) = ILOCAL_RECON3(I)%ROTVEL(L,NGP,1:3)
         CALL ROTATEF(N,SRF_SPEEDROT,SRF_SPEED,ANGLE1,ANGLE2)
     END IF
 
@@ -1042,13 +1043,13 @@ SUBROUTINE CALCULATE_BOUNDED_VISCOUS(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIG
             if ((ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5).or.(ibound(n,ielem(n,i)%ibounds(L))%icode.eq.50))then
 
                 IF (DG.eq.1) THEN
-                    CRIGHT(1:nof_Variables)= ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                    CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
                 ELSE
-                    CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                    CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
                 END IF
 
-                RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,L,NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,L,NGP);
-                RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,L,NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,L,NGP);
+                RCVGRAD(1,1:3) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,L,NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,L,NGP);
+                RCVGRAD(3,1:3) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,L,NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,L,NGP);
 
                 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
                     if (icoupleturb.eq.1)then
@@ -1092,7 +1093,6 @@ SUBROUTINE CALCULATE_BOUNDED_VISCOUS(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIG
                 CALL BOUNDARYS(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
                 cright(1:nof_Variables)=rightv(1:nof_Variables)
 
-
                 RCVGRAD(:,:)=LCVGRAD(:,:)
                 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
                     RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
@@ -1135,7 +1135,7 @@ SUBROUTINE CALCULATE_BOUNDED_VISCOUS(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIG
 
 		ELSE
 
-			IF (DG == 1) THEN
+			IF (DG.eq.1) THEN
                 CRIGHT(1:NOF_VARIABLES) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
             ELSE
 				CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
@@ -1357,74 +1357,42 @@ SUBROUTINE CALCULATE_BOUNDED_VISCOUS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,R
                 CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
                 cright(1:nof_Variables)=rightv(1:nof_Variables)
 
-								    RCVGRAD(:,:)=LCVGRAD(:,:)
+				RCVGRAD(:,:)=LCVGRAD(:,:)
 
+				IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) THEN
+				  	RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+				end if
 
-								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
-				  				    end if
+				if (b_code.gt.0)then
+                    if ((B_CODE.eq.4).or.(b_code.gt.100)) then ! wall or moving wall
+                        IF (THERMAL.NE.1) THEN ! velocity gradients
+                            do k=1, dimensiona
+                                RCVGRAD(1:DIMENSIONA,k)=LCVGRAD(1:DIMENSIONA,k)
+                            END DO
 
-				  				     if (b_code.gt.0)then
-                                            if (B_CODE.eq.4)then
-                                                          IF (THERMAL.NE.1)THEN
+                            do iex=DIMENSIONA+1, NOF_VARIABLES-1
+                                tempx_l=0.0d0
+                                rtempx_l=0.0d0
+                                tempx_l(2)=lCVGRAD(iex,1)
+                                tempx_l(3)=lCVGRAD(iex,2)
 
-                                                                          !velocity gradients
-                                                                  do k=1,dimensiona
-                                                                        RCVGRAD(1:DIMENSIONA,k)=LCVGRAD(1:DIMENSIONA,k)
-                                                                        END DO
+                                CALL ROTATEF2d(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
+                                rtempx_l(2)=-rtempx_l(2)
+                                CALL ROTATEb2d(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
+                                rCVGRAD(iex,1)=tempx_l(2)
+                                rCVGRAD(iex,2)=tempx_l(3)
+                            END DO
 
+                            IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
+                                RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+                            end if
+                        else
+                            print*,"THERMAL.EQ.1 in CALCULATE_BOUNDED_VISCOUS2D and I don't know what is going on"
+                        end if
+                    ELSE
 
-                                                                      do iex=DIMENSIONA+1,NOF_VARIABLES-1
-
-
-                                                                      tempx_l=0.0d0
-                                                                      rtempx_l=0.0d0
-                                                                      tempx_l(2)=lCVGRAD(iex,1)
-                                                                      tempx_l(3)=lCVGRAD(iex,2)
-
-                                                                      CALL ROTATEF2d(N,rtempx_l,tempx_l,ANGLE1,ANGLE2)
-                                                                      rtempx_l(2)=-rtempx_l(2)
-                                                                      CALL ROTATEb2d(N,tempx_l,rtempx_l,ANGLE1,ANGLE2)
-                                                                      rCVGRAD(iex,1)=tempx_l(2)
-                                                                      rCVGRAD(iex,2)=tempx_l(3)
-
-
-                                                                      END DO
-
-
-
-
-
-                                                                    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-                                                                    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
-                                                                    end if
-
-
-                                                        end if
-                                                  ELSE
-
-
-
-
-
-
-
-
-
-
-                                          end if
-                                          end if
-
-
-
-
-
-
-
-
-
-
-
+                    end if
+                end if
 
             END IF
         ELSE
@@ -1439,10 +1407,10 @@ SUBROUTINE CALCULATE_BOUNDED_VISCOUS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,R
             RCVGRAD(3,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:2,1,IELEM(N,I)%INEIGHN(L),NGP);
             IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
                 if (icoupleturb.eq.1)then
-                    CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+                    CTURBR(1:turbulenceequations+PASSIVESCALAR) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
                             (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
                 ELSE
-                    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+                    CTURBR(1:turbulenceequations+PASSIVESCALAR) = U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
                 END IF
                 do nvar=1,turbulenceequations+passivescalar
                     RCVGRAD_T(nvar,1:2)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURBV(1:2,nvar,IELEM(N,I)%INEIGHN(L),NGP)
@@ -1488,10 +1456,10 @@ SUBROUTINE CALCULATE_BOUNDED_VISCOUS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,R
                                 (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
                     END IF
 
-                    DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-                        DO nvar=1,DIMS
-                            ITTT=ITTT+1
-                            RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                    DO IEX=1, TURBULENCEEQUATIONS+PASSIVESCALAR
+                        DO nvar=1, DIMS
+                            ITTT = ITTT+1
+                            RCVGRAD_T(IEX,NVAR) = IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
                         END DO
                     END DO
 				END IF
@@ -1511,12 +1479,12 @@ SUBROUTINE CALCULATE_BOUNDED_VISCOUS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,R
 				DO nvar=1,DIMS
 					ITTT=ITTT+1
 					IF (DG.EQ.1)THEN
- 						RCVGRAD(IEX,nVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+ 						RCVGRAD(IEX,nVAR) = IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
 					ELSE
 						IF (IEX.EQ.1)THEN
-							RCVGRAD(3,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+							RCVGRAD(3,NVAR) = IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
 						ELSE
-							RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+							RCVGRAD(IEX-1,NVAR) = IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
 						END IF
 					END IF
 				END DO
@@ -1524,17 +1492,15 @@ SUBROUTINE CALCULATE_BOUNDED_VISCOUS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,R
 
 			IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
                 if (icoupleturb.eq.1)then
-                    CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
-                            (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+                    CTURBR(1:turbulenceequations+PASSIVESCALAR) = IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
                 ELSE
-                    CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
-                            (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+                    CTURBR(1:turbulenceequations+PASSIVESCALAR) = IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
                 END IF
 
-                DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+                DO IEX=1, TURBULENCEEQUATIONS+PASSIVESCALAR
                     DO nvar=1,DIMS
                         ITTT=ITTT+1
-                        RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                        RCVGRAD_T(IEX,NVAR) = IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
                     END DO
 				END DO
 			END IF
@@ -1757,7 +1723,7 @@ SUBROUTINE  GET_STATES_BOUNDS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIGHTV,P
                     if (icoupleturb.eq.1)then
                         CTURBR(1:turbulenceequations+PASSIVESCALAR) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
                     ELSE
-                        CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+                        CTURBR(1:turbulenceequations+PASSIVESCALAR) = U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
                     END IF
                 END IF
 
@@ -1768,7 +1734,6 @@ SUBROUTINE  GET_STATES_BOUNDS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIGHTV,P
                 CORDS(1:2)=CORDINATES2(N,NODES_LIST,2)
                 Poy(1)=cords(2)
                 Pox(1)=cords(1)
-
 
                 LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
 
@@ -1787,7 +1752,7 @@ SUBROUTINE  GET_STATES_BOUNDS2D(N,B_CODE,ICONSIDERED,FACEX,POINTX,LEFTV,RIGHTV,P
                     end if
                 end if
                 CALL BOUNDARYS2d(N,B_CODE,ICONSIDERED,facex,LEFTV,RIGHTV,POX,POY,POZ,ANGLE1,ANGLE2,NX,NY,NZ,CTURBL,CTURBR,CRIGHT_ROT,CLEFT_ROT,SRF_SPEED,SRF_SPEEDROT,IBFC)
-                cright(1:nof_Variables)=rightv(1:nof_Variables)
+                cright(1:nof_Variables) = rightv(1:nof_Variables)
                 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 					CTURBR(1:turbulenceequations+PASSIVESCALAR)=CTURBR(1:turbulenceequations+PASSIVESCALAR)
 				END IF

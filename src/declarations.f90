@@ -805,6 +805,8 @@ TYPE::LOCAL_NODE
 	INTEGER::Num_Local_Neighbours
 	integer::num_cpus
 	integer::boundary ! 0 = internal, >0 = boundary, 2 = periodic boundary, >100 = index of the moving boundary
+	integer::nearest_boundary
+	real::boundary_fraction
 	integer::communication
 	INTEGER,ALLOCATABLE,DIMENSION(:)::Local_Neighbours
 	type(remote_node_neighhour),allocatable,dimension(:)::rcv_offsets
@@ -815,7 +817,7 @@ TYPE(LOCAL_NODE),ALLOCATABLE,DIMENSION(:)::LOCAL_NODES ! replacement for INODER4
 
 integer,allocatable,dimension(:)::local_interface_nodes
 integer,allocatable,dimension(:)::local_boundary_nodes
-integer,allocatable,dimension(:)::local_moving_nodes
+integer,allocatable,dimension(:)::local_moving_nodes, local_moving_boundary_nodes
 
 type::node_buffer
 	real,allocatable,dimension(:)::data
@@ -829,6 +831,7 @@ integer,allocatable,dimension(:)::node_rcv_count ! count of cells, not reals
 integer::my_num_interface_nodes 
 integer::my_num_boundary_nodes 
 integer::my_num_moving_nodes 
+integer::my_num_moving_boundary_nodes 
 integer::max_num_node_neighbours
 integer::num_values_to_send_per_node
 

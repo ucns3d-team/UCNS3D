@@ -725,6 +725,9 @@ Call reorder_nodes(N)
 Call GEOMETRY_CALC_MovingMesh(N, 1)
 !$OMP END PARALLEL
 Call establish_node_neighbours(N)
+if (BOUNDARY_MOVEMENT) then
+	call find_nodes_near_moving_walls(N,3)
+end if
 
 WallDistReinitialisationFrequency = 1
 
