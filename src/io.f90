@@ -4,6 +4,7 @@ USE DECLARATION
 USE FLOW_OPERATIONS
 use ISO_C_BINDING
 USE TRANSFORM
+USE TRANSFORM_MovingMesh
 IMPLICIT NONE
 contains
 
@@ -11443,9 +11444,13 @@ SUBROUTINE forces
 
 	if (dimensiona.eq.3)then
 		call computeforce(n)
-	eLSE
-		call computeforce2d(n)
-	END IF
+	else
+		if (boundary_movement) then
+			call computeforce2d(n,101)
+		else
+			call computeforce2d(n,4)
+		end if
+	end if
 
 END SUBROUTINE forces
 
@@ -16088,99 +16093,147 @@ END SUBROUTINE COMPUTEFORCE
 
 
 
-SUBROUTINE COMPUTEFORCE2d(N)
+SUBROUTINE COMPUTEFORCE2d(N, boundary_code)
   !> @brief
-  !> This subroutine computes the forces on the wall in 2D
-	IMPLICIT NONE
-	INTEGER,INTENT(IN)::N
-	INTEGER::I,K,J,KMAXE,gqi_points,nnd
-	CHARACTER(LEN=12)::PROC,RESTFILE,PROC3
-	REAL::DRAG,LIFT,CD,CL,RX,PX,EX,surface_temp,RTEMP
-	REAL::FORCEXFR,SSX,CDF,LIFTF,DRAGF,FRICTIONF,TAUYX,TAUZX,TAUZY,SSY,SSZ,CF,TAUXX,TAUYY,TAUZZ
-	REAL::UX,UY,UZ,VX,VY,VZ,WX,WY,WZ,nx,ny,angle1,angle2
-	REAL,DIMENSION(2)::CI,CO
+  !> this subroutine computes the forces on the wall in 2d
+	implicit none
+	integer,intent(in)::n, boundary_code
+	integer::i, j, k, kmaxe, nnd, gqi_points
+	integer:: mysurface
+	character(len=12)::proc,restfile,proc3
+	real::px, surface_temp, fx, fy, mz
+	real::ssx, ssy, tauxx, tauyy, tauyx
+	real::ux, uy, vx, vy, nx, ny
+	real,dimension(3)::ci, co
 	logical::heref
-	INTEGER::IM
-	REAL::TSOLR,TSOLU,TSOLE,TSOLV,TSOLW,TSOLP,SSP
-	REAL,DIMENSION(1:DIMS,1:DIMS)::VORTET1
-	real,dimension(1:nof_Variables)::leftv
-	real::MP_PINFL,gammal
-	real,dimension(1:nof_Variables)::RIGHTv
-	real::MP_PINFR,gammaR
-	REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-	REAL,DIMENSION(1:DIMENSIONA,1:NUMBEROFPOINTS2)::QPOINTS2D
-	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEQUA2D
-	real,dimension(1:4)::viscl,laml
-	FORCEX=zero; FORCEY=zero; FORCEZ=zero;  FORCEXFR=zero
-	CD=zero
-	CL=zero
-	CI(:)=zero
-	CO(:)=zero
-	KMAXE=XMPIELRANK(N)
+	integer::im
+	real::ssp
+	real,dimension(1:dims,1:dims)::vortet1
+	real,dimension(1:nof_variables)::leftv
+	real::mp_pinfl, gammal
+	real,dimension(1:nof_variables)::rightv
+	real::mp_pinfr,gammar
+	real,dimension(1:numberofpoints2)::wequa2d
+	real,dimension(1:4)::viscl, laml
+	real::fxr, fyr ,mome_xcc, mome_ycc, origin(1:3)
+
+	! Separated pressure and viscous force accumulators
+	real::fx_pres, fy_pres
+	real::fx_visc, fy_visc
+
+	! Moment reference point
+	if (boundary_code.gt.100) then
+		origin(:) = moving_boundaries(boundary_code-100)%rotation_centre(:,global_position_index)
+	else
+		origin(1)=xr
+		origin(2)=yr
+	end if
+	origin(3)=zero
+
+	forcex=zero;      forcey=zero;      forcez=zero
+	forcex_pres=zero; forcey_pres=zero; forcez_pres=zero
+	forcex_visc=zero; forcey_visc=zero; forcez_visc=zero
+	ci(:)=zero
+	co(:)=zero
+	fx=zero;          fy=zero
+	fx_pres=zero;     fy_pres=zero
+	fx_visc=zero;     fy_visc=zero
+	mz=zero
+	momentx=zero;     momenty=zero;     momentz=zero
+	
+	kmaxe = xmpielrank(n)
 	
 	!$OMP BARRIER 
 	!$OMP DO  REDUCTION(+:FORCEX,FORCEY,FORCEZ)
-	DO I=1,kmaxe
-		if (ielem(n,i)%interior.eq.1)then	
+	DO I=1, kmaxe
+		if (ielem(n,i)%interior.eq.1) then	
+			if(mrf.eq.1)then
+				print*,"(Multiple) Roatating Frames not supported in COMPUTEFORCE2d"
+			else
+				mysurface=1
+			end if
 		    do j=1,ielem(n,i)%ifca
 		      	if (ielem(n,i)%ibounds(j).gt.0)then
-			  		if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-			      		nx=IELEM(N,I)%FACEANGLEX(j)
-			      		ny=IELEM(N,I)%FACEANGLEY(j)
+			  		if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.boundary_code)then
+			      		nx = IELEM(N,I)%FACEANGLEX(j)
+			      		ny = IELEM(N,I)%FACEANGLEY(j)
 			      
 			  			SSX=zero; SSP=zero; SSY=zero; 
 			  
-					  	gqi_points=qp_line_n
+					  	gqi_points = qp_line_n
 					   	if(reduce_comp.eq.1)then
 					  		WEqua2d=1.0d0;
 					 	else
-					  		NND=2
-				      		do K=1,nnd
-								VEXT(k,1:dims)=inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
-				      		END DO
-					  
-					  		call  QUADRATURELINE(N,IGQRULES,VEXT,QPOINTS2D,WEQUA2D)
+					  		! NND=2
+							! if (MESH_MOVEMENT) then
+							! 	do K=1, nnd
+							! 		VEXT(k,1:dims) = local_nodes(IELEM(N,I)%NODES_FACES(J,K))%positions(global_position_index,1:dims)
+							! 	END DO
+							! else
+							! 	do K=1,nnd
+							! 		VEXT(k,1:dims) = inoder4(IELEM(N,I)%NODES_FACES(J,K))%CORD(1:dims)
+							! 	END DO
+							! end if
+					  		call  QUADRATURELINE_WeightsOnly(N,IGQRULES,WEQUA2D)
 					  	end if
 					  	surface_temp=IELEM(N,I)%SURF(J)
 					  
-				  		do im=1,gqi_points
-				  
+				  		do im=1, gqi_points
 				  			if (itestcase.eq.4)then
 				  				if (ielem(n,i)%ggs.eq.1)then
 									VORTET1(1:2,1:2) = ILOCAL_RECON3(I)%GRADS(1:2,1:2)
-									ux = Vortet1(1,1);uy = Vortet1(1,2)
-									vx = Vortet1(2,1);vy = Vortet1(2,2)
 				  				else
-				  
-									vortet1(1,1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,2,J,IM)
-									vortet1(2,1:2)=ILOCAL_RECON3(i)%ULEFTV(1:2,3,J,IM)
-									ux = Vortet1(1,1);uy = Vortet1(1,2)
-									vx = Vortet1(2,1);vy = Vortet1(2,2)
+									vortet1(1,1:2) = ILOCAL_RECON3(i)%ULEFTV(1:2,2,J,IM)
+									vortet1(2,1:2) = ILOCAL_RECON3(i)%ULEFTV(1:2,3,J,IM)
 				  				end if
+								ux = Vortet1(1,1); uy = Vortet1(1,2)
+								vx = Vortet1(2,1); vy = Vortet1(2,2)
 				  			end if
-				  
-				 			LEFTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
-				 			RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				  			if (dg.eq.1)then
+								LEFTV(1:nof_Variables) =ILOCAL_RECON3(I)%ULEFT_DG(1:nof_variables,j,im)
+				 				RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT_DG(1:nof_variables,j,im)
+							else
+								LEFTV(1:nof_Variables) =ILOCAL_RECON3(I)%ULEFT(:,j,im)
+				 				RIGHTV(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(:,j,im)
+							end if
+				 			
 				    		call cons2prim2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
 				    		px=leftv(4)
+							ssp=ssp+(px*wequa2d(im))
 				    
 				    		if (itestcase.eq.4)then
 				    			CALL SUTHERLAND2D(N,LEFTV,RIGHTV,VISCL,LAML)
 				  
-								TAUXX=2.0d0*ux
-								TAUYY=2.0d0*vy
-								TAUYX=(UY + VX)
+								TAUXX = 2.0d0*ux
+								TAUYY = 2.0d0*vy
+								TAUYX = UY + VX
 								
-								SSX=SSX-((VISCL(1)*((NY*TAUYX)))*WEQUA2D(im))
-								SSY=SSY-((VISCL(1)*((NX*TAUYX)))*WEQUA2D(im))
+								SSX = SSX-((VISCL(1)*((NY*TAUYX)))*WEQUA2D(im))
+								SSY = SSY-((VISCL(1)*((NX*TAUYX)))*WEQUA2D(im))
 				 			end if
-				  			ssp=ssp+(px*WEQUA2D(im))
 				   		end do
 				   
-				  		SSP=ssp-PRES	
-				  
-				  		FORCEX=FORCEX+(((SSP)*(surface_temp)*NX))+((SSX)*surface_temp)
-				  		FORCEY=FORCEY+(((SSP)*(surface_temp)*NY))+((SSY)*surface_temp)
+						ssp=ssp-pres
+
+				  		! Total forces
+						forcex=forcex+((ssp*surface_temp*nx)+(ssx*surface_temp))
+						forcey=forcey+((ssp*surface_temp*ny)+(ssy*surface_temp))
+
+						! Pressure-only forces
+						forcex_pres=forcex_pres+(ssp*surface_temp*nx)
+						forcey_pres=forcey_pres+(ssp*surface_temp*ny)
+
+						! Viscous-only forces
+						forcex_visc=forcex_visc+(ssx*surface_temp)
+						forcey_visc=forcey_visc+(ssy*surface_temp)
+
+						fxr=(ssp*surface_temp*nx)+(ssx*surface_temp)
+						fyr=(ssp*surface_temp*ny)+(ssy*surface_temp)
+
+						mome_xcc = ielem(N, i)%xxc-origin(1)
+						mome_ycc = ielem(N, i)%yyc-origin(2)
+
+						momentz=momentz+(fyr*mome_xcc)-(fxr*mome_ycc)
 				
 					END IF
 		      	end if
@@ -16191,36 +16244,64 @@ SUBROUTINE COMPUTEFORCE2d(N)
 	!$OMP END DO
 	
 	!$OMP BARRIER 
-	!$OMP MASTER 
-		FORCEX=FORCEX*VECTORX
-		FORCEY=FORCEY*VECTORY
-		
-		RTEMP=((AOA/180.0d0)*PI)
-		LIFTF=(FORCEy*COS(RTEMP))-(FORCEX*SIN(RTEMP))
-		DRAGF=(FORCEX*COS(RTEMP))+(FORCEy*SIN(RTEMP))
-		CL=(2.0D0*LIFTF)/((RRES)*(ufreestream**2))
-		CD=(2.0D0*DRAGF)/((RRES)*(ufreestream**2))
 
-		CO(1)=CL
-		CO(2)=CD
-		CALL MPI_ALLREDUCE(CO(1:2),CI(1:2),2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-		CL=CI(1)
-		CD=CI(2)
-		
-		IF (N.EQ.0) THEN
-			INQUIRE (FILE='FORCE.dat',EXIST=HEREf)
-			IF (HEREf) THEN
-				OPEN(50+N,FILE='FORCE.dat',FORM='FORMATTED',STATUS='OLD',ACTION='WRITE',POSITION='APPEND')
-			ELSE
-				OPEN(50+N,FILE='FORCE.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE')
-			END IF
-			WRITE(50+N,'(I14,1X,E14.7,1X,E14.7,1X,E14.7)')it,T,CL,CD
-		
-			CLOSE(50+N)
-		END IF		
-		CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-	
-	!$OMP END MASTER 
+	!$omp master
+
+        forcex=forcex*vectorx
+        forcey=forcey*vectory
+        forcex_pres=forcex_pres*vectorx
+        forcey_pres=forcey_pres*vectory
+        forcex_visc=forcex_visc*vectorx
+        forcey_visc=forcey_visc*vectory
+
+        ! MPI reduction . total forces
+        co(1)=forcex; co(2)=forcey; co(3)=zero
+        call mpi_allreduce(co(1:2),ci(1:2),2,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+        fx=ci(1); fy=ci(2)
+
+        ! MPI reduction . pressure forces
+        co(1)=forcex_pres; co(2)=forcey_pres; co(3)=zero
+        call mpi_allreduce(co(1:2),ci(1:2),2,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+        fx_pres=ci(1); fy_pres=ci(2)
+
+        ! MPI reduction . viscous forces
+        co(1)=forcex_visc; co(2)=forcey_visc; co(3)=zero
+        call mpi_allreduce(co(1:2),ci(1:2),2,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+        fx_visc=ci(1); fy_visc=ci(2)
+
+        ! MPI reduction . moment
+        co(1)=momentz
+        call mpi_allreduce(co(1:1),ci(1:1),1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+        mz=ci(1)
+
+        if (n.eq.0) then
+            inquire(file='FORCE.dat', exist=heref)
+            if (heref) then
+                open(50,file='FORCE.dat',form='formatted',status='old',action='write',position='append')
+            else
+                open(50,file='FORCE.dat',form='formatted',status='new',action='write')
+                write(50,'(a)') '#  it   t   fx   fy   fx_pres   fy_pres   fx_visc   fy_visc'
+            end if
+
+            inquire(file='MOMENT.dat', exist=heref)
+            if (heref) then
+                open(500,file='MOMENT.dat',form='formatted',status='old',action='write',position='append')
+            else
+                open(500,file='MOMENT.dat',form='formatted',status='new',action='write')
+                write(500,'(a)') '#  it   t   mz'
+            end if
+
+            write(50,'(i14,1x,e14.7,6(1x,e14.7))') it, t, &
+                  fx, fy, fx_pres, fy_pres, fx_visc, fy_visc
+            write(500,'(i14,2(1x,e14.7))') it, t, mz
+
+            close(50)
+            close(500)
+        end if
+
+        call mpi_barrier(mpi_comm_world,ierror)
+
+	!$omp end master
 	!$OMP BARRIER 
 	
 END SUBROUTINE COMPUTEFORCE2d

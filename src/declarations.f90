@@ -218,7 +218,9 @@ INTEGER::THERMAL,TEMP_MODEL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.3.   REAL VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
-REAL::wenocentralweight,TIMESTEP,oo2,zero,forcex,forcey,forcez,extf,vorder,MOOD_VAR1,MOOD_VAR2,MOOD_VAR3,MOOD_VAR4,MOOD_VAR5,MOOD_VAR6
+REAL::wenocentralweight,TIMESTEP,oo2,zero
+real::forcex, forcey, forcez, forcex_pres, forcey_pres, forcez_pres, forcex_visc, forcey_visc, forcez_visc
+real::extf,vorder,MOOD_VAR1,MOOD_VAR2,MOOD_VAR3,MOOD_VAR4,MOOD_VAR5,MOOD_VAR6
 
 real,ALLOCATABLE,DIMENSION(:)::SUMVARS,MAXVARS,aver_Vars            !VARIABLES FOR BOUNDS OF TROUBLED CELL INDICATOR
 
@@ -353,6 +355,7 @@ real::mesh_velocity_multiple, lagrangian_mesh_velocity_multiple, relaxation_mesh
 real::lower_gradient_treshold, upper_gradient_treshold, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple
 real::quality_treshold, scaling, gradient_coeff, quality_coeff
 real:: momentx,momenty,momentz
+real::xr,yr,zt ! centre of rotation for moment calculation
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.4.   REAL ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
