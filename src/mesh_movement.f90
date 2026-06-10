@@ -1286,8 +1286,37 @@ subroutine find_node_velocities(position_index, d_t, N)
             !$omp barrier
             ! call find_mesh_quality_after_relaxation(1, position_index, d_t, d_t, N)
 
+          case(19)
+            call find_node_lagrangian_velocity(1, position_index, N)
+            call find_node_normalized_density_gradient(1, position_index, d_t, N)
+            if (governingequations.eq.-1) then
+                call find_node_normalized_vf_gradient(1, position_index, d_t, N)
+            end if
+            !$omp barrier
+            call enforce_node_lagrangian_velocity_BC(position_index, d_t, N)
+            !$omp barrier
+
+            select case (relaxation_centre_type)
+            case (1, 2)
+                call find_mesh_quality_before_relaxation(1, position_index, d_t, N)
+                call find_moved_node_relaxation_velocity(1, position_index, d_t, N)
+            case (3)
+                call find_mesh_quality_before_relaxation(1, position_index, d_t, N)
+                call find_node_vertex_centre_relaxation_velocity(1, position_index, d_t, N)
+            ! case (4)
+            !     call find_mesh_quality_before_relaxation(1, position_index, d_t, N)
+            !     call find_moved_node_centre_relaxation_velocity(1, position_index, d_t, N)
+            case (5, 7)
+                call find_node_Jacobi_relaxation_velocity(1, position_index, d_t, N)
+            case DEFAULT
+                print*,"invalid node relaxation algorithm"
+            end select
+            !$omp barrier
+            call clamp_node_relaxation_velocity_to_fraction(position_index, d_t, N)
+            !$omp barrier
+
          case DEFAULT
-            print *, "invalid moving mesh mode"
+            print *, "invalid moving mesh mode", moving_mesh_mode
             call abort()
         end select
         !$omp barrier
@@ -1412,16 +1441,16 @@ SUBROUTINE NearBoundaryVelocity(stage, node_position_index, N)
             end if
             boundary_index = local_nodes(node_index)%nearest_boundary-100
             boundary_velocity(1:dimensiona) = moving_boundaries(boundary_index)%velocity(1:dimensiona)
-            if (moving_boundaries(boundary_index)%omega.ne.zero) then
-                radius(:) = local_nodes(node_index)%positions(node_position_index,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona, node_position_index)
-                if (dimensiona.eq.2) then
+            if (dimensiona.eq.2) then
+                if (moving_boundaries(boundary_index)%omega(3).ne.zero) then
+                    radius(:) = local_nodes(node_index)%positions(node_position_index,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona, node_position_index)
                     normal(1) = radius(2)
                     normal(2) = -1.0*radius(1)
-                else
-                    print*,"Rotation in 3D not implemented yet"
-                    call abort()
+                    boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega(3) * normal(1:dimensiona))
                 end if
-                boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega * normal(1:dimensiona))
+            else
+                print*,"Rotation in 3D not implemented yet"
+                call abort()
             end if
 
             local_nodes(node_index)%lagrangian_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) * local_nodes(node_index)%boundary_fraction
@@ -5241,9 +5270,40 @@ subroutine CombineNodeVelocities(stage, position_index, d_t, N)
                                                            + (local_nodes(node_index)%relaxation_velocity(1:dimensiona)  * local_relaxation_velocity_multiple)
         end do
         !$omp end do
+
+     case(19)
+        !$omp do
+        do node_index = 1, kmaxn
+            if (governingequations.eq.-1) then
+                ! gradient_magnitude_copy = 0.5*(local_nodes(node_index)%normalized_density_gradient_magnitude + local_nodes(node_index)%normalized_vf_gradient_magnitude)
+                gradient_magnitude_copy = local_nodes(node_index)%normalized_vf_gradient_magnitude
+            else
+                gradient_magnitude_copy = local_nodes(node_index)%normalized_density_gradient_magnitude
+            end if
+
+            if ((local_nodes(node_index)%num_neighbours.lt.3).or.(gradient_magnitude_copy.le.zero)) then
+                gradient_term = 1.0
+            else if (gradient_magnitude_copy.ge.upper_gradient_treshold) then
+                gradient_term = 0.0
+            else
+                gradient_term = 1.0 - (gradient_magnitude_copy/upper_gradient_treshold)
+            end if
+
+            quality_term = (local_nodes(node_index)%mesh_quality_before/(local_nodes(node_index)%initial_mesh_quality*quality_treshold)) - 1.0
+            if (quality_term.lt.zero) then
+                quality_term = 0.0
+            end if
+
+            local_relaxation_velocity_multiple = (gradient_coeff * gradient_term) + (quality_coeff * quality_term)
+            call clamp(local_relaxation_velocity_multiple, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple)
+
+            local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%lagrangian_velocity(1:dimensiona) &
+                                                           + (local_nodes(node_index)%relaxation_velocity(1:dimensiona)  * local_relaxation_velocity_multiple)
+        end do
+        !$omp end do
      
       case default
-        print *, "invalid moving mesh mode"
+        print *, "invalid moving mesh mode", moving_mesh_mode
 
     end select
 
@@ -5998,16 +6058,16 @@ subroutine enforce_node_velocity_BC(position_index, d_t, N)
             end if
             boundary_index = local_nodes(node_index)%boundary-100
             boundary_velocity(1:dimensiona) = moving_boundaries(boundary_index)%velocity(1:dimensiona)
-            if (moving_boundaries(boundary_index)%omega.ne.zero) then
-                radius(:) = local_nodes(node_index)%positions(position_index,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona,position_index)
-                if (dimensiona.eq.2) then
+            if (dimensiona.eq.2) then
+                if (moving_boundaries(boundary_index)%omega(3).ne.zero) then
+                    radius(:) = local_nodes(node_index)%positions(position_index,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona,position_index)
                     normal(1) = radius(2)
                     normal(2) = -1.0*radius(1)
-                else
-                    print*,"Rotation in 3D not implemented yet"
-                    call abort()
+                    boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega(3) * normal(1:dimensiona))
                 end if
-                boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega * normal(1:dimensiona))
+            else
+                print*,"Rotation in 3D not implemented yet"
+                call abort()
             end if
             ! if (.not.((initcond.eq.105).and.(t.ge.(2.0*0.7/uvel)))) then
                 local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%velocity(1:dimensiona) - boundary_velocity(1:dimensiona)
@@ -6225,16 +6285,16 @@ subroutine enforce_node_velocity_BC(position_index, d_t, N)
             end if
             boundary_index = local_nodes(node_index)%boundary-100
             boundary_velocity(1:dimensiona) = moving_boundaries(boundary_index)%velocity(1:dimensiona)
-            if (moving_boundaries(boundary_index)%omega.ne.zero) then
-                radius(:) = local_nodes(node_index)%positions(position_index,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona,position_index)
-                if (dimensiona.eq.2) then
+            if (dimensiona.eq.2) then
+                if (moving_boundaries(boundary_index)%omega(3).ne.zero) then
+                    radius(:) = local_nodes(node_index)%positions(position_index,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona,position_index)
                     normal(1) = radius(2)
                     normal(2) = -1.0*radius(1)
-                else
-                    print*,"Rotation in 3D not implemented yet"
-                    call abort()
+                    boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega(3) * normal(1:dimensiona))
                 end if
-                boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega * normal(1:dimensiona))
+            else
+                print*,"Rotation in 3D not implemented yet"
+                call abort()
             end if
             ! if (.not.((initcond.eq.105).and.(t.ge.(2.0*0.7/uvel)))) then
                 local_nodes(node_index)%velocity(1:dimensiona) = local_nodes(node_index)%velocity(1:dimensiona) + boundary_velocity(1:dimensiona)
@@ -6486,16 +6546,16 @@ subroutine enforce_node_lagrangian_velocity_BC(position_index, d_t, N)
             end if
             boundary_index = local_nodes(node_index)%boundary-100
             boundary_velocity(1:dimensiona) = moving_boundaries(boundary_index)%velocity(1:dimensiona)
-            if (moving_boundaries(boundary_index)%omega.ne.zero) then
-                radius(:) = local_nodes(node_index)%positions(position_index,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona,position_index)
-                if (dimensiona.eq.2) then
+            if (dimensiona.eq.2) then
+                if (moving_boundaries(boundary_index)%omega(3).ne.zero) then
+                    radius(:) = local_nodes(node_index)%positions(position_index,1:dimensiona) - moving_boundaries(boundary_index)%rotation_centre(1:dimensiona,position_index)
                     normal(1) = radius(2)
                     normal(2) = -1.0*radius(1)
-                else
-                    print*,"Rotation in 3D not implemented yet"
-                    call abort()
+                    boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega(3) * normal(1:dimensiona))
                 end if
-                boundary_velocity(1:dimensiona) = boundary_velocity(1:dimensiona) + (moving_boundaries(boundary_index)%omega * normal(1:dimensiona))
+            else
+                print*,"Rotation in 3D not implemented yet"
+                call abort()
             end if
             if (node_solver_type.eq.zero) then
                 ! if (.not.((initcond.eq.105).and.(t.ge.(2.0*0.7/uvel)))) then
@@ -6870,6 +6930,207 @@ subroutine clamp_node_velocity_to_fraction(position_index, d_t, N)
     !$omp barrier
 
 end subroutine clamp_node_velocity_to_fraction
+
+
+
+
+
+subroutine clamp_node_relaxation_velocity_to_fraction(position_index, d_t, N)
+    implicit none
+    integer,intent(in)::position_index, N
+    real,intent(in)::d_t
+    integer::i, j, k, iter, node_index, cell_index, cpu_index, cpu, index, num_faces, cell_num_nodes
+    integer::i_plus, i_minus, node_plus_index, node_minus_index
+    ! integer:: M
+    real::volume, area, len1, len2, lengthscale, min_lengthscale, velocity_magnitude, max_velocity, min_face
+    real,dimension(1:dimensiona)::p, p_plus, p_minus
+    real, parameter::fraction = 0.75
+
+    integer,dimension(2*isize)::requests
+    integer::num_requests, count
+
+    ! M = omp_get_thread_num()
+    if (num_values_to_send_per_node.lt.1) then
+        print *,"something went wrong sorry :("
+        call abort
+    end if
+
+    !$omp do
+    do iter = 1,my_num_interface_nodes 
+        node_index = local_interface_nodes(iter)
+        p(:)  = local_nodes(node_index )%positions(position_index, :)
+        ! print *, "on CPU", N, "thread", M, "coping data of", node_index, "(", iter, ") to send buffer" 
+        do cpu_index = 1,local_nodes(node_index)%num_cpus
+            cpu = local_nodes(node_index)%snd_offsets(cpu_index)%cpu
+            index = (local_nodes(node_index)%snd_offsets(cpu_index)%lower -1)
+            do j = 1, local_nodes(node_index)%num_local_neighbours
+                cell_index = local_nodes(node_index)%local_neighbours(j)
+                cell_num_nodes = ielem(N, cell_index)%nonodes
+                if (dimensiona.eq.3) then
+                    print*,"3D not implemented yet"
+                    call abort()
+                else
+                    do i = 1, cell_num_nodes
+                        if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.node_index) then
+                            exit
+                        end if
+                    end do
+                    i_plus = i+1
+                    if (i_plus.gt.cell_num_nodes) then
+                        i_plus = 1
+                    end if
+                    i_minus = i-1
+                    if (i_minus.lt.1) then
+                        i_minus = cell_num_nodes
+                    end if
+                    node_plus_index  = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
+                    node_minus_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
+                    p_plus(:)  = local_nodes(node_plus_index )%positions(position_index, :)
+                    p_minus(:) = local_nodes(node_minus_index)%positions(position_index, :)
+
+                    len1 = 0.0
+                    len2 = 0.0
+                    do k = 1, dimensiona
+                        len1 = len1 + ((p_plus(k)-p(k))**2)
+                        len2 = len2 + ((p_minus(k)-p(k))**2)
+                    end do
+                    len1 = sqrt(len1)
+                    len2 = sqrt(len2)
+
+                    index = index +1
+                    if (index.gt.node_snd_count(cpu)) then
+                        print *, "copying too much data to send buffer from", N, "to", cpu, "find_mesh_quality_before_relaxation"
+                    end if
+                    node_snd_buffer(cpu)%data(index) = min(len1, len2)
+                end if
+            end do
+        end do
+    end do
+    !$omp end do
+
+    !$omp barrier
+
+    num_requests = 0
+    !$omp master
+        ! print *, "inside send_rcv part on CPU", N
+        do cpu_index = 0, isize-1
+            if (cpu_index.ne.N) then
+                if (node_snd_count(cpu_index).gt.0) then
+                    count = node_snd_count(cpu_index) * 1
+                    num_requests = num_requests + 1
+                    CALL MPI_ISEND(node_snd_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, "sending from", N, "to", cpu_index, count, "values"
+                end if
+                if (node_rcv_count(cpu_index).gt.0) then
+                    count = node_rcv_count(cpu_index) * 1
+                    num_requests = num_requests + 1
+                    CALL MPI_IRECV(node_rcv_buffer(cpu_index)%data(1:count), count, MPI_DOUBLE_PRECISION, cpu_index, 9+n+cpu_index, MPI_COMM_WORLD, requests(num_requests), IERROR)
+                    ! print *, N, "waiting to receive", count, "values from", cpu_index
+                end if
+            else
+                if (node_snd_count(cpu_index).ne.node_rcv_count(cpu_index)) then
+                    print *,"send receive count missmatch on CPU", n
+                    call abort
+                end if
+                count = node_snd_count(cpu_index) * 1
+                do i = 1, count
+                    node_rcv_buffer(cpu_index)%data(i) = node_snd_buffer(cpu_index)%data(i)
+                end do
+            end if
+        end do
+
+        ! print*,"CPU", n, "witing on", num_requests, "requests"
+        CALL MPI_WAITALL(num_requests, requests, MPI_STATUSES_IGNORE, IERROR)
+
+    !$omp end master
+
+    !$omp barrier
+
+    !$omp do
+        do node_index = 1, kmaxn 
+
+            min_lengthscale = 10000000000.0
+            
+            p(:)  = local_nodes(node_index )%positions(position_index, :)
+            
+            do iter = 1, local_nodes(node_index)%num_local_neighbours
+                cell_index = local_nodes(node_index)%local_neighbours(iter)
+                cell_num_nodes = ielem(N, cell_index)%nonodes
+                if (dimensiona.eq.3) then
+                    print*,"3D not implemented yet"
+                    call abort()
+                else
+                    do i = 1, cell_num_nodes
+                        if (ielem(N, cell_index)%nodes_counterclockwise(i).eq.node_index) then
+                            exit
+                        end if
+                    end do
+                    i_plus = i+1
+                    if (i_plus.gt.cell_num_nodes) then
+                        i_plus = 1
+                    end if
+                    i_minus = i-1
+                    if (i_minus.lt.1) then
+                        i_minus = cell_num_nodes
+                    end if
+                    node_plus_index  = ielem(N, cell_index)%nodes_counterclockwise(i_plus)
+                    node_minus_index = ielem(N, cell_index)%nodes_counterclockwise(i_minus)
+                    p_plus(:)  = local_nodes(node_plus_index )%positions(position_index, :)
+                    p_minus(:) = local_nodes(node_minus_index)%positions(position_index, :)
+
+                    len1 = 0.0
+                    len2 = 0.0
+                    do k = 1, dimensiona
+                        len1 = len1 + ((p_plus(k)-p(k))**2)
+                        len2 = len2 + ((p_minus(k)-p(k))**2)
+                    end do
+                    len1 = sqrt(len1)
+                    len2 = sqrt(len2)
+
+                    min_lengthscale = min(min_lengthscale, len1)
+                    min_lengthscale = min(min_lengthscale, len2)
+                end if
+            end do
+
+            do iter = 1, local_nodes(node_index)%num_cpus
+                cpu_index = local_nodes(node_index)%rcv_offsets(iter)%cpu
+                index = (local_nodes(node_index)%rcv_offsets(iter)%lower - 1) * 1
+                do j = local_nodes(node_index)%rcv_offsets(iter)%lower, local_nodes(node_index)%rcv_offsets(iter)%upper
+                    index = index+1
+                    lengthscale = node_rcv_buffer(cpu_index)%data(index)
+                    if (lengthscale.lt.min_lengthscale) then
+                        min_lengthscale = lengthscale
+                    end if
+                end do
+            end do
+
+            max_velocity = fraction * min_lengthscale/d_t
+
+            velocity_magnitude = zero
+            do i = 1, dimensiona
+                velocity_magnitude = velocity_magnitude + (local_nodes(node_index)%relaxation_velocity(i)**2)
+            end do
+            velocity_magnitude = sqrt(velocity_magnitude)
+
+            if (velocity_magnitude.gt.max_velocity) then
+                local_nodes(node_index)%relaxation_velocity(1:dimensiona) = local_nodes(node_index)%relaxation_velocity(1:dimensiona) * (max_velocity/velocity_magnitude)
+                if (dimensiona.eq.3) then
+                    print*,"clamping relaxation velocity in node", node_index, local_nodes(node_index)%positions(position_index,1), local_nodes(node_index)%positions(position_index,2), local_nodes(node_index)%positions(position_index,3)
+                else
+                    print*,"clamping relaxation velocity in node", node_index, local_nodes(node_index)%positions(position_index,1), local_nodes(node_index)%positions(position_index,2)
+                end if    
+            end if
+
+        end do
+    !$omp end do
+    
+    !$omp barrier
+    !$omp master
+        call MPI_BARRIER(MPI_COMM_WORLD, IERROR)
+    !$omp end master
+    !$omp barrier
+
+end subroutine clamp_node_relaxation_velocity_to_fraction
 
 
 

@@ -1108,11 +1108,11 @@ SUBROUTINE WENO_NEIGHBOUR(ICONSIDERED,FACEX,VEIGL,VEIGR,NX,NY,NZ,ANGLE1,ANGLE2,I
                             if (b_code.gt.100) then
                                 mb_code = b_code-100
                                 SRF_SPEED(2:3) = moving_boundaries(mb_code)%velocity(1:2)
-                                if (moving_boundaries(mb_code)%omega.ne.zero) then
+                                if (moving_boundaries(mb_code)%omega(3).ne.zero) then
                                     radius(1:dimensiona) = pox(1:dimensiona) - moving_boundaries(mb_code)%rotation_centre(1:dimensiona,global_position_index)
                                     normal(1) = radius(2)
                                     normal(2) = -radius(1)
-                                    SRF_SPEED(2:3) = SRF_SPEED(2:3) + normal(1:2)*moving_boundaries(mb_code)%omega
+                                    SRF_SPEED(2:3) = SRF_SPEED(2:3) + normal(1:2)*moving_boundaries(mb_code)%omega(3)
                                 end if
                             end if
                         end if

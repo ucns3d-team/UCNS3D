@@ -2168,9 +2168,9 @@ Subroutine Approximate_WallDistance(N, node_position_index, time_since_reinitial
 			wall_centre_now(1:dimensiona) = Ielem(N,cell_index)%InitNearestWall(1:dimensiona) &
 										  + (moving_boundaries(boundary_index)%velocity(1:dimensiona) * time_since_reinitialization)
 
-			if (moving_boundaries(boundary_index)%omega.ne.zero) then
+			if (moving_boundaries(boundary_index)%omega(3).ne.zero) then
 				if (dimensiona.eq.2) then					  
-					angle = moving_boundaries(boundary_index)%omega * time_since_reinitialization
+					angle = moving_boundaries(boundary_index)%omega(3) * time_since_reinitialization
 					angle_sin = sin(angle)
 					angle_cos = cos(angle)
 

@@ -1548,8 +1548,13 @@ SUBROUTINE READ_UCNS3D
 			read(29,*) relaxation_centre_type
 			read(29,*) quality_treshold, upper_gradient_treshold, quality_coeff, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple
 
+		  case(19)
+			read(29,*) node_solver_type
+			read(29,*) relaxation_centre_type
+			read(29,*) quality_treshold, quality_coeff, upper_gradient_treshold, gradient_coeff, lower_relaxation_mesh_velocity_multiple, upper_relaxation_mesh_velocity_multiple
+
 		  case DEFAULT
-			print*, "invalid moving mesh mode"
+			print*, "invalid moving mesh mode", moving_mesh_mode
 			call abort
 		end select
 	ENDIF
@@ -1585,18 +1590,21 @@ SUBROUTINE READ_UCNS3D
 		allocate(moving_boundaries(1:num_moving_boundaries))
 		do i = 1, num_moving_boundaries
 			moving_boundaries(i)%velocity(:) = zero
+			moving_boundaries(i)%omega(:) = zero
 			moving_boundaries(i)%rotation_centre(:,:) = zero
 			if (dimensiona.eq.2) then
 				read(30,*) moving_boundaries(i)%velocity(1), &
 				 		   moving_boundaries(i)%velocity(2), &
-						   moving_boundaries(i)%omega, &
+						   moving_boundaries(i)%omega(3), &
 						   moving_boundaries(i)%rotation_centre(1,1), &
 						   moving_boundaries(i)%rotation_centre(2,1)
 			else
 				read(30,*) moving_boundaries(i)%velocity(1), &
 				 		   moving_boundaries(i)%velocity(2), &
 						   moving_boundaries(i)%velocity(3), &
-						   moving_boundaries(i)%omega, &
+						   moving_boundaries(i)%omega(1), &
+						   moving_boundaries(i)%omega(2), &
+						   moving_boundaries(i)%omega(3), &
 						   moving_boundaries(i)%rotation_centre(1,1), &
 						   moving_boundaries(i)%rotation_centre(2,1), &
 						   moving_boundaries(i)%rotation_centre(3,1)

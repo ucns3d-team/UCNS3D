@@ -665,50 +665,6 @@ if (n.eq.0) print*,"UCNS3D Running"
 !now allocate memory for gradients
 call local_reconallocation5(n)
 
-!end if
-
-! DO I=1,XMPIELRANK(N)
-! 	DO L=1,IELEM(N,I)%IFCA
-! 		print *, "cell centre", IELEM(N,I)%XXC, IELEM(N,I)%YYC, &
-! 		 	"QP1", local_nodes(IELEM(N,I)%NODES_FACES(L,1))%positions(1,1), local_nodes(IELEM(N,I)%NODES_FACES(L,1))%positions(1,2), &
-! 		 	"QP2", local_nodes(IELEM(N,I)%NODES_FACES(L,2))%positions(1,1), local_nodes(IELEM(N,I)%NODES_FACES(L,2))%positions(1,2)
-! 	END DO
-! END DO
-! Call abort()
-
-! max_entropy = -1000000000.0
-! my_max_cell_area = -1.0
-! DO iterator=1,NOF_INTERIOR
-!     cell_index=EL_INT(iterator)
-!     if (my_max_cell_area < (IELEM(N,cell_index)%TOTVOLUME)) then
-!         my_max_cell_area = IELEM(N,cell_index)%TOTVOLUME
-!     end if
-! END DO
-! DO iterator=1,NOF_BOUNDED
-!     cell_index=EL_BND(iterator)
-!     if (my_max_cell_area < IELEM(N,cell_index)%TOTVOLUME) then
-!         my_max_cell_area = IELEM(N,cell_index)%TOTVOLUME
-!     end if
-! END DO
-! CALL MPI_ALLREDUCE(my_max_cell_area,max_cell_area,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-! if (n.eq.0)  WRITE(*,*)"MAX CELL AREA =",max_cell_area
-! my_size_sum = 0.0
-! DO iterator=1,NOF_INTERIOR
-!     cell_index = EL_INT(iterator)
-! 	cell_area = IELEM(N,cell_index)%TOTVOLUME
-! 	cell_size = sqrt(cell_area)
-! 	my_size_sum = my_size_sum + cell_size
-! END DO
-! DO iterator=1,NOF_BOUNDED
-!     cell_index=EL_BND(iterator)
-!     cell_area = IELEM(N,cell_index)%TOTVOLUME
-! 	cell_size = sqrt(cell_area)
-! 	my_size_sum = my_size_sum + cell_size
-! END DO
-! CALL MPI_ALLREDUCE(my_size_sum, size_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, IERROR)
-! cell_size_average = size_sum / IMAXE
-! if (n.eq.0)  WRITE(*,*)"Total cell size =", size_sum, "number of cells =", IMAXE, "average cell size =", cell_size_average
-
 num_values_to_send_per_node = 0
 if (MESH_MOVEMENT) then
 	num_values_to_send_per_node = 2*dimensiona
@@ -725,8 +681,9 @@ Call reorder_nodes(N)
 Call GEOMETRY_CALC_MovingMesh(N, 1)
 !$OMP END PARALLEL
 Call establish_node_neighbours(N)
+Call find_initial_mesh_quality(N)
 if (BOUNDARY_MOVEMENT) then
-	call find_nodes_near_moving_walls(N,3)
+	call find_nodes_near_moving_walls(N,5)
 end if
 
 WallDistReinitialisationFrequency = 1

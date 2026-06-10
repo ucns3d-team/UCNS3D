@@ -800,7 +800,9 @@ TYPE::LOCAL_NODE
 	REAL,DIMENSION(3)::density_gradient, vf_gradient
 	real::normalized_density_gradient_magnitude, normalized_vf_gradient_magnitude
 	real::volume_ratio
+	real::initial_mesh_quality
 	real::mesh_quality_before, mesh_quality_after
+	real::boundary_fraction
 	INTEGER::global_index
 	! INTEGER::local_index
 	! logical::internal
@@ -809,7 +811,6 @@ TYPE::LOCAL_NODE
 	integer::num_cpus
 	integer::boundary ! 0 = internal, >0 = boundary, 2 = periodic boundary, >100 = index of the moving boundary
 	integer::nearest_boundary
-	real::boundary_fraction
 	integer::communication
 	INTEGER,ALLOCATABLE,DIMENSION(:)::Local_Neighbours
 	type(remote_node_neighhour),allocatable,dimension(:)::rcv_offsets
@@ -848,7 +849,7 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::NODE_INDEXING_global_to_local
 
 type::moving_boundary
 	real,dimension(1:3)::velocity
-	real::omega
+	real,dimension(1:3)::omega
 	real,dimension(1:3,1:5)::rotation_centre
 end type
 

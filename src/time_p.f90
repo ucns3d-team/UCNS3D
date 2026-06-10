@@ -17,6 +17,7 @@ USE MOODR
 USE hybridCWENO_MOOD_module
 USE MESHMOVEMENT_module
 USE PRESTORE_MOVINGMESH
+USE SoldiBodyMotion
 
 IMPLICIT NONE
 
@@ -458,11 +459,11 @@ SUBROUTINE CALCULATE_CFL2D(N)
             boundary_index = local_nodes(node_index)%boundary-100
 
             boundary_velocity(1:2) = moving_boundaries(boundary_index)%velocity(1:2)
-            if (moving_boundaries(boundary_index)%omega.ne.zero) then
+            if (moving_boundaries(boundary_index)%omega(3).ne.zero) then
                 radius(:) = local_nodes(node_index)%positions(1,1:2) - moving_boundaries(boundary_index)%rotation_centre(1:2,1)
                 normal(1) = radius(2)
                 normal(2) = -1.0*radius(1)
-                boundary_velocity(1:2) = boundary_velocity(1:2) + (moving_boundaries(boundary_index)%omega * normal(1:2))
+                boundary_velocity(1:2) = boundary_velocity(1:2) + (moving_boundaries(boundary_index)%omega(3) * normal(1:2))
             end if
             boundary_speed = sqrt((boundary_velocity(1)**2) + (boundary_velocity(2)**2))
 
@@ -3542,7 +3543,7 @@ SUBROUTINE TIME_MARCHING(N)
         call ENSTROPHY_CALC(N)
     end if
       
-    DO 
+    DO
 		CALL CALCULATE_CFL(N)
 		    
 		IF (RUNGEKUTTA.GE.5) CALL CALCULATE_CFLL(N)
@@ -4148,17 +4149,17 @@ SUBROUTINE TIME_MARCHING2(N)
 
         if (dg.eq.1)call SOL_INTEG_DG(N)
 
-        if (MESH_MOVEMENT) then
-            if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13).or.(moving_mesh_mode.eq.14).or.(moving_mesh_mode.eq.15)) then
-                call FIND_NORMALIZED_DENSITY_GRADIENT_from_precomputed(N)
-            else
-                ! if (dimensiona.eq.2) then
-                !     call FIND_NORMALIZED_DENSITY_GRADIENT_2D(1, 1, N)
-                ! else
-                !     print *, "the function FIND_NORMALIZED_DENSITY_GRADIENT_3D(N) is missing"
-                ! end if
-            end if
-        end if
+        ! if (MESH_MOVEMENT) then
+        !     if ((moving_mesh_mode.eq.8).or.(moving_mesh_mode.eq.9).or.(moving_mesh_mode.eq.10).or.(moving_mesh_mode.eq.13).or.(moving_mesh_mode.eq.14).or.(moving_mesh_mode.eq.15)) then
+        !         call FIND_NORMALIZED_DENSITY_GRADIENT_from_precomputed(N)
+        !     else
+        !         ! if (dimensiona.eq.2) then
+        !         !     call FIND_NORMALIZED_DENSITY_GRADIENT_2D(1, 1, N)
+        !         ! else
+        !         !     print *, "the function FIND_NORMALIZED_DENSITY_GRADIENT_3D(N) is missing"
+        !         ! end if
+        !     end if
+        ! end if
 
         !$OMP BARRIER
 

@@ -32,9 +32,15 @@
 src/ucns3d_p
 src/ucns3d_p*
 
-# tmp directory
+GMSH_translator
 
+# Secrets
+src/SolidBodyMotion.f90
+
+# tmp directory
 tmp/
+
+
 .vscode/configurationCache.log
 .vscode/settings.json
 .vscode/targets.log
@@ -44,4 +50,6 @@ my_tests
 TimingTestsOnArcher2
 src/Makefile
 .DS_Store
+
+
 
