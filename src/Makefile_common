@@ -7,10 +7,10 @@ endif
 ucns3d_p.hpcstruct: ucns3d_p
 	hpcstruct ucns3d_p
 
-ucns3d_p: mpi_p.o declarations.o parameters.o translate.o grid_t.o flow_operations.o io.o memory.o communications.o  der_r.o parts.o svd.o grid_p.o basis.o local_pt.o riemann.o flux_p.o profile.o init_p.o bc_p.o matrix.o gradients.o prestore.o prestore_movingmesh.o grid_movingmesh.o reconstruct_p.o source.o  implicit_fluxes.o implicit_time.o hybridCWENO_MOOD.o mesh_movement.o mood.o time_p.o dg_functions.o meshquality.o SolidBodyMotion.o main.o 
-	$(LD) $(FFLAGS) $(OFLAGS) -o ucns3d_p declarations.o translate.o grid_t.o flow_operations.o memory.o io.o mpi_p.o der_r.o parameters.o communications.o riemann.o flux_p.o profile.o init_p.o parts.o bc_p.o matrix.o grid_p.o basis.o gradients.o prestore.o prestore_movingmesh.o grid_movingmesh.o reconstruct_p.o source.o implicit_fluxes.o implicit_time.o  time_p.o svd.o local_pt.o mood.o dg_functions.o hybridCWENO_MOOD.o mesh_movement.o meshquality.o SolidBodyMotion.o main.o  $(LIBS)
+ucns3d_p: mpi_p.o declarations.o parameters.o translate.o grid_t.o flow_operations.o io.o memory.o communications.o  der_r.o parts.o svd.o grid_p.o basis.o local_pt.o riemann.o flux_p.o profile.o init_p.o bc_p.o matrix.o gradients.o prestore.o prestore_MovingMesh.o grid_MovingMesh.o reconstruct_p.o source.o  implicit_fluxes.o implicit_time.o hybridCWENO_MOOD.o mesh_movement.o mood.o time_p.o dg_functions.o meshquality.o  main.o 
+	$(LD) $(FFLAGS) $(OFLAGS) -o ucns3d_p declarations.o translate.o grid_t.o flow_operations.o memory.o io.o mpi_p.o der_r.o parameters.o communications.o riemann.o flux_p.o profile.o init_p.o parts.o bc_p.o matrix.o grid_p.o basis.o gradients.o prestore.o prestore_MovingMesh.o grid_MovingMesh.o reconstruct_p.o source.o implicit_fluxes.o implicit_time.o  time_p.o svd.o local_pt.o mood.o dg_functions.o hybridCWENO_MOOD.o mesh_movement.o meshquality.o main.o  $(LIBS)
 
-main.o: main.f90 mpiinfo.mod declaration.mod translate.mod parameters.mod memory.mod communications.mod io.mod partition.mod library.mod transform.mod fluxes.mod initialisation.mod boundary.mod advance.mod recon.mod local.mod profile.mod flow_operations.mod gradients.mod basis.mod prestore.mod riemann.mod source.mod implicit_time.mod implicit_fluxes.mod moodr.mod meshmovement_module.mod transform_movingmesh.mod prestore_movingmesh.mod
+main.o: main.f90 mpiinfo.mod declaration.mod translate.mod parameters.mod memory.mod communications.mod io.mod partition.mod library.mod transform.mod fluxes.mod initialisation.mod boundary.mod advance.mod recon.mod local.mod profile.mod flow_operations.mod gradients.mod basis.mod prestore.mod riemann.mod source.mod implicit_time.mod implicit_fluxes.mod moodr.mod meshmovement_module.mod transform_MovingMesh.mod prestore_MovingMesh.mod
 	$(F90) $(FFLAGS)  -c	main.f90
 
 mpiinfo.mod mpi_p.o : mpi_p.f90
@@ -82,7 +82,7 @@ lapck.mod matrix.o : matrix.f90 mpiinfo.mod
 memory.mod memory.o : memory.f90 mpiinfo.mod declaration.mod
 	$(F90) $(FFLAGS)  -c    memory.f90
 
-meshmovement_module.mod mesh_movement.o : mesh_movement.f90 meshqulaity_module.mod prestore_movingmesh.mod transform.mod transform_movingmesh.mod fluxes.mod declaration.mod
+meshmovement_module.mod mesh_movement.o : mesh_movement.f90 meshqulaity_module.mod prestore_MovingMesh.mod transform.mod transform_MovingMesh.mod fluxes.mod declaration.mod
 	$(F90) $(FFLAGS)  -c    mesh_movement.f90
 
 meshqulaity_module.mod meshquality.o : meshquality.f90 declaration.mod
@@ -97,7 +97,7 @@ partition.mod parts.o : parts.f90 mpiinfo.mod declaration.mod
 prestore.mod prestore.o : prestore.f90 declaration.mod derivatives.mod library.mod basis.mod transform.mod local.mod lapck.mod dg_functions.mod 
 	$(F90) $(FFLAGS)  -c    prestore.f90
 
-prestore_movingmesh.mod prestore_movingmesh.o : prestore_MovingMesh.f90 prestore.mod declaration.mod derivatives.mod library.mod basis.mod transform.mod transform_movingmesh.mod local.mod lapck.mod dg_functions.mod
+prestore_MovingMesh.mod prestore_MovingMesh.o : prestore_MovingMesh.f90 prestore.mod declaration.mod derivatives.mod library.mod basis.mod transform.mod transform_MovingMesh.mod local.mod lapck.mod dg_functions.mod
 	$(F90) $(FFLAGS)  -c    prestore_MovingMesh.f90
 
 profile.mod profile.o : profile.f90 declaration.mod library.mod
@@ -109,16 +109,13 @@ recon.mod reconstruct_p.o : reconstruct_p.f90 declaration.mod derivatives.mod li
 riemann.mod riemann.o : riemann.f90 declaration.mod library.mod flow_operations.mod
 	$(F90) $(FFLAGS)  -c    riemann.f90
 
-SolidBodyMotion.mod SolidBodyMotion.o : SolidBodyMotion.f90 declaration.mod library.mod
-	$(F90) $(FFLAGS)  -c    SolidBodyMotion.f90 
-
 source.mod source.o : source.f90 library.mod transform.mod local.mod riemann.mod flow_operations.mod
 	$(F90) $(FFLAGS)  -c    source.f90
 
 svd.mod svd.o : svd.f90 mpiinfo.mod
 	$(F90) $(FFLAGS)  -c    svd.f90
 
-advance.mod time_p.o : time_p.f90 library.mod transform.mod fluxes.mod source.mod initialisation.mod boundary.mod recon.mod local.mod flow_operations.mod communications.mod implicit_time.mod implicit_fluxes.mod io.mod meshmovement_module.mod prestore_movingmesh.mod SolidBodyMotion.mod
+advance.mod time_p.o : time_p.f90 library.mod transform.mod fluxes.mod source.mod initialisation.mod boundary.mod recon.mod local.mod flow_operations.mod communications.mod implicit_time.mod implicit_fluxes.mod io.mod meshmovement_module.mod prestore_MovingMesh.mod
 	$(F90) $(FFLAGS)  -c    time_p.f90
 
 
