@@ -30,7 +30,7 @@ The 2022 [UCNS3D whitepaper](docs/whitepaper-2022.pdf) provides a detailed descr
 - MPI domain decomposition for distributed-memory systems
 - OpenMP threading for shared-memory parallelism
 - Optional GPU/accelerator offload through the `xpu` preprocessor path
-- Case-specific compile-time bounds for XPU work arrays
+- Case-specific compile-time bounds for fixed work arrays
 - Standard visualization output for common CFD post-processing tools
 
 ## Repository Layout
@@ -55,7 +55,7 @@ TESTS.md       example-case description
 
 ## Installation
 
-UCNS3D can be used through Docker or compiled manually on the target machine.
+UCNS3D can be used through Docker or compiled manually on the target machine. The canonical build entry point is [src/Makefile](src/Makefile), which provides compiler profiles selected with `COMPILER=...`.
 
 ### Docker
 
@@ -79,7 +79,13 @@ To mount a local working directory:
 docker run -v $PWD/tmp/:/tmp/ -ti ucns3d
 ```
 
-The current [Dockerfile](Dockerfile) includes an example workflow under [tests](/tests/execute-tests.sh).
+The current [Dockerfile](Dockerfile) builds the GNU CPU/OpenMP executable with:
+
+```bash
+make -f Makefile COMPILER=gnu all
+```
+
+It also installs `python3`, which is used during compilation to derive case-specific fixed array bounds when `UCNS3D.DAT` is present.
 
 ### Manual Build
 
@@ -101,20 +107,40 @@ The solver requires mesh-partitioning libraries:
 - METIS
 - ParMETIS, when using distributed mesh partitioning
 
+The repository build expects Tecplot, METIS, and ParMETIS libraries under [bin/lib](bin/lib) by default. Library paths can be overridden from the make command line.
+
 ## CPU Build
 
-Open a terminal in the source directory and select the appropriate compiler, library paths, and optimization flags in the Makefile.
-
-For a clean build:
+Open a terminal in the source directory:
 
 ```bash
-make -f Makefile clean all
+cd src
 ```
 
-For an incremental rebuild:
+Select one of the Makefile compiler profiles.
+
+GNU Fortran / MPI, CPU/OpenMP only:
 
 ```bash
-make -f Makefile
+make -f Makefile COMPILER=gnu clean all
+```
+
+Intel Fortran / Intel MPI, CPU/OpenMP only:
+
+```bash
+make -f Makefile COMPILER=intel clean all
+```
+
+macOS with GNU Fortran uses the same GNU profile. If `libtecio`, `libparmetis`, and `libmetis` are not in `src`, point the build at the directory containing the macOS `.dylib` or `.a` files:
+
+```bash
+make -f Makefile COMPILER=gnu MAC_LIB_ROOT=/path/to/macos/libs clean all
+```
+
+For an incremental rebuild, omit `clean`:
+
+```bash
+make -f Makefile COMPILER=gnu all
 ```
 
 The executable is:
@@ -123,7 +149,30 @@ The executable is:
 ucns3d_p
 ```
 
-For new development, start with debug flags and runtime checks. For production simulations, rebuild with optimized compiler settings appropriate for the target machine.
+The folders under [bin](bin) contain matching compiler-specific Makefile templates, but [src/Makefile](src/Makefile) is the main build file.
+
+## Compile-Time Bounds
+
+Several fixed work arrays use compile-time `GPU_MAX_*` bounds. Despite the historical name, these bounds are used by shared code paths and are relevant to both CPU and XPU builds.
+
+The Makefile calls [src/gpu_max_flags.py](src/gpu_max_flags.py) automatically. With no extra options, the script checks the current build directory for `UCNS3D.DAT` and companion files such as `REALGAS.DAT`, `MULTISPECIES.DAT`, and `MULTISPECIES_DIFF.DAT`.
+
+The normal workflow is therefore:
+
+```bash
+cd src
+cp /path/to/case/UCNS3D.DAT .
+cp /path/to/case/REALGAS.DAT .     # if used by the case
+make -f Makefile COMPILER=gnu clean all
+```
+
+If the input deck is outside the build directory, pass it explicitly:
+
+```bash
+make -f Makefile COMPILER=gnu GPU_MAX_CONFIG=/path/to/UCNS3D.DAT clean all
+```
+
+Rebuild whenever the case changes dimensionality, spatial order, number of equations, turbulence setting, passive scalars, or species configuration. If no input deck is visible at compile time, the helper emits conservative default bounds.
 
 ## XPU / Accelerated Build
 
@@ -131,39 +180,19 @@ In UCNS3D, **XPU** refers to the accelerator build path enabled by the `xpu` pre
 
 This is not a separate solver and it is not a full-code GPU port. It is a compile-time option that activates the accelerated versions of supported routines while the rest of the code continues to use the standard MPI/OpenMP CPU execution path.
 
-Selected kernels can be compiled for OpenMP target acceleration by enabling the `xpu` preprocessor path. On Cray systems, this is typically done with `-Dxpu` together with OpenMP-enabled compiler flags.
-
-Example Cray-style compilation flags:
+On Cray systems, use the Cray compiler profile:
 
 ```bash
-ftn -eZ -s real64 -fbackslash -fopenmp -e 0 -e I -O2 -Dxpu
+make -f Makefile COMPILER=cray clean all
 ```
 
-The XPU build uses fixed compile-time bounds for several accelerator work arrays. These bounds must match the case being compiled. They are generated from `UCNS3D.DAT` using:
+The `cray` profile uses `ftn`, OpenMP, real64 defaults, and the `-Dxpu` preprocessor flag. It also uses the same automatic `gpu_max_flags.py` mechanism described above.
+
+For an input deck outside the build directory:
 
 ```bash
-python3 gpu_max_flags.py UCNS3D.DAT
+make -f Makefile COMPILER=cray GPU_MAX_CONFIG=/path/to/UCNS3D.DAT clean all
 ```
-
-The script emits preprocessor definitions such as:
-
-```bash
--DGPU_MAX_DIM=3 -DGPU_MAX_IORDER=2 -DGPU_MAX_NVAR=5
-```
-
-When using the supplied accelerated Makefile, the flags are generated automatically if `UCNS3D.DAT` is present in the build directory:
-
-```bash
-make -f view_make/makefiles_script/Makefile COMPILER=cray
-```
-
-The configuration file can also be supplied explicitly:
-
-```bash
-make -f view_make/makefiles_script/Makefile COMPILER=cray GPU_MAX_CONFIG=/path/to/UCNS3D.DAT
-```
-
-Rebuild the executable whenever the runtime case changes the dimensionality, spatial order, number of equations, turbulence setting, passive scalars, or species configuration. CPU builds do not require `UCNS3D.DAT` at compile time.
 
 ## Running a Simulation
 
@@ -193,7 +222,7 @@ Here `M` is the number of MPI processes. At least two MPI processes are normally
 
 ```bash
 cd src
-make -f Makefile clean all
+make -f Makefile COMPILER=gnu clean all
 
 cd ../run_case
 cp ../src/ucns3d_p .
