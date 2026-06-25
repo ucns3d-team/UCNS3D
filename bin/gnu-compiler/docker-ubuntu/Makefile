@@ -1,7 +1,7 @@
-# UCNS3D GNU CPU build template
+# UCNS3D Docker GNU CPU build template
 #
 # Copy this Makefile and Makefile_common into src, or run from src with:
-#   make -f ../bin/gnu-compiler/Makefile
+#   make -f ../bin/gnu-compiler/docker-ubuntu/Makefile
 #
 # This template defaults to GNU Fortran with CPU/OpenMP only, no XPU path.
 

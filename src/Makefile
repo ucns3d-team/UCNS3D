@@ -1,11 +1,15 @@
-# UCNS3D GNU CPU build template
+# UCNS3D view build configuration
 #
-# Copy this Makefile and Makefile_common into src, or run from src with:
-#   make -f ../bin/gnu-compiler/Makefile
+# Select with, for example:
+#   make COMPILER=cray
+#   make COMPILER=intel
+#   make COMPILER=gnu
 #
-# This template defaults to GNU Fortran with CPU/OpenMP only, no XPU path.
+# The default setup is the Cray compiler wrapper (`ftn`) with the XPU path
+# enabled. The Intel and GNU setups find static libraries relative to this
+# source tree unless the paths are overridden.
 
-COMPILER ?= gnu
+COMPILER ?= cray
 
 PYTHON ?= python3
 UNAME_S := $(shell uname -s)

@@ -1,212 +1,245 @@
-MODULE MOODR
-USE MPIINFO
-USE TRANSLATE
-use DECLARATION
-USE MEMORY
-USE COMMUNICATIONS
-USE IO
-USE PARTITION
-USE LIBRARY
-USE TRANSFORM
-USE FLUXES
-USE INITIALISATION
-USE BOUNDARY
-USE RECON
-USE LOCAL
-USE PROFILE
-USE FLOW_OPERATIONS
-USE GRADIENTS
-USE BASIS
-USE PRESTORE
-USE RIEMANN
-USE SOURCE
-USE implicit_time
-USE implicit_FLUXES
-USE OMP_LIB
+module moodr
+use mpiinfo
+use translate
+use declaration
+use memory
+use communications
+use io
+use partition
+use library
+use transform
+use fluxes
+use initialisation
+use boundary
+use recon
+use local
+use profile
+use flow_operations
+use gradients
+use basis
+use prestore
+use riemann
+use source
+use implicit_time
+use implicit_fluxes
+use omp_lib
 
 
 
 
-IMPLICIT NONE
+implicit none
 
- CONTAINS
-
-
-SUBROUTINE PAD_NAD(N)
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,L,NGP,iqp,iex,kmaxe,K,ii,iconsidered
-INTEGER::REDUCE1
-REAl,DIMENSION(NOF_vARIABLES)::NAD_DELTA1
-INTEGER::PAD_TRUE,NAD_TRUE
-REAL::RELAX_MOOD1,RELAX_MOOD2
-real,dimension(1:nof_Variables)::leftv
-real::MP_PINFL,gammal
-real,dimension(1:nof_Variables)::rightv
-real::MP_PINFr,gammar
-REAL,allocatable,DIMENSION(:,:)::UTEMP
-REAL,DIMENSION(1:NOF_VARIABLES)::UTMIN,UTMAX
+ contains
 
 
-allocate(utemp(IMAXDEGFREE+1,1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR))
-
-
-KMAXE=XMPIELRANK(N)
-
-
-IF (CASCADE.EQ.1)THEN
-RELAX_MOOD1=MOOD_VAR1
-RELAX_MOOD2=MOOD_VAR2
-END IF
-IF (CASCADE.EQ.2)THEN
-RELAX_MOOD1=MOOD_VAR3
-RELAX_MOOD2=MOOD_VAR4
-END IF
+subroutine pad_nad(n)
+implicit none
+integer,intent(in)::n
+integer::i,l,iex,kmaxe,k,ii
+integer::nf,lf,rowf
+real,dimension(gpu_max_nvar)::nad_delta1
+integer::pad_true,nad_true
+real::relax_mood1,relax_mood2
+real,dimension(1:gpu_max_nvar)::leftv
+real::mp_pinfl,gammal
+real,dimension(1:gpu_max_nvar)::rightv
+real::mp_pinfr,gammar
+real,dimension(gpu_max_neighbours,1:gpu_max_nvar_total)::utemp
+real,dimension(1:gpu_max_nvar)::utmin,utmax
 
 
 
-IF (ITESTCASE.GE.3)THEN
 
-!$OMP DO
-	DO II=1,NOF_INTERIOR
-	I=EL_INT(II)
-	ICONSIDERED=I
-	IELEM(N,I)%MOOD=0
-    REDUCE1=0
-    PAD_TRUE=0
-    NAD_TRUE=0
+
+kmaxe=xmpielrank(n)
+
+
+if (cascade.eq.1)then
+relax_mood1=mood_var1
+relax_mood2=mood_var2
+end if
+if (cascade.eq.2)then
+relax_mood1=mood_var3
+relax_mood2=mood_var4
+end if
+
+
+
+if (itestcase.ge.3)then
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(ii, i, l, iex, k, nad_delta1, pad_true, nad_true, leftv, mp_pinfl, gammal, utemp, utmin, utmax)
+#else
+!$omp do
+#endif
+	do ii=1,nof_interior
+	i=el_int(ii)
+	ielem_mood(i)=0
+    pad_true=0
+    nad_true=0
 	
      !1 copy candidate solution at temp variable   
-     LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
+     leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
 
-     !2 TRANSFORM CONSERVATIVE  TO PRIMITIVE AND CHECK IF PRESSURE AND DENSITY ARE PHYSICALLY ADMISSIBLE IF NOT PAD_TRUE=1
-                                                IF (DIMENSIONA.EQ.3)THEN
+     !2 transform conservative  to primitive and check if pressure and density are physically admissible if not pad_true=1
+                                                if (dimensiona.eq.3)then
                                                 
-                                                CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+                                                call cons2prim(n,leftv,mp_pinfl,gammal)
 						
 						!
-                                                    IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
-                                                    PAD_TRUE=1
-                                                    END IF
-                                                    IF ((LEFTV(5).LE.ZERO).OR.(LEFTV(5).NE.LEFTV(5)))THEN						
-                                                    PAD_TRUE=1
-                                                    END IF
-                                                ELSE
-                                                    CALL cons2prim(N,leftv,MP_PINFl,gammal)
-                                                    IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
-                                                    PAD_TRUE=1
-                                                    END IF
-                                                    IF ((LEFTV(4).LE.ZERO).OR.(LEFTV(4).NE.LEFTV(4)))THEN						
-                                                    PAD_TRUE=1
-                                                    END IF
+                                                    if ((leftv(1).le.zero).or.(leftv(1).ne.leftv(1)))then						
+                                                    pad_true=1
+                                                    end if
+                                                    if ((leftv(5).le.zero).or.(leftv(5).ne.leftv(5)))then						
+                                                    pad_true=1
+                                                    end if
+                                                else
+                                                    call cons2prim(n,leftv,mp_pinfl,gammal)
+                                                    if ((leftv(1).le.zero).or.(leftv(1).ne.leftv(1)))then						
+                                                    pad_true=1
+                                                    end if
+                                                    if ((leftv(4).le.zero).or.(leftv(4).ne.leftv(4)))then						
+                                                    pad_true=1
+                                                    end if
                                                 
                                                 
-                                                END IF
+                                                end if
  
  
-        !3 THE ONES WITH A PHYSICALLY ADMISSIBLE SOLUTION NEED TO GET CHECKED
+        !3 the ones with a physically admissible solution need to get checked
  
 		
-		IF (PAD_TRUE.EQ.0)THEN
+		if (pad_true.eq.0)then
 		
 		
-		UTEMP=ZERO
+		utemp=zero
                 
                 
-                !4 NOW ESTABLISH A TEMPORARY ARRAY WITH THE CURRENT SOLUTION FROM THE DIRECT SIDE NEIGHBOURS OF CONSIDERED CELL
+                !4 now establish a temporary array with the current solution from the direct side neighbours of considered cell
                 
-                K=0
-			    UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(3,1:NOF_VARIABLES)
-			    K=1
-			    DO L=1,IELEM(N,I)%IFCA
-                K=K+1
-                UTEMP(K,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(L))%VAL(3,1:NOF_VARIABLES)
-                END DO
+                k=0
+			    utemp(1,1:nof_variables)=u_c_val(3,1:nof_variables,i)
+
+
+			    leftv(1:nof_variables)=utemp(1,1:nof_variables)
+			    call cons2prim(n,leftv,mp_pinfl,gammal)
+			    utemp(1,1:nof_variables)=leftv(1:nof_variables)
+
+			    k=1
+			    do l=1,ielem_ifca(i)
+                k=k+1
+                utemp(k,1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+
+                leftv(1:nof_variables)=utemp(k,1:nof_variables)
+			    call cons2prim(n,leftv,mp_pinfl,gammal)
+			    utemp(k,1:nof_variables)=leftv(1:nof_variables)
+
+
+                end do
 			    
 
                 
                             
-                !5 NOW ESTABLISH THE MIN AND MAX BOUNDS
-                        DO IEX=1,NOF_VARIABLES
-                            UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
-                            UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
-                        END DO
+                !5 now establish the min and max bounds
+                        do iex=1,nof_variables
+                            utmin(iex)=minval(utemp(1:k,iex))
+                            utmax(iex)=maxval(utemp(1:k,iex))
+                        end do
 			
 			
 			
-			! MOOD_VAR1=0.0001;MOOD_VAR2=0.001; MOOD_MODE=RELAXED
+			! mood_var1=0.0001;mood_var2=0.001; mood_mode=relaxed
 			
 			
-			 DO IEX=1,NOF_VARIABLES
-			NAD_DELTA1(IEX)=MAX(RELAX_MOOD1,(RELAX_MOOD2)*(UTMAX(IEX)-UTMIN(IEX)))
-			END DO
+			 do iex=1,nof_variables
+			nad_delta1(iex)=max(relax_mood1,(relax_mood2)*(utmax(iex)-utmin(iex)))
+			end do
 
 		 
-                        NAD_TRUE=0
-                        !6 SPECIFY RELAXED OR ORIGINAL MOOD PATTERN
-                        IF (MOOD_MODE.GT.0)THEN
-                        DO IEX=1,NOF_VARIABLES
+                        nad_true=0
+                        !6 specify relaxed or original mood pattern
+                        if (mood_mode.gt.0)then
+
+                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        call cons2prim(n,leftv,mp_pinfl,gammal)
+
+                        do iex=1,nof_variables
                         
-                        IF ((IEX.EQ.1).OR.(IEX.EQ.NOF_vARIABLES))then
-                         IF ((U_C(I)%VAL(4,IEX).LT.(UTMIN(IEX)-NAD_DELTA1(IEX))).OR.(U_C(I)%VAL(4,IEX).GT.(UTMAX(IEX)+NAD_DELTA1(IEX))))THEN
-                            NAD_TRUE=1
-                        END IF
-                        endif
+!                          if ((iex.eq.1).or.(iex.eq.nof_variables))then
+                         if ((leftv(iex).lt.(utmin(iex)-nad_delta1(iex))).or.(leftv(iex).gt.(utmax(iex)+nad_delta1(iex))))then
+                            nad_true=1
+                         end if
+!                         endif
                         
-                        END DO
-                        ELSE
-                        DO IEX=1,NOF_VARIABLES
-                         IF ((IEX.EQ.1).OR.(IEX.EQ.NOF_vARIABLES))then
-                        IF ((U_C(I)%VAL(4,IEX).lt.(UTMIN(IEX))).or.(U_C(I)%VAL(4,IEX).gt.(UTMAX(IEX))))THEN
-                            NAD_TRUE=1
-                        END IF
+                        end do
+                        else
+
+                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        call cons2prim(n,leftv,mp_pinfl,gammal)
+
+                        do iex=1,nof_variables
+
+
+
+!                          if ((iex.eq.1).or.(iex.eq.nof_variables))then
+                        if ((leftv(iex).lt.(utmin(iex))).or.(leftv(iex).gt.(utmax(iex))))then
+                            nad_true=1
+!                         end if
                         end if
-                        END DO
+                        end do
                         
                         
                         
-                        END IF
+                        end if
                         
                         
 		 
 		 
-		 END IF
+		 end if
 
-		 !7 NOW SET THE MOOD FLAG FOR EACH ELEMENT
-		 IELEM(N,I)%MOOD=NAD_TRUE+PAD_TRUE
+		 !7 now set the mood flag for each element
+		 ielem_mood(i)=nad_true+pad_true
 		 
-        END DO
-!$OMP END DO		
+        end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 
-!$OMP DO
-	DO II=1,NOF_BOUNDED
-	I=EL_BND(II)
-	ICONSIDERED=I
-            REDUCE1=0
-		PAD_TRUE=0
-		NAD_TRUE=0
-		IELEM(N,I)%MOOD=0
-                                LEFTV(1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-						IF (DIMENSIONA.EQ.3)THEN
-						CALL CONS2PRIM2(N,LEFTV,RIGHTV,MP_PINFL,MP_PINFR,GAMMAL,GAMMAR)
-                                                    IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
-                                                    PAD_TRUE=1
-                                                    END IF
-                                                    IF ((LEFTV(5).LE.ZERO).OR.(LEFTV(5).NE.LEFTV(5)))THEN						
-                                                    PAD_TRUE=1
-                                                    END IF
-                                                ELSE
-                                                    CALL cons2prim(N,leftv,MP_PINFl,gammal)
-                                                    IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
-                                                    PAD_TRUE=1
-                                                    END IF
-                                                    IF ((LEFTV(4).LE.ZERO).OR.(LEFTV(4).NE.LEFTV(4)))THEN						
-                                                    PAD_TRUE=1
-                                                    END IF
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(ii, i, l, iex, k, nf, lf, rowf, nad_delta1, pad_true, nad_true, leftv, mp_pinfl, gammal, rightv, mp_pinfr, gammar, utemp, utmin, utmax)
+#else
+!$omp do
+#endif
+	do ii=1,nof_bounded
+	i=el_bnd(ii)
+	pad_true=0
+	nad_true=0
+		ielem_mood(i)=0
+                                leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+						if (dimensiona.eq.3)then
+						call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
+                                                    if ((leftv(1).le.zero).or.(leftv(1).ne.leftv(1)))then						
+                                                    pad_true=1
+                                                    end if
+                                                    if ((leftv(5).le.zero).or.(leftv(5).ne.leftv(5)))then						
+                                                    pad_true=1
+                                                    end if
+                                                else
+                                                    call cons2prim(n,leftv,mp_pinfl,gammal)
+                                                    if ((leftv(1).le.zero).or.(leftv(1).ne.leftv(1)))then						
+                                                    pad_true=1
+                                                    end if
+                                                    if ((leftv(4).le.zero).or.(leftv(4).ne.leftv(4)))then						
+                                                    pad_true=1
+                                                    end if
                                                 
                                                 
-                                                END IF
+                                                end if
                                                 
                                                 
                                                 
@@ -215,207 +248,270 @@ IF (ITESTCASE.GE.3)THEN
 		
 		
 		
-		IF (PAD_TRUE.EQ.0)THEN
+		if (pad_true.eq.0)then
 		
 		
-		UTEMP=ZERO
-                            K=0
-			    UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(3,1:NOF_VARIABLES)
-			    K=1
+		utemp=zero
+                            k=0
+			    utemp(1,1:nof_variables)=u_c_val(3,1:nof_variables,i)
+			     leftv(1:nof_variables)=utemp(1,1:nof_variables)
+			    call cons2prim(n,leftv,mp_pinfl,gammal)
+			    utemp(1,1:nof_variables)=leftv(1:nof_variables)
+
+
+			    k=1
                             
 			    
 			    
 			    
 			    
 			    
-                                DO L=1,IELEM(N,I)%IFCA	!faces2
-                                            IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
-                                                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-                                                            K=K+1
-                                                            UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(3,1:nof_variables)
-                                                            ELSE
-                                                            !NOT PERIODIC ONES IN MY CPU			  				  
-                                                            END IF
-                                                        ELSE
-                                                                K=K+1
-                                                                UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(3,1:nof_variables)
-                                                        END IF
-                                            ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+                                do l=1,ielem_ifca(i)	!faces2
+                                            if (ielem_ineighb(l,i).eq.n)then	!my cpu only
+                                                        if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+                                                            if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
+                                                            k=k+1
+                                                            utemp(k,1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+                                                            else
+                                                            !not periodic ones in my cpu			  				  
+                                                            end if
+                                                        else
+                                                                k=k+1
+                                                                utemp(k,1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+                                                        end if
+                                            else	!in other cpus they can only be periodic or mpi neighbours
                                             
-                                                            IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                                                if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-                                                                    K=K+1
-                                                                    UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
-                                                                    (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+                                                            if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+                                                                if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+                                                                    k=k+1
+!                                                                     utemp(k,1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i),i))%sol&
+! !                                                                     (rec_ihexl(1,ielem_indexi(l,i),i),1:nof_variables)
+! !
+! !
+                                                                    nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
+                                                                    lf=rec_ihexl(1,ielem_indexi(L,i),i)
+                                                                    rowf=halo_offset(nf) + lf - 1
+                                                                    utemp(k,1:nof_variables)=solhir(rowf,1:nof_variables)
 
-                                                                END IF
-                                                            ELSE
+
+
+
+                                                                end if
+                                                            else
                                                             
                                                                     
                                                                     
-                                                                    K=K+1
-                                                                    UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
-                                                                    (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+                                                                    k=k+1
+!                                                                     utemp(k,1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i),i))%sol&
+!                                                                     (rec_ihexl(1,ielem_indexi(l,i),i),1:nof_variables)
+!
+                                                                    nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
+                                                                    lf=rec_ihexl(1,ielem_indexi(L,i),i)
+                                                                    rowf=halo_offset(nf) + lf - 1
+                                                                    utemp(k,1:nof_variables)=solhir(rowf,1:nof_variables)
+
+
                                                                     
                                                                 
-                                                            END IF
-                                        END IF
-                                END DO
+                                                            end if
+                                        end if
+
+
+                                        leftv(1:nof_variables)=utemp(k,1:nof_variables)
+                                        call cons2prim(n,leftv,mp_pinfl,gammal)
+                                        utemp(k,1:nof_variables)=leftv(1:nof_variables)
+
+
+
+                                end do
                 
                             
 		 
-                        DO IEX=1,NOF_VARIABLES
-			UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
-			UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
-			END DO
+                        do iex=1,nof_variables
+			utmin(iex)=minval(utemp(1:k,iex))
+			utmax(iex)=maxval(utemp(1:k,iex))
+			end do
 			
-			 DO IEX=1,NOF_VARIABLES
-			NAD_DELTA1(IEX)=MAX(RELAX_MOOD1,(RELAX_MOOD2)*(UTMAX(IEX)-UTMIN(IEX)))
-			END DO
+			 do iex=1,nof_variables
+			nad_delta1(iex)=max(relax_mood1,(relax_mood2)*(utmax(iex)-utmin(iex)))
+			end do
 		 
 		 
-                        NAD_TRUE=0
+                        nad_true=0
                         
                         
-                        IF (MOOD_MODE.GT.0)THEN
-                        DO IEX=1,NOF_VARIABLES
+                        if (mood_mode.gt.0)then
+                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        call cons2prim(n,leftv,mp_pinfl,gammal)
+
+
+                        do iex=1,nof_variables
                         
-                         IF ((IEX.EQ.1).OR.(IEX.EQ.NOF_vARIABLES))then
-                         IF ((U_C(I)%VAL(4,IEX).LT.(UTMIN(IEX)-NAD_DELTA1(IEX))).OR.(U_C(I)%VAL(4,IEX).GT.(UTMAX(IEX)+NAD_DELTA1(IEX))))THEN
-                            NAD_TRUE=1
-                        END IF
+!                           if ((iex.eq.1).or.(iex.eq.nof_variables))then
+                         if ((leftv(iex).lt.(utmin(iex)-nad_delta1(iex))).or.(leftv(iex).gt.(utmax(iex)+nad_delta1(iex))))then
+                            nad_true=1
+!                          end if
                         end if
                         
-                        END DO
-                        ELSE
-                        DO IEX=1,NOF_VARIABLES
-                         IF ((IEX.EQ.1).OR.(IEX.EQ.NOF_vARIABLES))then
-                        IF ((U_C(I)%VAL(4,IEX).lt.(UTMIN(IEX))).or.(U_C(I)%VAL(4,IEX).gt.(UTMAX(IEX))))THEN
-                            NAD_TRUE=1
-                        END IF
+                        end do
+                        else
+                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        call cons2prim(n,leftv,mp_pinfl,gammal)
+
+                        do iex=1,nof_variables
+!                          if ((iex.eq.1).or.(iex.eq.nof_variables))then
+                        if ((leftv(iex).lt.(utmin(iex))).or.(leftv(iex).gt.(utmax(iex))))then
+                            nad_true=1
+!                         end if
                         end if
-                        END DO
+                        end do
                         
                         
                         
-                        END IF
+                        end if
                         
 
 		 
 		 
 		 
-		 END IF
+		 end if
 		 
 		 
 		 
 		 
 		 
-		 IELEM(N,I)%MOOD=NAD_TRUE+PAD_TRUE
+		 ielem_mood(i)=nad_true+pad_true
 		 
 
 		 
 		 
 		 
-        END DO
+        end do
         
-!$OMP END DO
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
-END IF		
+end if		
 		
 
-		DEALLOCATE(UTEMP)
 		
 
-END SUBROUTINE PAD_NAD
+end subroutine pad_nad
 
 
 
 
 
 
-SUBROUTINE MOOD_OPERATOR_2(N)
-IMPLICIT NONE
-INTEGER::I,KMAXE
-INTEGER,INTENT(IN)::N
+subroutine mood_operator_2(n)
+implicit none
+integer::i,kmaxe
+integer,intent(in)::n
 
-KMAXE=XMPIELRANK(N)
+kmaxe=xmpielrank(n)
 
 
-    !$OMP DO
-DO I=1,KMAXE
-  IELEM(N,I)%RECALC=0
-  IELEM(N,I)%MOOD=0
-END DO
-!$OMP END DO
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  ielem_recalc(i)=0
+  ielem_mood(i)=0
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
-  CASCADE=1
- CALL PAD_NAD(N)
+  cascade=1
+ call pad_nad(n)
 
- CALL EXHBOUNDHIGHER_MOOD(N)
+ call exhboundhigher_mood(n)
  
- CALL FIX_LIST(N)
+ call fix_list(n)
  
- CALL MUSCL(N)
+ call muscl(n)
  
- CALL EXHBOUNDHIGHER(N)
+ call exhboundhigher(n)
  
  
  
  if (dimensiona.eq.2)then
- CALL CALCULATE_FLUXESHI_CONVECTIVE2D_MOOD(N)
+ call calculate_fluxeshi_convective2d_mood(n)
 
  else
  
- CALL CALCULATE_FLUXESHI_CONVECTIVE_MOOD(N)
+ call calculate_fluxeshi_convective_mood(n)
  
  end if
  
  
  
  
- !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%MOOD.EQ.0)THEN
-    IELEM(N,I)%MOOD_O=IORDER+1  !TARGET POLYNOMIAL/SCHEME ADMISSIBLE
-    ELSE
-    IELEM(N,I)%MOOD_O=2         !SECOND ORDER MUSCL ADMISSIBLE
-    END IF
-END DO
-!$OMP END DO
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+    if (ielem_mood(i).eq.0)then
+    ielem_mood_o(i)=iorder+1  !target polynomial/scheme admissible
+    else
+    ielem_mood_o(i)=2         !second order muscl admissible
+    end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
-END SUBROUTINE MOOD_OPERATOR_2
-
-
-
-
-
-SUBROUTINE MOOD_OPERATOR_1(N)
-IMPLICIT NONE
-INTEGER::I,KMAXE
-INTEGER,INTENT(IN)::N
-KMAXE=XMPIELRANK(N)
+end subroutine mood_operator_2
 
 
-    !$OMP DO
-DO I=1,KMAXE
-  IELEM(N,I)%RECALC=0
-  IELEM(N,I)%MOOD=0
-END DO
-!$OMP END DO
 
- CASCADE=2
- CALL PAD_NAD(N)
 
- CALL EXHBOUNDHIGHER_MOOD(N)
+
+subroutine mood_operator_1(n)
+implicit none
+integer::i,kmaxe
+integer,intent(in)::n
+kmaxe=xmpielrank(n)
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  ielem_recalc(i)=0
+  ielem_mood(i)=0
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+ cascade=2
+ call pad_nad(n)
+
+ call exhboundhigher_mood(n)
  
- CALL FIX_LIST(N)
+ call fix_list(n)
  
  
  if (dimensiona.eq.2)then
- CALL CALCULATE_FLUXESHI_CONVECTIVE2D_MOOD(N)
+ call calculate_fluxeshi_convective2d_mood(n)
  else
- CALL CALCULATE_FLUXESHI_CONVECTIVE_MOOD(N)
+ call calculate_fluxeshi_convective_mood(n)
  
  
  end if
@@ -425,97 +521,118 @@ END DO
  
  
 
- !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%MOOD.EQ.1)THEN
-    IELEM(N,I)%MOOD_O=1     ! ONLY FIRST ORDER SOLUTION ADMISSIBLE
-    END IF
-END DO
-!$OMP END DO
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+    if (ielem_mood(i).ge.1)then
+    ielem_mood_o(i)=1     ! only first order solution admissible
+    end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 
-END SUBROUTINE MOOD_OPERATOR_1
+end subroutine mood_operator_1
 
 
-SUBROUTINE FIX_LIST(N)
-	IMPLICIT NONE
-	INTEGER,INTENT(IN)::N
-	REAL::GODFLUX2,sum_detect
-	INTEGER::I,L,NGP,KMAXE,IQP
-	REAL,DIMENSION(NUMBEROFPOINTS2)::WEIGHTS_TEMP
-	REAL,DIMENSION(1)::CRIGHT
-	KMAXE=XMPIELRANK(N)
+subroutine fix_list(n)
+	implicit none
+	integer,intent(in)::n
+	integer::i,l,kmaxe,nfx,lfx,rowfx,mright
+	kmaxe=xmpielrank(n)
 	
-	
-	!$OMP DO
-	DO I=1,KMAXE
-                IELEM(N,I)%RECALC=0
-		IF (IELEM(N,I)%MOOD.EQ.1)THEN
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(i, l, nfx, lfx, rowfx, mright)
+#else
+!$omp do
+#endif
+	do i=1,kmaxe
+                ielem_recalc(i)=0
+		if (ielem_mood(i).ge.1)then
 		
-                    IELEM(N,I)%RECALC=1
-                ELSE
-		IF (IELEM(N,I)%INTERIOR.EQ.0)THEN
-		    CRIGHT(1)=ZERO
-		    
-		    DO L=1,IELEM(N,I)%IFCA
-				 
-				 
-				      cRIGHT(1)=IELEM(N,(IELEM(N,I)%INEIGH(L)))%MOOD 
-				      
-				  if (cright(1).gt.0.5)then
-                                    IELEM(N,I)%RECALC=1
+                    ielem_recalc(i)=1
+	else
+	if (ielem_interior(i).eq.0)then
+	    mright=0
+	    
+	    do l=1,ielem_ifca(i)
+			 
+			 
+		      mright=ielem_mood(ielem_ineigh(l,i))
+		      
+		  if (mright.ge.1)then
+                                    ielem_recalc(i)=1
                                     end if	    
 
-		    END DO
-		END IF
+		    end do
+		end if
 		
 		
-		IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
-		    CRIGHT(1)=ZERO
+	if (ielem_interior(i).eq.1)then
+	    mright=0
 		    
-		    DO L=1,IELEM(N,I)%IFCA
+		    do l=1,ielem_ifca(i)
 				      
 				 
 			 
 				      
-					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
-							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1)=ielem(n,(IELEM(N,I)%INEIGH(L)))%mood
+					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
+							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
+									 mright=ielem_mood(ielem_ineigh(l,i))
  								     
-								  ELSE
+								  else
                                                                         
-								  END IF
-							ELSE
-							      CRIGHT(1)=ielem(n,(IELEM(N,I)%INEIGH(L)))%mood
+								  end if
+							else
+								      mright=ielem_mood(ielem_ineigh(l,i))
 !  							       
-							END IF
-					    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+							end if
+					    else	!in other cpus they can only be periodic or mpi neighbours
 						
-							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-									  CRIGHT(1)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_m(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1)
-    									 
-								END IF
-							ELSE 								
-								  CRIGHT(1)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_m(IELEM(N,I)%Q_FACE(L)%Q_MAPL(1),1)
-  									
-! 								
-							END IF
-					    END IF
+                                if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+                                    if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+    ! 									  cright(1)=iexboundhir(ielem_ineighn(l,i))%facesol_m(ielem_qface(l,1,i),1)
+                                        nfx  = ielem_ineighn(l,i)
+                                        lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
+                                        rowfx = bound_offset(nfx) + lfx - 1
+                                        mright = boundhirm(rowfx)
+
+                                    end if
+                                else
+    ! 								  cright(1)=iexboundhir(ielem_ineighn(l,i))%facesol_m(ielem_qface(l,1,i),1)
+                                    nfx  = ielem_ineighn(l,i)
+                                    lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
+                                    rowfx = bound_offset(nfx) + lfx - 1
+                                    mright = boundhirm(rowfx)
+
+    !
+                                end if
+					    end if
 				      
-				     	  if (cright(1).gt.0.5)then
-                                    IELEM(N,I)%RECALC=1
+		     	  if (mright.ge.1)then
+                                    ielem_recalc(i)=1
                                     end if	    
 !  				      
 				 
 				    
-		    END DO
-		END IF
- 		END IF		
-	END DO
-	!$OMP END DO 
-	END SUBROUTINE FIX_LIST
+		    end do
+		end if
+ 		end if		
+	end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end subroutine fix_list
 
 
 
@@ -524,4 +641,4 @@ SUBROUTINE FIX_LIST(N)
 
 
 
-END MODULE MOODR
+end module moodr

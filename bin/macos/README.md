@@ -25,33 +25,36 @@ make
 
 2.2. Then you can use the generated libmetis.dylib and libparmetis.dylib from your directory parmetis/build/Darwin…./libmetis/ and parmetis/build/Darwin…./libparmetis/ respectively
 
-3. Install OpenBlas with Homebrew and modify the Makefile to point to the correct location of the libraries.
+3. Use the Makefile and Makefile_common for MacOS from this folder and copy them to the src directory.
+   The build does not require BLAS, LAPACK, OpenBLAS, or MKL.
 
-
-4. Use the Makefile.common and Makefile for MacOS from this folder and copy to the src directory
-
-5. Open a terminal window and compile as:
+4. Open a terminal window in the src directory and compile as:
 
 ```
-make -f Makefile clean all (this is for new make and clean)
+make -f Makefile clean all
 ```
 
 ```
 make -f Makefile
 ```
 
-6. Type the following in a terminal window prior to running the application
+If the libraries are not in the src directory, point the Makefile to them:
+
+```
+make -f Makefile MAC_LIB_ROOT=/path/to/macos/libs
+```
+
+5. Type the following in a terminal window prior to running the application if libtecio.dylib is not found automatically:
 
 ```
 install_name_tool -change @rpath/libtecio.dylib /Users/Username/code_directory/libtecio.dylib /Users/Username/executable_directory/executable_name
 ```
 
 
-7. Type the following in a terminal window (values for A greater than or equal to 1, and B greater than 1)
+6. Type the following in a terminal window (values for A greater than or equal to 1, and B greater than 1)
 ```
 export OMP_NUM_THREADS=A
 ```
 ```
 mpirun -np B ./ucns3d_p
 ```
-

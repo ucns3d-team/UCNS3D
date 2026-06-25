@@ -1,0 +1,4 @@
+! OUTLETS.DAT: outlet Mach controller and total-pressure inlet settings
+0.4  200000  300  ! target_Mach, inlet_total_pressure(Pa), inlet_total_temperature(K)
+10                ! pressure update frequency in iterations
+0.1               ! pressure relaxation factor

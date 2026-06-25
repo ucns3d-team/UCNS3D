@@ -14,8 +14,6 @@ RUN apt-get update && \
     gcc\
     g++\
     gfortran mpich \
-    libblas-dev \
-    liblapack-dev \
     autoconf \
     autotools-dev \
     # gnuplot \
@@ -40,8 +38,7 @@ RUN apt-get update && \
     apt-get install -y \
     git \
     cmake \
-    mpich \
-    libopenblas-dev ;\
+    python3 ;\
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /root/
@@ -70,7 +67,7 @@ ADD src /root/CODE
 # Add tecplot dependency
 # TODO build the download and compilation of libtecio.a
 ADD bin/lib/tecplot/libtecio.a /root/CODE
-RUN cd /root/CODE && make -f Makefile_docker all
+RUN cd /root/CODE && make -f Makefile COMPILER=gnu all
 ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
 
 # Make & set a rundir & copy executable 

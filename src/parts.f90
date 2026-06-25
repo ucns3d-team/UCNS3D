@@ -159,9 +159,9 @@ EXTERNAL METIS_PartMeshDual
 EXTERNAL METIS_PartMeshNodal
 integer,ALLOCATABLE,DIMENSION(:),intent(in)::IESHAPE
 !!!!!!!!!!!!!!!!
-TYPE::elementglobal
+TYPE::aelementglobal
   INTEGER::ELEMENTGLID,NodeID1,NodeID2,NodeID3,NodeID4,NodeID5,NodeID6,NodeID7,NodeID8!,vweight!,vsize
-END TYPE elementglobal
+END TYPE aelementglobal
 !!!!!!!!!!!!!!!
 real::average
 integer::maxi
@@ -180,7 +180,7 @@ integer(c_int),allocatable,dimension(:)::AllnodesPTR,ALLNODES
 integer(c_int),allocatable,dimension(:)::xmpiee,XMPIDUMB,vwgt, vsize
 real(c_float),allocatable,dimension(:) :: tpwgts
 integer(c_int),dimension(0:39)::options
-TYPE(elementglobal),ALLOCATABLE,DIMENSION(:)::Elements
+TYPE(aelementglobal),ALLOCATABLE,DIMENSION(:)::dElements
 ! use intrinsic        :: iso_c_binding
 !  vwgt   = c_null_ptr    !added
 !  vsize  = c_null_ptr    !added
@@ -209,7 +209,7 @@ call METIS_SetDefaultOptions(options)
 ! print*,options
 
 
-Allocate(Elements(imaxee))
+Allocate(dElements(imaxee))
 ! print*,ALLNODESGLOBALL
 Allocate(ALLNODES(ALLNODESGLOBALL))
 Allocate(AllnodesPTR(imaxe+1))
@@ -223,9 +223,9 @@ Do i=1,imaxe
 
 
 	Read(1112,*)elementid,node1,node2,node3,node4,node5,node6,node7,node8
-    Elements(i)%ELEMENTGLID=elementid;Elements(I)%NodeID1=node1;Elements(i)%NodeID2=node2
-    Elements(I)%NodeID3=node3;Elements(I)%NodeID4=node4;Elements(I)%NodeID5=node5
-    Elements(I)%NodeID6=node6;Elements(I)%NodeID7=node7;Elements(I)%NodeID8=node8
+    dElements(i)%ELEMENTGLID=elementid;dElements(I)%NodeID1=node1;dElements(i)%NodeID2=node2
+    dElements(I)%NodeID3=node3;dElements(I)%NodeID4=node4;dElements(I)%NodeID5=node5
+    dElements(I)%NodeID6=node6;dElements(I)%NodeID7=node7;dElements(I)%NodeID8=node8
 	    
 	    IF ((node3.EQ.node4).AND.(node5.NE.node6).AND.(node7.EQ.node8))THEN ! prism
 		     Counternodes=counternodes + 1
@@ -374,7 +374,7 @@ CLOSE(63)
 
  
 deallocate(testar)
-deAllocate(Elements)
+deAllocate(dElements)
 deAllocate(ALLNODES)
 deAllocate(AllnodesPTR)
 deallocate(vwgt)
@@ -401,9 +401,9 @@ EXTERNAL METIS_PartMeshDual
 EXTERNAL METIS_PartMeshNodal
 integer,ALLOCATABLE,DIMENSION(:),intent(in)::IESHAPE
 !!!!!!!!!!!!!!!!
-TYPE::elementglobal
+TYPE::aelementglobal
   INTEGER::ELEMENTGLID,NodeID1,NodeID2,NodeID3,NodeID4,NodeID5,NodeID6,NodeID7,NodeID8!,vweight!,vsize
-END TYPE elementglobal
+END TYPE aelementglobal
 !!!!!!!!!!!!!!!
 real::average,average2
 integer::maxi,maxi2
@@ -423,7 +423,7 @@ integer(c_int),allocatable,dimension(:)::xmpiee,XMPIDUMB,vwgt, vsize
 real(c_float),allocatable,dimension(:) :: tpwgts
 integer(c_int),dimension(0:39)::options
 
-TYPE(elementglobal),ALLOCATABLE,DIMENSION(:)::Elements
+TYPE(aelementglobal),ALLOCATABLE,DIMENSION(:)::dElements
 ! use intrinsic        :: iso_c_binding
 !  vwgt   = c_null_ptr    !added
 !  vsize  = c_null_ptr    !added
@@ -446,7 +446,7 @@ call METIS_SetDefaultOptions(options)
 ! options(1) = 1 !cut=0 or volume=1 objective
  counternodes=0
 
-Allocate(Elements(imaxee))
+Allocate(dElements(imaxee))
 Allocate(ALLNODES(ALLNODESGLOBALL))
 Allocate(AllnodesPTR(imaxe+1))
       OPEN(1112,FILE='GRID.cel',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
@@ -459,9 +459,9 @@ Do i=1,imaxe
 
 
 	Read(1112,*)elementid,node1,node2,node3,node4,node5,node6,node7,node8
-    Elements(i)%ELEMENTGLID=elementid;Elements(I)%NodeID1=node1;Elements(i)%NodeID2=node2
-    Elements(I)%NodeID3=node3;Elements(I)%NodeID4=node4;Elements(I)%NodeID5=node5
-    Elements(I)%NodeID6=node6;Elements(I)%NodeID7=node7;Elements(I)%NodeID8=node8
+    dElements(i)%ELEMENTGLID=elementid;dElements(I)%NodeID1=node1;dElements(i)%NodeID2=node2
+    dElements(I)%NodeID3=node3;dElements(I)%NodeID4=node4;dElements(I)%NodeID5=node5
+    dElements(I)%NodeID6=node6;dElements(I)%NodeID7=node7;dElements(I)%NodeID8=node8
 	    
 	    IF ((node3.EQ.node4).AND.(node5.NE.node6).AND.(node7.EQ.node8))THEN ! prism
 		     Counternodes=counternodes + 1
@@ -674,7 +674,7 @@ CLOSE(63)
 
  
 deallocate(testar)
-deAllocate(Elements)
+deAllocate(dElements)
 deAllocate(ALLNODES)
 deAllocate(AllnodesPTR)
 deallocate(vwgt)
@@ -703,9 +703,9 @@ EXTERNAL METIS_PartMeshDual
 EXTERNAL METIS_PartMeshNodal
 integer,ALLOCATABLE,DIMENSION(:),intent(in)::IESHAPE
 !!!!!!!!!!!!!!!!
-TYPE::elementglobal
+TYPE::aelementglobal
   INTEGER::ELEMENTGLID,NodeID1,NodeID2,NodeID3,NodeID4,NodeID5,NodeID6,NodeID7,NodeID8!,vweight!,vsize
-END TYPE elementglobal
+END TYPE aelementglobal
 !!!!!!!!!!!!!!!
 real::average,average2
 integer::maxi,maxi2
@@ -725,7 +725,7 @@ integer(c_int),allocatable,dimension(:)::xmpiee,XMPIDUMB,vwgt, vsize
 real(c_float),allocatable,dimension(:) :: tpwgts
 integer(c_int),dimension(0:39)::options
 
-TYPE(elementglobal),ALLOCATABLE,DIMENSION(:)::Elements
+TYPE(aelementglobal),ALLOCATABLE,DIMENSION(:)::dElements
 ! use intrinsic        :: iso_c_binding
 !  vwgt   = c_null_ptr    !added
 !  vsize  = c_null_ptr    !added
@@ -748,7 +748,7 @@ call METIS_SetDefaultOptions(options)
 options(1) = 1 !cut=0 or volume=1 objective
  counternodes=0
 
-Allocate(Elements(imaxee))
+Allocate(dElements(imaxee))
 Allocate(ALLNODES(ALLNODESGLOBALL))
 Allocate(AllnodesPTR(imaxe+1))
       OPEN(1112,FILE='GRID.cel',FORM='FORMATTED',STATUS='OLD',ACTION='READ')
@@ -761,9 +761,9 @@ Do i=1,imaxe
 
 
 	Read(1112,*)elementid,node1,node2,node3,node4,node5,node6,node7,node8
-    Elements(i)%ELEMENTGLID=elementid;Elements(I)%NodeID1=node1;Elements(i)%NodeID2=node2
-    Elements(I)%NodeID3=node3;Elements(I)%NodeID4=node4;Elements(I)%NodeID5=node5
-    Elements(I)%NodeID6=node6;Elements(I)%NodeID7=node7;Elements(I)%NodeID8=node8
+    dElements(i)%ELEMENTGLID=elementid;dElements(I)%NodeID1=node1;dElements(i)%NodeID2=node2
+    dElements(I)%NodeID3=node3;dElements(I)%NodeID4=node4;dElements(I)%NodeID5=node5
+    dElements(I)%NodeID6=node6;dElements(I)%NodeID7=node7;dElements(I)%NodeID8=node8
 	    
 	    IF ((node3.EQ.node4).AND.(node5.NE.node6).AND.(node7.EQ.node8))THEN ! prism
 		     Counternodes=counternodes + 1
@@ -926,7 +926,7 @@ CLOSE(63)
 
  
 deallocate(testar)
-deAllocate(Elements)
+deAllocate(dElements)
 deAllocate(ALLNODES)
 deAllocate(AllnodesPTR)
 deallocate(vwgt)
@@ -961,9 +961,9 @@ EXTERNAL METIS_PartMeshDual
 EXTERNAL METIS_PartMeshNodal
 integer,ALLOCATABLE,DIMENSION(:),intent(in)::IESHAPE
 !!!!!!!!!!!!!!!!
-TYPE::elementglobal
+TYPE::aelementglobal
   INTEGER::ELEMENTGLID,NodeID1,NodeID2,NodeID3,NodeID4,NodeID5,NodeID6,NodeID7,NodeID8!,vweight!,vsize
-END TYPE elementglobal
+END TYPE aelementglobal
 !!!!!!!!!!!!!!!
 real::average
 integer::maxi
@@ -981,7 +981,7 @@ integer(c_int),allocatable,dimension(:)::AllnodesPTR,ALLNODES
 integer(c_int),allocatable,dimension(:)::xmpiee,XMPIDUMB,vwgt, vsize
 real(c_float),allocatable,dimension(:) :: tpwgts
 integer(c_int),dimension(0:39)::options
-TYPE(elementglobal),ALLOCATABLE,DIMENSION(:)::Elements
+TYPE(aelementglobal),ALLOCATABLE,DIMENSION(:)::dElements
 ! use intrinsic        :: iso_c_binding
 !  vwgt   = c_null_ptr    !added
 !  vsize  = c_null_ptr    !added
@@ -1010,7 +1010,7 @@ call METIS_SetDefaultOptions(options)
 ! print*,options
 
 
-Allocate(Elements(imaxee))
+Allocate(dElements(imaxee))
 ! print*,ALLNODESGLOBALL
 
 ALLNODESGLOBALL=8*imaxe
@@ -1027,9 +1027,9 @@ Do i=1,imaxe
 
 
 	Read(1112,*)elementid,node1,node2,node3,node4,node5,node6,node7,node8
-!    Elements(i)%ELEMENTGLID=elementid;Elements(I)%NodeID1=node1;Elements(i)%NodeID2=node2
-!    Elements(I)%NodeID3=node3;Elements(I)%NodeID4=node4;Elements(I)%NodeID5=node5
-!    Elements(I)%NodeID6=node6;Elements(I)%NodeID7=node7;Elements(I)%NodeID8=node8
+!    dElements(i)%ELEMENTGLID=elementid;dElements(I)%NodeID1=node1;dElements(i)%NodeID2=node2
+!    dElements(I)%NodeID3=node3;dElements(I)%NodeID4=node4;dElements(I)%NodeID5=node5
+!    dElements(I)%NodeID6=node6;dElements(I)%NodeID7=node7;dElements(I)%NodeID8=node8
 	    
 	!    IF ((node3.EQ.node4).AND.(node5.NE.node6).AND.(node7.EQ.node8))THEN ! prism!
 !		     Counternodes=counternodes + 1
@@ -1176,7 +1176,7 @@ CLOSE(63)
 
  
 deallocate(testar)
-deAllocate(Elements)
+deAllocate(dElements)
 deAllocate(ALLNODES)
 deAllocate(AllnodesPTR)
 deallocate(vwgt)
