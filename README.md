@@ -17,7 +17,7 @@ The 2022 [UCNS3D whitepaper](docs/whitepaper-2022.pdf) provides a detailed descr
 | Flow regime | Compressible inviscid and viscous flows |
 | Meshes | 2D and 3D unstructured mixed-element meshes |
 | Elements | Triangles, quadrilaterals, tetrahedra, pyramids, prisms, hexahedra |
-| Numerics | MUSCL and high-order finite-volume reconstruction |
+| Numerics | High-order finite-volume reconstruction and Discontinuous Galerkin methods |
 | Parallelism | MPI and OpenMP |
 | Acceleration | Optional OpenMP target offload, referred to in the code as the XPU path |
 | Output | ParaView, Tecplot, and VisIt-compatible files |
