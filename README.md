@@ -178,7 +178,7 @@ Rebuild whenever the case changes dimensionality, spatial order, number of equat
 
 In UCNS3D, **XPU** refers to the accelerator build path enabled by the `xpu` preprocessor flag. It is used for selected kernels that contain OpenMP target offload regions and accelerator-specific data handling. The MPI ranks still run as normal host processes, while supported computational kernels may be offloaded to GPUs or other accelerator devices by the compiler runtime.
 
-This is not a separate solver and it is not a full-code GPU port. It is a compile-time option that activates the accelerated versions of supported routines while the rest of the code continues to use the standard MPI/OpenMP CPU execution path.
+This is not a separate solver. It is the accelerated build of the same code base. **XPU iLES path:** <u>For explicit iLES finite-volume simulations, the full runtime path is accelerated through the XPU implementation, including MPI communications.</u>. Other solver modes may still execute routines on the host CPU where no XPU implementation is available.
 
 On Cray systems, use the Cray compiler profile:
 
