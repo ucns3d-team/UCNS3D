@@ -4,9 +4,9 @@
 
 # UCNS3D
 
-**UCNS3D** is an open-source high-order Computational Fluid Dynamics solver for compressible flows on unstructured meshes. It is designed for research-grade simulations on modern parallel architectures, from MPI/OpenMP CPU clusters to selected GPU/accelerator kernels through the OpenMP target/XPU build path.
+**UCNS3D** is an open-source high-order Computational Fluid Dynamics solver for compressible flows on unstructured meshes. It is designed for flow simulations on modern parallel architectures, from MPI/OpenMP CPU clusters to selected GPU/accelerator kernels through the OpenMP target/XPU build path.
 
-UCNS3D supports two- and three-dimensional simulations on mixed-element meshes and provides a flexible framework for high-order finite-volume methods, turbulence modelling, and large-scale aerodynamic flow problems.
+UCNS3D supports two- and three-dimensional simulations on mixed-element meshes and provides a flexible framework for high-order Finite-Volume and Discontinuous Galerkin methods, turbulence modelling, multicomponent flows, and large-scale aerodynamic flow problems.
 
 The 2022 [UCNS3D whitepaper](docs/whitepaper-2022.pdf) provides a detailed description of the numerical methods, solver capabilities, and representative applications.
 
