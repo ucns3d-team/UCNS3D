@@ -1,0 +1,25 @@
+! REALGAS.DAT: finite-rate real-gas / air-chemistry input
+! Species order used on vector lines: N2, O2, NO, N, O
+5                                             ! nof_species: number of species; following vector lines must contain this many entries
+6                                             ! rg_nof_reactions: number of finite-rate chemistry reactions
+2                                             ! rg_kf_type: 1 Gupta rate form, 2 Candler rate form
+0                                             ! rg_relax: 0 chemistry off/source disabled, 1 species diffusion, 2 source terms active
+0.7356      0.1340     0.0509    0.0    0.07955       ! rg_vf: initial mass fractions for each species
+28.0134e-3  31.9988e-3  30.0061e-3  14.0067e-3  15.9994e-3  ! rg_molm: molar mass [kg/mol] for each species
+0.0     0.0     90290.0  472700.0   249190.0          ! rg_hzero: formation enthalpy [J/mol] for each species
+3390.0     2270.0    2740.0  0.0   0.0                ! rg_thetag: characteristic vibrational temperature [K] per species
+694.0                                                   ! rg_t_inf: initial/free-stream translational-rotational temperature [K]
+300.0                                                   ! rg_t_wall_init: initial wall temperature [K]
+300.0                                                   ! rg_t_ref: reference temperature [K]
+4                                                       ! rg_nof_tv_coef: number of Tv-T polynomial coefficients per row; 0 skips next 3 rows
+-1.007015e-8   9.327154e-5       -0.174277       3.682558e2   ! rg_tv_coef row 1: N2 Tv-T coefficients P1..P{rg_nof_tv_coef}
+-1.428193e-8   2.882479e-4       -1.306531       5.342610e+3  ! rg_tv_coef row 2: O2 Tv-T coefficients P1..P{rg_nof_tv_coef}
+ 3.356426e-8  -4.783255e-4        2.184757      -2.108242e+3  ! rg_tv_coef row 3: NO Tv-T coefficients P1..P{rg_nof_tv_coef}
+0.06170928   0.10338607   0.10039271   0.02670999   0.04674248  ! rgs_ab: Blottner A coefficients per species, base-10 form
+0.31800000  -0.08260000  -0.03360000   0.60300000   0.42900000  ! rgs_bb: Blottner B coefficients per species, base-10 form
+1.09247235   2.00449077   1.83945886   0.61474842   0.96218401  ! rgs_cb: Blottner C coefficients per species, base-10 form
+3.667         3.467          3.492        3.298       3.050      ! rgs_sigmaa: Lennard-Jones sigma [Angstrom] per species
+99.8          106.7          116.7        71.4        80.0       ! rgs_eps_over_k: Lennard-Jones epsilon/k [K] per species
+0                                                       ! catalytic_wall: 0 non-catalytic/skip wall composition line, 1 catalytic/read next line
+0.7356      0.1340     0.0509    0.0    0.07955       ! catalytic_con: wall mass fractions per species; read only when catalytic_wall=1
+

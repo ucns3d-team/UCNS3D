@@ -1,0 +1,6 @@
+! TRANSITION.DAT: SA-transition source ramp control
+! model | axis direction | location ramp_length | ramp_type
+1          ! transition model enabled
+1 1        ! use x-direction, ramp in positive x direction
+0.35 0.05  ! transition starts at x = 0.35 and ramps over length 0.05
+2          ! smooth ramp

@@ -1,148 +1,262 @@
 <p align="center">
-<img width="1000" height="500" src="docs/ucns3d.png">
+  <img width="1200" height="900" src="docs/ucns3d.png" alt="UCNS3D">
 </p>
 
+# UCNS3D
 
+**UCNS3D** is an open-source high-order Computational Fluid Dynamics solver for compressible flows on unstructured meshes. It is designed for flow simulations on modern parallel architectures, from MPI/OpenMP CPU clusters to selected GPU/accelerator kernels through the OpenMP target/XPU build path.
 
-# UCNS3D: The Open-Source High-Order Finite-Volume CFD Solver
+UCNS3D supports two- and three-dimensional simulations on mixed-element meshes and provides a flexible framework for high-order Finite-Volume and Discontinuous Galerkin methods, turbulence modelling, multicomponent flows, and large-scale aerodynamic flow problems.
 
+The 2022 [UCNS3D whitepaper](docs/whitepaper-2022.pdf) provides a detailed description of the numerical methods, solver capabilities, and representative applications.
 
-## Overview
+## At a Glance
 
+| Capability | Support |
+| --- | --- |
+| Flow regime | Compressible inviscid and viscous flows |
+| Meshes | 2D and 3D unstructured mixed-element meshes |
+| Elements | Triangles, quadrilaterals, tetrahedra, pyramids, prisms, hexahedra |
+| Numerics | High-order finite-volume reconstruction and Discontinuous Galerkin methods |
+| Parallelism | MPI and OpenMP |
+| Acceleration | Optional OpenMP target offload, referred to in the code as the XPU path |
+| Output | ParaView, Tecplot, and VisIt-compatible files |
 
-This repository contains the source code [ucns3d](https://ucns3d.com/) 
-Computational Fluid Dynamics (CFD) solver and instructions on how to use it with representative examples.
+## Main Features
 
-UCNS3D is an open-source computational solver for compressible flows on unstructured meshes. State-of-the-art high-order methods are are available in a versatile 2D and 3D unstructured CFD framework for a wide-range of compressible flow problems.
+- High-order compressible-flow solver for unstructured grids
+- Support for mixed-element 2D and 3D meshes
+- Explicit and implicit simulation workflows
+- MPI domain decomposition for distributed-memory systems
+- OpenMP threading for shared-memory parallelism
+- Optional GPU/accelerator offload through the `xpu` preprocessor path
+- Case-specific compile-time bounds for fixed work arrays
+- Standard visualization output for common CFD post-processing tools
 
-The 2022 ["whitepaper"](docs/whitepaper-2022.pdf) contains a detail overview of the methods, capabilities and application of the solver.
+## Repository Layout
 
-## Overview
+Typical repository contents include:
 
+```text
+src/          Fortran source code
+docs/         documentation and whitepaper material
+scripts/      example run scripts for local and HPC systems
+tests/        representative test workflows
+bin/lib/      optional third-party or platform-specific libraries
+```
 
-The `ucns3d` solver is portable to `Linux` operating systems and `MacOS` (Catalina or newer) as well as on `Windows 10` using Windows Subsystem for Linux (`WLS-2`). The parallel CFD code employing MPI+OpenMP for distributed memory machines.
+Additional documentation is provided in:
 
+```text
+FILES.md       mesh and file-format description
+PARAMETERS.md  runtime parameter description
+TESTS.md       example-case description
+```
 
-ucns3d can deal with triangular, quadrilateral,tetrahedral,pyramidal, prismatic, and hexahedral elements.
+## Installation
 
-
-
-## Install
-
-There are two main methods to locally install the solver and run the solver.
-* Install through Docker
-* Install all dependencies and compilers manually.
+UCNS3D can be used through Docker or compiled manually on the target machine. The canonical build entry point is [src/Makefile](src/Makefile), which provides compiler profiles selected with `COMPILER=...`.
 
 ### Docker
 
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) on any operating system you are working. For Windows 10 or 11 you would need WSL ideally WSL2 installed, follow Microsoft's [instructions](https://docs.microsoft.com/en-us/windows/wsl/install).
+Install [Docker Desktop](https://www.docker.com/products/docker-desktop/). On Windows, use Windows Subsystem for Linux 2.
 
-2. In your bash terminal build the ucns3d image, you would need invoke `docker build` from the repository root directory:
+Build the image from the repository root:
 
-```
+```bash
 docker build . -t ucns3d -f Dockerfile
 ```
 
-3. Once the image is build run the image, you can run the image interactively like so:
+Run the container interactively:
 
-```
+```bash
 docker run -ti ucns3d
 ```
 
-The current [Dockerfile](Dockerfile) contains an example case under [tests](/tests/execute-tests.sh). Alternatively, you can mount a tmp directory and copy other uses cases when you run the image like so:
+To mount a local working directory:
 
-```
+```bash
 docker run -v $PWD/tmp/:/tmp/ -ti ucns3d
 ```
 
+The current [Dockerfile](Dockerfile) builds the GNU CPU/OpenMP executable with:
+
+```bash
+make -f Makefile COMPILER=gnu all
+```
+
+It also installs `python3`, which is used during compilation to derive case-specific fixed array bounds when `UCNS3D.DAT` is present.
+
 ### Manual Build
 
-The [source code](/src/) is written in Fortran and can be compiled in various environment. The following OS options are available.
+The source code is written in Fortran and is intended to build on:
 
-* Linux x86-64 (Tested on Redhat, Ubuntu, Centos, Suse).
-* MacOS Intel based (Catalina and newer).
-* Windows 10 through WSL2, Ubuntu 20.04
+- Linux x86-64 systems
+- macOS
+- Windows through WSL2
+- HPC systems using MPI compiler wrappers
 
-### Build
+Common compiler environments include:
 
-The source code requires compilation and linking both static and dynamic libraries. The source code can be compiled with the following compilers.
+- Intel Fortran / Intel MPI
+- GNU Fortran with MPI
+- Cray compiler wrappers
 
-* Intel Parallel Studio Version 17 or newer.
-* G-Fortran and gcc with an MPI distribution.
+The solver requires mesh-partitioning libraries:
 
-### Compilation Dependencies
+- METIS
+- ParMETIS, when using distributed mesh partitioning
 
-The solver makes use of BLAS libraries that are required for the compilation and running of the solver.
+The repository build expects Tecplot, METIS, and ParMETIS libraries under [bin/lib](bin/lib) by default. Library paths can be overridden from the make command line.
 
-* Intel MKL library
-* OpenBLAS
+## CPU Build
 
-The mesh is partitioned using metis software.
+Open a terminal in the source directory:
 
-* Open a terminal window in the [src](/src/) directory
-* Ensure that you have selected the desirable compiling options in the Makefile, by specifying the appropriate fortran compiler
-(ftn, ifort etc) and ensure that you have copied the static libraries from the [lib](/bin/lib/) directory. Always compile with full debug options when developing something new, and then proceed to the more optimised
-compiler options.
-
-* For a clean installation 
+```bash
+cd src
 ```
-make -f Makefile clean all
-```
-* For recompiling changed files and their dependencies
-```
-make -f Makefile
-```
-* the name of the executable is `ucns3d_p`.
 
+Select one of the Makefile compiler profiles.
 
-## Running
+GNU Fortran / MPI, CPU/OpenMP only:
 
-
-For running ucns3d you will need the following files in a directory of your choice:
-* a grid file generated with any software packages exported in Ansys fluent format (ASCII *.msh extension), given the name grid.msh or their translated to native format files GRID.cel, GRID.vrt, GRID.bnd (a detailed description of the files can be found in FILES.md)
-* the UCNS3D.DAT parameter file responsible for all the settings of the code (details for the parameters of this can be found in PARAMETERS.md file)
-* the executable ucns3d_p
-* For interactively running the code specify the number of threads to be used by typing in the terminal window
+```bash
+make -f Makefile COMPILER=gnu clean all
 ```
+
+Intel Fortran / Intel MPI, CPU/OpenMP only:
+
+```bash
+make -f Makefile COMPILER=intel clean all
+```
+
+macOS with GNU Fortran uses the same GNU profile. If `libtecio`, `libparmetis`, and `libmetis` are not in `src`, point the build at the directory containing the macOS `.dylib` or `.a` files:
+
+```bash
+make -f Makefile COMPILER=gnu MAC_LIB_ROOT=/path/to/macos/libs clean all
+```
+
+For an incremental rebuild, omit `clean`:
+
+```bash
+make -f Makefile COMPILER=gnu all
+```
+
+The executable is:
+
+```bash
+ucns3d_p
+```
+
+The folders under [bin](bin) contain matching compiler-specific Makefile templates, but [src/Makefile](src/Makefile) is the main build file.
+
+## Compile-Time Bounds
+
+Several fixed work arrays use compile-time `GPU_MAX_*` bounds. Despite the historical name, these bounds are used by shared code paths and are relevant to both CPU and XPU builds.
+
+The Makefile calls [src/gpu_max_flags.py](src/gpu_max_flags.py) automatically. With no extra options, the script checks the current build directory for `UCNS3D.DAT` and companion files such as `REALGAS.DAT`, `MULTISPECIES.DAT`, and `MULTISPECIES_DIFF.DAT`.
+
+The normal workflow is therefore:
+
+```bash
+cd src
+cp /path/to/case/UCNS3D.DAT .
+cp /path/to/case/REALGAS.DAT .     # if used by the case
+make -f Makefile COMPILER=gnu clean all
+```
+
+If the input deck is outside the build directory, pass it explicitly:
+
+```bash
+make -f Makefile COMPILER=gnu GPU_MAX_CONFIG=/path/to/UCNS3D.DAT clean all
+```
+
+Rebuild whenever the case changes dimensionality, spatial order, number of equations, turbulence setting, passive scalars, or species configuration. If no input deck is visible at compile time, the helper emits conservative default bounds.
+
+## XPU / Accelerated Build
+
+In UCNS3D, **XPU** refers to the accelerator build path enabled by the `xpu` preprocessor flag. It is used for selected kernels that contain OpenMP target offload regions and accelerator-specific data handling. The MPI ranks still run as normal host processes, while supported computational kernels may be offloaded to GPUs or other accelerator devices by the compiler runtime.
+
+This is not a separate solver. It is the accelerated build of the same code base. **XPU iLES path:** <u>For explicit iLES finite-volume simulations, the full runtime path is accelerated through the XPU implementation, including MPI communications.</u>. Other solver modes may still execute routines on the host CPU where no XPU implementation is available.
+
+On Cray systems, use the Cray compiler profile:
+
+```bash
+make -f Makefile COMPILER=cray clean all
+```
+
+The `cray` profile uses `ftn`, OpenMP, real64 defaults, and the `-Dxpu` preprocessor flag. It also uses the same automatic `gpu_max_flags.py` mechanism described above.
+
+For an input deck outside the build directory:
+
+```bash
+make -f Makefile COMPILER=cray GPU_MAX_CONFIG=/path/to/UCNS3D.DAT clean all
+```
+
+## Running a Simulation
+
+A run directory normally contains:
+
+- a mesh file named `grid.msh`, or native files named `GRID.cel`, `GRID.vrt`, and `GRID.bnd`
+- the runtime input file `UCNS3D.DAT`
+- the executable `ucns3d_p`
+
+Set the number of OpenMP threads:
+
+```bash
 export OMP_NUM_THREADS=N
 ```
-N being the number of threads to be used (use 1 for MPI only mode)
-* in the same terminal window run the code by typing
-```
+
+Use `N=1` for MPI-only execution.
+
+Launch the solver with MPI:
+
+```bash
 mpirun -np M ./ucns3d_p
 ```
-M being the number of MPI processes (at least 2 are required), for running at different HPC systems sample [scripts](/scripts) and [libraries](/bin/lib) are provided.
 
+Here `M` is the number of MPI processes. At least two MPI processes are normally required.
 
-## Visualisation of outputs
+## Example Workflow
 
+```bash
+cd src
+make -f Makefile COMPILER=gnu clean all
 
-The solver outputs to different formats enable post-processing and visualisation through the folowing software
-* [Tecplot](https://www.tecplot.com/)
-* [Paraview](https://www.paraview.org/)
-* [Visit](https://wci.llnl.gov/simulation/computer-codes/visit)
+cd ../run_case
+cp ../src/ucns3d_p .
+export OMP_NUM_THREADS=1
+mpirun -np 32 ./ucns3d_p
+```
 
+Machine-specific run scripts for local and HPC systems may be placed under [scripts](/scripts).
 
-## Examples
+## Visualization
 
+UCNS3D output can be post-processed with:
 
-Representative tests can be downloaded from
+- [ParaView](https://www.paraview.org/)
+- [Tecplot](https://www.tecplot.com/)
+- [VisIt](https://wci.llnl.gov/simulation/computer-codes/visit)
 
-[tests1](https://doi.org/10.5281/zenodo.3375432)
+## Example Cases
 
-[tests2](https://doi.org/10.5281/zenodo.6538622)
+Representative test cases are available from:
 
-and a detailed description is provided in the file TESTS.md
+- [tests1](https://doi.org/10.5281/zenodo.3375432)
+- [tests2](https://doi.org/10.5281/zenodo.6538622)
 
+See `TESTS.md` for details.
 
 ## License
 
-
-The `ucns3d` solver is distributed under the GNU General Public Licence v3
-See the LICENSE file for details.
+UCNS3D is distributed under the GNU General Public License v3. See the `LICENSE` file for details.
 
 ## Support
 
+Questions, feedback, and suggestions can be sent to:
 
-Please get in touch and let us know how we can make this project better ucns3d@gmail.com
-
+```text
+ucns3d@gmail.com
+```

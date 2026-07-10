@@ -18,7 +18,7 @@ IMPLICIT NONE
 integer,INTENT(IN)::N
 REAL,allocatable,DIMENSION(:)::RG,ARG
 CHARACTER(LEN=20)::PROC,RESTFILE,PROC3
-INTEGER::prev_turbequation,INITIAL,III,i,k,jx,QQP,INC,kmaxe,jkn,ki,iterr,JX2,ind1,KX,icompwrt,ICONSIDERED
+INTEGER::prev_turbequation,INITIAL,III,i,k,jx,QQP,INC,kmaxe,jkn,ki,iterr,JX2,KX,icompwrt,ICONSIDERED
 INTEGER::ELTYPE,ELEM_DEC,COUNT_1
 REAL::VOLTEMP
 real,dimension(1:nof_Variables+turbulenceequations+passivescalar)::veccos
@@ -31,11 +31,7 @@ REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
 
 
 
-if (rungekutta.eq.4)then
-ind1=7
-else
-ind1=5
-end if
+
 
 
 IF (LAMPS.EQ.1)THEN
@@ -82,41 +78,41 @@ IF (RESTART.EQ.0)THEN
 		IF (ITESTCASE.EQ.0)THEN
 !$OMP DO
 		DO INITIAL=1,KMAXE
-			U_C(INITIAL)%VAL(1,1)=1.0D0
-			U_E(INITIAL)%VAL(1,1)=U_C(INITIAL)%VAL(1,1)
+			U_C_VAL(1,1,INITIAL)=1.0D0
+			U_E_VAL(1,1,INITIAL)=U_C_VAL(1,1,INITIAL)
 		END DO
 !$OMP END DO
 		END IF
 		IF (ITESTCASE.EQ.1)THEN
 !$OMP DO
 		DO INITIAL=1,KMAXE
-			pox(1)=IELEM(N,INITIAL)%XXC
-			poy(1)=IELEM(N,INITIAL)%yyC
+			pox(1)=IELEM_XXC(INITIAL)
+			poy(1)=IELEM_yyC(INITIAL)
 			if (dimensiona.eq.3)then
-			poz(1)=IELEM(N,INITIAL)%zzC
-			U_C(INITIAL)%VAL(1,1)=LINEAR_INIT3D(N,pox,poy,poz)
+			poz(1)=IELEM_zzC(INITIAL)
+			U_C_VAL(1,1,INITIAL)=LINEAR_INIT3D(N,pox,poy,poz)
 			ELSE
-			U_C(INITIAL)%VAL(1,1)=LINEAR_INIT2D(N,pox,poy,poz)
+			U_C_VAL(1,1,INITIAL)=LINEAR_INIT2D(N,pox,poy,poz)
 			end if
 
 
-			U_E(INITIAL)%VAL(1,1)=U_C(INITIAL)%VAL(1,1)
+			U_E_VAL(1,1,INITIAL)=U_C_VAL(1,1,INITIAL)
 		END DO
 !$OMP END DO
 		END IF
 		IF (ITESTCASE.EQ.2)THEN
 !$OMP DO
 		DO INITIAL=1,KMAXE
-			pox(1)=IELEM(N,INITIAL)%XXC
-			poy(1)=IELEM(N,INITIAL)%yyC
+			pox(1)=IELEM_XXC(INITIAL)
+			poy(1)=IELEM_yyC(INITIAL)
 			if (dimensiona.eq.3)then
-			poz(1)=IELEM(N,INITIAL)%zzC
-			U_C(INITIAL)%VAL(1,1)=LINEAR_INIT3D(N,pox,poy,poz)
+			poz(1)=IELEM_zzC(INITIAL)
+			U_C_VAL(1,1,INITIAL)=LINEAR_INIT3D(N,pox,poy,poz)
 			ELSE
-			U_C(INITIAL)%VAL(1,1)=LINEAR_INIT2D(N,pox,poy,poz)
+			U_C_VAL(1,1,INITIAL)=LINEAR_INIT2D(N,pox,poy,poz)
 			end if
 
-			U_E(INITIAL)%VAL(1,1)=U_C(INITIAL)%VAL(1,1)
+			U_E_VAL(1,1,INITIAL)=U_C_VAL(1,1,INITIAL)
 		END DO
 !$OMP END DO
 		END IF
@@ -124,21 +120,21 @@ IF (RESTART.EQ.0)THEN
 !$OMP DO
 		DO INITIAL=1,KMAXE
 			VECCOS(:)=ZERO
-			pox(1)=IELEM(N,INITIAL)%XXC
-			poy(1)=IELEM(N,INITIAL)%yyC
+			pox(1)=IELEM_XXC(INITIAL)
+			poy(1)=IELEM_yyC(INITIAL)
 			if (dimensiona.eq.3)then
-			poz(1)=IELEM(N,INITIAL)%zzC
+			poz(1)=IELEM_zzC(INITIAL)
 			CALL INITIALISE_EULER3D(N,veccos,pox,poy,poz)
 			ELSE
 			CALL INITIALISE_EULER2D(N,veccos,pox,poy,poz)
 			end if
 
 			if ((turbulence .eq. 1).or.(passivescalar.gt.0)) then
-			U_C(INITIAL)%VAL(1,1:nof_Variables)=VECCOS(1:nof_Variables)
-			U_CT(INITIAL)%VAL(1,1:0+turbulenceequations+passivescalar)=VECCOS(nof_Variables+1:nof_Variables+turbulenceequations+passivescalar)
+			U_C_VAL(1,1:nof_Variables,INITIAL)=VECCOS(1:nof_Variables)
+			U_CT_VAL(1,1:0+turbulenceequations+passivescalar,INITIAL)=VECCOS(nof_Variables+1:nof_Variables+turbulenceequations+passivescalar)
 			else
-			U_C(INITIAL)%VAL(1,:)=VECCOS(:)
-			if (itestcase.ge.3)U_E(INITIAL)%VAL(1,:)=U_C(INITIAL)%VAL(1,:)
+			U_C_VAL(1,:,INITIAL)=VECCOS(:)
+			if (itestcase.ge.3)U_E_VAL(1,:,INITIAL)=U_C_VAL(1,:,INITIAL)
 			end if
 		END DO
 !$OMP END DO
@@ -153,16 +149,16 @@ IF (RESTART.EQ.0)THEN
 		 
 		 VEXT=ZERO
         NODES_LIST=ZERO
-        ELTYPE=IELEM(N,I)%ISHAPE
-        ELEM_DEC=IELEM(N,I)%VDEC
+        ELTYPE=IELEM_ISHAPE(I)
+        ELEM_DEC=IELEM_VDEC(I)
         ELEM_LISTD=ZERO
         VOLTEMP=ZERO
         
-      jx=IELEM(N,I)%NONODES
+      jx=IELEM_NONODES(I)
 !       
 	  do K=1,jx
-	    JX2=IELEM(N,I)%NODES(k)
-	    NODES_LIST(k,:)=inoder(JX2)%CORD(:)
+	    JX2=IELEM_NODES(k,I)
+	    NODES_LIST(k,:)=dinoder(JX2)%CORD(:)
 	    VEXT(K,:)=NODES_LIST(k,:)
 	  END DO
 
@@ -174,13 +170,13 @@ IF (RESTART.EQ.0)THEN
 	  CALL DECOMPOSE2(n,eltype,NODES_LIST,ELEM_LISTD)
 	  END IF
     
-      SELECT CASE(ielem(n,i)%ishape)
+      SELECT CASE(IELEM_ishape(i))
 
       CASE(1)
        COUNT_1=0
-      if (IELEM(N,I)%MODE.eq.0)then
+      if (IELEM_MODE(I).eq.0)then
       CALL QUADRATUREHEXA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      VOLTEMP=HEXAVOLUME(N,VEXT,QPOINTS,WEQUA3D)/IELEM(N,I)%totvolume
+      VOLTEMP=HEXAVOLUME(N,VEXT,QPOINTS,WEQUA3D)/IELEM_totvolume(I)
       QQP=QP_HEXA
       
 	  DO INC=1,QQP
@@ -205,7 +201,7 @@ IF (RESTART.EQ.0)THEN
                         if (dg.eq.1)then
                         VOLTEMP=TETRAVOLUME(N,VEXT)
                         else
-                        VOLTEMP=TETRAVOLUME(N,VEXT)/IELEM(N,I)%totvolume
+                        VOLTEMP=TETRAVOLUME(N,VEXT)/IELEM_totvolume(I)
                         end if
 	  
 	 
@@ -238,7 +234,7 @@ IF (RESTART.EQ.0)THEN
                         VOLTEMP=TETRAVOLUME(N,VEXT)
                         COUNT_1=0
                         else
-                        VOLTEMP=TETRAVOLUME(N,VEXT)/IELEM(N,I)%totvolume
+                        VOLTEMP=TETRAVOLUME(N,VEXT)/IELEM_totvolume(I)
                         end if
 ! 	  
 	   QQP=QP_TETRA
@@ -261,7 +257,7 @@ IF (RESTART.EQ.0)THEN
 	  if (dg.eq.1)then
                         VOLTEMP=TETRAVOLUME(N,VEXT)
                         else
-                        VOLTEMP=TETRAVOLUME(N,VEXT)/IELEM(N,I)%totvolume
+                        VOLTEMP=TETRAVOLUME(N,VEXT)/IELEM_totvolume(I)
                         end if
 	     QQP=QP_TETRA
 	  DO INC=1,QQP
@@ -279,9 +275,9 @@ IF (RESTART.EQ.0)THEN
 	
        CASE(4)
        
-       if (IELEM(N,I)%MODE.eq.0)then
+       if (IELEM_MODE(I).eq.0)then
        CALL QUADRATUREPRISM(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      VOLTEMP=PRISMVOLUME(N,VEXT,QPOINTS,WEQUA3D)/IELEM(N,I)%totvolume
+      VOLTEMP=PRISMVOLUME(N,VEXT,QPOINTS,WEQUA3D)/IELEM_totvolume(I)
        QQP=QP_PRISM
 	  DO INC=1,QQP
 	  POX(1)=QPOINTS(1,INC)
@@ -299,7 +295,7 @@ IF (RESTART.EQ.0)THEN
         if (dg.eq.1)then
                             VOLTEMP=TETRAVOLUME(N,VEXT)
                             else
-                            VOLTEMP=TETRAVOLUME(N,VEXT)/IELEM(N,I)%totvolume
+                            VOLTEMP=TETRAVOLUME(N,VEXT)/IELEM_totvolume(I)
                             end if
             QQP=QP_TETRA
         DO INC=1,QQP
@@ -316,7 +312,7 @@ IF (RESTART.EQ.0)THEN
        
         CASE(5)
 
-         IF (IELEM(N,I)%MODE.EQ.0)THEN
+         IF (IELEM_MODE(I).EQ.0)THEN
                 CALL QUADRATUREQUAD(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
 
                             VOLTEMP=1.0d0
@@ -343,7 +339,7 @@ IF (RESTART.EQ.0)THEN
                                 if (dg.eq.1)then
                                 VOLTEMP=TRIANGLEVOLUME(N,VEXT)
                                 else
-                                VOLTEMP=TRIANGLEVOLUME(N,VEXT)/IELEM(N,I)%totvolume
+                                VOLTEMP=TRIANGLEVOLUME(N,VEXT)/IELEM_totvolume(I)
                                 end if
 
 
@@ -373,7 +369,7 @@ IF (RESTART.EQ.0)THEN
                         if (dg.eq.1)then
                         VOLTEMP=TRIANGLEVOLUME(N,VEXT)
                         else
-                        VOLTEMP=TRIANGLEVOLUME(N,VEXT)/IELEM(N,I)%totvolume
+                        VOLTEMP=TRIANGLEVOLUME(N,VEXT)/IELEM_totvolume(I)
                         end if
                         QQP=QP_Triangle
                          DO INC=1,QQP
@@ -418,6 +414,9 @@ END SUBROUTINE INITIALISE
 
 SUBROUTINE ASSIGN_INITIAL(ICONSIDERED,INC,VOLTEMP,WEQUA3D,POX,POY,POZ,COUNT_1)
 IMPLICIT NONE
+integer :: mm_i
+integer :: mm_j
+real :: mm_sum
 INTEGER,INTENT(IN)::ICONSIDERED,inc,COUNT_1
 real,dimension(1:dimensiona),INTENT(IN)::pox,poy,poz
 REAL,INTENT(IN)::VOLTEMP
@@ -439,10 +438,10 @@ I=ICONSIDERED
             icompwrt=-2
 
             IF (DIMENSIONA.EQ.2)THEN
-             BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),IORDER,I,IDEGFREE,icompwrt)
+             BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY_X(COUNT_1,I),QP_ARRAY_Y(COUNT_1,I),IORDER,I,IDEGFREE,icompwrt)
 
             ELSE
-            BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE,icompwrt)
+            BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY_X(COUNT_1,I),QP_ARRAY_Y(COUNT_1,I),QP_ARRAY_Z(COUNT_1,I),IORDER,I,IDEGFREE,icompwrt)
             END IF
 
 
@@ -456,23 +455,29 @@ I=ICONSIDERED
 
 
 
-            U_C(I)%VALDG(1,1,:)=U_C(I)%VALDG(1,1,:)+MATMUL(m_1(i)%val(:,:),tempsol(1,:))
+              do mm_i=1,num_dg_dofs
+                mm_sum=zero
+                do mm_j=1,num_dg_dofs
+                  mm_sum=mm_sum+M_1_VAL(mm_i,mm_j,i)*tempsol(1,mm_j)
+                end do
+                U_C_VALDG(1,1,mm_i,I)=U_C_VALDG(1,1,mm_i,I)+mm_sum
+              end do
 			ELSE
 
 
              IF (DIMENSIONA.EQ.2)THEN
 
-			U_C(I)%VAL(1,1)=U_C(I)%VAL(1,1)+LINEAR_INIT2D(N,POX,POY,POZ)*WEQUA3D(INC)*(VOLTEMP)
+			U_C_VAL(1,1,I)=U_C_VAL(1,1,I)+LINEAR_INIT2D(N,POX,POY,POZ)*WEQUA3D(INC)*(VOLTEMP)
 			Else
-			U_C(I)%VAL(1,1)=U_C(I)%VAL(1,1)+LINEAR_INIT3D(N,POX,POY,POZ)*WEQUA3D(INC)*(VOLTEMP)
+			U_C_VAL(1,1,I)=U_C_VAL(1,1,I)+LINEAR_INIT3D(N,POX,POY,POZ)*WEQUA3D(INC)*(VOLTEMP)
 
 			END IF
 
 
 
 			END IF
-			U_E(I)%VAL(1,1)=U_C(I)%VAL(1,1)
-			IF (DG.EQ.1)U_E(I)%VAL(1,1)=U_C(I)%VALDG(1,1,1)
+			U_E_VAL(1,1,I)=U_C_VAL(1,1,I)
+			IF (DG.EQ.1)U_E_VAL(1,1,I)=U_C_VALDG(1,1,1,I)
         ELSE
 
 
@@ -487,8 +492,8 @@ I=ICONSIDERED
 
 
                 if ((turbulence .eq. 1).or.(passivescalar.gt.0)) then
-                U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+VECCOS(1:nof_Variables)*WEQUA3D(INC)*(VOLTEMP)
-                U_CT(I)%VAL(1,1:0+turbulenceequations+passivescalar)=U_CT(I)%VAL(1,1:0+turbulenceequations+passivescalar)+&
+                U_C_VAL(1,1:nof_Variables,I)=U_C_VAL(1,1:nof_Variables,I)+VECCOS(1:nof_Variables)*WEQUA3D(INC)*(VOLTEMP)
+                U_CT_VAL(1,1:0+turbulenceequations+passivescalar,I)=U_CT_VAL(1,1:0+turbulenceequations+passivescalar,I)+&
                 VECCOS(NOF_VARIABLES+1:NOF_VARIABLES+turbulenceequations+passivescalar)*WEQUA3D(INC)*(VOLTEMP)
                 else
                 IF (DG.EQ.1)THEN
@@ -497,10 +502,10 @@ I=ICONSIDERED
 
 
                     IF (DIMENSIONA.EQ.2)THEN
-                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),IORDER,I,IDEGFREE,icompwrt)
+                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY_X(COUNT_1,I),QP_ARRAY_Y(COUNT_1,I),IORDER,I,IDEGFREE,icompwrt)
 
                     Else
-                     BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE,icompwrt)
+                     BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY_X(COUNT_1,I),QP_ARRAY_Y(COUNT_1,I),QP_ARRAY_Z(COUNT_1,I),IORDER,I,IDEGFREE,icompwrt)
 
                     END IF
 
@@ -508,17 +513,23 @@ I=ICONSIDERED
                                         DO KX=1,nof_Variables
                                     tempsol(1,:)=VECCOS(KX)*WEQUA3D(INC)*(voltemp)*basis_vector(1:idegfree+1)
 
-                                    U_C(I)%VALDG(1,KX,:)=U_C(I)%VALDG(1,KX,:)+MATMUL(m_1(i)%val(:,:),tempsol(1,:))
+                                      do mm_i=1,num_dg_dofs
+                                        mm_sum=zero
+                                        do mm_j=1,num_dg_dofs
+                                          mm_sum=mm_sum+M_1_VAL(mm_i,mm_j,i)*tempsol(1,mm_j)
+                                        end do
+                                        U_C_VALDG(1,KX,mm_i,I)=U_C_VALDG(1,KX,mm_i,I)+mm_sum
+                                      end do
                                         END DO
                 ELSE
 
 
 
-                    U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+(VECCOS(1:nof_Variables)*WEQUA3D(INC)*(VOLTEMP))
+                    U_C_VAL(1,1:nof_Variables,I)=U_C_VAL(1,1:nof_Variables,I)+(VECCOS(1:nof_Variables)*WEQUA3D(INC)*(VOLTEMP))
 
 
 
-                if (itestcase.ge.3)U_E(I)%VAL(1,:)=U_C(I)%VAL(1,:)
+                if (itestcase.ge.3)U_E_VAL(1,:,I)=U_C_VAL(1,:,I)
 
 
                 END IF

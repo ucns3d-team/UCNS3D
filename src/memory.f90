@@ -1,98 +1,104 @@
-MODULE MEMORY
-USE MPIINFO
-USE DECLARATION
-IMPLICIT NONE
+module memory
+use mpiinfo
+use declaration
+implicit none
 
-CONTAINS
+contains
 
 
 
 subroutine allocate2
 !> @brief
-!> This subroutine allocates memory
+!> this subroutine allocates memory
 implicit none
-ALLOCATE(LIST(2000),INEB(6),IPERB(6),NODELIST(8))
-END SUBROUTINE
+allocate(list(2000),ineb(6),iperb(6),nodelist(8))
+end subroutine
 
 subroutine allocate5
 !> @brief
-!> This subroutine allocates memory for the stencils
+!> this subroutine allocates memory for the stencils
 implicit none
-ALLOCATE(ILOCALALLELG(N:N,xmpielrank(n),1,ISELEMT(N)))
-ILOCALALLELG(:,:,:,:)=0
-ALLOCATE(ILOCALALLELGPER(N:N,xmpielrank(n),1,ISELEMT(N)))
-ILOCALALLELGPER(:,:,:,:)=0
+allocate(ilocalallelg(n:n,xmpielrank(n),1,iselemt(n)))
+ilocalallelg(:,:,:,:)=0
+allocate(ilocalallelgper(n:n,xmpielrank(n),1,iselemt(n)))
+ilocalallelgper(:,:,:,:)=0
 end subroutine
 
 
 
 
-SUBROUTINE ALLOCATE3
-IMPLICIT NONE
-!> @brief
-!> This subroutine deallocates memory
-DEALLOCATE(LIST,INEB,IPERB)
-END SUBROUTINE
-
-SUBROUTINE GLOBALDEA2(XMPIL,XMPIE)
-!> @brief
-!> This subroutine deallocates global lists
-IMPLICIT NONE
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIL,XMPIE
- CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-  DEALLOCATE(XMPIL)
-    DEALLOCATE(XMPIE)
- CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- END SUBROUTINE GLOBALDEA2
-
-SUBROUTINE QUADALLOC(NUMBEROFPOINTS,NUMBEROFPOINTS2)
-!> @brief
-!> This subroutine allocates memory for the quadrature points
+subroutine allocate3
 implicit none
-INTEGER,INTENT(INout)::NUMBEROFPOINTS,NUMBEROFPOINTS2
+!> @brief
+!> this subroutine deallocates memory
+deallocate(list,ineb,iperb)
+end subroutine
+
+subroutine globaldea2(xmpil,xmpie)
+!> @brief
+!> this subroutine deallocates global lists
+implicit none
+integer,allocatable,dimension(:),intent(inout)::xmpil,xmpie
+ call mpi_barrier(mpi_comm_world,ierror)
+  deallocate(xmpil)
+    deallocate(xmpie)
+ call mpi_barrier(mpi_comm_world,ierror)
+ end subroutine globaldea2
+
+subroutine quadalloc(numberofpoints,numberofpoints2)
+!> @brief
+!> this subroutine allocates memory for the quadrature points
+implicit none
+integer,intent(inout)::numberofpoints,numberofpoints2
 integer::i,kmaxe
 
 
-IF (DIMENSIONA.EQ.3)THEN
-    NUMBEROFPOINTS=MAX(QP_HEXA,QP_TETRA,QP_PYRA,QP_PRISM)
-    if (dg.eq.1)NUMBEROFPOINTS=MAX(QP_HEXA,QP_TETRA*6,QP_PYRA,QP_PRISM)
-    NUMBEROFPOINTS2=MAX(QP_QUAD,QP_TRIANGLE,QP_TRIANGLE)
+if (dimensiona.eq.3)then
+
+    numberofpoints=max(qp_hexa,qp_tetra,qp_pyra,qp_prism)
+
+
+    if (dg.eq.1)numberofpoints=max(qp_hexa,qp_tetra*6,qp_pyra,qp_prism)
+
+
+    numberofpoints2=max(qp_quad,qp_triangle)
+
     
 
-ELSE
-    NUMBEROFPOINTS=MAX(QP_QUAD,QP_TRIANGLE)
-    if (dg.eq.1)NUMBEROFPOINTS=MAX(QP_QUAD,QP_TRIANGLE*2)
-    NUMBEROFPOINTS2=QP_LINE
+else
+    numberofpoints=max(qp_quad,qp_triangle)
+    if (dg.eq.1)numberofpoints=max(qp_quad,qp_triangle*2)
+    numberofpoints2=qp_line
    
-END IF
+end if
 
 
 
 kmaxe=xmpielrank(n)
 do i=1,kmaxe
 
-select case (ielem(n,i)%ishape)
+select case (ielem_ishape(i))
         
         
         case(1) !hexa
-        ielem(n,i)%iTOTALPOINTS=QP_Tetra*6
+        ielem_itotalpoints(i)=qp_tetra*6
         
         case(2) !tetra
-        ielem(n,i)%iTOTALPOINTS=QP_Tetra
+        ielem_itotalpoints(i)=qp_tetra
         
         case(3) !pyramid
-        ielem(n,i)%iTOTALPOINTS=QP_Tetra*2
+        ielem_itotalpoints(i)=qp_tetra*2
         
         case(4) !prism
-        ielem(n,i)%iTOTALPOINTS=QP_tetra*3
+        ielem_itotalpoints(i)=qp_tetra*3
         
         case(5) !quadrilateral
-        ielem(n,i)%iTOTALPOINTS=QP_TRIANGLE*2
+        ielem_itotalpoints(i)=qp_triangle*2
         
         
         
         case(6)!triangle
-         ielem(n,i)%iTOTALPOINTS=QP_TRIANGLE
+         ielem_itotalpoints(i)=qp_triangle
          
          
          end select
@@ -103,88 +109,84 @@ end do
 
 
 
-END SUBROUTINE QUADALLOC
+end subroutine quadalloc
 
 
 
 
 
-!!!!!!!!!!!!!!!!!!SUBROUTINE CALLED INITIALLY TO ALLOCATE MEMORY FOR FLUXES!!!!!!!!!!!!!!!!!!!!
+
+
+
+!!!!!!!!!!!!!!!!!!subroutine called initially to allocate memory for fluxes!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE SUMFLUX_ALLOCATION(N)
+subroutine sumflux_allocation(n)
 !> @brief
-!> This subroutine allocates memory for the fluxes
-	IMPLICIT NONE
-	INTEGER,INTENT(INOUT)::N
-	INTEGER::I,KMAXE
-	KMAXE=XMPIELRANK(N)
+!> this subroutine allocates memory for the fluxes
+	implicit none
+	integer,intent(inout)::n
+	integer::i,kmaxe
+	kmaxe=xmpielrank(n)
 	
-	ALLOCATE (RHS(KMAXE))
+	allocate (rhs_val(nof_variables,kmaxe))
 
 
 	
 	
-	IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-	ALLOCATE (RHST(KMAXE))
-	END IF
+	if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	allocate (rhst_val(turbulenceequations+passivescalar,kmaxe))
+	end if
 	
-	DO I=1,KMAXE
-        IF (DG == 1) THEN
-            ALLOCATE(RHS(I)%VALDG(NUM_DG_DOFS, NOF_VARIABLES))
 
-            
-        end if
-            ALLOCATE (RHS(I)%VAL(nof_Variables))
-            
-            IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)) THEN
-                ALLOCATE (RHST(I)%VAL(TURBULENCEEQUATIONS+PASSIVESCALAR))
-            END IF
-        
-    END DO
+	if (dg.eq.1)then
+	allocate(rhs_valdg(num_dg_dofs, nof_variables,kmaxe))
+    allocate(rhs_sol_mm_dg(1:num_dg_dofs,1:nof_variables,kmaxe))
+	end if
+
 	
-END SUBROUTINE SUMFLUX_ALLOCATION
+end subroutine sumflux_allocation
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE IMPALLOCATE(N)
+subroutine impallocate(n)
 !> @brief
-!> This subroutine allocates memory for implicit time stepping
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::KMAXE,interf
-KMAXE=XMPIELRANK(N)
+!> this subroutine allocates memory for implicit time stepping
+implicit none
+integer,intent(in)::n
+integer::kmaxe,interf
+kmaxe=xmpielrank(n)
 
 
 if (dimensiona.eq.3)then
-interf=nof_Variables
+interf=nof_variables
 else
-interf=nof_Variables
+interf=nof_variables
 end if
 
-IF (RUNGEKUTTA.EQ.12)THEN
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+if (rungekutta.eq.12)then
+allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 impdu(:,:)=zero
-ELSE
+else
 
 
 
-IF (RELAX.EQ.3)THEN
+if (relax.eq.3)then
 
-ALLOCATE (IMPDIAG_MF(KMAXE))
-ALLOCATE (IMPOFF_MF(KMAXE,INTERF))
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+allocate (impdiag_mf(kmaxe))
+allocate (impoff_mf(kmaxe,interf))
+allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 
-IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
-ALLOCATE(IMPDIAGT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(IMPOFFt(KMAXE,INTERF,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-END IF
+if ((itestcase.eq.4).and.((turbulence.gt.0).or.(passivescalar.gt.0)))then
+allocate(impdiagt(kmaxe,turbulenceequations+passivescalar))
+allocate(impofft(kmaxe,interf,turbulenceequations+passivescalar))
+allocate(sht(kmaxe,turbulenceequations+passivescalar))
+end if
 
-IMPDIAG_MF=zero
-IMPOFF_MF=zero
+impdiag_mf=zero
+impoff_mf=zero
 impdu=zero
 
-ELSE
+else
 
 
 
@@ -192,61 +194,80 @@ ELSE
 if (dimensiona.eq.3)then
 if (lowmemory.eq.0)then
 
-ALLOCATE (IMPDIAG(KMAXE,1:nof_Variables,1:nof_Variables))
-ALLOCATE (IMPOFF(KMAXE,6,1:nof_Variables,1:nof_Variables))
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+allocate (impdiag(kmaxe,1:nof_variables,1:nof_variables))
+allocate (impoff(kmaxe,6,1:nof_variables,1:nof_variables))
+allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 
-IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
-ALLOCATE(IMPOFFt(KMAXE,6,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(IMPDIAGT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-END IF
+if (realgas.eq.1)then
+allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
+end if
+
+if ((itestcase.eq.4).and.((turbulence.gt.0).or.(passivescalar.gt.0)))then
+allocate(impofft(kmaxe,6,turbulenceequations+passivescalar))
+allocate(impdiagt(kmaxe,turbulenceequations+passivescalar))
+allocate(sht(kmaxe,turbulenceequations+passivescalar))
+end if
 
 
-IMPDIAG(:,:,:)=zero
-IMPOFF(:,:,:,:)=zero
+impdiag(:,:,:)=zero
+impoff(:,:,:,:)=zero
 impdu(:,:)=zero
 
 else
 
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 impdu(:,:)=zero
-IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
-ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-END IF
+
+if (realgas.eq.1)then
+allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
+end if
+
+if ((itestcase.eq.4).and.((turbulence.gt.0).or.(passivescalar.gt.0)))then
+allocate(sht(kmaxe,turbulenceequations+passivescalar))
+end if
 end if
 
 else
 
 if (lowmemory.eq.0)then
 
-ALLOCATE (IMPDIAG(KMAXE,1:nof_Variables,1:nof_Variables))
-ALLOCATE (IMPOFF(KMAXE,4,1:nof_Variables,1:nof_Variables))
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
+allocate (impdiag(kmaxe,1:nof_variables,1:nof_variables))
+allocate (impoff(kmaxe,4,1:nof_variables,1:nof_variables))
+allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 
-IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
-ALLOCATE(IMPOFFt(KMAXE,4,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(IMPDIAGT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-END IF
+if (realgas.eq.1)then
+allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
+end if
 
 
-IMPDIAG(:,:,:)=zero
-IMPOFF(:,:,:,:)=zero
+if ((itestcase.eq.4).and.((turbulence.gt.0).or.(passivescalar.gt.0)))then
+allocate(impofft(kmaxe,4,turbulenceequations+passivescalar))
+allocate(impdiagt(kmaxe,turbulenceequations+passivescalar))
+allocate(sht(kmaxe,turbulenceequations+passivescalar))
+end if
+
+
+impdiag(:,:,:)=zero
+impoff(:,:,:,:)=zero
 impdu(:,:)=zero
 
 else
 
-! ALLOCATE (IMPDIAG(1,1:nof_Variables,1:nof_Variables))
-! ALLOCATE (IMPOFF(1,4,1:nof_Variables,1:nof_Variables))
-ALLOCATE (IMPdu(KMAXE,1:nof_Variables+TURBULENCEEQUATIONS+PASSIVESCALAR))
-IF ((ITESTCASE.EQ.4).AND.((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0)))THEN
-! ALLOCATE(IMPOFFt(1,4,TURBULENCEEQUATIONS+PASSIVESCALAR))
-! ALLOCATE(IMPDIAGT(1,TURBULENCEEQUATIONS+PASSIVESCALAR))
-ALLOCATE(SHT(KMAXE,TURBULENCEEQUATIONS+PASSIVESCALAR))
-END IF
-! IMPDIAG(1,:,:)=zero
-! IMPOFF(1,:,:,:)=zero
+! allocate (impdiag(1,1:nof_variables,1:nof_variables))
+! allocate (impoff(1,4,1:nof_variables,1:nof_variables))
+allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
+
+if (realgas.eq.1)then
+allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
+end if
+
+if ((itestcase.eq.4).and.((turbulence.gt.0).or.(passivescalar.gt.0)))then
+! allocate(impofft(1,4,turbulenceequations+passivescalar))
+! allocate(impdiagt(1,turbulenceequations+passivescalar))
+allocate(sht(kmaxe,turbulenceequations+passivescalar))
+end if
+! impdiag(1,:,:)=zero
+! impoff(1,:,:,:)=zero
 impdu(:,:)=zero
 end if
 
@@ -254,37 +275,37 @@ end if
 
 end if
 end if
-END IF
+end if
 
 
 
 
-END  SUBROUTINE IMPALLOCATE
+end  subroutine impallocate
 
 
 
-SUBROUTINE TIMING(N,CPUX1,CPUX2,CPUX3,CPUX4,CPUX5,CPUX6,TIMEX1,TIMEX2,TIMEX3,TIMEX4,TIMEX5,TIMEX6)
+subroutine timing(n,cpux1,cpux2,cpux3,cpux4,cpux5,cpux6,timex1,timex2,timex3,timex4,timex5,timex6)
 !> @brief
-!> This subroutine allocates memory for the timers
-IMPLICIT NONE
-REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::CPUX1,CPUX2,CPUX3,CPUX4,CPUX5,CPUX6,TIMEX1,TIMEX2,TIMEX3,TIMEX4,TIMEX5,TIMEX6
-INTEGER,INTENT(IN)::N
-ALLOCATE (CPUX1(1))
-ALLOCATE (CPUX2(1))
-ALLOCATE (CPUX3(1))
-ALLOCATE (CPUX4(1))
-ALLOCATE (CPUX5(1))
-ALLOCATE (CPUX6(1))
-ALLOCATE (TIMEX1(1))
-ALLOCATE (TIMEX2(1))
-ALLOCATE (TIMEX3(1))
-ALLOCATE (TIMEX4(1))
-ALLOCATE (TIMEX5(1))
-ALLOCATE (TIMEX6(1))
- CPUX1(1)=0.0; CPUX2(1)=0.0;  CPUX3(1)=0.0;  CPUX4(1)=0.0;  CPUX5(1)=0.0;  CPUX6(1)=0.0
-  TIMEX1(1)=0.0; TIMEX2(1)=0.0; TIMEX3(1)=0.0;  TIMEX4(1)=0.0;  TIMEX5(1)=0.0;  TIMEX6(1)=0.0
+!> this subroutine allocates memory for the timers
+implicit none
+real,allocatable,dimension(:),intent(inout)::cpux1,cpux2,cpux3,cpux4,cpux5,cpux6,timex1,timex2,timex3,timex4,timex5,timex6
+integer,intent(in)::n
+allocate (cpux1(1))
+allocate (cpux2(1))
+allocate (cpux3(1))
+allocate (cpux4(1))
+allocate (cpux5(1))
+allocate (cpux6(1))
+allocate (timex1(1))
+allocate (timex2(1))
+allocate (timex3(1))
+allocate (timex4(1))
+allocate (timex5(1))
+allocate (timex6(1))
+ cpux1(1)=0.0; cpux2(1)=0.0;  cpux3(1)=0.0;  cpux4(1)=0.0;  cpux5(1)=0.0;  cpux6(1)=0.0
+  timex1(1)=0.0; timex2(1)=0.0; timex3(1)=0.0;  timex4(1)=0.0;  timex5(1)=0.0;  timex6(1)=0.0
   
-END  SUBROUTINE TIMING
+end  subroutine timing
 
 
 
@@ -293,21 +314,21 @@ END  SUBROUTINE TIMING
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!SUBROUTINE CALLED INITIALLY TO ALLOCATE MEMORY FOR ELEMENTS!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!subroutine called initially to allocate memory for elements!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	SUBROUTINE SHALLOCATION(IESHAPE,IMAXE)
+	subroutine shallocation(ieshape,imaxe)
 	!> @brief
-!> This subroutine allocates memory for the shapes
-	IMPLICIT NONE
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IESHAPE
-	INTEGER,INTENT(INOUT)::IMAXE
-	ALLOCATE (IESHAPE(IMAXE))
+!> this subroutine allocates memory for the shapes
+	implicit none
+	integer,allocatable,dimension(:),intent(inout)::ieshape
+	integer,intent(inout)::imaxe
+	allocate (ieshape(imaxe))
 	allocate (nodes_offset(imaxe),nodes_offset2(imaxe))
-	IESHAPE=0
+	ieshape=0
 	nodes_offset=0
 	nodes_offset2=0
 	
-	END SUBROUTINE SHALLOCATION
+	end subroutine shallocation
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !---------------------------------------------------------------------------------------------!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -315,64 +336,213 @@ END  SUBROUTINE TIMING
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!SUBROUTINE CALLED INITIALLY TO ALLOCATE MEMORY FOR ELEMENTS!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!subroutine called initially to allocate memory for elements!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	SUBROUTINE SHDEALLOCATION(IESHAPE,IMAXE)
+	subroutine shdeallocation(ieshape,imaxe)
 	!> @brief
-!> This subroutine deallocates memory for the shapes
-	IMPLICIT NONE
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IESHAPE
-	INTEGER,INTENT(INOUT)::IMAXE
-	DEALLOCATE (IESHAPE,nodes_offset,nodes_offset2)
-	END SUBROUTINE SHDEALLOCATION
+!> this subroutine deallocates memory for the shapes
+	implicit none
+	integer,allocatable,dimension(:),intent(inout)::ieshape
+	integer,intent(inout)::imaxe
+	deallocate (ieshape,nodes_offset,nodes_offset2)
+	end subroutine shdeallocation
 
 
 
 
 
-!!!!!!!!!!!!!!!!!!SUBROUTINE CALLED INITIALLY TO ALLOCATE MEMORY FOR ELEMENTS!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!subroutine called initially to allocate memory for elements!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	SUBROUTINE ELALLOCATION(N,XMPIE,XMPIELRANK,IELEM,IMAXE,IESHAPE,ITESTCASE,IMAXB,IBOUND,XMIN,XMAX,YMIN,YMAX,ZMIN,ZMAX)
-	IMPLICIT NONE
+	subroutine elallocation(n,xmpie,xmpielrank,imaxe,ieshape,itestcase,imaxb,xmin,xmax,ymin,ymax,zmin,zmax)
+	implicit none
 	!> @brief
-!> This subroutine allocates memory for the elements
-	TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::IELEM
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::IESHAPE
-	INTEGER,INTENT(IN)::N
-	INTEGER,INTENT(IN)::IMAXE,ITESTCASE,IMAXB
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIE
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
-	TYPE(BOUND_NUMBER),ALLOCATABLE,DIMENSION(:,:)::IBOUND
-	INTEGER::I,J,K,LM,IEX,KMAXE,KK
-	REAL,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMIN,XMAX,YMIN,YMAX,ZMIN,ZMAX
-	ALLOCATE(XMIN(N:N))
-	ALLOCATE(YMIN(N:N))
-	ALLOCATE(ZMIN(N:N))
-	ALLOCATE(XMAX(N:N))
-	ALLOCATE(YMAX(N:N))
-	ALLOCATE(ZMAX(N:N))
-	KK=0; I=0; J=0; LM=0 
-	KMAXE=XMPIELRANK(N)
-	ALLOCATE(IELEM(N:N,XMPIELRANK(N)))
-	IF (TECPLOT.EQ.5)THEN
+!> this subroutine allocates memory for the elements
+	integer,allocatable,dimension(:),intent(in)::ieshape
+	integer,intent(in)::n
+	integer,intent(in)::imaxe,itestcase,imaxb
+	integer,allocatable,dimension(:),intent(in)::xmpie
+	integer,allocatable,dimension(:),intent(in)::xmpielrank
+	integer::i,j,k,lm,iex,kmaxe,kk
+	real,allocatable,dimension(:),intent(inout)::xmin,xmax,ymin,ymax,zmin,zmax
+	allocate(xmin(n:n))
+	allocate(ymin(n:n))
+	allocate(zmin(n:n))
+	allocate(xmax(n:n))
+	allocate(ymax(n:n))
+	allocate(zmax(n:n))
+	kk=0; i=0; j=0; lm=0 
+	kmaxe=xmpielrank(n)
+
+
+
+  if (dimensiona.eq.3)then
+
+      max_fnodes=4; max_nodes=8
+
+
+
+
+      max_faces=4
+
+
+      if (num_pyramids.gt.0)then
+
+      max_faces=5;
+
+      end if
+
+
+      if (num_prisms.gt.0)then
+
+      max_faces=5;
+
+      end if
+
+
+      if (num_hexas.gt.0)then
+
+      max_faces=6;
+
+      end if
+
+
+else
+
+max_faces=4; max_fnodes=2; max_nodes=4
+end if
+
+
+!-------------------------
+! scalar integer members
+!-------------------------
+allocate(ielem_ihex(kmaxe) )                ; ielem_ihex = 0
+allocate(ielem_ihexgl(kmaxe) )              ; ielem_ihexgl = 0
+allocate(ielem_full(kmaxe) )                ; ielem_full = 0
+allocate(ielem_interior(kmaxe) )            ; ielem_interior = 0
+allocate(ielem_itotalpoints(kmaxe), ielem_troubled(kmaxe) )
+allocate(ielem_nofbc(kmaxe) )                ;ielem_nofbc = 0
+allocate(ielem_inumneighbours(kmaxe))         ;ielem_inumneighbours=0
+allocate(ielem_idegfree(kmaxe))             ;ielem_idegfree=0
+allocate(ielem_iorder(kmaxe))               ;ielem_iorder=0
+allocate(ielem_mode(kmaxe))                 ;ielem_mode=0
+allocate(ielem_indexf(kmaxe))               ;ielem_indexf=0
+
+
+ielem_itotalpoints = 0                      ; ielem_troubled = 0
+allocate(ielem_vdec(kmaxe) )                ; ielem_vdec = 0
+allocate(ielem_ggs(kmaxe) )                 ; ielem_ggs = 0
+allocate(ielem_ishape(kmaxe) )              ; ielem_ishape = 0
+allocate(ielem_ifca(kmaxe) )                ; ielem_ifca = 0
+allocate(ielem_admis(kmaxe) )               ; ielem_admis = 0
+allocate(ielem_hybrid(kmaxe) )              ; ielem_hybrid = 0
+allocate(ielem_nonodes(kmaxe) )             ; ielem_nonodes = 0
+
+if (filtering.eq.1)then
+  allocate(ielem_filtered(kmaxe))           ; ielem_filtered = 0
+end if
+allocate(ielem_reduce(kmaxe) )              ; ielem_reduce = 0
+
+
+!-------------------------
+! scalar real members
+!-------------------------
+allocate( ielem_totvolume(kmaxe) )          ; ielem_totvolume = 0.0
+allocate( ielem_dtl(kmaxe) )                ; ielem_dtl = 0.0
+allocate( ielem_minedge(kmaxe) )            ; ielem_minedge = 0.0
+allocate( ielem_walldist(kmaxe) )           ; ielem_walldist = 0.0
+allocate( ielem_walltrans(kmaxe) )          ; ielem_walltrans = 0.0
+allocate( ielem_xxc(kmaxe), ielem_yyc(kmaxe), ielem_zzc(kmaxe) )
+ielem_xxc = 0.0                             ; ielem_yyc = 0.0                             ; ielem_zzc = 0.0
+allocate( ielem_condition(kmaxe) )          ; ielem_condition = 0.0
+
+if (adda.eq.1)then
+  allocate(ielem_er(kmaxe), ielem_er2(kmaxe), ielem_er1(kmaxe) )
+  ielem_er = 0.0                            ; ielem_er2 = 0.0                              ; ielem_er1 = 0.0
+  allocate(ielem_er2dt(kmaxe), ielem_er1dt(kmaxe), ielem_er1er2(kmaxe) )
+  ielem_er2dt = 0.0                         ; ielem_er1dt = 0.0                             ; ielem_er1er2 = 0.0
+  allocate(ielem_lwcx2(kmaxe), ielem_diss(kmaxe), ielem_erx(kmaxe) )
+  ielem_lwcx2 = 0.0                         ; ielem_diss = 0.0                              ; ielem_erx = 0.0
+end if
+
+
+  allocate(ielem_mood(kmaxe), ielem_mood_o(kmaxe) )
+  ielem_mood = 0.0                          ; ielem_mood_o = 0.0
+
+
+
+allocate(ielem_recalc(kmaxe) )
+
+if (code_profile.eq.30)then
+  allocate( ielem_nojecount(max_nodes, kmaxe) )
+  allocate(ielem_nodes_neighbours(max_nodes,30,kmaxe))
+  ielem_nojecount = 0
+  ielem_nodes_neighbours=0
+end if
+
+allocate(ielem_linc(kmaxe) )                ; ielem_linc = 0.0
+allocate(ielem_wcx(kmaxe) )                 ; ielem_wcx = 0.0
+
+!===========================================================
+! fixed-max flattened allocatable members in element_number
+!===========================================================
+
+! 1d integer per element (fixed max sizes)
+
+allocate( ielem_nodes(max_nodes, kmaxe) )              ; ielem_nodes = 0
+allocate( ielem_types_faces(max_faces, kmaxe) )        ; ielem_types_faces = 0
+allocate( ielem_reorient(max_faces, kmaxe) )           ; ielem_reorient = 0
+
+allocate(ielem_indexi(max_faces, kmaxe) )              ; ielem_indexi = 0
+allocate(ielem_ibounds(max_faces, kmaxe) )             ; ielem_ibounds = 0
+allocate(ielem_ineigh(max_faces, kmaxe) )              ; ielem_ineigh = 0
+
+allocate(ielem_ineighg(max_faces, kmaxe) )             ; ielem_ineighg = 0
+allocate(ielem_ineighb(max_faces, kmaxe) )             ; ielem_ineighb = n
+allocate(ielem_ineighn(max_faces, kmaxe) )             ; ielem_ineighn = 0
+
+
+if (tecplot.eq.5)then
+allocate(ielem_nodes_v(max_nodes, kmaxe) )             ; ielem_nodes_v = 0
+end if
+
+! 2d integer per element
+allocate( ielem_nodes_faces(max_faces, max_fnodes, kmaxe) )   ; ielem_nodes_faces = 0
+if (tecplot.eq.5)then
+allocate( ielem_nodes_faces_v(max_faces, max_fnodes, kmaxe) ) ; ielem_nodes_faces_v = 0
+end if
+
+! 1d real per element
+allocate( ielem_faceanglex(max_faces, kmaxe) )          ; ielem_faceanglex = 0.0
+allocate( ielem_facediss(max_faces, kmaxe) )            ; ielem_facediss = 0.0
+allocate( ielem_faceangley(max_faces, kmaxe) )          ; ielem_faceangley = 0.0
+allocate( ielem_dih(max_faces,kmaxe) )                 ; ielem_dih = 0.0
+allocate( ielem_dih2(max_faces,1:dimensiona, kmaxe) )                 ; ielem_dih2 = 0.0
+allocate( ielem_vortex(3, kmaxe) )                      ; ielem_vortex = 0.0
+allocate( ielem_surf(max_faces, kmaxe) )                ; ielem_surf = 0.0
+
+
+
+
+
+	if (tecplot.eq.5)then
 	allocate(nodes_offset_local(1:kmaxe));nodes_offset_local=0
 	allocate(nodes_offset_local2(1:kmaxe));nodes_offset_local2=0
-	END IF
-! 	ALLOCATE(IELEM2(N:N,XMPIELRANK(N)))
-	IF (ITESTCASE.LT.3)THEN
-		IEX=1
-	END IF
-	IF (ITESTCASE.GE.3)THEN
-	  IF (DIMENSIONA.EQ.3)THEN
-		IEX=5
-	  ELSE
-	      IEX=4
+	end if
+! 	allocate(ielem2(n:n,xmpielrank(n)))
+	if (itestcase.lt.3)then
+		iex=1
+	end if
+	if (itestcase.ge.3)then
+	  if (dimensiona.eq.3)then
+		iex=5
+	  else
+	      iex=4
 
-	  END IF
-	END IF
+	  end if
+	end if
 
 
-	END SUBROUTINE ELALLOCATION
+	end subroutine elallocation
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !---------------------------------------------------------------------------------------------!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -382,40 +552,40 @@ END  SUBROUTINE TIMING
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! !---------------------------------------------------------------------------------------------!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!SUBROUTINE CALLED INITIALLY TO ALLOCATE MEMORY FOR NODES!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!subroutine called initially to allocate memory for nodes!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	SUBROUTINE NODEALLOCATION(N,INODE,IMAXN,XMPIN,XMPINRANK,INODEN)
+	subroutine nodeallocation(n,dinode,imaxn,xmpin,xmpinrank,dinoden)
 	!> @brief
-!> This subroutine allocates memory for the nodes
-	IMPLICIT NONE
-	INTEGER,INTENT(IN)::N
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIN
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPINRANK
-	INTEGER::I,J,K,LM,IEX,KMAXN,KK
-	TYPE(NODE_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::INODE
-	TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::INODEN
-	INTEGER,INTENT(IN)::IMAXN
+!> this subroutine allocates memory for the nodes
+	implicit none
+	integer,intent(in)::n
+	integer,allocatable,dimension(:),intent(in)::xmpin
+	integer,allocatable,dimension(:),intent(in)::xmpinrank
+	integer::i,j,k,lm,iex,kmaxn,kk
+	type(anode_number),allocatable,dimension(:,:),intent(inout)::dinode
+	type(anode_ne),allocatable,dimension(:),intent(inout)::dinoden
+	integer,intent(in)::imaxn
 	
-!  	ALLOCATE (INODEN(N:N,IMAXN))
+!  	allocate (inoden(n:n,imaxn))
 !  		  inoden(:,:)%itor=0
 	     
 	
-	END SUBROUTINE NODEALLOCATION
+	end subroutine nodeallocation
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        SUBROUTINE NODEDEALLOCATION(N,INODE,IMAXN,XMPIN,XMPINRANK,INODEN)
+        subroutine nodedeallocation(n,dinode,imaxn,xmpin,xmpinrank,dinoden)
         !> @brief
-!> This subroutine deallocates memory from the nodes
-	IMPLICIT NONE
-	INTEGER,INTENT(IN)::N
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIN
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPINRANK
-	INTEGER::I,J,K,LM,IEX,KMAXN,KK
-	TYPE(NODE_NUMBER),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::INODE
-	TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::INODEN
-	INTEGER,INTENT(IN)::IMAXN
- 	DEALLOCATE (INODE)
-! 	DEALLOCATE (INODEN)
-	END SUBROUTINE NODEDEALLOCATION
+!> this subroutine deallocates memory from the nodes
+	implicit none
+	integer,intent(in)::n
+	integer,allocatable,dimension(:),intent(in)::xmpin
+	integer,allocatable,dimension(:),intent(in)::xmpinrank
+	integer::i,j,k,lm,iex,kmaxn,kk
+	type(anode_number),allocatable,dimension(:,:),intent(inout)::dinode
+	type(anode_ne),allocatable,dimension(:),intent(inout)::dinoden
+	integer,intent(in)::imaxn
+ 	deallocate (dinode)
+! 	deallocate (inoden)
+	end subroutine nodedeallocation
 !---------------------------------------------------------------------------------------------!
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -425,388 +595,295 @@ END  SUBROUTINE TIMING
 
 
 
-SUBROUTINE XMPIALLOCATE(XMPIE,XMPIL,XMPIN,XMPIELRANK,XMPINRANK,IMAXE,IMAXN,NPROC)
+subroutine xmpiallocate(xmpie,xmpil,xmpin,xmpielrank,xmpinrank,imaxe,imaxn,nproc)
 !> @brief
-!> This subroutine allocates memory for the global lists
-IMPLICIT NONE
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIE,XMPIL
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIN
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPIELRANK
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::XMPINRANK
-INTEGER,INTENT(INOUT)::NPROC,IMAXE,IMAXN
+!> this subroutine allocates memory for the global lists
+implicit none
+integer,allocatable,dimension(:),intent(inout)::xmpie,xmpil
+integer,allocatable,dimension(:),intent(inout)::xmpin
+integer,allocatable,dimension(:),intent(inout)::xmpielrank
+integer,allocatable,dimension(:),intent(inout)::xmpinrank
+integer,intent(inout)::nproc,imaxe,imaxn
 
-ALLOCATE (XMPIE(IMAXE))
-ALLOCATE (XMPIL(IMAXE))
-ALLOCATE(XMPIELRANK(n:n))
+allocate (xmpie(imaxe))
+allocate (xmpil(imaxe))
+allocate (xmpielrank(n:n))
 
-XMPIE=0
-XMPIL=0
-XMPIELRANK=0
+xmpie=0
+xmpil=0
+xmpielrank=0
 
-END SUBROUTINE XMPIALLOCATE
+end subroutine xmpiallocate
 
 
-SUBROUTINE DEALLOCATEMPI1(N)
+subroutine deallocatempi1(n)
 !> @brief
-!> This subroutine deallocates memory for boundary exchange
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
+!> this subroutine deallocates memory for boundary exchange
+implicit none
+integer,intent(in)::n
 
-DEALLOCATE (IEXCHANGES1,IEXCHANGER1)
+deallocate (diexchanges1,diexchanger1)
 
-END SUBROUTINE DEALLOCATEMPI1
+end subroutine deallocatempi1
 
-SUBROUTINE DEALLOCATEMPI2(N)
+subroutine deallocatempi2(n)
 !> @brief
-!> This subroutine deallocates memory for the stencil exchange
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
+!> this subroutine deallocates memory for the stencil exchange
+implicit none
+integer,intent(in)::n
 
-DEALLOCATE (IRECEXR1,IRECEXS1)
+deallocate (direcexr1,direcexs1)
 
-END SUBROUTINE DEALLOCATEMPI2
-
-
+end subroutine deallocatempi2
 
 
+subroutine local_reconallocation3(n)
+  !> @brief
+  !> this subroutine allocates memory for reconstruction prestoring
+  implicit none
+  integer, intent(in) :: n
+  integer :: i, j, k, m, ikg, itrue, kmaxe, idum
+  integer :: inum_points, itarget, int_wall, idx, int_local
+  integer :: imax, inum, ideg, imax2, inum2, ideg2, m2
+  real    :: perc, perde, perd, per1, per2, per3, per4, per5, per0
+  real    :: pef0, pef1, pef2, pef3, pef4, pef5, perv, per01, pef01
 
+  kmaxe = xmpielrank(n)
 
-SUBROUTINE LOCAL_RECONALLOCATION3(N,ILOCAL_RECON3)
-!> @brief
-!> This subroutine allocates memory for reconstruction prestoring
-IMPLICIT NONE
-TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::ILOCAL_RECON3
-INTEGER,INTENT(IN)::N
-INTEGER::I,J,K,M,IKG,ITRUE,kmaxe,idum
-INTEGER::inum_points,ITARGET
-INTEGER::imax,inum,ideg,imax2,inum2,ideg2,m2
-REAL::PERC,PERDE,PERD,PER1,PER2,PER3,PER4,PER5,PER0,PEF0,PEF1,PEF2,PEF3,PEF4,PEF5,PERV,per01,pef01
-KMAXE=XMPIELRANK(N)
+  call mpi_barrier(mpi_comm_world, ierror)
 
-CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+  allocate(rec_local(1:kmaxe));                            rec_local = 0
+  allocate(rec_invccjac(1:dimensiona,1:dimensiona,1:kmaxe)); rec_invccjac = zero
+  allocate(rec_vext_ref(1:dimensiona,1:kmaxe));            rec_vext_ref = zero
+  allocate(rec_wall(1:kmaxe));                             rec_wall = 0
+  allocate(rec_volume(1,1,1:kmaxe))                 ;       rec_volume=0
 
-ALLOCATE (ILOCAL_RECON3(KMAXE))
+  if (ees == 5) then
+    allocate(rec_ihexg(1,numneighbours,1:kmaxe));          rec_ihexg = 0
+    allocate(rec_ihexl(1,numneighbours,1:kmaxe));          rec_ihexl = 0
+    if (iperiodicity == 1) then
+      allocate(rec_periodicflag(1,numneighbours,1:kmaxe)); rec_periodicflag = 0
+    end if
+    allocate(rec_ihexgc(typesten,numneighbours2,1:kmaxe)); rec_ihexgc = 0
+    allocate(rec_ihexlc(typesten,numneighbours2,1:kmaxe)); rec_ihexlc = 0
+  else
+    allocate(rec_ihexg(1:typesten,numneighbours,1:kmaxe));  rec_ihexg = 0
+    allocate(rec_ihexl(1:typesten,numneighbours,1:kmaxe));  rec_ihexl = 0
+    if (iperiodicity == 1) then
+      allocate(rec_periodicflag(1:typesten,numneighbours,1:kmaxe)); rec_periodicflag = 0
+    end if
+  end if
 
-IF (DG.EQ.1)THEN
-ALLOCATE (ILOCAL_RECON6(KMAXE))
-DO I=1,KMAXE	!for all elements
- ALLOCATE (ILOCAL_RECON6(I)%DG2FV(1:IDEGFREE,1:NOF_vARIABLES))
- ILOCAL_RECON6(I)%DG2FV=0.0D0
-END DO
+  if (ees == 5) then
+    allocate(rec_invmat_stencilt(idegfree,numneighbours-1,1,1:kmaxe));             rec_invmat_stencilt = zero
+    allocate(rec_invmat_stenciltc(idegfree2,numneighbours2-1,typesten,1:kmaxe)); rec_invmat_stenciltc = zero
+  else
+    allocate(rec_invmat_stencilt(idegfree,numneighbours-1,1:typesten,1:kmaxe));    rec_invmat_stencilt = zero
+  end if
 
-END IF
+  int_wall = 0
+  do i = 1, kmaxe
+    idum = 0
+    if (ielem_interior(i) == 1) then
+      do j = 1, ielem_ifca(i)
+        if (ielem_ibounds(j,i) > 0) then
+          if ((ibound_icode(ielem_ibounds(j,i)) == 4).or.(ibound_icode(ielem_ibounds(j,i)) == 99)) then
+            idum = 1
+          end if
+        end if
+      end do
+    end if
+    int_wall = int_wall + idum
+  end do
 
-perde=0.0d0
+  int_wall = 0
+  do i = 1, kmaxe
+    idum = 0
+    if (ielem_interior(i) == 1) then
+      do j = 1, ielem_ifca(i)
+        if (ielem_ibounds(j,i) > 0) then
+          if ((ibound_icode(ielem_ibounds(j,i)) == 4).or.(ibound_icode(ielem_ibounds(j,i)) == 99)) then
+            idum = 1
+          end if
+        end if
+      end do
+    end if
+    int_wall = int_wall + idum
 
-if (fastest.ne.1)then
-DO I=1,KMAXE	!for all elements
+    if (idum.eq.1)then
 
-    
+    rec_wall(i) = int_wall
 
+    else
 
-
-	SELECT CASE(IELEM(N,I)%ISHAPE)
-
-	CASE(1,2,3,4)
-	IMAX=IELEM(N,I)%inumneighbours-1
-	INUM=IELEM(N,I)%inumneighbours
-	IDEG=IELEM(N,I)%iDEGFREE
-	M=IELEM(N,I)%ADMIS
-	IF (EES.EQ.5)THEN
-	IMAX2=NUMNEIGHBOURS2-1
-	INUM2=NUMNEIGHBOURS2
-	IDEG2=IDEGFREE2
-	M2=IELEM(N,I)%ADMIS
-	END IF
-	if (fastest.ne.1)then
-	    ALLOCATE (ILOCAL_RECON3(I)%INVCCJAC(3,3));ILOCAL_RECON3(I)%INVCCJAC(:,:)=0.0D0
-		IDUM=0
-		if (ielem(n,i)%interior.eq.1)then
-                        DO j=1,IELEM(N,I)%IFCA
-                        if (ielem(n,i)%ibounds(J).gt.0)then
-                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-                                IDUM=1
-                            end if
-                        END IF
-                        END DO
-                end if
-		
-		if (idum.eq.1)then
-	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	   else
-	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	   end if
-		
-		
-	    
-	    ALLOCATE(ILOCAL_RECON3(I)%VEXT_REF(3));ILOCAL_RECON3(I)%VEXT_REF=0.0D0
-	end if
-	IF (FIRSTORDER.NE.1)THEN
-	   IF (GREENGO.EQ.0)then
-	  
-	   IDUM=0;
-                if (ielem(n,i)%interior.eq.1)then
-                        DO j=1,IELEM(N,I)%IFCA
-                        if (ielem(n,i)%ibounds(J).gt.0)then
-                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-                                IDUM=1
-                            end if
-                        END IF
-                        END DO
-                end if
-                if (idum.eq.1)then
-	      
-				   ALLOCATE (ILOCAL_RECON3(I)%STENCILS(M,IMAX,IDEG));ILOCAL_RECON3(I)%STENCILS(:,:,:)=0.0d0
-				   ALLOCATE (ILOCAL_RECON3(I)%WEIGHTL(M,IMAX));ILOCAL_RECON3(I)%WEIGHTL(:,:)=0.0d0!WEIGHTL
-				   IF (EES.EQ.5)THEN
-				   ALLOCATE (ILOCAL_RECON3(I)%STENCILSC(M2,IMAX2,IDEG2));ILOCAL_RECON3(I)%STENCILSC(:,:,:)=0.0d0
-				   END IF
-	   
-				end if
-	   end if
-	   
-	   
-	   
-! 	    ALLOCATE (ILOCAL_RECON3(I)%INVMAT(M,IDEG,IDEG));ILOCAL_RECON3(I)%INVMAT(:,:,:)=0.0D0
-	    allocate (ILOCAL_RECON3(I)%invmat_stencilt(ideg,imax,M));ILOCAL_RECON3(I)%invmat_stencilt(:,:,:)=0.0d0
-	    IF (EES.EQ.5)THEN
-	    allocate (ILOCAL_RECON3(I)%invmat_stenciltC(ideg2,imax2,M2));ILOCAL_RECON3(I)%invmat_stenciltC(:,:,:)=0.0d0
-	    END IF
-	    
-	END IF
-	
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXG(M,INUM))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXL(M,INUM))
-	ALLOCATE (ILOCAL_RECON3(I)%PERIODICFLAG(M,INUM))
-	
-	IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXGC(M2,INUM2))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXLC(M2,INUM2))
-	
-	
-	END IF
-	
-	ITRUE=0
-	DO J=1,TYPESTEN
-		IKG=0
-                    IF ((EES.NE.5).OR.(J.EQ.1))THEN
-                            ITARGET=INUM
-                    ELSE
-                            ITARGET=INUM2
-                    END IF
-			DO K=1,ITARGET
-				IF (ILOCALSTENCIL(N,I,J,K).GT.0)THEN
-				IKG=IKG+1
-				IF (XMPIE(ILOCALSTENCIL(N,I,J,K)).NE.N)THEN
-				  ITRUE=1
-				END IF
-				END IF
-			END DO
-
-	END DO
-	IF (ITRUE.EQ.0)THEN
-	ILOCAL_RECON3(I)%LOCAL=1
-	ELSE
-	ILOCAL_RECON3(I)%LOCAL=0
-	END IF
-	
-
-	IF (ILOCAL_RECON3(I)%LOCAL.EQ.0)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXB(M,INUM))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXN(M,INUM))
-	IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXbC(M2,INUM2))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXnC(M2,INUM2))
-	
-	
-	END IF
-	
-	
-	
-	END IF
-
-	if (iweno.eq.1)then
-	ALLOCATE (ILOCAL_RECON3(I)%INDICATOR(IDEG,IDEG));ILOCAL_RECON3(I)%INDICATOR(:,:)=0.0D0
-	IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%INDICATORc(IDEG2,IDEG2));ILOCAL_RECON3(I)%INDICATORc(:,:)=0.0D0
-	end if
-	END IF
-	
-
-
-	CASE(5,6)
-	IMAX=IELEM(N,I)%inumneighbours-1
-	INUM=IELEM(N,I)%inumneighbours
-	IDEG=IELEM(N,I)%iDEGFREE
-	M=IELEM(N,I)%ADMIS
-	
-	IF (EES.EQ.5)THEN
-	IMAX2=NUMNEIGHBOURS2-1
-	INUM2=NUMNEIGHBOURS2
-	IDEG2=IDEGFREE2
-	M2=IELEM(N,I)%ADMIS
-	END IF
-	
-	
-	
-	if (fastest.ne.1)then
-	    ALLOCATE (ILOCAL_RECON3(I)%INVCCJAC(2,2));ILOCAL_RECON3(I)%INVCCJAC(:,:)=0.0D0
-!   	    ALLOCATE (ILOCAL_RECON3(I)%INVCTJAC(2,2));ILOCAL_RECON3(I)%INVCTJAC(:,:)=0.0D0
-	    !ALLOCATE (ILOCAL_RECON3(I)%VOLUME(M,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	     !IF (EES.EQ.5)THEN
-	     !ALLOCATE (ILOCAL_RECON3(I)%VOLUMEC(M2,INUM2));ILOCAL_RECON3(I)%VOLUMEC(:,:)=0.0D0
-	    !END IF
-	    ALLOCATE(ILOCAL_RECON3(I)%VEXT_REF(2));ILOCAL_RECON3(I)%VEXT_REF=0.0D0
-	end if
-	
-	IDUM=0
-		if (ielem(n,i)%interior.eq.1)then
-                        DO j=1,IELEM(N,I)%IFCA
-                        if (ielem(n,i)%ibounds(J).gt.0)then
-                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-                                IDUM=1
-                            end if
-                        END IF
-                        END DO
-                end if
-		
-		if (idum.eq.1)then
-	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	   else
-	   ALLOCATE (ILOCAL_RECON3(I)%VOLUME(1,INUM));ILOCAL_RECON3(I)%VOLUME(:,:)=0.0D0
-	   end if
-	
-	
-	
-	IF (FIRSTORDER.NE.1)THEN
-	   IF (GREENGO.EQ.0)then
-	  
-	   IDUM=0;
-                if (ielem(n,i)%interior.eq.1)then
-                        DO j=1,IELEM(N,I)%IFCA
-                        if (ielem(n,i)%ibounds(J).gt.0)then
-                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-                                IDUM=1
-                            end if
-                        END IF
-                        END DO
-                end if
-                if (idum.eq.1)then
-	      
-	   ALLOCATE (ILOCAL_RECON3(I)%STENCILS(M,IMAX,IDEG));ILOCAL_RECON3(I)%STENCILS(:,:,:)=0.0d0
-	   ALLOCATE (ILOCAL_RECON3(I)%WEIGHTL(M,IMAX));ILOCAL_RECON3(I)%WEIGHTL(:,:)=0.0d0
-	   IF (EES.EQ.5)THEN
-	   ALLOCATE (ILOCAL_RECON3(I)%STENCILSC(M2,IMAX2,IDEG2));ILOCAL_RECON3(I)%STENCILSC(:,:,:)=0.0d0
-	   END IF
-	   end if
-	   end if
-	   
-	   
-	   
-	   
-! 	    ALLOCATE (ILOCAL_RECON3(I)%INVMAT(M,IDEG,IDEG));ILOCAL_RECON3(I)%INVMAT(:,:,:)=0.0D0
-	    allocate (ILOCAL_RECON3(I)%invmat_stencilt(ideg,imax,ielem(n,i)%admis));ILOCAL_RECON3(I)%invmat_stencilt(:,:,:)=0.0d0
-	    IF (EES.EQ.5)THEN
-	    allocate (ILOCAL_RECON3(I)%invmat_stenciltC(ideg2,imax2,M2));ILOCAL_RECON3(I)%invmat_stenciltC(:,:,:)=0.0d0
-	    END IF
-	END IF
-	
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXG(M,INUM))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXL(M,INUM))
-	if (initcond.eq.0)then
-	allocate (ILOCAL_RECON3(I)%cond(7))
-	end if
-	IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXGC(M2,INUM2))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXLC(M2,INUM2))
-	
-	
-	END IF
-	ITRUE=0
-	DO J=1,TYPESTEN
-		IKG=0
-			 IF ((EES.NE.5).OR.(J.EQ.1))THEN
-                            ITARGET=INUM
-                    ELSE
-                            ITARGET=INUM2
-                    END IF
-			DO K=1,ITARGET
-				IF (ILOCALSTENCIL(N,I,J,K).GT.0)THEN
-				IKG=IKG+1
-				IF (XMPIE(ILOCALSTENCIL(N,I,J,K)).NE.N)THEN
-				  ITRUE=1
-				END IF
-				END IF
-			END DO
-
-	END DO
-	IF (ITRUE.EQ.0)THEN
-	ILOCAL_RECON3(I)%LOCAL=1
-	ELSE
-	ILOCAL_RECON3(I)%LOCAL=0
-	END IF
-	
-
-	IF (ILOCAL_RECON3(I)%LOCAL.EQ.0)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXB(M,INUM))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXN(M,INUM))
-	IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXbC(M2,INUM2))
-	ALLOCATE (ILOCAL_RECON3(I)%IHEXnC(M2,INUM2))
-	
-	
-	END IF
-	END IF
-
-	if (iweno.eq.1)then
-	ALLOCATE (ILOCAL_RECON3(I)%INDICATOR(IDEG,IDEG));ILOCAL_RECON3(I)%INDICATOR(:,:)=0.0D0
-        IF (EES.EQ.5)THEN
-	ALLOCATE (ILOCAL_RECON3(I)%INDICATORc(IDEG2,IDEG2));ILOCAL_RECON3(I)%INDICATORc(:,:)=0.0D0
-	end if
-	END IF
-
-
-      end select
-!       perc=ilocal_recon3(i)%local
-!       perd=kmaxe
-!       perde=perde+perc
-
-    
-	
-END DO
-END IF
+    rec_wall(i) =0
+    end if
 
 
 
-	
+
+  end do
+
+  if (dimensiona == 3) then
+    idx = max_faces
+  else
+    idx = max_faces
+  end if
+
+  allocate(rec_grads(nof_variables-1+turbulenceequations+passivescalar,1:dimensiona,1:kmaxe)); rec_grads = zero
+  allocate(rec_uleft(1:nof_variables,idx,1:numberofpoints2,1:kmaxe));           rec_uleft = zero
+
+  if (dg.eq.1)then
+  allocate(rec_uleft_dg(1:nof_variables,idx,1:numberofpoints2,1:kmaxe)); rec_uleft_dg=zero
+  end if
+
+
+   if ((turbulenceequations > 0) .or. (passivescalar > 0)) then
+  allocate(rec_uleftturb(1:turbulenceequations+passivescalar,idx,1:numberofpoints2,1:kmaxe)); rec_uleftturb = zero
+  end if
+
+  if (ees == 5) then
+    allocate(rec_gradients(1,1:idegfree,1:nof_variables,1:kmaxe));    rec_gradients = zero
+    allocate(rec_gradientsc(typesten,1:idegfree2,1:nof_variables,1:kmaxe)); rec_gradientsc = zero
+    if ((turbulenceequations > 0) .or. (passivescalar > 0)) then
+      allocate(rec_gradients2(1,1:idegfree,1:turbulenceequations+passivescalar,1:kmaxe));      rec_gradients2 = zero
+      allocate(rec_gradientsc2(typesten,1:idegfree2,1:turbulenceequations+passivescalar,1:kmaxe)); rec_gradientsc2 = zero
+    end if
+  else
+    allocate(rec_gradients(1:typesten,1:idegfree,1:nof_variables,1:kmaxe)); rec_gradients = zero
+    if ((turbulenceequations > 0) .or. (passivescalar > 0)) then
+      allocate(rec_gradients2(1:typesten,1:idegfree,1:turbulenceequations+passivescalar,1:kmaxe)); rec_gradients2 = zero
+    end if
+  end if
+
+  if (itestcase >= 4) then
+
+    allocate(rec_gradf(1:nof_variables-1,1:idegfree,1:kmaxe)); rec_gradf = zero
+    allocate(rec_uleftv(1:dimensiona,1:nof_variables-1,idx,1:numberofpoints2,1:kmaxe)); rec_uleftv = zero
+
+    if (averaging == 1) then
+      allocate(rec_gradsav(1:nof_variables-1,1:dimensiona,1:kmaxe)); rec_gradsav = zero
+    end if
+
+    if ((turbulence == 1) .or. (passivescalar > 0)) then
+      allocate(rec_uleftturbv(1:dimensiona,1:turbulenceequations+passivescalar,idx,1:numberofpoints2,1:kmaxe)); rec_uleftturbv = zero
+      allocate(rec_gradientsturb(1,1:idegfree,1:turbulenceequations+passivescalar,1:kmaxe));                   rec_gradientsturb = zero
+    end if
+
+    if (greengo == 0) then
+
+      if (int_wall > 0) then
+        if (ees == 5) then
+          allocate(rec_stencils(1,numneighbours-1,1:idegfree,1:int_wall));             rec_stencils = 0
+!           allocate(rec_stencilsc(2:typesten,numneighbours2-1,1:idegfree2,1:int_wall)); rec_stencilsc = 0
+          allocate(rec_weightl(1,numneighbours-1,1:int_wall));                         rec_weightl = zero
+        else
+          allocate(rec_stencils(1:typesten,numneighbours-1,1:idegfree,1:int_wall));    rec_stencils = 0
+          allocate(rec_weightl(1,numneighbours-1,1:int_wall));                         rec_weightl = zero
+        end if
+        allocate(rec_volume_w(1,numneighbours,1:int_wall));                 rec_volume_w = zero
+        allocate(rec_k0(1:int_wall));                                      rec_k0 = 0
+        allocate(rec_g0(1:int_wall));                                      rec_g0 = 0
+        allocate(rec_velinvlsqmat(idegfree-1,idegfree-1,1:int_wall));      rec_velinvlsqmat = zero
+        allocate(rec_wallcoeff(idegfree,1:int_wall));                      rec_wallcoeff = zero
+        allocate(rec_vellsq(numneighbours-1,idegfree-1,1:int_wall));       rec_vellsq = zero
+        allocate(rec_tempsqmat(idegfree-1,idegfree-1,1:int_wall));         rec_tempsqmat = zero
+        allocate(rec_wallcoefg(idegfree,1:int_wall));                      rec_wallcoefg = zero
+        allocate(rec_tempsq(numneighbours-1,idegfree-1,1:int_wall));       rec_tempsq = zero
+      end if
+
+    end if
+  end if
+
+  int_local = 0
+  do i = 1, kmaxe
+    itrue = 0
+    do j = 1, typesten
+      ikg = 0
+      if ((ees /= 5) .or. (j == 1)) then
+        itarget = numneighbours
+      else
+        itarget = numneighbours2
+      end if
+      do k = 1, itarget
+        if (ilocalstencil(n,i,j,k) > 0) then
+          ikg = ikg + 1
+          if (xmpie(ilocalstencil(n,i,j,k)) /= n) then
+            itrue = 1
+          end if
+        end if
+      end do
+    end do
+    if (itrue .ne. 0) then
+      int_local = int_local + 1
+      rec_local(i) = int_local
+    end if
+  end do
+
+  if (int_local > 0) then
+    if (ees == 5) then
+      allocate(rec_ihexb(1,1:numneighbours,1:int_local));                rec_ihexb = -100
+      allocate(rec_ihexn(1,1:numneighbours,1:int_local));                rec_ihexn = -100
+      allocate(rec_ihexbc(typesten,numneighbours2,1:int_local));         rec_ihexbc = -100
+      allocate(rec_ihexnc(typesten,numneighbours2,1:int_local));         rec_ihexnc = -100
+    else
+      allocate(rec_ihexb(1:typesten,1:numneighbours,1:int_local));       rec_ihexb = -100
+      allocate(rec_ihexn(1:typesten,1:numneighbours,1:int_local));       rec_ihexn = -100
+    end if
+  end if
+
+  if (iweno == 1) then
+    allocate(rec_indicator(1:idegfree,1:idegfree,1:kmaxe));              rec_indicator = zero
+    if (ees == 5) then
+      allocate(rec_indicatorc(1:idegfree2,1:idegfree2,1:kmaxe));         rec_indicatorc = zero
+    end if
+  end if
+
+  if (dg == 1) then
+    allocate(dg2fv(1:idegfree,1:nof_variables,1:kmaxe));             dg2fv = zero
+  end if
 
 
 
-END SUBROUTINE LOCAL_RECONALLOCATION3
+
+
+
+
+
+
+
+
+
+end subroutine local_reconallocation3
+
+
+
+
+
 
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-SUBROUTINE DEALCORDINATES1(N,IEXCORDR,IEXCORDS)
+subroutine dealcordinates1(n,diexcordr,diexcords)
 !> @brief
-!> This subroutine deallocates memory for exchange of info between processes
-IMPLICIT NONE
-TYPE(EXCHANGE_CORD),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXCORDR
-TYPE(EXCHANGE_CORD),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::IEXCORDS
-INTEGER,INTENT(IN)::N
-DEALLOCATE(IEXCORDR)
+!> this subroutine deallocates memory for exchange of info between processes
+implicit none
+type(aexchange_cord),allocatable,dimension(:),intent(inout)::diexcordr
+type(aexchange_cord),allocatable,dimension(:),intent(inout)::diexcords
+integer,intent(in)::n
+deallocate(diexcordr)
 
 
-END SUBROUTINE DEALCORDINATES1
+end subroutine dealcordinates1
 
 
-SUBROUTINE DEALCORDINATES2
-IMPLICIT NONE
+subroutine dealcordinates2
+implicit none
 !> @brief
-!> This subroutine deallocates memory for exchange of info between processes
- if (allocated(iexcords))DEALLOCATE(IEXCORDS)
+!> this subroutine deallocates memory for exchange of info between processes
+ if (allocated(diexcords))deallocate(diexcords)
 
-END SUBROUTINE DEALCORDINATES2
+end subroutine dealcordinates2
 
 
 
@@ -814,530 +891,1449 @@ END SUBROUTINE DEALCORDINATES2
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE ALLOCATE_BASIS_FUNCTION(N,INTEG_BASIS,XMPIELRANK,IDEGFREE)
+subroutine allocate_basis_function(n,xmpielrank,idegfree)
 !> @brief
-!> This subroutine allocates memory for basis function integrals
-IMPLICIT NONE
-TYPE(INTEGRALBASIS),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::INTEG_BASIs
-INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
-INTEGER,INTENT(IN)::IDEGFREE,N
-INTEGER::KMAXE,i
-KMAXE=XMPIELRANK(N)
-
-ALLOCATE(INTEG_BASIS(KMAXE))
-if (dg.eq.1)then
-ALLOCATE(INTEG_BASIS_dg(KMAXE))
-
-
-do i=1,kmaxe
- allocate(INTEG_BASIS_dg(i)%value(1:idegfree));INTEG_BASIS_dg(i)%value(:)=zero
-end do
-end if
-do i=1,kmaxe
- allocate(INTEG_BASIS(i)%value(1:idegfree));INTEG_BASIS(i)%value(:)=zero
- if (ees.eq.5)then
- allocate(INTEG_BASIS(i)%valuec(1:idegfree2));INTEG_BASIS(i)%valuec(:)=zero
- end if
-		  
-end do
-
-END SUBROUTINE ALLOCATE_BASIS_FUNCTION
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-SUBROUTINE DEALLOCATE_BASIS_FUNCTION(N,INTEG_BASIS)
-!> @brief
-!> This subroutine deallocates memory for basis function integrals
-IMPLICIT NONE
-TYPE(INTEGRALBASIS),ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::INTEG_BASIS
-INTEGER,INTENT(IN)::N
-DEALLOCATE(INTEG_BASIS)
-END SUBROUTINE DEALLOCATE_BASIS_FUNCTION
-
-
-
-
-   SUBROUTINE LOCALSDEALLOCATION(N,XMPIELRANK,ILOCALSTENCIL,ILOCALSTENCILPER,TYPESTEN,NUMNEIGHBOURS)
-   !> @brief
-!> This subroutine allocates memory for stencils
-	IMPLICIT NONE
-	INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:),intent(inout)::ILOCALSTENCIL,ILOCALSTENCILPER
-	INTEGER,INTENT(IN)::NUMNEIGHBOURS
-	INTEGER,INTENT(IN)::N
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
-	INTEGER,INTENT(IN)::TYPESTEN
-	
-	DEALLOCATE (ILOCALSTENCIL)
-	DEALLOCATE (ILOCALSTENCILPER)
-	END SUBROUTINE LOCALSDEALLOCATION
-	
-	
-
-	
-	SUBROUTINE U_C_ALLOCATION(N,XMPIELRANK,U_C,U_E,ITESTCASE,U_CT)
-	   !> @brief
-!> This subroutine allocates memory for solution vector
-	IMPLICIT NONE
-	TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_C,U_CT	
-	TYPE(U_EXACT),ALLOCATABLE,DIMENSION(:),INTENT(INOUT)::U_E
-	INTEGER,ALLOCATABLE,DIMENSION(:),INTENT(IN)::XMPIELRANK
-	INTEGER,INTENT(IN)::ITESTCASE,N
-	INTEGER::I,KMAXE,ISTAGE,TOTALPOINTS,totalpointsvol
-	KMAXE=XMPIELRANK(N)
-	ALLOCATE (U_C(KMAXE))
-	IF (FILTERING.EQ.1)THEN
-	ALLOCATE (U_CW(KMAXE))
-	ALLOCATE (U_CS(KMAXE))
-	END IF
-	
-	
-	
-	IF (ITESTCASE.LE.4)THEN
-	ALLOCATE (U_E(KMAXE))
-	end if
-	
-	if (( turbulence .GT. 0).OR.(PASSIVESCALAR.GT.0))THEN
-	  Allocate(U_CT(kmaxe))
-	END IF
-
-	SELECT CASE(RUNGEKUTTA)
-	
-	CASE(1)
-	ISTAGE=1
-	
-	CASE(2)
-	ISTAGE=2
-	
-	CASE(3)
-	IF (AVERAGING.EQ.1)THEN
-	ISTAGE=5
-	ELSE
-	ISTAGE=3
-	
-	if (mood.eq.1)then
-	ISTAGE=4
-	end if
-	
-	END IF
-	
-	
-	
-	
-	CASE(4)
-	IF (AVERAGING.EQ.1)THEN
-	ISTAGE=7
-	ELSE
-	ISTAGE=6
-	END IF
-	
-	CASE(5)
-	ISTAGE=2
-	
-	CASE(10)
-	ISTAGE=1
-	
-	CASE(11)
-	
-	IF (AVERAGING.EQ.1)THEN
-	ISTAGE=5
-	ELSE
-	ISTAGE=3
-	END IF
-	
-	CASE(12)
-	
-	IF (AVERAGING.EQ.1)THEN
-	ISTAGE=5
-	ELSE
-	ISTAGE=3
-	END IF
-	
-	END SELECT
-	
-	
-	if (DG.EQ.1)THEN
-	
-        allocate(M_1(kmaxe))
-	END IF
-	
-	DO I=1,KMAXE
-        ALLOCATE (U_C(I)%VAL(ISTAGE,NOF_VARIABLES));U_C(I)%VAL=ZERO
-        IF (FILTERING.EQ.1)tHEN
-        ALLOCATE (U_CW(I)%VAL(1,NOF_VARIABLES));U_CW(I)%VAL=ZERO
-        ALLOCATE (U_CS(I)%VAL(1,NOF_VARIABLES));U_CS(I)%VAL=ZERO
-
-        END IF
-         
-         
-         
-         
-         
-         
-        
-        IF (DG.EQ.1)THEN
-            ALLOCATE (U_C(I)%VALDG(ISTAGE,NOF_VARIABLES,IELEM(N,I)%IDEGFREE+1));U_C(I)%VALDG=ZERO
-            IF (FILTERING.EQ.1)tHEN
-            ALLOCATE (U_CW(I)%VALDG(1,NOF_VARIABLES,IELEM(N,I)%IDEGFREE+1));U_CW(I)%VALDG=ZERO
-            ALLOCATE (U_CS(I)%VALDG(1,NOF_VARIABLES,IELEM(N,I)%IDEGFREE+1));U_CS(I)%VALDG=ZERO
-            END IF
-            
-            allocate (M_1(i)%val(1:idegfree+1,1:idegfree+1));M_1(i)%val=zero
-            
-            IF (ITESTCASE == 4) ALLOCATE(U_C(I)%BR2_AUX_VAR(IELEM(N,I)%IDEGFREE+1,NOF_VARIABLES,DIMENSIONA)) ! NS
-            
-        END IF
-        
-        
-                    if (( turbulence .eq. 1).or.(PASSIVESCALAR.GT.0))THEN
-                        Allocate(U_CT(I)%VAL(ISTAGE,turbulenceequations+PASSIVESCALAR));U_CT(I)%VAL=ZERO   
-                    Endif
-        IF (AVERAGING.EQ.1)THEN
-		ALLOCATE(U_C(I)%RMS(7))
-		U_C(I)%RMS(:)=ZERO
-		END IF
-		IF (ITESTCASE.LE.4)THEN
-		ALLOCATE (U_E(I)%VAL(1,NOF_VARIABLES));U_E(I)%VAL=ZERO
-		END IF
-	END DO
-	
-	
-	IF (MOOD.EQ.1)THEN
-DO I=1,KMAXE
-    IELEM(N,I)%RECALC=0
-END DO
-ELSE
-DO I=1,KMAXE
-    IELEM(N,I)%RECALC=1
-END DO
-END IF
-	
-	
-	
-	
-	
-	END SUBROUTINE U_C_ALLOCATION
-
-	
-
-	
-subroutine local_reconallocation5(n)
-   !> @brief
-!> This subroutine allocates memory for reconstruction (one per process since these are destroyed after each element)
+!> this subroutine allocates memory for basis function integrals
 implicit none
-INTEGER,INTENT(IN)::N
-integer::KMAXE,I
+integer,allocatable,dimension(:),intent(in)::xmpielrank
+integer,intent(in)::idegfree,n
+integer::kmaxe,i
 kmaxe=xmpielrank(n)
 
-allocate (ilocal_recon5(1:kmaxe))
-
-
-
-do i=1,kmaxe
-
-if (dimensiona.eq.3)then
-
-
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS(TYPESTEN,IDEGFREE,NOF_VARIABLES)) !1000
+allocate(integ_basis_value(1:idegfree,1:kmaxe));integ_basis_value=zero
 if (ees.eq.5)then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSc(TYPESTEN,IDEGFREE2,NOF_VARIABLES)) !1000
+allocate(integ_basis_valuec(1:idegfree2,1:kmaxe));integ_basis_valuec=zero
+end if
+
+if (dg.eq.1)then
+allocate(integ_basis_dg_value(1:idegfree,1:kmaxe));integ_basis_dg_value=zero
 end if
 
 
-
-		if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
-		ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS2(TYPESTEN,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
-				if (ees.eq.5)then
-				ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSC2(TYPESTEN,IDEGFREE2,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
-				end if
-		end if
-
-
-if (itestcase.eq.4)Then
-if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTURB(1,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR)) !10
-END IF
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTEMP(IDEGFREE))!10
-ALLOCATE (ILOCAL_RECON5(i)%VELOCITYDOF(3,IDEGFREE))!30
-
-end if
-
-
-
-else
-
-
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS(TYPESTEN,IDEGFREE,NOF_VARIABLES)) !1000
-if (ees.eq.5)then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSc(TYPESTEN,IDEGFREE2,NOF_VARIABLES)) !1000
-end if
-if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTS2(TYPESTEN,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
-if (ees.eq.5)then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSC2(TYPESTEN,IDEGFREE2,0+TURBULENCEEQUATIONS+PASSIVESCALAR))!20
-end if
-end if
+end subroutine allocate_basis_function
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 
 
 
-if (itestcase.eq.4)Then
-if ((turbulenceequations.gt.0).or.(PASSIVESCALAR.gt.0))then
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTURB(1,IDEGFREE,0+TURBULENCEEQUATIONS+PASSIVESCALAR)) !10
-END IF
-ALLOCATE (ILOCAL_RECON5(i)%GRADIENTSTEMP(IDEGFREE))!10
-ALLOCATE (ILOCAL_RECON5(i)%VELOCITYDOF(2,IDEGFREE))!30
-
-end if
-
-end if
-
-
-
-end do
-
-end subroutine 
-
-SUBROUTINE LOCAL_RECONALLOCATION4(N)
+   subroutine localsdeallocation(n,xmpielrank,ilocalstencil,ilocalstencilper,typesten,numneighbours)
    !> @brief
-!> This subroutine allocates memory for reconstruction 
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::K,I,J,L,M,IT,KMAXE,IDUM,ICCF,decomf,SVG,points,ii
-INTEGER::Q5,Q4,Q3,Q2,Q1,Q0,q01,icnn,ICONSIDERED
-REAL::PERC,PERDE,PERDI,PER1,PER2,PER3,PER4,PER5,PER0,PEF0,PEF1,PEF2,PEF3,PEF4,PEF5,PERV,per01,pef01
-KMAXE=XMPIELRANK(N)
-IF (ITESTCASE.GE.3) THEN
-	IT=nof_variables
-END IF
-IF (ITESTCASE.LT.3) THEN
-	IT=1
-END IF
-CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+!> this subroutine allocates memory for stencils
+	implicit none
+	integer,allocatable,dimension(:,:,:,:),intent(inout)::ilocalstencil,ilocalstencilper
+	integer,intent(in)::numneighbours
+	integer,intent(in)::n
+	integer,allocatable,dimension(:),intent(in)::xmpielrank
+	integer,intent(in)::typesten
+	
+	deallocate (ilocalstencil)
+	deallocate (ilocalstencilper)
+	end subroutine localsdeallocation
+	
+	
+subroutine u_c_allocation(n, xmpielrank, itestcase)
+  implicit none
+  integer, intent(in) :: n, itestcase
+  integer, allocatable,dimension(:),intent(in) :: xmpielrank
+
+  integer :: kmaxe, istage
+  integer :: max_ideg
+
+  kmaxe = xmpielrank(n)
 
 
+  call mpi_barrier(mpi_comm_world, ierror)
 
-DO II=1,NOF_INTERIOR	!for all the interior elements
-	I=EL_INT(II)
-	ICONSIDERED=I
-
-	select case(ielem(n,i)%ishape)
-	
-	case(1,3,4)
-	points=QP_quad_n
-	
-	case(2)
-	points=QP_TRIANGLE_n
-	end select
-		
-	IF (ITESTCASE.EQ.4)THEN
-		
-                if (fastest.ne.1)then
-                ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
-                
-                
-                
-                else
-                ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
-
-                end if
-                ILOCAL_RECON3(I)%ULEFTV=zero
-                
-                if ((turbulence.eq.1).or.(passivescalar.gt.0)) then
-                
-                SVG=(TURBULENCEEQUATIONS+PASSIVESCALAR)
-                        if (fastest.ne.1)then
-                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-                        
-                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
-
-                        else
-                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-                        
-                        ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
-
-
-
-                        end if
-                ILOCAL_RECON3(I)%ULEFTTURB=zero;ILOCAL_RECON3(I)%ULEFTTURBv=zero
-                
-                END IF
-	
-	
-	
-	 
-	END IF
-	ALLOCATE (ILOCAL_RECON3(I)%GRADS(4+TURBULENCEEQUATIONS+passivescalar+(QSAS_MODEL*3),3))
-	
-	IF ((OUTSURF.EQ.1).AND.(AVERAGING.EQ.1))THEN
-	ALLOCATE (ILOCAL_RECON3(I)%GRADSAV(4,3))
-	END IF
-	
-	 if (fastest.ne.1)then
-        ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,points))
-	else
-	 ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
-
-	  end if
-	  ILOCAL_RECON3(I)%ULEFT=zero
-	
-! 	END IF
-	
-	
-	
-END DO
-
-
-
-DO II=1,NOF_BOUNDED
-	I=EL_BND(II)
-	ICONSIDERED=I
-	
-	select case(ielem(n,i)%ishape)
-	
-	case(1,3,4)
-	points=QP_quad_n
-	
-	case(2)
-	points=QP_TRIANGLE_n
-	end select
-		
-	IF (ITESTCASE.EQ.4)THEN
-		
-	if (fastest.ne.1)then
-	ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
-	
-	
-	
-	else
-	ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
-
-	end if
-	ILOCAL_RECON3(I)%ULEFTV=zero
-	
-	if ((turbulence.eq.1).or.(passivescalar.gt.0)) then
-	  
-	  SVG=(TURBULENCEEQUATIONS+PASSIVESCALAR)
-	  if (fastest.ne.1)then
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-	 
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
-
-	  else
-	   ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-	 
-	  ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
-
-
-
-	  end if
-	  ILOCAL_RECON3(I)%ULEFTTURB=zero;ILOCAL_RECON3(I)%ULEFTTURBv=zero
-	  
-	END IF
-	
-	
-	
-	 
-	END IF
-	ALLOCATE (ILOCAL_RECON3(I)%GRADS(4+TURBULENCEEQUATIONS+passivescalar+(QSAS_MODEL*3),3))
-	IF ((OUTSURF.EQ.1).AND.(AVERAGING.EQ.1))THEN
-	ALLOCATE (ILOCAL_RECON3(I)%GRADSAV(4,3))
-	END IF
-	
-	 if (fastest.ne.1)then
-        ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,points))
-	else
-	 ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
-
-	  end if
-	  ILOCAL_RECON3(I)%ULEFT=zero
-	
-	
-	
-END DO
-
-
-END SUBROUTINE LOCAL_RECONALLOCATION4
-
-
-SUBROUTINE LOCAL_RECONALLOCATION42d(N)
-!> @brief
-!> This subroutine allocates memory for reconstruction in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::K,I,J,L,M,IT,KMAXE,IDUM,ICCF,decomf,SVG,points
-INTEGER::Q5,Q4,Q3,Q2,Q1,Q0,q01,icnn
-REAL::PERC,PERDE,PERDI,PER1,PER2,PER3,PER4,PER5,PER0,PEF0,PEF1,PEF2,PEF3,PEF4,PEF5,PERV,per01,pef01
-KMAXE=XMPIELRANK(N)
-IF (ITESTCASE.GE.3) THEN
-	IT=nof_variables
-END IF
-IF (ITESTCASE.LT.3) THEN
-	IT=1
-END IF
-CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-
-DO I=1,KMAXE
-	
-    points=qp_line_n
-	
-		
-	IF (ITESTCASE.EQ.4)THEN !Linear step?
-		
-        if (fastest.ne.1)then
-            ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
-
-        else
-            ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,1))
-        end if
-        
-        ILOCAL_RECON3(I)%ULEFTV=zero
-	
-        if ((turbulence.eq.1).or.(passivescalar.gt.0)) then
-            SVG=(TURBULENCEEQUATIONS+PASSIVESCALAR)
-            
-            if (fastest.ne.1)then
-                ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,points))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-            
-                ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,points))
-            else
-                ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURBV(dims,svg,ielem(n,i)%ifca,1))	! THE DERIVATIVES OF THE TURBULENCE MODEL
-        
-                ALLOCATE (ILOCAL_RECON3(I)%ULEFTTURB(TURBULENCEEQUATIONS+PASSIVESCALAR,ielem(n,i)%ifca,1))
-            end if
-            
-            ILOCAL_RECON3(I)%ULEFTTURB=zero;ILOCAL_RECON3(I)%ULEFTTURBv=zero  
-        END IF
-	
-        ALLOCATE (ILOCAL_RECON3(I)%GRADS(3+TURBULENCEEQUATIONS+passivescalar+(QSAS_MODEL*2),2))
-	END IF
-	
-	
-	
-    if (fastest.ne.1)then
-        ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,points))
-        IF (CODE_PROFILE.EQ.2)THEN
-        ALLOCATE (ILOCAL_RECON3(I)%ULEFTx(IT,ielem(n,i)%ifca,points))
-        END IF
+  ! -----------------------------
+  ! decide number of rk stages
+  ! -----------------------------
+  select case (rungekutta)
+  case (1)
+    istage = 1
+  case (2)
+    istage = 2
+  case (3)
+    if (averaging == 1) then
+      istage = 5
     else
-        ALLOCATE (ILOCAL_RECON3(I)%ULEFT(IT,ielem(n,i)%ifca,1))
-
+      istage = 3
+      if (mood == 1) istage = 4
     end if
-    ILOCAL_RECON3(I)%ULEFT=zero
-	
+  case (4)
+    if (averaging == 1) then
+      istage = 7
+    else
+      istage = 6
+    end if
+  case (5)
+    istage = 2
+  case (10)
+    istage = 1
+  case (11,12)
+    if (averaging == 1) then
+      istage = 5
+    else
+      istage = 3
+    end if
+  case default
+    istage = 1
+  end select
 
-END DO
+  ! -----------------------------
+  ! base solution arrays (flat)
+  ! u_c_val(j,k,i) -> u_c_val(j,k,i)
+  ! -----------------------------
+  if (.not. allocated(u_c_val)) then
+    allocate(u_c_val(istage, nof_variables, kmaxe)); u_c_val = zero
+  end if
+
+  if ((turbulence > 0) .or. (passivescalar > 0)) then
+    if (.not. allocated(u_ct_val)) then
+      allocate(u_ct_val(istage, turbulenceequations + passivescalar, kmaxe)); u_ct_val = zero
+    end if
+  end if
+
+  if (itestcase <= 4) then
+    if (.not. allocated(u_e_val)) then
+      allocate(u_e_val(1, nof_variables, kmaxe)); u_e_val = zero
+    end if
+  end if
+
+  if (averaging == 1) then
+    if (.not. allocated(u_c_rms)) then
+      allocate(u_c_rms(nof_variables, kmaxe)); u_c_rms = zero
+    end if
+  end if
+
+  ! -----------------------------
+  ! dg arrays (flat)
+  ! u_c_valdg(j,k,l,i) -> u_c_valdg(j,k,l,i)
+  !
+  ! important: ideg varies per element; allocate with max degree
+  ! and use slices 1:(ielem_idegfree(i)+1) at use sites.
+  ! -----------------------------
+  if (dg == 1) then
+    max_ideg = idegfree
+
+    if (.not. allocated(u_c_valdg)) then
+      allocate(u_c_valdg(istage,nof_variables, max_ideg+1, kmaxe)); u_c_valdg = zero
+    end if
+
+    if (.not. allocated(m_1_val)) then
+      ! if your m_1 is per-element matrix in modal/nodal space, this is the usual shape
+      allocate(m_1_val(max_ideg+1, max_ideg+1, kmaxe)); m_1_val = zero
+    end if
+
+    if (itestcase == 4) then
+      if (.not. allocated(u_c_br2_aux_var)) then
+        ! your declared br2 aux var is 4d: (j,k,l,i) in the mapping you used earlier
+        allocate(u_c_br2_aux_var(max_ideg+1, max_ideg+1, nof_variables, kmaxe)); u_c_br2_aux_var = zero
+      end if
+    end if
+  end if
+
+  ! -----------------------------
+  ! filtering arrays (flat)
+  ! u_cs(i)%val(...) -> u_cs_val(...)
+  ! u_cw(i)%val(...) -> u_cw_val(...)
+  ! and dg variants: u_cs_valdg / u_cw_valdg
+  ! -----------------------------
+  if (filtering == 1) then
+    if (.not. allocated(u_cs_val)) then
+      allocate(u_cs_val(istage, nof_variables, kmaxe)); u_cs_val = zero
+    end if
+    if (.not. allocated(u_cw_val)) then
+      allocate(u_cw_val(istage, nof_variables, kmaxe)); u_cw_val = zero
+    end if
+
+    if (dg == 1) then
+      if (.not. allocated(u_cs_valdg)) then
+        allocate(u_cs_valdg(1, nof_variables, max_ideg+1, kmaxe)); u_cs_valdg = zero
+      end if
+      if (.not. allocated(u_cw_valdg)) then
+        allocate(u_cw_valdg(1, nof_variables, max_ideg+1, kmaxe)); u_cw_valdg = zero
+      end if
+    end if
+  end if
+
+  ! -----------------------------
+  ! set recalc flags
+  ! ielem_recalc(i) already flat
+  ! -----------------------------
+  if (mood == 1) then
+    ielem_recalc(1:kmaxe) = 0
+  else
+    ielem_recalc(1:kmaxe) = 1
+  end if
+
+end subroutine u_c_allocation
 
 
-END SUBROUTINE LOCAL_RECONALLOCATION42d
-	
+
+subroutine omp_map_first(n)
+  implicit none
+  integer,intent(in)::n
+
+
+  
+#ifdef xpu
+  !$omp target enter data map(alloc: n, aa_1, adda, adda_1, adda_1_s, adda_2, adda_2_s, adda_alpha_1, adda_alpha_2)
+  !$omp target update to(n, aa_1, adda, adda_1, adda_1_s, adda_2, adda_2_s, adda_alpha_1, adda_alpha_2)
+  !$omp target enter data map(alloc: adda_type, allnodesgloball, allres, allresdt, alls, alpha, alpha_0, alpha_inf1)
+  !$omp target update to(adda_type, allnodesgloball, allres, allresdt, alls, alpha, alpha_0, alpha_inf1)
+  !$omp target enter data map(alloc: alpha_inf2, alpha_star0, alpha_starinf, angle_per, aoa, average_restart, averaging)
+  !$omp target update to(alpha_inf2, alpha_star0, alpha_starinf, angle_per, aoa, average_restart, averaging)
+  !$omp target enter data map(alloc: beta, beta_i1, beta_i2, beta_starinf, beta_t, betaas, binio, bleed, bleed_number)
+  !$omp target update to(beta, beta_i1, beta_i2, beta_starinf, beta_t, betaas, binio, bleed, bleed_number)
+  !$omp target enter data map(alloc: bleed_type, boundtype, br2_damping, br2_yn, bubble_centre, bubble_radius, c_des_sa)
+  !$omp target update to(bleed_type, boundtype, br2_damping, br2_yn, bubble_centre, bubble_radius, c_des_sa)
+  !$omp target enter data map(alloc: c_des_sst, c_mu_inlet, c_sas, c_smg, cascade, catalytic_wall, cavitation, cb1, cb2)
+  !$omp target update to(c_des_sst, c_mu_inlet, c_sas, c_smg, cascade, catalytic_wall, cavitation, cb1, cb2)
+  !$omp target enter data map(alloc: cfl, cflmax, cflramp, cfw, charlength, chunk_n, code_profile, ct1, ct2, ct3, ct4, cv1)
+  !$omp target update to(cfl, cflmax, cflramp, cfw, charlength, chunk_n, code_profile, ct1, ct2, ct3, ct4, cv1)
+  !$omp target enter data map(alloc: cw1, cw2, cw3, d_corr, datatypeint, datatypex, datatypexx, datatypey, datatypeyy)
+  !$omp target update to(cw1, cw2, cw3, d_corr, datatypeint, datatypex, datatypexx, datatypey, datatypeyy)
+  !$omp target enter data map(alloc: datatypez, des_model, dg, dimensiona, dims, dt, ees, ek_time, emetis, eta2_sas)
+  !$omp target update to(datatypez, des_model, dg, dimensiona, dims, dt, ees, ek_time, emetis, eta2_sas)
+  !$omp target enter data map(alloc: every_time, extended_bounds, extf, fastest, fastest_q,ind1,origin)
+  !$omp target update to(every_time, extended_bounds, extf, fastest, fastest_q,ind1,origin)
+
+  !$omp target enter data map(alloc: fastmovie, fil_alpha, fil_nc, fil_s, filter_type, filtering, firstorder, firstrese,totk,totens,totensx,kill_nan)
+  !$omp target update to(fastmovie, fil_alpha, fil_nc, fil_s, filter_type, filtering, firstorder, firstrese,totk,totens,totensx,kill_nan)
+  !$omp target enter data map(alloc: firstresk, firstresomega, firstrespass, firstresr, firstrest, firstresu, firstresv)
+  !$omp target update to(firstresk, firstresomega, firstrespass, firstresr, firstrest, firstresu, firstresv)
+  !$omp target enter data map(alloc: firstresw, forcex, forcey, forcez, gamma, governingequations, greengo, gridar1)
+  !$omp target update to(firstresw, forcex, forcey, forcez, gamma, governingequations, greengo, gridar1)
+  !$omp target enter data map(alloc: gridar2, guassianquadra, hybridist, i_turb_inlet, iadapt, ibcode, iboundary, ibside)
+  !$omp target update to(gridar2, guassianquadra, hybridist, i_turb_inlet, iadapt, ibcode, iboundary, ibside)
+  !$omp target enter data map(alloc: icarlos1, icarlos2, icompact, icong, iconimp, iconsgvq, iconsr, icoupleturb, idegfree,res_sum,pos_l1,pos_l2,pos_l3,pos_l4,ipos_l1,ipos_l2)
+  !$omp target update to(icarlos1, icarlos2, icompact, icong, iconimp, iconsgvq, iconsr, icoupleturb, idegfree,res_sum,pos_l1,pos_l2,pos_l3,pos_l4,ipos_l1,ipos_l2)
+  !$omp target enter data map(alloc: idegfree2, idegfree3, ievery, ievery2, ieveryav, iforce, igianagraps, igqrules, ihax1)
+  !$omp target update to(idegfree2, idegfree3, ievery, ievery2, ieveryav, iforce, igianagraps, igqrules, ihax1)
+  !$omp target enter data map(alloc: ihybrid, iloop, iloopx, ilx, imaxb, imaxdegfree, imaxdegfree2, imaxe, imaxn, in)
+  !$omp target update to(ihybrid, iloop, iloopx, ilx, imaxb, imaxdegfree, imaxdegfree2, imaxe, imaxn, in)
+  !$omp target enter data map(alloc: indicator_type, init_mu_ratio, initcond, initialres, inum2, inwhichel, iorder)
+  !$omp target update to(indicator_type, init_mu_ratio, initcond, initialres, inum2, inwhichel, iorder)
+  !$omp target enter data map(alloc: iorder2, ioverst, ioverto, iperiodicity, ires_turb, ires_unsteady, iriemann, irs)
+  !$omp target update to(iorder2, ioverst, ioverto, iperiodicity, ires_turb, ires_unsteady, iriemann, irs)
+  !$omp target enter data map(alloc: ischeme, iscoun, iselem, ispal, isplit, issf,pos_l,pos_g,ipos_l,ipos_g)
+  !$omp target update to(ischeme, iscoun, iselem, ispal, isplit, issf,pos_l,pos_g,ipos_l,ipos_g)
+
+  !$omp target enter data map(alloc: istn, it, itestcase, itold, itotalb, itt, ivortex, iweightlsqr, iweno, iwmaxe, jk)
+  !$omp target update to(istn, it, itestcase, itold, itotalb, itt, ivortex, iweightlsqr, iweno, iwmaxe, jk)
+  !$omp target enter data map(alloc: jtotal, jtotal1, jtotal2, jtotal3, jump_cond1, jump_cond2, jump_cond3, kappa,a405,nof_perturbations405)
+  !$omp target update to(jtotal, jtotal1, jtotal2, jtotal3, jump_cond1, jump_cond2, jump_cond3, kappa,a405,nof_perturbations405)
+  !$omp target enter data map(alloc: kappa_sst, kdum1, kdum2, kdum3, kill, kinit_srf, kloopx, kmaxn, l0norm, l1norm)
+  !$omp target update to(kappa_sst, kdum1, kdum2, kdum3, kill, kinit_srf, kloopx, kmaxn, l0norm, l1norm)
+  !$omp target enter data map(alloc: l2norm, l_turb_inlet, lam, lamps, lamx, lamy, lamz, limiter, lmach, lmach_style)
+  !$omp target update to(l2norm, l_turb_inlet, lam, lamps, lamx, lamy, lamz, limiter, lmach, lmach_style)
+  !$omp target enter data map(alloc: lowmem, lowmemory, lwci1, m_t0, Mach_in, modeio, momentx, momenty, momentz, mood, mood_mode)
+  !$omp target update to(lowmem, lowmemory, lwci1, m_t0, Mach_in, modeio, momentx, momenty, momentz, mood, mood_mode)
+  !$omp target enter data map(alloc: max_faces, max_fnodes, max_nodes, num_hexas, num_prisms, num_pyramids, num_tetras)
+  !$omp target update to(max_faces, max_fnodes, max_nodes, num_hexas, num_prisms, num_pyramids, num_tetras)
+  !$omp target enter data map(alloc: mood_var1, mood_var2, mood_var3, mood_var4, movement, mp_modelc, mrf, multispecies)
+  !$omp target update to(mood_var1, mood_var2, mood_var3, mood_var4, movement, mp_modelc, mrf, multispecies)
+  !$omp target enter data map(alloc: n_boundaries, nderivative, nodes_i, nodes_part, nof_bounded, nof_bubbles)
+  !$omp target update to(n_boundaries, nderivative, nodes_i, nodes_part, nof_bounded, nof_bubbles)
+  !$omp target enter data map(alloc: nof_interior, nof_species, nof_variables, nprobes, nproc, nrotors, ntmax, num_dg_dofs)
+  !$omp target update to(nof_interior, nof_species, nof_variables, nprobes, nproc, nrotors, ntmax, num_dg_dofs)
+  !$omp target enter data map(alloc: num_dg_reconstruct_dofs, numberofpoints, numberofpoints2, numneighbours)
+  !$omp target update to(num_dg_reconstruct_dofs, numberofpoints, numberofpoints2, numneighbours)
+  !$omp target enter data map(alloc: numneighbours2, oo2, out_time, output_freq, outsurf, part1_end, part2_end)
+  !$omp target update to(numneighbours2, oo2, out_time, output_freq, outsurf, part1_end, part2_end)
+
+  !$omp target enter data map(alloc: part3_end, part4_end, part5_end, passivescalar, per_rot, pi, poly, pr_t1, pr_t2)
+  !$omp target update to(part3_end, part4_end, part5_end, passivescalar, per_rot, pi, poly, pr_t1, pr_t2)
+  !$omp target enter data map(alloc: pr_t3, pr_t4, pr_t5, pr_t6, pr_t7, pr_t8, prace_t1, prace_t2, prace_t3, prace_t4)
+  !$omp target update to(pr_t3, pr_t4, pr_t5, pr_t6, pr_t7, pr_t8, prace_t1, prace_t2, prace_t3, prace_t4)
+  !$omp target enter data map(alloc: prace_t5, prace_t6, prace_t7, prace_t8, prace_t9, prace_tx1, prace_tx2, prace_tx3)
+  !$omp target update to(prace_t5, prace_t6, prace_t7, prace_t8, prace_t9, prace_tx1, prace_tx2, prace_tx3)
+  !$omp target enter data map(alloc: ccfl,prandtl, pres, press_outlet, mach_outlet_target, prev_turbmodel, prevres, prtu, qp_hexa, qp_line)
+  !$omp target update to(ccfl,prandtl, pres, press_outlet, mach_outlet_target, prev_turbmodel, prevres, prtu, qp_hexa, qp_line)
+  !$omp target enter data map(alloc: qp_line_n, qp_prism, qp_pyra, qp_quad, qp_quad_n, qp_tetra, qp_triangle)
+  !$omp target update to(qp_line_n, qp_prism, qp_pyra, qp_quad, qp_quad_n, qp_tetra, qp_triangle)
+  !$omp target enter data map(alloc: qp_triangle_n, qrde, qsas_model, r_beta, r_gas, r_k_sst, r_om_sst, realgas)
+  !$omp target update to(qp_triangle_n, qrde, qsas_model, r_beta, r_gas, r_k_sst, r_om_sst, realgas)
+  !$omp target enter data map(alloc: reduce_comp, relax, required, res_time, rescounter, rescountert, residualfreq)
+  !$omp target update to(reduce_comp, relax, required, res_time, rescounter, rescountert, residualfreq)
+  !$omp target enter data map(alloc: reslimit, resmax, resmaxt, restart, reynolds, rframe, rg_kf_type, rg_nof_reactions)
+  !$omp target update to(reslimit, resmax, resmaxt, restart, reynolds, rframe, rg_kf_type, rg_nof_reactions)
+  !$omp target enter data map(alloc: rg_nof_tv_coef, rg_relax, rg_t_inf, rg_t_ref, rg_t_wall_init, rg_ttr, rg_tve, rhc1)
+  !$omp target update to(rg_nof_tv_coef, rg_relax, rg_t_inf, rg_t_ref, rg_t_wall_init, rg_ttr, rg_tve, rhc1)
+  !$omp target enter data map(alloc: rhc2, rhc3, rhc4, rot_corr, rres, rungekutta, scaler, schmidt_lam)
+  !$omp target update to(rhc2, rhc3, rhc4, rot_corr, rres, rungekutta, scaler, schmidt_lam)
+
+  !$omp target enter data map(alloc: schmidt_turb, sigma, sigma_k1, sigma_k2, sigma_om1, sigma_om2, sigma_phi)
+  !$omp target update to(schmidt_turb, sigma, sigma_k1, sigma_k2, sigma_om1, sigma_om2, sigma_phi)
+  !$omp target enter data map(alloc: source_active, spatialorder, spatiladiscret, spkin, spos, srf_origin, srf_velocity)
+  !$omp target update to(source_active, spatialorder, spatiladiscret, spkin, spos, srf_origin, srf_velocity)
+  !$omp target enter data map(alloc: transition_model, transition_axis, transition_direction, transition_ramp_type, transition_location, transition_ramp_length)
+  !$omp target update to(transition_model, transition_axis, transition_direction, transition_ramp_type, transition_location, transition_ramp_length)
+  !$omp target enter data map(alloc: srfg, statistics, stencil_io, stennorm, subdiv)
+  !$omp target update to(srfg, statistics, stencil_io, stennorm, subdiv)
+  !$omp target enter data map(alloc: surfshear, suther, swirl, t, taylor, taylor_ens, taylor_ensx, tecplot, temp_model)
+  !$omp target update to(surfshear, suther, swirl, t, taylor, taylor_ens, taylor_ensx, tecplot, temp_model)
+  !$omp target enter data map(alloc: temporder, thermal, thread_n, timestep, tol_per, tolbig, tolsmall, total_pressure_inlet, total_temperature_inlet, density_inlet, totalvolume, totiw)
+  !$omp target update to(temporder, thermal, thread_n, timestep, tol_per, tolbig, tolsmall, total_pressure_inlet, total_temperature_inlet, density_inlet, totalvolume, totiw)
+  !$omp target enter data map(alloc: totwalls, totwallsc, turbinit, turbulence, turbulenceequations, turbulencemodel)
+  !$omp target update to(totwalls, totwallsc, turbinit, turbulence, turbulenceequations, turbulencemodel)
+  !$omp target enter data map(alloc: twall, typ_countn, typ_countn_global, typ_countn_global_w, typ_countn_w, typesten)
+  !$omp target update to(twall, typ_countn, typ_countn_global, typ_countn_global_w, typ_countn_w, typesten)
+  !$omp target enter data map(alloc: tz1, ufreestream, unwou, upperlimit, upturblimit, uvel, v_ref)
+  !$omp target update to(tz1, ufreestream, unwou, upperlimit, upturblimit, uvel, v_ref)
+  !$omp target enter data map(alloc: vectorx, vectory, vectorz)
+  !$omp target update to(vectorx, vectory, vectorz)
+  !$omp target enter data map(alloc: visc, viscous_s, voll, vorder, vort_model, vvel, wall_temp)
+  !$omp target update to(visc, viscous_s, voll, vorder, vort_model, vvel, wall_temp)
+
+  !$omp target enter data map(alloc: wallc, wdatatypeint, wdatatypex, wdatatypexx, wdatatypey, wdatatypeyy, wdatatypez)
+  !$omp target update to(wallc, wdatatypeint, wdatatypex, wdatatypexx, wdatatypey, wdatatypeyy, wdatatypez)
+  !$omp target enter data map(alloc: weight_lsqr, wenocentralweight, wenocnschar, wenoz, wenwrt, wkdum1, wkdum2, wkdum3)
+  !$omp target update to(weight_lsqr, wenocentralweight, wenocnschar, wenoz, wenwrt, wkdum1, wkdum2, wkdum3)
+  !$omp target enter data map(alloc: wnodes_part, wpart1_end, wpart2_end, wpart3_end, wpart4_end, wpart5_end)
+  !$omp target update to(wnodes_part, wpart1_end, wpart2_end, wpart3_end, wpart4_end, wpart5_end)
+  !$omp target enter data map(alloc: write_variables, write_variables_av, write_variables_av_w, write_variables_w, wvel)
+  !$omp target update to(write_variables, write_variables_av, write_variables_av_w, write_variables_w, wvel)
+  !$omp target enter data map(alloc: xper, yper, zero, zero_turb_init, zeta_star, zper)
+  !$omp target update to(xper, yper, zero, zero_turb_init, zeta_star, zper)
+  !$omp target enter data map(alloc: indicator_par1, indicator_par2, indicator_par3)
+  !$omp target update to(indicator_par1, indicator_par2, indicator_par3)
+
+
+  if (allocated(jtot)) then
+    !$omp target enter data map(alloc: jtot)
+    !$omp target update to(jtot)
+  end if
+
+  if (allocated(adda_filter_strong)) then
+    !$omp target enter data map(alloc: adda_filter_strong)
+    !$omp target update to(adda_filter_strong)
+  end if
+  if (allocated(adda_filter_weak)) then
+    !$omp target enter data map(alloc: adda_filter_weak)
+    !$omp target update to(adda_filter_weak)
+  end if
+  if (allocated(bleed_end)) then
+    !$omp target enter data map(alloc: bleed_end)
+    !$omp target update to(bleed_end)
+  end if
+  if (allocated(bleed_plenum)) then
+    !$omp target enter data map(alloc: bleed_plenum)
+    !$omp target update to(bleed_plenum)
+  end if
+  if (allocated(bleed_porosity)) then
+    !$omp target enter data map(alloc: bleed_porosity)
+    !$omp target update to(bleed_porosity)
+  end if
+  if (allocated(bleed_start)) then
+    !$omp target enter data map(alloc: bleed_start)
+    !$omp target update to(bleed_start)
+  end if
+  if (allocated(bound_len)) then
+    !$omp target enter data map(alloc: bound_len)
+    !$omp target update to(bound_len)
+  end if
+  if (allocated(bound_offset)) then
+    !$omp target enter data map(alloc: bound_offset)
+    !$omp target update to(bound_offset)
+  end if
+  if (allocated(boundhir_dg)) then
+    !$omp target enter data map(alloc: boundhir_dg)
+    !$omp target update to(boundhir_dg)
+  end if
+  if (allocated(catalytic_con)) then
+    !$omp target enter data map(alloc: catalytic_con)
+    !$omp target update to(catalytic_con)
+  end if
+  if (allocated(el_bnd)) then
+    !$omp target enter data map(alloc: el_bnd)
+    !$omp target update to(el_bnd)
+  end if
+  if (allocated(el_int)) then
+    !$omp target enter data map(alloc: el_int)
+    !$omp target update to(el_int)
+  end if
+  if (allocated(gamma_in)) then
+    !$omp target enter data map(alloc: gamma_in)
+    !$omp target update to(gamma_in)
+  end if
+  if (allocated(halo_offset)) then
+    !$omp target enter data map(alloc: halo_offset)
+    !$omp target update to(halo_offset)
+  end if
+  if (allocated(ibound_cpun)) then
+    !$omp target enter data map(alloc: ibound_cpun)
+    !$omp target update to(ibound_cpun)
+  end if
+  if (allocated(ibound_face)) then
+    !$omp target enter data map(alloc: ibound_face)
+    !$omp target update to(ibound_face)
+  end if
+  if (allocated(ibound_ibid)) then
+    !$omp target enter data map(alloc: ibound_ibid)
+    !$omp target update to(ibound_ibid)
+  end if
+  if (allocated(ibound_ibl)) then
+    !$omp target enter data map(alloc: ibound_ibl)
+    !$omp target update to(ibound_ibl)
+  end if
+  if (allocated(ibound_icode)) then
+    !$omp target enter data map(alloc: ibound_icode)
+    !$omp target update to(ibound_icode)
+  end if
+  if (allocated(ibound_inum)) then
+    !$omp target enter data map(alloc: ibound_inum)
+    !$omp target update to(ibound_inum)
+  end if
+  if (allocated(ibound_ishape)) then
+    !$omp target enter data map(alloc: ibound_ishape)
+    !$omp target update to(ibound_ishape)
+  end if
+  if (allocated(ibound_localn)) then
+    !$omp target enter data map(alloc: ibound_localn)
+    !$omp target update to(ibound_localn)
+  end if
+  if (allocated(ibound_nibl)) then
+    !$omp target enter data map(alloc: ibound_nibl)
+    !$omp target update to(ibound_nibl)
+  end if
+  if (allocated(ibound_nlocal)) then
+    !$omp target enter data map(alloc: ibound_nlocal)
+    !$omp target update to(ibound_nlocal)
+  end if
+  if (allocated(ibound_t)) then
+    !$omp target enter data map(alloc: ibound_t)
+    !$omp target update to(ibound_t)
+  end if
+  if (allocated(ibound_t2)) then
+    !$omp target enter data map(alloc: ibound_t2)
+    !$omp target update to(ibound_t2)
+  end if
+  if (allocated(ibound_which)) then
+    !$omp target enter data map(alloc: ibound_which)
+    !$omp target update to(ibound_which)
+  end if
+  if (allocated(ielem_admis)) then
+    !$omp target enter data map(alloc: ielem_admis)
+    !$omp target update to(ielem_admis)
+  end if
+  if (allocated(ielem_avars)) then
+    !$omp target enter data map(alloc: ielem_avars)
+    !$omp target update to(ielem_avars)
+  end if
+  if (allocated(ielem_bleedn)) then
+    !$omp target enter data map(alloc: ielem_bleedn)
+    !$omp target update to(ielem_bleedn)
+  end if
+  if (allocated(ielem_condition)) then
+    !$omp target enter data map(alloc: ielem_condition)
+    !$omp target update to(ielem_condition)
+  end if
+  if (allocated(ielem_condx)) then
+    !$omp target enter data map(alloc: ielem_condx)
+    !$omp target update to(ielem_condx)
+  end if
+  if (allocated(ielem_dih)) then
+    !$omp target enter data map(alloc: ielem_dih)
+    !$omp target update to(ielem_dih)
+  end if
+  if (allocated(ielem_dih2)) then
+    !$omp target enter data map(alloc: ielem_dih2)
+    !$omp target update to(ielem_dih2)
+  end if
+  if (allocated(ielem_diss)) then
+    !$omp target enter data map(alloc: ielem_diss)
+    !$omp target update to(ielem_diss)
+  end if
+  if (allocated(ielem_dtl)) then
+    !$omp target enter data map(alloc: ielem_dtl)
+    !$omp target update to(ielem_dtl)
+  end if
+  if (allocated(ielem_er)) then
+    !$omp target enter data map(alloc: ielem_er)
+    !$omp target update to(ielem_er)
+  end if
+  if (allocated(ielem_er1)) then
+    !$omp target enter data map(alloc: ielem_er1)
+    !$omp target update to(ielem_er1)
+  end if
+  if (allocated(ielem_er1dt)) then
+    !$omp target enter data map(alloc: ielem_er1dt)
+    !$omp target update to(ielem_er1dt)
+  end if
+  if (allocated(ielem_er1er2)) then
+    !$omp target enter data map(alloc: ielem_er1er2)
+    !$omp target update to(ielem_er1er2)
+  end if
+  if (allocated(ielem_er2)) then
+    !$omp target enter data map(alloc: ielem_er2)
+    !$omp target update to(ielem_er2)
+  end if
+  if (allocated(ielem_er2dt)) then
+    !$omp target enter data map(alloc: ielem_er2dt)
+    !$omp target update to(ielem_er2dt)
+  end if
+  if (allocated(ielem_erx)) then
+    !$omp target enter data map(alloc: ielem_erx)
+    !$omp target update to(ielem_erx)
+  end if
+  if (allocated(ielem_faceanglex)) then
+    !$omp target enter data map(alloc: ielem_faceanglex)
+    !$omp target update to(ielem_faceanglex)
+  end if
+  if (allocated(ielem_faceangley)) then
+    !$omp target enter data map(alloc: ielem_faceangley)
+    !$omp target update to(ielem_faceangley)
+  end if
+  if (allocated(ielem_facediss)) then
+    !$omp target enter data map(alloc: ielem_facediss)
+    !$omp target update to(ielem_facediss)
+  end if
+  if (allocated(ielem_filtered)) then
+    !$omp target enter data map(alloc: ielem_filtered)
+    !$omp target update to(ielem_filtered)
+  end if
+  if (allocated(ielem_full)) then
+    !$omp target enter data map(alloc: ielem_full)
+    !$omp target update to(ielem_full)
+  end if
+  if (allocated(ielem_ggs)) then
+    !$omp target enter data map(alloc: ielem_ggs)
+    !$omp target update to(ielem_ggs)
+  end if
+  if (allocated(ielem_hybrid)) then
+    !$omp target enter data map(alloc: ielem_hybrid)
+    !$omp target update to(ielem_hybrid)
+  end if
+  if (allocated(ielem_ibounds)) then
+    !$omp target enter data map(alloc: ielem_ibounds)
+    !$omp target update to(ielem_ibounds)
+  end if
+  if (allocated(ielem_idegfree)) then
+    !$omp target enter data map(alloc: ielem_idegfree)
+    !$omp target update to(ielem_idegfree)
+  end if
+  if (allocated(ielem_ifca)) then
+    !$omp target enter data map(alloc: ielem_ifca)
+    !$omp target update to(ielem_ifca)
+  end if
+  if (allocated(ielem_ihex)) then
+    !$omp target enter data map(alloc: ielem_ihex)
+    !$omp target update to(ielem_ihex)
+  end if
+  if (allocated(ielem_ihexgl)) then
+    !$omp target enter data map(alloc: ielem_ihexgl)
+    !$omp target update to(ielem_ihexgl)
+  end if
+  if (allocated(ielem_indexf)) then
+    !$omp target enter data map(alloc: ielem_indexf)
+    !$omp target update to(ielem_indexf)
+  end if
+  if (allocated(ielem_indexi)) then
+    !$omp target enter data map(alloc: ielem_indexi)
+    !$omp target update to(ielem_indexi)
+  end if
+  if (allocated(ielem_ineigh)) then
+    !$omp target enter data map(alloc: ielem_ineigh)
+    !$omp target update to(ielem_ineigh)
+  end if
+  if (allocated(ielem_ineighb)) then
+    !$omp target enter data map(alloc: ielem_ineighb)
+    !$omp target update to(ielem_ineighb)
+  end if
+  if (allocated(ielem_ineighg)) then
+    !$omp target enter data map(alloc: ielem_ineighg)
+    !$omp target update to(ielem_ineighg)
+  end if
+  if (allocated(ielem_ineighn)) then
+    !$omp target enter data map(alloc: ielem_ineighn)
+    !$omp target update to(ielem_ineighn)
+  end if
+  if (allocated(ielem_inter_id)) then
+    !$omp target enter data map(alloc: ielem_inter_id)
+    !$omp target update to(ielem_inter_id)
+  end if
+  if (allocated(ielem_interior)) then
+    !$omp target enter data map(alloc: ielem_interior)
+    !$omp target update to(ielem_interior)
+  end if
+  if (allocated(ielem_inumneighbours)) then
+    !$omp target enter data map(alloc: ielem_inumneighbours)
+    !$omp target update to(ielem_inumneighbours)
+  end if
+  if (allocated(ielem_iorder)) then
+    !$omp target enter data map(alloc: ielem_iorder)
+    !$omp target update to(ielem_iorder)
+  end if
+  if (allocated(ielem_ishape)) then
+    !$omp target enter data map(alloc: ielem_ishape)
+    !$omp target update to(ielem_ishape)
+  end if
+  if (allocated(ielem_itotalpoints)) then
+    !$omp target enter data map(alloc: ielem_itotalpoints)
+    !$omp target update to(ielem_itotalpoints)
+  end if
+  if (allocated(ielem_linc)) then
+    !$omp target enter data map(alloc: ielem_linc)
+    !$omp target update to(ielem_linc)
+  end if
+  if (allocated(ielem_lwcx2)) then
+    !$omp target enter data map(alloc: ielem_lwcx2)
+    !$omp target update to(ielem_lwcx2)
+  end if
+  if (allocated(ielem_minedge)) then
+    !$omp target enter data map(alloc: ielem_minedge)
+    !$omp target update to(ielem_minedge)
+  end if
+  if (allocated(ielem_mode)) then
+    !$omp target enter data map(alloc: ielem_mode)
+    !$omp target update to(ielem_mode)
+  end if
+  if (allocated(ielem_mood)) then
+    !$omp target enter data map(alloc: ielem_mood)
+    !$omp target update to(ielem_mood)
+  end if
+  if (allocated(ielem_mood_o)) then
+    !$omp target enter data map(alloc: ielem_mood_o)
+    !$omp target update to(ielem_mood_o)
+  end if
+  if (allocated(ielem_nodes)) then
+    !$omp target enter data map(alloc: ielem_nodes)
+    !$omp target update to(ielem_nodes)
+  end if
+  if (allocated(ielem_nodes_faces)) then
+    !$omp target enter data map(alloc: ielem_nodes_faces)
+    !$omp target update to(ielem_nodes_faces)
+  end if
+  if (allocated(ielem_nodes_faces_v)) then
+    !$omp target enter data map(alloc: ielem_nodes_faces_v)
+    !$omp target update to(ielem_nodes_faces_v)
+  end if
+  if (allocated(ielem_nodes_neighbours)) then
+    !$omp target enter data map(alloc: ielem_nodes_neighbours)
+    !$omp target update to(ielem_nodes_neighbours)
+  end if
+  if (allocated(ielem_nodes_v)) then
+    !$omp target enter data map(alloc: ielem_nodes_v)
+    !$omp target update to(ielem_nodes_v)
+  end if
+  if (allocated(ielem_nofbc)) then
+    !$omp target enter data map(alloc: ielem_nofbc)
+    !$omp target update to(ielem_nofbc)
+  end if
+  if (allocated(ielem_nojecount)) then
+    !$omp target enter data map(alloc: ielem_nojecount)
+    !$omp target update to(ielem_nojecount)
+  end if
+  if (allocated(ielem_nonodes)) then
+    !$omp target enter data map(alloc: ielem_nonodes)
+    !$omp target update to(ielem_nonodes)
+  end if
+  if (allocated(ielem_q_face_q_mapl)) then
+    !$omp target enter data map(alloc: ielem_q_face_q_mapl)
+    !$omp target update to(ielem_q_face_q_mapl)
+  end if
+  if (allocated(ielem_qface)) then
+    !$omp target enter data map(alloc: ielem_qface)
+    !$omp target update to(ielem_qface)
+  end if
+  if (allocated(ielem_recalc)) then
+    !$omp target enter data map(alloc: ielem_recalc)
+    !$omp target update to(ielem_recalc)
+  end if
+  if (allocated(ielem_reduce)) then
+    !$omp target enter data map(alloc: ielem_reduce)
+    !$omp target update to(ielem_reduce)
+  end if
+  if (allocated(ielem_reorient)) then
+    !$omp target enter data map(alloc: ielem_reorient)
+    !$omp target update to(ielem_reorient)
+  end if
+  if (allocated(ielem_stencil_dist)) then
+    !$omp target enter data map(alloc: ielem_stencil_dist)
+    !$omp target update to(ielem_stencil_dist)
+  end if
+  if (allocated(ielem_surf)) then
+    !$omp target enter data map(alloc: ielem_surf)
+    !$omp target update to(ielem_surf)
+  end if
+  if (allocated(ielem_totvolume)) then
+    !$omp target enter data map(alloc: ielem_totvolume)
+    !$omp target update to(ielem_totvolume)
+  end if
+  if (allocated(ielem_troubled)) then
+    !$omp target enter data map(alloc: ielem_troubled)
+    !$omp target update to(ielem_troubled)
+  end if
+  if (allocated(ielem_types_faces)) then
+    !$omp target enter data map(alloc: ielem_types_faces)
+    !$omp target update to(ielem_types_faces)
+  end if
+  if (allocated(ielem_vdec)) then
+    !$omp target enter data map(alloc: ielem_vdec)
+    !$omp target update to(ielem_vdec)
+  end if
+  if (allocated(ielem_viscx)) then
+    !$omp target enter data map(alloc: ielem_viscx)
+    !$omp target update to(ielem_viscx)
+  end if
+  if (allocated(ielem_vortex)) then
+    !$omp target enter data map(alloc: ielem_vortex)
+    !$omp target update to(ielem_vortex)
+  end if
+  if (allocated(ielem_walldist)) then
+    !$omp target enter data map(alloc: ielem_walldist)
+    !$omp target update to(ielem_walldist)
+  end if
+  if (allocated(ielem_walltrans)) then
+    !$omp target enter data map(alloc: ielem_walltrans)
+    !$omp target update to(ielem_walltrans)
+  end if
+  if (allocated(ielem_walls)) then
+    !$omp target enter data map(alloc: ielem_walls)
+    !$omp target update to(ielem_walls)
+  end if
+  if (allocated(ielem_wcx)) then
+    !$omp target enter data map(alloc: ielem_wcx)
+    !$omp target update to(ielem_wcx)
+  end if
+  if (allocated(ielem_xxc)) then
+    !$omp target enter data map(alloc: ielem_xxc)
+    !$omp target update to(ielem_xxc)
+  end if
+  if (allocated(ielem_yyc)) then
+    !$omp target enter data map(alloc: ielem_yyc)
+    !$omp target update to(ielem_yyc)
+  end if
+  if (allocated(ielem_zzc)) then
+    !$omp target enter data map(alloc: ielem_zzc)
+    !$omp target update to(ielem_zzc)
+  end if
+  if (allocated(impdiag_mf)) then
+    !$omp target enter data map(alloc: impdiag_mf)
+    !$omp target update to(impdiag_mf)
+  end if
+  if (allocated(impoff_mf)) then
+    !$omp target enter data map(alloc: impoff_mf)
+    !$omp target update to(impoff_mf)
+  end if
+  if (allocated(inoder4_bct)) then
+    !$omp target enter data map(alloc: inoder4_bct)
+    !$omp target update to(inoder4_bct)
+  end if
+  if (allocated(inoder4_cord)) then
+    !$omp target enter data map(alloc: inoder4_cord)
+    !$omp target update to(inoder4_cord)
+  end if
+  if (allocated(inoder4_itor)) then
+    !$omp target enter data map(alloc: inoder4_itor)
+    !$omp target update to(inoder4_itor)
+  end if
+  if (allocated(integ_basis_dg_value)) then
+    !$omp target enter data map(alloc: integ_basis_dg_value)
+    !$omp target update to(integ_basis_dg_value)
+  end if
+  if (allocated(integ_basis_value)) then
+    !$omp target enter data map(alloc: integ_basis_value)
+    !$omp target update to(integ_basis_value)
+  end if
+  if (allocated(integ_basis_valuec)) then
+    !$omp target enter data map(alloc: integ_basis_valuec)
+    !$omp target update to(integ_basis_valuec)
+  end if
+  if (allocated(m_1_val)) then
+    !$omp target enter data map(alloc: m_1_val)
+    !$omp target update to(m_1_val)
+  end if
+  if (allocated(modal_filter)) then
+    !$omp target enter data map(alloc: modal_filter)
+    !$omp target update to(modal_filter)
+  end if
+  if (allocated(modal_filter_strong)) then
+    !$omp target enter data map(alloc: modal_filter_strong)
+    !$omp target update to(modal_filter_strong)
+  end if
+  if (allocated(modal_filter_weak)) then
+    !$omp target enter data map(alloc: modal_filter_weak)
+    !$omp target update to(modal_filter_weak)
+  end if
+  if (allocated(mp_a_in)) then
+    !$omp target enter data map(alloc: mp_a_in)
+    !$omp target update to(mp_a_in)
+  end if
+  if (allocated(mp_janaf)) then
+    !$omp target enter data map(alloc: mp_janaf)
+    !$omp target update to(mp_janaf)
+  end if
+  if (allocated(mp_m)) then
+    !$omp target enter data map(alloc: mp_m)
+    !$omp target update to(mp_m)
+  end if
+  if (allocated(mp_pinf)) then
+    !$omp target enter data map(alloc: mp_pinf)
+    !$omp target update to(mp_pinf)
+  end if
+  if (allocated(mp_r_in)) then
+    !$omp target enter data map(alloc: mp_r_in)
+    !$omp target update to(mp_r_in)
+  end if
+  if (allocated(mp_thigh_in)) then
+    !$omp target enter data map(alloc: mp_thigh_in)
+    !$omp target update to(mp_thigh_in)
+  end if
+  if (allocated(mp_tlow_in)) then
+    !$omp target enter data map(alloc: mp_tlow_in)
+    !$omp target update to(mp_tlow_in)
+  end if
+  if (allocated(mp_tmid_in)) then
+    !$omp target enter data map(alloc: mp_tmid_in)
+    !$omp target update to(mp_tmid_in)
+  end if
+  if (allocated(mrf_rot_gl)) then
+    !$omp target enter data map(alloc: mrf_rot_gl)
+    !$omp target update to(mrf_rot_gl)
+  end if
+  if (allocated(point1_gl)) then
+    !$omp target enter data map(alloc: point1_gl)
+    !$omp target update to(point1_gl)
+  end if
+  if (allocated(point2_gl)) then
+    !$omp target enter data map(alloc: point2_gl)
+    !$omp target update to(point2_gl)
+  end if
+  if (allocated(qp_array_qp_weight)) then
+    !$omp target enter data map(alloc: qp_array_qp_weight)
+    !$omp target update to(qp_array_qp_weight)
+  end if
+  if (allocated(qp_array_x)) then
+    !$omp target enter data map(alloc: qp_array_x)
+    !$omp target update to(qp_array_x)
+  end if
+  if (allocated(qp_array_y)) then
+    !$omp target enter data map(alloc: qp_array_y)
+    !$omp target update to(qp_array_y)
+  end if
+  if (allocated(qp_array_z)) then
+    !$omp target enter data map(alloc: qp_array_z)
+    !$omp target update to(qp_array_z)
+  end if
+  if (allocated(radius_gl)) then
+    !$omp target enter data map(alloc: radius_gl)
+    !$omp target update to(radius_gl)
+  end if
+  if (allocated(rec_br2_aux_var)) then
+    !$omp target enter data map(alloc: rec_br2_aux_var)
+    !$omp target update to(rec_br2_aux_var)
+  end if
+  if (allocated(rec_br2_local_lift)) then
+    !$omp target enter data map(alloc: rec_br2_local_lift)
+    !$omp target update to(rec_br2_local_lift)
+  end if
+  if (allocated(rec_cgradientstemp)) then
+    !$omp target enter data map(alloc: rec_cgradientstemp)
+    !$omp target update to(rec_cgradientstemp)
+  end if
+  if (allocated(rec_cond)) then
+    !$omp target enter data map(alloc: rec_cond)
+    !$omp target update to(rec_cond)
+  end if
+  if (allocated(rec_findw)) then
+    !$omp target enter data map(alloc: rec_findw)
+    !$omp target update to(rec_findw)
+  end if
+  if (allocated(rec_g0)) then
+    !$omp target enter data map(alloc: rec_g0)
+    !$omp target update to(rec_g0)
+  end if
+  if (allocated(rec_gradf)) then
+    !$omp target enter data map(alloc: rec_gradf)
+    !$omp target update to(rec_gradf)
+  end if
+  if (allocated(rec_gradients)) then
+    !$omp target enter data map(alloc: rec_gradients)
+    !$omp target update to(rec_gradients)
+  end if
+  if (allocated(rec_gradients2)) then
+    !$omp target enter data map(alloc: rec_gradients2)
+    !$omp target update to(rec_gradients2)
+  end if
+  if (allocated(rec_gradientsc)) then
+    !$omp target enter data map(alloc: rec_gradientsc)
+    !$omp target update to(rec_gradientsc)
+  end if
+  if (allocated(rec_gradientsc2)) then
+    !$omp target enter data map(alloc: rec_gradientsc2)
+    !$omp target update to(rec_gradientsc2)
+  end if
+  if (allocated(rec_gradientstemp)) then
+    !$omp target enter data map(alloc: rec_gradientstemp)
+    !$omp target update to(rec_gradientstemp)
+  end if
+  if (allocated(rec_gradientstemp_wall)) then
+    !$omp target enter data map(alloc: rec_gradientstemp_wall)
+    !$omp target update to(rec_gradientstemp_wall)
+  end if
+  if (allocated(rec_gradientsturb)) then
+    !$omp target enter data map(alloc: rec_gradientsturb)
+    !$omp target update to(rec_gradientsturb)
+  end if
+  if (allocated(rec_gradientsturb_wall)) then
+    !$omp target enter data map(alloc: rec_gradientsturb_wall)
+    !$omp target update to(rec_gradientsturb_wall)
+  end if
+  if (allocated(rec_grads)) then
+    !$omp target enter data map(alloc: rec_grads)
+    !$omp target update to(rec_grads)
+  end if
+  if (allocated(rec_gradsav)) then
+    !$omp target enter data map(alloc: rec_gradsav)
+    !$omp target update to(rec_gradsav)
+  end if
+  if (allocated(rec_ihexb)) then
+    !$omp target enter data map(alloc: rec_ihexb)
+    !$omp target update to(rec_ihexb)
+  end if
+  if (allocated(rec_ihexbc)) then
+    !$omp target enter data map(alloc: rec_ihexbc)
+    !$omp target update to(rec_ihexbc)
+  end if
+  if (allocated(rec_ihexg)) then
+    !$omp target enter data map(alloc: rec_ihexg)
+    !$omp target update to(rec_ihexg)
+  end if
+  if (allocated(rec_ihexgc)) then
+    !$omp target enter data map(alloc: rec_ihexgc)
+    !$omp target update to(rec_ihexgc)
+  end if
+  if (allocated(rec_ihexl)) then
+    !$omp target enter data map(alloc: rec_ihexl)
+    !$omp target update to(rec_ihexl)
+  end if
+  if (allocated(rec_ihexlc)) then
+    !$omp target enter data map(alloc: rec_ihexlc)
+    !$omp target update to(rec_ihexlc)
+  end if
+  if (allocated(rec_ihexn)) then
+    !$omp target enter data map(alloc: rec_ihexn)
+    !$omp target update to(rec_ihexn)
+  end if
+  if (allocated(rec_ihexnc)) then
+    !$omp target enter data map(alloc: rec_ihexnc)
+    !$omp target update to(rec_ihexnc)
+  end if
+  if (allocated(rec_indicator)) then
+    !$omp target enter data map(alloc: rec_indicator)
+    !$omp target update to(rec_indicator)
+  end if
+  if (allocated(rec_indicatorc)) then
+    !$omp target enter data map(alloc: rec_indicatorc)
+    !$omp target update to(rec_indicatorc)
+  end if
+  if (allocated(rec_invccjac)) then
+    !$omp target enter data map(alloc: rec_invccjac)
+    !$omp target update to(rec_invccjac)
+  end if
+  if (allocated(rec_invctjac)) then
+    !$omp target enter data map(alloc: rec_invctjac)
+    !$omp target update to(rec_invctjac)
+  end if
+  if (allocated(rec_invmat_stencilt)) then
+    !$omp target enter data map(alloc: rec_invmat_stencilt)
+    !$omp target update to(rec_invmat_stencilt)
+  end if
+  if (allocated(rec_invmat_stenciltc)) then
+    !$omp target enter data map(alloc: rec_invmat_stenciltc)
+    !$omp target update to(rec_invmat_stenciltc)
+  end if
+  if (allocated(rec_k0)) then
+    !$omp target enter data map(alloc: rec_k0)
+    !$omp target update to(rec_k0)
+  end if
+  if (allocated(rec_local)) then
+    !$omp target enter data map(alloc: rec_local)
+    !$omp target update to(rec_local)
+  end if
+  if (allocated(rec_mrf)) then
+    !$omp target enter data map(alloc: rec_mrf)
+    !$omp target update to(rec_mrf)
+  end if
+  if (allocated(rec_mrf_origin)) then
+    !$omp target enter data map(alloc: rec_mrf_origin)
+    !$omp target update to(rec_mrf_origin)
+  end if
+  if (allocated(rec_mrf_velocity)) then
+    !$omp target enter data map(alloc: rec_mrf_velocity)
+    !$omp target update to(rec_mrf_velocity)
+  end if
+  if (allocated(rec_periodicflag)) then
+    !$omp target enter data map(alloc: rec_periodicflag)
+    !$omp target update to(rec_periodicflag)
+  end if
+  if (allocated(rec_qpoints)) then
+    !$omp target enter data map(alloc: rec_qpoints)
+    !$omp target update to(rec_qpoints)
+  end if
+   if (allocated(rec_qpoints_p)) then
+    !$omp target enter data map(alloc: rec_qpoints_p)
+    !$omp target update to(rec_qpoints_p)
+  end if
+
+  if (allocated(rec_rotvel)) then
+    !$omp target enter data map(alloc: rec_rotvel)
+    !$omp target update to(rec_rotvel)
+  end if
+  if (allocated(rec_rpoints)) then
+    !$omp target enter data map(alloc: rec_rpoints)
+    !$omp target update to(rec_rpoints)
+  end if
+  if (allocated(rec_stencils)) then
+    !$omp target enter data map(alloc: rec_stencils)
+    !$omp target update to(rec_stencils)
+  end if
+  if (allocated(rec_stencilsc)) then
+    !$omp target enter data map(alloc: rec_stencilsc)
+    !$omp target update to(rec_stencilsc)
+  end if
+  if (allocated(rec_surf_qpoints)) then
+    !$omp target enter data map(alloc: rec_surf_qpoints)
+    !$omp target update to(rec_surf_qpoints)
+  end if
+  if (allocated(rec_tempsq)) then
+    !$omp target enter data map(alloc: rec_tempsq)
+    !$omp target update to(rec_tempsq)
+  end if
+  if (allocated(rec_tempsqmat)) then
+    !$omp target enter data map(alloc: rec_tempsqmat)
+    !$omp target update to(rec_tempsqmat)
+  end if
+  if (allocated(rec_uleft)) then
+    !$omp target enter data map(alloc: rec_uleft)
+    !$omp target update to(rec_uleft)
+  end if
+  if (allocated(rec_uleft_dg)) then
+    !$omp target enter data map(alloc: rec_uleft_dg)
+    !$omp target update to(rec_uleft_dg)
+  end if
+  if (allocated(rec_uleftturb)) then
+    !$omp target enter data map(alloc: rec_uleftturb)
+    !$omp target update to(rec_uleftturb)
+  end if
+  if (allocated(rec_uleftturbv)) then
+    !$omp target enter data map(alloc: rec_uleftturbv)
+    !$omp target update to(rec_uleftturbv)
+  end if
+  if (allocated(rec_uleftv)) then
+    !$omp target enter data map(alloc: rec_uleftv)
+    !$omp target update to(rec_uleftv)
+  end if
+  if (allocated(rec_uleftx)) then
+    !$omp target enter data map(alloc: rec_uleftx)
+    !$omp target update to(rec_uleftx)
+  end if
+  if (allocated(rec_velinvlsqmat)) then
+    !$omp target enter data map(alloc: rec_velinvlsqmat)
+    !$omp target update to(rec_velinvlsqmat)
+  end if
+  if (allocated(rec_vellsq)) then
+    !$omp target enter data map(alloc: rec_vellsq)
+    !$omp target update to(rec_vellsq)
+  end if
+  if (allocated(rec_velocitydof_wall)) then
+    !$omp target enter data map(alloc: rec_velocitydof_wall)
+    !$omp target update to(rec_velocitydof_wall)
+  end if
+  if (allocated(rec_vext_ref)) then
+    !$omp target enter data map(alloc: rec_vext_ref)
+    !$omp target update to(rec_vext_ref)
+  end if
+  if (allocated(rec_volume)) then
+    !$omp target enter data map(alloc: rec_volume)
+    !$omp target update to(rec_volume)
+  end if
+  if (allocated(rec_volume_w)) then
+    !$omp target enter data map(alloc: rec_volume_w)
+    !$omp target update to(rec_volume_w)
+  end if
+  if (allocated(rec_volumec)) then
+    !$omp target enter data map(alloc: rec_volumec)
+    !$omp target update to(rec_volumec)
+  end if
+  if (allocated(rec_wall)) then
+    !$omp target enter data map(alloc: rec_wall)
+    !$omp target update to(rec_wall)
+  end if
+  if (allocated(rec_wallcoeff)) then
+    !$omp target enter data map(alloc: rec_wallcoeff)
+    !$omp target update to(rec_wallcoeff)
+  end if
+  if (allocated(rec_wallcoefg)) then
+    !$omp target enter data map(alloc: rec_wallcoefg)
+    !$omp target update to(rec_wallcoefg)
+  end if
+  if (allocated(rec_weightl)) then
+    !$omp target enter data map(alloc: rec_weightl)
+    !$omp target update to(rec_weightl)
+  end if
+  if (allocated(rec_weno)) then
+    !$omp target enter data map(alloc: rec_weno)
+    !$omp target update to(rec_weno)
+  end if
+  if (allocated(rec_weno2)) then
+    !$omp target enter data map(alloc: rec_weno2)
+    !$omp target update to(rec_weno2)
+  end if
+  if (allocated(rec_wenos)) then
+    !$omp target enter data map(alloc: rec_wenos)
+    !$omp target update to(rec_wenos)
+  end if
+  if (allocated(rg_hzero)) then
+    !$omp target enter data map(alloc: rg_hzero)
+    !$omp target update to(rg_hzero)
+  end if
+  if (allocated(rg_molm)) then
+    !$omp target enter data map(alloc: rg_molm)
+    !$omp target update to(rg_molm)
+  end if
+  if (allocated(rg_thetag)) then
+    !$omp target enter data map(alloc: rg_thetag)
+    !$omp target update to(rg_thetag)
+  end if
+  if (allocated(rg_tv_coef)) then
+    !$omp target enter data map(alloc: rg_tv_coef)
+    !$omp target update to(rg_tv_coef)
+  end if
+  if (allocated(rg_vf)) then
+    !$omp target enter data map(alloc: rg_vf)
+    !$omp target update to(rg_vf)
+  end if
+  if (allocated(rgs_ab)) then
+    !$omp target enter data map(alloc: rgs_ab)
+    !$omp target update to(rgs_ab)
+  end if
+  if (allocated(rgs_bb)) then
+    !$omp target enter data map(alloc: rgs_bb)
+    !$omp target update to(rgs_bb)
+  end if
+  if (allocated(rgs_cb)) then
+    !$omp target enter data map(alloc: rgs_cb)
+    !$omp target update to(rgs_cb)
+  end if
+  if (allocated(rgs_eps_over_k)) then
+    !$omp target enter data map(alloc: rgs_eps_over_k)
+    !$omp target update to(rgs_eps_over_k)
+  end if
+  if (allocated(rgs_mg)) then
+    !$omp target enter data map(alloc: rgs_mg)
+    !$omp target update to(rgs_mg)
+  end if
+  if (allocated(rgs_sigmaa)) then
+    !$omp target enter data map(alloc: rgs_sigmaa)
+    !$omp target update to(rgs_sigmaa)
+  end if
+  if (allocated(rhs_sol_mm_dg)) then
+    !$omp target enter data map(alloc: rhs_sol_mm_dg)
+    !$omp target update to(rhs_sol_mm_dg)
+  end if
+  if (allocated(rhs_val)) then
+    !$omp target enter data map(alloc: rhs_val)
+    !$omp target update to(rhs_val)
+  end if
+  if (allocated(rhs_valdg)) then
+    !$omp target enter data map(alloc: rhs_valdg)
+    !$omp target update to(rhs_valdg)
+  end if
+  if (allocated(rhst_val)) then
+    !$omp target enter data map(alloc: rhst_val)
+    !$omp target update to(rhst_val)
+  end if
+  if (allocated(sht_rg)) then
+    !$omp target enter data map(alloc: sht_rg)
+    !$omp target update to(sht_rg)
+  end if
+  if (allocated(u_c_br2_aux_var)) then
+    !$omp target enter data map(alloc: u_c_br2_aux_var)
+    !$omp target update to(u_c_br2_aux_var)
+  end if
+  if (allocated(u_c_rms)) then
+    !$omp target enter data map(alloc: u_c_rms)
+    !$omp target update to(u_c_rms)
+  end if
+  if (allocated(u_c_val)) then
+    !$omp target enter data map(alloc: u_c_val)
+    !$omp target update to(u_c_val)
+  end if
+  if (allocated(u_c_valdg)) then
+    !$omp target enter data map(alloc: u_c_valdg)
+    !$omp target update to(u_c_valdg)
+  end if
+  if (allocated(u_cs_val)) then
+    !$omp target enter data map(alloc: u_cs_val)
+    !$omp target update to(u_cs_val)
+  end if
+  if (allocated(u_cs_valdg)) then
+    !$omp target enter data map(alloc: u_cs_valdg)
+    !$omp target update to(u_cs_valdg)
+  end if
+  if (allocated(u_ct_val)) then
+    !$omp target enter data map(alloc: u_ct_val)
+    !$omp target update to(u_ct_val)
+  end if
+  if (allocated(u_cw_val)) then
+    !$omp target enter data map(alloc: u_cw_val)
+    !$omp target update to(u_cw_val)
+  end if
+  if (allocated(u_cw_valdg)) then
+    !$omp target enter data map(alloc: u_cw_valdg)
+    !$omp target update to(u_cw_valdg)
+  end if
+  if (allocated(u_e_val)) then
+    !$omp target enter data map(alloc: u_e_val)
+    !$omp target update to(u_e_val)
+  end if
+
+  if (allocated(dg2fv)) then
+    !$omp target enter data map(alloc: dg2fv)
+    !$omp target update to(dg2fv)
+  end if
+  if (allocated(impdiag)) then
+    !$omp target enter data map(alloc: impdiag)
+    !$omp target update to(impdiag)
+  end if
+  if (allocated(impdiagt)) then
+    !$omp target enter data map(alloc: impdiagt)
+    !$omp target update to(impdiagt)
+  end if
+  if (allocated(impdu)) then
+    !$omp target enter data map(alloc: impdu)
+    !$omp target update to(impdu)
+  end if
+  if (allocated(impoff)) then
+    !$omp target enter data map(alloc: impoff)
+    !$omp target update to(impoff)
+  end if
+  if (allocated(impofft)) then
+    !$omp target enter data map(alloc: impofft)
+    !$omp target update to(impofft)
+  end if
+  if (allocated(nodelist)) then
+    !$omp target enter data map(alloc: nodelist)
+    !$omp target update to(nodelist)
+  end if
+  if (allocated(sht)) then
+    !$omp target enter data map(alloc: sht)
+    !$omp target update to(sht)
+  end if
+
+  if (allocated(xmpielrank)) then
+    !$omp target enter data map(alloc: xmpielrank)
+    !$omp target update to(xmpielrank)
+  end if
+
+
+
+    !$omp target enter data map(alloc: ineedhalo, ineedhalos,ineedbound,ineedbounds,bound_total,bounds_total, halo_total,halos_total,ilength1,ilength2)
+    !$omp target update to(ineedhalo, ineedhalos,ineedbound,ineedbounds,bound_total,bounds_total, halo_total,halos_total,ilength1,ilength2)
+
+!----------------------------
+! Integers
+!----------------------------
+if (allocated(halo_len)       .and. size(halo_len)       > 0) then
+  !$omp target enter data map(alloc: halo_len)
+  !$omp target update to(halo_len)
+end if
+if (allocated(halos_len)      .and. size(halos_len)      > 0) then
+  !$omp target enter data map(alloc: halos_len)
+  !$omp target update to(halos_len)
+end if
+
+if (allocated(halo_offset)    .and. size(halo_offset)    > 0) then
+  !$omp target enter data map(alloc: halo_offset)
+  !$omp target update to(halo_offset)
+end if
+if (allocated(halos_offset)   .and. size(halos_offset)   > 0) then
+  !$omp target enter data map(alloc: halos_offset)
+  !$omp target update to(halos_offset)
+end if
+
+if (allocated(bound_len)      .and. size(bound_len)      > 0) then
+  !$omp target enter data map(alloc: bound_len)
+  !$omp target update to(bound_len)
+end if
+if (allocated(bounds_len)     .and. size(bounds_len)     > 0) then
+  !$omp target enter data map(alloc: bounds_len)
+  !$omp target update to(bounds_len)
+end if
+
+if (allocated(need_side)      .and. size(need_side)      > 0) then
+  !$omp target enter data map(alloc: need_side)
+  !$omp target update to(need_side)
+end if
+if (allocated(need_q)         .and. size(need_q)         > 0) then
+  !$omp target enter data map(alloc: need_q)
+  !$omp target update to(need_q)
+end if
+if (allocated(need_loc)       .and. size(need_loc)       > 0) then
+  !$omp target enter data map(alloc: need_loc)
+  !$omp target update to(need_loc)
+end if
+
+if (allocated(halo_proc)      .and. size(halo_proc)      > 0) then
+  !$omp target enter data map(alloc: halo_proc)
+  !$omp target update to(halo_proc)
+end if
+if (allocated(halos_proc)     .and. size(halos_proc)     > 0) then
+  !$omp target enter data map(alloc: halos_proc)
+  !$omp target update to(halos_proc)
+end if
+
+if (allocated(bound_proc)     .and. size(bound_proc)     > 0) then
+  !$omp target enter data map(alloc: bound_proc)
+  !$omp target update to(bound_proc)
+end if
+if (allocated(bounds_proc)    .and. size(bounds_proc)    > 0) then
+  !$omp target enter data map(alloc: bounds_proc)
+  !$omp target update to(bounds_proc)
+end if
+
+if (allocated(bound_offset)   .and. size(bound_offset)   > 0) then
+  !$omp target enter data map(alloc: bound_offset)
+  !$omp target update to(bound_offset)
+end if
+if (allocated(bounds_offset)  .and. size(bounds_offset)  > 0) then
+  !$omp target enter data map(alloc: bounds_offset)
+  !$omp target update to(bounds_offset)
+end if
+
+
+!----------------------------
+! Reals (2D halo arrays)
+!----------------------------
+if (allocated(solhir)  .and. size(solhir)  > 0) then
+  !$omp target enter data map(alloc: solhir)
+   !$omp target update to(solhir)
+end if
+if (allocated(solhis)  .and. size(solhis)  > 0) then
+  !$omp target enter data map(alloc: solhis)
+  !$omp target update to(solhis)
+end if
+
+if (allocated(solhird) .and. size(solhird) > 0) then
+  !$omp target enter data map(alloc: solhird)
+  !$omp target update to(solhird)
+end if
+if (allocated(solhisd) .and. size(solhisd) > 0) then
+  !$omp target enter data map(alloc: solhisd)
+  !$omp target update to(solhisd)
+end if
+
+
+!----------------------------
+! Reals (boundary arrays)
+!----------------------------
+if (allocated(boundhiri) .and. size(boundhiri) > 0) then
+  !$omp target enter data map(alloc: boundhiri)
+  !$omp target update to(boundhiri)
+end if
+
+if (allocated(boundhisi) .and. size(boundhisi) > 0) then
+  !$omp target enter data map(alloc: boundhisi)
+  !$omp target update to(boundhisi)
+end if
+
+if (allocated(boundhir) .and. size(boundhir) > 0) then
+  !$omp target enter data map(alloc: boundhir)
+  !$omp target update to(boundhir)
+end if
+
+if (allocated(boundhis) .and. size(boundhis) > 0) then
+  !$omp target enter data map(alloc: boundhis)
+  !$omp target update to(boundhis)
+end if
+
+if (allocated(boundhir_dg) .and. size(boundhir_dg) > 0) then
+  !$omp target enter data map(alloc: boundhir_dg)
+  !$omp target update to(boundhir_dg)
+end if
+
+if (allocated(boundhis_dg) .and. size(boundhis_dg) > 0) then
+  !$omp target enter data map(alloc: boundhis_dg)
+  !$omp target update to(boundhis_dg)
+end if
+
+if (allocated(boundhirm) .and. size(boundhirm) > 0) then
+  !$omp target enter data map(alloc: boundhirm)
+  !$omp target update to(boundhirm)
+end if
+
+if (allocated(boundhism) .and. size(boundhism) > 0) then
+  !$omp target enter data map(alloc: boundhism)
+  !$omp target update to(boundhism)
+end if
+
+if (allocated(solhi_loc) .and. size(solhi_loc) > 0) then
+  !$omp target enter data map(alloc: solhi_loc)
+  !$omp target update to(solhi_loc)
+end if
+
+if (allocated(solhir_flat) .and. size(solhir_flat) > 0) then
+  !$omp target enter data map(alloc: solhir_flat)
+  !$omp target update to(solhir_flat)
+end if
+
+if (allocated(solhis_flat) .and. size(solhis_flat) > 0) then
+  !$omp target enter data map(alloc: solhis_flat)
+  !$omp target update to(solhis_flat)
+end if
+
+if (allocated(boundhir_flat) .and. size(boundhir_flat) > 0) then
+  !$omp target enter data map(alloc: boundhir_flat)
+  !$omp target update to(boundhir_flat)
+end if
+
+if (allocated(boundhis_flat) .and. size(boundhis_flat) > 0) then
+  !$omp target enter data map(alloc: boundhis_flat)
+  !$omp target update to(boundhis_flat)
+end if
+
+if (allocated(boundhir_dgflat) .and. size(boundhir_dgflat) > 0) then
+  !$omp target enter data map(alloc: boundhir_dgflat)
+  !$omp target update to(boundhir_dgflat)
+end if
+
+if (allocated(boundhis_dgflat) .and. size(boundhis_dgflat) > 0) then
+  !$omp target enter data map(alloc: boundhis_dgflat)
+  !$omp target update to(boundhis_dgflat)
+end if
+
+if (allocated(boundhiri_flat) .and. size(boundhiri_flat) > 0) then
+  !$omp target enter data map(alloc: boundhiri_flat)
+  !$omp target update to(boundhiri_flat)
+end if
+
+if (allocated(boundhisi_flat) .and. size(boundhisi_flat) > 0) then
+  !$omp target enter data map(alloc: boundhisi_flat)
+  !$omp target update to(boundhisi_flat)
+end if
+
+if (allocated(weights_l) .and. size(weights_l) > 0) then
+  !$omp target enter data map(to: weights_l)
+end if
+if (allocated(weights_t) .and. size(weights_t) > 0) then
+  !$omp target enter data map(to: weights_t)
+end if
+
+if (allocated(weights_q) .and. size(weights_q) > 0) then
+  !$omp target enter data map(to: weights_q)
+end if
 
 
 
 
 
+#endif
+end subroutine omp_map_first
 
 
 
-
-
-
-END MODULE MEMORY
+end module memory

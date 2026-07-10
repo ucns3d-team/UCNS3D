@@ -1,119 +1,119 @@
-MODULE PRESTORE
-USE DECLARATION
-USE DERIVATIVES
-USE LIBRARY
-USE BASIS
-USE TRANSFORM
-USE LOCAL
-USE LAPCK
-USE DG_FUNCTIONS
-IMPLICIT NONE
+module prestore
+use declaration
+use derivatives
+use library
+use basis
+use transform
+use local
+use lapck
+use dg_functions
+implicit none
 
 
- CONTAINS
+ contains
  
  
- SUBROUTINE PRESTORE_1(N)
+ subroutine prestore_1(n)
 !> @brief
-!> This subroutine calls other subroutines to prestore the pseudoinverse reconstruction least square matrices
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::KMAXE,i,m,K
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::ILOX_IHEXG  !GLOBAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::ILOX_IHEXL  !LOCAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::ILOX_IHEXB  !CPU THAT THAT EACH CELL BELONGS TO
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::ILOX_IHEXN  !INTERNAL INDEX FROM WHERE TO TAKE THE VALUES FROM COMMUNICATED MESSAGES
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::ILOX_ISHAPE !SHAPE OF EACH ELEMENT
-REAL,ALLOCATABLE,DIMENSION(:,:)::ILOX_XXC       !CELL CENTRE COORDINATES IN X
-REAL,ALLOCATABLE,DIMENSION(:,:)::ILOX_YYC       !CELL CENTRE COORDINATES IN Y
-REAL,ALLOCATABLE,DIMENSION(:,:)::ILOX_ZZC      !CELL CENTRE COORDINATES IN Z
-REAL,ALLOCATABLE,DIMENSION(:,:)::ILOX_VOLUME    !CELL VOLUME
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::ILOX_PERIODICFLAG
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:)::ILON_NODCOUNT  !NUMBER OF NODES
-REAL,ALLOCATABLE,DIMENSION(:,:,:)::ILON_X           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:)::ILON_Y           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:)::ILON_Z           !COORDINATES OF EACH NODE IN X
+!> this subroutine calls other subroutines to prestore the pseudoinverse reconstruction least square matrices
+implicit none
+integer,intent(in)::n
+integer::kmaxe,i,m,k
+integer,allocatable,dimension(:,:)::ilox_ihexg  !global index of cells
+integer,allocatable,dimension(:,:)::ilox_ihexl  !local index of cells
+integer,allocatable,dimension(:,:)::ilox_ihexb  !cpu that that each cell belongs to
+integer,allocatable,dimension(:,:)::ilox_ihexn  !internal index from where to take the values from communicated messages
+integer,allocatable,dimension(:,:)::ilox_ishape !shape of each element
+real,allocatable,dimension(:,:)::ilox_xxc       !cell centre coordinates in x
+real,allocatable,dimension(:,:)::ilox_yyc       !cell centre coordinates in y
+real,allocatable,dimension(:,:)::ilox_zzc      !cell centre coordinates in z
+real,allocatable,dimension(:,:)::ilox_volume    !cell volume
+integer,allocatable,dimension(:,:)::ilox_periodicflag
+integer,allocatable,dimension(:,:,:)::ilon_nodcount  !number of nodes
+real,allocatable,dimension(:,:,:)::ilon_x           !coordinates of each node in x
+real,allocatable,dimension(:,:,:)::ilon_y           !coordinates of each node in x
+real,allocatable,dimension(:,:,:)::ilon_z           !coordinates of each node in x
 
 
 
-KMAXE=XMPIELRANK(N)
-M=TYPESTEN
-
-
-
-
-	ALLOCATE (ILOX_IHEXG(M,NUMNEIGHBOURS*iextend))
-	ALLOCATE (ILOX_IHEXL(M,NUMNEIGHBOURS*iextend))
-	ALLOCATE (ILOX_IHEXB(M,NUMNEIGHBOURS*iextend))
-	ALLOCATE (ILOX_IHEXN(M,NUMNEIGHBOURS*iextend))
-	ALLOCATE (ILOX_PERIODICFLAG(M,NUMNEIGHBOURS*iextend))
-	ALLOCATE (ILOX_ISHAPE(M,NUMNEIGHBOURS*iextend))
-	ALLOCATE (ILOX_XXC(M,NUMNEIGHBOURS*iextend))
-	ALLOCATE (ILOX_VOLUME(M,NUMNEIGHBOURS*iextend))
-	ALLOCATE (ILOX_YYC(M,NUMNEIGHBOURS*iextend))
-	IF (DIMENSIONA.EQ.3)THEN
-	ALLOCATE (ILOX_ZZC(M,NUMNEIGHBOURS*iextend))
-	ILOX_ZZC=0.d0
-	END IF
-	ILOX_IHEXG=0
-	ILOX_IHEXL=0
-	ILOX_IHEXB=0
-	ILOX_ISHAPE=0
-	ILOX_IHEXN=0
-	ILOX_VOLUME=0.d0
-	ILOX_XXC=0.d0
-	ILOX_YYC=0.d0
-
-
-IF (DIMENSIONA.EQ.3)THEN
-  K=8
-ELSE
-  K=4
-END IF
+kmaxe=xmpielrank(n)
+m=typesten
 
 
 
 
+	allocate (ilox_ihexg(m,numneighbours*iextend))
+	allocate (ilox_ihexl(m,numneighbours*iextend))
+	allocate (ilox_ihexb(m,numneighbours*iextend))
+	allocate (ilox_ihexn(m,numneighbours*iextend))
+	allocate (ilox_periodicflag(m,numneighbours*iextend))
+	allocate (ilox_ishape(m,numneighbours*iextend))
+	allocate (ilox_xxc(m,numneighbours*iextend))
+	allocate (ilox_volume(m,numneighbours*iextend))
+	allocate (ilox_yyc(m,numneighbours*iextend))
+	if (dimensiona.eq.3)then
+	allocate (ilox_zzc(m,numneighbours*iextend))
+	ilox_zzc=0.d0
+	end if
+	ilox_ihexg=0
+	ilox_ihexl=0
+	ilox_ihexb=0
+	ilox_ishape=0
+	ilox_ihexn=0
+	ilox_volume=0.d0
+	ilox_xxc=0.d0
+	ilox_yyc=0.d0
 
-	ALLOCATE (ILON_NODCOUNT(M,NUMNEIGHBOURS*iextend,K))
-	ALLOCATE (ILON_X(M,NUMNEIGHBOURS*iextend,K))
-	ALLOCATE (ILON_Y(M,NUMNEIGHBOURS*iextend,K))
-	IF (DIMENSIONA.EQ.3)THEN
-	ALLOCATE (ILON_Z(M,NUMNEIGHBOURS*iextend,K))
-	ILON_Z=0.D0
-	END IF
-	ILON_NODCOUNT=0
-	ILON_X=0.D0
-	ILON_Y=0.D0
-
-
-
-
-
-
-KMAXE=XMPIELRANK(N)
 
 if (dimensiona.eq.3)then
-!$OMP DO
-DO I=1,KMAXE
+  k=8
+else
+  k=4
+end if
 
-CALL LOCALISE_STENCIL(N,I,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
 
 
-CALL LOCALISE_STEN2(N,I,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-call CHECKGRADS(N,I)
-CALL FIND_ROT_ANGLES(N,I)
 
-CALL PRESTORE_RECONSTRUCTION3(N,i,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
 
- if ((dg.eq.1).OR.(ADDA_type.EQ.2))then
+	allocate (ilon_nodcount(m,numneighbours*iextend,k))
+	allocate (ilon_x(m,numneighbours*iextend,k))
+	allocate (ilon_y(m,numneighbours*iextend,k))
+	if (dimensiona.eq.3)then
+	allocate (ilon_z(m,numneighbours*iextend,k))
+	ilon_z=0.d0
+	end if
+	ilon_nodcount=0
+	ilon_x=0.d0
+	ilon_y=0.d0
+
+
+
+
+
+
+kmaxe=xmpielrank(n)
+
+if (dimensiona.eq.3)then
+	!!$omp do
+do i=1,kmaxe
+
+call localise_stencil(n,i,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+
+
+call localise_sten2(n,i,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+call checkgrads(n,i)
+call find_rot_angles(n,i)
+
+call prestore_reconstruction3(n,i,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+
+ if ((dg.eq.1).or.(adda_type.eq.2))then
  
- CALL PRESTORE_DG1(i)
+ call prestore_dg1(i)
     end if
  
 
-END DO
-!$OMP END DO
+end do
+	!!$omp end do
 
 
 
@@ -124,21 +124,21 @@ else
 
 
 
-!$OMP DO
-DO I=1,KMAXE
-CALL LOCALISE_STENCIL2d(N,I,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-CALL LOCALISE_STEN2d(N,I,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
- call CHECKGRADS2d(N,I)
-CALL FIND_ROT_ANGLES2D(N,I)
- CALL PRESTORE_RECONSTRUCTION2(N,i,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
- if ((dg.eq.1).OR.(ADDA_type.EQ.2))then
+	!!$omp do
+do i=1,kmaxe
+call localise_stencil2d(n,i,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+call localise_sten2d(n,i,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+ call checkgrads2d(n,i)
+call find_rot_angles2d(n,i)
+ call prestore_reconstruction2(n,i,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+ if ((dg.eq.1).or.(adda_type.eq.2))then
  
- CALL PRESTORE_DG1(i)
+ call prestore_dg1(i)
  
  
     end if
-END DO
-!$OMP END DO
+end do
+	!!$omp end do
 
 
 
@@ -148,78 +148,83 @@ END DO
 end if
 
 
-deallocate(ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y)
+deallocate(ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y)
 
-	IF (DIMENSIONA.EQ.3)THEN
-	deallocate(ILOX_ZZC,ILON_Z)
+	if (dimensiona.eq.3)then
+	deallocate(ilox_zzc,ilon_z)
 	end if
 
 
 
 
-END SUBROUTINE PRESTORE_1
+end subroutine prestore_1
 
 
 
 
 
 
-SUBROUTINE PRESTORE_RECONSTRUCTION3(N,iconsi,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+subroutine prestore_reconstruction3(n,iconsi,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 !> @brief
-!> This subroutine prestores the pseudoinverse reconstruction least square matrices
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,iconsi
-INTEGER::I,J,K,llco,ll,ii,igf,IGF2,IFD2,idum,idum2,iq,jq,lq,IHGT,IHGJ,iqp,iqp2,NND,k0,g0,lcou,lcc,iqqq,ICOND1,ICOND2,N_NODE
-integer::ideg,ideg2,imax,imax2,ivgt,jxx,ixx,lxx1,kxx,icompwrt,number_of_dog,ELTYPE,inumo,inumo2,inum,facex,iconsidered
-real::ssss,gggg,UPTEMP,LOTEMP,X_STENCIL,Y_STENCIL,Z_STENCIL,DIST_STEN,DIST_STEN2
-real::ax,ay,az,ANGLE1,angle2,nx,ny,nz,nnx,nnz,nny,x1,y1,z1
-REAL,DIMENSION(1:8,1:dimensiona)::NODES_LIST
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-real,DIMENSION(1:dims,1:dims)::AINVJT
+!> this subroutine prestores the pseudoinverse reconstruction least square matrices
+implicit none
+integer :: kbasis
+integer :: mm_i
+integer :: mm_j
+integer :: mm_k
+real :: mm_old(1:3)
+integer,intent(in)::n,iconsi
+integer::i,j,k,llco,ll,ii,igf,igf2,ifd2,idum,idum2,iq,jq,lq,ihgt,ihgj,iqp,iqp2,nnd,k0,g0,lcou,lcc,iqqq,icond1,icond2,n_node
+integer::ideg,ideg2,imax,imax2,ivgt,jxx,ixx,lxx1,kxx,icompwrt,number_of_dog,eltype,inumo,inumo2,inum,facex,iconsidered
+real::ssss,gggg,uptemp,lotemp,x_stencil,y_stencil,z_stencil,dist_sten,dist_sten2
+real::ax,ay,az,angle1,angle2,nx,ny,nz,nnx,nnz,nny,x1,y1,z1
+real,dimension(1:8,1:dimensiona)::nodes_list
+real,dimension(1:8,1:dimensiona)::vext
+real,dimension(1:dims,1:dims)::ainvjt
 real,dimension(1:dimensiona)::cords
-real,allocatable,dimension(:)::INTBS,BASEFACEVAL,BASEFACGVAL,PERMUTATION,PERMUTATIONG,xder,yder,zder
-real,allocatable,dimension(:,:)::stencil,invmat,WLSQR,LSQM,LSCQM,QFF,RFF,QTFF,INVRFF,VELLSQMAT
-real,allocatable,dimension(:,:,:)::stencilS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXG  !GLOBAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXL  !LOCAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXB  !CPU THAT THAT EACH CELL BELONGS TO
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXN  !INTERNAL INDEX FROM WHERE TO TAKE THE VALUES FROM COMMUNICATED MESSAGES
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ISHAPE !SHAPE OF EACH ELEMENT
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_XXC       !CELL CENTRE COORDINATES IN X
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_YYC       !CELL CENTRE COORDINATES IN Y
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ZZC      !CELL CENTRE COORDINATES IN Z
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_VOLUME    !CELL VOLUME
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_PERIODICFLAG
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_NODCOUNT  !NUMBER OF NODES
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_X           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Y           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Z           !COORDINATES OF EACH NODE IN X
+real,allocatable,dimension(:)::intbs,basefaceval,basefacgval,permutation,permutationg,xder,yder,zder
+real,allocatable,dimension(:,:)::stencil,invmat,wlsqr,lsqm,lscqm,qff,rff,qtff,invrff,vellsqmat
+real,allocatable,dimension(:,:,:)::stencils
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexg  !global index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexl  !local index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexb  !cpu that that each cell belongs to
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexn  !internal index from where to take the values from communicated messages
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ishape !shape of each element
+real,allocatable,dimension(:,:),intent(inout)::ilox_xxc       !cell centre coordinates in x
+real,allocatable,dimension(:,:),intent(inout)::ilox_yyc       !cell centre coordinates in y
+real,allocatable,dimension(:,:),intent(inout)::ilox_zzc      !cell centre coordinates in z
+real,allocatable,dimension(:,:),intent(inout)::ilox_volume    !cell volume
+integer,allocatable,dimension(:,:),intent(inout)::ilox_periodicflag
+integer,allocatable,dimension(:,:,:),intent(inout)::ilon_nodcount  !number of nodes
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_x           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_y           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_z           !coordinates of each node in x
 
 
 
-allocate(LSCQM(1:idegfree,1:idegfree),QFF(1:idegfree,1:idegfree),RFF(1:idegfree,1:idegfree),QTFF(1:idegfree,1:idegfree),INVRFF(1:idegfree,1:idegfree))
-allocate(VELLSQMAT(1:idegfree-1,1:idegfree-1))
-allocate(LSQM(1:IMAXDEGFREE,1:IDEGFREE-1))	
-allocate(INTBS(1:idegfree),BASEFACEVAL(1:idegfree),BASEFACGVAL(1:idegfree),PERMUTATION(1:idegfree),PERMUTATIONG(1:idegfree),xder(1:idegfree),yder(1:idegfree),zder(1:idegfree))
+allocate(lscqm(1:idegfree,1:idegfree),qff(1:idegfree,1:idegfree),rff(1:idegfree,1:idegfree),qtff(1:idegfree,1:idegfree),invrff(1:idegfree,1:idegfree))
+allocate(vellsqmat(1:idegfree-1,1:idegfree-1))
+allocate(lsqm(1:imaxdegfree,1:idegfree-1))	
+allocate(intbs(1:idegfree),basefaceval(1:idegfree),basefacgval(1:idegfree),permutation(1:idegfree),permutationg(1:idegfree),xder(1:idegfree),yder(1:idegfree),zder(1:idegfree))
 allocate(invmat(1:idegfree,1:idegfree))
-allocate(WLSQR(1:20,1:numneighbours-1))
+allocate(wlsqr(1:20,1:numneighbours-1))
 allocate(stencil(1:numneighbours-1,1:idegfree))
-allocate(stencilS(1:20,1:numneighbours-1,1:idegfree))	
+allocate(stencils(1:20,1:numneighbours-1,1:idegfree))	
 
 
 
 i=iconsi
 
 
-IDUM=0;
-                if (ielem(n,i)%interior.eq.1)then
-                        DO j=1,IELEM(N,I)%IFCA
-                        if (ielem(n,i)%ibounds(J).gt.0)then
-                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-                                IDUM=1
+idum=0;
+                if (ielem_interior(i).eq.1)then
+                        do j=1,ielem_ifca(i)
+                        if (ielem_ibounds(j,i).gt.0)then
+                            if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+                                idum=1
                             end if
-                        END IF
-                        END DO
+                        end if
+                        end do
                 end if
                 
 
@@ -229,192 +234,200 @@ iconsidered=i
 		
         !firstly compute the integrals of the basis functions
 		
-		INTBS=zero;JXX=1;IXX=i;LXX1=1;number_of_dog=ielem(n,i)%idegfree;kxx=ielem(n,i)%iorder;ELTYPE=ielem(n,i)%ishape
+		intbs=zero;jxx=1;ixx=i;lxx1=1;number_of_dog=ielem_idegfree(i);kxx=ielem_iorder(i);eltype=ielem_ishape(i)
 		icompwrt=0
 
-		INTBS=CALINTBASIS(N,IXX,JXX,KXX,LXX1,number_of_dog,ICOMPWRT,ELTYPE,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+		intbs=calintbasis(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,eltype,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 
-		INTEG_BASIS(I)%VALUE(1:ielem(n,i)%IDEGFREE)=INTBS(1:ielem(n,i)%IDEGFREE)
+        ! store integration-basis vector intbs into all entries 1:number_of_dog for element i
 
+            integ_basis_value(1:number_of_dog,i) = intbs(1:number_of_dog)
 
                 
         !the indicator matrix for the smaller polynomial
-		IF (IWENO.EQ.1)THEN
-		CALL INDICATORMATRIX(N,I,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-
-		END IF
+		if (iweno.eq.1)then
+		call indicatormatrix(n,i,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+		end if
 		
 					!the indicator matrix for the lower order polynomial
 					if (ees.eq.5)then
-					INTBS=zero;JXX=1;IXX=i;LXX1=1;number_of_dog=idegfree2;kxx=IORDER2;ELTYPE=ielem(n,i)%ishape
+					intbs=zero;jxx=1;ixx=i;lxx1=1;number_of_dog=idegfree2;kxx=iorder2;eltype=ielem_ishape(i)
 					icompwrt=1
+					intbs=calintbasis(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,eltype,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+                    ! store lower-order integration-basis vector
 
+                        integ_basis_valuec(1:number_of_dog,i) = intbs(1:number_of_dog)
 
-
-
-					INTBS=CALINTBASIS(N,IXX,JXX,KXX,LXX1,number_of_dog,ICOMPWRT,ELTYPE,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-					INTEG_BASIS(I)%VALUEc(1:number_of_dog)=INTBS(1:number_of_dog)
-
-
-
-
-
-						IF (IWENO.EQ.1)THEN
-						CALL INDICATORMATRIX2(N,I,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+						if (iweno.eq.1)then
+						call indicatormatrix2(n,i,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 						icompwrt=0
-						END IF
+						end if
 					end if
 
 		
-		LLCO=IELEM(N,I)%ADMIS;IMAX=IELEM(N,I)%inumneighbours-1;INUM=IELEM(N,I)%inumneighbours;IDEG=IELEM(N,I)%iDEGFREE
-	   INUMO=ielem(n,i)%iorder;imax2=numneighbours2-1;inum2=numneighbours2;ideg2=iDEGFREE2;inumo2=iorder2
+		llco=ielem_admis(i);imax=ielem_inumneighbours(i)-1;inum=ielem_inumneighbours(i);ideg=ielem_idegfree(i)
+	   inumo=ielem_iorder(i);imax2=numneighbours2-1;inum2=numneighbours2;ideg2=idegfree2;inumo2=iorder2
 
 
 	   !this section computes the ratio of volumes inside each stencil
-                DIST_STEN=ZERO
+                dist_sten=zero
 				
-				DIST_STEN=-tolbig; DIST_STEN2=tolbig
-	       	DO LL=1,ielem(n,i)%iNUMNEIGHBOURS
-				if (ILOX_VOLUME(1,LL).lt.DIST_STEN2)then
-				DIST_STEN2=ILOX_VOLUME(1,LL)
+				dist_sten=-tolbig; dist_sten2=tolbig
+	       	do ll=1,ielem_inumneighbours(i)
+				if (ilox_volume(1,ll).lt.dist_sten2)then
+				dist_sten2=ilox_volume(1,ll)
 				end if
-				if (ILOX_VOLUME(1,LL).gt.DIST_STEN)then
-				DIST_STEN=ILOX_VOLUME(1,LL)
+				if (ilox_volume(1,ll).gt.dist_sten)then
+				dist_sten=ilox_volume(1,ll)
 				end if
 			end do
 			
-			IELEM(N,I)%STENCIL_DIST=MAX((DIST_STEN/DIST_STEN2),(DIST_STEN2/DIST_STEN))
+! 			ielem_stencil_dist(i)=max((dist_sten/dist_sten2),(dist_sten2/dist_sten))
 				
 		
 
 
 		!now we start with looping all the admissible stencils
-		DO LL=1,LLCO	!for all stencils
+		do ll=1,llco	!for all stencils
 									if((ees.ne.5).or.(ll.eq.1))then
-										IMAX=IELEM(N,I)%inumneighbours-1;INUM=IELEM(N,I)%inumneighbours;IDEG=IELEM(N,I)%iDEGFREE;INUMO=ielem(n,i)%iorder
-										icompwrt=0;number_of_dog=IDEG
+										imax=ielem_inumneighbours(i)-1;inum=ielem_inumneighbours(i);ideg=ielem_idegfree(i);inumo=ielem_iorder(i)
+										icompwrt=0;number_of_dog=ideg
 									else
-										imax=numneighbours2-1;inum=numneighbours2;ideg=iDEGFREE2;inumo=IORDER2;number_of_dog=IDEG
+										imax=numneighbours2-1;inum=numneighbours2;ideg=idegfree2;inumo=iorder2;number_of_dog=ideg
 										icompwrt=1
 									end if
 
-				DO K=1,imax	!for all neighbours
-								ixx=i; kxx=INUMO
+				do k=1,imax	!for all neighbours
+								ixx=i; kxx=inumo
 
 
-								X_STENCIL=(ILOX_XXC(ll,k+1)-ILOX_XXC(ll,1))**2
-								Y_STENCIL=(ILOX_YYC(ll,k+1)-ILOX_YYC(ll,1))**2
+								x_stencil=(ilox_xxc(ll,k+1)-ilox_xxc(ll,1))**2
+								y_stencil=(ilox_yyc(ll,k+1)-ilox_yyc(ll,1))**2
 
-								Z_STENCIL=(ILOX_ZZC(ll,k+1)-ILOX_ZZC(ll,1))**2
+								z_stencil=(ilox_zzc(ll,k+1)-ilox_zzc(ll,1))**2
 
-								DIST_STEN2=SQRT(X_STENCIL+Y_STENCIL+Z_STENCIL)
+								dist_sten2=sqrt(x_stencil+y_stencil+z_stencil)
 
-									IF (WEIGHT_LSQR.EQ.1)THEN
-									WLSQR(ll,K)=1.0D0/((DIST_STEN2))
-									ELSE
-									WLSQR(ll,K)=1.0D0
-									END IF
-
-
-
+									if (weight_lsqr.eq.1)then
+									wlsqr(ll,k)=1.0d0/((dist_sten2))
+									else
+									wlsqr(ll,k)=1.0d0
+									end if
 
 
 
-					if (fastest.eq.1)then	!this is when transformation is not active (Rarely used)
-					x1 = ILOX_XXC(ll,k+1)-ILOX_XXC(ll,1)
-					y1 = ILOX_YYC(ll,k+1)-ILOX_YYC(ll,1)
-					z1 = ILOX_ZZC(ll,k+1)-ILOX_ZZC(ll,1)
 
 
-					IF (GREENGO.EQ.0)THEN	!for the least squares green gauss gradients
+
+					if (fastest.eq.1)then	!this is when transformation is not active (rarely used)
+					x1 = ilox_xxc(ll,k+1)-ilox_xxc(ll,1)
+					y1 = ilox_yyc(ll,k+1)-ilox_yyc(ll,1)
+					z1 = ilox_zzc(ll,k+1)-ilox_zzc(ll,1)
+
+
+					if (greengo.eq.0)then	!for the least squares green gauss gradients
 							if (idum.eq.1)then
 								if((ees.ne.5).or.(ll.eq.1))then
-								icompwrt=0
-								ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,ielem(n,i)%iorder,I,ielem(n,i)%idegfree,icompwrt)
-								ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
+									icompwrt=0
+									if (itestcase.eq.4)then
+									rec_stencils(ll,k,1:ielem_idegfree(i),rec_wall(i))=wlsqr(ll,k)*basis_rec(n,x1,y1,z1,ielem_iorder(i),i,ielem_idegfree(i),icompwrt)
+									rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
+									stencils(ll,k,1:ideg)=rec_stencils(ll,k,1:ielem_idegfree(i),rec_wall(i))
+									else
+									stencils(ll,k,1:ideg)=wlsqr(ll,k)*basis_rec(n,x1,y1,z1,ielem_iorder(i),i,ielem_idegfree(i),icompwrt)
+									end if
+
 								else
-								icompwrt=1
-								ILOCAL_RECON3(I)%STENCILSc(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,I,IDEG,icompwrt)
-								ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
+									icompwrt=1
+								if (itestcase.eq.4)then
+! 								rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(ll,k)*basis_rec(n,x1,y1,z1,inumo,i,ideg,icompwrt)
+! 								rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
+ 								stencils(ll,k,1:ideg)=wlsqr(ll,k)*basis_rec(n,x1,y1,z1,inumo,i,ideg,icompwrt)
+								else
+								stencils(ll,k,1:ideg)=wlsqr(ll,k)*basis_rec(n,x1,y1,z1,inumo,i,ideg,icompwrt)
+								end if
 								end if
 							else
 								if((ees.ne.5).or.(ll.eq.1))then
 
 								icompwrt=0
-								STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt)
+								stencils(ll,k,1:ideg)=wlsqr(ll,k)*basis_rec(n,x1,y1,z1,inumo,ixx,ideg,icompwrt)
 								else
 								icompwrt=1
-								STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt)
+								stencils(ll,k,1:ideg)=wlsqr(ll,k)*basis_rec(n,x1,y1,z1,inumo,ixx,ideg,icompwrt)
 
 								end if
 							end if
 
-					ELSE
+					else
 							if((ees.ne.5).or.(ll.eq.1))then
 							icompwrt=0
-							STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt)
+							stencils(ll,k,1:ideg)=wlsqr(ll,k)*basis_rec(n,x1,y1,z1,inumo,ixx,ideg,icompwrt)
 							else
 							icompwrt=1
-							STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*basis_rec(N,x1,y1,z1,INUMO,IXX,IDEG,icompwrt)
+							stencils(ll,k,1:ideg)=wlsqr(ll,k)*basis_rec(n,x1,y1,z1,inumo,ixx,ideg,icompwrt)
 
 
 							end if
-					END IF
+					end if
 
 
 
 					else		!with coordinate transformation
 
 
-					IXX=i;jxx=k+1;lxx1=ll
-					ELTYPE=ILOX_ishape(ll,k+1)
-						IF (GREENGO.EQ.0)THEN
+					ixx=i;jxx=k+1;lxx1=ll
+					eltype=ilox_ishape(ll,k+1)
+						if (greengo.eq.0)then
 								if (idum.eq.1)then	!smaller memory footprint for non boundary elements
 										if((ees.ne.5).or.(ll.eq.1))then
 										icompwrt=0
 
 
 
+										if (itestcase.eq.4)then
+										rec_stencils(ll,k,1:ideg,rec_wall(i))=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+										rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
+										stencils(ll,k,1:ideg)=rec_stencils(ll,k,1:ideg,rec_wall(i))
+										else
+										stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 
-										ILOCAL_RECON3(I)%STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+										end if
 
 
-										ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
+
 										else
 										icompwrt=1
-										ILOCAL_RECON3(I)%STENCILSc(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-
-
-
-
-
-
-
-
-										ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
+										if (itestcase.eq.4)then
+! 										rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+! 										rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
+										stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+										else
+										stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+										end if
 
 										end if
 								else
 										if((ees.ne.5).or.(ll.eq.1))then
 										icompwrt=0
-										STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+										stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 										else
 										icompwrt=1
-										STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+										stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 
 										end if
 								end if
-						ELSE
+						else
 								if((ees.ne.5).or.(ll.eq.1))then
 							icompwrt=0
-								STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+								stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 								else
 								icompwrt=1
-								STENCILS(LL,K,1:IDEG)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+								stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 
 								end if
 
-						END IF
+						end if
 
 
 					end if
@@ -422,7 +435,7 @@ iconsidered=i
 
 
 
-		END DO	!close loop for all neighbours
+		end do	!close loop for all neighbours
 
 
 
@@ -431,149 +444,139 @@ iconsidered=i
 
 
 
-		IF ((GREENGO.EQ.0))THEN
+		if ((greengo.eq.0))then
 				if (idum.eq.1)then
-					invmat=zero;LSCQM=zero
-					DO IQ=1,IDEG;DO JQ=1,IDEG;DO LQ=1,IMAX
+					invmat=zero;lscqm=zero
+					do iq=1,ideg;do jq=1,ideg;do lq=1,imax
 					if((ees.ne.5).or.(ll.eq.1))then
-					LSCQM(JQ,IQ)=LSCQM(JQ,IQ)&
-					+((ILOCAL_RECON3(I)%STENCILS(LL,LQ,JQ)*ILOCAL_RECON3(I)%STENCILS(LL,LQ,IQ)))
+					lscqm(jq,iq)=lscqm(jq,iq)&
+					+((stencils(ll,lq,jq)*stencils(ll,lq,iq)))
+	!				lscqm(jq,iq)=lscqm(jq,iq)&
+	!				+((rec_stencils(ll,lq,jq,rec_wall(i))*rec_stencils(ll,lq,iq,rec_wall(i))))
 					else
-					LSCQM(JQ,IQ)=LSCQM(JQ,IQ)&
-					+((ILOCAL_RECON3(I)%STENCILSc(LL,LQ,JQ)*ILOCAL_RECON3(I)%STENCILSc(LL,LQ,IQ)))
-
-
-
+					lscqm(jq,iq)=lscqm(jq,iq)&
+					+((stencils(ll,lq,jq)*stencils(ll,lq,iq)))
+				!	lscqm(jq,iq)=lscqm(jq,iq)&
+				!	+((rec_stencilsc(ll,lq,jq,rec_wall(i))*rec_stencilsc(ll,lq,iq,rec_wall(i))))
 					end if
-					END DO;END DO;END DO
-
-
-
+					end do;end do;end do
 				else
-					invmat=zero;LSCQM=zero
-					DO IQ=1,IDEG;DO JQ=1,IDEG;DO LQ=1,IMAX
-					LSCQM(JQ,IQ)=LSCQM(JQ,IQ)&
-					+((STENCILS(LL,LQ,JQ)*STENCILS(LL,LQ,IQ)))
-					END DO;END DO;END DO
-
-
-
+					invmat=zero;lscqm=zero
+					do iq=1,ideg;do jq=1,ideg;do lq=1,imax
+					lscqm(jq,iq)=lscqm(jq,iq)&
+					+((stencils(ll,lq,jq)*stencils(ll,lq,iq)))
+					end do;end do;end do
 				end if
-		ELSE
+		else
 
-				invmat=zero;LSCQM=zero
-				DO IQ=1,IDEG;DO JQ=1,IDEG;DO LQ=1,IMAX
-				LSCQM(JQ,IQ)=LSCQM(JQ,IQ)&
-				+((STENCILS(LL,LQ,JQ)*STENCILS(LL,LQ,IQ)))
+				invmat=zero;lscqm=zero
+				do iq=1,ideg;do jq=1,ideg;do lq=1,imax
+				lscqm(jq,iq)=lscqm(jq,iq)&
+				+((stencils(ll,lq,jq)*stencils(ll,lq,iq)))
+				end do;end do;end do
 
-
-
-				END DO;END DO;END DO
-
-
-
-
-		END IF
+		end if
 
 
 
 
-		QFF(:,:)=zero; RFF(:,:)=zero; QTFF(:,:)=zero; RFF(:,:)=zero;  INVRFF(:,:)=zero
-		CALL QRDECOMPOSITION(LSCQM,QFF,RFF,IDEG)
-		CALL TRANSPOSEMATRIX(QFF,QTFF,IDEG)
-		IVGT=IDEG+1
-		CALL INVERT(RFF,INVRFF,IVGT)
-		invmat(1:IDEg,1:ideg)=MATMUL(INVRFF(1:ideg,1:IDEG),QTFF(1:IDEG,1:IDEG))
+		qff(:,:)=zero; rff(:,:)=zero; qtff(:,:)=zero; rff(:,:)=zero;  invrff(:,:)=zero
+		call qrdecomposition(lscqm,qff,rff,ideg)
+		call transposematrix(qff,qtff,ideg)
+		ivgt=ideg+1
+		call invert(rff,invrff,ivgt)
+		  do mm_i=1,ideg
+		    do mm_j=1,ideg
+		      invmat(mm_i,mm_j)=zero
+		      do mm_k=1,ideg
+		        invmat(mm_i,mm_j)=invmat(mm_i,mm_j)+invrff(mm_i,mm_k)*qtff(mm_k,mm_j)
+		      end do
+		    end do
+		  end do
 
 
-
-
-
-
-		IF (GREENGO.EQ.0)THEN
+		if (greengo.eq.0)then
 			if (idum.eq.1)then
 				if((ees.ne.5).or.(ll.eq.1))then
-				stencil(1:imax,1:ideg)=ILOCAL_RECON3(I)%STENCILS(LL,1:imax,1:ideg)
+				stencil(1:imax,1:ideg)=stencils(ll,1:imax,1:ideg)!rec_stencils(ll,1:imax,1:ideg,rec_wall(i))
 				else
-				stencil(1:imax,1:ideg)=ILOCAL_RECON3(I)%STENCILSc(LL,1:imax,1:ideg)
+				stencil(1:imax,1:ideg)=stencils(ll,1:imax,1:ideg)!rec_stencilsc(ll,1:imax,1:ideg,rec_wall(i))
 				end if
 			else
-			stencil(1:imax,1:ideg)=STENCILS(LL,1:imax,1:ideg)
+			stencil(1:imax,1:ideg)=stencils(ll,1:imax,1:ideg)
 			end if
-		ELSE
-			stencil(1:imax,1:ideg)=STENCILS(LL,1:imax,1:ideg)
-		END IF
+		else
+			stencil(1:imax,1:ideg)=stencils(ll,1:imax,1:ideg)
+		end if
 
 		if((ees.ne.5).or.(ll.eq.1))then
 
-! 		call DGEMM ('N','T',IDEG,IMAX,IDEG,ALPHA,invmat(1:ideg,1:ideg),IDEG,&
-! 		stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stencilt(1:IDEG,1:IMAX,LL),IDEG)
+! 		call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
+! 		stencil(1:imax,1:ideg),imax,beta,rec_invmat_stencilt(1:ideg,1:imax,ll,i),ideg)
 
 
-		ILOCAL_RECON3(i)%invmat_stencilt(1:IDEG,1:IMAX,LL)=MATMUL(invmat(1:ideg,1:ideg),TRANSPOSE(stencil(1:imax,1:ideg)))
-
-
-
+		  do mm_i=1,ideg
+		    do mm_j=1,imax
+		      rec_invmat_stencilt(mm_i,mm_j,ll,i)=zero
+		      do mm_k=1,ideg
+		        rec_invmat_stencilt(mm_i,mm_j,ll,i)=rec_invmat_stencilt(mm_i,mm_j,ll,i)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
+		      end do
+		    end do
+		  end do
 
 
 
 					do iq=1,imax
-					ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)&
-					*ILOX_VOLUME(ll,iq+1)*WLSQR(ll,iq)
+					rec_invmat_stencilt(:,iq,ll,i)=rec_invmat_stencilt(:,iq,ll,i)&
+					*ilox_volume(ll,iq+1)*wlsqr(ll,iq)
 					end do
 
 
-					if (ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL))then	!prevents non-invertible nan stencils from being deployed
+					if (rec_invmat_stencilt(1,1,ll,i).ne.rec_invmat_stencilt(1,1,ll,i))then	!prevents non-invertible nan stencils from being deployed
 
-					ielem(n,i)%full=0
+					ielem_full(i)=0
 					end if
 
 
 
 		else
-! 					call DGEMM ('N','T',IDEG,IMAX,IDEG,ALPHA,invmat(1:ideg,1:ideg),IDEG,&
-! 				stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stenciltc(1:IDEG,1:IMAX,LL),IDEG)
+! 					call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
+! 				stencil(1:imax,1:ideg),imax,beta,rec_invmat_stenciltc(1:ideg,1:imax,ll,i),ideg)
 
 
-				ILOCAL_RECON3(i)%invmat_stenciltC(1:IDEG,1:IMAX,LL)=MATMUL(invmat(1:ideg,1:ideg),TRANSPOSE(stencil(1:imax,1:ideg)))
+				  do mm_i=1,ideg
+				    do mm_j=1,imax
+				      rec_invmat_stenciltc(mm_i,mm_j,ll,i)=zero
+				      do mm_k=1,ideg
+				        rec_invmat_stenciltc(mm_i,mm_j,ll,i)=rec_invmat_stenciltc(mm_i,mm_j,ll,i)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
+				      end do
+				    end do
+				  end do
 
 
-					if (ILOCAL_RECON3(i)%invmat_stenciltC(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stenciltC(1,1,LL))then	!!prevents non-invertible nan stencils from being deployed
+					if (rec_invmat_stenciltc(1,1,ll,i).ne.rec_invmat_stenciltc(1,1,ll,i))then	!!prevents non-invertible nan stencils from being deployed
 
-					ielem(n,i)%full=0
+					ielem_full(i)=0
 					end if
 
 
 					do iq=1,imax
-					ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)&
-					*ILOX_VOLUME(ll,iq+1)*WLSQR(ll,iq)
-
-
-
-
-
-
-
-
-
-
+					rec_invmat_stenciltc(:,iq,ll,i)=rec_invmat_stenciltc(:,iq,ll,i)&
+					*ilox_volume(ll,iq+1)*wlsqr(ll,iq)
 					end do
-
-
-
 		end if
 
 
 	
-		if (ielem(n,i)%ggs.ne.1)then	!ggs
+		if (ielem_ggs(i).ne.1)then	!ggs
 
-		IF (ITESTCASE.EQ.4)THEN	!TEST
-
-	 
+		if (itestcase.eq.4)then	!test
 
 	 
 
-IF (LL.EQ.1)THEN		!stencils
+	 
+
+if (ll.eq.1)then		!stencils
 ! 
 
   
@@ -582,95 +585,104 @@ IF (LL.EQ.1)THEN		!stencils
 	 
 	
 !     	
-    DO IHGT=1,3; DO IHGJ=1,3
-    AINVJT(IHGT,IHGJ)=ILOCAL_RECON3(I)%INVCCJAC(IHGJ,IHGT)
-   END DO; END DO
+    do ihgt=1,3; do ihgj=1,3
+    ainvjt(ihgt,ihgj)=rec_invccjac(ihgj,ihgt,i)
+   end do; end do
 
 	 idum2=0
 	 
 	 
-				BASEFACEVAL=zero
-				BASEFACGVAL=zero
-				PERMUTATION=zero
-				PERMUTATIONg=zero
+				basefaceval=zero
+				basefacgval=zero
+				permutation=zero
+				permutationg=zero
 			
 	 
 	 
 	 
-	 DO j=1,IELEM(N,I)%IFCA		!for all faces
-	    if (ielem(n,i)%ibounds(J).gt.0)then		!for bounded only
-	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then		!!for bounded only 2                         
-					facex=J;iconsidered=i
-								  CALL coordinates_face_inner(N,Iconsidered,facex,vext,NODES_LIST)
+	 do j=1,ielem_ifca(i)		!for all faces
+	    if (ielem_ibounds(j,i).gt.0)then		!for bounded only
+		      if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then		!!for bounded only 2                         
+					facex=j;iconsidered=i
+								  call coordinates_face_inner(n,iconsidered,facex,vext,nodes_list)
 
 
-								   if (ielem(n,ICONSIDERED)%types_faces(FACEX).eq.5)then
-                                            N_NODE=4
+								   if (ielem_types_faces(facex,iconsidered).eq.5)then
+                                            n_node=4
                                     else
-                                            N_NODE=3
+                                            n_node=3
                                     end if
 
 
 
-								    CORDS(1:3)=zero
-								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+								    cords(1:3)=zero
+								    call cordinates3(n,nodes_list,n_node,cords(1:3))
 							    
-								    AY=cords(2)
-								    AX=cords(1)
-								    AZ=cords(3)
+								    ay=cords(2)
+								    ax=cords(1)
+								    az=cords(3)
 				
 					
-					    VEXT(1,1)=AX;VEXT(1,2)=AY;VEXT(1,3)=AZ
-					    VEXT(1,1:3)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(:,:),VEXT(1,1:3)-ILOCAL_RECON3(I)%VEXT_REF(1:3))
+					    vext(1,1)=ax;vext(1,2)=ay;vext(1,3)=az
+					      do mm_j=1,3
+					        mm_old(mm_j)=vext(1,mm_j)-rec_vext_ref(mm_j,i)
+					      end do
+					      do mm_i=1,3
+					        vext(1,mm_i)=zero
+					        do mm_j=1,3
+					          vext(1,mm_i)=vext(1,mm_i)+rec_invccjac(mm_i,mm_j,i)*mm_old(mm_j)
+					        end do
+					      end do
 					  
-					    AX=VEXT(1,1);AY=VEXT(1,2);AZ=VEXT(1,3)
+					    ax=vext(1,1);ay=vext(1,2);az=vext(1,3)
 				
 				
 				
 				
 				
 				
-				ANGLE1=IELEM(N,I)%FACEANGLEX(j)
-				ANGLE2=IELEM(N,I)%FACEANGLEY(j)
+				angle1=ielem_faceanglex(j,i)
+				angle2=ielem_faceangley(j,i)
 				
-				NX=(COS(ANGLE1)*SIN(ANGLE2))
-				NY=(SIN(ANGLE1)*SIN(ANGLE2))
-				NZ=(COS(ANGLE2))
-				NNX=(NX*AINVJT(1,1))+(NY*AINVJT(2,1))+(NZ*AINVJT(3,1))
-				NNY=(NX*AINVJT(1,2))+(NY*AINVJT(2,2))+(NZ*AINVJT(3,2))
-				NNZ=(NX*AINVJT(1,3))+(NY*AINVJT(2,3))+(NZ*AINVJT(3,3))
+				nx=(cos(angle1)*sin(angle2))
+				ny=(sin(angle1)*sin(angle2))
+				nz=(cos(angle2))
+				nnx=(nx*ainvjt(1,1))+(ny*ainvjt(2,1))+(nz*ainvjt(3,1))
+				nny=(nx*ainvjt(1,2))+(ny*ainvjt(2,2))+(nz*ainvjt(3,2))
+				nnz=(nx*ainvjt(1,3))+(ny*ainvjt(2,3))+(nz*ainvjt(3,3))
 				
-				DO IQ=1, IDEG
-				IF (POLY.EQ.1) THEN
-				XDER(IQ)=DFX(AX,AY,AZ,IQ,I);  YDER(IQ)=DFY(AX,AY,AZ,IQ,I);  ZDER(IQ)=DFZ(AX,AY,AZ,IQ,I)
-				END IF
-				IF (POLY.EQ.2) THEN
-				XDER(IQ)=DLX(AX,AY,AZ,IQ,I);  YDER(IQ)=DLY(AX,AY,AZ,IQ,I);  ZDER(IQ)=DLZ(AX,AY,AZ,IQ,I)
-				END IF
-				IF (POLY.EQ.4) THEN
-				XDER(IQ)=TL3DX(AX,AY,AZ,IQ,I);  YDER(IQ)=TL3DY(AX,AY,AZ,IQ,I);  ZDER(IQ)=TL3DZ(AX,AY,AZ,IQ,I)
-				END IF
-				
-				END DO
-
-				icompwrt=0
-				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE,icompwrt)
-
-				if (thermal.eq.0)then
-				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=((NNX*XDER(1:ielem(n,i)%IDEGFREE))+(NNY*YDER(1:ielem(n,i)%IDEGFREE))+(NNZ*ZDER(1:ielem(n,i)%IDEGFREE)))
-				ELSE
-				icompwrt=0
-				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC(N,AX,AY,AZ,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE,icompwrt)
-
+				do iq=1, ideg
+				if (poly.eq.1) then
+				xder(iq)=dfx(ax,ay,az,iq,i);  yder(iq)=dfy(ax,ay,az,iq,i);  zder(iq)=dfz(ax,ay,az,iq,i)
 				end if
+				if (poly.eq.2) then
+				xder(iq)=dlx(ax,ay,az,iq,i);  yder(iq)=dly(ax,ay,az,iq,i);  zder(iq)=dlz(ax,ay,az,iq,i)
+				end if
+				if (poly.eq.4) then
+				xder(iq)=tl3dx(ax,ay,az,iq,i);  yder(iq)=tl3dy(ax,ay,az,iq,i);  zder(iq)=tl3dz(ax,ay,az,iq,i)
+				end if
+				
+				end do
+
+				icompwrt=0
+
+				basefaceval(1:ielem_idegfree(i))=basis_rec(n,ax,ay,az,ielem_iorder(i),i,ielem_idegfree(i),icompwrt)
+
+				!if (thermal.eq.0)then
+				basefacgval(1:ielem_idegfree(i))=((nnx*xder(1:ielem_idegfree(i)))+(nny*yder(1:ielem_idegfree(i)))+(nnz*zder(1:ielem_idegfree(i))))
+				!else
+				!icompwrt=0
+				!basefacgval(1:ielem_idegfree(i))=basis_rec(n,ax,ay,az,ielem_iorder(i),i,ielem_idegfree(i),icompwrt)
+
+! 				end if
 
 
-				DO IQ=1,IDEG
-				ILOCAL_RECON3(I)%WALLCOEFF(IQ)=BASEFACEVAL(IQ)
-				ILOCAL_RECON3(I)%WALLCOEFG(IQ)=BASEFACGVAL(IQ)
-				PERMUTATION(IQ)=IQ
-				PERMUTATIONG(IQ)=IQ
-				END DO
+				do iq=1,ideg
+				rec_wallcoeff(iq,rec_wall(i))=basefaceval(iq)
+				rec_wallcoefg(iq,rec_wall(i))=basefacgval(iq)
+				permutation(iq)=iq
+				permutationg(iq)=iq
+				end do
 		
 				
 		
@@ -682,110 +694,122 @@ IF (LL.EQ.1)THEN		!stencils
 		end if!for bounded only
 		end do!for all faces
 		
-		GGGG=-TOLBIG
-G0=0
-DO IQ=1,IDEG
-IF (ABS(BASEFACGVAL(IQ)) >GGGG)THEN
-GGGG=ABS(BASEFACGVAL(IQ))
-G0=IQ
-END IF
-END DO
+		gggg=-tolbig
+g0=0
+do iq=1,ideg
+if (abs(basefacgval(iq)) >gggg)then
+gggg=abs(basefacgval(iq))
+g0=iq
+end if
+end do
 
 
 
 
-SSSS=-TOLBIG
-K0=0
-DO IQ=1,IDEG
-IF (ABS(BASEFACEVAL(IQ)) >SSSS)THEN
-SSSS=ABS(BASEFACEVAL(IQ))
-K0=IQ
-END IF
-END DO
+ssss=-tolbig
+k0=0
+do iq=1,ideg
+if (abs(basefaceval(iq)) >ssss)then
+ssss=abs(basefaceval(iq))
+k0=iq
+end if
+end do
 
 !  
 
 ! now swap basis functions and thus coefficients
-PERMUTATION(1)=K0; PERMUTATION(K0)=1; SSSS=BASEFACEVAL(1)
-BASEFACEVAL(1)=BASEFACEVAL(K0); BASEFACEVAL(K0)=SSSS
-PERMUTATIONG(1)=G0; PERMUTATION(G0)=1; GGGG=BASEFACGVAL(1)
-BASEFACGVAL(1)=BASEFACGVAL(G0); BASEFACGVAL(G0)=GGGG
-ILOCAL_RECON3(I)%K0=K0
-ILOCAL_RECON3(I)%G0=G0
+permutation(1)=k0; permutation(k0)=1; ssss=basefaceval(1)
+basefaceval(1)=basefaceval(k0); basefaceval(k0)=ssss
+permutationg(1)=g0; permutation(g0)=1; gggg=basefacgval(1)
+basefacgval(1)=basefacgval(g0); basefacgval(g0)=gggg
+rec_k0(rec_wall(i))=k0
+rec_g0(rec_wall(i))=g0
 		
 		
 		
 		
-LSQM = ZERO
-DO LQ=1,IMAX
-LCOU=0
-    DO IQ=1,IDEG
-	IF (IQ.EQ.G0) CYCLE
-	    LCOU=LCOU+1
-LSQM(LQ,LCOU)=ILOCAL_RECON3(I)%STENCILS(LL,LQ,IQ)&
--ILOCAL_RECON3(I)%STENCILS(LL,LQ,G0)*ILOCAL_RECON3(I)%WALLCOEFG(IQ)/ILOCAL_RECON3(I)%WALLCOEFG(G0)
-    END DO
-END DO
-ILOCAL_RECON3(I)%TEMPSQ(1:IMAX,1:IDEG-1)=LSQM(1:IMAX,1:IDEG-1)
+lsqm = zero
+do lq=1,imax
+lcou=0
+    do iq=1,ideg
+	if (iq.eq.g0) cycle
+	    lcou=lcou+1
+lsqm(lq,lcou)=rec_stencils(ll,lq,iq,rec_wall(i))&
+-rec_stencils(ll,lq,g0,rec_wall(i))*rec_wallcoefg(iq,rec_wall(i))/rec_wallcoefg(g0,rec_wall(i))
+    end do
+end do
+rec_tempsq(1:imax,1:ideg-1,rec_wall(i))=lsqm(1:imax,1:ideg-1)
 
 
 
 
 
-VELLSQMAT=ZERO
-DO IQ=1,IDEG-1; DO JQ=1,IDEG-1;	DO LCC=1,IMAX
+vellsqmat=zero
+do iq=1,ideg-1; do jq=1,ideg-1;	do lcc=1,imax
 !now store the least square matrix
-VELLSQMAT(JQ,IQ)= VELLSQMAT(JQ,IQ)+(LSQM(LCC,JQ)*LSQM(LCC,IQ))
-END DO;	END DO;	END DO
+vellsqmat(jq,iq)= vellsqmat(jq,iq)+(lsqm(lcc,jq)*lsqm(lcc,iq))
+end do;	end do;	end do
 
-LSCQM=ZERO
-LSCQM(1:IDEG-1,1:IDEG-1)=VELLSQMAT(1:IDEG-1,1:IDEG-1)
-Qff=ZERO; Rff=ZERO; QTff=ZERO; INVRff=ZERO
-	  IVGT=IDEG
+lscqm=zero
+lscqm(1:ideg-1,1:ideg-1)=vellsqmat(1:ideg-1,1:ideg-1)
+qff=zero; rff=zero; qtff=zero; invrff=zero
+	  ivgt=ideg
 	  
-    CALL QRDECOMPOSITION(LSCQM,Qff,Rff,IVGT-1)
-    CALL TRANSPOSEMATRIX(Qff,QTff,IVGT-1)
+    call qrdecomposition(lscqm,qff,rff,ivgt-1)
+    call transposematrix(qff,qtff,ivgt-1)
     
-    CALL INVERT(Rff,INVRff,IVGT)
-!   final inverted R^(-1)*Q^(-1)
-ILOCAL_RECON3(I)%TEMPSQMAT(1:IDEG-1,1:IDEG-1) =&
- MATMUL(INVRff(1:IDEG-1,1:IDEG-1),QTff(1:IDEG-1,1:IDEG-1))
+    call invert(rff,invrff,ivgt)
+!   final inverted r^(-1)*q^(-1)
+  do mm_i=1,ideg-1
+    do mm_j=1,ideg-1
+      rec_tempsqmat(mm_i,mm_j,rec_wall(i))=zero
+      do mm_k=1,ideg-1
+        rec_tempsqmat(mm_i,mm_j,rec_wall(i))=rec_tempsqmat(mm_i,mm_j,rec_wall(i))+invrff(mm_i,mm_k)*qtff(mm_k,mm_j)
+      end do
+    end do
+  end do
 
 ! definy the matrix defining the least-square reconstruction in this case for velocity
-LSQM = ZERO
-DO LQ=1,IMAX
-LCOU=0
-    DO IQ=1,IDEG
-	IF (IQ.EQ.K0) CYCLE
-	    LCOU=LCOU+1
-	     LSQM(LQ,LCOU)=ILOCAL_RECON3(I)%STENCILS(LL,LQ,IQ)&
- -ILOCAL_RECON3(I)%STENCILS(LL,LQ,K0)*ILOCAL_RECON3(I)%WALLCOEFF(IQ)/ILOCAL_RECON3(I)%WALLCOEFF(K0)
-    END DO
-END DO
-ILOCAL_RECON3(I)%VELLSQ(1:IMAX,1:IDEG-1)=LSQM(1:IMAX,1:IDEG-1)
+lsqm = zero
+do lq=1,imax
+lcou=0
+    do iq=1,ideg
+	if (iq.eq.k0) cycle
+	    lcou=lcou+1
+	     lsqm(lq,lcou)=rec_stencils(ll,lq,iq,rec_wall(i))&
+ -rec_stencils(ll,lq,k0,rec_wall(i))*rec_wallcoeff(iq,rec_wall(i))/rec_wallcoeff(k0,rec_wall(i))
+    end do
+end do
+rec_vellsq(1:imax,1:ideg-1,rec_wall(i))=lsqm(1:imax,1:ideg-1)
 
 
 
 
 
-		VELLSQMAT=ZERO
-		DO IQ=1,IDEG-1; DO JQ=1,IDEG-1;	DO LCC=1,IMAX
+		vellsqmat=zero
+		do iq=1,ideg-1; do jq=1,ideg-1;	do lcc=1,imax
 		!now store the least square matrix
-		VELLSQMAT(JQ,IQ)= VELLSQMAT(JQ,IQ)+(LSQM(LCC,JQ)*LSQM(LCC,IQ))
-		END DO;	END DO;	END DO
+		vellsqmat(jq,iq)= vellsqmat(jq,iq)+(lsqm(lcc,jq)*lsqm(lcc,iq))
+		end do;	end do;	end do
 
-		LSCQM=ZERO
-		LSCQM(1:IDEG-1,1:IDEG-1)=VELLSQMAT(1:IDEG-1,1:IDEG-1)
+		lscqm=zero
+		lscqm(1:ideg-1,1:ideg-1)=vellsqmat(1:ideg-1,1:ideg-1)
 
-		Qff=ZERO; Rff=ZERO; QTff=ZERO; INVRff=ZERO
-			IVGT=IDEG
-			CALL QRDECOMPOSITION(LSCQM,Qff,Rff,IVGT-1)
-			CALL TRANSPOSEMATRIX(Qff,QTff,IVGT-1)
+		qff=zero; rff=zero; qtff=zero; invrff=zero
+			ivgt=ideg
+			call qrdecomposition(lscqm,qff,rff,ivgt-1)
+			call transposematrix(qff,qtff,ivgt-1)
 
-			CALL INVERT(Rff,INVRff,IVGT)
-		!   final inverted R^(-1)*Q^(-1)
-		ILOCAL_RECON3(I)%VELINVLSQMAT(1:IDEG-1,1:IDEG-1) = &
-		MATMUL(INVRff(1:IDEG-1,1:IDEG-1),QTff(1:IDEG-1,1:IDEG-1))
+			call invert(rff,invrff,ivgt)
+		!   final inverted r^(-1)*q^(-1)
+		  do mm_i=1,ideg-1
+		    do mm_j=1,ideg-1
+		      rec_velinvlsqmat(mm_i,mm_j,rec_wall(i))=zero
+		      do mm_k=1,ideg-1
+		        rec_velinvlsqmat(mm_i,mm_j,rec_wall(i))=rec_velinvlsqmat(mm_i,mm_j,rec_wall(i))+invrff(mm_i,mm_k)*qtff(mm_k,mm_j)
+		      end do
+		    end do
+		  end do
 			
 		
 		
@@ -800,132 +824,70 @@ ILOCAL_RECON3(I)%VELLSQ(1:IMAX,1:IDEG-1)=LSQM(1:IMAX,1:IDEG-1)
 		end do !for all stencils
 		
 
-		DEALLOCATE(LSQM,QFF,RFF,QTFF,INVRFF)	
-		DEALLOCATE(VELLSQMAT)
-		DEALLOCATE(LSCQM)	
-		DEALLOCATE(INTBS,BASEFACEVAL,BASEFACGVAL,PERMUTATION,PERMUTATIONG,xder,yder,zder)	
-		DEALLOCATE(WLSQR)	
-		DEALLOCATE(stencil)	
-		DEALLOCATE(invmat)	
-		DEALLOCATE(STENCILS)	
+		deallocate(lsqm,qff,rff,qtff,invrff)	
+		deallocate(vellsqmat)
+		deallocate(lscqm)	
+		deallocate(intbs,basefaceval,basefacgval,permutation,permutationg,xder,yder,zder)	
+		deallocate(wlsqr)	
+		deallocate(stencil)	
+		deallocate(invmat)	
+		deallocate(stencils)	
 
 
 
 
-END SUBROUTINE PRESTORE_RECONSTRUCTION3
+end subroutine prestore_reconstruction3
 
 
-subroutine walls_higher(n)
+
+
+
+subroutine prestore_reconstruction2(n,iconsi,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 !> @brief
-!> This subroutine allocates the memory for wall bounded cells for their constrained least squares reconstruction
+!> this subroutine prestores the pseudoinverse reconstruction least square matrices in 2d
 implicit none
-integer,intent(in)::n
-integer::i,j,k,imax,ideg,inumo,inum,kmaxe,idum,idum2
-
-KMAXE=XMPIELRANK(N)
-
-DO I=1,KMAXE
-
-  ielem(n,i)%walls=0
- IMAX=IELEM(N,I)%inumneighbours-1
-	INUM=IELEM(N,I)%inumneighbours
-	IDEG=IELEM(N,I)%iDEGFREE
-	 INUMO=ielem(n,i)%iorder
-
-if (ielem(n,i)%ggs.ne.1)then
-
- IDUM=0;idum2=0
-  if (ielem(n,i)%interior.eq.1)then
-	DO j=1,IELEM(N,I)%IFCA
-	  if (ielem(n,i)%ibounds(J).gt.0)then
-	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-	        IDUM=1
-		if (dimensiona.eq.3)then
-		if (ielem(n,i)%types_faces(j).eq.5)then
-		  idum2=idum2+qp_quad_n
-		else
-		  idum2=idum2+QP_TRIANGLE_n
-		end if
-		else
-		  idum2=idum2+qp_line_n
-		end if
-	      end if
-	  END IF
-	END DO
-  end if
-  if (idum.eq.1)then
-    allocate(ielem(n,i)%num_of_wall_gqp(1))
-    ielem(n,i)%num_of_wall_gqp(1)=idum2
-    ielem(n,i)%walls=1
-	    
-	    IF (FASTEST.NE.1)THEN
-	    ALLOCATE (ILOCAL_RECON3(I)%VELINVLSQMAT(IDEG-1,IDEG-1))
-	    ALLOCATE (ILOCAL_RECON3(I)%WALLCOEFF(ideg))
-	    ALLOCATE (ILOCAL_RECON3(I)%VELLSQ(IMAX,IDEG-1))
-	    ALLOCATE (ILOCAL_RECON3(I)%TEMPSQMAT(IDEG-1,IDEG-1))
-	    ALLOCATE (ILOCAL_RECON3(I)%WALLCOEFG(ideg))
-	    ALLOCATE (ILOCAL_RECON3(I)%TEMPSQ(IMAX,IDEg-1))
-	  
-	    ILOCAL_RECON3(I)%VELINVLSQMAT=zero
-	    ILOCAL_RECON3(I)%WALLCOEFF=zero
-	    ILOCAL_RECON3(I)%VELLSQ=zero
-	    ILOCAL_RECON3(I)%WALLCOEFG=zero
-	    ILOCAL_RECON3(I)%TEMPSQMAT=zero
-	    ILOCAL_RECON3(I)%TEMPSQ=zero
-	   END IF
-	    
-  end if
-  
-  end if
-
-END DO
-
-
-
-end subroutine walls_higher
-
-
-SUBROUTINE PRESTORE_RECONSTRUCTION2(N,iconsi,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-!> @brief
-!> This subroutine prestores the pseudoinverse reconstruction least square matrices in 2d
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,iconsi
-INTEGER::I,J,K,llco,ll,ii,igf,IGF2,IFD2,idum,idum2,iq,jq,lq,IHGT,IHGJ,iqp,iqp2,NND,k0,g0,lcou,lcc,iqqq,ICOND1,ICOND2,N_NODE
-integer::ideg,ideg2,imax,imax2,ivgt,jxx,ixx,lxx1,kxx,icompwrt,number_of_dog,ELTYPE,inumo,inumo2,iconsidered,facex,inum,ai,aj
-real::ssss,gggg,UPTEMP,LOTEMP,X_STENCIL,Y_STENCIL,Z_STENCIL,DIST_STEN,DIST_STEN2
-real::ax,ay,az,ANGLE1,angle2,nx,ny,nz,nnx,nnz,nny,x1,y1,z1,maxai,minai
-REAL,DIMENSION(1:8,1:dimensiona)::NODES_LIST
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT
-real,DIMENSION(1:dims,1:dims)::AINVJT
+integer :: kbasis
+integer :: mm_i
+integer :: mm_j
+integer :: mm_k
+real :: mm_old(1:2)
+integer,intent(in)::n,iconsi
+integer::i,j,k,llco,ll,ii,igf,igf2,ifd2,idum,idum2,iq,jq,lq,ihgt,ihgj,iqp,iqp2,nnd,k0,g0,lcou,lcc,iqqq,icond1,icond2,n_node
+integer::ideg,ideg2,imax,imax2,ivgt,jxx,ixx,lxx1,kxx,icompwrt,number_of_dog,eltype,inumo,inumo2,iconsidered,facex,inum,ai,aj
+real::ssss,gggg,uptemp,lotemp,x_stencil,y_stencil,z_stencil,dist_sten,dist_sten2
+real::ax,ay,az,angle1,angle2,nx,ny,nz,nnx,nnz,nny,x1,y1,z1,maxai,minai
+real,dimension(1:8,1:dimensiona)::nodes_list
+real,dimension(1:8,1:dimensiona)::vext
+real,dimension(1:dims,1:dims)::ainvjt
 real,dimension(1:dimensiona)::cords
-real,allocatable,dimension(:)::INTBS,BASEFACEVAL,BASEFACGVAL,PERMUTATION,PERMUTATIONG,xder,yder,zder
-real,allocatable,dimension(:,:)::stencil,invmat,WLSQR,LSQM,LSCQM,QFF,RFF,QTFF,INVRFF,VELLSQMAT
-real,allocatable,dimension(:,:,:)::stencilS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXG  !GLOBAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXL  !LOCAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXB  !CPU THAT THAT EACH CELL BELONGS TO
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXN  !INTERNAL INDEX FROM WHERE TO TAKE THE VALUES FROM COMMUNICATED MESSAGES
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ISHAPE !SHAPE OF EACH ELEMENT
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_XXC       !CELL CENTRE COORDINATES IN X
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_YYC       !CELL CENTRE COORDINATES IN Y
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ZZC      !CELL CENTRE COORDINATES IN Z
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_VOLUME    !CELL VOLUME
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_PERIODICFLAG
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_NODCOUNT  !NUMBER OF NODES
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_X           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Y           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Z           !COORDINATES OF EACH NODE IN X
+real,allocatable,dimension(:)::intbs,basefaceval,basefacgval,permutation,permutationg,xder,yder,zder
+real,allocatable,dimension(:,:)::stencil,invmat,wlsqr,lsqm,lscqm,qff,rff,qtff,invrff,vellsqmat
+real,allocatable,dimension(:,:,:)::stencils
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexg  !global index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexl  !local index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexb  !cpu that that each cell belongs to
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexn  !internal index from where to take the values from communicated messages
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ishape !shape of each element
+real,allocatable,dimension(:,:),intent(inout)::ilox_xxc       !cell centre coordinates in x
+real,allocatable,dimension(:,:),intent(inout)::ilox_yyc       !cell centre coordinates in y
+real,allocatable,dimension(:,:),intent(inout)::ilox_zzc      !cell centre coordinates in z
+real,allocatable,dimension(:,:),intent(inout)::ilox_volume    !cell volume
+integer,allocatable,dimension(:,:),intent(inout)::ilox_periodicflag
+integer,allocatable,dimension(:,:,:),intent(inout)::ilon_nodcount  !number of nodes
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_x           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_y           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_z           !coordinates of each node in x
 
 
 
-allocate(LSCQM(1:idegfree,1:idegfree),QFF(1:idegfree,1:idegfree),RFF(1:idegfree,1:idegfree),QTFF(1:idegfree,1:idegfree),INVRFF(1:idegfree,1:idegfree))
-allocate(VELLSQMAT(1:idegfree-1,1:idegfree-1))
-allocate(LSQM(1:IMAXDEGFREE,1:IDEGFREE-1))
-allocate(INTBS(1:idegfree),BASEFACEVAL(1:idegfree),BASEFACGVAL(1:idegfree),PERMUTATION(1:idegfree),PERMUTATIONG(1:idegfree),xder(1:idegfree),yder(1:idegfree),zder(1:idegfree))
+allocate(lscqm(1:idegfree,1:idegfree),qff(1:idegfree,1:idegfree),rff(1:idegfree,1:idegfree),qtff(1:idegfree,1:idegfree),invrff(1:idegfree,1:idegfree))
+allocate(vellsqmat(1:idegfree-1,1:idegfree-1))
+allocate(lsqm(1:imaxdegfree,1:idegfree-1))
+allocate(intbs(1:idegfree),basefaceval(1:idegfree),basefacgval(1:idegfree),permutation(1:idegfree),permutationg(1:idegfree),xder(1:idegfree),yder(1:idegfree),zder(1:idegfree))
 allocate(invmat(1:idegfree,1:idegfree))
-allocate(WLSQR(1:20,1:numneighbours-1))
+allocate(wlsqr(1:20,1:numneighbours-1))
 allocate(stencil(1:numneighbours-1,1:idegfree))
-allocate(stencilS(1:20,1:numneighbours-1,1:idegfree))
+allocate(stencils(1:20,1:numneighbours-1,1:idegfree))
 
 
 
@@ -952,15 +914,15 @@ allocate(stencilS(1:20,1:numneighbours-1,1:idegfree))
 i=iconsi
 
         
-		IDUM=0;
-                if (ielem(n,i)%interior.eq.1)then
-                        DO j=1,IELEM(N,I)%IFCA
-                        if (ielem(n,i)%ibounds(J).gt.0)then
-                            if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then
-                                IDUM=1
+		idum=0;
+                if (ielem_interior(i).eq.1)then
+                        do j=1,ielem_ifca(i)
+                        if (ielem_ibounds(j,i).gt.0)then
+                            if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+                                idum=1
                             end if
-                        END IF
-                        END DO
+                        end if
+                        end do
                 end if
 		
 		
@@ -971,193 +933,233 @@ i=iconsi
 		
 		
 		
-		INTBS=zero;JXX=1;IXX=i;LXX1=1;number_of_dog=ielem(n,i)%idegfree;kxx=ielem(n,i)%iorder;ELTYPE=ielem(n,i)%ishape
-		Icompwrt=0
+		intbs=zero;jxx=1;ixx=i;lxx1=1;number_of_dog=ielem_idegfree(i);kxx=ielem_iorder(i);eltype=ielem_ishape(i)
+		icompwrt=0
 
-		INTBS=CALINTBASIS(N,IXX,JXX,KXX,LXX1,number_of_dog,ICOMPWRT,ELTYPE,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-		INTEG_BASIS(I)%VALUE(1:ielem(n,i)%IDEGFREE)=INTBS(1:ielem(n,i)%IDEGFREE)
+		intbs=calintbasis(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,eltype,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+        ! store integration-basis vector intbs into all entries 1:number_of_dog for element i
+
+            integ_basis_value(1:number_of_dog,i) = intbs(1:number_of_dog)
+
                 
                 
         !the indicator matrix for the large polynomial
-		IF (IWENO.EQ.1)THEN
-		CALL INDICATORMATRIX(N,I,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-		END IF
+		if (iweno.eq.1)then
+		call indicatormatrix(n,i,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+		end if
 
 		if (ees.eq.5)then
-		INTBS=zero;JXX=1;IXX=i;LXX1=1
-		number_of_dog=idegfree2;kxx=IORDER2;ELTYPE=ielem(n,i)%ishape;
+		intbs=zero;jxx=1;ixx=i;lxx1=1
+		number_of_dog=idegfree2;kxx=iorder2;eltype=ielem_ishape(i);
 
-		icompwrt=0
+		icompwrt=1
 
-		INTBS=CALINTBASIS(N,IXX,JXX,KXX,LXX1,number_of_dog,ICOMPWRT,ELTYPE,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+		intbs=calintbasis(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,eltype,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 		
-		INTEG_BASIS(I)%VALUEc(1:number_of_dog)=INTBS(1:number_of_dog)
+		integ_basis_valuec(1:number_of_dog,i)=intbs(1:number_of_dog)
 
 		 !the indicator matrix for the smaller polynomial
-		IF (IWENO.EQ.1)THEN
-		CALL INDICATORMATRIX2(N,I,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-
-		END IF
+		if (iweno.eq.1)then
+		call indicatormatrix2(n,i,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+		icompwrt=0
+		end if
 		
 		end if
-		LLCO=IELEM(N,I)%ADMIS
+		llco=ielem_admis(i)
 
                 
-		IMAX=IELEM(N,I)%inumneighbours-1;INUM=IELEM(N,I)%inumneighbours;IDEG=IELEM(N,I)%iDEGFREE;INUMO=ielem(n,i)%iorder
-         imax2=numneighbours2-1;inum2=numneighbours2;ideg2=iDEGFREE2;inumo2=iorder2
-			DIST_STEN=ZERO
+		imax=ielem_inumneighbours(i)-1;inum=ielem_inumneighbours(i);ideg=ielem_idegfree(i);inumo=ielem_iorder(i)
+         imax2=numneighbours2-1;inum2=numneighbours2;ideg2=idegfree2;inumo2=iorder2
+			dist_sten=zero
 			!now we start with looping all the admissible stencils
-		DO LL=1,LLCO	!ADMIS
+		do ll=1,llco	!admis
 
 			
 
-				if((ees.ne.5).OR.(ll.eq.1))then
-				IMAX=IELEM(N,I)%inumneighbours-1;INUM=IELEM(N,I)%inumneighbours;IDEG=IELEM(N,I)%iDEGFREE;INUMO=ielem(n,i)%iorder
-				icompwrt=0;number_of_dog=IDEG
+				if((ees.ne.5).or.(ll.eq.1))then
+				imax=ielem_inumneighbours(i)-1;inum=ielem_inumneighbours(i);ideg=ielem_idegfree(i);inumo=ielem_iorder(i)
+				icompwrt=0;number_of_dog=ideg
 
 				else
-				imax=numneighbours2-1;inum=numneighbours2;ideg=iDEGFREE2;inumo=IORDER2;number_of_dog=IDEG
+				imax=numneighbours2-1;inum=numneighbours2;ideg=idegfree2;inumo=iorder2;number_of_dog=ideg
 				icompwrt=1
 				end if
 
 
 
 
-					DO K=1,imax !for all neighbours
-							ixx=i;kxx=INUMO
+					do k=1,imax !for all neighbours
+							ixx=i;kxx=inumo
 
-							IF (WEIGHT_LSQR.EQ.1)THEN
-							WLSQR(LL,K)=1.0D0/((SQRT(((ILOX_XXC(ll,k+1)-ILOX_XXC(ll,1))**2)+((ILOX_YYC(ll,k+1)-ILOX_YYC(ll,1))**2))))
-							ELSE
-							WLSQR(LL,K)=1.0D0
-							END IF
-							X_STENCIL=(ILOX_XXC(ll,k+1)-ILOX_XXC(ll,1))**2
-							Y_STENCIL=(ILOX_YYC(ll,k+1)-ILOX_YYC(ll,1))**2
-
-
-							DIST_STEN2=SQRT(X_STENCIL+Y_STENCIL)
-
-							DIST_STEN=MAX(DIST_STEN,DIST_STEN2)
+							if (weight_lsqr.eq.1)then
+							wlsqr(ll,k)=1.0d0/((sqrt(((ilox_xxc(ll,k+1)-ilox_xxc(ll,1))**2)+((ilox_yyc(ll,k+1)-ilox_yyc(ll,1))**2))))
+							else
+							wlsqr(ll,k)=1.0d0
+							end if
+							x_stencil=(ilox_xxc(ll,k+1)-ilox_xxc(ll,1))**2
+							y_stencil=(ilox_yyc(ll,k+1)-ilox_yyc(ll,1))**2
 
 
-							IF (WEIGHT_LSQR.EQ.1)THEN
-							WLSQR(ll,K)=1.0D0/SQRT(X_STENCIL+Y_STENCIL)
-							ELSE
-							WLSQR(ll,K)=1.0D0
-							END IF
+							dist_sten2=sqrt(x_stencil+y_stencil)
 
-							IELEM(N,I)%STENCIL_DIST=DIST_STEN/(ILOX_VOLUME(1,1)**(1/2))
+							dist_sten=max(dist_sten,dist_sten2)
+
+
+							if (weight_lsqr.eq.1)then
+							wlsqr(ll,k)=1.0d0/sqrt(x_stencil+y_stencil)
+							else
+							wlsqr(ll,k)=1.0d0
+							end if
+
+! 							ielem_stencil_dist(i)=dist_sten/(ilox_volume(1,1)**(1/2))
 
 								if (fastest.eq.1)then
-									x1 = ILOX_XXC(ll,k+1)-ILOX_XXC(ll,1)
-									y1 = ILOX_YYC(ll,k+1)-ILOX_YYC(ll,1)
+									x1 = ilox_xxc(ll,k+1)-ilox_xxc(ll,1)
+									y1 = ilox_yyc(ll,k+1)-ilox_yyc(ll,1)
 
-										if((ees.ne.5).OR.(ll.eq.1))then
+										if((ees.ne.5).or.(ll.eq.1))then
 										icompwrt=0
-										ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=WLSQR(ll,K)*basis_rec2d(N,x1,y1,ielem(n,i)%iorder,IXX,ielem(n,i)%idegfree,icompwrt)
-										ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
+											if (itestcase.eq.4)then
+											rec_stencils(ll,k,1:ielem_idegfree(i),rec_wall(i))=wlsqr(ll,k)*basis_rec2d(n,x1,y1,ielem_iorder(i),ixx,ielem_idegfree(i),icompwrt)
+											rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
+											stencils(ll,k,1:ideg)=rec_stencils(ll,k,1:ielem_idegfree(i),rec_wall(i))
+											else
+											stencils(ll,k,1:ideg)=wlsqr(ll,k)*basis_rec2d(n,x1,y1,ielem_iorder(i),ixx,ielem_idegfree(i),icompwrt)
+											end if
 										else
 										icompwrt=1
-										ILOCAL_RECON3(I)%STENCILSc(LL,K,1:ideg)=WLSQR(ll,K)*basis_rec2d(N,x1,y1,inumo,IXX,ideg,icompwrt)
-										ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
+										if (itestcase.eq.4)then
+! 										rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(ll,k)*basis_rec2d(n,x1,y1,inumo,ixx,ideg,icompwrt)
+! 										rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
+										stencils(ll,k,1:ideg)=wlsqr(ll,k)*basis_rec2d(n,x1,y1,inumo,ixx,ideg,icompwrt)
+										else
+										stencils(ll,k,1:ideg)=wlsqr(ll,k)*basis_rec2d(n,x1,y1,inumo,ixx,ideg,icompwrt)
+										end if
 
 										end if
 
 								else
-									IXX=i;jxx=k+1;lxx1=ll
-									ELTYPE=ILOX_ishape(ll,k+1)
+									ixx=i;jxx=k+1;lxx1=ll
+									eltype=ilox_ishape(ll,k+1)
 
-									IF (GREENGO.EQ.0)THEN
+									if (greengo.eq.0)then
 
 										if (idum.eq.1)then
-											if((ees.ne.5).OR.(ll.eq.1))then
+											if((ees.ne.5).or.(ll.eq.1))then
 											icompwrt=0
-											ILOCAL_RECON3(I)%STENCILS(LL,K,1:ielem(n,i)%idegfree)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-											ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
+											if (itestcase.eq.4)then
+											rec_stencils(ll,k,1:ielem_idegfree(i),rec_wall(i))=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+											rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
+											stencils(ll,k,1:ideg)=rec_stencils(ll,k,1:ielem_idegfree(i),rec_wall(i))
+											else
+											stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+
+
+
+											end if
+
 											else
 											icompwrt=1
-											ILOCAL_RECON3(I)%STENCILSc(LL,K,1:ideg)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-											ilocal_recon3(i)%WEIGHTL(ll,k)=WLSQR(ll,K)
+											if (itestcase.eq.4)then
+! 											rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+! 											rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
+											stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+											else
+											stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+											end if
+
+
 											icompwrt=0
 											end if
 										else
-											if((ees.ne.5).OR.(ll.eq.1))then
+											if((ees.ne.5).or.(ll.eq.1))then
 											icompwrt=0
 											else
 											icompwrt=1
 											end if
-										STENCILS(LL,K,1:ideg)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+										stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 										icompwrt=0
 										end if
 
 									else
-									if((ees.ne.5).OR.(ll.eq.1))then
+									if((ees.ne.5).or.(ll.eq.1))then
 									icompwrt=0
 									else
 									icompwrt=1
 									end if
-									STENCILS(LL,K,1:ideg)=WLSQR(ll,K)*COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+									stencils(ll,k,1:ideg)=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 									icompwrt=0
 									end if
 								end if		!fastest
-							END DO	!IMAXEDEGFREE
+							end do	!imaxedegfree
 
 
 
 
 
      
-      IF ((GREENGO.EQ.0))THEN
+      if ((greengo.eq.0))then
 		if (idum.eq.1)then
 
 		      invmat=zero
-		      LSCQM(:,:)=zero
-		      DO IQ=1,IDEG;DO JQ=1,IDEG;DO LQ=1,IMAX
-		      if((ees.ne.5).OR.(ll.eq.1))then
-		      LSCQM(JQ,IQ)=LSCQM(JQ,IQ)&
-		      +((ILOCAL_RECON3(I)%STENCILS(LL,LQ,JQ)*ILOCAL_RECON3(I)%STENCILS(LL,LQ,IQ)))
+		      lscqm(:,:)=zero
+		      do iq=1,ideg;do jq=1,ideg;do lq=1,imax
+		      if((ees.ne.5).or.(ll.eq.1))then
+		      lscqm(jq,iq)=lscqm(jq,iq)&
+		      +((stencils(ll,lq,jq)*stencils(ll,lq,iq)))
+		      !lscqm(jq,iq)=lscqm(jq,iq)&
+		      !+((rec_stencils(ll,lq,jq,rec_wall(i))*rec_stencils(ll,lq,iq,rec_wall(i))))
 		      else
-		      LSCQM(JQ,IQ)=LSCQM(JQ,IQ)&
-		      +((ILOCAL_RECON3(I)%STENCILSc(LL,LQ,JQ)*ILOCAL_RECON3(I)%STENCILSc(LL,LQ,IQ)))
+		      lscqm(jq,iq)=lscqm(jq,iq)&
+		      +((stencils(ll,lq,jq)*stencils(ll,lq,iq)))
+		      !lscqm(jq,iq)=lscqm(jq,iq)&
+		      !+((rec_stencilsc(ll,lq,jq,rec_wall(i))*rec_stencilsc(ll,lq,iq,rec_wall(i))))
 		      end if
-		      END DO;END DO;END DO  
+		      end do;end do;end do  
 		else
 
 		      
 		      invmat=zero
-		      LSCQM(:,:)=zero
-		      DO IQ=1,IDEG;DO JQ=1,IDEG;DO LQ=1,IMAX
-		      LSCQM(JQ,IQ)=LSCQM(JQ,IQ)&
-		      +((STENCILS(LL,LQ,JQ)*STENCILS(LL,LQ,IQ)))
-		      END DO;END DO;END DO 
+		      lscqm(:,:)=zero
+		      do iq=1,ideg;do jq=1,ideg;do lq=1,imax
+		      lscqm(jq,iq)=lscqm(jq,iq)&
+		      +((stencils(ll,lq,jq)*stencils(ll,lq,iq)))
+		      end do;end do;end do 
 		end if
 
 
-      ELSE
+      else
 
 		
 		invmat=zero
-		LSCQM(:,:)=zero
-		DO IQ=1,IDEG;DO JQ=1,IDEG;DO LQ=1,IMAX
-		LSCQM(JQ,IQ)=LSCQM(JQ,IQ)&
-		+((STENCILS(LL,LQ,JQ)*STENCILS(LL,LQ,IQ)))
-		END DO;END DO;END DO 
+		lscqm(:,:)=zero
+		do iq=1,ideg;do jq=1,ideg;do lq=1,imax
+		lscqm(jq,iq)=lscqm(jq,iq)&
+		+((stencils(ll,lq,jq)*stencils(ll,lq,iq)))
+		end do;end do;end do 
 
-	END IF 
-
-
+	end if 
 
 
 
 
 
 
-			QFF(:,:)=zero; RFF(:,:)=zero; QTFF(:,:)=zero; RFF(:,:)=zero;  INVRFF(:,:)=zero
-			CALL QRDECOMPOSITION(LSCQM,QFF,RFF,IDEG)
-			CALL TRANSPOSEMATRIX(QFF,QTFF,IDEG)
-			IVGT=IDEG+1
-			CALL INVERT(RFF,INVRFF,IVGT)
-			invmat(1:IDEg,1:ideg)=MATMUL(INVRFF(1:ideg,1:IDEG),QTFF(1:IDEG,1:IDEG))
+
+
+			qff(:,:)=zero; rff(:,:)=zero; qtff(:,:)=zero; rff(:,:)=zero;  invrff(:,:)=zero
+			call qrdecomposition(lscqm,qff,rff,ideg)
+			call transposematrix(qff,qtff,ideg)
+			ivgt=ideg+1
+			call invert(rff,invrff,ivgt)
+			  do mm_i=1,ideg
+			    do mm_j=1,ideg
+			      invmat(mm_i,mm_j)=zero
+			      do mm_k=1,ideg
+			        invmat(mm_i,mm_j)=invmat(mm_i,mm_j)+invrff(mm_i,mm_k)*qtff(mm_k,mm_j)
+			      end do
+			    end do
+			  end do
 
 
 
@@ -1166,118 +1168,114 @@ i=iconsi
 ! 
 ! 
 
-IF (GREENGO.EQ.0)THEN
+if (greengo.eq.0)then
     if (idum.eq.1)then
-            if((ees.ne.5).OR.(ll.eq.1))then
+            if((ees.ne.5).or.(ll.eq.1))then
             
-            stencil(1:imax,1:ideg)=ILOCAL_RECON3(I)%STENCILS(LL,1:imax,1:ideg)
+            stencil(1:imax,1:ideg)=stencils(ll,1:imax,1:ideg)!rec_stencils(ll,1:imax,1:ideg,rec_wall(i))
             else
            
-            stencil(1:imax,1:ideg)=ILOCAL_RECON3(I)%STENCILSc(LL,1:imax,1:ideg)
+            stencil(1:imax,1:ideg)=stencils(ll,1:imax,1:ideg)!rec_stencilsc(ll,1:imax,1:ideg,rec_wall(i))
 
             end if
     else
-stencil(1:imax,1:ideg)=STENCILS(LL,1:imax,1:ideg)
+stencil(1:imax,1:ideg)=stencils(ll,1:imax,1:ideg)
     end if
-ELSE
+else
 
-stencil(1:imax,1:ideg)=STENCILS(LL,1:imax,1:ideg)
+stencil(1:imax,1:ideg)=stencils(ll,1:imax,1:ideg)
 
-END IF
+end if
 
-if((ees.ne.5).OR.(ll.eq.1))then
+if((ees.ne.5).or.(ll.eq.1))then
 ! call gemm(                                               &
 !                invmat,                                               &
 !                stencil,                                              &
-!                ILOCAL_RECON3(I)%invmat_stencilt(:,:,LL),             &
-!                'N',                                                  & ! transposition flag for invmat
-!                'T'                                                   & ! transposition flag for stencil
+!                rec_invmat_stencilt(:,:,ll,i),             &
+!                'n',                                                  & ! transposition flag for invmat
+!                't'                                                   & ! transposition flag for stencil
 !             )
             
             
-! call DGEMM ('N','T',IDEG,IMAX,IDEG,ALPHA,invmat(1:ideg,1:ideg),IDEG,&
-! stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stencilt(1:IDEG,1:IMAX,LL),IDEG)
+! call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
+! stencil(1:imax,1:ideg),imax,beta,rec_invmat_stencilt(1:ideg,1:imax,ll,i),ideg)
 
             
-            ILOCAL_RECON3(i)%invmat_stencilt(1:IDEG,1:IMAX,LL)=MATMUL(invmat(1:ideg,1:ideg),TRANSPOSE(stencil(1:imax,1:ideg)))
+              do mm_i=1,ideg
+                do mm_j=1,imax
+                  rec_invmat_stencilt(mm_i,mm_j,ll,i)=zero
+                  do mm_k=1,ideg
+                    rec_invmat_stencilt(mm_i,mm_j,ll,i)=rec_invmat_stencilt(mm_i,mm_j,ll,i)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
+                  end do
+                end do
+              end do
 
 
 
 
 
            do iq=1,imax
-			ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stencilt(:,iq,LL)&
-			*ILOX_VOLUME(ll,iq+1)*WLSQR(ll,iq)
+			rec_invmat_stencilt(:,iq,ll,i)=rec_invmat_stencilt(:,iq,ll,i)&
+			*ilox_volume(ll,iq+1)*wlsqr(ll,iq)
 			end do
 
 
-			if (ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stencilt(1,1,LL))then	!prevents non-invertible nan stencils from being deployed
+			if (rec_invmat_stencilt(1,1,ll,i).ne.rec_invmat_stencilt(1,1,ll,i))then	!prevents non-invertible nan stencils from being deployed
 
-					ielem(n,i)%full=0
+					ielem_full(i)=0
 					end if
 
 
 
 else
 ! call gemm(                                               &
-!                invmat(1:IDEG,1:IDEG),                                               &
+!                invmat(1:ideg,1:ideg),                                               &
 !                stencil(1:imax,1:ideg),                                              &
-!                ILOCAL_RECON3(I)%invmat_stenciltc(1:ideg,1:imax,LL),             &
-!                'N',                                                  & ! transposition flag for invmat
-!                'T'                                                   & ! transposition flag for stencil
+!                rec_invmat_stenciltc(1:ideg,1:imax,ll,i),             &
+!                'n',                                                  & ! transposition flag for invmat
+!                't'                                                   & ! transposition flag for stencil
 !             )
             
-! call DGEMM ('N','T',IDEG,IMAX,IDEG,ALPHA,invmat(1:ideg,1:ideg),IDEG,&
-! stencil(1:imax,1:ideg),IMAX,BETA,ILOCAL_RECON3(i)%invmat_stenciltc(1:IDEG,1:IMAX,LL),IDEG)
+! call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
+! stencil(1:imax,1:ideg),imax,beta,rec_invmat_stenciltc(1:ideg,1:imax,ll,i),ideg)
 
-			ILOCAL_RECON3(i)%invmat_stenciltC(1:IDEG,1:IMAX,LL)=MATMUL(invmat(1:ideg,1:ideg),TRANSPOSE(stencil(1:imax,1:ideg)))
+			  do mm_i=1,ideg
+			    do mm_j=1,imax
+			      rec_invmat_stenciltc(mm_i,mm_j,ll,i)=zero
+			      do mm_k=1,ideg
+			        rec_invmat_stenciltc(mm_i,mm_j,ll,i)=rec_invmat_stenciltc(mm_i,mm_j,ll,i)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
+			      end do
+			    end do
+			  end do
 
 
 
 		do iq=1,imax
-			ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)=ILOCAL_RECON3(I)%invmat_stenciltc(:,iq,LL)&
-			*ILOX_VOLUME(ll,iq+1)*WLSQR(ll,iq)
+			rec_invmat_stenciltc(:,iq,ll,i)=rec_invmat_stenciltc(:,iq,ll,i)&
+			*ilox_volume(ll,iq+1)*wlsqr(ll,iq)
 			end do
 
 
-			if (ILOCAL_RECON3(i)%invmat_stenciltc(1,1,LL).ne.ILOCAL_RECON3(i)%invmat_stenciltc(1,1,LL))then	!prevents non-invertible nan stencils from being deployed
+			if (rec_invmat_stenciltc(1,1,ll,i).ne.rec_invmat_stenciltc(1,1,ll,i))then	!prevents non-invertible nan stencils from being deployed
 
-					ielem(n,i)%full=0
+					ielem_full(i)=0
 					end if
 
 end if
 
-	     if (initcond.eq.0)then
-            maxai=zero
-            minai=tolbig
-            
-            
-            do ai=1,imax
-	      do aj=1,ideg
-		    if (abs(ILOCAL_RECON3(I)%invmat_stencilt(aj,ai,LL)).ne.zero)then
-		    maxai=max(maxai,abs(ILOCAL_RECON3(I)%invmat_stencilt(aj,ai,LL)))
-		    minai=min(minai,abs(ILOCAL_RECON3(I)%invmat_stencilt(aj,ai,LL)))
-		    
-		    end if
-	      end do
-	    end do
-		ilocal_recon3(i)%cond(ll)=maxai/minai
-            
-            
-            
-            end if
 
 
 
-if (ielem(n,i)%ggs.ne.1)then	!ggs
+
+if (ielem_ggs(i).ne.1)then	!ggs
     
-IF (ITESTCASE.EQ.4)THEN	!TEST
+if (itestcase.eq.4)then	!test
 
 	
 
 	 
 
-IF (LL.EQ.1)THEN		!stencils
+if (ll.eq.1)then		!stencils
 ! 
 
   if (idum.eq.1)then		!for wall only
@@ -1286,37 +1284,45 @@ IF (LL.EQ.1)THEN		!stencils
 	 
 
     	
-    DO IHGT=1,2; DO IHGJ=1,2
-    AINVJT(IHGT,IHGJ)=ILOCAL_RECON3(I)%INVCCJAC(IHGJ,IHGT)
-   END DO; END DO
+    do ihgt=1,2; do ihgj=1,2
+    ainvjt(ihgt,ihgj)=rec_invccjac(ihgj,ihgt,i)
+   end do; end do
 
 	 idum2=0
 	 
 	 
-				BASEFACEVAL=zero
-				BASEFACGVAL=zero
-				PERMUTATION=zero
-				PERMUTATIONg=zero
+				basefaceval=zero
+				basefacgval=zero
+				permutation=zero
+				permutationg=zero
 			
 	 
 	 
 	 
-	 DO j=1,IELEM(N,I)%IFCA		!for all faces
-	    if (ielem(n,i)%ibounds(J).gt.0)then		!for bounded only
-	      if (ibound(n,ielem(n,i)%ibounds(j))%icode.eq.4)then		!!for bounded only 2                         
-					facex=J;iconsidered=i
-								  CALL coordinates_face_inner2D(N,Iconsidered,facex,vext,NODES_LIST)
-								  N_NODE=2
-								    CORDS(1:2)=zero
-								    CORDS(1:2)=CORDINATES2(N,NODES_LIST,N_NODE)
+	 do j=1,ielem_ifca(i)		!for all faces
+	    if (ielem_ibounds(j,i).gt.0)then		!for bounded only
+		      if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then		!!for bounded only 2                         
+					facex=j;iconsidered=i
+								  call coordinates_face_inner2d(n,iconsidered,facex,vext,nodes_list)
+								  n_node=2
+								    cords(1:2)=zero
+								    call cordinates2(n,nodes_list,n_node,cords(1:2))
 							    
-								    AY=cords(2)
-								    AX=cords(1)
+								    ay=cords(2)
+								    ax=cords(1)
 
-					    VEXT(1,1)=AX;VEXT(1,2)=AY;
-					    VEXT(1,1:2)=MATMUL(ILOCAL_RECON3(I)%INVCCJAC(1:2,1:2),VEXT(1,1:2)-ILOCAL_RECON3(I)%VEXT_REF(1:2))
+					    vext(1,1)=ax;vext(1,2)=ay;
+					      do mm_j=1,2
+					        mm_old(mm_j)=vext(1,mm_j)-rec_vext_ref(mm_j,i)
+					      end do
+					      do mm_i=1,2
+					        vext(1,mm_i)=zero
+					        do mm_j=1,2
+					          vext(1,mm_i)=vext(1,mm_i)+rec_invccjac(mm_i,mm_j,i)*mm_old(mm_j)
+					        end do
+					      end do
 					  
-					    AX=VEXT(1,1);AY=VEXT(1,2)
+					    ax=vext(1,1);ay=vext(1,2)
 				
 
 
@@ -1325,62 +1331,62 @@ IF (LL.EQ.1)THEN		!stencils
 				
 				
 				
-				ANGLE1=IELEM(N,I)%FACEANGLEX(j)
-				ANGLE2=IELEM(N,I)%FACEANGLEY(j)
+				angle1=ielem_faceanglex(j,i)
+				angle2=ielem_faceangley(j,i)
 				
-				NX=ANGLE1
-				NY=ANGLE2
+				nx=angle1
+				ny=angle2
 				
-				NNX=(NX*AINVJT(1,1))+(NY*AINVJT(2,1))
-				NNY=(NX*AINVJT(1,2))+(NY*AINVJT(2,2))
+				nnx=(nx*ainvjt(1,1))+(ny*ainvjt(2,1))
+				nny=(nx*ainvjt(1,2))+(ny*ainvjt(2,2))
 				
-				IF (POLY.EQ.4)THEN
+				if (poly.eq.4)then
 
 
-				DO IQ=1, IDEG
+				do iq=1, ideg
 
-				XDER(IQ)=TL2dX(AX,AY,IQ,I);  YDER(IQ)=TL2dY(AX,AY,IQ,I);
-
-
-				END DO
+				xder(iq)=tl2dx(ax,ay,iq,i);  yder(iq)=tl2dy(ax,ay,iq,i);
 
 
-				ELSE
+				end do
+
+
+				else
 
 
 
-				DO IQ=1, IDEG
+				do iq=1, ideg
 				
-				XDER(IQ)=DF2dX(AX,AY,IQ,I);  YDER(IQ)=DF2dY(AX,AY,IQ,I);
+				xder(iq)=df2dx(ax,ay,iq,i);  yder(iq)=df2dy(ax,ay,iq,i);
 				
 				
-				END DO
-
-				END IF
-
-
-
-				ICONSIDERED=I
-				Icompwrt=0
-				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,Iconsidered,ielem(n,i)%IDEGFREE,ICOMPWRT)
-
-				if (thermal.eq.0)then
-				Icompwrt=0
-
-				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=((NNX*XDER(1:ielem(n,i)%IDEGFREE))+(NNY*YDER(1:ielem(n,i)%IDEGFREE)))
-				ELSE
-				Icompwrt=0
-				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,Iconsidered,ielem(n,i)%IDEGFREE,ICOMPWRT)
+				end do
 
 				end if
 
 
-				DO IQ=1,IDEG
-				ILOCAL_RECON3(I)%WALLCOEFF(IQ)=BASEFACEVAL(IQ)
-				ILOCAL_RECON3(I)%WALLCOEFG(IQ)=BASEFACGVAL(IQ)
-				PERMUTATION(IQ)=IQ
-				PERMUTATIONG(IQ)=IQ
-				END DO
+
+				iconsidered=i
+				icompwrt=0
+				basefaceval(1:ielem_idegfree(i))=basis_rec2d(n,ax,ay,ielem_iorder(i),iconsidered,ielem_idegfree(i),icompwrt)
+
+				!if (thermal.eq.0)then
+				icompwrt=0
+
+				basefacgval(1:ielem_idegfree(i))=((nnx*xder(1:ielem_idegfree(i)))+(nny*yder(1:ielem_idegfree(i))))
+				!else
+				!icompwrt=0
+				!basefacgval(1:ielem_idegfree(i))=basis_rec2d(n,ax,ay,ielem_iorder(i),iconsidered,ielem_idegfree(i),icompwrt)
+
+				!end if
+
+
+				do iq=1,ideg
+				rec_wallcoeff(iq,rec_wall(i))=basefaceval(iq)
+				rec_wallcoefg(iq,rec_wall(i))=basefacgval(iq)
+				permutation(iq)=iq
+				permutationg(iq)=iq
+				end do
 		
 				
 		
@@ -1392,113 +1398,125 @@ IF (LL.EQ.1)THEN		!stencils
 		end if!for bounded only
 		end do!for all faces
 		
-		GGGG=-TOLBIG
-G0=0
-DO IQ=1,IDEG
-IF (ABS(BASEFACGVAL(IQ)) >GGGG)THEN
-GGGG=ABS(BASEFACGVAL(IQ))
-G0=IQ
-END IF
-END DO
+		gggg=-tolbig
+g0=0
+do iq=1,ideg
+if (abs(basefacgval(iq)) >gggg)then
+gggg=abs(basefacgval(iq))
+g0=iq
+end if
+end do
 
 
 
 
-SSSS=-TOLBIG
-K0=0
-DO IQ=1,IDEG
-IF (ABS(BASEFACEVAL(IQ)) >SSSS)THEN
-SSSS=ABS(BASEFACEVAL(IQ))
-K0=IQ
-END IF
-END DO
+ssss=-tolbig
+k0=0
+do iq=1,ideg
+if (abs(basefaceval(iq)) >ssss)then
+ssss=abs(basefaceval(iq))
+k0=iq
+end if
+end do
 
 
 
 ! now swap basis functions and thus coefficients
-PERMUTATION(1)=K0; PERMUTATION(K0)=1; SSSS=BASEFACEVAL(1)
-BASEFACEVAL(1)=BASEFACEVAL(K0); BASEFACEVAL(K0)=SSSS
+permutation(1)=k0; permutation(k0)=1; ssss=basefaceval(1)
+basefaceval(1)=basefaceval(k0); basefaceval(k0)=ssss
 
-PERMUTATIONG(1)=G0; PERMUTATION(G0)=1; GGGG=BASEFACGVAL(1)
-BASEFACGVAL(1)=BASEFACGVAL(G0); BASEFACGVAL(G0)=GGGG
-! ILOCAL_RECON3(II)%K0=K0
-! ILOCAL_RECON3(II)%G0=G0
-ILOCAL_RECON3(I)%K0=K0
-ILOCAL_RECON3(I)%G0=G0
+permutationg(1)=g0; permutation(g0)=1; gggg=basefacgval(1)
+basefacgval(1)=basefacgval(g0); basefacgval(g0)=gggg
+! rec_k0(ii)=k0
+! rec_g0(ii)=g0
+rec_k0(rec_wall(i))=k0
+rec_g0(rec_wall(i))=g0
 		
 		
 		
 		
-LSQM = ZERO
-DO LQ=1,IMAX
-LCOU=0
-    DO IQ=1,IDEG
-	IF (IQ.EQ.G0) CYCLE
-	    LCOU=LCOU+1
-LSQM(LQ,LCOU)=ILOCAL_RECON3(I)%STENCILS(LL,LQ,IQ)&
--ILOCAL_RECON3(I)%STENCILS(LL,LQ,G0)*ILOCAL_RECON3(I)%WALLCOEFG(IQ)/ILOCAL_RECON3(I)%WALLCOEFG(G0)
-    END DO
-END DO
-ILOCAL_RECON3(I)%TEMPSQ(1:IMAX,1:IDEG-1)=LSQM(1:IMAX,1:IDEG-1)
+lsqm = zero
+do lq=1,imax
+lcou=0
+    do iq=1,ideg
+	if (iq.eq.g0) cycle
+	    lcou=lcou+1
+lsqm(lq,lcou)=rec_stencils(ll,lq,iq,rec_wall(i))&
+-rec_stencils(ll,lq,g0,rec_wall(i))*rec_wallcoefg(iq,rec_wall(i))/rec_wallcoefg(g0,rec_wall(i))
+    end do
+end do
+rec_tempsq(1:imax,1:ideg-1,rec_wall(i))=lsqm(1:imax,1:ideg-1)
 
 
 
 
 
 
-VELLSQMAT=ZERO
-DO IQ=1,IDEG-1; DO JQ=1,IDEG-1;	DO LCC=1,IMAX
+vellsqmat=zero
+do iq=1,ideg-1; do jq=1,ideg-1;	do lcc=1,imax
 !now store the least square matrix
-VELLSQMAT(JQ,IQ)= VELLSQMAT(JQ,IQ)+(LSQM(LCC,JQ)*LSQM(LCC,IQ))
-END DO;	END DO;	END DO
-LSCQM=ZERO
-LSCQM(1:IDEG-1,1:IDEG-1)=VELLSQMAT(1:IDEG-1,1:IDEG-1)
+vellsqmat(jq,iq)= vellsqmat(jq,iq)+(lsqm(lcc,jq)*lsqm(lcc,iq))
+end do;	end do;	end do
+lscqm=zero
+lscqm(1:ideg-1,1:ideg-1)=vellsqmat(1:ideg-1,1:ideg-1)
 
-QFF=ZERO; RFF=ZERO; QTFF=ZERO; INVRFF=ZERO
-	  IVGT=IDEG
-    CALL QRDECOMPOSITION(LSCQM,QFF,RFF,IVGT-1)
-    CALL TRANSPOSEMATRIX(QFF,QTFF,IVGT-1)
+qff=zero; rff=zero; qtff=zero; invrff=zero
+	  ivgt=ideg
+    call qrdecomposition(lscqm,qff,rff,ivgt-1)
+    call transposematrix(qff,qtff,ivgt-1)
     
-    CALL INVERT(RFF,INVRFF,IVGT)
-!   final inverted R^(-1)*Q^(-1)
-ILOCAL_RECON3(I)%TEMPSQMAT(1:IDEG-1,1:IDEG-1) =&
- MATMUL(INVRFF(1:IDEG-1,1:IDEG-1),QTFF(1:IDEG-1,1:IDEG-1))
+    call invert(rff,invrff,ivgt)
+!   final inverted r^(-1)*q^(-1)
+  do mm_i=1,ideg-1
+    do mm_j=1,ideg-1
+      rec_tempsqmat(mm_i,mm_j,rec_wall(i))=zero
+      do mm_k=1,ideg-1
+        rec_tempsqmat(mm_i,mm_j,rec_wall(i))=rec_tempsqmat(mm_i,mm_j,rec_wall(i))+invrff(mm_i,mm_k)*qtff(mm_k,mm_j)
+      end do
+    end do
+  end do
 
 ! definy the matrix defining the least-square reconstruction in this case for velocity
-LSQM = ZERO
-DO LQ=1,IMAX
-LCOU=0
-    DO IQ=1,IDEG
-	IF (IQ.EQ.K0) CYCLE
-	    LCOU=LCOU+1
-	     LSQM(LQ,LCOU)=ILOCAL_RECON3(I)%STENCILS(LL,LQ,IQ)&
- -ILOCAL_RECON3(I)%STENCILS(LL,LQ,K0)*ILOCAL_RECON3(I)%WALLCOEFF(IQ)/ILOCAL_RECON3(I)%WALLCOEFF(K0)
-    END DO
-END DO
-ILOCAL_RECON3(I)%VELLSQ(1:IMAX,1:IDEG-1)=LSQM(1:IMAX,1:IDEG-1)
-VELLSQMAT=ZERO
+lsqm = zero
+do lq=1,imax
+lcou=0
+    do iq=1,ideg
+	if (iq.eq.k0) cycle
+	    lcou=lcou+1
+	     lsqm(lq,lcou)=rec_stencils(ll,lq,iq,rec_wall(i))&
+ -rec_stencils(ll,lq,k0,rec_wall(i))*rec_wallcoeff(iq,rec_wall(i))/rec_wallcoeff(k0,rec_wall(i))
+    end do
+end do
+rec_vellsq(1:imax,1:ideg-1,rec_wall(i))=lsqm(1:imax,1:ideg-1)
+vellsqmat=zero
 
 
 
 
-DO IQ=1,IDEG-1; DO JQ=1,IDEG-1;	DO LCC=1,IMAX
+do iq=1,ideg-1; do jq=1,ideg-1;	do lcc=1,imax
 !now store the least square matrix
-VELLSQMAT(JQ,IQ)= VELLSQMAT(JQ,IQ)+(LSQM(LCC,JQ)*LSQM(LCC,IQ))
-END DO;	END DO;	END DO
+vellsqmat(jq,iq)= vellsqmat(jq,iq)+(lsqm(lcc,jq)*lsqm(lcc,iq))
+end do;	end do;	end do
 
-LSCQM=ZERO
-LSCQM(1:IDEG-1,1:IDEG-1)=VELLSQMAT(1:IDEG-1,1:IDEG-1)
+lscqm=zero
+lscqm(1:ideg-1,1:ideg-1)=vellsqmat(1:ideg-1,1:ideg-1)
 
 
-QFF=ZERO; RFF=ZERO; QTFF=ZERO; INVRFF=ZERO
-	  IVGT=IDEG
-    CALL QRDECOMPOSITION(LSCQM,QFF,RFF,IVGT-1)
-    CALL TRANSPOSEMATRIX(QFF,QTFF,IVGT-1)
+qff=zero; rff=zero; qtff=zero; invrff=zero
+	  ivgt=ideg
+    call qrdecomposition(lscqm,qff,rff,ivgt-1)
+    call transposematrix(qff,qtff,ivgt-1)
     
-    CALL INVERT(RFF,INVRFF,IVGT)
-!   final inverted R^(-1)*Q^(-1)
-ILOCAL_RECON3(I)%VELINVLSQMAT(1:IDEG-1,1:IDEG-1) = &
-MATMUL(INVRFF(1:IDEG-1,1:IDEG-1),QTFF(1:IDEG-1,1:IDEG-1))
+    call invert(rff,invrff,ivgt)
+!   final inverted r^(-1)*q^(-1)
+  do mm_i=1,ideg-1
+    do mm_j=1,ideg-1
+      rec_velinvlsqmat(mm_i,mm_j,rec_wall(i))=zero
+      do mm_k=1,ideg-1
+        rec_velinvlsqmat(mm_i,mm_j,rec_wall(i))=rec_velinvlsqmat(mm_i,mm_j,rec_wall(i))+invrff(mm_i,mm_k)*qtff(mm_k,mm_j)
+      end do
+    end do
+  end do
 			
 		
 		
@@ -1513,156 +1531,155 @@ MATMUL(INVRFF(1:IDEG-1,1:IDEG-1),QTFF(1:IDEG-1,1:IDEG-1))
 		end do
 		
 		
-DEALLOCATE(LSQM,QFF,RFF,QTFF,INVRFF)
-		DEALLOCATE(VELLSQMAT)
-		DEALLOCATE(LSCQM)
-		DEALLOCATE(INTBS,BASEFACEVAL,BASEFACGVAL,PERMUTATION,PERMUTATIONG,xder,yder,zder)
-		DEALLOCATE(WLSQR)
-		DEALLOCATE(stencil)
-		DEALLOCATE(invmat)
-		DEALLOCATE(STENCILS)
+deallocate(lsqm,qff,rff,qtff,invrff)
+		deallocate(vellsqmat)
+		deallocate(lscqm)
+		deallocate(intbs,basefaceval,basefacgval,permutation,permutationg,xder,yder,zder)
+		deallocate(wlsqr)
+		deallocate(stencil)
+		deallocate(invmat)
+		deallocate(stencils)
 
 
-END SUBROUTINE PRESTORE_RECONSTRUCTION2
+end subroutine prestore_reconstruction2
 
 
-SUBROUTINE INDICATORMATRIX(N,iconsi,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
-
+subroutine indicatormatrix(n,iconsi,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 !> @brief
-!> This subroutine computes the indicator matrices for weno reconstructions
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,iconsi
-INTEGER::I,J,K,L,M,jx,jx2,IMAX,INUM,IDEG,INUMO,ELTYPE,ELEM_DEC,inump,ICONSIDERED
-REAL::VOLTEMP
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
-REAL,DIMENSION(1:6,1:4,1:DIMENSIONA)::ELEM_LISTD
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXG  !GLOBAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXL  !LOCAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXB  !CPU THAT THAT EACH CELL BELONGS TO
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXN  !INTERNAL INDEX FROM WHERE TO TAKE THE VALUES FROM COMMUNICATED MESSAGES
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ISHAPE !SHAPE OF EACH ELEMENT
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_XXC       !CELL CENTRE COORDINATES IN X
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_YYC       !CELL CENTRE COORDINATES IN Y
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ZZC      !CELL CENTRE COORDINATES IN Z
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_VOLUME    !CELL VOLUME
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_PERIODICFLAG
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_NODCOUNT  !NUMBER OF NODES
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_X           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Y           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Z           !COORDINATES OF EACH NODE IN X
-REAL,allocatable,DIMENSION(:,:)::WEFF
-allocate(weff(1:IDEGFREE,1:IDEGFREE))
+!> this subroutine computes the indicator matrices for weno reconstructions
+implicit none
+integer,intent(in)::n,iconsi
+integer::i,j,k,l,m,jx,jx2,imax,inum,ideg,inumo,eltype,elem_dec,inump,iconsidered
+real::voltemp
+real,dimension(1:8,1:dimensiona)::vext,nodes_list
+real,dimension(1:6,1:4,1:dimensiona)::elem_listd
+real,dimension(1:dimensiona,1:numberofpoints)::qpoints
+real,dimension(1:numberofpoints)::wequa3d
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexg  !global index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexl  !local index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexb  !cpu that that each cell belongs to
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexn  !internal index from where to take the values from communicated messages
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ishape !shape of each element
+real,allocatable,dimension(:,:),intent(inout)::ilox_xxc       !cell centre coordinates in x
+real,allocatable,dimension(:,:),intent(inout)::ilox_yyc       !cell centre coordinates in y
+real,allocatable,dimension(:,:),intent(inout)::ilox_zzc      !cell centre coordinates in z
+real,allocatable,dimension(:,:),intent(inout)::ilox_volume    !cell volume
+integer,allocatable,dimension(:,:),intent(inout)::ilox_periodicflag
+integer,allocatable,dimension(:,:,:),intent(inout)::ilon_nodcount  !number of nodes
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_x           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_y           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_z           !coordinates of each node in x
+real,allocatable,dimension(:,:)::weff
+allocate(weff(1:idegfree,1:idegfree))
 i=iconsi
 
 
-weff=ZERO
+weff=zero
 
-	IMAX=IELEM(N,I)%inumneighbours-1
-	INUM=IELEM(N,I)%inumneighbours
-	IDEG=IELEM(N,I)%iDEGFREE
-	 INUMO=ielem(n,i)%iorder
+	imax=ielem_inumneighbours(i)-1
+	inum=ielem_inumneighbours(i)
+	ideg=ielem_idegfree(i)
+	 inumo=ielem_iorder(i)
 	 
 	iconsidered=i
 	 
 
-	VEXT=ZERO
-    NODES_LIST=ZERO
-    ELTYPE=IELEM(N,I)%ISHAPE
-    ELEM_DEC=IELEM(N,I)%VDEC
-    ELEM_LISTD=ZERO
-          ILOCAL_RECON3(I)%INDICATOR(1:IDEG,1:IDEG)=ZERO
-      jx=IELEM(N,I)%NONODES
+	vext=zero
+    nodes_list=zero
+    eltype=ielem_ishape(i)
+    elem_dec=ielem_vdec(i)
+    elem_listd=zero
+          rec_indicator(1:ideg,1:ideg,i)=zero
+      jx=ielem_nonodes(i)
      
 	  if (dimensiona.eq.3)then
-	  do K=1,jx
-	    JX2=IELEM(N,I)%NODES(k)
-	    NODES_LIST(k,1)=ILON_X(1,1,k)
-	    NODES_LIST(k,2)=ILON_y(1,1,k)
-	    NODES_LIST(k,3)=ILON_z(1,1,k)
-	    VEXT(K,:)=NODES_LIST(k,:)
-	  END DO
-	  CALL DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
+	  do k=1,jx
+	    jx2=ielem_nodes(k,i)
+	    nodes_list(k,1)=ilon_x(1,1,k)
+	    nodes_list(k,2)=ilon_y(1,1,k)
+	    nodes_list(k,3)=ilon_z(1,1,k)
+	    vext(k,:)=nodes_list(k,:)
+	  end do
+	  call decompose3(n,eltype,nodes_list,elem_listd)
 	  
 	  else
 
-	  do K=1,jx
-	    JX2=IELEM(N,I)%NODES(k)
-	    NODES_LIST(k,1)=ILON_X(1,1,k)
-	    NODES_LIST(k,2)=ILON_y(1,1,k)
-	    VEXT(K,1:2)=NODES_LIST(k,1:2)
-	  END DO
-	  CALL DECOMPOSE2(n,eltype,NODES_LIST,ELEM_LISTD)
+	  do k=1,jx
+	    jx2=ielem_nodes(k,i)
+	    nodes_list(k,1)=ilon_x(1,1,k)
+	    nodes_list(k,2)=ilon_y(1,1,k)
+	    vext(k,1:2)=nodes_list(k,1:2)
+	  end do
+	  call decompose2(n,eltype,nodes_list,elem_listd)
 	  	  end if
 
-	 SELECT CASE(ielem(n,i)%ishape)
+	 select case(ielem_ishape(i))
 
-      CASE(1)
-      CALL QUADRATUREHEXA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=HEXAVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+      case(1)
+      call quadraturehexa(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=hexavolume(n,vext,qpoints,wequa3d)
       inump=qp_hexa
-      CASE(2)
-      CALL QUADRATURETETRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=tetraVOLUME(N,VEXT)
+      case(2)
+      call quadraturetetra(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=tetravolume(n,vext)
       inump=qp_tetra
-      CASE(3)
-      CALL QUADRATUREPYRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=pyraVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+      case(3)
+      call quadraturepyra(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=pyravolume(n,vext,qpoints,wequa3d)
       inump=qp_pyra
-      CASE(4)
-      CALL QUADRATUREPRISM(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=prismVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+      case(4)
+      call quadratureprism(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=prismvolume(n,vext,qpoints,wequa3d)
       inump=qp_prism
 
-      CASE(5)
-      CALL QUADRATUREquad(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=quadVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+      case(5)
+      call quadraturequad(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=quadvolume(n,vext,qpoints,wequa3d)
       inump=qp_quad
 
 
-      CASE(6)
-      CALL QUADRATUREtriangle(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=TRIANGLEVOLUME(N,VEXT)
+      case(6)
+      call quadraturetriangle(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=trianglevolume(n,vext)
       inump=qp_triangle
 
-      END SELECT      
+      end select      
       
 	if (dimensiona.eq.3)then
-	IF (ielem(n,i)%mode.EQ.1)THEN
-	  do K=1,ELEM_DEC
-	      VEXT(1:4,1:3)=ELEM_LISTD(k,1:4,1:3)
-	      CALL QUADRATURETETRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-	      voltemp=tetraVOLUME(N,VEXT)
+	if (ielem_mode(i).eq.1)then
+	  do k=1,elem_dec
+	      vext(1:4,1:3)=elem_listd(k,1:4,1:3)
+	      call quadraturetetra(n,igqrules,vext,qpoints,wequa3d)
+	      voltemp=tetravolume(n,vext)
 	      inump=qp_tetra
-	      CALL WENOTET(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
-	      ILOCAL_RECON3(I)%INDICATOR(1:IDEG,1:IDEG)=ILOCAL_RECON3(I)%INDICATOR(1:IDEG,1:IDEG)+WEFF(1:IDEG,1:IDEG)
+	      call wenotet(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
+	      rec_indicator(1:ideg,1:ideg,i)=rec_indicator(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
 	
-	  END DO
-	ELSE
+	  end do
+	else
 	  
 
-	    CALL WENOTET(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
-	      ILOCAL_RECON3(I)%INDICATOR(1:IDEG,1:IDEG)=ILOCAL_RECON3(I)%INDICATOR(1:IDEG,1:IDEG)+WEFF(1:IDEG,1:IDEG)
+	    call wenotet(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
+	      rec_indicator(1:ideg,1:ideg,i)=rec_indicator(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
 
 
 
 
 
 
-	END IF
+	end if
 	else
 
-	    do K=1,ELEM_DEC
-            VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
-            CALL QUADRATUREtriangle(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-            voltemp=TRIANGLEVOLUME(N,VEXT)
+	    do k=1,elem_dec
+            vext(1:3,1:2)=elem_listd(k,1:3,1:2)
+            call quadraturetriangle(n,igqrules,vext,qpoints,wequa3d)
+            voltemp=trianglevolume(n,vext)
             inump=qp_triangle
            
-	    CALL WENOTET2d(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,ideg,iconsidered)
+	    call wenotet2d(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
              
-	      ILOCAL_RECON3(I)%INDICATOR(1:IDEG,1:IDEG)=ILOCAL_RECON3(I)%INDICATOR(1:IDEG,1:IDEG)+WEFF(1:IDEG,1:IDEG)
-            END DO
+	      rec_indicator(1:ideg,1:ideg,i)=rec_indicator(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
+            end do
 
 
 	end if
@@ -1670,142 +1687,142 @@ weff=ZERO
 deallocate(weff)
 
 
-END SUBROUTINE INDICATORMATRIX
+end subroutine indicatormatrix
 
 
-SUBROUTINE INDICATORMATRIX2(N,iconsi,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+subroutine indicatormatrix2(n,iconsi,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 !> @brief
-!> This subroutine computes the indicator matrices for cweno reconstructions of the lower-order polynomials
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,iconsi
-INTEGER::I,J,K,L,M,jx,jx2,IMAX,INUM,IDEG,INUMO,ELTYPE,ELEM_DEC,inump,ICONSIDERED
-REAL::VOLTEMP
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
-REAL,DIMENSION(1:6,1:4,1:DIMENSIONA)::ELEM_LISTD
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXG  !GLOBAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXL  !LOCAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXB  !CPU THAT THAT EACH CELL BELONGS TO
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXN  !INTERNAL INDEX FROM WHERE TO TAKE THE VALUES FROM COMMUNICATED MESSAGES
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ISHAPE !SHAPE OF EACH ELEMENT
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_XXC       !CELL CENTRE COORDINATES IN X
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_YYC       !CELL CENTRE COORDINATES IN Y
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ZZC      !CELL CENTRE COORDINATES IN Z
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_VOLUME    !CELL VOLUME
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_PERIODICFLAG
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_NODCOUNT  !NUMBER OF NODES
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_X           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Y           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Z           !COORDINATES OF EACH NODE IN X
-REAL,allocatable,DIMENSION(:,:)::WEFF
-allocate(weff(1:IDEGFREE2,1:IDEGFREE2))
+!> this subroutine computes the indicator matrices for cweno reconstructions of the lower-order polynomials
+implicit none
+integer,intent(in)::n,iconsi
+integer::i,j,k,l,m,jx,jx2,imax,inum,ideg,inumo,eltype,elem_dec,inump,iconsidered
+real::voltemp
+real,dimension(1:8,1:dimensiona)::vext,nodes_list
+real,dimension(1:6,1:4,1:dimensiona)::elem_listd
+real,dimension(1:dimensiona,1:numberofpoints)::qpoints
+real,dimension(1:numberofpoints)::wequa3d
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexg  !global index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexl  !local index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexb  !cpu that that each cell belongs to
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexn  !internal index from where to take the values from communicated messages
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ishape !shape of each element
+real,allocatable,dimension(:,:),intent(inout)::ilox_xxc       !cell centre coordinates in x
+real,allocatable,dimension(:,:),intent(inout)::ilox_yyc       !cell centre coordinates in y
+real,allocatable,dimension(:,:),intent(inout)::ilox_zzc      !cell centre coordinates in z
+real,allocatable,dimension(:,:),intent(inout)::ilox_volume    !cell volume
+integer,allocatable,dimension(:,:),intent(inout)::ilox_periodicflag
+integer,allocatable,dimension(:,:,:),intent(inout)::ilon_nodcount  !number of nodes
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_x           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_y           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_z           !coordinates of each node in x
+real,allocatable,dimension(:,:)::weff
+allocate(weff(1:idegfree2,1:idegfree2))
 i=iconsi
 
-	IMAX=numneighbours2-1
-	INUM=numneighbours2
-	IDEG=iDEGFREE2
-	 INUMO=IORDER2
-	 weff=ZERO
+	imax=numneighbours2-1
+	inum=numneighbours2
+	ideg=idegfree2
+	 inumo=iorder2
+	 weff=zero
 	
 	 iconsidered=i
 
-	VEXT=ZERO
-    NODES_LIST=ZERO
-    ELTYPE=IELEM(N,I)%ISHAPE
-    ELEM_DEC=IELEM(N,I)%VDEC
-    ELEM_LISTD=ZERO
-          ILOCAL_RECON3(I)%INDICATORc(1:IDEG,1:IDEG)=ZERO
-      jx=IELEM(N,I)%NONODES
+	vext=zero
+    nodes_list=zero
+    eltype=ielem_ishape(i)
+    elem_dec=ielem_vdec(i)
+    elem_listd=zero
+          rec_indicatorc(1:ideg,1:ideg,i)=zero
+      jx=ielem_nonodes(i)
      
 	  if (dimensiona.eq.3)then
-	  do K=1,jx
-	    JX2=IELEM(N,I)%NODES(k)
-	    NODES_LIST(k,1)=ILON_X(1,1,k)
-	    NODES_LIST(k,2)=ILON_y(1,1,k)
-	    NODES_LIST(k,3)=ILON_z(1,1,k)
-	    VEXT(K,:)=NODES_LIST(k,:)
-	  END DO
-	  CALL DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
+	  do k=1,jx
+	    jx2=ielem_nodes(k,i)
+	    nodes_list(k,1)=ilon_x(1,1,k)
+	    nodes_list(k,2)=ilon_y(1,1,k)
+	    nodes_list(k,3)=ilon_z(1,1,k)
+	    vext(k,:)=nodes_list(k,:)
+	  end do
+	  call decompose3(n,eltype,nodes_list,elem_listd)
 	  
 	  else
 
-	  do K=1,jx
-	    JX2=IELEM(N,I)%NODES(k)
-	    NODES_LIST(k,1)=ILON_X(1,1,k)
-	    NODES_LIST(k,2)=ILON_y(1,1,k)
-	    VEXT(K,:)=NODES_LIST(k,:)
-	  END DO
-	  CALL DECOMPOSE2(n,eltype,NODES_LIST,ELEM_LISTD)
+	  do k=1,jx
+	    jx2=ielem_nodes(k,i)
+	    nodes_list(k,1)=ilon_x(1,1,k)
+	    nodes_list(k,2)=ilon_y(1,1,k)
+	    vext(k,:)=nodes_list(k,:)
+	  end do
+	  call decompose2(n,eltype,nodes_list,elem_listd)
 	  	  end if
 
-	 SELECT CASE(ielem(n,i)%ishape)
+	 select case(ielem_ishape(i))
 
-      CASE(1)
-      CALL QUADRATUREHEXA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=HEXAVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+      case(1)
+      call quadraturehexa(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=hexavolume(n,vext,qpoints,wequa3d)
       inump=qp_hexa
-      CASE(2)
-      CALL QUADRATURETETRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=tetraVOLUME(N,VEXT)
+      case(2)
+      call quadraturetetra(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=tetravolume(n,vext)
       inump=qp_tetra
-      CASE(3)
-      CALL QUADRATUREPYRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=pyraVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+      case(3)
+      call quadraturepyra(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=pyravolume(n,vext,qpoints,wequa3d)
       inump=qp_pyra
-      CASE(4)
-      CALL QUADRATUREPRISM(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=prismVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+      case(4)
+      call quadratureprism(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=prismvolume(n,vext,qpoints,wequa3d)
       inump=qp_prism
 
-      CASE(5)
-      CALL QUADRATUREquad(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=quadVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+      case(5)
+      call quadraturequad(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=quadvolume(n,vext,qpoints,wequa3d)
       inump=qp_quad
 
 
-      CASE(6)
-      CALL QUADRATUREtriangle(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-      voltemp=TRIANGLEVOLUME(N,VEXT)
+      case(6)
+      call quadraturetriangle(n,igqrules,vext,qpoints,wequa3d)
+      voltemp=trianglevolume(n,vext)
       inump=qp_triangle
 
-      END SELECT      
+      end select      
       
 	if (dimensiona.eq.3)then
-	IF (ielem(n,i)%mode.EQ.1)THEN
-	  do K=1,ELEM_DEC
-	      VEXT(1:4,1:3)=ELEM_LISTD(k,1:4,1:3)
-	      CALL QUADRATURETETRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-	      voltemp=tetraVOLUME(N,VEXT)
+	if (ielem_mode(i).eq.1)then
+	  do k=1,elem_dec
+	      vext(1:4,1:3)=elem_listd(k,1:4,1:3)
+	      call quadraturetetra(n,igqrules,vext,qpoints,wequa3d)
+	      voltemp=tetravolume(n,vext)
 	      inump=qp_tetra
-	      CALL WENOTET(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
-	      ILOCAL_RECON3(I)%INDICATORc(1:IDEG,1:IDEG)=ILOCAL_RECON3(I)%INDICATORc(1:IDEG,1:IDEG)+WEFF(1:IDEG,1:IDEG)
+	      call wenotet(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
+	      rec_indicatorc(1:ideg,1:ideg,i)=rec_indicatorc(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
 	
-	  END DO
-	ELSE
+	  end do
+	else
 	  
 
-	    CALL WENOTET(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
-	      ILOCAL_RECON3(I)%INDICATORc(1:IDEG,1:IDEG)=ILOCAL_RECON3(I)%INDICATORc(1:IDEG,1:IDEG)+WEFF(1:IDEG,1:IDEG)
+	    call wenotet(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
+	      rec_indicatorc(1:ideg,1:ideg,i)=rec_indicatorc(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
 
 
 
 
 
 
-	END IF
+	end if
 	else
             
-            do K=1,ELEM_DEC
-            VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
-            CALL QUADRATUREtriangle(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-            voltemp=TRIANGLEVOLUME(N,VEXT)
+            do k=1,elem_dec
+            vext(1:3,1:2)=elem_listd(k,1:3,1:2)
+            call quadraturetriangle(n,igqrules,vext,qpoints,wequa3d)
+            voltemp=trianglevolume(n,vext)
             inump=qp_triangle
 
-	    CALL WENOTET2d(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,ideg,iconsidered)
+	    call wenotet2d(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-	      ILOCAL_RECON3(I)%INDICATORc(1:IDEG,1:IDEG)=ILOCAL_RECON3(I)%INDICATORc(1:IDEG,1:IDEG)+WEFF(1:IDEG,1:IDEG)
-            END DO
+	      rec_indicatorc(1:ideg,1:ideg,i)=rec_indicatorc(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
+            end do
             
 	end if
 
@@ -1814,2032 +1831,2032 @@ i=iconsi
 deallocate(weff)
 
 
-END SUBROUTINE INDICATORMATRIX2
+end subroutine indicatormatrix2
 
 	
 
 
 
-SUBROUTINE WENOTET(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+subroutine wenotet(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,INUMO,INUMP,IDEG,iconsidered
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-REAL,allocatable,DIMENSION(:,:),INTENT(INOUT)::WEFF
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n,inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+real,allocatable,dimension(:,:),intent(inout)::weff
+weff=zero
 
 
-		IF (POLY.EQ.1)THEN
-           SELECT CASE(Inumo)
-		 CASE(1)
-		CALL PH1(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+		if (poly.eq.1)then
+           select case(inumo)
+		 case(1)
+		call ph1(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(2)
-		CALL PH2(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+		case(2)
+		call ph2(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(3)
-		CALL PH3(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+		case(3)
+		call ph3(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(4)
-		CALL PH4(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+		case(4)
+		call ph4(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(5)
-		CALL PH5(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+		case(5)
+		call ph5(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(6)
-		CALL PH6(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+		case(6)
+		call ph6(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 		
-	END SELECT
-	END IF
-	IF (POLY.EQ.2)THEN
-           SELECT CASE(Inumo)
-		 CASE(1)
-		CALL PL1(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+	end select
+	end if
+	if (poly.eq.2)then
+           select case(inumo)
+		 case(1)
+		call pl1(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(2)
-		CALL PL2(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+		case(2)
+		call pl2(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(3)
-		CALL PL3(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+		case(3)
+		call pl3(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(4)
-		CALL PL4(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+		case(4)
+		call pl4(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(5)
-		CALL PL5(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+		case(5)
+		call pl5(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(6)
-		CALL PL6(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,iconsidered)
+		case(6)
+		call pl6(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 		
-	END SELECT
-	END IF
+	end select
+	end if
 	
-	IF (POLY.EQ.4)THEN
-           SELECT CASE(Inumo)
-		 CASE(1)
-		CALL TL3D1(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+	if (poly.eq.4)then
+           select case(inumo)
+		 case(1)
+		call tl3d1(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(2)
-		CALL TL3D2(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(2)
+		call tl3d2(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(3)
-		CALL TL3D3(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(3)
+		call tl3d3(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(4)
-		CALL TL3D4(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(4)
+		call tl3d4(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(5)
-		CALL TL3D5(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(5)
+		call tl3d5(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(6)
-		CALL TL3D6(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(6)
+		call tl3d6(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 		
-	END SELECT
-	END IF
+	end select
+	end if
 	
 	
 	
 
-END SUBROUTINE WENOTET
+end subroutine wenotet
 
-SUBROUTINE PH1(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+subroutine ph1(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=ZERO
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
-			INTEG =ZERO
+ 	do i=1,ideg
+        	do j=1,ideg
+			integ =zero
                 scalerx=1.0d0
                 
                 
-       			 DO K=1,inump
+       			 do k=1,inump
 	
-	    PH=DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-		DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-		DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
+	    ph=dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+		dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+		dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 
-	    INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+	    integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE PH1
-SUBROUTINE PH2(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine ph1
+subroutine ph2(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=ZERO
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =ZERO
-  DO K=1,iNUMp
-	PH=DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
+			integ =zero
+  do k=1,inump
+	ph=dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 	
-	INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-  ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+	integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+  enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE PH2
-SUBROUTINE PH3(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine ph2
+subroutine ph3(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-  DO K=1,inump
-	  PH=DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-	DFZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
+			integ =zero
+  do k=1,inump
+	  ph=dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+	dfz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 	
 
-	INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-  ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+	integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+  enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE PH3
-SUBROUTINE PH4(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine ph3
+subroutine ph4(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-DO K=1,inump
-    PH=DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-    DFZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
+			integ =zero
+do k=1,inump
+    ph=dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+    dfz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 
-    INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+    integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE PH4
-SUBROUTINE PH5(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine ph4
+subroutine ph5(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
-DO I=1,IDEG
-DO J=1,IDEG
+do i=1,ideg
+do j=1,ideg
 scalerx=1.0d0
                 
-	INTEG =zero
-	  DO K=1,inump
-PH=DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-  DFZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
+	integ =zero
+	  do k=1,inump
+ph=dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+  dfz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 
-		INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-	  ENDDO
-	WEFF(I,J)=WEFF(I,J)+INTEG
-ENDDO
-ENDDO
+		integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+	  enddo
+	weff(i,j)=weff(i,j)+integ
+enddo
+enddo
 
-END SUBROUTINE PH5
-SUBROUTINE PH6(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine ph5
+subroutine ph6(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-REAL::PH,INTEG,scalerx
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+real::ph,integ,scalerx
 integer::i,j,k
-WEFF=zero
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-			PH=DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-		    DFX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-		    DFX6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX5Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX5Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX4Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX4Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX3Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2Y4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX4YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX4YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX3Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2Y3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX3YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2Y2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Y2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2YZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2YZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFX2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFX2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFY2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFY2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFXZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFXZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFYZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFYZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DFZ6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DFZ6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+			ph=dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+		    dfx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+		    dfx6(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx6(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx5y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx5y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx4y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx4y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx3y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2y4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy6(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy6(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx4yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx4yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx3y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2y3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx3yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2y2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2y2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2yz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2yz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfx2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfx2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfy2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfy2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfxz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfxz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfyz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfyz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dfz6(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dfz6(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 
 				
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE PH6
+end subroutine ph6
 
-SUBROUTINE PL1(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+subroutine pl1(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
+			integ =zero
+       			 do k=1,inump
 	
-				PH=DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				   DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				   DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
+				ph=dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				   dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				   dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE PL1
-SUBROUTINE PL2(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine pl1
+subroutine pl2(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-				PH=DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+				ph=dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 				
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE PL2
-SUBROUTINE PL3(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine pl2
+subroutine pl3(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-				 PH=DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
-				
-
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
-
-END SUBROUTINE PL3
-SUBROUTINE PL4(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
-!> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
-		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
-        	scalerx=1.0d0
-                
-			INTEG =zero
-       			 DO K=1,inump
-				PH=DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				DLZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
-
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
-
-END SUBROUTINE PL4
-SUBROUTINE PL5(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
-!> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
-		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
-        	scalerx=1.0d0
-                
-			INTEG =zero
-       			 DO K=1,inump
-		PH=DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-		  DLX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
-
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
-
-END SUBROUTINE PL5
-SUBROUTINE PL6(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
-!> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
-		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
-        	scalerx=1.0d0
-                
-			INTEG =zero
-       			 DO K=1,inump
-			     PH=DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-		    DLX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-		    DLX6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX5Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX5Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX4Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX4Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Y4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX4YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX4YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Y3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Y2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Y2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2YZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2YZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLX2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLX2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLY2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLY2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLXZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLXZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLYZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLYZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  DLZ6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*DLZ6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
-
+			integ =zero
+       			 do k=1,inump
+				 ph=dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 				
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE PL6
-
-
-SUBROUTINE TL3D1(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine pl3
+subroutine pl4(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
+			integ =zero
+       			 do k=1,inump
+				ph=dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dly2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				dlz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
+
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
+
+end subroutine pl4
+subroutine pl5(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
+!> @brief
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
+		
+ 	do i=1,ideg
+        	do j=1,ideg
+        	scalerx=1.0d0
+                
+			integ =zero
+       			 do k=1,inump
+		ph=dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+		  dlx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
+
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
+
+end subroutine pl5
+subroutine pl6(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
+!> @brief
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
+		
+ 	do i=1,ideg
+        	do j=1,ideg
+        	scalerx=1.0d0
+                
+			integ =zero
+       			 do k=1,inump
+			     ph=dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+		    dlx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+		    dlx6(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx6(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx5y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx5y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx4y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx4y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2y4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly6(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly6(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx4yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx4yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2y3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2y2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2y2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2yz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2yz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlx2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlx2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dly2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dly2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlxz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlxz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlyz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlyz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  dlz6(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*dlz6(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
+
+				
+
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
+
+end subroutine pl6
+
+
+subroutine tl3d1(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
+!> @brief
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
+		
+ 	do i=1,ideg
+        	do j=1,ideg
+        	scalerx=1.0d0
+                
+			integ =zero
+       			 do k=1,inump
 	
-				PH=TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				   TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				   TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
+				ph=tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				   tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				   tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE TL3D1
-SUBROUTINE TL3D2(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine tl3d1
+subroutine tl3d2(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-				PH=TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+				ph=tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 				
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE TL3D2
-SUBROUTINE TL3D3(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine tl3d2
+subroutine tl3d3(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-				 PH=TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
-				
-
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
-
-END SUBROUTINE TL3D3
-SUBROUTINE TL3D4(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
-!> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
-		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
-        	scalerx=1.0d0
-                
-			INTEG =zero
-       			 DO K=1,inump
-				PH=TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-				TL3DZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
-
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
-
-END SUBROUTINE TL3D4
-SUBROUTINE TL3D5(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
-!> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
-		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
-        	scalerx=1.0d0
-                
-			INTEG =zero
-       			 DO K=1,inump
-		PH=TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-		  TL3DX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
-
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
-
-END SUBROUTINE TL3D5
-SUBROUTINE TL3D6(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
-!> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
-		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
-        	scalerx=1.0d0
-                
-			INTEG =zero
-       			 DO K=1,inump
-			     PH=TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXYZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXYZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-		    TL3DX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX4Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXYZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-		    TL3DX6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX5Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX5Y(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX4Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX4Y2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Y3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Y4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX4YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX4YZ(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Y2Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Y3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y3Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY4Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY5Z(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3YZ2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Y2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Y2Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY3Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY4Z2(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2YZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2YZ3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXY2Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY3Z3(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DX2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DX2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXYZ4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DY2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DY2Z4(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DXZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DXZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DYZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DYZ5(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED) + &
-                  TL3DZ6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),I,ICONSIDERED)*TL3DZ6(QPOINTS(1,K),QPOINTS(2,K),QPOINTS(3,K),J,ICONSIDERED)
-
+			integ =zero
+       			 do k=1,inump
+				 ph=tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
 				
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE TL3D6
-
-
-
-
-
-SUBROUTINE WENOTET2D(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine tl3d3
+subroutine tl3d4(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-REAL,allocatable,DIMENSION(:,:),INTENT(INOUT)::WEFF
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
+		
+ 	do i=1,ideg
+        	do j=1,ideg
+        	scalerx=1.0d0
+                
+			integ =zero
+       			 do k=1,inump
+				ph=tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+				tl3dz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
+
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
+
+end subroutine tl3d4
+subroutine tl3d5(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
+!> @brief
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
+		
+ 	do i=1,ideg
+        	do j=1,ideg
+        	scalerx=1.0d0
+                
+			integ =zero
+       			 do k=1,inump
+		ph=tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+		  tl3dx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
+
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
+
+end subroutine tl3d5
+subroutine tl3d6(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
+!> @brief
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
+		
+ 	do i=1,ideg
+        	do j=1,ideg
+        	scalerx=1.0d0
+                
+			integ =zero
+       			 do k=1,inump
+			     ph=tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxyz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxyz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+		    tl3dx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx4y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxyz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+		    tl3dx6(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx6(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx5y(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx5y(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx4y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx4y2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3y3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2y4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy6(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy6(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx4yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx4yz(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3y2z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2y3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y3z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy4z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy5z(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3yz2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2y2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2y2z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy3z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy4z2(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2yz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2yz3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxy2z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy3z3(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dx2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dx2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxyz4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dy2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dy2z4(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dxz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dxz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dyz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dyz5(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered) + &
+                  tl3dz6(qpoints(1,k),qpoints(2,k),qpoints(3,k),i,iconsidered)*tl3dz6(qpoints(1,k),qpoints(2,k),qpoints(3,k),j,iconsidered)
+
+				
+
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
+
+end subroutine tl3d6
+
+
+
+
+
+subroutine wenotet2d(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
+!> @brief
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n,inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+real,allocatable,dimension(:,:),intent(inout)::weff
+weff=zero
 
  
-		IF (POLY.EQ.1)THEN
-           SELECT CASE(Inumo)
-		 CASE(1)
-		CALL P2DH1(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		if (poly.eq.1)then
+           select case(inumo)
+		 case(1)
+		call p2dh1(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(2)
-		CALL P2DH2(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(2)
+		call p2dh2(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(3)
-		CALL P2DH3(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(3)
+		call p2dh3(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(4)
-		CALL P2DH4(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(4)
+		call p2dh4(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(5)
-		CALL P2DH5(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(5)
+		call p2dh5(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(6)
-		CALL P2DH6(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(6)
+		call p2dh6(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 		
-	END SELECT
+	end select
 	
-	END IF
+	end if
 	
 	
 	
-	IF (POLY.EQ.4)THEN
-           SELECT CASE(Inumo)
-		 CASE(1)
-		CALL TL2DH1(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+	if (poly.eq.4)then
+           select case(inumo)
+		 case(1)
+		call tl2dh1(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(2)
-		CALL TL2DH2(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(2)
+		call tl2dh2(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(3)
-		CALL TL2DH3(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(3)
+		call tl2dh3(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(4)
-		CALL TL2DH4(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(4)
+		call tl2dh4(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(5)
-		CALL TL2DH5(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(5)
+		call tl2dh5(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-		CASE(6)
-		CALL TL2DH6(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+		case(6)
+		call tl2dh6(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 		
-	END SELECT
+	end select
 	
-	END IF
+	end if
 	
 	
 	
 
-END SUBROUTINE WENOTET2D
+end subroutine wenotet2d
 ! 
-SUBROUTINE P2DH1(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+subroutine p2dh1(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
+			integ =zero
+       			 do k=1,inump
 	
-				PH=DF2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				   DF2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY(QPOINTS(1,K),QPOINTS(2,K),J,iCONSIDERED)
+				ph=df2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				   df2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy(qpoints(1,k),qpoints(2,k),j,iconsidered)
 				   
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
 !           		
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE P2DH1
-SUBROUTINE P2DH2(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine p2dh1
+subroutine p2dh2(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-				PH=DF2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DX2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DXY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+				ph=df2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dx2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dxy(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy(qpoints(1,k),qpoints(2,k),j,iconsidered)
 				
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE P2DH2
-SUBROUTINE P2DH3(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine p2dh2
+subroutine p2dh3(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
         	
         	
         	
         	
-			INTEG =zero
-       			 DO K=1,inump
-				 PH=DF2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DX2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DXY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DX3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DX2Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DXY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+				 ph=df2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dx2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dxy(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dx3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dx2y(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dxy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy3(qpoints(1,k),qpoints(2,k),j,iconsidered)
 				
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE P2DH3
-SUBROUTINE P2DH4(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine p2dh3
+subroutine p2dh4(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-				PH=DF2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DX2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DXY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DX3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DX2Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DXY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DX4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DX3Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX3Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DXY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				DF2DY4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+				ph=df2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dx2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dxy(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dx3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dx2y(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dxy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dx4(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dx3y(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx3y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dx2y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dxy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				df2dy4(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy4(qpoints(1,k),qpoints(2,k),j,iconsidered)
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE P2DH4
-SUBROUTINE P2DH5(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine p2dh4
+subroutine p2dh5(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-		PH=DF2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DXY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX2Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DXY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX3Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX3Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DXY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DY4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-		  DF2DX5(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX5(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX4Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX4Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX3Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX3Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX2Y3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2Y3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DXY4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DY5(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY5(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+		ph=df2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dxy(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx2y(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dxy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx4(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx3y(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx3y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx2y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dxy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dy4(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+		  df2dx5(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx5(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx4y(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx4y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx3y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx3y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx2y3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2y3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dxy4(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dy5(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy5(qpoints(1,k),qpoints(2,k),j,iconsidered)
                  
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE P2DH5
-SUBROUTINE P2DH6(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine p2dh5
+subroutine p2dh6(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-			PH=DF2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DXY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX2Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DXY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX3Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX3Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DXY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DY4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-		    DF2DX5(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX5(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX4Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX4Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX3Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX3Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX2Y3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2Y3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DXY4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DY5(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY5(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-		    DF2DX6(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX6(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX5Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX5Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX4Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX4Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX3Y3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX3Y3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DX2Y4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DX2Y4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DXY5(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DXY5(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  DF2DY6(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*DF2DY6(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+			ph=df2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dxy(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx2y(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dxy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx4(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx3y(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx3y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx2y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dxy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dy4(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+		    df2dx5(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx5(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx4y(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx4y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx3y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx3y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx2y3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2y3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dxy4(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dy5(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy5(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+		    df2dx6(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx6(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx5y(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx5y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx4y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx4y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx3y3(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx3y3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dx2y4(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dx2y4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dxy5(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dxy5(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  df2dy6(qpoints(1,k),qpoints(2,k),i,iconsidered)*df2dy6(qpoints(1,k),qpoints(2,k),j,iconsidered)
 
 				
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE P2DH6
+end subroutine p2dh6
 
-SUBROUTINE TL2DH1(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+subroutine tl2dh1(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
+			integ =zero
+       			 do k=1,inump
 	
-				PH=TL2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				   TL2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED)
+				ph=tl2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				   tl2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy(qpoints(1,k),qpoints(2,k),j,iconsidered)
 				   
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
 !           		
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE TL2DH1
-SUBROUTINE TL2DH2(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine tl2dh1
+subroutine tl2dh2(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-				PH=TL2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DX2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DXY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+				ph=tl2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dx2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dxy(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy(qpoints(1,k),qpoints(2,k),j,iconsidered)
 				
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE TL2DH2
-SUBROUTINE TL2DH3(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine tl2dh2
+subroutine tl2dh3(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
         	
         	
         	
         	
-			INTEG =zero
-       			 DO K=1,inump
-				 PH=TL2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DX2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DXY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DX3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DX2Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DXY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+				 ph=tl2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dx2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dxy(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dx3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dx2y(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dxy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy3(qpoints(1,k),qpoints(2,k),j,iconsidered)
 				
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE TL2DH3
-SUBROUTINE TL2DH4(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine tl2dh3
+subroutine tl2dh4(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-				PH=TL2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DX2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DXY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DX3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DX2Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DXY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DX4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DX3Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX3Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DXY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-				TL2DY4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+				ph=tl2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dx2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dxy(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dx3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dx2y(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dxy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dx4(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dx3y(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx3y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dx2y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dxy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+				tl2dy4(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy4(qpoints(1,k),qpoints(2,k),j,iconsidered)
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE TL2DH4
-SUBROUTINE TL2DH5(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine tl2dh4
+subroutine tl2dh5(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-		PH=TL2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DXY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX2Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DXY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX3Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX3Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DXY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DY4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-		  TL2DX5(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX5(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX4Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX4Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX3Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX3Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX2Y3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2Y3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DXY4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DY5(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY5(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+		ph=tl2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dxy(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx2y(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dxy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx4(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx3y(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx3y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx2y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dxy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dy4(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+		  tl2dx5(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx5(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx4y(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx4y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx3y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx3y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx2y3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2y3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dxy4(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dy5(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy5(qpoints(1,k),qpoints(2,k),j,iconsidered)
                  
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE TL2DH5
-SUBROUTINE TL2DH6(N,WEFF,INUMO,INUMP,VOLTEMP,QPOINTS,WEQUA3D,IDEG,ICONSIDERED)
+end subroutine tl2dh5
+subroutine tl2dh6(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 !> @brief
-!> This subroutine computes derivative operator for the smoothness indicator
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::WEFF
-INTEGER,INTENT(IN)::INUMO,INUMP,IDEG,ICONSIDERED
-REAL,INTENT(IN)::VOLTEMP
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS),INTENT(IN)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS),INTENT(IN)::WEQUA3D
-INTEGER::I,J,K
-REAL::PH,INTEG,scalerx
-WEFF=zero
+!> this subroutine computes derivative operator for the smoothness indicator
+implicit none
+integer,intent(in)::n
+real,allocatable,dimension(:,:),intent(inout)::weff
+integer,intent(in)::inumo,inump,ideg,iconsidered
+real,intent(in)::voltemp
+real,dimension(1:dimensiona,1:numberofpoints),intent(in)::qpoints
+real,dimension(1:numberofpoints),intent(in)::wequa3d
+integer::i,j,k
+real::ph,integ,scalerx
+weff=zero
 		
- 	DO I=1,IDEG
-        	DO J=1,IDEG
+ 	do i=1,ideg
+        	do j=1,ideg
         	scalerx=1.0d0
                 
-			INTEG =zero
-       			 DO K=1,inump
-			PH=TL2DX(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DXY(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX2Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DXY2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX3Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX3Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DXY3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DY4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-		    TL2DX5(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX5(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX4Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX4Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX3Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX3Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX2Y3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2Y3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DXY4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DY5(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY5(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-		    TL2DX6(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX6(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX5Y(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX5Y(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX4Y2(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX4Y2(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX3Y3(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX3Y3(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DX2Y4(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DX2Y4(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DXY5(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DXY5(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED) + &
-                  TL2DY6(QPOINTS(1,K),QPOINTS(2,K),I,ICONSIDERED)*TL2DY6(QPOINTS(1,K),QPOINTS(2,K),J,ICONSIDERED)
+			integ =zero
+       			 do k=1,inump
+			ph=tl2dx(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dy(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dxy(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx2y(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dxy2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx4(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx3y(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx3y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx2y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dxy3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dy4(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+		    tl2dx5(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx5(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx4y(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx4y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx3y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx3y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx2y3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2y3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dxy4(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dy5(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy5(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+		    tl2dx6(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx6(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx5y(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx5y(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx4y2(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx4y2(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx3y3(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx3y3(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dx2y4(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dx2y4(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dxy5(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dxy5(qpoints(1,k),qpoints(2,k),j,iconsidered) + &
+                  tl2dy6(qpoints(1,k),qpoints(2,k),i,iconsidered)*tl2dy6(qpoints(1,k),qpoints(2,k),j,iconsidered)
 
 				
 
-				INTEG=INTEG+(PH*WEQUA3D(K)*voltemp)*(scalerx**(i+j-1))
-          		 ENDDO
-         		WEFF(I,J)=WEFF(I,J)+INTEG
-        	ENDDO
-        ENDDO
+				integ=integ+(ph*wequa3d(k)*voltemp)*(scalerx**(i+j-1))
+          		 enddo
+         		weff(i,j)=weff(i,j)+integ
+        	enddo
+        enddo
 
-END SUBROUTINE TL2DH6
+end subroutine tl2dh6
 
 
 
-FUNCTION CALINTBASIS(N,IXX,JXX,KXX,LXX1,number_of_dog,ICOMPWRT,ELTYPE,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+function calintbasis(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,eltype,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 !> @brief
-!> This subroutine computes basis functions for each element
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,number_of_dog,ICOMPWRT,ELTYPE
-INTEGER,INTENT(IN):: IXX,JXX,KXX,LXX1
-INTEGER::K
-REAL,DIMENSION(1:number_of_dog)::CALINTBASIS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXG  !GLOBAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXL  !LOCAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXB  !CPU THAT THAT EACH CELL BELONGS TO
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXN  !INTERNAL INDEX FROM WHERE TO TAKE THE VALUES FROM COMMUNICATED MESSAGES
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ISHAPE !SHAPE OF EACH ELEMENT
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_XXC       !CELL CENTRE COORDINATES IN X
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_YYC       !CELL CENTRE COORDINATES IN Y
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ZZC      !CELL CENTRE COORDINATES IN Z
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_VOLUME    !CELL VOLUME
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_PERIODICFLAG
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_NODCOUNT  !NUMBER OF NODES
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_X           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Y           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Z           !COORDINATES OF EACH NODE IN X
+!> this subroutine computes basis functions for each element
+implicit none
+integer,intent(in)::n,number_of_dog,icompwrt,eltype
+integer,intent(in):: ixx,jxx,kxx,lxx1
+integer::k
+real,dimension(1:number_of_dog)::calintbasis
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexg  !global index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexl  !local index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexb  !cpu that that each cell belongs to
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexn  !internal index from where to take the values from communicated messages
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ishape !shape of each element
+real,allocatable,dimension(:,:),intent(inout)::ilox_xxc       !cell centre coordinates in x
+real,allocatable,dimension(:,:),intent(inout)::ilox_yyc       !cell centre coordinates in y
+real,allocatable,dimension(:,:),intent(inout)::ilox_zzc      !cell centre coordinates in z
+real,allocatable,dimension(:,:),intent(inout)::ilox_volume    !cell volume
+integer,allocatable,dimension(:,:),intent(inout)::ilox_periodicflag
+integer,allocatable,dimension(:,:,:),intent(inout)::ilon_nodcount  !number of nodes
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_x           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_y           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_z           !coordinates of each node in x
 
 
-! 	kxx=ielem(n,ixx)%iorder
-	CALINTBASIS = ZERO
+! 	kxx=ielem_iorder(ixx)
+	calintbasis = zero
      	
-	CALINTBASIS(1:number_of_dog)=COMPBASEL(N,eltype,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+	calintbasis(1:number_of_dog)=compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 	
-   END FUNCTION
+   end function
 
 
-FUNCTION COMPBASEL(N,ELTYPE,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,ILOX_IHEXG,ILOX_IHEXL,ILOX_IHEXB,ILOX_IHEXN,ILOX_ISHAPE,ILOX_XXC,ILOX_YYC,ILOX_ZZC,ILOX_VOLUME,ILOX_PERIODICFLAG,ILON_NODCOUNT,ILON_X,ILON_Y,ILON_Z)
+function compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 !> @brief
-!> This subroutine computes basis functions for each element
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,lxx1,jxx,ixx,icompwrt,KXX
-INTEGER,INTENT(IN)::ELTYPE,number_of_dog
-INTEGER::JX,K,ELEM_DEC
+!> this subroutine computes basis functions for each element
+implicit none
+integer,intent(in)::n,lxx1,jxx,ixx,icompwrt,kxx
+integer,intent(in)::eltype,number_of_dog
+integer::jx,k,elem_dec
 real,dimension(1:number_of_dog)::compbasel,s1
-REAL,DIMENSION(1:8,1:DIMENSIONA)::VEXT,NODES_LIST
-REAL,DIMENSION(1:6,1:4,1:DIMENSIONA)::ELEM_LISTD
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXG  !GLOBAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXL  !LOCAL INDEX OF CELLS
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXB  !CPU THAT THAT EACH CELL BELONGS TO
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_IHEXN  !INTERNAL INDEX FROM WHERE TO TAKE THE VALUES FROM COMMUNICATED MESSAGES
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ISHAPE !SHAPE OF EACH ELEMENT
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_XXC       !CELL CENTRE COORDINATES IN X
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_YYC       !CELL CENTRE COORDINATES IN Y
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_ZZC      !CELL CENTRE COORDINATES IN Z
-REAL,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_VOLUME    !CELL VOLUME
-INTEGER,ALLOCATABLE,DIMENSION(:,:),INTENT(INOUT)::ILOX_PERIODICFLAG
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_NODCOUNT  !NUMBER OF NODES
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_X           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Y           !COORDINATES OF EACH NODE IN X
-REAL,ALLOCATABLE,DIMENSION(:,:,:),INTENT(INOUT)::ILON_Z           !COORDINATES OF EACH NODE IN X
-S1=ZERO
+real,dimension(1:8,1:dimensiona)::vext,nodes_list
+real,dimension(1:6,1:4,1:dimensiona)::elem_listd
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexg  !global index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexl  !local index of cells
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexb  !cpu that that each cell belongs to
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ihexn  !internal index from where to take the values from communicated messages
+integer,allocatable,dimension(:,:),intent(inout)::ilox_ishape !shape of each element
+real,allocatable,dimension(:,:),intent(inout)::ilox_xxc       !cell centre coordinates in x
+real,allocatable,dimension(:,:),intent(inout)::ilox_yyc       !cell centre coordinates in y
+real,allocatable,dimension(:,:),intent(inout)::ilox_zzc      !cell centre coordinates in z
+real,allocatable,dimension(:,:),intent(inout)::ilox_volume    !cell volume
+integer,allocatable,dimension(:,:),intent(inout)::ilox_periodicflag
+integer,allocatable,dimension(:,:,:),intent(inout)::ilon_nodcount  !number of nodes
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_x           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_y           !coordinates of each node in x
+real,allocatable,dimension(:,:,:),intent(inout)::ilon_z           !coordinates of each node in x
+s1=zero
 
- SELECT CASE(ELTYPE)
-      CASE(1)
-      JX=8;   ELEM_DEC=6
+ select case(eltype)
+      case(1)
+      jx=8;   elem_dec=6
 
-		 if ((JXX.eq.1))then
+		 if ((jxx.eq.1))then
 		  
-		      do K=1,jx
-			  NODES_LIST(k,1)=ILON_X(LXX1,JXX,K)
-			  NODES_LIST(k,2)=ILON_Y(LXX1,JXX,K)
-			  NODES_LIST(k,3)=ILON_Z(LXX1,JXX,K)
-			VEXT(K,:)=NODES_LIST(k,:)
-		      END DO
-		  if (ielem(n,ixx)%mode.eq.0)then
+		      do k=1,jx
+			  nodes_list(k,1)=ilon_x(lxx1,jxx,k)
+			  nodes_list(k,2)=ilon_y(lxx1,jxx,k)
+			  nodes_list(k,3)=ilon_z(lxx1,jxx,k)
+			vext(k,:)=nodes_list(k,:)
+		      end do
+		  if (ielem_mode(ixx).eq.0)then
 		  
-		  COMPBASEL=COMPBASHEX(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		  compbasel=compbashex(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 
 		    else
-		  CALL DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
-		  do K=1,ELEM_DEC
-		    VEXT(1:4,1)=ELEM_LISTD(k,1:4,1)
-		    VEXT(1:4,2)=ELEM_LISTD(k,1:4,2)
-		    VEXT(1:4,3)=ELEM_LISTD(k,1:4,3)
-		    S1(1:number_of_dog)=S1(1:number_of_dog)+COMPBASTR(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		  call decompose3(n,eltype,nodes_list,elem_listd)
+		  do k=1,elem_dec
+		    vext(1:4,1)=elem_listd(k,1:4,1)
+		    vext(1:4,2)=elem_listd(k,1:4,2)
+		    vext(1:4,3)=elem_listd(k,1:4,3)
+		    s1(1:number_of_dog)=s1(1:number_of_dog)+compbastr(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 		  end do
-		    COMPBASEL=S1
+		    compbasel=s1
 		    end if
 		  
-		  ELSE
+		  else
 
-		   do K=1,jx
-			  NODES_LIST(k,1)=ILON_X(LXX1,JXX,K)
-			  NODES_LIST(k,2)=ILON_Y(LXX1,JXX,K)
-			  NODES_LIST(k,3)=ILON_Z(LXX1,JXX,K)
-			VEXT(K,:)=NODES_LIST(k,:)
+		   do k=1,jx
+			  nodes_list(k,1)=ilon_x(lxx1,jxx,k)
+			  nodes_list(k,2)=ilon_y(lxx1,jxx,k)
+			  nodes_list(k,3)=ilon_z(lxx1,jxx,k)
+			vext(k,:)=nodes_list(k,:)
 			
-		      END DO
+		      end do
 		      
 		      
-		  CALL DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
-		  do K=1,ELEM_DEC
-		    VEXT(1:4,1)=ELEM_LISTD(k,1:4,1)
-		    VEXT(1:4,2)=ELEM_LISTD(k,1:4,2)
-		    VEXT(1:4,3)=ELEM_LISTD(k,1:4,3)
+		  call decompose3(n,eltype,nodes_list,elem_listd)
+		  do k=1,elem_dec
+		    vext(1:4,1)=elem_listd(k,1:4,1)
+		    vext(1:4,2)=elem_listd(k,1:4,2)
+		    vext(1:4,3)=elem_listd(k,1:4,3)
 		    
-		    S1(1:number_of_dog)=S1(1:number_of_dog)+COMPBASTR(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		    s1(1:number_of_dog)=s1(1:number_of_dog)+compbastr(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 		    
 		  end do
-		    COMPBASEL=S1
-		 END IF
+		    compbasel=s1
+		 end if
 
-      CASE(2)	
+      case(2)	
 
-		JX=4;   ELEM_DEC=1
-		do K=1,jx
-			  NODES_LIST(k,1)=ILON_X(LXX1,JXX,K)
-			  NODES_LIST(k,2)=ILON_Y(LXX1,JXX,K)
-			  NODES_LIST(k,3)=ILON_Z(LXX1,JXX,K)
-			VEXT(K,:)=NODES_LIST(k,:)
-		      END DO
-		  CALL DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
-		  do K=1,ELEM_DEC
-		    VEXT(1:4,1)=ELEM_LISTD(k,1:4,1)
-		    VEXT(1:4,2)=ELEM_LISTD(k,1:4,2)
-		    VEXT(1:4,3)=ELEM_LISTD(k,1:4,3)
-		    S1(1:number_of_dog)=S1(1:number_of_dog)+COMPBASTR(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		jx=4;   elem_dec=1
+		do k=1,jx
+			  nodes_list(k,1)=ilon_x(lxx1,jxx,k)
+			  nodes_list(k,2)=ilon_y(lxx1,jxx,k)
+			  nodes_list(k,3)=ilon_z(lxx1,jxx,k)
+			vext(k,:)=nodes_list(k,:)
+		      end do
+		  call decompose3(n,eltype,nodes_list,elem_listd)
+		  do k=1,elem_dec
+		    vext(1:4,1)=elem_listd(k,1:4,1)
+		    vext(1:4,2)=elem_listd(k,1:4,2)
+		    vext(1:4,3)=elem_listd(k,1:4,3)
+		    s1(1:number_of_dog)=s1(1:number_of_dog)+compbastr(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 		  end do
-		    COMPBASEL=S1
+		    compbasel=s1
 		
-      CASE(3)
+      case(3)
 
-		JX=5;   ELEM_DEC=2
-		do K=1,jx
-			  NODES_LIST(k,1)=ILON_X(LXX1,JXX,K)
-			  NODES_LIST(k,2)=ILON_Y(LXX1,JXX,K)
-			  NODES_LIST(k,3)=ILON_Z(LXX1,JXX,K)
-			VEXT(K,:)=NODES_LIST(k,:)
-		      END DO
-		  CALL DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
-		  do K=1,ELEM_DEC
-		    VEXT(1:4,1)=ELEM_LISTD(k,1:4,1)
-		    VEXT(1:4,2)=ELEM_LISTD(k,1:4,2)
-		    VEXT(1:4,3)=ELEM_LISTD(k,1:4,3)
-		    S1(1:number_of_dog)=S1(1:number_of_dog)+COMPBASTR(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		jx=5;   elem_dec=2
+		do k=1,jx
+			  nodes_list(k,1)=ilon_x(lxx1,jxx,k)
+			  nodes_list(k,2)=ilon_y(lxx1,jxx,k)
+			  nodes_list(k,3)=ilon_z(lxx1,jxx,k)
+			vext(k,:)=nodes_list(k,:)
+		      end do
+		  call decompose3(n,eltype,nodes_list,elem_listd)
+		  do k=1,elem_dec
+		    vext(1:4,1)=elem_listd(k,1:4,1)
+		    vext(1:4,2)=elem_listd(k,1:4,2)
+		    vext(1:4,3)=elem_listd(k,1:4,3)
+		    s1(1:number_of_dog)=s1(1:number_of_dog)+compbastr(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 		  end do
-		    COMPBASEL=S1
-	CASE(4)
-		JX=6;   ELEM_DEC=3
+		    compbasel=s1
+	case(4)
+		jx=6;   elem_dec=3
 
-	      if ((JXX.eq.1))then
+	      if ((jxx.eq.1))then
 		  
-		      do K=1,jx
-			  NODES_LIST(k,1)=ILON_X(LXX1,JXX,K)
-			  NODES_LIST(k,2)=ILON_Y(LXX1,JXX,K)
-			  NODES_LIST(k,3)=ILON_Z(LXX1,JXX,K)
-			VEXT(K,:)=NODES_LIST(k,:)
-		      END DO
-		      CALL DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
-		  if (ielem(n,ixx)%mode.eq.0)then
+		      do k=1,jx
+			  nodes_list(k,1)=ilon_x(lxx1,jxx,k)
+			  nodes_list(k,2)=ilon_y(lxx1,jxx,k)
+			  nodes_list(k,3)=ilon_z(lxx1,jxx,k)
+			vext(k,:)=nodes_list(k,:)
+		      end do
+		      call decompose3(n,eltype,nodes_list,elem_listd)
+		  if (ielem_mode(ixx).eq.0)then
 		  
-		  COMPBASEL=COMPBASPR(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		  compbasel=compbaspr(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 
 		    else
 		  
-		  do K=1,ELEM_DEC
-		   VEXT(1:4,1)=ELEM_LISTD(k,1:4,1)
-		    VEXT(1:4,2)=ELEM_LISTD(k,1:4,2)
-		    VEXT(1:4,3)=ELEM_LISTD(k,1:4,3)
-		    S1(1:number_of_dog)=S1(1:number_of_dog)+COMPBASTR(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		  do k=1,elem_dec
+		   vext(1:4,1)=elem_listd(k,1:4,1)
+		    vext(1:4,2)=elem_listd(k,1:4,2)
+		    vext(1:4,3)=elem_listd(k,1:4,3)
+		    s1(1:number_of_dog)=s1(1:number_of_dog)+compbastr(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 ! 		   
 		  end do
-		    COMPBASEL=S1
+		    compbasel=s1
 		    end if
 		  
-		  ELSE
+		  else
 			    
-		   do K=1,jx
-			  NODES_LIST(k,1)=ILON_X(LXX1,JXX,K)
-			  NODES_LIST(k,2)=ILON_Y(LXX1,JXX,K)
-			  NODES_LIST(k,3)=ILON_Z(LXX1,JXX,K)
-			VEXT(K,:)=NODES_LIST(k,:)
+		   do k=1,jx
+			  nodes_list(k,1)=ilon_x(lxx1,jxx,k)
+			  nodes_list(k,2)=ilon_y(lxx1,jxx,k)
+			  nodes_list(k,3)=ilon_z(lxx1,jxx,k)
+			vext(k,:)=nodes_list(k,:)
 			
-		      END DO
-		  CALL DECOMPOSE3(n,eltype,NODES_LIST,ELEM_LISTD)
+		      end do
+		  call decompose3(n,eltype,nodes_list,elem_listd)
 		  
-		  do K=1,ELEM_DEC
-		    VEXT(1:4,1)=ELEM_LISTD(k,1:4,1)
-		    VEXT(1:4,2)=ELEM_LISTD(k,1:4,2)
-		    VEXT(1:4,3)=ELEM_LISTD(k,1:4,3)
+		  do k=1,elem_dec
+		    vext(1:4,1)=elem_listd(k,1:4,1)
+		    vext(1:4,2)=elem_listd(k,1:4,2)
+		    vext(1:4,3)=elem_listd(k,1:4,3)
 		   
-		    S1(1:number_of_dog)=S1(1:number_of_dog)+COMPBASTR(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		    s1(1:number_of_dog)=s1(1:number_of_dog)+compbastr(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 		    
 		  end do
-		    COMPBASEL=S1
-		 END IF
+		    compbasel=s1
+		 end if
 
-	      CASE(5)
-		JX=4;   ELEM_DEC=2
-		     if ((JXX.eq.1))then
+	      case(5)
+		jx=4;   elem_dec=2
+		     if ((jxx.eq.1))then
 		     
 		     
-		   do K=1,JX
-			  NODES_LIST(k,1)=ILON_X(LXX1,JXX,K)
-			  NODES_LIST(k,2)=ILON_Y(LXX1,JXX,K)
-		    vext(k,1:2)=NODES_LIST(k,1:2)
+		   do k=1,jx
+			  nodes_list(k,1)=ilon_x(lxx1,jxx,k)
+			  nodes_list(k,2)=ilon_y(lxx1,jxx,k)
+		    vext(k,1:2)=nodes_list(k,1:2)
 		    
-		    END DO
-		    CALL DECOMPOSE2(n,eltype,NODES_LIST,ELEM_LISTD)
-		    if (ielem(n,ixx)%mode.eq.0)then
-		  COMPBASEL=COMPBASquad(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		    end do
+		    call decompose2(n,eltype,nodes_list,elem_listd)
+		    if (ielem_mode(ixx).eq.0)then
+		  compbasel=compbasquad(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 		    else
 		    
-		  do K=1,ELEM_DEC
-		    VEXT(1:3,1)=ELEM_LISTD(k,1:3,1)
-		    VEXT(1:3,2)=ELEM_LISTD(k,1:3,2)
+		  do k=1,elem_dec
+		    vext(1:3,1)=elem_listd(k,1:3,1)
+		    vext(1:3,2)=elem_listd(k,1:3,2)
 		    
 		    
-		    S1(1:number_of_dog)=S1(1:number_of_dog)+COMPBASTRi(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		    s1(1:number_of_dog)=s1(1:number_of_dog)+compbastri(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 		    
 		  end do
-		    COMPBASEL=S1
+		    compbasel=s1
 		    
 		    
 		    end if
@@ -3847,229 +3864,229 @@ S1=ZERO
 		    
 		    
 		else
-		  do K=1,jx
-			  NODES_LIST(k,1)=ILON_X(LXX1,JXX,K)
-			  NODES_LIST(k,2)=ILON_Y(LXX1,JXX,K)
+		  do k=1,jx
+			  nodes_list(k,1)=ilon_x(lxx1,jxx,k)
+			  nodes_list(k,2)=ilon_y(lxx1,jxx,k)
 			 
-			VEXT(K,:)=NODES_LIST(k,:)
+			vext(k,:)=nodes_list(k,:)
 			
-		      END DO
+		      end do
 		      
 		      
-		  CALL DECOMPOSE2(n,eltype,NODES_LIST,ELEM_LISTD)
-		  do K=1,ELEM_DEC
-		    VEXT(1:3,1)=ELEM_LISTD(k,1:3,1)
-		    VEXT(1:3,2)=ELEM_LISTD(k,1:3,2)
+		  call decompose2(n,eltype,nodes_list,elem_listd)
+		  do k=1,elem_dec
+		    vext(1:3,1)=elem_listd(k,1:3,1)
+		    vext(1:3,2)=elem_listd(k,1:3,2)
 		    
 		    
-		    S1(1:number_of_dog)=S1(1:number_of_dog)+COMPBASTRi(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		    s1(1:number_of_dog)=s1(1:number_of_dog)+compbastri(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 		    
 		  end do
-		    COMPBASEL=S1	
+		    compbasel=s1	
 		
 		end if
 
-	      CASE(6)
+	      case(6)
 
-		JX=3;
+		jx=3;
 		
 		
-		   do K=1,JX
-			  NODES_LIST(k,1)=ILON_X(LXX1,JXX,K)
-			  NODES_LIST(k,2)=ILON_Y(LXX1,JXX,K)
-		    vext(k,1:2)=NODES_LIST(k,1:2)
+		   do k=1,jx
+			  nodes_list(k,1)=ilon_x(lxx1,jxx,k)
+			  nodes_list(k,2)=ilon_y(lxx1,jxx,k)
+		    vext(k,1:2)=nodes_list(k,1:2)
 		    
-		    END DO
+		    end do
 		    
-		  COMPBASEL=COMPBAStri(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+		  compbasel=compbastri(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 
 
-     END SELECT
+     end select
 
-END FUNCTION
+end function
 
-FUNCTION COMPBASTR(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+function compbastr(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 !> @brief
-!> This subroutine computes basis functions for each triangle
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,number_of_dog,IXX,JXX,KXX,LXX1,icompwrt
-REAL::VOL
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
-REAL::X1,Y1,Z1
+!> this subroutine computes basis functions for each triangle
+implicit none
+integer :: kbasis
+integer,intent(in)::n,number_of_dog,ixx,jxx,kxx,lxx1,icompwrt
+real::vol
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints)::qpoints
+real,dimension(1:numberofpoints)::wequa3d
+real::x1,y1,z1
 integer::lc
-REAL,dimension(1:number_of_dog)::INTEG,COMPBASTR
+real,dimension(1:number_of_dog)::integ,compbastr
 
 
-QPOINTS(1:3,1:QP_TETRA)=ZERO
-WEQUA3D(1:QP_TETRA)=ZERO
+qpoints(1:3,1:qp_tetra)=zero
+wequa3d(1:qp_tetra)=zero
 
-VOL=TETRAVOLUME(N,VEXT)
+vol=tetravolume(n,vext)
 
-CALL QUADRATURETETRA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+call quadraturetetra(n,igqrules,vext,qpoints,wequa3d)
 
-INTEG=ZERO
-DO Lc=1,QP_TETRA
-	  x1=QPOINTS(1,Lc);y1=QPOINTS(2,Lc);z1=QPOINTS(3,Lc)
-	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC(N,x1,y1,z1,kxx,IXX,number_of_dog,ICOMPWRT)*&
-WEQUA3D(Lc)*VOL)
-END DO
-	  COMPBASTR = INTEG
+integ=zero
+do lc=1,qp_tetra
+	  x1=qpoints(1,lc);y1=qpoints(2,lc);z1=qpoints(3,lc)
+	integ(1:number_of_dog)=integ(1:number_of_dog)+(basis_rec(n,x1,y1,z1,kxx,ixx,number_of_dog,icompwrt)*wequa3d(lc)*vol)
+end do
+	  compbastr = integ
 
-END FUNCTION
+end function
 
 
-FUNCTION COMPBASHEX(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+function compbashex(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 !> @brief
-!> This subroutine computes basis functions for hexahedral
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,number_of_dog,IXX,JXX,KXX,LXX1,icompwrt
-REAL::VOL
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
-REAL::X1,Y1,Z1
+!> this subroutine computes basis functions for hexahedral
+implicit none
+integer :: kbasis
+integer,intent(in)::n,number_of_dog,ixx,jxx,kxx,lxx1,icompwrt
+real::vol
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints)::qpoints
+real,dimension(1:numberofpoints)::wequa3d
+real::x1,y1,z1
 integer::lc
-REAL,dimension(number_of_dog)::INTEG,COMPBASHEX
+real,dimension(number_of_dog)::integ,compbashex
 
-QPOINTS(1:3,1:QP_HEXA)=zero
-WEQUA3D(1:QP_HEXA)=zero
+qpoints(1:3,1:qp_hexa)=zero
+wequa3d(1:qp_hexa)=zero
 
-CALL QUADRATUREHEXA(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+call quadraturehexa(n,igqrules,vext,qpoints,wequa3d)
 
 
- VOL=hexaVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+ vol=hexavolume(n,vext,qpoints,wequa3d)
 
-INTEG=zero
-DO Lc=1,QP_HEXA
-	x1=QPOINTS(1,Lc);y1=QPOINTS(2,Lc);z1=QPOINTS(3,Lc)
-	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC(N,x1,y1,z1,kxx,IXX,number_of_dog,ICOMPWRT)*&
-WEQUA3D(Lc)*VOL)
-END DO
-	  COMPBASHEX = INTEG
+integ=zero
+do lc=1,qp_hexa
+	x1=qpoints(1,lc);y1=qpoints(2,lc);z1=qpoints(3,lc)
+	integ(1:number_of_dog)=integ(1:number_of_dog)+(basis_rec(n,x1,y1,z1,kxx,ixx,number_of_dog,icompwrt)*wequa3d(lc)*vol)
+end do
+	  compbashex = integ
 
-END FUNCTION
+end function
 
-FUNCTION COMPBASPR(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+function compbaspr(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 !> @brief
-!> This subroutine computes basis functions for prisms
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,number_of_dog,IXX,JXX,KXX,LXX1,icompwrt
-REAL::VOL
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
-REAL::X1,Y1,Z1
+!> this subroutine computes basis functions for prisms
+implicit none
+integer :: kbasis
+integer,intent(in)::n,number_of_dog,ixx,jxx,kxx,lxx1,icompwrt
+real::vol
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints)::qpoints
+real,dimension(1:numberofpoints)::wequa3d
+real::x1,y1,z1
 integer::lc
-REAL,dimension(number_of_dog)::INTEG,COMPBASPR
-QPOINTS(1:3,1:QP_PRISM)=zero
-WEQUA3D(1:QP_PRISM)=zero
+real,dimension(number_of_dog)::integ,compbaspr
+qpoints(1:3,1:qp_prism)=zero
+wequa3d(1:qp_prism)=zero
 
-CALL QUADRATUREPRISM(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+call quadratureprism(n,igqrules,vext,qpoints,wequa3d)
 
 
- VOL=PRISMVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+ vol=prismvolume(n,vext,qpoints,wequa3d)
 
-INTEG=zero
-DO Lc=1,QP_PRISM
-	x1=QPOINTS(1,Lc);y1=QPOINTS(2,Lc);z1=QPOINTS(3,Lc)
-	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC(N,x1,y1,z1,kxx,IXX,number_of_dog,ICOMPWRT)*&
-WEQUA3D(Lc)*VOL)
-END DO
-	  COMPBASPR= INTEG
+integ=zero
+do lc=1,qp_prism
+	x1=qpoints(1,lc);y1=qpoints(2,lc);z1=qpoints(3,lc)
+	integ(1:number_of_dog)=integ(1:number_of_dog)+(basis_rec(n,x1,y1,z1,kxx,ixx,number_of_dog,icompwrt)*wequa3d(lc)*vol)
+end do
+	  compbaspr= integ
 
-END FUNCTION
+end function
 
-FUNCTION COMPBASQUAD(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+function compbasquad(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 !> @brief
-!> This subroutine computes basis functions for quadrilateral
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,number_of_dog,IXX,JXX,KXX,LXX1,icompwrt
-REAL::VOL
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
-REAL::X1,Y1,Z1
+!> this subroutine computes basis functions for quadrilateral
+implicit none
+integer :: kbasis
+integer,intent(in)::n,number_of_dog,ixx,jxx,kxx,lxx1,icompwrt
+real::vol
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints)::qpoints
+real,dimension(1:numberofpoints)::wequa3d
+real::x1,y1,z1
 integer::lc
-REAL,dimension(number_of_dog)::INTEG,COMPBASQUAD
+real,dimension(number_of_dog)::integ,compbasquad
 
-QPOINTS(1:2,1:QP_QUAD)=zero
-WEQUA3D(1:QP_QUAD)=zero
+qpoints(1:2,1:qp_quad)=zero
+wequa3d(1:qp_quad)=zero
 
-CALL QUADRATUREQUAD(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
+call quadraturequad(n,igqrules,vext,qpoints,wequa3d)
 
 
- VOL=QUADVOLUME(N,VEXT,QPOINTS,WEQUA3D)
+ vol=quadvolume(n,vext,qpoints,wequa3d)
 
-INTEG=zero
-DO Lc=1,qp_quad
-	x1=QPOINTS(1,Lc);y1=QPOINTS(2,Lc)
-	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC2D(N,x1,y1,kxx,IXX,number_of_dog,ICOMPWRT)*&
-WEQUA3D(Lc)*VOL)
-END DO
-	  COMPBASQUAD= INTEG
+integ=zero
+do lc=1,qp_quad
+	x1=qpoints(1,lc);y1=qpoints(2,lc)
+	integ(1:number_of_dog)=integ(1:number_of_dog)+(basis_rec2d(n,x1,y1,kxx,ixx,number_of_dog,icompwrt)*wequa3d(lc)*vol)
+end do
+	  compbasquad= integ
 
-END FUNCTION
+end function
 
-FUNCTION COMPBASTRI(N,IXX,JXX,KXX,LXX1,number_of_dog,icompwrt,VEXT)
+function compbastri(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,vext)
 !> @brief
-!> This subroutine computes basis functions for each triangle
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N,number_of_dog,IXX,JXX,KXX,LXX1,icompwrt
-REAL::VOL
-REAL,DIMENSION(1:8,1:DIMENSIONA),INTENT(IN)::VEXT
-REAL,DIMENSION(1:dimensiona,1:NUMBEROFPOINTS)::QPOINTS
-REAL,DIMENSION(1:NUMBEROFPOINTS)::WEQUA3D
-REAL::X1,Y1,Z1
+!> this subroutine computes basis functions for each triangle
+implicit none
+integer :: kbasis
+integer,intent(in)::n,number_of_dog,ixx,jxx,kxx,lxx1,icompwrt
+real::vol
+real,dimension(1:8,1:dimensiona),intent(in)::vext
+real,dimension(1:dimensiona,1:numberofpoints)::qpoints
+real,dimension(1:numberofpoints)::wequa3d
+real::x1,y1,z1
 integer::lc
-REAL,dimension(number_of_dog)::INTEG,COMPBAStri
+real,dimension(number_of_dog)::integ,compbastri
 
-QPOINTS(1:2,1:QP_QUAD)=zero
-WEQUA3D(1:QP_QUAD)=zero
+qpoints(1:2,1:qp_quad)=zero
+wequa3d(1:qp_quad)=zero
 
-CALL QUADRATURETRIANGLE(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
-
-
- VOL=TRIANGLEVOLUME(N,VEXT)
-
-INTEG=zero
-DO Lc=1,qp_triangle
-	x1=QPOINTS(1,Lc);y1=QPOINTS(2,Lc)
-	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC2D(N,x1,y1,kxx,IXX,number_of_dog,ICOMPWRT)*&
-WEQUA3D(Lc)*VOL)
-END DO
-	  COMPBASTRI= INTEG
-
-END FUNCTION
+call quadraturetriangle(n,igqrules,vext,qpoints,wequa3d)
 
 
-SUBROUTINE INVERT(RFF,INVRFF,IVGT)
+ vol=trianglevolume(n,vext)
+
+integ=zero
+do lc=1,qp_triangle
+	x1=qpoints(1,lc);y1=qpoints(2,lc)
+	integ(1:number_of_dog)=integ(1:number_of_dog)+(basis_rec2d(n,x1,y1,kxx,ixx,number_of_dog,icompwrt)*wequa3d(lc)*vol)
+end do
+	  compbastri= integ
+
+end function
+
+
+subroutine invert(rff,invrff,ivgt)
 !> @brief
-!> This subroutine inverts a special matrix
-  IMPLICIT NONE
-  INTEGER,INTENT(IN)::IVGT
-  REAL,allocatable,DIMENSION(:,:),INTENT(IN) ::RFF
-  REAL,allocatable,DIMENSION(:,:),INTENT(inOUT)::INVRFF
-  INTEGER I,J,K,GT
+!> this subroutine inverts a special matrix
+  implicit none
+  integer,intent(in)::ivgt
+  real,allocatable,dimension(:,:),intent(in) ::rff
+  real,allocatable,dimension(:,:),intent(inout)::invrff
+  integer i,j,k,gt
  
-  INVRff(1:IVGT-1,1:IVGT-1) = zero
- GT=IVGT-1
-  DO I=GT,1,-1
-    INVRFF(i,i) = 1./RFF(i,i)
-	do j=i+1,GT
-	  INVRFF(i,j) = zero
+  invrff(1:ivgt-1,1:ivgt-1) = zero
+ gt=ivgt-1
+  do i=gt,1,-1
+    invrff(i,i) = 1./rff(i,i)
+	do j=i+1,gt
+	  invrff(i,j) = zero
 	  do k= 1,j-1
-	   INVRFF(i,j) = INVRFF(i,j) - RFF(k,j)*INVRFF(i,k)
+	   invrff(i,j) = invrff(i,j) - rff(k,j)*invrff(i,k)
 	  enddo
- 	  INVRFF(i,j) =INVRFF(i,j) /RFF(j,j)
+ 	  invrff(i,j) =invrff(i,j) /rff(j,j)
 	enddo
   enddo
 
- End subroutine INVERT
+ end subroutine invert
  
 
 
  
  
-END MODULE PRESTORE
+end module prestore

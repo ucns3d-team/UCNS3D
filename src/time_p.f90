@@ -1,548 +1,1042 @@
-MODULE ADVANCE
-USE LIBRARY
-USE TRANSFORM
-USE FLUXES
-USE SOURCE
-USE INITIALISATION
-USE BOUNDARY
-USE RECON
-USE LOCAL
-USE FLOW_OPERATIONS
-USE COMMUNICATIONS
-USE implicit_time
-USE implicit_FLUXES
-USE DECLARATION
-USE IO
-USE MOODR
-IMPLICIT NONE
+module advance
+use library
+use transform
+use fluxes
+use source
+use initialisation
+use boundary
+use recon
+use local
+use flow_operations
+use communications
+use implicit_time
+use implicit_fluxes
+use declaration
+use io
+use moodr
+implicit none
 
- CONTAINS
+real,parameter :: fv_update_floor_fraction=1.0d-14
+real,parameter :: fv_update_max_ref_ratio=1.0d8
+real,parameter :: fv_update_min_ratio=1.0d-3
+real,parameter :: fv_update_max_ratio=1.0d3
+real,parameter :: fv_update_min_abs=1.0d-300
+real,parameter :: fv_update_max_abs=1.0d300
+real,parameter :: fv_update_species_closure_tol=1.0d-6
+! Keep cutting the local FV update until an admissible nonzero step is found.
+integer,parameter :: fv_update_max_backtracks=40
+real,parameter :: realgas_source_dtl_cfl=2.0d-1
+real,parameter :: realgas_source_species_floor_fraction=1.0d-10
+real,parameter :: realgas_source_energy_floor_fraction=1.0d-10
+real,parameter :: realgas_source_dtl_min_abs=1.0d-30
+
+ contains
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !---------------------------------------------------------------------------------------------!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!SUBROUTINE CALLED TO CALCULATE CFL NUMBER DEPENDING ON THE SCHEME!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!subroutine called to calculate cfl number depending on the scheme!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!EMPLOYED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!employed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-SUBROUTINE CALCULATE_CFL(N)
+subroutine calculate_cfl(n)
 !> @brief
-!> subroutine for computing the global time step size in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL,SRF
-REAL::SUVI,SUV3,maxU,MINU
-REAL::CCFL,VELN,AGRT
-real,dimension(1:nof_Variables)::leftv,rightv
-real,dimension(1:nof_Variables)::SRF_SPEED
-real::MP_PINFL,gammal
-REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-REAL,DIMENSION(1:4)::VISCL,LAML
-REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-REAL,DIMENSION(1:2)::TURBMV
-REAL,DIMENSION(1)::ETVM
+!> subroutine for computing the global time step size in 3d
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::veln,agrt
+real,dimension(1:gpu_max_nvar)::leftv,rightv
+real,dimension(4)::srf_speed
+real,dimension(3)::rotvec
+real::mp_pinfl,gammal
+real,dimension(3)::pox,poy
+real,dimension(1:4)::viscl,laml
+	real,dimension(1:20)::eddyfl,eddyfr
+	real,dimension(1:2)::turbmv
+	real,dimension(1)::etvm
+#ifdef xpu
+	real::cfl_rho,cfl_orho,cfl_u,cfl_v,cfl_w,cfl_q2,cfl_p,cfl_temp,cfl_tref,cfl_tratio
+	real::cfl_mu,cfl_lam,cfl_mut,cfl_chi,cfl_chi3,cfl_fv1
+	real::cfl_rx,cfl_ry,cfl_rz,cfl_sx,cfl_sy,cfl_sz,cfl_vdiff
+#endif
+#if defined(gpu) || defined(xpu)
+	real::dt_reduce
+#define CFL_DT dt_reduce
+#else
+#define CFL_DT dt
+#endif
 
-KMAXE=XMPIELRANK(N)
-       
-        CCFL=(CFL/3.0d0)
-        
-        DT=tolbig
-	IF (ITESTCASE.LT.3)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
-		VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
-		
+kmaxe=xmpielrank(n)
+
+#if defined(gpu) || defined(xpu)
+  dt_reduce = tolbig
+#else
+  dt = tolbig
+#endif
+	if (itestcase.lt.3)then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& map(tofrom: dt_reduce) &
+!$omp& reduction(min: dt_reduce) private(veln) &
+!$omp& map(alloc: ielem_minedge) &
+!$omp& firstprivate(ccfl, dg, iorder, lamx, lamy, lamz)
+#else
+    !$omp barrier
+	!$omp do reduction (min:dt)
+#endif
+        do i=1,kmaxe
+		veln=max(abs(lamx),abs(lamy),abs(lamz))
+
 		if (dg.eq.1)then
-		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
-		
+
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
+
 		else
-		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln))))
 		end if
-		
-	END DO
-	!$OMP END DO
-	END IF
-	
-	IF (ITESTCASE.EQ.3)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
-        
-        
-        
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
-		
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		IF (multispecies.eq.1)THEN
-		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
-		ELSE
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		END IF
-        IF (RFRAME.eq.0) THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        END IF
-        IF (SRFG.EQ.1) THEN
-            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-            POY(1:3)=SRF_VELOCITY
-            SRF_SPEED=ZERO
-            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF
-        IF(MRF.EQ.1)THEN
-            SRF=ILOCAL_RECON3(I)%MRF
-            IF (ILOCAL_RECON3(I)%MRF.EQ.0)THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-            ELSE
-                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
-                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
-                SRF_SPEED=ZERO
-                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-            END IF
-        END IF
-		if (dg.eq.1)then
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
-		
+
+	end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
+
+	if (itestcase.eq.3)then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& map(tofrom: dt_reduce) &
+!$omp& reduction(min: dt_reduce) private(veln,leftv,mp_pinfl,gammal,agrt,pox,poy,rotvec,srf_speed) &
+!$omp& map(alloc: ielem_minedge, ielem_xxc, ielem_yyc, ielem_zzc, rec_mrf, rec_mrf_origin, rec_mrf_velocity) &
+!$omp& map(alloc: srf_velocity, u_c_val) &
+!$omp& firstprivate(ccfl, dg, gamma, iorder, mrf, multispecies, nof_variables, realgas, rframe, srfg, zero)
+#else
+    !$omp barrier
+	!$omp do reduction (min:dt)
+#endif
+        do i=1,kmaxe
+
+
+
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+#ifdef xpu
+		call cons2prim_ideal(n,leftv,mp_pinfl,gammal)
+#else
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+#endif
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(5)+mp_pinfl)*gammal/leftv(1))
 		else
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
-		
-		END IF
-		
-		
-	END DO
-	!$OMP END DO
-	END IF
-	
-	
-	
-	IF (ITESTCASE.EQ.4)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-                    
+		agrt=sqrt(leftv(5)*gamma/leftv(1))
+		end if
+        if (rframe.eq.0) then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+        end if
+        if (srfg.eq.1) then
+            pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+            poy(1:3)=srf_velocity
+            srf_speed=zero
+            call vect_function(pox,poy,rotvec)
+            srf_speed(2)=rotvec(1)
+            srf_speed(3)=rotvec(2)
+            srf_speed(4)=rotvec(3)
+            veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+        end if
+        if(mrf.eq.1)then
+            if (rec_mrf(i).eq.0)then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+            else
+                pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+                pox=pox-rec_mrf_origin(1:3,i)
+                poy(1:3)=rec_mrf_velocity(1:3,i)
+                srf_speed=zero
+                call vect_function(pox,poy,rotvec)
+            srf_speed(2)=rotvec(1)
+            srf_speed(3)=rotvec(2)
+            srf_speed(4)=rotvec(3)
+                veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+            end if
+        end if
+		if (dg.eq.1)then
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
+
+		else
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln))))
+
+		end if
 
 
-		CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
-                if (it.eq.0)then
-                        ielem(n,i)%vortex(4)=viscl(1)
-                end if 
+	end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
 
 
-                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-                
-        IF (RFRAME.EQ.0) THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        END IF
-        IF(SRFG.EQ.1)THEN
-            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-            POY(1:3)=SRF_VELOCITY
-            SRF_SPEED=ZERO
-            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF          
-        IF(MRF.EQ.1)THEN
-            SRF=ILOCAL_RECON3(I)%MRF
-            IF (ILOCAL_RECON3(I)%MRF.EQ.0)THEN
-                VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-            ELSE
-                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
-                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY(1:3)
-                SRF_SPEED=ZERO
-                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-            END IF
-        END IF
-		IF (TURBULENCE.EQ.1)THEN
-		IF (TURBULENCEMODEL.EQ.1)THEN
-		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+
+	if (itestcase.eq.4)then
+#ifdef xpu
+	cfl_tref=pres/(rres*r_gas)
+!$omp target teams distribute parallel do &
+!$omp& map(tofrom: dt_reduce) &
+!$omp& reduction(min: dt_reduce) &
+!$omp& firstprivate(kmaxe,dg,iorder,ccfl,gamma,prandtl,r_gas,visc,suther,turbulence,turbulencemodel,cv1,prtu,cfl_tref,srfg,mrf) &
+!$omp& map(alloc: u_c_val,ielem_minedge,ielem_xxc,ielem_yyc,ielem_zzc,srf_velocity) &
+!$omp& private(veln,agrt,cfl_rho,cfl_orho,cfl_u,cfl_v,cfl_w,cfl_q2,cfl_p,cfl_temp,cfl_tratio) &
+!$omp& private(cfl_mu,cfl_lam,cfl_mut,cfl_chi,cfl_chi3,cfl_fv1,cfl_rx,cfl_ry,cfl_rz,cfl_sx,cfl_sy,cfl_sz,cfl_vdiff)
+#elif defined(gpu)
+!$omp target teams distribute parallel do &
+!$omp& map(tofrom: dt_reduce) &
+!$omp& reduction(min: dt_reduce) &
+!$omp& firstprivate(n,kmaxe,nof_variables,dimensiona,dg,iorder,ccfl,gamma,prandtl) &
+!$omp& firstprivate(r_gas,pres,rres,visc,suther,zero,rframe,srfg,mrf,turbulence,turbulencemodel) &
+!$omp& map(alloc: xmpielrank,u_c_val,ielem_minedge,ielem_xxc,ielem_yyc,ielem_zzc) &
+!$omp& map(alloc: srf_velocity) &
+!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,pox,poy,rotvec,srf_speed,viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+#else
+    !$omp barrier
+	!$omp do reduction (min:dt)
+#endif
+        do i=1,kmaxe
+#ifdef xpu
+		cfl_rho=u_c_val(1,1,i)
+		cfl_orho=1.0d0/cfl_rho
+		cfl_u=u_c_val(1,2,i)*cfl_orho
+		cfl_v=u_c_val(1,3,i)*cfl_orho
+		cfl_w=u_c_val(1,4,i)*cfl_orho
+		cfl_q2=(cfl_u*cfl_u)+(cfl_v*cfl_v)+(cfl_w*cfl_w)
+		cfl_p=(gamma-1.0d0)*(u_c_val(1,5,i)-0.5d0*cfl_rho*cfl_q2)
+		agrt=sqrt(cfl_p*gamma*cfl_orho)
+		cfl_temp=cfl_p*cfl_orho/r_gas
+		cfl_tratio=cfl_temp/cfl_tref
+		cfl_mu=visc*(cfl_tratio*sqrt(cfl_tratio))*((cfl_tref+suther*cfl_tref)/(cfl_temp+suther*cfl_tref))
+		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0))
+		veln=max(abs(cfl_u),abs(cfl_v),abs(cfl_w))+agrt
+		if (srfg.eq.1)then
+			cfl_sx=(srf_velocity(2)*ielem_zzc(i))-(srf_velocity(3)*ielem_yyc(i))
+			cfl_sy=(srf_velocity(3)*ielem_xxc(i))-(srf_velocity(1)*ielem_zzc(i))
+			cfl_sz=(srf_velocity(1)*ielem_yyc(i))-(srf_velocity(2)*ielem_xxc(i))
+			veln=max(abs(cfl_u-cfl_sx),abs(cfl_v-cfl_sy),abs(cfl_w-cfl_sz))+agrt
+		end if
+		if (mrf.eq.1)then
+			if (rec_mrf(i).eq.0)then
+				veln=max(abs(cfl_u),abs(cfl_v),abs(cfl_w))+agrt
+			else
+				cfl_rx=ielem_xxc(i)-rec_mrf_origin(1,i)
+				cfl_ry=ielem_yyc(i)-rec_mrf_origin(2,i)
+				cfl_rz=ielem_zzc(i)-rec_mrf_origin(3,i)
+				cfl_sx=(rec_mrf_velocity(2,i)*cfl_rz)-(rec_mrf_velocity(3,i)*cfl_ry)
+				cfl_sy=(rec_mrf_velocity(3,i)*cfl_rx)-(rec_mrf_velocity(1,i)*cfl_rz)
+				cfl_sz=(rec_mrf_velocity(1,i)*cfl_ry)-(rec_mrf_velocity(2,i)*cfl_rx)
+				veln=max(abs(cfl_u-cfl_sx),abs(cfl_v-cfl_sy),abs(cfl_w-cfl_sz))+agrt
+			end if
+		end if
+		if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
+			cfl_mut=u_ct_val(1,1,i)
+			cfl_chi=abs(max(cfl_mut,1.0d-15)/max(cfl_mu,1.0d-15))
+			cfl_chi3=cfl_chi*cfl_chi*cfl_chi
+			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
+			cfl_mut=cfl_mut*cfl_fv1
+			cfl_mut=min(10000000.0d0*visc,cfl_mut)
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))+(cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0)))
+			cfl_mut=max(0.0d0,cfl_mut)
+			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
+			cfl_mu=cfl_mu+cfl_mut
+		end if
+		if (dg.eq.1)then
+			cfl_vdiff=2.0d0*max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),gamma*cfl_lam/(prandtl*cfl_rho))*((2*iorder+1)/ielem_minedge(i))
+			CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+cfl_vdiff)))
+		else
+			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*(cfl_lam+cfl_mu)/(ielem_minedge(i)**2)))))
+		end if
+#else
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		rightv(1:nof_variables)=leftv(1:nof_variables)
+		call get_visc_conduct(n,leftv,rightv,viscl,laml)
+
+        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(5)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(5)*gamma/leftv(1))
+		end if
+
+
+
+
+        if (rframe.eq.0) then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+        end if
+        if(srfg.eq.1)then
+            pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+            poy(1:3)=srf_velocity
+            srf_speed=zero
+            call vect_function(pox,poy,rotvec)
+            srf_speed(2)=rotvec(1)
+            srf_speed(3)=rotvec(2)
+            srf_speed(4)=rotvec(3)
+            veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+        end if
+        if(mrf.eq.1)then
+            if (rec_mrf(i).eq.0)then
+                veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+            else
+                pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+                pox(1:3)=pox(1:3)-rec_mrf_origin(1:3,i)
+                poy(1:3)=rec_mrf_velocity(1:3,i)
+                srf_speed=zero
+                call vect_function(pox,poy,rotvec)
+            srf_speed(2)=rotvec(1)
+            srf_speed(3)=rotvec(2)
+            srf_speed(4)=rotvec(3)
+                veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+            end if
+        end if
+		if (turbulence.eq.1)then
+		if (turbulencemodel.eq.1)then
+		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-		CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-		LAML(1)=LAML(1)+LAML(3)
-		VISCL(1)=VISCL(1)+VISCL(3)
-		END IF
-		END IF
+		call eddyvisco_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
+		laml(1)=laml(1)+laml(3)
+		viscl(1)=viscl(1)+viscl(3)
+		end if
+		end if
 
 		if (dg.eq.1)then
-		
 
-		DT=MIN(DT,(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
-		
-		
+
+		CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i))))))
+
+
 		else
-		IELEM(N,I)%VISCX=VISCL(1)/VISC
-         DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
 
-!          DT=MIN(DT,(CCFL)*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*(1.0D0/IELEM(N,I)%MINEDGE)))))
+         CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2))))
+
+
 
          end if
-                             
-	END DO
-	!$OMP END DO
-	END IF
-	
-	
-        RETURN
-        
-END SUBROUTINE CALCULATE_CFL
+#endif
 
-SUBROUTINE CALCULATE_CFLL(N)
+	end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
+
+
+#if defined(gpu) || defined(xpu)
+        dt = dt_reduce
+#endif
+#undef CFL_DT
+        return
+
+end subroutine calculate_cfl
+
+subroutine calculate_cfll(n)
 !> @brief
-!> subroutine for computing the time step size for each cell in 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL,SRF
-REAL::SUVI,SUV3,maxU,MINU
-REAL::CCFL,VELN,AGRT
-real,dimension(1:nof_Variables)::leftv,rightv
-real,dimension(1:nof_Variables)::SRF_SPEED
-real::MP_PINFL,gammal
-REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-REAL,DIMENSION(1:4)::VISCL,LAML
-REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-REAL,DIMENSION(1:2)::TURBMV
-REAL,DIMENSION(1)::ETVM
-KMAXE=XMPIELRANK(N)
-       
-        CCFL=(CFL/3.0d0)
-        
-        
-	IF (ITESTCASE.LT.3)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		VELN=MAX(ABS(LAMx),ABS(LAMy),ABS(LAMz))
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
-	END DO
-	!$OMP END DO
-	END IF
-	
-	IF (ITESTCASE.EQ.3)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
+!> subroutine for computing the time step size for each cell in 3d
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::veln,agrt
+real,dimension(1:gpu_max_nvar)::leftv,rightv
+real,dimension(4)::srf_speed
+real,dimension(3)::rotvec
+real::mp_pinfl,gammal
+real,dimension(3)::pox,poy
+real,dimension(1:4)::viscl,laml
+	real,dimension(1:20)::eddyfl,eddyfr
+	real,dimension(1:2)::turbmv
+	real,dimension(1)::etvm
+#ifdef xpu
+	real::cfl_rho,cfl_orho,cfl_u,cfl_v,cfl_w,cfl_q2,cfl_p,cfl_temp,cfl_tref,cfl_tratio
+	real::cfl_mu,cfl_lam,cfl_mut,cfl_chi,cfl_chi3,cfl_fv1
+	real::cfl_rx,cfl_ry,cfl_rz,cfl_sx,cfl_sy,cfl_sz,cfl_vdiff
+#endif
+	kmaxe=xmpielrank(n)
 
-       IF (multispecies.eq.1)THEN
-		AGRT=SQRT((LEFTV(5)+MP_PINFL)*GAMMAl/LEFTV(1))
-		ELSE
-		AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-		END IF
-        IF (RFRAME.eq.0) THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        END IF
-        IF (SRFG.EQ.1) THEN
-            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-            POY(1:3)=SRF_VELOCITY
-            SRF_SPEED=ZERO
-            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF
-        IF(MRF.EQ.1)THEN
-            SRF=ILOCAL_RECON3(I)%MRF
-            IF (ILOCAL_RECON3(I)%MRF.EQ.1)THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-            ELSE
-                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX=POX-ILOCAL_RECON3(I)%MRF_ORIGIN
-                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
-                SRF_SPEED=ZERO
-                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-            END IF
-        END IF
-		if (dg.eq.1)then
-		
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1))
-		
+
+
+
+	if (itestcase.lt.3)then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private (veln) &
+!$omp& map(alloc: ielem_dtl, ielem_minedge) &
+!$omp& firstprivate(ccfl, lamx, lamy, lamz)
+#else
+    !$omp barrier
+	!$omp do
+#endif
+        do i=1,kmaxe
+		veln=max(abs(lamx),abs(lamy),abs(lamz))
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))
+	end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
+
+	if (itestcase.eq.3)then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(veln,leftv,mp_pinfl,gammal,agrt,pox,poy,rotvec,srf_speed) &
+!$omp& map(alloc: ielem_dtl, ielem_minedge, ielem_xxc, ielem_yyc, ielem_zzc, rec_mrf, rec_mrf_origin) &
+!$omp& map(alloc: rec_mrf_velocity, srf_velocity, u_c_val) &
+!$omp& firstprivate(ccfl, dg, gamma, iorder, mrf, multispecies, nof_variables, realgas, rframe, srfg, zero)
+#else
+    !$omp barrier
+	!$omp do
+#endif
+        do i=1,kmaxe
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+#ifdef xpu
+		call cons2prim_ideal(n,leftv,mp_pinfl,gammal)
+#else
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+#endif
+
+       if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(5)+mp_pinfl)*gammal/leftv(1))
 		else
-		
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
-		
+		agrt=sqrt(leftv(5)*gamma/leftv(1))
 		end if
-	END DO
-	!$OMP END DO
-	END IF
-	
-	
-	
-	IF (ITESTCASE.EQ.4)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND(N,leftv,rightv,VISCL,LAML)
-                AGRT=SQRT(LEFTV(5)*GAMMA/LEFTV(1))
-        IF (SRFG.EQ.0.AND.MRF.EQ.0) THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-        END IF
-        IF(SRFG.EQ.1)THEN
-            POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-            POY(1:3)=SRF_VELOCITY
-            SRF_SPEED=ZERO
-            SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-            VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-        END IF
-        IF(MRF.EQ.1)THEN
-            SRF=ILOCAL_RECON3(I)%MRF
-           IF (ILOCAL_RECON3(I)%MRF.EQ.0)THEN
-            VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)),ABS(LEFTV(4)))+AGRT
-            ELSE
-                POX(1)=IELEM(N,I)%XXC;POX(2)=IELEM(N,I)%YYC;POX(3)=IELEM(N,I)%ZZC
-                POX(1:3)=POX(1:3)-ILOCAL_RECON3(I)%MRF_ORIGIN(1:3)
-                POY(1:3)=ILOCAL_RECON3(I)%MRF_VELOCITY
-                SRF_SPEED=ZERO
-                SRF_SPEED(2:4)=VECT_FUNCTION(POX,POY)
-                VELN=MAX(ABS(LEFTV(2)-SRF_SPEED(2)),ABS(LEFTV(3)-SRF_SPEED(3)),ABS(LEFTV(4)-SRF_SPEED(4)))+AGRT
-            END IF
-        END IF
-        IF (TURBULENCE.EQ.1)THEN
-		IF (TURBULENCEMODEL.EQ.1)THEN
-		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+        if (rframe.eq.0) then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+        end if
+        if (srfg.eq.1) then
+            pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+            poy(1:3)=srf_velocity
+            srf_speed=zero
+            call vect_function(pox,poy,rotvec)
+            srf_speed(2)=rotvec(1)
+            srf_speed(3)=rotvec(2)
+            srf_speed(4)=rotvec(3)
+            veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+        end if
+        if(mrf.eq.1)then
+            if (rec_mrf(i).eq.1)then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+            else
+                pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+                pox=pox-rec_mrf_origin(1:3,i)
+                poy(1:3)=rec_mrf_velocity(1:3,i)
+                srf_speed=zero
+                call vect_function(pox,poy,rotvec)
+            srf_speed(2)=rotvec(1)
+            srf_speed(3)=rotvec(2)
+            srf_speed(4)=rotvec(3)
+                veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+            end if
+        end if
+		if (dg.eq.1)then
+
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1))
+
+		else
+
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))
+
+		end if
+	end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
+
+
+
+	if (itestcase.eq.4)then
+#ifdef xpu
+	cfl_tref=pres/(rres*r_gas)
+!$omp target teams distribute parallel do &
+!$omp& firstprivate(kmaxe,dg,iorder,ccfl,gamma,prandtl,r_gas,visc,suther,turbulence,turbulencemodel,cv1,prtu,cfl_tref,srfg,mrf) &
+!$omp& map(alloc: u_c_val,ielem_dtl,ielem_minedge,ielem_xxc,ielem_yyc,ielem_zzc,srf_velocity) &
+!$omp& private(veln,agrt,cfl_rho,cfl_orho,cfl_u,cfl_v,cfl_w,cfl_q2,cfl_p,cfl_temp,cfl_tratio) &
+!$omp& private(cfl_mu,cfl_lam,cfl_mut,cfl_chi,cfl_chi3,cfl_fv1,cfl_rx,cfl_ry,cfl_rz,cfl_sx,cfl_sy,cfl_sz,cfl_vdiff)
+#elif defined(gpu)
+!$omp target teams distribute parallel do &
+!$omp& firstprivate(n,kmaxe,nof_variables,dimensiona,dg,iorder,ccfl,gamma,prandtl) &
+!$omp& firstprivate(r_gas,pres,rres,visc,suther,zero,rframe,srfg,mrf,turbulence,turbulencemodel) &
+!$omp& map(alloc: xmpielrank,u_c_val,ielem_dtl,ielem_minedge,ielem_xxc,ielem_yyc,ielem_zzc) &
+!$omp& map(alloc: srf_velocity) &
+!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,pox,poy,rotvec,srf_speed,viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+#else
+    !$omp barrier
+	!$omp do
+#endif
+        do i=1,kmaxe
+
+#ifdef xpu
+		cfl_rho=u_c_val(1,1,i)
+		cfl_orho=1.0d0/cfl_rho
+		cfl_u=u_c_val(1,2,i)*cfl_orho
+		cfl_v=u_c_val(1,3,i)*cfl_orho
+		cfl_w=u_c_val(1,4,i)*cfl_orho
+		cfl_q2=(cfl_u*cfl_u)+(cfl_v*cfl_v)+(cfl_w*cfl_w)
+		cfl_p=(gamma-1.0d0)*(u_c_val(1,5,i)-0.5d0*cfl_rho*cfl_q2)
+		agrt=sqrt(cfl_p*gamma*cfl_orho)
+		cfl_temp=cfl_p*cfl_orho/r_gas
+		cfl_tratio=cfl_temp/cfl_tref
+		cfl_mu=visc*(cfl_tratio*sqrt(cfl_tratio))*((cfl_tref+suther*cfl_tref)/(cfl_temp+suther*cfl_tref))
+		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0))
+		veln=max(abs(cfl_u),abs(cfl_v),abs(cfl_w))+agrt
+		if (srfg.eq.1)then
+			cfl_sx=(srf_velocity(2)*ielem_zzc(i))-(srf_velocity(3)*ielem_yyc(i))
+			cfl_sy=(srf_velocity(3)*ielem_xxc(i))-(srf_velocity(1)*ielem_zzc(i))
+			cfl_sz=(srf_velocity(1)*ielem_yyc(i))-(srf_velocity(2)*ielem_xxc(i))
+			veln=max(abs(cfl_u-cfl_sx),abs(cfl_v-cfl_sy),abs(cfl_w-cfl_sz))+agrt
+		end if
+		if (mrf.eq.1)then
+			if (rec_mrf(i).eq.0)then
+				veln=max(abs(cfl_u),abs(cfl_v),abs(cfl_w))+agrt
+			else
+				cfl_rx=ielem_xxc(i)-rec_mrf_origin(1,i)
+				cfl_ry=ielem_yyc(i)-rec_mrf_origin(2,i)
+				cfl_rz=ielem_zzc(i)-rec_mrf_origin(3,i)
+				cfl_sx=(rec_mrf_velocity(2,i)*cfl_rz)-(rec_mrf_velocity(3,i)*cfl_ry)
+				cfl_sy=(rec_mrf_velocity(3,i)*cfl_rx)-(rec_mrf_velocity(1,i)*cfl_rz)
+				cfl_sz=(rec_mrf_velocity(1,i)*cfl_ry)-(rec_mrf_velocity(2,i)*cfl_rx)
+				veln=max(abs(cfl_u-cfl_sx),abs(cfl_v-cfl_sy),abs(cfl_w-cfl_sz))+agrt
+			end if
+		end if
+		if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
+			cfl_mut=u_ct_val(1,1,i)
+			cfl_chi=abs(max(cfl_mut,1.0d-15)/max(cfl_mu,1.0d-15))
+			cfl_chi3=cfl_chi*cfl_chi*cfl_chi
+			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
+			cfl_mut=cfl_mut*cfl_fv1
+			cfl_mut=min(10000000.0d0*visc,cfl_mut)
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))+(cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0)))
+			cfl_mut=max(0.0d0,cfl_mut)
+			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
+			cfl_mu=cfl_mu+cfl_mut
+		end if
+		if (dg.eq.1)then
+			cfl_vdiff=2.0d0*max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),gamma*cfl_lam/(prandtl*cfl_rho))*((2*iorder+1)/ielem_minedge(i))
+			ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+cfl_vdiff))
+		else
+			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*(cfl_lam+cfl_mu)/(ielem_minedge(i)**2))))
+		end if
+#else
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		rightv(1:nof_variables)=leftv(1:nof_variables)
+		call get_visc_conduct(n,leftv,rightv,viscl,laml)
+
+        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(5)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(5)*gamma/leftv(1))
+		end if
+
+
+
+
+
+
+
+
+        if (srfg.eq.0.and.mrf.eq.0) then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+        end if
+        if(srfg.eq.1)then
+            pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+            poy(1:3)=srf_velocity
+            srf_speed=zero
+            call vect_function(pox,poy,rotvec)
+            srf_speed(2)=rotvec(1)
+            srf_speed(3)=rotvec(2)
+            srf_speed(4)=rotvec(3)
+            veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+        end if
+        if(mrf.eq.1)then
+           if (rec_mrf(i).eq.0)then
+            veln=max(abs(leftv(2)),abs(leftv(3)),abs(leftv(4)))+agrt
+            else
+                pox(1)=ielem_xxc(i);pox(2)=ielem_yyc(i);pox(3)=ielem_zzc(i)
+                pox(1:3)=pox(1:3)-rec_mrf_origin(1:3,i)
+                poy(1:3)=rec_mrf_velocity(1:3,i)
+                srf_speed=zero
+                call vect_function(pox,poy,rotvec)
+            srf_speed(2)=rotvec(1)
+            srf_speed(3)=rotvec(2)
+            srf_speed(4)=rotvec(3)
+                veln=max(abs(leftv(2)-srf_speed(2)),abs(leftv(3)-srf_speed(3)),abs(leftv(4)-srf_speed(4)))+agrt
+            end if
+        end if
+        if (turbulence.eq.1)then
+		if (turbulencemodel.eq.1)then
+		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-		CALL EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-		LAML(1)=LAML(1)+LAML(3)
-		VISCL(1)=VISCL(1)+VISCL(3)
-		END IF
-		END IF
-		
+		call eddyvisco_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
+		laml(1)=laml(1)+laml(3)
+		viscl(1)=viscl(1)+viscl(3)
+		end if
+		end if
+
 
 		if (dg.eq.1)then
 
 
-		IELEM(N,I)%DTL=(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE))))
+		ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i)))))
 
-		
+
 		else
-		
-		IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
+
+		ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2)))
 		end if
-		
-	END DO
-	!$OMP END DO
-	END IF
-	
-	
-        RETURN
-        
-END SUBROUTINE CALCULATE_CFLL
+#endif
+
+	end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
+
+
+        call limit_realgas_source_timestep(n)
+
+        return
+
+end subroutine calculate_cfll
 
 
 
-SUBROUTINE CALCULATE_CFL2D(N)
+subroutine calculate_cfl2d(n)
 !> @brief
-!> subroutine for computing the global time step size in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
-REAL::SUVI,SUV3,maxU,MINU,sum_DT1,sum_dt2
-REAL::CCFL,VELN,AGRT,lamxl,lamyl
-real,dimension(1:nof_Variables)::leftv,rightv
-real,dimension(1:nof_Variables)::SRF_SPEED
-real::MP_PINFL,gammal
-REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-REAL,DIMENSION(1:4)::VISCL,LAML
-REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-REAL,DIMENSION(1:2)::TURBMV
-REAL,DIMENSION(1)::ETVM
-KMAXE=XMPIELRANK(N)
-       
-        CCFL=(CFL/2.0d0)
-        
-        DT=tolbig
-        
-        
-        !$OMP BARRIER
-        
-	IF (ITESTCASE.LT.3)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
-        
-				IF (initcond.eq.3)THEN
-				  lamxl=-ielem(n,i)%yyc+0.5d0
-				  lamyl=ielem(n,i)%xxc-0.5
-				  Else
+!> subroutine for computing the global time step size in 2d
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::veln,agrt,lamxl,lamyl
+real,dimension(1:gpu_max_nvar)::leftv,rightv
+real::mp_pinfl,gammal
+real,dimension(1:4)::viscl,laml
+	real,dimension(1:20)::eddyfl,eddyfr
+	real,dimension(1:2)::turbmv
+	real,dimension(1)::etvm
+#ifdef xpu
+	real::cfl_rho,cfl_orho,cfl_u,cfl_v,cfl_q2,cfl_p,cfl_temp,cfl_tref,cfl_tratio
+	real::cfl_mu,cfl_lam,cfl_mut,cfl_chi,cfl_chi3,cfl_fv1,cfl_vdiff
+#endif
+#if defined(gpu) || defined(xpu)
+	real::dt_reduce
+#define CFL_DT dt_reduce
+#else
+#define CFL_DT dt
+#endif
+kmaxe=xmpielrank(n)
+
+
+
+#if defined(gpu) || defined(xpu)
+  dt_reduce = tolbig
+#else
+  dt = tolbig
+#endif
+
+
+
+
+	if (itestcase.lt.3)then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& map(tofrom: dt_reduce) &
+!$omp& reduction(min: dt_reduce) private(veln,lamxl,lamyl) &
+!$omp& map(alloc: ielem_minedge, ielem_xxc, ielem_yyc) &
+!$omp& firstprivate(ccfl, dg, initcond, iorder, lamx, lamy)
+#else
+    !$omp barrier
+	!$omp do reduction (min:dt)
+#endif
+        do i=1,kmaxe
+
+				if (initcond.eq.3)then
+				  lamxl=-ielem_yyc(i)+0.5d0
+				  lamyl=ielem_xxc(i)-0.5
+				  else
 				  lamxl=lamx
 				  lamyl=lamy
                 end if
-        
-        
-		VELN=MAX(ABS(LAMxl),ABS(LAMyl))
-		
+
+
+		veln=max(abs(lamxl),abs(lamyl))
+
 		if (dg.eq.1)then
-		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
-		
+
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
+
 		else
-		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln))))
 		end if
-		
-	END DO
-	!$OMP END DO
-	END IF
-	
-	IF (ITESTCASE.EQ.3)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
-        
-        
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
-        
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-		IF (multispecies.eq.1)THEN
-		AGRT=SQRT((LEFTV(4)+MP_PINFL)*GAMMAl/LEFTV(1))
-		ELSE
-		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		END IF
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
-		
-		
-		
+
+	end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
+
+	if (itestcase.eq.3)then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& map(tofrom: dt_reduce) &
+!$omp& reduction(min: dt_reduce) private(veln,leftv,mp_pinfl,gammal,agrt) &
+!$omp& map(alloc: ielem_minedge, u_c_val) &
+!$omp& firstprivate(ccfl, dg, gamma, iorder, multispecies, nof_variables, realgas)
+#else
+    !$omp barrier
+	!$omp do reduction (min:dt)
+#endif
+        do i=1,kmaxe
+
+
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+#ifdef xpu
+		call cons2prim_ideal(n,leftv,mp_pinfl,gammal)
+#else
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+#endif
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(4)*gamma/leftv(1))
+		end if
+		veln=max(abs(leftv(2)),abs(leftv(3)))+agrt
+
+
+
 		if (dg.eq.1)then
-		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1)))
-		
-		
+
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
+
+
 		else
-		
-		DT=MIN(DT,CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN))))
+
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln))))
 		end if
-		
-		
-		
-	END DO
-	!$OMP END DO
-	END IF
-	
-	
-	
-	IF (ITESTCASE.EQ.4)THEN
-	!$OMP DO REDUCTION (MIN:DT)
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL CONS2PRIM(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
-		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
-		IF (TURBULENCE.EQ.1)THEN
-		IF (TURBULENCEMODEL.EQ.1)THEN
-		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+
+
+
+	end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
+
+
+
+	if (itestcase.eq.4)then
+#ifdef xpu
+	cfl_tref=pres/(rres*r_gas)
+!$omp target teams distribute parallel do &
+!$omp& map(tofrom: dt_reduce) &
+!$omp& reduction(min: dt_reduce) &
+!$omp& firstprivate(kmaxe,dg,iorder,ccfl,gamma,prandtl,r_gas,visc,suther,turbulence,turbulencemodel,cv1,prtu,cfl_tref) &
+!$omp& map(alloc: u_c_val,ielem_minedge) &
+!$omp& private(veln,agrt,cfl_rho,cfl_orho,cfl_u,cfl_v,cfl_q2,cfl_p,cfl_temp,cfl_tratio) &
+!$omp& private(cfl_mu,cfl_lam,cfl_mut,cfl_chi,cfl_chi3,cfl_fv1,cfl_vdiff)
+#elif defined(gpu)
+!$omp target teams distribute parallel do &
+!$omp& map(tofrom: dt_reduce) &
+!$omp& reduction(min: dt_reduce) &
+!$omp& firstprivate(n,kmaxe,nof_variables,dimensiona,dg,iorder,ccfl,gamma,prandtl) &
+!$omp& firstprivate(r_gas,pres,rres,visc,suther,zero,turbulence,turbulencemodel) &
+!$omp& map(alloc: xmpielrank,u_c_val,ielem_minedge) &
+!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+#else
+    !$omp barrier
+	!$omp do reduction (min:dt)
+#endif
+        do i=1,kmaxe
+
+#ifdef xpu
+		cfl_rho=u_c_val(1,1,i)
+		cfl_orho=1.0d0/cfl_rho
+		cfl_u=u_c_val(1,2,i)*cfl_orho
+		cfl_v=u_c_val(1,3,i)*cfl_orho
+		cfl_q2=(cfl_u*cfl_u)+(cfl_v*cfl_v)
+		cfl_p=(gamma-1.0d0)*(u_c_val(1,4,i)-0.5d0*cfl_rho*cfl_q2)
+		agrt=sqrt(cfl_p*gamma*cfl_orho)
+		cfl_temp=cfl_p*cfl_orho/r_gas
+		cfl_tratio=cfl_temp/cfl_tref
+		cfl_mu=visc*(cfl_tratio*sqrt(cfl_tratio))*((cfl_tref+suther*cfl_tref)/(cfl_temp+suther*cfl_tref))
+		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0))
+		veln=max(abs(cfl_u),abs(cfl_v))+agrt
+		if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
+			cfl_mut=u_ct_val(1,1,i)
+			cfl_chi=abs(max(cfl_mut,1.0d-15)/max(cfl_mu,1.0d-15))
+			cfl_chi3=cfl_chi*cfl_chi*cfl_chi
+			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
+			cfl_mut=cfl_mut*cfl_fv1
+			cfl_mut=min(10000000.0d0*visc,cfl_mut)
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))+(cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0)))
+			cfl_mut=max(0.0d0,cfl_mut)
+			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
+			cfl_mu=cfl_mu+cfl_mut
+		end if
+		if (dg.eq.1)then
+			cfl_vdiff=2.0d0*max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),gamma*cfl_lam/(prandtl*cfl_rho))*((2*iorder+1)/ielem_minedge(i))
+			CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+cfl_vdiff)))
+		else
+			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*(cfl_lam+cfl_mu)/(ielem_minedge(i)**2)))))
+		end if
+#else
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		rightv(1:nof_variables)=leftv(1:nof_variables)
+		call get_visc_conduct(n,leftv,rightv,viscl,laml)
+
+        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(4)*gamma/leftv(1))
+		end if
+
+
+		veln=max(abs(leftv(2)),abs(leftv(3)))+agrt
+		if (turbulence.eq.1)then
+		if (turbulencemodel.eq.1)then
+		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-		CALL EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-		LAML(1)=LAML(1)+LAML(3)
-		VISCL(1)=VISCL(1)+VISCL(3)
-		END IF
-		END IF
+		call eddyvisco2d_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
+		laml(1)=laml(1)+laml(3)
+		viscl(1)=viscl(1)+viscl(3)
+		end if
+		end if
 
 
     if (dg.eq.1)then
-		
 
-      DT=MIN(DT,(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE)))))
-      
-      
+
+      CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i))))))
+
+
       else
 
 
-		
-		DT=MIN(DT,CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2))))
-      END IF
-  
-  END DO
-	!$OMP END DO
-	END IF
-	
-	
-        RETURN
-        
-END SUBROUTINE CALCULATE_CFL2D
+
+			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2))))
+	      end if
+#endif
+
+	  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
 
 
-SUBROUTINE CALCULATE_CFLL2D(N)
+#if defined(gpu) || defined(xpu)
+        dt = dt_reduce
+#endif
+#undef CFL_DT
+        return
+
+end subroutine calculate_cfl2d
+
+
+subroutine calculate_cfll2d(n)
 !> @brief
-!> subroutine for computing the time step size for each cell in 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,K,L,KMAXE,J,INGTMAX,INGTMIN,WHGU,WHGL
-REAL::SUVI,SUV3,maxU,MINU
-REAL::CCFL,VELN,AGRT
-real,dimension(1:nof_Variables)::leftv,rightv
-real,dimension(1:nof_Variables)::SRF_SPEED
-reaL::MP_PINFL,gammal,MP_PINFr,gammar
-REAL,DIMENSION(1:DIMENSIONA)::POX,POY,POZ
-REAL,DIMENSION(1:4)::VISCL,LAML
-REAL,DIMENSION(1:20)::EDDYFL,EDDYFR
-REAL,DIMENSION(1:2)::TURBMV
-REAL,DIMENSION(1)::ETVM
-KMAXE=XMPIELRANK(N)
-       
-        CCFL=(CFL/2.0d0)
-        
-        
-	IF (ITESTCASE.LT.3)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		VELN=MAX(ABS(LAMx),ABS(LAMy))
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
-	END DO
-	!$OMP END DO
-	END IF
-	
-	IF (ITESTCASE.EQ.3)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
-		
-		
-		if (dg.eq.1)then
-		
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))*(1.0D0/(2*IORDER+1))
-		
+!> subroutine for computing the time step size for each cell in 2d
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::veln,agrt
+real,dimension(1:gpu_max_nvar)::leftv,rightv
+real::mp_pinfl,gammal
+real,dimension(1:4)::viscl,laml
+	real,dimension(1:20)::eddyfl,eddyfr
+	real,dimension(1:2)::turbmv
+	real,dimension(1)::etvm
+#ifdef xpu
+	real::cfl_rho,cfl_orho,cfl_u,cfl_v,cfl_q2,cfl_p,cfl_temp,cfl_tref,cfl_tratio
+	real::cfl_mu,cfl_lam,cfl_mut,cfl_chi,cfl_chi3,cfl_fv1,cfl_vdiff
+#endif
+	kmaxe=xmpielrank(n)
+
+
+
+
+	if (itestcase.lt.3)then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private (veln) &
+!$omp& map(alloc: ielem_dtl, ielem_minedge) &
+!$omp& firstprivate(ccfl, lamx, lamy)
+#else
+    !$omp barrier
+	!$omp do
+#endif
+        do i=1,kmaxe
+		veln=max(abs(lamx),abs(lamy))
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))
+	end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
+
+	if (itestcase.eq.3)then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(veln,leftv,mp_pinfl,gammal,agrt) &
+!$omp& map(alloc: ielem_dtl, ielem_minedge, u_c_val) &
+!$omp& firstprivate(ccfl, dg, gamma, iorder, multispecies, nof_variables, realgas)
+#else
+    !$omp barrier
+	!$omp do
+#endif
+        do i=1,kmaxe
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+#ifdef xpu
+		call cons2prim_ideal(n,leftv,mp_pinfl,gammal)
+#else
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+#endif
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))
 		else
-		
-		IELEM(N,I)%DTL=CCFL*((IELEM(N,I)%MINEDGE)/(ABS(VELN)))
-		
+		agrt=sqrt(leftv(4)*gamma/leftv(1))
 		end if
-		
-		
-		
-		
-	END DO
-	!$OMP END DO
-	END IF
-	
-	
-	
-	IF (ITESTCASE.EQ.4)THEN
-	!$OMP DO
-        DO I=1,KMAXE
-		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		CALL cons2prim(N,leftv,MP_PINFl,gammal)
-		RIGHTV(1:NOF_vARIABLES)=LEFTV(1:NOF_vARIABLES)
-		CALL SUTHERLAND2D(N,leftv,rightv,VISCL,LAML)
-		AGRT=SQRT(LEFTV(4)*GAMMA/LEFTV(1))
-		VELN=MAX(ABS(LEFTV(2)),ABS(LEFTV(3)))+AGRT
-		IF (TURBULENCE.EQ.1)THEN
-		IF (TURBULENCEMODEL.EQ.1)THEN
-		TURBMV(1)=U_CT(I)%VAL(1,1);  TURBMV(2)=U_CT(I)%VAL(1,1);
+
+
+
+	        !	agrt=sqrt(leftv(4)*gamma/leftv(1))
+		veln=max(abs(leftv(2)),abs(leftv(3)))+agrt
+
+
+		if (dg.eq.1)then
+
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1))
+
+		else
+
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))
+
+		end if
+
+
+
+
+	end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
+
+
+
+	if (itestcase.eq.4)then
+#ifdef xpu
+	cfl_tref=pres/(rres*r_gas)
+!$omp target teams distribute parallel do &
+!$omp& firstprivate(kmaxe,dg,iorder,ccfl,gamma,prandtl,r_gas,visc,suther,turbulence,turbulencemodel,cv1,prtu,cfl_tref) &
+!$omp& map(alloc: u_c_val,ielem_dtl,ielem_minedge) &
+!$omp& private(veln,agrt,cfl_rho,cfl_orho,cfl_u,cfl_v,cfl_q2,cfl_p,cfl_temp,cfl_tratio) &
+!$omp& private(cfl_mu,cfl_lam,cfl_mut,cfl_chi,cfl_chi3,cfl_fv1,cfl_vdiff)
+#elif defined(gpu)
+!$omp target teams distribute parallel do &
+!$omp& firstprivate(n,kmaxe,nof_variables,dimensiona,dg,iorder,ccfl,gamma,prandtl) &
+!$omp& firstprivate(r_gas,pres,rres,visc,suther,zero,turbulence,turbulencemodel) &
+!$omp& map(alloc: xmpielrank,u_c_val,ielem_dtl,ielem_minedge) &
+!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+#else
+    !$omp barrier
+	!$omp do
+#endif
+        do i=1,kmaxe
+#ifdef xpu
+		cfl_rho=u_c_val(1,1,i)
+		cfl_orho=1.0d0/cfl_rho
+		cfl_u=u_c_val(1,2,i)*cfl_orho
+		cfl_v=u_c_val(1,3,i)*cfl_orho
+		cfl_q2=(cfl_u*cfl_u)+(cfl_v*cfl_v)
+		cfl_p=(gamma-1.0d0)*(u_c_val(1,4,i)-0.5d0*cfl_rho*cfl_q2)
+		agrt=sqrt(cfl_p*gamma*cfl_orho)
+		cfl_temp=cfl_p*cfl_orho/r_gas
+		cfl_tratio=cfl_temp/cfl_tref
+		cfl_mu=visc*(cfl_tratio*sqrt(cfl_tratio))*((cfl_tref+suther*cfl_tref)/(cfl_temp+suther*cfl_tref))
+		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0))
+		veln=max(abs(cfl_u),abs(cfl_v))+agrt
+		if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
+			cfl_mut=u_ct_val(1,1,i)
+			cfl_chi=abs(max(cfl_mut,1.0d-15)/max(cfl_mu,1.0d-15))
+			cfl_chi3=cfl_chi*cfl_chi*cfl_chi
+			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
+			cfl_mut=cfl_mut*cfl_fv1
+			cfl_mut=min(10000000.0d0*visc,cfl_mut)
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))+(cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0)))
+			cfl_mut=max(0.0d0,cfl_mut)
+			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
+			cfl_mu=cfl_mu+cfl_mut
+		end if
+		if (dg.eq.1)then
+			cfl_vdiff=2.0d0*max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),gamma*cfl_lam/(prandtl*cfl_rho))*((2*iorder+1)/ielem_minedge(i))
+			ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+cfl_vdiff))
+		else
+			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*(cfl_lam+cfl_mu)/(ielem_minedge(i)**2))))
+		end if
+#else
+		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		rightv(1:nof_variables)=leftv(1:nof_variables)
+		call get_visc_conduct(n,leftv,rightv,viscl,laml)
+
+        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		call cons2prim(n,leftv,mp_pinfl,gammal)
+		if ((multispecies.eq.1).or.(realgas.eq.1))then
+		agrt=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))
+		else
+		agrt=sqrt(leftv(4)*gamma/leftv(1))
+		end if
+
+
+
+
+
+
+
+
+
+
+		veln=max(abs(leftv(2)),abs(leftv(3)))+agrt
+		if (turbulence.eq.1)then
+		if (turbulencemodel.eq.1)then
+		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
-		CALL EDDYVISCO2D(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR,LEFTV,RIGHTV)
-		LAML(1)=LAML(1)+LAML(3)
-		VISCL(1)=VISCL(1)+VISCL(3)
-		END IF
-		END IF
+		call eddyvisco2d_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
+		laml(1)=laml(1)+laml(3)
+		viscl(1)=viscl(1)+viscl(3)
+		end if
+		end if
 
 
 
@@ -552,1742 +1046,2674 @@ KMAXE=XMPIELRANK(N)
 		if (dg.eq.1)then
 
 
-      IELEM(N,I)%DTL=(CCFL/(2*IORDER+1))*(IELEM(N,I)%MINEDGE/((ABS(VELN))+(2.0D0*MAX(((4.0/3.0)*VISCL(1)/LEFTV(1)),GAMMA*LAML(1)/(PRANDTL*LEFTV(1)))*((2*IORDER+1)/IELEM(N,I)%MINEDGE))))
+      ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i)))))
 
 
       else
-		
-		IELEM(N,I)%DTL=CCFL*(1.0D0/((ABS(VELN)/((IELEM(N,I)%MINEDGE))) + (0.5D0*(LAML(1)+VISCL(1))/((IELEM(N,I)%MINEDGE))**2)))
+
+			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2)))
 
 
-		end if
-	END DO
-	!$OMP END DO
-	END IF
-	
-	
-        RETURN
-        
-END SUBROUTINE CALCULATE_CFLL2D
+			end if
+#endif
+	end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+	end if
+
+
+        call limit_realgas_source_timestep(n)
+
+        return
+
+end subroutine calculate_cfll2d
 
 
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !---------------------------------------------------------------------------------------------!
 ! ! !---------------------------------------------------------------------------------------------!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! ! !!!!!!!!!!!!!!!!!!SUBROUTINE CALLED TO ADVANCE SOLUTION BY ONE TIME STEP SIZE!!!!!!!!!!!!!!!!!!
+! ! !!!!!!!!!!!!!!!!!!subroutine called to advance solution by one time step size!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-SUBROUTINE RUNGE_KUTTA3_MOOD(N)
+subroutine runge_kutta3_mood(n)
 !> @brief
-!> SSP RUNGE KUTTA 3RD-ORDER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::IAVR,nvar,I,KMAXE,inds
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
-
-
-IF (MOOD.EQ.1)THEN
-INDS=4
-ELSE
-INDS=1
-END IF
-
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    
-    END SELECT
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    
-    END SELECT
-END IF
-
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  IF (MOOD.EQ.1)THEN
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  END IF
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-END DO
-!$OMP END DO
- END IF
- 
- IF (MOOD.EQ.1)THEN
- 
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
-
-CALL MOOD_OPERATOR_1(N)
-
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
-
-END IF
-
- 
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-END IF
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(inds,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-END DO
-!$OMP END DO
-
-
-
-
-
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(TO4*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(OO4*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((OO4))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
-
- IF (MOOD.EQ.1)THEN
- 
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
-
-CALL MOOD_OPERATOR_1(N)
-
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
-
-END IF
- 
-
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_DIFFUSIVE(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    CALL VORTEXCALC(N)
-    END SELECT
-END IF
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-   IF (MOOD.EQ.1)THEN
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  END IF
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-END DO
-!$OMP END DO
-
-
-IF (MOOD.EQ.1)THEN
- 
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
-
-CALL MOOD_OPERATOR_1(N)
-
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
-
-END IF
-
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=((OO3)*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+((TO3)*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(((TO3))*&
-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
-
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-
-                        
-END SUBROUTINE RUNGE_KUTTA3_MOOD
-
-
-SUBROUTINE RUNGE_KUTTA3(N)
-!> @brief
-!> SSP RUNGE KUTTA 3RD-ORDER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
-
-CALL CALL_FLUX_SUBROUTINES_3D
-
-
-!$OMP DO
-DO I=1,KMAXE
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(2,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        
-         U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-
-
-
-         
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    END IF
-END DO
-!$OMP END DO
-
-        !  IF ((DG.EQ.1).AND.(FILTERING.EQ.1))THEN
-
-         !   CALL SOL_INTEG_DGx(N)
-          !  CALL APPLY_FILTER_DG(N)
-          !END IF
-
-
-
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-END DO
-!$OMP END DO
- END IF
- 
-CALL CALL_FLUX_SUBROUTINES_3D
-
-!$OMP DO
-DO I=1,KMAXE
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(3,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-         U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=TO4*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + OO4*U_C(I)%VALDG(3,1:NOF_VARIABLES,:) - OO4*DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-
-
-
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-        ((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(TO4*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(OO4*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((OO4))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
-
-
-
-
-
-
-CALL CALL_FLUX_SUBROUTINES_3D
-
-
-!$OMP DO
-DO I=1,KMAXE
-  IF (DG == 1) THEN
-!         U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=OO3*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + TO3*U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - TO3*DT*TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-
-!         CALL DGEMM('N','N',NUM_DG_DOFS,nof_variables,NUM_DG_DOFS,ALPHA,m_1(i)%val(1:NUM_DG_DOFS,1:NUM_DG_DOFS),NUM_DG_DOFS,&
-! 	  RHS(I)%VALDG(1:NUM_DG_DOFS,1:NOF_VARIABLES),&
-!         NUM_DG_DOFS,BETA,RHS(I)%SOL_MM_DG,NUM_DG_DOFS)
-
-
-        RHS(I)%SOL_MM_DG(1:NUM_DG_DOFS,1:nof_variables)=matmul(m_1(i)%val(1:NUM_DG_DOFS,1:NUM_DG_DOFS),RHS(I)%VALDG(1:NUM_DG_DOFS,1:NOF_VARIABLES))
-
-        
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=OO3*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + TO3*U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - TO3*DT * TRANSPOSE(RHS(I)%SOL_MM_DG)
-
-
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-        ((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=((OO3)*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+((TO3)*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(((TO3))*&
-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
-
-
-
-
-
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-
-                        
-END SUBROUTINE RUNGE_KUTTA3
-
-
-
-
-SUBROUTINE RUNGE_KUTTA1(N)
-!> @brief
-!> SSP FORWARD EULER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,kx
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-reaL::t1,t2,t3
-KMAXE=XMPIELRANK(N)
-
-
-
-
-CALL CALL_FLUX_SUBROUTINES_3D
-
-DO I=1,KMAXE
-IF (DG == 1)then
-if((U_C(i)%VALDG(1,1,1).ne. U_C(i)%VALDG(1,1,1))) THEN
-    IF (N == 0) PRINT*, 'STOPPING BECAUSE NaNs1'
-    STOP ! Stop if NaNs
-END IF
+!> ssp runge kutta 3rd-order scheme
+implicit none
+integer,intent(in)::n
+integer::iavr,nvar,i,kmaxe,inds
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
+
+
+
+! if (mood.eq.1)then
+! inds=4
+! else
+! inds=1
+! end if
+
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+
+    end select
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+
+    end select
+end if
+
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+ if (mood.eq.1)then
+
+ call mood_operator_2(n)
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+    ielem_mood_o(i)=2
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+!
+call mood_operator_1(n)
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 end if
+
+
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+end if
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo4, to4)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
 end do
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  
- IF (DG == 1) THEN
-        
-        
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))!*OOVOLUME
-        
-        
-  else
-  
-  
-  
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  end if
-  
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-END DO
-!$OMP END DO
- END IF
-
-
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-
-                        
-END SUBROUTINE RUNGE_KUTTA1
-
-
-
-SUBROUTINE RUNGE_KUTTA2(N)
-!> @brief
-!> SSP RUNGE KUTTA 2ND-ORDER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
-
-CALL CALL_FLUX_SUBROUTINES_3D
-
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  
-END DO
-!$OMP END DO
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-END DO
-!$OMP END DO
- END IF
-
-
-
-CALL CALL_FLUX_SUBROUTINES_3D
-
-!$OMP DO
-DO I=1,KMAXE
- OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(oo2*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(oo2*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(dt*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
-
-
-
-
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-
-                        
-END SUBROUTINE RUNGE_KUTTA2
-
-
-SUBROUTINE RUNGE_KUTTA5(N)
-!> @brief
-!> SSP RUNGE KUTTA 2ND-ORDER SCHEME FOR LOCAL TIME STEPPING
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-
-
-CALL CALL_FLUX_SUBROUTINES_3D
-
-
-
-
-
-
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  
-  
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(2,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - ielem(n,i)%dtl * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-         
-    ELSE
-    
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(ielem(n,i)%dtl*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(ielem(n,i)%dtl*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
-
-CALL CALL_FLUX_SUBROUTINES_3D
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  
-  IF (DG == 1) THEN
-        
-        
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=(oo2*U_C(I)%VALDG(2,1:NOF_VARIABLES,:)) +(oo2*U_C(I)%VALDG(1,1:NOF_VARIABLES,:))- (ielem(n,i)%dtl *oo2* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES))))
-         
-    ELSE
-  
-  
-  
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(ielem(n,i)%dtl*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  end if
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(oo2*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(oo2*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(ielem(n,i)%dtl*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-
-                        
-END SUBROUTINE RUNGE_KUTTA5
-
-SUBROUTINE RUNGE_KUTTA5_2D(N)
-!> @brief
-!> SSP RUNGE KUTTA 2ND-ORDER SCHEME FOR LOCAL TIME STEPPING IN 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-
-
-CALL CALL_FLUX_SUBROUTINES_2D
-
-
-!$OMP DO
-DO I=1,KMAXE
-
-  IF (DG == 1) THEN
-OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VALDG(2,:,:)=U_C(I)%VALDG(1,:,:)
-        U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (ielem(n,i)%dtl* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
-    ELSE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(ielem(n,i)%dtl*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  END IF
-
-
-
-  
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(ielem(n,i)%dtl*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
-
-
-CALL CALL_FLUX_SUBROUTINES_2D
-
-!$OMP DO
-DO I=1,KMAXE
-
-   IF (DG == 1) THEN
-OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VALDG(1,:,:)=(oo2*U_C(I)%VALdg(2,:,:))+(oo2*U_C(I)%VALDG(1,:,:))-(ielem(n,i)%dtl* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))
-    ELSE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(ielem(n,i)%dtl*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-
-  END IF
-
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(oo2*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(oo2*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(ielem(n,i)%dtl*oo2*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-
-                        
-END SUBROUTINE RUNGE_KUTTA5_2D
-
-
-SUBROUTINE RUNGE_KUTTA2_2D(N)
-!> @brief
-!> SSP RUNGE KUTTA 2ND-ORDER SCHEME IN 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-
-
-CALL CALL_FLUX_SUBROUTINES_2D
-
-
-!$OMP DO
-DO I=1,KMAXE
-IF (DG == 1) THEN
-OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VALDG(2,:,:)=U_C(I)%VALDG(1,:,:)
-        U_C(I)%VALDG(1,:,:)=U_C(I)%VALDG(2,:,:) - (DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
-    ELSE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  END IF
-END DO
-!$OMP END DO
-
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
-
-CALL CALL_FLUX_SUBROUTINES_2D
-
-!$OMP DO
-DO I=1,KMAXE
-IF (DG == 1) THEN
-OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VALDG(1,:,:)=OO2*U_C(I)%VALDG(2,:,:) + OO2*U_C(I)%VALDG(1,:,:) - (OO2*DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,:))))!*OOVOLUME
-    ELSE
- OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(oo2*U_C(I)%VAL(2,1:NOF_VARIABLES))+(oo2*U_C(I)%VAL(1,1:NOF_VARIABLES))-(dt*oo2*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-  END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
-
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-
-                        
-END SUBROUTINE RUNGE_KUTTA2_2D
-
-
-
-SUBROUTINE SOL_INTEG_DG(N)
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL,DIMENSION(1:NOF_VARIABLES)::SOLUTION_INTEG2
-
-  
-KMAXE=XMPIELRANK(N)
-!$OMP DO
-DO I=1,KMAXE
-  call SOLUTION_INTEG(I,SOLUTION_INTEG2)
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=SOLUTION_INTEG2(1:NOF_VARIABLES)
-END DO
-!$OMP END DO
-
- 
-
-
-END SUBROUTINE SOL_INTEG_DG
-
-
-SUBROUTINE SOL_INTEG_DGx(N)
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,iconsidered
-REAL,DIMENSION(1:NOF_VARIABLES)::SOLUTION_INTEG2
-REAL,DIMENSION(1:NOF_VARIABLES)::SOLUTION_INTEG_WEAK
-REAL,DIMENSION(1:NOF_VARIABLES)::SOLUTION_INTEG_STRONG
-
-
-KMAXE=XMPIELRANK(N)
-!$OMP DO
-DO I=1,KMAXE
-ICONSIDERED=I
-
-
-
-  call SOLUTION_INTEG(I,SOLUTION_INTEG2)
-  U_C(I)%VAL(1,:)=SOLUTION_INTEG2(1:NOF_VARIABLES)
-
-
-
-  if (FILTERING.EQ.1)THEN
-  call SOLUTION_INTEG_S(I,SOLUTION_INTEG_STRONG)
-  call SOLUTION_INTEG_W(I,SOLUTION_INTEG_WEAK)
-
-  U_CS(I)%VAL(1,:)=SOLUTION_INTEG_STRONG(1:NOF_VARIABLES)
-  U_CW(I)%VAL(1,:)=SOLUTION_INTEG_WEAK(1:NOF_VARIABLES)
-  END IF
-
-
-END DO
-!$OMP END DO
-
-
-
-
-END SUBROUTINE SOL_INTEG_DGx
-
-SUBROUTINE SOL_INTEG_DG_init(N)
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL,DIMENSION(1:NOF_VARIABLES)::SOLUTION_INTEG2
- 
-KMAXE=XMPIELRANK(N)
-!$OMP DO
-DO I=1,KMAXE
-
-  call SOLUTION_INTEG(I,SOLUTION_INTEG2)
-  U_C(I)%VAL(1,:)=SOLUTION_INTEG2(1:NOF_VARIABLES)
-  U_e(I)%VAL(1,:)=U_C(I)%VAL(1,:)
-
- 
-END DO
-!$OMP END DO
-
- 
-
-
-
-
-END SUBROUTINE SOL_INTEG_DG_init
-
-
-
-
-
-
-
-SUBROUTINE RUNGE_KUTTA1_2D(N)
-!> @brief
-!> SSP FORWARD EULER SCHEME IN 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,kx
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-REAL,DIMENSION(NOF_VARIABLES)::TEMPSOL
-KMAXE=XMPIELRANK(N)
-
-
-
-CALL CALL_FLUX_SUBROUTINES_2D
-
-
-
-DO I=1,KMAXE
-IF (DG == 1)then
-if((U_C(i)%VALDG(1,1,1).ne. U_C(i)%VALDG(1,1,1))) THEN
-    IF (N == 0) PRINT*, 'STOPPING BECAUSE NaNs1'
-    STOP ! Stop if NaNs
-END IF
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, oo4, passivescalar, to4, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+ if (mood.eq.1)then
+
+ call mood_operator_2(n)
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo4, to4)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+     if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=2
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+!
+call mood_operator_1(n)
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo4, to4)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 end if
+
+
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    call vortexcalc(n)
+    end select
+end if
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo3, to3)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
 end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  
-  
-  IF (DG == 1) THEN
-        
-        
-        
-        
-        
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-        
+if (mood.eq.1)then
+
+ call mood_operator_2(n)
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo3, to3)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+     if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=2
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+call mood_operator_1(n)
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo3, to3)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+end if
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, oo3, passivescalar, to3, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
+((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
+
+
+
+
+
+
+end subroutine runge_kutta3_mood
+
+
+subroutine runge_kutta3(n)
+!> @brief
+!> ssp runge kutta 3rd-order scheme
+implicit none
+integer :: mm_idof
+integer :: mm_var
+integer,intent(in)::n
+integer::i,kmaxe
+logical::accepted_update
+real::avrgs,oovolume,update_alpha
+real,dimension(1:gpu_max_nvar)::candidate,old_state,limited
+kmaxe=xmpielrank(n)
+
+
+
+
+call call_flux_subroutines_3d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  if (dg == 1) then
+        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+
+           call dg_mass_rhs_product_cell(i)
+           do mm_var=1,nof_variables
+             do mm_idof=1,num_dg_dofs
+               u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+             end do
+           end do
+
+
+
+
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        old_state=zero
+        candidate=zero
+        old_state(1:nof_variables)=u_c_val(2,1:nof_variables,i)
+        candidate(1:nof_variables)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+        call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+        if (accepted_update) then
+          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        else
+          u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+        end if
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+ end if
+
+
+call call_flux_subroutines_3d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume,candidate,old_state,limited,update_alpha,accepted_update) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs, oo4, to4)
+#else
+	!$omp do private(oovolume,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+do i=1,kmaxe
+  if (dg == 1) then
+        u_c_valdg(3,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+           call dg_mass_rhs_product_cell(i)
+           do mm_var=1,nof_variables
+             do mm_idof=1,num_dg_dofs
+               u_c_valdg(1,mm_var,mm_idof,i) = to4*u_c_valdg(2,mm_var,mm_idof,i) + oo4*u_c_valdg(3,mm_var,mm_idof,i) - oo4*dt* rhs_sol_mm_dg(mm_idof,mm_var,i)
+             end do
+           end do
+
+
+
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        old_state=zero
+        candidate=zero
+        old_state(1:nof_variables)=u_c_val(3,1:nof_variables,i)
+        candidate(1:nof_variables)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+        ((rhs_val(1:nof_variables,i))*(oovolume))))
+        call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+        if (accepted_update) then
+          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        else
+          u_c_val(1,1:nof_variables,i)=u_c_val(3,1:nof_variables,i)
+        end if
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, oo4, passivescalar, to4, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+ end if
+
+
+
+
+
+
+
+call call_flux_subroutines_3d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume,candidate,old_state,limited,update_alpha,accepted_update) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs, oo3, to3)
+#else
+	!$omp do private(oovolume,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+do i=1,kmaxe
+  if (dg == 1) then
+
+
+
+        call dg_mass_rhs_product_cell(i)
+
+
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = oo3*u_c_valdg(2,mm_var,mm_idof,i) + to3*u_c_valdg(1,mm_var,mm_idof,i) - to3*dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+
+
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        old_state=zero
+        candidate=zero
+        old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+        candidate(1:nof_variables)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+        ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+        call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+        if (accepted_update) then
+          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        end if
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, oo3, passivescalar, to3, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
+((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+ end if
+
+
+
+
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
+
+
+
+
+
+
+end subroutine runge_kutta3
+
+
+
+
+subroutine runge_kutta1(n)
+!> @brief
+!> ssp forward euler scheme
+implicit none
+integer :: mm_idof
+integer :: mm_var
+integer,intent(in)::n
+integer::i,kmaxe,kx
+real::avrgs,oovolume
+real::t1,t2,t3
+kmaxe=xmpielrank(n)
+
+
+
+
+call call_flux_subroutines_3d
+
+
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+
+ if (dg == 1) then
+
+
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(1,mm_var,mm_idof,i) - dt* rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+
+
   else
-  
-  
-  
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)-(dt*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
+
+
+
+  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
   end if
-  
-  
-  
-  
-!   WRITE(200+N,*)I,TEMPSOL,U_C(I)%VALDG(1,1:NOF_VARIABLES,1)
-  
-  
-END DO
-!$OMP END DO
+
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
 
 
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)-(dt*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
+if (averaging.eq.1)then
 
+ call averaging_t(n)
 
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-
-                        
-END SUBROUTINE RUNGE_KUTTA1_2D
+end if
 
 
 
 
 
 
+end subroutine runge_kutta1
 
-SUBROUTINE RUNGE_KUTTA3_2D(N)
+
+
+subroutine runge_kutta2(n)
 !> @brief
-!> SSP RUNGE KUTTA 3RD-ORDER SCHEME IN 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
-
-CALL CALL_FLUX_SUBROUTINES_2D
-
-!$OMP DO
-DO I=1,KMAXE
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(2,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        
-
-        
-          U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-         
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
+!> ssp runge kutta 2nd-order scheme
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
 
 
-CALL CALL_FLUX_SUBROUTINES_2D
-
-!$OMP DO
-DO I=1,KMAXE
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(3,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        
-        
-          U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=TO4*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + OO4*U_C(I)%VALDG(3,1:NOF_VARIABLES,:) - OO4*DT* TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-        ((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(TO4*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(OO4*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((OO4))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-  END DO
-!$OMP END DO
- END IF
-
-CALL CALL_FLUX_SUBROUTINES_2D
-
-!$OMP DO
-DO I=1,KMAXE
-    IF (DG == 1) THEN
-    
-
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=OO3*U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + TO3*U_C(I)%VALDG(1,1:NOF_VARIABLES,:) - TO3*DT*TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-    ELSE
-        OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-        ((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    END IF
-END DO
-!$OMP END DO
+call call_flux_subroutines_3d
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=((OO3)*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+((TO3)*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(((TO3))*&
-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-  END DO
-!$OMP END DO
- END IF
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+
+call call_flux_subroutines_3d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo2)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+ oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-(dt*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, oo2, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(dt*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
 
 
 
 
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
 
 
-END SUBROUTINE RUNGE_KUTTA3_2D
 
-SUBROUTINE RUNGE_KUTTA3_2D_MOOD(N)
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
+
+
+
+
+
+
+end subroutine runge_kutta2
+
+
+subroutine runge_kutta5(n)
 !> @brief
-!> SSP RUNGE KUTTA 3RD-ORDER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,INDS
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+!> ssp runge kutta 2nd-order scheme for local time stepping
+implicit none
+integer :: mm_idof
+integer :: mm_var
+integer,intent(in)::n
+integer::i,kmaxe
+logical::accepted_update
+real::avrgs,oovolume,update_alpha
+real,dimension(1:gpu_max_nvar)::candidate,old_state,limited
+kmaxe=xmpielrank(n)
 
 
-IF (MOOD.EQ.1)THEN
-INDS=4
-ELSE
-INDS=1
-END IF
-
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-    
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-END IF
-
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  IF (MOOD.EQ.1)THEN
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  END IF
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-END DO
-!$OMP END DO
- END IF
- 
- IF (MOOD.EQ.1)THEN
- 
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
-
-CALL MOOD_OPERATOR_1(N)
-
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
-
-END IF
-
- 
-
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-END IF
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(inds,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-END DO
-!$OMP END DO
+call call_flux_subroutines_3d
 
 
 
 
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(TO4*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(OO4*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((OO4))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
 
- IF (MOOD.EQ.1)THEN
- 
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
-
-CALL MOOD_OPERATOR_1(N)
-
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=(TO4*U_C(I)%VAL(2,1:NOF_VARIABLES))+(OO4*U_C(I)%VAL(3,1:NOF_VARIABLES))-(((OO4))*((DT)*&
-((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
-
-END IF
- 
-
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    CALL VORTEXCALC2D(N)
-    END SELECT
-END IF
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-   IF (MOOD.EQ.1)THEN
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  END IF
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-END DO
-!$OMP END DO
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume,candidate,old_state,limited,update_alpha,accepted_update) &
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, nof_variables, num_dg_dofs)
+#else
+	!$omp do private(oovolume,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
 
 
-IF (MOOD.EQ.1)THEN
- 
- CALL MOOD_OPERATOR_2(N)
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(INDS,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-   IELEM(N,I)%MOOD_O=2
-   END IF
-END DO
-!$OMP END DO
+  if (dg == 1) then
+        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
 
-CALL MOOD_OPERATOR_1(N)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - ielem_dtl(i) * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
 
-   !$OMP DO
-DO I=1,KMAXE
-    IF (IELEM(N,I)%RECALC.EQ.1)THEN
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_C(I)%VAL(1,1:NOF_VARIABLES)=((OO3)*U_C(I)%VAL(2,1:NOF_VARIABLES))+((TO3)*U_C(I)%VAL(1,1:NOF_VARIABLES))-(((TO3))*&
-((DT)*((RHS(I)%VAL(1:NOF_VARIABLES))*(OOVOLUME))))
-    IELEM(N,I)%MOOD_O=1
-   ELSE
-   U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(4,1:NOF_VARIABLES)
-   END IF
-END DO
-!$OMP END DO
+    else
 
-END IF
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  old_state=zero
+  candidate=zero
+  old_state(1:nof_variables)=u_c_val(2,1:nof_variables,i)
+  candidate(1:nof_variables)=u_c_val(2,1:nof_variables,i)-(ielem_dtl(i)*(rhs_val(1:nof_variables,i)*oovolume))
+  call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+  if (accepted_update) then
+    u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+  else
+    u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+  end if
+  end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(ielem_dtl(i)*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=((OO3)*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+((TO3)*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))-(((TO3))*&
-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
+call call_flux_subroutines_3d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume,candidate,old_state,limited,update_alpha,accepted_update) &
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, nof_variables, num_dg_dofs, oo2)
+#else
+	!$omp do private(oovolume,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+
+  if (dg == 1) then
+
+
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = (oo2*u_c_valdg(2,mm_var,mm_idof,i)) +(oo2*u_c_valdg(1,mm_var,mm_idof,i))- (ielem_dtl(i) *oo2* rhs_sol_mm_dg(mm_idof,mm_var,i))
+            end do
+          end do
+
+    else
 
 
 
-IF (AVERAGING.EQ.1)THEN
+  old_state=zero
+  candidate=zero
+  old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+  candidate(1:nof_variables)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-&
+                             (ielem_dtl(i)*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+  call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+  if (accepted_update) then
+    u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+  end if
+  end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
- CALL AVERAGING_T(N)
- 
-END IF
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(oo2, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(ielem_dtl(i)*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
 
-END SUBROUTINE RUNGE_KUTTA3_2D_MOOD
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
 
 
 
-SUBROUTINE RUNGE_KUTTA4(N)
+
+
+
+end subroutine runge_kutta5
+
+subroutine runge_kutta5_2d(n)
 !> @brief
-!> SSP RUNGE KUTTA 4TH-ORDER SCHEME
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-REAL::DUMPRACEIN,DUMPRACEOUT,flops_count
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0	
+!> ssp runge kutta 2nd-order scheme for local time stepping in 2d
+implicit none
+integer :: mm_idof
+integer :: mm_var
+integer,intent(in)::n
+integer::i,kmaxe
+logical::accepted_update
+real::avrgs,oovolume,update_alpha
+real,dimension(1:gpu_max_nvar)::candidate,old_state,limited
+kmaxe=xmpielrank(n)
+
+
+call call_flux_subroutines_2d
+
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume,candidate,old_state,limited,update_alpha,accepted_update) &
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, nof_variables, num_dg_dofs)
+#else
+	!$omp do private(oovolume,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+do i=1,kmaxe
+
+  if (dg == 1) then
+oovolume=1.0d0/ielem_totvolume(i)
+        u_c_valdg(2,:,:,i)=u_c_valdg(1,:,:,i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - (ielem_dtl(i)* rhs_sol_mm_dg(mm_idof,mm_var,i))
+            end do
+          end do
+    else
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  old_state=zero
+  candidate=zero
+  old_state(1:nof_variables)=u_c_val(2,1:nof_variables,i)
+  candidate(1:nof_variables)=u_c_val(2,1:nof_variables,i)-(ielem_dtl(i)*(rhs_val(1:nof_variables,i)*oovolume))
+  call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+  if (accepted_update) then
+    u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+  else
+    u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+  end if
+  end if
 
 
 
 
-CALL CALL_FLUX_SUBROUTINES_3D
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(ielem_dtl(i)*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+
+call call_flux_subroutines_2d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume,candidate,old_state,limited,update_alpha,accepted_update) &
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, nof_variables, num_dg_dofs, oo2)
+#else
+	!$omp do private(oovolume,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+do i=1,kmaxe
+
+   if (dg == 1) then
+oovolume=1.0d0/ielem_totvolume(i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = (oo2*u_c_valdg(2,mm_var,mm_idof,i))+(oo2*u_c_valdg(1,mm_var,mm_idof,i))-(ielem_dtl(i)* rhs_sol_mm_dg(mm_idof,mm_var,i))
+            end do
+          end do
+    else
+  oovolume=1.0d0/ielem_totvolume(i)
+  old_state=zero
+  candidate=zero
+  old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+  candidate(1:nof_variables)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-&
+                             (ielem_dtl(i)*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+  call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+  if (accepted_update) then
+    u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+  end if
+
+  end if
+
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(oo2, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(ielem_dtl(i)*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
 
 
 
 
-    
-    
+
+
+end subroutine runge_kutta5_2d
+
+
+subroutine runge_kutta2_2d(n)
+!> @brief
+!> ssp runge kutta 2nd-order scheme in 2d
+implicit none
+integer :: mm_idof
+integer :: mm_var
+integer,intent(in)::n
+integer::i,kmaxe
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
+
+
+call call_flux_subroutines_2d
+
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+if (dg == 1) then
+oovolume=1.0d0/ielem_totvolume(i)
+        u_c_valdg(2,:,:,i)=u_c_valdg(1,:,:,i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - (dt * rhs_sol_mm_dg(mm_idof,mm_var,i))
+            end do
+          end do
+    else
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+call call_flux_subroutines_2d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs, oo2)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+if (dg == 1) then
+oovolume=1.0d0/ielem_totvolume(i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = oo2*u_c_valdg(2,mm_var,mm_idof,i) + oo2*u_c_valdg(1,mm_var,mm_idof,i) - (oo2*dt * rhs_sol_mm_dg(mm_idof,mm_var,i))
+            end do
+          end do
+    else
+ oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-(dt*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+  end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(u_ct_val(2,1:turbulenceequations+passivescalar,i))-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
 
 
 
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(2,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - DT * 0.391752226571890 * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))!*OOVOLUME
-    ELSE
-        U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*0.391752226571890*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    END IF
-  
-END DO
-!$OMP END DO
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*0.391752226571890*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
- 
- 
- 
- 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER 
-    !$OMP MASTER
-    pr_t8=MPI_Wtime()
+
+end subroutine runge_kutta2_2d
+
+
+
+subroutine sol_integ_dg(n)
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real,dimension(1:gpu_max_nvar)::solution_integ2
+
+
+kmaxe=xmpielrank(n)
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(solution_integ2)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  call solution_integ(i,solution_integ2)
+  u_c_val(1,1:nof_variables,i)=solution_integ2(1:nof_variables)
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+end subroutine sol_integ_dg
+
+
+subroutine sol_integ_dgx(n)
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real,dimension(1:gpu_max_nvar)::solution_integ2
+real,dimension(1:gpu_max_nvar)::solution_integ_weak
+real,dimension(1:gpu_max_nvar)::solution_integ_strong
+
+
+kmaxe=xmpielrank(n)
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(solution_integ2,solution_integ_weak,solution_integ_strong)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+
+
+
+
+  call solution_integ(i,solution_integ2)
+  u_c_val(1,:,i)=solution_integ2(1:nof_variables)
+
+
+
+  if (filtering.eq.1)then
+  call solution_integ_s(i,solution_integ_strong)
+  call solution_integ_w(i,solution_integ_weak)
+
+  u_cs_val(1,:,i)=solution_integ_strong(1:nof_variables)
+  u_cw_val(1,:,i)=solution_integ_weak(1:nof_variables)
+  end if
+
+
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+end subroutine sol_integ_dgx
+
+subroutine sol_integ_dg_init(n)
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real,dimension(1:gpu_max_nvar)::solution_integ2
+
+kmaxe=xmpielrank(n)
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(solution_integ2)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+
+  call solution_integ(i,solution_integ2)
+  u_c_val(1,:,i)=solution_integ2(1:nof_variables)
+  u_e_val(1,:,i)=u_c_val(1,:,i)
+
+
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+
+
+end subroutine sol_integ_dg_init
+
+
+
+
+
+
+
+subroutine runge_kutta1_2d(n)
+!> @brief
+!> ssp forward euler scheme in 2d
+implicit none
+integer :: mm_idof
+integer :: mm_var
+integer,intent(in)::n
+integer::i,kmaxe,kx
+real::avrgs,oovolume
+real,dimension(gpu_max_nvar)::tempsol
+kmaxe=xmpielrank(n)
+
+
+
+call call_flux_subroutines_2d
+
+
+
+
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+
+
+  if (dg == 1) then
+
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(1,mm_var,mm_idof,i) - dt* rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+
+  else
+
+  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  end if
+
+
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
+
+
+
+
+
+
+end subroutine runge_kutta1_2d
+
+
+
+
+
+
+
+subroutine runge_kutta3_2d(n)
+!> @brief
+!> ssp runge kutta 3rd-order scheme in 2d
+implicit none
+integer :: mm_idof
+integer :: mm_var
+integer,intent(in)::n
+integer::i,kmaxe
+logical::accepted_update
+real::avrgs,oovolume,update_alpha
+real,dimension(1:gpu_max_nvar)::candidate,old_state,limited
+kmaxe=xmpielrank(n)
+
+
+call call_flux_subroutines_2d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume,candidate,old_state,limited,update_alpha,accepted_update) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do private(oovolume,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+do i=1,kmaxe
+    if (dg == 1) then
+        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+
+
+
+            call dg_mass_rhs_product_cell(i)
+            do mm_var=1,nof_variables
+              do mm_idof=1,num_dg_dofs
+                u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              end do
+            end do
+
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        old_state=zero
+        candidate=zero
+        old_state(1:nof_variables)=u_c_val(2,1:nof_variables,i)
+        candidate(1:nof_variables)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+        call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+        if (accepted_update) then
+          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        else
+          u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+        end if
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+call call_flux_subroutines_2d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume,candidate,old_state,limited,update_alpha,accepted_update) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs, oo4, to4)
+#else
+	!$omp do private(oovolume,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+do i=1,kmaxe
+    if (dg == 1) then
+        u_c_valdg(3,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+
+
+            call dg_mass_rhs_product_cell(i)
+            do mm_var=1,nof_variables
+              do mm_idof=1,num_dg_dofs
+                u_c_valdg(1,mm_var,mm_idof,i) = to4*u_c_valdg(2,mm_var,mm_idof,i) + oo4*u_c_valdg(3,mm_var,mm_idof,i) - oo4*dt* rhs_sol_mm_dg(mm_idof,mm_var,i)
+              end do
+            end do
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        old_state=zero
+        candidate=zero
+        old_state(1:nof_variables)=u_c_val(3,1:nof_variables,i)
+        candidate(1:nof_variables)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+        ((rhs_val(1:nof_variables,i))*(oovolume))))
+        call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+        if (accepted_update) then
+          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        else
+          u_c_val(1,1:nof_variables,i)=u_c_val(3,1:nof_variables,i)
+        end if
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, oo4, passivescalar, to4, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+call call_flux_subroutines_2d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume,candidate,old_state,limited,update_alpha,accepted_update) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs, oo3, to3)
+#else
+	!$omp do private(oovolume,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+do i=1,kmaxe
+    if (dg == 1) then
+
+
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = oo3*u_c_valdg(2,mm_var,mm_idof,i) + to3*u_c_valdg(1,mm_var,mm_idof,i) - to3*dt*rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+    else
+        oovolume=1.0d0/ielem_totvolume(i)
+        old_state=zero
+        candidate=zero
+        old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+        candidate(1:nof_variables)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
+        ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+        call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+        if (accepted_update) then
+          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        end if
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, oo3, passivescalar, to3, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
+((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
+
+
+end subroutine runge_kutta3_2d
+
+subroutine runge_kutta3_2d_mood(n)
+!> @brief
+!> ssp runge kutta 3rd-order scheme
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe,inds
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
+
+
+
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+end if
+
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+ if (mood.eq.1)then
+
+ call mood_operator_2(n)
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+    ielem_mood_o(i)=2
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+call mood_operator_1(n)
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+!
+ end if
+
+
+
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+end if
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo4, to4)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, oo4, passivescalar, to4, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+ if (mood.eq.1)then
+
+ call mood_operator_2(n)
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo4, to4)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+     if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=2
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+!
+call mood_operator_1(n)
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo4, to4)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
+((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+end if
+
+
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    call vortexcalc2d(n)
+    end select
+end if
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo3, to3)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+if (mood.eq.1)then
+
+ call mood_operator_2(n)
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo3, to3)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+     if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=2
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+!
+call mood_operator_1(n)
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_mood_o, ielem_recalc, ielem_totvolume, rhs_val, u_c_val) &
+!$omp& firstprivate(dt, nof_variables, oo3, to3)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    if (ielem_recalc(i).eq.1)then
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_c_val(1,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
+((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+    ielem_mood_o(i)=1
+   else
+   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+end if
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, oo3, passivescalar, to3, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
+((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
+
+end subroutine runge_kutta3_2d_mood
+
+
+
+subroutine runge_kutta4(n)
+!> @brief
+!> ssp runge kutta 4th-order scheme
+implicit none
+integer :: mm_idof
+integer :: mm_var
+integer,intent(in)::n
+integer::i,kmaxe
+real::avrgs,oovolume
+real::dumpracein,dumpraceout,flops_count
+kmaxe=xmpielrank(n)
+
+
+
+
+call call_flux_subroutines_3d
+
+
+
+
+
+
+
+
+
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  if (dg == 1) then
+        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - dt * 0.391752226571890 * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+    else
+        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*0.391752226571890*(rhs_val(1:nof_variables,i)*oovolume))
+    end if
+
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*0.391752226571890*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+
+
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t8=mpi_wtime()
     prace_t7=pr_t8-pr_t7
-    
-
-
-   
-   DUMPRACEIN=PRACE_t1
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t1=DUMPRACEOUT
-   DUMPRACEIN=PRACE_t2
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t2=DUMPRACEOUT
-   DUMPRACEIN=PRACE_t3
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t3=DUMPRACEOUT
-   DUMPRACEIN=PRACE_t4
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t4=DUMPRACEOUT
-   DUMPRACEIN=PRACE_t5
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t5=DUMPRACEOUT
-
-   DUMPRACEIN=PRACE_t6
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t6=DUMPRACEOUT
-
-   DUMPRACEIN=PRACE_t7
- CALL MPI_ALLREDUCE(DUMPRACEIN,DUMPRACEOUT,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,IERROR)
-   PRACE_t7=DUMPRACEOUT
-
-   PRACE_TX1=PRACE_T2+PRACE_T4
-   PRACE_TX2=PRACE_T1+PRACE_T3+PRACE_T5+PRACE_T6+PRACE_T7
-   PRACE_TX3=PRACE_TX1+PRACE_TX2
 
 
 
 
-   
-    IF (N.EQ.0)THEN
-    OPEN(133,FILE=STATFILE,FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-    WRITE(133,'(I6,1X,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4,E11.4)')it,PRACE_TX3,PRACE_TX1,PRACE_TX2,PRACE_T1,PRACE_T2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7
-    CLOSE(133)
-    END IF
-    
-    
-    !$OMP END MASTER
-     !$OMP BARRIER
-    
-    END IF
+   dumpracein=prace_t1
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t1=dumpraceout
+   dumpracein=prace_t2
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t2=dumpraceout
+   dumpracein=prace_t3
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t3=dumpraceout
+   dumpracein=prace_t4
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t4=dumpraceout
+   dumpracein=prace_t5
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t5=dumpraceout
 
-                call CALL_FLUX_SUBROUTINES_3D
+   dumpracein=prace_t6
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t6=dumpraceout
 
+   dumpracein=prace_t7
+ call mpi_allreduce(dumpracein,dumpraceout,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+   prace_t7=dumpraceout
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(3,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.444370493651235 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.555629506348765 * U_C(I)%VALDG(3,1:NOF_VARIABLES,:) - 0.368410593050371 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=(0.444370493651235 * U_C(I)%VAL(2,1:NOF_VARIABLES)) + (0.555629506348765 * U_C(I)%VAL(3,1:NOF_VARIABLES)) - 0.368410593050371 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.444370493651235*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.555629506348765*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((0.368410593050371))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
+   prace_tx1=prace_t2+prace_t4
+   prace_tx2=prace_t1+prace_t3+prace_t5+prace_t6+prace_t7
+   prace_tx3=prace_tx1+prace_tx2
 
 
-            call CALL_FLUX_SUBROUTINES_3D
 
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-   IF (DG == 1) THEN
-        U_C(I)%VALDG(4,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.620101851488403 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.379898148511597 * U_C(I)%VALDG(4,1:NOF_VARIABLES,:) - 0.251891774271694 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(4,1:NOF_VARIABLES) = U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = 0.620101851488403 * U_C(I)%VAL(2,1:NOF_VARIABLES) + 0.379898148511597 * U_C(I)%VAL(4,1:NOF_VARIABLES) - 0.251891774271694 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
+
+    if (n.eq.0)then
+    open(133,file=statfile,form='formatted',status='old',action='write',position='append')
+    write(133,'(i6,1x,e11.4,e11.4,e11.4,e11.4,e11.4,e11.4,e11.4,e11.4,e11.4,e11.4)')it,prace_tx3,prace_tx1,prace_tx2,prace_t1,prace_t2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7
+    close(133)
+    end if
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.620101851488403*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.379898148511597*U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar))-(((0.251891774271694))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
-
-            call CALL_FLUX_SUBROUTINES_3D
-
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(5,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(6,1:NOF_VARIABLES,:) = - DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.178079954393132 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.821920045606868 * U_C(I)%VALDG(5,1:NOF_VARIABLES,:) - 0.544974750228521 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-    ELSE
-        U_C(I)%VAL(5,1:NOF_VARIABLES) = U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(6,1:NOF_VARIABLES) = - DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = 0.178079954393132 * U_C(I)%VAL(2,1:NOF_VARIABLES) + 0.821920045606868 * U_C(I)%VAL(5,1:NOF_VARIABLES) - 0.544974750228521 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(6,1:turbulenceequations+passivescalar)=-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME)))
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.178079954393132*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.821920045606868*U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar))-(((0.544974750228521))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
+    !$omp end master
+    !$omp barrier
 
 
-    call CALL_FLUX_SUBROUTINES_3D
+    end if
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  IF (DG == 1) THEN
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = (0.00683325884039 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:)) + (0.517231671970585 * U_C(I)%VALDG(4,1:NOF_VARIABLES,:)) + (0.12759831133288 * U_C(I)%VALDG(5,1:NOF_VARIABLES,:)) + (0.34833675773694 * U_C(I)%VALDG(1,1:NOF_VARIABLES,:)) + (0.08460416338212 * U_C(I)%VALDG(6,1:NOF_VARIABLES,:)) - 0.22600748319395 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = (0.00683325884039 * U_C(I)%VAL(2,1:NOF_VARIABLES)) + (0.517231671970585 * U_C(I)%VAL(4,1:NOF_VARIABLES)) +  (0.12759831133288 * U_C(I)%VAL(5,1:NOF_VARIABLES)) + (0.34833675773694 * U_C(I)%VAL(1,1:NOF_VARIABLES)) + (0.08460416338212 * U_C(I)%VAL(6,1:NOF_VARIABLES)) - (0.22600748319395 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME)
-    END IF
-END DO
-!$OMP END DO
+                call call_flux_subroutines_3d
 
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-   U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.00683325884039*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.517231671970585*U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar))+&
-				(0.12759831133288*U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar))+(0.34833675773694*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))+&
-				(0.08460416338212*U_Ct(I)%VAL(6,1:turbulenceequations+passivescalar))-(0.22600748319395*(DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME)))
-END DO
-!$OMP END DO
- END IF
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  if (dg == 1) then
+        u_c_valdg(3,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = 0.444370493651235 * u_c_valdg(2,mm_var,mm_idof,i) + 0.555629506348765 * u_c_valdg(3,mm_var,mm_idof,i) - 0.368410593050371 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+    else
+        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=(0.444370493651235 * u_c_val(2,1:nof_variables,i)) + (0.555629506348765 * u_c_val(3,1:nof_variables,i)) - 0.368410593050371 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+    u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.444370493651235*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.555629506348765*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((0.368410593050371))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
 
 
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
+            call call_flux_subroutines_3d
 
 
-END SUBROUTINE RUNGE_KUTTA4
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+   if (dg == 1) then
+        u_c_valdg(4,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = 0.620101851488403 * u_c_valdg(2,mm_var,mm_idof,i) + 0.379898148511597 * u_c_valdg(4,mm_var,mm_idof,i) - 0.251891774271694 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+    else
+        u_c_val(4,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i) = 0.620101851488403 * u_c_val(2,1:nof_variables,i) + 0.379898148511597 * u_c_val(4,1:nof_variables,i) - 0.251891774271694 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 
-SUBROUTINE CALL_FLUX_SUBROUTINES_3D
-IMPLICIT NONE
-REAL::DUMPRACEIN,DUMPRACEOUT
-INTEGER::KMAXE,i
-KMAXE=XMPIELRANK(N)
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(4,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.620101851488403*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.379898148511597*u_ct_val(4,1:turbulenceequations+passivescalar,i))-(((0.251891774271694))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+            call call_flux_subroutines_3d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  if (dg == 1) then
+        u_c_valdg(5,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(6,mm_var,mm_idof,i) = - dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = 0.178079954393132 * u_c_valdg(2,mm_var,mm_idof,i) + 0.821920045606868 * u_c_valdg(5,mm_var,mm_idof,i) - 0.544974750228521 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+    else
+        u_c_val(5,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
+        u_c_val(6,1:nof_variables,i) = - dt * rhs_val(1:nof_variables,i) * oovolume
+        u_c_val(1,1:nof_variables,i) = 0.178079954393132 * u_c_val(2,1:nof_variables,i) + 0.821920045606868 * u_c_val(5,1:nof_variables,i) - 0.544974750228521 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+    u_ct_val(5,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(6,1:turbulenceequations+passivescalar,i)=-((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.178079954393132*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.821920045606868*u_ct_val(5,1:turbulenceequations+passivescalar,i))-(((0.544974750228521))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
 
 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_T1=MPI_Wtime()
-     !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
+    call call_flux_subroutines_3d
 
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  if (dg == 1) then
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = (0.00683325884039 * u_c_valdg(2,mm_var,mm_idof,i)) + (0.517231671970585 * u_c_valdg(4,mm_var,mm_idof,i)) + (0.12759831133288 * u_c_valdg(5,mm_var,mm_idof,i)) + (0.34833675773694 * u_c_valdg(1,mm_var,mm_idof,i)) + (0.08460416338212 * u_c_valdg(6,mm_var,mm_idof,i)) - 0.22600748319395 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+    else
+        u_c_val(1,1:nof_variables,i) = (0.00683325884039 * u_c_val(2,1:nof_variables,i)) + (0.517231671970585 * u_c_val(4,1:nof_variables,i)) +  (0.12759831133288 * u_c_val(5,1:nof_variables,i)) + (0.34833675773694 * u_c_val(1,1:nof_variables,i)) + (0.08460416338212 * u_c_val(6,1:nof_variables,i)) - (0.22600748319395 * dt * rhs_val(1:nof_variables,i) * oovolume)
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.00683325884039*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.517231671970585*u_ct_val(4,1:turbulenceequations+passivescalar,i))+&
+				(0.12759831133288*u_ct_val(5,1:turbulenceequations+passivescalar,i))+(0.34833675773694*u_ct_val(1,1:turbulenceequations+passivescalar,i))+&
+				(0.08460416338212*u_ct_val(6,1:turbulenceequations+passivescalar,i))-(0.22600748319395*(dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
+
+
+end subroutine runge_kutta4
+
+
+subroutine call_flux_subroutines_3d
+implicit none
+real::dumpracein,dumpraceout
+integer::kmaxe,i,l,iqp,ngp
+kmaxe=xmpielrank(n)
+
+
+
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t1=mpi_wtime()
+     !$omp end master
+     !$omp barrier
+
+    end if
+
+
+    if (realgas.eq.1)then
+
+        call normalise_species(n)
+
+    end if
 
     if (dg.eq.1)then
 
-    CALL SOL_INTEG_DG(N) ! Calculates cell average of DG solution for FV
 
-    END IF
-
-      IF (DG.EQ.1)THEN
-       !$OMP DO
-        DO I=1,KMAXE
-        ielem(n,i)%filtered=0
-        
-        END DO
-        !$OMP END DO
-    END IF
+    call sol_integ_dg(n) ! calculates cell average of dg solution for fv
 
 
+    end if
 
-	IF ((DG.EQ.1).AND.(FILTERING.EQ.1))THEN
-	
-            CALL SOL_INTEG_DGx(N)
-            CALL APPLY_FILTER_DG(N)
-          END IF
+      if ((dg.eq.1).and.(filtering.eq.1))then
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& map(alloc: ielem_filtered) &
+!$omp& firstprivate(kmaxe)
+#else
+	!$omp do
+#endif
+        do i=1,kmaxe
+        ielem_filtered(i)=0
+        end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+    end if
+
+
+
+	if ((dg.eq.1).and.(filtering.eq.1))then
+
+
+            call sol_integ_dgx(n)
+
+            call apply_filter_dg(n)
+
+          end if
 
 
 
@@ -2296,836 +3722,1572 @@ KMAXE=XMPIELRANK(N)
 
 
 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t2=MPI_Wtime()
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t2=mpi_wtime()
     prace_t1=pr_t2-pr_t1
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
-
-    IF (FASTEST.EQ.1) THEN
-        CALL EXCHANGE_LOWER(N)
-    ELSE
-        CALL EXCHANGE_HIGHER(N)
-    END IF
-        
-
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t3=MPI_Wtime()
-    prace_t2=pr_t3-pr_t2
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
-
-
-    IF (DG == 1) THEN
-
-        CALL RECONSTRUCT_DG(N) ! Extrapolates solution to faces
-        IF(MULTISPECIES.EQ.1)THEN
-          IF (BOUND_LIM == 1) THEN
-            CALL VFBP_LIMITER
-          END IF
-        END IF
-
-        CALL TROUBLE_INDICATOR1 ! Checks for troubled cells
-        
-    END IF
-    
-    CALL ARBITRARY_ORDER(N)
-    
-    
-    IF (DG == 1) THEN
-        
-        CALL TROUBLE_INDICATOR2 ! Changes DG to FV
+    !$omp end master
+    !$omp barrier
 
     end if
 
-    CALL EXHBOUNDHIGHER(N)
+    if (fastest.eq.1) then
+
+        call exchange_lower(n)
+
+    else
+
+        call exchange_higher(n)
+
+    end if
+
+
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t3=mpi_wtime()
+    prace_t2=pr_t3-pr_t2
+    !$omp end master
+    !$omp barrier
+
+    end if
+
+
+    if (dg == 1) then
+
+
+        call reconstruct_dg(n) ! extrapolates solution to faces
+
+        if(multispecies.eq.1)then
+          if (bound_lim == 1) then
+
+            call vfbp_limiter
+
+          end if
+        end if
+
+
+        call trouble_indicator1(n) ! checks for troubled cells
+
+
+    end if
+
+
+    call arbitrary_order(n)
+!
+! #ifdef gpu
+!     !$omp target update from(rec_uleft)
+!     !$omp barrier
+!     !$omp master
+!     do i=1,kmaxe
+!           write(300+n,*) "element",ielem_ihexgl(i)
+!           write(300+n,*) "sol",u_c_val(1,1,i)
+!         do l=1,ielem_ifca(i)
+!                   if (ielem_types_faces(l,i).eq.5)then
+! 					iqp=qp_quad
+! 				  else
+! 					iqp=qp_triangle
+! 				  end if
+! 				  do ngp=1,iqp
+! 				  write(300+n,*)l,ngp,rec_uleft(1,l,ngp,i)
+!                   end do
+!         end do
+!     end do
+!
+!     !$omp end master
+! #endif
+!
+!
+
+     if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t4=mpi_wtime()
+    prace_t3=pr_t4-pr_t3
+    !$omp end master
+    !$omp barrier
+    end if
+
+        if (dg == 1) then
+
+
+        call trouble_indicator2(n) ! changes dg to fv
+
+
+    end if
+
+
+    call exhboundhigher(n)
+
+
 
 
 
     if (dg.eq.1)then
 
-        CALL EXHBOUNDHIGHER_DG(N)
 
-        IF (ITESTCASE.EQ.4)THEN
-
-          IF( BR2_YN.eq.2) then
-
-          CALL RECONSTRUCT_BR2_DG
-
-          CALL EXHBOUNDHIGHER_DG2(N)
-
-          END IF
-
-          IF( BR2_YN.eq.0) then
-          CALL VISCOUS_DG_GGS(N)
-          END IF
+        call exhboundhigher_dg(n)
 
 
+        if (itestcase.eq.4)then
 
-        END IF
+          if( br2_yn.eq.2) then
+
+
+          call reconstruct_br2_dg(n)
+
+          call exhboundhigher_dg2(n)
+
+
+          end if
+
+          if( br2_yn.eq.0) then
+
+          call viscous_dg_ggs(n)
+
+          end if
+
+
+
+        end if
 
     end if
-    
-     IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t4=MPI_Wtime()
-    prace_t3=pr_t4-pr_t3
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
+
+!     if (statistics.eq.1)then
+!    !$omp barrier
+!    !$omp master
+!    pr_t4=mpi_wtime()
+!    prace_t3=pr_t4-pr_t3
+!    !$omp end master
+!    !$omp barrier
+!    end if
 
 
 
 
 
 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t5=MPI_Wtime()
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t5=mpi_wtime()
     prace_t4=pr_t5-pr_t4
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
+    !$omp end master
+    !$omp barrier
+    end if
 
 
     if (adda.eq.1)then
 
-    IF (RUNGEKUTTA.EQ.11)THEN
+    if (rungekutta.eq.11)then
 
-    IF (ISCOUN.EQ.1)THEN
+    if (iscoun.eq.1)then
+
     call fix_dissipation(n)
-    call EXCHANGE_ADDA_DISS(N)
+
+    call exchange_adda_diss(n)
+
     call fix_dissipation2(n)
-    END IF
-    ELSE
+
+    end if
+    else
+
     call fix_dissipation(n)
-    call EXCHANGE_ADDA_DISS(N)
+
+    call exchange_adda_diss(n)
+
     call fix_dissipation2(n)
-    END IF
+
+    end if
 
 
     end if
 
 
 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t6=MPI_Wtime()
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t6=mpi_wtime()
     prace_t5=pr_t6-pr_t5
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
-
-
-    
-    !Modifies RHS
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    
-    
-    
-    
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
+    !$omp end master
+    !$omp barrier
     end if
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive(N)
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
+
+
+
+    !modifies rhs
+    select case(itestcase)
+    case(1,2)
+
+    call calculate_fluxeshi(n)
+
+
+
+
+    case(3)
+
+    call calculate_fluxeshi_convective(n)
+
+
+
+
+
+    if ((source_active.eq.1))then
+
+    call sources_computation_rot(n)
+
     end if
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
+    if ((realgas.eq.1))then
 
-      CALL VORTEXCALC(N)
+    call sources_computation(n)
 
-    END SELECT
+    end if
+    case(4)
 
-	
+    call calculate_fluxeshi_convective(n)
 
-    IF (INITCOND.EQ.95)THEN
-    
-    CALL  ENSTROPHY_CALC(N)
-    END IF
+    call calculate_fluxeshi_diffusive(n)
+
+    if ((source_active.eq.1))then
+
+    call sources_computation_rot(n)
+
+    end if
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
+
+    call sources_computation(n)
+
+    end if
 
 
-    IF (statistics.eq.1)THEN
-    !$OMP BARRIER
-    !$OMP MASTER
-    pr_t7=MPI_Wtime()
+      call vortexcalc(n)
+
+
+    end select
+
+
+
+    if (initcond.eq.95)then
+
+
+    call  enstrophy_calc(n)
+
+    end if
+
+
+    if (statistics.eq.1)then
+    !$omp barrier
+    !$omp master
+    pr_t7=mpi_wtime()
     prace_t6=pr_t7-pr_t6
-    !$OMP END MASTER
-     !$OMP BARRIER
-    END IF
-
-
-
-
-
-
-
-    !SOL INTEGRATION TIME=PRACE_T1
-    !COMMUNICATION TIME OF HALO CELLS=prace_t2
-    !RECONSTRUCTION TIME=prace_t3
-    !COMMUNICATION TIME OF EXBOUNDHIGHER=prace_t4
-    !ADDA=prace_t5
-    !FLUXES=PRACE_T6
-
-    !UPDATE OF SOLUTION=prace_t7
-    !TOTAL COMMUNICATION TIME=PRACE_T2+PRACE_T4=PRACE_TX1
-    !TOTAL COMPUTATIONALS TIME=PRACE_T1+PRACE_T3+PRACE_T5+PRACE_T6+PRACE_T7=PRACE_TX2
-    !TOTAL TIME=TOTAL COMMUNICATION TIME+TOTAL COMPUTATIONALS TIME=PRACE_TX3
-
-
-
-
-
-        
-END SUBROUTINE CALL_FLUX_SUBROUTINES_3D
-
-
-
-
-SUBROUTINE CALL_FLUX_SUBROUTINES_2D
-IMPLICIT NONE
-INTEGER::I,ICONSIDERED
-
-    if (dg.eq.1)then
-    CALL SOL_INTEG_DG(N)
-    END IF
-
-    IF (FASTEST.EQ.1) THEN
-        CALL EXCHANGE_LOWER(N)
-    ELSE
-        CALL EXCHANGE_HIGHER(N)
-    END IF
-    
-    
-    IF (DG == 1) THEN
-        
-        CALL RECONSTRUCT_DG(N)
-        CALL TROUBLE_INDICATOR1
-        
-    END IF
-    
-    
-        
-        CALL ARBITRARY_ORDER(N)
-    
-    
-    IF (DG == 1) THEN
-        
-        CALL TROUBLE_INDICATOR2
-
+    !$omp end master
+    !$omp barrier
     end if
-    
-    IF (BOUND_LIM == 1) THEN
-            CALL VFBP_LIMITER
-          END IF
-    
-    
-    CALL EXHBOUNDHIGHER(N)
-    
-    if (dg.eq.1)then
-    call EXHBOUNDHIGHER_dg(N)
-
-    IF (ITESTCASE.EQ.4)THEN
-
-          IF( BR2_YN.eq.2) then
-
-          CALL RECONSTRUCT_BR2_DG
-
-          CALL EXHBOUNDHIGHER_DG2(N)
-
-          END IF
-
-          IF( BR2_YN.eq.0) then
-          CALL VISCOUS_DG_GGS(N)
-          END IF
 
 
 
-        END IF
 
 
 
-    end if
-    
-    !Modifies RHS
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2D(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
 
 
-    !FOR TEST ONLY EXPERIMENTAL
-!     IF (CODE_PROFILE.EQ.30)THEN
+
+
+
+
+
+
+end subroutine call_flux_subroutines_3d
+
+
+
+
+
+subroutine normalise_species(n)
+  implicit none
+
+  integer, intent(in) :: n
+  integer :: i, k, kmaxe
+
+  real :: rho, sumrhoy, scale, rel_err
+!   real, parameter :: epsrho = 1.0d-18
+!   real, parameter :: epssum = 1.0d-300
 !
-!         IF (PROBEI(N,1).gt.0) THEN
-!           DO I=1,XMPIELRANK(N)
-!             IF (IELEM(N,I)%IHEXGL.EQ.PROBEI(N,1))THEN
-!             ICONSIDERED=i
-!             END IF
-!           END DO
-!         CALL VERTEX_NEIGHBOURS_VALUES(N)
-!         END IF
-!     END IF
-    !END TEST
+!   ! Much larger than roundoff, but still numerically tiny.
+!   real, parameter :: tol_mass_closure = 1.0d-12
 
+  real, parameter :: epsrho = 1.0d-14
+real, parameter :: epssum = 1.0d-300
+real, parameter :: tol_mass_closure = 1.0d-12
 
-        
-END SUBROUTINE CALL_FLUX_SUBROUTINES_2D
+  real, dimension(1:gpu_max_species)   :: rhoy
+  real, dimension(1:gpu_max_nvar) :: leftv
+  logical :: bad, need_repair
 
+  kmaxe = xmpielrank(n)
 
-SUBROUTINE RUNGE_KUTTA4_2D(N)
-!> @brief
-!> SSP RUNGE KUTTA 4TH-ORDER SCHEME IN 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,RK_STAGE
-REAL::AVRGS,OOVOLUME,TO4,OO4,TO3,OO3
-KMAXE=XMPIELRANK(N)
-TO4=3.0D0/4.0D0
-OO4=1.0D0/4.0D0
-TO3=2.0D0/3.0D0
-OO3=1.0D0/3.0D0
-RK_STAGE = 0
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(i,k,rho,sumrhoy,scale,rel_err,rhoy,leftv,bad,need_repair)
+#else
+  !$omp do private(i,k,rho,sumrhoy,scale,rel_err,rhoy,leftv,bad,need_repair)
+#endif
+  do i = 1, kmaxe
 
-CALL CALL_FLUX_SUBROUTINES_2D
+    ! First make the full conservative state sane.
+    leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+!     call fix_conservative_state(leftv)
+    u_c_val(1,1:nof_variables,i) = leftv(1:nof_variables)
 
-!$OMP DO
-DO I=1,KMAXE
-    OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
+    rho = u_c_val(1,1,i)
 
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(2,1:NOF_VARIABLES,:)=U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:)=U_C(I)%VALDG(2,1:NOF_VARIABLES,:) - DT * 0.391752226571890 * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))!*OOVOLUME
-    ELSE
-        U_C(I)%VAL(2,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)-(DT*0.391752226571890*(RHS(I)%VAL(1:NOF_VARIABLES)*OOVOLUME))
-    END IF
-END DO
-!$OMP END DO
+    if (rho <= epsrho .or. rho /= rho .or. abs(rho) > huge(rho)*0.5d0) then
 
-RK_STAGE = RK_STAGE + 1
+      rho = epsrho
+      u_c_val(1,1,i) = rho
 
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar)-(DT*0.391752226571890*(RHSt(I)%VAL(1:turbulenceequations+passivescalar)*OOVOLUME))
-  END DO
-!$OMP END DO
- END IF
+      do k = 1, nof_species
+        u_c_val(1,dimensiona+3+k,i) = rho * rg_vf(k)
+      end do
 
-CALL CALL_FLUX_SUBROUTINES_2D
+      leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+!       call fix_conservative_state(leftv)
+      u_c_val(1,1:nof_variables,i) = leftv(1:nof_variables)
 
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(3,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.444370493651235 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.555629506348765 * U_C(I)%VALDG(3,1:NOF_VARIABLES,:) - 0.368410593050371 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES)=(0.444370493651235 * U_C(I)%VAL(2,1:NOF_VARIABLES)) + (0.555629506348765 * U_C(I)%VAL(3,1:NOF_VARIABLES)) - 0.368410593050371 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
+      cycle
 
-RK_STAGE = RK_STAGE + 1
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.444370493651235*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.555629506348765*U_Ct(I)%VAL(3,1:turbulenceequations+passivescalar))-(((0.368410593050371))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
-
-CALL CALL_FLUX_SUBROUTINES_2D
-
-!$OMP DO
-DO I=1,KMAXE
-    OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(4,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.620101851488403 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.379898148511597 * U_C(I)%VALDG(4,1:NOF_VARIABLES,:) - 0.251891774271694 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(4,1:NOF_VARIABLES) = U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = 0.620101851488403 * U_C(I)%VAL(2,1:NOF_VARIABLES) + 0.379898148511597 * U_C(I)%VAL(4,1:NOF_VARIABLES) - 0.251891774271694 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
-
-RK_STAGE = RK_STAGE + 1
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-  U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.620101851488403*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.379898148511597*U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar))-(((0.251891774271694))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
- END IF
- 
-CALL CALL_FLUX_SUBROUTINES_2D
-
-!$OMP DO
-DO I=1,KMAXE
-    OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(5,1:NOF_VARIABLES,:) = U_C(I)%VALDG(1,1:NOF_VARIABLES,:)
-        U_C(I)%VALDG(6,1:NOF_VARIABLES,:) = - DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = 0.178079954393132 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:) + 0.821920045606868 * U_C(I)%VALDG(5,1:NOF_VARIABLES,:) - 0.544974750228521 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))
-    ELSE
-        U_C(I)%VAL(5,1:NOF_VARIABLES) = U_C(I)%VAL(1,1:NOF_VARIABLES)
-        U_C(I)%VAL(6,1:NOF_VARIABLES) = - DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = 0.178079954393132 * U_C(I)%VAL(2,1:NOF_VARIABLES) + 0.821920045606868 * U_C(I)%VAL(5,1:NOF_VARIABLES) - 0.544974750228521 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME
-    END IF
-END DO
-!$OMP END DO
-
-RK_STAGE = RK_STAGE + 1
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar)=U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)
-  U_Ct(I)%VAL(6,1:turbulenceequations+passivescalar)=-((DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME)))
-  U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.178079954393132*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.821920045606868*U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar))-(((0.544974750228521))*((DT)*&
-((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME))))
-END DO
-!$OMP END DO
-END IF
-
-CALL CALL_FLUX_SUBROUTINES_2D
-IF (FASTEST /= 1)THEN
-    IF (ITESTCASE.EQ.4)THEN
-        CALL VORTEXCALC2D(N)
-    END IF
-END IF
-
-!$OMP DO
-DO I=1,KMAXE
-    OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-    
-    IF (DG == 1) THEN
-        U_C(I)%VALDG(1,1:NOF_VARIABLES,:) = (0.00683325884039 * U_C(I)%VALDG(2,1:NOF_VARIABLES,:)) + (0.517231671970585 * U_C(I)%VALDG(4,1:NOF_VARIABLES,:)) + (0.12759831133288 * U_C(I)%VALDG(5,1:NOF_VARIABLES,:)) + (0.34833675773694 * U_C(I)%VALDG(1,1:NOF_VARIABLES,:)) + (0.08460416338212 * U_C(I)%VALDG(6,1:NOF_VARIABLES,:)) - 0.22600748319395 * DT * TRANSPOSE(MATMUL(m_1(i)%val(:,:), RHS(I)%VALDG(:,1:NOF_VARIABLES)))! * OOVOLUME
-    ELSE
-        U_C(I)%VAL(1,1:NOF_VARIABLES) = (0.00683325884039 * U_C(I)%VAL(2,1:NOF_VARIABLES)) + (0.517231671970585 * U_C(I)%VAL(4,1:NOF_VARIABLES)) +  (0.12759831133288 * U_C(I)%VAL(5,1:NOF_VARIABLES)) + (0.34833675773694 * U_C(I)%VAL(1,1:NOF_VARIABLES)) + (0.08460416338212 * U_C(I)%VAL(6,1:NOF_VARIABLES)) - (0.22600748319395 * DT * RHS(I)%VAL(1:NOF_VARIABLES) * OOVOLUME)
-    END IF
-END DO
-!$OMP END DO
-
-RK_STAGE = RK_STAGE + 1
-
-IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-!$OMP DO
-DO I=1,KMAXE
-  OOVOLUME=1.0D0/IELEM(N,I)%TOTVOLUME
-   U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar)=(0.00683325884039*U_Ct(I)%VAL(2,1:turbulenceequations+passivescalar))+(0.517231671970585*U_Ct(I)%VAL(4,1:turbulenceequations+passivescalar))+&
-				(0.12759831133288*U_Ct(I)%VAL(5,1:turbulenceequations+passivescalar))+(0.34833675773694*U_Ct(I)%VAL(1,1:turbulenceequations+passivescalar))+&
-				(0.08460416338212*U_Ct(I)%VAL(6,1:turbulenceequations+passivescalar))-(0.22600748319395*(DT)*((RHSt(I)%VAL(1:turbulenceequations+passivescalar))*(OOVOLUME)))
-END DO
-!$OMP END DO
- END IF
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-IF (DG == 1 )then
-if (ALL(U_C(1)%VALDG(1,:,:) /= U_C(1)%VALDG(1,:,:))) THEN
-    IF (N == 0) PRINT*, 'STOPPING BECAUSE NaNs'
-    STOP ! Stop if NaNs
     end if
-END IF
 
-END SUBROUTINE RUNGE_KUTTA4_2D
+    need_repair = .false.
+    sumrhoy = 0.0d0
 
+    do k = 1, nof_species
 
+      rhoy(k) = u_c_val(1,dimensiona+3+k,i)
 
+      bad = (rhoy(k) /= rhoy(k))
+      if (.not. bad) bad = (abs(rhoy(k)) > huge(rhoy(k))*0.5d0)
 
-SUBROUTINE IMPLICIT_TIMEs(N)
-!> @brief
-!> IMPLICIT APPROXIMATELY FACTORED TIME STEPPING SCHEME
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,kill_nan
-INTEGER,INTENT(IN)::N
-reaL::verysmall
-verysmall = tolsmall
+      if (bad) then
+        rhoy(k) = 0.0d0
+        need_repair = .true.
+      elseif (rhoy(k) < 0.0d0) then
+        rhoy(k) = 0.0d0
+        need_repair = .true.
+      end if
 
+      sumrhoy = sumrhoy + rhoy(k)
 
-KMAXE=XMPIELRANK(N)
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
+    end do
+
+    rel_err = abs(sumrhoy - rho) / max(abs(rho), epsrho)
+
+    if (rel_err > tol_mass_closure) need_repair = .true.
+
+    if (need_repair) then
+
+      sumrhoy = 0.0d0
+      do k = 1, nof_species
+        rhoy(k) = max(rhoy(k), 0.0d0)
+        sumrhoy = sumrhoy + rhoy(k)
+      end do
+
+      if (sumrhoy > epssum) then
+
+        ! Smoothest conservative repair: preserve composition ratios.
+        scale = rho / sumrhoy
+
+        do k = 1, nof_species
+          rhoy(k) = rhoy(k) * scale
+        end do
+
+	      else
+
+	        ! Completely broken species state: reset to reference mass fractions.
+	        do k = 1, nof_species
+	          rhoy(k) = rho * rg_vf(k)
+	        end do
+
+	      end if
+
     end if
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_diffusive(N)
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
-    end if
-    call VORTEXCALC(N)
-    if (turbulence.eq.1)then
-    call SOURCES_COMPUTATION(N)
-    end if
-    END SELECT
-    
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
-    end if
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_diffusive(N)
-    if ((SOURCE_ACTIVE.EQ.1))then
-    call SOURCES_COMPUTATION_ROT(N)
-    end if
-    call VORTEXCALC(N)
-    if (turbulence.eq.1)then
-    call SOURCES_COMPUTATION(N)
-    end if
-    END SELECT
-END IF
 
-IF (RELAX.EQ.3)THEN
- 
- CALL RELAXATION_LUMFREE(N)
- 
- ELSE
-  
-IF (lowmemory.eq.0)THEN
-   
- CALL RELAXATION(N)
-   
- ELSE
- 
- CALL RELAXATION_lm(N)
- 
- END IF
-   
-  END IF
+    do k = 1, nof_species
+      u_c_val(1,dimensiona+3+k,i) = rhoy(k)
+    end do
 
- kill_nan=0
- 
-!$OMP DO
-DO I=1,KMAXE
-    IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))THEN
-        write(600+n,*)"nan present",ielem(n,i)%ihexgl,ielem(n,i)%ishape,ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
-        write(600+n,*)ielem(n,i)%dih(:)
-        write(500+n,'(3es14.6)')ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
-        if(MRF.EQ.1)then
-        write(700+n,*)'SRF -diagonal', ILOCAL_RECON3(I)%MRF ,I
-         write(700+n,'(3es14.6)')ielem(n,i)%xxc, ielem(n,i)%yyc,ielem(n,i)%zzc
-        write(700+n,*)impdu(i,1),impdu(i,2),impdu(i,3),impdu(i,4),impdu(i,5)
+    leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+    call fix_conservative_state(leftv)
+    u_c_val(1,1:nof_variables,i) = leftv(1:nof_variables)
+
+  end do
+
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+  !$omp end do
+#endif
+
+
+end subroutine normalise_species
+
+subroutine call_flux_subroutines_2d
+implicit none
+integer::i,iconsidered
+
+
+
+
+     if (realgas.eq.1)call normalise_species(n)
+
+
+
+    if (dg.eq.1)then
+    call sol_integ_dg(n)
+    end if
+
+    if (fastest.eq.1) then
+        call exchange_lower(n)
+    else
+        call exchange_higher(n)
+    end if
+
+
+    if (dg == 1) then
+
+        call reconstruct_dg(n)
+        call trouble_indicator1(n)
+
+    end if
+
+
+
+        call arbitrary_order(n)
+
+
+    if (dg == 1) then
+
+        call trouble_indicator2(n)
+
+    end if
+
+    if (bound_lim == 1) then
+            call vfbp_limiter
+          end if
+
+
+    call exhboundhigher(n)
+
+    if (dg.eq.1)then
+    call exhboundhigher_dg(n)
+
+    if (itestcase.eq.4)then
+
+          if( br2_yn.eq.2) then
+
+          call reconstruct_br2_dg(n)
+
+          call exhboundhigher_dg2(n)
+
+          end if
+
+          if( br2_yn.eq.0) then
+          call viscous_dg_ggs(n)
+          end if
+
+
+
         end if
-        kill_nan=1
-    END IF
-  U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-END DO
-!$OMP END DO
-    IF (kill_nan.eq.1)THEN
-        stop
-    END IF
-
-IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
-!$OMP DO
-  DO I=1,KMAXE
-  do k=1,turbulenceequations+passivescalar
-  IF (U_CT(I)%VAL(1,k)+IMPDU(I,5+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,5+k)
-  END IF
-  END do
-END DO
-!$OMP END DO
-END IF
 
 
 
+    end if
+
+    !modifies rhs
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    if (realgas.eq.1)then
+    if (rg_relax.eq.2)then
+    call sources_computation2d(n)
+    end if
+    end if
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+     if ((turbulence.eq.1).or.(realgas.eq.1))then
+     call sources_computation2d(n)
+     end if
+
+
+
+    end select
 
 
 
 
 
 
-  
-END SUBROUTINE IMPLICIT_TIMEs
+end subroutine call_flux_subroutines_2d
 
 
-SUBROUTINE IMPLICIT_TIMEs_2d(N) 
+subroutine runge_kutta4_2d(n)
 !> @brief
-!> IMPLICIT APPROXIMATELY FACTORED TIME STEPPING SCHEME 2D
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,kill_nan
-INTEGER,INTENT(IN)::N
-reaL::verysmall
+!> ssp runge kutta 4th-order scheme in 2d
+implicit none
+integer :: mm_idof
+integer :: mm_var
+integer,intent(in)::n
+integer::i,kmaxe
+real::avrgs,oovolume
+kmaxe=xmpielrank(n)
+
+
+
+call call_flux_subroutines_2d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    oovolume=1.0d0/ielem_totvolume(i)
+
+    if (dg == 1) then
+        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - dt * 0.391752226571890 * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+    else
+        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*0.391752226571890*(rhs_val(1:nof_variables,i)*oovolume))
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*0.391752226571890*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+call call_flux_subroutines_2d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+
+    if (dg == 1) then
+        u_c_valdg(3,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = 0.444370493651235 * u_c_valdg(2,mm_var,mm_idof,i) + 0.555629506348765 * u_c_valdg(3,mm_var,mm_idof,i) - 0.368410593050371 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+    else
+        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i)=(0.444370493651235 * u_c_val(2,1:nof_variables,i)) + (0.555629506348765 * u_c_val(3,1:nof_variables,i)) - 0.368410593050371 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+    u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.444370493651235*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.555629506348765*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((0.368410593050371))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+call call_flux_subroutines_2d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    oovolume=1.0d0/ielem_totvolume(i)
+
+    if (dg == 1) then
+        u_c_valdg(4,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = 0.620101851488403 * u_c_valdg(2,mm_var,mm_idof,i) + 0.379898148511597 * u_c_valdg(4,mm_var,mm_idof,i) - 0.251891774271694 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+    else
+        u_c_val(4,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
+        u_c_val(1,1:nof_variables,i) = 0.620101851488403 * u_c_val(2,1:nof_variables,i) + 0.379898148511597 * u_c_val(4,1:nof_variables,i) - 0.251891774271694 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+  u_ct_val(4,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.620101851488403*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.379898148511597*u_ct_val(4,1:turbulenceequations+passivescalar,i))-(((0.251891774271694))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+call call_flux_subroutines_2d
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    oovolume=1.0d0/ielem_totvolume(i)
+
+    if (dg == 1) then
+        u_c_valdg(5,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(6,mm_var,mm_idof,i) = - dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = 0.178079954393132 * u_c_valdg(2,mm_var,mm_idof,i) + 0.821920045606868 * u_c_valdg(5,mm_var,mm_idof,i) - 0.544974750228521 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+    else
+        u_c_val(5,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
+        u_c_val(6,1:nof_variables,i) = - dt * rhs_val(1:nof_variables,i) * oovolume
+        u_c_val(1,1:nof_variables,i) = 0.178079954393132 * u_c_val(2,1:nof_variables,i) + 0.821920045606868 * u_c_val(5,1:nof_variables,i) - 0.544974750228521 * dt * rhs_val(1:nof_variables,i) * oovolume
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+    u_ct_val(5,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+  u_ct_val(6,1:turbulenceequations+passivescalar,i)=-((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
+  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.178079954393132*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.821920045606868*u_ct_val(5,1:turbulenceequations+passivescalar,i))-(((0.544974750228521))*((dt)*&
+((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
+
+call call_flux_subroutines_2d
+if (fastest /= 1)then
+    if (itestcase.eq.4)then
+        call vortexcalc2d(n)
+    end if
+end if
+
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhs_sol_mm_dg, rhs_val, u_c_val, u_c_valdg) &
+!$omp& firstprivate(dg, dt, nof_variables, num_dg_dofs)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+    oovolume=1.0d0/ielem_totvolume(i)
+
+    if (dg == 1) then
+          call dg_mass_rhs_product_cell(i)
+          do mm_var=1,nof_variables
+            do mm_idof=1,num_dg_dofs
+              u_c_valdg(1,mm_var,mm_idof,i) = (0.00683325884039 * u_c_valdg(2,mm_var,mm_idof,i)) + (0.517231671970585 * u_c_valdg(4,mm_var,mm_idof,i)) + (0.12759831133288 * u_c_valdg(5,mm_var,mm_idof,i)) + (0.34833675773694 * u_c_valdg(1,mm_var,mm_idof,i)) + (0.08460416338212 * u_c_valdg(6,mm_var,mm_idof,i)) - 0.22600748319395 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+            end do
+          end do
+    else
+        u_c_val(1,1:nof_variables,i) = (0.00683325884039 * u_c_val(2,1:nof_variables,i)) + (0.517231671970585 * u_c_val(4,1:nof_variables,i)) +  (0.12759831133288 * u_c_val(5,1:nof_variables,i)) + (0.34833675773694 * u_c_val(1,1:nof_variables,i)) + (0.08460416338212 * u_c_val(6,1:nof_variables,i)) - (0.22600748319395 * dt * rhs_val(1:nof_variables,i) * oovolume)
+    end if
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+#if defined(gpu) || defined(xpu)
+!$omp target teams distribute parallel do &
+!$omp& private(oovolume) &
+!$omp& map(alloc: ielem_totvolume, rhst_val, u_ct_val) &
+!$omp& firstprivate(dt, passivescalar, turbulenceequations)
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+  oovolume=1.0d0/ielem_totvolume(i)
+   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.00683325884039*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.517231671970585*u_ct_val(4,1:turbulenceequations+passivescalar,i))+&
+				(0.12759831133288*u_ct_val(5,1:turbulenceequations+passivescalar,i))+(0.34833675773694*u_ct_val(1,1:turbulenceequations+passivescalar,i))+&
+				(0.08460416338212*u_ct_val(6,1:turbulenceequations+passivescalar,i))-(0.22600748319395*(dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
+end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+ end if
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
+
+
+
+end subroutine runge_kutta4_2d
+
+
+
+
+subroutine implicit_times(n)
+!> @brief
+!> implicit approximately factored time stepping scheme
+implicit none
+integer::i,j,k,kmaxe,kill_nan_global
+integer,intent(in)::n
+#ifdef gpu
+logical::kill_nan_reduce
+#endif
+logical::bad_impdu,accepted_update
+real::verysmall,du,uold, umin, dumax, unew,update_alpha
+real,dimension(1:gpu_max_nvar)::candidate,old_state,limited
 verysmall = tolsmall
 
 
-KMAXE=XMPIELRANK(N)
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2d(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-   ! CALL VORTEXCALC2D(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-    
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2d(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    !CALL VORTEXCALC2D(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-END IF
+if (realgas.eq.1)call normalise_species(n)
 
+kmaxe=xmpielrank(n)
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
 
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    if ((source_active.eq.1))then
+    call sources_computation_rot(n)
+    end if
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if ((source_active.eq.1))then
+    call sources_computation_rot(n)
+    end if
+    call vortexcalc(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
 
- IF (RELAX.EQ.3)THEN
- 
- CALL RELAXATION_LUMFREE(N)
- 
- ELSE
- IF (lowmemory.eq.0)THEN
-   
- CALL RELAXATION2d(N)
-   
- ELSE
- 
- CALL RELAXATION_lm2d(N)
- 
- END IF
-  END IF
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    if ((source_active.eq.1))then
+    call sources_computation_rot(n)
+    end if
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    if ((source_active.eq.1))then
+    call sources_computation_rot(n)
+    end if
+    call vortexcalc(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+end if
+
+if (relax.eq.3)then
+
+ !call relaxation_lumfree(n)
+
+ else
+
+if (lowmemory.eq.0)then
+
+ call relaxation(n)
+
+ else
+
+ call relaxation_lm(n)
+
+ end if
+
+  end if
 
  kill_nan=0
-!$OMP DO
-DO I=1,KMAXE
+#ifdef gpu
+ kill_nan_reduce=.false.
+#endif
 
-    IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)))THEN
-        write(600+n,*)"nan present",ielem(n,i)%ihexgl,ielem(n,i)%ishape,ielem(n,i)%xxc, ielem(n,i)%yyc
-        write(600+n,*)ielem(n,i)%dih(:)
-        kill_nan=1
-    END IF
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update) &
+!$omp& reduction(.or.:kill_nan_reduce)
+#else
+	!$omp do private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update) reduction(max:kill_nan)
+#endif
+	do i=1,kmaxe
+	    bad_impdu=.false.
+	    do j=1,nof_variables
+	      if ((impdu(i,j).ne.impdu(i,j)).or.(abs(impdu(i,j)).gt.fv_update_max_abs)) bad_impdu=.true.
+	    end do
+	    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	      do j=nof_variables+1,nof_variables+turbulenceequations+passivescalar
+	        if ((impdu(i,j).ne.impdu(i,j)).or.(abs(impdu(i,j)).gt.fv_update_max_abs)) bad_impdu=.true.
+	      end do
+	    end if
 
-    
-    
-    
+	    if (bad_impdu)then
+	      if (realgas.eq.1)then
+	        old_state=zero
+	        old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+	        call fv_explicit_local_candidate(i,old_state,candidate)
+	        call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+	        if (accepted_update) then
+	          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+	          impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
+	          if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	            impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
+	            -update_alpha*ielem_dtl(i)*rhst_val(1:turbulenceequations+passivescalar,i)/ielem_totvolume(i)
+	          end if
+	        else
+	          if (.not.fv_state_update_admissible(old_state)) then
+#ifdef gpu
+	            kill_nan_reduce=.true.
+#else
+	            kill_nan=1
+#endif
+	          end if
+	          impdu(i,1:nof_variables)=zero
+	          if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	            impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+	          end if
+	        end if
+	      else
+#ifdef gpu
+	        kill_nan_reduce=.true.
+#else
+	        kill_nan=1
+#endif
+	        impdu(i,1:nof_variables)=zero
+	        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+	        end if
+	      end if
+    else
+      old_state=zero
+      candidate=zero
+      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
+      call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+      if (accepted_update) then
+        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
+        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
+          update_alpha*impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+        end if
+	      else
+	        if (realgas.eq.1)then
+	          call fv_explicit_local_candidate(i,old_state,candidate)
+	          call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+	          if (accepted_update) then
+	            u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+	            impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
+	            if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	              impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
+	              -update_alpha*ielem_dtl(i)*rhst_val(1:turbulenceequations+passivescalar,i)/ielem_totvolume(i)
+	            end if
+	          else
+	            impdu(i,1:nof_variables)=zero
+	            if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	              impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+	            end if
+	          end if
+	        else
+	          impdu(i,1:nof_variables)=zero
+	          if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	            impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+	          end if
+	        end if
+	      end if
+	    end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+kill_nan=0
+if (kill_nan_reduce) kill_nan=1
+#else
+!$omp end do
+#endif
 
-  U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-END DO
-!$OMP END DO
 
-    IF (kill_nan.eq.1)THEN
-        stop
-    END IF
+    !$omp barrier
+    !$omp master
+    kill_nan_global = 0
+    call mpi_allreduce(kill_nan,kill_nan_global,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    kill_nan = kill_nan_global
+    if (kill_nan.eq.1)then
+        kill=1
+        if (n.eq.0)then
+      print*,"killed due to divergence in implicit time stepping"
+    end if
+    end if
+
+    !$omp end master
+    !$omp barrier
+
+    if (kill_nan.eq.1)then
+        return
+    end if
+
+if (realgas.eq.1)then
+if (rg_relax.eq.2)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+	!$omp do
+#endif
+do i=1,kmaxe
+! Real-gas sources are assembled through rhs_val in sources_computation.
+! Do not mutate u_c_val here with a local pseudo-time source step.
+continue
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
+end if
+if (realgas.eq.1)call normalise_species(n)
 
 
 
-IF ((PASSIVESCALAR.GT.0).OR.(TURBULENCE.GT.0))THEN
-!$OMP DO
-  DO I=1,KMAXE
+
+if ((passivescalar.gt.0).or.(turbulence.gt.0))then
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private (du,uold,umin,dumax,unew)
+#else
+	!$omp do
+#endif
+!   do i=1,kmaxe
+!   do k=1,turbulenceequations+passivescalar
+!   if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+!   u_ct_val(1,k,i)=u_ct_val(1,k,i)+0.4*impdu(i,nof_variables+k)
+!   end if
+!   end do
+! end do
+
+do i=1,kmaxe
   do k=1,turbulenceequations+passivescalar
-  IF (ispal.eq.1)THEN
-  IF (U_CT(I)%VAL(1,k)+IMPDU(I,4+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,4+k)
-   END IF
-   ELSE
-   U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+0.4*IMPDU(i,4+k)
-   
-   END IF
-  END do
-END DO
-!$OMP END DO
 
-!   IF (kill_nan.eq.2)THEN
-!         stop
-!     END IF
+    du   = 0.2d0*impdu(i,nof_variables+k)
+    uold = u_ct_val(1,k,i)
+    umin = 1.0d-12   !  floor
 
+    ! optional relative limiter
+    dumax = 0.25d0*max(abs(uold), umin)
+    if (du.gt. dumax) du =  dumax
+    if (du.lt.-dumax) du = -dumax
 
+    unew = uold + du
 
-END IF
+    if (unew.lt.umin) then
+      unew = umin
+    end if
 
+    u_ct_val(1,k,i) = unew
 
-
-
-
-
-
-
-
-  
-END SUBROUTINE IMPLICIT_TIMEs_2d
+  end do
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
 
 
-SUBROUTINE DUAL_TIME(N)
+
+
+
+
+
+
+
+
+end subroutine implicit_times
+
+
+subroutine implicit_times_2d(n)
 !> @brief
-!> DUAL TIME STEPPING
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,jj,kill_nan
-INTEGER,INTENT(IN)::N
-reaL::verysmall
+!> implicit approximately factored time stepping scheme 2d
+implicit none
+integer::i,k,kmaxe,j,kill_nan_global
+integer,intent(in)::n
+#ifdef gpu
+logical::kill_nan_reduce
+#endif
+logical::bad_impdu,accepted_update
+real::verysmall,du,uold, umin, dumax, unew,update_alpha
+real,dimension(1:gpu_max_nvar)::candidate,old_state,limited
+verysmall = tolsmall
+
+  if (realgas.eq.1)call normalise_species(n)
+kmaxe=xmpielrank(n)
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    if (realgas.eq.1)then
+    call sources_computation2d(n)
+
+    end if
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+
+   ! call vortexcalc2d(n)
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
+    call sources_computation2d(n)
+    end if
+    end select
+
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    if (realgas.eq.1)then
+    call sources_computation2d(n)
+    end if
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+
+
+    !call vortexcalc2d(n)
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
+    call sources_computation2d(n)
+    end if
+    end select
+end if
+
+
+
+ if (relax.eq.3)then
+
+ !call relaxation_lumfree(n)
+
+ else
+ if (lowmemory.eq.0)then
+
+ call relaxation2d(n)
+
+ else
+
+ call relaxation_lm2d(n)
+
+ end if
+  end if
+
+ kill_nan=0
+#ifdef gpu
+ kill_nan_reduce=.false.
+#endif
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update) &
+!$omp& reduction(.or.:kill_nan_reduce)
+#else
+!$omp do private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update) reduction(max:kill_nan)
+#endif
+	do i=1,kmaxe
+	    bad_impdu=.false.
+	    do j=1,nof_variables
+	    if ((impdu(i,j).ne.impdu(i,j)).or.(abs(impdu(i,j)).gt.fv_update_max_abs)) bad_impdu=.true.
+	    end do
+	    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	      do j=nof_variables+1,nof_variables+turbulenceequations+passivescalar
+	        if ((impdu(i,j).ne.impdu(i,j)).or.(abs(impdu(i,j)).gt.fv_update_max_abs)) bad_impdu=.true.
+	      end do
+	    end if
+
+	    if (bad_impdu)then
+
+	      if (realgas.eq.1)then
+	        old_state=zero
+	        old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+	        call fv_explicit_local_candidate(i,old_state,candidate)
+	        call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+	        if (accepted_update) then
+	          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+	          impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
+	          if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	            impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
+	            -update_alpha*ielem_dtl(i)*rhst_val(1:turbulenceequations+passivescalar,i)/ielem_totvolume(i)
+	          end if
+	        else
+	          if (.not.fv_state_update_admissible(old_state)) then
+#ifdef gpu
+	            kill_nan_reduce=.true.
+#else
+	            kill_nan=1
+#endif
+	          end if
+	          impdu(i,1:nof_variables)=zero
+	          if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	            impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+	          end if
+	        end if
+	      else
+#ifdef gpu
+	        kill_nan_reduce=.true.
+#else
+	        kill_nan=1
+#endif
+	        impdu(i,1:nof_variables)=zero
+	        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+	        end if
+	      end if
+    else
+      old_state=zero
+      candidate=zero
+      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
+      call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+      if (accepted_update) then
+        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
+        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
+          update_alpha*impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+        end if
+	      else
+	        if (realgas.eq.1)then
+	          call fv_explicit_local_candidate(i,old_state,candidate)
+	          call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+	          if (accepted_update) then
+	            u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+	            impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
+	            if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	              impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
+	              -update_alpha*ielem_dtl(i)*rhst_val(1:turbulenceequations+passivescalar,i)/ielem_totvolume(i)
+	            end if
+	          else
+	            impdu(i,1:nof_variables)=zero
+	            if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	              impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+	            end if
+	          end if
+	        else
+	          impdu(i,1:nof_variables)=zero
+	          if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+	            impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+	          end if
+	        end if
+	      end if
+	    end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+kill_nan=0
+if (kill_nan_reduce) kill_nan=1
+#else
+!$omp end do
+#endif
+
+    !$omp barrier
+    !$omp master
+    kill_nan_global = 0
+    call mpi_allreduce(kill_nan,kill_nan_global,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    kill_nan = kill_nan_global
+    if (kill_nan.eq.1)then
+        kill=1
+        if (n.eq.0)then
+      print*,"killed due to divergence in implicit time stepping"
+    end if
+    end if
+    !$omp end master
+    !$omp barrier
+
+    if (kill_nan.eq.1)then
+        return
+    end if
+
+
+ if (realgas.eq.1)call normalise_species(n)
+
+
+if (realgas.eq.1)then
+if (rg_relax.eq.2)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+! Real-gas sources are assembled through rhs_val in sources_computation.
+! Do not mutate u_c_val here with a local pseudo-time source step.
+continue
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
+end if
+if (realgas.eq.1)call normalise_species(n)
+
+if ((passivescalar.gt.0).or.(turbulence.gt.0))then
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private (du,uold,umin,dumax,unew)
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  do k=1,turbulenceequations+passivescalar
+
+    du   = 0.2d0*impdu(i,nof_variables+k)
+    uold = u_ct_val(1,k,i)
+    umin = 1.0d-12   !  floor
+
+    ! optional relative limiter
+    dumax = 0.25d0*max(abs(uold), umin)
+    if (du.gt. dumax) du =  dumax
+    if (du.lt.-dumax) du = -dumax
+
+    unew = uold + du
+
+    if (unew.lt.umin) then
+      unew = umin
+    end if
+
+    u_ct_val(1,k,i) = unew
+
+  end do
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+end if
+
+
+
+
+
+
+
+
+
+
+end subroutine implicit_times_2d
+
+
+subroutine dual_time(n)
+!> @brief
+!> dual time stepping
+implicit none
+integer::i,j,k,kmaxe,jj,kill_nan_global
+integer,intent(in)::n
+#ifdef gpu
+logical::kill_nan_reduce
+real::allresdt_reduce
+#endif
+logical::bad_impdu,accepted_update
+real::verysmall,update_alpha
 real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
+real,dimension(1:gpu_max_nvar)::candidate,old_state,limited
 verysmall = tolsmall
 
 inner_tol=reslimit
 
-KMAXE=XMPIELRANK(N)
+kmaxe=xmpielrank(n)
 
 
-IF (IT.EQ.RESTART)THEN
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  END IF
-END DO
-!$OMP END DO
-END IF
+if (it.eq.restart)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(1,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
 
 
 
 
 
 firsti=0.0d0
-DO JJ=1,upperlimit
-      rsumfacei=zero;allresdt=zero;dummy3i=zero; 
+do jj=1,upperlimit
+      rsumfacei=zero;allresdt=zero;dummy3i=zero;
    if (jj.eq.1)then
     iscoun=1
       else
       iscoun=2
-      end if    
-    
-      
-
-      
-CALL CALL_FLUX_SUBROUTINES_3D
+      end if
 
 
-IF (relax.eq.3)THEN
+#ifdef gpu
+!$omp target update to(iscoun)
+#endif
+
+call call_flux_subroutines_3d
 
 
-
-CALL RELAXATION_LUMFREE(N)
-
-
-ELSE
-
-
-IF (lowmemory.eq.0)THEN
-   
- CALL RELAXATION(N)
-   
- ELSE
- 
- CALL RELAXATION_lm(N)
- 
- END IF
- END IF
-
- 
- kill_nan=0
- 
-!$OMP BARRIER 
-!$OMP DO  REDUCTION(+:allresdt)
-DO I=1,KMAXE
-      rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2)+((IMPDU(I,5))**2))
-      allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)
-      
-      IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)).or.(impdu(i,5).ne.impdu(i,5)))THEN
-      kill_nan=1
-      END IF
-END do
-!$OMP END DO
-
-
-!$OMP BARRIER 
-
-     IF (kill_nan.eq.1)THEN
-        stop
-    END IF
+if (relax.eq.3)then
 
 
 
-!$OMP MASTER
-DUMMY3I=zero
+!call relaxation_lumfree(n)
+
+
+else
+
+
+if (lowmemory.eq.0)then
+
+ call relaxation(n)
+
+ else
+
+ call relaxation_lm(n)
+
+ end if
+ end if
+
+
+kill_nan=0
+allresdt = 0.0d0
+#ifdef gpu
+kill_nan_reduce=.false.
+allresdt_reduce = 0.0d0
+#endif
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(rsumfacei,j) reduction(+:allresdt_reduce) reduction(.or.:kill_nan_reduce)
+#else
+!$omp do private(rsumfacei,j) reduction(+:allresdt) reduction(max:kill_nan)
+#endif
+do i = 1, kmaxe
+    rsumfacei = sqrt( impdu(i,1)**2 + impdu(i,2)**2 + impdu(i,3)**2 + &
+                      impdu(i,4)**2 + impdu(i,5)**2 )
+
+#ifdef gpu
+    allresdt_reduce = allresdt_reduce + rsumfacei * ielem_totvolume(i)
+#else
+    allresdt = allresdt + rsumfacei * ielem_totvolume(i)
+#endif
+
+    if ( (impdu(i,1) /= impdu(i,1)) .or. &
+         (impdu(i,2) /= impdu(i,2)) .or. &
+         (impdu(i,3) /= impdu(i,3)) .or. &
+         (impdu(i,4) /= impdu(i,4)) .or. &
+         (impdu(i,5) /= impdu(i,5)) ) then
+#ifdef gpu
+        kill_nan_reduce = .true.
+#else
+        kill_nan = 1
+#endif
+    end if
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+      do j=nof_variables+1,nof_variables+turbulenceequations+passivescalar
+        if (impdu(i,j).ne.impdu(i,j)) then
+#ifdef gpu
+          kill_nan_reduce = .true.
+#else
+          kill_nan = 1
+#endif
+        end if
+      end do
+    end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+allresdt=allresdt_reduce
+kill_nan=0
+if (kill_nan_reduce) kill_nan=1
+#else
+!$omp end do
+#endif
+
+    !$omp barrier
+    !$omp master
+    kill_nan_global = 0
+    call mpi_allreduce(kill_nan,kill_nan_global,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    kill_nan = kill_nan_global
+    if (kill_nan.eq.1)then
+        kill=1
+        if (n.eq.0)then
+      print*,"killed due to divergence in implicit time stepping"
+    end if
+    end if
+    !$omp end master
+    !$omp barrier
+
+    if (kill_nan.eq.1)then
+        return
+    end if
+
+
+!$omp master
+dummy3i=zero
 
 
 
@@ -3133,1779 +5295,3128 @@ DUMMY3I=zero
 
 
 
-CALL MPI_ALLREDUCE(allresdt,DUMMY3i,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-allresdt=dummy3i/TOTALVOLUME
+call mpi_allreduce(allresdt,dummy3i,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+allresdt=dummy3i/totalvolume
 
-IF (allresdt.gt.firsti)THEN
+if (allresdt.gt.firsti)then
 firsti=allresdt
-END IF
+end if
 
 allresdt=allresdt/firsti
 
 
-IF (n.eq.0)THEN
-				  OPEN(77,FILE='res1.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-				  WRITE(77,*)allresdt,jj,it
-				  CLOSE(77)
+if (n.eq.0)then
+				  open(77,file='res1.txt',form='formatted',action='write',position='append')
+				  write(77,*)allresdt,jj,it
+				  close(77)
 
-END IF
+end if
 
-!$OMP END MASTER
-!$OMP BARRIER 
+!$omp end master
+!$omp barrier
 
 
 
-  IF ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))THEN
- !$OMP DO
-  DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-	IF (U_CT(I)%VAL(1,k)+IMPDU(I,nof_Variables+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-	END IF
-    END do
-    END IF
-  END DO
-!$OMP END DO
+
+  if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update)
+#else
+!$omp do private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+  do i=1,kmaxe
+    bad_impdu=.false.
+    do j=1,nof_variables
+      if (impdu(i,j).ne.impdu(i,j)) bad_impdu=.true.
+    end do
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+      do j=nof_variables+1,nof_variables+turbulenceequations+passivescalar
+        if (impdu(i,j).ne.impdu(i,j)) bad_impdu=.true.
+      end do
+    end if
+    if (bad_impdu)then
+      impdu(i,1:nof_variables)=zero
+      if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+        impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+      end if
+    else
+      old_state=zero
+      candidate=zero
+      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
+      call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+      if (accepted_update) then
+        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
+        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
+          update_alpha*impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+          do k=1,turbulenceequations+passivescalar
+            if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+              u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+            end if
+          end do
+        end if
+      else
+        impdu(i,1:nof_variables)=zero
+        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+        end if
+      end if
+    end if
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if (realgas.eq.1)then
+if (rg_relax.eq.2)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+! Real-gas sources are assembled through rhs_val in sources_computation.
+! Do not mutate u_c_val here with a local pseudo-time source step.
+continue
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
+end if
+if (realgas.eq.1)call normalise_species(n)
+
+
+
+
+
+
+
+
+
+
   exit
 
-ELSE
- !$OMP DO
- DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-	IF (U_CT(I)%VAL(1,k)+IMPDU(I,nof_Variables+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-	END IF
-    END do
-    END IF
-  END DO
-!$OMP END DO
+else
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update)
+#else
+!$omp do private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+ do i=1,kmaxe
+    bad_impdu=.false.
+    do j=1,nof_variables
+      if (impdu(i,j).ne.impdu(i,j)) bad_impdu=.true.
+    end do
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+      do j=nof_variables+1,nof_variables+turbulenceequations+passivescalar
+        if (impdu(i,j).ne.impdu(i,j)) bad_impdu=.true.
+      end do
+    end if
+    if (bad_impdu)then
+      impdu(i,1:nof_variables)=zero
+      if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+        impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+      end if
+    else
+      old_state=zero
+      candidate=zero
+      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
+      call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+      if (accepted_update) then
+        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
+        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
+          update_alpha*impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+          do k=1,turbulenceequations+passivescalar
+            if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+              u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+            end if
+          end do
+        end if
+      else
+        impdu(i,1:nof_variables)=zero
+        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+        end if
+      end if
+    end if
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+if (realgas.eq.1)then
+if (rg_relax.eq.2)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+! Real-gas sources are assembled through rhs_val in sources_computation.
+! Do not mutate u_c_val here with a local pseudo-time source step.
+continue
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
+end if
+if (realgas.eq.1)call normalise_species(n)
+
+end if
+
+
+end do
+
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  !u_c_val(1,1:nof_variables,i)=2.0*u_c_val(2,1:nof_variables,i)-u_c_val(3,1:nof_variables,i)
 
-END IF
 
-
-END DO
-
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  !U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
-  
-  
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  !U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
-  end if
-END DO
-!$OMP END DO
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-
-
-
-
-
-
-  
-END SUBROUTINE dual_time
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-SUBROUTINE DUAL_TIME_EX(N)
-!> @brief
-!> DUAL TIME STEPPING 2D
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,jj
-INTEGER,INTENT(IN)::N
-reaL::verysmall
-real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
-verysmall = tolsmall
-
-inner_tol=reslimit
-
-KMAXE=XMPIELRANK(N)
-
-
-IF (IT.EQ.RESTART)THEN
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  END IF
-END DO
-!$OMP END DO
-END IF
-
-
-
-
-
-firsti=0.0d0
-DO JJ=1,upperlimit
-      rsumfacei=zero;allresdt=zero;dummy3i=zero; 
-      
-      
-      
-      
-      
-      
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive(N)
-    CALL VORTEXCALC(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-    
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive(N)
-    CALL VORTEXCALC(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION(N)
-    END IF
-    END SELECT
-END IF
-
-
-CALL RELAXATION_EX(N)
-
-
-
-
-
-!$OMP BARRIER 
-!$OMP DO  REDUCTION(+:allresdt)
-DO I=1,KMAXE
-      rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2)+((IMPDU(I,5))**2))
-      allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)
-END do
-!$OMP END DO
-
-!$OMP BARRIER 
-!$OMP MASTER
-DUMMY3I=zero
-
-CALL MPI_ALLREDUCE(allresdt,DUMMY3i,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-allresdt=dummy3i/TOTALVOLUME
-
-
-
-IF (allresdt.gt.firsti)THEN
-firsti=allresdt
-END IF
-
-allresdt=allresdt/firsti
-
-
-    IF (n.eq.0)THEN
-    write(777,*)allresdt,jj,it
-    END IF
-
-
-!$OMP END MASTER
-!$OMP BARRIER 
-
-    
-  IF ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))THEN
- !$OMP DO
-  DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-    END do
-    END IF
-  END DO
-!$OMP END DO
-  exit
-
-ELSE
- !$OMP DO
- DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-    END do
-    END IF
-  END DO
-!$OMP END DO
-
-END IF
-
-
-
-
-
-
-END DO
-
-
-
-
-
-
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
-  
-  
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
-  END IF
-END DO
-!$OMP END DO
-
-
-
-
-
-
-
-
-
-
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-END SUBROUTINE DUAL_TIME_EX
-
-
-
-
-
-SUBROUTINE DUAL_TIME_EX_2D(N)
-!> @brief
-!> DUAL TIME STEPPING 2D
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,jj
-INTEGER,INTENT(IN)::N
-reaL::verysmall
-real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
-verysmall = tolsmall
-
-inner_tol=reslimit
-
-KMAXE=XMPIELRANK(N)
-
-
-IF (IT.EQ.RESTART)THEN
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  END IF
-END DO
-!$OMP END DO
-END IF
-
-
-
-
-
-firsti=0.0d0
-DO JJ=1,upperlimit
-      rsumfacei=zero;allresdt=zero;dummy3i=zero; 
-      
-      
-      
-      
-      
-      
-IF (FASTEST.EQ.1)THEN
-    CALL EXCHANGE_LOWER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2d(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    CALL VORTEXCALC2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-    
-ELSE
-    CALL EXCHANGE_HIGHER(N)
-    CALL ARBITRARY_ORDER(N)
-    CALL EXHBOUNDHIGHER(N)
-    SELECT CASE(ITESTCASE)
-    CASE(1,2)
-    CALL CALCULATE_FLUXESHI2d(N)
-    CASE(3)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CASE(4)
-    CALL CALCULATE_FLUXESHI_CONVECTIVE2d(N)
-    CALL CALCULATE_FLUXESHI_dIFfusive2d(N)
-    CALL VORTEXCALC2d(N)
-    IF (turbulence.eq.1)THEN
-    CALL SOURCES_COMPUTATION2d(N)
-    END IF
-    END SELECT
-END IF
-
-
-CALL RELAXATION_EX(N)
-
-
-
-
-
-!$OMP BARRIER 
-!$OMP DO  REDUCTION(+:allresdt)
-DO I=1,KMAXE
-      rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2))
-      allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)
-END do
-!$OMP END DO
-
-!$OMP BARRIER 
-!$OMP MASTER
-DUMMY3I=zero
-
-CALL MPI_ALLREDUCE(allresdt,DUMMY3i,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-allresdt=dummy3i/TOTALVOLUME
-
-
-
-IF (allresdt.gt.firsti)THEN
-firsti=allresdt
-END IF
-
-allresdt=allresdt/firsti
-
-
-    IF (n.eq.0)THEN
-    write(777,*)allresdt,jj,it
-    END IF
-
-
-!$OMP END MASTER
-!$OMP BARRIER 
-
-    
-  IF ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))THEN
- !$OMP DO
-  DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-    END do
-    END IF
-  END DO
-!$OMP END DO
-  exit
-
-ELSE
- !$OMP DO
- DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-    END do
-    END IF
-  END DO
-!$OMP END DO
-
-END IF
-
-
-
-
-
-
-END DO
-
-
-
-
-
-
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  U_C(I)%VAL(1,1:nof_variables)=2.0*U_C(I)%VAL(2,1:nof_variables)-U_C(I)%VAL(3,1:nof_variables)
-  
-  
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
-  END IF
-END DO
-!$OMP END DO
-
-
-
-
-
-
-
-
-
-
-
-
-IF (AVERAGING.EQ.1)THEN
-
- CALL AVERAGING_T(N)
- 
-END IF
-
-
-
-
-  
-END SUBROUTINE dual_time_ex_2d
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-SUBROUTINE DUAL_TIME_2d(N)
-!> @brief
-!> DUAL TIME STEPPING 2D
-IMPLICIT NONE
-INTEGER::I,K,KMAXE,nvar,jj,kill_nan
-INTEGER,INTENT(IN)::N
-reaL::verysmall
-real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
-verysmall = tolsmall
-
-inner_tol=reslimit
-
-KMAXE=XMPIELRANK(N)
-
- 
-IF (IT.EQ.RESTART)THEN
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(1,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  
+  u_ct_val(3,:,i)=u_ct_val(2,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  !u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
   end if
-END DO
-!$OMP END DO
-END IF
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
+
+
+
+
+
+
+
+
+
+
+
+end subroutine dual_time
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+subroutine dual_time_ex(n)
+!> @brief
+!> dual time stepping 2d
+implicit none
+integer::i,k,kmaxe,jj
+integer,intent(in)::n
+#ifdef gpu
+real::allresdt_reduce
+#endif
+real::verysmall
+real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
+verysmall = tolsmall
+
+inner_tol=reslimit
+
+kmaxe=xmpielrank(n)
+
+
+if (it.eq.restart)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(1,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
+
+
 
 
 
 firsti=0.0d0
-DO JJ=1,upperlimit
-      rsumfacei=zero;allresdt=zero;dummy3i=zero; 
+do jj=1,upperlimit
+      rsumfacei=zero;allresdt=zero;dummy3i=zero;
+
+
+
+
+
+
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    call vortexcalc(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi(n)
+    case(3)
+    call calculate_fluxeshi_convective(n)
+    case(4)
+    call calculate_fluxeshi_convective(n)
+    call calculate_fluxeshi_diffusive(n)
+    call vortexcalc(n)
+    if (turbulence.eq.1)then
+    call sources_computation(n)
+    end if
+    end select
+end if
+
+
+call relaxation_ex(n)
+
+
+
+
+
+#ifdef gpu
+allresdt_reduce=0.0d0
+!$omp target teams distribute parallel do &
+!$omp& private(rsumfacei) reduction(+:allresdt_reduce)
+#else
+!$omp do private(rsumfacei) reduction(+:allresdt)
+#endif
+do i=1,kmaxe
+      rsumfacei=sqrt(((impdu(i,1))**2)+((impdu(i,2))**2)+((impdu(i,3))**2)+((impdu(i,4))**2)+((impdu(i,5))**2))
+#ifdef gpu
+      allresdt_reduce=allresdt_reduce+(rsumfacei*ielem_totvolume(i))
+#else
+      allresdt=allresdt+(rsumfacei*ielem_totvolume(i))
+#endif
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+allresdt=allresdt_reduce
+#else
+!$omp end do
+#endif
+
+dummy3i=zero
+
+call mpi_allreduce(allresdt,dummy3i,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+allresdt=dummy3i/totalvolume
+
+
+
+if (allresdt.gt.firsti)then
+firsti=allresdt
+end if
+
+allresdt=allresdt/firsti
+
+!$omp master
+    if (n.eq.0)then
+    write(777,*)allresdt,jj,it
+    end if
+
+
+!$omp end master
+!$omp barrier
+
+
+  if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+  do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+    do k=1,turbulenceequations+passivescalar
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+    end do
+    end if
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+  exit
+
+else
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+ do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+    do k=1,turbulenceequations+passivescalar
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+    end do
+    end if
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+end if
+
+
+
+
+
+
+end do
+
+
+
+
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(1,1:nof_variables,i)=2.0*u_c_val(2,1:nof_variables,i)-u_c_val(3,1:nof_variables,i)
+
+
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(2,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
+  end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
+
+
+
+end subroutine dual_time_ex
+
+
+
+
+
+subroutine dual_time_ex_2d(n)
+!> @brief
+!> dual time stepping 2d
+implicit none
+integer::i,k,kmaxe,jj
+integer,intent(in)::n
+#ifdef gpu
+real::allresdt_reduce
+#endif
+real::verysmall
+real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
+verysmall = tolsmall
+
+inner_tol=reslimit
+
+kmaxe=xmpielrank(n)
+
+
+if (it.eq.restart)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(1,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
+
+
+
+
+
+firsti=0.0d0
+do jj=1,upperlimit
+      rsumfacei=zero;allresdt=zero;dummy3i=zero;
+
+
+
+
+
+
+if (fastest.eq.1)then
+    call exchange_lower(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    call vortexcalc2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+
+else
+    call exchange_higher(n)
+    call arbitrary_order(n)
+    call exhboundhigher(n)
+    select case(itestcase)
+    case(1,2)
+    call calculate_fluxeshi2d(n)
+    case(3)
+    call calculate_fluxeshi_convective2d(n)
+    case(4)
+    call calculate_fluxeshi_convective2d(n)
+    call calculate_fluxeshi_diffusive2d(n)
+    call vortexcalc2d(n)
+    if (turbulence.eq.1)then
+    call sources_computation2d(n)
+    end if
+    end select
+end if
+
+
+call relaxation_ex(n)
+
+
+
+
+
+#ifdef gpu
+allresdt_reduce=0.0d0
+!$omp target teams distribute parallel do &
+!$omp& private(rsumfacei) reduction(+:allresdt_reduce)
+#else
+!$omp do private(rsumfacei) reduction(+:allresdt)
+#endif
+do i=1,kmaxe
+      rsumfacei=sqrt(((impdu(i,1))**2)+((impdu(i,2))**2)+((impdu(i,3))**2)+((impdu(i,4))**2))
+#ifdef gpu
+      allresdt_reduce=allresdt_reduce+(rsumfacei*ielem_totvolume(i))
+#else
+      allresdt=allresdt+(rsumfacei*ielem_totvolume(i))
+#endif
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+allresdt=allresdt_reduce
+#else
+!$omp end do
+#endif
+
+dummy3i=zero
+
+call mpi_allreduce(allresdt,dummy3i,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+allresdt=dummy3i/totalvolume
+
+
+
+if (allresdt.gt.firsti)then
+firsti=allresdt
+end if
+
+allresdt=allresdt/firsti
+
+!$omp master
+    if (n.eq.0)then
+    write(777,*)allresdt,jj,it
+    end if
+
+
+!$omp end master
+!$omp barrier
+
+
+  if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+  do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+    do k=1,turbulenceequations+passivescalar
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+    end do
+    end if
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+  exit
+
+else
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+ do i=1,kmaxe
+ u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+    do k=1,turbulenceequations+passivescalar
+  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+    end do
+    end if
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+end if
+
+
+
+
+
+
+end do
+
+
+
+
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(1,1:nof_variables,i)=2.0*u_c_val(2,1:nof_variables,i)-u_c_val(3,1:nof_variables,i)
+
+
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(2,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
+  end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+if (averaging.eq.1)then
+
+ call averaging_t(n)
+
+end if
+
+
+
+
+
+end subroutine dual_time_ex_2d
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+subroutine dual_time_2d(n)
+!> @brief
+!> dual time stepping 2d
+implicit none
+integer::i,j,k,kmaxe,nvar,jj,kill_nan_global
+integer,intent(in)::n
+#ifdef gpu
+logical::kill_nan_reduce
+real::allresdt_reduce
+#endif
+logical::bad_impdu,accepted_update
+real::verysmall,update_alpha
+real::firsti,resmaxi,rsumfacei,suml2ri,dummy3i,inner_tol
+real,dimension(1:gpu_max_nvar)::candidate,old_state,limited
+verysmall = tolsmall
+
+inner_tol=reslimit
+
+kmaxe=xmpielrank(n)
+
+
+if (it.eq.restart)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(1,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+
+  end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
+
+
+
+firsti=0.0d0
+do jj=1,upperlimit
+      rsumfacei=zero;allresdt=zero;dummy3i=zero;
       if (jj.eq.1)then
     iscoun=1
       else
       iscoun=2
       end if
-      
 
-      
-CALL CALL_FLUX_SUBROUTINES_2D
+#ifdef gpu
+!$omp target update to(iscoun)
+#endif
 
-
-IF (relax.eq.3)THEN
-
+call call_flux_subroutines_2d
 
 
-CALL RELAXATION_LUMFREE(N)
-
-
-ELSE
+if (relax.eq.3)then
 
 
 
-IF (lowmemory.eq.0)THEN
-   
- CALL RELAXATION2d(N)
-   
- ELSE
- 
- CALL RELAXATION_lm2d(N)
- 
- END IF
- 
-END IF
-
-!$OMP BARRIER 
-!$OMP DO  REDUCTION(+:allresdt)
-DO I=1,KMAXE
-      rsumfacei=sqrt(((IMPDU(I,1))**2)+((IMPDU(I,2))**2)+((IMPDU(I,3))**2)+((IMPDU(I,4))**2))
-      allresdt=allresdt+(rsumfacei*ielem(n,i)%totvolume)
+!call relaxation_lumfree(n)
 
 
-      IF ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)))THEN
+else
+
+
+
+if (lowmemory.eq.0)then
+
+ call relaxation2d(n)
+
+ else
+
+ call relaxation_lm2d(n)
+
+ end if
+
+end if
+
+kill_nan=0
+allresdt = 0.0d0
+#ifdef gpu
+kill_nan_reduce=.false.
+allresdt_reduce = 0.0d0
+#endif
+
+
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(rsumfacei,j) reduction(+:allresdt_reduce) reduction(.or.:kill_nan_reduce)
+#else
+!$omp do private(rsumfacei,j) reduction(+:allresdt) reduction(max:kill_nan)
+#endif
+do i=1,kmaxe
+      rsumfacei=sqrt(((impdu(i,1))**2)+((impdu(i,2))**2)+((impdu(i,3))**2)+((impdu(i,4))**2))
+#ifdef gpu
+      allresdt_reduce=allresdt_reduce+(rsumfacei*ielem_totvolume(i))
+#else
+      allresdt=allresdt+(rsumfacei*ielem_totvolume(i))
+#endif
+
+
+      if ((impdu(i,1).ne.impdu(i,1)).or.(impdu(i,2).ne.impdu(i,2)).or.(impdu(i,3).ne.impdu(i,3)).or.(impdu(i,4).ne.impdu(i,4)))then
+#ifdef gpu
+      kill_nan_reduce=.true.
+#else
       kill_nan=1
-      END IF
+#endif
+      end if
+      if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+        do j=nof_variables+1,nof_variables+turbulenceequations+passivescalar
+          if (impdu(i,j).ne.impdu(i,j)) then
+#ifdef gpu
+            kill_nan_reduce=.true.
+#else
+            kill_nan=1
+#endif
+          end if
+        end do
+      end if
 
-END do
-!$OMP END DO
-
-!$OMP BARRIER 
-
-
- IF (kill_nan.eq.1)THEN
-        stop
-    END IF
-
-
-
-!$OMP MASTER
-DUMMY3I=zero
-
-CALL MPI_ALLREDUCE(allresdt,DUMMY3i,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-allresdt=dummy3i/TOTALVOLUME
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+allresdt=allresdt_reduce
+kill_nan=0
+if (kill_nan_reduce) kill_nan=1
+#else
+!$omp end do
+#endif
 
 
+  !$omp barrier
+    !$omp master
+    kill_nan_global = 0
+    call mpi_allreduce(kill_nan,kill_nan_global,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    kill_nan = kill_nan_global
+    if (kill_nan.eq.1)then
+        kill=1
+        if (n.eq.0)then
+      print*,"killed due to divergence in implicit time stepping"
+    end if
+    end if
+    !$omp end master
+    !$omp barrier
 
-IF (allresdt.gt.firsti)THEN
+    if (kill_nan.eq.1)then
+        return
+    end if
+
+
+
+!$omp master
+dummy3i=zero
+
+call mpi_allreduce(allresdt,dummy3i,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+allresdt=dummy3i/totalvolume
+
+
+
+if (allresdt.gt.firsti)then
 firsti=allresdt
-END IF
+end if
 
 allresdt=allresdt/firsti
 
-IF (n.eq.0)THEN
-				  OPEN(77,FILE='res1.txt',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
-				  WRITE(77,*)allresdt,jj,it
-				  CLOSE(77)
+if (n.eq.0)then
+				  open(77,file='res1.txt',form='formatted',action='write',position='append')
+				  write(77,*)allresdt,jj,it
+				  close(77)
 
-END IF
-
-
-!$OMP END MASTER
-!$OMP BARRIER 
+end if
 
 
+!$omp end master
+!$omp barrier
 
 
-  IF ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))THEN
- !$OMP DO
-  DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-	IF (U_CT(I)%VAL(1,k)+IMPDU(I,nof_Variables+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-	END IF
-    END do
-    END IF
-  END DO
-!$OMP END DO
+
+
+  if ((allresdt.le.inner_tol).or.(jj.eq.upperlimit))then
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update)
+#else
+!$omp do private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+  do i=1,kmaxe
+    bad_impdu=.false.
+    do j=1,nof_variables
+      if (impdu(i,j).ne.impdu(i,j)) bad_impdu=.true.
+    end do
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+      do j=nof_variables+1,nof_variables+turbulenceequations+passivescalar
+        if (impdu(i,j).ne.impdu(i,j)) bad_impdu=.true.
+      end do
+    end if
+    if (bad_impdu)then
+      impdu(i,1:nof_variables)=zero
+      if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+        impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+      end if
+    else
+      old_state=zero
+      candidate=zero
+      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
+      call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+      if (accepted_update) then
+        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
+        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
+          update_alpha*impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+          do k=1,turbulenceequations+passivescalar
+            if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+              u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+            end if
+          end do
+        end if
+      else
+        impdu(i,1:nof_variables)=zero
+        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+        end if
+      end if
+    end if
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+if (realgas.eq.1)then
+if (rg_relax.eq.2)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+! Real-gas sources are assembled through rhs_val in sources_computation.
+! Do not mutate u_c_val here with a local pseudo-time source step.
+continue
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
+end if
+if (realgas.eq.1)call normalise_species(n)
+
+
   exit
 
-ELSE
- !$OMP DO
- DO I=1,KMAXE
- U_C(I)%VAL(1,1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)+IMPDU(I,1:nof_Variables)
-    IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-    do k=1,turbulenceequations+passivescalar
-	IF (U_CT(I)%VAL(1,k)+IMPDU(I,nof_Variables+k).ge.zero)THEN
-  U_CT(I)%VAL(1,k)=U_CT(I)%VAL(1,k)+IMPDU(i,nof_Variables+k)
-	END IF
-    END do
-    END IF
-  END DO
-!$OMP END DO
+else
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update)
+#else
+!$omp do private(j,bad_impdu,candidate,old_state,limited,update_alpha,accepted_update)
+#endif
+ do i=1,kmaxe
+    bad_impdu=.false.
+    do j=1,nof_variables
+      if (impdu(i,j).ne.impdu(i,j)) bad_impdu=.true.
+    end do
+    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+      do j=nof_variables+1,nof_variables+turbulenceequations+passivescalar
+        if (impdu(i,j).ne.impdu(i,j)) bad_impdu=.true.
+      end do
+    end if
+    if (bad_impdu)then
+      impdu(i,1:nof_variables)=zero
+      if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+        impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+      end if
+    else
+      old_state=zero
+      candidate=zero
+      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
+      call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
+      if (accepted_update) then
+        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
+        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
+          update_alpha*impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+          do k=1,turbulenceequations+passivescalar
+            if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
+              u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+            end if
+          end do
+        end if
+      else
+        impdu(i,1:nof_variables)=zero
+        if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+          impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=zero
+        end if
+      end if
+    end if
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
-END IF
+if (realgas.eq.1)then
+if (rg_relax.eq.2)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+! Real-gas sources are assembled through rhs_val in sources_computation.
+! Do not mutate u_c_val here with a local pseudo-time source step.
+continue
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end if
+end if
+if (realgas.eq.1)call normalise_species(n)
+
+end if
 
 
-END DO
+end do
 
 
 
 
 
-!$OMP DO
-DO I=1,KMAXE 
-  U_C(I)%VAL(3,1:NOF_VARIABLES)=U_C(I)%VAL(2,1:NOF_VARIABLES)
-  U_C(I)%VAL(2,1:nof_variables)=U_C(I)%VAL(1,1:nof_variables)
-  !U_C(I)%VAL(1,1:nof_variables)=(2.0*U_C(I)%VAL(2,1:nof_variables))-U_C(I)%VAL(3,1:nof_variables)
-  
-  
-  IF ((turbulence.gt.0).or.(passivescalar.gt.0))THEN
-  U_CT(I)%VAL(3,:)=U_CT(I)%VAL(2,:)
-  U_CT(I)%VAL(2,:)=U_CT(I)%VAL(1,:)
-  !U_CT(I)%VAL(1,:)=2.0*U_CT(I)%VAL(2,:)-U_CT(I)%VAL(3,:)
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  !u_c_val(1,1:nof_variables,i)=(2.0*u_c_val(2,1:nof_variables,i))-u_c_val(3,1:nof_variables,i)
+
+
+  if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+  u_ct_val(3,:,i)=u_ct_val(2,:,i)
+  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  !u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
   end if
-END DO
-!$OMP END DO
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
 
 
 
 
 
-IF (AVERAGING.EQ.1)THEN
+if (averaging.eq.1)then
 
- CALL AVERAGING_T(N)
- 
-END IF
+ call averaging_t(n)
 
-END SUBROUTINE dual_time_2d
+end if
 
-
+end subroutine dual_time_2d
 
 
-SUBROUTINE RELAXATION_EX(N)
-IMPLICIT NONE
+
+
+subroutine relaxation_ex(n)
+implicit none
 !> @brief
-!> This subroutine solves the linear system for implicit time stepping either through MATRIX FREE LU-SGS low memory footprint
-INTEGER,INTENT(IN)::N
-INTEGER::I,L,K,II,SWEEPS,kmaxe,nvar,igoflux,icaseb,INDT1,INDT2,INDT3,IJK
+!> this subroutine solves the linear system for implicit time stepping either through matrix free lu-sgs low memory footprint
+integer,intent(in)::n
+integer::i,l,k,ii,sweeps,kmaxe,nvar,igoflux,icaseb,indt1,indt2,indt3,ijk,j
 real::dt1,dtau
 
 
 
 kmaxe=xmpielrank(n)
 
-impdu(:,:)=zero
-
-INDT1=NOF_VARIABLES+1
-INDT2=NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR
-INDT3=TURBULENCEEQUATIONS+PASSIVESCALAR
 
 
-
-!$OMP DO
-DO I=1,KMAXE
-dt1=ielem(n,i)%totvolume/dt
-IMPDU(I,1:nof_variables)=DT1*(1.5D0*U_C(I)%VAL(1,1:nof_Variables)-2.0D0*U_C(I)%VAL(2,1:nof_Variables)+0.5D0*U_C(I)%VAL(3,1:nof_Variables))+RHS(I)%VAL(1:nof_variables)
-
-IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-impdu(I,INDT1:INDT2)=DT1*(1.5D0*U_CT(I)%VAL(1,1:INDT3)-2.0D0*U_CT(I)%VAL(2,1:INDT3)+0.5D0*U_CT(I)%VAL(3,1:INDT3))+RHST(I)%VAL(1:INDT3)
-END IF
-
-END DO
-!$OMP END DO 
-
-
-!$OMP DO
-DO I=1,KMAXE
-dtau=(ielem(n,i)%dtl/IELEM(N,I)%TOTVOLUME)*(1.0d0/(1.0D0+1.5D0*(ielem(n,i)%dtl/DT)))
-IMPDU(I,1:nof_variables)=-IMPDU(I,1:nof_variables)*dtau
-IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
-impdu(I,INDT1:INDT2)=-impdu(I,INDT1:INDT2)*dtau
-END IF
-END DO
-!$OMP END DO 
-
-                                       
-END SUBROUTINE RELAXATION_EX
+indt1=nof_variables+1
+indt2=nof_variables+turbulenceequations+passivescalar
+indt3=turbulenceequations+passivescalar
 
 
 
 
+!
+!
 
-SUBROUTINE AVERAGING_T(N)
+!===========================================================
+! Loop 1: build impdu
+!===========================================================
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(dt1,j)
+#else
+!$omp do private(dt1,j)
+#endif
+do i = 1, kmaxe
+
+    dt1 = ielem_totvolume(i) / dt
+
+    impdu(i,:) = zero
+
+    do j = 1, nof_variables
+        impdu(i,j) = dt1 * ( &
+             1.5d0 * u_c_val(1,j,i) &
+           - 2.0d0 * u_c_val(2,j,i) &
+           + 0.5d0 * u_c_val(3,j,i) ) &
+           + rhs_val(j,i)
+    end do
+
+    if ( (turbulence.gt.0) .or. (passivescalar.gt.0) ) then
+        do j = 1, turbulenceequations+passivescalar
+            impdu(i,nof_variables+j) = dt1 * ( &
+                 1.5d0 * u_ct_val(1,j,i) &
+               - 2.0d0 * u_ct_val(2,j,i) &
+               + 0.5d0 * u_ct_val(3,j,i) ) &
+               + rhst_val(j,i)
+        end do
+    end if
+
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+!===========================================================
+! Loop 2: scale impdu by dtau
+!===========================================================
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(dtau,j)
+#else
+!$omp do private(dtau,j)
+#endif
+do i = 1, kmaxe
+
+    dtau = (ielem_dtl(i) / ielem_totvolume(i)) * &
+           (1.0d0 / (1.0d0 + 1.5d0 * (ielem_dtl(i) / dt)))
+
+    do j = 1, nof_variables
+        impdu(i,j) = -impdu(i,j) * dtau
+    end do
+
+    if ( (turbulence.gt.0) .or. (passivescalar.gt.0) ) then
+        do j = 1, turbulenceequations+passivescalar
+            impdu(i,nof_variables+j) = -impdu(i,nof_variables+j) * dtau
+        end do
+    end if
+
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+
+end subroutine relaxation_ex
+
+
+
+
+
+subroutine averaging_t(n)
 !> @brief
-!> TEMPORAL AVERAGING FOR UNSTEADY SIMULATIONS
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-INTEGER::I,KMAXE,nvar
-integer::ind1
-KMAXE=XMPIELRANK(N)
+!> temporal averaging for unsteady simulations
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe,nvar
+
+kmaxe=xmpielrank(n)
 
 
 
-IF (DIMENSIONA.EQ.3)THEN
-IF (rungekutta.eq.4)THEN
-ind1=7
-ELSE
-ind1=5
-END IF
-
-  IF (tz1.gt.zero)THEN
- !$OMP DO
-  DO I=1,KMAXE
-    U_C(I)%val(ind1,:)=(((Tz1-dt)/(Tz1))*U_C(I)%val(ind1,:))+((dt*U_C(I)%VAL(1,:))/Tz1)
-      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-    DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-    
-    U_CT(I)%val(ind1,NVAR)=(((Tz1-dt)/(Tz1))*U_CT(I)%val(ind1,NVAR))+((dt*U_CT(I)%VAL(1,NVAR))/(Tz1*U_C(I)%val(ind1,1)))
-    
-    END DO
-    END IF
-    !U,V,W,UV,UW,WV,PS
-    U_C(I)%RMS(1)=SQRT(abs(((U_C(I)%RMS(1)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1)-U_C(I)%val(ind1,2)/U_C(I)%val(ind1,1))**2)*dt/Tz1)))
-    U_C(I)%RMS(2)=SQRT(abs(((U_C(I)%RMS(2)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1)-U_C(I)%val(ind1,3)/U_C(I)%val(ind1,1))**2)*dt/Tz1)))
-    U_C(I)%RMS(3)=SQRT(abs(((U_C(I)%RMS(3)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1)-U_C(I)%val(ind1,4)/U_C(I)%val(ind1,1))**2)*dt/Tz1)))
-    
-    
-    
-    
-   
-    U_C(I)%RMS(4)=(((U_C(I)%RMS(4))*((Tz1-DT)/(Tz1)))+&
-(((((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,2)/U_C(I)%val(ind1,1)))*((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,3)/U_C(I)%val(ind1,1)))))*DT/Tz1))
-    U_C(I)%RMS(5)=(((U_C(I)%RMS(5))*((Tz1-DT)/(Tz1)))+&
-(((((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,2)/U_C(I)%val(ind1,1)))*((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,4)/U_C(I)%val(ind1,1)))))*DT/Tz1))
-    U_C(I)%RMS(6)=(((U_C(I)%RMS(6))*((Tz1-DT)/(Tz1)))+&
-(((((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,3)/U_C(I)%val(ind1,1)))*((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))-(U_C(I)%val(ind1,4)/U_C(I)%val(ind1,1)))))*DT/Tz1))
-    IF ((PASSIVESCALAR.GT.0))THEN
-    U_C(I)%RMS(7)=SQRT(abs(((U_C(I)%RMS(7)**2)*((Tz1-DT)/(Tz1)))+(((U_CT(I)%VAL(1,TURBULENCEEQUATIONS+1)&
--U_CT(I)%val(ind1,TURBULENCEEQUATIONS+1))**2)*DT/Tz1)))
-    END IF
-   
-   
-   
-    
-  END DO
-  !$OMP END DO
-  ELSE
-  !$OMP DO
-  DO I=1,KMAXE
-    U_C(I)%val(ind1,:)=ZERO;U_C(I)%RMS=zero
-    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-    
-    
-    U_CT(I)%val(ind1,:)=ZERO
-    
-    
-    END IF
-  
-  END DO
-  !$OMP END DO
-  END IF
-
-ELSE
-IF (t.gt.0.0)THEN
-  !$OMP DO
-  DO I=1,KMAXE
-    U_C(I)%val(ind1,:)=(((Tz1-dt)/(Tz1))*U_C(I)%val(ind1,:))+((dt*U_C(I)%VAL(1,:))/Tz1)
-      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-    DO NVAR=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-    
-    U_CT(I)%val(ind1,NVAR)=(((Tz1-dt)/(Tz1))*U_CT(I)%val(ind1,NVAR))+((dt*U_CT(I)%VAL(1,NVAR))/(Tz1*U_C(I)%val(ind1,1)))
-    
-    END DO
-    END IF
-    !U,V,UV,PS
-    U_C(I)%RMS(1)=SQRT(abs(((U_C(I)%RMS(1)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,2)-U_C(I)%val(ind1,2))**2)*dt/Tz1)))/U_C(I)%val(ind1,1)
-    U_C(I)%RMS(2)=SQRT(abs(((U_C(I)%RMS(2)**2)*((Tz1-dt)/(Tz1)))+(((U_C(I)%VAL(1,3)-U_C(I)%val(ind1,3))**2)*dt/Tz1)))/U_C(I)%val(ind1,1)
-    
-   
-    U_C(I)%RMS(3)=(((U_C(I)%RMS(4))*((Tz1-dt)/(Tz1)))+&
-((((U_C(I)%VAL(1,2)-U_C(I)%val(ind1,2))*(U_C(I)%VAL(1,3)-U_C(I)%val(ind1,3))))*dt/Tz1))/U_C(I)%val(ind1,1)
-    
-    IF ((PASSIVESCALAR.GT.0))THEN
-    U_C(I)%RMS(4)=SQRT(abs(((U_C(I)%RMS(4)**2)*((Tz1-dt)/(Tz1)))+(((U_CT(I)%VAL(1,TURBULENCEEQUATIONS+1)&
--U_CT(I)%val(ind1,TURBULENCEEQUATIONS+1))**2)*dt/Tz1)))/U_C(I)%val(ind1,1)
-    END IF
-    
-  END DO
-  !$OMP END DO
-  ELSE
-  !$OMP DO
-  DO I=1,KMAXE
-    U_C(I)%val(ind1,:)=ZERO
-    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
-    
-    
-    U_CT(I)%val(ind1,:)=ZERO
-    
-    
-    END IF
-  
-  END DO
-  !$OMP END DO
-  END IF
- END IF
+if (dimensiona.eq.3)then
 
 
-   
-   IF (OUTSURF.EQ.1)THEN
-   CALL EXCHANGE_HIGHER_AV(N)
-   CALL AVERAGE_STRESSES(N)
-   END IF
-   
-END SUBROUTINE AVERAGING_T
+
+
+
+  if (tz1.gt.zero)then
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(nvar)
+#else
+!$omp do
+#endif
+  do i=1,kmaxe
+    u_c_val(ind1,:,i)=(((tz1-dt)/(tz1))*u_c_val(ind1,:,i))+((dt*u_c_val(1,:,i))/tz1)
+      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+    do nvar=1,turbulenceequations+passivescalar
+
+    u_ct_val(ind1,nvar,i)=(((tz1-dt)/(tz1))*u_ct_val(ind1,nvar,i))+((dt*u_ct_val(1,nvar,i))/(tz1*u_c_val(ind1,1,i)))
+
+    end do
+    end if
+    !u,v,w,uv,uw,wv,ps
+    u_c_rms(1,i)=sqrt(abs(((u_c_rms(1,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,2,i)/u_c_val(1,1,i)-u_c_val(ind1,2,i)/u_c_val(ind1,1,i))**2)*dt/tz1)))
+    u_c_rms(2,i)=sqrt(abs(((u_c_rms(2,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,3,i)/u_c_val(1,1,i)-u_c_val(ind1,3,i)/u_c_val(ind1,1,i))**2)*dt/tz1)))
+    u_c_rms(3,i)=sqrt(abs(((u_c_rms(3,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,4,i)/u_c_val(1,1,i)-u_c_val(ind1,4,i)/u_c_val(ind1,1,i))**2)*dt/tz1)))
+
+
+
+
+
+    u_c_rms(4,i)=(((u_c_rms(4,i))*((tz1-dt)/(tz1)))+&
+(((((u_c_val(1,2,i)/u_c_val(1,1,i))-(u_c_val(ind1,2,i)/u_c_val(ind1,1,i)))*((u_c_val(1,3,i)/u_c_val(1,1,i))-(u_c_val(ind1,3,i)/u_c_val(ind1,1,i)))))*dt/tz1))
+    u_c_rms(5,i)=(((u_c_rms(5,i))*((tz1-dt)/(tz1)))+&
+(((((u_c_val(1,2,i)/u_c_val(1,1,i))-(u_c_val(ind1,2,i)/u_c_val(ind1,1,i)))*((u_c_val(1,4,i)/u_c_val(1,1,i))-(u_c_val(ind1,4,i)/u_c_val(ind1,1,i)))))*dt/tz1))
+    u_c_rms(6,i)=(((u_c_rms(6,i))*((tz1-dt)/(tz1)))+&
+(((((u_c_val(1,3,i)/u_c_val(1,1,i))-(u_c_val(ind1,3,i)/u_c_val(ind1,1,i)))*((u_c_val(1,4,i)/u_c_val(1,1,i))-(u_c_val(ind1,4,i)/u_c_val(ind1,1,i)))))*dt/tz1))
+    if ((passivescalar.gt.0))then
+    u_c_rms(7,i)=sqrt(abs(((u_c_rms(7,i)**2)*((tz1-dt)/(tz1)))+(((u_ct_val(1,turbulenceequations+1,i)&
+-u_ct_val(ind1,turbulenceequations+1,i))**2)*dt/tz1)))
+    end if
+
+
+
+
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+  else
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp do
+#endif
+  do i=1,kmaxe
+    u_c_val(ind1,:,i)=zero;u_c_rms(:,i)=zero
+    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
+    u_ct_val(ind1,:,i)=zero
+
+
+    end if
+
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+  end if
+
+else
+if (t.gt.0.0)then
+#ifdef gpu
+!$omp target teams distribute parallel do &
+!$omp& private(nvar)
+#else
+!$omp  do
+#endif
+  do i=1,kmaxe
+    u_c_val(ind1,:,i)=(((tz1-dt)/(tz1))*u_c_val(ind1,:,i))+((dt*u_c_val(1,:,i))/tz1)
+      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+    do nvar=1,turbulenceequations+passivescalar
+
+    u_ct_val(ind1,nvar,i)=(((tz1-dt)/(tz1))*u_ct_val(ind1,nvar,i))+((dt*u_ct_val(1,nvar,i))/(tz1*u_c_val(ind1,1,i)))
+
+    end do
+    end if
+    !u,v,uv,ps
+    u_c_rms(1,i)=sqrt(abs(((u_c_rms(1,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,2,i)-u_c_val(ind1,2,i))**2)*dt/tz1)))/u_c_val(ind1,1,i)
+    u_c_rms(2,i)=sqrt(abs(((u_c_rms(2,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,3,i)-u_c_val(ind1,3,i))**2)*dt/tz1)))/u_c_val(ind1,1,i)
+
+
+    u_c_rms(3,i)=(((u_c_rms(4,i))*((tz1-dt)/(tz1)))+&
+((((u_c_val(1,2,i)-u_c_val(ind1,2,i))*(u_c_val(1,3,i)-u_c_val(ind1,3,i))))*dt/tz1))/u_c_val(ind1,1,i)
+
+    if ((passivescalar.gt.0))then
+    u_c_rms(4,i)=sqrt(abs(((u_c_rms(4,i)**2)*((tz1-dt)/(tz1)))+(((u_ct_val(1,turbulenceequations+1,i)&
+-u_ct_val(ind1,turbulenceequations+1,i))**2)*dt/tz1)))/u_c_val(ind1,1,i)
+    end if
+
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+  else
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp  do
+#endif
+  do i=1,kmaxe
+    u_c_val(ind1,:,i)=zero
+    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
+    u_ct_val(ind1,:,i)=zero
+
+
+    end if
+
+  end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+  end if
+ end if
+
+
+
+   if (outsurf.eq.1)then
+   call exchange_higher_av(n)
+   call average_stresses(n)
+   end if
+
+end subroutine averaging_t
 
 
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !---------------------------------------------------------------------------------------------!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! ! !!!!!!!!!!!!!!!!!!SUBROUTINE CALLED TO ADVANCE SOLUTION BY ONE TIME STEP SIZE!!!!!!!!!!!!!!!!!!
+! ! !!!!!!!!!!!!!!!!!!subroutine called to advance solution by one time step size!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE TIME_MARCHING(N)
+subroutine time_marching(n)
 !> @brief
-!> TIME MARCHING SUBROUTINE 3D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-real,dimension(1:5)::DUMMYOUT,DUMMYIN
-INTEGER::I,KMAXE,TTIME
+!> time marching subroutine 3d
+implicit none
+integer,intent(in)::n
+real,dimension(1:5)::dummyout,dummyin
+integer::i,kmaxe,ttime,kill_local
+logical::tgv_energy_prev_set
 real::dtiv
-REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK,TZX1,TZX2,resolx,totens,totens1,totens2,totensx,totensx1,totensx2
+real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv1,totv2,dumetg1,dumetg2,tzx1,tzx2,resolx,totens1,totens2,totensx1,totensx2
+#if defined(gpu) || defined(xpu)
+real::totk_reduce,totens_reduce,totensx_reduce
+#endif
       kill=0
-      T=RES_TIME
+      t=res_time
       resolx=0.01
       iscoun=1
-      kmaxe=XMPIELRANK(n)
-      EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
+      kmaxe=xmpielrank(n)
+      every_time=((idnint(t/output_freq)) * output_freq)+output_freq
 
-      TOTV1=0.0
+      totv1=0.0
+      tgv_energy_prev_set=.false.
 
-!$OMP BARRIER
-!$OMP MASTER 
-    IF (INITCOND.eq.95)THEN                    
-    CALL CHECKPOINTv3(N)
+
+
+#if defined(gpu) || defined(xpu)
+!$omp target update to(kill,iscoun)
+#endif
+
+!$omp barrier
+!$omp master
+    if (initcond.eq.95)then
+    call checkpointv3(n)
     end if
-	CPUT1=CPUX1(1)
-	CPUT4=CPUX1(1)
-	CPUT5=CPUX1(1)
-	CPUT8=CPUX1(1)
-!$OMP END MASTER 
-!$OMP BARRIER
-      
-	      			
-	IT=RESTART
-	if (dg.eq.1)call SOL_INTEG_DG_init(N)
-      
-!$OMP BARRIER
-!$OMP MASTER 
+	cput1=cpux1(1)
+	cput4=cpux1(1)
+	cput5=cpux1(1)
+	cput8=cpux1(1)
+!$omp end master
+!$omp barrier
+
+
+
+	it=restart
+	if (dg.eq.1)call sol_integ_dg_init(n)
+
+!$omp barrier
+!$omp master
       if (tecplot.lt.5)then
-        CALL GRID_WRITE
-        IF (outsurf.eq.1)THEN
-        CALL SURF_WRITE
-        END IF
+        call grid_write
+        if (outsurf.eq.1)then
+        call surf_write
+        end if
       end if
-      IF ((Average_restart.eq.0).and.(averaging.eq.1)) THEN
-				Tz1=0.0
-				ELSE
+      if ((average_restart.eq.0).and.(averaging.eq.1)) then
+				tz1=0.0d0
+				else
 				tz1=t
-		END IF
-      
-      
-!$OMP END MASTER 
-!$OMP BARRIER
-      
+		end if
 
 
-!$OMP BARRIER
-!$OMP MASTER
-	CALL VOLUME_SOLUTION_WRITE
-	IF (OUTSURF.EQ.1)THEN
-	CALL surface_SOLUTION_WRITE
-	END IF
-!$OMP END MASTER
-!$OMP BARRIER
-      
+!$omp end master
+!$omp barrier
+
+
+
+!$omp barrier
+!$omp master
+	call volume_solution_write
+	if (outsurf.eq.1)then
+	call surface_solution_write
+	end if
+!$omp end master
+!$omp barrier
+
 
 
 
       if ((it.eq.0).and.(initcond.eq.95))then
-        call EXCHANGE_HIGHER(N)
-        call ARBITRARY_ORDER(N)
-        call ENSTROPHY_CALC(N)
 
-        
+        call exchange_higher(n)
+
+        call arbitrary_order(n)
+
+#if defined(gpu) || defined(xpu)
+!$omp barrier
+!$omp master
+#endif
+
+        call enstrophy_calc(n)
+
+#if defined(gpu) || defined(xpu)
+!$omp end master
+!$omp barrier
+#endif
+
+
       end if
-      
-     DO 
-            
-		    CALL CALCULATE_CFL(N)
-		    
-		    IF (RUNGEKUTTA.GE.5)CALL CALCULATE_CFLL(N)
-		    
-		    
-		    IF (DG.EQ.1)THEN
-         DO I=1,KMAXE
-         ielem(n,i)%condition=0
-         IELEM(N,I)%TROUBLED=0
-         END DO
-     END IF
+
+     do
+
+		    call calculate_cfl(n)
+
+		    if (rungekutta.ge.5)call calculate_cfll(n)
+
+
+		    if (dg.eq.1)then
+#ifdef gpu
+!$omp target teams distribute parallel do
+#else
+!$omp  do
+#endif
+              do i=1,kmaxe
+              ielem_condition(i)=0
+              ielem_troubled(i)=0
+              end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+            end if
 
 
 
 
-		    !$OMP BARRIER
-			!$OMP MASTER
-			DUMMYOUT(1)=DT
-			CPUT2=MPI_WTIME()
-			TIMEC8=CPUT2-CPUT8
-			TIMEC1=CPUT2-CPUT1
-		        dummyout(2)=TIMEC1
-			DUMMYIN=0.0
+			!$omp barrier
+			!$omp master
+			dummyout(1)=dt
+			cput2=mpi_wtime()
+			timec8=cput2-cput8
+			timec1=cput2-cput1
+		        dummyout(2)=timec1
+			dummyin=0.0
 			timec3=cput2-cput4
-			dummyout(3)=TIMEC3
-			TIMEC4=CPUT2-CPUT5
-			dummyout(4)=TIMEC4
-			DUMMYOUT(5)=TIMEC8
-			
-			CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-			dtiv=DUMMYIN(1)
-			DT=DUMMYIN(1)
-			TIMEC1=DUMMYIN(2)
-			TIMEC3=DUMMYIN(3)
-			TIMEC4=DUMMYIN(4)
-			TIMEC8=DUMMYIN(5)
-				   IF (N.EQ.0)THEN
-				  OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-				  WRITE(63,*)DT,it,"TIME STEP SIZE",T
-				  CLOSE(63)
-				  END IF
-					
-					
-                              IF (INITCOND.eq.95)THEN
-                          TOTK=0;TOTENS=0;totensx=0.0d0
-                          DO I=1,xmpielrank(n)
+			dummyout(3)=timec3
+			timec4=cput2-cput5
+			dummyout(4)=timec4
+			dummyout(5)=timec8
 
-                              TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-          (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
+			call mpi_allreduce(dummyout,dummyin,5,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
+			dtiv=dummyin(1)
+			dt=dummyin(1)
+			timec1=dummyin(2)
+			timec3=dummyin(3)
+			timec4=dummyin(4)
+			timec8=dummyin(5)
+				!$omp end master
+				!$omp barrier
 
-                              if (BOUNDTYPE.eq.1)then
+                              if (initcond.eq.95)then
+#if defined(gpu) || defined(xpu)
+                          totk_reduce=0.0d0
+                          totens_reduce=0.0d0
+                          totensx_reduce=0.0d0
+!$omp target teams distribute parallel do &
+!$omp& reduction(+:totk_reduce,totens_reduce,totensx_reduce) &
+!$omp& map(alloc: ielem_totvolume, ielem_vortex, u_c_val, xmpielrank) &
+!$omp& firstprivate(boundtype)
+#else
+                          !$omp master
+                          totk=0.0d0
+                          totens=0.0d0
+                          totensx=0.0d0
+                          !$omp end master
+                          !$omp barrier
+                          !$omp do reduction(+:totk,totens,totensx)
+#endif
 
-                              TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-                              IELEM(N,I)%VORTEX(2))
+                          do i=1,xmpielrank(n)
+
+#if defined(gpu) || defined(xpu)
+                              totk_reduce=totk_reduce+ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+          (((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2)+((u_c_val(1,4,i)/u_c_val(1,1,i))**2))
+#else
+                              totk=totk+ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+          (((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2)+((u_c_val(1,4,i)/u_c_val(1,1,i))**2))
+#endif
+
+                              if (boundtype.eq.1)then
+
+#if defined(gpu) || defined(xpu)
+                              totens_reduce=totens_reduce+(ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+                              ielem_vortex(2,i))
+#else
+                              totens=totens+(ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+                              ielem_vortex(2,i))
+#endif
                               else
 
-                              TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
-                              TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
+#if defined(gpu) || defined(xpu)
+                              totens_reduce=totens_reduce+(ielem_vortex(2,i))
+                              totensx_reduce=totensx_reduce+(ielem_vortex(3,i))
+#else
+                              totens=totens+(ielem_vortex(2,i))
+                              totensx=totensx+(ielem_vortex(3,i))
+#endif
                               end if
 
-                          END DO
-          !
-                          DUMEtg1=TOTK
-                          DUMEtg2=0.0
-                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-                          TOTK=DUMEtg2
-                          DUMEtg1=TOTENS
-                          DUMEtg2=0.0
-                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-                          TOTENS=DUMEtg2
-                          DUMEtg1=TOTENSx
-                          DUMEtg2=0.0
-                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-                          TOTENSx=DUMEtg2
-                          IF (N.EQ.0)THEN
-                          TOTV1=TOTK/((2.0*PI)**3)
-                          TOTENS1=TOTENS/(((2.0*PI)**3))
-                          TOTENSx1=4.0*TOTENSx/(3.0*((2.0*PI)**3))
-                              IF (it.eq.0)THEN
-                              TAYLOR=TOTK
-                              TAYLOR_ENS=TOTENS
-                              TAYLOR_ENSx=TOTENSx
-                              END IF
+                          end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+                          totk=totk_reduce
+                          totens=totens_reduce
+                          totensx=totensx_reduce
+#else
+                          !$omp end do
+#endif
 
-
-
-                          END IF
-
-
-
-
- 				
-
-			    END IF
-			
-			
-			IF (rungekutta.GE.11)THEN
-			dt=timestep
-			IF (INITCOND.eq.95)THEN 
-			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-			ELSE
-			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-			END IF
-			else
-			IF (INITCOND.eq.95)THEN
-			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-			ELSE
-			DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-			END IF
-			end if
-
-
-			IF (DG.EQ.1)then
-			if (filtering.gt.0)then
-			call filter(n)
-			end if
-			end if
-			
-
-
-
-			!$OMP END MASTER 
-			!$OMP BARRIER	
-			
-			SELECT CASE(RUNGEKUTTA)
-			
-			CASE(1)
-			CALL RUNGE_KUTTA1(N)
-			
-			CASE(2)
-			CALL RUNGE_KUTTA2(N)
-			
-			CASE(3)
-			
-			IF (MOOD.EQ.1)THEN
-			CALL RUNGE_KUTTA3_MOOD(N)
-			ELSE
-			CALL RUNGE_KUTTA3(N)
-			END IF
-			
-			CASE(4)
-			CALL RUNGE_KUTTA4(N)
-			
-			CASE(5)
-			CALL RUNGE_KUTTA5(N)
-			
-			case(10)
-			CALL IMPLICIT_TIMEs(N)
-			
-			
-			case(11)
-			CALL dual_TIME(N)
-			
-			
-			case(12)
-			CALL dual_TIME_EX(N)
-			
-			
-			END SELECT
-			
-			
-			if (dg.eq.1)call SOL_INTEG_DG(N)
-
-			
-			!$OMP BARRIER
-			!$OMP MASTER
-			
-			IF (rungekutta.GE.11)THEN
- 			 T=T+(DT)
- 			  Tz1=Tz1+(DT)
-
-			ELSE
-                       T=T+DT
-			tz1=tz1+DT
-			  END IF
-			  
-			
-				IF (DG.EQ.1)THEN
-          IF (CODE_PROFILE.ne.102)THEN
-          IF ( mod(it, 100) .eq. 0) THEN
-            CALL TROUBLED_HISTORY
-          END IF
-          end if
-          IF ( filtering .eq. 1) THEN
-            CALL FILTERED_HISTORY
-          END IF
-          end if
-
-        !  IF ( mod(it, 100) .eq. 0) THEN
-        !    CALL REDUCED_HISTORY
-        !  END IF
-
-
-
-
-			
-			
-			IF (INITCOND.eq.95)THEN                    
- 				TOTK=0; TOTENS=0.0; totensx=0.0d0
- 				DO I=1,xmpielrank(n)
- 				
-                   
-                    TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-(((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
-                    
-
-
-
-
-
-                              if (BOUNDTYPE.eq.1)then
-
-                              TOTENS=TOTENS+(IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
-                              IELEM(N,I)%VORTEX(2))
-                              else
-
-                              TOTENS=TOTENS+(IELEM(N,I)%VORTEX(2))
-                               TOTENSx=TOTENSx+(IELEM(N,I)%VORTEX(3))
-                              end if
-
-
-
-
-
-				END DO
-! 				
- 				DUMEtg1=TOTK
- 				DUMEtg2=0.0
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
- 				TOTK=DUMEtg2
-
- 				DUMEtg1=TOTENS
- 				DUMEtg2=0.0
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
- 				TOTENS=DUMEtg2
-
-
-
- 				DUMEtg1=TOTENSx
- 				DUMEtg2=0.0
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
- 				TOTENSx=DUMEtg2
-
- 				IF (N.EQ.0)THEN
-                          TOTV2=TOTK/((2.0*PI)**3)
-                          TOTENS2=TOTENS/(Reynolds*((2.0*PI)**3))
-                          TOTENSx2=4.0*TOTENSx/(3.0*Reynolds*((2.0*PI)**3))
-                              IF (it.eq.0)THEN
-                              TAYLOR=TOTK
-                              TAYLOR_ENS=TOTENS
-                              TAYLOR_ENSx=TOTENSx
-                              END IF
-
-                          IF (IT.EQ.0)THEN
-                          OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-                          ELSE
-                          OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-                          END IF
-                          IF (DG.EQ.1)THEN
-                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT
-                          ELSE
-                          if (boundtype.eq.1)then
-                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTK/TAYLOR,-(TOTV2-TOTV1)/DT,TOTENS/TAYLOR_ENS
-                          else
-                          WRITE(73,'(E14.7,1X,E14.7,1X,E14.7,1X,E14.7,1X,E14.7)')T,TOTv2,-(TOTV2-TOTV1)/DT,TOTENS2,TOTENSx2
+                         !$omp barrier
+                          !$omp master
+                          dumetg1=totk
+                          dumetg2=0.0
+                          call mpi_barrier(mpi_comm_world,ierror)
+                          call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+                          totk=dumetg2
+                          dumetg1=totens
+                          dumetg2=0.0
+                          call mpi_barrier(mpi_comm_world,ierror)
+                          call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+                          totens=dumetg2
+                          dumetg1=totensx
+                          dumetg2=0.0
+                          call mpi_barrier(mpi_comm_world,ierror)
+                          call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+                          totensx=dumetg2
+                          if (n.eq.0)then
+                          if (.not.tgv_energy_prev_set)then
+                          totv1=totk/((2.0*pi)**3)
+                          tgv_energy_prev_set=.true.
                           end if
-                          END IF
-                          CLOSE(73)
-				END IF
- 				
- 				
- 				CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
- 				
-
- 				IF (ADDA.EQ.1)THEN
-                          TOTK=0
-                          DO I=1,xmpielrank(n)
-
-                              TOTK=TOTK+IELEM(N,I)%ER
-
-
-                          END DO
-                          DUMEtg1=TOTK
-                          DUMEtg2=0.0
-                          CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-                          CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+                          totens1=totens/(((2.0*pi)**3))
+                          totensx1=totensx/(((2.0*pi)**3))
+                              if (it.eq.0)then
+                              taylor=totk
+                              taylor_ens=totens
+                              taylor_ensx=totensx
+                              end if
 
 
 
-                        IF (N.EQ.0)THEN
-                        TOTK=DUMEtg2/IMAXE
-                                          IF (IT.EQ.0)THEN
-                                OPEN(123,FILE='ER.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-                                ELSE
-                                OPEN(123,FILE='ER.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-                                END IF
-                                WRITE(123,*)T,TOTK
-                                CLOSE(123)
+                          end if
+                        !$omp end master
+			!$omp barrier
 
+
+
+
+
+			    end if
+               !$omp barrier
+			!$omp master
+			if (rungekutta.ge.11)then
+			dt=timestep
+			if (initcond.eq.95)then
+			dt=min(dt,out_time-t,every_time-t)
+			else
+			dt=min(dt,out_time-t,every_time-t)
+			end if
+			else
+			if (initcond.eq.95)then
+			dt=min(dt,out_time-t,every_time-t)
+			else
+			dt=min(dt,out_time-t,every_time-t)
+			end if
+			end if
+
+#if defined(gpu) || defined(xpu)
+!$omp target update to(dt)
+#endif
+				  if (n.eq.0)then
+				  open(63,file='history.txt',form='formatted',status='unknown',action='write',position='append')
+				  write(63,'(A,I10,A,ES20.10,A,ES20.10,A,ES20.10)') 'time_step it=', it, ' dt_cfl=', dtiv, ' dt_used=', dt, ' t=', t
+				  flush(63)
+				  close(63)
+				  end if
+				if (dg.eq.1)then
+			if (filtering.gt.0)then
+			call apply_filter_dg(n)
+			end if
+			end if
+
+
+
+			!$omp end master
+			!$omp barrier
+			select case(rungekutta)
+
+			case(1)
+			call runge_kutta1(n)
+
+			case(2)
+			call runge_kutta2(n)
+
+			case(3)
+
+			if (mood.eq.1)then
+			call runge_kutta3_mood(n)
+			else
+			call runge_kutta3(n)
+			end if
+
+			case(4)
+			call runge_kutta4(n)
+
+			case(5)
+			call runge_kutta5(n)
+
+			case(10)
+			call implicit_times(n)
+
+
+			case(11)
+			call dual_time(n)
+
+
+			case(12)
+			call dual_time_ex(n)
+
+
+			end select
+
+
+			if (dg.eq.1)call sol_integ_dg(n)
+            if (realgas.eq.1) call normalise_species(n)
+			!$omp barrier
+			!$omp master
+
+
+			if (rungekutta.ge.11)then
+			 t=t+(dt)
+			  tz1=tz1+(dt)
+
+				else
+	                       t=t+dt
+				tz1=tz1+dt
+				  end if
+				if ((mach_outlet_target.gt.0.0d0).and.(mach_outlet_update_freq.gt.0))then
+				  if (mod(it,mach_outlet_update_freq).eq.0) call update_outlet_mach_controller(n)
+				end if
+				 !$omp end master
+				!$omp barrier
+
+#if defined(gpu) || defined(xpu)
+!$omp target update to(tz1,t)
+#endif
+
+
+			!$omp barrier
+
+				if (dg.eq.1)then
+                      if (code_profile.ne.102)then
+                          if ( mod(it, 100) .eq. 0) then
+                            call troubled_history
+                          end if
+                      end if
+                      if ( filtering .eq. 1) then
+                        if ( mod(it, 100) .eq. 0) then
+                          call filtered_history
+                        end if
+                      end if
+                end if
+
+          if ( mod(it, 100) .eq. 0) then
+            call reduced_history
+          end if
+
+
+			!$omp barrier
+
+
+			if (initcond.eq.95)then
+
+			    call exchange_higher(n)
+			    call arbitrary_order(n)
+
+#if defined(gpu) || defined(xpu)
+!$omp barrier
+!$omp master
+#endif
+			    call enstrophy_calc(n)
+#if defined(gpu) || defined(xpu)
+!$omp end master
+!$omp barrier
+#endif
+
+#if defined(gpu) || defined(xpu)
+                          totk_reduce=0.0d0
+                          totens_reduce=0.0d0
+                          totensx_reduce=0.0d0
+!$omp target teams distribute parallel do &
+!$omp& reduction(+:totk_reduce,totens_reduce,totensx_reduce) &
+!$omp& map(alloc: ielem_totvolume, ielem_vortex, u_c_val, xmpielrank) &
+!$omp& firstprivate(boundtype)
+#else
+                          !$omp master
+                          totk=0.0d0
+                          totens=0.0d0
+                          totensx=0.0d0
+                          !$omp end master
+                          !$omp barrier
+                          !$omp  do reduction(+:totk,totens,totensx)
+#endif
+				do i=1,xmpielrank(n)
+
+
+#if defined(gpu) || defined(xpu)
+                    totk_reduce=totk_reduce+ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+(((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2)+((u_c_val(1,4,i)/u_c_val(1,1,i))**2))
+#else
+                    totk=totk+ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+(((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2)+((u_c_val(1,4,i)/u_c_val(1,1,i))**2))
+#endif
+
+
+
+
+
+
+                              if (boundtype.eq.1)then
+
+#if defined(gpu) || defined(xpu)
+                              totens_reduce=totens_reduce+(ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+                              ielem_vortex(2,i))
+#else
+                              totens=totens+(ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+                              ielem_vortex(2,i))
+#endif
+                              else
+
+#if defined(gpu) || defined(xpu)
+                              totens_reduce=totens_reduce+(ielem_vortex(2,i))
+                               totensx_reduce=totensx_reduce+(ielem_vortex(3,i))
+#else
+                              totens=totens+(ielem_vortex(2,i))
+                               totensx=totensx+(ielem_vortex(3,i))
+#endif
+                              end if
+
+
+
+
+
+				end do
+#if defined(gpu) || defined(xpu)
+!$omp end target teams distribute parallel do
+                          totk=totk_reduce
+                          totens=totens_reduce
+                          totensx=totensx_reduce
+#else
+                          !$omp end do
+#endif
+
+             !$omp barrier
+			!$omp master
+				dumetg1=totk
+				dumetg2=0.0
+				call mpi_barrier(mpi_comm_world,ierror)
+				call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+				totk=dumetg2
+
+				dumetg1=totens
+				dumetg2=0.0
+				call mpi_barrier(mpi_comm_world,ierror)
+				call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+				totens=dumetg2
+
+
+
+				dumetg1=totensx
+				dumetg2=0.0
+				call mpi_barrier(mpi_comm_world,ierror)
+				call mpi_allreduce(dumetg1,dumetg2,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+				totensx=dumetg2
+
+				if (n.eq.0)then
+                          totv2=totk/((2.0*pi)**3)
+                          totens2=totens/(((2.0*pi)**3))
+                          totensx2=totensx/(((2.0*pi)**3))
+                              if (it.eq.0)then
+                              taylor=totk
+                              taylor_ens=totens
+                              taylor_ensx=totensx
+                              end if
+
+                            if (it.eq.0)then
+                            open(73,file='energy.dat',form='formatted',status='new',action='write',position='append')
+                            else
+                            open(73,file='energy.dat',form='formatted',status='old',action='write',position='append')
+                            end if
+                            if (dg.eq.1)then
+                            write(73,'(e14.7,1x,e14.7,1x,e14.7)')t,totk/taylor,-(totv2-totv1)/dt
+                            else
+                              if (boundtype.eq.1)then
+                              write(73,'(e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,totk/taylor,-(totv2-totv1)/dt,totens/taylor_ens
+                              else
+                              write(73,'(e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,totv2,-(totv2-totv1)/dt,totens2,totensx2
+                              end if
+                            end if
+                          close(73)
+                          totv1=totv2
+                          tgv_energy_prev_set=.true.
+				end if
+
+
+
+			call mpi_barrier(mpi_comm_world,ierror)
+			!$omp end master
+			!$omp barrier
+
+
+          if (adda.eq.1) then
+
+          totk = 0.0d0
+
+#if defined(gpu) || defined(xpu)
+        totk_reduce = 0.0d0
+!$omp target teams distribute parallel do &
+!$omp& reduction(+:totk_reduce) &
+!$omp& map(alloc: ielem_er, xmpielrank) &
+!$omp& firstprivate(n)
+          do i = 1, xmpielrank(n)
+              totk_reduce = totk_reduce + ielem_er(i)
+          end do
+!$omp end target teams distribute parallel do
+        totk = totk_reduce
+#else
+        !$omp do reduction(+:totk)
+          do i = 1, xmpielrank(n)
+              totk = totk + ielem_er(i)
+          end do
+        !$omp end do
+#endif
+
+         !$omp barrier
+		!$omp master
+          dumetg1 = totk
+          dumetg2 = 0.0d0
+          call mpi_allreduce(dumetg1, dumetg2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
+
+          if (n.eq.0) then
+              totk = dumetg2 / imaxe
+
+              if (it.eq.0) then
+                open(123,file='er.dat',form='formatted',status='new',action='write',position='append')
+              else
+                open(123,file='er.dat',form='formatted',status='old',action='write',position='append')
+              end if
+
+              write(123,*) t, totk
+              close(123)
+          end if
+	!$omp end master
+			!$omp barrier
+
+        end if
+
+
+
+
+! 				end if
+			    end if
+
+
+
+
+	!$omp barrier
+			!$omp master
+			    if ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411).or.(initcond.eq.157))then
+			    if ( mod(it, 100) .eq. 0)then
+#if defined(gpu) || defined(xpu)
+!$omp target update from(u_c_val)
+#endif
+                                 call trajectories
+			    end if
+			    end if
+
+
+
+			!$omp end master
+			!$omp barrier
+
+
+
+
+			if ( mod(it, iforce) .eq. 0) then
+			if (outsurf.eq.1) then
+
+				  call forces
+			end if
+			end if
+
+
+
+			if ((rungekutta.ge.5).and.(rungekutta.lt.11))then
+			if ( mod(it, residualfreq) .eq. 0) then
+
+                               call residual_compute
+                               call update_cfl_ramp(n)
+			end if
+			end if
+
+
+
+
+
+			!$omp master
+			if (nprobes.gt.0) then
+			if ( mod(it, 100) .eq. 0) then
+#if defined(gpu) || defined(xpu)
+
+
+!$omp target update from(u_c_val)
+#endif
+			call probing
+
+			end if
+			end if
+
+
+
+			if (timec1.ge.ievery)then
+
+			    call volume_solution_write
+			     if (outsurf.eq.1)then
+
+			    call surface_solution_write
+			    end if
+			cput1=mpi_wtime()
+			end if
+
+
+
+
+
+			if (initcond.eq.95)then
+                  if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
+
+                      call volume_solution_write
+                      if (outsurf.eq.1)then
+                      call surface_solution_write
+                      end if
+                      if (initcond.eq.95)then
+                      call checkpointv4(n)
+                      end if
+                  every_time=every_time+output_freq
+                  end if
+
+            else
+
+
+                  if ((code_profile.lt.0).or.(code_profile.eq.100).or.(code_profile.eq.101).or.(code_profile.eq.102))then
+                        if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
+                            call volume_solution_write
+                            if (outsurf.eq.1)then
+                            call surface_solution_write
+                            end if
+                        every_time=every_time+output_freq
+                        end if
+                  end if
+
+            end if
+
+
+
+
+
+
+                if (timec8.ge.ieveryav)then
+                      if (averaging.eq.1)then
+                      call volume_solution_write_av
+                        if (outsurf.eq.1)then
+                        call surface_solution_write_av
+                        end if
+                      end if
+                cput8=mpi_wtime()
+                end if
+
+
+
+                  if (timec4.ge.ievery2)then
+                      call checkpointing
+                        if (averaging.eq.1)then
+                      call checkpointing_av
                         end if
 
+                    cput5=mpi_wtime()
+
+                  end if
+
+
+			!$omp end master
+			!$omp barrier
+
+
+            !$omp barrier
+			!$omp master
+
+			it=it+1
+
+			if ((it.eq.ntmax).or.(timec3.ge.wallc).or.(dtiv.gt.out_time))then
+			 kill=1
+			end if
+
+			if ((rungekutta.lt.5).or.(rungekutta.ge.11))then
+			if ((t.ge.out_time).or.(dtiv.gt.out_time))then
+			kill=1
+			end if
+			end if
+			kill_local=kill
+			call mpi_allreduce(kill_local,kill,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
+#if defined(gpu) || defined(xpu)
+!$omp target update to(kill)
+#endif
+
+			!$omp end master
+			!$omp barrier
 
 
 
 
 
+			!$omp master
+			if (kill.eq.1)then
 
-                   END IF
+			    call volume_solution_write
+			      if (outsurf.eq.1)then
+			      call surface_solution_write
+			      end if
+			    call checkpointing
+			      if (averaging.eq.1)then
+			      call volume_solution_write_av
+				if (outsurf.eq.1)then
+				  call surface_solution_write_av
+				end if
+				call checkpointing_av
+			      end if
+			end if
 
+			!$omp end master
+			!$omp barrier
 
+			if (kill.eq.1)then
+			if (itestcase.le.3)then
 
-                  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+			call calculate_error(n)
+			end if
 
-
-
-
-! 				END IF
-			    END IF
-           
- 			    IF ((initcond.eq.405).or.(initcond.eq.422).or.(initcond.eq.411).or.(initcond.eq.157))THEN
-! 			    IF ( mod(it, 1) .eq. 0)THEN
-                                 CALL TRAJECTORIES
-! 			    END IF
- 			    END IF
-			
-			
-			
-			!$OMP END MASTER 
-			!$OMP BARRIER
-			
-			IF ( mod(it, IForce) .eq. 0) THEN
-			IF (OUTSURF.EQ.1) THEN   
-			
-				  CALL forces
-			END IF
-			END IF
-			
-			IF ((rungekutta.ge.5).and.(rungekutta.lt.11))THEN
-			IF ( mod(it, residualfreq) .eq. 0) THEN
-			
-                               CALL RESIDUAL_COMPUTE
-			END IF
-			END IF
-			
-			
-			
-		
-			
-			
-			
-			!$OMP MASTER
-			IF (NPROBES.GT.0) CALL PROBING
-					
-			
-			IF (TIMEC1.GE.IEVERY)THEN
-			
-			    CALL VOLUME_SOLUTION_WRITE
-			     IF (outsurf.eq.1)THEN
-			    CALL surface_SOLUTION_WRITE
-			    END IF
-			CPUT1=MPI_WTIME()
-			END IF
-			
-			IF (INITCOND.eq.95)THEN           
-			if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
-			
-                CALL VOLUME_SOLUTION_WRITE
-			     if (outsurf.eq.1)then
-			    call surface_SOLUTION_WRITE
-			    end if
-			    IF (INITCOND.eq.95)THEN                    
-			    CALL CHECKPOINTv4(N)
-			    END IF
-			EVERY_TIME=EVERY_TIME+output_freq
-            END IF
-
-            ELSE
-
-
-            IF (CODE_PROFILE.EQ.-1)THEN
-			if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
-
-                CALL VOLUME_SOLUTION_WRITE
-			     if (outsurf.eq.1)then
-			    call surface_SOLUTION_WRITE
-			    end if
-			EVERY_TIME=EVERY_TIME+output_freq
-            END IF
-            END IF
-
-            END IF
-			
-			
-			
-			
-			IF (TIMEC8.GE.IEVERYAV)THEN
-			IF (AVERAGING.EQ.1)THEN
-			CALL VOLUME_SOLUTION_WRITE_av
-			   IF (outsurf.eq.1)THEN
-			  CALL surface_SOLUTION_WRITE_av
-			  END IF
-			END IF
-			CPUT8=MPI_WTIME()
-			END IF
-			
-			
-			
-			IF (TIMEC4.GE.IEVERY2)THEN
-			    CALL CHECKPOINTING
-			      IF (AVERAGING.EQ.1)THEN
-				CALL CHECKPOINTING_av
-			      END IF
-	
-			  CPUT5=MPI_WTIME()
-			  
-			END IF
-			  
-			
-			!$OMP END MASTER 
-			!$OMP BARRIER
-			
-			
-			
-			!$OMP MASTER
-			IT=IT+1
-			
-			IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC).OR.(DTiv.GT.OUT_TIME))THEN
-			 KILL=1
-			END IF
-			
-			IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
-			IF ((T.GE.OUT_TIME).OR.(DTiv.GT.OUT_TIME))THEN
-			KILL=1
-			END IF
-			END IF
-			!$OMP END MASTER 
-			!$OMP BARRIER
-           
-            
-            
-            
-			  
-			!$OMP MASTER
-			IF (kill.eq.1)THEN
-			
-			    CALL VOLUME_SOLUTION_WRITE
-			      IF (outsurf.eq.1)THEN
-			      CALL surface_SOLUTION_WRITE
-			      END IF
-			    CALL CHECKPOINTING
-			      IF (AVERAGING.EQ.1)THEN
-			      CALL VOLUME_SOLUTION_WRITE_av
-				IF (outsurf.eq.1)THEN
-				  CALL surface_SOLUTION_WRITE_av
-				END IF	    
-				CALL CHECKPOINTING_av
-			      END IF
-			END IF
-			
-			!$OMP END MASTER
-			!$OMP BARRIER
-			
-			IF (kill.eq.1)THEN
-			IF (itestcase.le.3)THEN  
-			
-			CALL CALCULATE_ERROR(n)
-			END IF			  
-			  
 			return
-			END IF
-END do
-		      
-END SUBROUTINE TIME_MARCHING
+			end if
 
 
 
-SUBROUTINE TIME_MARCHING2(N)
+end do
+
+end subroutine time_marching
+
+
+
+subroutine time_marching2(n)
 !> @brief
-!> TIME MARCHING SUBROUTINE 2D
-IMPLICIT NONE
-INTEGER,INTENT(IN)::N
-real,dimension(1:5)::DUMMYOUT,DUMMYIN
-INTEGER::I,KMAXE
-REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV1,TOTV2,DUMEtg1,DUMEtg2,TOTK
+!> time marching subroutine 2d
+implicit none
+integer,intent(in)::n
+real,dimension(1:5)::dummyout,dummyin
+integer::i,kmaxe,kill_local
+real::cput1,cput2,cput3,cput4,cput5,cput6,cput8,timec3,timec1,timec4,timec8,totv1,totv2,dumetg1,dumetg2
 real::dtiv,flort
-kmaxe=XMPIELRANK(n)
+kmaxe=xmpielrank(n)
 kill=0
-T=res_time
+t=res_time
 iscoun=1
 
-EVERY_TIME=((IDNINT(T/output_freq)) * output_freq)+output_freq
+every_time=((idnint(t/output_freq)) * output_freq)+output_freq
 
 
+#if defined(gpu) || defined(xpu)
+!$omp target update to(kill,iscoun)
+#endif
+
+!$omp master
+cput1=cpux1(1)
+cput4=cpux1(1)
+cput5=cpux1(1)
+cput8=cpux1(1)
+!$omp end master
+!$omp barrier
 
 
-!$OMP MASTER
-CPUT1=CPUX1(1)
-CPUT4=CPUX1(1)
-CPUT5=CPUX1(1)
-CPUT8=CPUX1(1)
-!$OMP END MASTER
-!$OMP BARRIER
-
-
-IT=RESTART
-if (dg.eq.1)call SOL_INTEG_DG_init(N)
-!$OMP BARRIER
-!$OMP MASTER
+it=restart
+if (dg.eq.1)call sol_integ_dg_init(n)
+!$omp barrier
+!$omp master
 if (tecplot.lt.5)then
-  CALL GRID_WRITE
+  call grid_write
 end if
 
 
-CALL VOLUME_SOLUTION_WRITE
-IF (outsurf.eq.1)THEN
-    CALL SURF_WRITE
-END IF
+call volume_solution_write
+if (outsurf.eq.1)then
+    call surf_write
+end if
 
-IF ((Average_restart.eq.0).and.(averaging.eq.1)) THEN
-    Tz1=0.0
-ELSE
+if ((average_restart.eq.0).and.(averaging.eq.1)) then
+    tz1=0.0
+else
     tz1=t
-END IF
-!$OMP END MASTER
-!$OMP BARRIER
-
-DO
-    CALL CALCULATE_CFL2D(N)
-    IF (RUNGEKUTTA.GE.5) CALL CALCULATE_CFLL2d(N)
-
-    IF (DG.EQ.1)THEN
-        DO I=1,KMAXE
-        ielem(n,i)%condition=0
-        IELEM(N,I)%TROUBLED=0
-        END DO
-    END IF
-
-
-    !$OMP MASTER
-    DUMMYOUT(1)=DT
-    CPUT2=MPI_WTIME()
-    TIMEC8=CPUT2-CPUT8
-    TIMEC1=CPUT2-CPUT1
-    DUMMYOUT(2)=TIMEC1
-    DUMMYIN=0.0d0
-    TIMEC3=CPUT2-CPUT4
-    DUMMYOUT(3)=TIMEC3
-    TIMEC4=CPUT2-CPUT5
-    DUMMYOUT(4)=TIMEC4
-    DUMMYOUT(5)=TIMEC8
-
-    CALL MPI_ALLREDUCE(DUMMYOUT,DUMMYIN,5,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,IERROR)
-    DTIV=DUMMYIN(1)
-    DT=DUMMYIN(1)
-    TIMEC1=DUMMYIN(2)
-    TIMEC3=DUMMYIN(3)
-    TIMEC4=DUMMYIN(4)
-    TIMEC8=DUMMYIN(5)
-    IF (N.EQ.0)THEN
-        OPEN(63,FILE='history.txt',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-        WRITE(63,*)DT,it,"TIME STEP SIZE",T
-        CLOSE(63)
-    END IF
+end if
+!$omp end master
+!$omp barrier
 
 
 
-    IF (INITCOND.eq.95)THEN
-        TOTK=0
-        DO I=1,KMAXE
-            TOTK=TOTK+IELEM(N,I)%TOTVOLUME*(1.0/2.0)*&
-                (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2))
-        END DO
-!
-        DUMEtg1=TOTK
-        DUMEtg2=0.0
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-        CALL MPI_ALLREDUCE(DUMEtg1,DUMEtg2,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
-        TOTK=DUMEtg2
-        IF (N.EQ.0)THEN
-!  				TOTV2=TOTK/((2.0*PI)**3)
-! 					IF (it.eq.0)THEN
-! 					TAYLOR=TOTK
-! 					END IF
-            IF (IT.EQ.0)THEN
-                OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='NEW',ACTION='WRITE',POSITION='APPEND')
-            ELSE
-                OPEN(73,FILE='ENERGY.dat',FORM='FORMATTED',STATUS='old',ACTION='WRITE',POSITION='APPEND')
-            END IF
-            WRITE(73,*)T,TOTK
-            CLOSE(73)
-        END IF
+if (initcond.gt.100000)then
+it=100000
+call exchange_higher(n)
+call arbitrary_order(n)
+call writesols(n)
+call volume_solution_write
 
-        CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
-    END IF
 
-     IF ((MULTISPECIES.EQ.1))THEN
-         IF((initcond.eq.405).or.(initcond.eq.411))THEN
-            ! IF ( mod(it, 20) .eq. 0)THEN
-                 CALL TRAJECTORIES
-            ! END IF
-         END IF
-     END IF
+else
 
-    IF (rungekutta.GE.11)THEN
+
+
+
+do
+
+
+
+
+    call calculate_cfl2d(n)
+
+    if (rungekutta.ge.5) call calculate_cfll2d(n)
+
+    if (dg.eq.1)then
+        do i=1,kmaxe
+        ielem_condition(i)=0
+        ielem_troubled(i)=0
+        end do
+    end if
+
+
+
+
+    !$omp master
+    dummyout(1)=dt
+    cput2=mpi_wtime()
+    timec8=cput2-cput8
+    timec1=cput2-cput1
+    dummyout(2)=timec1
+    dummyin=0.0d0
+    timec3=cput2-cput4
+    dummyout(3)=timec3
+    timec4=cput2-cput5
+    dummyout(4)=timec4
+    dummyout(5)=timec8
+
+    call mpi_allreduce(dummyout,dummyin,5,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
+    dtiv=dummyin(1)
+    dt=dummyin(1)
+    timec1=dummyin(2)
+    timec3=dummyin(3)
+    timec4=dummyin(4)
+    timec8=dummyin(5)
+                  if ( mod(it, 10) .eq. 0) then
+				   if (n.eq.0)then
+				  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
+				 write(63,'(A,I10,A,ES20.10,A,ES20.10)') 'it=', it, ' dt=', dt, ' t=', t
+				  close(63)
+				  end if
+				  end if
+
+
+
+
+     if ((multispecies.eq.1))then
+         if((initcond.eq.405).or.(initcond.eq.411))then
+#if defined(gpu) || defined(xpu)
+!$omp target update from(u_c_val)
+#endif
+                 call trajectories
+            ! end if
+         end if
+     end if
+
+    if (rungekutta.ge.11)then
         dt=timestep
-        DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-    ELSE
-        DT=MIN(DT,OUT_TIME-T,EVERY_TIME-T)
-    END IF
+        dt=min(dt,out_time-t,every_time-t)
+    else
+        dt=min(dt,out_time-t,every_time-t)
+    end if
 
 
-    !$OMP END MASTER
-    !$OMP BARRIER
+    !$omp end master
+    !$omp barrier
 
-                SELECT CASE(RUNGEKUTTA)
+#if defined(gpu) || defined(xpu)
+!$omp target update to(dt)
+#endif
 
-                    CASE(1)
-                        CALL RUNGE_KUTTA1_2d(N)
+                select case(rungekutta)
 
-                    CASE(2)
-                        CALL RUNGE_KUTTA2_2d(N)
+                    case(1)
+                        call runge_kutta1_2d(n)
 
-                    CASE(3)
-                        IF (MOOD.EQ.1)THEN
-                            CALL RUNGE_KUTTA3_2D_MOOD(N)
-                        ELSE
-                            CALL RUNGE_KUTTA3_2D(N)
-                        END IF
+                    case(2)
+                        call runge_kutta2_2d(n)
 
-                    CASE(4)
-                        CALL RUNGE_KUTTA4_2D(N)
+                    case(3)
+                        if (mood.eq.1)then
+                            call runge_kutta3_2d_mood(n)
+                        else
+                            call runge_kutta3_2d(n)
+                        end if
 
-                    CASE(5)
-                        CALL RUNGE_KUTTA5_2D(N)
+                    case(4)
+                        call runge_kutta4_2d(n)
 
-                    CASE(10)
-                        CALL IMPLICIT_TIMEs_2d(N)
+                    case(5)
+                        call runge_kutta5_2d(n)
 
-                    CASE(11)
-                        CALL dual_TIME_2d(N)
+                    case(10)
+                        call implicit_times_2d(n)
 
-                    CASE(12)
-                        CALL dual_TIME_EX_2D(N)
+                    case(11)
+                        call dual_time_2d(n)
 
-                END SELECT
+                    case(12)
+                        call dual_time_ex_2d(n)
 
-          if (dg.eq.1)call SOL_INTEG_DG(N)
+                end select
 
+          if (dg.eq.1)call sol_integ_dg(n)
 
-
-! Increment time
-    !$OMP BARRIER
-    !$OMP MASTER
-    IF (rungekutta.GE.11)THEN
-        T=T+(DT)
-        Tz1=Tz1+(DT)
-    ELSE
-        T=T+DT
-        tz1=tz1+DT
-    END IF
+	          ! Real-gas sources are handled by the residual assembly for all
+	          ! temporal schemes; avoid a separate in-place source update here.
 
 
-          IF (DG.EQ.1)THEN
-          IF (CODE_PROFILE.ne.102)THEN
-          IF ( mod(it, 100) .eq. 0) THEN
-            CALL TROUBLED_HISTORY
-          END IF
+           if (realgas.eq.1) then
+!            call diagnose_species_before_norm(IT)
+           call normalise_species(n)
+           end if
+
+
+! increment time
+    !$omp barrier
+    !$omp master
+    if (rungekutta.ge.11)then
+        t=t+(dt)
+        tz1=tz1+(dt)
+	    else
+	        t=t+dt
+	        tz1=tz1+dt
+
+	end if
+	    if ((mach_outlet_target.gt.0.0d0).and.(mach_outlet_update_freq.gt.0))then
+	        if (mod(it,mach_outlet_update_freq).eq.0) call update_outlet_mach_controller(n)
+	    end if
+
+
+	      !$omp end master
+    !$omp barrier
+
+#if defined(gpu) || defined(xpu)
+!$omp target update to(tz1,t)
+#endif
+
+
+          !$omp barrier
+          if (dg.eq.1)then
+          if (code_profile.ne.102)then
+          if ( mod(it, 100) .eq. 0) then
+            call troubled_history
           end if
-          END IF
-
-
-          IF (mood.gt.0)THEN
-          CALL TROUBLED_HISTORY
+          end if
           end if
 
+           if ( mod(it, 20) .eq. 0) then
+            call reduced_history
+          end if
+
+          if (mood.gt.0)then
+          call troubled_history
+          end if
+
+        !$omp barrier
 
 
-
-! Write output
-
-    !$OMP END MASTER
-    !$OMP BARRIER
-    IF ( mod(it, IForce) .eq. 0) THEN
-        IF (OUTSURF.EQ.1) THEN
-
-            CALL forces
-        END IF
-    END IF
-
-    IF ((rungekutta.ge.5).and.(rungekutta.lt.11))THEN
-        IF ( mod(it, residualfreq) .eq. 0) THEN
-
-            CALL RESIDUAL_COMPUTE
-        END IF
-    END IF
+! write output
 
 
-    !$OMP MASTER
-    IF (NPROBES.GT.0) CALL PROBING2D
+    if ( mod(it, iforce) .eq. 0) then
+        if (outsurf.eq.1) then
 
-    IF (TIMEC1.GE.IEVERY)THEN
+            call forces
+        end if
+    end if
+
+    if ((rungekutta.ge.5).and.(rungekutta.lt.11))then
+        if ( mod(it, residualfreq) .eq. 0) then
+
+            call residual_compute
+            call update_cfl_ramp(n)
+        end if
+    end if
+
+
+    !$omp master
+    if (nprobes.gt.0) call probing2d
+
+    if (timec1.ge.ievery)then
 !
-        CALL VOLUME_SOLUTION_WRITE
-        IF (outsurf.eq.1)THEN
-            CALL surface_SOLUTION_WRITE
-        END IF
-    CPUT1=MPI_WTIME()
-    END IF
+        call volume_solution_write
+        if (outsurf.eq.1)then
+            call surface_solution_write
+        end if
+    cput1=mpi_wtime()
+    end if
 
 
-    IF (TIMEC8.GE.IEVERYAV)THEN
-        IF (AVERAGING.EQ.1)THEN
-            CALL VOLUME_SOLUTION_WRITE_av
-            IF (outsurf.eq.1)THEN
-                CALL surface_SOLUTION_WRITE_av
-            END IF
-        END IF
-        CPUT8=MPI_WTIME()
-    END IF
+    if (timec8.ge.ieveryav)then
+        if (averaging.eq.1)then
+            call volume_solution_write_av
+            if (outsurf.eq.1)then
+                call surface_solution_write_av
+            end if
+        end if
+        cput8=mpi_wtime()
+    end if
 
-            IF (CODE_PROFILE.EQ.-1)THEN
+           if ((code_profile.lt.0).or.(code_profile.eq.100).or.(code_profile.eq.101).or.(code_profile.eq.102))then
 
 
 
-			if (abs(T - ((IDNINT(T/output_freq)) * output_freq)).le.tolsmall) then
+			if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
 
-                CALL VOLUME_SOLUTION_WRITE
+                call volume_solution_write
 			     if (outsurf.eq.1)then
-			    call surface_SOLUTION_WRITE
+			    call surface_solution_write
 			    end if
-			EVERY_TIME=EVERY_TIME+output_freq
-            END IF
-            END IF
+			every_time=every_time+output_freq
+            end if
+            end if
+
+        if (timec4.ge.ievery2)then
+			    call checkpointing
+			      if (averaging.eq.1)then
+				call checkpointing_av
+			      end if
+
+			  cput5=mpi_wtime()
+
+			end if
+
+
+! check end condition
+
+    !$omp end master
+    !$omp barrier
 
 
 
+          !$omp master
+			it=it+1
 
-! Check end condition
+			if ((it.eq.ntmax).or.(timec3.ge.wallc).or.(dtiv.gt.out_time))then
+			 kill=1
+			end if
 
-    !$OMP END MASTER
-    !$OMP BARRIER
-
-
-
-          !$OMP MASTER
-			IT=IT+1
-
-			IF ((IT.EQ.NTMAX).OR.(TIMEC3.GE.WALLC).OR.(DTiv.GT.OUT_TIME))THEN
-			 KILL=1
-			END IF
-
-			IF ((rungekutta.lt.5).or.(rungekutta.GE.11))THEN
-			IF ((T.GE.OUT_TIME).OR.(DTiv.GT.OUT_TIME))THEN
-			KILL=1
-			END IF
-			END IF
-			!$OMP END MASTER
-			!$OMP BARRIER
+			if ((rungekutta.lt.5).or.(rungekutta.ge.11))then
+			if ((t.ge.out_time).or.(dtiv.gt.out_time))then
+			kill=1
+			end if
+			end if
+			kill_local=kill
+			call mpi_allreduce(kill_local,kill,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
+#if defined(gpu) || defined(xpu)
+!$omp target update to(kill)
+#endif
+			!$omp end master
+			!$omp barrier
 
 
-        !$OMP MASTER
-			IF (kill.eq.1)THEN
+        !$omp master
+			if (kill.eq.1)then
 
-			    CALL VOLUME_SOLUTION_WRITE
-			      IF (outsurf.eq.1)THEN
-			      CALL surface_SOLUTION_WRITE
-			      END IF
-			    CALL CHECKPOINTING
-			      IF (AVERAGING.EQ.1)THEN
-			      CALL VOLUME_SOLUTION_WRITE_av
-				IF (outsurf.eq.1)THEN
-				  CALL surface_SOLUTION_WRITE_av
-				END IF
-				CALL CHECKPOINTING_av
-			      END IF
-			END IF
+			    call volume_solution_write
+			      if (outsurf.eq.1)then
+			      call surface_solution_write
+			      end if
+			    call checkpointing
+			      if (averaging.eq.1)then
+			      call volume_solution_write_av
+				if (outsurf.eq.1)then
+				  call surface_solution_write_av
+				end if
+				call checkpointing_av
+			      end if
+			end if
 
-			!$OMP END MASTER
-			!$OMP BARRIER
+			!$omp end master
+			!$omp barrier
 
-			IF (kill.eq.1)THEN
-			IF (itestcase.le.3)THEN
+			if (kill.eq.1)then
+			if (itestcase.le.3)then
 
-			CALL CALCULATE_ERROR(n)
-			END IF
+			call calculate_error(n)
+			end if
 
 			return
-			END IF
+			end if
+
+
+            !$omp barrier
 
 
 
+end do
+
+
+end if
+
+end subroutine time_marching2
+
+
+subroutine limit_realgas_source_timestep(n)
+!> Restrict local pseudo-time by real-gas source stiffness.
+implicit none
+integer,intent(in)::n
+integer::i,kmaxe
+real::dt_source
+
+if ((realgas.ne.1).or.(rg_relax.ne.2).or.(nof_species.le.0)) return
+
+#if defined(xpu) && !defined(gpu)
+return
+#endif
+
+kmaxe=xmpielrank(n)
+if (kmaxe.le.0) return
+
+#ifdef gpu
+!$omp target teams distribute parallel do firstprivate(n,kmaxe) private(i,dt_source)
+#else
+!$omp barrier
+!$omp do private(i,dt_source)
+#endif
+do i=1,kmaxe
+  call realgas_source_timestep_cell(n,i,dt_source)
+  if ((dt_source.eq.dt_source).and.(dt_source.gt.zero)) then
+    ielem_dtl(i)=min(ielem_dtl(i),dt_source)
+  end if
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+end subroutine limit_realgas_source_timestep
+
+
+subroutine realgas_source_timestep_cell(n,iconsidered,dt_source)
+!> Estimate a local source timescale from chemistry and vibrational relaxation.
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n,iconsidered
+real,intent(out)::dt_source
+integer::idxe,idxev,idx,k
+real::rho,rhoe,rhoev,qscale,rate,sum_species_rate,dt_candidate
+real,dimension(1:gpu_max_nvar)::source_r,src_jac_diag
+
+dt_source=max(ielem_dtl(iconsidered),realgas_source_dtl_min_abs)
+
+if ((realgas.ne.1).or.(rg_relax.ne.2).or.(nof_species.le.0)) return
+if ((dimensiona+3+nof_species).gt.nof_variables) return
+
+source_r=zero
+src_jac_diag=zero
+call sources_realgas(n,iconsidered,source_r,src_jac_diag,realgas_source_dtl_min_abs)
+
+idxe=dimensiona+2
+idxev=dimensiona+3
+rho=max(abs(u_c_val(1,1,iconsidered)),realgas_source_dtl_min_abs)
+rhoe=max(abs(u_c_val(1,idxe,iconsidered)),realgas_source_dtl_min_abs)
+rhoev=abs(u_c_val(1,idxev,iconsidered))
+sum_species_rate=zero
+
+do k=1,nof_species
+  idx=idxev+k
+  rate=abs(source_r(idx))
+  if ((rate.eq.rate).and.(rate.gt.1.0d-300)) then
+    sum_species_rate=sum_species_rate+rate
+  end if
+
+  if ((source_r(idx).eq.source_r(idx)).and.(source_r(idx).lt.zero)) then
+    qscale=max(abs(u_c_val(1,idx,iconsidered)), &
+               realgas_source_species_floor_fraction*rho, &
+               realgas_source_dtl_min_abs)
+    dt_candidate=realgas_source_dtl_cfl*qscale/max(-source_r(idx),1.0d-300)
+    if ((dt_candidate.eq.dt_candidate).and.(dt_candidate.gt.zero)) then
+      dt_source=min(dt_source,dt_candidate)
+    end if
+  end if
+
+  if ((src_jac_diag(idx).eq.src_jac_diag(idx)).and.(abs(src_jac_diag(idx)).gt.1.0d-300)) then
+    dt_candidate=realgas_source_dtl_cfl/abs(src_jac_diag(idx))
+    if ((dt_candidate.eq.dt_candidate).and.(dt_candidate.gt.zero)) then
+      dt_source=min(dt_source,dt_candidate)
+    end if
+  end if
+end do
+
+if (sum_species_rate.gt.1.0d-300) then
+  dt_candidate=realgas_source_dtl_cfl*rho/sum_species_rate
+  if ((dt_candidate.eq.dt_candidate).and.(dt_candidate.gt.zero)) then
+    dt_source=min(dt_source,dt_candidate)
+  end if
+end if
+
+rate=abs(source_r(idxev))
+if ((rate.eq.rate).and.(rate.gt.1.0d-300)) then
+  qscale=max(rhoev, &
+             realgas_source_energy_floor_fraction*rhoe, &
+             realgas_source_dtl_min_abs)
+  dt_candidate=realgas_source_dtl_cfl*qscale/rate
+  if ((dt_candidate.eq.dt_candidate).and.(dt_candidate.gt.zero)) then
+    dt_source=min(dt_source,dt_candidate)
+  end if
+end if
+
+if ((src_jac_diag(idxev).eq.src_jac_diag(idxev)).and.(abs(src_jac_diag(idxev)).gt.1.0d-300)) then
+  dt_candidate=realgas_source_dtl_cfl/abs(src_jac_diag(idxev))
+  if ((dt_candidate.eq.dt_candidate).and.(dt_candidate.gt.zero)) then
+    dt_source=min(dt_source,dt_candidate)
+  end if
+end if
+
+dt_source=max(dt_source,realgas_source_dtl_min_abs)
+
+end subroutine realgas_source_timestep_cell
+
+
+subroutine fv_explicit_local_candidate(iconsidered,qold,qcandidate)
+!> Fallback local explicit FV update when an implicit correction is unusable.
+implicit none
+#if defined(gpu) || defined(xpu)
+!$omp declare target
+#endif
+integer,intent(in)::iconsidered
+real,dimension(1:gpu_max_nvar),intent(in)::qold
+real,dimension(1:gpu_max_nvar),intent(out)::qcandidate
+integer::iv
+real::oovolume
+
+qcandidate=zero
+qcandidate(1:nof_variables)=qold(1:nof_variables)
+
+if (ielem_totvolume(iconsidered).le.fv_update_min_abs) return
+oovolume=1.0d0/ielem_totvolume(iconsidered)
+
+do iv=1,nof_variables
+  qcandidate(iv)=qold(iv)-ielem_dtl(iconsidered)*rhs_val(iv,iconsidered)*oovolume
+end do
+
+end subroutine fv_explicit_local_candidate
+
+
+subroutine fv_prepare_realgas_update_state(qin,qout,projected_ok)
+!> Repair the species closure of a trial FV state before admissibility checks.
+implicit none
+#if defined(gpu) || defined(xpu)
+!$omp declare target
+#endif
+real,dimension(1:gpu_max_nvar),intent(in)::qin
+real,dimension(1:gpu_max_nvar),intent(out)::qout
+logical,intent(out)::projected_ok
+integer::k,idx
+real::rho,species_sum,rhoy,scale
+
+projected_ok=.true.
+qout=zero
+qout(1:nof_variables)=qin(1:nof_variables)
+
+if ((realgas.ne.1).or.(nof_species.le.0)) return
+
+if ((dimensiona+3+nof_species).gt.nof_variables) then
+  projected_ok=.false.
+  return
+end if
+
+rho=qout(1)
+if ((rho.ne.rho).or.(abs(rho).gt.fv_update_max_abs)) then
+  projected_ok=.false.
+  return
+end if
+if (rho.le.fv_update_min_abs) then
+  projected_ok=.false.
+  return
+end if
+
+species_sum=zero
+do k=1,nof_species
+  idx=dimensiona+3+k
+  rhoy=qout(idx)
+  if ((rhoy.ne.rhoy).or.(abs(rhoy).gt.fv_update_max_abs)) then
+    projected_ok=.false.
+    return
+  end if
+  if (rhoy.lt.0.0d0) then
+    projected_ok=.false.
+    return
+  end if
+  species_sum=species_sum+rhoy
+end do
+
+if (species_sum.le.fv_update_min_abs) then
+  projected_ok=.false.
+  return
+end if
+
+scale=rho/species_sum
+do k=1,nof_species
+  idx=dimensiona+3+k
+  qout(idx)=qout(idx)*scale
+end do
+
+end subroutine fv_prepare_realgas_update_state
+
+
+subroutine fv_state_density_pressure(q,rho,pressure,state_ok)
+!> Extract density and pressure from an FV conservative state.
+implicit none
+#if defined(gpu) || defined(xpu)
+!$omp declare target
+#endif
+real,dimension(1:gpu_max_nvar),intent(in)::q
+real,intent(out)::rho,pressure
+logical,intent(out)::state_ok
+integer::k,idxe,idxev
+real::vel2
+real::rho_mix,gamma_mix,ar_sum,vf,vf_sum,denom,stiff_sum
+real::etot,evib,echem,etr,rmix,cv_mix,y_i
+
+rho=zero
+pressure=zero
+state_ok=.false.
+
+if (nof_variables.lt.1) return
+
+rho=q(1)
+if ((rho.ne.rho).or.(abs(rho).gt.fv_update_max_abs)) return
+if (rho.le.fv_update_min_abs) return
+
+if (nof_variables.lt.dimensiona+2) then
+  state_ok=.true.
+  return
+end if
+
+if ((multispecies.eq.1).and.(mp_modelc.eq.0).and.(nof_species.gt.0)) then
+  if ((dimensiona+1+(2*nof_species)).le.nof_variables) then
+    rho_mix=zero
+    do k=1,nof_species
+      rho_mix=rho_mix+q(dimensiona+2+k)
+    end do
+
+    if ((rho_mix.le.zero).or.(rho_mix.ne.rho_mix).or. &
+        (abs(rho_mix).gt.fv_update_max_abs)) return
+
+    vel2=zero
+    if (nof_variables.ge.2) vel2=vel2+(q(2)/rho_mix)*(q(2)/rho_mix)
+    if ((dimensiona.ge.2).and.(nof_variables.ge.3)) vel2=vel2+(q(3)/rho_mix)*(q(3)/rho_mix)
+    if ((dimensiona.eq.3).and.(nof_variables.ge.4)) vel2=vel2+(q(4)/rho_mix)*(q(4)/rho_mix)
+
+    vf_sum=zero
+    ar_sum=zero
+    stiff_sum=zero
+    do k=1,nof_species-1
+      vf=q(dimensiona+2+nof_species+k)
+      vf_sum=vf_sum+vf
+      denom=gamma_in(k)-1.0d0
+      if (abs(denom).le.tolsmall) return
+      ar_sum=ar_sum+(vf/denom)
+      stiff_sum=stiff_sum+(vf*(gamma_in(k)/denom)*mp_pinf(k))
+    end do
+
+    vf=1.0d0-vf_sum
+    denom=gamma_in(nof_species)-1.0d0
+    if (abs(denom).le.tolsmall) return
+    ar_sum=ar_sum+(vf/denom)
+    stiff_sum=stiff_sum+(vf*(gamma_in(nof_species)/denom)*mp_pinf(nof_species))
+    if (ar_sum.le.tolsmall) return
+
+    gamma_mix=(1.0d0/ar_sum)+1.0d0
+    pressure=((gamma_mix-1.0d0)*(q(dimensiona+2)-oo2*rho_mix*vel2))-((gamma_mix-1.0d0)*stiff_sum)
+    if ((pressure.ne.pressure).or.(abs(pressure).gt.fv_update_max_abs)) return
+    state_ok=.true.
+    return
+  end if
+end if
+
+vel2=zero
+if (nof_variables.ge.2) vel2=vel2+(q(2)/rho)*(q(2)/rho)
+if ((dimensiona.ge.2).and.(nof_variables.ge.3)) vel2=vel2+(q(3)/rho)*(q(3)/rho)
+if ((dimensiona.eq.3).and.(nof_variables.ge.4)) vel2=vel2+(q(4)/rho)*(q(4)/rho)
+
+if ((realgas.eq.1).and.(nof_species.gt.0)) then
+  idxe=dimensiona+2
+  idxev=dimensiona+3
+  if ((idxev+nof_species).le.nof_variables) then
+    etot=q(idxe)/rho
+    evib=q(idxev)/rho
+    echem=zero
+    rmix=zero
+    cv_mix=zero
+
+    do k=1,nof_species
+      if (abs(rg_molm(k)).le.tolsmall) return
+      y_i=q(idxev+k)/rho
+      if (rg_hzero(k).gt.zero) echem=echem+(y_i*(rg_hzero(k)/rg_molm(k)))
+      rmix=rmix+(y_i/rg_molm(k))
+      if (k.le.3) then
+        cv_mix=cv_mix+(y_i*2.5d0*(rgs_ru/rg_molm(k)))
+      else
+        cv_mix=cv_mix+(y_i*1.5d0*(rgs_ru/rg_molm(k)))
+      end if
+    end do
+
+    rmix=rgs_ru*rmix
+    if ((rmix.le.tolsmall).or.(cv_mix.le.tolsmall)) return
+    etr=etot-evib-echem-(oo2*vel2)
+    pressure=rho*rmix*(etr/cv_mix)
+    if ((pressure.ne.pressure).or.(abs(pressure).gt.fv_update_max_abs)) return
+    state_ok=.true.
+    return
+  end if
+end if
+
+if (gamma.le.1.0d0) return
+pressure=(gamma-1.0d0)*(q(dimensiona+2)-oo2*rho*vel2)
+if ((pressure.ne.pressure).or.(abs(pressure).gt.fv_update_max_abs)) return
+state_ok=.true.
+
+end subroutine fv_state_density_pressure
+
+logical function fv_state_pair_admissible(qold,qnew)
+!> Check dimensional reference bounds and local density/pressure update ratios.
+implicit none
+#if defined(gpu) || defined(xpu)
+!$omp declare target
+#endif
+real,dimension(1:gpu_max_nvar),intent(in)::qold,qnew
+logical::old_ok,new_ok
+integer::k
+real::rho_old,rho_new,p_old,p_new
+real::rho_scale,p_scale,rho_min,p_min,rho_max,p_max,rho_ratio,p_ratio
+real::species_sum,rhoy_new
+
+fv_state_pair_admissible=.false.
+
+call fv_state_density_pressure(qold,rho_old,p_old,old_ok)
+call fv_state_density_pressure(qnew,rho_new,p_new,new_ok)
+
+if (.not.new_ok) return
+
+if ((realgas.eq.1).and.(nof_species.gt.0)) then
+  if ((dimensiona+3+nof_species).gt.nof_variables) return
+  species_sum=zero
+  do k=1,nof_species
+    rhoy_new=qnew(dimensiona+3+k)
+    if ((rhoy_new.ne.rhoy_new).or.(abs(rhoy_new).gt.fv_update_max_abs)) return
+    if (rhoy_new.lt.0.0d0) return
+    species_sum=species_sum+rhoy_new
+  end do
+  if (species_sum.le.fv_update_min_abs) return
+  if (abs(species_sum-rho_new).gt.fv_update_species_closure_tol*max(abs(rho_new),fv_update_min_abs)) return
+end if
+
+rho_scale=max(abs(rres),abs(rho_old),1.0d0)
+p_scale=max(abs(pres),abs(p_old),1.0d0)
+rho_min=max(fv_update_min_abs,fv_update_floor_fraction*rho_scale)
+p_min=max(fv_update_min_abs,fv_update_floor_fraction*p_scale)
+rho_max=min(fv_update_max_abs,fv_update_max_ref_ratio*rho_scale)
+p_max=min(fv_update_max_abs,fv_update_max_ref_ratio*p_scale)
+
+if (rho_new.le.rho_min) return
+if (p_new.le.p_min) return
+if (rho_new.gt.rho_max) return
+if (p_new.gt.p_max) return
+
+if (old_ok) then
+  if ((rho_old.gt.rho_min).and.(p_old.gt.p_min)) then
+    rho_ratio=rho_new/rho_old
+    p_ratio=p_new/p_old
+    if (rho_ratio.lt.fv_update_min_ratio) return
+    if (rho_ratio.gt.fv_update_max_ratio) return
+    if (p_ratio.lt.fv_update_min_ratio) return
+    if (p_ratio.gt.fv_update_max_ratio) return
+  end if
+end if
+
+fv_state_pair_admissible=.true.
+
+end function fv_state_pair_admissible
+
+subroutine fv_limit_candidate_update(qold,qcandidate,qaccepted,alpha,accepted)
+!> For real gas, profile 999, or implicit FV updates, bisect the
+!> update until the state is admissible.
+implicit none
+#if defined(gpu) || defined(xpu)
+!$omp declare target
+#endif
+real,dimension(1:gpu_max_nvar),intent(in)::qold,qcandidate
+real,dimension(1:gpu_max_nvar),intent(out)::qaccepted
+real,intent(out)::alpha
+logical,intent(out)::accepted
+integer::tries,iv
+real::trial_alpha,low_alpha,high_alpha,best_alpha
+logical::trial_ok,found_alpha,needs_admissibility
+real,dimension(1:gpu_max_nvar)::qtrial,qprojected
+
+accepted=.false.
+alpha=zero
+qaccepted=zero
+qtrial=zero
+qprojected=zero
+qaccepted(1:nof_variables)=qold(1:nof_variables)
+
+needs_admissibility=(realgas.eq.1).or.(code_profile.eq.999).or.&
+                    (rungekutta.eq.10).or.(rungekutta.eq.11)
+
+if (.not.needs_admissibility) then
+  qaccepted(1:nof_variables)=qcandidate(1:nof_variables)
+  alpha=1.0d0
+  accepted=.true.
+  return
+end if
+
+trial_alpha=1.0d0
+do iv=1,nof_variables
+  qtrial(iv)=qold(iv)+trial_alpha*(qcandidate(iv)-qold(iv))
+end do
+
+call fv_prepare_realgas_update_state(qtrial,qprojected,trial_ok)
+if (trial_ok) then
+  if (fv_state_pair_admissible(qold,qprojected)) then
+    qaccepted(1:nof_variables)=qprojected(1:nof_variables)
+    alpha=trial_alpha
+    accepted=.true.
+    return
+  end if
+end if
+
+low_alpha=0.0d0
+high_alpha=1.0d0
+best_alpha=0.0d0
+found_alpha=.false.
+
+do tries=1,fv_update_max_backtracks
+  trial_alpha=0.5d0*(low_alpha+high_alpha)
+  do iv=1,nof_variables
+    qtrial(iv)=qold(iv)+trial_alpha*(qcandidate(iv)-qold(iv))
+  end do
+
+  call fv_prepare_realgas_update_state(qtrial,qprojected,trial_ok)
+  if (trial_ok) then
+    if (fv_state_pair_admissible(qold,qprojected)) then
+      best_alpha=trial_alpha
+      qaccepted(1:nof_variables)=qprojected(1:nof_variables)
+      found_alpha=.true.
+      low_alpha=trial_alpha
+    else
+      high_alpha=trial_alpha
+    end if
+  else
+    high_alpha=trial_alpha
+  end if
+end do
+
+if (found_alpha) then
+  alpha=best_alpha
+  accepted=.true.
+  return
+end if
+
+end subroutine fv_limit_candidate_update
+
+logical function fv_state_update_admissible(q)
+!> Backward-compatible candidate-only FV state check.
+implicit none
+#if defined(gpu) || defined(xpu)
+!$omp declare target
+#endif
+real,dimension(1:gpu_max_nvar),intent(in)::q
+logical::state_ok
+real::rho,pressure
+
+call fv_state_density_pressure(q,rho,pressure,state_ok)
+fv_state_update_admissible=state_ok
+if (.not.state_ok) return
+if (rho.le.max(fv_update_min_abs,fv_update_floor_fraction*max(abs(rres),1.0d0))) fv_state_update_admissible=.false.
+if (pressure.le.max(fv_update_min_abs,fv_update_floor_fraction*max(abs(pres),1.0d0))) fv_state_update_admissible=.false.
+
+end function fv_state_update_admissible
+
+subroutine update_cfl_ramp(n)
+!> Residual-based CFL ramp for steady/local implicit FV runs.
+implicit none
+integer,intent(in)::n
+integer::nres
+real::res_now,cfl_old,growth
+
+!$omp barrier
+!$omp master
+
+if (cflramp.eq.1) then
+
+  if (cflmax.le.zero) cflmax=max(cfl,1.0d0)
+  cfl_old=cfl
+
+  if (dimensiona.eq.3) then
+    nres=min(5,nof_variables)
+  else
+    nres=min(4,nof_variables)
+  end if
+  if (turbulence.gt.0) nres=min(15,nof_variables+turbulenceequations)
+
+  if (nres.gt.0) then
+    res_now=maxval(allres(1:nres))
+
+    if ((res_now.eq.res_now).and.(abs(res_now).lt.tolbig)) then
+      cfl=min(cfl,cflmax)
+
+      if ((prevres.le.zero).or.(prevres.ne.prevres).or.(abs(prevres).gt.tolbig)) then
+        prevres=res_now
+      else
+        if (res_now.le.(0.98d0*prevres)) then
+          growth=1.05d0
+          if (res_now.le.(0.70d0*prevres)) growth=1.10d0
+          if (res_now.le.(0.40d0*prevres)) growth=1.20d0
+          cfl=min(cflmax,max(cfl,1.0d-6)*growth)
+        else if (res_now.gt.(1.25d0*prevres)) then
+          cfl=max(1.0d-3,0.70d0*cfl)
+        end if
+        prevres=res_now
+      end if
+
+      if (dimensiona.eq.3) then
+        ccfl=cfl/3.0d0
+      else
+        ccfl=cfl/2.0d0
+      end if
+
+      if ((n.eq.0).and.(abs(cfl-cfl_old).gt.(1.0d-12*max(1.0d0,abs(cfl_old))))) then
+        open(63,file='history.txt',form='formatted',status='unknown',action='write',position='append')
+        write(63,'(A,I10,A,ES14.7,A,ES14.7,A,ES14.7)') 'cfl_ramp it=', it, ' residual=', res_now, &
+                                                           ' cfl=', cfl, ' cflmax=', cflmax
+        close(63)
+      end if
+    end if
+  end if
+
+end if
+
+#if defined(gpu) || defined(xpu)
+!$omp target update to(cfl,ccfl)
+#endif
+
+!$omp end master
+!$omp barrier
+
+end subroutine update_cfl_ramp
+
+subroutine arbitrary_order_master(n)
+!> AO-only GPU mode launches reconstruction from one host thread.
+implicit none
+integer,intent(in)::n
+#if defined(gpu) && defined(GPU_AO_ONLY)
+!$omp barrier
+!$omp master
+#endif
+call arbitrary_order(n)
+#if defined(gpu) && defined(GPU_AO_ONLY)
+!$omp end master
+!$omp barrier
+#endif
+end subroutine arbitrary_order_master
 
 
 
-END DO
+subroutine dg_mass_rhs_product_cell(i)
+implicit none
+#if defined(gpu) || defined(xpu)
+!$omp declare target
+#endif
+integer,intent(in)::i
+integer::mm_idof,mm_jdof,mm_var
+real::mm_sum
 
-END SUBROUTINE TIME_MARCHING2
+do mm_var=1,nof_variables
+  do mm_idof=1,num_dg_dofs
+    mm_sum=zero
+    do mm_jdof=1,num_dg_dofs
+      mm_sum=mm_sum + m_1_val(mm_idof,mm_jdof,i)*rhs_valdg(mm_jdof,mm_var,i)
+    end do
+    rhs_sol_mm_dg(mm_idof,mm_var,i)=mm_sum
+  end do
+end do
 
-
-
-
+end subroutine dg_mass_rhs_product_cell
 
 !---------------------------------------------------------------------------------------------!
-END MODULE ADVANCE
+end module advance

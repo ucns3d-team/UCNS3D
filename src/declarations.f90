@@ -1,761 +1,1074 @@
-MODULE DECLARATION	
+module declaration
 !--------------------------------------------------------------------------------------------------------------------------!
-!HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH!
-!_____________________________________________ START HEADER OF MODULE______________________________________________________!
-!FUNCTION: IS TO COLLECT ALL THE GLOBAL VARIABLES, AND DATA TYPES OF THE CODE IN ONE MODULE
-!////////////////////////////////////RESPONSIBLE TSOUTSANIS PANAGIOTIS/////////////////////////////////////////////////////! 
+!hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh!
+!_____________________________________________ start header of module______________________________________________________!
+!function: is to collect all the global variables, and data types of the code in one module
 !**************************************************************************************************************************!
-!_____________________________________________ END HEADER OF MODULE________________________________________________________!
+!_____________________________________________ end header of module________________________________________________________!
 !--------------------------------------------------------------------------------------------------------------------------!
 
-IMPLICIT NONE
+implicit none
+
+
+! Compile-time upper bounds for fixed-size local work arrays.
+! GPU builds should pass case-specific GPU_MAX_* values from gpu_max_flags.py.
+! CPU builds do not need UCNS3D.DAT at compile time, so their fallback values
+! are deliberately larger and can be overridden from the Makefile if needed.
+#ifndef GPU_MAX_IORDER
+#ifdef gpu
+#define GPU_MAX_IORDER 4
+#else
+#define GPU_MAX_IORDER 6
+#endif
+#endif
+#ifndef GPU_MAX_DIM
+#define GPU_MAX_DIM 3
+#endif
+#ifndef GPU_MAX_SPECIES
+#ifdef gpu
+#define GPU_MAX_SPECIES 1
+#else
+#define GPU_MAX_SPECIES 5
+#endif
+#endif
+#ifndef GPU_MAX_TURBULENCE
+#ifdef gpu
+#define GPU_MAX_TURBULENCE 1
+#else
+#define GPU_MAX_TURBULENCE 2
+#endif
+#endif
+#ifndef GPU_MAX_PASSIVE
+#ifdef gpu
+#define GPU_MAX_PASSIVE 1
+#else
+#define GPU_MAX_PASSIVE 8
+#endif
+#endif
+#ifndef GPU_MAX_EXTF
+#define GPU_MAX_EXTF 3
+#endif
+#ifndef GPU_MAX_QP_FACE
+#ifdef gpu
+#define GPU_MAX_QP_FACE 25
+#else
+#define GPU_MAX_QP_FACE 36
+#endif
+#endif
+#ifndef GPU_MAX_QP_VOLUME
+#ifdef gpu
+#define GPU_MAX_QP_VOLUME 210
+#else
+#define GPU_MAX_QP_VOLUME 336
+#endif
+#endif
+#ifndef GPU_MAX_QP_ALL
+#ifdef gpu
+#define GPU_MAX_QP_ALL 125
+#else
+#define GPU_MAX_QP_ALL 216
+#endif
+#endif
+#ifndef GPU_MAX_TYPESTEN
+#ifdef gpu
+#define GPU_MAX_TYPESTEN 7
+#else
+#define GPU_MAX_TYPESTEN 15
+#endif
+#endif
+#ifndef GPU_MAX_NVAR
+#ifdef gpu
+#define GPU_MAX_NVAR 5
+#else
+#define GPU_MAX_NVAR 11
+#endif
+#endif
+#ifndef GPU_MAX_NODES
+#define GPU_MAX_NODES 8
+#endif
+#ifndef GPU_MAX_FACES
+#define GPU_MAX_FACES 6
+#endif
+#ifndef GPU_MAX_FNODES
+#define GPU_MAX_FNODES 4
+#endif
+#ifndef GPU_MAX_IDEGFREE
+#if GPU_MAX_DIM == 2
+#define GPU_MAX_IDEGFREE ((((GPU_MAX_IORDER + 1) * (GPU_MAX_IORDER + 2)) / 2) - 1)
+#else
+#define GPU_MAX_IDEGFREE ((((GPU_MAX_IORDER + 1) * (GPU_MAX_IORDER + 2) * (GPU_MAX_IORDER + 3)) / 6) - 1)
+#endif
+#endif
+#ifndef GPU_MAX_DOF
+#define GPU_MAX_DOF (GPU_MAX_IDEGFREE + 1)
+#endif
+#ifndef GPU_MAX_NEIGHBOURS
+#if GPU_MAX_DIM == 2
+#if GPU_MAX_IORDER == 1
+#define GPU_MAX_NEIGHBOURS 5
+#else
+#define GPU_MAX_NEIGHBOURS (GPU_MAX_DOF * GPU_MAX_EXTF)
+#endif
+#else
+#if GPU_MAX_IORDER == 1
+#define GPU_MAX_NEIGHBOURS 9
+#else
+#define GPU_MAX_NEIGHBOURS (GPU_MAX_DOF * GPU_MAX_EXTF)
+#endif
+#endif
+#endif
+#ifndef GPU_MAX_NEIGHBOURS2
+#if GPU_MAX_DIM == 2
+#if GPU_MAX_IORDER == 1
+#define GPU_MAX_NEIGHBOURS2 6
+#elif GPU_MAX_IORDER <= 3
+#define GPU_MAX_NEIGHBOURS2 7
+#else
+#define GPU_MAX_NEIGHBOURS2 11
+#endif
+#else
+#if GPU_MAX_IORDER == 1
+#define GPU_MAX_NEIGHBOURS2 7
+#elif GPU_MAX_IORDER <= 3
+#define GPU_MAX_NEIGHBOURS2 12
+#else
+#define GPU_MAX_NEIGHBOURS2 20
+#endif
+#endif
+#endif
+
+integer, parameter :: gpu_max_iorder = GPU_MAX_IORDER
+integer, parameter :: gpu_max_dim = GPU_MAX_DIM
+integer, parameter :: gpu_max_species = GPU_MAX_SPECIES
+integer, parameter :: gpu_max_turbulence = GPU_MAX_TURBULENCE
+integer, parameter :: gpu_max_passive = GPU_MAX_PASSIVE
+integer, parameter :: gpu_max_extra_transport = gpu_max_turbulence + gpu_max_passive
+integer, parameter :: gpu_max_qp_face = GPU_MAX_QP_FACE
+integer, parameter :: gpu_max_qp_volume = GPU_MAX_QP_VOLUME
+integer, parameter :: gpu_max_qp_all = GPU_MAX_QP_ALL
+integer, parameter :: gpu_max_typesten = GPU_MAX_TYPESTEN
+integer, parameter :: gpu_max_nodes = GPU_MAX_NODES
+integer, parameter :: gpu_max_faces = GPU_MAX_FACES
+integer, parameter :: gpu_max_fnodes = GPU_MAX_FNODES
+integer, parameter :: gpu_max_idegfree = GPU_MAX_IDEGFREE
+integer, parameter :: gpu_max_dof = GPU_MAX_DOF
+integer, parameter :: gpu_max_neighbours = GPU_MAX_NEIGHBOURS
+integer, parameter :: gpu_max_neighbours2 = GPU_MAX_NEIGHBOURS2
+integer, parameter :: gpu_max_nvar = GPU_MAX_NVAR
+integer, parameter :: gpu_max_nvar_total = gpu_max_nvar + gpu_max_extra_transport
 
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.1.   INTEGER  VARIABLES HERE                  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! s.1.   integer  variables here                  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
 
-INTEGER::CASCADE,MOOD,MOOD_MODE,kmaxn,multispecies,nof_species,DIMENSIONA,LOWMEM,binio,nof_variables,CHUNK_N,dims,IRES_TURB,CODE_PROFILE,IRES_UNSTEADY,LAMPS,itotalb,totiw,ICOMPACT,EES,iscoun,itold,lmach_style,WEIGHT_LSQR	!DIMENSIONS OF PROBLEM
-integer::governingequations,FILTERING,guassianquadra,temporder,iboundary,wenocnschar,required,nodes_i,SWIRL,IADAPT,TECPLOT,STENCIL_IO,SURFSHEAR,ISSF,n_boundaries,FASTEST_Q,STATISTICS,ADDA,ALLS
-integer,allocatable,DIMENSION(:,:)::jtot1,jtot2,jtot3,jtot,el_connect
-integer::jtotAL,JTOTAL1,JTOTAL2,JTOTAL3,fastmovie,movement,TYP_COUNTN_GLOBAL,TYP_COUNTN,TYP_COUNTN_GLOBAL_W,TYP_COUNTN_w
-INTEGER::FILTER_TYPE,fil_nc,fil_s,fil_alpha		!FILTER VALUES
-INTEGER::ADDA_TYPE,ADDA_alpha_1,ADDA_alpha_2,ADDA_1_S,ADDA_2_S,ADDA_1,ADDA_2		!FILTER VALUES
-INTEGER::KILL			 ! FLAG FOR KILLING A SIMULATION
-INTEGER::NDERIVATIVE		  	! INDEX OF THE NUMBERING OF THE COMPONENT OF THE POLYNOMIALS 
-REAL::output_freq				!OUTPUT FREQUENCY IN SIMULATION TIME
-INTEGER::EXTENDED_BOUNDS		!BOUNDS STRICT OR RELAXED
-INTEGER::ICONSR					! INDEX FOR IDENTIFYING THE CONSIDERED ELEMENT 
-INTEGER::INWHICHEL				! INDEX FOR IDENTIFYING THE CONSIDERED ELEMENT WITHIN A STENCIL 
-INTEGER::SUBDIV					! INDEX FOR THE NUMBER OF SUBDIVISIONS OF A FACE
-INTEGER::ICONSGVQ				! INDEX FOR CONSIDERED CELL
-INTEGER::IGIANAGRAPS				!INDEX FOR CONSIDERED CELL
-INTEGER::IT					! NUMBER OF ITERATIONS
-INTEGER::ICONIMP				!INDEX FOR CONSIDERED CELL
-INTEGER::IBCODE					! INDEX FOR BOUNDARY CONDITION CODE
-INTEGER::IBSIDE					! INDEX FOR WHICH SIDE OF CELL IS BOUNDED
-INTEGER::CFW					!INDEX FOR DETERMINING FROM THE WHICH SECTION THE BOUNDARY SUBROUTINE IS CALLED
-INTEGER::DG, BR2_YN                     ! FLAG FOR DG DISCRETISATION
-REAL:: BR2_DAMPING
-REAL::R_gas						!SPECIFIC GAS CONSTANT
-INTEGER::LOWMEMORY				! MEMORY USAGE FLAG
-INTEGER::FASTEST				! FASTEST MODE FLAG FOR THE CODE
-INTEGER::EMETIS					! TYPE OF METIS PARTITIONING
-INTEGER::ALLNODESGLOBALL			! TOTAL NUMBER OF NODES IN THE DOMAIN
-INTEGER::SPATILADISCRET				! SPATIAL DISCRETISATION
-INTEGER::SPATIALORDER    			! SPATIAL ORDER
-INTEGER::JK					!INDEX
-INTEGER::NUMNEIGHBOURS,NUMNEIGHBOURS2				! NUMBER OF NEIGHBOURS IN THE STENCILS 
-INTEGER::RESTART				! FLAG FOR DETERMINING IF A RESTART FILE IS PRESENT			
-INTEGER::IHYBRID				!HYBRID MODE WHERE SOME PART OF THE DOMAIN IS SOLVED WITH LOWER ORDER AND ANOTHER WITH HIGHER ORDER SCHEMES	
-integer::UPPERLIMIT !
-INTEGER::RESIDUALFREQ				!FREQUENCY FOR WRITING THE RESIDUALS
-INTEGER::IRS					!IMPLICIT RESIDUAL SMOOTHING VERSION
-INTEGER::GREENGO				!GRADIENT APPROXIMATION TECHNIQUES
-INTEGER::LMACH					!LOW MACH PRECONDITIONING
-INTEGER::ISPAL					!TYPE OF SPALART ALLMARAS MODIFICATION	
-INTEGER::RELAX					!RELAXATION SCHEMES GAUSS SEIDEL, JACOBIAN ETC
-INTEGER::ICONG					!INDEX FOR CONSIDERED CELL
-INTEGER::ILOOP					!INDEX FOR CONSIDERED CELL
-INTEGER::CFLRAMP				!CFL RAMPING ACTIVATED FOR IMPLICIT TIME STEPPING
-INTEGER::AVERAGING				!FLAG FOR ACTIVATING AVERAGING OF TRANSIENT DATA
-INTEGER::AVERAGE_RESTART			!FLAG FOR HAVING A RESTART FILE WITH THE AVERAGED SOLUTION
-INTEGER::PREV_TURBMODEL				!FLAG OF PREVIOUS TURBULENCE MODEL IN CASE OF A RESTART FILE
-INTEGER::IFORCE					!INDEX ON HOW OFTEN TO COMPUTE THE FORCES
-INTEGER::BOUNDTYPE				!TYPE OF BOUNDARY CONDITION SUPERSONIC,  SUBSONIC
-INTEGER::NPROC					!NUMBER OF CPUS							
-INTEGER::INITCOND				!INITIAL CONDITION TYPE
-INTEGER::WENWRT					!WENO WRT TO WHICH VARIABLE CONSERVED, CHARACTERISTICS ETC
-INTEGER::POLY					!INTERPOLATING POLYNOMIALS 1 GENERIC, 2 LEGENDRE
-INTEGER::IVORTEX				!Q CRITERION COM PUTATION
-INTEGER::ICARLOS1				!INDEX FOR CONSIDERED ELEMENT PASSIVE SCALARS, COMPLICATED INFLOW CONDITION
-INTEGER::ICARLOS2				!INDEX FOR CONSIDERED FACE PASSIVE SCALARS, COMPLICATED INFLOW CONDITION
-INTEGER::IMAXE					!TOTAL NUMBER OF ELEMENTS OF THE GRID
-INTEGER::NTMAX					!MAXIMUM NUMBER OF ITERATIONS
-INTEGER::IHAX1					!TEMPORARY INTEGER USED AS POINTER FOR OPERATIONS REGARDING HEXAHEDRAL ELEMENTS					
-INTEGER::LIMITER				!SLOPE LIMITER
-INTEGER::IEXTEND				!EXTEND PARAMETER FOR CENTRAL BIG STENCIL ONLY FOR WENO CASES
-INTEGER::IDEGFREE,idegfree2,inum2,idegfree3		!DEGREES OF FREEDOM OF POLYNOMIAL IT WILL BECOME LOCA	L
-INTEGER::OUTSURF				!OUTSURF STANDS FOR COMPUTING FORCES 
-INTEGER::UNWOU					!TYPE OF OUTPUT FILES TO WRITE ALL PARTITIONS TO ONE FILE ETC
-INTEGER::IGQRULES				!GAUSSIAN QUADRATURE RULE
-INTEGER::IMAXDEGFREE,IMAXDEGFREE2				!MAXIMUM NUMBER OF NEIGHBOURS
-INTEGER::QP_HEXA,QP_TETRA,QP_PYRA,QP_PRISM,QP_QUAD,QP_TRIANGLE,QP_LINE,qp_line_n,reduce_comp,QP_QUAD_n,QP_TRIANGLE_n !VOLUME GAUSSIAN QUADRATURE POINTS
-!> Number of points allocated to QPOINTS, WEQUA (Coords and weights for quadrature points)
-INTEGER::NUMBEROFPOINTS,NUMBEROFPOINTS2
-INTEGER::RESCOUNTER				!COUNTER FOR RESIDUALS
-INTEGER::RESCOUNTERT				!COUNTER FOR TURBULENCE RESIDUALS
-INTEGER::ILX					!DEGREES OF FREEDOM FOR REQUIRED ORDER OF ACCURACY
-INTEGER::IMAXB					!TOTAL NUMBER OF BOUNDARY CONDITIONS
-INTEGER::IMAXN					!TOTAL NUMBER OF NODES PRESENT IN THE GRID
-INTEGER::IN					!INDEX FOR CONSIDERED CELL
-INTEGER::IORDER,IORDER2					!ORDER OF ACCURACY (SPATIAL)
-INTEGER::IOVERST				! NUMBER OF ELEMENTS FOR THE STENCIL OVERDETERMINED MATRIX REQUIRED FOR AVOIDING ILL CONDITIONS
-INTEGER::IOVERTO				! NUMBER OF ELEMENTS FOR THE ESTAB STENCILS OVERDETERMINED MATRIX REQUIRED FOR AVOIDING ILL CONDITIONS
-INTEGER::QRDE					!TYPE OF SOLUTION FOR THE LEAST SQUARES PROBLEM
-INTEGER::RUNGEKUTTA     			!TIME STEPPING SCHEME TYPE
-INTEGER::ISCHEME 				!TYPE OF SCHEME TO BE USED
-INTEGER::ISPLIT					!UNSPLIT FINIT VOLUME SCHEME
-INTEGER::ISELEM					!MAXIMUM NUMBER OF ELEMENTS REQUIRED FOR THE STENCIL DEPENDENT ON THE ORDER OF ACCURACY
-INTEGER::ISTN					!VARIABLE THAT TAKES EACH TIME THE VALUE OF THE CONSIDERED ELEMENT  TO FIND NEIGHBOURS IN THE STENCIL
-INTEGER::ITT,wenoz					!INTEGER VARIABLE USED FOR OPENING FILES
-INTEGER::ITESTCASE              !TYPES OF EQUATIONS TO BE SOLVED
-INTEGER::IWEIGHTLSQR    			!WEIGHTED LEAST SQURES OPTION OF INVERTED DISTANCE
-INTEGER::TYPESTEN				!NUMBER OF STENCILS FOR WENO
-INTEGER::IPERIODICITY				!PERIODICITY DETECTED IN DOMAIN	
-INTEGER::IWENO					!TYPE OF SCHEMES WENO, MUSCL, UNLIMITED
-INTEGER::TURBULENCE				!TURBULENCE EQUATIONS
-INTEGER::TURBULENCEMODEL			!WHICH MODEL
-INTEGER::TURBULENCEEQUATIONS			!HOW MANY EQUATIONS TO SOLVE
-INTEGER::ICOUPLETURB				!COUPLED TURBULENCE MODEL
-INTEGER::IRIEMANN				!RIEMANN SOLVER
-INTEGER::FIRSTORDER				!FIRST ORDER SCHEME ACTIVE
-INTEGER::PASSIVESCALAR				!ADDITIONAL TRANSPORT EQUATIONS
-INTEGER::QSAS_MODEL				!QSAS MODEL
-INTEGER::VORT_MODEL				!VORTICITY MODEL
-INTEGER::ZERO_TURB_INIT				!FLAG FOR TYPE OF INITIALIZATION FOR K-OMEGA
-INTEGER::DES_MODEL 				!INTEGER SWITCHES FOR SST
-INTEGER:: NPROBES,totwalls,NOF_INTERIOR,NOF_BOUNDED,MRF			!NUMBER OF PROBES FOR TRANSIENT DATA
-INTEGER:: ROT_CORR,D_CORR   !integer for turbulence corrections
+integer::cascade,mood,mood_mode,kmaxn,multispecies,nof_species,dimensiona,lowmem,binio,nof_variables,chunk_n,dims,ires_turb,ind1,code_profile,ires_unsteady,lamps,itotalb,totiw,icompact,ees,iscoun,itold,lmach_style,weight_lsqr	!dimensions of problem
+integer::governingequations,filtering,guassianquadra,temporder,iboundary,wenocnschar,required,nodes_i,swirl,iadapt,tecplot,stencil_io,surfshear,issf,n_boundaries,fastest_q,statistics,adda,alls
+integer,allocatable,dimension(:,:)::jtot1,jtot2,jtot3,jtot,el_connect
+integer::jtotal,jtotal1,jtotal2,jtotal3,fastmovie,movement,typ_countn_global,typ_countn,typ_countn_global_w,typ_countn_w
+integer::filter_type,fil_nc,fil_s,fil_alpha		!filter values
+integer::adda_type,adda_alpha_1,adda_alpha_2,adda_1_s,adda_2_s,adda_1,adda_2		!filter values
+integer::kill			 ! flag for killing a simulation
+integer::nof_perturbations405	!number of perturbations
+integer::nderivative		  	! index of the numbering of the component of the polynomials
+real::output_freq				!output frequency in simulation time
+integer::extended_bounds		!bounds strict or relaxed
+integer::iconsr					! index for identifying the considered element
+integer::inwhichel				! index for identifying the considered element within a stencil
+integer::subdiv					! index for the number of subdivisions of a face
+integer::iconsgvq				! index for considered cell
+integer::igianagraps				!index for considered cell
+integer::it					! number of iterations
+integer::iconimp				!index for considered cell
+integer::ibcode					! index for boundary condition code
+integer::ibside					! index for which side of cell is bounded
+integer::cfw					!index for determining from the which section the boundary subroutine is called
+integer::dg, br2_yn                     ! flag for dg discretisation
+real:: br2_damping
+real::ccfl
+real::totk,totens,totensx		!totk,totens,totensx,kill_nan
+real::res_sum,pos_l1,pos_l2,pos_l3,pos_l4	!res_sum,pos_l1,pos_l2,pos_l3,pos_l4,ipos_l1,ipos_l2
+integer::ipos_l1,ipos_l2
+integer::kill_nan
+real,dimension(5)::pos_l,pos_g
+integer,dimension(3)::ipos_l,ipos_g
+real::r_gas						!specific gas constant
+real,allocatable,dimension(:):: weights_q,weights_t,weights_l
+integer::lowmemory				! memory usage flag
+integer::fastest				! fastest mode flag for the code
+integer::emetis					! type of metis partitioning
+integer::allnodesgloball			! total number of nodes in the domain
+integer::spatiladiscret				! spatial discretisation
+integer::spatialorder    			! spatial order
+integer::jk					!index
+integer::numneighbours,numneighbours2				! number of neighbours in the stencils
+integer::restart				! flag for determining if a restart file is present
+integer::ihybrid				!hybrid mode where some part of the domain is solved with lower order and another with higher order schemes
+integer::upperlimit !
+integer::residualfreq				!frequency for writing the residuals
+integer::irs					!implicit residual smoothing version
+integer::greengo				!gradient approximation techniques
+integer::lmach					!low mach preconditioning
+integer::ispal					!type of spalart allmaras modification
+integer::relax					!relaxation schemes gauss seidel, jacobian etc
+integer::icong					!index for considered cell
+integer::iloop					!index for considered cell
+integer::cflramp				!cfl ramping activated for implicit time stepping
+integer::averaging				!flag for activating averaging of transient data
+integer::average_restart			!flag for having a restart file with the averaged solution
+integer::prev_turbmodel				!flag of previous turbulence model in case of a restart file
+integer::iforce					!index on how often to compute the forces
+integer::boundtype				!type of boundary condition supersonic,  subsonic
+integer::nproc					!number of cpus
+integer::initcond				!initial condition type
+integer::wenwrt					!weno wrt to which variable conserved, characteristics etc
+integer::poly					!interpolating polynomials 1 generic, 2 legendre
+integer::ivortex				!q criterion com putation
+integer::icarlos1				!index for considered element passive scalars, complicated inflow condition
+integer::icarlos2				!index for considered face passive scalars, complicated inflow condition
+integer::imaxe					!total number of elements of the grid
+integer::ntmax					!maximum number of iterations
+integer::ihax1					!temporary integer used as pointer for operations regarding hexahedral elements
+integer::limiter				!slope limiter
+integer::iextend				!extend parameter for central big stencil only for weno cases
+integer::idegfree,idegfree2,inum2,idegfree3		!degrees of freedom of polynomial it will become loca	l
+integer::outsurf				!outsurf stands for computing forces
+integer::unwou					!type of output files to write all partitions to one file etc
+integer::igqrules				!gaussian quadrature rule
+integer::imaxdegfree,imaxdegfree2				!maximum number of neighbours
+integer::qp_hexa,qp_tetra,qp_pyra,qp_prism,qp_quad,qp_triangle,qp_line,qp_line_n,reduce_comp,qp_quad_n,qp_triangle_n !volume gaussian quadrature points
+!> number of points allocated to qpoints, wequa (coords and weights for quadrature points)
+integer::numberofpoints,numberofpoints2
+integer::rescounter				!counter for residuals
+integer::rescountert				!counter for turbulence residuals
+integer::ilx					!degrees of freedom for required order of accuracy
+integer::imaxb					!total number of boundary conditions
+integer::imaxn					!total number of nodes present in the grid
+integer::in					!index for considered cell
+integer::iorder,iorder2					!order of accuracy (spatial)
+integer::ioverst				! number of elements for the stencil overdetermined matrix required for avoiding ill conditions
+integer::ioverto				! number of elements for the estab stencils overdetermined matrix required for avoiding ill conditions
+integer::qrde					!type of solution for the least squares problem
+integer::rungekutta     			!time stepping scheme type
+integer::ischeme 				!type of scheme to be used
+integer::isplit					!unsplit finit volume scheme
+integer::iselem					!maximum number of elements required for the stencil dependent on the order of accuracy
+integer::istn					!variable that takes each time the value of the considered element  to find neighbours in the stencil
+integer::itt,wenoz					!integer variable used for opening files
+integer::itestcase              !types of equations to be solved
+integer::iweightlsqr    			!weighted least squres option of inverted distance
+integer::typesten				!number of stencils for weno
+integer::iperiodicity				!periodicity detected in domain
+integer::iweno					!type of schemes weno, muscl, unlimited
+integer::turbulence				!turbulence equations
+integer::turbulencemodel			!which model
+integer::turbulenceequations			!how many equations to solve
+integer::icoupleturb				!coupled turbulence model
+integer::iriemann				!riemann solver
+integer::firstorder				!first order scheme active
+integer::passivescalar				!additional transport equations
+integer::qsas_model				!qsas model
+integer::vort_model				!vorticity model
+integer::zero_turb_init				!flag for type of initialization for k-omega
+integer::des_model 				!integer switches for sst
+integer:: nprobes,totwalls,nof_interior,nof_bounded,mrf			!number of probes for transient data
+integer:: rot_corr,d_corr   !integer for turbulence corrections
+integer:: transition_model,transition_axis,transition_direction,transition_ramp_type
+integer::max_faces
+integer::max_fnodes
+integer::max_nodes
+integer::num_hexas
+integer::num_tetras
+integer::num_pyramids
+integer::num_prisms
 !--------------------- variables for parallel partitioned output-------!
-INTEGER,ALLOCATABLE,DIMENSION(:)::DISPART1,DISPART2,DISPART3,DISPART4,DISPART5,TYP_NODESN,TYP_NODESN_w
-INTEGER,ALLOCATABLE,DIMENSION(:)::iARRAY_PART1,iARRAY_PART2,iARRAY_PART3,iARRAY_PART4,iARRAY_PART5,i_ARRAY_PART2x
-REAL,ALLOCATABLE,DIMENSION(:)::rARRAY_PART4,rARRAY_PART2,rARRAY_PART3,rARRAY_PART5
-INTEGER,ALLOCATABLE,DIMENSION(:)::WDISPART1,WDISPART2,WDISPART3,WDISPART4,WDISPART5,WALLCOUNT_CPU_L,WALLCOUNT_CPU_G
-INTEGER,ALLOCATABLE,DIMENSION(:)::WiARRAY_PART1,WiARRAY_PART2,WiARRAY_PART3,WiARRAY_PART4,WiARRAY_PART5
-INTEGER,ALLOCATABLE,DIMENSION(:)::offset_vtu,connect_vtu,type_vtu,offset_vtu_W,connect_vtu_W,type_vtu_W
-REAL,ALLOCATABLE,DIMENSION(:,:)::sol_vtu,sol_vtu_W
-REAL,ALLOCATABLE,DIMENSION(:)::nodes_vtu,nodes_vtu_W
-REAL,ALLOCATABLE,DIMENSION(:)::WrARRAY_PART4,WrARRAY_PART2,WrARRAY_PART3,WrARRAY_PART5
-REAL,ALLOCATABLE,DIMENSION(:,:)::rARRAY_PART1,WrARRAY_PART1
-INTEGER::PART1_end,PART2_end,PART3_end,PART4_end,PART5_end
-INTEGER::WPART1_end,WPART2_end,WPART3_end,WPART4_end,WPART5_end
-INTEGER::KDUM1,KDUM2,write_variables,write_variables_av,NODES_PART
-INTEGER::WKDUM1,WKDUM2,write_variables_W,write_variables_av_W,WNODES_PART
-INTEGER::DATATYPEX,DATATYPEy,DATATYPEz,DATATYPEXx,DATATYPEyy,DATATYPEINT
-INTEGER,DIMENSION(1)::KDUM3
-CHARACTER(LEN=25)::Variable_names(15),Variable_names_av(15)
-INTEGER::WDATATYPEX,WDATATYPEy,WDATATYPEz,WDATATYPEXx,WDATATYPEyy,WDATATYPEINT
-INTEGER,DIMENSION(1)::WKDUM3
-CHARACTER(LEN=25)::Variable_names_W(15),Variable_names_av_W(15)
-integer::kloopx,iloopx,totwallsc,IWMAXE
-iNTEGER,ALLOCATABLE,DIMENSION(:)::WALLIT,OFFSETWALL,WALL_NODES,WALLCX,OFFSETWC,OFFSETWC_G,WALLCX_g,WALLSHAPE,WALLSHAPE_G,WALLSHAPE_G2
-iNTEGER,ALLOCATABLE,DIMENSION(:,:)::WALL_L
+integer,allocatable,dimension(:)::dispart1,dispart2,dispart3,dispart4,dispart5,typ_nodesn,typ_nodesn_w
+integer,allocatable,dimension(:)::iarray_part1,iarray_part2,iarray_part3,iarray_part4,iarray_part5,i_array_part2x
+real,allocatable,dimension(:)::rarray_part4,rarray_part2,rarray_part3,rarray_part5
+integer,allocatable,dimension(:)::wdispart1,wdispart2,wdispart3,wdispart4,wdispart5,wallcount_cpu_l,wallcount_cpu_g
+integer,allocatable,dimension(:)::wiarray_part1,wiarray_part2,wiarray_part3,wiarray_part4,wiarray_part5
+integer,allocatable,dimension(:)::offset_vtu,connect_vtu,type_vtu,offset_vtu_w,connect_vtu_w,type_vtu_w
+real,allocatable,dimension(:,:)::sol_vtu,sol_vtu_w
+real,allocatable,dimension(:)::nodes_vtu,nodes_vtu_w
+real,allocatable,dimension(:)::wrarray_part4,wrarray_part2,wrarray_part3,wrarray_part5
+real,allocatable,dimension(:,:)::rarray_part1,wrarray_part1
+integer::part1_end,part2_end,part3_end,part4_end,part5_end
+integer::wpart1_end,wpart2_end,wpart3_end,wpart4_end,wpart5_end
+integer::kdum1,kdum2,write_variables,write_variables_av,nodes_part
+integer::wkdum1,wkdum2,write_variables_w,write_variables_av_w,wnodes_part
+integer::datatypex,datatypey,datatypez,datatypexx,datatypeyy,datatypeint
+integer,dimension(1)::kdum3
+character(len=25)::variable_names(20),variable_names_av(20)
+integer::wdatatypex,wdatatypey,wdatatypez,wdatatypexx,wdatatypeyy,wdatatypeint
+integer,dimension(1)::wkdum3
+character(len=25)::variable_names_w(20),variable_names_av_w(20)
+integer::kloopx,iloopx,totwallsc,iwmaxe
+integer,allocatable,dimension(:)::wallit,offsetwall,wall_nodes,wallcx,offsetwc,offsetwc_g,wallcx_g,wallshape,wallshape_g,wallshape_g2
+integer,allocatable,dimension(:,:)::wall_l
 !--------------------- end of variables for parallel partitioned output-------!
-REAL,DIMENSION(3)::SRF_ORIGIN,SRF_VELOCITY
-REAL::PRESS_OUTLET1,PRESS_OUTLET2
-INTEGER::RFRAME,SOURCE_ACTIVE
-REAL::PER_ROT,ANGLE_PER,V_REF,KINIT_SRF,SRFG,TOL_PER
-REAL,ALLOCATABLE,DIMENSION(:,:)::POINT1_GL,POINT2_GL
-REAL,ALLOCATABLE,DIMENSION(:)::Radius_GL,MRF_ROT_GL
-INTEGER:: NROTORS
-INTEGER::NUM_DG_DOFS !NUMBER OF DEGREES OF FREEDOM FOR DG POLYNOMIAL APPROXIMATION
-INTEGER::NUM_DG_RECONSTRUCT_DOFS !NUMBER OF DEGREES OF FREEDOM FOR DG ORDER + 1, NOT INCLUDING NUM_DG_DOFS
-integer::INDICATOR_TYPE                !TROUBLED INDICATOR TYPE
+real,dimension(3)::srf_origin,srf_velocity,origin
+real::press_outlet,mach_outlet_target,mach_outlet_average,mach_outlet_relax
+integer::mach_outlet_update_freq
+integer::rframe,source_active
+real::per_rot,angle_per,v_ref,kinit_srf,srfg,tol_per
+real,allocatable,dimension(:,:)::point1_gl,point2_gl
+real,allocatable,dimension(:)::radius_gl,mrf_rot_gl
+integer:: nrotors
+integer::num_dg_dofs !number of degrees of freedom for dg polynomial approximation
+integer::num_dg_reconstruct_dofs !number of degrees of freedom for dg order + 1, not including num_dg_dofs
+integer::indicator_type                !troubled indicator type
 integer::viscous_s,jump_cond1,jump_cond2,jump_cond3
-INTEGER::CAVITATION
-REAL::INDICATOR_PAR1,INDICATOR_PAR2,INDICATOR_PAR3, Bound_lim  !TROUBLED INDICATOR PARAMETERS
+integer::cavitation
+real::indicator_par1,indicator_par2,indicator_par3, bound_lim  !troubled indicator parameters
 real::rhc1,rhc2,rhc3,rhc4
-real::prace_t1,prace_t2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7,prace_t8,prace_t9,pr_t1,pr_t2,pr_t3,pr_t4,PR_T5,PR_T6,PR_T7,PR_T8,PRACE_TX1,PRACE_TX2,PRACE_TX3
-!------------------START BLEED PARAMETERS-------------------!
-INTEGER::BLEED_NUMBER,BLEED,BLEED_TYPE
-REAL,ALLOCATABLE,DIMENSION(:,:)::bleed_start,bleed_end
-REAL,ALLOCATABLE,DIMENSION(:)::BLEED_PLENUM,BLEED_POROSITY
-!------------------END BLEED PARAMETERS-------------------!
-!--------------------------------------------------------------------------------------------------------------------------!
+real::a405   !perturbations amplitude
+real::total_pressure_inlet,total_temperature_inlet,density_inlet
+real::transition_location,transition_ramp_length
+real::prace_t1,prace_t2,prace_t3,prace_t4,prace_t5,prace_t6,prace_t7,prace_t8,prace_t9,pr_t1,pr_t2,pr_t3,pr_t4,pr_t5,pr_t6,pr_t7,pr_t8,prace_tx1,prace_tx2,prace_tx3
+!------------------start bleed parameters-------------------!
+integer::bleed_number,bleed,bleed_type
+real,allocatable,dimension(:,:)::bleed_start,bleed_end
+real,allocatable,dimension(:)::bleed_plenum,bleed_porosity
+!------------------end bleed parameters-------------------!
+!------------------------real gas effects section variables-----------------!
+!species order 'n2', 'o2', 'no', 'n ', 'o '
+integer::realgas			!flag for real gas effects
+integer::rg_nof_reactions	!number of reactions
+integer::rg_kf_type		    !type of reaction rate equations: 1. gupta, 2. candler
+integer::rg_relax		    !type of expression for vibrational relaxation time: 1. low t mw, high t park; 2. sum of mw and park
+real,allocatable,dimension(:)::rg_vf	!mass fraction of each species ([n2, o2, no, n, o])
+real,allocatable,dimension(:)::rg_molm  !molar mass of each species ([n2, o2, no, n, o])
+real,allocatable,dimension(:)::rg_hzero !enthalpy of formation: n2, o2, no, n, o
+real,allocatable,dimension(:)::rg_thetag	!diatomic vibrational characteristic temperatures [k]; atoms 0
+real,allocatable,dimension(:)::catalytic_con	!species concentrations at the wall
+integer::catalytic_wall						!flag for catalytic wall
+real::rg_t_inf								!temperature infinity (k)
+real::rg_t_wall_init										!temperature_wall_initial (k)
+real::rg_t_ref								!temperature_reference (k)
+integer::rg_nof_tv_coef						!number of tv-t equation coefficients
+real,allocatable,dimension(:,:)::rg_tv_coef	!tv-t equation coefficients ([n2,o2,no],[p1, p2, p3, p4]) (number of tv-t equation coefficients is not 0)
+real,parameter :: rgs_ru = 8.31446261815324	! j/kmol-k	!universal gas constast
+real::rg_ttr								!translational-rotational temperature
+real::rg_tve								!vibrational temperature
+real,allocatable,dimension(:)::rgs_mg 		!rg_molm * 1.0e3   ! g/mol for d_ij correlation
+real, parameter :: rgs_pa_per_atm = 101325.0	!pascals per atmosphere	101325.0
+real, parameter :: rgs_cm2s_to_m2s = 1.0e-4	!cm2s to m2s 1.0e-4
+real, parameter :: rgs_tiny = 1.0e-30 		!tiny number for real gas 1.0e-30
+! blottner viscosity coefficients (base-10 form)
+real,allocatable,dimension(:):: rgs_ab, rgs_bb,rgs_cb
+! classic lennard–jones parameters (σ [å], ε/k [k])
+real,allocatable,dimension(:):: rgs_sigmaa     	!(/ 3.667, 3.467, 3.492, 3.298, 3.050 /)
+real,allocatable,dimension(:):: rgs_eps_over_k !(/ 99.8 ,106.7 ,116.7 , 71.4, 80.0  /)
+!-------------------------------------------------------------------------!
+!----------------multiphysics-----------------------!
+!constants read from file
+integer::mp_modelc	!multispecies mode; 0=allaire (no diffusion of species), 1=multispecies
+real,allocatable,dimension(:)::gamma_in	!gamma for each species
+real,allocatable,dimension(:)::mp_a_in !volume fraction for each species in the inlet
+real,allocatable,dimension(:)::mp_r_in !density for each species in the inflow
+real,allocatable,dimension(:)::mp_pinf !p infinity for each species for the stiffened gas eos
+real,allocatable,dimension(:)::mp_m	!molecular weight kg/mol
+real,parameter,dimension(5)::mp_brok_a = (/ &
+  0.06170928, 0.10338607, 0.10039271, 0.02670999, 0.04674248 /) ! A-Blottner coefficients for each species in base-10 form
+real,parameter,dimension(5)::mp_brok_b = (/ &
+  0.31800000, -0.08260000, -0.03360000, 0.60300000, 0.42900000 /) ! B-Blottner coefficients for each species in base-10 form
+real,parameter,dimension(5)::mp_brok_c = (/ &
+  1.09247235, 2.00449077, 1.83945886, 0.61474842, 0.96218401 /) ! C-Blottner coefficients for each species in base-10 form
+real,allocatable,dimension(:)::mp_tlow_in, mp_thigh_in,mp_tmid_in	!mp_tlo_in
+real,allocatable,dimension(:,:,:) :: mp_janaf !janaf coefficients for cp/r: cp = r*(a1 + a2*t + a3*t^2 + a4*t^3 + a5*t^4)
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.2.   INTEGER ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! s.2.   integer allocatable variables here        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
 
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::PROBEI	!probe positions
-INTEGER,ALLOCATABLE,DIMENSION(:)::nodes_offset_local,nodes_offset_local2,nodes_offset_localW,nodes_offset_local2W	!offsets for the nodes for each cell in my cpu from the global list
-INTEGER,ALLOCATABLE,DIMENSION(:)::nodes_offset,nodes_offset2,nodes_offsetW,nodes_offsetW2	!offsets for the nodes for each cell  globally
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGH	!GLOBALIST OF ALL THE NEIGHBOURS IN THE GRID
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::GLNEIGHPER	!GLOBALIST OF ALL THE ROTATIONAL PERIODIC NEIGHBOURS IN THE GRID
-INTEGER,ALLOCATABLE,DIMENSION(:)::XSIZE,XGO,xgo_v,CHUNK_SIZE	!ALLOCATABLE INDEX FOR DESCRIBING WHICH STENCIL IS CONSIDERED WITHIN THE DIRECTIONAL STENCIL CONSTRUCTION ROUTINE
+integer,allocatable,dimension(:,:)::probei	!probe positions
+integer,allocatable,dimension(:)::nodes_offset_local,nodes_offset_local2,nodes_offset_localw,nodes_offset_local2w	!offsets for the nodes for each cell in my cpu from the global list
+integer,allocatable,dimension(:)::nodes_offset,nodes_offset2,nodes_offsetw,nodes_offsetw2	!offsets for the nodes for each cell  globally
+integer,allocatable,dimension(:,:)::glneigh	!globalist of all the neighbours in the grid
+integer,allocatable,dimension(:,:)::glneighper	!globalist of all the rotational periodic neighbours in the grid
+integer,allocatable,dimension(:)::xsize,xgo,xgo_v,chunk_size	!allocatable index for describing which stencil is considered within the directional stencil construction routine
 integer,allocatable,dimension(:)::my_nodesl,my_nodesg	!allocatable arrays for local and global indexing of nodes belonging to each cpu (no duplications)
-
-INTEGER,ALLOCATABLE,DIMENSION(:)::IBOUND_T,ibound_t2	!ALLOCATABLE INDEX FOR DESCRIBING THE SHYAPE OF THE CONSIDERED CELL
-INTEGER,ALLOCATABLE,DIMENSION(:)::ISELEMT	!total number of elements in each stencil (extended one)
-INTEGER,ALLOCATABLE,DIMENSION(:)::XMPIALL,OFFSET,xmpiwall,woffset,xmpi_re,xmpi_wre,offset_v,XMPIALL_v		!allocatable index FOR STENCIL ROUTINE
-
-
-INTEGER,ALLOCATABLE,DIMENSION(:)::EL_INT,EL_BND
-INTEGER,ALLOCATABLE,DIMENSION(:)::PARE,DOSE,PAREEL,PARES
-INTEGER,ALLOCATABLE,DIMENSION(:,:)::DOSEEL,SOSEEL
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:)::ILOCALSTENCIL	!4-D ARRAY FOR STENCILS
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:)::ILOCALSTENCILPER	!4-D ARRAY FOR ROTATIONAL PERIODIC STENCILS
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:)::ILOCALALLELG	!4-D ARRAY FOR STENCILS 
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:)::ILOCALALLELGPER	    !4-D ARRAY FOR ROTATIONAL PERIODIC STENCILS
-INTEGER,ALLOCATABLE,DIMENSION(:)::XMPIE			!GLOBAL LIST OF NUMBER OF ELEMENTS THAT BELONG TO EACH CPU
-INTEGER,ALLOCATABLE,DIMENSION(:)::XMPIL			!LOCAL LIST OF NUMBER OF ELEMENTS THAT BELONG TO EACH CPU
-INTEGER,ALLOCATABLE,DIMENSION(:)::XMPIN			!NOT USED CAN GET RID OF
-INTEGER,ALLOCATABLE,DIMENSION(:)::XMPIELRANK		!NUMBER OF ELEMENTS IN THIS CPU
-INTEGER,ALLOCATABLE,DIMENSION(:)::XMPINRANK		!NOT USED CAN GET RID OF
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:)::XMPINNUMBER	!NOT USED CAN GET RID OF
-INTEGER,ALLOCATABLE,DIMENSION(:)::STCON			!DUMMY VARIABLE FOR RECURSIVE SUBROUTINE OF STENCILS
-INTEGER,ALLOCATABLE,DIMENSION(:)::STCONC		!DUMMY VARIABLE FOR RECURSIVE SUBROUTINE OF STENCILS
-INTEGER,ALLOCATABLE,DIMENSION(:)::STCONS		!DUMMY VARIABLE FOR RECURSIVE SUBROUTINE OF STENCILS
-INTEGER,ALLOCATABLE,DIMENSION(:)::LIST,INEB,IPERB,NODELIST		!DUMMY VARIABLE FOR RECURSIVE SUBROUTINE OF STENCILS
-INTEGER,ALLOCATABLE,DIMENSION(:,:,:,:)::ILOCALALLS      !DUMMY VARIABLE FOR RECURSIVE SUBROUTINE OF STENCILS
-INTEGER::THERMAL,TEMP_MODEL
+integer,allocatable,dimension(:)::ibound_t,ibound_t2	!allocatable index for describing the shyape of the considered cell
+integer,allocatable,dimension(:)::iselemt	!total number of elements in each stencil (extended one)
+integer,allocatable,dimension(:)::xmpiall,offset,xmpiwall,woffset,xmpi_re,xmpi_wre,offset_v,xmpiall_v		!allocatable index for stencil routine
+integer,allocatable,dimension(:)::el_int,el_bnd
+integer,allocatable,dimension(:)::pare,dose,pareel,pares
+integer,allocatable,dimension(:,:)::doseel,soseel
+integer,allocatable,dimension(:,:,:,:)::ilocalstencil	!4-d array for stencils
+integer,allocatable,dimension(:,:,:,:)::ilocalstencilper	!4-d array for rotational periodic stencils
+integer,allocatable,dimension(:,:,:,:)::ilocalallelg	!4-d array for stencils
+integer,allocatable,dimension(:,:,:,:)::ilocalallelgper	    !4-d array for rotational periodic stencils
+integer,allocatable,dimension(:)::xmpie			!global list of number of elements that belong to each cpu
+integer,allocatable,dimension(:)::xmpil			!local list of number of elements that belong to each cpu
+integer,allocatable,dimension(:)::xmpin			!not used can get rid of
+integer,allocatable,dimension(:)::xmpielrank		!number of elements in this cpu
+integer,allocatable,dimension(:)::xmpinrank		!not used can get rid of
+integer,allocatable,dimension(:,:,:)::xmpinnumber	!not used can get rid of
+integer,allocatable,dimension(:)::stcon			!dummy variable for recursive subroutine of stencils
+integer,allocatable,dimension(:)::stconc		!dummy variable for recursive subroutine of stencils
+integer,allocatable,dimension(:)::stcons		!dummy variable for recursive subroutine of stencils
+integer,allocatable,dimension(:)::list,ineb,iperb,nodelist		!dummy variable for recursive subroutine of stencils
+integer,allocatable,dimension(:,:,:,:)::ilocalalls      !dummy variable for recursive subroutine of stencils
+integer::thermal,temp_model
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.3.   REAL VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! s.3.   real variables here        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
-REAL::wenocentralweight,TIMESTEP,oo2,zero,forcex,forcey,forcez,extf,vorder,MOOD_VAR1,MOOD_VAR2,MOOD_VAR3,MOOD_VAR4
+real::wenocentralweight,timestep,oo2,zero,forcex,forcey,forcez,extf,vorder,mood_var1,mood_var2,mood_var3,mood_var4
+real::pi					!pi trigonometri
+real::taylor,taylor_ens,taylor_ensx					!only to be used for taylor green vortex
+real::voll					!total volume of the domain
+real::wall_temp					!wall temperature model
+real::upturblimit				!upper turbulence viscosity ratio
+real::hybridist					!upper turbulence viscosity ratio
+real,parameter ::to4=3.0d0/4.0d0
+real,parameter ::oo4=1.0d0/4.0d0
+real,parameter ::to3=2.0d0/3.0d0
+real,parameter ::oo3=1.0d0/3.0d0
+real,parameter :: turb_diag_floor_frac=5.0d-2
+real,parameter :: turb_source_cap_frac=5.0d-1
+real,parameter :: turb_diag_abs_floor=1.0d-30
+real::reynolds					!reynolds number
+real::cflmax					!maximum number of allowable cfl to be used only with implicit
+real::prevres					!previous residual in order to determine ramping strategy
+real::vectorx					!setting up with respect to which plane the aoa is defined x
+real::vectory					!setting up with respect to which plane the aoa is defined y
+real::vectorz					!setting up with respect to which plane the aoa is defined z
+real::gridar1					!aspect ratio of grid
+real::gridar2					!maximum volume aspect ratio of stencils
+real::t						!time
+real::totalvolume				!total volume of domain
+real::reslimit       				!limit to stop the simulation
 
-real,ALLOCATABLE,DIMENSION(:)::SUMVARS,MAXVARS,aver_Vars            !VARIABLES FOR BOUNDS OF TROUBLED CELL INDICATOR
-
-
-REAL::PI					!PI TRIGONOMETRI
-REAL::TAYLOR,taylor_ens,TAYLOR_ENSX					!ONLY TO BE USED FOR TAYLOR GREEN VORTEX
-REAL::VOLL					!TOTAL VOLUME OF THE DOMAIN	
-REAL::WALL_TEMP					!WALL TEMPERATURE MODEL
-REAL::UPTURBLIMIT				!UPPER TURBULENCE VISCOSITY RATIO
-REAL::HYBRIDIST					!UPPER TURBULENCE VISCOSITY RATIO
-
-REAL::REYNOLDS					!REYNOLDS NUMBER
-REAL::CFLMAX					!MAXIMUM NUMBER OF ALLOWABLE CFL TO BE USED ONLY WITH IMPLICIT
-REAL::PREVRES					!PREVIOUS RESIDUAL IN ORDER TO DETERMINE RAMPING STRATEGY
-REAL::VECTORX					!SETTING UP WITH RESPECT TO WHICH PLANE THE AOA IS DEFINED X
-REAL::VECTORY					!SETTING UP WITH RESPECT TO WHICH PLANE THE AOA IS DEFINED Y
-REAL::VECTORZ					!SETTING UP WITH RESPECT TO WHICH PLANE THE AOA IS DEFINED Z
-REAL::GRIDAR1					!ASPECT RATIO OF GRID
-REAL::GRIDAR2					!MAXIMUM VOLUME ASPECT RATIO OF STENCILS
-REAL::T						!TIME	
-REAL::TOTALVOLUME				!TOTAL VOLUME OF DOMAIN
-REAL::RESLIMIT       				!LIMIT TO STOP THE SIMULATION
-
-REAL::RES_TIME					!RESTART_TIME
-REAL::IEVERY2					!HOW OFTEN TO WRITE OUTPUT
-REAL::WALLC					!WALL CLOCK LIMIT IN SECONDS
-REAL::BETAAS					!BETAAS OF SUTHERLAND EXPONENT
-REAL::SUTHER					!SUTHERLAND NON DIMENSIONAL CONSTANT OF TEMPERATURE
-REAL::PRANDTL					!PRANDTL NUMBER
-REAL::SCALER					!FOR SCALING THE MESH 
-REAL::LWCI1					!LINEAR WENO WEIGHT OF CENTRAL STENCILS				!
-REAL::RESMAX					!RESIDUAL DIMENSIONAL MEAN FLOW
-REAL::RESMAXT					!RESIDUAL DIMENSIONAL TURBULENCE
-REAL::CFL					!CFL NUMBER
-REAL::IEVERY,MODEIO					!HOW OFTEN TO WRITE OUTPUT
-REAL::IEVERYAV					!HOW OFTEN TO WRITE OUTPUT OF AVERAGE SOLUTION
-REAL:: FIRSTRESU				!RESIDUAL DIMENSIONAL MEAN FLOW
-REAL::FIRSTRESV					!RESIDUAL DIMENSIONAL MEAN FLOW
-REAL::FIRSTRESW					!RESIDUAL DIMENSIONAL MEAN FLOW
-REAL::FIRSTRESE					!RESIDUAL DIMENSIONAL MEAN FLOW
-REAL::FIRSTRESR					!RESIDUAL DIMENSIONAL MEAN FLOW
-REAL::FIRSTREST					!RESIDUAL DIMENSIONAL MEAN FLOW
-REAL::FIRSTRESK					!RESIDUAL DIMENSIONAL MEAN FLOW
-REAL::FIRSTRESOMEGA				!RESIDUAL DIMENSIONAL MEAN FLOW
-REAL::FIRSTRESPASS				!RESIDUAL DIMENSIONAL MEAN FLOW
-REAL::GAMMA
-REAL::UVEL					!U VELOCITY
-REAL::UFREESTREAM				!U VELOCITY
-REAL::VVEL					!V-VELOCITY
-REAL::WVEL					!W-VELOCITY
-REAL::PRES					!PRESSURE
-REAL::RRES					!DENSITY
-REAL::SPOS					!SPEED OF SOUND
-REAL::ETOT					!TOTAL ENERGY
-REAL::SPKIN					!SPECIFIC KINETIC ENERGY
-REAL::LAM					!HEAT CONDUCTIVITY (WATT/(MK))
-REAL::VISC					!VISCOSITY
-REAL::LAMX					!FLAGS TO BE USED FOR RESTARTING
-REAL::LAMY					!FLAGS TO BE USED FOR RESTARTING
-REAL::LAMZ					!FLAGS TO BE USED FOR RESTARTING
-REAL::ALPHA,BETA		!FLAGS TO BE USED FOR RESTARTING
-REAL::OUT_TIME					!FINAL TIME TO WRITE OUTPUT FOR UNSTEADY SIMULATIONS
-REAL::EVERY_TIME,EK_TIME					!FINAL TIME TO WRITE OUTPUT FOR UNSTEADY SIMULATIONS
-REAL::XPER					!PERIODICITY IN X AXIS
-REAL::YPER					!PERIODICITY IN Y AXIS
-REAL::ZPER					!PERIODICITY IN Z AXIS
-REAL::AOA					!ANGLE OF ATTACK	
-REAL::CHARLENGTH				!CHARACTERISTIC LENGTH IF UNDEFINED, AND REYNOLDS UNDEFINED THE FREE STREAM WILL BE USED FOR AIR
-						!TURBULENCE MODEL constants
-REAL::TURBINIT				!TURBULENCE INITIAL VALUE VT/V
-REAL::CB1
-REAL::CB2
-REAL::SIGMA
-REAL::KAPPA
-REAL::CW1
-REAL::CW2
-REAL::CW3
-REAL::CV1
-REAL::CT1
-REAL::CT2
-REAL::CT3
-REAL::CT4
-REAL::PRTU
-REAL::TWALL
-CHARACTER(LEN=30)::STATFILE,ST_N_CPU,ST_N_THREADS
-INTEGER::THREAD_N
-REAL::SIGMA_K1
-REAL::SIGMA_K2
-REAL::SIGMA_OM1
-REAL::SIGMA_OM2
-REAL::AA_1
-REAL::BETA_I1
-REAL::BETA_I2
-REAL::ALPHA_STARINF
-REAL::ALPHA_0
-REAL::BETA_STARINF
-REAL::R_BETA
-REAL::R_K_SST
-REAL::BETA_T
-REAL::KAPPA_SST
-REAL::R_OM_SST
-REAL::ZETA_STAR
-REAL::M_T0
-REAL::C_SMG
-REAL::ETA2_SAS
-REAL::SIGMA_PHI
-REAL::C_SAS
-REAL::ALPHA_INF1
-REAL::ALPHA_INF2
-REAL::ALPHA_STAR0
-REAL::C_MU_INLET   						!FUNCTIONS FOR SST
-REAL::L_TURB_INLET
-REAL::I_TURB_INLET
-REAL::INIT_MU_RATIO
-REAL::C_DES_SA
-REAL::C_DES_SST
-REAL:: SCHMIDT_LAM
-REAL::SCHMIDT_TURB
-real::tolsmall,TOLBIG,allresdt,tz1
-REAL,DIMENSION(7)::ALLRES,INITIALRES
-REAL,dimension(100,3)::bubble_centre
+real::res_time					!restart_time
+real::ievery2					!how often to write output
+real::wallc					!wall clock limit in seconds
+real::betaas					!betaas of sutherland exponent
+real::suther					!sutherland non dimensional constant of temperature
+real::prandtl					!prandtl number
+real::scaler					!for scaling the mesh
+real::lwci1					!linear weno weight of central stencils				!
+real::resmax					!residual dimensional mean flow
+real::resmaxt					!residual dimensional turbulence
+real::cfl					!cfl number
+real::ievery,modeio					!how often to write output
+real::ieveryav					!how often to write output of average solution
+real:: firstresu				!residual dimensional mean flow
+real::firstresv					!residual dimensional mean flow
+real::firstresw					!residual dimensional mean flow
+real::firstrese					!residual dimensional mean flow
+real::firstresr					!residual dimensional mean flow
+real::firstrest					!residual dimensional mean flow
+real::firstresk					!residual dimensional mean flow
+real::firstresomega				!residual dimensional mean flow
+real::firstrespass				!residual dimensional mean flow
+real::gamma
+real::uvel					!u velocity
+real::ufreestream				!u velocity
+real::Mach_in					!prescribed inlet Mach number
+real::vvel					!v-velocity
+real::wvel					!w-velocity
+real::pres					!pressure
+real::rres					!density
+real::spos					!speed of sound
+real::spkin					!specific kinetic energy
+real::lam					!heat conductivity (watt/(mk))
+real::visc					!viscosity
+real::lamx					!flags to be used for restarting
+real::lamy					!flags to be used for restarting
+real::lamz					!flags to be used for restarting
+real::alpha,beta		!flags to be used for restarting
+real::out_time					!final time to write output for unsteady simulations
+real::every_time,ek_time					!final time to write output for unsteady simulations
+real::xper					!periodicity in x axis
+real::yper					!periodicity in y axis
+real::zper					!periodicity in z axis
+real::aoa					!angle of attack
+real::charlength				!characteristic length if undefined, and reynolds undefined the free stream will be used for air
+						!turbulence model constants
+real::turbinit				!turbulence initial value vt/v
+real::cb1
+real::cb2
+real::sigma
+real::kappa
+real::cw1
+real::cw2
+real::cw3
+real::cv1
+real::ct1
+real::ct2
+real::ct3
+real::ct4
+real::prtu
+real::twall
+character(len=30)::statfile,st_n_cpu,st_n_threads
+integer::thread_n
+real::sigma_k1
+real::sigma_k2
+real::sigma_om1
+real::sigma_om2
+real::aa_1
+real::beta_i1
+real::beta_i2
+real::alpha_starinf
+real::alpha_0
+real::beta_starinf
+real::r_beta
+real::r_k_sst
+real::beta_t
+real::kappa_sst
+real::r_om_sst
+real::zeta_star
+real::m_t0
+real::c_smg
+real::eta2_sas
+real::sigma_phi
+real::c_sas
+real::alpha_inf1
+real::alpha_inf2
+real::alpha_star0
+real::c_mu_inlet   						!functions for sst
+real::l_turb_inlet
+real::i_turb_inlet
+real::init_mu_ratio
+real::c_des_sa
+real::c_des_sst
+real:: schmidt_lam
+real::schmidt_turb
+real::tolsmall,tolbig,allresdt,tz1
+real,dimension(1:gpu_max_nvar_total)::allres,initialres
+real,dimension(100,3)::bubble_centre
 real,dimension(100)::bubble_radius
-INTEGER::NOF_BUBBLES
+integer::nof_bubbles
 
 real:: momentx,momenty,momentz
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.4.   REAL ALLOCATABLE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! s.4.   real allocatable variables here        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
-REAL,ALLOCATABLE,DIMENSION(:)::gamma_IN,MP_R_IN,MP_A_IN,MP_PINF !MULTIPHASE COMPONENTS	
-REAL,ALLOCATABLE,DIMENSION(:)::MODAL_FILTER,ADDA_FILTER_WEAK,ADDA_FILTER_STRONG,MODAL_FILTER_STRONG,MODAL_FILTER_WEAK
-REAL::L1NORM		!L1 NORM OF SOLUTION FOR GRID CONVERGENCE STUDIES OF EULER AND LINEAR ADVECTION EQUATIONS
-REAL::L2NORM		!L2 NORM OF SOLUTION FOR GRID CONVERGENCE STUDIES OF EULER AND LINEAR ADVECTION EQUATIONS
-REAL::L0NORM,STENNORM		!L0 NORM OF SOLUTION FOR GRID CONVERGENCE STUDIES OF EULER AND LINEAR ADVECTION EQUATIONS
-REAL::DT 					!REAL TIME STEP SIZE       
-REAL,ALLOCATABLE,DIMENSION(:)::AVRG		!TEMPORARY SOLUTION AVERAGES
-REAL,ALLOCATABLE,DIMENSION(:,:)::JAC		!jacobians
-REAL,ALLOCATABLE,DIMENSION(:,:)::INVERSEJAC	!inverse jacobians
-REAL,ALLOCATABLE,DIMENSION(:)::DETERJAC		!determinant jacobians
-REAL,ALLOCATABLE,DIMENSION(:,:)::PROBEC		!probe positions
+real,allocatable,dimension(:)::modal_filter,adda_filter_weak,adda_filter_strong,modal_filter_strong,modal_filter_weak
+real::l1norm		!l1 norm of solution for grid convergence studies of euler and linear advection equations
+real::l2norm		!l2 norm of solution for grid convergence studies of euler and linear advection equations
+real::l0norm,stennorm		!l0 norm of solution for grid convergence studies of euler and linear advection equations
+real::dt 					!real time step size
+real,allocatable,dimension(:)::avrg		!temporary solution averages
+real,allocatable,dimension(:,:)::jac		!jacobians
+real,allocatable,dimension(:,:)::inversejac	!inverse jacobians
+real,allocatable,dimension(:)::deterjac		!determinant jacobians
+real,allocatable,dimension(:,:)::probec		!probe positions
+real,allocatable,dimension(:,:)::impdu		!implicit only change of solution
+real,allocatable,dimension(:,:,:)::impdiag	!implicit only diagonal matrix d
+real,allocatable,dimension(:,:,:,:)::impoff	!implicit only off diagonal matrix d
+real,allocatable,dimension(:)::impdiag_mf	!implicit only diagonal matrix d
+real,allocatable,dimension(:,:)::impoff_mf	!implicit only off diagonal matrix d
+real,allocatable,dimension(:,:,:)::impofft	!implicit only off diagonal matrix d for turbulence
+real,allocatable,dimension(:,:)::impdiagt	!implicit only  diagonal matrix d for turbulence
+real,allocatable,dimension(:,:)::sht		!implicit only  source term jacobian
+real,allocatable,dimension(:,:)::sht_rg		!implicit only  soruce term jacobian
+real,allocatable,dimension(:)::maxdiff		!se
+real,allocatable,dimension(:)::mindiff		!se
+real,allocatable,dimension(:)::tmaxdiff		!se
+real,allocatable,dimension(:)::tmindiff		!se
+real,allocatable,dimension(:)::xmin		!se
+real,allocatable,dimension(:)::xmax		!se
+real,allocatable,dimension(:)::ymin		!se
+real,allocatable,dimension(:)::ymax		!se
+real,allocatable,dimension(:)::zmin		!se
+real,allocatable,dimension(:)::zmax		!se
+real,allocatable,dimension(:)::cpux1		!timer
+real,allocatable,dimension(:)::cpux2		!timer
+real,allocatable,dimension(:)::cpux3		!timer
+real,allocatable,dimension(:)::cpux4		!timer
+real,allocatable,dimension(:)::cpux5		!timer
+real,allocatable,dimension(:)::cpux6		!timer
+real,allocatable,dimension(:)::cpux7		!timer
+real,allocatable,dimension(:)::timex1		!timer
+real,allocatable,dimension(:)::timex2		!timer
+real,allocatable,dimension(:)::timex3		!timer
+real,allocatable,dimension(:)::timex4		!timer
+real,allocatable,dimension(:)::timex5		!timer
+real,allocatable,dimension(:)::timex6		!timer
+real,allocatable,dimension(:,:)::ifin		!temporary pointer for sync output
+real,allocatable,dimension(:,:)::tfin		!temporary pointer for sync output
+real,allocatable,dimension(:,:)::centerr	!for directional stencils
+integer, allocatable,dimension(:)::cand,cands,candr
+integer, allocatable,dimension(:,:)::candxr,candxs,cand2s,cand2rt
+integer, allocatable,dimension(:,:,:)::cand2r
+real, allocatable,dimension(:,:)::xand2s,xand2rt
+real, allocatable,dimension(:,:,:)::xand2r
+real,allocatable,dimension(:)::flux_term_left_z,flux_term_left_x,flux_term_left_y
+real,allocatable,dimension(:)::flux_term_right_z,flux_term_right_x,flux_term_right_y
+real,allocatable,dimension(:,:)::sind1,sind2,sind3,sind4,sind5,sind6
+integer::ineedhalo,ineedhalos				       !global flat arrays for the number of processors that i need halo cells from
+integer,allocatable::ineedbound,ineedbounds		   !global flat arrays for the number of processors that  for boundaries
+integer,allocatable::halo_len(:),halos_len(:)	   !how many elements from each processor for the halo cells
+integer,allocatable::halo_offset(:),halos_offset(:)	   !their offset
+integer,allocatable::bound_len(:),bounds_len(:)	   !how many elements from each processor for the boundary cells
+integer,allocatable::need_side(:),need_q(:),need_loc(:)
+integer, allocatable::halo_proc(:),halos_proc(:)
+integer,allocatable::solhi_loc(:)
+integer,allocatable::bound_proc(:),bounds_proc(:)
+integer,allocatable::bound_offset(:),bounds_offset(:)   !their offset
+real,allocatable::solhir(:,:),solhis(:,:)		   !receiving flat array for halo cells mean values
+real,allocatable::solhird(:),solhisd(:)			!receiving flat array for halo cells adda terms
+real,allocatable::boundhiri(:,:),boundhisi(:,:)		!receiving flat array for boundary cells implicit time stepping
+real,allocatable::boundhir(:,:),boundhis(:,:)			!receiving flat array for boundary cells gradients and solutions
+real,allocatable::boundhir_dg(:,:),boundhis_dg(:,:)		!receiving flat array for boundary cells gradients and solutions for dg
+integer,allocatable::boundhirm(:),boundhism(:)		!receiving flat array for mood states
+real,allocatable::solhir_flat(:),solhis_flat(:),boundhir_flat(:),boundhis_flat(:)
+real,allocatable::boundhir_dgflat(:),boundhis_dgflat(:), boundhiri_flat(:), boundhisi_flat(:)
+integer::bound_total,bounds_total, halo_total, halos_total,ilength1,ilength2
 
-
-REAL,ALLOCATABLE,DIMENSION(:,:)::IMPDU		!IMPLICIT ONLY CHANGE OF SOLUTION
-
-REAL,ALLOCATABLE,DIMENSION(:,:,:)::IMPDIAG	!IMPLICIT ONLY DIAGONAL MATRIX D
-REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::IMPOFF	!IMPLICIT ONLY OFF DIAGONAL MATRIX D
-REAL,ALLOCATABLE,DIMENSION(:)::IMPDIAG_MF	!IMPLICIT ONLY DIAGONAL MATRIX D
-REAL,ALLOCATABLE,DIMENSION(:,:)::IMPOFF_MF	!IMPLICIT ONLY OFF DIAGONAL MATRIX D
-REAL,ALLOCATABLE,DIMENSION(:,:,:)::IMPOFFT	!IMPLICIT ONLY OFF DIAGONAL MATRIX D FOR TURBULENCE
-REAL,ALLOCATABLE,DIMENSION(:,:)::IMPDIAGT	!IMPLICIT ONLY  DIAGONAL MATRIX D FOR TURBULENCE
-REAL,ALLOCATABLE,DIMENSION(:,:)::SHT		!IMPLICIT ONLY  SORUCE TERM JACOBIAN
-
-
-REAL,ALLOCATABLE,DIMENSION(:)::maxDiff		!SE
-REAL,ALLOCATABLE,DIMENSION(:)::minDiff		!SE
-REAL,ALLOCATABLE,DIMENSION(:)::tmaxDiff		!SE
-REAL,ALLOCATABLE,DIMENSION(:)::tminDiff		!SE
-REAL,ALLOCATABLE,DIMENSION(:)::XMIN		!SE
-REAL,ALLOCATABLE,DIMENSION(:)::XMAX		!SE
-REAL,ALLOCATABLE,DIMENSION(:)::YMIN		!SE
-REAL,ALLOCATABLE,DIMENSION(:)::YMAX		!SE
-REAL,ALLOCATABLE,DIMENSION(:)::ZMIN		!SE
-REAL,ALLOCATABLE,DIMENSION(:)::ZMAX		!SE
-REAL,ALLOCATABLE,DIMENSION(:)::CPUX1		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::CPUX2		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::CPUX3		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::CPUX4		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::CPUX5		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::CPUX6		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::CPUX7		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::TIMEX1		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::TIMEX2		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::TIMEX3		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::TIMEX4		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::TIMEX5		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:)::TIMEX6		!TIMER
-REAL,ALLOCATABLE,DIMENSION(:,:)::IFIN		!TEMPORARY POINTER FOR SYNC OUTPUT
-REAL,ALLOCATABLE,DIMENSION(:,:)::TFIN		!TEMPORARY POINTER FOR SYNC OUTPUT
-REAL,ALLOCATABLE,DIMENSION(:,:)::CENTERR	!FOR DIRECTIONAL STENCILS	
-integer, allocatable,dimension(:)::cand,CANDS,CANDR
-integer, allocatable,dimension(:,:)::CANDXR,candxS,CAND2S,CAND2rT
-integer, allocatable,dimension(:,:,:)::CAND2R
-REAL, allocatable,dimension(:,:)::XAND2S,XAND2rT
-REAL, allocatable,dimension(:,:,:)::XAND2R
-REAL,ALLOCATABLE,DIMENSION(:)::FLUX_TERM_LEFT_Z,FLUX_TERM_LEFT_X,FLUX_TERM_LEFT_Y
-REAL,ALLOCATABLE,DIMENSION(:)::FLUX_TERM_RIGHT_Z,FLUX_TERM_RIGHT_X,FLUX_TERM_RIGHT_Y
-real,allocatable,dimension(:,:)::SIND1,SIND2,SIND3,SIND4,SIND5,SIND6
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! S.5.   DATA TYPE VARIABLES HERE        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! s.5.   data type variables here        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !--------------------------------------------------------------------------------------------------------------------------!
- 
-TYPE::VOL_GQP
-    REAL,ALLOCATABLE,DIMENSION(:)::X,Y,Z,QP_WEIGHT
-END TYPE VOL_GQP
+type::aneixx
+      integer::cpu                              !cpu index
+      integer,allocatable,dimension(:,:)::elem1 !elements indexing
+      real,allocatable,dimension(:)::centers    !centers of cells for weno directionals stencils and compact stencils
+end type aneixx
 
-TYPE(VOL_GQP),ALLOCATABLE,DIMENSION(:)::QP_ARRAY !CELL NUM, QP NUM
+type(aneixx),allocatable,dimension(:)::dneix1
 
-TYPE::U_CENTRE					!DATA TYPE THAT HOLDS THE CELL CENTER VALUES FOR THE EQUATIONS TO BE SOLVED
-	REAL,ALLOCATABLE,DIMENSION(:,:)::VAL	!ACTUAL VALUES (FIRST INDEX CORRESPONDS TO RUNGE-KUTTA STAGE,THE SECOND ONE CORRESPONDS TO NUMBER OF VARIABLES FOR MEAN FLOW EQUATIONS)
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::VALDG !ACTUAL VALUES (RK STAGE, VARIABLE NUMBER, CELL-AVERAGED SOLUTION VARIABLES AND EXPANSION COEFFICIENTS)
-	REAL,ALLOCATABLE,DIMENSION(:)::RMS	!RMS VALUES OF THE CONSERVED VECTOR IN CASE OF TRANSIENT SIMULATIONS
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::BR2_AUX_VAR ! (NUM_DG_DOFS, NOF_VARIABLES, DIMENSIONA)
-END TYPE U_CENTRE
+type aexchange_cord
+	integer::procid        !id of processor
+	integer::howmany       ! how many elements are needed
+	real,allocatable,dimension(:,:,:)::nodecord    !the coordinates of the element
+end type aexchange_cord
 
-
-TYPE::mass_matrix					!DATA TYPE THAT HOLDS THE DG_mass_matrix
-	REAL,ALLOCATABLE,DIMENSION(:,:)::VAL	
-END TYPE mass_matrix
-
-TYPE::FACE_D
-	INTEGER,ALLOCATABLE,DIMENSION(:)::Q_MAPL,QMAPD
-END TYPE FACE_D
-
-TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:)::U_C 	!1-D ARRAY FOR TYPE FOR SOLUTION OF MEAN FLOW EQUATIONS
-TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:)::U_cx,U_CS,U_CW 	!1-D ARRAY FOR TYPE FOR SOLUTION OF MEAN FLOW EQUATIONS
-TYPE(U_CENTRE),ALLOCATABLE,DIMENSION(:)::U_CT 	!1-D ARRAY FOR TYPE FOR SOLUTION OF TURBULENT EQUATIONS 
-TYPE(mass_matrix),ALLOCATABLE,DIMENSION(:)::m_1 	!1-D ARRAY FOR TYPE FOR SOLUTION OF TURBULENT EQUATIONS
+type(aexchange_cord),allocatable,dimension(:)::diexcordr  !receiving data type
+type(aexchange_cord),allocatable,dimension(:)::diexcords  !sending data type
 
 
-TYPE::U_EXACT					!DATA TYPE THAT HOLDS THE CELL CENTER VALUES OF THE EXACT SOLUTION FOR LINEAR ADVECTION OF EULER EQUATIONS IF AN EXACT SOLUTION EXISTS
-	REAL,ALLOCATABLE,DIMENSION(:,:)::VAL	!VALUES OF THE EXACT SOLUTION
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::VALDG
-END TYPE U_EXACT
-TYPE(U_EXACT),ALLOCATABLE,DIMENSION(:)::U_E	!1-D ARRAY FOR TYPE FOR EXACT SOLUTION OF MEAN FLOW EQUATIONS
+type aexchange_solhi
+	integer::procid    !id of processor
+	integer::iavt      !number of processors that we need to receive/or send data
+	integer::iavc      !number of processors that we need to receive/or send data
+	integer::fast
+	integer::howmany   !how many elements are needed
+	real,allocatable,dimension(:,:)::sol   !array to hold the values to be send/received
+end type aexchange_solhi
 
-
-TYPE::SUMFLUXES					!DATA TYPE FOR THE FLUXES CONTRIBUTION
-	REAL,ALLOCATABLE,DIMENSION(:)::VAL	!NUMBER OF VALUES FOR THE FLUXES
-	REAL,ALLOCATABLE,DIMENSION(:,:)::VALDG	!NUMBER OF VALUES FOR THE FLUXES (DOFS, VARIABLE)
-	REAL,ALLOCATABLE,DIMENSION(:,:)::SOL_MM_DG!NUMBER OF VALUES FOR THE FLUXES (DOFS, VARIABLE)
-END TYPE SUMFLUXES
-TYPE(SUMFLUXES),ALLOCATABLE,DIMENSION(:)::SUMCONFLUX	!CONVECTIVE FLUXES MEAN FLOW EQUATIONS
-TYPE(SUMFLUXES),ALLOCATABLE,DIMENSION(:)::SUMVISCFLUX	!VISCOUS FLUXES MEAN FLOW EQUATIONS
-TYPE(SUMFLUXES),ALLOCATABLE,DIMENSION(:)::SOURCETERM	!SOURCETERM
-TYPE(SUMFLUXES),ALLOCATABLE,DIMENSION(:)::SUMCONFLUXT	!CONVECTIVE FLUXES ADDITIONAL EQUATIONS
-TYPE(SUMFLUXES),ALLOCATABLE,DIMENSION(:)::SUMVISCFLUXT  !VISCOUS FLUXES ADDITIONAL EQUATIONS
-TYPE(SUMFLUXES),ALLOCATABLE,DIMENSION(:)::RHS		!RIGHT HAND SIDE OF THE MEAN FLOW EQUATIONS (SUM OF ALL FLUXES CONTRIBUTIONS)
-TYPE(SUMFLUXES),ALLOCATABLE,DIMENSION(:)::RHST		!RIGHT HAND SIDE OF THE ADDITIONAL FLOW EQUATIONS (SUM OF ALL FLUXES CONTRIBUTIONS)
-
-
-TYPE INTEGRALBASIS !INTEGRAL BASIS FUNCTIONS
-	REAL,allocatable,dimension(:)::VALUE,VALUEc !VALUES FOR THE HIGH AND LOWER-ORDER POLYNOMIALS RESPECTIVELY
-END TYPE INTEGRALBASIS
-TYPE(INTEGRALBASIS),ALLOCATABLE,DIMENSION(:)::INTEG_BASIS,integ_basis_dg
+type(aexchange_solhi),allocatable,dimension(:)::diexsolhir,diexsolhird    !receiving data type for halo cells of stencils
+type(aexchange_solhi),allocatable,dimension(:)::diexsolhis,diexsolhisd    !sending data type for halo cells of stencils
 
 
 
+type aexchange_boundhi
+	integer::procid   !id of processor
+	integer::iavt     !number of processors that we need to receive/or send data
+	integer::fast
+	integer::howmany  !how many elements are needed
+	real,allocatable,dimension(:,:)::facesol,facesol_m, facesol_dg  !array holding the number of variables to be sent/received
+	integer,allocatable,dimension(:,:)::vertpp !vertex mapping between different processes
+end type aexchange_boundhi
 
-TYPE LOCAL_RECON3
-	INTEGER::LOCAL,MRF
-	REAL,ALLOCATABLE,DIMENSION(:)::cond  !dummy variable used for gradient approximation estimation 
-	INTEGER,ALLOCATABLE,DIMENSION(:,:)::IHEXG,IHEXGc !GLOBAL INDEX OF CELLS
-	INTEGER,ALLOCATABLE,DIMENSION(:,:)::IHEXL,IHEXLc !LOCAL INDEX OF CELLS
-	INTEGER,ALLOCATABLE,DIMENSION(:,:)::IHEXB,ihexbc !CPU THAT THAT EACH CELL BELONGS TO
-	INTEGER,ALLOCATABLE,DIMENSION(:,:)::IHEXN,ihexnc !INTERNAL INDEX FROM WHERE TO TAKE THE VALUES FROM COMMUNICATED MESSAGES
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::GRADIENTS,GRADIENTSc !RECONSTRUCTED GRADIENTS FOR MAIN VARIABLES
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::GRADIENTSTURB   ! UNLIMITED GRADIENTS FOR TURBULENT VARIABLES FOR 
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::GRADIENTSTURB_wall ! UNLIMITED GRADIENTS FOR TURBULENT VARIABLES FOR WALL CELLS
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::GRADIENTS2,GRADIENTSC2 ! RECONSTRUCTED GRADIENTS FOR TURBULENT VARIABLES FOR WALL CELLS
-	REAL,ALLOCATABLE,DIMENSION(:)::GRADIENTSTEMP !UNLIMITED GRADIENTS FOR TEMPERATURE
-	REAL,ALLOCATABLE,DIMENSION(:,:)::GRADIENTSTEMP_wall !UNLIMITED GRADIENTS FOR TEMPERATURE FOR WALL CELLS
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::CGRADIENTSTEMP !UNLIMITED GRADIENTS FOR TEMPERATURE FOR WALL CELLS
-	REAL,ALLOCATABLE,DIMENSION(:,:)::VELOCITYDOF !UNLIMITED GRADIENTS FOR VELOCITY
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::VELOCITYDOF_wall !UNLIMITED GRADIENTS FOR VELOCITY FOR WALL CELLS
-	REAL,ALLOCATABLE,DIMENSION(:,:)::INVCCJAC  !INVERSE JACOBIAN
-	REAL,ALLOCATABLE,DIMENSION(:,:)::INVCTJAC  !INVERSE JACOBIAN TRANSPOSED
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::STENCILS,STENCILSc  !STENCILS ENTRIES FOR MATRIX A (USUALLY STORED ONLY FOR WALL BOUNDED CELLS)
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::INVMAT_STENCILT,INVMAT_STENCILTc !PSEUDO INVERSE MATRIX FOR LEAST SQUARES RECONSTRUCTION
-	REAL,ALLOCATABLE,DIMENSION(:,:)::VOLUME,VOLUMEc            !VOLUME OF ELEMENTS IN THE STENCIL
-	REAL,ALLOCATABLE,DIMENSION(:,:)::GRADS,GRADSAV !GRADIENTS OBTAINED FROM GREEN GAUSS APPROXIMATION
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::ULEFT,uleftx !BOUNDARY EXTRAPOLATED VALUE FOR MAIN EQUATIONS VARIABLES FOR CONSIDERED CELL
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::QPOINTS !QUADRATURE POINTS
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::ULEFTTURB !BOUNDARY EXTRAPOLATED VALUE FOR TURBULENT EQUATIONS VARIABLES FOR CONSIDERED CELL
-	REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::ULEFTV !BOUNDARY EXTRAPOLATED VALUES FOR MAIN EQUATIONS GRADIENTS FOR CONSIDERED CELL
-	REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::ULEFTTURBV !BOUNDARY EXTRAPOLATED VALUES FOR TURBULENT EQUATIONS GRADIENTS FOR CONSIDERED CELL
-	REAL,ALLOCATABLE,DIMENSION(:,:)::WENO  !WENO WEIGHTS FOR MAIN EQUATIONS VARIABLES
-	REAL,ALLOCATABLE,DIMENSION(:,:)::WENO2 !WENO WEIGHTS FOR TURBULENT EQUATIONS VARIABLES
-	REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::WENOS !WENO WEIGHTS FOR MAIN EQUATIONS WITH RESPECT TO CHARACTERISTIC VARIABLES
-	REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::FINDW !WENO WEIGHTS FOR MAIN EQUATIONS WITH RESPECT TO CHARACTERISTIC VARIABLES
-	REAL,ALLOCATABLE,DIMENSION(:,:)::INDICATOR,INDICATORC !PRECOMPUTED SMOOTHNESS INDICATORS
-	REAL,ALLOCATABLE,DIMENSION(:,:)::DG2FV,WEIGHTL
-	REAL,ALLOCATABLE,DIMENSION(:,:)::TEMPSQ !CONSTRAINED LEAST SQUARES RECONSTRUCTION MATRIX FOR TEMPERATURE GRADIENT
-	REAL,ALLOCATABLE,DIMENSION(:,:)::TEMPSQMAT !CONSTRAINED LEAST SQUARES RECONSTRUCTION MATRIX FOR TEMPERATURE GRADIENT
-	REAL,ALLOCATABLE,DIMENSION(:,:)::VELLSQ !CONSTRAINED LEAST SQUARES RECONSTRUCTION MATRIX FOR VELOCITY GRADIENT
-	REAL,ALLOCATABLE,DIMENSION(:,:)::VELINVLSQMAT !CONSTRAINED LEAST SQUARES RECONSTRUCTION MATRIX FOR VELOCITY GRADIENT
-	REAL,ALLOCATABLE,DIMENSION(:)::WALLCOEFF !CONSTRAINED LEAST SQUARES GAUSSIAN ELIMINATION COMPONENT
-	REAL,ALLOCATABLE,DIMENSION(:)::WALLCOEFG !CONSTRAINED LEAST SQUARES GAUSSIAN ELIMINATION COMPONENT
-	INTEGER::G0 !CONSTRAINED LEAST SQUARES GAUSSIAN ELIMINATION COMPONENT
-	INTEGER::K0 !CONSTRAINED LEAST SQUARES GAUSSIAN ELIMINATION COMPONENT
-	REAL,ALLOCATABLE,DIMENSION(:)::VEXT_REF !REFERENCE COORDINATES OF THE VERTEX BY WHICH THE TRANSFORMATION HAS BEEN BASED UPON
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::SURF_QPOINTS ! Physical space surface quadrature points (I_FACE, I_QP, XY) relative to cell center
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::ULEFT_DG ! Boundary extrapolated solution value (VAR, I_FACE, I_QP)
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::RPOINTS,ROTVEL !RADIUS OF QPOINTS, ROTATIONAL VELOCITY
-    REAL,ALLOCATABLE,DIMENSION(:)::MRF_ORIGIN,MRF_VELOCITY
-	INTEGER,ALLOCATABLE,DIMENSION(:,:)::PERIODICFLAG
-	REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::BR2_AUX_VAR ! (VAR, DIM, I_FACE, I_QP)
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::BR2_LOCAL_LIFT ! (VAR, DIM, I_FACE)
-END TYPE LOCAL_RECON3
-
-TYPE::NEIXX
-      INTEGER::CPU                              !CPU INDEX
-      INTEGER,ALLOCATABLE,DIMENSION(:,:)::ELEM1 !ELEMENTS INDEXING
-      REAL,ALLOCATABLE,DIMENSION(:)::CENTERS    !CENTERS OF CELLS FOR WENO DIRECTIONALS STENCILS AND COMPACT STENCILS 
-END TYPE NEIXX
-
-
-
-TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:)::ILOCAL_RECON3
-TYPE(NEIXX),ALLOCATABLE,DIMENSION(:)::NEIX1,NEIX2,NEIX3,NEIX4,NEIX5
-TYPE(LOCAL_RECON3),ALLOCATABLE,DIMENSION(:)::ILOCAL_RECON4,ILOCAL_RECON5,ilocal_recon6
-
-TYPE EXCHANGE_CORD
-	INTEGER::PROCID        !ID OF PROCESSOR
-	INTEGER::HOWMANY       ! HOW MANY ELEMENTS ARE NEEDED
-	REAL,ALLOCATABLE,DIMENSION(:,:,:)::NODECORD    !THE COORDINATES OF THE ELEMENT
-END TYPE EXCHANGE_CORD
-
-TYPE(EXCHANGE_CORD),ALLOCATABLE,DIMENSION(:)::IEXCORDR  !RECEIVING DATA TYPE     
-TYPE(EXCHANGE_CORD),ALLOCATABLE,DIMENSION(:)::IEXCORDS  !SENDING DATA TYPE
-
-
-TYPE EXCHANGE_SOLHI
-	INTEGER::PROCID    !ID OF PROCESSOR
-	INTEGER::IAVT      !NUMBER OF PROCESSORS THAT WE NEED TO RECEIVE/OR SEND DATA
-	INTEGER::IAVC      !NUMBER OF PROCESSORS THAT WE NEED TO RECEIVE/OR SEND DATA
-	INTEGER::FAST
-	INTEGER::HOWMANY   !HOW MANY ELEMENTS ARE NEEDED
-	REAL,ALLOCATABLE,DIMENSION(:,:)::SOL   !ARRAY TO HOLD THE VALUES TO BE SEND/RECEIVED
-END TYPE EXCHANGE_SOLHI
-
-TYPE(EXCHANGE_SOLHI),ALLOCATABLE,DIMENSION(:)::IEXSOLHIR,iexsolhird    !RECEIVING DATA TYPE FOR HALO CELLS OF STENCILS
-TYPE(EXCHANGE_SOLHI),ALLOCATABLE,DIMENSION(:)::IEXSOLHIS,iexsolhisd    !SENDING DATA TYPE FOR HALO CELLS OF STENCILS
-
-
-
-TYPE EXCHANGE_BOUNDHI    
-	INTEGER::PROCID   !ID OF PROCESSOR
-	INTEGER::IAVT     !NUMBER OF PROCESSORS THAT WE NEED TO RECEIVE/OR SEND DATA
-	INTEGER::FAST
-	INTEGER::HOWMANY  !HOW MANY ELEMENTS ARE NEEDED
-	REAL,ALLOCATABLE,DIMENSION(:,:)::FACESOL,FACESOL_M, FACESOL_DG  !ARRAY HOLDING THE NUMBER OF VARIABLES TO BE SENT/RECEIVED
-	integer,allocatable,dimension(:,:)::vertpp !VERTEX MAPPING BETWEEN DIFFERENT PROCESSES
-END TYPE EXCHANGE_BOUNDHI
-
-TYPE(EXCHANGE_BOUNDHI),ALLOCATABLE,DIMENSION(:)::IEXBOUNDHIR !RECEIVING DATA TYPE FOR BOUNDARY EXTRAPOLATED VALUES AT GAUSSIAN QUADRATURE POINTS OF INTER-PROCESSOR BOUNDARIES
-TYPE(EXCHANGE_BOUNDHI),ALLOCATABLE,DIMENSION(:)::IEXBOUNDHIS !SENDING DATA TYPE FOR BOUNDARY EXTRAPOLATED VALUES AT GAUSSIAN QUADRATURE POINTS OF INTER-PROCESSOR BOUNDARIES
-TYPE(EXCHANGE_BOUNDHI),ALLOCATABLE,DIMENSION(:)::IEXBOUNDHIRi !RECEIVING DATA TYPE FOR BOUNDARY EXTRAPOLATED VALUES AT GAUSSIAN QUADRATURE POINTS OF INTER-PROCESSOR BOUNDARIES FOR IMPLICIT TIME STEPPING
-TYPE(EXCHANGE_BOUNDHI),ALLOCATABLE,DIMENSION(:)::IEXBOUNDHIsi !SENDING DATA TYPE FOR BOUNDARY EXTRAPOLATED VALUES AT GAUSSIAN QUADRATURE POINTS OF INTER-PROCESSOR BOUNDARIES FOR IMPLICIT TIME STEPPING
-TYPE(EXCHANGE_BOUNDHI),ALLOCATABLE,DIMENSION(:)::IEXBOUNDHIRR  !RECEIVING DATA TYPE FOR BOUNDARY EXTRAPOLATED VALUES AT GAUSSIAN QUADRATURE POINTS OF INTER-PROCESSOR BOUNDARIES FOR IMPLICIT TIME STEPPING
-TYPE(EXCHANGE_BOUNDHI),ALLOCATABLE,DIMENSION(:)::IEXBOUNDHISS  !SENDING DATA TYPE FOR BOUNDARY EXTRAPOLATED VALUES AT GAUSSIAN QUADRATURE POINTS OF INTER-PROCESSOR BOUNDARIES FOR IMPLICIT TIME STEPPING
+type(aexchange_boundhi),allocatable,dimension(:)::diexboundhir !receiving data type for boundary extrapolated values at gaussian quadrature points of inter-processor boundaries
+type(aexchange_boundhi),allocatable,dimension(:)::diexboundhis !sending data type for boundary extrapolated values at gaussian quadrature points of inter-processor boundaries
+type(aexchange_boundhi),allocatable,dimension(:)::diexboundhiri !receiving data type for boundary extrapolated values at gaussian quadrature points of inter-processor boundaries for implicit time stepping
+type(aexchange_boundhi),allocatable,dimension(:)::diexboundhisi !sending data type for boundary extrapolated values at gaussian quadrature points of inter-processor boundaries for implicit time stepping
+type(aexchange_boundhi),allocatable,dimension(:)::diexboundhirr  !receiving data type for boundary extrapolated values at gaussian quadrature points of inter-processor boundaries for implicit time stepping
+type(aexchange_boundhi),allocatable,dimension(:)::diexboundhiss  !sending data type for boundary extrapolated values at gaussian quadrature points of inter-processor boundaries for implicit time stepping
 
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TYPE::NODE_NE	!NAME OF TYPE FOR THE SET OF NODES 
-	INTEGER::itor  !index declaring if the coordinates of this node are needed for each cpu
+type::anode_ne	!name of type for the set of nodes
+	integer::itor  !index declaring if the coordinates of this node are needed for each cpu
 	real,allocatable,dimension(:)::cord    !coordinates of the node
-	INTEGER,ALLOCATABLE,DIMENSION(:)::BCT
-	INTEGER::itorm	!index refering to unique list index in cells
-END TYPE NODE_NE
-TYPE::NODE_LIT	!NAME OF TYPE FOR THE SET OF NODES 
-	INTEGER::NUMBEROFNEIB      !number of elements that share this node
-	INTEGER,allocatable,dimension(:)::NEIBIDS,xne,xneib !ids of the elements, and counters
-END TYPE NODE_LIT
+	integer,allocatable,dimension(:)::bct
+	integer::itorm	!index refering to unique list index in cells
+end type anode_ne
+type::anode_lit	!name of type for the set of nodes
+	integer::numberofneib      !number of elements that share this node
+	integer,allocatable,dimension(:)::neibids,xne,xneib !ids of the elements, and counters
+end type anode_lit
+
+type(anode_ne),allocatable,dimension(:)::dinoder
+type(anode_lit),allocatable,dimension(:)::dinoder2
+
+
+integer,allocatable,dimension(:)::ieshape	!1-d array for shape of element
+
+type::aexchange
+	integer::procid					!processor id
+	integer::tot                    ! total number of elements
+	integer,allocatable,dimension(:)::whattheyneed   !element numbers
+	integer,allocatable,dimension(:)::muchtheyneed  !number of elements they need
+	integer,allocatable,dimension(:)::muchineed	!number of elements i need
+	integer,allocatable,dimension(:)::whatineed	!element number global
+	integer,allocatable,dimension(:)::sideineed !side that i need
+	integer,allocatable,dimension(:)::sideineedn,qineed    !from which cpu, which gaussian quadrature point order
+	integer,allocatable,dimension(:)::sidetheyneed,qtheyneed !side they need, which gaussian quadrature point order
+	integer,allocatable,dimension(:)::sidetheyneedn
+	integer,allocatable,dimension(:)::localref !local reference
+	integer,allocatable,dimension(:,:)::nodex
+end type aexchange
+
+
+type(aexchange),allocatable,dimension(:)::diexchanger !receive
+type(aexchange),allocatable,dimension(:)::diexchanges !send
+type(aexchange),allocatable,dimension(:)::diexchanger1
+type(aexchange),allocatable,dimension(:)::diexchanges1
+
+type::asolexchange
+	integer::procid        !processor id
+	real,allocatable,dimension(:,:)::centres   !cell centres
+	integer,allocatable,dimension(:,:)::nodes  !nodes
+	real,allocatable,dimension(:,:)::sol,sol_dg       !solution
+end type asolexchange
+
+type(asolexchange),allocatable,dimension(:)::dsolchanger  !receives
+
+type(asolexchange),allocatable,dimension(:)::dsolchanges  !sends
+
+type::arecex
+	integer::procid					!processor id
+	integer::tot
+	integer,allocatable,dimension(:)::whattheyneed   !element numbers
+	integer,allocatable,dimension(:)::muchtheyneed  !number of elements they need
+	integer,allocatable,dimension(:)::muchineed	!number of elements i need
+	integer,allocatable,dimension(:)::whatineed	!element number global
+	integer,allocatable,dimension(:)::ishape   !shape of elements
+	integer,allocatable,dimension(:)::localref !local referencing
+	real,allocatable,dimension(:,:)::centers   !barycentres
+end type arecex
+
+type(arecex),allocatable,dimension(:)::direcexr		!receive elements due to stencils
+type(arecex),allocatable,dimension(:)::direcexr1		!receive elements due to stencils
+type(arecex),allocatable,dimension(:)::direcexrg		!receive elements due to stencils
+type(arecex),allocatable,dimension(:)::direcexsg		!send elements due to stencils
+type(arecex),allocatable,dimension(:)::direcexs1		!send elements due to stencils
+type(arecex),allocatable,dimension(:)::direcexs		!send elements due to stencil
 
 
 
-TYPE(NODE_NE),ALLOCATABLE,DIMENSION(:)::INODEN,INODER,INODER4
-TYPE(NODE_LIT),ALLOCATABLE,DIMENSION(:)::INODER2
+
+type::aconnx	!name of type for the set of elements
+	integer::procid	!cpu id
+	integer,allocatable,dimension(:)::howmanyi	!how many element i need
+	integer,allocatable,dimension(:)::retm     !how many entries to receive
+	integer,allocatable,dimension(:)::ret      !how many entries to send
+	integer,allocatable,dimension(:)::howmanythey !how many element they need
+	integer,allocatable,dimension(:,:)::whichi !which element i need
+	integer,allocatable,dimension(:,:)::whichthey  !which element they need
+	real,allocatable,dimension(:,:)::facx      !fac
+end type aconnx
+
+type(aconnx),allocatable,dimension(:)::diconr
+type(aconnx),allocatable,dimension(:)::dicons
+type(aconnx),allocatable,dimension(:)::diconrpa
+type(aconnx),allocatable,dimension(:)::diconrpm
+type(aconnx),allocatable,dimension(:)::diconspo
+type(aconnx),allocatable,dimension(:)::diconrpf
 
 
 
-TYPE::ELEM_SHAPE	!NAME OF TYPE FOR THE SET OF NODES 
-	INTEGER::ISHAPE	!integer indicating the shape of each element
-END TYPE ELEM_SHAPE 
-
-INTEGER,ALLOCATABLE,DIMENSION(:)::IESHAPE	!1-D ARRAY FOR SHAPE OF ELEMENT
-
-TYPE::EXCHANGE
-	INTEGER::PROCID					!PROCESSOR ID
-	INTEGER::TOT                    ! total number of elements
-	INTEGER,ALLOCATABLE,DIMENSION(:)::WHATTHEYNEED   !ELEMENT NUMBERS
-	INTEGER,ALLOCATABLE,DIMENSION(:)::MUCHTHEYNEED  !NUMBER OF ELEMENTS THEY NEED
-	INTEGER,ALLOCATABLE,DIMENSION(:)::MUCHINEED	!NUMBER OF ELEMENTS I NEED
-	INTEGER,ALLOCATABLE,DIMENSION(:)::WHATINEED	!ELEMENT NUMBER GLOBAL
-	INTEGER,ALLOCATABLE,DIMENSION(:)::SIDEINEED !side that i need  
-	INTEGER,ALLOCATABLE,DIMENSION(:)::SIDEINEEDN,QINEED    !from which cpu, which gaussian quadrature point order
-	INTEGER,ALLOCATABLE,DIMENSION(:)::SIDETHEYNEED,QTHEYNEED !side they need, which gaussian quadrature point order
-	INTEGER,ALLOCATABLE,DIMENSION(:)::SIDETHEYNEEDN    
-	INTEGER,ALLOCATABLE,DIMENSION(:)::LOCALREF !local reference
-	INTEGER,ALLOCATABLE,DIMENSION(:,:)::nodex
-END TYPE EXCHANGE
+type::anode_number	!name of type for the set of nodes
+	integer::noden	!identification number that can be used as a pointer inside an array
+	integer::blockn !block number or cpu number of this element
+	integer::nodegl
+	real::x		!coordinates in x axis
+	real::y		!coordinates in y axis
+	real::z		!coordinates in z axis
+end type anode_number
 
 
-TYPE(EXCHANGE),ALLOCATABLE,DIMENSION(:)::IEXCHANGER !receive
-TYPE(EXCHANGE),ALLOCATABLE,DIMENSION(:)::IEXCHANGES !send
-TYPE(EXCHANGE),ALLOCATABLE,DIMENSION(:)::IEXCHANGER1
-TYPE(EXCHANGE),ALLOCATABLE,DIMENSION(:)::IEXCHANGES1
-
-TYPE::SOLEXCHANGE
-	INTEGER::PROCID        !processor ID
-	REAL,ALLOCATABLE,DIMENSION(:,:)::CENTRES   !CELL CENTRES
-	INTEGER,ALLOCATABLE,DIMENSION(:,:)::NODES  !NODES
-	REAL,ALLOCATABLE,DIMENSION(:,:)::SOL,SOL_DG       !SOLUTION
-END TYPE SOLEXCHANGE
-
-TYPE(SOLEXCHANGE),ALLOCATABLE,DIMENSION(:)::SOLCHANGER  !RECEIVES
-
-TYPE(SOLEXCHANGE),ALLOCATABLE,DIMENSION(:)::SOLCHANGES  !SENDS
-
-TYPE::RECEX
-	INTEGER::PROCID					!PROCESSOR ID
-	INTEGER::TOT
-	INTEGER,ALLOCATABLE,DIMENSION(:)::WHATTHEYNEED   !ELEMENT NUMBERS
-	INTEGER,ALLOCATABLE,DIMENSION(:)::MUCHTHEYNEED  !NUMBER OF ELEMENTS THEY NEED
-	INTEGER,ALLOCATABLE,DIMENSION(:)::MUCHINEED	!NUMBER OF ELEMENTS I NEED
-	INTEGER,ALLOCATABLE,DIMENSION(:)::WHATINEED	!ELEMENT NUMBER GLOBAL
-	INTEGER,ALLOCATABLE,DIMENSION(:)::ISHAPE   !SHAPE OF ELEMENTS
-	INTEGER,ALLOCATABLE,DIMENSION(:)::LOCALREF !LOCAL REFERENCING  
-	REAL,ALLOCATABLE,DIMENSION(:,:)::CENTERS   !BARYCENTRES
-END TYPE RECEX
-
-TYPE(RECEX),ALLOCATABLE,DIMENSION(:)::IRECEXR		!RECEIVE ELEMENTS DUE TO STENCILS
-TYPE(RECEX),ALLOCATABLE,DIMENSION(:)::IRECEXR1		!RECEIVE ELEMENTS DUE TO STENCILS
-TYPE(RECEX),ALLOCATABLE,DIMENSION(:)::irecexrg		!RECEIVE ELEMENTS DUE TO STENCILS
-TYPE(RECEX),ALLOCATABLE,DIMENSION(:)::irecexsg		!SEND ELEMENTS DUE TO STENCILS
-TYPE(RECEX),ALLOCATABLE,DIMENSION(:)::IRECEXS1		!SEND ELEMENTS DUE TO STENCILS
-TYPE(RECEX),ALLOCATABLE,DIMENSION(:)::IRECEXS		!SEND ELEMENTS DUE TO STENCIL
-
-
-!>NAME OF TYPE FOR THE SET OF ELEMENTS
-TYPE::ELEMENT_NUMBER
-    INTEGER::IHEX	!LOCAL INDEX OF EACH CELL
-    INTEGER::MOOD,MOOD_O	!MOOD FLAG FOR EVERY ELEMENT
-    INTEGER::RECALC !FLAG FOR RECALCULATING THE SOLUTION POST-ERIORI
-	INTEGER::IHEXGL !GLOBAL INDEX OF EACH CELL
-	INTEGER::full   !SPECIFIES IF SUFFICIENT NUMBER OF STENCILS ARE FOUND TO PROCEED WITH WENO FOR THIS CELL
-	INTEGER::INTERIOR !SPECIFIES IF THIS CELL HAS ANY SIDE BOUNDED (INTERIOR CELLS GET A VALUE OF 0, NON INTERIOR ONES GET A VALUE OF 1)
-	integer::itotalpoints,TROUBLED
-	INTEGER::VDEC,HALO      !NUMBER OF VOLUME DECOMPOSITIONS FOR EACH ELEMENT
-	INTEGER::MODE      !SPECIFIES IF DECOMPOSITION CANBE AVOIDED FOR STRAIGHT SIDED ELEMENT (NOT IMPLEMENTED YET)
-	INTEGER::GGS      ! SPECIFIES WITH WHAT ALGORITHM TO COMPUTE THE GRADIENTS (GREEN GAUSS, LEAST SQUARES OR BLEND OF THEM)
-	INTEGER::idegfree  !DEGREES OF FREEDOM FOR POLYNOMIAL SELECTED
-	INTEGER::inumneighbours    !NUMBER OF NEIGHBOURS IN EACH STENCIL
-	INTEGER::nofbc         !NUMBER OF BOUNDED FACES 
-	INTEGER::iorder    !ORDER OF POLYNOMIALS
-	INTEGER::ISHAPE    !> SHAPE OF ELEMENT 1: Hex 2: Tet 3: Pyramid 4: Prism 5: Quad 6: Tri
-	INTEGER::IFCA      !NUMBER OF SIDES
-	INTEGER::ADMIS     !NUMBER OF ADMISSIBLE STENCILS
-	INTEGER::hybrid    !FLAG FOR SWITCHING TO LOWER ORDER DISCRETISATION AS A FUNCTION OF WALL DISTANCE
-	INTEGER::nonodes   !NUMBER OF NODES 
-	INTEGER::walls     !FLAG TO DECLARE IF THIS IS CELL BOUNDED BY A WALL
-	INTEGER::LUMP
-	INTEGER::FILTERED,REDUCE
-	INTEGER,ALLOCATABLE,DIMENSION(:)::BLEEDN
-	INTEGER,ALLOCATABLE,DIMENSION(:)::NOJECOUNT
-	INTEGER,ALLOCATABLE,DIMENSION(:)::NODES    !NODES INDEX
-	INTEGER,ALLOCATABLE,DIMENSION(:,:)::NODES_NEIGHBOURS    !NODES INDEX
-	INTEGER,ALLOCATABLE,DIMENSION(:)::TYPEs_FACES !TYPE OF EACH FACE (QUADRILATERAL, TRIANGLE)
-	INTEGER,ALLOCATABLE,DIMENSION(:)::REORIENT     !CONSISTENCY ACROSS INTERFACE IN TERMS OF ORDERING OF QUADRATURE POINTS
-	integer,allocatable,dimension(:)::num_of_wall_gqp !NOT USED YET
-	TYPE(FACE_D),ALLOCATABLE,DIMENSION(:)::Q_FACE  !QUADRATURE FACE
-	INTEGER,ALLOCATABLE,DIMENSION(:,:)::NODES_FACES,NODES_FACES_v !COUNTERCLOCKWISE NUMBERING OF THE NODES FOR EACH FACE
-	INTEGER,ALLOCATABLE,DIMENSION(:)::INDEXI !INDEXING FOR THE CELLS
-	INTEGER,ALLOCATABLE,DIMENSION(:)::ibounds,IBOUNDW ! BOUNDED CODES FOR EACH BOUNDED FACE
-	INTEGER,ALLOCATABLE,DIMENSION(:)::INEIGH !NEIGHBOURS LOCAL NUMBERING	
-	INTEGER,ALLOCATABLE,DIMENSION(:)::INEIGHG !NEIGHBOURS GLOBAL NUMBERING
-	INTEGER,ALLOCATABLE,DIMENSION(:)::INEIGHB !NEIGHBOURS CPU INDEX	
-	INTEGER,ALLOCATABLE,DIMENSION(:)::INEIGHN !NEIGHBOURS NUMBERING IN OTHER CPUS	
-	INTEGER,ALLOCATABLE,DIMENSION(:)::NODEs_V !NODES_REARRANGED FOR OUTPUT
- 	REAL::TOTVOLUME		!VOLUME OF ELEMENT 
-	REAL::DTL,VISCX           !LOCAL TIME STEP SIZE
- 	REAL::MINEDGE       !INSCRIBED SPHERE RADIUS
- 	REAL::STENCIL_DIST    !STENCIL DISTANCE FACTOR
- 	REAL::WallDist        !WALL DISTANCE
- 	REAL::XXC          !CELL CENTRE COORDINATES IN X
- 	REAL::YYC           !CELL CENTRE COORDINATES IN Y
- 	REAL::ZZC           !CELL CENTRE COORDINATES IN Z
- 	REAL::CONDITION
- 	REAL::ER,er2,er1,ER2Dt,ER1DT,ER1ER2,lwcx2,DISS,ERX	!ADDA COMPONENTS
- 	REAL::LINC
- 	REAL,DIMENSION(1)::WCX
-	REAL,ALLOCATABLE,DIMENSION(:)::FACEANGLEX	!FACEANGLE  X,Y
-	REAL,ALLOCATABLE,DIMENSION(:)::FACEDISS
-	REAL,ALLOCATABLE,DIMENSION(:)::FACEANGLEY	!FACEANGLES X,Y
-	REAL,ALLOCATABLE,DIMENSION(:)::DIH !DISTANCE ACROSS CELL CENTRES AT EACH FACE
-	REAL,ALLOCATABLE,DIMENSION(:,:)::dih2
-	REAL,ALLOCATABLE,DIMENSION(:)::vortex,AVARS  !Q CRITERION
-	REAL,ALLOCATABLE,DIMENSION(:)::SURF    !SURFACE AREA
-	REAL,ALLOCATABLE,DIMENSION(:)::DELTA_XYZ ! 0.5(X_MAX - X_MIN),  0.5(Y_MAX - Y_MIN),  0.5(Z_MAX - Z_MIN)
-	integer::condx
-END TYPE ELEMENT_NUMBER
-
-TYPE::FACES
-  INTEGER::ISHAPE   !SHAPE OF EACH FACE
-  INTEGER,ALLOCATABLE,DIMENSION(:)::NEIGHG,NEIGHL   !GLOBAL AND LOCAL INDEXING OF CELLS
-  INTEGER,ALLOCATABLE,DIMENSION(:)::NODES           !NUMBER OF NODES
-END TYPE FACES
-
-TYPE(ELEMENT_NUMBER),ALLOCATABLE,DIMENSION(:,:)::IELEM  !ELEMENT NUMBER
-TYPE(FACES),ALLOCATABLE,DIMENSION(:,:)::IFACE
-
-
-TYPE::BOUND_NUMBER	!NAME OF TYPE FOR THE SET OF ELEMENTS
-        INTEGER::ishape,icode,inum,which,face,IBID	!INDICES FOR THE SHAPE, BC CODE, NUMBER, AND WHICH FACE IS BOUNDED
-        INTEGER,allocatable,dimension(:)::IBl   !BC FLAG
-	INTEGER,ALLOCATABLE,DIMENSION(:)::LOCALN,CPUN   !LOCAL NUMBER AND CPU FOR EACH BOUNDED SURFACE
-	CHARACTER(LEN=12)::description
-END TYPE BOUND_NUMBER
-
-TYPE(BOUND_NUMBER),ALLOCATABLE,DIMENSION(:,:)::IBOUND	  !1-D ARRAY FOR BOUNDARY CONDITION TYPE
-
-TYPE::CONNX	!NAME OF TYPE FOR THE SET OF ELEMENTS
-	INTEGER::PROCID	!CPU ID
-	INTEGER,ALLOCATABLE,DIMENSION(:)::HOWMANYI	!HOW MANY ELEMENT I NEED
-	INTEGER,ALLOCATABLE,DIMENSION(:)::RETM     !HOW MANY ENTRIES TO RECEIVE
-	INTEGER,ALLOCATABLE,DIMENSION(:)::RET      !HOW MANY ENTRIES TO SEND
-	INTEGER,ALLOCATABLE,DIMENSION(:)::HOWMANYTHEY !HOW MANY ELEMENT THEY NEED
-	INTEGER,ALLOCATABLE,DIMENSION(:,:)::WHICHI !WHICH ELEMENT I NEED
-	INTEGER,ALLOCATABLE,DIMENSION(:,:)::WHICHTHEY  !WHICH ELEMENT THEY NEED
-	REAL,ALLOCATABLE,DIMENSION(:,:)::FACX      !FAC
-END TYPE CONNX
-
-TYPE(CONNX),ALLOCATABLE,DIMENSION(:)::ICONR
-TYPE(CONNX),ALLOCATABLE,DIMENSION(:)::ICONS
-TYPE(CONNX),ALLOCATABLE,DIMENSION(:)::ICONRPA
-TYPE(CONNX),ALLOCATABLE,DIMENSION(:)::ICONRPM
-TYPE(CONNX),ALLOCATABLE,DIMENSION(:)::ICONSPO
-TYPE(CONNX),ALLOCATABLE,DIMENSION(:)::ICONRPF
+type(anode_number),allocatable,dimension(:,:)::dinode	  !1-d array for pointer type for nodes
 
 
 
-TYPE::NODE_NUMBER	!NAME OF TYPE FOR THE SET OF NODES 
-	INTEGER::NODEN	!IDENTIFICATION NUMBER THAT CAN BE USED AS A POINTER INSIDE AN ARRAY
-	INTEGER::BLOCKN !BLOCK NUMBER OR CPU NUMBER OF THIS ELEMENT
-	INTEGER::NODEGL
-	REAL::X		!COORDINATES IN X AXIS
-	REAL::Y		!COORDINATES IN Y AXIS
-	REAL::Z		!COORDINATES IN Z AXIS
-END TYPE NODE_NUMBER 
 
 
-TYPE(NODE_NUMBER),ALLOCATABLE,DIMENSION(:,:)::INODE	  !1-D ARRAY FOR POINTER TYPE FOR NODES
+real, allocatable :: u_c_val(:,:,:)				!mean flow variables
+real, allocatable :: u_ct_val(:,:,:)			!turbulence + passive scalars
+real, allocatable :: u_e_val(:,:,:)				!exact solutions
+real, allocatable :: u_cs_val(:,:,:)			!mean flow variables with strong filter
+real, allocatable :: u_cw_val(:,:,:)			!mean flow variables with weak filter
+real, allocatable :: u_c_valdg(:,:,:,:)			!mean flow variables for each dof of DG
+real, allocatable :: u_cs_valdg(:,:,:,:)		!mean flow variables for each dof of DG with strong filter
+real, allocatable :: u_cw_valdg(:,:,:,:)		!mean flow variables for each dof of DG with weak filter
+real, allocatable :: u_c_rms(:,:)				!time averaged rms
+real, allocatable :: u_c_br2_aux_var(:,:,:,:)	!BR2 aux variables
+real, allocatable :: m_1_val(:,:,:)				!dg mass matrices
+real, allocatable :: rhs_val(:,:)				!rhs of mean flow variables
+real, allocatable :: rhs_valdg(:,:,:)			!rhs of mean flow variables for each dof of DG
+real, allocatable :: rhs_sol_mm_dg(:,:,:)		!rhs of mean flow variables for the matrix of DG
+real, allocatable :: rhst_val(:,:)				!rhs of turbulence variables
+real, allocatable :: integ_basis_value(:,:)
+real, allocatable :: integ_basis_valuec(:,:)
+real, allocatable :: integ_basis_dg_value(:,:)
+real, allocatable :: dg2fv(:,:,:)
+real, allocatable :: qp_array_x(:,:)
+real, allocatable :: qp_array_y(:,:)
+real, allocatable :: qp_array_z(:,:)
+real, allocatable :: qp_array_qp_weight(:,:)
+integer, allocatable :: inoder4_bct(:,:)
+integer, allocatable :: inoder4_itor(:)
+real, allocatable :: inoder4_cord(:,:)
 
-TYPE(NODE_NUMBER)::ITEMP				  !TEMPORARY POINTER NODE ITERATION
+
+!==================== ielem_ ====================
+
+! integers
+integer, allocatable :: ielem_admis(:)  ! (kmaxe)  number of admissible stencils
+integer, allocatable :: ielem_bleedn(:,:)  ! (nof_faces,kmaxe)  bleed boundary conditions
+integer, allocatable ::ielem_inter_id(:)
+integer, allocatable ::ielem_indexf(:)				   ! (face index for interpocessor boundary)
+integer, allocatable :: ielem_condx(:)                 ! (kmaxe)
+integer, allocatable :: ielem_nofbc(:)                 ! (kmaxe)
+integer, allocatable :: ielem_filtered(:)              ! (kmaxe)
+integer, allocatable :: ielem_full(:)  ! (kmaxe)  specifies if sufficient number of stencils are found to proceed with weno for this cell
+integer, allocatable :: ielem_ggs(:)  ! (kmaxe)  specifies with what algorithm to compute the gradients (green gauss, least squares or blend of them)
+integer, allocatable :: ielem_hybrid(:)  ! (kmaxe)  flag for switching to lower order discretisation as a function of wall distance
+integer, allocatable :: ielem_ibounds(:,:)  ! (nof_faces,kmaxe)  bounded codes for each bounded face
+integer, allocatable :: ielem_idegfree(:)  ! (kmaxe)  degrees of freedom for polynomial selected
+integer, allocatable :: ielem_ifca(:)  ! (kmaxe)  number of sides
+integer, allocatable :: ielem_ihex(:)  ! (kmaxe) local index of each cell
+integer, allocatable :: ielem_ihexgl(:)  ! (kmaxe)  global index of each cell
+integer, allocatable :: ielem_indexi(:,:)  ! (nof_faces,kmaxe)  indexing for the cells
+integer, allocatable :: ielem_ineigh(:,:)  ! (nof_faces,kmaxe)  neighbours local numbering
+integer, allocatable :: ielem_ineighg(:,:)  ! (nof_faces,kmaxe)  neighbours global numbering
+integer, allocatable :: ielem_ineighb(:,:)  ! (nof_faces,kmaxe)  neighbours cpu index
+integer, allocatable :: ielem_ineighn(:,:)  ! (nof_faces,kmaxe)  neighbours numbering in other cpus
+integer, allocatable :: ielem_interior(:)  ! (kmaxe)  specifies if this cell has any side bounded (interior cells get a value of 0, non interior ones get a value of 1)
+integer, allocatable :: ielem_inumneighbours(:)  ! (kmaxe)  number of neighbours in each stencil
+integer, allocatable :: ielem_iorder(:)  ! (kmaxe)  order of polynomials
+integer, allocatable :: ielem_ishape(:)  ! (kmaxe)  > shape of element 1: hex 2: tet 3: pyramid 4: prism 5: quad 6: tri
+integer, allocatable :: ielem_itotalpoints(:)          ! (kmaxe)
+integer, allocatable :: ielem_mode(:)  ! (kmaxe)  specifies if decomposition canbe avoided for straight sided element (not implemented yet)
+integer, allocatable :: ielem_mood(:)  ! (kmaxe)  mood flag for every element
+integer, allocatable :: ielem_mood_o(:)  ! (kmaxe)  mood flag for every element
+integer, allocatable :: ielem_nodes(:,:)  ! (nof_nodes,kmaxe)  nodes index
+integer, allocatable :: ielem_nodes_faces(:,:,:)  ! (nof_faces,face_nodes,kmaxe)  counterclockwise numbering of the nodes for each face
+integer, allocatable :: ielem_nodes_faces_v(:,:,:)  ! (nof_faces,face_nodes,kmaxe)  counterclockwise numbering of the nodes for each face
+integer, allocatable :: ielem_nodes_neighbours(:,:,:)  ! not used  nodes index
+integer, allocatable :: ielem_nodes_v(:,:)  ! (nof_nodes,kmaxe)  nodes_rearranged for output
+integer, allocatable :: ielem_nojecount(:,:)  ! (nof_nodes,kmaxe)  number of nodes
+integer, allocatable :: ielem_nonodes(:)  ! (kmaxe)  number of nodes
+integer, allocatable :: ielem_recalc(:)  ! (kmaxe)  flag for recalculating the solution post-eriori
+integer, allocatable :: ielem_reduce(:)                ! (kmaxe)
+integer, allocatable :: ielem_reorient(:,:)  ! (nof_faces,kmaxe)  consistency across interface in terms of ordering of quadrature points
+integer, allocatable :: ielem_troubled(:)              ! (kmaxe)
+integer, allocatable :: ielem_types_faces(:,:)  ! (nof_faces,kmaxe)  type of each face (quadrilateral, triangle)
+integer, allocatable :: ielem_vdec(:)  ! (kmaxe)  number of volume decompositions for each element
+integer, allocatable :: ielem_walls(:)  ! (kmaxe)  flag to declare if this is cell bounded by a wall
+integer, allocatable :: ielem_q_face_q_mapl(:,:,:)     ! (max_qp_face,nof_faces,kmaxe)
+
+! reals
+real, allocatable :: ielem_avars(:,:)  ! (nof_variables,kmaxe)  q criterion
+real, allocatable :: ielem_condition(:)                ! (kmaxe)
+real, allocatable :: ielem_dih(:,:)  ! (nof_faces,kmaxe)  distance across cell centres at each face
+real, allocatable :: ielem_dih2(:,:,:)  ! (nof_faces,1:3,kmaxe)  distance across cell centres at each face
+real, allocatable :: ielem_diss(:)  ! (kmaxe)  adda components
+real, allocatable :: ielem_dtl(:)  ! (kmaxe)  local time step size
+real, allocatable :: ielem_er(:)  ! (kmaxe)  adda components
+real, allocatable :: ielem_er1(:)  ! (kmaxe)  adda components
+real, allocatable :: ielem_er1dt(:)  ! (kmaxe)  adda components
+real, allocatable :: ielem_er1er2(:)  ! (kmaxe)  adda components
+real, allocatable :: ielem_er2(:)  ! (kmaxe)  adda components
+real, allocatable :: ielem_er2dt(:)  ! (kmaxe)  adda components
+real, allocatable :: ielem_erx(:)  ! (kmaxe)  adda components
+real, allocatable :: ielem_faceanglex(:,:)  ! (nof_faces,kmaxe)  faceangle
+real, allocatable :: ielem_faceangley(:,:)  ! (nof_faces,kmaxe)  faceangles y
+real, allocatable :: ielem_facediss(:,:)  ! (nof_faces,kmaxe)  dissipation for mood
+real, allocatable :: ielem_linc(:)  ! (kmaxe)  central stencil linear weight
+real, allocatable :: ielem_lwcx2(:)  ! (kmaxe)  adda components
+real, allocatable :: ielem_minedge(:)  ! (kmaxe)  inscribed sphere radius
+real, allocatable :: ielem_stencil_dist(:)  ! (kmaxe)  stencil distance factor
+real, allocatable :: ielem_surf(:,:)  ! (nof_faces,kmaxe)  surface area
+real, allocatable :: ielem_totvolume(:)  ! (kmaxe)  volume of element
+real, allocatable :: ielem_viscx(:)  ! (kmaxe)  local time step size
+real, allocatable :: ielem_vortex(:,:)  ! (1:3,kmaxe)  q criterion
+real, allocatable :: ielem_walldist(:)  ! (kmaxe)  wall distance
+real, allocatable :: ielem_walltrans(:)  ! (kmaxe)  signed nearest-wall distance from transition location
+real, allocatable :: ielem_wcx(:)                    ! (kmaxe)
+real, allocatable :: ielem_xxc(:)  ! (kmaxe)  cell centre coordinates in x
+real, allocatable :: ielem_yyc(:)  ! (kmaxe)  cell centre coordinates in y
+real, allocatable :: ielem_zzc(:)  ! (kmaxe)  cell centre coordinates in z
+integer, allocatable :: ielem_qface(:,:,:)
 
 
 
-END MODULE DECLARATION
+!==================== rec_ ====================
+
+! integers
+integer, allocatable :: rec_g0(:)    !constrained least squares gaussian elimination component
+integer, allocatable :: rec_ihexb(:,:,:)    !cpu that that each cell belongs to
+integer, allocatable :: rec_ihexbc(:,:,:)    !cpu that that each cell belongs to
+integer, allocatable :: rec_ihexg(:,:,:)    !global index of cells
+integer, allocatable :: rec_ihexgc(:,:,:)    !global index of cells
+integer, allocatable :: rec_ihexl(:,:,:)    !local index of cells
+integer, allocatable :: rec_ihexlc(:,:,:)    !local index of cells
+integer, allocatable :: rec_ihexn(:,:,:)    !internal index from where to take the values from communicated messages
+integer, allocatable :: rec_ihexnc(:,:,:)    !internal index from where to take the values from communicated messages
+integer, allocatable :: rec_k0(:)    !constrained least squares gaussian elimination component
+integer, allocatable :: rec_local(:)
+integer, allocatable :: rec_wall(:)
+integer, allocatable :: rec_mrf(:)
+integer, allocatable :: rec_periodicflag(:,:,:)
+
+! reals
+real, allocatable :: rec_br2_aux_var(:,:,:,:,:)    !(var, dim, i_face, i_qp)
+real, allocatable :: rec_br2_local_lift(:,:,:,:)    !(var, dim, i_face)
+real, allocatable :: rec_cgradientstemp(:,:,:,:)    !unlimited gradients for temperature for wall cells
+real, allocatable :: rec_cond(:,:)    !dummy variable used for gradient approximation estimation
+real, allocatable :: rec_findw(:,:,:,:,:)    !weno weights for main equations with respect to characteristic variables
+real, allocatable :: rec_gradf(:,:,:)    !unlimited gradients for velocity
+real, allocatable :: rec_gradients(:,:,:,:)    !reconstructed gradients for main variables
+real, allocatable :: rec_gradients2(:,:,:,:)    !reconstructed gradients for turbulent variables for wall cells
+real, allocatable :: rec_gradientsc(:,:,:,:)    !reconstructed gradients for main variables
+real, allocatable :: rec_gradientsc2(:,:,:,:)    !reconstructed gradients for turbulent variables for wall cells
+real, allocatable :: rec_gradientstemp(:,:)    !unlimited gradients for temperature
+real, allocatable :: rec_gradientstemp_wall(:,:,:)    !unlimited gradients for temperature for wall cells
+real, allocatable :: rec_gradientsturb(:,:,:,:)    !unlimited gradients for turbulent variables for
+real, allocatable :: rec_gradientsturb_wall(:,:,:,:)    !unlimited gradients for turbulent variables for wall cells
+real, allocatable :: rec_grads(:,:,:)    !gradients obtained from green gauss approximation
+real, allocatable :: rec_gradsav(:,:,:)    !gradients obtained from green gauss approximation
+real, allocatable :: rec_indicator(:,:,:)    !precomputed smoothness indicators
+real, allocatable :: rec_indicatorc(:,:,:)    !precomputed smoothness indicators
+real, allocatable :: rec_invccjac(:,:,:)    !inverse jacobian
+real, allocatable :: rec_invctjac(:,:,:)    !inverse jacobian transposed
+real, allocatable :: rec_invmat_stencilt(:,:,:,:)    !pseudo inverse matrix for least squares reconstruction
+real, allocatable :: rec_invmat_stenciltc(:,:,:,:)    !pseudo inverse matrix for least squares reconstruction
+real, allocatable :: rec_mrf_origin(:,:)
+real, allocatable :: rec_mrf_velocity(:,:)
+real, allocatable :: rec_qpoints(:,:,:,:)    !quadrature points
+real, allocatable :: rec_qpoints_p(:,:,:,:)    !quadrature points physical only for AI training
+real, allocatable :: rec_rotvel(:,:,:,:)    !radius of qpoints, rotational velocity
+real, allocatable :: rec_rpoints(:,:,:,:)    !radius of qpoints, rotational velocity
+real, allocatable :: rec_stencils(:,:,:,:)    !stencils entries for matrix a (usually stored only for wall bounded cells)
+real, allocatable :: rec_stencilsc(:,:,:,:)    !stencils entries for matrix a (usually stored only for wall bounded cells)
+real, allocatable :: rec_surf_qpoints(:,:,:,:)    !physical space surface quadrature points (i_face, i_qp, xy) relative to cell center
+real, allocatable :: rec_tempsq(:,:,:)    !constrained least squares reconstruction matrix for temperature gradient
+real, allocatable :: rec_tempsqmat(:,:,:)    !constrained least squares reconstruction matrix for temperature gradient
+real, allocatable :: rec_uleft(:,:,:,:)    !boundary extrapolated value for main equations variables for considered cell
+real, allocatable :: rec_uleft_dg(:,:,:,:)    !boundary extrapolated solution value (var, i_face, i_qp)
+real, allocatable :: rec_uleftturb(:,:,:,:)    !boundary extrapolated value for turbulent equations variables for considered cell
+real, allocatable :: rec_uleftturbv(:,:,:,:,:)    !boundary extrapolated values for turbulent equations gradients for considered cell
+real, allocatable :: rec_uleftv(:,:,:,:,:)    !boundary extrapolated values for main equations gradients for considered cell
+real, allocatable :: rec_uleftx(:,:,:,:)    !boundary extrapolated value for main equations variables for considered cell
+real, allocatable :: rec_velinvlsqmat(:,:,:)    !constrained least squares reconstruction matrix for velocity gradient
+real, allocatable :: rec_vellsq(:,:,:)    !constrained least squares reconstruction matrix for velocity gradient
+real, allocatable :: rec_velocitydof_wall(:,:,:,:)    !unlimited gradients for velocity for wall cells
+real, allocatable :: rec_vext_ref(:,:)    !reference coordinates of the vertex by which the transformation has been based upon
+real, allocatable :: rec_volume(:,:,:)    !volume of elements in the stencil
+real, allocatable :: rec_volume_w(:,:,:)    !volume of elements in the stencil
+real, allocatable :: rec_volumec(:,:,:)    !volume of elements in the stencil
+real, allocatable :: rec_wallcoeff(:,:)    !constrained least squares gaussian elimination component
+real, allocatable :: rec_wallcoefg(:,:)    !constrained least squares gaussian elimination component
+real, allocatable :: rec_weightl(:,:,:)
+real, allocatable :: rec_weno(:,:,:)    !weno weights for main equations variables
+real, allocatable :: rec_weno2(:,:,:)    !weno weights for turbulent equations variables
+real, allocatable :: rec_wenos(:,:,:,:,:)    !weno weights for main equations with respect to characteristic variables
+
+
+!==================== ibound_ ====================
+
+integer, allocatable :: ibound_ishape(:)    !indices for the shape, bc code, number, and which face is bounded
+integer, allocatable :: ibound_icode(:)    !indices for the shape, bc code, number, and which face is bounded
+integer, allocatable :: ibound_inum(:)    !indices for the shape, bc code, number, and which face is bounded
+integer, allocatable :: ibound_which(:)    !indices for the shape, bc code, number, and which face is bounded
+integer, allocatable :: ibound_face(:)    !indices for the shape, bc code, number, and which face is bounded
+integer, allocatable :: ibound_ibid(:)    !indices for the shape, bc code, number, and which face is bounded
+integer, allocatable :: ibound_nibl(:)      ! length of ibl(:) for each i
+integer, allocatable :: ibound_nlocal(:)    ! length of localn(:)/cpun(:) for each i
+integer, allocatable :: ibound_ibl(:,:)    !bc flag; (max_ibl,   nbound)
+integer, allocatable :: ibound_localn(:,:)    !local number and cpu for each bounded surface; (max_local, nbound)
+integer, allocatable :: ibound_cpun(:,:)    !local number and cpu for each bounded surface; (max_local, nbound)
+
+
+
+#ifdef xpu
+!$omp declare target (aa_1, adda_1, adda_1_s, adda_2, adda_2_s, adda_alpha_1, adda_alpha_2, adda_filter_strong, adda_filter_weak, adda_type)
+!$omp declare target (alpha_0, alpha_inf1, alpha_inf2, alpha_star0, alpha_starinf, angle_per, average_restart, beta_i1, beta_i2, beta_starinf)
+!$omp declare target (beta_t, bleed_end, bleed_number, bleed_plenum, bleed_porosity, bleed_start, bleed_type, bound_len, bound_offset, boundhir_dg)
+!$omp declare target (br2_damping, br2_yn, bubble_centre, bubble_radius, c_des_sa, c_des_sst, c_mu_inlet, c_sas, c_smg, catalytic_con)
+!$omp declare target (catalytic_wall, chunk_n, code_profile, d_corr, des_model, ek_time, el_bnd, el_int, eta2_sas, every_time)
+!$omp declare target (extended_bounds, fastest_q, fil_alpha, fil_nc, fil_s, filter_type, gamma_in, halo_offset, i_turb_inlet, ibound_cpun)
+!$omp declare target (ibound_face, ibound_ibid, ibound_ibl, ibound_icode, ibound_inum, ibound_ishape, ibound_localn, ibound_nibl, ibound_nlocal, ibound_t)
+!$omp declare target (ibound_t2, ibound_which, ielem_admis, ielem_avars, ielem_bleedn, ielem_condition, ielem_condx, ielem_dih, ielem_dih2, ielem_diss)
+!$omp declare target (ielem_dtl, ielem_er, ielem_er1, ielem_er1dt, ielem_er1er2, ielem_er2, ielem_er2dt, ielem_erx, ielem_faceanglex, ielem_faceangley)
+!$omp declare target (ielem_facediss, ielem_filtered, ielem_full, ielem_ggs, ielem_hybrid, ielem_ibounds, ielem_idegfree, ielem_ifca, ielem_ihex, ielem_ihexgl)
+!$omp declare target (ielem_indexf, ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_ineighg, ielem_ineighn, ielem_inter_id, ielem_interior, ielem_inumneighbours, ielem_iorder)
+!$omp declare target (ielem_ishape, ielem_itotalpoints, ielem_linc, ielem_lwcx2, ielem_minedge, ielem_mode, ielem_mood, ielem_mood_o, ielem_nodes, ielem_nodes_faces)
+!$omp declare target (ielem_nodes_faces_v, ielem_nodes_neighbours, ielem_nodes_v, ielem_nofbc, ielem_nojecount, ielem_nonodes, ielem_q_face_q_mapl, ielem_qface, ielem_recalc, ielem_reduce)
+!$omp declare target (ielem_reorient, ielem_stencil_dist, ielem_surf, ielem_totvolume, ielem_troubled, ielem_types_faces, ielem_vdec, ielem_viscx, ielem_vortex, ielem_walldist, ielem_walltrans)
+!$omp declare target (ielem_walls, a405, nof_perturbations405, ielem_wcx, ielem_xxc, ielem_yyc, ielem_zzc, impdiag_mf, impoff_mf, indicator_type, init_mu_ratio, inoder4_bct)
+!$omp declare target (inoder4_cord, inoder4_itor, integ_basis_dg_value, integ_basis_value, integ_basis_valuec, ires_turb, ires_unsteady, jump_cond1, jump_cond2, jump_cond3)
+!$omp declare target (kappa_sst, kinit_srf, l_turb_inlet, lmach_style, m_1_val, m_t0, max_faces, max_fnodes, max_nodes, modal_filter)
+!$omp declare target (modal_filter_strong, modal_filter_weak, mood_mode, mood_var1, mood_var2, mood_var3, mood_var4, mp_a_in)
+!$omp declare target (mp_janaf, mp_m, mp_modelc, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in, mrf_rot_gl)
+!$omp declare target (n_boundaries, nodes_i, nodes_part, nof_bounded, nof_bubbles, nof_interior, nof_species, nof_variables, num_dg_dofs, num_dg_reconstruct_dofs)
+!$omp declare target (num_hexas, num_prisms, num_pyramids, num_tetras, out_time, output_freq, part1_end, part2_end, part3_end, part4_end)
+!$omp declare target (part5_end, per_rot, point1_gl, point2_gl, pr_t1, pr_t2, pr_t3, pr_t4, pr_t5, pr_t6)
+!$omp declare target (pr_t7, pr_t8, prace_t1, prace_t2, prace_t3, prace_t4, prace_t5, prace_t6, prace_t7, prace_t8)
+!$omp declare target (prace_t9, prace_tx1, prace_tx2, prace_tx3, press_outlet, mach_outlet_target, prev_turbmodel, qp_array_qp_weight, qp_array_x, qp_array_y, qp_array_z)
+!$omp declare target (qp_hexa, qp_line, qp_line_n, qp_prism, qp_pyra, qp_quad, qp_quad_n, qp_tetra, qp_triangle, qp_triangle_n)
+!$omp declare target (qsas_model, r_beta, r_gas, r_k_sst, r_om_sst, radius_gl, rec_br2_aux_var, rec_br2_local_lift, rec_cgradientstemp, rec_cond)
+!$omp declare target (rec_findw, rec_g0, rec_gradf, rec_gradients, rec_gradients2, rec_gradientsc, rec_gradientsc2, rec_gradientstemp, rec_gradientstemp_wall, rec_gradientsturb)
+!$omp declare target (rec_gradientsturb_wall, rec_grads, rec_gradsav, rec_ihexb, rec_ihexbc, rec_ihexg, rec_ihexgc, rec_ihexl, rec_ihexlc, rec_ihexn)
+!$omp declare target (rec_ihexnc, rec_indicator, rec_indicatorc, rec_invccjac, rec_invctjac, rec_invmat_stencilt, rec_invmat_stenciltc, rec_k0, rec_local, rec_mrf)
+!$omp declare target (rec_mrf_origin, rec_mrf_velocity, rec_periodicflag, rec_qpoints, rec_qpoints_p, rec_rotvel, rec_rpoints, rec_stencils, rec_stencilsc, rec_surf_qpoints, rec_tempsq)
+!$omp declare target (rec_tempsqmat, rec_uleft, rec_uleft_dg, rec_uleftturb, rec_uleftturbv, rec_uleftv, rec_uleftx, rec_velinvlsqmat, rec_vellsq, rec_velocitydof_wall)
+!$omp declare target (rec_vext_ref, res_sum, pos_l1, pos_l2, pos_l3, pos_l4, total_pressure_inlet, total_temperature_inlet, density_inlet, ipos_l1, ipos_l2, rec_volume, rec_volume_w, rec_volumec, rec_wall, rec_wallcoeff, rec_wallcoefg, rec_weightl, rec_weno, rec_weno2)
+!$omp declare target (rec_wenos, reduce_comp, res_time, rg_hzero, rg_kf_type, rg_molm, rg_nof_reactions, rg_nof_tv_coef, rg_relax, rg_t_inf)
+!$omp declare target (rg_t_ref, rg_t_wall_init, rg_thetag, rg_ttr, rg_tv_coef, rg_tve, rg_vf, rgs_ab, rgs_bb, rgs_cb)
+!$omp declare target (rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_sol_mm_dg, rhs_val, rhs_valdg, rhst_val, rot_corr, schmidt_lam, schmidt_turb)
+!$omp declare target (sht_rg, sigma_k1, sigma_k2, sigma_om1, sigma_om2, sigma_phi, source_active, srf_origin, srf_velocity)
+!$omp declare target (stencil_io, taylor_ens, taylor_ensx, temp_model, thread_n, tol_per, typ_countn, typ_countn_global, typ_countn_global_w)
+!$omp declare target (typ_countn_w, u_c_br2_aux_var, u_c_rms, u_c_val, u_c_valdg, u_cs_val, u_cs_valdg, u_ct_val, u_cw_val, u_cw_valdg)
+!$omp declare target (u_e_val, v_ref, viscous_s, vort_model, wall_temp, weight_lsqr)
+!$omp declare target (wnodes_part, wpart1_end, wpart2_end, wpart3_end, wpart4_end, wpart5_end, write_variables, write_variables_av, write_variables_av_w, write_variables_w)
+!$omp declare target (zero_turb_init, zeta_star, adda, allnodesgloball, allres, allresdt, alls, alpha, aoa, averaging)
+!$omp declare target (transition_model, transition_axis, transition_direction, transition_ramp_type, transition_location, transition_ramp_length)
+!$omp declare target (beta, betaas, binio, bleed, boundtype, cascade, cavitation, origin)
+!----mpi comm
+!$omp declare target (halo_len, halos_len, halo_offset, halos_offset, ineedbound, ineedbounds)
+!$omp declare target (bound_len, bounds_len, need_side, need_q, need_loc, halo_proc, halos_proc)
+!$omp declare target (bound_proc, bounds_proc, bound_offset, bounds_offset, solhir, solhis, solhird)
+!$omp declare target (solhisd, boundhiri, boundhisi, boundhir, boundhis, boundhir_dg, boundhis_dg, boundhirm)
+!$omp declare target (boundhism, bound_total, bounds_total, halo_total, halos_total, solhi_loc)
+!---mpi comm
+!$omp declare target (cb1, cb2, cfl, cflmax, cflramp, cfw, charlength, ct1, ct2, ct3)
+!$omp declare target (ct4, cv1, cw1, cw2, cw3, datatypeint, datatypex, datatypexx, datatypey, datatypeyy)
+!$omp declare target (datatypez, dg, dg2fv, dimensiona, dims, dt, ees, emetis, extf, fastest)
+!$omp declare target (fastmovie, filtering, firstorder, firstrese, firstresk, firstresomega, firstrespass, firstresr, firstrest, firstresu)
+!$omp declare target (firstresv, firstresw, forcex, forcey, forcez, gamma, governingequations, greengo, gridar1)
+!$omp declare target (gridar2, guassianquadra, hybridist, iadapt, ibcode, iboundary, ibside, icarlos1, icarlos2, icompact)
+!$omp declare target (icong, iconimp, iconsgvq, iconsr, icoupleturb, idegfree, idegfree2, idegfree3, ievery, ievery2)
+!$omp declare target (ieveryav, iforce, igianagraps, igqrules, ihax1, ihybrid, iloop, iloopx, ilx, imaxb)
+!$omp declare target (imaxdegfree, imaxdegfree2, imaxe, imaxn, impdiag, impdiagt, impdu, impoff, impofft, in)
+!$omp declare target (ineedbound, ineedhalo, initcond, initialres, inum2, inwhichel, iorder, iorder2, ioverst, ioverto)
+!$omp declare target (iperiodicity, iriemann, irs, ischeme, iscoun, iselem, ispal, isplit, issf, istn)
+!$omp declare target (it, itestcase, itold, itotalb, itt, ivortex, iweightlsqr, iweno, iwmaxe, jk)
+!$omp declare target (jtotal, jtotal1, jtotal2, jtotal3, kappa, kdum1, kdum2, kdum3, kill, kloopx, jtot, bound_total, bounds_total, halo_total, halos_total)
+!$omp declare target (kmaxn, l0norm, l1norm, l2norm, lam, lamps, lamx, lamy, lamz, limiter)
+!$omp declare target (lmach, lowmem, lowmemory, lwci1, Mach_in, modeio, momentx, momenty, momentz, mood, movement)
+!$omp declare target (mrf, multispecies, nderivative, nodelist, nprobes, nproc, nrotors, ntmax, numberofpoints, numberofpoints2)
+!$omp declare target (numneighbours, numneighbours2, oo2, outsurf, passivescalar, pi, poly, prandtl, pres, prevres)
+!$omp declare target (prtu, qrde, realgas, relax, required, rescounter, rescountert, residualfreq, reslimit, resmax)
+!$omp declare target (resmaxt, restart, reynolds, rframe, rhc1, rhc2, rhc3, rhc4, rres, rungekutta)
+!$omp declare target (scaler, sht, sigma, spatialorder, spatiladiscret, spkin, spos, srfg)
+!$omp declare target (statistics, stennorm, subdiv, surfshear, suther, swirl, t, taylor, tecplot)
+!$omp declare target (temporder, thermal, timestep, tolbig, tolsmall, totalvolume, totiw, totwalls, totwallsc, turbinit)
+!$omp declare target (turbulence, turbulenceequations, turbulencemodel, twall, typesten, tz1, ufreestream, unwou, upperlimit, upturblimit)
+!$omp declare target (uvel, vectorx, pos_l, pos_g, ipos_l, ipos_g, vectory, vectorz, visc, voll, vorder, vvel, wallc, wdatatypeint)
+!$omp declare target (wdatatypex, wdatatypexx, wdatatypey, wdatatypeyy, wdatatypez, wenocentralweight, wenocnschar, wenoz, wenwrt, wkdum1)
+!$omp declare target (wkdum2, wkdum3, wvel, xmpielrank, xper, yper, zero, zper)
+!$omp declare target (indicator_par1, indicator_par2, indicator_par3, totk, totens, totensx, kill_nan)
+!$omp declare target (solhir_flat, solhis_flat, boundhir_flat, boundhis_flat, boundhir_dgflat, boundhis_dgflat, boundhiri_flat, boundhisi_flat, weights_t, weights_q, weights_l, ilength1, ilength2, ccfl, ind1)
+
+#endif
+
+
+
+
+
+
+end module declaration
