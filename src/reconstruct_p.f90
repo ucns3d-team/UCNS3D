@@ -134,14 +134,14 @@ end do
 	number_of_dog=ielem_idegfree(i)
 	number_of_nei=ielem_inumneighbours(i)
 	call compute_gradients_mix_mean_ggs_viscous_av(n,iconsidered,number_of_dog,number_of_nei)
-end do	
+end do
 #ifdef gpu
 !$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
 end subroutine average_stresses
-	
+
 subroutine memory_fast(n)
   !> @brief
   !> subroutine for storing the gaussian quadrature points at the cell interfaces
@@ -2872,18 +2872,18 @@ i=iconsidered
                                     end if
 
 				  cords(1:3)=zero
- 				  call cordinates3(n,nodes_list,n_node,cords(1:3))
+				  call cordinates3(n,nodes_list,n_node,cords(1:3))
 
 				  poy(1)=cords(2)
 				  pox(1)=cords(1)
 				  poz(1)=cords(3)
 
- 				  leftv(1:nof_variables)=veigl(1:nof_variables)
+				  leftv(1:nof_variables)=veigl(1:nof_variables)
 				  b_code=ibound_icode(ielem_ibounds(l,i))
- 				 call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+				 call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
 
 				  veigr(1:nof_variables)=rightv(1:nof_variables)
-				      	  end if
+					  end if
 				      else
 				      !fluid neighbour
 				      veigr(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
@@ -2948,18 +2948,18 @@ i=iconsidered
 					   call coordinates_face_inner2dx(n,iconsidered,facex,vext,nodes_list)
 					   n_node=2
 				  cords(1:2)=zero
- 				  call cordinates2(n,nodes_list,n_node,cords(1:2))
+				  call cordinates2(n,nodes_list,n_node,cords(1:2))
 
 
 				  pox(1)=cords(1)
                   poy(1)=cords(2)
 
- 				  leftv(1:nof_variables)=veigl(1:nof_variables)
+				  leftv(1:nof_variables)=veigl(1:nof_variables)
 				  b_code=ibound_icode(ielem_ibounds(l,i))
- 				  call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+				  call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
 
 				  veigr(1:nof_variables)=rightv(1:nof_variables)
-				      	  end if
+					  end if
 				      else
 				      !fluid neighbour
 				      veigr(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
@@ -3014,7 +3014,7 @@ end subroutine weno_neighbour
 
 
 
-subroutine find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+subroutine find_bounds(n,iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
 implicit none
 !> @brief
 !> Compute local bounds and variation measures for MUSCL limiting WITHOUT storing neighbor states.
@@ -3026,7 +3026,7 @@ implicit none
 #ifdef gpu
 !$omp declare target
 #endif
-integer,intent(in) :: iconsidered
+integer,intent(in) :: n,iconsidered
 real,dimension(1:nof_variables+turbulenceequations+passivescalar),intent(inout) :: maxvars,aver_vars,sumvars,utmin,utmax
 
 integer :: i,l,iq,k,j,nf,lf,rowf
@@ -3052,6 +3052,11 @@ k = 0
 ! -----------------------
 
 uref(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+if (wenwrt.eq.3)then
+leftv(1:nof_variables)=uref(1:nof_variables)
+call cons2prim(n,leftv,mp_pinfl,gammal)
+uref(1:nof_variables)=leftv(1:nof_variables)
+end if
 if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 uref(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,i)
 end if
@@ -3065,7 +3070,7 @@ if (extended_bounds.eq.0) then
   if (turbulenceequations.ge.1) then
     uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,i)
   end if
-  call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+  call process_state(n,uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
 
   if (ielem_interior(i).eq.0) then
     do l=1,ielem_ifca(i)
@@ -3073,7 +3078,7 @@ if (extended_bounds.eq.0) then
       if (turbulenceequations.ge.1) then
         uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
       end if
-      call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+      call process_state(n,uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
     end do
 
   else
@@ -3088,7 +3093,7 @@ if (extended_bounds.eq.0) then
             if (turbulenceequations.ge.1) then
               uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
             end if
-            call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+            call process_state(n,uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
           end if
         else
           ! fluid neighbor
@@ -3096,7 +3101,7 @@ if (extended_bounds.eq.0) then
           if (turbulenceequations.ge.1) then
             uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
           end if
-          call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+          call process_state(n,uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
         end if
 
       else
@@ -3110,7 +3115,7 @@ if (extended_bounds.eq.0) then
             if (turbulenceequations.ge.1) then
               uvec(nof_variables+1:nvtot) = solhir(rowf,nof_variables+1:nvtot)
             end if
-            call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+            call process_state(n,uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
           end if
         else
           nf   = rec_ihexn(1,ielem_indexi(l,i),rec_local(i))
@@ -3120,7 +3125,7 @@ if (extended_bounds.eq.0) then
           if (turbulenceequations.ge.1) then
             uvec(nof_variables+1:nvtot) = solhir(rowf,nof_variables+1:nvtot)
           end if
-          call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+          call process_state(n,uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
         end if
       end if
 
@@ -3136,7 +3141,7 @@ else
       if (turbulenceequations.ge.1) then
         uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,rec_ihexl(1,iq,i))
       end if
-      call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+      call process_state(n,uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
 
     else
       if (rec_ihexb(1,iq,rec_local(i)).eq.n) then
@@ -3144,7 +3149,7 @@ else
         if (turbulenceequations.ge.1) then
           uvec(nof_variables+1:nvtot) = u_ct_val(1,1:turbulenceequations+passivescalar,rec_ihexl(1,iq,i))
         end if
-        call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+        call process_state(n,uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
       else
         nf   = rec_ihexn(1,iq,i)
         lf   = rec_ihexl(1,iq,i)
@@ -3153,7 +3158,7 @@ else
         if (turbulenceequations.ge.1) then
           uvec(nof_variables+1:nvtot) = solhir(rowf,nof_variables+1:nvtot)
         end if
-        call process_state(uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+        call process_state(n,uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
       end if
     end if
 
@@ -3168,7 +3173,6 @@ end subroutine find_bounds
 
 subroutine compute_muscl_reconstruction(iconsidered,utmin,utmax)
   implicit none
-integer :: kbasis
 !> @brief
 !> subroutine for computing limited MUSCL reconstructed solution (on-the-fly per GP; minimal storage)
 #ifdef gpu
@@ -3178,7 +3182,7 @@ integer :: kbasis
   integer:: nvtot
   real,intent(in) :: utmin(1:nof_variables+turbulenceequations+passivescalar),utmax(1:nof_variables+turbulenceequations+passivescalar)
   integer :: i,l,ngp,iex,iqp,k,ideg
-  real :: ax,ay,az,mp_pinfl,gammal,limvbg,rat,u0,slope_species
+  real :: ax,ay,az,mp_pinfl,gammal,limvbg,rat,u0,slope_vector
   real,dimension(1:gpu_max_nvar) :: leftv,slope_d,candid_lim,delta
   real :: phi(1:gpu_max_dof)
   real :: slope(1:gpu_max_nvar_total)
@@ -3233,13 +3237,9 @@ integer :: kbasis
       if (dimensiona.eq.3) az = rec_qpoints(l,ngp,3,i)
 
       if (dimensiona.eq.3) then
-          do kbasis=1,ideg
-            phi(kbasis) = basis_rec_value(n,ax,ay,az,ielem_iorder(i),i,ideg,0,kbasis)
-          end do
+        phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,0)
       else
-          do kbasis=1,ideg
-            phi(kbasis) = basis_rec2d_value(n,ax,ay,ielem_iorder(i),i,ideg,0,kbasis)
-          end do
+        phi(1:ideg) = basis_rec2d(n,ax,ay,ielem_iorder(i),i,ideg,0)
       end if
 
       ! unlimited reconstructed state at this GP (stored only in usol1(:))
@@ -3276,23 +3276,17 @@ integer :: kbasis
 
   slope(:) = psi_min(:)
 
-  if (realgas.eq.1)then
-  slope_species = 1.0d0
-
-        do l = 1, nof_species
-          iex = dimensiona + 3 + l
-          slope_species = min(slope_species, slope(iex))
-        end do
-
-        do l = 1, nof_species
-          iex = dimensiona + 3 + l
-          slope(iex) = slope(iex) * slope_species
-        end do
-
+#ifndef xpu
+  if (limiter.eq.11) then
+    slope_vector = 1.0d0
+    do iex = 1, nof_variables
+      slope_vector = min(slope_vector,slope(iex))
+    end do
+    do iex = 1, nof_variables
+      slope(iex) = slope_vector
+    end do
   end if
-
-
-
+#endif
 
   ielem_wcx(i) = slope(1)
   if (dg.eq.1) then
@@ -3382,13 +3376,9 @@ integer :: kbasis
       if (dimensiona.eq.3) az = rec_qpoints(l,ngp,3,i)
 
       if (dimensiona.eq.3) then
-          do kbasis=1,ideg
-            phi(kbasis) = basis_rec_value(n,ax,ay,az,ielem_iorder(i),i,ideg,0,kbasis)
-          end do
+        phi(1:ideg) = basis_rec(n,ax,ay,az,ielem_iorder(i),i,ideg,0)
       else
-          do kbasis=1,ideg
-            phi(kbasis) = basis_rec2d_value(n,ax,ay,ielem_iorder(i),i,ideg,0,kbasis)
-          end do
+        phi(1:ideg) = basis_rec2d(n,ax,ay,ielem_iorder(i),i,ideg,0)
       end if
 
       delta(1:nof_variables) = zero
@@ -3445,7 +3435,7 @@ subroutine muscl(n)
               if (ielem_mood(i).gt.0)then
                   if (adda.eq.1) call adda_filter(n,iconsidered)
 
-                call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+                call find_bounds(n,iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
                 call compute_muscl_reconstruction(iconsidered,utmin,utmax)
               end if
 
@@ -3454,7 +3444,7 @@ subroutine muscl(n)
 
             if (adda.eq.1) call adda_filter(n,iconsidered)
 
-              call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+              call find_bounds(n,iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
               call compute_muscl_reconstruction(iconsidered,utmin,utmax)
 
 
@@ -3488,7 +3478,7 @@ subroutine muscl(n)
               if (ielem_mood(i).gt.0)then
                   if (adda.eq.1) call adda_filter(n,iconsidered)
 
-                call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+                call find_bounds(n,iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
                 call compute_muscl_reconstruction(iconsidered,utmin,utmax)
               end if
 
@@ -3497,7 +3487,7 @@ subroutine muscl(n)
 
           if (adda.eq.1) call adda_filter(n,iconsidered)
 
-            call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+            call find_bounds(n,iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
             call compute_muscl_reconstruction(iconsidered,utmin,utmax)
 
 
@@ -4413,7 +4403,7 @@ real :: mm_sum
             do mm_j=1,dimensiona
               mm_sum=mm_sum+ainvjt(mm_i,mm_j)*ugradloc(mm_j)
             end do
-            rec_grads(iex,mm_i,i)=mm_sum*ielem_totvolume(i)
+            rec_grads(iex,mm_i,i)=mm_sum
           end do
       end do
 
@@ -4473,7 +4463,7 @@ real :: mm_sum
             do mm_j=1,dimensiona
               mm_sum=mm_sum+ainvjt(mm_i,mm_j)*ugradloc(mm_j)
             end do
-            rec_grads(nof_variables-1+iex,mm_i,i)=mm_sum*ielem_totvolume(i)
+            rec_grads(nof_variables-1+iex,mm_i,i)=mm_sum
           end do
       end do
 
@@ -5398,9 +5388,9 @@ kmaxe=xmpielrank(n)
 #endif
 	do i=1,kmaxe
     do iex=1,nof_variables
- 	rec_uleft(iex,:,:,i)=u_c_val(1,iex,i)
+	rec_uleft(iex,:,:,i)=u_c_val(1,iex,i)
     end do
-	
+
 	if ((turbulence.gt.0).or.(passivescalar.gt.0))then
     do iex=1,turbulenceequations+passivescalar
 	rec_uleftturb(iex,:,:,i)=u_ct_val(1,iex,i)
@@ -5412,7 +5402,7 @@ kmaxe=xmpielrank(n)
 #else
 !$omp end do
 #endif
- 
+
 end subroutine piecewise_constant
 
 
@@ -5554,7 +5544,9 @@ implicit none
 logical::supported_iweno
 
 select case(iweno)
-case(-1,0)
+case(-1)
+  supported_iweno=(wenwrt.ne.3)
+case(0)
   supported_iweno=.true.
 case(1)
   supported_iweno=(wenwrt.ne.2).and.(wenwrt.ne.3)
@@ -5685,12 +5677,12 @@ select case(iweno)
 
   call checksol(n)
   call muscl(n)
-  call checksolx(n)
+ call checksolx(n)
 
   case(-1)
 
   call muscl(n)
-  call checksolx(n)
+    call checksolx(n)
 
   case(0)
   if (firstorder.eq.1)then
@@ -6169,7 +6161,7 @@ if (itestcase.ge.3)then
         ielem_reduce(i)=0;reduce1=0
         jump_cond=0.9
 
-        if (realgas==1) jump_cond=0.3
+        if (realgas==1) jump_cond=0.6
 
 
         if (ielem_troubled(i).eq.1)then
@@ -6180,7 +6172,7 @@ if (itestcase.ge.3)then
 
 
         if (ielem_full(i).eq.1)then
-		
+
 		  do l=1,ielem_ifca(i)	!faces2
 				  if (dimensiona.eq.3)then
 
@@ -6195,12 +6187,26 @@ if (itestcase.ge.3)then
 			      end if
 
 				  do ngp=1,iqp
-					      
-							do iex=1,nof_variables
-							leftv(iex)=rec_uleft(iex,l,ngp,i)
-							rightv(iex)=u_c_val(1,iex,i)
-							end do
-							call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
+
+								do iex=1,nof_variables
+								leftv(iex)=rec_uleft(iex,l,ngp,i)
+								rightv(iex)=u_c_val(1,iex,i)
+								end do
+
+								if (realgas.eq.1)then
+									if ((leftv(1).le.0.0d0).or.(leftv(dimensiona+2).le.0.0d0).or.(leftv(dimensiona+3).lt.0.0d0))then
+										reduce1=1
+										ielem_reduce(i)=1
+									end if
+									do iex=dimensiona+4,nof_variables
+										if (leftv(iex).lt.0.0d0)then
+											reduce1=1
+											ielem_reduce(i)=1
+											exit
+										end if
+									end do
+								end if
+								call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 
 
 
@@ -6227,10 +6233,11 @@ if (itestcase.ge.3)then
                                                                       temp_scale = rightv(iex)
 
                                                                       if (abs(temp_scale).gt.10e-300)then
-                                                                        if ((jump .ge. jump_cond*(temp_scale)).or.(rightv(iex).lt.0.0d0))then
-                                                                                reduce1=1
-                                                                                ielem_reduce(i)=1    !jump from not species
-                                                                                exit
+	                                                                        if ((jump .ge. jump_cond*(temp_scale)).or. &
+	                                                                        & (leftv(iex).lt.0.0d0))then
+	                                                                                reduce1=1
+	                                                                                ielem_reduce(i)=1    !jump from not species
+	                                                                                exit
 
                                                                         end if
                                                                       end if
@@ -6248,24 +6255,24 @@ if (itestcase.ge.3)then
 
 
 
-				
-					
+
+
 				  end do
-		end do	
-		
-		
+		end do
+
+
 		if (ielem_hybrid(i).eq.1)then
 		reduce1=1
 		ielem_reduce(i)=1
 		end if
-		
 
 
-		
-		
+
+
+
 		end if
-		
-		
+
+
 		end if
 
 
@@ -6277,16 +6284,16 @@ if (itestcase.ge.3)then
 #else
 !$omp end do
 #endif
-		
 
-		
-end if		
-		
-		
+
+
+end if
+
+
 
 end subroutine checksol
 
- 
+
 subroutine checksolx(n)
 implicit none
 !> @brief
@@ -6318,12 +6325,12 @@ if (itestcase.ge.3)then
 	do i=1,kmaxe
             jump_cond=0.8
 
-            if (Realgas.eq.1)jump_cond=0.2
+            if (Realgas.eq.1)jump_cond=0.6
 
 			reduce1=0
 
         if (ielem_troubled(i).eq.1)then
-        
+
 
 						do l=1,ielem_ifca(i)	!faces2
 								if (dimensiona.eq.3)then
@@ -6340,12 +6347,26 @@ if (itestcase.ge.3)then
 										do ngp=1,iqp
 
 
-													do iex=1,nof_variables
-													leftv(iex)=rec_uleft(iex,l,ngp,i)
-													rightv(iex)=u_c_val(1,iex,i)
-													end do
+														do iex=1,nof_variables
+														leftv(iex)=rec_uleft(iex,l,ngp,i)
+														rightv(iex)=u_c_val(1,iex,i)
+														end do
 
-													call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
+														if (realgas.eq.1)then
+															if ((leftv(1).le.0.0d0).or.(leftv(dimensiona+2).le.0.0d0).or.(leftv(dimensiona+3).lt.0.0d0))then
+																reduce1=1
+																ielem_reduce(i)=1
+															end if
+															do iex=dimensiona+4,nof_variables
+																if (leftv(iex).lt.0.0d0)then
+																	reduce1=1
+																	ielem_reduce(i)=1
+																	exit
+																end if
+															end do
+														end if
+
+														call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 
                                                             if (realgas.eq.0)then
                                                     do iex=1,nof_variables
@@ -6367,10 +6388,11 @@ if (itestcase.ge.3)then
                                                                       temp_scale = rightv(iex)
 
                                                                       if (abs(temp_scale).gt.10e-300)then
-                                                                        if ((jump .ge. jump_cond*(temp_scale)).or.(rightv(iex).lt.0.0d0))then
-                                                                                reduce1=1
-                                                                                ielem_reduce(i)=iex    !jump from not species
-                                                                                exit
+	                                                                        if ((jump .ge. jump_cond*(temp_scale)).or. &
+	                                                                        & (leftv(iex).lt.0.0d0))then
+	                                                                                reduce1=1
+	                                                                                ielem_reduce(i)=iex    !jump from not species
+	                                                                                exit
 
                                                                         end if
                                                                       end if
@@ -6499,8 +6521,8 @@ end if
 
 
 end subroutine checksolx
- 
- 
+
+
 subroutine slope_limiters(n,iconsidered,utmin,utmax,usol,psi)
 implicit none
 !> @brief
@@ -6519,17 +6541,28 @@ real,    intent(in) :: usol(1:nof_variables+turbulenceequations+passivescalar)
 real,    intent(out):: psi(1:nof_variables+turbulenceequations+passivescalar)
 integer :: i, iex, nvtot
 real :: u0, d2, sfd, epsi2, dmin, dplus, kappa_ven, psi2, sig_1, delu, y_fun, s_y, pol_mog
+real :: mp_pinfl, gammal
+real,dimension(1:gpu_max_nvar) :: u0_state
 
 i = iconsidered
 nvtot = nof_variables+turbulenceequations+passivescalar
 
-kappa_ven = 0.1
+kappa_ven = 10.0
+
+if (wenwrt.eq.3) then
+  u0_state(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+  call cons2prim(n,u0_state,mp_pinfl,gammal)
+end if
 
 do iex = 1, nvtot
 
   ! cell-centered value for this variable (no utemp storage)
   if (iex <= nof_variables) then
-    u0 = u_c_val(1,iex,i)
+    if (wenwrt.eq.3) then
+      u0 = u0_state(iex)
+    else
+      u0 = u_c_val(1,iex,i)
+    end if
   else
     u0 = u_ct_val(1,iex-nof_variables,i)
   end if
@@ -6545,7 +6578,7 @@ do iex = 1, nvtot
 
     select case (limiter)
 
-    case (1)
+    case (1,11)
       psi(iex) = min(1.0d0, sfd)                 ! Barth-Jespersen
 
     case (10)
@@ -6682,7 +6715,7 @@ do iex = 1, nvtot
 
     select case (limiter)
 
-    case (1)
+    case (1,11)
       psi(iex) = min(1.0d0, sfd)
 
     case (10)
@@ -6821,11 +6854,12 @@ end subroutine slope_limiters
 
 
 
-subroutine process_state(uin,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
+subroutine process_state(n,uin,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
   implicit none
 #ifdef gpu
 !$omp declare target
 #endif
+  integer,intent(in) :: n
   integer::nvtot
   real,    intent(in)    :: uin(nof_variables+turbulenceequations+passivescalar),uref(nof_variables+turbulenceequations+passivescalar)
   integer, intent(inout) :: k
@@ -6866,8 +6900,9 @@ end subroutine process_state
 
 
 
-subroutine trouble_indicator1
+subroutine trouble_indicator1(n)
 implicit none
+integer,intent(in)::n
 integer::i,l,j,k,kmaxe,iqp,ngp,iex
 integer::trouble
 integer::iconsidered,facex,pointx
@@ -6893,7 +6928,7 @@ iconsidered=i
 
 
 
-    call find_bounds(iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
+    call find_bounds(n,iconsidered,maxvars,aver_vars,sumvars,utmin,utmax)
 
     do l = 1, ielem_ifca(i)
 
@@ -6913,8 +6948,8 @@ iconsidered=i
                     pointx=ngp
                     usol(1:nof_variables)=rec_uleft_dg(1:nof_variables,facex,pointx,iconsidered)
                     leftv(1:nof_variables)=usol(1:nof_variables)
-                    call pad_dg(iconsidered,leftv)
-                    call nad_dg(iconsidered,facex,pointx,leftv,rightv,usol,maxvars,aver_vars,sumvars,utmin,utmax)
+                    call pad_dg(n,iconsidered,leftv)
+                    call nad_dg(n,iconsidered,facex,pointx,leftv,rightv,usol,maxvars,aver_vars,sumvars,utmin,utmax)
                 end do
 
     end do
@@ -6941,8 +6976,9 @@ end subroutine
 
 
 
-subroutine trouble_indicator2
+subroutine trouble_indicator2(n)
 implicit none
+integer,intent(in)::n
 integer::i,l,j,k,kmaxe,iqp,ngp,iex,ndof
 integer::trouble, ifree,i_deg
 integer::iconsidered,facex,pointx
@@ -7022,16 +7058,16 @@ end subroutine
 
 
 
-    
-    
-subroutine pad_dg(iconsidered,leftv)
+
+
+subroutine pad_dg(n,iconsidered,leftv)
 implicit none
 #ifdef gpu
 !$omp declare target
 #endif
 integer::i,l,j,k,kmaxe,iqp,ngp,iex
 integer::trouble
-integer,intent(in)::iconsidered
+integer,intent(in)::n,iconsidered
 real,dimension(1:nof_variables),intent(inout)::leftv
 real::mp_pinfl,gammal
 
@@ -7123,14 +7159,14 @@ real::mp_pinfl,gammal
 end subroutine
 
 
-subroutine nad_dg(iconsidered,facex,pointx,leftv,rightv,usol,maxvars,aver_vars,sumvars,utmin,utmax)
+subroutine nad_dg(n,iconsidered,facex,pointx,leftv,rightv,usol,maxvars,aver_vars,sumvars,utmin,utmax)
 implicit none
 #ifdef gpu
 !$omp declare target
 #endif
 integer::i,l,j,k,kmaxe,iqp,ngp,iex
 integer::trouble,img
-integer,intent(in)::iconsidered,facex,pointx
+integer,intent(in)::n,iconsidered,facex,pointx
 real::par1,par2,d2,minb,maxb
 real,dimension(1:gpu_max_nvar)::nad_dg_el
 real,dimension(1:nof_variables),intent(inout)::leftv,rightv

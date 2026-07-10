@@ -74,8 +74,6 @@ kmaxe=xmpielrank(n)
 
 call implicit_zero_impdu(kmaxe)
 
-
-
 call calculate_jacobian(n)
 if (rframe.eq.0) then
 #ifdef gpu
@@ -182,7 +180,7 @@ end do	!loop elements
 #endif
 
  call exhboundhigher2(n)
- 
+
 
 
 #ifdef gpu
@@ -198,9 +196,9 @@ end do	!loop elements
 #else
 !$omp end do
 #endif
- 
+
  call exhboundhigher2(n)
- 
+
 
 end do!sweeps
 
@@ -224,7 +222,6 @@ integer::j
 real,dimension(1:RELAX_NVAR,1:RELAX_NVAR)::lscqm1
 
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)
-  impdiag(i,1:nof_variables,1:nof_variables)=zero
   do j=1,nof_variables
 	impdiag(i,j,j)=1.0d0/lscqm1(j,j)
   end do
@@ -250,13 +247,13 @@ real,dimension(1:RELAX_NVAR,1:RELAX_NVAR)::lscqm1
     !inverse of the matrix in case of source term
     denx=(lscqm1(2,2)*lscqm1(3,3)*lscqm1(4,4)+lscqm1(2,2)*w1**2+lscqm1(3,3)*w2**2+lscqm1(4,4)*w3**2)
     impdiag(i,1,1)=1.0d0/lscqm1(1,1)
-    impdiag(i,2,2)=(lscqm1(3,3)*lscqm1(4,4)+w1**2)/denx            
+    impdiag(i,2,2)=(lscqm1(3,3)*lscqm1(4,4)+w1**2)/denx
     impdiag(i,2,3)=(lscqm1(4,4)*w3+w1*w2)/denx
-    impdiag(i,2,4)=(-lscqm1(3,3)*w2+w1*w3)/denx            
+    impdiag(i,2,4)=(-lscqm1(3,3)*w2+w1*w3)/denx
     impdiag(i,3,2)=(-lscqm1(4,4)*w3+w1*w2)/denx
     impdiag(i,3,3)=(lscqm1(2,2)*lscqm1(4,4)+w2**2)/denx
     impdiag(i,3,4)=(lscqm1(2,2)*w1+w2*w3)/denx
-    impdiag(i,4,2)=(lscqm1(3,3)*w2+w1*w3)/denx            
+    impdiag(i,4,2)=(lscqm1(3,3)*w2+w1*w3)/denx
     impdiag(i,4,3)=(-lscqm1(2,2)*w1+w2*w3)/denx
     impdiag(i,4,4)=(lscqm1(2,2)*lscqm1(3,3)+w3**2)/denx
     impdiag(i,5,5)=1.0d0/lscqm1(5,5)
@@ -292,13 +289,13 @@ real,dimension(1:RELAX_NVAR,1:RELAX_NVAR)::lscqm1
         !inverse of the matrix in case of source term
         denx=(lscqm1(2,2)*lscqm1(3,3)*lscqm1(4,4)+lscqm1(2,2)*w1**2+lscqm1(3,3)*w2**2+lscqm1(4,4)*w3**2)
         impdiag(i,1,1)=1.0d0/lscqm1(1,1)
-        impdiag(i,2,2)=(lscqm1(3,3)*lscqm1(4,4)+w1**2)/denx            
+        impdiag(i,2,2)=(lscqm1(3,3)*lscqm1(4,4)+w1**2)/denx
         impdiag(i,2,3)=(lscqm1(4,4)*w3+w1*w2)/denx
-        impdiag(i,2,4)=(-lscqm1(3,3)*w2+w1*w3)/denx            
+        impdiag(i,2,4)=(-lscqm1(3,3)*w2+w1*w3)/denx
         impdiag(i,3,2)=(-lscqm1(4,4)*w3+w1*w2)/denx
         impdiag(i,3,3)=(lscqm1(2,2)*lscqm1(4,4)+w2**2)/denx
         impdiag(i,3,4)=(lscqm1(2,2)*w1+w2*w3)/denx
-        impdiag(i,4,2)=(lscqm1(3,3)*w2+w1*w3)/denx            
+        impdiag(i,4,2)=(lscqm1(3,3)*w2+w1*w3)/denx
         impdiag(i,4,3)=(-lscqm1(2,2)*w1+w2*w3)/denx
         impdiag(i,4,4)=(lscqm1(2,2)*lscqm1(3,3)+w3**2)/denx
         impdiag(i,5,5)=1.0d0/lscqm1(5,5)
@@ -467,19 +464,23 @@ do l=1,ielem_ifca(i)	!loop3
 								    cturbl(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
 								    b_code=ibound_icode(ielem_ibounds(l,i))
+								    if (realgas.ne.0) cycle
 
 
 
 
-								    ! Do not apply physical state BCs to implicit correction vectors.
+								    if (realgas.eq.0)then
+								    call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+								    else
 								    ibfc=-1
 								    rightv(1:nof_variables)=leftv(1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
 								    end if
+								    end if
 
 								    du1(1:nof_variables)=rightv(1:nof_variables)
-				  				    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
 								    end if
 
@@ -490,34 +491,51 @@ do l=1,ielem_ifca(i)	!loop3
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-
 								    case(2)
+								    if (realgas.eq.0)then
 								    du1(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
-
-
-								    case(6,9,99)
-
-								    if (ibfc.eq.-1)then
-								   du1(:)=zero
+								    else
+								    du1(:)=zero
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-
-
+								    end if
+								    case(4)
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
+								    case(6,9,99)
+								    if (ibfc.eq.-1)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
 								    else
+								    if (realgas.eq.0)then
 								    du1(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
-
-
-
+								    else
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-
-
+								    end if
+								    end if
+								    case default
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
 								    end select
 
 
@@ -697,15 +715,15 @@ do l=1,ielem_ifca(i)	!loop3
 			    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 			    dut1(:)=zero
 			    end if
-				
-				
-	 
+
+
+
 		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-				     				      
-		if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-		end if	
-		
+		end if
+
 		  do mm_i=1,nof_variables
 		    mm_sum=zero
 		    do mm_j=1,nof_variables
@@ -721,10 +739,10 @@ do l=1,ielem_ifca(i)	!loop3
 end do	!loop f
 
 
-				
+
 else
 
-do l=1,ielem_ifca(i)	!loop3	
+do l=1,ielem_ifca(i)	!loop3
                                  igoflux=0
 		     if (ielem_ineighb(l,i).eq.n)then	!my cpu only
                                                     if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
@@ -733,11 +751,11 @@ do l=1,ielem_ifca(i)	!loop3
                                                         else
                                                                 icaseb=3        !physical
                                                         end if
-                                                   
+
                                                     else
-                                                    
+
                                                                 icaseb=2!no boundaries interior
-                                                    
+
                                                     end if
                                 else
                                                     if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
@@ -746,10 +764,10 @@ do l=1,ielem_ifca(i)	!loop3
                                                                 end if
                                                     else
                                                                 icaseb=5
-                                                    
+
                                                     end if
-                                
-                                
+
+
                                 end if
 				  if (icaseb.le.2)then
                                         if (ielem_reorient(l,i).eq.0)then
@@ -766,22 +784,22 @@ do l=1,ielem_ifca(i)	!loop3
 				nx=(cos(angle1)*sin(angle2))
 				ny=(sin(angle1)*sin(angle2))
 				nz=(cos(angle2))
-	
+
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-								  					  
-								  
-								  
+
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;iconsidered=i
 								  call coordinates_face_innerx(n,iconsidered,facex,vext,nodes_list)
 
@@ -793,131 +811,152 @@ do l=1,ielem_ifca(i)	!loop3
 
 								    cords(1:3)=zero
 								    call cordinates3(n,nodes_list,n_node,cords(1:3))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
 								    poz(1)=cords(3)
-								    
+
 								    leftv(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbl(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
+								    if (realgas.ne.0) cycle
 
-								    
-								    ! Do not apply physical state BCs to implicit correction vectors.
+
+
+								    if (realgas.eq.0)then
+								    call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+								    else
 								    ibfc=-1
 								    rightv(1:nof_variables)=leftv(1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
 								    end if
-								    
+								    end if
+
 								    du1(1:nof_variables)=rightv(1:nof_variables)
-				  				    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
 								    end if
-								    
-								    
+
+
 								    select case(b_code)
 								    case(1)
 								    du1(:)=zero
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
 								    case(2)
+								    if (realgas.eq.0)then
 								    du1(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
-								    
-								    
-								    case(6,9,99)
-								    
-								    if (ibfc.eq.-1)then
-								   du1(:)=zero
+								    else
+								    du1(:)=zero
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
-								    
+								    end if
+								    case(4)
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
+								    case(6,9,99)
+								    if (ibfc.eq.-1)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
 								    else
+								    if (realgas.eq.0)then
 								    du1(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
-								    
-								    
-								    
+								    else
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
-								    
+								    end if
+								    end if
+								    case default
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
 								    end select
-								    
-								    
-				  				  				  				  
-								    
+
+
+
+
 								  end if
 							else
 							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-						
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
+
 ! 								du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 								nfx  = ielem_ineighn(l,i)
 								lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								rowfx = bound_offset(nfx) + lfx - 1
 								du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-					
+
 								end if
-							else 			
+							else
 ! 							      du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 							      nfx  = ielem_ineighn(l,i)
 							      lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 							      rowfx = bound_offset(nfx) + lfx - 1
 							      du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-							
-								  
-! 								   
+
+
+!
 							end if
 					    end if
-	
-	
+
+
 
   do mm_i=1,nof_variables
     mm_sum=zero
@@ -994,15 +1033,15 @@ do l=1,ielem_ifca(i)	!loop3
 			    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 			    dut1(:)=zero
 			    end if
-				
-				
-	 
+
+
+
 		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-				     				      
-		if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-		end if	
-		
+		end if
+
 		      do mm_i=1,nof_variables
 		        mm_sum=zero
 		        do mm_j=1,nof_variables
@@ -1016,10 +1055,10 @@ dummy12t(1:turbulenceequations+passivescalar)=dummy12t(1:turbulenceequations+pas
 end if
 		end if
 end do	!loop f
-			
+
 else
 
-do l=1,ielem_ifca(i)	!loop3	
+do l=1,ielem_ifca(i)	!loop3
 
                           igoflux=0
 		     if (ielem_ineighb(l,i).eq.n)then	!my cpu only
@@ -1029,11 +1068,11 @@ do l=1,ielem_ifca(i)	!loop3
                                                         else
                                                                 icaseb=3        !physical
                                                         end if
-                                                   
+
                                                     else
-                                                    
+
                                                                 icaseb=2!no boundaries interior
-                                                    
+
                                                     end if
                                 else
                                                     if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
@@ -1042,10 +1081,10 @@ do l=1,ielem_ifca(i)	!loop3
                                                                 end if
                                                     else
                                                                 icaseb=5
-                                                    
+
                                                     end if
-                                
-                                
+
+
                                 end if
 				  if (icaseb.le.2)then
                                         if (ielem_reorient(l,i).eq.1)then
@@ -1058,91 +1097,91 @@ do l=1,ielem_ifca(i)	!loop3
                                 end if
                                  if (ielem_reorient(l,i).eq.1)then
 
-				
+
 				angle1=ielem_faceanglex(l,i)
 				angle2=ielem_faceangley(l,i)
 				nx=(cos(angle1)*sin(angle2))
 				ny=(sin(angle1)*sin(angle2))
 				nz=(cos(angle2))
-	
+
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-								  					  
-								  
-								  
+
+
+
 								  else
-								  
-								    
-								    
-				  				  				  				  
-								    
+
+
+
+
+
 								  end if
 							else
 							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-						
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
+
 ! 								du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 								nfx  = ielem_ineighn(l,i)
 								lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								rowfx = bound_offset(nfx) + lfx - 1
 								du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-					
+
 								end if
-							else 			
+							else
 ! 							      du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 							      nfx  = ielem_ineighn(l,i)
 							      lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 							      rowfx = bound_offset(nfx) + lfx - 1
 							      du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-							
-								  
-! 								   
+
+
+!
 							end if
 					    end if
-	
-	
+
+
 
    do mm_i=1,nof_variables
      mm_sum=zero
@@ -1221,15 +1260,6 @@ kmaxe=xmpielrank(n)
 
 call implicit_zero_impdu(kmaxe)
 
-
-
-
-
-
-
-
-
-
 if (relax.eq.1)then
 do ii=1,sweeps	!loop1
 #ifndef gpu
@@ -1263,7 +1293,7 @@ end do	!loop elements
 #endif
 
  call exhboundhigher2(n)
- 
+
 
 
 #ifndef gpu
@@ -1275,9 +1305,9 @@ end do	!loop elements
 #ifndef gpu
 !$omp end do
 #endif
- 
+
  call exhboundhigher2(n)
- 
+
 
 end do!sweeps
 
@@ -1344,7 +1374,6 @@ du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.
 iconsidered=i
 call calculate_jacobianlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)
-impdiag(1,1:nof_variables,1:nof_variables)=zero
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -1381,15 +1410,15 @@ do l=1,ielem_ifca(i)	!loop3
 			    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 			    dut1(:)=zero
 			    end if
-				
-				
-	 
+
+
+
 		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-				     				      
-		if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-		end if	
-		
+		end if
+
 		  do mm_i=1,nof_variables
 		    mm_sum=zero
 		    do mm_j=1,nof_variables
@@ -1403,31 +1432,31 @@ do l=1,ielem_ifca(i)	!loop3
 end do	!loop f
 
 
-				
+
 else
 
-do l=1,ielem_ifca(i)	!loop3			
+do l=1,ielem_ifca(i)	!loop3
 				angle1=ielem_faceanglex(l,i)
 				angle2=ielem_faceangley(l,i)
 				nx=(cos(angle1)*sin(angle2))
 				ny=(sin(angle1)*sin(angle2))
 				nz=(cos(angle2))
-	
+
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-								  					  
-								  
-								  
+
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;iconsidered=i
 								  call coordinates_face_innerx(n,iconsidered,facex,vext,nodes_list)
 
@@ -1439,110 +1468,133 @@ do l=1,ielem_ifca(i)	!loop3
 
 								    cords(1:3)=zero
 								    call cordinates3(n,nodes_list,n_node,cords(1:3))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
 								    poz(1)=cords(3)
-								    
+
 								    leftv(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbl(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
+								    if (realgas.ne.0) cycle
 
-								    
-								    ! Do not apply physical state BCs to implicit correction vectors.
+
+
+								    if (realgas.eq.0)then
+								    call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+								    else
 								    ibfc=-1
 								    rightv(1:nof_variables)=leftv(1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
 								    end if
-								    
+								    end if
+
 								    du1(1:nof_variables)=rightv(1:nof_variables)
-				  				    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
 								    end if
-								    
-								    
+
+
 								    select case(b_code)
 								    case(1,6)
 								    du1(:)=zero
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
 								    case(2)
+								    if (realgas.eq.0)then
 								    du1(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
-								    
+								    else
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
+								    case(4,9,99)
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
+								    case default
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
 								    end select
-								    
-								    
-				  				  				  				  
-								    
+
+
+
+
 								  end if
 							else
 							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-						
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
+
 ! 								du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 								nfx  = ielem_ineighn(l,i)
 								lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								rowfx = bound_offset(nfx) + lfx - 1
 								du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-					
+
 								end if
-							else 			
+							else
 ! 							      du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 							      nfx  = ielem_ineighn(l,i)
 							      lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 							      rowfx = bound_offset(nfx) + lfx - 1
 							      du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-							
-								  
-! 								   
+
+
+!
 							end if
 					    end if
-	
-	
+
+
 
   do mm_i=1,nof_variables
     mm_sum=zero
@@ -1626,7 +1678,6 @@ du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.
 iconsidered=i
 call calculate_jacobianlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)
-impdiag(1,1:nof_variables,1:nof_variables)=zero
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -1667,15 +1718,15 @@ do l=1,ielem_ifca(i)	!loop3
 			    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 			    dut1(:)=zero
 			    end if
-				
-				
-	 
+
+
+
 		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-				     				      
-		if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-		end if	
-		
+		end if
+
 		  do mm_i=1,nof_variables
 		    mm_sum=zero
 		    do mm_j=1,nof_variables
@@ -1691,32 +1742,32 @@ do l=1,ielem_ifca(i)	!loop3
 end do	!loop f
 
 
-				
+
 else
 
-do l=1,ielem_ifca(i)	!loop3	
+do l=1,ielem_ifca(i)	!loop3
 				if (ielem_reorient(l,i).eq.0)then
 				angle1=ielem_faceanglex(l,i)
 				angle2=ielem_faceangley(l,i)
 				nx=(cos(angle1)*sin(angle2))
 				ny=(sin(angle1)*sin(angle2))
 				nz=(cos(angle2))
-	
+
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-								  					  
-								  
-								  
+
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;iconsidered=i
 								  call coordinates_face_innerx(n,iconsidered,facex,vext,nodes_list)
 
@@ -1729,130 +1780,151 @@ do l=1,ielem_ifca(i)	!loop3
 
 								    cords(1:3)=zero
 								    call cordinates3(n,nodes_list,n_node,cords(1:3))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
 								    poz(1)=cords(3)
-								    
+
 								    leftv(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbl(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
+								    if (realgas.ne.0) cycle
 
-								    
-								    ! Do not apply physical state BCs to implicit correction vectors.
+
+
+								    if (realgas.eq.0)then
+								    call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+								    else
 								    ibfc=-1
 								    rightv(1:nof_variables)=leftv(1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
 								    end if
-								    
+								    end if
+
 								    du1(1:nof_variables)=rightv(1:nof_variables)
-				  				    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
 								    end if
-								    
+
 								 select case(b_code)
-								    case(1)
-								    du1(:)=zero
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=zero
-								    end if
-								    
-								    case(2)
-								    du1(1:nof_variables)=impdu(i,1:nof_variables)
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								    end if
-								    
-								    
-								    case(6,9,99)
-								    
-								    if (ibfc.eq.-1)then
-								   du1(:)=zero
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=zero
-								    end if
-								    
-								    
-								    else
-								    du1(1:nof_variables)=impdu(i,1:nof_variables)
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								    end if
-								    
-								    
-								    
-								    end if
-								    
-								    
-								    end select
-								    
-								    
-				  				  				  				  
-								    
+								 case(1)
+								 du1(:)=zero
+								 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								 dut1(1:turbulenceequations+passivescalar)=zero
+								 end if
+								 case(2)
+								 if (realgas.eq.0)then
+								 du1(1:nof_variables)=impdu(i,1:nof_variables)
+								 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								 dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								 end if
+								 else
+								 du1(:)=zero
+								 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								 dut1(1:turbulenceequations+passivescalar)=zero
+								 end if
+								 end if
+								 case(4)
+								 if (realgas.ne.0)then
+								 du1(:)=zero
+								 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								 dut1(1:turbulenceequations+passivescalar)=zero
+								 end if
+								 end if
+								 case(6,9,99)
+								 if (ibfc.eq.-1)then
+								 du1(:)=zero
+								 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								 dut1(1:turbulenceequations+passivescalar)=zero
+								 end if
+								 else
+								 if (realgas.eq.0)then
+								 du1(1:nof_variables)=impdu(i,1:nof_variables)
+								 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								 dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								 end if
+								 else
+								 du1(:)=zero
+								 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								 dut1(1:turbulenceequations+passivescalar)=zero
+								 end if
+								 end if
+								 end if
+								 case default
+								 if (realgas.ne.0)then
+								 du1(:)=zero
+								 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								 dut1(1:turbulenceequations+passivescalar)=zero
+								 end if
+								 end if
+								 end select
+
+
+
+
 								  end if
 							else
 							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-						
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
+
 ! 								du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 								nfx  = ielem_ineighn(l,i)
 								lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								rowfx = bound_offset(nfx) + lfx - 1
 								du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-					
+
 								end if
-							else 			
+							else
 ! 							      du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 							      nfx  = ielem_ineighn(l,i)
 							      lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 							      rowfx = bound_offset(nfx) + lfx - 1
 							      du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-							
-								  
-! 								   
+
+
+!
 							end if
 					    end if
-	
-	
+
+
 
   do mm_i=1,nof_variables
     mm_sum=zero
@@ -1922,7 +1994,6 @@ du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.
 iconsidered=i
 call calculate_jacobianlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)
-impdiag(1,1:nof_variables,1:nof_variables)=zero
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -1953,15 +2024,15 @@ do l=1,ielem_ifca(i)	!loop3
 			    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 			    dut1(:)=zero
 			    end if
-				
-				
-	 
+
+
+
 		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-				     				      
-		if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-		end if	
-		
+		end if
+
 		      do mm_i=1,nof_variables
 		        mm_sum=zero
 		        do mm_j=1,nof_variables
@@ -1976,95 +2047,95 @@ end if
 		end if
 end do	!loop f
 
-				
+
 else
 
-do l=1,ielem_ifca(i)	!loop3	
+do l=1,ielem_ifca(i)	!loop3
 				if (ielem_reorient(l,i).eq.1)then
 				angle1=ielem_faceanglex(l,i)
 				angle2=ielem_faceangley(l,i)
 				nx=(cos(angle1)*sin(angle2))
 				ny=(sin(angle1)*sin(angle2))
 				nz=(cos(angle2))
-	
+
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-								  					  
-								  
-								  
+
+
+
 								  else
-								  
-								    
-								    
-				  				  				  				  
-								    
+
+
+
+
+
 								  end if
 							else
 							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-						
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
+
 ! 								du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 								nfx  = ielem_ineighn(l,i)
 								lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								rowfx = bound_offset(nfx) + lfx - 1
 								du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-					
+
 								end if
-							else 			
+							else
 ! 							      du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 							      nfx  = ielem_ineighn(l,i)
 							      lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 							      rowfx = bound_offset(nfx) + lfx - 1
 							      du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-							
-								  
-! 								   
+
+
+!
 							end if
 					    end if
-	
-	
+
+
 
    do mm_i=1,nof_variables
      mm_sum=zero
@@ -2131,11 +2202,6 @@ kmaxe=xmpielrank(n)
 
 call implicit_zero_impdu(kmaxe)
 
-
-
-
-
-
 call calculate_jacobian_2d(n)
 
 #ifdef gpu
@@ -2188,7 +2254,7 @@ end do
 
  call exhboundhigher2(n)
 
- 
+
 
 end do!sweeps
 
@@ -2212,7 +2278,7 @@ end do	!loop elements
 #endif
 
  call exhboundhigher2(n)
- 
+
 
 
 #ifdef gpu
@@ -2228,9 +2294,9 @@ end do	!loop elements
 #else
 !$omp end do
 #endif
- 
+
  call exhboundhigher2(n)
- 
+
 
 end do!sweeps
 
@@ -2254,7 +2320,6 @@ integer::j
 real,dimension(1:RELAX_NVAR,1:RELAX_NVAR)::lscqm1
 
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)
-  impdiag(i,1:nof_variables,1:nof_variables)=zero
   do j=1,nof_variables
 
 	impdiag(i,j,j)=1.0d0/lscqm1(j,j)
@@ -2340,15 +2405,15 @@ do l=1,ielem_ifca(i)	!loop3
 			    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 			    dut1(:)=zero
 			    end if
-				
-				
-	 
+
+
+
 		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-				     				      
-		if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-		end if	
-		
+		end if
+
 		  do mm_i=1,nof_variables
 		    mm_sum=zero
 		    do mm_j=1,nof_variables
@@ -2362,168 +2427,183 @@ do l=1,ielem_ifca(i)	!loop3
 end do	!loop f
 
 
-				
+
 else
 
-do l=1,ielem_ifca(i)	!loop3			
+do l=1,ielem_ifca(i)	!loop3
 				angle1=ielem_faceanglex(l,i)
 				angle2=ielem_faceangley(l,i)
 				nx=angle1
 				ny=angle2
-				
-	
+
+
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-								  					  
-								  
-								  
+
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;iconsidered=i
 								  call coordinates_face_inner2dx(n,iconsidered,facex,vext,nodes_list)
 								  n_node=2
 								    cords(1:2)=zero
 								    call cordinates2(n,nodes_list,n_node,cords(1:2))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
-								    
-								    
+
+
 								    leftv(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbl(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
+								    if (realgas.ne.0) cycle
 
-								    ! Do not apply physical state BCs to implicit correction vectors.
+
+								    if (realgas.eq.0)then
+								    call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+								    else
 								    ibfc=-1
 								    rightv(1:nof_variables)=leftv(1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
 								    end if
-								    
+								    end if
+
 								    du1(1:nof_variables)=rightv(1:nof_variables)
-				  				    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
 								    end if
-								    
 
 
 
-								    
+
+
 								     select case(b_code)
-								    case(1)
-								    du1(:)=zero
-								    
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=zero
-								   
-								    end if
-								    
-								    case(2)
-								    du1(1:nof_variables)=impdu(i,1:nof_variables)
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								    end if
-								    
-								    
-								    case(6,9,99)
-								    
-								    if (ibfc.eq.-1)then
-								   du1(:)=zero
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=zero
-								    end if
-								    
-								    
-								    else
-								    du1(1:nof_variables)=impdu(i,1:nof_variables)
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								    end if
-								    
-								    
-								    
-								    end if
+								     case(1)
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     case(2)
+								     if (realgas.eq.0)then
+								     du1(1:nof_variables)=impdu(i,1:nof_variables)
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								     end if
+								     else
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     end if
+								     case(4)
+								     if (realgas.ne.0)then
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     end if
+								     case(6,9,99)
+								     if (ibfc.eq.-1)then
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     else
+								     if (realgas.eq.0)then
+								     du1(1:nof_variables)=impdu(i,1:nof_variables)
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								     end if
+								     else
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     end if
+								     end if
+								     case default
+								     if (realgas.ne.0)then
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     end if
+								     end select
 
 
-								
 
-								    
-								    
-								    end select
-								    
-								    
-				  				  				  				  
-								    
+
 								  end if
 							else
 							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-						
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
+
 ! 								du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 								nfx  = ielem_ineighn(l,i)
 								lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								rowfx = bound_offset(nfx) + lfx - 1
 								du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-					
+
 								end if
-							else 			
+							else
 ! 							      du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 							      nfx  = ielem_ineighn(l,i)
 							      lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 							      rowfx = bound_offset(nfx) + lfx - 1
 							      du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-							
-								  
-! 								   
+
+
+!
 							end if
 					    end if
-	
+
 
   do mm_i=1,nof_variables
     mm_sum=zero
@@ -2638,15 +2718,15 @@ do l=1,ielem_ifca(i)	!loop3
 			    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 			    dut1(:)=zero
 			    end if
-				
-				
-	 
+
+
+
 		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-				     				      
-		if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-		end if	
-		
+		end if
+
 		  do mm_i=1,nof_variables
 		    mm_sum=zero
 		    do mm_j=1,nof_variables
@@ -2662,10 +2742,10 @@ do l=1,ielem_ifca(i)	!loop3
 end do	!loop f
 
 
-				
+
 else
 
-do l=1,ielem_ifca(i)	!loop3	
+do l=1,ielem_ifca(i)	!loop3
 				  igoflux=0
 		     if (ielem_ineighb(l,i).eq.n)then	!my cpu only
                                                     if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
@@ -2674,11 +2754,11 @@ do l=1,ielem_ifca(i)	!loop3
                                                         else
                                                                 icaseb=3        !physical
                                                         end if
-                                                   
+
                                                     else
-                                                    
+
                                                                 icaseb=2!no boundaries interior
-                                                    
+
                                                     end if
                                 else
                                                     if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
@@ -2687,10 +2767,10 @@ do l=1,ielem_ifca(i)	!loop3
                                                                 end if
                                                     else
                                                                 icaseb=5
-                                                    
+
                                                     end if
-                                
-                                
+
+
                                 end if
 				  if (icaseb.le.2)then
                                         if (ielem_ineigh(l,i).lt.i)then
@@ -2706,153 +2786,174 @@ do l=1,ielem_ifca(i)	!loop3
 				angle2=ielem_faceangley(l,i)
 				nx=angle1
 				ny=angle2
-				
-	
+
+
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-								  					  
-								  
-								  
+
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;iconsidered=i
 								  call coordinates_face_inner2dx(n,iconsidered,facex,vext,nodes_list)
 								  n_node=2
 								    cords(1:2)=zero
 								    call cordinates2(n,nodes_list,n_node,cords(1:2))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
-								    
-								    
+
+
 								    leftv(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbl(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
+								    if (realgas.ne.0) cycle
 
-								    
-								    ! Do not apply physical state BCs to implicit correction vectors.
+
+
+								    if (realgas.eq.0)then
+								    call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+								    else
 								    ibfc=-1
 								    rightv(1:nof_variables)=leftv(1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
 								    end if
-								    
+								    end if
+
 								    du1(1:nof_variables)=rightv(1:nof_variables)
-				  				    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
 								    end if
-								    
-								    
+
+
 								    select case(b_code)
 								    case(1)
 								    du1(:)=zero
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
 								    case(2)
+								    if (realgas.eq.0)then
 								    du1(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
-								    
-								    
-								    case(6,9,99)
-								    
-								    if (ibfc.eq.-1)then
-								   du1(:)=zero
+								    else
+								    du1(:)=zero
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
-								    
+								    end if
+								    case(4)
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
+								    case(6,9,99)
+								    if (ibfc.eq.-1)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
 								    else
+								    if (realgas.eq.0)then
 								    du1(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
-								    
-								    
-								    
+								    else
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
-								    
+								    end if
+								    end if
+								    case default
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
 								    end select
-								    
-								    
-				  				  				  				  
-								    
+
+
+
+
 								  end if
 							else
 							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-						
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
+
 ! 								du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 								nfx  = ielem_ineighn(l,i)
 								lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								rowfx = bound_offset(nfx) + lfx - 1
 								du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-					
+
 								end if
-							else 			
+							else
 ! 							      du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 							      nfx  = ielem_ineighn(l,i)
 							      lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 							      rowfx = bound_offset(nfx) + lfx - 1
 							      du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-							
-								  
-! 								   
+
+
+!
 							end if
 					    end if
-	
-	
+
+
 
   do mm_i=1,nof_variables
     mm_sum=zero
@@ -2928,15 +3029,15 @@ if (ielem_interior(i).eq.0)then
                                                     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
                                                     dut1(:)=zero
                                                     end if
-                                                        
-                                                        
-                                
+
+
+
                                         du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-                                                                                            
-                                                    if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+                                                    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
                                                     dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-                                                    end if	
-                                        
+                                                    end if
+
                                                                       do mm_i=1,nof_variables
                                                                         mm_sum=zero
                                                                         do mm_j=1,nof_variables
@@ -2952,12 +3053,12 @@ if (ielem_interior(i).eq.0)then
                         end do	!loop f
 
 
-				
+
 else
 
-do l=1,ielem_ifca(i)	!loop3	
+do l=1,ielem_ifca(i)	!loop3
 					  igoflux=0
-                                    
+
                                     if (ielem_ineighb(l,i).eq.n)then	!my cpu only
                                                                     if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
                                                                         if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
@@ -2965,11 +3066,11 @@ do l=1,ielem_ifca(i)	!loop3
                                                                         else
                                                                                 icaseb=3        !physical
                                                                         end if
-                                                                
+
                                                                     else
-                                                                    
+
                                                                                 icaseb=2!no boundaries interior
-                                                                    
+
                                                                     end if
                                                 else
                                                                     if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
@@ -2978,10 +3079,10 @@ do l=1,ielem_ifca(i)	!loop3
                                                                                 end if
                                                                     else
                                                                                 icaseb=5
-                                                                    
+
                                                                     end if
-                                                
-                                                
+
+
                                                 end if
                                                 if (icaseb.le.2)then
                                                         if (ielem_reorient(l,i).eq.1)then
@@ -2997,86 +3098,86 @@ do l=1,ielem_ifca(i)	!loop3
                                                                     angle2=ielem_faceangley(l,i)
                                                                     nx=angle1
                                                                     ny=angle2
-                                                                    
-                                            
+
+
                                                                                         if (ielem_ineighb(l,i).eq.n)then	!my cpu only
                                                                                                         if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
                                                                                                                         if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
                                                                                                                             du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
                                                                                                                                 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-                                                                                                                            
+
                                                                                                                             dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-                                                                                                                                
+
                                                                                                                                 end if
-                                                                                                                                                                
-                                                                                                                        
-                                                                                                                        
+
+
+
                                                                                                                         else
-                                                                                                                        
-                                                                                                                            
-                                                                                                                            
-                                                                                                                                                                                        
-                                                                                                                            
+
+
+
+
+
                                                                                                                         end if
                                                                                                                 else
                                                                                                                     du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
                                                                                                                                 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-                                                                                                                            
+
                                                                                                                             dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-                                                                                                                                
+
                                                                                                                                 end if
-                                                                                                                    
-                                                                                                                    
-                                                                                                                    
-                                                                                                                    
+
+
+
+
                                                                                                                 end if
                                                                                             else	!in other cpus they can only be periodic or mpi neighbours
-                                                                                            
-                                                                                            
-                                                                                                
+
+
+
                                                                                                         if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
                                                                                                                 if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-                                                                                                                
+
 !                                                                                                                 du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
                                                                                                                 nfx  = ielem_ineighn(l,i)
                                                                                                                 lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
                                                                                                                 rowfx = bound_offset(nfx) + lfx - 1
                                                                                                                 du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-                                                                    
+
                                                                                                                 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-                                                                                                                
+
 !                                                                                                                 dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
                                                                                                                 nfx  = ielem_ineighn(l,i)
                                                                                                                 lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
                                                                                                                 rowfx = bound_offset(nfx) + lfx - 1
                                                                                                                 dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-                                                                                                                
+
                                                                                                                 end if
-                                                                                        
+
                                                                                                                 end if
-                                                                                                        else 			
+                                                                                                        else
 !                                                                                                             du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
                                                                                                             nfx  = ielem_ineighn(l,i)
                                                                                                             lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
                                                                                                             rowfx = bound_offset(nfx) + lfx - 1
                                                                                                             du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-                                                                    
+
                                                                                                                 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-                                                                                                                
+
 !                                                                                                                 dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
                                                                                                                 nfx  = ielem_ineighn(l,i)
                                                                                                                 lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
                                                                                                                 rowfx = bound_offset(nfx) + lfx - 1
                                                                                                                 dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-                                                                                                                
+
                                                                                                                 end if
-                                                                                                        
-                                                                                                                
-                                                ! 								   
+
+
+                                                !
                                                                                                                 end if
                                                                                                     end if
-                                                    
-                                                    
+
+
 
                                               do mm_i=1,nof_variables
                                                 mm_sum=zero
@@ -3155,15 +3256,6 @@ kmaxe=xmpielrank(n)
 
 call implicit_zero_impdu(kmaxe)
 
-
-
-
-
-
-
-
-
-
 if (relax.eq.1)then
 do ii=1,sweeps	!loop1
 #ifndef gpu
@@ -3197,7 +3289,7 @@ end do	!loop elements
 #endif
 
  call exhboundhigher2(n)
- 
+
 
 
 #ifndef gpu
@@ -3209,9 +3301,9 @@ end do	!loop elements
 #ifndef gpu
 !$omp end do
 #endif
- 
+
  call exhboundhigher2(n)
- 
+
 
 end do!sweeps
 
@@ -3278,7 +3370,6 @@ du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.
 iconsidered=i
 call calculate_jacobian_2dlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)
-impdiag(1,1:nof_variables,1:nof_variables)=zero
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -3314,15 +3405,15 @@ do l=1,ielem_ifca(i)	!loop3
 			    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 			    dut1(:)=zero
 			    end if
-				
-				
-	 
+
+
+
 		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-				     				      
-		if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-		end if	
-		
+		end if
+
 		  do mm_i=1,nof_variables
 		    mm_sum=zero
 		    do mm_j=1,nof_variables
@@ -3336,160 +3427,188 @@ do l=1,ielem_ifca(i)	!loop3
 end do	!loop f
 
 
-				
+
 else
 
-do l=1,ielem_ifca(i)	!loop3			
+do l=1,ielem_ifca(i)	!loop3
 				angle1=ielem_faceanglex(l,i)
 				angle2=ielem_faceangley(l,i)
 				nx=angle1
 				ny=angle2
-				
-	
+
+
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-								  					  
-								  
-								  
+
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;iconsidered=i
 								  call coordinates_face_inner2dx(n,iconsidered,facex,vext,nodes_list)
 								  n_node=2
 								    cords(1:2)=zero
 								    call cordinates2(n,nodes_list,n_node,cords(1:2))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
-								   
-								    
+
+
 								    leftv(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbl(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
-								    
-								    ! Do not apply physical state BCs to implicit correction vectors.
+								    if (realgas.ne.0) cycle
+
+
+								    if (realgas.eq.0)then
+								    call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+								    else
 								    ibfc=-1
 								    rightv(1:nof_variables)=leftv(1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
 								    end if
-								    
+								    end if
+
 								    du1(1:nof_variables)=rightv(1:nof_variables)
-				  				    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
 								    end if
-								    
-								    
+
+
 								     select case(b_code)
-								    case(1)
-								    du1(:)=zero
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=zero
-								    end if
-								    
-								    case(2)
-								    du1(1:nof_variables)=impdu(i,1:nof_variables)
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								    end if
-								    
-								    
-								    case(6)
-								    
-								    if (ibfc.eq.-1)then
-								   du1(:)=zero
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=zero
-								    end if
-								    
-								    
-								    else
-								    du1(1:nof_variables)=impdu(i,1:nof_variables)
-								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								    end if
-								    
-								    
-								    
-								    end if
-								    
-								    
-								    end select
-								    
-								    
-				  				  				  				  
-								    
+								     case(1)
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     case(2)
+								     if (realgas.eq.0)then
+								     du1(1:nof_variables)=impdu(i,1:nof_variables)
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								     end if
+								     else
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     end if
+								     case(4)
+								     if (realgas.ne.0)then
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     end if
+								     case(6)
+								     if (ibfc.eq.-1)then
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     else
+								     if (realgas.eq.0)then
+								     du1(1:nof_variables)=impdu(i,1:nof_variables)
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								     end if
+								     else
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     end if
+								     end if
+								     case(9,99)
+								     if (realgas.ne.0)then
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     end if
+								     case default
+								     if (realgas.ne.0)then
+								     du1(:)=zero
+								     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								     dut1(1:turbulenceequations+passivescalar)=zero
+								     end if
+								     end if
+								     end select
+
+
+
+
 								  end if
 							else
 							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-						
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
+
 ! 								du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 								nfx  = ielem_ineighn(l,i)
 								lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								rowfx = bound_offset(nfx) + lfx - 1
 								du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-					
+
 								end if
-							else 			
+							else
 ! 							      du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 							      nfx  = ielem_ineighn(l,i)
 							      lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 							      rowfx = bound_offset(nfx) + lfx - 1
 							      du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-							
-								  
-! 								   
+
+
+!
 							end if
 					    end if
-	
-	
+
+
 
   do mm_i=1,nof_variables
     mm_sum=zero
@@ -3572,7 +3691,6 @@ du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.
 iconsidered=i
 call calculate_jacobian_2dlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)
-impdiag(1,1:nof_variables,1:nof_variables)=zero
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -3613,15 +3731,15 @@ do l=1,ielem_ifca(i)	!loop3
 			    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 			    dut1(:)=zero
 			    end if
-				
-				
-	 
+
+
+
 		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-				     				      
-		if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-		end if	
-		
+		end if
+
 		  do mm_i=1,nof_variables
 		    mm_sum=zero
 		    do mm_j=1,nof_variables
@@ -3637,161 +3755,189 @@ do l=1,ielem_ifca(i)	!loop3
 end do	!loop f
 
 
-				
+
 else
 
-do l=1,ielem_ifca(i)	!loop3	
+do l=1,ielem_ifca(i)	!loop3
 				if (ielem_reorient(l,i).eq.0)then
 				angle1=ielem_faceanglex(l,i)
 				angle2=ielem_faceangley(l,i)
 				nx=angle1
 				ny=angle2
-				
-	
+
+
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-								  					  
-								  
-								  
+
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;iconsidered=i
 								  call coordinates_face_inner2dx(n,iconsidered,facex,vext,nodes_list)
 								  n_node=2
 								    cords(1:2)=zero
 								    call cordinates2(n,nodes_list,n_node,cords(1:2))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
-								   
-								    
+
+
 								    leftv(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbl(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								   
+								    if (realgas.ne.0) cycle
 
-								    
-								    ! Do not apply physical state BCs to implicit correction vectors.
+
+
+								    if (realgas.eq.0)then
+								    call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+								    else
 								    ibfc=-1
 								    rightv(1:nof_variables)=leftv(1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
 								    end if
-								    
+								    end if
+
 								    du1(1:nof_variables)=rightv(1:nof_variables)
-				  				    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
 								    end if
-								    
+
 								    select case(b_code)
 								    case(1)
 								    du1(:)=zero
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
 								    case(2)
+								    if (realgas.eq.0)then
 								    du1(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
-								    
-								    
-								    case(6)
-								    
-								    if (ibfc.eq.-1)then
-								   du1(:)=zero
+								    else
+								    du1(:)=zero
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
-								    
+								    end if
+								    case(4)
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
+								    case(6)
+								    if (ibfc.eq.-1)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
 								    else
+								    if (realgas.eq.0)then
 								    du1(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								    end if
-								    
-								    
-								    
+								    else
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
-								    
+								    end if
+								    end if
+								    case(9,99)
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
+								    case default
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
 								    end select
-								    
-								    
-				  				  				  				  
-								    
+
+
+
+
 								  end if
 							else
 							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-						
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
+
 ! 								du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 								nfx  = ielem_ineighn(l,i)
 								lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								rowfx = bound_offset(nfx) + lfx - 1
 								du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-					
+
 								end if
-							else 			
+							else
 ! 							      du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 							      nfx  = ielem_ineighn(l,i)
 							      lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 							      rowfx = bound_offset(nfx) + lfx - 1
 							      du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-							
-								  
-! 								   
+
+
+!
 							end if
 					    end if
-	
-	
+
+
 
   do mm_i=1,nof_variables
     mm_sum=zero
@@ -3856,7 +4002,6 @@ du1=0.0d0; b1_imp=0.0d0; lscqm1=0.0d0 ;dur=0.0d0; dul=0.0d0; durr=0.0d0; dulr=0.
 iconsidered=i
 call calculate_jacobian_2dlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
   lscqm1(1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)
-impdiag(1,1:nof_variables,1:nof_variables)=zero
 impdiag(1,1,1)=1.0d0/lscqm1(1,1)
 impdiag(1,2,2)=1.0d0/lscqm1(2,2)
 impdiag(1,3,3)=1.0d0/lscqm1(3,3)
@@ -3887,15 +4032,15 @@ do l=1,ielem_ifca(i)	!loop3
 			    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 			    dut1(:)=zero
 			    end if
-				
-				
-	 
+
+
+
 		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-				     				      
-		if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-		end if	
-		
+		end if
+
 		      do mm_i=1,nof_variables
 		        mm_sum=zero
 		        do mm_j=1,nof_variables
@@ -3911,91 +4056,91 @@ end if
 end do	!loop f
 
 
-				
+
 else
 
-do l=1,ielem_ifca(i)	!loop3	
+do l=1,ielem_ifca(i)	!loop3
 				if (ielem_reorient(l,i).eq.1)then
-				
-	
+
+
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-								  					  
-								  
-								  
+
+
+
 								  else
-								  
-								    
-								    
-				  				  				  				  
-								    
+
+
+
+
+
 								  end if
 							else
 							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-									
+
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-						
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
+
 ! 								du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 								nfx  = ielem_ineighn(l,i)
 								lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								rowfx = bound_offset(nfx) + lfx - 1
 								du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-					
+
 								end if
-							else 			
+							else
 ! 							      du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 							      nfx  = ielem_ineighn(l,i)
 							      lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 							      rowfx = bound_offset(nfx) + lfx - 1
 							      du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 								  dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 								  nfx  = ielem_ineighn(l,i)
 								  lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 								  dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-								  
+
 								 end if
-							
-								  
-! 								   
+
+
+!
 							end if
 					    end if
-	
-	
+
+
 
    do mm_i=1,nof_variables
      mm_sum=zero
@@ -4090,10 +4235,10 @@ end do
 
 
 end do!sweeps
-                                       
-end subroutine relaxation_lumfree                  
-	                    
-	                    
+
+end subroutine relaxation_lumfree
+
+
 subroutine relaxation_lumfree_cell(n,i,modeu)
 implicit none
 integer,intent(in)::n,i,modeu
@@ -4198,63 +4343,63 @@ inds=4
 end if
 nvt=turbulenceequations+passivescalar
 
-do l=1,ielem_ifca(i)	!loop2     
+do l=1,ielem_ifca(i)	!loop2
                                     if (modeu.eq.0)then
-                                    
+
 							       if (ielem_ineigh(l,i).lt.iconsidered) cycle
-							       
+
 							       else
-							       
+
 							        if (ielem_ineigh(l,i).gt.iconsidered) cycle
-							        
+
 							       end if
-        
-        
-        
+
+
+
          du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
          cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-	              if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-	                  dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),inds+1:inds+turbulenceequations+passivescalar)   
+	              if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+	                  dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),inds+1:inds+turbulenceequations+passivescalar)
 	                  cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-	               end if	
+	               end if
         angle1=ielem_faceanglex(l,i)
         angle2=ielem_faceangley(l,i)
         facex=l;
         call deltafx(n,iconsidered,facex,cright,du1,angle1,angle2,cturbr,dut1,deltaf,velnormal)
-        
-        
-        
-        
+
+
+
+
          do iv=1,nof_variables
          b1_imp(iv)=b1_imp(iv)+(0.5d0*(deltaf(iv)-velnormal*du1(iv))*ielem_surf(l,i))
          end do
-        
-!         
-       
-        
-        
+
+!
+
+
+
         if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-        
+
 !         b1t(1:turbulenceequations+passivescalar)=b1t(1:turbulenceequations+passivescalar)+impofft(i,l,1:turbulenceequations+passivescalar)*dut1(1:turbulenceequations+passivescalar)
-        
+
         do iv=1,nvt
         b1t(iv)=b1t(iv)+0.5d0*(deltaf(inds+iv)-velnormal*dut1(iv))*ielem_surf(l,i)
         end do
         end if
-        
-        
 
-        
+
+
+
 end do
-        
-        
 
-        
-        
-        
+
+
+
+
+
 end subroutine lusgs_interior
 
-                    
+
 subroutine lusgs_out(n,iconsidered,modeu,b1_imp,b1t)
 implicit none
 !> @brief
@@ -4286,44 +4431,44 @@ inds=nof_variables
 end if
 nvt=turbulenceequations+passivescalar
 
-do l=1,ielem_ifca(i)	!cond1   
+do l=1,ielem_ifca(i)	!cond1
         b_code=0
-        
-        
-        
+
+
+
         if (ielem_ineighb(l,i).eq.n)then	!my cpu only !cond2
-        
+
 		if (ielem_ibounds(l,i).gt.0)then	!check for boundaries !cond3
 		if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu !cond4
-		
-		
+
+
                                     if (modeu.eq.0)then
 							       if (ielem_ineigh(l,i).lt.iconsidered)cycle
 							       else
 							        if (ielem_ineigh(l,i).gt.iconsidered)cycle
 							       end if
 
-		
-		
-		
-		
+
+
+
+
 		 du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
-		 
+
 		 cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-		 
-		 
-		 
-		 
-		if ((turbulence.gt.0).or.(passivescalar.gt.0))then  
+
+
+
+
+		if ((turbulence.gt.0).or.(passivescalar.gt.0))then
         dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),inds+1:inds+turbulenceequations+passivescalar)
         cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-        end if      
+        end if
         else                                !cond4
 		!not periodic ones in my cpu
         facex=l;
-        
-        
-        
+
+
+
         if (dimensiona.eq.2)then
 		call coordinates_face_inner2dx(n,iconsidered,facex,vext,nodes_list)
 
@@ -4341,126 +4486,152 @@ do l=1,ielem_ifca(i)	!cond1
 
 		cords(1:3)=zero
 		call cordinates3(n,nodes_list,n_node,cords(1:3));pox(1)=cords(1);poy(1)=cords(2);poz(1)=cords(3);
-		
+
 		end if
-		
-		
-        leftv(1:nof_variables)=impdu(i,1:nof_variables)!u_c_val(1,1:nof_variables,iconsidered)						           
+
+
+        leftv(1:nof_variables)=impdu(i,1:nof_variables)!u_c_val(1,1:nof_variables,iconsidered)
         if ((turbulence.gt.0).or.(passivescalar.gt.0))then  !cond5
 		 cturbl(1:turbulenceequations+passivescalar)=impdu(i,inds+1:inds+turbulenceequations+passivescalar)
 		end if                                                !end cond5
 		b_code=ibound_icode(ielem_ibounds(l,i))
-		
+		if (realgas.ne.0) cycle
+
 		if (dimensiona.eq.2)then
-			
 
 
-		! Do not apply physical state BCs to implicit correction vectors.
+
+		if (realgas.eq.0)then
+		call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+		else
 		ibfc=-1
 		rightv(1:nof_variables)=leftv(1:nof_variables)
 		if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 		cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
+		end if
 		end if
 		else
-		
-		! Do not apply physical state BCs to implicit correction vectors.
+
+		if (realgas.eq.0)then
+		call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+		else
 		ibfc=-1
 		rightv(1:nof_variables)=leftv(1:nof_variables)
 		if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 		cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
 		end if
 		end if
-		
+		end if
+
 		du1(1:nof_variables)=rightv(1:nof_variables)
-		
+
         if ((turbulence.gt.0).or.(passivescalar.gt.0))then !cond6
 		 dut1(1:turbulenceequations+passivescalar)=cturbr(1:turbulenceequations+passivescalar)
-		end if                                              !end cond6  
+		end if                                              !end cond6
                                     select case(b_code)     !cond 7
                                     case(1)
                                     du1(:)=zero
-								    
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=zero
-								   
 								    end if
-								    
 								    case(2)
+								    if (realgas.eq.0)then
 								    du1(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=impdu(i,inds+1:inds+turbulenceequations+passivescalar)
 								    end if
-								    
-								    case(4)
-        
-								    
-								    
-								    case(6)
-								    
-								    if (ibfc.eq.-1)then
-								   du1(:)=zero
+								    else
+								    du1(:)=zero
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
-								    
+								    end if
+								    case(4)
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
+								    case(6)
+								    if (ibfc.eq.-1)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
 								    else
+								    if (realgas.eq.0)then
 								    du1(1:nof_variables)=impdu(i,1:nof_variables)
 								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 								    dut1(1:turbulenceequations+passivescalar)=impdu(i,inds+1:inds+turbulenceequations+passivescalar)
 								    end if
-								    
-								    
-								    
+								    else
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
 								    end if
-								    
-								    
-								    end select   !end cond7  
-								    
-								    
-				  				  				  				  
-								    
+								    end if
+								    end if
+								    case(9,99)
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
+								    case default
+								    if (realgas.ne.0)then
+								    du1(:)=zero
+								    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
+								    dut1(1:turbulenceequations+passivescalar)=zero
+								    end if
+								    end if
+								    end select   !end cond7
+
+
+
+
 								  end if            !end cond4
 							else     !cond3
-                                    
-                                    
+
+
                                      if (modeu.eq.0)then
 							       if (ielem_ineigh(l,i).lt.iconsidered)cycle
 							       else
 							        if (ielem_ineigh(l,i).gt.iconsidered)cycle
 							       end if
-                                    
-                                    
+
+
 							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
 							       cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-							       
+
 							       if (modeu.eq.0)then
 							       if (ielem_ineigh(l,i).lt.iconsidered)cycle
 							       else
 							        if (ielem_ineigh(l,i).gt.iconsidered)cycle
 							       end if
-							       
-							       
-							       
+
+
+
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								      
+
 								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),inds+1:inds+turbulenceequations+passivescalar)
 									cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
 									end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if   !end cond3
 					    else	!in other cpus they can only be periodic or mpi neighbours !cond2
-					    
-					    
-						
+
+
+
 	if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-	
+
 			if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-                
-                                    
+
+
 !
 ! 			cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 			(rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
@@ -4474,7 +4645,7 @@ do l=1,ielem_ifca(i)	!cond1
 			lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 			rowfx = bound_offset(nfx) + lfx - 1
 			du1(1:nof_variables) = boundhiri(rowfx,1:nof_variables)
-	      	      
+
 			if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 ! 			cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),inds+1:inds+turbulenceequations+passivescalar)
@@ -4490,14 +4661,14 @@ do l=1,ielem_ifca(i)	!cond1
 			lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
 			rowfx = bound_offset(nfx) + lfx - 1
 			dut1(1:turbulenceequations+passivescalar) = boundhiri(rowfx,inds+1:inds+turbulenceequations+passivescalar)
-								  
+
 								 end if
-					
+
 								end if
-							else 	
-							
-                                    
-                                    
+							else
+
+
+
 ! 				du1(1:nof_variables)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),1:nof_variables)
 				nfx  = ielem_ineighn(l,i)
 				lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
@@ -4513,7 +4684,7 @@ do l=1,ielem_ifca(i)	!cond1
 ! 	      	      cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 								if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-								  
+
 ! 				dut1(1:turbulenceequations+passivescalar)=iexboundhiri(ielem_ineighn(l,i))%facesol(ielem_qface(l,1,i),inds+1:inds+turbulenceequations+passivescalar)
 				nfx  = ielem_ineighn(l,i)
 				lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
@@ -4528,62 +4699,62 @@ do l=1,ielem_ifca(i)	!cond1
 								cturbr(1:turbulenceequations+passivescalar)=solhir(rowf,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 								 end if
-							
-								  
-! 								   
+
+
+!
 							end if
-					    end if       
-               
-               
-               
-               
-               
-               
-               
-               
-               
+					    end if
+
+
+
+
+
+
+
+
+
         angle1=ielem_faceanglex(l,i)
         angle2=ielem_faceangley(l,i)
         nx=angle1
         ny=angle2
         facex=l;
         call deltafx(n,iconsidered,facex,cright,du1,angle1,angle2,cturbr,dut1,deltaf,velnormal)
-        
-       
+
+
         if (b_code.gt.0)then
         if (b_code.ne.5)then
         deltaf=0.0;velnormal=0.0
         end if
         end if
 
-        
 
-        
-        
+
+
+
          do iv=1,nof_variables
          b1_imp(iv)=b1_imp(iv)+(0.5d0*(deltaf(iv)-velnormal*du1(iv))*ielem_surf(l,i))
          end do
-        
 
-        
-        
-        
-       
-        
-        
-                            
+
+
+
+
+
+
+
+
         if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 !          b1t(1:turbulenceequations+passivescalar)=b1t(1:turbulenceequations+passivescalar)+impofft(i,l,1:turbulenceequations+passivescalar)*dut1(1:turbulenceequations+passivescalar)
         do iv=1,nvt
         b1t(iv)=b1t(iv)+0.5d0*(deltaf(inds+iv)-velnormal*dut1(iv))*ielem_surf(l,i)
         end do
         end if
-        
-end do
-        
 
-        
-end subroutine lusgs_out  
+end do
+
+
+
+end subroutine lusgs_out
 
 
 
@@ -4617,47 +4788,47 @@ integer::inds,iv,nvt
                             !4 rotate the cleft along the face normal and store in cleft_rot
                             call rotatef2d(n,cleft_rot,cleft,angle1,angle2)
                             !5 compute the spectral radius
-                            
+
                             velnormal=impoff_mf(iconsidered,facex)
                             !copy to temporary variables
                             rightv(1:nof_variables)=cright_rot(1:nof_variables)
                             leftv(1:nof_variables)=cleft_rot(1:nof_variables)
-                            
+
                             !transform leftv and rightv from cons to prim variables
                             call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-                            
-                            
+
+
                             uul=leftv(2);uur=rightv(2)
                             !evaluate the fluxes
-                           
+
                             associate (gpu_flux_tmp => fluxeval2d(leftv))
-                           
+
                               cdx2(1:nof_variables)=gpu_flux_tmp(1:nof_variables)
-                           
+
                             end associate
                             leftv=rightv
                              associate (gpu_flux_tmp => fluxeval2d(leftv))
                                cdx1(1:nof_variables)=gpu_flux_tmp(1:nof_variables)
                              end associate
                             deltaf(1:nof_variables)=cdx2(1:nof_variables)-cdx1(1:nof_variables)!-velnormal*du1(1:nof_variables)
-                           
-                           
-                            
-                            
+
+
+
+
                             cleft_rot(1:nof_variables)=deltaf(1:nof_variables)
                             call rotateb2d(n,cleft,cleft_rot,angle1,angle2)
                             deltaf(1:nof_variables)=cleft(1:nof_variables)-velnormal*du1(1:nof_variables)
-                            
+
                             if ((turbulence.gt.0).or.(passivescalar.gt.0))then
                             do iv=1,nvt
                             deltaf(inds+iv)=((cturbr(iv)+dut1(iv))*uul)-(cturbr(iv)*uur)-velnormal*dut1(iv)
                             end do
                             end if
-                            
+
                             else
-                            
-                            
-                            
+
+
+
                             inds=nof_variables
                             !2 rotate the solution of the neighbour along the face normal and store in cright_rot
                             call rotatef(n,cright_rot,cright,angle1,angle2)
@@ -4666,56 +4837,56 @@ integer::inds,iv,nvt
                             !4 rotate the cleft along the face normal and store in cleft_rot
                             call rotatef(n,cleft_rot,cleft,angle1,angle2)
                             !5 compute the spectral radius
-                            
+
                             velnormal=impoff_mf(iconsidered,facex)
                             !copy to temporary variables
                             rightv(1:nof_variables)=cright_rot(1:nof_variables)
                             leftv(1:nof_variables)=cleft_rot(1:nof_variables)
-                            
+
                             !transform leftv and rightv from cons to prim variables
                             call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-                            
-                            
+
+
                             uul=leftv(2);uur=rightv(2)
                             !evaluate the fluxes
-                           
+
                             associate (gpu_flux_tmp => fluxeval3d(leftv))
-                           
+
                               cdx2(1:nof_variables)=gpu_flux_tmp(1:nof_variables)
-                           
+
                             end associate
                             leftv=rightv
                              associate (gpu_flux_tmp => fluxeval3d(leftv))
                                cdx1(1:nof_variables)=gpu_flux_tmp(1:nof_variables)
                              end associate
                             deltaf(1:nof_variables)=cdx2(1:nof_variables)-cdx1(1:nof_variables)!-velnormal*du1(1:nof_variables)
-                           
-                           
-                            
-                            
+
+
+
+
                             cleft_rot(1:nof_variables)=deltaf(1:nof_variables)
                             call rotateb(n,cleft,cleft_rot,angle1,angle2)
                             deltaf(1:nof_variables)=cleft(1:nof_variables)-velnormal*du1(1:nof_variables)
-                            
+
                             if ((turbulence.gt.0).or.(passivescalar.gt.0))then
                             do iv=1,nvt
                             deltaf(inds+iv)=((cturbr(iv)+dut1(iv))*uul)-(cturbr(iv)*uur)-velnormal*dut1(iv)
                             end do
                             end if
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
+
+
+
+
+
+
+
+
+
+
                             end if
-                            
-                            
-                            
+
+
+
 
 end subroutine deltafx
 

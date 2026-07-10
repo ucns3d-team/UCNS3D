@@ -9,8 +9,8 @@ implicit none
 
 
  contains
- 
- 
+
+
 
  subroutine mrfswitch(n,iconsidered,facex,pointx,pox,poy)
 implicit none
@@ -164,7 +164,6 @@ subroutine fix_conservative_state(leftv)
   real :: rho, rho_floor, tiny
   real :: rhoe, rhoev, dev
   real :: sumrhoy, scale
-  real :: yk
   real,dimension(1:gpu_max_species)::y
   real :: u, v, w, ke
   real :: tmin, tv_max
@@ -216,12 +215,10 @@ subroutine fix_conservative_state(leftv)
       y(k) = leftv(idxev + k) / rho
     end do
   else
-    ! pathological: assign all mass to species 1
-    leftv(idxev + 1) = rho
-    y(1) = 1.0d0
-    do k = 2, nof_species
-      leftv(idxev + k) = 0.0d0
-      y(k) = 0.0d0
+    ! Pathological: restore the configured freestream composition.
+    do k = 1, nof_species
+      leftv(idxev + k) = rho * rg_vf(k)
+      y(k) = rg_vf(k)
     end do
   end if
 
@@ -239,10 +236,11 @@ subroutine fix_conservative_state(leftv)
   end do
 
   if (sum_viby < 1.0d-12) then
-    ! no vib-capable mass: force rhoev -> 0, return energy to rhoe
+    ! no vib-capable mass: force rhoev -> 0.  rhoe is total energy, so
+    ! leaving it unchanged conserves total energy and returns this amount
+    ! to the recovered translational mode.
     dev   = rhoev
     rhoev = 0.0d0
-    rhoe  = rhoe + dev
   else
     ! cap corresponding to tv_max using your same oscillator formula
     rhoev_cap = 0.0d0
@@ -256,7 +254,8 @@ subroutine fix_conservative_state(leftv)
     if (rhoev > rhoev_cap) then
       dev   = rhoev - rhoev_cap
       rhoev = rhoev_cap
-      rhoe  = rhoe + dev   ! conserve energy by moving excess vib -> total
+      ! rhoe is total energy; do not add dev here.  Reducing rhoev while
+      ! keeping rhoe fixed moves the excess into recovered translational energy.
     end if
   end if
 
@@ -278,11 +277,12 @@ subroutine fix_conservative_state(leftv)
   end if
   ke = 0.5d0 * (u*u + v*v + w*w)
 
-  ! chemical energy per mass
+  ! chemical formation energy per mass. Keep this sign consistent with
+  ! prim2cons/cons2prim: atoms carry positive formation enthalpy.
   echem = 0.0d0
   do k = 1, nof_species
     if (rg_hzero(k) > 0.0d0) then
-      echem = echem - y(k) * (rg_hzero(k) / rg_molm(k))
+      echem = echem + y(k) * (rg_hzero(k) / rg_molm(k))
     end if
   end do
 
@@ -1301,8 +1301,8 @@ end subroutine multispecies_temp
 
 
 
- 
- 
+
+
  function fluxeval2d(leftv)
 implicit none
 #ifdef gpu
@@ -1318,7 +1318,7 @@ p=leftv(4)
 gm=gamma
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2))
-!internal energy 
+!internal energy
 ien=((p)/((gm-1.0d0)*r))
 !total energy
 e=r*(skin+ien)
@@ -1346,7 +1346,7 @@ p=leftv(5)
 gm=gamma
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2)+(w**2))
-!internal energy 
+!internal energy
 ien=((p)/((gm-1.0d0)*r))
 !total energy
 e=r*(skin+ien)
@@ -1358,8 +1358,8 @@ fluxeval3d(4)=r*u*w
 fluxeval3d(5)=u*(e+p)
 
 end function
- 
- 
+
+
 subroutine cons2prim(n,leftv,mp_pinfl,gammal)
 implicit none
 !> @brief
@@ -1383,7 +1383,7 @@ integer::rg_iter,rg_maxiter
 real::rgf_vib,rgdf_vib,tve,ttr,rg_f,rg_df,sum1,sum2,sum3,u,v,w
 real:: rhoe, rhoev
 real,dimension(1:gpu_max_species):: rho_i,y
-real:: ke, etot, echem, rmix,evib
+	real:: ke, etot, echem, rmix,evib,sumy
 real:: cv_mix, cp_mix,rho
 integer :: i, idxe, idxev
 
@@ -1472,7 +1472,7 @@ p_tol =10e-5
                                 ! species equations are not perfectly conservative numerically and
                                 ! redefining rho severely degrades robustness in hypersonic flows.
 
-                                rho=leftv(1)
+	                                rho=leftv(1)
 
                                 u=leftv(2)/rho
                                 v=leftv(3)/rho
@@ -1488,17 +1488,12 @@ p_tol =10e-5
                                 rhoe  = leftv(idxe)
                                 rhoev = leftv(idxev)
 
-                                do i = 1, nof_species
-                                  rho_i(i) = leftv(idxev + i)   ! species densities ρ_i
-                                end do
-
-
-                                ! -------------------------------
-                                ! 2. mass fractions
-                                ! -------------------------------
-                                do i = 1, nof_species
-                                  y(i) = rho_i(i) / rho
-                                end do
+	                                sumy = 0.0d0
+	                                do i = 1, nof_species
+	                                  rho_i(i) = leftv(idxev + i)   ! species densities ρ_i
+	                                  sumy = sumy + rho_i(i)
+	                                  y(i) = rho_i(i) / rho
+	                                end do
 
                                 ! -------------------------------
                                 ! 3. energies
@@ -1507,17 +1502,17 @@ p_tol =10e-5
                                 etot = rhoe / rho
                                 evib = rhoev / rho
 
-                                ! chemical energy: e_chem = - σ y_i * h°_i / m_i  [j/kg]
+                                ! chemical formation energy [j/kg]
                                   echem = 0.0d0
                                   do i = 1, nof_species
                                     if (rg_hzero(i) > 0.0d0) then
-                                      echem = echem - y(i) * (rg_hzero(i) / rg_molm(i))
+                                      echem = echem + y(i) * (rg_hzero(i) / rg_molm(i))
                                     end if
                                   end do
 
                                   ! translational–rotational internal energy
                                   etr = etot - evib - echem - ke
-                                  if (etr < 0.0d0) etr = 1.0d-12   ! safety
+                                  if (etr < 0.0d0) etr = 1.0d-12
 
                                   ! -------------------------------
                                   ! 4. mixture gas constant rmix
@@ -1757,7 +1752,7 @@ p_tol =10e-5
               ! 1. unpack conservative variables
               ! ============================================================
 
-              rho  = leftv(1)
+	              rho  = leftv(1)
               u    = leftv(2) / rho
               v    = leftv(3) / rho
               if (dimensiona.eq.3)then
@@ -1769,23 +1764,12 @@ p_tol =10e-5
               rhoe = leftv(dimensiona+2)
               rhoev = leftv(dimensiona+3)
 
-              do i=1,nof_species
-                rho_i(i) = leftv(dimensiona+3+i)
-              end do
-
-              ! ============================================================
-              ! 2. recover mass fractions
-              ! ============================================================
-              sumy = 0.0d0
-              do i=1,nof_species
-                y(i) = rho_i(i) / rho
-                sumy = sumy + y(i)
-              end do
-
-!               ! normalize (safety)
-!               do i=1,nof_species
-!                 y(i) = y(i) / sumy
-!               end do
+	              sumy = 0.0d0
+	              do i=1,nof_species
+	                rho_i(i) = leftv(dimensiona+3+i)
+	                sumy = sumy + rho_i(i)
+	                y(i) = rho_i(i) / rho
+	              end do
 
               ! ============================================================
               ! 3. compute kinetic energy and total specific energy
@@ -1803,7 +1787,7 @@ p_tol =10e-5
               do i=1,nof_species
                 if (rg_hzero(i) > 0.0d0) then
                   ! hzero is j/mol → convert to j/kg
-                  echem = echem - y(i) * (rg_hzero(i) / rg_molm(i))
+                  echem = echem + y(i) * (rg_hzero(i) / rg_molm(i))
                 end if
               end do
 
@@ -1812,7 +1796,7 @@ p_tol =10e-5
               !     etr = etot - ev - echem - ke
               ! ============================================================
               etr = etot - ev - echem - ke
-              if (etr < 0.0d0) etr = 1d-12    ! safety
+              if (etr < 0.0d0) etr = 1d-12
 
               ! ============================================================
               ! 6. compute ttr (no newton needed: etr = cv_mix * ttr)
@@ -2037,7 +2021,7 @@ temps(:)=0.0d0
               ! 1. unpack conservative variables
               ! ============================================================
 
-              rho  = leftv(1)
+	              rho  = leftv(1)
               u    = leftv(2) / rho
               v    = leftv(3) / rho
               if (dimensiona.eq.3)then
@@ -2049,23 +2033,12 @@ temps(:)=0.0d0
               rhoe = leftv(dimensiona+2)
               rhoev = leftv(dimensiona+3)
 
-              do i=1,nof_species
-                rho_i(i) = leftv(dimensiona+3+i)
-              end do
-
-              ! ============================================================
-              ! 2. recover mass fractions
-              ! ============================================================
-              sumy = 0.0d0
-              do i=1,nof_species
-                y(i) = rho_i(i) / rho
-                sumy = sumy + y(i)
-              end do
-
-!               ! normalize (safety)
-!               do i=1,nof_species
-!                 y(i) = y(i) / sumy
-!               end do
+	              sumy = 0.0d0
+	              do i=1,nof_species
+	                rho_i(i) = leftv(dimensiona+3+i)
+	                sumy = sumy + rho_i(i)
+	                y(i) = rho_i(i) / rho
+	              end do
 
               ! ============================================================
               ! 3. compute kinetic energy and total specific energy
@@ -2083,7 +2056,7 @@ temps(:)=0.0d0
               do i=1,nof_species
                 if (rg_hzero(i) > 0.0d0) then
                   ! hzero is j/mol → convert to j/kg
-                  echem = echem - y(i) * (rg_hzero(i) / rg_molm(i))
+                  echem = echem + y(i) * (rg_hzero(i) / rg_molm(i))
                 end if
               end do
 
@@ -2092,7 +2065,7 @@ temps(:)=0.0d0
               !     etr = etot - ev - echem - ke
               ! ============================================================
               etr = etot - ev - echem - ke
-              if (etr < 0.0d0) etr = 1d-12    ! safety
+              if (etr < 0.0d0) etr = 1d-12
 
               ! ============================================================
               ! 6. compute ttr (no newton needed: etr = cv_mix * ttr)
@@ -2302,12 +2275,12 @@ tole=zero
       vvr=rightv(3)
       wwr=rightv(4)
        ppr=rightv(5)
-		
+
       q2l=(uul*uul)+(vvl*vvl)+(wwl*wwl)
       q2r=(uur*uur)+(vvr*vvr)+(wwr*wwr)
 
 !	ssl=((gamma*ppl)/(rhol)); ssr=((gamma*ppr)/(rhor))
-                                  
+
 !	mlm=((abs(ppr-ppl))/(0.5*rres*((gamma*pres/rres))))
 
 
@@ -2323,7 +2296,7 @@ tole=zero
       end if
 
 
-      
+
 
       cma=1.0d0
 
@@ -2362,15 +2335,15 @@ tole=zero
       wwl=(dws*c1o2-diff)
       wwr=(dws*c1o2+diff)
       end if
-	
-    	
+
+
        leftv(1)=rhol
        leftv(2)=uul*rhol
        leftv(3)=vvl*rhol
        leftv(4)=wwl*rhol
        leftv(5)=eel
-	
-      rightv(1)=rhor 	
+
+      rightv(1)=rhor
        rightv(2)=uur*rhor
        rightv(3)=vvr*rhor
        rightv(4)=wwr*rhor
@@ -2406,7 +2379,7 @@ tole=tolsmall
  eer=rightv(4)
 
 
- 
+
  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 
 
@@ -2416,17 +2389,17 @@ tole=tolsmall
       uul=leftv(2)
       vvl=leftv(3)
        ppl=leftv(4)
-       
+
      rhor=rightv(1)
       uur=rightv(2)
       vvr=rightv(3)
        ppr=rightv(4)
-		
+
        q2l=(uul*uul)+(vvl*vvl)
        q2r=(uur*uur)+(vvr*vvr)
-      
-      
-      
+
+
+
     if ((multispecies.eq.1).or.(realgas.eq.1))then
 		 ssl=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))
 		  ssr=sqrt((rightv(4)+mp_pinfr)*gammar/rightv(1))
@@ -2440,8 +2413,8 @@ tole=tolsmall
 
       duu=uur-uul
       dvv=vvr-vvl
-      
-      
+
+
 
 !       if(lmach.eq.1) then !standard proportional to du^2
          mach2=max(q2l/ssl,q2r/ssr)
@@ -2451,32 +2424,32 @@ tole=tolsmall
 
       dus=uur+uul
       dvs=vvr+vvl
-     
+
 
        !ul+zul+ur-zur=(ul+ur)-z(ur-ul))
       duu=mach*duu
       dvv=mach*dvv
-      
+
 
 
       diff=c1o2*duu
 	!if (uul*uur.gt.tole)then
-	
+
       uul=(dus*c1o2)-diff
       uur=(dus*c1o2)+diff
-      
+
 if (lmach_style.eq.1)then
       diff=c1o2*dvv
       vvl=(dvs*c1o2-diff)
       vvr=(dvs*c1o2+diff)
 end if
-	
+
        leftv(1)=rhol
        leftv(2)=uul*rhol
        leftv(3)=vvl*rhol
        leftv(4)=eel
-	
-       rightv(1)=rhor 	
+
+       rightv(1)=rhor
        rightv(2)=uur*rhor
        rightv(3)=vvr*rhor
        rightv(4)=eer
@@ -2537,7 +2510,7 @@ real::rg_density,rg_ev_total,rg_rmix,rg_kin
 integer::rg_iter,rg_maxiter
 real::rgf_vib,rgdf_vib,rg_tol,tve,ttr,rg_f,rg_df,sum1,sum2,sum3,u,v,w
 real:: rmix
-real:: cv_mix, e_tr, e_chem, ke, e_tot,evib,rho
+	real:: cv_mix, e_tr, e_chem, ke, e_tot,evib,rho,sumy
 integer :: i, idxe, idxev
 
 rg_maxiter=20
@@ -2568,9 +2541,9 @@ if (multispecies.eq.1) then
               sum3=sum3+mp_ar(rg_i)
               end do
               gammal=(1.0d0/(sum3))+1.0d0    !mixture gamma isobaric assumption
- 
 
- 
+
+
           temps(1)=mp_density
           temps(2)=leftv(2)*temps(1);u=leftv(2)
           temps(3)=leftv(3)*temps(1);v=leftv(3)
@@ -2594,16 +2567,16 @@ if (multispecies.eq.1) then
       temps(dimensiona+2)=temps(1)*(ie1+skin1)
       temps(dimensiona+3:nof_variables)=leftv(dimensiona+3:nof_variables)
       leftv(1:nof_variables)=temps(1:nof_variables)
- 
+
             end if !(mp_modelc.eq.0)then
- 
+
  else
 
 
             if (realgas.eq.1)then
 
 
-            rho=leftv(1)
+	            rho=leftv(1)
             u=leftv(2)
             v=leftv(3)
 
@@ -2616,12 +2589,14 @@ if (multispecies.eq.1) then
             idxe  = dimensiona + 2
             idxev = dimensiona + 3
 
-            p=leftv(idxe)
-            evib=leftv(idxev)
+	            p=leftv(idxe)
+	            evib=leftv(idxev)
 
-                              do i = 1, nof_species
-                                  y(i) = leftv(idxev + i)   ! species mass fractions
-                                end do
+	                              sumy = 0.0d0
+	                              do i = 1, nof_species
+	                                  y(i) = leftv(idxev + i)   ! species mass fractions
+	                                  sumy = sumy + y(i)
+	                                end do
 
 
               rmix = 0.0d0
@@ -2659,21 +2634,17 @@ if (multispecies.eq.1) then
 
             ! translational temperature ttr from p = ρ rmix ttr
             ! then e_tr = cv_mix * ttr
-            if (rmix > 1.0d-20 .and. cv_mix > 1.0d-20) then
-              e_tr = cv_mix * (p / (rho * rmix))
-            else
-              e_tr = 0.0d0
-            end if
+            e_tr = cv_mix * (p / (rho * rmix))
 
             ! -------------------------------
-            ! 3. chemical energy: e_chem = - σ y_i * h°_i/m_i
+            ! 3. chemical formation energy: e_chem = Σ y_i * h°_i/m_i
             ! -------------------------------
             e_chem = 0.0d0
-!             do i = 1, nof_species
-!               if (rg_hzero(i) > 0.0d0) then
-!                 e_chem = e_chem - y(i) * (rg_hzero(i) / rg_molm(i))
-!               end if
-!             end do
+            do i = 1, nof_species
+              if (rg_hzero(i) > 0.0d0) then
+                e_chem = e_chem + y(i) * (rg_hzero(i) / rg_molm(i))
+              end if
+            end do
 
             ! -------------------------------
             ! 4. kinetic and total specific energy
@@ -3135,7 +3106,7 @@ end if
 
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2)+(w**2))
-!internal energy 
+!internal energy
 ien=((p)/((gm-1.0d0)*r))
 !total energy
 e=r*(skin+ien)
@@ -3178,11 +3149,11 @@ r=rres
 gm=gamma
 p=pres
 s=sqrt((gm*p)/(r))
-  
-  
+
+
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2)+(w**2))
-!internal energy 
+!internal energy
 ien=((p)/((gm-1.0d0)*r))
 !total energy
 e=r*(skin+ien)
@@ -3191,9 +3162,9 @@ inflow_out(1)=r
 inflow_out(2)=r*u
 inflow_out(3)=r*v
 inflow_out(4)=r*w
-inflow_out(5)=e  
-  
-  
+inflow_out(5)=e
+
+
 end if
 
 
@@ -3241,7 +3212,7 @@ rg_chem=zero
   ! chemical energy
  do rg_i=1,nof_species
         if (rg_hzero(rg_i).gt.1.0e-12)then
-        rg_chem=rg_chem-(rg_vf(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
+        rg_chem=rg_chem+(rg_vf(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
         end if
 end do
 !rg_chem=zero
@@ -3428,7 +3399,7 @@ end if
 
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2))
-!internal energy 
+!internal energy
 ien=((p)/((gm-1.0d0)*r))
 !total energy
 e=r*(skin+ien)
@@ -3444,8 +3415,7 @@ endif
 if (realgas.eq.1)then
 u=uvel
 v=vvel
-p=pres
-r=rres
+p=max(pres,tolsmall)
 
 
 
@@ -3457,8 +3427,13 @@ end do
 
   rg_rmix=rgs_ru*rg_rmix
 
-  rg_ttr0=rg_ttr
-  rg_tve0=rg_tve
+  rg_ttr0=max(rg_ttr,tolsmall)
+  rg_tve0=max(rg_tve,tolsmall)
+  if (rg_rmix.gt.tolsmall)then
+  r=p/(rg_rmix*rg_ttr0)
+  else
+  r=rres
+  end if
 
 
 ! translational-rotational internal energy
@@ -3484,7 +3459,7 @@ rg_chem=zero
   ! chemical energy
  do rg_i=1,nof_species
         if (rg_hzero(rg_i).gt.1.0e-12)then
-        rg_chem=rg_chem-(rg_vf(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
+        rg_chem=rg_chem+(rg_vf(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
         end if
 end do
 !rg_chem=zero
@@ -3534,6 +3509,11 @@ real::xf,yf,zf,gammar
 real,dimension(gpu_max_species)::mp_ar,mp_ie
 
 
+if (realgas.eq.1)then
+call inflow2d(initcond,pox,poy,outflow2d_out)
+return
+end if
+
 if (multispecies.eq.1) then
 
 
@@ -3541,7 +3521,7 @@ if (multispecies.eq.1) then
 p=pres
 u=uvel
 v=vvel
-mp_ar(1)=mp_a_in(1)/(gamma_in(1)-1.0d0)  
+mp_ar(1)=mp_a_in(1)/(gamma_in(1)-1.0d0)
 mp_ar(2)=mp_a_in(2)/(gamma_in(2)-1.0d0)
 gammar=(1.0d0/(mp_ar(1)+mp_ar(2)))+1.0d0    !mixture gamma isobaric assumption
 
@@ -3576,7 +3556,7 @@ v=vvel
 
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2))
-!internal energy 
+!internal energy
 ien=((p)/((gm-1.0d0)*r))
 !total energy
 e=r*(skin+ien)
@@ -3626,7 +3606,7 @@ p=pres
 u=uvel
 v=vvel
 w=wvel
-mp_ar(1)=mp_a_in(1)/(gamma_in(1)-1.0d0)  
+mp_ar(1)=mp_a_in(1)/(gamma_in(1)-1.0d0)
 mp_ar(2)=mp_a_in(2)/(gamma_in(2)-1.0d0)
 gammar=(1.0d0/(mp_ar(1)+mp_ar(2)))+1.0d0    !mixture gamma isobaric assumption
 
@@ -3659,7 +3639,7 @@ p=pres
 
 if (initcond.eq.977)then
  p=101325
- end if 
+ end if
 
 u=uvel
 v=vvel
@@ -3667,7 +3647,7 @@ w=wvel
 
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2)+(w**2))
-!internal energy 
+!internal energy
 ien=((p)/((gm-1.0d0)*r))
 !total energy
 e=r*(skin+ien)
@@ -3921,9 +3901,9 @@ real::mp_pinfr,gammar
 real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
 
- 
 
- 
+
+
 vortet1(1:3,1:3) = rec_grads(1:3,1:3,iconsidered)
 
 
@@ -3986,7 +3966,7 @@ real,dimension(1:gpu_max_nvar)::rightv
 real::mp_pinfr,gammar
 real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
- 
+
 vortet1(1:3,1:3) = rec_grads(1:3,1:3,iconsidered)
 
 
@@ -4045,7 +4025,7 @@ real,dimension(1:gpu_max_nvar)::rightv
 real::mp_pinfr,gammar
 real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
- 
+
 vortet1(1:3,1:3) = rec_grads(1:3,1:3,iconsidered)
 
 
@@ -4159,7 +4139,7 @@ j=facex
 					end do
 					call quadraturetriang(n,igqrules,vext,qpoints2d,wequa2d)
 					end if
- 					    surface_temp=ielem_surf(j,i)
+					    surface_temp=ielem_surf(j,i)
 
 
 
@@ -4421,8 +4401,8 @@ real::mp_pinfr,gammar
 real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
 
- 
- 
+
+
 !  if (rungekutta.eq.4)then
 ! 	      ind1=7
 ! 	      else
@@ -4487,7 +4467,7 @@ real::mp_pinfr,gammar
 real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
 
- 
+
 vortet1(1:3,1:3) = rec_gradsav(1:3,1:3,iconsidered)
 
 
@@ -4545,7 +4525,7 @@ real::mp_pinfr,gammar
 real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
 
- 
+
 vortet1(1:3,1:3) = rec_gradsav(1:3,1:3,iconsidered)
 
 
@@ -4605,11 +4585,11 @@ integer::gqi_points,im
 real,dimension(1:8,1:gpu_max_dim)::vext
 	real,dimension(1:gpu_max_dim,1:gpu_max_qp_face)::qpoints2d
 	real,dimension(1:gpu_max_qp_face)::wequa2d
- ssx=zero; ssp=zero; ssy=zero; 
- 
+ ssx=zero; ssp=zero; ssy=zero;
+
  gqi_points=qp_line_n
 call quadratureline(n,igqrules,vext,qpoints2d,wequa2d)
- 
+
  do im=1,gqi_points
  if (ielem_ggs(iconsidered).eq.1)then
 vortet1(1:2,1:2) = rec_grads(1:2,1:2,iconsidered)
@@ -4621,14 +4601,14 @@ end if
 
  ux = vortet1(1,1);uy = vortet1(1,2)
  vx = vortet1(2,1);vy = vortet1(2,2)
- 
+
 
 
  angle1=ielem_faceanglex(facex,iconsidered)
  angle2=ielem_faceangley(facex,iconsidered)
  nx=angle1
  ny=angle2
- 
+
  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)
  rightv(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)
 
@@ -4676,11 +4656,11 @@ integer::gqi_points,im
 real,dimension(1:8,1:gpu_max_dim)::vext
 	real,dimension(1:gpu_max_dim,1:gpu_max_qp_face)::qpoints2d
 	real,dimension(1:gpu_max_qp_face)::wequa2d
- ssx=zero; ssp=zero; ssy=zero; 
- 
+ ssx=zero; ssp=zero; ssy=zero;
+
  gqi_points=qp_line_n
 call quadratureline(n,igqrules,vext,qpoints2d,wequa2d)
- 
+
  do im=1,gqi_points
  if (ielem_ggs(iconsidered).eq.1)then
 vortet1(1:2,1:2) = rec_grads(1:2,1:2,iconsidered)
@@ -4692,14 +4672,14 @@ end if
 
  ux = vortet1(1,1);uy = vortet1(1,2)
  vx = vortet1(2,1);vy = vortet1(2,2)
- 
+
 
 
  angle1=ielem_faceanglex(facex,iconsidered)
  angle2=ielem_faceangley(facex,iconsidered)
  nx=angle1
  ny=angle2
- 
+
  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)
  rightv(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)
 
@@ -4821,34 +4801,34 @@ subroutine get_visc_conduct(n,leftv,rightv,viscl,laml)
 
 
         call cons2prim2(n,left_temp,right_temp,mp_pinfl,mp_pinfr,gammal,gammar)
-		
+
 		t1l=left_temp(dimensiona+2)/(left_temp(1)*r_gas)
 		t0l=pres/(rres*r_gas)
-		
-		
+
+
 		t1r=right_temp(dimensiona+2)/(right_temp(1)*r_gas)
 		t0r=pres/(rres*r_gas)
 
-             
-	      	
+
+
               viscl(1)=visc*((t1l/t0l)*sqrt(t1l/t0l))*((t0l+(suther*t0l))/(t1l+(suther*t0l)))
               viscl(2)=visc*((t1r/t0r)*sqrt(t1r/t0r))*((t0r+(suther*t0r))/(t1r+(suther*t0r)))
 
-	      
+
 	      laml(1)=viscl(1)*r_gas*gamma/(prandtl*(gamma-1.d0))
 	      laml(2)=viscl(2)*r_gas*gamma/(prandtl*(gamma-1.d0))
-	  
+
 
 
 	  end if
-	
-	     
-	   
 
-      
+
+
+
+
 
   end subroutine get_visc_conduct
-  
+
 
 subroutine get_visc_conduct_ideal(n,leftv,rightv,viscl,laml)
 implicit none
@@ -4882,7 +4862,7 @@ end subroutine get_visc_conduct_ideal
 
 
 
-  
+
 subroutine vortexcalc(n)
 implicit none
 !> @brief
@@ -4892,7 +4872,7 @@ integer::kmaxe,i,ihgt,ihgj
 real::snorm,onorm
 real,dimension(3,3)::tvort,svort,ovort
 real,dimension(1:3,1:3)::vortet1
- 	 kmaxe=xmpielrank(n)
+	 kmaxe=xmpielrank(n)
 
 #if defined(gpu) || defined(xpu)
 !$omp target teams distribute parallel do &
@@ -4902,10 +4882,10 @@ real,dimension(1:3,1:3)::vortet1
 #else
 !$omp do
 #endif
-do i=1,kmaxe     
-	    
-                vortet1(1:3,1:3)=rec_grads(1:3,1:3,i)    
-	    
+do i=1,kmaxe
+
+                vortet1(1:3,1:3)=rec_grads(1:3,1:3,i)
+
 	    do ihgt=1,3; do ihgj=1,3
 	    tvort(ihgt,ihgj)=vortet1(ihgj,ihgt)
 	      end do; end do
@@ -4917,9 +4897,9 @@ do i=1,kmaxe
 	      onorm=sqrt((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+(ovort(1,3)*ovort(1,3))+&
 (ovort(2,1)*ovort(2,1))+(ovort(2,2)*ovort(2,2))+(ovort(2,3)*ovort(2,3))+(ovort(3,1)*ovort(3,1))+&
 (ovort(3,2)*ovort(3,2))+(ovort(3,3)*ovort(3,3)))
-	      
+
 	      ielem_vortex(1,i)=(0.5d0*((onorm**2)-(snorm**2)))
-		
+
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -4946,10 +4926,10 @@ real::rho_i,u_i,v_i,w_i,kinetic_i,p_i,t_i,t_ref,t_ratio,mu_i
 real,dimension(1:gpu_max_dim,1:gpu_max_dim)::vortet1
 
 
- 	 kmaxe=xmpielrank(n)
+	 kmaxe=xmpielrank(n)
 #if defined(gpu) || defined(xpu)
 !$omp target teams distribute parallel do &
-!$omp& firstprivate(n,kmaxe,nof_variables,dimensiona,boundtype,gamma,oo2,r_gas,pres,rres,visc,suther,zero) &
+!$omp& firstprivate(n,kmaxe,nof_variables,dimensiona,initcond,boundtype,gamma,oo2,r_gas,pres,rres,visc,suther,zero) &
 !$omp& map(alloc: rec_grads,u_c_val,ielem_vortex,ielem_totvolume) &
 !$omp& private(i, ihgt, ihgj, snorm, onorm, tvort, ovort, vortet1) &
 !$omp& private(ux, uy, uz, vx, vy, vz, wx, wy, wz) &
@@ -4989,6 +4969,7 @@ do i=1,kmaxe
           p_i=(gamma-1.0d0)*(u_c_val(1,dimensiona+2,i)-oo2*rho_i*kinetic_i)
           t_i=p_i/(rho_i*r_gas)
           t_ref=pres/(rres*r_gas)
+          if ((initcond.eq.95).and.(boundtype.ne.1)) t_ref=1.0d0/(gamma*1.25d0*1.25d0*r_gas)
           t_ratio=t_i/t_ref
           mu_i=visc*(t_ratio*sqrt(t_ratio))*((t_ref+(suther*t_ref))/(t_i+(suther*t_ref)))
 
@@ -5025,7 +5006,7 @@ real::snorm,onorm
 real,dimension(2,2)::tvort,svort,ovort
 real,dimension(1:gpu_max_dim,1:gpu_max_dim)::vortet1
 
- 	 kmaxe=xmpielrank(n)
+	 kmaxe=xmpielrank(n)
 
 #if defined(gpu) || defined(xpu)
 !$omp target teams distribute parallel do &
@@ -5035,10 +5016,10 @@ real,dimension(1:gpu_max_dim,1:gpu_max_dim)::vortet1
 #else
 !$omp do
 #endif
-do i=1,kmaxe     
-	    
-                vortet1(1:2,1:2)=rec_grads(1:2,1:2,i)    
-	    
+do i=1,kmaxe
+
+                vortet1(1:2,1:2)=rec_grads(1:2,1:2,i)
+
 	    do ihgt=1,2; do ihgj=1,2
 	    tvort(ihgt,ihgj)=vortet1(ihgj,ihgt)
 	      end do; end do
@@ -5048,9 +5029,9 @@ do i=1,kmaxe
  (svort(2,1)*svort(2,1))+(svort(2,2)*svort(2,2)))
 	      onorm=sqrt((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+&
 (ovort(2,1)*ovort(2,1))+(ovort(2,2)*ovort(2,2)))
-	      
+
 	      ielem_vortex(1,i)=(0.5d0*((onorm**2)-(snorm**2)))
-		
+
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -5066,18 +5047,20 @@ end subroutine vortexcalc2d
 
 
 
-subroutine boundarys_realgas_outflow(n,leftv,rightv,nx,ny,nz)
+subroutine boundarys_realgas_outflow(n,initcond,pox,poy,poz,leftv,rightv,nx,ny,nz)
 implicit none
 #ifdef gpu
 !$omp declare target
 #endif
 integer,intent(in)::n
+integer,intent(in)::initcond
+real,dimension(1:dimensiona),intent(in)::pox,poy,poz
 real,dimension(1:nof_variables),intent(in)::leftv
 real,dimension(1:nof_variables),intent(inout)::rightv
 real,intent(in)::nx,ny,nz
 real,dimension(1:gpu_max_nvar)::tempvect1,tempvect2
 real,dimension(1:gpu_max_species)::y_s_g
-real::mp_pinfl,gammal,agrt,u,v,w,un,mn,rho_g,rg_rmix,rmix,t_g,tv_g
+real::mp_pinfl,gammal,agrt,u,v,w,un,mn,rho_l,rho_g,p_l,p_g,u_g,v_g,w_g,rg_rmix,rmix,t_g,tv_g
 real::rg_tr,rg_ev_total,rg_chem,skin1,rg_cv
 integer::rg_i
 
@@ -5088,22 +5071,29 @@ tempvect2(1:nof_variables)=leftv(1:nof_variables)
 
 call cons2prim(n,tempvect1,mp_pinfl,gammal)
 agrt=sqrt((tempvect1(5)+mp_pinfl)*gammal/tempvect1(1))
+rho_l=tempvect1(1)
 u=tempvect1(2)
 v=tempvect1(3)
 w=tempvect1(4)
+p_l=tempvect1(5)
 un=u*nx+v*ny+w*nz
 
 call cons2div(n,tempvect2,mp_pinfl,gammal)
 
-if (un.lt.0.0d0)then
-  rightv=leftv
+if (un.le.0.0d0)then
+  call inflow(initcond,pox,poy,poz,rightv)
 else
   mn=un/agrt
 
   if (mn.ge.1.0d0)then
     rightv(1:nof_variables)=leftv(1:nof_variables)
   else
-    rho_g=tempvect1(1)
+    p_g=max(pres,tolsmall)
+    rho_g=rho_l+(p_g-p_l)/((agrt*agrt)+tolsmall)
+    rho_g=max(rho_g,tolsmall)
+    u_g=u+(nx*(p_l-p_g))/((agrt+tolsmall)*(rho_l+tolsmall))
+    v_g=v+(ny*(p_l-p_g))/((agrt+tolsmall)*(rho_l+tolsmall))
+    w_g=w+(nz*(p_l-p_g))/((agrt+tolsmall)*(rho_l+tolsmall))
     y_s_g(1:nof_species)=tempvect1(dimensiona+4:nof_variables)
 
     rg_rmix=zero
@@ -5113,7 +5103,7 @@ else
 
     rg_rmix=rgs_ru*rg_rmix
     rmix=rg_rmix
-    t_g=pres/(rho_g*rmix)
+    t_g=p_g/(rho_g*rmix)
     tv_g=tempvect2(6)
 
     rg_tr=zero
@@ -5134,16 +5124,16 @@ else
     rg_chem=zero
     do rg_i=1,nof_species
       if (rg_hzero(rg_i).gt.1.0e-12)then
-        rg_chem=rg_chem-(y_s_g(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
+        rg_chem=rg_chem+(y_s_g(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
       end if
     end do
 
-    skin1=oo2*((u**2)+(v**2)+(w*w))
+    skin1=oo2*((u_g**2)+(v_g**2)+(w_g*w_g))
 
     rightv(1)=rho_g
-    rightv(2)=rho_g*u
-    rightv(3)=rho_g*v
-    rightv(4)=rho_g*w
+    rightv(2)=rho_g*u_g
+    rightv(3)=rho_g*v_g
+    rightv(4)=rho_g*w_g
     rightv(5)=rho_g*(rg_ev_total+rg_tr+rg_chem+skin1)
     rightv(6)=rho_g*rg_ev_total
 
@@ -5156,18 +5146,20 @@ end if
 end subroutine boundarys_realgas_outflow
 
 
-subroutine boundarys2d_realgas_outflow(n,leftv,rightv,nx,ny)
+subroutine boundarys2d_realgas_outflow(n,initcond,pox,poy,leftv,rightv,nx,ny)
 implicit none
 #ifdef gpu
 !$omp declare target
 #endif
 integer,intent(in)::n
+integer,intent(in)::initcond
+real,dimension(1:dimensiona),intent(in)::pox,poy
 real,dimension(1:nof_variables),intent(in)::leftv
 real,dimension(1:nof_variables),intent(inout)::rightv
 real,intent(in)::nx,ny
 real,dimension(1:gpu_max_nvar)::tempvect1,tempvect2
 real,dimension(1:gpu_max_species)::y_s_g
-real::mp_pinfl,gammal,agrt,u,v,un,mn,rho_g,rg_rmix,rmix,t_g,tv_g
+real::mp_pinfl,gammal,agrt,u,v,un,mn,rho_l,rho_g,p_l,p_g,u_g,v_g,rg_rmix,rmix,t_g,tv_g
 real::rg_tr,rg_ev_total,rg_chem,skin1,rg_cv
 integer::rg_i
 
@@ -5178,21 +5170,27 @@ tempvect2(1:nof_variables)=leftv(1:nof_variables)
 
 call cons2prim(n,tempvect1,mp_pinfl,gammal)
 agrt=sqrt((tempvect1(4)+mp_pinfl)*gammal/tempvect1(1))
+rho_l=tempvect1(1)
 u=tempvect1(2)
 v=tempvect1(3)
+p_l=tempvect1(4)
 un=u*nx+v*ny
 
 call cons2div(n,tempvect2,mp_pinfl,gammal)
 
-if (un.lt.0.0d0)then
-  rightv=leftv
+if (un.le.0.0d0)then
+  call inflow2d(initcond,pox,poy,rightv)
 else
   mn=un/agrt
 
   if (mn.ge.1.0d0)then
     rightv(1:nof_variables)=leftv(1:nof_variables)
   else
-    rho_g=tempvect1(1)
+    p_g=max(pres,tolsmall)
+    rho_g=rho_l+(p_g-p_l)/((agrt*agrt)+tolsmall)
+    rho_g=max(rho_g,tolsmall)
+    u_g=u+(nx*(p_l-p_g))/((agrt+tolsmall)*(rho_l+tolsmall))
+    v_g=v+(ny*(p_l-p_g))/((agrt+tolsmall)*(rho_l+tolsmall))
     y_s_g(1:nof_species)=tempvect1(dimensiona+4:nof_variables)
 
     rg_rmix=zero
@@ -5202,7 +5200,7 @@ else
 
     rg_rmix=rgs_ru*rg_rmix
     rmix=rg_rmix
-    t_g=pres/(rho_g*rmix)
+    t_g=p_g/(rho_g*rmix)
     tv_g=tempvect2(5)
 
     rg_tr=zero
@@ -5223,15 +5221,15 @@ else
     rg_chem=zero
     do rg_i=1,nof_species
       if (rg_hzero(rg_i).gt.1.0e-12)then
-        rg_chem=rg_chem-(y_s_g(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
+        rg_chem=rg_chem+(y_s_g(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
       end if
     end do
 
-    skin1=oo2*((u**2)+(v**2))
+    skin1=oo2*((u_g**2)+(v_g**2))
 
     rightv(1)=rho_g
-    rightv(2)=rho_g*u
-    rightv(3)=rho_g*v
+    rightv(2)=rho_g*u_g
+    rightv(3)=rho_g*v_g
     rightv(4)=rho_g*(rg_ev_total+rg_tr+rg_chem+skin1)
     rightv(5)=rho_g*rg_ev_total
 
@@ -5360,9 +5358,12 @@ end subroutine outlet_pressure_fix_ideal2d
 subroutine update_outlet_mach_controller(n)
 implicit none
 integer,intent(in)::n
-integer::ii,i,l,ibc
-real::mach_sum_l,area_sum_l,p_sum_l,mach_sum_g,area_sum_g,p_sum_g
+integer::ii,i,l,ibc,eff_unit
+real::mach_sum_l,area_sum_l,p_sum_l,pt_sum_l,pt_mdot_sum_l,mdot_sum_l,backflow_sum_l
+real::mach_sum_g,area_sum_g,p_sum_g,pt_sum_g,pt_mdot_sum_g,mdot_sum_g,backflow_sum_g
 real::rho,uu,vv,ww,e,vel2,p,a,mach,area,err,limited_err,factor
+real::angle1,angle2,nx,ny,nz,un,mdot,pt,pt_area_out,pt_mass_out
+real::eta_area,eta_mass,loss_area,loss_mass,eta_area_percent,eta_mass_percent
 logical::heref
 
 if ((mach_outlet_target.le.0.0d0).or.(mach_outlet_update_freq.le.0)) return
@@ -5371,12 +5372,18 @@ if ((realgas.ne.0).or.(multispecies.ne.0)) return
 mach_sum_l=0.0d0
 area_sum_l=0.0d0
 p_sum_l=0.0d0
+pt_sum_l=0.0d0
+pt_mdot_sum_l=0.0d0
+mdot_sum_l=0.0d0
+backflow_sum_l=0.0d0
 
 #if defined(gpu) || defined(xpu)
-!$omp target teams distribute parallel do reduction(+:mach_sum_l,area_sum_l,p_sum_l) &
+!$omp target teams distribute parallel do &
+!$omp& reduction(+:mach_sum_l,area_sum_l,p_sum_l,pt_sum_l,pt_mdot_sum_l,mdot_sum_l,backflow_sum_l) &
 !$omp& firstprivate(nof_bounded, dimensiona, gamma, tolsmall, oo2) &
 !$omp& map(alloc: el_bnd, ielem_ifca, ielem_ibounds, ibound_icode, ielem_surf, u_c_val) &
-!$omp& private(ii,i,l,ibc,rho,uu,vv,ww,e,vel2,p,a,mach,area)
+!$omp& map(alloc: ielem_faceanglex, ielem_faceangley) &
+!$omp& private(ii,i,l,ibc,rho,uu,vv,ww,e,vel2,p,a,mach,area,angle1,angle2,nx,ny,nz,un,mdot,pt)
 #endif
 do ii=1,nof_bounded
   i=el_bnd(ii)
@@ -5400,9 +5407,30 @@ do ii=1,nof_bounded
           a=sqrt(gamma*p/rho)
           mach=sqrt(max(vel2,0.0d0))/(a+tolsmall)
           area=max(ielem_surf(l,i),0.0d0)
+          pt=p*(1.0d0+(0.5d0*(gamma-1.0d0)*mach*mach))**(gamma/(gamma-1.0d0))
           mach_sum_l=mach_sum_l+(mach*area)
           area_sum_l=area_sum_l+area
           p_sum_l=p_sum_l+(p*area)
+          pt_sum_l=pt_sum_l+(pt*area)
+          angle1=ielem_faceanglex(l,i)
+          angle2=ielem_faceangley(l,i)
+          if (dimensiona.eq.3)then
+            nx=cos(angle1)*sin(angle2)
+            ny=sin(angle1)*sin(angle2)
+            nz=cos(angle2)
+          else
+            nx=angle1
+            ny=angle2
+            nz=0.0d0
+          end if
+          un=(uu*nx)+(vv*ny)+(ww*nz)
+          mdot=rho*un*area
+          if (mdot.gt.0.0d0)then
+            mdot_sum_l=mdot_sum_l+mdot
+            pt_mdot_sum_l=pt_mdot_sum_l+(pt*mdot)
+          else
+            backflow_sum_l=backflow_sum_l-mdot
+          end if
         end if
       end if
     end if
@@ -5415,13 +5443,40 @@ end do
 mach_sum_g=0.0d0
 area_sum_g=0.0d0
 p_sum_g=0.0d0
+pt_sum_g=0.0d0
+pt_mdot_sum_g=0.0d0
+mdot_sum_g=0.0d0
+backflow_sum_g=0.0d0
 call mpi_allreduce(mach_sum_l,mach_sum_g,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 call mpi_allreduce(area_sum_l,area_sum_g,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 call mpi_allreduce(p_sum_l,p_sum_g,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+call mpi_allreduce(pt_sum_l,pt_sum_g,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+call mpi_allreduce(pt_mdot_sum_l,pt_mdot_sum_g,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+call mpi_allreduce(mdot_sum_l,mdot_sum_g,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+call mpi_allreduce(backflow_sum_l,backflow_sum_g,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 
 if (area_sum_g.le.tolsmall) return
 
 mach_outlet_average=mach_sum_g/area_sum_g
+pt_area_out=pt_sum_g/(area_sum_g+tolsmall)
+pt_mass_out=-1.0d0
+if (mdot_sum_g.gt.tolsmall) pt_mass_out=pt_mdot_sum_g/mdot_sum_g
+eta_area=-1.0d0
+eta_mass=-1.0d0
+loss_area=-1.0d0
+loss_mass=-1.0d0
+eta_area_percent=-1.0d0
+eta_mass_percent=-1.0d0
+if (total_pressure_inlet.gt.tolsmall)then
+  eta_area=pt_area_out/total_pressure_inlet
+  loss_area=1.0d0-eta_area
+  eta_area_percent=100.0d0*eta_area
+  if (pt_mass_out.gt.tolsmall)then
+    eta_mass=pt_mass_out/total_pressure_inlet
+    loss_mass=1.0d0-eta_mass
+    eta_mass_percent=100.0d0*eta_mass
+  end if
+end if
 if (press_outlet.le.tolsmall) press_outlet=max(p_sum_g/(area_sum_g+tolsmall),tolsmall)
 
 err=mach_outlet_average-mach_outlet_target
@@ -5440,6 +5495,14 @@ if (n.eq.0)then
   write(91,'(I10,5(1X,ES20.10))') it,t,mach_outlet_average,mach_outlet_target,press_outlet,area_sum_g
   flush(91)
   close(91)
+  inquire(file='DUCT_EFFICIENCY.dat',exist=heref)
+  open(newunit=eff_unit,file='DUCT_EFFICIENCY.dat',form='formatted',status='unknown',action='write',position='append')
+  if (.not.heref) write(eff_unit,'(A)') '# it t pt_in pt_out_area pt_out_mass eta_area eta_mass ' // &
+       'loss_area loss_mass mach_area press_outlet outlet_area mdot_out mdot_backflow eta_area_percent eta_mass_percent'
+  write(eff_unit,'(I10,15(1X,ES20.10))') it,t,total_pressure_inlet,pt_area_out,pt_mass_out,eta_area,eta_mass,loss_area,loss_mass, &
+       mach_outlet_average,press_outlet,area_sum_g,mdot_sum_g,backflow_sum_g,eta_area_percent,eta_mass_percent
+  flush(eff_unit)
+  close(eff_unit)
 end if
 
 end subroutine update_outlet_mach_controller
@@ -5892,7 +5955,7 @@ integer::rg_i
 
 select case(b_code)
 
-	    
+
 	    case(1)!inflow subsonic or supersonic will be chosen based on mach number
 	    if ((initcond.eq.4440).and.(realgas.eq.0).and.(multispecies.eq.0))then
 	    call inflow_4440_from_left_ideal3d(n,leftv,nx,ny,nz,rightv)
@@ -5903,75 +5966,89 @@ select case(b_code)
 	    end if
 	    else
 	    if (boundtype.eq.0)then	!supersonic
-    
+
     call inflow(initcond,pox,poy,poz,rightv)
-    
+
           if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
 		  cturbr(1)=visc*turbinit*rightv(1)
 	      end if
-    
-        
-    
-    
+
+
+
+
     else		!subsonic
     call inflow(initcond,pox,poy,poz,rightv)
-    
+
     call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-    
+
     subson1(1:nof_variables)=rightv(1:nof_variables)
     subson2(1:nof_variables)=leftv(1:nof_variables)
-    sps=sqrt((gamma*subson2(5))/(subson2(1)))
+    if (realgas.eq.1)then
+    sps=sqrt((gammal*subson2(5))/(subson2(1)+tolsmall))
+    else
+    sps=sqrt((gamma*subson2(5))/(subson2(1)+tolsmall))
+    end if
     vel=sqrt(subson2(2)**2+subson2(3)**2+subson2(4)**2)
     call prim2cons2(n,leftv,rightv)
-    
+
       if (vel/(sps+tolsmall).gt.1.0d0)then	!supersonic
-      
-      
+
+
       call inflow(initcond,pox,poy,poz,rightv)
 
        if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
 		  cturbr(1)=visc*turbinit*rightv(1)
 	      end if
-      
-      
-      
+
+
+
       else		!subsonic
-      
+
       subson3(5)=0.5*((subson1(5))+(subson2(5))-(subson2(1)*sps*((nx*(subson1(2)-subson2(2)))+(ny*(subson1(3)-subson2(3)))&
 +(nz*(subson1(4)-subson2(4))))))
       subson3(1)=subson1(1)+(subson3(5)-subson1(5))/(sps**2)
       subson3(2)=subson1(2)-(nx*(subson1(5)-subson3(5)))/(sps*subson2(1))
       subson3(3)=subson1(3)-(ny*(subson1(5)-subson3(5)))/(sps*subson2(1))
       subson3(4)=subson1(4)-(nz*(subson1(5)-subson3(5)))/(sps*subson2(1))
-      
-     
-      
-       rightv(1)=subson3(1)
-    rightv(2)=subson3(2)*subson3(1)
-    rightv(3)=subson3(3)*subson3(1)
-    rightv(4)=subson3(4)*subson3(1)
-    skins=oo2*((subson3(2)**2)+(subson3(3)**2)+(subson3(4)**2))
-    ikins=subson3(5)/((gamma-1.0d0)*(subson3(1)))
-    rightv(5)=(subson3(1)*(ikins))+(subson3(1)*skins)
-      
-      
-      
+
+
+
+	      if (realgas.eq.1)then
+	      rightv(1:nof_variables)=subson1(1:nof_variables)
+	      rightv(1)=subson3(1)
+	      rightv(2)=subson3(2)
+	      rightv(3)=subson3(3)
+	      rightv(4)=subson3(4)
+	      rightv(5)=subson3(5)
+	      call prim2cons(n,rightv)
+	      else
+	      rightv(1)=subson3(1)
+	      rightv(2)=subson3(2)*subson3(1)
+	      rightv(3)=subson3(3)*subson3(1)
+	      rightv(4)=subson3(4)*subson3(1)
+	      skins=oo2*((subson3(2)**2)+(subson3(3)**2)+(subson3(4)**2))
+	      ikins=subson3(5)/((gamma-1.0d0)*(subson3(1)))
+	      rightv(5)=(subson3(1)*(ikins))+(subson3(1)*skins)
+	      end if
+
+
+
       end if
 
-      
-      
-      
-      
-      
+
+
+
+
+
       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-	      
-      
-      
-      
+
+
+
+
 	      if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
 		  cturbr(1)=visc*turbinit*rightv(1)
 	      end if
-	      if ((turbulence.eq.1).and.(turbulencemodel.eq.2))then	 
+	      if ((turbulence.eq.1).and.(turbulencemodel.eq.2))then
 		cturbr(1)=(1.5d0*i_turb_inlet*(ufreestream**2))*rightv(1)!k initialization
 		cturbr(2)=rightv(1)*cturbr(1)/(10.0e-5*visc)!omega initialization
         if (rec_mrf(iconsidered).eq.1)then
@@ -5979,7 +6056,7 @@ select case(b_code)
 		cturbr(2)=rightv(1)*cturbr(1)/(10.0e-5*visc)!omega initialization
         end if
 	      end if
- 
+
 	      if (passivescalar.gt.0)then
 	      call pass_inlet(initcond,pox,poy,poz,pass_tmp)
 	      do rg_i=1,passivescalar
@@ -5987,27 +6064,27 @@ select case(b_code)
 	      end do
 	      end if
       end if
-      
-      
-      
-      
-      
-      
-      
-      
-    
+
+
+
+
+
+
+
+
+
 	    end if
 	    end if
-	    
-	    
+
+
 	    case(2)!outflow subsonic or supersonic will be chosen based on mach number
      if (boundtype.eq.0)then
       rightv(1:nof_variables)=leftv(1:nof_variables)
-      
+
      else
 
       if (realgas.eq.1)then
-                  call boundarys_realgas_outflow(n,leftv,rightv,nx,ny,nz)
+                  call boundarys_realgas_outflow(n,initcond,pox,poy,poz,leftv,rightv,nx,ny,nz)
                   else  !realgas
 
                                     ! ------------------------------------------------------------
@@ -6078,7 +6155,7 @@ select case(b_code)
 
 
 
-     
+
 
 
 
@@ -6090,22 +6167,22 @@ select case(b_code)
 
                 end if
   end if
-    
-    
+
+
       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-	     
+
 		  cturbr(:)=cturbl(:)
-	
+
       end if
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
     case(9)!outlets subsonic or supersonic will be chosen based on mach number
     ! if (boundtype.eq.0)then
      ! rightv(1:nof_variables)=leftv(1:nof_variables)
@@ -6125,8 +6202,8 @@ select case(b_code)
 		  cturbr(:)=cturbl(:)
 
       end if
-    
-    
+
+
 
      case(99)    !bleed boundary
 
@@ -6142,9 +6219,9 @@ select case(b_code)
 
 
 
-    
+
     case(3)!symmetry
-    
+
 			      call rotatef(n,cleft_rot,leftv,angle1,angle2)
 				if (rec_mrf(iconsidered).eq.1)then
                     cright_rot(1)=cleft_rot(1)
@@ -6173,16 +6250,16 @@ select case(b_code)
 
 					  end if
 				      end if
-				
+
 			      call rotateb(n,rightv,cright_rot,angle1,angle2)
-    
-    
-    
+
+
+
     case(4)!wall
-    
-    
+
+
 			      if (itestcase.eq.3)then
-			      
+
 			       call rotatef(n,cleft_rot,leftv,angle1,angle2)
 			      if (rec_mrf(iconsidered).eq.1)then
                         cright_rot(1)=cleft_rot(1)
@@ -6191,7 +6268,7 @@ select case(b_code)
                         cright_rot(4)=cleft_rot(4)
                         cright_rot(5)=cleft_rot(5)+cleft_rot(1)*(srf_speedrot(2)**2)*2.0d0-2.0d0*cleft_rot(2)*srf_speedrot(2)
 			      else
-         		      cright_rot(:)=cleft_rot(:)
+		      cright_rot(:)=cleft_rot(:)
 			      cright_rot(2)=-cleft_rot(2)
                   end if
 				     if ((turbulence.eq.1).or.(passivescalar.gt.0))then
@@ -6203,13 +6280,13 @@ select case(b_code)
 
 					  end if
 				      end if
-				
-				
-				
+
+
+
 			      call rotateb(n,rightv,cright_rot,angle1,angle2)
-			      
-			      
-			      
+
+
+
 			      else
                   if (rec_mrf(iconsidered).eq.1)then
                     rightv(1)=leftv(1)
@@ -6218,7 +6295,7 @@ select case(b_code)
                     rightv(4)=-leftv(4)+2.0d0*leftv(1)*srf_speed(4)
                     rightv(5)=leftv(5)+2.0d0*leftv(1)*(srf_speed(2)**2+srf_speed(3)**2+srf_speed(4)**2)&
                                             -2.0d0*(leftv(2)*srf_speed(2)+leftv(3)*srf_speed(3)+leftv(4)*srf_speed(4))
-    
+
                   else
                     rightv(1:nof_variables)=leftv(1:nof_variables)
                     rightv(2)=-leftv(2)
@@ -6241,9 +6318,9 @@ select case(b_code)
 
 
                   end if
-    
-    
-    
+
+
+
 				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 					if ((turbulence.ne.1).or.(turbulencemodel.ne.2))then
 					    cturbr(:)=-cturbl(:)
@@ -6262,37 +6339,41 @@ select case(b_code)
 						    -cturbl(turbulenceequations+1:turbulenceequations+passivescalar)
 
 					  end if
-					  
-					
-					
-					
-					
+
+
+
+
+
 					end if
 				      end if
-    
-    
+
+
 				end if
-    
-    
-    
-    
-    
+
+
+
+
+
     case(6)!farfield inflow or outflow, subsonic or supersonic will be chosen based on mach number
 	    call rotatef(n,cleft_rot,leftv,angle1,angle2)
 	    vnb=cleft_rot(2)
-	  
+
 	    call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-    
+
 	    subson1(1:nof_variables)=rightv(1:nof_variables)
 	    subson2(1:nof_variables)=leftv(1:nof_variables)
-	    sps=sqrt((gamma*subson2(5))/(subson2(1)))
+	    if (realgas.eq.1)then
+	    sps=sqrt((gammal*subson2(5))/(subson2(1)+tolsmall))
+	    else
+	    sps=sqrt((gamma*subson2(5))/(subson2(1)+tolsmall))
+	    end if
 	    vel = sqrt(subson2(2)**2+subson2(3)**2+subson2(4)**2)
-	  
+
 	    call prim2cons2(n,leftv,rightv)
 
 	  if (vnb.le.0.0d0)then		!inflow
 			ibfc=-1
-	
+
 		  if ((abs(vnb)).ge.sps)then
 				!supersonic
 				if ((initcond.eq.4440).and.(realgas.eq.0).and.(multispecies.eq.0))then
@@ -6300,54 +6381,68 @@ select case(b_code)
 				else
 				call inflow(initcond,pox,poy,poz,rightv)
 				end if
-					
+
 		  else
 				!subsonic
-			
-			
+
+
 			if ((initcond.eq.4440).and.(realgas.eq.0).and.(multispecies.eq.0))then
 			call inflow_4440_from_left_ideal3d(n,leftv,nx,ny,nz,rightv)
 			else
 			call inflow(initcond,pox,poy,poz,rightv)
 			end if
-	  	        
+
 			  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-			  
-			
+
+
 			subson1(1:nof_variables)=rightv(1:nof_variables)
 			subson2(1:nof_variables)=leftv(1:nof_variables)
-			sps=sqrt((gamma*subson2(5))/(subson2(1)))
+				if (realgas.eq.1)then
+				sps=sqrt((gammal*subson2(5))/(subson2(1)+tolsmall))
+				else
+				sps=sqrt((gamma*subson2(5))/(subson2(1)+tolsmall))
+				end if
 			vel=sqrt(subson2(2)**2+subson2(3)**2+subson2(4)**2)
 	             call prim2cons2(n,leftv,rightv)
-				    
+
 		    subson3(5)=0.5*((subson1(5))+(subson2(5))-(subson2(1)*sps*((nx*(subson1(2)-subson2(2)))+(ny*(subson1(3)-subson2(3)))&
 	      +(nz*(subson1(4)-subson2(4))))))
 		    subson3(1)=subson1(1)+(subson3(5)-subson1(5))/(sps**2)
 		    subson3(2)=subson1(2)-(nx*(subson1(5)-subson3(5)))/(sps*subson2(1))
 		    subson3(3)=subson1(3)-(ny*(subson1(5)-subson3(5)))/(sps*subson2(1))
 		    subson3(4)=subson1(4)-(nz*(subson1(5)-subson3(5)))/(sps*subson2(1))
-		    
-		    
-		      rightv(1)=subson3(1)
-    rightv(2)=subson3(2)*subson3(1)
-    rightv(3)=subson3(3)*subson3(1)
-    rightv(4)=subson3(4)*subson3(1)
-    skins=oo2*((subson3(2)**2)+(subson3(3)**2)+(subson3(4)**2))
-    ikins=subson3(5)/((gamma-1.0d0)*(subson3(1)))
-    rightv(5)=(subson3(1)*(ikins))+(subson3(1)*skins)
-		  
+
+
+			      if (realgas.eq.1)then
+			      rightv(1:nof_variables)=subson1(1:nof_variables)
+			      rightv(1)=subson3(1)
+			      rightv(2)=subson3(2)
+			      rightv(3)=subson3(3)
+			      rightv(4)=subson3(4)
+			      rightv(5)=subson3(5)
+			      call prim2cons(n,rightv)
+			      else
+			      rightv(1)=subson3(1)
+			      rightv(2)=subson3(2)*subson3(1)
+			      rightv(3)=subson3(3)*subson3(1)
+			      rightv(4)=subson3(4)*subson3(1)
+			      skins=oo2*((subson3(2)**2)+(subson3(3)**2)+(subson3(4)**2))
+			      ikins=subson3(5)/((gamma-1.0d0)*(subson3(1)))
+			      rightv(5)=(subson3(1)*(ikins))+(subson3(1)*skins)
+			      end if
+
 		  end if
-		  
-		  
+
+
 		  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-	      
-      
-      
-      
+
+
+
+
 	       if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
 		  cturbr(1)=visc*turbinit*rightv(1)
 	      end if
-	      if ((turbulence.eq.1).and.(turbulencemodel.eq.2))then	 
+	      if ((turbulence.eq.1).and.(turbulencemodel.eq.2))then
 		cturbr(1)=(1.5d0*i_turb_inlet*(ufreestream**2))*rightv(1)!k initialization
 		cturbr(2)=rightv(1)*cturbr(1)/(10.0e-5*visc)!omega initialization
 		if (rec_mrf(iconsidered).eq.1)then
@@ -6355,7 +6450,7 @@ select case(b_code)
             cturbr(2)=rightv(1)*cturbr(1)/(10.0e-5*visc)!omega initialization
 		end if
 	      end if
- 
+
 	      if (passivescalar.gt.0)then
 	      call pass_inlet(initcond,pox,poy,poz,pass_tmp)
 	      do rg_i=1,passivescalar
@@ -6363,67 +6458,77 @@ select case(b_code)
 	      end do
 	      end if
 		    end if
-		  
-		  
-      
+
+
+
 	else
-      
+
 	  !outflow
-	
+
 	    ibfc=-2
 		if ((abs(vnb)).ge.sps)then
-		      
+
 		      rightv(1:nof_variables)=leftv(1:nof_variables)
-		
+
 		else
-		
-		
-		
+
+
+
 		call outflow(initcond,pox,poy,poz,rightv)
-		
+
 		call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-		
-    
+
+
     subson1(1:nof_variables)=rightv(1:nof_variables)
     subson2(1:nof_variables)=leftv(1:nof_variables)
-     
-     
+
+
      call prim2cons2(n,leftv,rightv)
-   
-    
-    
+
+
+
     subson3(5)=subson1(5)
     subson3(1)=subson2(1)+(subson3(5)-subson2(5))/(sps**2)
     subson3(2)=subson2(2)+(nx*(subson2(5)-subson3(5)))/(sps*subson2(1))
     subson3(3)=subson2(3)+(ny*(subson2(5)-subson3(5)))/(sps*subson2(1))
     subson3(4)=subson2(4)+(nz*(subson2(5)-subson3(5)))/(sps*subson2(1))
-! 							
-    rightv(1)=subson3(1)
-    rightv(2)=subson3(2)*subson3(1)
-    rightv(3)=subson3(3)*subson3(1)
-    rightv(4)=subson3(4)*subson3(1)
-    skins=oo2*((subson3(2)**2)+(subson3(3)**2)+(subson3(4)**2))
-    ikins=subson3(5)/((gamma-1.0d0)*(subson3(1)))
-    rightv(5)=(subson3(1)*(ikins))+(subson3(1)*skins)
-	
-	      
-	      
+!
+	    if (realgas.eq.1)then
+	    rightv(1:nof_variables)=subson2(1:nof_variables)
+	    rightv(1)=subson3(1)
+	    rightv(2)=subson3(2)
+	    rightv(3)=subson3(3)
+	    rightv(4)=subson3(4)
+	    rightv(5)=subson3(5)
+	    call prim2cons(n,rightv)
+	    else
+	    rightv(1)=subson3(1)
+	    rightv(2)=subson3(2)*subson3(1)
+	    rightv(3)=subson3(3)*subson3(1)
+	    rightv(4)=subson3(4)*subson3(1)
+	    skins=oo2*((subson3(2)**2)+(subson3(3)**2)+(subson3(4)**2))
+	    ikins=subson3(5)/((gamma-1.0d0)*(subson3(1)))
+	    rightv(5)=(subson3(1)*(ikins))+(subson3(1)*skins)
+	    end if
+
+
+
 	       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-	     
+
 		  cturbr(:)=cturbl(:)
-	
+
 		end if
 	      end if
-	      
+
 
 	end if
 
-	
-! 	call rotatef(n,cright_rot,rightv,angle1,angle2)
-    
-    
 
-			      
+! 	call rotatef(n,cright_rot,rightv,angle1,angle2)
+
+
+
+
 
 
 end select
@@ -6462,7 +6567,7 @@ integer::rg_i
 
 select case(b_code)
 
-	    
+
 	    case(1)!inflow subsonic or supersonic will be chosen based on mach number
 	    if ((initcond.eq.4440).and.(realgas.eq.0).and.(multispecies.eq.0))then
 	    call inflow_4440_from_left_ideal2d(n,leftv,nx,ny,rightv)
@@ -6473,83 +6578,96 @@ select case(b_code)
 	    end if
 	    else
 	    if (boundtype.eq.0)then	!supersonic
-    
+
     call inflow2d(initcond,pox,poy,rightv)
-    
+
      if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
 		  cturbr(1)=visc*turbinit*rightv(1)
 	      end if
-    
-        
-    
-    
+
+
+
+
     else		!subsonic
     call inflow2d(initcond,pox,poy,rightv)
 
     call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-    
+
     subson1(1:nof_variables)=rightv(1:nof_variables)
     subson2(1:nof_variables)=leftv(1:nof_variables)
-    sps=sqrt((gamma*subson2(4))/(subson2(1)))
+    if (realgas.eq.1)then
+    sps=sqrt((gammal*subson2(4))/(subson2(1)+tolsmall))
+    else
+    sps=sqrt((gamma*subson2(4))/(subson2(1)+tolsmall))
+    end if
     vel=sqrt(subson2(2)**2+subson2(3)**2)
-    
+
 
     call prim2cons2(n,leftv,rightv)
-    
+
 
       if (vel/(sps+tolsmall).gt.1.0d0)then	!supersonic
-      
-      
+
+
       call inflow2d(initcond,pox,poy,rightv)
-      
-      
-      
+
+
+
       else		!subsonic
-      
-      
+
+
       subson3(4)=0.5*((subson1(4))+(subson2(4))-(subson2(1)*sps*((nx*(subson1(2)-subson2(2)))+(ny*(subson1(3)-subson2(3)))&
 )))
       subson3(1)=subson1(1)+(subson3(4)-subson1(4))/(sps**2)
       subson3(2)=subson1(2)-(nx*(subson1(4)-subson3(4)))/(sps*subson2(1))
       subson3(3)=subson1(3)-(ny*(subson1(4)-subson3(4)))/(sps*subson2(1))
-      
-      
-      		    
-      
-      
+
+
+
+
+
+    if (realgas.eq.1)then
+    rightv(1:nof_variables)=subson1(1:nof_variables)
     rightv(1)=subson3(1)
-    rightv(2)=subson3(2)*subson3(1)
-    rightv(3)=subson3(3)*subson3(1)
-    
-    skins=oo2*((subson3(2)**2)+(subson3(3)**2))
+    rightv(2)=subson3(2)
+    rightv(3)=subson3(3)
+    rightv(4)=subson3(4)
+    call prim2cons(n,rightv)
+    else
+				    rightv(1)=subson3(1)
+				    rightv(2)=subson3(2)*subson3(1)
+				    rightv(3)=subson3(3)*subson3(1)
+
+				    skins=oo2*((subson3(2)**2)+(subson3(3)**2))
     ikins=subson3(4)/((gamma-1.0d0)*(subson3(1)))
     rightv(4)=(subson3(1)*(ikins))+(subson3(1)*skins)
-      
-      
-       
-      
+    end if
+
+
+
+
       end if
 
-      
+
        end if
-      
-      
-      
+
+
+
       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-	      
-      
-      
-      
+
+
+
+
 	      if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
 		  cturbr(1)=visc*turbinit
 	      end if
-	     if ((turbulence.eq.1).and.(turbulencemodel.eq.2))then	 
+	     if ((turbulence.eq.1).and.(turbulencemodel.eq.2))then
 		cturbr(1)=(1.5d0*i_turb_inlet*(ufreestream**2))*rightv(1)!k initialization
 		cturbr(2)=rightv(1)*cturbr(1)/(10.0e-5*visc)!omega initialization
-		
-		
+
+
 	      end if
- 
+
 	      if (passivescalar.gt.0)then
 	      call pass_inlet2d(initcond,pox,poy,pass_tmp)
 	      do rg_i=1,passivescalar
@@ -6557,31 +6675,31 @@ select case(b_code)
 	      end do
 	      end if
       end if
-      
-      
-      
-      
-      
-      
-      
-      
-    
-	   
-	    
-	    
+
+
+
+
+
+
+
+
+
+
+
+
 	    end if
 	    case(2)!outflow subsonic or supersonic will be chosen based on mach number
      if (boundtype.eq.0)then
       rightv(1:nof_variables)=leftv(1:nof_variables)
-      
+
      else
-     
+
 
 
 
 
                 if (realgas.eq.1)then
-                  call boundarys2d_realgas_outflow(n,leftv,rightv,nx,ny)
+                  call boundarys2d_realgas_outflow(n,initcond,pox,poy,leftv,rightv,nx,ny)
                   else
                         call outflow2d(initcond,pox,poy,rightv)
                         call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
@@ -6622,19 +6740,19 @@ select case(b_code)
                   end if
     end if
 
-    
-    
+
+
       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-	     
+
 		  cturbr(:)=cturbl(:)
-	
+
       end if
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
      case(99)  !bleed
 
 
@@ -6647,16 +6765,16 @@ select case(b_code)
 		  cturbr(:)=cturbl(:)
 
       end if
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
     case(3)!symmetry
-    
-    
-    
+
+
+
                             if ((initcond.eq.102).or.(initcond.eq.30).or.(initcond.eq.222))then	!shock density interaction
                                    if ((initcond.eq.102))then	!shock density interaction
                             if (pox(1).lt.((1.0d0/6.0d0)+((1.0d0+20.0d0*t)/(sqrt(3.0d0)))))then
@@ -6671,7 +6789,7 @@ select case(b_code)
                             p1=1.0d0
                             end if
                             skin1=(oo2)*((u1**2)+(v1**2))
-                            !internal energy 
+                            !internal energy
                             ie1=((p1)/((gamma-1.0d0)*r1))
                             !total energy
                             e1=(p1/(gamma-1))+(r1*skin1)
@@ -6681,12 +6799,12 @@ select case(b_code)
                             rightv(3)=r1*v1
                             rightv(4)=e1
                             end if
-    
-                            
-                            
-                            
-                            
-                            
+
+
+
+
+
+
                              if ((initcond.eq.222))then
                              if (sqrt((pox(1)**2)+(poy(1)**2)).lt.(t/3.0d0))then
                             r1=16.0d0
@@ -6702,7 +6820,7 @@ select case(b_code)
                             p1=1.0e-6
                             end if
                             skin1=(oo2)*((u1**2)+(v1**2))
-                            !internal energy 
+                            !internal energy
                             ie1=((p1)/((gamma-1.0d0)*r1))
                             !total energy
                             e1=(p1/(gamma-1))+(r1*skin1)
@@ -6711,11 +6829,11 @@ select case(b_code)
                             rightv(2)=r1*u1
                             rightv(3)=r1*v1
                             rightv(4)=e1
-                             
-                             
-                             
+
+
+
                              end if
-			     
+
 			       if ((initcond.eq.30))then
 			      if (pox(1).le.zero)then
                             if (poy(1).le.zero)then
@@ -6746,7 +6864,7 @@ select case(b_code)
                             end if
                             end if
 			       skin1=(oo2)*((u1**2)+(v1**2))
-                            !internal energy 
+                            !internal energy
                             ie1=((p1)/((gamma-1.0d0)*r1))
                             !total energy
                             e1=(p1/(gamma-1))+(r1*skin1)
@@ -6755,33 +6873,33 @@ select case(b_code)
                             !rightv(2)=0.0
                             !rightv(3)=0.0
                             !rightv(4)=leftv(4)
-                            
+
                              rightv(1)=r1
                             rightv(2)=r1*u1
                             rightv(3)=r1*v1
                             rightv(4)=e1
-			      
+
 			      end if
-			      
-			      
-			      
-			      
+
+
+
+
 			      else
-			      
-			      
+
+
 			       call rotatef2d(n,cleft_rot,leftv,angle1,angle2)
-			      
+
                   cright_rot(1)=cleft_rot(1)
 			      cright_rot(2)=-cleft_rot(2)
 			      cright_rot(3)=cleft_rot(3)
 			      cright_rot(4)=cleft_rot(4)
-			      
+
 			       if((multispecies.eq.1).or.(realgas.eq.1))then
                       cright_rot(5:nof_variables)=cleft_rot(5:nof_variables)
-                    
+
                     end if
-			     
-					 
+
+
 				     if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 					    cturbr(:)=cturbl(:)
 
@@ -6791,20 +6909,20 @@ select case(b_code)
 
 					  end if
 				      end if
-				
-			    	
-				
+
+
+
 			      call rotateb2d(n,rightv,cright_rot,angle1,angle2)
                             end if
-    
-    
+
+
     case(4)!wall
-    
+
 			     if (itestcase.eq.3)then
-			      
+
 			       call rotatef2d(n,cleft_rot,leftv,angle1,angle2)
-			      
-			      
+
+
                       if ((multispecies.eq.1).or.(realgas.eq.1))then
                           cright_rot(:)=cleft_rot(:)
                       cright_rot(2)=-cleft_rot(2)
@@ -6820,9 +6938,9 @@ select case(b_code)
                         cright_rot(3)=cleft_rot(3)
                         cright_rot(4)=cleft_rot(4)
                       end if
-			     
-			      
-					 
+
+
+
 				     if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 					    cturbr(:)=cturbl(:)
 
@@ -6832,13 +6950,13 @@ select case(b_code)
 
 					  end if
 				      end if
-				
-				
-				
+
+
+
 			      call rotateb2d(n,rightv,cright_rot,angle1,angle2)
-			      
-			    
-			      
+
+
+
 			      else
 
 
@@ -6847,7 +6965,7 @@ select case(b_code)
 
 			      rightv(2)=-leftv(2)
 			      rightv(3)=-leftv(3)
-			      
+
                 if (realgas.eq.1)then
                 if (catalytic_wall.eq.1)then
                 rightv(dimensiona+4:nof_variables)=catalytic_con(1:nof_species)*leftv(1)
@@ -6855,10 +6973,10 @@ select case(b_code)
 
                 end if
                 end if
-    
 
-    
-    
+
+
+
 				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 					if ((turbulence.ne.1).or.(turbulencemodel.ne.2))then
 					    cturbr(:)=-cturbl(:)
@@ -6877,44 +6995,48 @@ select case(b_code)
 						    -cturbl(turbulenceequations+1:turbulenceequations+passivescalar)
 
 					  end if
-					  
-					
-					
-					
-					
+
+
+
+
+
 					end if
 				      end if
-    
-    
+
+
 				end if
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
     case(6)!farfield inflow or outflow, subsonic or supersonic will be chosen based on mach number
 	 call rotatef2d(n,cleft_rot,leftv,angle1,angle2)
 	    vnb=cleft_rot(2)/cleft_rot(1)
-	    
-	    
-	  
-	    
+
+
+
+
 	    call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-    
+
 	    subson1(1:nof_variables)=rightv(1:nof_variables)
 	    subson2(1:nof_variables)=leftv(1:nof_variables)
-	    sps=sqrt((gamma*subson2(4))/(subson2(1)))
+	    if (realgas.eq.1)then
+	    sps=sqrt((gammal*subson2(4))/(subson2(1)+tolsmall))
+	    else
+	    sps=sqrt((gamma*subson2(4))/(subson2(1)+tolsmall))
+	    end if
 	    vel=sqrt(subson2(2)**2+subson2(3)**2)
-	  
+
 	  call prim2cons2(n,leftv,rightv)
 
 	  if (vnb.le.0.0d0)then		!inflow
 			ibfc=-1
-	
+
 		  if ((abs(vnb)).ge.sps)then
 				!supersonic
 				if ((initcond.eq.4440).and.(realgas.eq.0).and.(multispecies.eq.0))then
@@ -6922,56 +7044,69 @@ select case(b_code)
 				else
 				call inflow2d(initcond,pox,poy,rightv)
 				end if
-					
+
 		  else
 				!subsonic
-				
+
 			if ((initcond.eq.4440).and.(realgas.eq.0).and.(multispecies.eq.0))then
 			call inflow_4440_from_left_ideal2d(n,leftv,nx,ny,rightv)
 			else
 			call inflow2d(initcond,pox,poy,rightv)
 			end if
-	  	  
-			  
+
+
 			  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-			
+
 			subson1(1:nof_variables)=rightv(1:nof_variables)
 			subson2(1:nof_variables)=leftv(1:nof_variables)
-			sps=sqrt((gamma*subson2(4))/(subson2(1)))
+				if (realgas.eq.1)then
+				sps=sqrt((gammal*subson2(4))/(subson2(1)+tolsmall))
+				else
+				sps=sqrt((gamma*subson2(4))/(subson2(1)+tolsmall))
+				end if
 			vel=sqrt(subson2(2)**2+subson2(3)**2)
 			  call prim2cons2(n,leftv,rightv)
-				    
+
 		    subson3(4)=0.5d0*((subson1(4))+(subson2(4))-(subson2(1)*sps*((nx*(subson1(2)-subson2(2)))+(ny*(subson1(3)-subson2(3))))))
 		    subson3(1)=subson1(1)+(subson3(4)-subson1(4))/(sps**2)
 		    subson3(2)=subson1(2)-(nx*(subson1(4)-subson3(4)))/(sps*subson2(1))
 		    subson3(3)=subson1(3)-(ny*(subson1(4)-subson3(4)))/(sps*subson2(1))
-		    
-		    
 
-		    rightv(1)=subson3(1)
-    rightv(2)=subson3(2)*subson3(1)
-    rightv(3)=subson3(3)*subson3(1)
-    
-    skins=oo2*((subson3(2)**2)+(subson3(3)**2))
-    ikins=subson3(4)/((gamma-1.0d0)*(subson3(1)))
-    rightv(4)=(subson3(1)*(ikins))+(subson3(1)*skins)
-		  
+
+
+			    if (realgas.eq.1)then
+			    rightv(1:nof_variables)=subson1(1:nof_variables)
+			    rightv(1)=subson3(1)
+			    rightv(2)=subson3(2)
+			    rightv(3)=subson3(3)
+			    rightv(4)=subson3(4)
+			    call prim2cons(n,rightv)
+			    else
+			    rightv(1)=subson3(1)
+			    rightv(2)=subson3(2)*subson3(1)
+			    rightv(3)=subson3(3)*subson3(1)
+
+			    skins=oo2*((subson3(2)**2)+(subson3(3)**2))
+			    ikins=subson3(4)/((gamma-1.0d0)*(subson3(1)))
+			    rightv(4)=(subson3(1)*(ikins))+(subson3(1)*skins)
+			    end if
+
 		  end if
-		  
-		  
+
+
 		  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-	      
-      
-      
-      
+
+
+
+
 	        if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
 		  cturbr(1)=visc*turbinit*rightv(1)
 	      end if
-	     if ((turbulence.eq.1).and.(turbulencemodel.eq.2))then	 
+	     if ((turbulence.eq.1).and.(turbulencemodel.eq.2))then
 		cturbr(1)=(1.5d0*i_turb_inlet*(ufreestream**2))*rightv(1)!k initialization
 		cturbr(2)=rightv(1)*cturbr(1)/(10.0e-5*visc)!omega initialization
 	      end if
- 
+
 	      if (passivescalar.gt.0)then
 	      call pass_inlet2d(initcond,pox,poy,pass_tmp)
 	      do rg_i=1,passivescalar
@@ -6979,65 +7114,74 @@ select case(b_code)
 	      end do
 	      end if
 		    end if
-		  
-		  
-      
+
+
+
 	else
-      
+
 	  !outflow
-	
+
 	    ibfc=-2
 		if ((abs(vnb)).ge.sps)then
-		
+
 		      rightv(1:nof_variables)=leftv(1:nof_variables)
-		
+
 		else
-		
-		
+
+
 		call outflow2d(initcond,pox,poy,rightv)
 		 call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-    
+
     subson1(1:nof_variables)=rightv(1:nof_variables)
     subson2(1:nof_variables)=leftv(1:nof_variables)
-     
+
      call prim2cons2(n,leftv,rightv)
-     
-   
-    
-    
+
+
+
+
     subson3(4)=subson1(4)
     subson3(1)=subson2(1)+(subson3(4)-subson2(4))/(sps**2)
     subson3(2)=subson2(2)+(nx*(subson2(4)-subson3(4)))/(sps*subson2(1))
     subson3(3)=subson2(3)+(ny*(subson2(4)-subson3(4)))/(sps*subson2(1))
-    
-! 							
-    rightv(1)=subson3(1)
-    rightv(2)=subson3(2)*subson3(1)
-    rightv(3)=subson3(3)*subson3(1)
-    
-    skins=oo2*((subson3(2)**2)+(subson3(3)**2))
-    ikins=subson3(4)/((gamma-1.0d0)*(subson3(1)))
-    rightv(4)=(subson3(1)*(ikins))+(subson3(1)*skins)
-	
-	      
-	      
+
+!
+	    if (realgas.eq.1)then
+	    rightv(1:nof_variables)=subson2(1:nof_variables)
+	    rightv(1)=subson3(1)
+	    rightv(2)=subson3(2)
+	    rightv(3)=subson3(3)
+	    rightv(4)=subson3(4)
+	    call prim2cons(n,rightv)
+	    else
+	    rightv(1)=subson3(1)
+	    rightv(2)=subson3(2)*subson3(1)
+	    rightv(3)=subson3(3)*subson3(1)
+
+	    skins=oo2*((subson3(2)**2)+(subson3(3)**2))
+	    ikins=subson3(4)/((gamma-1.0d0)*(subson3(1)))
+	    rightv(4)=(subson3(1)*(ikins))+(subson3(1)*skins)
+	    end if
+
+
+
 	       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-	     
+
 		  cturbr(:)=cturbl(:)
-	
+
 		end if
 	        end if
-	      
+
 
 		end if
 
-		
 
-	    
-	    
-	
-				      
-	
+
+
+
+
+
+
 	    case(9)
 	    if ((realgas.eq.0).and.(multispecies.eq.0))then
 	      call outlet_pressure_fix_ideal2d(n,leftv,rightv,nx,ny,press_outlet)
@@ -7047,7 +7191,7 @@ select case(b_code)
 	    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 	      cturbr(:)=cturbl(:)
 	    end if
-	
+
 
 	end select
 
@@ -7059,14 +7203,14 @@ end subroutine boundarys2d
 subroutine compute_eigenvectors(n,rveigl,rveigr,eigvl,eigvr,gamma)
 implicit none
 !> @brief
-!> this subroutine computes the left and right eigenvectors 
+!> this subroutine computes the left and right eigenvectors
 #ifdef gpu
 !$omp declare target
 #endif
 integer,intent(in)::n
 real,dimension(1:nof_variables),intent(in)::rveigl,rveigr
 real,intent(in)::gamma
-real,dimension(1:nof_variables,1:nof_variables),intent(inout)::eigvl,eigvr
+real,dimension(1:gpu_max_nvar,1:gpu_max_nvar),intent(inout)::eigvl,eigvr
 real::rs,us,vs,ws,es,ps,vvs,as,hs,gammam1,vsd,oor1,oor2
 integer::ivgt
 
@@ -7080,7 +7224,7 @@ us=oo2*((rveigl(2)*oor1)+(rveigr(2)*oor2))
 vs=oo2*((rveigl(3)*oor1)+(rveigr(3)*oor2))
 ws=oo2*((rveigl(4)*oor1)+(rveigr(4)*oor2))
 es=oo2*(rveigl(5)+rveigr(5))
- 
+
 vvs=(us**2)+(vs**2)+(ws**2)
 vsd=oo2*vvs
 ps=(gamma-1.0d0)*(es - oo2*rs*vvs)
@@ -7100,7 +7244,7 @@ eigvl(1,5)=as/(2.0d0*as*hs - 2.0d0*as*vsd)
 eigvl(2,1)=(2.0*as*hs - 2.0*as*us**2 - 2.0d0*as*vs**2 -2.0d0*as*ws**2)/(2.0d0*as*hs - 2.0d0*as*vsd)
 eigvl(2,2)=(2.0d0*as*us)/(2.0d0*as*hs - 2.0d0*as*vsd)
 eigvl(2,3)=(2.0d0*as*vs)/(2.0d0*as*hs - 2.0d0*as*vsd)
- eigvl(2,4)=(2.0d0*as*ws)/(2.0d0*as*hs - 2.0d0*as*vsd) 
+ eigvl(2,4)=(2.0d0*as*ws)/(2.0d0*as*hs - 2.0d0*as*vsd)
  eigvl(2,5)=(-2.0d0*as)/(2.0d0*as*hs - 2.0d0*as*vsd)
 eigvl(3,1)=(-2.0*as*hs*vs + 2.0*as*vs*vsd)/(2.0*as*hs - 2.0*as*vsd)
 eigvl(3,2)=0.0d0
@@ -7117,8 +7261,8 @@ eigvl(5,2)=(hs - as*us - vsd)/(2.0d0*as*hs - 2.0d0*as*vsd)
 eigvl(5,3)=-((as*vs)/(2.0d0*as*hs - 2.0d0*as*vsd))
  eigvl(5,4)=-((as*ws)/(2.0d0*as*hs - 2.0d0*as*vsd))
 eigvl(5,5)= as/(2.0d0*as*hs - 2.0d0*as*vsd)
- 
- 
+
+
 
 end subroutine compute_eigenvectors
 
@@ -7140,10 +7284,10 @@ integer,intent(in)::n,iconsidered
 real,intent(in)::angle1,angle2,nx,ny,nz
 real,dimension(1:nof_variables),intent(in)::rveigl,srf_speedrot
 real,intent(in)::gamma
-real,dimension(1:nof_variables,1:nof_variables),intent(inout)::eigvl
+real,dimension(1:gpu_max_nvar,1:gpu_max_nvar),intent(inout)::eigvl
 real::rs,us,vs,ws,es,ps,vvs,as,hs,gammam1,vsd,phi,a1,a2,a3,oors,vn
-integer::ivgt,i
-real :: evs, etr
+integer::ivgt,i,idxev
+real :: evs, etr, yk, echem, dpdrho
 real :: temps,gammal,mp_pinfl
 integer :: rg_i
 real,dimension(1:gpu_max_nvar)::leftv
@@ -7162,8 +7306,8 @@ es=(rveigl(5)*oors)
 phi=oo2*(a2)*((us*us)+(vs*vs)+(ws*ws))
  a1=gamma*es-phi
 
- 
- 
+
+
 vvs=nx*us+ny*vs+nz*ws
 
 if (rec_mrf(iconsidered).eq.1)then
@@ -7180,7 +7324,7 @@ else
     eigvl(5,1)=vvs*(phi-a1)	;		 eigvl(5,2)=nx*a1-a2*us*vvs	; eigvl(5,3)=ny*a1-a2*vs*vvs	; eigvl(5,4)=nz*a1-a2*ws*vvs	; eigvl(5,5)=gamma*vvs
 end if
 
- 
+
 
 
  end if
@@ -7205,7 +7349,16 @@ a2 = gammal - 1.0d0
 a3 = gammal - 2.0d0
 
 phi = 0.5d0*a2*(us*us + vs*vs + ws*ws)
-a1  = gammal*etr - phi
+ps = leftv(5)
+a1 = es + (ps/rs)
+idxev = dimensiona + 3
+echem = 0.0d0
+if ((idxev+nof_species).le.nof_variables) then
+  do i = 1, nof_species
+    if (rg_hzero(i).gt.0.0d0) echem = echem + leftv(idxev+i)*(rg_hzero(i)/rg_molm(i))
+  end do
+end if
+dpdrho = phi - a2*echem
 
 vn = nx*us + ny*vs + nz*ws
 
@@ -7214,35 +7367,49 @@ eigvl(:,:) = 0.0d0
 ! === 5x5 euler block (ρ, ρu, ρv, ρw, ρe) =====================
 eigvl(1,1)=0.0d0;   eigvl(1,2)=nx;   eigvl(1,3)=ny;   eigvl(1,4)=nz;   eigvl(1,5)=0.0d0
 
-eigvl(2,1)=nx*phi - us*vn
+eigvl(2,1)=nx*dpdrho - us*vn
 eigvl(2,2)=vn - a3*nx*us
 eigvl(2,3)=ny*us - a2*nx*vs
 eigvl(2,4)=nz*us - a2*nx*ws
 eigvl(2,5)=a2*nx
 
-eigvl(3,1)=ny*phi - vs*vn
+eigvl(3,1)=ny*dpdrho - vs*vn
 eigvl(3,2)=nx*vs - a2*ny*us
 eigvl(3,3)=vn - a3*ny*vs
 eigvl(3,4)=nz*vs - a2*ny*ws
 eigvl(3,5)=a2*ny
 
-eigvl(4,1)=nz*phi - ws*vn
+eigvl(4,1)=nz*dpdrho - ws*vn
 eigvl(4,2)=nx*ws - a2*nz*us
 eigvl(4,3)=ny*ws - a2*nz*vs
 eigvl(4,4)=vn - a3*nz*ws
 eigvl(4,5)=a2*nz
 
-eigvl(5,1)=vn*(phi - a1)
+eigvl(5,1)=vn*(dpdrho - a1)
 eigvl(5,2)=nx*a1 - a2*us*vn
 eigvl(5,3)=ny*a1 - a2*vs*vn
 eigvl(5,4)=nz*a1 - a2*ws*vn
 eigvl(5,5)=gammal*vn
 
-! === vibrational scalar advection (ρev) ======================
-eigvl(6,6) = vn
+if (idxev.le.nof_variables) then
+  eigvl(2,idxev)=-a2*nx
+  eigvl(3,idxev)=-a2*ny
+  eigvl(4,idxev)=-a2*nz
+  eigvl(5,idxev)=-a2*vn
 
-! === species scalar advection ================================
-do i = 7, nof_variables
+  eigvl(idxev,1)=-evs*vn
+  eigvl(idxev,2)=evs*nx
+  eigvl(idxev,3)=evs*ny
+  eigvl(idxev,4)=evs*nz
+  eigvl(idxev,idxev)=vn
+end if
+
+do i = idxev + 1, nof_variables
+  yk = rveigl(i)/rs
+  eigvl(i,1) = -yk*vn
+  eigvl(i,2) = yk*nx
+  eigvl(i,3) = yk*ny
+  eigvl(i,4) = yk*nz
   eigvl(i,i) = vn
 end do
 
@@ -7254,7 +7421,7 @@ end do
 
 
 
- 
+
 
 end subroutine compute_jacobianse
 
@@ -7271,7 +7438,7 @@ implicit none
 integer,intent(in)::n
 real,dimension(1:nof_variables),intent(in)::rveigl,rveigr
 real,intent(in)::gamma
-real,dimension(1:nof_variables,1:nof_variables),intent(inout)::eigvl,eigvr
+real,dimension(1:gpu_max_nvar,1:gpu_max_nvar),intent(inout)::eigvl,eigvr
 real::rs,us,vs,ws,es,ps,vvs,as,hs,gammam1,vsd,g8,s1,s2,vtots,oor1,oor2
 integer::ivgt,j,k
 
@@ -7288,17 +7455,17 @@ us=0.5*((rveigl(2)*oor1)+(rveigr(2)*oor2))
 vs=0.5*((rveigl(3)*oor1)+(rveigr(3)*oor2))
 es=0.5*(rveigl(4)+rveigr(4))
 g8 = gamma - 1.0d0
- 
+
 vtots = us**2 + vs**2
    ps = (gamma-1)*(es - oo2*rs*vtots)
    as = sqrt(gamma*ps/rs)
    hs = oo2*vtots + (as**2)/(g8)
-  
 
-   eigvr(1,1) =1.d0;        eigvr(1,2) = 1.d0;                eigvr(1,3) =0.d0;  eigvr(1,4) = 1.d0  
-   eigvr(2,1) =us-as;     eigvr(2,2) = us;                eigvr(2,3) =0.d0;  eigvr(2,4) = us+as 
-   eigvr(3,1) =vs;        eigvr(3,2) = vs;                eigvr(3,3) =1.d0;  eigvr(3,4) = vs   
-   eigvr(4,1) =hs-us*as;  eigvr(4,2) = oo2*vtots; eigvr(4,3) =vs ; eigvr(4,4) = hs+us*as 
+
+   eigvr(1,1) =1.d0;        eigvr(1,2) = 1.d0;                eigvr(1,3) =0.d0;  eigvr(1,4) = 1.d0
+   eigvr(2,1) =us-as;     eigvr(2,2) = us;                eigvr(2,3) =0.d0;  eigvr(2,4) = us+as
+   eigvr(3,1) =vs;        eigvr(3,2) = vs;                eigvr(3,3) =1.d0;  eigvr(3,4) = vs
+   eigvr(4,1) =hs-us*as;  eigvr(4,2) = oo2*vtots; eigvr(4,3) =vs ; eigvr(4,4) = hs+us*as
 
    s1 = as/(gamma-1d0)
    s2 = as**2/(gamma-1d0)
@@ -7306,7 +7473,7 @@ vtots = us**2 + vs**2
    eigvl(1,1) =   hs + s1*(us-as);   eigvl(1,2) = -(us+s1); eigvl(1,3) = -vs;            eigvl(1,4) = 1.d0
    eigvl(2,1) =-2d0*hs+4d0*s2;           eigvl(2,2) = 2d0*us;     eigvl(2,3) = 2d0*vs;           eigvl(2,4) = -2.d0
    eigvl(3,1) =-2d0*vs*s2;             eigvl(3,2) =   0.d0;     eigvl(3,3) = 2d0*s2;           eigvl(3,4) = 0.d0
-   eigvl(4,1) = hs- s1*(us+as);      eigvl(4,2) = -us+s1;   eigvl(4,3) = - vs;           eigvl(4,4) = 1.d0 
+   eigvl(4,1) = hs- s1*(us+as);      eigvl(4,2) = -us+s1;   eigvl(4,3) = - vs;           eigvl(4,4) = 1.d0
 
 do j=1,4
 	do k=1,4
@@ -7314,8 +7481,8 @@ do j=1,4
    eigvl(j,k) = eigvl(j,k)/(2d0*s2)
 	end do
 end do
- 
- 
+
+
 
 end subroutine compute_eigenvectors2d
 
@@ -7331,12 +7498,12 @@ integer,intent(in)::n
 real,intent(in)::angle1,angle2,nx,ny,nz
 real,dimension(1:nof_variables),intent(in)::rveigl
 real,intent(in)::gamma
-real,dimension(1:nof_variables,1:nof_variables),intent(inout)::eigvl
+real,dimension(1:gpu_max_nvar,1:gpu_max_nvar),intent(inout)::eigvl
 real::rs,us,vs,es,ps,vvs,as,hs,gammam1,vsd,phi,a1,a2,a3,oors
 integer::ivgt
-real :: evs, etr,yk
+real :: evs, etr,yk,echem,dpdrho
 real :: temps,gammal,mp_pinfl
-integer :: i,rg_i,row,k
+integer :: i,rg_i,row,k,idxev
 real,dimension(1:gpu_max_nvar)::leftv
 
 if (realgas.eq.0)then
@@ -7350,7 +7517,7 @@ es=(rveigl(4)*oors)
 phi=oo2*(a2)*((us*us)+(vs*vs))
  a1=gamma*es-phi
 
- 
+
 vvs=nx*us+ny*vs
 
 
@@ -7385,7 +7552,16 @@ a2 = gammal - 1.0d0
 a3 = gammal - 2.0d0
 
 phi = 0.5d0*a2*(us*us + vs*vs)
-a1  = gammal*etr - phi
+ps = leftv(4)
+a1 = es + (ps/rs)
+idxev = dimensiona + 3
+echem = 0.0d0
+if ((idxev+nof_species).le.nof_variables) then
+  do i = 1, nof_species
+    if (rg_hzero(i).gt.0.0d0) echem = echem + leftv(idxev+i)*(rg_hzero(i)/rg_molm(i))
+  end do
+end if
+dpdrho = phi - a2*echem
 
 vvs = nx*us + ny*vs
 
@@ -7394,27 +7570,37 @@ eigvl(:,:) = 0.0d0
 ! === 4x4 euler block =======================================
 eigvl(1,1)=0.0d0;      eigvl(1,2)=nx;       eigvl(1,3)=ny;        eigvl(1,4)=0.0d0
 
-eigvl(2,1)=nx*phi-us*vvs
+eigvl(2,1)=nx*dpdrho-us*vvs
 eigvl(2,2)=vvs-a3*nx*us
 eigvl(2,3)=ny*us-a2*nx*vs
 eigvl(2,4)=a2*nx
 
-eigvl(3,1)=ny*phi-vs*vvs
+eigvl(3,1)=ny*dpdrho-vs*vvs
 eigvl(3,2)=nx*vs-a2*ny*us
 eigvl(3,3)=vvs-a3*ny*vs
 eigvl(3,4)=a2*ny
 
-eigvl(4,1)=vvs*(phi-a1)
+eigvl(4,1)=vvs*(dpdrho-a1)
 eigvl(4,2)=nx*a1-a2*us*vvs
 eigvl(4,3)=ny*a1-a2*vs*vvs
 eigvl(4,4)=gammal*vvs
 
+if (idxev.le.nof_variables) then
+  eigvl(2,idxev)=-a2*nx
+  eigvl(3,idxev)=-a2*ny
+  eigvl(4,idxev)=-a2*vvs
 
-! === vibrational scalar advection (ρev) ======================
-eigvl(5,5) = vvs
+  eigvl(idxev,1)=-evs*vvs
+  eigvl(idxev,2)=evs*nx
+  eigvl(idxev,3)=evs*ny
+  eigvl(idxev,idxev)=vvs
+end if
 
-! === species scalar advection ================================
-do i = 6, nof_variables
+do i = idxev + 1, nof_variables
+  yk = rveigl(i)/rs
+  eigvl(i,1) = -yk*vvs
+  eigvl(i,2) = yk*nx
+  eigvl(i,3) = yk*ny
   eigvl(i,i) = vvs
 end do
 
@@ -7440,7 +7626,7 @@ end if
 ! end do
 !
 ! end if
- 
+
 
 end subroutine compute_jacobianse2d
 
@@ -7496,20 +7682,20 @@ subroutine eddyvisco_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 
 
 	tolepsma = 10e-16
-	
+
 	if (turbulence.eq.0)then
 	viscl(4)=zero;viscl(3)=zero
 	laml(4)=zero;laml(3)=zero
 	else
-	
-	
-	
+
+
+
 !modified on 19/6/2013
   select case(turbulencemodel)
-  
+
    case(1)
 	  turbmv(1)=eddyfl(2)
-	  turbmv(2)=eddyfr(2)  
+	  turbmv(2)=eddyfr(2)
          chi     = abs ( max(turbmv(1),tolepsma) / max(viscl(1),tolepsma))
          chipow3 = chi * chi * chi
          fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
@@ -7522,11 +7708,11 @@ subroutine eddyvisco_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 
   case(2)
 
-  
+
   !for left cell
-  
+
  vortet(1,1:3) = eddyfl(4:6)
- vortet(2,1:3) = eddyfl(7:9) 
+ vortet(2,1:3) = eddyfl(7:9)
  vortet(3,1:3) = eddyfl(10:12)
 
   ux = vortet(1,1);uy = vortet(1,2);uz = vortet(1,3)
@@ -7541,9 +7727,9 @@ subroutine eddyvisco_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 
 svort=0.5*(vortet+tvort)
 snorm=sqrt(2.0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+(svort(1,3)*svort(1,3))+&
-	       (svort(2,1)*svort(2,1))+(svort(2,2)*svort(2,2))+(svort(2,3)*svort(2,3))+& 
+	       (svort(2,1)*svort(2,1))+(svort(2,2)*svort(2,2))+(svort(2,3)*svort(2,3))+&
 	       (svort(3,1)*svort(3,1))+(svort(3,2)*svort(3,2))+(svort(3,3)*svort(3,3))))
-		   
+
  wally=eddyfl(1)
  rho_0=leftv(1)
  k_0=max(tolepsma,eddyfl(2)/leftv(1))
@@ -7551,16 +7737,16 @@ snorm=sqrt(2.0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+(svort(1,3)*svor
 
 
  dervk_dervom=(eddyfl(13)*eddyfl(16))+(eddyfl(14)*eddyfl(17))+(eddyfl(15)*eddyfl(18))
-		   
-d_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    
+
+d_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)
  phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*viscl(1)/(rho_0*wally*wally*om_0))
- phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*d_omplus*wally*wally)) 
+ phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*d_omplus*wally*wally))
 
 f_1=tanh(phi_1**4)
 f_2=tanh(phi_2**2)
 re_t_sst=rho_0*k_0/(viscl(1)*om_0)
 beta_i=f_1*beta_i1+(1.0-f_1)*beta_i2
-alpha_star0_l=beta_i/3.0    
+alpha_star0_l=beta_i/3.0
 alpha_inf=f_1*alpha_inf1+(1.0-f_1)*alpha_inf2
 alpha_star=alpha_starinf*(alpha_star0_l+re_t_sst/r_k_sst)/(1.0+re_t_sst/r_k_sst)
 
@@ -7577,7 +7763,7 @@ sigma_om_l=sigma_om1/f_1+sigma_om2/f_2
   if (eddyfr(1).gt.0.0)then
 !for right
  vortet(1,1:3) = eddyfr(4:6)
- vortet(2,1:3) = eddyfr(7:9) 
+ vortet(2,1:3) = eddyfr(7:9)
  vortet(3,1:3) = eddyfr(10:12)
 
   ux = vortet(1,1);uy = vortet(1,2);uz = vortet(1,3)
@@ -7592,9 +7778,9 @@ sigma_om_l=sigma_om1/f_1+sigma_om2/f_2
 
 svort=0.5*(vortet+tvort)
 snorm=sqrt(2.0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+(svort(1,3)*svort(1,3))+&
-	       (svort(2,1)*svort(2,1))+(svort(2,2)*svort(2,2))+(svort(2,3)*svort(2,3))+& 
+	       (svort(2,1)*svort(2,1))+(svort(2,2)*svort(2,2))+(svort(2,3)*svort(2,3))+&
 	       (svort(3,1)*svort(3,1))+(svort(3,2)*svort(3,2))+(svort(3,3)*svort(3,3))))
-		   
+
  wally=eddyfr(1)
  rho_0=rightv(1)
  k_0=eddyfr(2)/rightv(1)
@@ -7604,16 +7790,16 @@ snorm=sqrt(2.0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+(svort(1,3)*svor
 !eddyfl(16:18)=rec_grads(5,1:3,k)
 
  dervk_dervom=(eddyfr(13)*eddyfr(16))+(eddyfr(14)*eddyfr(17))+(eddyfr(15)*eddyfr(18))
-		   
+
 d_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    !i need derivative of k
  phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*viscl(2)/(rho_0*wally*wally*om_0))
- phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*d_omplus*wally*wally)) 
+ phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*d_omplus*wally*wally))
 
 f_1=tanh(phi_1**4)
 f_2=tanh(phi_2**2)
 re_t_sst=rho_0*k_0/(viscl(2)*om_0)
 beta_i=f_1*beta_i1+(1.0-f_1)*beta_i2
-alpha_star0_l=beta_i/3.0    
+alpha_star0_l=beta_i/3.0
 alpha_inf=f_1*alpha_inf1+(1.0-f_1)*alpha_inf2
 alpha_star=alpha_starinf*(alpha_star0_l+re_t_sst/r_k_sst)/(1.0+re_t_sst/r_k_sst)
 
@@ -7636,34 +7822,34 @@ end if
 
 
 end select
-		  
-		  
-    
-		  viscl(3) = min(10000000*visc,viscl(3))  
-		  viscl(4) = min(10000000*visc,viscl(4))		  
-  
+
+
+
+		  viscl(3) = min(10000000*visc,viscl(3))
+		  viscl(4) = min(10000000*visc,viscl(4))
+
 
 	 laml(3)=( viscl(3)*r_gas*gamma/(prtu*(gamma-1)) ) + ( viscl(1)*r_gas*gamma/(prandtl*(gamma-1)) )
 	 laml(4)=( viscl(4)*r_gas*gamma/(prtu*(gamma-1)) ) + ( viscl(2)*r_gas*gamma/(prandtl*(gamma-1)) )
 	 viscl(3)=max(0.0d0,viscl(3))
 	 viscl(4)=max(0.0d0,viscl(4))
-	 
+
 	 if ((turbmv(1).lt.zero).or.(turbmv(2).lt.zero))then
 	 viscl(3)=0.0d0
 	 viscl(4)=0.0d0
 	 end if
-	 
+
 	 etvm(1) = ( 0.5*(viscl(1)+viscl(2)) ) +  ( 0.5*(viscl(3)+viscl(4)) )
 
 
 
 
-	  
+
 !added on 20/6/2013---------------------------------------------------------------
 !after limiting these variables, we compute the diffusion for the turbulent variables
 if (turbulencemodel .eq. 2) then
 !--------eddyfl/r(19)=gamma_k_l/r
-!--------eddyfl/r(20)=gamma_om_l/r  
+!--------eddyfl/r(20)=gamma_om_l/r
 
 eddyfl(19)=viscl(1)+viscl(3)/sigma_k_l
 eddyfr(19)=viscl(2)+viscl(4)/sigma_k_r
@@ -7727,22 +7913,22 @@ subroutine eddyvisco2d_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv
 
 
 	tolepsma = tolsmall
-	
+
 	if (turbulence.eq.0)then
 	viscl(4)=zero;viscl(3)=zero
 	laml(4)=zero;laml(3)=zero
 	else
-	
-	
-	
+
+
+
 !modified on 19/6/2013
   select case(turbulencemodel)
-  
+
    case(1)
             if (ispal.eq.2)then
 	  turbmv(1)=eddyfl(2)
-	  turbmv(2)=eddyfr(2)  
-	  
+	  turbmv(2)=eddyfr(2)
+
 	  chi     = abs ((turbmv(1)) / (viscl(1)))
          !chi     = abs ( max(turbmv(1),tolepsma) / max(viscl(1),tolepsma))
          chipow3 = chi * chi * chi
@@ -7755,34 +7941,34 @@ subroutine eddyvisco2d_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv
 		viscl(4) = turbmv(2)*fv1
         else
         turbmv(1)=eddyfl(2)
-	  turbmv(2)=eddyfr(2)  
-	  
-	 
+	  turbmv(2)=eddyfr(2)
+
+
          chi     = abs ( max(turbmv(1),tolepsma) / max(viscl(1),tolepsma))
          chipow3 = chi * chi * chi
          fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
 	viscl(3) = turbmv(1)*fv1
 ! 	 chi     = abs ((turbmv(2)) / (viscl(2)))
- 	chi     = abs ( max(turbmv(2),tolepsma) / max(viscl(2),tolepsma))
+	chi     = abs ( max(turbmv(2),tolepsma) / max(viscl(2),tolepsma))
          chipow3 = chi * chi * chi
          fv1 = chipow3 / (chipow3 + (cv1*cv1*cv1))
 		viscl(4) = turbmv(2)*fv1
-        
-        
+
+
         end if
 
   case(2)
 
-  
+
   !for left cell
-  
+
  vortet(1,1:2) = eddyfl(4:5)
- vortet(2,1:2) = eddyfl(6:7) 
- 
+ vortet(2,1:2) = eddyfl(6:7)
+
 
   ux = vortet(1,1);uy = vortet(1,2)
   vx = vortet(2,1);vy = vortet(2,2)
- 
+
 
   do ihgt=1,2
   do ihgj=1,2
@@ -7793,7 +7979,7 @@ subroutine eddyvisco2d_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv
 svort=0.5*(vortet+tvort)
 snorm=sqrt(2.0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+&
 	       (svort(2,1)*svort(2,1))+(svort(2,2)*svort(2,2))))
-		   
+
  wally=eddyfl(1)
  rho_0=leftv(1)
  k_0=max(tolepsma,eddyfl(2)/leftv(1))
@@ -7801,16 +7987,16 @@ snorm=sqrt(2.0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+&
 
 
  dervk_dervom=(eddyfl(8)*eddyfl(10))+(eddyfl(9)*eddyfl(11))
-		   
-d_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    
+
+d_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)
  phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*viscl(1)/(rho_0*wally*wally*om_0))
- phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*d_omplus*wally*wally)) 
+ phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*d_omplus*wally*wally))
 
 f_1=tanh(phi_1**4)
 f_2=tanh(phi_2**2)
 re_t_sst=rho_0*k_0/(viscl(1)*om_0)
 beta_i=f_1*beta_i1+(1.0-f_1)*beta_i2
-alpha_star0_l=beta_i/3.0    
+alpha_star0_l=beta_i/3.0
 alpha_inf=f_1*alpha_inf1+(1.0-f_1)*alpha_inf2
 alpha_star=alpha_starinf*(alpha_star0_l+re_t_sst/r_k_sst)/(1.0+re_t_sst/r_k_sst)
 
@@ -7826,12 +8012,12 @@ sigma_om_l=sigma_om1/f_1+sigma_om2/f_2
 
   if (eddyfr(1).gt.0.0)then
 vortet(1,1:2) = eddyfl(4:5)
- vortet(2,1:2) = eddyfl(6:7) 
- 
+ vortet(2,1:2) = eddyfl(6:7)
+
 
   ux = vortet(1,1);uy = vortet(1,2)
   vx = vortet(2,1);vy = vortet(2,2)
- 
+
 
   do ihgt=1,2
   do ihgj=1,2
@@ -7842,7 +8028,7 @@ vortet(1,1:2) = eddyfl(4:5)
 svort=0.5*(vortet+tvort)
 snorm=sqrt(2.0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+&
 	       (svort(2,1)*svort(2,1))+(svort(2,2)*svort(2,2))))
-		   
+
  wally=eddyfr(1)
  rho_0=rightv(1)
  k_0=eddyfr(2)/rightv(1)
@@ -7852,16 +8038,16 @@ snorm=sqrt(2.0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+&
 !eddyfl(16:18)=rec_grads(5,1:3,k)
 
  dervk_dervom=(eddyfl(8)*eddyfl(10))+(eddyfl(9)*eddyfl(11))
-		   
+
 d_omplus=max(2*rho_0/sigma_om2/om_0*dervk_dervom, 1.0e-10)    !i need derivative of k
  phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*viscl(2)/(rho_0*wally*wally*om_0))
- phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*d_omplus*wally*wally)) 
+ phi_1=min(phi_2, 4.0*rho_0*k_0/(sigma_om2*d_omplus*wally*wally))
 
 f_1=tanh(phi_1**4)
 f_2=tanh(phi_2**2)
 re_t_sst=rho_0*k_0/(viscl(2)*om_0)
 beta_i=f_1*beta_i1+(1.0-f_1)*beta_i2
-alpha_star0_l=beta_i/3.0    
+alpha_star0_l=beta_i/3.0
 alpha_inf=f_1*alpha_inf1+(1.0-f_1)*alpha_inf2
 alpha_star=alpha_starinf*(alpha_star0_l+re_t_sst/r_k_sst)/(1.0+re_t_sst/r_k_sst)
 
@@ -7884,34 +8070,34 @@ end if
 
 
 end select
-		  
-		  
-    
-		  viscl(3) = min(10000000*visc,viscl(3))  
-		  viscl(4) = min(10000000*visc,viscl(4))		  
-  
+
+
+
+		  viscl(3) = min(10000000*visc,viscl(3))
+		  viscl(4) = min(10000000*visc,viscl(4))
+
 
 	 laml(3)=( viscl(3)*r_gas*gamma/(prtu*(gamma-1)) ) + ( viscl(1)*r_gas*gamma/(prandtl*(gamma-1)) )
 	 laml(4)=( viscl(4)*r_gas*gamma/(prtu*(gamma-1)) ) + ( viscl(2)*r_gas*gamma/(prandtl*(gamma-1)) )
 	 viscl(3)=max(0.0d0,viscl(3))
 	 viscl(4)=max(0.0d0,viscl(4))
-	 
+
 	 if ((turbmv(1).lt.zero).or.(turbmv(2).lt.zero))then
 	 viscl(3)=0.0d0
 	 viscl(4)=0.0d0
 	 end if
-	 
+
 	 etvm(1) = ( 0.5*(viscl(1)+viscl(2)) ) +  ( 0.5*(viscl(3)+viscl(4)) )
 
 
 
 
-	  
+
 !added on 20/6/2013---------------------------------------------------------------
 !after limiting these variables, we compute the diffusion for the turbulent variables
 if (turbulencemodel .eq. 2) then
 !--------eddyfl/r(19)=gamma_k_l/r
-!--------eddyfl/r(20)=gamma_om_l/r  
+!--------eddyfl/r(20)=gamma_om_l/r
 
 eddyfl(12)=viscl(1)+viscl(3)/sigma_k_l
 eddyfr(13)=viscl(2)+viscl(4)/sigma_k_r
@@ -7928,9 +8114,9 @@ end subroutine eddyvisco2d_ideal
 
 
 
-  
 
-  
+
+
 
 subroutine trajectories
 implicit none
@@ -8012,7 +8198,7 @@ do i=1,kmaxe
             post3=ielem_yyc(i)
             traj1=i
         end if
-     end if   
+     end if
      if (u_c_val(1,7,i).gt.0.0d0)then  !total volume of gas evolution
             pos_l(2)=pos_l(2)+u_c_val(1,7,i)*ielem_totvolume(i)
      end if
@@ -8052,7 +8238,7 @@ end if
 
 
 call mpi_barrier(mpi_comm_world,ierror)
-  
+
 call mpi_allreduce(pos_l(2:2),pos_g(2:2),1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 
 if (n.eq.0)then
@@ -8119,7 +8305,7 @@ pos_l(2)=post2
 pos_l(3)=post3
 
 call mpi_barrier(mpi_comm_world,ierror)
-  
+
 call mpi_allreduce(pos_l(1:2),pos_g(1:2),2,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
 
 !now select which cpu has the smallest
@@ -8289,7 +8475,7 @@ end do
 
 
 call mpi_barrier(mpi_comm_world,ierror)
-  
+
 call mpi_allreduce(pos_l(1:2),pos_g(1:2),2,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 
 if (n.eq.0)then
@@ -8332,12 +8518,12 @@ do i=1,kmaxe
 
 
     end if
-    
+
 end do
 
 
 call mpi_barrier(mpi_comm_world,ierror)
-  
+
 call mpi_allreduce(pos_l(1:2),pos_g(1:2),2,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 
 call mpi_allreduce(pos_l(3),pos_g(3),1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
@@ -8403,7 +8589,7 @@ if(multispecies.eq.1)then
             sum2=sum2+(mp_vft(rg_i)*mp_pinf(rg_i))
             end do
 
- 
+
 r=mp_density
 u=leftv(2)
 v=leftv(3)
@@ -8411,7 +8597,7 @@ p=leftv(4)
 
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2))
-!internal energy 
+!internal energy
 ie1=((p+mp_stiff)/((gammal-1.0d0)*r))
 !total energy
 e=r*(skin+ie1)
@@ -8429,7 +8615,7 @@ p=leftv(4)
 gm=gamma
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2))
-!internal energy 
+!internal energy
 ien=((p)/((gm-1.0d0)*r))
 !total energy
 e=r*(skin+ien)
@@ -8500,7 +8686,7 @@ if(multispecies.eq.1)then
 ! gammal=(1.0d0/(mp_ar(1)+mp_ar(2)))+1.0d0    !mixture gamma isobaric assumptio
 ! mp_stiff=((leftv(7)*(gamma_in(1)/(gamma_in(1)-1.0d0))*mp_pinf(1))+((1.0d0-leftv(7))*(gamma_in(2)/(gamma_in(2)-1.0d0))*mp_pinf(2)))*(gammal-1.0d0)
 ! mp_density = leftv(5)+leftv(6)
- 
+
 r=mp_density
 u=leftv(2)
 v=leftv(3)
@@ -8508,7 +8694,7 @@ p=leftv(4)
 
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2))
-!internal energy 
+!internal energy
 ie1=((p+mp_stiff)/((gammal-1.0d0)*r))
 !total energy
 e=r*(skin+ie1)
@@ -8628,7 +8814,7 @@ p=leftv(5)
 gm=gamma
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2)+(w**2))
-!internal energy 
+!internal energy
 ien=((p)/((gm-1.0d0)*r))
 !total energy
 e=r*(skin+ien)
@@ -8733,7 +8919,7 @@ p=leftv(5)
 gm=gamma
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2)+(w**2))
-!internal energy 
+!internal energy
 ien=((p)/((gm-1.0d0)*r))
 !total energy
 e=r*(skin+ien)
@@ -8835,7 +9021,7 @@ p=leftv(5)
 gm=gamma
 !kinetic energy first!
 skin=(oo2)*((u**2)+(v**2)+(w**2))
-!internal energy 
+!internal energy
 ien=((p)/((gm-1.0d0)*r))
 !total energy
 e=r*(skin+ien)

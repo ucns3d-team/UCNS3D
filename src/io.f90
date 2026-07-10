@@ -32,17 +32,17 @@ real,allocatable,dimension(:,:)::fbin
 integer,allocatable,dimension(:,:)::icon
 integer,allocatable,dimension(:)::valuelocation
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
       integer:: icellmax,jcellmax,kcellmax,nfconns,fnmode,shrconn
       pointer   (nullptr,null)
       integer:: null(*)
-     
+
 if (n.eq.0)then
 
 		inquire (file='GRID.plt',exist=herev)
@@ -108,7 +108,7 @@ ierr =  tecini112('simple dataset'//nulchar, &
 
 
 
-	
+
     allocate(xbin(imaxn))
     allocate(ybin(imaxn))
     allocate(zbin(imaxn))
@@ -118,7 +118,7 @@ ierr =  tecini112('simple dataset'//nulchar, &
 	read(96,*)j,x,y,z
 	xbin(i)=x/scaler
 	ybin(i)=y/scaler
- 	zbin(i)=z/scaler
+	zbin(i)=z/scaler
 	end do
 	close(96)
 	else
@@ -127,60 +127,60 @@ ierr =  tecini112('simple dataset'//nulchar, &
 	read(96)j,x,y,z
 	xbin(i)=x/scaler
 	ybin(i)=y/scaler
- 	zbin(i)=z/scaler
+	zbin(i)=z/scaler
 	end do
 	close(96)
 	end if
 
 
-    ierr = tecdat112(imaxn,xbin,1) 
-   
+    ierr = tecdat112(imaxn,xbin,1)
+
     ierr = tecdat112(imaxn,ybin,1)
 
      ierr = tecdat112(imaxn,zbin,1)
-   
+
     deallocate(xbin,ybin,zbin)
-    
-    
+
+
     if (binio.eq.0)then
     open(98,file='GRID.cel',form='formatted',status='old',action='read')
 	  allocate(icon(8,1))
     icon=0
      cv=0
 		do k=1,imaxe
-               
- 		read(98,*)i,icon(1,1),icon(2,1),icon(3,1),icon(4,1),icon(5,1),icon(6,1),icon(7,1),icon(8,1)
-    
+
+		read(98,*)i,icon(1,1),icon(2,1),icon(3,1),icon(4,1),icon(5,1),icon(6,1),icon(7,1),icon(8,1)
+
 		ierr = tecnode112(8,icon)
     !cv=cv+4
-        	
+
 		end do
- 		close(98)
+		close(98)
 		!ierr = tecnod112(icon)
-		deallocate(icon)	
+		deallocate(icon)
     else
      open(98,file='GRID.cel',form='unformatted',status='old',action='read')
 	  allocate(icon(8,1))
     icon=0
      cv=0
 		do k=1,imaxe
-               
- 		read(98)i,icon(1:8,1)
-    
+
+		read(98)i,icon(1:8,1)
+
 		ierr = tecnode112(8,icon)
     !cv=cv+4
-        	
+
 		end do
- 		close(98)
+		close(98)
 		!ierr = tecnod112(icon)
-		deallocate(icon)	
-    
-    
-    
+		deallocate(icon)
+
+
+
     end if
-    
-    
-    
+
+
+
   ierr = tecend112()
 
 
@@ -191,13 +191,13 @@ end if
 
 
 	call mpi_barrier(mpi_comm_world,ierror)
-	
-	
-	
-	
 
-	
-	
+
+
+
+
+
+
 
 end subroutine outwritegridb
 
@@ -214,7 +214,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 
 integer::kmaxe,kk,kfk,icpuid,l,ihgt,ihgj,kkd
 integer,dimension(70)::ivalid
@@ -233,17 +233,17 @@ real,allocatable,dimension(:,:)::fbin
 integer,allocatable,dimension(:,:)::icon
 integer,allocatable,dimension(:)::valuelocation
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
       integer:: icellmax,jcellmax,kcellmax,nfconns,fnmode,shrconn
       pointer   (nullptr,null)
       integer:: null(*)
-     
+
 if (n.eq.0)then
 inquire (file='GRID.plt',exist=herev)
 
@@ -309,7 +309,7 @@ ierr =  tecini112('simple dataset'//nulchar, &
 
 
 
-	
+
     allocate(xbin(imaxn))
     allocate(ybin(imaxn))
 	if (binio.eq.0)then
@@ -332,71 +332,71 @@ ierr =  tecini112('simple dataset'//nulchar, &
 
 
     ierr = tecdat112(imaxn,xbin,1)  !!! why not xbin instead of xbin(1) ??
-   
+
     ierr = tecdat112(imaxn,ybin,1)
 
-    
-   
+
+
     deallocate(xbin,ybin)
-    
+
     if (binio.eq.0)then
-    
+
     open(98,file='GRID.cel',form='formatted',status='old',action='read')
 	  allocate(icon(4,1))
     icon=0
      cv=0
 		do k=1,imaxe
-               
- 		read(98,*)i,icon(1,1),icon(2,1),icon(3,1),icon(4,1)
-    
+
+		read(98,*)i,icon(1,1),icon(2,1),icon(3,1),icon(4,1)
+
 		ierr = tecnode112(4,icon)
     !cv=cv+4
-        	
+
 		end do
- 		close(98)
+		close(98)
 		!ierr = tecnod112(icon)
 		deallocate(icon)
-		
-		
+
+
     else
 	   open(98,file='GRID.cel',form='unformatted',status='old',action='read')
 	  allocate(icon(4,1))
     icon=0
      cv=0
 		do k=1,imaxe
-               
- 		read(98)i,icon(1:4,1)
-    
+
+		read(98)i,icon(1:4,1)
+
 		ierr = tecnode112(4,icon)
     !cv=cv+4
-        	
+
 		end do
- 		close(98)
+		close(98)
 		!ierr = tecnod112(icon)
 		deallocate(icon)
-    
-    
-    
+
+
+
     end if
-         
-        
+
+
   ierr = tecend112()
 
 
 end if
 
-end if	
+end if
 
 
 
 	call mpi_barrier(mpi_comm_world,ierror)
-	
-	
 
-	
 
-	
-	
+
+
+
+
+
 
 end subroutine outwritegridb2d
 
@@ -413,7 +413,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 
 integer::kmaxe,kk,kfk,icpuid,l,ihgt,ihgj,kkd
 real::x,y,z,denominator,tuy,tvx,twx,tuz,tvz,twy,snorm,onorm
@@ -433,10 +433,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -451,7 +451,7 @@ kmaxe=xmpielrank(n)
 
 ! dumg=kmaxe
 ! call mpi_barrier(mpi_comm_world,ierror)
-! 
+!
 ! call mpi_allreduce(dumg,duml,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
 ! imaxp=duml
 
@@ -466,17 +466,17 @@ kmaxe=xmpielrank(n)
 ! if (n.eq.0)then
 ! 	allocate(icella(imaxp*isize))
 ! 	 icella=0
-! 
+!
 ! end if
-! 
+!
 ! call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_world,ierror)
-! 
+!
 ! ! if (n.eq.0)then
 
-! ! 
-! ! 
+! !
+! !
 ! ! end if
-! 
+!
 ! call mpi_barrier(mpi_comm_world,ierror)
 ! deallocate (icell)
 
@@ -503,7 +503,7 @@ write(proc3,fmt='(i10)') it
 	allocate(character(len=itgfd) ::out1)
 	out1=outfile(1:itgfd)
 ! 	out1=out1//char(0)
-	
+
 
 end if
 
@@ -521,8 +521,8 @@ if (n.eq.0)ierr =  tecini112('sols1'//nulchar, &
 end if
 
 
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -541,7 +541,7 @@ allocate (valuelocation(nvar1))
       soltime = 0.0
 !       else
 !       soltime = it
-! 
+!
 !       end if
       strandid = 1
       parentzn = 0
@@ -585,23 +585,23 @@ valuelocation(:)=0
 !  allocate(valuesa(imaxp*isize))
 !   allocate(xbin(imaxe))
 ! 	valuesa=0.0
-! 
+!
 !  end if
-! 
+!
 !   call mpi_barrier(mpi_comm_world,ierror)
 !   allocate(valuess(imaxp))
 !   valuess=0.0
-    
-   
+
+
 
 
 !   if (itestcase.lt.3)then
 !     do i=1,kmaxe
 !       valuess(i)=u_c_val(1,1,i)
 !     end do
-! 
+!
 !     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-! 
+!
 !     if (n.eq.0)then
 !     do i=1,imaxp*isize
 ! 	if (icella(i).gt.0)then
@@ -609,7 +609,7 @@ valuelocation(:)=0
 ! 	end if
 !     end do
     xbin(1:imaxe)=xmpie(1:imaxe)
-	  
+
 
     ierr = tecdat112(imaxe,xbin,1)
 
@@ -621,29 +621,29 @@ valuelocation(:)=0
     end if
 
      call mpi_barrier(mpi_comm_world,ierror)
-! 
+!
 !   end if
-! 
-! 
-! 
-! 
-!     
-! 
-! 
-! 
-! 
-! 
-!   
-! 
-! 
-! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
 !   if (itestcase.ge.3)then
 ! 			  do j=1,nvar1
-! 				  
+!
 ! 				    if (j.eq.1)then
-! 				    
+!
 ! 				    do i=1,kmaxe
-! 				      
+!
 ! 				      valuess(i)=u_c_val(1,1,i)
 ! 				    end do
 ! 				    else
@@ -654,7 +654,7 @@ valuelocation(:)=0
 ! 				    end if
 ! 				    end if
 ! 				    if (j.eq.6)then
-! 
+!
 ! 				      do i=1,kmaxe
 ! 											variables(1)=u_c_val(1,1,i)
 ! 											variables(2)=(u_c_val(1,2,i)/variables(1))
@@ -663,12 +663,12 @@ valuelocation(:)=0
 ! 											variables(5)=u_c_val(1,5,i)
 ! 									    variables(6)=((gamma-1.0))*((variables(5))-0.5*variables(1)*(((variables(2)**2.0)+(variables(3)**2.0)+(variables(4)**2.0))))
 ! 									    valuess(i)=variables(6)
-! 
+!
 ! 				    end do
-! 
-! 				    
-! 				    end if 
-! 
+!
+!
+! 				    end if
+!
 ! 				    if (turbulence.ne.1)then
 ! 					      if (passivescalar.gt.0)then
 ! 						      if (j.eq.7)then
@@ -678,8 +678,8 @@ valuelocation(:)=0
 ! 						      end if
 ! 					      end if
 ! 				    end if
-!     
-! 
+!
+!
 ! 					  if (turbulence.eq.1)then
 ! 								if (j.eq.7)then
 ! 										do i=1,kmaxe
@@ -699,12 +699,12 @@ valuelocation(:)=0
 ! 							  if (turbulencemodel.eq.1)then
 ! 							 eddyfl(2)=u_ct_val(1,1,i)*u_c_val(1,1,i)
 ! 							 eddyfl(3)=0
-! 							  
+!
 ! 							  end if
 ! 							  if (turbulencemodel.eq.2)then
 ! 							 eddyfl(2)=u_ct_val(1,1,i)
 ! 							 eddyfl(3)=u_ct_val(1,2,i)
-! 							  
+!
 ! 							  end if
 ! 							eddyfl(4:6)=rec_grads(1,1:3,i)
 ! 							eddyfl(7:9)=rec_grads(2,1:3,i)
@@ -714,29 +714,29 @@ valuelocation(:)=0
 ! 							eddyfl(16:18)=rec_grads(5,1:3,i)
 ! 							end if
 ! 							eddyfr=eddyfl
-! 							
+!
 ! 							call eddyviscoo(n,viscl,laml,turbmv,etvm,leftv,rightv,eddyfl,eddyfr)
-! 							variables(8) =  (viscl(3))/visc	
+! 							variables(8) =  (viscl(3))/visc
 ! 			valuess(i)=variables(8)
-! 
+!
 ! 								  end do
 ! 								end if
-!    
+!
 ! 							if (turbulencemodel.eq.2)then
 ! 							    if ((j.eq.9))then
 ! 							      do i=1,kmaxe
 ! 								valuess(i)=u_ct_val(1,1,i)
 ! 							      end do
-! 
+!
 ! 							    end if
 ! 							    if ((j.eq.10))then
 ! 							      do i=1,kmaxe
 ! 								valuess(i)=u_ct_val(1,2,i)
 ! 							      end do
-! 
+!
 ! 							    end if
 ! 							end if
-! 
+!
 ! 							if (passivescalar.gt.0)then
 ! 								      if (j.eq.nvar1-1)then
 ! 								    do i=1,kmaxe
@@ -744,11 +744,11 @@ valuelocation(:)=0
 ! 								    end do
 ! 								      end if
 ! 							 end if
-! 
-! 
+!
+!
 ! 					  end if !turbulence
-! 
-! 
+!
+!
 ! 				    if (ivortex.eq.1)then
 ! 					      if (j.eq.nvar1)then
 ! 						    do i=1,kmaxe
@@ -756,37 +756,37 @@ valuelocation(:)=0
 ! 						    end do
 ! 					    end if
 ! 				    end if
-! 
-! 
-! 
-! 
-!       
+!
+!
+!
+!
+!
 !       call mpi_barrier(mpi_comm_world,ierror)
-! 
-!     
+!
+!
 !     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-! 
-!      
+!
+!
 ! !       print*,"writing output var",j,nvar1,n
-! 
-!     
+!
+!
 !     if (n.eq.0)then
 !     do i=1,imaxp*isize
 ! 	if (icella(i).gt.0)then
 ! 	xbin(icella(i))=valuesa(i)
 ! 	end if
 !     end do
-!     
+!
 !     ierr = tecdat112(imaxe,xbin,1)
 !     end if
-!     
-!       
+!
+!
 ! !       print*,"writing 1r",n
-!       
+!
 !   end do
-! 
-! 
-! 
+!
+!
+!
 !   end if
 !   if (n.eq.0)then
 !   ierr = tecend112()
@@ -794,43 +794,43 @@ valuelocation(:)=0
 !   deallocate(out1)
 !   end if
 !   deallocate (valuess)
-!   
-! 
-! 
-! 
-! 
-! 
-! 
-! 
-! 
-! 
-! 
-! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
 !   call mpi_barrier(mpi_comm_world,ierror)
-! 
-! 
-! 
-! 
-! 
-! 
-! ! 
+!
+!
+!
+!
+!
+!
+! !
 ! !     allocate(xbin(imaxe))
 ! !     allocate(fbin(1,imaxe))
-! ! 
-! !  
+! !
+! !
 ! !     do i=1,1
 ! !     fbin(i,:)=10.0
 ! !     end do
-! !     
+! !
 ! !     do i=1,1
 ! !     xbin(:)=fbin(i,:)
-! ! 
+! !
 ! !     ierr = tecdat112(imaxe,xbin,1)  !!! why not xbin instead of xbin(1) ??
 ! !    end do
-! 
-! 		
-!          
-!         
+!
+!
+!
+!
 !  deallocate(variables)
 
 
@@ -841,14 +841,14 @@ valuelocation(:)=0
 
 
 
-	
-	
-	
-	
-	
 
-	
-	
+
+
+
+
+
+
+
 
 end subroutine outwrite3n
 
@@ -1126,10 +1126,10 @@ real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
  character(len=:),allocatable::out1
  character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -1138,7 +1138,7 @@ real::mp_pinfr,gammar
       integer:: null(*)
 
 
- 
+
 
 
 
@@ -1174,7 +1174,7 @@ write(proc3,fmt='(i10)') it
 	allocate(character(len=itgfd) ::out1)
 	out1=outfile(1:itgfd)
 ! 	out1=out1//char(0)
-	
+
 
 end if
 call mpi_barrier(mpi_comm_world,ierror)
@@ -1187,9 +1187,9 @@ call mpi_barrier(mpi_comm_world,ierror)
                     filetype, &
                     debug, &
                     visdouble)
-  
-  
-  
+
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=8+passivescalar
@@ -1230,7 +1230,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 
 				end if
 
-     
+
      else	!no multispecies
 			if (n.eq.0)ierr =  tecini112('sols'//nulchar, &
 							'density,u,v,w,energy,pressure,sten1,sten2'//nulchar, &
@@ -1281,7 +1281,7 @@ call mpi_barrier(mpi_comm_world,ierror)
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -1310,21 +1310,21 @@ call mpi_barrier(mpi_comm_world,ierror)
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
 
-	
 
-	
-	
+
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -1334,9 +1334,9 @@ allocate (valuelocation(nvar1))
       jmax    = imaxe
       kmax    = 0
       ZONETYPE = 5
-      
+
       soltime = t
-      
+
       strandid = 1
       parentzn = 0
       isblock = 1
@@ -1349,7 +1349,7 @@ allocate (valuelocation(nvar1))
 
 valuelocation(:)=0
 
- 
+
 
 
 
@@ -1376,9 +1376,9 @@ valuelocation(:)=0
                     shrconn)
 
 
- 
+
   allocate(xbin(imaxe),xbin2(imaxe))
-	
+
 
  else
  allocate(xbin2(1))
@@ -1389,18 +1389,18 @@ valuelocation(:)=0
   allocate(valuess(kmaxe))
 
 !   call mpi_barrier(mpi_comm_world,ierror)
- 
-    
-   
+
+
+
 
 
     if (itestcase.le.2)then
 		do i=1,kmaxe
-		 
+
      valuess(i)=u_c_val(1,1,i)!0.0
-    
+
 		end do
-		
+
 		call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -1410,13 +1410,13 @@ valuelocation(:)=0
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
 
-    
+
 		do i=1,kmaxe
-		
+
       valuess(i)=ielem_inumneighbours(i)
-     
+
 		end do
-		
+
 		call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 		if (n.eq.0)then
 		do i=1,imaxe
@@ -1424,11 +1424,11 @@ valuelocation(:)=0
 		end do
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
-    
+
 		do i=1,kmaxe
 		  valuess(i)=ielem_troubled(i)
 		end do
-		
+
 		call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 		if (n.eq.0)then
 		do i=1,imaxe
@@ -1437,11 +1437,11 @@ valuelocation(:)=0
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
 
-    
+
 		do i=1,kmaxe
 		  valuess(i)=ielem_admis(i)
 		end do
-		
+
 		call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 		 if (n.eq.0)then
 		 do i=1,imaxe
@@ -1450,23 +1450,23 @@ valuelocation(:)=0
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,5
 		    do i=1,kmaxe
-		    
-            
+
+
             leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-            
+
 		    call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 		      valuess(i)=leftv(kkd)
 			if (kkd.eq.5)then
-			
+
             valuess(i)=u_c_val(1,kkd,i)
-           
+
 			end if
 		    end do
-		    
+
 		    call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 			if (n.eq.0)then
 			do i=1,imaxe
@@ -1475,19 +1475,19 @@ valuelocation(:)=0
 			ierr = tecdat112(imaxe,xbin,1)
 			end if
 		end do
-		
-		
-		
-    
+
+
+
+
 		do i=1,kmaxe
-		      
+
             leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-            
+
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 		end do
-		
-		
+
+
 		call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 			if (n.eq.0)then
 			do i=1,imaxe
@@ -1496,13 +1496,13 @@ valuelocation(:)=0
 			ierr = tecdat112(imaxe,xbin,1)
 			end if
 
-		
-		
-		
-		
-		
+
+
+
+
+
                 if (multispecies.eq.1)then
-                
+
                 do i=1,kmaxe
                 valuess(i)=u_c_val(1,6,i)
                 end do
@@ -1513,8 +1513,8 @@ valuelocation(:)=0
                 end do
                     ierr = tecdat112(imaxe,xbin,1)
                     end if
-			
-			
+
+
                     do i=1,kmaxe
                         valuess(i)=u_c_val(1,7,i)
                         end do
@@ -1525,12 +1525,12 @@ valuelocation(:)=0
                 end do
                     ierr = tecdat112(imaxe,xbin,1)
                     end if
-                    
-                    
+
+
                        do i=1,kmaxe
                 valuess(i)=u_c_val(1,8,i)
                 end do
-                
+
                 call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 			if (n.eq.0)then
 			do i=1,imaxe
@@ -1538,7 +1538,7 @@ valuelocation(:)=0
 		end do
 			ierr = tecdat112(imaxe,xbin,1)
 			end if
-                    
+
 
                     if (dg.eq.1)then
                      do i=1,kmaxe
@@ -1577,12 +1577,12 @@ valuelocation(:)=0
 
 
 
-                    
-                    
+
+
 			else
-			
-			
-                
+
+
+
                 if (mood.eq.1)then
                 do i=1,kmaxe
                 valuess(i)=ielem_mood_o(i)
@@ -1599,32 +1599,8 @@ valuelocation(:)=0
                 end if
                 end do
                 end if
-                
-                
-                call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
-			if (n.eq.0)then
-			do i=1,imaxe
-		xbin(xmpi_re(i))=xbin2(i)
-		end do
-			ierr = tecdat112(imaxe,xbin,1)
-			end if
-            
-                
-               
-                
-                
-                do i=1,kmaxe
-                
-                if (adda.eq.1)then
-                
-                valuess(i)=ielem_diss(i)
-                else
-                
-                
-                valuess(i)=ielem_full(i)!wcx(1)!ielem_admis(i)
-                end if
-                end do
-                
+
+
                 call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 			if (n.eq.0)then
 			do i=1,imaxe
@@ -1633,15 +1609,39 @@ valuelocation(:)=0
 			ierr = tecdat112(imaxe,xbin,1)
 			end if
 
-              end if  
-		
-    
+
+
+
+
+                do i=1,kmaxe
+
+                if (adda.eq.1)then
+
+                valuess(i)=ielem_diss(i)
+                else
+
+
+                valuess(i)=ielem_full(i)!wcx(1)!ielem_admis(i)
+                end if
+                end do
+
+                call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
+			if (n.eq.0)then
+			do i=1,imaxe
+		xbin(xmpi_re(i))=xbin2(i)
+		end do
+			ierr = tecdat112(imaxe,xbin,1)
+			end if
+
+              end if
+
+
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
 		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
 		  end do
-		  
-		  
+
+
 		  call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 			if (n.eq.0)then
 			do i=1,imaxe
@@ -1649,16 +1649,16 @@ valuelocation(:)=0
 		end do
 			ierr = tecdat112(imaxe,xbin,1)
 			end if
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
 		  do i=1,kmaxe
 		      valuess(i)=ielem_vortex(1,i)!%inumneighbours
 		  end do
-		  
-		  
+
+
 		 call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 			if (n.eq.0)then
 			do i=1,imaxe
@@ -1666,14 +1666,14 @@ valuelocation(:)=0
 		end do
 			ierr = tecdat112(imaxe,xbin,1)
 			end if
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 			do i=1,kmaxe
 			    valuess(i)=u_ct_val(1,kkd,i)
 			end do
-		      
-			
+
+
 		      call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 			      if (n.eq.0)then
 			      do i=1,imaxe
@@ -1685,39 +1685,39 @@ valuelocation(:)=0
 
 		 end do
 		  end if
-		  
-		  
-		  
-		  
-		  end if
-    
-    
-    end if
-    
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+		  end if
+
+
+    end if
+
+
+
+
+
+
+
+
+
   if (n.eq.0)then
   ierr = tecend112()
   deallocate(xbin,valuelocation,out1)
   end if
-  
+
   deallocate (valuess,variables,xbin2)
-  
-
-  
 
 
 
 
 
-	
-	
+
+
+
+
+
 
 end subroutine outwrite3vb
 
@@ -1749,10 +1749,10 @@ real,allocatable,dimension(:)::valuess,valuesa
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -1761,7 +1761,7 @@ real::mp_pinfr,gammar
       integer:: null(*)
 
 
- 
+
 
 
 
@@ -1791,11 +1791,11 @@ write(proc5,fmt='(i10)') n
 	allocate(character(len=itgfd) ::out1)
 	out1=outfile(1:itgfd)
 ! 	out1=out1//char(0)
-	
-	
-	
-	
-	
+
+
+
+
+
  if (itestcase.le.2)then
   nvar1=7
   ierr =  tecini112('sols'//nulchar, &
@@ -1805,9 +1805,9 @@ write(proc5,fmt='(i10)') n
                     filetype, &
                     debug, &
                     visdouble)
-  
-  
-  
+
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=11+passivescalar
@@ -1829,7 +1829,7 @@ write(proc5,fmt='(i10)') n
                     filetype, &
                     debug, &
                     visdouble)
-     
+
      else
     ierr =  tecini112('sols'//nulchar, &
                     'x,y,z,density,u,v,w,energy,pressure,sten1,sten2'//nulchar, &
@@ -1838,8 +1838,8 @@ write(proc5,fmt='(i10)') n
                     filetype, &
                     debug, &
                     visdouble)
-     
-     
+
+
      end if
      end if
  end if
@@ -1872,7 +1872,7 @@ write(proc5,fmt='(i10)') n
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -1901,20 +1901,20 @@ write(proc5,fmt='(i10)') n
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
 
-	
 
-	
+
+
 
 allocate (valuelocation(nvar1))
 
@@ -1923,9 +1923,9 @@ allocate (valuelocation(nvar1))
       jmax    = kmaxe
       kmax    = 0
       ZONETYPE = 5
-      
+
       soltime = t
-      
+
       strandid = 1
       parentzn = 0
       isblock = 1
@@ -1938,7 +1938,7 @@ allocate (valuelocation(nvar1))
 
 valuelocation(:)=0
 valuelocation(1:3)=1
- 
+
 
 
 
@@ -1965,11 +1965,11 @@ valuelocation(1:3)=1
                     shrconn)
 
 
- 
-  allocate(xbin(kmaxn),xbin2(kmaxn),xbin3(kmaxn))
-	
 
- 
+  allocate(xbin(kmaxn),xbin2(kmaxn),xbin3(kmaxn))
+
+
+
   allocate(valuess(kmaxe))
 
 
@@ -1977,55 +1977,55 @@ valuelocation(1:3)=1
         xbin(i)=inoder4_cord(1,i);
         xbin2(i)=inoder4_cord(2,i);
         xbin3(i)=inoder4_cord(3,i)
-        
+
     end do
-    
-    ierr = tecdat112(kmaxn,xbin,1) 
-   
+
+    ierr = tecdat112(kmaxn,xbin,1)
+
     ierr = tecdat112(kmaxn,xbin2,1)
 
      ierr = tecdat112(kmaxn,xbin3,1)
 
-     
-    
-     
+
+
+
 
     if (itestcase.le.2)then
 		do i=1,kmaxe
 		  valuess(i)=u_c_val(1,1,i)!0.0
 		end do
-		
-		ierr = tecdat112(kmaxe,valuess,1)
-		
 
-    
+		ierr = tecdat112(kmaxe,valuess,1)
+
+
+
 		do i=1,kmaxe
 		  valuess(i)=n
 		end do
-		
-		
-		
+
+
+
 		ierr = tecdat112(kmaxe,valuess,1)
-		
-    
+
+
 		do i=1,kmaxe
 		  valuess(i)=ielem_inumneighbours(i)!%stencil_dist
 		end do
-		
-		
-		ierr = tecdat112(kmaxe,valuess,1)
-		
 
-    
+
+		ierr = tecdat112(kmaxe,valuess,1)
+
+
+
 		do i=1,kmaxe
 		  valuess(i)=ielem_admis(i)
 		end do
-		
-		
+
+
 		ierr = tecdat112(kmaxe,valuess,1)
-		
+
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,5
 		    do i=1,kmaxe
@@ -2036,63 +2036,63 @@ valuelocation(1:3)=1
 			valuess(i)=u_c_val(1,kkd,i)!/u_c_val(1,1,i)
 			end if
 		    end do
-		    
-		    
+
+
 		ierr = tecdat112(kmaxe,valuess,1)
-			
+
 		end do
-		
-		
-		
-    
+
+
+
+
 		do i=1,kmaxe
 		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 		end do
-		
-		
-		
-			ierr = tecdat112(kmaxe,valuess,1)
-			
 
-		
-		
-		
-		
-		
+
+
+			ierr = tecdat112(kmaxe,valuess,1)
+
+
+
+
+
+
+
                 if (multispecies.eq.1)then
-                
+
                 do i=1,kmaxe
                 valuess(i)=u_c_val(1,6,i)
                 end do
-                
+
                  ierr = tecdat112(kmaxe,valuess,1)
-                   
-			
-			
+
+
+
                     do i=1,kmaxe
                         valuess(i)=u_c_val(1,7,i)
                         end do
-                    
+
                 ierr = tecdat112(kmaxe,valuess,1)
-                    
-                    
-                    
+
+
+
                        do i=1,kmaxe
                 valuess(i)=u_c_val(1,8,i)
                 end do
-                
-               
+
+
 			ierr = tecdat112(kmaxe,valuess,1)
-			
-                    
-                    
-                    
+
+
+
+
 			else
-			
-			
-                
+
+
+
                 if (mood.eq.1)then
                 do i=1,kmaxe
                 valuess(i)=ielem_mood_o(i)
@@ -2102,95 +2102,95 @@ valuelocation(1:3)=1
 !                 valuess(i)=ielem_condition(i)!ielem_stencil_dist(i)
 !                 end do
                 end if
-                
-                
-                
+
+
+
 			ierr = tecdat112(kmaxe,valuess,1)
-			
-            
-                
-               
-                
-                
+
+
+
+
+
+
                 do i=1,kmaxe
                 valuess(i)=ielem_admis(i)
                 end do
-                
-                
-			ierr = tecdat112(kmaxe,valuess,1)
-			
 
-              end if  
-		
-    
+
+			ierr = tecdat112(kmaxe,valuess,1)
+
+
+              end if
+
+
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
 		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
 		  end do
-		  
-		  
-		  
+
+
+
 			ierr = tecdat112(kmaxe,valuess,1)
-			
-		  
-		  
+
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
 		  do i=1,kmaxe
 		      valuess(i)=ielem_vortex(1,i)!%inumneighbours
 		  end do
-		  
-		  
-		
+
+
+
 		ierr = tecdat112(kmaxe,valuess,1)
-			
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 			do i=1,kmaxe
 			    valuess(i)=u_ct_val(1,kkd,i)
 			end do
-		      
-			
-		      
+
+
+
 		ierr = tecdat112(kmaxe,valuess,1)
-			      
+
 
 
 		 end do
 		  end if
-		  
-		  
-		  
-		  
+
+
+
+
 		  end if
-    
-    
+
+
     end if
-    
+
 
     do i=1,kmaxe
     icon(1:8,1)=el_connect(i,1:8)
     ierr = tecnode112(8,icon)
     end do
-    
-  
+
+
   ierr = tecend112()
   deallocate(xbin,valuelocation,out1,xbin2,xbin3,icon)
-  
-  
+
+
   deallocate (valuess,variables)
-  
-
-  
 
 
 
 
 
-	
-	
+
+
+
+
+
 
 end subroutine outwritetec3dbp
 
@@ -2222,10 +2222,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
  character(len=:),allocatable::out1
  character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -2234,7 +2234,7 @@ real,allocatable,dimension(:)::valuess,valuesa
       integer:: null(*)
 
 
- 
+
 
 
 
@@ -2264,7 +2264,7 @@ write(proc5,fmt='(i10)') n
 	allocate(character(len=itgfd) ::out1)
 	out1=outfile(1:itgfd)
 ! 	out1=out1//char(0)
-	
+
  if (itestcase.le.2)then
   nvar1=7
   ierr =  tecini112('sols'//nulchar, &
@@ -2274,9 +2274,9 @@ write(proc5,fmt='(i10)') n
                     filetype, &
                     debug, &
                     visdouble)
-  
-  
-  
+
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=11+passivescalar
@@ -2298,7 +2298,7 @@ write(proc5,fmt='(i10)') n
                     filetype, &
                     debug, &
                     visdouble)
-     
+
      else
     ierr =  tecini112('sols'//nulchar, &
                     'x,y,z,density,u,v,w,energy,pressure,sten1,sten2'//nulchar, &
@@ -2307,8 +2307,8 @@ write(proc5,fmt='(i10)') n
                     filetype, &
                     debug, &
                     visdouble)
-     
-     
+
+
      end if
      end if
  end if
@@ -2341,7 +2341,7 @@ write(proc5,fmt='(i10)') n
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -2370,20 +2370,20 @@ write(proc5,fmt='(i10)') n
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
 
-	
 
-	
+
+
 
 allocate (valuelocation(nvar1))
 
@@ -2392,9 +2392,9 @@ allocate (valuelocation(nvar1))
       jmax    = kmaxe
       kmax    = 0
       ZONETYPE = 5
-      
+
       soltime = t
-      
+
       strandid = 1
       parentzn = 0
       isblock = 1
@@ -2407,7 +2407,7 @@ allocate (valuelocation(nvar1))
 
 valuelocation(:)=0
 valuelocation(1:3)=1
- 
+
 
 
 
@@ -2434,11 +2434,11 @@ valuelocation(1:3)=1
                     shrconn)
 
 
- 
-  allocate(xbin(kmaxn),xbin2(kmaxn),xbin3(kmaxn))
-	
 
- 
+  allocate(xbin(kmaxn),xbin2(kmaxn),xbin3(kmaxn))
+
+
+
   allocate(valuess(kmaxe))
 
 
@@ -2447,9 +2447,9 @@ valuelocation(1:3)=1
         xbin2=inoder4_cord(2,i);
         xbin3=inoder4_cord(3,i)
     end do
-    
-    ierr = tecdat112(kmaxn,xbin,1) 
-   
+
+    ierr = tecdat112(kmaxn,xbin,1)
+
     ierr = tecdat112(kmaxn,xbin2,1)
 
      ierr = tecdat112(kmaxn,xbin3,1)
@@ -2459,38 +2459,38 @@ valuelocation(1:3)=1
 		do i=1,kmaxe
 		  valuess(i)=u_c_val(1,1,i)!0.0
 		end do
-		
-		ierr = tecdat112(kmaxe,valuess,1)
-		
 
-    
+		ierr = tecdat112(kmaxe,valuess,1)
+
+
+
 		do i=1,kmaxe
 		  valuess(i)=n
 		end do
-		
-		
-		
+
+
+
 		ierr = tecdat112(kmaxe,valuess,1)
-		
-    
+
+
 		do i=1,kmaxe
 		  valuess(i)=ielem_inumneighbours(i)!%stencil_dist
 		end do
-		
-		
-		ierr = tecdat112(kmaxe,valuess,1)
-		
 
-    
+
+		ierr = tecdat112(kmaxe,valuess,1)
+
+
+
 		do i=1,kmaxe
 		  valuess(i)=ielem_admis(i)
 		end do
-		
-		
+
+
 		ierr = tecdat112(kmaxe,valuess,1)
-		
+
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,5
 		    do i=1,kmaxe
@@ -2501,63 +2501,63 @@ valuelocation(1:3)=1
 			valuess(i)=u_c_val(1,kkd,i)!/u_c_val(1,1,i)
 			end if
 		    end do
-		    
-		    
+
+
 		ierr = tecdat112(kmaxe,valuess,1)
-			
+
 		end do
-		
-		
-		
-    
+
+
+
+
 		do i=1,kmaxe
 		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 		end do
-		
-		
-		
-			ierr = tecdat112(kmaxe,valuess,1)
-			
 
-		
-		
-		
-		
-		
+
+
+			ierr = tecdat112(kmaxe,valuess,1)
+
+
+
+
+
+
+
                 if (multispecies.eq.1)then
-                
+
                 do i=1,kmaxe
                 valuess(i)=u_c_val(1,6,i)
                 end do
-                
+
                  ierr = tecdat112(kmaxe,valuess,1)
-                   
-			
-			
+
+
+
                     do i=1,kmaxe
                         valuess(i)=u_c_val(1,7,i)
                         end do
-                    
+
                 ierr = tecdat112(kmaxe,valuess,1)
-                    
-                    
-                    
+
+
+
                        do i=1,kmaxe
                 valuess(i)=u_c_val(1,8,i)
                 end do
-                
-               
+
+
 			ierr = tecdat112(kmaxe,valuess,1)
-			
-                    
-                    
-                    
+
+
+
+
 			else
-			
-			
-                
+
+
+
                 if (mood.eq.1)then
                 do i=1,kmaxe
                 valuess(i)=ielem_mood_o(i)
@@ -2567,95 +2567,95 @@ valuelocation(1:3)=1
 !                 valuess(i)=ielem_condition(i)!ielem_stencil_dist(i)
 !                 end do
                 end if
-                
-                
-                
+
+
+
 			ierr = tecdat112(kmaxe,valuess,1)
-			
-            
-                
-               
-                
-                
+
+
+
+
+
+
                 do i=1,kmaxe
                 valuess(i)=ielem_admis(i)
                 end do
-                
-                
-			ierr = tecdat112(kmaxe,valuess,1)
-			
 
-              end if  
-		
-    
+
+			ierr = tecdat112(kmaxe,valuess,1)
+
+
+              end if
+
+
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
 		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
 		  end do
-		  
-		  
-		  
+
+
+
 			ierr = tecdat112(kmaxe,valuess,1)
-			
-		  
-		  
+
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
 		  do i=1,kmaxe
 		      valuess(i)=ielem_vortex(1,i)!%inumneighbours
 		  end do
-		  
-		  
-		
+
+
+
 		ierr = tecdat112(kmaxe,valuess,1)
-			
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 			do i=1,kmaxe
 			    valuess(i)=u_ct_val(1,kkd,i)
 			end do
-		      
-			
-		      
+
+
+
 		ierr = tecdat112(kmaxe,valuess,1)
-			      
+
 
 
 		 end do
 		  end if
-		  
-		  
-		  
-		  
+
+
+
+
 		  end if
-    
-    
+
+
     end if
-    
-    
+
+
     do i=1,kmaxe
     icon(1,1:8)=el_connect(i,1:8)
     ierr = tecnode112(8,icon)
     end do
-    
-  
+
+
   ierr = tecend112()
   deallocate(xbin,valuelocation,out1,xbin2,xbin3,icon)
-  
-  
+
+
   deallocate (valuess,variables)
-  
-
-  
 
 
 
 
 
-	
-	
+
+
+
+
+
 
 end subroutine outwritetec3dbpav
 
@@ -2672,7 +2672,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 
 integer::kmaxe,kk,kfk,icpuid,l,ihgt,ihgj,kkd
 real::x,y,z,denominator,tuy,tvx,twx,tuz,tvz,twy,snorm,onorm
@@ -2696,10 +2696,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -2734,8 +2734,8 @@ call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_worl
 
 ! if (n.eq.0)then
 ! write(1000+n,*)icella(:)
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,ierror)
@@ -2776,13 +2776,13 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) 'Zone N=',imaxn,',E=',imaxe,',ZONETYPE = FEBRICK,','DATAPACKING = BLOCK'
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
-  
-  
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=6+passivescalar
   if (passivescalar.gt.0)then
-  
+
   if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
@@ -2790,9 +2790,9 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
   end if
-  
+
       else
-     
+
      if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure"'
@@ -2800,9 +2800,9 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED)'
    end if
-     
-     
-     
+
+
+
      end if
  end if
  if (itestcase.eq.4)then
@@ -2816,7 +2816,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED, [9] = CELLCENTERED,[10] = CELLCENTERED)'
 	  end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                     if (n.eq.0)then
@@ -2826,7 +2826,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED, [9] = CELLCENTERED)'
 	  end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                     if (n.eq.0)then
@@ -2836,8 +2836,8 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED)'
 	  end if
-              
-              
+
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -2848,7 +2848,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED,[9] = CELLCENTERED)'
 	  end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                               if (n.eq.0)then
@@ -2858,7 +2858,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED)'
 	  end if
-             
+
               end if
               if (turbulenceequations.eq.0)then
                               if (n.eq.0)then
@@ -2868,22 +2868,22 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
 	  end if
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
-	   
+
  end if
 
 	if (n.eq.0)then
 	    write(97,*) ', solutiontime=',t
 	    end if
 
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -2896,7 +2896,7 @@ allocate (valuelocation(nvar1))
 
 valuelocation(:)=0
 
- 
+
 
 
 
@@ -2911,15 +2911,15 @@ valuelocation(:)=0
   call mpi_barrier(mpi_comm_world,ierror)
   allocate(valuess(imaxp))
   valuess=zero
-    
-   
+
+
 
 
     if (itestcase.le.2)then
     do i=1,kmaxe
       valuess(i)=u_c_val(1,1,i)!0.0
     end do
-    
+
     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
     if (n.eq.0)then
@@ -2928,16 +2928,16 @@ valuelocation(:)=0
 	xbin(icella(i))=valuesa(i)
 	end if
     end do
-    
+
 			write(97,*)xbin(1:imaxe)
-			
-    
+
+
     end if
 
-     
+
     call mpi_barrier(mpi_comm_world,ierror)
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,5
 		do i=1,kmaxe
@@ -2946,10 +2946,10 @@ valuelocation(:)=0
 		  valuess(i)=u_c_val(1,kkd,i)/u_c_val(1,1,i)
 		  end if
 		end do
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-		 
+
 		if (n.eq.0)then
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -2959,17 +2959,17 @@ valuelocation(:)=0
 		write(97,*)xbin(1:imaxe)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
-    
+
 		do i=1,kmaxe
 		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 		end do
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -2981,15 +2981,15 @@ valuelocation(:)=0
 		write(97,*)xbin(1:imaxe)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
-    
+
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
 		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
 		  end do
-		  
-		  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -3001,18 +3001,18 @@ valuelocation(:)=0
 		  write(97,*)xbin(1:imaxe)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
 		  do i=1,kmaxe
 		      valuess(i)=ielem_vortex(1,i)
 		  end do
-		  
-		  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -3024,16 +3024,16 @@ valuelocation(:)=0
 		  write(97,*)xbin(1:imaxe)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 		  do i=1,kmaxe
 		      valuess(i)=u_ct_val(1,kkd,i)
 		  end do
-		
-		  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -3045,34 +3045,34 @@ valuelocation(:)=0
 		  write(97,*)xbin(1:imaxe)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  end if
-    
-    
-    end if
-    
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+		  end if
+
+
+    end if
+
+
+
+
+
+
+
+
+
   if (n.eq.0)then
   close(97)
   deallocate(xbin,valuesa,valuelocation,icella)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
   call mpi_barrier(mpi_comm_world,ierror)
 
@@ -3082,13 +3082,13 @@ valuelocation(:)=0
 
 
 
-         
-        
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 end subroutine outwrite3v
 
@@ -3105,7 +3105,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 
 integer::kmaxe,kk,kfk,icpuid,l,ihgt,ihgj,kkd
 real::x,y,z,denominator,tuy,tvx,twx,tuz,tvz,twy,snorm,onorm
@@ -3129,10 +3129,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -3167,8 +3167,8 @@ call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_worl
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,ierror)
@@ -3209,13 +3209,13 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) 'Zone N=',imaxn,',E=',imaxe,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
-  
-  
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=5+passivescalar
   if (passivescalar.gt.0)then
-  
+
   if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","energy","Pressure","passivescalar"'
@@ -3223,9 +3223,9 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED)'
   end if
-  
+
       else
-     
+
      if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","energy","Pressure"'
@@ -3233,9 +3233,9 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED)'
    end if
-     
-     
-     
+
+
+
      end if
  end if
  if (itestcase.eq.4)then
@@ -3249,7 +3249,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED, [9] = CELLCENTERED)'
 	  end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                     if (n.eq.0)then
@@ -3259,7 +3259,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED)'
 	  end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                     if (n.eq.0)then
@@ -3269,8 +3269,8 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
 	  end if
-              
-              
+
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -3281,7 +3281,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED)'
 	  end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                               if (n.eq.0)then
@@ -3291,7 +3291,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
 	  end if
-             
+
               end if
               if (turbulenceequations.eq.0)then
                               if (n.eq.0)then
@@ -3301,22 +3301,22 @@ call mpi_barrier(mpi_comm_world,ierror)
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED)'
 	  end if
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
-	   
+
  end if
 
 	if (n.eq.0)then
 	    write(97,*) ', solutiontime=',t
 	    end if
 
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -3329,7 +3329,7 @@ allocate (valuelocation(nvar1))
 
 valuelocation(:)=0
 
- 
+
 
 
 
@@ -3344,8 +3344,8 @@ valuelocation(:)=0
   call mpi_barrier(mpi_comm_world,ierror)
   allocate(valuess(imaxp))
   valuess=zero
-    
-   
+
+
 
 
     if (itestcase.le.2)then
@@ -3355,13 +3355,13 @@ valuelocation(:)=0
             valuess(i)=u_c_val(1,1,i)!u_c_val(1,1,i)%valdg(1,1,1)
             end do
 !         end do
-            
+
         else
          do i=1,kmaxe
             valuess(i)=u_c_val(1,1,i)!0.0
             end do
         end if
-        
+
         call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
         if (n.eq.0)then
@@ -3370,7 +3370,7 @@ valuelocation(:)=0
                     xbin(icella(i))=valuesa(i)
                 end if
             end do
-        
+
             write(97,*)xbin(1:imaxe)
         end if
 
@@ -3383,10 +3383,10 @@ valuelocation(:)=0
 		  valuess(i)=u_c_val(1,kkd,i)/u_c_val(1,1,i)
 		  end if
 		end do
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-		 
+
 		if (n.eq.0)then
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -3396,17 +3396,17 @@ valuelocation(:)=0
 		write(97,*)xbin(1:imaxe)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
-    
+
 		do i=1,kmaxe
 		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(4)
 		end do
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -3418,15 +3418,15 @@ valuelocation(:)=0
 		write(97,*)xbin(1:imaxe)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
-    
+
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
 		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
 		  end do
-		  
-		  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -3438,18 +3438,18 @@ valuelocation(:)=0
 		  write(97,*)xbin(1:imaxe)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
 		  do i=1,kmaxe
 		      valuess(i)=ielem_vortex(1,i)
 		  end do
-		  
-		  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -3461,16 +3461,16 @@ valuelocation(:)=0
 		  write(97,*)xbin(1:imaxe)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 		  do i=1,kmaxe
 		      valuess(i)=u_ct_val(1,kkd,i)
 		  end do
-		
-		  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -3482,34 +3482,34 @@ valuelocation(:)=0
 		  write(97,*)xbin(1:imaxe)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  end if
-    
-    
-    end if
-    
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+		  end if
+
+
+    end if
+
+
+
+
+
+
+
+
+
   if (n.eq.0)then
   close(97)
   deallocate(xbin,valuesa,valuelocation,icella)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
   call mpi_barrier(mpi_comm_world,ierror)
 
@@ -3519,13 +3519,13 @@ valuelocation(:)=0
 
 
 
-         
-        
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 end subroutine outwrite3v2d
 
@@ -3541,7 +3541,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -3564,10 +3564,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -3603,7 +3603,7 @@ write(proc3,fmt='(i10)') it
 	allocate(character(len=itgfd) ::out1)
 	out1=outfile(1:itgfd)
 ! 	out1=out1//char(0)
-	
+
 
 end if
 
@@ -3616,9 +3616,9 @@ end if
                     filetype, &
                     debug, &
                     visdouble)
-  
-  
-  
+
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=8+passivescalar
@@ -3640,7 +3640,7 @@ end if
                     filetype, &
                     debug, &
                     visdouble)
-     
+
      else
      if (n.eq.0)ierr =  tecini112('sols'//nulchar, &
                      'density,u,v,energy,pressure,sten1,sten2,slope'//nulchar, &
@@ -3649,8 +3649,8 @@ end if
                     filetype, &
                     debug, &
                     visdouble)
-     
-     
+
+
      end if
      end if
  end if
@@ -3683,7 +3683,7 @@ end if
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -3712,21 +3712,21 @@ end if
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
 
-	
-	
-	
-	
+
+
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -3741,9 +3741,9 @@ allocate (valuelocation(nvar1))
       jmax    = imaxe
       kmax    = 0
       ZONETYPE = 3
-      
+
       soltime = t
-      
+
       strandid = 1
       parentzn = 0
       isblock = 1
@@ -3786,47 +3786,47 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
  else
  allocate(xbin2(1))
  end if
-  
 
 
- 
- 
+
+
+
   allocate(valuess(1:kmaxe))
-  
-    
-   
+
+
+
 
 
     if (itestcase.le.2)then
     do i=1,kmaxe
      valuess(i)=u_c_val(1,1,i)!0.0
     end do
-    
+
     call mpi_gatherv(valuess(1:kmaxe),kmaxe,mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
-    
-    
-    
-	      
-    
-    
+
+
+
+
+
+
 		if (n.eq.0)then
 		do i=1,imaxe
 		xbin(xmpi_re(i))=xbin2(i)
 		end do
-		
+
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
-    
 
-    
-    
+
+
+
     do i=1,kmaxe
-        
+
       valuess(i)=ielem_troubled(i)
-      
+
     end do
-    
+
     call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -3835,12 +3835,12 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		end do
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
-    
-    
+
+
     do i=1,kmaxe
       valuess(i)=ielem_wcx(i)!ielem_admis(i)
     end do
-    
+
     call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -3849,7 +3849,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		end do
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
-    
+
     if (initcond.eq.0)then
 !      do i=1,kmaxe
 !       valuess(i)=rec_cond(1,i)
@@ -3859,7 +3859,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
       valuess(i)=ielem_wcx(i)!ielem_stencil_dist(i)
     end do
     end if
-    
+
    call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -3868,28 +3868,28 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		end do
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
-    
-    
+
+
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,4
 		do i=1,kmaxe
-        
+
         leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-        
+
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(kkd)
           if (kkd.eq.4)then
-          
-        
+
+
         valuess(i)=u_c_val(1,kkd,i)
-        
-          
+
+
           end if
 		end do
-		
-		
+
+
 		call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -3899,16 +3899,16 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
 		end do
-    
+
 		do i=1,kmaxe
-		 
+
         leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-        
+
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(4)
 		end do
-		
-		
+
+
 		call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -3917,7 +3917,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		end do
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
-    
+
                 if (multispecies.eq.1)then
                 do i=1,kmaxe
                 valuess(i)=u_c_val(1,5,i)
@@ -3945,14 +3945,14 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
                 valuess(i)=ielem_mood_o(i)
                 end do
                 else
-                
+
                 do i=1,kmaxe
                 valuess(i)=ielem_troubled(i)
                 end do
                 end if
                 end if
-                
-                
+
+
                call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -3962,17 +3962,17 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
 
-                
-                	
-		
-		
-    
+
+
+
+
+
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
 		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
 		  end do
-		  
-		  
+
+
 		 call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -3981,25 +3981,25 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		end do
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		  end if
-		  
-		  
+
+
 		   if (itestcase.eq.3)then
                             if (multispecies.eq.1)then
                 do i=1,kmaxe
@@ -4010,9 +4010,9 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
                 valuess(i)=ielem_wcx(i)!vortex(1)
                 end do
                 end if
-                            
-                            
-                            
+
+
+
                             call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -4021,8 +4021,8 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		end do
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
-		
-		
+
+
 		if (multispecies.eq.1)then
 		if (mood.eq.1)then
                 do i=1,kmaxe
@@ -4046,19 +4046,19 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
                 end do
                 ierr = tecdat112(imaxe,xbin,1)
                 end if
-        
-        
-        
+
+
+
         end if
         end if
 		  end if
-    
+
 		  if (itestcase.eq.4)then
                             do i=1,kmaxe
                                 valuess(i)=ielem_ggs(i)!vortex(1)
                             end do
-                            
-                            
+
+
                             call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -4067,14 +4067,14 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		end do
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 		  do i=1,kmaxe
 		      valuess(i)=u_ct_val(1,kkd,i)
 		  end do
-		
-		  
+
+
 		  call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -4085,33 +4085,33 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		end if
 		  end do
 		  end if
-		  
-		  
-		  
-		  
+
+
+
+
 		  end if
-    
-    
+
+
     end if
-    
-    
-    
+
+
+
 !     read_ucns
 
-     
-    
-    
-    
+
+
+
+
   if (n.eq.0)then
   ierr = tecend112()
   deallocate(xbin,valuelocation,out1)
   end if
-  
+
   deallocate (valuess,variables,xbin2)
 
 
-	
-	
+
+
 
 end subroutine outwrite3vb2d
 
@@ -4124,7 +4124,7 @@ logical::here
 integer::i,j,k,l,iter,dip
  character(len=20)::proc,restfile
 
- 	restfile='RESTART.dat'
+	restfile='RESTART.dat'
 	call mpi_barrier(mpi_comm_world,ierror)
 	inquire (file=restfile,exist=here)
 	if (here) then
@@ -4156,7 +4156,7 @@ integer::i,j,k,l,iter,dip
 	print*,"restarting",iter,res_time,restart
 
 	end if
-	
+
 
 	call mpi_barrier(mpi_comm_world,ierror)
 
@@ -4179,11 +4179,11 @@ subroutine open_arbitrary(n,imaxe,imaxn,imaxb)
 		bndfile='GRID.bnd'
 
 	allocate(isent(3))
-	
+
 	if (n.eq.0)then
-	
+
 	if(binio.eq.0)then
-	
+
 		open(8,file=celfile,form='formatted',status='old',action='read',iostat=ios)
 		open(9,file=vrtfile,form='formatted',status='old',action='read',iostat=iox)
 		open(10,file=bndfile,form='formatted',status='old',action='read',iostat=ioy)
@@ -4191,34 +4191,34 @@ subroutine open_arbitrary(n,imaxe,imaxn,imaxb)
 	j=0
 	k=0
 
-	
-	do 
+
+	do
 		read(8,*,iostat=ios)i
 		if (ios.ne.0) then
 			exit
 		end if
-		
+
 	end do
 		imaxe=i
-	do 
+	do
 		read(9,*,iostat=iox)j
 		if (iox.ne.0) then
 			exit
 		end if
-		
+
 	end do
 		imaxn=j
-	do 
+	do
 		read(10,*,iostat=ioy)k
 		if (ioy.ne.0) then
 			exit
 		end if
- 		
+
 	end do
-	 		imaxb=k
+			imaxb=k
 	else
-	
-	
+
+
 		open(8,file=celfile,form='unformatted',status='old',action='read',iostat=ios)
 		open(9,file=vrtfile,form='unformatted',status='old',action='read',iostat=iox)
 		open(10,file=bndfile,form='unformatted',status='old',action='read',iostat=ioy)
@@ -4227,75 +4227,75 @@ subroutine open_arbitrary(n,imaxe,imaxn,imaxb)
 	k=0
 
 	if (dimensiona.eq.3)then
-	do 
+	do
 		read(8,iostat=ios)i,i1,i2,i3,i4,i5,i6,i7,i8
 		if (ios.ne.0) then
 			exit
 		end if
-		
+
 	end do
-	
+
 		imaxe=i
-		
-	do 
+
+	do
 		read(9,iostat=iox)j,ix1,ix2,ix3
 		if (iox.ne.0) then
 			exit
 		end if
-		
+
 	end do
 		imaxn=j
-	do 
+	do
 		read(10,iostat=ioy)k,i1,i2,i3,i4,i5
 		if (ioy.ne.0) then
 			exit
 		end if
- 		
+
 	end do
-	 		imaxb=k
+			imaxb=k
 	end if
-	
+
 	if (dimensiona.eq.2)then
-	do 
+	do
 		read(8,iostat=ios)i,i1,i2,i3,i4
 		if (ios.ne.0) then
 			exit
 		end if
-		
+
 	end do
-	
+
 		imaxe=i
-		
-	do 
+
+	do
 		read(9,iostat=iox)j,ix1,ix2
 		if (iox.ne.0) then
 			exit
 		end if
-		
+
 	end do
 		imaxn=j
-	do 
+	do
 		read(10,iostat=ioy)k,i1,i2,i3,i4,i5
 		if (ioy.ne.0) then
 			exit
 		end if
- 		
+
 	end do
-	 		imaxb=k
+			imaxb=k
 	end if
-	
-	
+
+
 	end if
 
 	close(8)
 	close(9)
- 	close(10)
+	close(10)
 
 	isent(1)=imaxe
 	isent(2)=imaxn
 	isent(3)=imaxb
 
-	
+
 
 	end if
 	call mpi_bcast( isent, 3, mpi_integer, 0 ,mpi_comm_world,ierror )
@@ -4305,8 +4305,8 @@ subroutine open_arbitrary(n,imaxe,imaxn,imaxb)
 	imaxn=isent(2)
 	imaxb=isent(3)
 	deallocate(isent)
-	
-	
+
+
 end subroutine open_arbitrary
 
 
@@ -4330,11 +4330,11 @@ subroutine close_input1(n,itt)
 !> @brief
 !> this subroutine closes the parameter file
  implicit none
- 	integer,intent(inout)::itt
- 	integer,intent(in)::n	
+	integer,intent(inout)::itt
+	integer,intent(in)::n
 !  	close(8)
 !  	close(9)
- 	close(15)
+	close(15)
 end subroutine close_input1
 
 subroutine open_input(n,itt)
@@ -4359,10 +4359,10 @@ subroutine close_input(n,itt)
 !> @brief
 !> this subroutine closes the grid files
  implicit none
- 	integer,intent(inout)::itt
- 	integer,intent(in)::n	
-  	close(8)
-  	close(9)
+	integer,intent(inout)::itt
+	integer,intent(in)::n
+	close(8)
+	close(9)
 
  end subroutine close_input
 
@@ -4387,7 +4387,7 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 	integer::it1,it2,it3,it4,it5,it6,it7,it8,itx,inx,it55,in,out
 	real::x,y,z
 
-	
+
 
 	kk=0; i=0; j=0; lm=0 ;kk2=1
 	xmin(n)=tolbig; ymin(n)=tolbig; zmin(n)=tolbig
@@ -4395,41 +4395,41 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 	call open_input(n,itt)
         !open(82,file="grid.epart",form='formatted',status='old',action='read')
 	kmaxe=xmpielrank(n)
-	
-	
- 	if (dimensiona.eq.3)then
-	
+
+
+	if (dimensiona.eq.3)then
+
 
 	allocate(dinoder(imaxn))
 	allocate(dinoder2(imaxn))
 	dinoder2(1:imaxn)%numberofneib=0
 	dinoder(1:imaxn)%itor=0
-	
-	
+
+
 	if (binio.eq.0)then
-	
+
 	do j=1,imaxe
-	
+
 	if (xmpie(j).eq.n)then
 
 	kk=kk+1
-	
-	
+
+
 
 	read(8,*) itx,idv(1),idv(2),idv(3),idv(4),idv(5),idv(6),idv(7),idv(8)
 
-	    
-		
-				
-	
+
+
+
+
 	  do kxk2=1,8
 	  dinoder(idv(kxk2))%itor=idv(kxk2)
-	 
+
 	  end do
-	  
-	  
-	  
-	  
+
+
+
+
 	  ielem_ihexgl(kk)=itx
 		if ((idv(5).ne.idv(6)).and.(idv(6).ne.idv(7)).and.(idv(7).ne.idv(8)).and.(idv(3).ne.idv(4)))then
 		shap=1	;nodal=8
@@ -4461,35 +4461,35 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		ielem_nodes(1:3,kk)=idv(1:3)
 		ielem_nodes(4:6,kk)=idv(5:7)
 		end if
-		  
-		
-			
-	
-	
+
+
+
+
+
 	else
 	read(8,*)
 
 
-	end if 
+	end if
 	end do
 	else
 	do j=1,imaxe
-	
+
 	if (xmpie(j).eq.n)then
 
 	kk=kk+1
-	
-	
+
+
 
 	read(8) itx,idv(1),idv(2),idv(3),idv(4),idv(5),idv(6),idv(7),idv(8)
 
-	    
-		
-				
-	
+
+
+
+
 	  do kxk2=1,8
 	  dinoder(idv(kxk2))%itor=idv(kxk2)
-	 
+
 	  end do
 	  ielem_ihexgl(kk)=itx
 		if ((idv(5).ne.idv(6)).and.(idv(6).ne.idv(7)).and.(idv(7).ne.idv(8)).and.(idv(3).ne.idv(4)))then
@@ -4522,27 +4522,27 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		ielem_nodes(1:3,kk)=idv(1:3)
 		ielem_nodes(4:6,kk)=idv(5:7)
 		end if
-		  
-		
-			
-	
-	
+
+
+
+
+
 	else
 	read(8)itx,idv(1),idv(2),idv(3),idv(4),idv(5),idv(6),idv(7),idv(8)
 
 
-	end if 
+	end if
 	end do
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
+
+
+
 	end if
 
 
@@ -4551,39 +4551,39 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 
 
 
-	
-	
 
-	
-	
-	
-	
- 	else
- 	
- 	
- 	
- 	
+
+
+
+
+
+
+	else
+
+
+
+
 	allocate(dinoder(imaxn))
 	allocate(dinoder2(imaxn))
 	dinoder2(:)%numberofneib=0
 	dinoder(:)%itor=0
-	
+
 	if (binio.eq.0)then
-	
-	
-	
+
+
+
 	do j=1,imaxe
-	
+
 	if (xmpie(j).eq.n)then
 
 	kk=kk+1
-	
-	
+
+
 
 	read(8,*) itx,idv(1),idv(2),idv(3),idv(4)
 	do kxk2=1,4
 	  dinoder(idv(kxk2))%itor=idv(kxk2)
-	  
+
 	  end do
 	ielem_ihexgl(kk)=itx
 		if ((idv(3).ne.idv(4)))then
@@ -4594,40 +4594,40 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		ielem_nodes(1:nodal,kk)=idv(1:nodal)
 
 		else
-		
+
 		shap=6	;nodal=3!triangular
 		ielem_ishape(kk)=shap
 		ielem_nonodes(kk)=nodal
 		ielem_ifca(kk)=3
 		ielem_nodes(1:nodal,kk)=idv(1:nodal)
-		
+
 		end if
-		
 
 
-	 
+
+
 
 	  else
 	read(8,*)
 
 
 
-	end if 
+	end if
 	end do
 	else
-	
+
 	do j=1,imaxe
-	
+
 	if (xmpie(j).eq.n)then
 
 	kk=kk+1
-	
-	
+
+
 
 	read(8) itx,idv(1),idv(2),idv(3),idv(4)
 	do kxk2=1,4
 	  dinoder(idv(kxk2))%itor=idv(kxk2)
-	  
+
 	  end do
 	ielem_ihexgl(kk)=itx
 		if ((idv(3).ne.idv(4)))then
@@ -4646,37 +4646,37 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		ielem_nodes(1:nodal,kk)=idv(1:nodal)
 
 		end if
-		
 
 
-	 
+
+
 
 	  else
 	read(8)itx,idv(1),idv(2),idv(3),idv(4)
 
 
 
-	end if 
+	end if
 	end do
-	
-	
-	
-	
+
+
+
+
 	end if
 	end if
 
-	
-	
-	
 
-	
-	  
-      
+
+
+
+
+
+
 
 
 	      if (dimensiona.eq.3)then
-	      
-	      
+
+
 	      if (binio.eq.0)then
 	      do j=1,imaxn
 
@@ -4691,21 +4691,21 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		xmax(n)=max(xmax(n),x)
 		ymax(n)=max(ymax(n),y)
 		zmax(n)=max(zmax(n),z)
-		
-		
+
+
 		  allocate(dinoder(j)%cord(1:3))
 		  dinoder(j)%cord(1)=x
 		  dinoder(j)%cord(2)=y
 		  dinoder(j)%cord(3)=z
-		  
-		
-		
-		
+
+
+
+
 		else
 		read(9,*)
 		end if
-		
-		
+
+
 		!print_out = kmaxe/5
 
 
@@ -4724,43 +4724,43 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		xmax(n)=max(xmax(n),x)
 		ymax(n)=max(ymax(n),y)
 		zmax(n)=max(zmax(n),z)
-		
-		
+
+
 		  allocate(dinoder(j)%cord(1:3))
 		  dinoder(j)%cord(1)=x
 		  dinoder(j)%cord(2)=y
 		  dinoder(j)%cord(3)=z
-		  
-		
-		
-		
+
+
+
+
 		else
 		read(9)inx,x,y,z
 		end if
-		
-		
+
+
 		!print_out = kmaxe/5
 
 
 		end do
-		
-		
-		
-		
-		
-		
-		
+
+
+
+
+
+
+
 		end if
 		else
-		
+
 		if (binio.eq.0)then
 		 do j=1,imaxn
 
 
 		  if (dinoder(j)%itor.gt.0)then
-		  
 
-		    
+
+
 ! -------------------for debugging only -----------------------------------------!
 ! 		read(9,'(i14,1x,3es16.9)')inx,x,y,z
 ! -------------------for debugging only -----------------------------------------!
@@ -4768,12 +4768,12 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		x=x/scaler; y=y/scaler
 		xmin(n)=min(xmin(n),x)
 		ymin(n)=min(ymin(n),y)
-		
+
 		xmax(n)=max(xmax(n),x)
 		ymax(n)=max(ymax(n),y)
-		
-		
-		
+
+
+
 		  allocate(dinoder(j)%cord(1:2))
 		  dinoder(j)%cord(1)=x
 		  dinoder(j)%cord(2)=y
@@ -4781,12 +4781,12 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 
 		  read(9,*)
 		  end if
-		
-		
-		
-		
-		
-		
+
+
+
+
+
+
 		!print_out = kmaxe/5
 
 
@@ -4796,9 +4796,9 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 
 
 		  if (dinoder(j)%itor.gt.0)then
-		  
 
-		    
+
+
 ! -------------------for debugging only -----------------------------------------!
 ! 		read(9,'(i14,1x,3es16.9)')inx,x,y,z
 ! -------------------for debugging only -----------------------------------------!
@@ -4806,12 +4806,12 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		x=x/scaler; y=y/scaler
 		xmin(n)=min(xmin(n),x)
 		ymin(n)=min(ymin(n),y)
-		
+
 		xmax(n)=max(xmax(n),x)
 		ymax(n)=max(ymax(n),y)
-		
-		
-		
+
+
+
 		  allocate(dinoder(j)%cord(1:2))
 		  dinoder(j)%cord(1)=x
 		  dinoder(j)%cord(2)=y
@@ -4819,26 +4819,26 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 
 		  read(9)inx,x,y
 		  end if
-		
-		
-		
-		
-		
-		
+
+
+
+
+
+
 		!print_out = kmaxe/5
 
 
 		end do
-		
-		
-		
-		
-		
+
+
+
+
+
 
 
 		end if
 		end if
-	
+
 	call mpi_barrier(mpi_comm_world,ierror)
 	 call close_input(n,itt)
 
@@ -4853,13 +4853,13 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 	x=xmin(n);call mpi_allreduce(x,xmin,1,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
 	x=ymin(n);call mpi_allreduce(x,ymin,1,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
 	x=zmin(n);call mpi_allreduce(x,zmin,1,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
-		
-		
+
+
 	  if (dimensiona.eq.3)then
-		
-	  
-	  
-	  
+
+
+
+
 	  call open_input(n,itt)
 	  do j=1,imaxn
 
@@ -4867,19 +4867,19 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		  if (dinoder(j)%itor.gt.0)then
 		  allocate(dinoder2(j)%xne(1));dinoder2(j)%xne(1)=0
 		  end if
-		  
+
 	   end do
-	  
-	  
+
+
 	  do j=1,imaxe
-	
-	
-	  
+
+
+
 	  read(8) itx,idv(1),idv(2),idv(3),idv(4),idv(5),idv(6),idv(7),idv(8)
 
-	  
-	  
-	    
+
+
+
 		  if ((xmpie(j).ne.n))then
 		      do kxk2=1,8
 			  if (dinoder(idv(kxk2))%itor.gt.0)then
@@ -4889,16 +4889,16 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		      end do
 		  end if
 	 end do
-	  
+
 	  call close_input(n,itt)
-	  
-	  
-	  
-	  
-	  
-	  
-	  
-	  
+
+
+
+
+
+
+
+
 	  call open_input(n,itt)
 	  do j=1,imaxn
 
@@ -4910,17 +4910,17 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		  end if
 		  end if
 	   end do
-	  
-	  
+
+
 	  do j=1,imaxe
-	
-	
-	  
+
+
+
 	  read(8) itx,idv(1),idv(2),idv(3),idv(4),idv(5),idv(6),idv(7),idv(8)
 
-	  
-	  
-	    
+
+
+
 		  if ((xmpie(j).ne.n))then
 		      do kxk2=1,8
 			  if (dinoder(idv(kxk2))%itor.gt.0)then
@@ -4931,18 +4931,18 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 		      end do
 		  end if
 	 end do
-	  
+
 	  call close_input(n,itt)
-	  
-	  
-	  
+
+
+
 	  end if
-	  
-	  
-	  
-	  
-	  
-	  
+
+
+
+
+
+
 
 ! dummyout=timec5
 ! dummyin=0.0
@@ -4957,8 +4957,8 @@ subroutine read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imax
 xper = (xmax(n))- xmin(n)
 yper = (ymax(n)) - ymin(n)
 zper = (zmax(n)) - zmin(n)
-! 
-! 
+!
+!
 ! xper = abs(xmax(n))! - xmin(n)
 ! yper = abs(ymax(n))! - ymin(n)
 ! zper = abs(zmax(n))! - zmin(n)
@@ -4968,13 +4968,13 @@ zper = (zmax(n)) - zmin(n)
 	if (n.eq.0) then
 	open(63,file='history.txt',form='formatted',action='write',position='append')
 	 write(63,*)xper,yper,zper,"periodics"
-     	write(63,*)"min",xmin(n),ymin(n),zmin(n)
-    	write(63,*)"max",xmax(n),ymax(n),zmax(n)
+	write(63,*)"min",xmin(n),ymin(n),zmin(n)
+	write(63,*)"max",xmax(n),ymax(n),zmax(n)
 	close(63)
 	end if
-	
 
-	  
+
+
 	end subroutine read_input
 
 
@@ -5010,8 +5010,8 @@ do j=1,imaxn
 		read(9,*)inx,x,y,z
 		x=x/scaler; y=y/scaler ; z=z/scaler
 		      if (dinoder2(j)%numberofneib.eq.0)then
-		      
-		      
+
+
 			allocate(dinoder(j)%cord(1:3))
 ! 			  if ((j.eq.709).or.(j.eq.710).or.(j.eq.693).or.(j.eq.692))then
 
@@ -5020,9 +5020,9 @@ do j=1,imaxn
 			dinoder(j)%cord(2)=y
 			dinoder(j)%cord(3)=z
 		      end if
-		  
+
 		  else
-		  
+
 		  read(9,*)
 		  end if
 end do
@@ -5035,8 +5035,8 @@ do j=1,imaxn
 		read(9,*)inx,x,y
 		x=x/scaler; y=y/scaler
 		      if (dinoder2(j)%numberofneib.eq.0)then
-		      
-		      
+
+
 			allocate(dinoder(j)%cord(1:2))
 			dinoder(j)%cord(1)=x
 			dinoder(j)%cord(2)=y
@@ -5060,8 +5060,8 @@ do j=1,imaxn
 		read(9)inx,x,y,z
 		x=x/scaler; y=y/scaler ; z=z/scaler
 		      if (dinoder2(j)%numberofneib.eq.0)then
-		      
-		      
+
+
 			allocate(dinoder(j)%cord(1:3))
 ! 			  if ((j.eq.709).or.(j.eq.710).or.(j.eq.693).or.(j.eq.692))then
 
@@ -5070,9 +5070,9 @@ do j=1,imaxn
 			dinoder(j)%cord(2)=y
 			dinoder(j)%cord(3)=z
 		      end if
-		  
+
 		  else
-		  
+
 		  read(9)inx,x,y,z
 		  end if
 end do
@@ -5085,8 +5085,8 @@ do j=1,imaxn
 		read(9)inx,x,y
 		x=x/scaler; y=y/scaler
 		      if (dinoder2(j)%numberofneib.eq.0)then
-		      
-		      
+
+
 			allocate(dinoder(j)%cord(1:2))
 			dinoder(j)%cord(1)=x
 			dinoder(j)%cord(2)=y
@@ -5143,15 +5143,15 @@ integer::inx,m,o,p,q,jk,elementss
 logical::herev
 real,dimension(5)::total
 character(len=20)::proc,outfile,proc3,surfile
- 
+
 
 
 
 
 
 icpuid=n
-	
-	
+
+
 
 
 
@@ -5173,29 +5173,29 @@ icpuid=n
 
 if (nprobes.gt.0)then
 do inv=1,nprobes
-				  
+
 				if (probei(n,inv).ne.0) then
 			write(proc3,fmt='(i10)') inv
 	!proc4=".plt"
-	outfile="stencils_"//trim(adjustl(proc3))//".dat"!//trim(adjustl(proc4))	
-				
-				
+	outfile="stencils_"//trim(adjustl(proc3))//".dat"!//trim(adjustl(proc4))
+
+
 	open(97,file=outfile,form='formatted',status='new',action='write')
 	if (binio.eq.0)open(96,file='GRID.vrt',form='formatted',status='old',action='read')
 	if (binio.eq.1)open(96,file='GRID.vrt',form='unformatted',status='old',action='read')
-	
+
 	write(97,*)'TITLE="GRID"'
 	write(97,*)'filetype=grid'
-	
+
 	if (dimensiona.eq.3)then
 	write(97,*)'VARIABLES="x","y","z"'
 	write(97,*)'Zone N=',imaxn,',E=',imaxe,',ZONETYPE = FEBRICK,','DATAPACKING = BLOCK'
 	else
 	write(97,*)'VARIABLES="x","y"'
 	write(97,*)'Zone N=',imaxn,',E=',imaxe,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
-	
+
 	end if
-	
+
 	if (binio.eq.0)then
 	do i=1,imaxn
 		read(96,*)j,x
@@ -5209,7 +5209,7 @@ do inv=1,nprobes
 		write(97,*)y/scaler
 	end do
 	close(96)
-	
+
 	if (dimensiona.eq.3)then
 	open(96,file='GRID.vrt',form='formatted',status='old',action='read')
 	do i=1,imaxn
@@ -5219,8 +5219,8 @@ do inv=1,nprobes
 	close (97)
 	close(96)
         end if
-        
-        
+
+
 	else
 	do i=1,imaxn
 		read(96)j,x
@@ -5234,7 +5234,7 @@ do inv=1,nprobes
 		write(97,*)y/scaler
 	end do
 	close(96)
-	
+
 	if (dimensiona.eq.3)then
 	open(96,file='GRID.vrt',form='unformatted',status='old',action='read')
 	do i=1,imaxn
@@ -5244,13 +5244,13 @@ do inv=1,nprobes
 	close (97)
 	close(96)
         end if
-	
-	
+
+
 	end if
-	
-	
+
+
 	if (binio.eq.0)then
-	
+
 	open(96,file='GRID.cel',form='formatted',status='old',action='read')
 	open(97,file=outfile,form='formatted',status='old',action='write',position='append')
 	if (dimensiona.eq.3)then
@@ -5282,20 +5282,20 @@ do inv=1,nprobes
 	end if
 	close(96)
 	close(97)
-	
+
 	end if
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
+
+
+
+
+
+
+
+
+
+
                                     open(97,file=outfile,form='formatted',status='old',action='write',position='append')
-                                    
+
                                     if (binio.eq.0)open(96,file='GRID.vrt',form='formatted',status='old',action='read')
                                     if (binio.eq.1)open(96,file='GRID.vrt',form='unformatted',status='old',action='read')
                                     write(97,*)'TITLE="GRID"'
@@ -5306,9 +5306,9 @@ do inv=1,nprobes
                                     else
                                     write(97,*)'VARIABLES="x","y"'
                                     write(97,*)'Zone N=',imaxn,',E=',1,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
-                                    
+
                                     end if
-                                    
+
 					    if (binio.eq.0)then
                                             do i=1,imaxn
                                                     read(96,*)j,x
@@ -5322,7 +5322,7 @@ do inv=1,nprobes
                                                     write(97,*)y/scaler
                                             end do
                                             close(96)
-                                            
+
                                             if (dimensiona.eq.3)then
                                             open(96,file='GRID.vrt',form='formatted',status='old',action='read')
                                             do i=1,imaxn
@@ -5345,7 +5345,7 @@ do inv=1,nprobes
                                                     write(97,*)y/scaler
                                             end do
                                             close(96)
-                                            
+
                                             if (dimensiona.eq.3)then
                                             open(96,file='GRID.vrt',form='unformatted',status='old',action='read')
                                             do i=1,imaxn
@@ -5355,11 +5355,11 @@ do inv=1,nprobes
                                             close (97)
                                             close(96)
                                             end if
-                                            
+
                                             end if
-                                            
-                    
-											
+
+
+
 
 
 
@@ -5403,35 +5403,35 @@ do inv=1,nprobes
                                             end if
                                             close(96)
                                             close(97)
-					     
-					     
+
+
 					     end if
-                                    
-                                    
-                                    
-                                    
-                                    
-				
+
+
+
+
+
+
 				      do ismp=1,typesten
 					elementss=0
-					
+
 					if ((ismp.eq.1).or.(ees.ne.5))then
 					itarget=ielem_inumneighbours(probei(n,inv))
 					else
 					itarget=numneighbours2
 					end if
-        
-					
-					
-					
+
+
+
+
 					do  l=2,itarget
                                             if (ilocalstencil(n,probei(n,inv),ismp,l).gt.0)then
-                                                     elementss= elementss+1 
+                                                     elementss= elementss+1
                                             end if
                                         end do
-                                        
+
                                             if (elementss+1.eq.itarget)then
-                                                                                     
+
                                             open(97,file=outfile,form='formatted',status='old',action='write',position='append')
                                     if (binio.eq.0)open(96,file='GRID.vrt',form='formatted',status='old',action='read')
                                     if (binio.eq.1)open(96,file='GRID.vrt',form='unformatted',status='old',action='read')
@@ -5443,9 +5443,9 @@ do inv=1,nprobes
                                     else
                                     write(97,*)'VARIABLES="x","y"'
                                     write(97,*)'Zone N=',imaxn,',E=',elementss,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
-                                    
+
                                     end if
-                                    
+
 					    if (binio.eq.0)then
                                             do i=1,imaxn
                                                     read(96,*)j,x
@@ -5459,7 +5459,7 @@ do inv=1,nprobes
                                                     write(97,*)y/scaler
                                             end do
                                             close(96)
-                                            
+
                                             if (dimensiona.eq.3)then
                                             open(96,file='GRID.vrt',form='formatted',status='old',action='read')
                                             do i=1,imaxn
@@ -5482,7 +5482,7 @@ do inv=1,nprobes
                                                     write(97,*)y/scaler
                                             end do
                                             close(96)
-                                            
+
                                             if (dimensiona.eq.3)then
                                             open(96,file='GRID.vrt',form='unformatted',status='old',action='read')
                                             do i=1,imaxn
@@ -5492,17 +5492,17 @@ do inv=1,nprobes
                                             close (97)
                                             close(96)
                                             end if
-                                            
-                                            
+
+
                                             end if
-                                            
-                                                                                        
+
+
                                             do  l=2,itarget
-                                            	if (ilocalstencil(n,probei(n,inv),ismp,l).gt.0)then
-                                            	if (binio.eq.0)then
-                                            	 open(96,file='GRID.cel',form='formatted',status='old',action='read')
+	if (ilocalstencil(n,probei(n,inv),ismp,l).gt.0)then
+	if (binio.eq.0)then
+	 open(96,file='GRID.cel',form='formatted',status='old',action='read')
                                             open(97,file=outfile,form='formatted',status='old',action='write',position='append')
-                                            
+
                                                     if (dimensiona.eq.3)then
                                                         do i=1,imaxe
                                                             read(96,*)ix,i5,i6,i8,i7,i1,i2,i4,i3
@@ -5523,7 +5523,7 @@ do inv=1,nprobes
 						else
 						 open(96,file='GRID.cel',form='unformatted',status='old',action='read')
                                             open(97,file=outfile,form='formatted',status='old',action='write',position='append')
-                                            
+
                                                     if (dimensiona.eq.3)then
                                                         do i=1,imaxe
                                                             read(96)ix,i5,i6,i8,i7,i1,i2,i4,i3
@@ -5541,21 +5541,21 @@ do inv=1,nprobes
                                                     end if
                                             close(96)
                                             close(97)
-						
-						
+
+
 						end if
                                                 end if
                                             end do
-					   
+
 					  end if
 					end do
-				      
+
 				   end if
-				  
-				  
-				  
+
+
+
 			    end do
- 			  
+
 
 end if
 
@@ -5605,7 +5605,7 @@ kmaxe=xmpielrank(n)
 	      if ((ibound_icode(ielem_ibounds(l,i)).eq.4).or.(ibound_icode(ielem_ibounds(l,i)).eq.99))then
 	  countwall = countwall + 1
 	      end if
-	      
+
 	end if
     end do
     end if
@@ -5698,7 +5698,7 @@ do i = 1,countwallglobal
 ! find distance from element barycenter to the nearest wall for this block.
 kmaxe=xmpielrank(n)
 do i=1,kmaxe
-	    distance=tolbig 
+	    distance=tolbig
 	    ielem_walltrans(i)=0.0
 		do k = 1,countwallglobal
 	      if ( distance .gt. (sqrt(((dwallbnd(k)%wallx-ielem_xxc(i))**2) &
@@ -5712,7 +5712,7 @@ do i=1,kmaxe
 		 if (ielem_walldist(i).lt.hybridist)then
 		    ielem_hybrid(i)=1
 		 end if
-		
+
 	      end if
 	end do
 end do
@@ -6251,7 +6251,7 @@ kmaxe=xmpielrank(n)
 	      if ((ibound_icode(ielem_ibounds(l,i)).eq.4).or.(ibound_icode(ielem_ibounds(l,i)).eq.99))then
 	  countwall = countwall + 1
 	      end if
-	       
+
 	end if
     end do
     end if
@@ -6292,7 +6292,7 @@ end do
 end if
  close(10)
 
- 
+
 allocate(dwallvrt(imaxn))
 if (binio.eq.0)open(11,file=vrtfile,form='formatted',status='old',action='read')
 if (binio.eq.1)open(11,file=vrtfile,form='unformatted',status='old',action='read')
@@ -6312,7 +6312,7 @@ end if
 do i = 1,countwallglobal
 
 	wl1 = dwallbnd(i)%wb1 ;wl2 = dwallbnd(i)%wb2 ;wl3 = dwallbnd(i)%wb3 ;wl4 = dwallbnd(i)%wb4 ;
-	
+
 	dwallbnd(i)%wallx=(dwallvrt(wl1)%wnx+dwallvrt(wl2)%wnx)/2.0
 	dwallbnd(i)%wally=(dwallvrt(wl1)%wny+dwallvrt(wl2)%wny)/2.0
 	if (transition_model.eq.1)then
@@ -6324,17 +6324,17 @@ do i = 1,countwallglobal
 	else
 	    dwallbnd(i)%walltrans=0.0
 	end if
-	
 
 
-	
+
+
 end do
 
 
 ! find distance from element barycenter to the nearest wall for this block.
 kmaxe=xmpielrank(n)
 do i=1,kmaxe
-	    distance=tolbig 
+	    distance=tolbig
 	    ielem_walltrans(i)=0.0
 		do k = 1,countwallglobal
 	      if ( distance .gt. (sqrt(((dwallbnd(k)%wallx-ielem_xxc(i))**2) &
@@ -6343,11 +6343,11 @@ do i=1,kmaxe
 			       +((dwallbnd(k)%wally-ielem_yyc(i))**2))
 			ielem_walldist(i) = distance
 			ielem_walltrans(i) = dwallbnd(k)%walltrans
-		
+
 		 if (ielem_walldist(i).lt.hybridist)then
 		    ielem_hybrid(i)=1
 		 end if
-		
+
 	      end if
 	end do
 
@@ -6371,7 +6371,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 
 integer::kmaxe,kk,kfk,icpuid,l,ihgt,ihgj,kkd
 integer,dimension(70)::ivalid
@@ -6396,14 +6396,14 @@ real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
       integer:: icellmax,jcellmax,kcellmax,nfconns,fnmode,shrconn
       pointer   (nullptr,null)
       integer:: null(*)
-     
+
 
 inquire (file='surf.plt',exist=herev)
 
@@ -6445,7 +6445,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 deallocate(inog)
 end if
@@ -6494,7 +6494,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 
 nullptr = 0
@@ -6552,7 +6552,7 @@ ierr =  tecini112('simple dataset'//nulchar, &
 
 
 
-	
+
     allocate(xbin(igf2))
     allocate(ybin(igf2))
     allocate(zbin(igf2))
@@ -6562,43 +6562,43 @@ ierr =  tecini112('simple dataset'//nulchar, &
 	if (binio.eq.0)then
         do i=1,imaxn
 	read(96,*)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	zbin(igf2)=z/scaler
+	zbin(igf2)=z/scaler
 	end if
 	end do
 	else
 	 do i=1,imaxn
 	read(96)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	zbin(igf2)=z/scaler
+	zbin(igf2)=z/scaler
 	end if
 	end do
-	
+
 	end if
 
     close(96)
 
 
     ierr = tecdat112(igf2,xbin,1)  !!! why not xbin instead of xbin(1) ??
-   
+
     ierr = tecdat112(igf2,ybin,1)
 
      ierr = tecdat112(igf2,zbin,1)
-   
+
     deallocate(xbin,ybin,zbin)
-    
+
     if (binio.eq.0)open(98,file='GRID.bnd',form='formatted',status='old',action='read')
     if (binio.eq.1)open(98,file='GRID.bnd',form='unformatted',status='old',action='read')
 	  allocate(icon(4,totwalls))
@@ -6607,44 +6607,44 @@ ierr =  tecini112('simple dataset'//nulchar, &
 		igf2=0
 		if (binio.eq.0)then
 		do k=1,imaxb
-               
- 		read(98,*)igf,i,j,l,m,o
+
+		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		end do
 		else
 		do k=1,imaxb
-               
- 		read(98)igf,i,j,l,m,o
+
+		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		end do
-		
+
 		end if
-	    
- 		close(98)
+
+		close(98)
 		ierr = tecnod112(icon)
 		!ierr = tecnod112(icon)
-		deallocate(icon)	
+		deallocate(icon)
 		deallocate(inog)
-         
-        
+
+
   ierr = tecend112()
 
 
@@ -6655,13 +6655,13 @@ end if
 
 
 	call mpi_barrier(mpi_comm_world,ierror)
-	
-	
-	end if
-	
 
-	
-	
+
+	end if
+
+
+
+
 
 end subroutine outwritegridbs
 
@@ -6679,7 +6679,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -6701,17 +6701,17 @@ real,allocatable,dimension(:,:)::fbin
 integer,allocatable,dimension(:,:)::icon
 integer,allocatable,dimension(:)::valuelocation,inog
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
       integer:: icellmax,jcellmax,kcellmax,nfconns,fnmode,shrconn
       pointer   (nullptr,null)
       integer:: null(*)
-     
+
 
 inquire (file='surf.plt',exist=herev)
 
@@ -6757,7 +6757,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 deallocate(inog)
 end if
@@ -6807,7 +6807,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 	open(97,file='surf.plt',form='formatted',status='new',action='write')
 	write(97,*)'TITLE="GRID"'
@@ -6821,7 +6821,7 @@ itotalb=igf2
 
 
 
-	
+
     allocate(xbin(igf2))
     allocate(ybin(igf2))
     allocate(zbin(igf2))
@@ -6830,14 +6830,14 @@ itotalb=igf2
 	igf2=0
         do i=1,imaxn
 	read(96,*)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	zbin(igf2)=z/scaler
+	zbin(igf2)=z/scaler
 	end if
 	end do
 
@@ -6847,29 +6847,29 @@ itotalb=igf2
 	igf2=0
         do i=1,imaxn
 	read(96)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	zbin(igf2)=z/scaler
+	zbin(igf2)=z/scaler
 	end if
 	end do
 
     close(96)
-      
-      
+
+
       end if
 
-    
+
 	write(97,*)xbin(1:igf2)
 	write(97,*)ybin(1:igf2)
 	write(97,*)zbin(1:igf2)
-    
-   
-   
+
+
+
     deallocate(xbin,ybin,zbin)
     if (binio.eq.0)open(98,file='GRID.bnd',form='formatted',status='old',action='read')
     if (binio.eq.1)open(98,file='GRID.bnd',form='unformatted',status='old',action='read')
@@ -6879,49 +6879,49 @@ itotalb=igf2
 		igf2=0
 		if (binio.eq.0)then
 		do k=1,imaxb
-               
- 		read(98,*)igf,i,j,l,m,o
+
+		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		end do
 		else
 		do k=1,imaxb
-               
- 		read(98)igf,i,j,l,m,o
+
+		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		end do
-		
+
 		end if
-	    
- 		close(98)
- 		
- 		do i=1,igf2
- 		write(97,*)icon(1:4,i)
- 		end do
- 		
-	
-		deallocate(icon)	
+
+		close(98)
+
+		do i=1,igf2
+		write(97,*)icon(1:4,i)
+		end do
+
+
+		deallocate(icon)
 		deallocate(inog)
-         
+
         close(97)
-  
+
 end if
 
 
@@ -6929,13 +6929,13 @@ end if
 
 
 	call mpi_barrier(mpi_comm_world,ierror)
-	
-	
-	end if
-	
 
-	
-	
+
+	end if
+
+
+
+
 
 end subroutine outwritegrids
 
@@ -6953,7 +6953,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -6975,17 +6975,17 @@ real,allocatable,dimension(:,:)::fbin
 integer,allocatable,dimension(:,:)::icon
 integer,allocatable,dimension(:)::valuelocation,inog
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
       integer:: icellmax,jcellmax,kcellmax,nfconns,fnmode,shrconn
       pointer   (nullptr,null)
       integer:: null(*)
-     
+
 
 inquire (file='surf.plt',exist=herev)
 
@@ -7003,7 +7003,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 else
@@ -7012,7 +7012,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 end if
@@ -7024,7 +7024,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 deallocate(inog)
 end if
@@ -7050,7 +7050,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 else
@@ -7059,7 +7059,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 
@@ -7072,7 +7072,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 open(97,file='surf.plt',form='formatted',status='new',action='write')
 write(97,*)'TITLE="GRID"'
@@ -7086,7 +7086,7 @@ write(97,*)'TITLE="GRID"'
 
 
 
-	
+
     allocate(xbin(igf2))
     allocate(ybin(igf2))
 	if (binio.eq.0)then
@@ -7094,14 +7094,14 @@ write(97,*)'TITLE="GRID"'
 	igf2=0
         do i=1,imaxn
 	read(96,*)j,x,y
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	
+
 	end if
 	end do
 
@@ -7111,28 +7111,28 @@ write(97,*)'TITLE="GRID"'
 	igf2=0
         do i=1,imaxn
 	read(96,*)j,x,y
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	
+
 	end if
 	end do
 
     close(96)
-      
+
       end if
 
-    
+
 	write(97,*)xbin(1:igf2)
 	write(97,*)ybin(1:igf2)
-	
-    
-   
-   
+
+
+
+
     deallocate(xbin,ybin)
     if (binio.eq.0)open(98,file='GRID.bnd',form='formatted',status='old',action='read')
     if (binio.eq.1)open(98,file='GRID.bnd',form='unformatted',status='old',action='read')
@@ -7142,43 +7142,43 @@ write(97,*)'TITLE="GRID"'
 		igf2=0
 		if (binio.eq.0)then
 		do k=1,imaxb
-               
- 		read(98,*)igf,i,j,l,m,o
+
+		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
-		  
-    
+
+
 		end if
 		end do
 		else
 		do k=1,imaxb
-               
- 		read(98)igf,i,j,l,m,o
+
+		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
-		  
-    
+
+
 		end if
 		end do
-		
+
 		end if
-	    
- 		close(98)
- 		
- 		do i=1,igf2
- 		write(97,*)icon(1:2,i)
- 		end do
- 		
-	
-		deallocate(icon)	
+
+		close(98)
+
+		do i=1,igf2
+		write(97,*)icon(1:2,i)
+		end do
+
+
+		deallocate(icon)
 		deallocate(inog)
-         
+
         close(97)
-  
+
 end if
 
 
@@ -7186,13 +7186,13 @@ end if
 
 
 	call mpi_barrier(mpi_comm_world,ierror)
-	
-	
-	end if
-	
 
-	
-	
+
+	end if
+
+
+
+
 
 end subroutine outwritegrids2d
 
@@ -7210,7 +7210,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -7232,17 +7232,17 @@ real,allocatable,dimension(:,:)::fbin
 integer,allocatable,dimension(:,:)::icon
 integer,allocatable,dimension(:)::valuelocation,inog
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
       integer:: icellmax,jcellmax,kcellmax,nfconns,fnmode,shrconn
       pointer   (nullptr,null)
       integer:: null(*)
-     
+
 
 inquire (file='surf.plt',exist=herev)
 
@@ -7260,7 +7260,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 else
@@ -7269,7 +7269,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 
@@ -7282,7 +7282,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 deallocate(inog)
 end if
@@ -7308,7 +7308,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 else
@@ -7317,7 +7317,7 @@ do i=1,imaxb
 	if (o.eq.4)then
 	inog(k)=1
 	inog(j)=1
-	
+
 	end if
 end do
 
@@ -7330,7 +7330,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 
 nullptr = 0
@@ -7388,23 +7388,23 @@ ierr =  tecini112('simple dataset'//nulchar, &
 
 
 
-	
+
     allocate(xbin(igf2))
     allocate(ybin(igf2))
-   
+
 	if (binio.eq.0)then
 	open(96,file='GRID.vrt',form='formatted',status='old',action='read')
 	igf2=0
         do i=1,imaxn
 	read(96,*)j,x,y
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	
+
 	end if
 	end do
 
@@ -7414,27 +7414,27 @@ ierr =  tecini112('simple dataset'//nulchar, &
 	igf2=0
         do i=1,imaxn
 	read(96)j,x,y
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
-      
+
 	xbin(igf2)=x/scaler
 	ybin(igf2)=y/scaler
- 	
+
 	end if
 	end do
 
     close(96)
-      
+
       end if
 
     ierr = tecdat112(igf2,xbin,1)  !!! why not xbin instead of xbin(1) ??
-   
+
     ierr = tecdat112(igf2,ybin,1)
 
-    
-   
+
+
     deallocate(xbin,ybin)
     if (binio.eq.0)open(98,file='GRID.bnd',form='formatted',status='old',action='read')
     if (binio.eq.1)open(98,file='GRID.bnd',form='unformatted',status='old',action='read')
@@ -7444,42 +7444,42 @@ ierr =  tecini112('simple dataset'//nulchar, &
 		igf2=0
 		if (binio.eq.0)then
 		do k=1,imaxb
-               
- 		read(98,*)igf,i,j,l,m,o
+
+		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
-		 
-    
+
+
 		end if
     !cv=cv+4
-        	
+
 		end do
 		else
 		do k=1,imaxb
-               
- 		read(98)igf,i,j,l,m,o
+
+		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
-		 
-    
+
+
 		end if
     !cv=cv+4
-        	
+
 		end do
-		
+
 		end if
-	    
- 		close(98)
+
+		close(98)
 		ierr = tecnod112(icon)
 		!ierr = tecnod112(icon)
-		deallocate(icon)	
+		deallocate(icon)
 		deallocate(inog)
-         
-        
+
+
   ierr = tecend112()
 
 
@@ -7490,13 +7490,13 @@ end if
 
 
 	call mpi_barrier(mpi_comm_world,ierror)
-	
-	
-	end if
-	
 
-	
-	
+
+	end if
+
+
+
+
 
 end subroutine outwritegridbs2d
 
@@ -7522,29 +7522,29 @@ real::mp_pinfr,gammar
 
 
 
-if (n.eq.0)then 
+if (n.eq.0)then
 
 icpuid=n
 	kk=0
 	write(proc3,fmt='(i10)') ixxff
 	outfile='GRID.dat'
 ! 	outfile='out.'//trim(adjustl(proc3))
-	
-	
+
+
 	if (binio.eq.0)then
-	
-	
+
+
 	open(97,file=outfile,form='formatted',status='new',action='write')
 	open(96,file='GRID.vrt',form='formatted',status='old',action='read')
-	
-	
+
+
 	write(97,*)'TITLE="GRID"'
 	write(97,*)'filetype=grid'
 	write(97,*)'VARIABLES="x","y","z"'
 	write(97,*)'Zone N=',imaxn,',E=',imaxe,',ZONETYPE = FEBRICK,','DATAPACKING = BLOCK'
-	
-	
-	
+
+
+
 	do i=1,imaxn
 		read(96,*)j,x
 		write(97,*)x/scaler
@@ -7568,15 +7568,15 @@ icpuid=n
 	else
 	open(97,file=outfile,form='formatted',status='new',action='write')
 	open(96,file='GRID.vrt',form='unformatted',status='old',action='read')
-	
-	
+
+
 	write(97,*)'TITLE="GRID"'
 	write(97,*)'filetype=grid'
 	write(97,*)'VARIABLES="x","y","z"'
 	write(97,*)'Zone N=',imaxn,',E=',imaxe,',ZONETYPE = FEBRICK,','DATAPACKING = BLOCK'
-	
-	
-	
+
+
+
 	do i=1,imaxn
 		read(96)j,x
 		write(97,*)x/scaler
@@ -7596,8 +7596,8 @@ icpuid=n
 	end do
 	close (97)
 	close(96)
-	
-	
+
+
 	end if
 	if (binio.eq.0)then
 	open(96,file='GRID.cel',form='formatted',status='old',action='read')
@@ -7617,7 +7617,7 @@ icpuid=n
 	end do
 	close(96)
 	close(97)
-	
+
 	end if
 end if
 end subroutine outwritegrid
@@ -7644,27 +7644,27 @@ real::mp_pinfr,gammar
 
 
 
-if (n.eq.0)then 
+if (n.eq.0)then
 
 icpuid=n
 	kk=0
 	write(proc3,fmt='(i10)') ixxff
 	outfile='GRID.dat'
 ! 	outfile='out.'//trim(adjustl(proc3))
-	
-	
+
+
 	if (binio.eq.0)then
 	open(97,file=outfile,form='formatted',status='new',action='write')
 	open(96,file='GRID.vrt',form='formatted',status='old',action='read')
-	
-	
+
+
 	write(97,*)'TITLE="GRID"'
 	write(97,*)'filetype=grid'
 	write(97,*)'VARIABLES="x","y"'
 	write(97,*)'Zone N=',imaxn,',E=',imaxe,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
-	
-	
-	
+
+
+
 	do i=1,imaxn
 		read(96,*)j,x
 		write(97,*)x/scaler
@@ -7677,21 +7677,21 @@ icpuid=n
 		write(97,*)y/scaler
 	end do
 	close(96)
-	
+
 	close (97)
 	else
-	
+
 	open(97,file=outfile,form='formatted',status='new',action='write')
 	open(96,file='GRID.vrt',form='unformatted',status='old',action='read')
-	
-	
+
+
 	write(97,*)'TITLE="GRID"'
 	write(97,*)'filetype=grid'
 	write(97,*)'VARIABLES="x","y"'
 	write(97,*)'Zone N=',imaxn,',E=',imaxe,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
-	
-	
-	
+
+
+
 	do i=1,imaxn
 		read(96)j,x
 		write(97,*)x/scaler
@@ -7704,10 +7704,10 @@ icpuid=n
 		write(97,*)y/scaler
 	end do
 	close(96)
-	
+
 	close (97)
 
-	end if	
+	end if
 	if (binio.eq.0)then
 	open(96,file='GRID.cel',form='formatted',status='old',action='read')
 	open(97,file=outfile,form='formatted',status='old',action='write',position='append')
@@ -7726,9 +7726,9 @@ icpuid=n
 	end do
 	close(96)
 	close(97)
-	
+
 	end if
-	
+
 end if
 end subroutine outwritegrid2d
 
@@ -7745,7 +7745,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -7768,10 +7768,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype,iloop
       integer:: zonetype,strandid,parentzn,isblock
@@ -7783,20 +7783,20 @@ character*1 nulchar
 
 
  kmaxe=xmpielrank(n)
-! ! 
+! !
 ! dumg=totiw
 ! call mpi_barrier(mpi_comm_world,ierror)
-! 
+!
 ! call mpi_allreduce(dumg,duml,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
 ! imaxp=duml
-! 
+!
 ! allocate(icell(imaxp))
 ! icell=0
-! 
+!
 ! iloop=0
-! 
+!
 ! ! if (totiw.gt.0)then
-! !     
+! !
 ! !    do i=1,totiw
 ! ! 	k=ibound_t(i)
 ! ! 	do i1=k,k
@@ -7825,21 +7825,21 @@ character*1 nulchar
 !    end if
 ! end do
 ! end if
-! 
+!
 ! if (n.eq.0)then
 ! 	allocate(icella(imaxp*isize))
 ! 	 icella=0
-! 
+!
 ! end if
-! 
+!
 ! call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_world,ierror)
-! 
+!
 ! ! if (n.eq.0)then
 ! ! write(1000+n,*)icella(:)
-! ! 
-! ! 
+! !
+! !
 ! ! end if
-! 
+!
 ! call mpi_barrier(mpi_comm_world,ierror)
 ! deallocate (icell)
 
@@ -7879,9 +7879,9 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-  
-  
-  
+
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=6+passivescalar
@@ -7894,7 +7894,7 @@ if (itestcase.le.2)then
                     debug, &
                     visdouble)
      else
-     
+
      if (n.eq.0)ierr =  tecini112('sols'//nulchar, &
                     'density,u,v,w,energy,pressure'//nulchar, &
                     out1//nulchar, &
@@ -7902,9 +7902,9 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-     
-     
-     
+
+
+
      end if
  end if
  if (itestcase.eq.4)then
@@ -7936,7 +7936,7 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -7965,18 +7965,18 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -8036,21 +8036,21 @@ valuelocation(:)=0
                     shrconn)
 
 
- 
+
   allocate(xbin(totwalls),xbin2(totwalls))
-	
+
 
  else
  allocate(xbin2(1))
 
  end if
- 
+
   totiw=xmpiwall(n)
 !   if (xmpiwall(n).gt.0)then
   allocate(valuess(xmpiwall(n)))
 !   end if
     call mpi_barrier(mpi_comm_world,ierror)
-   
+
 if (itestcase.le.2)then
 					  if (totiw.gt.0)then
 					  do i=1,totiw
@@ -8059,8 +8059,8 @@ if (itestcase.le.2)then
 					  end if
 
 
-		      
-    
+
+
     call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8070,7 +8070,7 @@ if (itestcase.le.2)then
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,5
 					  if (totiw.gt.0)then
@@ -8084,20 +8084,20 @@ if (itestcase.le.2)then
 !                                                 else
 !                                                 valuess(i)=ielem_dih(kkd,ibound_t(i))
 !                                                 end if
-                                                
+
 						valuess(i)=u_c_val(1,kkd,ibound_t(i))
 						if ((kkd.ge.2).and.(kkd.le.4))then
 						valuess(i)=u_c_val(1,kkd,ibound_t(i))/u_c_val(1,1,ibound_t(i))
-						end if	
+						end if
 
-                                               
+
 
 					  enddo
 					  end if
-		
-		     
-		
-		
+
+
+
+
 		call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8107,36 +8107,36 @@ if (itestcase.le.2)then
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
 		end do
-    
+
 					if (totiw.gt.0)then
 					  do i=1,totiw
-                                                
-                                                
-                                                
-                                                
-                                               
-					  
-                                            
+
+
+
+
+
+
+
 						leftv(1:nof_variables)=u_c_val(1,1:nof_variables,ibound_t(i))
 						call cons2prim(n,leftv,mp_pinfl,gammal)
 						valuess(i)=leftv(5)
-                                                
+
                                                ! if (ielem_ishape(ibound_t(i)).eq.1)then
-                                                        
+
                                                 !        valuess(i)=ielem_dih(6,ibound_t(i))
-                                                
+
                                                 !else
 
                                                  !       valuess(i)=0.0d0
                                                ! end if
 
-						
+
 					  enddo
 					  end if
-		     
-    
-    
-    
+
+
+
+
 		call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8145,20 +8145,20 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-    
+
 		  if (passivescalar.gt.0)then
 					  if (totiw.gt.0)then
 					  do i=1,totiw
 						valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,ibound_t(i))
-												
+
 					  enddo
 					  end if
-		  
-		  
-		  
-		  
-		  	  
-		  
+
+
+
+
+
+
 		 call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8167,29 +8167,29 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
-		  
+
+
 		  if (totiw.gt.0)then
 					  do i=1,totiw
 						valuess(i)=ielem_vortex(1,ibound_t(i))
-												
+
 					  enddo
 					  end if
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
 ! 		  do i=1,kmaxe
 ! 		      valuess(i)=ielem_vortex(1,i)
 ! 		  end do
-		  
-		  
+
+
 		 call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8198,21 +8198,21 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
-		  
+
+
 		   if (totiw.gt.0)then
 					  do i=1,totiw
 						valuess(i)=u_ct_val(1,kkd,ibound_t(i))
-												
+
 					  enddo
 					  end if
-		  
-		  
-		  
-				  
+
+
+
+
 		   call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8221,39 +8221,39 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		
+
 		  end do
 		  end if
-		  
-		  
-		  
+
+
+
 		  do kkd=1,3
-		  
+
 				      if (totiw.gt.0)then
 					  do i=1,totiw
-						
+
 					 iconsidered=ibound_t(i)
 					 facex=ibound_t2(i)
 					select case(kkd)
 					 case(1)
-					 
+
 					 call shear_x(iconsidered,facex,shear_temp)
 					 case (2)
 
 					 call shear_y(iconsidered,facex,shear_temp)
-					
+
                                         case(3)
 					 call shear_z(iconsidered,facex,shear_temp)
 					 end select
-				       		valuess(i)=shear_temp					
+						valuess(i)=shear_temp
 					  enddo
 					  end if
-		  
-		  
-		  
-		  
-		  
-				  
+
+
+
+
+
+
 		  call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8262,20 +8262,20 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		
+
 		  end do
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -8303,7 +8303,6 @@ if (itestcase.le.2)then
 
 
 
-  
 
 
 
@@ -8311,12 +8310,13 @@ if (itestcase.le.2)then
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
+
 
 end subroutine outwrite3vsb
 
@@ -8333,7 +8333,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -8356,10 +8356,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype,iloop
       integer:: zonetype,strandid,parentzn,isblock
@@ -8371,20 +8371,20 @@ character*1 nulchar
 
 
  kmaxe=xmpielrank(n)
-! 
+!
 totiw=xmpiwall(n)
 ! call mpi_barrier(mpi_comm_world,ierror)
-! 
+!
 ! call mpi_allreduce(dumg,duml,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
 ! imaxp=duml
-! 
+!
 ! allocate(icell(imaxp))
 ! icell=0
-! 
+!
 ! iloop=0
 
 ! if (totiw.gt.0)then
-!     
+!
 !    do i=1,totiw
 ! 	k=ibound_t(i)
 ! 	do i1=k,k
@@ -8400,7 +8400,7 @@ totiw=xmpiwall(n)
 !   enddo
 ! end if
 ! if (totiw.gt.0)then
-! 
+!
 ! do i=1,kmaxe
 !   if (ielem_interior(i).eq.1)then
 ! 	do j=1,ielem_ifca(i)
@@ -8414,19 +8414,19 @@ totiw=xmpiwall(n)
 !    end if
 ! end do
 ! end if
-! 
+!
 ! if (n.eq.0)then
 ! 	allocate(icella(imaxp*isize))
 ! 	 icella=0
-! 
+!
 ! end if
-! 
+!
 ! call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_world,ierror)
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 ! call mpi_barrier(mpi_comm_world,ierror)
@@ -8468,9 +8468,9 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-  
-  
-  
+
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=6+passivescalar
@@ -8483,7 +8483,7 @@ if (itestcase.le.2)then
                     debug, &
                     visdouble)
      else
-     
+
      if (n.eq.0)ierr =  tecini112('sols'//nulchar, &
                     'density,u,v,energy,pressure'//nulchar, &
                     out1//nulchar, &
@@ -8491,9 +8491,9 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-     
-     
-     
+
+
+
      end if
  end if
  if (itestcase.eq.4)then
@@ -8525,7 +8525,7 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -8554,18 +8554,18 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -8625,9 +8625,9 @@ valuelocation(:)=0
                     shrconn)
 
 
- 
+
   allocate(xbin(totwalls),xbin2(totwalls))
-	
+
 
  else
  allocate(xbin2(1))
@@ -8638,21 +8638,21 @@ valuelocation(:)=0
 !   if (xmpiwall(n).gt.0)then
   allocate(valuess(xmpiwall(n)))
 !   end if
-    
-   
+
+
 if (itestcase.le.2)then
-		     
+
 					  if (totiw.gt.0)then
 					  do i=1,totiw
 						valuess(i)=u_c_val(1,1,ibound_t(i))
 					  enddo
 					  end if
-    
-    
-     
-    
-    
-    
+
+
+
+
+
+
      call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8662,7 +8662,7 @@ if (itestcase.le.2)then
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,4
 		     if (totiw.gt.0)then
@@ -8670,16 +8670,16 @@ if (itestcase.le.2)then
 						valuess(i)=u_c_val(1,kkd,ibound_t(i))
 							    if ((kkd.ge.2).and.(kkd.le.3))then
 			      valuess(i)=u_c_val(1,kkd,ibound_t(i))/u_c_val(1,1,ibound_t(i))
-			      end if	
-						
-						
+			      end if
+
+
 					  enddo
 		  end if
-		
-		
-		      
-		
-		
+
+
+
+
+
 		 call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8688,20 +8688,20 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		
+
 		end do
-    
+
 		      if (totiw.gt.0)then
 					  do i=1,totiw
 					  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,ibound_t(i))
 				    call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(i)=leftv(4)
-					end do	
-			      end if	
-			
-    
-    
-    
+					end do
+			      end if
+
+
+
+
 		 call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8710,22 +8710,22 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		
-    
+
+
 		  if (passivescalar.gt.0)then
-		  
+
 		  if (totiw.gt.0)then
 					  do i=1,totiw
 					valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,ibound_t(i))
-					end do	
-			      end if	
-		  
-		  
-		   
-		  
-		  
-		  	  
-		  
+					end do
+			      end if
+
+
+
+
+
+
+
 		  call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8734,26 +8734,26 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  if (totiw.gt.0)then
 					  do i=1,totiw
 					valuess(i)=ielem_vortex(1,ibound_t(i))
-					end do	
-			      end if	
-		 
-		  
-		  
-		  
+					end do
+			      end if
+
+
+
+
 ! 		  do i=1,kmaxe
 ! 		      valuess(i)=ielem_vortex(1,i)
 ! 		  end do
-		  
-		  
+
+
 		   call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8762,17 +8762,17 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 		   if (totiw.gt.0)then
 					  do i=1,totiw
 					valuess(i)=u_ct_val(1,kkd,ibound_t(i))
-					end do	
+					end do
 			      end if
-		  
-		  
-				  
+
+
+
 		   call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8783,9 +8783,9 @@ if (itestcase.le.2)then
 		end if
 		end do
 		  end if
-		  
-		  
-		  
+
+
+
 		  do kkd=1,2
 			    if (totiw.gt.0)then
 					  do i=1,totiw
@@ -8793,18 +8793,18 @@ if (itestcase.le.2)then
 					  facex=ibound_t2(i)
 					  select case(kkd)
 					 case(1)
-					 
+
 					 call shear_x2d(iconsidered,facex,shear_temp)
 					 case (2)
 					 call shear_y2d(iconsidered,facex,shear_temp)
-					 
+
 					 end select
 					valuess(i)=shear_temp
-					end do	
+					end do
 			      end if
-		 
-		  
-				  
+
+
+
 		  call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -8813,18 +8813,18 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
 		  end do
-		  
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -8838,11 +8838,10 @@ if (itestcase.le.2)then
   ierr = tecend112()
   deallocate(xbin,valuelocation,out1)
   end if
-  
+
 !   if (totiw.gt.0)then
   deallocate (valuess,xbin2)
 !   end if
-  
 
 
 
@@ -8854,7 +8853,6 @@ if (itestcase.le.2)then
 
 
 
-  
 
 
 
@@ -8862,12 +8860,14 @@ if (itestcase.le.2)then
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
+
+
 
 end subroutine outwrite3vsb2d
 
@@ -8885,7 +8885,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -8908,10 +8908,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype,iloop
       integer:: zonetype,strandid,parentzn,isblock
@@ -8922,7 +8922,7 @@ integer::iconsidered,facex
       real::shear_temp
 
  kmaxe=xmpielrank(n)
-! 
+!
 dumg=totiw
 call mpi_barrier(mpi_comm_world,ierror)
 
@@ -8935,7 +8935,7 @@ icell=0
 iloop=0
 
 ! if (totiw.gt.0)then
-!     
+!
 !    do i=1,totiw
 ! 	k=ibound_t(i)
 ! 	do i1=k,k
@@ -8975,8 +8975,8 @@ call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_worl
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,ierror)
@@ -9014,7 +9014,7 @@ end if
 
 
 
-		
+
    if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
@@ -9029,22 +9029,22 @@ end if
 
 if (itestcase.le.2)then
   nvar1=1
-  
-  
+
+
    if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="solution"'
 	write(97,*) 'Zone N=',itotalb,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
-  
+
  end if
  if (itestcase.eq.3)then
  nvar1=6+passivescalar
   if (passivescalar.gt.0)then
- 
-                    
-                    
+
+
+
                     if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
@@ -9053,8 +9053,8 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
   end if
      else
-     
-     
+
+
      if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure"'
@@ -9062,16 +9062,16 @@ if (itestcase.le.2)then
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED)'
   end if
-     
-     
+
+
      end if
  end if
  if (itestcase.eq.4)then
  nvar1=10+passivescalar+turbulenceequations
 	    if (passivescalar.gt.0)then
 	      if (turbulenceequations.eq.2)then
-	      
-                    
+
+
                     if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","K","OMEGA","VORTEX","ssx","ssy","ssz"'
@@ -9080,12 +9080,12 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED,[9] = CELLCENTERED,'
 	write(97,*) '[10] = CELLCENTERED, [11] = CELLCENTERED,[12] = CELLCENTERED,[13] = CELLCENTERED)'
   end if
-                    
-                    
-                    
+
+
+
               end if
               if (turbulenceequations.eq.1)then
-              
+
                       if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","MU","VORTEX","ssx","ssy","ssz"'
@@ -9096,7 +9096,7 @@ if (itestcase.le.2)then
   end if
               end if
               if (turbulenceequations.eq.0)then
-              
+
                 if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","VORTEX","ssx","ssy","ssz"'
@@ -9108,7 +9108,7 @@ if (itestcase.le.2)then
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
-	      
+
                       if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","K","OMEGA","VORTEX","ssx","ssy","ssz"'
@@ -9119,7 +9119,7 @@ if (itestcase.le.2)then
   end if
               end if
               if (turbulenceequations.eq.1)then
-              
+
                       if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","m","VORTEX","ssx","ssy","ssz"'
@@ -9130,7 +9130,7 @@ if (itestcase.le.2)then
   end if
               end if
               if (turbulenceequations.eq.0)then
-         
+
                if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","VORTEX","ssx","ssy","ssz"'
@@ -9140,16 +9140,16 @@ if (itestcase.le.2)then
 	write(97,*) '[10] = CELLCENTERED)'
   end if
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -9160,7 +9160,7 @@ allocate (valuelocation(nvar1))
 
 
 
-     
+
 
 valuelocation(:)=0
 
@@ -9168,7 +9168,7 @@ valuelocation(:)=0
 
 
 
- 
+
 
 
  allocate(valuesa(imaxp*isize))
@@ -9180,11 +9180,11 @@ valuelocation(:)=0
   call mpi_barrier(mpi_comm_world,ierror)
   allocate(valuess(imaxp))
   valuess=0.0
-    
-   
+
+
 if (itestcase.le.2)then
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
@@ -9192,7 +9192,7 @@ if (itestcase.le.2)then
 				end if
 		      end do
 		      end if
-    
+
     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
     if (n.eq.0)then
@@ -9202,31 +9202,31 @@ if (itestcase.le.2)then
 	end if
     end do
     write(97,*)xbin(1:totwalls)
-    
+
     end if
 
-     
+
     call mpi_barrier(mpi_comm_world,ierror)
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,5
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				    valuess(icount_wall)=u_c_val(1,kkd,ibound_which(i))
 				if ((kkd.ge.2).and.(kkd.le.4))then
 		  valuess(icount_wall)=u_c_val(1,kkd,ibound_which(i))/u_c_val(1,1,ibound_which(i))
-		  end if	
+		  end if
 				end if
 		      end do
 		      end if
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-		 
+
 		if (n.eq.0)then
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -9236,26 +9236,26 @@ if (itestcase.le.2)then
 		 write(97,*)xbin(1:totwalls)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
-    
-    
+
+
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_variables)=u_c_val(1,1:nof_variables,ibound_which(i))
 				    call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(icount_wall)=leftv(5)
-				  
+
 				end if
 		      end do
 		      end if
-    
-    
-    
+
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -9267,24 +9267,24 @@ if (itestcase.le.2)then
 		 write(97,*)xbin(1:totwalls)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
-    
+
 		  if (passivescalar.gt.0)then
 		   if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=u_ct_val(1,turbulenceequations+passivescalar,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-		  
-		  	  
-		  
+
+
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -9296,32 +9296,32 @@ if (itestcase.le.2)then
 		   write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=ielem_vortex(1,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-		  
-		  
+
+
+
 ! 		  do i=1,kmaxe
 ! 		      valuess(i)=ielem_vortex(1,i)
 ! 		  end do
-		  
-		  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -9333,24 +9333,24 @@ if (itestcase.le.2)then
 		   write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=u_ct_val(1,kkd,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-				  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -9362,17 +9362,17 @@ if (itestcase.le.2)then
 		   write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,3
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
@@ -9380,21 +9380,21 @@ if (itestcase.le.2)then
 					 facex=ibound_face(i)
 					select case(kkd)
 					 case(1)
-					 
+
 					 call shear_x(iconsidered,facex,shear_temp)
 					 case (2)
 					 call shear_y(iconsidered,facex,shear_temp)
 					 case(3)
 					 call shear_z(iconsidered,facex,shear_temp)
 					 end select
-				       		valuess(icount_wall)=shear_temp		
-				       
-				  
+						valuess(icount_wall)=shear_temp
+
+
 				end if
 		      end do
 		      end if
-		  
-				  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -9406,21 +9406,21 @@ if (itestcase.le.2)then
 		   write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -9431,12 +9431,12 @@ if (itestcase.le.2)then
 !    end if
 
   if (n.eq.0)then
-  
+
   deallocate(xbin,valuesa,valuelocation,icella)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
 
 
@@ -9456,12 +9456,12 @@ if (itestcase.le.2)then
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
 
 end subroutine outwrite3vs
 
@@ -9478,7 +9478,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -9501,10 +9501,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype,iloop
       integer:: zonetype,strandid,parentzn,isblock
@@ -9515,7 +9515,7 @@ integer::iconsidered,facex
       real::shear_temp
 
  kmaxe=xmpielrank(n)
-! 
+!
 dumg=totiw
 call mpi_barrier(mpi_comm_world,ierror)
 
@@ -9528,7 +9528,7 @@ icell=0
 iloop=0
 
 ! if (totiw.gt.0)then
-!     
+!
 !    do i=1,totiw
 ! 	k=ibound_t(i)
 ! 	do i1=k,k
@@ -9568,8 +9568,8 @@ call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_worl
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,ierror)
@@ -9598,7 +9598,7 @@ write(proc3,fmt='(i10)') it
 ! 	out1=out1//char(0)
 
 	open(97,file=outfile,form='formatted',status='new',action='write')
-	
+
 
 
 
@@ -9609,22 +9609,22 @@ end if
 
 if (itestcase.le.2)then
   nvar1=1
-  
+
                     if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="solution"'
 	write(97,*) 'Zone N=',itotalb,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
- 
-  
-  
+
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=6+passivescalar
   if (passivescalar.gt.0)then
- 
-                    
+
+
                      if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","energy","Pressure","passivescalar"'
@@ -9647,9 +9647,9 @@ if (itestcase.le.2)then
 !                     filetype, &
 !                     debug, &
 !                     visdouble)
-     
-     
-     
+
+
+
      end if
  end if
  if (itestcase.eq.4)then
@@ -9664,7 +9664,7 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	write(97,*) '[9] = CELLCENTERED, [10] = CELLCENTERED, [11] = CELLCENTERED)'
   end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                    if (n.eq.0)then
@@ -9675,7 +9675,7 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	write(97,*) '[9] = CELLCENTERED, [10] = CELLCENTERED)'
   end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                if (n.eq.0)then
@@ -9686,8 +9686,8 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	write(97,*) '[9] = CELLCENTERED)'
   end if
-              
-              
+
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -9716,7 +9716,7 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	write(97,*) '[9] = CELLCENTERED)'
   end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                       if (n.eq.0)then
@@ -9725,21 +9725,21 @@ if (itestcase.le.2)then
 	write(97,*) 'Zone N=',itotalb,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED)'
-	
+
   end if
-              
-              
+
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -9808,11 +9808,11 @@ valuelocation(:)=0
   call mpi_barrier(mpi_comm_world,ierror)
   allocate(valuess(imaxp))
   valuess=0.0
-    
-   
+
+
 if (itestcase.le.2)then
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
@@ -9820,7 +9820,7 @@ if (itestcase.le.2)then
 				end if
 		      end do
 		      end if
-    
+
     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
     if (n.eq.0)then
@@ -9833,28 +9833,28 @@ if (itestcase.le.2)then
 !     ierr = tecdat112(totwalls,xbin,1)
     end if
 
-     
+
     call mpi_barrier(mpi_comm_world,ierror)
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,4
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				    valuess(icount_wall)=u_c_val(1,kkd,ibound_which(i))
 				if ((kkd.ge.2).and.(kkd.le.3))then
 		  valuess(icount_wall)=u_c_val(1,kkd,ibound_which(i))/u_c_val(1,1,ibound_which(i))
-		  end if	
+		  end if
 				end if
 		      end do
 		      end if
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-		 
+
 		if (n.eq.0)then
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -9864,26 +9864,26 @@ if (itestcase.le.2)then
 		write(97,*)xbin(1:totwalls)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
-    
-    
+
+
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_variables)=u_c_val(1,1:nof_variables,ibound_which(i))
 				    call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(icount_wall)=leftv(4)
-				  
+
 				end if
 		      end do
 		      end if
-    
-    
-    
+
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -9895,24 +9895,24 @@ if (itestcase.le.2)then
 		write(97,*)xbin(1:totwalls)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
-    
+
 		  if (passivescalar.gt.0)then
 		   if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=u_ct_val(1,turbulenceequations+passivescalar,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-		  
-		  	  
-		  
+
+
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -9924,32 +9924,32 @@ if (itestcase.le.2)then
 		  write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=ielem_vortex(1,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-		  
-		  
+
+
+
 ! 		  do i=1,kmaxe
 ! 		      valuess(i)=ielem_vortex(1,i)
 ! 		  end do
-		  
-		  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -9961,24 +9961,24 @@ if (itestcase.le.2)then
 		  write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=u_ct_val(1,kkd,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-				  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -9990,17 +9990,17 @@ if (itestcase.le.2)then
 		  write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,2
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
@@ -10008,20 +10008,20 @@ if (itestcase.le.2)then
 					 facex=ibound_face(i)
 					select case(kkd)
 					 case(1)
-					 
+
 					 call shear_x2d(iconsidered,facex,shear_temp)
 					 case (2)
 					 call shear_y2d(iconsidered,facex,shear_temp)
-					 
+
 					 end select
-				       		valuess(icount_wall)=shear_temp		
-				       
-				  
+						valuess(icount_wall)=shear_temp
+
+
 				end if
 		      end do
 		      end if
-		  
-				  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -10033,21 +10033,21 @@ if (itestcase.le.2)then
 		  write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -10058,12 +10058,12 @@ if (itestcase.le.2)then
 !    end if
 
   if (n.eq.0)then
- 
+
   deallocate(xbin,valuesa,valuelocation,icella)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
 
 
@@ -10083,12 +10083,12 @@ if (itestcase.le.2)then
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
 
 end subroutine outwrite3vs2d
 
@@ -10107,7 +10107,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -10130,10 +10130,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -10168,7 +10168,7 @@ write(proc3,fmt='(i10)') it
 	allocate(character(len=itgfd) ::out1)
 	out1=outfile(1:itgfd)
 ! 	out1=out1//char(0)
-	
+
 
 end if
 call mpi_barrier(mpi_comm_world,ierror)
@@ -10181,15 +10181,15 @@ call mpi_barrier(mpi_comm_world,ierror)
                     filetype, &
                     debug, &
                     visdouble)
-  
-  
-  
- 
 
-	
 
-	
-	
+
+
+
+
+
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -10204,9 +10204,9 @@ allocate (valuelocation(nvar1))
       jmax    = imaxe
       kmax    = 0
       ZONETYPE = 5
-      
+
       soltime = t
-      
+
       strandid = 1
       parentzn = 0
       isblock = 1
@@ -10219,7 +10219,7 @@ allocate (valuelocation(nvar1))
 
 valuelocation(:)=0
 
- 
+
 
 
 
@@ -10246,24 +10246,24 @@ valuelocation(:)=0
                     shrconn)
 
 
- 
+
   allocate(xbin(imaxe),xbin2(imaxe))
-	
+
 
  end if
 
-  
+
   allocate(valuess(kmaxe))
   valuess=zero
-    
-   
 
-	      
-	      
 
-    
-    
-    		do kkd=1,5
+
+
+
+
+
+
+		do kkd=1,5
 		do i=1,kmaxe
 		  valuess(i)=u_c_val(ind1,kkd,i)
 		  if ((kkd.ge.2).and.(kkd.le.4))then
@@ -10273,12 +10273,12 @@ valuelocation(:)=0
 		   leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
-		  
+
 		  end if
-		  
+
 		end do
-		
-		
+
+
 		call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -10287,16 +10287,16 @@ valuelocation(:)=0
 		end do
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
-		
+
 		end do
 		do kkd=1,6
 
-    		do i=1,kmaxe
+		do i=1,kmaxe
 
 		  valuess(i)=u_c_rms(kkd,i)
 		end do
-		
-		
+
+
 		call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -10306,24 +10306,24 @@ valuelocation(:)=0
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
 		end do
-    
-		  
-    
-    
-      
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
   if (n.eq.0)then
   ierr = tecend112()
   deallocate(xbin,valuelocation,out1,xbin2)
   end if
-  
+
   deallocate (valuess,variables)
 
   call mpi_barrier(mpi_comm_world,ierror)
@@ -10336,8 +10336,8 @@ valuelocation(:)=0
 
 
 
-	
-	
+
+
 
 end subroutine outwrite3vbav
 
@@ -10353,7 +10353,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -10376,10 +10376,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -10414,8 +10414,8 @@ call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_worl
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,ierror)
@@ -10444,7 +10444,7 @@ write(proc3,fmt='(i10)') it
 	allocate(character(len=itgfd) ::out1)
 	out1=outfile(1:itgfd)
 ! 	out1=out1//char(0)
-	
+
 
 end if
 call mpi_barrier(mpi_comm_world,ierror)
@@ -10457,15 +10457,15 @@ call mpi_barrier(mpi_comm_world,ierror)
                     filetype, &
                     debug, &
                     visdouble)
-  
-  
-  
- 
 
-	
 
-	
-	
+
+
+
+
+
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -10480,9 +10480,9 @@ allocate (valuelocation(nvar1))
       jmax    = imaxe
       kmax    = 0
       ZONETYPE = 3
-      
+
       soltime = t
-      
+
       strandid = 1
       parentzn = 0
       isblock = 1
@@ -10495,7 +10495,7 @@ allocate (valuelocation(nvar1))
 
 valuelocation(:)=0
 
- 
+
 
 
 
@@ -10531,14 +10531,14 @@ valuelocation(:)=0
   call mpi_barrier(mpi_comm_world,ierror)
   allocate(valuess(imaxp))
   valuess=zero
-    
-
-	      
 
 
-    
-    
-    		do kkd=1,4
+
+
+
+
+
+		do kkd=1,4
 		do i=1,kmaxe
 		  valuess(i)=u_c_rms(kkd,i)
 		  if ((kkd.ge.2).and.(kkd.le.3))then
@@ -10548,14 +10548,14 @@ valuelocation(:)=0
 		   leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(4)
-		  
+
 		  end if
-		  
+
 		end do
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-		 
+
 		if (n.eq.0)then
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -10565,16 +10565,16 @@ valuelocation(:)=0
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
 		do kkd=1,3
-    		do i=1,kmaxe
-		  
+		do i=1,kmaxe
+
 		  valuess(i)=u_c_val(5,kkd,i)
 		end do
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -10586,29 +10586,29 @@ valuelocation(:)=0
 		ierr = tecdat112(imaxe,xbin,1)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
-    
-		  
-    
-    
-      
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
   if (n.eq.0)then
   ierr = tecend112()
   deallocate(xbin,valuesa,valuelocation,icella)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
   call mpi_barrier(mpi_comm_world,ierror)
 
@@ -10618,13 +10618,13 @@ valuelocation(:)=0
 
 
 
-         
-        
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 end subroutine outwrite3vb2dav
 
@@ -10642,7 +10642,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -10665,10 +10665,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -10703,8 +10703,8 @@ call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_worl
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,ierror)
@@ -10743,17 +10743,17 @@ write(proc3,fmt='(i10)') it
 end if
 call mpi_barrier(mpi_comm_world,ierror)
 
-  
-  
-      
-  
-  
- 
 
-	
 
-	
-	
+
+
+
+
+
+
+
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -10775,13 +10775,13 @@ allocate (valuelocation(nvar1))
   call mpi_barrier(mpi_comm_world,ierror)
   allocate(valuess(imaxp))
   valuess=zero
-    
-   
 
 
-    
-    
-    		do kkd=1,5
+
+
+
+
+		do kkd=1,5
 		do i=1,kmaxe
 		  valuess(i)=u_c_rms(kkd,i)
 		  if ((kkd.ge.2).and.(kkd.le.4))then
@@ -10791,14 +10791,14 @@ allocate (valuelocation(nvar1))
 		   leftv(1:nof_variables)=u_c_val(5,1:nof_variables,i)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
-		  
+
 		  end if
-		  
+
 		end do
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-		 
+
 		if (n.eq.0)then
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -10808,16 +10808,16 @@ allocate (valuelocation(nvar1))
 		write(97,*)xbin(1:imaxe)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
 		do kkd=1,6
-    		do i=1,kmaxe
-		  
+		do i=1,kmaxe
+
 		  valuess(i)=u_c_val(5,kkd,i)
 		end do
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -10829,28 +10829,28 @@ allocate (valuelocation(nvar1))
 		write(97,*)xbin(1:imaxe)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
-    
-		  
-    
-    
-      
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
   if (n.eq.0)then
   deallocate(xbin,valuesa,valuelocation,icella)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
   call mpi_barrier(mpi_comm_world,ierror)
 
@@ -10860,13 +10860,13 @@ allocate (valuelocation(nvar1))
 
 
 
-         
-        
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 end subroutine outwrite3vav
 
@@ -10882,7 +10882,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -10905,10 +10905,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -10943,8 +10943,8 @@ call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_worl
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,ierror)
@@ -10979,7 +10979,7 @@ end if
 call mpi_barrier(mpi_comm_world,ierror)
 
 
-  
+
   if (n.eq.0)then
         write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="r_mean","u_mean","v_mean","p_mean","u_rms","v_rms","uv"'
@@ -10990,16 +10990,16 @@ call mpi_barrier(mpi_comm_world,ierror)
 
 
   nvar1=7
-  
-  
-  
-  
- 
 
-	
 
-	
-	
+
+
+
+
+
+
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -11014,9 +11014,9 @@ allocate (valuelocation(nvar1))
       jmax    = imaxe
       kmax    = 0
       ZONETYPE = 3
-      
+
       soltime = t
-      
+
       strandid = 1
       parentzn = 0
       isblock = 1
@@ -11029,7 +11029,7 @@ allocate (valuelocation(nvar1))
 
 valuelocation(:)=0
 
- 
+
 
 
 
@@ -11045,13 +11045,13 @@ valuelocation(:)=0
   call mpi_barrier(mpi_comm_world,ierror)
   allocate(valuess(imaxp))
   valuess=zero
-    
-   
 
 
-    
-    
-    		do kkd=1,4
+
+
+
+
+		do kkd=1,4
 		do i=1,kmaxe
 		  valuess(i)=u_c_val(5,kkd,i)
 		  if ((kkd.ge.2).and.(kkd.le.3))then
@@ -11061,14 +11061,14 @@ valuelocation(:)=0
 		   leftv(1:nof_variables)=u_c_val(5,1:nof_variables,i)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(4)
-		  
+
 		  end if
-		  
+
 		end do
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-		 
+
 		if (n.eq.0)then
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -11078,16 +11078,16 @@ valuelocation(:)=0
 		write(97,*) xbin(1:imaxe)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
 		do kkd=1,3
-    		do i=1,kmaxe
-		  
+		do i=1,kmaxe
+
 		  valuess(i)=u_c_val(5,1,i)
 		end do
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -11099,28 +11099,28 @@ valuelocation(:)=0
 		write(97,*) xbin(1:imaxe)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
-    
-		  
-    
-    
-      
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
   if (n.eq.0)then
   deallocate(xbin,valuesa,valuelocation,icella)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
   call mpi_barrier(mpi_comm_world,ierror)
 
@@ -11130,13 +11130,13 @@ valuelocation(:)=0
 
 
 
-         
-        
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 end subroutine outwrite3v2dav
 
@@ -11154,7 +11154,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -11177,10 +11177,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype,iloop
       integer:: zonetype,strandid,parentzn,isblock
@@ -11191,10 +11191,10 @@ integer::iconsidered,facex
       real::shear_temp
 
  kmaxe=xmpielrank(n)
-! 
+!
 
 ! if (totiw.gt.0)then
-!     
+!
 !    do i=1,totiw
 ! 	k=ibound_t(i)
 ! 	do i1=k,k
@@ -11246,9 +11246,9 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-  
-  
-  
+
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=6+passivescalar
@@ -11261,7 +11261,7 @@ if (itestcase.le.2)then
                     debug, &
                     visdouble)
      else
-     
+
      if (n.eq.0)ierr =  tecini112('sols'//nulchar, &
                     'density,u,v,w,energy,pressure'//nulchar, &
                     out1//nulchar, &
@@ -11269,9 +11269,9 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-     
-     
-     
+
+
+
      end if
  end if
  if (itestcase.eq.4)then
@@ -11303,7 +11303,7 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -11332,18 +11332,18 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -11403,9 +11403,9 @@ valuelocation(:)=0
                     shrconn)
 
 
- 
+
   allocate(xbin(totwalls),xbin2(totwalls))
-	
+
 
  end if
 
@@ -11414,16 +11414,16 @@ valuelocation(:)=0
   allocate(valuess(xmpiwall(n)))
 !   end if
 
-   
+
 if (itestcase.le.2)then
 
-		      
+
 					  if (totiw.gt.0)then
 					  do i=1,totiw
 						valuess(i)=u_c_rms(j,ibound_t(i))
 					  enddo
 					  end if
-    
+
    call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -11433,7 +11433,7 @@ if (itestcase.le.2)then
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,5
 					  if (totiw.gt.0)then
@@ -11441,15 +11441,15 @@ if (itestcase.le.2)then
 						valuess(i)=u_c_val(ind1,kkd,ibound_t(i))
 						if ((kkd.ge.2).and.(kkd.le.4))then
 					      valuess(i)=u_c_val(ind1,kkd,ibound_t(i))/u_c_val(ind1,1,ibound_t(i))
-					      end if	
-						
-						
+					      end if
+
+
 					  enddo
 					  end if
-		
-		
-		
-		
+
+
+
+
 		call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -11459,22 +11459,22 @@ if (itestcase.le.2)then
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
 		end do
-    
+
 					  if (totiw.gt.0)then
 					  do i=1,totiw
 					        leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,ibound_t(i))
-						
+
 						call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(i)=leftv(5)
-						
-						
-						
+
+
+
 					  enddo
 					  end if
-		     
-    
-    
-    
+
+
+
+
 		call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -11483,25 +11483,25 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-    
+
 		  if (passivescalar.gt.0)then
-		  
+
 					if (totiw.gt.0)then
 					  do i=1,totiw
-					        
+
 				    valuess(i)=u_ct_val(ind1,turbulenceequations+passivescalar,ibound_t(i))
-						
-						
-						
+
+
+
 					  enddo
 					  end if
-		  
-		  
-		   
-		  
-		  
-		  	  
-		  
+
+
+
+
+
+
+
 		 call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -11510,33 +11510,33 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  if (totiw.gt.0)then
 					  do i=1,totiw
-					        
+
 				    valuess(i)=ielem_vortex(1,ibound_t(i))
-						
-						
-						
+
+
+
 					  enddo
 					  end if
-		  
-		  
-		  
-		 
-		  
-		  
-		  
+
+
+
+
+
+
+
 ! 		  do i=1,kmaxe
 ! 		      valuess(i)=ielem_vortex(1,i)
 ! 		  end do
-		  
-		  
+
+
 		 call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -11545,24 +11545,24 @@ if (itestcase.le.2)then
 		end do
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
+
 					  if (totiw.gt.0)then
 					  do i=1,totiw
-					        
+
 				    valuess(i)=u_ct_val(ind1,kkd,ibound_t(i))
-						
-						
-						
+
+
+
 					  enddo
 					  end if
-		  
-		  
-		
-		  
-				  
+
+
+
+
+
 		  call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -11573,37 +11573,37 @@ if (itestcase.le.2)then
 		end if
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (itestcase.eq.4)then
 		  do kkd=1,3
-		  
+
 				      if (totiw.gt.0)then
 					  do i=1,totiw
-					        
-				    
-						
+
+
+
 						iconsidered=ibound_t(i)
 					 facex=ibound_t2(i)
 					select case(kkd)
 					 case(1)
-					 
+
 					 call shear_x_av(iconsidered,facex,shear_temp)
 					 case (2)
 					 call shear_y_av(iconsidered,facex,shear_temp)
 					 case(3)
 					 call shear_z_av(iconsidered,facex,shear_temp)
 					 end select
-				       		valuess(i)=shear_temp		
-						
+						valuess(i)=shear_temp
+
 					  enddo
 					  end if
-		  
-		  
-		  
-		  
-		  
-				  
+
+
+
+
+
+
 		  call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -11614,17 +11614,17 @@ if (itestcase.le.2)then
 		end if
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -11638,11 +11638,10 @@ if (itestcase.le.2)then
   ierr = tecend112()
   deallocate(xbin,valuelocation,out1,xbin2)
   end if
-  
+
 !  if (totiw.gt.0)then
   deallocate (valuess)
 !   end if
-  
 
 
 
@@ -11654,7 +11653,6 @@ if (itestcase.le.2)then
 
 
 
- 
 
 
 
@@ -11662,12 +11660,14 @@ if (itestcase.le.2)then
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
+
+
 
 end subroutine outwrite3vsbav
 
@@ -11684,7 +11684,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -11707,10 +11707,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype,iloop
       integer:: zonetype,strandid,parentzn,isblock
@@ -11721,21 +11721,21 @@ integer::iconsidered,facex
       real::shear_temp
 
  kmaxe=xmpielrank(n)
- 
-! 
+
+!
 ! dumg=totiw
 ! call mpi_barrier(mpi_comm_world,ierror)
-! 
+!
 ! call mpi_allreduce(dumg,duml,1,mpi_integer,mpi_max,mpi_comm_world,ierror)
 ! imaxp=duml
-! 
+!
 ! allocate(icell(imaxp))
 ! icell=0
-! 
+!
 ! iloop=0
-! 
+!
 ! ! if (totiw.gt.0)then
-! !     
+! !
 ! !    do i=1,totiw
 ! ! 	k=ibound_t(i)
 ! ! 	do i1=k,k
@@ -11764,21 +11764,21 @@ integer::iconsidered,facex
 !    end if
 ! end do
 ! end if
-! 
+!
 ! if (n.eq.0)then
 ! 	allocate(icella(imaxp*isize))
 ! 	 icella=0
-! 
+!
 ! end if
-! 
+!
 ! call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_world,ierror)
-! 
+!
 ! ! if (n.eq.0)then
-! 
-! ! 
-! ! 
+!
+! !
+! !
 ! ! end if
-! 
+!
 ! call mpi_barrier(mpi_comm_world,ierror)
 ! deallocate (icell)
 
@@ -11818,9 +11818,9 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-  
-  
-  
+
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=6+passivescalar
@@ -11833,7 +11833,7 @@ if (itestcase.le.2)then
                     debug, &
                     visdouble)
      else
-     
+
      if (n.eq.0)ierr =  tecini112('sols'//nulchar, &
                     'density,u,v,energy,pressure'//nulchar, &
                     out1//nulchar, &
@@ -11841,9 +11841,9 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-     
-     
-     
+
+
+
      end if
  end if
  if (itestcase.eq.4)then
@@ -11875,7 +11875,7 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -11904,18 +11904,18 @@ if (itestcase.le.2)then
                     filetype, &
                     debug, &
                     visdouble)
-              
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -11976,7 +11976,7 @@ valuelocation(:)=0
 
 
  allocate(xbin(totwalls),xbin2(totwalls))
-	
+
 
  end if
 
@@ -11984,8 +11984,8 @@ valuelocation(:)=0
 !   if (xmpiwall(n).gt.0)then
   allocate(valuess(xmpiwall(n)))
 !   end if
-    
-   
+
+
 if (itestcase.le.2)then
 
 		      if (totiw.gt.0)then
@@ -11993,15 +11993,15 @@ if (itestcase.le.2)then
 						valuess(i)=u_c_val(5,1,ibound_t(i))
 					  enddo
 					  end if
-		     
-    
+
+
    call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,4
 		      if (totiw.gt.0)then
@@ -12009,19 +12009,19 @@ if (itestcase.le.2)then
 						valuess(i)=u_c_val(5,kkd,ibound_t(i))
 						if ((kkd.ge.2).and.(kkd.le.3))then
 						valuess(i)=u_c_val(5,kkd,ibound_t(i))/u_c_val(5,1,ibound_t(i))
-						end if	
+						end if
 					  enddo
 					  end if
-		     
-		
-		
+
+
+
 		call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
 		end do
-    
+
 		      if (totiw.gt.0)then
 					  do i=1,totiw
 						leftv(1:nof_variables)=u_c_val(5,1:nof_variables,ibound_t(i))
@@ -12029,74 +12029,74 @@ if (itestcase.le.2)then
 					  valuess(i)=leftv(4)
 					  enddo
 					  end if
-		      
-    
-    
-    
+
+
+
+
 		call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-    
+
 		  if (passivescalar.gt.0)then
 		    if (totiw.gt.0)then
 					  do i=1,totiw
-						
-						
+
+
 					  valuess(i)=u_ct_val(5,turbulenceequations+passivescalar,ibound_t(i))
 					  enddo
 					  end if
-		  
-		  
-		  
-		  
-		  	  
-		  
+
+
+
+
+
+
 		 call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
 		   if (totiw.gt.0)then
 					  do i=1,totiw
-						
-						
+
+
 					  valuess(i)=ielem_vortex(1,ibound_t(i))
 					  enddo
 					  end if
-		
-		  
-		  
-		  
+
+
+
+
 ! 		  do i=1,kmaxe
 ! 		      valuess(i)=ielem_vortex(1,i)
 ! 		  end do
-		  
-		  
+
+
 		  call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
 		ierr = tecdat112(totwalls,xbin,1)
 		end if
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 					  if (totiw.gt.0)then
 					  do i=1,totiw
-						
-						
+
+
 					  valuess(i)=u_ct_val(5,kkd,ibound_t(i))
 					  enddo
 					  end if
-		  
-		  
-				  
+
+
+
 		 call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -12104,8 +12104,8 @@ if (itestcase.le.2)then
 		end if
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,2
 				      if (totiw.gt.0)then
@@ -12114,20 +12114,20 @@ if (itestcase.le.2)then
 					 facex=ibound_t2(i)
 					select case(kkd)
 					 case(1)
-					 
+
 					 call shear_x2d_av(iconsidered,facex,shear_temp)
 					 case (2)
 					 call shear_y2d_av(iconsidered,facex,shear_temp)
-					 
+
 					 end select
-				       		valuess(i)=shear_temp		
-						
-					  
+						valuess(i)=shear_temp
+
+
 					  enddo
 					  end if
-		 
-		  
-				  
+
+
+
 		  call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -12135,17 +12135,17 @@ if (itestcase.le.2)then
 		end if
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -12159,7 +12159,7 @@ if (itestcase.le.2)then
   ierr = tecend112()
   deallocate(xbin,valuelocation,out1,xbin2)
   end if
-  
+
 !   if (totiw.gt.0)then
   deallocate (valuess)
 !   end if
@@ -12169,12 +12169,12 @@ if (itestcase.le.2)then
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
 
 end subroutine outwrite3vsb2dav
 
@@ -12191,7 +12191,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -12214,10 +12214,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype,iloop
       integer:: zonetype,strandid,parentzn,isblock
@@ -12228,7 +12228,7 @@ integer::iconsidered,facex
       real::shear_temp
 
  kmaxe=xmpielrank(n)
-! 
+!
 dumg=totiw
 call mpi_barrier(mpi_comm_world,ierror)
 
@@ -12241,7 +12241,7 @@ icell=0
 iloop=0
 
 ! if (totiw.gt.0)then
-!     
+!
 !    do i=1,totiw
 ! 	k=ibound_t(i)
 ! 	do i1=k,k
@@ -12281,8 +12281,8 @@ call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_worl
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,ierror)
@@ -12320,7 +12320,7 @@ end if
 
 
 
-		
+
    if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
@@ -12335,22 +12335,22 @@ end if
 
 if (itestcase.le.2)then
   nvar1=1
-  
-  
+
+
    if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="solution"'
 	write(97,*) 'Zone N=',itotalb,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
-  
+
  end if
  if (itestcase.eq.3)then
  nvar1=6+passivescalar
   if (passivescalar.gt.0)then
- 
-                    
-                    
+
+
+
                     if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar"'
@@ -12359,8 +12359,8 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED)'
   end if
      else
-     
-     
+
+
      if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure"'
@@ -12368,16 +12368,16 @@ if (itestcase.le.2)then
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED)'
   end if
-     
-     
+
+
      end if
  end if
  if (itestcase.eq.4)then
  nvar1=10+passivescalar+turbulenceequations
 	    if (passivescalar.gt.0)then
 	      if (turbulenceequations.eq.2)then
-	      
-                    
+
+
                     if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","K","OMEGA","VORTEX","ssx","ssy","ssz"'
@@ -12386,12 +12386,12 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED,[7] = CELLCENTERED,[8] = CELLCENTERED,[9] = CELLCENTERED,'
 	write(97,*) '[10] = CELLCENTERED, [11] = CELLCENTERED,[12] = CELLCENTERED,[13] = CELLCENTERED)'
   end if
-                    
-                    
-                    
+
+
+
               end if
               if (turbulenceequations.eq.1)then
-              
+
                       if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","MU","VORTEX","ssx","ssy","ssz"'
@@ -12402,7 +12402,7 @@ if (itestcase.le.2)then
   end if
               end if
               if (turbulenceequations.eq.0)then
-              
+
                 if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","passivescalar","VORTEX","ssx","ssy","ssz"'
@@ -12414,7 +12414,7 @@ if (itestcase.le.2)then
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
-	      
+
                       if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","K","OMEGA","VORTEX","ssx","ssy","ssz"'
@@ -12425,7 +12425,7 @@ if (itestcase.le.2)then
   end if
               end if
               if (turbulenceequations.eq.1)then
-              
+
                       if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","m","VORTEX","ssx","ssy","ssz"'
@@ -12436,7 +12436,7 @@ if (itestcase.le.2)then
   end if
               end if
               if (turbulenceequations.eq.0)then
-         
+
                if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","W","energy","Pressure","VORTEX","ssx","ssy","ssz"'
@@ -12446,16 +12446,16 @@ if (itestcase.le.2)then
 	write(97,*) '[10] = CELLCENTERED)'
   end if
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -12466,7 +12466,7 @@ allocate (valuelocation(nvar1))
 
 
 
-     
+
 
 valuelocation(:)=0
 
@@ -12474,7 +12474,7 @@ valuelocation(:)=0
 
 
 
- 
+
 
 
  allocate(valuesa(imaxp*isize))
@@ -12486,11 +12486,11 @@ valuelocation(:)=0
   call mpi_barrier(mpi_comm_world,ierror)
   allocate(valuess(imaxp))
   valuess=0.0
-    
-   
+
+
 if (itestcase.le.2)then
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
@@ -12498,7 +12498,7 @@ if (itestcase.le.2)then
 				end if
 		      end do
 		      end if
-    
+
     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
     if (n.eq.0)then
@@ -12508,31 +12508,31 @@ if (itestcase.le.2)then
 	end if
     end do
     write(97,*)xbin(1:totwalls)
-    
+
     end if
 
-     
+
     call mpi_barrier(mpi_comm_world,ierror)
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,5
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				    valuess(icount_wall)=u_c_val(5,kkd,ibound_which(i))
 				if ((kkd.ge.2).and.(kkd.le.4))then
 		  valuess(icount_wall)=u_c_val(5,kkd,ibound_which(i))/u_c_val(5,1,ibound_which(i))
-		  end if	
+		  end if
 				end if
 		      end do
 		      end if
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-		 
+
 		if (n.eq.0)then
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -12542,26 +12542,26 @@ if (itestcase.le.2)then
 		 write(97,*)xbin(1:totwalls)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
-    
-    
+
+
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_variables)=u_c_val(5,1:nof_variables,ibound_which(i))
 				    call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(icount_wall)=leftv(5)
-				  
+
 				end if
 		      end do
 		      end if
-    
-    
-    
+
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -12573,24 +12573,24 @@ if (itestcase.le.2)then
 		 write(97,*)xbin(1:totwalls)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
-    
+
 		  if (passivescalar.gt.0)then
 		   if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=u_ct_val(5,turbulenceequations+passivescalar,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-		  
-		  	  
-		  
+
+
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -12602,32 +12602,32 @@ if (itestcase.le.2)then
 		   write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=ielem_vortex(1,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-		  
-		  
+
+
+
 ! 		  do i=1,kmaxe
 ! 		      valuess(i)=ielem_vortex(1,i)
 ! 		  end do
-		  
-		  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -12639,24 +12639,24 @@ if (itestcase.le.2)then
 		   write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=u_ct_val(5,kkd,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-				  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -12668,17 +12668,17 @@ if (itestcase.le.2)then
 		   write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,3
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
@@ -12686,21 +12686,21 @@ if (itestcase.le.2)then
 					 facex=ibound_face(i)
 					select case(kkd)
 					 case(1)
-					 
+
 					 call shear_x_av(iconsidered,facex,shear_temp)
 					 case (2)
 					 call shear_y_av(iconsidered,facex,shear_temp)
 					 case(3)
 					 call shear_z_av(iconsidered,facex,shear_temp)
 					 end select
-				       		valuess(icount_wall)=shear_temp		
-				       
-				  
+						valuess(icount_wall)=shear_temp
+
+
 				end if
 		      end do
 		      end if
-		  
-				  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -12712,21 +12712,21 @@ if (itestcase.le.2)then
 		   write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -12737,12 +12737,12 @@ if (itestcase.le.2)then
 !    end if
 
   if (n.eq.0)then
-  
+
   deallocate(xbin,valuesa,valuelocation,icella)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
 
 
@@ -12762,12 +12762,12 @@ if (itestcase.le.2)then
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
 
 end subroutine outwrite3vsav
 
@@ -12784,7 +12784,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -12807,10 +12807,10 @@ integer,allocatable,dimension(:)::valuelocation,inog,icell,icella
 real,allocatable,dimension(:)::valuess,valuesa
 character(len=:),allocatable::out1
 character*1 nulchar
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype,iloop
       integer:: zonetype,strandid,parentzn,isblock
@@ -12821,7 +12821,7 @@ character*1 nulchar
 integer::iconsidered,facex
 
  kmaxe=xmpielrank(n)
-! 
+!
 dumg=totiw
 call mpi_barrier(mpi_comm_world,ierror)
 
@@ -12834,7 +12834,7 @@ icell=0
 iloop=0
 
 ! if (totiw.gt.0)then
-!     
+!
 !    do i=1,totiw
 ! 	k=ibound_t(i)
 ! 	do i1=k,k
@@ -12874,8 +12874,8 @@ call mpi_gather(icell,imaxp,mpi_integer,icella,imaxp,mpi_integer,0,mpi_comm_worl
 
 ! if (n.eq.0)then
 
-! 
-! 
+!
+!
 ! end if
 
 call mpi_barrier(mpi_comm_world,ierror)
@@ -12904,7 +12904,7 @@ write(proc3,fmt='(i10)') it
 ! 	out1=out1//char(0)
 
 	open(97,file=outfile,form='formatted',status='new',action='write')
-	
+
 
 
 
@@ -12915,22 +12915,22 @@ end if
 
 if (itestcase.le.2)then
   nvar1=1
-  
+
                     if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="solution"'
 	write(97,*) 'Zone N=',itotalb,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED)'
   end if
- 
-  
-  
+
+
+
  end if
  if (itestcase.eq.3)then
  nvar1=6+passivescalar
   if (passivescalar.gt.0)then
- 
-                    
+
+
                      if (n.eq.0)then
 	write(97,*) 'FILETYPE=SOLUTION'
 	write(97,*)'VARIABLES="Density","U","V","energy","Pressure","passivescalar"'
@@ -12953,9 +12953,9 @@ if (itestcase.le.2)then
 !                     filetype, &
 !                     debug, &
 !                     visdouble)
-     
-     
-     
+
+
+
      end if
  end if
  if (itestcase.eq.4)then
@@ -12970,7 +12970,7 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	write(97,*) '[9] = CELLCENTERED, [10] = CELLCENTERED, [11] = CELLCENTERED)'
   end if
-	      
+
               end if
               if (turbulenceequations.eq.1)then
                    if (n.eq.0)then
@@ -12981,7 +12981,7 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	write(97,*) '[9] = CELLCENTERED, [10] = CELLCENTERED)'
   end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                if (n.eq.0)then
@@ -12992,8 +12992,8 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	write(97,*) '[9] = CELLCENTERED)'
   end if
-              
-              
+
+
               end if
 	    else
 	    if (turbulenceequations.eq.2)then
@@ -13022,7 +13022,7 @@ if (itestcase.le.2)then
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED,'
 	write(97,*) '[9] = CELLCENTERED)'
   end if
-              
+
               end if
               if (turbulenceequations.eq.0)then
                       if (n.eq.0)then
@@ -13031,21 +13031,21 @@ if (itestcase.le.2)then
 	write(97,*) 'Zone N=',itotalb,',E=',totwalls,',ZONETYPE = FEQUADRILATERAL,','DATAPACKING = BLOCK'
 	write(97,*) ',VARLOCATION = ([1] = CELLCENTERED,[2] = CELLCENTERED,[3] = CELLCENTERED,[4] = CELLCENTERED,'
 	write(97,*) '[5] = CELLCENTERED, [6] = CELLCENTERED, [7] = CELLCENTERED, [8] = CELLCENTERED)'
-	
+
   end if
-              
-              
+
+
               end if
-	    
-	    
-	    
-	    
+
+
+
+
 	    end if
- 
- 
+
+
  end if
-	
-	
+
+
 
 if (n.eq.0)then
 allocate (valuelocation(nvar1))
@@ -13114,11 +13114,11 @@ valuelocation(:)=0
   call mpi_barrier(mpi_comm_world,ierror)
   allocate(valuess(imaxp))
   valuess=0.0
-    
-   
+
+
 if (itestcase.le.2)then
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
@@ -13126,7 +13126,7 @@ if (itestcase.le.2)then
 				end if
 		      end do
 		      end if
-    
+
     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
     if (n.eq.0)then
@@ -13139,28 +13139,28 @@ if (itestcase.le.2)then
 !     ierr = tecdat112(totwalls,xbin,1)
     end if
 
-     
+
     call mpi_barrier(mpi_comm_world,ierror)
     end if
-    
+
     if (itestcase.ge.3)then
 		do kkd=1,4
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				    valuess(icount_wall)=u_c_val(5,kkd,ibound_which(i))
 				if ((kkd.ge.2).and.(kkd.le.3))then
 		  valuess(icount_wall)=u_c_val(5,kkd,ibound_which(i))/u_c_val(5,1,ibound_which(i))
-		  end if	
+		  end if
 				end if
 		      end do
 		      end if
-		
-		
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-		 
+
 		if (n.eq.0)then
 		do i=1,imaxp*isize
 		    if (icella(i).gt.0)then
@@ -13170,26 +13170,26 @@ if (itestcase.le.2)then
 		write(97,*)xbin(1:totwalls)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 		end do
-    
-    
+
+
 		      if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				    leftv(1:nof_variables)=u_c_val(5,1:nof_variables,ibound_which(i))
 				    call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(icount_wall)=leftv(4)
-				  
+
 				end if
 		      end do
 		      end if
-    
-    
-    
+
+
+
 		call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		if (n.eq.0)then
@@ -13201,24 +13201,24 @@ if (itestcase.le.2)then
 		write(97,*)xbin(1:totwalls)
 		end if
 
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
-    
+
 		  if (passivescalar.gt.0)then
 		   if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=u_ct_val(5,turbulenceequations+passivescalar,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-		  
-		  	  
-		  
+
+
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -13230,32 +13230,32 @@ if (itestcase.le.2)then
 		  write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
-		  
+
+
 		  end if
-    
+
 		  if (itestcase.eq.4)then
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=ielem_vortex(1,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-		  
-		  
+
+
+
 ! 		  do i=1,kmaxe
 ! 		      valuess(i)=ielem_vortex(1,i)
 ! 		  end do
-		  
-		  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -13267,24 +13267,24 @@ if (itestcase.le.2)then
 		  write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
-		  
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
 				       valuess(icount_wall)=u_ct_val(5,kkd,ibound_which(i))
-				  
+
 				end if
 		      end do
 		      end if
-		  
-				  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -13296,17 +13296,17 @@ if (itestcase.le.2)then
 		  write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
 		  end do
 		  end if
-		  
-		  
+
+
 		  if (turbulence.eq.1)then
 		  do kkd=1,2
-		  
+
 		  if (totiw.gt.0)then
-		      icount_wall=0	
+		      icount_wall=0
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
@@ -13314,20 +13314,20 @@ if (itestcase.le.2)then
 					 facex=ibound_face(i)
 					select case(kkd)
 					 case(1)
-					 
+
 					 call shear_x2d_av(iconsidered,facex,shear_temp)
 					 case (2)
 					 call shear_y2d_av(iconsidered,facex,shear_temp)
-					 
+
 					 end select
-				       		valuess(icount_wall)=shear_temp		
-				       
-				  
+						valuess(icount_wall)=shear_temp
+
+
 				end if
 		      end do
 		      end if
-		  
-				  
+
+
 		  call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
 		  if (n.eq.0)then
@@ -13339,21 +13339,21 @@ if (itestcase.le.2)then
 		  write(97,*)xbin(1:totwalls)
 		  end if
 
-		  
+
 		  call mpi_barrier(mpi_comm_world,ierror)
 		  end do
 		  end if
-		  
-		  
-		  
-		  
-		  
-		  
-		  
-		  
+
+
+
+
+
+
+
+
 		  end if
-    
-    
+
+
     end if
 
 
@@ -13364,12 +13364,12 @@ if (itestcase.le.2)then
 !    end if
 
   if (n.eq.0)then
- 
+
   deallocate(xbin,valuesa,valuelocation,icella)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
 
 
@@ -13389,12 +13389,12 @@ if (itestcase.le.2)then
 
 
 
-	
-	
-	
 
-	
-	
+
+
+
+
+
 
 end subroutine outwrite3vs2dav
 
@@ -13421,12 +13421,12 @@ end if
 if (tecplot.eq.0)then		!ascii tecplot
     if (dimensiona.eq.3)then
       call outwritegrid(n)
-  
+
     else
       call outwritegrid2d(n)
 
     end if
-  
+
 end if
 
 if (tecplot.eq.2)then		!binary paraview 3d only
@@ -13435,7 +13435,7 @@ if (tecplot.eq.2)then		!binary paraview 3d only
 
         call outwritepara3db
     else
-    
+
         call outwritepara2db
     end if
 
@@ -13541,7 +13541,7 @@ implicit none
 
 
 
-				  
+
 
 				  if (n.eq.0)then
 				  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
@@ -13550,7 +13550,7 @@ implicit none
 				  end if
 	  if (tecplot.eq.1)then
 				if (dimensiona.eq.3)then
-		
+
 					if (n.eq.0)then
 					  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
 					  write(63,*)"output2",t
@@ -13564,8 +13564,8 @@ implicit none
 					call outwrite3vb
 
 					end if
-					
-					
+
+
 						if (n.eq.0)then
 					  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
 					  write(63,*)"output3",t
@@ -13580,7 +13580,7 @@ implicit none
 
 
 				call outwrite3vb2d
-				
+
 					if (n.eq.0)then
 					  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
 					  write(63,*)"output3",t
@@ -13589,16 +13589,16 @@ implicit none
 				end if
 	end if
 	if (tecplot.eq.0)then
-  			if (dimensiona.eq.3)then
+			if (dimensiona.eq.3)then
 
 				call outwrite3v
 		      else
 
- 				call outwrite3v2d
+				call outwrite3v2d
 		      end if
 
 	end if
-	
+
 	if (tecplot.eq.2)then		!binary paraview 3d only
 	if (dimensiona.eq.3)then
 
@@ -13615,7 +13615,7 @@ implicit none
 
 					end if
     else
-    
+
         call outwritepara2db
     end if
 
@@ -13790,7 +13790,7 @@ end if
 if (tecplot.eq.4)then		!binary paraview 3d only
 
   call outwritetec3dbpav
-  
+
 end if
 
 if (tecplot.eq.5)then
@@ -13998,7 +13998,7 @@ do i=1,nof_interior
 ! 		do l=1,ielem_ifca(i)
 !
 ! 				!write(140,*)ielem_ihexgl(i),l
- 				write(140,*)rec_uleft(1,1,1, i)
+				write(140,*)rec_uleft(1,1,1, i)
 !
 !
 ! 		end do
@@ -14045,28 +14045,28 @@ call mpi_barrier(mpi_comm_world,ierror)
 if (dg.eq.1)then
 allocate(dispt(kmaxe),array2(kmaxe*(nof_variables+turbulenceequations+passivescalar)*(idegfree+1)))
 else
-allocate(dispt(kmaxe),array2(kmaxe*(nof_variables+turbulenceequations+passivescalar)))	
+allocate(dispt(kmaxe),array2(kmaxe*(nof_variables+turbulenceequations+passivescalar)))
 end if
 
      if (dg.eq.1)then
      do i=1,kmaxe
 	dispt(i)=(xgo(i)-1)*((nof_variables+turbulenceequations+passivescalar)*(idegfree+1))
       end do
-      
+
 
       n_end=(nof_variables+turbulenceequations+passivescalar)*(idegfree+1)
-     
+
      else
 
       do i=1,kmaxe
 	dispt(i)=(xgo(i)-1)*((nof_variables+turbulenceequations+passivescalar))
       end do
-      
+
 
       n_end=nof_variables+turbulenceequations+passivescalar
       end if
 
-      
+
       if (dg.eq.1)then
       if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
@@ -14085,9 +14085,9 @@ end if
         end do
 	  end do
       end if
-      
+
       else
-      
+
       if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
 	  do i=1,kmaxe
@@ -14104,40 +14104,40 @@ end if
 	  end do
       end if
       end if
-      
+
 	restfile='RESTART.dat'
 
        if (n.eq.0)then
 	 inquire (file=restfile,exist=here1)
 	  call mpi_file_delete(restfile,mpi_info_null,ierror)
 	end if
-     
+
     call mpi_barrier(mpi_comm_world,ierror)
 
     !create type first of indexed block
-    
+
     call mpi_type_create_indexed_block(kmaxe,n_end,dispt,mpi_double_precision,datatype,ierror)
     call mpi_type_commit(datatype,ierror)
-   
+
 
     allocate(array(1:nof_variables+turbulenceequations+passivescalar))
-    
-    
-	
-   
-	
-	
-	
+
+
+
+
+
+
+
 	!call mpi_barrier(mpi_comm_world,ierror)
 
 	call mpi_file_open(mpi_comm_world, restfile,mpi_mode_wronly + mpi_mode_create,mpi_info_null, fh, ierror)
-	
-	
-	 
-	  
-	
+
+
+
+
+
 	if (n.eq.0)then
-	
+
 	    if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
 	          call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
 		  call mpi_file_write(fh, it, 1, mpi_integer, mpi_status_ignore,ierror)
@@ -14147,55 +14147,55 @@ end if
 		    disp_in_file = disp_in_file + size_of_real*(nof_variables+turbulenceequations)	!3
 	    else
 		  call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
-		  
+
 		  call mpi_file_write(fh, it, 1, mpi_integer, mpi_status_ignore, ierror)
 		    disp_in_file = disp_in_file + size_of_int 	!4
-		    
+
 		  call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
-		  
+
 		  call mpi_file_write(fh, t, 1, mpi_double_precision, mpi_status_ignore,ierror)
 		    disp_in_file = disp_in_file + size_of_real    !5
 		      if (initcond.eq.95)then
 		      call mpi_file_seek(fh, disp_in_file, mpi_seek_set,ierror)
 		      call mpi_file_write(fh, taylor, 1, mpi_double_precision, mpi_status_ignore, ierror)
 			    disp_in_file = disp_in_file + size_of_real !6
-		      end if  
+		      end if
 	    end if
 	else
 	      if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
-		disp_in_file = disp_in_file + size_of_int 
+		disp_in_file = disp_in_file + size_of_int
 		disp_in_file = disp_in_file + size_of_real*(nof_variables+turbulenceequations)
 	      else
-		  disp_in_file = disp_in_file + size_of_int 
+		  disp_in_file = disp_in_file + size_of_int
 		  disp_in_file = disp_in_file + size_of_real
 		  if (initcond.eq.95)then
-		  disp_in_file = disp_in_file + size_of_real 
+		  disp_in_file = disp_in_file + size_of_real
 		  end if
 	      end if
-	      
-	      
+
+
 	end if
-	
-	
+
+
 	call mpi_barrier(mpi_comm_world, ierror)
 	call mpi_file_set_view(fh, disp_in_file, mpi_double_precision,datatype, 'native',mpi_info_null, ierror)
-	call mpi_file_write_all(fh, array2, kmaxe*n_end, mpi_double_precision,mpi_status_ignore, ierror)        
-        
+	call mpi_file_write_all(fh, array2, kmaxe*n_end, mpi_double_precision,mpi_status_ignore, ierror)
+
         call mpi_file_close(fh, ierror)
 	call mpi_type_free(datatype,ierror)
-          
 
-	
-	
-	
-	
+
+
+
+
+
 	deallocate(array,dispt,array2)
 	call mpi_barrier(mpi_comm_world, ierror)
-	
-	
 
-	
-	
+
+
+
+
 
 
 end subroutine checkpoint
@@ -14442,11 +14442,11 @@ subroutine partition_preparation_wallv(n)
 	varg_max=max(write_variables_w,write_variables_av_w)
 
 	if (iloopx.gt.0)then
- 	allocate(wdispart1(1:iloopx),wrarray_part1(1:iloopx,1:varg_max))	!
+	allocate(wdispart1(1:iloopx),wrarray_part1(1:iloopx,1:varg_max))	!
 
- 		do i=1,iloopx
- 			wdispart1(i)=(wall_l(i,4)-1)*1
- 		end do
+		do i=1,iloopx
+			wdispart1(i)=(wall_l(i,4)-1)*1
+		end do
 			wpart1_end=1
 	else
 		allocate(wdispart1(1),wrarray_part1(1,1:varg_max))	!
@@ -14461,12 +14461,12 @@ subroutine partition_preparation_wallv(n)
 
 
 	if (iloopx.gt.0)then
- 	allocate(wdispart2(1:iloopx),wiarray_part2(1:typ_countn_w))		!
- 		do i=1,iloopx
- 			wdispart2(i)=nodes_offset_localw(i)
- 		end do
+	allocate(wdispart2(1:iloopx),wiarray_part2(1:typ_countn_w))		!
+		do i=1,iloopx
+			wdispart2(i)=nodes_offset_localw(i)
+		end do
 
- 		wpart2_end=wnodes_part
+		wpart2_end=wnodes_part
 
 
 	else
@@ -14486,12 +14486,12 @@ subroutine partition_preparation_wallv(n)
 
 
 
- 		k=1
- 	  do i=1,iloopx
+		k=1
+	  do i=1,iloopx
 
 		wiarray_part2(k:k+typ_nodesn_w(i)-1)=ielem_nodes_faces_v(wall_l(i,2),1:typ_nodesn_w(i),wall_l(i,1))
 		k=k+typ_nodesn_w(i)
- 	  end do
+	  end do
 
 
     end if
@@ -14543,10 +14543,10 @@ subroutine partition_preparation_wallv(n)
 
 
 
-  	allocate(wdispart4(1:kmaxn_p),wrarray_part4(1:kmaxn_p*temp_cord))		!
-  	wpart4_end=temp_cord
+	allocate(wdispart4(1:kmaxn_p),wrarray_part4(1:kmaxn_p*temp_cord))		!
+	wpart4_end=temp_cord
 
-  	do i=1,kmaxn_p
+	do i=1,kmaxn_p
 			wdispart4(i)=(my_nodesg(i)-1)*(temp_cord)
 		end do
 
@@ -14575,31 +14575,31 @@ end if
 !
 			!now commit datatypes
 
- 				call mpi_type_create_indexed_block(iloopx,wpart1_end,wdispart1,mpi_double_precision,wdatatypex,ierror)
- 				call mpi_type_commit(wdatatypex,ierror)
+				call mpi_type_create_indexed_block(iloopx,wpart1_end,wdispart1,mpi_double_precision,wdatatypex,ierror)
+				call mpi_type_commit(wdatatypex,ierror)
 !
- 				!dummy type for writing one component only from one cpu
- 				call mpi_type_create_indexed_block(wkdum1,wkdum2,wkdum3,mpi_integer,wdatatypeint,ierror)
- 				call mpi_type_commit(wdatatypeint,ierror)
+				!dummy type for writing one component only from one cpu
+				call mpi_type_create_indexed_block(wkdum1,wkdum2,wkdum3,mpi_integer,wdatatypeint,ierror)
+				call mpi_type_commit(wdatatypeint,ierror)
 !
 !
 !
 ! 				!point coordinates
- 				call mpi_type_create_indexed_block(kmaxn_p,wpart4_end,wdispart4,mpi_double_precision,wdatatypez,ierror)
- 				call mpi_type_commit(wdatatypez,ierror)
+				call mpi_type_create_indexed_block(kmaxn_p,wpart4_end,wdispart4,mpi_double_precision,wdatatypez,ierror)
+				call mpi_type_commit(wdatatypez,ierror)
 !
 ! 				!connectivity
 !  				call mpi_type_create_indexed_block(iloopx,typ_nodesn_w(:),wdispart2,mpi_integer,wdatatypey,ierror)
- 				call mpi_type_indexed(iloopx,typ_nodesn_w(:),wdispart2,mpi_integer,wdatatypey,ierror)
- 				call mpi_type_commit(wdatatypey,ierror)
+				call mpi_type_indexed(iloopx,typ_nodesn_w(:),wdispart2,mpi_integer,wdatatypey,ierror)
+				call mpi_type_commit(wdatatypey,ierror)
 !
 ! 				!type of element
- 				call mpi_type_create_indexed_block(iloopx,wpart1_end,wdispart5,mpi_integer,wdatatypexx,ierror)
- 				call mpi_type_commit(wdatatypexx,ierror)
+				call mpi_type_create_indexed_block(iloopx,wpart1_end,wdispart5,mpi_integer,wdatatypexx,ierror)
+				call mpi_type_commit(wdatatypexx,ierror)
 !
 ! 				!nodes
- 				call mpi_type_create_indexed_block(iloopx,wpart3_end,wdispart3,mpi_integer,wdatatypeyy,ierror)
- 				call mpi_type_commit(wdatatypeyy,ierror)
+				call mpi_type_create_indexed_block(iloopx,wpart3_end,wdispart3,mpi_integer,wdatatypeyy,ierror)
+				call mpi_type_commit(wdatatypeyy,ierror)
 !
 !
 !
@@ -14697,7 +14697,7 @@ subroutine partition_preparation(n)
 		do i=1,kmaxe
 ! 			dispart2(i)=(xgo(i)-1)*(nodes_part)
 !  			dispart2(i)=(xgo(i)-1)*(typ_nodesn(i))
- 			dispart2(i)=nodes_offset_local(i)
+			dispart2(i)=nodes_offset_local(i)
 
 		end do
 
@@ -14727,11 +14727,11 @@ subroutine partition_preparation(n)
 
 
 	allocate(dispart3(1:kmaxe),iarray_part3(1:kmaxe))
- 		do i=1,kmaxe
- 			dispart3(i)=(xgo(i)-1)*(1)
+		do i=1,kmaxe
+			dispart3(i)=(xgo(i)-1)*(1)
 
 
- 			if (ielem_ishape(i).eq.1)then	!hexa
+			if (ielem_ishape(i).eq.1)then	!hexa
 				iarray_part3(i)=12
 			end if
 			if (ielem_ishape(i).eq.2)then	!tetra
@@ -14754,7 +14754,7 @@ subroutine partition_preparation(n)
 
 
 
- 		end do
+		end do
 
 		part3_end=1
 
@@ -14914,8 +14914,8 @@ subroutine partition_preparation_p(n)
 
 
 	allocate(type_vtu(1:kmaxe))
- 		do i=1,kmaxe
- 			if (ielem_ishape(i).eq.1)then	!hexa
+		do i=1,kmaxe
+			if (ielem_ishape(i).eq.1)then	!hexa
 				type_vtu(i)=12
 			end if
 			if (ielem_ishape(i).eq.2)then	!tetra
@@ -14935,7 +14935,7 @@ subroutine partition_preparation_p(n)
 			end if
 
 
- 		end do
+		end do
 
 
 
@@ -15632,8 +15632,8 @@ real::mp_pinfr,gammar
 nbytes=1
 
 
- 	size_of_int=4
- 	size_of_real=8
+	size_of_int=4
+	size_of_real=8
 
 offset_temp=0
 disp_in_file=0
@@ -15711,7 +15711,7 @@ temp_cord=3
 											 rarray_part1(i,j)=ielem_diss(i)
 											 end if
 											 end if
-                                        end if        
+                                        end if
                                         end do
                                         if (turbulenceequations.gt.0)then
                                         rarray_part1(i,write_variables)=u_ct_val(1,1,i)
@@ -16050,8 +16050,8 @@ character(len=:),allocatable::vtu
 nbytes=1
 
 
- 	size_of_int=4
- 	size_of_real=8
+	size_of_int=4
+	size_of_real=8
 
 offset_temp=0
 disp_in_file=0
@@ -16070,7 +16070,7 @@ temp_cord=3
 
 ! 						if (n.eq.0)then
                                write(proc3,fmt='(i10)') it
-                               filex="vol_aver"//trim(adjustl(proc3))//".vtu"
+                               filex="VOL_AVER"//trim(adjustl(proc3))//".vtu"
                                itrimm=len_trim(filex)
                                allocate(character(len=itrimm)::vtu)
                                vtu=filex(1:itrimm)
@@ -16411,8 +16411,8 @@ real::mp_pinfr,gammar
 nbytes=1
 
 temp_cord=3
- 	size_of_int=4
- 	size_of_real=8
+	size_of_int=4
+	size_of_real=8
 
 offset_temp=0
 disp_in_file=0
@@ -16773,8 +16773,8 @@ integer::iconsidered,facex
 nbytes=1
 
 temp_cord=3
- 	size_of_int=4
- 	size_of_real=8
+	size_of_int=4
+	size_of_real=8
 
 offset_temp=0
 disp_in_file=0
@@ -17166,8 +17166,8 @@ integer::iconsidered,facex
 nbytes=1
 
 temp_cord=3
- 	size_of_int=4
- 	size_of_real=8
+	size_of_int=4
+	size_of_real=8
 
 offset_temp=0
 disp_in_file=0
@@ -17550,28 +17550,28 @@ real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
 real::mp_pinfr,gammar
 	nbytes=1
-	
+
 	temp_cord=3
 		 size_of_int=4
 		 size_of_real=8
-	
+
 	offset_temp=0
 	disp_in_file=0
 	tmp=0
 	disp_init=0
 	kmaxe=xmpielrank(n)
-	
-	
-	
+
+
+
 	temp_cord=3
-	
 
 
 
-	
-	
-	
-	
+
+
+
+
+
 	! 						if (n.eq.0)then
 								   write(proc3,fmt='(i10)') it
 								   write(proc5,fmt='(i10)') n
@@ -17580,9 +17580,9 @@ real::mp_pinfr,gammar
 								   allocate(character(len=itrimm)::vtu)
 								   vtu=filex(1:itrimm)
 	!                             end if
-	
-	
-	
+
+
+
 		if (movement.eq.1)then
 					k=1
 		  do i=1,kmaxn
@@ -17592,14 +17592,14 @@ real::mp_pinfr,gammar
 			end if
 			k=k+temp_cord
 		  end do
-	
+
 	   end if
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
 					if (dimensiona.eq.3)then
 					do i=1,kmaxe
 					leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)
@@ -17628,23 +17628,23 @@ real::mp_pinfr,gammar
 						end do
 						end if
 					end do
-	
+
 					temp_node=8;temp_dims=3
-	
+
 					end if
-	
-					
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
 	temp_imaxe=kmaxe
 	temp_imaxn=kmaxn
-	
-	
+
+
 		!first write the header xml file from one mpi process
-	
+
 		lf = char(10)
 	   ! write file name
 		open(300,file=vtu,access='stream')
@@ -17708,80 +17708,80 @@ real::mp_pinfr,gammar
 		! write leading data underscore
 		buffer='_';write(300) trim(buffer)
 		bytes = size_of_real
-	
-	
-	
-	
-	
+
+
+
+
+
 					!----write time stamp----!
 					bytes=size_of_real
 					write(300)bytes,t
-	
+
 					!end time stamp
-	
-					
-	
+
+
+
 					!----write variables----!
 					do j=1,write_variables_av
 					bytes=temp_imaxe*size_of_real
 						 write(300)bytes,sol_vtu(1:kmaxe,j)
-	
+
 					end do
 					!end----write variables----!
-	
-	
+
+
 					!write nodes now!
 					bytes=kmaxn*3*size_of_real
 						 write(300)bytes,nodes_vtu(1:kmaxn*3)
-	
+
 					!end write nodes now!
-	
-	
+
+
 					!write connectivity now!
 					bytes=typ_countn*size_of_int
 						 write(300)bytes, connect_vtu(1:typ_countn)
-	
+
 					!end write connectivity now!
-	
-	
+
+
 					!write offsets now!
 					bytes=kmaxe*size_of_int
 						 write(300)bytes,offset_vtu(1:kmaxe)
-	
+
 					!end write nodes now!
-	
-	
+
+
 					!write types now!
 					bytes=kmaxe*size_of_int
 						 write(300)bytes,type_vtu(1:kmaxe)
-	
+
 					!end write nodes now!
-	
+
 	  lf = char(10)
 	  buffer=lf//'  </AppendedData>'//lf;write(300) trim(buffer)
 	  buffer='</VTKFile>'//lf;write(300) trim(buffer)
 	  close(300)
-	
-	
-	
+
+
+
 	 deallocate(vtu)
-	
+
 		call mpi_barrier(mpi_comm_world,ierror)
-	
-	
+
+
 	 if (n.eq.0)then
-	
-	
+
+
 								write(proc3,fmt='(i10)') it
 								   write(proc5,fmt='(i10)') n
-								   filex="par_vol_aver_"//trim(adjustl(proc3))//".pvtu"
+								   filex="PAR_VOL_AVER_"//trim(adjustl(proc3))//".pvtu"
 								   itrimm=len_trim(filex)
 								   allocate(character(len=itrimm)::vtu)
 								   vtu=filex(1:itrimm)
-	
-	
-	
-	
+
+
+
+
 								   lf = char(10)
 	   ! write file name
 		open(300,file=vtu,access='stream')
@@ -17806,7 +17806,7 @@ real::mp_pinfr,gammar
 		end do
 		buffer='    </PCellData>'//lf;write(300) trim(buffer)
 		buffer='    <PPoints>'//lf;write(300) trim(buffer)
-	
+
 		 buffer='        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf;write(300) trim(buffer)
 		buffer='    </PPoints>'//lf;write(300) trim(buffer)
 		buffer='    <PCells>'//lf;write(300) trim(buffer)
@@ -17815,7 +17815,7 @@ real::mp_pinfr,gammar
 		 buffer='        <PDataArray type="Int32" Name="types"/>'//lf;write(300) trim(buffer)
 		 buffer='    </PCells>'//lf;write(300) trim(buffer)
 	   do procx=0,isize-1
-	
+
 					write(proc6,fmt='(i10)') it
 					write(proc7,fmt='(i10)') procx
 			buffer='    <Piece Source="VOL_AVER_'//trim(adjustl(proc6))//"_"//trim(adjustl(proc7))//'.vtu"/>'//lf;write(300) trim(buffer)
@@ -17823,20 +17823,20 @@ real::mp_pinfr,gammar
 	  buffer='  </PUnstructuredGrid>'//lf;write(300) trim(buffer)
 	  buffer='</VTKFile>'//lf;write(300) trim(buffer)
 	  close(300)
-	
-	
-	
+
+
+
 		deallocate(vtu)
-	
-	
-	
+
+
+
 	 end if
-	
+
 		call mpi_barrier(mpi_comm_world,ierror)
-	
-	
-	
-	
+
+
+
+
 	end subroutine parallel_vtk_combine_partitioned_av
 
 
@@ -17867,11 +17867,11 @@ real::mp_pinfr,gammar
 real::shear_temp
 integer::iconsidered,facex
 		nbytes=1
-		
-		
+
+
 			 size_of_int=4
 			 size_of_real=8
-		
+
 		offset_temp=0
 		disp_in_file=0
 		tmp=0
@@ -17879,17 +17879,17 @@ integer::iconsidered,facex
 		kmaxe=xmpielrank(n)
 		kmaxn_p=xmpiall_v(n)
 		if (dimensiona.eq.3)then
- 		temp_node=3;temp_dims=3
- 		else
- 		temp_node=2;temp_dims=3
- 		end if
-		
+		temp_node=3;temp_dims=3
+		else
+		temp_node=2;temp_dims=3
+		end if
+
 		temp_cord=3
 
 
 
-		
-		
+
+
 
 									   write(proc3,fmt='(i10)') it
 									   filex="SURF_"//trim(adjustl(proc3))//".vtu"
@@ -17897,7 +17897,7 @@ integer::iconsidered,facex
 									   allocate(character(len=itrimm)::vtu)
 									   vtu=filex(1:itrimm)
 
-		
+
 				if (movement.eq.1)then
 
 						k=1
@@ -17910,14 +17910,14 @@ integer::iconsidered,facex
 						end do
 
 				end if
-		
-		
-		
-		
-		
-		
-			  			!loop the correct number of elements that are bounded 
-			  			if (iloopx.gt.0)then
+
+
+
+
+
+
+						!loop the correct number of elements that are bounded
+						if (iloopx.gt.0)then
 							do i=1,iloopx
 								facex=wall_l(i,2)
 								iconsidered=wall_l(i,1)
@@ -17962,7 +17962,7 @@ integer::iconsidered,facex
 									wrarray_part1(i,1:nof_variables)=leftv(1:nof_variables)
 									wrarray_part1(i,nof_variables+1:nof_variables+1)=ielem_vortex(1,iconsidered)
 									end if
-						
+
 									kkd_i=nof_variables+1
 
 									if (realgas.eq.1)then
@@ -17971,7 +17971,7 @@ integer::iconsidered,facex
 
 
 								    if (itestcase.eq.4)then
-									
+
 										if (dimensiona.eq.3)then
 											do kkd=1,4
 
@@ -17980,7 +17980,7 @@ integer::iconsidered,facex
 
 										select case(kkd)
 											case(1)
-											
+
 											call shear_x(iconsidered,facex,shear_temp)
 											case (2)
 											call shear_y(iconsidered,facex,shear_temp)
@@ -18008,7 +18008,7 @@ integer::iconsidered,facex
 
 										select case(kkd)
 											case(1)
-											
+
 											call shear_x2d(iconsidered,facex,shear_temp)
 											case (2)
 											call shear_y2d(iconsidered,facex,shear_temp)
@@ -18016,7 +18016,7 @@ integer::iconsidered,facex
 
 											call heat_x2d(iconsidered,facex,shear_temp)
 
-											
+
 											end select
 
 											wrarray_part1(i,kkd_i+kkd)=shear_temp
@@ -18027,30 +18027,30 @@ integer::iconsidered,facex
 
 
 									end if
-		
+
 								end do
-		
+
 							end if
 
 
 
 
-		
-		
-		
-		
+
+
+
+
 		temp_imaxe=iwmaxe !total number of wall elements in the domain
 		temp_imaxn=imaxn	 !imaxn	!we need the total number of nodes in the domain
-		
+
 		call mpi_barrier(mpi_comm_world,ierror)
 
 
 
 
 		if (n.eq.0)then
-		
+
 			!first write the header xml file from one mpi process
-		
+
 			lf = char(10)
 		   ! write file name
 			open(300,file=vtu,access='stream')
@@ -18115,20 +18115,20 @@ integer::iconsidered,facex
 			buffer='_';write(300) trim(buffer)
 			bytes = size_of_real
 			close(300)
-		
-		
+
+
 		end if
-		
 
 
-		
+
+
 		call mpi_barrier(mpi_comm_world,ierror)
 
-		
+
 						call mpi_file_open(mpi_comm_world,vtu,mpi_mode_wronly + mpi_mode_append,mpi_info_null, fh, ierror)
 						call mpi_file_get_position(fh, disp_in_file, ierror)
 						disp_init=disp_in_file
-		
+
 						!----write time stamp----!
 						if (n.eq.0)then
 						call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
@@ -18142,11 +18142,11 @@ integer::iconsidered,facex
 						disp_in_file=disp_in_file+size_of_int+size_of_real
 						end if
 						!end time stamp
-		
 
 
-		
-		
+
+
+
 ! 						do i=1,write_variables
 						do i=1,write_variables_w
 
@@ -18154,7 +18154,7 @@ integer::iconsidered,facex
 
 
 						call mpi_file_set_view(fh, disp_in_file, mpi_integer,wdatatypeint,'native',mpi_info_null, ierror)
-		
+
 						if (n.eq.0)then
 						bytes=temp_imaxe*size_of_real
 						nbytes=1
@@ -18162,9 +18162,9 @@ integer::iconsidered,facex
 						bytes=0
 						nbytes=0
 						end if
-		
+
 						call mpi_file_write_all(fh,bytes,nbytes,mpi_integer,mpi_status_ignore, ierror)
-		
+
 						disp_in_file = disp_in_file + size_of_int
 
 						call mpi_file_set_view(fh, disp_in_file, mpi_double_precision,wdatatypex,'native',mpi_info_null, ierror)
@@ -18173,11 +18173,11 @@ integer::iconsidered,facex
 						disp_in_file=disp_in_file+temp_imaxe*size_of_real
 						!end loop
 						end do
-		
+
 		! 				if (n.eq.0)print*,"location2",disp_in_file
-		
+
 						call mpi_file_set_view(fh, disp_in_file, mpi_integer,wdatatypeint,'native',mpi_info_null, ierror)
-		
+
 						if (n.eq.0)then
 						bytes=temp_imaxn*size_of_real*temp_dims
 						nbytes=1
@@ -18185,9 +18185,9 @@ integer::iconsidered,facex
 						bytes=0
 						nbytes=0
 						end if
-		
+
 						call mpi_file_write_all(fh,bytes,nbytes,mpi_integer,mpi_status_ignore, ierror)
-		
+
 						disp_in_file = disp_in_file + size_of_int
 
 						call mpi_file_set_view(fh, disp_in_file,mpi_double_precision,wdatatypez,'native',mpi_info_null, ierror)
@@ -18199,7 +18199,7 @@ integer::iconsidered,facex
 
 
 						call mpi_file_set_view(fh, disp_in_file, mpi_integer,wdatatypeint,'native',mpi_info_null, ierror)
-		
+
 						if (n.eq.0)then
 						bytes=size_of_int*typ_countn_global_w!temp_imaxe*size_of_int*temp_node
 						nbytes=1
@@ -18207,13 +18207,13 @@ integer::iconsidered,facex
 						bytes=0
 						nbytes=0
 						end if
-		
+
 
 
 
 
 						call mpi_file_write_all(fh,bytes,nbytes,mpi_integer,mpi_status_ignore, ierror)
-		
+
 						disp_in_file = disp_in_file + size_of_int
 
 
@@ -18223,14 +18223,14 @@ integer::iconsidered,facex
 						call mpi_file_write_all(fh,wiarray_part2,typ_countn_w, mpi_integer,status,ierror)
 
 
-		
+
 						disp_in_file=disp_in_file+(size_of_int*typ_countn_global_w)!(temp_imaxe*size_of_int*temp_node)
-		
+
 
 
 
 						call mpi_file_set_view(fh, disp_in_file, mpi_integer,wdatatypeint,'native',mpi_info_null, ierror)
-		
+
 						if (n.eq.0)then
 						bytes=temp_imaxe*size_of_int
 						nbytes=1
@@ -18238,23 +18238,23 @@ integer::iconsidered,facex
 						bytes=0
 						nbytes=0
 						end if
-		
+
 						call mpi_file_write_all(fh,bytes,nbytes,mpi_integer,mpi_status_ignore, ierror)
-		
+
 						disp_in_file = disp_in_file + size_of_int
-		
-		
+
+
 						call mpi_barrier(mpi_comm_world,ierror)
 
 						call mpi_file_set_view(fh, disp_in_file,mpi_integer,wdatatypexx, 'native',mpi_info_null, ierror)
 
 						call mpi_file_write_all(fh,wiarray_part5,iloopx*wpart1_end, mpi_integer,mpi_status_ignore, ierror)
-		
+
 						disp_in_file=disp_in_file+(temp_imaxe*size_of_int)
-		
+
 
 						call mpi_file_set_view(fh, disp_in_file, mpi_integer,wdatatypeint,'native',mpi_info_null, ierror)
-		
+
 						if (n.eq.0)then
 						bytes=temp_imaxe*size_of_int
 						nbytes=1
@@ -18262,29 +18262,29 @@ integer::iconsidered,facex
 						bytes=0
 						nbytes=0
 						end if
-		
+
 						call mpi_file_write_all(fh,bytes,nbytes,mpi_integer,mpi_status_ignore, ierror)
-		
+
 						disp_in_file = disp_in_file + size_of_int
-		
-		
+
+
 
 
 						call mpi_file_set_view(fh, disp_in_file,mpi_integer,wdatatypeyy, 'native',mpi_info_null, ierror)
 
 						call mpi_file_write_all(fh, wiarray_part3,iloopx*wpart1_end, mpi_integer,mpi_status_ignore, ierror)
-		
 
 
-		
+
+
 						disp_in_file=disp_in_file+(temp_imaxe*size_of_int)
-		
+
 						call mpi_file_close(fh, ierror)
 						call mpi_barrier(mpi_comm_world,ierror)
-		
-		
-		
-		
+
+
+
+
 		if (n.eq.0)then
 		open(300,file=filex,access='stream',position='append')
 		  lf = char(10)
@@ -18292,19 +18292,19 @@ integer::iconsidered,facex
 		  buffer='</VTKFile>'//lf;write(300) trim(buffer)
 		  close(300)
 		end if
-		
-		
-		 deallocate(vtu)
-		
-		
-		call mpi_barrier(mpi_comm_world,ierror)
-		
-		
 
-		
-		
-		
-		
+
+		 deallocate(vtu)
+
+
+		call mpi_barrier(mpi_comm_world,ierror)
+
+
+
+
+
+
+
 		end subroutine parallel_vtk_combine_wall
 
 
@@ -18347,10 +18347,10 @@ integer::iconsidered,facex
 
 		temp_cord=3
 		if (dimensiona.eq.3)then
- 		temp_node=3;temp_dims=3
- 		else
- 		temp_node=2;temp_dims=3
- 		end if
+		temp_node=3;temp_dims=3
+		else
+		temp_node=2;temp_dims=3
+		end if
 
 
 
@@ -18380,8 +18380,8 @@ integer::iconsidered,facex
 				end if
 
 
-			  			!loop the correct number of elements that are bounded
-			  			if (iloopx.gt.0)then
+						!loop the correct number of elements that are bounded
+						if (iloopx.gt.0)then
 							do i=1,iloopx
 								facex=wall_l(i,2)
 								iconsidered=wall_l(i,1)
@@ -18753,7 +18753,7 @@ integer,intent(in)::n
 integer,allocatable,dimension(:)::icell,icella
 real,allocatable,dimension(:)::valuesa,valuess
 real,allocatable,dimension(:,:)::xbin
-integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj
+integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,nres
 character(len=20)::proc,restfile,proc3
 real,allocatable,dimension(:)::igint,tgint
  kmaxe=xmpielrank(n)
@@ -18765,34 +18765,24 @@ icpuid=n
 	open(1086,file=restfile,form='unformatted',status='replace',action='write')
 	if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
 	write(1086)it,zero
-	      write(1086)initialres(1)
-	      write(1086)initialres(2)
-	      write(1086)initialres(3)
-	      write(1086)initialres(4)
-	      write(1086)initialres(5)
-	      if ( turbulence .eq. 1) then
-	      if (turbulencemodel.eq.1)then
-	      write(1086)initialres(6)
-	      end if
-	      if (turbulencemodel.eq.2)then
-	      write(1086)initialres(6)
-	      write(1086)initialres(7)
-	      end if
-	      end if
-	      
-	      
+	      nres=nof_variables+turbulenceequations
+	      do i=1,nres
+	      write(1086)initialres(i)
+	      end do
+
+
 	else
 	write (1086)it,t
-	
+
 	if (initcond.eq.95)then
 	write(1086)taylor
 	end if
-	      
+
 	end if
 	end if
-	
+
 	kmaxe=xmpielrank(n)
-    
+
 dumg=kmaxe
 
 
@@ -18822,21 +18812,21 @@ end do
 
     if (n.eq.0) then
     allocate(valuesa(imaxp*isize))
-    allocate(xbin(imaxe,5+turbulenceequations+passivescalar))
+    allocate(xbin(imaxe,nof_variables+turbulenceequations+passivescalar))
     valuesa=zero
     end if
-    
-    
+
+
     allocate(valuess(imaxp));valuess=zero
 
-  
-  
-if (turbulence.eq.1)then
-do jj=1,5+turbulenceequations+passivescalar
- do i=1,kmaxe
-      if (jj.gt.5) then
 
-		      valuess(i)=u_ct_val(1,jj-5,i)
+
+if (turbulence.eq.1)then
+do jj=1,nof_variables+turbulenceequations+passivescalar
+ do i=1,kmaxe
+      if (jj.gt.nof_variables) then
+
+		      valuess(i)=u_ct_val(1,jj-nof_variables,i)
       else
 	valuess(i)=u_c_val(1,jj,i)
       end if
@@ -18849,15 +18839,15 @@ do jj=1,5+turbulenceequations+passivescalar
 	end if
     end do
     end if
-    
+
 end do
 else
-  do jj=1,5
+  do jj=1,nof_variables
 	do i=1,kmaxe
 		valuess(i)=u_c_val(1,jj,i)
 	end do
 	call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-	
+
 	    if (n.eq.0)then
 	    do i=1,imaxp*isize
 		if (icella(i).gt.0)then
@@ -18865,7 +18855,7 @@ else
 		end if
 	    end do
 	    end if
-    
+
   end do
 
 end if
@@ -18881,7 +18871,7 @@ end if
     deallocate(xbin,icella,valuesa)
     close(1086)
     end if
-    
+
 deallocate(valuess)
 
 
@@ -18931,10 +18921,10 @@ end if
      do i=1,kmaxe
 	dispt(i)=(xgo(i)-1)*((nof_variables+turbulenceequations+passivescalar)*(idegfree+1))
       end do
-      
+
 
       n_end=(nof_variables+turbulenceequations+passivescalar)*(idegfree+1)
-     
+
      else
 
 
@@ -18945,9 +18935,9 @@ end if
       n_end=nof_variables+turbulenceequations+passivescalar
 
       end if
-      
-      
-      
+
+
+
       if (dg.eq.1)then
       if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
@@ -18962,16 +18952,16 @@ end if
 	  do i=1,kmaxe
         do j=1,nof_variables
 	      array2(k:k+idegfree)=u_c_valdg(1,j,1:idegfree+1,i)
-	     
-	      
+
+
 	      k=k+(idegfree+1)
         end do
 	  end do
       end if
-      
-      
+
+
       else
-      
+
       if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
 	  do i=1,kmaxe
@@ -18987,43 +18977,43 @@ end if
 	      k=k+nof_variables
 	  end do
       end if
-      
+
       end if
       restfile='RESTART.dat'
        if (n.eq.0)then
 	  !inquire (file=restfile,exist=here1)
 	  !if (heress) then
 	 inquire (file=restfile,exist=here1)
-	 
-	  
+
+
 	  call mpi_file_delete(restfile,mpi_info_null,ierror)
-	  
-	 
+
+
 
 	  !end if
 
    end if
 
       call mpi_barrier(mpi_comm_world,ierror)
-      
+
     !create type first of indexed block
     call mpi_type_create_indexed_block(kmaxe,n_end,dispt,mpi_double_precision,datatype,ierror)
     call mpi_type_commit(datatype,ierror)
-    
+
 
     allocate(array(1:nof_variables+turbulenceequations+passivescalar))
-    
-	
-	
-	
+
+
+
+
 	call mpi_file_open(mpi_comm_world, restfile,mpi_mode_wronly + mpi_mode_create,mpi_info_null, fh, ierror)
-	
-	
-	 
-	  
-	
+
+
+
+
+
 	if (n.eq.0)then
-	
+
 	    if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
 	          call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
 		  call mpi_file_write(fh, it, 1, mpi_integer, mpi_status_ignore,ierror)
@@ -19035,7 +19025,7 @@ end if
 		  call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
 		  call mpi_file_write(fh, it, 1, mpi_integer, mpi_status_ignore, ierror)
 		    disp_in_file = disp_in_file + size_of_int 	!4
-		    
+
 		  call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
 		  call mpi_file_write(fh, t, 1, mpi_double_precision, mpi_status_ignore,ierror)
 		    disp_in_file = disp_in_file + size_of_real    !5
@@ -19043,38 +19033,38 @@ end if
 		      call mpi_file_seek(fh, disp_in_file, mpi_seek_set,ierror)
 		      call mpi_file_write(fh, taylor, 1, mpi_double_precision, mpi_status_ignore, ierror)
 			    disp_in_file = disp_in_file + size_of_real !6
-		      end if  
+		      end if
 	    end if
 	else
 	      if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
-		disp_in_file = disp_in_file + size_of_int 
+		disp_in_file = disp_in_file + size_of_int
 		disp_in_file = disp_in_file + size_of_real*(nof_variables+turbulenceequations)
 	      else
-		  disp_in_file = disp_in_file + size_of_int 
+		  disp_in_file = disp_in_file + size_of_int
 		  disp_in_file = disp_in_file + size_of_real
 		  if (initcond.eq.95)then
-		  disp_in_file = disp_in_file + size_of_real 
+		  disp_in_file = disp_in_file + size_of_real
 		  end if
 	      end if
-	      
-	      
+
+
 	end if
-	
-	
+
+
 	call mpi_barrier(mpi_comm_world, ierror)
 	call mpi_file_set_view(fh, disp_in_file, mpi_double_precision,datatype, 'native',mpi_info_null, ierror)
-	call mpi_file_write_all(fh, array2, kmaxe*n_end, mpi_double_precision,mpi_status_ignore, ierror)        
+	call mpi_file_write_all(fh, array2, kmaxe*n_end, mpi_double_precision,mpi_status_ignore, ierror)
         call mpi_file_close(fh, ierror)
 	call mpi_type_free(datatype,ierror)
           deallocate(array,dispt,array2)
-          
-          
-	
-	
+
+
+
+
 	call mpi_barrier(mpi_comm_world, ierror)
-	
-	
-	
+
+
+
 
 
 
@@ -19083,7 +19073,7 @@ end subroutine checkpoint2d
 
 
 
-subroutine checkpointav(n) 
+subroutine checkpointav(n)
 !> @brief
 !> this subroutine uses mpi-io for writing the averaged checkpointing files
 implicit none
@@ -19100,34 +19090,34 @@ integer::i,k,kmaxe,j,jk,icpuid,nvar,imaxp,dumg,duml,jj,fh,size_of_real,size_of_i
 disp_in_file=0
 tmp=0
 disp_init=0
- 
- 
- 
- 
- 
- 
+
+
+
+
+
+
  size_of_int=4
 size_of_real=8
 icpuid=n
 call mpi_barrier(mpi_comm_world,ierror)
- 
 
 
 
-	
-	
+
+
+
  allocate(dispt(kmaxe),array2(kmaxe*(nof_variables+turbulenceequations+passivescalar+6+passivescalar)))
     do i=1,kmaxe
 	dispt(i)=(xgo(i)-1)*(nof_variables+turbulenceequations+passivescalar+6+passivescalar)
       end do
 
  restfile='RESTARTAV.dat'
- 
+
   n_end=nof_variables+turbulenceequations+passivescalar+6+passivescalar
-  
-  
- 
- 
+
+
+
+
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
 	  do i=1,kmaxe
@@ -19151,35 +19141,35 @@ call mpi_barrier(mpi_comm_world,ierror)
 	 inquire (file=restfile,exist=here1)
 	  call mpi_file_delete(restfile,mpi_info_null,ierror)
 	end if
- 
+
  call mpi_barrier(mpi_comm_world,ierror)
- 
- 
+
+
  call mpi_type_create_indexed_block(kmaxe,n_end,dispt,mpi_double_precision,datatype,ierror)
     call mpi_type_commit(datatype,ierror)
- 
- 
- 
-	
-	
+
+
+
+
+
 	call mpi_barrier(mpi_comm_world,ierror)
 	call mpi_file_open(mpi_comm_world, restfile,mpi_mode_wronly + mpi_mode_create,mpi_info_null, fh, ierror)
 	call mpi_file_set_view(fh, disp_in_file, mpi_double_precision,datatype, 'native',mpi_info_null, ierror)
-	call mpi_file_write_all(fh, array2, kmaxe*n_end, mpi_double_precision,mpi_status_ignore, ierror)        
+	call mpi_file_write_all(fh, array2, kmaxe*n_end, mpi_double_precision,mpi_status_ignore, ierror)
         call mpi_file_close(fh, ierror)
 	call mpi_type_free(datatype,ierror)
-          
-          
-          
+
+
+
 	deallocate(dispt,array2)
-	
+
 	call mpi_barrier(mpi_comm_world, ierror)
-	
-	
-	
-	
- 
-	
+
+
+
+
+
+
 
 end subroutine checkpointav
 
@@ -19206,10 +19196,10 @@ kmaxe=xmpielrank(n)
 prev_turbequation=0
 if (prev_turbmodel.eq.1) then
 prev_turbequation=1
-end if 
+end if
 if (prev_turbmodel.eq.2) then
 prev_turbequation=2
-end if 
+end if
 
  size_of_int=4
 size_of_real=8
@@ -19218,7 +19208,7 @@ size_of_real=8
 if (dg.eq.1)then
 allocate(dispt(kmaxe),array2(kmaxe*(nof_variables+prev_turbequation+passivescalar)*(idegfree+1)))
 else
-allocate(dispt(kmaxe),array2(kmaxe*(nof_variables+prev_turbequation+passivescalar)))	
+allocate(dispt(kmaxe),array2(kmaxe*(nof_variables+prev_turbequation+passivescalar)))
 end if
 
     if (dg.eq.1)then
@@ -19226,28 +19216,28 @@ end if
 	dispt(i)=(xgo(i)-1)*((nof_variables+turbulenceequations+passivescalar)*(idegfree+1))
       end do
     n_end=(nof_variables+turbulenceequations+passivescalar)*(idegfree+1)
-     
+
      else
 
 
     do i=1,kmaxe
 	dispt(i)=(xgo(i)-1)*(nof_variables+prev_turbequation+passivescalar)
       end do
-      
-      
+
+
       n_end=nof_variables+prev_turbequation+lamps
-      
+
       end if
-      
+
       call mpi_type_create_indexed_block(kmaxe,n_end,dispt,mpi_double_precision,datatype,ierror)
     call mpi_type_commit(datatype,ierror)
-    
+
     restfile='RESTART.dat'
-    
+
     call mpi_file_open(mpi_comm_world, restfile,mpi_mode_rdonly,mpi_info_null, fh, ierror)
-    
-    
-    
+
+
+
 	    if (ires_unsteady.eq.0)then
 ! 	   if ((rungekutta .ge. 5).and.(rungekutta .lt. 11)) then
 	          call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
@@ -19256,37 +19246,40 @@ end if
 		    call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
 		  call mpi_file_read(fh, initialres(1:nof_variables+prev_turbequation),nof_variables+prev_turbequation, mpi_double_precision, mpi_status_ignore, ierror)
 		    disp_in_file = disp_in_file + size_of_real*(nof_variables+prev_turbequation)	!3
+		  if (realgas.eq.1)then
+		  initialres(:)=zero
+		  end if
 	    else
 		  call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
 		  call mpi_file_read(fh, it, 1, mpi_integer, mpi_status_ignore, ierror)
-		  
+
 		    disp_in_file = disp_in_file + size_of_int 	!4
-		    
+
 		  call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
 		  call mpi_file_read(fh, t, 1, mpi_double_precision, mpi_status_ignore,ierror)
-		 
+
 		    disp_in_file = disp_in_file + size_of_real    !5
 		      if (initcond.eq.95)then
 		      call mpi_file_seek(fh, disp_in_file, mpi_seek_set,ierror)
 		      call mpi_file_read(fh, taylor, 1, mpi_double_precision, mpi_status_ignore, ierror)
 			    disp_in_file = disp_in_file + size_of_real !6
-		      end if  
+		      end if
 	    end if
-      
-      
+
+
 	call mpi_barrier(mpi_comm_world, ierror)
 	call mpi_file_set_view(fh, disp_in_file, mpi_double_precision,datatype, 'native',mpi_info_null, ierror)
-	call mpi_file_read_all(fh, array2, kmaxe*n_end, mpi_double_precision,mpi_status_ignore, ierror)        
+	call mpi_file_read_all(fh, array2, kmaxe*n_end, mpi_double_precision,mpi_status_ignore, ierror)
         call mpi_file_close(fh, ierror)
 	call mpi_type_free(datatype,ierror)
-	
-	
-	
+
+
+
 	if (dg.eq.1)then
-	
-	
+
+
 	if ((prev_turbmodel.gt.0).or.(lamps.gt.0))then
-	
+
 	    k=1
 	    do i=1,kmaxe
 		u_c_val(1,1:nof_variables,i)=array2(k:k+nof_variables-1)
@@ -19295,20 +19288,20 @@ end if
 		    u_ct_val(1,1:turbulenceequations+passivescalar,i)=array2(k:k+prev_turbequation+lamps-1)
 		    end if
 		k=k+prev_turbmodel+lamps
-		
+
 	    end do
 	else
 	    k=1
 	    do i=1,kmaxe
 	    do j=1,nof_variables
-	    
+
 		u_c_valdg(1,j,1:idegfree+1,i)=array2(k:k+idegfree)
-		
-		
+
+
 		k=k+(idegfree+1)
 		end do
-		
-		
+
+
 		      if (turbulence.eq.1)then
 			    if (turbulencemodel.eq.1)then
 				u_ct_val(1,1,i)=visc*turbinit
@@ -19319,22 +19312,22 @@ end if
 			    end if
 			endif
 		k=k+prev_turbmodel+lamps
-		
+
 	    end do
 	end if
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
+
+
+
 	else
 	if ((prev_turbmodel.gt.0).or.(lamps.gt.0))then
-	
+
 	    k=1
 	    do i=1,kmaxe
 		u_c_val(1,1:nof_variables,i)=array2(k:k+nof_variables-1)
@@ -19343,7 +19336,7 @@ end if
 		    u_ct_val(1,1:turbulenceequations+passivescalar,i)=array2(k:k+prev_turbequation+lamps-1)
 		    end if
 		k=k+prev_turbmodel+lamps
-		
+
 	    end do
 	else
 	    k=1
@@ -19360,24 +19353,24 @@ end if
 			    end if
 			endif
 		k=k+prev_turbmodel+lamps
-		
+
 	    end do
 	end if
-	
-	
+
+
 	end if
-	
-	
-	
-	
-	
+
+
+
+
+
 	call mpi_barrier(mpi_comm_world, ierror)
 	deallocate(dispt,array2)
-	
-	
-      
+
+
+
 if (averaging .eq. 1) then
- 
+
 if (average_restart.eq.1)then
 
 disp_in_file=0
@@ -19388,15 +19381,15 @@ do i=1,kmaxe
 
       restfile='RESTARTAV.dat'
       n_end=nof_variables+prev_turbequation+passivescalar+6+passivescalar
-      
+
        call mpi_type_create_indexed_block(kmaxe,n_end,dispt,mpi_double_precision,datatype,ierror)
     call mpi_type_commit(datatype,ierror)
     call mpi_file_open(mpi_comm_world, restfile,mpi_mode_rdonly,mpi_info_null, fh, ierror)
 	call mpi_file_set_view(fh, disp_in_file, mpi_double_precision,datatype, 'native',mpi_info_null, ierror)
-	call mpi_file_read_all(fh, array2, kmaxe*n_end, mpi_double_precision,mpi_status_ignore, ierror)        
+	call mpi_file_read_all(fh, array2, kmaxe*n_end, mpi_double_precision,mpi_status_ignore, ierror)
         call mpi_file_close(fh, ierror)
 	call mpi_type_free(datatype,ierror)
-	
+
 	if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
 	  do i=1,kmaxe
@@ -19411,25 +19404,25 @@ do i=1,kmaxe
 	  k=1
 	  do i=1,kmaxe
 	      u_c_val(ind1,1:nof_variables,i)=array2(k:k+nof_variables-1)
-	      
+
 	      k=k+nof_variables
 	      u_c_rms(1:6+passivescalar,i)=array2(k:k+6+passivescalar-1)
-	      
+
 	      k=k+6+passivescalar
 	  end do
       end if
-	
+
 	call mpi_barrier(mpi_comm_world, ierror)
 	deallocate(dispt,array2)
-	
-    
+
+
 else
 do i=1,kmaxe
       u_c_rms(:,i)=zero
       u_c_val(ind1,:,i)=zero
 	if ((passivescalar.gt.0).or.(turbulence.eq.1))then
 	u_ct_val(ind1,:,i)=zero
-	end if   
+	end if
 end do
 
 
@@ -19458,7 +19451,7 @@ end subroutine rest_read
 
 
 
-subroutine checkpointav2d(n)  
+subroutine checkpointav2d(n)
 !> @brief
 !> this subroutine writes the average checkpointing files in 2d
 implicit none
@@ -19477,12 +19470,12 @@ icpuid=n
 	restfile='RESTARTAV.dat'
 	if (n.eq.0)then
 	open(1086,file=restfile,form='unformatted',status='replace',action='write')
-	
-	
+
+
 	end if
-	
+
 	kmaxe=xmpielrank(n)
-    
+
 dumg=kmaxe
 call mpi_barrier(mpi_comm_world,ierror)
 
@@ -19520,11 +19513,11 @@ allocate(valuess(imaxp))
 
 do jj=1,4+turbulenceequations+passivescalar+3+passivescalar
  do i=1,kmaxe
-      
+
       if (jj.le.4+turbulenceequations+passivescalar)then
       if (jj.le.4) then
 	  valuess(i)=u_c_val(5,jj,i)
-		      
+
       else
 
 		valuess(i)=u_ct_val(5,jj-turbulenceequations+passivescalar,-i)
@@ -19536,7 +19529,7 @@ do jj=1,4+turbulenceequations+passivescalar+3+passivescalar
        valuess(i)=u_c_rms(jj-(4+turbulenceequations+passivescalar),i)
 
       end if
-      
+
  end do
 
     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
@@ -19548,8 +19541,8 @@ do jj=1,4+turbulenceequations+passivescalar+3+passivescalar
 	end if
     end do
     end if
-    
-    
+
+
  end do
 call mpi_barrier(mpi_comm_world,ierror)
 
@@ -19557,19 +19550,17 @@ call mpi_barrier(mpi_comm_world,ierror)
 
     do i=1,imaxe
      write(1086)i
-!     do nvar=1,5+turbulenceequations+passivescalar
     write(1086)xbin(xmpi_re(i),1:nof_variables+turbulenceequations+passivescalar+3+passivescalar)
-!     end do
     end do
-      
+
     deallocate(xbin,icella,valuesa)
 
       close(1086)
     end if
-    
+
 
 deallocate(valuess)
-	
+
 
 end subroutine checkpointav2d
 
@@ -19588,7 +19579,7 @@ real::mp_pinfr,gammar
                     if (nof_variables.gt.1)then
 
 			if (nprobes.gt.0)then
-			    
+
 			    do inv=1,nprobes
 			    if (probei(n,inv).ne.0) then
 			      write(prob,fmt='(i10)') inv
@@ -19597,11 +19588,11 @@ real::mp_pinfr,gammar
 			      inquire (file=probfile,exist=heres)
 			    if (heres.eqv..true.) then
 				open(3000+n,file=probfile,form='formatted',status='old',action='write',position='append')
-				
-				
+
+
 				else
 				open(3000+n,file=probfile,form='formatted',status='new',action='write')
-				
+
 				end if
 				if (passivescalar.eq.0)then
 				leftv(1:nof_variables)=u_c_val(1,1:nof_variables,probei(n,inv))
@@ -19616,9 +19607,9 @@ real::mp_pinfr,gammar
 
 				end if
 				close(3000+n)
-				
-		    
-			      end if     
+
+
+			      end if
 			    end do
 			  end if
 			  end if
@@ -19640,7 +19631,7 @@ real::mp_pinfr,gammar
                         if(nof_variables.gt.1)then
 
 			if (nprobes.gt.0)then
-			    
+
 			    do inv=1,nprobes
 			    if (probei(n,inv).ne.0) then
 			      write(prob,fmt='(i10)') inv
@@ -19649,11 +19640,11 @@ real::mp_pinfr,gammar
 			      inquire (file=probfile,exist=heres)
 			    if (heres.eqv..true.) then
 				open(3000+n,file=probfile,form='formatted',status='old',action='write',position='append')
-				
-				
+
+
 				else
 				open(3000+n,file=probfile,form='formatted',status='new',action='write')
-				
+
 				end if
 				if (passivescalar.eq.0)then
 	write(3000+n,'(1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,u_c_val(1,1,probei(n,inv)),&
@@ -19668,9 +19659,9 @@ real::mp_pinfr,gammar
 
 				end if
 				close(3000+n)
-				
-		    
-			      end if     
+
+
+			      end if
 			    end do
 			  end if
 			  end if
@@ -19716,7 +19707,7 @@ forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
  mx=zero
  my=zero
  mz=zero
- momenty=zero 
+ momenty=zero
  momentz=zero
  momentx=zero
  !$omp end master
@@ -19724,7 +19715,7 @@ forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
 
 
  kmaxe=xmpielrank(n)
- 
+
 #if defined(gpu) || defined(xpu)
 !$omp target teams distribute parallel do &
 !$omp& private(mysurface, j, k, im, nnd, gqi_points, angle1, angle2, nx, ny, nz, ssx, ssy, ssz, ssp, surface_temp, ux, uy, uz, vx, vy, vz, wx, wy, wz, px, tauxx, tauyy, tauzz, tauyx, tauzx, tauzy, fxr, fyr, fzr, mome_xcc, mome_ycc, mome_zcc, vortet1, leftv, rightv, viscl, laml, weights_temp) &
@@ -19741,8 +19732,8 @@ do i=1,kmaxe
 			if(mrf.eq.1)then
 				mysurface=rec_mrf(i)
 			else
-				mysurface=1	
-			end if	
+				mysurface=1
+			end if
 		if(mysurface.eq.1)then
 		    do j=1,ielem_ifca(i)
 		      if (ielem_ibounds(j,i).gt.0)then
@@ -19752,49 +19743,49 @@ do i=1,kmaxe
 			      nx=(cos(angle1)*sin(angle2))
 			      ny=(sin(angle1)*sin(angle2))
 			      nz=(cos(angle2))
-			      
+
 			  ssx=zero; ssp=zero; ssy=zero; ssz=zero
-			  
+
 				select case(ielem_types_faces(j,i))
 				case (5)
 					  gqi_points=qp_quad
 					  weights_temp(1:gqi_points)=weights_q(1:gqi_points)
 					  surface_temp=ielem_surf(j,i)
-					  
-				  
+
+
 				case(6)
 					gqi_points=qp_triangle
 					weights_temp(1:gqi_points)=weights_t(1:gqi_points)
- 					    surface_temp=ielem_surf(j,i)
- 					    
- 					    
-					  
+					    surface_temp=ielem_surf(j,i)
+
+
+
 				end select
-				  
-				  
+
+
 				  do im=1,gqi_points
-				  
+
 				  if (itestcase.eq.4)then
 				  if (ielem_ggs(i).eq.1)then
-				  
+
 				  vortet1(1:3,1:3) = rec_grads(1:3,1:3,i)
 				  ux = vortet1(1,1);uy = vortet1(1,2);uz = vortet1(1,3)
 				  vx = vortet1(2,1);vy = vortet1(2,2);vz = vortet1(2,3)
 				  wx = vortet1(3,1);wy = vortet1(3,2);wz = vortet1(3,3)
-				  
+
 				  else
-				  
+
 				  vortet1(1,1:3)=rec_uleftv(1:3,2,j,im,i)
 				  vortet1(2,1:3)=rec_uleftv(1:3,3,j,im,i)
 				  vortet1(3,1:3)=rec_uleftv(1:3,4,j,im,i)
 				  ux = vortet1(1,1);uy = vortet1(1,2);uz = vortet1(1,3)
 				  vx = vortet1(2,1);vy = vortet1(2,2);vz = vortet1(2,3)
 				  wx = vortet1(3,1);wy = vortet1(3,2);wz = vortet1(3,3)
-				  
-				  
+
+
 				  end if
 				 end if
-				  
+
 				  if (dg.eq.1)then
 				  leftv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
 				  rightv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
@@ -19804,9 +19795,9 @@ do i=1,kmaxe
 				  leftv(1:nof_variables)=rec_uleft(:,j,im,i)
 				  rightv(1:nof_variables)=rec_uleft(:,j,im,i)
 				  end if
-				  
-				  
-				  
+
+
+
 #ifdef xpu
 				    call cons2prim2_ideal(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 #else
@@ -19829,8 +19820,8 @@ do i=1,kmaxe
 #else
 				    call get_visc_conduct(n,leftv,rightv,viscl,laml)
 #endif
-				  
-				  
+
+
 				  tauxx=(4.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy - (2.0d0/3.0d0)*wz
 				  tauyy=(4.0d0/3.0d0)*vy - (2.0d0/3.0d0)*ux - (2.0d0/3.0d0)*wz
 				  tauzz=(4.0d0/3.0d0)*wz - (2.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy
@@ -19842,10 +19833,10 @@ do i=1,kmaxe
 				  ssz=ssz-((viscl(1)*((nx*tauzx)+(ny*tauzy)+(nz*tauzz)))*weights_temp(im))
 				 end if
 				   end do
-				   
-				   
-				  ssp=ssp-pres	
-				  
+
+
+				  ssp=ssp-pres
+
 				  forcex=forcex+(((ssp)*(surface_temp)*nx))+((ssx)*surface_temp)
 				  forcey=forcey+(((ssp)*(surface_temp)*ny))+((ssy)*surface_temp)
 				  forcez=forcez+(((ssp)*(surface_temp)*nz))+((ssz)*surface_temp)
@@ -19863,7 +19854,7 @@ do i=1,kmaxe
 				  momenty=momenty+(fxr*mome_zcc)-(fzr*mome_xcc)
 				  momentz=momentz+(fyr*mome_xcc)-(fxr*mome_ycc)
 
-					    
+
 			end if
 		      end if
 		    end do
@@ -19871,18 +19862,18 @@ do i=1,kmaxe
 		end if
 
 
-		
-end do					 
+
+end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
-	
 
-		
-	
-	
+
+
+
+
 
 !$omp master
 	forcex=forcex*vectorx
@@ -19939,8 +19930,8 @@ end do
 		open(500+n,file='MOMENT.dat',form='formatted',status='old',action='write',position='append')
 		else
 	open(500+n,file='MOMENT.dat',form='formatted',status='new',action='write')
-		end if	
-	if(rframe.eq.0)then	
+		end if
+	if(rframe.eq.0)then
 	write(50+n,'(i14,1x,e14.7,1x,e14.7,1x,e14.7)')it,t,cl,cd
 	write(500+n,'(i14,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')it,t,mx,my,mz
 	else
@@ -19949,18 +19940,18 @@ end do
 	end if
 	close(50+n)
 	close(500+n)
-	end if		
+	end if
 
-	
-	
+
+
 !$omp end master
 !$omp barrier
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
 
 end subroutine computeforce
 
@@ -20000,7 +19991,7 @@ forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
 
 
  kmaxe=xmpielrank(n)
- 
+
 #if defined(gpu) || defined(xpu)
 !$omp target teams distribute parallel do &
 !$omp& private(j, k, im, nnd, gqi_points, angle1, angle2, nx, ny, ssx, ssy, ssz, ssp, surface_temp, ux, uy, uz, vx, vy, vz, wx, wy, wz, px, tauxx, tauyy, tauzz, tauyx, tauzx, tauzy, vortet1, leftv, rightv, viscl, laml, weights_temp) &
@@ -20012,47 +20003,47 @@ forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
 !$omp do reduction(+:forcex,forcey)
 #endif
 do i=1,kmaxe
-		if (ielem_interior(i).eq.1)then	
+		if (ielem_interior(i).eq.1)then
 		    do j=1,ielem_ifca(i)
 		      if (ielem_ibounds(j,i).gt.0)then
 			  if (ibound_icode(ielem_ibounds(j,i)).eq.4)then
 			      nx=ielem_faceanglex(j,i)
 			      ny=ielem_faceangley(j,i)
-			      
-			      
-			  ssx=zero; ssp=zero; ssy=zero; 
-			  
-				
+
+
+			  ssx=zero; ssp=zero; ssy=zero;
+
+
 					  gqi_points=qp_line_n
 					  weights_temp(1:qp_line) = weights_l(1:qp_line)
 					  surface_temp=ielem_surf(j,i)
-					  
-				  
-							  
-				  
+
+
+
+
 				  do im=1,gqi_points
-				  
+
 				  if (itestcase.eq.4)then
 				  if (ielem_ggs(i).eq.1)then
-				  
+
 				  vortet1(1:2,1:2) = rec_grads(1:2,1:2,i)
 				  ux = vortet1(1,1);uy = vortet1(1,2)
 				  vx = vortet1(2,1);vy = vortet1(2,2)
-				
-				  
+
+
 				  else
-				  
+
 				  vortet1(1,1:2)=rec_uleftv(1:2,2,j,im,i)
 				  vortet1(2,1:2)=rec_uleftv(1:2,3,j,im,i)
-				  
+
 				 ux = vortet1(1,1);uy = vortet1(1,2)
 				  vx = vortet1(2,1);vy = vortet1(2,2)
-				
-				  
-				  
+
+
+
 				  end if
 				  end if
-				  
+
 				  leftv(1:nof_variables)=rec_uleft(:,j,im,i)
 				  rightv(1:nof_variables)=rec_uleft(:,j,im,i)
 #ifdef xpu
@@ -20061,8 +20052,8 @@ do i=1,kmaxe
 				    call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 #endif
 				    px=leftv(4)
-				    
-				    
+
+
 				    if (itestcase.eq.4)then
 				    leftv(1:nof_variables)=rec_uleft(:,j,im,i)
 				  rightv(1:nof_variables)=rec_uleft(:,j,im,i)
@@ -20071,50 +20062,50 @@ do i=1,kmaxe
 #else
 				    call get_visc_conduct(n,leftv,rightv,viscl,laml)
 #endif
-				  
-				  
+
+
 				  tauxx=2.0d0*ux
 				  tauyy=2.0d0*vy
 				  tauyx=(uy + vx)
-				  
+
 				  ssx=ssx-((viscl(1)*((ny*tauyx)))*weights_temp(im))
 				  ssy=ssy-((viscl(1)*((nx*tauyx)))*weights_temp(im))
 				  end if
 				  ssp=ssp+(px*weights_temp(im))
 				   end do
-				   
-				   
-				  ssp=ssp-pres	
-				  
+
+
+				  ssp=ssp-pres
+
 				  forcex=forcex+(((ssp)*(surface_temp)*nx))+((ssx)*surface_temp)
 				  forcey=forcey+(((ssp)*(surface_temp)*ny))+((ssy)*surface_temp)
-				  
 
-					    
-					    
+
+
+
 			end if
 		      end if
 		    end do
 		end if
 
-			
-		
-end do					 
+
+
+end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
 #else
 !$omp end do
 #endif
-	
 
-		
-	
-	
+
+
+
+
 
 !$omp master
 	forcex=forcex*vectorx
 	forcey=forcey*vectory
-	
+
         rtemp=((aoa/180.0d0)*pi)
 	liftf=(forcey*cos(rtemp))-(forcex*sin(rtemp))
 	dragf=(forcex*cos(rtemp))+(forcey*sin(rtemp))
@@ -20127,7 +20118,7 @@ end do
 	call mpi_allreduce(co(1:2),ci(1:2),2,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 	cl=ci(1)
 	cd=ci(2)
-	
+
 	if (n.eq.0) then
 	inquire (file='FORCE.dat',exist=heref)
 		if (heref) then
@@ -20136,19 +20127,19 @@ end do
 	open(50+n,file='FORCE.dat',form='formatted',status='new',action='write')
 		end if
 	write(50+n,'(i14,1x,e14.7,1x,e14.7,1x,e14.7)')it,t,cl,cd
-	
+
 	close(50+n)
-	end if		
+	end if
 	call mpi_barrier(mpi_comm_world,ierror)
-	
-	
+
+
 !$omp end master
 !$omp barrier
-	
-	
-	
-	
-	
+
+
+
+
+
 
 end subroutine computeforce2d
 
@@ -20160,6 +20151,7 @@ implicit none
 integer,intent(in)::n
 integer::i,k,kmaxe,nres
 real::suml3,dum_resi
+real,dimension(1:gpu_max_nvar_total)::allres_abs
 
 kmaxe=xmpielrank(n)
 
@@ -20167,6 +20159,7 @@ kmaxe=xmpielrank(n)
 !$omp barrier
 !$omp master
 allres(:)=zero
+allres_abs(:)=zero
 res_Sum=zero
 
 !$omp end master
@@ -20211,18 +20204,20 @@ allres(k)=res_sum
 end do
 
 !$omp master
-do i=1,5
+nres=nof_variables
+do i=1,nres
 suml3=allres(i)
 dum_resi=zero
 call mpi_allreduce(suml3,dum_resi,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 allres(i)=sqrt(dum_resi/totalvolume)
+allres_abs(i)=allres(i)
 
 end do
 
 
-do i=1,5
-if (initialres(i).le.allres(i))then
-initialres(i)=allres(i)
+do i=1,nres
+if (initialres(i).le.max(allres(i),1.0d-300))then
+initialres(i)=max(allres(i),1.0d-300)
 end if
 allres(i)=allres(i)/initialres(i)
 
@@ -20272,25 +20267,26 @@ allres(k)=res_sum
 end do
 
 !$omp master
-do i=1,7
+nres=nof_variables+turbulenceequations
+do i=1,nres
 suml3=allres(i)
 dum_resi=zero
 call mpi_allreduce(suml3,dum_resi,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 allres(i)=sqrt(dum_resi/totalvolume)
+allres_abs(i)=allres(i)
 
 end do
 
 
 
-do i=1,7
-if (initialres(i).le.allres(i))then
-initialres(i)=allres(i)
+do i=1,nres
+if (initialres(i).le.max(allres(i),1.0d-300))then
+initialres(i)=max(allres(i),1.0d-300)
 end if
 allres(i)=allres(i)/initialres(i)
 
 end do
 
-if (turbulenceequations.eq.1) allres(7)=1.0d0
 !$omp end master
 
 end if
@@ -20299,26 +20295,22 @@ end if
 
 !$omp master
 if (n.eq.0)then
-if ((itestcase.le.4).and.(turbulence.ne.1))then
-
-	    open(67,file='residual.dat',form='formatted',action='write',position='append')
-	    write(67,'(i14,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')it,allres(1),allres(2),allres(3),allres(4),allres(5)
-	    close(67)
-
+if (turbulence.eq.1)then
+  nres=nof_variables+turbulenceequations
 else
-
+  nres=nof_variables
+end if
 	    open(67,file='residual.dat',form='formatted',action='write',position='append')
-	    write(67,'(i14,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')it,allres(1),allres(2),allres(3),allres(4),allres(5),allres(6),allres(7)
+	    write(67,'(i14,100(1x,e14.7))')it,(allres(i),i=1,nres)
 	    close(67)
-
-
+	    open(68,file='residual_abs.dat',form='formatted',action='write',position='append')
+	    write(68,'(i14,100(1x,e14.7))')it,(allres_abs(i),i=1,nres)
+	    close(68)
 
 end if
 
-end if 
 
-
-if ((allres(1).lt.reslimit).and.(allres(2).lt.reslimit).and.(allres(3).lt.reslimit).and.(allres(4).lt.reslimit).and.(allres(5).lt.reslimit))then
+if (maxval(allres(1:nres)).lt.reslimit)then
  kill=1
  end if
 
@@ -20326,7 +20318,7 @@ if ((allres(1).lt.reslimit).and.(allres(2).lt.reslimit).and.(allres(3).lt.reslim
 
 !$omp end master
 
- 
+
 
 
 
@@ -20346,12 +20338,14 @@ implicit none
 integer,intent(in)::n
 integer::i,k,kmaxe,nres
 real::suml3,dum_resi
+real,dimension(1:gpu_max_nvar_total)::allres_abs
 
 kmaxe=xmpielrank(n)
 
 
 !$omp master
 allres(:)=zero
+allres_abs(:)=zero
 !$omp end master
 !$omp barrier
 
@@ -20399,18 +20393,20 @@ end do
 
 !$omp master
 
-do i=1,4
+nres=nof_variables
+do i=1,nres
 suml3=allres(i)
 dum_resi=zero
 call mpi_allreduce(suml3,dum_resi,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 allres(i)=sqrt(dum_resi/totalvolume)
+allres_abs(i)=allres(i)
 
 end do
 
 
-do i=1,4
-if (initialres(i).le.allres(i))then
-initialres(i)=allres(i)
+do i=1,nres
+if (initialres(i).le.max(allres(i),1.0d-300))then
+initialres(i)=max(allres(i),1.0d-300)
 end if
 allres(i)=allres(i)/initialres(i)
 
@@ -20459,19 +20455,21 @@ allres(k)=res_sum
 end do
 
 !$omp master
-do i=1,nof_variables+turbulenceequations
+nres=nof_variables+turbulenceequations
+do i=1,nres
 suml3=allres(i)
 dum_resi=zero
 call mpi_allreduce(suml3,dum_resi,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
 allres(i)=sqrt(dum_resi/totalvolume)
+allres_abs(i)=allres(i)
 
 end do
 
 
 
-do i=1,nof_variables+turbulenceequations
- if (initialres(i).le.allres(i))then
-initialres(i)=allres(i)
+do i=1,nres
+ if (initialres(i).le.max(allres(i),1.0d-300))then
+initialres(i)=max(allres(i),1.0d-300)
 end if
 allres(i)=allres(i)/initialres(i)
 
@@ -20484,26 +20482,22 @@ end if
 
 !$omp master
 if (n.eq.0)then
-if ((itestcase.le.4).and.(turbulence.ne.1))then
-
-	    open(67,file='residual.dat',form='formatted',action='write',position='append')
-	    write(67,'(i14,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')it,allres(1),allres(2),allres(3),allres(4)
-	    close(67)
-
+if (turbulence.eq.1)then
+  nres=nof_variables+turbulenceequations
 else
-
+  nres=nof_variables
+end if
 	    open(67,file='residual.dat',form='formatted',action='write',position='append')
-	    write(67,'(i14,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')it,allres(1),allres(2),allres(3),allres(4),allres(5)
+	    write(67,'(i14,100(1x,e14.7))')it,(allres(i),i=1,nres)
 	    close(67)
-
-
+	    open(68,file='residual_abs.dat',form='formatted',action='write',position='append')
+	    write(68,'(i14,100(1x,e14.7))')it,(allres_abs(i),i=1,nres)
+	    close(68)
 
 end if
 
-end if 
 
-
- if ((allres(1).lt.reslimit).and.(allres(2).lt.reslimit).and.(allres(3).lt.reslimit).and.(allres(4).lt.reslimit))then
+ if (maxval(allres(1:nres)).lt.reslimit)then
  kill=1
  end if
 
@@ -20536,25 +20530,25 @@ subroutine calculate_error(n)
 	  call mpi_barrier(mpi_comm_world,ierror)
 	  !$omp end master
 	  !$omp barrier
-	  
+
 			!$omp do reduction (+:l1norm)
 			do i=1,kmaxe
 				if (itestcase.le.3)then
-				
+
 				exact=u_e_val(1,ind_er,i)
-				
+
 				aproximate=u_c_val(1,ind_er,i)
-				
+
 ! 					if ((abs(aproximate-exact)).gt.l0norm(n,1))then
 ! 					l0norm(n,1)=abs(aproximate-exact)
 ! 					end if
 					l1norm=l1norm+((aproximate-exact)**2)*ielem_totvolume(i)
 				end if
- 			end do
- 			!$omp end do 
- 			
- 			if (initcond.eq.0)then
- 			!$omp do reduction (+:l0norm)
+			end do
+			!$omp end do
+
+			if (initcond.eq.0)then
+			!$omp do reduction (+:l0norm)
 			do i=1,kmaxe
 				if (itestcase.le.3)then
 ! 				condm(2)=rec_cond(2,i)
@@ -20564,112 +20558,112 @@ subroutine calculate_error(n)
 ! 					end if
 ! 					l1norm(n,1)=l1norm(n,1)+((abs(aproximate-exact)))
 				end if
- 			end do
- 			!$omp end do 
- 			else
- 			!$omp do reduction (max:l0norm)
+			end do
+			!$omp end do
+			else
+			!$omp do reduction (max:l0norm)
 			do i=1,kmaxe
 				if (itestcase.le.3)then
 				exact=u_e_val(1,ind_er,i)
-				
-				
+
+
 				aproximate=u_c_val(1,ind_er,i)
-				
+
 					if ((abs(aproximate-exact)).gt.l0norm)then
 					l0norm=abs(aproximate-exact)
 					end if
 ! 					l1norm(n,1)=l1norm(n,1)+((abs(aproximate-exact)))
 				end if
- 			end do
- 			!$omp end do 
- 			
- 			
- 			
- 			end if
- 			if (initcond.eq.3)then
- 			l0norm=zero;l1norm=tolbig
- 			
- 			!$omp do reduction (max:l0norm)
+			end do
+			!$omp end do
+
+
+
+			end if
+			if (initcond.eq.3)then
+			l0norm=zero;l1norm=tolbig
+
+			!$omp do reduction (max:l0norm)
 			do i=1,kmaxe
-					
+
 					if (u_c_val(1,ind_er,i).gt.l0norm)then
 					l0norm=u_c_val(1,ind_er,i)
 					end if
 ! 					l1norm(n,1)=l1norm(n,1)+((abs(aproximate-exact)))
-				
- 			end do
- 			!$omp end do 
- 			!$omp do reduction (min:l1norm)
+
+			end do
+			!$omp end do
+			!$omp do reduction (min:l1norm)
 			do i=1,kmaxe
-					
+
 					if (u_c_val(1,ind_er,i).lt.l1norm)then
 					l1norm=u_c_val(1,ind_er,i)
 					end if
 ! 					l1norm(n,1)=l1norm(n,1)+((abs(aproximate-exact)))
-				
- 			end do
- 			!$omp end do 
- 			
- 			
- 			end if
- 			
- 			
- 			if (initcond.eq.0)then
- 			!$omp do reduction (+:stennorm)
- 			do i=1,kmaxe
-				
+
+			end do
+			!$omp end do
+
+
+			end if
+
+
+			if (initcond.eq.0)then
+			!$omp do reduction (+:stennorm)
+			do i=1,kmaxe
+
 ! 				stennorm=stennorm+abs(rec_cond(2,i))
- 			end do
- 			!$omp end do 
- 			
- 			else
- 			!$omp do reduction (+:stennorm)
- 			do i=1,kmaxe
+			end do
+			!$omp end do
+
+			else
+			!$omp do reduction (+:stennorm)
+			do i=1,kmaxe
 				stennorm=stennorm+u_c_val(1,ind_er,i)
- 			end do
- 			!$omp end do 
- 			end if
-			
- 			!$omp master
+			end do
+			!$omp end do
+			end if
+
+			!$omp master
 			call mpi_barrier(mpi_comm_world,ierror)
 			!$omp end master
 			!$omp barrier
- 			
- 			
- 			!$omp master
- 			if (initcond.eq.3)then
- 			dummyout=l0norm
- 			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
- 			l0norm=dummyin
- 			dummyout=l1norm
- 			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
- 			l1norm=dummyin
- 			else
- 			
- 			dummyout=l1norm
- 			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
- 			l1norm=dummyin
- 			dummyout=l0norm
- 			if (initcond.eq.0)then
- 			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
- 			dummyin=dummyin/imaxe
- 			else
- 			
- 			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
- 			end if
- 			l0norm=dummyin
- 			dummyout=stennorm
- 			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
- 			stennorm=dummyin
- 			
- 			
- 			
- 			
- 			end if
 
- 			
- 			cpux3(1) = mpi_wtime()
- 			if (n.eq.0)then
+
+			!$omp master
+			if (initcond.eq.3)then
+			dummyout=l0norm
+			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+			l0norm=dummyin
+			dummyout=l1norm
+			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
+			l1norm=dummyin
+			else
+
+			dummyout=l1norm
+			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+			l1norm=dummyin
+			dummyout=l0norm
+			if (initcond.eq.0)then
+			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+			dummyin=dummyin/imaxe
+			else
+
+			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_max,mpi_comm_world,ierror)
+			end if
+			l0norm=dummyin
+			dummyout=stennorm
+			call mpi_allreduce(dummyout,dummyin,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierror)
+			stennorm=dummyin
+
+
+
+
+			end if
+
+
+			cpux3(1) = mpi_wtime()
+			if (n.eq.0)then
 			open(30,file='errors.dat',form='formatted',action='write',position='append')
 				if (initcond.eq.1)then
 				write(30,'(i9,1x,e14.7,1x,i4,1x,e14.7,1x,e14.7)')imaxe,t,spatiladiscret,l0norm,stennorm/imaxe
@@ -20713,7 +20707,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 
 integer::kmaxe,kk,kfk,icpuid,l,ihgt,ihgj,kkd
 real::x,y,z,denominator,tuy,tvx,twx,tuz,tvz,twy,snorm,onorm
@@ -20741,10 +20735,10 @@ real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
 
 
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -20763,7 +20757,7 @@ nvar1=2
 if (n.eq.0)then
 
 write(proc3,fmt='(i10)') it
-write(proc5,fmt='(i10)') 
+write(proc5,fmt='(i10)')
 	!proc4=".plt"
 	outfile="OUT_"//trim(adjustl(proc3))//".vtk"!//trim(adjustl(proc4))
 	itgfd=len_trim(outfile)
@@ -20793,7 +20787,7 @@ allocate (valuelocation(nvar1))
 valuelocation(:)=0
 valuelocation(1:2)=1
 
-    
+
 	if (binio.eq.0)then
 	open(96,file='GRID.vrt',form='formatted',status='old',action='read')
         do i=1,imaxn
@@ -20812,10 +20806,10 @@ valuelocation(1:2)=1
 	close(96)
 	end if
 
-   
-                    
-                    
- write(400+n,*)                   
+
+
+
+ write(400+n,*)
 write(400+n,'(a5,2x,i10,2x,i10)')"cells",imaxe,(imaxe*8)+imaxe
 
 if (binio.eq.0)then
@@ -20834,34 +20828,34 @@ write(400+n,'(9i12)')8,j1-1,j2-1,j3-1,j4-1,j5-1,j6-1,j7-1,j8-1
 end do
 close(97)
 end if
-                    
-                    
-write(400+n,*)                    
+
+
+write(400+n,*)
 write(400+n,'(a10,2x,i10)')"cell_types",imaxe
 do i=1,imaxe
 write(400+n,*)12
 end do
 write(400+n,*)
 write(400+n,'(a9,2x,i10)')"cell_data",imaxe
-               
-                    
-                    
 
- 
+
+
+
+
   allocate(xbin(imaxe),xbin2(imaxe))
-	
+
 
  end if
  allocate(valuess(kmaxe))
- 
+
   call mpi_barrier(mpi_comm_world,ierror)
-  
-    
-   
+
+
+
 do j=1,nof_variables
-     
+
      if ((j.ge.2).and.(j.le.4))then
-     
+
         do i=1,kmaxe
         valuess(i)=u_c_val(1,j,i)/u_c_val(1,1,i)!0.0
         end do
@@ -20877,10 +20871,10 @@ do j=1,nof_variables
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 		end do
-    
+
     end if
-    
-		
+
+
     call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 
@@ -20906,44 +20900,44 @@ do j=1,nof_variables
     write(400+n,'(a)')"scalars  p  double 1"
     end if
     write(400+n,'(a)')"lookup_table default"
-    
-    
+
+
 		do i=1,imaxe
 		xbin(xmpi_re(i))=xbin2(i)
 		end do
-    
+
      write(400+n,*)xbin(1:imaxe)
     end if
 
-    
+
 end do
 
-    
-    
-    
-    
 
-     
-    
-    
-    
+
+
+
+
+
+
+
+
  if (n.eq.0)then
-  close(400+n) 
-   
+  close(400+n)
+
    deallocate(xbin,valuesa,xbin2,valuelocation,icella)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
   call mpi_barrier(mpi_comm_world,ierror)
 
-        
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 end subroutine outwritepara3d
 
@@ -20959,7 +20953,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -20986,10 +20980,10 @@ character(len=:),allocatable::out1
 character*1 nulchar
 character(len=1)   :: flui,lf
 character(len=15)  :: str1,str2
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -21006,7 +21000,7 @@ kmaxe=xmpielrank(n)
 if (n.eq.0)then
 
 write(proc3,fmt='(i10)') it
-write(proc5,fmt='(i10)') 
+write(proc5,fmt='(i10)')
 	!proc4=".plt"
 	outfile="OUT_"//trim(adjustl(proc3))//".vtk"!//trim(adjustl(proc4))
 	itgfd=len_trim(outfile)
@@ -21035,8 +21029,8 @@ allocate (valuelocation(nvar1))
 valuelocation(:)=0
 valuelocation(1:2)=1
 
-    
-     
+
+
 ! 	open(96,file='GRID.vrt',form='formatted',status='old',action='read')
 !         do i=1,imaxn
 ! 	read(96,*)j,x,y,z
@@ -21044,9 +21038,9 @@ valuelocation(1:2)=1
 ! 	ybin(i)=y/scaler
 !  	zbin(i)=z/scaler
 ! 	end do
-! 
+!
 !     close(96)
-    
+
     if (binio.eq.0)then
 	open(96,file='GRID.vrt',form='formatted',status='old',action='read')
         do i=1,imaxn
@@ -21065,11 +21059,11 @@ valuelocation(1:2)=1
 	close(96)
 	end if
 
-    
-    
-   
-    
-                    
+
+
+
+
+
 write(str1(1:15),'(i15)') imaxe
 write(str2(1:15),'(i15)') (imaxe*8)+imaxe
 write(400+n)"cells",str1//str2//lf
@@ -21089,48 +21083,48 @@ end do
 close(97)
 
 end if
-                    
-                    
-write(str1(1:15),'(i15)') imaxe                    
-write(400+n)"cell_types"//str1//lf	
+
+
+write(str1(1:15),'(i15)') imaxe
+write(400+n)"cell_types"//str1//lf
 do i=1,imaxe
 write(400+n)12
 end do
 
 write(400+n)"cell_data"//str1//lf
-!                
-!                     
-!                     
-! 
- 
+!
+!
+!
+!
+
   allocate(xbin(imaxe),xbin2(imaxe))
-	
-! 
+
+!
  end if
-! 
-!  
-  
+!
+!
+
   allocate(valuess(kmaxe))
- 
+
  call mpi_barrier(mpi_comm_world,ierror)
-!     
-   
+!
+
 do j=1,nof_variables
-     
+
          do i=1,kmaxe
 		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(j)
 		end do
-    
-     
-		
-    
-    
+
+
+
+
+
     call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
     if (n.eq.0)then
-    
+
     if (j.eq.1)then
     write(400+n)"scalars  r double 1"//lf
     end if
@@ -21163,89 +21157,89 @@ do j=1,nof_variables
     write(400+n)"scalars  volumef1  double 1"//lf
     end if
     write(400+n)"lookup_table default"//lf
-    
-    
+
+
 		do i=1,imaxe
 		xbin(xmpi_re(i))=xbin2(i)
 		end do
-    
-    
+
+
      write(400+n)xbin(1:imaxe)
     end if
 
-     
-    
-    
+
+
+
 end do
-    
+
     if (itestcase.eq.4)then
 
 	 do i=1,kmaxe
-		  
+
 		  valuess(i)=ielem_vortex(1,i)
 		end do
-    
+
     call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 	if (n.eq.0)then
-    
-    	write(400+n)
-    	write(400+n)"scalars  q double 1"//lf
+
+	write(400+n)
+	write(400+n)"scalars  q double 1"//lf
 	    write(400+n)"lookup_table default"//lf
-    
+
 		do i=1,imaxe
 		xbin(xmpi_re(i))=xbin2(i)
 		end do
      write(400+n)xbin(1:imaxe)
     end if
    end if
-   
-   
+
+
    if (turbulence.eq.1)then
 
 	 do i=1,kmaxe
-		  
+
 		  valuess(i)=u_ct_val(1,1,i)
 		end do
-    
+
     call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
 	if (n.eq.0)then
-    
-    	write(400+n)
-    	write(400+n)"scalars  nut double 1"//lf
+
+	write(400+n)
+	write(400+n)"scalars  nut double 1"//lf
 	    write(400+n)"lookup_table default"//lf
-    
+
 		do i=1,imaxe
 		xbin(xmpi_re(i))=xbin2(i)
 		end do
      write(400+n)xbin(1:imaxe)
     end if
    end if
-    
-    
 
-     
-    
-  
-    
+
+
+
+
+
+
   if (n.eq.0)then
-  close(400+n) 
-   
+  close(400+n)
+
    deallocate(xbin,valuelocation,xbin2)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
   call mpi_barrier(mpi_comm_world,ierror)
 
-        
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 end subroutine outwritepara3db
 
@@ -21467,8 +21461,8 @@ end do
 
 	if (n.eq.0)then
 
-    	write(400+n)
-    	write(400+n)"scalars  q double 1"//lf
+	write(400+n)
+	write(400+n)"scalars  q double 1"//lf
 	    write(400+n)"lookup_table default"//lf
 
 		do i=1,imaxe
@@ -21490,8 +21484,8 @@ end do
 
 	if (n.eq.0)then
 
-    	write(400+n)
-    	write(400+n)"scalars  nut double 1"//lf
+	write(400+n)
+	write(400+n)"scalars  nut double 1"//lf
 	    write(400+n)"lookup_table default"//lf
 
 		do i=1,imaxe
@@ -21576,13 +21570,13 @@ end subroutine movie_para
                             allocate(variables(12))
                             nvar1=2
                             kmaxe=xmpielrank(n)
-                            
+
                             !the previous use of field didn't work, so time is added to the title
 
                             !create filename
                             if (n.eq.0)then
                                write(proc3,fmt='(i10)') it
-                               write(proc5,fmt='(i10)') 
+                               write(proc5,fmt='(i10)')
                                outfile="OUT_"//trim(adjustl(proc3))//".vtk"
                                itgfd=len_trim(outfile)
                                allocate(character(len=itgfd) ::out1)
@@ -21636,9 +21630,9 @@ end subroutine movie_para
 
                                !cell list size:the total number of integer values required to represent the list
                                !changes needed if grids with different cell types are used, here every cell has the same type
-                               write(str2,'(i0)') imaxe*5 ! 
-                               str_imaxe2 = trim(adjustl(str2))        
-                               
+                               write(str2,'(i0)') imaxe*5 !
+                               str_imaxe2 = trim(adjustl(str2))
+
                                write(400+n) "cells "//str_imaxe//" "//str_imaxe2,new_line(c)
                                !the grid is such, that triangles are defined using quads with two points being equal (j3=j4)
                                if (binio.eq.0)then
@@ -21663,22 +21657,22 @@ end subroutine movie_para
                                !https://lorensen.github.io/vtkexamples/site/vtkfileformats/
                                write(400+n)"cell_types "//str_imaxe,new_line(c)
                                do i=1,imaxe
-                                  write(400+n) 9  
+                                  write(400+n) 9
                                end do
 
                                ! the data is cell centered. use celldatatopointdata in paraview for warp by scalar
                                write(400+n)"cell_data "//str_imaxe,new_line(c)
 
                                allocate(xbin(imaxe),xbin2(imaxe))
-                               ! 
+                               !
                             end if
 
                             allocate(valuess(kmaxe))
                             call mpi_barrier(mpi_comm_world,ierror)
 
                             do j=1,nof_variables
-                                
-                              
+
+
                                   do i=1,kmaxe
                                         leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
                                         call cons2prim(n,leftv,mp_pinfl,gammal)
@@ -21720,45 +21714,45 @@ end subroutine movie_para
                                end if
                             end do
 
-                            
+
                             if (turbulence.eq.1)then
 
                             do i=1,kmaxe
-                                
+
                                 valuess(i)=u_ct_val(1,1,i)
                                 end do
-                            
+
                             call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
                             if (n.eq.0)then
-                            
+
                                 write(400+n)
                                 write(400+n)"scalars  nut double 1"//lf
                                 write(400+n)"lookup_table default"//lf
-                            
+
                                 do i=1,imaxe
                                 xbin(xmpi_re(i))=xbin2(i)
                                 end do
                             write(400+n)xbin(1:imaxe)
                             end if
                         end if
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                             if (n.eq.0)then
                                ! close file
-                               close(400+n) 
+                               close(400+n)
 
                                deallocate(xbin,xbin2)
                                deallocate(out1)
@@ -21799,7 +21793,7 @@ real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -21810,7 +21804,7 @@ kmaxe=xmpielrank(n)
 
 allocate(xbin(kmaxe))
 write(proc3,fmt='(i10)') it
-write(proc5,fmt='(i10)') n 
+write(proc5,fmt='(i10)') n
 	!proc4=".plt
 	outfile="OUT_"//trim(adjustl(proc3))//"_"//trim(adjustl(proc5))//".vtk"!//trim(adjustl(proc4))
 	itgfd=len_trim(outfile)
@@ -21833,30 +21827,30 @@ write(str1(1:15),'(i15)') kmaxn
 write(400+n)"points "//str1//" double"//lf
 
 
-    
+
     do i=1,kmaxn
 	write(400+n)inoder4_cord(1,i),inoder4_cord(2,i),inoder4_cord(3,i)
 	end do
-   
-                    
+
+
 write(str1(1:15),'(i15)') kmaxe
 write(str2(1:15),'(i15)') (kmaxe*8)+kmaxe
 write(400+n)"cells",str1//str2//lf
 do i=1,kmaxe
 write(400+n)8,el_connect(i,1)-1,el_connect(i,2)-1,el_connect(i,3)-1,el_connect(i,4)-1,el_connect(i,5)-1,el_connect(i,6)-1,el_connect(i,7)-1,el_connect(i,8)-1
 end do
-                   
-                    
-write(str1(1:15),'(i15)') kmaxe                    
-write(400+n)"cell_types"//str1//lf	
+
+
+write(str1(1:15),'(i15)') kmaxe
+write(400+n)"cell_types"//str1//lf
 do i=1,kmaxe
 write(400+n)12
 
 end do
 
 write(400+n)"cell_data"//str1//lf
-!     
-   
+!
+
 do j=1,nof_variables
 
 
@@ -21900,66 +21894,66 @@ do j=1,nof_variables
     write(400+n)"scalars  volumef  double 1"//lf
     end if
     write(400+n)"lookup_table default"//lf
-    
-    
-		
-    
-    
-     write(400+n)xbin(1:kmaxe)
-     
-    
 
-     
-    
-    
+
+
+
+
+     write(400+n)xbin(1:kmaxe)
+
+
+
+
+
+
 end do
 
     if (itestcase.eq.4)then
 
 	 do i=1,kmaxe
-		  
+
 		  xbin(i)=ielem_vortex(1,i)
 		end do
 
         write(400+n)
-    	write(400+n)"scalars  q double 1"//lf
+	write(400+n)"scalars  q double 1"//lf
 	    write(400+n)"lookup_table default"//lf
-    
+
     write(400+n)xbin(1:imaxe)
     end if
-    
+
     if (turbulence.eq.1)then
 
 	 do i=1,kmaxe
-		  
+
 		  xbin(i)=u_ct_val(1,1,i)
 		end do
 
         write(400+n)
-    	write(400+n)"scalars  nut double 1"//lf
+	write(400+n)"scalars  nut double 1"//lf
 	    write(400+n)"lookup_table default"//lf
-    
+
     write(400+n)xbin(1:imaxe)
     end if
-    
-    
-    
+
+
+
     close(400+n)
     deallocate(xbin,out1)
-    
-    
-  
-    
-  
-  
+
+
+
+
+
+
 
   call mpi_barrier(mpi_comm_world,ierror)
 
-        
 
 
-	
-	
+
+
+
 
 end subroutine outwritepara3dbp
 
@@ -21992,7 +21986,7 @@ real::angle1,angle2,nx,ny,nz
 real,dimension(1:4)::viscl,laml
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -22006,7 +22000,7 @@ kmaxe=xmpielrank(n)
 
 allocate(xbin(kmaxe))
 write(proc3,fmt='(i10)') it
-write(proc5,fmt='(i10)')n 
+write(proc5,fmt='(i10)')n
 	!proc4=".plt
 	outfile="out_av"//trim(adjustl(proc3))//"_"//trim(adjustl(proc5))//".vtk"!//trim(adjustl(proc4))
 	itgfd=len_trim(outfile)
@@ -22029,29 +22023,29 @@ write(str1(1:15),'(i15)') kmaxn
 write(400+n)"points "//str1//" double"//lf
 
 
-    
+
     do i=1,kmaxn
 	write(400+n)inoder4_cord(1,i),inoder4_cord(2,i),inoder4_cord(3,i)
 	end do
-   
-                    
+
+
 write(str1(1:15),'(i15)') kmaxe
 write(str2(1:15),'(i15)') (kmaxe*8)+kmaxe
 write(400+n)"cells",str1//str2//lf
 do i=1,kmaxe
 write(400+n)8,el_connect(i,1)-1,el_connect(i,2)-1,el_connect(i,3)-1,el_connect(i,4)-1,el_connect(i,5)-1,el_connect(i,6)-1,el_connect(i,7)-1,el_connect(i,8)-1
 end do
-                   
-                    
-write(str1(1:15),'(i15)') kmaxe                    
-write(400+n)"cell_types"//str1//lf	
+
+
+write(str1(1:15),'(i15)') kmaxe
+write(400+n)"cell_types"//str1//lf
 do i=1,kmaxe
 write(400+n)12
 end do
 
 write(400+n)"cell_data"//str1//lf
-!     
-   
+!
+
 do j=1,11
 
     if (j.eq.1)then
@@ -22098,8 +22092,8 @@ do j=1,11
     write(400+n)"scalars  wv  double 1"//lf
     end if
     write(400+n)"lookup_table default"//lf
-    
-        
+
+
         if (j.eq.1)then
 		do i=1,kmaxe
 		xbin(i)=u_c_val(ind1,j,i)
@@ -22122,34 +22116,34 @@ do j=1,11
 		xbin(i)=u_c_val(1,j,i)
 		end do
 		end if
-    
-    
-     write(400+n)xbin(1:kmaxe)
-   
 
-     
-    
-    
+
+     write(400+n)xbin(1:kmaxe)
+
+
+
+
+
 end do
-    
-    
-    
+
+
+
     close(400+n)
         deallocate(xbin,out1)
-     
-    
-  
-    
-  
-  
+
+
+
+
+
+
 
   call mpi_barrier(mpi_comm_world,ierror)
 
-        
 
 
-	
-	
+
+
+
 
 end subroutine outwritepara3dbpav
 
@@ -22169,7 +22163,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -22196,10 +22190,10 @@ character(len=:),allocatable::out1
 character*1 nulchar
 character(len=1)   :: flui,lf
 character(len=15)  :: str1,str2
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -22216,7 +22210,7 @@ nvar1=2
 if (n.eq.0)then
 
 write(proc3,fmt='(i10)') it
-write(proc5,fmt='(i10)') 
+write(proc5,fmt='(i10)')
 	!proc4=".plt"
 	outfile="SURF_"//trim(adjustl(proc3))//".vtk"!//trim(adjustl(proc4))
 	itgfd=len_trim(outfile)
@@ -22257,11 +22251,11 @@ do i=1,imaxb
 	end if
 end do
  close(96)
- 
- 
+
+
  end if
- 
- 
+
+
 igf2=0
 do i=1,imaxn
       if (inog(i).eq.1)then
@@ -22269,7 +22263,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 ! open(400+n,file=outfile,form='unformatted',status='new',action='write')
  open(400+n,file=outfile,status='replace',access='stream',convert='big_endian')
@@ -22290,7 +22284,7 @@ allocate (valuelocation(nvar1))
 	igf2=0
         do i=1,imaxn
 	read(96,*)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
@@ -22304,7 +22298,7 @@ allocate (valuelocation(nvar1))
 	igf2=0
         do i=1,imaxn
 	read(96)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
@@ -22313,14 +22307,14 @@ allocate (valuelocation(nvar1))
 	end do
 
     close(96)
-    
-    
+
+
     end if
 
-    
-   
-    
-    
+
+
+
+
      if (binio.eq.0)then
      open(98,file='GRID.bnd',form='formatted',status='old',action='read')
      end if
@@ -22333,78 +22327,78 @@ allocate (valuelocation(nvar1))
 		igf2=0
 		if (binio.eq.0)then
 		do k=1,imaxb
-               
- 		read(98,*)igf,i,j,l,m,o
+
+		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		end do
 		else
 		do k=1,imaxb
-               
- 		read(98)igf,i,j,l,m,o
+
+		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		end do
-		
+
 		end if
-	    
- 		close(98)
- 		
- 		
- 		
- 		
- 		write(str1(1:15),'(i15)') igf2
+
+		close(98)
+
+
+
+
+		write(str1(1:15),'(i15)') igf2
  write(str2(1:15),'(i15)') (igf2*4)+igf2
  write(400+n)"cells",str1//str2//lf
- 		do i=1,igf2
- 		write(400+n)4,icon(1,i)-1,icon(2,i)-1,icon(3,i)-1,icon(4,i)-1
- 		end do
- 		
-	
-		deallocate(icon)	
+		do i=1,igf2
+		write(400+n)4,icon(1,i)-1,icon(2,i)-1,icon(3,i)-1,icon(4,i)-1
+		end do
+
+
+		deallocate(icon)
 		deallocate(inog)
 
 
-                    
+
 ! write(str1(1:15),'(i15)') imaxe
 ! write(str2(1:15),'(i15)') (imaxe*8)+imaxe
 ! write(400+n)"cells",str1//str2//lf
-! 
+!
 ! open(97,file='GRID.cel',form='formatted',status='old',action='read')
 ! do i=1,imaxe
 ! read(97,*)j,j1,j2,j3,j4,j5,j6,j7,j8
 ! write(400+n)8,j1-1,j2-1,j3-1,j4-1,j5-1,j6-1,j7-1,j8-1
 ! end do
 ! close(97)
-                    
-                    
-                 
- write(400+n)"cell_types"//str1//lf	
- do i=1,igf2 
+
+
+
+ write(400+n)"cell_types"//str1//lf
+ do i=1,igf2
  write(400+n)9
  end do
-! 
+!
 write(400+n)"cell_data"//str1//lf
-!                
-!                     
-!                     
-! 
+!
+!
+!
+!
 allocate(xbin(totwalls),xbin2(totwalls))
 
  end if
@@ -22413,27 +22407,27 @@ allocate(xbin(totwalls),xbin2(totwalls))
   if (xmpiwall(n).gt.0)then
   allocate(valuess(xmpiwall(n)))
   end if
-!     
-   
+!
+
 do j=1,nof_variables
-     
+
      if ((j.ge.2).and.(j.le.4))then
-     
+
          if (totiw.gt.0)then
-		      	
+
 		      do i=1,totiw
                 valuess(i)=u_c_rms(j-5,ibound_t(i))/u_c_val(1,1,ibound_t(i))
                 end do
-				
+
 		      end if
     end if
     if (j.eq.1)then
          if (totiw.gt.0)then
-		      	
+
 		      do i=1,totiw
                 valuess(i)=u_c_val(1,j,ibound_t(i))
                 end do
-				
+
 		      end if
     end if
     if (j.eq.5)then
@@ -22442,23 +22436,23 @@ do j=1,nof_variables
 						leftv(1:nof_variables)=u_c_val(1,1:nof_variables,ibound_t(i))
 						call cons2prim(n,leftv,mp_pinfl,gammal)
 						valuess(i)=leftv(5)
-						
+
 					  end do
 		      end if
-    
+
     end if
-    
-		
-    
+
+
+
     call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 !     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
     if (n.eq.0)then
-    
-    
-    
-    
-    
+
+
+
+
+
     if (j.eq.1)then
     write(400+n)"scalars  r double 1"//lf
     end if
@@ -22479,50 +22473,50 @@ do j=1,nof_variables
     write(400+n)"scalars  p  double 1"//lf
     end if
     write(400+n)"lookup_table default"//lf
-    
-    
-    
+
+
+
 		do i=1,totwalls
 		xbin(xmpi_wre(i))=xbin2(i)
 		end do
-		
-    
-    
+
+
+
      write(400+n)xbin(1:totwalls)
     end if
 
-     
-    
-    
-end do
-    
-    
-    
-    
 
-     
-    
- 
-    
+
+
+end do
+
+
+
+
+
+
+
+
+
   if (n.eq.0)then
-  
-   
+
+
    deallocate(xbin,xbin2,valuelocation)
   deallocate(out1)
-  close(400+n)  
+  close(400+n)
   end if
    if (totiw.gt.0)then
   deallocate (valuess)
   end if
-  
 
-          
-        
+
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 end subroutine outwritepara3dsb
 
@@ -22543,7 +22537,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -22570,10 +22564,10 @@ character(len=:),allocatable::out1
 character*1 nulchar
 character(len=1)   :: flui,lf
 character(len=15)  :: str1,str2
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -22590,7 +22584,7 @@ kmaxe=xmpielrank(n)
 if (n.eq.0)then
 
 write(proc3,fmt='(i10)') it
-write(proc5,fmt='(i10)') 
+write(proc5,fmt='(i10)')
 	!proc4=".plt"
 	outfile="out_av"//trim(adjustl(proc3))//".vtk"!//trim(adjustl(proc4))
 	itgfd=len_trim(outfile)
@@ -22619,8 +22613,8 @@ allocate (valuelocation(nvar1))
 valuelocation(:)=0
 valuelocation(1:2)=1
 
-    
-     
+
+
 ! 	open(96,file='GRID.vrt',form='formatted',status='old',action='read')
 !         do i=1,imaxn
 ! 	read(96,*)j,x,y,z
@@ -22628,9 +22622,9 @@ valuelocation(1:2)=1
 ! 	ybin(i)=y/scaler
 !  	zbin(i)=z/scaler
 ! 	end do
-! 
+!
 !     close(96)
-    
+
     if (binio.eq.0)then
 	open(96,file='GRID.vrt',form='formatted',status='old',action='read')
         do i=1,imaxn
@@ -22649,11 +22643,11 @@ valuelocation(1:2)=1
 	close(96)
 	end if
 
-    
-    
-   
-    
-                    
+
+
+
+
+
 write(str1(1:15),'(i15)') imaxe
 write(str2(1:15),'(i15)') (imaxe*8)+imaxe
 write(400+n)"cells",str1//str2//lf
@@ -22673,36 +22667,36 @@ end do
 close(97)
 
 end if
-                    
-                    
-write(str1(1:15),'(i15)') imaxe                    
-write(400+n)"cell_types"//str1//lf	
+
+
+write(str1(1:15),'(i15)') imaxe
+write(400+n)"cell_types"//str1//lf
 do i=1,imaxe
 write(400+n)12
 end do
 
 write(400+n)"cell_data"//str1//lf
-!                
-!                     
-!                     
-! 
- 
+!
+!
+!
+!
+
   allocate(xbin(imaxe),xbin2(imaxe))
-	
-! 
+
+!
  end if
-! 
-!  
-  
+!
+!
+
   allocate(valuess(kmaxe))
- 
+
  call mpi_barrier(mpi_comm_world,ierror)
-!     
-   
+!
+
 do j=1,nof_variables+6
-     
+
      if ((j.ge.2).and.(j.le.4))then
-     
+
         do i=1,kmaxe
         valuess(i)=u_c_val(ind1,j,i)/u_c_val(ind1,1,i)!0.0
         end do
@@ -22718,21 +22712,21 @@ do j=1,nof_variables+6
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 		end do
-    
+
     end if
     if (j.gt.5)then
     do i=1,kmaxe
 	valuess(i)=u_c_val(1,j,i)
     end do
     end if
-    
-		
-    
-    
+
+
+
+
     call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
 
     if (n.eq.0)then
-    
+
     if (j.eq.1)then
     write(400+n)"scalars  r_mean double 1"//lf
     end if
@@ -22777,45 +22771,45 @@ do j=1,nof_variables+6
     write(400+n)"scalars  wv  double 1"//lf
     end if
     write(400+n)"lookup_table default"//lf
-    
-    
+
+
 		do i=1,imaxe
 		xbin(xmpi_re(i))=xbin2(i)
 		end do
-    
+
      write(400+n)xbin(1:imaxe)
     end if
-    
-     
-    
-    
-end do
-    
-    
-    
-    
 
-     
-    
-  
-    
+
+
+
+end do
+
+
+
+
+
+
+
+
+
   if (n.eq.0)then
-  close(400+n) 
-   
+  close(400+n)
+
    deallocate(xbin,xbin2,valuelocation)
   deallocate(out1)
   end if
   deallocate (valuess)
-  
+
 
   call mpi_barrier(mpi_comm_world,ierror)
 
-        
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 end subroutine outwritepara3dbav
 
@@ -22831,7 +22825,7 @@ implicit none
 ! external tecnode112
 ! external  tecend112
 
-! 
+!
 real,dimension(1:nof_variables)::leftv
 real::mp_pinfl,gammal
 real,dimension(1:nof_variables)::rightv
@@ -22858,10 +22852,10 @@ character(len=:),allocatable::out1
 character*1 nulchar
 character(len=1)   :: flui,lf
 character(len=15)  :: str1,str2
- 
+
       integer::   debug,iii,npts,nelm
 
-  
+
       real::    soltime
       integer:: visdouble, filetype
       integer:: zonetype,strandid,parentzn,isblock
@@ -22878,7 +22872,7 @@ nvar1=2
 if (n.eq.0)then
 
 write(proc3,fmt='(i10)') it
-write(proc5,fmt='(i10)') 
+write(proc5,fmt='(i10)')
 	!proc4=".plt"
 	outfile="SURF_"//trim(adjustl(proc3))//".vtk"!//trim(adjustl(proc4))
 	itgfd=len_trim(outfile)
@@ -22919,11 +22913,11 @@ do i=1,imaxb
 	end if
 end do
  close(96)
- 
- 
+
+
  end if
- 
- 
+
+
 igf2=0
 do i=1,imaxn
       if (inog(i).eq.1)then
@@ -22931,7 +22925,7 @@ do i=1,imaxn
       end if
 
 end do
-	
+
 itotalb=igf2
 ! open(400+n,file=outfile,form='unformatted',status='new',action='write')
  open(400+n,file=outfile,status='replace',access='stream',convert='big_endian')
@@ -22952,7 +22946,7 @@ allocate (valuelocation(nvar1))
 	igf2=0
         do i=1,imaxn
 	read(96,*)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
@@ -22966,7 +22960,7 @@ allocate (valuelocation(nvar1))
 	igf2=0
         do i=1,imaxn
 	read(96)j,x,y,z
-	    
+
       if (inog(i).eq.1)then
       igf2=igf2+1
       inog(i)=igf2
@@ -22975,14 +22969,14 @@ allocate (valuelocation(nvar1))
 	end do
 
     close(96)
-    
-    
+
+
     end if
 
-    
-   
-    
-    
+
+
+
+
      if (binio.eq.0)then
      open(98,file='GRID.bnd',form='formatted',status='old',action='read')
      end if
@@ -22995,78 +22989,78 @@ allocate (valuelocation(nvar1))
 		igf2=0
 		if (binio.eq.0)then
 		do k=1,imaxb
-               
- 		read(98,*)igf,i,j,l,m,o
+
+		read(98,*)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		end do
 		else
 		do k=1,imaxb
-               
- 		read(98)igf,i,j,l,m,o
+
+		read(98)igf,i,j,l,m,o
 		  if (o.eq.4)then
 		  igf2=igf2+1
 		  icon(1,igf2)=inog(i)
 		  icon(2,igf2)=inog(j)
 		  icon(3,igf2)=inog(l)
 		  icon(4,igf2)=inog(m)
-    
+
 		end if
     !cv=cv+4
-        	
+
 		end do
-		
+
 		end if
-	    
- 		close(98)
- 		
- 		
- 		
- 		
- 		write(str1(1:15),'(i15)') igf2
+
+		close(98)
+
+
+
+
+		write(str1(1:15),'(i15)') igf2
  write(str2(1:15),'(i15)') (igf2*4)+igf2
  write(400+n)"cells",str1//str2//lf
- 		do i=1,igf2
- 		write(400+n)4,icon(1,i)-1,icon(2,i)-1,icon(3,i)-1,icon(4,i)-1
- 		end do
- 		
-	
-		deallocate(icon)	
+		do i=1,igf2
+		write(400+n)4,icon(1,i)-1,icon(2,i)-1,icon(3,i)-1,icon(4,i)-1
+		end do
+
+
+		deallocate(icon)
 		deallocate(inog)
 
 
-                    
+
 ! write(str1(1:15),'(i15)') imaxe
 ! write(str2(1:15),'(i15)') (imaxe*8)+imaxe
 ! write(400+n)"cells",str1//str2//lf
-! 
+!
 ! open(97,file='GRID.cel',form='formatted',status='old',action='read')
 ! do i=1,imaxe
 ! read(97,*)j,j1,j2,j3,j4,j5,j6,j7,j8
 ! write(400+n)8,j1-1,j2-1,j3-1,j4-1,j5-1,j6-1,j7-1,j8-1
 ! end do
 ! close(97)
-                    
-                    
-                 
- write(400+n)"cell_types"//str1//lf	
- do i=1,igf2 
+
+
+
+ write(400+n)"cell_types"//str1//lf
+ do i=1,igf2
  write(400+n)9
  end do
-! 
+!
 write(400+n)"cell_data"//str1//lf
-!                
-!                     
-!                     
-! 
+!
+!
+!
+!
 allocate(xbin(totwalls),xbin2(totwalls))
 
  end if
@@ -23075,27 +23069,27 @@ allocate(xbin(totwalls),xbin2(totwalls))
   if (xmpiwall(n).gt.0)then
   allocate(valuess(xmpiwall(n)))
   end if
-!     
-   
+!
+
 do j=1,nof_variables+6
-     
+
      if ((j.ge.2).and.(j.le.4))then
-     
+
          if (totiw.gt.0)then
-		      	
+
 		      do i=1,totiw
                 valuess(i)=u_c_rms(j-5,ibound_t(i))/u_c_val(ind1,1,ibound_t(i))
                 end do
-				
+
 		      end if
     end if
     if (j.eq.1)then
          if (totiw.gt.0)then
-		      	
+
 		      do i=1,totiw
                 valuess(i)=u_c_val(ind1,j,ibound_t(i))
                 end do
-				
+
 		      end if
     end if
     if (j.eq.5)then
@@ -23104,10 +23098,10 @@ do j=1,nof_variables+6
 						leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,ibound_t(i))
 						call cons2prim(n,leftv,mp_pinfl,gammal)
 						valuess(i)=leftv(5)
-						
+
 					  end do
 		      end if
-    
+
     end if
      if (j.gt.5)then
       if (totiw.gt.0)then
@@ -23116,13 +23110,13 @@ do j=1,nof_variables+6
 	end do
       end if
     end if
-		
-    
+
+
     call mpi_gatherv(valuess,xmpiwall(n),mpi_double_precision,xbin2,xmpiwall,woffset,mpi_double_precision,0,mpi_comm_world,ierror)
 !     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
     if (n.eq.0)then
-    
+
     if (j.eq.1)then
     write(400+n)"scalars  r_mean double 1"//lf
     end if
@@ -23167,47 +23161,47 @@ do j=1,nof_variables+6
     write(400+n)"scalars  wv  double 1"//lf
     end if
     write(400+n)"lookup_table default"//lf
-    
-    
+
+
 		do i=1,totwalls
 		xbin(xmpi_wre(i))=xbin2(i)
 		end do
-    
+
      write(400+n)xbin(1:totwalls)
     end if
 
-     
-    
-    
-end do
-    
-    
-    
-    
 
-     
-    
- 
-    
+
+
+end do
+
+
+
+
+
+
+
+
+
   if (n.eq.0)then
-  
-   
+
+
    deallocate(xbin,valuelocation,xbin2)
   deallocate(out1)
-  close(400+n)  
+  close(400+n)
   end if
    if (totiw.gt.0)then
   deallocate (valuess)
   end if
-  
 
-          
-        
+
+
+
  deallocate(variables)
 
 
-	
-	
+
+
 
 end subroutine outwritepara3dsbav
 
@@ -23547,7 +23541,7 @@ end if
 !second index varies from 1:8 for all the vertices of this element (connectivity list)
 !for paraview the numbering might require switching (from 1 to number of nodes----> 0  to number of nodes-1)
 
-!inoder4_cord(1:3,1:number of nodes (kmaxn)) holds the coordinates for each point 
+!inoder4_cord(1:3,1:number of nodes (kmaxn)) holds the coordinates for each point
 !kmaxn is global across all modules
 !kmaxe must be set as equal to xmpielrank(n)
 !this is shown in outwritepara3dbp (p stands for partitioned mesh writing)
@@ -23595,15 +23589,15 @@ igfs=t
 
 write(proc3,fmt='(i10)') igfs
 	restfile="REST_"//trim(adjustl(proc3))//".dat"!//trim(adjustl(proc4))
-	
+
 icpuid=n
 
 	if (n.eq.0)then
 	open(1086,file=restfile,form='unformatted',status='replace',action='write')
 	end if
-	
+
 	kmaxe=xmpielrank(n)
-    
+
 dumg=kmaxe
 
 
@@ -23632,22 +23626,22 @@ end do
 
     if (n.eq.0) then
     allocate(valuesa(imaxp*isize))
-    allocate(xbin(imaxe,5+turbulenceequations+passivescalar))
+    allocate(xbin(imaxe,nof_variables+turbulenceequations+passivescalar))
     valuesa=zero
     end if
-    
-    
+
+
     allocate(valuess(imaxp));valuess=zero
 
-  
-  do jj=1,5
+
+  do jj=1,nof_variables
 	do i=1,kmaxe
         leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
         call cons2prim(n,leftv,mp_pinfl,gammal)
 		valuess(i)=leftv(jj)
 	end do
 	call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-	
+
 	    if (n.eq.0)then
 	    do i=1,imaxp*isize
 		if (icella(i).gt.0)then
@@ -23655,7 +23649,7 @@ end do
 		end if
 	    end do
 	    end if
-    
+
   end do
 
 
@@ -23671,7 +23665,7 @@ end do
     deallocate(xbin,icella,valuesa)
     close(1086)
     end if
-    
+
 deallocate(valuess)
 
 
@@ -23699,15 +23693,15 @@ real,allocatable,dimension(:)::igint,tgint
 
 
 	restfile="CORD.dat"
-	
+
 icpuid=n
 
 	if (n.eq.0)then
 	open(1086,file=restfile,form='unformatted',status='replace',action='write')
 	end if
-	
+
 	kmaxe=xmpielrank(n)
-    
+
 dumg=kmaxe
 
 
@@ -23746,11 +23740,11 @@ end do
     allocate(valuesa(1),xbin(1,3))
 
     end if
-    
-    
+
+
     allocate(valuess(imaxp));valuess=zero
 
-  
+
   do jj=1,3
 	do i=1,kmaxe
         if (jj.eq.1)then
@@ -23764,7 +23758,7 @@ end do
 		end if
 	end do
 	call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
-	
+
 	    if (n.eq.0)then
 	    do i=1,imaxp*isize
 		if (icella(i).gt.0)then
@@ -23772,7 +23766,7 @@ end do
 		end if
 	    end do
 	    end if
-    
+
   end do
 
 
@@ -23792,7 +23786,7 @@ end do
     deallocate(xbin,icella,valuesa)
 
 
-    
+
 deallocate(valuess)
 
 call mpi_barrier(mpi_comm_world,ierror) !not needed

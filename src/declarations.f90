@@ -1,4 +1,4 @@
-module declaration	
+module declaration
 !--------------------------------------------------------------------------------------------------------------------------!
 !hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh!
 !_____________________________________________ start header of module______________________________________________________!
@@ -171,11 +171,11 @@ integer::filter_type,fil_nc,fil_s,fil_alpha		!filter values
 integer::adda_type,adda_alpha_1,adda_alpha_2,adda_1_s,adda_2_s,adda_1,adda_2		!filter values
 integer::kill			 ! flag for killing a simulation
 integer::nof_perturbations405	!number of perturbations
-integer::nderivative		  	! index of the numbering of the component of the polynomials 
+integer::nderivative		  	! index of the numbering of the component of the polynomials
 real::output_freq				!output frequency in simulation time
 integer::extended_bounds		!bounds strict or relaxed
-integer::iconsr					! index for identifying the considered element 
-integer::inwhichel				! index for identifying the considered element within a stencil 
+integer::iconsr					! index for identifying the considered element
+integer::inwhichel				! index for identifying the considered element within a stencil
 integer::subdiv					! index for the number of subdivisions of a face
 integer::iconsgvq				! index for considered cell
 integer::igianagraps				!index for considered cell
@@ -202,15 +202,15 @@ integer::allnodesgloball			! total number of nodes in the domain
 integer::spatiladiscret				! spatial discretisation
 integer::spatialorder    			! spatial order
 integer::jk					!index
-integer::numneighbours,numneighbours2				! number of neighbours in the stencils 
-integer::restart				! flag for determining if a restart file is present			
-integer::ihybrid				!hybrid mode where some part of the domain is solved with lower order and another with higher order schemes	
+integer::numneighbours,numneighbours2				! number of neighbours in the stencils
+integer::restart				! flag for determining if a restart file is present
+integer::ihybrid				!hybrid mode where some part of the domain is solved with lower order and another with higher order schemes
 integer::upperlimit !
 integer::residualfreq				!frequency for writing the residuals
 integer::irs					!implicit residual smoothing version
 integer::greengo				!gradient approximation techniques
 integer::lmach					!low mach preconditioning
-integer::ispal					!type of spalart allmaras modification	
+integer::ispal					!type of spalart allmaras modification
 integer::relax					!relaxation schemes gauss seidel, jacobian etc
 integer::icong					!index for considered cell
 integer::iloop					!index for considered cell
@@ -220,7 +220,7 @@ integer::average_restart			!flag for having a restart file with the averaged sol
 integer::prev_turbmodel				!flag of previous turbulence model in case of a restart file
 integer::iforce					!index on how often to compute the forces
 integer::boundtype				!type of boundary condition supersonic,  subsonic
-integer::nproc					!number of cpus							
+integer::nproc					!number of cpus
 integer::initcond				!initial condition type
 integer::wenwrt					!weno wrt to which variable conserved, characteristics etc
 integer::poly					!interpolating polynomials 1 generic, 2 legendre
@@ -229,11 +229,11 @@ integer::icarlos1				!index for considered element passive scalars, complicated 
 integer::icarlos2				!index for considered face passive scalars, complicated inflow condition
 integer::imaxe					!total number of elements of the grid
 integer::ntmax					!maximum number of iterations
-integer::ihax1					!temporary integer used as pointer for operations regarding hexahedral elements					
+integer::ihax1					!temporary integer used as pointer for operations regarding hexahedral elements
 integer::limiter				!slope limiter
 integer::iextend				!extend parameter for central big stencil only for weno cases
 integer::idegfree,idegfree2,inum2,idegfree3		!degrees of freedom of polynomial it will become loca	l
-integer::outsurf				!outsurf stands for computing forces 
+integer::outsurf				!outsurf stands for computing forces
 integer::unwou					!type of output files to write all partitions to one file etc
 integer::igqrules				!gaussian quadrature rule
 integer::imaxdegfree,imaxdegfree2				!maximum number of neighbours
@@ -259,7 +259,7 @@ integer::itt,wenoz					!integer variable used for opening files
 integer::itestcase              !types of equations to be solved
 integer::iweightlsqr    			!weighted least squres option of inverted distance
 integer::typesten				!number of stencils for weno
-integer::iperiodicity				!periodicity detected in domain	
+integer::iperiodicity				!periodicity detected in domain
 integer::iweno					!type of schemes weno, muscl, unlimited
 integer::turbulence				!turbulence equations
 integer::turbulencemodel			!which model
@@ -397,7 +397,7 @@ integer,allocatable,dimension(:)::pare,dose,pareel,pares
 integer,allocatable,dimension(:,:)::doseel,soseel
 integer,allocatable,dimension(:,:,:,:)::ilocalstencil	!4-d array for stencils
 integer,allocatable,dimension(:,:,:,:)::ilocalstencilper	!4-d array for rotational periodic stencils
-integer,allocatable,dimension(:,:,:,:)::ilocalallelg	!4-d array for stencils 
+integer,allocatable,dimension(:,:,:,:)::ilocalallelg	!4-d array for stencils
 integer,allocatable,dimension(:,:,:,:)::ilocalallelgper	    !4-d array for rotational periodic stencils
 integer,allocatable,dimension(:)::xmpie			!global list of number of elements that belong to each cpu
 integer,allocatable,dimension(:)::xmpil			!local list of number of elements that belong to each cpu
@@ -419,7 +419,7 @@ integer::thermal,temp_model
 real::wenocentralweight,timestep,oo2,zero,forcex,forcey,forcez,extf,vorder,mood_var1,mood_var2,mood_var3,mood_var4
 real::pi					!pi trigonometri
 real::taylor,taylor_ens,taylor_ensx					!only to be used for taylor green vortex
-real::voll					!total volume of the domain	
+real::voll					!total volume of the domain
 real::wall_temp					!wall temperature model
 real::upturblimit				!upper turbulence viscosity ratio
 real::hybridist					!upper turbulence viscosity ratio
@@ -438,7 +438,7 @@ real::vectory					!setting up with respect to which plane the aoa is defined y
 real::vectorz					!setting up with respect to which plane the aoa is defined z
 real::gridar1					!aspect ratio of grid
 real::gridar2					!maximum volume aspect ratio of stencils
-real::t						!time	
+real::t						!time
 real::totalvolume				!total volume of domain
 real::reslimit       				!limit to stop the simulation
 
@@ -448,7 +448,7 @@ real::wallc					!wall clock limit in seconds
 real::betaas					!betaas of sutherland exponent
 real::suther					!sutherland non dimensional constant of temperature
 real::prandtl					!prandtl number
-real::scaler					!for scaling the mesh 
+real::scaler					!for scaling the mesh
 real::lwci1					!linear weno weight of central stencils				!
 real::resmax					!residual dimensional mean flow
 real::resmaxt					!residual dimensional turbulence
@@ -485,7 +485,7 @@ real::every_time,ek_time					!final time to write output for unsteady simulation
 real::xper					!periodicity in x axis
 real::yper					!periodicity in y axis
 real::zper					!periodicity in z axis
-real::aoa					!angle of attack	
+real::aoa					!angle of attack
 real::charlength				!characteristic length if undefined, and reynolds undefined the free stream will be used for air
 						!turbulence model constants
 real::turbinit				!turbulence initial value vt/v
@@ -538,7 +538,7 @@ real::c_des_sst
 real:: schmidt_lam
 real::schmidt_turb
 real::tolsmall,tolbig,allresdt,tz1
-real,dimension(15)::allres,initialres
+real,dimension(1:gpu_max_nvar_total)::allres,initialres
 real,dimension(100,3)::bubble_centre
 real,dimension(100)::bubble_radius
 integer::nof_bubbles
@@ -553,7 +553,7 @@ real,allocatable,dimension(:)::modal_filter,adda_filter_weak,adda_filter_strong,
 real::l1norm		!l1 norm of solution for grid convergence studies of euler and linear advection equations
 real::l2norm		!l2 norm of solution for grid convergence studies of euler and linear advection equations
 real::l0norm,stennorm		!l0 norm of solution for grid convergence studies of euler and linear advection equations
-real::dt 					!real time step size       
+real::dt 					!real time step size
 real,allocatable,dimension(:)::avrg		!temporary solution averages
 real,allocatable,dimension(:,:)::jac		!jacobians
 real,allocatable,dimension(:,:)::inversejac	!inverse jacobians
@@ -593,7 +593,7 @@ real,allocatable,dimension(:)::timex5		!timer
 real,allocatable,dimension(:)::timex6		!timer
 real,allocatable,dimension(:,:)::ifin		!temporary pointer for sync output
 real,allocatable,dimension(:,:)::tfin		!temporary pointer for sync output
-real,allocatable,dimension(:,:)::centerr	!for directional stencils	
+real,allocatable,dimension(:,:)::centerr	!for directional stencils
 integer, allocatable,dimension(:)::cand,cands,candr
 integer, allocatable,dimension(:,:)::candxr,candxs,cand2s,cand2rt
 integer, allocatable,dimension(:,:,:)::cand2r
@@ -630,7 +630,7 @@ integer::bound_total,bounds_total, halo_total, halos_total,ilength1,ilength2
 type::aneixx
       integer::cpu                              !cpu index
       integer,allocatable,dimension(:,:)::elem1 !elements indexing
-      real,allocatable,dimension(:)::centers    !centers of cells for weno directionals stencils and compact stencils 
+      real,allocatable,dimension(:)::centers    !centers of cells for weno directionals stencils and compact stencils
 end type aneixx
 
 type(aneixx),allocatable,dimension(:)::dneix1
@@ -702,10 +702,10 @@ type::aexchange
 	integer,allocatable,dimension(:)::muchtheyneed  !number of elements they need
 	integer,allocatable,dimension(:)::muchineed	!number of elements i need
 	integer,allocatable,dimension(:)::whatineed	!element number global
-	integer,allocatable,dimension(:)::sideineed !side that i need  
+	integer,allocatable,dimension(:)::sideineed !side that i need
 	integer,allocatable,dimension(:)::sideineedn,qineed    !from which cpu, which gaussian quadrature point order
 	integer,allocatable,dimension(:)::sidetheyneed,qtheyneed !side they need, which gaussian quadrature point order
-	integer,allocatable,dimension(:)::sidetheyneedn    
+	integer,allocatable,dimension(:)::sidetheyneedn
 	integer,allocatable,dimension(:)::localref !local reference
 	integer,allocatable,dimension(:,:)::nodex
 end type aexchange
@@ -735,7 +735,7 @@ type::arecex
 	integer,allocatable,dimension(:)::muchineed	!number of elements i need
 	integer,allocatable,dimension(:)::whatineed	!element number global
 	integer,allocatable,dimension(:)::ishape   !shape of elements
-	integer,allocatable,dimension(:)::localref !local referencing  
+	integer,allocatable,dimension(:)::localref !local referencing
 	real,allocatable,dimension(:,:)::centers   !barycentres
 end type arecex
 

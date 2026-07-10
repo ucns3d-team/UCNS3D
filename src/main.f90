@@ -1,5 +1,5 @@
 PROGRAM UCNS3D
-!> @author 
+!> @author
 !> Panagiotis Tsoutsanis & Antonis Foivos Antoniadis
 !> copyright: Panagiotis Tsoutsanis & Antonis Foivos Antoniadis
 !> version: 3.9
@@ -63,7 +63,7 @@ if (n.eq.0)then
 
  end if
  call mpi_barrier(mpi_comm_world, ierror)
- 
+
 
 call timing(n,cpux1,cpux2,cpux3,cpux4,cpux5,cpux6,timex1,timex2,timex3,timex4,timex5,timex6) !> start the timers
  cpux1(1)=mpi_wtime()
@@ -89,19 +89,19 @@ call xmpiallocate(xmpie,xmpil,xmpin,xmpielrank,xmpinrank,imaxe,imaxn,nproc) !> a
 
 
 
- 
+
 call mpi_barrier(mpi_comm_world, ierror)
-   
+
     if (emetis.lt.6)then    !> choose a grid partitioning property if emetis<6 use serial metis
     if (n.eq.0) then
-	
+
 	if (emetis.eq.1)then
           call partitioner1(n,imaxe,imaxn,xmpie,ieshape)
         end if
         if (emetis .eq.2)then
-	  
+
 	  call partitioner2(n,imaxe,imaxn,xmpie,ieshape)
-	  
+
 	end if
 	if (emetis .eq. 3) then
 	  call partitioner3(n,imaxe,imaxn,xmpie,ieshape)
@@ -112,19 +112,19 @@ call mpi_barrier(mpi_comm_world, ierror)
 	if (emetis.eq.5)then
 	  call partitioner5(n,imaxe,imaxn,xmpie,ieshape)
 	end if
-	
-	
+
+
     end if
-    
-      call mpi_bcast(xmpie,imaxe,mpi_integer,0,mpi_comm_world,ierror) 
-      
+
+      call mpi_bcast(xmpie,imaxe,mpi_integer,0,mpi_comm_world,ierror)
+
    else
-    
+
     if (emetis.eq.6)then !> when emetis=6 use parmetis (default)
 	  call partitioner6(n,imaxe,imaxn,xmpie,ieshape)
 	end if
     end if
-    
+
 
 
 call mpi_barrier(mpi_comm_world, ierror)
@@ -143,7 +143,7 @@ call read_input(n,xmpielrank,xmpinrank,xmpie,xmpin,dinode,imaxn,imaxe,imaxb,xmpi
 call fix_offsets_local(n)
 
  call determine_size(n,iorder,iselem,iselemt,ioverst,ioverto,ilx,numneighbours,idegfree,imaxdegfree,iextend) !> determing the stencil sizes, number of polynomial coefficients etc.
- 
+
 
 
  call gaussianpoints(igqrules,numberofpoints,numberofpoints2)   !> establish the number of gausian quadrature points for each element
@@ -161,7 +161,7 @@ call fix_offsets_local(n)
 
 
 call mpi_barrier(mpi_comm_world,ierror)
- if (n.eq.0) then 
+ if (n.eq.0) then
    cpux3(1) = mpi_wtime()
    write(120+n,*)"timei_1",cpux3(1)-cpux1(1)     !> write in file the total wall clock time taken so far
 end if
@@ -177,11 +177,11 @@ call mpi_barrier(mpi_comm_world,ierror)
 
 
 
- if (n.eq.0) then 
+ if (n.eq.0) then
    cpux3(1) = mpi_wtime()
    write(120+n,*)"timei_2",cpux3(1)-cpux1(1)   !> write in file the total wall clock time taken so far
 end if
-   
+
 !$omp barrier
 !!$omp parallel default(shared)
 
@@ -229,7 +229,7 @@ call read_bound(n,imaxb,xmpielrank)
 				!$omp barrier
 				!$omp master
 				if (n.eq.0)then
-				
+
 				  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
 				  write(63,*)"finished applying boundary conditions"
 				  cpux3(1) = mpi_wtime()
@@ -286,7 +286,7 @@ call cons2d(n,diconr,dicons,iperiodicity,xmpielrank,isize,diconrpa,diconrpm,dico
 				  !$omp barrier
 
   if (lowmem.eq.0)call globalistx2(n,xmpie,xmpil,xmpielrank,imaxe,isize,centerr,glneigh)
- 
+
   if (lowmem.eq.1)call globalist2(n,xmpie,xmpil,xmpielrank,imaxe,isize,centerr,glneigh,glneighper)
 				  !$omp barrier
 				  !$omp master
@@ -309,9 +309,9 @@ if (ischeme.gt.1)then
  if (lowmem.eq.0)call detstenx(n)
  if (lowmem.eq.1)call detsten(n)
  !!$omp end parallel
- 
- 
- 
+
+
+
 				  !$omp barrier
 				  !$omp master
 				  if (n.eq.0)then
@@ -323,8 +323,8 @@ if (ischeme.gt.1)then
 				  end if
 				  !$omp end master
 				  !$omp barrier
- 
- 
+
+
   call localstallocation(n,xmpielrank,ilocalstencil,ilocalstencilper,typesten,numneighbours)
 ! call mpi_barrier(mpi_comm_world,ierror)
 
@@ -338,7 +338,7 @@ end if
 
 
 !!$omp parallel default(shared)
-    
+
   if ((ees.eq.0).or.(ees.ge.4))then
   if (lowmem.eq.0)call stenciilsx(n)
   if (lowmem.eq.1)call stenciils(n)
@@ -346,13 +346,13 @@ end if
   if ((ees.gt.0).and.(ees.le.2))then
   if (lowmem.eq.0)call stenciils_eesx(n)
   if (lowmem.eq.1)call stenciils_ees(n)
-  
+
   end if
-!!$omp end parallel 
+!!$omp end parallel
 
    if (ees.eq.3)then
       call stencils3(n)
-  
+
    end if
 
 
@@ -362,8 +362,8 @@ end if
   call globaldea
 
 
- 
-  
+
+
   call stencils(n,imaxe,xmpie,xmpielrank,ilocalstencil,typesten,numneighbours,restart)
     if (iadapt.eq.1)then
   call adapt_criterion
@@ -385,7 +385,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 
 
 
- 
+
 
 ! call mpi_barrier(mpi_comm_world,ierror)
   call estabexhange(n,imaxe,xmpie,xmpin,xmpielrank,ilocalstencil,diexchanger,diexchanges,direcexr,direcexs,&
@@ -393,9 +393,9 @@ numneighbours,ischeme,isize,iperiodicity,typesten,xmpil)
 !
 
  call renumber_neighbours(n,xmpie,xmpielrank,diexchanger,diexchanges)
-! 
+!
 
-! 
+!
 
 
 call mpi_barrier(mpi_comm_world,ierror)
@@ -413,7 +413,7 @@ call probepos(n,probei)
 end if
 
  !memory allocation for transformation to computational domain!
- 
+
 				!$omp barrier
 				!$omp master
 				  if (n.eq.0)then
@@ -425,14 +425,14 @@ end if
 				  end if
 				  !$omp end master
 				  !$omp barrier
- 
+
 
 
 
 
 
 call mpi_barrier(mpi_comm_world,ierror)
- if (n.eq.0) then 
+ if (n.eq.0) then
    cpux3(1) = mpi_wtime()
 write(120+n,*)"timei_6",cpux3(1)-cpux1(1)
 end if
@@ -539,7 +539,7 @@ end if
    call stenprint(n)
   end if
 
- 
+
 
 call solex_alloc(n)
 
@@ -598,16 +598,16 @@ end if
 call mpi_barrier(mpi_comm_world,ierror)
 
 
- 
+
 
 
 call mpi_barrier(mpi_comm_world,ierror)
    cpux2(1) = mpi_wtime()
-  
+
   if ((dg.eq.1).or.(adda_type.eq.2))then
- 
+
  call allocate_dg
- 
+
  end if
 
   call mpi_barrier(mpi_comm_world,ierror)
@@ -615,20 +615,20 @@ call mpi_barrier(mpi_comm_world,ierror)
    cpux3(1) = mpi_wtime()
  write(120+n,*)"timei_8",cpux3(1)-cpux1(1)
 end if
-  
-  					!$omp barrier
-  					!$omp master
+
+					!$omp barrier
+					!$omp master
 				  if (n.eq.0)then
 				  open(63,file='history.txt',form='formatted',status='old',action='write',position='append')
 				  write(63,*)"started prestoring reconstruction matrices"
 				  cpux3(1) = mpi_wtime()
 				  write(63,*)"time7=",cpux3(1)-cpux1(1)
-				  
+
 				  close(63)
 				  end if
 				  !$omp end master
 				  !$omp barrier
-  
+
 			if ((fastest.ne.1).and.(ischeme.ge.2)) call prestore_1(n)
 
 
@@ -645,7 +645,7 @@ end if
 				  !$omp end master
 				  !$omp barrier
 
- 
+
 
 
 call dealcordinates2	!for ale do not deallocate
@@ -655,14 +655,14 @@ call dealcordinates1(n,diexcordr,diexcords) !for ale do not deallocate
 
 
 call mpi_barrier(mpi_comm_world,ierror)
-  
 
 
 
 
 
-				
-  
+
+
+
   if (turbulence.eq.1)then
     if (dimensiona.eq.3)then
     call walldistancex(n,imaxe,xmpielrank)
@@ -671,7 +671,7 @@ call mpi_barrier(mpi_comm_world,ierror)
     end if
   end if
 
-  
+
 
 
 call mpi_barrier(mpi_comm_world,ierror)
@@ -690,7 +690,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 				  !$omp barrier
 
 call mpi_barrier(mpi_comm_world,ierror)
- if (n.eq.0)then  
+ if (n.eq.0)then
    cpux3(1) = mpi_wtime()
   write(120+n,*)"timei_9",cpux3(1)-cpux1(1)
 end if
@@ -705,8 +705,8 @@ call find_angles(n)
 
 !--------------thursday-------------!
 
-  
-  
+
+
 
 				!$omp barrier
 				!$omp master
@@ -747,16 +747,16 @@ call mpi_barrier(mpi_comm_world,ierror)
     !!$omp parallel default(shared)
     call initialise (n)
    !!$omp end parallel
-    
- 
+
+
 
 
 
 if (restart.gt.0)then
-   call rest_read(n)  
+   call rest_read(n)
 end if
- 
- 
+
+
 
 
  call globaldea2(xmpil,xmpie)  !for ale do not deallocate
@@ -777,21 +777,21 @@ end if
 
  call sumflux_allocation(n)
 
- 
- 
 
- 
- 
+
+
+
+
  if (rungekutta.ge.10)then
- 
+
   call impallocate(n)
- 
-  
+
+
  end if
- 
-! 
-! 
-! 
+
+!
+!
+!
 ! ! !----------------------------------------------------------------!
 ! ! !		advancement of solution in time			 !
 ! ! !           different options available depending on scheme	 !
@@ -799,21 +799,21 @@ end if
 
  call mpi_barrier(mpi_comm_world,ierror)
    cpux6(1)=mpi_wtime()
-   
+
   call timers(n,cpux1,cpux2,cpux3,cpux4,cpux5,cpux6,timex1,timex2,timex3,timex4,timex5,timex6)
 
 
 ! !$omp parallel default(shared)
 !   call memory2
 ! !$omp end parallel
- 
+
 
 
 
 
   if (statistics.eq.1)then
   if (n.eq.0)then
-  
+
     write(st_n_cpu,fmt='(i10)') isize
     thread_n=omp_get_max_threads()
     write(st_n_threads,fmt='(i10)') thread_n
@@ -821,20 +821,20 @@ end if
     open(133,file=statfile,form='formatted',status='replace',action='write')
     write(133,'(5x,a2,1x,a11,a11,a11,a11,a11,a11,a11,a11,a11,a11)')"#it","t_time","t_comm","t_comp","t_dgint","t_halo","t_recon","t_bound","t_adda","t_flux","t_update"
     close(133)
-  
+
   end if
   end if
-  
- 
+
+
 !------------friday--------------!
 
- 
+
 if (fastest_q.eq.1)then
     call memory_fast(n)
-    
-    
-    
-    
+
+
+
+
 end if
 
 
@@ -851,12 +851,12 @@ call new_arrays(n)
 
 call exch_cords_opt(n)
 
-   
-   
+
+
 if (fastest.ne.1)then
     call exchange_higher_pre(n)
 end if
-    
+
 
 
 call fix_nodes_local	!this has to be investigated for ale
@@ -911,7 +911,7 @@ call mpi_barrier(mpi_comm_world,ierror)
 				  !$omp barrier
 				  call mpi_barrier(mpi_comm_world,ierror)
 
-   
+
 
 
 !this creates a flat array for receiving data from mpi neighbours!
@@ -1022,7 +1022,7 @@ call omp_map_first(n)
 
 if (dimensiona.eq.3)then
 
-#ifdef gpu
+#if defined(gpu) || defined(xpu)
     call time_marching(n)
 #else
     !$omp parallel default(shared)
@@ -1032,7 +1032,7 @@ if (dimensiona.eq.3)then
 
 else
 
-#ifdef gpu
+#if defined(gpu) || defined(xpu)
     call time_marching2(n)
 #else
     !$omp parallel default(shared)

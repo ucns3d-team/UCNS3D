@@ -7,9 +7,9 @@ implicit none
 
 
  contains
- 
- 
- 
+
+
+
  real function linear_init3d(n,pox,poy,poz)
  !> @brief
 !> this function initialises the solution for linear advection in 3d,
@@ -55,7 +55,7 @@ integer::ixg
 sumf=zero
 if (initcond.eq.1)then
  if(((pox(1).ge.0.25d0).and.(pox(1).le.0.75d0)).and.((poy(1).ge.0.25d0).and.(poy(1).le.0.75d0)))then
- 	linear_init2d=1.0d0
+	linear_init2d=1.0d0
  else
 	linear_init2d=0.0d0
 
@@ -111,7 +111,7 @@ end if
 
 if (initcond.eq.2)then
 linear_init2d=(sin((2.0d0*pi)*(pox(1))))*(sin((2.0d0*pi)*(poy(1))))
- 
+
 !linear_init2d=1.0d0
 end if
 
@@ -158,8 +158,8 @@ end if
 
 
 end function linear_init2d
- 
- 
+
+
  subroutine initialise_euler3d(n,veccos,pox,poy,poz)
  implicit none
   !> @brief
@@ -199,7 +199,7 @@ w1=wvel
 
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
-!internal energy 
+!internal energy
 
 ie1=((p1)/((gamma-1.0d0)*r1))
 
@@ -268,7 +268,7 @@ rg_chem=zero
     ! chemical energy
  do rg_i=1,nof_species
         if (rg_hzero(rg_i).gt.1.0e-12)then
-        rg_chem=rg_chem-(rg_vf(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
+        rg_chem=rg_chem+(rg_vf(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
         end if
 end do
 
@@ -354,7 +354,7 @@ if (turbulence.eq.1)then
 end if
 if (passivescalar.gt.0)then
 
-  veccos(5+turbulenceequations+1:5+turbulenceequations+passivescalar)=zero
+  veccos(nof_variables+turbulenceequations+1:nof_variables+turbulenceequations+passivescalar)=zero
 
 end if
 
@@ -399,7 +399,7 @@ if (initcond.eq.95)then	!taylor green initial profile
 xin=pox(1)-pi
 yin=poy(1)-pi
 zin=poz(1)-pi
-       
+
         if(boundtype.eq.1)then
 r1=1.0d0
 w1=0.0d0
@@ -420,7 +420,7 @@ v1=-cos(xin)*sin(yin)*cos(zin)
 
 end if
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -447,7 +447,7 @@ w1=zero
 p1=1
 end if
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -1027,7 +1027,7 @@ if (turbulence.eq.1)then
 end if
 if (passivescalar.gt.0)then
 
-  veccos(5+turbulenceequations+1:5+turbulenceequations+passivescalar)=zero
+  veccos(nof_variables+turbulenceequations+1:nof_variables+turbulenceequations+passivescalar)=zero
 
 end if
 
@@ -1076,7 +1076,7 @@ v1=vvel
 
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 
 ie1=((p1)/((gamma-1.0d0)*r1))
 
@@ -1135,7 +1135,7 @@ rg_chem=zero
     ! chemical energy
  do rg_i=1,nof_species
         if (rg_hzero(rg_i).gt.1.0e-12)then
-        rg_chem=rg_chem-(rg_vf(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
+        rg_chem=rg_chem+(rg_vf(rg_i)*rg_hzero(rg_i)/rg_molm(rg_i))
         end if
 end do
 
@@ -1181,22 +1181,22 @@ if (turbulence.eq.1)then
   veccos(nof_variables+1)=visc*turbinit
   end if
   if (turbulencemodel.eq.2)then
- 
+
    if (zero_turb_init .eq. 0) then
   veccos(nof_variables+1)=(1.5d0*(i_turb_inlet*ufreestream)**2)*r1
   veccos(nof_variables+2)=ufreestream/l_turb_inlet
  veccos(nof_variables+2)=(c_mu_inlet**(-0.25d0))*sqrt(veccos(5))&
-			/l_turb_inlet*r1	
+			/l_turb_inlet*r1
   end if
-  
+
   if (zero_turb_init .eq. 1) then
   veccos(nof_variables+1)=zero
   veccos(nof_variables+2)=ufreestream/l_turb_inlet
   end if
-    
+
   end if
 
-  
+
 end if
 if (passivescalar.gt.0)then
 
@@ -1237,7 +1237,7 @@ end if
 
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -1268,7 +1268,7 @@ end if
 
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -1305,7 +1305,7 @@ end if
 
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -1339,7 +1339,7 @@ end if
 
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -1477,10 +1477,10 @@ v1=0.0d0
 end if
 
 
-    
+
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -1506,10 +1506,10 @@ v1=zero
 
 p1=1
 end if
-    
+
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -1534,7 +1534,7 @@ v1=zero
 p1=1.0d0
 end if
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -1563,7 +1563,7 @@ v1=zero
 p1=1.0d0
 end if
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -1613,7 +1613,7 @@ p1=1.5
 end if
 end if
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -1642,7 +1642,7 @@ v1=0.0d0
 p1=180219.75d0
 end if
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -1691,7 +1691,7 @@ pr_temperaturevar = pr_temperaturefree - ( ((pr_velocityfree**2 *pr_beta**2.0)/(
 r1 = pr_densityfree * (pr_temperaturevar/pr_temperaturefree)**(1.0/(pr_gammafree-1.0))
 
  p1 = r1*pr_rgasfree*pr_temperaturevar
-! 
+!
 ! w1=0.0d0
 ! p1=100.0d0+((r1/16.0d0)*((2.0d0*(cos(2.0d0*pox(1))))+(cos(2.0d0*poy(1)))-2.0d0))
 ! !uu=(sqrt((gamma*p1)/(r1)))*0.28
@@ -1700,7 +1700,7 @@ r1 = pr_densityfree * (pr_temperaturevar/pr_temperaturefree)**(1.0/(pr_gammafree
 ! v1=-cos(pox(1))*sin(poy(1))
 ! !kinetic energy first!
  skin1=(oo2)*((u1**2)+(v1**2))
-! !internal energy 
+! !internal energy
  ie1=((p1)/((pr_gammafree-1.0d0)*r1))
 ! !total energy
  e1=(p1/(pr_gammafree-1))+(r1*skin1)
@@ -1743,7 +1743,7 @@ pr_temperaturevar = pr_temperaturefree - ( ((pr_velocityfree**2 *pr_beta**2.0)/(
 r1 = pr_densityfree * (pr_temperaturevar/pr_temperaturefree)**(1.0/(pr_gammafree-1.0))
 
  p1 = r1*pr_rgasfree*pr_temperaturevar
-! 
+!
 ! w1=0.0d0
 ! p1=100.0d0+((r1/16.0d0)*((2.0d0*(cos(2.0d0*pox(1))))+(cos(2.0d0*poy(1)))-2.0d0))
 ! !uu=(sqrt((gamma*p1)/(r1)))*0.28
@@ -1752,7 +1752,7 @@ r1 = pr_densityfree * (pr_temperaturevar/pr_temperaturefree)**(1.0/(pr_gammafree
 ! v1=-cos(pox(1))*sin(poy(1))
 ! !kinetic energy first!
  skin1=(oo2)*((u1**2)+(v1**2))
-! !internal energy 
+! !internal energy
  ie1=((p1)/((pr_gammafree-1.0d0)*r1))
 ! !total energy
  e1=(p1/(pr_gammafree-1))+(r1*skin1)
@@ -2225,8 +2225,8 @@ u_cond1=0;u_cond2=0;u_cond3=0; u_cond4=0
  if ((poy(1).ge.0.05d0).and.(poy(1).le.0.075))then
     u_cond2=1
  end if
- 
- 
+
+
  if ((poy(1).le.0.05d0).and.(poy(1).gt.0.02))then
     u_cond3=1
  end if
@@ -2235,10 +2235,10 @@ u_cond1=0;u_cond2=0;u_cond3=0; u_cond4=0
     u_cond4=1
  end if
  end if
- 
- 
+
+
  if (((u_cond1.eq.1).and.(u_cond2.eq.1)).or.(u_cond4.eq.1))then
- 
+
 mp_r(1)=0.166315789d0
 mp_r(2)=1.204d0
 mp_a(1)=0.95d0
@@ -2415,7 +2415,7 @@ if (initcond.eq.410)then
 !gamma_in(1) = 7.15 ! water
 !gamma_in(2) = 1.4  ! air
 !mp_pinf(1) = 3.43e8 !water from coralic and colonius or 2.218e8(abgrall203)
-!mp_pinf(2) = 0 ! air 
+!mp_pinf(2) = 0 ! air
 
 if (pox(1).le.-0.007d0)then
 mp_r(1)=1225.6d0 ! water density
@@ -2501,7 +2501,7 @@ if (initcond.eq.411)then
 !gamma_in(1) = 4.4 ! water
 !gamma_in(2) = 1.4  ! air
 !mp_pinf(1) = 6e8 !water from coralic and colonius or 2.218e8(abgrall203)
-!mp_pinf(2) = 0 ! air 
+!mp_pinf(2) = 0 ! air
 
 if (pox(1).le.0.0066d0)then
 mp_r(2)=1323.65d0 	! water density
@@ -2585,13 +2585,13 @@ if (initcond.eq.412)then
 !gamma_in(1) = 1.4 ! air
 !gamma_in(2) = 5.5  ! water
 !mp_pinf(1) = 0 !water from coralic and colonius or 2.218e8(abgrall203)
-!mp_pinf(2) = 1.505 ! air 
+!mp_pinf(2) = 1.505 ! air
 
 if (pox(1).le.0.00)then
 mp_r(1)=1.241 	! air density
 mp_r(2)=0.991 		! water density
-mp_a(1)=1.0d0 		
-mp_a(2)=0.0d0 		
+mp_a(1)=1.0d0
+mp_a(2)=0.0d0
 u1=0.0	  	! m/s
 v1= 0.0d0
 p1=2.753     		! pa
@@ -2609,8 +2609,8 @@ else
 
 mp_r(1)=1.241 	! air density
 mp_r(2)=0.991 		! water density
-mp_a(1)=0.0d0 		
-mp_a(2)=1.0d0 		
+mp_a(1)=0.0d0
+mp_a(2)=1.0d0
 u1=0.0	  	! m/s
 v1= 0.0d0
 p1=3.059*10e-4     		! pa
@@ -2640,7 +2640,7 @@ if (initcond.eq.420)then
 
 mp_r(1)=7.0 	! air density
 mp_r(2)=1.0 		! water density
-mp_a(1)=0.5d0+0.25*sin(pi*(((pox(1)-0.5d0)*2.0d0))) 		
+mp_a(1)=0.5d0+0.25*sin(pi*(((pox(1)-0.5d0)*2.0d0)))
 mp_a(2)=1.0d0-mp_a(1)
 u1=1.0d0	  	! m/s
 v1= 0.0d0
@@ -2677,7 +2677,7 @@ if (pox(1).lt.0.0d0)then
 
 mp_r(1)=1.241 	! air density
 mp_r(2)=0.991 		! water density
-mp_a(1)=1.0d0		
+mp_a(1)=1.0d0
 mp_a(2)=0.0d0
 u1=0.0d0	  	! m/s
 v1= 0.0d0
@@ -2685,7 +2685,7 @@ p1=2.753d0    		! pa
 else
 mp_r(1)=1.241 	! air density
 mp_r(2)=0.991 		! water density
-mp_a(1)=0.0d0		
+mp_a(1)=0.0d0
 mp_a(2)=1.0d0
 u1=0.0d0	  	! m/s
 v1= 0.0d0
@@ -2726,7 +2726,7 @@ if (poy(1).lt.0.386d0)then
 
 mp_r(1)=3.483 	! air density
 mp_r(2)=867 		! water density
-mp_a(1)=0.0d0		
+mp_a(1)=0.0d0
 mp_a(2)=1.0d0
 u1=0.0d0	  	! m/s
 v1= 2
@@ -2734,7 +2734,7 @@ p1=300000    		! pa
 else
 mp_r(1)=3.483 	! air density
 mp_r(2)=867		! water density
-mp_a(1)=1.0d0		
+mp_a(1)=1.0d0
 mp_a(2)=0.0d0
 u1=0.0d0	  	! m/s
 v1= 0.0d0
@@ -2773,12 +2773,12 @@ if (initcond.eq.133)then
 
 if (pox(1).lt.0.0d0)then
 
-	
+
 	p1=195557.25
 	r1=p1/(350.5d0*287.058d0)
 	u1=168.62
 	v1=0.0d0
-	
+
 	rhc1=r1
 	rhc2=u1
 	rhc3=v1
@@ -2788,7 +2788,7 @@ if (pox(1).lt.0.0d0)then
 
 	else
 
-	
+
 	u1=0.0d0
 	v1=0.0d0
 	p1=101325
@@ -2798,7 +2798,7 @@ if (pox(1).lt.0.0d0)then
 
 
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -2822,19 +2822,19 @@ if (initcond.eq.266)then
 
 if (poy(1).gt.1.0d0)then
 
-	
+
 	p1=20000
 	r1=0.41
 	u1=850
 	v1=0.0d0
-	
-	
+
+
 
 
 
 	else
 
-	
+
 	u1=0.0d0
 	v1=0.0d0
 	p1=100000
@@ -2844,7 +2844,7 @@ if (poy(1).gt.1.0d0)then
 
 
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
@@ -2912,7 +2912,7 @@ e1=(r1*skin1)+ie1
 
 
 
- 
+
 
 
 do ix=1,nof_bubbles
@@ -2965,7 +2965,7 @@ v1=reeta*sin(theeta)
 
 
 skin1=(oo2)*((u1**2)+(v1**2))
-!internal energy 
+!internal energy
 ie1=((p1)/((gamma-1.0d0)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)

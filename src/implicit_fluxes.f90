@@ -18,7 +18,7 @@ subroutine calculate_jacobian(n)
 		integer::i,kmaxe,ii
 
 		kmaxe=xmpielrank(n)
-			
+
 
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(ii)
@@ -33,8 +33,8 @@ subroutine calculate_jacobian(n)
 #else
 !$omp end do
 #endif
-	
-	
+
+
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(ii)
 #else
@@ -64,7 +64,7 @@ subroutine calculate_jacobian(n)
 #else
 !$omp end do
 #endif
-        end if	
+        end if
         if (mrf.eq.1) then
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(i)
@@ -80,9 +80,9 @@ subroutine calculate_jacobian(n)
 !$omp end do
 #endif
         end if
-	
-	
-	
+
+
+
 	if (rungekutta.eq.10)then
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(i)
@@ -103,7 +103,7 @@ subroutine calculate_jacobian(n)
 #else
 !$omp do
 #endif
-! 	
+!
 	  do i=1,kmaxe
 	call calculate_jacobian_loop4_cell(n,i)
 	end do
@@ -152,7 +152,7 @@ do i=1,kmaxe
 
 end if
 end if
-	
+
 
 end subroutine calculate_jacobian
 
@@ -185,9 +185,9 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 	real,dimension(1:2)::turbmv
     real,dimension(1)::etvm
     real,dimension(1:20)::eddyfl,eddyfr
-	real::mp_pinfl,gammal
-    real::mp_pinfr,gammar
-   real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
+		real::mp_pinfl,gammal
+	    real::mp_pinfr,gammar
+	   real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
 
 
                 impdiag(i,2,3)=-srf_velocity(3)*ielem_totvolume(i)
@@ -275,14 +275,24 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 	real,dimension(1:2)::turbmv
     real,dimension(1)::etvm
     real,dimension(1:20)::eddyfl,eddyfr
-	real::mp_pinfl,gammal
-    real::mp_pinfr,gammar
-   real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
+		real::mp_pinfl,gammal
+	    real::mp_pinfr,gammar
+	   real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
+	   real::rg_diag_base,rg_diag_floor,rg_source_cap,rg_source_diag
 
 
-            do l=1,nof_variables
-		    impdiag(i,l,l)=impdiag(i,l,l)+(ielem_totvolume(i)/ielem_dtl(i))
-		    end do
+	            do l=1,nof_variables
+			    rg_diag_base=impdiag(i,l,l)+(ielem_totvolume(i)/ielem_dtl(i))
+			    if (realgas.eq.1)then
+			    rg_diag_floor=max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)
+			    rg_source_cap=turb_source_cap_frac*max(abs(rg_diag_base),rg_diag_floor)
+			    rg_source_diag=max(min(sht_rg(i,l),0.0d0),-rg_source_cap)
+			    sht_rg(i,l)=rg_source_diag
+			    impdiag(i,l,l)=max(rg_diag_base-rg_source_diag,rg_diag_floor)
+			    else
+			    impdiag(i,l,l)=rg_diag_base
+			    end if
+			    end do
 end subroutine calculate_jacobian_loop3_cell
 
 
@@ -315,14 +325,26 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 	real,dimension(1:2)::turbmv
     real,dimension(1)::etvm
     real,dimension(1:20)::eddyfl,eddyfr
-	real::mp_pinfl,gammal
-    real::mp_pinfr,gammar
-   real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
+		real::mp_pinfl,gammal
+	    real::mp_pinfr,gammar
+	   real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
+	   real::rg_diag_base,rg_diag_floor,rg_source_cap,rg_source_diag
 
 
-        do l=1,nof_variables
-	    impdiag(i,l,l)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(i,l,l))
-	    end do
+	        do l=1,nof_variables
+		    rg_diag_base=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt)) &
+		    +(impdiag(i,l,l))
+		    if (realgas.eq.1)then
+		    rg_diag_floor=max(turb_diag_floor_frac*(ielem_totvolume(i) &
+		    *((1.0d0/ielem_dtl(i))+(1.5d0/dt))),turb_diag_abs_floor)
+		    rg_source_cap=turb_source_cap_frac*max(abs(rg_diag_base),rg_diag_floor)
+		    rg_source_diag=max(min(sht_rg(i,l),0.0d0),-rg_source_cap)
+		    sht_rg(i,l)=rg_source_diag
+		    impdiag(i,l,l)=max(rg_diag_base-rg_source_diag,rg_diag_floor)
+		    else
+		    impdiag(i,l,l)=rg_diag_base
+		    end if
+		    end do
 end subroutine calculate_jacobian_loop4_cell
 
 
@@ -355,9 +377,9 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 	real,dimension(1:2)::turbmv
     real,dimension(1)::etvm
     real,dimension(1:20)::eddyfl,eddyfr
-	real::mp_pinfl,gammal
-    real::mp_pinfr,gammar
-   real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
+		real::mp_pinfl,gammal
+	    real::mp_pinfr,gammar
+	     real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
 
 
     if (turbulence.eq.1)then
@@ -470,52 +492,52 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 		impdiagt(i,:)=zero
 		impofft(i,:,:)=zero
 		end if
-	
-		    
-		    
+
+
+
         if (mrf.eq.1)then
             srf=rec_mrf(i)
-        end if 
+        end if
 		    do l=1,ielem_ifca(i) !for all their faces
 				  godflux2=zero
- 				  angle1=ielem_faceanglex(l,i)
- 				  angle2=ielem_faceangley(l,i)
- 				  nx=(cos(angle1)*sin(angle2))
+				  angle1=ielem_faceanglex(l,i)
+				  angle2=ielem_faceangley(l,i)
+				  nx=(cos(angle1)*sin(angle2))
 				  ny=(sin(angle1)*sin(angle2))
 				  nz=(cos(angle2))
 				  mul1=ielem_surf(l,i)
 				  b_code=0
 				  cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 				  cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-				     				      
-					if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-					  
+
+					if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 					    cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)!left additional equations flow state
 					    cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
 
 					end if
-			
+
 						  call rotatef(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
-						  
-						  
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht(n,leftv,rightv)
 						  cleft_rot(1:nof_variables)=leftv(1:nof_variables);cright_rot(1:nof_variables)=rightv(1:nof_variables);
-						  
+
 						  call rotateb(n,cright,cright_rot,angle1,angle2)
 						   call rotateb(n,cleft,cleft_rot,angle1,angle2)
-						  
-						  
-						  
+
+
+
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-						  
+
 						if (realgas.eq.0)then
 						 asound1=sqrt(leftv(5)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
 						  asound2=sqrt(rightv(5)*gamma/rightv(1))+abs(cright_rot(2)/cright_rot(1))
@@ -532,22 +554,22 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
                                 asound2=sqrt(rightv(5)*gamma/rightv(1))+abs(cright_rot(2)/cright_rot(1)-srf_speedrot(2))
                             end if
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
 						  mul1=ielem_surf(l,i)
-						  
+
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
 						  /ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))&
 						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
 						  vpp=max(asound1,asound2)+viscots
-						  
-						  
-						  
-						  
+
+
+
+
 						  if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -555,40 +577,40 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 						      end if
 						      if (turbulencemodel.eq.2)then
 							  eddyfl(1)=ielem_walldist(i);eddyfl(2)=cturbl(1);eddyfl(3)=cturbl(2)
-							 
-							  
-							  
-							  
+
+
+
+
 							  eddyfl(4:6)= rec_grads(1,1:3,i);eddyfl(7:9)=rec_grads(2,1:3,i)
 							  eddyfl(10:12)=rec_grads(3,1:3,i);eddyfl(13:15)=rec_grads(5,1:3,i)
 							  eddyfl(16:18)=rec_grads(6,1:3,i)
-							    
-							    
+
+
 							  eddyfr=eddyfl
 							    call eddyvisco(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
-						      
+
 						      viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-		
+
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
 						      mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
 						      viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-						      
+
 						      vpp=max(asound1,asound2)+viscots
 						  end if
-						  
-						  
+
+
 						  impdiag(i,1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse(n,iconsidered,eigvl,cright,gamma,angle1,angle2,srf_speedrot,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(i,l,1:nof_variables,1:nof_variables)=impoff(i,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						  
+
+
 						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 							  if (turbulence.eq.1)then
 							  do nvar=1,turbulenceequations
-							  
+
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(i,nvar)=impdiagt(i,nvar)+(oo2*((vpp))*mul1)
 							  impofft(i,l,nvar)=impofft(i,l,nvar)-(((oo2*vpp))*mul1)
@@ -604,9 +626,9 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  viscots=0.5*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 							      else
 							      viscots=0.5*((viscl(1)+viscl(2)))
-							      
+
 							      end if
-												  
+
 							  viscots=(2.0*viscots)/((cleft(1)+cright(1))*ielem_dih(l,i))
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(i,nvar)=impdiagt(i,nvar)+(oo2*((vpp))*mul1)
@@ -615,18 +637,18 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  end if
 						  end if
 						  else
-						  
+
 						  impdiag(i,1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse(n,iconsidered,eigvl,cright,gamma,angle1,angle2,srf_speedrot,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(i,l,1:nof_variables,1:nof_variables)=impoff(i,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-                                                
-						  
-						  
+
+
+
+
 						  end if
-						  
+
 
 		    end do
 end subroutine calculate_jacobian_inner_cell
@@ -672,8 +694,8 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 	end do
 
 	i=el_bnd(ii)
-	iconsidered=i	
-				
+	iconsidered=i
+
 		   impdiag(i,:,:)=0.0
 		impoff(i,:,:,:)=0.0
 		if (turbulence.eq.1)then
@@ -682,7 +704,7 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 		end if
 		if (mrf.eq.1)then
             srf=rec_mrf(i)
-        end if     
+        end if
 		    do l=1,ielem_ifca(i)
 				      b_code=0
 				  angle1=ielem_faceanglex(l,i)
@@ -690,7 +712,7 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 				nx=(cos(angle1)*sin(angle2))
 				ny=(sin(angle1)*sin(angle2))
 				nz=(cos(angle2))
- 				  mul1=ielem_surf(l,i)
+				  mul1=ielem_surf(l,i)
 				      b_code=0
 				      cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
                  if (rec_mrf(i).eq.1)then
@@ -698,13 +720,13 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
                     srf_speed(2:4)=rec_rotvel(l,1,1:3,i)
                     call rotatef(n,srf_speedrot,srf_speed,angle1,angle2)
                 end if
-					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-						
+					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 							cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-						
+
 					end if
-				      
-				      
+
+
 					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								  if ((ibound_icode(ielem_ibounds(l,i)).eq.5).or.(ibound_icode(ielem_ibounds(l,i)).eq.50))then	!periodic in my cpu
@@ -712,18 +734,18 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
                                     if ((per_rot.eq.1).and.(ibound_icode(ielem_ibounds(l,i)).eq.50))then
                                         cright(2:4)=rotate_per_1(cright(2:4),ibound_icode(ielem_ibounds(l,i)),angle_per)
                                     end if
-								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-								  
-								  
-								  
-								  
+
+
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;iconsidered=i
 								  call coordinates_face_innerx(n,iconsidered,facex,vext,nodes_list)
 
@@ -735,47 +757,47 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 								    cords(1:3)=zero
 								    call cordinates3(n,nodes_list,n_node,cords(1:3))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
 								    poz(1)=cords(3)
-								    
+
 								    leftv(1:nof_variables)=cleft(1:nof_variables)
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
 
-								    
+
+
 								    call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
 								    cright(1:nof_variables)=rightv(1:nof_variables)
-				  				   
-				  				  				  				  
-								    
+
+
+
 								  end if
 							else
 							      cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-							      
-								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+
+								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-					     
-					    
-					    
-						
+
+
+
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if  ((ibound_icode(ielem_ibounds(l,i)).eq.5).or.(ibound_icode(ielem_ibounds(l,i)).eq.50))then	!periodic in other cpu
-								
 
-							     
+
+
 							     ! cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 							     ! (rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 
@@ -788,10 +810,10 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 									if ((per_rot.eq.1).and.(ibound_icode(ielem_ibounds(l,i)).eq.50))then
 	                                    cright(2:4)=rotate_per_1(cright(2:4),ibound_icode(ielem_ibounds(l,i)),angle_per)
-									end if 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+									end if
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 
-							     
+
 	!						      cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 	!						      (rec_ihexl(1,ielem_indexi(l,i)),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
@@ -803,14 +825,14 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								    end if
-									  
-									  
+
+
 
 								end if
-							else 			
-							
+							else
 
-							     
+
+
 							     ! cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 							     ! (rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 
@@ -819,11 +841,11 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
 
-								
-								 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 
-							     
+
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
 							      !cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 							      !(rec_ihexl(1,ielem_indexi(l,i)),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
@@ -834,28 +856,28 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								    end if
-								  
-! 								   
+
+!
 							end if
 					    end if
-				      
+
 				       call rotatef(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef(n,cleft_rot,cleft,angle1,angle2)
-				      
-				      
+
+
 				      if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht(n,leftv,rightv)
 						  cleft_rot(1:nof_variables)=leftv(1:nof_variables);cright_rot(1:nof_variables)=rightv(1:nof_variables);
 						  call rotateb(n,cright,cright_rot,angle1,angle2)
 						   call rotateb(n,cleft,cleft_rot,angle1,angle2)
-						  
-						  
+
+
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
                             if (realgas.eq.0)then
 						 asound1=sqrt(leftv(5)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
@@ -870,22 +892,22 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
                         end if
 
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
 						  mul1=ielem_surf(l,i)
-						  
+
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
 						  /ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))&
 						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
 						  vpp=max(asound1,asound2)+viscots
-						  
-						  
-						  
-						  
+
+
+
+
 						  if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -896,36 +918,36 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							    eddyfl(4:6)= rec_grads(1,1:3,i);eddyfl(7:9)=rec_grads(2,1:3,i)
 							  eddyfl(10:12)=rec_grads(3,1:3,i);eddyfl(13:15)=rec_grads(5,1:3,i)
 							  eddyfl(16:18)=rec_grads(6,1:3,i)
-							    
-							    
+
+
 							  eddyfr=eddyfl
-							    
-							    
-							  
+
+
+
 							    call eddyvisco(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
-						      
+
 						      viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-		
+
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
 						      mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
 						      viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-						      
+
 						      vpp=max(asound1,asound2)+viscots
 						  end if
-						  
-						  
+
+
 						  impdiag(i,1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse(n,iconsidered,eigvl,cright,gamma,angle1,angle2,srf_speedrot,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(i,l,1:nof_variables,1:nof_variables)=impoff(i,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						  
+
+
 						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 							  if (turbulence.eq.1)then
 							  do nvar=1,turbulenceequations
-							  
+
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(i,nvar)=impdiagt(i,nvar)+(oo2*((vpp))*mul1)
 							  impofft(i,l,nvar)=impofft(i,l,nvar)-(((oo2*vpp))*mul1)
@@ -935,19 +957,19 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  do nvar=turbulenceequations+1,turbulenceequations+passivescalar
 							  viscl(1)=viscl(1)/schmidt_lam
 							      viscl(2)=viscl(2)/schmidt_lam
-							      
-							  
-							  
-							  
+
+
+
+
 							  if (turbulence.eq.1)then
 							      viscl(3)=viscl(3)/schmidt_turb
 							      viscl(4)=viscl(4)/schmidt_turb
 							  viscots=0.5*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 							      else
 							      viscots=0.5*((viscl(1)+viscl(2)))
-							      
+
 							      end if
-												  
+
 							  viscots=(2.0*viscots)/((cleft(1)+cright(1))*ielem_dih(l,i))
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(i,nvar)=impdiagt(i,nvar)+(oo2*((vpp))*mul1)
@@ -956,26 +978,26 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  end if
 						  end if
 						  else
-						  
+
 						  impdiag(i,1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse(n,iconsidered,eigvl,cright,gamma,angle1,angle2,srf_speedrot,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(i,l,1:nof_variables,1:nof_variables)=impoff(i,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						 
-						  
-						  
+
+
+
+
 						  end if
 
-						
-				   
-				  
+
+
+
 		    end do
 end subroutine calculate_jacobian_bound_cell
 
-	
-	
+
+
 
 subroutine calculate_jacobian_2d(n)
 	implicit none
@@ -987,7 +1009,7 @@ subroutine calculate_jacobian_2d(n)
 
 
 		kmaxe=xmpielrank(n)
-			
+
 
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(ii)
@@ -1002,8 +1024,8 @@ subroutine calculate_jacobian_2d(n)
 #else
 !$omp end do
 #endif
-	
-	
+
+
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(ii)
 #else
@@ -1018,10 +1040,10 @@ subroutine calculate_jacobian_2d(n)
 !$omp end do
 #endif
 
-	
-	
-	
-	
+
+
+
+
 	if (realgas.eq.0)then
 	if (rungekutta.eq.10)then
 
@@ -1100,7 +1122,7 @@ subroutine calculate_jacobian_2d(n)
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
- 
+
  if (turbulence.eq.1)call sources_derivatives_computation2d(n)
 if (rungekutta.eq.10)then
 #ifdef gpu
@@ -1133,7 +1155,7 @@ do i=1,kmaxe
 
 end if
 end if
-	
+
 
 end subroutine calculate_jacobian_2d
 
@@ -1166,9 +1188,9 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
     real,dimension(1)::etvm
     real,dimension(1:20)::eddyfl,eddyfr
 
-	real::mp_pinfl,gammal
-    real::mp_pinfr,gammar
-     real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
+		real::mp_pinfl,gammal
+	    real::mp_pinfr,gammar
+	     real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
 
 
 
@@ -1258,16 +1280,23 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 	real::mp_pinfl,gammal
     real::mp_pinfr,gammar
      real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
+     real::rg_diag_base,rg_diag_floor,rg_source_cap,rg_source_diag
 
 
 
 
-				  do j=1,nof_variables
-
-					sht_rg(i,j)=min(max(sht_rg(i,j),0.0d0),turb_source_cap_frac*(impdiag(i,j,j)+(ielem_totvolume(i)/ielem_dtl(i))))
-					impdiag(i,j,j)=max((impdiag(i,j,j)+(ielem_totvolume(i)/ielem_dtl(i))-sht_rg(i,j)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor))
-
-				  end do
+					  do j=1,nof_variables
+						rg_diag_base=impdiag(i,j,j)+(ielem_totvolume(i)/ielem_dtl(i))
+						if (realgas.eq.1)then
+						rg_diag_floor=max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)
+						rg_source_cap=turb_source_cap_frac*max(abs(rg_diag_base),rg_diag_floor)
+						rg_source_diag=max(min(sht_rg(i,j),0.0d0),-rg_source_cap)
+						sht_rg(i,j)=rg_source_diag
+						impdiag(i,j,j)=max(rg_diag_base-rg_source_diag,rg_diag_floor)
+						else
+						impdiag(i,j,j)=rg_diag_base
+						end if
+					  end do
 end subroutine calculate_jacobian_2d_loop3_cell
 
 
@@ -1300,19 +1329,28 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
     real,dimension(1)::etvm
     real,dimension(1:20)::eddyfl,eddyfr
 
-	real::mp_pinfl,gammal
-    real::mp_pinfr,gammar
-     real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
+		real::mp_pinfl,gammal
+	    real::mp_pinfr,gammar
+	     real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
+	     real::rg_diag_base,rg_diag_floor,rg_source_cap,rg_source_diag
 
 
 
 
-					do j=1,nof_variables
-
-	      sht_rg(i,j)=min(max(sht_rg(i,j),0.0d0),turb_source_cap_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(i,j,j))))
-	      impdiag(i,j,j)=max((ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(i,j,j))-sht_rg(i,j)),max(turb_diag_floor_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))),turb_diag_abs_floor))
-
-				  end do
+						do j=1,nof_variables
+		      rg_diag_base=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt)) &
+		      +(impdiag(i,j,j))
+		      if (realgas.eq.1)then
+		      rg_diag_floor=max(turb_diag_floor_frac*(ielem_totvolume(i) &
+		      *((1.0d0/ielem_dtl(i))+(1.5d0/dt))),turb_diag_abs_floor)
+		      rg_source_cap=turb_source_cap_frac*max(abs(rg_diag_base),rg_diag_floor)
+		      rg_source_diag=max(min(sht_rg(i,j),0.0d0),-rg_source_cap)
+		      sht_rg(i,j)=rg_source_diag
+		      impdiag(i,j,j)=max(rg_diag_base-rg_source_diag,rg_diag_floor)
+		      else
+		      impdiag(i,j,j)=rg_diag_base
+		      end if
+					  end do
 end subroutine calculate_jacobian_2d_loop4_cell
 
 
@@ -1354,7 +1392,7 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
-!    
+!
     impdiagt(i,nvar)=impdiagt(i,nvar)+((ielem_totvolume(i)/(ielem_dtl(i))))-sht(i,nvar)
     end do
     end if
@@ -1469,50 +1507,50 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 		impdiagt(i,:)=zero
 		impofft(i,:,:)=zero
 		end if
-	
-		    
-		    
-		    
+
+
+
+
 		    do l=1,ielem_ifca(i) !for all their faces
 				  b_code=0
- 				  angle1=ielem_faceanglex(l,i)
- 				  angle2=ielem_faceangley(l,i)
- 				  nx=angle1
+				  angle1=ielem_faceanglex(l,i)
+				  angle2=ielem_faceangley(l,i)
+				  nx=angle1
 				  ny=angle2
 				  mul1=ielem_surf(l,i)
-				  
-				  
+
+
 				    cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 				   cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-				     				      
-					if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-					  
+
+					if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 					    cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)!left additional equations flow state
 					    cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
 
 					end if
-			
+
 						  call rotatef2d(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef2d(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
-						  
-						  
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht2d(n,leftv,rightv)
 						  cleft_rot(1:nof_variables)=leftv(1:nof_variables);cright_rot(1:nof_variables)=rightv(1:nof_variables);
 						  call rotateb2d(n,cright,cright_rot,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotateb2d(n,cleft,cleft_rot,angle1,angle2)
-						  
-						  
-						  
-						  
+
+
+
+
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-						  
+
 
 						  if (realgas.eq.0)then
 						 asound1=sqrt(leftv(4)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
@@ -1524,13 +1562,13 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 
-						  
+
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
 						  mul1=ielem_surf(l,i)
 
@@ -1547,9 +1585,9 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 						  end if
-						  
-						  
-						  
+
+
+
 						  if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -1560,61 +1598,61 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  eddyfl(4:5)= rec_grads(1,1:2,i);eddyfl(6:7)=rec_grads(2,1:2,i)
 							  eddyfl(8:9)=rec_grads(4,1:2,i)
 							  eddyfl(10:11)=rec_grads(5,1:2,i)
-							    
-							    
+
+
 							  eddyfr=eddyfl
 							    call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
-					 
-						      
+
+
 						     viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-		
+
 ! 						      viscots=viscots/((0.5*(cleft(1)+cright(1)))*ielem_dih(l,i))
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
 						      mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
 						      viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-						      
+
 						      vpp=max(asound1,asound2)+viscots
 						  end if
-						  
-						  
+
+
 						  impdiag(i,1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse2d(n,eigvl,cright,gamma,angle1,angle2,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(i,l,1:nof_variables,1:nof_variables)=impoff(i,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						  
+
+
 						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 							  if (turbulence.eq.1)then
 							  do nvar=1,turbulenceequations
-							  
+
 							  vpp=max(asound1,asound2)+viscots
-							  
+
 							  impdiagt(i,nvar)=impdiagt(i,nvar)+(oo2*((vpp))*mul1)
 							  impofft(i,l,nvar)=impofft(i,l,nvar)-(((oo2*vpp))*mul1)
 							  end do
 							  end if
 							  if (passivescalar.gt.0)then
-							  
+
 							  do nvar=turbulenceequations+1,turbulenceequations+passivescalar
 							  viscl(1)=viscl(1)/schmidt_lam
 							      viscl(2)=viscl(2)/schmidt_lam
-							      
-							  
-							  
-							  
+
+
+
+
 							  if (turbulence.eq.1)then
 							      viscl(3)=viscl(3)/schmidt_turb
 							      viscl(4)=viscl(4)/schmidt_turb
 							  viscots=0.5*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 							      else
 							      viscots=0.5*((viscl(1)+viscl(2)))
-							      
+
 							      end if
-							  
-							  
-												  
+
+
+
 							  viscots=(2.0*viscots)/((cleft(1)+cright(1))*ielem_dih(l,i))
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(i,nvar)=impdiagt(i,nvar)+(oo2*((vpp))*mul1)
@@ -1623,16 +1661,16 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  end if
 						  end if
 						  else
-						  
+
 						  impdiag(i,1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse2d(n,eigvl,cright,gamma,angle1,angle2,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(i,l,1:nof_variables,1:nof_variables)=impoff(i,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						 
-						  
-						  
+
+
+
+
 						  end if
 		    end do
 end subroutine calculate_jacobian_2d_inner_cell
@@ -1653,7 +1691,7 @@ subroutine calculate_jacobian_2d_bound_cell(n,ii)
 	real,dimension(gpu_max_nvar,gpu_max_nvar)::identity1
 	real,dimension(gpu_max_nvar,gpu_max_nvar)::convj,diffj
 	integer::iconsidered,facex,pointx,igoflux,kas
-	integer::b_code,nf,lf,rowf
+	integer::b_code,nf,lf,rowf,implicit_boundary_face
 	real::angle1,angle2,nx,ny,nz
 	real,dimension(1:gpu_max_nvar_total)::cleft,cright,cright_rot,cleft_rot
 	real,dimension(1:gpu_max_extra_transport)::cturbl,cturbr
@@ -1680,8 +1718,8 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 	end do
 
 	i=el_bnd(ii)
-	iconsidered=i	
-				
+	iconsidered=i
+
 		   impdiag(i,:,:)=zero
 		impoff(i,:,:,:)=zero
 		if (turbulence.eq.1)then
@@ -1695,80 +1733,89 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 				  angle2=ielem_faceangley(l,i)
 				nx=angle1
 				ny=angle2
-				
- 				  
+
+
 				      b_code=0
+				      implicit_boundary_face=0
 				      cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-						
+					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 							cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-						
+
 					end if
-				      
-				      
+
+
 					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								  cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-								  
-								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+
+								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-								  
+
 								  kas=1
-								  
-								  
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;iconsidered=i
 								  call coordinates_face_inner2dx(n,iconsidered,facex,vext,nodes_list)
 								  n_node=2
 								    cords(1:2)=zero
 								    call cordinates2(n,nodes_list,n_node,cords(1:2))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
-								   
-								    
+
+
 								    leftv(1:nof_variables)=cleft(1:nof_variables)
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
 
-								    
-								     call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+
+
+								    if (realgas.eq.0)then
+								    call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
 								    cright(1:nof_variables)=rightv(1:nof_variables)
-				  				    
-				  				  	kas=2			  				  
-								    
+								    else
+								    implicit_boundary_face=1
+								    cright(1:nof_variables)=cleft(1:nof_variables)
+								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+								      cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
+								    end if
+								    end if
+
+									kas=2
+
 								  end if
 							else
 							      cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-							      
-								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+
+								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-							      
+
 							      kas=3
-							      
-							      
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-					     
-					    
-					    
-						
+
+
+
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
 
-							     
+
+
 							      !cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 							      !(rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 
@@ -1781,10 +1828,10 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								kas=4
-								 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 
-							     
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
 							     ! cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 							      !(rec_ihexl(1,ielem_indexi(l,i)),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
@@ -1796,14 +1843,14 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								    end if
-									  
-									  
+
+
 
 								end if
-							else 			
+							else
 							kas=5
 
-							     
+
 							    !  cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 							    !  (rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 
@@ -1811,11 +1858,11 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 								lf=rec_ihexl(1,ielem_indexi(L,i),i)
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
-								
-								 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 
-							     
+
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
 							      !cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 							      !(rec_ihexl(1,ielem_indexi(l,i)),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
@@ -1826,35 +1873,35 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 								cturbr(1:turbulenceequations+passivescalar)=solhir(rowf,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 								    end if
-								  
-! 								   
+
+!
 							end if
 					    end if
-				      
-				    
-						  
-						  
+
+
+
+
 						 call rotatef2d(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef2d(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
-						  
-						  
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht2d(n,leftv,rightv)
 						  cleft_rot(1:nof_variables)=leftv(1:nof_variables);cright_rot(1:nof_variables)=rightv(1:nof_variables);
 						  call rotateb2d(n,cright,cright_rot,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotateb2d(n,cleft,cleft_rot,angle1,angle2)
-						  
-						  
-						  
-						  
+
+
+
+
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-						  
+
 						 if (realgas.eq.0)then
 						 asound1=sqrt(leftv(4)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
 						  asound2=sqrt(rightv(4)*gamma/rightv(1))+abs(cright_rot(2)/cright_rot(1))
@@ -1862,13 +1909,13 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 						  asound1=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
 						  asound2=sqrt((rightv(4)+mp_pinfr)*gammar/rightv(1))+abs(cright_rot(2)/cright_rot(1))
 						  end if
-						  
+
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
 						  mul1=ielem_surf(l,i)
 						  if (realgas.eq.0)then
@@ -1884,10 +1931,10 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 						  end if
-						  
-						  
-						  
-						  
+
+
+
+
 						  if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -1898,36 +1945,46 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							 eddyfl(4:5)= rec_grads(1,1:2,i);eddyfl(6:7)=rec_grads(2,1:2,i)
 							  eddyfl(8:9)=rec_grads(4,1:2,i)
 							  eddyfl(10:11)=rec_grads(5,1:2,i)
-							    
-							    
+
+
 							  eddyfr=eddyfl
 							    call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
-					 
-						      
+
+
 						      viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 ! 						      viscots=viscots/((0.5*(cleft(1)+cright(1)))*ielem_dih(l,i))
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
 						      mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
 						      viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-						      
+
 						      vpp=max(asound1,asound2)+viscots
 						  end if
-						  
-						  
+
+
+						  if ((implicit_boundary_face.eq.1).and.(realgas.ne.0))then
+						  impdiag(i,1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)+((vpp*identity1(1:nof_variables,1:nof_variables))*mul1)
+						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+						    do nvar=1,turbulenceequations+passivescalar
+						      impdiagt(i,nvar)=impdiagt(i,nvar)+(vpp*mul1)
+						    end do
+						  end if
+						  cycle
+						  end if
+
 						  impdiag(i,1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse2d(n,eigvl,cright,gamma,angle1,angle2,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(i,l,1:nof_variables,1:nof_variables)=impoff(i,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						  
+
+
 						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 							  if (turbulence.eq.1)then
 							  do nvar=1,turbulenceequations
-							  
+
 							  vpp=max(asound1,asound2)+viscots
-! 							   
+!
 							  impdiagt(i,nvar)=impdiagt(i,nvar)+(oo2*((vpp))*mul1)
 							  impofft(i,l,nvar)=impofft(i,l,nvar)-(((oo2*vpp))*mul1)
 							  end do
@@ -1936,16 +1993,16 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  do nvar=turbulenceequations+1,turbulenceequations+passivescalar
 							  viscl(1)=viscl(1)/schmidt_lam
 							      viscl(2)=viscl(2)/schmidt_lam
-							        
+
 							  if (turbulence.eq.1)then
 							      viscl(3)=viscl(3)/schmidt_turb
 							      viscl(4)=viscl(4)/schmidt_turb
 							  viscots=0.5*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 							      else
 							      viscots=0.5*((viscl(1)+viscl(2)))
-							      
+
 							      end if
-												  
+
 							  viscots=(2.0*viscots)/((cleft(1)+cright(1))*ielem_dih(l,i))
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(i,nvar)=impdiagt(i,nvar)+(oo2*((vpp))*mul1)
@@ -1954,26 +2011,31 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  end if
 						  end if
 						  else
-						  
+
+						  if ((implicit_boundary_face.eq.1).and.(realgas.ne.0))then
+						  impdiag(i,1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)+((vpp*identity1(1:nof_variables,1:nof_variables))*mul1)
+						  cycle
+						  end if
+
 						  impdiag(i,1:nof_variables,1:nof_variables)=impdiag(i,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse2d(n,eigvl,cright,gamma,angle1,angle2,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(i,l,1:nof_variables,1:nof_variables)=impoff(i,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						 
-						  
-						  
+
+
+
+
 						  end if
-			
-						
-				   
-				  
+
+
+
+
 		    end do
 end subroutine calculate_jacobian_2d_bound_cell
 
-	
-	
+
+
 subroutine calculate_jacobianlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
 	implicit none
 #ifdef gpu
@@ -2017,9 +2079,9 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 	do j=1,nof_variables
 	identity1(j,j)=1.0d0
 	end do
-		
+
 	if (ielem_interior(iconsidered).eq.0)then
-	
+
 	i=iconsidered
 		impdiag(1,:,:)=zero
 		impoff(1,:,:,:)=zero
@@ -2027,111 +2089,111 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 		impdiagt(1,:)=zero
 		impofft(1,:,:)=zero
 		end if
-	
-		    
-		    
-		    
+
+
+
+
 		    do l=1,ielem_ifca(i) !for all their faces
 				  godflux2=zero
- 				  angle1=ielem_faceanglex(l,i)
- 				  angle2=ielem_faceangley(l,i)
- 				  nx=(cos(angle1)*sin(angle2))
+				  angle1=ielem_faceanglex(l,i)
+				  angle2=ielem_faceangley(l,i)
+				  nx=(cos(angle1)*sin(angle2))
 				  ny=(sin(angle1)*sin(angle2))
 				  nz=(cos(angle2))
 				  mul1=ielem_surf(l,i)
-				  
+
 				    cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 				   cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-				     				      
-					if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-					  
+
+					if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 					    cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)!left additional equations flow state
 					    cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
 
 					end if
-			
+
 						  call rotatef(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
-						  
-						  
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht(n,leftv,rightv)
 						  cleft_rot(1:nof_variables)=leftv(1:nof_variables);cright_rot(1:nof_variables)=rightv(1:nof_variables);
 						  call rotatef(n,cright,cright_rot,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef(n,cleft,cleft_rot,angle1,angle2)
-						  
-						  
-						  
+
+
+
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-						  
+
 						asound1=sqrt(leftv(5)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
 						  asound2=sqrt(rightv(5)*gamma/rightv(1))+abs(cright_rot(2)/cright_rot(1))
-						  
+
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
 						  mul1=ielem_surf(l,i)
-						  
+
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
 						  /ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))&
 						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
 						  vpp=max(asound1,asound2)+viscots
-						  
-						  
-						  
-						  
+
+
+
+
 						  if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
 							  call eddyvisco(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
 						      if (turbulencemodel.eq.2)then
-							  
+
 							 eddyfl(1)=ielem_walldist(i);eddyfl(2)=cturbl(1);eddyfl(3)=cturbl(2)
-							 
-							  
-							  
-							  
+
+
+
+
 							  eddyfl(4:6)= rec_grads(1,1:3,i);eddyfl(7:9)=rec_grads(2,1:3,i)
 							  eddyfl(10:12)=rec_grads(3,1:3,i);eddyfl(13:15)=rec_grads(5,1:3,i)
 							  eddyfl(16:18)=rec_grads(6,1:3,i)
-							    
-							    
+
+
 							  eddyfr=eddyfl
 							    call eddyvisco(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
-						      
+
 						      viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-		
+
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
 						      mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
 						      viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-						      
+
 						      vpp=max(asound1,asound2)+viscots
 						  end if
-						  
-						  
+
+
 						  impdiag(1,1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse(n,iconsidered,eigvl,cright,gamma,angle1,angle2,srf_speedrot,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(1,l,1:nof_variables,1:nof_variables)=impoff(1,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						  
+
+
 						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 							  if (turbulence.eq.1)then
 							  do nvar=1,turbulenceequations
-							  
+
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(1,nvar)=impdiagt(1,nvar)+(oo2*((vpp))*mul1)
 							  impofft(1,l,nvar)=impofft(1,l,nvar)-(((oo2*vpp))*mul1)
@@ -2144,7 +2206,7 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							      viscl(3)=viscl(3)/schmidt_turb
 							      viscl(4)=viscl(4)/schmidt_turb
 							  viscots=0.5*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-												  
+
 							  viscots=(2.0*viscots)/((cleft(1)+cright(1))*ielem_dih(l,i))
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(1,nvar)=impdiagt(1,nvar)+(oo2*((vpp))*mul1)
@@ -2153,62 +2215,62 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  end if
 						  end if
 						  else
-						  
+
 						  impdiag(1,1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse(n,iconsidered,eigvl,cright,gamma,angle1,angle2,srf_speedrot,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(1,l,1:nof_variables,1:nof_variables)=impoff(1,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						 
-						  
-						  
+
+
+
+
 						  end if
 		    end do
-	
+
 	else
-	i=iconsidered			
+	i=iconsidered
 		   impdiag(1,:,:)=zero
 		impoff(1,:,:,:)=zero
 		if (turbulence.eq.1)then
 		impdiagt(1,:)=zero
 		impofft(1,:,:)=zero
 		end if
-		    
+
 		    do l=1,ielem_ifca(i)
-				     mul1=ielem_surf(l,i) 
+				     mul1=ielem_surf(l,i)
 				  angle1=ielem_faceanglex(l,i)
 				  angle2=ielem_faceangley(l,i)
 				nx=(cos(angle1)*sin(angle2))
 				ny=(sin(angle1)*sin(angle2))
 				nz=(cos(angle2))
- 				  
+
 				      b_code=0
 				      cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-						
+					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 							cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-						
+
 					end if
-				      
-				      
+
+
 					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								  cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-								  
-								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+
+								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-								  
-								  
-								  
-								  
+
+
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								 facex=l;
 								  call coordinates_face_innerx(n,iconsidered,facex,vext,nodes_list)
 
@@ -2220,47 +2282,47 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 								    cords(1:3)=zero
 								    call cordinates3(n,nodes_list,n_node,cords(1:3))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
 								    poz(1)=cords(3)
-								    
+
 								    leftv(1:nof_variables)=cleft(1:nof_variables)
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
-								    
+
+
 
 								    call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
 								    cright(1:nof_variables)=rightv(1:nof_variables)
-				  				   
-				  				  				  				  
-								    
+
+
+
 								  end if
 							else
 							      cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-							      
-								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+
+								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-					     
-					    
-					    
-						
+
+
+
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
 
-							     
+
+
 							      !cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 							      !(rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 
@@ -2269,11 +2331,11 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 								lf=rec_ihexl(1,ielem_indexi(L,i),i)
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
-								
-								 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 
-							     
+
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
 							     ! cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 							      !(rec_ihexl(1,ielem_indexi(l,i)),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
@@ -2285,14 +2347,14 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								    end if
-									  
-									  
+
+
 
 								end if
-							else 			
-							
+							else
 
-							     
+
+
 							     ! cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 							     ! (rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 
@@ -2300,10 +2362,10 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 								lf=rec_ihexl(1,ielem_indexi(L,i),i)
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
-								 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 
-							     
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
 							     ! cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 							      !(rec_ihexl(1,ielem_indexi(l,i)),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
@@ -2314,51 +2376,51 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								    end if
-								  
-! 								   
+
+!
 							end if
 					    end if
-				      
+
 				       call rotatef(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
-						  
-						  
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht(n,leftv,rightv)
 						  cleft_rot(1:nof_variables)=leftv(1:nof_variables);cright_rot(1:nof_variables)=rightv(1:nof_variables);
 						  call rotatef(n,cright,cright_rot,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef(n,cleft,cleft_rot,angle1,angle2)
-						  
-						  
-						  
+
+
+
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-						  
+
 						  asound1=sqrt(leftv(5)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
 						  asound2=sqrt(rightv(5)*gamma/rightv(1))+abs(cright_rot(2)/cright_rot(1))
-						  
+
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
 						  mul1=ielem_surf(l,i)
-						  
+
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
 						  /ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))&
 						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
 						  vpp=max(asound1,asound2)+viscots
-						  
-						  
-						  
-						  
+
+
+
+
 						  if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -2366,40 +2428,40 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 						      end if
 						      if (turbulencemodel.eq.2)then
 							  eddyfl(1)=ielem_walldist(i);eddyfl(2)=cturbl(1);eddyfl(3)=cturbl(2)
-							 
-							  
-							  
-							  
+
+
+
+
 							  eddyfl(4:6)= rec_grads(1,1:3,i);eddyfl(7:9)=rec_grads(2,1:3,i)
 							  eddyfl(10:12)=rec_grads(3,1:3,i);eddyfl(13:15)=rec_grads(5,1:3,i)
 							  eddyfl(16:18)=rec_grads(6,1:3,i)
-							    
-							    
+
+
 							  eddyfr=eddyfl
 							    call eddyvisco(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
-						      
+
 						      viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-		
+
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
 						      mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
 						      viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-						      
+
 						      vpp=max(asound1,asound2)+viscots
 						  end if
-						  
-						  
+
+
 						  impdiag(1,1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse(n,iconsidered,eigvl,cright,gamma,angle1,angle2,srf_speedrot,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(1,l,1:nof_variables,1:nof_variables)=impoff(1,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						  
+
+
 						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 							  if (turbulence.eq.1)then
 							  do nvar=1,turbulenceequations
-							  
+
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(1,nvar)=impdiagt(1,nvar)+(oo2*((vpp))*mul1)
 							  impofft(1,l,nvar)=impofft(1,l,nvar)-(((oo2*vpp))*mul1)
@@ -2412,7 +2474,7 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							      viscl(3)=viscl(3)/schmidt_turb
 							      viscl(4)=viscl(4)/schmidt_turb
 							  viscots=0.5*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-												  
+
 							  viscots=(2.0*viscots)/((cleft(1)+cright(1))*ielem_dih(l,i))
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(1,nvar)=impdiagt(1,nvar)+(oo2*((vpp))*mul1)
@@ -2421,41 +2483,41 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  end if
 						  end if
 						  else
-						  
+
 						  impdiag(1,1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse(n,iconsidered,eigvl,cright,gamma,angle1,angle2,srf_speedrot,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(1,l,1:nof_variables,1:nof_variables)=impoff(1,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						 
-						  
-						  
+
+
+
+
 						  end if
-			
-						
-				   
-				  
+
+
+
+
 		    end do
 	end if
-	
 
-	
-	
-	
-	
-	
+
+
+
+
+
+
 	if (rungekutta.eq.10)then
-		
-		
+
+
 		    impdiag(1,1,1)=impdiag(1,1,1)+(ielem_totvolume(i)/ielem_dtl(i))
 		    impdiag(1,2,2)=impdiag(1,2,2)+(ielem_totvolume(i)/ielem_dtl(i))
 		    impdiag(1,3,3)=impdiag(1,3,3)+(ielem_totvolume(i)/ielem_dtl(i))
 		    impdiag(1,4,4)=impdiag(1,4,4)+(ielem_totvolume(i)/ielem_dtl(i))
 		    impdiag(1,5,5)=impdiag(1,5,5)+(ielem_totvolume(i)/ielem_dtl(i))
-		
+
 	  else
-	
+
 ! 	    impdiag(1,1,1)=ielem_totvolume(i)*( ((dt+1.5d0*ielem_dtl(i))/dt) +(impdiag(1,1,1)*ielem_dtl(i)/ielem_totvolume(i)))/ielem_dtl(i)
 ! 	    impdiag(1,2,2)=ielem_totvolume(i)*(((dt+1.5d0*ielem_dtl(i))/dt)+(impdiag(1,2,2)*ielem_dtl(i)/ielem_totvolume(i)))/ielem_dtl(i)
 ! 	    impdiag(1,3,3)=ielem_totvolume(i)*(((dt+1.5d0*ielem_dtl(i))/dt)+(impdiag(1,3,3)*ielem_dtl(i)/ielem_totvolume(i)))/ielem_dtl(i)
@@ -2467,8 +2529,8 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 	      impdiag(1,3,3)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(1,3,3))
 	      impdiag(1,4,4)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(1,4,4))
 	    impdiag(1,5,5)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(1,5,5))
-	
-	
+
+
       end if
 
 
@@ -2510,11 +2572,11 @@ else
 
 end if
 end if
-	
+
 
 end subroutine calculate_jacobianlm
-	
-	
+
+
 
 subroutine calculate_jacobian_2dlm(n,iconsidered,impdiag,impdiagt,impoff,impofft)
 	implicit none
@@ -2530,7 +2592,7 @@ subroutine calculate_jacobian_2dlm(n,iconsidered,impdiag,impdiagt,impoff,impofft
 	real,dimension(gpu_max_nvar,gpu_max_nvar)::identity1
 	real,dimension(gpu_max_nvar,gpu_max_nvar)::convj,diffj
 	integer::facex, pointx,igoflux,nf,lf,rowf
-	integer::b_code
+	integer::b_code,implicit_boundary_face
 	real::angle1,angle2,nx,ny,nz
 	real,dimension(1:gpu_max_nvar)::cleft,cright
 	real,dimension(1:gpu_max_nvar_total)::cright_rot,cleft_rot
@@ -2559,11 +2621,11 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 	do j=1,nof_variables
 	identity1(j,j)=1.0d0
 	end do
-	
-		
+
+
 
 	if (ielem_interior(iconsidered).eq.0)then
-	
+
 	i=iconsidered
 		impdiag(1,:,:)=zero
 		impoff(1,:,:,:)=zero
@@ -2571,24 +2633,24 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 		impdiagt(1,:)=zero
 		impofft(1,:,:)=zero
 		end if
-	
-		    
-		    
-		    
+
+
+
+
 		    do l=1,ielem_ifca(i) !for all their faces
 				  godflux2=zero
- 				  angle1=ielem_faceanglex(l,i)
- 				  angle2=ielem_faceangley(l,i)
- 				  nx=angle1
+				  angle1=ielem_faceanglex(l,i)
+				  angle2=ielem_faceangley(l,i)
+				  nx=angle1
 				  ny=angle2
 				  mul1=ielem_surf(l,i)
-				  
-				  
+
+
 				    cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 				   cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-				     				      
-					if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-					  
+
+					if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 					    cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)!left additional equations flow state
 					    cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
 
@@ -2596,8 +2658,8 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 						  call rotatef2d(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef2d(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
-						  
-						  
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht2d(n,leftv,rightv)
@@ -2605,32 +2667,43 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 						   call rotateb2d(n,cright,cright_rot,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotateb2d(n,cleft,cleft_rot,angle1,angle2)	!rotate wrt to normalvector of face and so
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-						  
-						asound1=sqrt(leftv(4)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
+
+						  if (realgas.eq.0)then
+						  asound1=sqrt(leftv(4)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
 						  asound2=sqrt(rightv(4)*gamma/rightv(1))+abs(cright_rot(2)/cright_rot(1))
-						  
+						  else
+						  asound1=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
+						  asound2=sqrt((rightv(4)+mp_pinfr)*gammar/rightv(1))+abs(cright_rot(2)/cright_rot(1))
+						  end if
+
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
 						  mul1=ielem_surf(l,i)
-						  
+
+						  if (realgas.eq.0)then
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
 						  /ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))&
 						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
+						  else
+						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
+						  /ielem_dih(l,i),((gammal/(0.5*(cleft(1)+cright(1))))&
+						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
+						  end if
 						  vpp=max(asound1,asound2)+viscots
-						  
-						  
-						  
-						  
+
+
+
+
 						  if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -2641,34 +2714,34 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  eddyfl(4:5)= rec_grads(1,1:2,i);eddyfl(6:7)=rec_grads(2,1:2,i)
 							  eddyfl(8:9)=rec_grads(4,1:2,i)
 							  eddyfl(10:11)=rec_grads(5,1:2,i)
-							    
-							    
+
+
 							  eddyfr=eddyfl
 							    call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
-					 
-						      
+
+
 						      viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-		
+
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
 						      mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
 						      viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-						      
+
 						      vpp=max(asound1,asound2)+viscots
 						  end if
-						  
-						  
+
+
 						  impdiag(1,1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse2d(n,eigvl,cright,gamma,angle1,angle2,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(1,l,1:nof_variables,1:nof_variables)=impoff(1,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						  
+
+
 						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 							  if (turbulence.eq.1)then
 							  do nvar=1,turbulenceequations
-							  
+
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(1,nvar)=impdiagt(1,nvar)+(oo2*((vpp))*mul1)
 							  impofft(1,l,nvar)=impofft(1,l,nvar)-(((oo2*vpp))*mul1)
@@ -2681,7 +2754,7 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							      viscl(3)=viscl(3)/schmidt_turb
 							      viscl(4)=viscl(4)/schmidt_turb
 							  viscots=0.5*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-												  
+
 							  viscots=(2.0*viscots)/((cleft(1)+cright(1))*ielem_dih(l,i))
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(1,nvar)=impdiagt(1,nvar)+(oo2*((vpp))*mul1)
@@ -2690,107 +2763,116 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  end if
 						  end if
 						  else
-						  
+
 						  impdiag(1,1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse2d(n,eigvl,cright,gamma,angle1,angle2,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(1,l,1:nof_variables,1:nof_variables)=impoff(1,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						 
-						  
-						  
+
+
+
+
 						  end if
 		    end do
 	else
-	
 
-				
+
+
 		   impdiag(1,:,:)=0.0
 		impoff(1,:,:,:)=0.0
 		if (turbulence.eq.1)then
 		impdiagt(1,:)=0.0
 		impofft(1,:,:)=0.0
 		end if
-		    
+
 		    do l=1,ielem_ifca(i)
 				      mul1=ielem_surf(l,i)
 				  angle1=ielem_faceanglex(l,i)
 				  angle2=ielem_faceangley(l,i)
 				nx=angle1
 				ny=angle2
-				
- 				  
+
+
 				      b_code=0
+				      implicit_boundary_face=0
 				      cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-						
+					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 							cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-						
+
 					end if
-				      
-				      
+
+
 					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								  cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-								  
-								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+
+								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-								  
-								  
-								  
-								  
+
+
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;
 								  call coordinates_face_inner2dx(n,iconsidered,facex,vext,nodes_list)
 								  n_node=2
 								    cords(1:2)=zero
 								    call cordinates2(n,nodes_list,n_node,cords(1:2))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
-								   
-								    
+
+
 								    leftv(1:nof_variables)=cleft(1:nof_variables)
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
 
-								    
+
+
+								    if (realgas.eq.0)then
 								    call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
 								    cright(1:nof_variables)=rightv(1:nof_variables)
-				  				   
-				  				  				  				  
-								    
+								    else
+								    implicit_boundary_face=1
+								    cright(1:nof_variables)=cleft(1:nof_variables)
+								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+								      cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
+								    end if
+								    end if
+
+
+
 								  end if
 							else
 							      cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-							      
-								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+
+								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-							      
-							      
-							      
-							      
+
+
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-					     
-					    
-					    
-						
+
+
+
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
+
 
 ! 							      cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
@@ -2800,11 +2882,11 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
 
-								
-								 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 
-							     
+
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
 ! 							      cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
@@ -2815,28 +2897,28 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								    end if
-									  
-									  
+
+
 
 								end if
-							else 			
-							
+							else
 
-							     
+
+
 ! 							      cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 
-								
+
 								  nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
 								lf=rec_ihexl(1,ielem_indexi(L,i),i)
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
 
 
-								 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 
-							     
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
 ! 							      cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
@@ -2847,15 +2929,15 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								    end if
-								  
-! 								   
+
+!
 							end if
 					    end if
-				      
+
 				    call rotatef2d(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef2d(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
-						  
-						  
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht2d(n,leftv,rightv)
@@ -2863,32 +2945,43 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 						   call rotateb2d(n,cright,cright_rot,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotateb2d(n,cleft,cleft_rot,angle1,angle2)	!rotate wrt to normalvector of face and so
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-						  
-						 asound1=sqrt(leftv(4)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
+
+						  if (realgas.eq.0)then
+						  asound1=sqrt(leftv(4)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
 						  asound2=sqrt(rightv(4)*gamma/rightv(1))+abs(cright_rot(2)/cright_rot(1))
-						  
+						  else
+						  asound1=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
+						  asound2=sqrt((rightv(4)+mp_pinfr)*gammar/rightv(1))+abs(cright_rot(2)/cright_rot(1))
+						  end if
+
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
 						  mul1=ielem_surf(l,i)
-						  
+
+						  if (realgas.eq.0)then
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
 						  /ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))&
 						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
+						  else
+						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
+						  /ielem_dih(l,i),((gammal/(0.5*(cleft(1)+cright(1))))&
+						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
+						  end if
 						  vpp=max(asound1,asound2)+viscots
-						  
-						  
-						  
-						  
+
+
+
+
 						  if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -2899,37 +2992,47 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  eddyfl(4:5)= rec_grads(1,1:2,i);eddyfl(6:7)=rec_grads(2,1:2,i)
 							  eddyfl(8:9)=rec_grads(4,1:2,i)
 							  eddyfl(10:11)=rec_grads(5,1:2,i)
-							    
-							    
+
+
 							  eddyfr=eddyfl
 							    call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
-					 
-						      
+
+
 						      viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-		
+
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
 						      mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
 						      viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-						      
+
 						      vpp=max(asound1,asound2)+viscots
 						  end if
-						  
-						  
+
+
+						  if ((implicit_boundary_face.eq.1).and.(realgas.ne.0))then
+						  impdiag(1,1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)+((vpp*identity1(1:nof_variables,1:nof_variables))*mul1)
+						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+						    do nvar=1,turbulenceequations+passivescalar
+						      impdiagt(1,nvar)=impdiagt(1,nvar)+(vpp*mul1)
+						    end do
+						  end if
+						  cycle
+						  end if
+
 						  impdiag(1,1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse2d(n,eigvl,cright,gamma,angle1,angle2,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(1,l,1:nof_variables,1:nof_variables)=impoff(1,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						  
+
+
 						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 							  if (turbulence.eq.1)then
 							  do nvar=1,turbulenceequations
-							  
+
 							  vpp=max(asound1,asound2)+viscots
-							  impdiagt(i,nvar)=impdiagt(i,nvar)+(oo2*((vpp))*mul1)
-							  impofft(i,l,nvar)=impofft(i,l,nvar)-(((oo2*vpp))*mul1)
+							  impdiagt(1,nvar)=impdiagt(1,nvar)+(oo2*((vpp))*mul1)
+							  impofft(1,l,nvar)=impofft(1,l,nvar)-(((oo2*vpp))*mul1)
 							  end do
 							  end if
 							  if (passivescalar.gt.0)then
@@ -2939,7 +3042,7 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							      viscl(3)=viscl(3)/schmidt_turb
 							      viscl(4)=viscl(4)/schmidt_turb
 							  viscots=0.5*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-												  
+
 							  viscots=(2.0*viscots)/((cleft(1)+cright(1))*ielem_dih(l,i))
 							  vpp=max(asound1,asound2)+viscots
 							  impdiagt(1,nvar)=impdiagt(1,nvar)+(oo2*((vpp))*mul1)
@@ -2948,46 +3051,51 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							  end if
 						  end if
 						  else
-						  
+
+						  if ((implicit_boundary_face.eq.1).and.(realgas.ne.0))then
+						  impdiag(1,1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)+((vpp*identity1(1:nof_variables,1:nof_variables))*mul1)
+						  cycle
+						  end if
+
 						  impdiag(1,1:nof_variables,1:nof_variables)=impdiag(1,1:nof_variables,1:nof_variables)+(oo2*((vpp*identity1(1:nof_variables,1:nof_variables)))*mul1)
 						  call compute_jacobianse2d(n,eigvl,cright,gamma,angle1,angle2,nx,ny,nz)
-						  convj=eigvl
+						  convj(1:nof_variables,1:nof_variables)=eigvl(1:nof_variables,1:nof_variables)
 						  impoff(1,l,1:nof_variables,1:nof_variables)=impoff(1,l,1:nof_variables,1:nof_variables)+(((oo2*convj(1:nof_variables,1:nof_variables))&
 						  -((oo2*vpp)*identity1(1:nof_variables,1:nof_variables)))*mul1)
-						  
-						 
-						  
-						  
+
+
+
+
 						  end if
-			
-						
-				   
-				  
+
+
+
+
 		    end do
 	end if
 
-	
-	
-	
-	
-	
+
+
+
+
+
 	if (rungekutta.eq.10)then
-		
+
 		    impdiag(1,1,1)=impdiag(1,1,1)+(ielem_totvolume(i)/ielem_dtl(i))
 		    impdiag(1,2,2)=impdiag(1,2,2)+(ielem_totvolume(i)/ielem_dtl(i))
 		    impdiag(1,3,3)=impdiag(1,3,3)+(ielem_totvolume(i)/ielem_dtl(i))
 		    impdiag(1,4,4)=impdiag(1,4,4)+(ielem_totvolume(i)/ielem_dtl(i))
-		    
-		
+
+
 	  else
 	    impdiag(1,1,1)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(1,1,1))
 	      impdiag(1,2,2)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(1,2,2))
 	      impdiag(1,3,3)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(1,3,3))
 	      impdiag(1,4,4)=ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiag(1,4,4))
-	    
-	    
 
-	
+
+
+
       end if
 
 
@@ -3008,7 +3116,7 @@ if (rungekutta.eq.10)then
     end if
     if (passivescalar.gt.0)then
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
-    
+
     impdiagt(1,nvar)=impdiagt(1,nvar)+(ielem_totvolume(i)/ielem_dtl(i))
     end do
     end if
@@ -3019,7 +3127,7 @@ else
     do nvar=1,turbulenceequations
     sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(1,1))))
     impdiagt(1,nvar)=max((ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(1,1))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))),turb_diag_abs_floor))
-    
+
     end do
     end if
     if (passivescalar.gt.0)then
@@ -3032,7 +3140,7 @@ else
 
 end if
 end if
-	
+
 
 end subroutine calculate_jacobian_2dlm
 
@@ -3043,7 +3151,7 @@ subroutine calculate_jacobian_2d_mf(n)
 		integer,intent(in)::n
 		integer::i,kmaxe,ii
 		kmaxe=xmpielrank(n)
-	
+
 
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(ii)
@@ -3058,8 +3166,8 @@ subroutine calculate_jacobian_2d_mf(n)
 #else
 !$omp end do
 #endif
-	
-	
+
+
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(ii)
 #else
@@ -3074,11 +3182,11 @@ subroutine calculate_jacobian_2d_mf(n)
 !$omp end do
 #endif
 
-	
-	
-	
-	
-	
+
+
+
+
+
 	if (rungekutta.eq.10)then
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(i)
@@ -3115,7 +3223,7 @@ subroutine calculate_jacobian_2d_mf(n)
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
- 
+
  if (turbulence.eq.1)call sources_derivatives_computation2d(n)
 if (rungekutta.eq.10)then
 #ifdef gpu
@@ -3148,7 +3256,7 @@ do i=1,kmaxe
 
 end if
 end if
-	
+
 
 end subroutine calculate_jacobian_2d_mf
 
@@ -3187,9 +3295,9 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
     real::mp_pinfr,gammar
    real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
 
-				  
+
 		    impdiag_mf(i)=(impdiag_mf(i))+(ielem_totvolume(i)/ielem_dtl(i))
-		    
+
 end subroutine calculate_jacobian_2d_mf_loop1_cell
 
 
@@ -3270,13 +3378,13 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
    sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
-   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor))
     end do
     end if
     if (passivescalar.gt.0)then
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
      sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
-   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor))
     end do
     end if
 end subroutine calculate_jacobian_2d_mf_loop3_cell
@@ -3319,7 +3427,7 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
-!    
+!
      sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))))
     impdiagt(i,nvar)=max((ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(i,nvar))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))),turb_diag_abs_floor))
     end do
@@ -3327,7 +3435,7 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
     if (passivescalar.gt.0)then
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
      sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
-   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor))
     end do
     end if
 
@@ -3379,68 +3487,79 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 		end if
 		    do l=1,ielem_ifca(i) !for all their faces
 				  b_code=0
- 				  angle1=ielem_faceanglex(l,i)
- 				  angle2=ielem_faceangley(l,i)
- 				  nx=angle1
+				  angle1=ielem_faceanglex(l,i)
+				  angle2=ielem_faceangley(l,i)
+				  nx=angle1
 				  ny=angle2
 				  mul1=ielem_surf(l,i)
-				  
-				  
+
+
 				    cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 				   cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-				    
+
 ! 				     cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,1,i)
 ! 				   cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),1,ielem_ineigh(l,i))
-				    
-				    
-				     		
-				     		
-				     		
-					if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-					  
+
+
+
+
+
+					if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 					    cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)!left additional equations flow state
 					    cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
 
 					end if
-			
+
 						  call rotatef2d(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef2d(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
-						  
-						  
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht2d(n,leftv,rightv)
 						  cleft_rot(1:nof_variables)=leftv(1:nof_variables);cright_rot(1:nof_variables)=rightv(1:nof_variables);
 						  call rotateb2d(n,cright,cright_rot,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotateb2d(n,cleft,cleft_rot,angle1,angle2)
-						  
-						  
-						  
-						  
+
+
+
+
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-						  
-						 asound1=sqrt(leftv(4)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
+
+						  if (realgas.eq.0)then
+						  asound1=sqrt(leftv(4)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
 						  asound2=sqrt(rightv(4)*gamma/rightv(1))+abs(cright_rot(2)/cright_rot(1))
-						  
+						  else
+						  asound1=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
+						  asound2=sqrt((rightv(4)+mp_pinfr)*gammar/rightv(1))+abs(cright_rot(2)/cright_rot(1))
+						  end if
+
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
-						  
+
 ! 						  viscots=viscots/((0.5*(cleft(1)+cright(1)))*ielem_dih(l,i))
+						  if (realgas.eq.0)then
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
 						  /ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))&
 						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
+						  else
+						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
+						  /ielem_dih(l,i),((gammal/(0.5*(cleft(1)+cright(1))))&
+						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
+						  end if
 						  vpp=max(asound1,asound2)+viscots
- 
+
                                         if (turbulence.eq.1)then
                                             if (turbulencemodel.eq.1)then
                                             turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -3451,37 +3570,37 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
                                             eddyfl(4:5)= rec_grads(1,1:2,i);eddyfl(6:7)=rec_grads(2,1:2,i)
                                             eddyfl(8:9)=rec_grads(4,1:2,i)
                                             eddyfl(10:11)=rec_grads(5,1:2,i)
-                                                
-                                                
+
+
                                             eddyfr=eddyfl
                                                 call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
                                             end if
-                                    
-                                            
+
+
                                             viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-                        
+
                 ! 						      viscots=viscots/((0.5*(cleft(1)+cright(1)))*ielem_dih(l,i))
                                             viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
                                             mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
                                             viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-                                            
+
                                             vpp=max(asound1,asound2)+viscots
                                         end if
 						  end if
-						  
-						  
+
+
 						   impdiag_mf(i)=impdiag_mf(i)+(oo2*vpp*mul1)
 						  impoff_mf(i,l)=vpp
-						  
+
 						  if (turbulence.eq.1)then
                             do nvar=1,turbulenceequations+passivescalar
                             impdiagt(i,nvar)=impdiagt(i,nvar)+(oo2*vpp*mul1)
                             impofft(i,l,nvar)=impofft(i,l,nvar)-(oo2*vpp*mul1)
                             end do
                         end if
-						  
-						  
-						  
+
+
+
 		    end do
 end subroutine calculate_jacobian_2d_mf_inner_cell
 
@@ -3501,7 +3620,7 @@ subroutine calculate_jacobian_2d_mf_bound_cell(n,ii)
 	real,dimension(gpu_max_nvar,gpu_max_nvar)::identity1
 	real,dimension(gpu_max_nvar,gpu_max_nvar)::convj,diffj
 	integer::iconsidered,facex,pointx,igoflux
-	integer::b_code,nf,lf,rowf
+	integer::b_code,nf,lf,rowf,implicit_boundary_face
 	real::angle1,angle2,nx,ny,nz
 	real,dimension(1:gpu_max_nvar)::cleft,cright
 	real,dimension(1:gpu_max_nvar_total)::cright_rot,cleft_rot
@@ -3522,114 +3641,123 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
    real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
 
 	i=el_bnd(ii)
-	iconsidered=i	
-				
+	iconsidered=i
+
 		impdiag_mf(i)=zero
 		impoff_mf(i,:)=zero
 		  if (turbulence.eq.1)then
 		impdiagt(i,1:turbulenceequations+passivescalar)=zero
 		impofft(i,:,:)=zero
-		end if   
+		end if
 		    do l=1,ielem_ifca(i)
 				      mul1=ielem_surf(l,i)
 				  angle1=ielem_faceanglex(l,i)
 				  angle2=ielem_faceangley(l,i)
 				nx=angle1
 				ny=angle2
-				
- 				  
+
+
 				      b_code=0
+				      implicit_boundary_face=0
 				      cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 ! 				      cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,1,i)
-					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-						
+					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 							cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-						
+
 					end if
-				      
-				      
+
+
 					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								  cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
 ! 								  cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),1,ielem_ineigh(l,i))
-								  
-								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+
+								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-								  
+
 								  kas=1
-								  
-								  
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;iconsidered=i
 								  call coordinates_face_inner2dx(n,iconsidered,facex,vext,nodes_list)
 								  n_node=2
 								    cords(1:2)=zero
 								    call cordinates2(n,nodes_list,n_node,cords(1:2))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
-								   
-								    
+
+
 								    leftv(1:nof_variables)=cleft(1:nof_variables)
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
 
-								    
+
+
+								    if (realgas.eq.0)then
 								    call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
 								    cright(1:nof_variables)=rightv(1:nof_variables)
-				  				    
-				  				  	kas=2			  				  
-								    
+								    else
+								    implicit_boundary_face=1
+								    cright(1:nof_variables)=cleft(1:nof_variables)
+								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+								      cturbr(1:turbulenceequations+passivescalar)=cturbl(1:turbulenceequations+passivescalar)
+								    end if
+								    end if
+
+									kas=2
+
 								  end if
 							else
 							      cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
 ! 							      cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),1,ielem_ineigh(l,i))
-							      
-								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+
+								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-							      
+
 							      kas=3
-							      
-							      
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-					     
-					    
-					    
-						
+
+
+
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
 
-							     
+
+
 ! 							      cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
-							      
+
 
 							         nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
 								lf=rec_ihexl(1,ielem_indexi(L,i),i)
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
-							      
-							      
-							      
+
+
+
 
 								kas=4
-								 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 
-							     
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
 ! 							      cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
@@ -3641,27 +3769,27 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								    end if
-									  
-									  
+
+
 
 								end if
-							else 			
+							else
 							kas=5
 
-							     
+
 ! 							      cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
-							      
+
 
 							        nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
 								lf=rec_ihexl(1,ielem_indexi(L,i),i)
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
-							      
 
-								
-								 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
+
+
+
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 
 !
 ! 							      cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
@@ -3674,55 +3802,66 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								    end if
-								  
-! 								   
+
+!
 							end if
 					    end if
-				      
-				    
-						  
-						  
+
+
+
+
 						 call rotatef2d(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef2d(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
-						  
-						  
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht2d(n,leftv,rightv)
 						  cleft_rot(1:nof_variables)=leftv(1:nof_variables);cright_rot(1:nof_variables)=rightv(1:nof_variables);
 						  call rotateb2d(n,cright,cright_rot,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotateb2d(n,cleft,cleft_rot,angle1,angle2)
-						  
-						  
-						  
-						  
+
+
+
+
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-						  
-						asound1=sqrt(leftv(4)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
+
+						  if (realgas.eq.0)then
+						  asound1=sqrt(leftv(4)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
 						  asound2=sqrt(rightv(4)*gamma/rightv(1))+abs(cright_rot(2)/cright_rot(1))
-						  
+						  else
+						  asound1=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
+						  asound2=sqrt((rightv(4)+mp_pinfr)*gammar/rightv(1))+abs(cright_rot(2)/cright_rot(1))
+						  end if
+
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
-						  
+
 ! 						  viscots=viscots/((0.5*(cleft(1)+cright(1)))*ielem_dih(l,i))
+						  if (realgas.eq.0)then
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
 						  /ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))&
 						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
+						  else
+						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
+						  /ielem_dih(l,i),((gammal/(0.5*(cleft(1)+cright(1))))&
+						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
+						  end if
 						  vpp=max(asound1,asound2)+viscots
-						  
-						  
-						  
-						  
+
+
+
+
 						  if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -3733,61 +3872,73 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							 eddyfl(4:5)= rec_grads(1,1:2,i);eddyfl(6:7)=rec_grads(2,1:2,i)
 							  eddyfl(8:9)=rec_grads(4,1:2,i)
 							  eddyfl(10:11)=rec_grads(5,1:2,i)
-							    
-							    
+
+
 							  eddyfr=eddyfl
 							    call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
-					 
-						      
+
+
 						      viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 ! 						      viscots=viscots/((0.5*(cleft(1)+cright(1)))*ielem_dih(l,i))
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
 						      mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
 						      viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-						      
+
 						      vpp=max(asound1,asound2)+viscots
 						  end if
-						  
-						  
-						  
-						  
-						  
+
+
+
+
+
 						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 							  if (turbulence.eq.1)then
 							  do nvar=1,turbulenceequations
-							  
+
 							  vpp=max(asound1,asound2)+viscots
-! 							   
-							 
+!
+
 							  end do
 							  end if
 							  if (passivescalar.gt.0)then
 							  do nvar=turbulenceequations+1,turbulenceequations+passivescalar
 							  viscl(1)=viscl(1)/schmidt_lam
 							      viscl(2)=viscl(2)/schmidt_lam
-							        
+
 							  if (turbulence.eq.1)then
 							      viscl(3)=viscl(3)/schmidt_turb
 							      viscl(4)=viscl(4)/schmidt_turb
 							  viscots=0.5*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 							      else
 							      viscots=0.5*((viscl(1)+viscl(2)))
-							      
+
 							      end if
-												  
+
 							  viscots=(2.0*viscots)/((cleft(1)+cright(1))*ielem_dih(l,i))
 							  vpp=max(asound1,asound2)+viscots
-							  
+
 							  end do
 							  end if
 						  end if
 						  else
-						  
+
 						  end if
-						  
-						  
-						  
+
+
+
+						  if ((implicit_boundary_face.eq.1).and.(realgas.ne.0))then
+						  impdiag_mf(i)=impdiag_mf(i)+(vpp*mul1)
+						  impoff_mf(i,l)=zero
+						  if (turbulence.eq.1)then
+						    do nvar=1,turbulenceequations+passivescalar
+						      impdiagt(i,nvar)=impdiagt(i,nvar)+(vpp*mul1)
+						      impofft(i,l,nvar)=zero
+						    end do
+						  end if
+						  cycle
+						  end if
+
 						   impdiag_mf(i)=impdiag_mf(i)+(oo2*vpp*mul1)
 						  impoff_mf(i,l)=vpp
                          if (turbulence.eq.1)then
@@ -3796,9 +3947,9 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
                             impofft(i,l,nvar)=impofft(i,l,nvar)-(oo2*vpp*mul1)
                             end do
                         end if
-						
-				   
-				  
+
+
+
 		    end do
 end subroutine calculate_jacobian_2d_mf_bound_cell
 
@@ -3812,7 +3963,7 @@ subroutine calculate_jacobian_3d_mf(n)
 		integer,intent(in)::n
 		integer::i,kmaxe,ii
 		kmaxe=xmpielrank(n)
-	
+
 
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(ii)
@@ -3827,8 +3978,8 @@ subroutine calculate_jacobian_3d_mf(n)
 #else
 !$omp end do
 #endif
-	
-	
+
+
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(ii)
 #else
@@ -3843,11 +3994,11 @@ subroutine calculate_jacobian_3d_mf(n)
 !$omp end do
 #endif
 
-	
-	
-	
-	
-	
+
+
+
+
+
 	if (rungekutta.eq.10)then
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(i)
@@ -3884,7 +4035,7 @@ subroutine calculate_jacobian_3d_mf(n)
 
 
 if ((turbulence.gt.0).or.(passivescalar.gt.0))then
- 
+
  if (turbulence.eq.1)call sources_derivatives_computation(n)
 if (rungekutta.eq.10)then
 #ifdef gpu
@@ -3917,7 +4068,7 @@ do i=1,kmaxe
 
 end if
 end if
-	
+
 
 end subroutine calculate_jacobian_3d_mf
 
@@ -3956,9 +4107,9 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
     real::mp_pinfr,gammar
    real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
 
-				  
+
 		    impdiag_mf(i)=(impdiag_mf(i))+(ielem_totvolume(i)/ielem_dtl(i))
-		    
+
 end subroutine calculate_jacobian_3d_mf_loop1_cell
 
 
@@ -4039,13 +4190,13 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
    sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
-   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor))
     end do
     end if
     if (passivescalar.gt.0)then
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
      sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
-   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor))
     end do
     end if
 end subroutine calculate_jacobian_3d_mf_loop3_cell
@@ -4088,7 +4239,7 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
     if (turbulence.eq.1)then
     do nvar=1,turbulenceequations
-!    
+!
      sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))))
     impdiagt(i,nvar)=max((ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))+(impdiagt(i,nvar))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)*((1.0d0/ielem_dtl(i))+(1.5d0/dt))),turb_diag_abs_floor))
     end do
@@ -4096,7 +4247,7 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
     if (passivescalar.gt.0)then
     do nvar=turbulenceequations+1,turbulenceequations+passivescalar
      sht(i,nvar)=min(max(sht(i,nvar),0.0d0),turb_source_cap_frac*(impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))))
-   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor)) 
+   impdiagt(i,nvar)=max((impdiagt(i,nvar)+(ielem_totvolume(i)/ielem_dtl(i))-sht(i,nvar)),max(turb_diag_floor_frac*(ielem_totvolume(i)/ielem_dtl(i)),turb_diag_abs_floor))
     end do
     end if
 
@@ -4148,68 +4299,68 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 		end if
 		    do l=1,ielem_ifca(i) !for all their faces
 				  b_code=0
- 				  angle1=ielem_faceanglex(l,i)
- 				  angle2=ielem_faceangley(l,i)
- 				  nx=angle1
+				  angle1=ielem_faceanglex(l,i)
+				  angle2=ielem_faceangley(l,i)
+				  nx=angle1
 				  ny=angle2
 				  mul1=ielem_surf(l,i)
-				  
-				  
+
+
 				    cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 				   cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
-				    
+
 ! 				     cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,1,i)
 ! 				   cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),1,ielem_ineigh(l,i))
-				    
-				    
-				     		
-				     		
-				     		
-					if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-					  
+
+
+
+
+
+					if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 					    cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)!left additional equations flow state
 					    cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
 
 					end if
-			
+
 						  call rotatef(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
-						  
-						  
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht(n,leftv,rightv)
 						  cleft_rot(1:nof_variables)=leftv(1:nof_variables);cright_rot(1:nof_variables)=rightv(1:nof_variables);
 						  call rotateb(n,cright,cright_rot,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotateb(n,cleft,cleft_rot,angle1,angle2)
-						  
-						  
-						  
-						  
+
+
+
+
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-						  
+
 						asound1=sqrt(leftv(5)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
 						  asound2=sqrt(rightv(5)*gamma/rightv(1))+abs(cright_rot(2)/cright_rot(1))
-						  
+
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
-						  
+
 ! 						  viscots=viscots/((0.5*(cleft(1)+cright(1)))*ielem_dih(l,i))
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
 						  /ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))&
 						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
 						  vpp=max(asound1,asound2)+viscots
- 
+
                                         if (turbulence.eq.1)then
                                             if (turbulencemodel.eq.1)then
                                             turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -4220,37 +4371,37 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
                                             eddyfl(4:6)= rec_grads(1,1:3,i);eddyfl(7:9)=rec_grads(2,1:3,i)
 							  eddyfl(10:12)=rec_grads(3,1:3,i);eddyfl(13:15)=rec_grads(5,1:3,i)
 							  eddyfl(16:18)=rec_grads(6,1:3,i)
-                                                
-                                                
+
+
                                             eddyfr=eddyfl
                                                 call eddyvisco(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
                                             end if
-                                    
-                                            
+
+
                                             viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
-                        
+
                 ! 						      viscots=viscots/((0.5*(cleft(1)+cright(1)))*ielem_dih(l,i))
                                             viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
                                             mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
                                             viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-                                            
+
                                             vpp=max(asound1,asound2)+viscots
                                         end if
 						  end if
-						  
-						  
+
+
 						   impdiag_mf(i)=impdiag_mf(i)+(oo2*vpp*mul1)
 						  impoff_mf(i,l)=vpp
-						  
+
 						  if (turbulence.eq.1)then
                             do nvar=1,turbulenceequations+passivescalar
                             impdiagt(i,nvar)=impdiagt(i,nvar)+(oo2*vpp*mul1)
                             impofft(i,l,nvar)=impofft(i,l,nvar)-(oo2*vpp*mul1)
                             end do
                         end if
-						  
-						  
-						  
+
+
+
 		    end do
 end subroutine calculate_jacobian_3d_mf_inner_cell
 
@@ -4291,50 +4442,50 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
    real,dimension(1:gpu_max_nvar,1:gpu_max_nvar)::eigvl
 
 	i=el_bnd(ii)
-	iconsidered=i	
-				
+	iconsidered=i
+
 		impdiag_mf(i)=zero
 		impoff_mf(i,:)=zero
 		  if (turbulence.eq.1)then
 		impdiagt(i,1:turbulenceequations+passivescalar)=zero
 		impofft(i,:,:)=zero
-		end if   
+		end if
 		    do l=1,ielem_ifca(i)
 				      mul1=ielem_surf(l,i)
 				  angle1=ielem_faceanglex(l,i)
 				  angle2=ielem_faceangley(l,i)
 				nx=angle1
 				ny=angle2
-				
- 				  
+
+
 				      b_code=0
 				      cleft(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 ! 				      cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,1,i)
-					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-						
+					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 							cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-						
+
 					end if
-				      
-				      
+
+
 					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
 								  cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
 ! 								  cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),1,ielem_ineigh(l,i))
-								  
-								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+
+								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-								  
+
 								  kas=1
-								  
-								  
+
+
 								  else
 								  !not periodic ones in my cpu
-								   
+
 								  facex=l;iconsidered=i
 								  call coordinates_face_innerx(n,iconsidered,facex,vext,nodes_list)
 
@@ -4346,49 +4497,49 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 								    cords(1:3)=zero
 								    call cordinates3(n,nodes_list,n_node,cords(1:3))
-							    
+
 								    poy(1)=cords(2)
 								    pox(1)=cords(1)
 								    poz(1)=cords(3)
-								   
-								    
+
+
 								    leftv(1:nof_variables)=cleft(1:nof_variables)
 								    b_code=ibound_icode(ielem_ibounds(l,i))
-								    
 
-								    
+
+
 								    call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
 								    cright(1:nof_variables)=rightv(1:nof_variables)
-				  				    
-				  				  	kas=2			  				  
-								    
+
+									kas=2
+
 								  end if
 							else
 							      cright(1:nof_variables)=u_c_val(1,1:nof_variables,ielem_ineigh(l,i))
 ! 							      cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),1,ielem_ineigh(l,i))
-							      
-								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
-									
+
+								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
 									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
-									
+
 								    end if
-							      
+
 							      kas=3
-							      
-							      
+
+
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
-					    
-					    
-					     
-					    
-					    
-						
+
+
+
+
+
+
 							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-								
 
-							     
+
+
 ! 							      cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 
@@ -4398,13 +4549,13 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
 
-							      
+
 !
 								kas=4
-								 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 
-							     
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
 ! 							      cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
@@ -4418,27 +4569,27 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								    end if
-									  
-									  
+
+
 
 								end if
-							else 			
+							else
 							kas=5
 
 !
 ! 							      cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
-							      
+
 !
 									  nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
 								lf=rec_ihexl(1,ielem_indexi(L,i),i)
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
-								
-								 
-								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 
-							     
+
+								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then
+
+
 ! 							      cturbr(1:turbulenceequations+passivescalar)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 							      (rec_ihexl(1,ielem_indexi(l,i)),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
@@ -4449,55 +4600,55 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 
 
 								    end if
-								  
-! 								   
+
+!
 							end if
 					    end if
-				      
-				    
-						  
-						  
+
+
+
+
 						 call rotatef(n,cright_rot,cright,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotatef(n,cleft_rot,cleft,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
-						  
-						  
+
+
 						  if ((lmach.eq.1))then    !application of the low mach number correction
 						  leftv(1:nof_variables)=cleft_rot(1:nof_variables); rightv(1:nof_variables)=cright_rot(1:nof_variables)
 						  call lmacht(n,leftv,rightv)
 						  cleft_rot(1:nof_variables)=leftv(1:nof_variables);cright_rot(1:nof_variables)=rightv(1:nof_variables);
 						  call rotateb(n,cright,cright_rot,angle1,angle2)	!rotate wrt to normalvector of face and solve 1d riemann problem
 						  call rotateb(n,cleft,cleft_rot,angle1,angle2)
-						  
-						  
-						  
-						  
+
+
+
+
 						  end if
-						  
-						  				  
-						  
-						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)						  
+
+
+
+						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
-						  
+
 						asound1=sqrt(leftv(5)*gamma/leftv(1))+abs(cleft_rot(2)/cleft_rot(1))
 						  asound2=sqrt(rightv(5)*gamma/rightv(1))+abs(cright_rot(2)/cright_rot(1))
-						  
+
 						  vpp=max(asound1,asound2)
-						  
+
 						  if (itestcase.eq.4)then
 						  leftv(1:nof_variables)=cleft(1:nof_variables);rightv(1:nof_variables)=cright(1:nof_variables)
 						  call get_visc_conduct(n,leftv,rightv,viscl,laml)
-						  
+
 						  viscots=(viscl(1)+viscl(2))*oo2
-						  
+
 ! 						  viscots=viscots/((0.5*(cleft(1)+cright(1)))*ielem_dih(l,i))
 						  viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*mul1&
 						  /ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))&
 						  *viscots*mul1/(ielem_dih(l,i)*prandtl)))
 						  vpp=max(asound1,asound2)+viscots
-						  
-						  
-						  
-						  
+
+
+
+
 						  if (turbulence.eq.1)then
 						      if (turbulencemodel.eq.1)then
 							  turbmv(1)=cturbl(1);  turbmv(2)=cturbr(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
@@ -4508,61 +4659,61 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
 							    eddyfl(4:6)= rec_grads(1,1:3,i);eddyfl(7:9)=rec_grads(2,1:3,i)
 							  eddyfl(10:12)=rec_grads(3,1:3,i);eddyfl(13:15)=rec_grads(5,1:3,i)
 							  eddyfl(16:18)=rec_grads(6,1:3,i)
-							    
-							    
+
+
 							  eddyfr=eddyfl
 							    call eddyvisco(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
-					 
-						      
+
+
 						      viscots=oo2*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 ! 						      viscots=viscots/((0.5*(cleft(1)+cright(1)))*ielem_dih(l,i))
 						      viscots=max((4.0/(3.0*0.5*(cleft(1)+cright(1))))*viscots*&
 						      mul1/ielem_dih(l,i),((gamma/(0.5*(cleft(1)+cright(1))))*&
 						      viscots*mul1/(ielem_dih(l,i)*(prandtl+prtu))))
-						      
+
 						      vpp=max(asound1,asound2)+viscots
 						  end if
-						  
-						  
-						  
-						  
-						  
+
+
+
+
+
 						  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 							  if (turbulence.eq.1)then
 							  do nvar=1,turbulenceequations
-							  
+
 							  vpp=max(asound1,asound2)+viscots
-! 							   
-							 
+!
+
 							  end do
 							  end if
 							  if (passivescalar.gt.0)then
 							  do nvar=turbulenceequations+1,turbulenceequations+passivescalar
 							  viscl(1)=viscl(1)/schmidt_lam
 							      viscl(2)=viscl(2)/schmidt_lam
-							        
+
 							  if (turbulence.eq.1)then
 							      viscl(3)=viscl(3)/schmidt_turb
 							      viscl(4)=viscl(4)/schmidt_turb
 							  viscots=0.5*((viscl(1)+viscl(3))+(viscl(2)+viscl(4)))
 							      else
 							      viscots=0.5*((viscl(1)+viscl(2)))
-							      
+
 							      end if
-												  
+
 							  viscots=(2.0*viscots)/((cleft(1)+cright(1))*ielem_dih(l,i))
 							  vpp=max(asound1,asound2)+viscots
-							  
+
 							  end do
 							  end if
 						  end if
 						  else
-						  
+
 						  end if
-						  
-						  
-						  
+
+
+
 						   impdiag_mf(i)=impdiag_mf(i)+(oo2*vpp*mul1)
 						  impoff_mf(i,l)=vpp
                          if (turbulence.eq.1)then
@@ -4571,9 +4722,9 @@ real,dimension(1:gpu_max_nvar)::leftv,srf_speedrot,srf_speed
                             impofft(i,l,nvar)=impofft(i,l,nvar)-(oo2*vpp*mul1)
                             end do
                         end if
-						
-				   
-				  
+
+
+
 		    end do
 end subroutine calculate_jacobian_3d_mf_bound_cell
 

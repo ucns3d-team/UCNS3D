@@ -60,8 +60,10 @@ F90 = mpiifx
 LD  = $(F90)
 
 # Intel Fortran compiler: production run
-FFLAGS = -i4 -r8 -ipo -O2 -fpp -march=core-avx2 -fp-model strict \
-         -zero -qopenmp -qopenmp-link=static
+ FFLAGS = -i4 -r8 -ipo -O2 -fpp -march=core-avx2 -fp-model strict \
+          -zero -qopenmp -qopenmp-link=static
+#FFLAGS =         -i4 -r8 -O0 -g -fpp -debug all -traceback -qopenmp \
+ #         -qopenmp-link=static -fp-model strict -debug inline-debug-info -zero
 
 LINKFLAGS = -qopenmp
 
