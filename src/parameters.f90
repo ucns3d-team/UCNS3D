@@ -586,12 +586,12 @@ subroutine read_ucns3d
 	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
 	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
         relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
+	cflmax=2	!cflmax:to be used with ramping
 	cflramp=0	!cfl ramping: |0: deactivated |1:activated
 	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
 	itold=10000	!tolerance=n_iterations
-	gridar1=10000	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=10000	! limit volume cells
+	gridar1=10000000	! 0	  5.0    7.0  limit aspect ratio cells,
+	gridar2=10000000	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
 	lamx=0.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
@@ -985,12 +985,12 @@ subroutine read_ucns3d
         guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
         fastest_q=1     !store gqp points (1 =yes faster, 0= slower)
         relax=1         !relaxation parameter : |1:block jacobi |2: lu-sgs
-        cflmax=2.0       !cflmax:to be used with ramping
-        cflramp=0       !cfl ramping: |0: deactivated |1:activated
+        cflmax=5       !cflmax:to be used with ramping
+        cflramp=1       !cfl ramping: |0: deactivated |1:activated
         emetis=6        !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
         itold=10000     !tolerance=n_iterations
-        gridar1=1000000.0    ! 0       5.0    7.0  limit aspect ratio cells,
-        gridar2=7000000.0     ! limit volume cells
+        gridar1=100000000.0    ! 0       5.0    7.0  limit aspect ratio cells,
+        gridar2=700000000.0     ! limit volume cells
         fastest=0       ! 0                             ||fastest, no coordinate mapping (1: engaged,0:with transformation)
         lmach_style=0   !0                      ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
         lamx=0.0d0;lamy=1.0d0;lamz=1.0d0        !linear advection coefficients (lamx, lamy,lamz)
