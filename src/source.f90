@@ -97,18 +97,29 @@ integer,intent(in)::n,iconsidered
 integer::iv
 real::dt_loc
 logical::source_ok
+logical::time_accurate_source
 real,dimension(1:gpu_max_nvar)::source_r,src_jac_diag
 
-if ((rungekutta.eq.5).or.(rungekutta.ge.10)) then
-    dt_loc=max(ielem_dtl(iconsidered),1.0d-30)
-else
-    dt_loc=max(dt,1.0d-30)
-end if
+time_accurate_source=((rungekutta.ge.1).and.(rungekutta.le.4)).or.(rungekutta.ge.11)
 
-call realgas_integrate_source_subcycles(n,iconsidered,dt_loc,source_r,src_jac_diag,source_ok)
-if (.not.source_ok) then
+if (time_accurate_source) then
     source_r(1:nof_variables)=zero
     src_jac_diag(1:nof_variables)=zero
+    ! Time-accurate schemes solve the physical source residual S(U).
+    ! Source stiffness still enters the implicit update through src_jac_diag.
+    call sources_realgas(n,iconsidered,source_r,src_jac_diag,max(dt,1.0d-30))
+else
+    if ((rungekutta.eq.5).or.(rungekutta.eq.10)) then
+        dt_loc=max(ielem_dtl(iconsidered),1.0d-30)
+    else
+        dt_loc=max(dt,1.0d-30)
+    end if
+
+    call realgas_integrate_source_subcycles(n,iconsidered,dt_loc,source_r,src_jac_diag,source_ok)
+    if (.not.source_ok) then
+        source_r(1:nof_variables)=zero
+        src_jac_diag(1:nof_variables)=zero
+    end if
 end if
 
 do iv=1,nof_variables
@@ -340,9 +351,12 @@ integer,intent(in)::n,iconsidered
 real,intent(in)::dt_sub
 real,dimension(1:gpu_max_nvar),intent(in)::qstate
 real,dimension(1:gpu_max_nvar),intent(out)::source_eval,jac_eval
+real,dimension(1:gpu_max_nvar)::qsave
 
+qsave(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)
 u_c_val(1,1:nof_variables,iconsidered)=qstate(1:nof_variables)
 call sources_realgas(n,iconsidered,source_eval,jac_eval,dt_sub)
+u_c_val(1,1:nof_variables,iconsidered)=qsave(1:nof_variables)
 
 end subroutine realgas_evaluate_source_state
 
@@ -1041,40 +1055,13 @@ end if
 
 
 
-	  rg_rho_min = 1.0d-20    ! or whatever you use as "zero" density
-	  rg_alpha   = 1.0d0
-	  dt_loc = max(source_dt,1.0d-30)
+	  ! The active real-gas source path integrates chemistry with a local
+	  ! implicit Newton/subcycle solve and checks accepted states for
+	  ! nonnegative species. Do not additionally clip the source rates here:
+	  ! the old cell-local alpha limiter switches on/off discontinuously and
+	  ! can seed checkerboard chemistry on refined meshes.
 
-		! first: compute most restrictive scaling factor alpha
-		do rg_i = 1, nof_species
-
-		! if density is essentially zero, don't allow further destruction
-		if (rg_r(rg_i) <= rg_rho_min .and. rg_dw_s(rg_i) < 0.0d0) then
-			rg_alpha = 0.0d0
-			cycle
-		end if
-
-			! only destruction can cause negativity
-			if (rg_dw_s(rg_i) < 0.0d0) then
-				! Keep explicit source updates positive while preserving stoichiometry
-				! by scaling the full production vector with one cell-local alpha.
-				rg_alpha_i = 0.9d0 * rg_r(rg_i) / max(-dt_loc * rg_dw_s(rg_i),1.0d-300)
-				rg_alpha = min(rg_alpha,rg_alpha_i)
-			end if
-		end do
-
-	! clamp alpha to [0,1]
-	if (rg_alpha > 1.0d0) rg_alpha = 1.0d0
-	if (rg_alpha < 0.0d0) rg_alpha = 0.0d0
-
-	! second: apply scaling if needed
-	if (rg_alpha < 1.0d0) then
-		do rg_i = 1, nof_species
-			rg_dw_s(rg_i) = rg_alpha * rg_dw_s(rg_i)
-		end do
-	end if
-
-	! optional tiny cutoff (for cleanliness, won’t break stoichiometry)
+	! optional tiny cutoff (for cleanliness, will not break stoichiometry)
 	do rg_i = 1, nof_species
 		if (abs(rg_dw_s(rg_i)) < 1.0d-50) rg_dw_s(rg_i) = 0.0d0
 	end do
@@ -1823,7 +1810,7 @@ end if
 		end do
 	end if
 
-	! optional tiny cutoff (for cleanliness, won’t break stoichiometry)
+	! optional tiny cutoff (for cleanliness, will not break stoichiometry)
 	do rg_i = 1, nof_species
 		if (abs(rg_dw_s(rg_i)) < 1.0d-50) rg_dw_s(rg_i) = 0.0d0
 	end do
@@ -3117,18 +3104,29 @@ integer,intent(in)::n,iconsidered
 integer::iv
 real::dt_loc
 logical::source_ok
+logical::time_accurate_source
 real,dimension(1:gpu_max_nvar)::source_r,src_jac_diag
 
-if ((rungekutta.eq.5).or.(rungekutta.ge.10)) then
-    dt_loc=max(ielem_dtl(iconsidered),1.0d-30)
-else
-    dt_loc=max(dt,1.0d-30)
-end if
+time_accurate_source=((rungekutta.ge.1).and.(rungekutta.le.4)).or.(rungekutta.ge.11)
 
-call realgas_integrate_source_subcycles(n,iconsidered,dt_loc,source_r,src_jac_diag,source_ok)
-if (.not.source_ok) then
+if (time_accurate_source) then
     source_r(1:nof_variables)=zero
     src_jac_diag(1:nof_variables)=zero
+    ! Time-accurate schemes solve the physical source residual S(U).
+    ! Source stiffness still enters the implicit update through src_jac_diag.
+    call sources_realgas(n,iconsidered,source_r,src_jac_diag,max(dt,1.0d-30))
+else
+    if ((rungekutta.eq.5).or.(rungekutta.eq.10)) then
+        dt_loc=max(ielem_dtl(iconsidered),1.0d-30)
+    else
+        dt_loc=max(dt,1.0d-30)
+    end if
+
+    call realgas_integrate_source_subcycles(n,iconsidered,dt_loc,source_r,src_jac_diag,source_ok)
+    if (.not.source_ok) then
+        source_r(1:nof_variables)=zero
+        src_jac_diag(1:nof_variables)=zero
+    end if
 end if
 
 do iv=1,nof_variables

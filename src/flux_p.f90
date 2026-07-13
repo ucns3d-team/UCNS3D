@@ -2556,7 +2556,7 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 
 								eddyfr(1)=ielem_walldist(i);eddyfr(2)=cturbr(1);eddyfr(3)=cturbr(2)
 								eddyfr(4:6)= rcvgrad(1,1:3);eddyfr(7:9)=rcvgrad(2,1:3);eddyfr(10:12)=rcvgrad(3,1:3)
-								eddyfr(13:15)=rcvgrad_t(1,1:3);eddyfl(16:18)=rcvgrad_t(2,1:3)
+								eddyfr(13:15)=rcvgrad_t(1,1:3);eddyfr(16:18)=rcvgrad_t(2,1:3)
 									call eddyvisco_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 								end if
 						end if
@@ -2722,9 +2722,9 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 														jl(1:dimensiona) = i_raw(1:dimensiona,rg_i) - y_face * sumi(1:dimensiona)
 														sumJ(1:dimensiona) = sumJ(1:dimensiona) + jl(1:dimensiona)
 
-														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) + jl(1)
-														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) + jl(2)
-														fzv(dimensiona+3+rg_i) = fzv(dimensiona+3+rg_i) + jl(3)
+														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) - jl(1)
+														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) - jl(2)
+														fzv(dimensiona+3+rg_i) = fzv(dimensiona+3+rg_i) - jl(3)
 
 														rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) &
 															+ rg_enth_av(rg_i)*jl(1:dimensiona)
@@ -2752,14 +2752,14 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 													! 6. add to conservative flux vectors
 													! ------------------------------------------------
 													! total energy equation (ρe)
-													fxv(5) = fxv(5) + q(1)
-													fyv(5) = fyv(5) + q(2)
-													fzv(5) = fzv(5) + q(3)
+													fxv(5) = fxv(5) - q(1)
+													fyv(5) = fyv(5) - q(2)
+													fzv(5) = fzv(5) - q(3)
 
 													! vibrational energy equation (ρev)
-													fxv(6) = fxv(6) + qvib(1)
-													fyv(6) = fyv(6) + qvib(2)
-													fzv(6) = fzv(6) + qvib(3)
+													fxv(6) = fxv(6) - qvib(1)
+													fyv(6) = fyv(6) - qvib(2)
+													fzv(6) = fzv(6) - qvib(3)
 
 
 
@@ -2937,7 +2937,7 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 	real,dimension(1:gpu_max_nvar_total)::godflux2,dg_vol_rec,rhllcflux,hllcflux
 	integer::i,l,ngp,kmaxe,iqp,nvar,kc,iex,ittt,ikas,igoflux,icaseb,kk,b_code,srf,k,iv,nvt
 	real::sum_detect,norms,wface,muturb
-	integer::iconsidered,facex,pointx,rg_i,rg_j,idxy
+	integer::iconsidered,facex,pointx,rg_i,rg_j,idxy,icompute
 	real::angle1,angle2,nx,ny,nz,mp_source1,mp_source2,mp_source3
 	real,dimension(1:gpu_max_nvar_total)::cleft,cright,cleft_rot,cright_rot
 	real,dimension(1:gpu_max_nvar)::leftv,rightv,srf_speedrot,tempx_l,rtempx_l
@@ -3070,7 +3070,7 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 							    
 							  eddyfr(1)=ielem_walldist(i);eddyfr(2)=cturbr(1);eddyfr(3)=cturbr(2)
 							  eddyfr(4:6)= rcvgrad(1,1:3);eddyfr(7:9)=rcvgrad(2,1:3);eddyfr(10:12)=rcvgrad(3,1:3)
-							  eddyfr(13:15)=rcvgrad_t(1,1:3);eddyfl(16:18)=rcvgrad_t(2,1:3)
+							  eddyfr(13:15)=rcvgrad_t(1,1:3);eddyfr(16:18)=rcvgrad_t(2,1:3)
 							    call eddyvisco_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 						      end if
 					  end if
@@ -3125,6 +3125,7 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 											end do
 										 end do
 
+										 icompute=0
 
 					!now compute all the temperature gradients +real gas
 				      if ((realgas.eq.1).or.(multispecies.eq.1))then
@@ -3186,6 +3187,11 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 
 
 													if (rg_relax.ge.1)then
+														if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
+															icompute=1
+														end if
+
+													if (icompute.eq.0)then
 
 													sumi(1:dimensiona) = 0.0d0
 													sumJ(1:dimensiona) = 0.0d0
@@ -3253,9 +3259,9 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 														jl(1:dimensiona) = i_raw(1:dimensiona,rg_i) - y_face * sumi(1:dimensiona)
 														sumJ(1:dimensiona) = sumJ(1:dimensiona) + jl(1:dimensiona)
 
-														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) + jl(1)
-														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) + jl(2)
-														fzv(dimensiona+3+rg_i) = fzv(dimensiona+3+rg_i) + jl(3)
+														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) - jl(1)
+														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) - jl(2)
+														fzv(dimensiona+3+rg_i) = fzv(dimensiona+3+rg_i) - jl(3)
 
 														rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) &
 															+ rg_enth_av(rg_i)*jl(1:dimensiona)
@@ -3263,6 +3269,7 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 															+ rg_enthvb_av(rg_i)*jl(1:dimensiona)
 													end do
 
+													end if
 													end if
 
 													
@@ -3290,9 +3297,9 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 													fzv(5) = fzv(5) - q(3)
 
 													! vibrational energy equation (ρev)
-													fxv(6) = fxv(6) + qvib(1)
-													fyv(6) = fyv(6) + qvib(2)
-													fzv(6) = fzv(6) + qvib(3)
+													fxv(6) = fxv(6) - qvib(1)
+													fyv(6) = fyv(6) - qvib(2)
+													fzv(6) = fzv(6) - qvib(3)
 
 
 
@@ -5003,8 +5010,8 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 
 														sumJ(1:dimensiona) = sumJ(1:dimensiona) + jl(1:dimensiona)
 
-														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) + jl(1)
-														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) + jl(2)
+														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) - jl(1)
+														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) - jl(2)
 
 														rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) &
 																				+ rg_enth_av(rg_i)*jl(1:dimensiona)
@@ -5579,8 +5586,8 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 
 														sumJ(1:dimensiona) = sumJ(1:dimensiona) + jl(1:dimensiona)
 
-														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) + jl(1)
-														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) + jl(2)
+														fxv(dimensiona+3+rg_i) = fxv(dimensiona+3+rg_i) - jl(1)
+														fyv(dimensiona+3+rg_i) = fyv(dimensiona+3+rg_i) - jl(2)
 
 														rg_sum_htr(1:dimensiona) = rg_sum_htr(1:dimensiona) &
 																				+ rg_enth_av(rg_i)*jl(1:dimensiona)

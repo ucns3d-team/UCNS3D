@@ -486,7 +486,7 @@ subroutine compute_binary_diffusion(rgs_t, rgs_p_pa, rgs_dij)
   real, intent(out) :: rgs_dij(1:gpu_max_species,1:gpu_max_species)
 
   integer :: i, j
-  real :: sig_ij, eps_ij, tstar, omega, p_atm, denom
+  real :: sig_ij, eps_ij, tstar, omega, p_atm, denom, mass_factor
   real, parameter :: tiny = 1d-30
 
   rgs_dij = 0.0d0
@@ -504,10 +504,11 @@ subroutine compute_binary_diffusion(rgs_t, rgs_p_pa, rgs_dij)
         tstar  = max(rgs_t / eps_ij, 1d-6)
         omega  = omega11_neufeld(tstar)
 
-        denom = p_atm * sig_ij**2 * omega * sqrt(1.d0/rgs_mg(i) + 1.d0/rgs_mg(j))
+        mass_factor = sqrt(1.d0/rgs_mg(i) + 1.d0/rgs_mg(j))
+        denom = p_atm * sig_ij**2 * omega
         denom = max(denom, tiny)
 
-        rgs_dij(i,j) = (0.001858d0 * rgs_t*sqrt(rgs_t)) / denom * rgs_cm2s_to_m2s
+        rgs_dij(i,j) = (0.001858d0 * rgs_t*sqrt(rgs_t) * mass_factor) / denom * rgs_cm2s_to_m2s
         rgs_dij(j,i) = rgs_dij(i,j)
 
      end do
@@ -4071,6 +4072,92 @@ end subroutine shear_z
 
 
 
+subroutine realgas_wall_heat_transport(n,leftv,ktr_qflux,kve_qflux)
+implicit none
+!> @brief
+!> Return real-gas translational and vibrational conductivities for wall heat flux output.
+#ifdef gpu
+!$omp declare target
+#endif
+integer,intent(in)::n
+real,dimension(1:nof_variables),intent(in)::leftv
+real,intent(out)::ktr_qflux,kve_qflux
+real,dimension(1:gpu_max_nvar)::div_state,prim_state
+real,dimension(1:gpu_max_species)::rgs_x,rgs_y,rgs_deff,rgs_mu_i,rgs_ktr_i
+real,dimension(1:gpu_max_species)::rgs_htr_i,rgs_hvib_i
+real,dimension(1:gpu_max_species,1:gpu_max_species)::rgs_dij
+real::rgs_ttr,rgs_tv,rgs_p_pa,rgs_rho,rgs_mu_mix,rgs_ktr_mix,rgs_kve
+real::sumy,sumx,mp_pinfl,gammal
+integer::rg_i
+
+div_state=zero
+prim_state=zero
+rgs_x=zero
+rgs_y=zero
+div_state(1:nof_variables)=leftv(1:nof_variables)
+prim_state(1:nof_variables)=leftv(1:nof_variables)
+
+call cons2div(n,div_state,mp_pinfl,gammal)
+call cons2prim(n,prim_state,mp_pinfl,gammal)
+
+rgs_rho=max(div_state(1),tolsmall)
+rgs_p_pa=max(prim_state(dimensiona+2),tolsmall)
+
+if ((thermal.eq.1).and.(wall_temp.gt.zero))then
+  rgs_ttr=0.5d0*(div_state(dimensiona+2)+wall_temp)
+  rgs_tv =0.5d0*(div_state(dimensiona+3)+wall_temp)
+else
+  rgs_ttr=div_state(dimensiona+2)
+  rgs_tv =div_state(dimensiona+3)
+end if
+
+rgs_ttr=max(rgs_ttr,50.0d0)
+rgs_tv =max(rgs_tv,50.0d0)
+
+sumy=zero
+do rg_i=1,nof_species
+  rgs_y(rg_i)=max(div_state(dimensiona+3+rg_i),zero)
+  sumy=sumy+rgs_y(rg_i)
+end do
+
+if (sumy.gt.1.0d-30)then
+  do rg_i=1,nof_species
+    rgs_y(rg_i)=rgs_y(rg_i)/sumy
+  end do
+else
+  do rg_i=1,nof_species
+    rgs_y(rg_i)=1.0d0/dble(nof_species)
+  end do
+end if
+
+sumx=zero
+do rg_i=1,nof_species
+  rgs_x(rg_i)=rgs_y(rg_i)/rg_molm(rg_i)
+  sumx=sumx+rgs_x(rg_i)
+end do
+
+if (sumx.gt.1.0d-300)then
+  do rg_i=1,nof_species
+    rgs_x(rg_i)=rgs_x(rg_i)/sumx
+  end do
+else
+  do rg_i=1,nof_species
+    rgs_x(rg_i)=1.0d0/dble(nof_species)
+  end do
+end if
+
+call compute_real_gas_diffusion(rgs_ttr,rgs_tv,rgs_p_pa,rgs_rho,rgs_x,rgs_y, &
+                                rgs_dij,rgs_deff,rgs_mu_i,rgs_mu_mix, &
+                                rgs_ktr_i,rgs_ktr_mix,rgs_kve, &
+                                rgs_htr_i,rgs_hvib_i)
+
+ktr_qflux=rgs_ktr_mix
+kve_qflux=rgs_kve
+
+end subroutine realgas_wall_heat_transport
+
+
+
 subroutine heat_x(iconsidered,facex,shear_temp)
 implicit none
 !> @brief
@@ -4080,12 +4167,12 @@ implicit none
 #endif
 integer,intent(in)::iconsidered,facex
 real,intent(inout)::shear_temp
-real::ux,uy,uz,vx,vy,vz,wx,wy,wz,tauxx,tauyy,tauzz,tauyx,tauzx,tauzy
- real::ssx,ssy,ssz,ssp,lam_qflux
+ real::ux,uy,uz,vx,vy,vz,wx,wy,wz,tauxx,tauyy,tauzz,tauyx,tauzx,tauzy
+ real::ssx,ssy,ssz,ssp,lam_qflux,ktr_qflux,kve_qflux
  real,dimension(1:gpu_max_dim,1:gpu_max_dim)::vortet1
  integer::i,k,j,kmaxe,gqi_points,nnd,im
  real,dimension(1:gpu_max_nvar)::leftv
- real,dimension(1:3)::temp_grad
+ real,dimension(1:3)::temp_grad,temp_grad_v
 real::mp_pinfl,gammal
 real,dimension(1:gpu_max_nvar)::rightv
 real::mp_pinfr,gammar
@@ -4148,24 +4235,31 @@ j=facex
 
 
 
-				do im=1,gqi_points
-				temp_grad(1:3)=rec_uleftv(1:3,dimensiona+1,j,im,i)
-				if (dg.eq.1)then
-				  leftv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
-				  rightv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
+					do im=1,gqi_points
+					temp_grad(1:3)=rec_uleftv(1:3,dimensiona+1,j,im,i)
+					if (realgas.eq.1) temp_grad_v(1:3)=rec_uleftv(1:3,dimensiona+2,j,im,i)
+					if (dg.eq.1)then
+					  leftv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
+					  rightv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
 
 
 				  else
 				  leftv(1:nof_variables)=rec_uleft(:,j,im,i)
-				  rightv(1:nof_variables)=rec_uleft(:,j,im,i)
-				  end if
+					  rightv(1:nof_variables)=rec_uleft(:,j,im,i)
+					  end if
 
 
-					call get_visc_conduct(n,leftv,rightv,viscl,laml)
+						if (realgas.eq.1)then
+						call realgas_wall_heat_transport(n,leftv,ktr_qflux,kve_qflux)
+						ssx=ssx+(ktr_qflux*temp_grad(1)+kve_qflux*temp_grad_v(1))*wequa2d(im)*nx
+						ssy=ssy+(ktr_qflux*temp_grad(2)+kve_qflux*temp_grad_v(2))*wequa2d(im)*ny
+						ssz=ssz+(ktr_qflux*temp_grad(3)+kve_qflux*temp_grad_v(3))*wequa2d(im)*nz
+						else
+						call get_visc_conduct(n,leftv,rightv,viscl,laml)
 
-                              if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
+	                              if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
 
-                              turbmv(1)=rec_uleftturb(1,j,im,i)
+	                              turbmv(1)=rec_uleftturb(1,j,im,i)
 
 							  turbmv(2)=rec_uleftturb(1,j,im,i)
 							  eddyfl(2)=turbmv(1);
@@ -4181,10 +4275,11 @@ j=facex
 
 
 
-				  ssx=ssx+lam_qflux*temp_grad(1)*wequa2d(im)*nx!*surface_temp
-				  ssy=ssy+lam_qflux*temp_grad(2)*wequa2d(im)*ny!*surface_temp
-				  ssz=ssz+lam_qflux*temp_grad(3)*wequa2d(im)*nz!*surface_temp
-               end do
+					  ssx=ssx+lam_qflux*temp_grad(1)*wequa2d(im)*nx!*surface_temp
+					  ssy=ssy+lam_qflux*temp_grad(2)*wequa2d(im)*ny!*surface_temp
+					  ssz=ssz+lam_qflux*temp_grad(3)*wequa2d(im)*nz!*surface_temp
+					  end if
+	               end do
 
 
 
@@ -4215,11 +4310,11 @@ implicit none
 #endif
 integer,intent(in)::iconsidered,facex
 real,intent(inout)::shear_temp
- real::ssx,ssy,ssz,ssp
+	 real::ssx,ssy,ssz,ssp,ktr_qflux,kve_qflux
  real,dimension(1:gpu_max_dim,1:gpu_max_dim)::vortet1
  integer::i,k,j,kmaxe,gqi_points,nnd,im
  real,dimension(1:gpu_max_nvar)::leftv
- real,dimension(1:2)::temp_grad
+	 real,dimension(1:2)::temp_grad,temp_grad_v
 real::mp_pinfl,gammal,lam_qflux
 real,dimension(1:gpu_max_nvar)::rightv
 real::mp_pinfr,gammar
@@ -4255,24 +4350,30 @@ j=facex
 
 
 
-				do im=1,gqi_points
-				temp_grad(1:2)=rec_uleftv(1:2,dimensiona+1,j,im,i)
+					do im=1,gqi_points
+					temp_grad(1:2)=rec_uleftv(1:2,dimensiona+1,j,im,i)
+					if (realgas.eq.1) temp_grad_v(1:2)=rec_uleftv(1:2,dimensiona+2,j,im,i)
 
-				if (dg.eq.1)then
-				  leftv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
-				  rightv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
+					if (dg.eq.1)then
+					  leftv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
+					  rightv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
 
 
 				  else
 				  leftv(1:nof_variables)=rec_uleft(:,j,im,i)
-				  rightv(1:nof_variables)=rec_uleft(:,j,im,i)
-				  end if
+					  rightv(1:nof_variables)=rec_uleft(:,j,im,i)
+					  end if
 
-				  call get_visc_conduct(n,leftv,rightv,viscl,laml)
+					  if (realgas.eq.1)then
+					  call realgas_wall_heat_transport(n,leftv,ktr_qflux,kve_qflux)
+					  ssx=ssx+(ktr_qflux*temp_grad(1)+kve_qflux*temp_grad_v(1))*wequa2d(im)*nx
+					  ssy=ssy+(ktr_qflux*temp_grad(2)+kve_qflux*temp_grad_v(2))*wequa2d(im)*ny
+					  else
+					  call get_visc_conduct(n,leftv,rightv,viscl,laml)
 
-                              if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
+	                              if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
 
-                              turbmv(1)=rec_uleftturb(1,j,im,i)
+	                              turbmv(1)=rec_uleftturb(1,j,im,i)
 
 							  turbmv(2)=rec_uleftturb(1,j,im,i)
 							  eddyfl(2)=turbmv(1);
@@ -4286,9 +4387,10 @@ j=facex
 					lam_qflux=laml(1)
 					end if
 
-                      ssx=ssx+lam_qflux*temp_grad(1)*wequa2d(im)*nx!*surface_temp
-                      ssy=ssy+lam_qflux*temp_grad(2)*wequa2d(im)*ny!*surface_temp
+	                      ssx=ssx+lam_qflux*temp_grad(1)*wequa2d(im)*nx!*surface_temp
+	                      ssy=ssy+lam_qflux*temp_grad(2)*wequa2d(im)*ny!*surface_temp
 
+					  end if
 
 
 
