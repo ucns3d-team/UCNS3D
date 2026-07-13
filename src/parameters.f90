@@ -986,7 +986,7 @@ subroutine read_ucns3d
         fastest_q=1     !store gqp points (1 =yes faster, 0= slower)
         relax=1         !relaxation parameter : |1:block jacobi |2: lu-sgs
         cflmax=5       !cflmax:to be used with ramping
-        cflramp=1       !cfl ramping: |0: deactivated |1:activated
+        cflramp=0       !cfl ramping: |0: deactivated |1:activated
         emetis=6        !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
         itold=10000     !tolerance=n_iterations
         gridar1=100000000.0    ! 0       5.0    7.0  limit aspect ratio cells,

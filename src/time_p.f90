@@ -32,6 +32,60 @@ real,parameter :: realgas_source_dtl_min_abs=1.0d-30
 
  contains
 
+real function timestep_viscous_diffusivity(qcons,qprim,viscl,laml)
+implicit none
+#ifdef gpu
+!$omp declare target
+#endif
+real,dimension(1:gpu_max_nvar),intent(in)::qcons,qprim
+real,dimension(1:4),intent(in)::viscl,laml
+integer::rg_i,idx
+real::rho,cv_mix,y_i,rspec
+real::mom_diff,thermal_diff,species_diff
+real::mp_mu_mix,mp_ktr_mix,mp_kve,gammal
+real,dimension(1:gpu_max_species)::mp_d_eff,mp_htr,mp_hvib
+
+rho=max(qprim(1),tolsmall)
+mom_diff=(4.0d0/3.0d0)*max(viscl(1),0.0d0)/rho
+species_diff=0.0d0
+
+if ((realgas.eq.1).and.(nof_species.gt.0))then
+  cv_mix=0.0d0
+  do rg_i=1,nof_species
+    idx=dimensiona+3+rg_i
+    if (idx.le.nof_variables)then
+      y_i=max(qprim(idx),0.0d0)
+      rspec=rgs_ru/max(abs(rg_molm(rg_i)),tolsmall)
+      if (rg_i.le.3)then
+        cv_mix=cv_mix+y_i*2.5d0*rspec
+      else
+        cv_mix=cv_mix+y_i*1.5d0*rspec
+      end if
+    end if
+  end do
+  thermal_diff=max(laml(1),0.0d0)/(rho*max(cv_mix,tolsmall))
+
+  mp_mu_mix=0.0d0
+  mp_ktr_mix=0.0d0
+  mp_kve=0.0d0
+  gammal=gamma
+  mp_d_eff=0.0d0
+  mp_htr=0.0d0
+  mp_hvib=0.0d0
+  call multispecies_mixtures_rg(qcons,mp_mu_mix,mp_ktr_mix,mp_kve,mp_d_eff,mp_htr,mp_hvib,gammal)
+  do rg_i=1,nof_species
+    if ((mp_d_eff(rg_i).eq.mp_d_eff(rg_i)).and.(mp_d_eff(rg_i).gt.0.0d0))then
+      species_diff=max(species_diff,mp_d_eff(rg_i))
+    end if
+  end do
+else
+  thermal_diff=max(laml(1),0.0d0)*(gamma-1.0d0)/(rho*max(r_gas,tolsmall))
+end if
+
+timestep_viscous_diffusivity=max(mom_diff,thermal_diff,species_diff)
+
+end function timestep_viscous_diffusivity
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !---------------------------------------------------------------------------------------------!
@@ -46,7 +100,7 @@ subroutine calculate_cfl(n)
 implicit none
 integer,intent(in)::n
 integer::i,kmaxe
-real::veln,agrt
+real::veln,agrt,diff_scale
 real,dimension(1:gpu_max_nvar)::leftv,rightv
 real,dimension(4)::srf_speed
 real,dimension(3)::rotvec
@@ -198,7 +252,7 @@ kmaxe=xmpielrank(n)
 !$omp& firstprivate(r_gas,pres,rres,visc,suther,zero,rframe,srfg,mrf,turbulence,turbulencemodel) &
 !$omp& map(alloc: xmpielrank,u_c_val,ielem_minedge,ielem_xxc,ielem_yyc,ielem_zzc) &
 !$omp& map(alloc: srf_velocity) &
-!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,pox,poy,rotvec,srf_speed,viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,pox,poy,rotvec,srf_speed,viscl,laml,turbmv,etvm,eddyfl,eddyfr,diff_scale)
 #else
     !$omp barrier
 	!$omp do reduction (min:dt)
@@ -244,16 +298,16 @@ kmaxe=xmpielrank(n)
 			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
 			cfl_mut=cfl_mut*cfl_fv1
 			cfl_mut=min(10000000.0d0*visc,cfl_mut)
-			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))+(cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0)))
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))
 			cfl_mut=max(0.0d0,cfl_mut)
 			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
 			cfl_mu=cfl_mu+cfl_mut
 		end if
+		cfl_vdiff=max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.0d0)*cfl_orho/r_gas)
 		if (dg.eq.1)then
-			cfl_vdiff=2.0d0*max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),gamma*cfl_lam/(prandtl*cfl_rho))*((2*iorder+1)/ielem_minedge(i))
-			CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+cfl_vdiff)))
+			CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.0d0*cfl_vdiff*((2*iorder+1)/ielem_minedge(i))))))
 		else
-			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*(cfl_lam+cfl_mu)/(ielem_minedge(i)**2)))))
+			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*cfl_vdiff/(ielem_minedge(i)**2)))))
 		end if
 #else
 		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
@@ -304,20 +358,22 @@ kmaxe=xmpielrank(n)
 		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
 		call eddyvisco_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
-		laml(1)=laml(1)+laml(3)
+		laml(1)=laml(3)
 		viscl(1)=viscl(1)+viscl(3)
 		end if
 		end if
 
+		diff_scale=timestep_viscous_diffusivity(rightv,leftv,viscl,laml)
+
 		if (dg.eq.1)then
 
 
-		CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i))))))
+		CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*diff_scale*((2*iorder+1)/ielem_minedge(i))))))
 
 
 		else
 
-         CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2))))
+         CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*diff_scale/((ielem_minedge(i)))**2))))
 
 
 
@@ -347,7 +403,7 @@ subroutine calculate_cfll(n)
 implicit none
 integer,intent(in)::n
 integer::i,kmaxe
-real::veln,agrt
+real::veln,agrt,diff_scale
 real,dimension(1:gpu_max_nvar)::leftv,rightv
 real,dimension(4)::srf_speed
 real,dimension(3)::rotvec
@@ -473,7 +529,7 @@ real,dimension(1:4)::viscl,laml
 !$omp& firstprivate(r_gas,pres,rres,visc,suther,zero,rframe,srfg,mrf,turbulence,turbulencemodel) &
 !$omp& map(alloc: xmpielrank,u_c_val,ielem_dtl,ielem_minedge,ielem_xxc,ielem_yyc,ielem_zzc) &
 !$omp& map(alloc: srf_velocity) &
-!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,pox,poy,rotvec,srf_speed,viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,pox,poy,rotvec,srf_speed,viscl,laml,turbmv,etvm,eddyfl,eddyfr,diff_scale)
 #else
     !$omp barrier
 	!$omp do
@@ -520,16 +576,16 @@ real,dimension(1:4)::viscl,laml
 			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
 			cfl_mut=cfl_mut*cfl_fv1
 			cfl_mut=min(10000000.0d0*visc,cfl_mut)
-			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))+(cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0)))
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))
 			cfl_mut=max(0.0d0,cfl_mut)
 			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
 			cfl_mu=cfl_mu+cfl_mut
 		end if
+		cfl_vdiff=max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.0d0)*cfl_orho/r_gas)
 		if (dg.eq.1)then
-			cfl_vdiff=2.0d0*max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),gamma*cfl_lam/(prandtl*cfl_rho))*((2*iorder+1)/ielem_minedge(i))
-			ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+cfl_vdiff))
+			ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.0d0*cfl_vdiff*((2*iorder+1)/ielem_minedge(i)))))
 		else
-			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*(cfl_lam+cfl_mu)/(ielem_minedge(i)**2))))
+			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*cfl_vdiff/(ielem_minedge(i)**2))))
 		end if
 #else
 		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
@@ -584,21 +640,23 @@ real,dimension(1:4)::viscl,laml
 		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
 		call eddyvisco_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
-		laml(1)=laml(1)+laml(3)
+		laml(1)=laml(3)
 		viscl(1)=viscl(1)+viscl(3)
 		end if
 		end if
 
 
+		diff_scale=timestep_viscous_diffusivity(rightv,leftv,viscl,laml)
+
 		if (dg.eq.1)then
 
 
-		ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i)))))
+		ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*diff_scale*((2*iorder+1)/ielem_minedge(i)))))
 
 
 		else
 
-		ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2)))
+		ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*diff_scale/((ielem_minedge(i)))**2)))
 		end if
 #endif
 
@@ -625,7 +683,7 @@ subroutine calculate_cfl2d(n)
 implicit none
 integer,intent(in)::n
 integer::i,kmaxe
-real::veln,agrt,lamxl,lamyl
+real::veln,agrt,lamxl,lamyl,diff_scale
 real,dimension(1:gpu_max_nvar)::leftv,rightv
 real::mp_pinfl,gammal
 real,dimension(1:4)::viscl,laml
@@ -764,7 +822,7 @@ kmaxe=xmpielrank(n)
 !$omp& firstprivate(n,kmaxe,nof_variables,dimensiona,dg,iorder,ccfl,gamma,prandtl) &
 !$omp& firstprivate(r_gas,pres,rres,visc,suther,zero,turbulence,turbulencemodel) &
 !$omp& map(alloc: xmpielrank,u_c_val,ielem_minedge) &
-!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,viscl,laml,turbmv,etvm,eddyfl,eddyfr,diff_scale)
 #else
     !$omp barrier
 	!$omp do reduction (min:dt)
@@ -791,16 +849,16 @@ kmaxe=xmpielrank(n)
 			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
 			cfl_mut=cfl_mut*cfl_fv1
 			cfl_mut=min(10000000.0d0*visc,cfl_mut)
-			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))+(cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0)))
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))
 			cfl_mut=max(0.0d0,cfl_mut)
 			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
 			cfl_mu=cfl_mu+cfl_mut
 		end if
+		cfl_vdiff=max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.0d0)*cfl_orho/r_gas)
 		if (dg.eq.1)then
-			cfl_vdiff=2.0d0*max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),gamma*cfl_lam/(prandtl*cfl_rho))*((2*iorder+1)/ielem_minedge(i))
-			CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+cfl_vdiff)))
+			CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.0d0*cfl_vdiff*((2*iorder+1)/ielem_minedge(i))))))
 		else
-			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*(cfl_lam+cfl_mu)/(ielem_minedge(i)**2)))))
+			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*cfl_vdiff/(ielem_minedge(i)**2)))))
 		end if
 #else
 		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
@@ -822,23 +880,25 @@ kmaxe=xmpielrank(n)
 		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
 		call eddyvisco2d_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
-		laml(1)=laml(1)+laml(3)
+		laml(1)=laml(3)
 		viscl(1)=viscl(1)+viscl(3)
 		end if
 		end if
 
 
+    diff_scale=timestep_viscous_diffusivity(rightv,leftv,viscl,laml)
+
     if (dg.eq.1)then
 
 
-      CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i))))))
+      CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*diff_scale*((2*iorder+1)/ielem_minedge(i))))))
 
 
       else
 
 
 
-			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2))))
+			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*diff_scale/((ielem_minedge(i)))**2))))
 	      end if
 #endif
 
@@ -866,7 +926,7 @@ subroutine calculate_cfll2d(n)
 implicit none
 integer,intent(in)::n
 integer::i,kmaxe
-real::veln,agrt
+real::veln,agrt,diff_scale
 real,dimension(1:gpu_max_nvar)::leftv,rightv
 real::mp_pinfl,gammal
 real,dimension(1:4)::viscl,laml
@@ -968,7 +1028,7 @@ real,dimension(1:4)::viscl,laml
 !$omp& firstprivate(n,kmaxe,nof_variables,dimensiona,dg,iorder,ccfl,gamma,prandtl) &
 !$omp& firstprivate(r_gas,pres,rres,visc,suther,zero,turbulence,turbulencemodel) &
 !$omp& map(alloc: xmpielrank,u_c_val,ielem_dtl,ielem_minedge) &
-!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,viscl,laml,turbmv,etvm,eddyfl,eddyfr)
+!$omp& private(veln,leftv,rightv,mp_pinfl,gammal,agrt,viscl,laml,turbmv,etvm,eddyfl,eddyfr,diff_scale)
 #else
     !$omp barrier
 	!$omp do
@@ -994,16 +1054,16 @@ real,dimension(1:4)::viscl,laml
 			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
 			cfl_mut=cfl_mut*cfl_fv1
 			cfl_mut=min(10000000.0d0*visc,cfl_mut)
-			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))+(cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0)))
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))
 			cfl_mut=max(0.0d0,cfl_mut)
 			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
 			cfl_mu=cfl_mu+cfl_mut
 		end if
+		cfl_vdiff=max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.0d0)*cfl_orho/r_gas)
 		if (dg.eq.1)then
-			cfl_vdiff=2.0d0*max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),gamma*cfl_lam/(prandtl*cfl_rho))*((2*iorder+1)/ielem_minedge(i))
-			ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+cfl_vdiff))
+			ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.0d0*cfl_vdiff*((2*iorder+1)/ielem_minedge(i)))))
 		else
-			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*(cfl_lam+cfl_mu)/(ielem_minedge(i)**2))))
+			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*cfl_vdiff/(ielem_minedge(i)**2))))
 		end if
 #else
 		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
@@ -1033,7 +1093,7 @@ real,dimension(1:4)::viscl,laml
 		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
 		call eddyvisco2d_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
-		laml(1)=laml(1)+laml(3)
+		laml(1)=laml(3)
 		viscl(1)=viscl(1)+viscl(3)
 		end if
 		end if
@@ -1043,15 +1103,17 @@ real,dimension(1:4)::viscl,laml
 
 
 
+		diff_scale=timestep_viscous_diffusivity(rightv,leftv,viscl,laml)
+
 		if (dg.eq.1)then
 
 
-      ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*max(((4.0/3.0)*viscl(1)/leftv(1)),gamma*laml(1)/(prandtl*leftv(1)))*((2*iorder+1)/ielem_minedge(i)))))
+      ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*diff_scale*((2*iorder+1)/ielem_minedge(i)))))
 
 
       else
 
-			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*(laml(1)+viscl(1))/((ielem_minedge(i)))**2)))
+			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*diff_scale/((ielem_minedge(i)))**2)))
 
 
 			end if
@@ -1109,7 +1171,7 @@ if (fastest.eq.1)then
     case(4)
     call calculate_fluxeshi_convective(n)
     call calculate_fluxeshi_diffusive(n)
-    if (turbulence.eq.1)then
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
     call sources_computation(n)
     end if
 
@@ -1126,7 +1188,7 @@ else
     case(4)
     call calculate_fluxeshi_convective(n)
     call calculate_fluxeshi_diffusive(n)
-    if (turbulence.eq.1)then
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
     call sources_computation(n)
     end if
 
@@ -1239,7 +1301,7 @@ if (fastest.eq.1)then
     case(4)
     call calculate_fluxeshi_convective(n)
     call calculate_fluxeshi_diffusive(n)
-    if (turbulence.eq.1)then
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
     call sources_computation(n)
     end if
     end select
@@ -1255,7 +1317,7 @@ else
     case(4)
     call calculate_fluxeshi_convective(n)
     call calculate_fluxeshi_diffusive(n)
-    if (turbulence.eq.1)then
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
     call sources_computation(n)
     end if
     end select
@@ -4589,7 +4651,7 @@ if (fastest.eq.1)then
     call sources_computation_rot(n)
     end if
     call vortexcalc(n)
-    if (turbulence.eq.1)then
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
     call sources_computation(n)
     end if
     end select
@@ -4613,7 +4675,7 @@ else
     call sources_computation_rot(n)
     end if
     call vortexcalc(n)
-    if (turbulence.eq.1)then
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
     call sources_computation(n)
     end if
     end select
@@ -5611,7 +5673,7 @@ if (fastest.eq.1)then
     call calculate_fluxeshi_convective(n)
     call calculate_fluxeshi_diffusive(n)
     call vortexcalc(n)
-    if (turbulence.eq.1)then
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
     call sources_computation(n)
     end if
     end select
@@ -5629,7 +5691,7 @@ else
     call calculate_fluxeshi_convective(n)
     call calculate_fluxeshi_diffusive(n)
     call vortexcalc(n)
-    if (turbulence.eq.1)then
+    if ((turbulence.eq.1).or.(realgas.eq.1))then
     call sources_computation(n)
     end if
     end select

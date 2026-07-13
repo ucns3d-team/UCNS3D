@@ -1950,6 +1950,24 @@ i=iconsidered
                                                   rcvgrad_t(:,:)=lcvgrad_t(:,:)
                                                   end if
 
+                                                  if (catalytic_wall.eq.0)then
+                                                    nnt(1)=nx
+                                                    nnt(2)=ny
+                                                    nnt(3)=nz
+
+                                                    do iex = dimensiona+3,nof_variables-1
+                                                      g_n=0.0d0
+                                                      do d=1,dimensiona
+                                                        g(d)=lcvgrad(iex,d)
+                                                        g_n=g_n+g(d)*nnt(d)
+                                                      end do
+
+                                                      do d=1,dimensiona
+                                                        rcvgrad(iex,d)=lcvgrad(iex,d)-2.0d0*g_n*nnt(d)
+                                                      end do
+                                                    end do
+                                                  end if
+
                                             end if
 
 
