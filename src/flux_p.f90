@@ -1323,6 +1323,7 @@ real::angle1,angle2,nx,ny,nz,wface,norms
 !$omp& firstprivate(qp_triangle_n) &
 !$omp& map(alloc: weights_q, weights_t, el_int, ielem_ifca, ielem_types_faces) &
 !$omp& map(alloc: ielem_faceanglex, ielem_faceangley, ielem_surf, ielem_ineighn, ielem_ineigh) &
+!$omp& map(alloc: ielem_ineighb, ielem_indexf, ielem_inter_id, ielem_qface, bound_offset, boundhir) &
 !$omp& map(alloc: rec_mrf, rec_rotvel, rec_uleft, rec_uleftturb) &
 !$omp& map(alloc: u_ct_val, rhs_val, rhst_val) &
 !$omp& private(ii,i,l,ngp,iqp,iv,nvt,iconsidered,facex,pointx,b_code) &
@@ -2176,6 +2177,7 @@ real::angle1,angle2,nx,ny,nz,wface,norms
 !$omp& firstprivate(lmach, lmach_style, iriemann, per_rot, angle_per, zero, oo2, gamma, qp_line_n) &
 !$omp& map(alloc: weights_l, el_int, ielem_ifca, ielem_faceanglex, ielem_faceangley, ielem_surf) &
 !$omp& map(alloc: ielem_ineighn, ielem_ineigh) &
+!$omp& map(alloc: ielem_ineighb, ielem_indexf, ielem_inter_id, ielem_qface, bound_offset, boundhir) &
 !$omp& map(alloc: rec_uleft, rec_uleftturb, u_ct_val, rhs_val, rhst_val) &
 !$omp& private(ii,i,l,ngp,iqp,iv,nvt,iconsidered,facex,pointx,b_code) &
 !$omp& private(godflux2,rhllcflux,hllcflux,cleft,cright,cleft_rot,cright_rot) &
@@ -4193,6 +4195,7 @@ real::ux,uy,uz,vx,vy,vz,wx,wy,wz,u12,v12,w12,muturb
 !$omp& map(alloc: weights_q, weights_t, el_int, ielem_ifca, ielem_types_faces) &
 !$omp& map(alloc: ielem_faceanglex, ielem_faceangley, ielem_surf, ielem_dih, ielem_walldist) &
 !$omp& map(alloc: ielem_ineighn, ielem_ineigh) &
+!$omp& map(alloc: ielem_ineighb, ielem_indexf, ielem_inter_id, ielem_qface, bound_offset, boundhir) &
 !$omp& map(alloc: rec_mrf, rec_rotvel, rec_uleft, rec_uleftturb, rec_uleftv, rec_uleftturbv, u_ct_val) &
 !$omp& map(alloc: rhs_val, rhst_val) &
 !$omp& private(ii,i,l,ngp,iqp,iv,k,kc,nvt,iconsidered,facex,pointx,b_code) &
@@ -5842,6 +5845,7 @@ real::ux,uy,vx,vy,u12,v12,muturb
 !$omp& map(alloc: weights_l, el_int, ielem_ifca, ielem_faceanglex, ielem_faceangley) &
 !$omp& map(alloc: ielem_surf, ielem_dih, ielem_walldist) &
 !$omp& map(alloc: ielem_ineighn, ielem_ineigh) &
+!$omp& map(alloc: ielem_ineighb, ielem_indexf, ielem_inter_id, ielem_qface, bound_offset, boundhir) &
 !$omp& map(alloc: rec_uleft, rec_uleftturb, rec_uleftv, rec_uleftturbv, u_ct_val, rhs_val, rhst_val) &
 !$omp& private(ii,i,l,ngp,iqp,iv,k,kc,nvt,iconsidered,facex,pointx,b_code) &
 !$omp& private(godflux2,hllcflux,cleft,cright,cleft_rot,cright_rot,leftv,rightv,srf_speedrot) &
@@ -7651,10 +7655,5 @@ end subroutine calculate_fluxeshi_convective2d_mood_bound_cell
 !
 !
 ! end subroutine vertex_neighbours_values
-
-
-
-
-
 
 end module fluxes
