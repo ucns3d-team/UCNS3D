@@ -3151,7 +3151,7 @@ else
         end if
         call process_state(n,uvec,uref,k,utmin,utmax,sumvars,aver_vars,maxvars)
       else
-        nf   = rec_ihexn(1,iq,i)
+        nf   = rec_ihexn(1,iq,rec_local(i))
         lf   = rec_ihexl(1,iq,i)
         rowf = halo_offset(nf) + lf - 1
         uvec(1:nof_variables) = solhir(rowf,1:nof_variables)
@@ -3682,7 +3682,7 @@ subroutine muscl_acc(n)
               uwork(iex)=u_c_val(1,iex,rec_ihexl(1,iq,i))
             end do
           else
-            nf=rec_ihexn(1,iq,i)
+            nf=rec_ihexn(1,iq,rec_local(i))
             lf=rec_ihexl(1,iq,i)
             rowf=halo_offset(nf)+lf-1
             do iex=1,nof_variables

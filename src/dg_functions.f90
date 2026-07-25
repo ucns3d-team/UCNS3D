@@ -1066,7 +1066,7 @@ real,dimension(1:turbulenceequations+passivescalar),intent(inout)::cturbl,cturbr
 real,dimension(1:nof_variables),intent(inout)::leftv,rightv,srf_speedrot
 real,dimension(1:dimensiona),intent(inout)::pox,poy,poz
 real,dimension(1:gpu_max_nvar)::srf_speed
-integer::i,l,ngp,iv,nvt
+integer::i,l,ngp,iv,nvt,nfx,lfx,rowfx
 
 i=iconsidered
 l=facex
@@ -1074,17 +1074,32 @@ ngp=pointx
 nvt=passivescalar
 if (turbulence.eq.1) nvt=turbulenceequations+passivescalar
 cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
-cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+if (ielem_ineighb(l,i).eq.n)then
+  cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+else
+  nfx=ielem_ineighn(l,i)
+  lfx=ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
+  rowfx=bound_offset(nfx)+lfx-1
+  cright(1:nof_variables)=boundhir(rowfx,1:nof_variables)
+end if
 if (nvt.gt.0)then
   if (icoupleturb.eq.1)then
     do iv=1,nvt
       cturbl(iv)=rec_uleftturb(iv,l,ngp,i)
-      cturbr(iv)=rec_uleftturb(iv,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+      if (ielem_ineighb(l,i).eq.n)then
+        cturbr(iv)=rec_uleftturb(iv,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+      else
+        cturbr(iv)=boundhir(rowfx,nof_variables+iv)
+      end if
     end do
   else
     do iv=1,nvt
       cturbl(iv)=u_ct_val(1,iv,i)
-      cturbr(iv)=u_ct_val(1,iv,ielem_ineigh(l,i))
+      if (ielem_ineighb(l,i).eq.n)then
+        cturbr(iv)=u_ct_val(1,iv,ielem_ineigh(l,i))
+      else
+        cturbr(iv)=boundhir(rowfx,nof_variables+iv)
+      end if
     end do
   end if
   do iv=1,nvt
@@ -1113,7 +1128,7 @@ real,dimension(1:nof_variables+turbulenceequations+passivescalar),intent(inout):
 real,dimension(1:turbulenceequations+passivescalar),intent(inout)::cturbl,cturbr
 real,dimension(1:nof_variables),intent(inout)::leftv,rightv,srf_speedrot
 real,dimension(1:dimensiona),intent(inout)::pox,poy,poz
-integer::i,l,ngp,iv,nvt
+integer::i,l,ngp,iv,nvt,nfx,lfx,rowfx
 
 i=iconsidered
 l=facex
@@ -1121,17 +1136,32 @@ ngp=pointx
 nvt=passivescalar
 if (turbulence.eq.1) nvt=turbulenceequations+passivescalar
 cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
-cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+if (ielem_ineighb(l,i).eq.n)then
+  cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+else
+  nfx=ielem_ineighn(l,i)
+  lfx=ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
+  rowfx=bound_offset(nfx)+lfx-1
+  cright(1:nof_variables)=boundhir(rowfx,1:nof_variables)
+end if
 if (nvt.gt.0)then
   if (icoupleturb.eq.1)then
     do iv=1,nvt
       cturbl(iv)=rec_uleftturb(iv,l,ngp,i)
-      cturbr(iv)=rec_uleftturb(iv,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+      if (ielem_ineighb(l,i).eq.n)then
+        cturbr(iv)=rec_uleftturb(iv,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+      else
+        cturbr(iv)=boundhir(rowfx,nof_variables+iv)
+      end if
     end do
   else
     do iv=1,nvt
       cturbl(iv)=u_ct_val(1,iv,i)
-      cturbr(iv)=u_ct_val(1,iv,ielem_ineigh(l,i))
+      if (ielem_ineighb(l,i).eq.n)then
+        cturbr(iv)=u_ct_val(1,iv,ielem_ineigh(l,i))
+      else
+        cturbr(iv)=boundhir(rowfx,nof_variables+iv)
+      end if
     end do
   end if
   do iv=1,nvt
@@ -1158,21 +1188,44 @@ real,dimension(1:nof_variables),intent(inout)::leftv,rightv,srf_speedrot
 real,dimension(1:dimensiona),intent(inout)::pox,poy,poz
 real,dimension(1:gpu_max_nvar,1:gpu_max_dim)::lcvgrad,rcvgrad
 real,dimension(gpu_max_extra_transport,1:gpu_max_dim)::lcvgrad_t,rcvgrad_t
-integer::i,l,ngp,k,nvar
+integer::i,l,ngp,k,nvar,iex,ittt,nfx,lfx,rowfx,nvt
 
 i=iconsidered
 l=facex
 ngp=pointx
+nvt=passivescalar
+if (turbulence.eq.1) nvt=turbulenceequations+passivescalar
 call get_states_interior_ideal(n,b_code,iconsidered,facex,pointx,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz, &
      & cturbl,cturbr,cright_rot,cleft_rot,srf_speedrot,cleft,cright)
 do k=1,dimensiona
   lcvgrad(1:nof_variables-1,k)=rec_uleftv(k,1:nof_variables-1,l,ngp,i)
-  rcvgrad(1:nof_variables-1,k)=rec_uleftv(k,1:nof_variables-1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+  if (ielem_ineighb(l,i).eq.n)then
+    rcvgrad(1:nof_variables-1,k)=rec_uleftv(k,1:nof_variables-1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+  end if
 end do
+if (ielem_ineighb(l,i).ne.n)then
+  nfx=ielem_ineighn(l,i)
+  lfx=ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
+  rowfx=bound_offset(nfx)+lfx-1
+  ittt=0
+  do iex=1,nof_variables-1
+    do nvar=1,dimensiona
+      ittt=ittt+1
+      rcvgrad(iex,nvar)=boundhir(rowfx,nof_variables+nvt+ittt)
+    end do
+  end do
+end if
 if ((turbulence.eq.1).or.(passivescalar.gt.0))then
   do nvar=1,turbulenceequations+passivescalar
     lcvgrad_t(nvar,1:dimensiona)=rec_uleftturbv(1:dimensiona,nvar,l,ngp,i)
-    rcvgrad_t(nvar,1:dimensiona)=rec_uleftturbv(1:dimensiona,nvar,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+    if (ielem_ineighb(l,i).eq.n)then
+      rcvgrad_t(nvar,1:dimensiona)=rec_uleftturbv(1:dimensiona,nvar,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+    else
+      do k=1,dimensiona
+        ittt=ittt+1
+        rcvgrad_t(nvar,k)=boundhir(rowfx,nof_variables+nvt+ittt)
+      end do
+    end if
   end do
 end if
 
@@ -1194,21 +1247,44 @@ real,dimension(1:nof_variables),intent(inout)::leftv,rightv,srf_speedrot
 real,dimension(1:dimensiona),intent(inout)::pox,poy,poz
 real,dimension(1:gpu_max_nvar,1:gpu_max_dim)::lcvgrad,rcvgrad
 real,dimension(gpu_max_extra_transport,1:gpu_max_dim)::lcvgrad_t,rcvgrad_t
-integer::i,l,ngp,k,nvar
+integer::i,l,ngp,k,nvar,iex,ittt,nfx,lfx,rowfx,nvt
 
 i=iconsidered
 l=facex
 ngp=pointx
+nvt=passivescalar
+if (turbulence.eq.1) nvt=turbulenceequations+passivescalar
 call get_states_interior2d_ideal(n,b_code,iconsidered,facex,pointx,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz, &
      & cturbl,cturbr,cright_rot,cleft_rot,srf_speedrot,cleft,cright)
 do k=1,dimensiona
   lcvgrad(1:nof_variables-1,k)=rec_uleftv(k,1:nof_variables-1,l,ngp,i)
-  rcvgrad(1:nof_variables-1,k)=rec_uleftv(k,1:nof_variables-1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+  if (ielem_ineighb(l,i).eq.n)then
+    rcvgrad(1:nof_variables-1,k)=rec_uleftv(k,1:nof_variables-1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+  end if
 end do
+if (ielem_ineighb(l,i).ne.n)then
+  nfx=ielem_ineighn(l,i)
+  lfx=ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
+  rowfx=bound_offset(nfx)+lfx-1
+  ittt=0
+  do iex=1,nof_variables-1
+    do nvar=1,dimensiona
+      ittt=ittt+1
+      rcvgrad(iex,nvar)=boundhir(rowfx,nof_variables+nvt+ittt)
+    end do
+  end do
+end if
 if ((turbulence.eq.1).or.(passivescalar.gt.0))then
   do nvar=1,turbulenceequations+passivescalar
     lcvgrad_t(nvar,1:dimensiona)=rec_uleftturbv(1:dimensiona,nvar,l,ngp,i)
-    rcvgrad_t(nvar,1:dimensiona)=rec_uleftturbv(1:dimensiona,nvar,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+    if (ielem_ineighb(l,i).eq.n)then
+      rcvgrad_t(nvar,1:dimensiona)=rec_uleftturbv(1:dimensiona,nvar,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+    else
+      do k=1,dimensiona
+        ittt=ittt+1
+        rcvgrad_t(nvar,k)=boundhir(rowfx,nof_variables+nvt+ittt)
+      end do
+    end if
   end do
 end if
 
@@ -1229,8 +1305,8 @@ real,dimension(1:nof_variables+turbulenceequations+passivescalar),intent(inout):
 real,dimension(1:turbulenceequations+passivescalar),intent(inout)::cturbl,cturbr
 real,dimension(1:nof_variables),intent(inout)::leftv,rightv,srf_speedrot
 real,dimension(1:dimensiona),intent(inout)::pox,poy,poz
-real,dimension(1:nof_variables,1:dimensiona),intent(inout)::lcvgrad,rcvgrad
-real,dimension(1:turbulenceequations+passivescalar,1:dimensiona),intent(inout)::lcvgrad_t,rcvgrad_t
+real,dimension(1:gpu_max_nvar,1:gpu_max_dim),intent(inout)::lcvgrad,rcvgrad
+real,dimension(gpu_max_extra_transport,1:gpu_max_dim),intent(inout)::lcvgrad_t,rcvgrad_t
 integer::i,l,ngp,k,nvar,iex,ittt,nfx,lfx,rowfx,nvt,d,ii,j
 real,dimension(1:3)::nnt,g
 real,dimension(1:3,1:3)::a,b,c,r
@@ -1416,8 +1492,8 @@ real,dimension(1:nof_variables+turbulenceequations+passivescalar),intent(inout):
 real,dimension(1:turbulenceequations+passivescalar),intent(inout)::cturbl,cturbr
 real,dimension(1:nof_variables),intent(inout)::leftv,rightv,srf_speedrot
 real,dimension(1:dimensiona),intent(inout)::pox,poy,poz
-real,dimension(1:nof_variables,1:dimensiona),intent(inout)::lcvgrad,rcvgrad
-real,dimension(1:turbulenceequations+passivescalar,1:dimensiona),intent(inout)::lcvgrad_t,rcvgrad_t
+real,dimension(1:gpu_max_nvar,1:gpu_max_dim),intent(inout)::lcvgrad,rcvgrad
+real,dimension(gpu_max_extra_transport,1:gpu_max_dim),intent(inout)::lcvgrad_t,rcvgrad_t
 integer::i,l,ngp,k,nvar,iex,ittt,nfx,lfx,rowfx,nvt,d,ii,j
 real,dimension(1:2)::nnt,g
 real,dimension(1:2,1:2)::a,b,c,r
@@ -4023,8 +4099,5 @@ end do
  end do
 
  end subroutine compmassinv
-
-
-
 
 end module dg_functions

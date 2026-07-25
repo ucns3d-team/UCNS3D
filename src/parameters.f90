@@ -46,6 +46,10 @@ subroutine read_ucns3d
 				mach_outlet_average=0.0d0
 				mach_outlet_relax=0.1d0
 				mach_outlet_update_freq=10
+				mach_outlet_start_iter=0
+				mach_outlet_filtered=0.0d0
+				mach_outlet_filter_alpha=0.2d0
+				mach_outlet_filter_ready=0
 				total_pressure_inlet=-1.0d0
 				total_temperature_inlet=350.0d0
 				density_inlet=-1.0d0
@@ -346,6 +350,13 @@ subroutine read_ucns3d
 		if (mach_ios.ne.0) mach_outlet_update_freq=10
 		read(29,*,iostat=mach_ios)mach_outlet_relax
 		if (mach_ios.ne.0) mach_outlet_relax=0.1d0
+		read(29,*,iostat=mach_ios)mach_outlet_start_iter
+		if (mach_ios.ne.0) mach_outlet_start_iter=0
+		mach_outlet_start_iter=max(mach_outlet_start_iter,0)
+		read(29,*,iostat=mach_ios)mach_outlet_filter_alpha
+		if (mach_ios.ne.0) mach_outlet_filter_alpha=0.2d0
+		if (mach_outlet_filter_alpha.le.0.0d0) mach_outlet_filter_alpha=0.2d0
+		mach_outlet_filter_alpha=min(1.0d0,mach_outlet_filter_alpha)
 		print*,"i am reading the target outlet Mach number from the file"
 	    close(29)
 		end if

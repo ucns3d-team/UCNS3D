@@ -27,13 +27,9 @@ ineedt=diexchanger(1)%tot
 tneedt=diexchanges(1)%tot
 kmaxe=xmpielrank(n)
 do i=1,kmaxe
-	if (ielem_interior(i).eq.1)then
-
-	ielem_ineigh(:,i)=0;ielem_ineighn(:,i)=0;ielem_ineighb(:,i)=n
-	else
-
-	ielem_ineighn(:,i)=0;ielem_ineigh(:,i)=0;
-	end if
+	ielem_ineigh(:,i)=0
+	ielem_ineighn(:,i)=0
+	ielem_ineighb(:,i)=n
 end do
 
 
@@ -72,7 +68,7 @@ end do
 
 
 do i=1,kmaxe
-if (ielem_interior(i).eq.1)then
+if (ielem_indexf(i).gt.0)then
 do j=1,ielem_ifca(i)
 itax=0
 	if ((ielem_ineighg(j,i).gt.0))then
@@ -122,7 +118,7 @@ if ((diexchanges1(ix1)%whattheyneed(ix2).eq.diexchanger1(k)%sideineedn(e)).and.&
 
 i=xmpil(diexchanger1(k)%sideineedn(e))
 ! do i=1,kmaxe
-  if (ielem_interior(i).eq.1)then												!if 2
+  if (ielem_indexf(i).gt.0)then												!if 2
     do j=1,ielem_ifca(i)
 	  if (ielem_ineighb(j,i).ne.n)then										!if 3
 	  
@@ -342,10 +338,8 @@ diexchanges,direcexr,direcexs,numneighbours,ischeme,isize,iperiodicity,typesten,
 	end if
 	index_int=0
 	do k=1,kmaxe
-	      if (ielem_interior(k).eq.1)then
 	      index_int=index_int+1
 		  ielem_indexf(k)=index_int
-	      end if
 	end do
 
 	allocate(ielem_inter_id(index_int));ielem_inter_id=0
@@ -363,11 +357,8 @@ diexchanges,direcexr,direcexs,numneighbours,ischeme,isize,iperiodicity,typesten,
 
 	index_int=0
 	do k=1,kmaxe
-	      if (ielem_interior(k).eq.1)then
 	      index_int=index_int+1
 	      ielem_inter_id(ielem_indexf(k))=index_int
-
-	      end if
 	end do
 
 
@@ -377,7 +368,7 @@ diexchanges,direcexr,direcexs,numneighbours,ischeme,isize,iperiodicity,typesten,
 
 
 	do k=1,kmaxe
-		if (ielem_interior(k).eq.1)then
+		if (ielem_indexf(k).gt.0)then
 			do l=1,ielem_ifca(k)
 				    if (ielem_ineighg(l,k).gt.0)then
 					    if (xmpie(ielem_ineighg(l,k)).ne.n)then
@@ -450,8 +441,8 @@ diexchanges,direcexr,direcexs,numneighbours,ischeme,isize,iperiodicity,typesten,
 ! 		
 		kk=kk+1
 		iaa=0
-		do k=1,kmaxe
-		      if (ielem_interior(k).eq.1)then
+			do k=1,kmaxe
+			      if (ielem_indexf(k).gt.0)then
 			do l=1,ielem_ifca(k)
 				    if (ielem_ineighg(l,k).gt.0)then
 					    if (xmpie(ielem_ineighg(l,k)).ne.n)then

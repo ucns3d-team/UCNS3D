@@ -3057,40 +3057,16 @@ do j=1,ielem_ifca(i)
 			    end if
 			else	!in other cpus they can only be periodic or mpi neighbours
 
-			      if (ielem_ibounds(j,i).gt.0)then	!check for boundaries
-				  if ((ibound_icode(ielem_ibounds(j,i)).eq.5).or.(ibound_icode(ielem_ibounds(j,i)).eq.50))then	!periodic in other cpu
-
-! 					sols2(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(j,i)))%sol&
-! 					(rec_ihexl(1,ielem_indexi(j,i)),1:nof_variables)
-
-
 					 nf=rec_ihexn(1,ielem_indexi(j,i),rec_local(i))
 					lf=rec_ihexl(1,ielem_indexi(j,i),i)
 					rowf=halo_offset(nf) + lf - 1
 					sols2(1:nof_variables)=solhir(rowf,1:nof_variables)
 
-
-
-
-					      if ((per_rot.eq.1).and.(ibound_icode(ielem_ibounds(j,i)).eq.50))then
-	                        sols2(2:4)=rotate_per_1(sols2(2:4),ibound_icode(ielem_ibounds(j,i)),angle_per)
-					      end if
-				  end if
-			      else
-
-
-! 					sols2(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(j,i)))%sol&
-!					(rec_ihexl(1,ielem_indexi(j,i)),1:nof_variables)
-
-
-					 nf=rec_ihexn(1,ielem_indexi(j,i),rec_local(i))
-					lf=rec_ihexl(1,ielem_indexi(j,i),i)
-					rowf=halo_offset(nf) + lf - 1
-					sols2(1:nof_variables)=solhir(rowf,1:nof_variables)
-
-
-
-			     end if
+				      if (ielem_ibounds(j,i).gt.0)then	!check for periodic boundaries
+					  if ((per_rot.eq.1).and.(ibound_icode(ielem_ibounds(j,i)).eq.50))then
+		                    sols2(2:4)=rotate_per_1(sols2(2:4),ibound_icode(ielem_ibounds(j,i)),angle_per)
+					  end if
+				      end if
 			end if
 
 			  leftv(1:nof_variables)=sols2(1:nof_variables)
@@ -3209,33 +3185,10 @@ do j=1,ielem_ifca(i)
 			    end if
 			else	!in other cpus they can only be periodic or mpi neighbours
 
-			      if (ielem_ibounds(j,i).gt.0)then	!check for boundaries
-				  if (ibound_icode(ielem_ibounds(j,i)).eq.5)then	!periodic in other cpu
-
-! 					sols2(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(j,i)))%sol&
-! 					(rec_ihexl(1,ielem_indexi(j,i)),1:nof_variables)
-
-
 					 nf=rec_ihexn(1,ielem_indexi(j,i),rec_local(i))
 					lf=rec_ihexl(1,ielem_indexi(j,i),i)
 					rowf=halo_offset(nf) + lf - 1
 					sols2(1:nof_variables)=solhir(rowf,1:nof_variables)
-
-				  end if
-			      else
-
-
-! 					sols2(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(j,i)))%sol&
-! 					(rec_ihexl(1,ielem_indexi(j,i)),1:nof_variables)
-
-
-					 nf=rec_ihexn(1,ielem_indexi(j,i),rec_local(i))
-					lf=rec_ihexl(1,ielem_indexi(j,i),i)
-					rowf=halo_offset(nf) + lf - 1
-					sols2(1:nof_variables)=solhir(rowf,1:nof_variables)
-
-
-			     end if
 			end if
 
 			  leftv(1:nof_variables)=sols2(1:nof_variables)
@@ -3438,32 +3391,10 @@ do j=1,ielem_ifca(i)
 			    end if
 			else	!in other cpus they can only be periodic or mpi neighbours
 
-			      if (ielem_ibounds(j,i).gt.0)then	!check for boundaries
-				  if (ibound_icode(ielem_ibounds(j,i)).eq.5)then	!periodic in other cpu
-
-!					sols2(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(j,i)))%sol&
-!					(rec_ihexl(1,ielem_indexi(j,i)),1:nof_variables)
-
-					 nf=rec_ihexn(1,ielem_indexi(j,i),rec_local(i))
-					lf=rec_ihexl(1,ielem_indexi(j,i),i)
-					rowf=halo_offset(nf) + lf - 1
-					sols2(1:nof_variables)=solhir(rowf,1:nof_variables)
-
-
-
-				  end if
-			      else
-
-
-! 					sols2(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(j,i)))%sol&
-! 					(rec_ihexl(1,ielem_indexi(j,i)),1:nof_variables)
-
-					nf=rec_ihexn(1,ielem_indexi(j,i),rec_local(i))
-					lf=rec_ihexl(1,ielem_indexi(j,i),i)
-					rowf=halo_offset(nf) + lf - 1
-					sols2(1:nof_variables)=solhir(rowf,1:nof_variables)
-
-			     end if
+						nf=rec_ihexn(1,ielem_indexi(j,i),rec_local(i))
+						lf=rec_ihexl(1,ielem_indexi(j,i),i)
+						rowf=halo_offset(nf) + lf - 1
+						sols2(1:nof_variables)=solhir(rowf,1:nof_variables)
 			end if
 
 			  leftv(1:nof_variables)=sols2(1:nof_variables)
