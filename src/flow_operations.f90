@@ -4103,13 +4103,8 @@ call cons2prim(n,prim_state,mp_pinfl,gammal)
 rgs_rho=max(div_state(1),tolsmall)
 rgs_p_pa=max(prim_state(dimensiona+2),tolsmall)
 
-if ((thermal.eq.1).and.(wall_temp.gt.zero))then
-  rgs_ttr=0.5d0*(div_state(dimensiona+2)+wall_temp)
-  rgs_tv =0.5d0*(div_state(dimensiona+3)+wall_temp)
-else
-  rgs_ttr=div_state(dimensiona+2)
-  rgs_tv =div_state(dimensiona+3)
-end if
+rgs_ttr=div_state(dimensiona+2)
+rgs_tv =div_state(dimensiona+3)
 
 rgs_ttr=max(rgs_ttr,50.0d0)
 rgs_tv =max(rgs_tv,50.0d0)
@@ -5466,7 +5461,7 @@ real::mach_sum_g,area_sum_g,p_sum_g,pt_sum_g,pt_mdot_sum_g,mdot_sum_g,backflow_s
 real::rho,uu,vv,ww,e,vel2,p,a,mach,area,err,limited_err,factor
 real::angle1,angle2,nx,ny,nz,un,mdot,pt,pt_area_out,pt_mass_out
 real::eta_area,eta_mass,loss_area,loss_mass,eta_area_percent,eta_mass_percent
-logical::heref
+logical::heref,controller_active
 
 if ((mach_outlet_target.le.0.0d0).or.(mach_outlet_update_freq.le.0)) return
 if ((realgas.ne.0).or.(multispecies.ne.0)) return
@@ -5560,6 +5555,13 @@ call mpi_allreduce(backflow_sum_l,backflow_sum_g,1,mpi_double_precision,mpi_sum,
 if (area_sum_g.le.tolsmall) return
 
 mach_outlet_average=mach_sum_g/area_sum_g
+if (mach_outlet_filter_ready.eq.0)then
+  mach_outlet_filtered=mach_outlet_average
+  mach_outlet_filter_ready=1
+else
+  mach_outlet_filtered=((1.0d0-mach_outlet_filter_alpha)*mach_outlet_filtered)+(mach_outlet_filter_alpha*mach_outlet_average)
+end if
+controller_active=(it.ge.mach_outlet_start_iter)
 pt_area_out=pt_sum_g/(area_sum_g+tolsmall)
 pt_mass_out=-1.0d0
 if (mdot_sum_g.gt.tolsmall) pt_mass_out=pt_mdot_sum_g/mdot_sum_g
@@ -5581,10 +5583,12 @@ if (total_pressure_inlet.gt.tolsmall)then
 end if
 if (press_outlet.le.tolsmall) press_outlet=max(p_sum_g/(area_sum_g+tolsmall),tolsmall)
 
-err=mach_outlet_average-mach_outlet_target
-limited_err=max(min(mach_outlet_relax*err,0.2d0),-0.2d0)
-factor=exp(limited_err)
-press_outlet=max(press_outlet*factor,tolsmall)
+if (controller_active)then
+  err=mach_outlet_filtered-mach_outlet_target
+  limited_err=max(min(mach_outlet_relax*err,0.05d0),-0.05d0)
+  factor=exp(limited_err)
+  press_outlet=max(press_outlet*factor,tolsmall)
+end if
 
 #if defined(gpu) || defined(xpu)
 !$omp target update to(press_outlet)
@@ -5593,16 +5597,20 @@ press_outlet=max(press_outlet*factor,tolsmall)
 if (n.eq.0)then
   inquire(file='OUTLET_MACH.dat',exist=heref)
   open(91,file='OUTLET_MACH.dat',form='formatted',status='unknown',action='write',position='append')
-  if (.not.heref) write(91,'(A)') '# it t mach_area target_mach press_outlet outlet_area'
-  write(91,'(I10,5(1X,ES20.10))') it,t,mach_outlet_average,mach_outlet_target,press_outlet,area_sum_g
+  if (.not.heref) write(91,'(A)') '# it t mach_area target_mach press_outlet outlet_area mach_filtered controller_active'
+  write(91,'(I10,6(1X,ES20.10),1X,I4)') it,t,mach_outlet_average,mach_outlet_target,press_outlet,area_sum_g, &
+       mach_outlet_filtered,merge(1,0,controller_active)
   flush(91)
   close(91)
   inquire(file='DUCT_EFFICIENCY.dat',exist=heref)
   open(newunit=eff_unit,file='DUCT_EFFICIENCY.dat',form='formatted',status='unknown',action='write',position='append')
   if (.not.heref) write(eff_unit,'(A)') '# it t pt_in pt_out_area pt_out_mass eta_area eta_mass ' // &
-       'loss_area loss_mass mach_area press_outlet outlet_area mdot_out mdot_backflow eta_area_percent eta_mass_percent'
-  write(eff_unit,'(I10,15(1X,ES20.10))') it,t,total_pressure_inlet,pt_area_out,pt_mass_out,eta_area,eta_mass,loss_area,loss_mass, &
-       mach_outlet_average,press_outlet,area_sum_g,mdot_sum_g,backflow_sum_g,eta_area_percent,eta_mass_percent
+       'loss_area loss_mass mach_area press_outlet outlet_area mdot_out mdot_backflow eta_area_percent eta_mass_percent ' // &
+       'mach_filtered controller_active'
+  write(eff_unit,'(I10,16(1X,ES20.10),1X,I4)') it,t,total_pressure_inlet,pt_area_out,pt_mass_out, &
+       eta_area,eta_mass,loss_area,loss_mass,mach_outlet_average,press_outlet,area_sum_g,mdot_sum_g,backflow_sum_g, &
+       eta_area_percent,eta_mass_percent, &
+       mach_outlet_filtered,merge(1,0,controller_active)
   flush(eff_unit)
   close(eff_unit)
 end if

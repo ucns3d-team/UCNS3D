@@ -309,7 +309,8 @@ integer,allocatable,dimension(:,:)::wall_l
 !--------------------- end of variables for parallel partitioned output-------!
 real,dimension(3)::srf_origin,srf_velocity,origin
 real::press_outlet,mach_outlet_target,mach_outlet_average,mach_outlet_relax
-integer::mach_outlet_update_freq
+real::mach_outlet_filtered,mach_outlet_filter_alpha
+integer::mach_outlet_update_freq,mach_outlet_start_iter,mach_outlet_filter_ready
 integer::rframe,source_active
 real::per_rot,angle_per,v_ref,kinit_srf,srfg,tol_per
 real,allocatable,dimension(:,:)::point1_gl,point2_gl
