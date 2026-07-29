@@ -112,7 +112,7 @@ real,dimension(gpu_max_nvar)::sols1,sols2
 real,dimension(1:gpu_max_nvar,1:gpu_max_neighbours)::matrix_1
 real,dimension(1:gpu_max_nvar,1:gpu_max_dof)::matrix_2
 real,dimension(1:gpu_max_dof,1:gpu_max_nvar)::sol_m
-integer::i,var2,k0,g0,ttk,ivvm,iq,lq
+integer::i,var2,k0,g0,ttk,ivvm,iq,lq,temp_hi
 real::attt,mp_pinfl,gammal
 integer::ll,imax,nf,lf,rowf,iconsidered,number_of_dog
 real,dimension(1:gpu_max_nvar)::leftv
@@ -122,13 +122,13 @@ real,dimension(1:gpu_max_nvar)::leftv
 !$omp target teams distribute parallel do &
 !$omp& firstprivate(n) &
 !$omp& firstprivate(idegfree, nof_variables, nof_species, dimensiona, r_gas, thermal) &
-!$omp& firstprivate(catalytic_wall, wall_temp, tolbig, zero) &
+!$omp& firstprivate(multispecies, realgas, catalytic_wall, wall_temp, tolbig, zero) &
 !$omp& map(alloc: xmpielrank) &
 !$omp& map(alloc: u_c_val, solhir, rec_wall, ielem_ggs, ielem_idegfree, ielem_inumneighbours, rec_local, rec_ihexl) &
 !$omp& map(alloc: rec_ihexb, rec_ihexn, halo_offset, rec_k0, rec_g0, rec_volume_w) &
 !$omp& map(alloc: rec_weightl, rec_stencils, rec_wallcoeff, catalytic_con) &
 !$omp& map(alloc: rec_vellsq, rec_tempsq, rec_velinvlsqmat, rec_tempsqmat, rec_wallcoefg, rec_gradf) &
-!$omp& private(iconsidered,iq,ll,imax,nf,lf,rowf,k0,g0,ttk,ivvm,lq,number_of_dog) &
+!$omp& private(iconsidered,iq,ll,imax,nf,lf,rowf,k0,g0,ttk,ivvm,lq,number_of_dog,temp_hi) &
 !$omp& private(var2,attt,mp_pinfl,gammal,sols1,sols2,leftv,matrix_1,matrix_2,sol_m)
 #else
 !$omp do
@@ -143,6 +143,8 @@ if (ielem_ggs(i).eq.0)then
 imax=ielem_inumneighbours(i)-1
 number_of_dog=ielem_idegfree(i)
 ll=1
+temp_hi=nof_variables-1
+if ((multispecies.eq.1).or.(realgas.eq.1)) temp_hi=nof_variables-nof_species-1
 iconsidered=i
 
 	    ll=1
@@ -177,39 +179,39 @@ iconsidered=i
 		 call cons2div_ideal(n,leftv,mp_pinfl,gammal)
 	       sols2(1:nof_variables-1)=leftv(2:nof_variables)
 ! 	       !sols2(1)=leftv(5)/(leftv(1)*r_gas)
-  	        matrix_1(1:nof_variables-1,iq)= &
+	        matrix_1(1:nof_variables-1,iq)= &
              rec_volume_w(1,iq+1,rec_wall(i))*rec_weightl(1,iq,rec_wall(i))* &
              (sols2(1:nof_variables-1)-sols1(1:nof_variables-1))
 
-  	        !velocity gradients
-  	        matrix_1(1:dimensiona,iq)=matrix_1(1:dimensiona,iq)+ &
+	        !velocity gradients
+	        matrix_1(1:dimensiona,iq)=matrix_1(1:dimensiona,iq)+ &
              (sols1(1:dimensiona)*rec_stencils(ll,iq,k0,rec_wall(i)))/ &
              rec_wallcoeff(k0,rec_wall(i))
 
-  	        !temperature now check
+	        !temperature now check
 
 			if (thermal.eq.1)then
-  	        matrix_1(dimensiona+1:nof_variables-nof_species-1,iq)= &
-             matrix_1(dimensiona+1:nof_variables-nof_species-1,iq)+ &
-             (sols1(dimensiona+1:nof_variables-nof_species-1)* &
+	        matrix_1(dimensiona+1:temp_hi,iq)= &
+             matrix_1(dimensiona+1:temp_hi,iq)+ &
+             (sols1(dimensiona+1:temp_hi)* &
              rec_stencils(ll,iq,k0,rec_wall(i)))/rec_wallcoeff(k0,rec_wall(i))- &
              (wall_temp*rec_stencils(ll,iq,k0,rec_wall(i)))/ &
              rec_wallcoeff(k0,rec_wall(i))
 
-  	        end if
+	        end if
 
 
-   	        if (catalytic_wall.eq.1)then
-   	        matrix_1(dimensiona+3:nof_variables-1,iq)= &
-             matrix_1(dimensiona+3:nof_variables-1,iq)+ &
-             (sols1(dimensiona+3:nof_variables-1)* &
+	        if ((catalytic_wall.eq.1).and.(temp_hi.lt.nof_variables-1))then
+	        matrix_1(temp_hi+1:nof_variables-1,iq)= &
+             matrix_1(temp_hi+1:nof_variables-1,iq)+ &
+             (sols1(temp_hi+1:nof_variables-1)* &
              rec_stencils(ll,iq,k0,rec_wall(i)))/rec_wallcoeff(k0,rec_wall(i))- &
-             (catalytic_con(1:nof_species)*rec_stencils(ll,iq,k0,rec_wall(i)))/ &
+             (catalytic_con(1:nof_variables-temp_hi-1)*rec_stencils(ll,iq,k0,rec_wall(i)))/ &
              rec_wallcoeff(k0,rec_wall(i))
 
 
 
-   	        end if
+	        end if
 
 
 
@@ -225,7 +227,7 @@ iconsidered=i
 
 		  end do
 		  end if
-		  if ((var2.gt.dimensiona).and.(var2.le.nof_variables-nof_species-1))then	!temperature gradients
+		  if ((var2.gt.dimensiona).and.(var2.le.temp_hi))then	!temperature gradients
 		  do iq=1,imax
 		     do lq=1,number_of_dog-1
 		     if (thermal.eq.1)then
@@ -236,11 +238,11 @@ iconsidered=i
 		      end do
 		  end do
 		  end if
-		   if (var2.gt.nof_variables-nof_species-1)then					!species
+		   if (var2.gt.temp_hi)then					!species
 		   do iq=1,imax
 		     do lq=1,number_of_dog-1
 
-		     if (catalytic_wall.eq.1)then
+		     if ((catalytic_wall.eq.1).and.(temp_hi.lt.nof_variables-1))then
 		      matrix_2(var2,lq)=matrix_2(var2,lq)+matrix_1(var2,iq)*rec_vellsq(iq,lq,rec_wall(i))
 		     else
 			matrix_2(var2,lq)=matrix_2(var2,lq)+matrix_1(var2,iq)*rec_tempsq(iq,lq,rec_wall(i))
@@ -258,7 +260,7 @@ iconsidered=i
 			end do
 			end do
 		end if
-		if ((var2.gt.dimensiona).and.(var2.le.nof_variables-nof_species-1))then
+		if ((var2.gt.dimensiona).and.(var2.le.temp_hi))then
 		if (thermal.eq.1)then
 		do ivvm=1,number_of_dog-1
 			sol_m(ivvm,var2)=zero
@@ -276,9 +278,9 @@ iconsidered=i
 		end if
 		end if
 
-		if (var2.gt.nof_variables-nof_species-1)then
+		if (var2.gt.temp_hi)then
 
-		if (catalytic_wall.eq.1)then
+		if ((catalytic_wall.eq.1).and.(temp_hi.lt.nof_variables-1))then
 			do ivvm=1,number_of_dog-1
 			sol_m(ivvm,var2)=zero
 			do lq=1,number_of_dog-1
@@ -322,7 +324,7 @@ iconsidered=i
 
 		end if
 
-		if ((var2.gt.dimensiona).and.(var2.le.nof_variables-nof_species-1))then	!temperature gradients
+		if ((var2.gt.dimensiona).and.(var2.le.temp_hi))then	!temperature gradients
 		if (thermal.eq.1)then
 		rec_gradf(var2,1:idegfree,iconsidered)=-tolbig
 		    ivvm=0
@@ -359,9 +361,9 @@ iconsidered=i
 			    rec_gradf(var2,g0,iconsidered)=attt
 		end if
 		end if
-		if (var2.gt.nof_variables-nof_species-1)then				!species gradients
+		if (var2.gt.temp_hi)then				!species gradients
 
-			if (catalytic_wall.eq.1)then
+			if ((catalytic_wall.eq.1).and.(temp_hi.lt.nof_variables-1))then
 		rec_gradf(var2,1:idegfree,iconsidered)=-tolbig
 		    ivvm=0
 		    do ttk=1,number_of_dog
@@ -370,7 +372,7 @@ iconsidered=i
 					    rec_gradf(var2,ttk,iconsidered)=sol_m(ivvm,var2)
 		  end do
 		  attt=zero
-		  attt=catalytic_con(var2-dimensiona-2)-sols1(var2)
+		  attt=catalytic_con(var2-temp_hi)-sols1(var2)
 
 
 			  do ttk=1,number_of_dog
@@ -1001,7 +1003,8 @@ do ii=1,nof_bounded
       leftv(1:nof_variables)=sols2(1:nof_variables)
       call cons2div_ideal(n,leftv,mp_pinfl,gammal)
       sols2(1:nof_variables-1)=leftv(2:nof_variables)
-      if ((b_code.eq.4).and.(thermal.eq.1)) sols2(dimensiona+1:nof_variables-1)=wall_temp
+      if ((b_code.eq.4).and.(thermal.eq.1)) &
+        sols2(dimensiona+1:nof_variables-1)=2.0d0*wall_temp-sols1(dimensiona+1:nof_variables-1)
 
       do k=1,dimensiona
         sols_f(1:nof_variables-1,k)=sols_f(1:nof_variables-1,k)+ &
@@ -2151,9 +2154,10 @@ do j=1,ielem_ifca(i)
 			call cons2div(n,leftv,mp_pinfl,gammal)
 			sols2(1:nof_variables-1)=leftv(2:nof_variables)
 
- 			do k=1,dimensiona
- 			sols_f(1:nof_variables,k)=sols_f(1:nof_variables,k)+((oo2*(sols2(1:nof_variables)+sols1(1:nof_variables)))*normal_all(k)*ielem_surf(j,i)*oov2)
- 			end do
+			do k=1,dimensiona
+			sols_f(1:nof_variables-1,k)=sols_f(1:nof_variables-1,k)+ &
+				(oo2*(sols2(1:nof_variables-1)+sols1(1:nof_variables-1))*normal_all(k)*ielem_surf(j,i)*oov2)
+			end do
 end do
 
 			do k=1,dimensiona
@@ -2183,7 +2187,8 @@ do j=1,ielem_ifca(i)
 			sols2(1:nof_variables-1)=leftv(2:nof_variables)
 
 			do k=1,2
-			sols_f(1:nof_variables,k)=sols_f(1:nof_variables,k)+((oo2*(sols2(1:nof_variables)+sols1(1:nof_variables)))*normal_all(k)*ielem_surf(j,i)*oov2)
+			sols_f(1:nof_variables-1,k)=sols_f(1:nof_variables-1,k)+ &
+				(oo2*(sols2(1:nof_variables-1)+sols1(1:nof_variables-1))*normal_all(k)*ielem_surf(j,i)*oov2)
 
 			end do
 
@@ -2245,7 +2250,7 @@ real,dimension(1:gpu_max_nvar,1:gpu_max_neighbours)::matrix_1
 real,dimension(1:gpu_max_nvar,1:gpu_max_dof)::matrix_2
 real,dimension(1:gpu_max_dof,1:gpu_max_nvar)::sol_m
 real,dimension(1:gpu_max_nvar)::matrix_3
-integer::i,var2,ii,k0,g0,ttk,ivvm,iq,lq,irg
+integer::i,var2,ii,k0,g0,ttk,ivvm,iq,lq,irg,temp_hi
 real::attt
 integer::ll,imax,nf,lf,rowf
 real::mp_pinfl,gammal
@@ -2269,6 +2274,8 @@ ll=1
 i=iconsidered
 sols1=zero;
 sols2=zero
+temp_hi=nof_variables-1
+if ((multispecies.eq.1).or.(realgas.eq.1)) temp_hi=nof_variables-nof_species-1
 
 	    ll=1
 	    k0=rec_k0(rec_wall(i))
@@ -2302,25 +2309,32 @@ sols2=zero
 		 call cons2div(n,leftv,mp_pinfl,gammal)
 	       sols2(1:nof_variables-1)=leftv(2:nof_variables)
 ! 	       !sols2(1)=leftv(5)/(leftv(1)*r_gas)
-  	        matrix_1(1:nof_variables-1,iq)=(rec_volume_w(1,iq+1,rec_wall(i))*rec_weightl(1,iq,rec_wall(i))*(sols2(1:nof_variables-1)-sols1(1:nof_variables-1)))
+	        matrix_1(1:nof_variables-1,iq)=(rec_volume_w(1,iq+1,rec_wall(i))*rec_weightl(1,iq,rec_wall(i))*(sols2(1:nof_variables-1)-sols1(1:nof_variables-1)))
 
-  	        !velocity gradients
-  	        matrix_1(1:dimensiona,iq)=matrix_1(1:dimensiona,iq)+((sols1(1:dimensiona)*rec_stencils(ll,iq,k0,rec_wall(i)))/rec_wallcoeff(k0,rec_wall(i)))
+	        !velocity gradients
+	        matrix_1(1:dimensiona,iq)=matrix_1(1:dimensiona,iq)+((sols1(1:dimensiona)*rec_stencils(ll,iq,k0,rec_wall(i)))/rec_wallcoeff(k0,rec_wall(i)))
 
-  	        !temperature now check
+	        !temperature now check
 
 			if (thermal.eq.1)then
-  	        matrix_1(dimensiona+1:nof_variables-nof_species-1,iq)=matrix_1(dimensiona+1:nof_variables-nof_species-1,iq)+((sols1(dimensiona+1:nof_variables-nof_species-1)*rec_stencils(ll,iq,k0,rec_wall(i)))/rec_wallcoeff(k0,rec_wall(i)))-(((wall_temp)*rec_stencils(ll,iq,k0,rec_wall(i)))/rec_wallcoeff(k0,rec_wall(i)))
+	        matrix_1(dimensiona+1:temp_hi,iq)=matrix_1(dimensiona+1:temp_hi,iq)+ &
+		((sols1(dimensiona+1:temp_hi)*rec_stencils(ll,iq,k0,rec_wall(i)))/ &
+		rec_wallcoeff(k0,rec_wall(i)))- &
+		(((wall_temp)*rec_stencils(ll,iq,k0,rec_wall(i)))/rec_wallcoeff(k0,rec_wall(i)))
 
-  	        end if
-
-
-   	        if (catalytic_wall.eq.1)then
-   	        matrix_1(dimensiona+3:nof_variables-1,iq)=matrix_1(dimensiona+3:nof_variables-1,iq)+((sols1(dimensiona+3:nof_variables-1)*rec_stencils(ll,iq,k0,rec_wall(i)))/rec_wallcoeff(k0,rec_wall(i)))-(((catalytic_con(1:nof_species))*rec_stencils(ll,iq,k0,rec_wall(i)))/rec_wallcoeff(k0,rec_wall(i)))
-
+	        end if
 
 
-   	        end if
+	        if ((catalytic_wall.eq.1).and.(temp_hi.lt.nof_variables-1))then
+	        matrix_1(temp_hi+1:nof_variables-1,iq)=matrix_1(temp_hi+1:nof_variables-1,iq)+ &
+		((sols1(temp_hi+1:nof_variables-1)*rec_stencils(ll,iq,k0,rec_wall(i)))/ &
+		rec_wallcoeff(k0,rec_wall(i)))- &
+		(((catalytic_con(1:nof_variables-temp_hi-1))*rec_stencils(ll,iq,k0,rec_wall(i)))/ &
+		rec_wallcoeff(k0,rec_wall(i)))
+
+
+
+	        end if
 
 
 
@@ -2340,7 +2354,7 @@ sols2=zero
 
 		  end do
 		  end if
-		  if ((var2.gt.dimensiona).and.(var2.le.nof_variables-nof_species-1))then	!temperature gradients
+		  if ((var2.gt.dimensiona).and.(var2.le.temp_hi))then	!temperature gradients
 		  do iq=1,imax
 		     do lq=1,number_of_dog-1
 		     if (thermal.eq.1)then
@@ -2351,11 +2365,11 @@ sols2=zero
 		      end do
 		  end do
 		  end if
-		   if (var2.gt.nof_variables-nof_species-1)then					!species
+		   if (var2.gt.temp_hi)then					!species
 		   do iq=1,imax
 		     do lq=1,number_of_dog-1
 
-		     if (catalytic_wall.eq.1)then
+		     if ((catalytic_wall.eq.1).and.(temp_hi.lt.nof_variables-1))then
 		      matrix_2(var2,lq)=matrix_2(var2,lq)+matrix_1(var2,iq)*rec_vellsq(iq,lq,rec_wall(i))
 		     else
 			matrix_2(var2,lq)=matrix_2(var2,lq)+matrix_1(var2,iq)*rec_tempsq(iq,lq,rec_wall(i))
@@ -2373,7 +2387,7 @@ sols2=zero
 			end do
 			end do
 		end if
-		if ((var2.gt.dimensiona).and.(var2.le.nof_variables-nof_species-1))then
+		if ((var2.gt.dimensiona).and.(var2.le.temp_hi))then
 		if (thermal.eq.1)then
 		do ivvm=1,number_of_dog-1
 			sol_m(ivvm,var2)=zero
@@ -2391,9 +2405,9 @@ sols2=zero
 		end if
 		end if
 
-		if (var2.gt.nof_variables-nof_species-1)then
+		if (var2.gt.temp_hi)then
 
-		if (catalytic_wall.eq.1)then
+		if ((catalytic_wall.eq.1).and.(temp_hi.lt.nof_variables-1))then
 			do ivvm=1,number_of_dog-1
 			sol_m(ivvm,var2)=zero
 			do lq=1,number_of_dog-1
@@ -2437,7 +2451,7 @@ sols2=zero
 
 		end if
 
-		if ((var2.gt.dimensiona).and.(var2.le.nof_variables-nof_species-1))then	!temperature gradients
+		if ((var2.gt.dimensiona).and.(var2.le.temp_hi))then	!temperature gradients
 		if (thermal.eq.1)then
 		rec_gradf(var2,1:idegfree,iconsidered)=-tolbig
 		    ivvm=0
@@ -2474,9 +2488,9 @@ sols2=zero
 			    rec_gradf(var2,g0,iconsidered)=attt
 		end if
 		end if
-		if (var2.gt.nof_variables-nof_species-1)then				!species gradients
+		if (var2.gt.temp_hi)then				!species gradients
 
-			if (catalytic_wall.eq.1)then
+			if ((catalytic_wall.eq.1).and.(temp_hi.lt.nof_variables-1))then
 		rec_gradf(var2,1:idegfree,iconsidered)=-tolbig
 		    ivvm=0
 		    do ttk=1,number_of_dog
@@ -2485,7 +2499,7 @@ sols2=zero
 					    rec_gradf(var2,ttk,iconsidered)=sol_m(ivvm,var2)
 		  end do
 		  attt=zero
-		  attt=catalytic_con(var2-dimensiona-2)-sols1(var2)
+		  attt=catalytic_con(var2-temp_hi)-sols1(var2)
 
 
 			  do ttk=1,number_of_dog
@@ -2882,8 +2896,8 @@ sols2=zero
 	      end if
 
 
-  	        matrix_1(1:turbulenceequations+passivescalar,iq)=(rec_volume_w(1,iq+1,rec_wall(i))*rec_weightl(1,iq,rec_wall(i))*(sols2(1:turbulenceequations+passivescalar)-sols1(1:turbulenceequations+passivescalar)))
-  	        matrix_1(1:turbulenceequations+passivescalar,iq)=matrix_1(1:turbulenceequations+passivescalar,iq)+((sols1(1:turbulenceequations+passivescalar)*rec_stencils(ll,iq,k0,rec_wall(i)))/rec_wallcoeff(k0,rec_wall(i)))
+	        matrix_1(1:turbulenceequations+passivescalar,iq)=(rec_volume_w(1,iq+1,rec_wall(i))*rec_weightl(1,iq,rec_wall(i))*(sols2(1:turbulenceequations+passivescalar)-sols1(1:turbulenceequations+passivescalar)))
+	        matrix_1(1:turbulenceequations+passivescalar,iq)=matrix_1(1:turbulenceequations+passivescalar,iq)+((sols1(1:turbulenceequations+passivescalar)*rec_stencils(ll,iq,k0,rec_wall(i)))/rec_wallcoeff(k0,rec_wall(i)))
 		end do
 		matrix_3(1:turbulenceequations+passivescalar)=-sols1(1:turbulenceequations+passivescalar)
 
@@ -2960,7 +2974,7 @@ real,dimension(1:gpu_max_nvar)::sols1,sols2,dudl,aver1
 real,dimension(1:gpu_max_nvar,3)::sols_f
 real,dimension(3)::normal_all,dih_vec,e_ih,sf
 real::oov2,titj,mp_pinfl,gammal,angle1,angle2,nx,ny,nz,aorth,dih
-integer::i,j,k,l,b_code,facex,n_node,imax,nf,lf,rowf
+integer::i,j,k,l,b_code,facex,n_node,imax,nf,lf,rowf,temp_hi
 real,dimension(1:gpu_max_nvar)::leftv,srf_speed,srf_speedrot,rightv,phi_f
 real,dimension(1:gpu_max_dim)::pox,poy,poz,cords
 real,dimension(1:8,1:gpu_max_dim)::vext
@@ -2974,6 +2988,8 @@ integer::ibfc
 i=iconsidered
 sols_f=zero;sols1=zero;sols2=zero
 oov2=1.0d0/ielem_totvolume(i)
+temp_hi=nof_variables-1
+if ((multispecies.eq.1).or.(realgas.eq.1)) temp_hi=nof_variables-nof_species-1
 
 rec_grads(:,:,i)=zero
 
@@ -3035,15 +3051,15 @@ do j=1,ielem_ifca(i)
                                             n_node=3
                                     end if
 				  cords(1:3)=zero
- 				  call cordinates3(n,nodes_list,n_node,cords(1:3))
+				  call cordinates3(n,nodes_list,n_node,cords(1:3))
 
 				  poy(1)=cords(2)
 				  pox(1)=cords(1)
 				  poz(1)=cords(3)
 
- 				  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+				  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
 				  b_code=ibound_icode(ielem_ibounds(j,i))
- 				  call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+				  call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
 
 				  sols2(1:nof_variables)=rightv(1:nof_variables)
 
@@ -3074,18 +3090,20 @@ do j=1,ielem_ifca(i)
 			sols2(1:nof_variables-1)=leftv(2:nof_variables)
 
 			if ((b_code.eq.4).and.(thermal.eq.1))then
-				sols2(dimensiona+1:nof_variables-nof_species-1)=wall_temp
+				sols2(dimensiona+1:temp_hi)= &
+					2.0d0*wall_temp-sols1(dimensiona+1:temp_hi)
 			end if
 
-			if ((b_code.eq.4).and.(catalytic_wall.eq.1))then
-				sols2(dimensiona+3:nof_variables-1)=catalytic_con(1:nof_species)
+			if ((b_code.eq.4).and.(catalytic_wall.eq.1).and.(temp_hi.lt.nof_variables-1))then
+				sols2(temp_hi+1:nof_variables-1)=catalytic_con(1:nof_variables-temp_hi-1)
 			end if
 
 
 
 !
 			do k=1,dimensiona
-			sols_f(1:nof_variables,k)=sols_f(1:nof_variables,k)+((oo2*(sols2(1:nof_variables)+sols1(1:nof_variables)))*normal_all(k)*ielem_surf(j,i)*oov2)
+			sols_f(1:nof_variables-1,k)=sols_f(1:nof_variables-1,k)+ &
+				(oo2*(sols2(1:nof_variables-1)+sols1(1:nof_variables-1))*normal_all(k)*ielem_surf(j,i)*oov2)
 
 			end do
 
@@ -3196,18 +3214,19 @@ do j=1,ielem_ifca(i)
 			sols2(1:nof_variables-1)=leftv(2:nof_variables)
 
 			if ((b_code.eq.4).and.(thermal.eq.1))then
-				sols2(dimensiona+1:nof_variables-nof_species-1)=wall_temp
+				sols2(dimensiona+1:temp_hi)= &
+					2.0d0*wall_temp-sols1(dimensiona+1:temp_hi)
 			end if
 
-			if ((b_code.eq.4).and.(catalytic_wall.eq.1))then
-				sols2(dimensiona+3:nof_variables-1)=catalytic_con(1:nof_species)
+			if ((b_code.eq.4).and.(catalytic_wall.eq.1).and.(temp_hi.lt.nof_variables-1))then
+				sols2(temp_hi+1:nof_variables-1)=catalytic_con(1:nof_variables-temp_hi-1)
 			end if
 
 
- 			do k=1,dimensiona
- 			sols_f(1:nof_variables-1,k)=sols_f(1:nof_variables-1,k)+((oo2*(sols2(1:nof_variables-1)+sols1(1:nof_variables-1)))*normal_all(k)*ielem_surf(j,i)*oov2)
+			do k=1,dimensiona
+			sols_f(1:nof_variables-1,k)=sols_f(1:nof_variables-1,k)+((oo2*(sols2(1:nof_variables-1)+sols1(1:nof_variables-1)))*normal_all(k)*ielem_surf(j,i)*oov2)
 
- 			end do
+			end do
 
 
 ! 					! build face area vector
@@ -3302,7 +3321,7 @@ real,dimension(1:gpu_max_nvar)::sols1,sols2
 real,dimension(1:gpu_max_nvar,3)::sols_f
 real,dimension(3)::normal_all,temp_vert
 real::oov2,titj,mp_pinfl,gammal,angle1,angle2,nx,ny,nz
-integer::i,j,k,l,var2,b_code,facex,n_node,nf,lf,rowf
+integer::i,j,k,l,var2,b_code,facex,n_node,nf,lf,rowf,temp_hi
 real,dimension(1:gpu_max_nvar)::leftv,srf_speed,srf_speedrot,rightv
 real,dimension(1:gpu_max_dim)::pox,poy,poz,cords
 real,dimension(1:8,1:gpu_max_dim)::vext
@@ -3321,6 +3340,8 @@ integer::ibfc
 i=iconsidered
 sols_f=zero
 oov2=1.0d0/ielem_totvolume(i)
+temp_hi=nof_variables-1
+if ((multispecies.eq.1).or.(realgas.eq.1)) temp_hi=nof_variables-nof_species-1
 
 
 
@@ -3366,15 +3387,15 @@ do j=1,ielem_ifca(i)
                                     end if
 
 				  cords(1:3)=zero
- 				  call cordinates3(n,nodes_list,n_node,cords(1:3))
+				  call cordinates3(n,nodes_list,n_node,cords(1:3))
 
 				  poy(1)=cords(2)
 				  pox(1)=cords(1)
 				  poz(1)=cords(3)
 
- 				  leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)
+				  leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)
 				  b_code=ibound_icode(ielem_ibounds(j,i))
- 				  call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
+				  call boundarys(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
 
 
 				  sols2(1:nof_variables)=rightv(1:nof_variables)
@@ -3403,10 +3424,11 @@ do j=1,ielem_ifca(i)
 
 
 			if ((b_code.eq.4).and.(thermal.eq.1))then
-				sols2(dimensiona+1:nof_variables-nof_species-1)=wall_temp
+				sols2(dimensiona+1:temp_hi)= &
+					2.0d0*wall_temp-sols1(dimensiona+1:temp_hi)
 			end if
-			if ((b_code.eq.4).and.(catalytic_wall.eq.1))then
-				sols2(dimensiona+3:nof_variables-1)=catalytic_con(1:nof_species)
+			if ((b_code.eq.4).and.(catalytic_wall.eq.1).and.(temp_hi.lt.nof_variables-1))then
+				sols2(temp_hi+1:nof_variables-1)=catalytic_con(1:nof_variables-temp_hi-1)
 			end if
 
 
@@ -3416,7 +3438,8 @@ do j=1,ielem_ifca(i)
 
 
 			do k=1,3
-			sols_f(1:nof_variables,k)=sols_f(1:nof_variables,k)+((oo2*(sols2(1:nof_variables)+sols1(1:nof_variables)))*normal_all(k)*ielem_surf(j,i)*oov2)
+			sols_f(1:nof_variables-1,k)=sols_f(1:nof_variables-1,k)+ &
+				(oo2*(sols2(1:nof_variables-1)+sols1(1:nof_variables-1))*normal_all(k)*ielem_surf(j,i)*oov2)
 
 			end do
 end do

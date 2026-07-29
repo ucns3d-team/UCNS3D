@@ -20068,8 +20068,8 @@ do i=1,kmaxe
 				  tauyy=2.0d0*vy
 				  tauyx=(uy + vx)
 
-				  ssx=ssx-((viscl(1)*((ny*tauyx)))*weights_temp(im))
-				  ssy=ssy-((viscl(1)*((nx*tauyx)))*weights_temp(im))
+				  ssx=ssx-((viscl(1)*((nx*tauxx)+(ny*tauyx)))*weights_temp(im))
+				  ssy=ssy-((viscl(1)*((nx*tauyx)+(ny*tauyy)))*weights_temp(im))
 				  end if
 				  ssp=ssp+(px*weights_temp(im))
 				   end do

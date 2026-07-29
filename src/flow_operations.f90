@@ -1910,7 +1910,7 @@ p_tol =10e-5
       temps(4)=leftv(4)*oodensity
       temps(5)=((gamma-1.0d0))*((leftv(5))-oo2*leftv(1)*(((temps(2))**2)+((temps(3))**2)+((temps(4))**2)))
 
-      temps(5)=  leftv(5)/(leftv(1)*r_gas)  !temperature
+      temps(5)=temps(5)/(leftv(1)*r_gas)  !temperature
 
       leftv(1:nof_variables)=temps(1:nof_variables)
 
@@ -2184,7 +2184,7 @@ temps(2)=leftv(2)*oodensity
 temps(3)=leftv(3)*oodensity
 temps(4)=((gamma-1.0d0))*((leftv(4))-oo2*leftv(1)*(((temps(2))**2)+((temps(3))**2)))
 
-temps(4)=  leftv(4)/(leftv(1)*r_gas)  !temperature
+temps(4)=temps(4)/(leftv(1)*r_gas)  !temperature
 
 leftv(1:nof_variables)=temps(1:nof_variables)
 
@@ -2790,7 +2790,7 @@ implicit none
 integer,intent(in)::n
 real,dimension(1:nof_variables),intent(inout)::leftv
 real,intent(inout)::mp_pinfl,gammal
-real::oodensity
+real::oodensity,skinx
 
 mp_pinfl=zero
 gammal=gamma
@@ -2800,9 +2800,11 @@ if (nof_variables.gt.1)then
   leftv(3)=leftv(3)*oodensity
   if (dimensiona.eq.3)then
     leftv(4)=leftv(4)*oodensity
-    leftv(5)=leftv(5)/(leftv(1)*r_gas)
+    skinx=(leftv(2)*leftv(2))+(leftv(3)*leftv(3))+(leftv(4)*leftv(4))
+    leftv(5)=((gamma-1.0d0)*(leftv(5)-oo2*leftv(1)*skinx))/(leftv(1)*r_gas)
   else
-    leftv(4)=leftv(4)/(leftv(1)*r_gas)
+    skinx=(leftv(2)*leftv(2))+(leftv(3)*leftv(3))
+    leftv(4)=((gamma-1.0d0)*(leftv(4)-oo2*leftv(1)*skinx))/(leftv(1)*r_gas)
   end if
 end if
 
@@ -4718,8 +4720,8 @@ tauyy=2.0d0*vy
 
 tauyx=(uy + vx)
 
-ssx=ssx+((viscl(1)*((ny*tauyx)))*wequa2d(im))
-ssy=ssy+((viscl(1)*((nx*tauyx)))*wequa2d(im))
+ssx=ssx+((viscl(1)*((nx*tauxx)+(ny*tauyx)))*wequa2d(im))
+ssy=ssy+((viscl(1)*((nx*tauyx)+(ny*tauyy)))*wequa2d(im))
 end do
 
 shear_temp=-ssx/(0.5*rres*ufreestream*ufreestream)
@@ -4789,11 +4791,10 @@ tauyy=2.0d0*vy
 
 tauyx=(uy + vx)
 
-ssx=ssx+((viscl(1)*((ny*tauyx)))*wequa2d(im))
-ssy=ssy+((viscl(1)*((nx*tauyx)))*wequa2d(im))
+ssy=ssy+((viscl(1)*((nx*tauyx)+(ny*tauyy)))*wequa2d(im))
 end do
 
-shear_temp=-ssx/(0.5*rres*ufreestream*ufreestream)
+shear_temp=-ssy/(0.5*rres*ufreestream*ufreestream)
 
 
 end subroutine shear_y2d
