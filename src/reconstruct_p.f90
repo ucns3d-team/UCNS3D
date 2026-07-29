@@ -523,14 +523,14 @@ end subroutine extrapolate_bound_linear
 
 
 
-subroutine extrapolate_bound_muscl(du,facex,pointx,iconsidered,slope)
+subroutine extrapolate_bound_muscl(n,du,facex,pointx,iconsidered,slope)
   implicit none
 !> @brief
 !> Pointwise MUSCL extrapolation using a single increment vector (no usol/psi storage).
 #ifdef gpu
 !$omp declare target
 #endif
-  integer,intent(in) :: facex,pointx,iconsidered
+  integer,intent(in) :: n,facex,pointx,iconsidered
   real,intent(in)    :: du(1:nof_variables+turbulenceequations+passivescalar)      ! size = nvtot (cons + turb + passive)
   real,intent(in)    :: slope(1:nof_variables+turbulenceequations+passivescalar)   ! same size as du
   real,dimension(1:gpu_max_nvar) :: leftv
@@ -1765,7 +1765,7 @@ integer :: kbasis
       smooth(ll) = 0.0d0
       do j = 1, ideg_local
         do k = 1, ideg_local
-          smooth(ll) = smooth(ll) + rec_gradients(ll,j,iex,i) * rec_indicator(j,k,i) * rec_gradients2(ll,k,iex,i)
+          smooth(ll) = smooth(ll) + rec_gradients2(ll,j,iex,i) * rec_indicator(j,k,i) * rec_gradients2(ll,k,iex,i)
         end do
       end do
     end do
@@ -2203,7 +2203,7 @@ real::mp_pinfl,gammal
 
 
 
-				    if (wenwrt.eq.3) then  ! primitive accumulation, but increments are in conservative space
+					    if (wenwrt.eq.3) then  ! accumulate primitive WENO state; caller converts after all stencil weights
                     leftv(1:nof_variables) = u_c_val(1,1:nof_variables,iconsidered)
                     call cons2prim(n,leftv,mp_pinfl,gammal)
 
@@ -3401,7 +3401,7 @@ subroutine compute_muscl_reconstruction(iconsidered,utmin,utmax)
         end do
       end if
 
-      call extrapolate_bound_muscl(du,l,ngp,i,slope)
+      call extrapolate_bound_muscl(n,du,l,ngp,i,slope)
     end do
   end do
 
