@@ -165,7 +165,9 @@ end if
 
 if (rungekutta.eq.12)then
 allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
+allocate (impdu_old(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 impdu(:,:)=zero
+impdu_old(:,:)=zero
 else
 
 
@@ -175,6 +177,7 @@ if (relax.eq.3)then
 allocate (impdiag_mf(kmaxe))
 allocate (impoff_mf(kmaxe,interf))
 allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
+allocate (impdu_old(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 
 if ((itestcase.eq.4).and.((turbulence.gt.0).or.(passivescalar.gt.0)))then
 allocate(impdiagt(kmaxe,turbulenceequations+passivescalar))
@@ -185,6 +188,7 @@ end if
 impdiag_mf=zero
 impoff_mf=zero
 impdu=zero
+impdu_old=zero
 
 else
 
@@ -197,6 +201,7 @@ if (lowmemory.eq.0)then
 allocate (impdiag(kmaxe,1:nof_variables,1:nof_variables))
 allocate (impoff(kmaxe,6,1:nof_variables,1:nof_variables))
 allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
+allocate (impdu_old(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 
 if (realgas.eq.1)then
 allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
@@ -212,11 +217,14 @@ end if
 impdiag(:,:,:)=zero
 impoff(:,:,:,:)=zero
 impdu(:,:)=zero
+impdu_old(:,:)=zero
 
 else
 
 allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
+allocate (impdu_old(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 impdu(:,:)=zero
+impdu_old(:,:)=zero
 
 if (realgas.eq.1)then
 allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
@@ -234,6 +242,7 @@ if (lowmemory.eq.0)then
 allocate (impdiag(kmaxe,1:nof_variables,1:nof_variables))
 allocate (impoff(kmaxe,4,1:nof_variables,1:nof_variables))
 allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
+allocate (impdu_old(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 
 if (realgas.eq.1)then
 allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
@@ -250,12 +259,14 @@ end if
 impdiag(:,:,:)=zero
 impoff(:,:,:,:)=zero
 impdu(:,:)=zero
+impdu_old(:,:)=zero
 
 else
 
 ! allocate (impdiag(1,1:nof_variables,1:nof_variables))
 ! allocate (impoff(1,4,1:nof_variables,1:nof_variables))
 allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
+allocate (impdu_old(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 
 if (realgas.eq.1)then
 allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
@@ -269,6 +280,7 @@ end if
 ! impdiag(1,:,:)=zero
 ! impoff(1,:,:,:)=zero
 impdu(:,:)=zero
+impdu_old(:,:)=zero
 end if
 
 
@@ -2107,6 +2119,10 @@ subroutine omp_map_first(n)
   if (allocated(impdu)) then
     !$omp target enter data map(alloc: impdu)
     !$omp target update to(impdu)
+  end if
+  if (allocated(impdu_old)) then
+    !$omp target enter data map(alloc: impdu_old)
+    !$omp target update to(impdu_old)
   end if
   if (allocated(impoff)) then
     !$omp target enter data map(alloc: impoff)

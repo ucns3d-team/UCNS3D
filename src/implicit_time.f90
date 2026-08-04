@@ -33,9 +33,34 @@ do i=1,kmaxe
 end do
 !$omp end target teams distribute parallel do
 #else
-impdu(:,:)=zero
+!$omp do
+do i=1,kmaxe
+  impdu(i,1:nof_variables+turbulenceequations+passivescalar)=zero
+end do
+!$omp end do
 #endif
 end subroutine implicit_zero_impdu
+
+
+subroutine implicit_snapshot_impdu(kmaxe)
+implicit none
+integer,intent(in)::kmaxe
+integer::i
+#ifdef gpu
+!$omp target teams distribute parallel do firstprivate(kmaxe) private(i)
+#else
+!$omp do
+#endif
+do i=1,kmaxe
+  impdu_old(i,1:nof_variables+turbulenceequations+passivescalar)=&
+  impdu(i,1:nof_variables+turbulenceequations+passivescalar)
+end do
+#ifdef gpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+end subroutine implicit_snapshot_impdu
 
 
 
@@ -141,6 +166,8 @@ end if
 
 if (relax.eq.1)then
 do ii=1,sweeps	!loop1
+call exhboundhigher2(n)
+call implicit_snapshot_impdu(kmaxe)
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(i)
 #else
@@ -154,8 +181,6 @@ end do	!loop elements
 #else
 !$omp end do
 #endif
-
- call exhboundhigher2(n)
 
 
 end do!sweeps
@@ -392,10 +417,10 @@ do l=1,ielem_ifca(i)	!loop3
 
 
 
-		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+		du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 
 		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+		dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 		end if
 
 		  do mm_i=1,nof_variables
@@ -428,13 +453,13 @@ do l=1,ielem_ifca(i)	!loop3
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if ((ibound_icode(ielem_ibounds(l,i)).eq.5).or.(ibound_icode(ielem_ibounds(l,i)).eq.50))then	!periodic in my cpu
-								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+								    du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 									    if ((per_rot.eq.1).and.(ibound_icode(ielem_ibounds(l,i)).eq.50))then
 	                                        du1(2:4)=rotate_per_1(du1(2:4),ibound_icode(ielem_ibounds(l,i)),angle_per)
 									    end if
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 
-								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								      dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 									end if
 
@@ -543,10 +568,10 @@ do l=1,ielem_ifca(i)	!loop3
 
 								  end if
 							else
-							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+							       du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 
-								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								      dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 									end if
 
@@ -1262,6 +1287,8 @@ call implicit_zero_impdu(kmaxe)
 
 if (relax.eq.1)then
 do ii=1,sweeps	!loop1
+call exhboundhigher2(n)
+call implicit_snapshot_impdu(kmaxe)
 #ifndef gpu
 !$omp do
 #endif
@@ -1271,8 +1298,6 @@ end do	!loop elements
 #ifndef gpu
 !$omp end do
 #endif
-
- call exhboundhigher2(n)
 
 
 end do!sweeps
@@ -1413,10 +1438,10 @@ do l=1,ielem_ifca(i)	!loop3
 
 
 
-		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+		du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 
 		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+		dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 		end if
 
 		  do mm_i=1,nof_variables
@@ -1445,10 +1470,10 @@ do l=1,ielem_ifca(i)	!loop3
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
-								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+								    du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 
-								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								      dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 									end if
 
@@ -1537,10 +1562,10 @@ do l=1,ielem_ifca(i)	!loop3
 
 								  end if
 							else
-							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+							       du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 
-								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								      dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 									end if
 
@@ -2238,6 +2263,8 @@ end if
 
 if (relax.eq.1)then
 do ii=1,sweeps	!loop1
+call exhboundhigher2(n)
+call implicit_snapshot_impdu(kmaxe)
 #ifdef gpu
 !$omp target teams distribute parallel do firstprivate(n) private(i)
 #else
@@ -2251,8 +2278,6 @@ end do
 #else
 !$omp end do
 #endif
-
- call exhboundhigher2(n)
 
 
 
@@ -2408,10 +2433,10 @@ do l=1,ielem_ifca(i)	!loop3
 
 
 
-		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+		du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 
 		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+		dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 		end if
 
 		  do mm_i=1,nof_variables
@@ -2440,10 +2465,10 @@ do l=1,ielem_ifca(i)	!loop3
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
-								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+								    du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 
-								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								      dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 									end if
 
@@ -2547,10 +2572,10 @@ do l=1,ielem_ifca(i)	!loop3
 
 								  end if
 							else
-							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+							       du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 
-								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								      dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 									end if
 
@@ -3258,6 +3283,8 @@ call implicit_zero_impdu(kmaxe)
 
 if (relax.eq.1)then
 do ii=1,sweeps	!loop1
+call exhboundhigher2(n)
+call implicit_snapshot_impdu(kmaxe)
 #ifndef gpu
 !$omp do
 #endif
@@ -3267,8 +3294,6 @@ end do	!loop elements
 #ifndef gpu
 !$omp end do
 #endif
-
- call exhboundhigher2(n)
 
 
 end do!sweeps
@@ -3408,10 +3433,10 @@ do l=1,ielem_ifca(i)	!loop3
 
 
 
-		du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+		du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 
 		if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-		dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+		dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 		end if
 
 		  do mm_i=1,nof_variables
@@ -3440,10 +3465,10 @@ do l=1,ielem_ifca(i)	!loop3
 					if (ielem_ineighb(l,i).eq.n)then	!my cpu only
 						if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
 								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
-								    du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+								    du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 
-								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								      dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 									end if
 
@@ -3551,10 +3576,10 @@ do l=1,ielem_ifca(i)	!loop3
 
 								  end if
 							else
-							       du1(1:nof_variables)=impdu(ielem_ineigh(l,i),1:nof_variables)
+							       du1(1:nof_variables)=impdu_old(ielem_ineigh(l,i),1:nof_variables)
 									if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 
-								      dut1(1:turbulenceequations+passivescalar)=impdu(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
+								      dut1(1:turbulenceequations+passivescalar)=impdu_old(ielem_ineigh(l,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 									end if
 

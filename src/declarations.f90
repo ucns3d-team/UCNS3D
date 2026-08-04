@@ -561,6 +561,7 @@ real,allocatable,dimension(:,:)::inversejac	!inverse jacobians
 real,allocatable,dimension(:)::deterjac		!determinant jacobians
 real,allocatable,dimension(:,:)::probec		!probe positions
 real,allocatable,dimension(:,:)::impdu		!implicit only change of solution
+real,allocatable,dimension(:,:)::impdu_old	!implicit jacobi snapshot of change of solution
 real,allocatable,dimension(:,:,:)::impdiag	!implicit only diagonal matrix d
 real,allocatable,dimension(:,:,:,:)::impoff	!implicit only off diagonal matrix d
 real,allocatable,dimension(:)::impdiag_mf	!implicit only diagonal matrix d
@@ -1044,7 +1045,7 @@ integer, allocatable :: ibound_cpun(:,:)    !local number and cpu for each bound
 !$omp declare target (gridar2, guassianquadra, hybridist, iadapt, ibcode, iboundary, ibside, icarlos1, icarlos2, icompact)
 !$omp declare target (icong, iconimp, iconsgvq, iconsr, icoupleturb, idegfree, idegfree2, idegfree3, ievery, ievery2)
 !$omp declare target (ieveryav, iforce, igianagraps, igqrules, ihax1, ihybrid, iloop, iloopx, ilx, imaxb)
-!$omp declare target (imaxdegfree, imaxdegfree2, imaxe, imaxn, impdiag, impdiagt, impdu, impoff, impofft, in)
+!$omp declare target (imaxdegfree, imaxdegfree2, imaxe, imaxn, impdiag, impdiagt, impdu, impdu_old, impoff, impofft, in)
 !$omp declare target (ineedbound, ineedhalo, initcond, initialres, inum2, inwhichel, iorder, iorder2, ioverst, ioverto)
 !$omp declare target (iperiodicity, iriemann, irs, ischeme, iscoun, iselem, ispal, isplit, issf, istn)
 !$omp declare target (it, itestcase, itold, itotalb, itt, ivortex, iweightlsqr, iweno, iwmaxe, jk)

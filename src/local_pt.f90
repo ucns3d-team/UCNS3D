@@ -2822,7 +2822,7 @@ end do
         tempg1=ielem_condition(i)
 
 
-   if (realgas.eq.1)then
+   if ((realgas.eq.1).or.(code_profile.eq.888))then
   if (ielem_interior(i).eq.1)then
   	do j=1,ielem_ifca(i)
   	  if (ielem_ibounds(j,i).gt.0)then
