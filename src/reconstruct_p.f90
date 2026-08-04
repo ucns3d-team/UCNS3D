@@ -5899,7 +5899,7 @@ if (itestcase.ge.3)then
   do i=1,kmaxe
     ielem_reduce(i)=0
     reduce1=0
-    jump_cond=0.9d0
+    jump_cond=0.5d0
 
     if (ielem_troubled(i).eq.1)then
       if (ielem_full(i).eq.0)then
@@ -5979,7 +5979,7 @@ if (itestcase.ge.3)then
 !$omp do private(i,l,ngp,iqp,iex,k,reduce1,jump_cond,mp_pinfl,mp_pinfr,gammal,gammar,leftv,rightv)
 #endif
   do i=1,kmaxe
-    jump_cond=0.8d0
+    jump_cond=0.5d0
     reduce1=0
 
     if (ielem_troubled(i).eq.1)then
@@ -6161,7 +6161,7 @@ if (itestcase.ge.3)then
         ielem_reduce(i)=0;reduce1=0
         jump_cond=0.9
 
-        if (realgas==1) jump_cond=0.6
+        if (realgas==1) jump_cond=0.5
 
 
         if (ielem_troubled(i).eq.1)then
@@ -6323,9 +6323,9 @@ if (itestcase.ge.3)then
 !$omp do
 #endif
 	do i=1,kmaxe
-            jump_cond=0.8
+            jump_cond=0.5
 
-            if (Realgas.eq.1)jump_cond=0.6
+            if (Realgas.eq.1)jump_cond=0.5
 
 			reduce1=0
 
