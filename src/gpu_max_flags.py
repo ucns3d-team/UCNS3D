@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Emit GPU_MAX_* preprocessor flags derived from the active input deck.
+"""Emit GPU_MAX_* preprocessor flags derived from UCNS3D.DAT.
 
 The Fortran code reads UCNS3D.DAT at runtime, but fixed GPU work-array
 sizes must be selected at compile time. This helper mirrors the small part
-of parameters.f90 that derives dimensions used by those arrays. With no
-argument it checks the current build directory for UCNS3D.DAT and companion
-files such as REALGAS.DAT.
+of parameters.f90 that derives dimensions used by those arrays. Capacities
+also cover fixed indices in routines compiled for other runtime physics modes.
 """
 from __future__ import annotations
 
@@ -101,9 +100,6 @@ def derive(config: Path) -> dict[str, int]:
             values["nof_species"] = as_int(species_tokens[0])
 
     dim = values["dimensiona"]
-    # 2D cases still compile shared 3D helper routines, so the fixed-size
-    # non-xpu work arrays must keep 3D-capable storage even when dimensiona=2.
-    storage_dim = max(3, dim)
     species = values["nof_species"]
     if values["governingequations"] <= 2:
         nof_variables = 5 if dim == 3 else 4
@@ -127,7 +123,7 @@ def derive(config: Path) -> dict[str, int]:
     typesten = 7
     if values["spatiladiscret"] == 3:
         ees = values["ees"]
-        if storage_dim == 2:
+        if dim == 2:
             if ees in (1, 2):
                 typesten = 9
             else:
@@ -138,9 +134,7 @@ def derive(config: Path) -> dict[str, int]:
             else:
                 typesten = 7
 
-    # UCNS3D.DAT only toggles turbulence on/off; the concrete model is set in
-    # parameters.f90 profiles. Reserve room for both SA (1) and k-omega SST (2).
-    turbulence_equations = 2 if values["turbulence"] == 1 else 0
+    turbulence_equations = 1 if values["turbulence"] == 1 else 0
 
     # parameters.f90 sets igqrules from iorder, then gaussianpoints/quadalloc
     # translate that into numberofpoints and numberofpoints2 maxima.
@@ -162,7 +156,7 @@ def derive(config: Path) -> dict[str, int]:
         5: (25, 15, 5),
         6: (36, 21, 6),
     }
-    if storage_dim == 3:
+    if dim == 3:
         qp_hexa, qp_tetra, qp_pyra, qp_prism, qp_quad, qp_triangle = qp3.get(igqrules, (216, 56, 15, 60, 36, 36))
         numberofpoints = max(qp_hexa, qp_tetra * 6, qp_pyra, qp_prism) if dg == 1 else max(qp_hexa, qp_tetra, qp_pyra, qp_prism)
         numberofpoints2 = max(qp_quad, qp_triangle)
@@ -174,7 +168,7 @@ def derive(config: Path) -> dict[str, int]:
         qp_all = max(qp_quad, qp_triangle, qp_line)
 
     extf = 3
-    if storage_dim == 3:
+    if dim == 3:
         dg_dof = ((iorder + 1) * (iorder + 2) * (iorder + 3)) // 6
         idegfree = dg_dof - 1
         neighbours = 9 if iorder == 1 else dg_dof * extf
@@ -186,32 +180,34 @@ def derive(config: Path) -> dict[str, int]:
         neighbours2 = 6 if iorder == 1 else (7 if iorder <= 3 else 11)
 
     return {
-        "GPU_MAX_DIM": storage_dim,
+        "GPU_MAX_DIM": dim,
         "GPU_MAX_IORDER": iorder,
         "GPU_MAX_TYPESTEN": typesten,
-        "GPU_MAX_NVAR": max(5, nof_variables),
-        "GPU_MAX_SPECIES": max(1, species),
+        # Real-gas flux routines access the sixth (vibrational-energy) slot.
+        # Their runtime IF branches are still compiled for ideal-gas cases.
+        "GPU_MAX_NVAR": max(6, nof_variables),
+        # Chemistry routines contain fixed loops over five species.
+        "GPU_MAX_SPECIES": max(5, species),
         "GPU_MAX_TURBULENCE": max(1, turbulence_equations),
         "GPU_MAX_PASSIVE": max(1, values["passivescalar"]),
         "GPU_MAX_EXTF": extf,
         "GPU_MAX_IDEGFREE": max(1, idegfree),
         "GPU_MAX_DOF": max(1, dg_dof),
         "GPU_MAX_NEIGHBOURS": max(1, neighbours),
-        "GPU_MAX_QP_FACE": max(1, numberofpoints2),
+        # grid_t.f90 compiles every quadrature rule, including literal face
+        # table indices through 9, even when the active rule is smaller.
+        "GPU_MAX_QP_FACE": max(9, numberofpoints2),
         "GPU_MAX_QP_VOLUME": max(1, numberofpoints),
-        "GPU_MAX_QP_ALL": max(1, qp_all),
+        # The prism/tetrahedron tables contain literal indices through 60.
+        # A runtime SELECT CASE does not remove those entries at compilation.
+        "GPU_MAX_QP_ALL": max(60, qp_all),
         "GPU_MAX_NEIGHBOURS2": neighbours2,
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "config",
-        nargs="?",
-        default="UCNS3D.DAT",
-        help="UCNS3D.DAT path; defaults to ./UCNS3D.DAT in the current build directory",
-    )
+    parser.add_argument("config", nargs="?", default="UCNS3D.DAT")
     parser.add_argument("--summary", action="store_true")
     args = parser.parse_args()
 
