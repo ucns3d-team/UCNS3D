@@ -78,8 +78,8 @@ IF (RESTART.EQ.0)THEN
 		IF (ITESTCASE.EQ.0)THEN
 !$OMP DO
 		DO INITIAL=1,KMAXE
-			U_C_VAL(1,1,INITIAL)=1.0D0
-			U_E_VAL(1,1,INITIAL)=U_C_VAL(1,1,INITIAL)
+			U_C_VAL(INITIAL,1,1)=1.0
+			U_E_VAL(INITIAL,1,1)=U_C_VAL(INITIAL,1,1)
 		END DO
 !$OMP END DO
 		END IF
@@ -90,13 +90,13 @@ IF (RESTART.EQ.0)THEN
 			poy(1)=IELEM_yyC(INITIAL)
 			if (dimensiona.eq.3)then
 			poz(1)=IELEM_zzC(INITIAL)
-			U_C_VAL(1,1,INITIAL)=LINEAR_INIT3D(N,pox,poy,poz)
+			U_C_VAL(INITIAL,1,1)=LINEAR_INIT3D(N,pox,poy,poz)
 			ELSE
-			U_C_VAL(1,1,INITIAL)=LINEAR_INIT2D(N,pox,poy,poz)
+			U_C_VAL(INITIAL,1,1)=LINEAR_INIT2D(N,pox,poy,poz)
 			end if
 
 
-			U_E_VAL(1,1,INITIAL)=U_C_VAL(1,1,INITIAL)
+			U_E_VAL(INITIAL,1,1)=U_C_VAL(INITIAL,1,1)
 		END DO
 !$OMP END DO
 		END IF
@@ -107,12 +107,12 @@ IF (RESTART.EQ.0)THEN
 			poy(1)=IELEM_yyC(INITIAL)
 			if (dimensiona.eq.3)then
 			poz(1)=IELEM_zzC(INITIAL)
-			U_C_VAL(1,1,INITIAL)=LINEAR_INIT3D(N,pox,poy,poz)
+			U_C_VAL(INITIAL,1,1)=LINEAR_INIT3D(N,pox,poy,poz)
 			ELSE
-			U_C_VAL(1,1,INITIAL)=LINEAR_INIT2D(N,pox,poy,poz)
+			U_C_VAL(INITIAL,1,1)=LINEAR_INIT2D(N,pox,poy,poz)
 			end if
 
-			U_E_VAL(1,1,INITIAL)=U_C_VAL(1,1,INITIAL)
+			U_E_VAL(INITIAL,1,1)=U_C_VAL(INITIAL,1,1)
 		END DO
 !$OMP END DO
 		END IF
@@ -130,11 +130,11 @@ IF (RESTART.EQ.0)THEN
 			end if
 
 			if ((turbulence .eq. 1).or.(passivescalar.gt.0)) then
-			U_C_VAL(1,1:nof_Variables,INITIAL)=VECCOS(1:nof_Variables)
-			U_CT_VAL(1,1:0+turbulenceequations+passivescalar,INITIAL)=VECCOS(nof_Variables+1:nof_Variables+turbulenceequations+passivescalar)
+			U_C_VAL(INITIAL,1,1:nof_Variables)=VECCOS(1:nof_Variables)
+			U_CT_VAL(INITIAL,1,1:0+turbulenceequations+passivescalar)=VECCOS(nof_Variables+1:nof_Variables+turbulenceequations+passivescalar)
 			else
-			U_C_VAL(1,:,INITIAL)=VECCOS(:)
-			if (itestcase.ge.3)U_E_VAL(1,:,INITIAL)=U_C_VAL(1,:,INITIAL)
+			U_C_VAL(INITIAL,1,:)=VECCOS(:)
+			if (itestcase.ge.3)U_E_VAL(INITIAL,1,:)=U_C_VAL(INITIAL,1,:)
 			end if
 		END DO
 !$OMP END DO
@@ -315,7 +315,7 @@ IF (RESTART.EQ.0)THEN
          IF (IELEM_MODE(I).EQ.0)THEN
                 CALL QUADRATUREQUAD(N,IGQRULES,VEXT,QPOINTS,WEQUA3D)
 
-                            VOLTEMP=1.0d0
+                            VOLTEMP=1.00
                             QQP=QP_quad
 
                             DO INC=1,QQP
@@ -329,9 +329,9 @@ IF (RESTART.EQ.0)THEN
             ELSE
                     COUNT_1=0
 
-                        VOLTEMP=0.0d0
-                        WEQUA3D=0.0d0
-                        QPOINTS=0.0d0
+                        VOLTEMP=0.00
+                        WEQUA3D=0.00
+                        QPOINTS=0.00
                             DO K=1,ELEM_DEC
                                 VEXT(1:3,1:2)=ELEM_LISTD(k,1:3,1:2)
 
@@ -399,7 +399,7 @@ IF (RESTART.EQ.0)THEN
 
 	RES_TIME=ZERO
 END IF
-INITIALRES=0.0d0
+INITIALRES=0.00
 
 !$OMP BARRIER
  
@@ -434,7 +434,7 @@ I=ICONSIDERED
         IF (ITESTCASE.LE.2)THEN
 
 			IF (DG.EQ.1)THEN
-			basis_vector(1)=1.0d0
+			basis_vector(1)=1.00
             icompwrt=-2
 
             IF (DIMENSIONA.EQ.2)THEN
@@ -458,26 +458,26 @@ I=ICONSIDERED
               do mm_i=1,num_dg_dofs
                 mm_sum=zero
                 do mm_j=1,num_dg_dofs
-                  mm_sum=mm_sum+M_1_VAL(mm_i,mm_j,i)*tempsol(1,mm_j)
+                  mm_sum=mm_sum+M_1_VAL(i,mm_i,mm_j)*tempsol(1,mm_j)
                 end do
-                U_C_VALDG(1,1,mm_i,I)=U_C_VALDG(1,1,mm_i,I)+mm_sum
+                U_C_VALDG(I,1,1,mm_i)=U_C_VALDG(I,1,1,mm_i)+mm_sum
               end do
 			ELSE
 
 
              IF (DIMENSIONA.EQ.2)THEN
 
-			U_C_VAL(1,1,I)=U_C_VAL(1,1,I)+LINEAR_INIT2D(N,POX,POY,POZ)*WEQUA3D(INC)*(VOLTEMP)
+			U_C_VAL(I,1,1)=U_C_VAL(I,1,1)+LINEAR_INIT2D(N,POX,POY,POZ)*WEQUA3D(INC)*(VOLTEMP)
 			Else
-			U_C_VAL(1,1,I)=U_C_VAL(1,1,I)+LINEAR_INIT3D(N,POX,POY,POZ)*WEQUA3D(INC)*(VOLTEMP)
+			U_C_VAL(I,1,1)=U_C_VAL(I,1,1)+LINEAR_INIT3D(N,POX,POY,POZ)*WEQUA3D(INC)*(VOLTEMP)
 
 			END IF
 
 
 
 			END IF
-			U_E_VAL(1,1,I)=U_C_VAL(1,1,I)
-			IF (DG.EQ.1)U_E_VAL(1,1,I)=U_C_VALDG(1,1,1,I)
+			U_E_VAL(I,1,1)=U_C_VAL(I,1,1)
+			IF (DG.EQ.1)U_E_VAL(I,1,1)=U_C_VALDG(I,1,1,1)
         ELSE
 
 
@@ -492,12 +492,12 @@ I=ICONSIDERED
 
 
                 if ((turbulence .eq. 1).or.(passivescalar.gt.0)) then
-                U_C_VAL(1,1:nof_Variables,I)=U_C_VAL(1,1:nof_Variables,I)+VECCOS(1:nof_Variables)*WEQUA3D(INC)*(VOLTEMP)
-                U_CT_VAL(1,1:0+turbulenceequations+passivescalar,I)=U_CT_VAL(1,1:0+turbulenceequations+passivescalar,I)+&
+                U_C_VAL(I,1,1:nof_Variables)=U_C_VAL(I,1,1:nof_Variables)+VECCOS(1:nof_Variables)*WEQUA3D(INC)*(VOLTEMP)
+                U_CT_VAL(I,1,1:0+turbulenceequations+passivescalar)=U_CT_VAL(I,1,1:0+turbulenceequations+passivescalar)+&
                 VECCOS(NOF_VARIABLES+1:NOF_VARIABLES+turbulenceequations+passivescalar)*WEQUA3D(INC)*(VOLTEMP)
                 else
                 IF (DG.EQ.1)THEN
-                    basis_vector(1)=1.0d0
+                    basis_vector(1)=1.00
                     icompwrt=-2
 
 
@@ -516,20 +516,20 @@ I=ICONSIDERED
                                       do mm_i=1,num_dg_dofs
                                         mm_sum=zero
                                         do mm_j=1,num_dg_dofs
-                                          mm_sum=mm_sum+M_1_VAL(mm_i,mm_j,i)*tempsol(1,mm_j)
+                                          mm_sum=mm_sum+M_1_VAL(i,mm_i,mm_j)*tempsol(1,mm_j)
                                         end do
-                                        U_C_VALDG(1,KX,mm_i,I)=U_C_VALDG(1,KX,mm_i,I)+mm_sum
+                                        U_C_VALDG(I,1,KX,mm_i)=U_C_VALDG(I,1,KX,mm_i)+mm_sum
                                       end do
                                         END DO
                 ELSE
 
 
 
-                    U_C_VAL(1,1:nof_Variables,I)=U_C_VAL(1,1:nof_Variables,I)+(VECCOS(1:nof_Variables)*WEQUA3D(INC)*(VOLTEMP))
+                    U_C_VAL(I,1,1:nof_Variables)=U_C_VAL(I,1,1:nof_Variables)+(VECCOS(1:nof_Variables)*WEQUA3D(INC)*(VOLTEMP))
 
 
 
-                if (itestcase.ge.3)U_E_VAL(1,:,I)=U_C_VAL(1,:,I)
+                if (itestcase.ge.3)U_E_VAL(I,1,:)=U_C_VAL(I,1,:)
 
 
                 END IF

@@ -53,16 +53,16 @@ m=typesten
 	allocate (ilox_yyc(m,numneighbours*iextend))
 	if (dimensiona.eq.3)then
 	allocate (ilox_zzc(m,numneighbours*iextend))
-	ilox_zzc=0.d0
+	ilox_zzc=0.0
 	end if
 	ilox_ihexg=0
 	ilox_ihexl=0
 	ilox_ihexb=0
 	ilox_ishape=0
 	ilox_ihexn=0
-	ilox_volume=0.d0
-	ilox_xxc=0.d0
-	ilox_yyc=0.d0
+	ilox_volume=0.0
+	ilox_xxc=0.0
+	ilox_yyc=0.0
 
 
 if (dimensiona.eq.3)then
@@ -80,11 +80,11 @@ end if
 	allocate (ilon_y(m,numneighbours*iextend,k))
 	if (dimensiona.eq.3)then
 	allocate (ilon_z(m,numneighbours*iextend,k))
-	ilon_z=0.d0
+	ilon_z=0.0
 	end if
 	ilon_nodcount=0
-	ilon_x=0.d0
-	ilon_y=0.d0
+	ilon_x=0.0
+	ilon_y=0.0
 
 
 
@@ -219,8 +219,8 @@ i=iconsi
 idum=0;
                 if (ielem_interior(i).eq.1)then
                         do j=1,ielem_ifca(i)
-                        if (ielem_ibounds(j,i).gt.0)then
-                            if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+                        if (ielem_ibounds(i,j).gt.0)then
+                            if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
                                 idum=1
                             end if
                         end if
@@ -241,7 +241,7 @@ iconsidered=i
 
         ! store integration-basis vector intbs into all entries 1:number_of_dog for element i
 
-            integ_basis_value(1:number_of_dog,i) = intbs(1:number_of_dog)
+            integ_basis_value(i,1:number_of_dog) = intbs(1:number_of_dog)
 
                 
         !the indicator matrix for the smaller polynomial
@@ -256,7 +256,7 @@ iconsidered=i
 					intbs=calintbasis(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,eltype,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
                     ! store lower-order integration-basis vector
 
-                        integ_basis_valuec(1:number_of_dog,i) = intbs(1:number_of_dog)
+                        integ_basis_valuec(i,1:number_of_dog) = intbs(1:number_of_dog)
 
 						if (iweno.eq.1)then
 						call indicatormatrix2(n,i,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
@@ -309,9 +309,9 @@ iconsidered=i
 								dist_sten2=sqrt(x_stencil+y_stencil+z_stencil)
 
 									if (weight_lsqr.eq.1)then
-									wlsqr(ll,k)=1.0d0/((dist_sten2))
+									wlsqr(ll,k)=1.00/((dist_sten2))
 									else
-									wlsqr(ll,k)=1.0d0
+									wlsqr(ll,k)=1.00
 									end if
 
 
@@ -512,14 +512,14 @@ iconsidered=i
 		if((ees.ne.5).or.(ll.eq.1))then
 
 ! 		call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
-! 		stencil(1:imax,1:ideg),imax,beta,rec_invmat_stencilt(1:ideg,1:imax,ll,i),ideg)
+! 		stencil(1:imax,1:ideg),imax,beta,rec_invmat_stencilt(i,1:ideg,1:imax,ll),ideg)
 
 
 		  do mm_i=1,ideg
 		    do mm_j=1,imax
-		      rec_invmat_stencilt(mm_i,mm_j,ll,i)=zero
+		      rec_invmat_stencilt(i,mm_i,mm_j,ll)=zero
 		      do mm_k=1,ideg
-		        rec_invmat_stencilt(mm_i,mm_j,ll,i)=rec_invmat_stencilt(mm_i,mm_j,ll,i)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
+		        rec_invmat_stencilt(i,mm_i,mm_j,ll)=rec_invmat_stencilt(i,mm_i,mm_j,ll)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
 		      end do
 		    end do
 		  end do
@@ -527,12 +527,12 @@ iconsidered=i
 
 
 					do iq=1,imax
-					rec_invmat_stencilt(:,iq,ll,i)=rec_invmat_stencilt(:,iq,ll,i)&
+					rec_invmat_stencilt(i,:,iq,ll)=rec_invmat_stencilt(i,:,iq,ll)&
 					*ilox_volume(ll,iq+1)*wlsqr(ll,iq)
 					end do
 
 
-					if (rec_invmat_stencilt(1,1,ll,i).ne.rec_invmat_stencilt(1,1,ll,i))then	!prevents non-invertible nan stencils from being deployed
+					if (rec_invmat_stencilt(i,1,1,ll).ne.rec_invmat_stencilt(i,1,1,ll))then	!prevents non-invertible nan stencils from being deployed
 
 					ielem_full(i)=0
 					end if
@@ -541,27 +541,27 @@ iconsidered=i
 
 		else
 ! 					call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
-! 				stencil(1:imax,1:ideg),imax,beta,rec_invmat_stenciltc(1:ideg,1:imax,ll,i),ideg)
+! 				stencil(1:imax,1:ideg),imax,beta,rec_invmat_stenciltc(i,1:ideg,1:imax,ll),ideg)
 
 
 				  do mm_i=1,ideg
 				    do mm_j=1,imax
-				      rec_invmat_stenciltc(mm_i,mm_j,ll,i)=zero
+				      rec_invmat_stenciltc(i,mm_i,mm_j,ll)=zero
 				      do mm_k=1,ideg
-				        rec_invmat_stenciltc(mm_i,mm_j,ll,i)=rec_invmat_stenciltc(mm_i,mm_j,ll,i)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
+				        rec_invmat_stenciltc(i,mm_i,mm_j,ll)=rec_invmat_stenciltc(i,mm_i,mm_j,ll)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
 				      end do
 				    end do
 				  end do
 
 
-					if (rec_invmat_stenciltc(1,1,ll,i).ne.rec_invmat_stenciltc(1,1,ll,i))then	!!prevents non-invertible nan stencils from being deployed
+					if (rec_invmat_stenciltc(i,1,1,ll).ne.rec_invmat_stenciltc(i,1,1,ll))then	!!prevents non-invertible nan stencils from being deployed
 
 					ielem_full(i)=0
 					end if
 
 
 					do iq=1,imax
-					rec_invmat_stenciltc(:,iq,ll,i)=rec_invmat_stenciltc(:,iq,ll,i)&
+					rec_invmat_stenciltc(i,:,iq,ll)=rec_invmat_stenciltc(i,:,iq,ll)&
 					*ilox_volume(ll,iq+1)*wlsqr(ll,iq)
 					end do
 		end if
@@ -601,13 +601,13 @@ if (ll.eq.1)then		!stencils
 	 
 	 
 	 do j=1,ielem_ifca(i)		!for all faces
-	    if (ielem_ibounds(j,i).gt.0)then		!for bounded only
-		      if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then		!!for bounded only 2                         
+	    if (ielem_ibounds(i,j).gt.0)then		!for bounded only
+		      if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then		!!for bounded only 2                         
 					facex=j;iconsidered=i
 								  call coordinates_face_inner(n,iconsidered,facex,vext,nodes_list)
 
 
-								   if (ielem_types_faces(facex,iconsidered).eq.5)then
+								   if (ielem_types_faces(iconsidered,facex).eq.5)then
                                             n_node=4
                                     else
                                             n_node=3
@@ -641,8 +641,8 @@ if (ll.eq.1)then		!stencils
 				
 				
 				
-				angle1=ielem_faceanglex(j,i)
-				angle2=ielem_faceangley(j,i)
+				angle1=ielem_faceanglex(i,j)
+				angle2=ielem_faceangley(i,j)
 				
 				nx=(cos(angle1)*sin(angle2))
 				ny=(sin(angle1)*sin(angle2))
@@ -917,8 +917,8 @@ i=iconsi
 		idum=0;
                 if (ielem_interior(i).eq.1)then
                         do j=1,ielem_ifca(i)
-                        if (ielem_ibounds(j,i).gt.0)then
-                            if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+                        if (ielem_ibounds(i,j).gt.0)then
+                            if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
                                 idum=1
                             end if
                         end if
@@ -939,7 +939,7 @@ i=iconsi
 		intbs=calintbasis(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,eltype,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
         ! store integration-basis vector intbs into all entries 1:number_of_dog for element i
 
-            integ_basis_value(1:number_of_dog,i) = intbs(1:number_of_dog)
+            integ_basis_value(i,1:number_of_dog) = intbs(1:number_of_dog)
 
                 
                 
@@ -956,7 +956,7 @@ i=iconsi
 
 		intbs=calintbasis(n,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,eltype,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
 		
-		integ_basis_valuec(1:number_of_dog,i)=intbs(1:number_of_dog)
+		integ_basis_valuec(i,1:number_of_dog)=intbs(1:number_of_dog)
 
 		 !the indicator matrix for the smaller polynomial
 		if (iweno.eq.1)then
@@ -992,9 +992,9 @@ i=iconsi
 							ixx=i;kxx=inumo
 
 							if (weight_lsqr.eq.1)then
-							wlsqr(ll,k)=1.0d0/((sqrt(((ilox_xxc(ll,k+1)-ilox_xxc(ll,1))**2)+((ilox_yyc(ll,k+1)-ilox_yyc(ll,1))**2))))
+							wlsqr(ll,k)=1.00/((sqrt(((ilox_xxc(ll,k+1)-ilox_xxc(ll,1))**2)+((ilox_yyc(ll,k+1)-ilox_yyc(ll,1))**2))))
 							else
-							wlsqr(ll,k)=1.0d0
+							wlsqr(ll,k)=1.00
 							end if
 							x_stencil=(ilox_xxc(ll,k+1)-ilox_xxc(ll,1))**2
 							y_stencil=(ilox_yyc(ll,k+1)-ilox_yyc(ll,1))**2
@@ -1006,9 +1006,9 @@ i=iconsi
 
 
 							if (weight_lsqr.eq.1)then
-							wlsqr(ll,k)=1.0d0/sqrt(x_stencil+y_stencil)
+							wlsqr(ll,k)=1.00/sqrt(x_stencil+y_stencil)
 							else
-							wlsqr(ll,k)=1.0d0
+							wlsqr(ll,k)=1.00
 							end if
 
 ! 							ielem_stencil_dist(i)=dist_sten/(ilox_volume(1,1)**(1/2))
@@ -1191,21 +1191,21 @@ if((ees.ne.5).or.(ll.eq.1))then
 ! call gemm(                                               &
 !                invmat,                                               &
 !                stencil,                                              &
-!                rec_invmat_stencilt(:,:,ll,i),             &
+!                rec_invmat_stencilt(i,:,:,ll),             &
 !                'n',                                                  & ! transposition flag for invmat
 !                't'                                                   & ! transposition flag for stencil
 !             )
             
             
 ! call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
-! stencil(1:imax,1:ideg),imax,beta,rec_invmat_stencilt(1:ideg,1:imax,ll,i),ideg)
+! stencil(1:imax,1:ideg),imax,beta,rec_invmat_stencilt(i,1:ideg,1:imax,ll),ideg)
 
             
               do mm_i=1,ideg
                 do mm_j=1,imax
-                  rec_invmat_stencilt(mm_i,mm_j,ll,i)=zero
+                  rec_invmat_stencilt(i,mm_i,mm_j,ll)=zero
                   do mm_k=1,ideg
-                    rec_invmat_stencilt(mm_i,mm_j,ll,i)=rec_invmat_stencilt(mm_i,mm_j,ll,i)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
+                    rec_invmat_stencilt(i,mm_i,mm_j,ll)=rec_invmat_stencilt(i,mm_i,mm_j,ll)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
                   end do
                 end do
               end do
@@ -1215,12 +1215,12 @@ if((ees.ne.5).or.(ll.eq.1))then
 
 
            do iq=1,imax
-			rec_invmat_stencilt(:,iq,ll,i)=rec_invmat_stencilt(:,iq,ll,i)&
+			rec_invmat_stencilt(i,:,iq,ll)=rec_invmat_stencilt(i,:,iq,ll)&
 			*ilox_volume(ll,iq+1)*wlsqr(ll,iq)
 			end do
 
 
-			if (rec_invmat_stencilt(1,1,ll,i).ne.rec_invmat_stencilt(1,1,ll,i))then	!prevents non-invertible nan stencils from being deployed
+			if (rec_invmat_stencilt(i,1,1,ll).ne.rec_invmat_stencilt(i,1,1,ll))then	!prevents non-invertible nan stencils from being deployed
 
 					ielem_full(i)=0
 					end if
@@ -1231,19 +1231,19 @@ else
 ! call gemm(                                               &
 !                invmat(1:ideg,1:ideg),                                               &
 !                stencil(1:imax,1:ideg),                                              &
-!                rec_invmat_stenciltc(1:ideg,1:imax,ll,i),             &
+!                rec_invmat_stenciltc(i,1:ideg,1:imax,ll),             &
 !                'n',                                                  & ! transposition flag for invmat
 !                't'                                                   & ! transposition flag for stencil
 !             )
             
 ! call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
-! stencil(1:imax,1:ideg),imax,beta,rec_invmat_stenciltc(1:ideg,1:imax,ll,i),ideg)
+! stencil(1:imax,1:ideg),imax,beta,rec_invmat_stenciltc(i,1:ideg,1:imax,ll),ideg)
 
 			  do mm_i=1,ideg
 			    do mm_j=1,imax
-			      rec_invmat_stenciltc(mm_i,mm_j,ll,i)=zero
+			      rec_invmat_stenciltc(i,mm_i,mm_j,ll)=zero
 			      do mm_k=1,ideg
-			        rec_invmat_stenciltc(mm_i,mm_j,ll,i)=rec_invmat_stenciltc(mm_i,mm_j,ll,i)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
+			        rec_invmat_stenciltc(i,mm_i,mm_j,ll)=rec_invmat_stenciltc(i,mm_i,mm_j,ll)+invmat(mm_i,mm_k)*stencil(mm_j,mm_k)
 			      end do
 			    end do
 			  end do
@@ -1251,12 +1251,12 @@ else
 
 
 		do iq=1,imax
-			rec_invmat_stenciltc(:,iq,ll,i)=rec_invmat_stenciltc(:,iq,ll,i)&
+			rec_invmat_stenciltc(i,:,iq,ll)=rec_invmat_stenciltc(i,:,iq,ll)&
 			*ilox_volume(ll,iq+1)*wlsqr(ll,iq)
 			end do
 
 
-			if (rec_invmat_stenciltc(1,1,ll,i).ne.rec_invmat_stenciltc(1,1,ll,i))then	!prevents non-invertible nan stencils from being deployed
+			if (rec_invmat_stenciltc(i,1,1,ll).ne.rec_invmat_stenciltc(i,1,1,ll))then	!prevents non-invertible nan stencils from being deployed
 
 					ielem_full(i)=0
 					end if
@@ -1300,8 +1300,8 @@ if (ll.eq.1)then		!stencils
 	 
 	 
 	 do j=1,ielem_ifca(i)		!for all faces
-	    if (ielem_ibounds(j,i).gt.0)then		!for bounded only
-		      if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then		!!for bounded only 2                         
+	    if (ielem_ibounds(i,j).gt.0)then		!for bounded only
+		      if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then		!!for bounded only 2                         
 					facex=j;iconsidered=i
 								  call coordinates_face_inner2d(n,iconsidered,facex,vext,nodes_list)
 								  n_node=2
@@ -1331,8 +1331,8 @@ if (ll.eq.1)then		!stencils
 				
 				
 				
-				angle1=ielem_faceanglex(j,i)
-				angle2=ielem_faceangley(j,i)
+				angle1=ielem_faceanglex(i,j)
+				angle2=ielem_faceangley(i,j)
 				
 				nx=angle1
 				ny=angle2
@@ -1589,7 +1589,7 @@ weff=zero
     eltype=ielem_ishape(i)
     elem_dec=ielem_vdec(i)
     elem_listd=zero
-          rec_indicator(1:ideg,1:ideg,i)=zero
+          rec_indicator(i,1:ideg,1:ideg)=zero
       jx=ielem_nonodes(i)
      
 	  if (dimensiona.eq.3)then
@@ -1653,14 +1653,14 @@ weff=zero
 	      voltemp=tetravolume(n,vext)
 	      inump=qp_tetra
 	      call wenotet(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
-	      rec_indicator(1:ideg,1:ideg,i)=rec_indicator(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
+	      rec_indicator(i,1:ideg,1:ideg)=rec_indicator(i,1:ideg,1:ideg)+weff(1:ideg,1:ideg)
 	
 	  end do
 	else
 	  
 
 	    call wenotet(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
-	      rec_indicator(1:ideg,1:ideg,i)=rec_indicator(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
+	      rec_indicator(i,1:ideg,1:ideg)=rec_indicator(i,1:ideg,1:ideg)+weff(1:ideg,1:ideg)
 
 
 
@@ -1678,7 +1678,7 @@ weff=zero
            
 	    call wenotet2d(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
              
-	      rec_indicator(1:ideg,1:ideg,i)=rec_indicator(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
+	      rec_indicator(i,1:ideg,1:ideg)=rec_indicator(i,1:ideg,1:ideg)+weff(1:ideg,1:ideg)
             end do
 
 
@@ -1732,7 +1732,7 @@ i=iconsi
     eltype=ielem_ishape(i)
     elem_dec=ielem_vdec(i)
     elem_listd=zero
-          rec_indicatorc(1:ideg,1:ideg,i)=zero
+          rec_indicatorc(i,1:ideg,1:ideg)=zero
       jx=ielem_nonodes(i)
      
 	  if (dimensiona.eq.3)then
@@ -1796,14 +1796,14 @@ i=iconsi
 	      voltemp=tetravolume(n,vext)
 	      inump=qp_tetra
 	      call wenotet(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
-	      rec_indicatorc(1:ideg,1:ideg,i)=rec_indicatorc(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
+	      rec_indicatorc(i,1:ideg,1:ideg)=rec_indicatorc(i,1:ideg,1:ideg)+weff(1:ideg,1:ideg)
 	
 	  end do
 	else
 	  
 
 	    call wenotet(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
-	      rec_indicatorc(1:ideg,1:ideg,i)=rec_indicatorc(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
+	      rec_indicatorc(i,1:ideg,1:ideg)=rec_indicatorc(i,1:ideg,1:ideg)+weff(1:ideg,1:ideg)
 
 
 
@@ -1821,7 +1821,7 @@ i=iconsi
 
 	    call wenotet2d(n,weff,inumo,inump,voltemp,qpoints,wequa3d,ideg,iconsidered)
 
-	      rec_indicatorc(1:ideg,1:ideg,i)=rec_indicatorc(1:ideg,1:ideg,i)+weff(1:ideg,1:ideg)
+	      rec_indicatorc(i,1:ideg,1:ideg)=rec_indicatorc(i,1:ideg,1:ideg)+weff(1:ideg,1:ideg)
             end do
             
 	end if
@@ -1939,7 +1939,7 @@ weff=zero
  	do i=1,ideg
         	do j=1,ideg
 			integ =zero
-                scalerx=1.0d0
+                scalerx=1.00
                 
                 
        			 do k=1,inump
@@ -1971,7 +1971,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
   do k=1,inump
@@ -2008,7 +2008,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
   do k=1,inump
@@ -2056,7 +2056,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
 do k=1,inump
@@ -2118,7 +2118,7 @@ weff=zero
 		
 do i=1,ideg
 do j=1,ideg
-scalerx=1.0d0
+scalerx=1.00
                 
 	integ =zero
 	  do k=1,inump
@@ -2201,7 +2201,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2315,7 +2315,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2347,7 +2347,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2384,7 +2384,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2432,7 +2432,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2494,7 +2494,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2577,7 +2577,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2692,7 +2692,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2724,7 +2724,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2761,7 +2761,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2809,7 +2809,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2871,7 +2871,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -2954,7 +2954,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -3139,7 +3139,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -3172,7 +3172,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -3205,7 +3205,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
         	
         	
@@ -3247,7 +3247,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -3289,7 +3289,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -3338,7 +3338,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -3396,7 +3396,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -3429,7 +3429,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -3462,7 +3462,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
         	
         	
@@ -3504,7 +3504,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -3546,7 +3546,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump
@@ -3595,7 +3595,7 @@ weff=zero
 		
  	do i=1,ideg
         	do j=1,ideg
-        	scalerx=1.0d0
+        	scalerx=1.00
                 
 			integ =zero
        			 do k=1,inump

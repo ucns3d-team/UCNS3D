@@ -41,7 +41,7 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
    sols1=zero
    sols2=zero
 
-   sols1(1:nof_variables)=u_c_val(1,1:nof_variables,rec_ihexl(1,1,i))
+   sols1(1:nof_variables)=u_c_val(rec_ihexl(i,1,1),1,1:nof_variables)
 
 
    if (rec_local(i).eq.0)then
@@ -55,11 +55,11 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
             end do
 
             do iq=1,imax
-               sols2(1:nof_variables)=u_c_val(1,1:nof_variables,rec_ihexl(ll,iq+1,i))
+               sols2(1:nof_variables)=u_c_val(rec_ihexl(i,ll,iq+1),1,1:nof_variables)
 
 
                if(per_rot.eq.1)then
-                  if (rec_periodicflag(ll,iq+1,i).eq.2) then
+                  if (rec_periodicflag(i,ll,iq+1).eq.2) then
                      tempxx=sols2(2)
                      sols2(2)=tempxx*cos(angle_per)-sols2(3)*sin(angle_per)
                      sols2(3)=tempxx*sin(angle_per)+sols2(3)*cos(angle_per)
@@ -67,7 +67,7 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
                end if
 
                do k=1,ideg_local
-                  coef=rec_invmat_stencilt(k,iq,ll,i)
+                  coef=rec_invmat_stencilt(i,k,iq,ll)
                   do var2=1,nof_variables
                      diff=sols2(var2)-sols1(var2)
                      gradacc(k,var2)=gradacc(k,var2)+coef*diff
@@ -77,7 +77,7 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
 
             do var2=1,nof_variables
                do k=1,ideg_local
-                  rec_gradients(ll,k,var2,iconsidered)=gradacc(k,var2)
+                  rec_gradients(iconsidered,ll,k,var2)=gradacc(k,var2)
                end do
             end do
          else
@@ -89,11 +89,11 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
             end do
 
             do iq=1,numneighbours2-1
-               sols2(1:nof_variables)=u_c_val(1,1:nof_variables,rec_ihexlc(ll,iq+1,i))
+               sols2(1:nof_variables)=u_c_val(rec_ihexlc(i,ll,iq+1),1,1:nof_variables)
 
 
                do k=1,ideg_local
-                  coef=rec_invmat_stenciltc(k,iq,ll,i)
+                  coef=rec_invmat_stenciltc(i,k,iq,ll)
                   do var2=1,nof_variables
                      diff=sols2(var2)-sols1(var2)
                      gradacc(k,var2)=gradacc(k,var2)+coef*diff
@@ -103,7 +103,7 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
 
             do var2=1,nof_variables
                do k=1,ideg_local
-                  rec_gradientsc(ll,k,var2,iconsidered)=gradacc(k,var2)
+                  rec_gradientsc(iconsidered,ll,k,var2)=gradacc(k,var2)
                end do
             end do
          end if
@@ -119,11 +119,11 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
             end do
 
             do iq=1,imax
-               if (rec_ihexb(ll,iq+1,rec_local(i)).eq.n)then
-                  sols2(1:nof_variables)=u_c_val(1,1:nof_variables,rec_ihexl(ll,iq+1,i))
+               if (rec_ihexb(rec_local(i),ll,iq+1).eq.n)then
+                  sols2(1:nof_variables)=u_c_val(rec_ihexl(i,ll,iq+1),1,1:nof_variables)
                else
-                  nf=rec_ihexn(ll,iq+1,rec_local(i))
-                  lf=rec_ihexl(ll,iq+1,i)
+                  nf=rec_ihexn(rec_local(i),ll,iq+1)
+                  lf=rec_ihexl(i,ll,iq+1)
                   rowf=halo_offset(nf) + lf - 1
                   sols2(1:nof_variables)=solhir(rowf, 1:nof_variables)
                end if
@@ -131,7 +131,7 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
 
 
                if(per_rot.eq.1)then
-                  if (rec_periodicflag(ll,iq+1,i).eq.2) then
+                  if (rec_periodicflag(i,ll,iq+1).eq.2) then
                      tempxx=sols2(2)
                      sols2(2)=tempxx*cos(angle_per)-sols2(3)*sin(angle_per)
                      sols2(3)=tempxx*sin(angle_per)+sols2(3)*cos(angle_per)
@@ -139,7 +139,7 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
                end if
 
                do k=1,ideg_local
-                  coef=rec_invmat_stencilt(k,iq,ll,i)
+                  coef=rec_invmat_stencilt(i,k,iq,ll)
                   do var2=1,nof_variables
                      diff=sols2(var2)-sols1(var2)
                      gradacc(k,var2)=gradacc(k,var2)+coef*diff
@@ -149,7 +149,7 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
 
             do var2=1,nof_variables
                do k=1,ideg_local
-                  rec_gradients(ll,k,var2,iconsidered)=gradacc(k,var2)
+                  rec_gradients(iconsidered,ll,k,var2)=gradacc(k,var2)
                end do
             end do
          else
@@ -161,11 +161,11 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
             end do
 
             do iq=1,numneighbours2-1
-               if (rec_ihexbc(ll,iq+1,rec_local(i)).eq.n)then
-                  sols2(1:nof_variables)=u_c_val(1,1:nof_variables,rec_ihexlc(ll,iq+1,i))
+               if (rec_ihexbc(rec_local(i),ll,iq+1).eq.n)then
+                  sols2(1:nof_variables)=u_c_val(rec_ihexlc(i,ll,iq+1),1,1:nof_variables)
                else
-                  nf=rec_ihexnc(ll,iq+1,rec_local(i))
-                  lf=rec_ihexlc(ll,iq+1,i)
+                  nf=rec_ihexnc(rec_local(i),ll,iq+1)
+                  lf=rec_ihexlc(i,ll,iq+1)
                   rowf=halo_offset(nf) + lf - 1
                   sols2(1:nof_variables)=solhir(rowf, 1:nof_variables)
                end if
@@ -173,7 +173,7 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
 
 
                do k=1,ideg_local
-                  coef=rec_invmat_stenciltc(k,iq,ll,i)
+                  coef=rec_invmat_stenciltc(i,k,iq,ll)
                   do var2=1,nof_variables
                      diff=sols2(var2)-sols1(var2)
                      gradacc(k,var2)=gradacc(k,var2)+coef*diff
@@ -183,7 +183,7 @@ subroutine compute_gradients_mean_lsq_acc(n)!check all
 
             do var2=1,nof_variables
                do k=1,ideg_local
-                  rec_gradientsc(ll,k,var2,iconsidered)=gradacc(k,var2)
+                  rec_gradientsc(iconsidered,ll,k,var2)=gradacc(k,var2)
                end do
             end do
          end if

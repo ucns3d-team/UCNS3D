@@ -597,7 +597,7 @@ valuelocation(:)=0
 
 !   if (itestcase.lt.3)then
 !     do i=1,kmaxe
-!       valuess(i)=u_c_val(1,1,i)
+!       valuess(i)=u_c_val(i,1,1)
 !     end do
 !
 !     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
@@ -644,23 +644,23 @@ valuelocation(:)=0
 !
 ! 				    do i=1,kmaxe
 !
-! 				      valuess(i)=u_c_val(1,1,i)
+! 				      valuess(i)=u_c_val(i,1,1)
 ! 				    end do
 ! 				    else
 ! 				    if (j.lt.6)then
 ! 				    do i=1,kmaxe
-! 				      valuess(i)=u_c_val(1,j,i)/u_c_val(1,1,i)
+! 				      valuess(i)=u_c_val(i,1,j)/u_c_val(i,1,1)
 ! 				    end do
 ! 				    end if
 ! 				    end if
 ! 				    if (j.eq.6)then
 !
 ! 				      do i=1,kmaxe
-! 											variables(1)=u_c_val(1,1,i)
-! 											variables(2)=(u_c_val(1,2,i)/variables(1))
-! 											variables(3)=(u_c_val(1,3,i)/variables(1))
-! 											variables(4)=(u_c_val(1,4,i)/variables(1))
-! 											variables(5)=u_c_val(1,5,i)
+! 											variables(1)=u_c_val(i,1,1)
+! 											variables(2)=(u_c_val(i,1,2)/variables(1))
+! 											variables(3)=(u_c_val(i,1,3)/variables(1))
+! 											variables(4)=(u_c_val(i,1,4)/variables(1))
+! 											variables(5)=u_c_val(i,1,5)
 ! 									    variables(6)=((gamma-1.0))*((variables(5))-0.5*variables(1)*(((variables(2)**2.0)+(variables(3)**2.0)+(variables(4)**2.0))))
 ! 									    valuess(i)=variables(6)
 !
@@ -673,7 +673,7 @@ valuelocation(:)=0
 ! 					      if (passivescalar.gt.0)then
 ! 						      if (j.eq.7)then
 ! 						      do i=1,kmaxe
-! 							valuess(i)=u_ct_val(1,1,i)
+! 							valuess(i)=u_ct_val(i,1,1)
 ! 						      end do
 ! 						      end if
 ! 					      end if
@@ -683,7 +683,7 @@ valuelocation(:)=0
 ! 					  if (turbulence.eq.1)then
 ! 								if (j.eq.7)then
 ! 										do i=1,kmaxe
-! 														leftv(1:5)=u_c_val(1,1:5,i)
+! 														leftv(1:5)=u_c_val(i,1,1:5)
 ! 														rightv(1:5)=leftv(1:5)
 ! 										  call sutherlandii(n,leftv,rightv,viscl,laml,pres,rres,gamma,visc,betaas,suther,prandtl)
 ! 												  variables(1)=viscl(1)/visc
@@ -692,26 +692,26 @@ valuelocation(:)=0
 ! 								end if
 ! 								if (j.eq.8)then
 ! 								  do i=1,kmaxe
-! 				      leftv(1:5)=u_c_val(1,1:5,i)
+! 				      leftv(1:5)=u_c_val(i,1,1:5)
 ! 				      rightv(1:5)=leftv(1:5)
 ! 							call sutherlandii(n,leftv,rightv,viscl,laml,pres,rres,gamma,visc,betaas,suther,prandtl)
 ! 							 eddyfl(1)=ielem_walldist(i)
 ! 							  if (turbulencemodel.eq.1)then
-! 							 eddyfl(2)=u_ct_val(1,1,i)*u_c_val(1,1,i)
+! 							 eddyfl(2)=u_ct_val(i,1,1)*u_c_val(i,1,1)
 ! 							 eddyfl(3)=0
 !
 ! 							  end if
 ! 							  if (turbulencemodel.eq.2)then
-! 							 eddyfl(2)=u_ct_val(1,1,i)
-! 							 eddyfl(3)=u_ct_val(1,2,i)
+! 							 eddyfl(2)=u_ct_val(i,1,1)
+! 							 eddyfl(3)=u_ct_val(i,1,2)
 !
 ! 							  end if
-! 							eddyfl(4:6)=rec_grads(1,1:3,i)
-! 							eddyfl(7:9)=rec_grads(2,1:3,i)
-! 							eddyfl(10:12)=rec_grads(3,1:3,i)
+! 							eddyfl(4:6)=rec_grads(i,1,1:3)
+! 							eddyfl(7:9)=rec_grads(i,2,1:3)
+! 							eddyfl(10:12)=rec_grads(i,3,1:3)
 ! 							if (turbulencemodel.eq.2)then
-! 							eddyfl(13:15)=rec_grads(4,1:3,i)
-! 							eddyfl(16:18)=rec_grads(5,1:3,i)
+! 							eddyfl(13:15)=rec_grads(i,4,1:3)
+! 							eddyfl(16:18)=rec_grads(i,5,1:3)
 ! 							end if
 ! 							eddyfr=eddyfl
 !
@@ -725,13 +725,13 @@ valuelocation(:)=0
 ! 							if (turbulencemodel.eq.2)then
 ! 							    if ((j.eq.9))then
 ! 							      do i=1,kmaxe
-! 								valuess(i)=u_ct_val(1,1,i)
+! 								valuess(i)=u_ct_val(i,1,1)
 ! 							      end do
 !
 ! 							    end if
 ! 							    if ((j.eq.10))then
 ! 							      do i=1,kmaxe
-! 								valuess(i)=u_ct_val(1,2,i)
+! 								valuess(i)=u_ct_val(i,1,2)
 ! 							      end do
 !
 ! 							    end if
@@ -740,7 +740,7 @@ valuelocation(:)=0
 ! 							if (passivescalar.gt.0)then
 ! 								      if (j.eq.nvar1-1)then
 ! 								    do i=1,kmaxe
-! 								      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
+! 								      valuess(i)=u_ct_val(i,1,turbulenceequations+passivescalar)
 ! 								    end do
 ! 								      end if
 ! 							 end if
@@ -1031,7 +1031,7 @@ valuelocation(:)=0
 		    do i=1,kmaxe
 
 
-            leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+            leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 
 		    call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 
@@ -1397,7 +1397,7 @@ valuelocation(:)=0
     if (itestcase.le.2)then
 		do i=1,kmaxe
 
-     valuess(i)=u_c_val(1,1,i)!0.0
+     valuess(i)=u_c_val(i,1,1)!0.0
 
 		end do
 
@@ -1456,13 +1456,13 @@ valuelocation(:)=0
 		    do i=1,kmaxe
 
 
-            leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+            leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 
 		    call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 		      valuess(i)=leftv(kkd)
 			if (kkd.eq.5)then
 
-            valuess(i)=u_c_val(1,kkd,i)
+            valuess(i)=u_c_val(i,1,kkd)
 
 			end if
 		    end do
@@ -1481,7 +1481,7 @@ valuelocation(:)=0
 
 		do i=1,kmaxe
 
-            leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+            leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
@@ -1504,7 +1504,7 @@ valuelocation(:)=0
                 if (multispecies.eq.1)then
 
                 do i=1,kmaxe
-                valuess(i)=u_c_val(1,6,i)
+                valuess(i)=u_c_val(i,1,6)
                 end do
                 call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
                     if (n.eq.0)then
@@ -1516,7 +1516,7 @@ valuelocation(:)=0
 
 
                     do i=1,kmaxe
-                        valuess(i)=u_c_val(1,7,i)
+                        valuess(i)=u_c_val(i,1,7)
                         end do
                     call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
                     if (n.eq.0)then
@@ -1528,7 +1528,7 @@ valuelocation(:)=0
 
 
                        do i=1,kmaxe
-                valuess(i)=u_c_val(1,8,i)
+                valuess(i)=u_c_val(i,1,8)
                 end do
 
                 call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
@@ -1638,7 +1638,7 @@ valuelocation(:)=0
 
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
-		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
+		      valuess(i)=u_ct_val(i,1,turbulenceequations+passivescalar)
 		  end do
 
 
@@ -1670,7 +1670,7 @@ valuelocation(:)=0
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 			do i=1,kmaxe
-			    valuess(i)=u_ct_val(1,kkd,i)
+			    valuess(i)=u_ct_val(i,1,kkd)
 			end do
 
 
@@ -1992,7 +1992,7 @@ valuelocation(1:3)=1
 
     if (itestcase.le.2)then
 		do i=1,kmaxe
-		  valuess(i)=u_c_val(1,1,i)!0.0
+		  valuess(i)=u_c_val(i,1,1)!0.0
 		end do
 
 		ierr = tecdat112(kmaxe,valuess,1)
@@ -2029,11 +2029,11 @@ valuelocation(1:3)=1
     if (itestcase.ge.3)then
 		do kkd=1,5
 		    do i=1,kmaxe
-		    leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		    leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		    call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 		      valuess(i)=leftv(kkd)
 			if (kkd.eq.5)then
-			valuess(i)=u_c_val(1,kkd,i)!/u_c_val(1,1,i)
+			valuess(i)=u_c_val(i,1,kkd)!/u_c_val(1,1,i)
 			end if
 		    end do
 
@@ -2046,7 +2046,7 @@ valuelocation(1:3)=1
 
 
 		do i=1,kmaxe
-		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		  leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 		end do
@@ -2064,7 +2064,7 @@ valuelocation(1:3)=1
                 if (multispecies.eq.1)then
 
                 do i=1,kmaxe
-                valuess(i)=u_c_val(1,6,i)
+                valuess(i)=u_c_val(i,1,6)
                 end do
 
                  ierr = tecdat112(kmaxe,valuess,1)
@@ -2072,7 +2072,7 @@ valuelocation(1:3)=1
 
 
                     do i=1,kmaxe
-                        valuess(i)=u_c_val(1,7,i)
+                        valuess(i)=u_c_val(i,1,7)
                         end do
 
                 ierr = tecdat112(kmaxe,valuess,1)
@@ -2080,7 +2080,7 @@ valuelocation(1:3)=1
 
 
                        do i=1,kmaxe
-                valuess(i)=u_c_val(1,8,i)
+                valuess(i)=u_c_val(i,1,8)
                 end do
 
 
@@ -2125,7 +2125,7 @@ valuelocation(1:3)=1
 
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
-		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
+		      valuess(i)=u_ct_val(i,1,turbulenceequations+passivescalar)
 		  end do
 
 
@@ -2149,7 +2149,7 @@ valuelocation(1:3)=1
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 			do i=1,kmaxe
-			    valuess(i)=u_ct_val(1,kkd,i)
+			    valuess(i)=u_ct_val(i,1,kkd)
 			end do
 
 
@@ -2457,7 +2457,7 @@ valuelocation(1:3)=1
 
     if (itestcase.le.2)then
 		do i=1,kmaxe
-		  valuess(i)=u_c_val(1,1,i)!0.0
+		  valuess(i)=u_c_val(i,1,1)!0.0
 		end do
 
 		ierr = tecdat112(kmaxe,valuess,1)
@@ -2494,11 +2494,11 @@ valuelocation(1:3)=1
     if (itestcase.ge.3)then
 		do kkd=1,5
 		    do i=1,kmaxe
-		    leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		    leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		    call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 		      valuess(i)=leftv(kkd)
 			if (kkd.eq.5)then
-			valuess(i)=u_c_val(1,kkd,i)!/u_c_val(1,1,i)
+			valuess(i)=u_c_val(i,1,kkd)!/u_c_val(1,1,i)
 			end if
 		    end do
 
@@ -2511,7 +2511,7 @@ valuelocation(1:3)=1
 
 
 		do i=1,kmaxe
-		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		  leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 		end do
@@ -2529,7 +2529,7 @@ valuelocation(1:3)=1
                 if (multispecies.eq.1)then
 
                 do i=1,kmaxe
-                valuess(i)=u_c_val(1,6,i)
+                valuess(i)=u_c_val(i,1,6)
                 end do
 
                  ierr = tecdat112(kmaxe,valuess,1)
@@ -2537,7 +2537,7 @@ valuelocation(1:3)=1
 
 
                     do i=1,kmaxe
-                        valuess(i)=u_c_val(1,7,i)
+                        valuess(i)=u_c_val(i,1,7)
                         end do
 
                 ierr = tecdat112(kmaxe,valuess,1)
@@ -2545,7 +2545,7 @@ valuelocation(1:3)=1
 
 
                        do i=1,kmaxe
-                valuess(i)=u_c_val(1,8,i)
+                valuess(i)=u_c_val(i,1,8)
                 end do
 
 
@@ -2590,7 +2590,7 @@ valuelocation(1:3)=1
 
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
-		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
+		      valuess(i)=u_ct_val(i,1,turbulenceequations+passivescalar)
 		  end do
 
 
@@ -2614,7 +2614,7 @@ valuelocation(1:3)=1
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 			do i=1,kmaxe
-			    valuess(i)=u_ct_val(1,kkd,i)
+			    valuess(i)=u_ct_val(i,1,kkd)
 			end do
 
 
@@ -2917,7 +2917,7 @@ valuelocation(:)=0
 
     if (itestcase.le.2)then
     do i=1,kmaxe
-      valuess(i)=u_c_val(1,1,i)!0.0
+      valuess(i)=u_c_val(i,1,1)!0.0
     end do
 
     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
@@ -2941,9 +2941,9 @@ valuelocation(:)=0
     if (itestcase.ge.3)then
 		do kkd=1,5
 		do i=1,kmaxe
-		  valuess(i)=u_c_val(1,kkd,i)
+		  valuess(i)=u_c_val(i,1,kkd)
 		  if ((kkd.ge.2).and.(kkd.le.4))then
-		  valuess(i)=u_c_val(1,kkd,i)/u_c_val(1,1,i)
+		  valuess(i)=u_c_val(i,1,kkd)/u_c_val(i,1,1)
 		  end if
 		end do
 
@@ -2964,7 +2964,7 @@ valuelocation(:)=0
 		end do
 
 		do i=1,kmaxe
-		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		  leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 		end do
@@ -2986,7 +2986,7 @@ valuelocation(:)=0
 
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
-		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
+		      valuess(i)=u_ct_val(i,1,turbulenceequations+passivescalar)
 		  end do
 
 
@@ -3030,7 +3030,7 @@ valuelocation(:)=0
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 		  do i=1,kmaxe
-		      valuess(i)=u_ct_val(1,kkd,i)
+		      valuess(i)=u_ct_val(i,1,kkd)
 		  end do
 
 
@@ -3352,13 +3352,13 @@ valuelocation(:)=0
         if (dg == 1) then
 !         do i_dof = 1, ielem_idegfree(iconsidered) + 1
             do i=1,kmaxe
-            valuess(i)=u_c_val(1,1,i)!u_c_val(1,1,i)%valdg(1,1,1)
+            valuess(i)=u_c_val(i,1,1)!u_c_val(1,1,i)%valdg(1,1,1)
             end do
 !         end do
 
         else
          do i=1,kmaxe
-            valuess(i)=u_c_val(1,1,i)!0.0
+            valuess(i)=u_c_val(i,1,1)!0.0
             end do
         end if
 
@@ -3378,9 +3378,9 @@ valuelocation(:)=0
     else if (itestcase.ge.3)then
 		do kkd=1,4
 		do i=1,kmaxe
-		  valuess(i)=u_c_val(1,kkd,i)
+		  valuess(i)=u_c_val(i,1,kkd)
 		  if ((kkd.ge.2).and.(kkd.le.3))then
-		  valuess(i)=u_c_val(1,kkd,i)/u_c_val(1,1,i)
+		  valuess(i)=u_c_val(i,1,kkd)/u_c_val(i,1,1)
 		  end if
 		end do
 
@@ -3401,7 +3401,7 @@ valuelocation(:)=0
 		end do
 
 		do i=1,kmaxe
-		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		  leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(4)
 		end do
@@ -3423,7 +3423,7 @@ valuelocation(:)=0
 
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
-		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
+		      valuess(i)=u_ct_val(i,1,turbulenceequations+passivescalar)
 		  end do
 
 
@@ -3467,7 +3467,7 @@ valuelocation(:)=0
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 		  do i=1,kmaxe
-		      valuess(i)=u_ct_val(1,kkd,i)
+		      valuess(i)=u_ct_val(i,1,kkd)
 		  end do
 
 
@@ -3799,7 +3799,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 
     if (itestcase.le.2)then
     do i=1,kmaxe
-     valuess(i)=u_c_val(1,1,i)!0.0
+     valuess(i)=u_c_val(i,1,1)!0.0
     end do
 
     call mpi_gatherv(valuess(1:kmaxe),kmaxe,mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
@@ -3876,14 +3876,14 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		do kkd=1,4
 		do i=1,kmaxe
 
-        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+        leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(kkd)
           if (kkd.eq.4)then
 
 
-        valuess(i)=u_c_val(1,kkd,i)
+        valuess(i)=u_c_val(i,1,kkd)
 
 
           end if
@@ -3902,7 +3902,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 
 		do i=1,kmaxe
 
-        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+        leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(4)
@@ -3920,7 +3920,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 
                 if (multispecies.eq.1)then
                 do i=1,kmaxe
-                valuess(i)=u_c_val(1,5,i)
+                valuess(i)=u_c_val(i,1,5)
                 end do
                 else
                 do i=1,kmaxe
@@ -3937,7 +3937,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		end if
                 if (multispecies.eq.1)then
                 do i=1,kmaxe
-                valuess(i)=u_c_val(1,6,i)
+                valuess(i)=u_c_val(i,1,6)
                 end do
                 else
                 if (mood.eq.1)then
@@ -3969,7 +3969,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 
 		  if (passivescalar.gt.0)then
 		  do i=1,kmaxe
-		      valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,i)
+		      valuess(i)=u_ct_val(i,1,turbulenceequations+passivescalar)
 		  end do
 
 
@@ -4003,7 +4003,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		   if (itestcase.eq.3)then
                             if (multispecies.eq.1)then
                 do i=1,kmaxe
-                valuess(i)=u_c_val(1,7,i)
+                valuess(i)=u_c_val(i,1,7)
                 end do
                 else
                 do i=1,kmaxe
@@ -4071,7 +4071,7 @@ allocate(xbin(1:imaxe),xbin2(1:imaxe))
 		  if (turbulence.eq.1)then
 		  do kkd=1,turbulenceequations
 		  do i=1,kmaxe
-		      valuess(i)=u_ct_val(1,kkd,i)
+		      valuess(i)=u_ct_val(i,1,kkd)
 		  end do
 
 
@@ -4148,7 +4148,7 @@ integer::i,j,k,l,iter,dip
 	else
 	restart=0
         average_restart=0
-	res_time=0.0d0
+	res_time=0.00
 	end if
 
 
@@ -5601,8 +5601,8 @@ kmaxe=xmpielrank(n)
  do i=1,kmaxe
     if (ielem_interior(i).eq.1)then
     do l=1,ielem_ifca(i)
-	if (ielem_ibounds(l,i).gt.0)then
-	      if ((ibound_icode(ielem_ibounds(l,i)).eq.4).or.(ibound_icode(ielem_ibounds(l,i)).eq.99))then
+	if (ielem_ibounds(i,l).gt.0)then
+	      if ((ibound_icode(ielem_ibounds(i,l)).eq.4).or.(ibound_icode(ielem_ibounds(i,l)).eq.99))then
 	  countwall = countwall + 1
 	      end if
 
@@ -5795,8 +5795,8 @@ countwall = 0
 do i = 1, kmaxe
     if (ielem_interior(i) .eq. 1) then
         do l = 1, ielem_ifca(i)
-            if (ielem_ibounds(l,i) .gt. 0) then
-                if (ibound_icode(ielem_ibounds(l,i)) .eq. 4) then
+            if (ielem_ibounds(i,l) .gt. 0) then
+                if (ibound_icode(ielem_ibounds(i,l)) .eq. 4) then
                     countwall = countwall + 1
                 end if
             end if
@@ -6247,8 +6247,8 @@ kmaxe=xmpielrank(n)
  do i=1,kmaxe
     if (ielem_interior(i).eq.1)then
     do l=1,ielem_ifca(i)
-	if (ielem_ibounds(l,i).gt.0)then
-	      if ((ibound_icode(ielem_ibounds(l,i)).eq.4).or.(ibound_icode(ielem_ibounds(l,i)).eq.99))then
+	if (ielem_ibounds(i,l).gt.0)then
+	      if ((ibound_icode(ielem_ibounds(i,l)).eq.4).or.(ibound_icode(ielem_ibounds(i,l)).eq.99))then
 	  countwall = countwall + 1
 	      end if
 
@@ -7815,10 +7815,10 @@ character*1 nulchar
 ! do i=1,kmaxe
 !   if (ielem_interior(i).eq.1)then
 ! 	do j=1,ielem_ifca(i)
-! 	  if (ielem_ibounds(j,i).gt.0)then
-! 	      if (ibound_icode(ielem_ibounds(j,i)).eq.4)then
+! 	  if (ielem_ibounds(i,j).gt.0)then
+! 	      if (ibound_icode(ielem_ibounds(i,j)).eq.4)then
 ! 		  iloop=iloop+1
-! 		    icell(iloop)=ibound_inum(ielem_ibounds(j,i))
+! 		    icell(iloop)=ibound_inum(ielem_ibounds(i,j))
 ! 	      end if
 ! 	  end if
 ! 	end do
@@ -8054,7 +8054,7 @@ valuelocation(:)=0
 if (itestcase.le.2)then
 					  if (totiw.gt.0)then
 					  do i=1,totiw
-						valuess(i)=u_c_val(1,1,ibound_t(i))
+						valuess(i)=u_c_val(ibound_t(i),1,1)
 					  enddo
 					  end if
 
@@ -8079,15 +8079,15 @@ if (itestcase.le.2)then
 !                                                 if (ielem_ishape(ibound_t(i)).eq.2)then
 !                                               valuess(i)=-1000
 !                                                 else
-!                                                 valuess(i)=ielem_dih(kkd,ibound_t(i))
+!                                                 valuess(i)=ielem_dih(ibound_t(i),kkd)
 !                                                 end if
 !                                                 else
-!                                                 valuess(i)=ielem_dih(kkd,ibound_t(i))
+!                                                 valuess(i)=ielem_dih(ibound_t(i),kkd)
 !                                                 end if
 
-						valuess(i)=u_c_val(1,kkd,ibound_t(i))
+						valuess(i)=u_c_val(ibound_t(i),1,kkd)
 						if ((kkd.ge.2).and.(kkd.le.4))then
-						valuess(i)=u_c_val(1,kkd,ibound_t(i))/u_c_val(1,1,ibound_t(i))
+						valuess(i)=u_c_val(ibound_t(i),1,kkd)/u_c_val(ibound_t(i),1,1)
 						end if
 
 
@@ -8117,17 +8117,17 @@ if (itestcase.le.2)then
 
 
 
-						leftv(1:nof_variables)=u_c_val(1,1:nof_variables,ibound_t(i))
+						leftv(1:nof_variables)=u_c_val(ibound_t(i),1,1:nof_variables)
 						call cons2prim(n,leftv,mp_pinfl,gammal)
 						valuess(i)=leftv(5)
 
                                                ! if (ielem_ishape(ibound_t(i)).eq.1)then
 
-                                                !        valuess(i)=ielem_dih(6,ibound_t(i))
+                                                !        valuess(i)=ielem_dih(ibound_t(i),6)
 
                                                 !else
 
-                                                 !       valuess(i)=0.0d0
+                                                 !       valuess(i)=0.00
                                                ! end if
 
 
@@ -8149,7 +8149,7 @@ if (itestcase.le.2)then
 		  if (passivescalar.gt.0)then
 					  if (totiw.gt.0)then
 					  do i=1,totiw
-						valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,ibound_t(i))
+						valuess(i)=u_ct_val(ibound_t(i),1,turbulenceequations+passivescalar)
 
 					  enddo
 					  end if
@@ -8205,7 +8205,7 @@ if (itestcase.le.2)then
 
 		   if (totiw.gt.0)then
 					  do i=1,totiw
-						valuess(i)=u_ct_val(1,kkd,ibound_t(i))
+						valuess(i)=u_ct_val(ibound_t(i),1,kkd)
 
 					  enddo
 					  end if
@@ -8391,7 +8391,7 @@ totiw=xmpiwall(n)
 ! 	do j=1,ielem_ifca(k)
 ! 	if (ielem_percorg(j,k).eq.-4)then
 ! 	iloop=iloop+1
-! 	icell(iloop)=ielem_indexi(j,ibound_t(k))
+! 	icell(iloop)=ielem_indexi(ibound_t(k),j)
 ! 	go to 1043
 ! 	end if
 ! 	end do
@@ -8404,10 +8404,10 @@ totiw=xmpiwall(n)
 ! do i=1,kmaxe
 !   if (ielem_interior(i).eq.1)then
 ! 	do j=1,ielem_ifca(i)
-! 	  if (ielem_ibounds(j,i).gt.0)then
-! 	      if (ibound_icode(ielem_ibounds(j,i)).eq.4)then
+! 	  if (ielem_ibounds(i,j).gt.0)then
+! 	      if (ibound_icode(ielem_ibounds(i,j)).eq.4)then
 ! 		  iloop=iloop+1
-! 		    icell(iloop)=ibound_inum(ielem_ibounds(j,i))
+! 		    icell(iloop)=ibound_inum(ielem_ibounds(i,j))
 ! 	      end if
 ! 	  end if
 ! 	end do
@@ -8644,7 +8644,7 @@ if (itestcase.le.2)then
 
 					  if (totiw.gt.0)then
 					  do i=1,totiw
-						valuess(i)=u_c_val(1,1,ibound_t(i))
+						valuess(i)=u_c_val(ibound_t(i),1,1)
 					  enddo
 					  end if
 
@@ -8667,9 +8667,9 @@ if (itestcase.le.2)then
 		do kkd=1,4
 		     if (totiw.gt.0)then
 					  do i=1,totiw
-						valuess(i)=u_c_val(1,kkd,ibound_t(i))
+						valuess(i)=u_c_val(ibound_t(i),1,kkd)
 							    if ((kkd.ge.2).and.(kkd.le.3))then
-			      valuess(i)=u_c_val(1,kkd,ibound_t(i))/u_c_val(1,1,ibound_t(i))
+			      valuess(i)=u_c_val(ibound_t(i),1,kkd)/u_c_val(ibound_t(i),1,1)
 			      end if
 
 
@@ -8693,7 +8693,7 @@ if (itestcase.le.2)then
 
 		      if (totiw.gt.0)then
 					  do i=1,totiw
-					  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,ibound_t(i))
+					  leftv(1:nof_variables)=u_c_val(ibound_t(i),1,1:nof_variables)
 				    call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(i)=leftv(4)
 					end do
@@ -8716,7 +8716,7 @@ if (itestcase.le.2)then
 
 		  if (totiw.gt.0)then
 					  do i=1,totiw
-					valuess(i)=u_ct_val(1,turbulenceequations+passivescalar,ibound_t(i))
+					valuess(i)=u_ct_val(ibound_t(i),1,turbulenceequations+passivescalar)
 					end do
 			      end if
 
@@ -8767,7 +8767,7 @@ if (itestcase.le.2)then
 		  do kkd=1,turbulenceequations
 		   if (totiw.gt.0)then
 					  do i=1,totiw
-					valuess(i)=u_ct_val(1,kkd,ibound_t(i))
+					valuess(i)=u_ct_val(ibound_t(i),1,kkd)
 					end do
 			      end if
 
@@ -8942,7 +8942,7 @@ iloop=0
 ! 	do j=1,ielem_ifca(k)
 ! 	if (ielem_percorg(j,k).eq.-4)then
 ! 	iloop=iloop+1
-! 	icell(iloop)=ielem_indexi(j,ibound_t(k))
+! 	icell(iloop)=ielem_indexi(ibound_t(k),j)
 ! 	go to 1043
 ! 	end if
 ! 	end do
@@ -8954,10 +8954,10 @@ if (totiw.gt.0)then
 do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
-	  if (ielem_ibounds(j,i).gt.0)then
-	      if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+	  if (ielem_ibounds(i,j).gt.0)then
+	      if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
 		  iloop=iloop+1
-		    icell(iloop)=ibound_inum(ielem_ibounds(j,i))
+		    icell(iloop)=ibound_inum(ielem_ibounds(i,j))
 	      end if
 	  end if
 	end do
@@ -9188,7 +9188,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    valuess(icount_wall)=u_c_val(1,1,ibound_which(i))
+				    valuess(icount_wall)=u_c_val(ibound_which(i),1,1)
 				end if
 		      end do
 		      end if
@@ -9216,9 +9216,9 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    valuess(icount_wall)=u_c_val(1,kkd,ibound_which(i))
+				    valuess(icount_wall)=u_c_val(ibound_which(i),1,kkd)
 				if ((kkd.ge.2).and.(kkd.le.4))then
-		  valuess(icount_wall)=u_c_val(1,kkd,ibound_which(i))/u_c_val(1,1,ibound_which(i))
+		  valuess(icount_wall)=u_c_val(ibound_which(i),1,kkd)/u_c_val(ibound_which(i),1,1)
 		  end if
 				end if
 		      end do
@@ -9246,7 +9246,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    leftv(1:nof_variables)=u_c_val(1,1:nof_variables,ibound_which(i))
+				    leftv(1:nof_variables)=u_c_val(ibound_which(i),1,1:nof_variables)
 				    call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(icount_wall)=leftv(5)
 
@@ -9276,7 +9276,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				       valuess(icount_wall)=u_ct_val(1,turbulenceequations+passivescalar,ibound_which(i))
+				       valuess(icount_wall)=u_ct_val(ibound_which(i),1,turbulenceequations+passivescalar)
 
 				end if
 		      end do
@@ -9344,7 +9344,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				       valuess(icount_wall)=u_ct_val(1,kkd,ibound_which(i))
+				       valuess(icount_wall)=u_ct_val(ibound_which(i),1,kkd)
 
 				end if
 		      end do
@@ -9535,7 +9535,7 @@ iloop=0
 ! 	do j=1,ielem_ifca(k)
 ! 	if (ielem_percorg(j,k).eq.-4)then
 ! 	iloop=iloop+1
-! 	icell(iloop)=ielem_indexi(j,ibound_t(k))
+! 	icell(iloop)=ielem_indexi(ibound_t(k),j)
 ! 	go to 1043
 ! 	end if
 ! 	end do
@@ -9547,10 +9547,10 @@ if (totiw.gt.0)then
 do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
-	  if (ielem_ibounds(j,i).gt.0)then
-	      if (ibound_icode(ielem_ibounds(j,i)).eq.4)then
+	  if (ielem_ibounds(i,j).gt.0)then
+	      if (ibound_icode(ielem_ibounds(i,j)).eq.4)then
 		  iloop=iloop+1
-		    icell(iloop)=ibound_inum(ielem_ibounds(j,i))
+		    icell(iloop)=ibound_inum(ielem_ibounds(i,j))
 	      end if
 	  end if
 	end do
@@ -9816,7 +9816,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    valuess(icount_wall)=u_c_val(1,1,ibound_which(i))
+				    valuess(icount_wall)=u_c_val(ibound_which(i),1,1)
 				end if
 		      end do
 		      end if
@@ -9844,9 +9844,9 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    valuess(icount_wall)=u_c_val(1,kkd,ibound_which(i))
+				    valuess(icount_wall)=u_c_val(ibound_which(i),1,kkd)
 				if ((kkd.ge.2).and.(kkd.le.3))then
-		  valuess(icount_wall)=u_c_val(1,kkd,ibound_which(i))/u_c_val(1,1,ibound_which(i))
+		  valuess(icount_wall)=u_c_val(ibound_which(i),1,kkd)/u_c_val(ibound_which(i),1,1)
 		  end if
 				end if
 		      end do
@@ -9874,7 +9874,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    leftv(1:nof_variables)=u_c_val(1,1:nof_variables,ibound_which(i))
+				    leftv(1:nof_variables)=u_c_val(ibound_which(i),1,1:nof_variables)
 				    call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(icount_wall)=leftv(4)
 
@@ -9904,7 +9904,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				       valuess(icount_wall)=u_ct_val(1,turbulenceequations+passivescalar,ibound_which(i))
+				       valuess(icount_wall)=u_ct_val(ibound_which(i),1,turbulenceequations+passivescalar)
 
 				end if
 		      end do
@@ -9972,7 +9972,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				       valuess(icount_wall)=u_ct_val(1,kkd,ibound_which(i))
+				       valuess(icount_wall)=u_ct_val(ibound_which(i),1,kkd)
 
 				end if
 		      end do
@@ -10265,12 +10265,12 @@ valuelocation(:)=0
 
 		do kkd=1,5
 		do i=1,kmaxe
-		  valuess(i)=u_c_val(ind1,kkd,i)
+		  valuess(i)=u_c_val(i,ind1,kkd)
 		  if ((kkd.ge.2).and.(kkd.le.4))then
-		  valuess(i)=u_c_val(ind1,kkd,i)/u_c_val(ind1,1,i)
+		  valuess(i)=u_c_val(i,ind1,kkd)/u_c_val(i,ind1,1)
 		  end if
 		  if (kkd.eq.5)then
-		   leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)
+		   leftv(1:nof_variables)=u_c_val(i,ind1,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 
@@ -10293,7 +10293,7 @@ valuelocation(:)=0
 
 		do i=1,kmaxe
 
-		  valuess(i)=u_c_rms(kkd,i)
+		  valuess(i)=u_c_rms(i,kkd)
 		end do
 
 
@@ -10540,12 +10540,12 @@ valuelocation(:)=0
 
 		do kkd=1,4
 		do i=1,kmaxe
-		  valuess(i)=u_c_rms(kkd,i)
+		  valuess(i)=u_c_rms(i,kkd)
 		  if ((kkd.ge.2).and.(kkd.le.3))then
-		  valuess(i)=u_c_val(ind1,kkd,i)/u_c_val(ind1,1,i)
+		  valuess(i)=u_c_val(i,ind1,kkd)/u_c_val(i,ind1,1)
 		  end if
 		  if (kkd.eq.4)then
-		   leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)
+		   leftv(1:nof_variables)=u_c_val(i,ind1,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(4)
 
@@ -10571,7 +10571,7 @@ valuelocation(:)=0
 		do kkd=1,3
 		do i=1,kmaxe
 
-		  valuess(i)=u_c_val(5,kkd,i)
+		  valuess(i)=u_c_val(i,5,kkd)
 		end do
 
 
@@ -10783,12 +10783,12 @@ allocate (valuelocation(nvar1))
 
 		do kkd=1,5
 		do i=1,kmaxe
-		  valuess(i)=u_c_rms(kkd,i)
+		  valuess(i)=u_c_rms(i,kkd)
 		  if ((kkd.ge.2).and.(kkd.le.4))then
-		  valuess(i)=u_c_val(5,kkd,i)/u_c_val(5,1,i)
+		  valuess(i)=u_c_val(i,5,kkd)/u_c_val(i,5,1)
 		  end if
 		  if (kkd.eq.5)then
-		   leftv(1:nof_variables)=u_c_val(5,1:nof_variables,i)
+		   leftv(1:nof_variables)=u_c_val(i,5,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 
@@ -10814,7 +10814,7 @@ allocate (valuelocation(nvar1))
 		do kkd=1,6
 		do i=1,kmaxe
 
-		  valuess(i)=u_c_val(5,kkd,i)
+		  valuess(i)=u_c_val(i,5,kkd)
 		end do
 
 
@@ -11053,12 +11053,12 @@ valuelocation(:)=0
 
 		do kkd=1,4
 		do i=1,kmaxe
-		  valuess(i)=u_c_val(5,kkd,i)
+		  valuess(i)=u_c_val(i,5,kkd)
 		  if ((kkd.ge.2).and.(kkd.le.3))then
-		  valuess(i)=u_c_val(5,kkd,i)/u_c_val(5,1,i)
+		  valuess(i)=u_c_val(i,5,kkd)/u_c_val(i,5,1)
 		  end if
 		  if (kkd.eq.4)then
-		   leftv(1:nof_variables)=u_c_val(5,1:nof_variables,i)
+		   leftv(1:nof_variables)=u_c_val(i,5,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(4)
 
@@ -11084,7 +11084,7 @@ valuelocation(:)=0
 		do kkd=1,3
 		do i=1,kmaxe
 
-		  valuess(i)=u_c_val(5,1,i)
+		  valuess(i)=u_c_val(i,5,1)
 		end do
 
 
@@ -11201,7 +11201,7 @@ integer::iconsidered,facex
 ! 	do j=1,ielem_ifca(k)
 ! 	if (ielem_percorg(j,k).eq.-4)then
 ! 	iloop=iloop+1
-! 	icell(iloop)=ielem_indexi(j,ibound_t(k))
+! 	icell(iloop)=ielem_indexi(ibound_t(k),j)
 ! 	go to 1043
 ! 	end if
 ! 	end do
@@ -11420,7 +11420,7 @@ if (itestcase.le.2)then
 
 					  if (totiw.gt.0)then
 					  do i=1,totiw
-						valuess(i)=u_c_rms(j,ibound_t(i))
+						valuess(i)=u_c_rms(ibound_t(i),j)
 					  enddo
 					  end if
 
@@ -11438,9 +11438,9 @@ if (itestcase.le.2)then
 		do kkd=1,5
 					  if (totiw.gt.0)then
 					  do i=1,totiw
-						valuess(i)=u_c_val(ind1,kkd,ibound_t(i))
+						valuess(i)=u_c_val(ibound_t(i),ind1,kkd)
 						if ((kkd.ge.2).and.(kkd.le.4))then
-					      valuess(i)=u_c_val(ind1,kkd,ibound_t(i))/u_c_val(ind1,1,ibound_t(i))
+					      valuess(i)=u_c_val(ibound_t(i),ind1,kkd)/u_c_val(ibound_t(i),ind1,1)
 					      end if
 
 
@@ -11462,7 +11462,7 @@ if (itestcase.le.2)then
 
 					  if (totiw.gt.0)then
 					  do i=1,totiw
-					        leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,ibound_t(i))
+					        leftv(1:nof_variables)=u_c_val(ibound_t(i),ind1,1:nof_variables)
 
 						call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(i)=leftv(5)
@@ -11489,7 +11489,7 @@ if (itestcase.le.2)then
 					if (totiw.gt.0)then
 					  do i=1,totiw
 
-				    valuess(i)=u_ct_val(ind1,turbulenceequations+passivescalar,ibound_t(i))
+				    valuess(i)=u_ct_val(ibound_t(i),ind1,turbulenceequations+passivescalar)
 
 
 
@@ -11552,7 +11552,7 @@ if (itestcase.le.2)then
 					  if (totiw.gt.0)then
 					  do i=1,totiw
 
-				    valuess(i)=u_ct_val(ind1,kkd,ibound_t(i))
+				    valuess(i)=u_ct_val(ibound_t(i),ind1,kkd)
 
 
 
@@ -11754,10 +11754,10 @@ integer::iconsidered,facex
 ! do i=1,kmaxe
 !   if (ielem_interior(i).eq.1)then
 ! 	do j=1,ielem_ifca(i)
-! 	  if (ielem_ibounds(j,i).gt.0)then
-! 	      if (ibound_icode(ielem_ibounds(j,i)).eq.4)then
+! 	  if (ielem_ibounds(i,j).gt.0)then
+! 	      if (ibound_icode(ielem_ibounds(i,j)).eq.4)then
 ! 		  iloop=iloop+1
-! 		    icell(iloop)=ibound_inum(ielem_ibounds(j,i))
+! 		    icell(iloop)=ibound_inum(ielem_ibounds(i,j))
 ! 	      end if
 ! 	  end if
 ! 	end do
@@ -11990,7 +11990,7 @@ if (itestcase.le.2)then
 
 		      if (totiw.gt.0)then
 					  do i=1,totiw
-						valuess(i)=u_c_val(5,1,ibound_t(i))
+						valuess(i)=u_c_val(ibound_t(i),5,1)
 					  enddo
 					  end if
 
@@ -12006,9 +12006,9 @@ if (itestcase.le.2)then
 		do kkd=1,4
 		      if (totiw.gt.0)then
 					  do i=1,totiw
-						valuess(i)=u_c_val(5,kkd,ibound_t(i))
+						valuess(i)=u_c_val(ibound_t(i),5,kkd)
 						if ((kkd.ge.2).and.(kkd.le.3))then
-						valuess(i)=u_c_val(5,kkd,ibound_t(i))/u_c_val(5,1,ibound_t(i))
+						valuess(i)=u_c_val(ibound_t(i),5,kkd)/u_c_val(ibound_t(i),5,1)
 						end if
 					  enddo
 					  end if
@@ -12024,7 +12024,7 @@ if (itestcase.le.2)then
 
 		      if (totiw.gt.0)then
 					  do i=1,totiw
-						leftv(1:nof_variables)=u_c_val(5,1:nof_variables,ibound_t(i))
+						leftv(1:nof_variables)=u_c_val(ibound_t(i),5,1:nof_variables)
 						call cons2prim(n,leftv,mp_pinfl,gammal)
 					  valuess(i)=leftv(4)
 					  enddo
@@ -12044,7 +12044,7 @@ if (itestcase.le.2)then
 					  do i=1,totiw
 
 
-					  valuess(i)=u_ct_val(5,turbulenceequations+passivescalar,ibound_t(i))
+					  valuess(i)=u_ct_val(ibound_t(i),5,turbulenceequations+passivescalar)
 					  enddo
 					  end if
 
@@ -12091,7 +12091,7 @@ if (itestcase.le.2)then
 					  do i=1,totiw
 
 
-					  valuess(i)=u_ct_val(5,kkd,ibound_t(i))
+					  valuess(i)=u_ct_val(ibound_t(i),5,kkd)
 					  enddo
 					  end if
 
@@ -12248,7 +12248,7 @@ iloop=0
 ! 	do j=1,ielem_ifca(k)
 ! 	if (ielem_percorg(j,k).eq.-4)then
 ! 	iloop=iloop+1
-! 	icell(iloop)=ielem_indexi(j,ibound_t(k))
+! 	icell(iloop)=ielem_indexi(ibound_t(k),j)
 ! 	go to 1043
 ! 	end if
 ! 	end do
@@ -12260,10 +12260,10 @@ if (totiw.gt.0)then
 do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
-	  if (ielem_ibounds(j,i).gt.0)then
-	      if (ibound_icode(ielem_ibounds(j,i)).eq.4)then
+	  if (ielem_ibounds(i,j).gt.0)then
+	      if (ibound_icode(ielem_ibounds(i,j)).eq.4)then
 		  iloop=iloop+1
-		    icell(iloop)=ibound_inum(ielem_ibounds(j,i))
+		    icell(iloop)=ibound_inum(ielem_ibounds(i,j))
 	      end if
 	  end if
 	end do
@@ -12494,7 +12494,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    valuess(icount_wall)=u_c_val(5,1,ibound_which(i))
+				    valuess(icount_wall)=u_c_val(ibound_which(i),5,1)
 				end if
 		      end do
 		      end if
@@ -12522,9 +12522,9 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    valuess(icount_wall)=u_c_val(5,kkd,ibound_which(i))
+				    valuess(icount_wall)=u_c_val(ibound_which(i),5,kkd)
 				if ((kkd.ge.2).and.(kkd.le.4))then
-		  valuess(icount_wall)=u_c_val(5,kkd,ibound_which(i))/u_c_val(5,1,ibound_which(i))
+		  valuess(icount_wall)=u_c_val(ibound_which(i),5,kkd)/u_c_val(ibound_which(i),5,1)
 		  end if
 				end if
 		      end do
@@ -12552,7 +12552,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    leftv(1:nof_variables)=u_c_val(5,1:nof_variables,ibound_which(i))
+				    leftv(1:nof_variables)=u_c_val(ibound_which(i),5,1:nof_variables)
 				    call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(icount_wall)=leftv(5)
 
@@ -12582,7 +12582,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				       valuess(icount_wall)=u_ct_val(5,turbulenceequations+passivescalar,ibound_which(i))
+				       valuess(icount_wall)=u_ct_val(ibound_which(i),5,turbulenceequations+passivescalar)
 
 				end if
 		      end do
@@ -12650,7 +12650,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				       valuess(icount_wall)=u_ct_val(5,kkd,ibound_which(i))
+				       valuess(icount_wall)=u_ct_val(ibound_which(i),5,kkd)
 
 				end if
 		      end do
@@ -12841,7 +12841,7 @@ iloop=0
 ! 	do j=1,ielem_ifca(k)
 ! 	if (ielem_percorg(j,k).eq.-4)then
 ! 	iloop=iloop+1
-! 	icell(iloop)=ielem_indexi(j,ibound_t(k))
+! 	icell(iloop)=ielem_indexi(ibound_t(k),j)
 ! 	go to 1043
 ! 	end if
 ! 	end do
@@ -12853,10 +12853,10 @@ if (totiw.gt.0)then
 do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
-	  if (ielem_ibounds(j,i).gt.0)then
-	      if (ibound_icode(ielem_ibounds(j,i)).eq.4)then
+	  if (ielem_ibounds(i,j).gt.0)then
+	      if (ibound_icode(ielem_ibounds(i,j)).eq.4)then
 		  iloop=iloop+1
-		    icell(iloop)=ibound_inum(ielem_ibounds(j,i))
+		    icell(iloop)=ibound_inum(ielem_ibounds(i,j))
 	      end if
 	  end if
 	end do
@@ -13122,7 +13122,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    valuess(icount_wall)=u_c_val(5,1,ibound_which(i))
+				    valuess(icount_wall)=u_c_val(ibound_which(i),5,1)
 				end if
 		      end do
 		      end if
@@ -13150,9 +13150,9 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    valuess(icount_wall)=u_c_val(5,kkd,ibound_which(i))
+				    valuess(icount_wall)=u_c_val(ibound_which(i),5,kkd)
 				if ((kkd.ge.2).and.(kkd.le.3))then
-		  valuess(icount_wall)=u_c_val(5,kkd,ibound_which(i))/u_c_val(5,1,ibound_which(i))
+		  valuess(icount_wall)=u_c_val(ibound_which(i),5,kkd)/u_c_val(ibound_which(i),5,1)
 		  end if
 				end if
 		      end do
@@ -13180,7 +13180,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				    leftv(1:nof_variables)=u_c_val(5,1:nof_variables,ibound_which(i))
+				    leftv(1:nof_variables)=u_c_val(ibound_which(i),5,1:nof_variables)
 				    call cons2prim(n,leftv,mp_pinfl,gammal)
 				    valuess(icount_wall)=leftv(4)
 
@@ -13210,7 +13210,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				       valuess(icount_wall)=u_ct_val(5,turbulenceequations+passivescalar,ibound_which(i))
+				       valuess(icount_wall)=u_ct_val(ibound_which(i),5,turbulenceequations+passivescalar)
 
 				end if
 		      end do
@@ -13278,7 +13278,7 @@ if (itestcase.le.2)then
 		      do i=1,n_boundaries
 			      if ((ibound_icode(i).eq.4).and.(ibound_which(i).gt.0)) then
 				    icount_wall=icount_wall+1
-				       valuess(icount_wall)=u_ct_val(5,kkd,ibound_which(i))
+				       valuess(icount_wall)=u_ct_val(ibound_which(i),5,kkd)
 
 				end if
 		      end do
@@ -13993,12 +13993,12 @@ open(140,file=outfile,form='formatted',status='new',action='write')
 kmaxe=xmpielrank(n)
 do i=1,nof_interior
 
-		!		write(140,*) u_c_val(1,1:5,i)
+		!		write(140,*) u_c_val(i,1,1:5)
 
 ! 		do l=1,ielem_ifca(i)
 !
 ! 				!write(140,*)ielem_ihexgl(i),l
-				write(140,*)rec_uleft(1,1,1, i)
+				write(140,*)rec_uleft(i,1,1,1)
 !
 !
 ! 		end do
@@ -14071,16 +14071,16 @@ end if
       if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
 	  do i=1,kmaxe
-	      array2(k:k+nof_variables-1)=u_c_val(1,1:nof_variables,i)
+	      array2(k:k+nof_variables-1)=u_c_val(i,1,1:nof_variables)
 	      k=k+nof_variables
-	      array2(k:k+turbulenceequations+passivescalar-1)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+	      array2(k:k+turbulenceequations+passivescalar-1)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
 	      k=k+turbulenceequations+passivescalar
 	  end do
       else
 	  k=1
 	  do i=1,kmaxe
         do j=1,nof_variables
-	      array2(k:k+idegfree)=u_c_valdg(1,j,1:idegfree+1,i)
+	      array2(k:k+idegfree)=u_c_valdg(i,1,j,1:idegfree+1)
 	      k=k+(idegfree+1)
         end do
 	  end do
@@ -14091,15 +14091,15 @@ end if
       if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
 	  do i=1,kmaxe
-	      array2(k:k+nof_variables-1)=u_c_val(1,1:nof_variables,i)
+	      array2(k:k+nof_variables-1)=u_c_val(i,1,1:nof_variables)
 	      k=k+nof_variables
-	      array2(k:k+turbulenceequations+passivescalar-1)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+	      array2(k:k+turbulenceequations+passivescalar-1)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
 	      k=k+turbulenceequations+passivescalar
 	  end do
       else
 	  k=1
 	  do i=1,kmaxe
-	      array2(k:k+nof_variables-1)=u_c_val(1,1:nof_variables,i)
+	      array2(k:k+nof_variables-1)=u_c_val(i,1,1:nof_variables)
 	      k=k+nof_variables
 	  end do
       end if
@@ -14212,8 +14212,8 @@ iloop=0
 do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
-	  if (ielem_ibounds(j,i).gt.0)then
-	      if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+	  if (ielem_ibounds(i,j).gt.0)then
+	      if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
 		  iloop=iloop+1
 	      end if
 	  end if
@@ -14235,13 +14235,13 @@ iloop=0
 do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
-	  if (ielem_ibounds(j,i).gt.0)then
-	     if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+	  if (ielem_ibounds(i,j).gt.0)then
+	     if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
 		  iloop=iloop+1
 				if (dimensiona.eq.2)then
 					kloop=2
 				else
-					if (ielem_types_faces(j,i).eq.5)then
+					if (ielem_types_faces(i,j).eq.5)then
 					kloop=4
 					else
 					kloop=3
@@ -14554,7 +14554,7 @@ subroutine partition_preparation_wallv(n)
 	  do i=1,kmaxn_p
 		wrarray_part4(k:k+dims-1)=inoder4_cord(1:dims,my_nodesl(i))
 		if (dimensiona.eq.2)then
-		wrarray_part4(k+temp_cord-1:k+temp_cord-1)=0.0d0
+		wrarray_part4(k+temp_cord-1:k+temp_cord-1)=0.00
 		end if
 		k=k+temp_cord
 	  end do
@@ -14774,7 +14774,7 @@ subroutine partition_preparation(n)
 	  do i=1,kmaxn_p
 		rarray_part4(k:k+dims-1)=inoder4_cord(1:dims,my_nodesl(i))
 		if (dimensiona.eq.2)then
-		rarray_part4(k+temp_cord-1:k+temp_cord-1)=0.0d0
+		rarray_part4(k+temp_cord-1:k+temp_cord-1)=0.00
 		end if
 		k=k+temp_cord
 	  end do
@@ -14952,7 +14952,7 @@ subroutine partition_preparation_p(n)
 	  do i=1,kmaxn
 		nodes_vtu(k:k+dims-1)=inoder4_cord(1:dims,i)
 		if (dimensiona.eq.2)then
-		nodes_vtu(k+temp_cord-1:k+temp_cord-1)=0.0d0
+		nodes_vtu(k+temp_cord-1:k+temp_cord-1)=0.00
 		end if
 		k=k+temp_cord
 	  end do
@@ -14976,8 +14976,8 @@ subroutine partition_preparation_p_wall(n)
 			do i=1,kmaxe
 			if (ielem_interior(i).eq.1)then
 				do j=1,ielem_ifca(i)
-				if (ielem_ibounds(j,i).gt.0)then
-					if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+				if (ielem_ibounds(i,j).gt.0)then
+					if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
 					iloop=iloop+1
 					end if
 				end if
@@ -15012,13 +15012,13 @@ iloop=0
 do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
-	  if (ielem_ibounds(j,i).gt.0)then
-	    if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+	  if (ielem_ibounds(i,j).gt.0)then
+	    if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
 		  iloop=iloop+1
 				if (dimensiona.eq.2)then
 					kloop=2
 				else
-					if (ielem_types_faces(j,i).eq.5)then
+					if (ielem_types_faces(i,j).eq.5)then
 					kloop=4
 					else
 					kloop=3
@@ -15132,7 +15132,7 @@ end do
 	  do i=1,kmaxn
 		nodes_vtu_w(k:k+dims-1)=inoder4_cord(1:dims,i)
 		if (dimensiona.eq.2)then
-		nodes_vtu_w(k+temp_cord-1:k+temp_cord-1)=0.0d0
+		nodes_vtu_w(k+temp_cord-1:k+temp_cord-1)=0.00
 		end if
 		k=k+temp_cord
 	  end do
@@ -15660,7 +15660,7 @@ temp_cord=3
 	  do i=1,kmaxn_p
 		rarray_part4(k:k+dims-1)=inoder4_cord(1:dims,my_nodesl(i))
 		if (dimensiona.eq.2)then
-		rarray_part4(k+temp_cord-1:k+temp_cord-1)=0.0d0
+		rarray_part4(k+temp_cord-1:k+temp_cord-1)=0.00
 		end if
 		k=k+temp_cord
 	  end do
@@ -15681,12 +15681,12 @@ temp_cord=3
 
 				if (dimensiona.eq.3)then
 				do i=1,kmaxe
-				leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+				leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 				call cons2prim(n,leftv,mp_pinfl,gammal)	!r,u,v,w,p,y_n2,y_o2,y_no,y_n,y_o
 
 				if (realgas.eq.1)then
 				ptemp=leftv(dimensiona+2)
-				vectco(1:nof_variables)=u_c_val(1,1:nof_variables,i)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
+				vectco(1:nof_variables)=u_c_val(i,1,1:nof_variables)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
 				call cons2div(n,vectco,mp_pinfl,gammal)
 				leftv(1:nof_variables)=vectco(1:nof_variables)
 				end if
@@ -15714,7 +15714,7 @@ temp_cord=3
                                         end if
                                         end do
                                         if (turbulenceequations.gt.0)then
-                                        rarray_part1(i,write_variables)=u_ct_val(1,1,i)
+                                        rarray_part1(i,write_variables)=u_ct_val(i,1,1)
                                         end if
 
 				end do
@@ -15726,14 +15726,14 @@ temp_cord=3
 				if (dimensiona.eq.2)then
 				do i=1,kmaxe
 
-				leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+				leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 
 
 				call cons2prim(n,leftv,mp_pinfl,gammal)	!r,u,v,p,y_n2,y_o2,y_no,y_n,y_o
 
 				if (realgas.eq.1)then
 				ptemp=leftv(dimensiona+2)
-				vectco(1:nof_variables)=u_c_val(1,1:nof_variables,i)	!r,u,v,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
+				vectco(1:nof_variables)=u_c_val(i,1,1:nof_variables)	!r,u,v,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
 				call cons2div(n,vectco,mp_pinfl,gammal)
 				leftv(1:nof_variables)=vectco(1:nof_variables)
 				end if
@@ -15757,7 +15757,7 @@ temp_cord=3
 														end if
 													else
 														if (initcond.gt.100000)then
-															rarray_part1(i,j)=u_e_val(1,1,i)
+															rarray_part1(i,j)=u_e_val(i,1,1)
 														else
 															rarray_part1(i,j)=ielem_reduce(i)
 														end if
@@ -15771,7 +15771,7 @@ temp_cord=3
 
 
 
-                                        rarray_part1(i,write_variables)=u_ct_val(1,1,i)
+                                        rarray_part1(i,write_variables)=u_ct_val(i,1,1)
                                         end if
 				end do
 				temp_node=4;temp_dims=3
@@ -16082,7 +16082,7 @@ temp_cord=3
 	  do i=1,kmaxn_p
 		rarray_part4(k:k+dims-1)=inoder4_cord(1:dims,my_nodesl(i))
 		if (dimensiona.eq.2)then
-		rarray_part4(k+temp_cord-1:k+temp_cord-1)=0.0d0
+		rarray_part4(k+temp_cord-1:k+temp_cord-1)=0.00
 		end if
 		k=k+temp_cord
 	  end do
@@ -16103,12 +16103,12 @@ temp_cord=3
 
 				if (dimensiona.eq.3)then
 				do i=1,kmaxe
-				leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)
+				leftv(1:nof_variables)=u_c_val(i,ind1,1:nof_variables)
 				call cons2prim(n,leftv,mp_pinfl,gammal)
 
 				if (realgas.eq.1)then
 				ptemp=leftv(dimensiona+2)
-				vectco(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
+				vectco(1:nof_variables)=u_c_val(i,ind1,1:nof_variables)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
 				call cons2div(n,vectco,mp_pinfl,gammal)
 				leftv(1:nof_variables)=vectco(1:nof_variables)
 				end if
@@ -16119,11 +16119,11 @@ temp_cord=3
 					if (realgas.eq.1)then
 					rarray_part1(i,nof_variables+1)=ptemp
 					do j=1,6
-					rarray_part1(i,nof_variables+1+j)=u_c_val(1,nof_variables+1+j,i)
+					rarray_part1(i,nof_variables+1+j)=u_c_val(i,1,nof_variables+1+j)
                      end do
 					else
 					do j=nof_variables+1,write_variables_av
-					rarray_part1(i,j)=u_c_rms(j-nof_variables,i)
+					rarray_part1(i,j)=u_c_rms(i,j-nof_variables)
                      end do
                      end if
 				end do
@@ -16444,7 +16444,7 @@ temp_cord=3
 	  do i=1,kmaxn
 		nodes_vtu(k:k+dims-1)=inoder4_cord(1:dims,i)
 		if (dimensiona.eq.2)then
-		nodes_vtu(k+temp_cord-1:k+temp_cord-1)=0.0d0
+		nodes_vtu(k+temp_cord-1:k+temp_cord-1)=0.00
 		end if
 		k=k+temp_cord
 	  end do
@@ -16458,12 +16458,12 @@ temp_cord=3
 
 				if (dimensiona.eq.3)then
 				do i=1,kmaxe
-				leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+				leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 				call cons2prim(n,leftv,mp_pinfl,gammal)	!r,u,v,w,p,y_n2,y_o2,y_no,y_n,y_o
 
 				if (realgas.eq.1)then
 				ptemp=leftv(dimensiona+2)
-				vectco(1:nof_variables)=u_c_val(1,1:nof_variables,i)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
+				vectco(1:nof_variables)=u_c_val(i,1,1:nof_variables)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
 				call cons2div(n,vectco,mp_pinfl,gammal)
 				leftv(1:nof_variables)=vectco(1:nof_variables)
 				end if
@@ -16489,7 +16489,7 @@ temp_cord=3
                                         end if
                                         end do
                                         if (turbulenceequations.gt.0)then
-                                        sol_vtu(i,write_variables)=u_ct_val(1,1,i)
+                                        sol_vtu(i,write_variables)=u_ct_val(i,1,1)
                                         end if
 				end do
 
@@ -16499,12 +16499,12 @@ temp_cord=3
 
 				if (dimensiona.eq.2)then
 				do i=1,kmaxe
-				leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+				leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 				call cons2prim(n,leftv,mp_pinfl,gammal)	!r,u,v,p,y_n2,y_o2,y_no,y_n,y_o
 
 				if (realgas.eq.1)then
 				ptemp=leftv(dimensiona+2)
-				vectco(1:nof_variables)=u_c_val(1,1:nof_variables,i)	!r,u,v,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
+				vectco(1:nof_variables)=u_c_val(i,1,1:nof_variables)	!r,u,v,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
 				call cons2div(n,vectco,mp_pinfl,gammal)
 				leftv(1:nof_variables)=vectco(1:nof_variables)
 				end if
@@ -16534,7 +16534,7 @@ temp_cord=3
                                         end if
 										end do
 										if (turbulenceequations.gt.0)then
-                                        sol_vtu(i,write_variables)=u_ct_val(1,1,i)
+                                        sol_vtu(i,write_variables)=u_ct_val(i,1,1)
                                         end if
 
 				end do
@@ -16810,7 +16810,7 @@ temp_cord=3
 			do i=1,kmaxn
 				nodes_vtu_w(k:k+dims-1)=inoder4_cord(1:dims,i)
 				if (dimensiona.eq.2)then
-				nodes_vtu_w(k+temp_cord-1:k+temp_cord-1)=0.0d0
+				nodes_vtu_w(k+temp_cord-1:k+temp_cord-1)=0.00
 				end if
 				k=k+temp_cord
 			end do
@@ -16827,7 +16827,7 @@ temp_cord=3
 				do i=1,iloopx
 				facex=wall_l(i,2)
 				iconsidered=wall_l(i,1)
-				leftv(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)
+				leftv(1:nof_variables)=u_c_val(iconsidered,1,1:nof_variables)
 							if (dimensiona.eq.3)then
 								call cons2prim(n,leftv,mp_pinfl,gammal)
 								temp_node=3;temp_dims=3
@@ -16841,7 +16841,7 @@ temp_cord=3
 
 								if (realgas.eq.1)then
 								ptemp=leftv(dimensiona+2)
-								vectco(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
+								vectco(1:nof_variables)=u_c_val(iconsidered,1,1:nof_variables)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
 								call cons2div(n,vectco,mp_pinfl,gammal)
 								leftv(1:nof_variables)=vectco(1:nof_variables)
 								end if
@@ -17206,7 +17206,7 @@ temp_cord=3
 			do i=1,kmaxn
 				nodes_vtu_w(k:k+dims-1)=inoder4_cord(1:dims,i)
 				if (dimensiona.eq.2)then
-				nodes_vtu_w(k+temp_cord-1:k+temp_cord-1)=0.0d0
+				nodes_vtu_w(k+temp_cord-1:k+temp_cord-1)=0.00
 				end if
 				k=k+temp_cord
 			end do
@@ -17223,7 +17223,7 @@ temp_cord=3
 				do i=1,iloopx
 				facex=wall_l(i,2)
 				iconsidered=wall_l(i,1)
-				leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,iconsidered)
+				leftv(1:nof_variables)=u_c_val(iconsidered,ind1,1:nof_variables)
 							if (dimensiona.eq.3)then
 								call cons2prim(n,leftv,mp_pinfl,gammal)
 								temp_node=3;temp_dims=3
@@ -17236,7 +17236,7 @@ temp_cord=3
 
 								if (realgas.eq.1)then
 								ptemp=leftv(dimensiona+2)
-								vectco(1:nof_variables)=u_c_val(ind1,1:nof_variables,iconsidered)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
+								vectco(1:nof_variables)=u_c_val(iconsidered,ind1,1:nof_variables)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
 								call cons2div(n,vectco,mp_pinfl,gammal)
 								leftv(1:nof_variables)=vectco(1:nof_variables)
 								end if
@@ -17588,7 +17588,7 @@ real::mp_pinfr,gammar
 		  do i=1,kmaxn
 			nodes_vtu(k:k+dims-1)=inoder4_cord(1:dims,i)
 			if (dimensiona.eq.2)then
-			nodes_vtu(k+temp_cord-1:k+temp_cord-1)=0.0d0
+			nodes_vtu(k+temp_cord-1:k+temp_cord-1)=0.00
 			end if
 			k=k+temp_cord
 		  end do
@@ -17602,12 +17602,12 @@ real::mp_pinfr,gammar
 
 					if (dimensiona.eq.3)then
 					do i=1,kmaxe
-					leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)
+					leftv(1:nof_variables)=u_c_val(i,ind1,1:nof_variables)
 					call cons2prim(n,leftv,mp_pinfl,gammal)
 
 					if (realgas.eq.1)then
 					ptemp=leftv(dimensiona+2)
-					vectco(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
+					vectco(1:nof_variables)=u_c_val(i,ind1,1:nof_variables)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
 					call cons2div(n,vectco,mp_pinfl,gammal)
 					leftv(1:nof_variables)=vectco(1:nof_variables)
 					end if
@@ -17618,13 +17618,13 @@ real::mp_pinfr,gammar
 						sol_vtu(i,nof_variables+1)=ptemp
 
 						do j=1,6
-							sol_vtu(i,nof_variables+1+j)=u_c_val(1,nof_variables+1+j,i)
+							sol_vtu(i,nof_variables+1+j)=u_c_val(i,1,nof_variables+1+j)
 						end do
 
 						else
 
 						do j=nof_variables+1,write_variables_av
-							sol_vtu(i,j)=u_c_rms(j-nof_variables,i)
+							sol_vtu(i,j)=u_c_rms(i,j-nof_variables)
 						end do
 						end if
 					end do
@@ -17904,7 +17904,7 @@ integer::iconsidered,facex
 						do i=1,kmaxn_p
 									wrarray_part4(k:k+dims-1)=inoder4_cord(1:dims,my_nodesl(i))
 									if (dimensiona.eq.2)then
-									wrarray_part4(k+temp_cord-1:k+temp_cord-1)=0.0d0
+									wrarray_part4(k+temp_cord-1:k+temp_cord-1)=0.00
 									end if
 									k=k+temp_cord
 						end do
@@ -17921,7 +17921,7 @@ integer::iconsidered,facex
 							do i=1,iloopx
 								facex=wall_l(i,2)
 								iconsidered=wall_l(i,1)
-								leftv(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)
+								leftv(1:nof_variables)=u_c_val(iconsidered,1,1:nof_variables)
 
 
 								if (dimensiona.eq.3)then
@@ -17937,7 +17937,7 @@ integer::iconsidered,facex
 
 								if (realgas.eq.1)then
 								ptemp=leftv(dimensiona+2)
-								vectco(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
+								vectco(1:nof_variables)=u_c_val(iconsidered,1,1:nof_variables)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
 								call cons2div(n,vectco,mp_pinfl,gammal)
 								leftv(1:nof_variables)=vectco(1:nof_variables)
 								end if
@@ -18372,7 +18372,7 @@ integer::iconsidered,facex
 						do i=1,kmaxn_p
 									wrarray_part4(k:k+dims-1)=inoder4_cord(1:dims,my_nodesl(i))
 									if (dimensiona.eq.2)then
-									wrarray_part4(k+temp_cord-1:k+temp_cord-1)=0.0d0
+									wrarray_part4(k+temp_cord-1:k+temp_cord-1)=0.00
 									end if
 									k=k+temp_cord
 						end do
@@ -18385,7 +18385,7 @@ integer::iconsidered,facex
 							do i=1,iloopx
 								facex=wall_l(i,2)
 								iconsidered=wall_l(i,1)
-								leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,iconsidered)
+								leftv(1:nof_variables)=u_c_val(iconsidered,ind1,1:nof_variables)
 
 
 								if (dimensiona.eq.3)then
@@ -18399,7 +18399,7 @@ integer::iconsidered,facex
 
 								if (realgas.eq.1)then
 								ptemp=leftv(dimensiona+2)
-								vectco(1:nof_variables)=u_c_val(ind1,1:nof_variables,iconsidered)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
+								vectco(1:nof_variables)=u_c_val(iconsidered,ind1,1:nof_variables)	!r,u,v,w,ttr,tv,y_n2,y_o2,y_no,y_n,y_o
 								call cons2div(n,vectco,mp_pinfl,gammal)
 								leftv(1:nof_variables)=vectco(1:nof_variables)
 								end if
@@ -18826,9 +18826,9 @@ do jj=1,nof_variables+turbulenceequations+passivescalar
  do i=1,kmaxe
       if (jj.gt.nof_variables) then
 
-		      valuess(i)=u_ct_val(1,jj-nof_variables,i)
+		      valuess(i)=u_ct_val(i,1,jj-nof_variables)
       else
-	valuess(i)=u_c_val(1,jj,i)
+	valuess(i)=u_c_val(i,1,jj)
       end if
  end do
     call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
@@ -18844,7 +18844,7 @@ end do
 else
   do jj=1,nof_variables
 	do i=1,kmaxe
-		valuess(i)=u_c_val(1,jj,i)
+		valuess(i)=u_c_val(i,1,jj)
 	end do
 	call mpi_gather(valuess,imaxp,mpi_double_precision,valuesa,imaxp,mpi_double_precision,0,mpi_comm_world,ierror)
 
@@ -18942,16 +18942,16 @@ end if
       if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
 	  do i=1,kmaxe
-	      array2(k:k+nof_variables-1)=u_c_val(1,1:nof_variables,i)
+	      array2(k:k+nof_variables-1)=u_c_val(i,1,1:nof_variables)
 	      k=k+nof_variables
-	      array2(k:k+turbulenceequations+passivescalar-1)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+	      array2(k:k+turbulenceequations+passivescalar-1)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
 	      k=k+turbulenceequations+passivescalar
 	  end do
       else
 	  k=1
 	  do i=1,kmaxe
         do j=1,nof_variables
-	      array2(k:k+idegfree)=u_c_valdg(1,j,1:idegfree+1,i)
+	      array2(k:k+idegfree)=u_c_valdg(i,1,j,1:idegfree+1)
 
 
 	      k=k+(idegfree+1)
@@ -18965,15 +18965,15 @@ end if
       if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
 	  do i=1,kmaxe
-	      array2(k:k+nof_variables-1)=u_c_val(1,1:nof_variables,i)
+	      array2(k:k+nof_variables-1)=u_c_val(i,1,1:nof_variables)
 	      k=k+nof_variables
-	      array2(k:k+turbulenceequations+passivescalar-1)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+	      array2(k:k+turbulenceequations+passivescalar-1)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
 	      k=k+turbulenceequations+passivescalar
 	  end do
       else
 	  k=1
 	  do i=1,kmaxe
-	      array2(k:k+nof_variables-1)=u_c_val(1,1:nof_variables,i)
+	      array2(k:k+nof_variables-1)=u_c_val(i,1,1:nof_variables)
 	      k=k+nof_variables
 	  end do
       end if
@@ -19121,19 +19121,19 @@ call mpi_barrier(mpi_comm_world,ierror)
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
 	  do i=1,kmaxe
-	      array2(k:k+nof_variables-1)=u_c_val(ind1,1:nof_variables,i)
+	      array2(k:k+nof_variables-1)=u_c_val(i,ind1,1:nof_variables)
 	      k=k+nof_variables
-	      array2(k:k+turbulenceequations+passivescalar-1)=u_ct_val(ind1,1:turbulenceequations+passivescalar,i)
+	      array2(k:k+turbulenceequations+passivescalar-1)=u_ct_val(i,ind1,1:turbulenceequations+passivescalar)
 	      k=k+turbulenceequations+passivescalar
-	      array2(k:k+6+passivescalar-1)=u_c_rms(1:6+passivescalar,i)
+	      array2(k:k+6+passivescalar-1)=u_c_rms(i,1:6+passivescalar)
 	      k=k+6+passivescalar
 	  end do
       else
 	  k=1
 	  do i=1,kmaxe
-	      array2(k:k+nof_variables-1)=u_c_val(ind1,1:nof_variables,i)
+	      array2(k:k+nof_variables-1)=u_c_val(i,ind1,1:nof_variables)
 	      k=k+nof_variables
-	      array2(k:k+6+passivescalar-1)=u_c_rms(1:6+passivescalar,i)
+	      array2(k:k+6+passivescalar-1)=u_c_rms(i,1:6+passivescalar)
 	      k=k+6+passivescalar
 	  end do
       end if
@@ -19282,10 +19282,10 @@ end if
 
 	    k=1
 	    do i=1,kmaxe
-		u_c_val(1,1:nof_variables,i)=array2(k:k+nof_variables-1)
+		u_c_val(i,1,1:nof_variables)=array2(k:k+nof_variables-1)
 		k=k+nof_variables
 		    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-		    u_ct_val(1,1:turbulenceequations+passivescalar,i)=array2(k:k+prev_turbequation+lamps-1)
+		    u_ct_val(i,1,1:turbulenceequations+passivescalar)=array2(k:k+prev_turbequation+lamps-1)
 		    end if
 		k=k+prev_turbmodel+lamps
 
@@ -19295,7 +19295,7 @@ end if
 	    do i=1,kmaxe
 	    do j=1,nof_variables
 
-		u_c_valdg(1,j,1:idegfree+1,i)=array2(k:k+idegfree)
+		u_c_valdg(i,1,j,1:idegfree+1)=array2(k:k+idegfree)
 
 
 		k=k+(idegfree+1)
@@ -19304,10 +19304,10 @@ end if
 
 		      if (turbulence.eq.1)then
 			    if (turbulencemodel.eq.1)then
-				u_ct_val(1,1,i)=visc*turbinit
+				u_ct_val(i,1,1)=visc*turbinit
 			    else
-				u_ct_Val(1,1,i)=1.5*(i_turb_inlet*ufreestream)**2
-				u_ct_val(1,2,i)=(1.0d0/sqrt(sqrt(c_mu_inlet)))*sqrt(u_ct_val(1,1,ki))&
+				u_ct_Val(i,1,1)=1.5*(i_turb_inlet*ufreestream)**2
+				u_ct_val(i,1,2)=(1.00/sqrt(sqrt(c_mu_inlet)))*sqrt(u_ct_val(ki,1,1))&
 					/l_turb_inlet*rg(1)
 			    end if
 			endif
@@ -19330,10 +19330,10 @@ end if
 
 	    k=1
 	    do i=1,kmaxe
-		u_c_val(1,1:nof_variables,i)=array2(k:k+nof_variables-1)
+		u_c_val(i,1,1:nof_variables)=array2(k:k+nof_variables-1)
 		k=k+nof_variables
 		    if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-		    u_ct_val(1,1:turbulenceequations+passivescalar,i)=array2(k:k+prev_turbequation+lamps-1)
+		    u_ct_val(i,1,1:turbulenceequations+passivescalar)=array2(k:k+prev_turbequation+lamps-1)
 		    end if
 		k=k+prev_turbmodel+lamps
 
@@ -19341,14 +19341,14 @@ end if
 	else
 	    k=1
 	    do i=1,kmaxe
-		u_c_val(1,1:nof_variables,i)=array2(k:k+nof_variables-1)
+		u_c_val(i,1,1:nof_variables)=array2(k:k+nof_variables-1)
 		k=k+nof_variables
 		      if (turbulence.eq.1)then
 			    if (turbulencemodel.eq.1)then
-				u_ct_val(1,1,i)=visc*turbinit
+				u_ct_val(i,1,1)=visc*turbinit
 			    else
-				u_ct_val(1,1,i)=1.5*(i_turb_inlet*ufreestream)**2
-				u_ct_val(1,2,i)=(1.0d0/sqrt(sqrt(c_mu_inlet)))*sqrt(u_ct_val(1,1,ki))&
+				u_ct_val(i,1,1)=1.5*(i_turb_inlet*ufreestream)**2
+				u_ct_val(i,1,2)=(1.00/sqrt(sqrt(c_mu_inlet)))*sqrt(u_ct_val(ki,1,1))&
 					/l_turb_inlet*rg(1)
 			    end if
 			endif
@@ -19393,20 +19393,20 @@ do i=1,kmaxe
 	if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	    k=1
 	  do i=1,kmaxe
-	      u_c_val(ind1,1:nof_variables,i)=array2(k:k+nof_variables-1)
+	      u_c_val(i,ind1,1:nof_variables)=array2(k:k+nof_variables-1)
 	      k=k+nof_variables
-	      u_ct_val(ind1,1:turbulenceequations+passivescalar,i)=array2(k:k+turbulenceequations+passivescalar-1)
+	      u_ct_val(i,ind1,1:turbulenceequations+passivescalar)=array2(k:k+turbulenceequations+passivescalar-1)
 	      k=k+turbulenceequations+passivescalar
-	      u_c_rms(1:6+passivescalar,i)=array2(k:k+6+passivescalar-1)
+	      u_c_rms(i,1:6+passivescalar)=array2(k:k+6+passivescalar-1)
 	      k=k+6+passivescalar
 	  end do
       else
 	  k=1
 	  do i=1,kmaxe
-	      u_c_val(ind1,1:nof_variables,i)=array2(k:k+nof_variables-1)
+	      u_c_val(i,ind1,1:nof_variables)=array2(k:k+nof_variables-1)
 
 	      k=k+nof_variables
-	      u_c_rms(1:6+passivescalar,i)=array2(k:k+6+passivescalar-1)
+	      u_c_rms(i,1:6+passivescalar)=array2(k:k+6+passivescalar-1)
 
 	      k=k+6+passivescalar
 	  end do
@@ -19418,10 +19418,10 @@ do i=1,kmaxe
 
 else
 do i=1,kmaxe
-      u_c_rms(:,i)=zero
-      u_c_val(ind1,:,i)=zero
+      u_c_rms(i,:)=zero
+      u_c_val(i,ind1,:)=zero
 	if ((passivescalar.gt.0).or.(turbulence.eq.1))then
-	u_ct_val(ind1,:,i)=zero
+	u_ct_val(i,ind1,:)=zero
 	end if
 end do
 
@@ -19516,17 +19516,17 @@ do jj=1,4+turbulenceequations+passivescalar+3+passivescalar
 
       if (jj.le.4+turbulenceequations+passivescalar)then
       if (jj.le.4) then
-	  valuess(i)=u_c_val(5,jj,i)
+	  valuess(i)=u_c_val(i,5,jj)
 
       else
 
-		valuess(i)=u_ct_val(5,jj-turbulenceequations+passivescalar,-i)
+		valuess(i)=u_ct_val(-i,5,jj-turbulenceequations+passivescalar)
 
       end if
       end if
       if (jj.gt.4+turbulenceequations+passivescalar)then
 
-       valuess(i)=u_c_rms(jj-(4+turbulenceequations+passivescalar),i)
+       valuess(i)=u_c_rms(i,jj-(4+turbulenceequations+passivescalar))
 
       end if
 
@@ -19595,14 +19595,14 @@ real::mp_pinfr,gammar
 
 				end if
 				if (passivescalar.eq.0)then
-				leftv(1:nof_variables)=u_c_val(1,1:nof_variables,probei(n,inv))
+				leftv(1:nof_variables)=u_c_val(probei(n,inv),1,1:nof_variables)
 				call cons2prim(n,leftv,mp_pinfl,gammal)
 	write(3000+n,'(1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,leftv(1),leftv(2),leftv(3),leftv(4),leftv(5)
 				else
-				leftv(1:nof_variables)=u_c_val(1,1:nof_variables,probei(n,inv))
+				leftv(1:nof_variables)=u_c_val(probei(n,inv),1,1:nof_variables)
 				call cons2prim(n,leftv,mp_pinfl,gammal)
 	write(3000+n,'(1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,leftv(1),leftv(2),leftv(3),leftv(4),leftv(5)&
-	,u_ct_val(1,1,probei(n,inv))/u_c_val(1,1,probei(n,inv))
+	,u_ct_val(probei(n,inv),1,1)/u_c_val(probei(n,inv),1,1)
 
 
 				end if
@@ -19647,14 +19647,14 @@ real::mp_pinfr,gammar
 
 				end if
 				if (passivescalar.eq.0)then
-	write(3000+n,'(1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,u_c_val(1,1,probei(n,inv)),&
-	u_c_val(1,2,probei(n,inv))/u_c_val(1,1,probei(n,inv)),&
-	u_c_val(1,3,probei(n,inv))/u_c_val(1,1,probei(n,inv))
+	write(3000+n,'(1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,u_c_val(probei(n,inv),1,1),&
+	u_c_val(probei(n,inv),1,2)/u_c_val(probei(n,inv),1,1),&
+	u_c_val(probei(n,inv),1,3)/u_c_val(probei(n,inv),1,1)
 				else
-	write(3000+n,'(1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,u_c_val(1,1,probei(n,inv)),&
-	  u_c_val(1,2,probei(n,inv))/u_c_val(1,1,probei(n,inv)),&
-	u_c_val(1,3,probei(n,inv))/u_c_val(1,1,probei(n,inv))&
-	,u_ct_val(1,1,probei(n,inv))/u_c_val(1,1,probei(n,inv))
+	write(3000+n,'(1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7,1x,e14.7)')t,u_c_val(probei(n,inv),1,1),&
+	  u_c_val(probei(n,inv),1,2)/u_c_val(probei(n,inv),1,1),&
+	u_c_val(probei(n,inv),1,3)/u_c_val(probei(n,inv),1,1)&
+	,u_ct_val(probei(n,inv),1,1)/u_c_val(probei(n,inv),1,1)
 
 
 				end if
@@ -19736,27 +19736,27 @@ do i=1,kmaxe
 			end if
 		if(mysurface.eq.1)then
 		    do j=1,ielem_ifca(i)
-		      if (ielem_ibounds(j,i).gt.0)then
-			  if ((ibound_icode(ielem_ibounds(j,i)).eq.4))then
-			      angle1=ielem_faceanglex(j,i)
-			      angle2=ielem_faceangley(j,i)
+		      if (ielem_ibounds(i,j).gt.0)then
+			  if ((ibound_icode(ielem_ibounds(i,j)).eq.4))then
+			      angle1=ielem_faceanglex(i,j)
+			      angle2=ielem_faceangley(i,j)
 			      nx=(cos(angle1)*sin(angle2))
 			      ny=(sin(angle1)*sin(angle2))
 			      nz=(cos(angle2))
 
 			  ssx=zero; ssp=zero; ssy=zero; ssz=zero
 
-				select case(ielem_types_faces(j,i))
+				select case(ielem_types_faces(i,j))
 				case (5)
 					  gqi_points=qp_quad
 					  weights_temp(1:gqi_points)=weights_q(1:gqi_points)
-					  surface_temp=ielem_surf(j,i)
+					  surface_temp=ielem_surf(i,j)
 
 
 				case(6)
 					gqi_points=qp_triangle
 					weights_temp(1:gqi_points)=weights_t(1:gqi_points)
-					    surface_temp=ielem_surf(j,i)
+					    surface_temp=ielem_surf(i,j)
 
 
 
@@ -19768,16 +19768,16 @@ do i=1,kmaxe
 				  if (itestcase.eq.4)then
 				  if (ielem_ggs(i).eq.1)then
 
-				  vortet1(1:3,1:3) = rec_grads(1:3,1:3,i)
+				  vortet1(1:3,1:3) = rec_grads(i,1:3,1:3)
 				  ux = vortet1(1,1);uy = vortet1(1,2);uz = vortet1(1,3)
 				  vx = vortet1(2,1);vy = vortet1(2,2);vz = vortet1(2,3)
 				  wx = vortet1(3,1);wy = vortet1(3,2);wz = vortet1(3,3)
 
 				  else
 
-				  vortet1(1,1:3)=rec_uleftv(1:3,2,j,im,i)
-				  vortet1(2,1:3)=rec_uleftv(1:3,3,j,im,i)
-				  vortet1(3,1:3)=rec_uleftv(1:3,4,j,im,i)
+				  vortet1(1,1:3)=rec_uleftv(i,1:3,2,j,im)
+				  vortet1(2,1:3)=rec_uleftv(i,1:3,3,j,im)
+				  vortet1(3,1:3)=rec_uleftv(i,1:3,4,j,im)
 				  ux = vortet1(1,1);uy = vortet1(1,2);uz = vortet1(1,3)
 				  vx = vortet1(2,1);vy = vortet1(2,2);vz = vortet1(2,3)
 				  wx = vortet1(3,1);wy = vortet1(3,2);wz = vortet1(3,3)
@@ -19787,13 +19787,13 @@ do i=1,kmaxe
 				 end if
 
 				  if (dg.eq.1)then
-				  leftv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
-				  rightv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
+				  leftv(1:nof_variables)=rec_uleft_dg(i,1:nof_variables,j,im)
+				  rightv(1:nof_variables)=rec_uleft_dg(i,1:nof_variables,j,im)
 
 
 				  else
-				  leftv(1:nof_variables)=rec_uleft(:,j,im,i)
-				  rightv(1:nof_variables)=rec_uleft(:,j,im,i)
+				  leftv(1:nof_variables)=rec_uleft(i,:,j,im)
+				  rightv(1:nof_variables)=rec_uleft(i,:,j,im)
 				  end if
 
 
@@ -19807,13 +19807,13 @@ do i=1,kmaxe
 				    ssp=ssp+(px*weights_temp(im))
 				    if (itestcase.eq.4)then
 				    if (dg.eq.1)then
-				  leftv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
-				  rightv(1:nof_variables)=rec_uleft_dg(1:nof_variables, j,im,i)
+				  leftv(1:nof_variables)=rec_uleft_dg(i,1:nof_variables,j,im)
+				  rightv(1:nof_variables)=rec_uleft_dg(i,1:nof_variables,j,im)
 
 
 				  else
-				  leftv(1:nof_variables)=rec_uleft(:,j,im,i)
-				  rightv(1:nof_variables)=rec_uleft(:,j,im,i)
+				  leftv(1:nof_variables)=rec_uleft(i,:,j,im)
+				  rightv(1:nof_variables)=rec_uleft(i,:,j,im)
 				  end if
 #ifdef xpu
 				    call get_visc_conduct_ideal(n,leftv,rightv,viscl,laml)
@@ -19822,9 +19822,9 @@ do i=1,kmaxe
 #endif
 
 
-				  tauxx=(4.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy - (2.0d0/3.0d0)*wz
-				  tauyy=(4.0d0/3.0d0)*vy - (2.0d0/3.0d0)*ux - (2.0d0/3.0d0)*wz
-				  tauzz=(4.0d0/3.0d0)*wz - (2.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy
+				  tauxx=(4.00/3.00)*ux - (2.00/3.00)*vy - (2.00/3.00)*wz
+				  tauyy=(4.00/3.00)*vy - (2.00/3.00)*ux - (2.00/3.00)*wz
+				  tauzz=(4.00/3.00)*wz - (2.00/3.00)*ux - (2.00/3.00)*vy
 				  tauyx=(uy + vx)
 				  tauzx=(wx + uz)
 				  tauzy=(vz + wy)
@@ -19880,11 +19880,11 @@ end do
 	forcey=forcey*vectory
 	forcez=forcez*vectorz
 	if(rframe.eq.0)then
-        rtemp=((aoa/180.0d0)*pi)
+        rtemp=((aoa/180.00)*pi)
 	liftf=(forcez*cos(rtemp))+(forcey*cos(rtemp))-(forcex*sin(rtemp))
 	dragf=(forcex*cos(rtemp))+(forcey*sin(rtemp))+(forcez*sin(rtemp))
-	cl=(2.0d0*liftf)/((rres)*(ufreestream**2))
-	cd=(2.0d0*dragf)/((rres)*(ufreestream**2))
+	cl=(2.00*liftf)/((rres)*(ufreestream**2))
+	cd=(2.00*dragf)/((rres)*(ufreestream**2))
 
 
 	co(1)=cl
@@ -20005,10 +20005,10 @@ forcex=zero; forcey=zero; forcez=zero;  forcexfr=zero
 do i=1,kmaxe
 		if (ielem_interior(i).eq.1)then
 		    do j=1,ielem_ifca(i)
-		      if (ielem_ibounds(j,i).gt.0)then
-			  if (ibound_icode(ielem_ibounds(j,i)).eq.4)then
-			      nx=ielem_faceanglex(j,i)
-			      ny=ielem_faceangley(j,i)
+		      if (ielem_ibounds(i,j).gt.0)then
+			  if (ibound_icode(ielem_ibounds(i,j)).eq.4)then
+			      nx=ielem_faceanglex(i,j)
+			      ny=ielem_faceangley(i,j)
 
 
 			  ssx=zero; ssp=zero; ssy=zero;
@@ -20016,7 +20016,7 @@ do i=1,kmaxe
 
 					  gqi_points=qp_line_n
 					  weights_temp(1:qp_line) = weights_l(1:qp_line)
-					  surface_temp=ielem_surf(j,i)
+					  surface_temp=ielem_surf(i,j)
 
 
 
@@ -20026,15 +20026,15 @@ do i=1,kmaxe
 				  if (itestcase.eq.4)then
 				  if (ielem_ggs(i).eq.1)then
 
-				  vortet1(1:2,1:2) = rec_grads(1:2,1:2,i)
+				  vortet1(1:2,1:2) = rec_grads(i,1:2,1:2)
 				  ux = vortet1(1,1);uy = vortet1(1,2)
 				  vx = vortet1(2,1);vy = vortet1(2,2)
 
 
 				  else
 
-				  vortet1(1,1:2)=rec_uleftv(1:2,2,j,im,i)
-				  vortet1(2,1:2)=rec_uleftv(1:2,3,j,im,i)
+				  vortet1(1,1:2)=rec_uleftv(i,1:2,2,j,im)
+				  vortet1(2,1:2)=rec_uleftv(i,1:2,3,j,im)
 
 				 ux = vortet1(1,1);uy = vortet1(1,2)
 				  vx = vortet1(2,1);vy = vortet1(2,2)
@@ -20044,8 +20044,8 @@ do i=1,kmaxe
 				  end if
 				  end if
 
-				  leftv(1:nof_variables)=rec_uleft(:,j,im,i)
-				  rightv(1:nof_variables)=rec_uleft(:,j,im,i)
+				  leftv(1:nof_variables)=rec_uleft(i,:,j,im)
+				  rightv(1:nof_variables)=rec_uleft(i,:,j,im)
 #ifdef xpu
 				    call cons2prim2_ideal(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
 #else
@@ -20055,8 +20055,8 @@ do i=1,kmaxe
 
 
 				    if (itestcase.eq.4)then
-				    leftv(1:nof_variables)=rec_uleft(:,j,im,i)
-				  rightv(1:nof_variables)=rec_uleft(:,j,im,i)
+				    leftv(1:nof_variables)=rec_uleft(i,:,j,im)
+				  rightv(1:nof_variables)=rec_uleft(i,:,j,im)
 #ifdef xpu
 				    call get_visc_conduct_ideal(n,leftv,rightv,viscl,laml)
 #else
@@ -20064,8 +20064,8 @@ do i=1,kmaxe
 #endif
 
 
-				  tauxx=2.0d0*ux
-				  tauyy=2.0d0*vy
+				  tauxx=2.00*ux
+				  tauyy=2.00*vy
 				  tauyx=(uy + vx)
 
 				  ssx=ssx-((viscl(1)*((nx*tauxx)+(ny*tauyx)))*weights_temp(im))
@@ -20106,11 +20106,11 @@ end do
 	forcex=forcex*vectorx
 	forcey=forcey*vectory
 
-        rtemp=((aoa/180.0d0)*pi)
+        rtemp=((aoa/180.00)*pi)
 	liftf=(forcey*cos(rtemp))-(forcex*sin(rtemp))
 	dragf=(forcex*cos(rtemp))+(forcey*sin(rtemp))
-	cl=(2.0d0*liftf)/((rres)*(ufreestream**2))
-	cd=(2.0d0*dragf)/((rres)*(ufreestream**2))
+	cl=(2.00*liftf)/((rres)*(ufreestream**2))
+	cd=(2.00*dragf)/((rres)*(ufreestream**2))
 
 
 	co(1)=cl
@@ -20186,9 +20186,9 @@ res_sum=zero
 #endif
 do i=1,kmaxe
 	if (dg.eq.1)then
-    res_sum=res_sum+((rhs_valdg(1,k,i)*ielem_totvolume(i))**2)
+    res_sum=res_sum+((rhs_valdg(i,1,k)*ielem_totvolume(i))**2)
     else
-    res_sum=res_sum+((rhs_val(k,i)*ielem_totvolume(i))**2)
+    res_sum=res_sum+((rhs_val(i,k)*ielem_totvolume(i))**2)
 
     end if
 end do
@@ -20216,8 +20216,8 @@ end do
 
 
 do i=1,nres
-if (initialres(i).le.max(allres(i),1.0d-300))then
-initialres(i)=max(allres(i),1.0d-300)
+if (initialres(i).le.max(allres(i),1.0e-300))then
+initialres(i)=max(allres(i),1.0e-300)
 end if
 allres(i)=allres(i)/initialres(i)
 
@@ -20250,9 +20250,9 @@ res_sum=zero
 #endif
 do i=1,kmaxe
     if (k.le.nof_variables)then
-        res_sum=res_sum+((rhs_val(k,i)*ielem_totvolume(i))**2)
+        res_sum=res_sum+((rhs_val(i,k)*ielem_totvolume(i))**2)
     else
-        res_sum=res_sum+((rhst_val(k-nof_variables,i)*ielem_totvolume(i))**2)
+        res_sum=res_sum+((rhst_val(i,k-nof_variables)*ielem_totvolume(i))**2)
     end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -20280,8 +20280,8 @@ end do
 
 
 do i=1,nres
-if (initialres(i).le.max(allres(i),1.0d-300))then
-initialres(i)=max(allres(i),1.0d-300)
+if (initialres(i).le.max(allres(i),1.0e-300))then
+initialres(i)=max(allres(i),1.0e-300)
 end if
 allres(i)=allres(i)/initialres(i)
 
@@ -20371,9 +20371,9 @@ res_sum=zero
 do i=1,kmaxe
 
     if (dg.eq.1)then
-    res_sum=res_sum+((rhs_val(k,i)*ielem_totvolume(i))**2)
+    res_sum=res_sum+((rhs_val(i,k)*ielem_totvolume(i))**2)
     else
-    res_sum=res_sum+((rhs_val(k,i)*ielem_totvolume(i))**2)
+    res_sum=res_sum+((rhs_val(i,k)*ielem_totvolume(i))**2)
 
     end if
 end do
@@ -20405,8 +20405,8 @@ end do
 
 
 do i=1,nres
-if (initialres(i).le.max(allres(i),1.0d-300))then
-initialres(i)=max(allres(i),1.0d-300)
+if (initialres(i).le.max(allres(i),1.0e-300))then
+initialres(i)=max(allres(i),1.0e-300)
 end if
 allres(i)=allres(i)/initialres(i)
 
@@ -20438,9 +20438,9 @@ res_sum=zero
 #endif
 do i=1,kmaxe
     if (k.le.nof_variables)then
-        res_sum=res_sum+((rhs_val(k,i)*ielem_totvolume(i))**2)
+        res_sum=res_sum+((rhs_val(i,k)*ielem_totvolume(i))**2)
     else
-        res_sum=res_sum+((rhst_val(k-nof_variables,i)*ielem_totvolume(i))**2)
+        res_sum=res_sum+((rhst_val(i,k-nof_variables)*ielem_totvolume(i))**2)
     end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -20468,8 +20468,8 @@ end do
 
 
 do i=1,nres
- if (initialres(i).le.max(allres(i),1.0d-300))then
-initialres(i)=max(allres(i),1.0d-300)
+ if (initialres(i).le.max(allres(i),1.0e-300))then
+initialres(i)=max(allres(i),1.0e-300)
 end if
 allres(i)=allres(i)/initialres(i)
 
@@ -20535,9 +20535,9 @@ subroutine calculate_error(n)
 			do i=1,kmaxe
 				if (itestcase.le.3)then
 
-				exact=u_e_val(1,ind_er,i)
+				exact=u_e_val(i,1,ind_er)
 
-				aproximate=u_c_val(1,ind_er,i)
+				aproximate=u_c_val(i,1,ind_er)
 
 ! 					if ((abs(aproximate-exact)).gt.l0norm(n,1))then
 ! 					l0norm(n,1)=abs(aproximate-exact)
@@ -20564,10 +20564,10 @@ subroutine calculate_error(n)
 			!$omp do reduction (max:l0norm)
 			do i=1,kmaxe
 				if (itestcase.le.3)then
-				exact=u_e_val(1,ind_er,i)
+				exact=u_e_val(i,1,ind_er)
 
 
-				aproximate=u_c_val(1,ind_er,i)
+				aproximate=u_c_val(i,1,ind_er)
 
 					if ((abs(aproximate-exact)).gt.l0norm)then
 					l0norm=abs(aproximate-exact)
@@ -20586,8 +20586,8 @@ subroutine calculate_error(n)
 			!$omp do reduction (max:l0norm)
 			do i=1,kmaxe
 
-					if (u_c_val(1,ind_er,i).gt.l0norm)then
-					l0norm=u_c_val(1,ind_er,i)
+					if (u_c_val(i,1,ind_er).gt.l0norm)then
+					l0norm=u_c_val(i,1,ind_er)
 					end if
 ! 					l1norm(n,1)=l1norm(n,1)+((abs(aproximate-exact)))
 
@@ -20596,8 +20596,8 @@ subroutine calculate_error(n)
 			!$omp do reduction (min:l1norm)
 			do i=1,kmaxe
 
-					if (u_c_val(1,ind_er,i).lt.l1norm)then
-					l1norm=u_c_val(1,ind_er,i)
+					if (u_c_val(i,1,ind_er).lt.l1norm)then
+					l1norm=u_c_val(i,1,ind_er)
 					end if
 ! 					l1norm(n,1)=l1norm(n,1)+((abs(aproximate-exact)))
 
@@ -20619,7 +20619,7 @@ subroutine calculate_error(n)
 			else
 			!$omp do reduction (+:stennorm)
 			do i=1,kmaxe
-				stennorm=stennorm+u_c_val(1,ind_er,i)
+				stennorm=stennorm+u_c_val(i,1,ind_er)
 			end do
 			!$omp end do
 			end if
@@ -20857,17 +20857,17 @@ do j=1,nof_variables
      if ((j.ge.2).and.(j.le.4))then
 
         do i=1,kmaxe
-        valuess(i)=u_c_val(1,j,i)/u_c_val(1,1,i)!0.0
+        valuess(i)=u_c_val(i,1,j)/u_c_val(i,1,1)!0.0
         end do
     end if
     if (j.eq.1)then
         do i=1,kmaxe
-        valuess(i)=u_c_val(1,j,i)
+        valuess(i)=u_c_val(i,1,j)
         end do
     end if
     if (j.eq.5)then
                 do i=1,kmaxe
-		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		  leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 		end do
@@ -21112,7 +21112,7 @@ write(400+n)"cell_data"//str1//lf
 do j=1,nof_variables
 
          do i=1,kmaxe
-		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		  leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(j)
 		end do
@@ -21199,7 +21199,7 @@ end do
 
 	 do i=1,kmaxe
 
-		  valuess(i)=u_ct_val(1,1,i)
+		  valuess(i)=u_ct_val(i,1,1)
 		end do
 
     call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
@@ -21417,7 +21417,7 @@ write(400+n)"cell_data"//str1//lf
 do j=1,1
 
          do i=1,kmaxe
-		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		  leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 
 		  valuess(i)=sqrt(leftv(2)**2+leftv(3)**2+leftv(4)**2)
@@ -21477,7 +21477,7 @@ end do
 
 	 do i=1,kmaxe
 
-		  valuess(i)=u_ct_val(1,1,i)
+		  valuess(i)=u_ct_val(i,1,1)
 		end do
 
     call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
@@ -21610,7 +21610,7 @@ end subroutine movie_para
                                   do i=1,imaxn
                                      read(96,*)j,x,y
                                      x=x/scaler;y=y/scaler
-                                     write(400+n) x,y,0.d0  !for 2d vtk needs x,y,z, too, just with z=0
+                                     write(400+n) x,y,0.0  !for 2d vtk needs x,y,z, too, just with z=0
                                   end do
                                   close(96)
                                else !binary
@@ -21618,7 +21618,7 @@ end subroutine movie_para
                                   do i=1,imaxn
                                      read(96)j,x,y
                                      x=x/scaler;y=y/scaler
-                                     write(400+n) x,y,0.d0  !for 2d vtk needs x,y,z, too, just with z=0
+                                     write(400+n) x,y,0.0  !for 2d vtk needs x,y,z, too, just with z=0
                                   end do
                                   close(96)
                                end if
@@ -21674,7 +21674,7 @@ end subroutine movie_para
 
 
                                   do i=1,kmaxe
-                                        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+                                        leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
                                         call cons2prim(n,leftv,mp_pinfl,gammal)
                                         valuess(i)=leftv(j)
                                   end do
@@ -21719,7 +21719,7 @@ end subroutine movie_para
 
                             do i=1,kmaxe
 
-                                valuess(i)=u_ct_val(1,1,i)
+                                valuess(i)=u_ct_val(i,1,1)
                                 end do
 
                             call mpi_gatherv(valuess,xmpiall(n),mpi_double_precision,xbin2,xmpiall,offset,mpi_double_precision,0,mpi_comm_world,ierror)
@@ -21855,7 +21855,7 @@ do j=1,nof_variables
 
 
      do i=1,kmaxe
-		  leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		  leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  xbin(i)=leftv(j)
 		end do
@@ -21926,7 +21926,7 @@ end do
 
 	 do i=1,kmaxe
 
-		  xbin(i)=u_ct_val(1,1,i)
+		  xbin(i)=u_ct_val(i,1,1)
 		end do
 
         write(400+n)
@@ -22096,24 +22096,24 @@ do j=1,11
 
         if (j.eq.1)then
 		do i=1,kmaxe
-		xbin(i)=u_c_val(ind1,j,i)
+		xbin(i)=u_c_val(i,ind1,j)
 		end do
 		end if
 		if ((j.gt.1).and.(j.lt.5))then
 		do i=1,kmaxe
-		xbin(i)=u_c_val(ind1,j,i)/u_c_val(ind1,1,i)
+		xbin(i)=u_c_val(i,ind1,j)/u_c_val(i,ind1,1)
 		end do
 		end if
 		if (j.eq.5)then
 		do i=1,kmaxe
-		leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)
+		leftv(1:nof_variables)=u_c_val(i,ind1,1:nof_variables)
 		call cons2prim(n,leftv,mp_pinfl,gammal)
 		xbin(i)=leftv(5)
 		end do
 		end if
 		if (j.ge.6)then
 		do i=1,kmaxe
-		xbin(i)=u_c_val(1,j,i)
+		xbin(i)=u_c_val(i,1,j)
 		end do
 		end if
 
@@ -22416,7 +22416,7 @@ do j=1,nof_variables
          if (totiw.gt.0)then
 
 		      do i=1,totiw
-                valuess(i)=u_c_rms(j-5,ibound_t(i))/u_c_val(1,1,ibound_t(i))
+                valuess(i)=u_c_rms(ibound_t(i),j-5)/u_c_val(ibound_t(i),1,1)
                 end do
 
 		      end if
@@ -22425,7 +22425,7 @@ do j=1,nof_variables
          if (totiw.gt.0)then
 
 		      do i=1,totiw
-                valuess(i)=u_c_val(1,j,ibound_t(i))
+                valuess(i)=u_c_val(ibound_t(i),1,j)
                 end do
 
 		      end if
@@ -22433,7 +22433,7 @@ do j=1,nof_variables
     if (j.eq.5)then
                 if (totiw.gt.0)then
 		     do i=1,totiw
-						leftv(1:nof_variables)=u_c_val(1,1:nof_variables,ibound_t(i))
+						leftv(1:nof_variables)=u_c_val(ibound_t(i),1,1:nof_variables)
 						call cons2prim(n,leftv,mp_pinfl,gammal)
 						valuess(i)=leftv(5)
 
@@ -22698,17 +22698,17 @@ do j=1,nof_variables+6
      if ((j.ge.2).and.(j.le.4))then
 
         do i=1,kmaxe
-        valuess(i)=u_c_val(ind1,j,i)/u_c_val(ind1,1,i)!0.0
+        valuess(i)=u_c_val(i,ind1,j)/u_c_val(i,ind1,1)!0.0
         end do
     end if
     if (j.eq.1)then
         do i=1,kmaxe
-        valuess(i)=u_c_val(ind1,j,i)
+        valuess(i)=u_c_val(i,ind1,j)
         end do
     end if
     if (j.eq.5)then
                 do i=1,kmaxe
-		  leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,i)
+		  leftv(1:nof_variables)=u_c_val(i,ind1,1:nof_variables)
 		  call cons2prim(n,leftv,mp_pinfl,gammal)
 		  valuess(i)=leftv(5)
 		end do
@@ -22716,7 +22716,7 @@ do j=1,nof_variables+6
     end if
     if (j.gt.5)then
     do i=1,kmaxe
-	valuess(i)=u_c_val(1,j,i)
+	valuess(i)=u_c_val(i,1,j)
     end do
     end if
 
@@ -23078,7 +23078,7 @@ do j=1,nof_variables+6
          if (totiw.gt.0)then
 
 		      do i=1,totiw
-                valuess(i)=u_c_rms(j-5,ibound_t(i))/u_c_val(ind1,1,ibound_t(i))
+                valuess(i)=u_c_rms(ibound_t(i),j-5)/u_c_val(ibound_t(i),ind1,1)
                 end do
 
 		      end if
@@ -23087,7 +23087,7 @@ do j=1,nof_variables+6
          if (totiw.gt.0)then
 
 		      do i=1,totiw
-                valuess(i)=u_c_val(ind1,j,ibound_t(i))
+                valuess(i)=u_c_val(ibound_t(i),ind1,j)
                 end do
 
 		      end if
@@ -23095,7 +23095,7 @@ do j=1,nof_variables+6
     if (j.eq.5)then
                 if (totiw.gt.0)then
 		     do i=1,totiw
-						leftv(1:nof_variables)=u_c_val(ind1,1:nof_variables,ibound_t(i))
+						leftv(1:nof_variables)=u_c_val(ibound_t(i),ind1,1:nof_variables)
 						call cons2prim(n,leftv,mp_pinfl,gammal)
 						valuess(i)=leftv(5)
 
@@ -23106,7 +23106,7 @@ do j=1,nof_variables+6
      if (j.gt.5)then
       if (totiw.gt.0)then
 	do i=1,totiw
-	  valuess(i)=u_c_val(1,j,ibound_t(i))
+	  valuess(i)=u_c_val(ibound_t(i),1,j)
 	end do
       end if
     end if
@@ -23432,13 +23432,13 @@ do i=1,kmaxe
 					end do
 
 					else
-						if (ielem_types_faces(l,i).eq.5)then
+						if (ielem_types_faces(i,l).eq.5)then
 							do j=1,4
 								indexgt=dinoder(ielem_nodes_faces(l,j,i))%itor
 								ielem_nodes_faces_v(l,j,i)=inoder4_itor(indexgt)-1
 							end do
 						end if
-						if (ielem_types_faces(l,i).eq.6)then
+						if (ielem_types_faces(i,l).eq.6)then
 							do j=1,3
 								indexgt=dinoder(ielem_nodes_faces(l,j,i))%itor
 								ielem_nodes_faces_v(l,j,i)=inoder4_itor(indexgt)-1
@@ -23467,12 +23467,12 @@ end do
             end do
 
             else
-        if (ielem_types_faces(l,i).eq.5)then
+        if (ielem_types_faces(i,l).eq.5)then
             do j=1,4
                 ielem_nodes_faces(l,j,i)=dinoder(ielem_nodes_faces(l,j,i))%itor
             end do
         end if
-        if (ielem_types_faces(l,i).eq.6)then
+        if (ielem_types_faces(i,l).eq.6)then
             do j=1,3
                 ielem_nodes_faces(l,j,i)=dinoder(ielem_nodes_faces(l,j,i))%itor
             end do
@@ -23636,7 +23636,7 @@ end do
 
   do jj=1,nof_variables
 	do i=1,kmaxe
-        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+        leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
         call cons2prim(n,leftv,mp_pinfl,gammal)
 		valuess(i)=leftv(jj)
 	end do
@@ -24066,7 +24066,7 @@ real::pix
 real:: leftv(1)
 real::coord_gqp(1:2),rd
 
-  pix=4.0d0*atan(1.0d0)
+  pix=4.00*atan(1.00)
 
   do i=1,xmpielrank(n)
 	write(500+n,*)"element id",ielem_ihexgl(i)
@@ -24075,41 +24075,41 @@ real::coord_gqp(1:2),rd
 		do ngp=1,qp_line
 		write(500+n,*)"gqp",ngp
 			!get gqp coords
-			coord_gqp(1:2)= rec_qpoints_p(facex,ngp,1:2,i)
+			coord_gqp(1:2)= rec_qpoints_p(i,facex,ngp,1:2)
 
 
 
 			!compute function
 
-			    leftv(1)=0.0d0
-if (sqrt(((coord_gqp(1)-0.25d0)**2)+((coord_gqp(2)-0.5d0)**2)).le.0.15)then
-rd=(1.0d0/0.15d0)*sqrt(((coord_gqp(1)-0.25d0)**2)+((coord_gqp(2)-0.5d0)**2))
+			    leftv(1)=0.00
+if (sqrt(((coord_gqp(1)-0.250)**2)+((coord_gqp(2)-0.50)**2)).le.0.15)then
+rd=(1.00/0.150)*sqrt(((coord_gqp(1)-0.250)**2)+((coord_gqp(2)-0.50)**2))
 
-leftv(1)=0.25d0*(1.0d0+cos(pix*min(rd,1.0d0)))
+leftv(1)=0.250*(1.00+cos(pix*min(rd,1.00)))
 end if
 
-if (sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.25d0)**2)).le.0.15)then
+if (sqrt(((coord_gqp(1)-0.50)**2)+((coord_gqp(2)-0.250)**2)).le.0.15)then
 
-rd=(1.0d0/0.15d0)*sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.25d0)**2))
-leftv(1)=1.0d0-rd
+rd=(1.00/0.150)*sqrt(((coord_gqp(1)-0.50)**2)+((coord_gqp(2)-0.250)**2))
+leftv(1)=1.00-rd
 end if
 
-    if (sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.75d0)**2)).le.0.15)then
+    if (sqrt(((coord_gqp(1)-0.50)**2)+((coord_gqp(2)-0.750)**2)).le.0.15)then
 
-    rd=(1.0d0/0.15d0)*sqrt(((coord_gqp(1)-0.5d0)**2)+((coord_gqp(2)-0.75d0)**2))
-	  if ((abs(coord_gqp(1)-0.5).ge.0.025d0).or.(coord_gqp(2).gt.0.85))then
+    rd=(1.00/0.150)*sqrt(((coord_gqp(1)-0.50)**2)+((coord_gqp(2)-0.750)**2))
+	  if ((abs(coord_gqp(1)-0.5).ge.0.0250).or.(coord_gqp(2).gt.0.85))then
 
-	 leftv(1)=1.0d0
+	 leftv(1)=1.00
 	  else
 
-	  leftv(1)=0.0d0
+	  leftv(1)=0.00
 
 	  end if
     end if
 
-			write(500+n,*)leftv(1),rec_uleft(1,facex,ngp,i)
-			u_e_val(1,1,i)=leftv(1)
-			u_c_val(1,1,i)=rec_uleft(1,facex,ngp,i)
+			write(500+n,*)leftv(1),rec_uleft(i,1,facex,ngp)
+			u_e_val(i,1,1)=leftv(1)
+			u_c_val(i,1,1)=rec_uleft(i,1,facex,ngp)
 
 			end do
 		end do

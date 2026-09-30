@@ -17,11 +17,11 @@ implicit none
 
 tolsmall=1.0e-13
 tolbig=1.0e+13
-oo2=1.0d0/2.0d0
-zero=0.0d0
+oo2=1.00/2.00
+zero=0.00
 ! pi=(acos(zero))*2
-pi=4.0d0*atan(1.0d0)
-alpha=1.0d0
+pi=4.00*atan(1.00)
+alpha=1.00
 beta=zero
 
 end subroutine tolerances
@@ -229,7 +229,7 @@ end if
 	do j=1,ielem_ifca(k)
 
 
-		glneigh(ielem_ihexgl(k),j)=ielem_ineighg(j,k)
+		glneigh(ielem_ihexgl(k),j)=ielem_ineighg(k,j)
 
 
 	end do
@@ -243,7 +243,7 @@ end do
 				kj=kj+1
 			end if
 			else
-			if ((glneigh(ielem_ihexgl(k),j).eq.0).and.(ielem_ibounds(j,k).eq.0))then
+			if ((glneigh(ielem_ihexgl(k),j).eq.0).and.(ielem_ibounds(k,j).eq.0))then
 				kj=kj+1
 			end if
 
@@ -368,7 +368,7 @@ end if
 
 	end if
 	do j=1,ielem_ifca(k)
-		glneigh(ielem_ihexgl(k),j)=ielem_ineighg(j,k)
+		glneigh(ielem_ihexgl(k),j)=ielem_ineighg(k,j)
 	end do
 
 end do
@@ -380,7 +380,7 @@ end do
 				kj=kj+1
 			end if
 			else
-			if ((glneigh(ielem_ihexgl(k),j).eq.0).and.(ielem_ibounds(j,k).eq.0))then
+			if ((glneigh(ielem_ihexgl(k),j).eq.0).and.(ielem_ibounds(k,j).eq.0))then
 				kj=kj+1
 			end if
 
@@ -520,12 +520,12 @@ real,dimension(1:dimensiona)::cords
 			do j=1,ielem_ifca(k)
 
 
-				glneigh(ielem_ihexgl(k),j)=ielem_ineighg(j,k)
+				glneigh(ielem_ihexgl(k),j)=ielem_ineighg(k,j)
 			if (ielem_interior(k).eq.1) then
-				if (ielem_ibounds(j,k).gt.0) then
-				if (ibound_icode(ielem_ibounds(j,k)).eq.5) then
+				if (ielem_ibounds(k,j).gt.0) then
+				if (ibound_icode(ielem_ibounds(k,j)).eq.5) then
 				glneighper(ielem_ihexgl(k),j)=1
-				else if (ibound_icode(ielem_ibounds(j,k)).eq.50) then
+				else if (ibound_icode(ielem_ibounds(k,j)).eq.50) then
 				glneighper(ielem_ihexgl(k),j)=2
 				end if
 				end if
@@ -542,7 +542,7 @@ real,dimension(1:dimensiona)::cords
 							kj=kj+1
 						end if
 						else
-						if ((glneigh(ielem_ihexgl(k),j).eq.0).and.(ielem_ibounds(j,k).eq.0))then
+						if ((glneigh(ielem_ihexgl(k),j).eq.0).and.(ielem_ibounds(k,j).eq.0))then
 							kj=kj+1
 						end if
 
@@ -585,11 +585,11 @@ glneightsper(:,:)=0
 	  do j=1,ielem_ifca(k)
 	  glneights(k,1+j)=glneigh(ielem_ihexgl(k),j)
 	  if (ielem_interior(k).eq.1) then
-        if  (ielem_ibounds(j,k).gt.0)then
-            if((ibound_icode(ielem_ibounds(j,k)).eq.5).or.(ibound_icode(ielem_ibounds(j,k)).eq.50)) then
-            if (ibound_icode(ielem_ibounds(j,k)).eq.5) then
+        if  (ielem_ibounds(k,j).gt.0)then
+            if((ibound_icode(ielem_ibounds(k,j)).eq.5).or.(ibound_icode(ielem_ibounds(k,j)).eq.50)) then
+            if (ibound_icode(ielem_ibounds(k,j)).eq.5) then
             glneightsper(k,1+j)=1
-            else if (ibound_icode(ielem_ibounds(j,k)).eq.50) then
+            else if (ibound_icode(ielem_ibounds(k,j)).eq.50) then
             glneightsper(k,1+j)=2
             end if
         end if
@@ -679,7 +679,7 @@ else
 	do j=1,ielem_ifca(k)
 
 
-		glneigh(ielem_ihexgl(k),j)=ielem_ineighg(j,k)
+		glneigh(ielem_ihexgl(k),j)=ielem_ineighg(k,j)
 
 
 	end do
@@ -693,7 +693,7 @@ end do
 				kj=kj+1
 			end if
 			else
-			if ((glneigh(ielem_ihexgl(k),j).eq.0).and.(ielem_ibounds(j,k).eq.0))then
+			if ((glneigh(ielem_ihexgl(k),j).eq.0).and.(ielem_ibounds(k,j).eq.0))then
 				kj=kj+1
 			end if
 
@@ -820,11 +820,11 @@ kj=0
 	do k=1,kmaxe
 		do j=1,ielem_ifca(k)
 			if (ielem_interior(k).eq.0)then
-			  if (ielem_ineighg(j,k).eq.0)then
+			  if (ielem_ineighg(k,j).eq.0)then
 				  kj=kj+1
 			  end if
 			else
-			  if ((ielem_ineighg(j,k).eq.0).and.(ielem_ibounds(j,k).eq.0))then
+			  if ((ielem_ineighg(k,j).eq.0).and.(ielem_ibounds(k,j).eq.0))then
 				  kj=kj+1
 			  end if
 			end if
@@ -868,11 +868,11 @@ kj=0
 	do k=1,kmaxe
 		do j=1,ielem_ifca(k)
 			if (ielem_interior(k).eq.0)then
-			  if (ielem_ineighg(j,k).eq.0)then
+			  if (ielem_ineighg(k,j).eq.0)then
 				  kj=kj+1
 			  end if
 			else
-			  if ((ielem_ineighg(j,k).eq.0).and.(ielem_ibounds(j,k).eq.0))then
+			  if ((ielem_ineighg(k,j).eq.0).and.(ielem_ibounds(k,j).eq.0))then
 				  kj=kj+1
 			  end if
 			end if
@@ -891,10 +891,10 @@ kj=0
 	do k=1,kmaxe
 
 		do j=1,ielem_ifca(k)
-			if (ielem_ineighg(j,k).gt.0)then
+			if (ielem_ineighg(k,j).gt.0)then
 !
-			  if(xmpie(ielem_ineighg(j,k)).ne.n) then
-				 cand(xmpie(ielem_ineighg(j,k)))=cand(xmpie(ielem_ineighg(j,k)))+1
+			  if(xmpie(ielem_ineighg(k,j)).ne.n) then
+				 cand(xmpie(ielem_ineighg(k,j)))=cand(xmpie(ielem_ineighg(k,j)))+1
 			  end if
 			end if
 
@@ -1128,7 +1128,7 @@ imax_cput,mpi_integer,i,&
 	end if
 	do i=1,kmaxe
 	      do j=1,ielem_ifca(i)
-			  cand2s(i,j)=ielem_ineighg(j,i)
+			  cand2s(i,j)=ielem_ineighg(i,j)
 	      end do
 	end do
 
@@ -1454,8 +1454,8 @@ iloop=0
 do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
-	  if (ielem_ibounds(j,i).gt.0)then
-	      if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+	  if (ielem_ibounds(i,j).gt.0)then
+	      if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
 		  iloop=iloop+1
 	      end if
 	  end if
@@ -1492,10 +1492,10 @@ iloop=0
 do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
-	  if (ielem_ibounds(j,i).gt.0)then
-	      if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+	  if (ielem_ibounds(i,j).gt.0)then
+	      if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
 		  iloop=iloop+1
-		  val(iloop)=ibound_inum(ielem_ibounds(j,i))
+		  val(iloop)=ibound_inum(ielem_ibounds(i,j))
 	      end if
 	  end if
 	end do
@@ -1539,7 +1539,7 @@ subroutine inverf(r,invr,ivgt)
   real::invvvr2(1:ivgt-1,1:ivgt-1)
  integer i,j,k,gt
 
-  invr = 0.d0
+  invr = 0.0
  gt=ivgt-1
   do i=gt,1,-1
     invr(i,i) = 1./r(i,i)
@@ -1887,11 +1887,11 @@ real::delta,cpuer
 
   case (4)  ! prism
 
-    ielem_types_faces(1:2, i) = 6
-    ielem_types_faces(3:5, i) = 5
+    ielem_types_faces(i,1:2) = 6
+    ielem_types_faces(i,3:5) = 5
     ielem_nodes_faces(1:5, 1:4, i) = 0
 
-    ielem_ineighg(1:5, i) = 0
+    ielem_ineighg(i,1:5) = 0
     ielem_ifca(i) = 5
     ielem_vdec(i) = 3
 
@@ -1930,7 +1930,7 @@ real::delta,cpuer
 
   case (1)  ! hexahedral
 
-    ielem_types_faces(1:6, i) = 5
+    ielem_types_faces(i,1:6) = 5
     ielem_vdec(i) = 6
 
     ielem_totvolume(i) = 0.0
@@ -1939,7 +1939,7 @@ real::delta,cpuer
 
     ielem_nodes_faces(:,:,i) = 0
 
-    ielem_ineighg(:, i) = 0
+    ielem_ineighg(i,:) = 0
     ielem_ifca(i) = 6
 
     ! first face
@@ -1981,10 +1981,10 @@ real::delta,cpuer
 
   case (2)  ! tetrahedral
 
-    ielem_types_faces(1:4, i) = 6
+    ielem_types_faces(i,1:4) = 6
     ielem_nodes_faces(:,:,i) = 0
 
-    ielem_ineighg(:, i) = 0
+    ielem_ineighg(i,:) = 0
     ielem_vdec(i) = 1
 
     ielem_totvolume(i) = 0.0
@@ -2016,11 +2016,11 @@ real::delta,cpuer
 
   case (3)  ! pyramidal
 
-    ielem_types_faces(1, i)   = 5
-    ielem_types_faces(2:5, i) = 6
+    ielem_types_faces(i,1)   = 5
+    ielem_types_faces(i,2:5) = 6
     ielem_nodes_faces(:,:,i) = 0
 
-    ielem_ineighg(:, i) = 0
+    ielem_ineighg(i,:) = 0
     ielem_vdec(i) = 2
 
     ielem_totvolume(i) = 0.0
@@ -2067,7 +2067,7 @@ real::delta,cpuer
     ielem_minedge(i)   = 0.0
     ielem_walldist(i)  = 0.0
 
-    ielem_ineighg(:, i) = 0
+    ielem_ineighg(i,:) = 0
 
     ! first face
     ielem_nodes_faces(1,1,i) = ielem_nodes(1,i)
@@ -2097,7 +2097,7 @@ real::delta,cpuer
     ielem_minedge(i)   = 0.0
     ielem_walldist(i)  = 0.0
 
-    ielem_ineighg(:, i) = 0
+    ielem_ineighg(i,:) = 0
 
     ! first face
     ielem_nodes_faces(1,1,i) = ielem_nodes(1,i)
@@ -2217,8 +2217,8 @@ close(63)
 	  if (j.eq.ihax1) cycle
 	do l2=1,ielem_ifca(j)
 
-		  if (ielem_types_faces(l,ihax1).eq.ielem_types_faces(l2,j))then
-		  if (ielem_types_faces(l,ihax1).eq.6)then
+		  if (ielem_types_faces(ihax1,l).eq.ielem_types_faces(j,l2))then
+		  if (ielem_types_faces(ihax1,l).eq.6)then
 		  c_n4=0
 		  c_n1=ielem_nodes_faces(l,1,ihax1)
 		  c_n2=ielem_nodes_faces(l,2,ihax1)
@@ -2230,7 +2230,7 @@ close(63)
 		  if (((c_n1.eq.d_n1).or.(c_n1.eq.d_n2).or.(c_n1.eq.d_n3)).and.&
 		      ((c_n2.eq.d_n1).or.(c_n2.eq.d_n2).or.(c_n2.eq.d_n3)).and.&
 		      ((c_n3.eq.d_n1).or.(c_n3.eq.d_n2).or.(c_n3.eq.d_n3)))then
-			  ielem_ineighg(l,ihax1)=ielem_ihexgl(j)
+			  ielem_ineighg(ihax1,l)=ielem_ihexgl(j)
 
 
 		  goto 101
@@ -2248,7 +2248,7 @@ close(63)
 		      ((c_n2.eq.d_n1).or.(c_n2.eq.d_n2).or.(c_n2.eq.d_n3).or.(c_n2.eq.d_n4)).and.&
 		      ((c_n3.eq.d_n1).or.(c_n3.eq.d_n2).or.(c_n3.eq.d_n3).or.(c_n3.eq.d_n4)).and.&
 		      ((c_n4.eq.d_n1).or.(c_n4.eq.d_n2).or.(c_n4.eq.d_n3).or.(c_n4.eq.d_n4)))then
-			  ielem_ineighg(l,ihax1)=ielem_ihexgl(j)
+			  ielem_ineighg(ihax1,l)=ielem_ihexgl(j)
 
 
 		  goto 101
@@ -2278,7 +2278,7 @@ close(63)
 
 		  if (((c_n1.eq.d_n1).or.(c_n1.eq.d_n2)).and.&
 		      ((c_n2.eq.d_n1).or.(c_n2.eq.d_n2)))then
-			  ielem_ineighg(l,ihax1)=ielem_ihexgl(j)
+			  ielem_ineighg(ihax1,l)=ielem_ihexgl(j)
 
 		  goto 101
 		  end if
@@ -2304,7 +2304,7 @@ close(63)
       do i=1,kmaxe
 	    ielem_interior(i)=0
 	    do l=1,ielem_ifca(i)
-	      if (ielem_ineighg(l,i).eq.0)then
+	      if (ielem_ineighg(i,l).eq.0)then
 	      ielem_interior(i)=1
 	      ji=ji+1
 
@@ -2354,11 +2354,11 @@ kj=0; kkj=0
 	if (ielem_interior(i).eq.1)then
 		do k=1,ielem_ifca(i)
 
-		  if (((ielem_ineighg(k,i).eq.0)))then
-		      if(ielem_ibounds(k,i).eq.0)then
+		  if (((ielem_ineighg(i,k).eq.0)))then
+		      if(ielem_ibounds(i,k).eq.0)then
 						kj=kj+1
 		      else
-		      if ((ibound_icode(ielem_ibounds(k,i)).eq.5).or.(ibound_icode(ielem_ibounds(k,i)).eq.50))then
+		      if ((ibound_icode(ielem_ibounds(i,k)).eq.5).or.(ibound_icode(ielem_ibounds(i,k)).eq.50))then
 						  kj=kj+1
 
 		      end if
@@ -2397,8 +2397,8 @@ allocate(diconr(n)%howmanyi(1))
 		if (ielem_interior(i).eq.1)then
 		io=ielem_ifca(i)
 		do k=1,io
-		 if (((ielem_ineighg(k,i).eq.0)))then
-		    if ((ielem_ibounds(k,i).eq.0))then
+		 if (((ielem_ineighg(i,k).eq.0)))then
+		    if ((ielem_ibounds(i,k).eq.0))then
 						kj=kj+1
 				diconr(n)%whichi(kj,1)=i
 				diconr(n)%whichi(kj,2)=k
@@ -2406,7 +2406,7 @@ allocate(diconr(n)%howmanyi(1))
 
 		      else
 
-		      if ((ibound_icode(ielem_ibounds(k,i)).eq.5).or.(ibound_icode(ielem_ibounds(k,i)).eq.50))then
+		      if ((ibound_icode(ielem_ibounds(i,k)).eq.5).or.(ibound_icode(ielem_ibounds(i,k)).eq.50))then
 						  kj=kj+1
 				diconr(n)%whichi(kj,1)=i
 				diconr(n)%whichi(kj,2)=k
@@ -2424,7 +2424,7 @@ allocate(diconr(n)%howmanyi(1))
 
 		do kj=1,diconr(n)%howmanyi(1)
 
-			      select case(ielem_types_faces(diconr(n)%whichi(kj,2),diconr(n)%whichi(kj,1)))
+			      select case(ielem_types_faces(diconr(n)%whichi(kj,1),diconr(n)%whichi(kj,2)))
 			      case(5)
 			      diconr(n)%whichi(kj,3:6)=ielem_nodes_faces(diconr(n)%whichi(kj,2),1:4,diconr(n)%whichi(kj,1))
 
@@ -2443,7 +2443,7 @@ allocate(diconr(n)%howmanyi(1))
 
 do ihax1=1,diconr(n)%howmanyi(1)
 
-		      select case(ielem_types_faces(diconr(n)%whichi(ihax1,2),diconr(n)%whichi(ihax1,1)))
+		      select case(ielem_types_faces(diconr(n)%whichi(ihax1,1),diconr(n)%whichi(ihax1,2)))
 
 			      case(5)
 			      diconr(n)%whichi(ihax1,3:6)=ielem_nodes_faces(diconr(n)%whichi(ihax1,2),1:4,diconr(n)%whichi(ihax1,1))
@@ -2465,7 +2465,7 @@ do ihax1=1,diconr(n)%howmanyi(1)
 								  do q4=1,dinoder2(p4)%xne(1)
 								    j4=dinoder2(p4)%xneib(q4)
 									if ((j4.eq.j3).and.(j4.ne.ielem_ihexgl(diconr(n)%whichi(ihax1,1))))then
-									ielem_ineighg(diconr(n)%whichi(ihax1,2),diconr(n)%whichi(ihax1,1))=j4
+									ielem_ineighg(diconr(n)%whichi(ihax1,1),diconr(n)%whichi(ihax1,2))=j4
 									go to 331
 									end if
 								  end do
@@ -2490,7 +2490,7 @@ do ihax1=1,diconr(n)%howmanyi(1)
 						  do q3=1,dinoder2(p3)%xne(1)
 						      j3=dinoder2(p3)%xneib(q3)
 							  if ((j3.eq.j2).and.(j3.ne.ielem_ihexgl(diconr(n)%whichi(ihax1,1))))then
-									ielem_ineighg(diconr(n)%whichi(ihax1,2),diconr(n)%whichi(ihax1,1))=j3
+									ielem_ineighg(diconr(n)%whichi(ihax1,1),diconr(n)%whichi(ihax1,2))=j3
 									go to 331
 							  end if
 						  end do
@@ -2508,10 +2508,10 @@ end do
 	      do i=1,diconr(n)%howmanyi(1)
 !
 
-		       if ((ielem_ineighg(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1)).eq.0))then
+		       if ((ielem_ineighg(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2)).eq.0))then
 		      if (iperiodicity.eq.1)then
-		      if ((((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1))))).eq.5).or.&
-		      (((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1))))).eq.50))then
+		      if ((((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2))))).eq.5).or.&
+		      (((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2))))).eq.50))then
 						  kj=kj+1
 
 		      end if
@@ -2541,9 +2541,9 @@ end do
 				    do i=1,diconr(n)%howmanyi(1)
 
 
-					  if ((ielem_ineighg(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1)).eq.0))then
-					  if ((((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1))))).eq.5).or.&
-		      (((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1))))).eq.50))then
+					  if ((ielem_ineighg(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2)).eq.0))then
+					  if ((((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2))))).eq.5).or.&
+		      (((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2))))).eq.50))then
 								      kj=kj+1
 					    diconrpm(n)%whichi(kj,1)=diconr(n)%whichi(i,1)
 					    diconrpm(n)%whichi(kj,3)=ielem_ihexgl(diconr(n)%whichi(i,1))
@@ -2571,20 +2571,20 @@ end do
 				    allocate(dICONRPA(n)%whichi(diconrpm(n)%howmanyi(1)-jjj,3))
 				    allocate(dICONRPA(n)%facx(diconrpm(n)%howmanyi(1)-jjj,3))
 				    dICONRPA(n)%whichi(:,:)=0
-				    dICONRPA(n)%facx(:,:)=0.d0
+				    dICONRPA(n)%facx(:,:)=0.0
 				    kj=0
 				    do i=1,diconrpm(n)%howmanyi(1)
 
-					    if ((ielem_ineighg(diconrpm(n)%whichi(i,2),diconrpm(n)%whichi(i,1)).eq.0))then
-					  if ((((ibound_icode(ielem_ibounds(diconrpm(n)%whichi(i,2),diconrpm(n)%whichi(i,1))))).eq.5).or.&
-		      (((ibound_icode(ielem_ibounds(diconrpm(n)%whichi(i,2),diconrpm(n)%whichi(i,1))))).eq.50))then
+					    if ((ielem_ineighg(diconrpm(n)%whichi(i,1),diconrpm(n)%whichi(i,2)).eq.0))then
+					  if ((((ibound_icode(ielem_ibounds(diconrpm(n)%whichi(i,1),diconrpm(n)%whichi(i,2))))).eq.5).or.&
+		      (((ibound_icode(ielem_ibounds(diconrpm(n)%whichi(i,1),diconrpm(n)%whichi(i,2))))).eq.50))then
 		    ! 						  kj=kj+1
 		    !
 					    kj=kj+1
 					    dICONRPA(n)%whichi(kj,1)=diconrpm(n)%whichi(i,1)
 					    dICONRPA(n)%whichi(kj,2)=diconrpm(n)%whichi(i,2)
 					    dICONRPA(n)%whichi(kj,3)=diconrpm(n)%whichi(i,3)
-					      if (ielem_types_faces(dICONRPA(n)%whichi(kj,2),dICONRPA(n)%whichi(kj,1)).eq.5)then
+					      if (ielem_types_faces(dICONRPA(n)%whichi(kj,1),dICONRPA(n)%whichi(kj,2)).eq.5)then
 
 					      ixxff=4
 					      else
@@ -2650,7 +2650,7 @@ end do
 				    allocate(diconspo(i)%whichthey(diconspo(i)%howmanythey(1),1))
 				    allocate(diconspo(i)%facx(diconspo(i)%howmanythey(1),3))
 				    diconspo(i)%whichthey(:,:)=0
-				    diconspo(i)%facx(:,:)=0.d0
+				    diconspo(i)%facx(:,:)=0.0
 				    end do
 				    call mpi_barrier(mpi_comm_world,ierror)
 					    icpuid=n
@@ -2713,7 +2713,7 @@ end do
 						    end if
                         else
 
-                            code_per1=ibound_icode(ielem_ibounds(dICONRPA(n)%whichi(kj,2),dICONRPA(n)%whichi(kj,1)))
+                            code_per1=ibound_icode(ielem_ibounds(dICONRPA(n)%whichi(kj,1),dICONRPA(n)%whichi(kj,2)))
                             vext(2,:)=rotate_per(vext(2,:),code_per1,angle_per)
                             if ((abs(vext(1,1)-vext(2,1)).lt.tol_per).and.(abs(vext(1,2)-vext(2,2)).lt.tol_per).and.&
                                       (abs(vext(1,3)-vext(2,3)).lt.tol_per)) then
@@ -2758,7 +2758,7 @@ k=0
 			do kj=1,dICONRPf(k)%howmanyi(1)
 			if (dICONRPf(k)%whichi(kj,1).gt.0)then
 !
-			ielem_ineighg(dICONRPA(n)%whichi(kj,2),dICONRPA(n)%whichi(kj,1))=dICONRPf(k)%whichi(kj,1)
+			ielem_ineighg(dICONRPA(n)%whichi(kj,1),dICONRPA(n)%whichi(kj,2))=dICONRPf(k)%whichi(kj,1)
 			end if
 			end do
 			end if
@@ -2766,9 +2766,9 @@ k=0
 		kj=0
 		do i=1,dICONRPA(n)%howmanyi(1)
 
-			if (ielem_ineighg(dICONRPA(n)%whichi(i,2),dICONRPA(n)%whichi(i,1)).eq.0)then
-			  if ((((ibound_icode(ielem_ibounds(dICONRPA(n)%whichi(i,2),dICONRPA(n)%whichi(i,1))))).eq.5).or.&
-			  (((ibound_icode(ielem_ibounds(dICONRPA(n)%whichi(i,2),dICONRPA(n)%whichi(i,1))))).eq.50))then
+			if (ielem_ineighg(dICONRPA(n)%whichi(i,1),dICONRPA(n)%whichi(i,2)).eq.0)then
+			  if ((((ibound_icode(ielem_ibounds(dICONRPA(n)%whichi(i,1),dICONRPA(n)%whichi(i,2))))).eq.5).or.&
+			  (((ibound_icode(ielem_ibounds(dICONRPA(n)%whichi(i,1),dICONRPA(n)%whichi(i,2))))).eq.50))then
 			kj=kj+1
 
 
@@ -2830,11 +2830,11 @@ kj=0; kkj=0
 	if (ielem_interior(i).eq.1)then
 		do k=1,ielem_ifca(i)
 
-		  if (((ielem_ineighg(k,i).eq.0)))then
-		      if(ielem_ibounds(k,i).eq.0)then
+		  if (((ielem_ineighg(i,k).eq.0)))then
+		      if(ielem_ibounds(i,k).eq.0)then
 						kj=kj+1
 		      else
-		      if (((ibound_icode(ielem_ibounds(k,i)))).eq.5)then
+		      if (((ibound_icode(ielem_ibounds(i,k)))).eq.5)then
 						  kj=kj+1
 
 		      end if
@@ -2894,8 +2894,8 @@ end do
 		if (ielem_interior(i).eq.1)then
 		io=ielem_ifca(i)
 		do k=1,io
-		 if (((ielem_ineighg(k,i).eq.0)))then
-		    if ((ielem_ibounds(k,i).eq.0))then
+		 if (((ielem_ineighg(i,k).eq.0)))then
+		    if ((ielem_ibounds(i,k).eq.0))then
 						kj=kj+1
 				diconr(n)%whichi(kj,1)=i
 				diconr(n)%whichi(kj,2)=k
@@ -2903,7 +2903,7 @@ end do
 
 		      else
 
-		      if (((ibound_icode(ielem_ibounds(k,i)))).eq.5)then
+		      if (((ibound_icode(ielem_ibounds(i,k)))).eq.5)then
 						  kj=kj+1
 				diconr(n)%whichi(kj,1)=i
 				diconr(n)%whichi(kj,2)=k
@@ -2982,7 +2982,7 @@ end do
 					if (j.ne.n)then
 					k=k+1
 					if (dICONs(k)%retm(i).gt.0)then
-					ielem_ineighg(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1))=dICONs(k)%retm(i)
+					ielem_ineighg(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2))=dICONs(k)%retm(i)
 					end if
 					end if
 				end do
@@ -2992,12 +2992,12 @@ end do
 		do i=1,diconr(n)%howmanyi(1)
 
 
-		       if ((ielem_ineighg(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1)).eq.0))then
+		       if ((ielem_ineighg(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2)).eq.0))then
 		      if (iperiodicity.eq.1)then
 
 !
-		      if (ielem_ibounds(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1)).ne.0)then
-		      if (((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1))))).eq.5)then
+		      if (ielem_ibounds(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2)).ne.0)then
+		      if (((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2))))).eq.5)then
 						  kj=kj+1
 !
 		      end if
@@ -3033,8 +3033,8 @@ end do
 		do i=1,diconr(n)%howmanyi(1)
 
 
-		       if ((ielem_ineighg(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1)).eq.0))then
-		      if (((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,2),diconr(n)%whichi(i,1))))).eq.5)then
+		       if ((ielem_ineighg(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2)).eq.0))then
+		      if (((ibound_icode(ielem_ibounds(diconr(n)%whichi(i,1),diconr(n)%whichi(i,2))))).eq.5)then
 						  kj=kj+1
 			diconrpm(n)%whichi(kj,1)=diconr(n)%whichi(i,1)
 			diconrpm(n)%whichi(kj,3)=ielem_ihexgl(diconr(n)%whichi(i,1))
@@ -3064,19 +3064,19 @@ end do
 		allocate(dICONRPA(n)%whichi(diconrpm(n)%howmanyi(1)-jjj,3))
 		allocate(dICONRPA(n)%facx(diconrpm(n)%howmanyi(1)-jjj,2))
 		dICONRPA(n)%whichi(:,:)=0
-		dICONRPA(n)%facx(:,:)=0.d0
+		dICONRPA(n)%facx(:,:)=0.0
 		kj=0
 		do i=1,diconrpm(n)%howmanyi(1)
 !
-			 if ((ielem_ineighg(diconrpm(n)%whichi(i,2),diconrpm(n)%whichi(i,1)).eq.0))then
-		      if (((ibound_icode(ielem_ibounds(diconrpm(n)%whichi(i,2),diconrpm(n)%whichi(i,1))))).eq.5)then
+			 if ((ielem_ineighg(diconrpm(n)%whichi(i,1),diconrpm(n)%whichi(i,2)).eq.0))then
+		      if (((ibound_icode(ielem_ibounds(diconrpm(n)%whichi(i,1),diconrpm(n)%whichi(i,2))))).eq.5)then
 ! 						  kj=kj+1
 !
 			kj=kj+1
 			dICONRPA(n)%whichi(kj,1)=diconrpm(n)%whichi(i,1)
 			dICONRPA(n)%whichi(kj,2)=diconrpm(n)%whichi(i,2)
 			dICONRPA(n)%whichi(kj,3)=diconrpm(n)%whichi(i,3)
-! 			  if (ielem_types_faces(dICONRPA(n)%whichi(kj,2),dICONRPA(n)%whichi(kj,1)).eq.5)then
+! 			  if (ielem_types_faces(dICONRPA(n)%whichi(kj,1),dICONRPA(n)%whichi(kj,2)).eq.5)then
 
 			  ixxff=2
 ! 			  else
@@ -3143,7 +3143,7 @@ end do
 		allocate(diconspo(i)%whichthey(diconspo(i)%howmanythey(1),1))
 		allocate(diconspo(i)%facx(diconspo(i)%howmanythey(1),3))
 		diconspo(i)%whichthey(:,:)=0
-		diconspo(i)%facx(:,:)=0.d0
+		diconspo(i)%facx(:,:)=0.0
 		end do
 		call mpi_barrier(mpi_comm_world,ierror)
 			icpuid=n
@@ -3234,7 +3234,7 @@ k=0
 			do kj=1,dICONRPf(k)%howmanyi(1)
 			if (dICONRPf(k)%whichi(kj,1).gt.0)then
 !
-			ielem_ineighg(dICONRPA(n)%whichi(kj,2),dICONRPA(n)%whichi(kj,1))=dICONRPf(k)%whichi(kj,1)
+			ielem_ineighg(dICONRPA(n)%whichi(kj,1),dICONRPA(n)%whichi(kj,2))=dICONRPf(k)%whichi(kj,1)
 			end if
 			end do
 			end if
@@ -3242,8 +3242,8 @@ k=0
 		kj=0
 		do i=1,dICONRPA(n)%howmanyi(1)
 
-			if (ielem_ineighg(dICONRPA(n)%whichi(i,2),dICONRPA(n)%whichi(i,1)).eq.0)then
-			  if (((ibound_icode(ielem_ibounds(dICONRPA(n)%whichi(i,2),dICONRPA(n)%whichi(i,1))))).eq.5)then
+			if (ielem_ineighg(dICONRPA(n)%whichi(i,1),dICONRPA(n)%whichi(i,2)).eq.0)then
+			  if (((ibound_icode(ielem_ibounds(dICONRPA(n)%whichi(i,1),dICONRPA(n)%whichi(i,2))))).eq.5)then
 			kj=kj+1
 
 
@@ -3387,7 +3387,7 @@ call allsx(stcon,stconc,stcons,stcong,isosa,ifsat,iistart,ix)
                                     max_sten=tolsmall
                                     min_sten=tolbig
                                                                             do j=1,ielem_ifca(k)
-                                                    if (ielem_ineighg(j,k).gt.0)then
+                                                    if (ielem_ineighg(k,j).gt.0)then
                                                     igd1=igd1+1
                                                     testdist=testdist+ilocalallelgd(1,igd1)
                                                         if (ilocalallelgd(1,igd1).ge.max_sten)then
@@ -3590,7 +3590,7 @@ call allsx(stcon,stconc,stcons,stcong,isosa,ifsat,iistart,ix)
 	max_sten=tolsmall
 	min_sten=tolbig
 	do j=1,ielem_ifca(k)
-	      if (ielem_ineighg(j,k).gt.0)then
+	      if (ielem_ineighg(k,j).gt.0)then
 	      igd1=igd1+1
 	      testdist=testdist+ilocalallelgd(1,igd1)
 		if (ilocalallelgd(1,igd1).ge.max_sten)then
@@ -3760,13 +3760,13 @@ kmaxe=xmpielrank(n)
 			stconc(1)=l			!use this stconc(n)=l for referencing after
 
 		do j=1,ielem_ifca(stconc(1))		!loop all the sides of this element
-			if (ielem_ineighg(j,stconc(1)).gt.0)then  !if the neighbour is gt.0 then
-			ix(1)=ielem_ineighg(j,stconc(1))		!set the ix(n) as the global index of this element
+			if (ielem_ineighg(stconc(1),j).gt.0)then  !if the neighbour is gt.0 then
+			ix(1)=ielem_ineighg(stconc(1),j)		!set the ix(n) as the global index of this element
 			call check(n,stcon,ix,ifsat)	!check if this element is already in the list
 			if (ifsat(1).eq.1)then					!if not then include
 			if (isosa(1).le.iselemt(n)-1)then
 			isosa(1)=isosa(1)+1
-			ilocalallelg(n,stcon(1),1,isosa(1))=ielem_ineighg(j,stconc(1))
+			ilocalallelg(n,stcon(1),1,isosa(1))=ielem_ineighg(stconc(1),j)
 			end if
 			end if
 			end if
@@ -3917,7 +3917,7 @@ do k=1,kmaxe
                                     max_sten=tolsmall
                                     min_sten=tolbig
                                                                             do j=1,ielem_ifca(k)
-                                                    if (ielem_ineighg(j,k).gt.0)then
+                                                    if (ielem_ineighg(k,j).gt.0)then
                                                     igd1=igd1+1
                                                     testdist=testdist+ilocalallelgd(1,igd1)
                                                         if (ilocalallelgd(1,igd1).ge.max_sten)then
@@ -4106,7 +4106,7 @@ do k=1,kmaxe
 	max_sten=tolsmall
 	min_sten=tolbig
 	do j=1,ielem_ifca(k)
-	      if (ielem_ineighg(j,k).gt.0)then
+	      if (ielem_ineighg(k,j).gt.0)then
 	      igd1=igd1+1
 	      testdist=testdist+ilocalallelgd(1,igd1)
 		if (ilocalallelgd(1,igd1).ge.max_sten)then
@@ -4272,20 +4272,20 @@ kmaxe=xmpielrank(n)
 			stconc(1)=l
 
 		do j=1,ielem_ifca(stconc(1))
-			if (ielem_ineighg(j,stconc(1)).gt.0)then
-			ix(1)=ielem_ineighg(j,stconc(1))
+			if (ielem_ineighg(stconc(1),j).gt.0)then
+			ix(1)=ielem_ineighg(stconc(1),j)
 			call check(n,stcon,ix,ifsat)
 			if (ifsat(1).eq.1)then
 			if (isosa(1).le.iselemt(n)-1)then
 			isosa(1)=isosa(1)+1
-			ilocalallelg(n,stcon(1),1,isosa(1))=ielem_ineighg(j,stconc(1))
+			ilocalallelg(n,stcon(1),1,isosa(1))=ielem_ineighg(stconc(1),j)
 			if (dimensiona.eq.3)then
 			if (flag_per.eq.0) then
                 if (ielem_interior(stconc(1)).eq.1)then
-                if(ielem_ibounds(j,stconc(1)).gt.0)then
-                if((ibound_icode(ielem_ibounds(j,stconc(1))).eq.5)&
-                            .or.(ibound_icode(ielem_ibounds(j,stconc(1))).eq.50)) then
-                    if (ibound_icode(ielem_ibounds(j,stconc(1))).eq.5) then
+                if(ielem_ibounds(stconc(1),j).gt.0)then
+                if((ibound_icode(ielem_ibounds(stconc(1),j)).eq.5)&
+                            .or.(ibound_icode(ielem_ibounds(stconc(1),j)).eq.50)) then
+                    if (ibound_icode(ielem_ibounds(stconc(1),j)).eq.5) then
                         ilocalallelgper(n,stcon(1),1,isosa(1))=1
                     else
                         ilocalallelgper(n,stcon(1),1,isosa(1))=2
@@ -4297,10 +4297,10 @@ kmaxe=xmpielrank(n)
             end if
 			else if (flag_per.eq.1) then
                 if (ielem_interior(stconc(1)).eq.1)then
-                if (ielem_ibounds(j,stconc(1)).gt.0)then
-                if((ibound_icode(ielem_ibounds(j,stconc(1))).eq.5)&
-                            .or.(ibound_icode(ielem_ibounds(j,stconc(1))).eq.50)) then
-                    if (ibound_icode(ielem_ibounds(j,stconc(1))).eq.5) then
+                if (ielem_ibounds(stconc(1),j).gt.0)then
+                if((ibound_icode(ielem_ibounds(stconc(1),j)).eq.5)&
+                            .or.(ibound_icode(ielem_ibounds(stconc(1),j)).eq.50)) then
+                    if (ibound_icode(ielem_ibounds(stconc(1),j)).eq.5) then
                         ilocalallelgper(n,stcon(1),1,isosa(1))=1
                     else
                         ilocalallelgper(n,stcon(1),1,isosa(1))=0
@@ -4312,10 +4312,10 @@ kmaxe=xmpielrank(n)
                 end if
             else
                 if (ielem_interior(stconc(1)).eq.1)then
-                if(ielem_ibounds(j,stconc(1)).gt.0)then
-                if((ibound_icode(ielem_ibounds(j,stconc(1))).eq.5)&
-                                .or.(ibound_icode(ielem_ibounds(j,stconc(1))).eq.50)) then
-                    if (ibound_icode(ielem_ibounds(j,stconc(1))).eq.5) then
+                if(ielem_ibounds(stconc(1),j).gt.0)then
+                if((ibound_icode(ielem_ibounds(stconc(1),j)).eq.5)&
+                                .or.(ibound_icode(ielem_ibounds(stconc(1),j)).eq.50)) then
+                    if (ibound_icode(ielem_ibounds(stconc(1),j)).eq.5) then
                         ilocalallelgper(n,stcon(1),1,isosa(1))=0
                     else
                         ilocalallelgper(n,stcon(1),1,isosa(1))=2
@@ -4457,9 +4457,9 @@ case (4)
 	call computejacobians(n,vext,vva1,deta)
 	 if (iperiodicity.eq.1) then
 	 if(per_rot.eq.0)then
-	 if (abs(vg(1) - bc(1)) .ge. xper/2.0d0)    vgg(1) = vg(1) + xper*sign(1.d0,bc(1) - xper/2.0d0)
-          if (abs(vg(2) - bc(2)) .ge. yper/2.0d0)    vgg(2) = vg(2) + yper*sign(1.d0,bc(2) - yper/2.0d0)
-	   if (abs(vg(3) - bc(3)) .ge. zper/2.0d0)    vgg(3) = vg(3) + zper*sign(1.d0,bc(3) - zper/2.0d0)
+	 if (abs(vg(1) - bc(1)) .ge. xper/2.00)    vgg(1) = vg(1) + xper*sign(1.0,bc(1) - xper/2.00)
+          if (abs(vg(2) - bc(2)) .ge. yper/2.00)    vgg(2) = vg(2) + yper*sign(1.0,bc(2) - yper/2.00)
+	   if (abs(vg(3) - bc(3)) .ge. zper/2.00)    vgg(3) = vg(3) + zper*sign(1.0,bc(3) - zper/2.00)
      else
         if (is_periodic.eq.2) then
             tempxx=vg(1)
@@ -4488,9 +4488,9 @@ case (4)
 	 call computejacobians(n,vext,vva1,deta)
 	 if (iperiodicity.eq.1) then
 	 if(per_rot.eq.0)then
-	 if (abs(vg(1) - bc(1)) .ge. xper/2.0d0)    vgg(1) = vg(1) + xper*sign(1.d0,bc(1) - xper/2.0d0)
-          if (abs(vg(2) - bc(2)) .ge. yper/2.0d0)    vgg(2) = vg(2) + yper*sign(1.d0,bc(2) - yper/2.0d0)
-	   if (abs(vg(3) - bc(3)) .ge. zper/2.0d0)    vgg(3) = vg(3) + zper*sign(1.d0,bc(3) - zper/2.0d0)
+	 if (abs(vg(1) - bc(1)) .ge. xper/2.00)    vgg(1) = vg(1) + xper*sign(1.0,bc(1) - xper/2.00)
+          if (abs(vg(2) - bc(2)) .ge. yper/2.00)    vgg(2) = vg(2) + yper*sign(1.0,bc(2) - yper/2.00)
+	   if (abs(vg(3) - bc(3)) .ge. zper/2.00)    vgg(3) = vg(3) + zper*sign(1.0,bc(3) - zper/2.00)
      else
         if (is_periodic.eq.2) then
 	    tempxx=vg(1)
@@ -4518,9 +4518,9 @@ case (4)
 	 call computejacobians(n,vext,vva1,deta)
 	 if (iperiodicity.eq.1) then
 	 if(per_rot.eq.0)then
-	 if (abs(vg(1) - bc(1)) .ge. xper/2.0d0)    vgg(1) = vg(1) + xper*sign(1.d0,bc(1) - xper/2.0d0)
-          if (abs(vg(2) - bc(2)) .ge. yper/2.0d0)    vgg(2) = vg(2) + yper*sign(1.d0,bc(2) - yper/2.0d0)
-	   if (abs(vg(3) - bc(3)) .ge. zper/2.0d0)    vgg(3) = vg(3) + zper*sign(1.d0,bc(3) - zper/2.0d0)
+	 if (abs(vg(1) - bc(1)) .ge. xper/2.00)    vgg(1) = vg(1) + xper*sign(1.0,bc(1) - xper/2.00)
+          if (abs(vg(2) - bc(2)) .ge. yper/2.00)    vgg(2) = vg(2) + yper*sign(1.0,bc(2) - yper/2.00)
+	   if (abs(vg(3) - bc(3)) .ge. zper/2.00)    vgg(3) = vg(3) + zper*sign(1.0,bc(3) - zper/2.00)
      else
         if (is_periodic.eq.2) then
             tempxx=vg(1)
@@ -4548,9 +4548,9 @@ case (4)
 	 call computejacobians(n,vext,vva1,deta)
 	 if (iperiodicity.eq.1) then
 	 if(per_rot.eq.0)then
-	 if (abs(vg(1) - bc(1)) .ge. xper/2.0d0)    vgg(1) = vg(1) + xper*sign(1.d0,bc(1) - xper/2.0d0)
-          if (abs(vg(2) - bc(2)) .ge. yper/2.0d0)    vgg(2) = vg(2) + yper*sign(1.d0,bc(2) - yper/2.0d0)
-	   if (abs(vg(3) - bc(3)) .ge. zper/2.0d0)    vgg(3) = vg(3) + zper*sign(1.d0,bc(3) - zper/2.0d0)
+	 if (abs(vg(1) - bc(1)) .ge. xper/2.00)    vgg(1) = vg(1) + xper*sign(1.0,bc(1) - xper/2.00)
+          if (abs(vg(2) - bc(2)) .ge. yper/2.00)    vgg(2) = vg(2) + yper*sign(1.0,bc(2) - yper/2.00)
+	   if (abs(vg(3) - bc(3)) .ge. zper/2.00)    vgg(3) = vg(3) + zper*sign(1.0,bc(3) - zper/2.00)
      else
         if (is_periodic.eq.2) then
             tempxx=vg(1)
@@ -4586,9 +4586,9 @@ vext(1,:)=bc(:)
 	call computejacobians(n,vext,vva1,deta)
 	 if (iperiodicity.eq.1) then
 	 if(per_rot.eq.0)then
-	 if (abs(vg(1) - bc(1)) .ge. xper/2.d0)    vgg(1) = vg(1) + xper*sign(1.d0,bc(1) - xper/2.d0)
-          if (abs(vg(2) - bc(2)) .ge. yper/2.d0)    vgg(2) = vg(2) + yper*sign(1.d0,bc(2) - yper/2.d0)
-	   if (abs(vg(3) - bc(3)) .ge. zper/2.d0)    vgg(3) = vg(3) + zper*sign(1.d0,bc(3) - zper/2.d0)
+	 if (abs(vg(1) - bc(1)) .ge. xper/2.0)    vgg(1) = vg(1) + xper*sign(1.0,bc(1) - xper/2.0)
+          if (abs(vg(2) - bc(2)) .ge. yper/2.0)    vgg(2) = vg(2) + yper*sign(1.0,bc(2) - yper/2.0)
+	   if (abs(vg(3) - bc(3)) .ge. zper/2.0)    vgg(3) = vg(3) + zper*sign(1.0,bc(3) - zper/2.0)
       else
         if (is_periodic.eq.2) then
 
@@ -4624,8 +4624,8 @@ case(2)
 	vgg(1:2)=vg(1:2)
 	call computejacobians2(n,vext,vva1,deta)
 	 if (iperiodicity.eq.1) then
-	 if (abs(vg(1) - bc(1)) .ge. xper/2.0d0)    vgg(1) = vg(1) + xper*sign(1.0d0,bc(1) - xper/2.0d0)
-          if (abs(vg(2) - bc(2)) .ge. yper/2.0d0)    vgg(2) = vg(2) + yper*sign(1.0d0,bc(2) - yper/2.0d0)
+	 if (abs(vg(1) - bc(1)) .ge. xper/2.00)    vgg(1) = vg(1) + xper*sign(1.00,bc(1) - xper/2.00)
+          if (abs(vg(2) - bc(2)) .ge. yper/2.00)    vgg(2) = vg(2) + yper*sign(1.00,bc(2) - yper/2.00)
 
 
         end if
@@ -4756,7 +4756,7 @@ if (typesten.gt.1)then
 			do iaddx=1,stnsha	!for all stencils
 
 
-			if (ielem_types_faces(iaddx,i).eq.5)then
+			if (ielem_types_faces(i,iaddx).eq.5)then
 
 			igvd=2
 
@@ -4773,7 +4773,7 @@ if (typesten.gt.1)then
 			il=il+1
 			ifno=3
 
-			if (ielem_types_faces(iaddx,i).eq.5)then
+			if (ielem_types_faces(i,iaddx).eq.5)then
 
 
 			if (iaddx1.eq.1)then
@@ -4795,20 +4795,20 @@ if (typesten.gt.1)then
 			if (iaddx1.eq.1)then
 			vext(2,1:3)=dinoder(ielem_nodes_faces(iaddx,1,i))%cord(1:3)
 			vext(3,1:3)=dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3)
-			vext(4,1:3)=(dinoder(ielem_nodes_faces(iaddx,3,i))%cord(1:3)+dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3))/2.0d0
+			vext(4,1:3)=(dinoder(ielem_nodes_faces(iaddx,3,i))%cord(1:3)+dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3))/2.00
 
 
-! 			vext(4,1:3)=(vext(2,1:3)+vext(4,1:3))/2.0d0
+! 			vext(4,1:3)=(vext(2,1:3)+vext(4,1:3))/2.00
 
 
 
 			end if
 			if (iaddx1.eq.2)then
 			vext(2,1:3)=dinoder(ielem_nodes_faces(iaddx,1,i))%cord(1:3)
-			vext(3,1:3)=(dinoder(ielem_nodes_faces(iaddx,3,i))%cord(1:3)+dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3))/2.0d0
+			vext(3,1:3)=(dinoder(ielem_nodes_faces(iaddx,3,i))%cord(1:3)+dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3))/2.00
 			vext(4,1:3)=dinoder(ielem_nodes_faces(iaddx,3,i))%cord(1:3)
 
-! 			vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.0d0
+! 			vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.00
 
 
 
@@ -4819,7 +4819,7 @@ if (typesten.gt.1)then
 ! 			vext(3,1:3)=dinoder(ielem_nodes_faces(iaddx,1,i))%cord(1:3)
 ! 			vext(4,1:3)=dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3)
 !
-! 			vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.0d0
+! 			vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.00
 !
 !
 !
@@ -4836,7 +4836,7 @@ if (typesten.gt.1)then
 
 
 
-			if ((ielem_ineighg(iaddx,i).gt.0))then
+			if ((ielem_ineighg(i,iaddx).gt.0))then
 			iwhichsten=il
 
 			ilocalstencil(n,i,il+1,1)=ilocalallelg(n,i,1,1)
@@ -4957,7 +4957,7 @@ if (typesten.gt.1)then
 
 
 
-			if ((ielem_ineighg(iaddx,i).gt.0))then
+			if ((ielem_ineighg(i,iaddx).gt.0))then
 			iwhichsten=il
 
 			ilocalstencil(n,i,il+1,1)=ilocalallelg(n,i,1,1)
@@ -5099,7 +5099,7 @@ if (typesten.gt.1)then
 			do iaddx=1,stnsha	!for all stencils
 
 
-			if (ielem_types_faces(iaddx,i).eq.5)then
+			if (ielem_types_faces(i,iaddx).eq.5)then
 
 			igvd=2
 
@@ -5116,7 +5116,7 @@ if (typesten.gt.1)then
 			il=il+1
 			ifno=3
 
-			if (ielem_types_faces(iaddx,i).eq.5)then
+			if (ielem_types_faces(i,iaddx).eq.5)then
 
 
 			if (iaddx1.eq.1)then
@@ -5138,20 +5138,20 @@ if (typesten.gt.1)then
 			if (iaddx1.eq.1)then
 			vext(2,1:3)=dinoder(ielem_nodes_faces(iaddx,1,i))%cord(1:3)
 			vext(3,1:3)=dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3)
-			vext(4,1:3)=(dinoder(ielem_nodes_faces(iaddx,3,i))%cord(1:3)+dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3))/2.0d0
+			vext(4,1:3)=(dinoder(ielem_nodes_faces(iaddx,3,i))%cord(1:3)+dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3))/2.00
 
 
-! 			vext(4,1:3)=(vext(2,1:3)+vext(4,1:3))/2.0d0
+! 			vext(4,1:3)=(vext(2,1:3)+vext(4,1:3))/2.00
 
 
 
 			end if
 			if (iaddx1.eq.2)then
 			vext(2,1:3)=dinoder(ielem_nodes_faces(iaddx,1,i))%cord(1:3)
-			vext(3,1:3)=(dinoder(ielem_nodes_faces(iaddx,3,i))%cord(1:3)+dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3))/2.0d0
+			vext(3,1:3)=(dinoder(ielem_nodes_faces(iaddx,3,i))%cord(1:3)+dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3))/2.00
 			vext(4,1:3)=dinoder(ielem_nodes_faces(iaddx,3,i))%cord(1:3)
 
-! 			vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.0d0
+! 			vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.00
 
 
 
@@ -5162,7 +5162,7 @@ if (typesten.gt.1)then
 ! 			vext(3,1:3)=dinoder(ielem_nodes_faces(iaddx,1,i))%cord(1:3)
 ! 			vext(4,1:3)=dinoder(ielem_nodes_faces(iaddx,2,i))%cord(1:3)
 !
-! 			vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.0d0
+! 			vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.00
 !
 !
 !
@@ -5191,7 +5191,7 @@ if (typesten.gt.1)then
 ! 			end if
 
 
-			if ((ielem_ineighg(iaddx,i).gt.0))then
+			if ((ielem_ineighg(i,iaddx).gt.0))then
 			iwhichsten=il
 
 			ilocalstencil(n,i,il+1,1)=ilocalallelg(n,i,1,1)
@@ -5301,7 +5301,7 @@ if (typesten.gt.1)then
 
 
 
-			if ((ielem_ineighg(iaddx,i).gt.0))then
+			if ((ielem_ineighg(i,iaddx).gt.0))then
 			iwhichsten=il
 
 			ilocalstencil(n,i,il+1,1)=ilocalallelg(n,i,1,1)
@@ -5441,7 +5441,7 @@ if (typesten.gt.1)then
 
 		ishyape=ielem_ishape(i)
 			do il=1,stnsha	!for all stencils
-			   if (ielem_types_faces(il,i).eq.5)then
+			   if (ielem_types_faces(i,il).eq.5)then
 			ifno=4
 			else
 			ifno=3
@@ -5463,7 +5463,7 @@ if (typesten.gt.1)then
 			end if
 
 
-			if ((ielem_ineighg(il,i).gt.0))then
+			if ((ielem_ineighg(i,il).gt.0))then
 			iwhichsten=il
 
 !
@@ -5578,7 +5578,7 @@ if (typesten.gt.1)then
 !
 
 
-			if ((ielem_ineighg(il,i).gt.0))then
+			if ((ielem_ineighg(i,il).gt.0))then
 			iwhichsten=il
 
 			ilocalstencil(n,i,il+1,1)=ilocalallelg(n,i,1,1)
@@ -5721,7 +5721,7 @@ if (typesten.gt.1)then
 
 		ishyape=ielem_ishape(i)
 			do il=1,stnsha	!for all stencils
-			   if (ielem_types_faces(il,i).eq.5)then
+			   if (ielem_types_faces(i,il).eq.5)then
 			ifno=4
 			else
 			ifno=3
@@ -5743,7 +5743,7 @@ if (typesten.gt.1)then
 			end if
 
 
-			if ((ielem_ineighg(il,i).gt.0))then
+			if ((ielem_ineighg(i,il).gt.0))then
 			iwhichsten=il
 
 !
@@ -5856,7 +5856,7 @@ if (typesten.gt.1)then
 
 
 
-			if ((ielem_ineighg(il,i).gt.0))then
+			if ((ielem_ineighg(i,il).gt.0))then
 			iwhichsten=il
 
 			ilocalstencil(n,i,il+1,1)=ilocalallelg(n,i,1,1)
@@ -6702,8 +6702,8 @@ subroutine adapt_criterion
           xmin_ad=tolbig
 
 	  if (initcond.eq.405)then
-	  xmin_ad=-0.2d0
-	  xmax_ad=0.2d0
+	  xmin_ad=-0.20
+	  xmax_ad=0.20
 
 	  end if
 	  if (initcond.eq.422)then
@@ -6713,8 +6713,8 @@ subroutine adapt_criterion
 	  end if
 
 	  if (initcond.eq.101)then
-	  xmin_ad=-4.2d0
-	  xmax_ad=4.2d0
+	  xmin_ad=-4.20
+	  xmax_ad=4.20
 
 	  end if
 

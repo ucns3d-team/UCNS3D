@@ -39,20 +39,20 @@ subroutine read_ucns3d
 	transition_model=0
 	transition_axis=1
 	transition_direction=1
-		transition_location=0.0d0
-		transition_ramp_length=0.0d0
+		transition_location=0.00
+		transition_ramp_length=0.00
 		transition_ramp_type=1
-			mach_outlet_target=-1.0d0
-				mach_outlet_average=0.0d0
-				mach_outlet_relax=0.1d0
+			mach_outlet_target=-1.00
+				mach_outlet_average=0.00
+				mach_outlet_relax=0.10
 				mach_outlet_update_freq=10
 				mach_outlet_start_iter=0
-				mach_outlet_filtered=0.0d0
-				mach_outlet_filter_alpha=0.2d0
+				mach_outlet_filtered=0.00
+				mach_outlet_filter_alpha=0.20
 				mach_outlet_filter_ready=0
-				total_pressure_inlet=-1.0d0
-				total_temperature_inlet=350.0d0
-				density_inlet=-1.0d0
+				total_pressure_inlet=-1.00
+				total_temperature_inlet=350.00
+				density_inlet=-1.00
 
 
 	movement=0
@@ -160,7 +160,7 @@ subroutine read_ucns3d
 	if (here2) then
 	open(14,file='405.DAT',form='formatted',status='old',action='read')
 	read(14,*)
-	read(14,*)a405			!perturbations amplitude	0.002d0 (radius 0.025d0)
+	read(14,*)a405			!perturbations amplitude	0.0020 (radius 0.0250)
 	read(14,*)nof_perturbations405	!number of perturbations	start with 8
     close(14)
 	end if
@@ -182,7 +182,7 @@ subroutine read_ucns3d
 	else
 	    transition_direction=-1
 	end if
-	transition_ramp_length=max(0.0d0,transition_ramp_length)
+	transition_ramp_length=max(0.00,transition_ramp_length)
 	if ((transition_ramp_type.ne.0).and.(transition_ramp_type.ne.2))transition_ramp_type=1
 	end if
 
@@ -318,20 +318,20 @@ subroutine read_ucns3d
 		open(29,file=outlet_file,form='formatted',status='old',action='read')
 		read(29,*)
 		read(29,'(A)')mach_line
-		mach_aux1=-1.0d0
-		mach_aux2=-1.0d0
+		mach_aux1=-1.00
+		mach_aux2=-1.00
 		read(mach_line,*,iostat=mach_ios)mach_outlet_target,total_pressure_inlet,mach_aux1,mach_aux2
 		if (mach_ios.eq.0)then
 		density_inlet=mach_aux1
 		total_temperature_inlet=mach_aux2
 		end if
 		if (mach_ios.ne.0)then
-		mach_aux1=-1.0d0
+		mach_aux1=-1.00
 		read(mach_line,*,iostat=mach_ios)mach_outlet_target,total_pressure_inlet,mach_aux1
 		if (mach_ios.eq.0)then
-		if (mach_aux1.gt.50.0d0)then
+		if (mach_aux1.gt.50.00)then
 		total_temperature_inlet=mach_aux1
-		density_inlet=-1.0d0
+		density_inlet=-1.00
 		else
 		density_inlet=mach_aux1
 		end if
@@ -339,24 +339,24 @@ subroutine read_ucns3d
 		end if
 		if (mach_ios.ne.0)then
 		read(mach_line,*,iostat=mach_ios)mach_outlet_target,total_pressure_inlet
-		density_inlet=-1.0d0
+		density_inlet=-1.00
 		end if
 		if (mach_ios.ne.0)then
 		read(mach_line,*)mach_outlet_target
-		total_pressure_inlet=-1.0d0
-		density_inlet=-1.0d0
+		total_pressure_inlet=-1.00
+		density_inlet=-1.00
 		end if
 		read(29,*,iostat=mach_ios)mach_outlet_update_freq	!100
 		if (mach_ios.ne.0) mach_outlet_update_freq=10
 		read(29,*,iostat=mach_ios)mach_outlet_relax
-		if (mach_ios.ne.0) mach_outlet_relax=0.1d0
+		if (mach_ios.ne.0) mach_outlet_relax=0.10
 		read(29,*,iostat=mach_ios)mach_outlet_start_iter
 		if (mach_ios.ne.0) mach_outlet_start_iter=0
 		mach_outlet_start_iter=max(mach_outlet_start_iter,0)
 		read(29,*,iostat=mach_ios)mach_outlet_filter_alpha
-		if (mach_ios.ne.0) mach_outlet_filter_alpha=0.2d0
-		if (mach_outlet_filter_alpha.le.0.0d0) mach_outlet_filter_alpha=0.2d0
-		mach_outlet_filter_alpha=min(1.0d0,mach_outlet_filter_alpha)
+		if (mach_ios.ne.0) mach_outlet_filter_alpha=0.20
+		if (mach_outlet_filter_alpha.le.0.00) mach_outlet_filter_alpha=0.20
+		mach_outlet_filter_alpha=min(1.00,mach_outlet_filter_alpha)
 		print*,"i am reading the target outlet Mach number from the file"
 	    close(29)
 		end if
@@ -422,17 +422,17 @@ subroutine read_ucns3d
 	read(15,*)
 	read(15,*)
 	read(15,*)
-	Mach_in=-1.0d0
+	Mach_in=-1.00
 	read(15,'(A)')mach_line
 		read(mach_line,*,iostat=mach_ios)rres,ufreestream,vvel,wvel,pres,Mach_in
 		if (mach_ios.ne.0)then
 		read(mach_line,*)rres,ufreestream,vvel,wvel,pres
-			Mach_in=-1.0d0
+			Mach_in=-1.00
 			end if
 			press_outlet=pres
-			if (total_pressure_inlet.le.0.0d0) total_pressure_inlet=pres
-			if (total_temperature_inlet.le.0.0d0) total_temperature_inlet=350.0d0
-			if (density_inlet.le.0.0d0) density_inlet=rres
+			if (total_pressure_inlet.le.0.00) total_pressure_inlet=pres
+			if (total_temperature_inlet.le.0.00) total_temperature_inlet=350.00
+			if (density_inlet.le.0.00) density_inlet=rres
 	read(15,*)
 	read(15,*)
 	read(15,*)aoa,vectorx,vectory,vectorz
@@ -491,16 +491,16 @@ subroutine read_ucns3d
 
 
 	if (dimensiona.eq.3)then
-		ccfl=(cfl/3.0d0)
+		ccfl=(cfl/3.00)
 	else
-		ccfl=(cfl/2.0d0)
+		ccfl=(cfl/2.00)
 	end if
 	if (rungekutta.eq.4)then
 	      ind1=7
 	else
 	      ind1=5
 	end if
-	origin(1:3)=0.0d0
+	origin(1:3)=0.00
 
 
 	fastmovie=0
@@ -585,7 +585,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 ! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
     if ((initcond.eq.405).or.(initcond.eq.405))then
@@ -605,7 +605,7 @@ subroutine read_ucns3d
 	gridar2=10000000	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=0.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=0.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 	rot_corr=0
 
 
@@ -627,7 +627,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 ! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
     if ((initcond.eq.405).or.(initcond.eq.405))then
@@ -647,7 +647,7 @@ subroutine read_ucns3d
 	gridar2=10000	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 	rot_corr=1
 
 
@@ -668,7 +668,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 ! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
     if ((initcond.eq.405).or.(initcond.eq.405))then
@@ -688,7 +688,7 @@ subroutine read_ucns3d
 	gridar2=300000000	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
         d_corr=1
         turbinit=0.1
 	if (iboundary.eq.1)then
@@ -710,7 +710,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 ! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
     if (initcond.eq.405)iadapt=1
@@ -728,7 +728,7 @@ subroutine read_ucns3d
 	gridar2=50.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 
 
 	if (iboundary.eq.1)then
@@ -750,7 +750,7 @@ subroutine read_ucns3d
 		turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 	! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 		ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-		hybridist=0.0d0 !hybrid distance
+		hybridist=0.00 !hybrid distance
 		swirl=0		!swirling flow:0 deactivated, 1 activated
 		iadapt=0	!adaptive numerical scheme (0 not true,1 true)
 		if (initcond.eq.405)iadapt=1
@@ -768,7 +768,7 @@ subroutine read_ucns3d
 		gridar2=50.0	! limit volume cells
 		fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 		lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-		lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+		lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 
 
 		if (iboundary.eq.1)then
@@ -791,7 +791,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 ! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
     if (initcond.eq.405)iadapt=1
@@ -809,7 +809,7 @@ subroutine read_ucns3d
 	gridar2=200.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 
 
 	if (iboundary.eq.1)then
@@ -829,7 +829,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 ! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
     if (initcond.eq.405)iadapt=1
@@ -847,7 +847,7 @@ subroutine read_ucns3d
 	gridar2=40.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 
 	fastmovie=0
 
@@ -867,7 +867,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 ! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
     if (initcond.eq.405)iadapt=1
@@ -885,7 +885,7 @@ subroutine read_ucns3d
 	gridar2=40000.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=0.0d0;lamy=0.0d0;lamz=0.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=0.00;lamy=0.00;lamz=0.00	!linear advection coefficients (lamx, lamy,lamz)
 
 	fastmovie=0
 
@@ -907,7 +907,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 ! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
     if (initcond.eq.405)iadapt=1
@@ -925,7 +925,7 @@ subroutine read_ucns3d
 	gridar2=40.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 
 	fastmovie=0
 
@@ -946,7 +946,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 ! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
     if (initcond.eq.405)iadapt=1
@@ -964,7 +964,7 @@ subroutine read_ucns3d
 	gridar2=7.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 	fastmovie=0
 	if (iboundary.eq.1)then
 	 lowmem=1
@@ -986,7 +986,7 @@ subroutine read_ucns3d
         turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 !       icoupleturb=0   !coupling turbulence model: |1:coupled | 0: decoupled
         ihybrid=0       !hybrid turbulence : |1:enabled|0:disabled
-        hybridist=0.0d0 !hybrid distance
+        hybridist=0.00 !hybrid distance
         swirl=0         !swirling flow:0 deactivated, 1 activated
         iadapt=1        !adaptive numerical scheme (0 not true,1 true)
     if (initcond.eq.405)iadapt=1
@@ -1004,7 +1004,7 @@ subroutine read_ucns3d
         gridar2=700000000.0     ! limit volume cells
         fastest=0       ! 0                             ||fastest, no coordinate mapping (1: engaged,0:with transformation)
         lmach_style=0   !0                      ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-        lamx=0.0d0;lamy=1.0d0;lamz=1.0d0        !linear advection coefficients (lamx, lamy,lamz)
+        lamx=0.00;lamy=1.00;lamz=1.00        !linear advection coefficients (lamx, lamy,lamz)
         fastmovie=0
         if (iboundary.eq.1)then
          lowmem=1
@@ -1023,7 +1023,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 ! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
     if (initcond.eq.405)iadapt=1
@@ -1041,7 +1041,7 @@ subroutine read_ucns3d
 	gridar2=70000.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 
 	if (iboundary.eq.1)then
 	 lowmem=1
@@ -1062,7 +1062,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 	!icoupleturb=1	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
 	icompact=0	!compact stencil mode(0 not true,1 true)
@@ -1079,7 +1079,7 @@ subroutine read_ucns3d
 	gridar2=7.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 	cavitation=0
 	if (iboundary.eq.1)then
 	 lowmem=1
@@ -1098,7 +1098,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 	!icoupleturb=1	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
 	icompact=0	!compact stencil mode(0 not true,1 true)
@@ -1115,7 +1115,7 @@ subroutine read_ucns3d
 	gridar2=10.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 
 	if (iboundary.eq.1)then
 	 lowmem=1
@@ -1133,7 +1133,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 	!icoupleturb=1	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
 	if (initcond.eq.101)iadapt=1
@@ -1151,7 +1151,7 @@ subroutine read_ucns3d
 	gridar2=10.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 	dg=1   !0=deactivated fv only, 1=activated dg only, 2=hybrid
 
 	bound_lim=0
@@ -1176,7 +1176,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 	!icoupleturb=1	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
 	if (initcond.eq.101)iadapt=1
@@ -1194,7 +1194,7 @@ subroutine read_ucns3d
 	gridar2=10.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 	dg=1   !0=deactivated fv only, 1=activated dg only, 2=hybrid
 	bound_lim=0
 	cavitation=0
@@ -1217,7 +1217,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 	!icoupleturb=1	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
 	if (initcond.eq.101)iadapt=1
@@ -1235,7 +1235,7 @@ subroutine read_ucns3d
 	gridar2=10.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=1.00;lamy=1.00;lamz=1.00	!linear advection coefficients (lamx, lamy,lamz)
 	dg=1   !0=deactivated fv only, 1=activated dg only, 2=hybrid
 
 	if (iboundary.eq.1)then
@@ -1259,7 +1259,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 	icoupleturb=0	 !coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	 !hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0  !hybrid distance
+	hybridist=0.00  !hybrid distance
 	swirl=0		 !swirling flow:0 deactivated, 1 activated
 	iadapt=0	 !adaptive numerical scheme (0 not true,1 true)
 	if (initcond.eq.101)iadapt=1
@@ -1278,7 +1278,7 @@ subroutine read_ucns3d
 	gridar2=1000000.0	 ! limit volume cells
 	fastest=0	 ! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	 !0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=0.0d0;lamy=1.0d0;lamz=1.0d0	 !linear advection coefficients (lamx, lamy,lamz)
+	lamx=0.00;lamy=1.00;lamz=1.00	 !linear advection coefficients (lamx, lamy,lamz)
 	ispal=1! 1				||spalart allmaras version:| 1:original |2: negative modification
 
 
@@ -1304,7 +1304,7 @@ subroutine read_ucns3d
 	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
 ! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
 	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
+	hybridist=0.00 !hybrid distance
 	swirl=0		!swirling flow:0 deactivated, 1 activated
 	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
     if (initcond.eq.405)iadapt=1
@@ -1322,7 +1322,7 @@ subroutine read_ucns3d
 	gridar2=500000.0	! limit volume cells
 	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
 	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=0.0d0;lamy=0.0d0;lamz=0.0d0	!linear advection coefficients (lamx, lamy,lamz)
+	lamx=0.00;lamy=0.00;lamz=0.00	!linear advection coefficients (lamx, lamy,lamz)
 	iweno=5
 
 	if (iboundary.eq.1)then
@@ -1518,19 +1518,19 @@ subroutine read_ucns3d
 	  !-------------------------5---------------------------------!
 	  !flow parameters
 	  unwou = 3
-	  betaas=1.5d0
-	  suther=0.412158681d0
+	  betaas=1.50
+	  suther=0.4121586810
 	  uvel=ufreestream
           if (uvel.lt.10.0)then
           r_gas=1.0
           else
-                  r_gas=287.052874d0
+                  r_gas=287.0528740
                   suther=110.0/(pres/(rres*r_gas))
 
           end if
 
 	  if (initcond.eq.977)then
-	  uvel=0.0d0;vvel=0.0d0;
+	  uvel=0.00;vvel=0.00;
 	  ufreestream=wvel
 	  end if
 
@@ -1548,8 +1548,8 @@ subroutine read_ucns3d
 	  if (swirl.eq.1)then
 	  uvel=zero
 	  end if
-	  if (aoa .ne. 0.0d0) then
-	  angledum=(aoa*pi)/180.0d0
+	  if (aoa .ne. 0.00) then
+	  angledum=(aoa*pi)/180.00
 	  uvel = cos(angledum)*ufreestream*vectorx
 	  wvel = sin(angledum)*ufreestream*vectorz
 	  vvel = sin(angledum)*ufreestream*vectory
@@ -1808,7 +1808,7 @@ subroutine read_ucns3d
 	restored=0
 	last_press=press_outlet
 
-	if ((restart.gt.0).and.(initcond.eq.4440).and.(mach_outlet_target.gt.0.0d0))then
+	if ((restart.gt.0).and.(initcond.eq.4440).and.(mach_outlet_target.gt.0.00))then
 	  if (n.eq.0)then
 	    inquire(file='OUTLET_MACH.dat',exist=here9)
 	    if (here9)then

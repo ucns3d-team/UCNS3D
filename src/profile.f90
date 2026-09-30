@@ -25,15 +25,15 @@ real,dimension(1:dimensiona),intent(in)::pox,poy,poz
 !coordinates=pox(1),poy(1),poz(1)
 
 if (initcond.eq.0)then
-if(((pox(1).ge.0.25d0).and.(pox(1).le.0.75d0)).and.((poz(1).ge.0.25d0).and.(poz(1).le.0.75d0)))then
-	linear_init3d=1.0d0
+if(((pox(1).ge.0.250).and.(pox(1).le.0.750)).and.((poz(1).ge.0.250).and.(poz(1).le.0.750)))then
+	linear_init3d=1.00
 else
-	linear_init3d=1.0d0
+	linear_init3d=1.00
 end if
 end if
 if (initcond.eq.2)then
-linear_init3d=(sin((2.0d0*pi)*(pox(1))))*&
-(sin((2.0d0*pi)*(poy(1))))*(sin((2.0d0*pi)*(poz(1))))
+linear_init3d=(sin((2.00*pi)*(pox(1))))*&
+(sin((2.00*pi)*(poy(1))))*(sin((2.00*pi)*(poz(1))))
 
 end if
 
@@ -54,10 +54,10 @@ integer::ixg
 
 sumf=zero
 if (initcond.eq.1)then
- if(((pox(1).ge.0.25d0).and.(pox(1).le.0.75d0)).and.((poy(1).ge.0.25d0).and.(poy(1).le.0.75d0)))then
-	linear_init2d=1.0d0
+ if(((pox(1).ge.0.250).and.(pox(1).le.0.750)).and.((poy(1).ge.0.250).and.(poy(1).le.0.750)))then
+	linear_init2d=1.00
  else
-	linear_init2d=0.0d0
+	linear_init2d=0.00
 
 end if
 end if
@@ -65,28 +65,28 @@ end if
 
 if (initcond.eq.3)then
 
-linear_init2d=0.0d0
-if (sqrt(((pox(1)-0.25d0)**2)+((poy(1)-0.5d0)**2)).le.0.15)then
-rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.25d0)**2)+((poy(1)-0.5d0)**2))
+linear_init2d=0.00
+if (sqrt(((pox(1)-0.250)**2)+((poy(1)-0.50)**2)).le.0.15)then
+rd=(1.00/0.150)*sqrt(((pox(1)-0.250)**2)+((poy(1)-0.50)**2))
 
-linear_init2d=0.25d0*(1.0d0+cos(pi*min(rd,1.0d0)))
+linear_init2d=0.250*(1.00+cos(pi*min(rd,1.00)))
 end if
 
-if (sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.25d0)**2)).le.0.15)then
+if (sqrt(((pox(1)-0.50)**2)+((poy(1)-0.250)**2)).le.0.15)then
 
-rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.25d0)**2))
-linear_init2d=1.0d0-rd
+rd=(1.00/0.150)*sqrt(((pox(1)-0.50)**2)+((poy(1)-0.250)**2))
+linear_init2d=1.00-rd
 end if
 
-    if (sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.75d0)**2)).le.0.15)then
+    if (sqrt(((pox(1)-0.50)**2)+((poy(1)-0.750)**2)).le.0.15)then
 
-    rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.75d0)**2))
-	  if ((abs(pox(1)-0.5).ge.0.025d0).or.(poy(1).gt.0.85))then
+    rd=(1.00/0.150)*sqrt(((pox(1)-0.50)**2)+((poy(1)-0.750)**2))
+	  if ((abs(pox(1)-0.5).ge.0.0250).or.(poy(1).gt.0.85))then
 
-	  linear_init2d=1.0d0
+	  linear_init2d=1.00
 	  else
 
-	  linear_init2d=0.0d0
+	  linear_init2d=0.00
 
 	  end if
     end if
@@ -97,8 +97,8 @@ end if
 
 if (initcond.eq.5)then
 
-linear_init2d=0.0d0
-if ((sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.5d0)**2)).gt.0.25).and.(sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.5d0)**2)).lt.0.35))then
+linear_init2d=0.00
+if ((sqrt(((pox(1)-0.50)**2)+((poy(1)-0.50)**2)).gt.0.25).and.(sqrt(((pox(1)-0.50)**2)+((poy(1)-0.50)**2)).lt.0.35))then
 
 linear_init2d=1.0
 else
@@ -110,9 +110,9 @@ end if
 
 
 if (initcond.eq.2)then
-linear_init2d=(sin((2.0d0*pi)*(pox(1))))*(sin((2.0d0*pi)*(poy(1))))
+linear_init2d=(sin((2.00*pi)*(pox(1))))*(sin((2.00*pi)*(poy(1))))
 
-!linear_init2d=1.0d0
+!linear_init2d=1.00
 end if
 
 
@@ -123,32 +123,32 @@ linear_init2d=1.0
 end if
 
 if (initcond.eq.100002)then
-linear_init2d=(sin((2.0d0*pi)*(pox(1))))*(sin((2.0d0*pi)*(poy(1))))
+linear_init2d=(sin((2.00*pi)*(pox(1))))*(sin((2.00*pi)*(poy(1))))
 end if
 
 if (initcond.eq.100003)then
-linear_init2d=0.0d0
-if (sqrt(((pox(1)-0.25d0)**2)+((poy(1)-0.5d0)**2)).le.0.15)then
-rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.25d0)**2)+((poy(1)-0.5d0)**2))
+linear_init2d=0.00
+if (sqrt(((pox(1)-0.250)**2)+((poy(1)-0.50)**2)).le.0.15)then
+rd=(1.00/0.150)*sqrt(((pox(1)-0.250)**2)+((poy(1)-0.50)**2))
 
-linear_init2d=0.25d0*(1.0d0+cos(pi*min(rd,1.0d0)))
+linear_init2d=0.250*(1.00+cos(pi*min(rd,1.00)))
 end if
 
-if (sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.25d0)**2)).le.0.15)then
+if (sqrt(((pox(1)-0.50)**2)+((poy(1)-0.250)**2)).le.0.15)then
 
-rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.25d0)**2))
-linear_init2d=1.0d0-rd
+rd=(1.00/0.150)*sqrt(((pox(1)-0.50)**2)+((poy(1)-0.250)**2))
+linear_init2d=1.00-rd
 end if
 
-    if (sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.75d0)**2)).le.0.15)then
+    if (sqrt(((pox(1)-0.50)**2)+((poy(1)-0.750)**2)).le.0.15)then
 
-    rd=(1.0d0/0.15d0)*sqrt(((pox(1)-0.5d0)**2)+((poy(1)-0.75d0)**2))
-	  if ((abs(pox(1)-0.5).ge.0.025d0).or.(poy(1).gt.0.85))then
+    rd=(1.00/0.150)*sqrt(((pox(1)-0.50)**2)+((poy(1)-0.750)**2))
+	  if ((abs(pox(1)-0.5).ge.0.0250).or.(poy(1).gt.0.85))then
 
-	  linear_init2d=1.0d0
+	  linear_init2d=1.00
 	  else
 
-	  linear_init2d=0.0d0
+	  linear_init2d=0.00
 
 	  end if
     end if
@@ -201,7 +201,7 @@ w1=wvel
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 !internal energy
 
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 
 !total energy
 e1=r1*(skin1+ie1)
@@ -247,20 +247,20 @@ end do
 
 
   ! translational-rotational internal energy
-rg_tr = 0.0d0
+rg_tr = 0.00
     do rg_i = 1, nof_species
       if (rg_i <= 3) then
-        rg_cvs(rg_i) = (5.0d0 / 2.0d0) *  rgs_ru / rg_molm(rg_i)
+        rg_cvs(rg_i) = (5.00 / 2.00) *  rgs_ru / rg_molm(rg_i)
       else
-        rg_cvs(rg_i) = (3.0d0 / 2.0d0) *  rgs_ru / rg_molm(rg_i)
+        rg_cvs(rg_i) = (3.00 / 2.00) *  rgs_ru / rg_molm(rg_i)
       end if
       rg_tr = rg_tr + rg_vf(rg_i) * rg_cvs(rg_i) * rg_ttr0
     end do
 
 ! vibrational energy
-    rg_ev_total= 0.0d0
+    rg_ev_total= 0.00
     do rg_i = 1, 3
-      rg_ev_total = rg_ev_total + rg_vf(rg_i)  * (rgs_ru / rg_molm(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/rg_tve0) - 1.0d0))
+      rg_ev_total = rg_ev_total + rg_vf(rg_i)  * (rgs_ru / rg_molm(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/rg_tve0) - 1.00))
     end do
 
 rg_chem=zero
@@ -337,9 +337,9 @@ if (turbulence.eq.1)then
   if (turbulencemodel.eq.2)then
 
    if (zero_turb_init .eq. 0) then
-  veccos(nof_variables+1)=(1.5d0*(i_turb_inlet*ufreestream)**2)*r1
+  veccos(nof_variables+1)=(1.50*(i_turb_inlet*ufreestream)**2)*r1
   veccos(nof_variables+2)=ufreestream/l_turb_inlet
- veccos(nof_variables+2)=(c_mu_inlet**(-0.25d0))*sqrt(veccos(5))&
+ veccos(nof_variables+2)=(c_mu_inlet**(-0.250))*sqrt(veccos(5))&
 			/l_turb_inlet*r1
   end if
 
@@ -364,7 +364,7 @@ end if
 if (initcond.eq.10000)then	!shock density interaction
 
 
-r1=0.5d0
+r1=0.50
 p1=0.4127
 u1=0.0
 v1=0.0
@@ -375,7 +375,7 @@ w1=0.0
 
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -401,9 +401,9 @@ yin=poy(1)-pi
 zin=poz(1)-pi
 
         if(boundtype.eq.1)then
-r1=1.0d0
-w1=0.0d0
-p1=100.0d0+((r1/16.0d0)*((cos(2.0d0*zin))+2.0d0)*((cos(2.0d0*xin))+(cos(2.0d0*yin))))
+r1=1.00
+w1=0.00
+p1=100.00+((r1/16.00)*((cos(2.00*zin))+2.00)*((cos(2.00*xin))+(cos(2.00*yin))))
 u1=sin(xin)*cos(yin)*cos(zin)
 v1=-cos(xin)*sin(yin)*cos(zin)
 
@@ -411,8 +411,8 @@ v1=-cos(xin)*sin(yin)*cos(zin)
 
 else
 
-w1=0.0d0
-p1=(1.0d0/(gamma*1.25*1.25))+((1.0d0/16.0d0)*((cos(2.0d0*zin))+2.0d0)*((cos(2.0d0*xin))+(cos(2.0d0*yin))))
+w1=0.00
+p1=(1.00/(gamma*1.25*1.25))+((1.00/16.00)*((cos(2.00*zin))+2.00)*((cos(2.00*xin))+(cos(2.00*yin))))
 r1=(p1*(gamma*1.25*1.25))
 u1=sin(xin)*cos(yin)*cos(zin)
 v1=-cos(xin)*sin(yin)*cos(zin)
@@ -421,7 +421,7 @@ v1=-cos(xin)*sin(yin)*cos(zin)
 end if
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -433,14 +433,14 @@ veccos(5)=e1
 end if
 
 if (initcond.eq.101)then	!shock density interaction
-if (pox(1).lt.-4.0d0)then
-r1=3.8571d0
-u1=2.6294d0
+if (pox(1).lt.-4.00)then
+r1=3.85710
+u1=2.62940
 v1=zero
 w1=zero
-p1=10.333d0
+p1=10.3330
 else
-r1=(1.0d0+0.2d0*sin(5.0d0*pox(1)))
+r1=(1.00+0.20*sin(5.00*pox(1)))
 u1=zero
 v1=zero
 w1=zero
@@ -448,7 +448,7 @@ p1=1
 end if
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -471,15 +471,15 @@ end if
 if (initcond.eq.405)then
 !test case 4.5 of coralic & colonius
 
-if (pox(1).lt.-0.1d0)then
-mp_r(1)=0.166315789d0
-mp_r(2)=1.658d0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=114.49d0
-v1= 0.0d0
-w1=0.0d0
-p1=159060.0d0
+if (pox(1).lt.-0.10)then
+mp_r(1)=0.1663157890
+mp_r(2)=1.6580
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=114.490
+v1= 0.00
+w1=0.00
+p1=159060.00
 
 
 ! skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
@@ -487,8 +487,8 @@ p1=159060.0d0
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 e1=(r1*skin1)+ie1
@@ -501,20 +501,20 @@ else
 
 
 
-if (sqrt(((pox(1)+0.05d0)**2)+((poy(1)-0.05d0)**2)+((poz(1)-0.05d0)**2)).le.0.025d0)then
-mp_r(1)=0.166315789d0
-mp_r(2)=1.204d0
-mp_a(1)=0.95d0
-mp_a(2)=0.05d0
-u1=0.0d0
-v1=0.0d0
-w1=0.0d0
+if (sqrt(((pox(1)+0.050)**2)+((poy(1)-0.050)**2)+((poz(1)-0.050)**2)).le.0.0250)then
+mp_r(1)=0.1663157890
+mp_r(2)=1.2040
+mp_a(1)=0.950
+mp_a(2)=0.050
+u1=0.00
+v1=0.00
+w1=0.00
 p1=101325
 
 ! skin1=(oo2)*((u1**2)+(v1**2))
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 e1=(r1*skin1)+ie1
@@ -523,20 +523,20 @@ else
 
 
 
-mp_r(1)=0.166315789d0
-mp_r(2)=1.204d0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=0.0d0
-v1=0.0d0
-w1=0.0d0
+mp_r(1)=0.1663157890
+mp_r(2)=1.2040
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=0.00
+v1=0.00
+w1=0.00
 p1=101325
 
 
 ! skin1=(oo2)*((u1**2)+(v1**2))
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 e1=(r1*skin1)+ie1
@@ -583,10 +583,10 @@ if (initcond.eq.470)then
 
 
         if (pox(1).le.1.0)then   !post shock concidions
-        mp_r(2)=1.0d0 	    ! water density
-        mp_r(1)=1.0d0 		! air density
-        mp_a(2)=0.0d0 		! water volume fraction (everything is water here)
-        mp_a(1)=1.0d0 		! air volume fraction
+        mp_r(2)=1.00 	    ! water density
+        mp_r(1)=1.00 		! air density
+        mp_a(2)=0.00 		! water volume fraction (everything is water here)
+        mp_a(1)=1.00 		! air volume fraction
         u1=0.0	  	          ! m/s
         v1=0.0
         w1=0.0
@@ -594,8 +594,8 @@ if (initcond.eq.470)then
 
 
         r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-        mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-        mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+        mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+        mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
         ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
         skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
         e1=(r1*skin1)+ie1
@@ -603,12 +603,12 @@ if (initcond.eq.470)then
 
         else
 
-                if (sqrt(poy(1)**2+poz(1)**2).ge.1.5d0)then
+                if (sqrt(poy(1)**2+poz(1)**2).ge.1.50)then
 
-                mp_r(2)=1.0d0 	! water density
-                mp_r(1)=0.125d0 		! air density
-                mp_a(2)=0.0d0 		! water volume fraction (everything is water here)
-                mp_a(1)=1.0d0 		! air volume fraction
+                mp_r(2)=1.00 	! water density
+                mp_r(1)=0.1250 		! air density
+                mp_a(2)=0.00 		! water volume fraction (everything is water here)
+                mp_a(1)=1.00 		! air volume fraction
                 u1=0.0	  	          ! m/s
                 v1=0.0
                 w1=0.0
@@ -616,8 +616,8 @@ if (initcond.eq.470)then
 
 
                 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-                mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-                mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+                mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+                mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
                 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
                 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
                 e1=(r1*skin1)+ie1
@@ -625,10 +625,10 @@ if (initcond.eq.470)then
 
                 else
 
-                mp_r(2)=1.0d0 	! water density
-                mp_r(1)=0.125d0 		! air density
-                mp_a(2)=1.0d0 		! water volume fraction (everything is water here)
-                mp_a(1)=0.0d0 		! air volume fraction
+                mp_r(2)=1.00 	! water density
+                mp_r(1)=0.1250 		! air density
+                mp_a(2)=1.00 		! water volume fraction (everything is water here)
+                mp_a(1)=0.00 		! air volume fraction
                 u1=0.0	  	          ! m/s
                 v1=0.0
                 w1=0.0
@@ -636,8 +636,8 @@ if (initcond.eq.470)then
 
 
                 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-                mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-                mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+                mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+                mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
                 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
                 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
                 e1=(r1*skin1)+ie1
@@ -672,12 +672,12 @@ if (sqrt(((pox(1)-200.0e-6)**2)+((poy(1)-150.0e-6)**2)+((poz(1)-150.0e-6)**2)).l
 
 mp_r(1)=1.225
 mp_r(2)=1000.0
-mp_a(1)=1.0d0
-mp_a(2)=0.0d0
+mp_a(1)=1.00
+mp_a(2)=0.00
 u1=0.0
-v1=0.0d0
+v1=0.00
 w1=0.0
-p1=100000.0d0
+p1=100000.00
 
 
 ! skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
@@ -685,8 +685,8 @@ p1=100000.0d0
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 e1=(r1*skin1)+ie1
@@ -703,23 +703,23 @@ if (pox(1).le.100.0e-6)then
 p1=35e6
 mp_r(1)=1.225
 mp_r(2)=1000.0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
+mp_a(1)=0.00
+mp_a(2)=1.00
 u1=1647.0
-v1=0.0d0
-w1=0.0d0
+v1=0.00
+w1=0.00
 
 else
 
 
 mp_r(1)=1.225
 mp_r(2)=1000.0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
+mp_a(1)=0.00
+mp_a(2)=1.00
 u1=0.0
-v1=0.0d0
-w1=0.0d0
-p1=100000.0d0
+v1=0.00
+w1=0.00
+p1=100000.00
 
 
 end if
@@ -730,8 +730,8 @@ end if
 
 ! skin1=(oo2)*((u1**2)+(v1**2))
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 e1=(r1*skin1)+ie1
@@ -765,20 +765,20 @@ if (initcond.eq.411)then
 !mp_pinf(1) = 6e8 !water from coralic and colonius or 2.218e8(abgrall203)
 !mp_pinf(2) = 0 ! air
 
-if (pox(1).le.0.0066d0)then
-mp_r(2)=1323.65d0 	! water density
-mp_r(1)=1d0 		! air density
-mp_a(2)=1.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=0.0d0 		! air volume fraction
-u1=681.058d0	  	! m/s
-v1= 0.0d0
-w1=0.0d0
+if (pox(1).le.0.00660)then
+mp_r(2)=1323.650 	! water density
+mp_r(1)=1.0 		! air density
+mp_a(2)=1.00 		! water volume fraction (everything is water here)
+mp_a(1)=0.00 		! air volume fraction
+u1=681.0580	  	! m/s
+v1= 0.00
+w1=0.00
 p1=1.9e9      		! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 e1=(r1*skin1)+ie1
@@ -790,19 +790,19 @@ else
 
 
 
-if (sqrt(((pox(1)-0.012)**2)+((poy(1)-0.012)**2)+((poz(1)-0.012)**2)).le.0.003d0)then
-mp_r(2)=1000.00d0 	! water density
-mp_r(1)=1d0 		! air density
-mp_a(2)=0.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=1.0d0 		! air volume fraction
-u1= 0.0d0	  		! m/s
-v1= 0.0d0
-w1=0.0d0
+if (sqrt(((pox(1)-0.012)**2)+((poy(1)-0.012)**2)+((poz(1)-0.012)**2)).le.0.0030)then
+mp_r(2)=1000.000 	! water density
+mp_r(1)=1.0 		! air density
+mp_a(2)=0.00 		! water volume fraction (everything is water here)
+mp_a(1)=1.00 		! air volume fraction
+u1= 0.00	  		! m/s
+v1= 0.00
+w1=0.00
 p1= 100000    			! pa
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 e1=(r1*skin1)+ie1
@@ -811,19 +811,19 @@ e1=(r1*skin1)+ie1
 
 else
 
-mp_r(2)=1000.0d0 	! water density
-mp_r(1)=1d0 		! air density
-mp_a(2)=1.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=0.0d0 		! air volume fraction
-u1= 0.0d0	  		! m/s
-v1= 0.0d0
-w1=0.0d0
+mp_r(2)=1000.00 	! water density
+mp_r(1)=1.0 		! air density
+mp_a(2)=1.00 		! water volume fraction (everything is water here)
+mp_a(1)=0.00 		! air volume fraction
+u1= 0.00	  		! m/s
+v1= 0.00
+w1=0.00
 p1= 100000    			! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 e1=(r1*skin1)+ie1
@@ -860,21 +860,21 @@ end if
 if (initcond.eq.408)then
 !test case 4.5 of coralic & colonius
 
-if (pox(1).gt.0.10d0)then
+if (pox(1).gt.0.100)then
 mp_r(1)=6.03
-mp_r(2)=1.658d0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=-114.49d0
-v1= 0.0d0
-w1=0.0d0
-p1=159060.0d0
+mp_r(2)=1.6580
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=-114.490
+v1= 0.00
+w1=0.00
+p1=159060.00
 
 
 ! skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 e1=(r1*skin1)+ie1
@@ -886,20 +886,20 @@ else
 
 
 
-if (sqrt(((pox(1)-0.079d0)**2)+((poy(1)-0.035d0)**2)+((poz(1)-0.035d0)**2)).le.(0.0325d0/2.0d0))then
+if (sqrt(((pox(1)-0.0790)**2)+((poy(1)-0.0350)**2)+((poz(1)-0.0350)**2)).le.(0.03250/2.00))then
 mp_r(1)=6.03
-mp_r(2)=1.204d0
-mp_a(1)=1.0d0
-mp_a(2)=0.0d0
-u1=0.0d0
-v1=0.0d0
-w1=0.0d0
+mp_r(2)=1.2040
+mp_a(1)=1.00
+mp_a(2)=0.00
+u1=0.00
+v1=0.00
+w1=0.00
 p1=101325
 
 ! skin1=(oo2)*((u1**2)+(v1**2))
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 e1=(r1*skin1)+ie1
@@ -909,19 +909,19 @@ else
 
 
 mp_r(1)=6.03
-mp_r(2)=1.204d0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=0.0d0
-v1=0.0d0
-w1=0.0d0
+mp_r(2)=1.2040
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=0.00
+v1=0.00
+w1=0.00
 p1=101325
 
 
 ! skin1=(oo2)*((u1**2)+(v1**2))
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 e1=(r1*skin1)+ie1
@@ -972,11 +972,11 @@ p1=pres
 s1=sqrt((gamma*p1)/(r1))
 v1=vvel
 w1=wvel
-if (poy(1).gt.0.0d0)then
+if (poy(1).gt.0.00)then
 u1=uvel
 else
 
-u1=0.0d0
+u1=0.00
 v1=-3.0
 p1=press_outlet
 end if
@@ -992,7 +992,7 @@ end if
 skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 !internal energy
 
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 
 !total energy
 e1=r1*(skin1+ie1)
@@ -1012,12 +1012,12 @@ if (turbulence.eq.1)then
   if (turbulencemodel.eq.2)then
 
    if (zero_turb_init .eq. 0) then
-  veccos(6)=(1.5d0*i_turb_inlet*(ufreestream**2))*r1
+  veccos(6)=(1.50*i_turb_inlet*(ufreestream**2))*r1
    veccos(7)=r1*veccos(6)/(10.0e-5*visc)
   end if
 
   if (zero_turb_init .eq. 1) then
-  veccos(6)=(1.5d0*i_turb_inlet*(ufreestream**2))*r1
+  veccos(6)=(1.50*i_turb_inlet*(ufreestream**2))*r1
    veccos(7)=r1*veccos(6)/(10.0e-5*visc)
   end if
 
@@ -1078,7 +1078,7 @@ v1=vvel
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
 
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 
 !total energy
 e1=r1*(skin1+ie1)
@@ -1114,20 +1114,20 @@ end do
 
 
   ! translational-rotational internal energy
-rg_tr = 0.0d0
+rg_tr = 0.00
     do rg_i = 1, nof_species
       if (rg_i <= 3) then
-        rg_cvs(rg_i) = (5.0d0 / 2.0d0) *  rgs_ru / rg_molm(rg_i)
+        rg_cvs(rg_i) = (5.00 / 2.00) *  rgs_ru / rg_molm(rg_i)
       else
-        rg_cvs(rg_i) = (3.0d0 / 2.0d0) *  rgs_ru / rg_molm(rg_i)
+        rg_cvs(rg_i) = (3.00 / 2.00) *  rgs_ru / rg_molm(rg_i)
       end if
       rg_tr = rg_tr + rg_vf(rg_i) * rg_cvs(rg_i) * rg_ttr0
     end do
 
 ! vibrational energy
-    rg_ev_total= 0.0d0
+    rg_ev_total= 0.00
     do rg_i = 1, 3
-      rg_ev_total = rg_ev_total + rg_vf(rg_i)  * (rgs_ru / rg_molm(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/rg_tve0) - 1.0d0))
+      rg_ev_total = rg_ev_total + rg_vf(rg_i)  * (rgs_ru / rg_molm(rg_i)) * (rg_thetag(rg_i) / (exp(rg_thetag(rg_i)/rg_tve0) - 1.00))
     end do
 
 rg_chem=zero
@@ -1183,9 +1183,9 @@ if (turbulence.eq.1)then
   if (turbulencemodel.eq.2)then
 
    if (zero_turb_init .eq. 0) then
-  veccos(nof_variables+1)=(1.5d0*(i_turb_inlet*ufreestream)**2)*r1
+  veccos(nof_variables+1)=(1.50*(i_turb_inlet*ufreestream)**2)*r1
   veccos(nof_variables+2)=ufreestream/l_turb_inlet
- veccos(nof_variables+2)=(c_mu_inlet**(-0.25d0))*sqrt(veccos(5))&
+ veccos(nof_variables+2)=(c_mu_inlet**(-0.250))*sqrt(veccos(5))&
 			/l_turb_inlet*r1
   end if
 
@@ -1216,20 +1216,20 @@ end if
 
 
 if (initcond.eq.95)then	!taylor green initial profile
-if ((poy(1).ge.0.25d0).and.(poy(1).le.0.75d0))then
+if ((poy(1).ge.0.250).and.(poy(1).le.0.750))then
 
-r1=2.0d0
-u1=-0.5d0
-v1=0.01d0*sin(2.0d0*pi*(pox(1)-0.5))
+r1=2.00
+u1=-0.50
+v1=0.010*sin(2.00*pi*(pox(1)-0.5))
 p1=2.5
 
 
 end if
 
-if ((poy(1).lt.0.25d0).or.(poy(1).gt.0.75d0))then
-r1=1.0d0
-u1=0.5d0
-v1=0.01d0*sin(2.0d0*pi*(pox(1)-0.5))
+if ((poy(1).lt.0.250).or.(poy(1).gt.0.750))then
+r1=1.00
+u1=0.50
+v1=0.010*sin(2.00*pi*(pox(1)-0.5))
 p1=2.5
 end if
 
@@ -1238,7 +1238,7 @@ end if
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1251,16 +1251,16 @@ end if
 
 if (initcond.eq.75)then	!taylor green initial profile
 
-if (((pox(1).ge.(2.0d0)).and.(pox(1).le.(4.0d0))).and.((poy(1).ge.(2.0d0)).and.(poy(1).le.(4.0d0))))then
-r1=1.0d0
+if (((pox(1).ge.(2.00)).and.(pox(1).le.(4.00))).and.((poy(1).ge.(2.00)).and.(poy(1).le.(4.00))))then
+r1=1.00
 v1=0.0
 u1=0.0
-p1=10.0d0
+p1=10.00
 else
-r1=0.2d0
+r1=0.20
 v1=0.0
 u1=0.0
-p1=1.0d0
+p1=1.00
 
 
 end if
@@ -1269,7 +1269,7 @@ end if
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1284,19 +1284,19 @@ end if
 
 if (initcond.eq.25)then	!taylor green initial profile
 
-if (sqrt(((pox(1)-1.0d0)**2)+((poy(1)-1.0d0)**2)).le.0.4d0)then
+if (sqrt(((pox(1)-1.00)**2)+((poy(1)-1.00)**2)).le.0.40)then
 
-r1=1.0d0
+r1=1.00
 v1=0.0
 u1=0.0
-p1=1.0d0
+p1=1.00
 
 
 else
-r1=0.125d0
+r1=0.1250
 v1=0.0
 u1=0.0
-p1=0.1d0
+p1=0.10
 
 
 
@@ -1306,7 +1306,7 @@ end if
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1318,19 +1318,19 @@ end if
 
 if (initcond.eq.31)then	!taylor green initial profile
 
-if (sqrt(((pox(1)-1.0d0)**2)+((poy(1)-1.0d0)**2)).le.0.4d0)then
+if (sqrt(((pox(1)-1.00)**2)+((poy(1)-1.00)**2)).le.0.40)then
 
-r1=1.0d0
+r1=1.00
 v1=0.0
 u1=0.0
-p1=1.0d0
+p1=1.00
 
 
 else
-r1=0.125d0
+r1=0.1250
 v1=0.0
 u1=0.0
-p1=0.1d0
+p1=0.10
 
 
 
@@ -1340,7 +1340,7 @@ end if
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1360,16 +1360,16 @@ IF (initcond.eq.65)THEN	!vortex evolution
 
 
 
-! r1=1.0D0
+! r1=1.0
 ! u1=uvel
 ! v1=vvel
-! p1=1.0d0
+! p1=1.00
 ! !rgg=((pox(1)**2)+(poy(1)**2))
-! rgg=(((pox(1)-5.0d0)**2)+((poy(1)-5.0d0)**2))
-! u1=u1+(((5.0d0/(2.0d0*pi)))*(exp(((1.0d0-rgg)/(2.0d0))))*(5.0d0-poy(1)))
-! v1=v1+(((5.0d0/(2.0d0*pi)))*(exp(((1.0d0-rgg)/(2.0d0))))*(pox(1)-5.0d0))
-! tt1=1.0d0-(((gamma-1)*(25.0d0/(8.0d0*pi**2*gamma)))*exp(1.0d0-rgg))
-! r1=tt1**(1.0d0/(gamma-1.0d0))
+! rgg=(((pox(1)-5.00)**2)+((poy(1)-5.00)**2))
+! u1=u1+(((5.00/(2.00*pi)))*(exp(((1.00-rgg)/(2.00))))*(5.00-poy(1)))
+! v1=v1+(((5.00/(2.00*pi)))*(exp(((1.00-rgg)/(2.00))))*(pox(1)-5.00))
+! tt1=1.00-(((gamma-1)*(25.00/(8.00*pi**2*gamma)))*exp(1.00-rgg))
+! r1=tt1**(1.00/(gamma-1.00))
 ! P1=R1*tt1
 !
 !
@@ -1377,7 +1377,7 @@ IF (initcond.eq.65)THEN	!vortex evolution
 ! !KINETIC ENERGY FIRST!
 ! SKIN1=(OO2)*((U1**2)+(V1**2))
 ! !INTERNAL ENERGY
-! IE1=((P1)/((GAMMA-1.0D0)*R1))
+! IE1=((P1)/((GAMMA-1.0)*R1))
 ! !TOTAL ENERGY
 ! E1=(P1/(GAMMA-1))+(R1*SKIN1)
 ! !VECTOR OF CONSERVED VARIABLES NOW
@@ -1386,14 +1386,14 @@ IF (initcond.eq.65)THEN	!vortex evolution
 ! VECCOS(3)=R1*V1
 ! VECCOS(4)=E1
 
-khi_slope=15.0d0
-khi_b=tanh(khi_slope*(poy(1)-1)+7.5d0)-tanh(khi_slope*(poy(1)-1)-7.5d0)
+khi_slope=15.00
+khi_b=tanh(khi_slope*(poy(1)-1)+7.50)-tanh(khi_slope*(poy(1)-1)-7.50)
 
 
-R1=0.5d0+0.75d0*khi_b
-u1=0.5*(khi_b-1.d0)
-v1=0.1*sin(2.0d0*pi*(pox(1)-1.0d0))
-p1=1.0d0
+R1=0.50+0.750*khi_b
+u1=0.5*(khi_b-1.0)
+v1=0.1*sin(2.00*pi*(pox(1)-1.00))
+p1=1.00
 
 
 
@@ -1401,7 +1401,7 @@ p1=1.0d0
 !KINETIC ENERGY FIRST!
 SKIN1=(OO2)*((U1**2)+(V1**2))
 !INTERNAL ENERGY
-IE1=((P1)/((GAMMA-1.0D0)*R1))
+IE1=((P1)/((GAMMA-1.0)*R1))
 !TOTAL ENERGY
 E1=(P1/(GAMMA-1))+(R1*SKIN1)
 !VECTOR OF CONSERVED VARIABLES NOW
@@ -1421,22 +1421,22 @@ END IF
 
 
 if (initcond.eq.100)then	!taylor green initial profile
-acp=0.075d0
-bcp=0.175d0
-mscp=1.5d0
-mvcp=0.7d0
+acp=0.0750
+bcp=0.1750
+mscp=1.50
+mvcp=0.70
 vmcp=sqrt(gamma)*mvcp
 
-rcp=sqrt((pox(1)-0.25d0)**2+(poy(1)-0.5d0)**2)
+rcp=sqrt((pox(1)-0.250)**2+(poy(1)-0.50)**2)
 
 if (rcp.le.acp)then
 vfr=vmcp*rcp/acp
-tcp=((rcp-0.175)*(gamma-1.0d0)*(vfr**2)/(rcp*gamma))+1.0d0
-p1=tcp**(gamma/(gamma-1.0d0))
-r1=tcp**(1.0d0/(gamma-1.0d0))
-theta1=atan((poy(1)-0.5d0)/(pox(1)-0.25d0))
+tcp=((rcp-0.175)*(gamma-1.00)*(vfr**2)/(rcp*gamma))+1.00
+p1=tcp**(gamma/(gamma-1.00))
+r1=tcp**(1.00/(gamma-1.00))
+theta1=atan((poy(1)-0.50)/(pox(1)-0.250))
 v1=vfr*cos(theta1)
-u1=1.5d0*sqrt(gamma)-vfr*sin(theta1)
+u1=1.50*sqrt(gamma)-vfr*sin(theta1)
 
 
 
@@ -1446,12 +1446,12 @@ else
 vfr=vmcp*(acp/(acp**2-bcp**2))*(rcp-((bcp**2)/rcp))
 
 vfr=vmcp*rcp/acp
-tcp=((rcp-0.175)*(gamma-1.0d0)*(vfr**2)/(rcp*gamma))+1.0d0
-p1=tcp**(gamma/(gamma-1.0d0))
-r1=tcp**(1.0d0/(gamma-1.0d0))
-theta1=atan((poy(1)-0.5d0)/(pox(1)-0.25d0))
+tcp=((rcp-0.175)*(gamma-1.00)*(vfr**2)/(rcp*gamma))+1.00
+p1=tcp**(gamma/(gamma-1.00))
+r1=tcp**(1.00/(gamma-1.00))
+theta1=atan((poy(1)-0.50)/(pox(1)-0.250))
 v1=vfr*cos(theta1)
-u1=1.5d0*sqrt(gamma)-vfr*sin(theta1)
+u1=1.50*sqrt(gamma)-vfr*sin(theta1)
 
 
 
@@ -1461,19 +1461,19 @@ u1=1.5d0*sqrt(gamma)-vfr*sin(theta1)
 
 
 else
-vfr=0.0d0
-r1=1.0d0
-u1=1.5d0*sqrt(gamma)
+vfr=0.00
+r1=1.00
+u1=1.50*sqrt(gamma)
 v1=0.0
-p1=1.0d0
+p1=1.00
 end if
 end if
 
 if (pox(1).gt.0.5)then
-r1=(9.0d0*gamma+9.0d0)/(9.0d0*gamma-1.0d0)
-u1=sqrt(gamma)*((9.0d0*gamma-1.0d0)/(6.0d0*(gamma+1.0d0)))
-p1=(7.0d0*gamma+2.0d0)/(2.0d0*gamma+2.0d0)
-v1=0.0d0
+r1=(9.00*gamma+9.00)/(9.00*gamma-1.00)
+u1=sqrt(gamma)*((9.00*gamma-1.00)/(6.00*(gamma+1.00)))
+p1=(7.00*gamma+2.00)/(2.00*gamma+2.00)
+v1=0.00
 end if
 
 
@@ -1481,7 +1481,7 @@ end if
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1493,14 +1493,14 @@ end if
 
 
 if (initcond.eq.101)then	!shock density interaction
-if (pox(1).lt.-4.0d0)then
-r1=3.8571d0
-u1=2.6294d0
+if (pox(1).lt.-4.00)then
+r1=3.85710
+u1=2.62940
 v1=zero
 
-p1=10.333d0
+p1=10.3330
 else
-r1=(1.0d0+0.2d0*sin(5.0d0*pox(1)))
+r1=(1.00+0.20*sin(5.00*pox(1)))
 u1=zero
 v1=zero
 
@@ -1510,7 +1510,7 @@ end if
 !kinetic energy first!
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1522,20 +1522,20 @@ end if
 
 
 if (initcond.eq.102)then	!shock density interaction
-if (pox(1).lt.((1.0d0/6.0d0)+(poy(1)/(sqrt(3.0d0)))))then
-r1=8.0d0
-u1=8.25*cos(pi/6.0d0)
-v1=-8.25*sin(pi/6.0d0)
+if (pox(1).lt.((1.00/6.00)+(poy(1)/(sqrt(3.00)))))then
+r1=8.00
+u1=8.25*cos(pi/6.00)
+v1=-8.25*sin(pi/6.00)
 p1=116.5
 else
-r1=1.4d0
+r1=1.40
 u1=zero
 v1=zero
-p1=1.0d0
+p1=1.00
 end if
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1551,20 +1551,20 @@ veccos(4)=e1
 end if
 
 if (initcond.eq.104)then	!dmr_domain1
-if (pox(1).lt.(1.0d0/6.0d0))then
-r1=8.0d0
-u1=8.25d0
-v1=0.0d0
+if (pox(1).lt.(1.00/6.00))then
+r1=8.00
+u1=8.250
+v1=0.00
 p1=116.5
 else
-r1=1.4d0
+r1=1.40
 u1=zero
 v1=zero
-p1=1.0d0
+p1=1.00
 end if
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1614,7 +1614,7 @@ end if
 end if
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1631,19 +1631,19 @@ end if
 
 if (initcond.eq.3)then	!shock density interaction
 if (pox(1).ge.zero)then
-r1=1.1175d0
-u1=0.0d0
-v1=0.0d0
-p1=95000.0d0
+r1=1.11750
+u1=0.00
+v1=0.00
+p1=95000.00
 else
 r1=1.7522
 u1=166.34345
-v1=0.0d0
-p1=180219.75d0
+v1=0.00
+p1=180219.750
 end if
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1692,8 +1692,8 @@ r1 = pr_densityfree * (pr_temperaturevar/pr_temperaturefree)**(1.0/(pr_gammafree
 
  p1 = r1*pr_rgasfree*pr_temperaturevar
 !
-! w1=0.0d0
-! p1=100.0d0+((r1/16.0d0)*((2.0d0*(cos(2.0d0*pox(1))))+(cos(2.0d0*poy(1)))-2.0d0))
+! w1=0.00
+! p1=100.00+((r1/16.00)*((2.00*(cos(2.00*pox(1))))+(cos(2.00*poy(1)))-2.00))
 ! !uu=(sqrt((gamma*p1)/(r1)))*0.28
 ! !p1=1.0
 ! u1=sin(pox(1))*cos(poy(1))
@@ -1701,7 +1701,7 @@ r1 = pr_densityfree * (pr_temperaturevar/pr_temperaturefree)**(1.0/(pr_gammafree
 ! !kinetic energy first!
  skin1=(oo2)*((u1**2)+(v1**2))
 ! !internal energy
- ie1=((p1)/((pr_gammafree-1.0d0)*r1))
+ ie1=((p1)/((pr_gammafree-1.00)*r1))
 ! !total energy
  e1=(p1/(pr_gammafree-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1744,8 +1744,8 @@ r1 = pr_densityfree * (pr_temperaturevar/pr_temperaturefree)**(1.0/(pr_gammafree
 
  p1 = r1*pr_rgasfree*pr_temperaturevar
 !
-! w1=0.0d0
-! p1=100.0d0+((r1/16.0d0)*((2.0d0*(cos(2.0d0*pox(1))))+(cos(2.0d0*poy(1)))-2.0d0))
+! w1=0.00
+! p1=100.00+((r1/16.00)*((2.00*(cos(2.00*pox(1))))+(cos(2.00*poy(1)))-2.00))
 ! !uu=(sqrt((gamma*p1)/(r1)))*0.28
 ! !p1=1.0
 ! u1=sin(pox(1))*cos(poy(1))
@@ -1753,7 +1753,7 @@ r1 = pr_densityfree * (pr_temperaturevar/pr_temperaturefree)**(1.0/(pr_gammafree
 ! !kinetic energy first!
  skin1=(oo2)*((u1**2)+(v1**2))
 ! !internal energy
- ie1=((p1)/((pr_gammafree-1.0d0)*r1))
+ ie1=((p1)/((pr_gammafree-1.00)*r1))
 ! !total energy
  e1=(p1/(pr_gammafree-1))+(r1*skin1)
 !vector of conserved variables now
@@ -1774,23 +1774,23 @@ end if
 
 if (initcond.eq.401)then
 
-if (sqrt(((pox(1)-1.0d0)**2)+((poy(1)-1.0d0)**2)).le.0.4d0)then
-mp_r(1)=1.0d0
+if (sqrt(((pox(1)-1.00)**2)+((poy(1)-1.00)**2)).le.0.40)then
+mp_r(1)=1.00
 mp_r(2)=0.125
-mp_a(1)=1.0d0
-mp_a(2)=0.0d0
+mp_a(1)=1.00
+mp_a(2)=0.00
 u1=zero
 v1=zero
-p1=1.0d0
+p1=1.00
 
 else
-mp_r(1)=1.0d0
+mp_r(1)=1.00
 mp_r(2)=0.125
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
+mp_a(1)=0.00
+mp_a(2)=1.00
 u1=zero
 v1=zero
-p1=0.1d0
+p1=0.10
 
 end if
 
@@ -1798,8 +1798,8 @@ end if
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -1825,22 +1825,22 @@ end if
 if (initcond.eq.402)then
 
 if ((pox(1).ge.0.25).and.(pox(1).lt.0.75))then
-mp_r(1)=10.0d0
-mp_r(2)=1.0d0
-mp_a(1)=1.0d0
-mp_a(2)=0.0d0
-u1=0.5d0
-v1=0.0d0
-p1=1.0d0/1.4d0
+mp_r(1)=10.00
+mp_r(2)=1.00
+mp_a(1)=1.00
+mp_a(2)=0.00
+u1=0.50
+v1=0.00
+p1=1.00/1.40
 
 else
-mp_r(1)=10.0d0
-mp_r(2)=1.0d0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=0.5d0
-v1=0.0d0
-p1=1.0d0/1.4d0
+mp_r(1)=10.00
+mp_r(2)=1.00
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=0.50
+v1=0.00
+p1=1.00/1.40
 
 end if
 
@@ -1848,8 +1848,8 @@ end if
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -1877,13 +1877,13 @@ if (initcond.eq.403)then
 !test case 4.1 of wang, deiterding, pan and ren
 
 
-mp_r(1)=7.0d0
-mp_r(2)=1.0d0
-mp_a(1)=0.5d0+0.25d0*(sin(pi*((pox(1)-1.0d0)+0.5d0)))
-mp_a(2)=1.0d0-mp_a(1)
-u1=1.0d0
-v1=0.0d0
-p1=1.0d0/1.4d0
+mp_r(1)=7.00
+mp_r(2)=1.00
+mp_a(1)=0.50+0.250*(sin(pi*((pox(1)-1.00)+0.50)))
+mp_a(2)=1.00-mp_a(1)
+u1=1.00
+v1=0.00
+p1=1.00/1.40
 
 
 
@@ -1891,8 +1891,8 @@ p1=1.0d0/1.4d0
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -1931,16 +1931,16 @@ if (sqrt(((pox(1)-200.0e-6)**2)+((poy(1)-150.0e-6)**2)).le.50.0e-6)then
 
 mp_r(1)=1.225
 mp_r(2)=1000.0
-mp_a(1)=1.0d0
-mp_a(2)=0.0d0
+mp_a(1)=1.00
+mp_a(2)=0.00
 u1=0.0
-v1=0.0d0
-p1=100000.0d0
+v1=0.00
+p1=100000.00
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -1956,10 +1956,10 @@ if (pox(1).le.100.0e-6)then
 p1=35e6
 mp_r(1)=1.225
 mp_r(2)=1000.0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
+mp_a(1)=0.00
+mp_a(2)=1.00
 u1=1647
-v1=0.0d0
+v1=0.00
 
 
 
@@ -1970,18 +1970,18 @@ else
 
 mp_r(1)=1.225
 mp_r(2)=1000.0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
+mp_a(1)=0.00
+mp_a(2)=1.00
 u1=0.0
-v1=0.0d0
-p1=100000.0d0
+v1=0.00
+p1=100000.00
 
 
 end if
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2016,25 +2016,25 @@ end if
 if (initcond.eq.405)then
 !test case 4.5 of coralic & colonius
 
-drad=sqrt(((pox(1)+0.05d0)**2)+((poy(1)-0.05d0)**2))
+drad=sqrt(((pox(1)+0.050)**2)+((poy(1)-0.050)**2))
 
-theta405 = atan2(poy(1)-0.05d0, pox(1)+0.05d0)
+theta405 = atan2(poy(1)-0.050, pox(1)+0.050)
 
 
 
-if (pox(1).lt.-0.1d0)then
+if (pox(1).lt.-0.10)then
 mp_r(1)=0.166315789
 mp_r(2)=1.658
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=114.49d0
-v1= 0.0d0
-p1=159060.0d0
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=114.490
+v1= 0.00
+p1=159060.00
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2044,20 +2044,20 @@ else
 
 !first within bubble region
 
-if (drad .le. (0.025d0 + A405*cos(dble(nof_perturbations405)*theta405 + 0.0d0))) then
+if (drad .le. (0.0250 + A405*cos(real(nof_perturbations405)*theta405 + 0.00))) then
 
 
-mp_r(1)=0.166315789d0
-mp_r(2)=1.204d0
-mp_a(1)=0.95d0
-mp_a(2)=0.05d0
-u1=0.0d0
-v1=0.0d0
+mp_r(1)=0.1663157890
+mp_r(2)=1.2040
+mp_a(1)=0.950
+mp_a(2)=0.050
+u1=0.00
+v1=0.00
 p1=101325
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2068,16 +2068,16 @@ else
 
 mp_r(1)=0.166315789
 mp_r(2)=1.204
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=0.0d0
-v1=0.0d0
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=0.00
+v1=0.00
 p1=101325
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2122,38 +2122,38 @@ if (initcond.eq.422)then
 
 if (pox(1).le.0.05)then
 
-mp_r(1)=1000.0d0 	! water density
-mp_r(2)=3.85d0 		! gas density
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=567.3d0	  	! m/s
-v1= 0.0d0
-w1=0.0d0
-p1=664000.0d0    		! pa
+mp_r(1)=1000.00 	! water density
+mp_r(2)=3.850 		! gas density
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=567.30	  	! m/s
+v1= 0.00
+w1=0.00
+p1=664000.00    		! pa
 
 else
-if ((sqrt(((pox(1)-0.0576)**2)+((poy(1)-0.0576)**2)).le.0.0048d0))then
-! if ((sqrt(((pox(1)-0.0576)**2)+((poy(1)-0.0576)**2)+((poz(1)-0.0576)**2))).le.0.0048d0)then
+if ((sqrt(((pox(1)-0.0576)**2)+((poy(1)-0.0576)**2)).le.0.00480))then
+! if ((sqrt(((pox(1)-0.0576)**2)+((poy(1)-0.0576)**2)+((poz(1)-0.0576)**2))).le.0.00480)then
 
-mp_r(1)=1000.0d0 	! water density
+mp_r(1)=1000.00 	! water density
 mp_r(2)=1.2 		! gas density
-mp_a(1)=1.0d0
-mp_a(2)=0.0d0
-u1=0.0d0	  	! m/s
-v1= 0.0d0
-w1=0.0d0
+mp_a(1)=1.00
+mp_a(2)=0.00
+u1=0.00	  	! m/s
+v1= 0.00
+w1=0.00
 p1=101000   		! pa
 
 
 else
 
-mp_r(1)=1000.0d0 	! water density
+mp_r(1)=1000.00 	! water density
 mp_r(2)=1.20 		! gas density
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=0.0d0	  	! m/s
-v1= 0.0d0
-w1=0.0d0
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=0.00	  	! m/s
+v1= 0.00
+w1=0.00
 p1=101000   		! pa
 
 
@@ -2165,8 +2165,8 @@ end if
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2196,19 +2196,19 @@ end if
 if (initcond.eq.406)then
 !test case 4.5 of coralic & colonius
 
-if (pox(1).gt.0.1d0)then
-mp_r(1)=0.166315789d0
-mp_r(2)=1.658d0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=-114.49d0
-v1= 0.0d0
-p1=159060.0d0
+if (pox(1).gt.0.10)then
+mp_r(1)=0.1663157890
+mp_r(2)=1.6580
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=-114.490
+v1= 0.00
+p1=159060.00
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2219,19 +2219,19 @@ else
 !first within bubble region
 u_cond1=0;u_cond2=0;u_cond3=0; u_cond4=0
 
- if (((pox(1).ge.0.01d0).and.(pox(1).le.0.02)).or.((pox(1).ge.0.03d0).and.(pox(1).le.0.04)))then
+ if (((pox(1).ge.0.010).and.(pox(1).le.0.02)).or.((pox(1).ge.0.030).and.(pox(1).le.0.04)))then
     u_cond1=1
  end if
- if ((poy(1).ge.0.05d0).and.(poy(1).le.0.075))then
+ if ((poy(1).ge.0.050).and.(poy(1).le.0.075))then
     u_cond2=1
  end if
 
 
- if ((poy(1).le.0.05d0).and.(poy(1).gt.0.02))then
+ if ((poy(1).le.0.050).and.(poy(1).gt.0.02))then
     u_cond3=1
  end if
  if (u_cond3.eq.1)then
- if ((sqrt(((pox(1)-0.025d0)**2)+((poy(1)-0.05d0)**2)).le.0.015d0).and.(sqrt(((pox(1)-0.025d0)**2)+((poy(1)-0.05d0)**2)).ge.0.005d0)) then
+ if ((sqrt(((pox(1)-0.0250)**2)+((poy(1)-0.050)**2)).le.0.0150).and.(sqrt(((pox(1)-0.0250)**2)+((poy(1)-0.050)**2)).ge.0.0050)) then
     u_cond4=1
  end if
  end if
@@ -2239,17 +2239,17 @@ u_cond1=0;u_cond2=0;u_cond3=0; u_cond4=0
 
  if (((u_cond1.eq.1).and.(u_cond2.eq.1)).or.(u_cond4.eq.1))then
 
-mp_r(1)=0.166315789d0
-mp_r(2)=1.204d0
-mp_a(1)=0.95d0
-mp_a(2)=0.05d0
-u1=0.0d0
-v1=0.0d0
+mp_r(1)=0.1663157890
+mp_r(2)=1.2040
+mp_a(1)=0.950
+mp_a(2)=0.050
+u1=0.00
+v1=0.00
 p1=101325
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2258,18 +2258,18 @@ else
 
 
 
-mp_r(1)=0.166315789d0
-mp_r(2)=1.204d0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=0.0d0
-v1=0.0d0
+mp_r(1)=0.1663157890
+mp_r(2)=1.2040
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=0.00
+v1=0.00
 p1=101325
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2315,21 +2315,21 @@ end if
 if (initcond.eq.408)then
 !test case 4.5 of coralic & colonius
 
-if (pox(1).gt.0.10d0)then
+if (pox(1).gt.0.100)then
 mp_r(1)=6.03
-mp_r(2)=1.658d0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=-114.49d0
-v1= 0.0d0
-w1=0.0d0
-p1=159060.0d0
+mp_r(2)=1.6580
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=-114.490
+v1= 0.00
+w1=0.00
+p1=159060.00
 
 
 ! skin1=(oo2)*((u1**2)+(v1**2)+(w1**2))
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2341,20 +2341,20 @@ else
 
 
 
-if (sqrt(((pox(1)-0.079d0)**2)+((poy(1)-0.035d0)**2)).le.(0.0325d0/2.0d0))then
+if (sqrt(((pox(1)-0.0790)**2)+((poy(1)-0.0350)**2)).le.(0.03250/2.00))then
 mp_r(1)=6.03
-mp_r(2)=1.204d0
-mp_a(1)=1.0d0
-mp_a(2)=0.0d0
-u1=0.0d0
-v1=0.0d0
-w1=0.0d0
-p1=101325.0d0
+mp_r(2)=1.2040
+mp_a(1)=1.00
+mp_a(2)=0.00
+u1=0.00
+v1=0.00
+w1=0.00
+p1=101325.00
 
 ! skin1=(oo2)*((u1**2)+(v1**2))
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2364,18 +2364,18 @@ else
 
 
 mp_r(1)=6.03
-mp_r(2)=1.204d0
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=0.0d0
-v1=0.0d0
-p1=101325.0d0
+mp_r(2)=1.2040
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=0.00
+v1=0.00
+p1=101325.00
 
 
 ! skin1=(oo2)*((u1**2)+(v1**2))
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2417,19 +2417,19 @@ if (initcond.eq.410)then
 !mp_pinf(1) = 3.43e8 !water from coralic and colonius or 2.218e8(abgrall203)
 !mp_pinf(2) = 0 ! air
 
-if (pox(1).le.-0.007d0)then
-mp_r(1)=1225.6d0 ! water density
-mp_r(2)=1.2d0 ! air density
-mp_a(1)=1.0d0 ! water volume fraction (everything is water here)
-mp_a(2)=0.0d0 ! air volume fraction
-u1=542.76d0	  ! m/s
-v1= 0.0d0
+if (pox(1).le.-0.0070)then
+mp_r(1)=1225.60 ! water density
+mp_r(2)=1.20 ! air density
+mp_a(1)=1.00 ! water volume fraction (everything is water here)
+mp_a(2)=0.00 ! air volume fraction
+u1=542.760	  ! m/s
+v1= 0.00
 p1=1.6e9      ! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2441,18 +2441,18 @@ else
 
 
 
-if (sqrt(((pox(1))**2)+((poy(1))**2)).le.0.003d0)then
-mp_r(1)=1225.6d0 ! water density
-mp_r(2)=1.2d0 ! air density
-mp_a(1)=0.0d0 ! water volume fraction (everything is water here)
-mp_a(2)=1.0d0 ! air volume fraction
-u1= 0.0d0	  ! m/s
-v1= 0.0d0
+if (sqrt(((pox(1))**2)+((poy(1))**2)).le.0.0030)then
+mp_r(1)=1225.60 ! water density
+mp_r(2)=1.20 ! air density
+mp_a(1)=0.00 ! water volume fraction (everything is water here)
+mp_a(2)=1.00 ! air volume fraction
+u1= 0.00	  ! m/s
+v1= 0.00
 p1= 101325    ! pa
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2461,18 +2461,18 @@ else
 
 
 
-mp_r(1)=1000.0d0 ! water density
-mp_r(2)=1.2d0 ! air density
-mp_a(1)=1.0d0 ! water volume fraction (everything is water here)
-mp_a(2)=0.0d0 ! air volume fraction
-u1= 0.0d0     ! m/s
-v1= 0.0d0
+mp_r(1)=1000.00 ! water density
+mp_r(2)=1.20 ! air density
+mp_a(1)=1.00 ! water volume fraction (everything is water here)
+mp_a(2)=0.00 ! air volume fraction
+u1= 0.00     ! m/s
+v1= 0.00
 p1=101325     ! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2503,19 +2503,19 @@ if (initcond.eq.411)then
 !mp_pinf(1) = 6e8 !water from coralic and colonius or 2.218e8(abgrall203)
 !mp_pinf(2) = 0 ! air
 
-if (pox(1).le.0.0066d0)then
-mp_r(2)=1323.65d0 	! water density
-mp_r(1)=1d0 		! air density
-mp_a(2)=1.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=0.0d0 		! air volume fraction
-u1=681.058d0	  	! m/s
-v1= 0.0d0
+if (pox(1).le.0.00660)then
+mp_r(2)=1323.650 	! water density
+mp_r(1)=1.0 		! air density
+mp_a(2)=1.00 		! water volume fraction (everything is water here)
+mp_a(1)=0.00 		! air volume fraction
+u1=681.0580	  	! m/s
+v1= 0.00
 p1=1.9e9      		! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2527,18 +2527,18 @@ else
 
 
 
-if (sqrt(((pox(1)-0.012)**2)+((poy(1)-0.012)**2)).le.0.003d0)then
-mp_r(2)=1000.00d0 	! water density
-mp_r(1)=1d0 		! air density
-mp_a(2)=0.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=1.0d0 		! air volume fraction
-u1= 0.0d0	  		! m/s
-v1= 0.0d0
+if (sqrt(((pox(1)-0.012)**2)+((poy(1)-0.012)**2)).le.0.0030)then
+mp_r(2)=1000.000 	! water density
+mp_r(1)=1.0 		! air density
+mp_a(2)=0.00 		! water volume fraction (everything is water here)
+mp_a(1)=1.00 		! air volume fraction
+u1= 0.00	  		! m/s
+v1= 0.00
 p1= 100000    			! pa
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2547,18 +2547,18 @@ e1=(r1*skin1)+ie1
 
 else
 
-mp_r(2)=1000.0d0 	! water density
-mp_r(1)=1d0 		! air density
-mp_a(2)=1.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=0.0d0 		! air volume fraction
-u1= 0.0d0	  		! m/s
-v1= 0.0d0
+mp_r(2)=1000.00 	! water density
+mp_r(1)=1.0 		! air density
+mp_a(2)=1.00 		! water volume fraction (everything is water here)
+mp_a(1)=0.00 		! air volume fraction
+u1= 0.00	  		! m/s
+v1= 0.00
 p1= 100000    			! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2590,16 +2590,16 @@ if (initcond.eq.412)then
 if (pox(1).le.0.00)then
 mp_r(1)=1.241 	! air density
 mp_r(2)=0.991 		! water density
-mp_a(1)=1.0d0
-mp_a(2)=0.0d0
+mp_a(1)=1.00
+mp_a(2)=0.00
 u1=0.0	  	! m/s
-v1= 0.0d0
+v1= 0.00
 p1=2.753     		! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2609,16 +2609,16 @@ else
 
 mp_r(1)=1.241 	! air density
 mp_r(2)=0.991 		! water density
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
+mp_a(1)=0.00
+mp_a(2)=1.00
 u1=0.0	  	! m/s
-v1= 0.0d0
+v1= 0.00
 p1=3.059*10e-4     		! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2640,18 +2640,18 @@ if (initcond.eq.420)then
 
 mp_r(1)=7.0 	! air density
 mp_r(2)=1.0 		! water density
-mp_a(1)=0.5d0+0.25*sin(pi*(((pox(1)-0.5d0)*2.0d0)))
-mp_a(2)=1.0d0-mp_a(1)
-u1=1.0d0	  	! m/s
-v1= 0.0d0
-p1=1.0d0/1.4d0    		! pa
+mp_a(1)=0.50+0.25*sin(pi*(((pox(1)-0.50)*2.00)))
+mp_a(2)=1.00-mp_a(1)
+u1=1.00	  	! m/s
+v1= 0.00
+p1=1.00/1.40    		! pa
 
 
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2673,22 +2673,22 @@ end if
 if (initcond.eq.421)then
 
 
-if (pox(1).lt.0.0d0)then
+if (pox(1).lt.0.00)then
 
 mp_r(1)=1.241 	! air density
 mp_r(2)=0.991 		! water density
-mp_a(1)=1.0d0
-mp_a(2)=0.0d0
-u1=0.0d0	  	! m/s
-v1= 0.0d0
-p1=2.753d0    		! pa
+mp_a(1)=1.00
+mp_a(2)=0.00
+u1=0.00	  	! m/s
+v1= 0.00
+p1=2.7530    		! pa
 else
 mp_r(1)=1.241 	! air density
 mp_r(2)=0.991 		! water density
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=0.0d0	  	! m/s
-v1= 0.0d0
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=0.00	  	! m/s
+v1= 0.00
 p1=3.059*(10.0e-4)    		! pa
 
 
@@ -2697,10 +2697,10 @@ end if
 
 skin1=(oo2)*((u1**2)+(v1**2))
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-! mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)*mp_r(1)))
-! mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)*mp_r(2)))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+! mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)*mp_r(1)))
+! mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)*mp_r(2)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
@@ -2722,22 +2722,22 @@ end if
 if (initcond.eq.430)then
 
 
-if (poy(1).lt.0.386d0)then
+if (poy(1).lt.0.3860)then
 
 mp_r(1)=3.483 	! air density
 mp_r(2)=867 		! water density
-mp_a(1)=0.0d0
-mp_a(2)=1.0d0
-u1=0.0d0	  	! m/s
+mp_a(1)=0.00
+mp_a(2)=1.00
+u1=0.00	  	! m/s
 v1= 2
 p1=300000    		! pa
 else
 mp_r(1)=3.483 	! air density
 mp_r(2)=867		! water density
-mp_a(1)=1.0d0
-mp_a(2)=0.0d0
-u1=0.0d0	  	! m/s
-v1= 0.0d0
+mp_a(1)=1.00
+mp_a(2)=0.00
+u1=0.00	  	! m/s
+v1= 0.00
 p1=300000    		! pa
 
 
@@ -2746,10 +2746,10 @@ end if
 
 skin1=(oo2)*((u1**2)+(v1**2))
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-! mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)*mp_r(1)))
-! mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)*mp_r(2)))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+! mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)*mp_r(1)))
+! mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)*mp_r(2)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
@@ -2771,13 +2771,13 @@ end if
 
 if (initcond.eq.133)then
 
-if (pox(1).lt.0.0d0)then
+if (pox(1).lt.0.00)then
 
 
 	p1=195557.25
-	r1=p1/(350.5d0*287.058d0)
+	r1=p1/(350.50*287.0580)
 	u1=168.62
-	v1=0.0d0
+	v1=0.00
 
 	rhc1=r1
 	rhc2=u1
@@ -2789,17 +2789,17 @@ if (pox(1).lt.0.0d0)then
 	else
 
 
-	u1=0.0d0
-	v1=0.0d0
+	u1=0.00
+	v1=0.00
 	p1=101325
-	r1=p1/(288.15d0*287.058d0)
+	r1=p1/(288.150*287.0580)
 
 	end if
 
 
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -2820,13 +2820,13 @@ end if
 
 if (initcond.eq.266)then
 
-if (poy(1).gt.1.0d0)then
+if (poy(1).gt.1.00)then
 
 
 	p1=20000
 	r1=0.41
 	u1=850
-	v1=0.0d0
+	v1=0.00
 
 
 
@@ -2835,8 +2835,8 @@ if (poy(1).gt.1.0d0)then
 	else
 
 
-	u1=0.0d0
-	v1=0.0d0
+	u1=0.00
+	v1=0.00
 	p1=100000
 	r1=1.225
 
@@ -2845,7 +2845,7 @@ if (poy(1).gt.1.0d0)then
 
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -2869,18 +2869,18 @@ if (initcond.eq.444)then
 
 
 if (poy(1).le.0.00025)then   !post shock concidions
-mp_r(2)=1323.65d0 	! water density
-mp_r(1)=1d0 		! air density
-mp_a(2)=1.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=0.0d0 		! air volume fraction
+mp_r(2)=1323.650 	! water density
+mp_r(1)=1.0 		! air density
+mp_a(2)=1.00 		! water volume fraction (everything is water here)
+mp_a(1)=0.00 		! air volume fraction
 u1=0.0	  	          ! m/s
-v1=681.058d0
+v1=681.0580
 p1=1.9e9      		! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2889,18 +2889,18 @@ e1=(r1*skin1)+ie1
 else
 
 
-mp_r(2)=1000.00d0 	! water density
-mp_r(1)=1d0 		! air density
-mp_a(2)=1.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=0.0d0 		! air volume fraction
-u1= 0.0d0	  		! m/s
-v1= 0.0d0
+mp_r(2)=1000.000 	! water density
+mp_r(1)=1.0 		! air density
+mp_a(2)=1.00 		! water volume fraction (everything is water here)
+mp_a(1)=0.00 		! air volume fraction
+u1= 0.00	  		! m/s
+v1= 0.00
 p1= 100000    			! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2918,17 +2918,17 @@ e1=(r1*skin1)+ie1
 do ix=1,nof_bubbles
 
 if (sqrt(((pox(1)-bubble_centre(ix,1))**2)+((poy(1)-bubble_centre(ix,2))**2)).le.bubble_radius(ix))then
-mp_r(2)=1000.00d0 	! water density
-mp_r(1)=1d0 		! air density
-mp_a(2)=0.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=1.0d0 		! air volume fraction
-u1= 0.0d0	  		! m/s
-v1= 0.0d0
+mp_r(2)=1000.000 	! water density
+mp_r(1)=1.0 		! air density
+mp_a(2)=0.00 		! water volume fraction (everything is water here)
+mp_a(1)=1.00 		! air volume fraction
+u1= 0.00	  		! m/s
+v1= 0.00
 p1= 100000    			! pa
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -2953,9 +2953,9 @@ end if
 
 if (initcond.eq.222)then	!shock density interaction
 
-r1=1.0d0
+r1=1.00
 p1=1.0e-6
-reeta=-1.0d0
+reeta=-1.00
 theeta=atan(poy(1)/pox(1))
 
 u1=reeta*cos(theeta)
@@ -2966,7 +2966,7 @@ v1=reeta*sin(theeta)
 
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -2985,7 +2985,7 @@ end if
 if (initcond.eq.10000)then	!shock density interaction
 
 
-r1=0.5d0
+r1=0.50
 p1=0.4127
 u1=0.0
 v1=0.0
@@ -2995,7 +2995,7 @@ v1=0.0
 
 skin1=(oo2)*((u1**2)+(v1**2))
 !internal energy
-ie1=((p1)/((gamma-1.0d0)*r1))
+ie1=((p1)/((gamma-1.00)*r1))
 !total energy
 e1=(p1/(gamma-1))+(r1*skin1)
 !vector of conserved variables now
@@ -3016,18 +3016,18 @@ if (initcond.eq.470)then
 
 
 if (pox(1).lt.1.0)then   !post shock concidions
-mp_r(2)=1.0d0 	! water density
-mp_r(1)=1.0d0 		! air density
-mp_a(2)=0.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=1.0d0 		! air volume fraction
+mp_r(2)=1.00 	! water density
+mp_r(1)=1.00 		! air density
+mp_a(2)=0.00 		! water volume fraction (everything is water here)
+mp_a(1)=1.00 		! air volume fraction
 u1=0.0	  	          ! m/s
 v1=0.0
 p1=1.0      		! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -3037,18 +3037,18 @@ else
 
 if (poy(1).gt.1.5)then
 
-mp_r(2)=1.0d0 	! water density
-mp_r(1)=0.125d0 		! air density
-mp_a(2)=0.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=1.0d0 		! air volume fraction
+mp_r(2)=1.00 	! water density
+mp_r(1)=0.1250 		! air density
+mp_a(2)=0.00 		! water volume fraction (everything is water here)
+mp_a(1)=1.00 		! air volume fraction
 u1=0.0	  	          ! m/s
 v1=0.0
 p1=0.1      		! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1
@@ -3056,18 +3056,18 @@ e1=(r1*skin1)+ie1
 
 else
 
-mp_r(2)=1.0d0 	! water density
-mp_r(1)=0.125d0 		! air density
-mp_a(2)=1.0d0 		! water volume fraction (everything is water here)
-mp_a(1)=0.0d0 		! air volume fraction
+mp_r(2)=1.00 	! water density
+mp_r(1)=0.1250 		! air density
+mp_a(2)=1.00 		! water volume fraction (everything is water here)
+mp_a(1)=0.00 		! air volume fraction
 u1=0.0	  	          ! m/s
 v1=0.0
 p1=0.1      		! pa
 
 
 r1=(mp_r(1)*mp_a(1))+(mp_r(2)*mp_a(2))
-mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.0d0)))
-mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.0d0)))
+mp_ie(1)=((p1+(gamma_in(1)*mp_pinf(1)))/((gamma_in(1)-1.00)))
+mp_ie(2)=((p1+(gamma_in(2)*mp_pinf(2)))/((gamma_in(2)-1.00)))
 ie1=(mp_ie(1)*mp_a(1))+(mp_ie(2)*mp_a(2))
 skin1=(oo2)*((u1**2)+(v1**2))
 e1=(r1*skin1)+ie1

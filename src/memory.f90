@@ -129,19 +129,19 @@ subroutine sumflux_allocation(n)
 	integer::i,kmaxe
 	kmaxe=xmpielrank(n)
 	
-	allocate (rhs_val(nof_variables,kmaxe))
+	allocate (rhs_val(kmaxe,nof_variables))
 
 
 	
 	
 	if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-	allocate (rhst_val(turbulenceequations+passivescalar,kmaxe))
+	allocate (rhst_val(kmaxe,turbulenceequations+passivescalar))
 	end if
 	
 
 	if (dg.eq.1)then
-	allocate(rhs_valdg(num_dg_dofs, nof_variables,kmaxe))
-    allocate(rhs_sol_mm_dg(1:num_dg_dofs,1:nof_variables,kmaxe))
+	allocate(rhs_valdg(kmaxe,num_dg_dofs,nof_variables))
+    allocate(rhs_sol_mm_dg(kmaxe,1:num_dg_dofs,1:nof_variables))
 	end if
 
 	
@@ -204,7 +204,7 @@ allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 allocate (impdu_old(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 
 if (realgas.eq.1)then
-allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
+allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.00
 end if
 
 if ((itestcase.eq.4).and.((turbulence.gt.0).or.(passivescalar.gt.0)))then
@@ -227,7 +227,7 @@ impdu(:,:)=zero
 impdu_old(:,:)=zero
 
 if (realgas.eq.1)then
-allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
+allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.00
 end if
 
 if ((itestcase.eq.4).and.((turbulence.gt.0).or.(passivescalar.gt.0)))then
@@ -245,7 +245,7 @@ allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 allocate (impdu_old(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 
 if (realgas.eq.1)then
-allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
+allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.00
 end if
 
 
@@ -269,7 +269,7 @@ allocate (impdu(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 allocate (impdu_old(kmaxe,1:nof_variables+turbulenceequations+passivescalar))
 
 if (realgas.eq.1)then
-allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.0d0
+allocate(sht_rg(kmaxe,1:nof_variables));sht_rg(:,:)=0.00
 end if
 
 if ((itestcase.eq.4).and.((turbulence.gt.0).or.(passivescalar.gt.0)))then
@@ -501,16 +501,16 @@ allocate(ielem_wcx(kmaxe) )                 ; ielem_wcx = 0.0
 ! 1d integer per element (fixed max sizes)
 
 allocate( ielem_nodes(max_nodes, kmaxe) )              ; ielem_nodes = 0
-allocate( ielem_types_faces(max_faces, kmaxe) )        ; ielem_types_faces = 0
+allocate( ielem_types_faces(kmaxe,max_faces) )        ; ielem_types_faces = 0
 allocate( ielem_reorient(max_faces, kmaxe) )           ; ielem_reorient = 0
 
-allocate(ielem_indexi(max_faces, kmaxe) )              ; ielem_indexi = 0
-allocate(ielem_ibounds(max_faces, kmaxe) )             ; ielem_ibounds = 0
-allocate(ielem_ineigh(max_faces, kmaxe) )              ; ielem_ineigh = 0
+allocate(ielem_indexi(kmaxe,max_faces) )              ; ielem_indexi = 0
+allocate(ielem_ibounds(kmaxe,max_faces) )             ; ielem_ibounds = 0
+allocate(ielem_ineigh(kmaxe,max_faces) )              ; ielem_ineigh = 0
 
-allocate(ielem_ineighg(max_faces, kmaxe) )             ; ielem_ineighg = 0
-allocate(ielem_ineighb(max_faces, kmaxe) )             ; ielem_ineighb = n
-allocate(ielem_ineighn(max_faces, kmaxe) )             ; ielem_ineighn = 0
+allocate(ielem_ineighg(kmaxe,max_faces) )             ; ielem_ineighg = 0
+allocate(ielem_ineighb(kmaxe,max_faces) )             ; ielem_ineighb = n
+allocate(ielem_ineighn(kmaxe,max_faces) )             ; ielem_ineighn = 0
 
 
 if (tecplot.eq.5)then
@@ -524,13 +524,13 @@ allocate( ielem_nodes_faces_v(max_faces, max_fnodes, kmaxe) ) ; ielem_nodes_face
 end if
 
 ! 1d real per element
-allocate( ielem_faceanglex(max_faces, kmaxe) )          ; ielem_faceanglex = 0.0
-allocate( ielem_facediss(max_faces, kmaxe) )            ; ielem_facediss = 0.0
-allocate( ielem_faceangley(max_faces, kmaxe) )          ; ielem_faceangley = 0.0
-allocate( ielem_dih(max_faces,kmaxe) )                 ; ielem_dih = 0.0
-allocate( ielem_dih2(max_faces,1:dimensiona, kmaxe) )                 ; ielem_dih2 = 0.0
+allocate( ielem_faceanglex(kmaxe,max_faces) )          ; ielem_faceanglex = 0.0
+allocate( ielem_facediss(kmaxe,max_faces) )            ; ielem_facediss = 0.0
+allocate( ielem_faceangley(kmaxe,max_faces) )          ; ielem_faceangley = 0.0
+allocate( ielem_dih(kmaxe,max_faces) )                 ; ielem_dih = 0.0
+allocate( ielem_dih2(kmaxe,max_faces,1:dimensiona) )                 ; ielem_dih2 = 0.0
 allocate( ielem_vortex(3, kmaxe) )                      ; ielem_vortex = 0.0
-allocate( ielem_surf(max_faces, kmaxe) )                ; ielem_surf = 0.0
+allocate( ielem_surf(kmaxe,max_faces) )                ; ielem_surf = 0.0
 
 
 
@@ -671,26 +671,26 @@ subroutine local_reconallocation3(n)
   allocate(rec_volume(1,1,1:kmaxe))                 ;       rec_volume=0
 
   if (ees == 5) then
-    allocate(rec_ihexg(1,numneighbours,1:kmaxe));          rec_ihexg = 0
-    allocate(rec_ihexl(1,numneighbours,1:kmaxe));          rec_ihexl = 0
+    allocate(rec_ihexg(1:kmaxe,1,numneighbours));          rec_ihexg = 0
+    allocate(rec_ihexl(1:kmaxe,1,numneighbours));          rec_ihexl = 0
     if (iperiodicity == 1) then
-      allocate(rec_periodicflag(1,numneighbours,1:kmaxe)); rec_periodicflag = 0
+      allocate(rec_periodicflag(1:kmaxe,1,numneighbours)); rec_periodicflag = 0
     end if
-    allocate(rec_ihexgc(typesten,numneighbours2,1:kmaxe)); rec_ihexgc = 0
-    allocate(rec_ihexlc(typesten,numneighbours2,1:kmaxe)); rec_ihexlc = 0
+    allocate(rec_ihexgc(1:kmaxe,typesten,numneighbours2)); rec_ihexgc = 0
+    allocate(rec_ihexlc(1:kmaxe,typesten,numneighbours2)); rec_ihexlc = 0
   else
-    allocate(rec_ihexg(1:typesten,numneighbours,1:kmaxe));  rec_ihexg = 0
-    allocate(rec_ihexl(1:typesten,numneighbours,1:kmaxe));  rec_ihexl = 0
+    allocate(rec_ihexg(1:kmaxe,1:typesten,numneighbours));  rec_ihexg = 0
+    allocate(rec_ihexl(1:kmaxe,1:typesten,numneighbours));  rec_ihexl = 0
     if (iperiodicity == 1) then
-      allocate(rec_periodicflag(1:typesten,numneighbours,1:kmaxe)); rec_periodicflag = 0
+      allocate(rec_periodicflag(1:kmaxe,1:typesten,numneighbours)); rec_periodicflag = 0
     end if
   end if
 
   if (ees == 5) then
-    allocate(rec_invmat_stencilt(idegfree,numneighbours-1,1,1:kmaxe));             rec_invmat_stencilt = zero
-    allocate(rec_invmat_stenciltc(idegfree2,numneighbours2-1,typesten,1:kmaxe)); rec_invmat_stenciltc = zero
+    allocate(rec_invmat_stencilt(1:kmaxe,idegfree,numneighbours-1,1));             rec_invmat_stencilt = zero
+    allocate(rec_invmat_stenciltc(1:kmaxe,idegfree2,numneighbours2-1,typesten)); rec_invmat_stenciltc = zero
   else
-    allocate(rec_invmat_stencilt(idegfree,numneighbours-1,1:typesten,1:kmaxe));    rec_invmat_stencilt = zero
+    allocate(rec_invmat_stencilt(1:kmaxe,idegfree,numneighbours-1,1:typesten));    rec_invmat_stencilt = zero
   end if
 
   int_wall = 0
@@ -698,8 +698,8 @@ subroutine local_reconallocation3(n)
     idum = 0
     if (ielem_interior(i) == 1) then
       do j = 1, ielem_ifca(i)
-        if (ielem_ibounds(j,i) > 0) then
-          if ((ibound_icode(ielem_ibounds(j,i)) == 4).or.(ibound_icode(ielem_ibounds(j,i)) == 99)) then
+        if (ielem_ibounds(i,j) > 0) then
+          if ((ibound_icode(ielem_ibounds(i,j)) == 4).or.(ibound_icode(ielem_ibounds(i,j)) == 99)) then
             idum = 1
           end if
         end if
@@ -713,8 +713,8 @@ subroutine local_reconallocation3(n)
     idum = 0
     if (ielem_interior(i) == 1) then
       do j = 1, ielem_ifca(i)
-        if (ielem_ibounds(j,i) > 0) then
-          if ((ibound_icode(ielem_ibounds(j,i)) == 4).or.(ibound_icode(ielem_ibounds(j,i)) == 99)) then
+        if (ielem_ibounds(i,j) > 0) then
+          if ((ibound_icode(ielem_ibounds(i,j)) == 4).or.(ibound_icode(ielem_ibounds(i,j)) == 99)) then
             idum = 1
           end if
         end if
@@ -742,44 +742,44 @@ subroutine local_reconallocation3(n)
     idx = max_faces
   end if
 
-  allocate(rec_grads(nof_variables-1+turbulenceequations+passivescalar,1:dimensiona,1:kmaxe)); rec_grads = zero
-  allocate(rec_uleft(1:nof_variables,idx,1:numberofpoints2,1:kmaxe));           rec_uleft = zero
+  allocate(rec_grads(1:kmaxe,nof_variables-1+turbulenceequations+passivescalar,1:dimensiona)); rec_grads = zero
+  allocate(rec_uleft(1:kmaxe,1:nof_variables,idx,1:numberofpoints2));           rec_uleft = zero
 
   if (dg.eq.1)then
-  allocate(rec_uleft_dg(1:nof_variables,idx,1:numberofpoints2,1:kmaxe)); rec_uleft_dg=zero
+  allocate(rec_uleft_dg(1:kmaxe,1:nof_variables,idx,1:numberofpoints2)); rec_uleft_dg=zero
   end if
 
 
    if ((turbulenceequations > 0) .or. (passivescalar > 0)) then
-  allocate(rec_uleftturb(1:turbulenceequations+passivescalar,idx,1:numberofpoints2,1:kmaxe)); rec_uleftturb = zero
+  allocate(rec_uleftturb(1:kmaxe,1:turbulenceequations+passivescalar,idx,1:numberofpoints2)); rec_uleftturb = zero
   end if
 
   if (ees == 5) then
-    allocate(rec_gradients(1,1:idegfree,1:nof_variables,1:kmaxe));    rec_gradients = zero
-    allocate(rec_gradientsc(typesten,1:idegfree2,1:nof_variables,1:kmaxe)); rec_gradientsc = zero
+    allocate(rec_gradients(1:kmaxe,1,1:idegfree,1:nof_variables));    rec_gradients = zero
+    allocate(rec_gradientsc(1:kmaxe,typesten,1:idegfree2,1:nof_variables)); rec_gradientsc = zero
     if ((turbulenceequations > 0) .or. (passivescalar > 0)) then
-      allocate(rec_gradients2(1,1:idegfree,1:turbulenceequations+passivescalar,1:kmaxe));      rec_gradients2 = zero
-      allocate(rec_gradientsc2(typesten,1:idegfree2,1:turbulenceequations+passivescalar,1:kmaxe)); rec_gradientsc2 = zero
+      allocate(rec_gradients2(1:kmaxe,1,1:idegfree,1:turbulenceequations+passivescalar));      rec_gradients2 = zero
+      allocate(rec_gradientsc2(1:kmaxe,typesten,1:idegfree2,1:turbulenceequations+passivescalar)); rec_gradientsc2 = zero
     end if
   else
-    allocate(rec_gradients(1:typesten,1:idegfree,1:nof_variables,1:kmaxe)); rec_gradients = zero
+    allocate(rec_gradients(1:kmaxe,1:typesten,1:idegfree,1:nof_variables)); rec_gradients = zero
     if ((turbulenceequations > 0) .or. (passivescalar > 0)) then
-      allocate(rec_gradients2(1:typesten,1:idegfree,1:turbulenceequations+passivescalar,1:kmaxe)); rec_gradients2 = zero
+      allocate(rec_gradients2(1:kmaxe,1:typesten,1:idegfree,1:turbulenceequations+passivescalar)); rec_gradients2 = zero
     end if
   end if
 
   if (itestcase >= 4) then
 
-    allocate(rec_gradf(1:nof_variables-1,1:idegfree,1:kmaxe)); rec_gradf = zero
-    allocate(rec_uleftv(1:dimensiona,1:nof_variables-1,idx,1:numberofpoints2,1:kmaxe)); rec_uleftv = zero
+    allocate(rec_gradf(1:kmaxe,1:nof_variables-1,1:idegfree)); rec_gradf = zero
+    allocate(rec_uleftv(1:kmaxe,1:dimensiona,1:nof_variables-1,idx,1:numberofpoints2)); rec_uleftv = zero
 
     if (averaging == 1) then
-      allocate(rec_gradsav(1:nof_variables-1,1:dimensiona,1:kmaxe)); rec_gradsav = zero
+      allocate(rec_gradsav(1:kmaxe,1:nof_variables-1,1:dimensiona)); rec_gradsav = zero
     end if
 
     if ((turbulence == 1) .or. (passivescalar > 0)) then
-      allocate(rec_uleftturbv(1:dimensiona,1:turbulenceequations+passivescalar,idx,1:numberofpoints2,1:kmaxe)); rec_uleftturbv = zero
-      allocate(rec_gradientsturb(1,1:idegfree,1:turbulenceequations+passivescalar,1:kmaxe));                   rec_gradientsturb = zero
+      allocate(rec_uleftturbv(1:kmaxe,1:dimensiona,1:turbulenceequations+passivescalar,idx,1:numberofpoints2)); rec_uleftturbv = zero
+      allocate(rec_gradientsturb(1:kmaxe,1,1:idegfree,1:turbulenceequations+passivescalar));                   rec_gradientsturb = zero
     end if
 
     if (greengo == 0) then
@@ -834,25 +834,25 @@ subroutine local_reconallocation3(n)
 
   if (int_local > 0) then
     if (ees == 5) then
-      allocate(rec_ihexb(1,1:numneighbours,1:int_local));                rec_ihexb = -100
-      allocate(rec_ihexn(1,1:numneighbours,1:int_local));                rec_ihexn = -100
-      allocate(rec_ihexbc(typesten,numneighbours2,1:int_local));         rec_ihexbc = -100
-      allocate(rec_ihexnc(typesten,numneighbours2,1:int_local));         rec_ihexnc = -100
+      allocate(rec_ihexb(1:int_local,1,1:numneighbours));                rec_ihexb = -100
+      allocate(rec_ihexn(1:int_local,1,1:numneighbours));                rec_ihexn = -100
+      allocate(rec_ihexbc(1:int_local,typesten,numneighbours2));         rec_ihexbc = -100
+      allocate(rec_ihexnc(1:int_local,typesten,numneighbours2));         rec_ihexnc = -100
     else
-      allocate(rec_ihexb(1:typesten,1:numneighbours,1:int_local));       rec_ihexb = -100
-      allocate(rec_ihexn(1:typesten,1:numneighbours,1:int_local));       rec_ihexn = -100
+      allocate(rec_ihexb(1:int_local,1:typesten,1:numneighbours));       rec_ihexb = -100
+      allocate(rec_ihexn(1:int_local,1:typesten,1:numneighbours));       rec_ihexn = -100
     end if
   end if
 
   if (iweno == 1) then
-    allocate(rec_indicator(1:idegfree,1:idegfree,1:kmaxe));              rec_indicator = zero
+    allocate(rec_indicator(1:kmaxe,1:idegfree,1:idegfree));              rec_indicator = zero
     if (ees == 5) then
-      allocate(rec_indicatorc(1:idegfree2,1:idegfree2,1:kmaxe));         rec_indicatorc = zero
+      allocate(rec_indicatorc(1:kmaxe,1:idegfree2,1:idegfree2));         rec_indicatorc = zero
     end if
   end if
 
   if (dg == 1) then
-    allocate(dg2fv(1:idegfree,1:nof_variables,1:kmaxe));             dg2fv = zero
+    allocate(dg2fv(1:kmaxe,1:idegfree,1:nof_variables));             dg2fv = zero
   end if
 
 
@@ -912,13 +912,13 @@ integer,intent(in)::idegfree,n
 integer::kmaxe,i
 kmaxe=xmpielrank(n)
 
-allocate(integ_basis_value(1:idegfree,1:kmaxe));integ_basis_value=zero
+allocate(integ_basis_value(1:kmaxe,1:idegfree));integ_basis_value=zero
 if (ees.eq.5)then
-allocate(integ_basis_valuec(1:idegfree2,1:kmaxe));integ_basis_valuec=zero
+allocate(integ_basis_valuec(1:kmaxe,1:idegfree2));integ_basis_valuec=zero
 end if
 
 if (dg.eq.1)then
-allocate(integ_basis_dg_value(1:idegfree,1:kmaxe));integ_basis_dg_value=zero
+allocate(integ_basis_dg_value(1:kmaxe,1:idegfree));integ_basis_dg_value=zero
 end if
 
 
@@ -994,33 +994,33 @@ subroutine u_c_allocation(n, xmpielrank, itestcase)
 
   ! -----------------------------
   ! base solution arrays (flat)
-  ! u_c_val(j,k,i) -> u_c_val(j,k,i)
+  ! Layout: u_c_val(cell,stage,variable).
   ! -----------------------------
   if (.not. allocated(u_c_val)) then
-    allocate(u_c_val(istage, nof_variables, kmaxe)); u_c_val = zero
+    allocate(u_c_val(kmaxe,istage,nof_variables)); u_c_val = zero
   end if
 
   if ((turbulence > 0) .or. (passivescalar > 0)) then
     if (.not. allocated(u_ct_val)) then
-      allocate(u_ct_val(istage, turbulenceequations + passivescalar, kmaxe)); u_ct_val = zero
+      allocate(u_ct_val(kmaxe,istage,turbulenceequations + passivescalar)); u_ct_val = zero
     end if
   end if
 
   if (itestcase <= 4) then
     if (.not. allocated(u_e_val)) then
-      allocate(u_e_val(1, nof_variables, kmaxe)); u_e_val = zero
+      allocate(u_e_val(kmaxe,1,nof_variables)); u_e_val = zero
     end if
   end if
 
   if (averaging == 1) then
     if (.not. allocated(u_c_rms)) then
-      allocate(u_c_rms(nof_variables, kmaxe)); u_c_rms = zero
+      allocate(u_c_rms(kmaxe,nof_variables)); u_c_rms = zero
     end if
   end if
 
   ! -----------------------------
   ! dg arrays (flat)
-  ! u_c_valdg(j,k,l,i) -> u_c_valdg(j,k,l,i)
+  ! Layout: u_c_valdg(cell,stage,variable,coefficient).
   !
   ! important: ideg varies per element; allocate with max degree
   ! and use slices 1:(ielem_idegfree(i)+1) at use sites.
@@ -1029,18 +1029,18 @@ subroutine u_c_allocation(n, xmpielrank, itestcase)
     max_ideg = idegfree
 
     if (.not. allocated(u_c_valdg)) then
-      allocate(u_c_valdg(istage,nof_variables, max_ideg+1, kmaxe)); u_c_valdg = zero
+      allocate(u_c_valdg(kmaxe,istage,nof_variables,max_ideg+1)); u_c_valdg = zero
     end if
 
     if (.not. allocated(m_1_val)) then
       ! if your m_1 is per-element matrix in modal/nodal space, this is the usual shape
-      allocate(m_1_val(max_ideg+1, max_ideg+1, kmaxe)); m_1_val = zero
+      allocate(m_1_val(kmaxe,max_ideg+1,max_ideg+1)); m_1_val = zero
     end if
 
     if (itestcase == 4) then
       if (.not. allocated(u_c_br2_aux_var)) then
-        ! your declared br2 aux var is 4d: (j,k,l,i) in the mapping you used earlier
-        allocate(u_c_br2_aux_var(max_ideg+1, max_ideg+1, nof_variables, kmaxe)); u_c_br2_aux_var = zero
+        ! Layout: (cell,coefficient,variable,direction).
+        allocate(u_c_br2_aux_var(kmaxe,max_ideg+1,max_ideg+1,nof_variables)); u_c_br2_aux_var = zero
       end if
     end if
   end if
@@ -1053,18 +1053,18 @@ subroutine u_c_allocation(n, xmpielrank, itestcase)
   ! -----------------------------
   if (filtering == 1) then
     if (.not. allocated(u_cs_val)) then
-      allocate(u_cs_val(istage, nof_variables, kmaxe)); u_cs_val = zero
+      allocate(u_cs_val(kmaxe,istage,nof_variables)); u_cs_val = zero
     end if
     if (.not. allocated(u_cw_val)) then
-      allocate(u_cw_val(istage, nof_variables, kmaxe)); u_cw_val = zero
+      allocate(u_cw_val(kmaxe,istage,nof_variables)); u_cw_val = zero
     end if
 
     if (dg == 1) then
       if (.not. allocated(u_cs_valdg)) then
-        allocate(u_cs_valdg(1, nof_variables, max_ideg+1, kmaxe)); u_cs_valdg = zero
+        allocate(u_cs_valdg(kmaxe,1,nof_variables,max_ideg+1)); u_cs_valdg = zero
       end if
       if (.not. allocated(u_cw_valdg)) then
-        allocate(u_cw_valdg(1, nof_variables, max_ideg+1, kmaxe)); u_cw_valdg = zero
+        allocate(u_cw_valdg(kmaxe,1,nof_variables,max_ideg+1)); u_cw_valdg = zero
       end if
     end if
   end if

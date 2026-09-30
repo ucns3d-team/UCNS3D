@@ -16,19 +16,19 @@ use io
 use moodr
 implicit none
 
-real,parameter :: fv_update_floor_fraction=1.0d-14
-real,parameter :: fv_update_max_ref_ratio=1.0d8
-real,parameter :: fv_update_min_ratio=1.0d-3
-real,parameter :: fv_update_max_ratio=1.0d3
-real,parameter :: fv_update_min_abs=1.0d-300
-real,parameter :: fv_update_max_abs=1.0d300
-real,parameter :: fv_update_species_closure_tol=1.0d-6
+real,parameter :: fv_update_floor_fraction=1.0e-14
+real,parameter :: fv_update_max_ref_ratio=1.0e8
+real,parameter :: fv_update_min_ratio=1.0e-3
+real,parameter :: fv_update_max_ratio=1.0e3
+real,parameter :: fv_update_min_abs=1.0e-300
+real,parameter :: fv_update_max_abs=1.0e300
+real,parameter :: fv_update_species_closure_tol=1.0e-6
 ! Keep cutting the local FV update until an admissible nonzero step is found.
 integer,parameter :: fv_update_max_backtracks=40
-real,parameter :: realgas_source_dtl_cfl=2.0d-1
-real,parameter :: realgas_source_species_floor_fraction=1.0d-10
-real,parameter :: realgas_source_energy_floor_fraction=1.0d-10
-real,parameter :: realgas_source_dtl_min_abs=1.0d-30
+real,parameter :: realgas_source_dtl_cfl=2.0e-1
+real,parameter :: realgas_source_species_floor_fraction=1.0e-10
+real,parameter :: realgas_source_energy_floor_fraction=1.0e-10
+real,parameter :: realgas_source_dtl_min_abs=1.0e-30
 
  contains
 
@@ -46,40 +46,40 @@ real::mp_mu_mix,mp_ktr_mix,mp_kve,gammal
 real,dimension(1:gpu_max_species)::mp_d_eff,mp_htr,mp_hvib
 
 rho=max(qprim(1),tolsmall)
-mom_diff=(4.0d0/3.0d0)*max(viscl(1),0.0d0)/rho
-species_diff=0.0d0
+mom_diff=(4.00/3.00)*max(viscl(1),0.00)/rho
+species_diff=0.00
 
 if ((realgas.eq.1).and.(nof_species.gt.0))then
-  cv_mix=0.0d0
+  cv_mix=0.00
   do rg_i=1,nof_species
     idx=dimensiona+3+rg_i
     if (idx.le.nof_variables)then
-      y_i=max(qprim(idx),0.0d0)
+      y_i=max(qprim(idx),0.00)
       rspec=rgs_ru/max(abs(rg_molm(rg_i)),tolsmall)
       if (rg_i.le.3)then
-        cv_mix=cv_mix+y_i*2.5d0*rspec
+        cv_mix=cv_mix+y_i*2.50*rspec
       else
-        cv_mix=cv_mix+y_i*1.5d0*rspec
+        cv_mix=cv_mix+y_i*1.50*rspec
       end if
     end if
   end do
-  thermal_diff=max(laml(1),0.0d0)/(rho*max(cv_mix,tolsmall))
+  thermal_diff=max(laml(1),0.00)/(rho*max(cv_mix,tolsmall))
 
-  mp_mu_mix=0.0d0
-  mp_ktr_mix=0.0d0
-  mp_kve=0.0d0
+  mp_mu_mix=0.00
+  mp_ktr_mix=0.00
+  mp_kve=0.00
   gammal=gamma
-  mp_d_eff=0.0d0
-  mp_htr=0.0d0
-  mp_hvib=0.0d0
+  mp_d_eff=0.00
+  mp_htr=0.00
+  mp_hvib=0.00
   call multispecies_mixtures_rg(qcons,mp_mu_mix,mp_ktr_mix,mp_kve,mp_d_eff,mp_htr,mp_hvib,gammal)
   do rg_i=1,nof_species
-    if ((mp_d_eff(rg_i).eq.mp_d_eff(rg_i)).and.(mp_d_eff(rg_i).gt.0.0d0))then
+    if ((mp_d_eff(rg_i).eq.mp_d_eff(rg_i)).and.(mp_d_eff(rg_i).gt.0.00))then
       species_diff=max(species_diff,mp_d_eff(rg_i))
     end if
   end do
 else
-  thermal_diff=max(laml(1),0.0d0)*(gamma-1.0d0)/(rho*max(r_gas,tolsmall))
+  thermal_diff=max(laml(1),0.00)*(gamma-1.00)/(rho*max(r_gas,tolsmall))
 end if
 
 timestep_viscous_diffusivity=max(mom_diff,thermal_diff,species_diff)
@@ -145,7 +145,7 @@ kmaxe=xmpielrank(n)
 
 		if (dg.eq.1)then
 
-		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.00/(2*iorder+1)))
 
 		else
 
@@ -176,7 +176,7 @@ kmaxe=xmpielrank(n)
 
 
 
-		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 #ifdef xpu
 		call cons2prim_ideal(n,leftv,mp_pinfl,gammal)
 #else
@@ -216,7 +216,7 @@ kmaxe=xmpielrank(n)
             end if
         end if
 		if (dg.eq.1)then
-		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.00/(2*iorder+1)))
 
 		else
 		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln))))
@@ -259,18 +259,18 @@ kmaxe=xmpielrank(n)
 #endif
         do i=1,kmaxe
 #ifdef xpu
-		cfl_rho=u_c_val(1,1,i)
-		cfl_orho=1.0d0/cfl_rho
-		cfl_u=u_c_val(1,2,i)*cfl_orho
-		cfl_v=u_c_val(1,3,i)*cfl_orho
-		cfl_w=u_c_val(1,4,i)*cfl_orho
+		cfl_rho=u_c_val(i,1,1)
+		cfl_orho=1.00/cfl_rho
+		cfl_u=u_c_val(i,1,2)*cfl_orho
+		cfl_v=u_c_val(i,1,3)*cfl_orho
+		cfl_w=u_c_val(i,1,4)*cfl_orho
 		cfl_q2=(cfl_u*cfl_u)+(cfl_v*cfl_v)+(cfl_w*cfl_w)
-		cfl_p=(gamma-1.0d0)*(u_c_val(1,5,i)-0.5d0*cfl_rho*cfl_q2)
+		cfl_p=(gamma-1.00)*(u_c_val(i,1,5)-0.50*cfl_rho*cfl_q2)
 		agrt=sqrt(cfl_p*gamma*cfl_orho)
 		cfl_temp=cfl_p*cfl_orho/r_gas
 		cfl_tratio=cfl_temp/cfl_tref
 		cfl_mu=visc*(cfl_tratio*sqrt(cfl_tratio))*((cfl_tref+suther*cfl_tref)/(cfl_temp+suther*cfl_tref))
-		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0))
+		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.00))
 		veln=max(abs(cfl_u),abs(cfl_v),abs(cfl_w))+agrt
 		if (srfg.eq.1)then
 			cfl_sx=(srf_velocity(2)*ielem_zzc(i))-(srf_velocity(3)*ielem_yyc(i))
@@ -292,29 +292,29 @@ kmaxe=xmpielrank(n)
 			end if
 		end if
 		if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
-			cfl_mut=u_ct_val(1,1,i)
-			cfl_chi=abs(max(cfl_mut,1.0d-15)/max(cfl_mu,1.0d-15))
+			cfl_mut=u_ct_val(i,1,1)
+			cfl_chi=abs(max(cfl_mut,1.0e-15)/max(cfl_mu,1.0e-15))
 			cfl_chi3=cfl_chi*cfl_chi*cfl_chi
 			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
 			cfl_mut=cfl_mut*cfl_fv1
-			cfl_mut=min(10000000.0d0*visc,cfl_mut)
-			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))
-			cfl_mut=max(0.0d0,cfl_mut)
-			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
+			cfl_mut=min(10000000.00*visc,cfl_mut)
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.00)))
+			cfl_mut=max(0.00,cfl_mut)
+			if (u_ct_val(i,1,1).lt.0.00)cfl_mut=0.00
 			cfl_mu=cfl_mu+cfl_mut
 		end if
-		cfl_vdiff=max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.0d0)*cfl_orho/r_gas)
+		cfl_vdiff=max(((4.00/3.00)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.00)*cfl_orho/r_gas)
 		if (dg.eq.1)then
-			CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.0d0*cfl_vdiff*((2*iorder+1)/ielem_minedge(i))))))
+			CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.00*cfl_vdiff*((2*iorder+1)/ielem_minedge(i))))))
 		else
-			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*cfl_vdiff/(ielem_minedge(i)**2)))))
+			CFL_DT=min(CFL_DT,ccfl*(1.00/((abs(veln)/ielem_minedge(i))+(0.50*cfl_vdiff/(ielem_minedge(i)**2)))))
 		end if
 #else
-		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		rightv(1:nof_variables)=leftv(1:nof_variables)
 		call get_visc_conduct(n,leftv,rightv,viscl,laml)
 
-        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+        leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		call cons2prim(n,leftv,mp_pinfl,gammal)
 		if ((multispecies.eq.1).or.(realgas.eq.1))then
 		agrt=sqrt((leftv(5)+mp_pinfl)*gammal/leftv(1))
@@ -355,7 +355,7 @@ kmaxe=xmpielrank(n)
         end if
 		if (turbulence.eq.1)then
 		if (turbulencemodel.eq.1)then
-		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
+		turbmv(1)=u_ct_val(i,1,1);  turbmv(2)=u_ct_val(i,1,1);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
 		call eddyvisco_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 		laml(1)=laml(3)
@@ -368,12 +368,12 @@ kmaxe=xmpielrank(n)
 		if (dg.eq.1)then
 
 
-		CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*diff_scale*((2*iorder+1)/ielem_minedge(i))))))
+		CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.00*diff_scale*((2*iorder+1)/ielem_minedge(i))))))
 
 
 		else
 
-         CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*diff_scale/((ielem_minedge(i)))**2))))
+         CFL_DT=min(CFL_DT,ccfl*(1.00/((abs(veln)/((ielem_minedge(i)))) + (0.50*diff_scale/((ielem_minedge(i)))**2))))
 
 
 
@@ -456,7 +456,7 @@ real,dimension(1:4)::viscl,laml
 	!$omp do
 #endif
         do i=1,kmaxe
-		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 #ifdef xpu
 		call cons2prim_ideal(n,leftv,mp_pinfl,gammal)
 #else
@@ -498,7 +498,7 @@ real,dimension(1:4)::viscl,laml
         end if
 		if (dg.eq.1)then
 
-		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1))
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))*(1.00/(2*iorder+1))
 
 		else
 
@@ -537,18 +537,18 @@ real,dimension(1:4)::viscl,laml
         do i=1,kmaxe
 
 #ifdef xpu
-		cfl_rho=u_c_val(1,1,i)
-		cfl_orho=1.0d0/cfl_rho
-		cfl_u=u_c_val(1,2,i)*cfl_orho
-		cfl_v=u_c_val(1,3,i)*cfl_orho
-		cfl_w=u_c_val(1,4,i)*cfl_orho
+		cfl_rho=u_c_val(i,1,1)
+		cfl_orho=1.00/cfl_rho
+		cfl_u=u_c_val(i,1,2)*cfl_orho
+		cfl_v=u_c_val(i,1,3)*cfl_orho
+		cfl_w=u_c_val(i,1,4)*cfl_orho
 		cfl_q2=(cfl_u*cfl_u)+(cfl_v*cfl_v)+(cfl_w*cfl_w)
-		cfl_p=(gamma-1.0d0)*(u_c_val(1,5,i)-0.5d0*cfl_rho*cfl_q2)
+		cfl_p=(gamma-1.00)*(u_c_val(i,1,5)-0.50*cfl_rho*cfl_q2)
 		agrt=sqrt(cfl_p*gamma*cfl_orho)
 		cfl_temp=cfl_p*cfl_orho/r_gas
 		cfl_tratio=cfl_temp/cfl_tref
 		cfl_mu=visc*(cfl_tratio*sqrt(cfl_tratio))*((cfl_tref+suther*cfl_tref)/(cfl_temp+suther*cfl_tref))
-		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0))
+		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.00))
 		veln=max(abs(cfl_u),abs(cfl_v),abs(cfl_w))+agrt
 		if (srfg.eq.1)then
 			cfl_sx=(srf_velocity(2)*ielem_zzc(i))-(srf_velocity(3)*ielem_yyc(i))
@@ -570,29 +570,29 @@ real,dimension(1:4)::viscl,laml
 			end if
 		end if
 		if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
-			cfl_mut=u_ct_val(1,1,i)
-			cfl_chi=abs(max(cfl_mut,1.0d-15)/max(cfl_mu,1.0d-15))
+			cfl_mut=u_ct_val(i,1,1)
+			cfl_chi=abs(max(cfl_mut,1.0e-15)/max(cfl_mu,1.0e-15))
 			cfl_chi3=cfl_chi*cfl_chi*cfl_chi
 			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
 			cfl_mut=cfl_mut*cfl_fv1
-			cfl_mut=min(10000000.0d0*visc,cfl_mut)
-			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))
-			cfl_mut=max(0.0d0,cfl_mut)
-			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
+			cfl_mut=min(10000000.00*visc,cfl_mut)
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.00)))
+			cfl_mut=max(0.00,cfl_mut)
+			if (u_ct_val(i,1,1).lt.0.00)cfl_mut=0.00
 			cfl_mu=cfl_mu+cfl_mut
 		end if
-		cfl_vdiff=max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.0d0)*cfl_orho/r_gas)
+		cfl_vdiff=max(((4.00/3.00)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.00)*cfl_orho/r_gas)
 		if (dg.eq.1)then
-			ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.0d0*cfl_vdiff*((2*iorder+1)/ielem_minedge(i)))))
+			ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.00*cfl_vdiff*((2*iorder+1)/ielem_minedge(i)))))
 		else
-			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*cfl_vdiff/(ielem_minedge(i)**2))))
+			ielem_dtl(i)=ccfl*(1.00/((abs(veln)/ielem_minedge(i))+(0.50*cfl_vdiff/(ielem_minedge(i)**2))))
 		end if
 #else
-		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		rightv(1:nof_variables)=leftv(1:nof_variables)
 		call get_visc_conduct(n,leftv,rightv,viscl,laml)
 
-        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+        leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		call cons2prim(n,leftv,mp_pinfl,gammal)
 		if ((multispecies.eq.1).or.(realgas.eq.1))then
 		agrt=sqrt((leftv(5)+mp_pinfl)*gammal/leftv(1))
@@ -637,7 +637,7 @@ real,dimension(1:4)::viscl,laml
         end if
         if (turbulence.eq.1)then
 		if (turbulencemodel.eq.1)then
-		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
+		turbmv(1)=u_ct_val(i,1,1);  turbmv(2)=u_ct_val(i,1,1);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
 		call eddyvisco_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 		laml(1)=laml(3)
@@ -651,12 +651,12 @@ real,dimension(1:4)::viscl,laml
 		if (dg.eq.1)then
 
 
-		ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*diff_scale*((2*iorder+1)/ielem_minedge(i)))))
+		ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.00*diff_scale*((2*iorder+1)/ielem_minedge(i)))))
 
 
 		else
 
-		ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*diff_scale/((ielem_minedge(i)))**2)))
+		ielem_dtl(i)=ccfl*(1.00/((abs(veln)/((ielem_minedge(i)))) + (0.50*diff_scale/((ielem_minedge(i)))**2)))
 		end if
 #endif
 
@@ -727,7 +727,7 @@ kmaxe=xmpielrank(n)
         do i=1,kmaxe
 
 				if (initcond.eq.3)then
-				  lamxl=-ielem_yyc(i)+0.5d0
+				  lamxl=-ielem_yyc(i)+0.50
 				  lamyl=ielem_xxc(i)-0.5
 				  else
 				  lamxl=lamx
@@ -739,7 +739,7 @@ kmaxe=xmpielrank(n)
 
 		if (dg.eq.1)then
 
-		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.00/(2*iorder+1)))
 
 		else
 
@@ -768,7 +768,7 @@ kmaxe=xmpielrank(n)
         do i=1,kmaxe
 
 
-		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 #ifdef xpu
 		call cons2prim_ideal(n,leftv,mp_pinfl,gammal)
 #else
@@ -785,7 +785,7 @@ kmaxe=xmpielrank(n)
 
 		if (dg.eq.1)then
 
-		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1)))
+		CFL_DT=min(CFL_DT,ccfl*((ielem_minedge(i))/(abs(veln)))*(1.00/(2*iorder+1)))
 
 
 		else
@@ -830,42 +830,42 @@ kmaxe=xmpielrank(n)
         do i=1,kmaxe
 
 #ifdef xpu
-		cfl_rho=u_c_val(1,1,i)
-		cfl_orho=1.0d0/cfl_rho
-		cfl_u=u_c_val(1,2,i)*cfl_orho
-		cfl_v=u_c_val(1,3,i)*cfl_orho
+		cfl_rho=u_c_val(i,1,1)
+		cfl_orho=1.00/cfl_rho
+		cfl_u=u_c_val(i,1,2)*cfl_orho
+		cfl_v=u_c_val(i,1,3)*cfl_orho
 		cfl_q2=(cfl_u*cfl_u)+(cfl_v*cfl_v)
-		cfl_p=(gamma-1.0d0)*(u_c_val(1,4,i)-0.5d0*cfl_rho*cfl_q2)
+		cfl_p=(gamma-1.00)*(u_c_val(i,1,4)-0.50*cfl_rho*cfl_q2)
 		agrt=sqrt(cfl_p*gamma*cfl_orho)
 		cfl_temp=cfl_p*cfl_orho/r_gas
 		cfl_tratio=cfl_temp/cfl_tref
 		cfl_mu=visc*(cfl_tratio*sqrt(cfl_tratio))*((cfl_tref+suther*cfl_tref)/(cfl_temp+suther*cfl_tref))
-		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0))
+		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.00))
 		veln=max(abs(cfl_u),abs(cfl_v))+agrt
 		if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
-			cfl_mut=u_ct_val(1,1,i)
-			cfl_chi=abs(max(cfl_mut,1.0d-15)/max(cfl_mu,1.0d-15))
+			cfl_mut=u_ct_val(i,1,1)
+			cfl_chi=abs(max(cfl_mut,1.0e-15)/max(cfl_mu,1.0e-15))
 			cfl_chi3=cfl_chi*cfl_chi*cfl_chi
 			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
 			cfl_mut=cfl_mut*cfl_fv1
-			cfl_mut=min(10000000.0d0*visc,cfl_mut)
-			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))
-			cfl_mut=max(0.0d0,cfl_mut)
-			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
+			cfl_mut=min(10000000.00*visc,cfl_mut)
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.00)))
+			cfl_mut=max(0.00,cfl_mut)
+			if (u_ct_val(i,1,1).lt.0.00)cfl_mut=0.00
 			cfl_mu=cfl_mu+cfl_mut
 		end if
-		cfl_vdiff=max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.0d0)*cfl_orho/r_gas)
+		cfl_vdiff=max(((4.00/3.00)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.00)*cfl_orho/r_gas)
 		if (dg.eq.1)then
-			CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.0d0*cfl_vdiff*((2*iorder+1)/ielem_minedge(i))))))
+			CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.00*cfl_vdiff*((2*iorder+1)/ielem_minedge(i))))))
 		else
-			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*cfl_vdiff/(ielem_minedge(i)**2)))))
+			CFL_DT=min(CFL_DT,ccfl*(1.00/((abs(veln)/ielem_minedge(i))+(0.50*cfl_vdiff/(ielem_minedge(i)**2)))))
 		end if
 #else
-		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		rightv(1:nof_variables)=leftv(1:nof_variables)
 		call get_visc_conduct(n,leftv,rightv,viscl,laml)
 
-        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+        leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		call cons2prim(n,leftv,mp_pinfl,gammal)
 		if ((multispecies.eq.1).or.(realgas.eq.1))then
 		agrt=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))
@@ -877,7 +877,7 @@ kmaxe=xmpielrank(n)
 		veln=max(abs(leftv(2)),abs(leftv(3)))+agrt
 		if (turbulence.eq.1)then
 		if (turbulencemodel.eq.1)then
-		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
+		turbmv(1)=u_ct_val(i,1,1);  turbmv(2)=u_ct_val(i,1,1);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
 		call eddyvisco2d_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 		laml(1)=laml(3)
@@ -891,14 +891,14 @@ kmaxe=xmpielrank(n)
     if (dg.eq.1)then
 
 
-      CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*diff_scale*((2*iorder+1)/ielem_minedge(i))))))
+      CFL_DT=min(CFL_DT,(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.00*diff_scale*((2*iorder+1)/ielem_minedge(i))))))
 
 
       else
 
 
 
-			CFL_DT=min(CFL_DT,ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*diff_scale/((ielem_minedge(i)))**2))))
+			CFL_DT=min(CFL_DT,ccfl*(1.00/((abs(veln)/((ielem_minedge(i)))) + (0.50*diff_scale/((ielem_minedge(i)))**2))))
 	      end if
 #endif
 
@@ -974,7 +974,7 @@ real,dimension(1:4)::viscl,laml
 	!$omp do
 #endif
         do i=1,kmaxe
-		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 #ifdef xpu
 		call cons2prim_ideal(n,leftv,mp_pinfl,gammal)
 #else
@@ -994,7 +994,7 @@ real,dimension(1:4)::viscl,laml
 
 		if (dg.eq.1)then
 
-		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))*(1.0d0/(2*iorder+1))
+		ielem_dtl(i)=ccfl*((ielem_minedge(i))/(abs(veln)))*(1.00/(2*iorder+1))
 
 		else
 
@@ -1035,42 +1035,42 @@ real,dimension(1:4)::viscl,laml
 #endif
         do i=1,kmaxe
 #ifdef xpu
-		cfl_rho=u_c_val(1,1,i)
-		cfl_orho=1.0d0/cfl_rho
-		cfl_u=u_c_val(1,2,i)*cfl_orho
-		cfl_v=u_c_val(1,3,i)*cfl_orho
+		cfl_rho=u_c_val(i,1,1)
+		cfl_orho=1.00/cfl_rho
+		cfl_u=u_c_val(i,1,2)*cfl_orho
+		cfl_v=u_c_val(i,1,3)*cfl_orho
 		cfl_q2=(cfl_u*cfl_u)+(cfl_v*cfl_v)
-		cfl_p=(gamma-1.0d0)*(u_c_val(1,4,i)-0.5d0*cfl_rho*cfl_q2)
+		cfl_p=(gamma-1.00)*(u_c_val(i,1,4)-0.50*cfl_rho*cfl_q2)
 		agrt=sqrt(cfl_p*gamma*cfl_orho)
 		cfl_temp=cfl_p*cfl_orho/r_gas
 		cfl_tratio=cfl_temp/cfl_tref
 		cfl_mu=visc*(cfl_tratio*sqrt(cfl_tratio))*((cfl_tref+suther*cfl_tref)/(cfl_temp+suther*cfl_tref))
-		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.0d0))
+		cfl_lam=cfl_mu*r_gas*gamma/(prandtl*(gamma-1.00))
 		veln=max(abs(cfl_u),abs(cfl_v))+agrt
 		if ((turbulence.eq.1).and.(turbulencemodel.eq.1))then
-			cfl_mut=u_ct_val(1,1,i)
-			cfl_chi=abs(max(cfl_mut,1.0d-15)/max(cfl_mu,1.0d-15))
+			cfl_mut=u_ct_val(i,1,1)
+			cfl_chi=abs(max(cfl_mut,1.0e-15)/max(cfl_mu,1.0e-15))
 			cfl_chi3=cfl_chi*cfl_chi*cfl_chi
 			cfl_fv1=cfl_chi3/(cfl_chi3+(cv1*cv1*cv1))
 			cfl_mut=cfl_mut*cfl_fv1
-			cfl_mut=min(10000000.0d0*visc,cfl_mut)
-			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.0d0)))
-			cfl_mut=max(0.0d0,cfl_mut)
-			if (u_ct_val(1,1,i).lt.0.0d0)cfl_mut=0.0d0
+			cfl_mut=min(10000000.00*visc,cfl_mut)
+			cfl_lam=cfl_lam+(cfl_mut*r_gas*gamma/(prtu*(gamma-1.00)))
+			cfl_mut=max(0.00,cfl_mut)
+			if (u_ct_val(i,1,1).lt.0.00)cfl_mut=0.00
 			cfl_mu=cfl_mu+cfl_mut
 		end if
-		cfl_vdiff=max(((4.0d0/3.0d0)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.0d0)*cfl_orho/r_gas)
+		cfl_vdiff=max(((4.00/3.00)*cfl_mu*cfl_orho),cfl_lam*(gamma-1.00)*cfl_orho/r_gas)
 		if (dg.eq.1)then
-			ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.0d0*cfl_vdiff*((2*iorder+1)/ielem_minedge(i)))))
+			ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/(abs(veln)+(2.00*cfl_vdiff*((2*iorder+1)/ielem_minedge(i)))))
 		else
-			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/ielem_minedge(i))+(0.5d0*cfl_vdiff/(ielem_minedge(i)**2))))
+			ielem_dtl(i)=ccfl*(1.00/((abs(veln)/ielem_minedge(i))+(0.50*cfl_vdiff/(ielem_minedge(i)**2))))
 		end if
 #else
-		leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+		leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		rightv(1:nof_variables)=leftv(1:nof_variables)
 		call get_visc_conduct(n,leftv,rightv,viscl,laml)
 
-        leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+        leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 		call cons2prim(n,leftv,mp_pinfl,gammal)
 		if ((multispecies.eq.1).or.(realgas.eq.1))then
 		agrt=sqrt((leftv(4)+mp_pinfl)*gammal/leftv(1))
@@ -1090,7 +1090,7 @@ real,dimension(1:4)::viscl,laml
 		veln=max(abs(leftv(2)),abs(leftv(3)))+agrt
 		if (turbulence.eq.1)then
 		if (turbulencemodel.eq.1)then
-		turbmv(1)=u_ct_val(1,1,i);  turbmv(2)=u_ct_val(1,1,i);
+		turbmv(1)=u_ct_val(i,1,1);  turbmv(2)=u_ct_val(i,1,1);
 		eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
 		call eddyvisco2d_ideal(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
 		laml(1)=laml(3)
@@ -1108,12 +1108,12 @@ real,dimension(1:4)::viscl,laml
 		if (dg.eq.1)then
 
 
-      ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.0d0*diff_scale*((2*iorder+1)/ielem_minedge(i)))))
+      ielem_dtl(i)=(ccfl/(2*iorder+1))*(ielem_minedge(i)/((abs(veln))+(2.00*diff_scale*((2*iorder+1)/ielem_minedge(i)))))
 
 
       else
 
-			ielem_dtl(i)=ccfl*(1.0d0/((abs(veln)/((ielem_minedge(i)))) + (0.5d0*diff_scale/((ielem_minedge(i)))**2)))
+			ielem_dtl(i)=ccfl*(1.00/((abs(veln)/((ielem_minedge(i)))) + (0.50*diff_scale/((ielem_minedge(i)))**2)))
 
 
 			end if
@@ -1205,10 +1205,10 @@ end if
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,4,1:nof_variables)=u_c_val(i,2,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1226,9 +1226,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,2,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,2,1:turbulenceequations+passivescalar)-(dt*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1250,8 +1250,8 @@ end do
 #endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,4,1:nof_variables)=u_c_val(i,2,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
     ielem_mood_o(i)=2
    end if
 end do
@@ -1273,11 +1273,11 @@ call mood_operator_1(n)
 #endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,1,1:nof_variables)=u_c_val(i,2,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
     ielem_mood_o(i)=1
    else
-   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   u_c_val(i,1,1:nof_variables)=u_c_val(i,4,1:nof_variables)
    end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -1332,10 +1332,10 @@ end if
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
-((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,4,1:nof_variables)=(to4*u_c_val(i,2,1:nof_variables))+(oo4*u_c_val(i,3,1:nof_variables))-(((oo4))*((dt)*&
+((rhs_val(i,1:nof_variables))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1353,10 +1353,10 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
-((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,3,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(to4*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(oo4*u_ct_val(i,3,1:turbulenceequations+passivescalar))-(((oo4))*((dt)*&
+((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1378,9 +1378,9 @@ end do
 #endif
 do i=1,kmaxe
      if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
-((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,4,1:nof_variables)=(to4*u_c_val(i,2,1:nof_variables))+(oo4*u_c_val(i,3,1:nof_variables))-(((oo4))*((dt)*&
+((rhs_val(i,1:nof_variables))*(oovolume))))
     ielem_mood_o(i)=2
    end if
 end do
@@ -1402,12 +1402,12 @@ call mood_operator_1(n)
 #endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(1,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
-((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,1,1:nof_variables)=(to4*u_c_val(i,2,1:nof_variables))+(oo4*u_c_val(i,3,1:nof_variables))-(((oo4))*((dt)*&
+((rhs_val(i,1:nof_variables))*(oovolume))))
     ielem_mood_o(i)=1
    else
-   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   u_c_val(i,1,1:nof_variables)=u_c_val(i,4,1:nof_variables)
    end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -1462,10 +1462,10 @@ end if
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
-((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,4,1:nof_variables)=((oo3)*u_c_val(i,2,1:nof_variables))+((to3)*u_c_val(i,1,1:nof_variables))-(((to3))*&
+((dt)*((rhs_val(i,1:nof_variables))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1487,9 +1487,9 @@ if (mood.eq.1)then
 #endif
 do i=1,kmaxe
      if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
-((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,4,1:nof_variables)=((oo3)*u_c_val(i,2,1:nof_variables))+((to3)*u_c_val(i,3,1:nof_variables))-(((to3))*&
+((dt)*((rhs_val(i,1:nof_variables))*(oovolume))))
     ielem_mood_o(i)=2
    end if
 end do
@@ -1511,12 +1511,12 @@ call mood_operator_1(n)
 #endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(1,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
-((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,1,1:nof_variables)=((oo3)*u_c_val(i,2,1:nof_variables))+((to3)*u_c_val(i,1,1:nof_variables))-(((to3))*&
+((dt)*((rhs_val(i,1:nof_variables))*(oovolume))))
     ielem_mood_o(i)=1
    else
-   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   u_c_val(i,1,1:nof_variables)=u_c_val(i,4,1:nof_variables)
    end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -1538,9 +1538,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
-((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+u_ct_val(i,1,1:turbulenceequations+passivescalar)=((oo3)*u_ct_val(i,2,1:turbulenceequations+passivescalar))+((to3)*u_ct_val(i,1,1:turbulenceequations+passivescalar))-(((to3))*&
+((dt)*((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1593,12 +1593,12 @@ call call_flux_subroutines_3d
 #endif
 do i=1,kmaxe
   if (dg == 1) then
-        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,2,1:nof_variables,:)=u_c_valdg(i,1,1:nof_variables,:)
 
            call dg_mass_rhs_product_cell(i)
            do mm_var=1,nof_variables
              do mm_idof=1,num_dg_dofs
-               u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+               u_c_valdg(i,1,mm_var,mm_idof) = u_c_valdg(i,2,mm_var,mm_idof) - dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
              end do
            end do
 
@@ -1606,17 +1606,17 @@ do i=1,kmaxe
 
 
     else
-        oovolume=1.0d0/ielem_totvolume(i)
-        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        oovolume=1.00/ielem_totvolume(i)
+        u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
         old_state=zero
         candidate=zero
-        old_state(1:nof_variables)=u_c_val(2,1:nof_variables,i)
-        candidate(1:nof_variables)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+        old_state(1:nof_variables)=u_c_val(i,2,1:nof_variables)
+        candidate(1:nof_variables)=u_c_val(i,2,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
         call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
         if (accepted_update) then
-          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+          u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         else
-          u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+          u_c_val(i,1,1:nof_variables)=u_c_val(i,2,1:nof_variables)
         end if
     end if
 end do
@@ -1643,9 +1643,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,2,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,2,1:turbulenceequations+passivescalar)-(dt*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1668,29 +1668,29 @@ call call_flux_subroutines_3d
 #endif
 do i=1,kmaxe
   if (dg == 1) then
-        u_c_valdg(3,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,3,1:nof_variables,:)=u_c_valdg(i,1,1:nof_variables,:)
            call dg_mass_rhs_product_cell(i)
            do mm_var=1,nof_variables
              do mm_idof=1,num_dg_dofs
-               u_c_valdg(1,mm_var,mm_idof,i) = to4*u_c_valdg(2,mm_var,mm_idof,i) + oo4*u_c_valdg(3,mm_var,mm_idof,i) - oo4*dt* rhs_sol_mm_dg(mm_idof,mm_var,i)
+               u_c_valdg(i,1,mm_var,mm_idof) = to4*u_c_valdg(i,2,mm_var,mm_idof) + oo4*u_c_valdg(i,3,mm_var,mm_idof) - oo4*dt* rhs_sol_mm_dg(i,mm_idof,mm_var)
              end do
            end do
 
 
 
     else
-        oovolume=1.0d0/ielem_totvolume(i)
-        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        oovolume=1.00/ielem_totvolume(i)
+        u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
         old_state=zero
         candidate=zero
-        old_state(1:nof_variables)=u_c_val(3,1:nof_variables,i)
-        candidate(1:nof_variables)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
-        ((rhs_val(1:nof_variables,i))*(oovolume))))
+        old_state(1:nof_variables)=u_c_val(i,3,1:nof_variables)
+        candidate(1:nof_variables)=(to4*u_c_val(i,2,1:nof_variables))+(oo4*u_c_val(i,3,1:nof_variables))-(((oo4))*((dt)*&
+        ((rhs_val(i,1:nof_variables))*(oovolume))))
         call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
         if (accepted_update) then
-          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+          u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         else
-          u_c_val(1,1:nof_variables,i)=u_c_val(3,1:nof_variables,i)
+          u_c_val(i,1,1:nof_variables)=u_c_val(i,3,1:nof_variables)
         end if
     end if
 end do
@@ -1714,10 +1714,10 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
-((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,3,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(to4*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(oo4*u_ct_val(i,3,1:turbulenceequations+passivescalar))-(((oo4))*((dt)*&
+((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1753,21 +1753,21 @@ do i=1,kmaxe
 
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = oo3*u_c_valdg(2,mm_var,mm_idof,i) + to3*u_c_valdg(1,mm_var,mm_idof,i) - to3*dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = oo3*u_c_valdg(i,2,mm_var,mm_idof) + to3*u_c_valdg(i,1,mm_var,mm_idof) - to3*dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
 
 
     else
-        oovolume=1.0d0/ielem_totvolume(i)
+        oovolume=1.00/ielem_totvolume(i)
         old_state=zero
         candidate=zero
-        old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-        candidate(1:nof_variables)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
-        ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+        old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
+        candidate(1:nof_variables)=((oo3)*u_c_val(i,2,1:nof_variables))+((to3)*u_c_val(i,1,1:nof_variables))-(((to3))*&
+        ((dt)*((rhs_val(i,1:nof_variables))*(oovolume))))
         call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
         if (accepted_update) then
-          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+          u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         end if
     end if
 end do
@@ -1791,9 +1791,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
-((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+u_ct_val(i,1,1:turbulenceequations+passivescalar)=((oo3)*u_ct_val(i,2,1:turbulenceequations+passivescalar))+((to3)*u_ct_val(i,1,1:turbulenceequations+passivescalar))-(((to3))*&
+((dt)*((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1853,7 +1853,7 @@ call call_flux_subroutines_3d
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
+  oovolume=1.00/ielem_totvolume(i)
 
  if (dg == 1) then
 
@@ -1861,7 +1861,7 @@ do i=1,kmaxe
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(1,mm_var,mm_idof,i) - dt* rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = u_c_valdg(i,1,mm_var,mm_idof) - dt* rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
 
@@ -1870,7 +1870,7 @@ do i=1,kmaxe
 
 
 
-  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  u_c_val(i,1,1:nof_variables)=u_c_val(i,1,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
   end if
 
 end do
@@ -1890,8 +1890,8 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)-(dt*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1940,9 +1940,9 @@ call call_flux_subroutines_3d
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,1,1:nof_variables)=u_c_val(i,1,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
 
 end do
 #if defined(gpu) || defined(xpu)
@@ -1960,9 +1960,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,2,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)-(dt*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1984,8 +1984,8 @@ call call_flux_subroutines_3d
 	!$omp do
 #endif
 do i=1,kmaxe
- oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(1,1:nof_variables,i)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-(dt*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+ oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,1,1:nof_variables)=(oo2*u_c_val(i,2,1:nof_variables))+(oo2*u_c_val(i,1,1:nof_variables))-(dt*oo2*(rhs_val(i,1:nof_variables)*oovolume))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2003,8 +2003,8 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(dt*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(oo2*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(oo2*u_ct_val(i,1,1:turbulenceequations+passivescalar))-(dt*oo2*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2064,31 +2064,31 @@ call call_flux_subroutines_3d
 	!$omp do private(oovolume,candidate,old_state,limited,update_alpha,accepted_update)
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
+  oovolume=1.00/ielem_totvolume(i)
 
 
   if (dg == 1) then
-        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,2,1:nof_variables,:)=u_c_valdg(i,1,1:nof_variables,:)
 
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - ielem_dtl(i) * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = u_c_valdg(i,2,mm_var,mm_idof) - ielem_dtl(i) * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
 
     else
 
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
   old_state=zero
   candidate=zero
-  old_state(1:nof_variables)=u_c_val(2,1:nof_variables,i)
-  candidate(1:nof_variables)=u_c_val(2,1:nof_variables,i)-(ielem_dtl(i)*(rhs_val(1:nof_variables,i)*oovolume))
+  old_state(1:nof_variables)=u_c_val(i,2,1:nof_variables)
+  candidate(1:nof_variables)=u_c_val(i,2,1:nof_variables)-(ielem_dtl(i)*(rhs_val(i,1:nof_variables)*oovolume))
   call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
   if (accepted_update) then
-    u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+    u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
   else
-    u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+    u_c_val(i,1,1:nof_variables)=u_c_val(i,2,1:nof_variables)
   end if
   end if
 end do
@@ -2108,9 +2108,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(ielem_dtl(i)*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,2,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)-(ielem_dtl(i)*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2131,7 +2131,7 @@ call call_flux_subroutines_3d
 	!$omp do private(oovolume,candidate,old_state,limited,update_alpha,accepted_update)
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
+  oovolume=1.00/ielem_totvolume(i)
 
   if (dg == 1) then
 
@@ -2139,7 +2139,7 @@ do i=1,kmaxe
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = (oo2*u_c_valdg(2,mm_var,mm_idof,i)) +(oo2*u_c_valdg(1,mm_var,mm_idof,i))- (ielem_dtl(i) *oo2* rhs_sol_mm_dg(mm_idof,mm_var,i))
+              u_c_valdg(i,1,mm_var,mm_idof) = (oo2*u_c_valdg(i,2,mm_var,mm_idof)) +(oo2*u_c_valdg(i,1,mm_var,mm_idof))- (ielem_dtl(i) *oo2* rhs_sol_mm_dg(i,mm_idof,mm_var))
             end do
           end do
 
@@ -2149,12 +2149,12 @@ do i=1,kmaxe
 
   old_state=zero
   candidate=zero
-  old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-  candidate(1:nof_variables)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-&
-                             (ielem_dtl(i)*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+  old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  candidate(1:nof_variables)=(oo2*u_c_val(i,2,1:nof_variables))+(oo2*u_c_val(i,1,1:nof_variables))-&
+                             (ielem_dtl(i)*oo2*(rhs_val(i,1:nof_variables)*oovolume))
   call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
   if (accepted_update) then
-    u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+    u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
   end if
   end if
 end do
@@ -2174,8 +2174,8 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(ielem_dtl(i)*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(oo2*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(oo2*u_ct_val(i,1,1:turbulenceequations+passivescalar))-(ielem_dtl(i)*oo2*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2226,26 +2226,26 @@ call call_flux_subroutines_2d
 do i=1,kmaxe
 
   if (dg == 1) then
-oovolume=1.0d0/ielem_totvolume(i)
-        u_c_valdg(2,:,:,i)=u_c_valdg(1,:,:,i)
+oovolume=1.00/ielem_totvolume(i)
+        u_c_valdg(i,2,:,:)=u_c_valdg(i,1,:,:)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - (ielem_dtl(i)* rhs_sol_mm_dg(mm_idof,mm_var,i))
+              u_c_valdg(i,1,mm_var,mm_idof) = u_c_valdg(i,2,mm_var,mm_idof) - (ielem_dtl(i)* rhs_sol_mm_dg(i,mm_idof,mm_var))
             end do
           end do
     else
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
   old_state=zero
   candidate=zero
-  old_state(1:nof_variables)=u_c_val(2,1:nof_variables,i)
-  candidate(1:nof_variables)=u_c_val(2,1:nof_variables,i)-(ielem_dtl(i)*(rhs_val(1:nof_variables,i)*oovolume))
+  old_state(1:nof_variables)=u_c_val(i,2,1:nof_variables)
+  candidate(1:nof_variables)=u_c_val(i,2,1:nof_variables)-(ielem_dtl(i)*(rhs_val(i,1:nof_variables)*oovolume))
   call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
   if (accepted_update) then
-    u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+    u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
   else
-    u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+    u_c_val(i,1,1:nof_variables)=u_c_val(i,2,1:nof_variables)
   end if
   end if
 
@@ -2269,9 +2269,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(ielem_dtl(i)*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,2,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)-(ielem_dtl(i)*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2295,23 +2295,23 @@ call call_flux_subroutines_2d
 do i=1,kmaxe
 
    if (dg == 1) then
-oovolume=1.0d0/ielem_totvolume(i)
+oovolume=1.00/ielem_totvolume(i)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = (oo2*u_c_valdg(2,mm_var,mm_idof,i))+(oo2*u_c_valdg(1,mm_var,mm_idof,i))-(ielem_dtl(i)* rhs_sol_mm_dg(mm_idof,mm_var,i))
+              u_c_valdg(i,1,mm_var,mm_idof) = (oo2*u_c_valdg(i,2,mm_var,mm_idof))+(oo2*u_c_valdg(i,1,mm_var,mm_idof))-(ielem_dtl(i)* rhs_sol_mm_dg(i,mm_idof,mm_var))
             end do
           end do
     else
-  oovolume=1.0d0/ielem_totvolume(i)
+  oovolume=1.00/ielem_totvolume(i)
   old_state=zero
   candidate=zero
-  old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-  candidate(1:nof_variables)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-&
-                             (ielem_dtl(i)*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+  old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  candidate(1:nof_variables)=(oo2*u_c_val(i,2,1:nof_variables))+(oo2*u_c_val(i,1,1:nof_variables))-&
+                             (ielem_dtl(i)*oo2*(rhs_val(i,1:nof_variables)*oovolume))
   call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
   if (accepted_update) then
-    u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+    u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
   end if
 
   end if
@@ -2333,8 +2333,8 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(oo2*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo2*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(ielem_dtl(i)*oo2*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(oo2*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(oo2*u_ct_val(i,1,1:turbulenceequations+passivescalar))-(ielem_dtl(i)*oo2*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2384,18 +2384,18 @@ call call_flux_subroutines_2d
 #endif
 do i=1,kmaxe
 if (dg == 1) then
-oovolume=1.0d0/ielem_totvolume(i)
-        u_c_valdg(2,:,:,i)=u_c_valdg(1,:,:,i)
+oovolume=1.00/ielem_totvolume(i)
+        u_c_valdg(i,2,:,:)=u_c_valdg(i,1,:,:)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - (dt * rhs_sol_mm_dg(mm_idof,mm_var,i))
+              u_c_valdg(i,1,mm_var,mm_idof) = u_c_valdg(i,2,mm_var,mm_idof) - (dt * rhs_sol_mm_dg(i,mm_idof,mm_var))
             end do
           end do
     else
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,1,1:nof_variables)=u_c_val(i,2,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
   end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -2415,9 +2415,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,2,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,2,1:turbulenceequations+passivescalar)-(dt*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2439,16 +2439,16 @@ call call_flux_subroutines_2d
 #endif
 do i=1,kmaxe
 if (dg == 1) then
-oovolume=1.0d0/ielem_totvolume(i)
+oovolume=1.00/ielem_totvolume(i)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = oo2*u_c_valdg(2,mm_var,mm_idof,i) + oo2*u_c_valdg(1,mm_var,mm_idof,i) - (oo2*dt * rhs_sol_mm_dg(mm_idof,mm_var,i))
+              u_c_valdg(i,1,mm_var,mm_idof) = oo2*u_c_valdg(i,2,mm_var,mm_idof) + oo2*u_c_valdg(i,1,mm_var,mm_idof) - (oo2*dt * rhs_sol_mm_dg(i,mm_idof,mm_var))
             end do
           end do
     else
- oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(1,1:nof_variables,i)=(oo2*u_c_val(2,1:nof_variables,i))+(oo2*u_c_val(1,1:nof_variables,i))-(dt*oo2*(rhs_val(1:nof_variables,i)*oovolume))
+ oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,1,1:nof_variables)=(oo2*u_c_val(i,2,1:nof_variables))+(oo2*u_c_val(i,1,1:nof_variables))-(dt*oo2*(rhs_val(i,1:nof_variables)*oovolume))
   end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -2467,8 +2467,8 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(u_ct_val(2,1:turbulenceequations+passivescalar,i))-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(u_ct_val(i,2,1:turbulenceequations+passivescalar))-(dt*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2510,7 +2510,7 @@ kmaxe=xmpielrank(n)
 #endif
 do i=1,kmaxe
   call solution_integ(i,solution_integ2)
-  u_c_val(1,1:nof_variables,i)=solution_integ2(1:nof_variables)
+  u_c_val(i,1,1:nof_variables)=solution_integ2(1:nof_variables)
 end do
 #ifdef gpu
 !$omp end target teams distribute parallel do
@@ -2546,7 +2546,7 @@ do i=1,kmaxe
 
 
   call solution_integ(i,solution_integ2)
-  u_c_val(1,:,i)=solution_integ2(1:nof_variables)
+  u_c_val(i,1,:)=solution_integ2(1:nof_variables)
 
 
 
@@ -2554,8 +2554,8 @@ do i=1,kmaxe
   call solution_integ_s(i,solution_integ_strong)
   call solution_integ_w(i,solution_integ_weak)
 
-  u_cs_val(1,:,i)=solution_integ_strong(1:nof_variables)
-  u_cw_val(1,:,i)=solution_integ_weak(1:nof_variables)
+  u_cs_val(i,1,:)=solution_integ_strong(1:nof_variables)
+  u_cw_val(i,1,:)=solution_integ_weak(1:nof_variables)
   end if
 
 
@@ -2587,8 +2587,8 @@ kmaxe=xmpielrank(n)
 do i=1,kmaxe
 
   call solution_integ(i,solution_integ2)
-  u_c_val(1,:,i)=solution_integ2(1:nof_variables)
-  u_e_val(1,:,i)=u_c_val(1,:,i)
+  u_c_val(i,1,:)=solution_integ2(1:nof_variables)
+  u_e_val(i,1,:)=u_c_val(i,1,:)
 
 
 end do
@@ -2640,7 +2640,7 @@ call call_flux_subroutines_2d
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
+  oovolume=1.00/ielem_totvolume(i)
 
 
   if (dg == 1) then
@@ -2648,13 +2648,13 @@ do i=1,kmaxe
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(1,mm_var,mm_idof,i) - dt* rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = u_c_valdg(i,1,mm_var,mm_idof) - dt* rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
 
   else
 
-  u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  u_c_val(i,1,1:nof_variables)=u_c_val(i,1,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
   end if
 
 
@@ -2677,8 +2677,8 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)-(dt*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2734,29 +2734,29 @@ call call_flux_subroutines_2d
 #endif
 do i=1,kmaxe
     if (dg == 1) then
-        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,2,1:nof_variables,:)=u_c_valdg(i,1,1:nof_variables,:)
 
 
 
             call dg_mass_rhs_product_cell(i)
             do mm_var=1,nof_variables
               do mm_idof=1,num_dg_dofs
-                u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+                u_c_valdg(i,1,mm_var,mm_idof) = u_c_valdg(i,2,mm_var,mm_idof) - dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
               end do
             end do
 
     else
-        oovolume=1.0d0/ielem_totvolume(i)
-        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        oovolume=1.00/ielem_totvolume(i)
+        u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
         old_state=zero
         candidate=zero
-        old_state(1:nof_variables)=u_c_val(2,1:nof_variables,i)
-        candidate(1:nof_variables)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+        old_state(1:nof_variables)=u_c_val(i,2,1:nof_variables)
+        candidate(1:nof_variables)=u_c_val(i,2,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
         call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
         if (accepted_update) then
-          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+          u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         else
-          u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
+          u_c_val(i,1,1:nof_variables)=u_c_val(i,2,1:nof_variables)
         end if
     end if
 end do
@@ -2776,9 +2776,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,2,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,2,1:turbulenceequations+passivescalar)-(dt*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2800,28 +2800,28 @@ call call_flux_subroutines_2d
 #endif
 do i=1,kmaxe
     if (dg == 1) then
-        u_c_valdg(3,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,3,1:nof_variables,:)=u_c_valdg(i,1,1:nof_variables,:)
 
 
             call dg_mass_rhs_product_cell(i)
             do mm_var=1,nof_variables
               do mm_idof=1,num_dg_dofs
-                u_c_valdg(1,mm_var,mm_idof,i) = to4*u_c_valdg(2,mm_var,mm_idof,i) + oo4*u_c_valdg(3,mm_var,mm_idof,i) - oo4*dt* rhs_sol_mm_dg(mm_idof,mm_var,i)
+                u_c_valdg(i,1,mm_var,mm_idof) = to4*u_c_valdg(i,2,mm_var,mm_idof) + oo4*u_c_valdg(i,3,mm_var,mm_idof) - oo4*dt* rhs_sol_mm_dg(i,mm_idof,mm_var)
               end do
             end do
     else
-        oovolume=1.0d0/ielem_totvolume(i)
-        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+        oovolume=1.00/ielem_totvolume(i)
+        u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
         old_state=zero
         candidate=zero
-        old_state(1:nof_variables)=u_c_val(3,1:nof_variables,i)
-        candidate(1:nof_variables)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
-        ((rhs_val(1:nof_variables,i))*(oovolume))))
+        old_state(1:nof_variables)=u_c_val(i,3,1:nof_variables)
+        candidate(1:nof_variables)=(to4*u_c_val(i,2,1:nof_variables))+(oo4*u_c_val(i,3,1:nof_variables))-(((oo4))*((dt)*&
+        ((rhs_val(i,1:nof_variables))*(oovolume))))
         call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
         if (accepted_update) then
-          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+          u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         else
-          u_c_val(1,1:nof_variables,i)=u_c_val(3,1:nof_variables,i)
+          u_c_val(i,1,1:nof_variables)=u_c_val(i,3,1:nof_variables)
         end if
     end if
 end do
@@ -2841,10 +2841,10 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
-((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,3,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(to4*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(oo4*u_ct_val(i,3,1:turbulenceequations+passivescalar))-(((oo4))*((dt)*&
+((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2870,19 +2870,19 @@ do i=1,kmaxe
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = oo3*u_c_valdg(2,mm_var,mm_idof,i) + to3*u_c_valdg(1,mm_var,mm_idof,i) - to3*dt*rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = oo3*u_c_valdg(i,2,mm_var,mm_idof) + to3*u_c_valdg(i,1,mm_var,mm_idof) - to3*dt*rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
     else
-        oovolume=1.0d0/ielem_totvolume(i)
+        oovolume=1.00/ielem_totvolume(i)
         old_state=zero
         candidate=zero
-        old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
-        candidate(1:nof_variables)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(1,1:nof_variables,i))-(((to3))*&
-        ((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+        old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
+        candidate(1:nof_variables)=((oo3)*u_c_val(i,2,1:nof_variables))+((to3)*u_c_val(i,1,1:nof_variables))-(((to3))*&
+        ((dt)*((rhs_val(i,1:nof_variables))*(oovolume))))
         call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
         if (accepted_update) then
-          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+          u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         end if
     end if
 end do
@@ -2903,9 +2903,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
-((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=((oo3)*u_ct_val(i,2,1:turbulenceequations+passivescalar))+((to3)*u_ct_val(i,1,1:turbulenceequations+passivescalar))-(((to3))*&
+((dt)*((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2983,10 +2983,10 @@ end if
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,4,1:nof_variables)=u_c_val(i,2,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3004,9 +3004,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,2,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,2,1:turbulenceequations+passivescalar)-(dt*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3028,8 +3028,8 @@ end do
 #endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(4,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,4,1:nof_variables)=u_c_val(i,2,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
     ielem_mood_o(i)=2
    end if
 end do
@@ -3051,11 +3051,11 @@ call mood_operator_1(n)
 #endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*(rhs_val(1:nof_variables,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,1,1:nof_variables)=u_c_val(i,2,1:nof_variables)-(dt*(rhs_val(i,1:nof_variables)*oovolume))
     ielem_mood_o(i)=1
    else
-   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   u_c_val(i,1,1:nof_variables)=u_c_val(i,4,1:nof_variables)
    end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -3111,10 +3111,10 @@ end if
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
-((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,4,1:nof_variables)=(to4*u_c_val(i,2,1:nof_variables))+(oo4*u_c_val(i,3,1:nof_variables))-(((oo4))*((dt)*&
+((rhs_val(i,1:nof_variables))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3137,10 +3137,10 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(to4*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(oo4*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((oo4))*((dt)*&
-((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,3,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(to4*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(oo4*u_ct_val(i,3,1:turbulenceequations+passivescalar))-(((oo4))*((dt)*&
+((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3162,9 +3162,9 @@ end do
 #endif
 do i=1,kmaxe
      if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(4,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
-((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,4,1:nof_variables)=(to4*u_c_val(i,2,1:nof_variables))+(oo4*u_c_val(i,3,1:nof_variables))-(((oo4))*((dt)*&
+((rhs_val(i,1:nof_variables))*(oovolume))))
     ielem_mood_o(i)=2
    end if
 end do
@@ -3186,12 +3186,12 @@ call mood_operator_1(n)
 #endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(1,1:nof_variables,i)=(to4*u_c_val(2,1:nof_variables,i))+(oo4*u_c_val(3,1:nof_variables,i))-(((oo4))*((dt)*&
-((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,1,1:nof_variables)=(to4*u_c_val(i,2,1:nof_variables))+(oo4*u_c_val(i,3,1:nof_variables))-(((oo4))*((dt)*&
+((rhs_val(i,1:nof_variables))*(oovolume))))
     ielem_mood_o(i)=1
    else
-   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   u_c_val(i,1,1:nof_variables)=u_c_val(i,4,1:nof_variables)
    end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -3246,10 +3246,10 @@ end if
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
-((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,4,1:nof_variables)=((oo3)*u_c_val(i,2,1:nof_variables))+((to3)*u_c_val(i,3,1:nof_variables))-(((to3))*&
+((dt)*((rhs_val(i,1:nof_variables))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3271,9 +3271,9 @@ if (mood.eq.1)then
 #endif
 do i=1,kmaxe
      if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(4,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
-((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,4,1:nof_variables)=((oo3)*u_c_val(i,2,1:nof_variables))+((to3)*u_c_val(i,3,1:nof_variables))-(((to3))*&
+((dt)*((rhs_val(i,1:nof_variables))*(oovolume))))
     ielem_mood_o(i)=2
    end if
 end do
@@ -3295,12 +3295,12 @@ call mood_operator_1(n)
 #endif
 do i=1,kmaxe
     if (ielem_recalc(i).eq.1)then
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_c_val(1,1:nof_variables,i)=((oo3)*u_c_val(2,1:nof_variables,i))+((to3)*u_c_val(3,1:nof_variables,i))-(((to3))*&
-((dt)*((rhs_val(1:nof_variables,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_c_val(i,1,1:nof_variables)=((oo3)*u_c_val(i,2,1:nof_variables))+((to3)*u_c_val(i,3,1:nof_variables))-(((to3))*&
+((dt)*((rhs_val(i,1:nof_variables))*(oovolume))))
     ielem_mood_o(i)=1
    else
-   u_c_val(1,1:nof_variables,i)=u_c_val(4,1:nof_variables,i)
+   u_c_val(i,1,1:nof_variables)=u_c_val(i,4,1:nof_variables)
    end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -3322,9 +3322,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-u_ct_val(1,1:turbulenceequations+passivescalar,i)=((oo3)*u_ct_val(2,1:turbulenceequations+passivescalar,i))+((to3)*u_ct_val(1,1:turbulenceequations+passivescalar,i))-(((to3))*&
-((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+u_ct_val(i,1,1:turbulenceequations+passivescalar)=((oo3)*u_ct_val(i,2,1:turbulenceequations+passivescalar))+((to3)*u_ct_val(i,1,1:turbulenceequations+passivescalar))-(((to3))*&
+((dt)*((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3380,18 +3380,18 @@ call call_flux_subroutines_3d
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
+  oovolume=1.00/ielem_totvolume(i)
   if (dg == 1) then
-        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,2,1:nof_variables,:)=u_c_valdg(i,1,1:nof_variables,:)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - dt * 0.391752226571890 * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = u_c_valdg(i,2,mm_var,mm_idof) - dt * 0.391752226571890 * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
     else
-        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-        u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*0.391752226571890*(rhs_val(1:nof_variables,i)*oovolume))
+        u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+        u_c_val(i,1,1:nof_variables)=u_c_val(i,2,1:nof_variables)-(dt*0.391752226571890*(rhs_val(i,1:nof_variables)*oovolume))
     end if
 
 end do
@@ -3411,9 +3411,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*0.391752226571890*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,2,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,2,1:turbulenceequations+passivescalar)-(dt*0.391752226571890*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3491,18 +3491,18 @@ do i=1,kmaxe
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
+  oovolume=1.00/ielem_totvolume(i)
   if (dg == 1) then
-        u_c_valdg(3,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,3,1:nof_variables,:) = u_c_valdg(i,1,1:nof_variables,:)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = 0.444370493651235 * u_c_valdg(2,mm_var,mm_idof,i) + 0.555629506348765 * u_c_valdg(3,mm_var,mm_idof,i) - 0.368410593050371 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = 0.444370493651235 * u_c_valdg(i,2,mm_var,mm_idof) + 0.555629506348765 * u_c_valdg(i,3,mm_var,mm_idof) - 0.368410593050371 * dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
     else
-        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-        u_c_val(1,1:nof_variables,i)=(0.444370493651235 * u_c_val(2,1:nof_variables,i)) + (0.555629506348765 * u_c_val(3,1:nof_variables,i)) - 0.368410593050371 * dt * rhs_val(1:nof_variables,i) * oovolume
+        u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+        u_c_val(i,1,1:nof_variables)=(0.444370493651235 * u_c_val(i,2,1:nof_variables)) + (0.555629506348765 * u_c_val(i,3,1:nof_variables)) - 0.368410593050371 * dt * rhs_val(i,1:nof_variables) * oovolume
     end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -3521,10 +3521,10 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-    u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.444370493651235*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.555629506348765*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((0.368410593050371))*((dt)*&
-((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+    u_ct_val(i,3,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(0.444370493651235*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(0.555629506348765*u_ct_val(i,3,1:turbulenceequations+passivescalar))-(((0.368410593050371))*((dt)*&
+((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3546,18 +3546,18 @@ end do
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
+  oovolume=1.00/ielem_totvolume(i)
    if (dg == 1) then
-        u_c_valdg(4,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,4,1:nof_variables,:) = u_c_valdg(i,1,1:nof_variables,:)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = 0.620101851488403 * u_c_valdg(2,mm_var,mm_idof,i) + 0.379898148511597 * u_c_valdg(4,mm_var,mm_idof,i) - 0.251891774271694 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = 0.620101851488403 * u_c_valdg(i,2,mm_var,mm_idof) + 0.379898148511597 * u_c_valdg(i,4,mm_var,mm_idof) - 0.251891774271694 * dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
     else
-        u_c_val(4,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
-        u_c_val(1,1:nof_variables,i) = 0.620101851488403 * u_c_val(2,1:nof_variables,i) + 0.379898148511597 * u_c_val(4,1:nof_variables,i) - 0.251891774271694 * dt * rhs_val(1:nof_variables,i) * oovolume
+        u_c_val(i,4,1:nof_variables) = u_c_val(i,1,1:nof_variables)
+        u_c_val(i,1,1:nof_variables) = 0.620101851488403 * u_c_val(i,2,1:nof_variables) + 0.379898148511597 * u_c_val(i,4,1:nof_variables) - 0.251891774271694 * dt * rhs_val(i,1:nof_variables) * oovolume
     end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -3577,10 +3577,10 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(4,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.620101851488403*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.379898148511597*u_ct_val(4,1:turbulenceequations+passivescalar,i))-(((0.251891774271694))*((dt)*&
-((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,4,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(0.620101851488403*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(0.379898148511597*u_ct_val(i,4,1:turbulenceequations+passivescalar))-(((0.251891774271694))*((dt)*&
+((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3600,25 +3600,25 @@ end do
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
+  oovolume=1.00/ielem_totvolume(i)
   if (dg == 1) then
-        u_c_valdg(5,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,5,1:nof_variables,:) = u_c_valdg(i,1,1:nof_variables,:)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(6,mm_var,mm_idof,i) = - dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,6,mm_var,mm_idof) = - dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = 0.178079954393132 * u_c_valdg(2,mm_var,mm_idof,i) + 0.821920045606868 * u_c_valdg(5,mm_var,mm_idof,i) - 0.544974750228521 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = 0.178079954393132 * u_c_valdg(i,2,mm_var,mm_idof) + 0.821920045606868 * u_c_valdg(i,5,mm_var,mm_idof) - 0.544974750228521 * dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
     else
-        u_c_val(5,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
-        u_c_val(6,1:nof_variables,i) = - dt * rhs_val(1:nof_variables,i) * oovolume
-        u_c_val(1,1:nof_variables,i) = 0.178079954393132 * u_c_val(2,1:nof_variables,i) + 0.821920045606868 * u_c_val(5,1:nof_variables,i) - 0.544974750228521 * dt * rhs_val(1:nof_variables,i) * oovolume
+        u_c_val(i,5,1:nof_variables) = u_c_val(i,1,1:nof_variables)
+        u_c_val(i,6,1:nof_variables) = - dt * rhs_val(i,1:nof_variables) * oovolume
+        u_c_val(i,1,1:nof_variables) = 0.178079954393132 * u_c_val(i,2,1:nof_variables) + 0.821920045606868 * u_c_val(i,5,1:nof_variables) - 0.544974750228521 * dt * rhs_val(i,1:nof_variables) * oovolume
     end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -3637,11 +3637,11 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-    u_ct_val(5,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(6,1:turbulenceequations+passivescalar,i)=-((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.178079954393132*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.821920045606868*u_ct_val(5,1:turbulenceequations+passivescalar,i))-(((0.544974750228521))*((dt)*&
-((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+    u_ct_val(i,5,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,6,1:turbulenceequations+passivescalar)=-((dt)*((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume)))
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(0.178079954393132*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(0.821920045606868*u_ct_val(i,5,1:turbulenceequations+passivescalar))-(((0.544974750228521))*((dt)*&
+((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3662,16 +3662,16 @@ end do
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
+  oovolume=1.00/ielem_totvolume(i)
   if (dg == 1) then
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = (0.00683325884039 * u_c_valdg(2,mm_var,mm_idof,i)) + (0.517231671970585 * u_c_valdg(4,mm_var,mm_idof,i)) + (0.12759831133288 * u_c_valdg(5,mm_var,mm_idof,i)) + (0.34833675773694 * u_c_valdg(1,mm_var,mm_idof,i)) + (0.08460416338212 * u_c_valdg(6,mm_var,mm_idof,i)) - 0.22600748319395 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = (0.00683325884039 * u_c_valdg(i,2,mm_var,mm_idof)) + (0.517231671970585 * u_c_valdg(i,4,mm_var,mm_idof)) + (0.12759831133288 * u_c_valdg(i,5,mm_var,mm_idof)) + (0.34833675773694 * u_c_valdg(i,1,mm_var,mm_idof)) + (0.08460416338212 * u_c_valdg(i,6,mm_var,mm_idof)) - 0.22600748319395 * dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
     else
-        u_c_val(1,1:nof_variables,i) = (0.00683325884039 * u_c_val(2,1:nof_variables,i)) + (0.517231671970585 * u_c_val(4,1:nof_variables,i)) +  (0.12759831133288 * u_c_val(5,1:nof_variables,i)) + (0.34833675773694 * u_c_val(1,1:nof_variables,i)) + (0.08460416338212 * u_c_val(6,1:nof_variables,i)) - (0.22600748319395 * dt * rhs_val(1:nof_variables,i) * oovolume)
+        u_c_val(i,1,1:nof_variables) = (0.00683325884039 * u_c_val(i,2,1:nof_variables)) + (0.517231671970585 * u_c_val(i,4,1:nof_variables)) +  (0.12759831133288 * u_c_val(i,5,1:nof_variables)) + (0.34833675773694 * u_c_val(i,1,1:nof_variables)) + (0.08460416338212 * u_c_val(i,6,1:nof_variables)) - (0.22600748319395 * dt * rhs_val(i,1:nof_variables) * oovolume)
     end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -3691,10 +3691,10 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.00683325884039*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.517231671970585*u_ct_val(4,1:turbulenceequations+passivescalar,i))+&
-				(0.12759831133288*u_ct_val(5,1:turbulenceequations+passivescalar,i))+(0.34833675773694*u_ct_val(1,1:turbulenceequations+passivescalar,i))+&
-				(0.08460416338212*u_ct_val(6,1:turbulenceequations+passivescalar,i))-(0.22600748319395*(dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
+  oovolume=1.00/ielem_totvolume(i)
+   u_ct_val(i,1,1:turbulenceequations+passivescalar)=(0.00683325884039*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(0.517231671970585*u_ct_val(i,4,1:turbulenceequations+passivescalar))+&
+				(0.12759831133288*u_ct_val(i,5,1:turbulenceequations+passivescalar))+(0.34833675773694*u_ct_val(i,1,1:turbulenceequations+passivescalar))+&
+				(0.08460416338212*u_ct_val(i,6,1:turbulenceequations+passivescalar))-(0.22600748319395*(dt)*((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume)))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3844,15 +3844,15 @@ kmaxe=xmpielrank(n)
 !     !$omp master
 !     do i=1,kmaxe
 !           write(300+n,*) "element",ielem_ihexgl(i)
-!           write(300+n,*) "sol",u_c_val(1,1,i)
+!           write(300+n,*) "sol",u_c_val(i,1,1)
 !         do l=1,ielem_ifca(i)
-!                   if (ielem_types_faces(l,i).eq.5)then
+!                   if (ielem_types_faces(i,l).eq.5)then
 ! 					iqp=qp_quad
 ! 				  else
 ! 					iqp=qp_triangle
 ! 				  end if
 ! 				  do ngp=1,iqp
-! 				  write(300+n,*)l,ngp,rec_uleft(1,l,ngp,i)
+! 				  write(300+n,*)l,ngp,rec_uleft(i,1,l,ngp)
 !                   end do
 !         end do
 !     end do
@@ -4074,15 +4074,15 @@ subroutine normalise_species(n)
   integer :: i, k, kmaxe
 
   real :: rho, sumrhoy, scale, rel_err
-!   real, parameter :: epsrho = 1.0d-18
-!   real, parameter :: epssum = 1.0d-300
+!   real, parameter :: epsrho = 1.0e-18
+!   real, parameter :: epssum = 1.0e-300
 !
 !   ! Much larger than roundoff, but still numerically tiny.
-!   real, parameter :: tol_mass_closure = 1.0d-12
+!   real, parameter :: tol_mass_closure = 1.0e-12
 
-  real, parameter :: epsrho = 1.0d-14
-real, parameter :: epssum = 1.0d-300
-real, parameter :: tol_mass_closure = 1.0d-12
+  real, parameter :: epsrho = 1.0e-14
+real, parameter :: epssum = 1.0e-300
+real, parameter :: tol_mass_closure = 1.0e-12
 
   real, dimension(1:gpu_max_species)   :: rhoy
   real, dimension(1:gpu_max_nvar) :: leftv
@@ -4099,44 +4099,44 @@ real, parameter :: tol_mass_closure = 1.0d-12
   do i = 1, kmaxe
 
     ! First make the full conservative state sane.
-    leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+    leftv(1:nof_variables) = u_c_val(i,1,1:nof_variables)
 !     call fix_conservative_state(leftv)
-    u_c_val(1,1:nof_variables,i) = leftv(1:nof_variables)
+    u_c_val(i,1,1:nof_variables) = leftv(1:nof_variables)
 
-    rho = u_c_val(1,1,i)
+    rho = u_c_val(i,1,1)
 
-    if (rho <= epsrho .or. rho /= rho .or. abs(rho) > huge(rho)*0.5d0) then
+    if (rho <= epsrho .or. rho /= rho .or. abs(rho) > huge(rho)*0.50) then
 
       rho = epsrho
-      u_c_val(1,1,i) = rho
+      u_c_val(i,1,1) = rho
 
       do k = 1, nof_species
-        u_c_val(1,dimensiona+3+k,i) = rho * rg_vf(k)
+        u_c_val(i,1,dimensiona+3+k) = rho * rg_vf(k)
       end do
 
-      leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+      leftv(1:nof_variables) = u_c_val(i,1,1:nof_variables)
 !       call fix_conservative_state(leftv)
-      u_c_val(1,1:nof_variables,i) = leftv(1:nof_variables)
+      u_c_val(i,1,1:nof_variables) = leftv(1:nof_variables)
 
       cycle
 
     end if
 
     need_repair = .false.
-    sumrhoy = 0.0d0
+    sumrhoy = 0.00
 
     do k = 1, nof_species
 
-      rhoy(k) = u_c_val(1,dimensiona+3+k,i)
+      rhoy(k) = u_c_val(i,1,dimensiona+3+k)
 
       bad = (rhoy(k) /= rhoy(k))
-      if (.not. bad) bad = (abs(rhoy(k)) > huge(rhoy(k))*0.5d0)
+      if (.not. bad) bad = (abs(rhoy(k)) > huge(rhoy(k))*0.50)
 
       if (bad) then
-        rhoy(k) = 0.0d0
+        rhoy(k) = 0.00
         need_repair = .true.
-      elseif (rhoy(k) < 0.0d0) then
-        rhoy(k) = 0.0d0
+      elseif (rhoy(k) < 0.00) then
+        rhoy(k) = 0.00
         need_repair = .true.
       end if
 
@@ -4150,9 +4150,9 @@ real, parameter :: tol_mass_closure = 1.0d-12
 
     if (need_repair) then
 
-      sumrhoy = 0.0d0
+      sumrhoy = 0.00
       do k = 1, nof_species
-        rhoy(k) = max(rhoy(k), 0.0d0)
+        rhoy(k) = max(rhoy(k), 0.00)
         sumrhoy = sumrhoy + rhoy(k)
       end do
 
@@ -4177,12 +4177,12 @@ real, parameter :: tol_mass_closure = 1.0d-12
     end if
 
     do k = 1, nof_species
-      u_c_val(1,dimensiona+3+k,i) = rhoy(k)
+      u_c_val(i,1,dimensiona+3+k) = rhoy(k)
     end do
 
-    leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+    leftv(1:nof_variables) = u_c_val(i,1,1:nof_variables)
     call fix_conservative_state(leftv)
-    u_c_val(1,1:nof_variables,i) = leftv(1:nof_variables)
+    u_c_val(i,1,1:nof_variables) = leftv(1:nof_variables)
 
   end do
 
@@ -4321,19 +4321,19 @@ call call_flux_subroutines_2d
 	!$omp do
 #endif
 do i=1,kmaxe
-    oovolume=1.0d0/ielem_totvolume(i)
+    oovolume=1.00/ielem_totvolume(i)
 
     if (dg == 1) then
-        u_c_valdg(2,1:nof_variables,:,i)=u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,2,1:nof_variables,:)=u_c_valdg(i,1,1:nof_variables,:)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = u_c_valdg(2,mm_var,mm_idof,i) - dt * 0.391752226571890 * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = u_c_valdg(i,2,mm_var,mm_idof) - dt * 0.391752226571890 * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
     else
-        u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-        u_c_val(1,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)-(dt*0.391752226571890*(rhs_val(1:nof_variables,i)*oovolume))
+        u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+        u_c_val(i,1,1:nof_variables)=u_c_val(i,2,1:nof_variables)-(dt*0.391752226571890*(rhs_val(i,1:nof_variables)*oovolume))
     end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -4354,9 +4354,9 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(2,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=u_ct_val(2,1:turbulenceequations+passivescalar,i)-(dt*0.391752226571890*(rhst_val(1:turbulenceequations+passivescalar,i)*oovolume))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,2,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=u_ct_val(i,2,1:turbulenceequations+passivescalar)-(dt*0.391752226571890*(rhst_val(i,1:turbulenceequations+passivescalar)*oovolume))
   end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -4376,19 +4376,19 @@ call call_flux_subroutines_2d
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
+  oovolume=1.00/ielem_totvolume(i)
 
     if (dg == 1) then
-        u_c_valdg(3,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,3,1:nof_variables,:) = u_c_valdg(i,1,1:nof_variables,:)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = 0.444370493651235 * u_c_valdg(2,mm_var,mm_idof,i) + 0.555629506348765 * u_c_valdg(3,mm_var,mm_idof,i) - 0.368410593050371 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = 0.444370493651235 * u_c_valdg(i,2,mm_var,mm_idof) + 0.555629506348765 * u_c_valdg(i,3,mm_var,mm_idof) - 0.368410593050371 * dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
     else
-        u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-        u_c_val(1,1:nof_variables,i)=(0.444370493651235 * u_c_val(2,1:nof_variables,i)) + (0.555629506348765 * u_c_val(3,1:nof_variables,i)) - 0.368410593050371 * dt * rhs_val(1:nof_variables,i) * oovolume
+        u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+        u_c_val(i,1,1:nof_variables)=(0.444370493651235 * u_c_val(i,2,1:nof_variables)) + (0.555629506348765 * u_c_val(i,3,1:nof_variables)) - 0.368410593050371 * dt * rhs_val(i,1:nof_variables) * oovolume
     end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -4409,10 +4409,10 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-    u_ct_val(3,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.444370493651235*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.555629506348765*u_ct_val(3,1:turbulenceequations+passivescalar,i))-(((0.368410593050371))*((dt)*&
-((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+    u_ct_val(i,3,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(0.444370493651235*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(0.555629506348765*u_ct_val(i,3,1:turbulenceequations+passivescalar))-(((0.368410593050371))*((dt)*&
+((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -4432,19 +4432,19 @@ call call_flux_subroutines_2d
 	!$omp do
 #endif
 do i=1,kmaxe
-    oovolume=1.0d0/ielem_totvolume(i)
+    oovolume=1.00/ielem_totvolume(i)
 
     if (dg == 1) then
-        u_c_valdg(4,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,4,1:nof_variables,:) = u_c_valdg(i,1,1:nof_variables,:)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = 0.620101851488403 * u_c_valdg(2,mm_var,mm_idof,i) + 0.379898148511597 * u_c_valdg(4,mm_var,mm_idof,i) - 0.251891774271694 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = 0.620101851488403 * u_c_valdg(i,2,mm_var,mm_idof) + 0.379898148511597 * u_c_valdg(i,4,mm_var,mm_idof) - 0.251891774271694 * dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
     else
-        u_c_val(4,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
-        u_c_val(1,1:nof_variables,i) = 0.620101851488403 * u_c_val(2,1:nof_variables,i) + 0.379898148511597 * u_c_val(4,1:nof_variables,i) - 0.251891774271694 * dt * rhs_val(1:nof_variables,i) * oovolume
+        u_c_val(i,4,1:nof_variables) = u_c_val(i,1,1:nof_variables)
+        u_c_val(i,1,1:nof_variables) = 0.620101851488403 * u_c_val(i,2,1:nof_variables) + 0.379898148511597 * u_c_val(i,4,1:nof_variables) - 0.251891774271694 * dt * rhs_val(i,1:nof_variables) * oovolume
     end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -4465,10 +4465,10 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-  u_ct_val(4,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.620101851488403*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.379898148511597*u_ct_val(4,1:turbulenceequations+passivescalar,i))-(((0.251891774271694))*((dt)*&
-((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+  u_ct_val(i,4,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(0.620101851488403*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(0.379898148511597*u_ct_val(i,4,1:turbulenceequations+passivescalar))-(((0.251891774271694))*((dt)*&
+((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -4488,26 +4488,26 @@ call call_flux_subroutines_2d
 	!$omp do
 #endif
 do i=1,kmaxe
-    oovolume=1.0d0/ielem_totvolume(i)
+    oovolume=1.00/ielem_totvolume(i)
 
     if (dg == 1) then
-        u_c_valdg(5,1:nof_variables,:,i) = u_c_valdg(1,1:nof_variables,:,i)
+        u_c_valdg(i,5,1:nof_variables,:) = u_c_valdg(i,1,1:nof_variables,:)
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(6,mm_var,mm_idof,i) = - dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,6,mm_var,mm_idof) = - dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = 0.178079954393132 * u_c_valdg(2,mm_var,mm_idof,i) + 0.821920045606868 * u_c_valdg(5,mm_var,mm_idof,i) - 0.544974750228521 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = 0.178079954393132 * u_c_valdg(i,2,mm_var,mm_idof) + 0.821920045606868 * u_c_valdg(i,5,mm_var,mm_idof) - 0.544974750228521 * dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
     else
-        u_c_val(5,1:nof_variables,i) = u_c_val(1,1:nof_variables,i)
-        u_c_val(6,1:nof_variables,i) = - dt * rhs_val(1:nof_variables,i) * oovolume
-        u_c_val(1,1:nof_variables,i) = 0.178079954393132 * u_c_val(2,1:nof_variables,i) + 0.821920045606868 * u_c_val(5,1:nof_variables,i) - 0.544974750228521 * dt * rhs_val(1:nof_variables,i) * oovolume
+        u_c_val(i,5,1:nof_variables) = u_c_val(i,1,1:nof_variables)
+        u_c_val(i,6,1:nof_variables) = - dt * rhs_val(i,1:nof_variables) * oovolume
+        u_c_val(i,1,1:nof_variables) = 0.178079954393132 * u_c_val(i,2,1:nof_variables) + 0.821920045606868 * u_c_val(i,5,1:nof_variables) - 0.544974750228521 * dt * rhs_val(i,1:nof_variables) * oovolume
     end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -4528,11 +4528,11 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-    u_ct_val(5,1:turbulenceequations+passivescalar,i)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-  u_ct_val(6,1:turbulenceequations+passivescalar,i)=-((dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
-  u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.178079954393132*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.821920045606868*u_ct_val(5,1:turbulenceequations+passivescalar,i))-(((0.544974750228521))*((dt)*&
-((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume))))
+  oovolume=1.00/ielem_totvolume(i)
+    u_ct_val(i,5,1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+  u_ct_val(i,6,1:turbulenceequations+passivescalar)=-((dt)*((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume)))
+  u_ct_val(i,1,1:turbulenceequations+passivescalar)=(0.178079954393132*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(0.821920045606868*u_ct_val(i,5,1:turbulenceequations+passivescalar))-(((0.544974750228521))*((dt)*&
+((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume))))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -4557,17 +4557,17 @@ end if
 	!$omp do
 #endif
 do i=1,kmaxe
-    oovolume=1.0d0/ielem_totvolume(i)
+    oovolume=1.00/ielem_totvolume(i)
 
     if (dg == 1) then
           call dg_mass_rhs_product_cell(i)
           do mm_var=1,nof_variables
             do mm_idof=1,num_dg_dofs
-              u_c_valdg(1,mm_var,mm_idof,i) = (0.00683325884039 * u_c_valdg(2,mm_var,mm_idof,i)) + (0.517231671970585 * u_c_valdg(4,mm_var,mm_idof,i)) + (0.12759831133288 * u_c_valdg(5,mm_var,mm_idof,i)) + (0.34833675773694 * u_c_valdg(1,mm_var,mm_idof,i)) + (0.08460416338212 * u_c_valdg(6,mm_var,mm_idof,i)) - 0.22600748319395 * dt * rhs_sol_mm_dg(mm_idof,mm_var,i)
+              u_c_valdg(i,1,mm_var,mm_idof) = (0.00683325884039 * u_c_valdg(i,2,mm_var,mm_idof)) + (0.517231671970585 * u_c_valdg(i,4,mm_var,mm_idof)) + (0.12759831133288 * u_c_valdg(i,5,mm_var,mm_idof)) + (0.34833675773694 * u_c_valdg(i,1,mm_var,mm_idof)) + (0.08460416338212 * u_c_valdg(i,6,mm_var,mm_idof)) - 0.22600748319395 * dt * rhs_sol_mm_dg(i,mm_idof,mm_var)
             end do
           end do
     else
-        u_c_val(1,1:nof_variables,i) = (0.00683325884039 * u_c_val(2,1:nof_variables,i)) + (0.517231671970585 * u_c_val(4,1:nof_variables,i)) +  (0.12759831133288 * u_c_val(5,1:nof_variables,i)) + (0.34833675773694 * u_c_val(1,1:nof_variables,i)) + (0.08460416338212 * u_c_val(6,1:nof_variables,i)) - (0.22600748319395 * dt * rhs_val(1:nof_variables,i) * oovolume)
+        u_c_val(i,1,1:nof_variables) = (0.00683325884039 * u_c_val(i,2,1:nof_variables)) + (0.517231671970585 * u_c_val(i,4,1:nof_variables)) +  (0.12759831133288 * u_c_val(i,5,1:nof_variables)) + (0.34833675773694 * u_c_val(i,1,1:nof_variables)) + (0.08460416338212 * u_c_val(i,6,1:nof_variables)) - (0.22600748319395 * dt * rhs_val(i,1:nof_variables) * oovolume)
     end if
 end do
 #if defined(gpu) || defined(xpu)
@@ -4588,10 +4588,10 @@ if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	!$omp do
 #endif
 do i=1,kmaxe
-  oovolume=1.0d0/ielem_totvolume(i)
-   u_ct_val(1,1:turbulenceequations+passivescalar,i)=(0.00683325884039*u_ct_val(2,1:turbulenceequations+passivescalar,i))+(0.517231671970585*u_ct_val(4,1:turbulenceequations+passivescalar,i))+&
-				(0.12759831133288*u_ct_val(5,1:turbulenceequations+passivescalar,i))+(0.34833675773694*u_ct_val(1,1:turbulenceequations+passivescalar,i))+&
-				(0.08460416338212*u_ct_val(6,1:turbulenceequations+passivescalar,i))-(0.22600748319395*(dt)*((rhst_val(1:turbulenceequations+passivescalar,i))*(oovolume)))
+  oovolume=1.00/ielem_totvolume(i)
+   u_ct_val(i,1,1:turbulenceequations+passivescalar)=(0.00683325884039*u_ct_val(i,2,1:turbulenceequations+passivescalar))+(0.517231671970585*u_ct_val(i,4,1:turbulenceequations+passivescalar))+&
+				(0.12759831133288*u_ct_val(i,5,1:turbulenceequations+passivescalar))+(0.34833675773694*u_ct_val(i,1,1:turbulenceequations+passivescalar))+&
+				(0.08460416338212*u_ct_val(i,6,1:turbulenceequations+passivescalar))-(0.22600748319395*(dt)*((rhst_val(i,1:turbulenceequations+passivescalar))*(oovolume)))
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -4725,15 +4725,15 @@ if (lowmemory.eq.0)then
 	    if (bad_impdu)then
 	      if (realgas.eq.1)then
 	        old_state=zero
-	        old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+	        old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 	        call fv_explicit_local_candidate(i,old_state,candidate)
 	        call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
 	        if (accepted_update) then
-	          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+	          u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
 	          impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
 	          if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	            impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
-	            -update_alpha*ielem_dtl(i)*rhst_val(1:turbulenceequations+passivescalar,i)/ielem_totvolume(i)
+	            -update_alpha*ielem_dtl(i)*rhst_val(i,1:turbulenceequations+passivescalar)/ielem_totvolume(i)
 	          end if
 	        else
 	          if (.not.fv_state_update_admissible(old_state)) then
@@ -4762,11 +4762,11 @@ if (lowmemory.eq.0)then
     else
       old_state=zero
       candidate=zero
-      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
       candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
       call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
       if (accepted_update) then
-        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
         if ((turbulence.gt.0).or.(passivescalar.gt.0))then
           impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
@@ -4777,11 +4777,11 @@ if (lowmemory.eq.0)then
 	          call fv_explicit_local_candidate(i,old_state,candidate)
 	          call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
 	          if (accepted_update) then
-	            u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+	            u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
 	            impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
 	            if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	              impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
-	              -update_alpha*ielem_dtl(i)*rhst_val(1:turbulenceequations+passivescalar,i)/ielem_totvolume(i)
+	              -update_alpha*ielem_dtl(i)*rhst_val(i,1:turbulenceequations+passivescalar)/ielem_totvolume(i)
 	            end if
 	          else
 	            impdu(i,1:nof_variables)=zero
@@ -4859,8 +4859,8 @@ if ((passivescalar.gt.0).or.(turbulence.gt.0))then
 #endif
 !   do i=1,kmaxe
 !   do k=1,turbulenceequations+passivescalar
-!   if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
-!   u_ct_val(1,k,i)=u_ct_val(1,k,i)+0.4*impdu(i,nof_variables+k)
+!   if (u_ct_val(i,1,k)+impdu(i,nof_variables+k).ge.zero)then
+!   u_ct_val(i,1,k)=u_ct_val(i,1,k)+0.4*impdu(i,nof_variables+k)
 !   end if
 !   end do
 ! end do
@@ -4868,12 +4868,12 @@ if ((passivescalar.gt.0).or.(turbulence.gt.0))then
 do i=1,kmaxe
   do k=1,turbulenceequations+passivescalar
 
-    du   = 0.2d0*impdu(i,nof_variables+k)
-    uold = u_ct_val(1,k,i)
-    umin = 1.0d-12   !  floor
+    du   = 0.20*impdu(i,nof_variables+k)
+    uold = u_ct_val(i,1,k)
+    umin = 1.0e-12   !  floor
 
     ! optional relative limiter
-    dumax = 0.25d0*max(abs(uold), umin)
+    dumax = 0.250*max(abs(uold), umin)
     if (du.gt. dumax) du =  dumax
     if (du.lt.-dumax) du = -dumax
 
@@ -4883,7 +4883,7 @@ do i=1,kmaxe
       unew = umin
     end if
 
-    u_ct_val(1,k,i) = unew
+    u_ct_val(i,1,k) = unew
 
   end do
 end do
@@ -5014,15 +5014,15 @@ end if
 
 	      if (realgas.eq.1)then
 	        old_state=zero
-	        old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+	        old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 	        call fv_explicit_local_candidate(i,old_state,candidate)
 	        call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
 	        if (accepted_update) then
-	          u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+	          u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
 	          impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
 	          if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	            impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
-	            -update_alpha*ielem_dtl(i)*rhst_val(1:turbulenceequations+passivescalar,i)/ielem_totvolume(i)
+	            -update_alpha*ielem_dtl(i)*rhst_val(i,1:turbulenceequations+passivescalar)/ielem_totvolume(i)
 	          end if
 	        else
 	          if (.not.fv_state_update_admissible(old_state)) then
@@ -5051,11 +5051,11 @@ end if
     else
       old_state=zero
       candidate=zero
-      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
       candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
       call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
       if (accepted_update) then
-        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
         if ((turbulence.gt.0).or.(passivescalar.gt.0))then
           impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
@@ -5066,11 +5066,11 @@ end if
 	          call fv_explicit_local_candidate(i,old_state,candidate)
 	          call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
 	          if (accepted_update) then
-	            u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+	            u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
 	            impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
 	            if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 	              impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
-	              -update_alpha*ielem_dtl(i)*rhst_val(1:turbulenceequations+passivescalar,i)/ielem_totvolume(i)
+	              -update_alpha*ielem_dtl(i)*rhst_val(i,1:turbulenceequations+passivescalar)/ielem_totvolume(i)
 	            end if
 	          else
 	            impdu(i,1:nof_variables)=zero
@@ -5148,12 +5148,12 @@ if ((passivescalar.gt.0).or.(turbulence.gt.0))then
 do i=1,kmaxe
   do k=1,turbulenceequations+passivescalar
 
-    du   = 0.2d0*impdu(i,nof_variables+k)
-    uold = u_ct_val(1,k,i)
-    umin = 1.0d-12   !  floor
+    du   = 0.20*impdu(i,nof_variables+k)
+    uold = u_ct_val(i,1,k)
+    umin = 1.0e-12   !  floor
 
     ! optional relative limiter
-    dumax = 0.25d0*max(abs(uold), umin)
+    dumax = 0.250*max(abs(uold), umin)
     if (du.gt. dumax) du =  dumax
     if (du.lt.-dumax) du = -dumax
 
@@ -5163,7 +5163,7 @@ do i=1,kmaxe
       unew = umin
     end if
 
-    u_ct_val(1,k,i) = unew
+    u_ct_val(i,1,k) = unew
 
   end do
 end do
@@ -5216,11 +5216,11 @@ if (it.eq.restart)then
 !$omp do
 #endif
 do i=1,kmaxe
-  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-  u_ct_val(3,:,i)=u_ct_val(1,:,i)
-  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  u_ct_val(i,3,:)=u_ct_val(i,1,:)
+  u_ct_val(i,2,:)=u_ct_val(i,1,:)
   end if
 end do
 #ifdef gpu
@@ -5234,7 +5234,7 @@ end if
 
 
 
-firsti=0.0d0
+firsti=0.00
 do jj=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero;
    if (jj.eq.1)then
@@ -5274,10 +5274,10 @@ if (lowmemory.eq.0)then
 
 
 kill_nan=0
-allresdt = 0.0d0
+allresdt = 0.00
 #ifdef gpu
 kill_nan_reduce=.false.
-allresdt_reduce = 0.0d0
+allresdt_reduce = 0.00
 #endif
 
 
@@ -5405,18 +5405,18 @@ end if
     else
       old_state=zero
       candidate=zero
-      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
       candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
       call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
       if (accepted_update) then
-        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
         if ((turbulence.gt.0).or.(passivescalar.gt.0))then
           impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
           update_alpha*impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
           do k=1,turbulenceequations+passivescalar
-            if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
-              u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+            if (u_ct_val(i,1,k)+impdu(i,nof_variables+k).ge.zero)then
+              u_ct_val(i,1,k)=u_ct_val(i,1,k)+impdu(i,nof_variables+k)
             end if
           end do
         end if
@@ -5491,18 +5491,18 @@ else
     else
       old_state=zero
       candidate=zero
-      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
       candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
       call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
       if (accepted_update) then
-        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
         if ((turbulence.gt.0).or.(passivescalar.gt.0))then
           impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
           update_alpha*impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
           do k=1,turbulenceequations+passivescalar
-            if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
-              u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+            if (u_ct_val(i,1,k)+impdu(i,nof_variables+k).ge.zero)then
+              u_ct_val(i,1,k)=u_ct_val(i,1,k)+impdu(i,nof_variables+k)
             end if
           end do
         end if
@@ -5553,15 +5553,15 @@ end do
 !$omp do
 #endif
 do i=1,kmaxe
-  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  !u_c_val(1,1:nof_variables,i)=2.0*u_c_val(2,1:nof_variables,i)-u_c_val(3,1:nof_variables,i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,2,1:nof_variables)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  !u_c_val(i,1,1:nof_variables)=2.0*u_c_val(i,2,1:nof_variables)-u_c_val(i,3,1:nof_variables)
 
 
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-  u_ct_val(3,:,i)=u_ct_val(2,:,i)
-  u_ct_val(2,:,i)=u_ct_val(1,:,i)
-  !u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
+  u_ct_val(i,3,:)=u_ct_val(i,2,:)
+  u_ct_val(i,2,:)=u_ct_val(i,1,:)
+  !u_ct_val(i,1,:)=2.0*u_ct_val(i,2,:)-u_ct_val(i,3,:)
   end if
 end do
 #ifdef gpu
@@ -5632,11 +5632,11 @@ if (it.eq.restart)then
 !$omp do
 #endif
 do i=1,kmaxe
-  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-  u_ct_val(3,:,i)=u_ct_val(1,:,i)
-  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  u_ct_val(i,3,:)=u_ct_val(i,1,:)
+  u_ct_val(i,2,:)=u_ct_val(i,1,:)
   end if
 end do
 #ifdef gpu
@@ -5650,7 +5650,7 @@ end if
 
 
 
-firsti=0.0d0
+firsti=0.00
 do jj=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero;
 
@@ -5705,7 +5705,7 @@ call relaxation_ex(n)
 
 
 #ifdef gpu
-allresdt_reduce=0.0d0
+allresdt_reduce=0.00
 !$omp target teams distribute parallel do &
 !$omp& private(rsumfacei) reduction(+:allresdt_reduce)
 #else
@@ -5756,10 +5756,10 @@ allresdt=allresdt/firsti
 !$omp do
 #endif
   do i=1,kmaxe
- u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+ u_c_val(i,1,1:nof_variables)=u_c_val(i,1,1:nof_variables)+impdu(i,1:nof_variables)
     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
     do k=1,turbulenceequations+passivescalar
-  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+  u_ct_val(i,1,k)=u_ct_val(i,1,k)+impdu(i,nof_variables+k)
     end do
     end if
   end do
@@ -5777,10 +5777,10 @@ else
 !$omp do
 #endif
  do i=1,kmaxe
- u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+ u_c_val(i,1,1:nof_variables)=u_c_val(i,1,1:nof_variables)+impdu(i,1:nof_variables)
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
     do k=1,turbulenceequations+passivescalar
-  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+  u_ct_val(i,1,k)=u_ct_val(i,1,k)+impdu(i,nof_variables+k)
     end do
     end if
   end do
@@ -5810,15 +5810,15 @@ end do
 !$omp do
 #endif
 do i=1,kmaxe
-  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(1,1:nof_variables,i)=2.0*u_c_val(2,1:nof_variables,i)-u_c_val(3,1:nof_variables,i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,2,1:nof_variables)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,1,1:nof_variables)=2.0*u_c_val(i,2,1:nof_variables)-u_c_val(i,3,1:nof_variables)
 
 
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-  u_ct_val(3,:,i)=u_ct_val(2,:,i)
-  u_ct_val(2,:,i)=u_ct_val(1,:,i)
-  u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
+  u_ct_val(i,3,:)=u_ct_val(i,2,:)
+  u_ct_val(i,2,:)=u_ct_val(i,1,:)
+  u_ct_val(i,1,:)=2.0*u_ct_val(i,2,:)-u_ct_val(i,3,:)
   end if
 end do
 #ifdef gpu
@@ -5877,11 +5877,11 @@ if (it.eq.restart)then
 !$omp do
 #endif
 do i=1,kmaxe
-  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-  u_ct_val(3,:,i)=u_ct_val(1,:,i)
-  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  u_ct_val(i,3,:)=u_ct_val(i,1,:)
+  u_ct_val(i,2,:)=u_ct_val(i,1,:)
   end if
 end do
 #ifdef gpu
@@ -5895,7 +5895,7 @@ end if
 
 
 
-firsti=0.0d0
+firsti=0.00
 do jj=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero;
 
@@ -5950,7 +5950,7 @@ call relaxation_ex(n)
 
 
 #ifdef gpu
-allresdt_reduce=0.0d0
+allresdt_reduce=0.00
 !$omp target teams distribute parallel do &
 !$omp& private(rsumfacei) reduction(+:allresdt_reduce)
 #else
@@ -6001,10 +6001,10 @@ allresdt=allresdt/firsti
 !$omp do
 #endif
   do i=1,kmaxe
- u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+ u_c_val(i,1,1:nof_variables)=u_c_val(i,1,1:nof_variables)+impdu(i,1:nof_variables)
     if ((turbulence.gt.0).or.(passivescalar.gt.0))then
     do k=1,turbulenceequations+passivescalar
-  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+  u_ct_val(i,1,k)=u_ct_val(i,1,k)+impdu(i,nof_variables+k)
     end do
     end if
   end do
@@ -6022,10 +6022,10 @@ else
 !$omp do
 #endif
  do i=1,kmaxe
- u_c_val(1,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)+impdu(i,1:nof_variables)
+ u_c_val(i,1,1:nof_variables)=u_c_val(i,1,1:nof_variables)+impdu(i,1:nof_variables)
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
     do k=1,turbulenceequations+passivescalar
-  u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+  u_ct_val(i,1,k)=u_ct_val(i,1,k)+impdu(i,nof_variables+k)
     end do
     end if
   end do
@@ -6055,15 +6055,15 @@ end do
 !$omp do
 #endif
 do i=1,kmaxe
-  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(1,1:nof_variables,i)=2.0*u_c_val(2,1:nof_variables,i)-u_c_val(3,1:nof_variables,i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,2,1:nof_variables)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,1,1:nof_variables)=2.0*u_c_val(i,2,1:nof_variables)-u_c_val(i,3,1:nof_variables)
 
 
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-  u_ct_val(3,:,i)=u_ct_val(2,:,i)
-  u_ct_val(2,:,i)=u_ct_val(1,:,i)
-  u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
+  u_ct_val(i,3,:)=u_ct_val(i,2,:)
+  u_ct_val(i,2,:)=u_ct_val(i,1,:)
+  u_ct_val(i,1,:)=2.0*u_ct_val(i,2,:)-u_ct_val(i,3,:)
   end if
 end do
 #ifdef gpu
@@ -6141,12 +6141,12 @@ if (it.eq.restart)then
 !$omp do
 #endif
 do i=1,kmaxe
-  u_c_val(3,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
 
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-  u_ct_val(3,:,i)=u_ct_val(1,:,i)
-  u_ct_val(2,:,i)=u_ct_val(1,:,i)
+  u_ct_val(i,3,:)=u_ct_val(i,1,:)
+  u_ct_val(i,2,:)=u_ct_val(i,1,:)
 
   end if
 end do
@@ -6159,7 +6159,7 @@ end if
 
 
 
-firsti=0.0d0
+firsti=0.00
 do jj=1,upperlimit
       rsumfacei=zero;allresdt=zero;dummy3i=zero;
       if (jj.eq.1)then
@@ -6199,10 +6199,10 @@ if (lowmemory.eq.0)then
 end if
 
 kill_nan=0
-allresdt = 0.0d0
+allresdt = 0.00
 #ifdef gpu
 kill_nan_reduce=.false.
-allresdt_reduce = 0.0d0
+allresdt_reduce = 0.00
 #endif
 
 
@@ -6324,18 +6324,18 @@ end if
     else
       old_state=zero
       candidate=zero
-      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
       candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
       call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
       if (accepted_update) then
-        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
         if ((turbulence.gt.0).or.(passivescalar.gt.0))then
           impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
           update_alpha*impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
           do k=1,turbulenceequations+passivescalar
-            if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
-              u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+            if (u_ct_val(i,1,k)+impdu(i,nof_variables+k).ge.zero)then
+              u_ct_val(i,1,k)=u_ct_val(i,1,k)+impdu(i,nof_variables+k)
             end if
           end do
         end if
@@ -6401,18 +6401,18 @@ else
     else
       old_state=zero
       candidate=zero
-      old_state(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+      old_state(1:nof_variables)=u_c_val(i,1,1:nof_variables)
       candidate(1:nof_variables)=old_state(1:nof_variables)+impdu(i,1:nof_variables)
       call fv_limit_candidate_update(old_state,candidate,limited,update_alpha,accepted_update)
       if (accepted_update) then
-        u_c_val(1,1:nof_variables,i)=limited(1:nof_variables)
+        u_c_val(i,1,1:nof_variables)=limited(1:nof_variables)
         impdu(i,1:nof_variables)=limited(1:nof_variables)-old_state(1:nof_variables)
         if ((turbulence.gt.0).or.(passivescalar.gt.0))then
           impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=&
           update_alpha*impdu(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
           do k=1,turbulenceequations+passivescalar
-            if (u_ct_val(1,k,i)+impdu(i,nof_variables+k).ge.zero)then
-              u_ct_val(1,k,i)=u_ct_val(1,k,i)+impdu(i,nof_variables+k)
+            if (u_ct_val(i,1,k)+impdu(i,nof_variables+k).ge.zero)then
+              u_ct_val(i,1,k)=u_ct_val(i,1,k)+impdu(i,nof_variables+k)
             end if
           end do
         end if
@@ -6466,15 +6466,15 @@ end do
 !$omp do
 #endif
 do i=1,kmaxe
-  u_c_val(3,1:nof_variables,i)=u_c_val(2,1:nof_variables,i)
-  u_c_val(2,1:nof_variables,i)=u_c_val(1,1:nof_variables,i)
-  !u_c_val(1,1:nof_variables,i)=(2.0*u_c_val(2,1:nof_variables,i))-u_c_val(3,1:nof_variables,i)
+  u_c_val(i,3,1:nof_variables)=u_c_val(i,2,1:nof_variables)
+  u_c_val(i,2,1:nof_variables)=u_c_val(i,1,1:nof_variables)
+  !u_c_val(i,1,1:nof_variables)=(2.0*u_c_val(i,2,1:nof_variables))-u_c_val(i,3,1:nof_variables)
 
 
   if ((turbulence.gt.0).or.(passivescalar.gt.0))then
-  u_ct_val(3,:,i)=u_ct_val(2,:,i)
-  u_ct_val(2,:,i)=u_ct_val(1,:,i)
-  !u_ct_val(1,:,i)=2.0*u_ct_val(2,:,i)-u_ct_val(3,:,i)
+  u_ct_val(i,3,:)=u_ct_val(i,2,:)
+  u_ct_val(i,2,:)=u_ct_val(i,1,:)
+  !u_ct_val(i,1,:)=2.0*u_ct_val(i,2,:)-u_ct_val(i,3,:)
   end if
 end do
 #ifdef gpu
@@ -6539,19 +6539,19 @@ do i = 1, kmaxe
 
     do j = 1, nof_variables
         impdu(i,j) = dt1 * ( &
-             1.5d0 * u_c_val(1,j,i) &
-           - 2.0d0 * u_c_val(2,j,i) &
-           + 0.5d0 * u_c_val(3,j,i) ) &
-           + rhs_val(j,i)
+             1.50 * u_c_val(i,1,j) &
+           - 2.00 * u_c_val(i,2,j) &
+           + 0.50 * u_c_val(i,3,j) ) &
+           + rhs_val(i,j)
     end do
 
     if ( (turbulence.gt.0) .or. (passivescalar.gt.0) ) then
         do j = 1, turbulenceequations+passivescalar
             impdu(i,nof_variables+j) = dt1 * ( &
-                 1.5d0 * u_ct_val(1,j,i) &
-               - 2.0d0 * u_ct_val(2,j,i) &
-               + 0.5d0 * u_ct_val(3,j,i) ) &
-               + rhst_val(j,i)
+                 1.50 * u_ct_val(i,1,j) &
+               - 2.00 * u_ct_val(i,2,j) &
+               + 0.50 * u_ct_val(i,3,j) ) &
+               + rhst_val(i,j)
         end do
     end if
 
@@ -6575,7 +6575,7 @@ end do
 do i = 1, kmaxe
 
     dtau = (ielem_dtl(i) / ielem_totvolume(i)) * &
-           (1.0d0 / (1.0d0 + 1.5d0 * (ielem_dtl(i) / dt)))
+           (1.00 / (1.00 + 1.50 * (ielem_dtl(i) / dt)))
 
     do j = 1, nof_variables
         impdu(i,j) = -impdu(i,j) * dtau
@@ -6626,32 +6626,32 @@ if (dimensiona.eq.3)then
 !$omp do
 #endif
   do i=1,kmaxe
-    u_c_val(ind1,:,i)=(((tz1-dt)/(tz1))*u_c_val(ind1,:,i))+((dt*u_c_val(1,:,i))/tz1)
+    u_c_val(i,ind1,:)=(((tz1-dt)/(tz1))*u_c_val(i,ind1,:))+((dt*u_c_val(i,1,:))/tz1)
       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
     do nvar=1,turbulenceequations+passivescalar
 
-    u_ct_val(ind1,nvar,i)=(((tz1-dt)/(tz1))*u_ct_val(ind1,nvar,i))+((dt*u_ct_val(1,nvar,i))/(tz1*u_c_val(ind1,1,i)))
+    u_ct_val(i,ind1,nvar)=(((tz1-dt)/(tz1))*u_ct_val(i,ind1,nvar))+((dt*u_ct_val(i,1,nvar))/(tz1*u_c_val(i,ind1,1)))
 
     end do
     end if
     !u,v,w,uv,uw,wv,ps
-    u_c_rms(1,i)=sqrt(abs(((u_c_rms(1,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,2,i)/u_c_val(1,1,i)-u_c_val(ind1,2,i)/u_c_val(ind1,1,i))**2)*dt/tz1)))
-    u_c_rms(2,i)=sqrt(abs(((u_c_rms(2,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,3,i)/u_c_val(1,1,i)-u_c_val(ind1,3,i)/u_c_val(ind1,1,i))**2)*dt/tz1)))
-    u_c_rms(3,i)=sqrt(abs(((u_c_rms(3,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,4,i)/u_c_val(1,1,i)-u_c_val(ind1,4,i)/u_c_val(ind1,1,i))**2)*dt/tz1)))
+    u_c_rms(i,1)=sqrt(abs(((u_c_rms(i,1)**2)*((tz1-dt)/(tz1)))+(((u_c_val(i,1,2)/u_c_val(i,1,1)-u_c_val(i,ind1,2)/u_c_val(i,ind1,1))**2)*dt/tz1)))
+    u_c_rms(i,2)=sqrt(abs(((u_c_rms(i,2)**2)*((tz1-dt)/(tz1)))+(((u_c_val(i,1,3)/u_c_val(i,1,1)-u_c_val(i,ind1,3)/u_c_val(i,ind1,1))**2)*dt/tz1)))
+    u_c_rms(i,3)=sqrt(abs(((u_c_rms(i,3)**2)*((tz1-dt)/(tz1)))+(((u_c_val(i,1,4)/u_c_val(i,1,1)-u_c_val(i,ind1,4)/u_c_val(i,ind1,1))**2)*dt/tz1)))
 
 
 
 
 
-    u_c_rms(4,i)=(((u_c_rms(4,i))*((tz1-dt)/(tz1)))+&
-(((((u_c_val(1,2,i)/u_c_val(1,1,i))-(u_c_val(ind1,2,i)/u_c_val(ind1,1,i)))*((u_c_val(1,3,i)/u_c_val(1,1,i))-(u_c_val(ind1,3,i)/u_c_val(ind1,1,i)))))*dt/tz1))
-    u_c_rms(5,i)=(((u_c_rms(5,i))*((tz1-dt)/(tz1)))+&
-(((((u_c_val(1,2,i)/u_c_val(1,1,i))-(u_c_val(ind1,2,i)/u_c_val(ind1,1,i)))*((u_c_val(1,4,i)/u_c_val(1,1,i))-(u_c_val(ind1,4,i)/u_c_val(ind1,1,i)))))*dt/tz1))
-    u_c_rms(6,i)=(((u_c_rms(6,i))*((tz1-dt)/(tz1)))+&
-(((((u_c_val(1,3,i)/u_c_val(1,1,i))-(u_c_val(ind1,3,i)/u_c_val(ind1,1,i)))*((u_c_val(1,4,i)/u_c_val(1,1,i))-(u_c_val(ind1,4,i)/u_c_val(ind1,1,i)))))*dt/tz1))
+    u_c_rms(i,4)=(((u_c_rms(i,4))*((tz1-dt)/(tz1)))+&
+(((((u_c_val(i,1,2)/u_c_val(i,1,1))-(u_c_val(i,ind1,2)/u_c_val(i,ind1,1)))*((u_c_val(i,1,3)/u_c_val(i,1,1))-(u_c_val(i,ind1,3)/u_c_val(i,ind1,1)))))*dt/tz1))
+    u_c_rms(i,5)=(((u_c_rms(i,5))*((tz1-dt)/(tz1)))+&
+(((((u_c_val(i,1,2)/u_c_val(i,1,1))-(u_c_val(i,ind1,2)/u_c_val(i,ind1,1)))*((u_c_val(i,1,4)/u_c_val(i,1,1))-(u_c_val(i,ind1,4)/u_c_val(i,ind1,1)))))*dt/tz1))
+    u_c_rms(i,6)=(((u_c_rms(i,6))*((tz1-dt)/(tz1)))+&
+(((((u_c_val(i,1,3)/u_c_val(i,1,1))-(u_c_val(i,ind1,3)/u_c_val(i,ind1,1)))*((u_c_val(i,1,4)/u_c_val(i,1,1))-(u_c_val(i,ind1,4)/u_c_val(i,ind1,1)))))*dt/tz1))
     if ((passivescalar.gt.0))then
-    u_c_rms(7,i)=sqrt(abs(((u_c_rms(7,i)**2)*((tz1-dt)/(tz1)))+(((u_ct_val(1,turbulenceequations+1,i)&
--u_ct_val(ind1,turbulenceequations+1,i))**2)*dt/tz1)))
+    u_c_rms(i,7)=sqrt(abs(((u_c_rms(i,7)**2)*((tz1-dt)/(tz1)))+(((u_ct_val(i,1,turbulenceequations+1)&
+-u_ct_val(i,ind1,turbulenceequations+1))**2)*dt/tz1)))
     end if
 
 
@@ -6670,11 +6670,11 @@ if (dimensiona.eq.3)then
 !$omp do
 #endif
   do i=1,kmaxe
-    u_c_val(ind1,:,i)=zero;u_c_rms(:,i)=zero
+    u_c_val(i,ind1,:)=zero;u_c_rms(i,:)=zero
     if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 
 
-    u_ct_val(ind1,:,i)=zero
+    u_ct_val(i,ind1,:)=zero
 
 
     end if
@@ -6696,25 +6696,25 @@ if (t.gt.0.0)then
 !$omp  do
 #endif
   do i=1,kmaxe
-    u_c_val(ind1,:,i)=(((tz1-dt)/(tz1))*u_c_val(ind1,:,i))+((dt*u_c_val(1,:,i))/tz1)
+    u_c_val(i,ind1,:)=(((tz1-dt)/(tz1))*u_c_val(i,ind1,:))+((dt*u_c_val(i,1,:))/tz1)
       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
     do nvar=1,turbulenceequations+passivescalar
 
-    u_ct_val(ind1,nvar,i)=(((tz1-dt)/(tz1))*u_ct_val(ind1,nvar,i))+((dt*u_ct_val(1,nvar,i))/(tz1*u_c_val(ind1,1,i)))
+    u_ct_val(i,ind1,nvar)=(((tz1-dt)/(tz1))*u_ct_val(i,ind1,nvar))+((dt*u_ct_val(i,1,nvar))/(tz1*u_c_val(i,ind1,1)))
 
     end do
     end if
     !u,v,uv,ps
-    u_c_rms(1,i)=sqrt(abs(((u_c_rms(1,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,2,i)-u_c_val(ind1,2,i))**2)*dt/tz1)))/u_c_val(ind1,1,i)
-    u_c_rms(2,i)=sqrt(abs(((u_c_rms(2,i)**2)*((tz1-dt)/(tz1)))+(((u_c_val(1,3,i)-u_c_val(ind1,3,i))**2)*dt/tz1)))/u_c_val(ind1,1,i)
+    u_c_rms(i,1)=sqrt(abs(((u_c_rms(i,1)**2)*((tz1-dt)/(tz1)))+(((u_c_val(i,1,2)-u_c_val(i,ind1,2))**2)*dt/tz1)))/u_c_val(i,ind1,1)
+    u_c_rms(i,2)=sqrt(abs(((u_c_rms(i,2)**2)*((tz1-dt)/(tz1)))+(((u_c_val(i,1,3)-u_c_val(i,ind1,3))**2)*dt/tz1)))/u_c_val(i,ind1,1)
 
 
-    u_c_rms(3,i)=(((u_c_rms(4,i))*((tz1-dt)/(tz1)))+&
-((((u_c_val(1,2,i)-u_c_val(ind1,2,i))*(u_c_val(1,3,i)-u_c_val(ind1,3,i))))*dt/tz1))/u_c_val(ind1,1,i)
+    u_c_rms(i,3)=(((u_c_rms(i,4))*((tz1-dt)/(tz1)))+&
+((((u_c_val(i,1,2)-u_c_val(i,ind1,2))*(u_c_val(i,1,3)-u_c_val(i,ind1,3))))*dt/tz1))/u_c_val(i,ind1,1)
 
     if ((passivescalar.gt.0))then
-    u_c_rms(4,i)=sqrt(abs(((u_c_rms(4,i)**2)*((tz1-dt)/(tz1)))+(((u_ct_val(1,turbulenceequations+1,i)&
--u_ct_val(ind1,turbulenceequations+1,i))**2)*dt/tz1)))/u_c_val(ind1,1,i)
+    u_c_rms(i,4)=sqrt(abs(((u_c_rms(i,4)**2)*((tz1-dt)/(tz1)))+(((u_ct_val(i,1,turbulenceequations+1)&
+-u_ct_val(i,ind1,turbulenceequations+1))**2)*dt/tz1)))/u_c_val(i,ind1,1)
     end if
 
   end do
@@ -6730,11 +6730,11 @@ if (t.gt.0.0)then
 !$omp  do
 #endif
   do i=1,kmaxe
-    u_c_val(ind1,:,i)=zero
+    u_c_val(i,ind1,:)=zero
     if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 
 
-    u_ct_val(ind1,:,i)=zero
+    u_ct_val(i,ind1,:)=zero
 
 
     end if
@@ -6784,7 +6784,7 @@ real::totk_reduce,totens_reduce,totensx_reduce
       resolx=0.01
       iscoun=1
       kmaxe=xmpielrank(n)
-      every_time=((idnint(t/output_freq)) * output_freq)+output_freq
+      every_time=((nint(t/output_freq)) * output_freq)+output_freq
 
       totv1=0.0
       tgv_energy_prev_set=.false.
@@ -6821,7 +6821,7 @@ real::totk_reduce,totens_reduce,totensx_reduce
         end if
       end if
       if ((average_restart.eq.0).and.(averaging.eq.1)) then
-				tz1=0.0d0
+				tz1=0.00
 				else
 				tz1=t
 		end if
@@ -6918,18 +6918,18 @@ real::totk_reduce,totens_reduce,totensx_reduce
 
                               if (initcond.eq.95)then
 #if defined(gpu) || defined(xpu)
-                          totk_reduce=0.0d0
-                          totens_reduce=0.0d0
-                          totensx_reduce=0.0d0
+                          totk_reduce=0.00
+                          totens_reduce=0.00
+                          totensx_reduce=0.00
 !$omp target teams distribute parallel do &
 !$omp& reduction(+:totk_reduce,totens_reduce,totensx_reduce) &
 !$omp& map(alloc: ielem_totvolume, ielem_vortex, u_c_val, xmpielrank) &
 !$omp& firstprivate(boundtype)
 #else
                           !$omp master
-                          totk=0.0d0
-                          totens=0.0d0
-                          totensx=0.0d0
+                          totk=0.00
+                          totens=0.00
+                          totensx=0.00
                           !$omp end master
                           !$omp barrier
                           !$omp do reduction(+:totk,totens,totensx)
@@ -6938,20 +6938,20 @@ real::totk_reduce,totens_reduce,totensx_reduce
                           do i=1,xmpielrank(n)
 
 #if defined(gpu) || defined(xpu)
-                              totk_reduce=totk_reduce+ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
-          (((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2)+((u_c_val(1,4,i)/u_c_val(1,1,i))**2))
+                              totk_reduce=totk_reduce+ielem_totvolume(i)*u_c_val(i,1,1)*(1.0/2.0)*&
+          (((u_c_val(i,1,2)/u_c_val(i,1,1))**2)+((u_c_val(i,1,3)/u_c_val(i,1,1))**2)+((u_c_val(i,1,4)/u_c_val(i,1,1))**2))
 #else
-                              totk=totk+ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
-          (((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2)+((u_c_val(1,4,i)/u_c_val(1,1,i))**2))
+                              totk=totk+ielem_totvolume(i)*u_c_val(i,1,1)*(1.0/2.0)*&
+          (((u_c_val(i,1,2)/u_c_val(i,1,1))**2)+((u_c_val(i,1,3)/u_c_val(i,1,1))**2)+((u_c_val(i,1,4)/u_c_val(i,1,1))**2))
 #endif
 
                               if (boundtype.eq.1)then
 
 #if defined(gpu) || defined(xpu)
-                              totens_reduce=totens_reduce+(ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+                              totens_reduce=totens_reduce+(ielem_totvolume(i)*u_c_val(i,1,1)*(1.0/2.0)*&
                               ielem_vortex(2,i))
 #else
-                              totens=totens+(ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+                              totens=totens+(ielem_totvolume(i)*u_c_val(i,1,1)*(1.0/2.0)*&
                               ielem_vortex(2,i))
 #endif
                               else
@@ -7103,7 +7103,7 @@ real::totk_reduce,totens_reduce,totensx_reduce
 	                       t=t+dt
 				tz1=tz1+dt
 				  end if
-				if ((mach_outlet_target.gt.0.0d0).and.(mach_outlet_update_freq.gt.0))then
+				if ((mach_outlet_target.gt.0.00).and.(mach_outlet_update_freq.gt.0))then
 				  if (mod(it,mach_outlet_update_freq).eq.0) call update_outlet_mach_controller(n)
 				end if
 				 !$omp end master
@@ -7153,18 +7153,18 @@ real::totk_reduce,totens_reduce,totensx_reduce
 #endif
 
 #if defined(gpu) || defined(xpu)
-                          totk_reduce=0.0d0
-                          totens_reduce=0.0d0
-                          totensx_reduce=0.0d0
+                          totk_reduce=0.00
+                          totens_reduce=0.00
+                          totensx_reduce=0.00
 !$omp target teams distribute parallel do &
 !$omp& reduction(+:totk_reduce,totens_reduce,totensx_reduce) &
 !$omp& map(alloc: ielem_totvolume, ielem_vortex, u_c_val, xmpielrank) &
 !$omp& firstprivate(boundtype)
 #else
                           !$omp master
-                          totk=0.0d0
-                          totens=0.0d0
-                          totensx=0.0d0
+                          totk=0.00
+                          totens=0.00
+                          totensx=0.00
                           !$omp end master
                           !$omp barrier
                           !$omp  do reduction(+:totk,totens,totensx)
@@ -7173,11 +7173,11 @@ real::totk_reduce,totens_reduce,totensx_reduce
 
 
 #if defined(gpu) || defined(xpu)
-                    totk_reduce=totk_reduce+ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
-(((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2)+((u_c_val(1,4,i)/u_c_val(1,1,i))**2))
+                    totk_reduce=totk_reduce+ielem_totvolume(i)*u_c_val(i,1,1)*(1.0/2.0)*&
+(((u_c_val(i,1,2)/u_c_val(i,1,1))**2)+((u_c_val(i,1,3)/u_c_val(i,1,1))**2)+((u_c_val(i,1,4)/u_c_val(i,1,1))**2))
 #else
-                    totk=totk+ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
-(((u_c_val(1,2,i)/u_c_val(1,1,i))**2)+((u_c_val(1,3,i)/u_c_val(1,1,i))**2)+((u_c_val(1,4,i)/u_c_val(1,1,i))**2))
+                    totk=totk+ielem_totvolume(i)*u_c_val(i,1,1)*(1.0/2.0)*&
+(((u_c_val(i,1,2)/u_c_val(i,1,1))**2)+((u_c_val(i,1,3)/u_c_val(i,1,1))**2)+((u_c_val(i,1,4)/u_c_val(i,1,1))**2))
 #endif
 
 
@@ -7188,10 +7188,10 @@ real::totk_reduce,totens_reduce,totensx_reduce
                               if (boundtype.eq.1)then
 
 #if defined(gpu) || defined(xpu)
-                              totens_reduce=totens_reduce+(ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+                              totens_reduce=totens_reduce+(ielem_totvolume(i)*u_c_val(i,1,1)*(1.0/2.0)*&
                               ielem_vortex(2,i))
 #else
-                              totens=totens+(ielem_totvolume(i)*u_c_val(1,1,i)*(1.0/2.0)*&
+                              totens=totens+(ielem_totvolume(i)*u_c_val(i,1,1)*(1.0/2.0)*&
                               ielem_vortex(2,i))
 #endif
                               else
@@ -7279,10 +7279,10 @@ real::totk_reduce,totens_reduce,totensx_reduce
 
           if (adda.eq.1) then
 
-          totk = 0.0d0
+          totk = 0.00
 
 #if defined(gpu) || defined(xpu)
-        totk_reduce = 0.0d0
+        totk_reduce = 0.00
 !$omp target teams distribute parallel do &
 !$omp& reduction(+:totk_reduce) &
 !$omp& map(alloc: ielem_er, xmpielrank) &
@@ -7303,7 +7303,7 @@ real::totk_reduce,totens_reduce,totensx_reduce
          !$omp barrier
 		!$omp master
           dumetg1 = totk
-          dumetg2 = 0.0d0
+          dumetg2 = 0.00
           call mpi_allreduce(dumetg1, dumetg2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
 
           if (n.eq.0) then
@@ -7402,7 +7402,7 @@ real::totk_reduce,totens_reduce,totensx_reduce
 
 
 			if (initcond.eq.95)then
-                  if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
+                  if (abs(t - ((nint(t/output_freq)) * output_freq)).le.tolsmall) then
 
                       call volume_solution_write
                       if (outsurf.eq.1)then
@@ -7418,7 +7418,7 @@ real::totk_reduce,totens_reduce,totensx_reduce
 
 
                   if ((code_profile.lt.0).or.(code_profile.eq.100).or.(code_profile.eq.101).or.(code_profile.eq.102))then
-                        if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
+                        if (abs(t - ((nint(t/output_freq)) * output_freq)).le.tolsmall) then
                             call volume_solution_write
                             if (outsurf.eq.1)then
                             call surface_solution_write
@@ -7539,7 +7539,7 @@ kill=0
 t=res_time
 iscoun=1
 
-every_time=((idnint(t/output_freq)) * output_freq)+output_freq
+every_time=((nint(t/output_freq)) * output_freq)+output_freq
 
 
 #if defined(gpu) || defined(xpu)
@@ -7617,7 +7617,7 @@ do
     timec8=cput2-cput8
     timec1=cput2-cput1
     dummyout(2)=timec1
-    dummyin=0.0d0
+    dummyin=0.00
     timec3=cput2-cput4
     dummyout(3)=timec3
     timec4=cput2-cput5
@@ -7722,7 +7722,7 @@ do
 	        tz1=tz1+dt
 
 	end if
-	    if ((mach_outlet_target.gt.0.0d0).and.(mach_outlet_update_freq.gt.0))then
+	    if ((mach_outlet_target.gt.0.00).and.(mach_outlet_update_freq.gt.0))then
 	        if (mod(it,mach_outlet_update_freq).eq.0) call update_outlet_mach_controller(n)
 	    end if
 
@@ -7801,7 +7801,7 @@ do
 
 
 
-			if (abs(t - ((idnint(t/output_freq)) * output_freq)).le.tolsmall) then
+			if (abs(t - ((nint(t/output_freq)) * output_freq)).le.tolsmall) then
 
                 call volume_solution_write
 			     if (outsurf.eq.1)then
@@ -7952,29 +7952,29 @@ call sources_realgas(n,iconsidered,source_r,src_jac_diag,realgas_source_dtl_min_
 
 idxe=dimensiona+2
 idxev=dimensiona+3
-rho=max(abs(u_c_val(1,1,iconsidered)),realgas_source_dtl_min_abs)
-rhoe=max(abs(u_c_val(1,idxe,iconsidered)),realgas_source_dtl_min_abs)
-rhoev=abs(u_c_val(1,idxev,iconsidered))
+rho=max(abs(u_c_val(iconsidered,1,1)),realgas_source_dtl_min_abs)
+rhoe=max(abs(u_c_val(iconsidered,1,idxe)),realgas_source_dtl_min_abs)
+rhoev=abs(u_c_val(iconsidered,1,idxev))
 sum_species_rate=zero
 
 do k=1,nof_species
   idx=idxev+k
   rate=abs(source_r(idx))
-  if ((rate.eq.rate).and.(rate.gt.1.0d-300)) then
+  if ((rate.eq.rate).and.(rate.gt.1.0e-300)) then
     sum_species_rate=sum_species_rate+rate
   end if
 
   if ((source_r(idx).eq.source_r(idx)).and.(source_r(idx).lt.zero)) then
-    qscale=max(abs(u_c_val(1,idx,iconsidered)), &
+    qscale=max(abs(u_c_val(iconsidered,1,idx)), &
                realgas_source_species_floor_fraction*rho, &
                realgas_source_dtl_min_abs)
-    dt_candidate=realgas_source_dtl_cfl*qscale/max(-source_r(idx),1.0d-300)
+    dt_candidate=realgas_source_dtl_cfl*qscale/max(-source_r(idx),1.0e-300)
     if ((dt_candidate.eq.dt_candidate).and.(dt_candidate.gt.zero)) then
       dt_source=min(dt_source,dt_candidate)
     end if
   end if
 
-  if ((src_jac_diag(idx).eq.src_jac_diag(idx)).and.(abs(src_jac_diag(idx)).gt.1.0d-300)) then
+  if ((src_jac_diag(idx).eq.src_jac_diag(idx)).and.(abs(src_jac_diag(idx)).gt.1.0e-300)) then
     dt_candidate=realgas_source_dtl_cfl/abs(src_jac_diag(idx))
     if ((dt_candidate.eq.dt_candidate).and.(dt_candidate.gt.zero)) then
       dt_source=min(dt_source,dt_candidate)
@@ -7982,7 +7982,7 @@ do k=1,nof_species
   end if
 end do
 
-if (sum_species_rate.gt.1.0d-300) then
+if (sum_species_rate.gt.1.0e-300) then
   dt_candidate=realgas_source_dtl_cfl*rho/sum_species_rate
   if ((dt_candidate.eq.dt_candidate).and.(dt_candidate.gt.zero)) then
     dt_source=min(dt_source,dt_candidate)
@@ -7990,7 +7990,7 @@ if (sum_species_rate.gt.1.0d-300) then
 end if
 
 rate=abs(source_r(idxev))
-if ((rate.eq.rate).and.(rate.gt.1.0d-300)) then
+if ((rate.eq.rate).and.(rate.gt.1.0e-300)) then
   qscale=max(rhoev, &
              realgas_source_energy_floor_fraction*rhoe, &
              realgas_source_dtl_min_abs)
@@ -8000,7 +8000,7 @@ if ((rate.eq.rate).and.(rate.gt.1.0d-300)) then
   end if
 end if
 
-if ((src_jac_diag(idxev).eq.src_jac_diag(idxev)).and.(abs(src_jac_diag(idxev)).gt.1.0d-300)) then
+if ((src_jac_diag(idxev).eq.src_jac_diag(idxev)).and.(abs(src_jac_diag(idxev)).gt.1.0e-300)) then
   dt_candidate=realgas_source_dtl_cfl/abs(src_jac_diag(idxev))
   if ((dt_candidate.eq.dt_candidate).and.(dt_candidate.gt.zero)) then
     dt_source=min(dt_source,dt_candidate)
@@ -8028,10 +8028,10 @@ qcandidate=zero
 qcandidate(1:nof_variables)=qold(1:nof_variables)
 
 if (ielem_totvolume(iconsidered).le.fv_update_min_abs) return
-oovolume=1.0d0/ielem_totvolume(iconsidered)
+oovolume=1.00/ielem_totvolume(iconsidered)
 
 do iv=1,nof_variables
-  qcandidate(iv)=qold(iv)-ielem_dtl(iconsidered)*rhs_val(iv,iconsidered)*oovolume
+  qcandidate(iv)=qold(iv)-ielem_dtl(iconsidered)*rhs_val(iconsidered,iv)*oovolume
 end do
 
 end subroutine fv_explicit_local_candidate
@@ -8078,7 +8078,7 @@ do k=1,nof_species
     projected_ok=.false.
     return
   end if
-  if (rhoy.lt.0.0d0) then
+  if (rhoy.lt.0.00) then
     projected_ok=.false.
     return
   end if
@@ -8149,21 +8149,21 @@ if ((multispecies.eq.1).and.(mp_modelc.eq.0).and.(nof_species.gt.0)) then
     do k=1,nof_species-1
       vf=q(dimensiona+2+nof_species+k)
       vf_sum=vf_sum+vf
-      denom=gamma_in(k)-1.0d0
+      denom=gamma_in(k)-1.00
       if (abs(denom).le.tolsmall) return
       ar_sum=ar_sum+(vf/denom)
       stiff_sum=stiff_sum+(vf*(gamma_in(k)/denom)*mp_pinf(k))
     end do
 
-    vf=1.0d0-vf_sum
-    denom=gamma_in(nof_species)-1.0d0
+    vf=1.00-vf_sum
+    denom=gamma_in(nof_species)-1.00
     if (abs(denom).le.tolsmall) return
     ar_sum=ar_sum+(vf/denom)
     stiff_sum=stiff_sum+(vf*(gamma_in(nof_species)/denom)*mp_pinf(nof_species))
     if (ar_sum.le.tolsmall) return
 
-    gamma_mix=(1.0d0/ar_sum)+1.0d0
-    pressure=((gamma_mix-1.0d0)*(q(dimensiona+2)-oo2*rho_mix*vel2))-((gamma_mix-1.0d0)*stiff_sum)
+    gamma_mix=(1.00/ar_sum)+1.00
+    pressure=((gamma_mix-1.00)*(q(dimensiona+2)-oo2*rho_mix*vel2))-((gamma_mix-1.00)*stiff_sum)
     if ((pressure.ne.pressure).or.(abs(pressure).gt.fv_update_max_abs)) return
     state_ok=.true.
     return
@@ -8191,9 +8191,9 @@ if ((realgas.eq.1).and.(nof_species.gt.0)) then
       if (rg_hzero(k).gt.zero) echem=echem+(y_i*(rg_hzero(k)/rg_molm(k)))
       rmix=rmix+(y_i/rg_molm(k))
       if (k.le.3) then
-        cv_mix=cv_mix+(y_i*2.5d0*(rgs_ru/rg_molm(k)))
+        cv_mix=cv_mix+(y_i*2.50*(rgs_ru/rg_molm(k)))
       else
-        cv_mix=cv_mix+(y_i*1.5d0*(rgs_ru/rg_molm(k)))
+        cv_mix=cv_mix+(y_i*1.50*(rgs_ru/rg_molm(k)))
       end if
     end do
 
@@ -8207,8 +8207,8 @@ if ((realgas.eq.1).and.(nof_species.gt.0)) then
   end if
 end if
 
-if (gamma.le.1.0d0) return
-pressure=(gamma-1.0d0)*(q(dimensiona+2)-oo2*rho*vel2)
+if (gamma.le.1.00) return
+pressure=(gamma-1.00)*(q(dimensiona+2)-oo2*rho*vel2)
 if ((pressure.ne.pressure).or.(abs(pressure).gt.fv_update_max_abs)) return
 state_ok=.true.
 
@@ -8240,15 +8240,15 @@ if ((realgas.eq.1).and.(nof_species.gt.0)) then
   do k=1,nof_species
     rhoy_new=qnew(dimensiona+3+k)
     if ((rhoy_new.ne.rhoy_new).or.(abs(rhoy_new).gt.fv_update_max_abs)) return
-    if (rhoy_new.lt.0.0d0) return
+    if (rhoy_new.lt.0.00) return
     species_sum=species_sum+rhoy_new
   end do
   if (species_sum.le.fv_update_min_abs) return
   if (abs(species_sum-rho_new).gt.fv_update_species_closure_tol*max(abs(rho_new),fv_update_min_abs)) return
 end if
 
-rho_scale=max(abs(rres),abs(rho_old),1.0d0)
-p_scale=max(abs(pres),abs(p_old),1.0d0)
+rho_scale=max(abs(rres),abs(rho_old),1.00)
+p_scale=max(abs(pres),abs(p_old),1.00)
 rho_min=max(fv_update_min_abs,fv_update_floor_fraction*rho_scale)
 p_min=max(fv_update_min_abs,fv_update_floor_fraction*p_scale)
 rho_max=min(fv_update_max_abs,fv_update_max_ref_ratio*rho_scale)
@@ -8302,12 +8302,12 @@ needs_admissibility=(realgas.eq.1).or.(code_profile.eq.999).or.&
 
 if (.not.needs_admissibility) then
   qaccepted(1:nof_variables)=qcandidate(1:nof_variables)
-  alpha=1.0d0
+  alpha=1.00
   accepted=.true.
   return
 end if
 
-trial_alpha=1.0d0
+trial_alpha=1.00
 do iv=1,nof_variables
   qtrial(iv)=qold(iv)+trial_alpha*(qcandidate(iv)-qold(iv))
 end do
@@ -8322,13 +8322,13 @@ if (trial_ok) then
   end if
 end if
 
-low_alpha=0.0d0
-high_alpha=1.0d0
-best_alpha=0.0d0
+low_alpha=0.00
+high_alpha=1.00
+best_alpha=0.00
 found_alpha=.false.
 
 do tries=1,fv_update_max_backtracks
-  trial_alpha=0.5d0*(low_alpha+high_alpha)
+  trial_alpha=0.50*(low_alpha+high_alpha)
   do iv=1,nof_variables
     qtrial(iv)=qold(iv)+trial_alpha*(qcandidate(iv)-qold(iv))
   end do
@@ -8369,8 +8369,8 @@ real::rho,pressure
 call fv_state_density_pressure(q,rho,pressure,state_ok)
 fv_state_update_admissible=state_ok
 if (.not.state_ok) return
-if (rho.le.max(fv_update_min_abs,fv_update_floor_fraction*max(abs(rres),1.0d0))) fv_state_update_admissible=.false.
-if (pressure.le.max(fv_update_min_abs,fv_update_floor_fraction*max(abs(pres),1.0d0))) fv_state_update_admissible=.false.
+if (rho.le.max(fv_update_min_abs,fv_update_floor_fraction*max(abs(rres),1.00))) fv_state_update_admissible=.false.
+if (pressure.le.max(fv_update_min_abs,fv_update_floor_fraction*max(abs(pres),1.00))) fv_state_update_admissible=.false.
 
 end function fv_state_update_admissible
 
@@ -8386,7 +8386,7 @@ real::res_now,cfl_old,growth
 
 if (cflramp.eq.1) then
 
-  if (cflmax.le.zero) cflmax=max(cfl,1.0d0)
+  if (cflmax.le.zero) cflmax=max(cfl,1.00)
   cfl_old=cfl
 
   if (dimensiona.eq.3) then
@@ -8405,24 +8405,24 @@ if (cflramp.eq.1) then
       if ((prevres.le.zero).or.(prevres.ne.prevres).or.(abs(prevres).gt.tolbig)) then
         prevres=res_now
       else
-        if (res_now.le.(0.98d0*prevres)) then
-          growth=1.05d0
-          if (res_now.le.(0.70d0*prevres)) growth=1.10d0
-          if (res_now.le.(0.40d0*prevres)) growth=1.20d0
-          cfl=min(cflmax,max(cfl,1.0d-6)*growth)
-        else if (res_now.gt.(1.25d0*prevres)) then
-          cfl=max(1.0d-3,0.70d0*cfl)
+        if (res_now.le.(0.980*prevres)) then
+          growth=1.050
+          if (res_now.le.(0.700*prevres)) growth=1.100
+          if (res_now.le.(0.400*prevres)) growth=1.200
+          cfl=min(cflmax,max(cfl,1.0e-6)*growth)
+        else if (res_now.gt.(1.250*prevres)) then
+          cfl=max(1.0e-3,0.700*cfl)
         end if
         prevres=res_now
       end if
 
       if (dimensiona.eq.3) then
-        ccfl=cfl/3.0d0
+        ccfl=cfl/3.00
       else
-        ccfl=cfl/2.0d0
+        ccfl=cfl/2.00
       end if
 
-      if ((n.eq.0).and.(abs(cfl-cfl_old).gt.(1.0d-12*max(1.0d0,abs(cfl_old))))) then
+      if ((n.eq.0).and.(abs(cfl-cfl_old).gt.(1.0e-12*max(1.00,abs(cfl_old))))) then
         open(63,file='history.txt',form='formatted',status='unknown',action='write',position='append')
         write(63,'(A,I10,A,ES14.7,A,ES14.7,A,ES14.7)') 'cfl_ramp it=', it, ' residual=', res_now, &
                                                            ' cfl=', cfl, ' cflmax=', cflmax
@@ -8472,9 +8472,9 @@ do mm_var=1,nof_variables
   do mm_idof=1,num_dg_dofs
     mm_sum=zero
     do mm_jdof=1,num_dg_dofs
-      mm_sum=mm_sum + m_1_val(mm_idof,mm_jdof,i)*rhs_valdg(mm_jdof,mm_var,i)
+      mm_sum=mm_sum + m_1_val(i,mm_idof,mm_jdof)*rhs_valdg(i,mm_jdof,mm_var)
     end do
-    rhs_sol_mm_dg(mm_idof,mm_var,i)=mm_sum
+    rhs_sol_mm_dg(i,mm_idof,mm_var)=mm_sum
   end do
 end do
 

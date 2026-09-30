@@ -29,10 +29,10 @@ kmaxe=xmpielrank(n)
 do i=1,kmaxe
 	if (ielem_interior(i).eq.1)then
 
-	ielem_ineigh(:,i)=0;ielem_ineighn(:,i)=0;ielem_ineighb(:,i)=n
+	ielem_ineigh(i,:)=0;ielem_ineighn(i,:)=0;ielem_ineighb(i,:)=n
 	else
 
-	ielem_ineighn(:,i)=0;ielem_ineigh(:,i)=0;
+	ielem_ineighn(i,:)=0;ielem_ineigh(i,:)=0;
 	end if
 end do
 
@@ -47,14 +47,14 @@ end if
 do i=1,kmaxe
       if (ielem_interior(i).eq.0)then
 	do j=1,ielem_ifca(i)
-		if (ielem_ineighg(j,i).gt.0)then
-			if (xmpie(ielem_ineighg(j,i)).eq.n)then
+		if (ielem_ineighg(i,j).gt.0)then
+			if (xmpie(ielem_ineighg(i,j)).eq.n)then
 			
-			k=xmpil(ielem_ineighg(j,i))
+			k=xmpil(ielem_ineighg(i,j))
 			do ivt=1,ielem_ifca(k)
-							if (ielem_ineighg(ivt,k).eq.ielem_ihexgl(i)) then
-							ielem_ineigh(j,i)=xmpil(ielem_ineighg(j,i))
-							ielem_ineighn(j,i)=ivt
+							if (ielem_ineighg(k,ivt).eq.ielem_ihexgl(i)) then
+							ielem_ineigh(i,j)=xmpil(ielem_ineighg(i,j))
+							ielem_ineighn(i,j)=ivt
 							go to 101
 							end if
 			end do
@@ -75,20 +75,20 @@ do i=1,kmaxe
 if (ielem_interior(i).eq.1)then
 do j=1,ielem_ifca(i)
 itax=0
-	if ((ielem_ineighg(j,i).gt.0))then
-	    if(xmpie(ielem_ineighg(j,i)).ne.n)then
-	      ielem_ineighb(j,i)=xmpie(ielem_ineighg(j,i))
+	if ((ielem_ineighg(i,j).gt.0))then
+	    if(xmpie(ielem_ineighg(i,j)).ne.n)then
+	      ielem_ineighb(i,j)=xmpie(ielem_ineighg(i,j))
 	     
 	    else
 			      
-				    k=xmpil(ielem_ineighg(j,i))
+				    k=xmpil(ielem_ineighg(i,j))
     ! 				  
 				    do ivt=1,ielem_ifca(k)
-							  if (ielem_ineighg(ivt,k).eq.ielem_ihexgl(i)) then
+							  if (ielem_ineighg(k,ivt).eq.ielem_ihexgl(i)) then
     ! 							
-							    ielem_ineigh(j,i)=k
-							    ielem_ineighn(j,i)=ivt
-							    ielem_ineighb(j,i)=n
+							    ielem_ineigh(i,j)=k
+							    ielem_ineighn(i,j)=ivt
+							    ielem_ineighb(i,j)=n
 							    end if
 			    
 				    end do  
@@ -124,12 +124,12 @@ i=xmpil(diexchanger1(k)%sideineedn(e))
 ! do i=1,kmaxe
   if (ielem_interior(i).eq.1)then												!if 2
     do j=1,ielem_ifca(i)
-	  if (ielem_ineighb(j,i).ne.n)then										!if 3
+	  if (ielem_ineighb(i,j).ne.n)then										!if 3
 	  
-	    if (ielem_ibounds(j,i).gt.0)then										!if 4
-		if ((ibound_icode(ielem_ibounds(j,i)).eq.5).or.(ibound_icode(ielem_ibounds(j,i)).eq.50))then		!if 5
+	    if (ielem_ibounds(i,j).gt.0)then										!if 4
+		if ((ibound_icode(ielem_ibounds(i,j)).eq.5).or.(ibound_icode(ielem_ibounds(i,j)).eq.50))then		!if 5
 		    if (dimensiona.eq.3)then											!if 6
-				if ( ielem_types_faces(j,i).eq.5)then							!if 7
+				if ( ielem_types_faces(i,j).eq.5)then							!if 7
 					inum_points=qp_quad_n
 				else
 					inum_points=qp_triangle_n
@@ -143,16 +143,16 @@ i=xmpil(diexchanger1(k)%sideineedn(e))
 
 
 
-if ((diexchanger(k)%procid.eq.ielem_ineighb(j,i)).and. (diexchanges(ix1)%procid.eq.ielem_ineighb(j,i)))then		!if
-if ((diexchanges1(ix1)%sidetheyneedn(ix2).eq.ielem_ineighg(j,i)).and.&
-(ielem_ineighg(j,i).eq.diexchanger1(k)%whatineed(e)))then
+if ((diexchanger(k)%procid.eq.ielem_ineighb(i,j)).and. (diexchanges(ix1)%procid.eq.ielem_ineighb(i,j)))then		!if
+if ((diexchanges1(ix1)%sidetheyneedn(ix2).eq.ielem_ineighg(i,j)).and.&
+(ielem_ineighg(i,j).eq.diexchanger1(k)%whatineed(e)))then
  do inn=1,inum_points
 if ((diexchanges1(ix1)%whattheyneed(ix2).eq.ielem_ihexgl(i)).and.(diexchanges1(ix1)%qtheyneed(ix2).eq.diexchanger1(k)%qineed(e)).and.(inn.eq.diexchanges1(ix1)%qtheyneed(ix2)))then
 
 ielem_qface(j,inn,ielem_inter_id(ielem_indexf(i)))=e
 
 ! ielem_q_face_q_mapl(inn,j,i)=e
-ielem_ineighn(j,i)=k
+ielem_ineighn(i,j)=k
 diexchanges(ix1)%sidetheyneed(ix2)=j
 
 jj1=jj1+1
@@ -170,7 +170,7 @@ end if
 else
 
 if (dimensiona.eq.3)then
-			if ( ielem_types_faces(j,i).eq.5)then
+			if ( ielem_types_faces(i,j).eq.5)then
 			    inum_points=qp_quad_n
 			  else
 			    inum_points=qp_triangle_n
@@ -183,16 +183,16 @@ if (dimensiona.eq.3)then
 
 
 
-if ((diexchanger(k)%procid.eq.ielem_ineighb(j,i)).and. (diexchanges(ix1)%procid.eq.ielem_ineighb(j,i)))then
-if ((diexchanges1(ix1)%sidetheyneedn(ix2).eq.ielem_ineighg(j,i)).and.&
-(ielem_ineighg(j,i).eq.diexchanger1(k)%whatineed(e)))then
+if ((diexchanger(k)%procid.eq.ielem_ineighb(i,j)).and. (diexchanges(ix1)%procid.eq.ielem_ineighb(i,j)))then
+if ((diexchanges1(ix1)%sidetheyneedn(ix2).eq.ielem_ineighg(i,j)).and.&
+(ielem_ineighg(i,j).eq.diexchanger1(k)%whatineed(e)))then
 do inn=1,inum_points
 if ((diexchanges1(ix1)%whattheyneed(ix2).eq.ielem_ihexgl(i)).and.(diexchanges1(ix1)%qtheyneed(ix2).eq.diexchanger1(k)%qineed(e)).and.(inn.eq.diexchanges1(ix1)%qtheyneed(ix2)))then
 
 ielem_qface(j,inn,ielem_inter_id(ielem_indexf(i)))=e
 
 ! ielem_q_face_q_mapl(inn,j,i)=e
-ielem_ineighn(j,i)=k
+ielem_ineighn(i,j)=k
 diexchanges(ix1)%sidetheyneed(ix2)=j
 
 end if
@@ -242,19 +242,19 @@ do i=1,ineedt
 	dsolchanger(i)%procid=diexchanger(i)%procid
 	allocate (dsolchanger(i)%centres(diexchanger(i)%muchineed(1),dims))
 	
-	dsolchanger(i)%centres(:,:)=0.d0
+	dsolchanger(i)%centres(:,:)=0.0
 	
 	allocate (dsolchanger(i)%sol(diexchanger(i)%muchineed(1),nof_variables+turbulenceequations+passivescalar))
-	dsolchanger(i)%sol(:,:)=0.0d0
+	dsolchanger(i)%sol(:,:)=0.00
 end do
 do i=1,tneedt
 	dsolchanges(i)%procid=diexchanges(i)%procid
 	allocate (dsolchanges(i)%centres(diexchanges(i)%muchtheyneed(1),dims))
 	
-	dsolchanges(i)%centres(:,:)=0.0d0
+	dsolchanges(i)%centres(:,:)=0.00
 	
 	allocate (dsolchanges(i)%sol(diexchanges(i)%muchtheyneed(1),nof_variables+turbulenceequations+passivescalar))
-	dsolchanges(i)%sol(:,:)=0.0d0
+	dsolchanges(i)%sol(:,:)=0.00
 end do
 
 !-------------------for debugging only -----------------------------------------!
@@ -379,15 +379,15 @@ diexchanges,direcexr,direcexs,numneighbours,ischeme,isize,iperiodicity,typesten,
 	do k=1,kmaxe
 		if (ielem_interior(k).eq.1)then
 			do l=1,ielem_ifca(k)
-				    if (ielem_ineighg(l,k).gt.0)then
-					    if (xmpie(ielem_ineighg(l,k)).ne.n)then
+				    if (ielem_ineighg(k,l).gt.0)then
+					    if (xmpie(ielem_ineighg(k,l)).ne.n)then
 
 
 
 
 
 					    if (dimensiona.eq.3)then
-									if ( ielem_types_faces(l,k).eq.5)then
+									if ( ielem_types_faces(k,l).eq.5)then
 									inum_points=qp_quad_n;
 									else
 									inum_points=qp_triangle_n ;
@@ -402,7 +402,7 @@ diexchanges,direcexr,direcexs,numneighbours,ischeme,isize,iperiodicity,typesten,
 					    
 					   
 					      
-					    listofpr(xmpie(ielem_ineighg(l,k)))=listofpr(xmpie(ielem_ineighg(l,k)))+inum_points
+					    listofpr(xmpie(ielem_ineighg(k,l)))=listofpr(xmpie(ielem_ineighg(k,l)))+inum_points
 					    end if
 				    end if
 			  end do
@@ -453,11 +453,11 @@ diexchanges,direcexr,direcexs,numneighbours,ischeme,isize,iperiodicity,typesten,
 		do k=1,kmaxe
 		      if (ielem_interior(k).eq.1)then
 			do l=1,ielem_ifca(k)
-				    if (ielem_ineighg(l,k).gt.0)then
-					    if (xmpie(ielem_ineighg(l,k)).ne.n)then
-						if (xmpie(ielem_ineighg(l,k)).eq.dilistgog(kk)%procid)then
+				    if (ielem_ineighg(k,l).gt.0)then
+					    if (xmpie(ielem_ineighg(k,l)).ne.n)then
+						if (xmpie(ielem_ineighg(k,l)).eq.dilistgog(kk)%procid)then
 						     if (dimensiona.eq.3)then
-									if ( ielem_types_faces(l,k).eq.5)then
+									if ( ielem_types_faces(k,l).eq.5)then
 									inum_points=qp_quad_n; ifdn2=4
 									else
 									inum_points=qp_triangle_n ; ifdn2=3
@@ -467,7 +467,7 @@ diexchanges,direcexr,direcexs,numneighbours,ischeme,isize,iperiodicity,typesten,
 								end if
 						 
 							    do iin=iaa+1,iaa+inum_points
-							    dilistgog(kk)%globarray(iin)=(ielem_ineighg(l,k))
+							    dilistgog(kk)%globarray(iin)=(ielem_ineighg(k,l))
 							    dilistglo(kk)%globarray(iin)=(ielem_ihexgl(k))
 							    dilistside(kk)%globarray(iin)=l
 							    dilistq(kk)%globarray(iin)=iin-iaa
@@ -1070,8 +1070,8 @@ if (( turbulence .gt. 0 ).or.(passivescalar.gt.0)) then
 !$omp do
 do i=1,tneedt
 	do k=1,diexchanges(i)%muchtheyneed(1)
-	      dsolchanges(i)%sol(k,1:nof_variables)=u_c_val(1,1:nof_variables,diexchanges(i)%localref(k))
-	      dsolchanges(i)%sol(k,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,diexchanges(i)%localref(k))
+	      dsolchanges(i)%sol(k,1:nof_variables)=u_c_val(diexchanges(i)%localref(k),1,1:nof_variables)
+	      dsolchanges(i)%sol(k,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(diexchanges(i)%localref(k),1,1:turbulenceequations+passivescalar)
 	end do
 end do
 !$omp end do
@@ -1080,7 +1080,7 @@ else
 !$omp do
 do i=1,tneedt
 	do k=1,diexchanges(i)%muchtheyneed(1)
-	      dsolchanges(i)%sol(k,1:nof_variables)=u_c_val(1,1:nof_variables,diexchanges(i)%localref(k))
+	      dsolchanges(i)%sol(k,1:nof_variables)=u_c_val(diexchanges(i)%localref(k),1,1:nof_variables)
 	end do
 end do
 !$omp end do
@@ -1139,8 +1139,8 @@ if (( turbulence .gt. 0).or.(passivescalar.gt.0)) then
 !$omp do
 #endif
 do i=1,halos_total
-	solhis(i,1:nof_variables)=u_c_val(1,1:nof_variables,solhi_loc(i))
-	solhis(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,solhi_loc(i))
+	solhis(i,1:nof_variables)=u_c_val(solhi_loc(i),1,1:nof_variables)
+	solhis(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(solhi_loc(i),1,1:turbulenceequations+passivescalar)
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1161,7 +1161,7 @@ else
 !$omp do
 #endif
 do i=1,halos_total
-	solhis(i,1:nof_variables)=u_c_val(1,1:nof_variables,solhi_loc(i))
+	solhis(i,1:nof_variables)=u_c_val(solhi_loc(i),1,1:nof_variables)
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1574,8 +1574,8 @@ if (( turbulence .gt. 0).or.(passivescalar.gt.0)) then
 !$omp do
 #endif
 do i=1,halos_total
-	solhis(i,1:nof_variables)=u_c_val(ind1,1:nof_variables,solhi_loc(i))
-	solhis(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(ind1,1:turbulenceequations+passivescalar,solhi_loc(i))
+	solhis(i,1:nof_variables)=u_c_val(solhi_loc(i),ind1,1:nof_variables)
+	solhis(i,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(solhi_loc(i),ind1,1:turbulenceequations+passivescalar)
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1595,7 +1595,7 @@ else
 !$omp do
 #endif
 do i=1,halos_total
-	solhis(i,1:nof_variables)=u_c_val(ind1,1:nof_variables,solhi_loc(i))
+	solhis(i,1:nof_variables)=u_c_val(solhi_loc(i),ind1,1:nof_variables)
 end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -1813,19 +1813,19 @@ if (( turbulence .gt. 0).or.(passivescalar.gt.0)) then
 !$omp do
 do i=1,tneedt
 	do k=1,direcexs(i)%muchtheyneed(1)
-		  diexsolhis(i)%sol(k,1:nof_variables)=u_c_val(1,1:nof_variables,direcexs(i)%localref(k))
-		  diexsolhis(i)%sol(k,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,direcexs(i)%localref(k))
+		  diexsolhis(i)%sol(k,1:nof_variables)=u_c_val(direcexs(i)%localref(k),1,1:nof_variables)
+		  diexsolhis(i)%sol(k,nof_variables+1:nof_variables+turbulenceequations+passivescalar)=u_ct_val(direcexs(i)%localref(k),1,1:turbulenceequations+passivescalar)
 		  
 	end do
 end do
 !$omp end do
 
 else
-!  dsolchanges(i)%sol(k,1:nof_variables)=u_c_val(1,1:nof_variables,diexchanges(i)%localref(k))
+!  dsolchanges(i)%sol(k,1:nof_variables)=u_c_val(diexchanges(i)%localref(k),1,1:nof_variables)
 !$omp do
 do i=1,tneedt
 	do k=1,direcexs(i)%muchtheyneed(1)
-		  diexsolhis(i)%sol(k,1:nof_variables+turbulenceequations+passivescalar)=u_c_val(1,1:nof_variables+turbulenceequations+passivescalar,direcexs(i)%localref(k))
+		  diexsolhis(i)%sol(k,1:nof_variables+turbulenceequations+passivescalar)=u_c_val(direcexs(i)%localref(k),1,1:nof_variables+turbulenceequations+passivescalar)
 	end do
 end do
 !$omp end do
@@ -2035,7 +2035,7 @@ if (itestcase.le.3) then
 !$omp do
 #endif
     do i=1,bounds_total
-			boundhis(i,1:nof_variables)=rec_uleft(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+			boundhis(i,1:nof_variables)=rec_uleft(need_loc(i),1:nof_variables,need_side(i),need_q(i))
     end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2059,13 +2059,12 @@ if (nvt_comm.eq.0)then
 !$omp do private(i,ittt,iex,nvar)
 #endif
 do i=1,bounds_total
-			boundhis(i,1:nof_variables)=rec_uleft(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+			boundhis(i,1:nof_variables)=rec_uleft(need_loc(i),1:nof_variables,need_side(i),need_q(i))
 			ittt=0
 			do iex=1,nof_variables-1
 			do nvar=1,dimensiona
 			ittt=ittt+1
-			boundhis(i,nof_variables+ittt)=rec_uleftv(nvar, iex, &
-             need_side(i), need_q(i), need_loc(i))
+			boundhis(i,nof_variables+ittt)=rec_uleftv(need_loc(i),nvar,iex, need_side(i),need_q(i))
 			end do
 			end do
 
@@ -2088,21 +2087,19 @@ else
 !$omp do private(i,ittt,iex,nvar)
 #endif
 do i=1,bounds_total
-			boundhis(i,1:nof_variables)=rec_uleft(1:nof_variables,need_side(i),need_q(i),need_loc(i))
-			boundhis(i,nof_variables+1:nof_variables+nvt_comm)=rec_uleftturb(1:nvt_comm,need_side(i),need_q(i),need_loc(i))
+			boundhis(i,1:nof_variables)=rec_uleft(need_loc(i),1:nof_variables,need_side(i),need_q(i))
+			boundhis(i,nof_variables+1:nof_variables+nvt_comm)=rec_uleftturb(need_loc(i),1:nvt_comm,need_side(i),need_q(i))
 			ittt=0
 			do iex=1,nof_variables-1
 			do nvar=1,dimensiona
 			ittt=ittt+1
-			boundhis(i,nof_variables+nvt_comm+ittt)=rec_uleftv(nvar, iex, &
-             need_side(i), need_q(i), need_loc(i))
+			boundhis(i,nof_variables+nvt_comm+ittt)=rec_uleftv(need_loc(i),nvar,iex, need_side(i),need_q(i))
 			end do
 			end do
 			do iex=1,nvt_comm
 			do nvar=1,dimensiona
 			ittt=ittt+1
-			boundhis(i,nof_variables+nvt_comm+ittt)=rec_uleftturbv(nvar, iex, &
-             need_side(i), need_q(i), need_loc(i))
+			boundhis(i,nof_variables+nvt_comm+ittt)=rec_uleftturbv(need_loc(i),nvar,iex, need_side(i),need_q(i))
 			end do
 			end do
 end do
@@ -2278,9 +2275,9 @@ if (itestcase.le.3) then
 do i=1,bounds_total
 	if (relax.eq.3)then
 		if (iscoun.eq.1)then
-		boundhisi(i,1:iex)=-rhs_val(1:iex,need_loc(i))/impdiag_mf(need_loc(i))
+		boundhisi(i,1:iex)=-rhs_val(need_loc(i),1:iex)/impdiag_mf(need_loc(i))
 		else
-		boundhisi(i,1:iex)=-(rhs_val(1:nof_variables,need_loc(i))+((((1.5*u_c_val(1,1:nof_variables,need_loc(i)))-(2.0d0*u_c_val(2,1:nof_variables,need_loc(i)))+(0.5d0*u_c_val(3,1:nof_variables,need_loc(i))))/(dt))*ielem_totvolume(need_loc(i))))/impdiag_mf(need_loc(i))
+		boundhisi(i,1:iex)=-(rhs_val(need_loc(i),1:nof_variables)+((((1.5*u_c_val(need_loc(i),1,1:nof_variables))-(2.00*u_c_val(need_loc(i),2,1:nof_variables))+(0.50*u_c_val(need_loc(i),3,1:nof_variables)))/(dt))*ielem_totvolume(need_loc(i))))/impdiag_mf(need_loc(i))
 		end if
 	else
 		boundhisi(i,1:iex)=impdu(need_loc(i),1:iex)
@@ -2311,11 +2308,11 @@ do i=1,bounds_total
 	if ((turbulence.gt.0).or.(passivescalar.gt.0))then
 		if (relax.eq.3)then
 			if (iscoun.eq.1)then
-			boundhisi(i,1:nof_variables)=-rhs_val(1:nof_variables,need_loc(i))/impdiag_mf(need_loc(i))
-			boundhisi(i,nof_variables:nof_variables+turbulenceequations+passivescalar)=-rhst_val(:,need_loc(i))/impdiagt(:,need_loc(i))
+			boundhisi(i,1:nof_variables)=-rhs_val(need_loc(i),1:nof_variables)/impdiag_mf(need_loc(i))
+			boundhisi(i,nof_variables:nof_variables+turbulenceequations+passivescalar)=-rhst_val(need_loc(i),:)/impdiagt(:,need_loc(i))
 			else
-			boundhisi(i,1:nof_variables)=-(rhs_val(1:nof_variables,need_loc(i))+((((1.5*u_c_val(1,1:nof_variables,need_loc(i)))-(2.0d0*u_c_val(2,1:nof_variables,need_loc(i)))+(0.5d0*u_c_val(3,1:nof_variables,need_loc(i))))/(dt))*ielem_totvolume(need_loc(i))))/impdiag_mf(need_loc(i))
-			boundhisi(i,nof_variables:nof_variables+turbulenceequations+passivescalar)=-(rhst_val(:,need_loc(i))+((((1.5*u_ct_val(1,:,need_loc(i)))-(2.0d0*u_ct_val(2,:,need_loc(i)))+(0.5d0*u_ct_val(3,:,need_loc(i))))/(dt))*ielem_totvolume(need_loc(i))))/impdiagt(:,need_loc(i))
+			boundhisi(i,1:nof_variables)=-(rhs_val(need_loc(i),1:nof_variables)+((((1.5*u_c_val(need_loc(i),1,1:nof_variables))-(2.00*u_c_val(need_loc(i),2,1:nof_variables))+(0.50*u_c_val(need_loc(i),3,1:nof_variables)))/(dt))*ielem_totvolume(need_loc(i))))/impdiag_mf(need_loc(i))
+			boundhisi(i,nof_variables:nof_variables+turbulenceequations+passivescalar)=-(rhst_val(need_loc(i),:)+((((1.5*u_ct_val(need_loc(i),1,:))-(2.00*u_ct_val(need_loc(i),2,:))+(0.50*u_ct_val(need_loc(i),3,:)))/(dt))*ielem_totvolume(need_loc(i))))/impdiagt(:,need_loc(i))
 
 			end if
 		else
@@ -2325,10 +2322,10 @@ do i=1,bounds_total
 	if ((turbulence.eq.0).or.(passivescalar.eq.0))then
 			if (relax.eq.3)then
 			if (iscoun.eq.1)then
-			boundhisi(i,1:iex)=-rhs_val(1:iex,need_loc(i))/impdiag_mf(need_loc(i))
+			boundhisi(i,1:iex)=-rhs_val(need_loc(i),1:iex)/impdiag_mf(need_loc(i))
 
 			else
-			boundhisi(i,1:iex)=-(rhs_val(1:nof_variables,need_loc(i))+((((1.5*u_c_val(1,1:nof_variables,need_loc(i)))-(2.0d0*u_c_val(2,1:nof_variables,need_loc(i)))+(0.5d0*u_c_val(3,1:nof_variables,need_loc(i))))/(dt))*ielem_totvolume(need_loc(i))))/impdiag_mf(need_loc(i))
+			boundhisi(i,1:iex)=-(rhs_val(need_loc(i),1:nof_variables)+((((1.5*u_c_val(need_loc(i),1,1:nof_variables))-(2.00*u_c_val(need_loc(i),2,1:nof_variables))+(0.50*u_c_val(need_loc(i),3,1:nof_variables)))/(dt))*ielem_totvolume(need_loc(i))))/impdiag_mf(need_loc(i))
 			end if
 		else
 			boundhisi(i,1:iex)=impdu(need_loc(i),1:iex)
@@ -2830,7 +2827,7 @@ if (itestcase.le.3)then
 !$omp do
 #endif
     do i=1,bounds_total
-			boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+			boundhis_dg(i,1:nof_variables)=rec_uleft_dg(need_loc(i),1:nof_variables,need_side(i),need_q(i))
     end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -2850,13 +2847,12 @@ if (itestcase.eq.4) then
 !$omp do private(i,ittt,iex,nvar)
 #endif
 			do i=1,bounds_total
-				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(need_loc(i),1:nof_variables,need_side(i),need_q(i))
 				ittt=0
 				do iex=1,nof_variables-1
 						do nvar=1,dimensiona
 					ittt=ittt+1
-					boundhis_dg(i,nof_variables+ittt)=rec_uleftv(nvar, iex, &
-             need_side(i), need_q(i), need_loc(i))
+					boundhis_dg(i,nof_variables+ittt)=rec_uleftv(need_loc(i),nvar,iex, need_side(i),need_q(i))
 					end do
 				end do
 		end do
@@ -3043,7 +3039,7 @@ if (itestcase.le.3) then
 !$omp do private(i,ittt,iex,nvar)
 #endif
 			do i=1,bounds_total
-				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(need_loc(i),1:nof_variables,need_side(i),need_q(i))
 				ittt=0
 				do iex=1,nof_variables-1
 						do nvar=1,dimensiona
@@ -3071,7 +3067,7 @@ if (itestcase.le.3) then
 !$omp do
 #endif
 		do i=1,bounds_total
-				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(need_loc(i),1:nof_variables,need_side(i),need_q(i))
 		end do
 #if defined(gpu) || defined(xpu)
 !$omp end target teams distribute parallel do
@@ -3095,13 +3091,12 @@ if (itestcase.eq.4) then
 !$omp do private(i,ittt,iex,nvar)
 #endif
 			do i=1,bounds_total
-				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(1:nof_variables,need_side(i),need_q(i),need_loc(i))
+				boundhis_dg(i,1:nof_variables)=rec_uleft_dg(need_loc(i),1:nof_variables,need_side(i),need_q(i))
 				ittt=0
 				do iex=1,nof_variables-1
 						do nvar=1,dimensiona
 					ittt=ittt+1
-					boundhis_dg(i,nof_variables+ittt)=rec_uleftv(nvar, iex, &
-             need_side(i), need_q(i), need_loc(i))
+					boundhis_dg(i,nof_variables+ittt)=rec_uleftv(need_loc(i),nvar,iex, need_side(i),need_q(i))
 					end do
 				end do
 		end do

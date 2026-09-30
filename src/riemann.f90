@@ -64,23 +64,23 @@ if (iriemann.eq.2)then
   lam=max(abs(ul)+ccl,abs(ur)+ccr)
   if (adda.eq.0)then
     do iv=1,nof_variables+nvt
-      hllcflux(iv)=0.5d0*(fl(iv)+fr(iv))-0.5d0*lam*(cright_rot(iv)-cleft_rot(iv))
+      hllcflux(iv)=0.50*(fl(iv)+fr(iv))-0.50*lam*(cright_rot(iv)-cleft_rot(iv))
     end do
   else
     do iv=1,nof_variables+nvt
-      hllcflux(iv)=0.5d0*(fl(iv)+fr(iv))-0.5d0*lam*ielem_facediss(facex,iconsidered)*(cright_rot(iv)-cleft_rot(iv))
+      hllcflux(iv)=0.50*(fl(iv)+fr(iv))-0.50*lam*ielem_facediss(iconsidered,facex)*(cright_rot(iv)-cleft_rot(iv))
     end do
   end if
   return
 end if
 
 cc2=sqrt(((((ccl*ccl)*sqrt(rl))+((ccr*ccr)*sqrt(rr)))/(sqrt(rl)+sqrt(rr)))+ &
-     & (0.5d0*((sqrt(rl)*sqrt(rr))/((sqrt(rl)+sqrt(rr))*(sqrt(rl)+sqrt(rr))))*((ur-ul)*(ur-ul))))
+     & (0.50*((sqrt(rl)*sqrt(rr))/((sqrt(rl)+sqrt(rr))*(sqrt(rl)+sqrt(rr))))*((ur-ul)*(ur-ul))))
 uu2=((ul*sqrt(rl))+(ur*sqrt(rr)))/(sqrt(rl)+sqrt(rr))
 sl=min(ul-ccl,uu2-cc2)
 sr=max(ur+ccr,uu2+cc2)
-sl=min(sl,0.0d0)
-sr=max(sr,0.0d0)
+sl=min(sl,0.00)
+sr=max(sr,0.00)
 
 if (iriemann.eq.9)then
   sl=min(ul-ccl,ur-ccr)
@@ -201,18 +201,18 @@ end if
 if (iriemann.eq.2)then
   lam=max(abs(ul)+ccl,abs(ur)+ccr)
   do iv=1,nof_variables+nvt
-    hllcflux(iv)=0.5d0*(fl(iv)+fr(iv))-0.5d0*lam*(cright_rot(iv)-cleft_rot(iv))
+    hllcflux(iv)=0.50*(fl(iv)+fr(iv))-0.50*lam*(cright_rot(iv)-cleft_rot(iv))
   end do
   return
 end if
 
 cc2=sqrt(((((ccl*ccl)*sqrt(rl))+((ccr*ccr)*sqrt(rr)))/(sqrt(rl)+sqrt(rr)))+ &
-     & (0.5d0*((sqrt(rl)*sqrt(rr))/((sqrt(rl)+sqrt(rr))*(sqrt(rl)+sqrt(rr))))*((ur-ul)*(ur-ul))))
+     & (0.50*((sqrt(rl)*sqrt(rr))/((sqrt(rl)+sqrt(rr))*(sqrt(rl)+sqrt(rr))))*((ur-ul)*(ur-ul))))
 uu2=((ul*sqrt(rl))+(ur*sqrt(rr)))/(sqrt(rl)+sqrt(rr))
 sl=min(ul-ccl,uu2-cc2)
 sr=max(ur+ccr,uu2+cc2)
-sl=min(sl,0.0d0)
-sr=max(sr,0.0d0)
+sl=min(sl,0.00)
+sr=max(sr,0.00)
 
 if (iriemann.eq.9)then
   sl=min(ul-ccl,ur-ccr)
@@ -366,8 +366,8 @@ subroutine hll_riemann_solver(n,cleft_rot,cright_rot,hllcflux,mp_source1,srf_spe
 			
 
 ! 			if (turbulencemodel.eq.2)then
-! 			pl=pl+((2.0d0/3.0d0)*eddyfl(2))
-! 			pr=pr+((2.0d0/3.0d0)*eddyfr(2))  
+! 			pl=pl+((2.00/3.00)*eddyfl(2))
+! 			pr=pr+((2.00/3.00)*eddyfr(2))
 ! 
 ! 			end if
 			end if
@@ -385,10 +385,10 @@ subroutine hll_riemann_solver(n,cleft_rot,cright_rot,hllcflux,mp_source1,srf_spe
 		end if
 		
 		!einfeldt approximations
-		cc2=sqrt(((((ccl**2)*sqrt(rl))+((ccr**2)*sqrt(rr)))/(sqrt(rl)+sqrt(rr)))+(0.5d0*((sqrt(rl)*sqrt(rr))/((sqrt(rl)+sqrt(rr))**2))*((ur-ul)**2)))
+		cc2=sqrt(((((ccl**2)*sqrt(rl))+((ccr**2)*sqrt(rr)))/(sqrt(rl)+sqrt(rr)))+(0.50*((sqrt(rl)*sqrt(rr))/((sqrt(rl)+sqrt(rr))**2))*((ur-ul)**2)))
 		uu2=(((ul*sqrt(rl))+(ur*sqrt(rr)))/(sqrt(rl)+sqrt(rr)))
 		sl(1)=min(ul-ccl,uu2-cc2); sr(1)=max(ur+ccr,uu2+cc2)
- 		sl(1)=min(sl(1),0.0d0); sr(1)=max(sr(1),0.0d0)
+ 		sl(1)=min(sl(1),0.00); sr(1)=max(sr(1),0.00)
 		sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))
         
 
@@ -562,8 +562,8 @@ subroutine hllc_riemann_solver(n,iconsidered, facex,cleft_rot,cright_rot,hllcflu
 
 
 ! 			if (turbulencemodel.eq.2)then
-! 			pl=pl+((2.0d0/3.0d0)*eddyfl(2))
-! 			pr=pr+((2.0d0/3.0d0)*eddyfr(2))
+! 			pl=pl+((2.00/3.00)*eddyfl(2))
+! 			pr=pr+((2.00/3.00)*eddyfr(2))
 !
 ! 			end if
 			end if
@@ -581,10 +581,10 @@ subroutine hllc_riemann_solver(n,iconsidered, facex,cleft_rot,cright_rot,hllcflu
 		end if
 
 		!einfeldt approximations
-		cc2=sqrt(((((ccl**2)*sqrt(rl))+((ccr**2)*sqrt(rr)))/(sqrt(rl)+sqrt(rr)))+(0.5d0*((sqrt(rl)*sqrt(rr))/((sqrt(rl)+sqrt(rr))**2))*((ur-ul)**2)))
+		cc2=sqrt(((((ccl**2)*sqrt(rl))+((ccr**2)*sqrt(rr)))/(sqrt(rl)+sqrt(rr)))+(0.50*((sqrt(rl)*sqrt(rr))/((sqrt(rl)+sqrt(rr))**2))*((ur-ul)**2)))
 		uu2=(((ul*sqrt(rl))+(ur*sqrt(rr)))/(sqrt(rl)+sqrt(rr)))
 	sl(1)=min(ul-ccl,uu2-cc2); sr(1)=max(ur+ccr,uu2+cc2)
- 		sl(1)=min(sl(1),0.0d0); sr(1)=max(sr(1),0.0d0)
+ 		sl(1)=min(sl(1),0.00); sr(1)=max(sr(1),0.00)
 		sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))
 
 
@@ -680,19 +680,19 @@ subroutine hllc_riemann_solver(n,iconsidered, facex,cleft_rot,cright_rot,hllcflu
 			if ((sl(1).le.zero).and.(sm(1).ge.zero))then
 				hllcflux(1:nof_variables+turbulenceequations+passivescalar)=flstar(1:nof_variables+turbulenceequations+passivescalar)
 				if (multispecies.eq.1)then
-                mp_source1=ul+sl(1)*(((sl(1)-ul)/(sl(1)-sm(1)))-1.0d0)
+                mp_source1=ul+sl(1)*(((sl(1)-ul)/(sl(1)-sm(1)))-1.00)
                 end if
 			end if
 			if ((sr(1).ge.zero).and.(sm(1).le.zero))then
 				hllcflux(1:nof_variables+turbulenceequations+passivescalar)=frstar(1:nof_variables+turbulenceequations+passivescalar)
 				if (multispecies.eq.1)then
-                mp_source1=ur+sr(1)*(((sr(1)-ur)/(sr(1)-sm(1)))-1.0d0)
+                mp_source1=ur+sr(1)*(((sr(1)-ur)/(sr(1)-sm(1)))-1.00)
                 end if
 			end if
 
 
-			hllcflux(1:nof_variables+turbulenceequations+passivescalar)=(((1.0d0+sign(1.0d0,sm(1)))/2.0d0)*(fl(1:nof_variables+turbulenceequations+passivescalar)+sl(1)*(ulstar(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))))+&
-			(((1.0d0-sign(1.0d0,sm(1)))/2.0d0)*(fr(1:nof_variables+turbulenceequations+passivescalar)+sr(1)*(urstar(1:nof_variables+turbulenceequations+passivescalar)-cright_rot(1:nof_variables+turbulenceequations+passivescalar))))
+			hllcflux(1:nof_variables+turbulenceequations+passivescalar)=(((1.00+sign(1.00,sm(1)))/2.00)*(fl(1:nof_variables+turbulenceequations+passivescalar)+sl(1)*(ulstar(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))))+&
+			(((1.00-sign(1.00,sm(1)))/2.00)*(fr(1:nof_variables+turbulenceequations+passivescalar)+sr(1)*(urstar(1:nof_variables+turbulenceequations+passivescalar)-cright_rot(1:nof_variables+turbulenceequations+passivescalar))))
 
 
             else
@@ -753,10 +753,10 @@ subroutine roe_riemann_solver(n,iconsidered, facex,cleft,cright,hllcflux,mp_sour
 !output
 
 !some constants
- real::   one = 1.0d0
- real::   two = 2.0d0
- real::  half = 0.5d0
- real:: fifth = 0.2d0
+ real::   one = 1.00
+ real::   two = 2.00
+ real::  half = 0.50
+ real:: fifth = 0.20
 
 !local variables
   real:: eig(4)                         ! eigenvalues
@@ -907,7 +907,7 @@ subroutine roe_riemann_solver(n,iconsidered, facex,cleft,cright,hllcflux,mp_sour
 
 if (adda.eq.1)then
 
-    hllcflux(1:nof_variables)= half * (fl(1:nof_variables) + fr(1:nof_variables) - diss(1:nof_variables)*ielem_facediss(facex,iconsidered))
+    hllcflux(1:nof_variables)= half * (fl(1:nof_variables) + fr(1:nof_variables) - diss(1:nof_variables)*ielem_facediss(iconsidered,facex))
 
 else
 
@@ -957,10 +957,10 @@ subroutine troe_riemann_solver(n,cleft,cright,hllcflux,mp_source1,srf_speedrot,n
 !output
 
 !some constants
- real::   one = 1.0d0
- real::   two = 2.0d0
- real::  half = 0.5d0
- real:: fifth = 0.2d0
+ real::   one = 1.00
+ real::   two = 2.00
+ real::  half = 0.50
+ real:: fifth = 0.20
 real:: eig(4)                         ! eigenvalues
 !local variables
   
@@ -1216,10 +1216,10 @@ subroutine rroe_riemann_solver(n,iconsidered,facex,cleft,cright,hllcflux,mp_sour
 !output
 
 !some constants
- real::   one = 1.0d0
- real::   two = 2.0d0
- real::  half = 0.5d0
- real:: fifth = 0.2d0
+ real::   one = 1.00
+ real::   two = 2.00
+ real::  half = 0.50
+ real:: fifth = 0.20
 real:: eig(4)                         ! eigenvalues
 !local variables
   
@@ -1518,7 +1518,7 @@ real:: eig(4)                         ! eigenvalues
     hllcflux(1:nof_variables)= (srp*fl - slm*fr)/(srp-slm) - half*diss
 
     else
-     hllcflux(1:nof_variables)= (srp*fl - slm*fr)/(srp-slm) - half*diss*ielem_facediss(facex,iconsidered)
+     hllcflux(1:nof_variables)= (srp*fl - slm*fr)/(srp-slm) - half*diss*ielem_facediss(iconsidered,facex)
 
     end if
 !normal max wave speed in the normal direction.
@@ -1607,8 +1607,8 @@ subroutine rusanov_riemann_solver(n,iconsidered,facex,cleft_rot,cright_rot,hllcf
 
 
 		! 			if (turbulencemodel.eq.2)then
-		! 			pl=pl+((2.0d0/3.0d0)*eddyfl(2))
-		! 			pr=pr+((2.0d0/3.0d0)*eddyfr(2))
+		! 			pl=pl+((2.00/3.00)*eddyfl(2))
+		! 			pr=pr+((2.00/3.00)*eddyfr(2))
 		!
 		! 			end if
 					end if
@@ -1656,17 +1656,17 @@ subroutine rusanov_riemann_solver(n,iconsidered,facex,cleft_rot,cright_rot,hllcf
 					if ((multispecies.eq.1).or.(realgas.eq.1))then
 					sl(1)=abs(ul)+sqrt(gammal*(pl+mp_pinfl)/rl)
 					sr(1)=abs(ur)+sqrt(gammar*(pr+mp_pinfr)/rr)
-					mp_source1=0.5d0*(ul+ur)!(max(abs(sl(1)),abs(sr(1))))
+					mp_source1=0.50*(ul+ur)!(max(abs(sl(1)),abs(sr(1))))
 					else
 					sl(1)=abs(ul)+sqrt(gamma*pl/rl)
 					sr(1)=abs(ur)+sqrt(gamma*pr/rr)
 					endif
 			
 					if (adda.eq.0)then
-					hllcflux(1:nof_variables+turbulenceequations+passivescalar)=0.5d0*(fl(1:nof_variables+turbulenceequations+passivescalar)+fr(1:nof_variables+turbulenceequations+passivescalar))-0.5d0*max(abs(sl(1)),abs(sr(1)))*(cright_rot(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))
+					hllcflux(1:nof_variables+turbulenceequations+passivescalar)=0.50*(fl(1:nof_variables+turbulenceequations+passivescalar)+fr(1:nof_variables+turbulenceequations+passivescalar))-0.50*max(abs(sl(1)),abs(sr(1)))*(cright_rot(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))
 
 					else
-					hllcflux(1:nof_variables+turbulenceequations+passivescalar)=0.5d0*(fl(1:nof_variables+turbulenceequations+passivescalar)+fr(1:nof_variables+turbulenceequations+passivescalar))-0.5d0*max(abs(sl(1)),abs(sr(1)))*ielem_facediss(facex,iconsidered)*(cright_rot(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))
+					hllcflux(1:nof_variables+turbulenceequations+passivescalar)=0.50*(fl(1:nof_variables+turbulenceequations+passivescalar)+fr(1:nof_variables+turbulenceequations+passivescalar))-0.50*max(abs(sl(1)),abs(sr(1)))*ielem_facediss(iconsidered,facex)*(cright_rot(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))
 					end if
 			
 
@@ -1701,7 +1701,7 @@ subroutine rusanov_riemann_solver(n,iconsidered,facex,cleft_rot,cright_rot,hllcf
 			end if
  			fl(1:nof_variables+turbulenceequations+passivescalar)=fl(1:nof_variables+turbulenceequations+passivescalar)-srf_speedrot(2)*(cleft_rot(1:nof_variables+turbulenceequations+passivescalar))
  			fr(1:nof_variables+turbulenceequations+passivescalar)=fr(1:nof_variables+turbulenceequations+passivescalar)-srf_speedrot(2)*(cright_rot(1:nof_variables+turbulenceequations+passivescalar))
-			hllcflux(1:nof_variables+turbulenceequations+passivescalar)=0.5d0*(fl(1:nof_variables+turbulenceequations+passivescalar)+fr(1:nof_variables+turbulenceequations+passivescalar))-0.5d0*max(abs(sl(1)-srf_speedrot(2)),abs(sr(1)-srf_speedrot(2)))*(cright_rot(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))
+			hllcflux(1:nof_variables+turbulenceequations+passivescalar)=0.50*(fl(1:nof_variables+turbulenceequations+passivescalar)+fr(1:nof_variables+turbulenceequations+passivescalar))-0.50*max(abs(sl(1)-srf_speedrot(2)),abs(sr(1)-srf_speedrot(2)))*(cright_rot(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))
 			
 			
         end if
@@ -1723,19 +1723,19 @@ subroutine estimate_waves(n,rotvl,rotvr,sl,sm,sr)
 	real::cl,cr,pr,pl,ul,ur,vl,vr,wr,wl,rl,rr
 	real::cup,ppv,pmin,pmax,qmax,quser,bl,br,cov,pm,um
 	real::g1,g2,g3,g4,g5,g6,g7,g8,gel,ger,pq,ptl,ptr
-	g1 = (gamma - 1.0d0)/(2.0d0*gamma)
-    	g2 = (gamma + 1.0d0)/(2.0d0*gamma)
-   	g3 = 2.0d0*gamma/(gamma - 1.0d0)
-    	g4 = 2.0d0/(gamma - 1.0d0)
-    	g5 = 2.0d0/(gamma + 1.0d0)
-    	g6 = (gamma - 1.0d0)/(gamma + 1.0d0)
-   	g7 = (gamma - 1.0d0)/2.0d0
-   	g8 = gamma - 1.0d0
+	g1 = (gamma - 1.00)/(2.00*gamma)
+    	g2 = (gamma + 1.00)/(2.00*gamma)
+   	g3 = 2.00*gamma/(gamma - 1.00)
+    	g4 = 2.00/(gamma - 1.00)
+    	g5 = 2.00/(gamma + 1.00)
+    	g6 = (gamma - 1.00)/(gamma + 1.00)
+   	g7 = (gamma - 1.00)/2.00
+   	g8 = gamma - 1.00
 	
-	sl=0.0d0
-	sr=0.0d0
-	sm=0.0d0
-	cov=0.0d0
+	sl=0.00
+	sr=0.00
+	sm=0.00
+	cov=0.00
 	!build left state variables
 	rl=rotvl(1)
 	ul=rotvl(2)
@@ -1751,25 +1751,25 @@ subroutine estimate_waves(n,rotvl,rotvr,sl,sm,sr)
 	pr=rotvr(5)
 	cr=sqrt((pr*gamma)/(rr))
 
-	cup=0.25d0*(rl+rr)*(cl+cr)
-	ppv=0.5d0*(pl + pr) + 0.5d0*(ul - ur)*cup
-	ppv=max(0.0d0,ppv)
+	cup=0.250*(rl+rr)*(cl+cr)
+	ppv=0.50*(pl + pr) + 0.50*(ul - ur)*cup
+	ppv=max(0.00,ppv)
 	pmin=min(pl,pr)
 	pmax=max(pl,pr)
 	qmax=pmax/pmin
-	quser=2.0d0
+	quser=2.00
 
 	 if(qmax.le.quser.and.(pmin.le.ppv.and.ppv.le.pmax))then
   
 !        select prvs riemann solver
  
          pm = ppv
-         um = 0.5d0*(ul + ur) + 0.5d0*(pl - pr)/cup 
+         um = 0.50*(ul + ur) + 0.50*(pl - pr)/cup
   
       	else
  
-         bl = 1.0d0 - cov*rl
-         br = 1.0d0 - cov*rr
+         bl = 1.00 - cov*rl
+         br = 1.00 - cov*rr
  
          if(ppv.lt.pmin)then
  
@@ -1777,11 +1777,11 @@ subroutine estimate_waves(n,rotvl,rotvr,sl,sm,sr)
  
         
             pq  = exp(g1*log(pl/pr))
-            um  = (pq*ul/cl/bl + ur/cr/br + g4*(pq - 1.0d0)) 
-            um  = um/(pq/cl/bl + 1.0d0/cr/br)
-            ptl = 1.0d0 + g7*(ul - um)/cl/bl
-            ptr = 1.0d0 + g7*(um - ur)/cr/br
-            pm  = 0.5d0*(pl*exp(g3*log(ptl)) + pr*exp(g3*log(ptr)))
+            um  = (pq*ul/cl/bl + ur/cr/br + g4*(pq - 1.00))
+            um  = um/(pq/cl/bl + 1.00/cr/br)
+            ptl = 1.00 + g7*(ul - um)/cl/bl
+            ptr = 1.00 + g7*(um - ur)/cr/br
+            pm  = 0.50*(pl*exp(g3*log(ptl)) + pr*exp(g3*log(ptr)))
          else
 
 !           use two-shock riemann solver with pvrs as estimate
@@ -1792,8 +1792,8 @@ subroutine estimate_waves(n,rotvl,rotvr,sl,sm,sr)
              gel = sqrt((g5*bl/rl)/(g6*pl + ppv))
              ger = sqrt((g5*br/rr)/(g6*pr + ppv))
              pm  = (gel*pl + ger*pr - (ur - ul))/(gel + ger)
-             um  = 0.5d0*(ul + ur) + 0.5d0*(ger*(pm - pr) - gel*(pm - pl))	     
-             if ( abs((pm-ppv)/pm) .le. 1d-8) goto 101
+             um  = 0.50*(ul + ur) + 0.50*(ger*(pm - pr) - gel*(pm - pl))
+             if ( abs((pm-ppv)/pm) .le. 1e-8) goto 101
                 ppv = pm
      	    end do
          endif
@@ -1806,7 +1806,7 @@ subroutine estimate_waves(n,rotvl,rotvr,sl,sm,sr)
       if(pm.le.pl)then
          sl(1) = ul - cl
       else
-         sl(1) = ul - cl*sqrt(1.0d0 + g2*(pm/pl - 1.0d0))
+         sl(1) = ul - cl*sqrt(1.00 + g2*(pm/pl - 1.00))
       endif
  
       sm(1)= um
@@ -1814,7 +1814,7 @@ subroutine estimate_waves(n,rotvl,rotvr,sl,sm,sr)
       if(pm.le.pr)then
          sr(1)= ur + cr
       else
-         sr(1) = ur + cr*sqrt(1.0d0 + g2*(pm/pr - 1.0d0))
+         sr(1) = ur + cr*sqrt(1.00 + g2*(pm/pr - 1.00))
       endif
 
 end subroutine estimate_waves
@@ -1915,11 +1915,11 @@ subroutine hllc_riemann_solver2d(n,cleft_rot,cright_rot,hllcflux,mp_source1,srf_
 ! 		sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))
 			
 			
-		cc2=sqrt(((((ccl**2)*sqrt(rl))+((ccr**2)*sqrt(rr)))/(sqrt(rl)+sqrt(rr)))+(0.5d0*((sqrt(rl)*sqrt(rr))/((sqrt(rl)+sqrt(rr))**2))*((ur-ul)**2)))
+		cc2=sqrt(((((ccl**2)*sqrt(rl))+((ccr**2)*sqrt(rr)))/(sqrt(rl)+sqrt(rr)))+(0.50*((sqrt(rl)*sqrt(rr))/((sqrt(rl)+sqrt(rr))**2))*((ur-ul)**2)))
 		uu2=(((ul*sqrt(rl))+(ur*sqrt(rr)))/(sqrt(rl)+sqrt(rr)))
 		sl(1)=min(ul-ccl,uu2-cc2);
 		sr(1)=max(ur+ccr,uu2+cc2)
-  		sl(1)=min(sl(1),0.0d0); sr(1)=max(sr(1),0.0d0)
+  		sl(1)=min(sl(1),0.00); sr(1)=max(sr(1),0.00)
 		sm(1)=(pr-pl+(rl*ul*(sl(1)-ul))-(rr*ur*(sr(1)-ur)))/((rl*(sl(1)-ul))-(rr*(sr(1)-ur)))	
 			
 			
@@ -1937,8 +1937,8 @@ subroutine hllc_riemann_solver2d(n,cleft_rot,cright_rot,hllcflux,mp_source1,srf_
 			
 
 ! 			if (turbulencemodel.eq.2)then
-! 			pl=pl+((2.0d0/3.0d0)*eddyfl(2))
-! 			pr=pr+((2.0d0/3.0d0)*eddyfr(2))  
+! 			pl=pl+((2.00/3.00)*eddyfl(2))
+! 			pr=pr+((2.00/3.00)*eddyfr(2))
 ! 
 ! 			end if
 			end if
@@ -2034,7 +2034,7 @@ subroutine hllc_riemann_solver2d(n,cleft_rot,cright_rot,hllcflux,mp_source1,srf_
 				if (multispecies.eq.1)then
 
 
-                mp_source1=ul+sl(1)*(((sl(1)-ul)/(sl(1)-sm(1)))-1.0d0)
+                mp_source1=ul+sl(1)*(((sl(1)-ul)/(sl(1)-sm(1)))-1.00)
 
                 end if
 			end if
@@ -2042,28 +2042,28 @@ subroutine hllc_riemann_solver2d(n,cleft_rot,cright_rot,hllcflux,mp_source1,srf_
 				hllcflux(1:nof_variables+turbulenceequations+passivescalar)=frstar(1:nof_variables+turbulenceequations+passivescalar)
 				if (multispecies.eq.1)then
 
-                mp_source1=ur+sr(1)*(((sr(1)-ur)/(sr(1)-sm(1)))-1.0d0)
+                mp_source1=ur+sr(1)*(((sr(1)-ur)/(sr(1)-sm(1)))-1.00)
 
                 end if
 			end if
 			
 			
 			
-			hllcflux(1:nof_variables+turbulenceequations+passivescalar)=(((1.0d0+sign(1.0d0,sm(1)))/2.0d0)*(fl(1:nof_variables+turbulenceequations+passivescalar)+sl(1)*(ulstar(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))))+&
-			(((1.0d0-sign(1.0d0,sm(1)))/2.0d0)*(fr(1:nof_variables+turbulenceequations+passivescalar)+sr(1)*(urstar(1:nof_variables+turbulenceequations+passivescalar)-cright_rot(1:nof_variables+turbulenceequations+passivescalar))))
+			hllcflux(1:nof_variables+turbulenceequations+passivescalar)=(((1.00+sign(1.00,sm(1)))/2.00)*(fl(1:nof_variables+turbulenceequations+passivescalar)+sl(1)*(ulstar(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))))+&
+			(((1.00-sign(1.00,sm(1)))/2.00)*(fr(1:nof_variables+turbulenceequations+passivescalar)+sr(1)*(urstar(1:nof_variables+turbulenceequations+passivescalar)-cright_rot(1:nof_variables+turbulenceequations+passivescalar))))
 			
 			
 			
 			!pgrad=abs(pl-pr)/min(pl,pr)
-			!om_p=0.5d0-0.5d0*sign(pgrad-0.2,1.0d0)*(1.0-exp(-100.0d0*abs(pgrad-0.2)))
+			!om_p=0.50-0.50*sign(pgrad-0.2,1.00)*(1.0-exp(-100.00*abs(pgrad-0.2)))
 			
-			!if(om_p.lt.0.9d0)then
+			!if(om_p.lt.0.90)then
 			
 			!else
 			
 			!sl(1)=abs(ul)+sqrt(gamma*pl/rl)
 			!sr(1)=abs(ur)+sqrt(gamma*pr/rr)
-			!hllcflux(:)=0.5d0*(fl(:)+fr(:))-0.5d0*max(abs(sl(1)),abs(sr(1)))*(cright_rot(:)-cleft_rot(:))
+			!hllcflux(:)=0.50*(fl(:)+fr(:))-0.50*max(abs(sl(1)),abs(sr(1)))*(cright_rot(:)-cleft_rot(:))
 			!end if
 			
 			
@@ -2258,15 +2258,15 @@ subroutine hll_riemann_solver2d(n,cleft_rot,cright_rot,hllcflux,mp_source1,srf_s
 
 
 			!pgrad=abs(pl-pr)/min(pl,pr)
-			!om_p=0.5d0-0.5d0*sign(pgrad-0.2,1.0d0)*(1.0-exp(-100.0d0*abs(pgrad-0.2)))
+			!om_p=0.50-0.50*sign(pgrad-0.2,1.00)*(1.0-exp(-100.00*abs(pgrad-0.2)))
 
-			!if(om_p.lt.0.9d0)then
+			!if(om_p.lt.0.90)then
 
 			!else
 
 			!sl(1)=abs(ul)+sqrt(gamma*pl/rl)
 			!sr(1)=abs(ur)+sqrt(gamma*pr/rr)
-			!hllcflux(:)=0.5d0*(fl(:)+fr(:))-0.5d0*max(abs(sl(1)),abs(sr(1)))*(cright_rot(:)-cleft_rot(:))
+			!hllcflux(:)=0.50*(fl(:)+fr(:))-0.50*max(abs(sl(1)),abs(sr(1)))*(cright_rot(:)-cleft_rot(:))
 			!end if
 
 
@@ -2748,8 +2748,8 @@ subroutine rusanov_riemann_solver2d(n,cleft_rot,cright_rot,hllcflux,mp_source1,s
 			
 
 ! 			if (turbulencemodel.eq.2)then
-! 			pl=pl+((2.0d0/3.0d0)*eddyfl(2))
-! 			pr=pr+((2.0d0/3.0d0)*eddyfr(2))  
+! 			pl=pl+((2.00/3.00)*eddyfl(2))
+! 			pr=pr+((2.00/3.00)*eddyfr(2))
 ! 
 ! 			end if
 			end if
@@ -2792,7 +2792,7 @@ subroutine rusanov_riemann_solver2d(n,cleft_rot,cright_rot,hllcflux,mp_source1,s
 			if ((multispecies.eq.1).or.(realgas.eq.1))then
 			sl(1)=abs(ul)+sqrt(gammal*(pl+mp_pinfl)/rl)
 			sr(1)=abs(ur)+sqrt(gammar*(pr+mp_pinfr)/rr)
-			mp_source1=0.5d0*(ul+ur)!-0.5d0*(max(abs(sl(1)),abs(sr(1))))*(ur-ul)
+			mp_source1=0.50*(ul+ur)!-0.50*(max(abs(sl(1)),abs(sr(1))))*(ur-ul)
 			else
 			sl(1)=abs(ul)+sqrt(gamma*pl/rl)
 			sr(1)=abs(ur)+sqrt(gamma*pr/rr)
@@ -2803,7 +2803,7 @@ subroutine rusanov_riemann_solver2d(n,cleft_rot,cright_rot,hllcflux,mp_source1,s
 ! 			write(190+n,*)fr
 			
 			
-			hllcflux(1:nof_variables+turbulenceequations+passivescalar)=0.5d0*(fl(1:nof_variables+turbulenceequations+passivescalar)+fr(1:nof_variables+turbulenceequations+passivescalar))-0.5d0*max(abs(sl(1)),abs(sr(1)))*(cright_rot(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))
+			hllcflux(1:nof_variables+turbulenceequations+passivescalar)=0.50*(fl(1:nof_variables+turbulenceequations+passivescalar)+fr(1:nof_variables+turbulenceequations+passivescalar))-0.50*max(abs(sl(1)),abs(sr(1)))*(cright_rot(1:nof_variables+turbulenceequations+passivescalar)-cleft_rot(1:nof_variables+turbulenceequations+passivescalar))
 			
 
 
@@ -2827,19 +2827,19 @@ subroutine estimate_waves2d(n,rotvl,rotvr,sl,sm,sr,gamma)
 	real::cl,cr,pr,pl,ul,ur,vl,vr,wr,wl,rl,rr
 	real::cup,ppv,pmin,pmax,qmax,quser,bl,br,cov,pm,um
 	real::g1,g2,g3,g4,g5,g6,g7,g8,gel,ger,pq,ptl,ptr
-	g1 = (gamma - 1.0d0)/(2.0d0*gamma)
-    	g2 = (gamma + 1.0d0)/(2.0d0*gamma)
-   	g3 = 2.0d0*gamma/(gamma - 1.0d0)
-    	g4 = 2.0d0/(gamma - 1.0d0)
-    	g5 = 2.0d0/(gamma + 1.0d0)
-    	g6 = (gamma - 1.0d0)/(gamma + 1.0d0)
-   	g7 = (gamma - 1.0d0)/2.0d0
-   	g8 = gamma - 1.0d0
+	g1 = (gamma - 1.00)/(2.00*gamma)
+    	g2 = (gamma + 1.00)/(2.00*gamma)
+   	g3 = 2.00*gamma/(gamma - 1.00)
+    	g4 = 2.00/(gamma - 1.00)
+    	g5 = 2.00/(gamma + 1.00)
+    	g6 = (gamma - 1.00)/(gamma + 1.00)
+   	g7 = (gamma - 1.00)/2.00
+   	g8 = gamma - 1.00
 	
-	sl=0.0d0
-	sr=0.0d0
-	sm=0.0d0
-	cov=0.0d0
+	sl=0.00
+	sr=0.00
+	sm=0.00
+	cov=0.00
 	!build left state variables
 	rl=rotvl(1)
 	ul=rotvl(2)
@@ -2855,25 +2855,25 @@ subroutine estimate_waves2d(n,rotvl,rotvr,sl,sm,sr,gamma)
 	pr=rotvr(4)
 	cr=sqrt((pr*gamma)/(rr))
 
-	cup=0.25d0*(rl+rr)*(cl+cr)
-	ppv=0.5d0*(pl + pr) + 0.5d0*(ul - ur)*cup
-	ppv=max(0.0d0,ppv)
+	cup=0.250*(rl+rr)*(cl+cr)
+	ppv=0.50*(pl + pr) + 0.50*(ul - ur)*cup
+	ppv=max(0.00,ppv)
 	pmin=min(pl,pr)
 	pmax=max(pl,pr)
 	qmax=pmax/pmin
-	quser=2.0d0
+	quser=2.00
 
 	 if(qmax.le.quser.and.(pmin.le.ppv.and.ppv.le.pmax))then
   
 !        select prvs riemann solver
  
          pm = ppv
-         um = 0.5d0*(ul + ur) + 0.5d0*(pl - pr)/cup 
+         um = 0.50*(ul + ur) + 0.50*(pl - pr)/cup
   
       	else
  
-         bl = 1.0d0 - cov*rl
-         br = 1.0d0 - cov*rr
+         bl = 1.00 - cov*rl
+         br = 1.00 - cov*rr
  
          if(ppv.lt.pmin)then
  
@@ -2881,11 +2881,11 @@ subroutine estimate_waves2d(n,rotvl,rotvr,sl,sm,sr,gamma)
  
         
             pq  = exp(g1*log(pl/pr))
-            um  = (pq*ul/cl/bl + ur/cr/br + g4*(pq - 1.0d0)) 
-            um  = um/(pq/cl/bl + 1.0d0/cr/br)
-            ptl = 1.0d0 + g7*(ul - um)/cl/bl
-            ptr = 1.0d0 + g7*(um - ur)/cr/br
-            pm  = 0.5d0*(pl*exp(g3*log(ptl)) + pr*exp(g3*log(ptr)))
+            um  = (pq*ul/cl/bl + ur/cr/br + g4*(pq - 1.00))
+            um  = um/(pq/cl/bl + 1.00/cr/br)
+            ptl = 1.00 + g7*(ul - um)/cl/bl
+            ptr = 1.00 + g7*(um - ur)/cr/br
+            pm  = 0.50*(pl*exp(g3*log(ptl)) + pr*exp(g3*log(ptr)))
          else
 
 !           use two-shock riemann solver with pvrs as estimate
@@ -2896,8 +2896,8 @@ subroutine estimate_waves2d(n,rotvl,rotvr,sl,sm,sr,gamma)
              gel = sqrt((g5*bl/rl)/(g6*pl + ppv))
              ger = sqrt((g5*br/rr)/(g6*pr + ppv))
              pm  = (gel*pl + ger*pr - (ur - ul))/(gel + ger)
-             um  = 0.5d0*(ul + ur) + 0.5d0*(ger*(pm - pr) - gel*(pm - pl))	     
-             if ( abs((pm-ppv)/pm) .le. 1d-8) goto 101
+             um  = 0.50*(ul + ur) + 0.50*(ger*(pm - pr) - gel*(pm - pl))
+             if ( abs((pm-ppv)/pm) .le. 1e-8) goto 101
                 ppv = pm
      	    end do
          endif
@@ -2910,7 +2910,7 @@ subroutine estimate_waves2d(n,rotvl,rotvr,sl,sm,sr,gamma)
       if(pm.le.pl)then
          sl(1) = ul - cl
       else
-         sl(1) = ul - cl*sqrt(1.0d0 + g2*(pm/pl - 1.0d0))
+         sl(1) = ul - cl*sqrt(1.00 + g2*(pm/pl - 1.00))
       endif
  
       sm(1)= um
@@ -2918,7 +2918,7 @@ subroutine estimate_waves2d(n,rotvl,rotvr,sl,sm,sr,gamma)
       if(pm.le.pr)then
          sr(1)= ur + cr
       else
-         sr(1) = ur + cr*sqrt(1.0d0 + g2*(pm/pr - 1.0d0))
+         sr(1) = ur + cr*sqrt(1.00 + g2*(pm/pr - 1.00))
       endif
 
 end subroutine estimate_waves2d

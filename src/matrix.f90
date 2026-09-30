@@ -11,7 +11,7 @@
    real,allocatable,dimension(:),intent(in)::xqr
    integer i
  
-    lxnorm = 0.0d0
+    lxnorm = 0.00
     do i=1,pdim
      lxnorm = lxnorm + xqr(i)**2
     enddo
@@ -43,9 +43,9 @@
     real ::vnorm
     integer:: i,j
 
-    pqr = 0.0d0
+    pqr = 0.00
     do i=1,ideg
-      pqr(i,i) = 1.0d0
+      pqr(i,i) = 1.00
     enddo
    
     vnorm = lxnorm(vqr,ideg)
@@ -53,7 +53,7 @@
     
     do i=1,ideg
     do j=1,ideg
-      pqr(i,j) = pqr(i,j) - 2.0d0*vqr(i)*vqr(j)
+      pqr(i,j) = pqr(i,j) - 2.00*vqr(i)*vqr(j)
     enddo
     enddo
     
@@ -107,18 +107,18 @@ real :: mm_tmp(1:ideg,1:ideg)
     real,allocatable,dimension(:)::vqr
     real,allocatable,dimension(:)::vqr1
     
-    identity(1:ideg,1:ideg) = 0.0d0
-    qff(1:ideg,1:ideg)=0.0d0
-    rff(1:ideg,1:ideg)=0.0d0
+    identity(1:ideg,1:ideg) = 0.00
+    qff(1:ideg,1:ideg)=0.00
+    rff(1:ideg,1:ideg)=0.00
     do i=1,ideg
-      identity(i,i) = 1.0d0
+      identity(i,i) = 1.00
     enddo
 
     
     qff(1:ideg,1:ideg) = identity(1:ideg,1:ideg)
     rff(1:ideg,1:ideg) = lscqm(1:ideg,1:ideg)
     
-    allocate(pqr(1:ideg,1:ideg),vqr(1:ideg));pqr=0.0d0;vqr=0.0d0
+    allocate(pqr(1:ideg,1:ideg),vqr(1:ideg));pqr=0.00;vqr=0.00
 
     do l=1,ideg
      ! allocate vector and reflection matrix
@@ -127,7 +127,7 @@ real :: mm_tmp(1:ideg,1:ideg)
      xqr = rff(l:ideg,l)
      ! compute the partial vector    
      call house(xqr,vqr1,pdim)
-     vqr(1:ideg) = 0.0d0
+     vqr(1:ideg) = 0.00
      vqr(l:ideg) = vqr1
     
      
@@ -185,18 +185,18 @@ real :: mm_tmp(1:ideg,1:ideg)
     real,allocatable,dimension(:)::vqr1
 
     
-    identity(1:ideg,1:ideg) = 0.0d0
-    qff_dg(1:ideg,1:ideg)=0.0d0
-    rff_dg(1:ideg,1:ideg)=0.0d0
+    identity(1:ideg,1:ideg) = 0.00
+    qff_dg(1:ideg,1:ideg)=0.00
+    rff_dg(1:ideg,1:ideg)=0.00
     do i=1,ideg
-      identity(i,i) = 1.0d0
+      identity(i,i) = 1.00
     enddo
 
     
     qff_dg(1:ideg,1:ideg) = identity(1:ideg,1:ideg)
     rff_dg(1:ideg,1:ideg) = lscqm_dg(1:ideg,1:ideg)
     
-    allocate(pqr(1:ideg,1:ideg),vqr(1:ideg));pqr=0.0d0;vqr=0.0d0
+    allocate(pqr(1:ideg,1:ideg),vqr(1:ideg));pqr=0.00;vqr=0.00
 
     do l=1,ideg
      ! allocate vector and reflection matrix
@@ -205,7 +205,7 @@ real :: mm_tmp(1:ideg,1:ideg)
      xqr = rff_dg(l:ideg,l)
      ! compute the partial vector    
      call house(xqr,vqr1,pdim)
-     vqr(1:ideg) = 0.0d0
+     vqr(1:ideg) = 0.00
      vqr(l:ideg) = vqr1
     
      

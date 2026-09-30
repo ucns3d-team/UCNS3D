@@ -49,15 +49,15 @@ real,dimension(1:3)::vvb,vvc,vve,vvd,vvjacobsurf
 	
 	vva(1,1)=vvb(2);vva(2,1)=vvc(2);vva(3,1)=vvd(2)
 	vva(1,2)=vvb(3);vva(2,2)=vvc(3);vva(3,2)=vvd(3)
-	vva(1,3)=1.0d0;vva(2,3)=1.0d0;vva(3,3)=1.0d0
+	vva(1,3)=1.00;vva(2,3)=1.00;vva(3,3)=1.00
 		vvjacobsurf(1)=vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3)))
 	vva(1,1)=vvb(3);vva(2,1)=vvc(3);vva(3,1)=vvd(3)
 	vva(1,2)=vvb(1);vva(2,2)=vvc(1);vva(3,2)=vvd(1)
-	vva(1,3)=1.0d0;vva(2,3)=1.0d0;vva(3,3)=1.0d0
+	vva(1,3)=1.00;vva(2,3)=1.00;vva(3,3)=1.00
 		vvjacobsurf(2)=vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3)))
 	vva(1,1)=vvb(1);vva(2,1)=vvc(1);vva(3,1)=vvd(1)
 	vva(1,2)=vvb(2);vva(2,2)=vvc(2);vva(3,2)=vvd(2)
-	vva(1,3)=1.0d0; vva(2,3)=1.0d0;	vva(3,3)=1.0d0
+	vva(1,3)=1.00; vva(2,3)=1.00;	vva(3,3)=1.00
 		vvjacobsurf(3)=vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3)))
 		trianglearea=((oo2)*(sqrt((vvjacobsurf(1)**2)+(vvjacobsurf(2)**2)+(vvjacobsurf(3)**2))))
 
@@ -127,14 +127,14 @@ real,dimension(1:3)::vvb,vvc,vve,vvd
 real,dimension(1)::deta
 integer::kk,ii
 	
-vvxi(1)=-1.0d0; vveta(1)=-1.0d0;
-vvxi(2)=1.0d0; vveta(2)=-1.0d0;
-vvxi(3)=1.0d0; vveta(3)=1.0d0; 
-vvxi(4)=-1.0d0; vveta(4)=1.0d0; 
+vvxi(1)=-1.00; vveta(1)=-1.00;
+vvxi(2)=1.00; vveta(2)=-1.00;
+vvxi(3)=1.00; vveta(3)=1.00;
+vvxi(4)=-1.00; vveta(4)=1.00;
 
 
 
-vvnallx(:)=0.0d0;vvnally(:)=0.0
+vvnallx(:)=0.00;vvnally(:)=0.0
 
 
 do kk=1,qp_quad
@@ -143,10 +143,10 @@ s=qpoints(2,kk)
 
 
 do ii=1,4
-vvnxi(1)=-(0.25d0)*(1.0d0-s); vvneta(1)=-(0.25d0)*(1.d0-r);
-vvnxi(2)=(0.25d0)*(1.0d0-s); vvneta(2)=-(0.25d0)*(1.d0+r);
-vvnxi(3)=(0.25d0)*(1.0d0+s); vvneta(3)=(0.25d0)*(1.d0+r); 
-vvnxi(4)=-(0.25d0)*(1.0d0+s); vvneta(4)=(0.25d0)*(1.d0-r); 
+vvnxi(1)=-(0.250)*(1.00-s); vvneta(1)=-(0.250)*(1.0-r);
+vvnxi(2)=(0.250)*(1.00-s); vvneta(2)=-(0.250)*(1.0+r);
+vvnxi(3)=(0.250)*(1.00+s); vvneta(3)=(0.250)*(1.0+r);
+vvnxi(4)=-(0.250)*(1.00+s); vvneta(4)=(0.250)*(1.0-r);
 
 
 vvnallx(ii)=vvnallx(ii)+(vvnxi(ii)*wequa3d(kk))
@@ -157,8 +157,8 @@ end do
 
 
 
-vva=0.0d0
-vva1=0.0d0
+vva=0.00
+vva1=0.00
 
 do ii=1,4
 
@@ -177,7 +177,7 @@ vva1(1,2)=-(vva(1,2))
 vva1(2,1)=-(vva(2,1))
 vva1(2,2)=(vva(1,1))
 
-vol=deta(1)*4.0d0
+vol=deta(1)*4.00
 vva1=vva1/deta(1)
 
 
@@ -202,7 +202,7 @@ real::s,tx,r,vol
 real,dimension(1:3,1:3)::vva,vva1
 real,dimension(1:3)::vvb,vvc,vve,vvd
 real,dimension(1)::deta
-vol=0.0d0
+vol=0.00
 
 vva(1,1)=vext(1,1)-vext(3,1)
 vva(1,2)=vext(1,2)-vext(3,2)
@@ -215,7 +215,7 @@ vva1(1,1)=(vva(2,2))
 vva1(1,2)=-(vva(1,2))
 vva1(2,1)=-(vva(2,1))
 vva1(2,2)=(vva(1,1))
-vol=vol*0.50d0
+vol=vol*0.500
 vva1=vva1/vol
 deta(1)=vol
 trianglevolume=vol
@@ -251,15 +251,15 @@ real,dimension(1:4)::vvjacobvolume
 
 	vva(1,1)=vvc(2);vva(2,1)=vvd(2);vva(3,1)=vve(2)
 	vva(1,2)=vvc(3);vva(2,2)=vvd(3);vva(3,2)=vve(3)
-	vva(1,3)=1.0d0;vva(2,3)=1.0d0;vva(3,3)=1.0d0
+	vva(1,3)=1.00;vva(2,3)=1.00;vva(3,3)=1.00
 	vvjacobvolume(1)=vvb(1)*(vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3))))
 	vva(1,1)=vvc(1);vva(2,1)=vvd(1);vva(3,1)=vve(1)
 	vva(1,2)=vvc(3);vva(2,2)=vvd(3);vva(3,2)=vve(3)
-	vva(1,3)=1.0d0;vva(2,3)=1.0d0;vva(3,3)=1.0d0
+	vva(1,3)=1.00;vva(2,3)=1.00;vva(3,3)=1.00
 	vvjacobvolume(2)=(-vvb(2))*(vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3))))
 	vva(1,1)=vvc(1);vva(2,1)=vvd(1);vva(3,1)=vve(1)
 	vva(1,2)=vvc(2);vva(2,2)=vvd(2);vva(3,2)=vve(2)
-	vva(1,3)=1.0d0;vva(2,3)=1.0d0;vva(3,3)=1.0
+	vva(1,3)=1.00;vva(2,3)=1.00;vva(3,3)=1.0
 	vvjacobvolume(3)=vvb(3)*(vva(1,1)*((vva(3,3)*vva(2,2))-(vva(3,2)*vva(2,3)))-vva(2,1)*((vva(3,3)*vva(1,2))-(vva(3,2)*vva(1,3)))+vva(3,1)*((vva(2,3)*vva(1,2))-(vva(2,2)*vva(1,3))))
 	vva(1,1)=vvc(1);vva(2,1)=vvd(1);vva(3,1)=vve(1)
 	vva(1,2)=vvc(2);vva(2,2)=vvd(2);vva(3,2)=vve(2)
@@ -320,13 +320,13 @@ kmaxe=xmpielrank(n)
 i=iconsi
 
 			do k=1,ielem_ifca(i)
-			       if (ielem_types_faces(k,i).eq.5)then
+			       if (ielem_types_faces(i,k).eq.5)then
 				    kk2=4;n_node=kk2
 			      else
 				    kk2=3;n_node=kk2
 			      end if
 			    if (ielem_interior(i).eq.1)then
-			    if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).gt.0))then 	!periodic neighbour
+			    if ((ielem_ineighg(i,k).gt.0).and.(ielem_ibounds(i,k).gt.0))then 	!periodic neighbour
 
 			    xx=ielem_xxc(i)  ;yy=ielem_yyc(i); zz=ielem_zzc(i)
 
@@ -353,7 +353,7 @@ i=iconsi
 
                     else
                         if (ielem_reorient(k,i).eq.1) then
-                            if (ibound_icode(ielem_ibounds(k,i)).eq.50) then
+                            if (ibound_icode(ielem_ibounds(i,k)).eq.50) then
                                 tempxx=vext(kk,1)
                                 vext(kk,1)=tempxx*cos(angle_per)-sin(angle_per)*vext(kk,2)
                                 vext(kk,2)=tempxx*sin(angle_per)+cos(angle_per)*vext(kk,2)
@@ -408,15 +408,15 @@ i=iconsi
 					nz=(delxya+delxyb+delxyc)
 					root_rot=sqrt((nx**2)+(ny**2)+(nz**2))
 					nx=nx/root_rot; ny=ny/root_rot; nz=nz/root_rot
-					root_rot=1.0d0
+					root_rot=1.00
 					a_rot=nx
 					b_rot=ny
 					c_rot=nz
 
 					call anglex(a_rot,b_rot,anglefacex)
 					call angley(c_rot,root_rot,anglefacey)
-					ielem_faceanglex(k,i)=anglefacex
-					ielem_faceangley(k,i)=anglefacey
+					ielem_faceanglex(i,k)=anglefacex
+					ielem_faceangley(i,k)=anglefacey
 
 					else
 
@@ -432,9 +432,9 @@ i=iconsi
 					delzb=vext(3,3)-vext(1,3)
 
 
-					nx=-0.50d0*((delya*delzb)-(delza*delyb))
-					ny=-0.50d0*((delza*delxb)-(delxa*delzb))
-					nz=-0.50d0*((delxa*delyb)-(delya*delxb))
+					nx=-0.500*((delya*delzb)-(delza*delyb))
+					ny=-0.500*((delza*delxb)-(delxa*delzb))
+					nz=-0.500*((delxa*delyb)-(delya*delxb))
 
 
 
@@ -460,7 +460,7 @@ i=iconsi
 !
 					root_rot=sqrt((nx**2)+(ny**2)+(nz**2))
 					nx=nx/root_rot; ny=ny/root_rot; nz=nz/root_rot
-					root_rot=1.0d0
+					root_rot=1.00
 					a_rot=nx
 					b_rot=ny
 					c_rot=nz
@@ -468,16 +468,16 @@ i=iconsi
 					call angley(c_rot,root_rot,anglefacey)
 
 
-					ielem_faceanglex(k,i)=anglefacex
-					ielem_faceangley(k,i)=anglefacey
+					ielem_faceanglex(i,k)=anglefacex
+					ielem_faceangley(i,k)=anglefacey
 					end if
 
                     if (ielem_ishape(i).eq.2)then
-                    l_angle1=ielem_faceanglex(k,i);l_angle2=ielem_faceangley(k,i)
+                    l_angle1=ielem_faceanglex(i,k);l_angle2=ielem_faceangley(i,k)
                     lnx=cos(l_angle1)*sin(l_angle2)
                     lny=sin(l_angle1)*sin(l_angle2)
                     lnz=cos(l_angle2)
-                    if ((abs(lnx-1.0d0).le.10e-16).or.(abs(lny-1.0d0).le.10e-16).or.(abs(lnz-1.0d0).le.10e-16))then
+                    if ((abs(lnx-1.00).le.10e-16).or.(abs(lny-1.00).le.10e-16).or.(abs(lnz-1.00).le.10e-16))then
 
                     end if
                     end if
@@ -512,13 +512,13 @@ i=iconsi
 	i=iconsi
 
 			do k=1,ielem_ifca(i)
-! 			       if (ielem_types_faces(k,i).eq.5)then
+! 			       if (ielem_types_faces(i,k).eq.5)then
 				    kk2=2;n_node=kk2
 ! 			      else
 ! 				    kk2=3;n_node=kk2
 ! 			      end if
 			    if (ielem_interior(i).eq.1)then
-			    if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).gt.0))then 	!periodic neighbour
+			    if ((ielem_ineighg(i,k).gt.0).and.(ielem_ibounds(i,k).gt.0))then 	!periodic neighbour
 
  			    xx=ielem_xxc(i)  ;yy=ielem_yyc(i); !zz=ielem_zzc(i)
 
@@ -538,10 +538,10 @@ i=iconsi
 
 
 				      if(abs(vext(kk,1)-xx).gt.xper*oo2)then
-				      vext(kk,1)=vext(kk,1)+(xper*sign(1.0d0,xx-xper/2.0d0))
+				      vext(kk,1)=vext(kk,1)+(xper*sign(1.00,xx-xper/2.00))
 				      end if
 				      if(abs(vext(kk,2)-yy).gt.yper*oo2)then
-				      vext(kk,2)=vext(kk,2)+(yper*sign(1.0d0,yy-yper/2.0d0))
+				      vext(kk,2)=vext(kk,2)+(yper*sign(1.00,yy-yper/2.00))
 				      end if
 
 
@@ -581,8 +581,8 @@ i=iconsi
 
 
 !
-					ielem_faceanglex(k,i)=anglefacex
-					ielem_faceangley(k,i)=anglefacey
+					ielem_faceanglex(i,k)=anglefacex
+					ielem_faceangley(i,k)=anglefacey
 
 !
 
@@ -703,17 +703,17 @@ integer::kk,ii
 
 
 	
-vvxi(1)=-1.0d0; vveta(1)=-1.0d0; vvzeta(1)=-1.0d0
-vvxi(2)=1.0d0; vveta(2)=-1.0d0; vvzeta(2)=-1.0d0
-vvxi(3)=1.0d0; vveta(3)=1.0d0; vvzeta(3)=-1.0d0
-vvxi(4)=-1.0d0; vveta(4)=1.0d0; vvzeta(4)=-1.0d0
-vvxi(5)=-1.0d0; vveta(5)=-1.0d0; vvzeta(5)=1.0d0
-vvxi(6)=1.0d0; vveta(6)=-1.0d0; vvzeta(6)=1.0d0
-vvxi(7)=1.0d0; vveta(7)=1.0d0; vvzeta(7)=1.0d0
-vvxi(8)=-1.0d0; vveta(8)=1.0d0; vvzeta(8)=1.0d0
+vvxi(1)=-1.00; vveta(1)=-1.00; vvzeta(1)=-1.00
+vvxi(2)=1.00; vveta(2)=-1.00; vvzeta(2)=-1.00
+vvxi(3)=1.00; vveta(3)=1.00; vvzeta(3)=-1.00
+vvxi(4)=-1.00; vveta(4)=1.00; vvzeta(4)=-1.00
+vvxi(5)=-1.00; vveta(5)=-1.00; vvzeta(5)=1.00
+vvxi(6)=1.00; vveta(6)=-1.00; vvzeta(6)=1.00
+vvxi(7)=1.00; vveta(7)=1.00; vvzeta(7)=1.00
+vvxi(8)=-1.00; vveta(8)=1.00; vvzeta(8)=1.00
 
 
-vvnallx(:)=0.0d0;vvnally(:)=0.0d0;vvnallz(:)=0.0d0
+vvnallx(:)=0.00;vvnally(:)=0.00;vvnallz(:)=0.00
 
 
 do kk=1,qp_hexa
@@ -722,14 +722,14 @@ s=qpoints(2,kk)
 tx=qpoints(3,kk)
 
 do ii=1,8
-vvnxi(1)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); vvneta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-tx); vvnzeta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
-vvnxi(2)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); vvneta(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-tx); vvnzeta(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
-vvnxi(3)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); vvneta(3)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-tx); vvnzeta(3)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
-vvnxi(4)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); vvneta(4)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-tx); vvnzeta(4)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
-vvnxi(5)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0+tx); vvneta(5)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+tx); vvnzeta(5)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
-vvnxi(6)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0+tx); vvneta(6)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+tx); vvnzeta(6)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
-vvnxi(7)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0+tx); vvneta(7)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+tx); vvnzeta(7)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
-vvnxi(8)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0+tx); vvneta(8)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+tx); vvnzeta(8)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
+vvnxi(1)=-(1.00/8.00)*(1.0-s)*(1.00-tx); vvneta(1)=-(1.00/8.00)*(1.00-r)*(1.00-tx); vvnzeta(1)=-(1.00/8.00)*(1.00-r)*(1.00-s);
+vvnxi(2)=(1.00/8.00)*(1.0-s)*(1.00-tx); vvneta(2)=-(1.00/8.00)*(1.00+r)*(1.00-tx); vvnzeta(2)=-(1.00/8.00)*(1.00+r)*(1.00-s);
+vvnxi(3)=(1.00/8.00)*(1.0+s)*(1.00-tx); vvneta(3)=(1.00/8.00)*(1.00+r)*(1.00-tx); vvnzeta(3)=-(1.00/8.00)*(1.00+r)*(1.00+s);
+vvnxi(4)=-(1.00/8.00)*(1.0+s)*(1.00-tx); vvneta(4)=(1.00/8.00)*(1.00-r)*(1.00-tx); vvnzeta(4)=-(1.00/8.00)*(1.00-r)*(1.00+s);
+vvnxi(5)=-(1.00/8.00)*(1.0-s)*(1.00+tx); vvneta(5)=-(1.00/8.00)*(1.00-r)*(1.00+tx); vvnzeta(5)=(1.00/8.00)*(1.00-r)*(1.00-s);
+vvnxi(6)=(1.00/8.00)*(1.0-s)*(1.00+tx); vvneta(6)=-(1.00/8.00)*(1.00+r)*(1.00+tx); vvnzeta(6)=(1.00/8.00)*(1.00+r)*(1.00-s);
+vvnxi(7)=(1.00/8.00)*(1.0+s)*(1.00+tx); vvneta(7)=(1.00/8.00)*(1.00+r)*(1.00+tx); vvnzeta(7)=(1.00/8.00)*(1.00+r)*(1.00+s);
+vvnxi(8)=-(1.00/8.00)*(1.0+s)*(1.00+tx); vvneta(8)=(1.00/8.00)*(1.00-r)*(1.00+tx); vvnzeta(8)=(1.00/8.00)*(1.00-r)*(1.00+s);
 
 vvnallx(ii)=vvnallx(ii)+(vvnxi(ii)*wequa3d(kk))
 vvnally(ii)=vvnally(ii)+(vvneta(ii)*wequa3d(kk))
@@ -739,8 +739,8 @@ end do
 
 
 
-vva=0.0d0
-vva1=0.0d0
+vva=0.00
+vva1=0.00
 
 do ii=1,8
 
@@ -762,7 +762,7 @@ end do
 
 vol=(vva(1,1)*vva(2,2)*vva(3,3))-(vva(1,1)*vva(2,3)*vva(3,2))-(vva(1,2)*vva(2,1)*vva(3,3))+(vva(1,2)*vva(2,3)*vva(3,1))+(vva(1,3)*vva(2,1)*vva(3,2))-(vva(1,3)*vva(2,2)*vva(3,1))
 
-! vol=vol*8.0d0
+! vol=vol*8.00
 
 
 
@@ -778,7 +778,7 @@ vva1(3,1)=(vva(2,1)*vva(3,2))-(vva(3,1)*vva(2,2));vva1(3,2)=((vva(1,2)*vva(3,1))
 deta(1)=(vva(1,1)*vva1(1,1))+(vva(1,2)*vva1(2,1))+(vva(1,3)*vva1(3,1))
 
 
-vol=deta(1)*8.0d0
+vol=deta(1)*8.00
 deta(1)=deta(1)
 
 vva1=vva1/deta(1)
@@ -814,15 +814,15 @@ real,dimension(1)::deta
 integer::kk,ii
 
 	
-vvxi(1)=-1.0d0; vveta(1)=-1.0d0; vvzeta(1)=-1.0d0
-vvxi(2)=1.0d0; vveta(2)=-1.0d0; vvzeta(2)=-1.0d0
-vvxi(3)=1.0d0; vveta(3)=1.0d0; vvzeta(3)=-1.0d0
-vvxi(4)=-1.0d0; vveta(4)=1.0d0; vvzeta(4)=-1.0d0
-vvxi(5)=0.0d0; vveta(5)=0.0d0; vvzeta(5)=1.0d0
+vvxi(1)=-1.00; vveta(1)=-1.00; vvzeta(1)=-1.00
+vvxi(2)=1.00; vveta(2)=-1.00; vvzeta(2)=-1.00
+vvxi(3)=1.00; vveta(3)=1.00; vvzeta(3)=-1.00
+vvxi(4)=-1.00; vveta(4)=1.00; vvzeta(4)=-1.00
+vvxi(5)=0.00; vveta(5)=0.00; vvzeta(5)=1.00
 
 
 
-vvnallx(:)=0.0d0;vvnally(:)=0.0d0;vvnallz(:)=0.0d0
+vvnallx(:)=0.00;vvnally(:)=0.00;vvnallz(:)=0.00
 
 
 do kk=1,qp_pyra
@@ -831,11 +831,11 @@ s=qpoints(2,kk)
 tx=qpoints(3,kk)
 
 do ii=1,5
-vvnxi(1)=-(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); vvneta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-tx); vvnzeta(1)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-s);
-vvnxi(2)=(1.0d0/8.0d0)*(1.0-s)*(1.0d0-tx); vvneta(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-tx); vvnzeta(2)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-s);
-vvnxi(3)=(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); vvneta(3)=(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0-tx); vvnzeta(3)=-(1.0d0/8.0d0)*(1.0d0+r)*(1.0d0+s);
-vvnxi(4)=-(1.0d0/8.0d0)*(1.0+s)*(1.0d0-tx); vvneta(4)=(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0-tx); vvnzeta(4)=-(1.0d0/8.0d0)*(1.0d0-r)*(1.0d0+s);
-vvnxi(5)=0.0d0; vvneta(5)=0.0d0; vvnzeta(5)=0.5d0;
+vvnxi(1)=-(1.00/8.00)*(1.0-s)*(1.00-tx); vvneta(1)=-(1.00/8.00)*(1.00-r)*(1.00-tx); vvnzeta(1)=-(1.00/8.00)*(1.00-r)*(1.00-s);
+vvnxi(2)=(1.00/8.00)*(1.0-s)*(1.00-tx); vvneta(2)=-(1.00/8.00)*(1.00+r)*(1.00-tx); vvnzeta(2)=-(1.00/8.00)*(1.00+r)*(1.00-s);
+vvnxi(3)=(1.00/8.00)*(1.0+s)*(1.00-tx); vvneta(3)=(1.00/8.00)*(1.00+r)*(1.00-tx); vvnzeta(3)=-(1.00/8.00)*(1.00+r)*(1.00+s);
+vvnxi(4)=-(1.00/8.00)*(1.0+s)*(1.00-tx); vvneta(4)=(1.00/8.00)*(1.00-r)*(1.00-tx); vvnzeta(4)=-(1.00/8.00)*(1.00-r)*(1.00+s);
+vvnxi(5)=0.00; vvneta(5)=0.00; vvnzeta(5)=0.50;
 
 
 vvnallx(ii)=vvnallx(ii)+(vvnxi(ii)*wequa3d(kk))
@@ -846,8 +846,8 @@ end do
 
 
 
-vva=0.0d0
-vva1=0.0d0
+vva=0.00
+vva1=0.00
 
 do ii=1,5
 
@@ -916,15 +916,15 @@ integer::kk,ii
 
 
 	
-vvxi(1)=1.0d0; vveta(1)=0.0d0; vvzeta(1)=-1.0d0
-vvxi(2)=0.0d0; vveta(2)=1.0d0; vvzeta(2)=-1.0d0
-vvxi(3)=0.0d0; vveta(3)=0.0d0; vvzeta(3)=-1.0d0
-vvxi(4)=1.0d0; vveta(4)=0.0d0; vvzeta(4)=0.0d0
-vvxi(5)=0.0d0; vveta(5)=1.0d0; vvzeta(5)=0.0d0
-vvxi(6)=0.0d0; vveta(6)=0.0d0; vvzeta(6)=0.0d0
+vvxi(1)=1.00; vveta(1)=0.00; vvzeta(1)=-1.00
+vvxi(2)=0.00; vveta(2)=1.00; vvzeta(2)=-1.00
+vvxi(3)=0.00; vveta(3)=0.00; vvzeta(3)=-1.00
+vvxi(4)=1.00; vveta(4)=0.00; vvzeta(4)=0.00
+vvxi(5)=0.00; vveta(5)=1.00; vvzeta(5)=0.00
+vvxi(6)=0.00; vveta(6)=0.00; vvzeta(6)=0.00
 
  
-vvnallx(:)=0.0d0;vvnally(:)=0.0d0;vvnallz(:)=0.0d0
+vvnallx(:)=0.00;vvnally(:)=0.00;vvnallz(:)=0.00
 do ii=1,6
 
 do kk=1,qp_prism
@@ -934,12 +934,12 @@ tx=qpoints(3,kk)
 
 
 
-vvnxi(1)=0.5d0*(1.0d0-tx); vvneta(1)=0.0d0; vvnzeta(1)=-0.5d0*r;
-vvnxi(2)=0.0d0; vvneta(2)=0.5d0*(1.0d0-tx); vvnzeta(2)=-0.5d0*s;
-vvnxi(3)=-0.5d0*(1.0d0-tx); vvneta(3)=-0.5d0*(1.0d0-tx); vvnzeta(3)=-0.5d0*(1.0-r-s);
-vvnxi(4)=0.5d0*(1.0d0+tx); vvneta(4)=0.0d0; vvnzeta(4)=0.5d0*r;
-vvnxi(5)=0.0d0; vvneta(5)=0.5d0*(1.0d0+tx); vvnzeta(5)=0.5d0*s;
-vvnxi(6)=-0.5d0*(1.0d0+tx); vvneta(6)=-0.5d0*(1.0d0+tx); vvnzeta(6)=0.5d0*(1.0-r-s);
+vvnxi(1)=0.50*(1.00-tx); vvneta(1)=0.00; vvnzeta(1)=-0.50*r;
+vvnxi(2)=0.00; vvneta(2)=0.50*(1.00-tx); vvnzeta(2)=-0.50*s;
+vvnxi(3)=-0.50*(1.00-tx); vvneta(3)=-0.50*(1.00-tx); vvnzeta(3)=-0.50*(1.0-r-s);
+vvnxi(4)=0.50*(1.00+tx); vvneta(4)=0.00; vvnzeta(4)=0.50*r;
+vvnxi(5)=0.00; vvneta(5)=0.50*(1.00+tx); vvnzeta(5)=0.50*s;
+vvnxi(6)=-0.50*(1.00+tx); vvneta(6)=-0.50*(1.00+tx); vvnzeta(6)=0.50*(1.0-r-s);
 
 
 vvnallx(ii)=vvnallx(ii)+(vvnxi(ii)*wequa3d(kk))
@@ -950,8 +950,8 @@ end do
 
 
 
-vva=0.0d0
-vva1=0.0d0
+vva=0.00
+vva1=0.00
 
 do ii=1,6
 
@@ -1180,12 +1180,12 @@ real::edgel,dist
 	i=iconsidered
 
     
- 	ielem_minedge(i)=(3.0d0*ielem_totvolume(i))/(sum(ielem_surf(1:ielem_ifca(i),i)))
+ 	ielem_minedge(i)=(3.00*ielem_totvolume(i))/(sum(ielem_surf(i,1:ielem_ifca(i))))
 	
 	do l=1,ielem_ifca(i)
 	facex=l
 
-	 select case (ielem_types_faces(facex,i))
+	 select case (ielem_types_faces(i,facex))
 	      case(5)
 	      n_node=4
 	      case(6)
@@ -1227,7 +1227,7 @@ real::edgel,dist
 
     i=iconsidered
     
-	ielem_minedge(i)=(2.0d0*ielem_totvolume(i))/(sum(ielem_surf(1:ielem_ifca(i),i)))
+	ielem_minedge(i)=(2.00*ielem_totvolume(i))/(sum(ielem_surf(i,1:ielem_ifca(i))))
 	
 	do l=1,ielem_ifca(i)
 	facex=l
@@ -1326,12 +1326,12 @@ real,dimension(1:numberofpoints)::wequa3d
  	i=iconsidered
 
     
-    vext=0.0d0
-    nodes_list=0.0d0
+    vext=0.00
+    nodes_list=0.00
     eltype=ielem_ishape(i)
     elem_dec=ielem_vdec(i)
-    elem_listd=0.0d0
-     ielem_totvolume(i)=0.0d0
+    elem_listd=0.00
+     ielem_totvolume(i)=0.00
       jx=ielem_nonodes(i)
       
 	  do k=1,jx
@@ -1351,7 +1351,7 @@ real,dimension(1:numberofpoints)::wequa3d
       call quadraturehexa(n,igqrules,vext,qpoints,wequa3d)
       
       dumv1=hexavolume(n,vext,qpoints,wequa3d)
-      dumv2=0.0d0
+      dumv2=0.00
        do k=1,elem_dec
 		vext(1:4,1:3)=elem_listd(k,1:4,1:3)
 
@@ -1359,7 +1359,7 @@ real,dimension(1:numberofpoints)::wequa3d
 	
 		end do
 	
-! 		if (abs(dumv2-dumv1).le.(0.001d0*abs(dumv2)))then
+! 		if (abs(dumv2-dumv1).le.(0.0010*abs(dumv2)))then
 ! 		ielem_totvolume(i)=dumv1
 ! 		ielem_mode(i)=0
 ! 		else
@@ -1387,7 +1387,7 @@ real,dimension(1:numberofpoints)::wequa3d
       call quadraturepyra(n,igqrules,vext,qpoints,wequa3d)
       dumv1=pyravolume(n,vext,qpoints,wequa3d)
     
-      dumv2=0.0d0
+      dumv2=0.00
        do k=1,elem_dec
 		vext(1:4,1:3)=elem_listd(k,1:4,1:3)
         dumv3=tetravolume(n,vext)     
@@ -1402,7 +1402,7 @@ real,dimension(1:numberofpoints)::wequa3d
       
       dumv1=prismvolume(n,vext,qpoints,wequa3d)
 
-      dumv2=0.0d0
+      dumv2=0.00
        do k=1,elem_dec
 		vext(1:4,1:3)=elem_listd(k,1:4,1:3)
 				dumv3=tetravolume(n,vext)
@@ -1411,7 +1411,7 @@ real,dimension(1:numberofpoints)::wequa3d
 		
 		end do
 
-! 	if (abs(dumv2-dumv1).le.(0.001d0*abs(dumv2)))then
+! 	if (abs(dumv2-dumv1).le.(0.0010*abs(dumv2)))then
 ! 	ielem_totvolume(i)=dumv1
 ! 	ielem_mode(i)=0
 ! 	else
@@ -1455,7 +1455,7 @@ i=iconsidered
 
     eltype=ielem_ishape(i)
     elem_dec=ielem_vdec(i)
-     ielem_totvolume(i)=0.0d0
+     ielem_totvolume(i)=0.00
 	  do k=1,ielem_nonodes(i)
 	    nodes_list(k,1:2)=dinoder(ielem_nodes(k,i))%cord(1:2)
 	    vext(k,1:2)=nodes_list(k,1:2)
@@ -1473,7 +1473,7 @@ i=iconsidered
       
 
       
-      dumv2=0.0d0
+      dumv2=0.00
       
 
       
@@ -1504,13 +1504,13 @@ i=iconsidered
 
       
 
-      dumv2=0.0d0
+      dumv2=0.00
        do k=1,elem_dec
 	vext(1:3,1:2)=elem_listd(k,1:3,1:2)
 	  dumv2=dumv2+trianglevolume(n,vext)
     
 	end do
-! 	if (abs(dumv2-dumv1).le.(0.001d0*dumv2))then
+! 	if (abs(dumv2-dumv1).le.(0.0010*dumv2))then
 ! 	ielem_totvolume(i)=dumv1
 ! 	ielem_mode(i)=0
 ! 	else
@@ -1549,7 +1549,7 @@ real,dimension(1:8,1:dimensiona)::vext
 
     
     do j=1,ielem_ifca(i)
-				select case(ielem_types_faces(j,i))
+				select case(ielem_types_faces(i,j))
 				case (5)
 					 
 					  nnd=4
@@ -1558,7 +1558,7 @@ real,dimension(1:8,1:dimensiona)::vext
 				      end do
 					  
 					  
-					  ielem_surf(j,i)=quadarea(n,vext)
+					  ielem_surf(i,j)=quadarea(n,vext)
 					  
 				  
 				case(6)
@@ -1569,7 +1569,7 @@ real,dimension(1:8,1:dimensiona)::vext
 					end do
 					    
 					
- 					    ielem_surf(j,i)=trianglearea(n,vext)
+ 					    ielem_surf(i,j)=trianglearea(n,vext)
  					    
  					    
 					  
@@ -1582,7 +1582,7 @@ real,dimension(1:8,1:dimensiona)::vext
     
     
     do j=1,ielem_ifca(i)
-				select case(ielem_types_faces(j,i))
+				select case(ielem_types_faces(i,j))
                         case (5)
                                 dumv2=zero
 				
@@ -1602,11 +1602,11 @@ real,dimension(1:8,1:dimensiona)::vext
 					vext(3,1:dims)=dinoder(ielem_nodes_faces(j,4,i))%cord(1:dims)
 					  dumv2=dumv2+trianglearea(n,vext)
 					  
-					  if (abs((dumv2-ielem_surf(j,i))/ielem_surf(j,i))*100.0d0.gt.10.0d0)then
+					  if (abs((dumv2-ielem_surf(i,j))/ielem_surf(i,j))*100.00.gt.10.00)then
 ! 					  
 					  
 					  
-					  ielem_surf(j,i)=dumv2
+					  ielem_surf(i,j)=dumv2
 						end if
                                           
                                           
@@ -1643,7 +1643,7 @@ i=iconsidered
             vext(k,1:dims)=dinoder(ielem_nodes_faces(j,k,i))%cord(1:dims)
         end do
         
-        ielem_surf(j,i)=linearea(n,vext)
+        ielem_surf(i,j)=linearea(n,vext)
     end do
 
 
@@ -1696,7 +1696,7 @@ integer::i,k
 i=iconsidered
 
 
-	      select case (ielem_types_faces(facex,i))
+	      select case (ielem_types_faces(i,facex))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -1757,7 +1757,7 @@ integer::i,k
 
 
 i=iconsidered
-	      select case (ielem_types_faces(facex,i))
+	      select case (ielem_types_faces(i,facex))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -1819,7 +1819,7 @@ real::tempxx
 i=iconsidered
 
 
-	      select case (ielem_types_faces(facex,i))
+	      select case (ielem_types_faces(i,facex))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -1846,7 +1846,7 @@ i=iconsidered
 			end if
 			else
                 if (ielem_reorient(facex,i).eq.1) then
-                    if (ibound_icode(ielem_ibounds(facex,i)).eq.50) then
+                    if (ibound_icode(ielem_ibounds(i,facex)).eq.50) then
                         tempxx=nodes_list(k,1)
                         nodes_list(k,1)=tempxx*cos(angle_per)-sin(angle_per)*nodes_list(k,2)
                         nodes_list(k,2)=tempxx*sin(angle_per)+cos(angle_per)*nodes_list(k,2)
@@ -1927,7 +1927,7 @@ real::tempxx
 i=iconsidered
 
 
-	      select case (ielem_types_faces(facex,i))
+	      select case (ielem_types_faces(i,facex))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -1956,7 +1956,7 @@ i=iconsidered
 			else
                 if (ielem_reorient(facex,i).eq.1) then
                 do k=1,nnd
-                    if (ibound_icode(ielem_ibounds(facex,i)).eq.50) then
+                    if (ibound_icode(ielem_ibounds(i,facex)).eq.50) then
                         tempxx=nodes_list(k,1)
                         nodes_list(k,1)=tempxx*cos(angle_per)-sin(angle_per)*nodes_list(k,2)
                         nodes_list(k,2)=tempxx*sin(angle_per)+cos(angle_per)*nodes_list(k,2)
@@ -2151,16 +2151,16 @@ real,dimension(1:gpu_max_qp_all)::vvwg
 real,dimension(1:gpu_max_qp_all)::vvr1,vvr2,vvr3
 integer::kk
 
-wequa2d=0.0d0
-qpoints2d=0.0d0
+wequa2d=0.00
+qpoints2d=0.00
 
 
 select case(igqrules)
 
 case(1)
 		
-	    vvwg(1) = 1.0d0
-	    vvr1(1)=1.0d0/3.0d0;	vvr2(1)=1.0d0/3.0d0;	vvr3(1)=1.0d0/3.0d0
+	    vvwg(1) = 1.00
+	    vvr1(1)=1.00/3.00;	vvr2(1)=1.00/3.00;	vvr3(1)=1.00/3.00
 case(2)
 		vvwg(1)=0.33333333333333333333
   		vvwg(2)=0.33333333333333333333
@@ -2450,16 +2450,16 @@ real,dimension(1:gpu_max_qp_all)::vvwg,vvr1,vvr2,vvr3
 real,dimension(1:gpu_max_qp_face)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
 integer::kk
 
-wequa3d=0.0d0
-qpoints=0.0d0
+wequa3d=0.00
+qpoints=0.00
 
 select case(igqrules)
 
 
 case(1)
 		
-	    vvwg(1) = 1.0d0
-	    vvr1(1)=1.0d0/3.0d0;	vvr2(1)=1.0d0/3.0d0;	vvr3(1)=1.0d0/3.0d0
+	    vvwg(1) = 1.00
+	    vvr1(1)=1.00/3.00;	vvr2(1)=1.00/3.00;	vvr3(1)=1.00/3.00
 
 case(2)
 		vvwg(1)=0.33333333333333333333
@@ -2736,24 +2736,24 @@ real::a1,b1,c1,d1,e1,f1
 integer::kk,j,ii,ij,ik,count1
 
 
- wequa3d=0.0d0
-  qpoints=0.0d0
+ wequa3d=0.00
+  qpoints=0.00
 
 select case(igqrules)
  
 
  case(1)
 
-		vvwg(1) = 4.0d0
-	    vvr1(1)=0.0d0	;vvr2(1)=0.0d0	
+		vvwg(1) = 4.00
+	    vvr1(1)=0.00	;vvr2(1)=0.00
 
 
  case(2)
 
  a=-0.5773502691896257
   b=0.5773502691896257
-  a1=1.0d0
-  b1=1.0d0
+  a1=1.00
+  b1=1.00
   
   vvnpox(1)=a	;vvnpox(2)=b	
   vvnpoy(1)= a	;vvnpoy(2)=b	
@@ -2778,7 +2778,7 @@ end do
 
   	
  case(3)
-  a=0.0d0
+  a=0.00
   b=-0.7745966692414834
   c=0.7745966692414834
   a1=0.8888888888888888
@@ -2833,7 +2833,7 @@ end do
 			
 case(5)
 
-  a=0.0d0
+  a=0.00
   b=-0.5384693101056831
   c=0.5384693101056831
   d=-0.9061798459386640
@@ -2894,17 +2894,17 @@ end do
 	
 			
 end select
-		qpoints(:,:)=0.0d0
+		qpoints(:,:)=0.00
 		
-		  vvwg(:)=vvwg(:)*0.25d0
+		  vvwg(:)=vvwg(:)*0.250
 ! 		  wequa3d(:)=vvwg(:)
 		do kk=1,qp_quad
 			 wequa3d(kk)=vvwg(kk)
 			r=vvr1(kk); s=vvr2(kk);
-			vvnxi(1)=(0.25d0)*(1.0d0-r)*(1.0d0-s)
-			vvnxi(2)=(0.25d0)*(1.0d0+r)*(1.0d0-s)
-			vvnxi(3)=(0.25d0)*(1.0d0+r)*(1.0d0+s)
-			vvnxi(4)=(0.25d0)*(1.0d0-r)*(1.0d0+s)
+			vvnxi(1)=(0.250)*(1.00-r)*(1.00-s)
+			vvnxi(2)=(0.250)*(1.00+r)*(1.00-s)
+			vvnxi(3)=(0.250)*(1.00+r)*(1.00+s)
+			vvnxi(4)=(0.250)*(1.00-r)*(1.00+s)
 			
 			do j=1,4
 			qpoints(1:2,kk)=qpoints(1:2,kk)+(vvnxi(j)*vext(j,1:2))
@@ -2945,24 +2945,24 @@ integer::kk,j,ii,ij,ik,count1
 
 
 
- wequa2d=0.0d0
-  qpoints2d=0.0d0
+ wequa2d=0.00
+  qpoints2d=0.00
 
 select case(igqrules)
  
 
  case(1)
 
-		vvwg(1) = 4.0d0
-	    vvr1(1)=0.0d0	;vvr2(1)=0.0d0	
+		vvwg(1) = 4.00
+	    vvr1(1)=0.00	;vvr2(1)=0.00
 
 
  case(2)
 
  a=-0.5773502691896257
   b=0.5773502691896257
-  a1=1.0d0
-  b1=1.0d0
+  a1=1.00
+  b1=1.00
   
   vvnpox(1)=a	;vvnpox(2)=b	
   vvnpoy(1)= a	;vvnpoy(2)=b	
@@ -2987,7 +2987,7 @@ end do
 
   	
  case(3)
-  a=0.0d0
+  a=0.00
   b=-0.7745966692414834
   c=0.7745966692414834
   a1=0.8888888888888888
@@ -3042,7 +3042,7 @@ end do
 			
 case(5)
 
-  a=0.0d0
+  a=0.00
   b=-0.5384693101056831
   c=0.5384693101056831
   d=-0.9061798459386640
@@ -3103,17 +3103,17 @@ end do
 	
 			
 end select
-		qpoints2d(:,:)=0.0d0
+		qpoints2d(:,:)=0.00
 		
-		  vvwg(:)=vvwg(:)*0.25d0
+		  vvwg(:)=vvwg(:)*0.250
 ! 		  wequa2d(:)=vvwg(:)
 		do kk=1,qp_quad
 			wequa2d(kk)=vvwg(kk)
 			r=vvr1(kk); s=vvr2(kk);
-			vvnxi(1)=(0.25d0)*(1.0d0-r)*(1.0d0-s)
-			vvnxi(2)=(0.25d0)*(1.0d0+r)*(1.0d0-s)
-			vvnxi(3)=(0.25d0)*(1.0d0+r)*(1.0d0+s)
-			vvnxi(4)=(0.25d0)*(1.0d0-r)*(1.0d0+s)
+			vvnxi(1)=(0.250)*(1.00-r)*(1.00-s)
+			vvnxi(2)=(0.250)*(1.00+r)*(1.00-s)
+			vvnxi(3)=(0.250)*(1.00+r)*(1.00+s)
+			vvnxi(4)=(0.250)*(1.00-r)*(1.00+s)
 			
 			do j=1,4
 			qpoints2d(1:3,kk)=qpoints2d(1:3,kk)+(vvnxi(j)*vext(j,1:3))
@@ -3152,24 +3152,24 @@ integer::kk,j,ii,ij,ik,count1
 
 
 
- wequa2d=0.0d0
-  qpoints2d=0.0d0
+ wequa2d=0.00
+  qpoints2d=0.00
 
 select case(igqrules)
  
 
  case(1)
 
-		vvwg(1) = 2.0d0
-	    vvr1(1)=0.0d0	;vvr2(1)=0.0d0	
+		vvwg(1) = 2.00
+	    vvr1(1)=0.00	;vvr2(1)=0.00
 
 
  case(2)
 
  a=-0.5773502691896257
   b=0.5773502691896257
-  a1=1.0d0
-  b1=1.0d0
+  a1=1.00
+  b1=1.00
   
   vvnpox(1)=a	;vvnpox(2)=b	
  
@@ -3191,7 +3191,7 @@ end do
 
   	
  case(3)
-  a=0.0d0
+  a=0.00
   b=-0.7745966692414834
   c=0.7745966692414834
   a1=0.8888888888888888
@@ -3242,7 +3242,7 @@ end do
 			
 case(5)
 
-  a=0.0d0
+  a=0.00
   b=-0.5384693101056831
   c=0.5384693101056831
   d=-0.9061798459386640
@@ -3336,9 +3336,9 @@ end do
 	
 			
 end select
-		qpoints2d(:,:)=0.0d0
+		qpoints2d(:,:)=0.00
 		
-		  vvwg(:)=vvwg(:)*0.5d0
+		  vvwg(:)=vvwg(:)*0.50
 
 		do kk=1,qp_line
 			wequa2d(kk)=vvwg(kk)
@@ -3346,7 +3346,7 @@ end select
 				
 			
 			
-			qpoints2d(:,kk)=((vext(1,1:2)+vext(2,1:2))/2.0d0)+(r*(vext(2,1:2)-vext(1,1:2))/2.0d0)
+			qpoints2d(:,kk)=((vext(1,1:2)+vext(2,1:2))/2.00)+(r*(vext(2,1:2)-vext(1,1:2))/2.00)
 			
 			
 ! 		
@@ -3380,15 +3380,15 @@ real,dimension(1:gpu_max_qp_face)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
 
 
 
-wequa3d=0.0d0
-qpoints=0.0d0
+wequa3d=0.00
+qpoints=0.00
 
 
 select case(igqrules)
 case(1)
 
-		vvwg(1) = 1.0d0
-	    vvr1(1)=0.25d0	;vvr2(1)=0.25d0	;vvr3(1)=0.25d0; vvr4(1)=0.25d0
+		vvwg(1) = 1.00
+	    vvr1(1)=0.250	;vvr2(1)=0.250	;vvr3(1)=0.250; vvr4(1)=0.250
 case(2)
 	
   	
@@ -3610,16 +3610,16 @@ integer::kk,j,ii,ij,ik,count1
 
 
  
- wequa3d=0.0d0
-  qpoints=0.0d0
-sumwe=0.0d0
+ wequa3d=0.00
+  qpoints=0.00
+sumwe=0.00
 
 select case(igqrules)
  
   case(1)
-		vvr1(1)=0.666666666666667/2.0d0 ;vvr2(1)=0.666666666666667/2.0d0 ;vvr3(1)=0.0d0
+		vvr1(1)=0.666666666666667/2.00 ;vvr2(1)=0.666666666666667/2.00 ;vvr3(1)=0.00
 		
-		  vvwg(1)=2.0d0
+		  vvwg(1)=2.00
 
  
   	
@@ -3629,12 +3629,12 @@ select case(igqrules)
 
  
  case(2)
-		vvr1(1)=0.666666666666667 ;vvr2(1)=0.166666666666667 ;vvr3(1)=0.5773502691896257;vvwg(1)=0.33333333333333333333*1.0d0
-		vvr1(2)=0.166666666666667 ;vvr2(2)=0.666666666666667 ;vvr3(2)=0.5773502691896257;vvwg(2)=0.33333333333333333333*1.0d0
-		vvr1(3)=0.166666666666667 ;vvr2(3)=0.166666666666667 ;vvr3(3)=0.5773502691896257;vvwg(3)=0.33333333333333333333*1.0d0
-		vvr1(4)=0.666666666666667 ;vvr2(4)=0.166666666666667 ;vvr3(4)=-0.5773502691896257;vvwg(4)=0.33333333333333333333*1.0d0
-		vvr1(5)=0.166666666666667 ;vvr2(5)=0.666666666666667 ;vvr3(5)=-0.5773502691896257;vvwg(5)=0.33333333333333333333*1.0d0
-		vvr1(6)=0.166666666666667 ;vvr2(6)=0.166666666666667 ;vvr3(6)=-0.5773502691896257;vvwg(6)=0.33333333333333333333*1.0d0
+		vvr1(1)=0.666666666666667 ;vvr2(1)=0.166666666666667 ;vvr3(1)=0.5773502691896257;vvwg(1)=0.33333333333333333333*1.00
+		vvr1(2)=0.166666666666667 ;vvr2(2)=0.666666666666667 ;vvr3(2)=0.5773502691896257;vvwg(2)=0.33333333333333333333*1.00
+		vvr1(3)=0.166666666666667 ;vvr2(3)=0.166666666666667 ;vvr3(3)=0.5773502691896257;vvwg(3)=0.33333333333333333333*1.00
+		vvr1(4)=0.666666666666667 ;vvr2(4)=0.166666666666667 ;vvr3(4)=-0.5773502691896257;vvwg(4)=0.33333333333333333333*1.00
+		vvr1(5)=0.166666666666667 ;vvr2(5)=0.666666666666667 ;vvr3(5)=-0.5773502691896257;vvwg(5)=0.33333333333333333333*1.00
+		vvr1(6)=0.166666666666667 ;vvr2(6)=0.166666666666667 ;vvr3(6)=-0.5773502691896257;vvwg(6)=0.33333333333333333333*1.00
  
 
  
@@ -3643,7 +3643,7 @@ select case(igqrules)
 
   	
  case(3)
-  a=0.0d0
+  a=0.00
   b=-0.7745966692414834
   c=0.7745966692414834
   a1=0.8888888888888888
@@ -3720,7 +3720,7 @@ select case(igqrules)
 			
 case(5)
 
-  a=0.0d0
+  a=0.00
   b=-0.5384693101056831
   c=0.5384693101056831
   d=-0.9061798459386640
@@ -3864,19 +3864,19 @@ case(6,7,8,9)
 	
 			
 end select
-		qpoints(:,:)=0.0d0
+		qpoints(:,:)=0.00
 ! 		
-! 		  wequa3d(:)=vvwg(:)*0.5d0
+! 		  wequa3d(:)=vvwg(:)*0.50
 		do kk=1,qp_prism
-			wequa3d(kk)=vvwg(kk)*0.5d0
+			wequa3d(kk)=vvwg(kk)*0.50
 			
 			r=vvr1(kk); s=vvr2(kk); tx=vvr3(kk)
-			vvnxi(1)=(0.5d0)*r*(1.0d0-tx)
-			vvnxi(2)=(0.5d0)*(s)*(1.0d0-tx)
-			vvnxi(3)=(0.5d0)*(1.0-r-s)*(1.0d0-tx)
-			vvnxi(4)=(0.5d0)*r*(1.0d0+tx)
-			vvnxi(5)=(0.5d0)*(s)*(1.0d0+tx)
-			vvnxi(6)=(0.5d0)*(1.0-r-s)*(1.0d0+tx)
+			vvnxi(1)=(0.50)*r*(1.00-tx)
+			vvnxi(2)=(0.50)*(s)*(1.00-tx)
+			vvnxi(3)=(0.50)*(1.0-r-s)*(1.00-tx)
+			vvnxi(4)=(0.50)*r*(1.00+tx)
+			vvnxi(5)=(0.50)*(s)*(1.00+tx)
+			vvnxi(6)=(0.50)*(1.0-r-s)*(1.00+tx)
 			
 			do j=1,6
 			qpoints(:,kk)=qpoints(:,kk)+(vvnxi(j)*vext(j,:))
@@ -3916,16 +3916,16 @@ real,dimension(1:gpu_max_qp_face)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
 
 
  
- wequa3d=0.0d0
-  qpoints=0.0d0
-sumwe=0.0d0
+ wequa3d=0.00
+  qpoints=0.00
+sumwe=0.00
 
 select case(igqrules)
  
   case(1)
-		vvr1(1)=0.0d0 ;vvr2(1)=0.0d0 ;vvr3(1)=-0.5d0
+		vvr1(1)=0.00 ;vvr2(1)=0.00 ;vvr3(1)=-0.50
 		
-		  vvwg(1)=8.0d0
+		  vvwg(1)=8.00
 
  
   	
@@ -3939,7 +3939,7 @@ select case(igqrules)
 		vvr1(2)=0.58423739467217718 ;vvr2(2)=-0.58423739467217718 ;vvr3(2)=-0.6666666666666666;vvwg(2)=0.81
 		vvr1(3)=0.58423739467217718 ;vvr2(3)=0.58423739467217718 ;vvr3(3)=-0.6666666666666666;vvwg(3)=0.81
 		vvr1(4)=-0.58423739467217718 ;vvr2(4)=0.58423739467217718 ;vvr3(4)=-0.6666666666666666;vvwg(4)=0.81
-		vvr1(5)=0.0d0 ;vvr2(5)=0.0d0 ;vvr3(5)=0.4d0;vvwg(5)=3.76d0
+		vvr1(5)=0.00 ;vvr2(5)=0.00 ;vvr3(5)=0.40;vvwg(5)=3.760
 		
  
 
@@ -3956,10 +3956,10 @@ select case(igqrules)
   e=-0.321428571428571429
   f=0.524394036075370072
   g=-0.830065359477124183
-  a1=1.104848006d0*0.515003019323671498
-  b1=1.104848006d0*0.2571837452420646589
-  c1=1.104848006d0*2.474004977113405936
-  d1=1.104848006d0*0.419515737191525950
+  a1=1.1048480060*0.515003019323671498
+  b1=1.1048480060*0.2571837452420646589
+  c1=1.1048480060*2.474004977113405936
+  d1=1.1048480060*0.419515737191525950
  
  
 
@@ -4088,18 +4088,18 @@ case(6,7,8,9)
 	
 			
 end select
-		qpoints(:,:)=0.0d0
+		qpoints(:,:)=0.00
 
 
 		do kk=1,qp_pyra
 			wequa3d(kk)=vvwg(kk)*0.1250000000000
 			
 			r=vvr1(kk); s=vvr2(kk); tx=vvr3(kk)
-			vvnxi(1)=(0.1250000000000)*(1.0-r)*(1.0d0-s)*(1.0d0-tx)
-			vvnxi(2)=(0.1250000000000)*(1.0+r)*(1.0d0-s)*(1.0d0-tx)
-			vvnxi(3)=(0.1250000000000)*(1.0+r)*(1.0d0+s)*(1.0d0-tx)
-			vvnxi(4)=(0.1250000000000)*(1.0-r)*(1.0d0+s)*(1.0d0-tx)
-			vvnxi(5)=0.5d0*(1.0d0+tx)
+			vvnxi(1)=(0.1250000000000)*(1.0-r)*(1.00-s)*(1.00-tx)
+			vvnxi(2)=(0.1250000000000)*(1.0+r)*(1.00-s)*(1.00-tx)
+			vvnxi(3)=(0.1250000000000)*(1.0+r)*(1.00+s)*(1.00-tx)
+			vvnxi(4)=(0.1250000000000)*(1.0-r)*(1.00+s)*(1.00-tx)
+			vvnxi(5)=0.50*(1.00+tx)
 			
 
 			do j=1,5
@@ -4138,24 +4138,24 @@ real,dimension(1:gpu_max_qp_face)::vvwpox,vvnpox,vvwpoy,vvnpoy,vvwpoz,vvnpoz
 
 
 
- wequa3d=0.0d0
-  qpoints=0.0d0
+ wequa3d=0.00
+  qpoints=0.00
 
 select case(igqrules)
  
 
  case(1)
 
-		vvwg(1) = 8.0d0
-	    vvr1(1)=0.0d0	;vvr2(1)=0.0d0	;vvr3(1)=0.0d0
+		vvwg(1) = 8.00
+	    vvr1(1)=0.00	;vvr2(1)=0.00	;vvr3(1)=0.00
 
 
  case(2)
 
  a=-0.5773502691896257
   b=0.5773502691896257
-  a1=1.0d0
-  b1=1.0d0
+  a1=1.00
+  b1=1.00
   
   vvnpox(1)=a	;vvnpox(2)=b	
   vvnpoy(1)= a	;vvnpoy(2)=b	
@@ -4179,7 +4179,7 @@ end do
 
   	
  case(3)
-  a=0.0d0
+  a=0.00
   b=-0.7745966692414834
   c=0.7745966692414834
   a1=0.8888888888888888
@@ -4234,7 +4234,7 @@ end do
 			
 case(5)
 
-  a=0.0d0
+  a=0.00
   b=-0.5384693101056831
   c=0.5384693101056831
   d=-0.9061798459386640
@@ -4295,20 +4295,20 @@ end do
 	
 			
 end select
-		qpoints(:,:)=0.0d0
+		qpoints(:,:)=0.00
 		
-		  vvwg(:)=vvwg(:)*0.125d0
+		  vvwg(:)=vvwg(:)*0.1250
 		do kk=1,qp_hexa
 			wequa3d(kk)=vvwg(kk)
 			r=vvr1(kk); s=vvr2(kk); tx=vvr3(kk)
-			vvnxi(1)=(0.125d0)*(1.0d0-r)*(1.0d0-s)*(1.0d0-tx)
-			vvnxi(2)=(0.125d0)*(1.0d0+r)*(1.0d0-s)*(1.0d0-tx)
-			vvnxi(3)=(0.125d0)*(1.0d0+r)*(1.0d0+s)*(1.0d0-tx)
-			vvnxi(4)=(0.125d0)*(1.0d0-r)*(1.0d0+s)*(1.0d0-tx)
-			vvnxi(5)=(0.125d0)*(1.0d0-r)*(1.0d0-s)*(1.0d0+tx)
-			vvnxi(6)=(0.125d0)*(1.0d0+r)*(1.0d0-s)*(1.0d0+tx)
-			vvnxi(7)=(0.125d0)*(1.0d0+r)*(1.0d0+s)*(1.0d0+tx)
-			vvnxi(8)=(0.125d0)*(1.0d0-r)*(1.0d0+s)*(1.0d0+tx)
+			vvnxi(1)=(0.1250)*(1.00-r)*(1.00-s)*(1.00-tx)
+			vvnxi(2)=(0.1250)*(1.00+r)*(1.00-s)*(1.00-tx)
+			vvnxi(3)=(0.1250)*(1.00+r)*(1.00+s)*(1.00-tx)
+			vvnxi(4)=(0.1250)*(1.00-r)*(1.00+s)*(1.00-tx)
+			vvnxi(5)=(0.1250)*(1.00-r)*(1.00-s)*(1.00+tx)
+			vvnxi(6)=(0.1250)*(1.00+r)*(1.00-s)*(1.00+tx)
+			vvnxi(7)=(0.1250)*(1.00+r)*(1.00+s)*(1.00+tx)
+			vvnxi(8)=(0.1250)*(1.00-r)*(1.00+s)*(1.00+tx)
 			do j=1,8
 			qpoints(:,kk)=qpoints(:,kk)+(vvnxi(j)*vext(j,:))
 			end do
@@ -4347,7 +4347,7 @@ integer::ii,jj
  
 tri=zero
 
-tri(1,1)=1.0d0
+tri(1,1)=1.00
 
 tri(2,2)=coa1*sia2	!cos(angle1)*sin(angle2)
 tri(2,3)=sia1*sia2	!sin(angle1)*sin(angle2)
@@ -4359,7 +4359,7 @@ tri(3,4)=-sia2		!-sin(angle2)
 
 tri(4,2)=-sia1		!-sin(angle1)
 tri(4,3)=coa1		!cos(angle1)
-tri(5,5)=1.0d0
+tri(5,5)=1.00
 
 rotvect(1:nof_variables)=vectco(1:nof_variables)
 
@@ -4405,7 +4405,7 @@ invtri=zero
 
 
 !build matrix of rotation!
-invtri(1,1)=1.0d0
+invtri(1,1)=1.00
 
 invtri(2,2)=coa1*sia2!cos(angle1)*sin(angle2)
 invtri(2,3)=coa1*coa2!cos(angle1)*cos(angle2)
@@ -4417,7 +4417,7 @@ invtri(3,4)=coa1!cos(angle1)
 
 invtri(4,2)=coa2!cos(angle2)
 invtri(4,3)=-sia2!-sin(angle2)
-invtri(5,5)=1.0d0
+invtri(5,5)=1.00
 
 rotvect(1:nof_variables)=vectco(1:nof_variables)
 
@@ -4531,7 +4531,7 @@ kmaxe=xmpielrank(n)
 	
 	call mpi_barrier(mpi_comm_world,ierror)
 	dumout=delta
-		dumin=0.0d0
+		dumin=0.00
 		call mpi_allreduce(dumout,dumin,1,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
 		call mpi_barrier(mpi_comm_world,ierror)
 	if (abs(dumin-delta).le.1.0e-15) then
@@ -4560,7 +4560,7 @@ kmaxe=xmpielrank(n)
 	call mpi_barrier(mpi_comm_world,ierror)
 	
 	dumout=delta
-		dumin=0.0d0
+		dumin=0.00
 		call mpi_allreduce(dumout,dumin,1,mpi_double_precision,mpi_min,mpi_comm_world,ierror)
 		call mpi_barrier(mpi_comm_world,ierror)
 	if (abs(dumin-delta).le.1.0e-15) then
@@ -4595,15 +4595,15 @@ if ((a_rot.ne.zero).and.(b_rot.ne.zero))then
 		anglefacex=pi+(atan(b_rot/a_rot))
 	end if
 	if ((a_rot.gt.zero).and.(b_rot.lt.zero))then
-		anglefacex=(2.0d0*pi)+(atan(b_rot/a_rot))
+		anglefacex=(2.00*pi)+(atan(b_rot/a_rot))
 	end if
 end if
 if ((a_rot.eq.zero).and.(b_rot.ne.zero))then
 	if (b_rot.gt.zero) then
-		anglefacex=(pi/2.0d0)
+		anglefacex=(pi/2.00)
 	end if
 	if (b_rot.lt.zero) then
-		anglefacex=3.0d0*(pi/2.0d0)
+		anglefacex=3.00*(pi/2.00)
 	end if
 end if
 if ((a_rot.ne.zero).and.(b_rot.eq.zero))then

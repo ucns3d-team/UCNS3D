@@ -18,7 +18,7 @@ real,intent(in)::x
 integer,intent(in)::p
 integer::i
 
-basis_real_power=1.0d0
+basis_real_power=1.00
 do i=1,p
    basis_real_power=basis_real_power*x
 end do
@@ -58,14 +58,14 @@ degree_loop: do degree=1,number
 end do degree_loop
 
 if (icompwrt.eq.-2)then
-   oov=1.0d0/(ielem_totvolume(iconsidered))
-   basis_rec_value=raw-(integ_basis_dg_value(kbasis,iconsidered))*oov
+   oov=1.00/(ielem_totvolume(iconsidered))
+   basis_rec_value=raw-(integ_basis_dg_value(iconsidered,kbasis))*oov
 else if (icompwrt.eq.0)then
-   oov=1.0d0/(rec_volume(1,1,iconsidered))
-   basis_rec_value=raw-(integ_basis_value(kbasis,iconsidered))*oov
+   oov=1.00/(rec_volume(1,1,iconsidered))
+   basis_rec_value=raw-(integ_basis_value(iconsidered,kbasis))*oov
 else if (icompwrt.eq.1)then
-   oov=1.0d0/(rec_volume(1,1,iconsidered))
-   basis_rec_value=raw-(integ_basis_valuec(kbasis,iconsidered))*oov
+   oov=1.00/(rec_volume(1,1,iconsidered))
+   basis_rec_value=raw-(integ_basis_valuec(iconsidered,kbasis))*oov
 else
    basis_rec_value=raw
 end if
@@ -103,14 +103,14 @@ degree_loop_2d: do degree=1,number
 end do degree_loop_2d
 
 if (icompwrt.eq.-2)then
-   oov=1.0d0/(ielem_totvolume(iconsidered))
-   basis_rec2d_value=raw-(integ_basis_dg_value(kbasis,iconsidered))*oov
+   oov=1.00/(ielem_totvolume(iconsidered))
+   basis_rec2d_value=raw-(integ_basis_dg_value(iconsidered,kbasis))*oov
 else if (icompwrt.eq.0)then
-   oov=1.0d0/(rec_volume(1,1,iconsidered))
-   basis_rec2d_value=raw-(integ_basis_value(kbasis,iconsidered))*oov
+   oov=1.00/(rec_volume(1,1,iconsidered))
+   basis_rec2d_value=raw-(integ_basis_value(iconsidered,kbasis))*oov
 else if (icompwrt.eq.1)then
-   oov=1.0d0/(rec_volume(1,1,iconsidered))
-   basis_rec2d_value=raw-(integ_basis_valuec(kbasis,iconsidered))*oov
+   oov=1.00/(rec_volume(1,1,iconsidered))
+   basis_rec2d_value=raw-(integ_basis_valuec(iconsidered,kbasis))*oov
 else
    basis_rec2d_value=raw
 end if
@@ -133,13 +133,13 @@ integer::degree,zpow,ypow,xpow,k,ip,kstart
 real::raw,oov,xterm,yterm,zterm
 
 basis_out=zero
-oov=1.0d0/(rec_volume(1,1,iconsidered))
-if (icompwrt.eq.-2) oov=1.0d0/(ielem_totvolume(iconsidered))
+oov=1.00/(rec_volume(1,1,iconsidered))
+if (icompwrt.eq.-2) oov=1.00/(ielem_totvolume(iconsidered))
 
 k=0
 do degree=1,number
    do zpow=0,degree
-      zterm=1.0d0
+      zterm=1.00
       do ip=1,zpow
          zterm=zterm*z1
       end do
@@ -147,22 +147,22 @@ do degree=1,number
          xpow=degree-zpow-ypow
          k=k+1
          if (k.le.number_of_dog)then
-            xterm=1.0d0
+            xterm=1.00
             do ip=1,xpow
                xterm=xterm*x1
             end do
-            yterm=1.0d0
+            yterm=1.00
             do ip=1,ypow
                yterm=yterm*y1
             end do
             raw=xterm*yterm*zterm
             select case (icompwrt)
             case(-2)
-               basis_out(k)=raw-(integ_basis_dg_value(k,iconsidered))*oov
+               basis_out(k)=raw-(integ_basis_dg_value(iconsidered,k))*oov
             case(0)
-               basis_out(k)=raw-(integ_basis_value(k,iconsidered))*oov
+               basis_out(k)=raw-(integ_basis_value(iconsidered,k))*oov
             case(1)
-               basis_out(k)=raw-(integ_basis_valuec(k,iconsidered))*oov
+               basis_out(k)=raw-(integ_basis_valuec(iconsidered,k))*oov
             case default
                basis_out(k)=raw
             end select
@@ -175,11 +175,11 @@ kstart=k+1
 do k=kstart,number_of_dog
    select case (icompwrt)
    case(-2)
-      basis_out(k)=-(integ_basis_dg_value(k,iconsidered))*oov
+      basis_out(k)=-(integ_basis_dg_value(iconsidered,k))*oov
    case(0)
-      basis_out(k)=-(integ_basis_value(k,iconsidered))*oov
+      basis_out(k)=-(integ_basis_value(iconsidered,k))*oov
    case(1)
-      basis_out(k)=-(integ_basis_valuec(k,iconsidered))*oov
+      basis_out(k)=-(integ_basis_valuec(iconsidered,k))*oov
    case default
       basis_out(k)=zero
    end select
@@ -203,8 +203,8 @@ integer::degree,ypow,xpow,k,ip,kstart
 real::raw,oov,xterm,yterm
 
 basis_out=zero
-oov=1.0d0/(rec_volume(1,1,iconsidered))
-if (icompwrt.eq.-2) oov=1.0d0/(ielem_totvolume(iconsidered))
+oov=1.00/(rec_volume(1,1,iconsidered))
+if (icompwrt.eq.-2) oov=1.00/(ielem_totvolume(iconsidered))
 
 k=0
 do degree=1,number
@@ -212,22 +212,22 @@ do degree=1,number
       xpow=degree-ypow
       k=k+1
       if (k.le.number_of_dog)then
-         xterm=1.0d0
+         xterm=1.00
          do ip=1,xpow
             xterm=xterm*x1
          end do
-         yterm=1.0d0
+         yterm=1.00
          do ip=1,ypow
             yterm=yterm*y1
          end do
          raw=xterm*yterm
          select case (icompwrt)
          case(-2)
-            basis_out(k)=raw-(integ_basis_dg_value(k,iconsidered))*oov
+            basis_out(k)=raw-(integ_basis_dg_value(iconsidered,k))*oov
          case(0)
-            basis_out(k)=raw-(integ_basis_value(k,iconsidered))*oov
+            basis_out(k)=raw-(integ_basis_value(iconsidered,k))*oov
          case(1)
-            basis_out(k)=raw-(integ_basis_valuec(k,iconsidered))*oov
+            basis_out(k)=raw-(integ_basis_valuec(iconsidered,k))*oov
          case default
             basis_out(k)=raw
          end select
@@ -239,11 +239,11 @@ kstart=k+1
 do k=kstart,number_of_dog
    select case (icompwrt)
    case(-2)
-      basis_out(k)=-(integ_basis_dg_value(k,iconsidered))*oov
+      basis_out(k)=-(integ_basis_dg_value(iconsidered,k))*oov
    case(0)
-      basis_out(k)=-(integ_basis_value(k,iconsidered))*oov
+      basis_out(k)=-(integ_basis_value(iconsidered,k))*oov
    case(1)
-      basis_out(k)=-(integ_basis_valuec(k,iconsidered))*oov
+      basis_out(k)=-(integ_basis_valuec(iconsidered,k))*oov
    case default
       basis_out(k)=zero
    end select
@@ -266,7 +266,7 @@ real::oov,hxc
 real,dimension(number_of_dog)::basis_rec
 real,dimension(number_of_dog)::sb
 sb=zero
-oov=1.0d0/(rec_volume(1,1,iconsidered))
+oov=1.00/(rec_volume(1,1,iconsidered))
 
 
 hxc=(sqrt(ielem_totvolume(iconsidered)))
@@ -1010,64 +1010,64 @@ case(2)
    select case(number)
    case(1)
     !first order functions (2nd-order of accuracy 3)
-    sb(1)=-1.0d0 + 2.0d0*x1
-    sb(2)=-1.0d0 + 2.0d0*y1
-    sb(3)=-1.0d0 + 2.0d0*z1 
+    sb(1)=-1.00 + 2.00*x1
+    sb(2)=-1.00 + 2.00*y1
+    sb(3)=-1.00 + 2.00*z1
     case(2)
 ! second order functions (3rd-order of accuracy 4-9)
-  sb(1)=-1.0d0 + 2.0d0*x1
-    sb(2)=-1.0d0 + 2.0d0*y1
-    sb(3)=-1.0d0 + 2.0d0*z1 
- sb(4)=1.0d0 - 6.0d0*x1 + 6.0d0*x1**2
+  sb(1)=-1.00 + 2.00*x1
+    sb(2)=-1.00 + 2.00*y1
+    sb(3)=-1.00 + 2.00*z1
+ sb(4)=1.00 - 6.00*x1 + 6.00*x1**2
  sb(5)=sb(1)*sb(2)
  sb(6)=sb(1)*sb(3)
- sb(7)=1.0d0 - 6.0d0*y1 + 6.0d0*y1**2 
+ sb(7)=1.00 - 6.00*y1 + 6.00*y1**2
  sb(8)=sb(2)*sb(3)
- sb(9)=1.0d0 - 6.0d0*z1 + 6.0d0*z1**2
+ sb(9)=1.00 - 6.00*z1 + 6.00*z1**2
  case(3)
 ! third order functions (4th-order of accuracy  10-19)
- sb(1)=-1.0d0 + 2.0d0*x1
- sb(2)=-1.0d0 + 2.0d0*y1
- sb(3)=-1.0d0 + 2.0d0*z1 
- sb(4)=1.0d0 - 6.0d0*x1 + 6.0d0*x1**2
+ sb(1)=-1.00 + 2.00*x1
+ sb(2)=-1.00 + 2.00*y1
+ sb(3)=-1.00 + 2.00*z1
+ sb(4)=1.00 - 6.00*x1 + 6.00*x1**2
  sb(5)=sb(1)*sb(2)
  sb(6)=sb(1)*sb(3)
- sb(7)=1.0d0 - 6.0d0*y1 + 6.0d0*y1**2 
+ sb(7)=1.00 - 6.00*y1 + 6.00*y1**2
  sb(8)=sb(2)*sb(3)
- sb(9)=1.0d0 - 6.0d0*z1 + 6.0d0*z1**2
- sb(10)=-1.0d0 + 12.0d0*x1 - 30.0d0*x1**2 + 20.0d0*x1**3
+ sb(9)=1.00 - 6.00*z1 + 6.00*z1**2
+ sb(10)=-1.00 + 12.00*x1 - 30.00*x1**2 + 20.00*x1**3
  sb(11)=sb(4)*sb(2)
  sb(12)=sb(1)*sb(7)
- sb(13)=-1.0d0 + 12.0d0*y1 - 30.0d0*y1**2 + 20.0d0*y1**3
+ sb(13)=-1.00 + 12.00*y1 - 30.00*y1**2 + 20.00*y1**3
  sb(14)=sb(7)*sb(3)
  sb(15)=sb(2)*sb(9)
- sb(16)=-1.0d0 + 12.0d0*z1 - 30.0d0*z1**2 + 20.0d0*z1**3
+ sb(16)=-1.00 + 12.00*z1 - 30.00*z1**2 + 20.00*z1**3
  sb(17)=sb(1)*sb(8)
  sb(18)=sb(4)*sb(3)
  sb(19)=sb(1)*sb(9)
  
  case(4)
 ! fourth order functions (5th-order of accuracy 20-34)
-  sb(1)=-1.0d0 + 2.0d0*x1
- sb(2)=-1.0d0 + 2.0d0*y1
- sb(3)=-1.0d0 + 2.0d0*z1 
- sb(4)=1.0d0 - 6.0d0*x1 + 6.0d0*x1**2
+  sb(1)=-1.00 + 2.00*x1
+ sb(2)=-1.00 + 2.00*y1
+ sb(3)=-1.00 + 2.00*z1
+ sb(4)=1.00 - 6.00*x1 + 6.00*x1**2
  sb(5)=sb(1)*sb(2)
  sb(6)=sb(1)*sb(3)
- sb(7)=1.0d0 - 6.0d0*y1 + 6.0d0*y1**2 
+ sb(7)=1.00 - 6.00*y1 + 6.00*y1**2
  sb(8)=sb(2)*sb(3)
- sb(9)=1.0d0 - 6.0d0*z1 + 6.0d0*z1**2
- sb(10)=-1.0d0 + 12.0d0*x1 - 30.0d0*x1**2 + 20.0d0*x1**3
+ sb(9)=1.00 - 6.00*z1 + 6.00*z1**2
+ sb(10)=-1.00 + 12.00*x1 - 30.00*x1**2 + 20.00*x1**3
  sb(11)=sb(4)*sb(2)
  sb(12)=sb(1)*sb(7)
- sb(13)=-1.0d0 + 12.0d0*y1 - 30.0d0*y1**2 + 20.0d0*y1**3
+ sb(13)=-1.00 + 12.00*y1 - 30.00*y1**2 + 20.00*y1**3
  sb(14)=sb(7)*sb(3)
  sb(15)=sb(2)*sb(9)
- sb(16)=-1.0d0 + 12.0d0*z1 - 30.0d0*z1**2 + 20.0d0*z1**3
+ sb(16)=-1.00 + 12.00*z1 - 30.00*z1**2 + 20.00*z1**3
  sb(17)=sb(1)*sb(8)
  sb(18)=sb(4)*sb(3)
  sb(19)=sb(1)*sb(9)
- sb(20)=1.0d0 - 20.0d0*x1 + 90.0d0*x1**2 - 140.0d0*x1**3 + 70.0d0*x1**4
+ sb(20)=1.00 - 20.00*x1 + 90.00*x1**2 - 140.00*x1**3 + 70.00*x1**4
  sb(21)=sb(10)*sb(2)
  sb(22)=sb(10)*sb(3)
  sb(23)=sb(4)*sb(7)
@@ -1080,30 +1080,30 @@ case(2)
  sb(30)=sb(13)*sb(3)
  sb(31)=sb(7)*sb(9)
  sb(32)=sb(2)*sb(16)
- sb(33)=1.0d0 - 20.0d0*z1 + 90.0d0*z1**2 - 140.0d0*z1**3 + 70.0d0*z1**4
- sb(34)=1.0d0 - 20.0d0*y1 + 90.0d0*y1**2 - 140.0d0*y1**3 + 70.0d0*y1**4
+ sb(33)=1.00 - 20.00*z1 + 90.00*z1**2 - 140.00*z1**3 + 70.00*z1**4
+ sb(34)=1.00 - 20.00*y1 + 90.00*y1**2 - 140.00*y1**3 + 70.00*y1**4
  case(5)
 ! fifth order functions (6th-order of accuracy 35-55)
-  sb(1)=-1.0d0 + 2.0d0*x1
- sb(2)=-1.0d0 + 2.0d0*y1
- sb(3)=-1.0d0 + 2.0d0*z1 
- sb(4)=1.0d0 - 6.0d0*x1 + 6.0d0*x1**2
+  sb(1)=-1.00 + 2.00*x1
+ sb(2)=-1.00 + 2.00*y1
+ sb(3)=-1.00 + 2.00*z1
+ sb(4)=1.00 - 6.00*x1 + 6.00*x1**2
  sb(5)=sb(1)*sb(2)
  sb(6)=sb(1)*sb(3)
- sb(7)=1.0d0 - 6.0d0*y1 + 6.0d0*y1**2 
+ sb(7)=1.00 - 6.00*y1 + 6.00*y1**2
  sb(8)=sb(2)*sb(3)
- sb(9)=1.0d0 - 6.0d0*z1 + 6.0d0*z1**2
- sb(10)=-1.0d0 + 12.0d0*x1 - 30.0d0*x1**2 + 20.0d0*x1**3
+ sb(9)=1.00 - 6.00*z1 + 6.00*z1**2
+ sb(10)=-1.00 + 12.00*x1 - 30.00*x1**2 + 20.00*x1**3
  sb(11)=sb(4)*sb(2)
  sb(12)=sb(1)*sb(7)
- sb(13)=-1.0d0 + 12.0d0*y1 - 30.0d0*y1**2 + 20.0d0*y1**3
+ sb(13)=-1.00 + 12.00*y1 - 30.00*y1**2 + 20.00*y1**3
  sb(14)=sb(7)*sb(3)
  sb(15)=sb(2)*sb(9)
- sb(16)=-1.0d0 + 12.0d0*z1 - 30.0d0*z1**2 + 20.0d0*z1**3
+ sb(16)=-1.00 + 12.00*z1 - 30.00*z1**2 + 20.00*z1**3
  sb(17)=sb(1)*sb(8)
  sb(18)=sb(4)*sb(3)
  sb(19)=sb(1)*sb(9)
- sb(20)=1.0d0 - 20.0d0*x1 + 90.0d0*x1**2 - 140.0d0*x1**3 + 70.0d0*x1**4
+ sb(20)=1.00 - 20.00*x1 + 90.00*x1**2 - 140.00*x1**3 + 70.00*x1**4
  sb(21)=sb(10)*sb(2)
  sb(22)=sb(10)*sb(3)
  sb(23)=sb(4)*sb(7)
@@ -1116,8 +1116,8 @@ case(2)
  sb(30)=sb(13)*sb(3)
  sb(31)=sb(7)*sb(9)
  sb(32)=sb(2)*sb(16)
- sb(33)=1.0d0 - 20.0d0*z1 + 90.0d0*z1**2 - 140.0d0*z1**3 + 70.0d0*z1**4
- sb(34)=1.0d0 - 20.0d0*y1 + 90.0d0*y1**2 - 140.0d0*y1**3 + 70.0d0*y1**4
+ sb(33)=1.00 - 20.00*z1 + 90.00*z1**2 - 140.00*z1**3 + 70.00*z1**4
+ sb(34)=1.00 - 20.00*y1 + 90.00*y1**2 - 140.00*y1**3 + 70.00*y1**4
  sb(35)=-1 + 30*x1 - 210*x1**2 + 560*x1**3 - 630*x1**4 + 252*x1**5
  sb(36)=(1 - 20*x1 + 90*x1**2 - 140*x1**3 + 70*x1**4)*(-1 + 2*y1)
  sb(37)=(1 - 20*x1 + 90*x1**2 - 140*x1**3 + 70*x1**4)*(-1 + 2*z1)
@@ -1753,212 +1753,212 @@ case(2)
         sb(1)=x1/hxc
         sb(2)=y1/hxc
         sb(3)=z1/hxc
-        sb(4)=x1**2/(2.0d0*hxc**2)
+        sb(4)=x1**2/(2.00*hxc**2)
         sb(5)=(x1*y1)/hxc**2
         sb(6)=(x1*z1)/hxc**2
-        sb(7)=y1**2/(2.0d0*hxc**2)
+        sb(7)=y1**2/(2.00*hxc**2)
         sb(8)=(y1*z1)/hxc**2
-        sb(9)=z1**2/(2.0d0*hxc**2)
+        sb(9)=z1**2/(2.00*hxc**2)
  case(3)
 ! third order functions (4th-order of accuracy  10-19)
         sb(1)=x1/hxc
         sb(2)=y1/hxc
         sb(3)=z1/hxc
-        sb(4)=x1**2/(2.0d0*hxc**2)
+        sb(4)=x1**2/(2.00*hxc**2)
         sb(5)=(x1*y1)/hxc**2
         sb(6)=(x1*z1)/hxc**2
-        sb(7)=y1**2/(2.0d0*hxc**2)
+        sb(7)=y1**2/(2.00*hxc**2)
         sb(8)=(y1*z1)/hxc**2
-        sb(9)=z1**2/(2.0d0*hxc**2)
-        sb(10)=x1**3/(6.0d0*hxc**3)
-        sb(11)=(x1**2*y1)/(2.0d0*hxc**3)
-        sb(12)=(x1**2*z1)/(2.0d0*hxc**3)
-        sb(13)=(x1*y1**2)/(2.0d0*hxc**3)
-        sb(14)=(x1*z1**2)/(2.0d0*hxc**3)
+        sb(9)=z1**2/(2.00*hxc**2)
+        sb(10)=x1**3/(6.00*hxc**3)
+        sb(11)=(x1**2*y1)/(2.00*hxc**3)
+        sb(12)=(x1**2*z1)/(2.00*hxc**3)
+        sb(13)=(x1*y1**2)/(2.00*hxc**3)
+        sb(14)=(x1*z1**2)/(2.00*hxc**3)
         sb(15)=(x1*y1*z1)/hxc**3
-        sb(16)=y1**3/(6.0d0*hxc**3)
-        sb(17)=(y1**2*z1)/(2.0d0*hxc**3)
-        sb(18)=(y1*z1**2)/(2.0d0*hxc**3)
-        sb(19)=z1**3/(6.0d0*hxc**3)
+        sb(16)=y1**3/(6.00*hxc**3)
+        sb(17)=(y1**2*z1)/(2.00*hxc**3)
+        sb(18)=(y1*z1**2)/(2.00*hxc**3)
+        sb(19)=z1**3/(6.00*hxc**3)
  
  case(4)
 ! fourth order functions (5th-order of accuracy 20-34)
         sb(1)=x1/hxc
         sb(2)=y1/hxc
         sb(3)=z1/hxc
-        sb(4)=x1**2/(2.0d0*hxc**2)
+        sb(4)=x1**2/(2.00*hxc**2)
         sb(5)=(x1*y1)/hxc**2
         sb(6)=(x1*z1)/hxc**2
-        sb(7)=y1**2/(2.0d0*hxc**2)
+        sb(7)=y1**2/(2.00*hxc**2)
         sb(8)=(y1*z1)/hxc**2
-        sb(9)=z1**2/(2.0d0*hxc**2)
-        sb(10)=x1**3/(6.0d0*hxc**3)
-        sb(11)=(x1**2*y1)/(2.0d0*hxc**3)
-        sb(12)=(x1**2*z1)/(2.0d0*hxc**3)
-        sb(13)=(x1*y1**2)/(2.0d0*hxc**3)
-        sb(14)=(x1*z1**2)/(2.0d0*hxc**3)
+        sb(9)=z1**2/(2.00*hxc**2)
+        sb(10)=x1**3/(6.00*hxc**3)
+        sb(11)=(x1**2*y1)/(2.00*hxc**3)
+        sb(12)=(x1**2*z1)/(2.00*hxc**3)
+        sb(13)=(x1*y1**2)/(2.00*hxc**3)
+        sb(14)=(x1*z1**2)/(2.00*hxc**3)
         sb(15)=(x1*y1*z1)/hxc**3
-        sb(16)=y1**3/(6.0d0*hxc**3)
-        sb(17)=(y1**2*z1)/(2.0d0*hxc**3)
-        sb(18)=(y1*z1**2)/(2.0d0*hxc**3)
-        sb(19)=z1**3/(6.0d0*hxc**3)
-        sb(20)=x1**4/(24.0d0*hxc**4)
-        sb(21)=(x1**3*y1)/(6.0d0*hxc**4)
-        sb(22)=(x1**3*z1)/(6.0d0*hxc**4)
-        sb(23)=(x1**2*y1**2)/(4.0d0*hxc**4)
-        sb(24)=(x1**2*z1**2)/(4.0d0*hxc**4)
-        sb(25)=(x1**2*y1*z1)/(2.0d0*hxc**4)
-        sb(26)=(x1*y1**3)/(6.0d0*hxc**4)
-        sb(27)=(x1*z1**3)/(6.0d0*hxc**4)
-        sb(28)=(x1*y1**2*z1)/(2.0d0*hxc**4)
-        sb(29)=(x1*y1*z1**2)/(2.0d0*hxc**4)
-        sb(30)=y1**4/(24.0d0*hxc**4)
-        sb(31)=(y1**3*z1)/(6.0d0*hxc**4)
-        sb(32)=(y1**2*z1**2)/(4.0d0*hxc**4)
-        sb(33)=(y1*z1**3)/(6.0d0*hxc**4)
-        sb(34)=z1**4/(24.0d0*hxc**4)
+        sb(16)=y1**3/(6.00*hxc**3)
+        sb(17)=(y1**2*z1)/(2.00*hxc**3)
+        sb(18)=(y1*z1**2)/(2.00*hxc**3)
+        sb(19)=z1**3/(6.00*hxc**3)
+        sb(20)=x1**4/(24.00*hxc**4)
+        sb(21)=(x1**3*y1)/(6.00*hxc**4)
+        sb(22)=(x1**3*z1)/(6.00*hxc**4)
+        sb(23)=(x1**2*y1**2)/(4.00*hxc**4)
+        sb(24)=(x1**2*z1**2)/(4.00*hxc**4)
+        sb(25)=(x1**2*y1*z1)/(2.00*hxc**4)
+        sb(26)=(x1*y1**3)/(6.00*hxc**4)
+        sb(27)=(x1*z1**3)/(6.00*hxc**4)
+        sb(28)=(x1*y1**2*z1)/(2.00*hxc**4)
+        sb(29)=(x1*y1*z1**2)/(2.00*hxc**4)
+        sb(30)=y1**4/(24.00*hxc**4)
+        sb(31)=(y1**3*z1)/(6.00*hxc**4)
+        sb(32)=(y1**2*z1**2)/(4.00*hxc**4)
+        sb(33)=(y1*z1**3)/(6.00*hxc**4)
+        sb(34)=z1**4/(24.00*hxc**4)
  case(5)
 ! fifth order functions (6th-order of accuracy 35-55)
   sb(1)=x1/hxc
         sb(2)=y1/hxc
         sb(3)=z1/hxc
-        sb(4)=x1**2/(2.0d0*hxc**2)
+        sb(4)=x1**2/(2.00*hxc**2)
         sb(5)=(x1*y1)/hxc**2
         sb(6)=(x1*z1)/hxc**2
-        sb(7)=y1**2/(2.0d0*hxc**2)
+        sb(7)=y1**2/(2.00*hxc**2)
         sb(8)=(y1*z1)/hxc**2
-        sb(9)=z1**2/(2.0d0*hxc**2)
-        sb(10)=x1**3/(6.0d0*hxc**3)
-        sb(11)=(x1**2*y1)/(2.0d0*hxc**3)
-        sb(12)=(x1**2*z1)/(2.0d0*hxc**3)
-        sb(13)=(x1*y1**2)/(2.0d0*hxc**3)
-        sb(14)=(x1*z1**2)/(2.0d0*hxc**3)
+        sb(9)=z1**2/(2.00*hxc**2)
+        sb(10)=x1**3/(6.00*hxc**3)
+        sb(11)=(x1**2*y1)/(2.00*hxc**3)
+        sb(12)=(x1**2*z1)/(2.00*hxc**3)
+        sb(13)=(x1*y1**2)/(2.00*hxc**3)
+        sb(14)=(x1*z1**2)/(2.00*hxc**3)
         sb(15)=(x1*y1*z1)/hxc**3
-        sb(16)=y1**3/(6.0d0*hxc**3)
-        sb(17)=(y1**2*z1)/(2.0d0*hxc**3)
-        sb(18)=(y1*z1**2)/(2.0d0*hxc**3)
-        sb(19)=z1**3/(6.0d0*hxc**3)
-        sb(20)=x1**4/(24.0d0*hxc**4)
-        sb(21)=(x1**3*y1)/(6.0d0*hxc**4)
-        sb(22)=(x1**3*z1)/(6.0d0*hxc**4)
-        sb(23)=(x1**2*y1**2)/(4.0d0*hxc**4)
-        sb(24)=(x1**2*z1**2)/(4.0d0*hxc**4)
-        sb(25)=(x1**2*y1*z1)/(2.0d0*hxc**4)
-        sb(26)=(x1*y1**3)/(6.0d0*hxc**4)
-        sb(27)=(x1*z1**3)/(6.0d0*hxc**4)
-        sb(28)=(x1*y1**2*z1)/(2.0d0*hxc**4)
-        sb(29)=(x1*y1*z1**2)/(2.0d0*hxc**4)
-        sb(30)=y1**4/(24.0d0*hxc**4)
-        sb(31)=(y1**3*z1)/(6.0d0*hxc**4)
-        sb(32)=(y1**2*z1**2)/(4.0d0*hxc**4)
-        sb(33)=(y1*z1**3)/(6.0d0*hxc**4)
-        sb(34)=z1**4/(24.0d0*hxc**4)
-        sb(35)=x1**5/(120.0d0*hxc**5)
-        sb(36)=(x1**4*y1)/(24.0d0*hxc**5)
-        sb(37)=(x1**4*z1)/(24.0d0*hxc**5)
-        sb(38)=(x1**3*y1**2)/(12.0d0*hxc**5)
-        sb(39)=(x1**3*z1**2)/(12.0d0*hxc**5)
-        sb(40)=(x1**3*y1*z1)/(6.0d0*hxc**5)
-        sb(41)=(x1**2*y1**3)/(12.0d0*hxc**5)
-        sb(42)=(x1**2*y1**2*z1)/(4.0d0*hxc**5)
-        sb(43)=(x1**2*y1*z1**2)/(4.0d0*hxc**5)
-        sb(44)=(x1**2*z1**3)/(12.0d0*hxc**5)
-        sb(45)=(x1*y1**4)/(24.0d0*hxc**5)
-        sb(46)=(x1*y1**3*z1)/(6.0d0*hxc**5)
-        sb(47)=(x1*y1**2*z1**2)/(4.0d0*hxc**5)
-        sb(48)=(x1*y1*z1**3)/(6.0d0*hxc**5)
-        sb(49)=(x1*z1**4)/(24.0d0*hxc**5)
-        sb(50)=y1**5/(120.0d0*hxc**5)
-        sb(51)=(y1**4*z1)/(24.0d0*hxc**5)
-        sb(52)=(y1**3*z1**2)/(12.0d0*hxc**5)
-        sb(53)=(y1**2*z1**3)/(12.0d0*hxc**5)
-        sb(54)=(y1*z1**4)/(24.0d0*hxc**5)
-        sb(55)=z1**5/(120.0d0*hxc**5)
+        sb(16)=y1**3/(6.00*hxc**3)
+        sb(17)=(y1**2*z1)/(2.00*hxc**3)
+        sb(18)=(y1*z1**2)/(2.00*hxc**3)
+        sb(19)=z1**3/(6.00*hxc**3)
+        sb(20)=x1**4/(24.00*hxc**4)
+        sb(21)=(x1**3*y1)/(6.00*hxc**4)
+        sb(22)=(x1**3*z1)/(6.00*hxc**4)
+        sb(23)=(x1**2*y1**2)/(4.00*hxc**4)
+        sb(24)=(x1**2*z1**2)/(4.00*hxc**4)
+        sb(25)=(x1**2*y1*z1)/(2.00*hxc**4)
+        sb(26)=(x1*y1**3)/(6.00*hxc**4)
+        sb(27)=(x1*z1**3)/(6.00*hxc**4)
+        sb(28)=(x1*y1**2*z1)/(2.00*hxc**4)
+        sb(29)=(x1*y1*z1**2)/(2.00*hxc**4)
+        sb(30)=y1**4/(24.00*hxc**4)
+        sb(31)=(y1**3*z1)/(6.00*hxc**4)
+        sb(32)=(y1**2*z1**2)/(4.00*hxc**4)
+        sb(33)=(y1*z1**3)/(6.00*hxc**4)
+        sb(34)=z1**4/(24.00*hxc**4)
+        sb(35)=x1**5/(120.00*hxc**5)
+        sb(36)=(x1**4*y1)/(24.00*hxc**5)
+        sb(37)=(x1**4*z1)/(24.00*hxc**5)
+        sb(38)=(x1**3*y1**2)/(12.00*hxc**5)
+        sb(39)=(x1**3*z1**2)/(12.00*hxc**5)
+        sb(40)=(x1**3*y1*z1)/(6.00*hxc**5)
+        sb(41)=(x1**2*y1**3)/(12.00*hxc**5)
+        sb(42)=(x1**2*y1**2*z1)/(4.00*hxc**5)
+        sb(43)=(x1**2*y1*z1**2)/(4.00*hxc**5)
+        sb(44)=(x1**2*z1**3)/(12.00*hxc**5)
+        sb(45)=(x1*y1**4)/(24.00*hxc**5)
+        sb(46)=(x1*y1**3*z1)/(6.00*hxc**5)
+        sb(47)=(x1*y1**2*z1**2)/(4.00*hxc**5)
+        sb(48)=(x1*y1*z1**3)/(6.00*hxc**5)
+        sb(49)=(x1*z1**4)/(24.00*hxc**5)
+        sb(50)=y1**5/(120.00*hxc**5)
+        sb(51)=(y1**4*z1)/(24.00*hxc**5)
+        sb(52)=(y1**3*z1**2)/(12.00*hxc**5)
+        sb(53)=(y1**2*z1**3)/(12.00*hxc**5)
+        sb(54)=(y1*z1**4)/(24.00*hxc**5)
+        sb(55)=z1**5/(120.00*hxc**5)
  case(6)
    ! sixth order functions (7th-order of accuracy 56-83)
    sb(1)=x1/hxc
         sb(2)=y1/hxc
         sb(3)=z1/hxc
-        sb(4)=x1**2/(2.0d0*hxc**2)
+        sb(4)=x1**2/(2.00*hxc**2)
         sb(5)=(x1*y1)/hxc**2
         sb(6)=(x1*z1)/hxc**2
-        sb(7)=y1**2/(2.0d0*hxc**2)
+        sb(7)=y1**2/(2.00*hxc**2)
         sb(8)=(y1*z1)/hxc**2
-        sb(9)=z1**2/(2.0d0*hxc**2)
-        sb(10)=x1**3/(6.0d0*hxc**3)
-        sb(11)=(x1**2*y1)/(2.0d0*hxc**3)
-        sb(12)=(x1**2*z1)/(2.0d0*hxc**3)
-        sb(13)=(x1*y1**2)/(2.0d0*hxc**3)
-        sb(14)=(x1*z1**2)/(2.0d0*hxc**3)
+        sb(9)=z1**2/(2.00*hxc**2)
+        sb(10)=x1**3/(6.00*hxc**3)
+        sb(11)=(x1**2*y1)/(2.00*hxc**3)
+        sb(12)=(x1**2*z1)/(2.00*hxc**3)
+        sb(13)=(x1*y1**2)/(2.00*hxc**3)
+        sb(14)=(x1*z1**2)/(2.00*hxc**3)
         sb(15)=(x1*y1*z1)/hxc**3
-        sb(16)=y1**3/(6.0d0*hxc**3)
-        sb(17)=(y1**2*z1)/(2.0d0*hxc**3)
-        sb(18)=(y1*z1**2)/(2.0d0*hxc**3)
-        sb(19)=z1**3/(6.0d0*hxc**3)
-        sb(20)=x1**4/(24.0d0*hxc**4)
-        sb(21)=(x1**3*y1)/(6.0d0*hxc**4)
-        sb(22)=(x1**3*z1)/(6.0d0*hxc**4)
-        sb(23)=(x1**2*y1**2)/(4.0d0*hxc**4)
-        sb(24)=(x1**2*z1**2)/(4.0d0*hxc**4)
-        sb(25)=(x1**2*y1*z1)/(2.0d0*hxc**4)
-        sb(26)=(x1*y1**3)/(6.0d0*hxc**4)
-        sb(27)=(x1*z1**3)/(6.0d0*hxc**4)
-        sb(28)=(x1*y1**2*z1)/(2.0d0*hxc**4)
-        sb(29)=(x1*y1*z1**2)/(2.0d0*hxc**4)
-        sb(30)=y1**4/(24.0d0*hxc**4)
-        sb(31)=(y1**3*z1)/(6.0d0*hxc**4)
-        sb(32)=(y1**2*z1**2)/(4.0d0*hxc**4)
-        sb(33)=(y1*z1**3)/(6.0d0*hxc**4)
-        sb(34)=z1**4/(24.0d0*hxc**4)
-        sb(35)=x1**5/(120.0d0*hxc**5)
-        sb(36)=(x1**4*y1)/(24.0d0*hxc**5)
-        sb(37)=(x1**4*z1)/(24.0d0*hxc**5)
-        sb(38)=(x1**3*y1**2)/(12.0d0*hxc**5)
-        sb(39)=(x1**3*z1**2)/(12.0d0*hxc**5)
-        sb(40)=(x1**3*y1*z1)/(6.0d0*hxc**5)
-        sb(41)=(x1**2*y1**3)/(12.0d0*hxc**5)
-        sb(42)=(x1**2*y1**2*z1)/(4.0d0*hxc**5)
-        sb(43)=(x1**2*y1*z1**2)/(4.0d0*hxc**5)
-        sb(44)=(x1**2*z1**3)/(12.0d0*hxc**5)
-        sb(45)=(x1*y1**4)/(24.0d0*hxc**5)
-        sb(46)=(x1*y1**3*z1)/(6.0d0*hxc**5)
-        sb(47)=(x1*y1**2*z1**2)/(4.0d0*hxc**5)
-        sb(48)=(x1*y1*z1**3)/(6.0d0*hxc**5)
-        sb(49)=(x1*z1**4)/(24.0d0*hxc**5)
-        sb(50)=y1**5/(120.0d0*hxc**5)
-        sb(51)=(y1**4*z1)/(24.0d0*hxc**5)
-        sb(52)=(y1**3*z1**2)/(12.0d0*hxc**5)
-        sb(53)=(y1**2*z1**3)/(12.0d0*hxc**5)
-        sb(54)=(y1*z1**4)/(24.0d0*hxc**5)
-        sb(55)=z1**5/(120.0d0*hxc**5)
-        sb(56)=x1**6/(720.0d0*hxc**6)
-        sb(57)=(x1**5*y1)/(120.0d0*hxc**6)
-        sb(58)=(x1**5*z1)/(120.0d0*hxc**6)
-        sb(59)=(x1**4*y1**2)/(48.0d0*hxc**6)
-        sb(60)=(x1**4*y1*z1)/(24.0d0*hxc**6)
-        sb(61)=(x1**4*z1**2)/(48.0d0*hxc**6)
-        sb(62)=(x1**3*y1**3)/(36.0d0*hxc**6)
-        sb(63)=(x1**3*y1**2*z1)/(12.0d0*hxc**6)
-        sb(64)=(x1**3*y1*z1**2)/(12.0d0*hxc**6)
-        sb(65)=(x1**3*z1**3)/(36.0d0*hxc**6)
-        sb(66)=(x1**2*y1**4)/(48.0d0*hxc**6)
-        sb(67)=(x1**2*y1**3*z1)/(12.0d0*hxc**6)
-        sb(68)=(x1**2*y1**2*z1**2)/(8.0d0*hxc**6)
-        sb(69)=(x1**2*y1*z1**3)/(12.0d0*hxc**6)
-        sb(70)=(x1**2*z1**4)/(48.0d0*hxc**6)
-        sb(71)=(x1*y1**5)/(120.0d0*hxc**6)
-        sb(72)=(x1*y1**4*z1)/(24.0d0*hxc**6)
-        sb(73)=(x1*y1**3*z1**2)/(12.0d0*hxc**6)
-        sb(74)=(x1*y1**2*z1**3)/(12.0d0*hxc**6)
-        sb(75)=(x1*y1*z1**4)/(24.0d0*hxc**6)
-        sb(76)=(x1*z1**5)/(120.0d0*hxc**6)
-        sb(77)=y1**6/(720.0d0*hxc**6)
-        sb(78)=(y1**5*z1)/(120.0d0*hxc**6)
-        sb(79)=(y1**4*z1**2)/(48.0d0*hxc**6)
-        sb(80)=(y1**3*z1**3)/(36.0d0*hxc**6)
-        sb(81)=(y1**2*z1**4)/(48.0d0*hxc**6)
-        sb(82)=(y1*z1**5)/(120.0d0*hxc**6)
-        sb(83)=z1**6/(720.0d0*hxc**6)
+        sb(16)=y1**3/(6.00*hxc**3)
+        sb(17)=(y1**2*z1)/(2.00*hxc**3)
+        sb(18)=(y1*z1**2)/(2.00*hxc**3)
+        sb(19)=z1**3/(6.00*hxc**3)
+        sb(20)=x1**4/(24.00*hxc**4)
+        sb(21)=(x1**3*y1)/(6.00*hxc**4)
+        sb(22)=(x1**3*z1)/(6.00*hxc**4)
+        sb(23)=(x1**2*y1**2)/(4.00*hxc**4)
+        sb(24)=(x1**2*z1**2)/(4.00*hxc**4)
+        sb(25)=(x1**2*y1*z1)/(2.00*hxc**4)
+        sb(26)=(x1*y1**3)/(6.00*hxc**4)
+        sb(27)=(x1*z1**3)/(6.00*hxc**4)
+        sb(28)=(x1*y1**2*z1)/(2.00*hxc**4)
+        sb(29)=(x1*y1*z1**2)/(2.00*hxc**4)
+        sb(30)=y1**4/(24.00*hxc**4)
+        sb(31)=(y1**3*z1)/(6.00*hxc**4)
+        sb(32)=(y1**2*z1**2)/(4.00*hxc**4)
+        sb(33)=(y1*z1**3)/(6.00*hxc**4)
+        sb(34)=z1**4/(24.00*hxc**4)
+        sb(35)=x1**5/(120.00*hxc**5)
+        sb(36)=(x1**4*y1)/(24.00*hxc**5)
+        sb(37)=(x1**4*z1)/(24.00*hxc**5)
+        sb(38)=(x1**3*y1**2)/(12.00*hxc**5)
+        sb(39)=(x1**3*z1**2)/(12.00*hxc**5)
+        sb(40)=(x1**3*y1*z1)/(6.00*hxc**5)
+        sb(41)=(x1**2*y1**3)/(12.00*hxc**5)
+        sb(42)=(x1**2*y1**2*z1)/(4.00*hxc**5)
+        sb(43)=(x1**2*y1*z1**2)/(4.00*hxc**5)
+        sb(44)=(x1**2*z1**3)/(12.00*hxc**5)
+        sb(45)=(x1*y1**4)/(24.00*hxc**5)
+        sb(46)=(x1*y1**3*z1)/(6.00*hxc**5)
+        sb(47)=(x1*y1**2*z1**2)/(4.00*hxc**5)
+        sb(48)=(x1*y1*z1**3)/(6.00*hxc**5)
+        sb(49)=(x1*z1**4)/(24.00*hxc**5)
+        sb(50)=y1**5/(120.00*hxc**5)
+        sb(51)=(y1**4*z1)/(24.00*hxc**5)
+        sb(52)=(y1**3*z1**2)/(12.00*hxc**5)
+        sb(53)=(y1**2*z1**3)/(12.00*hxc**5)
+        sb(54)=(y1*z1**4)/(24.00*hxc**5)
+        sb(55)=z1**5/(120.00*hxc**5)
+        sb(56)=x1**6/(720.00*hxc**6)
+        sb(57)=(x1**5*y1)/(120.00*hxc**6)
+        sb(58)=(x1**5*z1)/(120.00*hxc**6)
+        sb(59)=(x1**4*y1**2)/(48.00*hxc**6)
+        sb(60)=(x1**4*y1*z1)/(24.00*hxc**6)
+        sb(61)=(x1**4*z1**2)/(48.00*hxc**6)
+        sb(62)=(x1**3*y1**3)/(36.00*hxc**6)
+        sb(63)=(x1**3*y1**2*z1)/(12.00*hxc**6)
+        sb(64)=(x1**3*y1*z1**2)/(12.00*hxc**6)
+        sb(65)=(x1**3*z1**3)/(36.00*hxc**6)
+        sb(66)=(x1**2*y1**4)/(48.00*hxc**6)
+        sb(67)=(x1**2*y1**3*z1)/(12.00*hxc**6)
+        sb(68)=(x1**2*y1**2*z1**2)/(8.00*hxc**6)
+        sb(69)=(x1**2*y1*z1**3)/(12.00*hxc**6)
+        sb(70)=(x1**2*z1**4)/(48.00*hxc**6)
+        sb(71)=(x1*y1**5)/(120.00*hxc**6)
+        sb(72)=(x1*y1**4*z1)/(24.00*hxc**6)
+        sb(73)=(x1*y1**3*z1**2)/(12.00*hxc**6)
+        sb(74)=(x1*y1**2*z1**3)/(12.00*hxc**6)
+        sb(75)=(x1*y1*z1**4)/(24.00*hxc**6)
+        sb(76)=(x1*z1**5)/(120.00*hxc**6)
+        sb(77)=y1**6/(720.00*hxc**6)
+        sb(78)=(y1**5*z1)/(120.00*hxc**6)
+        sb(79)=(y1**4*z1**2)/(48.00*hxc**6)
+        sb(80)=(y1**3*z1**3)/(36.00*hxc**6)
+        sb(81)=(y1**2*z1**4)/(48.00*hxc**6)
+        sb(82)=(y1*z1**5)/(120.00*hxc**6)
+        sb(83)=z1**6/(720.00*hxc**6)
    
    
     end select
@@ -1969,16 +1969,16 @@ case(2)
     
     case(-2)
 
-        oov=1.0d0/(ielem_totvolume(iconsidered))
-        basis_rec(1:number_of_dog) = sb(1:number_of_dog)-((integ_basis_dg_value(1:number_of_dog,iconsidered))*oov)
+        oov=1.00/(ielem_totvolume(iconsidered))
+        basis_rec(1:number_of_dog) = sb(1:number_of_dog)-((integ_basis_dg_value(iconsidered,1:number_of_dog))*oov)
     
     case(0)
-        oov=1.0d0/(rec_volume(1,1,iconsidered))
-        basis_rec(1:number_of_dog)=sb(1:number_of_dog)-((integ_basis_value(1:number_of_dog,iconsidered))*oov)
+        oov=1.00/(rec_volume(1,1,iconsidered))
+        basis_rec(1:number_of_dog)=sb(1:number_of_dog)-((integ_basis_value(iconsidered,1:number_of_dog))*oov)
     
     case(1)
-        oov=1.0d0/(rec_volume(1,1,iconsidered))
-        basis_rec(1:number_of_dog)=sb(1:number_of_dog)-((integ_basis_valuec(1:number_of_dog,iconsidered))*oov)
+        oov=1.00/(rec_volume(1,1,iconsidered))
+        basis_rec(1:number_of_dog)=sb(1:number_of_dog)-((integ_basis_valuec(iconsidered,1:number_of_dog))*oov)
     
     end select
 
@@ -2011,7 +2011,7 @@ real,dimension(number_of_dog)::sb
 sb=zero
 
 
-oov=1.0d0/(rec_volume(1,1,iconsidered))
+oov=1.00/(rec_volume(1,1,iconsidered))
 
 hxc=(sqrt(ielem_totvolume(iconsidered)))
 
@@ -2124,28 +2124,28 @@ case(2) ! legendre
     select case(number)
     case(1)
         !first order functions (2nd-order of accuracy 3)
-        sb(1)=-1.0d0 + 2.0d0*x1
-        sb(2)=-1.0d0 + 2.0d0*y1
+        sb(1)=-1.00 + 2.00*x1
+        sb(2)=-1.00 + 2.00*y1
 
     case(2)
         ! second order functions (3rd-order of accuracy 4-9)
-        sb(1)=-1.0d0 + 2.0d0*x1
-        sb(2)=-1.0d0 + 2.0d0*y1
-        sb(3)=1.0d0 - 6.0d0*x1 + 6.0d0*x1**2
+        sb(1)=-1.00 + 2.00*x1
+        sb(2)=-1.00 + 2.00*y1
+        sb(3)=1.00 - 6.00*x1 + 6.00*x1**2
         sb(4)=sb(1)*sb(2)
-        sb(5)=1.0d0 - 6.0d0*y1 + 6.0d0*y1**2
+        sb(5)=1.00 - 6.00*y1 + 6.00*y1**2
 
     case(3)
         ! third order functions (4th-order of accuracy  10-19)
-        sb(1)=-1.0d0 + 2.0d0*x1
-        sb(2)=-1.0d0 + 2.0d0*y1
-        sb(3)=1.0d0 - 6.0d0*x1 + 6.0d0*x1**2
+        sb(1)=-1.00 + 2.00*x1
+        sb(2)=-1.00 + 2.00*y1
+        sb(3)=1.00 - 6.00*x1 + 6.00*x1**2
         sb(4)=sb(1)*sb(2)
-        sb(5)=1.0d0 - 6.0d0*y1 + 6.0d0*y1**2 
-        sb(6)=-1.0d0 + 12.0d0*x1 - 30.0d0*x1**2 + 20.0d0*x1**3
+        sb(5)=1.00 - 6.00*y1 + 6.00*y1**2
+        sb(6)=-1.00 + 12.00*x1 - 30.00*x1**2 + 20.00*x1**3
         sb(7)=sb(3)*sb(2)
         sb(8)=sb(1)*sb(5)
-        sb(9)=-1.0d0 + 12.0d0*y1 - 30.0d0*y1**2 + 20.0d0*y1**3  
+        sb(9)=-1.00 + 12.00*y1 - 30.00*y1**2 + 20.00*y1**3
     end select
     
 
@@ -2174,31 +2174,31 @@ case(4) ! !taylor
     
             sb(1)=x1/hxc
             sb(2)=y1/hxc
-            sb(3)=x1**2/(2.0d0*hxc**2)
+            sb(3)=x1**2/(2.00*hxc**2)
             sb(4)=(x1*y1)/hxc**2
-            sb(5)=y1**2/(2.0d0*hxc**2)
-            sb(6)=x1**3/(6.0d0*hxc**3)
-            sb(7)=(x1**2*y1)/(2.0d0*hxc**3)
-            sb(8)=(x1*y1**2)/(2.0d0*hxc**3)
-            sb(9)=y1**3/(6.0d0*hxc**3)
+            sb(5)=y1**2/(2.00*hxc**2)
+            sb(6)=x1**3/(6.00*hxc**3)
+            sb(7)=(x1**2*y1)/(2.00*hxc**3)
+            sb(8)=(x1*y1**2)/(2.00*hxc**3)
+            sb(9)=y1**3/(6.00*hxc**3)
             
             
     case (4)
     
             sb(1)=x1/hxc
             sb(2)=y1/hxc
-            sb(3)=x1**2/(2.0d0*hxc**2)
+            sb(3)=x1**2/(2.00*hxc**2)
             sb(4)=(x1*y1)/hxc**2
-            sb(5)=y1**2/(2.0d0*hxc**2)
-            sb(6)=x1**3/(6.0d0*hxc**3)
-            sb(7)=(x1**2*y1)/(2.0d0*hxc**3)
-            sb(8)=(x1*y1**2)/(2.0d0*hxc**3)
-            sb(9)=y1**3/(6.0d0*hxc**3)
-            sb(10)=x1**4/(24.0d0*hxc**4)
-            sb(11)=(x1**3*y1)/(6.0d0*hxc**4)
-            sb(12)=(x1**2*y1**2)/(4.0d0*hxc**4)
-            sb(13)=(x1*y1**3)/(6.0d0*hxc**4)
-            sb(14)=y1**4/(24.0d0*hxc**4)
+            sb(5)=y1**2/(2.00*hxc**2)
+            sb(6)=x1**3/(6.00*hxc**3)
+            sb(7)=(x1**2*y1)/(2.00*hxc**3)
+            sb(8)=(x1*y1**2)/(2.00*hxc**3)
+            sb(9)=y1**3/(6.00*hxc**3)
+            sb(10)=x1**4/(24.00*hxc**4)
+            sb(11)=(x1**3*y1)/(6.00*hxc**4)
+            sb(12)=(x1**2*y1**2)/(4.00*hxc**4)
+            sb(13)=(x1*y1**3)/(6.00*hxc**4)
+            sb(14)=y1**4/(24.00*hxc**4)
            
             
     case (5)
@@ -2420,20 +2420,20 @@ end select
     
     case(-2)
 
-        oov=1.0d0/(ielem_totvolume(iconsidered))
-        basis_rec2d(1:number_of_dog) = sb(1:number_of_dog)-(integ_basis_dg_value(1:number_of_dog,iconsidered)*oov)
+        oov=1.00/(ielem_totvolume(iconsidered))
+        basis_rec2d(1:number_of_dog) = sb(1:number_of_dog)-(integ_basis_dg_value(iconsidered,1:number_of_dog)*oov)
         
         
     
         
     
     case(0)
-        oov=1.0d0/(rec_volume(1,1,iconsidered))
-        basis_rec2d(1:number_of_dog)=sb(1:number_of_dog)-(integ_basis_value(1:number_of_dog,iconsidered)*oov)
+        oov=1.00/(rec_volume(1,1,iconsidered))
+        basis_rec2d(1:number_of_dog)=sb(1:number_of_dog)-(integ_basis_value(iconsidered,1:number_of_dog)*oov)
     
     case(1)
-        oov=1.0d0/(rec_volume(1,1,iconsidered))
-        basis_rec2d(1:number_of_dog)=sb(1:number_of_dog)-(integ_basis_valuec(1:number_of_dog,iconsidered)*oov)
+        oov=1.00/(rec_volume(1,1,iconsidered))
+        basis_rec2d(1:number_of_dog)=sb(1:number_of_dog)-(integ_basis_valuec(iconsidered,1:number_of_dog)*oov)
     
     end select
     

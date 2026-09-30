@@ -180,7 +180,7 @@ end do
 
 do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
-  ielem_ibounds(:,i)=0
+  ielem_ibounds(i,:)=0
   ielem_nofbc(i)=0
   end if
 end do
@@ -192,8 +192,8 @@ jj1=0
 	     j=dinoder2(ibound_ibl(1,ji))%neibids(jfx)
 	      if (ielem_interior(j).eq.1)then
 		  do jj=1,ielem_ifca(j)
-			if (ielem_ineighg(jj,j).eq.0)then
-		      if (ielem_types_faces(jj,j).eq.ibound_ishape(ji))then
+			if (ielem_ineighg(j,jj).eq.0)then
+		      if (ielem_types_faces(j,jj).eq.ibound_ishape(ji))then
 				if (ibound_ishape(ji).eq.6)then
 				  nb1=ielem_nodes_faces(jj,1,j)
 				  nb2=ielem_nodes_faces(jj,2,j)
@@ -204,7 +204,7 @@ jj1=0
 				  if (((nb1.eq.ib1).or.(nb1.eq.ib2).or.(nb1.eq.ib3)).and.&
 				  ((nb2.eq.ib1).or.(nb2.eq.ib2).or.(nb2.eq.ib3)).and.&
 				  ((nb3.eq.ib1).or.(nb3.eq.ib2).or.(nb3.eq.ib3)))then
-				 ielem_ibounds(jj,j)=ji
+				 ielem_ibounds(j,jj)=ji
 				 ibound_which(ji)=j
 				 ibound_face(ji)=jj
 				  ielem_nofbc(j)=ielem_nofbc(j)+1
@@ -229,7 +229,7 @@ jj1=0
 					((nb2.eq.ib1).or.(nb2.eq.ib2).or.(nb2.eq.ib3).or.(nb2.eq.ib4)).and.&
 					((nb3.eq.ib1).or.(nb3.eq.ib2).or.(nb3.eq.ib3).or.(nb3.eq.ib4)).and.&
 					((nb4.eq.ib1).or.(nb4.eq.ib2).or.(nb4.eq.ib3).or.(nb4.eq.ib4)))then
-					ielem_ibounds(jj,j)=ji
+					ielem_ibounds(j,jj)=ji
 					ibound_which(ji)=j
 				 ibound_face(ji)=jj
 				    ielem_nofbc(j)=ielem_nofbc(j)+1
@@ -432,7 +432,7 @@ do i=1,kmaxe
 if (bleed.eq.1)then
   ielem_bleedn(:,i)=0
   end if
-  ielem_ibounds(:,i)=0
+  ielem_ibounds(i,:)=0
   ielem_nofbc(i)=0
   end if
 end do
@@ -444,7 +444,7 @@ itl=0
 	     j=dinoder2(ibound_ibl(1,ji))%neibids(jfx)
 	      if (ielem_interior(j).eq.1)then
 		  do jj=1,ielem_ifca(j)
-		     if (ielem_ineighg(jj,j).eq.0)then
+		     if (ielem_ineighg(j,jj).eq.0)then
 				
 				  nb1=ielem_nodes_faces(jj,1,j)
 				  nb2=ielem_nodes_faces(jj,2,j)
@@ -454,7 +454,7 @@ itl=0
 				  
 				   if (((nb1.eq.ib1).or.(nb1.eq.ib2)).and.&
 				((nb2.eq.ib1).or.(nb2.eq.ib2)))then
-				 ielem_ibounds(jj,j)=ji
+				 ielem_ibounds(j,jj)=ji
 				 ibound_which(ji)=j
 				 ibound_face(ji)=jj
 				    ielem_nofbc(j)=ielem_nofbc(j)+1
@@ -497,8 +497,8 @@ totwalls=ibgw
 	do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
-	  if (ielem_ibounds(j,i).gt.0)then
-	     if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+	  if (ielem_ibounds(i,j).gt.0)then
+	     if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
 		 totiw=totiw+1
 				ibound_t(totiw)=i
 				ibound_t2(totiw)=j
@@ -558,22 +558,22 @@ do i=1,kmaxe			! for all elements
 	    if (ielem_nofbc(i).gt.0)then		! that have at least established a boundary condition code
 			
 		  do j=1,ielem_ifca(i)			! loop all their faces
-		      if (ielem_ibounds(j,i).gt.0)then
-		     if ((ibound_icode(ielem_ibounds(j,i)).eq.5).or.(ibound_icode(ielem_ibounds(j,i)).eq.50))then	!if any of them has a periodic boundary condition then
-				    if (ibound_ishape(ielem_ibounds(j,i)).eq.5)then
+		      if (ielem_ibounds(i,j).gt.0)then
+		     if ((ibound_icode(ielem_ibounds(i,j)).eq.5).or.(ibound_icode(ielem_ibounds(i,j)).eq.50))then	!if any of them has a periodic boundary condition then
+				    if (ibound_ishape(ielem_ibounds(i,j)).eq.5)then
 				    n_node=4
 				    else
 				    n_node=3
 				    end if
 				    do kk=1,n_node
-				      nodes_list(kk,1:3)=dinoder(ibound_ibl(kk,ielem_ibounds(j,i)))%cord(1:3)
+				      nodes_list(kk,1:3)=dinoder(ibound_ibl(kk,ielem_ibounds(i,j)))%cord(1:3)
 				    end do
 				    call cordinates3(n,nodes_list,n_node,cords(1:3))
 				    vext(1,1:3)=cords(1:3)
 				    
 			   do ii=1,n_boundaries				! loop all the boundaries
-				if ((ii.ne.ielem_ibounds(j,i)).and.((ibound_icode(ii).eq.5).or.(ibound_icode(ii).eq.50)).and.&
-(ibound_ishape(ielem_ibounds(j,i)).eq.ibound_ishape(ii)))then
+				if ((ii.ne.ielem_ibounds(i,j)).and.((ibound_icode(ii).eq.5).or.(ibound_icode(ii).eq.50)).and.&
+(ibound_ishape(ielem_ibounds(i,j)).eq.ibound_ishape(ii)))then
 				      if ((ibound_localn(1,ii).gt.0)) then	! excluding itself, and of same shape type
  				   if (ielem_ihexgl(ibound_localn(1,ii)).ne.ielem_ihexgl(i))then
 ! 				    
@@ -594,7 +594,7 @@ do i=1,kmaxe			! for all elements
 ! 				      if (((abs(dist-xper)).lt.tolsmall).or.((abs(dist-yper)).lt.tolsmall).or.((abs(dist-zper)).lt.tolsmall))then
 
 				      ibound_localn(2,ii)=i;ibound_cpun(2,ii)=n
-				      ielem_ineighg(j,i)=ielem_ihexgl(ibound_localn(1,ii))
+				      ielem_ineighg(i,j)=ielem_ihexgl(ibound_localn(1,ii))
 
 			
 
@@ -612,7 +612,7 @@ do i=1,kmaxe			! for all elements
 ! 				      if (((abs(dist-xper)).lt.tolsmall).or.((abs(dist-yper)).lt.tolsmall).or.((abs(dist-zper)).lt.tolsmall))then
 
 				      ibound_localn(2,ii)=i;ibound_cpun(2,ii)=n
-				      ielem_ineighg(j,i)=ielem_ihexgl(ibound_localn(1,ii))
+				      ielem_ineighg(i,j)=ielem_ihexgl(ibound_localn(1,ii))
 				      jj1=jj1+1
  				      go to 101
  				      end if
@@ -624,7 +624,7 @@ do i=1,kmaxe			! for all elements
 ! 				      if (((abs(dist-xper)).lt.tolsmall).or.((abs(dist-yper)).lt.tolsmall).or.((abs(dist-zper)).lt.tolsmall))then
 
 				      ibound_localn(2,ii)=i;ibound_cpun(2,ii)=n
-				      ielem_ineighg(j,i)=ielem_ihexgl(ibound_localn(1,ii))
+				      ielem_ineighg(i,j)=ielem_ihexgl(ibound_localn(1,ii))
 				      jj1=jj1+1
  				      go to 101
  				      end if
@@ -636,7 +636,7 @@ do i=1,kmaxe			! for all elements
                             (abs(vext(1,3)-vext(2,3)).lt.tol_per)) then              
                                 ibound_localn(2,ii)=i
                                 ibound_cpun(2,ii)=n
-                                ielem_ineighg(j,i)=ielem_ihexgl(ibound_localn(1,ii))
+                                ielem_ineighg(i,j)=ielem_ihexgl(ibound_localn(1,ii))
                                 jj1=jj1+1
                             go to 101
  				      end if
@@ -672,17 +672,17 @@ do i=1,kmaxe			!> all elements
     if (ielem_interior(i).eq.1)then		! that have at least one unknwon neighbour
 	    if (ielem_nofbc(i).gt.0)then		! that have at least established a boundary condition code
 		  do j=1,ielem_ifca(i)			! loop all their boundary faces
-		      if (ielem_ibounds(j,i).gt.0)then
+		      if (ielem_ibounds(i,j).gt.0)then
 
 
 			  if (bleed.eq.1)then
-		      if (ibound_icode(ielem_ibounds(j,i)).eq.99)then
+		      if (ibound_icode(ielem_ibounds(i,j)).eq.99)then
 
 
 					!assign the bleed zone
 					n_node=2
 				    do kk=1,n_node
-				      nodes_list(kk,1:2)=dinoder(ibound_ibl(kk,ielem_ibounds(j,i)))%cord(1:2)
+				      nodes_list(kk,1:2)=dinoder(ibound_ibl(kk,ielem_ibounds(i,j)))%cord(1:2)
 				    end do
 				    call cordinates2(n,nodes_list,n_node,cords(1:2))
 				    vext(1,1:2)=cords(1:2)
@@ -698,16 +698,16 @@ do i=1,kmaxe			!> all elements
 				end if
 
 
-		     if (ibound_icode(ielem_ibounds(j,i)).eq.5)then	! if any of them has a periodic boundary condition then
+		     if (ibound_icode(ielem_ibounds(i,j)).eq.5)then	! if any of them has a periodic boundary condition then
 		     
 				    n_node=2
 				    do kk=1,n_node
-				      nodes_list(kk,1:2)=dinoder(ibound_ibl(kk,ielem_ibounds(j,i)))%cord(1:2)
+				      nodes_list(kk,1:2)=dinoder(ibound_ibl(kk,ielem_ibounds(i,j)))%cord(1:2)
 				    end do
 				    call cordinates2(n,nodes_list,n_node,cords(1:2))
 				    vext(1,1:2)=cords(1:2)
 			   do ii=1,n_boundaries				! loop all the boundaries
-				if (((ii.ne.ielem_ibounds(j,i)).and.(ibound_icode(ii).eq.5)))then
+				if (((ii.ne.ielem_ibounds(i,j)).and.(ibound_icode(ii).eq.5)))then
 				      if(ibound_localn(1,ii).gt.0)then	! excluding itself, and of same shape type
 				    if (ielem_ihexgl(ibound_localn(1,ii)).ne.ielem_ihexgl(i))then
 				    do kk=1,n_node
@@ -727,7 +727,7 @@ do i=1,kmaxe			!> all elements
 ! 				      if (((abs(dist-xper)).lt.tolsmall).or.((abs(dist-yper)).lt.tolsmall))then
 						
 				      ibound_localn(2,ii)=i;ibound_cpun(2,ii)=n
-				      ielem_ineighg(j,i)=ielem_ihexgl(ibound_localn(1,ii))
+				      ielem_ineighg(i,j)=ielem_ihexgl(ibound_localn(1,ii))
 				      jj1=jj1+1
 					go to 201
 				      end if
@@ -740,7 +740,7 @@ do i=1,kmaxe			!> all elements
 ! 				      if (((abs(dist-xper)).lt.tolsmall).or.((abs(dist-yper)).lt.tolsmall))then
 						
 				      ibound_localn(2,ii)=i;ibound_cpun(2,ii)=n
-				      ielem_ineighg(j,i)=ielem_ihexgl(ibound_localn(1,ii))
+				      ielem_ineighg(i,j)=ielem_ihexgl(ibound_localn(1,ii))
 				      jj1=jj1+1
 					go to 201
 				      end if

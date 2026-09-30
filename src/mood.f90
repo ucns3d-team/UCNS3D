@@ -80,7 +80,7 @@ if (itestcase.ge.3)then
     nad_true=0
 	
      !1 copy candidate solution at temp variable   
-     leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+     leftv(1:nof_variables)=u_c_val(i,4,1:nof_variables)
 
      !2 transform conservative  to primitive and check if pressure and density are physically admissible if not pad_true=1
                                                 if (dimensiona.eq.3)then
@@ -119,7 +119,7 @@ if (itestcase.ge.3)then
                 !4 now establish a temporary array with the current solution from the direct side neighbours of considered cell
                 
                 k=0
-			    utemp(1,1:nof_variables)=u_c_val(3,1:nof_variables,i)
+			    utemp(1,1:nof_variables)=u_c_val(i,3,1:nof_variables)
 
 
 			    leftv(1:nof_variables)=utemp(1,1:nof_variables)
@@ -129,7 +129,7 @@ if (itestcase.ge.3)then
 			    k=1
 			    do l=1,ielem_ifca(i)
                 k=k+1
-                utemp(k,1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+                utemp(k,1:nof_variables)=u_c_val(ielem_ineigh(i,l),3,1:nof_variables)
 
                 leftv(1:nof_variables)=utemp(k,1:nof_variables)
 			    call cons2prim(n,leftv,mp_pinfl,gammal)
@@ -161,7 +161,7 @@ if (itestcase.ge.3)then
                         !6 specify relaxed or original mood pattern
                         if (mood_mode.gt.0)then
 
-                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        leftv(1:nof_variables)=u_c_val(i,4,1:nof_variables)
                         call cons2prim(n,leftv,mp_pinfl,gammal)
 
                         do iex=1,nof_variables
@@ -175,7 +175,7 @@ if (itestcase.ge.3)then
                         end do
                         else
 
-                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        leftv(1:nof_variables)=u_c_val(i,4,1:nof_variables)
                         call cons2prim(n,leftv,mp_pinfl,gammal)
 
                         do iex=1,nof_variables
@@ -220,7 +220,7 @@ if (itestcase.ge.3)then
 	pad_true=0
 	nad_true=0
 		ielem_mood(i)=0
-                                leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                                leftv(1:nof_variables)=u_c_val(i,4,1:nof_variables)
 						if (dimensiona.eq.3)then
 						call cons2prim2(n,leftv,rightv,mp_pinfl,mp_pinfr,gammal,gammar)
                                                     if ((leftv(1).le.zero).or.(leftv(1).ne.leftv(1)))then						
@@ -253,7 +253,7 @@ if (itestcase.ge.3)then
 		
 		utemp=zero
                             k=0
-			    utemp(1,1:nof_variables)=u_c_val(3,1:nof_variables,i)
+			    utemp(1,1:nof_variables)=u_c_val(i,3,1:nof_variables)
 			     leftv(1:nof_variables)=utemp(1,1:nof_variables)
 			    call cons2prim(n,leftv,mp_pinfl,gammal)
 			    utemp(1,1:nof_variables)=leftv(1:nof_variables)
@@ -267,29 +267,29 @@ if (itestcase.ge.3)then
 			    
 			    
                                 do l=1,ielem_ifca(i)	!faces2
-                                            if (ielem_ineighb(l,i).eq.n)then	!my cpu only
-                                                        if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-                                                            if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
+                                            if (ielem_ineighb(i,l).eq.n)then	!my cpu only
+                                                        if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+                                                            if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in my cpu
                                                             k=k+1
-                                                            utemp(k,1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+                                                            utemp(k,1:nof_variables)=u_c_val(ielem_ineigh(i,l),3,1:nof_variables)
                                                             else
                                                             !not periodic ones in my cpu			  				  
                                                             end if
                                                         else
                                                                 k=k+1
-                                                                utemp(k,1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+                                                                utemp(k,1:nof_variables)=u_c_val(ielem_ineigh(i,l),3,1:nof_variables)
                                                         end if
                                             else	!in other cpus they can only be periodic or mpi neighbours
                                             
-                                                            if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-                                                                if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+                                                            if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+                                                                if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in other cpu
                                                                     k=k+1
-!                                                                     utemp(k,1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i),i))%sol&
+!                                                                     utemp(k,1:nof_variables)=iexsolhir(rec_ihexn(i,1,ielem_indexi(i,l)))%sol&
 ! !                                                                     (rec_ihexl(1,ielem_indexi(l,i),i),1:nof_variables)
 ! !
 ! !
-                                                                    nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
-                                                                    lf=rec_ihexl(1,ielem_indexi(L,i),i)
+                                                                    nf=rec_ihexn(rec_local(i),1,ielem_indexi(i,L))
+                                                                    lf=rec_ihexl(i,1,ielem_indexi(i,L))
                                                                     rowf=halo_offset(nf) + lf - 1
                                                                     utemp(k,1:nof_variables)=solhir(rowf,1:nof_variables)
 
@@ -302,11 +302,11 @@ if (itestcase.ge.3)then
                                                                     
                                                                     
                                                                     k=k+1
-!                                                                     utemp(k,1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i),i))%sol&
-!                                                                     (rec_ihexl(1,ielem_indexi(l,i),i),1:nof_variables)
+!                                                                     utemp(k,1:nof_variables)=iexsolhir(rec_ihexn(i,1,ielem_indexi(i,l)))%sol&
+!                                                                     (rec_ihexl(i,1,ielem_indexi(i,l)),1:nof_variables)
 !
-                                                                    nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
-                                                                    lf=rec_ihexl(1,ielem_indexi(L,i),i)
+                                                                    nf=rec_ihexn(rec_local(i),1,ielem_indexi(i,L))
+                                                                    lf=rec_ihexl(i,1,ielem_indexi(i,L))
                                                                     rowf=halo_offset(nf) + lf - 1
                                                                     utemp(k,1:nof_variables)=solhir(rowf,1:nof_variables)
 
@@ -341,7 +341,7 @@ if (itestcase.ge.3)then
                         
                         
                         if (mood_mode.gt.0)then
-                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        leftv(1:nof_variables)=u_c_val(i,4,1:nof_variables)
                         call cons2prim(n,leftv,mp_pinfl,gammal)
 
 
@@ -355,7 +355,7 @@ if (itestcase.ge.3)then
                         
                         end do
                         else
-                        leftv(1:nof_variables)=u_c_val(4,1:nof_variables,i)
+                        leftv(1:nof_variables)=u_c_val(i,4,1:nof_variables)
                         call cons2prim(n,leftv,mp_pinfl,gammal)
 
                         do iex=1,nof_variables
@@ -565,7 +565,7 @@ subroutine fix_list(n)
 	    do l=1,ielem_ifca(i)
 			 
 			 
-		      mright=ielem_mood(ielem_ineigh(l,i))
+		      mright=ielem_mood(ielem_ineigh(i,l))
 		      
 		  if (mright.ge.1)then
                                     ielem_recalc(i)=1
@@ -583,32 +583,32 @@ subroutine fix_list(n)
 				 
 			 
 				      
-					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
-							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
-									 mright=ielem_mood(ielem_ineigh(l,i))
+					    if (ielem_ineighb(i,l).eq.n)then	!my cpu only
+							if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+								  if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in my cpu
+									 mright=ielem_mood(ielem_ineigh(i,l))
  								     
 								  else
                                                                         
 								  end if
 							else
-								      mright=ielem_mood(ielem_ineigh(l,i))
+								      mright=ielem_mood(ielem_ineigh(i,l))
 !  							       
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
 						
-                                if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-                                    if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-    ! 									  cright(1)=iexboundhir(ielem_ineighn(l,i))%facesol_m(ielem_qface(l,1,i),1)
-                                        nfx  = ielem_ineighn(l,i)
+                                if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+                                    if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in other cpu
+    ! 									  cright(1)=iexboundhir(ielem_ineighn(i,l))%facesol_m(ielem_qface(l,1,i),1)
+                                        nfx  = ielem_ineighn(i,l)
                                         lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
                                         rowfx = bound_offset(nfx) + lfx - 1
                                         mright = boundhirm(rowfx)
 
                                     end if
                                 else
-    ! 								  cright(1)=iexboundhir(ielem_ineighn(l,i))%facesol_m(ielem_qface(l,1,i),1)
-                                    nfx  = ielem_ineighn(l,i)
+    ! 								  cright(1)=iexboundhir(ielem_ineighn(i,l))%facesol_m(ielem_qface(l,1,i),1)
+                                    nfx  = ielem_ineighn(i,l)
                                     lfx = ielem_qface(l,1,ielem_inter_id(ielem_indexf(i)))
                                     rowfx = bound_offset(nfx) + lfx - 1
                                     mright = boundhirm(rowfx)

@@ -125,14 +125,14 @@ subroutine calculate_fluxeshi_cell_xpu_fv(n)
 !$omp& private(i,l,ngp,iqp,nfx,lfx,rowfx,weights_temp,angle1,angle2,normalvect,cleft1,cright1,hllcflux1,godflux2)
 #endif
 	do i=1,kmaxe
-	rhs_val(1,i)=zero
+	rhs_val(i,1)=zero
 
 	do l=1,ielem_ifca(i)
 	  godflux2=zero
-	  angle1=ielem_faceanglex(l,i)
-	  angle2=ielem_faceangley(l,i)
+	  angle1=ielem_faceanglex(i,l)
+	  angle2=ielem_faceangley(i,l)
 	  normalvect=((cos(angle1)*sin(angle2))*lamx)+((sin(angle1)*sin(angle2))*lamy)+((cos(angle2))*lamz)
-	  if (ielem_types_faces(l,i).eq.5)then
+	  if (ielem_types_faces(i,l).eq.5)then
 	    iqp=qp_quad
 	    weights_temp(1:iqp)=weights_q(1:iqp)
 	  else
@@ -141,25 +141,25 @@ subroutine calculate_fluxeshi_cell_xpu_fv(n)
 	  end if
 
 	  do ngp=1,iqp
-	    cleft1=rec_uleft(1,l,ngp,i)
+	    cleft1=rec_uleft(i,1,l,ngp)
 
 	    if (ielem_interior(i).eq.0)then
-	      cright1=rec_uleft(1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+	      cright1=rec_uleft(ielem_ineigh(i,l),1,ielem_ineighn(i,l),ngp)
 	    else
-	      if (ielem_ineighb(l,i).eq.n)then
-	        if (ielem_ibounds(l,i).gt.0)then
-	          if (ibound_icode(ielem_ibounds(l,i)).eq.5)then
-	            cright1=rec_uleft(1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+	      if (ielem_ineighb(i,l).eq.n)then
+	        if (ielem_ibounds(i,l).gt.0)then
+	          if (ibound_icode(ielem_ibounds(i,l)).eq.5)then
+	            cright1=rec_uleft(ielem_ineigh(i,l),1,ielem_ineighn(i,l),ngp)
 	          else
 	            cright1=cleft1
 	          end if
 	        else
-	          cright1=rec_uleft(1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+	          cright1=rec_uleft(ielem_ineigh(i,l),1,ielem_ineighn(i,l),ngp)
 	        end if
 	      else
-	        if (ielem_ibounds(l,i).gt.0)then
-	          if (ibound_icode(ielem_ibounds(l,i)).eq.5)then
-	            nfx=ielem_ineighn(l,i)
+	        if (ielem_ibounds(i,l).gt.0)then
+	          if (ibound_icode(ielem_ibounds(i,l)).eq.5)then
+	            nfx=ielem_ineighn(i,l)
 	            lfx=ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 	            rowfx=bound_offset(nfx)+lfx-1
 	            cright1=boundhir(rowfx,1)
@@ -167,7 +167,7 @@ subroutine calculate_fluxeshi_cell_xpu_fv(n)
 	            cright1=cleft1
 	          end if
 	        else
-	          nfx=ielem_ineighn(l,i)
+	          nfx=ielem_ineighn(i,l)
 	          lfx=ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 	          rowfx=bound_offset(nfx)+lfx-1
 	          cright1=boundhir(rowfx,1)
@@ -181,9 +181,9 @@ subroutine calculate_fluxeshi_cell_xpu_fv(n)
 	    else
 	      hllcflux1=normalvect*cright1
 	    end if
-	    godflux2=godflux2+(hllcflux1*(weights_temp(ngp)*ielem_surf(l,i)))
+	    godflux2=godflux2+(hllcflux1*(weights_temp(ngp)*ielem_surf(i,l)))
 	  end do
-	  rhs_val(1,i)=rhs_val(1,i)+godflux2
+	  rhs_val(i,1)=rhs_val(i,1)+godflux2
 	end do
 	end do
 
@@ -216,25 +216,25 @@ subroutine calculate_fluxeshi_cell(n,i)
 
 
 	        if (dg.eq.1)then
-	        rhs_valdg(:,:,i) = 0.0d0
+	        rhs_valdg(i,:,:) = 0.00
 	        end if
 		
 	        if (dg.eq.1) then
-	            call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.0d0)
+	            call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.00)
 	            
 	        end if
 	
 				  
 		if (ielem_interior(i).eq.0)then
-		    rhs_val(1,i)=zero
+		    rhs_val(i,1)=zero
 		    
 		    do l=1,ielem_ifca(i)
 				  godflux2=zero
-				  angle1=ielem_faceanglex(l,i)
-				  angle2=ielem_faceangley(l,i)
+				  angle1=ielem_faceanglex(i,l)
+				  angle2=ielem_faceangley(i,l)
 				  facex=l
 				  normalvect=((cos(angle1)*sin(angle2))*lamx)+((sin(angle1)*sin(angle2))*lamy)+((cos(angle2))*lamz)
-				  if (ielem_types_faces(l,i).eq.5)then
+				  if (ielem_types_faces(i,l).eq.5)then
 					iqp=qp_quad
 					weights_temp(1:iqp)=weights_q(1:iqp)
 					
@@ -249,43 +249,43 @@ subroutine calculate_fluxeshi_cell(n,i)
 				  do ngp=1,iqp
 				  pointx=ngp
 				  if (dg.eq.1) then
-                        cleft = rec_uleft_dg(1:nof_variables, l, ngp,i)
-                        cright = rec_uleft_dg(1:nof_variables, ielem_ineighn(l,i), ngp,ielem_ineigh(l,i))
+                        cleft = rec_uleft_dg(i,1:nof_variables,l,ngp)
+                        cright = rec_uleft_dg(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
                     else !fv
 				  
 				  
 				  
-				      cleft(1)=rec_uleft(1,l,ngp,i)
-				      cright(1)=rec_uleft(1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+				      cleft(1)=rec_uleft(i,1,l,ngp)
+				      cright(1)=rec_uleft(ielem_ineigh(i,l),1,ielem_ineighn(i,l),ngp)
                     end if
 				      call exact_riemann_solver(n,cleft,cright,normalvect,hllcflux)
 
 				      if (dg.eq.1)then
 				      rhllcflux(1)=hllcflux(1)
 				      
-					      call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.0d0)
+					      call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.00)
 				      
 				       
 				      
 				      else
-				      godflux2=godflux2+(hllcflux(1)*(weights_temp(ngp)*ielem_surf(l,i)))
+				      godflux2=godflux2+(hllcflux(1)*(weights_temp(ngp)*ielem_surf(i,l)))
 				      end if
 				  end do
-				    rhs_val(1,i)=rhs_val(1,i)+godflux2
+				    rhs_val(i,1)=rhs_val(i,1)+godflux2
 
 
 		    end do
 		end if
 		if (ielem_interior(i).eq.1)then
-		    rhs_val(1,i)=zero
+		    rhs_val(i,1)=zero
 		    
 		    do l=1,ielem_ifca(i)
 				      facex=l
-				  angle1=ielem_faceanglex(l,i)
-				  angle2=ielem_faceangley(l,i)
+				  angle1=ielem_faceanglex(i,l)
+				  angle2=ielem_faceangley(i,l)
 				  normalvect=((cos(angle1)*sin(angle2))*lamx)+((sin(angle1)*sin(angle2))*lamy)+((cos(angle2))*lamz)
  				  
- 				  if (ielem_types_faces(l,i).eq.5)then
+ 				  if (ielem_types_faces(i,l).eq.5)then
 					iqp=qp_quad
 					weights_temp(1:iqp)=weights_q(1:iqp)
 				  else
@@ -299,18 +299,18 @@ subroutine calculate_fluxeshi_cell(n,i)
 				  do ngp=1,iqp
 				  pointx = ngp
                     if (dg == 1) then
-                        cleft(1:nof_variables) = rec_uleft_dg(1:nof_variables, l, ngp,i)
+                        cleft(1:nof_variables) = rec_uleft_dg(i,1:nof_variables,l,ngp)
                         else
-				      cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
+				      cleft(1:nof_variables)=rec_uleft(i,1:nof_variables,l,ngp)
 				      end if
-					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
-							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
+					    if (ielem_ineighb(i,l).eq.n)then	!my cpu only
+							if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
                                  
-								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
+								  if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in my cpu
 								 if (dg == 1) then
-                                    cright = rec_uleft_dg(1:nof_variables, ielem_ineighn(l,i), ngp,ielem_ineigh(l,i))
+                                    cright = rec_uleft_dg(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
                                 else  
-                                cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+                                cright(1:nof_variables)=rec_uleft(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
 								end if
 								  else
 								  !not periodic ones in my cpu
@@ -319,25 +319,25 @@ subroutine calculate_fluxeshi_cell(n,i)
 								  end if
 							else
 							     if (dg == 1) then
-                                cright(1:nof_variables) = rec_uleft_dg(1:nof_variables, ielem_ineighn(l,i), ngp,ielem_ineigh(l,i))
+                                cright(1:nof_variables) = rec_uleft_dg(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
 
                             else  
-                            cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+                            cright(1:nof_variables)=rec_uleft(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
                             end if
 							end if
 					    else	!in other cpus they can only be periodic or mpi neighbours
 						
-							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+							if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+								if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in other cpu
 									 if (dg == 1) then
-!                                     cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol_dg(ielem_qface(l,ngp,i),1:nof_variables)
-                                    nfx  = ielem_ineighn(l,i)
+!                                     cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol_dg(ielem_qface(l,ngp,i),1:nof_variables)
+                                    nfx  = ielem_ineighn(i,l)
                                     lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
                                     rowfx = bound_offset(nfx) + lfx - 1
                                     cright(1:nof_variables) = boundhir_dg(rowfx,1:nof_variables)
                                 else 
-!                                 cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
-                                nfx  = ielem_ineighn(l,i)
+!                                 cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
+                                nfx  = ielem_ineighn(i,l)
                                 lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
                                 rowfx = bound_offset(nfx) + lfx - 1
                                 cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
@@ -345,14 +345,14 @@ subroutine calculate_fluxeshi_cell(n,i)
 								end if
 							else 								
 								 if (dg == 1) then
-!                                 cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol_dg(ielem_qface(l,ngp,i),1:nof_variables)
-                                nfx  = ielem_ineighn(l,i)
+!                                 cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol_dg(ielem_qface(l,ngp,i),1:nof_variables)
+                                nfx  = ielem_ineighn(i,l)
                                 lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
                                 rowfx = bound_offset(nfx) + lfx - 1
                                 cright(1:nof_variables) = boundhir_dg(rowfx,1:nof_variables)
                                 else
-!                                 cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
-                                nfx  = ielem_ineighn(l,i)
+!                                 cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
+                                nfx  = ielem_ineighn(i,l)
                                 lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
                                 rowfx = bound_offset(nfx) + lfx - 1
                                 cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
@@ -366,17 +366,17 @@ subroutine calculate_fluxeshi_cell(n,i)
 				      
 				      if (dg.eq.1)then
 				      rhllcflux(1)=hllcflux(1)
-					      call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.0d0)
+					      call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.00)
 				      
 				       
 				     
 				      else
 				      
-				      godflux2=godflux2+(hllcflux(1)*(weights_temp(ngp)*ielem_surf(l,i)))	
+				      godflux2=godflux2+(hllcflux(1)*(weights_temp(ngp)*ielem_surf(i,l)))	
 				      
 				      end if
 				  end do
-				    rhs_val(1,i)=rhs_val(1,i)+godflux2
+				    rhs_val(i,1)=rhs_val(i,1)+godflux2
 
 				    
 		    end do
@@ -456,41 +456,41 @@ subroutine calculate_fluxeshi2d_cell_xpu_fv(n)
 	weights_temp(1:qp_line_n)=weights_l(1:qp_line_n)
 
 	if (initcond.eq.3)then
-	  lamxl=-ielem_yyc(i)+0.5d0
-	  lamyl=ielem_xxc(i)-0.5d0
+	  lamxl=-ielem_yyc(i)+0.50
+	  lamyl=ielem_xxc(i)-0.50
 	else
 	  lamxl=lamx
 	  lamyl=lamy
 	end if
 
-	rhs_val(1,i)=zero
+	rhs_val(i,1)=zero
 
 	do l=1,ielem_ifca(i)
 	  godflux2=zero
-	  nx=ielem_faceanglex(l,i)
-	  ny=ielem_faceangley(l,i)
+	  nx=ielem_faceanglex(i,l)
+	  ny=ielem_faceangley(i,l)
 	  normalvect=(nx*lamxl)+(ny*lamyl)
 
 	  do ngp=1,qp_line_n
-	    cleft1=rec_uleft(1,l,ngp,i)
+	    cleft1=rec_uleft(i,1,l,ngp)
 
 	    if (ielem_interior(i).eq.0)then
-	      cright1=rec_uleft(1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+	      cright1=rec_uleft(ielem_ineigh(i,l),1,ielem_ineighn(i,l),ngp)
 	    else
-	      if (ielem_ineighb(l,i).eq.n)then
-	        if (ielem_ibounds(l,i).gt.0)then
-	          if (ibound_icode(ielem_ibounds(l,i)).eq.5)then
-	            cright1=rec_uleft(1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+	      if (ielem_ineighb(i,l).eq.n)then
+	        if (ielem_ibounds(i,l).gt.0)then
+	          if (ibound_icode(ielem_ibounds(i,l)).eq.5)then
+	            cright1=rec_uleft(ielem_ineigh(i,l),1,ielem_ineighn(i,l),ngp)
 	          else
 	            cright1=cleft1
 	          end if
 	        else
-	          cright1=rec_uleft(1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+	          cright1=rec_uleft(ielem_ineigh(i,l),1,ielem_ineighn(i,l),ngp)
 	        end if
 	      else
-	        if (ielem_ibounds(l,i).gt.0)then
-	          if (ibound_icode(ielem_ibounds(l,i)).eq.5)then
-	            nfx=ielem_ineighn(l,i)
+	        if (ielem_ibounds(i,l).gt.0)then
+	          if (ibound_icode(ielem_ibounds(i,l)).eq.5)then
+	            nfx=ielem_ineighn(i,l)
 	            lfx=ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 	            rowfx=bound_offset(nfx)+lfx-1
 	            cright1=boundhir(rowfx,1)
@@ -498,7 +498,7 @@ subroutine calculate_fluxeshi2d_cell_xpu_fv(n)
 	            cright1=cleft1
 	          end if
 	        else
-	          nfx=ielem_ineighn(l,i)
+	          nfx=ielem_ineighn(i,l)
 	          lfx=ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 	          rowfx=bound_offset(nfx)+lfx-1
 	          cright1=boundhir(rowfx,1)
@@ -512,9 +512,9 @@ subroutine calculate_fluxeshi2d_cell_xpu_fv(n)
 	    else
 	      hllcflux1=normalvect*cright1
 	    end if
-	    godflux2=godflux2+(hllcflux1*(weights_temp(ngp)*ielem_surf(l,i)))
+	    godflux2=godflux2+(hllcflux1*(weights_temp(ngp)*ielem_surf(i,l)))
 	  end do
-	  rhs_val(1,i)=rhs_val(1,i)+godflux2
+	  rhs_val(i,1)=rhs_val(i,1)+godflux2
 	end do
 	end do
 
@@ -547,7 +547,7 @@ subroutine calculate_fluxeshi2d_cell(n,i)
 	weights_temp(1:qp_line_n)=weights_l(1:qp_line_n)
 	
         if (initcond.eq.3)then
-            lamxl=-ielem_yyc(i)+0.5d0
+            lamxl=-ielem_yyc(i)+0.50
             lamyl=ielem_xxc(i)-0.5
         else
 			lamxl=lamx
@@ -556,9 +556,9 @@ subroutine calculate_fluxeshi2d_cell(n,i)
         
         
         if (dg.eq.1)then
-        rhs_valdg(:,:,i) = zero
+        rhs_valdg(i,:,:) = zero
         else
-        rhs_val(:,i)=zero
+        rhs_val(i,:)=zero
         end if
         
         
@@ -566,7 +566,7 @@ subroutine calculate_fluxeshi2d_cell(n,i)
         
         if (dg.eq.1) then
         
-            call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.0d0)
+            call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.00)
          
         end if
         
@@ -574,27 +574,27 @@ subroutine calculate_fluxeshi2d_cell(n,i)
 
 		    do l=1,ielem_ifca(i)
                 godflux2=zero
-                nx=ielem_faceanglex(l,i)
-                ny=ielem_faceangley(l,i)
+                nx=ielem_faceanglex(i,l)
+                ny=ielem_faceangley(i,l)
                 facex=l
                 
                 normalvect=(nx*lamxl)+(ny*lamyl)
 
                 iqp=qp_line_n
                 
-                neighbor_index = ielem_ineigh(l,i)
-                neighbor_face_index = ielem_ineighn(l,i)
+                neighbor_index = ielem_ineigh(i,l)
+                neighbor_face_index = ielem_ineighn(i,l)
                 
                 do ngp=1,iqp
                     pointx=ngp
 
 
                     if (dg.eq.1) then
-                        cleft = rec_uleft_dg(1:nof_variables, l, ngp,i)
-                        cright = rec_uleft_dg(1:nof_variables, ielem_ineighn(l,i), ngp,ielem_ineigh(l,i))
+                        cleft = rec_uleft_dg(i,1:nof_variables,l,ngp)
+                        cright = rec_uleft_dg(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
                     else !fv
-                        cleft(1)=rec_uleft(1,l,ngp,i)
-                        cright(1)=rec_uleft(1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+                        cleft(1)=rec_uleft(i,1,l,ngp)
+                        cright(1)=rec_uleft(ielem_ineigh(i,l),1,ielem_ineighn(i,l),ngp)
                     end if
                     
                     call exact_riemann_solver(n,cleft,cright,normalvect,hllcflux)
@@ -606,16 +606,16 @@ subroutine calculate_fluxeshi2d_cell(n,i)
                         ! riemann flux at interface quadrature points times basis
                         rhllcflux(1)=hllcflux(1)
                          
-                        call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.0d0)
+                        call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.00)
 
 
 
                     else !fv
-                        godflux2=godflux2+(hllcflux(1)*(weights_temp(ngp)*ielem_surf(l,i)))
+                        godflux2=godflux2+(hllcflux(1)*(weights_temp(ngp)*ielem_surf(i,l)))
                     end if
                 end do
                 
-                if (dg /= 1) rhs_val(1,i)=rhs_val(1,i)+godflux2
+                if (dg /= 1) rhs_val(i,1)=rhs_val(i,1)+godflux2
 
 
 
@@ -630,8 +630,8 @@ subroutine calculate_fluxeshi2d_cell(n,i)
 
             do l=1,ielem_ifca(i)
                 facex = l
-                nx=ielem_faceanglex(l,i)
-                ny=ielem_faceangley(l,i)
+                nx=ielem_faceanglex(i,l)
+                ny=ielem_faceangley(i,l)
                 normalvect=(nx*lamxl)+(ny*lamyl)
                 iqp=qp_line_n
                 
@@ -640,18 +640,18 @@ subroutine calculate_fluxeshi2d_cell(n,i)
                     pointx = ngp
 
                     if (dg == 1) then
-                        cleft = rec_uleft_dg(1:nof_variables, l, ngp,i)
+                        cleft = rec_uleft_dg(i,1:nof_variables,l,ngp)
                     else
-                        cleft(1)=rec_uleft(1,l,ngp,i)
+                        cleft(1)=rec_uleft(i,1,l,ngp)
                     end if
                     
-                    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
-                        if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-                            if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
+                    if (ielem_ineighb(i,l).eq.n)then	!my cpu only
+                        if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+                            if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in my cpu
                                 if (dg == 1) then
-                                    cright = rec_uleft_dg(1:nof_variables, ielem_ineighn(l,i), ngp,ielem_ineigh(l,i))
+                                    cright = rec_uleft_dg(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
                                 else !fv
-                                    cright(1) = rec_uleft(1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+                                    cright(1) = rec_uleft(ielem_ineigh(i,l),1,ielem_ineighn(i,l),ngp)
                                 end if
                             else !not periodic ones in my cpu
                                 cright(1:nof_variables)=cleft(1:nof_variables)
@@ -659,25 +659,25 @@ subroutine calculate_fluxeshi2d_cell(n,i)
 !                            
                         else
                             if (dg == 1) then
-                                cright = rec_uleft_dg(1:nof_variables, ielem_ineighn(l,i), ngp,ielem_ineigh(l,i))
+                                cright = rec_uleft_dg(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
 !                                 
                             else !fv
-                                cright(1) = rec_uleft(1,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+                                cright(1) = rec_uleft(ielem_ineigh(i,l),1,ielem_ineighn(i,l),ngp)
                             end if
                         end if
                     else !in other cpus they can only be periodic or mpi neighbours
-                        if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-                            if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+                        if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+                            if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in other cpu
                             
                                 if (dg == 1) then
-!                                     cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol_dg(ielem_qface(l,ngp,i),1:nof_variables)
-                                    nfx  = ielem_ineighn(l,i)
+!                                     cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol_dg(ielem_qface(l,ngp,i),1:nof_variables)
+                                    nfx  = ielem_ineighn(i,l)
                                     lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
                                     rowfx = bound_offset(nfx) + lfx - 1
                                     cright(1:nof_variables) = boundhir_dg(rowfx,1:nof_variables)
                                 else
-!                                     cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
-                                    nfx  = ielem_ineighn(l,i)
+!                                     cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
+                                    nfx  = ielem_ineighn(i,l)
                                     lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
                                     rowfx = bound_offset(nfx) + lfx - 1
                                     cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
@@ -685,14 +685,14 @@ subroutine calculate_fluxeshi2d_cell(n,i)
                             end if
                         else
                             if (dg == 1) then
-!                                 cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol_dg(ielem_qface(l,ngp,i),1:nof_variables)
-                                nfx  = ielem_ineighn(l,i)
+!                                 cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol_dg(ielem_qface(l,ngp,i),1:nof_variables)
+                                nfx  = ielem_ineighn(i,l)
                                 lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
                                 rowfx = bound_offset(nfx) + lfx - 1
                                 cright(1:nof_variables) = boundhir_dg(rowfx,1:nof_variables)
                             else
-!                                 cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
-                                nfx  = ielem_ineighn(l,i)
+!                                 cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
+                                nfx  = ielem_ineighn(i,l)
                                 lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
                                 rowfx = bound_offset(nfx) + lfx - 1
                                 cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
@@ -709,19 +709,19 @@ subroutine calculate_fluxeshi2d_cell(n,i)
                     if (dg.eq.1) then
                         !riemann flux at interface quadrature points times basis
                         rhllcflux(1)=hllcflux(1)
-                         call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.0d0)
+                         call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.00)
                          
 
 
 
 
                     else !fv
-                        godflux2=godflux2+(hllcflux(1)*(weights_temp(ngp)*ielem_surf(l,i)))
+                        godflux2=godflux2+(hllcflux(1)*(weights_temp(ngp)*ielem_surf(i,l)))
                     end if
   
                 end do
                 
-                if (dg /= 1) rhs_val(1,i)=rhs_val(1,i)+godflux2
+                if (dg /= 1) rhs_val(i,1)=rhs_val(i,1)+godflux2
 		    end do
 
 
@@ -848,11 +848,11 @@ subroutine calculate_fluxeshi_convective_inner_cell(n,ii)
 
 	nvt=turbulenceequations+passivescalar
 	do iv=1,nof_variables
-	rhs_val(iv,i)=zero
+	rhs_val(i,iv)=zero
 	end do
 	if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 	do iv=1,nvt
-	rhst_val(iv,i)=zero
+	rhst_val(i,iv)=zero
 	end do
 	end if
 
@@ -866,9 +866,9 @@ subroutine calculate_fluxeshi_convective_inner_cell(n,ii)
             srf=rec_mrf(i)
         end if
 			     if (dg.eq.1) then
-			     rhs_valdg(:,:,i) = zero
+			     rhs_valdg(i,:,:) = zero
 	            
-	             call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.0d0)
+	             call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.00)
 
 	            end if
             
@@ -880,12 +880,12 @@ subroutine calculate_fluxeshi_convective_inner_cell(n,ii)
 				  godflux2(iv)=zero
 				  end do
 				  mp_source2=zero
- 				  angle1=ielem_faceanglex(l,i)
- 				  angle2=ielem_faceangley(l,i)
+ 				  angle1=ielem_faceanglex(i,l)
+ 				  angle2=ielem_faceangley(i,l)
  				  nx=(cos(angle1)*sin(angle2))
 				  ny=(sin(angle1)*sin(angle2))
 				  nz=(cos(angle2))
-				  if (ielem_types_faces(l,i).eq.5)then
+				  if (ielem_types_faces(i,l).eq.5)then
 					iqp=qp_quad_n
 					weights_temp(1:iqp)=weights_q(1:iqp)
 				  else
@@ -1001,10 +1001,10 @@ subroutine calculate_fluxeshi_convective_inner_cell(n,ii)
 				      
 				       end select
 				       
-				      wface=weights_temp(ngp)*ielem_surf(l,i)
+				      wface=weights_temp(ngp)*ielem_surf(i,l)
 				      if (dg.eq.1)then
 				      
-					      call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.0d0)
+					      call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.00)
 				      
 				      
 				      
@@ -1041,7 +1041,7 @@ subroutine calculate_fluxeshi_convective_inner_cell(n,ii)
 					  norms=norms-srf_speedrot(2)
 					end if
 					  do iv=1,nvt
-					  rhllcflux(nof_variables+iv)=0.5d0*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
+					  rhllcflux(nof_variables+iv)=0.50*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
 					  end do
 					  
 					  
@@ -1061,7 +1061,7 @@ subroutine calculate_fluxeshi_convective_inner_cell(n,ii)
 				  end do
 				    
 				    do iv=1,nof_variables
-				    rhs_val(iv,i)=rhs_val(iv,i)+godflux2(iv)
+				    rhs_val(i,iv)=rhs_val(i,iv)+godflux2(iv)
 				    end do
 				      if (multispecies.eq.1)then
                         mp_source3=mp_source3+mp_source2
@@ -1070,14 +1070,14 @@ subroutine calculate_fluxeshi_convective_inner_cell(n,ii)
 
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 				    do iv=1,nvt
-				    rhst_val(iv,i)=rhst_val(iv,i)+godflux2(nof_variables+iv)
+				    rhst_val(i,iv)=rhst_val(i,iv)+godflux2(nof_variables+iv)
 				    end do
 
 				    end if
 
 		    end do
                  if (multispecies.eq.1)then
-                 rhs_val(8,i)=rhs_val(8,i)-(u_c_val(1,8,i)*mp_source3)
+                 rhs_val(i,8)=rhs_val(i,8)-(u_c_val(i,1,8)*mp_source3)
                  
                  end if
                  
@@ -1085,7 +1085,7 @@ subroutine calculate_fluxeshi_convective_inner_cell(n,ii)
 	                    if (multispecies.eq.1)then
 
 
-						rhs_valdg(1,8,i)=rhs_valdg(1,8,i)-(u_c_val(1,8,i)*mp_source3)
+						rhs_valdg(i,1,8)=rhs_valdg(i,1,8)-(u_c_val(i,1,8)*mp_source3)
 
 					end if
 
@@ -1122,8 +1122,8 @@ subroutine calculate_fluxeshi_convective_bound_point(n,iconsidered,facex,pointx,
 	hllcflux=zero
 	srf_speedrot=zero
 
-	angle1=ielem_faceanglex(facex,iconsidered)
-	angle2=ielem_faceangley(facex,iconsidered)
+	angle1=ielem_faceanglex(iconsidered,facex)
+	angle2=ielem_faceangley(iconsidered,facex)
 	nx=(cos(angle1)*sin(angle2))
 	ny=(sin(angle1)*sin(angle2))
 	nz=(cos(angle2))
@@ -1213,12 +1213,12 @@ subroutine calculate_fluxeshi_convective_bound_point(n,iconsidered,facex,pointx,
 
 	if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 	  if (icoupleturb.eq.0)then
-	    norms=0.5d0*(cleft_rot(2)+cright_rot(2))
+	    norms=0.50*(cleft_rot(2)+cright_rot(2))
 	    if (rec_mrf(iconsidered).eq.1)then
 	      norms=norms-srf_speedrot(2)
 	    end if
 	    do iv=1,nvt
-	      rhllcflux(nof_variables+iv)=0.5d0*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
+	      rhllcflux(nof_variables+iv)=0.50*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
 	    end do
 	  end if
 	  if ((b_code.eq.3).or.(b_code.eq.4))then
@@ -1244,11 +1244,11 @@ subroutine calculate_fluxeshi_convective_bound_cell_fv(n,ii)
 	i=el_bnd(ii)
 	nvt=turbulenceequations+passivescalar
 	do iv=1,nof_variables
-	  rhs_val(iv,i)=zero
+	  rhs_val(i,iv)=zero
 	end do
 	if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 	  do iv=1,nvt
-	    rhst_val(iv,i)=zero
+	    rhst_val(i,iv)=zero
 	  end do
 	end if
 
@@ -1257,7 +1257,7 @@ subroutine calculate_fluxeshi_convective_bound_cell_fv(n,ii)
 
 	do l=1,ielem_ifca(i)
 	  facex=l
-	  if (ielem_types_faces(l,i).eq.5)then
+	  if (ielem_types_faces(i,l).eq.5)then
 	    iqp=qp_quad_n
 	    weights_temp(1:iqp)=weights_q(1:iqp)
 	  else
@@ -1273,7 +1273,7 @@ subroutine calculate_fluxeshi_convective_bound_cell_fv(n,ii)
 	  do ngp=1,iqp
 	    pointx=ngp
 	    call calculate_fluxeshi_convective_bound_point(n,iconsidered,facex,pointx,rhllcflux,mp_source1,b_code)
-	    wface=weights_temp(ngp)*ielem_surf(l,i)
+	    wface=weights_temp(ngp)*ielem_surf(i,l)
 	    do iv=1,nof_variables
 	      godflux2(iv)=godflux2(iv)+(rhllcflux(iv)*wface)
 	    end do
@@ -1288,20 +1288,20 @@ subroutine calculate_fluxeshi_convective_bound_cell_fv(n,ii)
 	  end do
 
 	  do iv=1,nof_variables
-	    rhs_val(iv,i)=rhs_val(iv,i)+godflux2(iv)
+	    rhs_val(i,iv)=rhs_val(i,iv)+godflux2(iv)
 	  end do
 	  if (multispecies.eq.1)then
 	    mp_source3=mp_source3+mp_source2
 	  end if
 	  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 	    do iv=1,nvt
-	      rhst_val(iv,i)=rhst_val(iv,i)+godflux2(nof_variables+iv)
+	      rhst_val(i,iv)=rhst_val(i,iv)+godflux2(nof_variables+iv)
 	    end do
 	  end if
 	end do
 
 	if (multispecies.eq.1)then
-	  rhs_val(8,i)=rhs_val(8,i)-(u_c_val(1,8,i)*mp_source3)
+	  rhs_val(i,8)=rhs_val(i,8)-(u_c_val(i,1,8)*mp_source3)
 	end if
 end subroutine calculate_fluxeshi_convective_bound_cell_fv
 
@@ -1341,18 +1341,18 @@ i=el_int(ii)
 iconsidered=i
 nvt=passivescalar
 if (turbulence.eq.1) nvt=turbulenceequations+passivescalar
-rhs_val(1:nof_variables,i)=zero
-if (nvt.gt.0) rhst_val(1:nvt,i)=zero
+rhs_val(i,1:nof_variables)=zero
+if (nvt.gt.0) rhst_val(i,1:nvt)=zero
 do l=1,ielem_ifca(i)
   facex=l
   b_code=0
   godflux2=zero
-  angle1=ielem_faceanglex(l,i)
-  angle2=ielem_faceangley(l,i)
+  angle1=ielem_faceanglex(i,l)
+  angle2=ielem_faceangley(i,l)
   nx=cos(angle1)*sin(angle2)
   ny=sin(angle1)*sin(angle2)
   nz=cos(angle2)
-  if (ielem_types_faces(l,i).eq.5)then
+  if (ielem_types_faces(i,l).eq.5)then
     iqp=qp_quad_n
   else
     iqp=qp_triangle_n
@@ -1384,24 +1384,24 @@ do l=1,ielem_ifca(i)
     if (nvt.gt.0) rhllcflux(nof_variables+1:nof_variables+nvt)=hllcflux(nof_variables+1:nof_variables+nvt)
     if (nvt.gt.0)then
       if (icoupleturb.eq.0)then
-        norms=0.5d0*(cleft_rot(2)+cright_rot(2))
+        norms=0.50*(cleft_rot(2)+cright_rot(2))
         if (rec_mrf(iconsidered).eq.1) norms=norms-srf_speedrot(2)
         do iv=1,nvt
-          rhllcflux(nof_variables+iv)=0.5d0*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
+          rhllcflux(nof_variables+iv)=0.50*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
         end do
       end if
     end if
-    if (ielem_types_faces(l,i).eq.5)then
-      wface=weights_q(ngp)*ielem_surf(l,i)
+    if (ielem_types_faces(i,l).eq.5)then
+      wface=weights_q(ngp)*ielem_surf(i,l)
     else
-      wface=weights_t(ngp)*ielem_surf(l,i)
+      wface=weights_t(ngp)*ielem_surf(i,l)
     end if
     do iv=1,nof_variables+nvt
       godflux2(iv)=godflux2(iv)+rhllcflux(iv)*wface
     end do
   end do
-  rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)+godflux2(1:nof_variables)
-  if (nvt.gt.0) rhst_val(1:nvt,i)=rhst_val(1:nvt,i)+godflux2(nof_variables+1:nof_variables+nvt)
+  rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)+godflux2(1:nof_variables)
+  if (nvt.gt.0) rhst_val(i,1:nvt)=rhst_val(i,1:nvt)+godflux2(nof_variables+1:nof_variables+nvt)
 end do
 
 end do
@@ -1449,18 +1449,18 @@ i=el_bnd(ii)
 iconsidered=i
 nvt=passivescalar
 if (turbulence.eq.1) nvt=turbulenceequations+passivescalar
-rhs_val(1:nof_variables,i)=zero
-if (nvt.gt.0) rhst_val(1:nvt,i)=zero
+rhs_val(i,1:nof_variables)=zero
+if (nvt.gt.0) rhst_val(i,1:nvt)=zero
 do l=1,ielem_ifca(i)
   facex=l
   b_code=0
   godflux2=zero
-  angle1=ielem_faceanglex(l,i)
-  angle2=ielem_faceangley(l,i)
+  angle1=ielem_faceanglex(i,l)
+  angle2=ielem_faceangley(i,l)
   nx=cos(angle1)*sin(angle2)
   ny=sin(angle1)*sin(angle2)
   nz=cos(angle2)
-  if (ielem_types_faces(l,i).eq.5)then
+  if (ielem_types_faces(i,l).eq.5)then
     iqp=qp_quad_n
   else
     iqp=qp_triangle_n
@@ -1492,25 +1492,25 @@ do l=1,ielem_ifca(i)
     if (nvt.gt.0) rhllcflux(nof_variables+1:nof_variables+nvt)=hllcflux(nof_variables+1:nof_variables+nvt)
     if (nvt.gt.0)then
       if (icoupleturb.eq.0)then
-        norms=0.5d0*(cleft_rot(2)+cright_rot(2))
+        norms=0.50*(cleft_rot(2)+cright_rot(2))
         if (rec_mrf(iconsidered).eq.1) norms=norms-srf_speedrot(2)
         do iv=1,nvt
-          rhllcflux(nof_variables+iv)=0.5d0*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
+          rhllcflux(nof_variables+iv)=0.50*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
         end do
       end if
       if ((b_code.eq.3).or.(b_code.eq.4)) rhllcflux(nof_variables+1:nof_variables+nvt)=zero
     end if
-    if (ielem_types_faces(l,i).eq.5)then
-      wface=weights_q(ngp)*ielem_surf(l,i)
+    if (ielem_types_faces(i,l).eq.5)then
+      wface=weights_q(ngp)*ielem_surf(i,l)
     else
-      wface=weights_t(ngp)*ielem_surf(l,i)
+      wface=weights_t(ngp)*ielem_surf(i,l)
     end if
     do iv=1,nof_variables+nvt
       godflux2(iv)=godflux2(iv)+rhllcflux(iv)*wface
     end do
   end do
-  rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)+godflux2(1:nof_variables)
-  if (nvt.gt.0) rhst_val(1:nvt,i)=rhst_val(1:nvt,i)+godflux2(nof_variables+1:nof_variables+nvt)
+  rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)+godflux2(1:nof_variables)
+  if (nvt.gt.0) rhst_val(i,1:nvt)=rhst_val(i,1:nvt)+godflux2(nof_variables+1:nof_variables+nvt)
 end do
 
 end do
@@ -1533,11 +1533,11 @@ subroutine calculate_fluxeshi_convective_bound_cell_dg_volume(n,ii)
 	i=el_bnd(ii)
 	nvt=turbulenceequations+passivescalar
 	do iv=1,nof_variables
-	  rhs_val(iv,i)=zero
+	  rhs_val(i,iv)=zero
 	end do
 	if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 	  do iv=1,nvt
-	    rhst_val(iv,i)=zero
+	    rhst_val(i,iv)=zero
 	  end do
 	end if
 
@@ -1545,10 +1545,10 @@ subroutine calculate_fluxeshi_convective_bound_cell_dg_volume(n,ii)
 	number_of_dog=ielem_idegfree(iconsidered)
 	do iv=1,nof_variables
 	  do kbasis=1,number_of_dog+1
-	    rhs_valdg(kbasis,iv,i)=zero
+	    rhs_valdg(i,kbasis,iv)=zero
 	  end do
 	end do
-	call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.0d0)
+	call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.00)
 end subroutine calculate_fluxeshi_convective_bound_cell_dg_volume
 
 
@@ -1571,7 +1571,7 @@ subroutine calculate_fluxeshi_convective_bound_cell_dg_surface(n,ii)
 
 	do l=1,ielem_ifca(i)
 	  facex=l
-	  if (ielem_types_faces(l,i).eq.5)then
+	  if (ielem_types_faces(i,l).eq.5)then
 	    iqp=qp_quad_n
 	    weights_temp(1:iqp)=weights_q(1:iqp)
 	  else
@@ -1589,8 +1589,8 @@ subroutine calculate_fluxeshi_convective_bound_cell_dg_surface(n,ii)
 	  do ngp=1,iqp
 	    pointx=ngp
 	    call calculate_fluxeshi_convective_bound_point(n,iconsidered,facex,pointx,rhllcflux,mp_source1,b_code)
-	    wface=weights_temp(ngp)*ielem_surf(l,i)
-	    call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.0d0)
+	    wface=weights_temp(ngp)*ielem_surf(i,l)
+	    call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.00)
 	    if (multispecies.eq.1)then
 	      mp_source2=mp_source2+mp_source1*wface
 	    end if
@@ -1606,17 +1606,17 @@ subroutine calculate_fluxeshi_convective_bound_cell_dg_surface(n,ii)
 	  end if
 	  if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 	    do iv=1,nvt
-	      rhst_val(iv,i)=rhst_val(iv,i)+turbrhs(iv)
+	      rhst_val(i,iv)=rhst_val(i,iv)+turbrhs(iv)
 	    end do
 	  end if
 	end do
 
 	if (multispecies.eq.1)then
-	  rhs_val(8,i)=rhs_val(8,i)-(u_c_val(1,8,i)*mp_source3)
+	  rhs_val(i,8)=rhs_val(i,8)-(u_c_val(i,1,8)*mp_source3)
 	end if
 
 	if (multispecies.eq.1)then
-	  rhs_valdg(1,8,i)=rhs_valdg(1,8,i)-(u_c_val(1,8,i)*mp_source3)
+	  rhs_valdg(i,1,8)=rhs_valdg(i,1,8)-(u_c_val(i,1,8)*mp_source3)
 	end if
 end subroutine calculate_fluxeshi_convective_bound_cell_dg_surface
 
@@ -1716,14 +1716,14 @@ subroutine calculate_fluxeshi_convective2d_inner_cell(n,ii)
 
 
 	weights_temp(1:qp_line_n) = weights_l(1:qp_line_n)
-	rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero
+	rhs_val(i,:)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(i,:)=zero
 
 	iconsidered=i
 	            if (dg.eq.1) then
-	            rhs_valdg(:,:,i) = zero
+	            rhs_valdg(i,:,:) = zero
 	            
 	            
-	            call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.0d0)
+	            call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.00)
             
             
             end if
@@ -1737,8 +1737,8 @@ subroutine calculate_fluxeshi_convective2d_inner_cell(n,ii)
 
 				  godflux2=zero
 				  mp_source2=zero
- 				  nx=ielem_faceanglex(l,i)
- 				  ny=ielem_faceangley(l,i)
+ 				  nx=ielem_faceanglex(i,l)
+ 				  ny=ielem_faceangley(i,l)
  				  angle1=nx
  				  angle2=ny
 				 b_code=0
@@ -1835,19 +1835,19 @@ subroutine calculate_fluxeshi_convective2d_inner_cell(n,ii)
                          
 
                          
-	                        call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.0d0)
+	                        call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.00)
                        
                          
 
                     else !fv
 				       
 				      
-				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(l,i)))
+				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(i,l)))
 				      
 				      end if
 				      
 				       if (multispecies.eq.1)then
-                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(l,i))
+                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(i,l))
                         end if
 				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 					  if (icoupleturb.eq.0)then	!first order upwind flux
@@ -1863,7 +1863,7 @@ subroutine calculate_fluxeshi_convective2d_inner_cell(n,ii)
  					
 					  
 					  godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)+&
-					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(l,i)))
+					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(i,l)))
 					  
 ! 					 
 					  
@@ -1871,14 +1871,14 @@ subroutine calculate_fluxeshi_convective2d_inner_cell(n,ii)
 				      
 				      
 				  end do
-				    rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)+godflux2(1:nof_variables)
+				    rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)+godflux2(1:nof_variables)
 				    if (multispecies.eq.1)then
                         mp_source3=mp_source3+mp_source2
                         end if
 				    
 				    
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-				    rhst_val(1:turbulenceequations+passivescalar,i)=rhst_val(1:turbulenceequations+passivescalar,i)+&
+				    rhst_val(i,1:turbulenceequations+passivescalar)=rhst_val(i,1:turbulenceequations+passivescalar)+&
 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 ! 				    
@@ -1887,7 +1887,7 @@ subroutine calculate_fluxeshi_convective2d_inner_cell(n,ii)
 		    end do
 		    if (multispecies.eq.1)then
 
-                 rhs_val(7,i)=rhs_val(7,i)-(u_c_val(1,7,i)*mp_source3)!*ielem_totvolume(i))
+                 rhs_val(i,7)=rhs_val(i,7)-(u_c_val(i,1,7)*mp_source3)!*ielem_totvolume(i))
 
                  end if
                  
@@ -1898,7 +1898,7 @@ subroutine calculate_fluxeshi_convective2d_inner_cell(n,ii)
                
 	                if (multispecies.eq.1)then
 
-					rhs_valdg(1,7,i)=rhs_valdg(1,7,i)-(u_c_val(1,7,i)*mp_source3)
+					rhs_valdg(i,1,7)=rhs_valdg(i,1,7)-(u_c_val(i,1,7)*mp_source3)
 
 
                  
@@ -1941,16 +1941,16 @@ subroutine calculate_fluxeshi_convective2d_bound_cell(n,ii)
 	i=el_bnd(ii)
 
 	weights_temp(1:qp_line_n) = weights_l(1:qp_line_n)
-	rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero
+	rhs_val(i,:)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(i,:)=zero
 
 
 	iconsidered=i	
 	mp_source3=zero  
 	
 	            if (dg.eq.1) then
-	            rhs_valdg(:,:,i)=zero
+	            rhs_valdg(i,:,:)=zero
 	            
-	            call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.0d0)
+	            call dg_vol_integral_accumulate_rhs(n,iconsidered,-1.00)
                
             end if
 				
@@ -1962,8 +1962,8 @@ subroutine calculate_fluxeshi_convective2d_bound_cell(n,ii)
 
 
 				    b_code=0  
-				 nx=ielem_faceanglex(l,i)
- 				  ny=ielem_faceangley(l,i)
+				 nx=ielem_faceanglex(i,l)
+ 				  ny=ielem_faceangley(i,l)
  				  angle1=nx
  				  angle2=ny
 				 
@@ -2092,16 +2092,16 @@ subroutine calculate_fluxeshi_convective2d_bound_cell(n,ii)
 				       
 				      if (dg.eq.1) then
                         
-	                         call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.0d0)
+	                         call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,1.00)
                          
                          else
 				      
-                         godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(l,i)))
+                         godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(i,l)))
 				      end if
 				      
 				      
 				      if (multispecies.eq.1)then
-                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(l,i))
+                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(i,l))
                         end if
 				       
 				      
@@ -2121,7 +2121,7 @@ subroutine calculate_fluxeshi_convective2d_bound_cell(n,ii)
 					  
 					 
 					  godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)+&
-					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(l,i)))
+					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(i,l)))
 ! 					  
 					  
 					  
@@ -2130,26 +2130,26 @@ subroutine calculate_fluxeshi_convective2d_bound_cell(n,ii)
 				      
 				  end do
 				   
-				    rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)+godflux2(1:nof_variables)
+				    rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)+godflux2(1:nof_variables)
 				    if (multispecies.eq.1)then
                         mp_source3=mp_source3+mp_source2
                         end if
 
 				    
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-				    rhst_val(1:turbulenceequations+passivescalar,i)=rhst_val(1:turbulenceequations+passivescalar,i)+&
+				    rhst_val(i,1:turbulenceequations+passivescalar)=rhst_val(i,1:turbulenceequations+passivescalar)+&
 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 				    end if
 		    end do
 		     if (multispecies.eq.1)then
-                 rhs_val(7,i)=rhs_val(7,i)-(u_c_val(1,7,i)*mp_source3)!*ielem_totvolume(i))
+                 rhs_val(i,7)=rhs_val(i,7)-(u_c_val(i,1,7)*mp_source3)!*ielem_totvolume(i))
                  
                  end if
                  
 	                  if (dg == 1) then
 	                if (multispecies.eq.1)then
-                  rhs_valdg(1,7,i)=rhs_valdg(1,7,i)-(u_c_val(1,7,i)*mp_source3)
+                  rhs_valdg(i,1,7)=rhs_valdg(i,1,7)-(u_c_val(i,1,7)*mp_source3)
 
                  end if
                  
@@ -2194,14 +2194,14 @@ i=el_int(ii)
 iconsidered=i
 nvt=passivescalar
 if (turbulence.eq.1) nvt=turbulenceequations+passivescalar
-rhs_val(1:nof_variables,i)=zero
-if (nvt.gt.0) rhst_val(1:nvt,i)=zero
+rhs_val(i,1:nof_variables)=zero
+if (nvt.gt.0) rhst_val(i,1:nvt)=zero
 do l=1,ielem_ifca(i)
   facex=l
   b_code=0
   godflux2=zero
-  nx=ielem_faceanglex(l,i)
-  ny=ielem_faceangley(l,i)
+  nx=ielem_faceanglex(i,l)
+  ny=ielem_faceangley(i,l)
   nz=zero
   angle1=nx
   angle2=ny
@@ -2233,19 +2233,19 @@ do l=1,ielem_ifca(i)
     if (nvt.gt.0) rhllcflux(nof_variables+1:nof_variables+nvt)=hllcflux(nof_variables+1:nof_variables+nvt)
     if (nvt.gt.0)then
       if (icoupleturb.eq.0)then
-        norms=0.5d0*(cleft_rot(2)+cright_rot(2))
+        norms=0.50*(cleft_rot(2)+cright_rot(2))
         do iv=1,nvt
-          rhllcflux(nof_variables+iv)=0.5d0*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
+          rhllcflux(nof_variables+iv)=0.50*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
         end do
       end if
     end if
-    wface=weights_l(ngp)*ielem_surf(l,i)
+    wface=weights_l(ngp)*ielem_surf(i,l)
     do iv=1,nof_variables+nvt
       godflux2(iv)=godflux2(iv)+rhllcflux(iv)*wface
     end do
   end do
-  rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)+godflux2(1:nof_variables)
-  if (nvt.gt.0) rhst_val(1:nvt,i)=rhst_val(1:nvt,i)+godflux2(nof_variables+1:nof_variables+nvt)
+  rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)+godflux2(1:nof_variables)
+  if (nvt.gt.0) rhst_val(i,1:nvt)=rhst_val(i,1:nvt)+godflux2(nof_variables+1:nof_variables+nvt)
 end do
 
 end do
@@ -2291,14 +2291,14 @@ i=el_bnd(ii)
 iconsidered=i
 nvt=passivescalar
 if (turbulence.eq.1) nvt=turbulenceequations+passivescalar
-rhs_val(1:nof_variables,i)=zero
-if (nvt.gt.0) rhst_val(1:nvt,i)=zero
+rhs_val(i,1:nof_variables)=zero
+if (nvt.gt.0) rhst_val(i,1:nvt)=zero
 do l=1,ielem_ifca(i)
   facex=l
   b_code=0
   godflux2=zero
-  nx=ielem_faceanglex(l,i)
-  ny=ielem_faceangley(l,i)
+  nx=ielem_faceanglex(i,l)
+  ny=ielem_faceangley(i,l)
   nz=zero
   angle1=nx
   angle2=ny
@@ -2330,20 +2330,20 @@ do l=1,ielem_ifca(i)
     if (nvt.gt.0) rhllcflux(nof_variables+1:nof_variables+nvt)=hllcflux(nof_variables+1:nof_variables+nvt)
     if (nvt.gt.0)then
       if (icoupleturb.eq.0)then
-        norms=0.5d0*(cleft_rot(2)+cright_rot(2))
+        norms=0.50*(cleft_rot(2)+cright_rot(2))
         do iv=1,nvt
-          rhllcflux(nof_variables+iv)=0.5d0*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
+          rhllcflux(nof_variables+iv)=0.50*((norms*(cturbl(iv)+cturbr(iv)))+(abs(norms)*(cturbl(iv)-cturbr(iv))))
         end do
       end if
       if ((b_code.eq.3).or.(b_code.eq.4)) rhllcflux(nof_variables+1:nof_variables+nvt)=zero
     end if
-    wface=weights_l(ngp)*ielem_surf(l,i)
+    wface=weights_l(ngp)*ielem_surf(i,l)
     do iv=1,nof_variables+nvt
       godflux2(iv)=godflux2(iv)+rhllcflux(iv)*wface
     end do
   end do
-  rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)+godflux2(1:nof_variables)
-  if (nvt.gt.0) rhst_val(1:nvt,i)=rhst_val(1:nvt,i)+godflux2(nof_variables+1:nof_variables+nvt)
+  rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)+godflux2(1:nof_variables)
+  if (nvt.gt.0) rhst_val(i,1:nvt)=rhst_val(i,1:nvt)+godflux2(nof_variables+1:nof_variables+nvt)
 end do
 
 end do
@@ -2478,7 +2478,7 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 
 	                    
 			   damp=lamx
-            if( br2_yn == 2) damp = 0.0d0
+            if( br2_yn == 2) damp = 0.00
 		   if(mrf.eq.1)then
                 srf=rec_mrf(i)
             end if
@@ -2487,13 +2487,13 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 				  do iv=1,nof_variables+nvt
 				  godflux2(iv)=zero
 				  end do
- 				  angle1=ielem_faceanglex(l,i)
- 				  angle2=ielem_faceangley(l,i)
+ 				  angle1=ielem_faceanglex(i,l)
+ 				  angle2=ielem_faceangley(i,l)
  				  nx=(cos(angle1)*sin(angle2))
 				  ny=(sin(angle1)*sin(angle2))
 				  nz=(cos(angle2))
 				  nnn(1)=nx;nnn(2)=ny;nnn(3)=nz
-				  if (ielem_types_faces(l,i).eq.5)then
+				  if (ielem_types_faces(i,l).eq.5)then
 					iqp=qp_quad_n
 					weights_temp(1:iqp)=weights_q(1:iqp)
 				  else
@@ -2589,16 +2589,16 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 					  v12   = oo2*(leftv(3)+rightv(3))
 					  w12   = oo2*(leftv(4)+rightv(4))
 
-					 IF (nof_species.GT.0)THEN
+					 if ((realgas.eq.1).and.(nof_species.gt.0))then
 					 do rg_i=1,nof_species
 					  idxy = dimensiona+3 + rg_i
-					  y_av(rg_i)=0.5d0*(leftv(idxy)+rightv(idxy))
+					  y_av(rg_i)=0.50*(leftv(idxy)+rightv(idxy))
 					  end do
 					  END IF
 
                     do k=1,nof_variables-1
 					do iv=1,3
-					lcvgrad(k,iv)=((lcvgrad(k,iv)+rcvgrad(k,iv))/(2.0d0))+damp*((vdamp/abs(ielem_dih(l,i)))*nall(iv)*(rightv(k+1)-leftv(k+1)))
+					lcvgrad(k,iv)=((lcvgrad(k,iv)+rcvgrad(k,iv))/(2.00))+damp*((vdamp/abs(ielem_dih(i,l)))*nall(iv)*(rightv(k+1)-leftv(k+1)))
 					end do
 					end do
 
@@ -2633,14 +2633,14 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 								laml(2)=mp_ktr_mix
 								viscl(2)=mp_mu_mix
 
-								mp_ktr_mix_av  = 0.5d0 * (laml(2)  + laml(1))     ! translational conductivity
+								mp_ktr_mix_av  = 0.50 * (laml(2)  + laml(1))     ! translational conductivity
 
-								mp_lam_av  = 0.5d0 * (mp_lamr  + mp_laml)     ! ! vibrational conductivity
+								mp_lam_av  = 0.50 * (mp_lamr  + mp_laml)     ! ! vibrational conductivity
 
-								rg_dif_av=0.5d0 * (rg_difr  + rg_difl)
+								rg_dif_av=0.50 * (rg_difr  + rg_difl)
 
-								rg_enth_av=0.5d0 * (rg_enthr  + rg_enthl)
-								rg_enthvb_av=0.5d0*(rg_enthvbr +rg_enthvbl)
+								rg_enth_av=0.50 * (rg_enthr  + rg_enthl)
+								rg_enthvb_av=0.50*(rg_enthvbr +rg_enthvbl)
 
 
 
@@ -2651,44 +2651,44 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 											end if
 
 
-													rg_sum_htr(1:dimensiona) = 0.0d0
-													rg_sum_hv(1:dimensiona)  = 0.0d0
+													rg_sum_htr(1:dimensiona) = 0.00
+													rg_sum_hv(1:dimensiona)  = 0.00
 
 
 
 													if (rg_relax.ge.1)then
 
-													sumi(1:dimensiona) = 0.0d0
-													sumJ(1:dimensiona) = 0.0d0
-													i_raw(1:dimensiona,1:nof_species) = 0.0d0
+													sumi(1:dimensiona) = 0.00
+													sumJ(1:dimensiona) = 0.00
+													i_raw(1:dimensiona,1:nof_species) = 0.00
 
 													! normalise face mass fractions used by correction velocity
-													sumY_face = 0.0d0
+													sumY_face = 0.00
 													do rg_j = 1, nof_species
-														y_corr(rg_j) = max(y_av(rg_j),0.0d0)
+														y_corr(rg_j) = max(y_av(rg_j),0.00)
 														sumY_face = sumY_face + y_corr(rg_j)
 													end do
 
-													if (sumY_face .gt. 1.0d-30) then
+													if (sumY_face .gt. 1.0e-30) then
 														do rg_j = 1, nof_species
 															y_corr(rg_j) = y_corr(rg_j) / sumY_face
 														end do
 													else
 														do rg_j = 1, nof_species
-															y_corr(rg_j) = 1.0d0 / dble(nof_species)
+															y_corr(rg_j) = 1.00 / real(nof_species)
 														end do
 													end if
 
 													! mixture molar sum from corrected face mass fractions
-													molar_sum = 0.0d0
+													molar_sum = 0.00
 													do rg_j = 1, nof_species
 														molar_sum = molar_sum + y_corr(rg_j) / rg_molm(rg_j)
 													end do
-													molar_sum = max(molar_sum,1.0d-30)
-													mbar = 1.0d0 / molar_sum
+													molar_sum = max(molar_sum,1.0e-30)
+													mbar = 1.00 / molar_sum
 
 													! project species gradients so sum_k grad(Y_k)=0
-													sumGradY(1:dimensiona) = 0.0d0
+													sumGradY(1:dimensiona) = 0.00
 													do rg_j = 1, nof_species
 														idxy = dimensiona + 2 + rg_j
 														gradY_all(1:dimensiona,rg_j) = lcvgrad(idxy,1:dimensiona)
@@ -2699,7 +2699,7 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 															y_corr(rg_j) * sumGradY(1:dimensiona)
 													end do
 
-													grad_a(1:dimensiona) = 0.0d0
+													grad_a(1:dimensiona) = 0.00
 													do rg_j = 1, nof_species
 														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_j)
 														grad_a(1:dimensiona) = grad_a(1:dimensiona) + grady(1:dimensiona) / rg_molm(rg_j)
@@ -2816,11 +2816,11 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 					  
 					  
 					  ! tau_xx
-					  taul(1,1) = (4.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy - (2.0d0/3.0d0)*wz
+					  taul(1,1) = (4.00/3.00)*ux - (2.00/3.00)*vy - (2.00/3.00)*wz
 					  ! tau_yy
-					  taul(2,2) = (4.0d0/3.0d0)*vy - (2.0d0/3.0d0)*ux - (2.0d0/3.0d0)*wz
+					  taul(2,2) = (4.00/3.00)*vy - (2.00/3.00)*ux - (2.00/3.00)*wz
 					  ! tau_zz
-					  taul(3,3) = (4.0d0/3.0d0)*wz - (2.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy
+					  taul(3,3) = (4.00/3.00)*wz - (2.00/3.00)*ux - (2.00/3.00)*vy
 
 					  ! tau_xy
 					  taul(1,2) = (uy + vx);taul(2,1) = taul(1,2)
@@ -2876,11 +2876,11 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 					  rhllcflux(iv)=hllcflux(iv)
 					  end do
 
-						  call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,-1.0d0)
+						  call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,-1.00)
 
 					  else
 					  
-				      wface=weights_temp(ngp)*ielem_surf(l,i)
+				      wface=weights_temp(ngp)*ielem_surf(i,l)
 				      do iv=1,nof_variables
 				      godflux2(iv)=godflux2(iv)+(hllcflux(iv)*wface)
 				      end do
@@ -2903,7 +2903,7 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 						hllcflux(nof_variables+iv)=hllcflux(nof_variables+iv)/sigma
 						end do
 						end if					  
-					  wface=weights_temp(ngp)*ielem_surf(l,i)
+					  wface=weights_temp(ngp)*ielem_surf(i,l)
 					  do iv=1,nvt
 					  godflux2(nof_variables+iv)=godflux2(nof_variables+iv)+(hllcflux(nof_variables+iv)*wface)
 					  end do
@@ -2913,13 +2913,13 @@ subroutine calculate_fluxeshi_diffusive_inner_cell(n,ii)
 				  end do
 				  
 				    do iv=1,nof_variables
-				    rhs_val(iv,i)=rhs_val(iv,i)-godflux2(iv)
+				    rhs_val(i,iv)=rhs_val(i,iv)-godflux2(iv)
 				    end do
 
 				    
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 				    do iv=1,nvt
-				    rhst_val(iv,i)=rhst_val(iv,i)-godflux2(nof_variables+iv)
+				    rhst_val(i,iv)=rhst_val(i,iv)-godflux2(nof_variables+iv)
 				    end do
 
  				    end if
@@ -2989,14 +2989,14 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 
 
 				   damp=lamx  
-                    if( br2_yn == 2) damp = 0.0d0
-				  angle1=ielem_faceanglex(l,i)
-				  angle2=ielem_faceangley(l,i)
+                    if( br2_yn == 2) damp = 0.00
+				  angle1=ielem_faceanglex(i,l)
+				  angle2=ielem_faceangley(i,l)
 				   nx=(cos(angle1)*sin(angle2))
 				ny=(sin(angle1)*sin(angle2))
 				nz=(cos(angle2))
  				   nnn(1)=nx;nnn(2)=ny;nnn(3)=nz
- 				  if (ielem_types_faces(l,i).eq.5)then
+ 				  if (ielem_types_faces(i,l).eq.5)then
 					iqp=qp_quad_n
 					weights_temp(1:iqp)=weights_q(1:iqp)
 				  else
@@ -3112,10 +3112,10 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 
 
 
-					 if (nof_species.gt.0)then
+					 if ((realgas.eq.1).and.(nof_species.gt.0))then
 					  do rg_i=1,nof_species
 					  idxy = dimensiona+3 + rg_i
-					  y_av(rg_i)=0.5d0*(leftv(idxy)+rightv(idxy))
+					  y_av(rg_i)=0.50*(leftv(idxy)+rightv(idxy))
 					  end do
 					  end if
 
@@ -3123,7 +3123,7 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 
                                          do k=1,nof_variables-1
 											do iv=1,3
-											lcvgrad(k,iv)=((lcvgrad(k,iv)+rcvgrad(k,iv))/(2.0d0))+damp*((vdamp/abs(ielem_dih(l,i)))*nall(iv)*(rightv(k+1)-leftv(k+1)))
+											lcvgrad(k,iv)=((lcvgrad(k,iv)+rcvgrad(k,iv))/(2.00))+damp*((vdamp/abs(ielem_dih(i,l)))*nall(iv)*(rightv(k+1)-leftv(k+1)))
 											end do
 										 end do
 
@@ -3157,15 +3157,15 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 								laml(2)=mp_ktr_mix
 								viscl(2)=mp_mu_mix
 
-								mp_ktr_mix_av = 0.5d0*(laml(1) + laml(2))
-													mp_lam_av     = 0.5d0*(mp_laml + mp_lamr)
+								mp_ktr_mix_av = 0.50*(laml(1) + laml(2))
+													mp_lam_av     = 0.50*(mp_laml + mp_lamr)
 
 													! mixture-averaged species diffusion coefficients
-													rg_dif_av(:) = 0.5d0*(rg_difl(:) + rg_difr(:))
+													rg_dif_av(:) = 0.50*(rg_difl(:) + rg_difr(:))
 
 													! face-averaged species enthalpies
-													rg_enth_av(:)   = 0.5d0*(rg_enthl(:)   + rg_enthr(:))
-													rg_enthvb_av(:) = 0.5d0*(rg_enthvbl(:) + rg_enthvbr(:))
+													rg_enth_av(:)   = 0.50*(rg_enthl(:)   + rg_enthr(:))
+													rg_enthvb_av(:) = 0.50*(rg_enthvbl(:) + rg_enthvbr(:))
 
 
 
@@ -3176,16 +3176,16 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 											end if
 
 
-													rg_sum_htr(1:dimensiona) = 0.0d0
-													rg_sum_hv(1:dimensiona)  = 0.0d0
+													rg_sum_htr(1:dimensiona) = 0.00
+													rg_sum_hv(1:dimensiona)  = 0.00
 
 													! =============================================================
 													! 3. mixture-averaged diffusion fluxes (no pressure terms)
 													! =============================================================
-													rg_sum_htr(1:dimensiona) = 0.0d0
-													rg_sum_hv(1:dimensiona)  = 0.0d0
+													rg_sum_htr(1:dimensiona) = 0.00
+													rg_sum_hv(1:dimensiona)  = 0.00
 
-													sumi(1:dimensiona) = 0.0d0    ! σ i_k
+													sumi(1:dimensiona) = 0.00    ! σ i_k
 
 
 													if (rg_relax.ge.1)then
@@ -3195,37 +3195,37 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 
 													if (icompute.eq.0)then
 
-													sumi(1:dimensiona) = 0.0d0
-													sumJ(1:dimensiona) = 0.0d0
-													i_raw(1:dimensiona,1:nof_species) = 0.0d0
+													sumi(1:dimensiona) = 0.00
+													sumJ(1:dimensiona) = 0.00
+													i_raw(1:dimensiona,1:nof_species) = 0.00
 
 													! normalise face mass fractions used by correction velocity
-													sumY_face = 0.0d0
+													sumY_face = 0.00
 													do rg_j = 1, nof_species
-														y_corr(rg_j) = max(y_av(rg_j),0.0d0)
+														y_corr(rg_j) = max(y_av(rg_j),0.00)
 														sumY_face = sumY_face + y_corr(rg_j)
 													end do
 
-													if (sumY_face .gt. 1.0d-30) then
+													if (sumY_face .gt. 1.0e-30) then
 														do rg_j = 1, nof_species
 															y_corr(rg_j) = y_corr(rg_j) / sumY_face
 														end do
 													else
 														do rg_j = 1, nof_species
-															y_corr(rg_j) = 1.0d0 / dble(nof_species)
+															y_corr(rg_j) = 1.00 / real(nof_species)
 														end do
 													end if
 
 													! mixture molar sum from corrected face mass fractions
-													molar_sum = 0.0d0
+													molar_sum = 0.00
 													do rg_j = 1, nof_species
 														molar_sum = molar_sum + y_corr(rg_j) / rg_molm(rg_j)
 													end do
-													molar_sum = max(molar_sum,1.0d-30)
-													mbar = 1.0d0 / molar_sum
+													molar_sum = max(molar_sum,1.0e-30)
+													mbar = 1.00 / molar_sum
 
 													! project species gradients so sum_k grad(Y_k)=0
-													sumGradY(1:dimensiona) = 0.0d0
+													sumGradY(1:dimensiona) = 0.00
 													do rg_j = 1, nof_species
 														idxy = dimensiona + 2 + rg_j
 														gradY_all(1:dimensiona,rg_j) = lcvgrad(idxy,1:dimensiona)
@@ -3236,7 +3236,7 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 															y_corr(rg_j) * sumGradY(1:dimensiona)
 													end do
 
-													grad_a(1:dimensiona) = 0.0d0
+													grad_a(1:dimensiona) = 0.00
 													do rg_j = 1, nof_species
 														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_j)
 														grad_a(1:dimensiona) = grad_a(1:dimensiona) + grady(1:dimensiona) / rg_molm(rg_j)
@@ -3357,11 +3357,11 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 					  
 					  
 					  ! tau_xx
-					  taul(1,1) = (4.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy - (2.0d0/3.0d0)*wz
+					  taul(1,1) = (4.00/3.00)*ux - (2.00/3.00)*vy - (2.00/3.00)*wz
 					  ! tau_yy
-					  taul(2,2) = (4.0d0/3.0d0)*vy - (2.0d0/3.0d0)*ux - (2.0d0/3.0d0)*wz
+					  taul(2,2) = (4.00/3.00)*vy - (2.00/3.00)*ux - (2.00/3.00)*wz
 					  ! tau_zz
-					  taul(3,3) = (4.0d0/3.0d0)*wz - (2.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy
+					  taul(3,3) = (4.00/3.00)*wz - (2.00/3.00)*ux - (2.00/3.00)*vy
 
 					  ! tau_xy
 					  taul(1,2) = (uy + vx);taul(2,1) = taul(1,2)
@@ -3422,11 +3422,11 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 					   rhllcflux(iv)=hllcflux(iv)
 					   end do
 
-						  call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,-1.0d0)
+						  call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,-1.00)
 
 
 					  else
-				      wface=weights_temp(ngp)*ielem_surf(l,i)
+				      wface=weights_temp(ngp)*ielem_surf(i,l)
 				      do iv=1,nof_variables
 				      godflux2(iv)=godflux2(iv)+(hllcflux(iv)*wface)
 				      end do
@@ -3460,7 +3460,7 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 
 
 
-					  wface=weights_temp(ngp)*ielem_surf(l,i)
+					  wface=weights_temp(ngp)*ielem_surf(i,l)
 					  do iv=1,nvt
 					  godflux2(nof_variables+iv)=godflux2(nof_variables+iv)+(hllcflux(nof_variables+iv)*wface)
 					  end do
@@ -3471,13 +3471,13 @@ subroutine calculate_fluxeshi_diffusive_bound_cell(n,ii)
 				  
 				    
 				    do iv=1,nof_variables
-				    rhs_val(iv,i)=rhs_val(iv,i)-godflux2(iv)
+				    rhs_val(i,iv)=rhs_val(i,iv)-godflux2(iv)
 				    end do
 
 				    
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 				    do iv=1,nvt
-				    rhst_val(iv,i)=rhst_val(iv,i)-godflux2(nof_variables+iv)
+				    rhst_val(i,iv)=rhst_val(i,iv)-godflux2(nof_variables+iv)
 				    end do
 
 				    end if
@@ -3537,8 +3537,8 @@ do l=1,ielem_ifca(i)
   god3=zero
   god4=zero
   god5=zero
-  angle1=ielem_faceanglex(l,i)
-  angle2=ielem_faceangley(l,i)
+  angle1=ielem_faceanglex(i,l)
+  angle2=ielem_faceangley(i,l)
   ca1=cos(angle1)
   sa1=sin(angle1)
   ca2=cos(angle2)
@@ -3546,18 +3546,18 @@ do l=1,ielem_ifca(i)
   nx=ca1*sa2
   ny=sa1*sa2
   nz=ca2
-  if (ielem_types_faces(l,i).eq.5)then
+  if (ielem_types_faces(i,l).eq.5)then
     iqp=qp_quad_n
   else
     iqp=qp_triangle_n
   end if
   do ngp=1,iqp
-    cleft(1:5)=rec_uleft(1:5,l,ngp,i)
-    cright(1:5)=rec_uleft(1:5,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+    cleft(1:5)=rec_uleft(i,1:5,l,ngp)
+    cright(1:5)=rec_uleft(ielem_ineigh(i,l),1:5,ielem_ineighn(i,l),ngp)
     do iv=1,3
       do k=1,4
-        lgrad(k,iv)=rec_uleftv(iv,k,l,ngp,i)
-        rgrad(k,iv)=rec_uleftv(iv,k,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+        lgrad(k,iv)=rec_uleftv(i,iv,k,l,ngp)
+        rgrad(k,iv)=rec_uleftv(ielem_ineigh(i,l),iv,k,ielem_ineighn(i,l),ngp)
       end do
     end do
     if (lmach.eq.1)then
@@ -3581,15 +3581,15 @@ do l=1,ielem_ifca(i)
       w_r=cright_rot(4)/rho_r
       eel=cleft_rot(5)
       eer=cright_rot(5)
-      ppl=(gamma-1.0d0)*(eel-oo2*rho_l*(u_l*u_l+v_l*v_l+w_l*w_l))
-      ppr=(gamma-1.0d0)*(eer-oo2*rho_r*(u_r*u_r+v_r*v_r+w_r*w_r))
+      ppl=(gamma-1.00)*(eel-oo2*rho_l*(u_l*u_l+v_l*v_l+w_l*w_l))
+      ppr=(gamma-1.00)*(eer-oo2*rho_r*(u_r*u_r+v_r*v_r+w_r*w_r))
       ssl=(gamma*ppl)/rho_l
       ssr=(gamma*ppr)/rho_r
       q2l=u_l*u_l+v_l*v_l+w_l*w_l
       q2r=u_r*u_r+v_r*v_r+w_r*w_r
       mach2=max(q2l/ssl,q2r/ssr)
       mach=sqrt(mach2)
-      mach=min(mach,1.0d0)
+      mach=min(mach,1.00)
       dus=u_r+u_l
       dvs=v_r+v_l
       dws=w_r+w_l
@@ -3628,13 +3628,13 @@ do l=1,ielem_ifca(i)
     u_r=cright(2)/rho_r
     v_r=cright(3)/rho_r
     w_r=cright(4)/rho_r
-    t_l=((gamma-1.0d0)*(cleft(5)-oo2*rho_l*(u_l*u_l+v_l*v_l+w_l*w_l)))/(rho_l*r_gas)
-    t_r=((gamma-1.0d0)*(cright(5)-oo2*rho_r*(u_r*u_r+v_r*v_r+w_r*w_r)))/(rho_r*r_gas)
+    t_l=((gamma-1.00)*(cleft(5)-oo2*rho_l*(u_l*u_l+v_l*v_l+w_l*w_l)))/(rho_l*r_gas)
+    t_r=((gamma-1.00)*(cright(5)-oo2*rho_r*(u_r*u_r+v_r*v_r+w_r*w_r)))/(rho_r*r_gas)
     t0=pres/(rres*r_gas)
     mu_l=visc*((t_l/t0)*sqrt(t_l/t0))*((t0+suther*t0)/(t_l+suther*t0))
     mu_r=visc*((t_r/t0)*sqrt(t_r/t0))*((t0+suther*t0)/(t_r+suther*t0))
-    lam_l=mu_l*r_gas*gamma/(prandtl*(gamma-1.0d0))
-    lam_r=mu_r*r_gas*gamma/(prandtl*(gamma-1.0d0))
+    lam_l=mu_l*r_gas*gamma/(prandtl*(gamma-1.00))
+    lam_r=mu_r*r_gas*gamma/(prandtl*(gamma-1.00))
     mu_av=oo2*(mu_l+mu_r)
     lam_av=oo2*(lam_l+lam_r)
     leftv(2)=u_l
@@ -3645,11 +3645,11 @@ do l=1,ielem_ifca(i)
     rightv(3)=v_r
     rightv(4)=w_r
     rightv(5)=t_r
-    vdamp=4.0d0/3.0d0
+    vdamp=4.00/3.00
     do k=1,4
-      grad(k,1)=oo2*(lgrad(k,1)+rgrad(k,1))+damp*((vdamp/abs(ielem_dih(l,i)))*nx*(rightv(k+1)-leftv(k+1)))
-      grad(k,2)=oo2*(lgrad(k,2)+rgrad(k,2))+damp*((vdamp/abs(ielem_dih(l,i)))*ny*(rightv(k+1)-leftv(k+1)))
-      grad(k,3)=oo2*(lgrad(k,3)+rgrad(k,3))+damp*((vdamp/abs(ielem_dih(l,i)))*nz*(rightv(k+1)-leftv(k+1)))
+      grad(k,1)=oo2*(lgrad(k,1)+rgrad(k,1))+damp*((vdamp/abs(ielem_dih(i,l)))*nx*(rightv(k+1)-leftv(k+1)))
+      grad(k,2)=oo2*(lgrad(k,2)+rgrad(k,2))+damp*((vdamp/abs(ielem_dih(i,l)))*ny*(rightv(k+1)-leftv(k+1)))
+      grad(k,3)=oo2*(lgrad(k,3)+rgrad(k,3))+damp*((vdamp/abs(ielem_dih(i,l)))*nz*(rightv(k+1)-leftv(k+1)))
     end do
     q1=-lam_av*grad(4,1)
     q2=-lam_av*grad(4,2)
@@ -3663,9 +3663,9 @@ do l=1,ielem_ifca(i)
     wx=grad(3,1)
     wy=grad(3,2)
     wz=grad(3,3)
-    tau11=mu_av*((4.0d0/3.0d0)*ux-(2.0d0/3.0d0)*vy-(2.0d0/3.0d0)*wz)
-    tau22=mu_av*((4.0d0/3.0d0)*vy-(2.0d0/3.0d0)*ux-(2.0d0/3.0d0)*wz)
-    tau33=mu_av*((4.0d0/3.0d0)*wz-(2.0d0/3.0d0)*ux-(2.0d0/3.0d0)*vy)
+    tau11=mu_av*((4.00/3.00)*ux-(2.00/3.00)*vy-(2.00/3.00)*wz)
+    tau22=mu_av*((4.00/3.00)*vy-(2.00/3.00)*ux-(2.00/3.00)*wz)
+    tau33=mu_av*((4.00/3.00)*wz-(2.00/3.00)*ux-(2.00/3.00)*vy)
     tau12=mu_av*(uy+vx)
     tau13=mu_av*(wx+uz)
     tau23=mu_av*(vz+wy)
@@ -3679,20 +3679,20 @@ do l=1,ielem_ifca(i)
     fy5=-q2+u12*tau12+v12*tau22+w12*tau23
     fz5=-q3+u12*tau13+v12*tau23+w12*tau33
     flux5=nx*fx5+ny*fy5+nz*fz5
-    if (ielem_types_faces(l,i).eq.5)then
-      wface=weights_q(ngp)*ielem_surf(l,i)
+    if (ielem_types_faces(i,l).eq.5)then
+      wface=weights_q(ngp)*ielem_surf(i,l)
     else
-      wface=weights_t(ngp)*ielem_surf(l,i)
+      wface=weights_t(ngp)*ielem_surf(i,l)
     end if
     god2=god2+flux2*wface
     god3=god3+flux3*wface
     god4=god4+flux4*wface
     god5=god5+flux5*wface
   end do
-  rhs_val(2,i)=rhs_val(2,i)-god2
-  rhs_val(3,i)=rhs_val(3,i)-god3
-  rhs_val(4,i)=rhs_val(4,i)-god4
-  rhs_val(5,i)=rhs_val(5,i)-god5
+  rhs_val(i,2)=rhs_val(i,2)-god2
+  rhs_val(i,3)=rhs_val(i,3)-god3
+  rhs_val(i,4)=rhs_val(i,4)-god4
+  rhs_val(i,5)=rhs_val(i,5)-god5
 end do
 
 end do
@@ -3766,8 +3766,8 @@ do l=1,ielem_ifca(i)
   damp=lamx
   if (br2_yn.eq.2) damp=zero
   damp_loc=damp
-  angle1=ielem_faceanglex(l,i)
-  angle2=ielem_faceangley(l,i)
+  angle1=ielem_faceanglex(i,l)
+  angle2=ielem_faceangley(i,l)
   ca1=cos(angle1)
   sa1=sin(angle1)
   ca2=cos(angle2)
@@ -3775,16 +3775,16 @@ do l=1,ielem_ifca(i)
   nx=ca1*sa2
   ny=sa1*sa2
   nz=ca2
-  if (ielem_types_faces(l,i).eq.5)then
+  if (ielem_types_faces(i,l).eq.5)then
     iqp=qp_quad_n
   else
     iqp=qp_triangle_n
   end if
   do ngp=1,iqp
-    cleft(1:5)=rec_uleft(1:5,l,ngp,i)
+    cleft(1:5)=rec_uleft(i,1:5,l,ngp)
     do iv=1,3
       do k=1,4
-        lgrad(k,iv)=rec_uleftv(iv,k,l,ngp,i)
+        lgrad(k,iv)=rec_uleftv(i,iv,k,l,ngp)
       end do
     end do
     b_code=0
@@ -3794,15 +3794,15 @@ do l=1,ielem_ifca(i)
     subson2=zero
     subson3=zero
     code_per=0
-    if (ielem_ibounds(l,i).gt.0) code_per=ibound_icode(ielem_ibounds(l,i))
-    if (ielem_ineighb(l,i).eq.n)then
-      if ((ielem_ibounds(l,i).gt.0).and. &
+    if (ielem_ibounds(i,l).gt.0) code_per=ibound_icode(ielem_ibounds(i,l))
+    if (ielem_ineighb(i,l).eq.n)then
+      if ((ielem_ibounds(i,l).gt.0).and. &
           & (.not.((code_per.eq.5).or.(code_per.eq.50))))then
-        b_code=ibound_icode(ielem_ibounds(l,i))
+        b_code=ibound_icode(ielem_ibounds(i,l))
         leftv(1:5)=cleft(1:5)
         rightv=zero
         call coordinates_face_innerx(n,i,l,vext,nodes_list)
-        if (ielem_types_faces(l,i).eq.5)then
+        if (ielem_types_faces(i,l).eq.5)then
           n_node=4
         else
           n_node=3
@@ -3827,8 +3827,8 @@ do l=1,ielem_ifca(i)
             sps=sqrt((gamma*subson2(5))/(subson2(1)+tolsmall))
             vel=sqrt((subson2(2)*subson2(2))+(subson2(3)*subson2(3))+(subson2(4)*subson2(4)))
             call prim2cons2_ideal(n,leftv,rightv)
-            if (vel/(sps+tolsmall).le.1.0d0)then
-              subson3(5)=0.5d0*(subson1(5)+subson2(5)-subson2(1)*sps* &
+            if (vel/(sps+tolsmall).le.1.00)then
+              subson3(5)=0.50*(subson1(5)+subson2(5)-subson2(1)*sps* &
                    & (nx*(subson1(2)-subson2(2))+ny*(subson1(3)-subson2(3))+nz*(subson1(4)-subson2(4))))
               subson3(1)=subson1(1)+(subson3(5)-subson1(5))/(sps*sps+tolsmall)
               subson3(2)=subson1(2)-nx*(subson1(5)-subson3(5))/((sps+tolsmall)*(subson2(1)+tolsmall))
@@ -3849,8 +3849,8 @@ do l=1,ielem_ifca(i)
             sps=sqrt((gamma*subson2(5))/(subson2(1)+tolsmall))
             vel=subson2(2)*nx+subson2(3)*ny+subson2(4)*nz
             call prim2cons2_ideal(n,leftv,rightv)
-            if (vel.gt.0.0d0)then
-              if (vel/(sps+tolsmall).gt.1.0d0)then
+            if (vel.gt.0.00)then
+              if (vel/(sps+tolsmall).gt.1.00)then
                 rightv(1:5)=leftv(1:5)
               else
                 subson3(1:5)=subson2(1:5)
@@ -3887,7 +3887,7 @@ do l=1,ielem_ifca(i)
           subson2(1:5)=leftv(1:5)
           sps=sqrt((gamma*subson2(5))/(subson2(1)+tolsmall))
           call prim2cons2_ideal(n,leftv,rightv)
-          if (vnb.le.0.0d0)then
+          if (vnb.le.0.00)then
             if (initcond.eq.4440)then
               call inflow_4440_from_left_ideal3d(n,leftv,nx,ny,nz,rightv)
             else
@@ -3938,18 +3938,18 @@ do l=1,ielem_ifca(i)
               g_n=g_n+g(d)*nnt(d)
             end do
             do d=1,3
-              rgrad(iex,d)=lgrad(iex,d)-2.0d0*g_n*nnt(d)
+              rgrad(iex,d)=lgrad(iex,d)-2.00*g_n*nnt(d)
             end do
           end do
           do iv=1,3
             do jj=1,3
               mat_r(iv,jj)=zero
             end do
-            mat_r(iv,iv)=1.0d0
+            mat_r(iv,iv)=1.00
           end do
           do iv=1,3
             do jj=1,3
-              mat_r(iv,jj)=mat_r(iv,jj)-2.0d0*nnt(iv)*nnt(jj)
+              mat_r(iv,jj)=mat_r(iv,jj)-2.00*nnt(iv)*nnt(jj)
             end do
           end do
           mat_a(1,1)=lgrad(1,1); mat_a(1,2)=lgrad(1,2); mat_a(1,3)=lgrad(1,3)
@@ -3978,14 +3978,14 @@ do l=1,ielem_ifca(i)
           end do
         end if
       else
-        cright(1:5)=rec_uleft(1:5,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+        cright(1:5)=rec_uleft(ielem_ineigh(i,l),1:5,ielem_ineighn(i,l),ngp)
         do iv=1,3
           do k=1,4
-            rgrad(k,iv)=rec_uleftv(iv,k,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+            rgrad(k,iv)=rec_uleftv(ielem_ineigh(i,l),iv,k,ielem_ineighn(i,l),ngp)
           end do
         end do
-        if ((ielem_ibounds(l,i).gt.0).and.(per_rot.eq.1))then
-          code_per=ibound_icode(ielem_ibounds(l,i))
+        if ((ielem_ibounds(i,l).gt.0).and.(per_rot.eq.1))then
+          code_per=ibound_icode(ielem_ibounds(i,l))
           if (code_per.eq.50)then
             cright(2:4)=rotate_per_1(cright(2:4),code_per,angle_per)
             do iv=1,3
@@ -3996,7 +3996,7 @@ do l=1,ielem_ifca(i)
         end if
       end if
     else
-      nfx=ielem_ineighn(l,i)
+      nfx=ielem_ineighn(i,l)
       lfx=ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
       rowfx=bound_offset(nfx)+lfx-1
       cright(1:5)=boundhir(rowfx,1:5)
@@ -4007,8 +4007,8 @@ do l=1,ielem_ifca(i)
           rgrad(k,iv)=boundhir(rowfx,5+ittt)
         end do
       end do
-      if ((ielem_ibounds(l,i).gt.0).and.(per_rot.eq.1))then
-        code_per=ibound_icode(ielem_ibounds(l,i))
+      if ((ielem_ibounds(i,l).gt.0).and.(per_rot.eq.1))then
+        code_per=ibound_icode(ielem_ibounds(i,l))
         if (code_per.eq.50)then
           cright(2:4)=rotate_per_1(cright(2:4),code_per,angle_per)
           do iv=1,3
@@ -4039,15 +4039,15 @@ do l=1,ielem_ifca(i)
       w_r=cright_rot(4)/rho_r
       eel=cleft_rot(5)
       eer=cright_rot(5)
-      ppl=(gamma-1.0d0)*(eel-oo2*rho_l*(u_l*u_l+v_l*v_l+w_l*w_l))
-      ppr=(gamma-1.0d0)*(eer-oo2*rho_r*(u_r*u_r+v_r*v_r+w_r*w_r))
+      ppl=(gamma-1.00)*(eel-oo2*rho_l*(u_l*u_l+v_l*v_l+w_l*w_l))
+      ppr=(gamma-1.00)*(eer-oo2*rho_r*(u_r*u_r+v_r*v_r+w_r*w_r))
       ssl=(gamma*ppl)/rho_l
       ssr=(gamma*ppr)/rho_r
       q2l=u_l*u_l+v_l*v_l+w_l*w_l
       q2r=u_r*u_r+v_r*v_r+w_r*w_r
       mach2=max(q2l/ssl,q2r/ssr)
       mach=sqrt(mach2)
-      mach=min(mach,1.0d0)
+      mach=min(mach,1.00)
       dus=u_r+u_l
       dvs=v_r+v_l
       dws=w_r+w_l
@@ -4086,13 +4086,13 @@ do l=1,ielem_ifca(i)
     u_r=cright(2)/rho_r
     v_r=cright(3)/rho_r
     w_r=cright(4)/rho_r
-    t_l=((gamma-1.0d0)*(cleft(5)-oo2*rho_l*(u_l*u_l+v_l*v_l+w_l*w_l)))/(rho_l*r_gas)
-    t_r=((gamma-1.0d0)*(cright(5)-oo2*rho_r*(u_r*u_r+v_r*v_r+w_r*w_r)))/(rho_r*r_gas)
+    t_l=((gamma-1.00)*(cleft(5)-oo2*rho_l*(u_l*u_l+v_l*v_l+w_l*w_l)))/(rho_l*r_gas)
+    t_r=((gamma-1.00)*(cright(5)-oo2*rho_r*(u_r*u_r+v_r*v_r+w_r*w_r)))/(rho_r*r_gas)
     t0=pres/(rres*r_gas)
     mu_l=visc*((t_l/t0)*sqrt(t_l/t0))*((t0+suther*t0)/(t_l+suther*t0))
     mu_r=visc*((t_r/t0)*sqrt(t_r/t0))*((t0+suther*t0)/(t_r+suther*t0))
-    lam_l=mu_l*r_gas*gamma/(prandtl*(gamma-1.0d0))
-    lam_r=mu_r*r_gas*gamma/(prandtl*(gamma-1.0d0))
+    lam_l=mu_l*r_gas*gamma/(prandtl*(gamma-1.00))
+    lam_r=mu_r*r_gas*gamma/(prandtl*(gamma-1.00))
     mu_av=oo2*(mu_l+mu_r)
     lam_av=oo2*(lam_l+lam_r)
     leftv(2)=u_l
@@ -4103,11 +4103,11 @@ do l=1,ielem_ifca(i)
     rightv(3)=v_r
     rightv(4)=w_r
     rightv(5)=t_r
-    vdamp=4.0d0/3.0d0
+    vdamp=4.00/3.00
     do k=1,4
-      grad(k,1)=oo2*(lgrad(k,1)+rgrad(k,1))+damp_loc*((vdamp/abs(ielem_dih(l,i)))*nx*(rightv(k+1)-leftv(k+1)))
-      grad(k,2)=oo2*(lgrad(k,2)+rgrad(k,2))+damp_loc*((vdamp/abs(ielem_dih(l,i)))*ny*(rightv(k+1)-leftv(k+1)))
-      grad(k,3)=oo2*(lgrad(k,3)+rgrad(k,3))+damp_loc*((vdamp/abs(ielem_dih(l,i)))*nz*(rightv(k+1)-leftv(k+1)))
+      grad(k,1)=oo2*(lgrad(k,1)+rgrad(k,1))+damp_loc*((vdamp/abs(ielem_dih(i,l)))*nx*(rightv(k+1)-leftv(k+1)))
+      grad(k,2)=oo2*(lgrad(k,2)+rgrad(k,2))+damp_loc*((vdamp/abs(ielem_dih(i,l)))*ny*(rightv(k+1)-leftv(k+1)))
+      grad(k,3)=oo2*(lgrad(k,3)+rgrad(k,3))+damp_loc*((vdamp/abs(ielem_dih(i,l)))*nz*(rightv(k+1)-leftv(k+1)))
     end do
     q1=-lam_av*grad(4,1)
     q2=-lam_av*grad(4,2)
@@ -4121,9 +4121,9 @@ do l=1,ielem_ifca(i)
     wx=grad(3,1)
     wy=grad(3,2)
     wz=grad(3,3)
-    tau11=mu_av*((4.0d0/3.0d0)*ux-(2.0d0/3.0d0)*vy-(2.0d0/3.0d0)*wz)
-    tau22=mu_av*((4.0d0/3.0d0)*vy-(2.0d0/3.0d0)*ux-(2.0d0/3.0d0)*wz)
-    tau33=mu_av*((4.0d0/3.0d0)*wz-(2.0d0/3.0d0)*ux-(2.0d0/3.0d0)*vy)
+    tau11=mu_av*((4.00/3.00)*ux-(2.00/3.00)*vy-(2.00/3.00)*wz)
+    tau22=mu_av*((4.00/3.00)*vy-(2.00/3.00)*ux-(2.00/3.00)*wz)
+    tau33=mu_av*((4.00/3.00)*wz-(2.00/3.00)*ux-(2.00/3.00)*vy)
     tau12=mu_av*(uy+vx)
     tau13=mu_av*(wx+uz)
     tau23=mu_av*(vz+wy)
@@ -4137,20 +4137,20 @@ do l=1,ielem_ifca(i)
     fy5=-q2+u12*tau12+v12*tau22+w12*tau23
     fz5=-q3+u12*tau13+v12*tau23+w12*tau33
     flux5=nx*fx5+ny*fy5+nz*fz5
-    if (ielem_types_faces(l,i).eq.5)then
-      wface=weights_q(ngp)*ielem_surf(l,i)
+    if (ielem_types_faces(i,l).eq.5)then
+      wface=weights_q(ngp)*ielem_surf(i,l)
     else
-      wface=weights_t(ngp)*ielem_surf(l,i)
+      wface=weights_t(ngp)*ielem_surf(i,l)
     end if
     god2=god2+flux2*wface
     god3=god3+flux3*wface
     god4=god4+flux4*wface
     god5=god5+flux5*wface
   end do
-  rhs_val(2,i)=rhs_val(2,i)-god2
-  rhs_val(3,i)=rhs_val(3,i)-god3
-  rhs_val(4,i)=rhs_val(4,i)-god4
-  rhs_val(5,i)=rhs_val(5,i)-god5
+  rhs_val(i,2)=rhs_val(i,2)-god2
+  rhs_val(i,3)=rhs_val(i,3)-god3
+  rhs_val(i,4)=rhs_val(i,4)-god4
+  rhs_val(i,5)=rhs_val(i,5)-god5
 end do
 
 end do
@@ -4221,15 +4221,15 @@ damp=lamx
 if (br2_yn.eq.2) damp=zero
 do l=1,ielem_ifca(i)
   godflux2=zero
-  angle1=ielem_faceanglex(l,i)
-  angle2=ielem_faceangley(l,i)
+  angle1=ielem_faceanglex(i,l)
+  angle2=ielem_faceangley(i,l)
   nx=cos(angle1)*sin(angle2)
   ny=sin(angle1)*sin(angle2)
   nz=cos(angle2)
   nall(1)=nx
   nall(2)=ny
   nall(3)=nz
-  if (ielem_types_faces(l,i).eq.5)then
+  if (ielem_types_faces(i,l).eq.5)then
     iqp=qp_quad_n
   else
     iqp=qp_triangle_n
@@ -4300,10 +4300,10 @@ do l=1,ielem_ifca(i)
     u12=oo2*(leftv(2)+rightv(2))
     v12=oo2*(leftv(3)+rightv(3))
     w12=oo2*(leftv(4)+rightv(4))
-    vdamp=4.0d0/3.0d0
+    vdamp=4.00/3.00
     do k=1,nof_variables-1
       do iv=1,3
-        lcvgrad(k,iv)=oo2*(lcvgrad(k,iv)+rcvgrad(k,iv))+damp*((vdamp/abs(ielem_dih(l,i)))*nall(iv)*(rightv(k+1)-leftv(k+1)))
+        lcvgrad(k,iv)=oo2*(lcvgrad(k,iv)+rcvgrad(k,iv))+damp*((vdamp/abs(ielem_dih(i,l)))*nall(iv)*(rightv(k+1)-leftv(k+1)))
       end do
     end do
     if (turbulence.eq.1)then
@@ -4323,9 +4323,9 @@ do l=1,ielem_ifca(i)
     wx=lcvgrad(3,1)
     wy=lcvgrad(3,2)
     wz=lcvgrad(3,3)
-    taul(1,1)=(4.0d0/3.0d0)*ux-(2.0d0/3.0d0)*vy-(2.0d0/3.0d0)*wz
-    taul(2,2)=(4.0d0/3.0d0)*vy-(2.0d0/3.0d0)*ux-(2.0d0/3.0d0)*wz
-    taul(3,3)=(4.0d0/3.0d0)*wz-(2.0d0/3.0d0)*ux-(2.0d0/3.0d0)*vy
+    taul(1,1)=(4.00/3.00)*ux-(2.00/3.00)*vy-(2.00/3.00)*wz
+    taul(2,2)=(4.00/3.00)*vy-(2.00/3.00)*ux-(2.00/3.00)*wz
+    taul(3,3)=(4.00/3.00)*wz-(2.00/3.00)*ux-(2.00/3.00)*vy
     taul(1,2)=uy+vx
     taul(2,1)=taul(1,2)
     taul(1,3)=wx+uz
@@ -4348,10 +4348,10 @@ do l=1,ielem_ifca(i)
     do iv=1,nof_variables
       hllcflux(iv)=nx*fxv(iv)+ny*fyv(iv)+nz*fzv(iv)
     end do
-    if (ielem_types_faces(l,i).eq.5)then
-      wface=weights_q(ngp)*ielem_surf(l,i)
+    if (ielem_types_faces(i,l).eq.5)then
+      wface=weights_q(ngp)*ielem_surf(i,l)
     else
-      wface=weights_t(ngp)*ielem_surf(l,i)
+      wface=weights_t(ngp)*ielem_surf(i,l)
     end if
     do iv=1,nof_variables
       godflux2(iv)=godflux2(iv)+hllcflux(iv)*wface
@@ -4370,8 +4370,8 @@ do l=1,ielem_ifca(i)
       end do
     end if
   end do
-  rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)-godflux2(1:nof_variables)
-  if (nvt.gt.0) rhst_val(1:nvt,i)=rhst_val(1:nvt,i)-godflux2(nof_variables+1:nof_variables+nvt)
+  rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)-godflux2(1:nof_variables)
+  if (nvt.gt.0) rhst_val(i,1:nvt)=rhst_val(i,1:nvt)-godflux2(nof_variables+1:nof_variables+nvt)
 end do
 
 end do
@@ -4440,15 +4440,15 @@ do l=1,ielem_ifca(i)
   godflux2=zero
   damp=lamx
   if (br2_yn.eq.2) damp=zero
-  angle1=ielem_faceanglex(l,i)
-  angle2=ielem_faceangley(l,i)
+  angle1=ielem_faceanglex(i,l)
+  angle2=ielem_faceangley(i,l)
   nx=cos(angle1)*sin(angle2)
   ny=sin(angle1)*sin(angle2)
   nz=cos(angle2)
   nall(1)=nx
   nall(2)=ny
   nall(3)=nz
-  if (ielem_types_faces(l,i).eq.5)then
+  if (ielem_types_faces(i,l).eq.5)then
     iqp=qp_quad_n
   else
     iqp=qp_triangle_n
@@ -4521,10 +4521,10 @@ do l=1,ielem_ifca(i)
     u12=oo2*(leftv(2)+rightv(2))
     v12=oo2*(leftv(3)+rightv(3))
     w12=oo2*(leftv(4)+rightv(4))
-    vdamp=4.0d0/3.0d0
+    vdamp=4.00/3.00
     do k=1,nof_variables-1
       do iv=1,3
-        lcvgrad(k,iv)=oo2*(lcvgrad(k,iv)+rcvgrad(k,iv))+damp_loc*((vdamp/abs(ielem_dih(l,i)))*nall(iv)*(rightv(k+1)-leftv(k+1)))
+        lcvgrad(k,iv)=oo2*(lcvgrad(k,iv)+rcvgrad(k,iv))+damp_loc*((vdamp/abs(ielem_dih(i,l)))*nall(iv)*(rightv(k+1)-leftv(k+1)))
       end do
     end do
     if (turbulence.eq.1)then
@@ -4544,9 +4544,9 @@ do l=1,ielem_ifca(i)
     wx=lcvgrad(3,1)
     wy=lcvgrad(3,2)
     wz=lcvgrad(3,3)
-    taul(1,1)=(4.0d0/3.0d0)*ux-(2.0d0/3.0d0)*vy-(2.0d0/3.0d0)*wz
-    taul(2,2)=(4.0d0/3.0d0)*vy-(2.0d0/3.0d0)*ux-(2.0d0/3.0d0)*wz
-    taul(3,3)=(4.0d0/3.0d0)*wz-(2.0d0/3.0d0)*ux-(2.0d0/3.0d0)*vy
+    taul(1,1)=(4.00/3.00)*ux-(2.00/3.00)*vy-(2.00/3.00)*wz
+    taul(2,2)=(4.00/3.00)*vy-(2.00/3.00)*ux-(2.00/3.00)*wz
+    taul(3,3)=(4.00/3.00)*wz-(2.00/3.00)*ux-(2.00/3.00)*vy
     taul(1,2)=uy+vx
     taul(2,1)=taul(1,2)
     taul(1,3)=wx+uz
@@ -4569,10 +4569,10 @@ do l=1,ielem_ifca(i)
     do iv=1,nof_variables
       hllcflux(iv)=nx*fxv(iv)+ny*fyv(iv)+nz*fzv(iv)
     end do
-    if (ielem_types_faces(l,i).eq.5)then
-      wface=weights_q(ngp)*ielem_surf(l,i)
+    if (ielem_types_faces(i,l).eq.5)then
+      wface=weights_q(ngp)*ielem_surf(i,l)
     else
-      wface=weights_t(ngp)*ielem_surf(l,i)
+      wface=weights_t(ngp)*ielem_surf(i,l)
     end if
     do iv=1,nof_variables
       godflux2(iv)=godflux2(iv)+hllcflux(iv)*wface
@@ -4592,8 +4592,8 @@ do l=1,ielem_ifca(i)
       end do
     end if
   end do
-  rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)-godflux2(1:nof_variables)
-  if (nvt.gt.0) rhst_val(1:nvt,i)=rhst_val(1:nvt,i)-godflux2(nof_variables+1:nof_variables+nvt)
+  rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)-godflux2(1:nof_variables)
+  if (nvt.gt.0) rhst_val(i,1:nvt)=rhst_val(i,1:nvt)-godflux2(nof_variables+1:nof_variables+nvt)
 end do
 
 end do
@@ -4727,11 +4727,11 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 		    do l=1,ielem_ifca(i) !for all their faces
 !                 if (ielem_reorient(l,i).eq.0)then
                     damp=lamx
-                    if( br2_yn == 2) damp = 0.0d0
+                    if( br2_yn == 2) damp = 0.00
 
 				  godflux2=zero
- 				  angle1=ielem_faceanglex(l,i)
- 				  angle2=ielem_faceangley(l,i)
+ 				  angle1=ielem_faceanglex(i,l)
+ 				  angle2=ielem_faceangley(i,l)
  				  nx=angle1
 				  ny=angle2
 
@@ -4821,10 +4821,10 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 					  v12   = oo2*(leftv(3)+rightv(3))
 
 
-					  if (nof_species.GT.0)then
+					  if ((realgas.eq.1).and.(nof_species.gt.0))then
 					  do rg_i=1,nof_species
 					  idxy = dimensiona+3 + rg_i
-					  y_av(rg_i)=0.5d0*(leftv(idxy)+rightv(idxy))
+					  y_av(rg_i)=0.50*(leftv(idxy)+rightv(idxy))
 
 
 
@@ -4837,7 +4837,7 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 
 
 					do k=1,nof_variables-1
-					lcvgrad(k,1:2)=((lcvgrad(k,1:2)+rcvgrad(k,1:2))/(2.0d0))+damp*((vdamp/abs(ielem_dih(l,i)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
+					lcvgrad(k,1:2)=((lcvgrad(k,1:2)+rcvgrad(k,1:2))/(2.00))+damp*((vdamp/abs(ielem_dih(i,l)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
 					end do
 
 
@@ -4875,15 +4875,15 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 													viscl(2)=mp_mu_mix
 
 
-													mp_ktr_mix_av = 0.5d0*(laml(1) + laml(2))
-													mp_lam_av     = 0.5d0*(mp_laml + mp_lamr)
+													mp_ktr_mix_av = 0.50*(laml(1) + laml(2))
+													mp_lam_av     = 0.50*(mp_laml + mp_lamr)
 
 													! mixture-averaged species diffusion coefficients
-													rg_dif_av(:) = 0.5d0*(rg_difl(:) + rg_difr(:))
+													rg_dif_av(:) = 0.50*(rg_difl(:) + rg_difr(:))
 
 													! face-averaged species enthalpies
-													rg_enth_av(:)   = 0.5d0*(rg_enthl(:)   + rg_enthr(:))
-													rg_enthvb_av(:) = 0.5d0*(rg_enthvbl(:) + rg_enthvbr(:))
+													rg_enth_av(:)   = 0.50*(rg_enthl(:)   + rg_enthr(:))
+													rg_enthvb_av(:) = 0.50*(rg_enthvbl(:) + rg_enthvbr(:))
 
 
 
@@ -4891,25 +4891,25 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 													! 2. turbulence shortcut
 													! =============================================================
 													if (turbulence .eq. 1) then
-														q(1:2) = -0.5d0*(laml(3)+laml(4))*lcvgrad(dimensiona+1,1:2)
+														q(1:2) = -0.50*(laml(3)+laml(4))*lcvgrad(dimensiona+1,1:2)
 
 													end if
 
 													! =============================================================
 													! 3. mixture-averaged diffusion fluxes (no pressure terms)
 													! =============================================================
-													rg_sum_htr(1:dimensiona) = 0.0d0
-													rg_sum_hv(1:dimensiona)  = 0.0d0
-													rg_qtr=0.0d0; rg_qv=0.0d0
+													rg_sum_htr(1:dimensiona) = 0.00
+													rg_sum_hv(1:dimensiona)  = 0.00
+													rg_qtr=0.00; rg_qv=0.00
 
-													sumi(1:dimensiona) = 0.0d0
+													sumi(1:dimensiona) = 0.00
 
 													if (rg_relax.ge.1)then
 
 
-													sumi(1:dimensiona) = 0.0d0
-													sumJ(1:dimensiona) = 0.0d0
-													i_raw(1:dimensiona,1:nof_species) = 0.0d0
+													sumi(1:dimensiona) = 0.00
+													sumJ(1:dimensiona) = 0.00
+													i_raw(1:dimensiona,1:nof_species) = 0.00
 
 													! -------------------------------------------------------------
 													! Normalise face mass fractions used in diffusion correction.
@@ -4917,33 +4917,33 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 													! sum(J_k) = sum(i_raw_k) - sum(Y_k)*sum(i_raw_k)
 													! so conservation requires sum(Y_k)=1 at the face.
 													! -------------------------------------------------------------
-													sumY_face = 0.0d0
+													sumY_face = 0.00
 
 													do rg_j = 1, nof_species
-														y_corr(rg_j) = max(y_av(rg_j), 0.0d0)
+														y_corr(rg_j) = max(y_av(rg_j), 0.00)
 														sumY_face = sumY_face + y_corr(rg_j)
 													end do
 
-													if (sumY_face .gt. 1.0d-30) then
+													if (sumY_face .gt. 1.0e-30) then
 														do rg_j = 1, nof_species
 															y_corr(rg_j) = y_corr(rg_j) / sumY_face
 														end do
 													else
 														do rg_j = 1, nof_species
-															y_corr(rg_j) = 1.0d0 / dble(nof_species)
+															y_corr(rg_j) = 1.00 / real(nof_species)
 														end do
 													end if
 
 													! -------------------------------------------------------------
 													! Compute face mole fractions from corrected face mass fractions
 													! -------------------------------------------------------------
-													molar_sum = 0.0d0
+													molar_sum = 0.00
 													do rg_j = 1, nof_species
 														molar_sum = molar_sum + y_corr(rg_j) / rg_molm(rg_j)
 													end do
 
-													molar_sum = max(molar_sum,1.0d-30)
-													mbar = 1.0d0 / molar_sum
+													molar_sum = max(molar_sum,1.0e-30)
+													mbar = 1.00 / molar_sum
 
 													do rg_j = 1, nof_species
 														x_av(rg_j) = (y_corr(rg_j) / rg_molm(rg_j)) / molar_sum
@@ -4954,7 +4954,7 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 													! This removes a conservative but noisy pairwise diffusion mode
 													! which can enter rhoEv through sum_k(hvib_k*J_k).
 													! -------------------------------------------------------------
-													sumGradY(1:dimensiona) = 0.0d0
+													sumGradY(1:dimensiona) = 0.00
 
 													do rg_j = 1, nof_species
 														idxy = dimensiona + 2 + rg_j
@@ -4970,7 +4970,7 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 													! -------------------------------------------------------------
 													! grad_a = grad(sum_k Y_k/M_k), using projected grad(Y_k).
 													! -------------------------------------------------------------
-													grad_a(1:dimensiona) = 0.0d0
+													grad_a(1:dimensiona) = 0.00
 
 													do rg_j = 1, nof_species
 														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_j)
@@ -5115,9 +5115,9 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 
 
 					  ! tau_xx
-					  taul(1,1) = (4.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy
+					  taul(1,1) = (4.00/3.00)*ux - (2.00/3.00)*vy
 					  ! tau_yy
-					  taul(2,2) = (4.0d0/3.0d0)*vy - (2.0d0/3.0d0)*ux
+					  taul(2,2) = (4.00/3.00)*vy - (2.00/3.00)*ux
 					  ! tau_zz
 
 
@@ -5154,17 +5154,17 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 
 
 !
-					  hllcflux(1:nof_variables)=(nx*fxv+ny*fyv)
+					  hllcflux(1:nof_variables)=nx*fxv(1:nof_variables)+ny*fyv(1:nof_variables)
 
 					  if (dg.eq.1)then
 
 					  rhllcflux(1:nof_variables)=hllcflux(1:nof_variables)
 
-					call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,-1.0d0)
+					call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,-1.00)
 
 						else
 
-				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(hllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(l,i)))
+				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(hllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(i,l)))
 						end if
 
 				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
@@ -5184,17 +5184,17 @@ subroutine calculate_fluxeshi_diffusive2d_inner_cell(n,ii)
 						hllcflux(5)=hllcflux(5)/sigma
 						end if
 					  godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)+&
-					  (hllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(l,i)))
+					  (hllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(i,l)))
 				      end if
 
 
 				  end do
 
-				    rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)-godflux2(1:nof_variables)
+				    rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)-godflux2(1:nof_variables)
 
 
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-				    rhst_val(1:turbulenceequations+passivescalar,i)=rhst_val(1:turbulenceequations+passivescalar,i)-&
+				    rhst_val(i,1:turbulenceequations+passivescalar)=rhst_val(i,1:turbulenceequations+passivescalar)-&
 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
  				    end if
@@ -5262,11 +5262,11 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 
 		    do l=1,ielem_ifca(i)
                 damp=lamx
-                if( br2_yn == 2) damp = 0.0d0
+                if( br2_yn == 2) damp = 0.00
 				      b_code=0
 				 godflux2=zero
- 				  angle1=ielem_faceanglex(l,i)
- 				  angle2=ielem_faceangley(l,i)
+ 				  angle1=ielem_faceanglex(i,l)
+ 				  angle2=ielem_faceangley(i,l)
  				  nx=angle1
 				  ny=angle2
 
@@ -5373,10 +5373,10 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 					u12   = oo2*(leftv(2)+rightv(2))
 					  v12   = oo2*(leftv(3)+rightv(3))
 
-					  if (nof_species.GT.0)then
+					  if ((realgas.eq.1).and.(nof_species.gt.0))then
 					  do rg_i=1,nof_species
 					  idxy = dimensiona+3 + rg_i
-					  y_av(rg_i)=0.5d0*(leftv(idxy)+rightv(idxy))
+					  y_av(rg_i)=0.50*(leftv(idxy)+rightv(idxy))
 
 
 
@@ -5390,7 +5390,7 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 
 
 					do k=1,nof_variables-1
-					lcvgrad(k,1:2)=((lcvgrad(k,1:2)+rcvgrad(k,1:2))/(2.0d0))+damp*((vdamp/abs(ielem_dih(l,i)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
+					lcvgrad(k,1:2)=((lcvgrad(k,1:2)+rcvgrad(k,1:2))/(2.00))+damp*((vdamp/abs(ielem_dih(i,l)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
 					end do
 
 
@@ -5428,15 +5428,15 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 													viscl(2)=mp_mu_mix
 
 
-													mp_ktr_mix_av = 0.5d0*(laml(1) + laml(2))
-													mp_lam_av     = 0.5d0*(mp_laml + mp_lamr)
+													mp_ktr_mix_av = 0.50*(laml(1) + laml(2))
+													mp_lam_av     = 0.50*(mp_laml + mp_lamr)
 
 													! mixture-averaged species diffusion coefficients
-													rg_dif_av(:) = 0.5d0*(rg_difl(:) + rg_difr(:))
+													rg_dif_av(:) = 0.50*(rg_difl(:) + rg_difr(:))
 
 													! face-averaged species enthalpies
-													rg_enth_av(:)   = 0.5d0*(rg_enthl(:)   + rg_enthr(:))
-													rg_enthvb_av(:) = 0.5d0*(rg_enthvbl(:) + rg_enthvbr(:))
+													rg_enth_av(:)   = 0.50*(rg_enthl(:)   + rg_enthr(:))
+													rg_enthvb_av(:) = 0.50*(rg_enthvbl(:) + rg_enthvbr(:))
 
 
 
@@ -5452,7 +5452,7 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 													! 2. turbulence shortcut
 													! =============================================================
 													if (turbulence .eq. 1) then
-														q(1:2) = -0.5d0*(laml(3)+laml(4))*lcvgrad(dimensiona+1,1:2)
+														q(1:2) = -0.50*(laml(3)+laml(4))*lcvgrad(dimensiona+1,1:2)
 
 													end if
 
@@ -5470,11 +5470,11 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 													! =============================================================
 													! 3. mixture-averaged diffusion fluxes (no pressure terms)
 													! =============================================================
-													rg_sum_htr(1:dimensiona) = 0.0d0
-													rg_sum_hv(1:dimensiona)  = 0.0d0
-													rg_qtr=0.0d0; rg_qv=0.0d0
+													rg_sum_htr(1:dimensiona) = 0.00
+													rg_sum_hv(1:dimensiona)  = 0.00
+													rg_qtr=0.00; rg_qv=0.00
 
-													sumi(1:dimensiona) = 0.0d0
+													sumi(1:dimensiona) = 0.00
 
 													if (rg_relax.ge.1)then
 															if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
@@ -5483,9 +5483,9 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 
 													if (icompute.eq.0)then
 
-													sumi(1:dimensiona) = 0.0d0
-													sumJ(1:dimensiona) = 0.0d0
-													i_raw(1:dimensiona,1:nof_species) = 0.0d0
+													sumi(1:dimensiona) = 0.00
+													sumJ(1:dimensiona) = 0.00
+													i_raw(1:dimensiona,1:nof_species) = 0.00
 
 													! -------------------------------------------------------------
 													! Normalise face mass fractions used in diffusion correction.
@@ -5493,33 +5493,33 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 													! sum(J_k) = sum(i_raw_k) - sum(Y_k)*sum(i_raw_k)
 													! so conservation requires sum(Y_k)=1 at the face.
 													! -------------------------------------------------------------
-													sumY_face = 0.0d0
+													sumY_face = 0.00
 
 													do rg_j = 1, nof_species
-														y_corr(rg_j) = max(y_av(rg_j), 0.0d0)
+														y_corr(rg_j) = max(y_av(rg_j), 0.00)
 														sumY_face = sumY_face + y_corr(rg_j)
 													end do
 
-													if (sumY_face .gt. 1.0d-30) then
+													if (sumY_face .gt. 1.0e-30) then
 														do rg_j = 1, nof_species
 															y_corr(rg_j) = y_corr(rg_j) / sumY_face
 														end do
 													else
 														do rg_j = 1, nof_species
-															y_corr(rg_j) = 1.0d0 / dble(nof_species)
+															y_corr(rg_j) = 1.00 / real(nof_species)
 														end do
 													end if
 
 													! -------------------------------------------------------------
 													! Compute face mole fractions from corrected face mass fractions
 													! -------------------------------------------------------------
-													molar_sum = 0.0d0
+													molar_sum = 0.00
 													do rg_j = 1, nof_species
 														molar_sum = molar_sum + y_corr(rg_j) / rg_molm(rg_j)
 													end do
 
-													molar_sum = max(molar_sum,1.0d-30)
-													mbar = 1.0d0 / molar_sum
+													molar_sum = max(molar_sum,1.0e-30)
+													mbar = 1.00 / molar_sum
 
 													do rg_j = 1, nof_species
 														x_av(rg_j) = (y_corr(rg_j) / rg_molm(rg_j)) / molar_sum
@@ -5530,7 +5530,7 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 													! This removes a conservative but noisy pairwise diffusion mode
 													! which can enter rhoEv through sum_k(hvib_k*J_k).
 													! -------------------------------------------------------------
-													sumGradY(1:dimensiona) = 0.0d0
+													sumGradY(1:dimensiona) = 0.00
 
 													do rg_j = 1, nof_species
 														idxy = dimensiona + 2 + rg_j
@@ -5546,7 +5546,7 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 													! -------------------------------------------------------------
 													! grad_a = grad(sum_k Y_k/M_k), using projected grad(Y_k).
 													! -------------------------------------------------------------
-													grad_a(1:dimensiona) = 0.0d0
+													grad_a(1:dimensiona) = 0.00
 
 													do rg_j = 1, nof_species
 														grady(1:dimensiona) = gradY_all(1:dimensiona,rg_j)
@@ -5692,9 +5692,9 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 
 
 					  ! tau_xx
-					  taul(1,1) = (4.0d0/3.0d0)*ux - (2.0d0/3.0d0)*vy
+					  taul(1,1) = (4.00/3.00)*ux - (2.00/3.00)*vy
 					  ! tau_yy
-					  taul(2,2) = (4.0d0/3.0d0)*vy - (2.0d0/3.0d0)*ux
+					  taul(2,2) = (4.00/3.00)*vy - (2.00/3.00)*ux
 					  ! tau_zz
 
 
@@ -5727,7 +5727,7 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 
 
 !
-					  hllcflux(1:nof_variables)=(nx*fxv+ny*fyv)
+					  hllcflux(1:nof_variables)=nx*fxv(1:nof_variables)+ny*fyv(1:nof_variables)
 
 						if (realgas.eq.1)then
 						if ((b_code.eq.4).and.(catalytic_wall.eq.0))then
@@ -5749,7 +5749,7 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 
 					   rhllcflux(1:nof_variables)=hllcflux(1:nof_variables)
 
-				call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,-1.0d0)
+				call dg_surf_flux_accumulate_rhs(n,iconsidered,facex,pointx,weights_temp,rhllcflux,-1.00)
 
 
 
@@ -5763,7 +5763,7 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 
 
 
-				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(hllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(l,i)))
+				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(hllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(i,l)))
 						end if
 
 				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then
@@ -5792,17 +5792,17 @@ subroutine calculate_fluxeshi_diffusive2d_bound_cell(n,ii)
 
 
 					  godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)+&
-					  (hllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(l,i)))
+					  (hllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(i,l)))
 				      end if
 
 
 				  end do
 
 
-				     rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)-godflux2(1:nof_variables)
+				     rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)-godflux2(1:nof_variables)
 
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-				    rhst_val(1:turbulenceequations+passivescalar,i)=rhst_val(1:turbulenceequations+passivescalar,i)-&
+				    rhst_val(i,1:turbulenceequations+passivescalar)=rhst_val(i,1:turbulenceequations+passivescalar)-&
 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 				    end if
@@ -5870,8 +5870,8 @@ damp=lamx
 if (br2_yn.eq.2) damp=zero
 do l=1,ielem_ifca(i)
   godflux2=zero
-  angle1=ielem_faceanglex(l,i)
-  angle2=ielem_faceangley(l,i)
+  angle1=ielem_faceanglex(i,l)
+  angle2=ielem_faceangley(i,l)
   nx=angle1
   ny=angle2
   nz=zero
@@ -5940,9 +5940,9 @@ do l=1,ielem_ifca(i)
     call cons2div_ideal(n,rightv,mp_pinfr,gammar)
     u12=oo2*(leftv(2)+rightv(2))
     v12=oo2*(leftv(3)+rightv(3))
-    vdamp=4.0d0/3.0d0
+    vdamp=4.00/3.00
     do k=1,nof_variables-1
-      lcvgrad(k,1:2)=oo2*(lcvgrad(k,1:2)+rcvgrad(k,1:2))+damp*((vdamp/abs(ielem_dih(l,i)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
+      lcvgrad(k,1:2)=oo2*(lcvgrad(k,1:2)+rcvgrad(k,1:2))+damp*((vdamp/abs(ielem_dih(i,l)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
     end do
     if (turbulence.eq.1)then
       q(1:2)=-oo2*(laml(3)+laml(4))*lcvgrad(dimensiona+1,1:2)
@@ -5955,8 +5955,8 @@ do l=1,ielem_ifca(i)
     uy=lcvgrad(1,2)
     vx=lcvgrad(2,1)
     vy=lcvgrad(2,2)
-    taul(1,1)=(4.0d0/3.0d0)*ux-(2.0d0/3.0d0)*vy
-    taul(2,2)=(4.0d0/3.0d0)*vy-(2.0d0/3.0d0)*ux
+    taul(1,1)=(4.00/3.00)*ux-(2.00/3.00)*vy
+    taul(2,2)=(4.00/3.00)*vy-(2.00/3.00)*ux
     taul(1,2)=uy+vx
     taul(2,1)=taul(1,2)
     if (turbulence.eq.1)then
@@ -5973,7 +5973,7 @@ do l=1,ielem_ifca(i)
     do iv=1,nof_variables
       hllcflux(iv)=nx*fxv(iv)+ny*fyv(iv)
     end do
-    wface=weights_l(ngp)*ielem_surf(l,i)
+    wface=weights_l(ngp)*ielem_surf(i,l)
     do iv=1,nof_variables
       godflux2(iv)=godflux2(iv)+hllcflux(iv)*wface
     end do
@@ -5990,8 +5990,8 @@ do l=1,ielem_ifca(i)
       end do
     end if
   end do
-  rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)-godflux2(1:nof_variables)
-  if (nvt.gt.0) rhst_val(1:nvt,i)=rhst_val(1:nvt,i)-godflux2(nof_variables+1:nof_variables+nvt)
+  rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)-godflux2(1:nof_variables)
+  if (nvt.gt.0) rhst_val(i,1:nvt)=rhst_val(i,1:nvt)-godflux2(nof_variables+1:nof_variables+nvt)
 end do
 
 end do
@@ -6059,8 +6059,8 @@ do l=1,ielem_ifca(i)
   godflux2=zero
   damp=lamx
   if (br2_yn.eq.2) damp=zero
-  angle1=ielem_faceanglex(l,i)
-  angle2=ielem_faceangley(l,i)
+  angle1=ielem_faceanglex(i,l)
+  angle2=ielem_faceangley(i,l)
   nx=angle1
   ny=angle2
   nz=zero
@@ -6131,9 +6131,9 @@ do l=1,ielem_ifca(i)
     call cons2div_ideal(n,rightv,mp_pinfr,gammar)
     u12=oo2*(leftv(2)+rightv(2))
     v12=oo2*(leftv(3)+rightv(3))
-    vdamp=4.0d0/3.0d0
+    vdamp=4.00/3.00
     do k=1,nof_variables-1
-      lcvgrad(k,1:2)=oo2*(lcvgrad(k,1:2)+rcvgrad(k,1:2))+damp_loc*((vdamp/abs(ielem_dih(l,i)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
+      lcvgrad(k,1:2)=oo2*(lcvgrad(k,1:2)+rcvgrad(k,1:2))+damp_loc*((vdamp/abs(ielem_dih(i,l)))*nall(1:2)*(rightv(k+1)-leftv(k+1)))
     end do
     if (turbulence.eq.1)then
       q(1:2)=-oo2*(laml(3)+laml(4))*lcvgrad(dimensiona+1,1:2)
@@ -6146,8 +6146,8 @@ do l=1,ielem_ifca(i)
     uy=lcvgrad(1,2)
     vx=lcvgrad(2,1)
     vy=lcvgrad(2,2)
-    taul(1,1)=(4.0d0/3.0d0)*ux-(2.0d0/3.0d0)*vy
-    taul(2,2)=(4.0d0/3.0d0)*vy-(2.0d0/3.0d0)*ux
+    taul(1,1)=(4.00/3.00)*ux-(2.00/3.00)*vy
+    taul(2,2)=(4.00/3.00)*vy-(2.00/3.00)*ux
     taul(1,2)=uy+vx
     taul(2,1)=taul(1,2)
     if (turbulence.eq.1)then
@@ -6164,7 +6164,7 @@ do l=1,ielem_ifca(i)
     do iv=1,nof_variables
       hllcflux(iv)=nx*fxv(iv)+ny*fyv(iv)
     end do
-    wface=weights_l(ngp)*ielem_surf(l,i)
+    wface=weights_l(ngp)*ielem_surf(i,l)
     do iv=1,nof_variables
       godflux2(iv)=godflux2(iv)+hllcflux(iv)*wface
     end do
@@ -6182,8 +6182,8 @@ do l=1,ielem_ifca(i)
       end do
     end if
   end do
-  rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)-godflux2(1:nof_variables)
-  if (nvt.gt.0) rhst_val(1:nvt,i)=rhst_val(1:nvt,i)-godflux2(nof_variables+1:nof_variables+nvt)
+  rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)-godflux2(1:nof_variables)
+  if (nvt.gt.0) rhst_val(i,1:nvt)=rhst_val(i,1:nvt)-godflux2(nof_variables+1:nof_variables+nvt)
 end do
 
 end do
@@ -6269,7 +6269,7 @@ subroutine calculate_fluxeshi_convective_mood_inner_cell(n,ii)
 	i=el_int(ii)
 	iconsidered=i
 	if (ielem_recalc(i).eq.1)then
-            rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero
+            rhs_val(i,:)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(i,:)=zero
             end if
 
 
@@ -6281,12 +6281,12 @@ subroutine calculate_fluxeshi_convective_mood_inner_cell(n,ii)
 !                                      if (ielem_reorient(l,i).eq.0)then
 				  godflux2=zero
 				  mp_source2=zero
- 				  angle1=ielem_faceanglex(l,i)
- 				  angle2=ielem_faceangley(l,i)
+ 				  angle1=ielem_faceanglex(i,l)
+ 				  angle2=ielem_faceangley(i,l)
  				  nx=(cos(angle1)*sin(angle2))
 				  ny=(sin(angle1)*sin(angle2))
 				  nz=(cos(angle2))
-				  if (ielem_types_faces(l,i).eq.5)then
+				  if (ielem_types_faces(i,l).eq.5)then
 					iqp=qp_quad_n
 					weights_temp(1:iqp)=weights_q(1:iqp)
 				  else
@@ -6295,16 +6295,16 @@ subroutine calculate_fluxeshi_convective_mood_inner_cell(n,ii)
 				  end if
 				  do ngp=1,iqp	!for all the gaussian quadrature points
                     
-				      cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)	!left mean flow state
+				      cleft(1:nof_variables)=rec_uleft(i,1:nof_variables,l,ngp)	!left mean flow state
 				      if ((cascade.eq.2).and.(ielem_mood(i).ge.1))then
-				      cleft(1:nof_variables)=u_c_val(3,1:nof_variables,i)
+				      cleft(1:nof_variables)=u_c_val(i,3,1:nof_variables)
 				      end if
 				      
 				      
-				      cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+				      cright(1:nof_variables)=rec_uleft(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
 
-				       if ((cascade.eq.2).and.(ielem_mood(ielem_ineighn(l,i)).ge.1))then
-				      cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+				       if ((cascade.eq.2).and.(ielem_mood(ielem_ineighn(i,l)).ge.1))then
+				      cright(1:nof_variables)=u_c_val(ielem_ineigh(i,l),3,1:nof_variables)
 				      end if
 				      
 				      !right mean flow state
@@ -6312,11 +6312,11 @@ subroutine calculate_fluxeshi_convective_mood_inner_cell(n,ii)
 					if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 					  if (icoupleturb.eq.1)then
                         
-					    cturbl(1:turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,l,ngp,i) !left additional equations flow state
-					    cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))!right additional equations flow state
+					    cturbl(1:turbulenceequations+passivescalar)=rec_uleftturb(i,1:turbulenceequations+passivescalar,l,ngp) !left additional equations flow state
+					    cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(ielem_ineigh(i,l),1:turbulenceequations+passivescalar,ielem_ineighn(i,l),ngp)!right additional equations flow state
 					  else
-					    cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-					    cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
+					    cturbl(1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+					    cturbr(1:turbulenceequations+passivescalar)=u_ct_val(ielem_ineigh(i,l),1,1:turbulenceequations+passivescalar)
 					  end if
 					  
 					  
@@ -6403,9 +6403,9 @@ subroutine calculate_fluxeshi_convective_mood_inner_cell(n,ii)
 				       
 				       
 				      
-				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(l,i)))
+				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(i,l)))
 				      if (multispecies.eq.1)then
-                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(l,i))
+                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(i,l))
                         end if
 				     
 				     
@@ -6413,9 +6413,9 @@ subroutine calculate_fluxeshi_convective_mood_inner_cell(n,ii)
 				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 					  if (icoupleturb.eq.0)then	!first order upwind flux
 					    
-					  norms=(nx*(u_c_val(1,2,i)/u_c_val(1,1,i)))&
-						+(ny*(u_c_val(1,3,i)/u_c_val(1,1,i)))&
-						+(nz*(u_c_val(1,4,i)/u_c_val(1,1,i)))
+					  norms=(nx*(u_c_val(i,1,2)/u_c_val(i,1,1)))&
+						+(ny*(u_c_val(i,1,3)/u_c_val(i,1,1)))&
+						+(nz*(u_c_val(i,1,4)/u_c_val(i,1,1)))
 					      if (norms.ge.zero)then
 						rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=(norms)*cturbl(1:turbulenceequations+passivescalar)
 					      end if
@@ -6426,7 +6426,7 @@ subroutine calculate_fluxeshi_convective_mood_inner_cell(n,ii)
 					  end if
 					  
 					  godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)+&
-					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(l,i)))
+					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(i,l)))
 					  
 					 
 					  
@@ -6436,22 +6436,22 @@ subroutine calculate_fluxeshi_convective_mood_inner_cell(n,ii)
 				      
 				  end do
 				    
-				    rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)+godflux2(1:nof_variables)
+				    rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)+godflux2(1:nof_variables)
 				      if (multispecies.eq.1)then
                         mp_source3=mp_source3+mp_source2
                         end if
 				    
-!  				     rhs_val(1:nof_variables,ielem_ineigh(l,i))=rhs_val(1:nof_variables,ielem_ineigh(l,i))-godflux2(1:nof_variables)
+!  				     rhs_val(ielem_ineigh(i,l),1:nof_variables)=rhs_val(ielem_ineigh(i,l),1:nof_variables)-godflux2(1:nof_variables)
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-				    rhst_val(1:turbulenceequations+passivescalar,i)=rhst_val(1:turbulenceequations+passivescalar,i)+&
+				    rhst_val(i,1:turbulenceequations+passivescalar)=rhst_val(i,1:turbulenceequations+passivescalar)+&
 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-!  				    rhst_val(1:turbulenceequations+passivescalar,ielem_ineigh(l,i))=rhst_val(1:turbulenceequations+passivescalar,ielem_ineigh(l,i))-&
+!  				    rhst_val(ielem_ineigh(i,l),1:turbulenceequations+passivescalar)=rhst_val(ielem_ineigh(i,l),1:turbulenceequations+passivescalar)-&
 ! 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 				    end if
 !  				    end if
 		    end do
                  if (multispecies.eq.1)then
-                 rhs_val(8,i)=rhs_val(8,i)-(u_c_val(1,8,i)*mp_source3)
+                 rhs_val(i,8)=rhs_val(i,8)-(u_c_val(i,1,8)*mp_source3)
                  
                  end if
             end if
@@ -6485,7 +6485,7 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 	iconsidered=i	
 
 			if (ielem_recalc(i).eq.1)then
-            rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero
+            rhs_val(i,:)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(i,:)=zero
             end if
 
 
@@ -6495,9 +6495,9 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 		    
 		    do l=1,ielem_ifca(i)
                         igoflux=0
-		     if (ielem_ineighb(l,i).eq.n)then	!my cpu only
-                                                    if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-                                                        if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
+		     if (ielem_ineighb(i,l).eq.n)then	!my cpu only
+                                                    if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+                                                        if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in my cpu
                                                                 icaseb=1        !periodic mine
                                                         else
                                                                 icaseb=3        !physical
@@ -6509,8 +6509,8 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
                                                     
                                                     end if
                                 else
-                                                    if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+                                                    if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+								if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in other cpu
                                                                 icaseb=4
                                                                 end if
                                                     else
@@ -6525,13 +6525,13 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 
 		    
 				      
-				  angle1=ielem_faceanglex(l,i)
-				  angle2=ielem_faceangley(l,i)
+				  angle1=ielem_faceanglex(i,l)
+				  angle2=ielem_faceangley(i,l)
 				nx=(cos(angle1)*sin(angle2))
 				ny=(sin(angle1)*sin(angle2))
 				nz=(cos(angle2))
  				  
- 				  if (ielem_types_faces(l,i).eq.5)then
+ 				  if (ielem_types_faces(i,l).eq.5)then
 					iqp=qp_quad_n
 					weights_temp(1:iqp)=weights_q(1:iqp)
 					n_node=4
@@ -6550,9 +6550,9 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 				      
 				      
 				      
-				      cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
+				      cleft(1:nof_variables)=rec_uleft(i,1:nof_variables,l,ngp)
 				     if ((cascade.eq.2).and.(ielem_mood(i).ge.1))then
-				     cleft(1:nof_variables)=u_c_val(3,1:nof_variables,i)
+				     cleft(1:nof_variables)=u_c_val(i,3,1:nof_variables)
 				     
 				     end if
 				      
@@ -6562,27 +6562,27 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 						
 						
 						
-							cturbl(1:turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,l,ngp,i)
+							cturbl(1:turbulenceequations+passivescalar)=rec_uleftturb(i,1:turbulenceequations+passivescalar,l,ngp)
 						
 							
 						else
-							cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+							cturbl(1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
 						end if
 					end if
 				      
 				      
-					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
-							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
+					    if (ielem_ineighb(i,l).eq.n)then	!my cpu only
+							if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+								  if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in my cpu
 								  
-								  cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+								  cright(1:nof_variables)=rec_uleft(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
 								  
 								 
 								  
 
 								  
-								  if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).ge.1))then
-								   cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+								  if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(i,l)).ge.1))then
+								   cright(1:nof_variables)=u_c_val(ielem_ineigh(i,l),3,1:nof_variables)
 								  
 								  end if
 								  
@@ -6591,15 +6591,15 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 									if (icoupleturb.eq.1)then
 									if (cascade.eq.1)then
-									   cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))!right additional equations flow state
+									   cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(ielem_ineigh(i,l),1:turbulenceequations+passivescalar,ielem_ineighn(i,l),ngp)!right additional equations flow state
 									else
-									cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
+									cturbr(1:turbulenceequations+passivescalar)=u_ct_val(ielem_ineigh(i,l),1,1:turbulenceequations+passivescalar)
 									
 									end if
 									  
 									  
 									else
-									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
+									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(ielem_ineigh(i,l),1,1:turbulenceequations+passivescalar)
 									end if
 								    end if
 								  
@@ -6612,7 +6612,7 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 								  facex=l;iconsidered=i
 								  call  coordinates_face_innerx(n,iconsidered,facex,vext,nodes_list)
 
-								   if (ielem_types_faces(facex,iconsidered).eq.5)then
+								   if (ielem_types_faces(iconsidered,facex).eq.5)then
                                             n_node=4
                                     else
                                             n_node=3
@@ -6628,7 +6628,7 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 								    poz(1)=cords(3)
 								    
 								    leftv(1:nof_variables)=cleft(1:nof_variables)
-								    b_code=ibound_icode(ielem_ibounds(l,i))
+								    b_code=ibound_icode(ielem_ibounds(i,l))
 								    
 								    
 								    
@@ -6641,9 +6641,9 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 							
 							
                                   
-							      cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
-							      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).ge.1))then
-							      cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+							      cright(1:nof_variables)=rec_uleft(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
+							      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(i,l)).ge.1))then
+							      cright(1:nof_variables)=u_c_val(ielem_ineigh(i,l),3,1:nof_variables)
 							      
 							      end if
 							      
@@ -6651,10 +6651,10 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 									if (icoupleturb.eq.1)then
                                        
-									   cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))!right additional equations flow state
+									   cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(ielem_ineigh(i,l),1:turbulenceequations+passivescalar,ielem_ineighn(i,l),ngp)!right additional equations flow state
 									  
 									else
-									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
+									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(ielem_ineigh(i,l),1,1:turbulenceequations+passivescalar)
 									end if
 								    end if
 							      
@@ -6669,11 +6669,11 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 					    
 					    
 						
-							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+							if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+								if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in other cpu
                                     
-! 									  cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
-									  nfx  = ielem_ineighn(l,i)
+! 									  cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
+									  nfx  = ielem_ineighn(i,l)
 									  lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									  rowfx = bound_offset(nfx) + lfx - 1
 									  cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
@@ -6681,8 +6681,8 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
                                     if ((cascade.eq.2).and.(boundhirm(rowfx).ge.1))then
 
 
-                                    nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
-								lf=rec_ihexl(1,ielem_indexi(L,i),i)
+                                    nf=rec_ihexn(rec_local(i),1,ielem_indexi(i,L))
+								lf=rec_ihexl(i,1,ielem_indexi(i,L))
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
 
@@ -6695,17 +6695,17 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 									if (icoupleturb.eq.1)then
 									 
-! 									   cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(l,i))%facesol&
+! 									   cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(i,l))%facesol&
 ! 									   (ielem_qface(l,ngp,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)!right additional equations flow state
-									   nfx  = ielem_ineighn(l,i)
+									   nfx  = ielem_ineighn(i,l)
 									   lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									   rowfx = bound_offset(nfx) + lfx - 1
 									   cturbr(1:turbulenceequations+passivescalar) = boundhir(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
                                    
 									else
-! 									 cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(l,i))%facesol&
+! 									 cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(i,l))%facesol&
 ! 									   (ielem_qface(l,ngp,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)!right additional equations flow state
-									 nfx  = ielem_ineighn(l,i)
+									 nfx  = ielem_ineighn(i,l)
 									 lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									 rowfx = bound_offset(nfx) + lfx - 1
 									 cturbr(1:turbulenceequations+passivescalar) = boundhir(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
@@ -6718,8 +6718,8 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 							else 			
 							
                                      
-! 								  cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
-								  nfx  = ielem_ineighn(l,i)
+! 								  cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
+								  nfx  = ielem_ineighn(i,l)
 								  lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 
@@ -6728,8 +6728,8 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 								  
 								  if ((cascade.eq.2).and.(boundhirm(rowfx).ge.1))then
 
-								     nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
-								lf=rec_ihexl(1,ielem_indexi(L,i),i)
+								     nf=rec_ihexn(rec_local(i),1,ielem_indexi(i,L))
+								lf=rec_ihexl(i,1,ielem_indexi(i,L))
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
 
@@ -6745,9 +6745,9 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 									
 									
 									
-! 									   cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(l,i))%facesol&
+! 									   cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(i,l))%facesol&
 ! 									   (ielem_qface(l,ngp,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)!right additional equations flow state
-									   nfx  = ielem_ineighn(l,i)
+									   nfx  = ielem_ineighn(i,l)
 									   lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									   rowfx = bound_offset(nfx) + lfx - 1
 									   cturbr(1:turbulenceequations+passivescalar) = boundhir(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
@@ -6755,9 +6755,9 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 									   
 									   
 									else
-! 									 cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(l,i))%facesol&
+! 									 cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(i,l))%facesol&
 ! 									   (ielem_qface(l,ngp,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)!right additional equations flow state
-									 nfx  = ielem_ineighn(l,i)
+									 nfx  = ielem_ineighn(i,l)
 									 lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									 rowfx = bound_offset(nfx) + lfx - 1
 									 cturbr(1:turbulenceequations+passivescalar) = boundhir(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
@@ -6877,18 +6877,18 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 				       
 				     
 				      
-				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(l,i)))
+				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(i,l)))
 				      if (multispecies.eq.1)then
-                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(l,i))
+                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(i,l))
                         end if
 				       
 				      
 				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 					  if (icoupleturb.eq.0)then	!first order upwind flux
 					    
-					  norms=(nx*(u_c_val(1,2,i)/u_c_val(1,1,i)))&
-						+(ny*(u_c_val(1,3,i)/u_c_val(1,1,i)))&
-						+(nz*(u_c_val(1,4,i)/u_c_val(1,1,i)))
+					  norms=(nx*(u_c_val(i,1,2)/u_c_val(i,1,1)))&
+						+(ny*(u_c_val(i,1,3)/u_c_val(i,1,1)))&
+						+(nz*(u_c_val(i,1,4)/u_c_val(i,1,1)))
 					      if (norms.ge.zero)then
 						rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=(norms)*cturbl(1:turbulenceequations+passivescalar)
 					      end if
@@ -6899,7 +6899,7 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 					  end if
 					  
 					  godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)+&
-					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(l,i)))
+					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(i,l)))
 					  
 					  
 					  
@@ -6908,26 +6908,26 @@ subroutine calculate_fluxeshi_convective_mood_bound_cell(n,ii)
 				      
 				  end do
 				   
-				    rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)+godflux2(1:nof_variables)
+				    rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)+godflux2(1:nof_variables)
 				    if (multispecies.eq.1)then
                         mp_source3=mp_source3+mp_source2
                         end if
 ! 				    if ((igoflux.eq.1))then
-! 				    rhs_val(1:nof_variables,ielem_ineigh(l,i))=rhs_val(1:nof_variables,ielem_ineigh(l,i))-godflux2(1:nof_variables)
+! 				    rhs_val(ielem_ineigh(i,l),1:nof_variables)=rhs_val(ielem_ineigh(i,l),1:nof_variables)-godflux2(1:nof_variables)
 ! 				    end if
 				    
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-				    rhst_val(1:turbulenceequations+passivescalar,i)=rhst_val(1:turbulenceequations+passivescalar,i)+&
+				    rhst_val(i,1:turbulenceequations+passivescalar)=rhst_val(i,1:turbulenceequations+passivescalar)+&
 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 ! 				     if ((igoflux.eq.1))then
-! 				     rhst_val(1:turbulenceequations+passivescalar,ielem_ineigh(l,i))=rhst_val(1:turbulenceequations+passivescalar,ielem_ineigh(l,i))-&
+! 				     rhst_val(ielem_ineigh(i,l),1:turbulenceequations+passivescalar)=rhst_val(ielem_ineigh(i,l),1:turbulenceequations+passivescalar)-&
 ! 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 ! 				    end if
 				    end if
 ! 				    end if
 		    end do
 		     if (multispecies.eq.1)then
-                 rhs_val(8,i)=rhs_val(8,i)-(u_c_val(1,8,i)*mp_source3)
+                 rhs_val(i,8)=rhs_val(i,8)-(u_c_val(i,1,8)*mp_source3)
                  
                  end if
                 end if
@@ -7003,13 +7003,13 @@ subroutine calculate_fluxeshi_convective2d_mood_inner_cell(n,ii)
 	i=el_int(ii)
 
 	if (ielem_recalc(i).eq.1)then
-	rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero
+	rhs_val(i,:)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(i,:)=zero
 	end if
 	weights_temp(1:qp_line_n) = weights_l(1:qp_line_n)
 
 
 	iconsidered=i
-! 		    rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero 
+! 		    rhs_val(i,:)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(i,:)=zero 
           if (ielem_recalc(i).eq.1)then             
                 mp_source3=zero     
 		    do l=1,ielem_ifca(i) !for all their faces
@@ -7018,35 +7018,35 @@ subroutine calculate_fluxeshi_convective2d_mood_inner_cell(n,ii)
                                 
 				  godflux2=zero
 				  mp_source2=zero
- 				  nx=ielem_faceanglex(l,i)
- 				  ny=ielem_faceangley(l,i)
+ 				  nx=ielem_faceanglex(i,l)
+ 				  ny=ielem_faceangley(i,l)
  				  angle1=nx
  				  angle2=ny
 				 b_code=0
 					iqp=qp_line_n
 				
 				  do ngp=1,iqp	!for all the gaussian quadrature points
-				      cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)	!left mean flow state
+				      cleft(1:nof_variables)=rec_uleft(i,1:nof_variables,l,ngp)	!left mean flow state
 				      
 				       if ((cascade.eq.2).and.(ielem_mood(i).ge.1))then
-				      cleft(1:nof_variables)=u_c_val(3,1:nof_variables,i)
+				      cleft(1:nof_variables)=u_c_val(i,3,1:nof_variables)
 				      end if
 				      
-				      cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i)) !right mean flow state
+				      cright(1:nof_variables)=rec_uleft(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp) !right mean flow state
 				      
-				      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).ge.1))then
-				      cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+				      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(i,l)).ge.1))then
+				      cright(1:nof_variables)=u_c_val(ielem_ineigh(i,l),3,1:nof_variables)
 				      end if
 				      
 				      
 ! 				      
 					if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 					  if (icoupleturb.eq.1)then
-					    cturbl(1:turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,l,ngp,i) !left additional equations flow state
-					    cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))!right additional equations flow state
+					    cturbl(1:turbulenceequations+passivescalar)=rec_uleftturb(i,1:turbulenceequations+passivescalar,l,ngp) !left additional equations flow state
+					    cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(ielem_ineigh(i,l),1:turbulenceequations+passivescalar,ielem_ineighn(i,l),ngp)!right additional equations flow state
 					  else
-					    cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
-					    cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
+					    cturbl(1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
+					    cturbr(1:turbulenceequations+passivescalar)=u_ct_val(ielem_ineigh(i,l),1,1:turbulenceequations+passivescalar)
 					  end if
 					  
 					  
@@ -7123,15 +7123,15 @@ subroutine calculate_fluxeshi_convective2d_mood_inner_cell(n,ii)
 				       
 				       
 				      
-				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(l,i)))
+				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(i,l)))
 				       if (multispecies.eq.1)then
-                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(l,i))
+                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(i,l))
                         end if
 				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 					  if (icoupleturb.eq.0)then	!first order upwind flux
 					    
-					  norms=(nx*(u_c_val(1,2,i)/u_c_val(1,1,i)))&
-						+(ny*(u_c_val(1,3,i)/u_c_val(1,1,i)))
+					  norms=(nx*(u_c_val(i,1,2)/u_c_val(i,1,1)))&
+						+(ny*(u_c_val(i,1,3)/u_c_val(i,1,1)))
 					      if (norms.ge.zero)then
 						rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=(norms)*cturbl(1:turbulenceequations+passivescalar)
 					      end if
@@ -7144,7 +7144,7 @@ subroutine calculate_fluxeshi_convective2d_mood_inner_cell(n,ii)
  					
 					  
 					  godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)+&
-					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(l,i)))
+					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(i,l)))
 					  
 ! 					 
 					  
@@ -7152,24 +7152,24 @@ subroutine calculate_fluxeshi_convective2d_mood_inner_cell(n,ii)
 				      
 				      
 				  end do
-				    rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)+godflux2(1:nof_variables)
+				    rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)+godflux2(1:nof_variables)
 				    if (multispecies.eq.1)then
                         mp_source3=mp_source3+mp_source2
                         end if
 				    
 				    
-! 				     rhs_val(1:nof_variables,ielem_ineigh(l,i))=rhs_val(1:nof_variables,ielem_ineigh(l,i))-godflux2(1:nof_variables)
+! 				     rhs_val(ielem_ineigh(i,l),1:nof_variables)=rhs_val(ielem_ineigh(i,l),1:nof_variables)-godflux2(1:nof_variables)
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-				    rhst_val(1:turbulenceequations+passivescalar,i)=rhst_val(1:turbulenceequations+passivescalar,i)+&
+				    rhst_val(i,1:turbulenceequations+passivescalar)=rhst_val(i,1:turbulenceequations+passivescalar)+&
 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
-! 				    rhst_val(1:turbulenceequations+passivescalar,ielem_ineigh(l,i))=rhst_val(1:turbulenceequations+passivescalar,ielem_ineigh(l,i))-&
+! 				    rhst_val(ielem_ineigh(i,l),1:turbulenceequations+passivescalar)=rhst_val(ielem_ineigh(i,l),1:turbulenceequations+passivescalar)-&
 !  				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 ! 				    
 				    end if
 ! 				    end if
 		    end do
 		    if (multispecies.eq.1)then
-                 rhs_val(7,i)=rhs_val(7,i)-(u_c_val(1,7,i)*mp_source3)!*ielem_totvolume(i))
+                 rhs_val(i,7)=rhs_val(i,7)-(u_c_val(i,1,7)*mp_source3)!*ielem_totvolume(i))
                  
                  end if
                  
@@ -7204,7 +7204,7 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 	iconsidered=i	
 
 	if (ielem_recalc(i).eq.1)then
-	rhs_val(:,i)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(:,i)=zero
+	rhs_val(i,:)=zero;if ((turbulence.eq.1).or.(passivescalar.gt.0)) rhst_val(i,:)=zero
 	end if
 	weights_temp(1:qp_line_n) = weights_l(1:qp_line_n)
 
@@ -7216,9 +7216,9 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 		    
 		    do l=1,ielem_ifca(i)
 				  igoflux=0
-				  if (ielem_ineighb(l,i).eq.n)then	!my cpu only
-                                                    if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-                                                        if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
+				  if (ielem_ineighb(i,l).eq.n)then	!my cpu only
+                                                    if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+                                                        if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in my cpu
                                                                 icaseb=1        !periodic mine
 !                                                                     
                                                         else
@@ -7232,8 +7232,8 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
                                                     
                                                     end if
                                 else
-                                                    if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
+                                                    if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+								if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in other cpu
                                                                 icaseb=4
                                                                 end if
                                                     else
@@ -7245,8 +7245,8 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
                                 end if
 
 				    b_code=0  
-				 nx=ielem_faceanglex(l,i)
- 				  ny=ielem_faceangley(l,i)
+				 nx=ielem_faceanglex(i,l)
+ 				  ny=ielem_faceangley(i,l)
  				  angle1=nx
  				  angle2=ny
 				 
@@ -7254,10 +7254,10 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 				  godflux2=zero
 				  mp_source2=zero
 				  do ngp=1,iqp
-				      cleft(1:nof_variables)=rec_uleft(1:nof_variables,l,ngp,i)
+				      cleft(1:nof_variables)=rec_uleft(i,1:nof_variables,l,ngp)
 				      
 				      if ((cascade.eq.2).and.(ielem_mood(i).ge.1))then
-				     cleft(1:nof_variables)=u_c_val(3,1:nof_variables,i)
+				     cleft(1:nof_variables)=u_c_val(i,3,1:nof_variables)
 				     
 				     end if
 				      
@@ -7265,20 +7265,20 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 				      
 					 if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 						if (icoupleturb.eq.1)then
-							cturbl(1:turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,l,ngp,i)
+							cturbl(1:turbulenceequations+passivescalar)=rec_uleftturb(i,1:turbulenceequations+passivescalar,l,ngp)
 						else
-							cturbl(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,i)
+							cturbl(1:turbulenceequations+passivescalar)=u_ct_val(i,1,1:turbulenceequations+passivescalar)
 						end if
 					end if
 				      
 				      
-					    if (ielem_ineighb(l,i).eq.n)then	!my cpu only
-							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-								  if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in my cpu
-								  cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+					    if (ielem_ineighb(i,l).eq.n)then	!my cpu only
+							if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+								  if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in my cpu
+								  cright(1:nof_variables)=rec_uleft(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
 								  
-								   if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).ge.1))then
-								   cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+								   if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(i,l)).ge.1))then
+								   cright(1:nof_variables)=u_c_val(ielem_ineigh(i,l),3,1:nof_variables)
 								  
 								  end if
 								  
@@ -7289,9 +7289,9 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 								  
 								    if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 									if (icoupleturb.eq.1)then
-									   cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))!right additional equations flow state
+									   cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(ielem_ineigh(i,l),1:turbulenceequations+passivescalar,ielem_ineighn(i,l),ngp)!right additional equations flow state
 									else
-									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
+									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(ielem_ineigh(i,l),1,1:turbulenceequations+passivescalar)
 									end if
 								    end if
 								  
@@ -7313,7 +7313,7 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 								    
 								    leftv(1:nof_variables)=cleft(1:nof_variables)
 ! 								    
-								    b_code=ibound_icode(ielem_ibounds(l,i))
+								    b_code=ibound_icode(ielem_ibounds(i,l))
 								    call boundarys2d(n,b_code,iconsidered,facex,leftv,rightv,pox,poy,poz,angle1,angle2,nx,ny,nz,cturbl,cturbr,cright_rot,cleft_rot,srf_speed,srf_speedrot,ibfc)
 								    cright(1:nof_variables)=rightv(1:nof_variables)
 ! 				  				   
@@ -7321,10 +7321,10 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 								    
 								  end if
 							else
-							      cright(1:nof_variables)=rec_uleft(1:nof_variables,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))
+							      cright(1:nof_variables)=rec_uleft(ielem_ineigh(i,l),1:nof_variables,ielem_ineighn(i,l),ngp)
  							     
- 							      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(l,i)).ge.1))then
-							      cright(1:nof_variables)=u_c_val(3,1:nof_variables,ielem_ineigh(l,i))
+ 							      if ((cascade.eq.2).and.(ielem_mood(ielem_ineigh(i,l)).ge.1))then
+							      cright(1:nof_variables)=u_c_val(ielem_ineigh(i,l),3,1:nof_variables)
 							      
 							      end if
  							     
@@ -7334,9 +7334,9 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
  							     
 								  if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 									if (icoupleturb.eq.1)then
-									   cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(1:turbulenceequations+passivescalar,ielem_ineighn(l,i),ngp,ielem_ineigh(l,i))!right additional equations flow state
+									   cturbr(1:turbulenceequations+passivescalar)=rec_uleftturb(ielem_ineigh(i,l),1:turbulenceequations+passivescalar,ielem_ineighn(i,l),ngp)!right additional equations flow state
 									else
-									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(1,1:turbulenceequations+passivescalar,ielem_ineigh(l,i))
+									 cturbr(1:turbulenceequations+passivescalar)=u_ct_val(ielem_ineigh(i,l),1,1:turbulenceequations+passivescalar)
 									end if
 								    end if
 							      
@@ -7351,10 +7351,10 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 					    
 					    
 						
-							if (ielem_ibounds(l,i).gt.0)then	!check for boundaries
-								if (ibound_icode(ielem_ibounds(l,i)).eq.5)then	!periodic in other cpu
-! 									  cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
-									  nfx  = ielem_ineighn(l,i)
+							if (ielem_ibounds(i,l).gt.0)then	!check for boundaries
+								if (ibound_icode(ielem_ibounds(i,l)).eq.5)then	!periodic in other cpu
+! 									  cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
+									  nfx  = ielem_ineighn(i,l)
 									  lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									  rowfx = bound_offset(nfx) + lfx - 1
 
@@ -7364,8 +7364,8 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 !                                     cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 					(rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 
-									   nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
-								lf=rec_ihexl(1,ielem_indexi(L,i),i)
+									   nf=rec_ihexn(rec_local(i),1,ielem_indexi(i,L))
+								lf=rec_ihexl(i,1,ielem_indexi(i,L))
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
 
@@ -7378,16 +7378,16 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
  									   
 								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 									if (icoupleturb.eq.1)then
-! 									   cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(l,i))%facesol&
+! 									   cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(i,l))%facesol&
 ! 									   (ielem_qface(l,ngp,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)!right additional equations flow state
-									   nfx  = ielem_ineighn(l,i)
+									   nfx  = ielem_ineighn(i,l)
 									   lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									   rowfx = bound_offset(nfx) + lfx - 1
 									   cturbr(1:turbulenceequations+passivescalar) = boundhir(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 									else
-! 									 cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(l,i))%facesol&
+! 									 cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(i,l))%facesol&
 ! 									   (ielem_qface(l,ngp,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)!right additional equations flow state
-									 nfx  = ielem_ineighn(l,i)
+									 nfx  = ielem_ineighn(i,l)
 									 lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									 rowfx = bound_offset(nfx) + lfx - 1
 									 cturbr(1:turbulenceequations+passivescalar) = boundhir(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
@@ -7403,8 +7403,8 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 								end if
 							else 			
 							
-! 								  cright(1:nof_variables)=iexboundhir(ielem_ineighn(l,i))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
-								  nfx  = ielem_ineighn(l,i)
+! 								  cright(1:nof_variables)=iexboundhir(ielem_ineighn(i,l))%facesol(ielem_qface(l,ngp,i),1:nof_variables)
+								  nfx  = ielem_ineighn(i,l)
 								  lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 								  rowfx = bound_offset(nfx) + lfx - 1
 ! 								  cright(1:nof_variables) = boundhir(rowfx,1:nof_variables)
@@ -7415,8 +7415,8 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 !                                     cright(1:nof_variables)=iexsolhir(rec_ihexn(1,ielem_indexi(l,i)))%sol&
 ! 					(rec_ihexl(1,ielem_indexi(l,i)),1:nof_variables)
 
-									   nf=rec_ihexn(1,ielem_indexi(L,i),rec_local(i))
-								lf=rec_ihexl(1,ielem_indexi(L,i),i)
+									   nf=rec_ihexn(rec_local(i),1,ielem_indexi(i,L))
+								lf=rec_ihexl(i,1,ielem_indexi(i,L))
 								rowf=halo_offset(nf) + lf - 1
 								cright(1:nof_variables)=solhir(rowf,1:nof_variables)
 
@@ -7432,16 +7432,16 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
  								  
 								   if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 									if (icoupleturb.eq.1)then
-! 									   cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(l,i))%facesol&
+! 									   cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(i,l))%facesol&
 ! 									   (ielem_qface(l,ngp,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)!right additional equations flow state
-									   nfx  = ielem_ineighn(l,i)
+									   nfx  = ielem_ineighn(i,l)
 									   lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									   rowfx = bound_offset(nfx) + lfx - 1
 									   cturbr(1:turbulenceequations+passivescalar) = boundhir(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 									else
-! 									 cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(l,i))%facesol&
+! 									 cturbr(1:turbulenceequations+passivescalar)=iexboundhir(ielem_ineighn(i,l))%facesol&
 ! 									   (ielem_qface(l,ngp,i),nof_variables+1:nof_variables+turbulenceequations+passivescalar)!right additional equations flow state
-									 nfx  = ielem_ineighn(l,i)
+									 nfx  = ielem_ineighn(i,l)
 									 lfx = ielem_qface(l,ngp,ielem_inter_id(ielem_indexf(i)))
 									 rowfx = bound_offset(nfx) + lfx - 1
 									 cturbr(1:turbulenceequations+passivescalar) = boundhir(rowfx,nof_variables+1:nof_variables+turbulenceequations+passivescalar)
@@ -7554,17 +7554,17 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 				       
 				     
 				      
-				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(l,i)))
+				      godflux2(1:nof_variables)=godflux2(1:nof_variables)+(rhllcflux(1:nof_variables)*(weights_temp(ngp)*ielem_surf(i,l)))
 				      if (multispecies.eq.1)then
-                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(l,i))
+                        mp_source2=mp_source2+mp_source1*(weights_temp(ngp)*ielem_surf(i,l))
                         end if
 				       
 				      
 				      if ((turbulence.eq.1).or.(passivescalar.gt.0))then 
 					  if (icoupleturb.eq.0)then	!first order upwind flux
 					    
-					  norms=(nx*(u_c_val(1,2,i)/u_c_val(1,1,i)))&
-						+(ny*(u_c_val(1,3,i)/u_c_val(1,1,i)))
+					  norms=(nx*(u_c_val(i,1,2)/u_c_val(i,1,1)))&
+						+(ny*(u_c_val(i,1,3)/u_c_val(i,1,1)))
 						
 					      if (norms.ge.zero)then
 						rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=(norms)*cturbl(1:turbulenceequations+passivescalar)
@@ -7582,7 +7582,7 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 					  
 					 
 					  godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)=godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)+&
-					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(l,i)))
+					  (rhllcflux(nof_variables+1:nof_variables+turbulenceequations+passivescalar)*(weights_temp(ngp)*ielem_surf(i,l)))
 ! 					  
 					  
 					  
@@ -7591,20 +7591,20 @@ subroutine calculate_fluxeshi_convective2d_mood_bound_cell(n,ii)
 				      
 				  end do
 				   
-				    rhs_val(1:nof_variables,i)=rhs_val(1:nof_variables,i)+godflux2(1:nof_variables)
+				    rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)+godflux2(1:nof_variables)
 				    if (multispecies.eq.1)then
                         mp_source3=mp_source3+mp_source2
                         end if
 
 				    
 				    if ((turbulence.eq.1).or.(passivescalar.gt.0))then
-				    rhst_val(1:turbulenceequations+passivescalar,i)=rhst_val(1:turbulenceequations+passivescalar,i)+&
+				    rhst_val(i,1:turbulenceequations+passivescalar)=rhst_val(i,1:turbulenceequations+passivescalar)+&
 				    godflux2(nof_variables+1:nof_variables+turbulenceequations+passivescalar)
 
 				    end if
 		    end do
 		     if (multispecies.eq.1)then
-                 rhs_val(7,i)=rhs_val(7,i)-(u_c_val(1,7,i)*mp_source3)!*ielem_totvolume(i))
+                 rhs_val(i,7)=rhs_val(i,7)-(u_c_val(i,1,7)*mp_source3)!*ielem_totvolume(i))
                  
                  end if
                  

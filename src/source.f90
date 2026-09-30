@@ -45,7 +45,7 @@ subroutine sources_computation(n)
 #endif
 		do i=1,kmaxe
 			! Clear the implicit source Jacobian before assembling this step.
-			sht_rg(i,1:nof_variables)=0.0d0
+			sht_rg(i,1:nof_variables)=0.00
 		end do
 #ifdef gpu
 		!$omp end target teams distribute parallel do
@@ -82,7 +82,7 @@ real,dimension(gpu_max_turbulence)::source_t
 if (turbulence.eq.1)then
     call sources(n,iconsidered,source_t)
     do iv=1,turbulenceequations
-        rhst_val(iv,iconsidered)=rhst_val(iv,iconsidered)-source_t(iv)*ielem_totvolume(iconsidered)
+        rhst_val(iconsidered,iv)=rhst_val(iconsidered,iv)-source_t(iv)*ielem_totvolume(iconsidered)
     end do
 end if
 
@@ -107,12 +107,12 @@ if (time_accurate_source) then
     src_jac_diag(1:nof_variables)=zero
     ! Time-accurate schemes solve the physical source residual S(U).
     ! Source stiffness still enters the implicit update through src_jac_diag.
-    call sources_realgas(n,iconsidered,source_r,src_jac_diag,max(dt,1.0d-30))
+    call sources_realgas(n,iconsidered,source_r,src_jac_diag,max(dt,1.0e-30))
 else
     if ((rungekutta.eq.5).or.(rungekutta.eq.10)) then
-        dt_loc=max(ielem_dtl(iconsidered),1.0d-30)
+        dt_loc=max(ielem_dtl(iconsidered),1.0e-30)
     else
-        dt_loc=max(dt,1.0d-30)
+        dt_loc=max(dt,1.0e-30)
     end if
 
     call realgas_integrate_source_subcycles(n,iconsidered,dt_loc,source_r,src_jac_diag,source_ok)
@@ -123,7 +123,7 @@ else
 end if
 
 do iv=1,nof_variables
-    rhs_val(iv,iconsidered)=rhs_val(iv,iconsidered)-source_r(iv)*ielem_totvolume(iconsidered)
+    rhs_val(iconsidered,iv)=rhs_val(iconsidered,iv)-source_r(iv)*ielem_totvolume(iconsidered)
     if (rungekutta.ge.10) sht_rg(iconsidered,iv)=src_jac_diag(iv)*ielem_totvolume(iconsidered)
 end do
 
@@ -147,13 +147,13 @@ source_ok=.false.
 source_r(1:nof_variables)=zero
 src_jac_diag(1:nof_variables)=zero
 
-if (dt_loc.le.1.0d-300) return
+if (dt_loc.le.1.0e-300) return
 
-qold(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)
+qold(1:nof_variables)=u_c_val(iconsidered,1,1:nof_variables)
 
 nsub=1
 do while (nsub.le.realgas_source_max_subcycles)
-    onsub=1.0d0/real(nsub)
+    onsub=1.00/real(nsub)
     dt_sub=dt_loc*onsub
     qwork(1:nof_variables)=qold(1:nof_variables)
     jac_accum(1:nof_variables)=zero
@@ -183,7 +183,7 @@ do while (nsub.le.realgas_source_max_subcycles)
     nsub=2*nsub
 end do
 
-u_c_val(1,1:nof_variables,iconsidered)=qold(1:nof_variables)
+u_c_val(iconsidered,1,1:nof_variables)=qold(1:nof_variables)
 
 end subroutine realgas_integrate_source_subcycles
 
@@ -223,9 +223,9 @@ if (.not.realgas_source_state_admissible(qcurr)) return
 
 do iter=1,realgas_source_newton_maxiter
     call realgas_source_residual(n,iconsidered,qold,qcurr,dt_sub,res,source_eval,jac_eval,resnorm)
-    if ((resnorm.ne.resnorm).or.(abs(resnorm).gt.1.0d300)) return
+    if ((resnorm.ne.resnorm).or.(abs(resnorm).gt.1.0e300)) return
 
-    if (resnorm.le.1.0d-9) then
+    if (resnorm.le.1.0e-9) then
         qnew(1:nof_variables)=qcurr(1:nof_variables)
         jac_diag_eff(1:nof_variables)=jac_eval(1:nof_variables)
         step_ok=.true.
@@ -239,12 +239,12 @@ do iter=1,realgas_source_newton_maxiter
             idxb=dimensiona+2+ib
         end if
 
-        eps=1.0d-6*max(abs(qcurr(idxb)),1.0d-12)
+        eps=1.0e-6*max(abs(qcurr(idxb)),1.0e-12)
         qpert(1:nof_variables)=qcurr(1:nof_variables)
         qpert(idxb)=qpert(idxb)+eps
 
         if (.not.realgas_source_state_admissible(qpert)) then
-            eps=0.5d0*eps
+            eps=0.50*eps
             qpert(1:nof_variables)=qcurr(1:nof_variables)
             qpert(idxb)=qpert(idxb)+eps
             if (.not.realgas_source_state_admissible(qpert)) return
@@ -260,7 +260,7 @@ do iter=1,realgas_source_newton_maxiter
             end if
 
             amat(ia,ib)=-dt_sub*(source_pert(idxa)-source_eval(idxa))/eps
-            if (ia.eq.ib) amat(ia,ib)=amat(ia,ib)+1.0d0
+            if (ia.eq.ib) amat(ia,ib)=amat(ia,ib)+1.00
         end do
     end do
 
@@ -271,7 +271,7 @@ do iter=1,realgas_source_newton_maxiter
     call realgas_solve_dense(nloc,amat,rhs,delta,linear_ok)
     if (.not.linear_ok) return
 
-    alpha=1.0d0
+    alpha=1.00
     accepted=.false.
     do ls=1,realgas_source_newton_linesearch
         qtest(1:nof_variables)=qcurr(1:nof_variables)
@@ -286,14 +286,14 @@ do iter=1,realgas_source_newton_maxiter
 
         if (realgas_source_state_admissible(qtest)) then
             call realgas_source_residual(n,iconsidered,qold,qtest,dt_sub,res_test,source_eval,jac_eval,testnorm)
-            if ((testnorm.eq.testnorm).and.(abs(testnorm).lt.1.0d300)) then
-                if ((testnorm.le.resnorm).or.(alpha.le.1.0d-3)) then
+            if ((testnorm.eq.testnorm).and.(abs(testnorm).lt.1.0e300)) then
+                if ((testnorm.le.resnorm).or.(alpha.le.1.0e-3)) then
                     accepted=.true.
                     exit
                 end if
             end if
         end if
-        alpha=0.5d0*alpha
+        alpha=0.50*alpha
     end do
 
     if (.not.accepted) return
@@ -302,7 +302,7 @@ do iter=1,realgas_source_newton_maxiter
 end do
 
 call realgas_source_residual(n,iconsidered,qold,qcurr,dt_sub,res,source_eval,jac_eval,resnorm)
-if (resnorm.le.1.0d-7) then
+if (resnorm.le.1.0e-7) then
     qnew(1:nof_variables)=qcurr(1:nof_variables)
     jac_diag_eff(1:nof_variables)=jac_eval(1:nof_variables)
     step_ok=.true.
@@ -336,7 +336,7 @@ do ia=1,nloc
         idxa=dimensiona+2+ia
     end if
     res(ia)=qstate(idxa)-qold(idxa)-dt_sub*source_eval(idxa)
-    scale=max(max(abs(qold(idxa)),abs(qstate(idxa))),1.0d-30)
+    scale=max(max(abs(qold(idxa)),abs(qstate(idxa))),1.0e-30)
     resnorm=max(resnorm,abs(res(ia))/scale)
 end do
 
@@ -353,10 +353,10 @@ real,dimension(1:gpu_max_nvar),intent(in)::qstate
 real,dimension(1:gpu_max_nvar),intent(out)::source_eval,jac_eval
 real,dimension(1:gpu_max_nvar)::qsave
 
-qsave(1:nof_variables)=u_c_val(1,1:nof_variables,iconsidered)
-u_c_val(1,1:nof_variables,iconsidered)=qstate(1:nof_variables)
+qsave(1:nof_variables)=u_c_val(iconsidered,1,1:nof_variables)
+u_c_val(iconsidered,1,1:nof_variables)=qstate(1:nof_variables)
 call sources_realgas(n,iconsidered,source_eval,jac_eval,dt_sub)
-u_c_val(1,1:nof_variables,iconsidered)=qsave(1:nof_variables)
+u_c_val(iconsidered,1,1:nof_variables)=qsave(1:nof_variables)
 
 end subroutine realgas_evaluate_source_state
 
@@ -386,7 +386,7 @@ do k=1,n-1
         end if
     end do
 
-    if ((pivabs.ne.pivabs).or.(pivabs.le.1.0d-300)) return
+    if ((pivabs.ne.pivabs).or.(pivabs.le.1.0e-300)) return
 
     if (pivot.ne.k) then
         do j=k,n
@@ -409,16 +409,16 @@ do k=1,n-1
     end do
 end do
 
-if ((abs(a(n,n)).ne.abs(a(n,n))).or.(abs(a(n,n)).le.1.0d-300)) return
+if ((abs(a(n,n)).ne.abs(a(n,n))).or.(abs(a(n,n)).le.1.0e-300)) return
 
 do i=n,1,-1
     sumv=b(i)
     do j=i+1,n
         sumv=sumv-a(i,j)*x(j)
     end do
-    if ((abs(a(i,i)).ne.abs(a(i,i))).or.(abs(a(i,i)).le.1.0d-300)) return
+    if ((abs(a(i,i)).ne.abs(a(i,i))).or.(abs(a(i,i)).le.1.0e-300)) return
     x(i)=sumv/a(i,i)
-    if ((x(i).ne.x(i)).or.(abs(x(i)).gt.1.0d300)) return
+    if ((x(i).ne.x(i)).or.(abs(x(i)).gt.1.0e300)) return
 end do
 
 ok=.true.
@@ -437,8 +437,8 @@ real::rhoy,species_sum,y_i
 real::state_min_abs,state_max_abs
 
 realgas_source_state_admissible=.false.
-state_min_abs=1.0d-300
-state_max_abs=1.0d300
+state_min_abs=1.0e-300
+state_max_abs=1.0e300
 
 if ((realgas.ne.1).or.(nof_species.le.0)) then
     realgas_source_state_admissible=.true.
@@ -490,9 +490,9 @@ do k=1,nof_species
     if (rg_hzero(k).gt.zero) echem=echem+(y_i*(rg_hzero(k)/rg_molm(k)))
     rmix=rmix+(y_i/rg_molm(k))
     if (k.le.3) then
-        cv_mix=cv_mix+(y_i*2.5d0*(rgs_ru/rg_molm(k)))
+        cv_mix=cv_mix+(y_i*2.50*(rgs_ru/rg_molm(k)))
     else
-        cv_mix=cv_mix+(y_i*1.5d0*(rgs_ru/rg_molm(k)))
+        cv_mix=cv_mix+(y_i*1.50*(rgs_ru/rg_molm(k)))
     end if
 end do
 
@@ -564,21 +564,21 @@ real,dimension(5)::source_t2
 real,dimension(3)::pox,poy
 real,dimension(3)::rotvec
 
-oodensity=1.0d0/u_c_val(1,1,i)
+oodensity=1.00/u_c_val(i,1,1)
 source_t2(1)=zero
-source_t2(2)=u_c_val(1,2,i)*oodensity-uvel
-source_t2(3)=u_c_val(1,3,i)*oodensity-vvel
-source_t2(4)=u_c_val(1,4,i)*oodensity-wvel
+source_t2(2)=u_c_val(i,1,2)*oodensity-uvel
+source_t2(3)=u_c_val(i,1,3)*oodensity-vvel
+source_t2(4)=u_c_val(i,1,4)*oodensity-wvel
 source_t2(5)=zero
 pox(1:3)=source_t2(2:4)
 poy(1:3)=srf_velocity(1:3)
 call vect_function(pox,poy,rotvec)
-source_t2(2)=u_c_val(1,1,i)*rotvec(1)
-source_t2(3)=u_c_val(1,1,i)*rotvec(2)
-source_t2(4)=u_c_val(1,1,i)*rotvec(3)
+source_t2(2)=u_c_val(i,1,1)*rotvec(1)
+source_t2(3)=u_c_val(i,1,1)*rotvec(2)
+source_t2(4)=u_c_val(i,1,1)*rotvec(3)
 
 do iv=1,nof_variables
-    rhs_val(iv,i)=rhs_val(iv,i)+source_t2(iv)*ielem_totvolume(i)
+    rhs_val(i,iv)=rhs_val(i,iv)+source_t2(iv)*ielem_totvolume(i)
 end do
 
 end subroutine sources_computation_rot_srf_cell
@@ -596,21 +596,21 @@ real,dimension(3)::pox,poy
 real,dimension(3)::rotvec
 
 if (rec_mrf(i).eq.1)then
-    oodensity=1.0d0/u_c_val(1,1,i)
+    oodensity=1.00/u_c_val(i,1,1)
     source_t2(1)=zero
-    source_t2(2)=u_c_val(1,2,i)*oodensity
-    source_t2(3)=u_c_val(1,3,i)*oodensity
-    source_t2(4)=u_c_val(1,4,i)*oodensity
+    source_t2(2)=u_c_val(i,1,2)*oodensity
+    source_t2(3)=u_c_val(i,1,3)*oodensity
+    source_t2(4)=u_c_val(i,1,4)*oodensity
     source_t2(5)=zero
     pox(1:3)=source_t2(2:4)
     poy(1:3)=rec_mrf_velocity(1:3,i)
     call vect_function(pox,poy,rotvec)
-source_t2(2)=u_c_val(1,1,i)*rotvec(1)
-source_t2(3)=u_c_val(1,1,i)*rotvec(2)
-source_t2(4)=u_c_val(1,1,i)*rotvec(3)
+source_t2(2)=u_c_val(i,1,1)*rotvec(1)
+source_t2(3)=u_c_val(i,1,1)*rotvec(2)
+source_t2(4)=u_c_val(i,1,1)*rotvec(3)
 
     do iv=1,nof_variables
-        rhs_val(iv,i)=rhs_val(iv,i)+source_t2(iv)*ielem_totvolume(i)
+        rhs_val(i,iv)=rhs_val(i,iv)+source_t2(iv)*ielem_totvolume(i)
     end do
 end if
 
@@ -674,10 +674,10 @@ subroutine sources_realgas(n,iconsidered,source_r,src_jac_diag,source_dt)
   integer :: rg_molx
   real,dimension(1:gpu_max_species) :: rg_mass_amu
 
-  real, parameter :: kb = 1.380649d-23     ! boltzmann [j/k]
-  real, parameter :: na = 6.02214076d23    ! avogadro [1/mol]
-  real, parameter :: rg_exp_min = -700.0d0
-  real, parameter :: rg_exp_max =  700.0d0
+  real, parameter :: kb = 1.380649e-23     ! boltzmann [j/k]
+  real, parameter :: na = 6.02214076e23    ! avogadro [1/mol]
+  real, parameter :: rg_exp_min = -700.00
+  real, parameter :: rg_exp_max =  700.00
 
   real,dimension(1:gpu_max_species) :: tau_mw    !! millikan-white [s]
   real,dimension(1:gpu_max_species) :: tau_park  ! park [s]
@@ -704,61 +704,61 @@ subroutine sources_realgas(n,iconsidered,source_r,src_jac_diag,source_dt)
   ! ---------------------------------------------------------------------------
   i = iconsidered
 
-  source_r(1:nof_variables) = 0.0d0
-  src_jac_diag(1:nof_variables) = 0.0d0
-  tau_mw(:)   = 1.0d30
-  tau_park(:) = 1.0d30
-  tau_tot(:)  = 1.0d30
+  source_r(1:nof_variables) = 0.00
+  src_jac_diag(1:nof_variables) = 0.00
+  tau_mw(:)   = 1.0e30
+  tau_park(:) = 1.0e30
+  tau_tot(:)  = 1.0e30
 
   if (nof_species.ne.5) return
 
   !-----------------------------------------------------------
   ! get conservative variables and primitive variables
   !-----------------------------------------------------------
-  leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+  leftv(1:nof_variables) = u_c_val(i,1,1:nof_variables)
 
 	  ! species densities ρ_s = ρ y_s
 	  do rg_i = 1, nof_species
-	     rg_r(rg_i) = max(leftv(dimensiona+3+rg_i),0.0d0)
+	     rg_r(rg_i) = max(leftv(dimensiona+3+rg_i),0.00)
 	  end do
 
   !-----------------------------------------------------------
   ! 1) molar concentrations c_s = rho_s / m_s
   !-----------------------------------------------------------
 	  do s = 1, 5
-	     rg_c(s) = rg_r(s) / max(rg_molm(s),1.0d-30)
+	     rg_c(s) = rg_r(s) / max(rg_molm(s),1.0e-30)
 	  end do
 
 	  call cons2prim(n,leftv,mp_pinfl,gammal)
 
-	  rg_pressure = max(leftv(dimensiona+2),1.0d-12)
-	  p_atm       = max(rg_pressure / rgs_pa_per_atm,1.0d-30)
+	  rg_pressure = max(leftv(dimensiona+2),1.0e-12)
+	  p_atm       = max(rg_pressure / rgs_pa_per_atm,1.0e-30)
 
 	  ! molar masses in kg/mol -> "amu-like" for mw reduced-mass formula
-	  rg_mass_amu(:) = 1.0d30
+	  rg_mass_amu(:) = 1.0e30
 	  do rg_i = 1, nof_species
-	     rg_mass_amu(rg_i) = max(rg_molm(rg_i),1.0d-30) * 1000.0d0
+	     rg_mass_amu(rg_i) = max(rg_molm(rg_i),1.0e-30) * 1000.00
 	  end do
 
-  tempvect(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+  tempvect(1:nof_variables) = u_c_val(i,1,1:nof_variables)
   call cons2div(n,tempvect,mp_pinfl,gammal)
 
   ! leftv:   (ρ, u, v, ρe, ρev, ρy1..ρy5)
   ! tempvect:(ρ, u, v, ttr, tv, y1..y5)
 
 	  ! temperatures
-	  rg_t  = max(tempvect(dimensiona+2),50.0d0)   ! ttr
-	  rg_tv = max(tempvect(dimensiona+3),50.0d0)   ! tv
-	  rg_z  = 10000.0d0 / rg_t
-  t_13  = exp((-1.0d0/3.0d0)*log(rg_t))
+	  rg_t  = max(tempvect(dimensiona+2),50.00)   ! ttr
+	  rg_tv = max(tempvect(dimensiona+3),50.00)   ! tv
+	  rg_z  = 10000.00 / rg_t
+  t_13  = exp((-1.00/3.00)*log(rg_t))
 
   ! adjusted two-temperature model (candler/park style)
-  rg_ta = exp(0.6d0*log(rg_t) + 0.4d0*log(rg_tv))
+  rg_ta = exp(0.60*log(rg_t) + 0.40*log(rg_tv))
 
   ! flow speed (not used in source terms yet)
   velx = leftv(2)
   vely = leftv(3)
-  velz = 0.0d0
+  velz = 0.00
   if (dimensiona.eq.3) then
      velz = leftv(4)
   end if
@@ -768,7 +768,7 @@ subroutine sources_realgas(n,iconsidered,source_r,src_jac_diag,source_dt)
   ! chemical source: reaction rates (candler 5-reaction model)
   ! using ρ-based rate coefficients cf [m^3/(kg s)]
   !-----------------------------------------------------------
-  rg_dw_s(:) = 0.0d0
+  rg_dw_s(:) = 0.00
 
 
 
@@ -779,18 +779,18 @@ if (rg_nof_reactions == 5) then
   !
 
   ! equilibrium constants k_e(t) (candler curve fits, t = ttr)
-  rg_ke1 = exp(min(max(3.898d0 -12.611d0*rg_z +0.683d0*rg_z**2 -0.118d0*rg_z**3 +0.006d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke2 = exp(min(max(1.335d0 - 4.127d0*rg_z -0.616d0*rg_z**2 +0.093d0*rg_z**3 -0.005d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke3 = exp(min(max(1.549d0 - 7.784d0*rg_z +0.228d0*rg_z**2 -0.043d0*rg_z**3 +0.002d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke4 = exp(min(max(2.349d0 - 4.828d0*rg_z +0.455d0*rg_z**2 -0.075d0*rg_z**3 +0.004d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke5 = exp(min(max(0.215d0 - 3.652d0*rg_z +0.843d0*rg_z**2 -0.136d0*rg_z**3 +0.007d0*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke1 = exp(min(max(3.8980 -12.6110*rg_z +0.6830*rg_z**2 -0.1180*rg_z**3 +0.0060*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke2 = exp(min(max(1.3350 - 4.1270*rg_z -0.6160*rg_z**2 +0.0930*rg_z**3 -0.0050*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke3 = exp(min(max(1.5490 - 7.7840*rg_z +0.2280*rg_z**2 -0.0430*rg_z**3 +0.0020*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke4 = exp(min(max(2.3490 - 4.8280*rg_z +0.4550*rg_z**2 -0.0750*rg_z**3 +0.0040*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke5 = exp(min(max(0.2150 - 3.6520*rg_z +0.8430*rg_z**2 -0.1360*rg_z**3 +0.0070*rg_z**4,rg_exp_min),rg_exp_max))
 
   ! --- reaction 1: n2 + m <-> 2n + m (in m^3/mol/s) ---
-  kf11m = 3.78d18 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = n2
-  kf12m = 3.78d18 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = o2
-  kf13m = 3.78d18 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = no
-  kf14m = 1.11d18 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = n
-  kf15m = 1.11d18 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = o
+  kf11m = 3.78e18 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = n2
+  kf12m = 3.78e18 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = o2
+  kf13m = 3.78e18 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = no
+  kf14m = 1.11e18 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = n
+  kf15m = 1.11e18 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = o
 
   kb11m = kf11m / rg_ke1
   kb12m = kf12m / rg_ke1
@@ -806,11 +806,11 @@ if (rg_nof_reactions == 5) then
   wdot(1) = kf1_eff*rg_c(1) - kb1_eff*rg_c(4)**2   ! n2 + m <-> 2n + m
 
   ! --- reaction 2: o2 + m <-> 2o + m ---
-  kf21m = 2.75d16 * 1.0d-6 * (1.0d0/rg_ta) * exp(-5.95d4/rg_ta)   ! m = n2
-  kf22m = 2.75d16 * 1.0d-6 * (1.0d0/rg_ta) * exp(-5.95d4/rg_ta)   ! m = o2
-  kf23m = 2.75d16 * 1.0d-6 * (1.0d0/rg_ta) * exp(-5.95d4/rg_ta)   ! m = no
-  kf24m = 8.25d16 * 1.0d-6 * (1.0d0/rg_ta) * exp(-5.95d4/rg_ta)   ! m = n
-  kf25m = 8.25d16 * 1.0d-6 * (1.0d0/rg_ta) * exp(-5.95d4/rg_ta)   ! m = o
+  kf21m = 2.75e16 * 1.0e-6 * (1.00/rg_ta) * exp(-5.95e4/rg_ta)   ! m = n2
+  kf22m = 2.75e16 * 1.0e-6 * (1.00/rg_ta) * exp(-5.95e4/rg_ta)   ! m = o2
+  kf23m = 2.75e16 * 1.0e-6 * (1.00/rg_ta) * exp(-5.95e4/rg_ta)   ! m = no
+  kf24m = 8.25e16 * 1.0e-6 * (1.00/rg_ta) * exp(-5.95e4/rg_ta)   ! m = n
+  kf25m = 8.25e16 * 1.0e-6 * (1.00/rg_ta) * exp(-5.95e4/rg_ta)   ! m = o
 
   kb21m = kf21m / rg_ke2
   kb22m = kf22m / rg_ke2
@@ -826,11 +826,11 @@ if (rg_nof_reactions == 5) then
   wdot(2) = kf2_eff*rg_c(2) - kb2_eff*rg_c(5)**2   ! o2 + m <-> 2o + m
 
   ! --- reaction 3: no + m <-> n + o + m ---
-  kf31m = 2.30d14 * 1.0d-6 * (1.0d0/sqrt(rg_ta)) * exp(-7.55d4/rg_ta)   ! m = n2
-  kf32m = 2.30d14 * 1.0d-6 * (1.0d0/sqrt(rg_ta)) * exp(-7.55d4/rg_ta)   ! m = o2
-  kf33m = 2.30d14 * 1.0d-6 * (1.0d0/sqrt(rg_ta)) * exp(-7.55d4/rg_ta)   ! m = no
-  kf34m = 4.60d14 * 1.0d-6 * (1.0d0/sqrt(rg_ta)) * exp(-7.55d4/rg_ta)   ! m = n
-  kf35m = 4.60d14 * 1.0d-6 * (1.0d0/sqrt(rg_ta)) * exp(-7.55d4/rg_ta)   ! m = o
+  kf31m = 2.30e14 * 1.0e-6 * (1.00/sqrt(rg_ta)) * exp(-7.55e4/rg_ta)   ! m = n2
+  kf32m = 2.30e14 * 1.0e-6 * (1.00/sqrt(rg_ta)) * exp(-7.55e4/rg_ta)   ! m = o2
+  kf33m = 2.30e14 * 1.0e-6 * (1.00/sqrt(rg_ta)) * exp(-7.55e4/rg_ta)   ! m = no
+  kf34m = 4.60e14 * 1.0e-6 * (1.00/sqrt(rg_ta)) * exp(-7.55e4/rg_ta)   ! m = n
+  kf35m = 4.60e14 * 1.0e-6 * (1.00/sqrt(rg_ta)) * exp(-7.55e4/rg_ta)   ! m = o
 
   kb31m = kf31m / rg_ke3
   kb32m = kf32m / rg_ke3
@@ -846,13 +846,13 @@ if (rg_nof_reactions == 5) then
   wdot(3) = kf3_eff*rg_c(3) - kb3_eff*rg_c(4)*rg_c(5) ! no + m <-> n + o + m
 
   ! --- reaction 4: n2 + o <-> no + n (bimolecular, 2-body) ---
-  kf4m = 3.18d10 * 1.0d-6 * exp(0.1d0*log(rg_ta)) * exp(-3.77d4/rg_ta)
+  kf4m = 3.18e10 * 1.0e-6 * exp(0.10*log(rg_ta)) * exp(-3.77e4/rg_ta)
   kb4m = kf4m / rg_ke4
 
   wdot(4) = kf4m*rg_c(1)*rg_c(5) - kb4m*rg_c(3)*rg_c(4)
 
   ! --- reaction 5: no + o <-> o2 + n (bimolecular) ---
-  kf5m = 2.16d5 * 1.0d-6 * exp(1.29d0*log(rg_ta)) * exp(-1.922d4/rg_ta)
+  kf5m = 2.16e5 * 1.0e-6 * exp(1.290*log(rg_ta)) * exp(-1.922e4/rg_ta)
   kb5m = kf5m / rg_ke5
 
   wdot(5) = kf5m*rg_c(3)*rg_c(5) - kb5m*rg_c(2)*rg_c(4)
@@ -889,7 +889,7 @@ if (rg_nof_reactions == 5) then
   nu(2,5) = +1
   nu(4,5) = +1
 
-  rg_dw_s(:) = 0.0d0
+  rg_dw_s(:) = 0.00
   do r = 1,5
      do s = 1,5
         rg_dw_s(s) = rg_dw_s(s) + nu(s,r) * rg_molm(s) * wdot(r)
@@ -910,32 +910,32 @@ if (rg_nof_reactions == 6) then
   !
 
   ! equilibrium constants (keep your candler curve-fits)
-  rg_ke1 = exp(min(max(3.898d0 -12.611d0*rg_z +0.683d0*rg_z**2 -0.118d0*rg_z**3 +0.006d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke2 = exp(min(max(1.335d0 - 4.127d0*rg_z -0.616d0*rg_z**2 +0.093d0*rg_z**3 -0.005d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke3 = exp(min(max(1.549d0 - 7.784d0*rg_z +0.228d0*rg_z**2 -0.043d0*rg_z**3 +0.002d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke4 = exp(min(max(2.349d0 - 4.828d0*rg_z +0.455d0*rg_z**2 -0.075d0*rg_z**3 +0.004d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke5 = exp(min(max(0.215d0 - 3.652d0*rg_z +0.843d0*rg_z**2 -0.136d0*rg_z**3 +0.007d0*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke1 = exp(min(max(3.8980 -12.6110*rg_z +0.6830*rg_z**2 -0.1180*rg_z**3 +0.0060*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke2 = exp(min(max(1.3350 - 4.1270*rg_z -0.6160*rg_z**2 +0.0930*rg_z**3 -0.0050*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke3 = exp(min(max(1.5490 - 7.7840*rg_z +0.2280*rg_z**2 -0.0430*rg_z**3 +0.0020*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke4 = exp(min(max(2.3490 - 4.8280*rg_z +0.4550*rg_z**2 -0.0750*rg_z**3 +0.0040*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke5 = exp(min(max(0.2150 - 3.6520*rg_z +0.8430*rg_z**2 -0.1360*rg_z**3 +0.0070*rg_z**4,rg_exp_min),rg_exp_max))
 
   ! Dissociation Keq curve fits are cgs concentration based.  The code uses mol/m^3.
-  ke1_si = rg_ke1 * 1.0d6
-  ke2_si = rg_ke2 * 1.0d6
-  ke3_si = rg_ke3 * 1.0d6
+  ke1_si = rg_ke1 * 1.0e6
+  ke2_si = rg_ke2 * 1.0e6
+  ke3_si = rg_ke3 * 1.0e6
 
   ! ---- r1: n2 + m <-> 2n + m (park 2t, table 1) ----
   !   kf = c_m t_a^{-1.6} exp(-113200/t_a), cm^3/(mol s)
   !   m = n2,o2,no : c = 7.0e21
   !   m = n,o      : c = 3.0e22
-  kf11m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = n2
-  kf12m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = o2
-  kf13m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = no
-  kf14m = 3.0d22 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = n
-  kf15m = 3.0d22 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = o
+  kf11m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = n2
+  kf12m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = o2
+  kf13m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = no
+  kf14m = 3.0e22 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = n
+  kf15m = 3.0e22 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = o
 
-  kb11m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_t)) * exp(-1.132d5/rg_t) / ke1_si
-  kb12m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_t)) * exp(-1.132d5/rg_t) / ke1_si
-  kb13m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_t)) * exp(-1.132d5/rg_t) / ke1_si
-  kb14m = 3.0d22 * 1.0d-6 * exp(-1.6d0*log(rg_t)) * exp(-1.132d5/rg_t) / ke1_si
-  kb15m = 3.0d22 * 1.0d-6 * exp(-1.6d0*log(rg_t)) * exp(-1.132d5/rg_t) / ke1_si
+  kb11m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_t)) * exp(-1.132e5/rg_t) / ke1_si
+  kb12m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_t)) * exp(-1.132e5/rg_t) / ke1_si
+  kb13m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_t)) * exp(-1.132e5/rg_t) / ke1_si
+  kb14m = 3.0e22 * 1.0e-6 * exp(-1.60*log(rg_t)) * exp(-1.132e5/rg_t) / ke1_si
+  kb15m = 3.0e22 * 1.0e-6 * exp(-1.60*log(rg_t)) * exp(-1.132e5/rg_t) / ke1_si
 
   kf1_eff = kf11m*rg_c(1) + kf12m*rg_c(2) + kf13m*rg_c(3) &
           + kf14m*rg_c(4) + kf15m*rg_c(5)
@@ -948,17 +948,17 @@ if (rg_nof_reactions == 6) then
   !   kf = c_m t_a^{-1.5} exp(-59500/t_a), cm^3/(mol s)
   !   m = n2,o2,no : c = 2.0e21
   !   m = n,o      : c = 1.0e22
-  kf21m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_ta*sqrt(rg_ta))) * exp(-5.95d4/rg_ta)   ! m = n2
-  kf22m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_ta*sqrt(rg_ta))) * exp(-5.95d4/rg_ta)   ! m = o2
-  kf23m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_ta*sqrt(rg_ta))) * exp(-5.95d4/rg_ta)   ! m = no
-  kf24m = 1.0d22 * 1.0d-6 * (1.0d0/(rg_ta*sqrt(rg_ta))) * exp(-5.95d4/rg_ta)   ! m = n
-  kf25m = 1.0d22 * 1.0d-6 * (1.0d0/(rg_ta*sqrt(rg_ta))) * exp(-5.95d4/rg_ta)   ! m = o
+  kf21m = 2.0e21 * 1.0e-6 * (1.00/(rg_ta*sqrt(rg_ta))) * exp(-5.95e4/rg_ta)   ! m = n2
+  kf22m = 2.0e21 * 1.0e-6 * (1.00/(rg_ta*sqrt(rg_ta))) * exp(-5.95e4/rg_ta)   ! m = o2
+  kf23m = 2.0e21 * 1.0e-6 * (1.00/(rg_ta*sqrt(rg_ta))) * exp(-5.95e4/rg_ta)   ! m = no
+  kf24m = 1.0e22 * 1.0e-6 * (1.00/(rg_ta*sqrt(rg_ta))) * exp(-5.95e4/rg_ta)   ! m = n
+  kf25m = 1.0e22 * 1.0e-6 * (1.00/(rg_ta*sqrt(rg_ta))) * exp(-5.95e4/rg_ta)   ! m = o
 
-  kb21m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_t*sqrt(rg_t))) * exp(-5.95d4/rg_t) / ke2_si
-  kb22m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_t*sqrt(rg_t))) * exp(-5.95d4/rg_t) / ke2_si
-  kb23m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_t*sqrt(rg_t))) * exp(-5.95d4/rg_t) / ke2_si
-  kb24m = 1.0d22 * 1.0d-6 * (1.0d0/(rg_t*sqrt(rg_t))) * exp(-5.95d4/rg_t) / ke2_si
-  kb25m = 1.0d22 * 1.0d-6 * (1.0d0/(rg_t*sqrt(rg_t))) * exp(-5.95d4/rg_t) / ke2_si
+  kb21m = 2.0e21 * 1.0e-6 * (1.00/(rg_t*sqrt(rg_t))) * exp(-5.95e4/rg_t) / ke2_si
+  kb22m = 2.0e21 * 1.0e-6 * (1.00/(rg_t*sqrt(rg_t))) * exp(-5.95e4/rg_t) / ke2_si
+  kb23m = 2.0e21 * 1.0e-6 * (1.00/(rg_t*sqrt(rg_t))) * exp(-5.95e4/rg_t) / ke2_si
+  kb24m = 1.0e22 * 1.0e-6 * (1.00/(rg_t*sqrt(rg_t))) * exp(-5.95e4/rg_t) / ke2_si
+  kb25m = 1.0e22 * 1.0e-6 * (1.00/(rg_t*sqrt(rg_t))) * exp(-5.95e4/rg_t) / ke2_si
 
   kf2_eff = kf21m*rg_c(1) + kf22m*rg_c(2) + kf23m*rg_c(3) &
           + kf24m*rg_c(4) + kf25m*rg_c(5)
@@ -971,17 +971,17 @@ if (rg_nof_reactions == 6) then
   !   kf ≈ c_m t_a^{0} exp(-75500/t_a), cm^3/(mol s)
   !   m = no,o,n : c = 1.1e17
   !   m = n2,o2 : c = (1/22)*1.1e17  [koshi]
-  kf31m = (1.1d17/22.0d0) * 1.0d-6 * exp(-7.55d4/rg_ta)   ! m = n2
-  kf32m = (1.1d17/22.0d0) * 1.0d-6 * exp(-7.55d4/rg_ta)   ! m = o2
-  kf33m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_ta)   ! m = no
-  kf34m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_ta)   ! m = n
-  kf35m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_ta)   ! m = o
+  kf31m = (1.1e17/22.00) * 1.0e-6 * exp(-7.55e4/rg_ta)   ! m = n2
+  kf32m = (1.1e17/22.00) * 1.0e-6 * exp(-7.55e4/rg_ta)   ! m = o2
+  kf33m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_ta)   ! m = no
+  kf34m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_ta)   ! m = n
+  kf35m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_ta)   ! m = o
 
-  kb31m = (1.1d17/22.0d0) * 1.0d-6 * exp(-7.55d4/rg_t) / ke3_si
-  kb32m = (1.1d17/22.0d0) * 1.0d-6 * exp(-7.55d4/rg_t) / ke3_si
-  kb33m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_t) / ke3_si
-  kb34m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_t) / ke3_si
-  kb35m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_t) / ke3_si
+  kb31m = (1.1e17/22.00) * 1.0e-6 * exp(-7.55e4/rg_t) / ke3_si
+  kb32m = (1.1e17/22.00) * 1.0e-6 * exp(-7.55e4/rg_t) / ke3_si
+  kb33m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_t) / ke3_si
+  kb34m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_t) / ke3_si
+  kb35m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_t) / ke3_si
 
   kf3_eff = kf31m*rg_c(1) + kf32m*rg_c(2) + kf33m*rg_c(3) &
           + kf34m*rg_c(4) + kf35m*rg_c(5)
@@ -992,14 +992,14 @@ if (rg_nof_reactions == 6) then
 
   ! ---- r4: n2 + o <-> no + n (park exchange, table 1) ----
   !   kf = 6.4e7 t^{-1} exp(-38370/t), cm^3/(mol s)
-  kf4m = 6.4d7 * 1.0d-6 * (1.0d0/rg_t) * exp(-3.837d4/rg_t)
+  kf4m = 6.4e7 * 1.0e-6 * (1.00/rg_t) * exp(-3.837e4/rg_t)
   kb4m = kf4m / rg_ke4
 
   wdot(4) = kf4m*rg_c(1)*rg_c(5) - kb4m*rg_c(3)*rg_c(4)
 
   ! ---- r5: no + o <-> o2 + n (park exchange, table 1) ----
   !   kf = 8.4e12 exp(-19450/t), cm^3/(mol s)
-  kf5m = 8.4d12 * 1.0d-6 * exp(-1.945d4/rg_t)
+  kf5m = 8.4e12 * 1.0e-6 * exp(-1.945e4/rg_t)
   kb5m = kf5m / rg_ke5
 
   wdot(5) = kf5m*rg_c(3)*rg_c(5) - kb5m*rg_c(2)*rg_c(4)
@@ -1036,7 +1036,7 @@ if (rg_nof_reactions == 6) then
   nu(2,5) = +1
   nu(4,5) = +1
 
-  rg_dw_s(:) = 0.0d0
+  rg_dw_s(:) = 0.00
   do r = 1,5
      do s = 1,5
         rg_dw_s(s) = rg_dw_s(s) + nu(s,r) * rg_molm(s) * wdot(r)
@@ -1063,7 +1063,7 @@ end if
 
 	! optional tiny cutoff (for cleanliness, will not break stoichiometry)
 	do rg_i = 1, nof_species
-		if (abs(rg_dw_s(rg_i)) < 1.0d-50) rg_dw_s(rg_i) = 0.0d0
+		if (abs(rg_dw_s(rg_i)) < 1.0e-50) rg_dw_s(rg_i) = 0.00
 	end do
 
 
@@ -1075,21 +1075,21 @@ end if
   ! 1) millikan-white vt relaxation times (species 1..3)
   !-----------------------------------------------------------
   do rg_i = 1, 3
-     num = 0.0d0
-     den = 0.0d0
+     num = 0.00
+     den = 0.00
 
      do rg_j = 1, nof_species
-        if (rg_r(rg_j) <= 0.0d0) cycle
+        if (rg_r(rg_j) <= 0.00) cycle
 
         ! reduced mass μ_sr in amu
         mu_sr = rg_mass_amu(rg_i)*rg_mass_amu(rg_j) / (rg_mass_amu(rg_i)+rg_mass_amu(rg_j))
 
         ! mw coefficients
-        a_sr = 0.00116d0 * sqrt(mu_sr) * exp((4.0d0/3.0d0)*log(rg_thetag(rg_i)))
-        b_sr = 0.015d0   * sqrt(sqrt(mu_sr))
+        a_sr = 0.001160 * sqrt(mu_sr) * exp((4.00/3.00)*log(rg_thetag(rg_i)))
+        b_sr = 0.0150   * sqrt(sqrt(mu_sr))
 
         ! p * tau_sr in atm*s
-        log_p_tau = a_sr*(t_13 - b_sr) - 18.42d0
+        log_p_tau = a_sr*(t_13 - b_sr) - 18.420
         p_tau       = exp(log_p_tau)
 
         ! tau_sr [s]: p_tau has atm*s, divide by p in atm
@@ -1102,10 +1102,10 @@ end if
         den = den + (rg_r(rg_j)/rg_molm(rg_j))
      end do
 
-     if (num > 0.0d0 .and. den > 0.0d0) then
+     if (num > 0.00 .and. den > 0.00) then
         tau_mw(rg_i) = den / num
      else
-        tau_mw(rg_i) = 1.0d30
+        tau_mw(rg_i) = 1.0e30
      end if
 
 
@@ -1115,40 +1115,40 @@ end if
 
 
 
-  sigma0 = 3.0d-21    ! [m^2]
+  sigma0 = 3.0e-21    ! [m^2]
 
 
 
 
 ! number density [1/m^3] based on translational/rotational t
-n_tot = max(rg_pressure / (kb * rg_t),1.0d-300)   ! rg_t = t_tr
+n_tot = max(rg_pressure / (kb * rg_t),1.0e-300)   ! rg_t = t_tr
 
 ! single vibrational temperature for the mixture
          ! <-- your global vibrational temperature
 
 ! avoid non-physical tv
-tv_mix = max(rg_tv, 300.0d0)
+tv_mix = max(rg_tv, 300.00)
 
 ! park-style weighting between t and tv (0.7 is a common choice)
-q_ttv = 0.7d0
+q_ttv = 0.70
 
 ! effective two-temperature average (same for all species)
 ! geometric mean: t_eff = t^q * tv^(1-q)
 t_eff = tv_mix * exp(q_ttv * log(rg_t / tv_mix))
-t_eff = max(t_eff, 300.0d0)
+t_eff = max(t_eff, 300.00)
 
 do rg_i = 1, 3
    ! particle mass [kg/particle]
-   m_s = max(rg_molm(rg_i),1.0d-30) / na
+   m_s = max(rg_molm(rg_i),1.0e-30) / na
 
    ! effective cross-section using t_eff instead of rg_t
-   sigma_v = sigma0 * (50000.0d0 / t_eff)**2
+   sigma_v = sigma0 * (50000.00 / t_eff)**2
 
    ! thermal speed using t_eff
-   v_th = sqrt( 8.0d0 * kb * t_eff / (pi * m_s) )
+   v_th = sqrt( 8.00 * kb * t_eff / (pi * m_s) )
 
    ! tau_park [s]
-   tau_park(rg_i) = 1.0d0 / max(n_tot * sigma_v * v_th,1.0d-300)
+   tau_park(rg_i) = 1.00 / max(n_tot * sigma_v * v_th,1.0e-300)
 
 end do
 
@@ -1191,19 +1191,19 @@ end do
   taupk  = tau_park(rg_i)
 
   ! replace non-positive with 'disabled'
-  if (taumw <= 0.0d0) taumw = 1.0d30
-  if (taupk <= 0.0d0) taupk = 1.0d30
+  if (taumw <= 0.00) taumw = 1.0e30
+  if (taupk <= 0.00) taupk = 1.0e30
 
   ! now combine them safely
-  if (taumw >= 1.0d29 .and. taupk >= 1.0d29) then
+  if (taumw >= 1.0e29 .and. taupk >= 1.0e29) then
      ! both basically 'off'
-     tau_tot(rg_i) = 1.0d30
+     tau_tot(rg_i) = 1.0e30
 
-  elseif (taumw >= 1.0d29) then
+  elseif (taumw >= 1.0e29) then
      ! only park valid
      tau_tot(rg_i) = taupk
 
-  elseif (taupk >= 1.0d29) then
+  elseif (taupk >= 1.0e29) then
      ! only mw valid
      tau_tot(rg_i) = taumw
 
@@ -1224,19 +1224,19 @@ end do
   do rg_i = 1, 3
      rs         = rgs_ru / rg_molm(rg_i)
      exp_argtv  = rg_thetag(rg_i) / rg_tv
-     rg_ev(rg_i) = rs * rg_thetag(rg_i) / (exp(exp_argtv) - 1.0d0)
+     rg_ev(rg_i) = rs * rg_thetag(rg_i) / (exp(exp_argtv) - 1.00)
 
      exp_argt      = rg_thetag(rg_i) / rg_t
-     rg_ev_eq(rg_i)= rs * rg_thetag(rg_i) / (exp(exp_argt) - 1.0d0)
+     rg_ev_eq(rg_i)= rs * rg_thetag(rg_i) / (exp(exp_argt) - 1.00)
   end do
 
   !-----------------------------------------------------------
   ! 5) vt relaxation source: qtv
   !    qtv = sum_i rho_i (e_v_eq - e_v) / tau_i
   !-----------------------------------------------------------
-  rg_qtv = 0.0d0
+  rg_qtv = 0.00
   do rg_i = 1, 3
-     if (rg_tssum(rg_i) .gt. 0.0d0) then
+     if (rg_tssum(rg_i) .gt. 0.00) then
         rg_qtv = rg_qtv + rg_r(rg_i) * (rg_ev_eq(rg_i) - rg_ev(rg_i)) / rg_tssum(rg_i)
      end if
   end do
@@ -1245,7 +1245,7 @@ end do
   ! 6) reactive vibrational source: qw
   !    qw = sum_i (dw_i * e_v(tv))  (only vibrating species)
   !-----------------------------------------------------------
-  rg_qw = 0.0d0
+  rg_qw = 0.00
    do rg_i = 1, 3
       rg_qw = rg_qw + rg_dw_s(rg_i) * rg_ev(rg_i)
    end do
@@ -1260,12 +1260,12 @@ end do
   !      so it should not be removed from ρe (to conserve total energy).
   !   -> chemistry contributes q_chem via heats of formation.
   !-----------------------------------------------------------
-  source_r(1:nof_variables) = 0.0d0
+  source_r(1:nof_variables) = 0.00
 
   ! Chemical formation-energy rate. The conservative total energy already
   ! includes formation enthalpy through prim2cons/cons2prim, so this is not
   ! also added to the total-energy equation.
-  q_chem = 0.0d0
+  q_chem = 0.00
   do rg_i = 1, nof_species
      q_chem = q_chem + rg_dw_s(rg_i) * ( rg_hzero(rg_i) / rg_molm(rg_i) )
   end do
@@ -1276,7 +1276,7 @@ end do
 
   ! total energy equation: no chemistry source when formation enthalpy is
   ! carried in the conservative energy state.
-  source_r(idxe) = 0.0d0
+  source_r(idxe) = 0.00
 
   ! vibrational energy equation: vt + reactive vibrational source
   source_r(idxev) = rg_qtv + rg_qw
@@ -1291,43 +1291,43 @@ end do
 	! ------------------------------------------------------------
   ! diagonal source jacobian for implicit time stepping
   ! ------------------------------------------------------------
-  src_jac_diag(1:nof_variables) = 0.0d0
+  src_jac_diag(1:nof_variables) = 0.00
 
-  rho_min = 1.0d-20
+  rho_min = 1.0e-20
 
   ! --- species diagonal terms: ds_s / d(ρ_s) ≈ -(-ω_s / ρ_s) = ω_s / ρ_s ---
   do rg_i = 1, nof_species
-     if (rg_r(rg_i) > rho_min .and. rg_dw_s(rg_i) < 0.0d0) then
+     if (rg_r(rg_i) > rho_min .and. rg_dw_s(rg_i) < 0.00) then
         ! local destruction timescale τ_s = -ρ_s / ω_s  (ω_s < 0)
         lambda_s = -rg_dw_s(rg_i) / rg_r(rg_i)   ! [1/s]  > 0
         src_jac_diag(idxy1 + rg_i - 1) = -lambda_s
      else
-        src_jac_diag(idxy1 + rg_i - 1) = 0.0d0
+        src_jac_diag(idxy1 + rg_i - 1) = 0.00
      end if
   end do
 
   ! --- vibrational energy diagonal: ds_ev / d(ρev) ≈ -1/τ_v_mix ---
   ! use a simple mixture vt timescale based on tau_tot (or tau_mw) for n2,o2,no
-  tau_v_mix = 1.0d30
-  sumy      = 0.0d0
+  tau_v_mix = 1.0e30
+  sumy      = 0.00
 
   do rg_i = 1, 3   ! vibrating species: n2, o2, no
-     if (rg_r(rg_i) > rho_min .and. tau_tot(rg_i) < 1.0d29) then
+     if (rg_r(rg_i) > rho_min .and. tau_tot(rg_i) < 1.0e29) then
         yi       = rg_r(rg_i) / leftv(1)          ! y_i ≈ ρ_i/ρ
         sumy     = sumy + yi
         tau_v_mix = min(tau_v_mix, tau_tot(rg_i)) ! use most restrictive vt time
      end if
   end do
 
-  if (tau_v_mix < 1.0d29) then
-     src_jac_diag(idxev) = -1.0d0 / tau_v_mix
+  if (tau_v_mix < 1.0e29) then
+     src_jac_diag(idxev) = -1.00 / tau_v_mix
   else
-     src_jac_diag(idxev) = 0.0d0
+     src_jac_diag(idxev) = 0.00
   end if
 
   ! No direct total-energy chemistry source diagonal; chemistry stiffness is
   ! carried by species and vibrational-energy source diagonals.
-  src_jac_diag(idxe) = 0.0d0
+  src_jac_diag(idxe) = 0.00
 
 end subroutine sources_realgas
 
@@ -1388,10 +1388,10 @@ subroutine sources_realgas_pi(n,iconsidered)
   integer :: rg_molx
   real,dimension(1:gpu_max_species) :: rg_mass_amu
 
-  real, parameter :: kb = 1.380649d-23     ! boltzmann [j/k]
-  real, parameter :: na = 6.02214076d23    ! avogadro [1/mol]
-  real, parameter :: rg_exp_min = -700.0d0
-  real, parameter :: rg_exp_max =  700.0d0
+  real, parameter :: kb = 1.380649e-23     ! boltzmann [j/k]
+  real, parameter :: na = 6.02214076e23    ! avogadro [1/mol]
+  real, parameter :: rg_exp_min = -700.00
+  real, parameter :: rg_exp_max =  700.00
 
   real,dimension(1:gpu_max_species) :: tau_mw    !! millikan-white [s]
   real,dimension(1:gpu_max_species) :: tau_park  ! park [s]
@@ -1418,11 +1418,11 @@ subroutine sources_realgas_pi(n,iconsidered)
   ! ---------------------------------------------------------------------------
   i = iconsidered
 
-  source_r(1:nof_variables) = 0.0d0
-  src_jac_diag(1:nof_variables) = 0.0d0
-  tau_mw(:)   = 1.0d30
-  tau_park(:) = 1.0d30
-  tau_tot(:)  = 1.0d30
+  source_r(1:nof_variables) = 0.00
+  src_jac_diag(1:nof_variables) = 0.00
+  tau_mw(:)   = 1.0e30
+  tau_park(:) = 1.0e30
+  tau_tot(:)  = 1.0e30
   if (nof_species.ne.5) return
 
   !firstly the base values
@@ -1437,50 +1437,50 @@ subroutine sources_realgas_pi(n,iconsidered)
   !-----------------------------------------------------------
   ! get conservative variables and primitive variables
   !-----------------------------------------------------------
-  leftv(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+  leftv(1:nof_variables) = u_c_val(i,1,1:nof_variables)
 
 	  ! species densities ρ_s = ρ y_s
 	  do rg_i = 1, nof_species
-	     rg_r(rg_i) = max(leftv(dimensiona+3+rg_i),0.0d0)
+	     rg_r(rg_i) = max(leftv(dimensiona+3+rg_i),0.00)
 	  end do
 
   !-----------------------------------------------------------
   ! 1) molar concentrations c_s = rho_s / m_s
   !-----------------------------------------------------------
 	  do s = 1, 5
-	     rg_c(s) = rg_r(s) / max(rg_molm(s),1.0d-30)
+	     rg_c(s) = rg_r(s) / max(rg_molm(s),1.0e-30)
 	  end do
 
 	  call cons2prim(n,leftv,mp_pinfl,gammal)
 
-	  rg_pressure = max(leftv(dimensiona+2),1.0d-12)
-	  p_atm       = max(rg_pressure / rgs_pa_per_atm,1.0d-30)
+	  rg_pressure = max(leftv(dimensiona+2),1.0e-12)
+	  p_atm       = max(rg_pressure / rgs_pa_per_atm,1.0e-30)
 
 	  ! molar masses in kg/mol -> "amu-like" for mw reduced-mass formula
-	  rg_mass_amu(:) = 1.0d30
+	  rg_mass_amu(:) = 1.0e30
 	  do rg_i = 1, nof_species
-	     rg_mass_amu(rg_i) = max(rg_molm(rg_i),1.0d-30) * 1000.0d0
+	     rg_mass_amu(rg_i) = max(rg_molm(rg_i),1.0e-30) * 1000.00
 	  end do
 
-  tempvect(1:nof_variables) = u_c_val(1,1:nof_variables,i)
+  tempvect(1:nof_variables) = u_c_val(i,1,1:nof_variables)
   call cons2div(n,tempvect,mp_pinfl,gammal)
 
   ! leftv:   (ρ, u, v, ρe, ρev, ρy1..ρy5)
   ! tempvect:(ρ, u, v, ttr, tv, y1..y5)
 
 	  ! temperatures
-	  rg_t  = max(tempvect(dimensiona+2),50.0d0)   ! ttr
-	  rg_tv = max(tempvect(dimensiona+3),50.0d0)   ! tv
-	  rg_z  = 10000.0d0 / rg_t
-  t_13  = exp((-1.0d0/3.0d0)*log(rg_t))
+	  rg_t  = max(tempvect(dimensiona+2),50.00)   ! ttr
+	  rg_tv = max(tempvect(dimensiona+3),50.00)   ! tv
+	  rg_z  = 10000.00 / rg_t
+  t_13  = exp((-1.00/3.00)*log(rg_t))
 
   ! adjusted two-temperature model (candler/park style)
-  rg_ta = exp(0.6d0*log(rg_t) + 0.4d0*log(rg_tv))
+  rg_ta = exp(0.60*log(rg_t) + 0.40*log(rg_tv))
 
   ! flow speed (not used in source terms yet)
   velx = leftv(2)
   vely = leftv(3)
-  velz = 0.0d0
+  velz = 0.00
   if (dimensiona.eq.3) then
      velz = leftv(4)
   end if
@@ -1490,7 +1490,7 @@ subroutine sources_realgas_pi(n,iconsidered)
   ! chemical source: reaction rates (candler 5-reaction model)
   ! using ρ-based rate coefficients cf [m^3/(kg s)]
   !-----------------------------------------------------------
-  rg_dw_s(:) = 0.0d0
+  rg_dw_s(:) = 0.00
 
 
 
@@ -1501,18 +1501,18 @@ if (rg_nof_reactions == 5) then
   !
 
   ! equilibrium constants k_e(t) (candler curve fits, t = ttr)
-  rg_ke1 = exp(min(max(3.898d0 -12.611d0*rg_z +0.683d0*rg_z**2 -0.118d0*rg_z**3 +0.006d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke2 = exp(min(max(1.335d0 - 4.127d0*rg_z -0.616d0*rg_z**2 +0.093d0*rg_z**3 -0.005d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke3 = exp(min(max(1.549d0 - 7.784d0*rg_z +0.228d0*rg_z**2 -0.043d0*rg_z**3 +0.002d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke4 = exp(min(max(2.349d0 - 4.828d0*rg_z +0.455d0*rg_z**2 -0.075d0*rg_z**3 +0.004d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke5 = exp(min(max(0.215d0 - 3.652d0*rg_z +0.843d0*rg_z**2 -0.136d0*rg_z**3 +0.007d0*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke1 = exp(min(max(3.8980 -12.6110*rg_z +0.6830*rg_z**2 -0.1180*rg_z**3 +0.0060*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke2 = exp(min(max(1.3350 - 4.1270*rg_z -0.6160*rg_z**2 +0.0930*rg_z**3 -0.0050*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke3 = exp(min(max(1.5490 - 7.7840*rg_z +0.2280*rg_z**2 -0.0430*rg_z**3 +0.0020*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke4 = exp(min(max(2.3490 - 4.8280*rg_z +0.4550*rg_z**2 -0.0750*rg_z**3 +0.0040*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke5 = exp(min(max(0.2150 - 3.6520*rg_z +0.8430*rg_z**2 -0.1360*rg_z**3 +0.0070*rg_z**4,rg_exp_min),rg_exp_max))
 
   ! --- reaction 1: n2 + m <-> 2n + m (in m^3/mol/s) ---
-  kf11m = 3.78d18 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = n2
-  kf12m = 3.78d18 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = o2
-  kf13m = 3.78d18 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = no
-  kf14m = 1.11d18 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = n
-  kf15m = 1.11d18 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = o
+  kf11m = 3.78e18 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = n2
+  kf12m = 3.78e18 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = o2
+  kf13m = 3.78e18 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = no
+  kf14m = 1.11e18 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = n
+  kf15m = 1.11e18 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = o
 
   kb11m = kf11m / rg_ke1
   kb12m = kf12m / rg_ke1
@@ -1528,11 +1528,11 @@ if (rg_nof_reactions == 5) then
   wdot(1) = kf1_eff*rg_c(1) - kb1_eff*rg_c(4)**2   ! n2 + m <-> 2n + m
 
   ! --- reaction 2: o2 + m <-> 2o + m ---
-  kf21m = 2.75d16 * 1.0d-6 * (1.0d0/rg_ta) * exp(-5.95d4/rg_ta)   ! m = n2
-  kf22m = 2.75d16 * 1.0d-6 * (1.0d0/rg_ta) * exp(-5.95d4/rg_ta)   ! m = o2
-  kf23m = 2.75d16 * 1.0d-6 * (1.0d0/rg_ta) * exp(-5.95d4/rg_ta)   ! m = no
-  kf24m = 8.25d16 * 1.0d-6 * (1.0d0/rg_ta) * exp(-5.95d4/rg_ta)   ! m = n
-  kf25m = 8.25d16 * 1.0d-6 * (1.0d0/rg_ta) * exp(-5.95d4/rg_ta)   ! m = o
+  kf21m = 2.75e16 * 1.0e-6 * (1.00/rg_ta) * exp(-5.95e4/rg_ta)   ! m = n2
+  kf22m = 2.75e16 * 1.0e-6 * (1.00/rg_ta) * exp(-5.95e4/rg_ta)   ! m = o2
+  kf23m = 2.75e16 * 1.0e-6 * (1.00/rg_ta) * exp(-5.95e4/rg_ta)   ! m = no
+  kf24m = 8.25e16 * 1.0e-6 * (1.00/rg_ta) * exp(-5.95e4/rg_ta)   ! m = n
+  kf25m = 8.25e16 * 1.0e-6 * (1.00/rg_ta) * exp(-5.95e4/rg_ta)   ! m = o
 
   kb21m = kf21m / rg_ke2
   kb22m = kf22m / rg_ke2
@@ -1548,11 +1548,11 @@ if (rg_nof_reactions == 5) then
   wdot(2) = kf2_eff*rg_c(2) - kb2_eff*rg_c(5)**2   ! o2 + m <-> 2o + m
 
   ! --- reaction 3: no + m <-> n + o + m ---
-  kf31m = 2.30d14 * 1.0d-6 * (1.0d0/sqrt(rg_ta)) * exp(-7.55d4/rg_ta)   ! m = n2
-  kf32m = 2.30d14 * 1.0d-6 * (1.0d0/sqrt(rg_ta)) * exp(-7.55d4/rg_ta)   ! m = o2
-  kf33m = 2.30d14 * 1.0d-6 * (1.0d0/sqrt(rg_ta)) * exp(-7.55d4/rg_ta)   ! m = no
-  kf34m = 4.60d14 * 1.0d-6 * (1.0d0/sqrt(rg_ta)) * exp(-7.55d4/rg_ta)   ! m = n
-  kf35m = 4.60d14 * 1.0d-6 * (1.0d0/sqrt(rg_ta)) * exp(-7.55d4/rg_ta)   ! m = o
+  kf31m = 2.30e14 * 1.0e-6 * (1.00/sqrt(rg_ta)) * exp(-7.55e4/rg_ta)   ! m = n2
+  kf32m = 2.30e14 * 1.0e-6 * (1.00/sqrt(rg_ta)) * exp(-7.55e4/rg_ta)   ! m = o2
+  kf33m = 2.30e14 * 1.0e-6 * (1.00/sqrt(rg_ta)) * exp(-7.55e4/rg_ta)   ! m = no
+  kf34m = 4.60e14 * 1.0e-6 * (1.00/sqrt(rg_ta)) * exp(-7.55e4/rg_ta)   ! m = n
+  kf35m = 4.60e14 * 1.0e-6 * (1.00/sqrt(rg_ta)) * exp(-7.55e4/rg_ta)   ! m = o
 
   kb31m = kf31m / rg_ke3
   kb32m = kf32m / rg_ke3
@@ -1568,13 +1568,13 @@ if (rg_nof_reactions == 5) then
   wdot(3) = kf3_eff*rg_c(3) - kb3_eff*rg_c(4)*rg_c(5) ! no + m <-> n + o + m
 
   ! --- reaction 4: n2 + o <-> no + n (bimolecular, 2-body) ---
-  kf4m = 3.18d10 * 1.0d-6 * exp(0.1d0*log(rg_ta)) * exp(-3.77d4/rg_ta)
+  kf4m = 3.18e10 * 1.0e-6 * exp(0.10*log(rg_ta)) * exp(-3.77e4/rg_ta)
   kb4m = kf4m / rg_ke4
 
   wdot(4) = kf4m*rg_c(1)*rg_c(5) - kb4m*rg_c(3)*rg_c(4)
 
   ! --- reaction 5: no + o <-> o2 + n (bimolecular) ---
-  kf5m = 2.16d5 * 1.0d-6 * exp(1.29d0*log(rg_ta)) * exp(-1.922d4/rg_ta)
+  kf5m = 2.16e5 * 1.0e-6 * exp(1.290*log(rg_ta)) * exp(-1.922e4/rg_ta)
   kb5m = kf5m / rg_ke5
 
   wdot(5) = kf5m*rg_c(3)*rg_c(5) - kb5m*rg_c(2)*rg_c(4)
@@ -1611,7 +1611,7 @@ if (rg_nof_reactions == 5) then
   nu(2,5) = +1
   nu(4,5) = +1
 
-  rg_dw_s(:) = 0.0d0
+  rg_dw_s(:) = 0.00
   do r = 1,5
      do s = 1,5
         rg_dw_s(s) = rg_dw_s(s) + nu(s,r) * rg_molm(s) * wdot(r)
@@ -1632,32 +1632,32 @@ if (rg_nof_reactions == 6) then
   !
 
   ! equilibrium constants (keep your candler curve-fits)
-  rg_ke1 = exp(min(max(3.898d0 -12.611d0*rg_z +0.683d0*rg_z**2 -0.118d0*rg_z**3 +0.006d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke2 = exp(min(max(1.335d0 - 4.127d0*rg_z -0.616d0*rg_z**2 +0.093d0*rg_z**3 -0.005d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke3 = exp(min(max(1.549d0 - 7.784d0*rg_z +0.228d0*rg_z**2 -0.043d0*rg_z**3 +0.002d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke4 = exp(min(max(2.349d0 - 4.828d0*rg_z +0.455d0*rg_z**2 -0.075d0*rg_z**3 +0.004d0*rg_z**4,rg_exp_min),rg_exp_max))
-  rg_ke5 = exp(min(max(0.215d0 - 3.652d0*rg_z +0.843d0*rg_z**2 -0.136d0*rg_z**3 +0.007d0*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke1 = exp(min(max(3.8980 -12.6110*rg_z +0.6830*rg_z**2 -0.1180*rg_z**3 +0.0060*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke2 = exp(min(max(1.3350 - 4.1270*rg_z -0.6160*rg_z**2 +0.0930*rg_z**3 -0.0050*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke3 = exp(min(max(1.5490 - 7.7840*rg_z +0.2280*rg_z**2 -0.0430*rg_z**3 +0.0020*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke4 = exp(min(max(2.3490 - 4.8280*rg_z +0.4550*rg_z**2 -0.0750*rg_z**3 +0.0040*rg_z**4,rg_exp_min),rg_exp_max))
+  rg_ke5 = exp(min(max(0.2150 - 3.6520*rg_z +0.8430*rg_z**2 -0.1360*rg_z**3 +0.0070*rg_z**4,rg_exp_min),rg_exp_max))
 
   ! Dissociation Keq curve fits are cgs concentration based.  The code uses mol/m^3.
-  ke1_si = rg_ke1 * 1.0d6
-  ke2_si = rg_ke2 * 1.0d6
-  ke3_si = rg_ke3 * 1.0d6
+  ke1_si = rg_ke1 * 1.0e6
+  ke2_si = rg_ke2 * 1.0e6
+  ke3_si = rg_ke3 * 1.0e6
 
   ! ---- r1: n2 + m <-> 2n + m (park 2t, table 1) ----
   !   kf = c_m t_a^{-1.6} exp(-113200/t_a), cm^3/(mol s)
   !   m = n2,o2,no : c = 7.0e21
   !   m = n,o      : c = 3.0e22
-  kf11m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = n2
-  kf12m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = o2
-  kf13m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = no
-  kf14m = 3.0d22 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = n
-  kf15m = 3.0d22 * 1.0d-6 * exp(-1.6d0*log(rg_ta)) * exp(-1.132d5/rg_ta)  ! m = o
+  kf11m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = n2
+  kf12m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = o2
+  kf13m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = no
+  kf14m = 3.0e22 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = n
+  kf15m = 3.0e22 * 1.0e-6 * exp(-1.60*log(rg_ta)) * exp(-1.132e5/rg_ta)  ! m = o
 
-  kb11m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_t)) * exp(-1.132d5/rg_t) / ke1_si
-  kb12m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_t)) * exp(-1.132d5/rg_t) / ke1_si
-  kb13m = 7.0d21 * 1.0d-6 * exp(-1.6d0*log(rg_t)) * exp(-1.132d5/rg_t) / ke1_si
-  kb14m = 3.0d22 * 1.0d-6 * exp(-1.6d0*log(rg_t)) * exp(-1.132d5/rg_t) / ke1_si
-  kb15m = 3.0d22 * 1.0d-6 * exp(-1.6d0*log(rg_t)) * exp(-1.132d5/rg_t) / ke1_si
+  kb11m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_t)) * exp(-1.132e5/rg_t) / ke1_si
+  kb12m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_t)) * exp(-1.132e5/rg_t) / ke1_si
+  kb13m = 7.0e21 * 1.0e-6 * exp(-1.60*log(rg_t)) * exp(-1.132e5/rg_t) / ke1_si
+  kb14m = 3.0e22 * 1.0e-6 * exp(-1.60*log(rg_t)) * exp(-1.132e5/rg_t) / ke1_si
+  kb15m = 3.0e22 * 1.0e-6 * exp(-1.60*log(rg_t)) * exp(-1.132e5/rg_t) / ke1_si
 
   kf1_eff = kf11m*rg_c(1) + kf12m*rg_c(2) + kf13m*rg_c(3) &
           + kf14m*rg_c(4) + kf15m*rg_c(5)
@@ -1670,17 +1670,17 @@ if (rg_nof_reactions == 6) then
   !   kf = c_m t_a^{-1.5} exp(-59500/t_a), cm^3/(mol s)
   !   m = n2,o2,no : c = 2.0e21
   !   m = n,o      : c = 1.0e22
-  kf21m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_ta*sqrt(rg_ta))) * exp(-5.95d4/rg_ta)   ! m = n2
-  kf22m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_ta*sqrt(rg_ta))) * exp(-5.95d4/rg_ta)   ! m = o2
-  kf23m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_ta*sqrt(rg_ta))) * exp(-5.95d4/rg_ta)   ! m = no
-  kf24m = 1.0d22 * 1.0d-6 * (1.0d0/(rg_ta*sqrt(rg_ta))) * exp(-5.95d4/rg_ta)   ! m = n
-  kf25m = 1.0d22 * 1.0d-6 * (1.0d0/(rg_ta*sqrt(rg_ta))) * exp(-5.95d4/rg_ta)   ! m = o
+  kf21m = 2.0e21 * 1.0e-6 * (1.00/(rg_ta*sqrt(rg_ta))) * exp(-5.95e4/rg_ta)   ! m = n2
+  kf22m = 2.0e21 * 1.0e-6 * (1.00/(rg_ta*sqrt(rg_ta))) * exp(-5.95e4/rg_ta)   ! m = o2
+  kf23m = 2.0e21 * 1.0e-6 * (1.00/(rg_ta*sqrt(rg_ta))) * exp(-5.95e4/rg_ta)   ! m = no
+  kf24m = 1.0e22 * 1.0e-6 * (1.00/(rg_ta*sqrt(rg_ta))) * exp(-5.95e4/rg_ta)   ! m = n
+  kf25m = 1.0e22 * 1.0e-6 * (1.00/(rg_ta*sqrt(rg_ta))) * exp(-5.95e4/rg_ta)   ! m = o
 
-  kb21m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_t*sqrt(rg_t))) * exp(-5.95d4/rg_t) / ke2_si
-  kb22m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_t*sqrt(rg_t))) * exp(-5.95d4/rg_t) / ke2_si
-  kb23m = 2.0d21 * 1.0d-6 * (1.0d0/(rg_t*sqrt(rg_t))) * exp(-5.95d4/rg_t) / ke2_si
-  kb24m = 1.0d22 * 1.0d-6 * (1.0d0/(rg_t*sqrt(rg_t))) * exp(-5.95d4/rg_t) / ke2_si
-  kb25m = 1.0d22 * 1.0d-6 * (1.0d0/(rg_t*sqrt(rg_t))) * exp(-5.95d4/rg_t) / ke2_si
+  kb21m = 2.0e21 * 1.0e-6 * (1.00/(rg_t*sqrt(rg_t))) * exp(-5.95e4/rg_t) / ke2_si
+  kb22m = 2.0e21 * 1.0e-6 * (1.00/(rg_t*sqrt(rg_t))) * exp(-5.95e4/rg_t) / ke2_si
+  kb23m = 2.0e21 * 1.0e-6 * (1.00/(rg_t*sqrt(rg_t))) * exp(-5.95e4/rg_t) / ke2_si
+  kb24m = 1.0e22 * 1.0e-6 * (1.00/(rg_t*sqrt(rg_t))) * exp(-5.95e4/rg_t) / ke2_si
+  kb25m = 1.0e22 * 1.0e-6 * (1.00/(rg_t*sqrt(rg_t))) * exp(-5.95e4/rg_t) / ke2_si
 
   kf2_eff = kf21m*rg_c(1) + kf22m*rg_c(2) + kf23m*rg_c(3) &
           + kf24m*rg_c(4) + kf25m*rg_c(5)
@@ -1693,17 +1693,17 @@ if (rg_nof_reactions == 6) then
   !   kf ≈ c_m t_a^{0} exp(-75500/t_a), cm^3/(mol s)
   !   m = no,o,n : c = 1.1e17
   !   m = n2,o2 : c = (1/22)*1.1e17  [koshi]
-  kf31m = (1.1d17/22.0d0) * 1.0d-6 * exp(-7.55d4/rg_ta)   ! m = n2
-  kf32m = (1.1d17/22.0d0) * 1.0d-6 * exp(-7.55d4/rg_ta)   ! m = o2
-  kf33m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_ta)   ! m = no
-  kf34m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_ta)   ! m = n
-  kf35m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_ta)   ! m = o
+  kf31m = (1.1e17/22.00) * 1.0e-6 * exp(-7.55e4/rg_ta)   ! m = n2
+  kf32m = (1.1e17/22.00) * 1.0e-6 * exp(-7.55e4/rg_ta)   ! m = o2
+  kf33m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_ta)   ! m = no
+  kf34m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_ta)   ! m = n
+  kf35m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_ta)   ! m = o
 
-  kb31m = (1.1d17/22.0d0) * 1.0d-6 * exp(-7.55d4/rg_t) / ke3_si
-  kb32m = (1.1d17/22.0d0) * 1.0d-6 * exp(-7.55d4/rg_t) / ke3_si
-  kb33m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_t) / ke3_si
-  kb34m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_t) / ke3_si
-  kb35m =  1.1d17        * 1.0d-6 * exp(-7.55d4/rg_t) / ke3_si
+  kb31m = (1.1e17/22.00) * 1.0e-6 * exp(-7.55e4/rg_t) / ke3_si
+  kb32m = (1.1e17/22.00) * 1.0e-6 * exp(-7.55e4/rg_t) / ke3_si
+  kb33m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_t) / ke3_si
+  kb34m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_t) / ke3_si
+  kb35m =  1.1e17        * 1.0e-6 * exp(-7.55e4/rg_t) / ke3_si
 
   kf3_eff = kf31m*rg_c(1) + kf32m*rg_c(2) + kf33m*rg_c(3) &
           + kf34m*rg_c(4) + kf35m*rg_c(5)
@@ -1714,14 +1714,14 @@ if (rg_nof_reactions == 6) then
 
   ! ---- r4: n2 + o <-> no + n (park exchange, table 1) ----
   !   kf = 6.4e7 t^{-1} exp(-38370/t), cm^3/(mol s)
-  kf4m = 6.4d7 * 1.0d-6 * (1.0d0/rg_t) * exp(-3.837d4/rg_t)
+  kf4m = 6.4e7 * 1.0e-6 * (1.00/rg_t) * exp(-3.837e4/rg_t)
   kb4m = kf4m / rg_ke4
 
   wdot(4) = kf4m*rg_c(1)*rg_c(5) - kb4m*rg_c(3)*rg_c(4)
 
   ! ---- r5: no + o <-> o2 + n (park exchange, table 1) ----
   !   kf = 8.4e12 exp(-19450/t), cm^3/(mol s)
-  kf5m = 8.4d12 * 1.0d-6 * exp(-1.945d4/rg_t)
+  kf5m = 8.4e12 * 1.0e-6 * exp(-1.945e4/rg_t)
   kb5m = kf5m / rg_ke5
 
   wdot(5) = kf5m*rg_c(3)*rg_c(5) - kb5m*rg_c(2)*rg_c(4)
@@ -1758,7 +1758,7 @@ if (rg_nof_reactions == 6) then
   nu(2,5) = +1
   nu(4,5) = +1
 
-  rg_dw_s(:) = 0.0d0
+  rg_dw_s(:) = 0.00
   do r = 1,5
      do s = 1,5
         rg_dw_s(s) = rg_dw_s(s) + nu(s,r) * rg_molm(s) * wdot(r)
@@ -1777,34 +1777,34 @@ end if
 
 
 
-  rg_rho_min = 1.0d-20    ! or whatever you use as "zero" density
-  rg_alpha   = 1.0d0
-  dt_loc = max(ielem_dtl(iconsidered),1.0d-30)
+  rg_rho_min = 1.0e-20    ! or whatever you use as "zero" density
+  rg_alpha   = 1.00
+  dt_loc = max(ielem_dtl(iconsidered),1.0e-30)
 
 	! first: compute most restrictive scaling factor alpha
 	do rg_i = 1, nof_species
 
 		! if density is essentially zero, don't allow further destruction
-		if (rg_r(rg_i) <= rg_rho_min .and. rg_dw_s(rg_i) < 0.0d0) then
-			rg_alpha = 0.0d0
+		if (rg_r(rg_i) <= rg_rho_min .and. rg_dw_s(rg_i) < 0.00) then
+			rg_alpha = 0.00
 			cycle
 		end if
 
 		! only destruction can cause negativity
-		if (rg_dw_s(rg_i) < 0.0d0) then
+		if (rg_dw_s(rg_i) < 0.00) then
 			! Keep the point-implicit source update positive while preserving
 			! stoichiometry by scaling the full production vector.
-			rg_alpha_i = 0.9d0 * rg_r(rg_i) / max(-dt_loc * rg_dw_s(rg_i),1.0d-300)
+			rg_alpha_i = 0.90 * rg_r(rg_i) / max(-dt_loc * rg_dw_s(rg_i),1.0e-300)
 			rg_alpha = min(rg_alpha,rg_alpha_i)
 		end if
 	end do
 
 	! clamp alpha to [0,1]
-	if (rg_alpha > 1.0d0) rg_alpha = 1.0d0
-	if (rg_alpha < 0.0d0) rg_alpha = 0.0d0
+	if (rg_alpha > 1.00) rg_alpha = 1.00
+	if (rg_alpha < 0.00) rg_alpha = 0.00
 
 	! second: apply scaling if needed
-	if (rg_alpha < 1.0d0) then
+	if (rg_alpha < 1.00) then
 		do rg_i = 1, nof_species
 			rg_dw_s(rg_i) = rg_alpha * rg_dw_s(rg_i)
 		end do
@@ -1812,7 +1812,7 @@ end if
 
 	! optional tiny cutoff (for cleanliness, will not break stoichiometry)
 	do rg_i = 1, nof_species
-		if (abs(rg_dw_s(rg_i)) < 1.0d-50) rg_dw_s(rg_i) = 0.0d0
+		if (abs(rg_dw_s(rg_i)) < 1.0e-50) rg_dw_s(rg_i) = 0.00
 	end do
 
 
@@ -1824,21 +1824,21 @@ end if
   ! 1) millikan-white vt relaxation times (species 1..3)
   !-----------------------------------------------------------
   do rg_i = 1, 3
-     num = 0.0d0
-     den = 0.0d0
+     num = 0.00
+     den = 0.00
 
      do rg_j = 1, nof_species
-        if (rg_r(rg_j) <= 0.0d0) cycle
+        if (rg_r(rg_j) <= 0.00) cycle
 
         ! reduced mass μ_sr in amu
         mu_sr = rg_mass_amu(rg_i)*rg_mass_amu(rg_j) / (rg_mass_amu(rg_i)+rg_mass_amu(rg_j))
 
         ! mw coefficients
-        a_sr = 0.00116d0 * sqrt(mu_sr) * exp((4.0d0/3.0d0)*log(rg_thetag(rg_i)))
-        b_sr = 0.015d0   * sqrt(sqrt(mu_sr))
+        a_sr = 0.001160 * sqrt(mu_sr) * exp((4.00/3.00)*log(rg_thetag(rg_i)))
+        b_sr = 0.0150   * sqrt(sqrt(mu_sr))
 
         ! p * tau_sr in atm*s
-        log_p_tau = a_sr*(t_13 - b_sr) - 18.42d0
+        log_p_tau = a_sr*(t_13 - b_sr) - 18.420
         p_tau       = exp(log_p_tau)
 
         ! tau_sr [s]: p_tau has atm*s, divide by p in atm
@@ -1851,10 +1851,10 @@ end if
         den = den + (rg_r(rg_j)/rg_molm(rg_j))
      end do
 
-     if (num > 0.0d0 .and. den > 0.0d0) then
+     if (num > 0.00 .and. den > 0.00) then
         tau_mw(rg_i) = den / num
      else
-        tau_mw(rg_i) = 1.0d30
+        tau_mw(rg_i) = 1.0e30
      end if
 
 
@@ -1864,40 +1864,40 @@ end if
 
 
 
-  sigma0 = 3.0d-21    ! [m^2]
+  sigma0 = 3.0e-21    ! [m^2]
 
 
 
 
 ! number density [1/m^3] based on translational/rotational t
-n_tot = max(rg_pressure / (kb * rg_t),1.0d-300)   ! rg_t = t_tr
+n_tot = max(rg_pressure / (kb * rg_t),1.0e-300)   ! rg_t = t_tr
 
 ! single vibrational temperature for the mixture
          ! <-- your global vibrational temperature
 
 ! avoid non-physical tv
-tv_mix = max(rg_tv, 300.0d0)
+tv_mix = max(rg_tv, 300.00)
 
 ! park-style weighting between t and tv (0.7 is a common choice)
-q_ttv = 0.7d0
+q_ttv = 0.70
 
 ! effective two-temperature average (same for all species)
 ! geometric mean: t_eff = t^q * tv^(1-q)
 t_eff = tv_mix * exp(q_ttv * log(rg_t / tv_mix))
-t_eff = max(t_eff, 300.0d0)
+t_eff = max(t_eff, 300.00)
 
 do rg_i = 1, 3
    ! particle mass [kg/particle]
-   m_s = max(rg_molm(rg_i),1.0d-30) / na
+   m_s = max(rg_molm(rg_i),1.0e-30) / na
 
    ! effective cross-section using t_eff instead of rg_t
-   sigma_v = sigma0 * (50000.0d0 / t_eff)**2
+   sigma_v = sigma0 * (50000.00 / t_eff)**2
 
    ! thermal speed using t_eff
-   v_th = sqrt( 8.0d0 * kb * t_eff / (pi * m_s) )
+   v_th = sqrt( 8.00 * kb * t_eff / (pi * m_s) )
 
    ! tau_park [s]
-   tau_park(rg_i) = 1.0d0 / max(n_tot * sigma_v * v_th,1.0d-300)
+   tau_park(rg_i) = 1.00 / max(n_tot * sigma_v * v_th,1.0e-300)
 
 end do
 
@@ -1940,19 +1940,19 @@ end do
   taupk  = tau_park(rg_i)
 
   ! replace non-positive with 'disabled'
-  if (taumw <= 0.0d0) taumw = 1.0d30
-  if (taupk <= 0.0d0) taupk = 1.0d30
+  if (taumw <= 0.00) taumw = 1.0e30
+  if (taupk <= 0.00) taupk = 1.0e30
 
   ! now combine them safely
-  if (taumw >= 1.0d29 .and. taupk >= 1.0d29) then
+  if (taumw >= 1.0e29 .and. taupk >= 1.0e29) then
      ! both basically 'off'
-     tau_tot(rg_i) = 1.0d30
+     tau_tot(rg_i) = 1.0e30
 
-  elseif (taumw >= 1.0d29) then
+  elseif (taumw >= 1.0e29) then
      ! only park valid
      tau_tot(rg_i) = taupk
 
-  elseif (taupk >= 1.0d29) then
+  elseif (taupk >= 1.0e29) then
      ! only mw valid
      tau_tot(rg_i) = taumw
 
@@ -1973,19 +1973,19 @@ end do
   do rg_i = 1, 3
      rs         = rgs_ru / rg_molm(rg_i)
      exp_argtv  = rg_thetag(rg_i) / rg_tv
-     rg_ev(rg_i) = rs * rg_thetag(rg_i) / (exp(exp_argtv) - 1.0d0)
+     rg_ev(rg_i) = rs * rg_thetag(rg_i) / (exp(exp_argtv) - 1.00)
 
      exp_argt      = rg_thetag(rg_i) / rg_t
-     rg_ev_eq(rg_i)= rs * rg_thetag(rg_i) / (exp(exp_argt) - 1.0d0)
+     rg_ev_eq(rg_i)= rs * rg_thetag(rg_i) / (exp(exp_argt) - 1.00)
   end do
 
   !-----------------------------------------------------------
   ! 5) vt relaxation source: qtv
   !    qtv = sum_i rho_i (e_v_eq - e_v) / tau_i
   !-----------------------------------------------------------
-  rg_qtv = 0.0d0
+  rg_qtv = 0.00
   do rg_i = 1, 3
-     if (rg_tssum(rg_i) .gt. 0.0d0) then
+     if (rg_tssum(rg_i) .gt. 0.00) then
         rg_qtv = rg_qtv + rg_r(rg_i) * (rg_ev_eq(rg_i) - rg_ev(rg_i)) / rg_tssum(rg_i)
      end if
   end do
@@ -1994,7 +1994,7 @@ end do
   ! 6) reactive vibrational source: qw
   !    qw = sum_i (dw_i * e_v(tv))  (only vibrating species)
   !-----------------------------------------------------------
-  rg_qw = 0.0d0
+  rg_qw = 0.00
    do rg_i = 1, 3
       rg_qw = rg_qw + rg_dw_s(rg_i) * rg_ev(rg_i)
    end do
@@ -2009,12 +2009,12 @@ end do
   !      so it should not be removed from ρe (to conserve total energy).
   !   -> chemistry contributes q_chem via heats of formation.
   !-----------------------------------------------------------
-  source_r(1:nof_variables) = 0.0d0
+  source_r(1:nof_variables) = 0.00
 
   ! Chemical formation-energy rate. The conservative total energy already
   ! includes formation enthalpy through prim2cons/cons2prim, so this is not
   ! also added to the total-energy equation.
-  q_chem = 0.0d0
+  q_chem = 0.00
   do rg_i = 1, nof_species
      q_chem = q_chem + rg_dw_s(rg_i) * ( rg_hzero(rg_i) / rg_molm(rg_i) )
   end do
@@ -2025,7 +2025,7 @@ end do
 
   ! total energy equation: no chemistry source when formation enthalpy is
   ! carried in the conservative energy state.
-  source_r(idxe) = 0.0d0
+  source_r(idxe) = 0.00
 
   ! vibrational energy equation: vt + reactive vibrational source
   source_r(idxev) = rg_qtv + rg_qw
@@ -2040,48 +2040,48 @@ end do
 	! ------------------------------------------------------------
   ! diagonal source jacobian for implicit time stepping
   ! ------------------------------------------------------------
-  src_jac_diag(1:nof_variables) = 0.0d0
+  src_jac_diag(1:nof_variables) = 0.00
 
-  rho_min = 1.0d-20
+  rho_min = 1.0e-20
 
   ! --- species diagonal terms: ds_s / d(ρ_s) ≈ -(-ω_s / ρ_s) = ω_s / ρ_s ---
   do rg_i = 1, nof_species
-     if (rg_r(rg_i) > rho_min .and. rg_dw_s(rg_i) < 0.0d0) then
+     if (rg_r(rg_i) > rho_min .and. rg_dw_s(rg_i) < 0.00) then
         ! local destruction timescale τ_s = -ρ_s / ω_s  (ω_s < 0)
         lambda_s = -rg_dw_s(rg_i) / rg_r(rg_i)   ! [1/s]  > 0
         src_jac_diag(idxy1 + rg_i - 1) = -lambda_s
      else
-        src_jac_diag(idxy1 + rg_i - 1) = 0.0d0
+        src_jac_diag(idxy1 + rg_i - 1) = 0.00
      end if
   end do
 
   ! --- vibrational energy diagonal: ds_ev / d(ρev) ≈ -1/τ_v_mix ---
   ! use a simple mixture vt timescale based on tau_tot (or tau_mw) for n2,o2,no
-  tau_v_mix = 1.0d30
-  sumy      = 0.0d0
+  tau_v_mix = 1.0e30
+  sumy      = 0.00
 
   do rg_i = 1, 3   ! vibrating species: n2, o2, no
-     if (rg_r(rg_i) > rho_min .and. tau_tot(rg_i) < 1.0d29) then
+     if (rg_r(rg_i) > rho_min .and. tau_tot(rg_i) < 1.0e29) then
         yi       = rg_r(rg_i) / leftv(1)          ! y_i ≈ ρ_i/ρ
         sumy     = sumy + yi
         tau_v_mix = min(tau_v_mix, tau_tot(rg_i)) ! use most restrictive vt time
      end if
   end do
 
-  if (tau_v_mix < 1.0d29) then
-     src_jac_diag(idxev) = -1.0d0 / tau_v_mix
+  if (tau_v_mix < 1.0e29) then
+     src_jac_diag(idxev) = -1.00 / tau_v_mix
   else
-     src_jac_diag(idxev) = 0.0d0
+     src_jac_diag(idxev) = 0.00
   end if
 
   ! No direct total-energy chemistry source diagonal; chemistry stiffness is
   ! carried by species and vibrational-energy source diagonals.
-  src_jac_diag(idxe) = 0.0d0
+  src_jac_diag(idxe) = 0.00
 
 	  if ((rungekutta.eq.5).or.(rungekutta.ge.10))then
-	    dt_loc = max(ielem_dtl(i),1.0d-30)
+	    dt_loc = max(ielem_dtl(i),1.0e-30)
 	  else
-	    dt_loc = max(dt,1.0d-30)
+	    dt_loc = max(dt,1.0e-30)
 	  end if
 
 
@@ -2101,9 +2101,9 @@ end do
    !   rhoe  -= dt * (rhs_e / v)
    ! ==> rhoe += dt * q_chem
    !
-   rhoe_old = u_c_val(1,dimensiona+2,i)
+   rhoe_old = u_c_val(i,1,dimensiona+2)
    rhoe_new = rhoe_old + dt_loc * q_chem
-   u_c_val(1,dimensiona+2,i) = rhoe_new
+   u_c_val(i,1,dimensiona+2) = rhoe_new
 
    ! ----------------------------
    ! (b) vibrational energy: vt relaxation + reactive vib source
@@ -2114,7 +2114,7 @@ end do
    !
 
 
-   rhoev_old = u_c_val(1,dimensiona+3,i)
+   rhoev_old = u_c_val(i,1,dimensiona+3)
 
    ! Backward-Euler scalar approximation to
    !   d(rhoev)/dt = sum_s rho_s * (ev_eq_s - ev_s) / tau_s + rg_qw
@@ -2127,28 +2127,28 @@ end do
    !   b_v      = sum_s rho_s * ev_eq_s / tau_s
    !   lambda_v = (sum_s rho_s / tau_s) / rho_vib
 
-   rho_vib = 0.0d0
-   b_v     = 0.0d0
-   kvt     = 0.0d0
+   rho_vib = 0.00
+   b_v     = 0.00
+   kvt     = 0.00
 
    do rg_i = 1, 3
-      if (rg_r(rg_i) > rho_min .and. tau_tot(rg_i) < 1.0d29) then
+      if (rg_r(rg_i) > rho_min .and. tau_tot(rg_i) < 1.0e29) then
          rho_vib = rho_vib + rg_r(rg_i)
          b_v     = b_v     + rg_r(rg_i) * rg_ev_eq(rg_i) / tau_tot(rg_i)
          kvt     = kvt     + rg_r(rg_i) / tau_tot(rg_i)
       end if
    end do
 
-   if (rho_vib > rho_min .and. kvt > 0.0d0) then
+   if (rho_vib > rho_min .and. kvt > 0.00) then
       lambda_v  = kvt / rho_vib
       alpha_v   = dt_loc * lambda_v
-      rhoev_new = (rhoev_old + dt_loc * (b_v + rg_qw)) / (1.0d0 + alpha_v)
+      rhoev_new = (rhoev_old + dt_loc * (b_v + rg_qw)) / (1.00 + alpha_v)
    else
       rhoev_new = rhoev_old + dt_loc * rg_qw   ! no vt exchange, only reactive vib
    end if
 
-   if (rhoev_new < 0.0d0) rhoev_new = 0.0d0
-   u_c_val(1,dimensiona+3,i) = rhoev_new
+   if (rhoev_new < 0.00) rhoev_new = 0.00
+   u_c_val(i,1,dimensiona+3) = rhoev_new
 
 
 
@@ -2163,30 +2163,30 @@ end do
 	   ! so applying the same increment to every species keeps the reaction
 	   ! stoichiometry intact.  Do not use one species as a closure reservoir:
 	   ! that can preserve sum(Y)=1 while creating pure-species cells.
-	   rho = u_c_val(1,1,i)
+	   rho = u_c_val(i,1,1)
 	   if (rho <= rho_min) then
 	      rho = rho_min
-	      u_c_val(1,1,i) = rho
+	      u_c_val(i,1,1) = rho
 	   end if
 
-	   sumrhoy = 0.0d0
+	   sumrhoy = 0.00
 	   do k = 1, nof_species
 	      idx = dimensiona + 3 + k
-	      rhoy_new = u_c_val(1,idx,i) + dt_loc * rg_dw_s(k)
-	      if (rhoy_new < 0.0d0) rhoy_new = 0.0d0
-	      u_c_val(1,idx,i) = rhoy_new
+	      rhoy_new = u_c_val(i,1,idx) + dt_loc * rg_dw_s(k)
+	      if (rhoy_new < 0.00) rhoy_new = 0.00
+	      u_c_val(i,1,idx) = rhoy_new
 	      sumrhoy = sumrhoy + rhoy_new
 	   end do
 
 	   if (sumrhoy > rho_min) then
 	      do k = 1, nof_species
 	         idx = dimensiona + 3 + k
-	         u_c_val(1,idx,i) = rho * u_c_val(1,idx,i) / sumrhoy
+	         u_c_val(i,1,idx) = rho * u_c_val(i,1,idx) / sumrhoy
 	      end do
 	   else
 	      do k = 1, nof_species
 	         idx = dimensiona + 3 + k
-	         u_c_val(1,idx,i) = rho * rg_vf(k)
+	         u_c_val(i,1,idx) = rho * rg_vf(k)
 	      end do
 	   end if
 
@@ -2270,21 +2270,21 @@ implicit none
 integer,intent(in)::iconsidered
 real::xtr
 
-transition_source_factor=1.0d0
+transition_source_factor=1.00
 if (transition_model.ne.1)return
 
 xtr=real(transition_direction)*ielem_walltrans(iconsidered)
 
-if (transition_ramp_length.le.0.0d0)then
-  if (xtr.lt.0.0d0)transition_source_factor=0.0d0
+if (transition_ramp_length.le.0.00)then
+  if (xtr.lt.0.00)transition_source_factor=0.00
 else
   xtr=xtr/transition_ramp_length
-  if (xtr.le.0.0d0)then
-    transition_source_factor=0.0d0
-  else if (xtr.ge.1.0d0)then
-    transition_source_factor=1.0d0
+  if (xtr.le.0.00)then
+    transition_source_factor=0.00
+  else if (xtr.ge.1.00)then
+    transition_source_factor=1.00
   else if (transition_ramp_type.eq.2)then
-    transition_source_factor=xtr*xtr*(3.0d0-2.0d0*xtr)
+    transition_source_factor=xtr*xtr*(3.00-2.00*xtr)
   else
     transition_source_factor=xtr
   end if
@@ -2334,7 +2334,7 @@ i=iconsidered
 
 verysmall = 10e-16
 
-vortet(1:3,1:3) = rec_grads(1:3,1:3,i)
+vortet(1:3,1:3) = rec_grads(i,1:3,1:3)
 
 
 ux = vortet(1,1);uy = vortet(1,2);uz = vortet(1,3)
@@ -2355,11 +2355,11 @@ ovort=0.5*(vortet-tvort)
 
 
 
-snorm=sqrt(2.0d0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+(svort(1,3)*svort(1,3))+&
+snorm=sqrt(2.00*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+(svort(1,3)*svort(1,3))+&
 	       (svort(2,1)*svort(2,1))+(svort(2,2)*svort(2,2))+(svort(2,3)*svort(2,3))+&
 	       (svort(3,1)*svort(3,1))+(svort(3,2)*svort(3,2))+(svort(3,3)*svort(3,3))))
 !quadratic mean of the strain tensor (defined as svort). also needed in sst
-onorm=sqrt(2.0d0*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+(ovort(1,3)*ovort(1,3))+&
+onorm=sqrt(2.00*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+(ovort(1,3)*ovort(1,3))+&
 	       (ovort(2,1)*ovort(2,1))+(ovort(2,2)*ovort(2,2))+(ovort(2,3)*ovort(2,3))+&
 	       (ovort(3,1)*ovort(3,1))+(ovort(3,2)*ovort(3,2))+(ovort(3,3)*ovort(3,3))))
 omega=onorm
@@ -2372,10 +2372,10 @@ usss=sqrt((2.0*((ux*ux)+(vy*vy)+(wz*wz)))&
 	-(2.0/3.0*(ux+vy+wz)*(ux+vy+wz)))
 
 
-squaret=(sqrt((rec_grads(5,1,i)**2)+(rec_grads(5,2,i)**2)+(rec_grads(5,3,i)**2)))**2
+squaret=(sqrt((rec_grads(i,5,1)**2)+(rec_grads(i,5,2)**2)+(rec_grads(i,5,3)**2)))**2
 
 
-leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 rightv(1:nof_variables)=leftv(1:nof_variables)
 
 call get_visc_conduct(n,leftv,rightv,viscl,laml)
@@ -2383,7 +2383,7 @@ call get_visc_conduct(n,leftv,rightv,viscl,laml)
 
 
 
-turbmv(1)=u_ct_val(1,1,i)
+turbmv(1)=u_ct_val(i,1,1)
 turbmv(2)=turbmv(1)
 
 
@@ -2394,7 +2394,7 @@ turbmv(2)=turbmv(1)
 
     ! optional rotation/curvature correction
     if (rot_corr .eq. 1) then
-        omega = omega + 2.0d0 * min(0.0d0, snorm - onorm)
+        omega = omega + 2.00 * min(0.00, snorm - onorm)
     end if
 
     eddyfl(2) = turbmv(1)
@@ -2406,7 +2406,7 @@ turbmv(2)=turbmv(1)
     nu  = viscl(1) / rho
     nu_tilde = turbmv(1) / rho      ! convert φ = ρ ν~  →  ν~
 
-     nu_tilde = max(nu_tilde, 1.0d-12 * visc)
+     nu_tilde = max(nu_tilde, 1.0e-12 * visc)
 
     ! χ = ν~/ν
     tch_x = nu_tilde / nu
@@ -2416,7 +2416,7 @@ turbmv(2)=turbmv(1)
     tch_fv1 = tch_x3 / (tch_x3 + (cv1*cv1*cv1))
 
     ! fv2
-    tch_fv2 = 1.0d0 - tch_x / (1.0d0 + tch_x * tch_fv1)
+    tch_fv2 = 1.00 - tch_x / (1.00 + tch_x * tch_fv1)
 
     ! physical wall distance
     ddw = ielem_walldist(i)
@@ -2425,33 +2425,33 @@ turbmv(2)=turbmv(1)
     ! --- des correction ---
     if (des_model .eq. 1) then
         cell_volume = ielem_totvolume(i)
-        delta_cell  = exp((1.0d0/3.0d0)*log(cell_volume))
+        delta_cell  = exp((1.00/3.00)*log(cell_volume))
         ddw = min(ddw, c_des_sa * delta_cell)
     end if
 
     if (des_model .eq. 2) then
         cell_volume = ielem_totvolume(i)
-        delta_cell  = exp((1.0d0/3.0d0)*log(cell_volume))
+        delta_cell  = exp((1.00/3.00)*log(cell_volume))
 
-        r_des = min(10.0d0, (viscl(1)+viscl(3)) / (snorm*(kappa*ddw)**2 + 1.0d-16))
-        f_des = 1.0d0 - tanh((8.0d0*r_des)**3)
+        r_des = min(10.00, (viscl(1)+viscl(3)) / (snorm*(kappa*ddw)**2 + 1.0e-16))
+        f_des = 1.00 - tanh((8.00*r_des)**3)
 
-        ddw = max(ddw - f_des*max(ddw - c_des_sa*delta_cell, 1.0d-16), 1.0d-16)
+        ddw = max(ddw - f_des*max(ddw - c_des_sa*delta_cell, 1.0e-16), 1.0e-16)
     end if
 
     ! --- stilde ---
     prodterm1 = (nu_tilde) / (kappa*kappa*ddw*ddw)
-    stild = max( omega + tch_fv2*prodterm1 , 0.3d0 * omega)
+    stild = max( omega + tch_fv2*prodterm1 , 0.30 * omega)
 
     ! --- production term ---
     prodtermfinal = cb1 * rho * nu_tilde * stild
 
     ! --- destruction term ---
-    rr = (nu_tilde) / (kappa*kappa*ddw*ddw*stild + 1.0d-20)
-    rr = min(rr, 10.0d0)
+    rr = (nu_tilde) / (kappa*kappa*ddw*ddw*stild + 1.0e-20)
+    rr = min(rr, 10.00)
 
     gg = rr + cw2 * (rr**6 - rr)
-    fw = gg * (exp((1.0d0/6.0d0)*log((1.0d0 + cw3**6) / (gg**6 + cw3**6))))
+    fw = gg * (exp((1.00/6.00)*log((1.00 + cw3**6) / (gg**6 + cw3**6))))
 
     destterm = cw1 * fw * rho * (nu_tilde/ddw)**2
 
@@ -2470,31 +2470,31 @@ turbmv(2)=turbmv(1)
   case(2)		!k omega sst
 
 			      eddyfl(1)=ielem_walldist(i)
-			      eddyfl(2)=u_ct_val(1,1,i)
-			      eddyfl(3)=u_ct_val(1,2,i)
-			      eddyfl(4:6)=rec_grads(1,1:3,i)
-			      eddyfl(7:9)=rec_grads(2,1:3,i)
-			      eddyfl(10:12)=rec_grads(3,1:3,i)
+			      eddyfl(2)=u_ct_val(i,1,1)
+			      eddyfl(3)=u_ct_val(i,1,2)
+			      eddyfl(4:6)=rec_grads(i,1,1:3)
+			      eddyfl(7:9)=rec_grads(i,2,1:3)
+			      eddyfl(10:12)=rec_grads(i,3,1:3)
 
-			      eddyfl(13:15)=rec_grads(4,1:3,i)
-			      eddyfl(16:18)=rec_grads(5,1:3,i)
+			      eddyfl(13:15)=rec_grads(i,4,1:3)
+			      eddyfl(16:18)=rec_grads(i,5,1:3)
 
 
 			      eddyfr=eddyfl
 
 			      call eddyvisco(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
-      k_0=(max(verysmall,u_ct_val(1,1,i)/leftv(1))) !first subindex makes reference to the time-stepping
-      om_0=max(1.0e-1*ufreestream/charlength,u_ct_val(1,2,i)/leftv(1))
+      k_0=(max(verysmall,u_ct_val(i,1,1)/leftv(1))) !first subindex makes reference to the time-stepping
+      om_0=max(1.0e-1*ufreestream/charlength,u_ct_val(i,1,2)/leftv(1))
       wally=ielem_walldist(i)
 
 
 	      !calculate here k and omega gradients
-		  omx=rec_grads(6,1,i)
-		  omy=rec_grads(6,2,i)
-		  omz=rec_grads(6,3,i)
-		  kx=rec_grads(5,1,i)
-		  ky=rec_grads(5,2,i)
-		  kz=rec_grads(5,3,i)
+		  omx=rec_grads(i,6,1)
+		  omy=rec_grads(i,6,2)
+		  omz=rec_grads(i,6,3)
+		  kx=rec_grads(i,5,1)
+		  ky=rec_grads(i,5,2)
+		  kz=rec_grads(i,5,3)
 
 		  dervk_dervom= kx*omx+ky*omy+kz*omz
 
@@ -2579,7 +2579,7 @@ turbmv(2)=turbmv(1)
 						!calculate here second derivative of u
 						!declare all variables
 						      do iex=1,3
-							vortet(iex,1:3)=rec_grads(3+turbulenceequations+iex,1:3,i)
+							vortet(iex,1:3)=rec_grads(i,3+turbulenceequations+iex,1:3)
 
 						      end do
 
@@ -2593,7 +2593,7 @@ turbmv(2)=turbmv(1)
 						dervk2=kx*kx+ky*ky+kz*kz
 						dervom2=omx*omx+omy*omy+omz*omz
 
-						delta_cell=exp((1.0d0/3.0d0)*log(cell_volume))
+						delta_cell=exp((1.00/3.00)*log(cell_volume))
 
 						l_sas=sqrt(k_0)/(sqrt(sqrt(beta_star))*om_0)
 						l_vk=max(kappa*snorm/u_lapl, &       !this switch provides high wave-number damping
@@ -2613,7 +2613,7 @@ turbmv(2)=turbmv(1)
 					    !des-sst model (if qsas_model=2)
 					    if (qsas_model .eq.2) then
 					    cell_volume=ielem_totvolume(i)
-					    delta_cell=exp((1.0d0/3.0d0)*log(cell_volume))
+					    delta_cell=exp((1.00/3.00)*log(cell_volume))
 					    l_t_des=sqrt(k_0)/(beta_star*om_0)
 					    f_des_sst=max(1.0, l_t_des/(c_des_sst*delta_cell)*(1-f_2))
 					    !the (1-f_2) is meant to protect the boundary layer. will result in same
@@ -2677,7 +2677,7 @@ i=iconsidered
 
 verysmall = 10e-16
 
-vortet(1:3,1:3) = rec_grads(1:3,1:3,i)
+vortet(1:3,1:3) = rec_grads(i,1:3,1:3)
 
 
 ux = vortet(1,1);uy = vortet(1,2);uz = vortet(1,3)
@@ -2698,11 +2698,11 @@ ovort=0.5*(vortet-tvort)
 
 
 
-snorm=sqrt(2.0d0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+(svort(1,3)*svort(1,3))+&
+snorm=sqrt(2.00*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+(svort(1,3)*svort(1,3))+&
 	       (svort(2,1)*svort(2,1))+(svort(2,2)*svort(2,2))+(svort(2,3)*svort(2,3))+&
 	       (svort(3,1)*svort(3,1))+(svort(3,2)*svort(3,2))+(svort(3,3)*svort(3,3))))
 !quadratic mean of the strain tensor (defined as svort). also needed in sst
-onorm=sqrt(2.0d0*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+(ovort(1,3)*ovort(1,3))+&
+onorm=sqrt(2.00*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+(ovort(1,3)*ovort(1,3))+&
 	       (ovort(2,1)*ovort(2,1))+(ovort(2,2)*ovort(2,2))+(ovort(2,3)*ovort(2,3))+&
 	       (ovort(3,1)*ovort(3,1))+(ovort(3,2)*ovort(3,2))+(ovort(3,3)*ovort(3,3))))
 omega=onorm
@@ -2715,17 +2715,17 @@ usss=sqrt((2.0*((ux*ux)+(vy*vy)+(wz*wz)))&
 	-(2.0/3.0*(ux+vy+wz)*(ux+vy+wz)))
 
 
-squaret=(sqrt((rec_grads(5,1,i)**2)+(rec_grads(5,2,i)**2)+(rec_grads(5,3,i)**2)))**2
+squaret=(sqrt((rec_grads(i,5,1)**2)+(rec_grads(i,5,2)**2)+(rec_grads(i,5,3)**2)))**2
 
 
-leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 rightv(1:nof_variables)=leftv(1:nof_variables)
 call get_visc_conduct(n,leftv,rightv,viscl,laml)
 
 
 
 
-turbmv(1)=u_ct_val(1,1,i)
+turbmv(1)=u_ct_val(i,1,1)
 turbmv(2)=turbmv(1)
 
 
@@ -2741,13 +2741,13 @@ turbmv(2)=turbmv(1)
     rho = leftv(1)
     nu = viscl(1) / rho
     nu_tilde = turbmv(1) / rho       ! convert φ=ρν~ → ν~
-    nu_tilde = max(nu_tilde, 1.0d-12 * visc)
+    nu_tilde = max(nu_tilde, 1.0e-12 * visc)
     ! χ
     tch_x = nu_tilde / nu
     tch_x3 = tch_x*tch_x*tch_x
 
     tch_fv1 = tch_x3 / (tch_x3 + cv1*cv1*cv1)
-    tch_fv2 = 1.0d0 - tch_x / (1.0d0 + tch_x*tch_fv1)
+    tch_fv2 = 1.00 - tch_x / (1.00 + tch_x*tch_fv1)
 
     ddw = ielem_walldist(i)
     ddw= max(ddw, 10e-12)
@@ -2755,26 +2755,26 @@ turbmv(2)=turbmv(1)
     ! ----- des corrections -----
     if (des_model .eq. 1) then
         cell_volume = ielem_totvolume(i)
-        delta_cell = exp((1.0d0/3.0d0)*log(cell_volume))
+        delta_cell = exp((1.00/3.00)*log(cell_volume))
         ddw = min(ddw, c_des_sa*delta_cell)
     end if
 
     if (des_model .eq. 2) then
         cell_volume = ielem_totvolume(i)
-        delta_cell = exp((1.0d0/3.0d0)*log(cell_volume))
+        delta_cell = exp((1.00/3.00)*log(cell_volume))
 
-        r_des = min(10.0d0, (viscl(1)+viscl(3)) /&
-        (snorm*(kappa*ddw)**2 + 1.0d-16) )
-        f_des = 1.0d0 - tanh((8.0d0*r_des)**3)
+        r_des = min(10.00, (viscl(1)+viscl(3)) /&
+        (snorm*(kappa*ddw)**2 + 1.0e-16) )
+        f_des = 1.00 - tanh((8.00*r_des)**3)
 
-        ddw = max(ddw - f_des*max(ddw - c_des_sa*delta_cell,1.0d-16),&
-        1.0d-16)
+        ddw = max(ddw - f_des*max(ddw - c_des_sa*delta_cell,1.0e-16),&
+        1.0e-16)
     end if
 
     ! ----- stilde -----
     prodterm1 = nu_tilde / (kappa*kappa*ddw*ddw)
 
-    stild = max(omega + tch_fv2*prodterm1, 0.3d0*omega)
+    stild = max(omega + tch_fv2*prodterm1, 0.30*omega)
 
     !--------------------------
     !       production
@@ -2785,7 +2785,7 @@ turbmv(2)=turbmv(1)
     dstild_dnut =&
     tch_fv2 / (kappa*kappa*ddw*ddw)   ! only active if stild=ω+fv2*prodterm1
 
-    if (stild .eq. 0.3d0*omega) dstild_dnut = 0.0d0
+    if (stild .eq. 0.30*omega) dstild_dnut = 0.00
 
     dprod_dnut =&
     cb1 * ( stild + nu_tilde*dstild_dnut )
@@ -2793,20 +2793,20 @@ turbmv(2)=turbmv(1)
     !--------------------------
     !       destruction
     !--------------------------
-    rr = nu_tilde / (kappa*kappa*ddw*ddw*stild + 1.0d-20)
-    rr = min(rr, 10.0d0)
+    rr = nu_tilde / (kappa*kappa*ddw*ddw*stild + 1.0e-20)
+    rr = min(rr, 10.00)
 
     gg = rr + cw2*(rr**6 - rr)
-    fw = gg*exp((1.0d0/6.0d0)*log((1.0d0+cw3**6)/(gg**6+cw3**6)))
+    fw = gg*exp((1.00/6.00)*log((1.00+cw3**6)/(gg**6+cw3**6)))
 
     dest = cw1 * fw * rho * (nu_tilde/ddw)**2
 
     ! d(fw)/d(rr)
-    dgg_drr = 1.0d0 + cw2*(6.0d0*rr**5 - 1.0d0)
+    dgg_drr = 1.00 + cw2*(6.00*rr**5 - 1.00)
 
     dfw_dgg =&
-    exp((1.0d0/6.0d0)*log((1.0d0+cw3**6)/(gg**6+cw3**6)))&
-    * (1.0d0 - (gg**6/(gg**6+cw3**6)))
+    exp((1.00/6.00)*log((1.00+cw3**6)/(gg**6+cw3**6)))&
+    * (1.00 - (gg**6/(gg**6+cw3**6)))
 
     dfw_drr = dfw_dgg * dgg_drr
 
@@ -2816,12 +2816,12 @@ turbmv(2)=turbmv(1)
     ! drr/d(ρν~)
     drr_dnut =&
     (kappa*kappa*ddw*ddw*stild - nu_tilde*kappa*kappa*ddw*ddw*dstild_dnut)&
-    /(kappa*kappa*ddw*ddw*stild + 1.0d-20)**2
+    /(kappa*kappa*ddw*ddw*stild + 1.0e-20)**2
 
     ! destruction derivative
     ddest_dnut =&
     cw1*( dfw_drr*drr_dnut * rho*(nu_tilde/ddw)**2&
-    + fw*rho*2.0d0*(nu_tilde/ddw**2) / ddw )
+    + fw*rho*2.00*(nu_tilde/ddw**2) / ddw )
 
     !--------------------------
     !       diffusion
@@ -2832,7 +2832,7 @@ turbmv(2)=turbmv(1)
 
     ! jacobian:
     ! d(|grad(ν~)|²) / d(ρν~) = 0  (no dependence on ν~ itself)
-    ddif_dnut = 0.0d0
+    ddif_dnut = 0.00
 
     !--------------------------
     !     total jacobian
@@ -2843,31 +2843,31 @@ turbmv(2)=turbmv(1)
   case(2)		!k omega sst
 
 			      eddyfl(1)=ielem_walldist(i)
-			      eddyfl(2)=u_ct_val(1,1,i)
-			      eddyfl(3)=u_ct_val(1,2,i)
-			      eddyfl(4:6)=rec_grads(1,1:3,i)
-			      eddyfl(7:9)=rec_grads(2,1:3,i)
-			      eddyfl(10:12)=rec_grads(3,1:3,i)
+			      eddyfl(2)=u_ct_val(i,1,1)
+			      eddyfl(3)=u_ct_val(i,1,2)
+			      eddyfl(4:6)=rec_grads(i,1,1:3)
+			      eddyfl(7:9)=rec_grads(i,2,1:3)
+			      eddyfl(10:12)=rec_grads(i,3,1:3)
 
-			      eddyfl(13:15)=rec_grads(4,1:3,i)
-			      eddyfl(16:18)=rec_grads(5,1:3,i)
+			      eddyfl(13:15)=rec_grads(i,4,1:3)
+			      eddyfl(16:18)=rec_grads(i,5,1:3)
 
 
 			      eddyfr=eddyfl
 
 			      call eddyvisco(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
-      k_0=(max(verysmall,u_ct_val(1,1,i)/leftv(1))) !first subindex makes reference to the time-stepping
-      om_0=max(1.0e-1*ufreestream/charlength,u_ct_val(1,2,i)/leftv(1))
+      k_0=(max(verysmall,u_ct_val(i,1,1)/leftv(1))) !first subindex makes reference to the time-stepping
+      om_0=max(1.0e-1*ufreestream/charlength,u_ct_val(i,1,2)/leftv(1))
 !       wally=ielem_walldist(i)
 !
 !
 ! 	      !calculate here k and omega gradients
-! 		  omx=rec_grads(5,1,i)
-! 		  omy=rec_grads(5,2,i)
-! 		  omz=rec_grads(5,3,i)
-! 		  kx=rec_grads(4,1,i)
-! 		  ky=rec_grads(4,2,i)
-! 		  kz=rec_grads(4,3,i)
+! 		  omx=rec_grads(i,5,1)
+! 		  omy=rec_grads(i,5,2)
+! 		  omz=rec_grads(i,5,3)
+! 		  kx=rec_grads(i,4,1)
+! 		  ky=rec_grads(i,4,2)
+! 		  kz=rec_grads(i,4,3)
 !
 ! 		  dervk_dervom= kx*omx+ky*omy+kz*omz
 !
@@ -2952,7 +2952,7 @@ turbmv(2)=turbmv(1)
 ! 						!calculate here second derivative of u
 ! 						!declare all variables
 ! 						      do iex=1,3
-! 							vortet(iex,1:3)=rec_grads(3+turbulenceequations+iex,1:3,i)
+! 							vortet(iex,1:3)=rec_grads(i,3+turbulenceequations+iex,1:3)
 !
 ! 						      end do
 !
@@ -3041,7 +3041,7 @@ subroutine sources_computation2d(n)
 #endif
 		do i=1,kmaxe
 			! Clear the implicit source Jacobian before assembling this step.
-			sht_rg(i,1:nof_variables)=0.0d0
+			sht_rg(i,1:nof_variables)=0.00
 		end do
 #ifdef gpu
 		!$omp end target teams distribute parallel do
@@ -3090,7 +3090,7 @@ real,dimension(gpu_max_turbulence)::source_t
 
 call sources2d(n,iconsidered,source_t)
 do iv=1,turbulenceequations
-    rhst_val(iv,iconsidered)=rhst_val(iv,iconsidered)-source_t(iv)*ielem_totvolume(iconsidered)
+    rhst_val(iconsidered,iv)=rhst_val(iconsidered,iv)-source_t(iv)*ielem_totvolume(iconsidered)
 end do
 
 end subroutine sources_computation2d_turb_cell
@@ -3114,12 +3114,12 @@ if (time_accurate_source) then
     src_jac_diag(1:nof_variables)=zero
     ! Time-accurate schemes solve the physical source residual S(U).
     ! Source stiffness still enters the implicit update through src_jac_diag.
-    call sources_realgas(n,iconsidered,source_r,src_jac_diag,max(dt,1.0d-30))
+    call sources_realgas(n,iconsidered,source_r,src_jac_diag,max(dt,1.0e-30))
 else
     if ((rungekutta.eq.5).or.(rungekutta.eq.10)) then
-        dt_loc=max(ielem_dtl(iconsidered),1.0d-30)
+        dt_loc=max(ielem_dtl(iconsidered),1.0e-30)
     else
-        dt_loc=max(dt,1.0d-30)
+        dt_loc=max(dt,1.0e-30)
     end if
 
     call realgas_integrate_source_subcycles(n,iconsidered,dt_loc,source_r,src_jac_diag,source_ok)
@@ -3130,7 +3130,7 @@ else
 end if
 
 do iv=1,nof_variables
-    rhs_val(iv,iconsidered)=rhs_val(iv,iconsidered)-source_r(iv)*ielem_totvolume(iconsidered)
+    rhs_val(iconsidered,iv)=rhs_val(iconsidered,iv)-source_r(iv)*ielem_totvolume(iconsidered)
     if (rungekutta.ge.10) sht_rg(iconsidered,iv)=src_jac_diag(iv)*ielem_totvolume(iconsidered)
 end do
 
@@ -3223,7 +3223,7 @@ verysmall = 10e-16
 
 
 
-vortet(1:2,1:2) = rec_grads(1:2,1:2,i)
+vortet(1:2,1:2) = rec_grads(i,1:2,1:2)
 
 
 ux = vortet(1,1);uy = vortet(1,2)
@@ -3248,10 +3248,10 @@ ovort=0.5*(vortet-tvort)
 
 
 
-snorm=sqrt(2.0d0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+&
+snorm=sqrt(2.00*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+&
 	       (svort(2,1)*svort(2,1))+(svort(2,2)*svort(2,2))))
 !quadratic mean of the strain tensor (defined as svort). also needed in sst
-onorm=sqrt(2.0d0*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+&
+onorm=sqrt(2.00*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+&
 	       (ovort(2,1)*ovort(2,1))+(ovort(2,2)*ovort(2,2))))
 omega=onorm
 
@@ -3263,10 +3263,10 @@ usss=sqrt((2.0*((ux*ux)+(vy*vy)))&
 	-(2.0/3.0*(ux+vy)*(ux+vy)))
 
 
-squaret=(sqrt((rec_grads(4,1,i)**2)+(rec_grads(4,2,i)**2)))**2
+squaret=(sqrt((rec_grads(i,4,1)**2)+(rec_grads(i,4,2)**2)))**2
 
 
-leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 rightv(1:nof_variables)=leftv(1:nof_variables)
 
 call get_visc_conduct(n,leftv,rightv,viscl,laml)
@@ -3274,7 +3274,7 @@ call get_visc_conduct(n,leftv,rightv,viscl,laml)
 
 
 
-turbmv(1)=u_ct_val(1,1,i)
+turbmv(1)=u_ct_val(i,1,1)
 turbmv(2)=turbmv(1)
 
 
@@ -3290,7 +3290,7 @@ turbmv(2)=turbmv(1)
 
     ! optional rotation/curvature correction
     if (rot_corr .eq. 1) then
-        omega = omega + 2.0d0 * min(0.0d0, snorm - onorm)
+        omega = omega + 2.00 * min(0.00, snorm - onorm)
     end if
 
     eddyfl(2) = turbmv(1)
@@ -3301,7 +3301,7 @@ turbmv(2)=turbmv(1)
     rho = leftv(1)
     nu  = viscl(1) / rho
     nu_tilde = turbmv(1) / rho      ! convert φ = ρ ν~  →  ν~
-    nu_tilde= max(nu_tilde, 1.0d-12 * visc)
+    nu_tilde= max(nu_tilde, 1.0e-12 * visc)
 
     ! χ = ν~/ν
     tch_x = nu_tilde / nu
@@ -3311,7 +3311,7 @@ turbmv(2)=turbmv(1)
     tch_fv1 = tch_x3 / (tch_x3 + (cv1*cv1*cv1))
 
     ! fv2
-    tch_fv2 = 1.0d0 - tch_x / (1.0d0 + tch_x * tch_fv1)
+    tch_fv2 = 1.00 - tch_x / (1.00 + tch_x * tch_fv1)
 
     ! physical wall distance
     ddw = ielem_walldist(i)
@@ -3320,33 +3320,33 @@ turbmv(2)=turbmv(1)
     ! --- des correction ---
     if (des_model .eq. 1) then
         cell_volume = ielem_totvolume(i)
-        delta_cell  = exp((1.0d0/3.0d0)*log(cell_volume))
+        delta_cell  = exp((1.00/3.00)*log(cell_volume))
         ddw = min(ddw, c_des_sa * delta_cell)
     end if
 
     if (des_model .eq. 2) then
         cell_volume = ielem_totvolume(i)
-        delta_cell  = exp((1.0d0/3.0d0)*log(cell_volume))
+        delta_cell  = exp((1.00/3.00)*log(cell_volume))
 
-        r_des = min(10.0d0, (viscl(1)+viscl(3)) / (snorm*(kappa*ddw)**2 + 1.0d-16))
-        f_des = 1.0d0 - tanh((8.0d0*r_des)**3)
+        r_des = min(10.00, (viscl(1)+viscl(3)) / (snorm*(kappa*ddw)**2 + 1.0e-16))
+        f_des = 1.00 - tanh((8.00*r_des)**3)
 
-        ddw = max(ddw - f_des*max(ddw - c_des_sa*delta_cell, 1.0d-16), 1.0d-16)
+        ddw = max(ddw - f_des*max(ddw - c_des_sa*delta_cell, 1.0e-16), 1.0e-16)
     end if
 
     ! --- stilde ---
     prodterm1 = (nu_tilde) / (kappa*kappa*ddw*ddw)
-    stild = max( omega + tch_fv2*prodterm1 , 0.3d0 * omega )
+    stild = max( omega + tch_fv2*prodterm1 , 0.30 * omega )
 
     ! --- production term ---
     prodtermfinal = cb1 * rho * nu_tilde * stild
 
     ! --- destruction term ---
-    rr = (nu_tilde) / (kappa*kappa*ddw*ddw*stild + 1.0d-20)
-    rr = min(rr, 10.0d0)
+    rr = (nu_tilde) / (kappa*kappa*ddw*ddw*stild + 1.0e-20)
+    rr = min(rr, 10.00)
 
     gg = rr + cw2 * (rr**6 - rr)
-    fw = gg * (exp((1.0d0/6.0d0)*log((1.0d0 + cw3**6) / (gg**6 + cw3**6))))
+    fw = gg * (exp((1.00/6.00)*log((1.00 + cw3**6) / (gg**6 + cw3**6))))
 
     destterm = cw1 * fw * rho * (nu_tilde/ddw)**2
 
@@ -3363,28 +3363,28 @@ turbmv(2)=turbmv(1)
   case(2)		!k omega sst
 
 			      eddyfl(1)=ielem_walldist(i)
-			      eddyfl(2)=u_ct_val(1,1,i)
-			      eddyfl(3)=u_ct_val(1,2,i)
-			      eddyfl(4:5)=rec_grads(1,1:2,i)
-			      eddyfl(6:7)=rec_grads(2,1:2,i)
-			      eddyfl(8:9)=rec_grads(4,1:2,i)
-			      eddyfl(10:11)=rec_grads(5,1:2,i)
+			      eddyfl(2)=u_ct_val(i,1,1)
+			      eddyfl(3)=u_ct_val(i,1,2)
+			      eddyfl(4:5)=rec_grads(i,1,1:2)
+			      eddyfl(6:7)=rec_grads(i,2,1:2)
+			      eddyfl(8:9)=rec_grads(i,4,1:2)
+			      eddyfl(10:11)=rec_grads(i,5,1:2)
 
 
 			      eddyfr=eddyfl
 
 			      call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
-      k_0=(max(verysmall,u_ct_val(1,1,i)/leftv(1))) !first subindex makes reference to the time-stepping
-      om_0=max(1.0e-1*ufreestream/charlength,u_ct_val(1,2,i)/leftv(1))
+      k_0=(max(verysmall,u_ct_val(i,1,1)/leftv(1))) !first subindex makes reference to the time-stepping
+      om_0=max(1.0e-1*ufreestream/charlength,u_ct_val(i,1,2)/leftv(1))
       wally=ielem_walldist(i)
 
 
 	      !calculate here k and omega gradients
-		  omx=rec_grads(5,1,i)
-		  omy=rec_grads(5,2,i)
+		  omx=rec_grads(i,5,1)
+		  omy=rec_grads(i,5,2)
 
-		  kx=rec_grads(4,1,i)
-		  ky=rec_grads(4,2,i)
+		  kx=rec_grads(i,4,1)
+		  ky=rec_grads(i,4,2)
 
 
 		  dervk_dervom= kx*omx+ky*omy
@@ -3470,7 +3470,7 @@ turbmv(2)=turbmv(1)
 						!calculate here second derivative of u
 						!declare all variables
 						      do iex=1,2
-							vortet(iex,1:2)=rec_grads(3+turbulenceequations+iex,1:2,i)
+							vortet(iex,1:2)=rec_grads(i,3+turbulenceequations+iex,1:2)
 
 						      end do
 
@@ -3483,7 +3483,7 @@ turbmv(2)=turbmv(1)
 						dervk2=kx*kx+ky*ky+kz*kz
 						dervom2=omx*omx+omy*omy+omz*omz
 
-						delta_cell=exp((1.0d0/3.0d0)*log(cell_volume))
+						delta_cell=exp((1.00/3.00)*log(cell_volume))
 
 						l_sas=sqrt(k_0)/(sqrt(sqrt(beta_star))*om_0)
 						l_vk=max(kappa*snorm/u_lapl, &       !this switch provides high wave-number damping
@@ -3503,7 +3503,7 @@ turbmv(2)=turbmv(1)
 					    !des-sst model (if qsas_model=2)
 					    if (qsas_model .eq.2) then
 					    cell_volume=ielem_totvolume(i)
-					    delta_cell=exp((1.0d0/3.0d0)*log(cell_volume))
+					    delta_cell=exp((1.00/3.00)*log(cell_volume))
 					    l_t_des=sqrt(k_0)/(beta_star*om_0)
 					    f_des_sst=max(1.0, l_t_des/(c_des_sst*delta_cell)*(1-f_2))
 					    !the (1-f_2) is meant to protect the boundary layer. will result in same
@@ -3570,7 +3570,7 @@ i=iconsidered
 
 verysmall = 10e-16
 
-vortet(1:2,1:2) = rec_grads(1:2,1:2,i)
+vortet(1:2,1:2) = rec_grads(i,1:2,1:2)
 
 
 ux = vortet(1,1);uy = vortet(1,2)
@@ -3590,10 +3590,10 @@ ovort=0.5*(vortet-tvort)
 
 
 
-snorm=sqrt(2.0d0*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+&
+snorm=sqrt(2.00*((svort(1,1)*svort(1,1))+(svort(1,2)*svort(1,2))+&
 	       (svort(2,1)*svort(2,1))+(svort(2,2)*svort(2,2))))
 !quadratic mean of the strain tensor (defined as svort). also needed in sst
-onorm=sqrt(2.0d0*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+&
+onorm=sqrt(2.00*((ovort(1,1)*ovort(1,1))+(ovort(1,2)*ovort(1,2))+&
 	       (ovort(2,1)*ovort(2,1))+(ovort(2,2)*ovort(2,2))))
 omega=onorm
 
@@ -3605,17 +3605,17 @@ usss=sqrt((2.0*((ux*ux)+(vy*vy)))&
 	-(2.0/3.0*(ux+vy)*(ux+vy)))
 
 
-squaret=(sqrt((rec_grads(4,1,i)**2)+(rec_grads(4,2,i)**2)))**2
+squaret=(sqrt((rec_grads(i,4,1)**2)+(rec_grads(i,4,2)**2)))**2
 
 
-leftv(1:nof_variables)=u_c_val(1,1:nof_variables,i)
+leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 rightv(1:nof_variables)=leftv(1:nof_variables)
 call get_visc_conduct(n,leftv,rightv,viscl,laml)
 
 
 
 
-turbmv(1)=u_ct_val(1,1,i)
+turbmv(1)=u_ct_val(i,1,1)
 turbmv(2)=turbmv(1)
 
 
@@ -3630,14 +3630,14 @@ turbmv(2)=turbmv(1)
     rho = leftv(1)
     nu = viscl(1) / rho
     nu_tilde = turbmv(1) / rho       ! convert φ=ρν~ → ν~
-    nu_tilde = max(nu_tilde, 1.0d-12 * visc)
+    nu_tilde = max(nu_tilde, 1.0e-12 * visc)
 
     ! χ
     tch_x = nu_tilde / nu
     tch_x3 = tch_x*tch_x*tch_x
 
     tch_fv1 = tch_x3 / (tch_x3 + cv1*cv1*cv1)
-    tch_fv2 = 1.0d0 - tch_x / (1.0d0 + tch_x*tch_fv1)
+    tch_fv2 = 1.00 - tch_x / (1.00 + tch_x*tch_fv1)
 
     ddw = ielem_walldist(i)
     ddw= max(ddw, 10e-12)
@@ -3645,26 +3645,26 @@ turbmv(2)=turbmv(1)
     ! ----- des corrections -----
     if (des_model .eq. 1) then
         cell_volume = ielem_totvolume(i)
-        delta_cell = exp((1.0d0/3.0d0)*log(cell_volume))
+        delta_cell = exp((1.00/3.00)*log(cell_volume))
         ddw = min(ddw, c_des_sa*delta_cell)
     end if
 
     if (des_model .eq. 2) then
         cell_volume = ielem_totvolume(i)
-        delta_cell = exp((1.0d0/3.0d0)*log(cell_volume))
+        delta_cell = exp((1.00/3.00)*log(cell_volume))
 
-        r_des = min(10.0d0, (viscl(1)+viscl(3)) /&
-        (snorm*(kappa*ddw)**2 + 1.0d-16) )
-        f_des = 1.0d0 - tanh((8.0d0*r_des)**3)
+        r_des = min(10.00, (viscl(1)+viscl(3)) /&
+        (snorm*(kappa*ddw)**2 + 1.0e-16) )
+        f_des = 1.00 - tanh((8.00*r_des)**3)
 
-        ddw = max(ddw - f_des*max(ddw - c_des_sa*delta_cell,1.0d-16),&
-        1.0d-16)
+        ddw = max(ddw - f_des*max(ddw - c_des_sa*delta_cell,1.0e-16),&
+        1.0e-16)
     end if
 
     ! ----- stilde -----
     prodterm1 = nu_tilde / (kappa*kappa*ddw*ddw)
 
-    stild = max(omega + tch_fv2*prodterm1, 0.3d0*omega)
+    stild = max(omega + tch_fv2*prodterm1, 0.30*omega)
 
     !--------------------------
     !       production
@@ -3675,7 +3675,7 @@ turbmv(2)=turbmv(1)
     dstild_dnut =&
     tch_fv2 / (kappa*kappa*ddw*ddw)   ! only active if stild=ω+fv2*prodterm1
 
-    if (stild .eq. 0.3d0*omega) dstild_dnut = 0.0d0
+    if (stild .eq. 0.30*omega) dstild_dnut = 0.00
 
     dprod_dnut =&
     cb1 * ( stild + nu_tilde*dstild_dnut )
@@ -3683,20 +3683,20 @@ turbmv(2)=turbmv(1)
     !--------------------------
     !       destruction
     !--------------------------
-    rr = nu_tilde / (kappa*kappa*ddw*ddw*stild + 1.0d-20)
-    rr = min(rr, 10.0d0)
+    rr = nu_tilde / (kappa*kappa*ddw*ddw*stild + 1.0e-20)
+    rr = min(rr, 10.00)
 
     gg = rr + cw2*(rr**6 - rr)
-    fw = gg*exp((1.0d0/6.0d0)*log((1.0d0+cw3**6)/(gg**6+cw3**6)))
+    fw = gg*exp((1.00/6.00)*log((1.00+cw3**6)/(gg**6+cw3**6)))
 
     dest = cw1 * fw * rho * (nu_tilde/ddw)**2
 
     ! d(fw)/d(rr)
-    dgg_drr = 1.0d0 + cw2*(6.0d0*rr**5 - 1.0d0)
+    dgg_drr = 1.00 + cw2*(6.00*rr**5 - 1.00)
 
     dfw_dgg =&
-    exp((1.0d0/6.0d0)*log((1.0d0+cw3**6)/(gg**6+cw3**6)))&
-    * (1.0d0 - (gg**6/(gg**6+cw3**6)))
+    exp((1.00/6.00)*log((1.00+cw3**6)/(gg**6+cw3**6)))&
+    * (1.00 - (gg**6/(gg**6+cw3**6)))
 
     dfw_drr = dfw_dgg * dgg_drr
 
@@ -3706,12 +3706,12 @@ turbmv(2)=turbmv(1)
     ! drr/d(ρν~)
     drr_dnut =&
     (kappa*kappa*ddw*ddw*stild - nu_tilde*kappa*kappa*ddw*ddw*dstild_dnut)&
-    /(kappa*kappa*ddw*ddw*stild + 1.0d-20)**2
+    /(kappa*kappa*ddw*ddw*stild + 1.0e-20)**2
 
     ! destruction derivative
     ddest_dnut =&
     cw1*( dfw_drr*drr_dnut * rho*(nu_tilde/ddw)**2&
-    + fw*rho*2.0d0*(nu_tilde/ddw**2) / ddw )
+    + fw*rho*2.00*(nu_tilde/ddw**2) / ddw )
 
     !--------------------------
     !       diffusion
@@ -3722,7 +3722,7 @@ turbmv(2)=turbmv(1)
 
     ! jacobian:
     ! d(|grad(ν~)|²) / d(ρν~) = 0  (no dependence on ν~ itself)
-    ddif_dnut = 0.0d0
+    ddif_dnut = 0.00
 
     !--------------------------
     !     total jacobian
@@ -3733,29 +3733,29 @@ turbmv(2)=turbmv(1)
   case(2)		!k omega sst
 
 			   eddyfl(1)=ielem_walldist(i)
-			      eddyfl(2)=u_ct_val(1,1,i)
-			      eddyfl(3)=u_ct_val(1,2,i)
-			      eddyfl(4:5)=rec_grads(1,1:2,i)
-			      eddyfl(6:7)=rec_grads(2,1:2,i)
-			      eddyfl(8:9)=rec_grads(4,1:2,i)
-			      eddyfl(10:11)=rec_grads(5,1:2,i)
+			      eddyfl(2)=u_ct_val(i,1,1)
+			      eddyfl(3)=u_ct_val(i,1,2)
+			      eddyfl(4:5)=rec_grads(i,1,1:2)
+			      eddyfl(6:7)=rec_grads(i,2,1:2)
+			      eddyfl(8:9)=rec_grads(i,4,1:2)
+			      eddyfl(10:11)=rec_grads(i,5,1:2)
 
 
 			      eddyfr=eddyfl
 
 			      call eddyvisco2d(n,viscl,laml,turbmv,etvm,eddyfl,eddyfr,leftv,rightv)
-      k_0=(max(verysmall,u_ct_val(1,1,i)/leftv(1))) !first subindex makes reference to the time-stepping
-      om_0=max(1.0e-1*ufreestream/charlength,u_ct_val(1,2,i)/leftv(1))
+      k_0=(max(verysmall,u_ct_val(i,1,1)/leftv(1))) !first subindex makes reference to the time-stepping
+      om_0=max(1.0e-1*ufreestream/charlength,u_ct_val(i,1,2)/leftv(1))
 !       wally=ielem_walldist(i)
 !
 !
 ! 	      !calculate here k and omega gradients
-! 		  omx=rec_grads(5,1,i)
-! 		  omy=rec_grads(5,2,i)
-! 		  omz=rec_grads(5,3,i)
-! 		  kx=rec_grads(4,1,i)
-! 		  ky=rec_grads(4,2,i)
-! 		  kz=rec_grads(4,3,i)
+! 		  omx=rec_grads(i,5,1)
+! 		  omy=rec_grads(i,5,2)
+! 		  omz=rec_grads(i,5,3)
+! 		  kx=rec_grads(i,4,1)
+! 		  ky=rec_grads(i,4,2)
+! 		  kz=rec_grads(i,4,3)
 !
 ! 		  dervk_dervom= kx*omx+ky*omy+kz*omz
 !
@@ -3840,7 +3840,7 @@ turbmv(2)=turbmv(1)
 ! 						!calculate here second derivative of u
 ! 						!declare all variables
 ! 						      do iex=1,3
-! 							vortet(iex,1:3)=rec_grads(3+turbulenceequations+iex,1:3,i)
+! 							vortet(iex,1:3)=rec_grads(i,3+turbulenceequations+iex,1:3)
 !
 ! 						      end do
 !

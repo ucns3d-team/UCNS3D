@@ -14,6 +14,8 @@ implicit none
 ! GPU builds should pass case-specific GPU_MAX_* values from gpu_max_flags.py.
 ! CPU builds do not need UCNS3D.DAT at compile time, so their fallback values
 ! are deliberately larger and can be overridden from the Makefile if needed.
+! All physics routines are compiled: storage must include conservative slot 6
+! (vibrational energy) and the five-species chemistry model.
 #ifndef GPU_MAX_IORDER
 #ifdef gpu
 #define GPU_MAX_IORDER 4
@@ -25,11 +27,7 @@ implicit none
 #define GPU_MAX_DIM 3
 #endif
 #ifndef GPU_MAX_SPECIES
-#ifdef gpu
-#define GPU_MAX_SPECIES 1
-#else
 #define GPU_MAX_SPECIES 5
-#endif
 #endif
 #ifndef GPU_MAX_TURBULENCE
 #ifdef gpu
@@ -78,7 +76,7 @@ implicit none
 #endif
 #ifndef GPU_MAX_NVAR
 #ifdef gpu
-#define GPU_MAX_NVAR 5
+#define GPU_MAX_NVAR 6
 #else
 #define GPU_MAX_NVAR 11
 #endif
@@ -135,6 +133,21 @@ implicit none
 #define GPU_MAX_NEIGHBOURS2 20
 #endif
 #endif
+#endif
+
+! Minimum storage for the literal quadrature tables compiled in grid_t.f90.
+#if GPU_MAX_QP_ALL < 60
+#error GPU_MAX_QP_ALL must be at least 60 for the compiled quadrature tables.
+#endif
+#if GPU_MAX_QP_FACE < 9
+#error GPU_MAX_QP_FACE must be at least 9 for the compiled face quadrature tables.
+#endif
+
+#if GPU_MAX_NVAR < 6
+#error GPU_MAX_NVAR must be at least 6 for the compiled real-gas flux routines.
+#endif
+#if GPU_MAX_SPECIES < 5
+#error GPU_MAX_SPECIES must be at least 5 for the compiled chemistry routines.
 #endif
 
 integer, parameter :: gpu_max_iorder = GPU_MAX_IORDER
@@ -424,13 +437,13 @@ real::voll					!total volume of the domain
 real::wall_temp					!wall temperature model
 real::upturblimit				!upper turbulence viscosity ratio
 real::hybridist					!upper turbulence viscosity ratio
-real,parameter ::to4=3.0d0/4.0d0
-real,parameter ::oo4=1.0d0/4.0d0
-real,parameter ::to3=2.0d0/3.0d0
-real,parameter ::oo3=1.0d0/3.0d0
-real,parameter :: turb_diag_floor_frac=5.0d-2
-real,parameter :: turb_source_cap_frac=5.0d-1
-real,parameter :: turb_diag_abs_floor=1.0d-30
+real,parameter ::to4=3.00/4.00
+real,parameter ::oo4=1.00/4.00
+real,parameter ::to3=2.00/3.00
+real,parameter ::oo3=1.00/3.00
+real,parameter :: turb_diag_floor_frac=5.0e-2
+real,parameter :: turb_source_cap_frac=5.0e-1
+real,parameter :: turb_diag_abs_floor=1.0e-30
 real::reynolds					!reynolds number
 real::cflmax					!maximum number of allowable cfl to be used only with implicit
 real::prevres					!previous residual in order to determine ramping strategy
@@ -787,25 +800,26 @@ type(anode_number),allocatable,dimension(:,:)::dinode	  !1-d array for pointer t
 
 
 
-real, allocatable :: u_c_val(:,:,:)				!mean flow variables
-real, allocatable :: u_ct_val(:,:,:)			!turbulence + passive scalars
-real, allocatable :: u_e_val(:,:,:)				!exact solutions
-real, allocatable :: u_cs_val(:,:,:)			!mean flow variables with strong filter
-real, allocatable :: u_cw_val(:,:,:)			!mean flow variables with weak filter
-real, allocatable :: u_c_valdg(:,:,:,:)			!mean flow variables for each dof of DG
-real, allocatable :: u_cs_valdg(:,:,:,:)		!mean flow variables for each dof of DG with strong filter
-real, allocatable :: u_cw_valdg(:,:,:,:)		!mean flow variables for each dof of DG with weak filter
-real, allocatable :: u_c_rms(:,:)				!time averaged rms
-real, allocatable :: u_c_br2_aux_var(:,:,:,:)	!BR2 aux variables
-real, allocatable :: m_1_val(:,:,:)				!dg mass matrices
-real, allocatable :: rhs_val(:,:)				!rhs of mean flow variables
-real, allocatable :: rhs_valdg(:,:,:)			!rhs of mean flow variables for each dof of DG
-real, allocatable :: rhs_sol_mm_dg(:,:,:)		!rhs of mean flow variables for the matrix of DG
-real, allocatable :: rhst_val(:,:)				!rhs of turbulence variables
-real, allocatable :: integ_basis_value(:,:)
-real, allocatable :: integ_basis_valuec(:,:)
-real, allocatable :: integ_basis_dg_value(:,:)
-real, allocatable :: dg2fv(:,:,:)
+! Runtime solution, residual and basis arrays use cell-first storage on CPU and XPU.
+real, allocatable :: u_c_val(:,:,:)    ! (cell, stage, variable): mean flow variables
+real, allocatable :: u_ct_val(:,:,:)    ! (cell, stage, variable): turbulence + passive scalars
+real, allocatable :: u_e_val(:,:,:)    ! (cell, stage, variable): exact solutions
+real, allocatable :: u_cs_val(:,:,:)    ! (cell, stage, variable): mean flow variables with strong filter
+real, allocatable :: u_cw_val(:,:,:)    ! (cell, stage, variable): mean flow variables with weak filter
+real, allocatable :: u_c_valdg(:,:,:,:)    ! (cell, stage, variable, coefficient): mean flow variables for each dof of DG
+real, allocatable :: u_cs_valdg(:,:,:,:)    ! (cell, stage, variable, coefficient): mean flow variables for each dof of DG with strong filter
+real, allocatable :: u_cw_valdg(:,:,:,:)    ! (cell, stage, variable, coefficient): mean flow variables for each dof of DG with weak filter
+real, allocatable :: u_c_rms(:,:)    ! (cell, variable): time averaged rms
+real, allocatable :: u_c_br2_aux_var(:,:,:,:)    ! (cell, coefficient, variable, direction): BR2 aux variables
+real, allocatable :: m_1_val(:,:,:)    ! (cell, coefficient, coefficient): dg mass matrices
+real, allocatable :: rhs_val(:,:)    ! (cell, variable): rhs of mean flow variables
+real, allocatable :: rhs_valdg(:,:,:)    ! (cell, coefficient, variable): rhs of mean flow variables for each dof of DG
+real, allocatable :: rhs_sol_mm_dg(:,:,:)    ! (cell, coefficient, variable): rhs of mean flow variables for the matrix of DG
+real, allocatable :: rhst_val(:,:)    ! (cell, variable): rhs of turbulence variables
+real, allocatable :: integ_basis_value(:,:)    ! (cell, coefficient)
+real, allocatable :: integ_basis_valuec(:,:)    ! (cell, coefficient)
+real, allocatable :: integ_basis_dg_value(:,:)    ! (cell, coefficient)
+real, allocatable :: dg2fv(:,:,:)    ! (cell, coefficient, variable)
 real, allocatable :: qp_array_x(:,:)
 real, allocatable :: qp_array_y(:,:)
 real, allocatable :: qp_array_z(:,:)
@@ -828,16 +842,16 @@ integer, allocatable :: ielem_filtered(:)              ! (kmaxe)
 integer, allocatable :: ielem_full(:)  ! (kmaxe)  specifies if sufficient number of stencils are found to proceed with weno for this cell
 integer, allocatable :: ielem_ggs(:)  ! (kmaxe)  specifies with what algorithm to compute the gradients (green gauss, least squares or blend of them)
 integer, allocatable :: ielem_hybrid(:)  ! (kmaxe)  flag for switching to lower order discretisation as a function of wall distance
-integer, allocatable :: ielem_ibounds(:,:)  ! (nof_faces,kmaxe)  bounded codes for each bounded face
+integer, allocatable :: ielem_ibounds(:,:)    ! (cell, face): bounded codes for each bounded face
 integer, allocatable :: ielem_idegfree(:)  ! (kmaxe)  degrees of freedom for polynomial selected
 integer, allocatable :: ielem_ifca(:)  ! (kmaxe)  number of sides
 integer, allocatable :: ielem_ihex(:)  ! (kmaxe) local index of each cell
 integer, allocatable :: ielem_ihexgl(:)  ! (kmaxe)  global index of each cell
-integer, allocatable :: ielem_indexi(:,:)  ! (nof_faces,kmaxe)  indexing for the cells
-integer, allocatable :: ielem_ineigh(:,:)  ! (nof_faces,kmaxe)  neighbours local numbering
-integer, allocatable :: ielem_ineighg(:,:)  ! (nof_faces,kmaxe)  neighbours global numbering
-integer, allocatable :: ielem_ineighb(:,:)  ! (nof_faces,kmaxe)  neighbours cpu index
-integer, allocatable :: ielem_ineighn(:,:)  ! (nof_faces,kmaxe)  neighbours numbering in other cpus
+integer, allocatable :: ielem_indexi(:,:)    ! (cell, face): indexing for the cells
+integer, allocatable :: ielem_ineigh(:,:)    ! (cell, face): neighbours local numbering
+integer, allocatable :: ielem_ineighg(:,:)    ! (cell, face): neighbours global numbering
+integer, allocatable :: ielem_ineighb(:,:)    ! (cell, face): neighbours cpu index
+integer, allocatable :: ielem_ineighn(:,:)    ! (cell, face): neighbours numbering in other cpus
 integer, allocatable :: ielem_interior(:)  ! (kmaxe)  specifies if this cell has any side bounded (interior cells get a value of 0, non interior ones get a value of 1)
 integer, allocatable :: ielem_inumneighbours(:)  ! (kmaxe)  number of neighbours in each stencil
 integer, allocatable :: ielem_iorder(:)  ! (kmaxe)  order of polynomials
@@ -857,7 +871,7 @@ integer, allocatable :: ielem_recalc(:)  ! (kmaxe)  flag for recalculating the s
 integer, allocatable :: ielem_reduce(:)                ! (kmaxe)
 integer, allocatable :: ielem_reorient(:,:)  ! (nof_faces,kmaxe)  consistency across interface in terms of ordering of quadrature points
 integer, allocatable :: ielem_troubled(:)              ! (kmaxe)
-integer, allocatable :: ielem_types_faces(:,:)  ! (nof_faces,kmaxe)  type of each face (quadrilateral, triangle)
+integer, allocatable :: ielem_types_faces(:,:)    ! (cell, face): type of each face (quadrilateral, triangle)
 integer, allocatable :: ielem_vdec(:)  ! (kmaxe)  number of volume decompositions for each element
 integer, allocatable :: ielem_walls(:)  ! (kmaxe)  flag to declare if this is cell bounded by a wall
 integer, allocatable :: ielem_q_face_q_mapl(:,:,:)     ! (max_qp_face,nof_faces,kmaxe)
@@ -865,8 +879,8 @@ integer, allocatable :: ielem_q_face_q_mapl(:,:,:)     ! (max_qp_face,nof_faces,
 ! reals
 real, allocatable :: ielem_avars(:,:)  ! (nof_variables,kmaxe)  q criterion
 real, allocatable :: ielem_condition(:)                ! (kmaxe)
-real, allocatable :: ielem_dih(:,:)  ! (nof_faces,kmaxe)  distance across cell centres at each face
-real, allocatable :: ielem_dih2(:,:,:)  ! (nof_faces,1:3,kmaxe)  distance across cell centres at each face
+real, allocatable :: ielem_dih(:,:)    ! (cell, face): distance across cell centres at each face
+real, allocatable :: ielem_dih2(:,:,:)    ! (cell, face, direction): distance across cell centres at each face
 real, allocatable :: ielem_diss(:)  ! (kmaxe)  adda components
 real, allocatable :: ielem_dtl(:)  ! (kmaxe)  local time step size
 real, allocatable :: ielem_er(:)  ! (kmaxe)  adda components
@@ -876,14 +890,14 @@ real, allocatable :: ielem_er1er2(:)  ! (kmaxe)  adda components
 real, allocatable :: ielem_er2(:)  ! (kmaxe)  adda components
 real, allocatable :: ielem_er2dt(:)  ! (kmaxe)  adda components
 real, allocatable :: ielem_erx(:)  ! (kmaxe)  adda components
-real, allocatable :: ielem_faceanglex(:,:)  ! (nof_faces,kmaxe)  faceangle
-real, allocatable :: ielem_faceangley(:,:)  ! (nof_faces,kmaxe)  faceangles y
-real, allocatable :: ielem_facediss(:,:)  ! (nof_faces,kmaxe)  dissipation for mood
+real, allocatable :: ielem_faceanglex(:,:)    ! (cell, face): faceangle
+real, allocatable :: ielem_faceangley(:,:)    ! (cell, face): faceangles y
+real, allocatable :: ielem_facediss(:,:)    ! (cell, face): dissipation for mood
 real, allocatable :: ielem_linc(:)  ! (kmaxe)  central stencil linear weight
 real, allocatable :: ielem_lwcx2(:)  ! (kmaxe)  adda components
 real, allocatable :: ielem_minedge(:)  ! (kmaxe)  inscribed sphere radius
 real, allocatable :: ielem_stencil_dist(:)  ! (kmaxe)  stencil distance factor
-real, allocatable :: ielem_surf(:,:)  ! (nof_faces,kmaxe)  surface area
+real, allocatable :: ielem_surf(:,:)    ! (cell, face): surface area
 real, allocatable :: ielem_totvolume(:)  ! (kmaxe)  volume of element
 real, allocatable :: ielem_viscx(:)  ! (kmaxe)  local time step size
 real, allocatable :: ielem_vortex(:,:)  ! (1:3,kmaxe)  q criterion
@@ -901,19 +915,19 @@ integer, allocatable :: ielem_qface(:,:,:)
 
 ! integers
 integer, allocatable :: rec_g0(:)    !constrained least squares gaussian elimination component
-integer, allocatable :: rec_ihexb(:,:,:)    !cpu that that each cell belongs to
-integer, allocatable :: rec_ihexbc(:,:,:)    !cpu that that each cell belongs to
-integer, allocatable :: rec_ihexg(:,:,:)    !global index of cells
-integer, allocatable :: rec_ihexgc(:,:,:)    !global index of cells
-integer, allocatable :: rec_ihexl(:,:,:)    !local index of cells
-integer, allocatable :: rec_ihexlc(:,:,:)    !local index of cells
-integer, allocatable :: rec_ihexn(:,:,:)    !internal index from where to take the values from communicated messages
-integer, allocatable :: rec_ihexnc(:,:,:)    !internal index from where to take the values from communicated messages
+integer, allocatable :: rec_ihexb(:,:,:)    ! (local halo index, stencil, neighbour): cpu that that each cell belongs to
+integer, allocatable :: rec_ihexbc(:,:,:)    ! (local halo index, stencil, neighbour): cpu that that each cell belongs to
+integer, allocatable :: rec_ihexg(:,:,:)    ! (cell, stencil, neighbour): global index of cells
+integer, allocatable :: rec_ihexgc(:,:,:)    ! (cell, stencil, neighbour): global index of cells
+integer, allocatable :: rec_ihexl(:,:,:)    ! (cell, stencil, neighbour): local index of cells
+integer, allocatable :: rec_ihexlc(:,:,:)    ! (cell, stencil, neighbour): local index of cells
+integer, allocatable :: rec_ihexn(:,:,:)    ! (local halo index, stencil, neighbour): internal index from where to take the values from communicated messages
+integer, allocatable :: rec_ihexnc(:,:,:)    ! (local halo index, stencil, neighbour): internal index from where to take the values from communicated messages
 integer, allocatable :: rec_k0(:)    !constrained least squares gaussian elimination component
 integer, allocatable :: rec_local(:)
 integer, allocatable :: rec_wall(:)
 integer, allocatable :: rec_mrf(:)
-integer, allocatable :: rec_periodicflag(:,:,:)
+integer, allocatable :: rec_periodicflag(:,:,:)    ! (cell, stencil, neighbour)
 
 ! reals
 real, allocatable :: rec_br2_aux_var(:,:,:,:,:)    !(var, dim, i_face, i_qp)
@@ -921,27 +935,29 @@ real, allocatable :: rec_br2_local_lift(:,:,:,:)    !(var, dim, i_face)
 real, allocatable :: rec_cgradientstemp(:,:,:,:)    !unlimited gradients for temperature for wall cells
 real, allocatable :: rec_cond(:,:)    !dummy variable used for gradient approximation estimation
 real, allocatable :: rec_findw(:,:,:,:,:)    !weno weights for main equations with respect to characteristic variables
-real, allocatable :: rec_gradf(:,:,:)    !unlimited gradients for velocity
-real, allocatable :: rec_gradients(:,:,:,:)    !reconstructed gradients for main variables
-real, allocatable :: rec_gradients2(:,:,:,:)    !reconstructed gradients for turbulent variables for wall cells
-real, allocatable :: rec_gradientsc(:,:,:,:)    !reconstructed gradients for main variables
-real, allocatable :: rec_gradientsc2(:,:,:,:)    !reconstructed gradients for turbulent variables for wall cells
+real, allocatable :: rec_gradf(:,:,:)    ! (cell, variable, coefficient): unlimited gradients for velocity
+! Reconstructed main/turbulence gradients, smoothness matrices and quadrature
+! points use the cell-first layouts documented below on both CPU and XPU.
+real, allocatable :: rec_gradients(:,:,:,:)    !(cell, stencil, coefficient, variable): reconstructed main gradients
+real, allocatable :: rec_gradients2(:,:,:,:)    !(cell, stencil, coefficient, variable): turbulence/passive reconstruction
+real, allocatable :: rec_gradientsc(:,:,:,:)    !(cell, stencil, coefficient, variable): compact main gradients
+real, allocatable :: rec_gradientsc2(:,:,:,:)    !(cell, stencil, coefficient, variable): compact turbulence/passive gradients
 real, allocatable :: rec_gradientstemp(:,:)    !unlimited gradients for temperature
 real, allocatable :: rec_gradientstemp_wall(:,:,:)    !unlimited gradients for temperature for wall cells
-real, allocatable :: rec_gradientsturb(:,:,:,:)    !unlimited gradients for turbulent variables for
+real, allocatable :: rec_gradientsturb(:,:,:,:)    !(cell, stencil, coefficient, variable): unlimited turbulence/passive gradients
 real, allocatable :: rec_gradientsturb_wall(:,:,:,:)    !unlimited gradients for turbulent variables for wall cells
-real, allocatable :: rec_grads(:,:,:)    !gradients obtained from green gauss approximation
-real, allocatable :: rec_gradsav(:,:,:)    !gradients obtained from green gauss approximation
-real, allocatable :: rec_indicator(:,:,:)    !precomputed smoothness indicators
-real, allocatable :: rec_indicatorc(:,:,:)    !precomputed smoothness indicators
+real, allocatable :: rec_grads(:,:,:)    ! (cell, variable, direction): gradients obtained from green gauss approximation
+real, allocatable :: rec_gradsav(:,:,:)    ! (cell, variable, direction): gradients obtained from green gauss approximation
+real, allocatable :: rec_indicator(:,:,:)    !(cell, coefficient, coefficient): smoothness matrix
+real, allocatable :: rec_indicatorc(:,:,:)    !(cell, coefficient, coefficient): compact smoothness matrix
 real, allocatable :: rec_invccjac(:,:,:)    !inverse jacobian
 real, allocatable :: rec_invctjac(:,:,:)    !inverse jacobian transposed
-real, allocatable :: rec_invmat_stencilt(:,:,:,:)    !pseudo inverse matrix for least squares reconstruction
-real, allocatable :: rec_invmat_stenciltc(:,:,:,:)    !pseudo inverse matrix for least squares reconstruction
+real, allocatable :: rec_invmat_stencilt(:,:,:,:)    ! (cell, coefficient, neighbour, stencil): pseudo inverse matrix for least squares reconstruction
+real, allocatable :: rec_invmat_stenciltc(:,:,:,:)    ! (cell, coefficient, neighbour, stencil): pseudo inverse matrix for least squares reconstruction
 real, allocatable :: rec_mrf_origin(:,:)
 real, allocatable :: rec_mrf_velocity(:,:)
-real, allocatable :: rec_qpoints(:,:,:,:)    !quadrature points
-real, allocatable :: rec_qpoints_p(:,:,:,:)    !quadrature points physical only for AI training
+real, allocatable :: rec_qpoints(:,:,:,:)    !(cell, face, quadrature point, coordinate): quadrature points
+real, allocatable :: rec_qpoints_p(:,:,:,:)    !(cell, face, quadrature point, coordinate): physical points for AI training
 real, allocatable :: rec_rotvel(:,:,:,:)    !radius of qpoints, rotational velocity
 real, allocatable :: rec_rpoints(:,:,:,:)    !radius of qpoints, rotational velocity
 real, allocatable :: rec_stencils(:,:,:,:)    !stencils entries for matrix a (usually stored only for wall bounded cells)
@@ -949,11 +965,11 @@ real, allocatable :: rec_stencilsc(:,:,:,:)    !stencils entries for matrix a (u
 real, allocatable :: rec_surf_qpoints(:,:,:,:)    !physical space surface quadrature points (i_face, i_qp, xy) relative to cell center
 real, allocatable :: rec_tempsq(:,:,:)    !constrained least squares reconstruction matrix for temperature gradient
 real, allocatable :: rec_tempsqmat(:,:,:)    !constrained least squares reconstruction matrix for temperature gradient
-real, allocatable :: rec_uleft(:,:,:,:)    !boundary extrapolated value for main equations variables for considered cell
-real, allocatable :: rec_uleft_dg(:,:,:,:)    !boundary extrapolated solution value (var, i_face, i_qp)
-real, allocatable :: rec_uleftturb(:,:,:,:)    !boundary extrapolated value for turbulent equations variables for considered cell
-real, allocatable :: rec_uleftturbv(:,:,:,:,:)    !boundary extrapolated values for turbulent equations gradients for considered cell
-real, allocatable :: rec_uleftv(:,:,:,:,:)    !boundary extrapolated values for main equations gradients for considered cell
+real, allocatable :: rec_uleft(:,:,:,:)    ! (cell, variable, face, quadrature point): boundary extrapolated value for main equations variables for considered cell
+real, allocatable :: rec_uleft_dg(:,:,:,:)    ! (cell, variable, face, quadrature point): boundary extrapolated solution value (var, i_face, i_qp)
+real, allocatable :: rec_uleftturb(:,:,:,:)    ! (cell, variable, face, quadrature point): boundary extrapolated value for turbulent equations variables for considered cell
+real, allocatable :: rec_uleftturbv(:,:,:,:,:)    ! (cell, direction, variable, face, quadrature point): boundary extrapolated values for turbulent equations gradients for considered cell
+real, allocatable :: rec_uleftv(:,:,:,:,:)    ! (cell, direction, variable, face, quadrature point): boundary extrapolated values for main equations gradients for considered cell
 real, allocatable :: rec_uleftx(:,:,:,:)    !boundary extrapolated value for main equations variables for considered cell
 real, allocatable :: rec_velinvlsqmat(:,:,:)    !constrained least squares reconstruction matrix for velocity gradient
 real, allocatable :: rec_vellsq(:,:,:)    !constrained least squares reconstruction matrix for velocity gradient

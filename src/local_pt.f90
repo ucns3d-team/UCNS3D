@@ -70,7 +70,7 @@ do i=1,ineedt
 		 if (adda.eq.1)then
 		allocate(diexsolhird(i)%sol(direcexr(i)%muchineed(1),1))
 		end if
-	diexsolhir(i)%sol(:,:)=0.0d0
+	diexsolhir(i)%sol(:,:)=0.00
 
 end do
 end if
@@ -94,7 +94,7 @@ do i=1,indl
 	   allocate(diexboundhirr(i)%vertpp(diexchanger(i)%muchineed(1),i_cnt2))
 	end if
 
-! 	diexboundhir(i)%facesol(:,:)=0.0d0
+! 	diexboundhir(i)%facesol(:,:)=0.00
 	diexboundhirr(i)%vertpp(:,:)=0
 
 end do
@@ -115,7 +115,7 @@ do i=1,tneedt
 	allocate(diexsolhisd(i)%sol(direcexs(i)%muchtheyneed(1),1))
 	end if
 
-	diexsolhis(i)%sol(:,:)=0.0d0
+	diexsolhis(i)%sol(:,:)=0.00
 
 end do
 end if
@@ -142,7 +142,7 @@ do i=1,tndl
 	   allocate(diexboundhiss(i)%vertpp(diexchanges(i)%muchtheyneed(1),i_cnt2))
 	end if
 
-! 	diexboundhis(i)%facesol(:,:)=0.0d0
+! 	diexboundhis(i)%facesol(:,:)=0.00
 	diexboundhiss(i)%vertpp(:,:)=0
 end do
 
@@ -302,9 +302,9 @@ do i=1,indl
             
 	end if
 
-	diexboundhir(i)%facesol(:,:)=0.0d0
+	diexboundhir(i)%facesol(:,:)=0.00
 	if (dg.eq.1)then
-	diexboundhir(i)%facesol_dg(:,:)=0.0d0
+	diexboundhir(i)%facesol_dg(:,:)=0.00
 	end if
 ! 	diexboundhirr(i)%vertpp(:,:)=0
 
@@ -339,9 +339,9 @@ do i=1,tndl
 	  
 	end if
 
-	diexboundhis(i)%facesol(:,:)=0.0d0
+	diexboundhis(i)%facesol(:,:)=0.00
 	if (dg.eq.1)then
-	diexboundhis(i)%facesol_dg(:,:)=0.0d0
+	diexboundhis(i)%facesol_dg(:,:)=0.00
 	end if
 
 	
@@ -406,7 +406,7 @@ if (diexchanger(j)%procid.eq.diexchanges(i)%procid)then
 do k=1,diexchanges(i)%muchtheyneed(1)
 
 ! 	    
-	    if (ielem_types_faces(diexchanges(i)%sidetheyneed(k),(diexchanges(i)%localref(k))).eq.5)then
+	    if (ielem_types_faces((diexchanges(i)%localref(k)),diexchanges(i)%sidetheyneed(k)).eq.5)then
 	    ixf4=4
 	    else
 	    ixf4=3
@@ -446,23 +446,23 @@ end do
 do i=1,kmaxe
   if (ielem_interior(i).eq.1)then
   do k=1,ielem_ifca(i)
-		  if (ielem_types_faces(k,i).eq.5)then
+		  if (ielem_types_faces(i,k).eq.5)then
 	    ixf4=4
 	    else
 	    ixf4=3
 	    end if
 	    
-      if (ielem_ineighg(k,i).gt.0)then
-	if (ielem_ineighb(k,i).ne.n)then
+      if (ielem_ineighg(i,k).gt.0)then
+	if (ielem_ineighb(i,k).ne.n)then
 	    
-	    if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
-! 		ielem_nodes_faces(k,1:ixf4,i)=diexboundhirr(ielem_ineighn(k,i))%vertpp(ielem_q_face_q_mapl(1,k,i),1:ixf4)
+	    if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
+! 		ielem_nodes_faces(k,1:ixf4,i)=diexboundhirr(ielem_ineighn(i,k))%vertpp(ielem_q_face_q_mapl(1,k,i),1:ixf4)
 ! 		ielem_reorient(k,i)=1
-	    if (ielem_ibounds(k,i).gt.0)then
-	      if ((ibound_icode(ielem_ibounds(k,i)).eq.5).or.(ibound_icode(ielem_ibounds(k,i)).eq.50))then
+	    if (ielem_ibounds(i,k).gt.0)then
+	      if ((ibound_icode(ielem_ibounds(i,k)).eq.5).or.(ibound_icode(ielem_ibounds(i,k)).eq.50))then
 		do ixfv=1,ixf4
-! 		dinoder(diexboundhirr(ielem_ineighn(k,i))%vertpp(ielem_q_face_q_mapl(1,k,i),ixfv))%itor=diexboundhirr(ielem_ineighn(k,i))%vertpp(ielem_q_face_q_mapl(1,k,i),ixfv)
-		dinoder(diexboundhirr(ielem_ineighn(k,i))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),ixfv))%itor=diexboundhirr(ielem_ineighn(k,i))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),ixfv)
+! 		dinoder(diexboundhirr(ielem_ineighn(i,k))%vertpp(ielem_q_face_q_mapl(1,k,i),ixfv))%itor=diexboundhirr(ielem_ineighn(i,k))%vertpp(ielem_q_face_q_mapl(1,k,i),ixfv)
+		dinoder(diexboundhirr(ielem_ineighn(i,k))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),ixfv))%itor=diexboundhirr(ielem_ineighn(i,k))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),ixfv)
 
 		end do
 
@@ -548,17 +548,17 @@ do i=1,kmaxe
 		 
 	    ixf4=2
 	    
-      if (ielem_ineighg(k,i).gt.0)then
-	if (ielem_ineighb(k,i).ne.n)then
+      if (ielem_ineighg(i,k).gt.0)then
+	if (ielem_ineighb(i,k).ne.n)then
 	    
-	    if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
+	    if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
 
-! 		ielem_nodes_faces(k,1:ixf4,i)=diexboundhirr(ielem_ineighn(k,i))%vertpp(ielem_q_face_q_mapl(1,k,i),1:ixf4)
+! 		ielem_nodes_faces(k,1:ixf4,i)=diexboundhirr(ielem_ineighn(i,k))%vertpp(ielem_q_face_q_mapl(1,k,i),1:ixf4)
 ! 		ielem_reorient(k,i)=1
-	    if (ielem_ibounds(k,i).gt.0)then
-	      if ((ibound_icode(ielem_ibounds(k,i)).eq.5).or.(ibound_icode(ielem_ibounds(k,i)).eq.50))then
+	    if (ielem_ibounds(i,k).gt.0)then
+	      if ((ibound_icode(ielem_ibounds(i,k)).eq.5).or.(ibound_icode(ielem_ibounds(i,k)).eq.50))then
 		do ixfv=1,ixf4
- 		dinoder(diexboundhirr(ielem_ineighn(k,i))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),ixfv))%itor=diexboundhirr(ielem_ineighn(k,i))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),ixfv)
+ 		dinoder(diexboundhirr(ielem_ineighn(i,k))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),ixfv))%itor=diexboundhirr(ielem_ineighn(i,k))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),ixfv)
 
 
 
@@ -569,8 +569,8 @@ do i=1,kmaxe
 
 
 	else
-! 	    if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
-! 		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(k,i),1:ixf4,ielem_ineigh(k,i))
+! 	    if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
+! 		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(i,k),1:ixf4,ielem_ineigh(i,k))
 ! 		ielem_reorient(k,i)=1
 ! 	    end if
 	end if
@@ -581,11 +581,11 @@ do i=1,kmaxe
 ! 
 ! 
 ! 	  ixf4=2
-!       if (ielem_ineighg(k,i).gt.0)then
+!       if (ielem_ineighg(i,k).gt.0)then
 ! 	
 ! 	
-! 	    if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
-! 		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(k,i),1:ixf4,ielem_ineigh(k,i))
+! 	    if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
+! 		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(i,k),1:ixf4,ielem_ineigh(i,k))
 ! 		ielem_reorient(k,i)=1
 ! 	    end if
 ! 	
@@ -627,7 +627,7 @@ do i=1,indl
 	
 	
 	allocate(diexboundhiri(i)%facesol(diexchanger(i)%muchineed(1),i_cnt))
-	diexboundhiri(i)%facesol(:,:)=0.0d0
+	diexboundhiri(i)%facesol(:,:)=0.00
 	
 end do
 
@@ -636,7 +636,7 @@ do i=1,tndl
 	
 	allocate(diexboundhisi(i)%facesol(diexchanges(i)%muchtheyneed(1),i_cnt))
 	
-	diexboundhisi(i)%facesol(:,:)=0.0d0
+	diexboundhisi(i)%facesol(:,:)=0.00
 	
 end do
 
@@ -779,18 +779,18 @@ i=iconsi
 					select case(ilox_ishape(ikg2,l))
 					case(1)
 					in_sten=8
-					rin_sten=8.0d0
+					rin_sten=8.00
 					case(2)
 					in_sten=4
-					rin_sten=4.0d0
+					rin_sten=4.00
 
 					case(3)
 					in_sten=5
-					rin_sten=5.0d0
+					rin_sten=5.00
 
 					case(4)
 					in_sten=6
-					rin_sten=6.0d0
+					rin_sten=6.00
 					end select
 					ilon_x(ikg2,l,1:in_sten)=diexcordr(ilox_ihexn(ikg2,l))%nodecord(ilox_ihexl(ikg2,l),1:in_sten,1)
 					ilon_y(ikg2,l,1:in_sten)=diexcordr(ilox_ihexn(ikg2,l))%nodecord(ilox_ihexl(ikg2,l),1:in_sten,2)
@@ -926,10 +926,10 @@ i=iconsi
 					select case(ilox_ishape(ikg2,l))
 					case(5)
 					in_sten=4
-					rin_sten=4.d0
+					rin_sten=4.0
 					case(6)
 					in_sten=3
-					rin_sten=3.d0
+					rin_sten=3.0
 
 					
 					end select
@@ -1072,11 +1072,11 @@ i=iconsi
 	end if
 	
 	  
-      vext=0.0d0
-      nodes_list=0.0d0
+      vext=0.00
+      nodes_list=0.00
       eltype=ielem_ishape(i)
       elem_dec=ielem_vdec(i)
-      elem_listd=0.0d0
+      elem_listd=0.00
       jx=ielem_nonodes(i)
 	  do k=1,jx
 	    jx2=ielem_nodes(k,i)
@@ -1128,9 +1128,9 @@ i=iconsi
 	    
 	    if ((poly.eq.4).or.(dg.eq.1))then
 		    rec_invccjac(1:3,1:3,i)=zero
-		     rec_invccjac(1,1,i)=1.0d0
-		      rec_invccjac(2,2,i)=1.0d0
-		       rec_invccjac(3,3,i)=1.0d0
+		     rec_invccjac(1,1,i)=1.00
+		      rec_invccjac(2,2,i)=1.00
+		       rec_invccjac(3,3,i)=1.00
 		      detjc=1.0
 		      
 		      temp_cg(1)=ielem_xxc(i)
@@ -1187,8 +1187,8 @@ i=iconsi
 		idum=0
 		if (ielem_interior(i).eq.1)then
                         do j=1,ielem_ifca(i)
-                        if (ielem_ibounds(j,i).gt.0)then
-                            if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+                        if (ielem_ibounds(i,j).gt.0)then
+                            if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
                                 idum=1
                             end if
                         end if
@@ -1227,15 +1227,15 @@ i=iconsi
 						rec_volume(1,1,i)=ilox_volume(1,1)
 						end if
 
-					rec_ihexg(jj,l,i)=ilox_ihexg(jj,l)
-					rec_ihexl(jj,l,i)=ilox_ihexl(jj,l)
+					rec_ihexg(i,jj,l)=ilox_ihexg(jj,l)
+					rec_ihexl(i,jj,l)=ilox_ihexl(jj,l)
 					 if (iperiodicity == 1) then
-					rec_periodicflag(jj,l,i)=ilox_periodicflag(jj,l)
+					rec_periodicflag(i,jj,l)=ilox_periodicflag(jj,l)
 					end if
 					else
 
-					rec_ihexgc(jj,l,i)=ilox_ihexg(jj,l)
-					rec_ihexlc(jj,l,i)=ilox_ihexl(jj,l)
+					rec_ihexgc(i,jj,l)=ilox_ihexg(jj,l)
+					rec_ihexlc(i,jj,l)=ilox_ihexl(jj,l)
 
 					end if
 				
@@ -1255,42 +1255,42 @@ i=iconsi
 				
 				
 	
-				rec_ihexg(jj,l,i)=ilox_ihexg(jj,l)
-				rec_ihexl(jj,l,i)=ilox_ihexl(jj,l)
+				rec_ihexg(i,jj,l)=ilox_ihexg(jj,l)
+				rec_ihexl(i,jj,l)=ilox_ihexl(jj,l)
 				 if (iperiodicity == 1) then
-				rec_periodicflag(jj,l,i)=ilox_periodicflag(jj,l)
+				rec_periodicflag(i,jj,l)=ilox_periodicflag(jj,l)
 				end if
-				rec_ihexb(jj,l,rec_local(i))=ilox_ihexb(jj,l)
+				rec_ihexb(rec_local(i),jj,l)=ilox_ihexb(jj,l)
  				else
 				rec_volume(1,1,i)=ilox_volume(1,1)
-				rec_ihexgc(jj,l,i)=ilox_ihexg(jj,l)
-				rec_ihexlc(jj,l,i)=ilox_ihexl(jj,l)
-				rec_ihexbc(jj,l,rec_local(i))=ilox_ihexb(jj,l)
+				rec_ihexgc(i,jj,l)=ilox_ihexg(jj,l)
+				rec_ihexlc(i,jj,l)=ilox_ihexl(jj,l)
+				rec_ihexbc(rec_local(i),jj,l)=ilox_ihexb(jj,l)
 				
 
                                 end if
 
 				else 
 				if ((ees.ne.5).or.(jj.eq.1))then
-				rec_ihexg(jj,l,i)=ilox_ihexg(jj,l)
-				rec_ihexl(jj,l,i)=ilox_ihexl(jj,l)
+				rec_ihexg(i,jj,l)=ilox_ihexg(jj,l)
+				rec_ihexl(i,jj,l)=ilox_ihexl(jj,l)
 				 if (iperiodicity == 1) then
-				rec_periodicflag(jj,l,i)=ilox_periodicflag(jj,l)
+				rec_periodicflag(i,jj,l)=ilox_periodicflag(jj,l)
 				end if
-				rec_ihexb(jj,l,rec_local(i))=ilox_ihexb(jj,l)
-				rec_ihexn(jj,l,rec_local(i))=ilox_ihexn(jj,l)
+				rec_ihexb(rec_local(i),jj,l)=ilox_ihexb(jj,l)
+				rec_ihexn(rec_local(i),jj,l)=ilox_ihexn(jj,l)
 				else
-				rec_ihexgc(jj,l,i)=ilox_ihexg(jj,l)
-				rec_ihexlc(jj,l,i)=ilox_ihexl(jj,l)
-				rec_ihexbc(jj,l,rec_local(i))=ilox_ihexb(jj,l)
-				rec_ihexnc(jj,l,rec_local(i))=ilox_ihexn(jj,l)
+				rec_ihexgc(i,jj,l)=ilox_ihexg(jj,l)
+				rec_ihexlc(i,jj,l)=ilox_ihexl(jj,l)
+				rec_ihexbc(rec_local(i),jj,l)=ilox_ihexb(jj,l)
+				rec_ihexnc(rec_local(i),jj,l)=ilox_ihexn(jj,l)
 				
 				end if
 				
 				
 				
 				eltype=ilox_ishape(jj,l)
-				elem_listd=0.0d0; vext=0.0d0; nodes_list=0.0d0
+				elem_listd=0.00; vext=0.00; nodes_list=0.00
 				      
 				      select case(eltype)
 				      
@@ -1313,7 +1313,7 @@ i=iconsi
 					    end do
 					    call decompose3(n,eltype,nodes_list,elem_listd)
 					    
-					    dumv2=0.0d0
+					    dumv2=0.00
 					    do k=1,elem_dec
 					    vext(1:4,1:3)=elem_listd(k,1:4,1:3)
 					    dumv2=dumv2+tetravolume(n,vext)
@@ -1358,22 +1358,22 @@ i=iconsi
 	  call compute_centre3d(i,cords)
 	  vext(1,1:dims)=cords(1:dims)
 	  do k=1,ielem_ifca(i)
-		  j=ielem_ineigh(k,i)
+		  j=ielem_ineigh(i,k)
 		  call compute_centre3d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance3(n,vext)
 		    if (rungekutta.ge.2)then
-		    ielem_dih(k,i)=dist1
-  		    ielem_dih2(k,1:dims,i)=vext(2,1:dims)-vext(1,1:dims)
+		    ielem_dih(i,k)=dist1
+  		    ielem_dih2(i,k,1:dims)=vext(2,1:dims)-vext(1,1:dims)
 		    end if
 	  end do
       else
 		    call compute_centre3d(i,cords)
 		    vext(1,1:dims)=cords(1:dims)
 	  do k=1,ielem_ifca(i)
-		if (ielem_ineighg(k,i).eq.0)then	!boundaries except other cpus and periodics
+		if (ielem_ineighg(i,k).eq.0)then	!boundaries except other cpus and periodics
 		  facexx=k
-		  select case(ielem_types_faces(k,i))
+		  select case(ielem_types_faces(i,k))
 		  case(5)
 		  ixxfff=4
 		  case(6)
@@ -1385,37 +1385,37 @@ i=iconsi
 		  
 		      dist1=distance3(n,vext)
 		    if (rungekutta.ge.2)then
-		    ielem_dih(k,i)=dist1*2.0d0
- 			ielem_dih2(k,1:dims,i)=vext(2,1:dims)-vext(1,1:dims)
+		    ielem_dih(i,k)=dist1*2.00
+ 			ielem_dih2(i,k,1:dims)=vext(2,1:dims)-vext(1,1:dims)
 		    end if
 		 end if
-		if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).eq.0))then	!non periodic boundaries 
-		if (ielem_ineighb(k,i).eq.n)then		!within my cpu
-		 j=ielem_ineigh(k,i)
+		if ((ielem_ineighg(i,k).gt.0).and.(ielem_ibounds(i,k).eq.0))then	!non periodic boundaries 
+		if (ielem_ineighb(i,k).eq.n)then		!within my cpu
+		 j=ielem_ineigh(i,k)
 		  call compute_centre3d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance3(n,vext)
 		    if (rungekutta.ge.2)then
-		    ielem_dih(k,i)=dist1
-  		    ielem_dih2(k,1:dims,i)=vext(2,1:dims)-vext(1,1:dims)
+		    ielem_dih(i,k)=dist1
+  		    ielem_dih2(i,k,1:dims)=vext(2,1:dims)-vext(1,1:dims)
 		    end if
 		else						!from another cpu 
 		    do in1=1,ielem_inumneighbours(i)
-			  if (ielem_ineighg(k,i).eq.rec_ihexg(1,in1,i))then
-				  ielem_indexi(k,i)=in1
+			  if (ielem_ineighg(i,k).eq.rec_ihexg(i,1,in1))then
+				  ielem_indexi(i,k)=in1
 				      if (rungekutta.ge.2)then
 		    vext(2,1)=ilox_xxc(1,in1);vext(2,2)=ilox_yyc(1,in1); vext(2,3)=ilox_zzc(1,in1)
 		     dist1=distance3(n,vext)
-		    ielem_dih(k,i)=dist1
- 			ielem_dih2(k,1:dims,i)=vext(2,1:dims)-vext(1,1:dims)
+		    ielem_dih(i,k)=dist1
+ 			ielem_dih2(i,k,1:dims)=vext(2,1:dims)-vext(1,1:dims)
 				      end if
 			  end if
 		    end do
 		end if
 		end if
-		if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).gt.0))then	!periodic boundaries within my cpu
-		if (ielem_ineighb(k,i).eq.n)then	
-		     j=ielem_ineigh(k,i)
+		if ((ielem_ineighg(i,k).gt.0).and.(ielem_ibounds(i,k).gt.0))then	!periodic boundaries within my cpu
+		if (ielem_ineighb(i,k).eq.n)then	
+		     j=ielem_ineigh(i,k)
 		  call compute_centre3d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)  
 		    if(per_rot.eq.0)then
@@ -1429,7 +1429,7 @@ i=iconsi
 		    vext(2,3)=vext(2,3)+(zper*sign(1.0,vext(1,3)-zper*oo2))
 		    end if
 		    else
-                if (ibound_icode(ielem_ibounds(k,i)).eq.50) then
+                if (ibound_icode(ielem_ibounds(i,k)).eq.50) then
                     do kk=1,n_node
                     tempxx=vext(kk,1)
                     vext(kk,1)=tempxx*cos(angle_per)-sin(angle_per)*vext(kk,2)
@@ -1449,13 +1449,13 @@ i=iconsi
 		    end if
 		    dist1=distance3(n,vext)
 		    if (rungekutta.ge.2)then
-		    ielem_dih(k,i)=dist1
-  		    ielem_dih2(k,1:dims,i)=vext(2,1:dims)-vext(1,1:dims)
+		    ielem_dih(i,k)=dist1
+  		    ielem_dih2(i,k,1:dims)=vext(2,1:dims)-vext(1,1:dims)
 		    end if
 		else	!periodic boundaries from another cpu
 		     do in1=1,ielem_inumneighbours(i)
-			  if (ielem_ineighg(k,i).eq.rec_ihexg(1,in1,i))then
-				  ielem_indexi(k,i)=in1
+			  if (ielem_ineighg(i,k).eq.rec_ihexg(i,1,in1))then
+				  ielem_indexi(i,k)=in1
 				      if (rungekutta.ge.2)then
 		    vext(2,1)=ilox_xxc(1,in1);vext(2,2)=ilox_yyc(1,in1); vext(2,3)=ilox_zzc(1,in1)
 		    if(per_rot.eq.0)then 
@@ -1469,7 +1469,7 @@ i=iconsi
 		    vext(2,3)=vext(2,3)+(zper*sign(1.0,vext(1,3)-zper*oo2))
 		    end if
 		    else
-                if (ibound_icode(ielem_ibounds(k,i)).eq.50) then
+                if (ibound_icode(ielem_ibounds(i,k)).eq.50) then
                     do kk=1,n_node
 				      tempxx=vext(kk,1)
 				      vext(kk,1)=tempxx*cos(angle_per)-sin(angle_per)*vext(kk,2)
@@ -1488,8 +1488,8 @@ i=iconsi
                 end if
 		    end if
 		    dist1=distance3(n,vext)
-		    ielem_dih(k,i)=dist1
-  		    ielem_dih2(k,1:dims,i)=vext(2,1:dims)-vext(1,1:dims)
+		    ielem_dih(i,k)=dist1
+  		    ielem_dih2(i,k,1:dims)=vext(2,1:dims)-vext(1,1:dims)
 				end if
 			  end if
 		    end do
@@ -1709,11 +1709,11 @@ i=iconsi
 
 
 	  
-     vext=0.0d0
-    nodes_list=0.0d0
+     vext=0.00
+    nodes_list=0.00
     eltype=ielem_ishape(i)
     elem_dec=ielem_vdec(i)
-    elem_listd=0.0d0
+    elem_listd=0.00
        
       jx=ielem_nonodes(i)
 	  do k=1,jx
@@ -1761,8 +1761,8 @@ i=iconsi
  		idum=0
 		if (ielem_interior(i).eq.1)then
                         do j=1,ielem_ifca(i)
-                        if (ielem_ibounds(j,i).gt.0)then
-                            if ((ibound_icode(ielem_ibounds(j,i)).eq.4).or.(ibound_icode(ielem_ibounds(j,i)).eq.99))then
+                        if (ielem_ibounds(i,j).gt.0)then
+                            if ((ibound_icode(ielem_ibounds(i,j)).eq.4).or.(ibound_icode(ielem_ibounds(i,j)).eq.99))then
                                 idum=1
                             end if
                         end if
@@ -1781,9 +1781,9 @@ i=iconsi
 		    rec_vext_ref(1:2,i)=vext(1,1:2)
 		    
 		    if ((poly.eq.4).or.(dg.eq.1))then
-		    rec_invccjac(1:2,1:2,i)=0.0d0
- 		     rec_invccjac(1,1,i)=1.0d0
- 		      rec_invccjac(2,2,i)=1.0d0
+		    rec_invccjac(1:2,1:2,i)=0.00
+ 		     rec_invccjac(1,1,i)=1.00
+ 		      rec_invccjac(2,2,i)=1.00
 		      detjc=1.0
 		      vext(1,1)=ielem_xxc(i)
 		      vext(1,2)=ielem_yyc(i)
@@ -1861,12 +1861,12 @@ i=iconsi
 				rec_volume(1,1,i)=ilox_volume(1,1)
 				end if
 				
-				rec_ihexg(jj,l,i)=ilox_ihexg(jj,l)
-				rec_ihexl(jj,l,i)=ilox_ihexl(jj,l)
+				rec_ihexg(i,jj,l)=ilox_ihexg(jj,l)
+				rec_ihexl(i,jj,l)=ilox_ihexl(jj,l)
 				else
 				rec_volume(1,1,i)=ilox_volume(1,1)
-				rec_ihexgc(jj,l,i)=ilox_ihexg(jj,l)
-				rec_ihexlc(jj,l,i)=ilox_ihexl(jj,l)
+				rec_ihexgc(i,jj,l)=ilox_ihexg(jj,l)
+				rec_ihexlc(i,jj,l)=ilox_ihexl(jj,l)
 				
 				
 				end if
@@ -1882,32 +1882,32 @@ i=iconsi
 						else
 						rec_volume(1,1,i)=ilox_volume(1,1)
 						end if
-				rec_ihexg(jj,l,i)=ilox_ihexg(jj,l)
-				rec_ihexl(jj,l,i)=ilox_ihexl(jj,l)
-				rec_ihexb(jj,l,rec_local(i))=ilox_ihexb(jj,l)
+				rec_ihexg(i,jj,l)=ilox_ihexg(jj,l)
+				rec_ihexl(i,jj,l)=ilox_ihexl(jj,l)
+				rec_ihexb(rec_local(i),jj,l)=ilox_ihexb(jj,l)
 				else
 				rec_volume(1,1,i)=ilox_volume(1,1)
-				rec_ihexgc(jj,l,i)=ilox_ihexg(jj,l)
-				rec_ihexlc(jj,l,i)=ilox_ihexl(jj,l)
-				rec_ihexbc(jj,l,rec_local(i))=ilox_ihexb(jj,l)
+				rec_ihexgc(i,jj,l)=ilox_ihexg(jj,l)
+				rec_ihexlc(i,jj,l)=ilox_ihexl(jj,l)
+				rec_ihexbc(rec_local(i),jj,l)=ilox_ihexb(jj,l)
 				end if
 				else 
 				 if ((ees.ne.5).or.(jj.eq.1))then
-				rec_ihexg(jj,l,i)=ilox_ihexg(jj,l)
-				rec_ihexl(jj,l,i)=ilox_ihexl(jj,l)
-				rec_ihexb(jj,l,rec_local(i))=ilox_ihexb(jj,l)
-				rec_ihexn(jj,l,rec_local(i))=ilox_ihexn(jj,l)
+				rec_ihexg(i,jj,l)=ilox_ihexg(jj,l)
+				rec_ihexl(i,jj,l)=ilox_ihexl(jj,l)
+				rec_ihexb(rec_local(i),jj,l)=ilox_ihexb(jj,l)
+				rec_ihexn(rec_local(i),jj,l)=ilox_ihexn(jj,l)
 				else
-				rec_ihexgc(jj,l,i)=ilox_ihexg(jj,l)
-				rec_ihexlc(jj,l,i)=ilox_ihexl(jj,l)
-				rec_ihexbc(jj,l,rec_local(i))=ilox_ihexb(jj,l)
-				rec_ihexnc(jj,l,rec_local(i))=ilox_ihexn(jj,l)
+				rec_ihexgc(i,jj,l)=ilox_ihexg(jj,l)
+				rec_ihexlc(i,jj,l)=ilox_ihexl(jj,l)
+				rec_ihexbc(rec_local(i),jj,l)=ilox_ihexb(jj,l)
+				rec_ihexnc(rec_local(i),jj,l)=ilox_ihexn(jj,l)
 				
 				
 				end if
 				
 				      eltype=ilox_ishape(jj,l)
-				      elem_listd=0.0d0; vext=0.0d0; nodes_list=0.0d0
+				      elem_listd=0.00; vext=0.00; nodes_list=0.00
 				      select case(eltype)
 				      
 				      case(5)
@@ -1924,7 +1924,7 @@ i=iconsi
 					      vext(k,:)=nodes_list(k,:)
 					    end do
 					    call decompose2(n,eltype,nodes_list,elem_listd)
-					    dumv2=0.0d0
+					    dumv2=0.00
 					    do k=1,elem_dec
 					    vext(1:3,1:2)=elem_listd(k,1:3,1:2)
 					    dumv2=dumv2+trianglevolume(n,vext)
@@ -1954,20 +1954,20 @@ i=iconsi
 	  call compute_centre2d(i,cords)
 	  vext(1,1:dims)=cords(1:dims)
 	  do k=1,ielem_ifca(i)
-		  j=ielem_ineigh(k,i)
+		  j=ielem_ineigh(i,k)
 		  call compute_centre2d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance2(n,vext)
 		    if (rungekutta.ge.2)then
-		    ielem_dih(k,i)=dist1
-		     ielem_dih2(k,1:dimensiona,i)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
+		    ielem_dih(i,k)=dist1
+		     ielem_dih2(i,k,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 		    end if
 	  end do
       else
 		    call compute_centre2d(i,cords)
 		    vext(1,1:dims)=cords(1:dims)
 	  do k=1,ielem_ifca(i)
-		if (ielem_ineighg(k,i).eq.0)then	!boundaries except other cpus and periodics
+		if (ielem_ineighg(i,k).eq.0)then	!boundaries except other cpus and periodics
 		  facexx=k
 		  
 		  ixxfff=2
@@ -1979,37 +1979,37 @@ i=iconsi
 		      dist1=distance2(n,vext)
 
 		    if (rungekutta.ge.2)then
-		    ielem_dih(k,i)=dist1*2.0d0
-		    ielem_dih2(k,1:dimensiona,i)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
+		    ielem_dih(i,k)=dist1*2.00
+		    ielem_dih2(i,k,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 		    end if
 		 end if
-		if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).eq.0))then	!non periodic boundaries 
-		if (ielem_ineighb(k,i).eq.n)then		!within my cpu
-		 j=ielem_ineigh(k,i)
+		if ((ielem_ineighg(i,k).gt.0).and.(ielem_ibounds(i,k).eq.0))then	!non periodic boundaries 
+		if (ielem_ineighb(i,k).eq.n)then		!within my cpu
+		 j=ielem_ineigh(i,k)
 		  call compute_centre2d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance2(n,vext)
 		    if (rungekutta.ge.2)then
-		    ielem_dih(k,i)=dist1
-		     ielem_dih2(k,1:dimensiona,i)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
+		    ielem_dih(i,k)=dist1
+		     ielem_dih2(i,k,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 		    end if
 		else						!from another cpu 
 		    do in1=1,ielem_inumneighbours(i)
-			  if (ielem_ineighg(k,i).eq.rec_ihexg(1,in1,i))then
-				  ielem_indexi(k,i)=in1
+			  if (ielem_ineighg(i,k).eq.rec_ihexg(i,1,in1))then
+				  ielem_indexi(i,k)=in1
 				      if (rungekutta.ge.2)then
 		    vext(2,1)=ilox_xxc(1,in1);vext(2,2)=ilox_yyc(1,in1)
 		     dist1=distance2(n,vext)
-		    ielem_dih(k,i)=dist1
-		    ielem_dih2(k,1:dimensiona,i)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
+		    ielem_dih(i,k)=dist1
+		    ielem_dih2(i,k,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 				      end if
 			  end if
 		    end do
 		end if
 		end if
-		if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).gt.0))then	!periodic boundaries within my cpu
-		if (ielem_ineighb(k,i).eq.n)then	
-		     j=ielem_ineigh(k,i)
+		if ((ielem_ineighg(i,k).gt.0).and.(ielem_ibounds(i,k).gt.0))then	!periodic boundaries within my cpu
+		if (ielem_ineighb(i,k).eq.n)then	
+		     j=ielem_ineigh(i,k)
 		  call compute_centre2d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)  
 		    if(abs(vext(2,1)-vext(1,1)).gt.xper*oo2)then
@@ -2021,13 +2021,13 @@ i=iconsi
 		    
 		    dist1=distance2(n,vext)
 		    if (rungekutta.ge.2)then
-		    ielem_dih(k,i)=dist1
-		     ielem_dih2(k,1:dimensiona,i)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
+		    ielem_dih(i,k)=dist1
+		     ielem_dih2(i,k,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 		    end if
 		else	!periodic boundaries from another cpu
 		     do in1=1,ielem_inumneighbours(i)
-			  if (ielem_ineighg(k,i).eq.rec_ihexg(1,in1,i))then
-				  ielem_indexi(k,i)=in1
+			  if (ielem_ineighg(i,k).eq.rec_ihexg(i,1,in1))then
+				  ielem_indexi(i,k)=in1
 				      if (rungekutta.ge.2)then
 		    vext(2,1)=ilox_xxc(1,in1);vext(2,2)=ilox_yyc(1,in1);
 		     
@@ -2039,8 +2039,8 @@ i=iconsi
 		    end if
 		    
 		    dist1=distance2(n,vext)
-		    ielem_dih(k,i)=dist1
-		    ielem_dih2(k,1:dimensiona,i)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
+		    ielem_dih(i,k)=dist1
+		    ielem_dih2(i,k,1:dimensiona)=vext(2,1:dimensiona)-vext(1,1:dimensiona)
 				end if
 			  end if
 		    end do
@@ -2118,21 +2118,21 @@ do i=1,kmaxe
 		    vext(1,1:dims)=cords(1:dims)
       
 	  do k=1,ielem_ifca(i)
-		  j=ielem_ineigh(k,i)
+		  j=ielem_ineigh(i,k)
 		  call compute_centre3d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance3(n,vext)
-		    ielem_dih(k,i)=dist1
+		    ielem_dih(i,k)=dist1
 	  end do
 	
 	else
 		    call compute_centre3d(i,cords)
 		    vext(1,1:dims)=cords(1:dims)
 	  do k=1,ielem_ifca(i)
-		if (ielem_ineighg(k,i).eq.0)then	!boundaries except other cpus and periodics
+		if (ielem_ineighg(i,k).eq.0)then	!boundaries except other cpus and periodics
 		  
 		  facexx=k
-		  select case(ielem_types_faces(k,i))
+		  select case(ielem_types_faces(i,k))
 		  case(5)
 		  ixxfff=4
 		  case(6)
@@ -2143,28 +2143,28 @@ do i=1,kmaxe
 
 		  
 		      dist1=distance3(n,vext)
-		    ielem_dih(k,i)=dist1*2.0d0
+		    ielem_dih(i,k)=dist1*2.00
 		 end if
-		if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).eq.0))then	!non periodic boundaries 
-		if (ielem_ineighb(k,i).eq.n)then		!within my cpu
-		 j=ielem_ineigh(k,i)
+		if ((ielem_ineighg(i,k).gt.0).and.(ielem_ibounds(i,k).eq.0))then	!non periodic boundaries 
+		if (ielem_ineighb(i,k).eq.n)then		!within my cpu
+		 j=ielem_ineigh(i,k)
 		  call compute_centre3d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance3(n,vext)
-		    ielem_dih(k,i)=dist1
+		    ielem_dih(i,k)=dist1
 		else						!from another cpu 
 		
-! 		    vext(2,1:dims)=dsolchanger(ielem_ineighn(k,i))%centres(ielem_q_face_q_mapl(1,k,i),1:dims)
-		    vext(2,1:dims)=dsolchanger(ielem_ineighn(k,i))%centres(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:dims)
+! 		    vext(2,1:dims)=dsolchanger(ielem_ineighn(i,k))%centres(ielem_q_face_q_mapl(1,k,i),1:dims)
+		    vext(2,1:dims)=dsolchanger(ielem_ineighn(i,k))%centres(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:dims)
 
 
 		     dist1=distance3(n,vext)
-		    ielem_dih(k,i)=dist1
+		    ielem_dih(i,k)=dist1
 		end if
 		end if
-		if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).gt.0))then	!periodic boundaries within my cpu
-		if (ielem_ineighb(k,i).eq.n)then	
-		     j=ielem_ineigh(k,i)
+		if ((ielem_ineighg(i,k).gt.0).and.(ielem_ibounds(i,k).gt.0))then	!periodic boundaries within my cpu
+		if (ielem_ineighb(i,k).eq.n)then	
+		     j=ielem_ineigh(i,k)
 		  call compute_centre3d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)  
 		    if(abs(vext(2,1)-vext(1,1)).gt.xper*oo2)then
@@ -2177,12 +2177,12 @@ do i=1,kmaxe
 		    vext(2,3)=vext(2,3)+(zper*sign(1.0,vext(1,3)-zper*oo2))
 		    end if
 		    dist1=distance3(n,vext)
-		    ielem_dih(k,i)=dist1
+		    ielem_dih(i,k)=dist1
 		
 		else	!periodic boundaries from another cpu
 
-! 		     vext(2,1:dims)=dsolchanger(ielem_ineighn(k,i))%centres(ielem_q_face_q_mapl(1,k,i),1:dims)
-		     vext(2,1:dims)=dsolchanger(ielem_ineighn(k,i))%centres(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:dims)
+! 		     vext(2,1:dims)=dsolchanger(ielem_ineighn(i,k))%centres(ielem_q_face_q_mapl(1,k,i),1:dims)
+		     vext(2,1:dims)=dsolchanger(ielem_ineighn(i,k))%centres(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:dims)
 
 
 
@@ -2196,7 +2196,7 @@ do i=1,kmaxe
 		    vext(2,3)=vext(2,3)+(zper*sign(1.0,vext(1,3)-zper*oo2))
 		    end if
 		    dist1=distance3(n,vext)
-		    ielem_dih(k,i)=dist1
+		    ielem_dih(i,k)=dist1
 		end if
 		end if
 	  end do
@@ -2231,18 +2231,18 @@ do i=1,kmaxe
 		    vext(1,1:dims)=cords(1:dims)
       
 	  do k=1,ielem_ifca(i)
-		  j=ielem_ineigh(k,i)
+		  j=ielem_ineigh(i,k)
 		  call compute_centre2d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance2(n,vext)
-		    ielem_dih(k,i)=dist1
+		    ielem_dih(i,k)=dist1
 	  end do
 	
 	else
 		    call compute_centre2d(i,cords)
 		    vext(1,1:dims)=cords(1:dims)
 	  do k=1,ielem_ifca(i)
-		if (ielem_ineighg(k,i).eq.0)then	!boundaries except other cpus and periodics
+		if (ielem_ineighg(i,k).eq.0)then	!boundaries except other cpus and periodics
 		  facexx=k
 		 
 		  ixxfff=2
@@ -2251,49 +2251,49 @@ do i=1,kmaxe
 		  vext(2,1:dims)=cords(1:dims)
 		  
 		      dist1=distance2(n,vext)
-		    ielem_dih(k,i)=dist1*2.0d0
+		    ielem_dih(i,k)=dist1*2.00
 		 end if
-		if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).eq.0))then	!non periodic boundaries 
-		if (ielem_ineighb(k,i).eq.n)then		!within my cpu
-		 j=ielem_ineigh(k,i)
+		if ((ielem_ineighg(i,k).gt.0).and.(ielem_ibounds(i,k).eq.0))then	!non periodic boundaries 
+		if (ielem_ineighb(i,k).eq.n)then		!within my cpu
+		 j=ielem_ineigh(i,k)
 		  call compute_centre2d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)
 		      dist1=distance2(n,vext)
-		    ielem_dih(k,i)=dist1
+		    ielem_dih(i,k)=dist1
 		else						!from another cpu 
-		    vext(2,1:dims)=dsolchanger(ielem_ineighn(k,i))%centres(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:dims)
+		    vext(2,1:dims)=dsolchanger(ielem_ineighn(i,k))%centres(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:dims)
 
 		     dist1=distance2(n,vext)
-		    ielem_dih(k,i)=dist1
+		    ielem_dih(i,k)=dist1
 		end if
 		end if
-		if ((ielem_ineighg(k,i).gt.0).and.(ielem_ibounds(k,i).gt.0))then	!periodic boundaries within my cpu
-		if (ielem_ineighb(k,i).eq.n)then	
-		     j=ielem_ineigh(k,i)
+		if ((ielem_ineighg(i,k).gt.0).and.(ielem_ibounds(i,k).gt.0))then	!periodic boundaries within my cpu
+		if (ielem_ineighb(i,k).eq.n)then	
+		     j=ielem_ineigh(i,k)
 		  call compute_centre2d(j,cords)
 		    vext(2,1:dims)=cords(1:dims)  
-		    if(abs(vext(2,1)-vext(1,1)).gt.xper/2.d0)then
-		    vext(2,1)=vext(2,1)+(xper*sign(1.0d0,vext(1,1)-xper/2.d0))
+		    if(abs(vext(2,1)-vext(1,1)).gt.xper/2.0)then
+		    vext(2,1)=vext(2,1)+(xper*sign(1.00,vext(1,1)-xper/2.0))
 		    end if
-		    if(abs(vext(2,2)-vext(1,2)).gt.yper/2.d0)then
-		    vext(2,2)=vext(2,2)+(yper*sign(1.0d0,vext(1,2)-yper/2.d0))
+		    if(abs(vext(2,2)-vext(1,2)).gt.yper/2.0)then
+		    vext(2,2)=vext(2,2)+(yper*sign(1.00,vext(1,2)-yper/2.0))
 		    end if
 		    
 		    dist1=distance2(n,vext)
-		    ielem_dih(k,i)=dist1
+		    ielem_dih(i,k)=dist1
 		
 		else	!periodic boundaries from another cpu
 
-		     vext(2,1:dims)=dsolchanger(ielem_ineighn(k,i))%centres(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:dims)
+		     vext(2,1:dims)=dsolchanger(ielem_ineighn(i,k))%centres(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:dims)
 		    if(abs(vext(2,1)-vext(1,1)).gt.xper*oo2)then
-		    vext(2,1)=vext(2,1)+(xper*sign(1.0d0,vext(1,1)-xper/2.0d0))
+		    vext(2,1)=vext(2,1)+(xper*sign(1.00,vext(1,1)-xper/2.00))
 		    end if
 		    if(abs(vext(2,2)-vext(1,2)).gt.yper*oo2)then
-		    vext(2,2)=vext(2,2)+(yper*sign(1.0d0,vext(1,2)-yper/2.0d0))
+		    vext(2,2)=vext(2,2)+(yper*sign(1.00,vext(1,2)-yper/2.00))
 		    end if
 		    
 		    dist1=distance2(n,vext)
-		    ielem_dih(k,i)=dist1
+		    ielem_dih(i,k)=dist1
 		end if
 		end if
 	  end do
@@ -2356,26 +2356,26 @@ i=iconsi
 i=iconsi
   if (ielem_interior(i).eq.1)then
 			do k=1,ielem_ifca(i)
-								if (ielem_types_faces(k,i).eq.5)then
+								if (ielem_types_faces(i,k).eq.5)then
 								ixf4=4
 								else
 								ixf4=3
 								end if
 
-							if (ielem_ineighg(k,i).gt.0)then
-										if (ielem_ineighb(k,i).ne.n)then
-											if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
+							if (ielem_ineighg(i,k).gt.0)then
+										if (ielem_ineighb(i,k).ne.n)then
+											if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
 
-											ielem_nodes_faces(k,1:ixf4,i)=diexboundhirr(ielem_ineighn(k,i))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:ixf4)
+											ielem_nodes_faces(k,1:ixf4,i)=diexboundhirr(ielem_ineighn(i,k))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:ixf4)
 											ielem_reorient(k,i)=1
 
 											end if
 
 
 										else
-											if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
+											if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
 
-											ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(k,i),1:ixf4,ielem_ineigh(k,i))
+											ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(i,k),1:ixf4,ielem_ineigh(i,k))
 											ielem_reorient(k,i)=1
 									!
 											end if
@@ -2385,16 +2385,16 @@ i=iconsi
 			end do
   else
       do k=1,ielem_ifca(i)
-		  if (ielem_types_faces(k,i).eq.5)then
+		  if (ielem_types_faces(i,k).eq.5)then
 	    ixf4=4
 	    else
 	    ixf4=3
 	    end if
 
-      if (ielem_ineighg(k,i).gt.0)then
-	    if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
+      if (ielem_ineighg(i,k).gt.0)then
+	    if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
 ! 		
-		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(k,i),1:ixf4,ielem_ineigh(k,i))
+		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(i,k),1:ixf4,ielem_ineigh(i,k))
 		ielem_reorient(k,i)=1
 ! 		
 	    end if
@@ -2438,7 +2438,7 @@ surfmax=1.0e-16
        
       do l=1,ielem_ifca(i)
             
-	      select case (ielem_types_faces(l,i))
+	      select case (ielem_types_faces(i,l))
 	      case(5)
 	      nnd=4
 	      case(6)
@@ -2447,7 +2447,7 @@ surfmax=1.0e-16
 
 		
 				if (ielem_interior(i).eq.1)then
-							if ((ielem_ineighg(l,i).gt.0).and.(ielem_ibounds(l,i).gt.0)) then
+							if ((ielem_ineighg(i,l).gt.0).and.(ielem_ibounds(i,l).gt.0)) then
 				!
 
 									end if
@@ -2460,8 +2460,8 @@ surfmax=1.0e-16
 		
 		
 		
-	      surfmin=min(surfmin,ielem_surf(l,i))
-	      surfmax=max(surfmax,ielem_surf(l,i))
+	      surfmin=min(surfmin,ielem_surf(i,l))
+	      surfmax=max(surfmax,ielem_surf(i,l))
 	      
 	      
 	      
@@ -2566,8 +2566,8 @@ idc=0
 idc2=0
 if (ielem_interior(i).eq.1)then
 	do j=1,ielem_ifca(i)
-	  if (ielem_ibounds(j,i).gt.0)then
-	      if (ibound_icode(ielem_ibounds(j,i)).eq.4)then
+	  if (ielem_ibounds(i,j).gt.0)then
+	      if (ibound_icode(ielem_ibounds(i,j)).eq.4)then
 	        idc=idc+1
 	      else
 idc2=idc2+1
@@ -2585,7 +2585,7 @@ end if
  if (code_profile.eq.888)then
  if (ielem_interior(i).eq.1)then
  	do j=1,ielem_ifca(i)
- 	  if (ielem_ibounds(j,i).gt.0)then
+ 	  if (ielem_ibounds(i,j).gt.0)then
 ! !                   if (ibound_icode(ielem_ibounds(j,i)).ne.4)then
  	                ielem_hybrid(i)=1
 ! !                   end if
@@ -2627,24 +2627,24 @@ i=iconsi
 i=iconsi
   if (ielem_interior(i).eq.1)then
   do k=1,ielem_ifca(i)
-		  if (ielem_types_faces(k,i).eq.5)then
+		  if (ielem_types_faces(i,k).eq.5)then
 	    ixf4=4
 	    else
 	    ixf4=3
 	    end if
 	    
-      if (ielem_ineighg(k,i).gt.0)then
-	if (ielem_ineighb(k,i).ne.n)then
-	    if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
-		ielem_nodes_faces(k,1:ixf4,i)=diexboundhirr(ielem_ineighn(k,i))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:ixf4)
+      if (ielem_ineighg(i,k).gt.0)then
+	if (ielem_ineighb(i,k).ne.n)then
+	    if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
+		ielem_nodes_faces(k,1:ixf4,i)=diexboundhirr(ielem_ineighn(i,k))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:ixf4)
 		ielem_reorient(k,i)=1
 	    
 	    end if
 
 
 	else
-	    if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
-		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(k,i),1:ixf4,ielem_ineigh(k,i))
+	    if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
+		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(i,k),1:ixf4,ielem_ineigh(i,k))
 		ielem_reorient(k,i)=1
 	    end if
 	end if
@@ -2653,15 +2653,15 @@ i=iconsi
   end do
   else
       do k=1,ielem_ifca(i)
-		  if (ielem_types_faces(k,i).eq.5)then
+		  if (ielem_types_faces(i,k).eq.5)then
 	    ixf4=4
 	    else
 	    ixf4=3
 	    end if
 
-      if (ielem_ineighg(k,i).gt.0)then
-	    if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
-		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(k,i),1:ixf4,ielem_ineigh(k,i))
+      if (ielem_ineighg(i,k).gt.0)then
+	    if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
+		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(i,k),1:ixf4,ielem_ineigh(i,k))
 		ielem_reorient(k,i)=1
 	    end if
 	
@@ -2698,8 +2698,8 @@ tempg1=0.0;
 ! ielem_inx(i)=0
 !   if (ielem_interior(i).eq.1)then
 !         do j=1,ielem_ifca(i)
-!           if (ielem_ibounds(j,i).gt.0)then
-!               if (ibound_icode(ielem_ibounds(j,i)).eq.1)then
+!           if (ielem_ibounds(i,j).gt.0)then
+!               if (ibound_icode(ielem_ibounds(i,j)).eq.1)then
 !
 !               ielem_inx(i)=1
 !
@@ -2715,18 +2715,18 @@ tempg1=0.0;
 	    ixf4=2
 	   
 	    
-      if (ielem_ineighg(k,i).gt.0)then
-	if (ielem_ineighb(k,i).ne.n)then
-	    if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
-		ielem_nodes_faces(k,1:ixf4,i)=diexboundhirr(ielem_ineighn(k,i))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:ixf4)
+      if (ielem_ineighg(i,k).gt.0)then
+	if (ielem_ineighb(i,k).ne.n)then
+	    if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
+		ielem_nodes_faces(k,1:ixf4,i)=diexboundhirr(ielem_ineighn(i,k))%vertpp(ielem_qface(k,1,ielem_inter_id(ielem_indexf(i))),1:ixf4)
 		ielem_reorient(k,i)=1
 	    
 	    end if
 
 
 	else
-	    if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
-		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(k,i),1:ixf4,ielem_ineigh(k,i))
+	    if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
+		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(i,k),1:ixf4,ielem_ineigh(i,k))
 		ielem_reorient(k,i)=1
 	    end if
 	end if
@@ -2736,9 +2736,9 @@ tempg1=0.0;
       do k=1,ielem_ifca(i)
 		ixf4=2
 
-      if (ielem_ineighg(k,i).gt.0)then
-	    if (ielem_ineighg(k,i).gt.ielem_ihexgl(i))then
-		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(k,i),1:ixf4,ielem_ineigh(k,i))
+      if (ielem_ineighg(i,k).gt.0)then
+	    if (ielem_ineighg(i,k).gt.ielem_ihexgl(i))then
+		ielem_nodes_faces(k,1:ixf4,i)=ielem_nodes_faces(ielem_ineighn(i,k),1:ixf4,ielem_ineigh(i,k))
 		ielem_reorient(k,i)=1
 	    end if
 	
@@ -2758,12 +2758,12 @@ surfmax=1.0e-16
 	      
 	      nnd=2
 	     
-			 surfmin=min(surfmin,ielem_surf(l,i))
-	      surfmax=max(surfmax,ielem_surf(l,i))
+			 surfmin=min(surfmin,ielem_surf(i,l))
+	      surfmax=max(surfmax,ielem_surf(i,l))
 		
 		  if (ielem_interior(i).eq.1)then
-		    if ((ielem_ineighg(l,i).gt.0).and.(ielem_ibounds(l,i).gt.0))then
-		      if (ielem_ineighb(l,i).ne.n)then
+		    if ((ielem_ineighg(i,l).gt.0).and.(ielem_ibounds(i,l).gt.0))then
+		      if (ielem_ineighb(i,l).ne.n)then
            
 			do k=1,nnd
 			  nodes_list(k,1:dims)=dinoder(ielem_nodes_faces(l,k,iconsi))%cord(1:dims)
@@ -2772,10 +2772,10 @@ surfmax=1.0e-16
 			
 			do k=1,nnd
 			if(abs(nodes_list(k,1)-vext(1,1)).gt.xper*oo2)then
-			nodes_list(k,1)=nodes_list(k,1)+(xper*sign(1.0d0,vext(1,1)-xper*oo2))
+			nodes_list(k,1)=nodes_list(k,1)+(xper*sign(1.00,vext(1,1)-xper*oo2))
 			end if
 			if(abs(nodes_list(k,2)-vext(1,2)).gt.yper*oo2)then
-			nodes_list(k,2)=nodes_list(k,2)+(yper*sign(1.0d0,vext(1,2)-yper*oo2))
+			nodes_list(k,2)=nodes_list(k,2)+(yper*sign(1.00,vext(1,2)-yper*oo2))
 			end if
 			end do
 			
@@ -2825,7 +2825,7 @@ end do
    if ((realgas.eq.1).or.(code_profile.eq.888))then
   if (ielem_interior(i).eq.1)then
   	do j=1,ielem_ifca(i)
-  	  if (ielem_ibounds(j,i).gt.0)then
+  	  if (ielem_ibounds(i,j).gt.0)then
   	        ielem_hybrid(i)=1
   	  end if
           end do
