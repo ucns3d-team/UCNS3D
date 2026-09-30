@@ -47,12 +47,16 @@ F90 = ftn
 LD  = $(F90)
 
 # Cray Fortran compiler: production run
-FFLAGS = -eZ -s real64 -fbackslash -fopenmp -e 0 -e I -O2 -Dxpu
+FFLAGS = -eZ -ef -s real64 -fbackslash -fopenmp -e 0 -e I -O2 -Dxpu -h PIC
+PICFLAGS =
+SHLIB_EXT = so
+SHLIB_FLAGS = -shared
+RPATH_FLAG = -Wl,-rpath,'$$ORIGIN'
 
 LINKFLAGS = -fopenmp
 
-LIBS = -L$(EXTRALIBSPATH) -Wl,-Bstatic libtecio.a -Wl,-Bdynamic \
-       -lstdc++ -lpthread -lm -ldl -lmpi -lmetis -lparmetis \
+LIBS = -L$(EXTRALIBSPATH) -Wl,-Bstatic $(TECPLOT_LIB) -Wl,-Bdynamic \
+       -lstdc++ -lpthread -lm -ldl -lmpi $(PARMETIS_LIB) $(METIS_LIB) \
        -L/opt/cray/pe/cce/15.0.0/cce/x86_64/lib/
 
 else ifeq ($(COMPILER),intel)
@@ -61,7 +65,11 @@ LD  = $(F90)
 
 # Intel Fortran compiler: production run
  FFLAGS = -i4 -r8 -ipo -O2 -fpp -march=core-avx2 -fp-model strict \
-          -zero -qopenmp -qopenmp-link=static
+          -zero -qopenmp -qopenmp-link=static -fPIC
+PICFLAGS =
+SHLIB_EXT = so
+SHLIB_FLAGS = -shared
+RPATH_FLAG = -Wl,-rpath,'$$ORIGIN'
 #FFLAGS =         -i4 -r8 -O0 -g -fpp -debug all -traceback -qopenmp \
  #         -qopenmp-link=static -fp-model strict -debug inline-debug-info -zero
 
@@ -80,7 +88,11 @@ GNU_ARCH_FLAGS ?= -mcpu=native
 FFLAGS = -cpp -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp \
          -ffree-line-length-none -finit-local-zero -fimplicit-none \
          -O2 $(GNU_ARCH_FLAGS) -fcray-pointer -fno-lto -fno-tree-sra \
-         -Wno-lto-type-mismatch -fallow-argument-mismatch
+         -Wno-lto-type-mismatch -fallow-argument-mismatch -fPIC
+PICFLAGS =
+SHLIB_EXT = dylib
+SHLIB_FLAGS = -shared -Wl,-install_name,@rpath/librecon.dylib
+RPATH_FLAG = -Wl,-rpath,@loader_path
 
 MAC_MISSING_LIBS :=
 ifeq ($(strip $(MAC_TECPLOT_LIB)),)
@@ -104,7 +116,11 @@ GNU_ARCH_FLAGS ?= -march=native
 FFLAGS = -cpp -fdefault-real-8 -fdefault-double-8 -fbackslash -fopenmp \
          -ffree-line-length-none -finit-local-zero -fimplicit-none \
          -O2 $(GNU_ARCH_FLAGS) -fcray-pointer -fno-lto -fno-tree-sra \
-         -Wno-lto-type-mismatch -fallow-argument-mismatch -fPIE
+         -Wno-lto-type-mismatch -fallow-argument-mismatch -fPIC
+PICFLAGS =
+SHLIB_EXT = so
+SHLIB_FLAGS = -shared
+RPATH_FLAG = -Wl,-rpath,'$$ORIGIN'
 
 LINKFLAGS = -fopenmp
 

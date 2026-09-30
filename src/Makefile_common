@@ -1,107 +1,215 @@
-.NOTPARALLEL:
+# Cancel Make's built-in Modula-2 rule (.mod → .o via m2c)
+# which conflicts with Fortran .mod files.
+%.o : %.mod
 
-all: ucns3d_p
+# Wrap every compiler/linker invocation with timing.
+# Prints a single line: "[  12.3s] ftn ... file.f90"
+# Override with TIME= on the command line to disable.
+TIME ?= /usr/bin/time -f "  [%es] %C"
 
-ucns3d_p: mpi_p.o declarations.o parameters.o translate.o grid_t.o flow_operations.o io.o memory.o communications.o  der_r.o parts.o svd.o grid_p.o basis.o local_pt.o riemann.o flux_p.o profile.o init_p.o bc_p.o matrix.o gradients.o prestore.o reconstruct_p.o source.o  implicit_fluxes.o implicit_time.o  mood.o time_p.o dg_functions.o   main.o 
-	$(LD) $(FFLAGS) $(OFLAGS) -o ucns3d_p declarations.o translate.o grid_t.o flow_operations.o memory.o io.o mpi_p.o der_r.o parameters.o  communications.o riemann.o flux_p.o profile.o init_p.o parts.o bc_p.o matrix.o grid_p.o basis.o gradients.o prestore.o reconstruct_p.o source.o implicit_fluxes.o implicit_time.o  time_p.o   svd.o local_pt.o mood.o dg_functions.o  main.o  $(LIBS)
+all: build_start ucns3d_p build_end
 
-GPU_MAX_OBJECTS = mpi_p.o declarations.o parameters.o translate.o grid_t.o flow_operations.o io.o memory.o communications.o der_r.o parts.o svd.o grid_p.o basis.o local_pt.o riemann.o flux_p.o profile.o init_p.o bc_p.o matrix.o gradients.o prestore.o reconstruct_p.o source.o implicit_fluxes.o implicit_time.o mood.o time_p.o dg_functions.o main.o
+# Phony targets to print total wall-clock time
+BUILD_START_FILE := .build_start_time
+.PHONY: build_start build_end
+build_start:
+	@date +%s > $(BUILD_START_FILE)
+	@echo "=== Build started at $$(date) ==="
+
+build_end: ucns3d_p
+	@echo "=== Build finished at $$(date) ==="
+	@if [ -f $(BUILD_START_FILE) ]; then \
+	  start=$$(cat $(BUILD_START_FILE)); \
+	  end=$$(date +%s); \
+	  elapsed=$$((end - start)); \
+	  echo "=== Total build time: $${elapsed}s ==="; \
+	  rm -f $(BUILD_START_FILE); \
+	fi
+
+# Object files for the main executable (everything except reconstruct_p)
+MAIN_OBJECTS = mpi_p.o declarations.o parameters.o translate.o grid_t.o \
+    flow_operations.o io.o memory.o communications.o der_r.o parts.o svd.o \
+    grid_p.o basis.o local_pt.o riemann.o flux_p.o profile.o init_p.o \
+    bc_p.o matrix.o gradients.o prestore.o source.o implicit_fluxes.o \
+    implicit_time.o mood.o time_p.o dg_functions.o main.o
+
+# Shared library for the reconstruction module.
+# GPU device code (OpenMP target offload) requires all referenced symbols
+# resolved at shared-library link time, so we include the dependency objects
+# that contain !$omp declare target routines/data alongside reconstruct_p.
+# All objects are compiled with PIC (flag is in FFLAGS).
+RECON_LIB = librecon.$(SHLIB_EXT)
+RECON_DEP_OBJECTS = declarations.o der_r.o grid_t.o grid_p.o basis.o \
+    gradients.o flow_operations.o
+
+$(RECON_LIB): reconstruct_p.o $(RECON_DEP_OBJECTS)
+	$(TIME) $(LD) $(FFLAGS) $(SHLIB_FLAGS) -o $@ $^
+
+ucns3d_p: $(MAIN_OBJECTS) $(RECON_LIB)
+	$(TIME) $(LD) $(FFLAGS) $(OFLAGS) -o ucns3d_p $(MAIN_OBJECTS) -L. -lrecon $(RPATH_FLAG) $(LIBS)
+
+GPU_MAX_OBJECTS = $(MAIN_OBJECTS) reconstruct_p.o
 $(GPU_MAX_OBJECTS): $(GPU_MAX_DEPS)
 
+# -----------------------------------------------------------------------------
+# Stamp-file rules: each .f90 compilation produces both a .o and a .mod file.
+# Using stamp files ensures the recipe runs exactly once even on Make < 4.3
+# (which lacks grouped-target &: support).
+# -----------------------------------------------------------------------------
+
 main.o: mpiinfo.mod declaration.mod translate.mod parameters.mod memory.mod communications.mod io.mod partition.mod library.mod transform.mod fluxes.mod initialisation.mod boundary.mod advance.mod recon.mod local.mod profile.mod flow_operations.mod gradients.mod basis.mod prestore.mod riemann.mod source.mod implicit_time.mod implicit_fluxes.mod moodr.mod 
-	$(F90) $(FFLAGS)  -c	main.f90
+	$(TIME) $(F90) $(FFLAGS)  -c	main.f90
 
-mpiinfo.mod mpi_p.o : mpi_p.f90
-	$(F90) $(FFLAGS)  -c    mpi_p.f90
+.mpi_p.stamp : mpi_p.f90
+	$(TIME) $(F90) $(FFLAGS)  -c    mpi_p.f90
+	@touch $@
+mpiinfo.mod mpi_p.o : .mpi_p.stamp
 
-declaration.mod declarations.o : declarations.f90
-	$(F90) $(FFLAGS)  -c    declarations.f90
+.declarations.stamp : declarations.f90
+	$(TIME) $(F90) $(FFLAGS)  -c    declarations.f90
+	@touch $@
+declaration.mod declarations.o : .declarations.stamp
 
-parameters.mod parameters.o : parameters.f90 mpiinfo.mod declaration.mod 
-	$(F90) $(FFLAGS)  -c    parameters.f90
+.parameters.stamp : parameters.f90 mpiinfo.mod declaration.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    parameters.f90
+	@touch $@
+parameters.mod parameters.o : .parameters.stamp
 
-translate.mod translate.o : translate.f90
-	$(F90) $(FFLAGS)  -c    translate.f90
+.translate.stamp : translate.f90 declaration.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    translate.f90
+	@touch $@
+translate.mod translate.o : .translate.stamp
 
-basis.mod basis.o : basis.f90 declaration.mod library.mod
-	$(F90) $(FFLAGS)  -c    basis.f90
-	
-boundary.mod bc_p.o : bc_p.f90 library.mod transform.mod
-	$(F90) $(FFLAGS)  -c    bc_p.f90
+.grid_t.stamp : grid_t.f90 mpiinfo.mod declaration.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    grid_t.f90
+	@touch $@
+transform.mod grid_t.o : .grid_t.stamp
 
-derivatives.mod der_r.o : der_r.f90 mpiinfo.mod
-	$(F90) $(FFLAGS)  -c    der_r.f90
+.grid_p.stamp : grid_p.f90 mpiinfo.mod declaration.mod io.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    grid_p.f90
+	@touch $@
+library.mod grid_p.o : .grid_p.stamp
 
-communications.mod communications.o : communications.f90 mpiinfo.mod declaration.mod transform.mod 
-	$(F90) $(FFLAGS)  -c    communications.f90
+.basis.stamp : basis.f90 declaration.mod library.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    basis.f90
+	@touch $@
+basis.mod basis.o : .basis.stamp
 
-flow_operations.mod flow_operations.o : flow_operations.f90 declaration.mod mpiinfo.mod transform.mod
-	$(F90) $(FFLAGS)  -c    flow_operations.f90
+.bc_p.stamp : bc_p.f90 declaration.mod library.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    bc_p.f90
+	@touch $@
+boundary.mod bc_p.o : .bc_p.stamp
 
-dg_functions.mod dg_functions.o : dg_functions.f90 basis.mod derivatives.mod flow_operations.mod lapck.mod
-	$(F90) $(FFLAGS)  -c    dg_functions.f90
+.der_r.stamp : der_r.f90 declaration.mod mpiinfo.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    der_r.f90
+	@touch $@
+derivatives.mod der_r.o : .der_r.stamp
 
-fluxes.mod flux_p.o : flux_p.f90 library.mod transform.mod local.mod riemann.mod flow_operations.mod dg_functions.mod
-	$(F90) $(FFLAGS)  -c    flux_p.f90
+.communications.stamp : communications.f90 mpiinfo.mod declaration.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    communications.f90
+	@touch $@
+communications.mod communications.o : .communications.stamp
 
-gradients.mod gradients.o : gradients.f90 library.mod flow_operations.mod
-	$(F90) $(FFLAGS)  -c    gradients.f90
+.flow_operations.stamp : flow_operations.f90 declaration.mod mpiinfo.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    flow_operations.f90
+	@touch $@
+flow_operations.mod flow_operations.o : .flow_operations.stamp
 
-library.mod grid_p.o : grid_p.f90 mpiinfo.mod declaration.mod io.mod transform.mod
-	$(F90) $(FFLAGS)  -c    grid_p.f90
+.matrix.stamp : matrix.f90 declaration.mod mpiinfo.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    matrix.f90
+	@touch $@
+lapck.mod matrix.o : .matrix.stamp
 
-transform.mod grid_t.o : grid_t.f90 mpiinfo.mod declaration.mod
-	$(F90) $(FFLAGS)  -c    grid_t.f90
+.dg_functions.stamp : dg_functions.f90 basis.mod declaration.mod derivatives.mod flow_operations.mod lapck.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    dg_functions.f90
+	@touch $@
+dg_functions.mod dg_functions.o : .dg_functions.stamp
 
-implicit_fluxes.mod implicit_fluxes.o : implicit_fluxes.f90 declaration.mod library.mod transform.mod local.mod riemann.mod flow_operations.mod source.mod
-	$(F90) $(FFLAGS)  -c    implicit_fluxes.f90
+.io.stamp : io.f90 mpiinfo.mod declaration.mod flow_operations.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    io.f90
+	@touch $@
+io.mod io.o : .io.stamp
 
-implicit_time.mod implicit_time.o : implicit_time.f90 library.mod transform.mod flow_operations.mod implicit_fluxes.mod communications.mod
-	$(F90) $(FFLAGS)  -c    implicit_time.f90
+.local_pt.stamp : local_pt.f90 library.mod declaration.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    local_pt.f90
+	@touch $@
+local.mod local_pt.o : .local_pt.stamp
 
-initialisation.mod init_p.o : init_p.f90 declaration.mod library.mod transform.mod profile.mod
-	$(F90) $(FFLAGS)  -c    init_p.f90
+.riemann.stamp : riemann.f90 declaration.mod library.mod flow_operations.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    riemann.f90
+	@touch $@
+riemann.mod riemann.o : .riemann.stamp
 
-io.mod io.o : io.f90 mpiinfo.mod declaration.mod flow_operations.mod transform.mod
-	$(F90) $(FFLAGS)  -c    io.f90
+.flux_p.stamp : flux_p.f90 basis.mod declaration.mod dg_functions.mod flow_operations.mod library.mod local.mod riemann.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    flux_p.f90
+	@touch $@
+fluxes.mod flux_p.o : .flux_p.stamp
 
-local.mod local_pt.o : local_pt.f90 library.mod declaration.mod transform.mod
-	$(F90) $(FFLAGS)  -c    local_pt.f90
+.profile.stamp : profile.f90 basis.mod declaration.mod library.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    profile.f90
+	@touch $@
+profile.mod profile.o : .profile.stamp
 
-lapck.mod matrix.o : matrix.f90 mpiinfo.mod
-	$(F90) $(FFLAGS)  -c    matrix.f90
+.init_p.stamp : init_p.f90 declaration.mod library.mod transform.mod profile.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    init_p.f90
+	@touch $@
+initialisation.mod init_p.o : .init_p.stamp
 
-memory.mod memory.o : memory.f90 mpiinfo.mod declaration.mod
-	$(F90) $(FFLAGS)  -c    memory.f90
+.gradients.stamp : gradients.f90 declaration.mod flow_operations.mod library.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    gradients.f90
+	@touch $@
+gradients.mod gradients.o : .gradients.stamp
 
-partition.mod parts.o : parts.f90 mpiinfo.mod declaration.mod
-	$(F90) $(FFLAGS)  -c    parts.f90
+.memory.stamp : memory.f90 mpiinfo.mod declaration.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    memory.f90
+	@touch $@
+memory.mod memory.o : .memory.stamp
 
-prestore.mod prestore.o : prestore.f90 declaration.mod derivatives.mod library.mod basis.mod transform.mod local.mod lapck.mod dg_functions.mod
-	$(F90) $(FFLAGS)  -c    prestore.f90
+.parts.stamp : parts.f90 mpiinfo.mod declaration.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    parts.f90
+	@touch $@
+partition.mod parts.o : .parts.stamp
 
-profile.mod profile.o : profile.f90 declaration.mod library.mod
-	$(F90) $(FFLAGS)  -c    profile.f90
+.svd.stamp : svd.f90 mpiinfo.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    svd.f90
+	@touch $@
+svd.mod svd.o : .svd.stamp
 
-recon.mod reconstruct_p.o : reconstruct_p.f90 declaration.mod derivatives.mod library.mod transform.mod local.mod lapck.mod gradients.mod basis.mod
-	$(F90) $(FFLAGS)  -c    reconstruct_p.f90
+.prestore.stamp : prestore.f90 declaration.mod derivatives.mod library.mod basis.mod transform.mod local.mod lapck.mod dg_functions.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    prestore.f90
+	@touch $@
+prestore.mod prestore.o : .prestore.stamp
 
-riemann.mod riemann.o : riemann.f90 declaration.mod library.mod flow_operations.mod
-	$(F90) $(FFLAGS)  -c    riemann.f90
+.reconstruct_p.stamp : reconstruct_p.f90 declaration.mod derivatives.mod library.mod transform.mod local.mod lapck.mod gradients.mod basis.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    reconstruct_p.f90
+	@touch $@
+recon.mod reconstruct_p.o : .reconstruct_p.stamp
 
-source.mod source.o : source.f90 library.mod transform.mod local.mod riemann.mod flow_operations.mod
-	$(F90) $(FFLAGS)  -c    source.f90
+.source.stamp : source.f90 declaration.mod flow_operations.mod library.mod local.mod riemann.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    source.f90
+	@touch $@
+source.mod source.o : .source.stamp
 
-svd.mod svd.o : svd.f90 mpiinfo.mod
-	$(F90) $(FFLAGS)  -c    svd.f90
+.implicit_fluxes.stamp : implicit_fluxes.f90 declaration.mod library.mod transform.mod local.mod riemann.mod flow_operations.mod source.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    implicit_fluxes.f90
+	@touch $@
+implicit_fluxes.mod implicit_fluxes.o : .implicit_fluxes.stamp
 
-moodr.mod mood.o : mood.f90 mpiinfo.mod declaration.mod translate.mod memory.mod communications.mod io.mod partition.mod library.mod transform.mod fluxes.mod initialisation.mod boundary.mod recon.mod local.mod profile.mod flow_operations.mod gradients.mod basis.mod prestore.mod riemann.mod source.mod implicit_time.mod implicit_fluxes.mod
-	$(F90) $(FFLAGS)  -c    mood.f90
+.implicit_time.stamp : implicit_time.f90 communications.mod declaration.mod flow_operations.mod implicit_fluxes.mod library.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    implicit_time.f90
+	@touch $@
+implicit_time.mod implicit_time.o : .implicit_time.stamp
 
-advance.mod time_p.o : time_p.f90 library.mod transform.mod fluxes.mod source.mod initialisation.mod boundary.mod recon.mod local.mod flow_operations.mod communications.mod implicit_time.mod implicit_fluxes.mod io.mod
-	$(F90) $(FFLAGS)  -c    time_p.f90
+.mood.stamp : mood.f90 mpiinfo.mod declaration.mod translate.mod memory.mod communications.mod io.mod partition.mod library.mod transform.mod fluxes.mod initialisation.mod boundary.mod recon.mod local.mod profile.mod flow_operations.mod gradients.mod basis.mod prestore.mod riemann.mod source.mod implicit_time.mod implicit_fluxes.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    mood.f90
+	@touch $@
+moodr.mod mood.o : .mood.stamp
 
+.time_p.stamp : time_p.f90 boundary.mod communications.mod declaration.mod flow_operations.mod fluxes.mod implicit_fluxes.mod implicit_time.mod initialisation.mod io.mod library.mod local.mod moodr.mod recon.mod source.mod transform.mod
+	$(TIME) $(F90) $(FFLAGS)  -c    time_p.f90
+	@touch $@
+advance.mod time_p.o : .time_p.stamp
 
 
 clean:
-	rm  -rf *.mod *.o
+	rm  -rf *.mod *.o .*.stamp librecon.* $(BUILD_START_FILE)
