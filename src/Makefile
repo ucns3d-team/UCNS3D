@@ -4,6 +4,8 @@
 #   make COMPILER=cray
 #   make COMPILER=intel
 #   make COMPILER=gnu
+#   make -f Makefile_repos COMPILER=amd
+# Clean before switching compilers or compiler flags.
 #
 # The default setup is the Cray compiler wrapper (`ftn`) with the XPU path
 # enabled. The Intel and GNU setups find static libraries relative to this
@@ -55,12 +57,31 @@ LIBS = -L$(EXTRALIBSPATH) -Wl,-Bstatic libtecio.a -Wl,-Bdynamic \
        -lstdc++ -lpthread -lm -ldl -lmpi -lmetis -lparmetis \
        -L/opt/cray/pe/cce/15.0.0/cce/x86_64/lib/
 
+else ifeq ($(COMPILER),amd)
+F90 = amdflang
+LD  = $(F90)
+
+# AMD Flang: LUMI gfx90a XPU build, matching the AMD Makefile.
+# Load the AMD/Cray MPICH environment to provide MPICH_DIR and the GTL flags.
+EXTRALIBSPATH = /scratch/project_465003108/HACKATHON/UCNS3D/libst
+
+FFLAGS = -cpp -fdefault-real-8 -fbackslash \
+         -fopenmp --offload-arch=gfx90a \
+         -O3 -fopenmp-target-fast -Dxpu \
+         -I$(MPICH_DIR)/include
+
+LINKFLAGS = -fopenmp
+
+LIBS = -L$(EXTRALIBSPATH) -Wl,-Bstatic libtecio.a -Wl,-Bdynamic \
+       -lstdc++ -lpthread -lm -ldl -lomp -lmpifort -lmpi -lmetis -lparmetis \
+       $(PE_MPICH_GTL_DIR_amd_gfx90a) $(PE_MPICH_GTL_LIBS_amd_gfx90a)
+
 else ifeq ($(COMPILER),intel)
 F90 = mpiifx
 LD  = $(F90)
 
 # Intel Fortran compiler: production run
- FFLAGS = -i4 -r8 -ipo -O2 -fpp -march=core-avx2 -fp-model strict \
+ FFLAGS = -i4 -r8 -ipo -O2 -fpp -march=core-avx2 -fp-model precise \
           -zero -qopenmp -qopenmp-link=static
 #FFLAGS =         -i4 -r8 -O0 -g -fpp -debug all -traceback -qopenmp \
  #         -qopenmp-link=static -fp-model strict -debug inline-debug-info -zero
@@ -114,7 +135,7 @@ LIBS = -Wl,-Bstatic $(GNU_TECPLOT_LIB) $(GNU_PARMETIS_LIB) \
 endif
 
 else
-$(error Unknown COMPILER='$(COMPILER)'; expected 'cray', 'intel', or 'gnu')
+$(error Unknown COMPILER='$(COMPILER)'; expected 'cray', 'amd', 'intel', or 'gnu')
 endif
 
 

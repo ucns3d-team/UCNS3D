@@ -1,2004 +1,1959 @@
 module parameters
-use, intrinsic :: iso_fortran_env, only: error_unit
-use mpiinfo
-use declaration
+   use, intrinsic :: iso_fortran_env, only: error_unit
+   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+   use mpiinfo
+   use declaration
 
-implicit none
+   implicit none
 
- contains
+contains
 
-
-subroutine read_ucns3d
+   subroutine read_ucns3d
 !> @brief
 !> this subroutine reads the parameter file
 
-	implicit none
+      implicit none
 
-	integer :: inv,ix,ibleed,i,j,mach_ios
-	integer :: inv1
-	real :: angledum,mach_aux1,mach_aux2
-	character(48)::stamp1,frame
-	character(len=256)::mach_line,outlet_file
-	logical::here1,here2,here3,here5,here,here4,here7,here8,here9,bleedio,here10,here11
-	character(len=8)  :: date_w
-	character(len=10) :: time_w
+      integer :: inv, ix, ibleed, i, j, mach_ios
+      integer :: inv1
+      real :: angledum, mach_aux1, mach_aux2
+      character(48) :: stamp1, frame
+      character(len=256) :: mach_line, outlet_file
+      logical :: here1, here2, here3, here5, here, here4, here7, here8, here9, bleedio, here10, here11
+      character(len=8) :: date_w
+      character(len=10) :: time_w
 
-	mp_modelc=0	!allaire by default
-	nof_species=1
+      mp_modelc = 0 !allaire by default
+      nof_species = 1
 
+      call mpi_barrier(mpi_comm_world, ierror)
+      inquire (file='RESTARTAV.dat', exist=here1)
+      if (here1) then
+         average_restart = 1
+      else
+         average_restart = 0
+      end if
+      source_active = 0
+      transition_model = 0
+      transition_axis = 1
+      transition_direction = 1
+      transition_location = 0.00
+      transition_ramp_length = 0.00
+      transition_ramp_type = 1
+      mach_outlet_target = -1.00
+      mach_outlet_average = 0.00
+      mach_outlet_relax = 0.10
+      mach_outlet_update_freq = 10
+      mach_outlet_start_iter = 0
+      mach_outlet_filtered = 0.00
+      mach_outlet_filter_alpha = 0.20
+      mach_outlet_filter_ready = 0
+      total_pressure_inlet = -1.00
+      total_temperature_inlet = 350.00
+      density_inlet = -1.00
+      duct_viscosity_ref = 0.0e0
+      inlet_reynolds_freq = 100
 
+      movement = 0
 
-	call mpi_barrier(mpi_comm_world,ierror)
-	inquire (file='RESTARTAV.dat',exist=here1)
-	if (here1) then
-	average_restart=1
-	else
-	average_restart=0
-	end if
-	source_active=0
-	transition_model=0
-	transition_axis=1
-	transition_direction=1
-		transition_location=0.0d0
-		transition_ramp_length=0.0d0
-		transition_ramp_type=1
-			mach_outlet_target=-1.0d0
-				mach_outlet_average=0.0d0
-				mach_outlet_relax=0.1d0
-				mach_outlet_update_freq=10
-				mach_outlet_start_iter=0
-				mach_outlet_filtered=0.0d0
-				mach_outlet_filter_alpha=0.2d0
-				mach_outlet_filter_ready=0
-				total_pressure_inlet=-1.0d0
-				total_temperature_inlet=350.0d0
-				density_inlet=-1.0d0
-
-
-	movement=0
-
-	frame='ROTFRAME.dat'
-	inquire (file=frame,exist=here)
-	if (here) then
-	open(16,file=frame,form='formatted',status='old',action='read')
-	read(16,*)!1
-	read(16,*)!2
-	read(16,*)!3
-	read(16,*)!4
-	read(16,*)rframe
-	read(16,*)!6
-	read(16,*)srf_origin(1),srf_origin(2),srf_origin(3)
-	read(16,*)!8
-	read(16,*)srf_velocity(1),srf_velocity(2),srf_velocity(3)
-    read(16,*)!10
-	read(16,*)per_rot,angle_per,v_ref
-    read(16,*)!12
-    read(16,*)nrotors
-    allocate(point1_gl(nrotors,3),point2_gl(nrotors,3),radius_gl(nrotors),mrf_rot_gl(nrotors))
-    do inv1=1,nrotors !storing multiple rotating frame coordinates
-        read(16,*)point1_gl(inv1,1),point1_gl(inv1,2),point1_gl(inv1,3)
-        read(16,*)point2_gl(inv1,1),point2_gl(inv1,2),point2_gl(inv1,3)
-        read(16,*)radius_gl(inv1), mrf_rot_gl(inv1)
-	end do
-	close(16)
-        if(per_rot.eq.1)then
-	        tol_per=1.0e-8
-            lowmem=1
+      frame = 'ROTFRAME.dat'
+      inquire (file=frame, exist=here)
+      if (here) then
+         open (16, file=frame, form='formatted', status='old', action='read')
+         read (16, *) !1
+         read (16, *) !2
+         read (16, *) !3
+         read (16, *) !4
+         read (16, *) rframe
+         read (16, *) !6
+         read (16, *) srf_origin(1), srf_origin(2), srf_origin(3)
+         read (16, *) !8
+         read (16, *) srf_velocity(1), srf_velocity(2), srf_velocity(3)
+         read (16, *) !10
+         read (16, *) per_rot, angle_per, v_ref
+         read (16, *) !12
+         read (16, *) nrotors
+         allocate (point1_gl(nrotors, 3), point2_gl(nrotors, 3), radius_gl(nrotors), mrf_rot_gl(nrotors))
+         do inv1 = 1, nrotors !storing multiple rotating frame coordinates
+            read (16, *) point1_gl(inv1, 1), point1_gl(inv1, 2), point1_gl(inv1, 3)
+            read (16, *) point2_gl(inv1, 1), point2_gl(inv1, 2), point2_gl(inv1, 3)
+            read (16, *) radius_gl(inv1), mrf_rot_gl(inv1)
+         end do
+         close (16)
+         if (per_rot .eq. 1) then
+            tol_per = 1.0e-8
+            lowmem = 1
             iperiodicity = 1
-        end if
-        if(rframe.eq.2)then
-            mrf=1
-            srfg=0
-        end if
-        if (rframe.eq.1)then
-            srfg=1
-            mrf=0
-        end if
-	else
-        rframe=0
-        srfg=0
-        mrf=0
-	end if
-
-	if ((mrf.eq.1).or.(srfg.eq.1))then
-	 source_active=1
-    kinit_srf=0.00001
-    if (mrf.eq.1)then
-            rot_corr=1
-            d_corr=1
-    end if
-    if (srfg.eq.1)then
-            rot_corr=0
-            d_corr=1
-    end if
-
-	end if
-
-
-
-
-
-	inquire (file='MULTISPECIES.DAT',exist=here2)
-	if (here2) then
-	multispecies=1
-	open(14,file='MULTISPECIES.DAT',form='formatted',status='old',action='read')
-	read(14,*)
-	read(14,*)
-	read(14,*)nof_species
-    allocate(gamma_in(1:nof_species),mp_a_in(1:nof_species),mp_r_in(1:nof_species),mp_pinf(1:nof_species))
-    read(14,*)gamma_in(1:nof_species)
-    read(14,*)mp_a_in(1:nof_species)
-    read(14,*)mp_r_in(1:nof_species)
-    read(14,*)mp_pinf(1:nof_species)
-    close(14)
-	else
-	multispecies=0
-	end if
-
-
-	inquire (file='MULTISPECIES_DIFF.DAT',exist=here2)
-	if (here2) then
-	open(14,file='MULTISPECIES_DIFF.DAT',form='formatted',status='old',action='read')
-	read(14,*)
-	read(14,*)mp_modelc			!mp model   0=allaire, 1=mp_species
-    allocate(mp_m(1:nof_species),mp_tlow_in(1:nof_species), mp_thigh_in(1:nof_species),mp_tmid_in(1:nof_species),mp_janaf(1:nof_species,1:2,1:5))
-    read(14,*)mp_m(1:nof_species)
-    read(14,*)mp_tlow_in(1:nof_species)
-    read(14,*)mp_thigh_in(1:nof_species)
-    read(14,*)mp_tmid_in(1:nof_species)
-    do i=1,5
-    do j=1,2
-    read(14,*)mp_janaf(1:nof_species,j,i)
-    end do
-    end do
-    close(14)
-	else
-
-	end if
-
-	inquire (file='405.DAT',exist=here2)
-	if (here2) then
-	open(14,file='405.DAT',form='formatted',status='old',action='read')
-	read(14,*)
-	read(14,*)a405			!perturbations amplitude	0.002d0 (radius 0.025d0)
-	read(14,*)nof_perturbations405	!number of perturbations	start with 8
-    close(14)
-	end if
-
-	inquire (file='TRANSITION.DAT',exist=here11)
-	if (here11) then
-	open(32,file='TRANSITION.DAT',form='formatted',status='old',action='read')
-	read(32,*)
-	read(32,*)
-	read(32,*)transition_model
-	read(32,*)transition_axis,transition_direction
-	read(32,*)transition_location,transition_ramp_length
-	read(32,*)transition_ramp_type
-	close(32)
-	transition_model=max(0,min(1,transition_model))
-	transition_axis=max(1,min(3,transition_axis))
-	if (transition_direction.ge.0)then
-	    transition_direction=1
-	else
-	    transition_direction=-1
-	end if
-	transition_ramp_length=max(0.0d0,transition_ramp_length)
-	if ((transition_ramp_type.ne.0).and.(transition_ramp_type.ne.2))transition_ramp_type=1
-	end if
-
-
-	inquire (file='REALGAS.DAT',exist=here10)
-	if (here10) then
-	realgas=1;
-	open(14,file='REALGAS.DAT',form='formatted',status='old',action='read')
-	read(14,*)
-	read(14,*)
-	read(14,*)nof_species
-	read(14,*)rg_nof_reactions
-	read(14,*)rg_kf_type
-	read(14,*)rg_relax
-    allocate(rg_vf(1:nof_species), rg_molm(1:nof_species),rg_hzero(1:nof_species),rg_thetag(1:nof_species))
-    read(14,*)rg_vf(1:nof_species)
-	read(14,*)rg_molm(1:nof_species)
-	read(14,*)rg_hzero(1:nof_species)
-	read(14,*)rg_thetag(1:nof_species)
-    read(14,*)rg_t_inf
-    read(14,*)rg_t_wall_init
-    read(14,*)rg_t_ref
-	read(14,*)rg_nof_tv_coef
-	rg_ttr=rg_t_inf;	!need to specify initial values for those
-	rg_tve=rg_t_inf;	!need to specify initial values for these as well
-
-
-
-
-	if (rg_nof_tv_coef.gt.0)then
-		allocate(rg_tv_coef(1:3,1:rg_nof_tv_coef))
-		read(14,*)rg_tv_coef(1,1:rg_nof_tv_coef)
-		read(14,*)rg_tv_coef(2,1:rg_nof_tv_coef)
-		read(14,*)rg_tv_coef(3,1:rg_nof_tv_coef)
-	end if
-
-
-
-
-	allocate(rgs_mg(1:nof_species))
-	rgs_mg=rg_molm * 1.0e3   ! g/mol for d_ij correlation
-
-
-
-
-
-    allocate(rgs_sigmaa(1:nof_species),rgs_eps_over_k(1:nof_species),rgs_ab(1:nof_species),rgs_bb(1:nof_species),rgs_cb(1:nof_species))
-
-    read(14,*)rgs_ab(1:nof_species)
-    read(14,*)rgs_bb(1:nof_species)
-	read(14,*)rgs_cb(1:nof_species)
-	read(14,*)rgs_sigmaa(1:nof_species)
-	read(14,*)rgs_eps_over_k(1:nof_species)
-
-
-
-	read(14,*) catalytic_wall
-
-	if (catalytic_wall.eq.1)then
-	allocate(catalytic_con(1:nof_species))
-	read(14,*)catalytic_con(1:nof_species)
-	end if
-
-    close(14)
-	else
-	realgas=0
-	end if
-
-
-
-
-
-
-
-
-
-	inquire (file='THERMAL.DAT',exist=here9)
-	if (here9) then
-	thermal=1
-	open(31,file='THERMAL.DAT',form='formatted',status='old',action='read')
-	read(31,*)temp_model !1=adiabatic,2=isothermal 3
-    read(31,*)wall_temp
-    close(31)
-	else
-	thermal=0
-	end if
-
-
-
-	inquire (file='MOOD.DAT',exist=here3)
-	if (here3) then
-	mood=1
-	open(17,file='MOOD.DAT',form='formatted',status='old',action='read')
-	read(17,*)
-	read(17,*)
-	read(17,*)mood_mode        !type of mood mode (1=relaxed, 0=original)
-    read(17,*)mood_var1,mood_var2
-    read(17,*)mood_var3,mood_var4
-    if (n.eq.0)then
-		print*,"mood active"
-    end if
-    close(17)
-	else
-	mood=0
-	end if
-
-
-
-	inquire (file='INDICATOR.DAT',exist=here4)
-	if (here4) then
-	open(18,file='INDICATOR.DAT',form='formatted',status='old',action='read')
-	read(18,*)
-	read(18,*)
-	read(18,*)indicator_type        !type of indicator (1=mood,2=shu,3=...)
-    read(18,*)indicator_par1        !parameter 1
-    read(18,*)indicator_par2        !parameter 2
-    read(18,*)indicator_par3        !parameter 3
-    close(18)
-	else
-	indicator_type=11
-	indicator_par1=10e-12;indicator_par2=10e-10;indicator_par3=zero;
-
-	end if
-
-
-	outlet_file='OUTLETS.DAT'
-	inquire (file=outlet_file,exist=here9)
-	if (.not.here9)then
-	outlet_file='outlets.dat'
-	inquire (file=outlet_file,exist=here9)
-	end if
-	if (here9) then
-		open(29,file=outlet_file,form='formatted',status='old',action='read')
-		read(29,*)
-		read(29,'(A)')mach_line
-		mach_aux1=-1.0d0
-		mach_aux2=-1.0d0
-		read(mach_line,*,iostat=mach_ios)mach_outlet_target,total_pressure_inlet,mach_aux1,mach_aux2
-		if (mach_ios.eq.0)then
-		density_inlet=mach_aux1
-		total_temperature_inlet=mach_aux2
-		end if
-		if (mach_ios.ne.0)then
-		mach_aux1=-1.0d0
-		read(mach_line,*,iostat=mach_ios)mach_outlet_target,total_pressure_inlet,mach_aux1
-		if (mach_ios.eq.0)then
-		if (mach_aux1.gt.50.0d0)then
-		total_temperature_inlet=mach_aux1
-		density_inlet=-1.0d0
-		else
-		density_inlet=mach_aux1
-		end if
-		end if
-		end if
-		if (mach_ios.ne.0)then
-		read(mach_line,*,iostat=mach_ios)mach_outlet_target,total_pressure_inlet
-		density_inlet=-1.0d0
-		end if
-		if (mach_ios.ne.0)then
-		read(mach_line,*)mach_outlet_target
-		total_pressure_inlet=-1.0d0
-		density_inlet=-1.0d0
-		end if
-		read(29,*,iostat=mach_ios)mach_outlet_update_freq	!100
-		if (mach_ios.ne.0) mach_outlet_update_freq=10
-		read(29,*,iostat=mach_ios)mach_outlet_relax
-		if (mach_ios.ne.0) mach_outlet_relax=0.1d0
-		read(29,*,iostat=mach_ios)mach_outlet_start_iter
-		if (mach_ios.ne.0) mach_outlet_start_iter=0
-		mach_outlet_start_iter=max(mach_outlet_start_iter,0)
-		read(29,*,iostat=mach_ios)mach_outlet_filter_alpha
-		if (mach_ios.ne.0) mach_outlet_filter_alpha=0.2d0
-		if (mach_outlet_filter_alpha.le.0.0d0) mach_outlet_filter_alpha=0.2d0
-		mach_outlet_filter_alpha=min(1.0d0,mach_outlet_filter_alpha)
-		print*,"i am reading the target outlet Mach number from the file"
-	    close(29)
-		end if
-
-
-
-	inquire (file='FILTER.DAT',exist=here7)
-	if (here7) then
-	filtering=1
-	open(19,file='FILTER.DAT',form='formatted',status='old',action='read')
-	read(19,*)
-	read(19,*)
-	read(19,*)filter_type        !type of filter (1=exponential)
-    read(19,*)fil_alpha
-    read(19,*)fil_s
-    read(19,*)fil_nc
-    close(19)
-	else
-	filtering=0
-	end if
-
-
-
-	inquire (file='ADDA.DAT',exist=here8)
-	if (here8) then
-	adda=1
-	open(19,file='ADDA.DAT',form='formatted',status='old',action='read')
-	read(19,*)
-	read(19,*)
-	read(19,*)adda_type        !type of filter (1=exponential)
-    read(19,*)adda_alpha_1,adda_alpha_2
-    read(19,*)adda_1_s,adda_2_s
-    read(19,*)adda_1,adda_2
-    close(19)
-	else
-	adda=0
-	adda_type=0
-	end if
-
-
-
-
-	call mpi_barrier(mpi_comm_world,ierror)
-
-
-
-
-
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)dimensiona,statistics,code_profile
-	read(15,*)
-	read(15,*)
-	read(15,*)governingequations,initcond
-	read(15,*)
-	read(15,*)
-	read(15,*)turbulence,icoupleturb,passivescalar
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	Mach_in=-1.0d0
-	read(15,'(A)')mach_line
-		read(mach_line,*,iostat=mach_ios)rres,ufreestream,vvel,wvel,pres,Mach_in
-		if (mach_ios.ne.0)then
-		read(mach_line,*)rres,ufreestream,vvel,wvel,pres
-			Mach_in=-1.0d0
-			end if
-			press_outlet=pres
-			if (total_pressure_inlet.le.0.0d0) total_pressure_inlet=pres
-			if (total_temperature_inlet.le.0.0d0) total_temperature_inlet=350.0d0
-			if (density_inlet.le.0.0d0) density_inlet=rres
-	read(15,*)
-	read(15,*)
-	read(15,*)aoa,vectorx,vectory,vectorz
-	read(15,*)
-	read(15,*)
-	read(15,*)gamma,prandtl,reynolds,charlength
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)spatiladiscret,iriemann,spatialorder,limiter,poly
-	read(15,*)
-	read(15,*)
-	read(15,*)wenocnschar,ees,wenoz,wenocentralweight
-	read(15,*)
-	read(15,*)
-	read(15,*)temporder,cfl,timestep,upperlimit,reslimit
-	read(15,*)
-	read(15,*)
-	read(15,*)iboundary,boundtype,scaler
-	read(15,*)
-	read(15,*)
-	read(15,*)greengo,lmach
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)out_time,ntmax,wallc
-	read(15,*)
-	read(15,*)
-	if ((code_profile.lt.0).or.(code_profile.eq.100).or.(code_profile.eq.101).or.(code_profile.eq.102))then
-	read(15,*)tecplot,output_freq,ievery2,ieveryav,stencil_io
-		ievery=10e15
-	else					!steady state
-		read(15,*)tecplot,ievery,ievery2,ieveryav,stencil_io
-		output_freq=10e15
-	end if
-	read(15,*)
-	read(15,*)
-	read(15,*)averaging
-	read(15,*)
-	read(15,*)
-	read(15,*)outsurf,iforce,surfshear
-	read(15,*)
-	read(15,*)
-	read(15,*)ires_turb,ires_unsteady,lamps,prev_turbmodel
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)
-	read(15,*)nprobes
-	read(15,*)
-
-
-	if (dimensiona.eq.3)then
-		ccfl=(cfl/3.0d0)
-	else
-		ccfl=(cfl/2.0d0)
-	end if
-	if (rungekutta.eq.4)then
-	      ind1=7
-	else
-	      ind1=5
-	end if
-	origin(1:3)=0.0d0
-
-
-	fastmovie=0
-	dg=0;
-	!turbulence default values
-
-
-			! 	turbulence model parameters:
-			! ---options spalart almaras---
-			ispal=1 !    ||spalart allmaras version:| 1:original |2: negative modification
-			!des_model=0! 0              			|| 1-detached eddy simulation 2-delayed des
-			! ---constants-------
-			cb1=0.1355	! 0.1355				|| cb1
-			cb2=0.622! 0.622   			|| cb2
-			sigma=0.666666667! 0.666666667      		|| sigma
-			kappa=0.41  ! 0.41     			|| kappa
-			cw1=3.23886781677! 3.23886781677      		|| cw1 (0 for (cb1/kappa**2)+1/sigma(1+cb2) or predifined)
-			cw2=0.3! 0.3      			|| cw2
-			cw3=2.0 ! 2.0      			|| cw3
-			cv1=7.1! 7.1      			|| cv1
-			ct1=1.0 ! 1.0      			|| ct1
-			ct2=2.0! 2.0      			|| ct2
-			ct3=1.1 ! 1.1      			|| ct3
-			ct4=2.0 ! 2.0      			|| ct4
-			prtu=0.9! 0.9				|| turbulent prandtl number
-			twall=0! 0				|| wall temperature (kelvin) leave 0 for adiabatic (q_wall =0 <=> dt/dn=0)
-			turbinit=3.0 ! 3.0	  			|| initial value for turbulence parameter (multiplyied by the freestream viscosity from given re)
-			upturblimit=1000000! 1000000				|| upper limit for turbulence
-			residualfreq=10! 10				|| residual compute every
-			irs=0! 0				||implicit residual smoothing (doubles cfl)
-			c_des_sa=0.61	! 0.61				||c_des_sa
-			! =============================================================================
-			! k-omega sst:
-			! ---options---
-			vort_model=0! 0					||0:default strain-production for k, 1:vorticity-production for k
-			qsas_model=0! 0					||hybrid models: 1-sas-sst  //  2-des-sst
-			zero_turb_init=0! 0					||zero turbulence option (if 1, initialization for k/w is done with zero turbulence)
-			! --------------k-omega constants--------------------------
-			sigma_k1=1.176470588! 1.176470588				||sigma_k1
-			sigma_k2=1.0! 1.0					||sigma_k2
-			sigma_om1=2.0	! 2.0					||sigma_om1
-			sigma_om2=1.168! 1.168					||sigma_om2
-			aa_1=0.31! 0.31					||aa_1
-			beta_i1=0.075	! 0.075					||beta_i1
-			beta_i2=0.0828! 0.0828					||beta_i2
-			alpha_starinf=1.0! 1.0					||alpha_starinf
-			alpha_0=0.111111111! 0.111111111				||alpha_0
-			beta_starinf=0.09! 0.09					||beta_starinf
-			r_beta=8.0! 8.0					||r_beta
-			r_k_sst=6.0! 6.0					||r_k_sst
-			beta_t=0.072	! 0.072					||beta_t
-			kappa_sst=0.41! 0.41					||kappa   (same in spalart-allmaras)
-			r_om_sst=2.95	! 2.95					||r_om_sst
-			zeta_star= 1.5	! 1.5					||zeta_star  (only for mach corrections)
-			m_t0=0.25! 0.25					||m_t0		(only for mach corrections)
-			c_mu_inlet=0.09! 0.09					||c_mu_inlet
-			c_smg=0.11! 0.11					||c_smg  (sas)
-			eta2_sas=3.51! 3.51					||eta2_sas (sas)
-			sigma_phi=0.666666667	! 0.666666667				||sigma_phi (sas)
-			c_sas=2.0! 2.0					||c_sas   (sas)
-			l_turb_inlet=0.0026! 0.0026					||l_turb_inlet (default turbulence lengthscale)
-			i_turb_inlet=0.1! 0.1					||i_turb_inlet (default turbulene intensity)
-			init_mu_ratio=0.01! 0.01					||init_mu_ratio	(default initial ratio for turbulent viscosity)
-			c_des_sst=0.61! 0.61					||c_des_sst
-			! =============================================================================
-			! passive scalar transport
-			schmidt_lam=10.0! 10.0					||laminar schmidt number
-			schmidt_turb=0.7! 0.7					||turbulent schmidt number
-
-	cavitation=0
-	    extended_bounds=0
-
-	    select case(code_profile)
-
-
-	case (0,888)
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-    if ((initcond.eq.405).or.(initcond.eq.405))then
-    iadapt=1
-    end if
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=3		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=1	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=2	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=10000000	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=10000000	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=0.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-	rot_corr=0
-
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	 des_model=0
-
-
-
-	 case (232323)
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-    if ((initcond.eq.405).or.(initcond.eq.405))then
-    iadapt=1
-    end if
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=3		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=0	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=10000	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=10000	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-	rot_corr=1
-
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	 des_model=0
-
-
-	 case (199)
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-    if ((initcond.eq.405).or.(initcond.eq.405))then
-    iadapt=1
-    end if
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=3		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=0	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=2	!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=300000000	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=300000000	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-        d_corr=1
-        turbinit=0.1
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	 des_model=0
-
-
-
-
-	 case (501)
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-    if (initcond.eq.405)iadapt=1
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=3		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=0	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=20.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=50.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	 des_model=0
-
-
-
-
-	case (30)  !vertex based multidimensional-experimental option not for production
-
-		lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-		binio=1	    	!i/o (ascii=0, binary=1)
-		lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-		reduce_comp=0	!quadrature free flux=0 not true,1 true
-		turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-	! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-		ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-		hybridist=0.0d0 !hybrid distance
-		swirl=0		!swirling flow:0 deactivated, 1 activated
-		iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-		if (initcond.eq.405)iadapt=1
-		icompact=0	!compact stencil mode(0 not true,1 true)
-		extf=3		!stencils stability values from 1.2 to 3 (default 2)
-		weight_lsqr=0	!weighted least squares(0 not true,1 true)
-		guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-		fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-			relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-		cflmax=30	!cflmax:to be used with ramping
-		cflramp=0	!cfl ramping: |0: deactivated |1:activated
-		emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-		itold=10000	!tolerance=n_iterations
-		gridar1=20.0	! 0	  5.0    7.0  limit aspect ratio cells,
-		gridar2=50.0	! limit volume cells
-		fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-		lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-		lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-
-
-		if (iboundary.eq.1)then
-		 lowmem=1
-		 end if
-
-
-		 des_model=0
-
-
-
-
-
-	 case (8)
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-    if (initcond.eq.405)iadapt=1
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=2		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=0	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=100.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=200.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	 des_model=0
-
-
-	  case (88)
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-    if (initcond.eq.405)iadapt=1
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=3		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=0	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=40.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=40.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-
-	fastmovie=0
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	 des_model=0
-
-	 case (18)
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-    if (initcond.eq.405)iadapt=1
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=3		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=1	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=40000.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=40000.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=0.0d0;lamy=0.0d0;lamz=0.0d0	!linear advection coefficients (lamx, lamy,lamz)
-
-	fastmovie=0
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	 des_model=0
-
-
-
-	 case (98)
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-    if (initcond.eq.405)iadapt=1
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=2		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=1	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=20.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=40.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-
-	fastmovie=0
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	 des_model=0
-
-
-	 case (9)  !robust
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-    if (initcond.eq.405)iadapt=1
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=3	!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=0	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=10.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=7.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-	fastmovie=0
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	 des_model=0
-
-
-
-
-
-         case (777)  !robust
-
-        lowmemory=0     !memory usage: |0: high(faster) |1:low (slower)||
-        binio=1         !i/o (ascii=0, binary=1)
-        lowmem=0        !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-        reduce_comp=0   !quadrature free flux=0 not true,1 true
-        turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-!       icoupleturb=0   !coupling turbulence model: |1:coupled | 0: decoupled
-        ihybrid=0       !hybrid turbulence : |1:enabled|0:disabled
-        hybridist=0.0d0 !hybrid distance
-        swirl=0         !swirling flow:0 deactivated, 1 activated
-        iadapt=1        !adaptive numerical scheme (0 not true,1 true)
-    if (initcond.eq.405)iadapt=1
-        icompact=0      !compact stencil mode(0 not true,1 true)
-        extf=3  !stencils stability values from 1.2 to 3 (default 2)
-        weight_lsqr=1   !weighted least squares(0 not true,1 true)
-        guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-        fastest_q=1     !store gqp points (1 =yes faster, 0= slower)
-        relax=1         !relaxation parameter : |1:block jacobi |2: lu-sgs
-        cflmax=5       !cflmax:to be used with ramping
-        cflramp=0       !cfl ramping: |0: deactivated |1:activated
-        emetis=6        !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-        itold=10000     !tolerance=n_iterations
-        gridar1=100000000.0    ! 0       5.0    7.0  limit aspect ratio cells,
-        gridar2=700000000.0     ! limit volume cells
-        fastest=0       ! 0                             ||fastest, no coordinate mapping (1: engaged,0:with transformation)
-        lmach_style=0   !0                      ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-        lamx=0.0d0;lamy=1.0d0;lamz=1.0d0        !linear advection coefficients (lamx, lamy,lamz)
-        fastmovie=0
-        if (iboundary.eq.1)then
-         lowmem=1
          end if
-
-
-         des_model=0
-
-
-	 case (91)  !robust with matrix free lu-sgs
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-    if (initcond.eq.405)iadapt=1
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=3	!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=1	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=3	!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=10000.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=70000.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	 des_model=0
-
-
-
-
-	case (1)           !for ddes
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-	!icoupleturb=1	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=3		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=0	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=10.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=7.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-	cavitation=0
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-	 turbinit=0.1
-	 des_model=2
-
-
-
-	 case (11)           !for ddes with matrix free lu-sgs
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-	!icoupleturb=1	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=3		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=0	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=10.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=10.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-	 des_model=2
-
-
-
-    case (100)           !for hybrid dg-fv method
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-	!icoupleturb=1	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-	if (initcond.eq.101)iadapt=1
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=3		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=0	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-    relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=10.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=10.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-	dg=1   !0=deactivated fv only, 1=activated dg only, 2=hybrid
-
-	bound_lim=0
-    cavitation=0
-
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-	 des_model=2
-
-
-	 br2_damping=3.0
-	 br2_yn=2
-
-	 case (101)           !for hybrid dg-fv method
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-	!icoupleturb=1	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-	if (initcond.eq.101)iadapt=1
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=2		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=0	!weighted least squares(0 not true,1 true)
-	guassianquadra=6!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=10.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=10.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-	dg=1   !0=deactivated fv only, 1=activated dg only, 2=hybrid
-	bound_lim=0
-	cavitation=0
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-	 des_model=2
-
-
-	 br2_damping=3.0
-	 br2_yn=2
-
-
-	  case (102)           !for pure dg method
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-	!icoupleturb=1	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-	if (initcond.eq.101)iadapt=1
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=2		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=0	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-    relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=10.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=10.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=1.0d0;lamy=1.0d0;lamz=1.0d0	!linear advection coefficients (lamx, lamy,lamz)
-	dg=1   !0=deactivated fv only, 1=activated dg only, 2=hybrid
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-	 des_model=2
-
-
-	 br2_damping=3.0
-	 br2_yn=2
-
-
-
-
-	case default
-
-	lowmemory=0 	 !memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	 !i/o (ascii=0, binary=1)
-	lowmem=0    	 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	 !quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-	icoupleturb=0	 !coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	 !hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0  !hybrid distance
-	swirl=0		 !swirling flow:0 deactivated, 1 activated
-	iadapt=0	 !adaptive numerical scheme (0 not true,1 true)
-	if (initcond.eq.101)iadapt=1
-	icompact=0	 !compact stencil mode(0 not true,1 true)
-	extf=3		 !stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=1	 !weighted least squares(0 not true,1 true)
-	guassianquadra=0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	 !store gqp points (1 =yes faster, 0= slower)
-        relax=1		 !relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=5	 !cflmax:to be used with ramping
-	cflramp=0	 !cfl ramping: |0: deactivated |1:activated
-	if (code_profile.eq.999) cflramp=1 !profile 999: default settings with FV update check and no CFL ramping
-	emetis=6    	 !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	 !tolerance=n_iterations
-	gridar1=1000000.0	 ! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=1000000.0	 ! limit volume cells
-	fastest=0	 ! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	 !0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=0.0d0;lamy=1.0d0;lamz=1.0d0	 !linear advection coefficients (lamx, lamy,lamz)
-	ispal=1! 1				||spalart allmaras version:| 1:original |2: negative modification
-
-
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	des_model=0
-
-
-
-
-
-
-	case (17)
-
-	lowmemory=0 	!memory usage: |0: high(faster) |1:low (slower)||
-	binio=1	    	!i/o (ascii=0, binary=1)
-	lowmem=0    	!global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
-	reduce_comp=0	!quadrature free flux=0 not true,1 true
-	turbulencemodel=1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
-! 	icoupleturb=0	!coupling turbulence model: |1:coupled | 0: decoupled
-	ihybrid=0	!hybrid turbulence : |1:enabled|0:disabled
-	hybridist=0.0d0 !hybrid distance
-	swirl=0		!swirling flow:0 deactivated, 1 activated
-	iadapt=0	!adaptive numerical scheme (0 not true,1 true)
-    if (initcond.eq.405)iadapt=1
-	icompact=0	!compact stencil mode(0 not true,1 true)
-	extf=2		!stencils stability values from 1.2 to 3 (default 2)
-	weight_lsqr=1	!weighted least squares(0 not true,1 true)
-	guassianquadra=0!gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
-	fastest_q=1	!store gqp points (1 =yes faster, 0= slower)
-        relax=1		!relaxation parameter : |1:block jacobi |2: lu-sgs
-	cflmax=30	!cflmax:to be used with ramping
-	cflramp=0	!cfl ramping: |0: deactivated |1:activated
-	emetis=6    	!metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
-	itold=10000	!tolerance=n_iterations
-	gridar1=200000.0	! 0	  5.0    7.0  limit aspect ratio cells,
-	gridar2=500000.0	! limit volume cells
-	fastest=0	! 0		       		||fastest, no coordinate mapping (1: engaged,0:with transformation)
-	lmach_style=0	!0			||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
-	lamx=0.0d0;lamy=0.0d0;lamz=0.0d0	!linear advection coefficients (lamx, lamy,lamz)
-	iweno=5
-
-	if (iboundary.eq.1)then
-	 lowmem=1
-	 end if
-
-
-	 des_model=0
-
-
-
-
-	end select
-
-
-
-	 if (n.eq.0)then
-      open(63,file='history.txt',form='formatted',action='write',position='append')
-
-
-
-		call date_and_time(date_w, time_w)
-
-		write(63,'(A,1X,A2,"/",A2,"/",A4,1X,A2,":",A2)') &
-			"ucns3d parallel computation start", &
-				date_w(7:8), date_w(5:6), date_w(1:4), &
-				time_w(1:2), time_w(3:4)
-
-
-
-
-
-
+         if (rframe .eq. 2) then
+            mrf = 1
+            srfg = 0
+         end if
+         if (rframe .eq. 1) then
+            srfg = 1
+            mrf = 0
+         end if
+      else
+         rframe = 0
+         srfg = 0
+         mrf = 0
+      end if
+
+      if ((mrf .eq. 1) .or. (srfg .eq. 1)) then
+         source_active = 1
+         kinit_srf = 0.00001
+         if (mrf .eq. 1) then
+            rot_corr = 1
+            d_corr = 1
+         end if
+         if (srfg .eq. 1) then
+            rot_corr = 0
+            d_corr = 1
+         end if
 
       end if
 
+      inquire (file='MULTISPECIES.DAT', exist=here2)
+      if (here2) then
+         multispecies = 1
+         open (14, file='MULTISPECIES.DAT', form='formatted', status='old', action='read')
+         read (14, *)
+         read (14, *)
+         read (14, *) nof_species
+         allocate (gamma_in(1:nof_species), mp_a_in(1:nof_species), mp_r_in(1:nof_species), mp_pinf(1:nof_species))
+         read (14, *) gamma_in(1:nof_species)
+         read (14, *) mp_a_in(1:nof_species)
+         read (14, *) mp_r_in(1:nof_species)
+         read (14, *) mp_pinf(1:nof_species)
+         close (14)
+      else
+         multispecies = 0
+      end if
 
+      inquire (file='MULTISPECIES_DIFF.DAT', exist=here2)
+      if (here2) then
+         open (14, file='MULTISPECIES_DIFF.DAT', form='formatted', status='old', action='read')
+         read (14, *)
+         read (14, *) mp_modelc !mp model   0=allaire, 1=mp_species
+         allocate (mp_m(1:nof_species), mp_tlow_in(1:nof_species), mp_thigh_in(1:nof_species), mp_tmid_in(1:nof_species), &
+            & mp_janaf(1:nof_species, 1:2, 1:5))
+         read (14, *) mp_m(1:nof_species)
+         read (14, *) mp_tlow_in(1:nof_species)
+         read (14, *) mp_thigh_in(1:nof_species)
+         read (14, *) mp_tmid_in(1:nof_species)
+         do i = 1, 5
+            do j = 1, 2
+               read (14, *) mp_janaf(1:nof_species, j, i)
+            end do
+         end do
+         close (14)
+      else
 
-	    nproc=isize-1;vorder=iorder
+      end if
 
-	    !--------------------------1------------------------------!
-	    !probe position allocation and reading of coordinates
-	    !$omp master
-	    if (nprobes.gt.0)then
-	    if (dimensiona.eq.3)then
-		  allocate(probec(1:nprobes,1:3))
-		    do inv=1,nprobes
-		      read(15,*)probec(inv,1),probec(inv,2),probec(inv,3)
-		    end do
-	    else
-		  allocate(probec(1:nprobes,1:2))
+      inquire (file='405.DAT', exist=here2)
+      if (here2) then
+         open (14, file='405.DAT', form='formatted', status='old', action='read')
+         read (14, *)
+         read (14, *) a405 !perturbations amplitude        0.0020 (radius 0.0250)
+         read (14, *) nof_perturbations405 !number of perturbations        start with 8
+         close (14)
+      end if
 
-		    do inv=1,nprobes
-		      read(15,*)probec(inv,1),probec(inv,2)
-		    end do
-	    end if
-	    end if
-	    !$omp end master
-	     !--------------------------end 1-------------------------!
+      inquire (file='TRANSITION.DAT', exist=here11)
+      if (here11) then
+         open (32, file='TRANSITION.DAT', form='formatted', status='old', action='read')
+         read (32, *)
+         read (32, *)
+         read (32, *) transition_model
+         read (32, *) transition_axis, transition_direction
+         read (32, *) transition_location, transition_ramp_length
+         read (32, *) transition_ramp_type
+         close (32)
+         transition_model = max(0, min(1, transition_model))
+         transition_axis = max(1, min(3, transition_axis))
+         if (transition_direction .ge. 0) then
+            transition_direction = 1
+         else
+            transition_direction = -1
+         end if
+         transition_ramp_length = max(0.00, transition_ramp_length)
+         if ((transition_ramp_type .ne. 0) .and. (transition_ramp_type .ne. 2)) transition_ramp_type = 1
+      end if
 
+      inquire (file='REALGAS.DAT', exist=here10)
+      if (here10) then
+         realgas = 1;
+         open (14, file='REALGAS.DAT', form='formatted', status='old', action='read')
+         read (14, *)
+         read (14, *)
+         read (14, *) nof_species
+         read (14, *) rg_nof_reactions
+         read (14, *) rg_kf_type
+         read (14, *) rg_relax
+         allocate (rg_vf(1:nof_species), rg_molm(1:nof_species), rg_hzero(1:nof_species), rg_thetag(1:nof_species))
+         read (14, *) rg_vf(1:nof_species)
+         read (14, *) rg_molm(1:nof_species)
+         read (14, *) rg_hzero(1:nof_species)
+         read (14, *) rg_thetag(1:nof_species)
+         read (14, *) rg_t_inf
+         read (14, *) rg_t_wall_init
+         read (14, *) rg_t_ref
+         read (14, *) rg_nof_tv_coef
+         rg_ttr = rg_t_inf; !need to specify initial values for those
+         rg_tve = rg_t_inf; !need to specify initial values for these as well
 
-	     call mpi_barrier(mpi_comm_world,ierror)
+         if (rg_nof_tv_coef .gt. 0) then
+            allocate (rg_tv_coef(1:3, 1:rg_nof_tv_coef))
+            read (14, *) rg_tv_coef(1, 1:rg_nof_tv_coef)
+            read (14, *) rg_tv_coef(2, 1:rg_nof_tv_coef)
+            read (14, *) rg_tv_coef(3, 1:rg_nof_tv_coef)
+         end if
 
+         allocate (rgs_mg(1:nof_species))
+         rgs_mg = rg_molm * 1.0e3 ! g/mol for d_ij correlation
 
-	     !-------------------------2---------------------------------!
-	     !number of variables setup
-	     if (governingequations.le.2)then ! ns or euler
-		  if (dimensiona.eq.3)then
-		      nof_variables=5;dims=3
-		  else
-		      nof_variables=4;dims=2
-		  end if
+         allocate (rgs_sigmaa(1:nof_species), rgs_eps_over_k(1:nof_species), rgs_ab(1:nof_species), rgs_bb(1:nof_species), &
+            & rgs_cb(1:nof_species))
 
+         read (14, *) rgs_ab(1:nof_species)
+         read (14, *) rgs_bb(1:nof_species)
+         read (14, *) rgs_cb(1:nof_species)
+         read (14, *) rgs_sigmaa(1:nof_species)
+         read (14, *) rgs_eps_over_k(1:nof_species)
 
-	      else ! linear advection
-		  nof_variables=1
+         read (14, *) catalytic_wall
 
-		  if (dimensiona.eq.3)then
-		    dims=3
-		    else
-		    dims=2
-		    end if
-	      end if
+         if (catalytic_wall .eq. 1) then
+            allocate (catalytic_con(1:nof_species))
+            read (14, *) catalytic_con(1:nof_species)
+         end if
 
-	      !multiphase modification starts
-	      if (multispecies.eq.1)then
-			if (mp_modelc.eq.0)then
-					if (dimensiona.eq.3)then
-					nof_variables=5+nof_species+(nof_species-1);dims=3
-					else
-					nof_variables=4+nof_species+(nof_species-1);dims=2
-					end if
-			else
-					if (dimensiona.eq.3)then
-					nof_variables=5+nof_species;dims=3
-					else
-					nof_variables=4+nof_species;dims=2
-					end if
+         close (14)
+      else
+         realgas = 0
+      end if
 
+      inquire (file='THERMAL.DAT', exist=here9)
+      if (here9) then
+         thermal = 1
+         open (31, file='THERMAL.DAT', form='formatted', status='old', action='read')
+         read (31, *) temp_model !1=adiabatic,2=isothermal 3
+         read (31, *) wall_temp
+         close (31)
+      else
+         thermal = 0
+      end if
 
-			end if
+      inquire (file='MOOD.DAT', exist=here3)
+      if (here3) then
+         mood = 1
+         open (17, file='MOOD.DAT', form='formatted', status='old', action='read')
+         read (17, *)
+         read (17, *)
+         read (17, *) mood_mode !type of mood mode (1=relaxed, 0=original)
+         read (17, *) mood_var1, mood_var2
+         read (17, *) mood_var3, mood_var4
+         if (n .eq. 0) then
+            print *, "mood active"
+         end if
+         close (17)
+      else
+         mood = 0
+      end if
 
-		  end if
-		  !multiphase modification ends
+      inquire (file='INDICATOR.DAT', exist=here4)
+      if (here4) then
+         open (18, file='INDICATOR.DAT', form='formatted', status='old', action='read')
+         read (18, *)
+         read (18, *)
+         read (18, *) indicator_type !type of indicator (1=mood,2=shu,3=...)
+         read (18, *) indicator_par1 !parameter 1
+         read (18, *) indicator_par2 !parameter 2
+         read (18, *) indicator_par3 !parameter 3
+         close (18)
+      else
+         indicator_type = 11
+         indicator_par1 = 10e-12; indicator_par2 = 10e-10; indicator_par3 = zero;
+      end if
 
-		  if (realgas.eq.1)then
-					if (dimensiona.eq.3)then
-					nof_variables=dimensiona+3+nof_species;dims=3
-					else
-					nof_variables=dimensiona+3+nof_species;dims=2
-					end if
+      outlet_file = 'OUTLETS.DAT'
+      inquire (file=outlet_file, exist=here9)
+      if (.not. here9) then
+         outlet_file = 'outlets.dat'
+         inquire (file=outlet_file, exist=here9)
+      end if
+      if (here9) then
+         open (29, file=outlet_file, form='formatted', status='old', action='read')
+         read (29, *)
+         read (29, '(A)') mach_line
+         mach_aux1 = -1.00
+         mach_aux2 = -1.00
+         read (mach_line, *, iostat=mach_ios) mach_outlet_target, total_pressure_inlet, mach_aux1, mach_aux2
+         if (mach_ios .eq. 0) then
+            density_inlet = mach_aux1
+            total_temperature_inlet = mach_aux2
+         end if
+         if (mach_ios .ne. 0) then
+            mach_aux1 = -1.00
+            read (mach_line, *, iostat=mach_ios) mach_outlet_target, total_pressure_inlet, mach_aux1
+            if (mach_ios .eq. 0) then
+               if (mach_aux1 .gt. 50.00) then
+                  total_temperature_inlet = mach_aux1
+                  density_inlet = -1.00
+               else
+                  density_inlet = mach_aux1
+               end if
+            end if
+         end if
+         if (mach_ios .ne. 0) then
+            read (mach_line, *, iostat=mach_ios) mach_outlet_target, total_pressure_inlet
+            density_inlet = -1.00
+         end if
+         if (mach_ios .ne. 0) then
+            read (mach_line, *) mach_outlet_target
+            total_pressure_inlet = -1.00
+            density_inlet = -1.00
+         end if
+         read (29, *, iostat=mach_ios) mach_outlet_update_freq !100
+         if (mach_ios .ne. 0) mach_outlet_update_freq = 10
+         read (29, *, iostat=mach_ios) mach_outlet_relax
+         if (mach_ios .ne. 0) mach_outlet_relax = 0.10
+         read (29, *, iostat=mach_ios) mach_outlet_start_iter
+         if (mach_ios .ne. 0) mach_outlet_start_iter = 0
+         mach_outlet_start_iter = max(mach_outlet_start_iter, 0)
+         read (29, *, iostat=mach_ios) mach_outlet_filter_alpha
+         if (mach_ios .ne. 0) mach_outlet_filter_alpha = 0.20
+         if (mach_outlet_filter_alpha .le. 0.00) mach_outlet_filter_alpha = 0.20
+         mach_outlet_filter_alpha = min(1.00, mach_outlet_filter_alpha)
+         if (mach_ios .eq. 0) call read_duct_viscosity_reference(29)
+         print *, "i am reading the target outlet Mach number from the file"
+         close (29)
+      end if
 
-		  end if
+      inquire (file='FILTER.DAT', exist=here7)
+      if (here7) then
+         filtering = 1
+         open (19, file='FILTER.DAT', form='formatted', status='old', action='read')
+         read (19, *)
+         read (19, *)
+         read (19, *) filter_type !type of filter (1=exponential)
+         read (19, *) fil_alpha
+         read (19, *) fil_s
+         read (19, *) fil_nc
+         close (19)
+      else
+         filtering = 0
+      end if
 
+      inquire (file='ADDA.DAT', exist=here8)
+      if (here8) then
+         adda = 1
+         open (19, file='ADDA.DAT', form='formatted', status='old', action='read')
+         read (19, *)
+         read (19, *)
+         read (19, *) adda_type !type of filter (1=exponential)
+         read (19, *) adda_alpha_1, adda_alpha_2
+         read (19, *) adda_1_s, adda_2_s
+         read (19, *) adda_1, adda_2
+         close (19)
+      else
+         adda = 0
+         adda_type = 0
+      end if
 
+      call mpi_barrier(mpi_comm_world, ierror)
 
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *) dimensiona, statistics, code_profile
+      read (15, *)
+      read (15, *)
+      read (15, *) governingequations, initcond
+      ! The optional duct viscosity input cannot affect another initial-condition case.
+      if (initcond .ne. 4440) duct_viscosity_ref = 0.0e0
+      read (15, *)
+      read (15, *)
+      read (15, *) turbulence, icoupleturb, passivescalar
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      Mach_in = -1.00
+      read (15, '(A)') mach_line
+      read (mach_line, *, iostat=mach_ios) rres, ufreestream, vvel, wvel, pres, Mach_in
+      if (mach_ios .ne. 0) then
+         read (mach_line, *) rres, ufreestream, vvel, wvel, pres
+         Mach_in = -1.00
+      end if
+      press_outlet = pres
+      if (total_pressure_inlet .le. 0.00) total_pressure_inlet = pres
+      if (total_temperature_inlet .le. 0.00) total_temperature_inlet = 350.00
+      if (density_inlet .le. 0.00) density_inlet = rres
+      read (15, *)
+      read (15, *)
+      read (15, *) aoa, vectorx, vectory, vectorz
+      read (15, *)
+      read (15, *)
+      read (15, *) gamma, prandtl, reynolds, charlength
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *) spatiladiscret, iriemann, spatialorder, limiter, poly
+      read (15, *)
+      read (15, *)
+      read (15, *) wenocnschar, ees, wenoz, wenocentralweight
+      read (15, *)
+      read (15, *)
+      read (15, *) temporder, cfl, timestep, upperlimit, reslimit
+      read (15, *)
+      read (15, *)
+      read (15, *) iboundary, boundtype, scaler
+      read (15, *)
+      read (15, *)
+      read (15, *) greengo, lmach
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *) out_time, ntmax, wallc
+      read (15, *)
+      read (15, *)
+      if ((code_profile .lt. 0) .or. (code_profile .eq. 100) .or. (code_profile .eq. 101) .or. (code_profile .eq. 102)) then
+         read (15, *) tecplot, output_freq, ievery2, ieveryav, stencil_io
+         ievery = 10e15
+      else !steady state
+         read (15, *) tecplot, ievery, ievery2, ieveryav, stencil_io
+         output_freq = 10e15
+      end if
+      read (15, *)
+      read (15, *)
+      read (15, *) averaging
+      read (15, *)
+      read (15, *)
+      read (15, *) outsurf, iforce, surfshear
+      read (15, *)
+      read (15, *)
+      read (15, *) ires_turb, ires_unsteady, lamps, prev_turbmodel
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *)
+      read (15, *) nprobes
+      read (15, *)
 
-	    !--------------------------end 2-------------------------!
+      if (dimensiona .eq. 3) then
+         ccfl = (cfl / 3.00)
+      else
+         ccfl = (cfl / 2.00)
+      end if
+      if (rungekutta .eq. 4) then
+         ind1 = 7
+      else
+         ind1 = 5
+      end if
+      origin(1:3) = 0.00
 
+      fastmovie = 0
+      dg = 0;
+      !turbulence default values
 
-	    !-------------------------3---------------------------------!
-	     !turbulence
-	      if (turbulence .eq.1) then
-		      if (turbulencemodel .eq. 1) then
-			      turbulenceequations=1
-		      else if (turbulencemodel .eq. 2) then
-			      turbulenceequations=2
-		      end if
-	      else
-		      turbulenceequations=0
-		      turbulencemodel=0
-	      end if
-	    !------------------------- end 3---------------------------------!
+      !         turbulence model parameters:
+      ! ---options spalart almaras---
+      ispal = 1 !    ||spalart allmaras version:| 1:original |2: negative modification
+      !des_model=0! 0                                      || 1-detached eddy simulation 2-delayed des
+      ! ---constants-------
+      cb1 = 0.1355 ! 0.1355                                || cb1
+      cb2 = 0.622 ! 0.622                           || cb2
+      sigma = 0.666666667 ! 0.666666667                      || sigma
+      kappa = 0.41 ! 0.41                             || kappa
+      cw1 = 3.23886781677 ! 3.23886781677                      || cw1 (0 for (cb1/kappa**2)+1/sigma(1+cb2) or predifined)
+      cw2 = 0.3 ! 0.3                              || cw2
+      cw3 = 2.0 ! 2.0                              || cw3
+      cv1 = 7.1 ! 7.1                              || cv1
+      ct1 = 1.0 ! 1.0                              || ct1
+      ct2 = 2.0 ! 2.0                              || ct2
+      ct3 = 1.1 ! 1.1                              || ct3
+      ct4 = 2.0 ! 2.0                              || ct4
+      prtu = 0.9 ! 0.9                                || turbulent prandtl number
+      twall = 0 ! 0                                || wall temperature (kelvin) leave 0 for adiabatic (q_wall =0 <=> dt/dn=0)
+      ! 3.0                                  || initial value for turbulence parameter (multiplyied by the freestream viscosity from given re)
+      turbinit = 3.0
+      upturblimit = 1000000 ! 1000000                                || upper limit for turbulence
+      residualfreq = 10 ! 10                                || residual compute every
+      irs = 0 ! 0                                ||implicit residual smoothing (doubles cfl)
+      c_des_sa = 0.61 ! 0.61                                ||c_des_sa
+      ! =============================================================================
+      ! k-omega sst:
+      ! ---options---
+      vort_model = 0 ! 0                                        ||0:default strain-production for k, 1:vorticity-production for k
+      qsas_model = 0 ! 0                                        ||hybrid models: 1-sas-sst  //  2-des-sst
+      ! 0                                        ||zero turbulence option (if 1, initialization for k/w is done with zero turbulence)
+      zero_turb_init = 0
+      ! --------------k-omega constants--------------------------
+      sigma_k1 = 1.176470588 ! 1.176470588                                ||sigma_k1
+      sigma_k2 = 1.0 ! 1.0                                        ||sigma_k2
+      sigma_om1 = 2.0 ! 2.0                                        ||sigma_om1
+      sigma_om2 = 1.168 ! 1.168                                        ||sigma_om2
+      aa_1 = 0.31 ! 0.31                                        ||aa_1
+      beta_i1 = 0.075 ! 0.075                                        ||beta_i1
+      beta_i2 = 0.0828 ! 0.0828                                        ||beta_i2
+      alpha_starinf = 1.0 ! 1.0                                        ||alpha_starinf
+      alpha_0 = 0.111111111 ! 0.111111111                                ||alpha_0
+      beta_starinf = 0.09 ! 0.09                                        ||beta_starinf
+      r_beta = 8.0 ! 8.0                                        ||r_beta
+      r_k_sst = 6.0 ! 6.0                                        ||r_k_sst
+      beta_t = 0.072 ! 0.072                                        ||beta_t
+      kappa_sst = 0.41 ! 0.41                                        ||kappa   (same in spalart-allmaras)
+      r_om_sst = 2.95 ! 2.95                                        ||r_om_sst
+      zeta_star = 1.5 ! 1.5                                        ||zeta_star  (only for mach corrections)
+      m_t0 = 0.25 ! 0.25                                        ||m_t0                (only for mach corrections)
+      c_mu_inlet = 0.09 ! 0.09                                        ||c_mu_inlet
+      c_smg = 0.11 ! 0.11                                        ||c_smg  (sas)
+      eta2_sas = 3.51 ! 3.51                                        ||eta2_sas (sas)
+      sigma_phi = 0.666666667 ! 0.666666667                                ||sigma_phi (sas)
+      c_sas = 2.0 ! 2.0                                        ||c_sas   (sas)
+      l_turb_inlet = 0.0026 ! 0.0026                                        ||l_turb_inlet (default turbulence lengthscale)
+      i_turb_inlet = 0.1 ! 0.1                                        ||i_turb_inlet (default turbulene intensity)
+      ! 0.01                                        ||init_mu_ratio        (default initial ratio for turbulent viscosity)
+      init_mu_ratio = 0.01
+      c_des_sst = 0.61 ! 0.61                                        ||c_des_sst
+      ! =============================================================================
+      ! passive scalar transport
+      schmidt_lam = 10.0 ! 10.0                                        ||laminar schmidt number
+      schmidt_turb = 0.7 ! 0.7                                        ||turbulent schmidt number
 
+      cavitation = 0
+      extended_bounds = 0
 
-! 	   !-------------------------4---------------------------------!
-	   !equations type
+      select case (code_profile)
 
-	   select case(governingequations)
-	   case(-1)
-	   !multi-phase inviscid euler equations
-	    if (n.eq.0)then
-	      open(63,file='history.txt',form='formatted',action='write',position='append')
-	      write(63,*)'multi-phase inviscid euler solver engaged'
-	      close(63)
-	    end if
-	    itestcase = 3;ivortex = 0
+      case (0, 888)
 
-	   case(1)
-	   !navier stokes equations
-	    if (n.eq.0)then
-	      open(63,file='history.txt',form='formatted',action='write',position='append')
-	      write(63,*)'navier-stokes solver engaged'
-	      close(63)
-	    end if
-	    itestcase = 4;ivortex = 1
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if ((initcond .eq. 405) .or. (initcond .eq. 405)) then
+            iadapt = 1
+         end if
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 2 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 10000000 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 10000000 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 0.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         rot_corr = 0
 
-	  case(2)
-	   !euler equations
-	    if (n.eq.0)then
-	      open(63,file='history.txt',form='formatted',action='write',position='append')
-	      write(63,*)'euler solver engaged'
-	      close(63)
-	    end if
-	    itestcase = 3;ivortex = 0
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
 
+         des_model = 0
 
+      case (232323)
 
-	  case(3)
-	   !linear advection equation
-	    if (n.eq.0)then
-	      open(63,file='history.txt',form='formatted',action='write',position='append')
-	      write(63,*)'linear solver engaged sinewave'
-	      close(63)
-	    end if
-	    itestcase = 1;ivortex = 0
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if ((initcond .eq. 405) .or. (initcond .eq. 405)) then
+            iadapt = 1
+         end if
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 10000 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 10000 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         rot_corr = 1
 
-	 case(4)
-	   !linear advection equation
-	    if (n.eq.0)then
-	      open(63,file='history.txt',form='formatted',action='write',position='append')
-	      write(63,*)'linear solver engaged step function'
-	      close(63)
-	    end if
-	    itestcase = 2;ivortex = 0
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
 
-	  end select
+         des_model = 0
 
+      case (199)
 
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if ((initcond .eq. 405) .or. (initcond .eq. 405)) then
+            iadapt = 1
+         end if
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 2 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 300000000 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 300000000 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         d_corr = 1
+         turbinit = 0.1
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
 
-	  !-------------------------end equations 4---------------------------------!
+         des_model = 0
 
-	  !-------------------------5---------------------------------!
-	  !flow parameters
-	  unwou = 3
-	  betaas=1.5d0
-	  suther=0.412158681d0
-	  uvel=ufreestream
-          if (uvel.lt.10.0)then
-          r_gas=1.0
-          else
-                  r_gas=287.052874d0
-                  suther=110.0/(pres/(rres*r_gas))
+      case (501)
 
-          end if
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 405) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 20.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 50.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
 
-	  if (initcond.eq.977)then
-	  uvel=0.0d0;vvel=0.0d0;
-	  ufreestream=wvel
-	  end if
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
 
+         des_model = 0
 
-	   ! set pressure
-	  if ( pres .lt. 0 ) pres = rres/gamma
-	  ! set dynamic free-stream viscosity
+      case (30) !vertex based multidimensional-experimental option not for production
 
-	  if (rframe.eq.0) then
-        visc = (rres*ufreestream*charlength)/reynolds
-    else
-        visc = (rres*v_ref*charlength)/reynolds
-    end if
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+         !         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 405) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 20.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 50.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
 
-	  if (swirl.eq.1)then
-	  uvel=zero
-	  end if
-	  if (aoa .ne. 0.0d0) then
-	  angledum=(aoa*pi)/180.0d0
-	  uvel = cos(angledum)*ufreestream*vectorx
-	  wvel = sin(angledum)*ufreestream*vectorz
-	  vvel = sin(angledum)*ufreestream*vectory
-	  end if
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
 
-	  if (n.eq.0)then
-	      open(63,file='history.txt',form='formatted',action='write',position='append')
-	      if (itestcase .eq. 4) then
-	      if (rframe.eq.0)then
-		write(63,*)'----reynolds number:',(rres*ufreestream*charlength)/visc
+         des_model = 0
+
+      case (8)
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 405) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 100.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 200.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+
+         des_model = 0
+
+      case (88)
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 405) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 40.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 40.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+
+         fastmovie = 0
+
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+
+         des_model = 0
+
+      case (18)
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 405) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 40000.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 40000.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 0.00; lamy = 0.00; lamz = 0.00 !linear advection coefficients (lamx, lamy,lamz)
+
+         fastmovie = 0
+
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+
+         des_model = 0
+
+      case (98)
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 405) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 20.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 40.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+
+         fastmovie = 0
+
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+
+         des_model = 0
+
+      case (9) !robust
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 405) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 7.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         fastmovie = 0
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+
+         des_model = 0
+
+      case (777) !robust
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!       icoupleturb=0   !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 1 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 405) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 5 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 100000000.0 ! 0       5.0    7.0  limit aspect ratio cells,
+         gridar2 = 700000000.0 ! limit volume cells
+         fastest = 0 ! 0                             ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                      ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 0.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         fastmovie = 0
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+
+         des_model = 0
+
+      case (91) !robust with matrix free lu-sgs
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 405) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 3 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 10000.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 70000.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+
+         des_model = 0
+
+      case (1) !for ddes
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+         !icoupleturb=1        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 7.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         cavitation = 0
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+         turbinit = 0.1
+         des_model = 2
+
+      case (11) !for ddes with matrix free lu-sgs
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+         !icoupleturb=1        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 10.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+         des_model = 2
+
+      case (100) !for hybrid dg-fv method
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+         !icoupleturb=1        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 101) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 10.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         dg = 1 !0=deactivated fv only, 1=activated dg only, 2=hybrid
+
+         bound_lim = 0
+         cavitation = 0
+
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+         des_model = 2
+
+         br2_damping = 3.0
+         br2_yn = 2
+
+      case (101) !for hybrid dg-fv method
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+         !icoupleturb=1        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 101) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 6 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 10.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         dg = 1 !0=deactivated fv only, 1=activated dg only, 2=hybrid
+         bound_lim = 0
+         cavitation = 0
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+         des_model = 2
+
+         br2_damping = 3.0
+         br2_yn = 2
+
+      case (102) !for pure dg method
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+         !icoupleturb=1        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 101) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 10.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         dg = 1 !0=deactivated fv only, 1=activated dg only, 2=hybrid
+
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+         des_model = 2
+
+         br2_damping = 3.0
+         br2_yn = 2
+
+      case default
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+         icoupleturb = 0 !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 101) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 5 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         if (code_profile .eq. 999) cflramp = 1 !profile 999: default settings with FV update check and no CFL ramping
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 1000000.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 1000000.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 0.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         ispal = 1 ! 1                                ||spalart allmaras version:| 1:original |2: negative modification
+
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+
+         des_model = 0
+
+      case (17)
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 1 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if (initcond .eq. 405) iadapt = 1
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 200000.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar2 = 500000.0 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 0.00; lamy = 0.00; lamz = 0.00 !linear advection coefficients (lamx, lamy,lamz)
+         iweno = 5
+
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+
+         des_model = 0
+
+      end select
+
+      if (n .eq. 0) then
+         open (63, file='history.txt', form='formatted', action='write', position='append')
+
+         call date_and_time(date_w, time_w)
+
+         write (63, '(A,1X,A2,"/",A2,"/",A4,1X,A2,":",A2)') &
+            & "ucns3d parallel computation start", &
+            & date_w(7:8), date_w(5:6), date_w(1:4), &
+            & time_w(1:2), time_w(3:4)
+
+      end if
+
+      nproc = isize - 1; vorder = iorder
+
+      !--------------------------1------------------------------!
+      !probe position allocation and reading of coordinates
+      !$omp master
+      if (nprobes .gt. 0) then
+         if (dimensiona .eq. 3) then
+            allocate (probec(1:nprobes, 1:3))
+            do inv = 1, nprobes
+               read (15, *) probec(inv, 1), probec(inv, 2), probec(inv, 3)
+            end do
+         else
+            allocate (probec(1:nprobes, 1:2))
+
+            do inv = 1, nprobes
+               read (15, *) probec(inv, 1), probec(inv, 2)
+            end do
+         end if
+      end if
+      !$omp end master
+      !--------------------------end 1-------------------------!
+
+      call mpi_barrier(mpi_comm_world, ierror)
+
+      !-------------------------2---------------------------------!
+      !number of variables setup
+      if (governingequations .le. 2) then ! ns or euler
+         if (dimensiona .eq. 3) then
+            nof_variables = 5; dims = 3
+         else
+            nof_variables = 4; dims = 2
+         end if
+
+      else ! linear advection
+         nof_variables = 1
+
+         if (dimensiona .eq. 3) then
+            dims = 3
+         else
+            dims = 2
+         end if
+      end if
+
+      !multiphase modification starts
+      if (multispecies .eq. 1) then
+         if (mp_modelc .eq. 0) then
+            if (dimensiona .eq. 3) then
+               nof_variables = 5 + nof_species + (nof_species - 1); dims = 3
             else
-            write(63,*)'----reynolds number:',(rres*v_ref*charlength)/visc
+               nof_variables = 4 + nof_species + (nof_species - 1); dims = 2
+            end if
+         else
+            if (dimensiona .eq. 3) then
+               nof_variables = 5 + nof_species; dims = 3
+            else
+               nof_variables = 4 + nof_species; dims = 2
+            end if
+
+         end if
+
+      end if
+      !multiphase modification ends
+
+      if (realgas .eq. 1) then
+         if (dimensiona .eq. 3) then
+            nof_variables = dimensiona + 3 + nof_species; dims = 3
+         else
+            nof_variables = dimensiona + 3 + nof_species; dims = 2
+         end if
+
+      end if
+
+      !--------------------------end 2-------------------------!
+
+      !-------------------------3---------------------------------!
+      !turbulence
+      if (turbulence .eq. 1) then
+         if (turbulencemodel .eq. 1) then
+            turbulenceequations = 1
+         else if (turbulencemodel .eq. 2) then
+            turbulenceequations = 2
+         end if
+      else
+         turbulenceequations = 0
+         turbulencemodel = 0
+      end if
+      !------------------------- end 3---------------------------------!
+
+!            !-------------------------4---------------------------------!
+      !equations type
+
+      select case (governingequations)
+      case (-1)
+         !multi-phase inviscid euler equations
+         if (n .eq. 0) then
+            open (63, file='history.txt', form='formatted', action='write', position='append')
+            write (63, *) 'multi-phase inviscid euler solver engaged'
+            close (63)
+         end if
+         itestcase = 3; ivortex = 0
+
+      case (1)
+         !navier stokes equations
+         if (n .eq. 0) then
+            open (63, file='history.txt', form='formatted', action='write', position='append')
+            write (63, *) 'navier-stokes solver engaged'
+            close (63)
+         end if
+         itestcase = 4; ivortex = 1
+
+      case (2)
+         !euler equations
+         if (n .eq. 0) then
+            open (63, file='history.txt', form='formatted', action='write', position='append')
+            write (63, *) 'euler solver engaged'
+            close (63)
+         end if
+         itestcase = 3; ivortex = 0
+
+      case (3)
+         !linear advection equation
+         if (n .eq. 0) then
+            open (63, file='history.txt', form='formatted', action='write', position='append')
+            write (63, *) 'linear solver engaged sinewave'
+            close (63)
+         end if
+         itestcase = 1; ivortex = 0
+
+      case (4)
+         !linear advection equation
+         if (n .eq. 0) then
+            open (63, file='history.txt', form='formatted', action='write', position='append')
+            write (63, *) 'linear solver engaged step function'
+            close (63)
+         end if
+         itestcase = 2; ivortex = 0
+
+      end select
+
+      !-------------------------end equations 4---------------------------------!
+
+      !-------------------------5---------------------------------!
+      !flow parameters
+      unwou = 3
+      betaas = 1.50
+      suther = 0.4121586810
+      uvel = ufreestream
+      if (initcond .eq. 4440 .and. duct_viscosity_ref .gt. 0.0e0) then
+         if (realgas .ne. 0 .or. multispecies .ne. 0) then
+            call abort_ucns3d_configuration(n, 'OUTLETS.DAT MU_REF requires initcond=4440 and a single ideal gas')
+         end if
+         ! Dimensional air and the Sutherland reference do not depend on the initial guess.
+         r_gas = 287.0528740
+         if (.not. ieee_is_finite(total_temperature_inlet)) then
+            call abort_ucns3d_configuration(n, 'MU_REF requires a finite positive inlet total temperature')
+         end if
+         if (total_temperature_inlet .le. 0.0e0) then
+            call abort_ucns3d_configuration(n, 'MU_REF requires a positive inlet total temperature')
+         end if
+         suther = 110.0e0 /  273.15 !total_temperature_inlet
+      else if (uvel .lt. 10.0) then
+         r_gas = 1.0
+      else
+         r_gas = 287.0528740
+         suther = 110.0 / (pres / (rres * r_gas))
+
+      end if
+
+      if (initcond .eq. 977) then
+         uvel = 0.00; vvel = 0.00;
+         ufreestream = wvel
+      end if
+
+      ! set pressure
+      if (pres .lt. 0) pres = rres / gamma
+      ! set dynamic free-stream viscosity
+
+      if (initcond .eq. 4440 .and. duct_viscosity_ref .gt. 0.0e0) then
+         visc = duct_viscosity_ref
+      else if (rframe .eq. 0) then
+         visc = (rres * ufreestream * charlength) / reynolds
+      else
+         visc = (rres * v_ref * charlength) / reynolds
+      end if
+
+      if (swirl .eq. 1) then
+         uvel = zero
+      end if
+      if (aoa .ne. 0.00) then
+         angledum = (aoa * pi) / 180.00
+         uvel = cos(angledum) * ufreestream * vectorx
+         wvel = sin(angledum) * ufreestream * vectorz
+         vvel = sin(angledum) * ufreestream * vectory
+      end if
+
+      if (n .eq. 0) then
+         open (63, file='history.txt', form='formatted', action='write', position='append')
+         if (itestcase .eq. 4) then
+            if (initcond .eq. 4440 .and. duct_viscosity_ref .gt. 0.0e0) then
+               write (63, *) '----4440 reference viscosity [Pa s] at inlet total temperature [K]:', &
+                  & duct_viscosity_ref, total_temperature_inlet
+               write (63, *) '----Sutherland transport active, S=110 K; Reynolds output uses the supplied reference viscosity'
+               write (63, *) '----inlet Reynolds uses computed inlet rho and speed, L=1 m; output interval:', inlet_reynolds_freq
+               write (63, *) '----UCNS3D.DAT Reynolds input does not set viscosity in MU_REF mode'
+            else if (rframe .eq. 0) then
+               write (63, *) '----reynolds number:', (rres * ufreestream * charlength) / visc
+            else
+               write (63, *) '----reynolds number:', (rres * v_ref * charlength) / visc
 
             end if
-		end if
-	      close(63)
-	   end if
+         end if
+         close (63)
+      end if
 
+      !-------------------------end flow parameters 5---------------------------------!
 
+      !-------------------------6---------------------------------!
+      !spatial & temporal discretisation
 
-	  !-------------------------end flow parameters 5---------------------------------!
+      iorder = max(1, spatialorder - 1)
+      firstorder = 0
+!            if (ees.eq.5)then
+!            icompact=1
+!            end if
+      iextend = 2; if (icompact .eq. 1) iextend = 10
+      iweno = 0
+      wenwrt = 1
+      ischeme = 3
+      typesten = 1
+      lwci1 = wenocentralweight
 
-	  !-------------------------6---------------------------------!
-	   !spatial & temporal discretisation
+!             if (ees.eq.5)then
+!                               lwci1=10**((wenocentralweight*14)+2)
+!              end if
 
-	   iorder = max(1,spatialorder-1)
-	   firstorder = 0
-! 	   if (ees.eq.5)then
-! 	   icompact=1
-! 	   end if
-	   iextend =2; if (icompact.eq.1)iextend = 10
-	   iweno =0
-	   wenwrt = 1
-	   ischeme=3
-	   typesten=1
-	   lwci1=wenocentralweight
+      if (fastest .eq. 1) ischeme = 1
 
+      select case (spatiladiscret)
 
-!  	   if (ees.eq.5)then
-!   	    		lwci1=10**((wenocentralweight*14)+2)
-!   	   end if
+      case (1) !no limiter
 
+         if (n .eq. 0) then
+            open (63, file='history.txt', form='formatted', action='write', position='append')
+            write (63, *) '----1st order in space|linear scheme'
+            close (63)
+         end if
 
+         if (spatialorder .eq. 1) then
+            firstorder = 1; iorder = 1
+         else
+            firstorder = 0
+         end if
 
-	  if (fastest.eq.1)ischeme=1
+      case (2) !muscl type
 
+         if (n .eq. 0) then
+            open (63, file='history.txt', form='formatted', action='write', position='append')
+            write (63, *) '----muscl scheme engaged----'
+            close (63)
+         end if
 
-	   select case(spatiladiscret)
+         iweno = -1
+         wenwrt = wenocnschar
 
+      case (3) !weno type
 
+         if (n .eq. 0) then
+            open (63, file='history.txt', form='formatted', action='write', position='append')
+            write (63, *) '----weno scheme engaged----'
+            close (63)
+         end if
 
+         iweno = 1
+         iweno = 1
+         iextend = 12;
+         if (ees .eq. 5) then
+            if (icompact .eq. 1) then
+               iextend = 10
 
-	   case(1)	!no limiter
+            else
+               iextend = 5
 
-	   if (n.eq.0)then
-	      open(63,file='history.txt',form='formatted',action='write',position='append')
-	      write(63,*)'----1st order in space|linear scheme'
-	      close(63)
-	   end if
-
-	      if (spatialorder.eq.1) then
-	      firstorder = 1;iorder=1
-	      else
-	      firstorder = 0
-	      end if
-
-	     case(2)	!muscl type
-
-	   if (n.eq.0)then
-	      open(63,file='history.txt',form='formatted',action='write',position='append')
-	      write(63,*)'----muscl scheme engaged----'
-	      close(63)
-	   end if
-
-	  iweno = -1
-	  wenwrt=wenocnschar
-
-
-	   case(3)	!weno type
-
-	   if (n.eq.0)then
-	      open(63,file='history.txt',form='formatted',action='write',position='append')
-	      write(63,*)'----weno scheme engaged----'
-	      close(63)
-	   end if
-
-	  iweno = 1
-	  iweno = 1
-	  iextend = 12	;
-
-
-	  if (ees.eq.5)then
-	   if (icompact.eq.1)then
-	  iextend = 10
-
-
-
-	  else
-	  iextend = 5
-
-	  end if
-	  end if
-	  wenwrt=wenocnschar
-
-	  if (dimensiona.eq.2)then
-	    if ((ees.eq.0))then;typesten = 5;end if
-	    if ((ees.eq.5))then;typesten = 5;end if
-	    if (ees.eq.1)then;typesten = 9;end if
-	    if (ees.eq.2)then;typesten = 9;end if
-	    if (ees.eq.3)then;typesten = 5;end if
-	  else
-	    if ((ees.eq.0))then;typesten = 7;end if
-	    if ((ees.ge.4))then;typesten = 7;end if
-	    if (ees.eq.1)then ;typesten = 15;end if
-	    if (ees.eq.2)then;typesten = 15;end if
-	    if (ees.eq.3)then;typesten = 7;end if
-	  end if
-
-
-
-	  end select
-
-
-	  if (code_profile.eq.17)iweno=5
-
-
-
-        ! temporal order
-        rungekutta = temporder
-
-       if ( iboundary .eq. 0 ) then
-	    iperiodicity = -3
-	    end if
-	    if ( iboundary .eq. 1 ) then
-	    iperiodicity = 1
-	    end if
-
-
-
-            if (dg.eq.1)then
-
-                igqrules=min(iorder+1,6)
-                else
-                igqrules=min(iorder,6)
-                end if
-
-
-
-		alls=igqrules**(dimensiona)
-
-
-
-
-	  !-------------------------end discretisation 6---------------------------------!
-
-	call validate_ucns3d_configuration(n)
-
-
-
-
-	call mpi_barrier(mpi_comm_world,ierror)
-
-	    if (n.eq.0)then
-	      open(63,file='history.txt',form='formatted',action='write',position='append')
-	      write(63,*)'total number of processes:',isize,igqrules
-	      close(63)
-	  end if
-        if(srfg.eq.1)then
-            if (n.eq.0)then
-                open(63,file='history.txt',form='formatted',action='write',position='append')
-                write(63,*)'single reference frame engaged:'
-                close(63)
             end if
-        end if
-			if(mrf.eq.1)then
-            if (n.eq.0)then
-                open(63,file='history.txt',form='formatted',action='write',position='append')
-                write(63,*)'number of rotating frames engaged:',nrotors
-                close(63)
-            end if
-        end if
-		if(per_rot.eq.1)then
-            iboundary=1
-            lowmem=1
-            if (n.eq.0)then
-                open(63,file='history.txt',form='formatted',action='write',position='append')
-                write(63,*)'rotational  periodicity engaged'
-                close(63)
-            end if
-        end if
+         end if
+         wenwrt = wenocnschar
 
+         if (dimensiona .eq. 2) then
+            if ((ees .eq. 0)) then; typesten = 5; end if
+            if ((ees .eq. 5)) then; typesten = 5; end if
+            if (ees .eq. 1) then; typesten = 9; end if
+            if (ees .eq. 2) then; typesten = 9; end if
+            if (ees .eq. 3) then; typesten = 5; end if
+         else
+            if ((ees .eq. 0)) then; typesten = 7; end if
+            if ((ees .ge. 4)) then; typesten = 7; end if
+            if (ees .eq. 1) then; typesten = 15; end if
+            if (ees .eq. 2) then; typesten = 15; end if
+            if (ees .eq. 3) then; typesten = 7; end if
+         end if
 
+      end select
 
-	  if (initcond.eq.444)then
-	inquire (file='BUBBLES.DAT',exist=here5)
-	if (here5) then
-	open(18,file='BUBBLES.DAT',form='formatted',status='old',action='read')
-	read(18,*)nof_bubbles
-	do ix=1,nof_bubbles
-	read(18,*)bubble_centre(ix,1),bubble_centre(ix,2),bubble_radius(ix)
-	end do
-	close(18)
-	end if
-    end if
+      if (code_profile .eq. 17) iweno = 5
 
-    if (initcond.eq.445)then
+      ! temporal order
+      rungekutta = temporder
 
-		inquire (file = 'BUBBLES.DAT',exist=here5)
-		if (here5) then
-		open(18,file='BUBBLES.DAT',form='formatted',status='old',action='read')
-		read(18,*)nof_bubbles
-		do ix=1,nof_bubbles
-		read(18,*)bubble_centre(ix,1),bubble_centre(ix,2),bubble_centre(ix,3),bubble_radius(ix)
-		end do
-		close(18)
+      if (iboundary .eq. 0) then
+         iperiodicity = -3
+      end if
+      if (iboundary .eq. 1) then
+         iperiodicity = 1
+      end if
 
-		end if
-		end if
+      if (dg .eq. 1) then
 
+         igqrules = min(iorder + 1, 6)
+      else
+         igqrules = min(iorder, 6)
+      end if
 
-		inquire (file='BLEED.DAT',exist=bleedio)
-	if (bleedio) then
-	bleed=1
-	open(27,file='BLEED.DAT',form='formatted',status='old',action='read')
-	read(27,*)
-	read(27,*)
-	read(27,*)bleed_number !bleed_number=number of bleed boundary conditions
-	read(27,*)bleed_type	!bleed_type=bleed type (slater=1,other=2,porous=3,etc)
-	allocate(bleed_start(1:bleed_number,1:dims),bleed_end(1:bleed_number,1:dims),bleed_plenum(1:bleed_number), bleed_porosity(1:bleed_number))
-	do ibleed=1,bleed_number
-    read(27,*)bleed_start(ibleed,1:dims),bleed_end(ibleed,1:dims)
-    end do
-    do ibleed=1,bleed_number
-    read(27,*)bleed_plenum(ibleed), bleed_porosity(ibleed)
-    end do
-    close(27)
-	else
-	bleed=0
-	end if
+      alls = igqrules**(dimensiona)
 
+      !-------------------------end discretisation 6---------------------------------!
 
+      call validate_ucns3d_configuration(n)
 
+      call mpi_barrier(mpi_comm_world, ierror)
 
-	end subroutine read_ucns3d
+      if (n .eq. 0) then
+         open (63, file='history.txt', form='formatted', action='write', position='append')
+         write (63, *) 'total number of processes:', isize, igqrules
+         close (63)
+      end if
+      if (srfg .eq. 1) then
+         if (n .eq. 0) then
+            open (63, file='history.txt', form='formatted', action='write', position='append')
+            write (63, *) 'single reference frame engaged:'
+            close (63)
+         end if
+      end if
+      if (mrf .eq. 1) then
+         if (n .eq. 0) then
+            open (63, file='history.txt', form='formatted', action='write', position='append')
+            write (63, *) 'number of rotating frames engaged:', nrotors
+            close (63)
+         end if
+      end if
+      if (per_rot .eq. 1) then
+         iboundary = 1
+         lowmem = 1
+         if (n .eq. 0) then
+            open (63, file='history.txt', form='formatted', action='write', position='append')
+            write (63, *) 'rotational  periodicity engaged'
+            close (63)
+         end if
+      end if
 
+      if (initcond .eq. 444) then
+         inquire (file='BUBBLES.DAT', exist=here5)
+         if (here5) then
+            open (18, file='BUBBLES.DAT', form='formatted', status='old', action='read')
+            read (18, *) nof_bubbles
+            do ix = 1, nof_bubbles
+               read (18, *) bubble_centre(ix, 1), bubble_centre(ix, 2), bubble_radius(ix)
+            end do
+            close (18)
+         end if
+      end if
 
-	subroutine restore_outlet_mach_restart_pressure
+      if (initcond .eq. 445) then
+
+         inquire (file='BUBBLES.DAT', exist=here5)
+         if (here5) then
+            open (18, file='BUBBLES.DAT', form='formatted', status='old', action='read')
+            read (18, *) nof_bubbles
+            do ix = 1, nof_bubbles
+               read (18, *) bubble_centre(ix, 1), bubble_centre(ix, 2), bubble_centre(ix, 3), bubble_radius(ix)
+            end do
+            close (18)
+
+         end if
+      end if
+
+      inquire (file='BLEED.DAT', exist=bleedio)
+      if (bleedio) then
+         bleed = 1
+         open (27, file='BLEED.DAT', form='formatted', status='old', action='read')
+         read (27, *)
+         read (27, *)
+         read (27, *) bleed_number !bleed_number=number of bleed boundary conditions
+         read (27, *) bleed_type !bleed_type=bleed type (slater=1,other=2,porous=3,etc)
+         allocate (bleed_start(1:bleed_number, 1:dims), bleed_end(1:bleed_number, 1:dims), bleed_plenum(1:bleed_number), &
+            & bleed_porosity(1:bleed_number))
+         do ibleed = 1, bleed_number
+            read (27, *) bleed_start(ibleed, 1:dims), bleed_end(ibleed, 1:dims)
+         end do
+         do ibleed = 1, bleed_number
+            read (27, *) bleed_plenum(ibleed), bleed_porosity(ibleed)
+         end do
+         close (27)
+      else
+         bleed = 0
+      end if
+
+   end subroutine read_ucns3d
+
+   subroutine read_duct_viscosity_reference(unit_number)
+! Optional record after the five existing OUTLETS.DAT data records:
+! MU_REF viscosity_at_inlet_total_temperature_Pa_s [Reynolds_output_interval_iterations]
+! MU_FIXED is retained as an alias for the earlier experimental input spelling.
+      implicit none
+      integer, intent(in) :: unit_number
+      integer :: ios, record_count
+      character(len=256) :: line
+      character(len=32) :: keyword
+      record_count = 0
+      do
+         read (unit_number, '(A)', iostat=ios) line
+         if (ios .lt. 0) exit
+         if (ios .ne. 0) call abort_ucns3d_configuration(n, 'Could not read OUTLETS.DAT MU_REF record')
+         line = adjustl(line)
+         if (len_trim(line) .eq. 0) cycle
+         if (line(1:1) .eq. '!' .or. line(1:1) .eq. '#') cycle
+         read (line, *, iostat=ios) keyword
+         if (ios .ne. 0) call abort_ucns3d_configuration(n, 'Invalid optional OUTLETS.DAT record')
+         if (keyword .ne. 'MU_REF' .and. keyword .ne. 'mu_ref' .and. &
+            & keyword .ne. 'MU_FIXED' .and. keyword .ne. 'mu_fixed') then
+            call abort_ucns3d_configuration(n, 'Expected MU_REF viscosity [output_interval] in OUTLETS.DAT')
+         end if
+         record_count = record_count + 1
+         if (record_count .gt. 1) call abort_ucns3d_configuration(n, 'Duplicate OUTLETS.DAT MU_REF record')
+         read (line, *, iostat=ios) keyword, duct_viscosity_ref
+         if (ios .ne. 0) call abort_ucns3d_configuration(n, 'MU_REF needs a positive viscosity in Pa s')
+         if (.not. ieee_is_finite(duct_viscosity_ref)) then
+            call abort_ucns3d_configuration(n, 'MU_REF viscosity must be finite')
+         end if
+         if (duct_viscosity_ref .le. 0.0e0) then
+            call abort_ucns3d_configuration(n, 'MU_REF viscosity must be positive')
+         end if
+         read (line, *, iostat=ios) keyword, duct_viscosity_ref, inlet_reynolds_freq
+         if (ios .gt. 0) call abort_ucns3d_configuration(n, 'MU_REF output interval must be a positive integer')
+         if (inlet_reynolds_freq .le. 0) then
+            call abort_ucns3d_configuration(n, 'MU_REF output interval must be positive')
+         end if
+      end do
+   end subroutine read_duct_viscosity_reference
+
+   subroutine restore_outlet_mach_restart_pressure
 !> Restore the Mach-controller outlet static pressure on restart.
-	implicit none
+      implicit none
 
-	integer :: mach_ios, mach_it, restored
-	real :: mach_t, mach_avg, mach_target, mach_press, mach_area, last_press
-	character(len=256) :: mach_line
-	logical :: here9, found
+      integer :: mach_ios, mach_it, restored
+      real :: mach_t, mach_avg, mach_target, mach_press, mach_area, last_press
+      character(len=256) :: mach_line
+      logical :: here9, found
 
-	restored=0
-	last_press=press_outlet
+      restored = 0
+      last_press = press_outlet
 
-	if ((restart.gt.0).and.(initcond.eq.4440).and.(mach_outlet_target.gt.0.0d0))then
-	  if (n.eq.0)then
-	    inquire(file='OUTLET_MACH.dat',exist=here9)
-	    if (here9)then
-	      open(92,file='OUTLET_MACH.dat',form='formatted',status='old',action='read')
-	      found=.false.
-	      do
-	        read(92,'(A)',iostat=mach_ios)mach_line
-	        if (mach_ios.ne.0) exit
-	        read(mach_line,*,iostat=mach_ios)mach_it,mach_t,mach_avg,mach_target,mach_press,mach_area
-	        if ((mach_ios.eq.0).and.(mach_press.gt.tolsmall))then
-	          last_press=mach_press
-	          found=.true.
-	        end if
-	      end do
-	      close(92)
-	      if (found) restored=1
-	    end if
-	  end if
+      if ((restart .gt. 0) .and. (initcond .eq. 4440) .and. (mach_outlet_target .gt. 0.00)) then
+         if (n .eq. 0) then
+            inquire (file='OUTLET_MACH.dat', exist=here9)
+            if (here9) then
+               open (92, file='OUTLET_MACH.dat', form='formatted', status='old', action='read')
+               found = .false.
+               do
+                  read (92, '(A)', iostat=mach_ios) mach_line
+                  if (mach_ios .ne. 0) exit
+                  read (mach_line, *, iostat=mach_ios) mach_it, mach_t, mach_avg, mach_target, mach_press, mach_area
+                  if ((mach_ios .eq. 0) .and. (mach_press .gt. tolsmall)) then
+                     last_press = mach_press
+                     found = .true.
+                  end if
+               end do
+               close (92)
+               if (found) restored = 1
+            end if
+         end if
 
-	  call mpi_bcast(restored,1,mpi_integer,0,mpi_comm_world,ierror)
-	  call mpi_bcast(last_press,1,mpi_double_precision,0,mpi_comm_world,ierror)
+         call mpi_bcast(restored, 1, mpi_integer, 0, mpi_comm_world, ierror)
+         call mpi_bcast(last_press, 1, mpi_double_precision, 0, mpi_comm_world, ierror)
 
-	  if (restored.eq.1)then
-	    press_outlet=max(last_press,tolsmall)
-	    if (n.eq.0) print*,'restored outlet static pressure from OUTLET_MACH.dat',press_outlet
-	  end if
-	end if
+         if (restored .eq. 1) then
+            press_outlet = max(last_press, tolsmall)
+            if (n .eq. 0) print *, 'restored outlet static pressure from OUTLET_MACH.dat', press_outlet
+         end if
+      end if
 
-	end subroutine restore_outlet_mach_restart_pressure
+   end subroutine restore_outlet_mach_restart_pressure
 
+   subroutine abort_ucns3d_configuration(n, message)
+      implicit none
+      integer, intent(in) :: n
+      character(len=*), intent(in) :: message
+      integer :: abort_rank, abort_unit, abort_ios, abort_ierr
+      character(len=64) :: abort_file
 
-	subroutine abort_ucns3d_configuration(n,message)
-	implicit none
-	integer,intent(in)::n
-	character(len=*),intent(in)::message
-	integer::abort_rank,abort_unit,abort_ios,abort_ierr
-	character(len=64)::abort_file
+      abort_rank = n
+      abort_ierr = 0
+      call mpi_comm_rank(mpi_comm_world, abort_rank, abort_ierr)
+      if (abort_ierr .ne. 0) abort_rank = n
 
-	abort_rank=n
-	abort_ierr=0
-	call mpi_comm_rank(mpi_comm_world,abort_rank,abort_ierr)
-	if (abort_ierr.ne.0) abort_rank=n
+      write (error_unit, '(A,I0,A,A)') 'UCNS3D.DAT configuration error on rank ', abort_rank, ': ', trim(message)
+      flush (error_unit)
 
-	write(error_unit,'(A,I0,A,A)')'UCNS3D.DAT configuration error on rank ',abort_rank,': ',trim(message)
-	flush(error_unit)
+      write (abort_file, '("ucns3d_abort_rank",I0,".txt")') abort_rank
+      open (newunit=abort_unit, file=trim(abort_file), form='formatted', status='replace', action='write', iostat=abort_ios)
+      if (abort_ios .eq. 0) then
+         write (abort_unit, '(A,I0,A,A)') 'UCNS3D.DAT configuration error on rank ', abort_rank, ': ', trim(message)
+         close (abort_unit)
+      end if
 
-	write(abort_file,'("ucns3d_abort_rank",I0,".txt")')abort_rank
-	open(newunit=abort_unit,file=trim(abort_file),form='formatted',status='replace',action='write',iostat=abort_ios)
-	if (abort_ios.eq.0)then
-	  write(abort_unit,'(A,I0,A,A)')'UCNS3D.DAT configuration error on rank ',abort_rank,': ',trim(message)
-	  close(abort_unit)
-	end if
+      if (abort_rank .eq. 0) then
+         open (newunit=abort_unit, file='history.txt', form='formatted', status='unknown', action='write', position='append', &
+            & iostat=abort_ios)
+         if (abort_ios .eq. 0) then
+            write (abort_unit, '(A,A)') 'UCNS3D.DAT configuration error: ', trim(message)
+            close (abort_unit)
+         end if
+      end if
+      call mpi_abort(mpi_comm_world, 99, ierror)
+   end subroutine abort_ucns3d_configuration
 
-	if (abort_rank.eq.0)then
-	  open(newunit=abort_unit,file='history.txt',form='formatted',status='unknown',action='write',position='append',iostat=abort_ios)
-	  if (abort_ios.eq.0)then
-	    write(abort_unit,'(A,A)')'UCNS3D.DAT configuration error: ',trim(message)
-	    close(abort_unit)
-	  end if
-	end if
-	call mpi_abort(mpi_comm_world,99,ierror)
-	end subroutine abort_ucns3d_configuration
+   subroutine validate_ucns3d_configuration(n)
+      implicit none
+      integer, intent(in) :: n
+      logical :: valid_riemann
+      logical :: valid_poly
+      logical :: valid_scheme
+      logical :: xpu_recon_supported
 
+      valid_scheme = (spatiladiscret .ge. 1) .and. (spatiladiscret .le. 3)
+      valid_poly = (poly .eq. 1) .or. (poly .eq. 2) .or. (poly .eq. 4)
+      valid_riemann = (iriemann .eq. 1) .or. (iriemann .eq. 2) .or. (iriemann .eq. 3) .or. &
+         & (iriemann .eq. 4) .or. (iriemann .eq. 5) .or. (iriemann .eq. 9)
 
-	subroutine validate_ucns3d_configuration(n)
-	implicit none
-	integer,intent(in)::n
-	logical::valid_riemann
-	logical::valid_poly
-	logical::valid_scheme
-	logical::xpu_recon_supported
+      if ((dimensiona .ne. 2) .and. (dimensiona .ne. 3)) then
+         call abort_ucns3d_configuration(n, 'dimension must be 2 or 3')
+      end if
+      if ((governingequations .ne. -1) .and. (governingequations .ne. 1) .and. &
+         & (governingequations .ne. 2) .and. (governingequations .ne. 3) .and. &
+         & (governingequations .ne. 4)) then
+         call abort_ucns3d_configuration(n, 'governing equations option is not implemented')
+      end if
+      if (.not. valid_scheme) then
+         call abort_ucns3d_configuration(n, 'spatial discretisation must be 1(linear), 2(MUSCL), or 3(WENO)')
+      end if
+      if ((spatialorder .lt. 1) .or. (spatialorder .gt. 7)) then
+         call abort_ucns3d_configuration(n, 'spatial order must be in the documented range 1..7')
+      end if
+      if (.not. valid_poly) then
+         call abort_ucns3d_configuration(n, 'polynomial option must be 1(generic), 2(Legendre), or 4(DG/modal)')
+      end if
+      if (.not. valid_riemann) then
+         call abort_ucns3d_configuration(n, &
+            & 'Riemann solver must be 1(HLLC), 2(Rusanov), 3(Roe), 4(rotated Roe), 5(T-Roe), or 9(HLL)')
+      end if
+      if ((dimensiona .eq. 2) .and. (iriemann .eq. 5)) then
+         call abort_ucns3d_configuration(n, 'Riemann solver 5(T-Roe) is only implemented for 3D fluxes')
+      end if
+      if (((realgas .eq. 1) .or. (multispecies .eq. 1)) .and. &
+         & ((iriemann .eq. 3) .or. (iriemann .eq. 4) .or. (iriemann .eq. 5))) then
+         call abort_ucns3d_configuration(n, 'Roe-family solvers 3/4/5 use five-equation ideal-gas work arrays; '// &
+            & 'use HLLC, Rusanov, or HLL with real-gas/multispecies cases')
+      end if
+      if ((turbulence .ne. 0) .and. (turbulence .ne. 1)) then
+         call abort_ucns3d_configuration(n, 'turbulence activation flag must be 0 or 1')
+      end if
+      if ((icoupleturb .ne. 0) .and. (icoupleturb .ne. 1)) then
+         call abort_ucns3d_configuration(n, 'turbulence coupling flag must be 0 or 1')
+      end if
+      if (passivescalar .lt. 0) then
+         call abort_ucns3d_configuration(n, 'passive scalar count must be non-negative')
+      end if
+      if ((turbulence .eq. 1) .and. ((turbulencemodel .ne. 1) .and. (turbulencemodel .ne. 2))) then
+         call abort_ucns3d_configuration(n, 'turbulence model must be 1(SA) or 2(k-omega SST)')
+      end if
+      if ((iweno .ne. -1) .and. (iweno .ne. 0) .and. (iweno .ne. 1)) then
+         call abort_ucns3d_configuration(n, 'selected code profile/scheme produces an unsupported reconstruction selector')
+      end if
+      if ((iweno .eq. 1) .and. ((wenwrt .lt. 1) .or. (wenwrt .gt. 3))) then
+         call abort_ucns3d_configuration(n, 'WENO reconstruction variable must be 1(conserved), 2(characteristic), or 3(primitive)')
+      end if
+      if ((iweno .eq. -1) .and. ((wenwrt .ne. 1) .and. (wenwrt .ne. 3))) then
+         call abort_ucns3d_configuration(n, 'MUSCL reconstruction variable must be 1(conserved) or 3(primitive)')
+      end if
+      if ((iweno .eq. 1) .and. ((ees .lt. 0) .or. (ees .gt. 5))) then
+         call abort_ucns3d_configuration(n, 'WENO stencil option must be in the implemented range 0..5')
+      end if
+      if (((limiter .lt. 1) .or. (limiter .gt. 7)) .and. (limiter .ne. 11)) then
+         call abort_ucns3d_configuration(n, 'limiter option must be in the documented range 1..7 or 11(vector BJ)')
+      end if
+      if ((realgas .eq. 1) .and. (governingequations .gt. 2)) then
+         call abort_ucns3d_configuration(n, 'REALGAS.DAT is only compatible with Euler/Navier-Stokes equation sets')
+      end if
+      if (realgas .eq. 1) then
+         if (nof_species .ne. 5) then
+            call abort_ucns3d_configuration(n, 'REALGAS source model is hard-coded for five species ordered N2,O2,NO,N,O')
+         end if
+         if ((rg_relax .lt. 0) .or. (rg_relax .gt. 2)) then
+            call abort_ucns3d_configuration(n, 'REALGAS rg_relax must be 0(frozen), 1(diffusion), or 2(chemistry/source terms)')
+         end if
+         if (rg_relax .eq. 2) then
+            if ((rg_nof_reactions .ne. 5) .and. (rg_nof_reactions .ne. 6)) then
+               call abort_ucns3d_configuration(n, 'REALGAS source model supports only the implemented 5-species reaction sets')
+            end if
+            if ((rg_kf_type .ne. 1) .and. (rg_kf_type .ne. 2)) then
+               call abort_ucns3d_configuration(n, 'REALGAS reaction-rate type must be 1(Gupta) or 2(Candler/Park)')
+            end if
+         end if
+      end if
 
-	valid_scheme=(spatiladiscret.ge.1).and.(spatiladiscret.le.3)
-	valid_poly=(poly.eq.1).or.(poly.eq.2).or.(poly.eq.4)
-	valid_riemann=(iriemann.eq.1).or.(iriemann.eq.2).or.(iriemann.eq.3).or. &
-	& (iriemann.eq.4).or.(iriemann.eq.5).or.(iriemann.eq.9)
-
-	if ((dimensiona.ne.2).and.(dimensiona.ne.3))then
-	  call abort_ucns3d_configuration(n,'dimension must be 2 or 3')
-	end if
-	if ((governingequations.ne.-1).and.(governingequations.ne.1).and. &
-	& (governingequations.ne.2).and.(governingequations.ne.3).and. &
-	& (governingequations.ne.4))then
-	  call abort_ucns3d_configuration(n,'governing equations option is not implemented')
-	end if
-	if (.not.valid_scheme)then
-	  call abort_ucns3d_configuration(n,'spatial discretisation must be 1(linear), 2(MUSCL), or 3(WENO)')
-	end if
-	if ((spatialorder.lt.1).or.(spatialorder.gt.7))then
-	  call abort_ucns3d_configuration(n,'spatial order must be in the documented range 1..7')
-	end if
-	if (.not.valid_poly)then
-	  call abort_ucns3d_configuration(n,'polynomial option must be 1(generic), 2(Legendre), or 4(DG/modal)')
-	end if
-	if (.not.valid_riemann)then
-	  call abort_ucns3d_configuration(n,'Riemann solver must be 1(HLLC), 2(Rusanov), 3(Roe), 4(rotated Roe), 5(T-Roe), or 9(HLL)')
-	end if
-	if ((dimensiona.eq.2).and.(iriemann.eq.5))then
-	  call abort_ucns3d_configuration(n,'Riemann solver 5(T-Roe) is only implemented for 3D fluxes')
-	end if
-	if (((realgas.eq.1).or.(multispecies.eq.1)).and. &
-	& ((iriemann.eq.3).or.(iriemann.eq.4).or.(iriemann.eq.5)))then
-	  call abort_ucns3d_configuration(n,'Roe-family solvers 3/4/5 use five-equation ideal-gas work arrays; ' // &
-	  & 'use HLLC, Rusanov, or HLL with real-gas/multispecies cases')
-	end if
-	if ((turbulence.ne.0).and.(turbulence.ne.1))then
-	  call abort_ucns3d_configuration(n,'turbulence activation flag must be 0 or 1')
-	end if
-	if ((icoupleturb.ne.0).and.(icoupleturb.ne.1))then
-	  call abort_ucns3d_configuration(n,'turbulence coupling flag must be 0 or 1')
-	end if
-	if (passivescalar.lt.0)then
-	  call abort_ucns3d_configuration(n,'passive scalar count must be non-negative')
-	end if
-	if ((turbulence.eq.1).and.((turbulencemodel.ne.1).and.(turbulencemodel.ne.2)))then
-	  call abort_ucns3d_configuration(n,'turbulence model must be 1(SA) or 2(k-omega SST)')
-	end if
-	if ((iweno.ne.-1).and.(iweno.ne.0).and.(iweno.ne.1))then
-	  call abort_ucns3d_configuration(n,'selected code profile/scheme produces an unsupported reconstruction selector')
-	end if
-	if ((iweno.eq.1).and.((wenwrt.lt.1).or.(wenwrt.gt.3)))then
-	  call abort_ucns3d_configuration(n,'WENO reconstruction variable must be 1(conserved), 2(characteristic), or 3(primitive)')
-	end if
-	if ((iweno.eq.-1).and.((wenwrt.ne.1).and.(wenwrt.ne.3)))then
-	  call abort_ucns3d_configuration(n,'MUSCL reconstruction variable must be 1(conserved) or 3(primitive)')
-	end if
-	if ((iweno.eq.1).and.((ees.lt.0).or.(ees.gt.5)))then
-	  call abort_ucns3d_configuration(n,'WENO stencil option must be in the implemented range 0..5')
-	end if
-	if (((limiter.lt.1).or.(limiter.gt.7)).and.(limiter.ne.11))then
-	  call abort_ucns3d_configuration(n,'limiter option must be in the documented range 1..7 or 11(vector BJ)')
-	end if
-	if ((realgas.eq.1).and.(governingequations.gt.2))then
-	  call abort_ucns3d_configuration(n,'REALGAS.DAT is only compatible with Euler/Navier-Stokes equation sets')
-	end if
-	if (realgas.eq.1)then
-	  if (nof_species.ne.5)then
-	    call abort_ucns3d_configuration(n,'REALGAS source model is hard-coded for five species ordered N2,O2,NO,N,O')
-	  end if
-	  if ((rg_relax.lt.0).or.(rg_relax.gt.2))then
-	    call abort_ucns3d_configuration(n,'REALGAS rg_relax must be 0(frozen), 1(diffusion), or 2(chemistry/source terms)')
-	  end if
-	  if (rg_relax.eq.2)then
-	    if ((rg_nof_reactions.ne.5).and.(rg_nof_reactions.ne.6))then
-	      call abort_ucns3d_configuration(n,'REALGAS source model supports only the implemented 5-species reaction sets')
-	    end if
-	    if ((rg_kf_type.ne.1).and.(rg_kf_type.ne.2))then
-	      call abort_ucns3d_configuration(n,'REALGAS reaction-rate type must be 1(Gupta) or 2(Candler/Park)')
-	    end if
-	  end if
-	end if
-
-	if (dimensiona.gt.gpu_max_dim)then
-	  call abort_ucns3d_configuration(n,'runtime dimension exceeds compiled GPU_MAX_DIM')
-	end if
-	if (iorder.gt.gpu_max_iorder)then
-	  call abort_ucns3d_configuration(n,'runtime polynomial order exceeds compiled GPU_MAX_IORDER; rebuild after changing UCNS3D.DAT')
-	end if
-	if (nof_species.gt.gpu_max_species)then
-	  call abort_ucns3d_configuration(n,'runtime species count exceeds compiled GPU_MAX_SPECIES')
-	end if
-	if (turbulenceequations.gt.gpu_max_turbulence)then
-	  call abort_ucns3d_configuration(n,'runtime turbulence equation count exceeds compiled GPU_MAX_TURBULENCE')
-	end if
-	if (passivescalar.gt.gpu_max_passive)then
-	  call abort_ucns3d_configuration(n,'runtime passive scalar count exceeds compiled GPU_MAX_PASSIVE')
-	end if
-	if (typesten.gt.gpu_max_typesten)then
-	  call abort_ucns3d_configuration(n,'runtime stencil count exceeds compiled GPU_MAX_TYPESTEN')
-	end if
-	if (nof_variables.gt.gpu_max_nvar)then
-	  call abort_ucns3d_configuration(n,'runtime conservative variable count exceeds compiled GPU_MAX_NVAR')
-	end if
-	if ((nof_variables+turbulenceequations+passivescalar).gt.gpu_max_nvar_total)then
-	  call abort_ucns3d_configuration(n,'runtime total variable count exceeds compiled GPU_MAX_NVAR_TOTAL')
-	end if
+      if (dimensiona .gt. gpu_max_dim) then
+         call abort_ucns3d_configuration(n, 'runtime dimension exceeds compiled GPU_MAX_DIM')
+      end if
+      if (iorder .gt. gpu_max_iorder) then
+         call abort_ucns3d_configuration(n, &
+            & 'runtime polynomial order exceeds compiled GPU_MAX_IORDER; rebuild after changing UCNS3D.DAT')
+      end if
+      if (multispecies == 1 .and. itestcase == 4) then
+         if (.not. allocated(mp_janaf)) then
+            call abort_ucns3d_configuration(n, 'viscous multispecies requires MULTISPECIES_DIFF.DAT transport tables')
+         end if
+         if (nof_species > size(mp_brok_a)) then
+            call abort_ucns3d_configuration(n, 'species count exceeds the supplied multispecies viscosity table')
+         end if
+      end if
+      if (nof_species .gt. gpu_max_species) then
+         call abort_ucns3d_configuration(n, 'runtime species count exceeds compiled GPU_MAX_SPECIES')
+      end if
+      if (turbulenceequations .gt. gpu_max_turbulence) then
+         call abort_ucns3d_configuration(n, 'runtime turbulence equation count exceeds compiled GPU_MAX_TURBULENCE')
+      end if
+      if (passivescalar .gt. gpu_max_passive) then
+         call abort_ucns3d_configuration(n, 'runtime passive scalar count exceeds compiled GPU_MAX_PASSIVE')
+      end if
+      if (typesten .gt. gpu_max_typesten) then
+         call abort_ucns3d_configuration(n, 'runtime stencil count exceeds compiled GPU_MAX_TYPESTEN')
+      end if
+      if (nof_variables .gt. gpu_max_nvar) then
+         call abort_ucns3d_configuration(n, 'runtime conservative variable count exceeds compiled GPU_MAX_NVAR')
+      end if
+      if ((nof_variables + turbulenceequations + passivescalar) .gt. gpu_max_nvar_total) then
+         call abort_ucns3d_configuration(n, 'runtime total variable count exceeds compiled GPU_MAX_NVAR_TOTAL')
+      end if
 
 #ifdef xpu
-	xpu_recon_supported=(dg.eq.0).and.(poly.eq.1).and.(firstorder.eq.0).and. &
-	& ((iweno.eq.-1).or.(iweno.eq.0).or. &
-	& ((iweno.eq.1).and.(wenwrt.ne.2).and.(wenwrt.ne.3)))
-	if (.not.xpu_recon_supported)then
-	  call abort_ucns3d_configuration(n,'selected reconstruction is not supported by the XPU accelerated reconstruction path')
-	end if
+      if (turbulence == 1 .and. turbulencemodel == 2 .and. qsas_model == 1) then
+         call abort_ucns3d_configuration(n, 'SAS needs separate second-derivative storage; use standard SST in the XPU path')
+      end if
+      if (mood == 1 .and. rungekutta == 3) then
+         call abort_ucns3d_configuration(n, 'the optional MOOD update is outside the XPU time-marching implementation')
+      end if
+      if (relax == 3) then
+         call abort_ucns3d_configuration(n, 'matrix-free implicit relaxation is outside the XPU implementation')
+      end if
+      if (dg == 1 .and. fastest == 1) then
+         call abort_ucns3d_configuration(n, 'XPU DG requires fastest=0 for resident higher-order communication buffers')
+      end if
+      if (dg == 1 .and. (rungekutta < 1 .or. rungekutta > 5)) then
+         call abort_ucns3d_configuration(n, 'XPU DG supports explicit Runge-Kutta methods 1..5')
+      end if
+      xpu_recon_supported = ((dg == 0) .or. (dg == 1)) .and. (poly == 1) .and. (firstorder == 0) .and. &
+         & ((iweno .eq. -1) .or. (iweno .eq. 0) .or. &
+         & ((iweno .eq. 1) .and. ((wenwrt .eq. 1) .or. (wenwrt .eq. 3))))
+      if (.not. xpu_recon_supported) then
+         call abort_ucns3d_configuration(n, 'selected reconstruction is not supported by the XPU accelerated reconstruction path')
+      end if
 #else
-	xpu_recon_supported=.true.
+      xpu_recon_supported = .true.
 #endif
 
-	end subroutine validate_ucns3d_configuration
-
-
+   end subroutine validate_ucns3d_configuration
 
 end module parameters
