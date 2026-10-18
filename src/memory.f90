@@ -1,4 +1,6 @@
 module memory
+   use mesh_local_cells
+   use mesh_mpi_io, only: mesh_enabled, mesh_cells
    use mpiinfo
    use declaration
    implicit none
@@ -37,6 +39,7 @@ contains
       call mpi_barrier(mpi_comm_world, ierror)
       deallocate (xmpil)
       deallocate (xmpie)
+      call cells_release()
       call mpi_barrier(mpi_comm_world, ierror)
    end subroutine globaldea2
 
@@ -282,8 +285,11 @@ contains
       implicit none
       integer, allocatable, dimension(:), intent(inout) :: ieshape
       integer, intent(inout) :: imaxe
-      allocate (ieshape(imaxe))
-      allocate (nodes_offset(imaxe), nodes_offset2(imaxe))
+      if (mesh_enabled) then
+         allocate(ieshape(size(mesh_cells, 2)), nodes_offset(0), nodes_offset2(0))
+      else
+         allocate(ieshape(imaxe), nodes_offset(imaxe), nodes_offset2(imaxe))
+      end if
       ieshape = 0
       nodes_offset = 0
       nodes_offset2 = 0
@@ -530,8 +536,12 @@ contains
       integer, allocatable, dimension(:), intent(inout) :: xmpinrank
       integer, intent(inout) :: nproc, imaxe, imaxn
 
-      allocate (xmpie(imaxe))
-      allocate (xmpil(imaxe))
+      ! read_ucns3d uses -3 for nonperiodic input; only 1 denotes periodicity.
+      if (mesh_enabled .and. iperiodicity /= 1) then
+         allocate(xmpie(0), xmpil(0))
+      else
+         allocate(xmpie(imaxe), xmpil(imaxe))
+      end if
       allocate (xmpielrank(n:n))
 
       xmpie = 0
@@ -729,7 +739,7 @@ contains
             do k = 1, itarget
                if (ilocalstencil(n, i, j, k) > 0) then
                   ikg = ikg + 1
-                  if (xmpie(ilocalstencil(n, i, j, k)) /= n) then
+                  if (cell_owner(ilocalstencil(n, i, j, k)) /= n) then
                      itrue = 1
                   end if
                end if
@@ -892,7 +902,10 @@ contains
 
       if (averaging == 1) then
          if (.not. allocated(u_c_rms)) then
-            allocate (u_c_rms(kmaxe, nof_variables)); u_c_rms = zero
+            ! Three velocity variances + three covariances, followed by passive
+            ! statistics in the averaged checkpoint layout. These are not the
+            ! same count as the conservative flow variables (five for 3D gas).
+            allocate (u_c_rms(kmaxe, max(nof_variables, 6 + passivescalar))); u_c_rms = zero
          end if
       end if
 

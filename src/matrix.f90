@@ -85,74 +85,57 @@ contains
    end subroutine
 
    ! qr decomposition
-   subroutine qrdecomposition(lscqm, qff, rff, ideg)
+   subroutine qrdecomposition(lscqm, qff, rff, ideg, vqr)
       implicit none
-      integer :: mm_i
-      integer :: mm_j
-      integer :: mm_k
-      real :: mm_tmp(1:ideg, 1:ideg)
       integer, intent(in) :: ideg
-      real, allocatable, dimension(:, :), intent(in) :: lscqm
-      real, allocatable, dimension(:, :), intent(inout) :: qff, rff
-      real :: identity(ideg, ideg)
-      real :: test(ideg)
-      integer :: i, j, l, pdim
-      real, allocatable, dimension(:) :: xqr
-      real, allocatable, dimension(:, :) :: pqr
-      real, allocatable, dimension(:) :: vqr
-      real, allocatable, dimension(:) :: vqr1
+      real, allocatable, intent(in) :: lscqm(:, :)
+      real, allocatable, intent(inout) :: qff(:, :), rff(:, :)
+      real, intent(inout) :: vqr(:)
+      real :: xnorm, vnorm, projection
+      integer :: i, j, k, l
 
-      identity(1:ideg, 1:ideg) = 0.00
-      qff(1:ideg, 1:ideg) = 0.00
-      rff(1:ideg, 1:ideg) = 0.00
-      do i = 1, ideg
-         identity(i, i) = 1.00
-      end do
-
-      qff(1:ideg, 1:ideg) = identity(1:ideg, 1:ideg)
+      qff(1:ideg, 1:ideg) = 0.0
       rff(1:ideg, 1:ideg) = lscqm(1:ideg, 1:ideg)
-
-      allocate (pqr(1:ideg, 1:ideg), vqr(1:ideg)); pqr = 0.00; vqr = 0.00
-
-      do l = 1, ideg
-         ! allocate vector and reflection matrix
-         pdim = ideg - l + 1
-         allocate (vqr1(1:pdim), xqr(1:pdim))
-         xqr = rff(l:ideg, l)
-         ! compute the partial vector
-         call house(xqr, vqr1, pdim)
-         vqr(1:ideg) = 0.00
-         vqr(l:ideg) = vqr1
-
-         ! compute the reflection matrix
-         call computehousematrix(pqr, vqr, ideg)
-         ! construct the q(l) matrix
-
-         do mm_i = 1, ideg
-            do mm_j = 1, ideg
-               mm_tmp(mm_i, mm_j) = zero
-               do mm_k = 1, ideg
-                  mm_tmp(mm_i, mm_j) = mm_tmp(mm_i, mm_j) + pqr(mm_i, mm_k) * rff(mm_k, mm_j)
-               end do
-            end do
-         end do
-         rff(1:ideg, 1:ideg) = mm_tmp(1:ideg, 1:ideg)
-         do mm_i = 1, ideg
-            do mm_j = 1, ideg
-               mm_tmp(mm_i, mm_j) = zero
-               do mm_k = 1, ideg
-                  mm_tmp(mm_i, mm_j) = mm_tmp(mm_i, mm_j) + qff(mm_i, mm_k) * pqr(mm_k, mm_j)
-               end do
-            end do
-         end do
-         qff(1:ideg, 1:ideg) = mm_tmp(1:ideg, 1:ideg)
-
-         deallocate (vqr1, xqr)
+      do i = 1, ideg
+         qff(i, i) = 1.0
       end do
+      do l = 1, ideg
+         ! Same Householder sign and normalization as the original routine.
+         xnorm = 0.0
+         do k = l, ideg
+            vqr(k) = rff(k, l)
+            xnorm = xnorm + vqr(k)**2
+         end do
+         vqr(l) = vqr(l) + sign(1.0, vqr(l)) * sqrt(xnorm)
+         vnorm = 0.0
+         do k = l, ideg
+            vnorm = vnorm + vqr(k)**2
+         end do
+         vnorm = sqrt(vnorm)
+         vqr(l:ideg) = vqr(l:ideg) / vnorm
 
-      deallocate (pqr, vqr)
-
-   end subroutine
+         ! R <- (I - 2 v v^T) R: no dense reflection matrix or matrix product.
+         do j = 1, ideg
+            projection = 0.0
+            do k = l, ideg
+               projection = projection + vqr(k) * rff(k, j)
+            end do
+            do i = l, ideg
+               rff(i, j) = rff(i, j) - 2.0 * vqr(i) * projection
+            end do
+         end do
+         ! Q <- Q (I - 2 v v^T).
+         do i = 1, ideg
+            projection = 0.0
+            do k = l, ideg
+               projection = projection + qff(i, k) * vqr(k)
+            end do
+            do j = l, ideg
+               qff(i, j) = qff(i, j) - 2.0 * projection * vqr(j)
+            end do
+         end do
+      end do
+   end subroutine qrdecomposition
 
    subroutine qrdecomposition_dg(lscqm_dg, qff_dg, rff_dg, ideg)
       implicit none

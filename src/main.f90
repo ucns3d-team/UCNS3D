@@ -2,7 +2,7 @@ PROGRAM UCNS3D
 !> @author
 !> Panagiotis Tsoutsanis & Antonis Foivos Antoniadis
 !> copyright: Panagiotis Tsoutsanis & Antonis Foivos Antoniadis
-!> version: 4.1
+!> version: 3.9
 !DESCRIPTION
 !> @brief:
 !> Main Driver of UCNS3D code
@@ -259,6 +259,7 @@ PROGRAM UCNS3D
       call mpi_barrier(mpi_comm_world, ierror)
       cpux3(1) = mpi_wtime()
       call allocate5
+      if (mesh_distributed) call cells_stencils()
   !!$omp parallel default(shared)
       if (lowmem .eq. 0) call detstenx(n)
       if (lowmem .eq. 1) call detsten(n)
@@ -510,7 +511,9 @@ PROGRAM UCNS3D
    if (iperiodicity .eq. 1) then
       call read_input_period(n, xmpielrank, xmpinrank, xmpie, xmpin, dinode, imaxn, imaxe, imaxb, xmpinnumber, scaler)
    end if
+   if (mesh_enabled) call mesh_release_vertices()
    deallocate (dinoder2)
+   call local_nodes_release_adjacency()
 
    call mpi_barrier(mpi_comm_world, ierror)
 
@@ -593,6 +596,7 @@ PROGRAM UCNS3D
 
 !for ale this needs to be repeated
 !!$omp parallel default(shared)
+   if (mesh_enabled) call mesh_finish()
    call grads_assign(n)
    call find_angles(n)
 !!$omp end parallel

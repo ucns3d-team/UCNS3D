@@ -1,4 +1,7 @@
 module library
+   use mesh_local_cells
+   use mesh_local_nodes
+   use mesh_mpi_io
 !> @brief
 !> this module includes all the subroutines related to stencils and neighbours establishing
    use mpiinfo
@@ -120,6 +123,10 @@ contains
       integer :: i, j, k, l, m, itemr
       integer, intent(in) :: nproc, imaxe, imaxn
 
+      if (mesh_distributed) then
+         xmpielrank(n) = mesh_owned_count
+         return
+      end if
       k = 0
       do i = 1, imaxe
          if (xmpie(i) .eq. n) then
@@ -150,6 +157,9 @@ contains
       integer :: i, j, k, kmaxe, icpuid, kj, tempi, tempt
       real, dimension(1:dimensiona) :: cords
       real :: xv, yc, zc
+      if (mesh_distributed) then
+         return
+      end if
       if (n .eq. 0) then
          open (63, file='history.txt', form='formatted', action='write', position='append')
          write (63, *) "global number of elements", imaxe
@@ -432,6 +442,12 @@ contains
       real :: xv, yc, zc
       real, dimension(1:dimensiona) :: cords
 
+      if (mesh_distributed) then
+         call cells_geometry()
+         call cells_fetch(reshape(ielem_ineighg, [size(ielem_ineighg)]), .true.)
+         allocate(cand(0:isize - 1)); cand = 1
+         return
+      end if
       call mpi_barrier(mpi_comm_world, ierror)
 
       if (dimensiona .eq. 3) then
@@ -699,6 +715,9 @@ contains
       real, allocatable, dimension(:, :) :: centerts, centertr
       integer :: i, j, k, kmaxe, icpuid, kj, tempi, tempt
       real :: xv, yc, zc
+      if (mesh_distributed) then
+         return
+      end if
       kmaxe = xmpielrank(n)
       kj = 0
       do k = 1, kmaxe
@@ -744,6 +763,12 @@ contains
       integer :: ifst, imax_cpu, imax_cput, sumcentral, sumcentral_t, approx
       real :: xv, yc, zc
       real, dimension(1:dimensiona) :: cords
+      if (mesh_distributed) then
+         call cells_geometry()
+         call cells_fetch(reshape(ielem_ineighg, [size(ielem_ineighg)]), .true.)
+         allocate(cand(0:isize - 1)); cand = 1
+         return
+      end if
       kmaxe = xmpielrank(n)
       kj = 0
       do k = 1, kmaxe
@@ -1071,6 +1096,10 @@ contains
 !> @brief
 !> this subroutine deallocates the memory used for establishing the connectivity
       implicit none
+      if (mesh_distributed) then
+         if (allocated(cand)) deallocate(cand)
+         return
+      end if
       call mpi_barrier(mpi_comm_world, ierror)
       if ((typesten .gt. 1) .or. (icompact .ge. 1)) then
          if (lowmem .eq. 0) deallocate (xand2s, xand2r, xand2rt)
@@ -1111,6 +1140,7 @@ contains
 
       end if
 
+      if (.not. mesh_distributed) then
       do i = 1, kmaxe
          xmpil(ielem_ihexgl(i)) = i
       end do
@@ -1120,6 +1150,7 @@ contains
          xmpil(i) = xmpic(xmpie(i))
       end do
 
+      end if
       deallocate (xmpic)
 
       allocate (xmpiall(0:isize - 1), offset(0:isize - 1))
@@ -1224,6 +1255,14 @@ contains
       do i = 1, isize - 1
          woffset(i) = woffset(i - 1) + xmpiwall(i - 1)
       end do
+
+      ! MPI cannot bounds-check the receive buffer: reject an undersized wall map.
+      if (woffset(isize - 1) + xmpiwall(isize - 1) > totwalls) then
+         if (n == 0) write(*, *) 'Wall gather exceeds global wall count:', &
+            woffset(isize - 1) + xmpiwall(isize - 1), totwalls
+         call MPI_Abort(MPI_COMM_WORLD, 1, ierror)
+         error stop 'wall gather exceeds global wall count'
+      end if
 
       allocate (val(iloop))
       if (n .eq. 0) then
@@ -1374,6 +1413,18 @@ contains
       integer :: i1, i2, i3, i4, i5, i6, i7, i8, i, j, k, l, m, kk, info, fh, ll, mm, kn
       character(len=12) :: celfile, proc
       integer, intent(in) :: n
+      integer :: mesh_shape_counts(6)
+      if (mesh_enabled) then
+         call mesh_shapes(ieshape, mesh_shape_counts)
+         num_hexas = mesh_shape_counts(1); num_tetras = mesh_shape_counts(2)
+         num_pyramids = mesh_shape_counts(3); num_prisms = mesh_shape_counts(4)
+         if (n == 0) then
+            open(63, file='history.txt', form='formatted', action='write', position='append')
+            write(63, *) 'MPI mesh shape counts (hex,tet,pyramid,prism,quad,tri)', mesh_shape_counts
+            close(63)
+         end if
+         return
+      end if
       info = 1
       fh = 1
 
@@ -1539,6 +1590,14 @@ contains
       integer :: i, j, k, l, m, kk, kmaxe
       integer, intent(in) :: n
 
+      if (mesh_enabled) then
+         if (tecplot == 5) then
+            nodes_offset_local = mesh_cells(10, :)
+            nodes_offset_local2 = mesh_cells(11, :)
+         end if
+         deallocate(mesh_cells)
+         return
+      end if
       kmaxe = xmpielrank(n)
 
       if (tecplot .eq. 5) then
@@ -1809,6 +1868,9 @@ contains
 
 !
 
+      if (local_nodes_enabled) then
+         call local_nodes_adjacency(ielem_nodes, ielem_nonodes)
+      else
       do i = 1, kmaxe
          do j = 1, ielem_nonodes(i)
 
@@ -1841,6 +1903,8 @@ contains
 
 !
 
+      end if
+
       print_i = kmaxe / 5
       open (63, file='history.txt', form='formatted', action='write', position='append')
       if (n .eq. 0) then
@@ -1858,9 +1922,9 @@ contains
          m = 0
          do k = 1, numnod
             p = nodelist(k)
-            if (dinoder2(p)%numberofneib .gt. 0) then
-               do q = 1, dinoder2(p)%numberofneib
-                  j = dinoder2(p)%neibids(q)
+            if (node_degree(p) .gt. 0) then
+               do q = 1, node_degree(p)
+                  j = node_cell(p, q)
                   icn = 0
                   do ij = 1, m
                      if (j .eq. list(ij)) then
@@ -2064,19 +2128,19 @@ contains
             nodelist(1:4) = diconr(n)%whichi(ihax1, 3:6)
 
             p1 = nodelist(1)
-            do q1 = 1, dinoder2(p1)%xne(1)
-               j1 = dinoder2(p1)%xneib(q1)
+            do q1 = 1, node_remote_count(p1)
+               j1 = node_remote_cell(p1, q1)
                p2 = nodelist(2)
-               do q2 = 1, dinoder2(p2)%xne(1)
-                  j2 = dinoder2(p2)%xneib(q2)
+               do q2 = 1, node_remote_count(p2)
+                  j2 = node_remote_cell(p2, q2)
                   if ((j2 .eq. j1) .and. (j2 .ne. ielem_ihexgl(diconr(n)%whichi(ihax1, 1)))) then
                      p3 = nodelist(3)
-                     do q3 = 1, dinoder2(p3)%xne(1)
-                        j3 = dinoder2(p3)%xneib(q3)
+                     do q3 = 1, node_remote_count(p3)
+                        j3 = node_remote_cell(p3, q3)
                         if ((j3 .eq. j2) .and. (j3 .ne. ielem_ihexgl(diconr(n)%whichi(ihax1, 1)))) then
                            p4 = nodelist(4)
-                           do q4 = 1, dinoder2(p4)%xne(1)
-                              j4 = dinoder2(p4)%xneib(q4)
+                           do q4 = 1, node_remote_count(p4)
+                              j4 = node_remote_cell(p4, q4)
                               if ((j4 .eq. j3) .and. (j4 .ne. ielem_ihexgl(diconr(n)%whichi(ihax1, 1)))) then
                                  ielem_ineighg(diconr(n)%whichi(ihax1, 1), diconr(n)%whichi(ihax1, 2)) = j4
                                  go to 331
@@ -2092,15 +2156,15 @@ contains
             nodelist(1:3) = diconr(n)%whichi(ihax1, 3:5)
 
             p1 = nodelist(1)
-            do q1 = 1, dinoder2(p1)%xne(1)
-               j1 = dinoder2(p1)%xneib(q1)
+            do q1 = 1, node_remote_count(p1)
+               j1 = node_remote_cell(p1, q1)
                p2 = nodelist(2)
-               do q2 = 1, dinoder2(p2)%xne(1)
-                  j2 = dinoder2(p2)%xneib(q2)
+               do q2 = 1, node_remote_count(p2)
+                  j2 = node_remote_cell(p2, q2)
                   if ((j2 .eq. j1) .and. (j2 .ne. ielem_ihexgl(diconr(n)%whichi(ihax1, 1)))) then
                      p3 = nodelist(3)
-                     do q3 = 1, dinoder2(p3)%xne(1)
-                        j3 = dinoder2(p3)%xneib(q3)
+                     do q3 = 1, node_remote_count(p3)
+                        j3 = node_remote_cell(p3, q3)
                         if ((j3 .eq. j2) .and. (j3 .ne. ielem_ihexgl(diconr(n)%whichi(ihax1, 1)))) then
                            ielem_ineighg(diconr(n)%whichi(ihax1, 1), diconr(n)%whichi(ihax1, 2)) = j3
                            go to 331
@@ -2534,7 +2598,7 @@ contains
       do kj = 1, diconr(n)%howmanyi(1)
          do i = 1, isize - 1
             do k = 1, dICONs(i)%howmanythey(1)
-               if (dinoder(dICONs(i)%whichthey(k, 3))%itor .gt. 0) then
+               if (node_slot(dICONs(i)%whichthey(k, 3)) .gt. 0) then
 
                   if ((((diconr(n)%whichi(kj, 3)) .eq. (dICONs(i)%whichthey(k, 3))) .or. ((diconr(n)%whichi(kj, 3)) &
                      & .eq. (dICONs(i)%whichthey(k, 4)))) .and. (((diconr(n)%whichi(kj, 4)) .eq. (dICONs(i)%whichthey(k, &
@@ -2896,11 +2960,11 @@ contains
                ilocalallelgd(:, :) = zero
                do j = 2, iselemt(n) - ielem_ifca(k)
                   candid2 = ilocalallelg(n, k, 1, j)
-                  if (cand(xmpie(candid2)) .gt. 0) then
+                  if (cand(cell_owner(candid2)) .gt. 0) then
 
-                     x_ste = xand2r(cand(xmpie(candid2)), xmpil(candid2), 1)
-                     y_ste = xand2r(cand(xmpie(candid2)), xmpil(candid2), 2)
-                     z_ste = xand2r(cand(xmpie(candid2)), xmpil(candid2), 3)
+                     x_ste = cell_centre(candid2, 1)
+                     y_ste = cell_centre(candid2, 2)
+                     z_ste = cell_centre(candid2, 3)
                      if (iperiodicity .eq. 1) then !if three
 
                         if (abs(x_ste - ielem_xxc(k)) .gt. xper * oo2) then
@@ -3062,10 +3126,10 @@ contains
                do j = 2, iselemt(n) - ielem_ifca(k)
 
                   candid2 = ilocalallelg(n, k, 1, j)
-                  if (cand(xmpie(candid2)) .gt. 0) then
+                  if (cand(cell_owner(candid2)) .gt. 0) then
 
-                     x_ste = xand2r(cand(xmpie(candid2)), xmpil(candid2), 1)
-                     y_ste = xand2r(cand(xmpie(candid2)), xmpil(candid2), 2)
+                     x_ste = cell_centre(candid2, 1)
+                     y_ste = cell_centre(candid2, 2)
 
                      if (iperiodicity .eq. 1) then
 
@@ -3240,6 +3304,10 @@ contains
       implicit none
       integer :: i, k, jjj, kj, j, l, im, io, ir, kmaxe, icpuid, itrue, jloop, candid
       integer, dimension(1), intent(inout) :: stcon, stconc, stcons, stcong, isosa, iistart, ifsat, ix
+      if (mesh_distributed) then
+         isosa(1) = iselemt(n)
+         return
+      end if
       kmaxe = xmpielrank(n)
       if (dimensiona .eq. 3) then
          jloop = 6
@@ -3248,8 +3316,8 @@ contains
       end if
       icpuid = n
       iistart(1) = iistart(1) + 1
-      if (xmpie(stcong(1)) .eq. n) then !global array checking if element belongs to my cpu
-         l = xmpil(stcong(1)) !if yes then set l=to the number of this cpu
+      if (cell_owner(stcong(1)) .eq. n) then !global array checking if element belongs to my cpu
+         l = cell_index(stcong(1)) !if yes then set l=to the number of this cpu
          stconc(1) = l !use this stconc(n)=l for referencing after
 
          do j = 1, ielem_ifca(stconc(1)) !loop all the sides of this element
@@ -3267,11 +3335,11 @@ contains
          end do
       end if
 
-      if (xmpie(stcong(1)) .ne. n) then !if this element belongs to another cpu then
-         if (cand(xmpie(stcong(1))) .gt. 0) then
+      if (cell_owner(stcong(1)) .ne. n) then !if this element belongs to another cpu then
+         if (cand(cell_owner(stcong(1))) .gt. 0) then
             !loop all the sides of this particular element (i need to find the cpu that it belongs) therefore indexing to parent cpu
             do j = 1, jloop
-               candid = cand2r(cand(xmpie(stcong(1))), xmpil(stcong(1)), j)
+               candid = cell_neighbour(stcong(1), j)
 
                if (candid .gt. 0) then
 
@@ -3361,8 +3429,8 @@ contains
                ilocalallelgd(:, :) = zero
                do j = 2, iselemt(n) - ielem_ifca(k)
 
-                  x_ste = centerr(ilocalallelg(n, k, 1, j), 1); y_ste = centerr(ilocalallelg(n, k, 1, j), &
-                     & 2); z_ste = centerr(ilocalallelg(n, k, 1, j), 3)
+                  x_ste = cell_centre(ilocalallelg(n, k, 1, j), 1); y_ste = cell_centre(ilocalallelg(n, k, 1, j), &
+                     & 2); z_ste = cell_centre(ilocalallelg(n, k, 1, j), 3)
                   if (iperiodicity .eq. 1) then !if three
 
                      if (abs(x_ste - ielem_xxc(k)) .gt. xper * oo2) then
@@ -3518,7 +3586,7 @@ contains
 !
                ilocalallelgd(:, :) = zero
                do j = 2, iselemt(n) - ielem_ifca(k)
-                  x_ste = centerr(ilocalallelg(n, k, 1, j), 1); y_ste = centerr(ilocalallelg(n, k, 1, j), 2)
+                  x_ste = cell_centre(ilocalallelg(n, k, 1, j), 1); y_ste = cell_centre(ilocalallelg(n, k, 1, j), 2)
                   if (iperiodicity .eq. 1) then
 
                      if (abs(x_ste - ielem_xxc(k)) .gt. xper * oo2) then
@@ -3687,6 +3755,10 @@ contains
       implicit none
       integer :: i, k, jjj, kj, j, l, im, io, ir, kmaxe, icpuid, itrue, jloop, flag_per
       integer, dimension(1), intent(inout) :: stcon, stconc, stcons, stcong, isosa, iistart, ifsat, ix
+      if (mesh_distributed) then
+         isosa(1) = iselemt(n)
+         return
+      end if
       kmaxe = xmpielrank(n)
       if (dimensiona .eq. 3) then
          jloop = 6
@@ -3696,8 +3768,8 @@ contains
       icpuid = n
       flag_per = ilocalallelgper(n, stcon(1), 1, iistart(1))
       iistart(1) = iistart(1) + 1
-      if (xmpie(stcong(1)) .eq. n) then
-         l = xmpil(stcong(1))
+      if (cell_owner(stcong(1)) .eq. n) then
+         l = cell_index(stcong(1))
          stconc(1) = l
 
          do j = 1, ielem_ifca(stconc(1))
@@ -3762,18 +3834,18 @@ contains
 !
          end do
       end if
-      if (xmpie(stcong(1)) .ne. n) then
+      if (cell_owner(stcong(1)) .ne. n) then
 
          do j = 1, jloop
-            if (glneigh(stcong(1), j) .gt. 0) then
+            if (cell_neighbour(stcong(1), j) .gt. 0) then
 
-               ix(1) = glneigh(stcong(1), j)
+               ix(1) = cell_neighbour(stcong(1), j)
                call check(n, stcon, ix, ifsat)
 
                if (ifsat(1) .eq. 1) then
                   if (isosa(1) .le. iselemt(n) - 1) then
                      isosa(1) = isosa(1) + 1
-                     ilocalallelg(n, stcon(1), 1, isosa(1)) = glneigh(stcong(1), j)
+                     ilocalallelg(n, stcon(1), 1, isosa(1)) = cell_neighbour(stcong(1), j)
                      if (dimensiona .eq. 3) then
                         if (flag_per .eq. 0) then
                            if (glneighper(stcong(1), j) .eq. 1) then
@@ -4066,15 +4138,15 @@ contains
          zc = ielem_zzc(i)
          do j = 2, iselemt(n)
 
-            if (xmpie(ilocalallelg(n, i, 1, j)) .ne. n) then
-               xl = centerr((ilocalallelg(n, i, 1, j)), 1)
-               yl = centerr((ilocalallelg(n, i, 1, j)), 2)
-               zl = centerr((ilocalallelg(n, i, 1, j)), 3)
+            if (cell_owner(ilocalallelg(n, i, 1, j)) .ne. n) then
+               xl = cell_centre((ilocalallelg(n, i, 1, j)), 1)
+               yl = cell_centre((ilocalallelg(n, i, 1, j)), 2)
+               zl = cell_centre((ilocalallelg(n, i, 1, j)), 3)
             end if
-            if (xmpie(ilocalallelg(n, i, 1, j)) .eq. n) then
-               xl = ielem_xxc(xmpil((ilocalallelg(n, i, 1, j))))
-               yl = ielem_yyc(xmpil((ilocalallelg(n, i, 1, j))))
-               zl = ielem_zzc(xmpil((ilocalallelg(n, i, 1, j))))
+            if (cell_owner(ilocalallelg(n, i, 1, j)) .eq. n) then
+               xl = ielem_xxc(cell_index((ilocalallelg(n, i, 1, j))))
+               yl = ielem_yyc(cell_index((ilocalallelg(n, i, 1, j))))
+               zl = ielem_zzc(cell_index((ilocalallelg(n, i, 1, j))))
             end if
             rdistl(j) = sqrt(((xl - xc)**2.0) + ((yl - yc)**2.0) + ((zl - zc)**2.0))
 
@@ -4152,32 +4224,32 @@ contains
 
                         if (iaddx1 .eq. 1) then
 
-                           vext(2, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:3)
-                           vext(3, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 2))%cord(1:3)
-                           vext(4, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 3))%cord(1:3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 3)
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
 
                         else
-                           vext(2, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:3)
-                           vext(3, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 3))%cord(1:3)
-                           vext(4, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 4))%cord(1:3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 4), 1, 3)
                         end if
 
                      else
 
                         if (iaddx1 .eq. 1) then
-                           vext(2, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:3)
-                           vext(3, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 2))%cord(1:3)
-                           vext(4, 1:3) = (dinoder(ielem_nodes_faces(i, iaddx, 3))%cord(1:3) + dinoder(ielem_nodes_faces(i, &
-                              & iaddx, 2))%cord(1:3)) / 2.00
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 3)
+                           vext(4, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3) + &
+                              & node_coords(ielem_nodes_faces(i,   iaddx, 2), 1, 3)) / 2.00
 
 !                         vext(4,1:3)=(vext(2,1:3)+vext(4,1:3))/2.00
 
                         end if
                         if (iaddx1 .eq. 2) then
-                           vext(2, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:3)
-                           vext(3, 1:3) = (dinoder(ielem_nodes_faces(i, iaddx, 3))%cord(1:3) + dinoder(ielem_nodes_faces(i, &
-                              & iaddx, 2))%cord(1:3)) / 2.00
-                           vext(4, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 3))%cord(1:3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
+                           vext(3, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3) + &
+                              & node_coords(ielem_nodes_faces(i,   iaddx, 2), 1, 3)) / 2.00
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
 
 !                         vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.00
 
@@ -4204,9 +4276,9 @@ contains
                         do j = 2, iselemt(n) !for all stencil elements
                            if ((ilocalallelg(n, i, 1, j)) .gt. 0) then
                               isatisfied = 0
-                              if (xmpie(ilocalallelg(n, i, 1, j)) .eq. n) then
+                              if (cell_owner(ilocalallelg(n, i, 1, j)) .eq. n) then
                                  !do ifg=1,kmaxe
-                                 ifg = xmpil((ilocalallelg(n, i, 1, j)))
+                                 ifg = cell_index((ilocalallelg(n, i, 1, j)))
                                  iconsi = ifg
                                  vg(1) = ielem_xxc(iconsi); vg(2) = ielem_yyc(i); vg(3) = ielem_zzc(i)
                                  n_node = ifno
@@ -4224,13 +4296,13 @@ contains
                                  end if
 
                               end if
-                              if (xmpie(ilocalallelg(n, i, 1, j)) .ne. n) then
+                              if (cell_owner(ilocalallelg(n, i, 1, j)) .ne. n) then
                                  n_node = ifno
 
                                  candid2 = ilocalallelg(n, i, 1, j)
-                                 if (cand(xmpie(candid2)) .gt. 0) then
+                                 if (cand(cell_owner(candid2)) .gt. 0) then
 
-                                    vg(1:3) = xand2r(cand(xmpie(candid2)), xmpil(candid2), 1:3)
+                                    vg(1:3) = cell_centres(candid2, 1, 3)
 
                                     call check_condition(n, n_node, bc, vg, vext, is_periodic, isatisfied)
                                     if (isatisfied .eq. 1) then
@@ -4296,13 +4368,13 @@ contains
                      ifno = 2
 
                      if (iaddx1 .eq. 1) then
-                        vext(2, 1:2) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:2)
-                        vext(3, 1:2) = dinoder(ielem_nodes_faces(i, iaddx, 2))%cord(1:2)
+                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 2)
+                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 2)
                         vext(3, 1:2) = (vext(2, 1:2) + vext(3, 1:2)) * oo2
 
                      else
-                        vext(2, 1:2) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:2)
-                        vext(3, 1:2) = dinoder(ielem_nodes_faces(i, iaddx, 2))%cord(1:2)
+                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 2)
+                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 2)
                         vext(2, 1:2) = (vext(2, 1:2) + vext(3, 1:2)) * oo2
                      end if
 
@@ -4314,9 +4386,9 @@ contains
                         do j = 2, iselemt(n) !for all stencil elements
                            if ((ilocalallelg(n, i, 1, j)) .gt. 0) then
                               isatisfied = 0
-                              if (xmpie(ilocalallelg(n, i, 1, j)) .eq. n) then
+                              if (cell_owner(ilocalallelg(n, i, 1, j)) .eq. n) then
 
-                                 ifg = xmpil((ilocalallelg(n, i, 1, j)))
+                                 ifg = cell_index((ilocalallelg(n, i, 1, j)))
                                  iconsi = ifg
                                  vg(1) = ielem_xxc(iconsi); vg(2) = ielem_yyc(i)
                                  n_node = ifno
@@ -4334,12 +4406,12 @@ contains
                                  end if
 
                               end if
-                              if (xmpie(ilocalallelg(n, i, 1, j)) .ne. n) then
+                              if (cell_owner(ilocalallelg(n, i, 1, j)) .ne. n) then
                                  n_node = ifno
                                  candid2 = ilocalallelg(n, i, 1, j)
-                                 if (cand(xmpie(candid2)) .gt. 0) then
+                                 if (cand(cell_owner(candid2)) .gt. 0) then
 
-                                    vg(1:2) = xand2r(cand(xmpie(candid2)), xmpil(candid2), 1:2)
+                                    vg(1:2) = cell_centres(candid2, 1, 2)
 !           vg(n,3)=centerr((ilocalallelg(n,i,1,j)),3)
 
                                     call check_condition(n, n_node, bc, vg, vext, is_periodic, isatisfied)
@@ -4440,32 +4512,32 @@ contains
 
                         if (iaddx1 .eq. 1) then
 
-                           vext(2, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:3)
-                           vext(3, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 2))%cord(1:3)
-                           vext(4, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 3))%cord(1:3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 3)
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
 
                         else
-                           vext(2, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:3)
-                           vext(3, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 3))%cord(1:3)
-                           vext(4, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 4))%cord(1:3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 4), 1, 3)
                         end if
 
                      else
 
                         if (iaddx1 .eq. 1) then
-                           vext(2, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:3)
-                           vext(3, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 2))%cord(1:3)
-                           vext(4, 1:3) = (dinoder(ielem_nodes_faces(i, iaddx, 3))%cord(1:3) + dinoder(ielem_nodes_faces(i, &
-                              & iaddx, 2))%cord(1:3)) / 2.00
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 3)
+                           vext(4, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3) + &
+                              & node_coords(ielem_nodes_faces(i,   iaddx, 2), 1, 3)) / 2.00
 
 !                         vext(4,1:3)=(vext(2,1:3)+vext(4,1:3))/2.00
 
                         end if
                         if (iaddx1 .eq. 2) then
-                           vext(2, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:3)
-                           vext(3, 1:3) = (dinoder(ielem_nodes_faces(i, iaddx, 3))%cord(1:3) + dinoder(ielem_nodes_faces(i, &
-                              & iaddx, 2))%cord(1:3)) / 2.00
-                           vext(4, 1:3) = dinoder(ielem_nodes_faces(i, iaddx, 3))%cord(1:3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
+                           vext(3, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3) + &
+                              & node_coords(ielem_nodes_faces(i,   iaddx, 2), 1, 3)) / 2.00
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
 
 !                         vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.00
 
@@ -4506,9 +4578,9 @@ contains
                         do j = 2, iselemt(n) !for all stencil elements
                            if ((ilocalallelg(n, i, 1, j)) .gt. 0) then
                               isatisfied = 0
-                              if (xmpie(ilocalallelg(n, i, 1, j)) .eq. n) then
+                              if (cell_owner(ilocalallelg(n, i, 1, j)) .eq. n) then
                                  !do ifg=1,kmaxe
-                                 ifg = xmpil((ilocalallelg(n, i, 1, j)))
+                                 ifg = cell_index((ilocalallelg(n, i, 1, j)))
 
                                  call compute_centre3d(ifg, cords)
                                  vg(1) = cords(1); vg(2) = cords(2); vg(3) = cords(3)
@@ -4527,11 +4599,11 @@ contains
                                  end if
 
                               end if
-                              if (xmpie(ilocalallelg(n, i, 1, j)) .ne. n) then
+                              if (cell_owner(ilocalallelg(n, i, 1, j)) .ne. n) then
                                  n_node = ifno
-                                 vg(1) = centerr((ilocalallelg(n, i, 1, j)), 1)
-                                 vg(2) = centerr((ilocalallelg(n, i, 1, j)), 2)
-                                 vg(3) = centerr((ilocalallelg(n, i, 1, j)), 3)
+                                 vg(1) = cell_centre((ilocalallelg(n, i, 1, j)), 1)
+                                 vg(2) = cell_centre((ilocalallelg(n, i, 1, j)), 2)
+                                 vg(3) = cell_centre((ilocalallelg(n, i, 1, j)), 3)
 
                                  call check_condition(n, n_node, bc, vg, vext, is_periodic, isatisfied)
                                  if (isatisfied .eq. 1) then
@@ -4593,13 +4665,13 @@ contains
                      ifno = 2
 
                      if (iaddx1 .eq. 1) then
-                        vext(2, 1:2) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:2)
-                        vext(3, 1:2) = dinoder(ielem_nodes_faces(i, iaddx, 2))%cord(1:2)
+                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 2)
+                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 2)
                         vext(3, 1:2) = (vext(2, 1:2) + vext(3, 1:2)) * oo2
 
                      else
-                        vext(2, 1:2) = dinoder(ielem_nodes_faces(i, iaddx, 1))%cord(1:2)
-                        vext(3, 1:2) = dinoder(ielem_nodes_faces(i, iaddx, 2))%cord(1:2)
+                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 2)
+                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 2)
                         vext(2, 1:2) = (vext(2, 1:2) + vext(3, 1:2)) * oo2
                      end if
 
@@ -4611,9 +4683,9 @@ contains
                         do j = 2, iselemt(n) !for all stencil elements
                            if ((ilocalallelg(n, i, 1, j)) .gt. 0) then
                               isatisfied = 0
-                              if (xmpie(ilocalallelg(n, i, 1, j)) .eq. n) then
+                              if (cell_owner(ilocalallelg(n, i, 1, j)) .eq. n) then
 
-                                 ifg = xmpil((ilocalallelg(n, i, 1, j)))
+                                 ifg = cell_index((ilocalallelg(n, i, 1, j)))
 
                                  call compute_centre2d(ifg, cords)
                                  vg(1) = cords(1); vg(2) = cords(2)
@@ -4632,10 +4704,10 @@ contains
                                  end if
 
                               end if
-                              if (xmpie(ilocalallelg(n, i, 1, j)) .ne. n) then
+                              if (cell_owner(ilocalallelg(n, i, 1, j)) .ne. n) then
                                  n_node = ifno
-                                 vg(1) = centerr((ilocalallelg(n, i, 1, j)), 1)
-                                 vg(2) = centerr((ilocalallelg(n, i, 1, j)), 2)
+                                 vg(1) = cell_centre((ilocalallelg(n, i, 1, j)), 1)
+                                 vg(2) = cell_centre((ilocalallelg(n, i, 1, j)), 2)
 !           vg(n,3)=centerr((ilocalallelg(n,i,1,j)),3)
 
                                  call check_condition(n, n_node, bc, vg, vext, is_periodic, isatisfied)
@@ -4719,17 +4791,17 @@ contains
                   end if
 
                   if (ifno .eq. 3) then
-                     vext(2, 1:3) = dinoder(ielem_nodes_faces(i, il, 1))%cord(1:3)
-                     vext(3, 1:3) = dinoder(ielem_nodes_faces(i, il, 3))%cord(1:3)
-                     vext(4, 1:3) = dinoder(ielem_nodes_faces(i, il, 2))%cord(1:3)
+                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
+                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
+                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
                   else
-                     vext(2, 1:3) = dinoder(ielem_nodes_faces(i, il, 1))%cord(1:3)
-                     vext(3, 1:3) = dinoder(ielem_nodes_faces(i, il, 2))%cord(1:3)
-                     vext(4, 1:3) = dinoder(ielem_nodes_faces(i, il, 3))%cord(1:3)
-                     vext(5, 1:3) = dinoder(ielem_nodes_faces(i, il, 1))%cord(1:3)
-                     vext(6, 1:3) = dinoder(ielem_nodes_faces(i, il, 2))%cord(1:3)
-                     vext(7, 1:3) = dinoder(ielem_nodes_faces(i, il, 3))%cord(1:3)
-                     vext(8, 1:3) = dinoder(ielem_nodes_faces(i, il, 4))%cord(1:3)
+                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
+                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
+                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
+                     vext(5, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
+                     vext(6, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
+                     vext(7, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
+                     vext(8, 1:3) = node_coords(ielem_nodes_faces(i, il, 4), 1, 3)
                   end if
 
                   if ((ielem_ineighg(i, il) .gt. 0)) then
@@ -4743,9 +4815,9 @@ contains
                         if ((ilocalallelg(n, i, 1, j)) .gt. 0) then
 
                            isatisfied = 0
-                           if (xmpie(ilocalallelg(n, i, 1, j)) .eq. n) then
+                           if (cell_owner(ilocalallelg(n, i, 1, j)) .eq. n) then
 
-                              ifg = xmpil((ilocalallelg(n, i, 1, j)))
+                              ifg = cell_index((ilocalallelg(n, i, 1, j)))
                               iconsi = ifg
                               vg(1) = ielem_xxc(iconsi); vg(2) = ielem_yyc(iconsi); vg(3) = ielem_zzc(iconsi);
                               n_node = ifno
@@ -4763,12 +4835,12 @@ contains
                               end if
 
                            end if
-                           if (xmpie(ilocalallelg(n, i, 1, j)) .ne. n) then
+                           if (cell_owner(ilocalallelg(n, i, 1, j)) .ne. n) then
                               n_node = ifno
                               candid2 = ilocalallelg(n, i, 1, j)
-                              if (cand(xmpie(candid2)) .gt. 0) then
+                              if (cand(cell_owner(candid2)) .gt. 0) then
 
-                                 vg(1:3) = xand2r(cand(xmpie(candid2)), xmpil(candid2), 1:3)
+                                 vg(1:3) = cell_centres(candid2, 1, 3)
 
                                  call check_condition(n, n_node, bc, vg, vext, is_periodic, isatisfied)
                                  if (isatisfied .eq. 1) then
@@ -4830,8 +4902,8 @@ contains
                bc(1) = ielem_xxc(i); bc(2) = ielem_yyc(i);
                do il = 1, stnsha !for all stencils
                   ifno = 2
-                  vext(2, 1:2) = dinoder(ielem_nodes_faces(i, il, 1))%cord(1:2)
-                  vext(3, 1:2) = dinoder(ielem_nodes_faces(i, il, 2))%cord(1:2)
+                  vext(2, 1:2) = node_coords(ielem_nodes_faces(i, il, 1), 1, 2)
+                  vext(3, 1:2) = node_coords(ielem_nodes_faces(i, il, 2), 1, 2)
 
 !
 
@@ -4844,9 +4916,9 @@ contains
                      do j = 2, iselemt(n) !for all stencil elements
                         if ((ilocalallelg(n, i, 1, j)) .gt. 0) then
                            isatisfied = 0
-                           if (xmpie(ilocalallelg(n, i, 1, j)) .eq. n) then
+                           if (cell_owner(ilocalallelg(n, i, 1, j)) .eq. n) then
 
-                              ifg = xmpil((ilocalallelg(n, i, 1, j)))
+                              ifg = cell_index((ilocalallelg(n, i, 1, j)))
                               iconsi = ifg
                               vg(1) = ielem_xxc(iconsi); vg(2) = ielem_yyc(iconsi)
 
@@ -4865,12 +4937,12 @@ contains
                               end if
 
                            end if
-                           if (xmpie(ilocalallelg(n, i, 1, j)) .ne. n) then
+                           if (cell_owner(ilocalallelg(n, i, 1, j)) .ne. n) then
                               n_node = ifno
                               candid2 = ilocalallelg(n, i, 1, j)
-                              if (cand(xmpie(candid2)) .gt. 0) then
+                              if (cand(cell_owner(candid2)) .gt. 0) then
 
-                                 vg(1:2) = xand2r(cand(xmpie(candid2)), xmpil(candid2), 1:2)
+                                 vg(1:2) = cell_centres(candid2, 1, 2)
 
                                  call check_condition(n, n_node, bc, vg, vext, is_periodic, isatisfied)
                                  if (isatisfied .eq. 1) then
@@ -4961,17 +5033,17 @@ contains
                   end if
 
                   if (ifno .eq. 3) then
-                     vext(2, 1:3) = dinoder(ielem_nodes_faces(i, il, 1))%cord(1:3)
-                     vext(3, 1:3) = dinoder(ielem_nodes_faces(i, il, 3))%cord(1:3)
-                     vext(4, 1:3) = dinoder(ielem_nodes_faces(i, il, 2))%cord(1:3)
+                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
+                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
+                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
                   else
-                     vext(2, 1:3) = dinoder(ielem_nodes_faces(i, il, 1))%cord(1:3)
-                     vext(3, 1:3) = dinoder(ielem_nodes_faces(i, il, 2))%cord(1:3)
-                     vext(4, 1:3) = dinoder(ielem_nodes_faces(i, il, 3))%cord(1:3)
-                     vext(5, 1:3) = dinoder(ielem_nodes_faces(i, il, 1))%cord(1:3)
-                     vext(6, 1:3) = dinoder(ielem_nodes_faces(i, il, 2))%cord(1:3)
-                     vext(7, 1:3) = dinoder(ielem_nodes_faces(i, il, 3))%cord(1:3)
-                     vext(8, 1:3) = dinoder(ielem_nodes_faces(i, il, 4))%cord(1:3)
+                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
+                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
+                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
+                     vext(5, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
+                     vext(6, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
+                     vext(7, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
+                     vext(8, 1:3) = node_coords(ielem_nodes_faces(i, il, 4), 1, 3)
                   end if
 
                   if ((ielem_ineighg(i, il) .gt. 0)) then
@@ -4985,9 +5057,9 @@ contains
                         if ((ilocalallelg(n, i, 1, j)) .gt. 0) then
 
                            isatisfied = 0
-                           if (xmpie(ilocalallelg(n, i, 1, j)) .eq. n) then
+                           if (cell_owner(ilocalallelg(n, i, 1, j)) .eq. n) then
                               !do ifg=1,kmaxe
-                              ifg = xmpil((ilocalallelg(n, i, 1, j)))
+                              ifg = cell_index((ilocalallelg(n, i, 1, j)))
 
                               call compute_centre3d(ifg, cords)
                               vg(1) = cords(1); vg(2) = cords(2); vg(3) = cords(3)
@@ -5007,11 +5079,11 @@ contains
                               end if
 
                            end if
-                           if (xmpie(ilocalallelg(n, i, 1, j)) .ne. n) then
+                           if (cell_owner(ilocalallelg(n, i, 1, j)) .ne. n) then
                               n_node = ifno
-                              vg(1) = centerr((ilocalallelg(n, i, 1, j)), 1)
-                              vg(2) = centerr((ilocalallelg(n, i, 1, j)), 2)
-                              vg(3) = centerr((ilocalallelg(n, i, 1, j)), 3)
+                              vg(1) = cell_centre((ilocalallelg(n, i, 1, j)), 1)
+                              vg(2) = cell_centre((ilocalallelg(n, i, 1, j)), 2)
+                              vg(3) = cell_centre((ilocalallelg(n, i, 1, j)), 3)
                               is_periodic = ilocalallelgper(n, i, 1, j)
                               call check_condition(n, n_node, bc, vg, vext, is_periodic, isatisfied)
                               if (isatisfied .eq. 1) then
@@ -5074,8 +5146,8 @@ contains
                do il = 1, stnsha !for all stencils
                   ifno = 2
 
-                  vext(2, 1:2) = dinoder(ielem_nodes_faces(i, il, 1))%cord(1:2)
-                  vext(3, 1:2) = dinoder(ielem_nodes_faces(i, il, 2))%cord(1:2)
+                  vext(2, 1:2) = node_coords(ielem_nodes_faces(i, il, 1), 1, 2)
+                  vext(3, 1:2) = node_coords(ielem_nodes_faces(i, il, 2), 1, 2)
 
                   if ((ielem_ineighg(i, il) .gt. 0)) then
                      iwhichsten = il
@@ -5086,9 +5158,9 @@ contains
                      do j = 2, iselemt(n) !for all stencil elements
                         if ((ilocalallelg(n, i, 1, j)) .gt. 0) then
                            isatisfied = 0
-                           if (xmpie(ilocalallelg(n, i, 1, j)) .eq. n) then
+                           if (cell_owner(ilocalallelg(n, i, 1, j)) .eq. n) then
 
-                              ifg = xmpil((ilocalallelg(n, i, 1, j)))
+                              ifg = cell_index((ilocalallelg(n, i, 1, j)))
 
                               call compute_centre2d(ifg, cords)
                               vg(1) = cords(1); vg(2) = cords(2)
@@ -5107,10 +5179,10 @@ contains
                               end if
 
                            end if
-                           if (xmpie(ilocalallelg(n, i, 1, j)) .ne. n) then
+                           if (cell_owner(ilocalallelg(n, i, 1, j)) .ne. n) then
                               n_node = ifno
-                              vg(1) = centerr((ilocalallelg(n, i, 1, j)), 1)
-                              vg(2) = centerr((ilocalallelg(n, i, 1, j)), 2)
+                              vg(1) = cell_centre((ilocalallelg(n, i, 1, j)), 1)
+                              vg(2) = cell_centre((ilocalallelg(n, i, 1, j)), 2)
 !           vg(n,3)=centerr((ilocalallelg(n,i,1,j)),3)
 
                               call check_condition(n, n_node, bc, vg, vext, is_periodic, isatisfied)
@@ -5430,10 +5502,10 @@ contains
          do i = 1, kmaxe
             if (ielem_ishape(i) .eq. 6) then
                do ijd = 1, ielem_nonodes(i)
-                  write (97, *) dinoder(ielem_nodes(ijd, i))%cord(1)
+                  write (97, *) node_coord(ielem_nodes(ijd, i), 1)
                end do
                do ijd = 1, ielem_nonodes(i)
-                  write (97, *) dinoder(ielem_nodes(ijd, i))%cord(2)
+                  write (97, *) node_coord(ielem_nodes(ijd, i), 2)
                end do
 !               do ijd=1,ielem_nonodes(i)
 !                 write(97,*)dinoder(ielem_nodes(ijd,i))%cord(3)

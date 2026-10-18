@@ -1,4 +1,5 @@
 module dg_functions
+   use mesh_local_nodes
 
    use basis
    use declaration
@@ -2552,7 +2553,7 @@ contains
       eltype = ielem_ishape(i)
       elem_dec = ielem_vdec(i)
       do k = 1, ielem_nonodes(i)
-         nodes_list(k, 1:dims) = dinoder(ielem_nodes(k, i))%cord(1:dims)
+         nodes_list(k, 1:dims) = node_coords(ielem_nodes(k, i), 1, dims)
          vext(k, 1:dims) = nodes_list(k, 1:dims)
       end do
 
