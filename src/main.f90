@@ -35,7 +35,6 @@ PROGRAM UCNS3D
    use parameters
 
    implicit none
-   integer :: intxgt
 
    external metis_partmeshdual
    external parmetis_v3_partmeshkway

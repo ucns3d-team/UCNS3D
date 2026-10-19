@@ -772,7 +772,7 @@ contains
    end subroutine localise_stencil
 
    subroutine localise_stencil2d(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, remote_lookup)
+      & ilox_zzc, ilox_volume, ilon_nodcount, ilon_x, ilon_y, ilon_z, remote_lookup)
 !> @brief
 !> this subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2d
       implicit none
@@ -788,7 +788,6 @@ contains
       real, allocatable, dimension(:, :), intent(inout) :: ilox_yyc !cell centre coordinates in y
       real, allocatable, dimension(:, :), intent(inout) :: ilox_zzc !cell centre coordinates in z
       real, allocatable, dimension(:, :), intent(inout) :: ilox_volume !cell volume
-      integer, allocatable, dimension(:, :), intent(inout) :: ilox_periodicflag
       integer, allocatable, dimension(:, :, :), intent(inout) :: ilon_nodcount !number of nodes
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
@@ -1421,7 +1420,7 @@ contains
    end subroutine localise_sten2
 
    subroutine localise_sten2d(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+      & ilox_zzc, ilox_volume, ilon_nodcount, ilon_x, ilon_y, ilon_z)
 !> @brief
 !> this subroutine continues expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2d
       implicit none
@@ -1440,7 +1439,6 @@ contains
       real, allocatable, dimension(:, :), intent(inout) :: ilox_yyc !cell centre coordinates in y
       real, allocatable, dimension(:, :), intent(inout) :: ilox_zzc !cell centre coordinates in z
       real, allocatable, dimension(:, :), intent(inout) :: ilox_volume !cell volume
-      integer, allocatable, dimension(:, :), intent(inout) :: ilox_periodicflag
       integer, allocatable, dimension(:, :, :), intent(inout) :: ilon_nodcount !number of nodes
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
