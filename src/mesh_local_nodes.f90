@@ -98,16 +98,16 @@ contains
       end if
    end function
 
-   function node_coords(id, first, last) result(values)
-      integer, intent(in) :: id, first, last
-      real :: values(last - first + 1)
+   function node_coords(id) result(values)
+      integer, intent(in) :: id
+      real :: values(dimensiona)
       integer :: slot
       if (local_nodes_enabled) then
          slot = node_slot(id)
          if (slot == 0) call mesh_fail('coordinates requested for an absent local vertex')
-         values = node_xyz(first:last, slot)
+         values = node_xyz(1:dimensiona, slot)
       else
-         values = dinoder(id)%cord(first:last)
+         values = dinoder(id)%cord(1:dimensiona)
       end if
    end function
 

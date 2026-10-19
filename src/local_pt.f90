@@ -60,32 +60,20 @@ contains
    subroutine find_stencil_remote(gid, owner, group, row, table)
       integer, intent(in) :: gid, owner
       integer, intent(out) :: group, row
-      type(stencil_remote_lookup), intent(in), optional :: table
-      integer :: slot, first, g, r
+      type(stencil_remote_lookup), intent(in) :: table
+      integer :: slot, first
       group = 0; row = 0
-      if (present(table)) then
-         slot = stencil_remote_hash(gid, owner, size(table%ids))
-         first = slot
-         do while (table%ids(slot) /= 0)
-            if (table%ids(slot) == gid .and. table%owners(slot) == owner) then
-               group = table%groups(slot); row = table%rows(slot)
-               return
-            end if
-            slot = mod(slot, size(table%ids)) + 1
-            if (slot == first) exit
-         end do
-      else
-         ! Retain direct-call compatibility outside the prestore driver.
-         do g = 1, direcexr(1)%tot
-            if (diexcordr(g)%procid /= owner) cycle
-            do r = 1, direcexr(g)%muchineed(1)
-               if (direcexr1(g)%whatineed(r) /= gid) cycle
-               group = g; row = r
-               exit
-            end do
-         end do
-      end if
-      if (group == 0) error stop 'remote stencil cell missing from coordinate receive list'
+      slot = stencil_remote_hash(gid, owner, size(table%ids))
+      first = slot
+      do while (table%ids(slot) /= 0)
+         if (table%ids(slot) == gid .and. table%owners(slot) == owner) then
+            group = table%groups(slot); row = table%rows(slot)
+            return
+         end if
+         slot = mod(slot, size(table%ids)) + 1
+         if (slot == first) exit
+      end do
+      error stop 'remote stencil cell missing from coordinate receive list'
    end subroutine find_stencil_remote
 
    subroutine release_stencil_remote_lookup(table)
@@ -243,7 +231,7 @@ contains
 !
                do j = 1, ielem_nonodes(direcexs(i)%localref(k))
 !
-                  diexcords(i)%nodecord(k, j, 1:dims) = node_coords(ielem_nodes(j, direcexs(i)%localref(k)), 1, dims)
+                  diexcords(i)%nodecord(k, j, 1:dims) = node_coords(ielem_nodes(j, direcexs(i)%localref(k)))
 !
                end do
             end do
@@ -645,7 +633,7 @@ contains
 !> @brief
 !> this subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell
       implicit none
-      type(stencil_remote_lookup), intent(in), optional :: remote_lookup
+      type(stencil_remote_lookup), intent(in) :: remote_lookup
       integer, intent(in) :: n, iconsi
       integer :: i, j, l, ixff, ixsst, ikg, ismp, inv, ineedt, ikg2, in_sten, k, itarget
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
@@ -772,11 +760,11 @@ contains
    end subroutine localise_stencil
 
    subroutine localise_stencil2d(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-      & ilox_zzc, ilox_volume, ilon_nodcount, ilon_x, ilon_y, ilon_z, remote_lookup)
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, remote_lookup)
 !> @brief
 !> this subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2d
       implicit none
-      type(stencil_remote_lookup), intent(in), optional :: remote_lookup
+      type(stencil_remote_lookup), intent(in) :: remote_lookup
       integer, intent(in) :: n, iconsi
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexl !local index of cells
@@ -788,6 +776,7 @@ contains
       real, allocatable, dimension(:, :), intent(inout) :: ilox_yyc !cell centre coordinates in y
       real, allocatable, dimension(:, :), intent(inout) :: ilox_zzc !cell centre coordinates in z
       real, allocatable, dimension(:, :), intent(inout) :: ilox_volume !cell volume
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_periodicflag
       integer, allocatable, dimension(:, :, :), intent(inout) :: ilon_nodcount !number of nodes
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
@@ -1420,7 +1409,7 @@ contains
    end subroutine localise_sten2
 
    subroutine localise_sten2d(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-      & ilox_zzc, ilox_volume, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
 !> @brief
 !> this subroutine continues expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2d
       implicit none
@@ -1439,6 +1428,7 @@ contains
       real, allocatable, dimension(:, :), intent(inout) :: ilox_yyc !cell centre coordinates in y
       real, allocatable, dimension(:, :), intent(inout) :: ilox_zzc !cell centre coordinates in z
       real, allocatable, dimension(:, :), intent(inout) :: ilox_volume !cell volume
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_periodicflag
       integer, allocatable, dimension(:, :, :), intent(inout) :: ilon_nodcount !number of nodes
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
@@ -2496,7 +2486,7 @@ contains
                if (ielem_ineighb(i, l) .ne. n) then
 
                   do k = 1, nnd
-                     nodes_list(k, 1:dims) = node_coords(ielem_nodes_faces(iconsi, l, k), 1, dims)
+                     nodes_list(k, 1:dims) = node_coords(ielem_nodes_faces(iconsi, l, k))
                   end do
 
                   do k = 1, nnd

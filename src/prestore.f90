@@ -138,7 +138,8 @@ contains
             call checkgrads(n, i)
             call find_rot_angles(n, i)
 
-            call prestore_reconstruction3(n, i, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilon_x, ilon_y, ilon_z, ws)
+            call prestore_reconstruction3(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws)
 
             if ((dg .eq. 1) .or. (adda_type .eq. 2)) then
 
@@ -153,13 +154,15 @@ contains
          !$omp do schedule(static)
          do i = 1, kmaxe
             call localise_stencil2d(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-               & ilox_zzc, ilox_volume, ilon_nodcount, ilon_x, ilon_y, ilon_z, remote_lookup)
+               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, remote_lookup)
             call localise_sten2d(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
-               & ilox_volume, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+               & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
             call checkgrads2d(n, i)
             call find_rot_angles2d(n, i)
-            call prestore_reconstruction2(n, i, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilon_x, ilon_y, ilon_z, ws)
+            call prestore_reconstruction2(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws)
             if ((dg .eq. 1) .or. (adda_type .eq. 2)) then
+
                call prestore_dg1(i)
 
             end if
@@ -181,7 +184,8 @@ contains
 
    end subroutine prestore_1
 
-   subroutine prestore_reconstruction3(n, iconsi, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilon_x, ilon_y, ilon_z, ws)
+   subroutine prestore_reconstruction3(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws)
 !> @brief
 !> this subroutine prestores the pseudoinverse reconstruction least square matrices
       implicit none
@@ -202,11 +206,18 @@ contains
       real, dimension(1:8, 1:dimensiona) :: vext
       real, dimension(1:dims, 1:dims) :: ainvjt
       real, dimension(1:dimensiona) :: cords
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexl !local index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexb !cpu that that each cell belongs to
+      !internal index from where to take the values from communicated messages
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexn
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ishape !shape of each element
       real, allocatable, dimension(:, :), intent(inout) :: ilox_xxc !cell centre coordinates in x
       real, allocatable, dimension(:, :), intent(inout) :: ilox_yyc !cell centre coordinates in y
       real, allocatable, dimension(:, :), intent(inout) :: ilox_zzc !cell centre coordinates in z
       real, allocatable, dimension(:, :), intent(inout) :: ilox_volume !cell volume
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_periodicflag
+      integer, allocatable, dimension(:, :, :), intent(inout) :: ilon_nodcount !number of nodes
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
@@ -232,27 +243,35 @@ contains
          & ielem_ishape(i)
       icompwrt = 0
 
-      ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilon_x, ilon_y, ilon_z)
+      ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, ilox_ihexl, &
+         & ilox_ihexb, ilox_ihexn, &
+         & ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
 
       ! store integration-basis vector intbs into all entries 1:number_of_dog for element i
+
       integ_basis_value(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
       !the indicator matrix for the smaller polynomial
       if (iweno .eq. 1) then
-         call indicatormatrix(n, i, ilon_x, ilon_y, ilon_z, ws%weff)
+         call indicatormatrix(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
+            & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weff)
       end if
 
       !the indicator matrix for the lower order polynomial
       if (ees .eq. 5) then
          ws%intbs = zero; jxx = 1; ixx = i; lxx1 = 1; number_of_dog = idegfree2; kxx = iorder2; eltype = ielem_ishape(i)
          icompwrt = 1
-         ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilon_x, ilon_y, ilon_z)
+         ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, &
+         & ilox_ihexl, ilox_ihexb, &
+            & ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, &
+            & ilon_y, ilon_z)
          ! store lower-order integration-basis vector
 
          integ_basis_valuec(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
          if (iweno .eq. 1) then
-            call indicatormatrix2(n, i, ilon_x, ilon_y, ilon_z, ws%weffc)
+            call indicatormatrix2(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
+               & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weffc)
             icompwrt = 0
          end if
       end if
@@ -363,39 +382,61 @@ contains
                         icompwrt = 0
 
                         if (itestcase .eq. 4) then
-                           rec_stencils(rec_wall(i), ll, k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                           rec_stencils(rec_wall(i), ll, k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, &
+                              & number_of_dog, icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, &
+                              & ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                            rec_weightl(rec_wall(i), ll, k) = ws%wlsqr(k)
                            ws%stencils(k, 1:ideg) = rec_stencils(rec_wall(i), ll, k, 1:ideg)
                         else
-                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                              & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+                              & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+
                         end if
+
                      else
                         icompwrt = 1
                         if (itestcase .eq. 4) then
-                           ! rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
-                           ! rec_weightl(ll,k,rec_wall(i))=wlsqr(k)
-                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+!                                                                                 rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+!                                                                                 rec_weightl(ll,k,rec_wall(i))=wlsqr(k)
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                              & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+                              & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                         else
-                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                              & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+                              & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                         end if
+
                      end if
                   else
                      if ((ees .ne. 5) .or. (ll .eq. 1)) then
                         icompwrt = 0
-                        ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                        ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                           & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
+                           & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                      else
                         icompwrt = 1
-                        ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                        ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                           & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
+                           & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+
                      end if
                   end if
                else
                   if ((ees .ne. 5) .or. (ll .eq. 1)) then
                      icompwrt = 0
-                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
+                        & ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, &
+                        & ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                   else
                      icompwrt = 1
-                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
+                        & ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, &
+                        & ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+
                   end if
+
                end if
 
             end if
@@ -724,7 +765,8 @@ contains
 
    end subroutine prestore_reconstruction3
 
-   subroutine prestore_reconstruction2(n, iconsi, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilon_x, ilon_y, ilon_z, ws)
+   subroutine prestore_reconstruction2(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws)
 !> @brief
 !> this subroutine prestores the pseudoinverse reconstruction least square matrices in 2d
       implicit none
@@ -745,11 +787,18 @@ contains
       real, dimension(1:8, 1:dimensiona) :: vext
       real, dimension(1:dims, 1:dims) :: ainvjt
       real, dimension(1:dimensiona) :: cords
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexl !local index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexb !cpu that that each cell belongs to
+      !internal index from where to take the values from communicated messages
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexn
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ishape !shape of each element
       real, allocatable, dimension(:, :), intent(inout) :: ilox_xxc !cell centre coordinates in x
       real, allocatable, dimension(:, :), intent(inout) :: ilox_yyc !cell centre coordinates in y
       real, allocatable, dimension(:, :), intent(inout) :: ilox_zzc !cell centre coordinates in z
       real, allocatable, dimension(:, :), intent(inout) :: ilox_volume !cell volume
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_periodicflag
+      integer, allocatable, dimension(:, :, :), intent(inout) :: ilon_nodcount !number of nodes
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
@@ -767,17 +816,21 @@ contains
          end do
       end if
 
-      ws%intbs = zero; jxx = 1; ixx = i; lxx1 = 1; number_of_dog = ielem_idegfree(i); kxx = ielem_iorder(i); eltype = ielem_ishape(i)
+      ws%intbs = zero; jxx = 1; ixx = i; lxx1 = 1; number_of_dog = ielem_idegfree(i); kxx = ielem_iorder(i); eltype = &
+         & ielem_ishape(i)
       icompwrt = 0
 
-      ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilon_x, ilon_y, ilon_z)
+      ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, ilox_ihexl, &
+         & ilox_ihexb, ilox_ihexn, &
+         & ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
       ! store integration-basis vector intbs into all entries 1:number_of_dog for element i
 
       integ_basis_value(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
       !the indicator matrix for the large polynomial
       if (iweno .eq. 1) then
-         call indicatormatrix(n, i, ilon_x, ilon_y, ilon_z, ws%weff)
+         call indicatormatrix(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
+            & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weff)
       end if
 
       if (ees .eq. 5) then
@@ -785,13 +838,17 @@ contains
          number_of_dog = idegfree2; kxx = iorder2; eltype = ielem_ishape(i);
          icompwrt = 1
 
-         ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilon_x, ilon_y, ilon_z)
+         ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, &
+         & ilox_ihexl, ilox_ihexb, &
+            & ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, &
+            & ilon_y, ilon_z)
 
          integ_basis_valuec(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
          !the indicator matrix for the smaller polynomial
          if (iweno .eq. 1) then
-            call indicatormatrix2(n, i, ilon_x, ilon_y, ilon_z, ws%weffc)
+            call indicatormatrix2(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
+               & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weffc)
             icompwrt = 0
          end if
 
@@ -874,18 +931,30 @@ contains
                      if ((ees .ne. 5) .or. (ll .eq. 1)) then
                         icompwrt = 0
                         if (itestcase .eq. 4) then
-                           rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i)) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                           rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i)) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, &
+                              & kxx, lxx1, number_of_dog, icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, &
+                              & ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                            rec_weightl(rec_wall(i), ll, k) = ws%wlsqr(k)
                            ws%stencils(k, 1:ideg) = rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i))
                         else
-                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                              & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+                              & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+
                         end if
+
                      else
                         icompwrt = 1
                         if (itestcase .eq. 4) then
-                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+!                                                                                         rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+!                                                                                         rec_weightl(ll,k,rec_wall(i))=wlsqr(k)
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                              & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+                              & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                         else
-                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                              & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+                              & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                         end if
 
                         icompwrt = 0
@@ -896,16 +965,21 @@ contains
                      else
                         icompwrt = 1
                      end if
-                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
+                        & ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, &
+                        & ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                      icompwrt = 0
                   end if
+
                else
                   if ((ees .ne. 5) .or. (ll .eq. 1)) then
                      icompwrt = 0
                   else
                      icompwrt = 1
                   end if
-                  ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+                  ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
+                     & ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, &
+                     & ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                   icompwrt = 0
                end if
             end if !fastest
@@ -1248,22 +1322,34 @@ contains
 
    end subroutine prestore_reconstruction2
 
-   subroutine indicatormatrix(n, iconsi, ilon_x, ilon_y, ilon_z, weff)
+   subroutine indicatormatrix(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, weff)
 !> @brief
 !> this subroutine computes the indicator matrices for weno reconstructions
       implicit none
       integer, intent(in) :: n, iconsi
-      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
-      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
-      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
-      real, allocatable, dimension(:, :), intent(inout) :: weff
-      integer :: i, k, jx, jx2, imax, inum, ideg, inumo, eltype, elem_dec, inump, iconsidered
+      integer :: i, j, k, l, m, jx, jx2, imax, inum, ideg, inumo, eltype, elem_dec, inump, iconsidered
       real :: voltemp
       real, dimension(1:8, 1:dimensiona) :: vext, nodes_list
       real, dimension(1:6, 1:4, 1:dimensiona) :: elem_listd
       real, dimension(1:dimensiona, 1:numberofpoints) :: qpoints
       real, dimension(1:numberofpoints) :: wequa3d
-      
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexl !local index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexb !cpu that that each cell belongs to
+      !internal index from where to take the values from communicated messages
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexn
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ishape !shape of each element
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_xxc !cell centre coordinates in x
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_yyc !cell centre coordinates in y
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_zzc !cell centre coordinates in z
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_volume !cell volume
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_periodicflag
+      integer, allocatable, dimension(:, :, :), intent(inout) :: ilon_nodcount !number of nodes
+      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
+      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
+      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
+      real, allocatable, dimension(:, :), intent(inout) :: weff
       i = iconsi
 
       weff = zero
@@ -1370,22 +1456,34 @@ contains
 
    end subroutine indicatormatrix
 
-   subroutine indicatormatrix2(n, iconsi, ilon_x, ilon_y, ilon_z, weff)
+   subroutine indicatormatrix2(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, weff)
 !> @brief
 !> this subroutine computes the indicator matrices for cweno reconstructions of the lower-order polynomials
       implicit none
       integer, intent(in) :: n, iconsi
-      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
-      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
-      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
-      real, allocatable, dimension(:, :), intent(inout) :: weff
-      integer :: i, k, jx, jx2, imax, inum, ideg, inumo, eltype, elem_dec, inump, iconsidered
+      integer :: i, j, k, l, m, jx, jx2, imax, inum, ideg, inumo, eltype, elem_dec, inump, iconsidered
       real :: voltemp
       real, dimension(1:8, 1:dimensiona) :: vext, nodes_list
       real, dimension(1:6, 1:4, 1:dimensiona) :: elem_listd
       real, dimension(1:dimensiona, 1:numberofpoints) :: qpoints
       real, dimension(1:numberofpoints) :: wequa3d
-
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexl !local index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexb !cpu that that each cell belongs to
+      !internal index from where to take the values from communicated messages
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexn
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ishape !shape of each element
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_xxc !cell centre coordinates in x
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_yyc !cell centre coordinates in y
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_zzc !cell centre coordinates in z
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_volume !cell volume
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_periodicflag
+      integer, allocatable, dimension(:, :, :), intent(inout) :: ilon_nodcount !number of nodes
+      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
+      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
+      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
+      real, allocatable, dimension(:, :), intent(inout) :: weff
       i = iconsi
 
       imax = numneighbours2 - 1
@@ -3917,37 +4015,66 @@ contains
 
    end subroutine tl2dh6
 
-   function calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilon_x, ilon_y, ilon_z)
+   function calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, &
+      & ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
 !> @brief
 !> this subroutine computes basis functions for each element
       implicit none
-      integer, intent(in) :: n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype
+      integer, intent(in) :: n, number_of_dog, icompwrt, eltype
+      integer, intent(in) :: ixx, jxx, kxx, lxx1
+      integer :: k
+      real, dimension(1:number_of_dog) :: calintbasis
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexl !local index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexb !cpu that that each cell belongs to
+      !internal index from where to take the values from communicated messages
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexn
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ishape !shape of each element
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_xxc !cell centre coordinates in x
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_yyc !cell centre coordinates in y
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_zzc !cell centre coordinates in z
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_volume !cell volume
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_periodicflag
+      integer, allocatable, dimension(:, :, :), intent(inout) :: ilon_nodcount !number of nodes
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
-      integer :: k
-      real, dimension(1:number_of_dog) :: calintbasis
-      
-      ! kxx=ielem_iorder(ixx)
-      calintbasis(:) = zero
 
-      calintbasis(1:number_of_dog) = compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+!         kxx=ielem_iorder(ixx)
+      calintbasis = zero
+
+      calintbasis(1:number_of_dog) = compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilox_ihexg, ilox_ihexl, &
+         & ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, &
+         & ilon_x, ilon_y, ilon_z)
 
    end function
 
-   function compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilon_x, ilon_y, ilon_z)
+   function compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, &
+      & ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
 !> @brief
 !> this subroutine computes basis functions for each element
       implicit none
-      integer, intent(in) :: n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt
-      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
-      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
-      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
+      integer, intent(in) :: n, lxx1, jxx, ixx, icompwrt, kxx
+      integer, intent(in) :: eltype, number_of_dog
       integer :: jx, k, elem_dec
       real, dimension(1:number_of_dog) :: compbasel, s1
       real, dimension(1:8, 1:dimensiona) :: vext, nodes_list
       real, dimension(1:6, 1:4, 1:dimensiona) :: elem_listd
-
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexl !local index of cells
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexb !cpu that that each cell belongs to
+      !internal index from where to take the values from communicated messages
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexn
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_ishape !shape of each element
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_xxc !cell centre coordinates in x
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_yyc !cell centre coordinates in y
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_zzc !cell centre coordinates in z
+      real, allocatable, dimension(:, :), intent(inout) :: ilox_volume !cell volume
+      integer, allocatable, dimension(:, :), intent(inout) :: ilox_periodicflag
+      integer, allocatable, dimension(:, :, :), intent(inout) :: ilon_nodcount !number of nodes
+      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
+      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
+      real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
       s1 = zero
 
       select case (eltype)

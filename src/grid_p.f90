@@ -4224,32 +4224,32 @@ contains
 
                         if (iaddx1 .eq. 1) then
 
-                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
-                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 3)
-                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2))
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3))
 
                         else
-                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
-                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
-                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 4), 1, 3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3))
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 4))
                         end if
 
                      else
 
                         if (iaddx1 .eq. 1) then
-                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
-                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 3)
-                           vext(4, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3) + &
-                              & node_coords(ielem_nodes_faces(i,   iaddx, 2), 1, 3)) / 2.00
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2))
+                           vext(4, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3)) + &
+                              & node_coords(ielem_nodes_faces(i,   iaddx, 2))) / 2.00
 
 !                         vext(4,1:3)=(vext(2,1:3)+vext(4,1:3))/2.00
 
                         end if
                         if (iaddx1 .eq. 2) then
-                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
-                           vext(3, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3) + &
-                              & node_coords(ielem_nodes_faces(i,   iaddx, 2), 1, 3)) / 2.00
-                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                           vext(3, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3)) + &
+                              & node_coords(ielem_nodes_faces(i,   iaddx, 2))) / 2.00
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3))
 
 !                         vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.00
 
@@ -4368,13 +4368,13 @@ contains
                      ifno = 2
 
                      if (iaddx1 .eq. 1) then
-                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 2)
-                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 2)
+                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2))
                         vext(3, 1:2) = (vext(2, 1:2) + vext(3, 1:2)) * oo2
 
                      else
-                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 2)
-                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 2)
+                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2))
                         vext(2, 1:2) = (vext(2, 1:2) + vext(3, 1:2)) * oo2
                      end if
 
@@ -4512,32 +4512,32 @@ contains
 
                         if (iaddx1 .eq. 1) then
 
-                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
-                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 3)
-                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2))
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3))
 
                         else
-                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
-                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
-                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 4), 1, 3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3))
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 4))
                         end if
 
                      else
 
                         if (iaddx1 .eq. 1) then
-                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
-                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 3)
-                           vext(4, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3) + &
-                              & node_coords(ielem_nodes_faces(i,   iaddx, 2), 1, 3)) / 2.00
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                           vext(3, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 2))
+                           vext(4, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3)) + &
+                              & node_coords(ielem_nodes_faces(i,   iaddx, 2))) / 2.00
 
 !                         vext(4,1:3)=(vext(2,1:3)+vext(4,1:3))/2.00
 
                         end if
                         if (iaddx1 .eq. 2) then
-                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 3)
-                           vext(3, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3) + &
-                              & node_coords(ielem_nodes_faces(i,   iaddx, 2), 1, 3)) / 2.00
-                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3), 1, 3)
+                           vext(2, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                           vext(3, 1:3) = (node_coords(ielem_nodes_faces(i, iaddx, 3)) + &
+                              & node_coords(ielem_nodes_faces(i,   iaddx, 2))) / 2.00
+                           vext(4, 1:3) = node_coords(ielem_nodes_faces(i, iaddx, 3))
 
 !                         vext(4,1:3)=(vext(2,1:3)+vext(3,1:3)+vext(4,1:3))/3.00
 
@@ -4665,13 +4665,13 @@ contains
                      ifno = 2
 
                      if (iaddx1 .eq. 1) then
-                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 2)
-                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 2)
+                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2))
                         vext(3, 1:2) = (vext(2, 1:2) + vext(3, 1:2)) * oo2
 
                      else
-                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1), 1, 2)
-                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2), 1, 2)
+                        vext(2, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 1))
+                        vext(3, 1:2) = node_coords(ielem_nodes_faces(i, iaddx, 2))
                         vext(2, 1:2) = (vext(2, 1:2) + vext(3, 1:2)) * oo2
                      end if
 
@@ -4791,17 +4791,17 @@ contains
                   end if
 
                   if (ifno .eq. 3) then
-                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
-                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
-                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
+                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1))
+                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 3))
+                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 2))
                   else
-                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
-                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
-                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
-                     vext(5, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
-                     vext(6, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
-                     vext(7, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
-                     vext(8, 1:3) = node_coords(ielem_nodes_faces(i, il, 4), 1, 3)
+                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1))
+                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 2))
+                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 3))
+                     vext(5, 1:3) = node_coords(ielem_nodes_faces(i, il, 1))
+                     vext(6, 1:3) = node_coords(ielem_nodes_faces(i, il, 2))
+                     vext(7, 1:3) = node_coords(ielem_nodes_faces(i, il, 3))
+                     vext(8, 1:3) = node_coords(ielem_nodes_faces(i, il, 4))
                   end if
 
                   if ((ielem_ineighg(i, il) .gt. 0)) then
@@ -4902,8 +4902,8 @@ contains
                bc(1) = ielem_xxc(i); bc(2) = ielem_yyc(i);
                do il = 1, stnsha !for all stencils
                   ifno = 2
-                  vext(2, 1:2) = node_coords(ielem_nodes_faces(i, il, 1), 1, 2)
-                  vext(3, 1:2) = node_coords(ielem_nodes_faces(i, il, 2), 1, 2)
+                  vext(2, 1:2) = node_coords(ielem_nodes_faces(i, il, 1))
+                  vext(3, 1:2) = node_coords(ielem_nodes_faces(i, il, 2))
 
 !
 
@@ -5033,17 +5033,17 @@ contains
                   end if
 
                   if (ifno .eq. 3) then
-                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
-                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
-                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
+                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1))
+                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 3))
+                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 2))
                   else
-                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
-                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
-                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
-                     vext(5, 1:3) = node_coords(ielem_nodes_faces(i, il, 1), 1, 3)
-                     vext(6, 1:3) = node_coords(ielem_nodes_faces(i, il, 2), 1, 3)
-                     vext(7, 1:3) = node_coords(ielem_nodes_faces(i, il, 3), 1, 3)
-                     vext(8, 1:3) = node_coords(ielem_nodes_faces(i, il, 4), 1, 3)
+                     vext(2, 1:3) = node_coords(ielem_nodes_faces(i, il, 1))
+                     vext(3, 1:3) = node_coords(ielem_nodes_faces(i, il, 2))
+                     vext(4, 1:3) = node_coords(ielem_nodes_faces(i, il, 3))
+                     vext(5, 1:3) = node_coords(ielem_nodes_faces(i, il, 1))
+                     vext(6, 1:3) = node_coords(ielem_nodes_faces(i, il, 2))
+                     vext(7, 1:3) = node_coords(ielem_nodes_faces(i, il, 3))
+                     vext(8, 1:3) = node_coords(ielem_nodes_faces(i, il, 4))
                   end if
 
                   if ((ielem_ineighg(i, il) .gt. 0)) then
@@ -5146,8 +5146,8 @@ contains
                do il = 1, stnsha !for all stencils
                   ifno = 2
 
-                  vext(2, 1:2) = node_coords(ielem_nodes_faces(i, il, 1), 1, 2)
-                  vext(3, 1:2) = node_coords(ielem_nodes_faces(i, il, 2), 1, 2)
+                  vext(2, 1:2) = node_coords(ielem_nodes_faces(i, il, 1))
+                  vext(3, 1:2) = node_coords(ielem_nodes_faces(i, il, 2))
 
                   if ((ielem_ineighg(i, il) .gt. 0)) then
                      iwhichsten = il

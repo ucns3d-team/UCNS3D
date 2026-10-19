@@ -137,7 +137,7 @@ CONTAINS
 !
                do K = 1, jx
                   JX2 = IELEM_NODES(k, I)
-                  NODES_LIST(k, :) = node_coords(JX2, 1, dimensiona)
+                  NODES_LIST(k, :) = node_coords(JX2)
                   VEXT(K, :) = NODES_LIST(k, :)
                END DO
 

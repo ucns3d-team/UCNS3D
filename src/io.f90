@@ -18551,7 +18551,7 @@ contains
       do i = 1, kmaxn
 
          inoder4_itor(i) = ndlc_array1(i)
-         inoder4_cord(1:dims, i) = node_coords(inoder4_itor(i), 1, dims)
+         inoder4_cord(1:dims, i) = node_coords(inoder4_itor(i))
          if (.not. local_nodes_enabled) dinoder(inoder4_itor(i))%itor = i
          if (node_output_owner(inoder4_itor(i), list_nout) .eq. n) then
             countfnodes = countfnodes + 1

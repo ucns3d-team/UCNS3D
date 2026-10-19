@@ -299,10 +299,10 @@ contains
 
                do kk = 1, n_node
                   if (ielem_reorient(i, k) .eq. 0) then
-                     vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, kk), 1, 3)
+                     vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, kk))
                   else
 
-                     vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1), 1, 3)
+                     vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1))
 !
                   end if
                   if (per_rot .eq. 0) then
@@ -341,9 +341,9 @@ contains
             else
                do kk = 1, n_node
                   if (ielem_reorient(i, k) .eq. 0) then
-                     vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, kk), 1, 3)
+                     vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, kk))
                   else
-                     vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1), 1, 3)
+                     vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1))
                   end if
                end do
 
@@ -351,9 +351,9 @@ contains
          else
             do kk = 1, n_node
                if (ielem_reorient(i, k) .eq. 0) then
-                  vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, kk), 1, 3)
+                  vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, kk))
                else
-                  vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1), 1, 3)
+                  vext(kk, 1:3) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1))
                end if
             end do
 
@@ -466,11 +466,11 @@ contains
 
                do kk = 1, n_node
                   if (ielem_reorient(i, k) .eq. 0) then
-                     vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, kk), 1, 2)
+                     vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, kk))
                   else
 
 !
-                     vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1), 1, 2)
+                     vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1))
 
 !
                   end if
@@ -489,9 +489,9 @@ contains
             else
                do kk = 1, n_node
                   if (ielem_reorient(i, k) .eq. 0) then
-                     vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, kk), 1, 2)
+                     vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, kk))
                   else
-                     vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1), 1, 2)
+                     vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1))
                   end if
                end do
 
@@ -499,9 +499,9 @@ contains
          else
             do kk = 1, n_node
                if (ielem_reorient(i, k) .eq. 0) then
-                  vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, kk), 1, 2)
+                  vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, kk))
                else
-                  vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1), 1, 2)
+                  vext(kk, 1:2) = node_coords(ielem_nodes_faces(i, k, n_node - kk + 1))
                end if
             end do
 
@@ -1120,7 +1120,7 @@ contains
 
       do k = 1, jx
          jx2 = ielem_nodes(k, i)
-         nodes_list(k, :) = node_coords(jx2, 1, dimensiona)
+         nodes_list(k, :) = node_coords(jx2)
          vext(k, :) = nodes_list(k, :)
       end do
       call decompose3(n, eltype, nodes_list, elem_listd)
@@ -1227,7 +1227,7 @@ contains
       elem_dec = ielem_vdec(i)
       ielem_totvolume(i) = 0.00
       do k = 1, ielem_nonodes(i)
-         nodes_list(k, 1:2) = node_coords(ielem_nodes(k, i), 1, 2)
+         nodes_list(k, 1:2) = node_coords(ielem_nodes(k, i))
          vext(k, 1:2) = nodes_list(k, 1:2)
       end do
       call decompose2(n, eltype, nodes_list, elem_listd)
@@ -1299,7 +1299,7 @@ contains
 
             nnd = 4
             do k = 1, nnd
-               vext(k, 1:dims) = node_coords(ielem_nodes_faces(i, j, k), 1, dims)
+               vext(k, 1:dims) = node_coords(ielem_nodes_faces(i, j, k))
             end do
 
             ielem_surf(i, j) = quadarea(n, vext)
@@ -1308,7 +1308,7 @@ contains
 
             nnd = 3
             do k = 1, nnd
-               vext(k, 1:dims) = node_coords(ielem_nodes_faces(i, j, k), 1, dims)
+               vext(k, 1:dims) = node_coords(ielem_nodes_faces(i, j, k))
             end do
 
             ielem_surf(i, j) = trianglearea(n, vext)
@@ -1322,15 +1322,15 @@ contains
          case (5)
             dumv2 = zero
 
-            vext(1, 1:dims) = node_coords(ielem_nodes_faces(i, j, 1), 1, dims)
-            vext(2, 1:dims) = node_coords(ielem_nodes_faces(i, j, 2), 1, dims)
-            vext(3, 1:dims) = node_coords(ielem_nodes_faces(i, j, 3), 1, dims)
+            vext(1, 1:dims) = node_coords(ielem_nodes_faces(i, j, 1))
+            vext(2, 1:dims) = node_coords(ielem_nodes_faces(i, j, 2))
+            vext(3, 1:dims) = node_coords(ielem_nodes_faces(i, j, 3))
 
             dumv2 = dumv2 + trianglearea(n, vext)
 
-            vext(1, 1:dims) = node_coords(ielem_nodes_faces(i, j, 1), 1, dims)
-            vext(2, 1:dims) = node_coords(ielem_nodes_faces(i, j, 3), 1, dims)
-            vext(3, 1:dims) = node_coords(ielem_nodes_faces(i, j, 4), 1, dims)
+            vext(1, 1:dims) = node_coords(ielem_nodes_faces(i, j, 1))
+            vext(2, 1:dims) = node_coords(ielem_nodes_faces(i, j, 3))
+            vext(3, 1:dims) = node_coords(ielem_nodes_faces(i, j, 4))
             dumv2 = dumv2 + trianglearea(n, vext)
 
             if (abs((dumv2 - ielem_surf(i, j)) / ielem_surf(i, j)) * 100.00 .gt. 10.00) then
@@ -1358,7 +1358,7 @@ contains
          nnd = 2
 
          do k = 1, nnd
-            vext(k, 1:dims) = node_coords(ielem_nodes_faces(i, j, k), 1, dims)
+            vext(k, 1:dims) = node_coords(ielem_nodes_faces(i, j, k))
          end do
 
          ielem_surf(i, j) = linearea(n, vext)
@@ -1380,7 +1380,7 @@ contains
 
       do k = 1, n_node
 
-         nodes_list(k, 1:3) = node_coords(ielem_nodes_faces(i, facex, k), 1, 3)
+         nodes_list(k, 1:3) = node_coords(ielem_nodes_faces(i, facex, k))
       end do
 
       call cordinates3(n, nodes_list, n_node, cords(1:3))
@@ -1406,7 +1406,7 @@ contains
       end select
 
       do k = 1, nnd
-         nodes_list(k, 1:3) = node_coords(ielem_nodes_faces(i, facex, k), 1, 3)
+         nodes_list(k, 1:3) = node_coords(ielem_nodes_faces(i, facex, k))
          vext(k, 1:3) = nodes_list(k, 1:3)
       end do
 
@@ -1426,7 +1426,7 @@ contains
       nnd = 2
 
       do k = 1, nnd
-         nodes_list(k, 1:2) = node_coords(ielem_nodes_faces(i, facex, k), 1, 2)
+         nodes_list(k, 1:2) = node_coords(ielem_nodes_faces(i, facex, k))
          vext(k, 1:2) = nodes_list(k, 1:2)
       end do
 
@@ -1508,7 +1508,7 @@ contains
       vext(1, 3) = ielem_zzc(i)
 
       do k = 1, nnd
-         nodes_list(k, 1:3) = node_coords(ielem_nodes_faces(i, facex, k), 1, dims)
+         nodes_list(k, 1:3) = node_coords(ielem_nodes_faces(i, facex, k))
       end do
       do k = 1, nnd
          if (per_rot .eq. 0) then
@@ -1565,7 +1565,7 @@ contains
       vext(1, 2) = ielem_yyc(i)
 
       do k = 1, nnd
-         nodes_list(k, 1:2) = node_coords(ielem_nodes_faces(i, facex, k), 1, dims)
+         nodes_list(k, 1:2) = node_coords(ielem_nodes_faces(i, facex, k))
       end do
       do k = 1, nnd
          if (abs(nodes_list(k, 1) - vext(1, 1)) .gt. xper * oo2) then
@@ -1606,7 +1606,7 @@ contains
       vext(1, 3) = ielem_zzc(i)
 
       do k = 1, nnd
-         nodes_list(k, 1:3) = node_coords(ielem_nodes_faces(i, facex, k), 1, dims)
+         nodes_list(k, 1:3) = node_coords(ielem_nodes_faces(i, facex, k))
       end do
       if (per_rot .eq. 0) then
          do k = 1, nnd
@@ -1665,7 +1665,7 @@ contains
       vext(1, 2) = ielem_yyc(i)
 
       do k = 1, nnd
-         nodes_list(k, 1:2) = node_coords(ielem_nodes_faces(i, facex, k), 1, 2)
+         nodes_list(k, 1:2) = node_coords(ielem_nodes_faces(i, facex, k))
       end do
       do k = 1, nnd
          if (abs(nodes_list(k, 1) - vext(1, 1)) .gt. xper * oo2) then
@@ -1694,7 +1694,7 @@ contains
       i = iconsidered
 
       do k = 1, n_node
-         nodes_list(k, 1:2) = node_coords(ielem_nodes_faces(i, facex, k), 1, 2)
+         nodes_list(k, 1:2) = node_coords(ielem_nodes_faces(i, facex, k))
       end do
       call cordinates2(n, nodes_list, n_node, cords(1:2))
 
@@ -1713,7 +1713,7 @@ contains
 
       n_node = ielem_nonodes(i)
       do k = 1, ielem_nonodes(i)
-         nodes_list(k, 1:3) = node_coords(ielem_nodes(k, i), 1, 3)
+         nodes_list(k, 1:3) = node_coords(ielem_nodes(k, i))
       end do
       call cordinates3(n, nodes_list, n_node, cords(1:3))
 
@@ -1732,7 +1732,7 @@ contains
 
       n_node = ielem_nonodes(i)
       do k = 1, ielem_nonodes(i)
-         nodes_list(k, 1:2) = node_coords(ielem_nodes(k, i), 1, 2)
+         nodes_list(k, 1:2) = node_coords(ielem_nodes(k, i))
       end do
       call cordinates2(n, nodes_list, n_node, cords(1:2))
 

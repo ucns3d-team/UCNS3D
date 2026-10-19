@@ -575,7 +575,7 @@ contains
                               n_node = 3
                            end if
                            do kk = 1, n_node
-                              nodes_list(kk, 1:3) = node_coords(ibound_ibl(kk, ielem_ibounds(i, j)), 1, 3)
+                              nodes_list(kk, 1:3) = node_coords(ibound_ibl(kk, ielem_ibounds(i, j)))
                            end do
                            call cordinates3(n, nodes_list, n_node, cords(1:3))
                            vext(1, 1:3) = cords(1:3)
@@ -588,7 +588,7 @@ contains
                                     if (ielem_ihexgl(ibound_localn(1, ii)) .ne. ielem_ihexgl(i)) then
 !
                                        do kk = 1, n_node
-                                          nodes_list(kk, 1:3) = node_coords(ibound_ibl(kk, ii), 1, 3)
+                                          nodes_list(kk, 1:3) = node_coords(ibound_ibl(kk, ii))
                                        end do
                                        call cordinates3(n, nodes_list, n_node, cords(1:3))
                                        vext(2, 1:3) = cords(1:3)
@@ -690,7 +690,7 @@ contains
                               !assign the bleed zone
                               n_node = 2
                               do kk = 1, n_node
-                                 nodes_list(kk, 1:2) = node_coords(ibound_ibl(kk, ielem_ibounds(i, j)), 1, 2)
+                                 nodes_list(kk, 1:2) = node_coords(ibound_ibl(kk, ielem_ibounds(i, j)))
                               end do
                               call cordinates2(n, nodes_list, n_node, cords(1:2))
                               vext(1, 1:2) = cords(1:2)
@@ -711,7 +711,7 @@ contains
 
                            n_node = 2
                            do kk = 1, n_node
-                              nodes_list(kk, 1:2) = node_coords(ibound_ibl(kk, ielem_ibounds(i, j)), 1, 2)
+                              nodes_list(kk, 1:2) = node_coords(ibound_ibl(kk, ielem_ibounds(i, j)))
                            end do
                            call cordinates2(n, nodes_list, n_node, cords(1:2))
                            vext(1, 1:2) = cords(1:2)
@@ -720,7 +720,7 @@ contains
                                  if (ibound_localn(1, ii) .gt. 0) then ! excluding itself, and of same shape type
                                     if (ielem_ihexgl(ibound_localn(1, ii)) .ne. ielem_ihexgl(i)) then
                                        do kk = 1, n_node
-                                          nodes_list(kk, 1:2) = node_coords(ibound_ibl(kk, ii), 1, 2)
+                                          nodes_list(kk, 1:2) = node_coords(ibound_ibl(kk, ii))
                                        end do
                                        call cordinates2(n, nodes_list, n_node, cords(1:2))
                                        vext(2, 1:2) = cords(1:2)
